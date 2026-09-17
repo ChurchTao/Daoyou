@@ -1,13 +1,16 @@
-import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
-import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
+import {
+  prepareWildBattle,
+  readWildSearch,
+  saveWildSearch,
+} from '@server/lib/repositories/combatV6WildSearchRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { automaticCommands } from '@shared/combat-v6/auto';
 import {
@@ -18,6 +21,8 @@ import {
   visibleUnitNames,
 } from '@shared/combat-v6/presentation';
 import { liveReplayDelta } from '@shared/combat-v6/replay-timeline';
+import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type {
   CombatV6TerminalOutboxV1,
@@ -28,30 +33,41 @@ import type {
   WildSessionView,
   WildSettlement,
 } from '@shared/contracts/combatV6Wild';
+import {
+  wildEncounterView,
+  type WildEncounter,
+  type WildRegionView,
+} from '@shared/contracts/combatV6Wild';
 import { DOMAIN_EVENT_DEFINITIONS } from '@shared/contracts/domainEvents';
 import { beastDeathIds } from '@shared/engine/combat-v6/beasts';
-import {
-  generateCapturedBeast,
-} from '@shared/engine/combat-v6/beasts/progression';
 import { SeededRng } from '@shared/engine/combat-v6/core';
 import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import {
+  getWildRegion,
   WILD_CONTENT_VERSION,
-  WILD_REGION,
-  WILD_SPECIES,
 } from '@shared/engine/combat-v6/wild/content';
+import {
+  generateWildEncounter,
+  generateWildIndividual,
+} from '@shared/engine/combat-v6/wild/generator';
 import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
-import { WILD_DAILY_LIMIT, wildDay } from '@shared/engine/combat-v6/wild/rules';
+import { WILD_EXPLORATION_COOLDOWN_MS } from '@shared/engine/combat-v6/wild/rules';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { WILD_DROP_POOLS, wildItemRewards } from '@shared/rewards/wild';
+import { REALM_ORDER } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
+import { playerCommandExecutor } from '../CommandExecutors';
 import { ConditionService } from '../ConditionService';
+import { qiCurrencyChange } from '../QiResourceChanges';
+import { QiService } from '../QiService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
+import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
+import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './CombatV6WildStore';
 
 type Actor = { userId: string; cultivatorId: string };
@@ -133,20 +149,7 @@ function summaryOf(
         return [];
       const target = r.host.combatants.find((c) => c.unitId === event.targetId);
       if (!target) throw new Error('CAPTURE_TARGET_MISSING');
-      // Battle UUID plus encounter slot gives a stable UUID without another receipt table.
-      const hex = createHash('sha256')
-        .update(`${r.battleId}:${target.unitId}`)
-        .digest('hex');
-      const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-      return [
-        generateCapturedBeast(
-          id,
-          r.cultivatorId,
-          target.speciesId,
-          target.level,
-          event.generationSeed,
-        ),
-      ];
+      return [structuredClone(target.beast)];
     }),
     deadBeastIds: beastDeathIds(r.host.events),
     schemaVersion: 1,
@@ -179,65 +182,168 @@ function checked(result: string) {
 }
 
 export class CombatV6WildSessionService {
-  async region(actor: Actor, nodeId: string) {
-    if (nodeId !== WILD_REGION.nodeId)
-      throw new WildError('UNKNOWN_WILD_REGION', '此处尚未开放灵兽探索', 404);
-    const day = wildDay(Date.now());
+  async region(actor: Actor, nodeId: string): Promise<WildRegionView> {
+    const region = getWildRegion(nodeId);
+    if (!region)
+      throw new WildError('UNKNOWN_WILD_REGION', '此处尚未开放灵兽寻觅', 404);
     const activeId = await common.currentId(actor.cultivatorId);
     const activeTraining = activeId ? await common.get(activeId) : null;
+    const search = await readWildSearch(actor.cultivatorId);
+    const attempted = search?.preparedBattle;
+    const consumed =
+      attempted &&
+      (Date.parse(attempted.expiresAt) <= Date.now() ||
+        (await store.request(actor.cultivatorId, search.encounter.id)));
     return {
-      ...WILD_REGION,
-      species: WILD_SPECIES,
-      dailyLimit: WILD_DAILY_LIMIT,
-      remaining: Math.max(0, WILD_DAILY_LIMIT - (await store.used(actor.cultivatorId))),
-      resetsAt: new Date(day.resetAt).toISOString(),
+      ...region,
+      qiCost: QI_ACTION_COSTS.wild_search,
+      encounter:
+        search?.encounter.nodeId === nodeId && !consumed
+          ? wildEncounterView(search.encounter)
+          : null,
       settlingBattleId: await store.lock(actor.cultivatorId),
       trainingSessionId: activeTraining?.battleId ?? null,
     };
   }
-  async explore(actor: Actor, nodeId: string, requestId: string) {
-    const previous = await store.request(actor.cultivatorId, requestId);
-    if (previous) {
-      if (previous.nodeId !== nodeId)
-        throw new WildError(
-          'WILD_IDEMPOTENCY_CONFLICT',
-          '同一请求不能探索不同区域',
-        );
-      return this.get(actor, previous.battleId);
+  private async assertAvailable(actor: Actor) {
+    if (
+      (await hasActiveTower(actor.cultivatorId)) ||
+      (await hasActiveRanking(actor.cultivatorId)) ||
+      (await hasActiveDungeon(actor.cultivatorId)) ||
+      (await hasActiveSectTaskBattle(actor.cultivatorId)) ||
+      (await hasActiveBreakthroughBattle(actor.cultivatorId)) ||
+      (await redis.get(arenaOccupancyKey(actor.cultivatorId))) ||
+      (await common.currentId(actor.cultivatorId)) ||
+      (await store.lock(actor.cultivatorId))
+    ) {
+      throw new WildError(
+        'WILD_BATTLE_ALREADY_ACTIVE',
+        '请先结束当前战斗、历练与结算',
+      );
     }
-    await this.region(actor, nodeId);
+  }
+  async explore(actor: Actor, nodeId: string, requestId: string) {
+    const region = getWildRegion(nodeId);
+    if (!region)
+      throw new WildError('UNKNOWN_WILD_REGION', '此处尚未开放灵兽寻觅', 404);
+    return playerCommandExecutor.executeWithLock({
+      ...actor,
+      source: 'wild_search',
+      requestId,
+      idempotency: { key: requestId, fingerprint: nodeId },
+      command: async (tx) => {
+        await this.assertAvailable(actor);
+        const assembled = await assembleCombatV6TrainingPlayer(
+          actor.cultivatorId,
+          tx,
+        );
+        if (
+          REALM_ORDER[assembled.player.cultivator.realm] <
+          REALM_ORDER[region.realmRequirement]
+        ) {
+          throw new WildError(
+            'WILD_REALM_REQUIRED',
+            `此处需要达到${region.realmRequirement}期`,
+            422,
+          );
+        }
+        const previous = await readWildSearch(actor.cultivatorId, tx);
+        const now = Date.now();
+        if (
+          previous &&
+          now - Date.parse(previous.encounter.createdAt) <
+            WILD_EXPLORATION_COOLDOWN_MS
+        ) {
+          throw new WildError('WILD_COOLDOWN', '请稍候再寻觅');
+        }
+        const seed = randomInt(0, 0x7fffffff);
+        const encounter: WildEncounter = {
+          id: randomUUID(),
+          nodeId,
+          seed,
+          createdAt: new Date(now).toISOString(),
+          combatants: generateWildEncounter(nodeId, seed).map((c, i) =>
+            generateWildIndividual(
+              c,
+              randomUUID(),
+              actor.cultivatorId,
+              seed ^ ((i + 1) * 0x45d9f3b),
+            ),
+          ),
+        };
+        const actionInstanceId = `wild-search:${actor.cultivatorId}:${requestId}`;
+        const qi = await QiService.reserveQi({
+          cultivatorId: actor.cultivatorId,
+          action: 'wild_search',
+          actionInstanceId,
+          metadata: { nodeId, encounterId: encounter.id },
+          tx,
+        });
+        await saveWildSearch(actor.cultivatorId, encounter, tx);
+        await QiService.commitReservation({ actionInstanceId, tx });
+        return {
+          result: wildEncounterView(encounter),
+          resourceChanges: [qiCurrencyChange('wild.searched', qi)],
+        };
+      },
+    });
+  }
+  async start(actor: Actor, encounterId: string) {
     return withRedisLock(
       {
         key: redisLockKeys.cultivatorMutation(actor.cultivatorId),
-        context: 'wild-exploration',
+        context: 'wild-start',
         timeoutMs: 30000,
         retries: 0,
       },
       async (lease) => {
-        if (
-          (await hasActiveTower(actor.cultivatorId)) ||
-          (await hasActiveRanking(actor.cultivatorId)) ||
-          (await hasActiveDungeon(actor.cultivatorId)) ||
-          ((await hasActiveSectTaskBattle(actor.cultivatorId)) || (await hasActiveBreakthroughBattle(actor.cultivatorId)))
-        )
-          throw new WildError('DUNGEON_ACTIVE', '请先结束秘境探索与结算');
-        if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
-          throw new WildError('WILD_BATTLE_ALREADY_ACTIVE', '请先结束擂台战斗');
-        const activeId = await common.currentId(actor.cultivatorId);
-        if (activeId) {
-          const r = await store.get(activeId);
-          if (r?.metadata.payload.nodeId === nodeId)
-            return this.get(actor, activeId);
-          throw new WildError('WILD_BATTLE_ALREADY_ACTIVE', '请先结束当前战斗');
-        }
-        if (await store.lock(actor.cultivatorId))
-          throw new WildError('WILD_SETTLEMENT_PENDING', '上场战斗正在结算');
-        return db.transaction(async (tx) => {
+        const previous = await store.request(actor.cultivatorId, encounterId);
+        if (previous) return this.get(actor, previous.battleId);
+        await this.assertAvailable(actor);
+        const runtime = await db.transaction(async (tx) => {
           await lockCultivatorForStateMutation(tx, actor.cultivatorId);
+          const search = await readWildSearch(actor.cultivatorId, tx);
+          if (!search || search.encounter.id !== encounterId) {
+            throw new WildError(
+              'WILD_ENCOUNTER_CHANGED',
+              '寻觅结果已更新，请重新查看',
+            );
+          }
+          const { encounter } = search;
+          const region = getWildRegion(encounter.nodeId);
+          if (!region)
+            throw new WildError(
+              'UNKNOWN_WILD_REGION',
+              '此处尚未开放灵兽寻觅',
+              404,
+            );
           const assembled = await assembleCombatV6TrainingPlayer(
             actor.cultivatorId,
             tx,
           );
+          if (
+            REALM_ORDER[assembled.player.cultivator.realm] <
+            REALM_ORDER[region.realmRequirement]
+          ) {
+            throw new WildError(
+              'WILD_REALM_REQUIRED',
+              `此处需要达到${region.realmRequirement}期`,
+              422,
+            );
+          }
+          if (search.preparedBattle) {
+            const prepared = search.preparedBattle;
+            if (
+              Date.parse(prepared.expiresAt) <= Date.now() ||
+              prepared.membershipId !== assembled.membershipId
+            ) {
+              throw new WildError(
+                'WILD_ENCOUNTER_EXPIRED',
+                '该次遭遇已结束，请重新寻觅',
+              );
+            }
+            // Redis 尚未接收时重新读取人物状态；遭遇个体与战斗身份仍保持不变。
+          }
           const projected = projectCharacterToCombatV6({
             ...assembled.player,
             side: 0,
@@ -271,68 +377,53 @@ export class CombatV6WildSessionService {
               condition: recovered,
             },
           };
-          let host: WildHost;
-          try {
-            host = createWildHost(nodeId, randomInt(0, 0x7fffffff), player);
-          } catch (error) {
+          const host = createWildHost(
+            encounter.nodeId,
+            encounter.seed,
+            player,
+            encounter.combatants,
+          );
+          const snapshot = host.runtimeSnapshot();
+          const dropPool = WILD_DROP_POOLS[encounter.nodeId];
+          if (!dropPool)
             throw new WildError(
-              'WILD_PLAYER_INVALID',
-              error instanceof Error ? error.message : '人物构筑无法投影',
+              'WILD_REWARDS_MISSING',
+              '该区域奖励尚未配置',
               422,
             );
-          }
-          const snapshot = host.runtimeSnapshot();
           const r: WildRuntime = {
-            dropPool: structuredClone(WILD_DROP_POOLS[nodeId]),
+            dropPool: structuredClone(dropPool),
             runtimeVersion: 'combat_v6_redis_runtime_v1',
-            battleId: randomUUID(),
+            battleId: encounter.id,
             ...actor,
             membershipId: assembled.membershipId,
             metadata: {
               schemaVersion: 1,
               sourceType: 'wild-encounter',
               battleType: 'pve',
-              idempotencyKey: randomUUID(),
+              idempotencyKey: encounter.id,
               payload: {
-                nodeId,
+                nodeId: encounter.nodeId,
                 encounterContentVersion: WILD_CONTENT_VERSION,
-                combatants: snapshot.combatants,
+                combatants: encounter.combatants.map(
+                  ({ unitId, speciesId, level }) => ({
+                    unitId,
+                    speciesId,
+                    level,
+                  }),
+                ),
               },
             },
             revision: 0,
-            createdAt: new Date(now).toISOString(),
-            expiresAt: new Date(now + 7200000).toISOString(),
+            createdAt:
+              search.preparedBattle?.createdAt ?? new Date(now).toISOString(),
+            expiresAt:
+              search.preparedBattle?.expiresAt ??
+              new Date(now + 7200000).toISOString(),
             latestEventSeq: snapshot.events.length - 1,
             host: snapshot,
           };
-          const p = snapshot.state.units.find((u) => u.id === host.playerId)!;
-          const s = summaryOf(r, {
-            hp: p.attrs.hp,
-            mp: p.attrs.mp,
-            maxHp: p.attrs.maxHp,
-            maxMp: p.attrs.maxMp,
-          });
-          lease.assertHeld();
-          const [status, id] = await store.create(r, s, requestId, now);
-          if (status === 'EXISTING') {
-            const existing = await store.get(id);
-            if (existing?.metadata.payload.nodeId === nodeId)
-              return this.view(existing);
-            throw new WildError(
-              'WILD_REQUEST_COMPLETED',
-              '该请求已处理或存在其他战斗',
-            );
-          }
-          if (status !== 'CREATED')
-            throw new WildError(
-              `WILD_${status}`,
-              status === 'LIMIT'
-                ? '今日探索次数已用尽'
-                : status === 'COOLDOWN'
-                  ? '请稍候再探索'
-                  : '当前无法探索',
-            );
-          // Redis is authoritative after creation. If this transaction fails, settlement still has its entry facts.
+          await prepareWildBattle(actor.cultivatorId, r, tx);
           await tx
             .update(cultivators)
             .set({ condition: recovered })
@@ -349,8 +440,31 @@ export class CombatV6WildSessionService {
               },
             ],
           });
-          return this.view(r);
+          lease.assertHeld();
+          return r;
         });
+        const p = runtime.host.state.units.find(
+          (u) => u.id === runtime.host.playerId,
+        )!;
+        const summary = summaryOf(runtime, {
+          hp: p.attrs.hp,
+          mp: p.attrs.mp,
+          maxHp: p.attrs.maxHp,
+          maxMp: p.attrs.maxMp,
+        });
+        lease.assertHeld();
+        const [status, id] = await store.create(runtime, summary, encounterId);
+        if (status === 'EXISTING') {
+          if (id !== runtime.battleId)
+            throw new WildError(
+              'WILD_BATTLE_ALREADY_ACTIVE',
+              '请先结束当前战斗',
+            );
+          return this.get(actor, id);
+        }
+        if (status !== 'CREATED')
+          throw new WildError(`WILD_${status}`, '当前无法开战，请稍后重试');
+        return this.view(runtime);
       },
     );
   }
@@ -397,10 +511,7 @@ export class CombatV6WildSessionService {
       if (s) await store.finish(s, wildTerminal(s, 'expired'));
       throw new WildError('WILD_SESSION_NOT_FOUND', '战斗已过期', 404);
     }
-    const membership = await findActiveSectMembership(
-      actor.cultivatorId,
-      db,
-    );
+    const membership = await findActiveSectMembership(actor.cultivatorId, db);
     if (membership?.membershipId !== r.membershipId) {
       if (s) await store.finish(s, wildTerminal(s, 'membership-changed'));
       else if (r.host.state.result) await store.clearFinished(r, r.revision);
@@ -537,7 +648,7 @@ export class CombatV6WildSessionService {
     const player = state.units.find((u) => u.id === host.playerId)!;
     return structuredClone({
       apiVersion: 1,
-    controlledUnitId: host.playerId,
+      controlledUnitId: host.playerId,
       sessionId: r.battleId,
       playback: liveReplayDelta(r.host.timeline, after),
       revision: r.revision,
@@ -555,7 +666,10 @@ export class CombatV6WildSessionService {
         : 'not-started',
       units: combatV6Units(state, r.host.input.statusDefs ?? []),
       display: {
-      unitAppearances: publicUnitAppearances(r.host.timeline.unitAppearances, visibleUnitNames(state, r.host.events, host.playerId)),
+        unitAppearances: publicUnitAppearances(
+          r.host.timeline.unitAppearances,
+          visibleUnitNames(state, r.host.events, host.playerId),
+        ),
         ...combatV6Display(
           r.host.input.skills ?? [],
           r.host.input.statusDefs ?? [],
@@ -575,4 +689,3 @@ export class CombatV6WildSessionService {
   }
 }
 export const wildSessions = new CombatV6WildSessionService();
-import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

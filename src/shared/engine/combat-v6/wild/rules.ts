@@ -1,16 +1,6 @@
 import { WILD_PACK } from './pack';
-export const WILD_DAILY_LIMIT = WILD_PACK.activity.dailyLimit;
-export const WILD_EXPLORATION_COOLDOWN_MS = WILD_PACK.activity.explorationCooldownMs;
-const DAY_MS = 86_400_000;
-export function wildDay(now: number) {
-  const start =
-    Math.floor((now + 8 * 3_600_000) / DAY_MS) * DAY_MS - 8 * 3_600_000;
-  return {
-    key: new Date(start + 8 * 3_600_000).toISOString().slice(0, 10),
-    resetAt: start + DAY_MS,
-    expiresAt: start + 3 * DAY_MS,
-  };
-}
+export const WILD_EXPLORATION_COOLDOWN_MS =
+  WILD_PACK.activity.explorationCooldownMs;
 export type WildResources = {
   hp: number;
   mp: number;

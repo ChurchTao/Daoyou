@@ -369,6 +369,9 @@
   gap: 0.5rem;
   margin: 0.6rem 0;
 }
+.cv6-actions.has-capture {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+}
 .cv6-actions > button {
   display: flex;
   align-items: center;
@@ -524,7 +527,7 @@
     font-size: 9px;
   }
   .cv6-command {
-    height: 10.5rem;
+    height: auto;
   }
   .cv6-command-heading {
     gap: 0.5rem;
@@ -624,18 +627,6 @@
 .cv6-actions button:not(:disabled):hover {
   color: var(--color-crimson);
   background: var(--color-battle-surface);
-}
-.cv6-capture-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-right: 0.6rem;
-}
-.cv6-capture-action > button {
-  margin-left: 0;
-}
-.cv6-capture-action > button[aria-pressed='true'] {
-  color: var(--color-crimson);
 }
 .cv6-draft-steps {
   display: flex;
@@ -772,8 +763,11 @@
     padding: 0.25rem;
     gap: 0.25rem;
   }
-  .cv6-capture-action button {
-    padding: 0.25rem 0;
+  .cv6-command-hint:empty {
+    min-height: 0;
+  }
+  .cv6-actions.has-capture {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

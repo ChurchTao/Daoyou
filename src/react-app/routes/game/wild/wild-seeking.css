@@ -1,0 +1,18 @@
+.wild-seeking-result {
+  animation: wild-seeking-reveal 320ms ease-out both;
+}
+@keyframes wild-seeking-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wild-seeking-result {
+    animation: none;
+  }
+}

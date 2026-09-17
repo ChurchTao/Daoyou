@@ -14,6 +14,8 @@
 ## 共享组件归位
 
 - `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示灵兽袋（拥有上限 24，只选最多 6 只出战编组）；桌面左侧名册、右侧属性与技能，移动端名册在上。技能使用统一浮层，加点在面板内预分配并弹窗确认，学习兽诀抽屉复用通用物品栏；战斗中的召唤选择仍由 v6 指令组件负责。
+- `/game/map` 是全局导航中的常用地图，默认展示节点可用的野外、历练和坊市入口；仅显式 `intent=dungeon|market|sect` 保留选址语义。默认地图关闭返回 `/game`，避免与野外页面循环返回。
+- `/game/wild` 在 `CombatV6Layout` 中分为寻觅准备页和既有 V6 战斗页。准备页由节点配置驱动，使用统一 `InkButton`、`GameLoadingState`、`BeastIcon` 与语义配色；只展示本次物种、等级、成年／幼崽及两个动作。每次寻觅消耗 2 点天地灵气，捕捉在战斗中完成。见 [野外寻觅](combat-v6-wild-seeking.md)。
 - `/game/tower` 使用主流程壳展示挑战、祝福和周榜；活动战斗跳转 `/game/tower/battle` 的既有沉浸壳，复用 v6 公共战斗组件。结算播放结束后返回幻境，不在入口正文嵌入旧战斗播放器。
 - `/game/rankings` 保留榜单主流程壳；`/game/battle/challenge` 使用 v6 公共回放播放器自动逐行动播放服务端已结算的挑战，播放完成后展示名次摘要。挑战请求 UUID 保留在 URL，刷新及失败后恢复同一结果，观看不占用角色。
 

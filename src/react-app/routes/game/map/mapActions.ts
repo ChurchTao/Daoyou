@@ -1,7 +1,7 @@
 import type { MapNodeDetailAction } from '@app/components/feature/map';
 import { getMapNode } from '@shared/lib/game/mapSystem';
 
-export type MapIntent = 'market' | 'dungeon' | 'sect';
+export type MapIntent = 'world' | 'market' | 'dungeon' | 'sect';
 
 export interface NodeActionContext {
   selectedNodeId: string;
@@ -10,8 +10,9 @@ export interface NodeActionContext {
 }
 
 export function resolveMapIntent(value: string | null): MapIntent {
-  if (value === 'market' || value === 'sect') return value;
-  return 'dungeon';
+  if (value === 'market' || value === 'sect' || value === 'dungeon')
+    return value;
+  return 'world';
 }
 
 export function buildNodeActions(
@@ -24,7 +25,17 @@ export function buildNodeActions(
   if (intent === 'dungeon') {
     if (ctx.isMainNode) return [];
     return [
-      ...(getMapNode(ctx.selectedNodeId)?.wild_encounter_id ? [{key:'wild-explore',label:'探索灵兽',variant:'primary' as const,onClick:()=>navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`)}] : []),
+      ...(getMapNode(ctx.selectedNodeId)?.wild_encounter_id
+        ? [
+            {
+              key: 'wild-explore',
+              label: '进入野外',
+              variant: 'primary' as const,
+              onClick: () =>
+                navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`),
+            },
+          ]
+        : []),
       {
         key: 'enter-dungeon',
         label: '前往历练',
@@ -35,7 +46,13 @@ export function buildNodeActions(
   }
 
   const actions: MapNodeDetailAction[] = [];
-  if (getMapNode(ctx.selectedNodeId)?.wild_encounter_id) actions.push({key:'wild-explore',label:'探索灵兽',variant:'primary',onClick:()=>navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`)});
+  if (getMapNode(ctx.selectedNodeId)?.wild_encounter_id)
+    actions.push({
+      key: 'wild-explore',
+      label: '进入野外',
+      variant: 'primary',
+      onClick: () => navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`),
+    });
   if (!ctx.isMainNode) {
     actions.push({
       key: 'enter-dungeon',

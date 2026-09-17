@@ -1,12 +1,12 @@
-import { playerAppearances, type PresentedBattleInput, beastAppearance } from '../../../combat-v6/unit-appearance';
-import { generateWildEncounter, type WildCombatant } from './generator';
-export { generateWildEncounter, type WildCombatant } from './generator';
-import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
-import { captureSkill } from '../beasts/progression';
 import {
-  UnitKind,
-  type LineupUnit,
-} from '../core/index.ts';
+  beastAppearance,
+  playerAppearances,
+  type PresentedBattleInput,
+} from '../../../combat-v6/unit-appearance';
+import { BEAST_SKILLS, BEAST_STATUS_DEFS, projectBeastRoster } from '../beasts';
+import { captureSkill } from '../beasts/progression';
+import { activeBeastSkills, beastPanel } from '../beasts/projection';
+import { SkillTag, UnitKind, type LineupUnit } from '../core/index.ts';
 import {
   CombatV6PveHostSession,
   type PveRestoredState,
@@ -19,16 +19,12 @@ import { projectCharacterToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_PHASE_9C_WILD_VERSIONS,
+  COMBAT_V6_WILD_SEEKING_VERSIONS,
 } from '../version.ts';
-import {
-  WILD_SKILLS,
-  WILD_SPECIES,
-  validateWildContent,
-  wildPanel,
-} from './content.ts';
+import { WildIndividualSchema, type WildIndividual } from './generator';
+export { generateWildEncounter, type WildCombatant } from './generator';
 
-export const WILD_VERSIONS = COMBAT_V6_PHASE_9C_WILD_VERSIONS;
+export const WILD_VERSIONS = COMBAT_V6_WILD_SEEKING_VERSIONS;
 export interface WildRuntimeSnapshot extends PveRestoredState {
   schemaVersion: 1;
   hostVersion: 'combat_v6_wild_runtime_v1';
@@ -36,7 +32,7 @@ export interface WildRuntimeSnapshot extends PveRestoredState {
   playerId: string;
   input: PresentedBattleInput;
   npcStrategies: Record<string, PveCommandStrategyV1>;
-  combatants: WildCombatant[];
+  combatants: WildIndividual[];
 }
 
 export class WildHost extends CombatV6PveHostSession {
@@ -82,9 +78,8 @@ export function createWildHost(
   nodeId: string,
   seed: number,
   player: CombatV6TrainingPlayerInput,
+  individuals: readonly WildIndividual[],
 ): WildHost {
-  const diagnostics = validateWildContent();
-  if (diagnostics.length) throw new Error(diagnostics.join(';'));
   const projected = projectCharacterToCombatV6({
     ...player,
     side: 0,
@@ -95,7 +90,11 @@ export function createWildHost(
     throw new Error(
       projected.diagnostics.map((d) => `${d.code}: ${d.message}`).join(';'),
     );
-  const combatants = generateWildEncounter(nodeId, seed);
+  const combatants = individuals.map((c) => WildIndividualSchema.parse(c));
+  if (
+    combatants.some((c) => c.beast.ownerCultivatorId !== player.cultivator.id)
+  )
+    throw new Error('WILD_OWNER_MISMATCH');
   const strategies: Record<string, PveCommandStrategyV1> = {};
   const units: LineupUnit[] = [
     projected.unit,
@@ -108,30 +107,30 @@ export function createWildHost(
     ),
   ];
   for (const [slot, c] of combatants.entries()) {
-    const species = WILD_SPECIES.find((s) => s.id === c.speciesId)!;
-    const skills = [...species.skillIds];
+    const active = activeBeastSkills(c.beast);
+    const isPassive = (id: string) =>
+      BEAST_SKILLS.find((s) => s.id === id)!.tags.includes(SkillTag.Passive);
+    const skills = active.filter((id) => !isPassive(id));
     units.push({
       id: c.unitId,
-      name: species.name,
+      name: c.beast.name,
       side: 1,
       slot,
       kind: UnitKind.Npc,
       level: c.level,
-      attrs: wildPanel(c.speciesId, c.level),
+      attrs: beastPanel(c.beast),
       skills,
-      skillLevels: Object.fromEntries(skills.map((id) => [id, c.level])),
-      passives: [],
+      skillLevels: Object.fromEntries(
+        c.beast.skills.map((id) => [id, c.level]),
+      ),
+      passives: active.filter(isPassive),
       tags: [],
     });
     strategies[c.unitId] = skills.length
       ? { type: 'skill-rotation', skillIds: skills }
       : { type: 'attack' };
   }
-  const ids = [
-    ...projected.skills,
-    ...projected.statusDefs,
-    ...WILD_SKILLS,
-  ].map((x) => x.id);
+  const ids = [...projected.skills, ...projected.statusDefs].map((x) => x.id);
   if (
     new Set(ids).size !== ids.length ||
     new Set(units.map((u) => u.id)).size !== units.length
@@ -151,11 +150,16 @@ export function createWildHost(
     combatants,
     npcStrategies: strategies,
     input: {
-      unitAppearances: { ...playerAppearances(player), ...Object.fromEntries(combatants.map(c => [c.unitId, beastAppearance(c.speciesId)])) },
+      unitAppearances: {
+        ...playerAppearances(player),
+        ...Object.fromEntries(
+          combatants.map((c) => [c.unitId, beastAppearance(c.speciesId)]),
+        ),
+      },
       seed,
       versions: WILD_VERSIONS,
       units,
-      skills: [...projected.skills, ...WILD_SKILLS, ...BEAST_SKILLS, capture],
+      skills: [...projected.skills, ...BEAST_SKILLS, capture],
       statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],
     },
   });

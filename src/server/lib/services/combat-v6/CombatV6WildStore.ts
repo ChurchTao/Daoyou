@@ -9,11 +9,6 @@ import {
   type WildRuntime,
   type WildSettlement,
 } from '@shared/contracts/combatV6Wild';
-import {
-  WILD_DAILY_LIMIT,
-  WILD_EXPLORATION_COOLDOWN_MS,
-  wildDay,
-} from '@shared/engine/combat-v6/wild/rules';
 
 const root = 'combat:v6';
 const run = (id: string) => `${root}:runtime:${id}`;
@@ -23,16 +18,14 @@ const terminal = (id: string) => `${root}:outbox:terminal:${id}`;
 const pending = `${root}:wild:settlement:pending`;
 const deadlines = `${root}:wild:deadlines`;
 const CREATE = `
-local previous=redis.call('GET',KEYS[5])
-if previous then local p=cjson.decode(previous); if p.nodeId~=ARGV[6] then return {'IDEMPOTENCY_CONFLICT',''} end; return {'EXISTING',p.battleId} end
+local previous=redis.call('GET',KEYS[4])
+if previous then local p=cjson.decode(previous); return {'EXISTING',p.battleId} end
 local active=redis.call('GET',KEYS[2]); if active then return {'EXISTING',active} end
 local locked=redis.call('GET',KEYS[3]); if locked then return {'SETTLING',locked} end
-if tonumber(redis.call('GET',KEYS[4]) or '0')>=tonumber(ARGV[8]) then return {'LIMIT',''} end
-local last=tonumber(redis.call('GET',KEYS[8]) or '0'); if tonumber(ARGV[5])-last<tonumber(ARGV[9]) then return {'COOLDOWN',''} end
 redis.call('SET',KEYS[1],ARGV[1],'PXAT',ARGV[3]); redis.call('SET',KEYS[2],ARGV[2],'PXAT',ARGV[3])
-redis.call('SET',KEYS[3],ARGV[2]); redis.call('INCR',KEYS[4]); redis.call('PEXPIREAT',KEYS[4],ARGV[4])
-redis.call('SET',KEYS[5],cjson.encode({battleId=ARGV[2],nodeId=ARGV[6]}),'PXAT',ARGV[4])
-redis.call('SET',KEYS[6],ARGV[7]); redis.call('ZADD',KEYS[7],ARGV[3],ARGV[2]); redis.call('SET',KEYS[8],ARGV[5],'PX',ARGV[9])
+redis.call('SET',KEYS[3],ARGV[2])
+redis.call('SET',KEYS[4],cjson.encode({battleId=ARGV[2],nodeId=ARGV[4]}),'EX',259200)
+redis.call('SET',KEYS[5],ARGV[5]); redis.call('ZADD',KEYS[6],ARGV[3],ARGV[2])
 return {'CREATED',ARGV[2]}
 `;
 const SAVE = `
@@ -81,38 +74,21 @@ export class CombatV6WildStore {
   async lock(id: string) {
     return redis.get(wildLockKey(id));
   }
-  async used(id: string, now = Date.now()) {
-    return Number(
-      (await redis.get(`${root}:wild:quota:${id}:${wildDay(now).key}`)) ?? 0,
-    );
-  }
-  async create(
-    runtime: WildRuntime,
-    s: WildSettlement,
-    requestId: string,
-    now: number,
-  ) {
-    const day = wildDay(now);
+  async create(runtime: WildRuntime, s: WildSettlement, requestId: string) {
     return redis.eval(
       CREATE,
-      8,
+      6,
       run(runtime.battleId),
       `${root}:active:${runtime.cultivatorId}`,
       wildLockKey(runtime.cultivatorId),
-      `${root}:wild:quota:${runtime.cultivatorId}:${day.key}`,
       `${root}:wild:request:${runtime.cultivatorId}:${requestId}`,
       summary(runtime.battleId),
       deadlines,
-      `${root}:wild:last:${runtime.cultivatorId}`,
       JSON.stringify(runtime),
       runtime.battleId,
       String(Date.parse(runtime.expiresAt)),
-      String(day.expiresAt),
-      String(now),
       runtime.metadata.payload.nodeId,
       JSON.stringify(s),
-      String(WILD_DAILY_LIMIT),
-      String(WILD_EXPLORATION_COOLDOWN_MS),
     ) as Promise<[string, string]>;
   }
   async save(

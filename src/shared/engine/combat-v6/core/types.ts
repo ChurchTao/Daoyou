@@ -117,6 +117,7 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v8';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
+    | 'daoyou_wild_seeking_content_v2'
     | 'combat-v6-dungeon-v1'
     | 'combat-v6-tower-v1'
     | 'combat-v6-ranking-v1'
@@ -142,6 +143,7 @@ export type CombatV6VersionStamp = {
     | 'arena_beast_v2'
     | 'training_beast_v2'
     | 'wild_beast_v2'
+    | 'wild_individual_v3'
     | 'arena_beast_v1'
     | 'training_beast_v1'
     | 'wild_beast_v1'

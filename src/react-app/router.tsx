@@ -62,7 +62,9 @@ const mapTitle: RouteTitleResolver = ({ searchParams }) =>
     ? '修仙界地图 · 坊市选址'
     : searchParams.get('intent') === 'sect'
       ? '修仙界地图 · 诸宗山门'
-      : '修仙界地图 · 历练选址';
+      : searchParams.get('intent') === 'dungeon'
+        ? '修仙界地图 · 历练选址'
+        : '修仙界地图';
 
 const sectVisitTitle: RouteTitleResolver = ({ params }) => {
   return resolveSectVisitTitle(params.sectId);
@@ -1055,7 +1057,7 @@ export const router = createBrowserRouter(
               lazy={lazyRoute(() => import('@app/routes/game/wild/route'))}
               handle={scene(
                 { id: 'wild', chrome: 'immersive', dock: 'hidden' },
-                '野外探索',
+                '野外寻觅',
               )}
             />
           </Route>

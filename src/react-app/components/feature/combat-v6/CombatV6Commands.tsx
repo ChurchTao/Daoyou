@@ -1,5 +1,4 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkTooltip } from '@app/components/ui/InkTooltip';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
 import { CAPTURE_SKILL_ID } from '@shared/engine/combat-v6/beasts/progression';
@@ -116,7 +115,7 @@ export function CombatV6Commands({
               </button>
             ) : null}
           </div>
-          <div className="cv6-actions">
+          <div className={capture ? 'cv6-actions has-capture' : 'cv6-actions'}>
             <button
               disabled={
                 disabled ||
@@ -211,6 +210,27 @@ export function CombatV6Commands({
             >
               灵兽
             </button>
+            {capture ? (
+              <button
+                disabled={disabled || !options?.canSubmit || !capture.ready}
+                aria-pressed={choice?.skillId === CAPTURE_SKILL_ID}
+                onClick={() => {
+                  if (choice?.skillId === CAPTURE_SKILL_ID) {
+                    onCancel();
+                    return;
+                  }
+                  setAction({
+                    type: 'skill',
+                    name: `捕捉 · ${capture.costs.mp} 法力`,
+                    skillId: capture.skillId,
+                    ids: capture.selectableTargetIds,
+                    count: 1,
+                  });
+                }}
+              >
+                捕捉
+              </button>
+            ) : null}
             <button
               disabled={disabled || !options?.canSubmit || !options.canFlee}
               onClick={() => void submit({ type: 'flee' })}
@@ -219,35 +239,6 @@ export function CombatV6Commands({
             </button>
           </div>
           <div className="cv6-command-hint" aria-live="polite">
-            {capture ? (
-              <span className="cv6-capture-action">
-                <button
-                  disabled={disabled || !options?.canSubmit || !capture.ready}
-                  aria-pressed={choice?.skillId === CAPTURE_SKILL_ID}
-                  onClick={() =>
-                    setAction({
-                      type: 'skill',
-                      name: `捕捉 · ${capture.costs.mp} 法力`,
-                      skillId: capture.skillId,
-                      ids: capture.selectableTargetIds,
-                      count: 1,
-                    })
-                  }
-                >
-                  捕捉
-                </button>
-                <InkTooltip label="查看捕捉说明">
-                  执行时消耗法力，失败也会消耗。目标失效会自动转向可捕捉灵兽；持有已满或未达到携带境界时不能捕捉。
-                  {capture.costs.mp
-                    ? ` 当前目标消耗 ${capture.costs.mp} MP。`
-                    : ''}
-                  {!capture.ready
-                    ? capture.reasons.map(reasonText).join('；')
-                    : ''}
-                </InkTooltip>
-              </span>
-            ) : null}
-
             {playing ? null : blockedReason ? (
               <>
                 {blockedReason}

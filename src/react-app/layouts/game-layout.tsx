@@ -252,10 +252,12 @@ function MapSceneChrome() {
       ? '坊市选址'
       : searchParams.get('intent') === 'sect'
         ? '诸宗山门'
-        : '历练选址';
+        : searchParams.get('intent') === 'dungeon'
+          ? '历练选址'
+          : null;
   const contextLabel = isSectVisit
     ? '人界 · 访宗舆图'
-    : `人界 · 全图 · ${intentLabel}`;
+    : ['人界', '全图', intentLabel].filter(Boolean).join(' · ');
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">

@@ -1,3 +1,8 @@
+import {
+  QiInsufficientError,
+  QiServiceError,
+} from '@server/lib/services/QiService';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import { db } from '@server/lib/drizzle/db';
 import {
   getValidatedJson,
@@ -64,7 +69,10 @@ import {
   BeastRestSchema,
 } from '@shared/contracts/combatV6Beasts';
 import { CombatV6HistoryQuerySchema } from '@shared/contracts/combatV6Replay';
-import { WildExploreRequestSchema } from '@shared/contracts/combatV6Wild';
+import {
+  WildExploreRequestSchema,
+  WildStartRequestSchema,
+} from '@shared/contracts/combatV6Wild';
 import {
   InventoryActionSchema,
   InventoryQuerySchema,
@@ -132,6 +140,18 @@ function actor(c: Context<AppEnv>) {
 }
 
 function errorResponse(c: Context<AppEnv>, error: unknown) {
+  if (error instanceof QiInsufficientError)
+    return c.json(
+      {
+        success: false,
+        code: error.code,
+        error: '天地灵气不足，待自然恢复或使用恢复符箓后再试。',
+      },
+      409,
+    );
+  if (error instanceof QiServiceError || error instanceof PlayerCommandIdempotencyError)
+    return jsonWithStatus(c, { success: false, error: error.message }, error.status);
+
   if (error instanceof InventoryError || error instanceof InventoryRuleError)
     return c.json({ success: false, error: error.message }, 409);
   if (error instanceof BeastError)
@@ -556,12 +576,26 @@ router.get('/wild/regions/:nodeId', async (c) => {
     return errorResponse(c, error);
   }
 });
-router.post('/wild/explorations', async (c) => {
+router.post(
+  '/wild/explorations',
+  validateJson(WildExploreRequestSchema),
+  async (c) => {
+    try {
+      const input = getValidatedJson<z.infer<typeof WildExploreRequestSchema>>(c);
+      return c.json(toPlayerStateMutationResponse(
+        await wildSessions.explore(actor(c), input.nodeId, input.requestId),
+      ));
+    } catch (error) {
+      return errorResponse(c, error);
+    }
+  },
+);
+router.post('/wild/sessions', validateJson(WildStartRequestSchema), async (c) => {
   try {
-    const input = WildExploreRequestSchema.parse(await c.req.json());
+    const input = getValidatedJson<z.infer<typeof WildStartRequestSchema>>(c);
     return c.json({
       success: true,
-      data: await wildSessions.explore(actor(c), input.nodeId, input.requestId),
+      data: await wildSessions.start(actor(c), input.encounterId),
     });
   } catch (error) {
     return errorResponse(c, error);

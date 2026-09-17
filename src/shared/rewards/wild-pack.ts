@@ -3,7 +3,7 @@ import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
 import { DropPoolSchema, type DropPool } from '../drops';
 import { DAO_EQUIPMENT_SLOTS, type DaoEquipmentSlot } from '../engine/combat-v6/equipment/types';
-import { WILD_REGION } from '../engine/combat-v6/wild/content';
+import { getWildRegion } from '../engine/combat-v6/wild/content';
 import { findItemDefinition } from '../items/registry';
 import raw from './data/wild.json';
 
@@ -39,7 +39,7 @@ function compilePool(pack: z.infer<typeof WildRewardPackShape>): DropPool {
 export function loadWildRewardPack(data: unknown) {
   const result = WildRewardPackShape.superRefine((pack, ctx) => {
     const issue = (path: (string | number)[], message: string) => ctx.addIssue({ code: 'custom', path, message });
-    if (pack.nodeId !== WILD_REGION.nodeId) issue(['nodeId'], '引用未知野外区域');
+    if (!getWildRegion(pack.nodeId)) issue(['nodeId'], '引用未知野外区域');
     if (new Set(pack.equipmentLevels).size !== pack.equipmentLevels.length) issue(['equipmentLevels'], '装备等级重复');
     pack.groups.forEach((group, i) => {
       if ('slots' in group.source && new Set(group.source.slots).size !== group.source.slots.length) issue(['groups', i, group.id, 'source', 'slots'], '装备部位重复');

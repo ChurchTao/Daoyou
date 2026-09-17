@@ -1,63 +1,103 @@
-import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { BEAST_PROGRESSION } from '../beasts/content';
+import { BeastSchema } from '../beasts/schema';
 import raw from './data/wild.json';
 import schema from './data/wild.schema.json';
-import before from './fixtures/before-g6.json';
+import {
+  generateWildEncounter,
+  generateWildIndividual,
+  wildAllocation,
+} from './generator';
 import { WildPackShape, loadWildPack } from './pack';
-import { WILD_REGION, WILD_SPECIES, WILD_SKILLS, wildPanel } from './content';
-import { generateWildEncounter } from './generator';
 
-const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-describe('野外内容数据包', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(WildPackShape, { reused: 'ref' })).toEqual(schema));
-  it('结构错误同时包含文件、物种ID和字段路径', () => {
-    const data = structuredClone(raw);
-    data.species[0].name = '';
-    expect(() => loadWildPack(data)).toThrow(
-      `wild/data/wild.json: species.0.name [${data.species[0].id}]`,
+const nodeId = raw.regions[0].nodeId;
+describe('野外寻觅配置与个体生成', () => {
+  it('Schema 同步', () =>
+    expect(z.toJSONSchema(WildPackShape, { reused: 'ref' })).toEqual(schema));
+  it('拒绝未知物种、重复节点与颠倒范围', () => {
+    const missing = structuredClone(raw);
+    missing.regions[0].speciesIds = ['unknown'];
+    expect(() => loadWildPack(missing)).toThrow('未知物种');
+    const duplicate = structuredClone(raw);
+    duplicate.regions.push(duplicate.regions[0]);
+    expect(() => loadWildPack(duplicate)).toThrow('区域重复');
+    const invalid = structuredClone(raw);
+    invalid.regions[0].minLevel = 30;
+    expect(() => loadWildPack(invalid)).toThrow('等级上下界颠倒');
+  });
+  it('同种子一致，不同种子有数量、组合和等级变化，成年与0级幼崽同时存在', () => {
+    expect(generateWildEncounter(nodeId, 72)).toEqual(
+      generateWildEncounter(nodeId, 72),
+    );
+    const encounters = Array.from({ length: 256 }, (_, seed) =>
+      generateWildEncounter(nodeId, seed),
+    );
+    expect(new Set(encounters.map((e) => e.length))).toEqual(
+      new Set([1, 2, 3]),
+    );
+    expect(new Set(encounters.flat().map((c) => c.speciesId)).size).toBe(3);
+    expect(encounters.flat().some((c) => c.level === 0)).toBe(true);
+    expect(
+      encounters
+        .flat()
+        .every((c) => c.level === 0 || (c.level >= 5 && c.level <= 15)),
+    ).toBe(true);
+    expect(() => generateWildEncounter('unknown', 0)).toThrow(
+      'UNKNOWN_WILD_REGION',
     );
   });
-  it('活动次数与探索冷却独立配置并拒绝非法数值', () => {
+  it('节点配置独立决定物种与成年等级，幼崽概率边界准确', () => {
     const data = structuredClone(raw);
-    data.activity = { dailyLimit: 7, explorationCooldownMs: 5000 };
-    expect(loadWildPack(data).activity).toEqual(data.activity);
-    for (const key of ['dailyLimit', 'explorationCooldownMs'] as const) {
-      const invalid = structuredClone(data);
-      invalid.activity[key] = 0;
-      expect(() => loadWildPack(invalid)).toThrow(key);
+    data.regions[0].nodeId = 'other-node';
+    data.regions[0].minLevel = data.regions[0].maxLevel = 30;
+    data.regions[0].speciesIds = [raw.regions[0].speciesIds[0]];
+    data.encounter.minCount = data.encounter.maxCount = 3;
+    data.encounter.cubChance = 0;
+    const adult = generateWildEncounter('other-node', 23, loadWildPack(data));
+    expect(adult).toHaveLength(3);
+    expect(
+      adult.every(
+        (c) => c.level === 30 && c.speciesId === data.regions[0].speciesIds[0],
+      ),
+    ).toBe(true);
+    data.encounter.cubChance = 1;
+    expect(
+      generateWildEncounter('other-node', 23, loadWildPack(data)).every(
+        (c) => c.level === 0,
+      ),
+    ).toBe(true);
+  });
+  it('成年均衡加点有波动，所有等级点数守恒，幼崽没有待分配点', () => {
+    for (const level of [0, 5, 9, 15, 30, 180]) {
+      for (let seed = 0; seed < 100; seed++) {
+        const values = Object.values(wildAllocation(level, seed));
+        expect(values.reduce((a, b) => a + b, 0)).toBe(
+          level * BEAST_PROGRESSION.pointsPerLevel,
+        );
+        const mean = (level * BEAST_PROGRESSION.pointsPerLevel) / 5;
+        values.forEach((v) => {
+          expect(v).toBeGreaterThanOrEqual(Math.floor(mean * 0.7));
+          expect(v).toBeLessThanOrEqual(Math.ceil(mean * 1.3));
+        });
+      }
     }
-  });
-  // 内容哈希仅因取消 region.beastRealm 改变，面板与编组保留历史基线。
-  it('取消境界别名后保留全部等级面板和512种子编组基线', () => {
-    const panels = WILD_SPECIES.flatMap(s => Array.from({ length: 11 }, (_, i) => wildPanel(s.id, i + 5)));
-    const encounters = Array.from({ length: 512 }, (_, seed) => generateWildEncounter(WILD_REGION.nodeId, seed));
-    expect({ content: hash({ region: WILD_REGION, species: WILD_SPECIES, skills: WILD_SKILLS }), panels: hash(panels), encounters: hash(encounters) }).toEqual({ ...before, content: '5ccf5d6e48299fc50623a7fca08a5d41cd77113cadbbe44e87ca89716a107c32' });
-  });
-  it('配置变化影响生成数量、等级与实际面板', () => {
-    const data = structuredClone(raw);
-    data.encounter.minCount = data.encounter.maxCount = 4;
-    data.region.minLevel = data.region.maxLevel = 10;
-    for (const id of Object.keys(data.panels) as (keyof typeof data.panels)[]) data.panels[id] = data.panels[id].filter(p => p.level === 10);
-    data.panels['combat.wild.species.spirit-fox'][0].maxHp = 999;
-    const pack = loadWildPack(data);
-    const encounter = generateWildEncounter(pack.region.nodeId, 1, pack);
-    expect(encounter).toHaveLength(4);
-    expect(encounter.every(c => c.level === 10)).toBe(true);
-    expect(wildPanel('combat.wild.species.spirit-fox', 10, pack).maxHp).toBe(999);
-  });
-  it('拒绝缺失等级、未知技能、无效表达式和重复物种', () => {
-    const missing = structuredClone(raw);
-    missing.panels['combat.wild.species.spirit-fox'].pop();
-    expect(() => loadWildPack(missing)).toThrow('完整连续区间');
-    const skill = structuredClone(raw);
-    skill.species[0].skillIds = ['combat.wild.skill.missing'];
-    expect(() => loadWildPack(skill)).toThrow('技能引用');
-    const expression = structuredClone(raw);
-    expression.skills[0].effects[0].power = 'unknown + 1';
-    expect(() => loadWildPack(expression)).toThrow('power');
-    const duplicate = structuredClone(raw);
-    duplicate.species[1].id = duplicate.species[0].id;
-    expect(() => loadWildPack(duplicate)).toThrow('重复');
+    expect(
+      new Set(
+        Array.from({ length: 30 }, (_, seed) =>
+          JSON.stringify(wildAllocation(15, seed)),
+        ),
+      ).size,
+    ).toBeGreaterThan(10);
+    const cub = generateWildIndividual(
+      { unitId: 'enemy', speciesId: raw.regions[0].speciesIds[0], level: 0 },
+      '10000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000001',
+      41,
+    );
+    expect(BeastSchema.parse(cub.beast).unallocatedPoints).toBe(0);
+    expect(Object.values(cub.beast.allocatedAttributes)).toEqual([
+      0, 0, 0, 0, 0,
+    ]);
   });
 });

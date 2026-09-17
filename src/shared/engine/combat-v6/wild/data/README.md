@@ -1,12 +1,13 @@
 # 野外内容配置
 
-`wild.json` 管理当前区域、可遇物种、技能、逐级面板、敌人数量区间、每日探索次数和探索冷却。编辑器使用同目录 JSON Schema，加载时另检查引用和等级区间。
+`wild.json` 管理地图节点的野外寻觅配置。编辑器使用同目录 JSON Schema，加载时检查物种引用、重复节点及数值范围。
 
-- `region.minLevel/maxLevel` 与每个物种的 `panels` 必须一致。面板按等级递增，每级一行，不允许缺级；行内使用具名属性。
-- `baseAttrs` 提供共有属性，面板覆盖气血、灵力、攻防和速度。气血与灵力初值采用对应上限。
-- `species.skillIds` 只能引用本包技能；新增可捕捉物种还需要维护灵兽包对应引用。
-- `encounter` 调整编组数量，生成器保持先抽数量、再逐个抽物种和等级的随机顺序。
-- `activity.dailyLimit` 同时供 Redis 原子次数校验和接口展示使用；`explorationCooldownMs` 控制两次探索的最短间隔与冷却键有效期，不影响战斗下令、回放节奏和页面轮询周期。
-- 当前只支持既有法术伤害技能结构；新增机制需要扩展代码校验与编译。
+- `regions[]`：`nodeId` 关联地图节点，`id` 对应地图的 `wild_encounter_id`；名称、场景描述和寻觅中的文案直接驱动页面。新节点还需配置对应掉落池。
+- `minLevel/maxLevel`：成年灵兽等级范围，必须大于 0。`speciesIds` 引用既有灵兽物种；资质、成长、出生技能和战斗面板复用灵兽领域规则，不再维护另一套野怪面板。
+- `encounter.minCount/maxCount`：每次寻觅数量，当前支持 1–3 只；物种允许重复，每只个体分别生成。
+- `encounter.cubChance`：每只灵兽独立成为 0 级幼崽的概率，当前暂定 5%。
+- `encounter.allocationSpread`：成年五维加点相对均值的波动范围，当前 30%，上下界按整数点数取整；总点数始终等于等级乘每级点数。幼崽五维额外加点和待分配点均为 0。
+- `activity.explorationCooldownMs`：两次成功寻觅的最短间隔，当前 1 秒；不再设置每日次数上限。
+- 消耗统一维护于 `src/shared/config/qiSystem.ts` 的 `wild_search`，当前每次 2 点天地灵气。
 
-掉落单独维护于 `src/shared/rewards/data/wild.json`。配置只影响新生成内容，不改写已有战斗快照。
+寻觅成功即保存完整个体。开战投影和捕获结算沿用这些事实，不再次随机生成。掉落单独维护于 `src/shared/rewards/data/wild.json`。完整流程见 [野外寻觅](../../../../../../docs/combat-v6-wild-seeking.md)。

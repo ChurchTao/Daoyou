@@ -351,6 +351,13 @@
       "when": 1789533721588,
       "tag": "0049_manual_first_release",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789641663428,
+      "tag": "0050_wild_searches",
+      "breakpoints": true
     }
   ]
 }

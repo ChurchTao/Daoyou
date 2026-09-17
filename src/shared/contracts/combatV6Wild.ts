@@ -3,6 +3,11 @@ import type { WildResources } from '@shared/engine/combat-v6/wild/rules';
 import { z } from 'zod';
 import { DropPoolSchema, type DropPool } from '../drops';
 import { BeastSchema, type SummonedBeast } from '../engine/combat-v6/beasts';
+import {
+  WildCombatantSchema,
+  WildIndividualSchema,
+} from '../engine/combat-v6/wild/generator';
+import type { WildRegion } from '../engine/combat-v6/wild/pack';
 import { ItemGrantSchema, type ItemGrant } from '../inventory';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
 import { CombatV6ReplayTimelineSchema } from './combatV6Replay';
@@ -12,6 +17,43 @@ import { CombatV6BattleMetadataV1Schema } from './combatV6Runtime';
 export const WildExploreRequestSchema = z
   .object({ nodeId: z.string().min(1).max(100), requestId: z.uuid() })
   .strict();
+export const WildStartRequestSchema = z
+  .object({ encounterId: z.uuid() })
+  .strict();
+export const WildEncounterSchema = z
+  .object({
+    id: z.uuid(),
+    nodeId: z.string().min(1),
+    seed: z.number().int(),
+    createdAt: z.iso.datetime(),
+    combatants: z.array(WildIndividualSchema).min(1).max(3),
+  })
+  .strict();
+export type WildEncounter = z.infer<typeof WildEncounterSchema>;
+export type WildEncounterView = Pick<
+  WildEncounter,
+  'id' | 'nodeId' | 'createdAt'
+> & {
+  combatants: z.infer<typeof WildCombatantSchema>[];
+};
+export type WildRegionView = WildRegion & {
+  qiCost: number;
+  encounter: WildEncounterView | null;
+  settlingBattleId: string | null;
+  trainingSessionId: string | null;
+};
+export function wildEncounterView(encounter: WildEncounter): WildEncounterView {
+  return {
+    id: encounter.id,
+    nodeId: encounter.nodeId,
+    createdAt: encounter.createdAt,
+    combatants: encounter.combatants.map(({ unitId, speciesId, level }) => ({
+      unitId,
+      speciesId,
+      level,
+    })),
+  };
+}
 export const WildResourcesSchema = z
   .object({
     hp: z.number().finite().nonnegative(),
@@ -53,12 +95,13 @@ export const WildRuntimeSchema = z
         input: z
           .object({
             seed: z.number().int(),
+            unitAppearances: z.record(z.string(), z.unknown()).optional(),
             versions: z
               .object({
                 engineVersion: z.literal('combat-v6'),
                 rulesetVersion: z.literal('daoyou_rules_v8'),
-                contentVersion: z.literal('daoyou_wild_inventory_content_v1'),
-                projectionVersion: z.literal('wild_beast_v2'),
+                contentVersion: z.literal('daoyou_wild_seeking_content_v2'),
+                projectionVersion: z.literal('wild_individual_v3'),
                 autoPolicyVersion: z.string().min(1).optional(),
               })
               .strict(),
@@ -80,18 +123,7 @@ export const WildRuntimeSchema = z
               .strict(),
           ]),
         ),
-        combatants: z
-          .array(
-            z
-              .object({
-                unitId: z.string(),
-                speciesId: z.string(),
-                level: z.number().int().min(5).max(15),
-              })
-              .strict(),
-          )
-          .min(1)
-          .max(3),
+        combatants: z.array(WildIndividualSchema).min(1).max(3),
         state: z
           .object({
             round: z.number().int().positive(),

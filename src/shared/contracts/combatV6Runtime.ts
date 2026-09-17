@@ -108,7 +108,7 @@ export const CombatV6BattleMetadataV1Schema = z.discriminatedUnion(
                   .object({
                     unitId: z.string().min(1),
                     speciesId: z.string().min(1),
-                    level: z.number().int().min(5).max(15),
+                    level: z.number().int().min(0).max(180),
                   })
                   .strict(),
               )

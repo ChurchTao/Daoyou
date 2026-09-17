@@ -1,3 +1,4 @@
+import type { WildEncounter, WildRuntime } from '@shared/contracts/combatV6Wild';
 import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
 import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
 import type {
@@ -1928,3 +1929,12 @@ export const creationProducts = pgTable(
     ),
   ],
 );
+
+/** 一名角色只保留最近一次寻觅；扣费与替换结果在同一事务中提交。 */
+export const wildSearches = pgTable('wanjiedaoyou_wild_searches', {
+  cultivatorId: uuid('cultivator_id').primaryKey().references(() => cultivators.id, { onDelete: 'cascade' }),
+  encounter: jsonb('encounter').$type<WildEncounter>().notNull(),
+  // 开战意图先持久化，再发布 Redis 战局；中断后可原样重试，不能重抽或重复创建。
+  preparedBattle: jsonb('prepared_battle').$type<WildRuntime>(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});

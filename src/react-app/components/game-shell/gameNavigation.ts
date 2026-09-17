@@ -141,7 +141,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '练功房',
         href: '/game/training-room',
       },
-      { id: 'wild', sceneLabel: '野外探索', href: '/game/wild' },
+      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map' },
       {
         id: 'beasts',
         sceneLabel: '灵兽袋',
@@ -224,6 +224,8 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'map',
         sceneLabel: '修仙界地图',
+        href: '/game/map',
+        expandedDockLabel: '🗺️ 修仙界地图',
       },
     ],
   },
