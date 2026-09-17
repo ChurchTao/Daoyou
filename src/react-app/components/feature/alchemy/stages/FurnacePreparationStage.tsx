@@ -1,5 +1,8 @@
 import { InkButton } from '@app/components/ui';
-import { useAlchemyCraftSession } from '../alchemyCraftContext';
+import {
+  ALCHEMY_MAX_MATERIALS,
+  useAlchemyCraftSession,
+} from '../alchemyCraftContext';
 
 export function FurnacePreparationStage() {
   const session = useAlchemyCraftSession();
@@ -13,7 +16,7 @@ export function FurnacePreparationStage() {
       : '');
   return (
     <div className="space-y-3">
-      {session.mode === 'improvised' ? (
+      <div className={session.mode === 'formula' ? 'invisible' : undefined}>
         <label className="flex items-center gap-3 text-sm">
           <span className="shrink-0">炼制目标</span>
           <input
@@ -25,7 +28,7 @@ export function FurnacePreparationStage() {
             className="border-ink/20 min-w-0 flex-1 border-b bg-transparent py-2"
           />
         </label>
-      ) : null}
+      </div>
       {problem ? (
         <p role="alert" className="text-crimson text-xs">
           {problem}
@@ -34,7 +37,8 @@ export function FurnacePreparationStage() {
       <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <div className="text-ink-secondary space-y-1 text-xs">
           <p className="font-mono">
-            {session.materials.ids.length} / 5 味 · {session.totalDose} 份
+            {session.materials.ids.length} / {ALCHEMY_MAX_MATERIALS} 味 ·{' '}
+            {session.totalDose} 份
           </p>
           <p>
             {session.readiness.estimatedSpiritStones !== null

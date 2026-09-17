@@ -32,7 +32,7 @@ import type {
 
 export const ALCHEMY_MIN_DOSE =
   ALCHEMY_INPUT_CONSTRAINTS.minQuantityPerMaterial;
-export const ALCHEMY_MAX_MATERIALS = 5;
+export const ALCHEMY_MAX_MATERIALS = ALCHEMY_INPUT_CONSTRAINTS.maxMaterialKinds;
 export { ALCHEMY_MAX_DOSE };
 
 const EMPTY_MATERIALS: MaterialDraft = { ids: [], map: {}, doses: {} };

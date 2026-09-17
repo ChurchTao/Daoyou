@@ -1,18 +1,26 @@
+const defaultPositions: [number, number][] = [
+  [50, 10],
+  [84, 29],
+  [84, 70],
+  [50, 90],
+  [16, 70],
+  [16, 29],
+];
+
 /** Shared gathering light and furnace fire for crafting scenes. */
-export function FurnaceGatherEffect({ slots }: { slots: boolean[] }) {
+export function FurnaceGatherEffect({
+  slots,
+  positions = defaultPositions,
+}: {
+  slots: boolean[];
+  positions?: [number, number][];
+}) {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 z-10 motion-reduce:hidden"
     >
-      {[
-        [50, 10],
-        [84, 29],
-        [84, 70],
-        [50, 90],
-        [16, 70],
-        [16, 29],
-      ].map(([x, y], index) =>
+      {positions.map(([x, y], index) =>
         slots[index] ? (
           <div
             key={index}
