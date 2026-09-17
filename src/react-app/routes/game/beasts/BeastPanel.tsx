@@ -64,6 +64,7 @@ export function BeastPanel({
   learn,
   refine,
   feed,
+  rename,
   allocate,
 }: {
   beast: SummonedBeast;
@@ -77,6 +78,7 @@ export function BeastPanel({
   learn: () => void;
   refine: () => void;
   feed: () => void;
+  rename: () => void;
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
 }) {
   const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
@@ -119,7 +121,15 @@ export function BeastPanel({
               {beast.name}
             </h2>
             {isLead ? <BeastLeadSeal /> : null}
+            <InkButton disabled={pending} onClick={rename}>
+              改名
+            </InkButton>
           </div>
+          {definition && definition.name !== beast.name ? (
+            <p className="text-ink-secondary text-xs">
+              物种 · {definition.name}
+            </p>
+          ) : null}
           <p className="text-ink-secondary text-xs leading-6">
             等级 <span className="font-mono">{beast.level}</span> · 携带要求{' '}
             {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}

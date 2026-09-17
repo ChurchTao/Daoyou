@@ -1,7 +1,9 @@
 import { db } from '@server/lib/drizzle/db';
 import {
+  getValidatedJson,
   redisLockErrorResponse,
   requireActiveCultivatorRef,
+  validateJson,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -23,6 +25,7 @@ import {
   allocateBeastPoints,
   claimStarterBeast,
   releaseBeast,
+  renameBeast,
   restBeast,
   updateBeastLineup,
 } from '@server/lib/services/combat-v6/CombatV6BeastService';
@@ -57,6 +60,7 @@ import {
   BeastAllocateSchema,
   BeastClaimSchema,
   BeastLineupRequestSchema,
+  BeastRenameSchema,
   BeastRestSchema,
 } from '@shared/contracts/combatV6Beasts';
 import { CombatV6HistoryQuerySchema } from '@shared/contracts/combatV6Replay';
@@ -270,6 +274,22 @@ router.post('/beasts/allocate', async (c) => {
         input.beastId,
         input.expectedRevision,
         input.points,
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post('/beasts/rename', validateJson(BeastRenameSchema), async (c) => {
+  try {
+    const input = getValidatedJson<z.infer<typeof BeastRenameSchema>>(c);
+    return c.json({
+      success: true,
+      data: await renameBeast(
+        actor(c).cultivatorId,
+        input.beastId,
+        input.expectedRevision,
+        input.name,
       ),
     });
   } catch (error) {

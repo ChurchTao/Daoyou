@@ -14,6 +14,7 @@ import {
 } from '@server/lib/repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { BeastNameSchema } from '@shared/contracts/combatV6Beasts';
 import {
   BEAST_STARTER_SPECIES,
   BeastLineupSchema,
@@ -27,11 +28,12 @@ import {
   beastRestCost,
   type BeastAllocationSchema,
 } from '@shared/engine/combat-v6/beasts/progression';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { updateSpiritStones } from '../cultivator/CultivatorStateRepository';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
+import { textFilter } from '../textFilter';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
@@ -226,6 +228,38 @@ export async function allocateBeastPoints(
       .update(cultivatorBeasts)
       .set({ individual: beastIndividualData(next) })
       .where(eq(cultivatorBeasts.id, id));
+    return readBeastRoster(cultivatorId, tx);
+  });
+}
+
+export async function renameBeast(
+  cultivatorId: string,
+  id: string,
+  revision: number,
+  name: string,
+) {
+  const filteredName = textFilter.mask(BeastNameSchema.parse(name)).text;
+  return mutate(cultivatorId, async (tx) => {
+    const roster = await readBeastRoster(cultivatorId, tx);
+    const beast = roster.beasts.find((entry) => entry.id === id);
+    if (!beast || beast.revision !== revision)
+      throw new BeastError('灵兽状态已变化，请刷新后重试');
+    if (beast.name === filteredName) return roster;
+    await tx
+      .update(cultivatorBeasts)
+      .set({
+        individual: beastIndividualData({
+          ...beast,
+          name: filteredName,
+          revision: beast.revision + 1,
+        }),
+      })
+      .where(
+        and(
+          eq(cultivatorBeasts.id, id),
+          eq(cultivatorBeasts.cultivatorId, cultivatorId),
+        ),
+      );
     return readBeastRoster(cultivatorId, tx);
   });
 }

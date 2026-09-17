@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
 import { BeastLeadSeal, BeastPanel } from './BeastPanel';
+import { BeastRenameModal } from './BeastRenameModal';
 
 const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
@@ -28,6 +29,7 @@ export default function BeastsPage() {
   const [learningId, setLearningId] = useState<string>();
   const [refiningId, setRefiningId] = useState<string>();
   const [feedingId, setFeedingId] = useState<string>();
+  const [renamingId, setRenamingId] = useState<string>();
   const [action, setAction] = useState<{
     beastId: string;
     type: BeastAction;
@@ -79,7 +81,9 @@ export default function BeastsPage() {
                   ? '休养完成'
                   : path === 'allocate'
                     ? '属性已分配'
-                    : '灵兽已放生',
+                    : path === 'rename'
+                      ? '灵兽名字已更新'
+                      : '灵兽已放生',
           tone: 'success',
         });
         return true;
@@ -135,6 +139,7 @@ export default function BeastsPage() {
   const detail =
     visibleBeasts.find((beast) => beast.id === detailId) ?? visibleBeasts[0];
   const claim = BEAST_STARTER_SPECIES.find((species) => species.id === claimId);
+  const renamingBeast = view?.beasts.find((beast) => beast.id === renamingId);
   const actionBeast = view?.beasts.find(
     (beast) => beast.id === action?.beastId,
   );
@@ -275,6 +280,7 @@ export default function BeastsPage() {
                 learn={() => setLearningId(detail.id)}
                 refine={() => setRefiningId(detail.id)}
                 feed={() => setFeedingId(detail.id)}
+                rename={() => setRenamingId(detail.id)}
                 allocate={(points) =>
                   mutate('allocate', {
                     beastId: detail.id,
@@ -293,6 +299,21 @@ export default function BeastsPage() {
           </div>
         </>
       )}
+      {renamingBeast ? (
+        <BeastRenameModal
+          key={renamingBeast.id}
+          name={renamingBeast.name}
+          pending={pending}
+          close={() => setRenamingId(undefined)}
+          save={(name) =>
+            mutate('rename', {
+              beastId: renamingBeast.id,
+              expectedRevision: renamingBeast.revision,
+              name,
+            })
+          }
+        />
+      ) : null}
       {feedingId ? (
         <BeastBookDrawer
           beastId={feedingId}
