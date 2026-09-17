@@ -279,7 +279,9 @@ export function BeastBookDrawer({
         <div className="space-y-4 text-sm">
           <InventoryHeader
             title={<>储物袋 · 选择{itemName}</>}
-            capacity={<>{inventory?.used ?? '—'} / 40</>}
+            capacity={
+              <span className="font-mono">{inventory?.used ?? '—'} / 40</span>
+            }
             actions={
               <InkButton
                 disabled={pending}
@@ -359,10 +361,15 @@ export function BeastBookDrawer({
         }}
         footer={
           <div className="flex justify-end gap-3">
-            <InkButton disabled={pending} onClick={() => setConfirming(false)}>
+            <InkButton
+              variant="secondary"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+            >
               取消
             </InkButton>
             <InkButton
+              variant="primary"
               pending={pending}
               disabled={!valid}
               onClick={() => void learn()}

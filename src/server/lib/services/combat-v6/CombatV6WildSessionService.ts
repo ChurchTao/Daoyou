@@ -131,18 +131,10 @@ function summaryOf(
     itemRewards:
       r.host.state.result?.winner === p.side
         ? (r.itemRewards ??
-          wildItemRewards(
-            r.dropPool,
-            (key) => {
-              const rng = new SeededRng(rewardHash(key).readUInt32LE());
-              return () => rng.next();
-            },
-            (group) => {
-              const hex = rewardHash(`instance:${group}`).toString('hex');
-              return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-            },
-            r.createdAt,
-          ))
+          wildItemRewards(r.dropPool, (key) => {
+            const rng = new SeededRng(rewardHash(key).readUInt32LE());
+            return () => rng.next();
+          }))
         : [],
     capturedBeasts: r.host.events.flatMap((event) => {
       if (event.type !== 'unitCaptured' || event.unitId !== r.host.playerId)

@@ -6,7 +6,6 @@ import {
 import { MANUAL_PACK } from '../engine/combat-v6/manuals/content';
 import type { CultivatorManualStateV1 } from '../engine/combat-v6/manuals/types';
 import type { InventoryItem } from '../inventory';
-import { QINGXI_POOL_V2 } from '../rewards/wild';
 import { manualJadeCost, previewManualAction } from './action';
 
 const state: CultivatorManualStateV1 = {
@@ -158,16 +157,4 @@ it('学习消耗一本，修炼与切换不额外消耗玉简', () => {
   expect(manualJadeCost(state, action)).toBe(1);
   expect(manualJadeCost(state, { ...action, action: 'train' })).toBe(0);
   expect(manualJadeCost(state, { ...action, action: 'activate' })).toBe(0);
-});
-it('玉简由奖励包显式等权投放，不依赖稀有度', () => {
-  const entries = QINGXI_POOL_V2.groups.find(
-    (g) => g.id === 'manuals',
-  )!.entries;
-  expect(entries).toHaveLength(24);
-  expect(entries.find((e) => e.rewardId === item.definitionId)!.weight).toBe(
-    100,
-  );
-  expect(
-    entries.find((e) => e.rewardId === 'jade.character_manual.qingmu')!.weight,
-  ).toBe(100);
 });

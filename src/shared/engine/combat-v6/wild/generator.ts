@@ -31,16 +31,19 @@ export function generateWildEncounter(
     Math.floor(
       rng.next() * (pack.encounter.maxCount - pack.encounter.minCount + 1),
     );
-  return Array.from({ length: count }, (_, slot) => ({
-    unitId: `combat.wild.enemy.${slot}`,
-    speciesId:
-      region.speciesIds[Math.floor(rng.next() * region.speciesIds.length)]!,
-    level:
-      rng.next() < pack.encounter.cubChance
-        ? 0
-        : region.minLevel +
-          Math.floor(rng.next() * (region.maxLevel - region.minLevel + 1)),
-  }));
+  return Array.from({ length: count }, (_, slot) => {
+    const species =
+      region.species[Math.floor(rng.next() * region.species.length)]!;
+    return {
+      unitId: `combat.wild.enemy.${slot}`,
+      speciesId: species.speciesId,
+      level:
+        rng.next() < pack.encounter.cubChance
+          ? 0
+          : species.minLevel +
+            Math.floor(rng.next() * (species.maxLevel - species.minLevel + 1)),
+    };
+  });
 }
 
 /** 平均分配后在每对属性间转移点数，各项不超出平均值的配置幅度。 */

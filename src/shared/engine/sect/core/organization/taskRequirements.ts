@@ -5,7 +5,6 @@ import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-st
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
-import { QINGXI_EQUIPMENT_LEVELS } from '@shared/rewards/wild';
 import type { RealmStage } from '@shared/types/constants';
 import {
   MATERIAL_TYPE_VALUES,
@@ -28,6 +27,9 @@ import type {
   SectTaskDialogueEmphasis,
   SectTaskDialogueSegment,
 } from './contracts';
+
+// 宗门交装保留现行10级要求，不再耦合野外掉落。
+const SECT_DELIVERY_EQUIPMENT_LEVELS = [10];
 
 export const SECT_PILL_TRAIT_KEYS = [
   'restore_hp',
@@ -421,7 +423,7 @@ export function generateSectDeliveryRequirement(input: {
       kind: 'equipment',
       quantity: 1,
       minEquipmentLevel: Math.max(
-        ...QINGXI_EQUIPMENT_LEVELS.filter(
+        ...SECT_DELIVERY_EQUIPMENT_LEVELS.filter(
           (level) =>
             level <=
             Math.max(

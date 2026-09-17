@@ -21,6 +21,9 @@ export function buildNodeActions(
   navigate: (path: string) => void,
 ): MapNodeDetailAction[] {
   if (intent === 'sect') return [];
+  const node = getMapNode(ctx.selectedNodeId);
+  const hasDungeon = !!node?.dungeon_config;
+  if (intent === 'dungeon' && !hasDungeon) return [];
 
   if (intent === 'dungeon') {
     if (ctx.isMainNode) return [];
@@ -53,7 +56,7 @@ export function buildNodeActions(
       variant: 'primary',
       onClick: () => navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`),
     });
-  if (!ctx.isMainNode) {
+  if (!ctx.isMainNode && hasDungeon) {
     actions.push({
       key: 'enter-dungeon',
       label: '前往历练',

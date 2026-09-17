@@ -3,10 +3,9 @@ import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentati
 
 const styles = {
   normal: 'border-ink/20 bg-bgpaper text-ink hover:border-ink/40',
-  advanced:
-    'border-amber-600/65 bg-amber-100/50 text-amber-950 hover:border-amber-700',
+  advanced: 'border-gold/50 bg-gold/5 text-wood hover:border-gold/80',
   unavailable:
-    'border-stone-300 bg-stone-100 text-stone-500 hover:border-stone-400',
+    'border-ink/10 bg-bgpaper text-ink-secondary/60 hover:border-ink/25',
 };
 export function BeastSkillTile({ skillId }: { skillId: string }) {
   const skill = beastSkillPresentation(skillId);

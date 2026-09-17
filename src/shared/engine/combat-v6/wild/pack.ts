@@ -14,14 +14,31 @@ export const WildRegionSchema = z.strictObject({
   realmRequirement: z.enum(
     Object.keys(REALM_ORDER) as [RealmType, ...RealmType[]],
   ),
-  minLevel: z.number().int().min(1).max(180),
-  maxLevel: z.number().int().min(1).max(180),
-  speciesIds: z.array(text).min(1),
+  scenery: z.enum([
+    'meadow',
+    'mine',
+    'volcanic',
+    'lake',
+    'stone',
+    'river',
+    'forest',
+    'cave',
+    'storm',
+  ]),
+  species: z
+    .array(
+      z.strictObject({
+        speciesId: text,
+        minLevel: z.number().int().min(1).max(180),
+        maxLevel: z.number().int().min(1).max(180),
+      }),
+    )
+    .min(1),
 });
 export type WildRegion = z.infer<typeof WildRegionSchema>;
 export const WildPackShape = z.strictObject({
   $schema: z.string().optional(),
-  formatVersion: z.literal(2),
+  formatVersion: z.literal(3),
   contentRevision: z.number().int().positive(),
   regions: z.array(WildRegionSchema).min(1),
   encounter: z.strictObject({
@@ -47,13 +64,23 @@ export function loadWildPack(data: unknown) {
         issue(['regions', i], '区域重复');
       nodes.add(region.nodeId);
       ids.add(region.id);
-      if (region.minLevel > region.maxLevel)
-        issue(['regions', i], '等级上下界颠倒');
-      if (new Set(region.speciesIds).size !== region.speciesIds.length)
-        issue(['regions', i, 'speciesIds'], '物种重复');
-      region.speciesIds.forEach((id, j) => {
-        if (!BEAST_SPECIES.some((s) => s.id === id))
-          issue(['regions', i, 'speciesIds', j], '引用未知物种');
+      if (
+        new Set(region.species.map((s) => s.speciesId)).size !==
+        region.species.length
+      )
+        issue(['regions', i, 'species'], '物种重复');
+      region.species.forEach((entry, j) => {
+        const path = ['regions', i, 'species', j];
+        const species = BEAST_SPECIES.find((s) => s.id === entry.speciesId);
+        if (!species) issue(path, '引用未知物种');
+        if (entry.minLevel > entry.maxLevel) issue(path, '等级上下界颠倒');
+        if (species && entry.minLevel < species.carryLevel)
+          issue(path, '成年等级不得低于物种携带等级');
+        if (
+          species &&
+          REALM_ORDER[region.realmRequirement] < REALM_ORDER[species.realm]
+        )
+          issue(path, '区域开放境界不得低于物种携带境界');
       });
     });
   }).safeParse(data);

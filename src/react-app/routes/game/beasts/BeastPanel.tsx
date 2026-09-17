@@ -2,6 +2,7 @@ import { AttributeAllocation } from '@app/components/feature/attributes/Attribut
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
 import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
+import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
@@ -24,9 +25,9 @@ const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
 
 export function BeastLeadSeal() {
   return (
-    <span className="border-crimson/60 text-crimson shrink-0 rounded-xs border px-1 text-[0.65rem] leading-4">
+    <InkBadge tone="accent" compact className="shrink-0">
       首发
-    </span>
+    </InkBadge>
   );
 }
 function Stat({
@@ -59,6 +60,7 @@ export function BeastPanel({
   carried,
   full,
   pending,
+  pendingLineup,
   lineup,
   act,
   learn,
@@ -73,6 +75,7 @@ export function BeastPanel({
   carried: boolean;
   full: boolean;
   pending: boolean;
+  pendingLineup?: 'carry' | 'lead' | 'unlead';
   lineup: (action: 'carry' | 'lead' | 'unlead') => void;
   act: (action: BeastAction) => void;
   learn: () => void;
@@ -121,7 +124,7 @@ export function BeastPanel({
               {beast.name}
             </h2>
             {isLead ? <BeastLeadSeal /> : null}
-            <InkButton disabled={pending} onClick={rename}>
+            <InkButton variant="ghost" disabled={pending} onClick={rename}>
               改名
             </InkButton>
           </div>
@@ -135,9 +138,14 @@ export function BeastPanel({
             {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}
           </p>
           <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 text-xs">
-            <span>成长 {beast.growth.toFixed(3)}</span>
             <span>
-              寿命 {beast.currentLifespan} / {beast.maxLifespan}
+              成长 <span className="font-mono">{beast.growth.toFixed(3)}</span>
+            </span>
+            <span>
+              寿命{' '}
+              <span className="font-mono">
+                {beast.currentLifespan} / {beast.maxLifespan}
+              </span>
             </span>
             <InkTooltip label="寿命与入场规则">
               每场满气血、法力入场。野外死亡每场扣除一次
@@ -161,37 +169,66 @@ export function BeastPanel({
           </div>
           <div className="text-ink-secondary mt-1 flex flex-wrap justify-between gap-x-2 text-xs">
             <span>{capped ? '已达当前培养上限' : '修为'}</span>
-            <span>
+            <span className="font-mono">
               {beast.exp.toLocaleString()} / {exp.toLocaleString()}
             </span>
           </div>
         </div>
         <div className="col-span-2 flex flex-wrap gap-2 sm:col-start-2">
-          <InkButton
-            disabled={
-              pending ||
-              (!isLead &&
-                (!canDeployBeast(beast, ownerLevel) || (!carried && full)))
-            }
-            onClick={() => lineup(isLead ? 'unlead' : 'lead')}
-          >
-            {isLead ? '取消首发' : '设为首发'}
-          </InkButton>
-          <InkButton
-            disabled={pending || (!carried && full)}
-            onClick={() => lineup('carry')}
-          >
-            {carried ? '移出编组' : '加入编组'}
-          </InkButton>
-          <InkButton disabled={pending || capped} onClick={feed}>
-            喂养
-          </InkButton>
-          <InkButton
-            disabled={pending || beast.currentLifespan >= beast.maxLifespan}
-            onClick={() => act('rest')}
-          >
-            休养
-          </InkButton>
+          <div className="flex items-center">
+            <InkButton
+              variant={isLead ? 'secondary' : 'primary'}
+              pending={
+                pending &&
+                (pendingLineup === 'lead' || pendingLineup === 'unlead')
+              }
+              disabled={
+                pending ||
+                (!isLead &&
+                  (!canDeployBeast(beast, ownerLevel) || (!carried && full)))
+              }
+              onClick={() => lineup(isLead ? 'unlead' : 'lead')}
+            >
+              {isLead ? '取消首发' : '设为首发'}
+            </InkButton>
+            {!isLead && (reason || (!carried && full)) ? (
+              <InkTooltip label="设为首发条件">
+                {reason ?? '出战编组已满'}
+              </InkTooltip>
+            ) : null}
+          </div>
+          <div className="flex items-center">
+            <InkButton
+              variant={carried ? 'secondary' : 'default'}
+              pending={pending && pendingLineup === 'carry'}
+              disabled={pending || (!carried && full)}
+              onClick={() => lineup('carry')}
+            >
+              {carried ? '移出编组' : '加入编组'}
+            </InkButton>
+            {!carried && full ? (
+              <InkTooltip label="加入编组条件">出战编组已满。</InkTooltip>
+            ) : null}
+          </div>
+          <div className="flex items-center">
+            <InkButton disabled={pending || capped} onClick={feed}>
+              喂养
+            </InkButton>
+            {capped ? (
+              <InkTooltip label="喂养条件">已达当前培养上限。</InkTooltip>
+            ) : null}
+          </div>
+          <div className="flex items-center">
+            <InkButton
+              disabled={pending || beast.currentLifespan >= beast.maxLifespan}
+              onClick={() => act('rest')}
+            >
+              休养
+            </InkButton>
+            {beast.currentLifespan >= beast.maxLifespan ? (
+              <InkTooltip label="休养条件">寿命已满。</InkTooltip>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="border-ink/15 grid gap-5 border-t pt-4 lg:grid-cols-[1.15fr_1fr] lg:gap-7">
@@ -260,10 +297,15 @@ export function BeastPanel({
         title={`确认分配 · ${beast.name}`}
         footer={
           <div className="flex justify-end gap-3">
-            <InkButton disabled={pending} onClick={() => setConfirming(false)}>
+            <InkButton
+              variant="secondary"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+            >
               返回调整
             </InkButton>
             <InkButton
+              variant="primary"
               pending={pending}
               disabled={total === 0 || !canAllocate}
               onClick={async () => {

@@ -145,6 +145,7 @@ export function AttributeAllocation<K extends string>({
       {available > 0 ? (
         <div className="mt-3 flex justify-end gap-3">
           <InkButton
+            variant="secondary"
             disabled={disabled || total === 0}
             onClick={() =>
               onChange(
@@ -157,7 +158,11 @@ export function AttributeAllocation<K extends string>({
           >
             重置
           </InkButton>
-          <InkButton disabled={disabled || total === 0} onClick={onConfirm}>
+          <InkButton
+            variant="primary"
+            disabled={disabled || total === 0}
+            onClick={onConfirm}
+          >
             确认分配
           </InkButton>
         </div>

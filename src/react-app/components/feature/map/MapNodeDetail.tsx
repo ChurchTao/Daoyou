@@ -63,10 +63,12 @@ export function MapNodeDetail({ node, onClose, actions }: MapNodeDetailProps) {
         ) : undefined
       }
     >
-      {node.wild_encounter_id ? <WildNodePreview key={node.id} nodeId={node.id}/> : null}
+      {node.wild_encounter_id ? (
+        <WildNodePreview key={node.id} nodeId={node.id} />
+      ) : null}
       <div className="text-ink-secondary mb-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
         <span>
-          推荐境界：
+          {node.wild_encounter_id ? '开放境界：' : '推荐境界：'}
           <span
             className={cn(
               'font-semibold',
@@ -76,17 +78,19 @@ export function MapNodeDetail({ node, onClose, actions }: MapNodeDetailProps) {
             {node.realm_requirement}
           </span>
         </span>
-        <span>
-          难度：
-          <span
-            className={cn(
-              'font-semibold',
-              dungeonDifficultyColorMap[dungeonConfig.difficultyTier],
-            )}
-          >
-            {dungeonConfig.difficultyLabel}
+        {node.dungeon_config && (
+          <span>
+            难度：
+            <span
+              className={cn(
+                'font-semibold',
+                dungeonDifficultyColorMap[dungeonConfig.difficultyTier],
+              )}
+            >
+              {dungeonConfig.difficultyLabel}
+            </span>
           </span>
-        </span>
+        )}
         {node.dungeon_config?.difficulty ? (
           <span className="border-crimson/70 bg-crimson/5 text-crimson inline-flex items-center border border-double px-1.5 py-0.5 text-[11px] leading-none font-bold">
             {formatRewardBonus(dungeonConfig.rewardBonus)}

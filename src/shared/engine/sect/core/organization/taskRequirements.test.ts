@@ -1,5 +1,4 @@
 import { BLUEPRINTS } from '@shared/items/definitions/equipment-blueprints';
-import { QINGXI_EQUIPMENT_LEVELS } from '@shared/rewards/wild';
 import {
   QUALITY_ORDER,
   REALM_STAGE_VALUES,
@@ -290,7 +289,7 @@ it('generates craftable equipment tiers without quality or rare affix requiremen
             (b) => b.level === req.minEquipmentLevel && b.slot === req.slot,
           ),
         ).toBe(true);
-        expect(QINGXI_EQUIPMENT_LEVELS).toContain(req.minEquipmentLevel);
+        expect(req.minEquipmentLevel).toBe(10);
         expect(req).not.toHaveProperty('minQuality');
         expect(req).not.toHaveProperty('minPerfectAffixCount');
         slots.add(req.slot);

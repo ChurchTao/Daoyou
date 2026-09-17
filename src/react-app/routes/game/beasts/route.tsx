@@ -4,7 +4,9 @@ import {
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
+import { GameSceneTabs } from '@app/components/game-shell/GameSceneTabs';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
@@ -24,6 +26,10 @@ export default function BeastsPage() {
   const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<'all' | 'team'>('all');
   const [pending, setPending] = useState(false);
+  const [pendingLineup, setPendingLineup] = useState<{
+    beastId: string;
+    action: 'carry' | 'lead' | 'unlead';
+  }>();
   const [detailId, setDetailId] = useState<string>();
   const [claimId, setClaimId] = useState<string>();
   const [learningId, setLearningId] = useState<string>();
@@ -100,8 +106,8 @@ export default function BeastsPage() {
     }
     return false;
   }
-  function lineup(beastId: string, action: 'carry' | 'lead' | 'unlead') {
-    if (!view) return;
+  async function lineup(beastId: string, action: 'carry' | 'lead' | 'unlead') {
+    if (!view || busy.current) return;
     const current = view.lineup;
     const carried = current.carriedBeastIds.includes(beastId);
     const ids =
@@ -114,7 +120,8 @@ export default function BeastsPage() {
           : carried
             ? current.carriedBeastIds.filter((id) => id !== beastId)
             : [...current.carriedBeastIds, beastId];
-    void mutate(
+    setPendingLineup({ beastId, action });
+    await mutate(
       'lineup',
       {
         carriedBeastIds: ids,
@@ -130,6 +137,7 @@ export default function BeastsPage() {
       },
       'PUT',
     );
+    setPendingLineup(undefined);
   }
   const visibleBeasts =
     view?.beasts.filter(
@@ -160,7 +168,10 @@ export default function BeastsPage() {
         <>
           <div className="text-ink-secondary flex items-center justify-between gap-3 text-xs">
             <span>
-              灵兽 {view.beasts.length} / {BEAST_CAPACITY}
+              灵兽{' '}
+              <span className="font-mono">
+                {view.beasts.length} / {BEAST_CAPACITY}
+              </span>
             </span>
           </div>
           {!view.starterClaimed ? (
@@ -183,21 +194,27 @@ export default function BeastsPage() {
           ) : null}
           <div className="grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)]">
             <aside className="border-ink/15 min-w-0 border-b pb-4 md:border-r md:border-b-0 md:pr-4 md:pb-0">
-              <div className="mb-3 flex gap-4" aria-label="灵兽筛选">
-                {(['all', 'team'] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={filter === value}
-                    onClick={() => setFilter(value)}
-                    className={`hover:text-teal min-h-10 border-b-2 text-xs transition-colors ${filter === value ? 'border-teal text-teal' : 'text-ink-secondary border-transparent'}`}
-                  >
-                    {value === 'all'
-                      ? '全部'
-                      : `出战编组 ${view.lineup.carriedBeastIds.length}/6`}
-                  </button>
-                ))}
-              </div>
+              <GameSceneTabs
+                className="mb-3"
+                activeValue={filter}
+                onChange={(value) =>
+                  setFilter(value === 'team' ? 'team' : 'all')
+                }
+                items={[
+                  { value: 'all', label: '全部' },
+                  {
+                    value: 'team',
+                    label: (
+                      <>
+                        出战编组{' '}
+                        <span className="font-mono">
+                          {view.lineup.carriedBeastIds.length}/6
+                        </span>
+                      </>
+                    ),
+                  },
+                ]}
+              />
               <div className="grid grid-cols-3 gap-1 md:grid-cols-1">
                 {visibleBeasts.map((beast) => (
                   <button
@@ -224,7 +241,7 @@ export default function BeastsPage() {
                         {view.lineup.leadBeastId === beast.id ? (
                           <BeastLeadSeal />
                         ) : view.lineup.carriedBeastIds.includes(beast.id) ? (
-                          ' · 编组'
+                          <InkBadge compact>编组</InkBadge>
                         ) : null}
                       </span>
                     </span>
@@ -275,6 +292,11 @@ export default function BeastsPage() {
                 carried={view.lineup.carriedBeastIds.includes(detail.id)}
                 full={view.lineup.carriedBeastIds.length >= 6}
                 pending={pending}
+                pendingLineup={
+                  pendingLineup?.beastId === detail.id
+                    ? pendingLineup.action
+                    : undefined
+                }
                 lineup={(type) => lineup(detail.id, type)}
                 act={(type) => setAction({ beastId: detail.id, type })}
                 learn={() => setLearningId(detail.id)}
@@ -363,6 +385,7 @@ export default function BeastsPage() {
           onClose={() => setClaimId(undefined)}
           footer={
             <InkButton
+              variant="primary"
               pending={pending}
               onClick={() => void mutate('claim', { speciesId: claim.id })}
             >

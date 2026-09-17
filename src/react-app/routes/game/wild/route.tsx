@@ -12,6 +12,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCondition,
+  useCultivatorIdentity,
   usePlayerSession,
   useSectCombatState,
 } from '@app/lib/resources/player';
@@ -20,8 +21,10 @@ import type {
   WildRegionView,
   WildSessionView,
 } from '@shared/contracts/combatV6Wild';
+import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { itemDefinition } from '@shared/inventory';
 import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
+import { REALM_ORDER } from '@shared/types/constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { WildSeekingScene } from './WildSeekingScene';
@@ -44,6 +47,7 @@ export default function WildPage() {
 function WildRegion({ nodeId }: { nodeId: string }) {
   const { openDialog } = useInkUI();
   const build = useSectCombatState();
+  const identity = useCultivatorIdentity();
   const player = usePlayerSession();
   const qi = useQiState({
     cultivatorId: player.data?.activeCultivator?.id ?? '',
@@ -62,6 +66,11 @@ function WildRegion({ nodeId }: { nodeId: string }) {
     resolve,
   } = combat;
   const [region, setRegion] = useState<WildRegionView>();
+  const cultivator = identity.data?.cultivator;
+  const realmLocked =
+    !!region &&
+    !!cultivator &&
+    REALM_ORDER[cultivator.realm] < REALM_ORDER[region.realmRequirement];
   const [searching, setSearching] = useState(false);
   const alive = useRef(false);
   useEffect(() => {
@@ -205,7 +214,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
     return (
       <div className="app-safe-area-page bg-paper text-ink h-full overflow-y-auto">
         <nav
-          className="mx-auto flex max-w-2xl justify-end px-4 pt-2"
+          className="mx-auto flex max-w-[1120px] justify-end px-4 pt-2 sm:px-8"
           aria-label="野外导航"
         >
           <InkButton
@@ -215,12 +224,12 @@ function WildRegion({ nodeId }: { nodeId: string }) {
             返回地图
           </InkButton>
         </nav>
-        {(error || build.error || qi.error) && (
+        {(error || build.error || qi.error || identity.error) && (
           <div
             className="text-crimson mx-auto max-w-2xl px-6 py-3 text-sm"
             role="alert"
           >
-            {error || build.error || qi.error}
+            {error || build.error || qi.error || identity.error}
             <InkButton
               onClick={() => void Promise.all([refresh(true), reloadRegion()])}
             >
@@ -258,14 +267,32 @@ function WildRegion({ nodeId }: { nodeId: string }) {
                 。
               </p>
             )}
+            {realmLocked && (
+              <p
+                className="text-ink-secondary px-6 py-2 text-center text-sm"
+                role="status"
+              >
+                此处需要达到{region.realmRequirement}期后寻觅。
+              </p>
+            )}
             <WildSeekingScene
               region={region}
               searching={searching}
               starting={pending && !searching}
               unavailable={
+                !cultivator ||
+                realmLocked ||
                 build.data?.status !== 'active' ||
                 !!region.trainingSessionId ||
                 !!region.settlingBattleId
+              }
+              ownerLevel={
+                cultivator
+                  ? combatCharacterLevel(
+                      cultivator.realm,
+                      cultivator.realm_stage,
+                    )
+                  : null
               }
               qi={qi.state?.current ?? null}
               onSearch={explore}

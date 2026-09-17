@@ -29,16 +29,19 @@ export function BeastRenameModal({
       }}
       footer={
         <div className="flex justify-end gap-3">
-          <InkButton disabled={pending} onClick={close}>
+          <InkButton variant="secondary" disabled={pending} onClick={close}>
             取消
           </InkButton>
           <InkButton
-            disabled={pending || !parsed.success}
+            variant="primary"
+            pending={pending}
+            pendingLabel="保存中…"
+            disabled={!parsed.success}
             onClick={async () => {
               if (parsed.success && (await save(parsed.data))) close();
             }}
           >
-            {pending ? '保存中…' : '保存'}
+            保存
           </InkButton>
         </div>
       }

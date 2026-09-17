@@ -160,7 +160,10 @@ async function assertDungeonStartReady(args: {
   cultivatorId: string;
   mapNodeId: string;
 }): Promise<void> {
-  if (!isSatelliteNode(args.mapNodeId)) {
+  if (
+    !isSatelliteNode(args.mapNodeId) ||
+    !getMapNode(args.mapNodeId)?.dungeon_config
+  ) {
     throw new DungeonStartError('只有秘境节点可以进行副本挑战', 400);
   }
 

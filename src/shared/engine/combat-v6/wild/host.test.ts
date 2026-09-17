@@ -10,7 +10,8 @@ import { activeBeastSkills, beastPanel } from '../beasts/projection';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../content';
 import { SkillTag } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
-import { generateWildIndividual } from './generator';
+import { WILD_REGIONS } from './content';
+import { generateWildEncounter, generateWildIndividual } from './generator';
 import { createWildHost, WildHost } from './host';
 
 function player(id: string): CombatV6TrainingPlayerInput {
@@ -167,4 +168,23 @@ describe('野外所见即所得', () => {
       snapshot.combatants[0].beast,
     );
   });
+});
+
+it('全部栖息地生成的个体可以建立并推进真实战局', () => {
+  for (const region of WILD_REGIONS) {
+    for (let seed = 0; seed < 8; seed++) {
+      const beasts = generateWildEncounter(region.nodeId, seed).map((c, i) =>
+        generateWildIndividual(
+          c,
+          `30000000-0000-4000-8000-00000000000${i}`,
+          owner,
+          seed + i,
+        ),
+      );
+      const host = createWildHost(region.nodeId, seed, player(owner), beasts);
+      host.submit(host.playerId, { type: 'defend' });
+      host.resolveRound();
+      expect(host.runtimeSnapshot().combatants).toEqual(beasts);
+    }
+  }
 });

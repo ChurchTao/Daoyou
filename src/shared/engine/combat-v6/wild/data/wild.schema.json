@@ -7,7 +7,7 @@
     },
     "formatVersion": {
       "type": "number",
-      "const": 2
+      "const": 3
     },
     "contentRevision": {
       "type": "integer",
@@ -109,21 +109,25 @@
             "渡劫"
           ]
         },
-        "minLevel": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 180
+        "scenery": {
+          "type": "string",
+          "enum": [
+            "meadow",
+            "mine",
+            "volcanic",
+            "lake",
+            "stone",
+            "river",
+            "forest",
+            "cave",
+            "storm"
+          ]
         },
-        "maxLevel": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 180
-        },
-        "speciesIds": {
+        "species": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema1"
+            "$ref": "#/$defs/__schema2"
           }
         }
       },
@@ -134,9 +138,8 @@
         "description",
         "searchText",
         "realmRequirement",
-        "minLevel",
-        "maxLevel",
-        "speciesIds"
+        "scenery",
+        "species"
       ],
       "additionalProperties": false
     },
@@ -144,6 +147,30 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "speciesId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "minLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 180
+        },
+        "maxLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 180
+        }
+      },
+      "required": [
+        "speciesId",
+        "minLevel",
+        "maxLevel"
+      ],
+      "additionalProperties": false
     }
   }
 }

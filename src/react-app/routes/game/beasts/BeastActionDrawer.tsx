@@ -28,10 +28,11 @@ export function BeastActionDrawer({
       onClose={close}
       footer={
         <div className="flex justify-end gap-3">
-          <InkButton disabled={pending} onClick={close}>
+          <InkButton variant="secondary" disabled={pending} onClick={close}>
             取消
           </InkButton>
           <InkButton
+            variant="primary"
             pending={pending}
             disabled={action === 'rest' && (cost <= 0 || cost > spiritStones)}
             onClick={confirm}

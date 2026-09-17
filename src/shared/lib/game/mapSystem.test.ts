@@ -118,9 +118,9 @@ describe('resolveDungeonMapConfig', () => {
   it('keeps curated map data explicitly classified', () => {
     const satelliteNodes = getAllSatelliteNodes();
 
-    // 只有卫星节点需要 dungeon_config
+    // 卫星节点显式声明副本或野外能力
     expect(
-      satelliteNodes.every((node) => node.dungeon_config?.difficulty),
+      satelliteNodes.every((node) => node.dungeon_config?.difficulty || node.wild_encounter_id),
     ).toBe(true);
 
     // 主节点不应有 dungeon_config（副本仅限卫星节点）

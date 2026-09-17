@@ -1,57 +1,78 @@
-import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { SeededRng } from '../engine/combat-v6/core/rng';
-import raw from './data/wild.json';
 import { BOOKS } from '../items/definitions/beast-books';
+import raw from './data/wild.json';
 import schema from './data/wild.schema.json';
-import { WildRewardPackShape, compileWildRewardPool, loadWildRewardPack } from './wild-pack';
-import { QINGXI_POOL_V2, wildItemRewards } from './wild';
+import { WILD_INHERITANCE_POOL, wildItemRewards } from './wild';
+import {
+  WildRewardPackShape,
+  compileWildRewardPool,
+  loadWildRewardPack,
+} from './wild-pack';
 
-const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-describe('野外奖励数据包', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(WildRewardPackShape, { reused: 'ref' })).toEqual(schema));
-  it('移除demo传承灵印后新池在512个种子下保持确定性', () => {
-    const run = () => Array.from({length:512}, (_,seed)=>{
-      const rng = new SeededRng(seed);
-      return wildItemRewards(QINGXI_POOL_V2,()=>()=>rng.next(),group=>`baseline-${seed}-${group}`,'2026-09-11T00:00:00Z');
-    });
-    expect(hash(run())).toBe(hash(run()));
-  });
-  it('全部已注册传承灵印可从扩展池掉落，传承灵印组概率仍为3%', () => {
-    const group = QINGXI_POOL_V2.groups.find((entry) => entry.id === 'books')!;
+describe('野外传承灵印奖励包', () => {
+  it('Schema 同步', () =>
+    expect(z.toJSONSchema(WildRewardPackShape, { reused: 'ref' })).toEqual(
+      schema,
+    ));
+  it('完整覆盖灵印且保留3%概率和普通/上品权重', () => {
+    const group = WILD_INHERITANCE_POOL.groups[0];
     expect(group.chance).toBe(0.03);
-    expect(group.entries.map((entry) => entry.rewardId)).toEqual(BOOKS.map((book) => book.id));
-    const total = group.entries.reduce((sum, entry) => sum + entry.weight, 0);
-    let weight = 0;
+    expect(group.entries.map((e) => e.rewardId)).toEqual(
+      BOOKS.map((b) => b.id),
+    );
+    expect(
+      group.entries
+        .filter((e) =>
+          ['book.beast.combo', 'book.beast.advanced-combo'].includes(
+            e.rewardId,
+          ),
+        )
+        .map((e) => e.weight),
+    ).toEqual([24, 4]);
+    const total = group.entries.reduce((sum, e) => sum + e.weight, 0);
+    let offset = 0;
     for (const entry of group.entries) {
-      const point = (weight + entry.weight / 2) / total;
+      const point = (offset + entry.weight / 2) / total;
       let call = 0;
-      const grants = wildItemRewards({ ...QINGXI_POOL_V2, groups: [group] }, () => () => call++ === 0 ? 0 : point, () => 'unused', '');
-      expect(grants).toEqual([{ definitionId: entry.rewardId, quantity: 1 }]);
-      weight += entry.weight;
+      expect(
+        wildItemRewards(
+          WILD_INHERITANCE_POOL,
+          () => () => (call++ === 0 ? 0 : point),
+        ),
+      ).toEqual([{ definitionId: entry.rewardId, quantity: 1 }]);
+      offset += entry.weight;
     }
   });
-  it('配置等级、概率和部位控制最终奖励', () => {
-    const data = structuredClone(raw);
-    data.equipmentLevels = [30];
-    data.groups = [{ id: 'blueprints', chance: 1, source: { kind: 'blueprints', slots: ['head'] } }];
-    const pool = compileWildRewardPool(loadWildRewardPack(data));
-    expect(wildItemRewards(pool, () => () => 0, () => 'unused', '')).toEqual([{ definitionId: 'blueprint.head.30', quantity: 1 }]);
-    data.groups[0].chance = 0;
-    expect(wildItemRewards(compileWildRewardPool(loadWildRewardPack(data)), () => () => 0.5, () => 'unused', '')).toEqual([]);
-  });
-  it('拒绝未知区域、奖励、重复组和非法数量', () => {
-    const region = structuredClone(raw);
-    region.nodeId = 'missing';
-    expect(() => loadWildRewardPack(region)).toThrow('区域');
-    const invalid = { ...raw, groups: [{ id: 'test', chance: 1, source: { kind: 'fixed', entries: [{ rewardId: 'missing', weight: 1, quantity: { min: 1, max: 1 } }] } }] };
-    expect(() => loadWildRewardPack(invalid)).toThrow('奖励引用');
-    invalid.groups[0].source.entries[0].rewardId = 'equipment.head.10';
-    invalid.groups[0].source.entries[0].quantity.max = 2;
-    expect(() => loadWildRewardPack(invalid)).toThrow('奖励引用');
+  it('拒绝非灵印、重复引用和额外掉落组', () => {
+    for (const id of [
+      'missing',
+      'material.ore.qingxi-iron.v1',
+      'equipment.head.10',
+      'blueprint.head.10',
+      'jade.character_manual.changchun',
+    ]) {
+      const data = structuredClone(raw);
+      data.groups[0].source.entries[0].rewardId = id;
+      expect(() => loadWildRewardPack(data)).toThrow('传承灵印');
+    }
     const duplicate = structuredClone(raw);
-    duplicate.groups.push(duplicate.groups[0]);
-    expect(() => loadWildRewardPack(duplicate)).toThrow();
+    duplicate.groups[0].source.entries.push(
+      duplicate.groups[0].source.entries[0],
+    );
+    expect(() => loadWildRewardPack(duplicate)).toThrow('传承灵印');
+    const extra = structuredClone(raw);
+    extra.groups.push(extra.groups[0]);
+    expect(() => loadWildRewardPack(extra)).toThrow();
+  });
+  it('关闭灵印掉落概率后无物品奖励', () => {
+    const data = structuredClone(raw);
+    data.groups[0].chance = 0;
+    expect(
+      wildItemRewards(
+        compileWildRewardPool(loadWildRewardPack(data)),
+        () => () => 0.5,
+      ),
+    ).toEqual([]);
   });
 });
