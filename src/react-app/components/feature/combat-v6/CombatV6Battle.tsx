@@ -272,6 +272,7 @@ export function CombatV6Battle({
         <CombatV6Commands
           allowAbandon={allowAbandon}
           online={online}
+          clockOffset={clockOffset}
           key={selectionId}
           session={commandSession}
           pending={pending}
