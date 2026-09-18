@@ -14,7 +14,7 @@ React 图标入口为 `src/react-app/components/ui/GameIcon.tsx`。普通字符�
 
 ## 新增与使用
 
-1. 图标文件统一放进 `public/assets/icons/`。头像优先使用 256×256 透明 WebP；简洁图形可用 SVG，也支持 PNG。检查小尺寸轮廓与透明边缘；SVG 采用正方形 viewBox，禁用脚本、外链和 foreignObject。
+1. 图标文件统一放进 `public/assets/icons/`。头像优先使用 256×256 透明 WebP；灵兽头像裁掉透明外边距后等比贴合，宽或高一边尽量占满画布，另一边居中，保留完整轮廓和内部留白。简洁图形可用 SVG，也支持 PNG。检查小尺寸轮廓与透明边缘；SVG 采用正方形 viewBox，禁用脚本、外链和 foreignObject。
 2. 在 `src/react-app/components/ui/icons/registry.ts` 显式注册稳定名称及 `/assets/icons/文件名` 静态路径，业务配置填写 `icon:名称`。名称按类别加前缀，例如 `beast-`。
 3. 调用方只使用 `GameIcon`；不自行解析协议、不直接引用资源、不创建第二份注册表。删除或更名时同时检索配置引用。
 4. 业务适配组件只负责从领域 ID 取图标值，例如共享的 `feature/beasts/BeastIcon.tsx`，渲染始终交给 `GameIcon`。
