@@ -1,6 +1,6 @@
 # 统一图标
 
-灵兽头像的美术方向、固定参考、生成与视觉验收见 [灵兽头像技能](../.agents/skills/daoyou-beast-avatars/SKILL.md)。本文负责渲染和资源管理约定。
+灵兽头像的美术方向、固定参考、生成与视觉验收见 [写意墨像技能](../.agents/skills/daoyou-ink-portraits/SKILL.md)。本文负责渲染和资源管理约定。
 
 React 图标入口为 `src/react-app/components/ui/GameIcon.tsx`。普通字符串直接显示（主要用于 emoji）；`icon:名称` 只查询集中注册的 SVG／WebP／PNG 图片，不拼接路径、不加载远程地址、不注入 SVG 字符串。未知名称和空值显示 `❔`。
 
@@ -19,6 +19,6 @@ React 图标入口为 `src/react-app/components/ui/GameIcon.tsx`。普通字符�
 3. 调用方只使用 `GameIcon`；不自行解析协议、不直接引用资源、不创建第二份注册表。删除或更名时同时检索配置引用。
 4. 业务适配组件只负责从领域 ID 取图标值，例如共享的 `feature/beasts/BeastIcon.tsx`，渲染始终交给 `GameIcon`。
 
-本轮迁移初始灵兽选择、兽栏列表及详情头像。七种保留动物 emoji；火翎鸦、雪翎鹤、月影貂、墨蛟、银翅螳螂、六目灵猿、冥灯蝶和雷鹏使用 256×256 透明 WebP。雷鹏沿用 A 版侧脸头像，其余七种参照同一基准生成，见 [生成记录](beast-avatar-generation.md)。技能图标和其他业务的既有图标留待各自迁移；新增或改动图标渲染应复用此入口。
+初始灵兽选择、灵兽名册与详情头像统一通过 `BeastIcon` 渲染。新增或改动图标使用同一入口；灵兽头像的当前写意墨像素材见 [生成记录](beast-avatar-generation.md)。
 
 静态文件随 Vite 构建复制到 `dist/assets/icons/`。新增或替换后检查注册路径与部署产物；同名图标更新素材时可给文件名添加版本号并更新注册路径，业务图标名称不变，避免旧缓存。
