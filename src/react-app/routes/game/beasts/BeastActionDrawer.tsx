@@ -63,7 +63,7 @@ export function BeastActionDrawer({
             <span className="font-mono">{beast.skillSlotCapacity}</span>{' '}
             个技能格
           </p>
-          <p>放生没有收益，无法找回。该灵兽会同时移出携带编组。</p>
+          <p>放生没有收益，无法找回。该灵兽会同时取消携带。</p>
         </div>
       )}
     </InkModal>

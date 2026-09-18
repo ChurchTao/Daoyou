@@ -18,6 +18,7 @@ import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
 import { BeastLeadSeal, BeastPanel } from './BeastPanel';
 import { BeastRenameModal } from './BeastRenameModal';
+import { BeastRosterScroll } from './BeastRosterScroll';
 
 const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
@@ -80,7 +81,7 @@ export default function BeastsPage() {
         pushToast({
           message:
             path === 'lineup'
-              ? '出战编组已更新'
+              ? '携带出战已更新'
               : path === 'claim'
                 ? '结缘成功'
                 : path === 'rest'
@@ -193,94 +194,99 @@ export default function BeastsPage() {
             </div>
           ) : null}
           <div className="grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)]">
-            <aside className="border-ink/15 min-w-0 border-b pb-4 md:border-r md:border-b-0 md:pr-4 md:pb-0">
-              <GameSceneTabs
-                className="mb-3"
-                activeValue={filter}
-                onChange={(value) =>
-                  setFilter(value === 'team' ? 'team' : 'all')
-                }
-                items={[
-                  { value: 'all', label: '全部' },
-                  {
-                    value: 'team',
-                    label: (
-                      <>
-                        出战编组{' '}
-                        <span className="font-mono">
-                          {view.lineup.carriedBeastIds.length}/6
-                        </span>
-                      </>
-                    ),
-                  },
-                ]}
-              />
-              <div className="grid grid-cols-3 gap-1 md:grid-cols-1">
-                {visibleBeasts.map((beast) => (
-                  <button
-                    type="button"
-                    key={beast.id}
-                    aria-pressed={detail?.id === beast.id}
-                    onClick={() => setDetailId(beast.id)}
-                    className={`hover:bg-teal/5 flex min-w-0 items-center gap-2 border-l-2 px-1 py-3 text-left transition-colors md:gap-3 md:px-2 ${detail?.id === beast.id ? 'border-teal bg-teal/8' : 'border-transparent'}`}
-                  >
-                    <span
-                      aria-hidden
-                      className="shrink-0 font-sans text-2xl md:text-3xl"
-                    >
-                      <BeastIcon speciesId={beast.speciesId} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1">
-                        <span className="truncate text-sm" title={beast.name}>
-                          {beast.name}
-                        </span>
-                      </span>
-                      <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
-                        <span className="font-mono">{beast.level} 级</span>
-                        {view.lineup.leadBeastId === beast.id ? (
-                          <BeastLeadSeal />
-                        ) : view.lineup.carriedBeastIds.includes(beast.id) ? (
-                          <InkBadge compact>编组</InkBadge>
-                        ) : null}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-                {filter === 'team'
-                  ? Array.from(
-                      {
-                        length: Math.max(
-                          0,
-                          6 - view.lineup.carriedBeastIds.length,
-                        ),
-                      },
-                      (_, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          className="text-ink-secondary hover:bg-teal/5 hover:text-teal min-h-14 text-xs transition-colors"
-                          onClick={() => {
-                            setFilter('all');
-                            setDetailId(
-                              view.beasts.find(
-                                (beast) =>
-                                  !view.lineup.carriedBeastIds.includes(
-                                    beast.id,
-                                  ),
-                              )?.id,
-                            );
-                            pushToast({
-                              message: '选择灵兽后，点击加入编组',
-                              tone: 'default',
-                            });
-                          }}
-                        >
-                          ＋ 空位
-                        </button>
+            <aside className="border-ink/15 min-w-0 border-b pb-4 md:relative md:min-h-60 md:border-r md:border-b-0 md:pb-0">
+              <div className="md:absolute md:inset-0 md:flex md:min-h-0 md:flex-col md:pr-4">
+                <GameSceneTabs
+                  className="mb-3 shrink-0"
+                  activeValue={filter}
+                  onChange={(value) =>
+                    setFilter(value === 'team' ? 'team' : 'all')
+                  }
+                  items={[
+                    { value: 'all', label: '全部' },
+                    {
+                      value: 'team',
+                      label: (
+                        <>
+                          携带出战{' '}
+                          <span className="font-mono">
+                            {view.lineup.carriedBeastIds.length}/6
+                          </span>
+                        </>
                       ),
-                    )
-                  : null}
+                    },
+                  ]}
+                />
+                <p className="text-ink-secondary mb-3 shrink-0 text-xs leading-5">
+                  携带的灵兽可在战斗中召唤，首发自动入场。
+                </p>
+                <BeastRosterScroll key={filter}>
+                  {visibleBeasts.map((beast) => (
+                    <button
+                      type="button"
+                      key={beast.id}
+                      aria-pressed={detail?.id === beast.id}
+                      onClick={() => setDetailId(beast.id)}
+                      className={`hover:bg-teal/5 flex min-w-0 items-center gap-2 border-l-2 px-1 py-3 text-left transition-colors md:gap-3 md:px-2 ${detail?.id === beast.id ? 'border-teal bg-teal/8' : 'border-transparent'}`}
+                    >
+                      <span
+                        aria-hidden
+                        className="shrink-0 font-sans text-2xl md:text-3xl"
+                      >
+                        <BeastIcon speciesId={beast.speciesId} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-1">
+                          <span className="truncate text-sm" title={beast.name}>
+                            {beast.name}
+                          </span>
+                        </span>
+                        <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
+                          <span className="font-mono">{beast.level} 级</span>
+                          {view.lineup.leadBeastId === beast.id ? (
+                            <BeastLeadSeal />
+                          ) : view.lineup.carriedBeastIds.includes(beast.id) ? (
+                            <InkBadge compact>携带</InkBadge>
+                          ) : null}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                  {filter === 'team'
+                    ? Array.from(
+                        {
+                          length: Math.max(
+                            0,
+                            6 - view.lineup.carriedBeastIds.length,
+                          ),
+                        },
+                        (_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="text-ink-secondary hover:bg-teal/5 hover:text-teal min-h-14 text-xs transition-colors"
+                            onClick={() => {
+                              setFilter('all');
+                              setDetailId(
+                                view.beasts.find(
+                                  (beast) =>
+                                    !view.lineup.carriedBeastIds.includes(
+                                      beast.id,
+                                    ),
+                                )?.id,
+                              );
+                              pushToast({
+                                message: '选择灵兽后，点击「携带出战」',
+                                tone: 'default',
+                              });
+                            }}
+                          >
+                            ＋ 空位
+                          </button>
+                        ),
+                      )
+                    : null}
+                </BeastRosterScroll>
               </div>
             </aside>
             {detail ? (
@@ -314,7 +320,7 @@ export default function BeastsPage() {
             ) : (
               <p className="text-ink-secondary py-8 text-center text-sm">
                 {filter === 'team'
-                  ? '尚未编入灵兽，选择空位开始编组。'
+                  ? '尚未携带灵兽，选择空位添加出战伙伴。'
                   : '灵兽袋尚空，可在野外捕捉灵兽。'}
               </p>
             )}

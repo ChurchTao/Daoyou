@@ -193,7 +193,7 @@ export function BeastPanel({
             </InkButton>
             {!isLead && (reason || (!carried && full)) ? (
               <InkTooltip label="设为首发条件">
-                {reason ?? '出战编组已满'}
+                {reason ?? '携带灵兽已满（最多6只）'}
               </InkTooltip>
             ) : null}
           </div>
@@ -204,10 +204,12 @@ export function BeastPanel({
               disabled={pending || (!carried && full)}
               onClick={() => lineup('carry')}
             >
-              {carried ? '移出编组' : '加入编组'}
+              {carried ? '取消携带' : '携带出战'}
             </InkButton>
             {!carried && full ? (
-              <InkTooltip label="加入编组条件">出战编组已满。</InkTooltip>
+              <InkTooltip label="携带出战条件">
+                携带灵兽已满（最多6只）。
+              </InkTooltip>
             ) : null}
           </div>
           <div className="flex items-center">
@@ -353,7 +355,7 @@ export function BeastPanel({
             reason ? 'text-crimson text-xs' : 'text-ink-secondary text-xs'
           }
         >
-          {reason ?? (full && !carried ? '出战编组已满' : '可出战')}
+          {reason ?? (full && !carried ? '携带灵兽已满（最多6只）' : '可出战')}
         </span>
         <div className="flex items-center gap-1">
           <InkButton

@@ -3,7 +3,8 @@ import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentati
 
 const styles = {
   normal: 'border-ink/20 bg-bgpaper text-ink hover:border-ink/40',
-  advanced: 'border-gold/50 bg-gold/5 text-wood hover:border-gold/80',
+  advanced:
+    'border-crimson/45 bg-crimson/5 text-crimson hover:border-crimson/75',
   unavailable:
     'border-ink/10 bg-bgpaper text-ink-secondary/60 hover:border-ink/25',
 };

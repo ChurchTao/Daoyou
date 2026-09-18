@@ -885,7 +885,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'beasts',
                   presentation: 'workflow',
-                  summary: '与灵兽结缘，编组出战或安心休养。',
+                  summary: '与灵兽结缘，携带出战或安心休养。',
                 },
                 '灵兽袋',
               )}
