@@ -6,19 +6,20 @@ import {
   gainBeastExp,
   generateCapturedBeast,
 } from './progression';
-// Progression revision 3 changes only grown level/exp/points in this digest. V2 generation baseline: approved core/candidate births and unallocated points (species revision 6: SVG avatars; only generationContentRevision changes); aptitude/growth draw order is unchanged.
+// Species revision 7 adopts the confirmed names, boar defense/counter and wolf stealth.
+// Aptitude/growth draw order and progression revision 3 remain unchanged.
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: '62ca2fac867cd5ae491153743e015f5075c3867a32ece8a6e39e6b2891e004ee',
+    hash: '519b85d3f13da91a285c15a075780816af73f8debba3e7df282907be6150addc',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: '252eaed34dd3315526afb3937a723a1ee16f9790d6d6efd5ed901c149d6f4bb5',
+    hash: 'e5cb0501b3233ca90012425b7bc3b17c4556bd5d20ea641bce88807008699cde',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: 'ea09bad878409f17668f315721a0478bc3802df34c51e5cea1a5277a4787bb9e',
+    hash: '260cadaeb872c877df7d31b2d332f453b66e9e10178d2da28d003622e12491b9',
   },
 ];
 function digest(speciesId: string) {
@@ -56,9 +57,9 @@ it.each(baseline)(
 
 it.each([
   { index: 0, ranges: [[672, 840], [864, 1080], [2880, 3600], [1536, 1920], [864, 1080]], growth: [982, 1030] },
-  { index: 1, ranges: [[816, 1020], [864, 1080], [3960, 4950], [1536, 1920], [576, 720]], growth: [1012, 1060] },
+  { index: 1, ranges: [[816, 1020], [1180, 1440], [3960, 4950], [1536, 1920], [576, 720]], growth: [1012, 1060] },
   { index: 2, ranges: [[1104, 1380], [624, 780], [2160, 2700], [960, 1200], [864, 1080]], growth: [952, 1000] },
-])('new species $index rolls stay within the adopted mobile reference ranges', ({ index, ranges, growth }) => {
+])('new species $index rolls stay within the confirmed design ranges', ({ index, ranges, growth }) => {
   const id = '00000000-0000-4000-8000-000000000001';
   for (let seed = 0; seed < 128; seed++) {
     const beast = generateStarterBeast(id, id, baseline[index].speciesId, seed);

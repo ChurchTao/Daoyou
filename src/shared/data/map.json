@@ -820,7 +820,7 @@
       "realm_requirement": "元婴",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "长风掠过草原，裸露的灵脉岩层延向远处，宽厚蹄印沿石带蜿蜒。",
+      "description": "长风掠过草原，裸露的灵脉岩层延向远处，石隙间留着深浅爪痕与扇状尾迹。",
       "connections": ["ML_PLAINS_01"],
       "x": 95,
       "y": 44
@@ -834,7 +834,7 @@
       "realm_requirement": "元婴",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "暗河从山腹汇入黑潭，水色幽深，潭边苔石间偶尔泛起浊浪。",
+      "description": "暗河从山腹汇入黑潭，潭边苔石间泛起浊浪，岸侧地火泉眼蒸腾着灼热白汽。",
       "connections": ["TN_ZMG_01"],
       "x": 91,
       "y": 72

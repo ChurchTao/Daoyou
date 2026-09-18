@@ -1,7 +1,7 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 3,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "regions": [
     {
       "nodeId": "SAT_TN_08",
@@ -106,8 +106,8 @@
       "nodeId": "WILD_ML_STONESEA",
       "id": "combat.wild.region.wind-stones",
       "name": "长风石海",
-      "description": "长风掠过草原，裸露的灵脉岩层延向远处，宽厚蹄印沿石带蜿蜒。",
-      "searchText": "你循着石原上的蹄印，留意长风带来的低鸣……",
+      "description": "长风掠过草原，裸露的灵脉岩层延向远处，石隙间留着深浅爪痕与扇状尾迹。",
+      "searchText": "你循着石原上的爪痕，辨认风中传来的兽鸣……",
       "realmRequirement": "元婴",
       "scenery": "stone",
       "species": [
@@ -122,8 +122,8 @@
       "nodeId": "WILD_ZMG_BLACKPOOL",
       "id": "combat.wild.region.black-pool",
       "name": "黑水潭",
-      "description": "暗河从山腹汇入黑潭，水色幽深，潭边苔石间偶尔泛起浊浪。",
-      "searchText": "暗流撞上石壁，你屏息留意水下的动静……",
+      "description": "暗河从山腹汇入黑潭，潭边苔石间泛起浊浪，岸侧地火泉眼蒸腾着灼热白汽。",
+      "searchText": "暗流撞上石壁，泉眼白汽翻涌，你屏息留意潭岸的动静……",
       "realmRequirement": "元婴",
       "scenery": "river",
       "species": [
@@ -136,6 +136,11 @@
           "speciesId": "combat.wild.species.dark-shell-turtle",
           "minLevel": 55,
           "maxLevel": 65
+        },
+        {
+          "speciesId": "combat.wild.species.three-legged-golden-toad",
+          "minLevel": 65,
+          "maxLevel": 75
         }
       ]
     },

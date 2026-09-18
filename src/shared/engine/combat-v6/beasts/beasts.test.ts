@@ -63,6 +63,54 @@ describe('召唤兽正式个体', () => {
     ).toBe(0);
     expect(beast).toEqual(before);
   });
+  it.each(['岩角犀', '我的旧伙伴'])(
+    '物种替换后保留存量个体 %s 的名称、数值、技能与加点',
+    (name) => {
+      const existing = {
+        ...starter(),
+        speciesId: 'combat.wild.species.rock-horn-rhino',
+        name,
+        level: 65,
+        exp: 123,
+        growth: 1.18,
+        aptitudes: {
+          attack: 1350,
+          defense: 1600,
+          health: 6200,
+          mana: 1800,
+          speed: 700,
+        },
+        skills: ['beast.strength', 'beast.parry', 'beast.falling-rock'],
+        skillSlotCapacity: 3,
+        allocatedAttributes: {
+          constitution: 100,
+          strength: 70,
+          magic: 15,
+          endurance: 100,
+          agility: 20,
+        },
+        unallocatedPoints: 20,
+        generationContentRevision: 6,
+      };
+      const before = structuredClone(existing);
+      expect(BeastSchema.parse(existing)).toEqual(before);
+      const [unit] = projectBeastRoster(
+        {
+          beasts: [existing],
+          lineup: { carriedBeastIds: [id], leadBeastId: id, revision: 0 },
+        },
+        owner,
+        0,
+        0,
+        65,
+      );
+      expect(unit.name).toBe(name);
+      expect(unit.passives).toEqual(['beast.strength', 'beast.parry']);
+      expect(unit.skills).toEqual(['beast.falling-rock']);
+      expect(unit.attrs).toMatchObject({ maxHp: 2612, speed: 274 });
+      expect(existing).toEqual(before);
+    },
+  );
   it('编组上限、唯一性、归属和低寿命入场边界', () => {
     expect(() =>
       BeastLineupSchema.parse({ carriedBeastIds: [id, id], revision: 0 }),
