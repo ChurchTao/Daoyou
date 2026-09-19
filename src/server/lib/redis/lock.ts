@@ -14,6 +14,7 @@ const DEFAULT_LOCK_TIMEOUT_MS = 10_000;
 const DEFAULT_LOCK_DELAY_MS = 50;
 
 export const redisLockKeys = {
+  divination: (cultivatorId: string) => `lock:divination:${cultivatorId}`,
   cultivatorCreation: (userId: string) =>
     `lock:user:cultivator-creation:${userId}`,
   cultivatorMutation: (cultivatorId: string) =>

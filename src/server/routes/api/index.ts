@@ -1,3 +1,4 @@
+import divinationRouter from './divination.router';
 import type { AppEnv } from '@server/lib/hono/types';
 import { getMessageInfrastructureHealthStatus } from '@server/lib/mq/domainEventRegistry';
 import { getNatsHealthStatus } from '@server/lib/nats';
@@ -105,6 +106,7 @@ apiRouter.route('/craft', craftRouter);
 apiRouter.route('/cultivator', cultivatorRouter);
 apiRouter.route('/cultivators', cultivatorsRouter);
 apiRouter.route('/divine-fortune', divineFortuneRouter);
+apiRouter.route('/divination', divinationRouter);
 apiRouter.route('/dungeon', dungeonRouter);
 apiRouter.route('/enemies', enemiesRouter);
 apiRouter.route('/fate-reshape', fateReshapeRouter);

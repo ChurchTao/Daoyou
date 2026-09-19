@@ -121,7 +121,7 @@ it('十个节点覆盖全部物种，地图名称、境界与关联配置一致'
     expect(node.name.endsWith(r.name)).toBe(true);
     expect(node.realm_requirement).toBe(r.realmRequirement);
     expect(node.description).toContain(r.description);
-    if (r.nodeId !== 'SAT_TN_08') expect(node.dungeon_config).toBeUndefined();
+    expect(node.dungeon_config).toBeUndefined();
   }
 });
 it('混居节点对每种成年个体应用独立等级范围，幼崽始终0级', () => {

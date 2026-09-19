@@ -92,7 +92,7 @@ router.post('/action', async (c) => {
           { userId: c.get('user')!.id, cultivatorId: owner },
           input,
         )
-      : await advanceTower(owner, input);
+      : await advanceTower({ userId: c.get('user')!.id, cultivatorId: owner }, input);
   return c.json({ success: true, data });
 });
 router.get('/leaderboard', async (c) => {

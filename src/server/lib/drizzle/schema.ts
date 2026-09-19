@@ -1,3 +1,4 @@
+import type { DivinationDice, DivinationDirection } from '@shared/lib/divination';
 import type { WildEncounter, WildRuntime } from '@shared/contracts/combatV6Wild';
 import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
 import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
@@ -1936,5 +1937,21 @@ export const wildSearches = pgTable('wanjiedaoyou_wild_searches', {
   encounter: jsonb('encounter').$type<WildEncounter>().notNull(),
   // 开战意图先持久化，再发布 Redis 战局；中断后可原样重试，不能重抽或重复创建。
   preparedBattle: jsonb('prepared_battle').$type<WildRuntime>(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// 每角色只保留最近一次求签；新的一天仅覆盖已发奖的记录。
+export const dailyDivinations = pgTable('wanjiedaoyou_daily_divinations', {
+  // 逻辑关联角色；归属校验和删除清理由应用层负责，不创建数据库外键。
+  cultivatorId: uuid('cultivator_id').primaryKey(),
+  drawId: uuid('draw_id').notNull(),
+  dayKey: varchar('day_key', { length: 10 }).notNull(),
+  direction: varchar('direction', { length: 24 }).$type<DivinationDirection>().notNull(),
+  dice: jsonb('dice').$type<DivinationDice>().notNull(),
+  omenId: varchar('omen_id', { length: 32 }).notNull(),
+  generationId: uuid('generation_id'),
+  interpretation: text('interpretation'),
+  fallback: boolean('fallback').notNull().default(false),
+  rewardGrantedAt: timestamp('reward_granted_at'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

@@ -1,6 +1,8 @@
 import { redisLockErrorResponse } from '@server/lib/hono/middleware';
 import { patchDevCultivator } from '@server/lib/services/DevCultivatorService';
+import { resetDevDivination } from '@server/lib/services/DevDivinationService';
 import { clearDevInventoryBag } from '@server/lib/services/DevInventoryService';
+import { DivinationError } from '@server/lib/services/DivinationService';
 import { grantDevResources } from '@server/lib/services/ForgingService';
 import { InventoryError } from '@server/lib/services/InventoryService';
 import { QiServiceError } from '@server/lib/services/QiService';
@@ -51,6 +53,22 @@ router.delete('/cultivators/:id/inventory/bag', async (c) => {
       return c.json({ success: false, error: '角色 ID 无效' }, 400);
     if (error instanceof InventoryError)
       return c.json({ success: false, error: error.message }, 409);
+    throw error;
+  }
+});
+router.delete('/cultivators/:id/divination', async (c) => {
+  try {
+    return c.json({
+      success: true,
+      ...(await resetDevDivination(z.uuid().parse(c.req.param('id')))),
+    });
+  } catch (error) {
+    const lock = redisLockErrorResponse(error);
+    if (lock) return lock;
+    if (error instanceof z.ZodError)
+      return c.json({ success: false, error: '角色 ID 无效' }, 400);
+    if (error instanceof DivinationError)
+      return c.json({ success: false, error: error.message }, error.status);
     throw error;
   }
 });

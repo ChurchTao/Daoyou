@@ -1,5 +1,11 @@
 /** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
 export const iconRegistry: ReadonlyMap<string, string> = new Map([
+  ['map-wild', '/assets/icons/map-wild.webp'],
+  ['map-dungeon', '/assets/icons/map-dungeon.webp'],
+  ['map-market', '/assets/icons/map-market.webp'],
+  ['map-sect', '/assets/icons/map-sect.webp'],
+  ['map-landmark', '/assets/icons/map-landmark.webp'],
+
   ['cultivator-male-avatar', '/assets/icons/cultivator-male-avatar.png'],
   ['cultivator-female-avatar', '/assets/icons/cultivator-female-avatar.png'],
   ['beast-fire-crow', '/assets/icons/beast-fire-crow.webp'],

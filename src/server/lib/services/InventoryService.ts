@@ -1,5 +1,5 @@
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { hasActiveTower, hasTowerBattle } from '@server/lib/tower/occupancy';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -92,6 +92,7 @@ export async function assertInventoryIdle(
   owner: string,
   recoveryItem?: Pick<Consumable, 'spec'>,
   tx: DbExecutor = db,
+  towerPolicy: 'battle' | 'run' = 'battle',
 ) {
   const [run] = await tx
     .select({
@@ -107,7 +108,7 @@ export async function assertInventoryIdle(
     )
     .limit(1);
   if (
-    (await hasActiveTower(owner)) ||
+    (await (towerPolicy === 'run' ? hasActiveTower(owner) : hasTowerBattle(owner))) ||
     (await hasActiveRanking(owner)) ||
     (run && (!recoveryItem || !canUseDungeonRecoveryPill(run, recoveryItem))) ||
     (await hasActiveSectTaskBattle(owner)) ||
@@ -266,7 +267,7 @@ export async function grantInventory(
 ) {
   if (!grants.length) return [];
   // Only relevant stacks and the bounded bag are needed, even with an unlimited store.
-  const before = (
+  const rows = (
     await tx
       .select()
       .from(inventoryItems)
@@ -290,7 +291,21 @@ export async function grantInventory(
           ),
         ),
       )
-  ).map(inventoryItemOf);
+  );
+  // Unrelated legacy definitions still occupy slots, but need not be decoded to grant items.
+  const reservedSlots = rows.flatMap((row) =>
+    row.location === 'bag' && row.slotIndex !== null ? [row.slotIndex] : [],
+  );
+  const before = rows
+    .filter((row) =>
+      grants.some((grant) =>
+        row.definitionId === grant.definitionId &&
+        row.stackKey !== null &&
+        row.stackKey === inventoryStackKey(grant.definitionId, grant.instanceData) &&
+        row.quantity < itemDefinition(grant.definitionId).stackLimit,
+      ),
+    )
+    .map(inventoryItemOf);
   let next = before;
   for (const grant of grants)
     next = addItems(
@@ -300,6 +315,7 @@ export async function grantInventory(
       overflow,
       randomUUID,
       inventoryStackKey(grant.definitionId, grant.instanceData),
+      reservedSlots,
     );
   await saveInventoryPlan(owner, before, next, tx);
   return next.filter(

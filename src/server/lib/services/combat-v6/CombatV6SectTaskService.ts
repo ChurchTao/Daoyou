@@ -1,3 +1,4 @@
+import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { isNotNull } from 'drizzle-orm';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
@@ -179,6 +180,7 @@ export async function startSectTaskBattle(
   context: SectTaskExecutionContext,
   tx: DbTransaction,
 ) {
+  if (await hasActiveTower(context.cultivatorId)) invalidSectTask('请先结束幻境挑战');
   const target = SectV6TargetSchema.safeParse(
     context.record.payload.executorData.battleTarget,
   );

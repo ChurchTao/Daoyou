@@ -9,8 +9,6 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
-import { ATLAS_REGIONS, getAtlasRegion } from '@shared/lib/game/mapAtlas';
-import { getWorldMapLocation } from '@shared/lib/game/mapSystem';
 import {
   resolveMapCloseNavigation,
   type SpecialBackNavigation,
@@ -247,7 +245,8 @@ function MapSceneChrome() {
   const { descriptor, location, routeTitle } = useResolvedSpecialScene();
   const { label, onBack } = useSpecialSceneBackActionState(descriptor);
 
-  if (!descriptor) {
+  // The atlas owns its integrated region/search/filter controls and navigation.
+  if (!descriptor || location.pathname === '/game/map-v2') {
     return null;
   }
 
@@ -264,13 +263,6 @@ function MapSceneChrome() {
   const contextLabel = isSectVisit
     ? '人界 · 访宗舆图'
     : ['人界', '全图', intentLabel].filter(Boolean).join(' · ');
-  const requestedNode = getWorldMapLocation(searchParams.get('nodeId') ?? '');
-  const atlasRegion = requestedNode
-    ? getAtlasRegion(requestedNode)
-    : ATLAS_REGIONS.find((region) => region.id === searchParams.get('region'));
-  const mapContextLabel = location.pathname === '/game/map-v2'
-    ? ['人界', atlasRegion?.name ?? '总览', intentLabel].filter(Boolean).join(' · ')
-    : contextLabel;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
@@ -286,7 +278,7 @@ function MapSceneChrome() {
       <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <div className="text-ink font-semibold">{routeTitle}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
-          {mapContextLabel}
+          {contextLabel}
         </div>
       </div>
     </div>

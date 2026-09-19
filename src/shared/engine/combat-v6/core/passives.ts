@@ -9,6 +9,7 @@ import { evalExpr } from "./expr.ts"
 import type { HookContext } from "./hooks.ts"
 import { skillOf } from "./skills.ts"
 import { enemiesOf } from "./query.ts"
+import { resolveSkillTargets } from "./targeting.ts"
 import type { HookAim as HookAimType, SkillDef, SkillEffect, SkillHook, Unit } from "./types.ts"
 import { consumeWhen, matchesWhen, targetStatusStacks, type WhenScope } from "./when.ts"
 import { isStanding } from "./units.ts"
@@ -76,7 +77,7 @@ export function bindDataHooks(ctx: BattleContext): void {
           }
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return
 
-          const targets = resolveHookTargets(ctx, hook, unit, hctx)
+          const targets = resolveHookTargets(ctx, hook, unit, hctx, skill)
           const usable = hook.effects.filter((effect) => matchesWhen(ctx, effect.when, { ...scope, markKey: `${scope.markKey}:${effect.type}` }))
           if (usable.length === 0 && hook.effects.length > 0) return
           if (targets.length === 0 && usable.some((e) => needsHookTarget(e))) return
@@ -174,7 +175,9 @@ function resolveHookTargets(
   hook: SkillHook,
   unit: Unit,
   hctx: { source?: Unit; target?: Unit },
+  skill: SkillDef,
 ): Unit[] {
+  if (hook.targeting) return resolveSkillTargets(ctx, unit, { ...skill, targeting: hook.targeting }, hctx.target ? [hctx.target.id] : [])
   const aim: HookAimType | undefined = hook.aim
   if (aim === HookAim.HookSource) return hctx.source ? [hctx.source] : []
   if (aim === HookAim.Self) return [unit]

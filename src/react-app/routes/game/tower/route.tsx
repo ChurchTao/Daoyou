@@ -2,8 +2,11 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
+import { GameSceneFrame } from '@app/components/game-shell';
+import { InkModal } from '@app/components/layout/InkModal';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkTooltip } from '@app/components/ui/InkTooltip';
 import type { TowerView } from '@shared/contracts/combatV6Tower';
 import { itemDefinition } from '@shared/inventory';
 import { materialFactsOf } from '@shared/items/material';
@@ -11,6 +14,7 @@ import type { TowerBlessingId } from '@shared/lib/tower/blessings';
 import { getTowerBlessingDefinition } from '@shared/lib/tower/blessings';
 import { TOWER_MIN_REALM } from '@shared/lib/tower/helpers';
 import type { TowerLeaderboardEntry } from '@shared/lib/tower/types';
+import type { TowerEnemyPreview } from '@shared/lib/tower/weekly';
 import type { RealmType } from '@shared/types/constants';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router';
@@ -58,9 +62,79 @@ function TowerBoard() {
   );
 }
 
+function EnemyMembers({
+  enemy,
+  compact = false,
+}: {
+  enemy: TowerEnemyPreview;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-end justify-center gap-5 ${compact ? 'my-2' : 'mt-4 mb-3'}`}
+      aria-label="敌方阵容"
+    >
+      {enemy.members.map((member) => (
+        <InkTooltip
+          key={member.id}
+          label={`${member.name}，查看机制`}
+          triggerClassName="focus-visible:outline-ink inline-flex min-h-11 min-w-11 cursor-help items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2"
+          triggerContent={
+            <GameIcon
+              value={member.icon}
+              className={
+                compact
+                  ? 'text-2xl'
+                  : member.role === 'leader'
+                    ? 'text-6xl'
+                    : 'text-3xl'
+              }
+            />
+          }
+        >
+          <p className="mb-2">{member.name}</p>
+          {member.details.map((detail) => (
+            <p key={detail} className="mt-1 text-sm leading-6">
+              {detail}
+            </p>
+          ))}
+        </InkTooltip>
+      ))}
+    </div>
+  );
+}
+
+function EnemyDetails({ enemy }: { enemy: TowerEnemyPreview }) {
+  return (
+    <details className="text-ink-secondary mx-auto max-w-md text-sm">
+      <summary className="hover:text-crimson cursor-pointer leading-7">
+        {enemy.labels.join(' · ')}
+      </summary>
+      <ul className="mt-3 space-y-2 text-left leading-6">
+        {enemy.details.map((detail, i) => (
+          <li key={i}>{detail}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+const END_REASONS = {
+  defeat: '蜃影未散，再整行装。',
+  fled: '暂避锋芒，来日再登。',
+  draw: '此战未分胜负。',
+  retreated: '收起机缘，暂别蜃楼。',
+  clear: '二十重蜃影，尽数踏破。',
+  expired: '新一周的蜃楼已经显现。',
+  realm_changed: '境界已变，可重新挑战新的幻境。',
+  content_updated: '幻境已焕新，请重新入境。',
+};
+
 export default function TowerRoute() {
   const [view, setView] = useState<TowerView | null>(null);
   const [error, setError] = useState('');
+  const [panel, setPanel] = useState<
+    'rewards' | 'board' | 'week' | 'leave' | null
+  >(null);
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
   const mounted = useRef(false);
@@ -121,10 +195,42 @@ export default function TowerRoute() {
   }
   const state = view?.state;
   if (state?.battleId) return <Navigate to="/game/tower/battle" replace />;
+  const choosing = state?.status === 'CHOOSING_BLESSING';
+  const finished = state?.status === 'FINISHED';
+  const enemy = state?.enemy;
   return (
-    <GameSceneFrame>
+    <GameSceneFrame
+      variant="lite"
+      headerMeta={
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-ink-secondary text-sm">
+            {state?.realm ?? '每周一蜃境新生'}
+          </span>
+          <div className="flex gap-2">
+            {(
+              [
+                ['rewards', '🎁', '本周机缘'],
+                ['board', '🏆', '境界榜'],
+                ['week', '⋯', '本周强敌'],
+              ] as const
+            ).map(([id, icon, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-label={label}
+                title={label}
+                onClick={() => setPanel(id)}
+                className="text-ink-secondary hover:text-crimson flex size-10 items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                <GameIcon value={icon} className="text-xl" />
+              </button>
+            ))}
+          </div>
+        </div>
+      }
+    >
       {error ? (
-        <p role="alert">
+        <p role="alert" className="text-crimson text-sm">
           {error}{' '}
           <InkButton
             disabled={pending}
@@ -137,93 +243,263 @@ export default function TowerRoute() {
         </p>
       ) : null}
       {!view ? (
-        <p>正在照见幻境…</p>
-      ) : !state || state.status === 'FINISHED' ? (
-        <GameSceneSection>
-          <p>
-            {state
-              ? `本次通过 ${state.highestFloor} 层。`
-              : '蜃影凝成高楼，带上灵兽，逐层寻觅机缘。'}
-          </p>
-          <InkButton
-            disabled={pending || !view.eligible}
-            onClick={() =>
-              void run(() =>
-                combatV6Request<TowerView>(
-                  '/api/tower/start',
-                  mutationBody({}),
-                ),
-              )
-            }
-          >
-            {view.eligible ? '进入幻境' : `${TOWER_MIN_REALM}境界开放`}
-          </InkButton>
-        </GameSceneSection>
+        <p className="text-ink-secondary py-12 text-center">正在照见幻境…</p>
       ) : (
-        <GameSceneSection>
-          <p>第 {state.floor} 层</p>
-          <p className="text-ink-secondary text-sm">
-            气血 {state.hp}/{state.maxHp} · 法力 {state.mp}/{state.maxMp}
-          </p>
-          {state.status === 'CHOOSING_BLESSING' ? (
-            <div className="grid gap-3">
-              {state.choices.map((choice) => (
+        <div className="mx-auto max-w-lg py-4 text-center">
+          {!state || finished ? (
+            <>
+              <GameIcon
+                value={finished && state.reason === 'clear' ? '🌅' : '🌫️'}
+                className="my-6 text-6xl"
+              />
+              {finished ? (
+                <>
+                  <p className="text-ink-secondary text-sm">本次登临</p>
+                  <p className="my-3">
+                    <span className="font-mono text-4xl font-semibold">
+                      {state.highestFloor}
+                    </span>
+                    <span className="text-ink-secondary ml-2 text-sm">层</span>
+                  </p>
+                  <p className="text-ink-secondary text-sm leading-6">
+                    {state.reason ? END_REASONS[state.reason] : '暂别蜃楼。'}
+                  </p>
+                </>
+              ) : (
+                <p className="text-ink-secondary leading-7">
+                  二十重蜃影，今朝能登几层？
+                </p>
+              )}
+              <div className="mt-5">
                 <InkButton
-                  key={choice.id}
-                  disabled={pending}
-                  onClick={() => void act('blessing', choice.id)}
+                  variant="primary"
+                  pending={pending}
+                  disabled={!view.eligible}
+                  onClick={() =>
+                    void run(() =>
+                      combatV6Request<TowerView>(
+                        '/api/tower/start',
+                        mutationBody({}),
+                      ),
+                    )
+                  }
                 >
-                  <span>
-                    {choice.name} · {choice.nextStacks} 层
-                  </span>
-                  <span className="text-ink-secondary block text-sm">
-                    {choice.description}
-                  </span>
+                  {view.eligible
+                    ? finished
+                      ? '再次入境'
+                      : '进入幻境'
+                    : `${TOWER_MIN_REALM}境界开放`}
                 </InkButton>
-              ))}
-            </div>
-          ) : (
-            <InkButton disabled={pending} onClick={() => void act('battle')}>
-              挑战此层
-            </InkButton>
-          )}
-          <InkButton disabled={pending} onClick={() => void act('leave')}>
-            结束挑战
-          </InkButton>
-        </GameSceneSection>
-      )}
-      {state && Object.keys(state.blessings).length ? (
-        <GameSceneSection title="本次祝福">
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(state.blessings).map(([id, stacks]) => (
-              <span key={id}>
-                {getTowerBlessingDefinition(id as TowerBlessingId).name} ×
-                {stacks}
-              </span>
-            ))}
-          </div>
-        </GameSceneSection>
-      ) : null}
-      {state?.rewards.length ? (
-        <GameSceneSection title="本周已获机缘">
-          {state.rewards.map((reward) => (
-            <p key={reward.floor}>
-              第 {reward.floor} 层：{reward.spiritStones} 灵石 ·{' '}
-              {reward.reputation} 声望 ·{' '}
-              {reward.items
-                .map(
-                  (item) =>
-                    `${item.definitionId === 'material.v1' ? materialFactsOf(item.instanceData).name : itemDefinition(item.definitionId).name} ×${item.quantity}`,
-                )
-                .join('、')}
+              </div>
+            </>
+          ) : choosing ? (
+            <>
+              <p className="text-ink-secondary text-sm">
+                {state.highestFloor
+                  ? `已通过第 ${state.highestFloor} 层`
+                  : '入境机缘'}
+              </p>
+              <p className="mt-3 text-xl">择一祝福，继续登楼</p>
+              <div className="mt-6 space-y-3 text-left">
+                {state.choices.map((choice) => {
+                  const def = getTowerBlessingDefinition(choice.id);
+                  return (
+                    <div
+                      key={choice.id}
+                      className="border-ink/15 flex items-center gap-4 border-b py-4 last:border-0"
+                    >
+                      <GameIcon value={def.icon} className="text-3xl" />
+                      <div className="min-w-0 flex-1">
+                        <InkButton
+                          variant="primary"
+                          disabled={pending}
+                          onClick={() => void act('blessing', choice.id)}
+                        >
+                          {choice.name}{' '}
+                          <span className="ml-2 font-mono">
+                            +{Math.round(def.perStack * 100)}%
+                          </span>
+                        </InkButton>
+                        <p className="text-ink-secondary mt-1 text-sm leading-6">
+                          {def.label}
+                        </p>
+                        {choice.currentStacks ? (
+                          <p className="text-ink-secondary mt-1 font-mono text-sm">
+                            {Math.round(
+                              choice.currentStacks * def.perStack * 100,
+                            )}
+                            % →{' '}
+                            {Math.round(choice.nextStacks * def.perStack * 100)}
+                            %
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : enemy ? (
+            <>
+              <p className="text-ink-secondary text-sm">
+                第{' '}
+                <span className="text-ink font-mono text-3xl font-semibold">
+                  {state.floor}
+                </span>{' '}
+                层 <span className="ml-1 font-mono">/ 20</span>
+              </p>
+              <EnemyMembers enemy={enemy} />
+              <p
+                className={
+                  enemy.kind === 'normal'
+                    ? 'text-ink-secondary text-sm'
+                    : 'text-crimson text-sm'
+                }
+              >
+                {enemy.kind === 'boss'
+                  ? '首领'
+                  : enemy.kind === 'elite'
+                    ? '精英'
+                    : '蜃影'}
+              </p>
+              <p className="mt-2 mb-3 text-2xl">{enemy.name}</p>
+              <EnemyDetails
+                key={`${state.floor}:${enemy.name}`}
+                enemy={enemy}
+              />
+              <div className="mt-5">
+                <InkButton
+                  variant="primary"
+                  pending={pending}
+                  pendingLabel="蜃影凝聚…"
+                  onClick={() => void act('battle')}
+                >
+                  迎战
+                </InkButton>
+              </div>
+            </>
+          ) : null}
+          {!choosing ? (
+            <p className="text-ink-secondary mt-3 text-xs">
+              每场满气血、满法力迎战
             </p>
-          ))}
-          <p className="text-ink-secondary text-sm">
-            物品已收入储物袋，满袋时存入储藏室。
-          </p>
-        </GameSceneSection>
-      ) : null}
-      <TowerBoard key={state?.highestFloor ?? 0} />
+          ) : null}
+          {state && Object.keys(state.blessings).length ? (
+            <div className="mt-7 flex flex-wrap justify-center gap-4">
+              {Object.entries(state.blessings).map(([id, stacks]) => {
+                const def = getTowerBlessingDefinition(id as TowerBlessingId);
+                return (
+                  <InkTooltip
+                    key={id}
+                    label={def.name}
+                    triggerClassName="inline-flex min-h-10 items-center gap-1.5"
+                    triggerContent={
+                      <>
+                        <GameIcon value={def.icon} />
+                        <span className="font-mono text-sm">
+                          +{Math.round((stacks ?? 0) * def.perStack * 100)}%
+                        </span>
+                      </>
+                    }
+                  >
+                    {def.description}
+                  </InkTooltip>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      )}
+      <InkModal
+        isOpen={panel !== null}
+        onClose={() => setPanel(null)}
+        title={
+          panel === 'board'
+            ? '境界榜'
+            : panel === 'rewards'
+              ? '本周机缘'
+              : panel === 'leave'
+                ? '暂别蜃楼'
+                : '本周强敌'
+        }
+        footer={
+          <InkButton variant="secondary" onClick={() => setPanel(null)}>
+            收起
+          </InkButton>
+        }
+      >
+        {panel === 'board' ? (
+          <TowerBoard />
+        ) : panel === 'rewards' ? (
+          <div className="space-y-4 text-sm leading-7">
+            <p className="text-ink-secondary">
+              第 5、10、15、20 层各有机缘，每周每档领取一次。
+            </p>
+            {state?.rewards.map((reward) => (
+              <div key={reward.floor}>
+                <p>
+                  第 <span className="font-mono">{reward.floor}</span> 层 ·
+                  已领取
+                </p>
+                <p className="text-ink-secondary">
+                  <span className="font-mono">{reward.spiritStones}</span> 灵石
+                  · <span className="font-mono">{reward.reputation}</span> 声望
+                </p>
+                <p>
+                  {reward.items
+                    .map(
+                      (item) =>
+                        `${item.definitionId === 'material.v1' ? materialFactsOf(item.instanceData).name : itemDefinition(item.definitionId).name} ×${item.quantity}`,
+                    )
+                    .join('、')}
+                </p>
+              </div>
+            ))}
+            {!state?.rewards.length ? (
+              <p>本周尚未获得机缘。</p>
+            ) : (
+              <p className="text-ink-secondary">
+                物品已收入储物袋，满袋时存入储藏室。
+              </p>
+            )}
+          </div>
+        ) : panel === 'leave' ? (
+          <div className="space-y-4 text-sm leading-7">
+            <p>本次祝福将散去，已获机缘保留。</p>
+            <InkButton
+              pending={pending}
+              onClick={() => {
+                setPanel(null);
+                void act('leave');
+              }}
+            >
+              结束本次挑战
+            </InkButton>
+          </div>
+        ) : panel === 'week' ? (
+          <div className="space-y-5">
+            {view?.weeklyEnemies.map((foe) => (
+              <div key={foe.floor}>
+                <p className="mb-1 text-sm">
+                  <span className="font-mono">{foe.floor}</span> 层 · {foe.name}
+                </p>
+                <EnemyMembers enemy={foe} compact />
+                <EnemyDetails enemy={foe} />
+              </div>
+            ))}
+            {state && !finished ? (
+              <div className="border-ink/15 border-t pt-3">
+                <InkButton
+                  variant="secondary"
+                  onClick={() => setPanel('leave')}
+                >
+                  结束挑战
+                </InkButton>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </InkModal>
     </GameSceneFrame>
   );
 }

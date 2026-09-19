@@ -78,6 +78,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '修炼室',
         href: '/game/retreat',
       },
+      { id: 'divination', sceneLabel: '每日占卜', href: '/game/divination', expandedDockLabel: '每日占卜' },
       {
         id: 'inn',
         sceneLabel: '灵眼之泉',
@@ -141,7 +142,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '练功房',
         href: '/game/training-room',
       },
-      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map' },
+      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
       {
         id: 'beasts',
         sceneLabel: '灵兽袋',
@@ -224,7 +225,7 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'map',
         sceneLabel: '修仙界地图',
-        href: '/game/map',
+        href: '/game/map-v2',
         expandedDockLabel: '🗺️ 修仙界地图',
       },
       { id: 'map-v2', sceneLabel: '山河舆图' },
@@ -237,7 +238,7 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'market',
         sceneLabel: '修仙坊市',
-        href: '/game/map?intent=market',
+        href: '/game/map-v2?intent=market',
         expandedDockLabel: '🛖 修仙坊市',
       },
       {

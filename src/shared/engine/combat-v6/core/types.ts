@@ -120,6 +120,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_wild_seeking_content_v2'
     | 'combat-v6-dungeon-v1'
     | 'combat-v6-tower-v1'
+    | 'combat-v6-tower-v2'
+    | 'combat-v6-tower-v3'
     | 'combat-v6-ranking-v1'
     | 'combat-v6-sect-task-v1'
     | 'combat-v6-breakthrough-v1'
@@ -509,6 +511,8 @@ export type SkillHook = {
   requireKind?: DamageKind;
   /** hookSource=反击/反震打回来；hookTarget=连击再打原目标；others=其他敌人 */
   aim?: HookAim;
+  /** Explicit hook target selection; takes precedence over aim. */
+  targeting?: SkillTargeting;
   aimCount?: Expr;
   aimMode?: TargetMode;
   /** 概率钩子默认成功后消耗次数；onAttempt 用于每场只判定一次。 */

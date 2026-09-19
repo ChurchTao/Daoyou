@@ -22,3 +22,16 @@ React 图标入口为 `src/react-app/components/ui/GameIcon.tsx`。普通字符�
 初始灵兽选择、灵兽名册与详情头像统一通过 `BeastIcon` 渲染。新增或改动图标使用同一入口；灵兽头像的当前写意墨像素材见 [生成记录](beast-avatar-generation.md)。
 
 静态文件随 Vite 构建复制到 `dist/assets/icons/`。新增或替换后检查注册路径与部署产物；同名图标更新素材时可给文件名添加版本号并更新注册路径，业务图标名称不变，避免旧缓存。
+
+Phaser 等 Canvas 渲染器通过 `GameIcon.resolveSource(iconValue)` 获取同一注册资源，再交给纹理加载器；协议解析仍由 `GameIcon.tsx` 集中处理，业务侧不拼接图标路径。新版地图的五类单一用途节点、筛选项和详情共用这一套透明 WebP 资源。
+
+地图图标使用图片生成的国画彩墨素材区分灵兽、秘境石门、坊市摊亭、宗门山门与山川地标。母版按网格分割、透明边界裁切和统一留边后交付为 160×160 RGBA 无损 WebP；区域地图使用左侧大徽头、右侧细胶囊的一体标签：图标固定在左侧，常规显示 40px，秘境菱徽内为 32px；徽头最小高度 52px，文字胶囊比徽头低 16px。灵兽采用苔绿圆徽、秘境采用烟紫菱徽、坊市采用赭金圆角方徽、宗门采用青碧六角徽、山川采用石青拱徽。徽头和文字底均不透明，选中统一使用朱砂描边；密集处保留类别徽头，悬停或选中展开名称。
+
+
+| 素材 | 用途 | 规格 | 接入 |
+| --- | --- | --- | --- |
+| `public/assets/icons/map-wild.webp` | 灵兽出没地 | 160×160，RGBA | 地图、筛选、查找、详情 |
+| `public/assets/icons/map-dungeon.webp` | 秘境 | 160×160，RGBA | 地图、筛选、查找、详情 |
+| `public/assets/icons/map-market.webp` | 坊市 | 160×160，RGBA | 地图、筛选、查找、详情 |
+| `public/assets/icons/map-sect.webp` | 宗门 | 160×160，RGBA | 地图、筛选、查找、详情 |
+| `public/assets/icons/map-landmark.webp` | 山川地标 | 160×160，RGBA | 地图、筛选、查找、详情 |

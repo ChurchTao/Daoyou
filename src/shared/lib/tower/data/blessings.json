@@ -1,142 +1,82 @@
 {
   "$schema": "./blessings.schema.json",
-  "formatVersion": 1,
-  "contentRevision": 1,
+  "formatVersion": 2,
+  "contentRevision": 2,
   "blessings": [
     {
-      "id": "vitality_surge",
-      "name": "体魄澎湃",
-      "label": "体魄",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "vitality",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "strength_surge",
-      "name": "力贯千钧",
-      "label": "力道",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "strength",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "spirit_surge",
-      "name": "灵海翻涌",
-      "label": "灵力",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "spirit",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "endurance_surge",
-      "name": "铁骨铮然",
-      "label": "根骨",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "endurance",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "swift_step",
-      "name": "踏风行",
-      "label": "身法",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "speed",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "mind_focus",
-      "name": "明心定神",
-      "label": "神识",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "attribute",
-        "attribute": "willpower",
-        "perStack": 0.08
-      }
-    },
-    {
-      "id": "jade_bones",
-      "name": "玉骨长生",
-      "label": "最大气血",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "resourceMax",
-        "resource": "hp",
-        "perStack": 0.1
-      }
-    },
-    {
-      "id": "sea_of_qi",
-      "name": "气海扩容",
-      "label": "最大法力",
-      "maxStacks": 5,
-      "effect": {
-        "kind": "resourceMax",
-        "resource": "mp",
-        "perStack": 0.12
-      }
-    },
-    {
-      "id": "breathing_technique",
-      "name": "吐纳回元",
-      "label": "气血",
+      "id": "physical_power",
+      "name": "强攻",
+      "icon": "💪",
+      "label": "人物物理攻击",
       "maxStacks": 3,
       "effect": {
-        "kind": "recovery",
-        "resource": "hp",
-        "perStack": 0.1
+        "target": "player",
+        "attributes": [
+          "physicalAtk"
+        ],
+        "perStack": 0.08
       }
     },
     {
-      "id": "meridian_cycle",
-      "name": "周天流转",
-      "label": "法力",
+      "id": "spell_power",
+      "name": "灵威",
+      "icon": "🔮",
+      "label": "人物法术攻击",
       "maxStacks": 3,
       "effect": {
-        "kind": "recovery",
-        "resource": "mp",
-        "perStack": 0.15
+        "target": "player",
+        "attributes": [
+          "magicAtk"
+        ],
+        "perStack": 0.08
       }
     },
     {
-      "id": "balanced_dao",
-      "name": "大道均衡",
-      "label": "六维主属性",
+      "id": "guard",
+      "name": "坚守",
+      "icon": "🛡️",
+      "label": "人物双防",
       "maxStacks": 3,
       "effect": {
-        "kind": "allAttributes",
+        "target": "player",
+        "attributes": [
+          "physicalDef",
+          "magicDef"
+        ],
+        "perStack": 0.08
+      }
+    },
+    {
+      "id": "swiftness",
+      "name": "疾行",
+      "icon": "👣",
+      "label": "人物速度",
+      "maxStacks": 3,
+      "effect": {
+        "target": "player",
+        "attributes": [
+          "speed"
+        ],
         "perStack": 0.05
+      }
+    },
+    {
+      "id": "beast_power",
+      "name": "兽威",
+      "icon": "🐾",
+      "label": "灵兽双攻",
+      "maxStacks": 3,
+      "effect": {
+        "target": "beasts",
+        "attributes": [
+          "physicalAtk",
+          "magicAtk"
+        ],
+        "perStack": 0.08
       }
     }
   ],
   "choices": {
-    "count": 3,
-    "forced": [
-      {
-        "id": "breathing_technique",
-        "resource": "hp",
-        "atOrBelow": 0.5
-      },
-      {
-        "id": "meridian_cycle",
-        "resource": "mp",
-        "atOrBelow": 0.35
-      }
-    ]
+    "count": 3
   }
 }

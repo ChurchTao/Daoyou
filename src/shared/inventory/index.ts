@@ -91,10 +91,14 @@ export function sameStack(a: InventoryItem, b: InventoryItem) {
     itemDefinition(a.definitionId).stackLimit > 1
   );
 }
-export function emptySlot(items: InventoryItem[]) {
-  const used = new Set(
-    items.filter((i) => i.location === 'bag').map((i) => i.slotIndex),
-  );
+export function emptySlot(
+  items: InventoryItem[],
+  reservedSlots: readonly number[] = [],
+) {
+  const used = new Set([
+    ...reservedSlots,
+    ...items.filter((i) => i.location === 'bag').map((i) => i.slotIndex),
+  ]);
   for (let slot = 0; slot < BAG_CAPACITY; slot++)
     if (!used.has(slot)) return slot;
   return null;
@@ -138,6 +142,7 @@ export function addItems(
   overflow: boolean,
   id: () => string,
   stackKey: string | null,
+  reservedSlots: readonly number[] = [],
 ) {
   if (!Number.isSafeInteger(grant.quantity) || grant.quantity <= 0)
     throw new InventoryRuleError('物品数量无效');
@@ -146,7 +151,8 @@ export function addItems(
     const facts = InventoryEquipmentSchema.parse(grant.instanceData);
     if (grant.quantity !== 1 || items.some((item) => item.id === facts.id))
       throw new InventoryRuleError('独立物品数量或身份无效');
-    const slotIndex = location === 'bag' ? emptySlot(items) : null;
+    const slotIndex =
+      location === 'bag' ? emptySlot(items, reservedSlots) : null;
     if (location === 'bag' && slotIndex === null && !overflow)
       throw new InventoryRuleError('背包格子不足');
     const item = InventoryItemSchema.parse({
@@ -192,7 +198,8 @@ export function addItems(
       }
     }
     while (remaining > 0) {
-      const slotIndex = destination === 'bag' ? emptySlot(next) : null;
+      const slotIndex =
+        destination === 'bag' ? emptySlot(next, reservedSlots) : null;
       if (destination === 'bag' && slotIndex === null) break;
       const quantity = Math.min(limit, remaining);
       next.push({

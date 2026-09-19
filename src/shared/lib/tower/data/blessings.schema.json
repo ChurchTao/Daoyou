@@ -7,7 +7,7 @@
     },
     "formatVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "contentRevision": {
       "type": "integer",
@@ -15,8 +15,8 @@
       "maximum": 9007199254740991
     },
     "blessings": {
-      "minItems": 11,
-      "maxItems": 11,
+      "minItems": 5,
+      "maxItems": 5,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema0"
@@ -28,35 +28,11 @@
         "count": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 11
-        },
-        "forced": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/$defs/__schema1"
-              },
-              "resource": {
-                "$ref": "#/$defs/__schema3"
-              },
-              "atOrBelow": {
-                "$ref": "#/$defs/__schema2"
-              }
-            },
-            "required": [
-              "id",
-              "resource",
-              "atOrBelow"
-            ],
-            "additionalProperties": false
-          }
+          "maximum": 3
         }
       },
       "required": [
-        "count",
-        "forced"
+        "count"
       ],
       "additionalProperties": false
     }
@@ -73,101 +49,67 @@
       "type": "object",
       "properties": {
         "id": {
-          "$ref": "#/$defs/__schema1"
+          "type": "string",
+          "enum": [
+            "physical_power",
+            "spell_power",
+            "guard",
+            "swiftness",
+            "beast_power"
+          ]
         },
         "name": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 50
+          "minLength": 1
+        },
+        "icon": {
+          "type": "string",
+          "minLength": 1
         },
         "label": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 50
+          "minLength": 1
         },
         "maxStacks": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 99
+          "maximum": 3
         },
         "effect": {
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "type": "string",
-                  "const": "attribute"
-                },
-                "attribute": {
-                  "type": "string",
-                  "enum": [
-                    "vitality",
-                    "strength",
-                    "spirit",
-                    "endurance",
-                    "speed",
-                    "willpower"
-                  ]
-                },
-                "perStack": {
-                  "$ref": "#/$defs/__schema2"
-                }
-              },
-              "required": [
-                "kind",
-                "attribute",
-                "perStack"
-              ],
-              "additionalProperties": false
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "enum": [
+                "player",
+                "beasts"
+              ]
             },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "type": "string",
-                  "const": "allAttributes"
-                },
-                "perStack": {
-                  "$ref": "#/$defs/__schema2"
-                }
-              },
-              "required": [
-                "kind",
-                "perStack"
-              ],
-              "additionalProperties": false
+            "attributes": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
             },
-            {
-              "type": "object",
-              "properties": {
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "resourceMax",
-                    "recovery"
-                  ]
-                },
-                "resource": {
-                  "$ref": "#/$defs/__schema3"
-                },
-                "perStack": {
-                  "$ref": "#/$defs/__schema2"
-                }
-              },
-              "required": [
-                "kind",
-                "resource",
-                "perStack"
-              ],
-              "additionalProperties": false
+            "perStack": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 0.1
             }
-          ]
+          },
+          "required": [
+            "target",
+            "attributes",
+            "perStack"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "id",
         "name",
+        "icon",
         "label",
         "maxStacks",
         "effect"
@@ -177,29 +119,11 @@
     "__schema1": {
       "type": "string",
       "enum": [
-        "vitality_surge",
-        "strength_surge",
-        "spirit_surge",
-        "endurance_surge",
-        "swift_step",
-        "mind_focus",
-        "jade_bones",
-        "sea_of_qi",
-        "breathing_technique",
-        "meridian_cycle",
-        "balanced_dao"
-      ]
-    },
-    "__schema2": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1
-    },
-    "__schema3": {
-      "type": "string",
-      "enum": [
-        "hp",
-        "mp"
+        "physicalAtk",
+        "magicAtk",
+        "physicalDef",
+        "magicDef",
+        "speed"
       ]
     }
   }

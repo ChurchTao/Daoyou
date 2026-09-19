@@ -1,3 +1,4 @@
+import dailyDivinationPrompt from '@server/prompts/daily-divination.md?raw';
 import alchemyFormulaAnalysisPrompt from '@server/prompts/alchemy-formula-analysis.md?raw';
 import alchemyImprovisedCopyPrompt from '@server/prompts/alchemy-improvised-copy.md?raw';
 import alchemyRecipePlanPrompt from '@server/prompts/alchemy-recipe-plan.md?raw';
@@ -34,6 +35,7 @@ export interface RenderedPrompt {
 export type PromptSectionKey = 'system' | 'user';
 
 const bundledPromptSources: Record<string, string> = {
+  'daily-divination.md': dailyDivinationPrompt,
   'alchemy-formula-analysis.md': alchemyFormulaAnalysisPrompt,
   'alchemy-improvised-copy.md': alchemyImprovisedCopyPrompt,
   'alchemy-recipe-plan.md': alchemyRecipePlanPrompt,

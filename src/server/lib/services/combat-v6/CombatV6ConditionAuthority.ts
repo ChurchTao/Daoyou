@@ -1,3 +1,4 @@
+import { hasTowerBattle } from '@server/lib/tower/occupancy';
 import { readCharacterCombatBuild } from '@server/lib/repositories/characterLoadoutRepository';
 import type { DbExecutor } from '@server/lib/drizzle/db';
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
@@ -48,7 +49,7 @@ export async function readCombatV6ConditionAuthority(
     build,
     maxHp: attrs.maxHp,
     maxMp: attrs.maxMp,
-    recoveryPaused: (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent' ||
+    recoveryPaused: (await hasTowerBattle(id)) || (await hasActiveDungeon(id)) || taskTarget?.resourcePolicy === 'persistent' ||
       !!(await activeBreakthroughBattle(id, q)),
   };
 }

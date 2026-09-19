@@ -1,7 +1,7 @@
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { hasActiveTower, hasTowerBattle } from '@server/lib/tower/occupancy';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
@@ -25,7 +25,8 @@ export async function assertCombatV6MutationAllowed(
     throw new CombatV6MutationLockedError();
   if (sensitive.test(source) && (await hasActiveRanking(cultivatorId)))
     throw new CombatV6MutationLockedError();
-  if (sensitive.test(source) && (await hasActiveTower(cultivatorId))) {
+  const startsActivity = /^(task_challenge|tower_battle|retreat_|ranking_challenge|dungeon|active_reincarnate)/.test(source);
+  if (sensitive.test(source) && (await (startsActivity ? hasActiveTower(cultivatorId) : hasTowerBattle(cultivatorId)))) {
     throw new CombatV6MutationLockedError();
   }
   if (

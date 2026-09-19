@@ -11,9 +11,7 @@ export interface GameIconProps {
 /** Emoji or registered SVG/WebP/PNG via icon:name; size follows the font. */
 export function GameIcon({ value, className, label }: GameIconProps) {
   const isRegisteredIcon = value.startsWith('icon:');
-  const source = isRegisteredIcon
-    ? iconRegistry.get(value.slice(5))
-    : undefined;
+  const source = GameIcon.resolveSource(value);
 
   return (
     <span
@@ -40,3 +38,7 @@ export function GameIcon({ value, className, label }: GameIconProps) {
     </span>
   );
 }
+
+/** Canvas renderers share the same registered assets without parsing icon values. */
+GameIcon.resolveSource = (value: string): string | undefined =>
+  value.startsWith('icon:') ? iconRegistry.get(value.slice(5)) : undefined;

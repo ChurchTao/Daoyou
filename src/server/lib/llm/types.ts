@@ -11,6 +11,7 @@ export type LlmSceneId =
   | 'breakthrough-story'
   | 'character-generation'
   | 'divine-fortune'
+  | 'daily-divination'
   | 'dungeon-round'
   | 'dungeon-settlement'
   | 'fate-naming'

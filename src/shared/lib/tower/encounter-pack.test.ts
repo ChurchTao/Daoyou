@@ -1,38 +1,81 @@
-import { createHash } from 'node:crypto';
+import { compileTowerEncounter } from '@shared/engine/combat-v6/tower/content';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import raw from './data/encounters.json';
 import schema from './data/encounters.schema.json';
-import { TowerEncounterPackShape, loadTowerEncounterPack } from './encounter-pack';
+import {
+  TowerEncounterPackShape,
+  loadTowerEncounterPack,
+} from './encounter-pack';
+import { allowedTowerFormations } from './formations';
 import { TOWER_ELIGIBLE_REALMS } from './helpers';
-import { compileTowerEnemies } from '@shared/engine/combat-v6/tower/content';
+import { getTowerSeasonMeta } from './season';
+import { createTowerWeek, towerCombination } from './weekly';
 
-describe('幻境楼层与敌人配置', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(TowerEncounterPackShape, { reused: 'ref' })).toEqual(schema));
-  it('七境界全部20层敌人与原Host输入基线一致', () => {
-    const enemies = TOWER_ELIGIBLE_REALMS.flatMap(realm => Array.from({ length: 20 }, (_, i) => compileTowerEnemies(realm, i + 1)));
-    expect(createHash('sha256').update(JSON.stringify(enemies)).digest('hex')).toBe('185651a3f3906a8e4e10f9890cde6f55bcd9260cb190807006b2d3f0c9883067');
+describe('幻境内容与固定周表', () => {
+  it('Schema 同步', () =>
+    expect(z.toJSONSchema(TowerEncounterPackShape, { reused: 'ref' })).toEqual(
+      schema,
+    ));
+  it('跨年连续周的主套路改变，同周不重复组合，同类型关键层套路不同', () => {
+    let previous: ReturnType<typeof createTowerWeek> | undefined;
+    for (let i = 0; i < 110; i++) {
+      const season = getTowerSeasonMeta(
+        new Date(Date.UTC(2025, 11, 1) + i * 7 * 86400000),
+      );
+      const week = createTowerWeek(season);
+      expect(createTowerWeek(season)).toEqual(week);
+      expect(new Set(week.floors.map((f) => f.combinationId)).size).toBe(4);
+      expect(towerCombination(week.floors[0].combinationId).style).not.toBe(
+        towerCombination(week.floors[2].combinationId).style,
+      );
+      expect(towerCombination(week.floors[1].combinationId).style).not.toBe(
+        towerCombination(week.floors[3].combinationId).style,
+      );
+      expect(week.floors.some((f) => f.formationId !== 'solo')).toBe(true);
+      week.floors.forEach((f, slot) => {
+        expect(
+          allowedTowerFormations(
+            f.floor % 10 === 0 ? 'boss' : 'elite',
+            towerCombination(f.combinationId),
+          ),
+        ).toContain(f.formationId);
+        if (previous)
+          expect(towerCombination(f.combinationId).style).not.toBe(
+            towerCombination(previous.floors[slot].combinationId).style,
+          );
+      });
+      previous = week;
+    }
   });
-  it('配置模板数目、基础属性与成长进入敌人编组', () => {
-    const data = structuredClone(raw);
-    data.enemies.templates.normal.count = 3;
-    data.enemies.hpBase = 500;
-    data.enemies.baseAttrs.maxMp = 200;
-    data.enemies.baseAttrs.mp = 200;
-    const enemies = compileTowerEnemies('金丹', 1, loadTowerEncounterPack(data));
-    expect(enemies).toHaveLength(3);
-    expect(enemies[0].attrs.maxHp).toBe(compileTowerEnemies('金丹', 1)[0].attrs.maxHp! + 300);
-    expect(enemies[0].attrs.mp).toBe(200);
+  it('全部境界楼层均可编译，境界内等级固定，无第11层等级重置', () => {
+    const week = createTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
+    for (const realm of TOWER_ELIGIBLE_REALMS) {
+      const level = compileTowerEncounter(realm, 1, week).units[0].level;
+      for (let floor = 1; floor <= 20; floor++) {
+        const encounter = compileTowerEncounter(realm, floor, week);
+        for (const unit of encounter.units) {
+          expect(unit.level).toBe(level);
+          expect(unit.attrs.hp).toBeGreaterThan(0);
+          expect(unit.attrs.speed).toBeGreaterThan(0);
+        }
+      }
+    }
+    const first = compileTowerEncounter('金丹', 1, week).units[0].attrs.hp;
+    const pair = compileTowerEncounter('金丹', 2, week).units;
+    expect(pair.reduce((sum, u) => sum + u.attrs.hp, 0)).toBe(
+      Math.round(first * 1.04),
+    );
   });
-  it('拒绝缺层、重复里程碑和非法概率', () => {
+  it('拒绝缺层、错误里程碑与过快防御成长', () => {
     const floor = structuredClone(raw);
     floor.floors[1].floor = 3;
     expect(() => loadTowerEncounterPack(floor)).toThrow('连续递增');
     const milestone = structuredClone(raw);
     milestone.floors[9].milestone = 'C';
     expect(() => loadTowerEncounterPack(milestone)).toThrow('里程碑');
-    const rate = structuredClone(raw);
-    rate.enemies.baseAttrs.critRate = 2;
-    expect(() => loadTowerEncounterPack(rate)).toThrow('概率');
+    const defense = structuredClone(raw);
+    defense.scaling.defenseGrowth = 0.5;
+    expect(() => loadTowerEncounterPack(defense)).toThrow();
   });
 });

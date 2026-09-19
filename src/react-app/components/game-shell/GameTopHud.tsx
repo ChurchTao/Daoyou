@@ -20,7 +20,8 @@ import {
   QI_ACTION_COSTS,
   QI_DAILY_RESTORE_ITEM_LIMIT,
   QI_MAX,
-  QI_NATURAL_RESTORE_PER_HOUR,
+  QI_NATURAL_RESTORE_INTERVAL_MS,
+  QI_NATURAL_RESTORE_PER_INTERVAL,
   QI_OVERFLOW_MAX,
 } from '@shared/config/qiSystem';
 import { cn } from '@shared/lib/cn';
@@ -592,7 +593,8 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                   : '汇聚中'}
             </p>
             <p>
-              每小时自然恢复 {QI_NATURAL_RESTORE_PER_HOUR} 点，最高恢复到{' '}
+              每 {QI_NATURAL_RESTORE_INTERVAL_MS / 60_000} 分钟自然恢复{' '}
+              {QI_NATURAL_RESTORE_PER_INTERVAL} 点，最高恢复到{' '}
               {QI_MAX}。
             </p>
             <p>下次恢复：{qiState ? qiNextRestoreText : '--'}</p>

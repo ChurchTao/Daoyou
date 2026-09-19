@@ -8,13 +8,35 @@ import {
 
 export const ATLAS_REGIONS = [
   { id: 'tiannan', name: '天南', x: 0.855, y: 0.79 },
-  { id: 'mulan', name: '慕兰', x: 0.88, y: 0.45 },
+  { id: 'mulan', name: '慕兰草原', x: 0.88, y: 0.45 },
   { id: 'luanxinghai', name: '乱星海', x: 0.48, y: 0.73 },
-  { id: 'dajin', name: '大晋', x: 0.48, y: 0.24 },
+  { id: 'dajin', name: '大晋皇朝', x: 0.48, y: 0.24 },
+  { id: 'northland', name: '北境冰原', x: 0.45, y: 0.07 },
+  { id: 'nanjiang', name: '南疆', x: 0.445, y: 0.395 },
+  { id: 'tianlan', name: '天澜草原', x: 0.87, y: 0.29 },
+  { id: 'tiansha', name: '天沙大陆', x: 0.075, y: 0.13 },
+  { id: 'wulonghai', name: '五龙海', x: 0.18, y: 0.52 },
+  { id: 'wubianhai', name: '无边海', x: 0.62, y: 0.5 },
+  { id: 'farwest', name: '极西之地', x: 0.77, y: 0.925 },
+  { id: 'hurricane-desert', name: '飓风沙漠', x: 0.825, y: 0.62 },
 ] as const;
 
 export type AtlasRegionId = (typeof ATLAS_REGIONS)[number]['id'];
 export type AtlasPoint = readonly [number, number];
+
+// 展示名称独立于 map.json 的业务地域名称。
+const REGION_BY_BUSINESS_NAME: Readonly<Record<string, AtlasRegionId>> = {
+  天南: 'tiannan',
+  慕兰: 'mulan',
+  乱星海: 'luanxinghai',
+  大晋: 'dajin',
+};
+
+// 只拆分新版展示区域，附属地点和宗门随主节点归区。
+const REGION_BY_MAIN_NODE: Readonly<Record<string, AtlasRegionId>> = {
+  DJ_NORTH_01: 'northland',
+  DJ_SOUTH_01: 'nanjiang',
+};
 
 export function getAtlasLocations(): WorldMapLocation[] {
   return [
@@ -27,9 +49,10 @@ export function getAtlasLocations(): WorldMapLocation[] {
 export function getAtlasRegion(location: WorldMapLocation) {
   const parent =
     'region' in location ? location : getWorldMapLocation(location.parent_id);
-  return ATLAS_REGIONS.find(
-    (region) => parent && 'region' in parent && parent.region === region.name,
-  );
+  if (!parent || !('region' in parent)) return undefined;
+  const regionId =
+    REGION_BY_MAIN_NODE[parent.id] ?? REGION_BY_BUSINESS_NAME[parent.region];
+  return ATLAS_REGIONS.find((region) => region.id === regionId);
 }
 
 // 展示坐标只用于独立区域底画，旧地图坐标和玩法事实仍由 map.json 持有。
@@ -73,9 +96,57 @@ export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   SAT_LX_06: [0.235, 0.11],
 };
 
+export const MULAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
+  ML_PLAINS_01: [0.5, 0.55],
+  SAT_ML_01: [0.15, 0.75],
+  SAT_ML_02: [0.195, 0.212],
+  WILD_ML_STONESEA: [0.765, 0.318],
+};
+
+export const DAJIN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
+  DJ_CENTRAL_01: [0.65, 0.485],
+  DJ_KW_01: [0.13, 0.145],
+  DJ_RIFT_01: [0.268, 0.37],
+  DJ_VOID_01: [0.12, 0.775],
+  DJ_SKY_01: [0.79, 0.08],
+  DJ_TRIB_01: [0.938, 0.285],
+  SAT_DJ_02: [0.225, 0.435],
+  SAT_DJ_10: [0.275, 0.49],
+  SAT_DJ_03: [0.105, 0.81],
+  SAT_DJ_11: [0.225, 0.787],
+  SAT_DJ_04: [0.875, 0.28],
+  SAT_DJ_12: [0.93, 0.335],
+  SAT_DJ_06: [0.187, 0.095],
+  SAT_DJ_13: [0.167, 0.278],
+  SAT_DJ_07: [0.446, 0.552],
+  SAT_DJ_08: [0.866, 0.106],
+  WILD_KW_THUNDER: [0.107, 0.079],
+  SECT_TIANYAN: [0.197, 0.19],
+  SECT_YOUDU: [0.1, 0.655],
+  SECT_JIUJIE: [0.902, 0.373],
+};
+
+export const NANJIANG_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
+  DJ_SOUTH_01: [0.5, 0.42],
+  SAT_DJ_01: [0.153, 0.116],
+  WILD_DJ_BANYAN: [0.235, 0.716],
+  WILD_DJ_DARKCAVE: [0.854, 0.742],
+  SECT_WUXIANG: [0.82, 0.27],
+};
+
+export const NORTHLAND_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
+  DJ_NORTH_01: [0.65, 0.38],
+  SAT_DJ_05: [0.747, 0.514],
+  SAT_DJ_09: [0.579, 0.303],
+};
+
 export const ATLAS_ANCHORS = {
   tiannan: TIANNAN_ANCHORS,
   luanxinghai: LUANXINGHAI_ANCHORS,
+  mulan: MULAN_ANCHORS,
+  dajin: DAJIN_ANCHORS,
+  nanjiang: NANJIANG_ANCHORS,
+  northland: NORTHLAND_ANCHORS,
 };
 
 export function hasAtlasMap(

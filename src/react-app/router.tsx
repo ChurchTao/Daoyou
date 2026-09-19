@@ -23,6 +23,7 @@ import { resolveSectVisitTitle } from '@app/lib/router/routeTitle';
 import {
   createBrowserRouter,
   createRoutesFromElements,
+  replace,
   Route,
 } from 'react-router';
 
@@ -388,6 +389,11 @@ export const router = createBrowserRouter(
                 },
                 '静室修行',
               )}
+            />
+            <Route
+              path="divination"
+              lazy={lazyRoute(() => import('@app/routes/game/divination/route'))}
+              handle={scene({ id: 'divination', presentation: 'workflow' }, '每日占卜')}
             />
             <Route
               path="inn"
@@ -1145,7 +1151,7 @@ export const router = createBrowserRouter(
             />
             <Route
               path="map"
-              lazy={lazyRoute(() => import('@app/routes/game/map/route'))}
+              loader={({ request }) => replace(`/game/map-v2${new URL(request.url).search}`)}
               handle={scene(
                 {
                   id: 'map',

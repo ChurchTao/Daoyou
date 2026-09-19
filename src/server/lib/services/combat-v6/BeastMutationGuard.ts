@@ -1,7 +1,7 @@
 import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
+import { hasTowerBattle } from '@server/lib/tower/occupancy';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
@@ -15,7 +15,7 @@ export async function beastMutationOccupied(
   cultivatorId: string,
 ): Promise<boolean> {
   return !!(
-    (await hasActiveTower(cultivatorId)) ||
+    (await hasTowerBattle(cultivatorId)) ||
     (await hasActiveRanking(cultivatorId)) ||
     (await hasActiveDungeon(cultivatorId)) ||
     (await hasActiveSectTaskBattle(cultivatorId)) ||
