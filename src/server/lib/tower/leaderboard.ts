@@ -11,7 +11,7 @@ import type { RealmType } from '@shared/types/constants';
 import { and, eq, inArray } from 'drizzle-orm';
 
 function getTowerLeaderboardKey(seasonKey: string, realm: RealmType) {
-  return `tower:v6:leaderboard:${seasonKey}:${realm}`;
+  return `tower:v6:published:leaderboard:${seasonKey}:${realm}`;
 }
 
 export async function updateTowerWeeklyRecord(args: {

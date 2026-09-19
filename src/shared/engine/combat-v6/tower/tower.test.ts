@@ -20,6 +20,7 @@ import {
 } from '../content';
 import { compileTowerEncounter } from './content';
 import { createTowerHost, projectTowerPlayer, TowerHost } from './host';
+import { publishTowerWeek } from './published';
 function player(sectId: CombatV6SectId) {
   const def = COMBAT_V6_SECT_DEFINITIONS_V4[sectId];
   const track = { level: 0, progress: 0 };
@@ -513,4 +514,77 @@ describe('多敌阵容', () => {
     defendRound(restored);
     expect(restored.state.units.filter((u) => u.side === 1)).toHaveLength(1);
   });
+});
+
+it('Host编译策略后冻结战斗，恢复不重新读取周策略', () => {
+  const pack = publishTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
+  pack.floors[0].enemies[0].traits = [{ id: 'vital' }];
+  const host = createTowerHost(
+    durablePlayer(),
+    '金丹',
+    1,
+    {},
+    undefined,
+    42,
+    pack,
+  );
+  expect(host.state.units.find((u) => u.id === 'tower.enemy.0')!.attrs.hp).toBe(
+    1250,
+  );
+  pack.floors[0].enemies[0].traits = [];
+  expect(host.state.units.find((u) => u.id === 'tower.enemy.0')!.attrs.hp).toBe(
+    1250,
+  );
+  const restored = new TowerHost(
+    host.runtimeSnapshot(),
+    host.runtimeSnapshot(),
+  );
+  expect(restored.state.units).toEqual(host.state.units);
+});
+
+it('策略护卫保护指定辅助；死亡下一回合移除，恢复不重复叠层', () => {
+  const pack = publishTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
+  const f = pack.floors[8];
+  f.enemies[1].traits = [{ id: 'limited_healing' }];
+  f.enemies[2].traits = [{ id: 'guard', targetEnemyId: f.enemies[1].id }];
+  const host = createTowerHost(
+    durablePlayer(),
+    '金丹',
+    9,
+    {},
+    undefined,
+    42,
+    pack,
+  );
+  const cover = (h: TowerHost, id: string) =>
+    h.state.units
+      .find((u) => u.id === id)!
+      .statuses.find((s) => s.id === 'tower.mirror-cover')?.stacks ?? 0;
+  expect(cover(host, 'tower.enemy.0')).toBe(0);
+  expect(cover(host, 'tower.enemy.1')).toBe(1);
+  const snapshot = host.runtimeSnapshot();
+  const actor = snapshot.state.units.find((u) => u.id === host.playerId)!;
+  actor.attrs.physicalAtk = actor.attrs.speed = actor.attrs.hit = 100000;
+  const active = new TowerHost(snapshot, snapshot);
+  active.submitGroup([
+    {
+      unitId: active.playerId,
+      command: { type: 'attack', target: 'tower.enemy.2' },
+    },
+  ]);
+  let sameRound = 0;
+  active.resolveRound((state) => {
+    if (
+      state.round === 1 &&
+      state.units.find((u) => u.id === 'tower.enemy.2')!.attrs.hp === 0
+    )
+      sameRound = cover(active, 'tower.enemy.1');
+  });
+  expect(sameRound).toBe(1);
+  expect(cover(active, 'tower.enemy.1')).toBe(0);
+  const saved = active.runtimeSnapshot();
+  const restored = new TowerHost(saved, saved);
+  expect(cover(restored, 'tower.enemy.1')).toBe(0);
+  for (const h of [active, restored]) defendRound(h);
+  expect(restored.runtimeSnapshot()).toEqual(active.runtimeSnapshot());
 });

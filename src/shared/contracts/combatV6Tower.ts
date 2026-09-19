@@ -18,9 +18,11 @@ export interface TowerReward {
 export interface TowerView {
   season: TowerSeasonMeta;
   eligible: boolean;
+  rewards: TowerReward[];
   weeklyEnemies: TowerEnemyPreview[];
   state: null | {
     runId: string;
+    season: TowerSeasonMeta;
     revision: number;
     realm: RealmType;
     floor: number;

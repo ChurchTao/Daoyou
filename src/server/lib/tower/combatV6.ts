@@ -24,6 +24,7 @@ import {
   TowerHost,
   type TowerBattleSnapshot,
 } from '@shared/engine/combat-v6/tower/host';
+import { publishedTowerPreviews } from '@shared/engine/combat-v6/tower/published';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import type { TowerBlessingId } from '@shared/lib/tower/blessings';
 import {
@@ -33,19 +34,19 @@ import {
   TOWER_MAX_FLOOR,
   TOWER_MIN_REALM,
 } from '@shared/lib/tower/helpers';
-import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import {
-  createTowerWeek,
-  TOWER_CONTENT_VERSION,
-  towerEnemyPreview,
-  type TowerWeek,
-} from '@shared/lib/tower/weekly';
+  advanceTowerRewardWeek,
+  towerRewards,
+  TowerRewardSchema,
+  type TowerRewardState,
+} from '@shared/lib/tower/reward-state';
+import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import { planTowerReward } from '@shared/rewards/tower';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { db } from '../drizzle/db';
+import { db, type DbExecutor } from '../drizzle/db';
 import { cultivators } from '../drizzle/schema';
 import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
@@ -60,6 +61,12 @@ import {
 } from '../repositories/combatV6ReplayRepository';
 import { claimMessageForConsumer } from '../repositories/messageConsumptionRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
+import {
+  getOrPublishTowerWeek,
+  readTowerPublishedWeek,
+  readTowerRewardState,
+  writeTowerRewardState,
+} from '../repositories/towerRepository';
 import { assembleCombatV6TrainingPlayer } from '../services/combat-v6/CombatV6BuildService';
 import { ConditionService } from '../services/ConditionService';
 import {
@@ -77,7 +84,6 @@ export class TowerV6Error extends Error {}
 type Actor = { userId: string; cultivatorId: string };
 type Run = NonNullable<TowerView['state']> & {
   season: TowerView['season'];
-  week?: TowerWeek;
   hasBeasts?: boolean;
   battle?: {
     id: string;
@@ -106,42 +112,78 @@ async function save(owner: string, run: Run, lease: RedisLeaseContext) {
     expires(run),
   );
 }
-function publicView(
-  run: Run | null,
-  week: TowerWeek,
-  eligible = true,
-): TowerView {
-  const weeklyEnemies = week.floors.map((r) =>
-    towerEnemyPreview(r.floor, week),
-  );
-  if (!run)
-    return {
-      season: getTowerSeasonMeta(),
-      eligible,
-      weeklyEnemies,
-      state: null,
+// The old run namespace is no longer playable. Import only already granted facts.
+async function legacyRewardState(
+  owner: string,
+  seasonKey: string,
+  executor: DbExecutor = db,
+): Promise<TowerRewardState> {
+  const key = weekKey(owner, seasonKey);
+  const oldRunKey = `tower:v6:run:${owner}`;
+  const [rawRewards, rawRun] = await Promise.all([
+    redis.get(key),
+    redis.get(oldRunKey),
+  ]);
+  const oldRun = parseRedisJson<Run>(rawRun, oldRunKey);
+  const rewards = parseRedisJson<TowerReward[]>(rawRewards, key) ?? [];
+  if (oldRun?.season.seasonKey === seasonKey) {
+    rewards.push(...oldRun.rewards);
+    const battle = oldRun.battle;
+    if (battle?.reward && (await combatV6ReplayExists(battle.id, executor)))
+      rewards.push(battle.reward);
+  }
+  const claims: TowerRewardState['claims'] = {};
+  for (const value of rewards) {
+    const reward = TowerRewardSchema.parse(value);
+    claims[String(reward.floor) as keyof typeof claims] = {
+      battleId: null,
+      claimedAt: new Date().toISOString(),
+      reward,
     };
+  }
+  return { seasonKey, claims };
+}
+async function publicView(
+  owner: string,
+  run: Run | null,
+  eligible = true,
+): Promise<TowerView> {
+  const published = await currentWeek();
+  const receipt =
+    (await readTowerRewardState(owner)) ??
+    (await legacyRewardState(owner, published.season.seasonKey));
+  const runPack =
+    run?.season.seasonKey === published.season.seasonKey
+      ? published
+      : run
+        ? await readTowerPublishedWeek(run.season.seasonKey)
+        : null;
   return {
-    season: run.season,
+    season: published.season,
     eligible,
-    weeklyEnemies,
-    state: {
-      runId: run.runId,
-      revision: run.revision,
-      realm: run.realm,
-      floor: run.floor,
-      highestFloor: run.highestFloor,
-      status: run.status,
-      reason: run.reason,
-      blessings: run.week ? run.blessings : {},
-      choices: run.week ? run.choices : [],
-      rewards: run.rewards,
-      battleId: run.battleId,
-      enemy:
-        run.week && run.floor <= TOWER_MAX_FLOOR
-          ? towerEnemyPreview(run.floor, run.week)
-          : undefined,
-    },
+    rewards: towerRewards(receipt, published.season.seasonKey),
+    weeklyEnemies: publishedTowerPreviews(published).filter(
+      (p) => p.kind !== 'normal',
+    ),
+    state: run
+      ? {
+          runId: run.runId,
+          season: run.season,
+          revision: run.revision,
+          realm: run.realm,
+          floor: run.floor,
+          highestFloor: run.highestFloor,
+          status: run.status,
+          reason: run.reason,
+          blessings: run.blessings,
+          choices: run.choices,
+          rewards: run.rewards,
+          battleId: run.battleId,
+          enemy: runPack
+            ? publishedTowerPreviews(runPack)[run.floor - 1]
+            : undefined,
+        }
+      : null,
   };
 }
 export async function getTowerView(owner: string) {
@@ -153,28 +195,16 @@ export async function getTowerView(owner: string) {
       .where(eq(cultivators.id, owner)),
   ]);
   const eligible = !!row && isTowerRealmEligible(row.realm as RealmType);
-  if (run) {
-    if (
-      !run.battleId &&
-      run.status !== 'FINISHED' &&
-      Date.now() >= Date.parse(run.season.seasonEndsAt)
-    ) {
-      run.status = 'FINISHED';
-      run.reason = 'expired';
-    }
-    if (run.week?.version !== TOWER_CONTENT_VERSION && !run.battleId) {
-      run.status = 'FINISHED';
-      run.reason = 'content_updated';
-    }
-    return publicView(
-      run,
-      run.status === 'FINISHED'
-        ? await currentWeek()
-        : (run.week ?? (await currentWeek())),
-      eligible,
-    );
+  if (
+    run &&
+    !run.battleId &&
+    run.status !== 'FINISHED' &&
+    Date.now() >= Date.parse(run.season.seasonEndsAt)
+  ) {
+    run.status = 'FINISHED';
+    run.reason = 'expired';
   }
-  return publicView(null, await currentWeek(), eligible);
+  return publicView(owner, run, eligible);
 }
 function locked<T>(
   owner: string,
@@ -195,18 +225,7 @@ function locked<T>(
   );
 }
 async function currentWeek(season = getTowerSeasonMeta()) {
-  const key = `tower:v6:content:${season.seasonKey}:${TOWER_CONTENT_VERSION}`;
-  await redis.set(
-    key,
-    JSON.stringify(createTowerWeek(season)),
-    'EX',
-    35 * 86400,
-    'NX',
-  );
-  const week = parseRedisJson<TowerWeek>(await redis.get(key), key);
-  if (!week || week.version !== TOWER_CONTENT_VERSION)
-    throw new TowerV6Error('本周幻境尚未就绪');
-  return week;
+  return getOrPublishTowerWeek(season);
 }
 function hasBeasts(player: CombatV6TrainingPlayerInput) {
   const level = combatCharacterLevel(
@@ -279,25 +298,22 @@ async function admitBattle(actor: Actor, run: Run, lease: RedisLeaseContext) {
 }
 export async function startTower(owner: string) {
   return locked(owner, async (lease) => {
-    const previous = await read(owner);
-    if (
-      previous &&
-      previous.week?.version !== TOWER_CONTENT_VERSION &&
-      !previous.battleId &&
-      previous.status !== 'FINISHED'
-    ) {
-      previous.status = 'FINISHED';
-      previous.reason = 'content_updated';
-      await save(owner, previous, lease);
-    }
     await assertInventoryIdle(owner, undefined, db, 'run');
     const { player } = await assembleCombatV6TrainingPlayer(owner, db);
     if (!isTowerRealmEligible(player.cultivator.realm))
       throw new TowerV6Error(`蜃楼幻境仅向${TOWER_MIN_REALM}及以上境界开放`);
     const season = getTowerSeasonMeta();
-    const key = weekKey(owner, season.seasonKey);
-    const rewards =
-      parseRedisJson<TowerReward[]>(await redis.get(key), key) ?? [];
+    await currentWeek(season);
+    const receipt = await db.transaction(async (tx) => {
+      await lockCultivatorForStateMutation(tx, owner);
+      const current =
+        (await readTowerRewardState(owner, tx)) ??
+        (await legacyRewardState(owner, season.seasonKey, tx));
+      const next = advanceTowerRewardWeek(current, season.seasonKey);
+      await writeTowerRewardState(owner, next, tx);
+      return next;
+    });
+    const rewards = towerRewards(receipt, season.seasonKey);
     const run: Run = {
       runId: randomUUID(),
       revision: 0,
@@ -309,7 +325,7 @@ export async function startTower(owner: string) {
       choices: [],
       rewards,
       season,
-      week: await currentWeek(season),
+
       hasBeasts: hasBeasts(player),
     };
     run.choices = buildTowerBlessingChoices({
@@ -319,7 +335,7 @@ export async function startTower(owner: string) {
       hasBeasts: run.hasBeasts!,
     });
     await save(owner, run, lease);
-    return publicView(run, run.week!);
+    return publicView(owner, run);
   });
 }
 export async function advanceTower(
@@ -336,13 +352,6 @@ export async function advanceTower(
     const run = await read(owner);
     if (!run || run.runId !== input.runId || run.revision !== input.revision)
       throw new TowerV6Error('挑战状态已变化，请刷新');
-    if (run.week?.version !== TOWER_CONTENT_VERSION && !run.battleId) {
-      run.status = 'FINISHED';
-      run.reason = 'content_updated';
-      run.revision++;
-      await save(owner, run, lease);
-      return publicView(run, await currentWeek());
-    }
     if (run.battleId && input.action !== 'complete')
       throw new TowerV6Error('请先结束当前战斗与结算');
     const expired = Date.now() >= Date.parse(run.season.seasonEndsAt);
@@ -373,16 +382,19 @@ export async function advanceTower(
         run.reason = 'realm_changed';
         run.revision++;
         await save(owner, run, lease);
-        return publicView(run, run.week!);
+        return publicView(owner, run);
       }
       run.hasBeasts = hasBeasts(player);
+      const published = await readTowerPublishedWeek(run.season.seasonKey);
+      if (!published) throw new TowerV6Error('幻境发布配置缺失');
       const host = createTowerHost(
         player,
         run.realm,
         run.floor,
         run.blessings,
-        run.week!,
+        undefined,
         hashTowerSeed(`${run.runId}:${run.floor}:battle`),
+        published,
       );
       const id = randomUUID();
       run.battleId = id;
@@ -398,7 +410,7 @@ export async function advanceTower(
       run.revision++;
       await save(owner, run, lease);
       await admitBattle(actor, run, lease);
-      return publicView(run, run.week!);
+      return publicView(owner, run);
     } else if (
       input.action === 'blessing' &&
       run.status === 'CHOOSING_BLESSING'
@@ -411,7 +423,7 @@ export async function advanceTower(
     } else throw new TowerV6Error('当前阶段无法进行此操作');
     run.revision++;
     await save(owner, run, lease);
-    return publicView(run, run.week ?? (await currentWeek()));
+    return publicView(owner, run);
   });
 }
 function battleView(run: Run, after = -1): TowerSessionView {
@@ -539,9 +551,10 @@ export async function changeTowerBattle(
     await save(owner, run, lease);
     if (host.finished) {
       const outcome = host.trace().outcome;
-      const key = weekKey(owner, run.season.seasonKey);
-      const rewards =
-        parseRedisJson<TowerReward[]>(await redis.get(key), key) ?? [];
+      let receipt = await readTowerRewardState(owner);
+      if (!receipt || receipt.seasonKey !== run.season.seasonKey)
+        throw new TowerV6Error('领奖记录与挑战周次不一致');
+      const rewards = towerRewards(receipt, run.season.seasonKey);
       let reward: TowerReward | null = null;
       if (
         outcome === 'victory' &&
@@ -619,6 +632,16 @@ export async function changeTowerBattle(
           });
           changes.push(...committed.changes);
         }
+        receipt = await readTowerRewardState(owner, tx);
+        if (!receipt || receipt.seasonKey !== run.season.seasonKey)
+          throw new TowerV6Error('领奖记录与挑战周次不一致');
+        if (
+          reward &&
+          towerRewards(receipt, run.season.seasonKey).some(
+            (r) => r.floor === run.floor,
+          )
+        )
+          reward = null;
         if (reward) {
           await grantInventory(owner, reward.items, tx);
           const committed = await new ResourceEventCommitter().commit(tx, {
@@ -646,6 +669,17 @@ export async function changeTowerBattle(
               reputation: sql`${cultivators.reputation} + ${reward.reputation}`,
             })
             .where(eq(cultivators.id, owner));
+        }
+        if (reward) {
+          const parsedReward = TowerRewardSchema.parse(reward);
+          receipt.claims[
+            String(parsedReward.floor) as keyof typeof receipt.claims
+          ] = {
+            battleId: id,
+            claimedAt: new Date().toISOString(),
+            reward: parsedReward,
+          };
+          await writeTowerRewardState(owner, receipt, tx);
         }
         await archiveCombatV6Replay(
           createCombatV6Replay({
@@ -678,27 +712,20 @@ export async function changeTowerBattle(
       });
       publishResourceEvents(changes);
       lease.assertHeld();
-      if (reward) rewards.push(reward);
-      await redis.set(key, JSON.stringify(rewards), 'EXAT', expires(run));
-      run.rewards = rewards;
+      receipt = await readTowerRewardState(owner);
+      run.rewards = towerRewards(receipt, run.season.seasonKey);
       battle.settled = true;
       run.revision++;
       if (outcome === 'victory') {
         run.highestFloor = run.floor;
-        run.choices = run.week
-          ? buildTowerBlessingChoices({
-              runId: run.runId,
-              clearedFloor: run.floor,
-              blessings: run.blessings,
-              hasBeasts: run.hasBeasts ?? false,
-            })
-          : [];
+        run.choices = buildTowerBlessingChoices({
+          runId: run.runId,
+          clearedFloor: run.floor,
+          blessings: run.blessings,
+          hasBeasts: run.hasBeasts ?? false,
+        });
         run.floor = Math.min(TOWER_MAX_FLOOR, run.floor + 1);
         run.status = run.choices.length ? 'CHOOSING_BLESSING' : 'READY';
-        if (run.week?.version !== TOWER_CONTENT_VERSION) {
-          run.status = 'FINISHED';
-          run.reason = 'content_updated';
-        }
         if (run.highestFloor === TOWER_MAX_FLOOR) {
           run.status = 'FINISHED';
           run.reason = 'clear';

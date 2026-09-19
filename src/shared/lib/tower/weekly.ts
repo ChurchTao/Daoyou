@@ -10,7 +10,7 @@ import {
 import { hashTowerSeed, resolveTowerFloorKind } from './helpers';
 import type { TowerSeasonMeta } from './types';
 
-export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v3' as const;
+export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v4' as const;
 export const TOWER_KEY_FLOORS = [5, 10, 15, 20] as const;
 export const TOWER_COMBINATIONS = [
   {
@@ -38,55 +38,152 @@ export const TOWER_COMBINATIONS = [
 export type TowerCombination = (typeof TOWER_COMBINATIONS)[number];
 export type TowerCombinationId = TowerCombination['id'];
 export interface TowerWeek {
-  version: typeof TOWER_CONTENT_VERSION | 'combat-v6-tower-v2';
+  version:
+    typeof TOWER_CONTENT_VERSION | 'combat-v6-tower-v2' | 'combat-v6-tower-v3';
   seasonKey: string;
   floors: Array<{
     floor: number;
     combinationId: TowerCombinationId;
     formationId?: TowerKeyFormation;
+    encounterId?: string;
   }>;
 }
 
-/** Week-index rotation guarantees a different main style next week without a recursive history lookup. */
-export function createTowerWeek(season: TowerSeasonMeta): TowerWeek {
+export const TOWER_GENERATOR_VERSION = 'tower-week-v1';
+export const TOWER_ENCOUNTERS = TOWER_COMBINATIONS.flatMap((combo) =>
+  allowedTowerFormations('boss', combo).map((formationId) => ({
+    id: `${combo.id}:${formationId}`,
+    combinationId: combo.id,
+    formationId,
+    kinds: allowedTowerFormations('elite', combo).includes(formationId)
+      ? (['elite', 'boss'] as const)
+      : (['boss'] as const),
+  })),
+);
+
+/** Enumerate the small legal pool; soft preferences never relax combat constraints. */
+export function createTowerWeek(
+  season: TowerSeasonMeta,
+  history: readonly TowerWeek[] = [],
+  strategyScoring?: {
+    history: readonly {
+      seasonKey: string;
+      floors: { floor: number; signature: string; formation: string }[];
+    }[];
+    identity: (row: TowerWeek['floors'][number]) => {
+      signature: string;
+      formation: string;
+    };
+  },
+): TowerWeek {
   const index = Math.floor(Date.parse(season.seasonStartedAt) / (7 * 86400000));
   if (!Number.isFinite(index)) throw new Error('幻境周标识无效');
-  const used = new Set<string>();
-  const floors = TOWER_KEY_FLOORS.map((floor, slot) => {
-    const styleIndex = (((index + [0, 1, 1, 2][slot]) % 3) + 3) % 3;
-    const style = (['physical', 'spell', 'seal'] as const)[styleIndex];
-    const candidates = TOWER_COMBINATIONS.filter(
-      (c) => c.style === style && !used.has(c.id),
+  const recent = history
+    .filter((w) => w.seasonKey < season.seasonKey)
+    .sort((a, b) => b.seasonKey.localeCompare(a.seasonKey))
+    .slice(0, 3);
+  const previous = recent[0];
+  const slots = TOWER_KEY_FLOORS.map((floor, slot) => {
+    const style = (['physical', 'spell', 'seal'] as const)[
+      (((index + [0, 1, 1, 2][slot]) % 3) + 3) % 3
+    ];
+    return TOWER_ENCOUNTERS.filter(
+      (e) =>
+        e.kinds.some((k) => k === (floor % 10 === 0 ? 'boss' : 'elite')) &&
+        towerCombination(e.combinationId).style === style,
     );
-    const selected =
-      candidates[
-        hashTowerSeed(`${season.seasonKey}:${floor}:${TOWER_CONTENT_VERSION}`) %
-          candidates.length
-      ];
-    if (!selected) throw new Error('幻境周组合池不足');
-    used.add(selected.id);
-    const formations = allowedTowerFormations(
-      floor % 10 === 0 ? 'boss' : 'elite',
-      selected,
-    );
-    const formationId =
-      formations[
-        hashTowerSeed(`${season.seasonKey}:${floor}:formation`) %
-          formations.length
-      ];
-    return { floor, combinationId: selected.id, formationId };
   });
-  // Guarantee at least one group encounter without retry loops or relaxing compatibility.
-  if (floors.every((r) => r.formationId === 'solo')) {
-    const row = floors.find(
-      (r) => towerCombination(r.combinationId).style !== 'seal',
-    )!;
-    row.formationId = 'healer';
+  const strategyHistory = strategyScoring?.history
+    .filter((w) => w.seasonKey < season.seasonKey)
+    .sort((a, b) => b.seasonKey.localeCompare(a.seasonKey))
+    .slice(0, 3);
+  const identity = (r: TowerWeek['floors'][number]) =>
+    `${r.combinationId}:${r.formationId ?? 'solo'}`;
+  let best: TowerWeek['floors'] | undefined;
+  let bestScore: number[] | undefined;
+  function visit(rows: TowerWeek['floors']) {
+    if (rows.length < 4) {
+      for (const candidate of slots[rows.length]) {
+        if (rows.some((r) => r.combinationId === candidate.combinationId))
+          continue;
+        visit([
+          ...rows,
+          {
+            floor: TOWER_KEY_FLOORS[rows.length],
+            combinationId: candidate.combinationId,
+            formationId: candidate.formationId,
+            encounterId: candidate.id,
+          },
+        ]);
+      }
+      return;
+    }
+    if (rows.every((r) => r.formationId === 'solo')) return;
+    const repeats = (bossOnly: boolean) =>
+      strategyScoring && strategyHistory
+        ? rows.reduce(
+            (n, r) =>
+              n +
+              (bossOnly && r.floor % 10 !== 0
+                ? 0
+                : strategyHistory.reduce(
+                    (m, w) =>
+                      m +
+                      w.floors.filter(
+                        (old) =>
+                          old.signature ===
+                          strategyScoring.identity(r).signature,
+                      ).length,
+                    0,
+                  )),
+            0,
+          )
+        : rows.reduce(
+            (n, r) =>
+              n +
+              (bossOnly && r.floor % 10 !== 0
+                ? 0
+                : recent.reduce(
+                    (m, w) =>
+                      m +
+                      w.floors.filter((old) => identity(old) === identity(r))
+                        .length,
+                    0,
+                  )),
+            0,
+          );
+    const signature = rows.map(identity).join('|');
+    const score = [
+      repeats(true),
+      repeats(false),
+      rows.filter((r) =>
+        strategyScoring && strategyHistory
+          ? strategyHistory[0]?.floors.find((p) => p.floor === r.floor)
+              ?.formation === strategyScoring.identity(r).formation
+          : previous?.floors.find((p) => p.floor === r.floor)?.formationId ===
+            r.formationId,
+      ).length,
+      4 - new Set(rows.map((r) => r.formationId)).size,
+      hashTowerSeed(
+        `${season.seasonKey}:${TOWER_GENERATOR_VERSION}:${signature}`,
+      ),
+    ];
+    const firstDifference = score.findIndex((n, i) => n !== bestScore?.[i]);
+    if (
+      !bestScore ||
+      (firstDifference >= 0 &&
+        score[firstDifference] < bestScore[firstDifference])
+    ) {
+      best = rows;
+      bestScore = score;
+    }
   }
+  visit([]);
+  if (!best) throw new Error('幻境周组合池无法满足编排规则');
   return {
     version: TOWER_CONTENT_VERSION,
     seasonKey: season.seasonKey,
-    floors,
+    floors: best,
   };
 }
 export function towerCombination(id: TowerCombinationId): TowerCombination {
@@ -102,7 +199,7 @@ export function towerFormation(
   if (kind !== 'normal') {
     const row = week.floors.find((r) => r.floor === floor);
     if (!row) throw new Error('幻境关键层缺少阵容');
-    if (week.version === TOWER_CONTENT_VERSION && !row.formationId)
+    if (week.version !== 'combat-v6-tower-v2' && !row.formationId)
       throw new Error('幻境关键层缺少阵容');
     const formation = row.formationId ?? 'solo';
     if (
@@ -116,8 +213,8 @@ export function towerFormation(
   }
   const n = ((floor - 1) % 10) + 1;
   if ([4, 7].includes(n)) return 'healer';
-  if (week.version === TOWER_CONTENT_VERSION && n === 8) return 'escort';
-  if (week.version === TOWER_CONTENT_VERSION && n === 9) return 'guarded';
+  if (week.version !== 'combat-v6-tower-v2' && n === 8) return 'escort';
+  if (week.version !== 'combat-v6-tower-v2' && n === 9) return 'guarded';
   return [2, 6, 8, 9].includes(n) ? 'pair' : 'solo';
 }
 export interface TowerEnemyMember {
@@ -134,7 +231,7 @@ export interface TowerEnemyPreview {
   icon: string;
   labels: string[];
   details: string[];
-  formationId: TowerFormationId;
+  formationId?: TowerFormationId;
   members: TowerEnemyMember[];
 }
 function leaderPreview(
@@ -146,7 +243,11 @@ function leaderPreview(
     const row = week.floors.find((r) => r.floor === floor);
     if (
       !row ||
-      !['combat-v6-tower-v2', TOWER_CONTENT_VERSION].includes(week.version)
+      ![
+        'combat-v6-tower-v2',
+        'combat-v6-tower-v3',
+        TOWER_CONTENT_VERSION,
+      ].includes(week.version)
     )
       throw new Error('幻境周表无法恢复');
     const c = towerCombination(row.combinationId);

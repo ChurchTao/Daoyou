@@ -1,3 +1,5 @@
+import type { StoredTowerWeek } from '@shared/engine/combat-v6/tower/published';
+import type { TowerClaims } from '@shared/lib/tower/reward-state';
 import type { DivinationDice, DivinationDirection } from '@shared/lib/divination';
 import type { WildEncounter, WildRuntime } from '@shared/contracts/combatV6Wild';
 import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
@@ -1954,4 +1956,22 @@ export const dailyDivinations = pgTable('wanjiedaoyou_daily_divinations', {
   fallback: boolean('fallback').notNull().default(false),
   rewardGrantedAt: timestamp('reward_granted_at'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// One current receipt per character; one immutable configuration per calendar week.
+export const towerRewardStates = pgTable('wanjiedaoyou_tower_reward_states', {
+  cultivatorId: uuid('cultivator_id')
+    .primaryKey()
+    .references(() => cultivators.id, { onDelete: 'cascade' }),
+  seasonKey: varchar('season_key', { length: 40 }).notNull(),
+  claims: jsonb('claims').$type<TowerClaims>().notNull().default({}),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+export const towerWeeks = pgTable('wanjiedaoyou_tower_weeks', {
+  seasonKey: varchar('season_key', { length: 40 }).primaryKey(),
+  schemaVersion: integer('schema_version').notNull(),
+  contentVersion: varchar('content_version', { length: 60 }).notNull(),
+  generatorVersion: varchar('generator_version', { length: 60 }).notNull(),
+  config: jsonb('config').$type<StoredTowerWeek>().notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });

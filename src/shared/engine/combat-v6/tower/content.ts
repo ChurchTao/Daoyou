@@ -261,7 +261,7 @@ export function compileTowerEncounter(
   const level = combatCharacterLevel(realm, '中期');
   const n = ((floor - 1) % 10) + 1;
   const preview = towerEnemyPreview(floor, week);
-  const formation = TOWER_FORMATIONS[preview.formationId];
+  const formation = TOWER_FORMATIONS[preview.formationId!];
   const count = formation.roles.length;
   const guarded = formation.roles.some((role) => role === 'guard');
   const style = combo?.style ?? ([3, 7].includes(n) ? 'spell' : 'physical');

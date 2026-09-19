@@ -1,7 +1,7 @@
 import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
 
-export const towerRunKey = (owner: string) => `tower:v6:run:${owner}`;
+export const towerRunKey = (owner: string) => `tower:v6:published:run:${owner}`;
 export async function hasActiveTower(owner: string) {
   const key = towerRunKey(owner);
   const state = parseRedisJson<{

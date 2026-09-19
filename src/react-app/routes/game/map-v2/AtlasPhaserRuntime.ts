@@ -83,6 +83,8 @@ interface Marker {
 
 export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
   let view = args.view;
+  const readPixelRatio = () => Math.min(window.devicePixelRatio || 1, 3);
+  let pixelRatio = readPixelRatio();
   let destroyed = false;
   const runtime: { scene?: AtlasScene } = {};
   let gestureMoved = false;
@@ -177,7 +179,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         const saved = cameraMemory.get(view.region);
         if (saved) {
           camera
-            .setZoom(Math.max(this.minZoom, saved.zoom))
+            .setZoom(Math.max(this.minZoom, saved.zoom * pixelRatio))
             .centerOn(saved.x, saved.y);
           this.clampCamera();
         } else {
@@ -212,24 +214,31 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
             this.focusRequest !== view.focusRequest))
       ) {
         camera.preRender();
-        let x = (target.x - camera.midPoint.x) * camera.zoom + camera.width / 2;
+        let x =
+          ((target.x - camera.midPoint.x) * camera.zoom) / pixelRatio +
+          camera.width / pixelRatio / 2;
         let y =
-          (target.y - camera.midPoint.y) * camera.zoom + camera.height / 2;
+          ((target.y - camera.midPoint.y) * camera.zoom) / pixelRatio +
+          camera.height / pixelRatio / 2;
         if (
           x < 24 ||
           y <
             (view.occlusions[0]?.y ?? 0) + (view.occlusions[0]?.height ?? 88) ||
-          x > camera.width - 24 ||
-          y > camera.height - 72
+          x > camera.width / pixelRatio - 24 ||
+          y > camera.height / pixelRatio - 72
         ) {
           camera.centerOn(target.x, target.y);
           this.clampCamera();
-          x = (target.x - camera.midPoint.x) * camera.zoom + camera.width / 2;
-          y = (target.y - camera.midPoint.y) * camera.zoom + camera.height / 2;
+          x =
+            ((target.x - camera.midPoint.x) * camera.zoom) / pixelRatio +
+            camera.width / pixelRatio / 2;
+          y =
+            ((target.y - camera.midPoint.y) * camera.zoom) / pixelRatio +
+            camera.height / pixelRatio / 2;
         }
         args.onSelectionPosition(
-          x < camera.width / 2,
-          y < camera.height * 0.55,
+          x < camera.width / pixelRatio / 2,
+          y < (camera.height / pixelRatio) * 0.55,
         );
       }
       this.focusRequest = view.focusRequest;
@@ -274,7 +283,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
           backgroundColor: world ? '#f6efdf' : undefined,
           padding: { x: world ? 12 : 0, y: world ? 8 : 0 },
         })
-        .setResolution(Math.min(window.devicePixelRatio || 1, 2));
+        .setResolution(pixelRatio);
       this.markers.push({
         id,
         x: x * WIDTH,
@@ -306,13 +315,18 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         cameraMemory.set(this.shownRegion, {
           x: camera.scrollX + camera.width / 2,
           y: camera.scrollY + camera.height / 2,
-          zoom: camera.zoom,
+          zoom: camera.zoom / pixelRatio,
         });
     }
 
-    resize(center?: { x: number; y: number }) {
+    resize(center?: { x: number; y: number }, densityChange = 1) {
       const camera = this.cameras.main;
       const wasFit = Math.abs(camera.zoom - this.minZoom) < 0.001;
+      camera.setZoom(camera.zoom * densityChange);
+      for (const marker of this.markers) {
+        if (marker.label.style.resolution !== pixelRatio)
+          marker.label.setResolution(pixelRatio);
+      }
       this.minZoom = Math.max(camera.width / WIDTH, camera.height / HEIGHT);
       camera.setZoom(
         wasFit ? this.minZoom : Math.max(this.minZoom, camera.zoom),
@@ -349,16 +363,16 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     zoomAt(factor: number, x: number, y: number) {
       const camera = this.cameras.main;
       camera.preRender();
-      const before = camera.getWorldPoint(x, y);
+      const before = camera.getWorldPoint(x * pixelRatio, y * pixelRatio);
       camera.setZoom(
         Phaser.Math.Clamp(
           camera.zoom * factor,
           this.minZoom,
-          Math.max(2.5, this.minZoom * 5),
+          Math.max(2.5 * pixelRatio, this.minZoom * 5),
         ),
       );
       camera.preRender();
-      const after = camera.getWorldPoint(x, y);
+      const after = camera.getWorldPoint(x * pixelRatio, y * pixelRatio);
       camera.scrollX += before.x - after.x;
       camera.scrollY += before.y - after.y;
       this.clampCamera();
@@ -366,8 +380,8 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     }
 
     pan(dx: number, dy: number) {
-      this.cameras.main.scrollX -= dx / this.cameras.main.zoom;
-      this.cameras.main.scrollY -= dy / this.cameras.main.zoom;
+      this.cameras.main.scrollX -= (dx * pixelRatio) / this.cameras.main.zoom;
+      this.cameras.main.scrollY -= (dy * pixelRatio) / this.cameras.main.zoom;
       this.clampCamera();
       this.layoutMarkers();
     }
@@ -515,6 +529,15 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       }
     }
 
+    // Layout and hit areas use CSS pixels; the camera renders in device pixels.
+    // Snap text origins after projection so fractional camera pans don't blur glyphs.
+    private labelWorldPoint(x: number, y: number) {
+      return this.cameras.main.getWorldPoint(
+        Math.round(x * pixelRatio),
+        Math.round(y * pixelRatio),
+      );
+    }
+
     private layoutCapsule(
       marker: Marker,
       screen: { x: number; y: number },
@@ -528,18 +551,25 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       const { label, symbol, icon } = marker;
       const text = selected || focused ? marker.name : marker.shortName;
       if (label.text !== text) label.setText(text);
-      const wrapWidth = Math.max(40, Math.min(192, camera.width - 104));
+      const wrapWidth = Math.max(
+        40,
+        Math.min(192, camera.width / pixelRatio - 104),
+      );
       if (label.style.wordWrapWidth !== wrapWidth)
         label.setWordWrapWidth(wrapWidth, true);
       const height = Math.max(52, label.height + 28);
       const width = height + label.width + 18;
       const makeBox = (left: number, top: number, w: number, h: number) =>
         new Phaser.Geom.Rectangle(
-          Phaser.Math.Clamp(left, 4, Math.max(4, camera.width - w - 4)),
+          Phaser.Math.Clamp(
+            left,
+            4,
+            Math.max(4, camera.width / pixelRatio - w - 4),
+          ),
           Phaser.Math.Clamp(
             top,
-            Math.min(safeTop, Math.max(4, camera.height - h - 4)),
-            Math.max(4, camera.height - h - 4),
+            Math.min(safeTop, Math.max(4, camera.height / pixelRatio - h - 4)),
+            Math.max(4, camera.height / pixelRatio - h - 4),
           ),
           w,
           h,
@@ -580,10 +610,10 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       const box = placement ?? makeBox(screen.x - 26, screen.y - 26, 52, 52);
       marker.labelOffset = { x: box.x - screen.x, y: box.y - screen.y };
       const depth = selected ? 30 : focused ? 20 : 10;
-      const position = camera.getWorldPoint(box.x, box.y);
+      const position = this.labelWorldPoint(box.x, box.y);
       symbol
         .setPosition(position.x, position.y)
-        .setScale(1 / camera.zoom)
+        .setScale(pixelRatio / camera.zoom)
         .setDepth(depth)
         .setVisible(true);
       this.drawCapsule(
@@ -596,13 +626,13 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       );
       icon!.setPosition(box.height / 2, box.height / 2);
       if (placement) {
-        const textPosition = camera.getWorldPoint(
+        const textPosition = this.labelWorldPoint(
           box.x + box.height + 2,
           box.y + (box.height - label.height) / 2,
         );
         label
           .setPosition(textPosition.x, textPosition.y)
-          .setScale(1 / camera.zoom)
+          .setScale(pixelRatio / camera.zoom)
           .setDepth(depth + 1)
           .setVisible(true);
         const textColor = selected ? '#9d4033' : '#352f29';
@@ -639,14 +669,18 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       const reservations = new Map<string, Phaser.Geom.Rectangle>();
       for (const marker of shown) {
         const point = {
-          x: (marker.x - camera.midPoint.x) * camera.zoom + camera.width / 2,
-          y: (marker.y - camera.midPoint.y) * camera.zoom + camera.height / 2,
+          x:
+            ((marker.x - camera.midPoint.x) * camera.zoom) / pixelRatio +
+            camera.width / pixelRatio / 2,
+          y:
+            ((marker.y - camera.midPoint.y) * camera.zoom) / pixelRatio +
+            camera.height / pixelRatio / 2,
         };
         if (
           point.x < -22 ||
           point.y < -22 ||
-          point.x > camera.width + 22 ||
-          point.y > camera.height + 22
+          point.x > camera.width / pixelRatio + 22 ||
+          point.y > camera.height / pixelRatio + 22
         )
           continue;
         points.set(marker.id, point);
@@ -682,7 +716,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         const depth = selected ? 30 : focused ? 20 : 10;
         symbol
           .setVisible(true)
-          .setScale(1 / camera.zoom)
+          .setScale(pixelRatio / camera.zoom)
           .setDepth(depth + 1);
         (plate as Phaser.GameObjects.Arc).setStrokeStyle(
           selected ? 2.5 : focused ? 1.5 : 0,
@@ -698,7 +732,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         marker.hitBoxes.push(iconBox);
         const text = selected ? marker.name : marker.shortName;
         if (label.text !== text) label.setText(text);
-        const wrapWidth = Math.max(60, camera.width - 40);
+        const wrapWidth = Math.max(60, camera.width / pixelRatio - 40);
         if (label.style.wordWrapWidth !== wrapWidth)
           label.setWordWrapWidth(wrapWidth, true);
         const width = label.width;
@@ -720,11 +754,18 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         const boxes = candidates.map(
           ([left, top]) =>
             new Phaser.Geom.Rectangle(
-              Phaser.Math.Clamp(left, 4, Math.max(4, camera.width - width - 4)),
+              Phaser.Math.Clamp(
+                left,
+                4,
+                Math.max(4, camera.width / pixelRatio - width - 4),
+              ),
               Phaser.Math.Clamp(
                 top,
-                Math.min(safeTop, Math.max(4, camera.height - height - 4)),
-                Math.max(4, camera.height - height - 4),
+                Math.min(
+                  safeTop,
+                  Math.max(4, camera.height / pixelRatio - height - 4),
+                ),
+                Math.max(4, camera.height / pixelRatio - height - 4),
               ),
               width,
               height,
@@ -748,10 +789,10 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         if (!box) continue;
         occupied.push(box);
         marker.labelOffset = { x: box.x - screen.x, y: box.y - screen.y };
-        const position = camera.getWorldPoint(box.x, box.y);
+        const position = this.labelWorldPoint(box.x, box.y);
         label
           .setPosition(position.x, position.y)
-          .setScale(1 / camera.zoom)
+          .setScale(pixelRatio / camera.zoom)
           .setDepth(depth + 2)
           .setVisible(true);
         const textColor = selected
@@ -771,8 +812,9 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: args.root,
-    width: Math.max(1, args.root.clientWidth),
-    height: Math.max(1, args.root.clientHeight),
+    width: Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
+    height: Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
+    scale: { zoom: 1 / pixelRatio },
     backgroundColor: '#eee7d8',
     banner: false,
     audio: { noAudio: true },
@@ -790,8 +832,14 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
   const point = (event: PointerEvent | WheelEvent) => {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: ((event.clientX - rect.left) * game.scale.width) / rect.width,
-      y: ((event.clientY - rect.top) * game.scale.height) / rect.height,
+      x:
+        ((event.clientX - rect.left) * game.scale.width) /
+        rect.width /
+        pixelRatio,
+      y:
+        ((event.clientY - rect.top) * game.scale.height) /
+        rect.height /
+        pixelRatio,
     };
   };
   const down = (event: PointerEvent) => {
@@ -884,7 +932,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
   canvas.addEventListener('lostpointercapture', up);
   canvas.addEventListener('wheel', wheel, { passive: false });
   canvas.addEventListener('webglcontextlost', contextLost);
-  const resize = new ResizeObserver(() => {
+  const resizeCanvas = () => {
     const camera = runtime.scene?.cameras.main;
     const center = camera
       ? {
@@ -892,13 +940,18 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
           y: camera.scrollY + camera.height / 2,
         }
       : undefined;
+    const previousRatio = pixelRatio;
+    pixelRatio = readPixelRatio();
+    if (pixelRatio !== previousRatio) game.scale.setZoom(1 / pixelRatio);
     game.scale.resize(
-      Math.max(1, args.root.clientWidth),
-      Math.max(1, args.root.clientHeight),
+      Math.max(1, Math.round(args.root.clientWidth * pixelRatio)),
+      Math.max(1, Math.round(args.root.clientHeight * pixelRatio)),
     );
-    runtime.scene?.resize(center);
-  });
+    runtime.scene?.resize(center, pixelRatio / previousRatio);
+  };
+  const resize = new ResizeObserver(resizeCanvas);
   resize.observe(args.root);
+  window.addEventListener('resize', resizeCanvas);
 
   return {
     setView(next) {
@@ -913,6 +966,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       destroyed = true;
       runtime.scene?.rememberCamera();
       resize.disconnect();
+      window.removeEventListener('resize', resizeCanvas);
       canvas.removeEventListener('keydown', keydown);
       canvas.removeEventListener('pointerleave', leave);
       canvas.removeEventListener('blur', leave);

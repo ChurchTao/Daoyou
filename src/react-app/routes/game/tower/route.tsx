@@ -435,7 +435,7 @@ export default function TowerRoute() {
             <p className="text-ink-secondary">
               第 5、10、15、20 层各有机缘，每周每档领取一次。
             </p>
-            {state?.rewards.map((reward) => (
+            {view?.rewards.map((reward) => (
               <div key={reward.floor}>
                 <p>
                   第 <span className="font-mono">{reward.floor}</span> 层 ·
@@ -455,7 +455,7 @@ export default function TowerRoute() {
                 </p>
               </div>
             ))}
-            {!state?.rewards.length ? (
+            {!view?.rewards.length ? (
               <p>本周尚未获得机缘。</p>
             ) : (
               <p className="text-ink-secondary">
