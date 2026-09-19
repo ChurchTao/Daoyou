@@ -3,7 +3,6 @@ import { BOOKS } from './definitions/beast-books';
 import { CONSUMABLE_ITEM } from './definitions/consumables';
 import { EQUIPMENT_ITEM } from './definitions/equipment';
 import { BLUEPRINTS } from './definitions/equipment-blueprints';
-import { FIXED_MATERIALS } from './definitions/fixed-materials';
 import { MANUAL_JADES } from './definitions/manual-jades';
 import { MATERIAL_ITEM } from './definitions/materials';
 import { SEED_ITEM } from './definitions/seeds';
@@ -19,7 +18,6 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   MATERIAL_ITEM,
   SEED_ITEM,
   CONSUMABLE_ITEM,
-  ...FIXED_MATERIALS,
   ...MANUAL_JADES,
 ];
 const definitions = new Map(ITEM_DEFINITIONS.map((item) => [item.id, item]));

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RecycleRequestSchema } from '../contracts/recycle';
 import { consumableFactsOf } from '../items/definitions/consumables';
-import { FIXED_MATERIALS } from '../items/definitions/fixed-materials';
 import type { Consumable } from '../types/cultivator';
 import { recycleBlockingReason } from './recycle';
 
@@ -69,23 +68,15 @@ describe('回收边界', () => {
         .success,
     ).toBe(false);
   });
-  it('固定材料与实例材料使用相同 bag 边界', () => {
-    for (const definitionId of [FIXED_MATERIALS[0].id, 'material.v1']) {
-      expect(
-        recycleBlockingReason({
-          definitionId,
-          location: 'bag',
-          instanceData: null,
-        }),
-      ).toBeNull();
-      expect(
-        recycleBlockingReason({
-          definitionId,
-          location: 'storage',
-          instanceData: null,
-        }),
-      ).not.toBeNull();
-    }
+  it('实例材料仅允许随身背包回收', () => {
+    const item = {
+      definitionId: 'material.v1',
+      instanceData: { name: '玄铁', type: 'ore', rank: '凡品' },
+    };
+    expect(recycleBlockingReason({ ...item, location: 'bag' })).toBeNull();
+    expect(
+      recycleBlockingReason({ ...item, location: 'storage' }),
+    ).not.toBeNull();
   });
   it('不把道装、未知定义或损坏的消耗品误当可出售丹药', () => {
     for (const definitionId of ['equipment.v6', 'unknown', 'consumable.v1']) {

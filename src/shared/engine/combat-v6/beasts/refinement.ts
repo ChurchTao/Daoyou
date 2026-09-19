@@ -31,7 +31,7 @@ export function refineBeast(
   const species = BEAST_SPECIES.find(
     (species) => species.id === beast.speciesId,
   )!;
-  const traits = rollBeastTraits(species, seed);
+  const traits = rollBeastTraits(species, seed, beast.isMutant);
   return BeastSchema.parse({
     ...beast,
     ...traits,

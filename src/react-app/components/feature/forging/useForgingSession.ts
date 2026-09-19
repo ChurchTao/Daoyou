@@ -82,7 +82,7 @@ export function useForgingSession() {
         : null;
     if (def.kind !== 'material') return '此物不能用于铸造';
     if (!targetCost) return '请先选择道装图纸';
-    const facts = materialFactsOf(item.definitionId, item.instanceData);
+    const facts = materialFactsOf(item.instanceData);
     if (!FORGING_MATERIAL_TYPES.some((type) => type === facts.type))
       return '此类材料不能用于铸造';
     return QUALITY_ORDER[facts.rank] < QUALITY_ORDER[targetCost.rank]
@@ -111,7 +111,7 @@ export function useForgingSession() {
   const forging = !problem && definition?.level && view
     ? forgingInputs(definition.level, view.ownerLevel, Array.from(quantities, ([id, quantity]) => {
         const item = byId.get(id)!;
-        return { facts: materialFactsOf(item.definitionId, item.instanceData), quantity };
+        return { facts: materialFactsOf(item.instanceData), quantity };
       }))
     : undefined;
 

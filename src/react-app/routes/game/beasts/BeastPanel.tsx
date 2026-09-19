@@ -1,5 +1,6 @@
 import { AttributeAllocation } from '@app/components/feature/attributes/AttributeAllocation';
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTag';
 import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkBadge } from '@app/components/ui/InkBadge';
@@ -115,7 +116,7 @@ export function BeastPanel({
       <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[130px_minmax(0,1fr)] sm:gap-6">
         <div className="from-teal/10 before:border-teal/15 relative flex aspect-square items-center justify-center bg-radial to-transparent before:absolute before:inset-1 before:rounded-full before:border sm:before:inset-3">
           <span aria-hidden className="font-sans text-5xl sm:text-7xl">
-            <BeastIcon speciesId={beast.speciesId} />
+            <BeastIcon speciesId={beast.speciesId} isMutant={beast.isMutant} />
           </span>
         </div>
         <div className="min-w-0">
@@ -124,6 +125,7 @@ export function BeastPanel({
               {beast.name}
             </h2>
             {isLead ? <BeastLeadSeal /> : null}
+            <BeastMutationTag isMutant={beast.isMutant} />
             <InkButton variant="ghost" disabled={pending} onClick={rename}>
               改名
             </InkButton>

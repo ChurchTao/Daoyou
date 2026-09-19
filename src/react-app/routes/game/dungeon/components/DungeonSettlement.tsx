@@ -79,7 +79,7 @@ export function DungeonSettlement({
     else
       grouped.set(key, {
         ...(definition.kind === 'material'
-          ? materialFactsOf(item.definitionId, item.instanceData)
+          ? materialFactsOf(item.instanceData)
           : {}),
         name: dungeonRewardItemName(item),
         quantity: item.quantity,

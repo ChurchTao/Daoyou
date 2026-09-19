@@ -38,13 +38,14 @@ export const WildRegionSchema = z.strictObject({
 export type WildRegion = z.infer<typeof WildRegionSchema>;
 export const WildPackShape = z.strictObject({
   $schema: z.string().optional(),
-  formatVersion: z.literal(3),
+  formatVersion: z.literal(4),
   contentRevision: z.number().int().positive(),
   regions: z.array(WildRegionSchema).min(1),
   encounter: z.strictObject({
     minCount: z.number().int().min(1).max(3),
     maxCount: z.number().int().min(1).max(3),
     cubChance: z.number().min(0).max(1),
+    mutantChance: z.number().min(0).max(1),
     allocationSpread: z.number().min(0).max(0.5),
   }),
   activity: z.strictObject({

@@ -223,9 +223,15 @@ export function learnBeastSkill(
     throw new InventoryRuleError('灵兽修为超过人物承载上限，不能培养');
   if (beast.skills.includes(skillId))
     throw new InventoryRuleError('灵兽已拥有该技能');
-  if (!Number.isInteger(slot) || slot < 0 || slot >= beast.skillSlotCapacity)
+  const skillSlotCapacity = Math.max(1, beast.skillSlotCapacity);
+  if (!Number.isInteger(slot) || slot < 0 || slot >= skillSlotCapacity)
     throw new InventoryRuleError('没有可学习的技能格');
   const skills = [...beast.skills];
   skills[slot] = skillId;
-  return BeastSchema.parse({ ...beast, skills, revision: beast.revision + 1 });
+  return BeastSchema.parse({
+    ...beast,
+    skills,
+    skillSlotCapacity,
+    revision: beast.revision + 1,
+  });
 }

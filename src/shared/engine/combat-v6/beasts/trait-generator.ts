@@ -11,6 +11,7 @@ export type BeastTraits = {
 export function rollBeastTraits(
   species: BeastSpeciesDefinition,
   seed: number,
+  isMutant = false,
 ): BeastTraits {
   // 保留原资质、成长抽签顺序；技能数量与选择使用独立随机流。
   const statsRng = new SeededRng(seed);
@@ -43,5 +44,15 @@ export function rollBeastTraits(
     const index = Math.floor(skillRng.next() * remaining.length);
     skills.push(remaining.splice(index, 1)[0]);
   }
-  return { aptitudes, growth, skills };
+  if (isMutant) {
+    for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[])
+      aptitudes[key] = Math.round((aptitudes[key] * 11) / 10);
+  }
+  return {
+    aptitudes,
+    growth: isMutant
+      ? Math.round((Math.round(growth * 1000) * 11) / 10) / 1000
+      : growth,
+    skills,
+  };
 }

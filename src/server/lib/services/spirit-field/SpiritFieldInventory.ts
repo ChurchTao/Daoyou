@@ -50,7 +50,7 @@ export function fieldResource(
     };
   }
   if (kind === 'material') {
-    const facts = materialFactsOf(item.definitionId, item.instanceData);
+    const facts = materialFactsOf(item.instanceData);
     return {
       id: item.id,
       revision: item.revision,

@@ -72,7 +72,7 @@ type AuctionItemFacts = { definitionId: string; instanceData: unknown };
 export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
   const kind = itemDefinition(item.definitionId).kind;
   if (kind === 'material')
-    return materialFactsOf(item.definitionId, item.instanceData).rank;
+    return materialFactsOf(item.instanceData).rank;
   if (kind === 'consumable')
     return ConsumableFactsSchema.parse(item.instanceData).quality;
   if (kind === 'seed') {
@@ -95,7 +95,7 @@ export function auctionItemCategory(item: AuctionItemFacts): string {
   const definition = itemDefinition(item.definitionId);
   switch (definition.kind) {
     case 'material':
-      return materialFactsOf(item.definitionId, item.instanceData).type;
+      return materialFactsOf(item.instanceData).type;
     case 'consumable':
       return ConsumableFactsSchema.parse(item.instanceData).spec.kind;
     case 'equipment':

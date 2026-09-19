@@ -71,7 +71,7 @@ export async function previewBagRecycle(
             : calculatePillRecycleUnitPrice(facts),
       };
     }
-    const material = materialFactsOf(item.definitionId, item.instanceData);
+    const material = materialFactsOf(item.instanceData);
     const appraisal =
       QUALITY_ORDER[material.rank] >= QUALITY_ORDER.真品
         ? buildMaterialHighTierAppraisal({

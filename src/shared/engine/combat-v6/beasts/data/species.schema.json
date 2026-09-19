@@ -65,8 +65,7 @@
             "type": "object",
             "properties": {
               "core": {
-                "minItems": 1,
-                "maxItems": 8,
+                "maxItems": 2,
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -74,7 +73,7 @@
                 }
               },
               "candidates": {
-                "maxItems": 8,
+                "maxItems": 6,
                 "type": "array",
                 "items": {
                   "type": "string",
@@ -278,13 +277,13 @@
         },
         "minBirthSkills": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 8
+          "minimum": 0,
+          "maximum": 6
         },
         "maxBirthSkills": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 8
+          "minimum": 0,
+          "maximum": 6
         }
       },
       "required": [

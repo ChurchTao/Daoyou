@@ -20,7 +20,7 @@ export function groupAlchemyBagMaterials(
       findItemDefinition(item.definitionId)?.kind !== 'material'
     )
       continue;
-    const facts = materialFactsOf(item.definitionId, item.instanceData);
+    const facts = materialFactsOf(item.instanceData);
     // These materials are transferable; their gameplay use is not defined yet.
     if (facts.type === 'gongfa_manual' || facts.type === 'skill_manual')
       continue;

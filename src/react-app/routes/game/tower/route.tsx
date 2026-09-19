@@ -6,6 +6,7 @@ import { GameSceneFrame, GameSceneSection } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { TowerView } from '@shared/contracts/combatV6Tower';
 import { itemDefinition } from '@shared/inventory';
+import { materialFactsOf } from '@shared/items/material';
 import type { TowerBlessingId } from '@shared/lib/tower/blessings';
 import { getTowerBlessingDefinition } from '@shared/lib/tower/blessings';
 import { TOWER_MIN_REALM } from '@shared/lib/tower/helpers';
@@ -212,7 +213,7 @@ export default function TowerRoute() {
               {reward.items
                 .map(
                   (item) =>
-                    `${itemDefinition(item.definitionId).name} ×${item.quantity}`,
+                    `${item.definitionId === 'material.v1' ? materialFactsOf(item.instanceData).name : itemDefinition(item.definitionId).name} ×${item.quantity}`,
                 )
                 .join('、')}
             </p>

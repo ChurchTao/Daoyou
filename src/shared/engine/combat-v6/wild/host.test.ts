@@ -82,6 +82,7 @@ function individuals() {
         unitId: `combat.wild.enemy.${i}`,
         speciesId: 'combat.wild.species.spirit-fox',
         level,
+        ...(i === 0 ? { isMutant: true } : {}),
       },
       `30000000-0000-4000-8000-00000000000${i}`,
       owner,
@@ -90,7 +91,7 @@ function individuals() {
   );
 }
 describe('野外所见即所得', () => {
-  it('预览只公开物种和等级，战斗使用已生成个体的面板、技能与被动', () => {
+  it('预览只公开物种、等级与变异，战斗使用已生成个体的面板、技能与被动', () => {
     const combatants = individuals();
     const encounter = {
       id: encounterId,
@@ -103,9 +104,13 @@ describe('野外所见即所得', () => {
       unitId: 'combat.wild.enemy.0',
       speciesId: 'combat.wild.species.spirit-fox',
       level: 0,
+      isMutant: true,
     });
     const host = createWildHost(nodeId, 15, player(owner), combatants);
     const snapshot = host.runtimeSnapshot();
+    expect(
+      snapshot.input.unitAppearances?.['combat.wild.enemy.0'].isMutant,
+    ).toBe(true);
     for (const c of combatants) {
       const unit = snapshot.input.units.find((u) => u.id === c.unitId)!;
       expect(unit.level).toBe(c.level);

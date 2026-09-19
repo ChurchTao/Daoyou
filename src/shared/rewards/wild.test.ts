@@ -27,7 +27,7 @@ it('旧活动战局冻结的奖励池也过滤掉材料、装备、图纸和玉�
     groups: [
       ...WILD_INHERITANCE_POOL.groups,
       ...[
-        'material.ore.qingxi-iron.v1',
+        'material.v1',
         'equipment.head.10',
         'blueprint.head.10',
         'jade.character_manual.changchun',

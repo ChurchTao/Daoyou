@@ -1,4 +1,5 @@
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTag';
 import {
   combatV6Request,
   mutationBody,
@@ -233,13 +234,17 @@ export default function BeastsPage() {
                         aria-hidden
                         className="shrink-0 font-sans text-2xl md:text-3xl"
                       >
-                        <BeastIcon speciesId={beast.speciesId} />
+                        <BeastIcon
+                          speciesId={beast.speciesId}
+                          isMutant={beast.isMutant}
+                        />
                       </span>
                       <span className="min-w-0">
                         <span className="flex items-center gap-1">
                           <span className="truncate text-sm" title={beast.name}>
                             {beast.name}
                           </span>
+                          <BeastMutationTag isMutant={beast.isMutant} />
                         </span>
                         <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
                           <span className="font-mono">{beast.level} 级</span>

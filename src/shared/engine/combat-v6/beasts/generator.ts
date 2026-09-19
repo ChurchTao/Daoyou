@@ -13,14 +13,16 @@ function createIndividual(
   speciesId: string,
   level: number,
   seed: number,
+  isMutant = false,
 ): SummonedBeast {
   const species = BEAST_SPECIES.find((s) => s.id === speciesId);
   if (!species) throw new Error('未知召唤兽物种');
-  const traits = rollBeastTraits(species, seed);
+  const traits = rollBeastTraits(species, seed, isMutant);
   return BeastSchema.parse({
     id,
     ownerCultivatorId,
     speciesId,
+    ...(isMutant ? { isMutant: true } : {}),
     name: species.name,
     level,
     exp: 0,
@@ -64,6 +66,7 @@ export function generateCapturedBeast(
   speciesId: string,
   level: number,
   seed: number,
+  isMutant = false,
 ): SummonedBeast {
-  return createIndividual(id, ownerId, speciesId, level, seed);
+  return createIndividual(id, ownerId, speciesId, level, seed, isMutant);
 }

@@ -39,7 +39,7 @@ export const blueprintAdapter: ItemAdapter = (item, def) => {
   };
 };
 export const materialAdapter: ItemAdapter = (item) => {
-  const facts = materialFactsOf(item.definitionId, item.instanceData);
+  const facts = materialFactsOf(item.instanceData);
   const type = MATERIAL_TYPE_NAMES[facts.type];
   return {
     summary: {

@@ -47,11 +47,14 @@ export function wildEncounterView(encounter: WildEncounter): WildEncounterView {
     id: encounter.id,
     nodeId: encounter.nodeId,
     createdAt: encounter.createdAt,
-    combatants: encounter.combatants.map(({ unitId, speciesId, level }) => ({
-      unitId,
-      speciesId,
-      level,
-    })),
+    combatants: encounter.combatants.map(
+      ({ unitId, speciesId, level, isMutant }) => ({
+        unitId,
+        speciesId,
+        level,
+        ...(isMutant ? { isMutant: true } : {}),
+      }),
+    ),
   };
 }
 export const WildResourcesSchema = z

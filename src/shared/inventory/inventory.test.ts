@@ -205,6 +205,29 @@ describe('beast books', () => {
       learnBeastSkill(beast, BOOKS[2].id, 10, beast.skillSlotCapacity),
     ).toThrow('技能格');
   });
+  it('opens exactly one slot for a zero-skill beast, then only replaces it', () => {
+    const empty = { ...beast, skills: [], skillSlotCapacity: 0 };
+    const before = structuredClone(empty);
+    const first = learnBeastSkill(empty, BOOKS[0].id, 10, 0);
+    expect(first).toEqual({
+      ...empty,
+      skills: [BOOKS[0].skillId],
+      skillSlotCapacity: 1,
+      revision: empty.revision + 1,
+    });
+    expect(empty).toEqual(before);
+    const second = learnBeastSkill(first, BOOKS[2].id, 10, 0);
+    expect(second.skills).toEqual([BOOKS[2].skillId]);
+    expect(second.skillSlotCapacity).toBe(1);
+    expect(second.revision).toBe(first.revision + 1);
+    expect(() => learnBeastSkill(first, BOOKS[0].id, 10, 0)).toThrow('已拥有');
+    expect(() => learnBeastSkill(empty, BOOKS[0].id, 9, 0)).toThrow('不能培养');
+    for (const slot of [-1, 0.5, 1])
+      expect(() => learnBeastSkill(empty, BOOKS[0].id, 10, slot)).toThrow(
+        '技能格',
+      );
+    expect(() => learnBeastSkill(first, BOOKS[2].id, 10, 1)).toThrow('技能格');
+  });
   it('retains suppressed normal skill in its original slot', () => {
     const two = {
       ...beast,

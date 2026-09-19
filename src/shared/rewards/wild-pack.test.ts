@@ -47,7 +47,7 @@ describe('野外传承灵印奖励包', () => {
   it('拒绝非灵印、重复引用和额外掉落组', () => {
     for (const id of [
       'missing',
-      'material.ore.qingxi-iron.v1',
+      'material.v1',
       'equipment.head.10',
       'blueprint.head.10',
       'jade.character_manual.changchun',

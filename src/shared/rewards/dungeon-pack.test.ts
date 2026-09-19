@@ -65,7 +65,7 @@ describe('副本奖励数据包', () => {
     expect(() =>
       loadDungeonRewardPack({
         ...raw,
-        materials: [{ rewardId: 'material.ore.qingxi-iron.v1', weight: 1 }],
+        materials: [{ rewardId: 'material.v1', weight: 1 }],
       }),
     ).toThrow('materials');
     expect(() =>

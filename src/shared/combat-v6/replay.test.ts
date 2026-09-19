@@ -65,6 +65,16 @@ function record(scenario: (typeof presentationScenarios)[number]) {
   return { replay, snapshots, battle };
 }
 describe('historical presentation replay', () => {
+  it('preserves mutant portraits through archive parsing and replay views', () => {
+    const { replay } = record('1v3');
+    const appearance = { icon: 'icon:beast-mimi', speciesName: '咪咪', isMutant: true };
+    replay.timeline.unitAppearances = { 'unit-0': appearance };
+    const parsed = parseCombatV6Replay(replay);
+    expect(parsed.timeline.unitAppearances?.['unit-0']).toEqual(appearance);
+    const view = combatV6ReplayView(parsed, id, 'user');
+    expect(view.display.unitAppearances?.['unit-0']).toEqual(appearance);
+    expect(view.timeline.unitAppearances?.['unit-0']).toEqual(appearance);
+  });
   it('preserves frozen appearance through archive parsing and filters unseen identities', () => {
     const { replay } = record('1v3');
     replay.timeline.unitAppearances = {

@@ -77,6 +77,7 @@ export const CombatV6ReplayTimelineSchema = z
           .object({
             icon: z.string(),
             speciesName: z.string().optional(),
+            isMutant: z.boolean().optional(),
           })
           .strict(),
       )

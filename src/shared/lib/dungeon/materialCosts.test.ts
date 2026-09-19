@@ -137,26 +137,10 @@ describe('秘境自主选材', () => {
       '无效',
     );
   });
-  it('固定与转换材料可共同提交，不影响无材料成本', () => {
-    const fixed = {
-      ...material('a', 1),
-      definitionId: 'material.ore.qingxi-iron.v1',
-      instanceData: undefined,
-    };
+  it('无材料成本不消耗背包材料', () => {
+    const item = material('a', 1);
     expect(
-      consumeDungeonMaterials(
-        [fixed, material('b', 1)],
-        [cost],
-        [
-          {
-            costIndex: 0,
-            items: [...select('a', 1).items, ...select('b', 1).items],
-          },
-        ],
-      ),
-    ).toEqual([]);
-    expect(
-      consumeDungeonMaterials([fixed], [{ type: 'spirit_stones', value: 5 }]),
-    ).toEqual([fixed]);
+      consumeDungeonMaterials([item], [{ type: 'spirit_stones', value: 5 }]),
+    ).toEqual([item]);
   });
 });

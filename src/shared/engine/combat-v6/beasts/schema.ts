@@ -8,6 +8,8 @@ export const BeastSchema = z
     id: z.uuid(),
     ownerCultivatorId: z.uuid(),
     speciesId: z.string(),
+    // Missing in existing saves means an ordinary individual.
+    isMutant: z.boolean().optional(),
     name: z.string().min(1).max(40),
     level: z.number().int().min(0).max(180),
     exp: points,

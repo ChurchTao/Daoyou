@@ -6,20 +6,20 @@ import {
   gainBeastExp,
   generateCapturedBeast,
 } from './progression';
-// Species revision 7 adopts the confirmed names, boar defense/counter and wolf stealth.
+// Species revision 10 raises full native skill probabilities to 3–5%.
 // Aptitude/growth draw order and progression revision 3 remain unchanged.
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: '519b85d3f13da91a285c15a075780816af73f8debba3e7df282907be6150addc',
+    hash: '5af4829e3ca58417152a85ecf7a4d5de30a502c59fd583fbc4fe6898eda5f75c',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: 'e5cb0501b3233ca90012425b7bc3b17c4556bd5d20ea641bce88807008699cde',
+    hash: '11380e228da93c6e1a74180920ed96fe57de2e2571b7863021aed39377a59394',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: '260cadaeb872c877df7d31b2d332f453b66e9e10178d2da28d003622e12491b9',
+    hash: '6c0d163a8d29c04fc6000d5fef8fe2623f7c406aef8f08c64d495b18026f48b9',
   },
 ];
 function digest(speciesId: string) {
@@ -47,10 +47,7 @@ function digest(speciesId: string) {
       ),
     })),
   );
-  // Adding species only changes provenance; keep checking the original rolls and panels.
-  const facts = JSON.stringify(results, (key, value) =>
-    key === 'generationContentRevision' ? 7 : value,
-  );
+  const facts = JSON.stringify(results);
   return createHash('sha256').update(facts).digest('hex');
 }
 it.each(baseline)(

@@ -8,9 +8,16 @@ export type PresentedBattleInput = Omit<CreateBattleInput, 'ruleset'> & {
   unitAppearances?: Record<string, CombatV6UnitAppearance>;
 };
 
-export function beastAppearance(speciesId: string): CombatV6UnitAppearance {
+export function beastAppearance(
+  speciesId: string,
+  isMutant = false,
+): CombatV6UnitAppearance {
   const species = BEAST_SPECIES.find((entry) => entry.id === speciesId);
-  return { icon: species?.icon ?? '🐾', speciesName: species?.name };
+  return {
+    icon: species?.icon ?? '🐾',
+    speciesName: species?.name,
+    ...(isMutant ? { isMutant: true } : {}),
+  };
 }
 
 export function playerAppearances(
@@ -23,7 +30,7 @@ export function playerAppearances(
     ...Object.fromEntries(
       (player.beasts?.beasts ?? []).map((beast) => [
         `beast:${beast.id}`,
-        beastAppearance(beast.speciesId),
+        beastAppearance(beast.speciesId, beast.isMutant),
       ]),
     ),
   };

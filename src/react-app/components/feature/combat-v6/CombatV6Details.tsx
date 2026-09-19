@@ -1,4 +1,4 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
+import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CombatV6Session, CombatV6Unit } from './session';
 const attributeLabels: Record<string, string> = {
@@ -25,7 +25,8 @@ export function CombatV6Details({
     <InkDetailDrawer isOpen title={label} size="sm" onClose={onClose}>
       <div className="cv6-detail-identity">
         <span className="cv6-portrait">
-          <GameIcon
+          <BeastPortrait
+            isMutant={appearance?.isMutant}
             value={appearance?.icon ?? (detailUnit.ownerId ? '🐾' : '👤')}
           />
         </span>

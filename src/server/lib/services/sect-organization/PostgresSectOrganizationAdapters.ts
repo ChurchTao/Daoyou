@@ -275,7 +275,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
     return rows.flatMap((row): SectSubmissionItemFacts[] => {
       const common = { id: row.id, quantity: row.quantity };
       if (itemDefinition(row.definitionId).kind === 'material') {
-        const facts = materialFactsOf(row.definitionId, row.instanceData);
+        const facts = materialFactsOf(row.instanceData);
         return [
           {
             ...common,

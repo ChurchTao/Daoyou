@@ -147,6 +147,7 @@ export const CombatV6TrainingEventsQuerySchema = z
 export interface CombatV6UnitAppearance {
   icon: string;
   speciesName?: string;
+  isMutant?: boolean;
 }
 
 export interface CombatV6TrainingUnitViewV1 {

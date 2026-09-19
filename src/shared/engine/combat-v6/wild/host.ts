@@ -153,7 +153,10 @@ export function createWildHost(
       unitAppearances: {
         ...playerAppearances(player),
         ...Object.fromEntries(
-          combatants.map((c) => [c.unitId, beastAppearance(c.speciesId)]),
+          combatants.map((c) => [
+            c.unitId,
+            beastAppearance(c.speciesId, c.beast.isMutant),
+          ]),
         ),
       },
       seed,

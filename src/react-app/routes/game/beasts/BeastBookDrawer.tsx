@@ -110,7 +110,6 @@ export function BeastBookDrawer({
     if (definition.kind !== 'beast_book') return '此物品不是传承灵印。';
     if (!definition.skillId) return '此灵印已无法用于领悟传承。';
     if (!beast || !roster) return '正在核对灵兽状态。';
-    if (!beast.skillSlotCapacity) return '此灵兽没有可用技能格。';
     if (beast.level > roster.ownerLevel) return '灵兽等级超过人物等级上限。';
     if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
     return '';
@@ -118,6 +117,8 @@ export function BeastBookDrawer({
   const selectedSkillId = selected
     ? itemDefinition(selected.definitionId).skillId
     : undefined;
+  const learningEffect =
+    beast?.skills.length === 0 ? '开启第一个技能格' : '随机覆盖一个已有技能';
   const selectedSkillName = selectedSkillId
     ? beastSkillPresentation(selectedSkillId).name
     : undefined;
@@ -226,7 +227,7 @@ export function BeastBookDrawer({
                   ? '。'
                   : refining
                     ? '，重归0级，重新孕育资质、成长与天生技能。'
-                    : `，领悟「${selectedSkillName}」，随机覆盖一个已有技能，结果不可撤销。`}
+                    : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
               {feeding ? (
                 <label className="flex items-center gap-3">
@@ -398,6 +399,7 @@ export function BeastBookDrawer({
               将消耗{consumeQuantity}瓶。
               等级重置为0级，五项基础属性均为10点，修为与加点归零，资质、成长及全部技能重新生成，技能格可能减少。
               原传承灵印不返还，当前寿命恢复至原上限，结果不可撤销。
+              {beast?.isMutant ? '变异身份保留，资质与成长仍按变异范围生成。' : ''}
             </>
           ) : (
             <>
@@ -405,7 +407,7 @@ export function BeastBookDrawer({
               {selected
                 ? itemDefinition(selected.definitionId).name
                 : '传承灵印'}
-              ， 随机替换该灵兽已有技能中的一个，结果不可撤销。确定领悟吗？
+              ，{learningEffect}，结果不可撤销。确定领悟吗？
             </>
           )}
         </p>

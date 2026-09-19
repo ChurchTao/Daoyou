@@ -31,7 +31,7 @@ export interface DungeonRewardPlan extends DungeonRewardEntry {
 export function dungeonRewardItemName(item: ItemGrant): string {
   const definition = itemDefinition(item.definitionId);
   return definition.kind === 'material'
-    ? materialFactsOf(item.definitionId, item.instanceData).name
+    ? materialFactsOf(item.instanceData).name
     : definition.name;
 }
 

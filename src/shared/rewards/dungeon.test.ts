@@ -33,7 +33,7 @@ describe('副本混合物品奖励', () => {
     expect(plan.items).toEqual([]);
   });
 
-  it('库材料展示实例名称，同时保留旧固定材料奖励的名称', () => {
+  it('库材料展示实例名称', () => {
     expect(
       dungeonRewardItemName({
         definitionId: 'material.v1',
@@ -41,12 +41,6 @@ describe('副本混合物品奖励', () => {
         instanceData: { name: '赤阳果', type: 'herb', rank: '灵品' },
       }),
     ).toBe('赤阳果');
-    expect(
-      dungeonRewardItemName({
-        definitionId: 'material.ore.qingxi-iron.v1',
-        quantity: 1,
-      }),
-    ).toBe('青溪铁砂');
   });
 
   it('多个名额逐件抽取，不因新品类增加总量，且固定种子可复现', () => {

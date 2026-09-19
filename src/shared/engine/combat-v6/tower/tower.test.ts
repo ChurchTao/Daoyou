@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { towerReward } from '../../../rewards/tower';
+import { planTowerReward } from '../../../rewards/tower';
 import type { CultivatorCondition } from '../../../types/condition';
 import { BEAST_SPECIES, generateStarterBeast } from '../beasts';
 import {
@@ -172,12 +172,12 @@ describe('幻境独立资源与可恢复战斗', () => {
     expect(towerRecovery(120, 100, 0.3)).toBe(100);
   });
   it('非里程碑无收益，里程碑固定种子确定且声望不变', () => {
-    expect(towerReward(1, 42, '金丹')).toBeNull();
+    expect(planTowerReward(1, 42, '金丹')).toBeNull();
     for (const floor of [5, 10, 15, 20]) {
-      const reward = towerReward(floor, 42, '金丹')!;
-      expect(reward).toEqual(towerReward(floor, 42, '金丹'));
+      const reward = planTowerReward(floor, 42, '金丹')!;
+      expect(reward).toEqual(planTowerReward(floor, 42, '金丹'));
       expect(reward.reputation).toBe(floor);
-      expect(reward.items.reduce((sum, item) => sum + item.quantity, 0)).toBe(
+      expect(reward.materialCount).toBe(
         floor / 5,
       );
     }

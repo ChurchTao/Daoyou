@@ -505,9 +505,10 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               (b) =>
                 b.id === input.beastId && b.revision === input.beastRevision,
             );
-            if (!beast || !beast.skillSlotCapacity)
-              throw new InventoryError('灵兽已变化或没有技能格');
-            const slot = randomInt(beast.skillSlotCapacity);
+            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            const slot = beast.skillSlotCapacity
+              ? randomInt(beast.skillSlotCapacity)
+              : 0;
             const learned = learnBeastSkill(
               beast,
               item.definitionId,

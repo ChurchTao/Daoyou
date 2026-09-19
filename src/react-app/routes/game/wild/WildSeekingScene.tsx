@@ -1,4 +1,5 @@
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTag';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -85,6 +86,7 @@ export function WildSeekingScene({
                     >
                       <BeastIcon
                         speciesId={c.speciesId}
+                        isMutant={c.isMutant}
                         className="wild-seeking-beast-icon"
                       />
                     </div>
@@ -92,12 +94,13 @@ export function WildSeekingScene({
                       {BEAST_SPECIES.find((s) => s.id === c.speciesId)?.name ??
                         '灵兽'}
                     </span>
-                    <span className="text-ink-secondary mt-1 flex items-center gap-1 text-xs">
-                      <span className="font-mono">{c.level}级</span>
+                    <span className="text-ink-secondary mt-1 flex flex-wrap items-center justify-center gap-1 text-xs">
+                      <span className="font-mono whitespace-nowrap">{c.level}级</span>
+                      <BeastMutationTag isMutant={c.isMutant} />
                       {c.level === 0 ? (
                         <InkTag tone="info">幼崽</InkTag>
                       ) : (
-                        <span>成年</span>
+                        <span className="whitespace-nowrap">成年</span>
                       )}
                     </span>
                     <span className="text-ink-secondary mt-1 min-h-4 text-xs">

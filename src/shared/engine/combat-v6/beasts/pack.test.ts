@@ -231,7 +231,9 @@ it('uses edited generation ranges without invalidating existing individual rolls
     speed: { min: 1300, max: 1300 },
   };
   copy.species[0].growthMilli = { min: 1200, max: 1200 };
-  copy.species[0].birthSkills.extraCountWeights = [{ count: 1, weight: 100 }];
+  copy.species[0].birthSkills.extraCountWeights = [
+    { count: copy.species[0].birthSkills.candidates.length, weight: 100 },
+  ];
   vi.resetModules();
   vi.doMock('./data/species.json', () => ({ default: copy }));
   const { generateStarterBeast: generate, generateCapturedBeast } =
@@ -301,6 +303,43 @@ it('derives book availability from the skill pack', async () => {
 
 it.each([
   [
+    'full native set unreachable',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.extraCountWeights = [
+        { count: 0, weight: 100 },
+      ];
+    },
+  ],
+  [
+    'too small native pool',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.candidates = [];
+    },
+  ],
+  [
+    'too large native pool',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.candidates = [
+        'beast.wisdom',
+        'beast.agility',
+        'beast.counter',
+        'beast.parry',
+        'beast.regeneration',
+        'beast.strength',
+      ];
+    },
+  ],
+  [
+    'too many guaranteed skills',
+    (p: ReturnType<typeof input>) => {
+      p.species.species[0].birthSkills.core = [
+        'beast.spirit-flame',
+        'beast.wisdom',
+        'beast.agility',
+      ];
+    },
+  ],
+  [
     'weight total',
     (p: ReturnType<typeof input>) => {
       p.species.species[0].birthSkills.extraCountWeights[0].weight = 50;
@@ -336,7 +375,7 @@ it.each([
   [
     'mixed family',
     (p: ReturnType<typeof input>) => {
-      p.species.species[0].birthSkills.candidates[0] = 'beast.advanced-wisdom';
+      p.species.species[0].birthSkills.candidates[1] = 'beast.advanced-wisdom';
     },
   ],
   [

@@ -162,7 +162,7 @@ export async function forgeEquipment(owner: string, input: ForgeRequest) {
       return {
         item,
         quantity: ref.quantity,
-        facts: materialFactsOf(item.definitionId, item.instanceData),
+        facts: materialFactsOf(item.instanceData),
       };
     });
     const character = await readBeastOwner(owner, tx);

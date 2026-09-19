@@ -28,8 +28,8 @@ export const BeastSpeciesPackShape = z.strictObject({
         description: z.string().min(1).max(300),
         starter: z.boolean(),
         birthSkills: z.strictObject({
-          core: z.array(skillId).min(1).max(8),
-          candidates: z.array(skillId).max(8),
+          core: z.array(skillId).max(2),
+          candidates: z.array(skillId).max(6),
           extraCountWeights: z
             .array(
               z.strictObject({
@@ -57,8 +57,8 @@ export const BeastSpeciesPackShape = z.strictObject({
   generation: z.strictObject({
     starterLevel: z.number().int().min(0).max(180),
     lifespan: integer,
-    minBirthSkills: z.number().int().min(1).max(8),
-    maxBirthSkills: z.number().int().min(1).max(8),
+    minBirthSkills: z.number().int().min(0).max(6),
+    maxBirthSkills: z.number().int().min(0).max(6),
   }),
 });
 
@@ -359,6 +359,14 @@ export function loadBeastPacks(
       );
     const { core, candidates, extraCountWeights } = s.birthSkills;
     const pool = [...core, ...candidates];
+    if (pool.length < 3 || pool.length > 6)
+      issue('species.json', `[${s.id}].birthSkills`, '天生技能全集须为3至6项');
+    if (!extraCountWeights.some((row) => row.count === candidates.length))
+      issue(
+        'species.json',
+        `[${s.id}].birthSkills.extraCountWeights`,
+        '必须允许全部天生技能同时出现',
+      );
     if (new Set(pool).size !== pool.length)
       issue('species.json', `[${s.id}].birthSkills`, '技能池重复');
     for (const id of pool)

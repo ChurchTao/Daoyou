@@ -1,7 +1,7 @@
 {
   "$schema": "./wild.schema.json",
-  "formatVersion": 3,
-  "contentRevision": 6,
+  "formatVersion": 4,
+  "contentRevision": 8,
   "regions": [
     {
       "nodeId": "SAT_TN_08",
@@ -233,6 +233,7 @@
     "minCount": 1,
     "maxCount": 3,
     "cubChance": 0.05,
+    "mutantChance": 0.008,
     "allocationSpread": 0.3
   },
   "activity": {

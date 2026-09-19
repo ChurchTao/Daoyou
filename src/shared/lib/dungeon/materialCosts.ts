@@ -14,7 +14,7 @@ export function dungeonMaterialMatches(
     itemDefinition(item.definitionId).kind !== 'material'
   )
     return false;
-  const facts = materialFactsOf(item.definitionId, item.instanceData);
+  const facts = materialFactsOf(item.instanceData);
   return (
     (!cost.name || facts.name === cost.name) &&
     (!cost.required_type || facts.type === cost.required_type) &&

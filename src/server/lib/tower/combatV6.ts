@@ -34,7 +34,8 @@ import {
   TOWER_MIN_REALM,
 } from '@shared/lib/tower/helpers';
 import { getTowerSeasonMeta } from '@shared/lib/tower/season';
-import { towerReward } from '@shared/rewards/tower';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { planTowerReward } from '@shared/rewards/tower';
 import type { RealmType } from '@shared/types/constants';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -58,6 +59,7 @@ import {
   grantInventory,
 } from '../services/InventoryService';
 import { publishResourceEvents } from '../services/playerStateBroadcaster';
+import { generateRealmMaterials } from '../services/MaterialRewardService';
 import { ResourceEventCommitter } from '../services/ResourceEventCommitter';
 import { updateTowerWeeklyRecord } from './leaderboard';
 import { towerRunKey } from './occupancy';
@@ -75,6 +77,7 @@ type Run = NonNullable<TowerView['state']> & {
     startedAt: string;
     snapshot: TowerBattleSnapshot;
     settled: boolean;
+    reward?: TowerReward;
   };
 };
 const weekKey = (owner: string, season: string) =>
@@ -395,14 +398,44 @@ export async function changeTowerBattle(
       const key = weekKey(owner, run.season.seasonKey);
       const rewards =
         parseRedisJson<TowerReward[]>(await redis.get(key), key) ?? [];
-      const reward =
-        outcome === 'victory' && !rewards.some((r) => r.floor === run.floor)
-          ? towerReward(
-              run.floor,
-              hashTowerSeed(`${run.runId}:${run.floor}`),
-              run.realm,
-            )
-          : null;
+      let reward: TowerReward | null = null;
+      if (outcome === 'victory' && !rewards.some((r) => r.floor === run.floor)) {
+        reward = battle.reward ?? null;
+        if (!reward) {
+          const plan = planTowerReward(
+            run.floor,
+            hashTowerSeed(`${run.runId}:${run.floor}`),
+            run.realm,
+          );
+          if (plan) {
+            const materials = await generateRealmMaterials(
+              plan.materialRealm,
+              plan.materialCount,
+              plan.materialSeed,
+              true,
+            );
+            reward = {
+              floor: plan.floor,
+              spiritStones: plan.spiritStones,
+              reputation: plan.reputation,
+              items: materials.map((material) => ({
+                definitionId: 'material.v1',
+                quantity: 1,
+                instanceData: MaterialFactsSchema.parse({
+                  name: material.name,
+                  type: material.type,
+                  rank: material.rank,
+                  element: material.element ?? null,
+                  description: material.description ?? '',
+                }),
+              })),
+            };
+            // Freeze library facts before settlement; retries must not resample.
+            battle.reward = reward;
+            await save(owner, run, lease);
+          }
+        }
+      }
       const changes = await db.transaction(async (tx) => {
         const changes: ResourceChange[] = [];
         lease.assertHeld();

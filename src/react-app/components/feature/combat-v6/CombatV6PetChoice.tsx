@@ -1,4 +1,4 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
+import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useState, type ReactNode } from 'react';
@@ -26,7 +26,10 @@ export function CombatV6PetChoice({
   );
   const appearance = (id: string) => session.display?.unitAppearances?.[id];
   const portrait = (id: string) => (
-    <GameIcon value={appearance(id)?.icon ?? '🐾'} />
+    <BeastPortrait
+      value={appearance(id)?.icon ?? '🐾'}
+      isMutant={appearance(id)?.isMutant}
+    />
   );
   return (
     <InkDetailDrawer

@@ -1,4 +1,4 @@
-import { GameIcon } from '@app/components/ui/GameIcon';
+import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import type { CombatV6UnitAppearance } from '@shared/contracts/combatV6';
 import { memo, useMemo, type CSSProperties } from 'react';
 import type { frameFeedback } from './presentation';
@@ -56,7 +56,8 @@ const UnitRow = memo(function UnitRow({
         onClick={() => (selecting ? onPick(u.id) : onInspect(u.id))}
       >
         <span className="cv6-portrait">
-          <GameIcon
+          <BeastPortrait
+            isMutant={appearance?.isMutant}
             value={
               appearance?.icon ??
               (u.ownerId

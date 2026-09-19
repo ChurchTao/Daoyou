@@ -107,7 +107,7 @@ it('洗炼技能格可以增加或减少，始终等于新出生技能数', () =
   const species = BEAST_SPECIES.find((s) => s.name === '银翅螳螂')!;
   const base = generateCapturedBeast(id, id, species.id, 60, 3);
   const counts = new Set<number>();
-  for (let seed = 0; seed < 100; seed++)
+  for (let seed = 0; seed < 1000; seed++)
     counts.add(refineBeast(base, advanced.id, 180, seed).skillSlotCapacity);
-  expect([...counts].sort()).toEqual([2, 3, 4]);
+  expect([...counts].sort()).toEqual([1, 2, 3, 4]);
 });
