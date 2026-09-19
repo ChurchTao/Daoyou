@@ -1,3 +1,4 @@
+import generation from '../../engine/combat-v6/tower/data/generation.json';
 /** Encounter budgets belong to the whole group; companions never inherit leader traits. */
 export const TOWER_FORMATIONS = {
   solo: {
@@ -44,12 +45,11 @@ export function allowedTowerFormations(
   kind: 'elite' | 'boss',
   combo: { style: string; survival: string },
 ): TowerKeyFormation[] {
-  if (combo.style === 'seal') return ['solo'];
-  return kind === 'boss' && combo.survival !== 'armor'
-    ? ['solo', 'healer', 'guarded']
-    : ['solo', 'healer'];
+  const rule = generation.formationRules.find((r) =>
+    Object.entries(r.match).every(
+      ([key, value]) => combo[key as keyof typeof combo] === value,
+    ),
+  );
+  if (!rule) throw new Error('幻境缺少阵容生成规则');
+  return rule[kind] as TowerKeyFormation[];
 }
-export const TOWER_HEALER_DETAIL =
-  '执灯幻侍每第三回合治疗气血比例最低的友方（可治疗自己），每次回复自身气血上限的 20%，最多三次；其余回合弱攻击，法力耗尽后不再治疗。';
-export const TOWER_GUARD_DETAIL =
-  '每名存活镜侍在回合开始提供 15% 物理与法术减伤，最多 30%；击杀后下一回合降低。保护不覆盖固定伤害，镜侍只作弱攻击，不会复活。';

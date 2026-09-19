@@ -34,11 +34,11 @@ import {
   TOWER_MAX_FLOOR,
   TOWER_MIN_REALM,
 } from '@shared/lib/tower/helpers';
+import { shouldExpireTowerRun } from '@shared/lib/tower/lifecycle';
 import {
   advanceTowerRewardWeek,
   towerRewards,
   TowerRewardSchema,
-  type TowerRewardState,
 } from '@shared/lib/tower/reward-state';
 import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import { planTowerReward } from '@shared/rewards/tower';
@@ -46,7 +46,7 @@ import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { db, type DbExecutor } from '../drizzle/db';
+import { db } from '../drizzle/db';
 import { cultivators } from '../drizzle/schema';
 import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
@@ -95,13 +95,23 @@ type Run = NonNullable<TowerView['state']> & {
     reward?: TowerReward;
   };
 };
-const weekKey = (owner: string, season: string) =>
-  `tower:v6:week:${owner}:${season}`;
 const expires = (run: Run) =>
   Math.ceil(Date.parse(run.season.seasonEndsAt) / 1000) + 86400;
 async function read(owner: string) {
   const key = towerRunKey(owner);
-  return parseRedisJson<Run>(await redis.get(key), key);
+  const run = parseRedisJson<Run>(await redis.get(key), key);
+  // Expiry is a read projection, shared with occupancy checks. No unlocked Redis write.
+  // Unfinished old battles are discarded; terminal pending results still settle normally.
+  if (run && shouldExpireTowerRun(run, Date.now())) {
+    delete run.battle;
+    delete run.battleId;
+    run.choices = [];
+    if (run.status !== 'FINISHED') {
+      run.status = 'FINISHED';
+      run.reason = 'expired';
+    }
+  }
+  return run;
 }
 async function save(owner: string, run: Run, lease: RedisLeaseContext) {
   lease.assertHeld();
@@ -112,46 +122,13 @@ async function save(owner: string, run: Run, lease: RedisLeaseContext) {
     expires(run),
   );
 }
-// The old run namespace is no longer playable. Import only already granted facts.
-async function legacyRewardState(
-  owner: string,
-  seasonKey: string,
-  executor: DbExecutor = db,
-): Promise<TowerRewardState> {
-  const key = weekKey(owner, seasonKey);
-  const oldRunKey = `tower:v6:run:${owner}`;
-  const [rawRewards, rawRun] = await Promise.all([
-    redis.get(key),
-    redis.get(oldRunKey),
-  ]);
-  const oldRun = parseRedisJson<Run>(rawRun, oldRunKey);
-  const rewards = parseRedisJson<TowerReward[]>(rawRewards, key) ?? [];
-  if (oldRun?.season.seasonKey === seasonKey) {
-    rewards.push(...oldRun.rewards);
-    const battle = oldRun.battle;
-    if (battle?.reward && (await combatV6ReplayExists(battle.id, executor)))
-      rewards.push(battle.reward);
-  }
-  const claims: TowerRewardState['claims'] = {};
-  for (const value of rewards) {
-    const reward = TowerRewardSchema.parse(value);
-    claims[String(reward.floor) as keyof typeof claims] = {
-      battleId: null,
-      claimedAt: new Date().toISOString(),
-      reward,
-    };
-  }
-  return { seasonKey, claims };
-}
 async function publicView(
   owner: string,
   run: Run | null,
   eligible = true,
 ): Promise<TowerView> {
   const published = await currentWeek();
-  const receipt =
-    (await readTowerRewardState(owner)) ??
-    (await legacyRewardState(owner, published.season.seasonKey));
+  const receipt = await readTowerRewardState(owner);
   const runPack =
     run?.season.seasonKey === published.season.seasonKey
       ? published
@@ -195,15 +172,6 @@ export async function getTowerView(owner: string) {
       .where(eq(cultivators.id, owner)),
   ]);
   const eligible = !!row && isTowerRealmEligible(row.realm as RealmType);
-  if (
-    run &&
-    !run.battleId &&
-    run.status !== 'FINISHED' &&
-    Date.now() >= Date.parse(run.season.seasonEndsAt)
-  ) {
-    run.status = 'FINISHED';
-    run.reason = 'expired';
-  }
   return publicView(owner, run, eligible);
 }
 function locked<T>(
@@ -243,7 +211,7 @@ function hasBeasts(player: CombatV6TrainingPlayerInput) {
 }
 async function admitBattle(actor: Actor, run: Run, lease: RedisLeaseContext) {
   const battle = run.battle!;
-  if (battle.admitted || battle.snapshot.version === 'tower-v6-v1') return;
+  if (battle.admitted) return;
   const unit = battle.snapshot.input.units.find(
     (u) => u.id === battle.snapshot.playerId,
   )!;
@@ -306,9 +274,7 @@ export async function startTower(owner: string) {
     await currentWeek(season);
     const receipt = await db.transaction(async (tx) => {
       await lockCultivatorForStateMutation(tx, owner);
-      const current =
-        (await readTowerRewardState(owner, tx)) ??
-        (await legacyRewardState(owner, season.seasonKey, tx));
+      const current = await readTowerRewardState(owner, tx);
       const next = advanceTowerRewardWeek(current, season.seasonKey);
       await writeTowerRewardState(owner, next, tx);
       return next;
@@ -603,7 +569,7 @@ export async function changeTowerBattle(
         // The archive commits with rewards. A failed Redis acknowledgement must
         // rebuild the run from this terminal snapshot without granting again.
         if (await combatV6ReplayExists(id, tx)) return changes;
-        if (battle.snapshot.version !== 'tower-v6-v1') {
+        {
           const unit = host.state.units.find((u) => u.id === host.playerId)!;
           const [row] = await tx
             .select({ condition: cultivators.condition })

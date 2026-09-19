@@ -1,7 +1,7 @@
 {
   "$schema": "./encounters.schema.json",
   "formatVersion": 2,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "minRealm": "金丹",
   "difficultyStep": 5,
   "floors": [
@@ -148,87 +148,87 @@
   "baselines": {
     "金丹": {
       "hp": 1000,
-      "physicalAtk": 660,
-      "magicAtk": 730,
+      "physicalAtk": 640,
+      "magicAtk": 710,
       "physicalDef": 220,
-      "magicDef": 330,
+      "magicDef": 300,
       "speed": 255,
       "hit": 170,
       "dodge": 90,
-      "referencePhysicalDef": 450,
+      "referencePhysicalDef": 430,
       "referenceMagicDef": 510
     },
     "元婴": {
-      "hp": 1600,
-      "physicalAtk": 860,
-      "magicAtk": 955,
-      "physicalDef": 135,
-      "magicDef": 205,
+      "hp": 1400,
+      "physicalAtk": 850,
+      "magicAtk": 950,
+      "physicalDef": 275,
+      "magicDef": 370,
       "speed": 330,
       "hit": 175,
       "dodge": 85,
-      "referencePhysicalDef": 590,
-      "referenceMagicDef": 670
+      "referencePhysicalDef": 580,
+      "referenceMagicDef": 690
     },
     "化神": {
-      "hp": 2200,
-      "physicalAtk": 1090,
-      "magicAtk": 1210,
-      "physicalDef": 180,
-      "magicDef": 265,
+      "hp": 1800,
+      "physicalAtk": 1040,
+      "magicAtk": 1140,
+      "physicalDef": 330,
+      "magicDef": 440,
       "speed": 405,
       "hit": 195,
       "dodge": 105,
-      "referencePhysicalDef": 750,
-      "referenceMagicDef": 850
+      "referencePhysicalDef": 720,
+      "referenceMagicDef": 860
     },
     "炼虚": {
-      "hp": 2900,
-      "physicalAtk": 1350,
-      "magicAtk": 1495,
-      "physicalDef": 230,
-      "magicDef": 330,
+      "hp": 2100,
+      "physicalAtk": 1130,
+      "magicAtk": 1280,
+      "physicalDef": 360,
+      "magicDef": 485,
       "speed": 480,
       "hit": 215,
       "dodge": 125,
-      "referencePhysicalDef": 930,
-      "referenceMagicDef": 1050
+      "referencePhysicalDef": 780,
+      "referenceMagicDef": 980
     },
     "合体": {
-      "hp": 3700,
-      "physicalAtk": 1640,
-      "magicAtk": 1810,
-      "physicalDef": 285,
-      "magicDef": 400,
+      "hp": 2350,
+      "physicalAtk": 1240,
+      "magicAtk": 1420,
+      "physicalDef": 390,
+      "magicDef": 530,
       "speed": 555,
       "hit": 235,
       "dodge": 145,
-      "referencePhysicalDef": 1130,
-      "referenceMagicDef": 1270
+      "referencePhysicalDef": 850,
+      "referenceMagicDef": 1100
     },
     "大乘": {
-      "hp": 4600,
-      "physicalAtk": 1960,
-      "magicAtk": 2155,
-      "physicalDef": 345,
-      "magicDef": 475,
+      "hp": 2600,
+      "physicalAtk": 1330,
+      "magicAtk": 1560,
+      "physicalDef": 420,
+      "magicDef": 575,
       "speed": 630,
       "hit": 255,
       "dodge": 165,
-      "referencePhysicalDef": 1350,
-      "referenceMagicDef": 1510
+      "referencePhysicalDef": 910,
+      "referenceMagicDef": 1220
     },
     "渡劫": {
-      "hp": 5600,
-      "physicalAtk": 2310,
-      "magicAtk": 2530,
-      "physicalDef": 410,
-      "magicDef": 555,
+      "hp": 2850,
+      "physicalAtk": 1420,
+      "magicAtk": 1700,
+      "physicalDef": 450,
+      "magicDef": 620,
       "speed": 705,
       "hit": 275,
       "dodge": 185,
-      "referencePhysicalDef": 1590,
-      "referenceMagicDef": 1770
+      "referencePhysicalDef": 970,
+      "referenceMagicDef": 1340
     }
   }
 }

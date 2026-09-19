@@ -66,10 +66,10 @@ export function projectTowerPlayer(
   return projected;
 }
 export interface TowerBattleSnapshot extends PveRestoredState {
-  version: 'tower-v6-v1' | 'tower-v6-v2' | 'tower-v6-v3' | 'tower-v6-v4';
+  version: 'tower-v6-v7';
   playerId: string;
   input: PresentedBattleInput;
-  npcPlans?: Record<string, TowerNpcPlan>;
+  npcPlans: Record<string, TowerNpcPlan>;
 }
 export class TowerHost extends CombatV6PveHostSession {
   constructor(
@@ -79,23 +79,12 @@ export class TowerHost extends CombatV6PveHostSession {
     >,
     restored?: PveRestoredState,
   ) {
-    const expectedContent =
-      source.version === 'tower-v6-v1'
-        ? 'combat-v6-tower-v1'
-        : source.version === 'tower-v6-v2'
-          ? 'combat-v6-tower-v2'
-          : source.version === 'tower-v6-v3'
-            ? 'combat-v6-tower-v3'
-            : source.input.versions?.contentVersion;
     if (
-      !['tower-v6-v1', 'tower-v6-v2', 'tower-v6-v3', 'tower-v6-v4'].includes(
-        source.version,
-      ) ||
-      !expectedContent ||
-      source.input.versions?.contentVersion !== expectedContent ||
-      (source.version !== 'tower-v6-v1' && !source.npcPlans)
+      source.version !== 'tower-v6-v7' ||
+      source.input.versions?.contentVersion !== TOWER_CONTENT_VERSION ||
+      !source.npcPlans
     )
-      throw new Error('幻境战斗版本无法恢复');
+      throw new Error('幻境内容已更新，请重新进入');
     super(
       {
         playerId: source.playerId,
@@ -121,15 +110,11 @@ export class TowerHost extends CombatV6PveHostSession {
       )) {
         if (unit.command) continue;
         const plan = this.source.npcPlans?.[unit.id];
-        if (!plan) continue; // Old battles continue on their original common AUTO policy.
+        if (!plan) throw new Error('幻境缺少行动方案');
         let action = plan.cycle[(this.state.round - 1) % plan.cycle.length];
-        if (
-          action === 'tower.heal' &&
-          unit.attrs.mp < 12 &&
-          ['tower-v6-v3', 'tower-v6-v4'].includes(this.source.version)
-        )
-          action = 'tower.support-strike';
         const options = this.battle.queryCommands(unit.id);
+        const planned = options.skills.find((s) => s.skillId === action);
+        if (planned && unit.attrs.mp < planned.costs.mp) action = plan.fallback;
         if (!options.canSubmit) continue;
         const skill = options.skills.find((s) => s.skillId === action);
         if (skill?.selectableTargetIds.length) {
@@ -173,7 +158,7 @@ export function createTowerHost(
     ? publishedTowerEncounter(published, realm, floor)
     : compileTowerEncounter(realm, floor, week!);
   return new TowerHost({
-    version: 'tower-v6-v4',
+    version: 'tower-v6-v7',
     playerId: unit.id!,
     npcPlans: enemies.plans,
     input: {

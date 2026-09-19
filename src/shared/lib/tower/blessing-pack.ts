@@ -40,7 +40,16 @@ export const TowerBlessingsPackShape = z.strictObject({
       }),
     )
     .length(TOWER_BLESSING_IDS.length),
-  choices: z.strictObject({ count: z.number().int().min(1).max(3) }),
+  choices: z.strictObject({
+    count: z.number().int().min(1).max(3),
+    afterFloors: z
+      .array(z.number().int().min(0).max(19))
+      .min(1)
+      .refine(
+        (nodes) => new Set(nodes).size === nodes.length,
+        '祝福节点不得重复',
+      ),
+  }),
 });
 export function loadTowerBlessingsPack(data: unknown) {
   const result = TowerBlessingsPackShape.superRefine((pack, ctx) => {

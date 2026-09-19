@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { TOWER_ELIGIBLE_REALMS } from '../../../lib/tower/helpers';
 import { getTowerSeasonMeta } from '../../../lib/tower/season';
 import { createTowerWeek, TOWER_ENCOUNTERS } from '../../../lib/tower/weekly';
-import { compileTowerEncounter } from './content';
 import {
   hasTowerTrait,
   TOWER_STRATEGY_VERSION,
@@ -23,6 +22,7 @@ const sample = (): TowerFloorStrategy => ({
     {
       id: 'main',
       archetype: 'warrior',
+      behaviorId: 'strike',
       role: 'leader',
       traits: [{ id: 'magic_ward' }, { id: 'swift' }],
       budgetShare: { hp: 0.7, output: 0.85 },
@@ -30,6 +30,7 @@ const sample = (): TowerFloorStrategy => ({
     {
       id: 'support',
       archetype: 'attendant',
+      behaviorId: 'healing',
       role: 'support',
       traits: [{ id: 'limited_healing' }],
       budgetShare: { hp: 0.3, output: 0.15 },
@@ -37,7 +38,7 @@ const sample = (): TowerFloorStrategy => ({
   ],
 });
 describe('独立策略编译', () => {
-  it('全部现有模板和普通层在所有开放境界与旧编译器严格等价', () => {
+  it('全部生成候选和普通层可在所有境界编译，输入不受污染', () => {
     for (const floor of [5, 10, 15, 20]) {
       for (const candidate of TOWER_ENCOUNTERS.filter((e) =>
         e.kinds.some((k) => k === (floor % 10 === 0 ? 'boss' : 'elite')),
@@ -48,23 +49,23 @@ describe('独立策略编译', () => {
             r.floor === floor ? { ...r, ...candidate, floor } : r,
           ),
         };
-        const strategies = expandTowerWeek(custom);
-        for (const realm of TOWER_ELIGIBLE_REALMS) {
-          expect(
-            compileTowerStrategy(
+        for (const f of expandTowerWeek(custom)) {
+          for (const realm of TOWER_ELIGIBLE_REALMS) {
+            const before = structuredClone(f);
+            const result = compileTowerStrategy(
               realm,
-              strategies[floor - 1],
+              f,
               TOWER_STRATEGY_VERSION,
-            ),
-          ).toEqual(compileTowerEncounter(realm, floor, custom));
+            );
+            expect(f).toEqual(before);
+            expect(result.units).toHaveLength(f.enemies.length);
+            expect(result.units.every((u) => u.attrs.maxHp! > 0)).toBe(true);
+            expect(
+              Object.values(result.plans).every((p) => p.cycle.length > 0),
+            ).toBe(true);
+          }
         }
       }
-    }
-    for (const f of expandTowerWeek(week).filter((f) => f.kind === 'normal')) {
-      for (const realm of TOWER_ELIGIBLE_REALMS)
-        expect(compileTowerStrategy(realm, f, TOWER_STRATEGY_VERSION)).toEqual(
-          compileTowerEncounter(realm, f.floor, week),
-        );
     }
   });
   it('模板外组合可以出现在任意关键层；辅助属性词条只修改自身', () => {
@@ -101,6 +102,7 @@ describe('独立策略编译', () => {
   it('规范化签名忽略ID和词条顺序，保留指向关系', () => {
     const f = sample();
     f.enemies[1].traits = [{ id: 'guard', targetEnemyId: 'main' }];
+    f.enemies[1].behaviorId = 'support';
     const renamed = structuredClone(f);
     renamed.enemies[0].id = 'a';
     renamed.enemies[1].id = 'b';
@@ -145,6 +147,7 @@ it('非法策略在编译前拒绝', () => {
     },
     (f) => {
       f.enemies[1].traits = [{ id: 'guard', targetEnemyId: 'main' }];
+      f.enemies[1].behaviorId = 'support';
       f.enemies[0].traits = [{ id: 'guard', targetEnemyId: 'support' }];
     },
     (f) => {

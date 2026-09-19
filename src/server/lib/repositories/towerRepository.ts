@@ -1,9 +1,9 @@
 import {
   publishTowerWeek,
-  upgradeTowerPublication,
   validatePublishedTowerWeek,
   type PublishedTowerWeek,
 } from '@shared/engine/combat-v6/tower/published';
+import { TOWER_STRATEGY_VERSION } from '@shared/engine/combat-v6/tower/strategy';
 import {
   advanceTowerRewardWeek,
   TowerClaimsSchema,
@@ -11,7 +11,7 @@ import {
 } from '@shared/lib/tower/reward-state';
 import { getTowerSeasonMeta } from '@shared/lib/tower/season';
 import type { TowerSeasonMeta } from '@shared/lib/tower/types';
-import { and, desc, eq, gte, lt } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, ne } from 'drizzle-orm';
 import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import { towerRewardStates, towerWeeks } from '../drizzle/schema';
 
@@ -23,34 +23,12 @@ export async function readTowerPublishedWeek(
     .select()
     .from(towerWeeks)
     .where(eq(towerWeeks.seasonKey, seasonKey));
-  if (!row) return null;
+  if (!row || row.contentVersion !== TOWER_STRATEGY_VERSION) return null;
   if (
     row.schemaVersion !== row.config.schemaVersion ||
     row.config.season.seasonKey !== seasonKey
   )
     throw new Error('幻境发布配置版本无效');
-  if (row.config.schemaVersion === 1) {
-    if (
-      row.contentVersion !== row.config.week.version ||
-      row.generatorVersion !== row.config.generatorVersion
-    )
-      throw new Error('幻境发布版本不一致');
-    const upgraded = upgradeTowerPublication(row.config);
-    await executor
-      .update(towerWeeks)
-      .set({
-        config: upgraded,
-        schemaVersion: 2,
-        contentVersion: upgraded.contentVersion,
-      })
-      .where(
-        and(
-          eq(towerWeeks.seasonKey, seasonKey),
-          eq(towerWeeks.schemaVersion, 1),
-        ),
-      );
-    return readTowerPublishedWeek(seasonKey, executor);
-  }
   if (
     row.contentVersion !== row.config.contentVersion ||
     row.generatorVersion !== row.config.generatorVersion
@@ -93,7 +71,16 @@ export async function getOrPublishTowerWeek(
       generatorVersion: config.generatorVersion,
       config,
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: towerWeeks.seasonKey,
+      set: {
+        schemaVersion: config.schemaVersion,
+        contentVersion: config.contentVersion,
+        generatorVersion: config.generatorVersion,
+        config,
+      },
+      setWhere: ne(towerWeeks.contentVersion, TOWER_STRATEGY_VERSION),
+    });
   const published = await readTowerPublishedWeek(season.seasonKey);
   if (!published) throw new Error('本周幻境尚未就绪');
   return published;

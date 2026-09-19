@@ -1,7 +1,7 @@
 {
   "$schema": "./blessings.schema.json",
   "formatVersion": 2,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "blessings": [
     {
       "id": "physical_power",
@@ -11,9 +11,7 @@
       "maxStacks": 3,
       "effect": {
         "target": "player",
-        "attributes": [
-          "physicalAtk"
-        ],
+        "attributes": ["physicalAtk"],
         "perStack": 0.08
       }
     },
@@ -25,9 +23,7 @@
       "maxStacks": 3,
       "effect": {
         "target": "player",
-        "attributes": [
-          "magicAtk"
-        ],
+        "attributes": ["magicAtk"],
         "perStack": 0.08
       }
     },
@@ -39,10 +35,7 @@
       "maxStacks": 3,
       "effect": {
         "target": "player",
-        "attributes": [
-          "physicalDef",
-          "magicDef"
-        ],
+        "attributes": ["physicalDef", "magicDef"],
         "perStack": 0.08
       }
     },
@@ -54,9 +47,7 @@
       "maxStacks": 3,
       "effect": {
         "target": "player",
-        "attributes": [
-          "speed"
-        ],
+        "attributes": ["speed"],
         "perStack": 0.05
       }
     },
@@ -68,15 +59,13 @@
       "maxStacks": 3,
       "effect": {
         "target": "beasts",
-        "attributes": [
-          "physicalAtk",
-          "magicAtk"
-        ],
+        "attributes": ["physicalAtk", "magicAtk"],
         "perStack": 0.08
       }
     }
   ],
   "choices": {
-    "count": 3
+    "count": 3,
+    "afterFloors": [0, 2, 4, 6, 8, 10, 12, 14, 16]
   }
 }

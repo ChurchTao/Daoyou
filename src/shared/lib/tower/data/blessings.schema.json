@@ -29,20 +29,20 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 3
+        },
+        "afterFloors": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
         }
       },
-      "required": [
-        "count"
-      ],
+      "required": ["count", "afterFloors"],
       "additionalProperties": false
     }
   },
-  "required": [
-    "formatVersion",
-    "contentRevision",
-    "blessings",
-    "choices"
-  ],
+  "required": ["formatVersion", "contentRevision", "blessings", "choices"],
   "additionalProperties": false,
   "$defs": {
     "__schema0": {
@@ -80,10 +80,7 @@
           "properties": {
             "target": {
               "type": "string",
-              "enum": [
-                "player",
-                "beasts"
-              ]
+              "enum": ["player", "beasts"]
             },
             "attributes": {
               "minItems": 1,
@@ -98,33 +95,21 @@
               "maximum": 0.1
             }
           },
-          "required": [
-            "target",
-            "attributes",
-            "perStack"
-          ],
+          "required": ["target", "attributes", "perStack"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "id",
-        "name",
-        "icon",
-        "label",
-        "maxStacks",
-        "effect"
-      ],
+      "required": ["id", "name", "icon", "label", "maxStacks", "effect"],
       "additionalProperties": false
     },
     "__schema1": {
       "type": "string",
-      "enum": [
-        "physicalAtk",
-        "magicAtk",
-        "physicalDef",
-        "magicDef",
-        "speed"
-      ]
+      "enum": ["physicalAtk", "magicAtk", "physicalDef", "magicDef", "speed"]
+    },
+    "__schema2": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 19
     }
   }
 }

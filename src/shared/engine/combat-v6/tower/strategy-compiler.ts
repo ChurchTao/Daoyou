@@ -1,24 +1,44 @@
+import { TOWER_ENCOUNTER_PACK as pack } from '../../../lib/tower/encounter-pack';
 import type { RealmType } from '../../../types/constants';
-import { UnitKind, type CreateBattleInput } from '../core';
-import type { TowerNpcPlan } from './content';
 import {
-  hasTowerTrait,
+  UnitKind,
+  type CreateBattleInput,
+  type SkillDef,
+  type StatusDef,
+} from '../core';
+import { combatCharacterLevel } from '../projection/character-level';
+import {
+  TOWER_CATALOG,
+  TOWER_SKILLS,
+  TOWER_STATUS_DEFS,
+  type TowerModifier,
+  type TowerNpcPlan,
+} from './catalog';
+import {
   TOWER_STRATEGY_VERSION,
   towerStrategyPreview,
   validateTowerFloorStrategy,
   type TowerFloorStrategy,
 } from './strategy';
-import { TOWER_SKILLS, TOWER_STATUS_DEFS } from './strategy-content-v5';
-import pack from './strategy-scaling-v5.json';
 
-/** Immutable v5 semantics: add another versioned compiler for future rule changes. */
+/** Bind only matching reference strings; no mechanic names or slot assumptions. */
+function bindReferences<T>(value: T, refs: Map<string, string>): T {
+  if (typeof value === 'string') return (refs.get(value) ?? value) as T;
+  if (Array.isArray(value))
+    return value.map((v) => bindReferences(v, refs)) as T;
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, bindReferences(v, refs)]),
+    ) as T;
+  return value;
+}
 export function compileTowerStrategy(
   realm: RealmType,
   f: TowerFloorStrategy,
   version: string,
 ) {
   if (version !== TOWER_STRATEGY_VERSION)
-    throw new Error('幻境内容版本无法恢复');
+    throw new Error('幻境内容已更新，请重新进入');
   validateTowerFloorStrategy(f);
   if (!Object.prototype.hasOwnProperty.call(pack.baselines, realm))
     throw new Error('幻境境界无效');
@@ -26,59 +46,72 @@ export function compileTowerStrategy(
   const { scaling } = pack;
   const preview = towerStrategyPreview(f);
   const plans: Record<string, TowerNpcPlan> = {};
-  const skills = structuredClone(TOWER_SKILLS);
-  const statusDefs = structuredClone(TOWER_STATUS_DEFS);
-  const guardTargets = [
-    ...new Set(
-      f.enemies.flatMap((e) =>
-        e.traits.flatMap((t) => (t.id === 'guard' ? [t.targetEnemyId] : [])),
-      ),
-    ),
-  ];
-  // The original first-slot anchor keeps v4 definitions byte-for-byte equivalent.
-  const suffix = (id: string) =>
-    f.enemies.findIndex((e) => e.id === id) === 0
-      ? ''
-      : `.target.${f.enemies.findIndex((e) => e.id === id)}`;
-  for (const target of guardTargets) {
-    const s = suffix(target);
-    if (!s) continue;
-    const anchor = structuredClone(TOWER_STATUS_DEFS[0]);
-    anchor.id += s;
-    anchor.kind += s;
-    statusDefs.push(anchor);
-    const master = structuredClone(TOWER_SKILLS[0]);
-    master.id += s;
-    master.innate!.entryStatus!.statusId += s;
-    skills.push(master);
-    const guard = structuredClone(TOWER_SKILLS[1]);
-    guard.id += s;
-    guard.hooks![0].targeting!.requireStatusIds = [anchor.id];
-    skills.push(guard);
-  }
-  const hpMods = f.enemies.map((e) =>
-    hasTowerTrait(e, 'vital')
-      ? f.kind === 'normal'
-        ? 1.25
-        : 1.15
-      : f.kind === 'normal'
-        ? 1
-        : 0.92,
+  const skills: SkillDef[] = structuredClone(TOWER_SKILLS);
+  const statusDefs: StatusDef[] = structuredClone(TOWER_STATUS_DEFS);
+  const passives = new Map(
+    f.enemies.map((e) => [
+      e.id,
+      new Set(e.traits.flatMap((t) => TOWER_CATALOG.traits[t.id].passives)),
+    ]),
   );
+  const relations = new Set<string>();
+  for (const enemy of f.enemies) {
+    for (const trait of enemy.traits) {
+      const relation = TOWER_CATALOG.traits[trait.id].relation;
+      if (!relation || !trait.targetEnemyId) continue;
+      const suffix = `.target.${f.enemies.findIndex((e) => e.id === trait.targetEnemyId)}`;
+      const identity = `${trait.id}:${trait.targetEnemyId}`;
+      if (!relations.has(identity)) {
+        const refs = new Map(
+          [
+            relation.anchorStatus,
+            relation.targetPassive,
+            relation.sourcePassive,
+          ].map((id) => [id, id + suffix]),
+        );
+        statusDefs.push(
+          bindReferences(
+            TOWER_STATUS_DEFS.find((s) => s.id === relation.anchorStatus)!,
+            refs,
+          ),
+        );
+        for (const id of [relation.targetPassive, relation.sourcePassive])
+          skills.push(
+            bindReferences(
+              TOWER_SKILLS.find((s) => s.id === id)!,
+              refs,
+            ),
+          );
+        relations.add(identity);
+      }
+      passives.get(trait.targetEnemyId)!.add(relation.targetPassive + suffix);
+      passives.get(enemy.id)!.add(relation.sourcePassive + suffix);
+    }
+  }
   const units: CreateBattleInput['units'] = f.enemies.map((e, slot) => {
-    const has = (id: Parameters<typeof hasTowerTrait>[1]) =>
-      hasTowerTrait(e, id);
-    const support = e.archetype === 'attendant';
-    const hpMod = hpMods[slot];
+    const archetype = TOWER_CATALOG.archetypes[e.archetype];
+    const behavior = TOWER_CATALOG.behaviors[e.behaviorId];
+    const factors: Partial<Record<TowerModifier, number>>[] = [
+      TOWER_CATALOG.kinds[f.kind].multiply,
+      archetype.multiply,
+      archetype.kindMultiply?.[f.kind] ?? {},
+      ...e.traits.map((t) => TOWER_CATALOG.traits[t.id].multiply),
+    ];
+    const scale = (key: TowerModifier) =>
+      factors.reduce((v, p) => v * (p[key] ?? 1), 1);
+    const add = (key: TowerModifier) =>
+      e.traits.reduce(
+        (v, t) => v + (TOWER_CATALOG.traits[t.id].add[key] ?? 0),
+        0,
+      );
     const pool = Math.round(
       base.hp *
         (1 + scaling.hpGrowth * (f.floor - 1)) *
         scaling.types[f.kind].hp *
-        hpMod *
-        f.budget.hpScale,
+        f.budget.hpScale *
+        scale('hp') +
+        add('hp'),
     );
-    // Round each member against its own pool. Only the final slot carries the
-    // rounding remainder; changing one enemy's vitality never changes a peer.
     const hp =
       slot === f.enemies.length - 1
         ? pool -
@@ -89,40 +122,26 @@ export function compileTowerStrategy(
               0,
             )
         : Math.round(pool * e.budgetShare.hp);
-    const defense = support ? 0.65 : f.kind === 'normal' ? 1 : 0.8;
     const output =
       (1 + scaling.outputGrowth * (f.floor - 1)) *
-      scaling.types[f.kind].output *
-      (f.kind === 'boss' ? 0.95 : 1) *
-      (e.archetype === 'binder' ? 0.65 : 1);
-    const cycle = has('limited_healing')
-      ? ['tower.support-strike', 'tower.support-strike', 'tower.heal']
-      : has('charge')
-        ? ['tower.charge', 'tower.heavy', 'attack']
-        : support
-          ? ['tower.support-strike']
-          : e.archetype === 'binder'
-            ? ['tower.seal', 'tower.bolt', 'tower.bolt']
-            : e.archetype === 'mage'
-              ? ['tower.bolt', 'tower.bolt', 'tower.wave']
-              : f.kind === 'normal'
-                ? ['attack', 'attack', 'tower.strike']
-                : ['tower.strike', 'tower.strike', 'tower.double'];
+        scaling.types[f.kind].output *
+        scale('output') +
+      add('output');
     const id = `tower.enemy.${slot}`;
-    plans[id] = { cycle };
-    const guard = e.traits.find((t) => t.id === 'guard');
+    plans[id] = { cycle: [...behavior.cycle], fallback: behavior.fallback };
+    const mp = behavior.maxMp ?? TOWER_CATALOG.defaults.maxMp;
     return {
       id,
       name: preview.members[slot].name,
       side: 1,
       slot,
       kind: UnitKind.Npc,
-      level: base.level,
+      level: combatCharacterLevel(realm, pack.floors[f.floor - 1].realmStage),
       attrs: {
         hp,
         maxHp: hp,
-        mp: has('limited_healing') ? 36 : 1500,
-        maxMp: has('limited_healing') ? 36 : 1500,
+        mp,
+        maxMp: mp,
         physicalAtk: Math.round(
           base.referencePhysicalDef +
             (base.physicalAtk - base.referencePhysicalDef) *
@@ -138,42 +157,37 @@ export function compileTowerStrategy(
         physicalDef: Math.round(
           base.physicalDef *
             (1 + scaling.defenseGrowth * (f.floor - 1)) *
-            (has('armor') ? (support ? 0.65 * 1.5625 : 1.25) : defense),
+            scale('physicalDef') +
+            add('physicalDef'),
         ),
         magicDef: Math.round(
           base.magicDef *
             (1 + scaling.defenseGrowth * (f.floor - 1)) *
-            (has('magic_ward') ? (support ? 0.65 * 1.5 : 1.2) : defense),
+            scale('magicDef') +
+            add('magicDef'),
         ),
-        speed: Math.round(
-          base.speed *
-            (has('swift')
-              ? support
-                ? (0.85 * 1.1) / 0.95
-                : 1.1
-              : has('charge')
-                ? 0.8
-                : support
-                  ? 0.85
-                  : 0.95),
-        ),
+        speed: Math.round(base.speed * scale('speed') + add('speed')),
         hit: base.hit,
         dodge: base.dodge,
-        critRate: 0.03,
-        spellCritRate: 0.03,
-        sealHit: 45,
-        sealResist: has('seal_resist') ? 60 : 50,
+        critRate:
+          TOWER_CATALOG.defaults.critRate * scale('critRate') + add('critRate'),
+        spellCritRate:
+          TOWER_CATALOG.defaults.spellCritRate * scale('spellCritRate') +
+          add('spellCritRate'),
+        sealHit:
+          TOWER_CATALOG.defaults.sealHit * scale('sealHit') + add('sealHit'),
+        sealResist:
+          TOWER_CATALOG.defaults.sealResist * scale('sealResist') +
+          add('sealResist'),
       },
-      skills: [...new Set(cycle.filter((s) => s !== 'attack'))],
-      passives: [
-        ...(has('last_stand') ? ['tower.last-stand'] : []),
-        ...(guardTargets.includes(e.id)
-          ? [`tower.mirror-master${suffix(e.id)}`]
-          : []),
-        ...(guard?.id === 'guard'
-          ? [`tower.mirror-guard${suffix(guard.targetEnemyId)}`]
-          : []),
+      skills: [
+        ...new Set(
+          [...behavior.cycle, behavior.fallback].filter(
+            (s) => s !== 'attack' && s !== 'defend',
+          ),
+        ),
       ],
+      passives: [...passives.get(e.id)!],
       tags: [],
     };
   });

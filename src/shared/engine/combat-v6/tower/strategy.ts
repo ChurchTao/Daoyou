@@ -1,22 +1,13 @@
-// Immutable v5 strategy semantics and presentation; future changes require a new version.
+// Explicit authored strategy. Runtime interpretation never consults generation templates.
 import { z } from 'zod';
 import type { TowerEnemyPreview } from '../../../lib/tower/weekly';
+import { TOWER_CATALOG, TOWER_SKILLS, towerContentNote } from './catalog';
 
-export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v5' as const;
-const traitId = z.enum([
-  'magic_ward',
-  'armor',
-  'vital',
-  'swift',
-  'seal_resist',
-  'charge',
-  'limited_healing',
-  'last_stand',
-]);
-const trait = z.union([
-  z.strictObject({ id: traitId }),
-  z.strictObject({ id: z.literal('guard'), targetEnemyId: z.string().min(1) }),
-]);
+export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v7' as const;
+const trait = z.strictObject({
+  id: z.string().min(1),
+  targetEnemyId: z.string().min(1).optional(),
+});
 const share = z.number().positive().max(1);
 export const TowerFloorStrategySchema = z.strictObject({
   floor: z.number().int().min(1).max(20),
@@ -29,7 +20,8 @@ export const TowerFloorStrategySchema = z.strictObject({
           .string()
           .regex(/^[a-zA-Z0-9_.-]+$/)
           .max(60),
-        archetype: z.enum(['warrior', 'mage', 'binder', 'attendant']),
+        archetype: z.string().min(1),
+        behaviorId: z.string().min(1),
         role: z.enum(['leader', 'striker', 'support']),
         traits: z.array(trait).max(8),
         budgetShare: z.strictObject({ hp: share, output: share }),
@@ -67,48 +59,62 @@ export function validateTowerFloorStrategy(
     )
       fail('预算份额必须合计为1');
   }
-  if (f.enemies.some((e) => e.archetype === 'binder') && f.enemies.length !== 1)
-    fail('封印暂限单敌');
   for (const e of f.enemies) {
-    const has = (id: TowerTraitId) => hasTowerTrait(e, id);
-    if (new Set(e.traits.map((t) => t.id)).size !== e.traits.length)
-      fail('词条重复');
+    const archetype = TOWER_CATALOG.archetypes[e.archetype];
+    const behavior = TOWER_CATALOG.behaviors[e.behaviorId];
+    if (!archetype || !behavior) fail('原型或行动方案不存在');
+    if (archetype.maxEnemies && f.enemies.length > archetype.maxEnemies)
+      fail('原型人数限制');
+    if (!behavior.archetypes.includes(e.archetype))
+      fail('行动方案与原型不兼容');
+    const ids = new Set(e.traits.map((t) => t.id));
+    if (ids.size !== e.traits.length) fail('词条重复');
     if (
-      ['armor', 'magic_ward', 'vital'].filter((id) => has(id as TowerTraitId))
-        .length > 1
+      behavior.requires.some((t) => !ids.has(t)) ||
+      behavior.forbids.some((t) => ids.has(t))
     )
-      fail('生存词条冲突');
-    if (
-      ['swift', 'seal_resist', 'charge'].filter((id) => has(id as TowerTraitId))
-        .length > 1
-    )
-      fail('节奏词条冲突');
-    if (has('charge') && has('limited_healing')) fail('行动周期冲突');
-    if (has('charge') && e.archetype !== 'warrior') fail('蓄势需要武斗原型');
-    const guard = e.traits.find((t) => t.id === 'guard');
-    if (guard?.id === 'guard') {
+      fail('行动方案与词条不兼容');
+    const groups = new Set<string>();
+    for (const t of e.traits) {
+      const definition = TOWER_CATALOG.traits[t.id];
+      if (!definition) fail('词条不存在');
       if (
-        guard.targetEnemyId === e.id ||
-        !f.enemies.some((t) => t.id === guard.targetEnemyId)
+        !definition.archetypes.includes(e.archetype) ||
+        definition.forbids.some((id) => ids.has(id))
       )
-        fail('护卫目标引用无效');
-      const visited = new Set([e.id]);
-      let target: string | undefined = guard.targetEnemyId;
-      while (target) {
-        if (visited.has(target)) fail('循环护卫');
-        visited.add(target);
-        const next = f.enemies
-          .find((t) => t.id === target)
-          ?.traits.find((t) => t.id === 'guard');
-        target = next?.id === 'guard' ? next.targetEnemyId : undefined;
+        fail('词条不兼容');
+      if (definition.group) {
+        if (groups.has(definition.group)) fail('词条分组冲突');
+        groups.add(definition.group);
       }
+      if (definition.relation) {
+        if (
+          !t.targetEnemyId ||
+          t.targetEnemyId === e.id ||
+          !f.enemies.some((other) => other.id === t.targetEnemyId)
+        )
+          fail('关系目标无效');
+      } else if (t.targetEnemyId) fail('非关系词条不能指定目标');
     }
     const guards = f.enemies.filter((other) =>
-      other.traits.some((t) => t.id === 'guard' && t.targetEnemyId === e.id),
+      other.traits.some(
+        (t) => TOWER_CATALOG.traits[t.id]?.relation && t.targetEnemyId === e.id,
+      ),
     ).length;
-    if (guards > 1 && (f.kind === 'elite' || has('armor')))
-      fail('精英或铁甲暂不支持双护卫');
+    const maxGuards = Math.min(
+      TOWER_CATALOG.kinds[f.kind].maxGuards,
+      ...e.traits.map((t) => TOWER_CATALOG.traits[t.id].maxGuards ?? 2),
+    );
+    if (guards > maxGuards) fail('护卫数量超限');
   }
+  const visit = (id: string, path: Set<string>) => {
+    if (path.has(id)) fail('循环护卫');
+    const next = new Set(path).add(id);
+    for (const trait of f.enemies.find((e) => e.id === id)!.traits) {
+      if (trait.targetEnemyId) visit(trait.targetEnemyId, next);
+    }
+  };
+  for (const enemy of f.enemies) visit(enemy.id, new Set());
 }
 
 /** IDs are local references; renaming them cannot bypass weekly repetition scoring. */
@@ -121,12 +127,15 @@ export function towerStrategySignature(
     enemies: floor.enemies.map((e) => ({
       archetype: formationOnly ? undefined : e.archetype,
       role: e.role,
+      behavior: formationOnly
+        ? undefined
+        : TOWER_CATALOG.behaviors[e.behaviorId],
       traits: e.traits
         .filter(
           (t) => !formationOnly || ['guard', 'limited_healing'].includes(t.id),
         )
         .map((t) =>
-          t.id === 'guard'
+          t.targetEnemyId !== undefined
             ? {
                 id: t.id,
                 target: floor.enemies.findIndex(
@@ -141,92 +150,70 @@ export function towerStrategySignature(
   });
 }
 
-const descriptions: Record<TowerTraitId, [string, string]> = {
-  vital: ['厚血', '自身气血提高 25%。'],
-  armor: ['铁甲', '自身物防提高，法防保持基础值。'],
-  magic_ward: ['灵障', '自身法防提高，物防保持基础值。'],
-  swift: ['疾行', '速度较快，但并非必定先手。'],
-  seal_resist: ['定神', '封印抵抗提高 10 点，并非免疫。'],
-  charge: [
-    '蓄势',
-    '每三回合：蓄势 → 物理重击 → 普通攻击。重击可被控制跳过；施放后至下一回合结束承伤提高 25%。',
-  ],
-  limited_healing: [
-    '续灯',
-    '每第三回合治疗气血比例最低的友方（包括自己），回复自身气血上限的 20%；最多三次，其余回合弱攻击。',
-  ],
-  guard: [
-    '护卫',
-    '回合开始为指定同伴提供 15% 物理与法术减伤，最多 30%；死亡后下一回合降低，不覆盖固定伤害。',
-  ],
-  last_stand: [
-    '碎梦',
-    '回合开始时气血首次低于 40%，伤害提高 15%，持续至战斗结束。',
-  ],
+const attributeLabels: Record<string, string> = {
+  hp: '气血',
+  physicalDef: '物防',
+  magicDef: '法防',
+  speed: '速度',
+  sealResist: '抗封',
+  sealHit: '封印命中',
+  output: '输出预算',
+  critRate: '物理暴击',
+  spellCritRate: '法术暴击',
 };
 export function towerStrategyPreview(f: TowerFloorStrategy): TowerEnemyPreview {
   validateTowerFloorStrategy(f);
   const members = f.enemies.map((e, slot) => {
-    const has = (id: TowerTraitId) => hasTowerTrait(e, id);
-    const support = e.archetype === 'attendant';
-    const name = support
-      ? has('limited_healing')
-        ? '执灯幻侍'
-        : has('guard')
-          ? `镜侍${slot === 1 ? '·左' : '·右'}`
-          : '幻侍'
-      : e.archetype === 'binder'
-        ? '缚梦幻师'
-        : e.archetype === 'mage'
-          ? f.kind === 'normal'
-            ? '碎镜术士'
-            : '照影镜主'
-          : f.kind !== 'normal'
-            ? '负碑蜃卫'
-            : ((f.floor - 1) % 10) + 1 >= 8
-              ? '护镜傀'
-              : '蜃影剑卫';
-    const behavior =
-      has('limited_healing') || has('charge')
-        ? []
-        : [
-            support
-              ? '每回合弱攻击。'
-              : e.archetype === 'binder'
-                ? '第1、4、7…回合封印，其余回合单体法术；封印持续当回合及下一回合。'
-                : e.archetype === 'mage'
-                  ? '每第三回合群体法术，其余回合单体法术；群法后至下一回合结束承伤提高25%。'
-                  : f.kind === 'normal'
-                    ? '普通攻击为主，每第三回合较强单体攻击。'
-                    : '每第三回合双段物理攻击，其余回合单体物理攻击。',
-          ];
+    const archetype = TOWER_CATALOG.archetypes[e.archetype];
+    const behavior = TOWER_CATALOG.behaviors[e.behaviorId];
+    const actionName = (id: string) =>
+      TOWER_SKILLS.find((s) => s.id === id)?.name ??
+      (id === 'attack' ? '普攻' : '防御');
+    const details = [
+      `每 ${behavior.cycle.length} 回合：${behavior.cycle.map(actionName).join(' → ')}。`,
+      behavior.tip,
+    ];
+    for (const trait of e.traits) {
+      const definition = TOWER_CATALOG.traits[trait.id];
+      for (const [key, value] of Object.entries(definition.multiply))
+        details.push(`${attributeLabels[key]} ×${Number(value.toFixed(3))}。`);
+      for (const [key, value] of Object.entries(definition.add))
+        details.push(
+          `${attributeLabels[key]} ${value >= 0 ? '+' : ''}${value}。`,
+        );
+      if (trait.targetEnemyId)
+        details.push(
+          `保护第 ${f.enemies.findIndex((other) => other.id === trait.targetEnemyId) + 1} 位同伴；击杀护卫后下一回合解除其保护。`,
+        );
+    }
+    for (const id of [
+      ...new Set([...behavior.cycle, ...e.traits.map((t) => t.id)]),
+    ]) {
+      const note = towerContentNote(id);
+      if (note) details.push(note);
+      const skill = TOWER_SKILLS.find((s) => s.id === id);
+      if (skill?.effects.some((effect) => effect.type === 'heal'))
+        details.push(
+          `治疗最低气血比例友方（含自己）；法力 ${behavior.maxMp ?? TOWER_CATALOG.defaults.maxMp}，每次消耗 ${skill.costMp ?? 0}，不足时改用${actionName(behavior.fallback)}。`,
+        );
+    }
+    const visual =
+      [...e.traits]
+        .sort((a, b) => a.id.localeCompare(b.id))
+        .map((t) => TOWER_CATALOG.traits[t.id].presentation)
+        .find(Boolean) ?? archetype;
     return {
       id: `tower.enemy.${slot}`,
-      name,
-      icon: support
-        ? has('limited_healing')
-          ? '🏮'
-          : '🪞'
-        : e.archetype === 'mage'
-          ? '🔮'
-          : e.archetype === 'binder'
-            ? '🪬'
-            : '⚔️',
+      name: visual.name,
+      icon: visual.icon,
       role: (e.role === 'support'
-        ? has('limited_healing')
+        ? hasTowerTrait(e, 'limited_healing')
           ? 'healer'
-          : has('guard')
+          : e.traits.some((t) => t.targetEnemyId)
             ? 'guard'
             : 'striker'
         : e.role) as TowerEnemyPreview['members'][number]['role'],
-      details: [
-        ...behavior,
-        ...e.traits.map((t) =>
-          t.id === 'guard'
-            ? `${descriptions.guard[1]}（保护第 ${f.enemies.findIndex((other) => other.id === t.targetEnemyId) + 1} 位同伴）`
-            : descriptions[t.id][1],
-        ),
-      ],
+      details,
     };
   });
   const leader = members[f.enemies.findIndex((e) => e.role === 'leader')];
@@ -238,9 +225,11 @@ export function towerStrategyPreview(f: TowerFloorStrategy): TowerEnemyPreview {
     members,
     labels: [
       ...new Set(
-        f.enemies.flatMap((e) => e.traits.map((t) => descriptions[t.id][0])),
+        f.enemies.flatMap((e) =>
+          e.traits.map((t) => TOWER_CATALOG.traits[t.id].label),
+        ),
       ),
     ],
-    details: members.flatMap((m) => m.details),
+    details: [...new Set(members.flatMap((m) => m.details))],
   };
 }

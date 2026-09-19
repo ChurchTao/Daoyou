@@ -1,5 +1,6 @@
-// Immutable tower v5 definitions. Changes require a new content version.
-import type { SkillDef, StatusDef } from '../core';
+// Authored V6 skills and statuses. No tower-specific engine execution lives here.
+import type { SkillDef, StatusDef } from '../../core';
+import mechanics from './mechanics.json';
 export const TOWER_STATUS_DEFS: StatusDef[] = [
   {
     id: 'tower.mirror-anchor',
@@ -14,7 +15,7 @@ export const TOWER_STATUS_DEFS: StatusDef[] = [
     name: '镜侍护主',
     kind: 'tower.mirror-cover',
     category: 'buff',
-    maxStacks: 2,
+    maxStacks: mechanics.guardStacks,
     expireSameRound: true,
     dispellable: false,
     extendable: false,
@@ -25,16 +26,16 @@ export const TOWER_STATUS_DEFS: StatusDef[] = [
     kind: 'tower.fury',
     category: 'buff',
     untilBattleEnd: true,
-    damageDealtPhysical: 1.15,
-    damageDealtSpell: 1.15,
+    damageDealtPhysical: mechanics.furyFactor,
+    damageDealtSpell: mechanics.furyFactor,
   },
   {
     id: 'tower.exposed',
     name: '破绽',
     kind: 'tower.exposed',
     category: 'debuff',
-    damageTakenPhysical: 1.25,
-    damageTakenSpell: 1.25,
+    damageTakenPhysical: mechanics.exposedFactor,
+    damageTakenSpell: mechanics.exposedFactor,
   },
   {
     id: 'tower.bound',
@@ -65,7 +66,10 @@ export const TOWER_SKILLS: SkillDef[] = [
         targetIsSelf: true,
         when: { targetStatusStack: { statusId: 'tower.mirror-cover', min: 1 } },
         effects: [
-          { type: 'modifyStrike', factor: '1 - 0.15 * targetStatusStacks' },
+          {
+            type: 'modifyStrike',
+            factor: `1 - ${mechanics.guardReduction} * targetStatusStacks`,
+          },
         ],
       },
     ],
@@ -114,7 +118,7 @@ export const TOWER_SKILLS: SkillDef[] = [
         on: 'onRoundStart',
         aim: 'self',
         when: {
-          sourceHpRatioBelow: 0.4,
+          sourceHpRatioBelow: mechanics.furyThreshold,
           sourceStanding: true,
           oncePerBattle: true,
         },
@@ -202,7 +206,7 @@ export const TOWER_SKILLS: SkillDef[] = [
       {
         type: 'applyStatus',
         statusId: 'tower.bound',
-        duration: 1,
+        duration: mechanics.sealDuration,
         hit: 'seal',
       },
     ],
@@ -211,8 +215,14 @@ export const TOWER_SKILLS: SkillDef[] = [
     id: 'tower.heal',
     name: '续灯',
     tags: ['spell', 'support'],
-    costMp: 12,
+    costMp: mechanics.healCost,
     targeting: { side: 'ally', mode: 'lowestHp', count: 1 },
-    effects: [{ type: 'heal', power: 'source.maxHp * 0.2', fixedBase: true }],
+    effects: [
+      {
+        type: 'heal',
+        power: `source.maxHp * ${mechanics.healRatio}`,
+        fixedBase: true,
+      },
+    ],
   },
 ];

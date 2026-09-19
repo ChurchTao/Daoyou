@@ -497,23 +497,6 @@ describe('多敌阵容', () => {
         .rounds[11].commands.find((c) => c.unitId === 'tower.enemy.1')!.command,
     ).toMatchObject({ type: 'skill', skillId: 'tower.support-strike' });
   });
-  it('旧版单敌快照能继续，不凭空补出随从', () => {
-    const host = createTowerHost(
-      durablePlayer(),
-      '金丹',
-      10,
-      {},
-      formationWeek('solo'),
-      42,
-    );
-    const saved = host.runtimeSnapshot();
-    saved.version = 'tower-v6-v2';
-    saved.input.versions!.contentVersion = 'combat-v6-tower-v2';
-    saved.state.versions.contentVersion = 'combat-v6-tower-v2';
-    const restored = new TowerHost(saved, saved);
-    defendRound(restored);
-    expect(restored.state.units.filter((u) => u.side === 1)).toHaveLength(1);
-  });
 });
 
 it('Host编译策略后冻结战斗，恢复不重新读取周策略', () => {
@@ -545,6 +528,32 @@ it('Host编译策略后冻结战斗，恢复不重新读取周策略', () => {
 it('策略护卫保护指定辅助；死亡下一回合移除，恢复不重复叠层', () => {
   const pack = publishTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
   const f = pack.floors[8];
+  f.enemies = [
+    {
+      id: 'main',
+      role: 'leader',
+      archetype: 'warrior',
+      behaviorId: 'basic',
+      traits: [],
+      budgetShare: { hp: 0.7, output: 0.8 },
+    },
+    {
+      id: 'healer',
+      role: 'support',
+      archetype: 'attendant',
+      behaviorId: 'healing',
+      traits: [],
+      budgetShare: { hp: 0.15, output: 0.1 },
+    },
+    {
+      id: 'guard',
+      role: 'support',
+      archetype: 'attendant',
+      behaviorId: 'support',
+      traits: [],
+      budgetShare: { hp: 0.15, output: 0.1 },
+    },
+  ];
   f.enemies[1].traits = [{ id: 'limited_healing' }];
   f.enemies[2].traits = [{ id: 'guard', targetEnemyId: f.enemies[1].id }];
   const host = createTowerHost(

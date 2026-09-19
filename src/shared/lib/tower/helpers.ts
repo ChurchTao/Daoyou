@@ -115,8 +115,7 @@ export function buildTowerBlessingChoices(
   },
   pack = TOWER_BLESSINGS_PACK,
 ): TowerBlessingChoice[] {
-  if (args.clearedFloor >= TOWER_MAX_FLOOR || args.clearedFloor % 2 !== 0)
-    return [];
+  if (!pack.choices.afterFloors.includes(args.clearedFloor)) return [];
   const definitions = compileTowerBlessingDefinitions(pack);
   return pack.blessings
     .filter(
