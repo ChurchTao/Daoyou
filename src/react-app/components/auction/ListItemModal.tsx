@@ -20,9 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 export function ListItemModal({
   onClose,
   onSuccess,
-  onSelectBeasts,
 }: {
-  onSelectBeasts: () => void;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -177,7 +175,7 @@ export function ListItemModal({
   return (
     <InkModal
       isOpen
-      title="上架寄售"
+      title="寄售道具"
       className="max-w-5xl"
       onClose={() => {
         if (!pending.current) {
@@ -186,14 +184,6 @@ export function ListItemModal({
         }
       }}
     >
-      <div className="mb-4 flex gap-2">
-        <InkButton variant="primary" disabled>
-          物品
-        </InkButton>
-        <InkButton disabled={busy} onClick={onSelectBeasts}>
-          灵兽
-        </InkButton>
-      </div>
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">
         <div className="min-w-0 space-y-4 lg:sticky lg:top-0 lg:self-start">
           <div className="flex items-center gap-4">

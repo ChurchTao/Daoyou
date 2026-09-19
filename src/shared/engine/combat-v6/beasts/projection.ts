@@ -27,16 +27,23 @@ export function activeBeastSkills(beast: SummonedBeast) {
   );
 }
 
-export function beastPanel(input: SummonedBeast) {
-  const b = BeastSchema.parse(input);
+export function beastAttributes(
+  beast: Pick<SummonedBeast, 'level' | 'allocatedAttributes'>,
+): SummonedBeast['allocatedAttributes'] {
   const rule = BEAST_PROGRESSION.panel;
-  const natural = rule.naturalBase + b.level * rule.naturalPerLevel;
-  const a = Object.fromEntries(
-    Object.entries(b.allocatedAttributes).map(([key, value]) => [
+  const natural = rule.naturalBase + beast.level * rule.naturalPerLevel;
+  return Object.fromEntries(
+    Object.entries(beast.allocatedAttributes).map(([key, value]) => [
       key,
       natural + value,
     ]),
-  );
+  ) as SummonedBeast['allocatedAttributes'];
+}
+
+export function beastPanel(input: SummonedBeast) {
+  const b = BeastSchema.parse(input);
+  const rule = BEAST_PROGRESSION.panel;
+  const a = beastAttributes(b);
   // Aptitude contributes with level; growth multiplies attributes only.
   // Sum both terms before flooring so fractional contributions are retained.
   const contribution = (
@@ -52,7 +59,10 @@ export function beastPanel(input: SummonedBeast) {
   const mp = contribution(a.magic, 'mana', rule.mana);
   const magicDefAttributes = Object.entries(
     rule.magicDef.attributeCoefficients,
-  ).reduce((sum, [key, coefficient]) => sum + a[key] * coefficient, 0);
+  ).reduce(
+    (sum, [key, coefficient]) => sum + a[key as keyof typeof a] * coefficient,
+    0,
+  );
   const speedFactor = activeBeastSkills(b).reduce((factor, id) => {
     const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
     return effect.type === 'speed' ? factor * effect.factor : factor;

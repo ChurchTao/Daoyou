@@ -169,10 +169,7 @@ export default function AtlasPage() {
 
   return (
     <div className="relative h-full bg-[#eee7d8]">
-      <div
-        ref={root}
-        className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)+5.5rem)] bottom-[calc(env(safe-area-inset-bottom)+7.5rem)] overflow-hidden sm:bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]"
-      />
+      <div ref={root} className="absolute inset-0 overflow-hidden" />
 
       {loading && !error ? (
         <div className="bg-paper/90 absolute inset-0 z-10">
@@ -182,9 +179,9 @@ export default function AtlasPage() {
 
       <nav
         aria-label="舆图操作"
-        className="bg-paper/95 absolute inset-x-0 bottom-0 z-20 flex flex-col gap-1 pt-2 pr-[max(env(safe-area-inset-right),0.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] sm:flex-row sm:items-center sm:justify-between"
+        className="pointer-events-none absolute right-[max(env(safe-area-inset-right),0.75rem)] bottom-[max(env(safe-area-inset-bottom),0.75rem)] left-[max(env(safe-area-inset-left),0.75rem)] z-20"
       >
-        <div className="flex flex-wrap items-center gap-x-2">
+        <div className="bg-paper/85 pointer-events-auto flex w-fit max-w-full flex-wrap items-center gap-x-2 px-2 py-1 shadow-sm backdrop-blur-sm">
           {region ? (
             <InkButton onClick={() => changeRegion()}>返回人界</InkButton>
           ) : null}
@@ -192,32 +189,6 @@ export default function AtlasPage() {
           <InkButton onClick={() => navigate(oldMapHref())} variant="secondary">
             旧版地图
           </InkButton>
-        </div>
-        <div className="flex shrink-0 items-center justify-end gap-1">
-          <button
-            type="button"
-            aria-label="缩小地图"
-            className="h-11 w-11 text-xl"
-            onClick={() => controller.current?.zoom(0.8)}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            aria-label="查看全图"
-            className="h-11 px-1 text-sm"
-            onClick={() => controller.current?.reset()}
-          >
-            全图
-          </button>
-          <button
-            type="button"
-            aria-label="放大地图"
-            className="h-11 w-11 text-xl"
-            onClick={() => controller.current?.zoom(1.25)}
-          >
-            ＋
-          </button>
         </div>
       </nav>
 

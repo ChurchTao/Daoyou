@@ -5,6 +5,7 @@ import {
   BEAST_SPECIES,
 } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_ATTRIBUTE_NAMES } from '@shared/engine/combat-v6/beasts/progression';
+import { beastAttributes } from '@shared/engine/combat-v6/beasts/projection';
 import { useState } from 'react';
 import { BeastIcon } from './BeastIcon';
 import { BeastMutationTag } from './BeastMutationTag';
@@ -12,6 +13,7 @@ import { BeastSkillTile } from './BeastSkillTile';
 
 export function BeastTradeDetails({ beast }: { beast: Preview }) {
   const species = BEAST_SPECIES.find((s) => s.id === beast.speciesId);
+  const attributes = beastAttributes(beast);
   return (
     <div className="space-y-4 text-sm">
       <div className="flex items-center gap-3">
@@ -67,7 +69,11 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
             {beast.skills.length}/{beast.skillSlotCapacity}
           </span>
         </p>
-        <div className="grid grid-cols-4 gap-2">
+        <div
+          className="grid grid-cols-[repeat(auto-fill,4rem)] gap-2"
+          role="group"
+          aria-label="灵兽技能"
+        >
           {beast.skills.map((id) => (
             <BeastSkillTile key={id} skillId={id} />
           ))}
@@ -75,7 +81,7 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
       </div>
       <div>
         <p className="mb-2">
-          已分配属性 · 剩余{' '}
+          当前属性 · 可分配{' '}
           <span className="font-mono">{beast.unallocatedPoints}</span> 点
         </p>
         <dl className="grid grid-cols-2 gap-x-5 gap-y-2">
@@ -83,11 +89,7 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
             <div key={key} className="flex justify-between gap-2">
               <dt>{label}</dt>
               <dd className="font-mono">
-                {
-                  beast.allocatedAttributes[
-                    key as keyof Preview['allocatedAttributes']
-                  ]
-                }
+                {attributes[key as keyof Preview['allocatedAttributes']]}
               </dd>
             </div>
           ))}

@@ -31,6 +31,7 @@ import { z } from 'zod';
 
 const ListingsSchema = z.object({
   scope: z.enum(['all', 'mine']).default('all'),
+  assetType: z.enum(['item', 'beast']).optional(),
   itemType: z.enum(AUCTION_ITEM_TYPES).optional(),
   itemCategory: z.string().trim().min(1).max(50).optional(),
   itemQuality: z.enum(QUALITY_VALUES).optional(),
@@ -77,6 +78,7 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
   try {
     const params = ListingsSchema.parse({
       scope: c.req.query('scope') || undefined,
+      assetType: c.req.query('assetType') || undefined,
       itemType: c.req.query('itemType') || undefined,
       itemCategory: c.req.query('itemCategory') || undefined,
       itemQuality: c.req.query('itemQuality') || undefined,
@@ -93,7 +95,8 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
       limit: c.req.query('limit') ? Number(c.req.query('limit')) : undefined,
     });
 
-    if (params.itemType === 'beast') params.itemQuality = undefined;
+    if (params.assetType === 'beast' || params.itemType === 'beast')
+      params.itemQuality = undefined;
     const result = await auctionRepository.findActiveListings({
       ...params,
       viewerCultivatorId: cultivator.cultivatorId,

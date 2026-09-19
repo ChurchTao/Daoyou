@@ -26,6 +26,7 @@ export const AUCTION_ITEM_TYPES = [
   'beast',
 ] as const;
 export type AuctionItemType = (typeof AUCTION_ITEM_TYPES)[number];
+export type AuctionAssetType = 'item' | 'beast';
 export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   material: '材料',
   seed: '种子',

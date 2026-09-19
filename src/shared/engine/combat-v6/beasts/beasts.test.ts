@@ -10,11 +10,39 @@ import {
   loseBeastLifespan,
   projectBeastRoster,
 } from './index';
+import { beastAttributes } from './projection';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const id = '00000000-0000-4000-8000-000000000002';
 const starter = () => generateStarterBeast(id, owner, BEAST_SPECIES[0].id, 42);
 describe('召唤兽正式个体', () => {
+  it('交易预览与培养页显示自然属性加已分配点，可分配点不提前计入', () => {
+    const beast = BeastSchema.parse({
+      ...starter(),
+      level: 10,
+      allocatedAttributes: {
+        constitution: 5,
+        strength: 8,
+        magic: 0,
+        endurance: 2,
+        agility: 0,
+      },
+      unallocatedPoints: 35,
+    });
+    const preview = {
+      level: beast.level,
+      allocatedAttributes: beast.allocatedAttributes,
+    };
+    expect(beastAttributes(preview)).toEqual({
+      constitution: 25,
+      strength: 28,
+      magic: 20,
+      endurance: 22,
+      agility: 20,
+    });
+    expect(beast.unallocatedPoints).toBe(35);
+    expect(beast.allocatedAttributes.strength).toBe(8);
+  });
   it('同系高级覆盖普通的投影效果，但不改变两个出生格位', () => {
     const beast = BeastSchema.parse({
       ...starter(),
@@ -141,49 +169,95 @@ describe('召唤兽正式个体', () => {
   });
 });
 
-
 describe('手游参照召唤兽派生公式', () => {
-  const sample = () => BeastSchema.parse({
-    ...starter(),
-    skills: ['beast.spirit-flame'],
-    skillSlotCapacity: 1,
-    unallocatedPoints: 0,
-    level: 50,
-    growth: 1.2,
-    aptitudes: { health: 4000, mana: 2400, attack: 1500, defense: 1400, speed: 1300 },
-    allocatedAttributes: { constitution: 10, strength: 70, magic: 100, endurance: 40, agility: 30 },
-  });
+  const sample = () =>
+    BeastSchema.parse({
+      ...starter(),
+      skills: ['beast.spirit-flame'],
+      skillSlotCapacity: 1,
+      unallocatedPoints: 0,
+      level: 50,
+      growth: 1.2,
+      aptitudes: {
+        health: 4000,
+        mana: 2400,
+        attack: 1500,
+        defense: 1400,
+        speed: 1300,
+      },
+      allocatedAttributes: {
+        constitution: 10,
+        strength: 70,
+        magic: 100,
+        endurance: 40,
+        agility: 30,
+      },
+    });
 
   it('完整累加等级资质项与成长属性项后取整', () => {
     expect(beastPanel(sample())).toMatchObject({
-      hp: 1167, maxHp: 1167, mp: 1210, maxMp: 1210,
-      physicalAtk: 437, magicAtk: 351, physicalDef: 522,
-      magicDef: 346, speed: 308,
+      hp: 1167,
+      maxHp: 1167,
+      mp: 1210,
+      maxMp: 1210,
+      physicalAtk: 437,
+      magicAtk: 351,
+      physicalDef: 522,
+      magicDef: 346,
+      speed: 308,
     });
   });
 
   it('零级只有天生五维贡献，没有旧面板固定底值', () => {
     const beast = BeastSchema.parse({
-      ...sample(), level: 0, growth: 1,
-      allocatedAttributes: { constitution: 0, strength: 0, magic: 0, endurance: 0, agility: 0 },
+      ...sample(),
+      level: 0,
+      growth: 1,
+      allocatedAttributes: {
+        constitution: 0,
+        strength: 0,
+        magic: 0,
+        endurance: 0,
+        agility: 0,
+      },
     });
     expect(beastPanel(beast)).toMatchObject({
-      maxHp: 70, maxMp: 50, physicalAtk: 16, magicAtk: 13,
-      physicalDef: 24, magicDef: 17, speed: 16,
+      maxHp: 70,
+      maxMp: 50,
+      physicalAtk: 16,
+      magicAtk: 13,
+      physicalDef: 24,
+      magicDef: 17,
+      speed: 16,
     });
   });
 
   it('资质不放大加点收益，成长不放大等级资质项', () => {
     const base = sample();
-    const stronger = { ...base, aptitudes: { ...base.aptitudes, attack: 2500 } };
+    const stronger = {
+      ...base,
+      aptitudes: { ...base.aptitudes, attack: 2500 },
+    };
     const grown = { ...base, growth: 1.5 };
-    expect(beastPanel(stronger).physicalAtk - beastPanel(base).physicalAtk).toBe(125);
-    expect(beastPanel({ ...stronger, growth: 1.5 }).physicalAtk - beastPanel(grown).physicalAtk).toBe(125);
+    expect(
+      beastPanel(stronger).physicalAtk - beastPanel(base).physicalAtk,
+    ).toBe(125);
+    expect(
+      beastPanel({ ...stronger, growth: 1.5 }).physicalAtk -
+        beastPanel(grown).physicalAtk,
+    ).toBe(125);
     const allocated = {
-      ...base, allocatedAttributes: { ...base.allocatedAttributes, strength: 80, magic: 90 },
+      ...base,
+      allocatedAttributes: {
+        ...base.allocatedAttributes,
+        strength: 80,
+        magic: 90,
+      },
     };
     expect(beastPanel(allocated).physicalAtk).toBe(456);
-    expect(beastPanel({ ...allocated, aptitudes: stronger.aptitudes }).physicalAtk).toBe(581);
+    expect(
+      beastPanel({ ...allocated, aptitudes: stronger.aptitudes }).physicalAtk,
+    ).toBe(581);
   });
 
   it('法防采用法力资质与四维贡献，防御资质和敏捷不参与', () => {
@@ -195,6 +269,9 @@ describe('手游参照召唤兽派生公式', () => {
       unallocatedPoints: 30,
     };
     expect(beastPanel(changed).magicDef).toBe(346);
-    expect(beastPanel({ ...base, aptitudes: { ...base.aptitudes, mana: 3400 } }).magicDef).toBe(376);
+    expect(
+      beastPanel({ ...base, aptitudes: { ...base.aptitudes, mana: 3400 } })
+        .magicDef,
+    ).toBe(376);
   });
 });

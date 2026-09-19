@@ -14,8 +14,6 @@ export interface AtlasView {
 
 export interface AtlasController {
   setView: (view: AtlasView) => void;
-  zoom: (factor: number) => void;
-  reset: () => void;
   destroy: () => void;
 }
 
@@ -61,7 +59,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
 
   class AtlasScene extends Phaser.Scene {
     private markers: Marker[] = [];
-    private links?: Phaser.GameObjects.Graphics;
     private shownRegion?: AtlasView['region'];
     private selectedId: string | null = null;
     private minZoom = 1;
@@ -97,12 +94,10 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
           label.destroy();
           dot.destroy();
         });
-        this.links?.destroy();
         this.background = this.add
           .image(0, 0, view.region)
           .setOrigin(0)
           .setDisplaySize(WIDTH, HEIGHT);
-        this.links = this.add.graphics();
         this.markers = [];
         if (view.region === 'world') {
           for (const region of ATLAS_REGIONS) {
@@ -141,15 +136,12 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         }
         this.shownRegion = view.region;
         this.selectedId = null;
-        this.fit(false);
+        this.fitViewport();
         const saved = cameraMemory.get(view.region);
         if (saved) {
           camera
             .setZoom(Math.max(this.minZoom, saved.zoom))
             .centerOn(saved.x, saved.y);
-          this.clampCamera();
-        } else if (view.region === 'tiannan') {
-          camera.setZoom(Math.max(this.minZoom, camera.height / HEIGHT));
           this.clampCamera();
         }
       }
@@ -180,7 +172,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         }
       }
       this.selectedId = view.selectedId;
-      this.drawConnections();
       this.layoutMarkers();
       args.onReady();
     }
@@ -215,12 +206,10 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       });
     }
 
-    fit(clearMemory = true) {
+    private fitViewport() {
       const camera = this.cameras.main;
-      this.minZoom =
-        Math.min(camera.width / WIDTH, camera.height / HEIGHT) * 0.94;
-      if (clearMemory && this.shownRegion)
-        cameraMemory.delete(this.shownRegion);
+      // Cover the viewport at every zoom level; gestures reveal the cropped sides.
+      this.minZoom = Math.max(camera.width / WIDTH, camera.height / HEIGHT);
       camera.setZoom(this.minZoom).centerOn(WIDTH / 2, HEIGHT / 2);
       this.layoutMarkers();
     }
@@ -238,8 +227,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     resize(center?: { x: number; y: number }) {
       const camera = this.cameras.main;
       const wasFit = Math.abs(camera.zoom - this.minZoom) < 0.001;
-      this.minZoom =
-        Math.min(camera.width / WIDTH, camera.height / HEIGHT) * 0.94;
+      this.minZoom = Math.max(camera.width / WIDTH, camera.height / HEIGHT);
       camera.setZoom(
         wasFit ? this.minZoom : Math.max(this.minZoom, camera.zoom),
       );
@@ -305,27 +293,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       if (!marker) return;
       if (view.region === 'world') args.onRegion(marker.id);
       else args.onNode(marker.id);
-    }
-
-    private drawConnections() {
-      this.links?.clear().lineStyle(1.5, CINNABAR, 0.4);
-      const selected = getAtlasLocations().find(
-        (location) => location.id === view.selectedId,
-      );
-      if (!selected || view.region !== 'tiannan') return;
-      const from = TIANNAN_ANCHORS[selected.id];
-      const targets =
-        'connections' in selected ? selected.connections : [selected.parent_id];
-      for (const id of targets) {
-        const to = TIANNAN_ANCHORS[id];
-        if (from && to)
-          this.links?.lineBetween(
-            from[0] * WIDTH,
-            from[1] * HEIGHT,
-            to[0] * WIDTH,
-            to[1] * HEIGHT,
-          );
-      }
     }
 
     private layoutMarkers() {
@@ -542,17 +509,6 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
         gestureMoved = true;
       }
       runtime.scene?.showView();
-    },
-    zoom(factor) {
-      if (!view.blocked)
-        runtime.scene?.zoomAt(
-          factor,
-          game.scale.width / 2,
-          game.scale.height / 2,
-        );
-    },
-    reset() {
-      if (!view.blocked) runtime.scene?.fit();
     },
     destroy() {
       destroyed = true;

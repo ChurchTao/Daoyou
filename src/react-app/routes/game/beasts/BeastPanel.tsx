@@ -19,6 +19,7 @@ import {
   BEAST_ATTRIBUTE_NAMES,
   nextBeastExp,
 } from '@shared/engine/combat-v6/beasts/progression';
+import { beastAttributes } from '@shared/engine/combat-v6/beasts/projection';
 import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
@@ -95,6 +96,7 @@ export function BeastPanel({
   const [confirming, setConfirming] = useState(false);
   const total = Object.values(draft).reduce((sum, value) => sum + value, 0);
   const before = beastPanel(beast);
+  const attributes = beastAttributes(beast);
   const canAllocate = beast.level <= ownerLevel;
   const panel =
     total > 0 && canAllocate
@@ -281,10 +283,7 @@ export function BeastPanel({
           ([id, label]) => ({
             id: id as keyof typeof draft,
             label,
-            value:
-              10 +
-              beast.level +
-              beast.allocatedAttributes[id as keyof typeof draft],
+            value: attributes[id as keyof typeof draft],
           }),
         )}
         available={beast.unallocatedPoints}
