@@ -1,14 +1,14 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 3,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "regions": [
     {
       "nodeId": "SAT_TN_08",
       "id": "combat.wild.region.qingxi",
       "name": "青溪坡",
-      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹。",
-      "searchText": "你收敛气息，留意草木间的动静……",
+      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹，向阳石边偶见小巧猫爪印。",
+      "searchText": "你收敛气息，留意草木与向阳石边的动静……",
       "realmRequirement": "炼气",
       "scenery": "meadow",
       "species": [
@@ -24,6 +24,11 @@
         },
         {
           "speciesId": "combat.wild.species.wind-wolf",
+          "minLevel": 5,
+          "maxLevel": 15
+        },
+        {
+          "speciesId": "combat.wild.species.mimi",
           "minLevel": 5,
           "maxLevel": 15
         }
@@ -190,13 +195,18 @@
       "nodeId": "WILD_DJ_DARKCAVE",
       "id": "combat.wild.region.sunless-cave",
       "name": "不见天",
-      "description": "古老地穴深不见光，阴灵气息沉在石隙间，偶有一点幽绿无声亮起。",
-      "searchText": "石隙间微光明灭，你静候那点幽绿再次亮起……",
+      "description": "古老地穴深不见光，阴灵气息沉在石隙间，幽绿蝶影时隐时现，深处偶有幽蓝鬼火映出厚重虎躯。",
+      "searchText": "幽绿与幽蓝在石隙间明灭，你凝神辨听地穴深处的低沉足音……",
       "realmRequirement": "化神",
       "scenery": "cave",
       "species": [
         {
           "speciesId": "combat.wild.species.ghost-lantern-butterfly",
+          "minLevel": 85,
+          "maxLevel": 95
+        },
+        {
+          "speciesId": "combat.wild.species.nether-tiger",
           "minLevel": 85,
           "maxLevel": 95
         }

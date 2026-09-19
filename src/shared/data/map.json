@@ -441,7 +441,7 @@
       "realm_requirement": "炼气",
       "environmental_status": null,
       "tags": ["灵兽栖息", "溪畔草坡", "低危历练"],
-      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹。也可由此进入秘境历练。",
+      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹，向阳石边偶见小巧猫爪印。也可由此进入秘境历练。",
       "dungeon_config": { "difficulty": "easy" },
       "connections": ["TN_YUE_01"],
       "x": 81,
@@ -876,7 +876,7 @@
       "realm_requirement": "化神",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "古老地穴深不见光，阴灵气息沉在石隙间，偶有一点幽绿无声亮起。",
+      "description": "古老地穴深不见光，阴灵气息沉在石隙间，幽绿蝶影时隐时现，深处偶有幽蓝鬼火映出厚重虎躯。",
       "connections": ["DJ_SOUTH_01"],
       "x": 55,
       "y": 23

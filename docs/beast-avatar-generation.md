@@ -2,6 +2,61 @@
 
 美术设计统一遵循 [写意墨像](../.agents/skills/daoyou-ink-portraits/SKILL.md)，导出与接入遵循其 [素材交付要求](../.agents/skills/daoyou-ink-portraits/references/beast-avatar-delivery.md)。本文件仅记录当前采用的写意墨像素材。
 
+## 补齐狰、蛇颈玄龟、三足金蟾（2026-09-18）
+
+用户授权为这三种使用 emoji 的物种生成并接入立绘，其他物种延后。使用内置 imagegen；固定男修、女修墨像仅作为笔墨参考，路径为 `.agents/skills/daoyou-ink-portraits/references/male-baseline.webp` 与 `female-baseline.webp`。不使用已选灵兽稿作为其他物种的造型模板。
+
+从原稿以 alpha ≥ 4/255 定位墨迹边界，保留原始半透明像素，裁掉透明外边距后等比缩放、居中导出 256×256 WebP（Lanczos、质量 90）。检查纸色与深底，以及 24/30px 列表和 48/72px 详情尺寸。仅修改物种 icon 与统一图标注册，不改物种 ID、数值、技能或个体数据。
+
+### 狰
+
+采用原稿 `exec-7845df59-a75b-43cd-8443-699ba3506b45.png`，有效图幅 250×256，素材 `public/assets/icons/beast-zheng.webp`，注册 `icon:beast-zheng`。
+
+首稿仅有四条可辨尾巴，未采用；经局部修正补足五条独立尾巴后导出。
+
+生成提示词：
+
+```text
+Use case: stylized-concept. 为中国修仙游戏万界道友生成一张全新「狰」生灵写意墨像头像，单个主体，方形画布，真正RGBA透明背景。附带男女修士图仅作为笔墨参考，不复制人物造型。
+身份与构图：健壮山豹形的狰，赤褐短毛，额头一枚后弯黑角，恰好五条长尾。全身三分之二侧视，身体转弯、头向左回顾，闭口警觉，四足有可信连接与重心。五尾都从臀后同一尾根区域自然分出，向上和右方错落扇展，恰好五个清楚分离的尾尖，尾间留负形，不是九尾狐，不是五条漂浮墨带。紧凑构图，头、躯干、黑角与五尾均可辨，不以尾部挤小豹身。豹类短圆耳、猫科短吻、强健肩背，不是狼或龙，不加鬃毛；少量疏落墨斑即可，不画密集花纹。
+笔墨：古籍中国写意生灵画，墨迹本身构成形体。与参考一样，以少量方向明确的暖灰宽笔墨面、浓墨支点、干湿飞白与透明留白完成身体；不依靠均匀封闭描边，不逐根画毛、不刻肌肉、不渲染写实体积光。轮廓局部断开但主要解剖清楚。赤褐只局部渗入肩背与尾部灰墨，墨色主导；黑角凝练。神态来自头部朝向，不刻画精细虹膜和拟人怒眉。无发光、火焰、粒子、烟雾。
+交付：主体居中，所有角、足、五尾离画布边有至少10%透明安全空间，不能截断。只有动物自身笔迹，真实透明alpha，包括尾间负形；无纸张矩形或纹理、棋盘格、背景、地面、文字、印章、水印。用于256px导出及24/30px列表、48/72px详情，优先轮廓辨识。
+```
+
+修正提示词：
+
+```text
+精准修改第一张狰墨像：当前只有四条可辨长尾，必须补足为恰好五条。保留猫科躯体、四足、回首姿态、黑角、赤褐灰墨和宽笔飞白。将现有四条尾巴稍微收窄，在最下方尾巴与后腿之间的空白新增第五条独立长尾，从同一臀后尾根自然连接，向右下弯曲，尾尖与现有最下尾明显分开；五条尾巴都有各自清楚尾尖及透明负形间隔。不要加第五条腿，不要把尾毛分叉冒充第五条尾巴。尾巴是短毛猫科长尾，避免继续增加蓬松程度。全体缩入方形画布内，四周透明安全边距至少8%，不截断任何足尖角尖尾尖。保持真实alpha透明，尾间背景透明，无纸底，无文字，无光效。第2、3张仅为固定笔墨参考。
+```
+
+### 蛇颈玄龟
+
+采用原稿 `exec-718b80ba-2725-4127-8ea4-de5527cfed6a.png`，有效图幅 256×241，素材 `public/assets/icons/beast-snake-neck-turtle.webp`，注册 `icon:beast-snake-neck-turtle`。
+
+生成提示词：
+
+```text
+Use case: stylized-concept. 为万界道友生成全新「蛇颈玄龟」写意墨像头像，正方形，单只完整生灵，真实RGBA透明底。附带两张男女修士仅为固定笔墨风格参考，不复制人形。
+物种：黑青厚甲低伏宽展，甲缝少量水苔，甲下藏蛇一般的长颈。沉居深潭，探颈观察；是真正的长颈龟，非龟蛇双兽、非龙龟。构图采用略俯视三分之二侧面，宽展椭圆低拱甲占右下主体，四只短壮爬行足从甲下自然探出，长颈自前方甲口伸出，向左上弯成疏朗S形，头略回顾，闭口安静警觉。颈长清晰可见，有连贯结构和粗细变化，龟类小头、钝吻，不加蛇信、獠牙、龙角。尾短而含蓄。全身紧凑，甲、颈和头之间的负形明确，长颈与宽甲是第一识别特征。
+笔墨：古籍中国写意生灵墨像，墨迹本身构成形体。像参考般用几块有方向的暖灰宽笔、淡墨与少量浓墨支点概括，飞白沿甲弧与颈弯方向露底；轮廓局部断开，由留白补全。甲只用几块大墨面和三五条断续甲缝，不逐片描龟甲，不刻鳞片，不表现石头山峰或金属甲胄，不用写实体积光。长颈以连贯宽笔组织，头眼少数墨点，无精细虹膜，无拟人表情。黑青局部渗入灰墨，甲缝几笔低饱和苔绿，不画苔藓景观、植物枝叶或水浪。
+交付：所有头、颈、足、甲缘、尾尖都完整，主体居中四周留至少10%透明安全边距，后续裁透明外边距导出256px。只有生灵自身墨迹，真正alpha透明含肢间负形，无纸张纹理或白底板，无棋盘格，无地面、场景、水纹、光晕、烟雾、文字、印章、水印。24/30px列表及48/72px详情应清楚识别长颈和宽甲。
+```
+
+### 三足金蟾
+
+采用原稿 `exec-289fb494-6962-43ca-ab31-eea694f01819.png`，有效图幅 256×198，素材 `public/assets/icons/beast-three-legged-golden-toad.webp`，注册 `icon:beast-golden-toad`。
+
+生成提示词：
+
+```text
+Use case: stylized-concept. 为万界道友绘制全新「三足金蟾」写意墨像头像，方形画布，单个完整活体蟾蜍，真实RGBA透明背景。两张男女修士只是固定笔墨参考，不复制人物。
+物种事实：身躯浑圆，恰好三足粗壮，暗金背疣间透朱红细纹；腹内火囊蓄纳地火灵息。采用安静蓄息状态，喉腹微鼓、闭口，不喷火。不是招财金属摆件，无钱币、元宝、底座。
+构图：稍俯视的三分之二侧前方全身蹲姿，头向左前，宽钝吻、低伏眼眶，胸腹浑圆有重量。两只前足分别支撑左右前方，第三足是唯一一只粗壮后足，从身躯后部偏中央向画面右后方折出，以可见的腿部连接和清楚分开的足掌交代三足解剖。总计恰好三条腿、三个足掌；没有第四足，没有尾巴，不把后足画成残肢。取景让第三足与圆腹之间有明确透明负形。保持蟾蜍短粗敦实，不是细腿青蛙或蜥蜴，姿态自然，不拟人微笑。
+笔墨：古籍中国写意生灵画，墨迹本身构形。用少量宽笔暖灰墨面概括头背、腹部与三足，浓墨仅在眼、背转折、关节作支点，中淡墨与透明留白补全体量；飞白沿笔势露底，轮廓局部断开。背疣用少数疏落墨点表现，绝不逐粒刻画真实疙瘩，不画精细皮肤纹理、光滑厚涂体积、金属高光。眼为简单墨点与小留白，不精绘虹膜。肩背局部淡赭暗金彩墨融入灰墨，背疣间只留少量低饱和朱红短纹，像暗炭而不发光。腹以淡暖灰墨与留白表达，无金属黄色全身涂色，无光效和烟雾。
+主体完整居中，头背、三个足掌都留至少10%透明安全边距。真实alpha透明包括肢间与笔间负形，无白纸矩形或纸纹，无棋盘格，无背景、地面、山石、火焰、文字、印章或水印。最终256px头像，24/30px列表读到浑圆蟾体，48/72px详情读到三足和暗金朱红。
+```
+
+
 ## 统一头像占幅（2026-09-18）
 
 八种灵兽均从下文采用的高分辨率原稿重新导出：以 alpha ≥ 4/255 定位有效墨迹边界，裁掉外围透明空白，保留裁切范围内的原始半透明像素，等比缩放到最长边 256px，并在 256×256 透明画布内居中。WebP 质量 90。生成提示中的安全边距仅防止生成时截断轮廓，不保留到最终游戏头像。
@@ -214,4 +269,39 @@ Use case: stylized-concept.
 色墨：灰墨与留白是主体，只在折翼宽笔中自然渗入低饱和苍青色，末端羽束少量低饱和深紫，银颈羽保持暖灰淡墨与透白。两种彩墨都必须有墨的干湿质地，与灰墨融接，不能大面积鲜艳涂色。喙用灰墨而非金属金，眼仅浓墨及小留白。不画雷电、蓝色发光眼、发光轮廓、光环、粒子或背景云雾；雷禽的气势通过凝练的形与笔势传达。
 
 留白与交付：整个头像放在方形中央约75%的区域，四周留出明显完整的透明外圈，头顶、喙、肩、翼尖均至少距画布边缘12%，不能放大填满或裁断。只有一只雷鹏自身的墨笔，背景和笔间留白为真正alpha透明，无纸底、纸张矩形、棋盘纹、地面、文字、印章、水印或边框。浓淡由笔墨自身表达，不整体降低opacity。目标256×256透明WebP，30px列表能认出猛禽头肩，72px详情能读到银颈羽、折翼与两处彩墨。
+```
+
+## 咪咪与幽冥虎（2026-09-18）
+
+采用两者第二版，使用内置 image_gen；固定男女墨像仅作为笔墨参考，第一版分别作为编辑对象。咪咪初始造型另参考用户提供的两只家猫照片（美短起司、虎斑曼基康）。照片不放入生产素材。用户随后授权补齐物种设计并接入游戏。
+
+| 物种 | 采用原稿 | 生产素材／注册名 | 导出 |
+| --- | --- | --- | --- |
+| 咪咪 | exec-685243e4-ffaa-4b44-b96e-4c8b48d4f865.png | beast-mimi.webp／icon:beast-mimi | 256×256 RGBA WebP，24764字节 |
+| 幽冥虎 | exec-ed730b07-b783-41bd-afd0-8bfe93758242.png | beast-nether-tiger.webp／icon:beast-nether-tiger | 256×256 RGBA WebP，33854字节 |
+
+咪咪保留低伏抬头、圆眼短足、虎斑白袜，减少写实毛发并修正尾巴从后躯绕向前方的连接。幽冥虎保留压头迈步的动作，依用户要求在背脊与尾部增加幽蓝鬼火；这是本物种局部例外，不修改通用笔墨规范。
+
+从1254×1254原稿以alpha≥4确定边界、保留原始半透明笔触，等比贴合256方形，WebP质量90。素材位于public/assets/icons，由统一registry注册。原稿、提示词及纸色／深底64px与256px检查图保存在工作区output/imagegen/mimi-nether-tiger；完整玩法与页面验收见[扩展记录](combat-v6-mimi-nether-tiger.md)。
+
+### 咪咪定稿编辑提示词
+
+```text
+Edit image 1, the approved concept of Mimi cat. Images 2 and 3 are FIXED BRUSHWORK STYLE REFERENCES ONLY, no humans in output.
+Preserve exactly the charming alert round-eyed expression, lifted head, three-quarter low resting pose, rounded Munchkin body, very short legs, paired white front paws, silver-black classic tabby markings, white bib and muzzle, narrow white nose blaze, yellow-green eyes and tiny pink nose. Do not change the composition or identity.
+Make TWO focused corrections:
+1. Substantially reduce realism. Translate the cheek fur, forehead, chest and torso into large economical Chinese freehand ink brush masses with dry-brush gaps. Remove individual fur hairs, dense scratchy texture, glossy eye reflections and realistic volume shading. Keep expressive round eyes with simple muted yellow-green wash and black pupil, minimal catchlight. White chest is a few pale strokes and open light spaces. Tabby markings are bold spontaneous directional ink strokes. Warm gray ink, pale washes, a few deep ink anchors. Clearly hand-painted expressive ink, like the style references, not a realistic pet portrait with texture overlay; still recognizable and affectionate, not cartoon vector.
+2. Correct tail anatomy completely: REMOVE the existing oversized foreground disconnected-looking tail shape. Draw exactly ONE slender long ringed tail whose base visibly grows from the far LEFT rear rump, the continuation of the spine. It curves gently around the OUTSIDE of the left hindquarters and rests beside the body with its single tip pointing slightly forward. Unambiguous continuous tail base-to-tip, natural taper, no second tail, no tail attached to chest/front leg, no thick isolated sausage in foreground. Preserve both white front paws fully visible and keep rear haunch understandable.
+Transparent RGBA background. Only the cat and its ink strokes, no paper, scenery, floor, shadow puddle, checkerboard, words, seal, watermarks or ornaments. Complete ears, paws and tail inside square image, allow a small clear margin to avoid cropping.
+```
+
+### 幽冥虎定稿编辑提示词
+
+```text
+Edit image 1, the existing Nether Tiger / 幽冥虎 portrait. Images 2 and 3 are FIXED BRUSHWORK STYLE REFERENCES ONLY, no people.
+Preserve the approved tiger EXACTLY in identity, expression, overall composition and anatomy: powerful heavy high shoulders, lowered broad tiger head, small rounded ears, stern watchful eyes, closed mouth, one forepaw stepping forward, hindquarters behind, single upcurved tail. Keep near-black/warm-gray ink fur and existing subdued blue tiger stripes. Do not change pose, make it cute, add teeth, or alter the animal species.
+Focused requested revision: add a tasteful but CLEARLY VISIBLE supernatural幽蓝鬼火 / spectral blue ghost flame motif. A few wispy curling tongues of blue spirit flame emerge along the upper shoulder ridge and trail lightly back over the spine; a second smaller blue flame cluster curls around the raised tail tip. These should visibly read as BLUE FIRE with tapered rising flame shapes and hollow/pale blue centers, not merely blue fur. Let a little cool blue concentrate in the tiger eyes. The tiger face and paw silhouette stay unobstructed.
+Render these ghost flames using translucent low-saturation cobalt/blue-cyan COLOR INK brushstrokes, with dry-brush breaks and open negative spaces, integrated with existing ink body. Small pale blue highlights within flame shapes are welcome; NO large neon glow, no fog cloud, no full fire halo, no particle shower, no scenery, no floor fire or blue puddle. The new ghost flames are a local user-requested exception to the otherwise restrained palette; warm gray/dark ink still dominates the tiger. Maintain clear body visibility and thin tapered spectral fire that contributes a stronger netherworld temperament at avatar size.
+STYLE remains Chinese freehand ink portrait, broad structural washes, broken directional brush strokes, sparse deep ink anchors; no photorealistic fur or 3D effects.
+Real RGBA transparent background around the animal AND between flame tongues. No paper background, checkerboard, text, watermark, calligraphy, stamp. Complete tiger ears, paws, tail AND flame tips inside square canvas with a small clear margin.
 ```

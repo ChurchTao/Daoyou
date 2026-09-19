@@ -25,15 +25,16 @@ function load(p: ReturnType<typeof input>) {
 
 describe('beast content packs', () => {
   it('registers the initial species, books and matching schemas', () => {
-    expect(BEAST_SPECIES).toHaveLength(16);
+    expect(BEAST_SPECIES).toHaveLength(18);
     for (const realm of ['炼气', '筑基', '金丹', '元婴', '化神'])
       expect(BEAST_SPECIES.filter((s) => s.realm === realm)).toHaveLength(
-        realm === '元婴' ? 4 : 3,
+        ['炼气', '元婴', '化神'].includes(realm) ? 4 : 3,
       );
     expect(BEAST_SPECIES.filter((s) => s.starter).map((s) => s.name)).toEqual([
       '烛尾狐',
       '钢背猪',
       '精灵狼',
+      '咪咪',
     ]);
     expect(BOOKS.map((b) => b.skillId)).toEqual(
       skills.skills.filter((s) => s.book).map((s) => s.id),
@@ -347,7 +348,7 @@ it.each([
   [
     'high level starter',
     (p: ReturnType<typeof input>) => {
-      p.species.species[3].starter = true;
+        p.species.species.find((s) => s.realm === '筑基')!.starter = true;
     },
   ],
 ] as const)('rejects invalid generation config: %s', (_, edit) => {

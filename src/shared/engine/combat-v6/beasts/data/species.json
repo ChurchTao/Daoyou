@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 2,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -157,6 +157,62 @@
         "candidates": [
           "beast.agility",
           "beast.perception",
+          "beast.counter"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 70
+          },
+          {
+            "count": 1,
+            "weight": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.mimi",
+      "name": "咪咪",
+      "realm": "炼气",
+      "icon": "icon:beast-mimi",
+      "description": "银灰虎斑的小灵猫，圆脸短足，胸腹雪白，四爪如穿白袜。常将前爪拢在胸前伏成一团，长尾绕身；灵息稍有异动，便竖耳抬头，以黄绿圆眼凝望来处。",
+      "carryLevel": 5,
+      "starter": true,
+      "aptitudes": {
+        "attack": {
+          "min": 780,
+          "max": 1050
+        },
+        "defense": {
+          "min": 820,
+          "max": 1090
+        },
+        "health": {
+          "min": 3300,
+          "max": 4300
+        },
+        "mana": {
+          "min": 1320,
+          "max": 1800
+        },
+        "speed": {
+          "min": 720,
+          "max": 990
+        }
+      },
+      "growthMilli": {
+        "min": 990,
+        "max": 1060
+      },
+      "birthSkills": {
+        "core": [
+          "beast.perception",
+          "beast.parry"
+        ],
+        "candidates": [
+          "beast.regeneration",
+          "beast.agility",
           "beast.counter"
         ],
         "extraCountWeights": [
@@ -465,7 +521,7 @@
       "id": "combat.wild.species.dark-shell-turtle",
       "name": "蛇颈玄龟",
       "realm": "金丹",
-      "icon": "🐢",
+      "icon": "icon:beast-snake-neck-turtle",
       "description": "黑青厚甲低伏宽展，甲缝附着水苔，甲下藏着蛇一般的长颈；沉居深潭，探颈观察四周，受扰便收颈伏底。",
       "carryLevel": 45,
       "starter": false,
@@ -647,7 +703,7 @@
       "id": "combat.wild.species.rock-horn-rhino",
       "name": "狰",
       "realm": "元婴",
-      "icon": "🐆",
+      "icon": "icon:beast-zheng",
       "description": "形如健壮山豹，赤褐短毛，额生后弯黑角，五尾分展如扇；独居灵脉石岭，以垂尾感知气流与震动，转身卸力后回爪反击。",
       "carryLevel": 65,
       "starter": false,
@@ -708,7 +764,7 @@
       "id": "combat.wild.species.three-legged-golden-toad",
       "name": "三足金蟾",
       "realm": "元婴",
-      "icon": "🐸",
+      "icon": "icon:beast-golden-toad",
       "description": "身躯浑圆，三足粗壮，暗金背疣间透着朱红细纹；腹内火囊蓄纳地火灵息，施法时喉腹鼓起，红纹如炭，张口吐出大片烈焰。",
       "carryLevel": 65,
       "starter": false,
@@ -943,6 +999,67 @@
           },
           {
             "count": 3,
+            "weight": 35
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.nether-tiger",
+      "name": "幽冥虎",
+      "realm": "化神",
+      "icon": "icon:beast-nether-tiger",
+      "description": "墨黑虎躯，肩背厚重，幽蓝虎纹隐现，背脊与尾端浮起鬼火。久居阴灵汇聚的古老地穴，常压低头颅缓步巡视，吐出的幽焰与扑击皆能震慑魂生之体。",
+      "carryLevel": 85,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1500,
+          "max": 1810
+        },
+        "defense": {
+          "min": 1080,
+          "max": 1400
+        },
+        "health": {
+          "min": 4800,
+          "max": 6200
+        },
+        "mana": {
+          "min": 2250,
+          "max": 2950
+        },
+        "speed": {
+          "min": 900,
+          "max": 1250
+        }
+      },
+      "growthMilli": {
+        "min": 1165,
+        "max": 1245
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-exorcism",
+          "beast.spirit-flame"
+        ],
+        "candidates": [
+          "beast.strength",
+          "beast.meditation",
+          "beast.perception",
+          "beast.parry"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 10
+          },
+          {
+            "count": 1,
+            "weight": 55
+          },
+          {
+            "count": 2,
             "weight": 35
           }
         ]

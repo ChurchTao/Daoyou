@@ -37,7 +37,7 @@ describe('野外寻觅配置与个体生成', () => {
     expect(new Set(encounters.map((e) => e.length))).toEqual(
       new Set([1, 2, 3]),
     );
-    expect(new Set(encounters.flat().map((c) => c.speciesId)).size).toBe(3);
+    expect(new Set(encounters.flat().map((c) => c.speciesId)).size).toBe(4);
     expect(encounters.flat().some((c) => c.level === 0)).toBe(true);
     expect(
       encounters

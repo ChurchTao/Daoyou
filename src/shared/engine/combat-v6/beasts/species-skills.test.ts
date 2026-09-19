@@ -2,7 +2,30 @@ import { expect, it } from 'vitest';
 import { BEAST_SPECIES } from './content';
 import { generateCapturedBeast, generateStarterBeast } from './generator';
 import { rollBeastTraits } from './trait-generator';
+import { canDeployBeast, projectBeastRoster } from './projection';
 const id = '00000000-0000-4000-8000-000000000001';
+
+it.each([
+  ['combat.wild.species.mimi', 5],
+  ['combat.wild.species.nether-tiger', 85],
+] as const)('%s 幼崽也受物种携带门槛约束，达标后投影完整天赋', (speciesId, threshold) => {
+  const beast = generateCapturedBeast(id, id, speciesId, 0, 42);
+  expect(canDeployBeast(beast, threshold - 1)).toBe(false);
+  expect(canDeployBeast(beast, threshold)).toBe(true);
+  const roster = {
+    beasts: [beast],
+    lineup: { carriedBeastIds: [id], leadBeastId: id, revision: 0 },
+  };
+  expect(projectBeastRoster(roster, id, 0, 0, threshold - 1)).toEqual([]);
+  const [unit] = projectBeastRoster(roster, id, 0, 0, threshold);
+  expect(new Set([...unit.skills!, ...unit.passives!])).toEqual(new Set(beast.skills));
+  if (speciesId === 'combat.wild.species.nether-tiger') {
+    expect(unit.skills).toContain('beast.spirit-flame');
+    expect(unit.passives).toContain('beast.advanced-exorcism');
+  } else {
+    expect(unit.passives).toEqual(expect.arrayContaining(['beast.perception', 'beast.parry']));
+  }
+});
 
 it.each(BEAST_SPECIES)(
   '$name 的核心必带、候选不重复、范围合法且两入口一致',

@@ -47,7 +47,11 @@ function digest(speciesId: string) {
       ),
     })),
   );
-  return createHash('sha256').update(JSON.stringify(results)).digest('hex');
+  // Adding species only changes provenance; keep checking the original rolls and panels.
+  const facts = JSON.stringify(results, (key, value) =>
+    key === 'generationContentRevision' ? 7 : value,
+  );
+  return createHash('sha256').update(facts).digest('hex');
 }
 it.each(baseline)(
   'matches current $speciesId outputs for 128 seeds',
