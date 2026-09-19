@@ -3,17 +3,13 @@ import {
   cultivatorBeastLineups,
   cultivatorBeasts,
 } from '@server/lib/drizzle/schema';
-import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
-import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import {
   beastIndividualData,
   readBeastOwner,
   readBeastRoster,
 } from '@server/lib/repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { BeastNameSchema } from '@shared/contracts/combatV6Beasts';
 import {
   BEAST_STARTER_SPECIES,
@@ -34,15 +30,9 @@ import type { z } from 'zod';
 import { updateSpiritStones } from '../cultivator/CultivatorStateRepository';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { textFilter } from '../textFilter';
-import { arenaOccupancyKey } from './CombatV6ArenaStore';
-import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
-import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
-import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
-import { CombatV6WildStore } from './CombatV6WildStore';
 
-export class BeastError extends Error {
-  readonly status = 409;
-}
+import { assertBeastIdle, BeastError } from './BeastMutationGuard';
+export { BeastError } from './BeastMutationGuard';
 
 async function mutate<T>(
   cultivatorId: string,
@@ -58,17 +48,7 @@ async function mutate<T>(
     async (lease) =>
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, cultivatorId);
-        if (
-          (await hasActiveTower(cultivatorId)) ||
-          (await hasActiveRanking(cultivatorId)) ||
-          (await hasActiveDungeon(cultivatorId)) ||
-          (await hasActiveSectTaskBattle(cultivatorId)) ||
-          (await hasActiveBreakthroughBattle(cultivatorId)) ||
-          (await new CombatV6WildStore().lock(cultivatorId)) ||
-          (await redis.get(arenaOccupancyKey(cultivatorId))) ||
-          (await new CombatV6RuntimeStore().currentId(cultivatorId))
-        )
-          throw new BeastError('请先结束战斗与结算，再调整灵兽');
+        await assertBeastIdle(cultivatorId);
         const result = await action(tx);
         lease.assertHeld();
         return result;
@@ -93,13 +73,11 @@ export async function claimStarterBeast(
       speciesId,
       randomInt(0, 0x7fffffff),
     );
-    await tx
-      .insert(cultivatorBeasts)
-      .values({
-        id: beast.id,
-        cultivatorId,
-        individual: beastIndividualData(beast),
-      });
+    await tx.insert(cultivatorBeasts).values({
+      id: beast.id,
+      cultivatorId,
+      individual: beastIndividualData(beast),
+    });
     const canCarry = roster.lineup.carriedBeastIds.length < 6;
     const lineup = {
       carriedBeastIds: canCarry

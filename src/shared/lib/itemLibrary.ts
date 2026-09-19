@@ -18,6 +18,7 @@ import {
 } from '@shared/types/consumable';
 import type { MailAttachment } from '@shared/types/mail';
 import { z } from 'zod';
+import { BeastTransferSchema } from '../contracts/beastTrade';
 import { MailInventoryGrantSchema } from '../contracts/mail';
 
 const ConditionStatusDurationSchema = z.union([
@@ -171,6 +172,12 @@ export const ItemLibraryArtifactPayloadSchema = z.object({
 });
 
 export const MailAttachmentSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('beast_v1'),
+    name: z.string().min(1),
+    quantity: z.literal(1),
+    beast: BeastTransferSchema,
+  }),
   z
     .object({
       type: z.literal('inventory_v1'),

@@ -26,7 +26,8 @@ import { itemDefinition } from '@shared/inventory';
 import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
 import { REALM_ORDER } from '@shared/types/constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import { WildSeekingScene } from './WildSeekingScene';
 
 async function api<T>(
@@ -45,6 +46,11 @@ export default function WildPage() {
   return <WildRegion key={nodeId} nodeId={nodeId} />;
 }
 function WildRegion({ nodeId }: { nodeId: string }) {
+  const { state } = useLocation();
+  const mapHref = resolveMapReturnHref(
+    `/game/map?nodeId=${encodeURIComponent(nodeId)}`,
+    state,
+  );
   const { openDialog } = useInkUI();
   const build = useSectCombatState();
   const identity = useCultivatorIdentity();
@@ -218,7 +224,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           aria-label="野外导航"
         >
           <InkButton
-            href={`/game/map?nodeId=${encodeURIComponent(nodeId)}`}
+            href={mapHref}
             variant="secondary"
           >
             返回地图
@@ -313,7 +319,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           : undefined
       }
       active
-      back={`/game/map?nodeId=${encodeURIComponent(nodeId)}`}
+      back={mapHref}
       backLabel="返回地图"
     >
       {session && (
@@ -329,7 +335,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           onResolve={resolve}
           onAuto={combat.submitAuto}
           onClose={abandon}
-          back="/game/map"
+          back={mapHref}
           backLabel="返回地图"
         />
       )}

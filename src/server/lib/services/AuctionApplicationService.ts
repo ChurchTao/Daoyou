@@ -1,13 +1,17 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import type { AuctionListRequest } from '@shared/contracts/auction';
+import type {
+  AuctionBeastListRequest,
+  AuctionListRequest,
+} from '@shared/contracts/auction';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import { eq } from 'drizzle-orm';
 import {
   buyItem,
   cancelListing,
   clearAuctionListingsCache,
+  listBeast,
   listItem,
 } from './AuctionService';
 import { playerCommandExecutor } from './CommandExecutors';
@@ -36,7 +40,7 @@ export async function executeAuctionBuyCommand(args: {
     .limit(1);
   if (!currency) throw new Error('拍卖结算后角色不存在');
   return {
-    result: { message: '成功购入物品，请查收邮件' },
+    result: { message: '购入成功，请查收邮件' },
     resourceChanges: [
       {
         resourceTopic: 'player.currency',
@@ -75,7 +79,7 @@ export async function executeAuctionCancelCommand(args: {
     deferCacheClear: true,
   });
   return {
-    result: { message: '物品已下架，将通过邮件返还' },
+    result: { message: '货单已下架，将通过邮件返还' },
     resourceChanges: [],
   };
 }
@@ -207,6 +211,54 @@ export async function cancelAuctionListing(args: {
           }),
       }),
   );
+  await clearAuctionListingsCache();
+  return committed;
+}
+
+export async function listAuctionBeast(
+  args: AuctionBeastListRequest & { actor: AuctionActor },
+) {
+  const committed = await playerCommandExecutor.executeWithLock({
+    userId: args.actor.userId,
+    cultivatorId: args.actor.cultivatorId,
+    source: 'auction_list_beast',
+    allowEmpty: true,
+    idempotency: {
+      key: `auction-beast:${args.requestId}`,
+      fingerprint: JSON.stringify([
+        args.beastId,
+        args.expectedRevision,
+        args.price,
+        args.visibility,
+        args.targetCultivatorId,
+      ]),
+    },
+    lock: { context: 'auction-list-beast', timeoutMs: 10000 },
+    command: async (tx) => {
+      const { name } = await readCultivatorName(args.actor.cultivatorId, tx);
+      const result = await listBeast(
+        {
+          ...args,
+          cultivatorId: args.actor.cultivatorId,
+          cultivatorName: name,
+        },
+        tx,
+      );
+      return {
+        result,
+        resourceChanges:
+          args.visibility === 'private'
+            ? [
+                {
+                  resourceTopic: 'inventory.bag',
+                  eventType: 'inventory.auction.fee',
+                  operation: 'invalidate',
+                } satisfies ResourceChangeDescriptor,
+              ]
+            : [],
+      };
+    },
+  });
   await clearAuctionListingsCache();
   return committed;
 }

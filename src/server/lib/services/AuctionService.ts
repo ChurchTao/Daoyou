@@ -5,6 +5,7 @@ import {
   calculateAuctionSettlement,
 } from '@shared/config/auctionConfig';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@shared/config/socialConfig';
+import type { AuctionBeastListRequest } from '@shared/contracts/auction';
 import {
   auctionBlockReason,
   auctionItemCategory,
@@ -14,11 +15,21 @@ import {
   type AuctionListingView,
   type AuctionListRequest,
 } from '@shared/contracts/auction';
+import {
+  beastAuctionBlockReason,
+  BeastTransferSchema,
+} from '@shared/contracts/beastTrade';
 import { itemDefinition, ItemGrantSchema } from '@shared/inventory';
 import type { MailAttachment } from '@shared/types/mail';
 import { and, eq, sql } from 'drizzle-orm';
 import { getExecutor, type DbTransaction } from '../drizzle/db';
 import * as schema from '../drizzle/schema';
+import {
+  beastFromRow,
+  beastIndividualData,
+  readBeastRoster,
+} from '../repositories/combatV6BeastRepository';
+import { assertBeastIdle, BeastError } from './combat-v6/BeastMutationGuard';
 import {
   assertFriend,
   FriendServiceError,
@@ -56,6 +67,20 @@ export async function clearAuctionListingsCache() {
 
 function listingAttachment(listing: Listing, quantity: number): MailAttachment {
   const snapshot = AuctionSnapshotSchema.parse(listing.itemSnapshot);
+  if (snapshot.version === 'beast_v1') {
+    if (
+      quantity !== 1 ||
+      listing.remainingQuantity !== 1 ||
+      listing.initialQuantity !== 1
+    )
+      throw new AuctionServiceError('INVALID_QUANTITY', '灵兽每单仅可交易一只');
+    return {
+      type: 'beast_v1',
+      name: listing.itemName,
+      quantity: 1,
+      beast: snapshot.beast,
+    };
+  }
   return {
     type: 'inventory_v1',
     name: listing.itemName,
@@ -68,21 +93,13 @@ export function publicAuctionListing(listing: Listing): AuctionListingView {
   const attachment = publicMailAttachment(
     listingAttachment(listing, listing.remainingQuantity),
   );
-  const item = attachment.inventory!;
-  return {
+  const common = {
     id: listing.id,
     sellerId: listing.sellerId,
     sellerName: listing.sellerName,
-    itemType: itemDefinition(item.definitionId).kind,
     itemName: listing.itemName,
     itemQuality: listing.itemQuality,
     itemCategory: listing.itemCategory,
-    item: {
-      name: listing.itemName,
-      definitionId: item.definitionId,
-      instanceData: item.instanceData ?? null,
-      quantity: listing.remainingQuantity,
-    },
     price: listing.price,
     remainingQuantity: listing.remainingQuantity,
     visibility: listing.visibility as 'public' | 'private',
@@ -90,6 +107,57 @@ export function publicAuctionListing(listing: Listing): AuctionListingView {
     targetCultivatorName: listing.targetCultivatorName,
     expiresAt: listing.expiresAt.toISOString(),
   };
+  if (attachment.type === 'beast_v1')
+    return { ...common, itemType: 'beast', beast: attachment.beastPreview! };
+  const item = attachment.inventory!;
+  return {
+    ...common,
+    itemType: itemDefinition(item.definitionId).kind,
+    item: {
+      name: listing.itemName,
+      definitionId: item.definitionId,
+      instanceData: item.instanceData ?? null,
+      quantity: listing.remainingQuantity,
+    },
+  };
+}
+
+async function prepareListing(
+  owner: string,
+  visibility: 'public' | 'private',
+  targetCultivatorId: string | undefined,
+  tx: DbTransaction,
+) {
+  if ((await auctionRepository.countActiveBySeller(owner, tx)) >= 5)
+    throw new AuctionServiceError('MAX_LISTINGS', '寄售位已满（最多5个）');
+  let targetCultivatorName: string | undefined;
+  if (visibility === 'private') {
+    if (!targetCultivatorId)
+      throw new AuctionServiceError(
+        'INVALID_VISIBILITY',
+        '专属交易必须指定好友',
+      );
+    try {
+      await assertFriend(owner, targetCultivatorId, tx);
+      const target = await getInviteTarget(owner, targetCultivatorId, tx);
+      targetCultivatorName = target.target.name;
+      await consumeFirstTalismanByScenario(
+        owner,
+        AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
+        tx,
+      );
+    } catch (error) {
+      if (error instanceof FriendServiceError)
+        throw new AuctionServiceError('TARGET_NOT_FRIEND', error.message);
+      if (error instanceof TalismanScenarioError)
+        throw new AuctionServiceError(
+          'MISSING_TALISMAN',
+          '缺少随身拍卖行贵宾符',
+        );
+      throw error;
+    }
+  }
+  return targetCultivatorName;
 }
 
 export async function listItem(
@@ -107,35 +175,12 @@ export async function listItem(
       targetCultivatorId,
     } = input;
     await assertInventoryIdle(owner);
-    if ((await auctionRepository.countActiveBySeller(owner, tx)) >= 5)
-      throw new AuctionServiceError('MAX_LISTINGS', '寄售位已满（最多5个）');
-    let targetCultivatorName: string | undefined;
-    if (visibility === 'private') {
-      if (!targetCultivatorId)
-        throw new AuctionServiceError(
-          'INVALID_VISIBILITY',
-          '专属交易必须指定好友',
-        );
-      try {
-        await assertFriend(owner, targetCultivatorId, tx);
-        const target = await getInviteTarget(owner, targetCultivatorId, tx);
-        targetCultivatorName = target.target.name;
-        await consumeFirstTalismanByScenario(
-          owner,
-          AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO,
-          tx,
-        );
-      } catch (error) {
-        if (error instanceof FriendServiceError)
-          throw new AuctionServiceError('TARGET_NOT_FRIEND', error.message);
-        if (error instanceof TalismanScenarioError)
-          throw new AuctionServiceError(
-            'MISSING_TALISMAN',
-            '缺少随身拍卖行贵宾符',
-          );
-        throw error;
-      }
-    }
+    const targetCultivatorName = await prepareListing(
+      owner,
+      visibility,
+      targetCultivatorId,
+      tx,
+    );
     // Read after consuming the cost so the inventory plan cannot restore it.
     const before = (
       await tx
@@ -297,10 +342,11 @@ export async function buyItem(
         'LISTING_NOT_FOUND',
         '货单已变化或剩余数量不足',
       );
+    const unit = listing.itemType === 'beast' ? '只' : '件';
     await MailService.sendMail(
       buyerCultivatorId,
       '拍卖行交易成功',
-      '已购入【' + listing.itemName + '】' + quantity + '件，请领取附件。',
+      '已购入【' + listing.itemName + '】' + quantity + unit + '，请领取附件。',
       [attachment],
       'reward',
       tx,
@@ -312,7 +358,8 @@ export async function buyItem(
         listing.itemName +
         '】成交' +
         quantity +
-        '件，成交额' +
+        unit +
+        '，成交额' +
         grossAmount +
         '灵石，税费' +
         feeAmount +
@@ -377,4 +424,85 @@ export async function expireListings() {
   });
   await clearAuctionListingsCache();
   return count;
+}
+
+export async function listBeast(
+  input: AuctionBeastListRequest & {
+    cultivatorId: string;
+    cultivatorName: string;
+  },
+  tx: DbTransaction,
+) {
+  const {
+    cultivatorId: owner,
+    beastId,
+    expectedRevision,
+    price,
+    visibility,
+    targetCultivatorId,
+  } = input;
+  await assertBeastIdle(owner);
+  const [row] = await tx
+    .select()
+    .from(schema.cultivatorBeasts)
+    .where(
+      and(
+        eq(schema.cultivatorBeasts.id, beastId),
+        eq(schema.cultivatorBeasts.cultivatorId, owner),
+      ),
+    );
+  if (!row) throw new BeastError('灵兽不存在或不属于你');
+  const beast = beastFromRow(row);
+  const roster = await readBeastRoster(owner, tx);
+  const reason = beastAuctionBlockReason(
+    beast,
+    owner,
+    expectedRevision,
+    roster.lineup,
+  );
+  if (reason) throw new BeastError(reason);
+  const targetCultivatorName = await prepareListing(
+    owner,
+    visibility,
+    targetCultivatorId,
+    tx,
+  );
+  const transfer = BeastTransferSchema.parse({
+    id: beast.id,
+    createdAt: row.createdAt.toISOString(),
+    individual: { ...beastIndividualData(beast), revision: beast.revision + 1 },
+  });
+  const deleted = await tx
+    .delete(schema.cultivatorBeasts)
+    .where(
+      and(
+        eq(schema.cultivatorBeasts.id, beast.id),
+        eq(schema.cultivatorBeasts.cultivatorId, owner),
+        sql`${schema.cultivatorBeasts.individual}->>'revision' = ${String(expectedRevision)}`,
+      ),
+    )
+    .returning({ id: schema.cultivatorBeasts.id });
+  if (deleted.length !== 1) throw new BeastError('灵兽已变化，请刷新后重试');
+  const listing = await auctionRepository.createListing({
+    sellerId: owner,
+    sellerName: input.cultivatorName,
+    itemType: 'beast',
+    itemId: beast.id,
+    itemName: beast.name,
+    itemQuality: '',
+    itemCategory: beast.speciesId,
+    itemSnapshot: AuctionSnapshotSchema.parse({
+      version: 'beast_v1',
+      beast: transfer,
+    }),
+    price,
+    initialQuantity: 1,
+    remainingQuantity: 1,
+    visibility,
+    targetCultivatorId,
+    targetCultivatorName,
+    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+    tx,
+  });
+  return { listingId: listing.id, message: '灵兽已上架' };
 }

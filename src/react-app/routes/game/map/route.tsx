@@ -23,7 +23,8 @@ import {
   buildNodeActions,
   buildSectLandmarkActions,
   resolveMapIntent,
-} from './mapActions';
+} from '@app/components/feature/map/mapActions';
+import { InkButton } from '@app/components/ui/InkButton';
 
 const MAP_WIDTH = 3056;
 const MAP_HEIGHT = 2143;
@@ -79,6 +80,18 @@ export default function MapPage() {
   const handleNodeClick = (id: string) => {
     setManualSelection({ nodeId: id, requestedNodeId });
   };
+  const openAtlas = () => {
+    const params = new URLSearchParams(searchParams);
+    if (selectedNodeId) params.set('nodeId', selectedNodeId);
+    else params.delete('nodeId');
+    navigate(`/game/map-v2?${params}`);
+  };
+  const atlasAction = {
+    key: 'open-atlas',
+    label: '新版舆图',
+    variant: 'secondary' as const,
+    onClick: openAtlas,
+  };
 
   const nodeContext = useMemo(() => {
     if (!selectedNode || !selectedNodeId) {
@@ -132,6 +145,9 @@ export default function MapPage() {
 
   return (
     <div className="relative h-full overflow-hidden">
+      <div className="absolute bottom-[max(env(safe-area-inset-bottom),1rem)] left-4 z-20 bg-paper/95 px-2 py-1 shadow-sm">
+        <InkButton onClick={openAtlas}>新版舆图</InkButton>
+      </div>
       <div className="relative h-full w-full flex-1 cursor-grab active:cursor-grabbing">
         <TransformWrapper
           key={requestedNode?.id ?? 'default'}
@@ -238,13 +254,13 @@ export default function MapPage() {
         <SectLandmarkDetail
           landmark={selectedNode}
           onClose={() => setManualSelection({ nodeId: null, requestedNodeId })}
-          actions={sectLandmarkActions}
+          actions={[...sectLandmarkActions, atlasAction]}
         />
       ) : selectedNode ? (
         <MapNodeDetail
           node={selectedNode as MapNodeInfo}
           onClose={() => setManualSelection({ nodeId: null, requestedNodeId })}
-          actions={nodeActions}
+          actions={[...nodeActions, atlasAction]}
         />
       ) : null}
     </div>

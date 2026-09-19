@@ -10,6 +10,7 @@ import {
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
+import { BeastError } from '@server/lib/services/combat-v6/BeastMutationGuard';
 import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import { InventoryError } from '@server/lib/services/InventoryService';
 import { publicMailAttachment } from '@server/lib/services/MailInventory';
@@ -125,6 +126,8 @@ mailRouter.post('/claim', requireActiveCultivatorRef(), async (c) => {
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
+    if (error instanceof BeastError)
+      return c.json({ error: error.message }, 409);
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
     if (error instanceof PlayerMailCommandError) {
@@ -147,6 +150,8 @@ mailRouter.post('/claim-all', requireActiveCultivatorRef(), async (c) => {
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
+    if (error instanceof BeastError)
+      return c.json({ error: error.message }, 409);
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
     throw error;

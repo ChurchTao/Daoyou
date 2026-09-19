@@ -847,7 +847,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'auction',
                   presentation: 'service',
-                  summary: '珍材道装在此寄售，成交物与灵石由传音送达。',
+                  summary: '珍材、道装与灵兽在此寄售，成交后由传音送达。',
                 },
                 '拍卖行',
               )}
@@ -1135,6 +1135,14 @@ export const router = createBrowserRouter(
           </Route>
 
           <Route element={<GameMapLayout />}>
+            <Route
+              path="map-v2"
+              lazy={lazyRoute(() => import('@app/routes/game/map-v2/route'))}
+              handle={scene(
+                { id: 'map-v2', chrome: 'immersive', dock: 'hidden' },
+                '山河舆图',
+              )}
+            />
             <Route
               path="map"
               lazy={lazyRoute(() => import('@app/routes/game/map/route'))}

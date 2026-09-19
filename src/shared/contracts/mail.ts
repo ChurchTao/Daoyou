@@ -44,7 +44,12 @@ export function mailLocationText(locations: string[] = []) {
   return locations
     .map(
       (v) =>
-        ({ bag: '随身物品', storage: '储藏室', vault: '洞府宝库' })[v] ?? v,
+        ({
+          bag: '随身物品',
+          storage: '储藏室',
+          vault: '洞府宝库',
+          beasts: '灵兽仓',
+        })[v] ?? v,
     )
     .join('、');
 }

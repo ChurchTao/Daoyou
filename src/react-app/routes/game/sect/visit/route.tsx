@@ -3,23 +3,28 @@ import { useSectTasksQuery } from '@app/components/feature/sect/sectResources';
 import { InkButton } from '@app/components/ui';
 import { useSpecialSceneBackAction } from '@app/layouts/special-scene';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import { getSectLandmarkBySectId } from '@shared/lib/game/mapSystem';
 import { useCallback } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router';
 
 export default function SectVisitPage() {
+  const { state } = useLocation();
   const navigate = useNavigate();
   const { sectId = '' } = useParams();
   const session = usePlayerSession();
   const tasks = useSectTasksQuery();
   const activeSectId = session.data?.activeCultivator?.sectId ?? null;
   const landmark = getSectLandmarkBySectId(sectId);
-  const worldMapHref = landmark
-    ? `/game/map?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
-    : '/game/map?intent=sect';
+  const worldMapHref = resolveMapReturnHref(
+    landmark
+      ? `/game/map?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
+      : '/game/map?intent=sect',
+    state,
+  );
   const backToWorld = useCallback(
     () => navigate(worldMapHref, { replace: true }),
     [navigate, worldMapHref],

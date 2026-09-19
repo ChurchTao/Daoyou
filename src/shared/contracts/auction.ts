@@ -12,6 +12,7 @@ import { SeedFactsSchema } from '../items/definitions/seeds';
 import { materialFactsOf } from '../items/material';
 import { findItemDefinition } from '../items/registry';
 import { QUALITY_VALUES, type Quality } from '../types/constants';
+import { BeastTransferSchema, type BeastTradePreview } from './beastTrade';
 
 export const AUCTION_ITEM_TYPES = [
   'material',
@@ -22,6 +23,7 @@ export const AUCTION_ITEM_TYPES = [
   'manual_jade',
   'beast_book',
   'beast_refinement',
+  'beast',
 ] as const;
 export type AuctionItemType = (typeof AUCTION_ITEM_TYPES)[number];
 export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
@@ -33,6 +35,7 @@ export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   manual_jade: '玉简',
   beast_book: '传承灵印',
   beast_refinement: '灵露',
+  beast: '灵兽',
 };
 export const AuctionListSchema = z
   .object({
@@ -60,19 +63,36 @@ export const AuctionBuySchema = z
     requestId: z.uuid(),
   })
   .strict();
-export const AuctionSnapshotSchema = z
-  .object({
-    version: z.literal('inventory_v1'),
-    item: ItemGrantSchema,
+export const AuctionBeastListSchema = z
+  .strictObject({
+    requestId: z.uuid(),
+    beastId: z.uuid(),
+    expectedRevision: z.number().int().nonnegative(),
+    price: z.number().int().min(1).max(AUCTION_MAX_UNIT_PRICE),
+    visibility: z.enum(['public', 'private']).default('public'),
+    targetCultivatorId: z.uuid().optional(),
   })
-  .strict();
+  .refine(
+    (v) =>
+      v.visibility === 'private'
+        ? !!v.targetCultivatorId
+        : !v.targetCultivatorId,
+    '专属寄售须指定好友，公开寄售不指定买家',
+  );
+export type AuctionBeastListRequest = z.infer<typeof AuctionBeastListSchema>;
+export const AuctionSnapshotSchema = z.discriminatedUnion('version', [
+  z.strictObject({ version: z.literal('inventory_v1'), item: ItemGrantSchema }),
+  z.strictObject({
+    version: z.literal('beast_v1'),
+    beast: BeastTransferSchema,
+  }),
+]);
 
 type AuctionItemFacts = { definitionId: string; instanceData: unknown };
 /** 无品质品类保持其等级／流派体系，不合成旧式品质。 */
 export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
   const kind = itemDefinition(item.definitionId).kind;
-  if (kind === 'material')
-    return materialFactsOf(item.instanceData).rank;
+  if (kind === 'material') return materialFactsOf(item.instanceData).rank;
   if (kind === 'consumable')
     return ConsumableFactsSchema.parse(item.instanceData).quality;
   if (kind === 'seed') {
@@ -126,20 +146,13 @@ export function auctionBlockReason(
   return null;
 }
 
-export type AuctionListingView = {
+type AuctionListingBase = {
   id: string;
   sellerId: string;
   sellerName: string;
-  itemType: AuctionItemType;
   itemName: string;
   itemQuality: string;
   itemCategory: string;
-  item: {
-    name: string;
-    definitionId: string;
-    instanceData: unknown;
-    quantity: number;
-  };
   price: number;
   remainingQuantity: number;
   visibility: 'public' | 'private';
@@ -147,3 +160,17 @@ export type AuctionListingView = {
   targetCultivatorName: string | null;
   expiresAt: string;
 };
+
+export type AuctionListingView = AuctionListingBase &
+  (
+    | {
+        itemType: Exclude<AuctionItemType, 'beast'>;
+        item: {
+          name: string;
+          definitionId: string;
+          instanceData: unknown;
+          quantity: number;
+        };
+      }
+    | { itemType: 'beast'; beast: BeastTradePreview }
+  );

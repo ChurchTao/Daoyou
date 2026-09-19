@@ -7,6 +7,10 @@ import type { ResourceOperationSettlement } from '@shared/engine/resource/types'
 import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
 import { and, eq, inArray } from 'drizzle-orm';
 import { playerCommandExecutor } from './CommandExecutors';
+import {
+  deliverMailBeasts,
+  selectClaimableBeastMails,
+} from './MailBeastDelivery';
 import { deliverMailInventory } from './MailInventory';
 import type { MailAttachment } from './MailService';
 import { sendPlayerMail } from './PlayerMailService';
@@ -32,13 +36,9 @@ function mailClaimChanges(args: {
   eventType: string;
   unreadCount: number;
   settlement: ResourceOperationSettlement;
+  attachments: MailAttachment[];
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
-    {
-      resourceTopic: 'inventory.bag',
-      eventType: 'inventory.mail.claimed',
-      operation: 'invalidate',
-    },
     {
       resourceTopic: 'player.mail-summary',
       eventType: args.eventType,
@@ -46,6 +46,13 @@ function mailClaimChanges(args: {
       payload: { unreadCount: args.unreadCount },
     },
   ];
+  if (args.attachments.some((attachment) => attachment.type !== 'beast_v1')) {
+    changes.unshift({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.mail.claimed',
+      operation: 'invalidate',
+    });
+  }
   for (const inventoryChange of args.settlement.inventoryChanges) {
     changes.push(
       inventoryChange.operation === 'upsert'
@@ -169,7 +176,6 @@ export function claimCultivatorMail(args: {
         throw new PlayerMailCommandError('Already claimed', 400);
       }
       const attachments = (mail.attachments as MailAttachment[]) || [];
-      const gains = attachmentsToResourceOperations(attachments);
       return playerCommandExecutor.execute<
         | { message: string }
         | {
@@ -188,17 +194,35 @@ export function claimCultivatorMail(args: {
         },
         allowEmpty: attachments.length === 0,
         command: async (tx) => {
+          const current = await tx.query.mails.findFirst({
+            where: and(
+              eq(mails.id, args.mailId),
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+              eq(mails.isClaimed, false),
+            ),
+          });
+          if (!current)
+            throw new PlayerMailCommandError('邮件已领取或不存在', 400);
+          const attachments = (current.attachments as MailAttachment[]) || [];
+          const gains = attachmentsToResourceOperations(attachments);
           if (attachments.length === 0) {
             return {
               result: { message: 'No attachments' },
               resourceChanges: [],
             };
           }
-          const locations = await deliverMailInventory(
-            args.actor.cultivatorId,
-            attachments,
-            tx,
-          );
+          const locations = [
+            ...(await deliverMailBeasts(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+            ...(await deliverMailInventory(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+          ];
           const result = await resourceEngine.applyInTransaction({
             userId: args.actor.userId,
             cultivatorId: args.actor.cultivatorId,
@@ -228,6 +252,7 @@ export function claimCultivatorMail(args: {
               eventType: 'mail.claimed',
               unreadCount: mailSummary.unreadCount,
               settlement: result.settlement!,
+              attachments,
             }),
           };
         },
@@ -245,16 +270,8 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
       retries: 0,
     },
     async (lease) => {
-      const pendingMails = await mailsQueryAll(args.actor.cultivatorId);
-      const claimable = pendingMails.filter(
-        (mail) => ((mail.attachments as MailAttachment[]) || []).length > 0,
-      );
-      const mailIds = claimable.map((mail) => mail.id);
-      const attachments = claimable.flatMap(
-        (mail) => (mail.attachments as MailAttachment[]) || [],
-      );
-      const gains = attachmentsToResourceOperations(attachments);
       return playerCommandExecutor.execute<{
+        skipped: { id: string; reason: 'capacity' | 'occupied' }[];
         claimedCount: number;
         claimedMailIds: string[];
         unreadMailCount?: number;
@@ -264,19 +281,50 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
         userId: args.actor.userId,
         cultivatorId: args.actor.cultivatorId,
         source: 'mail_claim_all',
-        allowEmpty: mailIds.length === 0,
+        allowEmpty: true,
         command: async (tx) => {
+          const pendingMails = await tx.query.mails.findMany({
+            where: and(
+              eq(mails.type, 'reward'),
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+              eq(mails.isClaimed, false),
+            ),
+          });
+          const { claimable, skipped } = await selectClaimableBeastMails(
+            args.actor.cultivatorId,
+            pendingMails.filter(
+              (mail) =>
+                ((mail.attachments as MailAttachment[]) || []).length > 0,
+            ),
+            tx,
+          );
+          const mailIds = claimable.map((mail) => mail.id);
+          const attachments = claimable.flatMap(
+            (mail) => (mail.attachments as MailAttachment[]) || [],
+          );
+          const gains = attachmentsToResourceOperations(attachments);
           if (mailIds.length === 0) {
             return {
-              result: { claimedCount: 0, claimedMailIds: [] as string[] },
+              result: {
+                claimedCount: 0,
+                claimedMailIds: [] as string[],
+                skipped,
+              },
               resourceChanges: [],
             };
           }
-          const locations = await deliverMailInventory(
-            args.actor.cultivatorId,
-            attachments,
-            tx,
-          );
+          const locations = [
+            ...(await deliverMailBeasts(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+            ...(await deliverMailInventory(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+          ];
           const result = await resourceEngine.applyInTransaction({
             userId: args.actor.userId,
             cultivatorId: args.actor.cultivatorId,
@@ -300,6 +348,7 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
           );
           return {
             result: {
+              skipped,
               claimedCount: mailIds.length,
               claimedMailIds: mailIds,
               unreadMailCount: mailSummary.unreadCount,
@@ -309,6 +358,7 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
               eventType: 'mail.claimed_all',
               unreadCount: mailSummary.unreadCount,
               settlement: result.settlement!,
+              attachments,
             }),
           };
         },
@@ -395,15 +445,5 @@ export function markAllCultivatorMailRead(args: { actor: MailActor }) {
 async function mailsQuery(cultivatorId: string, mailId: string) {
   return getExecutor().query.mails.findFirst({
     where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivatorId)),
-  });
-}
-
-async function mailsQueryAll(cultivatorId: string) {
-  return getExecutor().query.mails.findMany({
-    where: and(
-      eq(mails.type, 'reward'),
-      eq(mails.cultivatorId, cultivatorId),
-      eq(mails.isClaimed, false),
-    ),
   });
 }

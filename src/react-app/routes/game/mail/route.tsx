@@ -246,6 +246,7 @@ export default function MailPage() {
       setBatchClaiming(true);
       const data = await mutate<{
         locations?: string[];
+        skipped?: { id: string; reason: 'capacity' | 'occupied' }[];
         claimedCount: number;
         claimedMailIds: string[];
         unreadMailCount: number;
@@ -271,12 +272,16 @@ export default function MailPage() {
         );
       }
 
+      const skipped = data.skipped ?? [];
+      const waiting = skipped.length
+        ? `；${skipped.length} 封灵兽邮件待${skipped.some((m) => m.reason === 'occupied') ? '战斗结束' : '腾出仓位'}后领取`
+        : '';
       pushToast({
         message:
-          claimedMailIds.length > 0
+          (claimedMailIds.length > 0
             ? `成功领取 ${claimedMailIds.length} 封邮件附件${data.locations?.length ? ' · ' + mailLocationText(data.locations) : ''}`
-            : '暂无可领取附件',
-        tone: 'success',
+            : '暂无可领取附件') + waiting,
+        tone: skipped.length ? 'warning' : 'success',
       });
     } catch (error) {
       console.error('Claim all failed', error);

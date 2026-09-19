@@ -44,6 +44,14 @@ export default function BeastsPage() {
   }>();
   const busy = useRef(false);
   const controller = useRef<AbortController | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    const reload = () => {
+      if (!busy.current) setRefresh((value) => value + 1);
+    };
+    window.addEventListener('focus', reload);
+    return () => window.removeEventListener('focus', reload);
+  }, []);
   useEffect(() => {
     const read = new AbortController();
     controller.current = read;
@@ -61,7 +69,7 @@ export default function BeastsPage() {
         }
       });
     return () => controller.current?.abort();
-  }, [pushToast]);
+  }, [pushToast, refresh]);
   async function mutate(path: string, body: unknown, method = 'POST') {
     if (busy.current) return false;
     busy.current = true;

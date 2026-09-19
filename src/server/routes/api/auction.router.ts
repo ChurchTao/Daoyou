@@ -8,17 +8,20 @@ import * as auctionRepository from '@server/lib/repositories/auctionRepository';
 import {
   buyAuctionListing,
   cancelAuctionListing,
+  listAuctionBeast,
   listAuctionItem,
 } from '@server/lib/services/AuctionApplicationService';
 import {
   AuctionServiceError,
   publicAuctionListing,
 } from '@server/lib/services/AuctionService';
+import { BeastError } from '@server/lib/services/combat-v6/BeastMutationGuard';
 import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import { InventoryError } from '@server/lib/services/InventoryService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import {
   AUCTION_ITEM_TYPES,
+  AuctionBeastListSchema,
   AuctionBuySchema,
   AuctionListSchema,
 } from '@shared/contracts/auction';
@@ -90,6 +93,7 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
       limit: c.req.query('limit') ? Number(c.req.query('limit')) : undefined,
     });
 
+    if (params.itemType === 'beast') params.itemQuality = undefined;
     const result = await auctionRepository.findActiveListings({
       ...params,
       viewerCultivatorId: cultivator.cultivatorId,
@@ -208,6 +212,48 @@ router.post('/list', requireActiveCultivatorRef(), async (c) => {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
     if (
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
+    if (error instanceof AuctionServiceError) {
+      return jsonWithStatus(
+        c,
+        { error: error.message },
+        getAuctionErrorStatus(error),
+      );
+    }
+
+    console.error('Auction List API Error:', error);
+    return c.json({ error: '上架失败，请稍后重试' }, 500);
+  }
+});
+
+router.post('/list-beast', requireActiveCultivatorRef(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('activeCultivatorRef');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const request = AuctionBeastListSchema.safeParse(
+    await c.req.json().catch(() => undefined),
+  );
+  if (!request.success) {
+    return c.json({ error: '参数错误', details: request.error.issues }, 400);
+  }
+
+  try {
+    const committed = await listAuctionBeast({
+      ...request.data,
+      actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
+    });
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    const lockErrorResponse = redisLockErrorResponse(error);
+    if (lockErrorResponse) return lockErrorResponse;
+    if (
+      error instanceof BeastError ||
       error instanceof InventoryError ||
       error instanceof PlayerCommandIdempotencyError
     )

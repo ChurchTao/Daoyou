@@ -1,3 +1,7 @@
+import {
+  beastTradePreview,
+  BeastTransferSchema,
+} from '@shared/contracts/beastTrade';
 import { MailInventoryGrantSchema } from '@shared/contracts/mail';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
@@ -56,6 +60,15 @@ export function newRewardAttachment(item: MailAttachment): MailAttachment {
 }
 
 export function publicMailAttachment(item: MailAttachment): MailAttachment {
+  if (item.type === 'beast_v1')
+    return {
+      type: 'beast_v1',
+      name: item.name,
+      quantity: 1,
+      beastPreview: beastTradePreview(
+        BeastTransferSchema.parse(item.beast).individual,
+      ),
+    };
   if (item.type === 'material' && item.data)
     return { ...item, data: sanitizeMaterialForClient(item.data as Material) };
   if (

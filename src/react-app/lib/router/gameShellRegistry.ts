@@ -38,6 +38,7 @@ export function resolveGameShellKind(pathname: string): GameShellKind | null {
 
   if (
     pathname === '/game/map' ||
+    pathname === '/game/map-v2' ||
     /^\/game\/sect\/[^/]+\/visit$/.test(pathname)
   ) {
     return 'map';

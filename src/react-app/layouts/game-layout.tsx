@@ -8,6 +8,9 @@ import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
+import { ATLAS_REGIONS, getAtlasRegion } from '@shared/lib/game/mapAtlas';
+import { getWorldMapLocation } from '@shared/lib/game/mapSystem';
 import {
   resolveMapCloseNavigation,
   type SpecialBackNavigation,
@@ -122,12 +125,14 @@ function resolveSpecialSceneDescriptor(
     return null;
   }
 
-  if (pathname === '/game/map') {
+  if (pathname === '/game/map' || pathname === '/game/map-v2') {
     return {
       sceneLabel: scene.label,
       backAction: {
         label: '关闭地图',
-        ...resolveMapCloseNavigation(search),
+        ...(pathname === '/game/map-v2'
+          ? { type: 'path' as const, href: '/game', replace: true }
+          : resolveMapCloseNavigation(search)),
       },
     };
   }
@@ -205,6 +210,7 @@ function useSpecialSceneBackActionState(
   descriptor: SpecialSceneDescriptor | null,
 ) {
   const navigate = useNavigate();
+  const location = useLocation();
   const backOverride = useSpecialSceneBackOverride();
 
   const label = backOverride?.label ?? descriptor?.backAction.label ?? '返回';
@@ -226,7 +232,7 @@ function useSpecialSceneBackActionState(
       return;
     }
 
-    navigate(descriptor.backAction.href, {
+    navigate(resolveMapReturnHref(descriptor.backAction.href, location.state), {
       replace: descriptor.backAction.replace,
     });
   };
@@ -258,6 +264,13 @@ function MapSceneChrome() {
   const contextLabel = isSectVisit
     ? '人界 · 访宗舆图'
     : ['人界', '全图', intentLabel].filter(Boolean).join(' · ');
+  const requestedNode = getWorldMapLocation(searchParams.get('nodeId') ?? '');
+  const atlasRegion = requestedNode
+    ? getAtlasRegion(requestedNode)
+    : ATLAS_REGIONS.find((region) => region.id === searchParams.get('region'));
+  const mapContextLabel = location.pathname === '/game/map-v2'
+    ? ['人界', atlasRegion?.name ?? '总览', intentLabel].filter(Boolean).join(' · ')
+    : contextLabel;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
@@ -273,7 +286,7 @@ function MapSceneChrome() {
       <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <div className="text-ink font-semibold">{routeTitle}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
-          {contextLabel}
+          {mapContextLabel}
         </div>
       </div>
     </div>
@@ -402,7 +415,7 @@ export function GameNarrativeLayout() {
 
 function GameMapLayoutBody() {
   return (
-    <div className="bg-paper h-screen overflow-hidden">
+    <div className="bg-paper h-dvh overflow-hidden">
       <div className="relative h-full overflow-hidden">
         <MapSceneChrome />
         <main className="h-full overflow-hidden">

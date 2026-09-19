@@ -139,7 +139,10 @@ export function projectBeastRoster(
     .flat();
 }
 
-export function canDeployBeast(beast: SummonedBeast, ownerLevel: number) {
+export function canDeployBeast(
+  beast: Pick<SummonedBeast, 'currentLifespan' | 'level' | 'speciesId'>,
+  ownerLevel: number,
+) {
   return (
     beast.currentLifespan >= BEAST_PROGRESSION.lifespan.deployMinimum &&
     beast.level <= ownerLevel &&

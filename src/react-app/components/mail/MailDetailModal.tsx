@@ -1,3 +1,4 @@
+import { BeastTradeSlot } from '@app/components/feature/beasts/BeastTradePreview';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -82,7 +83,14 @@ export function MailDetailModal({
             </h4>
             <div className="grid grid-cols-2 gap-2">
               {mail.attachments?.map((item, idx) =>
-                item.type === 'inventory_v1' && item.inventory ? (
+                item.type === 'beast_v1' && item.beastPreview ? (
+                  <div key={idx}>
+                    <div className="w-20">
+                      <BeastTradeSlot beast={item.beastPreview} />
+                    </div>
+                    <p>{item.name} · 灵兽</p>
+                  </div>
+                ) : item.type === 'inventory_v1' && item.inventory ? (
                   <div key={idx} className="w-20">
                     <ItemSlot
                       className="w-full"

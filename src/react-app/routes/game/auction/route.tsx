@@ -1,4 +1,8 @@
-import { ListItemModal } from '@app/components/auction/ListItemModal';
+import { ListAuctionModal } from '@app/components/auction/ListBeastModal';
+import {
+  BeastTradeDetails,
+  BeastTradeSlot,
+} from '@app/components/feature/beasts/BeastTradePreview';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import {
@@ -27,12 +31,15 @@ import {
   AUCTION_MAX_TRANSACTION_TOTAL,
   calculateAuctionSettlement,
 } from '@shared/config/auctionConfig';
+import { getRealmStageLevel } from '@shared/config/realmProgression';
 import {
   AUCTION_ITEM_TYPES,
   AUCTION_TYPE_NAMES,
   type AuctionItemType,
   type AuctionListingView,
 } from '@shared/contracts/auction';
+import { BEAST_SPECIES } from '@shared/engine/combat-v6/beasts/content';
+import { canDeployBeast } from '@shared/engine/combat-v6/beasts/projection';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
@@ -114,6 +121,8 @@ function normalizePage(value: string | null): number {
 }
 
 function getCategoryOptions(itemType: AuctionTypeFilter) {
+  if (itemType === 'beast')
+    return BEAST_SPECIES.map((s) => ({ value: s.id, label: s.name }));
   const names =
     itemType === 'material'
       ? MATERIAL_TYPE_NAMES
@@ -145,6 +154,7 @@ export default function AuctionPage() {
       ? {
           id: identity.id,
           realm: identity.realm,
+          ownerLevel: getRealmStageLevel(identity.realm, identity.realm_stage),
           spirit_stones: currency.data.spiritStones,
         }
       : null;
@@ -183,7 +193,8 @@ export default function AuctionPage() {
     [activeType],
   );
   const itemCategory = searchParams.get('itemCategory') || 'all';
-  const itemQuality = searchParams.get('itemQuality') || 'all';
+  const itemQuality =
+    activeType === 'beast' ? 'all' : searchParams.get('itemQuality') || 'all';
   const sortBy = normalizeSortBy(searchParams.get('sortBy'));
   const page = normalizePage(searchParams.get('page'));
   const searchMode = normalizeSearchMode(searchParams.get('searchMode'));
@@ -465,17 +476,19 @@ export default function AuctionPage() {
       return;
     }
     if (
+      listing.itemType === 'beast' ||
       requestedQuantity > 1 ||
       settlement.grossAmount > HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD
     ) {
       setBuyConfirmDialog({
         id: `auction-buy-${listing.id}`,
-        title: '高额交易确认',
+        title: listing.itemType === 'beast' ? '灵兽交易确认' : '高额交易确认',
         content: (
           <div className="space-y-2 text-sm leading-7">
             <p>确定购入「{listing.itemName}」吗？</p>
             <p>
-              数量：{requestedQuantity} 件 · 单价：
+              数量：{requestedQuantity}{' '}
+              {listing.itemType === 'beast' ? '只' : '件'} · 单价：
               {listing.price.toLocaleString()} 灵石
             </p>
             <p className="text-gold font-bold">
@@ -483,6 +496,17 @@ export default function AuctionPage() {
               {settlement.grossAmount.toLocaleString()}{' '}
               {SPIRIT_STONES_INFO.label}
             </p>
+            {listing.itemType === 'beast' && (
+              <>
+                <BeastTradeDetails beast={listing.beast} />
+                {!canDeployBeast(listing.beast, cultivator.ownerLevel) && (
+                  <p className="text-crimson">
+                    当前等级或灵兽寿命不满足出战条件，领取后暂不能出战。
+                  </p>
+                )}
+                <p>灵兽通过邮件领取；满仓时保留附件，不自动携带或首发。</p>
+              </>
+            )}
           </div>
         ),
         confirmLabel: '确认购入',
@@ -530,7 +554,8 @@ export default function AuctionPage() {
   };
 
   const renderListing = (listing: AuctionListing) => {
-    const presentation = itemPresentation(listing.item);
+    const presentation =
+      listing.itemType === 'beast' ? null : itemPresentation(listing.item);
     const timeLeft = formatTime(listing.expiresAt);
     const listedQuantity = Math.max(1, listing.remainingQuantity || 1);
     const isOwner = listing.sellerId === cultivator?.id;
@@ -552,7 +577,8 @@ export default function AuctionPage() {
           )}
           <span className="text-gold text-sm font-semibold">
             {SPIRIT_STONES_INFO.icon} {listing.price.toLocaleString()}{' '}
-            {SPIRIT_STONES_INFO.label}/件
+            {SPIRIT_STONES_INFO.label}/
+            {listing.itemType === 'beast' ? '只' : '件'}
           </span>
         </div>
       </div>
@@ -636,18 +662,24 @@ export default function AuctionPage() {
         className="border-ink/15 flex flex-wrap items-center gap-4 border-b py-4"
       >
         <div className="w-16 shrink-0">
-          <ItemSlot
-            className="w-full"
-            item={listing.item}
-            quantityLabel="库存"
-          />
+          {listing.itemType === 'beast' ? (
+            <BeastTradeSlot beast={listing.beast} />
+          ) : (
+            <ItemSlot
+              className="w-full"
+              item={listing.item}
+              quantityLabel="库存"
+            />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <p className={presentation?.color}>{listing.itemName}</p>
           <p className="text-ink-secondary text-xs">
-            {[presentation?.type, presentation?.tier]
-              .filter(Boolean)
-              .join(' · ')}
+            {listing.itemType === 'beast'
+              ? `${BEAST_SPECIES.find((s) => s.id === listing.beast.speciesId)?.name} · ${listing.beast.isMutant ? '变异 · ' : ''}${listing.beast.level}级 · ${listing.beast.skills.length}技能`
+              : [presentation?.type, presentation?.tier]
+                  .filter(Boolean)
+                  .join(' · ')}
           </p>
           {listingMeta}
         </div>
@@ -692,7 +724,7 @@ export default function AuctionPage() {
     activeType !== 'all' && itemCategory !== 'all'
       ? categoryOptions.find((item) => item.value === itemCategory)?.label
       : null,
-    getQualityLabel(itemQuality),
+    activeType === 'beast' ? null : getQualityLabel(itemQuality),
     currentSearchValue.trim()
       ? `${SEARCH_MODE_LABELS[searchMode]}=${currentSearchValue.trim()}`
       : null,
@@ -726,19 +758,21 @@ export default function AuctionPage() {
             ))}
           </InkSelect>
         )}
-        <InkSelect
-          label="品级"
-          size="sm"
-          value={itemQuality}
-          onChange={(value) => updateQuery({ itemQuality: value })}
-        >
-          <option value="all">全部品级</option>
-          {QUALITY_VALUES.map((quality) => (
-            <option key={quality} value={quality}>
-              {quality}
-            </option>
-          ))}
-        </InkSelect>
+        {activeType !== 'beast' && (
+          <InkSelect
+            label="品级"
+            size="sm"
+            value={itemQuality}
+            onChange={(value) => updateQuery({ itemQuality: value })}
+          >
+            <option value="all">全部品级</option>
+            {QUALITY_VALUES.map((quality) => (
+              <option key={quality} value={quality}>
+                {quality}
+              </option>
+            ))}
+          </InkSelect>
+        )}
         <InkSelect
           label="排序"
           size="sm"
@@ -825,7 +859,7 @@ export default function AuctionPage() {
     <GameSceneFrame
       variant="workflow"
       title="【拍卖行】"
-      description="各路道友寄售珍材道装，选定货单后购入，物品与成交款由邮件送达。"
+      description="各路道友寄售珍材、道装与灵兽，选定货单后购入，成交后由邮件送达。"
       aside={
         <>
           <GameSceneAsideSection title="寄售摘要">
@@ -872,6 +906,7 @@ export default function AuctionPage() {
             updateQuery({
               itemType: value,
               itemCategory: null,
+              itemQuality: null,
             })
           }
         />
@@ -894,7 +929,7 @@ export default function AuctionPage() {
           </p>
           {cultivator && activeTab === 'my' ? (
             <InkButton onClick={() => setShowListModal(true)} variant="primary">
-              上架物品
+              上架寄售
             </InkButton>
           ) : null}
         </div>
@@ -918,7 +953,7 @@ export default function AuctionPage() {
       )}
 
       {showListModal && (
-        <ListItemModal
+        <ListAuctionModal
           onClose={() => setShowListModal(false)}
           onSuccess={() => {
             setShowListModal(false);

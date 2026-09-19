@@ -26,7 +26,7 @@ import {
 import { formatCompactGameNumber } from '@shared/lib/numberFormat';
 import type { MarketAccessState, MarketListing } from '@shared/types/market';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 
 const nodes = getMarketNodeSwitchOptions();
 const regions = [...new Set(nodes.map((node) => node.region))];
@@ -48,6 +48,7 @@ async function read<T>(url: string, signal: AbortSignal): Promise<T> {
   return (body.data ?? body) as T;
 }
 export default function MarketPage() {
+  const { state } = useLocation();
   const [params, setParams] = useSearchParams();
   const nodeId = params.get('nodeId') || 'TN_YUE_01';
   const layer = layers.some((item) => item.value === params.get('layer'))
@@ -64,7 +65,7 @@ export default function MarketPage() {
       layer={layer}
       currency={currency}
       onNavigate={(node, nextLayer) =>
-        setParams({ nodeId: node, layer: nextLayer })
+        setParams({ nodeId: node, layer: nextLayer }, { state })
       }
     />
   );
