@@ -13,6 +13,7 @@ import {
   ATLAS_REGIONS,
   getAtlasLocations,
   getAtlasRegion,
+  hasAtlasMap,
 } from '@shared/lib/game/mapAtlas';
 import { getWorldMapLocation } from '@shared/lib/game/mapSystem';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
@@ -39,13 +40,14 @@ export default function AtlasPage() {
     (region) => region.id === params.get('region'),
   );
   const region = selectedRegion ?? requestedRegion;
-  const unavailable = region && region.id !== 'tiannan';
+  const availableRegion = region && hasAtlasMap(region.id) ? region.id : null;
+  const unavailable = region && !availableRegion;
   const invalid =
     (nodeId && !selected) ||
     (params.has('region') && !requestedRegion && !selectedRegion);
   const intent = resolveMapIntent(params.get('intent'));
   const view: AtlasView = {
-    region: region?.id === 'tiannan' ? 'tiannan' : 'world',
+    region: availableRegion ?? 'world',
     selectedId: selected?.id ?? null,
     blocked: !!selected || !!unavailable || searchOpen || !!error,
     intent,

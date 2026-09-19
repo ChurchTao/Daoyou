@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ATLAS_ANCHORS,
   ATLAS_REGIONS,
   getAtlasLocations,
   getAtlasRegion,
-  TIANNAN_ANCHORS,
 } from './mapAtlas';
 
 describe('world atlas location coverage', () => {
@@ -16,17 +16,20 @@ describe('world atlas location coverage', () => {
     );
   });
 
-  it('anchors exactly the existing Tiannan locations without introducing gameplay nodes', () => {
-    const expected = getAtlasLocations()
-      .filter((location) => getAtlasRegion(location)?.id === 'tiannan')
-      .map((location) => location.id)
-      .sort();
-    expect(Object.keys(TIANNAN_ANCHORS).sort()).toEqual(expected);
-    for (const [x, y] of Object.values(TIANNAN_ANCHORS)) {
-      expect(x).toBeGreaterThan(0);
-      expect(x).toBeLessThan(1);
-      expect(y).toBeGreaterThan(0);
-      expect(y).toBeLessThan(1);
-    }
-  });
+  it.each(Object.entries(ATLAS_ANCHORS))(
+    'anchors exactly the existing %s locations without introducing gameplay nodes',
+    (region, anchors) => {
+      const expected = getAtlasLocations()
+        .filter((location) => getAtlasRegion(location)?.id === region)
+        .map((location) => location.id)
+        .sort();
+      expect(Object.keys(anchors).sort()).toEqual(expected);
+      for (const [x, y] of Object.values(anchors)) {
+        expect(x).toBeGreaterThan(0);
+        expect(x).toBeLessThan(1);
+        expect(y).toBeGreaterThan(0);
+        expect(y).toBeLessThan(1);
+      }
+    },
+  );
 });

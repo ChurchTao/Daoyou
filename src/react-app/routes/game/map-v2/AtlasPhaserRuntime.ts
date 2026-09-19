@@ -1,12 +1,13 @@
 import {
+  ATLAS_ANCHORS,
   ATLAS_REGIONS,
   getAtlasLocations,
-  TIANNAN_ANCHORS,
+  hasAtlasMap,
 } from '@shared/lib/game/mapAtlas';
 import * as Phaser from 'phaser';
 
 export interface AtlasView {
-  region: 'world' | 'tiannan';
+  region: 'world' | keyof typeof ATLAS_ANCHORS;
   selectedId: string | null;
   blocked: boolean;
   intent: string;
@@ -32,10 +33,11 @@ const HEIGHT = 1024;
 const TEXTURES = {
   world: '/assets/maps/world-overview-v1.webp',
   tiannan: '/assets/maps/tiannan-region-v1.webp',
-};
+  luanxinghai: '/assets/maps/luanxinghai-region-v1.webp',
+} satisfies Record<AtlasView['region'], string>;
 const INK = 0x352f29;
 const CINNABAR = 0x9d4033;
-// Only two camera snapshots survive page navigation; no textures or player state.
+// Only camera snapshots survive page navigation; no textures or player state.
 const cameraMemory = new Map<string, { x: number; y: number; zoom: number }>();
 
 interface Marker {
@@ -107,12 +109,12 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
               region.x,
               region.y,
               true,
-              region.id === 'tiannan',
+              hasAtlasMap(region.id),
             );
           }
         } else {
           for (const location of getAtlasLocations()) {
-            const point = TIANNAN_ANCHORS[location.id];
+            const point = ATLAS_ANCHORS[view.region][location.id];
             if (!point) continue;
             const primary = 'region' in location || 'sect_id' in location;
             const match =
@@ -142,6 +144,10 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
           camera
             .setZoom(Math.max(this.minZoom, saved.zoom))
             .centerOn(saved.x, saved.y);
+          this.clampCamera();
+        } else if (view.region === 'luanxinghai') {
+          const [x, y] = ATLAS_ANCHORS.luanxinghai.LX_INNER_01;
+          camera.centerOn(x * WIDTH, y * HEIGHT);
           this.clampCamera();
         }
       }

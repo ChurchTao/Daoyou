@@ -32,7 +32,7 @@ export function getAtlasRegion(location: WorldMapLocation) {
   );
 }
 
-// 展示坐标只用于天南独立底画，旧地图坐标和玩法事实仍由 map.json 持有。
+// 展示坐标只用于独立区域底画，旧地图坐标和玩法事实仍由 map.json 持有。
 export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   TN_YUE_01: [0.36, 0.61],
   TN_YUE_02: [0.175, 0.79],
@@ -58,3 +58,28 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   WILD_ZMG_VINES: [0.92, 0.31],
   SECT_LINGXIAO: [0.715, 0.285],
 };
+
+export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
+  LX_INNER_01: [0.68, 0.397],
+  LX_INNER_02: [0.852, 0.703],
+  LX_OUTER_01: [0.13, 0.68],
+  LX_VOID_01: [0.165, 0.108],
+  SAT_LX_01: [0.38, 0.775],
+  SAT_LX_02: [0.6, 0.51],
+  SAT_LX_07: [0.806, 0.8],
+  SAT_LX_03: [0.625, 0.328],
+  SAT_LX_04: [0.938, 0.69],
+  SAT_LX_05: [0.17, 0.05],
+  SAT_LX_06: [0.235, 0.11],
+};
+
+export const ATLAS_ANCHORS = {
+  tiannan: TIANNAN_ANCHORS,
+  luanxinghai: LUANXINGHAI_ANCHORS,
+};
+
+export function hasAtlasMap(
+  id: AtlasRegionId,
+): id is keyof typeof ATLAS_ANCHORS {
+  return id in ATLAS_ANCHORS;
+}
