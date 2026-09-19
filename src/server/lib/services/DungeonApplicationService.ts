@@ -1,4 +1,5 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import { dungeonPlayer } from '@server/lib/dungeon/combatV6';
 import {
   dungeonService,
   type DungeonPersistenceSettlement,
@@ -9,32 +10,37 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock';
-import { hasCultivatorRecoveryPill } from '@server/lib/repositories/cultivatorRepository';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
+import type { DungeonExpectedState } from '@shared/contracts/combatV6Dungeon';
 import {
   RESOURCE_DATA_SCHEMAS,
   type ResourceChangeDescriptor,
 } from '@shared/contracts/resources';
-import { projectBattleUnitEntryState } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
+import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
 import {
   canChallengeDungeonRealm,
   getMapNode,
   isSatelliteNode,
 } from '@shared/lib/game/mapSystem';
-import {
-  evaluateNoviceReadiness,
-  type NoviceDungeonReadiness,
-} from '@shared/lib/noviceGuidance';
+import {} from '@shared/lib/noviceGuidance';
 import { playerCommandExecutor } from './CommandExecutors';
-import { resolvePersistentWorldPlayerState } from './BattleStateCoordinator';
+
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
 import { TaskService } from './TaskService';
 
 type DungeonCommand =
   | { kind: 'start'; mapNodeId: string }
-  | { kind: 'action'; choiceId: number; actionId?: string }
+  | {
+      kind: 'action';
+      choiceId: number;
+      actionId: string;
+      runId: string;
+      round: number;
+      materialSelections: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
+    }
+  | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
+      expected: DungeonExpectedState;
       action:
         | 'retry'
         | 'retry_continue'
@@ -42,9 +48,9 @@ type DungeonCommand =
         | 'safe_retreat'
         | 'force_quit';
     }
-  | { kind: 'quit' }
-  | { kind: 'looting-continue' }
-  | { kind: 'looting-escape' }
+  | { kind: 'quit'; expected: DungeonExpectedState }
+  | { kind: 'looting-continue'; expected: DungeonExpectedState }
+  | { kind: 'looting-escape'; expected: DungeonExpectedState }
   | { kind: 'battle-abandon'; battleId: string }
   | { kind: 'battle-execute'; battleId: string; requestId?: string };
 
@@ -52,11 +58,24 @@ export class DungeonStartError extends Error {
   constructor(
     message: string,
     readonly status: 400 | 404 | 409,
-    readonly readiness?: NoviceDungeonReadiness,
+    readonly readiness?: ReturnType<typeof dungeonReadiness>,
   ) {
     super(message);
     this.name = 'DungeonStartError';
   }
+}
+
+/** A synchronized read cannot report an old round while a command is still generating. */
+export function readDungeonState(cultivatorId: string, runId?: string) {
+  return withRedisLock(
+    {
+      key: redisLockKeys.cultivatorMutation(cultivatorId),
+      context: 'dungeon-read',
+      timeoutMs: 30000,
+      retries: 0,
+    },
+    async () => dungeonService.getState(cultivatorId, runId),
+  );
 }
 
 type DungeonDeferredResult = Record<string, unknown> & {
@@ -141,24 +160,17 @@ async function assertDungeonStartReady(args: {
   cultivatorId: string;
   mapNodeId: string;
 }): Promise<void> {
-  if (!isSatelliteNode(args.mapNodeId)) {
+  if (
+    !isSatelliteNode(args.mapNodeId) ||
+    !getMapNode(args.mapNodeId)?.dungeon_config
+  ) {
     throw new DungeonStartError('只有秘境节点可以进行副本挑战', 400);
   }
-  const now = new Date();
-  const [isFirstDungeonTutorialActive, cultivatorBundle, hasRecoveryPill] =
-    await Promise.all([
-      TaskService.isFirstDungeonTutorialActive(args.cultivatorId),
-      loadCultivatorCombatInput(args.cultivatorId),
-      hasCultivatorRecoveryPill(args.cultivatorId),
-    ]);
-  if (!cultivatorBundle || cultivatorBundle.userId !== args.userId) {
-    throw new DungeonStartError('当前没有活跃角色', 404);
-  }
-  const preparedPlayer = resolvePersistentWorldPlayerState({
-    player: cultivatorBundle.cultivator,
-    now,
-  });
-  const cultivator = preparedPlayer.player;
+
+  const isFirstDungeonTutorialActive =
+    await TaskService.isFirstDungeonTutorialActive(args.cultivatorId);
+  const { player, caps } = await dungeonPlayer(args.cultivatorId);
+  const cultivator = player.cultivator;
   const selectedNode = getMapNode(args.mapNodeId);
   const selectedNodeRealm =
     selectedNode && 'realm_requirement' in selectedNode
@@ -173,17 +185,22 @@ async function assertDungeonStartReady(args: {
       409,
     );
   }
-  const entryState = projectBattleUnitEntryState({
-    cultivator,
-    state: preparedPlayer.playerState,
-  });
-  const readiness = evaluateNoviceReadiness({
-    cultivator,
+  const entryState = {
+    hp: {
+      current: player.cultivator.condition!.resources.hp.current,
+      max: caps.maxHp,
+    },
+    mp: {
+      current: player.cultivator.condition!.resources.mp.current,
+      max: caps.maxMp,
+    },
+  };
+  const readiness = dungeonReadiness({
+    realm: cultivator.realm,
     selectedNodeRealm,
     hp: entryState.hp,
     mp: entryState.mp,
-    isFirstDungeonTutorialActive,
-    hasRecoveryPill,
+    firstVisit: isFirstDungeonTutorialActive,
   });
   if (readiness.shouldBlock) {
     throw new DungeonStartError(readiness.reasons.join('；'), 409, readiness);
@@ -198,6 +215,13 @@ export async function executeDungeonPersistenceCommand<T>(args: {
 }): Promise<{ result: T; resourceChanges: ResourceChangeDescriptor[] }> {
   const settlement = await args.persist?.(args.tx);
   const resourceChanges: ResourceChangeDescriptor[] = [];
+  if (args.persist) {
+    resourceChanges.push({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.dungeon.changed',
+      operation: 'invalidate',
+    });
+  }
 
   if (settlement?.condition !== undefined) {
     resourceChanges.push({
@@ -261,6 +285,8 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return 'dungeon_start';
     case 'action':
       return 'dungeon_action';
+    case 'battle-begin':
+      return 'dungeon_battle_begin';
     case 'recover':
       return `dungeon_recover_${command.action}`;
     case 'quit':
@@ -282,6 +308,19 @@ async function prepareDungeonCommand(
   lease: RedisLeaseContext,
 ): Promise<unknown> {
   const options = { deferPersistence: true as const, lease };
+  if ('expected' in command) {
+    const state = await dungeonService.getState(cultivatorId);
+    const expected = command.expected;
+    if (
+      !state ||
+      state.runId !== expected.runId ||
+      state.currentRound !== expected.round ||
+      state.status !== expected.status ||
+      (state.pendingAction?.actionId ?? null) !== expected.pendingActionId
+    ) {
+      throw new DungeonStartError('探索状态已变化，请重新读取', 409);
+    }
+  }
   switch (command.kind) {
     case 'start':
       return dungeonService.startDungeon(
@@ -289,11 +328,29 @@ async function prepareDungeonCommand(
         command.mapNodeId,
         options,
       );
-    case 'action':
+    case 'action': {
+      const state = await dungeonService.getState(cultivatorId);
+      if (
+        !state ||
+        state.runId !== command.runId ||
+        (state.currentRound !== command.round &&
+          !state.costLedger?.some(
+            (entry) => entry.actionId === command.actionId,
+          ))
+      ) {
+        throw new DungeonStartError('探索轮次已变化，请刷新后重新选择', 409);
+      }
       return dungeonService.handleAction(
         cultivatorId,
         command.choiceId,
         command.actionId,
+        { ...options, materialSelections: command.materialSelections },
+      );
+    }
+    case 'battle-begin':
+      return dungeonService.beginBattle(
+        cultivatorId,
+        command.encounterId,
         options,
       );
     case 'recover':
@@ -309,11 +366,7 @@ async function prepareDungeonCommand(
     case 'looting-escape':
       return dungeonService.escapeFromLooting(cultivatorId, options);
     case 'battle-abandon':
-      return dungeonService.abandonBattle(
-        cultivatorId,
-        command.battleId,
-        options,
-      );
+      throw new Error('请在战斗中使用逃跑指令');
     case 'battle-execute': {
       const result = await dungeonService.executeBattle(
         cultivatorId,
@@ -322,10 +375,9 @@ async function prepareDungeonCommand(
       );
       const hooks = result as DungeonDeferredResult;
       return {
-        battleResult: result.battleResult,
         callbackData: {
           dungeonState: result.state,
-          roundData: result.roundData,
+
           isFinished: result.isFinished,
           settlement: result.settlement,
           realGains: result.realGains,

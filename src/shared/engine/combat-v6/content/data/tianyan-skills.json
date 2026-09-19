@@ -1,0 +1,408 @@
+{
+  "$schema": "./tianyan-skills.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "tianyan.skill.wood",
+    "tianyan.skill.fire",
+    "tianyan.skill.earth",
+    "tianyan.skill.metal",
+    "tianyan.skill.water",
+    "tianyan.skill.formation",
+    "tianyan.skill.transfer",
+    "tianyan.skill.ward"
+  ],
+  "elemental": [
+    {
+      "element": "wood",
+      "name": "三碧生机",
+      "costMp": "20 + floor(skillLevel * 0.35)",
+      "coefficient": 0.75,
+      "power": "25 + floor(skillLevel)",
+      "sideEffects": [
+        {
+          "type": "heal",
+          "power": "floor(target.maxHp * 0.02) + floor(skillLevel * 0.4)",
+          "targeting": {
+            "side": "ally",
+            "mode": "lowestHp",
+            "count": 1
+          }
+        }
+      ],
+      "markDuration": 2
+    },
+    {
+      "element": "fire",
+      "name": "九紫流照",
+      "costMp": "20 + floor(skillLevel * 0.35)",
+      "coefficient": 0.9,
+      "power": "35 + floor(skillLevel * 1.2)",
+      "sideEffects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.scorch",
+          "duration": 2
+        }
+      ],
+      "markDuration": 2
+    },
+    {
+      "element": "earth",
+      "name": "五中镇岳",
+      "costMp": "20 + floor(skillLevel * 0.35)",
+      "coefficient": 0.7,
+      "power": "20 + floor(skillLevel * 0.9)",
+      "sideEffects": [
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.earth",
+          "kind": "tianyan.earth",
+          "name": "五中镇岳",
+          "power": "floor(target.maxHp * 0.03) + floor(skillLevel * 0.5)",
+          "duration": 2,
+          "targeting": {
+            "side": "ally",
+            "mode": "lowestHp",
+            "count": 1
+          }
+        }
+      ],
+      "markDuration": 2
+    },
+    {
+      "element": "metal",
+      "name": "七赤裁云",
+      "costMp": "20 + floor(skillLevel * 0.35)",
+      "coefficient": 0.82,
+      "power": "30 + floor(skillLevel * 1.1)",
+      "sideEffects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1
+        }
+      ],
+      "markDuration": 2
+    },
+    {
+      "element": "water",
+      "name": "一白回澜",
+      "costMp": "20 + floor(skillLevel * 0.35)",
+      "coefficient": 0.78,
+      "power": "28 + floor(skillLevel)",
+      "sideEffects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.water_slow",
+          "duration": 2
+        }
+      ],
+      "markDuration": 2
+    }
+  ],
+  "skills": [
+    {
+      "id": "tianyan.skill.formation",
+      "name": "九宫布阵",
+      "school": "tianyan",
+      "costMp": "30 + floor(skillLevel * 0.4)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": 5
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.formation",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.transfer",
+      "name": "河洛传印",
+      "school": "tianyan",
+      "costMp": "35 + floor(skillLevel * 0.4)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "requireStatusKinds": [
+          "tianyan.status.mark"
+        ]
+      },
+      "effects": [
+        {
+          "type": "copyStatus",
+          "kinds": [
+            "tianyan.status.mark"
+          ],
+          "maxCount": 1,
+          "targeting": {
+            "side": "enemy",
+            "mode": "fill",
+            "count": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.ward",
+      "name": "三才护阵",
+      "school": "tianyan",
+      "costMp": "40 + floor(skillLevel * 0.5)",
+      "resourceRequirements": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "min": 1
+        }
+      ],
+      "resourceCosts": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "amount": 1
+        }
+      ],
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": 4
+      },
+      "effects": [
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.ward",
+          "kind": "tianyan.ward",
+          "name": "三才护阵",
+          "power": "floor(target.maxHp * 0.05) + floor(skillLevel * 0.8)",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.hetu_ultimate",
+      "name": "河图万象",
+      "school": "tianyan",
+      "costMp": "60 + floor(skillLevel * 0.6)",
+      "resourceRequirements": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "min": 3
+        }
+      ],
+      "resourceCosts": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "amount": 3
+        }
+      ],
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "all"
+      },
+      "effects": [
+        {
+          "type": "heal",
+          "power": "floor(target.maxHp * 0.05)"
+        },
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.ultimate",
+          "kind": "tianyan.ultimate",
+          "name": "河图万象",
+          "power": "floor(target.maxHp * 0.05) + floor(skillLevel * 0.8)",
+          "duration": 2
+        },
+        {
+          "type": "restoreMp",
+          "power": "floor(target.maxMp * 0.05)"
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.life_array",
+      "name": "生生化阵",
+      "school": "tianyan",
+      "costMp": "45 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "removeWound",
+          "power": "floor(skillLevel * 1.2)"
+        },
+        {
+          "type": "heal",
+          "power": "floor(target.maxHp * 0.04) + floor(skillLevel * 0.8)"
+        },
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.life_array",
+          "kind": "tianyan.life_array",
+          "name": "生生化阵",
+          "power": "floor(target.maxHp * 0.06) + floor(skillLevel * 0.6)",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.luoshu_ultimate",
+      "name": "洛书断局",
+      "school": "tianyan",
+      "costMp": "60 + floor(skillLevel * 0.6)",
+      "resourceRequirements": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "min": 3
+        }
+      ],
+      "resourceCosts": [
+        {
+          "resourceId": "tianyan.resource.derivation",
+          "amount": 3
+        }
+      ],
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 55,
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.6,
+          "power": "70 + floor(skillLevel * 1.4)",
+          "defenseIgnore": 0.15
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.sever_meridian",
+          "duration": 1,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.reverse_divination",
+      "name": "逆演天机",
+      "school": "tianyan",
+      "costMp": "50 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "requireStatusKinds": [
+          "tianyan.status.mark"
+        ]
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.25,
+          "power": "40 + floor(skillLevel * 1.2)"
+        },
+        {
+          "type": "removeStatus",
+          "kinds": [
+            "tianyan.status.mark"
+          ],
+          "maxCount": 1
+        },
+        {
+          "type": "fixedHit",
+          "power": "floor(source.magicAtk * 0.35)",
+          "formula": "fixed",
+          "origin": "hook-derived"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "tianyan.resource.derivation",
+          "amount": 1,
+          "maxGainPerAction": 1
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.reverse_divination_strong",
+      "name": "逆演天机",
+      "school": "tianyan",
+      "costMp": "50 + floor(skillLevel * 0.5)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "spell",
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "requireStatusKinds": [
+          "tianyan.status.mark"
+        ]
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.25,
+          "power": "40 + floor(skillLevel * 1.2)"
+        },
+        {
+          "type": "removeStatus",
+          "kinds": [
+            "tianyan.status.mark"
+          ],
+          "maxCount": 1
+        },
+        {
+          "type": "fixedHit",
+          "power": "floor(source.magicAtk * 0.45)",
+          "formula": "fixed",
+          "origin": "hook-derived"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "tianyan.resource.derivation",
+          "amount": 1,
+          "maxGainPerAction": 1
+        }
+      ]
+    }
+  ]
+}

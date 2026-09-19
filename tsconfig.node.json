@@ -6,6 +6,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -25,7 +26,7 @@
     }
   },
   "include": [
-    "vite.config.ts",
+    "vite*.ts",
     "vitest.config.ts",
     "drizzle.auth.config.ts",
     "./src/index.ts",

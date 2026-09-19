@@ -1,0 +1,4 @@
+interface:
+  display_name: '道友 · 写意墨像'
+  short_description: '统一人物与灵兽的写意墨像笔墨风格、物种构思、局部彩墨和页面验收'
+  default_prompt: '使用 $daoyou-ink-portraits，参照固定墨像基准，为指定角色或物种生成适配目标界面的立绘并检查风格漂移。'

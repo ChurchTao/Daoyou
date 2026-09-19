@@ -1,5 +1,7 @@
+import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { BattleCallbackData } from '@app/routes/game/dungeon/components/DungeonBattle';
-import { DungeonAbandonBattleResult } from './useEnemyProbe';
+import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
+import type { DungeonMaterialSelection } from '@shared/contracts/combatV6Dungeon';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import type {
   DungeonOption,
@@ -8,9 +10,7 @@ import type {
   DungeonSettlement,
   DungeonState,
 } from '@shared/lib/dungeon/types';
-import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
-import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useDungeonActions } from './useDungeonActions';
 import { useDungeonState } from './useDungeonState';
 
@@ -29,7 +29,6 @@ export type DungeonViewState =
   | {
       type: 'in_battle';
       battleId: string;
-      opponentName: string;
       state: DungeonState;
     }
   | { type: 'looting'; state: DungeonState }
@@ -99,15 +98,21 @@ export function useDungeonViewModel(
     setState,
     loading: stateLoading,
     refresh,
-  } = useDungeonState(hasCultivator);
-  const { startDungeon, performAction, quitDungeon, continueLooting, escapeLooting, recoverDungeon, processing } =
-    useDungeonActions();
+    error: readError,
+    dismissSettlement,
+  } = useDungeonState(cultivatorId);
+  const {
+    startDungeon,
+    performAction,
+    beginBattle,
+    quitDungeon,
+    continueLooting,
+    escapeLooting,
+    recoverDungeon,
+    processing,
+  } = useDungeonActions(refresh, state);
 
   const { openQiActionConfirm } = useQiActionConfirm();
-
-  // 战斗相关状态
-  const [activeBattleId, setActiveBattleId] = useState<string>();
-  const [opponentName, setOpponentName] = useState('神秘敌手');
 
   /**
    * 计算最后一轮数据
@@ -135,7 +140,7 @@ export function useDungeonViewModel(
    */
   const viewState = useMemo<DungeonViewState>(() => {
     // 加载中
-    if (stateLoading) {
+    if (stateLoading && !state) {
       return { type: 'loading' };
     }
 
@@ -144,25 +149,19 @@ export function useDungeonViewModel(
       return { type: 'not_authenticated' };
     }
 
-    // 战斗中
-    if (activeBattleId && state) {
-      return {
-        type: 'in_battle',
-        battleId: activeBattleId,
-        opponentName,
-        state,
-      };
-    }
-
-    // 战斗准备
-    const shouldShowBattlePrep =
-      !activeBattleId &&
+    if (
+      !state?.isFinished &&
       state?.status === 'WAITING_BATTLE' &&
-      state.activeBattleId &&
-      !state.isFinished;
-
-    if (shouldShowBattlePrep && state) {
+      state.encounter
+    )
       return { type: 'battle_preparation', state };
+    // 战斗中
+    if (
+      !state?.isFinished &&
+      state?.status === 'IN_BATTLE' &&
+      state.activeBattleId
+    ) {
+      return { type: 'in_battle', battleId: state.activeBattleId, state };
     }
 
     // 结算
@@ -193,15 +192,7 @@ export function useDungeonViewModel(
       type: 'map_selection',
       preSelectedNodeId,
     };
-  }, [
-    stateLoading,
-    hasCultivator,
-    activeBattleId,
-    state,
-    lastRound,
-    opponentName,
-    preSelectedNodeId,
-  ]);
+  }, [stateLoading, hasCultivator, state, lastRound, preSelectedNodeId]);
 
   /**
    * 操作：启动副本
@@ -223,24 +214,41 @@ export function useDungeonViewModel(
   /**
    * 操作：执行选项
    */
-  const handlePerformAction = async (option: DungeonOption) => {
-    const data = await performAction(option);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+  const handlePerformAction = async (
+    option: DungeonOption,
+    selections: DungeonMaterialSelection[] = [],
+  ) => {
+    if (!state?.runId) return;
+    const data = await performAction(
+      option,
+      state.runId,
+      state.currentRound,
+      selections,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleContinueLooting = async () => {
     const data = await continueLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleEscapeLooting = async () => {
     const data = await escapeLooting();
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
     const data = await recoverDungeon(action);
-    await applyMutationResult(data as Parameters<typeof resolveDungeonMutationResult>[0]);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   const applyMutationResult = async (
@@ -267,54 +275,24 @@ export function useDungeonViewModel(
     } else if (resolution.type === 'clear') {
       setState(null);
     }
-
   };
 
   /**
    * 操作：退出副本
    */
   const handleQuitDungeon = async (): Promise<boolean> => {
-    const success = await quitDungeon();
-    if (success) {
-      setState(null);
-    }
-    return success;
-  };
-
-  /**
-   * 操作：开始战斗
-   */
-  const handleStartBattle = (enemyName: string) => {
-    setOpponentName(enemyName);
-    setActiveBattleId(state?.activeBattleId);
-  };
-
-  const handleAbandonBattleWithResult = async (
-    result: DungeonAbandonBattleResult,
-  ) => {
-    setActiveBattleId(undefined);
-    if (result.isFinished) {
-      setState((prev) =>
-        prev
-          ? {
-              ...prev,
-              isFinished: true,
-              settlement: result.settlement,
-              realGains: result.realGains,
-            }
-          : null,
-      );
-      return;
-    }
-
-    refresh();
+    const data = await quitDungeon();
+    if (!data) return false;
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+    return true;
   };
 
   /**
    * 操作：战斗完成
    */
   const handleBattleComplete = (data: BattleCallbackData | null) => {
-    setActiveBattleId(undefined);
     if (data?.isFinished) {
       setState((prev) =>
         prev
@@ -335,16 +313,26 @@ export function useDungeonViewModel(
 
   return {
     viewState,
-    processing,
+    processing: processing || stateLoading || !!readError,
+    readError,
+    refreshing: stateLoading,
+    refresh,
+    dismissSettlement,
     actions: {
+      beginBattle: async () => {
+        if (!state?.encounter) return;
+        await applyMutationResult(
+          (await beginBattle(state.encounter.id)) as Parameters<
+            typeof resolveDungeonMutationResult
+          >[0],
+        );
+      },
       startDungeon: handleStartDungeon,
       performAction: handlePerformAction,
       quitDungeon: handleQuitDungeon,
       continueLooting: handleContinueLooting,
       escapeLooting: handleEscapeLooting,
       recoverDungeon: handleRecoverDungeon,
-      startBattle: handleStartBattle,
-      abandonBattle: handleAbandonBattleWithResult,
       completeBattle: handleBattleComplete,
     },
   };

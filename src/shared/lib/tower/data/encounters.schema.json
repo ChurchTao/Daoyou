@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 2
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "minRealm": {
+      "type": "string",
+      "const": "金丹"
+    },
+    "difficultyStep": {
+      "type": "integer",
+      "$ref": "#/$defs/__schema0"
+    },
+    "floors": {
+      "minItems": 20,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "scaling": {
+      "type": "object",
+      "properties": {
+        "hpGrowth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "outputGrowth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "defenseGrowth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.01
+        },
+        "types": {
+          "type": "object",
+          "properties": {
+            "normal": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "elite": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "boss": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "normal",
+            "elite",
+            "boss"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "hpGrowth",
+        "outputGrowth",
+        "defenseGrowth",
+        "types"
+      ],
+      "additionalProperties": false
+    },
+    "baselines": {
+      "type": "object",
+      "properties": {
+        "金丹": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "元婴": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "化神": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "炼虚": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "合体": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "大乘": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "渡劫": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "金丹",
+        "元婴",
+        "化神",
+        "炼虚",
+        "合体",
+        "大乘",
+        "渡劫"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "minRealm",
+    "difficultyStep",
+    "floors",
+    "scaling",
+    "baselines"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1000000
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "floor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "elite",
+            "boss"
+          ]
+        },
+        "realmStage": {
+          "type": "string",
+          "const": "中期"
+        },
+        "milestone": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "C",
+                "B",
+                "A",
+                "S"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "floor",
+        "kind",
+        "realmStage",
+        "milestone"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "hp": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "output": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "hp",
+        "output"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "referencePhysicalDef": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "referenceMagicDef": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "hp": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "physicalAtk": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "magicAtk": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "physicalDef": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "magicDef": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "speed": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "hit": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "dodge": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "referencePhysicalDef",
+        "referenceMagicDef",
+        "hp",
+        "physicalAtk",
+        "magicAtk",
+        "physicalDef",
+        "magicDef",
+        "speed",
+        "hit",
+        "dodge"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

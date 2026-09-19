@@ -1,4 +1,7 @@
-const clientImportMetaEnv = import.meta.env as Record<string, string | undefined>;
+const clientImportMetaEnv = import.meta.env as Record<
+  string,
+  string | undefined
+>;
 
 function getOptionalEnv(...names: string[]): string | undefined {
   for (const name of names) {

@@ -11,7 +11,7 @@ import { evaluateFateContext, getInnSpiritStoneMultiplier } from '@shared/lib/fa
 import { ConditionService } from './ConditionService';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+import type { CultivatorDisplayInput } from '@shared/lib/cultivatorDisplay';
 
 export type InnRecoveryFacts = CultivatorDisplayInput &
   Pick<

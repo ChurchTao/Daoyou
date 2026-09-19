@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 2
+    },
+    "contentRevision": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "milestones": {
+      "type": "object",
+      "properties": {
+        "C": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "B": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "A": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "S": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "C",
+        "B",
+        "A",
+        "S"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "milestones"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "$ref": "#/$defs/__schema0"
+        },
+        "spiritStonesPerLevel": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "reputation": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "quantity",
+        "spiritStonesPerLevel",
+        "reputation"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

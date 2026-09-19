@@ -1,3 +1,16 @@
+import { db } from '@server/lib/drizzle/db';
+import { getValidatedJson, validateJson } from '@server/lib/hono/middleware';
+import { loadPlayerRetreatFacts } from '@server/lib/services/cultivator/CultivatorConditionFactsReader';
+import {
+  AttributeAllocationSchema,
+  type AttributeAllocationRequest,
+  type AttributePreviewData,
+} from '@shared/contracts/characterAttributes';
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  projectCharacterDisplay,
+} from '@shared/lib/cultivatorDisplay';
+
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -8,25 +21,20 @@ import {
   isValidRedeemCodeFormat,
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
-import {
-  AttributeResetServiceError,
-} from '@server/lib/services/AttributeResetService';
-import {
-  CreationProductCommandError,
-  toggleArtifactLoadout,
-} from '@server/lib/services/CreationProductApplicationService';
+import { AttributeResetServiceError } from '@server/lib/services/AttributeResetService';
+
 import {
   allocateCultivatorAttributes,
   reincarnateActiveCultivator,
   resetCultivatorAttributes,
   updateCultivatorTitle,
 } from '@server/lib/services/CultivatorProfileApplicationService';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { QiService } from '@server/lib/services/QiService';
 import {
   claimRedeemCode,
   RedeemClaimError,
 } from '@server/lib/services/RedeemCodeApplicationService';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -34,23 +42,9 @@ const TitleSchema = z.object({
   title: z.string().min(2).max(8).optional().nullable(),
 });
 
-const EquipSchema = z.object({
-  artifactId: z.string(),
-});
-
 const ClaimRedeemCodeSchema = z.object({
   code: z.string().trim().min(1).max(64),
 });
-
-const AttributeAllocationSchema = z.object({
-  attribute_model_version: z.literal(2),
-  vitality: z.number().int().min(0).default(0),
-  strength: z.number().int().min(0).default(0),
-  spirit: z.number().int().min(0).default(0),
-  endurance: z.number().int().min(0).default(0),
-  speed: z.number().int().min(0).default(0),
-  willpower: z.number().int().min(0).default(0),
-}).strict();
 
 function isUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -85,28 +79,9 @@ router.post('/active-reincarnate', requireActiveCultivatorRef(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-router.post('/equip', requireActiveCultivatorRef(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('activeCultivatorRef');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-
-  const { artifactId } = EquipSchema.parse(await c.req.json());
-  try {
-    const committed = await toggleArtifactLoadout({
-      userId: user.id,
-      cultivatorId: cultivator.cultivatorId,
-      artifactId,
-    });
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    if (error instanceof CreationProductCommandError) {
-      return c.json({ error: error.message }, error.status);
-    }
-    throw error;
-  }
-});
+router.post('/equip', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '旧产物装配已停用' }, 410),
+);
 
 router.get('/qi/logs', requireActiveCultivatorRef(), async (c) => {
   const cultivator = c.get('activeCultivatorRef');
@@ -116,7 +91,10 @@ router.get('/qi/logs', requireActiveCultivatorRef(), async (c) => {
 
   const page = parsePositiveInt(c.req.query('page'), 1);
   const pageSize = Math.min(100, parsePositiveInt(c.req.query('pageSize'), 20));
-  const data = await QiService.listLogs(cultivator.cultivatorId, { page, pageSize });
+  const data = await QiService.listLogs(cultivator.cultivatorId, {
+    page,
+    pageSize,
+  });
   return c.json({ success: true, data });
 });
 
@@ -136,6 +114,46 @@ router.post('/title', requireActiveCultivatorRef(), async (c) => {
 
   return c.json(toPlayerStateMutationResponse(committed));
 });
+
+router.post(
+  '/attributes/preview',
+  requireActiveCultivatorRef(),
+  validateJson(AttributeAllocationSchema),
+  async (c) => {
+    const actor = c.get('activeCultivatorRef')!;
+    const delta = getValidatedJson<AttributeAllocationRequest>(c);
+    const result = await db.transaction(
+      async (tx) => {
+        const facts = await loadPlayerRetreatFacts(
+          actor.userId,
+          actor.cultivatorId,
+          tx,
+        );
+        if (!facts) return { error: '角色不存在', status: 404 as const };
+        const keys = Object.keys(
+          CHARACTER_ATTRIBUTE_LABELS,
+        ) as (keyof typeof facts.attributes)[];
+        const spent = keys.reduce((sum, key) => sum + delta[key], 0);
+        if (spent > facts.unallocated_attribute_points)
+          return { error: '未分配属性点不足', status: 400 as const };
+        const attributes = { ...facts.attributes };
+        for (const key of keys) attributes[key] += delta[key];
+        const data: AttributePreviewData = {
+          current: facts.combatV6ResourceAuthority.attrs,
+          preview: projectCharacterDisplay(
+            { ...facts, attributes },
+            facts.combatV6ResourceAuthority.build,
+          ),
+        };
+        return { data };
+      },
+      { isolationLevel: 'repeatable read', accessMode: 'read only' },
+    );
+    if ('error' in result)
+      return c.json({ error: result.error }, result.status);
+    return c.json({ success: true, data: result.data });
+  },
+);
 
 router.post('/attributes/allocate', requireActiveCultivatorRef(), async (c) => {
   const user = c.get('user');

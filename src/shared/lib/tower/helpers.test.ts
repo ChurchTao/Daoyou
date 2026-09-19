@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import {
-  buildTowerEnemyVariantSeed,
   buildTowerBlessingChoices,
+  buildTowerEnemyVariantSeed,
   isTowerRealmEligible,
   packTowerLeaderboardScore,
   resolveTowerDifficulty,
   resolveTowerFloorKind,
   resolveTowerMilestoneTier,
   resolveTowerRealmStage,
-  TOWER_MAX_FLOOR,
   TOWER_ELIGIBLE_REALMS,
+  TOWER_MAX_FLOOR,
   unpackTowerLeaderboardScore,
 } from './helpers';
 import { getTowerBlessingEffectPreview } from './presentation';
@@ -43,11 +42,11 @@ describe('tower helpers', () => {
     expect(resolveTowerFloorKind(10)).toBe('boss');
     expect(resolveTowerFloorKind(20)).toBe('boss');
 
-    expect(resolveTowerRealmStage(1)).toBe('初期');
+    expect(resolveTowerRealmStage(1)).toBe('中期');
     expect(resolveTowerRealmStage(4)).toBe('中期');
-    expect(resolveTowerRealmStage(7)).toBe('后期');
-    expect(resolveTowerRealmStage(10)).toBe('圆满');
-    expect(resolveTowerRealmStage(11)).toBe('初期');
+    expect(resolveTowerRealmStage(7)).toBe('中期');
+    expect(resolveTowerRealmStage(10)).toBe('中期');
+    expect(resolveTowerRealmStage(11)).toBe('中期');
   });
 
   it('maps milestone tiers every five floors', () => {
@@ -58,49 +57,33 @@ describe('tower helpers', () => {
     expect(resolveTowerMilestoneTier(12)).toBeNull();
   });
 
-  it('forces recovery blessings when hp or mp is low', () => {
-    const choices = buildTowerBlessingChoices({
+  it('offers only useful uncapped blessings at the intended cadence', () => {
+    const args = {
       runId: 'run-1',
-      clearedFloor: 18,
-      blessings: {
-        vitality_surge: 5,
-      },
-      currentHp: 40,
-      maxHp: 100,
-      currentMp: 20,
-      maxMp: 100,
-    });
-
-    expect(choices.map((choice) => choice.id)).toContain('breathing_technique');
-    expect(choices.map((choice) => choice.id)).toContain('meridian_cycle');
-    expect(choices.length).toBeLessThanOrEqual(3);
+      clearedFloor: 0,
+      blessings: { physical_power: 3 },
+      hasBeasts: false,
+    };
+    const choices = buildTowerBlessingChoices(args);
+    expect(choices).toHaveLength(3);
+    expect(choices.map((c) => c.id)).not.toContain('physical_power');
+    expect(choices.map((c) => c.id)).not.toContain('beast_power');
+    expect(buildTowerBlessingChoices({ ...args, clearedFloor: 1 })).toEqual([]);
+    expect(buildTowerBlessingChoices({ ...args, clearedFloor: 20 })).toEqual(
+      [],
+    );
+    expect(buildTowerBlessingChoices(args)).toEqual(choices);
   });
-
-  it('projects blessing effect previews with concrete recovery values', () => {
+  it('previews additive combat attributes', () => {
     expect(
       getTowerBlessingEffectPreview({
-        blessingId: 'breathing_technique',
+        blessingId: 'physical_power',
         currentStacks: 2,
         nextStacks: 3,
-        currentHp: 120,
-        maxHp: 320,
       }),
-    ).toEqual({
-      currentLabel: '战前回复 20% 缺失气血（约 40 点）',
-      nextLabel: '战前回复 30% 缺失气血（约 60 点）',
-      formulaLabel: '公式：每层战前回复 10% 缺失气血。 上限 3 层。',
-    });
-
-    expect(
-      getTowerBlessingEffectPreview({
-        blessingId: 'balanced_dao',
-        currentStacks: 1,
-        nextStacks: 2,
-      }),
-    ).toEqual({
-      currentLabel: '六维主属性 +5%',
-      nextLabel: '六维主属性 +10%',
-      formulaLabel: '公式：每层六维主属性同步 +5%。 上限 3 层。',
+    ).toMatchObject({
+      currentLabel: '人物物理攻击 +16%',
+      nextLabel: '人物物理攻击 +24%',
     });
   });
 
@@ -139,28 +122,5 @@ describe('tower helpers', () => {
         floor: 99,
       }),
     ).toBe('tower:2026-W22@Asia/Shanghai:金丹:20');
-  });
-
-  it('uses variantSeed to create distinct enemy variants for the same realm floor', () => {
-    const generator = new EnemyGenerator();
-    const base = {
-      realm: '金丹' as const,
-      realmStage: '初期' as const,
-      race: '人族' as const,
-      difficulty: 5,
-      isBoss: false,
-    };
-
-    const first = generator.buildDraft({
-      ...base,
-      variantSeed: 'tower:2026-W22@Asia/Shanghai:金丹:1',
-    });
-    const second = generator.buildDraft({
-      ...base,
-      variantSeed: 'tower:2026-W23@Asia/Shanghai:金丹:1',
-    });
-
-    expect(first.cultivator.id).not.toBe(second.cultivator.id);
-    expect(first.balance.variantKey).not.toBe(second.balance.variantKey);
   });
 });

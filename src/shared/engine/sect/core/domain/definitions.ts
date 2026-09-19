@@ -1,8 +1,3 @@
-import type { AbilityCostConfig } from '@shared/engine/battle-v5/core/configs';
-import type {
-  AttributeType,
-  ModifierType,
-} from '@shared/engine/battle-v5/core/types';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 
 export type PlayerRaceId = 'human';
@@ -29,26 +24,6 @@ export interface SectTrainingCost {
   spiritStones: number;
 }
 
-export type SectMethodGrowthCurve = 'early' | 'balanced' | 'late';
-export type SectMethodEffectCategory = 'damage' | 'heal' | 'shield' | 'status';
-
-export interface SectMethodGrowthMilestone {
-  level: number;
-  bonus: number;
-}
-
-export interface SectMethodGrowthProfile {
-  curve: SectMethodGrowthCurve;
-  panelModifier?: {
-    attrType: AttributeType;
-    type: ModifierType;
-    maxValue: number;
-  };
-  effects: Record<SectMethodEffectCategory, number>;
-  durationMilestones?: SectMethodGrowthMilestone[];
-  countMilestones?: SectMethodGrowthMilestone[];
-}
-
 export interface SectRequirementDefinition {
   minRealm?: RealmType;
   minRealmStage?: RealmStage;
@@ -61,7 +36,6 @@ export interface SectHeartMethodDefinition {
   name: string;
   description: string;
   isPrimary?: boolean;
-  growthProfile: SectMethodGrowthProfile;
 }
 
 interface SectAbilityDefinitionBase {
@@ -77,16 +51,10 @@ interface SectAbilityDefinitionBase {
 
 export interface SectDefaultAbilityDefinition extends SectAbilityDefinitionBase {
   kind: 'default';
-  mpCost?: number;
-  costs?: AbilityCostConfig[];
-  cooldown: number;
 }
 
 export interface SectActiveAbilityDefinition extends SectAbilityDefinitionBase {
   kind: 'active';
-  mpCost?: number;
-  costs?: AbilityCostConfig[];
-  cooldown: number;
 }
 
 export interface SectPassiveAbilityDefinition extends SectAbilityDefinitionBase {
@@ -171,8 +139,6 @@ export interface SectDefinition {
   description: string;
   raceIds: PlayerRaceId[];
   configVersion: number;
-  foundationPassiveId: SectAbilityId;
-  combatResource: { id: string; name: string; icon?: string; max: number };
   methods: SectHeartMethodDefinition[];
   abilities: SectAbilityDefinition[];
   paths: SectPathDefinition[];

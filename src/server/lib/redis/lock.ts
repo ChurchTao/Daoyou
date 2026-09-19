@@ -14,12 +14,12 @@ const DEFAULT_LOCK_TIMEOUT_MS = 10_000;
 const DEFAULT_LOCK_DELAY_MS = 50;
 
 export const redisLockKeys = {
+  divination: (cultivatorId: string) => `lock:divination:${cultivatorId}`,
   cultivatorCreation: (userId: string) =>
     `lock:user:cultivator-creation:${userId}`,
   cultivatorMutation: (cultivatorId: string) =>
     `lock:cultivator:mutation:${cultivatorId}`,
   auctionListing: (listingId: string) => `lock:auction:listing:${listingId}`,
-  betBattle: (battleId: string) => `lock:bet-battle:${battleId}`,
   battleMatch: (matchId: string) => `lock:battle-match:${matchId}`,
   cron: (jobName: string) => `lock:cron:${jobName}`,
   marketGeneration: (nodeId: string, layer: number | string, cycle: string) =>

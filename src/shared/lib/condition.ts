@@ -84,20 +84,7 @@ function normalizeProjectedResourceCurrent(
     typeof point?.current === 'number' && Number.isFinite(point.current)
       ? Math.floor(point.current)
       : runtimeMax;
-  const storedMax =
-    typeof point?.max === 'number' &&
-    Number.isFinite(point.max) &&
-    point.max >= 0
-      ? Math.floor(point.max)
-      : undefined;
-  const shouldPreserveFullState =
-    storedMax !== undefined &&
-    runtimeMax > storedMax &&
-    rawCurrent >= storedMax;
-
-  return shouldPreserveFullState
-    ? runtimeMax
-    : clamp(rawCurrent, 0, runtimeMax);
+  return clamp(rawCurrent, 0, runtimeMax);
 }
 
 function getDurationExpiresAt(duration: ConditionStatusDuration): number | null {

@@ -24,7 +24,7 @@ export function BreakthroughChanceDetails({
         </div>
         <div>
           <p className="text-ink-secondary text-xs leading-5">最终成功率</p>
-          <p className="text-emerald-800 font-mono font-semibold">
+          <p className="font-mono font-semibold text-emerald-800">
             {formatPercent(presentation.finalChance)}
           </p>
         </div>

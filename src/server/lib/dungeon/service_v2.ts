@@ -2,20 +2,15 @@ import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
 import { renderPrompt } from '@server/lib/prompts';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository';
-import type { BattleRecordV3 } from '@server/lib/services/battleResult';
-import {
-  loadCultivatorCombatInput,
-  loadCultivatorDungeonPromptFacts,
-} from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
-import { getPaginatedInventoryByType } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
+import { grantInventory } from '@server/lib/services/InventoryService';
+import { assertCombatV6MutationAllowed } from '@server/lib/services/combat-v6/CombatV6MutationGuard';
+import { readCraftReadinessFacts } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { getPlayerIdentityCultivatorById } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
 import { generateAiObject } from '@server/utils/aiClient';
 import { stableCompactStringify } from '@server/utils/llmPayload';
 import { getRealmStageNaturalAttributeValue } from '@shared/config/realmProgression';
-import type { CultivatorDisplayInput } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
 import { TYPE_DESCRIPTIONS } from '@shared/engine/material/creation/config';
 import type {
   ResourceOperation,
@@ -28,24 +23,19 @@ import {
   calculateDungeonStatLoss,
   DUNGEON_LIFESPAN_COST_MAX,
 } from '@shared/lib/dungeon/costPolicy';
-import {
-  buildDungeonPerformanceTags,
-  normalizeDungeonRewardTier,
-  type DungeonEndDisposition,
-} from '@shared/lib/dungeon/settlementPolicy';
 import type { SatelliteNode } from '@shared/lib/game/mapSystem';
 import {
   canChallengeDungeonRealm,
-  clampDungeonEnemyRealmStage,
   getMapNode,
   isSatelliteNode,
   resolveDungeonMapConfig,
 } from '@shared/lib/game/mapSystem';
+import {
+  appendDungeonReward,
+  dungeonRewardItemName,
+} from '@shared/rewards/dungeon';
 import type { CultivatorCondition } from '@shared/types/condition';
 import {
-  MaterialType,
-  Quality,
-  QUALITY_VALUES,
   REALM_STAGE_VALUES,
   REALM_VALUES,
   RealmType,
@@ -54,30 +44,35 @@ import {
 import type { Cultivator } from '@shared/types/cultivator';
 import { randomUUID } from 'crypto';
 import { and, desc, eq, isNull, ne } from 'drizzle-orm';
+import { z } from 'zod';
 import { getExecutor, type DbTransaction } from '../drizzle/db';
 import { dungeonHistories, dungeonRuns } from '../drizzle/schema';
 import { redis } from '../redis';
-import { parseRedisJson } from '../redis/json';
 import {
   isRedisLockContention,
   redisLockKeys,
   withRedisLock,
   type RedisLeaseContext,
 } from '../redis/lock';
-import { executePersistentWorldBattle } from '../services/BattleStateCoordinator';
 import { ConditionService } from '../services/ConditionService';
 import { QiService } from '../services/QiService';
-import { ServerEnemyCopyProvider } from '../services/ServerEnemyCopyProvider';
 import {
-  buildDungeonRoundLlmContext,
-  buildDungeonSettlementLlmContext,
-} from './llmContext';
+  beginDungeonBattle,
+  dungeonLevel,
+  dungeonPlayer,
+  getDungeonBattle,
+  grantDungeonBeastExperience,
+  prepareDungeonEncounter,
+  type DungeonBattlePayload,
+  type DungeonEncounterPayload,
+} from './combatV6';
+import { applyDungeonCosts, validateDungeonCosts } from './costs';
+import { buildDungeonRoundLlmContext } from './llmContext';
 import type { RewardBlueprint } from './reward';
-import { RewardFactory } from './reward';
+import { resolveDungeonReward } from './rewards';
+
 import {
-  BattleSession,
   createDungeonRoundLlmSchema,
-  createDungeonSettlementLlmSchema,
   DungeonOptionCost,
   DungeonPendingAction,
   DungeonRecoverAction,
@@ -85,23 +80,13 @@ import {
   DungeonRoundLlmContext,
   DungeonRoundSchema,
   DungeonSettlement,
-  DungeonSettlementGeneratedSchema,
   DungeonSettlementLlmContext,
-  DungeonSettlementSchema,
   DungeonState,
-  PlayerInfo,
 } from './types';
-
-const dungeonEnemyGenerator = new EnemyGenerator({
-  copyProvider: new ServerEnemyCopyProvider({
-    enabled: process.env.NODE_ENV !== 'test',
-  }),
-});
 
 const REDIS_TTL = 3600; // 1 hour expiration for active sessions
 const FLOW_LOCK_TTL_SECONDS = 180;
 const RUN_TERMINAL_STATUSES = new Set(['FINISHED']);
-const DUNGEON_REWARD_BLUEPRINT_LIMIT = 6;
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
@@ -149,6 +134,7 @@ type DungeonSettlementOptions = {
 };
 
 type DungeonFlowOptions = {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   deferPersistence?: boolean;
   lease?: RedisLeaseContext;
 };
@@ -224,103 +210,26 @@ function toDungeonPersistenceSettlement(
   };
 }
 
-function rewardBlueprintKey(reward: RewardBlueprint): string {
-  return [
-    reward.name?.trim() ?? '',
-    reward.material_type ?? '',
-    reward.element ?? '',
-    reward.description?.trim() ?? '',
-  ].join('|');
-}
-
-function selectMostValuableRewardBlueprints(
-  rewards: RewardBlueprint[] | undefined,
-  limit: number,
-): RewardBlueprint[] {
-  if (!rewards?.length || limit <= 0) return [];
-  if (rewards.length <= limit) return rewards;
-
-  return rewards
-    .map((reward, index) => ({
-      reward,
-      index,
-      score:
-        typeof reward.reward_score === 'number' &&
-        Number.isFinite(reward.reward_score)
-          ? reward.reward_score
-          : 0,
-    }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .slice(0, limit)
-    .sort((a, b) => a.index - b.index)
-    .map((entry) => entry.reward);
-}
-
-function appendRoundRewards(
+async function appendRoundRewards(
   state: DungeonState,
-  acquiredItems: RewardBlueprint[] | undefined,
-): RewardBlueprint[] {
-  const remainingSlots = Math.max(
-    0,
-    DUNGEON_REWARD_BLUEPRINT_LIMIT - (state.accumulatedRewards?.length ?? 0),
+): Promise<RewardBlueprint[]> {
+  if (state.rewardSeed === undefined) throw new Error('旧秘境会话需维护处理');
+  const reward = await resolveDungeonReward(
+    state.rewardSeed,
+    `exploration:${state.currentRound}`,
+    'exploration',
+    dungeonLevel(state.mapNodeId),
+    state.v6Rewards,
   );
-  const acceptedItems = (acquiredItems ?? []).slice(0, remainingSlots);
-  state.currentRoundItems = acceptedItems;
-  if (acceptedItems.length) {
-    if (!state.accumulatedRewards) state.accumulatedRewards = [];
-    state.accumulatedRewards.push(...acceptedItems);
-  }
-  return acceptedItems;
-}
-
-function normalizeSettlementRewards(
-  settlement: DungeonSettlement,
-  accumulatedRewards: RewardBlueprint[],
-  args: {
-    endDisposition: DungeonEndDisposition;
-    dangerScore: number;
-    committedCostCount: number;
-  },
-): DungeonSettlement {
-  const inheritedRewards = selectMostValuableRewardBlueprints(
-    accumulatedRewards,
-    DUNGEON_REWARD_BLUEPRINT_LIMIT,
-  );
-  const inheritedKeys = new Set(inheritedRewards.map(rewardBlueprintKey));
-  const extraRewards = settlement.settlement.reward_blueprints.filter(
-    (reward) => !inheritedKeys.has(rewardBlueprintKey(reward)),
-  );
-  const acceptedExtraRewards =
-    settlement.settlement.reward_tier === 'C' ||
-    settlement.settlement.reward_tier === 'D'
-      ? []
-      : extraRewards;
-  const reward_blueprints = [
-    ...inheritedRewards,
-    ...acceptedExtraRewards,
-  ].slice(0, DUNGEON_REWARD_BLUEPRINT_LIMIT);
-  const reward_tier = normalizeDungeonRewardTier({
-    proposedTier: settlement.settlement.reward_tier,
-    totalMaterialCount: reward_blueprints.length,
-    endDisposition: args.endDisposition,
-  });
-  const performance_tags = buildDungeonPerformanceTags({
-    tier: reward_tier,
-    dangerScore: args.dangerScore,
-    materialCount: reward_blueprints.length,
-    committedCostCount: args.committedCostCount,
-    endDisposition: args.endDisposition,
-  });
-
-  return DungeonSettlementSchema.parse({
-    ...settlement,
-    settlement: {
-      ...settlement.settlement,
-      reward_tier,
-      reward_blueprints,
-      performance_tags,
-    },
-  });
+  const previous = state.v6Rewards ?? [];
+  state.v6Rewards = appendDungeonReward(previous, reward);
+  if (previous === state.v6Rewards) return [];
+  const items = reward.items.map((item) => ({
+    name: dungeonRewardItemName(item),
+  }));
+  state.accumulatedRewards.push(...items);
+  state.currentRoundItems = items;
+  return items;
 }
 
 const DEFAULT_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
@@ -397,14 +306,7 @@ function getDungeonKey(cultivatorId: string) {
   return `dungeon:active:${cultivatorId}`;
 }
 
-function getDungeonBattleKey(battleId: string) {
-  return `dungeon:battle:${battleId}`;
-}
-
-interface DungeonBattleCachePayload {
-  session: BattleSession;
-  enemyObject: Cultivator;
-}
+type DungeonBattleCachePayload = DungeonBattlePayload | DungeonEncounterPayload;
 
 function isActiveRunStatus(status: string | null | undefined) {
   return Boolean(status && !RUN_TERMINAL_STATUSES.has(status));
@@ -590,6 +492,7 @@ export class DungeonService {
     task: () => Promise<T>,
     lease?: RedisLeaseContext,
   ): Promise<T> {
+    await assertCombatV6MutationAllowed(cultivatorId, 'dungeon');
     if (lease) {
       lease.assertHeld();
       const result = await task();
@@ -653,6 +556,7 @@ export class DungeonService {
       choiceId: action.choiceId,
       choiceText: action.choiceText,
       costs: cloneCosts(action.costs),
+      materialSelections: action.materialSelections,
       committedAt: new Date().toISOString(),
     });
     state.summary_of_sacrifice = state.costLedger.flatMap((entry) =>
@@ -680,26 +584,29 @@ export class DungeonService {
       return null;
     }
 
-    const bundle = await loadCultivatorCombatInput(cultivatorId, tx);
-    if (!bundle?.cultivator) {
-      throw new Error('未找到修真者数据');
-    }
-
-    const nextCondition = ConditionService.applyExternalResourceLoss(
-      bundle.cultivator,
-      bundle.cultivator.condition,
-      {
-        hpPercent,
-        mpPercent,
-      },
-    );
+    const { player, caps } = await dungeonPlayer(cultivatorId, tx);
+    const condition = player.cultivator.condition!;
+    const nextCondition = ConditionService.applyCombatV6Resources(condition, {
+      ...caps,
+      hp: Math.max(
+        1,
+        condition.resources.hp.current - Math.floor(caps.maxHp * hpPercent),
+      ),
+      mp: Math.max(
+        0,
+        condition.resources.mp.current - Math.floor(caps.maxMp * mpPercent),
+      ),
+    });
     await updateCultivator(cultivatorId, { condition: nextCondition }, tx);
     return nextCondition;
   }
 
   private previewOptionResourceLoss(
     costs: DungeonOptionCost[],
-    cultivator: CultivatorDisplayInput,
+    cultivator: {
+      condition?: CultivatorCondition;
+      caps: { maxHp: number; maxMp: number };
+    },
   ) {
     const hpPercent = costs
       .filter((cost) => cost.type === 'hp_loss')
@@ -712,14 +619,18 @@ export class DungeonService {
       return;
     }
 
-    const preview = ConditionService.previewExternalResourceLoss(
-      cultivator,
-      cultivator.condition,
-      {
-        hpPercent,
-        mpPercent,
-      },
-    );
+    const preview = {
+      rawHpLoss: Math.floor(cultivator.caps.maxHp * hpPercent),
+      rawMpLoss: Math.floor(cultivator.caps.maxMp * mpPercent),
+      hpLoss: Math.min(
+        Math.max(0, (cultivator.condition?.resources.hp.current ?? 1) - 1),
+        Math.floor(cultivator.caps.maxHp * hpPercent),
+      ),
+      mpLoss: Math.min(
+        cultivator.condition?.resources.mp.current ?? 0,
+        Math.floor(cultivator.caps.maxMp * mpPercent),
+      ),
+    };
 
     for (const cost of costs) {
       if (cost.type === 'hp_loss') {
@@ -751,11 +662,8 @@ export class DungeonService {
       return roundData;
     }
 
-    const bundle = await loadCultivatorCombatInput(cultivatorId);
-    const cultivator = bundle?.cultivator;
-    if (!cultivator) {
-      return roundData;
-    }
+    const { player, caps } = await dungeonPlayer(cultivatorId);
+    const cultivator = { condition: player.cultivator.condition, caps };
 
     roundData.interaction.options = roundData.interaction.options.map(
       (option) => {
@@ -770,67 +678,6 @@ export class DungeonService {
     );
 
     return roundData;
-  }
-
-  private async getBattleContext(cultivatorId: string, battleId: string) {
-    const state = await this.getState(cultivatorId);
-    if (!state || state.activeBattleId !== battleId) {
-      throw new Error('当前没有匹配的遭遇战');
-    }
-
-    const battleKey = getDungeonBattleKey(battleId);
-    let battlePayload = parseRedisJson<DungeonBattleCachePayload>(
-      await redis.get(battleKey),
-      battleKey,
-    );
-
-    if (!battlePayload?.session || !battlePayload.enemyObject) {
-      const run = await this.loadActiveRun(cultivatorId);
-      const persistedPayload = run?.battlePayload as
-        DungeonBattleCachePayload | null | undefined;
-      if (
-        persistedPayload?.session?.battleId === battleId &&
-        persistedPayload.enemyObject
-      ) {
-        await redis.set(
-          battleKey,
-          JSON.stringify(persistedPayload),
-          'EX',
-          REDIS_TTL,
-        );
-        battlePayload = persistedPayload;
-      }
-    }
-
-    if (!battlePayload?.session || !battlePayload.enemyObject) {
-      await this.markRecoverable(
-        cultivatorId,
-        state,
-        '遭遇战数据不存在或已失效',
-        ['safe_retreat', 'force_quit'],
-      );
-      throw new Error('遭遇战数据不存在或已失效，可选择安全撤退或放弃副本');
-    }
-
-    if (battlePayload.session.cultivatorId !== cultivatorId) {
-      throw new Error('无权访问该遭遇战');
-    }
-
-    normalizeLegacySixAttributes(
-      battlePayload.enemyObject.attributes as unknown as Record<
-        string,
-        unknown
-      >,
-      battlePayload.enemyObject.realm,
-      battlePayload.enemyObject.realm_stage,
-    );
-
-    return {
-      state,
-      battleKey,
-      session: battlePayload.session,
-      enemyObject: battlePayload.enemyObject,
-    };
   }
 
   /**
@@ -930,6 +777,8 @@ export class DungeonService {
       // 2. 初始状态
       const state: DungeonState = {
         ...context,
+        rewardSeed: Math.floor(Math.random() * 0x100000000),
+        v6Rewards: [],
         mapNodeId, // 保存地图节点ID
         currentRound: 1,
         maxRounds: 5, // 建议固定或根据地图设定
@@ -954,7 +803,7 @@ export class DungeonService {
       );
 
       // 4. 更新历史并存入 Redis
-      const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+      const acceptedItems = await appendRoundRewards(state);
       const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
       state.history.push({
         round: 1,
@@ -985,6 +834,12 @@ export class DungeonService {
             if (!qiActionInstanceId) {
               throw new Error('副本灵气预扣标识缺失');
             }
+            const { player } = await dungeonPlayer(cultivatorId, tx);
+            await updateCultivator(
+              cultivatorId,
+              { condition: player.cultivator.condition },
+              tx,
+            );
             const reservation = await QiService.reserveQi({
               cultivatorId,
               action: 'dungeon_start',
@@ -1004,6 +859,7 @@ export class DungeonService {
               tx,
             });
             return {
+              condition: player.cultivator.condition,
               currency: {
                 qi: reservation.qiAfter,
                 qiLastRefreshedAt: reservation.qiLastRefreshedAt,
@@ -1064,6 +920,19 @@ export class DungeonService {
     if (this.hasCommittedAction(state, actionId)) {
       return { actionId, state, isFinished: state.isFinished };
     }
+    if (
+      state.status !== 'EXPLORING' &&
+      !(
+        state.status === 'RECOVERABLE_ERROR' &&
+        state.pendingAction?.actionId === actionId
+      )
+    ) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '探索状态已变化，请刷新',
+        409,
+      );
+    }
 
     // 1. 校验选项
     const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
@@ -1072,80 +941,51 @@ export class DungeonService {
     }
 
     const actionCosts = this.normalizeOptionCosts(chosenOption);
+    const materialSelections = options.materialSelections ?? [];
+    if (
+      state.pendingAction?.actionId === actionId &&
+      (state.pendingAction.choiceId !== choiceId ||
+        stableCompactStringify(state.pendingAction.materialSelections ?? []) !==
+          stableCompactStringify(materialSelections))
+    ) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '原行动的提交物品已固定，请沿用原选择重试',
+        409,
+      );
+    }
 
     const consumeActionCostsOrThrow = async (dryRun = false) => {
-      if (actionCosts.length === 0) return;
-
       // 获取 userId
       const userId = await findActiveCultivatorOwnerId(cultivatorId);
       if (!userId) {
         throw new Error('无法获取修真者所属用户');
       }
 
-      // 动态匹配材料
-      for (const cost of actionCosts) {
-        if (cost.type === 'material' && !cost.name) {
-          const reqType = cost.required_type as MaterialType;
-          const reqQual = cost.required_quality as Quality;
-
-          const requiredIndex = QUALITY_VALUES.indexOf(reqQual || '凡品');
-          const validRanks = QUALITY_VALUES.slice(Math.max(0, requiredIndex));
-
-          const matchPage = await getPaginatedInventoryByType(
-            userId,
+      if (dryRun)
+        return validateDungeonCosts(
+          userId,
+          cultivatorId,
+          actionCosts,
+          materialSelections,
+        );
+      const result = await getExecutor().transaction(async (tx) => {
+        const applied = await applyDungeonCosts(
+          userId,
+          cultivatorId,
+          actionCosts,
+          tx,
+          materialSelections,
+        );
+        if (applied.success) {
+          await this.applyConditionResourceLosses(
             cultivatorId,
-            {
-              type: 'materials',
-              page: 1,
-              pageSize: 10, // 获取前10个符合条件的材料
-              materialTypes: reqType ? [reqType] : undefined,
-              materialRanks:
-                validRanks.length > 0 ? (validRanks as Quality[]) : undefined,
-              materialSortBy: 'rank',
-              materialSortOrder: 'asc',
-            },
+            actionCosts,
+            tx,
           );
-
-          if (matchPage.items.length === 0) {
-            const typeStr = reqType
-              ? TYPE_DESCRIPTIONS[reqType] || reqType
-              : '材料';
-            const qualStr = reqQual ? reqQual + '以上的' : '';
-            throw new Error(
-              `储物袋中没有符合条件的材料（需要：${qualStr}${typeStr}），请重新选择或退出副本。`,
-            );
-          }
-
-          // 选择第一个符合条件的材料
-          cost.name = matchPage.items[0].name;
         }
-      }
-
-      const costs = actionCosts as ResourceOperation[];
-      const result = dryRun
-        ? await resourceEngine
-            .validate(userId, cultivatorId, costs, getExecutor())
-            .then((validation): ResourceOperationResult => ({
-              success: validation.valid,
-              operations: costs,
-              errors: validation.errors,
-            }))
-        : await getExecutor().transaction(async (tx) => {
-            const applied = await resourceEngine.applyInTransaction({
-              userId,
-              cultivatorId,
-              consume: costs,
-              tx,
-            });
-            if (applied.success) {
-              await this.applyConditionResourceLosses(
-                cultivatorId,
-                actionCosts,
-                tx,
-              );
-            }
-            return applied;
-          });
+        return applied;
+      });
 
       if (!result.success) {
         throw new Error(result.errors?.join('; ') || '资源消耗失败');
@@ -1161,6 +1001,7 @@ export class DungeonService {
       round: state.currentRound,
       status: 'pending',
       costs: actionCosts,
+      materialSelections,
       createdAt: new Date().toISOString(),
     };
     state.pendingAction = pendingAction;
@@ -1170,16 +1011,9 @@ export class DungeonService {
     state.history[state.history.length - 1].choice = chosenOption?.text;
     const battleCost = actionCosts.find((c) => c.type === 'battle');
     if (battleCost) {
-      let session: BattleSession & { enemyObject: Cultivator };
+      let battlePayload: DungeonEncounterPayload;
       try {
-        session = await this.createBattleSession(
-          cultivatorId,
-          getDungeonKey(cultivatorId),
-          battleCost,
-          state.playerInfo,
-          state,
-          options,
-        );
+        battlePayload = await prepareDungeonEncounter(state);
       } catch (error) {
         const recoverable = await this.markRecoverable(
           cultivatorId,
@@ -1218,31 +1052,27 @@ export class DungeonService {
       state.pendingAction = undefined;
       state.costPreview = undefined;
       state.status = 'WAITING_BATTLE';
-      state.activeBattleId = session.battleId;
-      const { enemyObject, ...battleSession } = session;
-      const battlePayload = {
-        session: battleSession,
-        enemyObject,
-      };
+      state.encounter = battlePayload.preview;
+      state.currentOptions = [];
 
       if (options.deferPersistence) {
         return {
           actionId,
           state,
-          type: 'TRIGGER_BATTLE',
-          battleId: session.battleId,
+          type: 'PREPARE_BATTLE',
           isFinished: false,
           persist: async (tx: DbTransaction) => {
             const userId = await findActiveCultivatorOwnerId(cultivatorId);
             if (!userId) {
               throw new Error('无法获取修真者所属用户');
             }
-            const consumeResult = await resourceEngine.applyInTransaction({
+            const consumeResult = await applyDungeonCosts(
               userId,
               cultivatorId,
-              consume: actionCosts as ResourceOperation[],
+              actionCosts,
               tx,
-            });
+              materialSelections,
+            );
             if (!consumeResult.success) {
               throw new Error(
                 consumeResult.errors?.join('; ') || '资源消耗失败',
@@ -1267,12 +1097,6 @@ export class DungeonService {
           },
           afterCommit: async () => {
             await this.saveRedisState(cultivatorId, state);
-            await redis.set(
-              getDungeonBattleKey(session.battleId),
-              JSON.stringify(battlePayload),
-              'EX',
-              3600,
-            );
           },
         };
       }
@@ -1282,8 +1106,7 @@ export class DungeonService {
       return {
         actionId,
         state,
-        type: 'TRIGGER_BATTLE',
-        battleId: session.battleId,
+        type: 'PREPARE_BATTLE',
         isFinished: false,
       };
     }
@@ -1364,7 +1187,7 @@ export class DungeonService {
     state.costPreview = undefined;
 
     // 记录过程战利品
-    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+    const acceptedItems = await appendRoundRewards(state);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     // 4. 更新状态
@@ -1388,12 +1211,13 @@ export class DungeonService {
           if (!userId) {
             throw new Error('无法获取修真者所属用户');
           }
-          const consumeResult = await resourceEngine.applyInTransaction({
+          const consumeResult = await applyDungeonCosts(
             userId,
             cultivatorId,
-            consume: actionCosts as ResourceOperation[],
+            actionCosts,
             tx,
-          });
+            materialSelections,
+          );
           if (!consumeResult.success) {
             throw new Error(consumeResult.errors?.join('; ') || '资源消耗失败');
           }
@@ -1419,185 +1243,43 @@ export class DungeonService {
     return { actionId, state, roundData, isFinished: false };
   }
 
-  // --- Battle Integration ---
-
-  /* Removed old generateEnemy in favor of enemyGenerator */
-
-  private async createBattleSession(
+  async beginBattle(
     cultivatorId: string,
-    dungeonStateKey: string,
-    battleCost: DungeonOptionCost,
-    playerInfo: PlayerInfo,
-    dungeonState: DungeonState,
+    encounterId: string,
     options: DungeonFlowOptions = {},
-  ): Promise<BattleSession & { enemyObject: Cultivator }> {
-    console.log('[createBattleSession]', battleCost);
-    const battleId = randomUUID();
-
-    // 获取地图节点的境界要求
-    const mapNode = getMapNode(dungeonState.mapNodeId);
-    if (!mapNode || !('realm_requirement' in mapNode)) {
-      throw new Error('Invalid map node or missing realm_requirement');
-    }
-    const realmRequirement = (mapNode as { realm_requirement: string })
-      .realm_requirement;
-    const mapConfig = resolveDungeonMapConfig(mapNode);
-    const metadata = battleCost.metadata;
-    if (!metadata?.race || !metadata.realm_stage) {
-      throw new Error('Battle cost metadata must include race and realm_stage');
-    }
-
-    const enemyDifficulty = mapConfig.enemyDifficulty;
-    const enemyRealmStage = clampDungeonEnemyRealmStage(
-      metadata.realm_stage,
-      mapConfig,
-    );
-
-    const draft = await dungeonEnemyGenerator.enrichNarrative(
-      dungeonEnemyGenerator.buildDraft({
-        realm: realmRequirement as import('@shared/types/constants').RealmType,
-        realmStage: enemyRealmStage,
-        race: metadata.race,
-        difficulty: enemyDifficulty,
-        name: metadata.enemy_name,
-        background: metadata.background,
-        description: metadata.description,
-        isBoss:
-          mapConfig.difficultyTier === 'boss' && Boolean(metadata.is_boss),
-      }),
-    );
-    const enemy = draft.cultivator;
-
-    // 构建 BattleSession。角色当前 HP/MP 会在执行战斗时从持久 condition 注入。
-    const session: BattleSession = {
-      battleId,
-      dungeonStateKey,
-      cultivatorId,
-      enemyData: {
-        name: enemy.name,
-        realm: enemy.realm,
-        stage: enemy.realm_stage,
-        level: `${enemy.realm} ${enemy.realm_stage}`,
-        difficulty: enemyDifficulty,
-      },
-    };
-
-    if (!options.deferPersistence) {
-      await redis.set(
-        `dungeon:battle:${battleId}`,
-        JSON.stringify({ session, enemyObject: enemy }),
-        'EX',
-        3600,
+  ) {
+    const state = await this.getState(cultivatorId);
+    if (!state || state.encounter?.id !== encounterId) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '遭遇已变化，请刷新秘境',
+        409,
       );
     }
-
-    return {
-      ...session,
-      enemyObject: enemy,
-    };
-  }
-
-  async handleBattleCallback(
-    cultivatorId: string,
-    battleResult: BattleRecordV3,
-    nextCondition: CultivatorCondition,
-    didLose: boolean,
-    options: DungeonFlowOptions = {},
-  ): Promise<{
-    state?: DungeonState;
-    roundData?: DungeonRound;
-    isFinished: boolean;
-    realGains?: ResourceOperation[];
-    settlement?: DungeonSettlement;
-    persist?: (
-      tx: DbTransaction,
-    ) => Promise<DungeonPersistenceSettlement | void>;
-    afterCommit?: () => Promise<void>;
-  }> {
-    const state = await this.getState(cultivatorId);
-    if (!state) throw new Error('Dungeon state not found');
-
-    const lastHistory = state.history[state.history.length - 1];
-
-    // Update State
-    state.status = 'EXPLORING';
-    delete state.activeBattleId;
-
-    // Construct Narrative
-    const enemyName = didLose
-      ? battleResult.outcome.winner.name
-      : battleResult.outcome.loser.name;
-    const isWin = !didLose;
-    if (!options.deferPersistence) {
-      await updateCultivator(cultivatorId, { condition: nextCondition });
+    if (state.status === 'IN_BATTLE' && state.activeBattleId)
+      return { state, isFinished: false };
+    if (state.status !== 'WAITING_BATTLE') {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前无法迎战',
+        409,
+      );
     }
-
-    // 战斗失败处理：生成伤势状态
-    if (!isWin) {
-      const outcomeText = `你终究是不敵 ${enemyName}，在其重击下狼狈遁走，侮幸捡回一条命。但你已无力再战，只得退出副本。`;
-      lastHistory.outcome = outcomeText;
-
-      const settled = await this.settleDungeon(state, {
-        endDisposition: 'retreated_after_battle',
-        deferPersistence: options.deferPersistence,
-      });
-      if (!options.deferPersistence) {
-        return settled;
-      }
-      return {
-        ...settled,
-        persist: async (tx) => {
-          await updateCultivator(
-            cultivatorId,
-            { condition: nextCondition },
-            tx,
-          );
-          const settlement = settled.persist
-            ? await settled.persist(tx)
-            : undefined;
-          return mergeDungeonPersistenceSettlements(
-            { condition: nextCondition },
-            settlement && typeof settlement === 'object'
-              ? settlement
-              : undefined,
-          );
-        },
-        afterCommit: settled.afterCommit,
-      };
-    }
-
-    const outcomeText = `历经 ${battleResult.outcome.turns} 个回合的苦战，你成功击败了 ${enemyName}。虽然负了些伤，但总算化险为夷。`;
-    lastHistory.outcome = outcomeText;
-
-    // FIX: Instead of calling AI immediately, enter LOOTING state
-    state.status = 'LOOTING';
-    if (!options.deferPersistence) {
-      await this.saveState(cultivatorId, state);
-    }
-    if (options.deferPersistence) {
+    const run = await this.loadActiveRun(cultivatorId);
+    const prepared = run?.battlePayload as DungeonEncounterPayload | undefined;
+    if (!prepared?.encounter || prepared.preview.id !== encounterId)
+      throw new Error('遭遇输入缺失');
+    const payload = beginDungeonBattle(state, prepared);
+    state.status = 'IN_BATTLE';
+    state.activeBattleId = payload.session.battleId;
+    if (options.deferPersistence)
       return {
         state,
         isFinished: false,
-        persist: async (tx) => {
-          await updateCultivator(
-            cultivatorId,
-            { condition: nextCondition },
-            tx,
-          );
-          await this.persistStateRecord(cultivatorId, state, undefined, tx);
-          return { condition: nextCondition };
-        },
-        afterCommit: async () => {
-          await this.saveRedisState(cultivatorId, state);
-        },
+        ...this.buildStateHooks(cultivatorId, state, payload),
       };
-    }
+    await this.saveState(cultivatorId, state, payload);
     return { state, isFinished: false };
-  }
-
-  async probeBattleEnemy(cultivatorId: string, battleId: string) {
-    const { enemyObject } = await this.getBattleContext(cultivatorId, battleId);
-    return enemyObject;
   }
 
   async executeBattle(
@@ -1605,151 +1287,35 @@ export class DungeonService {
     battleId: string,
     options: DungeonFlowOptions = {},
   ) {
-    return this.withFlowLock(
-      cultivatorId,
-      'dungeon-battle-execute',
-      () => this.executeBattleUnlocked(cultivatorId, battleId, options),
-      options.lease,
-    );
-  }
-
-  private async executeBattleUnlocked(
-    cultivatorId: string,
-    battleId: string,
-    options: DungeonFlowOptions = {},
-  ) {
-    const { battleKey, enemyObject } = await this.getBattleContext(
-      cultivatorId,
-      battleId,
-    );
-
-    const cultivatorBundle = await loadCultivatorCombatInput(cultivatorId);
-    if (!cultivatorBundle?.cultivator) {
-      throw new Error('未找到修真者数据');
-    }
-
-    const execution = executePersistentWorldBattle({
-      strategyId: 'persistent_world',
-      player: cultivatorBundle.cultivator,
-      opponent: enemyObject,
-    });
-    const { battleResult, nextCondition, didLose } = execution;
-
-    try {
-      const callbackData = await this.handleBattleCallback(
-        cultivatorId,
-        battleResult,
-        nextCondition,
-        didLose,
-        options,
-      );
-      if (options.deferPersistence) {
-        const callbackAfterCommit = callbackData.afterCommit;
-        return {
-          battleResult,
-          ...callbackData,
-          afterCommit: async () => {
-            if (callbackAfterCommit) {
-              await callbackAfterCommit();
-            }
-            await redis.del(battleKey);
-          },
-        };
-      }
-      return {
-        battleResult,
-        ...callbackData,
-      };
-    } catch (error) {
-      console.error('[DungeonService] 战斗回调失败，进入恢复路径:', error);
-      const recovered = await this.recoverAfterBattleCallbackFailure(
-        cultivatorId,
-        battleResult,
-        nextCondition,
-        didLose,
-        error instanceof Error ? error.message : undefined,
-        options,
-      );
-      if (options.deferPersistence) {
-        const recoveredAfterCommit = recovered.afterCommit;
-        return {
-          battleResult,
-          ...recovered,
-          afterCommit: async () => {
-            if (recoveredAfterCommit) {
-              await recoveredAfterCommit();
-            }
-            await redis.del(battleKey);
-          },
-        };
-      }
-      return {
-        battleResult,
-        ...recovered,
-      };
-    } finally {
-      if (!options.deferPersistence) {
-        await redis.del(battleKey);
-      }
-    }
-  }
-
-  async abandonBattle(
-    cultivatorId: string,
-    battleId: string,
-    options: DungeonFlowOptions = {},
-  ) {
-    return this.withFlowLock(
-      cultivatorId,
-      'dungeon-battle-abandon',
-      () => this.abandonBattleUnlocked(cultivatorId, battleId, options),
-      options.lease,
-    );
-  }
-
-  private async abandonBattleUnlocked(
-    cultivatorId: string,
-    battleId: string,
-    options: DungeonFlowOptions = {},
-  ) {
     const state = await this.getState(cultivatorId);
-    if (!state || state.activeBattleId !== battleId) {
+    if (!state || state.activeBattleId !== battleId)
       throw new Error('当前没有匹配的遭遇战');
-    }
-    const battleKey = getDungeonBattleKey(battleId);
-
+    const battle = await getDungeonBattle(cultivatorId, battleId);
+    if (!battle?.outcome) throw new Error('请先完成战斗');
     delete state.activeBattleId;
-    state.status = 'FINISHED';
-
-    try {
-      const result = await this.settleDungeon(state, {
-        abandonedBattle: true,
-        endDisposition: 'abandoned_before_battle',
+    state.history[state.history.length - 1].outcome =
+      battle.outcome === 'victory'
+        ? `历经 ${battle.round} 回合，你击败了秘境守敌。`
+        : '战斗结束，你离开了秘境。';
+    if (battle.outcome !== 'victory')
+      return this.settleDungeon(state, {
+        endDisposition: 'retreated_after_battle',
         deferPersistence: options.deferPersistence,
       });
-      if (!options.deferPersistence) {
-        return result;
-      }
-      const settlementAfterCommit = result.afterCommit;
+    state.status = 'LOOTING';
+    state.currentRoundItems = (
+      state.v6Rewards?.find((r) => r.key === `battle:${battleId}`)?.items ?? []
+    ).map((item) => ({ name: dungeonRewardItemName(item) }));
+    if (options.deferPersistence)
       return {
-        ...result,
-        afterCommit: async () => {
-          if (settlementAfterCommit) {
-            await settlementAfterCommit();
-          }
-          await redis.del(battleKey);
-        },
+        state,
+        isFinished: false,
+        ...this.buildStateHooks(cultivatorId, state),
       };
-    } finally {
-      if (!options.deferPersistence) {
-        await redis.del(battleKey);
-      }
-    }
+    await this.saveState(cultivatorId, state);
+    return { state, isFinished: false };
   }
 
-  /**
-   * 休整后继续探索 (触发 AI 生成下一轮)
-   */
   async continueFromLooting(
     cultivatorId: string,
     options: DungeonFlowOptions = {},
@@ -1825,7 +1391,7 @@ export class DungeonService {
         : { state: recoverable, isFinished: false };
     }
 
-    const acceptedItems = appendRoundRewards(state, roundData.acquired_items);
+    const acceptedItems = await appendRoundRewards(state);
     const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
 
     state.history.push({
@@ -1897,102 +1463,6 @@ export class DungeonService {
    * 战斗回调失败时的恢复路径。
    * 目标：确保不会卡在战斗中，后续结算失败也能进入可重试状态。
    */
-  async recoverAfterBattleCallbackFailure(
-    cultivatorId: string,
-    battleResult: BattleRecordV3,
-    nextCondition: CultivatorCondition,
-    didLose: boolean,
-    reason?: string,
-    options: DungeonFlowOptions = {},
-  ): Promise<{
-    state?: DungeonState;
-    roundData?: DungeonRound;
-    isFinished: boolean;
-    settlement?: DungeonSettlement;
-    realGains?: ResourceOperation[];
-    persist?: (
-      tx: DbTransaction,
-    ) => Promise<DungeonPersistenceSettlement | void>;
-    afterCommit?: () => Promise<void>;
-  }> {
-    const state = await this.getState(cultivatorId);
-    if (!state) {
-      throw new Error('Dungeon state not found during recovery');
-    }
-
-    delete state.activeBattleId;
-
-    const enemyName = didLose
-      ? battleResult.outcome.winner.name
-      : battleResult.outcome.loser.name;
-    const isWin = !didLose;
-    const lastHistory = state.history[state.history.length - 1];
-    if (!options.deferPersistence) {
-      await updateCultivator(cultivatorId, { condition: nextCondition });
-    }
-
-    if (!isWin) {
-      if (lastHistory) {
-        lastHistory.outcome = `你不敌 ${enemyName}，被迫退出秘境。${reason ? `（天机紊乱：${reason}）` : ''}`;
-      }
-
-      const settled = await this.settleDungeon(state, {
-        endDisposition: 'retreated_after_battle',
-        deferPersistence: options.deferPersistence,
-      });
-      if (!options.deferPersistence) return settled;
-      const persistSettlement = settled.persist;
-      return {
-        ...settled,
-        persist: async (tx) => {
-          await updateCultivator(
-            cultivatorId,
-            { condition: nextCondition },
-            tx,
-          );
-          const persisted = persistSettlement
-            ? await persistSettlement(tx)
-            : undefined;
-          return mergeDungeonPersistenceSettlements(
-            { condition: nextCondition },
-            persisted && typeof persisted === 'object' ? persisted : undefined,
-          );
-        },
-      };
-    }
-
-    // 胜利但回调失败，强制进入 LOOTING 状态进行自我修复
-    state.status = 'LOOTING';
-    if (lastHistory) {
-      lastHistory.outcome = `你击败了 ${enemyName}，但天机推演一时失序，需稳住心神。`;
-    }
-    if (!options.deferPersistence) {
-      await this.saveState(cultivatorId, state);
-    }
-    if (options.deferPersistence) {
-      return {
-        state,
-        isFinished: false,
-        persist: async (tx) => {
-          await updateCultivator(
-            cultivatorId,
-            { condition: nextCondition },
-            tx,
-          );
-          await this.persistStateRecord(cultivatorId, state, undefined, tx);
-          return { condition: nextCondition };
-        },
-        afterCommit: async () => {
-          await this.saveRedisState(cultivatorId, state);
-        },
-      };
-    }
-    return { state, isFinished: false };
-  }
-
-  /**
-   * 结算副本：采用“AI评价 + 后端发放”模式
-   */
   async settleDungeon(
     state: DungeonState,
     options?: DungeonSettlementOptions,
@@ -2030,81 +1500,60 @@ export class DungeonService {
     state: DungeonState,
     options?: DungeonSettlementOptions,
   ): Promise<DungeonSettlementResult> {
-    // --- 核心优化：使用 RewardFactory 将 AI 蓝图转化为真实奖励 ---
-    // 获取地图境界门槛
-    const mapNode = getMapNode(state.mapNodeId);
-    const mapRealm =
-      mapNode && 'realm_requirement' in mapNode
-        ? (mapNode as SatelliteNode).realm_requirement
-        : ('筑基' as RealmType);
-
     const endDisposition =
+      state.endDisposition ??
       options?.endDisposition ??
       (options?.abandonedBattle ? 'abandoned_before_battle' : 'completed');
+    state.endDisposition = endDisposition;
     const deferPersistence = options?.deferPersistence === true;
     const pendingActionToCommit =
       options?.pendingAction &&
       !this.hasCommittedAction(state, options.pendingAction.actionId)
         ? options.pendingAction
         : undefined;
-    let settlement = state.settlement;
-    if (!settlement) {
-      const settlementContext = buildDungeonSettlementLlmContext({
-        state,
-        mapRealm,
-        endDisposition,
-        pendingCosts: pendingActionToCommit?.costs,
-      });
-      const { system: settlementPrompt, user: settlementUserPrompt } =
-        renderPrompt('dungeon-settlement', {
-          materialTypeTable: DUNGEON_MATERIAL_TYPE_GUIDE,
-          settlementContextJson: stableCompactStringify(settlementContext),
-        });
-
-      const aiRes = await generateAiObject({
-        system: settlementPrompt,
-        prompt: settlementUserPrompt,
-        schema: createDungeonSettlementLlmSchema({
-          remainingRewardSlots: settlementContext.remainingExtraRewardSlots,
-          endDisposition,
-        }),
-        name: 'DungeonSettlement',
-        sceneId: 'dungeon-settlement',
-      });
-      const generatedSettlement = DungeonSettlementGeneratedSchema.parse({
-        ending_narrative: aiRes.output.ending_narrative,
-        reward_tier: aiRes.output.reward_tier,
-        reward_blueprints: aiRes.output.reward_blueprints,
-      });
-      settlement = normalizeSettlementRewards(
-        {
-          ending_narrative: generatedSettlement.ending_narrative,
-          settlement: {
-            reward_tier: generatedSettlement.reward_tier,
-            reward_blueprints: generatedSettlement.reward_blueprints,
-            performance_tags: [],
-          },
-        },
-        state.accumulatedRewards ?? [],
-        {
-          endDisposition,
-          dangerScore: state.dangerScore,
-          committedCostCount:
-            (state.summary_of_sacrifice?.length ?? 0) +
-            (pendingActionToCommit?.costs.length ?? 0),
-        },
+    if (state.rewardSeed === undefined) throw new Error('旧秘境会话需维护处理');
+    if (endDisposition === 'completed')
+      state.v6Rewards = appendDungeonReward(
+        state.v6Rewards ?? [],
+        await resolveDungeonReward(
+          state.rewardSeed,
+          'completion',
+          'completion',
+          dungeonLevel(state.mapNodeId),
+          state.v6Rewards,
+        ),
       );
-    }
-    settlement = normalizeSettlementRewards(
-      settlement,
-      state.accumulatedRewards ?? [],
-      {
+    const endingPrompt = renderPrompt('dungeon-settlement', {
+      userContextJson: stableCompactStringify({
+        history: state.history,
         endDisposition,
-        dangerScore: state.dangerScore,
-        committedCostCount:
-          (state.summary_of_sacrifice?.length ?? 0) +
-          (pendingActionToCommit?.costs.length ?? 0),
+        rewards: state.v6Rewards,
+      }),
+    });
+    const ending = state.settlement
+      ? undefined
+      : await generateAiObject({
+          system: endingPrompt.system,
+          prompt: endingPrompt.user,
+          schema: z.object({
+            narrative: z.string().min(12).max(600),
+            rating: z.enum(['S', 'A', 'B', 'C', 'D']),
+          }),
+          name: 'DungeonSettlement',
+          sceneId: 'dungeon-settlement',
+        });
+    const settlement: DungeonSettlement = state.settlement ?? {
+      ending_narrative: ending!.output.narrative,
+      settlement: {
+        reward_tier:
+          endDisposition === 'completed' ? ending!.output.rating : 'C',
+        reward_blueprints: [],
+        performance_tags:
+          endDisposition === 'completed' ? ['功成身退'] : ['及时止损'],
       },
+    };
+    settlement.inventoryRewards = (state.v6Rewards ?? []).flatMap(
+      (reward) => reward.items,
     );
 
     if (pendingActionToCommit) {
@@ -2114,12 +1563,13 @@ export class DungeonService {
       }
       if (!deferPersistence) {
         const result = await getExecutor().transaction(async (tx) => {
-          const applied = await resourceEngine.applyInTransaction({
+          const applied = await applyDungeonCosts(
             userId,
-            cultivatorId: state.cultivatorId,
-            consume: pendingActionToCommit.costs as ResourceOperation[],
+            state.cultivatorId,
+            pendingActionToCommit.costs,
             tx,
-          });
+            pendingActionToCommit.materialSelections,
+          );
           if (applied.success) {
             await this.applyConditionResourceLosses(
               state.cultivatorId,
@@ -2162,17 +1612,23 @@ export class DungeonService {
     const committedSettlementGain = state.gainLedger?.find(
       (entry) => entry.source === 'settlement',
     );
-    const realGains =
-      state.realGains ??
-      committedSettlementGain?.gains ??
-      RewardFactory.generateAllRewards(
-        settlement.settlement.reward_blueprints as RewardBlueprint[],
-        mapRealm,
-        settlement.settlement.reward_tier,
-        state.dangerScore, // 传递危险分数用于奖励计算
-        state.playerInfo, // 传递玩家信息用于修为计算
-        mapNode ? resolveDungeonMapConfig(mapNode).difficultyTier : undefined,
-      );
+    const realGains = state.realGains ??
+      committedSettlementGain?.gains ?? [
+        {
+          type: 'cultivation_exp' as const,
+          value: (state.v6Rewards ?? []).reduce(
+            (sum, r) => sum + r.experience,
+            0,
+          ),
+        },
+        {
+          type: 'spirit_stones' as const,
+          value: (state.v6Rewards ?? []).reduce(
+            (sum, r) => sum + r.spiritStones,
+            0,
+          ),
+        },
+      ];
     state.realGains = realGains;
     if (!deferPersistence) {
       await this.saveState(state.cultivatorId, state);
@@ -2199,12 +1655,22 @@ export class DungeonService {
       if (!deferPersistence) {
         const runId = state.runId;
         const result = await getExecutor().transaction(async (tx) => {
+          await this.assertTerminalRunCanCommit(tx, state);
+          await grantInventory(
+            state.cultivatorId,
+            settlement.inventoryRewards ?? [],
+            tx,
+          );
+          await grantDungeonBeastExperience(state, tx);
           const applied = await resourceEngine.applyInTransaction({
             userId,
             cultivatorId: state.cultivatorId,
             gain: realGains as ResourceOperation[],
             tx,
           });
+          if (!applied.success) {
+            throw new Error(applied.errors?.join('; ') || '资源获得失败');
+          }
           if (applied.success && runId) {
             await tx
               .update(dungeonRuns)
@@ -2283,12 +1749,13 @@ export class DungeonService {
         let gainedSettlement: DungeonPersistenceSettlement | undefined;
         let condition: Cultivator['condition'] | undefined;
         if (pendingActionToCommit) {
-          const consumeResult = await resourceEngine.applyInTransaction({
+          const consumeResult = await applyDungeonCosts(
             userId,
-            cultivatorId: state.cultivatorId,
-            consume: pendingActionToCommit.costs as ResourceOperation[],
+            state.cultivatorId,
+            pendingActionToCommit.costs,
             tx,
-          });
+            pendingActionToCommit.materialSelections,
+          );
           if (!consumeResult.success) {
             throw new Error(consumeResult.errors?.join('; ') || '资源消耗失败');
           }
@@ -2303,6 +1770,12 @@ export class DungeonService {
 
         if (!committedSettlementGain) {
           const runId = state.runId;
+          await grantInventory(
+            state.cultivatorId,
+            settlement.inventoryRewards ?? [],
+            tx,
+          );
+          await grantDungeonBeastExperience(state, tx);
           const gainResult = await resourceEngine.applyInTransaction({
             userId,
             cultivatorId: state.cultivatorId,
@@ -2382,10 +1855,6 @@ export class DungeonService {
       phase,
     });
 
-    const remainingRewardSlots = Math.max(
-      0,
-      DUNGEON_REWARD_BLUEPRINT_LIMIT - state.accumulatedRewards.length,
-    );
     const { system: roundPrompt, user: roundUserPrompt } = renderPrompt(
       'dungeon-round',
       {
@@ -2396,7 +1865,7 @@ export class DungeonService {
     const aiRes = await generateAiObject({
       system: roundPrompt,
       prompt: roundUserPrompt,
-      schema: createDungeonRoundLlmSchema(remainingRewardSlots),
+      schema: createDungeonRoundLlmSchema(0),
       name: 'DungeonRound',
       sceneId: 'dungeon-round',
     });
@@ -2449,7 +1918,7 @@ export class DungeonService {
           };
         }),
       },
-      acquired_items: aiRes.output.acquired_items,
+      acquired_items: [],
       status_update: {
         is_final_round: state.currentRound >= state.maxRounds,
         internal_danger_score: aiRes.output.internal_danger_score,
@@ -2566,9 +2035,22 @@ export class DungeonService {
     );
   }
 
-  async getState(cultivatorId: string) {
+  async getState(cultivatorId: string, runId?: string) {
     const key = getDungeonKey(cultivatorId);
-    const run = await this.loadActiveRun(cultivatorId);
+    const run = runId
+      ? (
+          await getExecutor()
+            .select()
+            .from(dungeonRuns)
+            .where(
+              and(
+                eq(dungeonRuns.id, runId),
+                eq(dungeonRuns.cultivatorId, cultivatorId),
+              ),
+            )
+            .limit(1)
+        )[0]
+      : await this.loadActiveRun(cultivatorId);
     let state: DungeonState | null;
     if (run) {
       state = run.runState as DungeonState;
@@ -2583,9 +2065,9 @@ export class DungeonService {
         (run.pendingAction as DungeonState['pendingAction']) ?? undefined;
       state.activeBattleId = run.activeBattleId ?? state.activeBattleId;
       this.normalizeState(state);
-      await redis.set(key, JSON.stringify(state), 'EX', REDIS_TTL);
+      if (!runId) await redis.set(key, JSON.stringify(state), 'EX', REDIS_TTL);
     } else {
-      state = parseRedisJson<DungeonState>(await redis.get(key), key);
+      state = null;
     }
     if (!state) return null;
     return this.normalizeState(state);
@@ -2609,12 +2091,15 @@ export class DungeonService {
   }
 
   async getPlayer(cultivatorId: string) {
-    const cultivatorBundle =
-      await loadCultivatorDungeonPromptFacts(cultivatorId);
+    const userId = await findActiveCultivatorOwnerId(cultivatorId);
+    if (!userId) throw new Error('角色不存在');
+    const cultivatorBundle = await getPlayerIdentityCultivatorById(
+      userId,
+      cultivatorId,
+    );
     if (!cultivatorBundle) throw new Error('未找到名为该道友的记录');
     const cultivator = cultivatorBundle;
-    const { finalAttributes, attrs } =
-      getCultivatorDisplayAttributes(cultivator);
+    const { projection, caps } = await dungeonPlayer(cultivatorId);
     return {
       id: cultivator.id,
       name: cultivator.name,
@@ -2623,10 +2108,10 @@ export class DungeonService {
       age: cultivator.age,
       lifespan: cultivator.lifespan,
       personality: cultivator.personality || '普通',
-      attributes: { ...finalAttributes },
+      attributes: { ...cultivator.attributes },
       resourceCaps: {
-        maxHp: attrs.maxHp,
-        maxMp: attrs.maxMp,
+        maxHp: caps.maxHp,
+        maxMp: caps.maxMp,
       },
       spiritual_roots: cultivator.spiritual_roots.map(
         (root) => `${root.element}(${root.grade})`,
@@ -2634,8 +2119,8 @@ export class DungeonService {
       fates: cultivator.pre_heaven_fates.map(
         (fate) => `${fate.name}(${fate.description})`,
       ),
-      skills: cultivator.cultivations.map((skill) => skill.name),
-      spirit_stones: cultivator.spirit_stones,
+      skills: projection.skills.map((skill) => skill.name),
+      spirit_stones: (await readCraftReadinessFacts(cultivatorId)).spiritStones,
       background: cultivator.background || '',
       inventory_summary:
         '玩家拥有储物袋。如有需要特定材料的操作，请使用模糊类型与品质要求。',
@@ -2731,9 +2216,22 @@ export class DungeonService {
       throw new Error('副本已失效');
     }
 
+    if (
+      state.status !== 'RECOVERABLE_ERROR' ||
+      !state.recoverableActions?.includes(action)
+    ) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前状态不允许此恢复操作，请刷新',
+        409,
+      );
+    }
+
     if (action === 'force_quit') {
       return this.quitDungeon(cultivatorId, options);
     }
+
+    if (state.activeBattleId) throw new Error('请先完成或逃离当前战斗');
 
     if (action === 'safe_retreat') {
       delete state.activeBattleId;
@@ -2785,6 +2283,7 @@ export class DungeonService {
       state.recoverableActions = undefined;
       delete state.activeBattleId;
       return this.settleDungeon(state, {
+        pendingAction: state.pendingAction,
         deferPersistence: options.deferPersistence,
       });
     }
@@ -2820,7 +2319,7 @@ export class DungeonService {
         cultivatorId,
         pending.choiceId,
         pending.actionId,
-        options,
+        { ...options, materialSelections: pending.materialSelections },
       );
     }
 
@@ -2828,63 +2327,19 @@ export class DungeonService {
   }
 
   async quitDungeon(cultivatorId: string, options: DungeonFlowOptions = {}) {
-    const key = getDungeonKey(cultivatorId);
-
     const state = await this.getState(cultivatorId);
-    if (state) {
-      state.status = 'FINISHED';
-      state.isFinished = true;
-      state.pendingAction = undefined;
-      state.costPreview = undefined;
-      state.recoverableActions = undefined;
-      state.activeBattleId = undefined;
-      const persist = async (tx: DbTransaction) => {
-        await tx.insert(dungeonHistories).values({
-          cultivatorId: state.cultivatorId,
-          theme: state.theme,
-          result: {
-            settlement: {
-              reward_tier: '放弃',
-              ending_narrative: '道友中途放弃了探索。',
-            },
-          },
-          log:
-            state.history
-              .map(
-                (h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`,
-              )
-              .join('\n') + '\n[ABANDONED]',
-        });
-        if (state.runId) {
-          await tx
-            .update(dungeonRuns)
-            .set({
-              status: 'FINISHED',
-              runState: this.normalizeState(state),
-              pendingAction: null,
-              activeBattleId: null,
-              battlePayload: null,
-              endedAt: new Date(),
-            })
-            .where(eq(dungeonRuns.id, state.runId));
-        }
-      };
-
-      if (options.deferPersistence) {
-        return {
-          success: true,
-          persist,
-          afterCommit: async () => {
-            await redis.del(key);
-          },
-        };
-      }
-
-      await getExecutor().transaction(persist);
-    }
-
-    await redis.del(key);
-    return { success: true };
+    if (!state) return { success: true };
+    if (state.activeBattleId)
+      throw new Error('请在战斗中使用逃跑指令，或完成战斗后离开');
+    if (state.endDisposition)
+      return this.settleDungeon(state, {
+        pendingAction: state.pendingAction,
+        deferPersistence: options.deferPersistence,
+      });
+    return this.settleDungeon(state, {
+      endDisposition: 'retreated_after_battle',
+      deferPersistence: options.deferPersistence,
+    });
   }
 }
 

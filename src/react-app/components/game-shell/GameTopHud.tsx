@@ -20,7 +20,8 @@ import {
   QI_ACTION_COSTS,
   QI_DAILY_RESTORE_ITEM_LIMIT,
   QI_MAX,
-  QI_NATURAL_RESTORE_PER_HOUR,
+  QI_NATURAL_RESTORE_INTERVAL_MS,
+  QI_NATURAL_RESTORE_PER_INTERVAL,
   QI_OVERFLOW_MAX,
 } from '@shared/config/qiSystem';
 import { cn } from '@shared/lib/cn';
@@ -414,7 +415,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   const openBodyCultivationInfo = () => {
     const openMarrowWashDetail = () => {
       closeDialog();
-      void navigate('/game/marrow-wash');
+      void navigate('/game/cultivator?tab=body');
     };
 
     openDialog({
@@ -430,7 +431,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
               提升：服用炼体丹，丹力会进入对应的肉身轨道。
             </p>
             <p className="text-ink-secondary mt-1">
-              进阶：轨道等级、修为境界、材料和对应方向炼体丹都满足后，才能提升肉身阶位。
+              进阶：五轨总等级与人物境界满足要求后，可无消耗、无失败地逐阶提升肉身阶位。
             </p>
           </div>
           <MarrowWashSummaryContent
@@ -449,7 +450,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
       ),
       confirmLabel: '查看详情',
       cancelLabel: '知道了',
-      onConfirm: () => navigate('/game/body-cultivation'),
+      onConfirm: () => navigate('/game/cultivator?tab=body'),
     });
   };
 
@@ -592,7 +593,8 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                   : '汇聚中'}
             </p>
             <p>
-              每小时自然恢复 {QI_NATURAL_RESTORE_PER_HOUR} 点，最高恢复到{' '}
+              每 {QI_NATURAL_RESTORE_INTERVAL_MS / 60_000} 分钟自然恢复{' '}
+              {QI_NATURAL_RESTORE_PER_INTERVAL} 点，最高恢复到{' '}
               {QI_MAX}。
             </p>
             <p>下次恢复：{qiState ? qiNextRestoreText : '--'}</p>
@@ -632,13 +634,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 <tr>
                   <td className="px-3 py-1.5">炼器</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_artifact}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-3 py-1.5">创造功法/神通</td>
-                  <td className="text-ink px-3 py-1.5 text-right font-mono">
-                    {QI_ACTION_COSTS.creation_gongfa}
+                    7～39（随图纸境界）
                   </td>
                 </tr>
               </tbody>

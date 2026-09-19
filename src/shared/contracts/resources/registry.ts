@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { inventoryBagSchema, type BagResourceDataMap } from './bag';
 import {
   ResourceScopeSchema,
   type ResourceScope,
@@ -35,12 +36,14 @@ export interface ResourceDataMap
   extends
     PlayerResourceDataMap,
     SectResourceDataMap,
-    InventoryResourceDataMap {}
+    InventoryResourceDataMap,
+    BagResourceDataMap {}
 
 export const RESOURCE_TOPICS = [
   ...PLAYER_RESOURCE_TOPICS,
   ...SECT_RESOURCE_TOPICS,
   ...INVENTORY_RESOURCE_TOPICS,
+  'inventory.bag',
 ] as const satisfies readonly (keyof ResourceDataMap)[];
 
 export const ResourceTopicSchema = z.enum(RESOURCE_TOPICS);
@@ -52,7 +55,7 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'player.condition': 'cultivator',
   'player.progress': 'cultivator',
   'player.currency': 'cultivator',
-  'player.loadout': 'cultivator',
+  'player.sect-combat': 'cultivator',
   'player.mail-summary': 'cultivator',
   'player.task-summary': 'cultivator',
   'player.tasks': 'cultivator',
@@ -60,13 +63,13 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'sect.members': 'sect',
   'sect.contribution-ranking': 'sect',
   'sect.infrastructure': 'sect',
-  'sect.progression': 'cultivator',
   'sect.tasks': 'cultivator',
   'sect.shop': 'cultivator',
   'sect.construction-member': 'cultivator',
   'inventory.artifacts': 'cultivator',
   'inventory.materials': 'cultivator',
   'inventory.consumables': 'cultivator',
+  'inventory.bag': 'cultivator',
 } as const satisfies Record<ResourceTopic, ResourceScopeKind>;
 
 /** Runtime counterpart of ResourceDataMap, used at all network boundaries. */
@@ -74,6 +77,7 @@ export const RESOURCE_DATA_SCHEMAS = {
   ...PLAYER_RESOURCE_DATA_SCHEMAS,
   ...SECT_RESOURCE_DATA_SCHEMAS,
   ...INVENTORY_RESOURCE_DATA_SCHEMAS,
+  'inventory.bag': inventoryBagSchema,
 } satisfies {
   [TTopic in ResourceTopic]: z.ZodType<ResourceDataMap[TTopic]>;
 };
@@ -92,7 +96,6 @@ function getResourceMergeSchema(topic: ResourceTopic): z.ZodTypeAny {
     'player.mail-summary',
     'player.task-summary',
     'sect.membership',
-    'sect.progression',
     'sect.construction-member',
   ]);
   if (!mergeableTopics.has(topic)) return z.never();
@@ -121,7 +124,6 @@ type MergeableResourceTopic =
   | 'player.mail-summary'
   | 'player.task-summary'
   | 'sect.membership'
-  | 'sect.progression'
   | 'sect.construction-member';
 
 type ItemResourceTopic =
@@ -217,7 +219,6 @@ const MERGEABLE_RESOURCE_TOPICS = new Set<ResourceTopic>([
   'player.mail-summary',
   'player.task-summary',
   'sect.membership',
-  'sect.progression',
   'sect.construction-member',
 ]);
 

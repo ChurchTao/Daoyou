@@ -12,7 +12,6 @@ import type {
   SectContextData,
   SectInfrastructureData,
   SectMembersData,
-  SectProgressionData,
   SectShopData,
   SectTasksData,
 } from '../sect';
@@ -22,7 +21,6 @@ export const SECT_RESOURCE_TOPICS = [
   'sect.members',
   'sect.contribution-ranking',
   'sect.infrastructure',
-  'sect.progression',
   'sect.tasks',
   'sect.shop',
   'sect.construction-member',
@@ -35,29 +33,11 @@ export interface SectResourceDataMap {
   'sect.members': SectMembersData;
   'sect.contribution-ranking': SectContributionRankingData;
   'sect.infrastructure': SectInfrastructureData;
-  'sect.progression': SectProgressionData;
   'sect.tasks': SectTasksData;
   'sect.shop': SectShopData;
   'sect.construction-member': SectConstructionMemberData;
 }
 
-const sectPathStateSchema = z
-  .object({
-    pathId: z.string(),
-    unlockedLayerIds: z.array(z.string()),
-    tacticId: z.string(),
-    activeMeridianSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-    meridianLoadouts: z.array(
-      z
-        .object({
-          slot: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-          nodeIds: z.array(z.string()),
-          version: z.number(),
-        })
-        .strict(),
-    ),
-  })
-  .strict();
 const sectTaskDialoguePresentationSchema = z
   .object({
     offeredReply: z.string(),
@@ -240,19 +220,6 @@ export const SECT_RESOURCE_DATA_SCHEMAS = {
           })
           .strict(),
       ),
-    })
-    .strict(),
-  'sect.progression': z
-    .object({
-      activePathId: z.string().optional(),
-      methods: z.record(z.string(), z.number()),
-      paths: z.array(sectPathStateSchema),
-      abilityLoadout: z.tuple([
-        z.string().nullable(),
-        z.string().nullable(),
-        z.string().nullable(),
-        z.string().nullable(),
-      ]),
     })
     .strict(),
   'sect.tasks': z

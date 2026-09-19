@@ -1,10 +1,11 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
 import { MapNodeInfo } from '@shared/lib/game/mapSystem';
-import type { NoviceDungeonReadiness } from '@shared/lib/noviceGuidance';
 import type { RealmType } from '@shared/types/constants';
 import { MapNodeCard } from '../MapNodeCard';
+type NoviceDungeonReadiness = ReturnType<typeof dungeonReadiness>;
 
 interface DungeonMapSelectorProps {
   selectedNode: MapNodeInfo | null;

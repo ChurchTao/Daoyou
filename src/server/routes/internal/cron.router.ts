@@ -1,6 +1,5 @@
 import {
   runAuctionExpireJob,
-  runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
@@ -65,10 +64,6 @@ const router = new Hono<AppEnv>();
 
 router.get('/auction-expire', (c) =>
   handleCronRequest(c.req.raw, runAuctionExpireJob),
-);
-
-router.get('/bet-battle-expire', (c) =>
-  handleCronRequest(c.req.raw, runBetBattleExpireJob),
 );
 
 router.get('/rank-rewards', (c) =>

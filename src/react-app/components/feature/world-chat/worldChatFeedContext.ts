@@ -1,12 +1,11 @@
 import type {
   WorldChatChannel,
   WorldChatMessageDTO,
-  WorldChatShowcaseItemType,
 } from '@shared/types/world-chat';
 import { createContext } from 'react';
 
 export interface SendWorldChatShowcaseInput {
-  itemType: WorldChatShowcaseItemType;
+  revision: number;
   itemId: string;
   textContent?: string;
 }

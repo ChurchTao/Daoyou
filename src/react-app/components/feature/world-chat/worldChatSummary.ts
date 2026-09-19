@@ -1,6 +1,6 @@
+import { isInventoryShowcase } from '@shared/items/showcase';
 import type {
   WorldChatBattleShowcasePayload,
-  WorldChatItemShowcasePayload,
   WorldChatMessageDTO,
 } from '@shared/types/world-chat';
 
@@ -35,17 +35,6 @@ function isBattleShowcasePayload(
   );
 }
 
-function isItemShowcasePayload(
-  payload: WorldChatMessageDTO['payload'],
-): payload is WorldChatItemShowcasePayload {
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'itemType' in payload &&
-    'snapshot' in payload
-  );
-}
-
 export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
   if (
     message.messageType === 'battle_showcase' &&
@@ -57,13 +46,9 @@ export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
       : summary;
   }
 
-  if (message.messageType === 'duel_invite') {
-    return message.textContent || '赌战台有新战帖';
-  }
-
   if (
     message.messageType === 'item_showcase' &&
-    isItemShowcasePayload(message.payload)
+    isInventoryShowcase(message.payload)
   ) {
     const name =
       typeof message.payload.snapshot?.name === 'string'
@@ -81,6 +66,13 @@ export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
     }
 
     return message.textContent || '【道具展示】';
+  }
+
+  if (message.messageType === 'item_showcase') {
+    const text =
+      message.textContent ||
+      (isTextPayload(message.payload) ? message.payload.text : '');
+    return `旧版道具展示已停用${text ? ' ' + text : ''}`;
   }
 
   if (isTextPayload(message.payload)) {

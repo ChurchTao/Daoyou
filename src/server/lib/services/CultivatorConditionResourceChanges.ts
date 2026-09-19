@@ -6,7 +6,6 @@ import {
   type ResourceChangeDescriptor,
   type ResourceDataMap,
 } from '@shared/contracts/resources';
-import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type {
@@ -55,22 +54,11 @@ export function conditionChangesAfterConsumable(args: {
       operation: 'replace',
       payload: args.taskSummary,
     },
-    args.remainingConsumable
-      ? {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'inventory.consumable.used',
-          operation: 'upsert-items',
-          payload: { idKey: 'id', items: [args.remainingConsumable] },
-        }
-      : {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'inventory.consumable.used',
-          operation: 'remove-items',
-          payload: {
-            idKey: 'id',
-            ids: args.consumable.id ? [args.consumable.id] : [],
-          },
-        },
+    {
+      resourceTopic: 'inventory.consumables',
+      eventType: 'inventory.consumable.used',
+      operation: 'invalidate',
+    },
   ];
   if (
     isTalismanConsumable(args.consumable) &&
@@ -110,8 +98,8 @@ export function conditionChangesAfterConsumable(args: {
     isSectMeridianResetTalismanScenario(args.consumable.spec.scenario)
   ) {
     changes.push({
-      resourceTopic: 'sect.progression',
-      eventType: 'sect.meridian_nodes.reset',
+      resourceTopic: 'player.sect-combat',
+      eventType: 'combat_v6.meridian_nodes.reset',
       operation: 'invalidate',
     });
   } else if (isTalismanConsumable(args.consumable)) {
@@ -221,38 +209,16 @@ export function innRecoveryChanges(args: {
 }
 
 export function bodyBreakthroughChanges(args: {
-  success: boolean;
   condition: ResourceDataMap['player.condition'];
-  inventoryChanges: ResourceOperationSettlement['inventoryChanges'];
 }): ResourceChangeDescriptor[] {
-  const changes: ResourceChangeDescriptor[] = [
+  return [
     {
       resourceTopic: 'player.condition',
-      eventType: args.success
-        ? 'condition.body_cultivation.breakthrough'
-        : 'condition.body_cultivation.breakthrough_failed',
+      eventType: 'condition.body_cultivation.breakthrough',
       operation: 'replace',
       payload: args.condition,
     },
   ];
-  for (const inventoryChange of args.inventoryChanges) {
-    changes.push(
-      inventoryChange.operation === 'upsert'
-        ? ({
-            resourceTopic: `inventory.${inventoryChange.kind}`,
-            eventType: 'inventory.body_cultivation.breakthrough_consumed',
-            operation: 'upsert-items',
-            payload: { idKey: 'id', items: [inventoryChange.item] },
-          } as ResourceChangeDescriptor)
-        : ({
-            resourceTopic: `inventory.${inventoryChange.kind}`,
-            eventType: 'inventory.body_cultivation.breakthrough_consumed',
-            operation: 'remove-items',
-            payload: { idKey: 'id', ids: [inventoryChange.id] },
-          } as ResourceChangeDescriptor),
-    );
-  }
-  return changes;
 }
 
 export function marrowWashBreakthroughChanges(args: {

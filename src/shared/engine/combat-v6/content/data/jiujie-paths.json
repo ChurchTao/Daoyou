@@ -1,0 +1,1145 @@
+{
+  "$schema": "./jiujie-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "jiujie.passive.thunder.l1s1",
+      "name": "雷动九霄",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l2s1",
+      "name": "电芒引雷",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetStatusStack": {
+              "kind": "jiujie.status.electric",
+              "min": 1
+            }
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": "1 + targetStatusStacks * 0.05"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l2s2",
+      "name": "雷心炽盛",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l2s3",
+      "name": "破霄洞真",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l4s3",
+      "name": "雷眼昭明",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l5s1",
+      "name": "乘雷破阵",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetStatusKinds": [
+              "jiujie.status.electric"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.lifesteal",
+      "name": "雷泽回生",
+      "hooks": [
+        {
+          "on": "afterHit",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "requireKind": "spell",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "aim": "self",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "floor(hpDamage * 0.1)",
+              "maxGainPerAction": "floor(source.maxHp * 0.15)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l5s3",
+      "name": "追亡逐电",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetHpRatioBelow": 0.5
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l6s1",
+      "name": "九霄震怒",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l6s2",
+      "name": "雷界无壁",
+      "hooks": [
+        {
+          "on": "onDefenseIgnoreCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyDefenseIgnore",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l6s3",
+      "name": "万雷同鸣",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l7s3.crit",
+      "name": "三劫雷极·雷暴",
+      "hooks": [
+        {
+          "on": "onCritRoll",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetStatusStack": {
+              "kind": "jiujie.status.electric",
+              "min": 3
+            }
+          },
+          "effects": [
+            {
+              "type": "modifyChance",
+              "add": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.l7s3.detonate",
+      "name": "三劫雷极·引爆",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "requireKind": "fixed",
+          "when": {
+            "skillIds": [
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "hook-derived"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jiujie.passive.thunder.foundation",
+      "name": "九霄驭雷",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.startling_thunder",
+              "jiujie.skill.nine_heavens_thunder"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.05
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "jiujie.path.law",
+      "name": "天律镇妖",
+      "panel": [
+        {
+          "attr": "sealHit",
+          "mode": "add",
+          "value": 20
+        }
+      ],
+      "nodes": [
+        {
+          "id": "jiujie.node.law.1.1",
+          "name": "镇妖威仪",
+          "layer": 1,
+          "slot": 1,
+          "description": "镇妖威仪",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "addSealBase",
+              "value": 8
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.1.2",
+          "name": "乱神摄魄",
+          "layer": 1,
+          "slot": 2,
+          "description": "乱神摄魄",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "addSealBase",
+              "value": 8
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.1.3",
+          "name": "踏罡先机",
+          "layer": 1,
+          "slot": 3,
+          "description": "踏罡先机",
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ],
+          "patches": [],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.2.1",
+          "name": "神兵禁武",
+          "layer": 2,
+          "slot": 1,
+          "description": "神兵禁武",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "addSealBase",
+              "value": 8
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.2.2",
+          "name": "天律无耗",
+          "layer": 2,
+          "slot": 2,
+          "description": "天律无耗",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "multiplyCostMp",
+              "value": 0.85
+            },
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "multiplyCostMp",
+              "value": 0.85
+            },
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "multiplyCostMp",
+              "value": 0.85
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.2.3",
+          "name": "玉阙清明",
+          "layer": 2,
+          "slot": 3,
+          "description": "玉阙清明",
+          "panel": [
+            {
+              "attr": "sealResist",
+              "mode": "add",
+              "value": 30
+            }
+          ],
+          "patches": [],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.3.1",
+          "name": "天神护法",
+          "layer": 3,
+          "slot": 1,
+          "description": "天神护法",
+          "panel": [],
+          "patches": [],
+          "passives": [],
+          "grantSkills": [
+            "jiujie.skill.divine_guardian"
+          ]
+        },
+        {
+          "id": "jiujie.node.law.3.2",
+          "name": "禁域深严",
+          "layer": 3,
+          "slot": 2,
+          "description": "禁域深严",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.suppress",
+              "value": 2
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.3.3",
+          "name": "雷判无差",
+          "layer": 3,
+          "slot": 3,
+          "description": "雷判无差",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.five_thunder",
+              "operation": "setRandomBranchChance",
+              "branchId": "jiujie.branch.five_thunder.normal",
+              "value": 0.6
+            },
+            {
+              "skillId": "jiujie.skill.five_thunder",
+              "operation": "setRandomBranchChance",
+              "branchId": "jiujie.branch.five_thunder.controlled",
+              "value": 0.6
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.4.1",
+          "name": "乱神削灵",
+          "layer": 4,
+          "slot": 1,
+          "description": "乱神削灵",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "replaceStatusId",
+              "from": "jiujie.status.confuse",
+              "to": "jiujie.status.confuse_weaken"
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.4.2",
+          "name": "神兵挫锐",
+          "layer": 4,
+          "slot": 2,
+          "description": "神兵挫锐",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "replaceStatusId",
+              "from": "jiujie.status.million_weapons",
+              "to": "jiujie.status.million_weapons_weaken"
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.4.3",
+          "name": "天雷破障",
+          "layer": 4,
+          "slot": 3,
+          "description": "天雷破障",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunder_slash",
+              "operation": "replaceStatusId",
+              "from": "jiujie.status.magic_def_break",
+              "to": "jiujie.status.magic_def_break_strong"
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.5.1",
+          "name": "乘隙行刑",
+          "layer": 5,
+          "slot": 1,
+          "description": "乘隙行刑",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.five_thunder",
+              "operation": "setRandomBranchChance",
+              "branchId": "jiujie.branch.five_thunder.controlled",
+              "value": 0.65
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.5.2",
+          "name": "天威不动",
+          "layer": 5,
+          "slot": 2,
+          "description": "天威不动",
+          "panel": [
+            {
+              "attr": "magicDef",
+              "mode": "add",
+              "value": 40
+            }
+          ],
+          "patches": [],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.5.3",
+          "name": "凌霄法眼",
+          "layer": 5,
+          "slot": 3,
+          "description": "凌霄法眼",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "addSealBase",
+              "value": 5
+            },
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "addSealBase",
+              "value": 5
+            },
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "addSealBase",
+              "value": 5
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.6.1",
+          "name": "执律森严",
+          "layer": 6,
+          "slot": 1,
+          "description": "执律森严",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "addSealBase",
+              "value": 10
+            },
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "addSealBase",
+              "value": 10
+            },
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "addSealBase",
+              "value": 10
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.6.2",
+          "name": "禁法久缚",
+          "layer": 6,
+          "slot": 2,
+          "description": "禁法久缚",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.confuse",
+              "value": 3
+            },
+            {
+              "skillId": "jiujie.skill.confuse",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.confuse_weaken",
+              "value": 3
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.6.3",
+          "name": "禁武久缚",
+          "layer": 6,
+          "slot": 3,
+          "description": "禁武久缚",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.million_weapons",
+              "value": 3
+            },
+            {
+              "skillId": "jiujie.skill.million_weapons",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.million_weapons_weaken",
+              "value": 3
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.7.1",
+          "name": "九天镇狱",
+          "layer": 7,
+          "slot": 1,
+          "description": "九天镇狱",
+          "panel": [],
+          "patches": [],
+          "passives": [],
+          "grantSkills": [
+            "jiujie.skill.heavenly_prison"
+          ]
+        },
+        {
+          "id": "jiujie.node.law.7.2",
+          "name": "诸法皆禁",
+          "layer": 7,
+          "slot": 2,
+          "description": "诸法皆禁",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "setSealBase",
+              "value": 60
+            },
+            {
+              "skillId": "jiujie.skill.suppress",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.suppress",
+              "value": 2
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.law.7.3",
+          "name": "五雷正法",
+          "layer": 7,
+          "slot": 3,
+          "description": "五雷正法",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.five_thunder",
+              "operation": "setRandomBranchChance",
+              "branchId": "jiujie.branch.five_thunder.controlled",
+              "value": 1
+            },
+            {
+              "skillId": "jiujie.skill.five_thunder",
+              "operation": "setRandomBranchFixedPower",
+              "branchId": "jiujie.branch.five_thunder.controlled",
+              "value": "min(floor(target.hp * 0.3), 60 * skillLevel)"
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        }
+      ],
+      "foundationPassives": [],
+      "patches": [],
+      "grantSkills": [],
+      "resources": []
+    },
+    {
+      "id": "jiujie.path.thunder",
+      "name": "九霄驭雷",
+      "nodes": [
+        {
+          "id": "jiujie.node.thunder.1.1",
+          "name": "雷动九霄",
+          "layer": 1,
+          "slot": 1,
+          "description": "雷动九霄",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l1s1"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.1.2",
+          "name": "万钧齐落",
+          "layer": 1,
+          "slot": 2,
+          "description": "万钧齐落",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "setTargetCount",
+              "value": "min(6, floor(skillLevel / 45) + 2)"
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.1.3",
+          "name": "雷府灌顶",
+          "layer": 1,
+          "slot": 3,
+          "description": "雷府灌顶",
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 30
+            }
+          ],
+          "patches": [],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.2.1",
+          "name": "电芒引雷",
+          "layer": 2,
+          "slot": 1,
+          "description": "电芒引雷",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l2s1"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.2.2",
+          "name": "雷心炽盛",
+          "layer": 2,
+          "slot": 2,
+          "description": "雷心炽盛",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l2s2"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.2.3",
+          "name": "破霄洞真",
+          "layer": 2,
+          "slot": 3,
+          "description": "破霄洞真",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l2s3"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.3.1",
+          "name": "惊曜天雷",
+          "layer": 3,
+          "slot": 1,
+          "description": "惊曜天雷",
+          "panel": [],
+          "patches": [],
+          "passives": [],
+          "grantSkills": [
+            "jiujie.skill.startling_thunder"
+          ]
+        },
+        {
+          "id": "jiujie.node.thunder.3.2",
+          "name": "聚芒一点",
+          "layer": 3,
+          "slot": 2,
+          "description": "聚芒一点",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "applyStatus",
+                "statusId": "jiujie.status.electric",
+                "duration": 3,
+                "when": {
+                  "targetSlot": "primary"
+                }
+              }
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.3.3",
+          "name": "雷网无垠",
+          "layer": 3,
+          "slot": 3,
+          "description": "雷网无垠",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "setSplash",
+              "perTarget": 0.06,
+              "floor": 0.7
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.4.1",
+          "name": "万钧增威",
+          "layer": 4,
+          "slot": 1,
+          "description": "万钧增威",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "multiplySpellCoefficients",
+              "value": 1.0941176470588236
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.4.2",
+          "name": "电光久驻",
+          "layer": 4,
+          "slot": 2,
+          "description": "电光久驻",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "setStatusDuration",
+              "statusId": "jiujie.status.electric",
+              "value": 4
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.4.3",
+          "name": "雷眼昭明",
+          "layer": 4,
+          "slot": 3,
+          "description": "雷眼昭明",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l4s3"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.5.1",
+          "name": "乘雷破阵",
+          "layer": 5,
+          "slot": 1,
+          "description": "乘雷破阵",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l5s1"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.5.2",
+          "name": "雷泽回生",
+          "layer": 5,
+          "slot": 2,
+          "description": "雷泽回生",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.lifesteal"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.5.3",
+          "name": "追亡逐电",
+          "layer": 5,
+          "slot": 3,
+          "description": "追亡逐电",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l5s3"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.6.1",
+          "name": "九霄震怒",
+          "layer": 6,
+          "slot": 1,
+          "description": "九霄震怒",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l6s1"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.6.2",
+          "name": "雷界无壁",
+          "layer": 6,
+          "slot": 2,
+          "description": "雷界无壁",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l6s2"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.6.3",
+          "name": "万雷同鸣",
+          "layer": 6,
+          "slot": 3,
+          "description": "万雷同鸣",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l6s3"
+          ],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.7.1",
+          "name": "九霄神雷",
+          "layer": 7,
+          "slot": 1,
+          "description": "九霄神雷",
+          "panel": [],
+          "patches": [],
+          "passives": [],
+          "grantSkills": [
+            "jiujie.skill.nine_heavens_thunder"
+          ]
+        },
+        {
+          "id": "jiujie.node.thunder.7.2",
+          "name": "雷霆复奏",
+          "layer": 7,
+          "slot": 2,
+          "description": "雷霆复奏",
+          "panel": [],
+          "patches": [
+            {
+              "skillId": "jiujie.skill.thunderstorm",
+              "operation": "appendEffect",
+              "effect": {
+                "type": "spellHit",
+                "coeff": 0.75,
+                "power": "35 + floor(skillLevel * 1.2)",
+                "when": {
+                  "targetSlot": "primary"
+                }
+              }
+            }
+          ],
+          "passives": [],
+          "grantSkills": []
+        },
+        {
+          "id": "jiujie.node.thunder.7.3",
+          "name": "三劫雷极",
+          "layer": 7,
+          "slot": 3,
+          "description": "三劫雷极",
+          "panel": [],
+          "patches": [],
+          "passives": [
+            "jiujie.passive.thunder.l7s3.crit",
+            "jiujie.passive.thunder.l7s3.detonate"
+          ],
+          "grantSkills": []
+        }
+      ],
+      "foundationPassives": [
+        "jiujie.passive.thunder.foundation"
+      ],
+      "patches": [],
+      "grantSkills": [],
+      "resources": []
+    }
+  ]
+}

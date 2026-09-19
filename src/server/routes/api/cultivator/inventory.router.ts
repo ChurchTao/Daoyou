@@ -1,18 +1,6 @@
-import {
-  redisLockErrorResponse,
-  requireActiveCultivatorRef,
-} from '@server/lib/hono/middleware';
-import { jsonWithStatus } from '@server/lib/hono/response';
+import { requireActiveCultivatorRef } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import {
-  discardInventoryItem,
-  identifyMysteryMaterial,
-} from '@server/lib/services/InventoryApplicationService';
-import { MarketServiceError } from '@server/lib/services/MarketService';
-import {
-  QiInsufficientError,
-  QiServiceError,
-} from '@server/lib/services/QiService';
+import { discardInventoryItem } from '@server/lib/services/InventoryApplicationService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
 import { getPaginatedInventoryByType } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
@@ -24,14 +12,13 @@ import {
   type MaterialType,
   type Quality,
 } from '@shared/types/constants';
-import { Hono, type Context } from 'hono';
+import { Hono } from 'hono';
 import { z } from 'zod';
 
 const DiscardSchema = z.object({
   itemId: z.string(),
   itemType: z.enum(['artifact', 'consumable', 'material']),
 });
-const IdentifySchema = z.object({ materialId: z.string().min(1) });
 
 function parseList<T extends string>(
   raw: string | null,
@@ -49,25 +36,6 @@ function parseList<T extends string>(
     throw new Error(`无效的${label}，支持：${values.join(', ')}`);
   }
   return parsed;
-}
-
-function qiErrorResponse(c: Context<AppEnv>, error: unknown) {
-  if (error instanceof QiInsufficientError) {
-    return c.json(
-      {
-        error: error.code,
-        message: error.message,
-        required: error.required,
-        current: error.current,
-        action: error.action,
-      },
-      409,
-    );
-  }
-  if (error instanceof QiServiceError) {
-    return jsonWithStatus(c, { error: error.message }, error.status);
-  }
-  return null;
 }
 
 const inventoryRouter = new Hono<AppEnv>();
@@ -98,10 +66,7 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
     Math.max(1, parseInt(c.req.query('pageSize') || '20', 10)),
   );
   const consumableKind = c.req.query('consumableKind');
-  if (
-    consumableKind &&
-    !['pill', 'spirit_fruit', 'tradable'].includes(consumableKind)
-  ) {
+  if (consumableKind && consumableKind !== 'pill') {
     return c.json({ success: false, error: '无效的消耗品分类' }, 400);
   }
   let materialTypes: MaterialType[] | undefined;
@@ -186,8 +151,7 @@ inventoryRouter.get('/', requireActiveCultivatorRef(), async (c) => {
     materialElements,
     materialSortBy: materialSortBy as (typeof validSortBy)[number] | undefined,
     materialSortOrder: materialSortOrder as 'asc' | 'desc' | undefined,
-    consumableKind: consumableKind as
-      'pill' | 'spirit_fruit' | 'tradable' | undefined,
+    consumableKind: consumableKind as 'pill' | undefined,
   };
   const scope = { kind: 'cultivator' as const, id: ref.cultivatorId };
   if (type === 'artifacts') {
@@ -233,6 +197,9 @@ inventoryRouter.post('/discard', requireActiveCultivatorRef(), async (c) => {
     return c.json({ success: false, error: '未授权访问' }, 401);
   }
   const { itemId, itemType } = DiscardSchema.parse(await c.req.json());
+  if (itemType === 'artifact') {
+    return c.json({ success: false, error: '历史法宝已停用，仅支持查看' }, 410);
+  }
   const committed = await discardInventoryItem({
     actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
     itemId,
@@ -241,33 +208,8 @@ inventoryRouter.post('/discard', requireActiveCultivatorRef(), async (c) => {
   return c.json(toPlayerStateMutationResponse(committed));
 });
 
-inventoryRouter.post('/identify', requireActiveCultivatorRef(), async (c) => {
-  const user = c.get('user');
-  const cultivator = c.get('activeCultivatorRef');
-  if (!user || !cultivator) {
-    return c.json({ error: '未授权访问' }, 401);
-  }
-  try {
-    const { materialId } = IdentifySchema.parse(await c.req.json());
-    const committed = await identifyMysteryMaterial({
-      actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
-      materialId,
-    });
-    return c.json(toPlayerStateMutationResponse(committed));
-  } catch (error) {
-    const lockErrorResponse = redisLockErrorResponse(error);
-    if (lockErrorResponse) return lockErrorResponse;
-    const qiResponse = qiErrorResponse(c, error);
-    if (qiResponse) return qiResponse;
-    if (error instanceof MarketServiceError) {
-      return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (error instanceof z.ZodError) {
-      return c.json({ error: error.issues[0]?.message || '参数错误' }, 400);
-    }
-    console.error('Identify API error:', error);
-    return c.json({ error: '鉴定失败' }, 500);
-  }
-});
+inventoryRouter.post('/identify', requireActiveCultivatorRef(), (c) =>
+  c.json({ error: '未鉴定材料已弃用，无法鉴定或迁移' }, 410),
+);
 
 export default inventoryRouter;

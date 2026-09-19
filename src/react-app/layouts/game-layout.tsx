@@ -8,6 +8,7 @@ import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import {
   resolveMapCloseNavigation,
   type SpecialBackNavigation,
@@ -122,12 +123,14 @@ function resolveSpecialSceneDescriptor(
     return null;
   }
 
-  if (pathname === '/game/map') {
+  if (pathname === '/game/map' || pathname === '/game/map-v2') {
     return {
       sceneLabel: scene.label,
       backAction: {
         label: '关闭地图',
-        ...resolveMapCloseNavigation(search),
+        ...(pathname === '/game/map-v2'
+          ? { type: 'path' as const, href: '/game', replace: true }
+          : resolveMapCloseNavigation(search)),
       },
     };
   }
@@ -166,17 +169,6 @@ function resolveSpecialSceneDescriptor(
     };
   }
 
-  if (pathname === '/game/bet-battle/challenge') {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '返回赌战台',
-        href: '/game/bet-battle',
-      },
-    };
-  }
-
   if (pathname === '/game/training-room') {
     return {
       sceneLabel: scene.label,
@@ -187,6 +179,8 @@ function resolveSpecialSceneDescriptor(
       },
     };
   }
+
+  if (pathname === '/game/wild') return {sceneLabel:scene.label,backAction:{type:'path',label:'返回地图',href:'/game/map'}};
 
   return null;
 }
@@ -214,6 +208,7 @@ function useSpecialSceneBackActionState(
   descriptor: SpecialSceneDescriptor | null,
 ) {
   const navigate = useNavigate();
+  const location = useLocation();
   const backOverride = useSpecialSceneBackOverride();
 
   const label = backOverride?.label ?? descriptor?.backAction.label ?? '返回';
@@ -235,7 +230,7 @@ function useSpecialSceneBackActionState(
       return;
     }
 
-    navigate(descriptor.backAction.href, {
+    navigate(resolveMapReturnHref(descriptor.backAction.href, location.state), {
       replace: descriptor.backAction.replace,
     });
   };
@@ -250,7 +245,8 @@ function MapSceneChrome() {
   const { descriptor, location, routeTitle } = useResolvedSpecialScene();
   const { label, onBack } = useSpecialSceneBackActionState(descriptor);
 
-  if (!descriptor) {
+  // The atlas owns its integrated region/search/filter controls and navigation.
+  if (!descriptor || location.pathname === '/game/map-v2') {
     return null;
   }
 
@@ -261,10 +257,12 @@ function MapSceneChrome() {
       ? '坊市选址'
       : searchParams.get('intent') === 'sect'
         ? '诸宗山门'
-        : '历练选址';
+        : searchParams.get('intent') === 'dungeon'
+          ? '历练选址'
+          : null;
   const contextLabel = isSectVisit
     ? '人界 · 访宗舆图'
-    : `人界 · 全图 · ${intentLabel}`;
+    : ['人界', '全图', intentLabel].filter(Boolean).join(' · ');
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
@@ -409,7 +407,7 @@ export function GameNarrativeLayout() {
 
 function GameMapLayoutBody() {
   return (
-    <div className="bg-paper h-screen overflow-hidden">
+    <div className="bg-paper h-dvh overflow-hidden">
       <div className="relative h-full overflow-hidden">
         <MapSceneChrome />
         <main className="h-full overflow-hidden">

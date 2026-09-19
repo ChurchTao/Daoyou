@@ -1,17 +1,10 @@
 import * as creationProductRepository from '@server/lib/repositories/creationProductRepository';
-import {
-  calculateSingleArtifactScore,
-  calculateSingleElixirScore,
-} from '@server/utils/rankingUtils';
-import {
-  rehydrateStoredProductModel,
-  serializeProductModel,
-} from '@shared/engine/creation-v2/persistence/ProductPersistenceMapper';
+import { calculateSingleElixirScore } from '@server/utils/rankingUtils';
+import { legacyProductForGrant } from '@shared/legacy/products';
 import { buildConsumableStackKey } from '@shared/lib/consumables';
 import {
   ELEMENT_VALUES,
   ElementType,
-  EquipmentSlot,
   MaterialType,
   Quality,
   QUALITY_ORDER,
@@ -20,7 +13,6 @@ import type {
   Artifact,
   Consumable,
   Cultivator,
-  EquippedItems,
   Material,
 } from '@shared/types/cultivator';
 import {
@@ -40,6 +32,7 @@ import {
   type DbTransaction,
 } from '../../drizzle/db';
 import * as schema from '../../drizzle/schema';
+import { consumeBagConsumable, getBagConsumable } from '../BagConsumables';
 import { mapConsumableRow } from '../consumablePersistence';
 import { toArtifactFromProduct } from '../creationProductArtifactSupport';
 import { sanitizeMaterialDetails } from '../materialDetailsPrivacy';
@@ -107,18 +100,7 @@ export async function getCultivatorConsumableById(
   consumableId: string,
   executor?: DbExecutor | DbTransaction,
 ): Promise<Consumable | null> {
-  const q = executor ?? getExecutor();
-  const [row] = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.id, consumableId),
-      ),
-    )
-    .limit(1);
-  return row ? mapConsumableRow(row) : null;
+  return getBagConsumable(cultivatorId, consumableId, executor);
 }
 
 export async function getCultivatorMaterialById(
@@ -153,7 +135,7 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
     materialElements?: ElementType[];
     materialSortBy?: MaterialInventorySortBy;
     materialSortOrder?: MaterialInventorySortOrder;
-    consumableKind?: 'pill' | 'spirit_fruit' | 'tradable';
+    consumableKind?: 'pill';
   },
   q: DbExecutor | DbTransaction = getExecutor(),
 ): Promise<PaginatedInventoryResult<T>> {
@@ -207,21 +189,13 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   }
 
   if (options.type === 'consumables') {
-    const consumableWhere = (() => {
-      if (options.consumableKind === 'tradable') {
-        return and(
-          eq(schema.consumables.cultivatorId, cultivatorId),
-          sql`${schema.consumables.spec}->>'kind' in ('pill', 'spirit_fruit')`,
-        );
-      }
-      if (options.consumableKind) {
-        return and(
-          eq(schema.consumables.cultivatorId, cultivatorId),
-          sql`${schema.consumables.spec}->>'kind' = ${options.consumableKind}`,
-        );
-      }
-      return eq(schema.consumables.cultivatorId, cultivatorId);
-    })();
+    const consumableWhere =
+      options.consumableKind === 'pill'
+        ? and(
+            eq(schema.consumables.cultivatorId, cultivatorId),
+            sql`${schema.consumables.spec}->>'kind' = 'pill'`,
+          )
+        : eq(schema.consumables.cultivatorId, cultivatorId);
     const countResult = await q
       .select({ count: sql<number>`count(*)` })
       .from(schema.consumables)
@@ -333,65 +307,6 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
       totalPages,
       hasMore: page < totalPages,
     },
-  };
-}
-
-// ===== 物品栏和装备相关操作 =====
-
-/**
- * 装备/卸下装备
- */
-export async function equipEquipment(
-  userId: string,
-  cultivatorId: string,
-  artifactId: string,
-): Promise<EquippedItems> {
-  // 权限验证
-  const existing = await getExecutor()
-    .select({ id: schema.cultivators.id })
-    .from(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    );
-
-  if (existing.length === 0) {
-    throw new Error('角色不存在或无权限操作');
-  }
-
-  // 获取装备信息
-  const artifact = await creationProductRepository.findById(artifactId);
-
-  if (
-    !artifact ||
-    artifact.cultivatorId !== cultivatorId ||
-    artifact.productType !== 'artifact'
-  ) {
-    throw new Error('装备不存在或无权限操作');
-  }
-
-  const slot = (artifact.slot as EquipmentSlot) || 'weapon';
-  if (artifact.isEquipped) {
-    await creationProductRepository.unequipArtifact(artifactId);
-  } else {
-    await creationProductRepository.equipArtifact(
-      artifactId,
-      cultivatorId,
-      slot,
-    );
-  }
-
-  const equippedArtifacts =
-    await creationProductRepository.findEquippedArtifacts(cultivatorId);
-
-  return {
-    weapon:
-      equippedArtifacts.find((item) => item.slot === 'weapon')?.id ?? null,
-    armor: equippedArtifacts.find((item) => item.slot === 'armor')?.id ?? null,
-    accessory:
-      equippedArtifacts.find((item) => item.slot === 'accessory')?.id ?? null,
   };
 }
 
@@ -598,19 +513,22 @@ export async function addArtifactToInventoryInTransaction(
   tx: DbTransaction,
 ): Promise<Artifact> {
   const dbInstance = getExecutor(tx);
-  const score = calculateSingleArtifactScore(artifact);
+  const score = artifact.score ?? 0;
   const rawProductModel =
     artifact.productModel &&
     typeof artifact.productModel === 'object' &&
     !Array.isArray(artifact.productModel)
       ? (artifact.productModel as Record<string, unknown>)
       : null;
-  const normalizedProductModel = rehydrateStoredProductModel(
-    rawProductModel,
-    artifact.element,
-  );
+  const normalizedProductModel = rawProductModel
+    ? legacyProductForGrant(rawProductModel)
+    : null;
 
-  if (!rawProductModel || !normalizedProductModel) {
+  if (
+    !rawProductModel ||
+    !normalizedProductModel ||
+    normalizedProductModel.productType !== 'artifact'
+  ) {
     throw new Error('法宝数据缺少有效 productModel，无法入库');
   }
 
@@ -625,7 +543,7 @@ export async function addArtifactToInventoryInTransaction(
       slot: artifact.slot,
       score,
       isEquipped: false,
-      productModel: serializeProductModel(normalizedProductModel),
+      productModel: normalizedProductModel,
     },
     dbInstance,
   );
@@ -719,44 +637,7 @@ export async function consumeConsumableById(
 }> {
   const dbInstance = getExecutor(tx);
   await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
-  const rows = await dbInstance
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.id, consumableId),
-        eq(schema.consumables.cultivatorId, cultivatorId),
-      ),
-    )
-    .limit(1);
-
-  const existing = rows[0];
-  if (!existing) {
-    throw new Error('消耗品不存在或已被耗尽');
-  }
-
-  if (existing.quantity < quantity) {
-    throw new Error(`消耗品数量不足，当前仅有 ${existing.quantity}`);
-  }
-
-  if (existing.quantity === quantity) {
-    await dbInstance
-      .delete(schema.consumables)
-      .where(eq(schema.consumables.id, existing.id));
-    return { remainingQuantity: 0, removed: true, remaining: null };
-  }
-
-  const [updated] = await dbInstance
-    .update(schema.consumables)
-    .set({ quantity: existing.quantity - quantity })
-    .where(eq(schema.consumables.id, existing.id))
-    .returning();
-  if (!updated) throw new Error('消耗品数量更新失败');
-  return {
-    remainingQuantity: updated.quantity,
-    removed: false,
-    remaining: mapConsumableRow(updated),
-  };
+  return consumeBagConsumable(cultivatorId, consumableId, quantity, dbInstance);
 }
 
 /**

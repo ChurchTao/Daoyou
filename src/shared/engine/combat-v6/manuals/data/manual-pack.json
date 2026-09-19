@@ -1,0 +1,689 @@
+{
+  "$schema": "./manual-pack.schema.json",
+  "version": 3,
+  "progressions": {
+    "standard": {
+      "maxLevel": 9,
+      "bottlenecks": [
+        3,
+        6
+      ],
+      "costsByRealm": {
+        "炼气": [
+          {
+            "experience": 40,
+            "insight": 4
+          },
+          {
+            "experience": 80,
+            "insight": 6
+          },
+          {
+            "experience": 120,
+            "insight": 8
+          },
+          {
+            "experience": 160,
+            "insight": 10
+          },
+          {
+            "experience": 200,
+            "insight": 12
+          },
+          {
+            "experience": 240,
+            "insight": 14
+          },
+          {
+            "experience": 280,
+            "insight": 16
+          },
+          {
+            "experience": 320,
+            "insight": 18
+          }
+        ],
+        "筑基": [
+          {
+            "experience": 200,
+            "insight": 6
+          },
+          {
+            "experience": 400,
+            "insight": 9
+          },
+          {
+            "experience": 600,
+            "insight": 12
+          },
+          {
+            "experience": 800,
+            "insight": 15
+          },
+          {
+            "experience": 1000,
+            "insight": 18
+          },
+          {
+            "experience": 1200,
+            "insight": 21
+          },
+          {
+            "experience": 1400,
+            "insight": 24
+          },
+          {
+            "experience": 1600,
+            "insight": 27
+          }
+        ],
+        "金丹": [
+          {
+            "experience": 1000,
+            "insight": 8
+          },
+          {
+            "experience": 2000,
+            "insight": 12
+          },
+          {
+            "experience": 3000,
+            "insight": 16
+          },
+          {
+            "experience": 4000,
+            "insight": 20
+          },
+          {
+            "experience": 5000,
+            "insight": 24
+          },
+          {
+            "experience": 6000,
+            "insight": 28
+          },
+          {
+            "experience": 7000,
+            "insight": 32
+          },
+          {
+            "experience": 8000,
+            "insight": 36
+          }
+        ],
+        "元婴": [
+          {
+            "experience": 4000,
+            "insight": 10
+          },
+          {
+            "experience": 8000,
+            "insight": 15
+          },
+          {
+            "experience": 12000,
+            "insight": 20
+          },
+          {
+            "experience": 16000,
+            "insight": 25
+          },
+          {
+            "experience": 20000,
+            "insight": 30
+          },
+          {
+            "experience": 24000,
+            "insight": 35
+          },
+          {
+            "experience": 28000,
+            "insight": 40
+          },
+          {
+            "experience": 32000,
+            "insight": 45
+          }
+        ]
+      }
+    }
+  },
+  "manuals": [
+    {
+      "id": "character_manual.changchun",
+      "name": "长春功",
+      "realm": "炼气",
+      "description": "生机绵长，温养自身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "restoreHp",
+        "condition": "selfHpBelow50",
+        "valueAt1": 0.0025,
+        "valueAt9": 0.0075
+      }
+    },
+    {
+      "id": "character_manual.gengjin",
+      "name": "庚金诀",
+      "realm": "炼气",
+      "description": "金气锐利，先破敌锋。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "targetHpAbove70",
+        "valueAt1": 0.01,
+        "valueAt9": 0.03,
+        "kinds": [
+          "physical"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.qingmu",
+      "name": "青木养元诀",
+      "realm": "炼气",
+      "description": "木气滋生，扶伤续命。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "heal",
+        "condition": "targetHpBelow50",
+        "valueAt1": 0.03,
+        "valueAt9": 0.09
+      }
+    },
+    {
+      "id": "character_manual.qingquan",
+      "name": "清泉诀",
+      "realm": "炼气",
+      "description": "涓流回补，法力不竭。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "restoreMp",
+        "condition": "selfMpBelow50",
+        "valueAt1": 0.0025,
+        "valueAt9": 0.0075
+      }
+    },
+    {
+      "id": "character_manual.chiyan",
+      "name": "赤炎诀",
+      "realm": "炼气",
+      "description": "精气充盈，火势方盛。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfHpAbove70",
+        "valueAt1": 0.01,
+        "valueAt9": 0.03,
+        "kinds": [
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.houtu_jue",
+      "name": "厚土诀",
+      "realm": "炼气",
+      "description": "厚土承压，守势稳固。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 2,
+          "valueAt1": 12
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "defending",
+        "valueAt1": 0.03,
+        "valueAt9": 0.09,
+        "kinds": [
+          "physical"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.guiyuan",
+      "name": "归元功",
+      "realm": "筑基",
+      "description": "真元归一，凝甲护身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "selfBarrier",
+        "valueAt1": 0.02,
+        "valueAt9": 0.06,
+        "kinds": [
+          "physical",
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.huanling",
+      "name": "幻灵诀",
+      "realm": "筑基",
+      "description": "幻影扰目，难辨真身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "speed",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "evasion",
+        "condition": "always",
+        "valueAt1": 0.01,
+        "valueAt9": 0.03
+      }
+    },
+    {
+      "id": "character_manual.qingyuan",
+      "name": "青元剑诀",
+      "realm": "筑基",
+      "description": "真元养剑，气盛剑锐。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfHpAbove70",
+        "valueAt1": 0.02,
+        "valueAt9": 0.04,
+        "kinds": [
+          "physical"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.dayan",
+      "name": "大衍诀",
+      "realm": "筑基",
+      "description": "壮大神识，分神守心。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "sealResist",
+        "condition": "always",
+        "valueAt1": 0.01,
+        "valueAt9": 0.03
+      }
+    },
+    {
+      "id": "character_manual.sanzhuan",
+      "name": "三转重元功",
+      "realm": "筑基",
+      "description": "真元重炼，压缩精纯。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfMpAbove70",
+        "valueAt1": 0.02,
+        "valueAt9": 0.04,
+        "kinds": [
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.shayao",
+      "name": "煞妖诀",
+      "realm": "筑基",
+      "description": "血煞催身，险中争胜。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 2,
+          "valueAt1": 18
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfHpBelow35",
+        "valueAt1": 0.02,
+        "valueAt9": 0.04,
+        "kinds": [
+          "physical",
+          "spell",
+          "fixed"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.taibai",
+      "name": "太白剑诀",
+      "realm": "金丹",
+      "description": "剑气破障，锋芒穿护。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "targetBarrier",
+        "valueAt1": 0.03,
+        "valueAt9": 0.06,
+        "kinds": [
+          "physical"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.taiyang",
+      "name": "泰阳诀",
+      "realm": "金丹",
+      "description": "精纯火力，盛阳外放。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfHpAbove70",
+        "valueAt1": 0.03,
+        "valueAt9": 0.06,
+        "kinds": [
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.xuanyin",
+      "name": "玄阴大法",
+      "realm": "金丹",
+      "description": "阴魂蚀体，阴气乘隙。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "targetDot",
+        "valueAt1": 0.03,
+        "valueAt9": 0.06,
+        "kinds": [
+          "spell",
+          "fixed"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.yudan",
+      "name": "玉丹功",
+      "realm": "金丹",
+      "description": "玉润丹养，扶危固本。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "heal",
+        "condition": "targetHpBelow50",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.tianluo",
+      "name": "天罗真功",
+      "realm": "金丹",
+      "description": "儒门正气，护佑危局。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "barrier",
+        "condition": "targetHpBelow50",
+        "valueAt1": 0.05,
+        "valueAt9": 0.15
+      }
+    },
+    {
+      "id": "character_manual.liuji",
+      "name": "六极真魔功",
+      "realm": "金丹",
+      "description": "真魔法体，受压显威。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 4,
+          "valueAt1": 24
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "selfHpBelow35",
+        "valueAt1": 0.03,
+        "valueAt9": 0.06,
+        "kinds": [
+          "physical",
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.tuotian",
+      "name": "托天魔功",
+      "realm": "元婴",
+      "description": "肉身强横，重压不折。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "selfHpBelow50",
+        "valueAt1": 0.03,
+        "valueAt9": 0.07,
+        "kinds": [
+          "physical"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.mingwang",
+      "name": "明王诀",
+      "realm": "元婴",
+      "description": "法体坚固，受制不溃。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "selfControl",
+        "valueAt1": 0.04,
+        "valueAt9": 0.1,
+        "kinds": [
+          "physical",
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.yuanci",
+      "name": "元磁神光",
+      "realm": "元婴",
+      "description": "元磁牵制，护持周身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "selfMpAbove50",
+        "valueAt1": 0.03,
+        "valueAt9": 0.07,
+        "kinds": [
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.haoran",
+      "name": "浩然正气诀",
+      "realm": "元婴",
+      "description": "邪扰不侵，正气护神。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "mitigation",
+        "condition": "selfDebuff",
+        "valueAt1": 0.04,
+        "valueAt9": 0.1,
+        "kinds": [
+          "spell"
+        ]
+      }
+    },
+    {
+      "id": "character_manual.qianlang",
+      "name": "千浪诀",
+      "realm": "元婴",
+      "description": "身随浪走，危中脱身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "speed",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "evasion",
+        "condition": "selfHpBelow50",
+        "valueAt1": 0.02,
+        "valueAt9": 0.06
+      }
+    },
+    {
+      "id": "character_manual.yousha",
+      "name": "幽杀诀",
+      "realm": "元婴",
+      "description": "杀意逼迫，追索残敌。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 4,
+          "valueAt1": 36
+        }
+      ],
+      "mechanism": {
+        "type": "damage",
+        "condition": "targetHpBelow35",
+        "valueAt1": 0.03,
+        "valueAt9": 0.06,
+        "kinds": [
+          "physical",
+          "spell",
+          "fixed"
+        ]
+      }
+    }
+  ]
+}

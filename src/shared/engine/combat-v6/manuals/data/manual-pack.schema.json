@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "number",
+      "const": 3
+    },
+    "progressions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "maxLevel": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 99
+          },
+          "bottlenecks": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "costsByRealm": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "炼气",
+                "筑基",
+                "金丹",
+                "元婴"
+              ]
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "experience": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "insight": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "experience",
+                  "insight"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴"
+            ]
+          }
+        },
+        "required": [
+          "maxLevel",
+          "bottlenecks",
+          "costsByRealm"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "manuals": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    }
+  },
+  "required": [
+    "version",
+    "progressions",
+    "manuals"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^character_manual\\.[a-z][a-z0-9_-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "realm": {
+          "type": "string",
+          "enum": [
+            "炼气",
+            "筑基",
+            "金丹",
+            "元婴"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "progressionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effects": {
+          "minItems": 1,
+          "maxItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "mechanism": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "damage"
+                },
+                "condition": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "kinds": {
+                  "minItems": 1,
+                  "maxItems": 3,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                },
+                "valueAt1": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "valueAt9": {
+                  "$ref": "#/$defs/__schema5"
+                }
+              },
+              "required": [
+                "type",
+                "condition",
+                "kinds",
+                "valueAt1",
+                "valueAt9"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "mitigation"
+                },
+                "condition": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "kinds": {
+                  "minItems": 1,
+                  "maxItems": 2,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema6"
+                  }
+                },
+                "valueAt1": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "valueAt9": {
+                  "$ref": "#/$defs/__schema5"
+                }
+              },
+              "required": [
+                "type",
+                "condition",
+                "kinds",
+                "valueAt1",
+                "valueAt9"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "heal",
+                    "barrier",
+                    "evasion",
+                    "sealResist",
+                    "restoreHp",
+                    "restoreMp"
+                  ]
+                },
+                "condition": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "valueAt1": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "valueAt9": {
+                  "$ref": "#/$defs/__schema5"
+                }
+              },
+              "required": [
+                "type",
+                "condition",
+                "valueAt1",
+                "valueAt9"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "realm",
+        "description",
+        "progressionId",
+        "effects",
+        "mechanism"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "attribute": {
+          "type": "string",
+          "enum": [
+            "vitality",
+            "strength",
+            "spirit",
+            "endurance",
+            "speed",
+            "willpower"
+          ]
+        },
+        "valueAt1": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "valuePerLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "attribute",
+        "valueAt1",
+        "valuePerLevel"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "string",
+      "enum": [
+        "always",
+        "selfHpBelow50",
+        "selfHpBelow35",
+        "selfHpAbove70",
+        "targetHpBelow50",
+        "targetHpBelow35",
+        "targetHpAbove70",
+        "selfMpBelow50",
+        "selfMpAbove50",
+        "selfMpAbove70",
+        "defending",
+        "selfBarrier",
+        "targetBarrier",
+        "targetDot",
+        "selfControl",
+        "selfDebuff"
+      ]
+    },
+    "__schema3": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "fixed"
+      ]
+    },
+    "__schema4": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.2
+    },
+    "__schema5": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.2
+    },
+    "__schema6": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell"
+      ]
+    }
+  }
+}

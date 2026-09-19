@@ -1,15 +1,12 @@
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
+import type { AlchemyMode } from '@shared/types/consumable';
 import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useBlocker, useSearchParams } from 'react-router';
-import type { AlchemyMode } from '@shared/types/consumable';
+import { useAlchemyCraftSession } from './alchemyCraftContext';
 import { AlchemyCraftSessionProvider } from './AlchemyCraftSessionProvider';
 import { ALCHEMY_FACILITIES } from './alchemyFacilities';
-import { useAlchemyCraftSession } from './alchemyCraftContext';
-import type {
-  AlchemyFacilityAction,
-  AlchemyFacilityId,
-} from './alchemyTypes';
+import type { AlchemyFacilityAction, AlchemyFacilityId } from './alchemyTypes';
 import {
   AlchemyGuideConversation,
   FormulaArchiveConversation,
@@ -22,11 +19,7 @@ import { FurnaceWorkspace } from './facilities/FurnaceWorkspace';
 import { HerbCabinetView } from './facilities/HerbCabinetView';
 
 const FACILITY_ACTIONS = {
-  furnace: new Set<AlchemyFacilityAction>([
-    'improvised',
-    'formula',
-    'current',
-  ]),
+  furnace: new Set<AlchemyFacilityAction>(['improvised', 'formula', 'current']),
   cabinet: new Set<AlchemyFacilityAction>(['materials']),
   formulas: new Set<AlchemyFacilityAction>(['formula-library']),
   guide: new Set<AlchemyFacilityAction>(['guide-basics', 'guide-reference']),
@@ -64,7 +57,14 @@ function AlchemyRoomContent() {
     if (!selectedId) next.delete('facility');
     next.delete('action');
     setSearchParams(next, { replace: true });
-  }, [action, rawAction, rawFacility, searchParams, selectedId, setSearchParams]);
+  }, [
+    action,
+    rawAction,
+    rawFacility,
+    searchParams,
+    selectedId,
+    setSearchParams,
+  ]);
 
   useLayoutEffect(() => {
     if (selectedId !== 'furnace') return;
@@ -143,7 +143,7 @@ function AlchemyRoomContent() {
   const workspace = action ? (
     selectedId === 'furnace' ? (
       <FurnaceWorkspace
-        onBack={() => setLocation('furnace', undefined, true)}
+        onBack={() => setLocation(undefined, undefined, true)}
         onReturn={() => setLocation(undefined, undefined, true)}
         onModeChange={(nextMode: AlchemyMode) => {
           session.setMode(nextMode);
@@ -170,17 +170,25 @@ function AlchemyRoomContent() {
   ) : null;
 
   return (
-    <GameSceneFrame
-      title="【炼丹房】"
-      description="丹炉、药柜、丹方玉简与炉理碑各有用途。先与设施交互，再选择要办理的事情。"
-    >
+    <GameSceneFrame variant="workflow">
       {workspace ?? (
         <RoomView
-          eyebrow="丹火沉静 · 四处设施各司其职"
           description="中央丹炉火光微动，药柜、丹方玉简与炉理碑分列四周。走近一处设施，看看它能为你做什么。"
           actors={actors}
           selectedId={selectedId}
-          onSelect={(id) => setLocation(id as AlchemyFacilityId)}
+          onSelect={(id) => {
+            const facility = id as AlchemyFacilityId;
+            setLocation(
+              facility,
+              facility === 'furnace'
+                ? session.mode
+                : facility === 'cabinet'
+                  ? 'materials'
+                  : facility === 'formulas'
+                    ? 'formula-library'
+                    : 'guide-basics',
+            );
+          }}
           prompt="选择一处设施进行交互"
           detail={
             selectedId === 'furnace' ? (

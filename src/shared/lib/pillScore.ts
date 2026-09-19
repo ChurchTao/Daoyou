@@ -92,6 +92,8 @@ function calculateOperationPower(operation: ConditionOperation): number {
       return operation.delta < 0 ? Math.abs(operation.delta) * 1.2 : 0;
     case 'advance_track':
       return operation.value * 0.85;
+    case 'gain_beast_cultivation':
+      return Math.sqrt(operation.value) * 1.8;
     case 'gain_progress':
       return operation.target === 'comprehension_insight'
         ? operation.value * 2.2

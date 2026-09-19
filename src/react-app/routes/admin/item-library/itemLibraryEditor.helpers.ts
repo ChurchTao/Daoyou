@@ -50,6 +50,7 @@ export const PILL_FAMILY_LABELS = {
   mana: '回元丹',
   detox: '解毒/调理丹',
   cultivation: '修为丹',
+  beast_cultivation: '灵兽修为丹',
   insight: '悟性丹',
   breakthrough: '破境辅助丹',
   tempering: '淬体丹',
@@ -82,6 +83,7 @@ export const TRACK_OPTIONS = [
 export const PILL_OPERATION_LABELS = {
   restore_resource: '恢复气血/法力',
   gain_progress: '增加感悟/历史修为',
+  gain_beast_cultivation: '增加灵兽修为',
   increase_lifespan: '增加寿元',
   change_gauge: '增加/降低丹毒',
   add_status: '添加状态',
@@ -127,7 +129,7 @@ export type VisualPillOperation =
       value: string;
     }
   | {
-      type: 'increase_lifespan';
+      type: 'increase_lifespan' | 'gain_beast_cultivation';
       value: string;
     };
 
@@ -168,8 +170,7 @@ export interface ItemLibraryDraft {
   artifactRealmStage: '' | RealmStage;
   artifactAffixIds: string[];
   artifactPayload:
-    | Extract<ItemLibraryEntry, { type: 'artifact' }>['payload']
-    | null;
+    Extract<ItemLibraryEntry, { type: 'artifact' }>['payload'] | null;
 }
 
 function toNumberText(value: unknown, fallback = ''): string {
@@ -194,7 +195,10 @@ function parsePositiveNumber(value: string, label: string): number {
   return parsed;
 }
 
-function parseOptionalPositiveInt(value: string, label: string): number | undefined {
+function parseOptionalPositiveInt(
+  value: string,
+  label: string,
+): number | undefined {
   if (!value.trim()) return undefined;
   const parsed = parsePositiveNumber(value, label);
   if (!Number.isInteger(parsed)) {
@@ -242,6 +246,8 @@ function buildDefaultPillOperation(family: PillFamily): VisualPillOperation {
         type: 'change_gauge',
         delta: '-20',
       };
+    case 'beast_cultivation':
+      return { type: 'gain_beast_cultivation', value: '587' };
     case 'cultivation':
       return {
         type: 'add_status',
@@ -331,6 +337,8 @@ export function createDefaultPillOperation(
       return { type, track: 'body.skin', value: '10' };
     case 'gain_progress':
       return { type, target: 'cultivation_exp', value: '50' };
+    case 'gain_beast_cultivation':
+      return { type, value: '587' };
     case 'increase_lifespan':
       return { type, value: '10' };
   }
@@ -436,6 +444,8 @@ function visualOperationFromConditionOperation(
         target: operation.target,
         value: String(operation.value),
       };
+    case 'gain_beast_cultivation':
+      return { type: 'gain_beast_cultivation', value: String(operation.value) };
     case 'increase_lifespan':
       return { type: 'increase_lifespan', value: String(operation.value) };
   }
@@ -467,14 +477,18 @@ export function entryToDraft(entry: ItemLibraryEntry): ItemLibraryDraft {
       draft.pillQuotaCategory = entry.payload.spec.consumeRules.quotaCategory;
       draft.pillAppearance = entry.payload.spec.alchemyMeta.appearance ?? '';
       draft.pillStability = String(entry.payload.spec.alchemyMeta.stability);
-      draft.pillToxicity = String(entry.payload.spec.alchemyMeta.toxicityRating);
+      draft.pillToxicity = String(
+        entry.payload.spec.alchemyMeta.toxicityRating,
+      );
       draft.consumableElement =
         entry.payload.spec.alchemyMeta.dominantElement ?? '';
       draft.pillSourceMaterials =
         entry.payload.spec.alchemyMeta.sourceMaterials.join('、');
       draft.pillOperations =
         entry.payload.spec.operations.length > 0
-          ? entry.payload.spec.operations.map(visualOperationFromConditionOperation)
+          ? entry.payload.spec.operations.map(
+              visualOperationFromConditionOperation,
+            )
           : [buildDefaultPillOperation(entry.payload.spec.family)];
     } else {
       draft.talismanScenario = entry.payload.spec.scenario;
@@ -604,6 +618,11 @@ function conditionOperationFromVisualOperation(
         type: 'gain_progress',
         target: operation.target,
         value: parsePositiveNumber(operation.value, `${label}的增加数值`),
+      };
+    case 'gain_beast_cultivation':
+      return {
+        type: 'gain_beast_cultivation',
+        value: parsePositiveNumber(operation.value, `${label}的灵兽修为`),
       };
     case 'increase_lifespan':
       return {

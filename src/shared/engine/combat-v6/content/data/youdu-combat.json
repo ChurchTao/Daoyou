@@ -1,0 +1,325 @@
+{
+  "$schema": "./youdu-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "youdu.skill.edict",
+    "youdu.skill.wither",
+    "youdu.skill.pursuit",
+    "youdu.skill.soul_seal",
+    "youdu.skill.insight",
+    "youdu.skill.sever"
+  ],
+  "skills": [
+    {
+      "id": "youdu.skill.edict",
+      "name": "十殿敕命",
+      "school": "youdu",
+      "costMp": "20 + floor(skillLevel * 0.3)",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(5, floor(skillLevel / 45) + 1)"
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "40 + floor(skillLevel * 1.35)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.wither",
+      "name": "黄泉蚀生",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "25 + floor(skillLevel * 0.75)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.poison",
+          "duration": 3
+        },
+        {
+          "type": "heal",
+          "power": "target.maxHp * 0.03",
+          "targeting": {
+            "side": "ally",
+            "mode": "all"
+          }
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.pursuit",
+      "name": "无常追魄",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "35 + floor(skillLevel * 1.05)"
+        },
+        {
+          "type": "wound",
+          "power": "floor(skillLevel * 1.5)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.slow",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.soul_seal",
+      "name": "镇魂冥印",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 50,
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "includeDowned": true
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.soul_seal",
+          "duration": 2,
+          "hit": "seal"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.insight",
+      "name": "幽冥鉴照",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": "min(5, floor(skillLevel / 45) + 1)"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.insight",
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.sever",
+      "name": "六道断狱",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "power": "floor(skillLevel * 0.35)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.life_judge",
+      "name": "生死裁",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "70 + floor(skillLevel * 1.5)"
+        },
+        {
+          "type": "wound",
+          "power": "skillLevel * 2"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.final_judgment",
+      "name": "十殿终审",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "mode": "all"
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "100 + floor(skillLevel * 1.6)"
+        },
+        {
+          "type": "wound",
+          "power": "skillLevel"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.ghost_rift",
+      "name": "万鬼裂界",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 4
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.65,
+          "power": "floor(skillLevel * 0.2)",
+          "cannotMiss": true
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.poison",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.six_paths_ruin",
+      "name": "六道俱灭",
+      "school": "youdu",
+      "costHp": "maxHp * 0.1",
+      "tags": [
+        "spell",
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.8,
+          "defenseIgnore": 0.15
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "youdu.status.poison",
+      "name": "幽毒",
+      "kind": "youdu.poison",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.04
+      }
+    },
+    {
+      "id": "youdu.status.strong_poison",
+      "name": "蚀命幽毒",
+      "kind": "youdu.poison",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.06
+      }
+    },
+    {
+      "id": "youdu.status.slow",
+      "name": "无常迟滞",
+      "kind": "youdu.slow",
+      "category": "debuff",
+      "speedMod": "-floor(skillLevel * 0.2)"
+    },
+    {
+      "id": "youdu.status.soul_seal",
+      "name": "锢魂",
+      "kind": "youdu.soul_seal",
+      "category": "control",
+      "blocksRevive": true,
+      "persistWhenDowned": true
+    },
+    {
+      "id": "youdu.status.insight",
+      "name": "幽冥鉴照",
+      "kind": "youdu.insight",
+      "category": "buff",
+      "attrMods": {
+        "hit": "floor(skillLevel * 0.4)",
+        "sealResist": "floor(skillLevel * 0.2)"
+      }
+    },
+    {
+      "id": "youdu.status.rest",
+      "name": "六道反噬",
+      "kind": "youdu.rest",
+      "category": "control",
+      "blocksAction": true
+    },
+    {
+      "id": "youdu.status.next_physical",
+      "name": "乘幽追命",
+      "kind": "youdu.next_physical",
+      "category": "buff"
+    }
+  ]
+}

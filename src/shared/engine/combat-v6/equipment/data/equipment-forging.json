@@ -1,0 +1,137 @@
+{
+  "$schema": "./equipment-forging.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 5,
+  "generation": {
+    "essenceCountProbabilities": [
+      0.82,
+      0.16,
+      0.02
+    ],
+    "artChance": 0.08,
+    "essencePool": [
+      "dao_equipment.essence.cangfeng",
+      "dao_equipment.essence.ningshen",
+      "dao_equipment.essence.pojin",
+      "dao_equipment.essence.dinghun",
+      "dao_equipment.essence.qingling",
+      "dao_equipment.essence.jiangang",
+      "dao_equipment.essence.guiyuan",
+      "dao_equipment.essence.zhenyue",
+      "dao_equipment.essence.shouxin",
+      "dao_equipment.essence.pojia",
+      "dao_equipment.essence.chuanxuan",
+      "dao_equipment.essence.chengnian",
+      "dao_equipment.essence.huichun",
+      "dao_equipment.essence.huming"
+    ],
+    "artPool": [
+      "dao_equipment.art.huiyuan",
+      "dao_equipment.art.yangyuan",
+      "dao_equipment.art.xuming",
+      "dao_equipment.art.baoyuan",
+      "dao_equipment.art.guizhen",
+      "dao_equipment.art.huanhun",
+      "dao_equipment.art.qingxin",
+      "dao_equipment.art.dichen",
+      "dao_equipment.art.taiqing",
+      "dao_equipment.art.chengtian",
+      "dao_equipment.art.cuozhi",
+      "dao_equipment.art.hanyue",
+      "dao_equipment.art.hanyueyin",
+      "dao_equipment.art.huti",
+      "dao_equipment.art.hutiyin",
+      "dao_equipment.art.lianfeng",
+      "dao_equipment.art.lianfengyin",
+      "dao_equipment.art.liejia",
+      "dao_equipment.art.liejiayin",
+      "dao_equipment.art.xuanling",
+      "dao_equipment.art.xuantian",
+      "dao_equipment.art.fuying",
+      "dao_equipment.art.fuyingyin",
+      "dao_equipment.art.yufeng",
+      "dao_equipment.art.yufengyin",
+      "dao_equipment.art.lingyan",
+      "dao_equipment.art.jifa",
+      "dao_equipment.art.kurong",
+      "dao_equipment.art.diefeng",
+      "dao_equipment.art.sandie",
+      "dao_equipment.art.juling",
+      "dao_equipment.art.wanxiang",
+      "dao_equipment.art.zebei",
+      "dao_equipment.art.niming",
+      "dao_equipment.art.due",
+      "dao_equipment.art.dongxu",
+      "dao_equipment.art.cuiling",
+      "dao_equipment.art.dangchen"
+    ]
+  },
+  "forging": {
+    "boostPerMaterial": 0.018,
+    "costs": [
+      {
+        "level": 10,
+        "spiritStones": 100,
+        "qi": 7,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 30,
+        "spiritStones": 900,
+        "qi": 11,
+        "quantity": 1,
+        "rank": "凡品"
+      },
+      {
+        "level": 50,
+        "spiritStones": 2500,
+        "qi": 15,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 70,
+        "spiritStones": 4900,
+        "qi": 19,
+        "quantity": 2,
+        "rank": "灵品"
+      },
+      {
+        "level": 90,
+        "spiritStones": 8100,
+        "qi": 23,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 110,
+        "spiritStones": 12100,
+        "qi": 27,
+        "quantity": 3,
+        "rank": "玄品"
+      },
+      {
+        "level": 130,
+        "spiritStones": 16900,
+        "qi": 31,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 150,
+        "spiritStones": 22500,
+        "qi": 35,
+        "quantity": 4,
+        "rank": "真品"
+      },
+      {
+        "level": 170,
+        "spiritStones": 28900,
+        "qi": 39,
+        "quantity": 5,
+        "rank": "地品"
+      }
+    ]
+  }
+}

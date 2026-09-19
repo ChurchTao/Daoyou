@@ -1,9 +1,17 @@
+import type { DivinationDice, DivinationDirection } from '@shared/lib/divination';
+import type { WildEncounter, WildRuntime } from '@shared/contracts/combatV6Wild';
 import type { BattleReplayV1 } from '@shared/contracts/battleReplay';
+import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
 import type {
   ResourceChangeOperation,
   ResourceScopeKind,
   ResourceTopic,
 } from '@shared/contracts/resources';
+import type {
+  BeastLineup,
+  SummonedBeast,
+} from '@shared/engine/combat-v6/beasts';
+import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import type {
   ItemLibraryEditorConfig,
   ItemLibraryPayload,
@@ -18,12 +26,13 @@ import type {
   PillFamily,
 } from '@shared/types/consumable';
 import type { MailAttachment } from '@shared/types/mail';
-import type { SpiritFieldPlotState } from '@shared/engine/spirit-field/types';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -112,7 +121,6 @@ export const cultivators = pgTable(
   ],
 );
 
-
 // 个人灵田领域聚合：不再寄生 cultivators.game_settings。
 export const spiritFields = pgTable(
   'wanjiedaoyou_spirit_fields',
@@ -124,10 +132,7 @@ export const spiritFields = pgTable(
     selfHarvestCount: integer('self_harvest_count').notNull().default(0),
     totalCareCount: integer('total_care_count').notNull().default(0),
     starterClaimed: boolean('starter_claimed').notNull().default(false),
-    plots: jsonb('plots')
-      .$type<SpiritFieldPlotState[]>()
-      .notNull()
-      .default([]),
+    plots: jsonb('plots').$type<SpiritFieldPlotState[]>().notNull().default([]),
     version: integer('version').notNull().default(1),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
@@ -258,7 +263,6 @@ export const sectMemberships = pgTable(
     status: varchar('status', { length: 16 }).notNull().default('prospect'),
     experiencedAt: timestamp('experienced_at'),
     joinedAt: timestamp('joined_at'),
-    activePathId: varchar('active_path_id', { length: 64 }),
     contribution: integer('contribution').notNull().default(0),
     lifetimeContribution: integer('lifetime_contribution').notNull().default(0),
     discipleRank: varchar('disciple_rank', { length: 16 })
@@ -401,6 +405,57 @@ export const sectStipendClaims = pgTable(
   ],
 );
 
+// ===== 角色资产与宗门战斗进度 =====
+export const cultivatorBeasts = pgTable(
+  'wanjiedaoyou_cultivator_beasts',
+  {
+    id: uuid('id').primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    individual: jsonb('individual')
+      .$type<Omit<SummonedBeast, 'id' | 'ownerCultivatorId'>>()
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index('cultivator_beasts_owner_idx').on(table.cultivatorId)],
+);
+
+export const cultivatorBeastLineups = pgTable(
+  'wanjiedaoyou_cultivator_beast_lineups',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    lineup: jsonb('lineup').$type<BeastLineup>().notNull(),
+    starterClaimedAt: timestamp('starter_claimed_at', { withTimezone: true }),
+  },
+);
+
+export const sectCombatStates = pgTable(
+  'wanjiedaoyou_sect_combat_states',
+  {
+    membershipId: uuid('membership_id')
+      .primaryKey()
+      .references(() => sectMemberships.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull().default(0),
+    activePathId: varchar('active_path_id', { length: 160 }),
+    meridianDepth: integer('meridian_depth').notNull().default(0),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check(
+      'sect_combat_progress_valid',
+      sql`${table.revision} >= 0 AND ${table.meridianDepth} BETWEEN 0 AND 7`,
+    ),
+  ],
+);
+
 export const sectMethodProgress = pgTable(
   'wanjiedaoyou_sect_method_progress',
   {
@@ -408,44 +463,13 @@ export const sectMethodProgress = pgTable(
     membershipId: uuid('membership_id')
       .references(() => sectMemberships.id, { onDelete: 'cascade' })
       .notNull(),
-    methodId: varchar('method_id', { length: 64 }).notNull(),
+    methodId: varchar('method_id', { length: 160 }).notNull(),
     level: integer('level').notNull().default(0),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
   },
   (table) => [
     uniqueIndex('sect_method_membership_method_unique').on(
       table.membershipId,
       table.methodId,
-    ),
-  ],
-);
-
-export const sectPathProgress = pgTable(
-  'wanjiedaoyou_sect_path_progress',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id')
-      .references(() => sectMemberships.id, { onDelete: 'cascade' })
-      .notNull(),
-    pathId: varchar('path_id', { length: 64 }).notNull(),
-    unlockedLayerIds: jsonb('unlocked_layer_ids')
-      .$type<string[]>()
-      .notNull()
-      .default([]),
-    tacticId: varchar('tactic_id', { length: 32 }).notNull(),
-    activeMeridianSlot: integer('active_meridian_slot').notNull().default(1),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex('sect_path_membership_path_unique').on(
-      table.membershipId,
-      table.pathId,
     ),
   ],
 );
@@ -457,47 +481,146 @@ export const sectMeridianLoadouts = pgTable(
     membershipId: uuid('membership_id')
       .references(() => sectMemberships.id, { onDelete: 'cascade' })
       .notNull(),
-    pathId: varchar('path_id', { length: 64 }).notNull().default(''),
-    slot: integer('slot').notNull(),
-    nodeIds: jsonb('node_ids').$type<string[]>().notNull().default([]),
-    version: integer('version').notNull().default(1),
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
+    pathId: varchar('path_id', { length: 160 }).notNull(),
+    revision: integer('revision').notNull().default(0),
   },
   (table) => [
-    uniqueIndex('sect_meridian_membership_path_slot_unique').on(
+    uniqueIndex('sect_meridian_membership_path_unique').on(
       table.membershipId,
       table.pathId,
-      table.slot,
     ),
   ],
 );
 
-export const sectAbilityLoadouts = pgTable(
-  'wanjiedaoyou_sect_ability_loadouts',
+export const sectMeridianNodes = pgTable(
+  'wanjiedaoyou_sect_meridian_nodes',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    membershipId: uuid('membership_id')
-      .references(() => sectMemberships.id, { onDelete: 'cascade' })
+    loadoutId: uuid('loadout_id')
+      .references(() => sectMeridianLoadouts.id, { onDelete: 'cascade' })
       .notNull(),
-    slot: integer('slot').notNull(),
-    abilityId: varchar('ability_id', { length: 64 }).notNull(),
+    nodeId: varchar('node_id', { length: 160 }).notNull(),
+    layer: integer('layer').notNull(),
+  },
+  (table) => [
+    uniqueIndex('sect_meridian_loadout_node_unique').on(
+      table.loadoutId,
+      table.nodeId,
+    ),
+    uniqueIndex('sect_meridian_loadout_layer_unique').on(
+      table.loadoutId,
+      table.layer,
+    ),
+  ],
+);
+
+export const cultivatorManualStates = pgTable(
+  'wanjiedaoyou_cultivator_manual_states',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull().default(0),
+    learned: jsonb('learned')
+      .$type<
+        Array<{ manualId: string; level: number; unlockedLevel: number }>
+      >()
+      .notNull()
+      .default([]),
     updatedAt: timestamp('updated_at')
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    uniqueIndex('sect_ability_membership_slot_unique').on(
-      table.membershipId,
-      table.slot,
+    check('cultivator_manual_revision_valid', sql`${table.revision} >= 0`),
+  ],
+);
+
+export const cultivatorManualSlots = pgTable(
+  'wanjiedaoyou_cultivator_manual_slots',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    slot: integer('slot').notNull(),
+    manualId: varchar('manual_id', { length: 160 }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.cultivatorId, table.slot] }),
+    uniqueIndex('cultivator_manual_unique').on(
+      table.cultivatorId,
+      table.manualId,
     ),
-    uniqueIndex('sect_ability_membership_ability_unique').on(
-      table.membershipId,
-      table.abilityId,
+    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 4`),
+  ],
+);
+
+export const inventoryItems = pgTable(
+  'wanjiedaoyou_inventory_items',
+  {
+    id: varchar('id', { length: 160 }).primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    location: varchar('location', { length: 16 })
+      .$type<'bag' | 'storage' | 'equipped'>()
+      .notNull(),
+    slotIndex: integer('slot_index'),
+    definitionId: varchar('definition_id', { length: 160 }).notNull(),
+    stackKey: varchar('stack_key', { length: 200 }),
+    quantity: integer('quantity').notNull(),
+    instanceData: jsonb('instance_data'),
+    revision: integer('revision').notNull().default(0),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('inventory_owner_id_unique').on(table.cultivatorId, table.id),
+    index('inventory_owner_location_idx').on(
+      table.cultivatorId,
+      table.location,
     ),
+    index('inventory_stack_lookup_idx').on(
+      table.cultivatorId,
+      table.location,
+      table.definitionId,
+      table.stackKey,
+    ),
+    uniqueIndex('inventory_bag_slot_unique')
+      .on(table.cultivatorId, table.slotIndex)
+      .where(sql`${table.location} = 'bag'`),
+    check(
+      'inventory_quantity_positive',
+      sql`${table.quantity} > 0 AND ${table.revision} >= 0`,
+    ),
+    check(
+      'inventory_slot_valid',
+      sql`(${table.location} = 'bag' AND ${table.slotIndex} IS NOT NULL AND ${table.slotIndex} >= 0) OR (${table.location} = 'storage' AND ${table.slotIndex} IS NULL) OR (${table.location} = 'equipped' AND ${table.slotIndex} IS NULL AND ${table.definitionId} = 'equipment.v6')`,
+    ),
+  ],
+);
+
+export const cultivatorEquipmentSlots = pgTable(
+  'wanjiedaoyou_cultivator_equipment_slots',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    slot: varchar('slot', { length: 32 }).notNull(),
+    equipmentInstanceId: varchar('equipment_instance_id', {
+      length: 160,
+    }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.cultivatorId, table.slot] }),
+    uniqueIndex('cultivator_equipment_instance_unique').on(
+      table.equipmentInstanceId,
+    ),
+    foreignKey({
+      columns: [table.cultivatorId, table.equipmentInstanceId],
+      foreignColumns: [inventoryItems.cultivatorId, inventoryItems.id],
+    }).onDelete('no action'),
   ],
 );
 
@@ -794,7 +917,12 @@ export const cultivatorTasks = pgTable(
   ],
 );
 
-// 战斗记录 V3：战斗事实、序列与状态时间线的唯一运行时数据源。
+/**
+ * @deprecated V5 历史战绩。本次退役版本上线后的下一版本删除表及 schema。
+ * 10J 已解除战报分享、旧仓储和 retention 清理引用，仅保留历史 schema。
+ * 删除时先解除 betBattles 的外键依赖。当前 V6 战绩使用 combatReplayArchives。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const battleRecordsV3 = pgTable(
   'wanjiedaoyou_battle_records_v3',
   {
@@ -832,7 +960,11 @@ export const battleRecordsV3 = pgTable(
   ],
 );
 
-// 在线对局结束后由 NATS 消费者异步写入；进行中状态只存在 Redis。
+/**
+ * @deprecated 10H 已下线的 V5 在线回放历史表，无运行时读写及自动清理。
+ * 本次退役版本上线后的下一版本删除表、schema 及仅供本表使用的历史 JSON 类型。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const battleReplayArchives = pgTable(
   'wanjiedaoyou_battle_replay_archives',
   {
@@ -854,6 +986,59 @@ export const battleReplayArchives = pgTable(
     index('battle_replay_archives_participants_gin_idx').using(
       'gin',
       table.participants,
+    ),
+  ],
+);
+
+// combat-v6活动战局、指令与RNG仅存在Redis。
+export const combatReplayArchives = pgTable(
+  'wanjiedaoyou_combat_replay_archives',
+  {
+    battleId: uuid('battle_id').primaryKey(),
+    metadataVersion: integer('metadata_version').notNull(),
+    sourceType: varchar('source_type', { length: 64 }).notNull(),
+    battleType: varchar('battle_type', { length: 64 }).notNull(),
+    idempotencyKey: uuid('idempotency_key').notNull(),
+    engineVersion: varchar('engine_version', { length: 40 }).notNull(),
+    rulesetVersion: varchar('ruleset_version', { length: 60 }).notNull(),
+    startedAt: timestamp('started_at').notNull(),
+    finishedAt: timestamp('finished_at').notNull(),
+    outcome: varchar('outcome', { length: 24 }).notNull(),
+    // Non-competitive battles retain settlement receipts without replay payloads.
+    replay: jsonb('replay').$type<CombatV6ReplayV1>(),
+    roundCount: integer('round_count').notNull().default(0),
+    sides: jsonb('sides')
+      .$type<[string[], string[]]>()
+      .notNull()
+      .default([[], []]),
+    archivedAt: timestamp('archived_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('combat_replay_source_idempotency_uidx').on(
+      table.sourceType,
+      table.idempotencyKey,
+    ),
+    index('combat_replay_finished_idx').on(table.finishedAt),
+  ],
+);
+
+// 不关联角色生命周期：删除角色不应连带删除历史战斗及参与记录。
+export const combatReplayParticipants = pgTable(
+  'wanjiedaoyou_combat_replay_participants',
+  {
+    battleId: uuid('battle_id')
+      .notNull()
+      .references(() => combatReplayArchives.battleId, {
+        onDelete: 'cascade',
+      }),
+    cultivatorId: uuid('cultivator_id').notNull(),
+    side: integer('side').notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.battleId, table.cultivatorId] }),
+    index('combat_replay_participant_cultivator_idx').on(
+      table.cultivatorId,
+      table.battleId,
     ),
   ],
 );
@@ -1527,8 +1712,8 @@ export const auctionListings = pgTable(
     sellerName: varchar('seller_name', { length: 100 }).notNull(), // 冗余存储，方便展示
 
     // 物品信息
-    itemType: varchar('item_type', { length: 20 }).notNull(), // material | artifact | consumable
-    itemId: uuid('item_id').notNull(), // 原物品ID（引用），售出后可清理
+    itemType: varchar('item_type', { length: 20 }).notNull(), // ItemDefinition.kind 或 beast
+    itemId: uuid('item_id').notNull(), // 原资产ID；灵兽交付保留此身份
     itemName: varchar('item_name', { length: 200 }).notNull().default(''),
     itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
     itemCategory: varchar('item_category', { length: 50 })
@@ -1618,7 +1803,11 @@ export const auctionListings = pgTable(
   ],
 );
 
-// 赌战表
+/**
+ * @deprecated 10D 已下线的赌战历史表，无运行时读写及自动清理。
+ * 本次退役版本上线后的下一版本删除，顺序先于 battleRecordsV3（存在外键）。
+ * 计划见 docs/combat-v6-legacy-table-retirement.md；本版不得生成 DROP。
+ */
 export const betBattles = pgTable(
   'wanjiedaoyou_bet_battles',
   {
@@ -1741,3 +1930,28 @@ export const creationProducts = pgTable(
     ),
   ],
 );
+
+/** 一名角色只保留最近一次寻觅；扣费与替换结果在同一事务中提交。 */
+export const wildSearches = pgTable('wanjiedaoyou_wild_searches', {
+  cultivatorId: uuid('cultivator_id').primaryKey().references(() => cultivators.id, { onDelete: 'cascade' }),
+  encounter: jsonb('encounter').$type<WildEncounter>().notNull(),
+  // 开战意图先持久化，再发布 Redis 战局；中断后可原样重试，不能重抽或重复创建。
+  preparedBattle: jsonb('prepared_battle').$type<WildRuntime>(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// 每角色只保留最近一次求签；新的一天仅覆盖已发奖的记录。
+export const dailyDivinations = pgTable('wanjiedaoyou_daily_divinations', {
+  // 逻辑关联角色；归属校验和删除清理由应用层负责，不创建数据库外键。
+  cultivatorId: uuid('cultivator_id').primaryKey(),
+  drawId: uuid('draw_id').notNull(),
+  dayKey: varchar('day_key', { length: 10 }).notNull(),
+  direction: varchar('direction', { length: 24 }).$type<DivinationDirection>().notNull(),
+  dice: jsonb('dice').$type<DivinationDice>().notNull(),
+  omenId: varchar('omen_id', { length: 32 }).notNull(),
+  generationId: uuid('generation_id'),
+  interpretation: text('interpretation'),
+  fallback: boolean('fallback').notNull().default(false),
+  rewardGrantedAt: timestamp('reward_granted_at'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});

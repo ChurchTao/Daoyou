@@ -1,3 +1,4 @@
+import { readCombatV6ConditionAuthority } from './combat-v6/CombatV6ConditionAuthority';
 import {
   db,
   getExecutor,
@@ -14,9 +15,9 @@ import {
   readResourceVersions,
   readScopeVersion,
 } from '@server/lib/repositories/playerStateRepository';
-import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import { getPlayerIdentityCultivatorById } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { QiService } from '@server/lib/services/QiService';
+import { getSectCombatView } from '@server/lib/services/combat-v6/CombatV6BuildService';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import {
   PLAYER_RESOURCE_KEYS,
@@ -124,9 +125,12 @@ const readers: {
     if (!cultivator) throw new Error('角色不存在');
     return { cultivator };
   },
-  condition: async ({ cultivatorState }) => {
+  condition: async ({ cultivatorState, cultivatorId, q }) => {
     const row = requireRequestedCultivatorState(cultivatorState, 'condition');
-    return row.condition as PlayerResourceMap['condition'];
+    const condition = row.condition as PlayerResourceMap['condition'];
+    if (!condition) return condition;
+    const { attrs, maxHp, maxMp, recoveryPaused } = await readCombatV6ConditionAuthority(cultivatorId, q);
+    return { ...condition, combatV6: { attrs, maxHp, maxMp, recoveryPaused } };
   },
   progress: async ({ cultivatorState }) => {
     const row = requireRequestedCultivatorState(cultivatorState, 'progress');
@@ -150,8 +154,8 @@ const readers: {
       qiLastRefreshedAt: qiState.qiLastRefreshedAt?.toISOString() ?? null,
     };
   },
-  loadout: ({ cultivatorId, q }) =>
-    getPlayerLoadoutByCultivatorId(cultivatorId, q),
+  'sect-combat': ({ cultivatorId, q }) =>
+    getSectCombatView(cultivatorId, q),
   'mail-summary': ({ cultivatorId, q }) =>
     readPlayerMailSummary(cultivatorId, q),
   'task-summary': ({ cultivatorId, q }) =>

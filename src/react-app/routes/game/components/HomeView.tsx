@@ -272,7 +272,12 @@ export function HomeView() {
   }
 
   return (
-    <GameSceneFrame title="洞府" aside={<HomeAside />}>
+    <GameSceneFrame
+      title="洞府"
+      aside={
+        cultivator.id ? <HomeAside cultivatorId={cultivator.id} /> : undefined
+      }
+    >
       <GameSceneSection title="当下要事">
         <div>
           {urgentItems.length > 0 ? (

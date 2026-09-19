@@ -1,57 +1,48 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import {
-  consumables,
-  creationProducts,
-  materials,
+  cultivatorEquipmentSlots,
+  inventoryItems,
 } from '@server/lib/drizzle/schema';
 import { createPostgresDomainEventWriter } from '@server/lib/mq/domainEventWriter';
 import * as organization from '@server/lib/repositories/sectOrganizationRepository';
 import * as memberships from '@server/lib/repositories/sectRepository';
-import { mapConsumableRow } from '@server/lib/services/consumablePersistence';
-import { toArtifactFromProduct } from '@server/lib/services/creationProductArtifactSupport';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
-import {
-  addMaterialToInventoryInTransaction,
-  mapArtifactRow,
-  mapMaterialRow,
-} from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import {
-  updateCultivationExp,
-} from '@server/lib/services/cultivator/CultivatorStateRepository';
-import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStateRepository';
-import { executePersistentWorldBattle } from '@server/lib/services/BattleStateCoordinator';
 import {
   materialLibraryEntryToMaterial,
   sampleMaterialLibraryEntryDeterministic,
 } from '@server/lib/services/MaterialLibraryService';
-import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
-import { SeededBattleRandomSource } from '@shared/engine/battle-v5/core/BattleRandom';
+import { updateCultivationExp } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import {
-  projectSectPillTraits,
   SectTaskRecordPayloadSchema,
+  projectSectPillTraits,
   type SectDiscipleRank,
-  type SectPillSubmissionFacts,
   type SectRuntime,
   type SectSubmissionItemFacts,
   type SectSubmissionItemKind,
 } from '@shared/engine/sect';
-import { simulateBattleV5 } from '@shared/lib/battle/simulateBattleV5';
-import { prepareStandardFullBattle } from '@shared/engine/battle-v5/setup/BattleStateStrategy';
-import { isPillSpec } from '@shared/lib/consumables';
+import { itemDefinition } from '@shared/inventory';
+import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { materialFactsOf } from '@shared/items/material';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
-  ELEMENT_VALUES,
-  MATERIAL_TYPE_VALUES,
-  QUALITY_VALUES,
-  type ElementType,
-  type MaterialType,
-  type Quality,
-} from '@shared/types/constants';
-import type { ConsumableSpec } from '@shared/types/consumable';
-import { eq } from 'drizzle-orm';
+  assertInventoryIdle,
+  grantInventory,
+  inventoryItemOf,
+  saveInventoryPlan,
+} from '../InventoryService';
+import { SectError } from '../SectError';
+import {
+  freezeSectTaskTarget,
+  startSectTaskBattle,
+} from '../combat-v6/CombatV6SectTaskService';
+import { emptySectCommandEffects } from './SectCommandEffects';
+import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 import type {
   Clock,
   IdGenerator,
   SectAdmissionRepository,
+  SectAdmissionResourceReader,
   SectBenefitQueryContext,
   SectCommandContext,
   SectConstructionCommandContext,
@@ -68,12 +59,9 @@ import type {
   SectMembershipQueryRepository,
   SectMembershipRepository,
   SectQueryContext,
+  SectRewardGateway,
   SectTaskRecord,
-  SectTraditionRepository,
-  SectTrainingResourceGateway,
 } from './ports';
-import { emptySectCommandEffects } from './SectCommandEffects';
-import { getSectDateKey, getSectWeekKey } from './SectOrganizationClock';
 
 function mapTask(row: {
   id: string;
@@ -176,84 +164,12 @@ export function createPostgresSectAdmissionRepository(args: {
   };
 }
 
-export function createPostgresSectTraditionRepository(args: {
+export function createPostgresSectAdmissionResourceReader(args: {
   q: DbExecutor | DbTransaction;
-  runtime: SectRuntime;
-}): SectTraditionRepository {
-  const { q, runtime } = args;
-  const tx = () => requireTransaction(q);
-  return {
-    ...stateAdapter(q, runtime),
-    setMethodLevel: (membershipId, methodId, level) =>
-      memberships.setMethodLevel(membershipId, methodId, level, tx()),
-    createPathWithFirstLayer: (membershipId, pathId, tacticId, layerId) =>
-      memberships.createPathWithFirstLayer(
-        membershipId,
-        pathId,
-        tacticId,
-        layerId,
-        tx(),
-      ),
-    appendUnlockedPathLayer: (membershipId, pathId, layerId, expectedCount) =>
-      memberships.appendUnlockedPathLayer(
-        membershipId,
-        pathId,
-        layerId,
-        expectedCount,
-        tx(),
-      ),
-    activatePathIfNone: (membershipId, pathId) =>
-      memberships.activatePathIfNone(membershipId, pathId, tx()),
-    activatePath: (membershipId, pathId) =>
-      memberships.activatePath(membershipId, pathId, tx()),
-    replaceMeridianLoadout: (membershipId, pathId, slot, nodeIds) =>
-      memberships.replaceMeridianLoadout(
-        membershipId,
-        pathId,
-        slot,
-        nodeIds,
-        tx(),
-      ),
-    activateMeridianLoadout: (membershipId, pathId, slot) =>
-      memberships.activateMeridianLoadout(membershipId, pathId, slot, tx()),
-    replaceAbilityLoadout: (membershipId, slots) =>
-      memberships.replaceAbilityLoadout(membershipId, slots, tx()),
-    setPathTactic: (membershipId, pathId, tacticId) =>
-      memberships.setPathTactic(membershipId, pathId, tacticId, tx()),
-  };
-}
-
-export function createPostgresSectTrainingResourceGateway(args: {
-  q: DbExecutor | DbTransaction;
-  runtime: SectRuntime;
-}): SectTrainingResourceGateway {
-  const { q, runtime } = args;
+}): SectAdmissionResourceReader {
   return {
     load: (cultivatorId) =>
-      memberships.loadSectCultivatorProgress(cultivatorId, q),
-    spend: (cultivatorId, cost) =>
-      memberships.spendTrainingResources(
-        cultivatorId,
-        cost,
-        requireTransaction(q),
-      ),
-    async methodLevelCap(cultivatorId) {
-      const state = await memberships.loadCultivatorSectState(
-        cultivatorId,
-        q,
-        runtime,
-      );
-      if (!state) return 20;
-      const levels = new Map(
-        (await organization.listSectFacilities(state.sectId, q)).map((row) => [
-          row.facilityKey,
-          row.level,
-        ]),
-      );
-      return runtime.registry
-        .require(state.sectId)
-        .organization.benefits.methodLevelCap(levels);
-    },
+      memberships.loadSectCultivatorProgress(cultivatorId, args.q),
   };
 }
 
@@ -332,293 +248,159 @@ function facilityCommandAdapter(
   };
 }
 
-function normalizeQuality(value: string | null): Quality {
-  return QUALITY_VALUES.includes(value as Quality)
-    ? (value as Quality)
-    : '凡品';
-}
-
-function mapSubmissionPill(row: {
-  id: string;
-  name: string;
-  quality: string;
-  quantity: number;
-  spec: unknown;
-}): SectPillSubmissionFacts | null {
-  if (!isPillSpec(row.spec as ConsumableSpec)) return null;
-  const spec = row.spec as ConsumableSpec & { kind: 'pill' };
-  return {
-    kind: 'pill',
-    id: row.id,
-    name: row.name,
-    quality: normalizeQuality(row.quality),
-    quantity: row.quantity,
-    family: spec.family,
-    appearance: spec.alchemyMeta.appearance,
-    traits: projectSectPillTraits(spec),
-  };
-}
-
-function mapSubmissionMaterial(row: {
-  id: string;
-  name: string;
-  rank: string;
-  quantity: number;
-  type: string;
-  element: string | null;
-}): SectSubmissionItemFacts {
-  return {
-    kind: 'material',
-    id: row.id,
-    name: row.name,
-    quality: normalizeQuality(row.rank),
-    quantity: row.quantity,
-    materialType: MATERIAL_TYPE_VALUES.includes(row.type as MaterialType)
-      ? (row.type as MaterialType)
-      : 'aux',
-    element: ELEMENT_VALUES.includes(row.element as ElementType)
-      ? (row.element as ElementType)
-      : undefined,
-  };
-}
-
-function mapSubmissionArtifact(row: {
-  id: string;
-  name: string;
-  quality: string | null;
-  slot: string | null;
-  isEquipped: boolean;
-  productModel: unknown;
-}): SectSubmissionItemFacts {
-  const model =
-    row.productModel && typeof row.productModel === 'object'
-      ? (row.productModel as Record<string, unknown>)
-      : {};
-  const affixes = Array.isArray(model.affixes) ? model.affixes : [];
-  const modelQuality = QUALITY_VALUES.includes(
-    model.projectionQuality as Quality,
-  )
-    ? (model.projectionQuality as Quality)
-    : undefined;
-  const rowQuality = normalizeQuality(row.quality);
-  if (modelQuality && modelQuality !== rowQuality)
-    throw new Error(`法宝品质持久化不一致：${row.id}`);
-  return {
-    kind: 'artifact',
-    id: row.id,
-    name: row.name,
-    quality: modelQuality ?? rowQuality,
-    quantity: 1,
-    slot: ['weapon', 'armor', 'accessory'].includes(row.slot ?? '')
-      ? (row.slot as 'weapon' | 'armor' | 'accessory')
-      : undefined,
-    perfectAffixCount: affixes.filter(
-      (affix) =>
-        affix &&
-        typeof affix === 'object' &&
-        (affix as Record<string, unknown>).isPerfect === true,
-    ).length,
-    isEquipped: row.isEquipped,
-  };
-}
-
 function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
-  const find = async (
+  async function list(
     cultivatorId: string,
-    kind: SectSubmissionItemKind,
-    itemId: string,
-  ): Promise<SectSubmissionItemFacts | null> => {
-    if (kind === 'pill') {
-      const row = await organization.findOwnedConsumable(
-        cultivatorId,
-        itemId,
-        q,
+  ): Promise<SectSubmissionItemFacts[]> {
+    const rows = await q
+      .select()
+      .from(inventoryItems)
+      .where(
+        and(
+          eq(inventoryItems.cultivatorId, cultivatorId),
+          eq(inventoryItems.location, 'bag'),
+        ),
       );
-      return row ? mapSubmissionPill(row) : null;
-    }
-    if (kind === 'artifact') {
-      const row = await organization.findOwnedArtifact(cultivatorId, itemId, q);
-      return row ? mapSubmissionArtifact(row) : null;
-    }
-    const row = await organization.findOwnedMaterial(cultivatorId, itemId, q);
-    return row ? mapSubmissionMaterial(row) : null;
-  };
+    const loadouts = rows.length
+      ? await q
+          .select()
+          .from(cultivatorEquipmentSlots)
+          .where(
+            inArray(
+              cultivatorEquipmentSlots.equipmentInstanceId,
+              rows.map((row) => row.id),
+            ),
+          )
+      : [];
+    return rows.flatMap((row): SectSubmissionItemFacts[] => {
+      const common = { id: row.id, quantity: row.quantity };
+      if (itemDefinition(row.definitionId).kind === 'material') {
+        const facts = materialFactsOf(row.instanceData);
+        return [
+          {
+            ...common,
+            kind: 'material',
+            name: facts.name,
+            quality: facts.rank,
+            materialType: facts.type,
+            element: facts.element ?? undefined,
+          },
+        ];
+      }
+      if (row.definitionId === 'consumable.v1') {
+        const facts = ConsumableFactsSchema.parse(row.instanceData);
+        if (facts.spec.kind !== 'pill') return [];
+        return [
+          {
+            ...common,
+            kind: 'pill',
+            name: facts.name,
+            quality: facts.quality,
+            family: facts.spec.family,
+            appearance: facts.spec.alchemyMeta.appearance,
+            traits: projectSectPillTraits(facts.spec),
+          },
+        ];
+      }
+      if (row.definitionId === 'equipment.v6') {
+        const facts = InventoryEquipmentSchema.parse(row.instanceData);
+        return [
+          {
+            ...common,
+            quantity: 1,
+            kind: 'equipment',
+            name: facts.name,
+            slot: facts.slot,
+            equipmentLevel: facts.equipmentLevel,
+            isEquipped: loadouts.some((l) => l.equipmentInstanceId === row.id),
+          },
+        ];
+      }
+      return [];
+    });
+  }
   return {
-    async listSubmissionItemsPage(input: {
+    async listSubmissionItems(input: {
       cultivatorId: string;
       kind: SectSubmissionItemKind;
-      page: number;
-      pageSize: number;
     }) {
-      if (input.kind === 'pill') {
-        const result = await organization.listOwnedSubmissionConsumables(
-          input.cultivatorId,
-          input.page,
-          input.pageSize,
-          q,
-        );
-        return {
-          items: result.rows
-            .map(mapSubmissionPill)
-            .filter((item): item is SectPillSubmissionFacts => Boolean(item)),
-          total: result.total,
-        };
-      }
-      if (input.kind === 'artifact') {
-        const result = await organization.listOwnedSubmissionArtifacts(
-          input.cultivatorId,
-          input.page,
-          input.pageSize,
-          q,
-        );
-        return {
-          items: result.rows.map(mapSubmissionArtifact),
-          total: result.total,
-        };
-      }
-      const result = await organization.listOwnedSubmissionMaterials(
-        input.cultivatorId,
-        input.page,
-        input.pageSize,
-        q,
+      return (await list(input.cultivatorId)).filter(
+        (item) => item.kind === input.kind,
       );
-      return {
-        items: result.rows.map(mapSubmissionMaterial),
-        total: result.total,
-      };
     },
-    findSubmissionItem: find,
+    async findSubmissionItem(
+      cultivatorId: string,
+      kind: SectSubmissionItemKind,
+      itemId: string,
+    ) {
+      return (
+        (await list(cultivatorId)).find(
+          (item) => item.id === itemId && item.kind === kind,
+        ) ?? null
+      );
+    },
     async consumeSubmissionItem(input: {
       cultivatorId: string;
       kind: SectSubmissionItemKind;
       itemId: string;
+      revision: number;
       quantity: number;
     }) {
       if (!('rollback' in q)) throw new Error('宗门物品提交必须在事务中执行');
-      const consumed =
-        input.kind === 'pill'
-          ? await organization.consumeOwnedSubmissionConsumable(
-              input.cultivatorId,
-              input.itemId,
-              input.quantity,
-              q,
-            )
-          : input.kind === 'artifact'
-            ? await organization.consumeOwnedSubmissionArtifact(
-                input.cultivatorId,
-                input.itemId,
-                q,
-              )
-            : await organization.consumeOwnedSubmissionMaterial(
-                input.cultivatorId,
-                input.itemId,
-                input.quantity,
-                q,
-              );
-      if (!consumed) return { consumed: false };
-      const change = await buildSubmissionInventoryChange(
-        q,
-        input.kind,
-        input.itemId,
+      await assertInventoryIdle(input.cultivatorId);
+      const rows = await q
+        .select()
+        .from(inventoryItems)
+        .where(
+          and(
+            eq(inventoryItems.cultivatorId, input.cultivatorId),
+            eq(inventoryItems.location, 'bag'),
+            eq(inventoryItems.id, input.itemId),
+          ),
+        );
+      const before = rows.map(inventoryItemOf);
+      const item = before[0];
+      if (
+        !item ||
+        item.revision !== input.revision ||
+        item.quantity < input.quantity
+      )
+        throw new SectError(
+          'SECT_ORGANIZATION_INVALID',
+          '物品已变化，请重新选择',
+          409,
+        );
+      const facts = (await list(input.cultivatorId)).find(
+        (i) => i.id === input.itemId && i.kind === input.kind,
       );
-      return inventorySettlement(true, change, input.itemId);
-    },
-  };
-}
-
-function inventorySettlement(
-  consumed: boolean,
-  change: Awaited<ReturnType<typeof buildSubmissionInventoryChange>>,
-  itemId: string,
-) {
-  if (!consumed) return { consumed: false };
-  return {
-    consumed: true,
-    change,
-    settlement: {
-      topic: change.resourceTopic,
-      itemId,
-      remainingQuantity:
-        change.operation === 'upsert-items'
-          ? Number(
-              (change.payload.items[0] as { quantity?: number })?.quantity ?? 1,
-            )
-          : 0,
-      removed: change.operation === 'remove-items',
-    },
-  };
-}
-
-async function buildSubmissionInventoryChange(
-  q: DbTransaction,
-  kind: SectSubmissionItemKind,
-  itemId: string,
-): Promise<
-  ResourceChangeDescriptor<
-    'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables'
-  >
-> {
-  if (kind === 'pill') {
-    const [row] = await q
-      .select()
-      .from(consumables)
-      .where(eq(consumables.id, itemId))
-      .limit(1);
-    return row
-      ? {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'sect.task_inventory_item_updated',
-          operation: 'upsert-items',
-          payload: { items: [mapConsumableRow(row)], idKey: 'id' },
-        }
-      : {
-          resourceTopic: 'inventory.consumables',
-          eventType: 'sect.task_inventory_item_removed',
-          operation: 'remove-items',
-          payload: { ids: [itemId], idKey: 'id' },
-        };
-  }
-  if (kind === 'artifact') {
-    const [row] = await q
-      .select()
-      .from(creationProducts)
-      .where(eq(creationProducts.id, itemId))
-      .limit(1);
-    return row
-      ? {
-          resourceTopic: 'inventory.artifacts',
-          eventType: 'sect.task_inventory_item_updated',
-          operation: 'upsert-items',
-          payload: {
-            items: [mapArtifactRow(toArtifactFromProduct(row))],
-            idKey: 'id',
-          },
-        }
-      : {
-          resourceTopic: 'inventory.artifacts',
-          eventType: 'sect.task_inventory_item_removed',
-          operation: 'remove-items',
-          payload: { ids: [itemId], idKey: 'id' },
-        };
-  }
-  const [row] = await q
-    .select()
-    .from(materials)
-    .where(eq(materials.id, itemId))
-    .limit(1);
-  return row
-    ? {
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.task_inventory_item_updated',
-        operation: 'upsert-items',
-        payload: { items: [mapMaterialRow(row)], idKey: 'id' },
-      }
-    : {
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.task_inventory_item_removed',
-        operation: 'remove-items',
-        payload: { ids: [itemId], idKey: 'id' },
+      if (!facts || (facts.kind === 'equipment' && facts.isEquipped))
+        throw new SectError('SECT_ORGANIZATION_INVALID', '物品不可交付', 409);
+      const remainingQuantity = item.quantity - input.quantity;
+      await saveInventoryPlan(
+        input.cultivatorId,
+        before,
+        remainingQuantity
+          ? [
+              {
+                ...item,
+                quantity: remainingQuantity,
+                revision: item.revision + 1,
+              },
+            ]
+          : [],
+        q,
+      );
+      return {
+        consumed: true,
+        settlement: {
+          topic: 'inventory-v6' as const,
+          itemId: item.id,
+          remainingQuantity,
+          removed: !remainingQuantity,
+        },
       };
+    },
+  };
 }
 
 function rewardAdapter(q: DbExecutor | DbTransaction, userId: string) {
@@ -696,20 +478,32 @@ function rewardAdapter(q: DbExecutor | DbTransaction, userId: string) {
     },
     async grantMaterial(
       cultivatorId: string,
-      input: Parameters<typeof addMaterialToInventoryInTransaction>[1],
+      input: Parameters<SectRewardGateway['grantMaterial']>[1],
     ) {
       if (!('rollback' in q)) throw new Error('宗门奖励必须在事务中执行');
-      const material = await addMaterialToInventoryInTransaction(
+      await grantInventory(
         cultivatorId,
-        input,
+        [
+          {
+            definitionId: 'material.v1',
+            quantity: input.quantity,
+            instanceData: MaterialFactsSchema.parse({
+              name: input.name,
+              type: input.type,
+              rank: input.rank,
+              element: input.element ?? null,
+              description: input.description ?? '',
+            }),
+          },
+        ],
         q,
       );
       const effects = emptySectCommandEffects();
       effects.resourceChanges.push({
-        resourceTopic: 'inventory.materials',
-        eventType: 'sect.reward_material_granted',
-        operation: 'upsert-items',
-        payload: { idKey: 'id', items: [material] },
+        scope: { kind: 'cultivator', id: cultivatorId },
+        resourceTopic: 'inventory.bag',
+        operation: 'invalidate',
+        eventType: 'inventory.sect-task.rewarded',
       });
       return effects;
     },
@@ -729,11 +523,7 @@ function economyCommandAdapter(tx: DbTransaction): SectEconomyRepository {
   return {
     ...economyReadAdapter(tx),
     async spendContribution(membershipId: string, amount: number) {
-      return organization.spendSectContribution(
-        membershipId,
-        amount,
-        tx,
-      );
+      return organization.spendSectContribution(membershipId, amount, tx);
     },
     async recordStipendClaim(input: {
       membershipId: string;
@@ -753,11 +543,7 @@ function constructionCommandAdapter(
 ): SectConstructionRepository {
   return {
     async grantContribution(membershipId: string, amount: number) {
-      return organization.addSectContribution(
-        membershipId,
-        amount,
-        tx,
-      );
+      return organization.addSectContribution(membershipId, amount, tx);
     },
   };
 }
@@ -909,7 +695,12 @@ export function createPostgresSectCommandContext(args: {
         return row ? mapTask(row) : null;
       },
       nextAttempt: (membershipId, periodKey, taskId) =>
-        organization.getNextSectTaskAttempt(membershipId, periodKey, taskId, tx),
+        organization.getNextSectTaskAttempt(
+          membershipId,
+          periodKey,
+          taskId,
+          tx,
+        ),
       create: async (input) =>
         mapTask(
           await organization.createSectTaskRecord(
@@ -961,56 +752,12 @@ export function createPostgresSectCommandContext(args: {
     },
     submissionInventory: submissionInventoryAdapter(tx),
     cultivators: {
-      async loadRuntime(cultivatorId) {
-        return (
-          (await loadCultivatorCombatInput(cultivatorId, tx))?.cultivator ??
-          null
-        );
-      },
-      async findBattleTargetCandidate(input) {
-        const candidate =
-          await organization.findSectBattleTargetCandidate(input, tx);
-        return candidate
-          ? {
-              ...candidate,
-              sectName: args.runtime.registry.require(candidate.sectId)
-                .definition.name,
-            }
-          : null;
-      },
       loadProgress: (cultivatorId) =>
         memberships.loadSectCultivatorProgress(cultivatorId, tx),
-      async saveCondition(cultivatorId, condition) {
-        const updated = await updateCultivator(
-          cultivatorId,
-          { condition },
-          tx,
-        );
-        if (!updated) throw new Error('角色状态保存失败');
-      },
     },
     battle: {
-      execute: (player, opponent, strategy, seed) => {
-        const randomSource = new SeededBattleRandomSource(seed);
-        if (strategy === 'persistent_world') {
-          const execution = executePersistentWorldBattle({
-            strategyId: strategy,
-            player,
-            opponent,
-            randomSource,
-          });
-          return {
-            battleResult: execution.battleResult,
-            nextCondition: execution.nextCondition,
-          };
-        }
-        return {
-          battleResult: simulateBattleV5(
-            prepareStandardFullBattle({ player, opponent }),
-            randomSource,
-          ),
-        };
-      },
+      freeze: (context) => freezeSectTaskTarget(context, tx),
+      start: (context) => startSectTaskBattle(context, tx),
     },
     rewards: rewardAdapter(tx, args.userId),
     rewardMaterials: {

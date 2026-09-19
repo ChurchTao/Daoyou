@@ -93,6 +93,8 @@
 
 环境要求、环境变量、数据库初始化、本地开发、构建、Docker、生产 cron 与部署脚本说明已整理到 [docs/development.md](docs/development.md)。
 
+纯本地配置 `env/local.env` 随仓库提供，直接执行 `bun run services up -d --wait` → `bun run db:migrate` → `bun run dev`，访问 `http://127.0.0.1:5174`。预发布调试使用 `bun run prd`，读取被 Git 忽略的 `env/staging.env`；两组均可独立启动 `:api`／`:web`。详见 [本地开发指南](docs/local-development.md) 与 [测试规范](docs/testing.md)。
+
 ## 贡献指南
 
 欢迎道友们共建这个修仙世界！

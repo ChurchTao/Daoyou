@@ -5,10 +5,8 @@ import {
 } from '@app/components/game-shell';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkSelect } from '@app/components/ui/InkSelect';
-import {
-  TOWER_ELIGIBLE_REALMS,
-  type TowerLeaderboardEntry,
-} from '@shared/lib/tower';
+import { TOWER_ELIGIBLE_REALMS } from '@shared/lib/tower/helpers';
+import type { TowerLeaderboardEntry } from '@shared/lib/tower/types';
 import type { RealmType } from '@shared/types/constants';
 
 interface TowerLeaderboardProps {

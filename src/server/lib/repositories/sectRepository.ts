@@ -1,25 +1,19 @@
+import { createFreshCombatV6MethodLevels } from '@shared/engine/combat-v6/build-state';
+import { COMBAT_V6_SECT_DEFINITIONS, type CombatV6SectId } from '@shared/engine/combat-v6/content';
 import {
-  runDbTasks,
   type DbExecutor,
   type DbTransaction,
 } from '@server/lib/drizzle/db';
 import {
-  creationProducts,
   cultivators,
-  sectAbilityLoadouts,
   sectMemberships,
-  sectMeridianLoadouts,
+  sectCombatStates,
   sectMethodProgress,
-  sectPathProgress,
 } from '@server/lib/drizzle/schema';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import type { ResourceDataMap } from '@shared/contracts/resources';
-import type { SectProgressionData } from '@shared/contracts/sect';
 import {
-  createAbilitySlots,
-  StandardSectRules,
   type CultivatorSectState,
-  type SectAbilitySlots,
   type SectDefinition,
   type SectRuntime,
   type SectTrainingCost,
@@ -107,17 +101,6 @@ export async function spendTrainingResources(
   return rows.length === 1;
 }
 
-export function hydrateSectAbilitySlots(
-  rows: Array<{ slot: number; abilityId: string }>,
-): SectAbilitySlots {
-  const slots: SectAbilitySlots = createAbilitySlots([]);
-  for (const row of rows)
-    if (row.slot >= 1 && row.slot <= StandardSectRules.activeAbilitySlotCount) {
-      slots[row.slot - 1] = row.abilityId;
-    }
-  return slots;
-}
-
 export async function findMembership(
   cultivatorId: string,
   q: DbExecutor | DbTransaction,
@@ -168,34 +151,11 @@ async function hydrateMembership(
   q: DbExecutor | DbTransaction,
   runtime: SectRuntime,
 ): Promise<CultivatorSectState> {
-  const [methods, pathRows, meridians, abilities] = await runDbTasks(q, [
-    () =>
-      q
-        .select()
-        .from(sectMethodProgress)
-        .where(eq(sectMethodProgress.membershipId, membership.id)),
-    () =>
-      q
-        .select()
-        .from(sectPathProgress)
-        .where(eq(sectPathProgress.membershipId, membership.id)),
-    () =>
-      q
-        .select()
-        .from(sectMeridianLoadouts)
-        .where(eq(sectMeridianLoadouts.membershipId, membership.id)),
-    () =>
-      q
-        .select()
-        .from(sectAbilityLoadouts)
-        .where(eq(sectAbilityLoadouts.membershipId, membership.id)),
-  ]);
   const state: CultivatorSectState = {
     membershipId: membership.id,
     sectId: membership.sectId,
     status: membership.status as CultivatorSectState['status'],
     joinedAt: membership.joinedAt?.toISOString(),
-    activePathId: membership.activePathId ?? undefined,
     contribution: membership.contribution,
     lifetimeContribution: membership.lifetimeContribution,
     discipleRank:
@@ -203,24 +163,6 @@ async function hydrateMembership(
     office: membership.office as CultivatorSectState['office'],
     promotedAt: membership.promotedAt?.toISOString(),
     configVersion: membership.configVersion,
-    methods: Object.fromEntries(
-      methods.map((row) => [row.methodId, row.level]),
-    ),
-    paths: pathRows.map((path) => ({
-      pathId: path.pathId,
-      unlockedLayerIds: path.unlockedLayerIds,
-      tacticId: path.tacticId,
-      activeMeridianSlot: path.activeMeridianSlot as 1 | 2 | 3,
-      meridianLoadouts: meridians
-        .filter((loadout) => loadout.pathId === path.pathId)
-        .map((loadout) => ({
-          slot: loadout.slot as 1 | 2 | 3,
-          nodeIds: loadout.nodeIds,
-          version: loadout.version,
-        }))
-        .sort((a, b) => a.slot - b.slot),
-    })),
-    abilityLoadout: hydrateSectAbilitySlots(abilities),
   };
   try {
     runtime.validateState(state);
@@ -232,42 +174,6 @@ async function hydrateMembership(
     throw error;
   }
   return state;
-}
-
-export async function loadCultivatorSectProgression(
-  cultivatorId: string,
-  q: DbExecutor | DbTransaction,
-): Promise<Pick<
-  SectProgressionData,
-  'activePathId' | 'methods' | 'paths' | 'abilityLoadout'
-> | null> {
-  const membership = await findMembership(cultivatorId, q);
-  if (!membership) return null;
-  const state = await hydrateMembership(membership, q, productionSectRuntime);
-  return {
-    activePathId: state.activePathId,
-    methods: state.methods,
-    paths: state.paths,
-    abilityLoadout: state.abilityLoadout,
-  };
-}
-
-export async function loadSectProgressionForMembership(
-  membership: SectMembershipRow,
-  q: DbExecutor | DbTransaction,
-): Promise<
-  Pick<
-    SectProgressionData,
-    'activePathId' | 'methods' | 'paths' | 'abilityLoadout'
-  >
-> {
-  const state = await hydrateMembership(membership, q, productionSectRuntime);
-  return {
-    activePathId: state.activePathId,
-    methods: state.methods,
-    paths: state.paths,
-    abilityLoadout: state.abilityLoadout,
-  };
 }
 
 export async function loadCultivatorSectState(
@@ -324,7 +230,6 @@ export async function activateMembership(
       contribution: definition.onboarding.initialContribution,
       // Rejoining a sect resets spendable balance, but never erases earned history.
       lifetimeContribution: sql`GREATEST(${sectMemberships.lifetimeContribution}, ${definition.onboarding.initialContribution})`,
-      activePathId: null,
       configVersion: definition.configVersion,
     })
     .where(
@@ -333,150 +238,13 @@ export async function activateMembership(
         eq(sectMemberships.status, 'prospect'),
       ),
     );
-  const initialMethods = Object.entries(
-    definition.onboarding.initialMethods,
-  ).map(([methodId, level]) => ({ membershipId, methodId, level }));
-  if (initialMethods.length)
-    await tx
-      .insert(sectMethodProgress)
-      .values(initialMethods)
-      .onConflictDoNothing();
-  const initialAbilities = definition.onboarding.initialAbilityLoadout.flatMap(
-    (abilityId, index) =>
-      abilityId ? [{ membershipId, slot: index + 1, abilityId }] : [],
-  );
-  if (initialAbilities.length)
-    await tx
-      .insert(sectAbilityLoadouts)
-      .values(initialAbilities)
-      .onConflictDoNothing();
-  const [membership] = await tx
-    .select({ cultivatorId: sectMemberships.cultivatorId })
-    .from(sectMemberships)
-    .where(eq(sectMemberships.id, membershipId))
-    .limit(1);
-  if (membership) {
-    await tx
-      .update(creationProducts)
-      .set({ isEquipped: false })
-      .where(
-        and(
-          eq(creationProducts.cultivatorId, membership.cultivatorId),
-          eq(creationProducts.productType, 'skill'),
-        ),
-      );
-  }
-}
+  const sectId = definition.id;
+  if (!(sectId in COMBAT_V6_SECT_DEFINITIONS)) throw new Error('宗门战斗定义不存在');
+  await tx.insert(sectCombatStates).values({membershipId}).onConflictDoNothing();
+  await tx.insert(sectMethodProgress).values(
+    Object.entries(createFreshCombatV6MethodLevels(sectId as CombatV6SectId)).map(([methodId, level]) => ({membershipId, methodId, level})),
+  ).onConflictDoNothing();
 
-export async function setMethodLevel(
-  membershipId: string,
-  methodId: string,
-  level: number,
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .insert(sectMethodProgress)
-    .values({ membershipId, methodId, level })
-    .onConflictDoUpdate({
-      target: [sectMethodProgress.membershipId, sectMethodProgress.methodId],
-      set: { level, updatedAt: new Date() },
-    });
-}
-
-export async function createPathWithFirstLayer(
-  membershipId: string,
-  pathId: string,
-  tacticId: string,
-  layerId: string,
-  tx: DbTransaction,
-): Promise<boolean> {
-  const rows = await tx
-    .insert(sectPathProgress)
-    .values({
-      membershipId,
-      pathId,
-      unlockedLayerIds: [layerId],
-      tacticId,
-      activeMeridianSlot: 1,
-    })
-    .onConflictDoNothing()
-    .returning({ id: sectPathProgress.id });
-  if (!rows.length) return false;
-  await tx
-    .insert(sectMeridianLoadouts)
-    .values(
-      StandardSectRules.meridianLoadoutSlots.map((slot) => ({
-        membershipId,
-        pathId,
-        slot,
-        nodeIds: [],
-      })),
-    )
-    .onConflictDoNothing();
-  return true;
-}
-
-export async function appendUnlockedPathLayer(
-  membershipId: string,
-  pathId: string,
-  layerId: string,
-  expectedUnlockedCount: number,
-  tx: DbTransaction,
-): Promise<boolean> {
-  const rows = await tx
-    .update(sectPathProgress)
-    .set({
-      unlockedLayerIds: sql`${sectPathProgress.unlockedLayerIds} || jsonb_build_array(${layerId}::text)`,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(sectPathProgress.membershipId, membershipId),
-        eq(sectPathProgress.pathId, pathId),
-        sql`jsonb_array_length(${sectPathProgress.unlockedLayerIds}) = ${expectedUnlockedCount}`,
-      ),
-    )
-    .returning({ id: sectPathProgress.id });
-  return rows.length === 1;
-}
-
-export async function activatePathIfNone(
-  membershipId: string,
-  pathId: string,
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .update(sectMemberships)
-    .set({ activePathId: pathId, updatedAt: new Date() })
-    .where(
-      and(
-        eq(sectMemberships.id, membershipId),
-        sql`${sectMemberships.activePathId} is null`,
-      ),
-    );
-}
-
-export async function activatePath(
-  membershipId: string,
-  pathId: string,
-  tx: DbTransaction,
-): Promise<boolean> {
-  const learned = await tx
-    .select({ id: sectPathProgress.id })
-    .from(sectPathProgress)
-    .where(
-      and(
-        eq(sectPathProgress.membershipId, membershipId),
-        eq(sectPathProgress.pathId, pathId),
-      ),
-    )
-    .limit(1);
-  if (!learned.length) return false;
-  await tx
-    .update(sectMemberships)
-    .set({ activePathId: pathId, updatedAt: new Date() })
-    .where(eq(sectMemberships.id, membershipId));
-  return true;
 }
 
 export async function spendContribution(
@@ -496,111 +264,3 @@ export async function spendContribution(
     .returning({ id: sectMemberships.id });
   return rows.length === 1;
 }
-
-export async function replaceMeridianLoadout(
-  membershipId: string,
-  pathId: string,
-  slot: number,
-  nodeIds: string[],
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .insert(sectMeridianLoadouts)
-    .values({ membershipId, pathId, slot, nodeIds })
-    .onConflictDoUpdate({
-      target: [
-        sectMeridianLoadouts.membershipId,
-        sectMeridianLoadouts.pathId,
-        sectMeridianLoadouts.slot,
-      ],
-      set: {
-        nodeIds,
-        version: sql`${sectMeridianLoadouts.version} + 1`,
-        updatedAt: new Date(),
-      },
-    });
-}
-
-export async function activateMeridianLoadout(
-  membershipId: string,
-  pathId: string,
-  slot: number,
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .update(sectPathProgress)
-    .set({ activeMeridianSlot: slot, updatedAt: new Date() })
-    .where(
-      and(
-        eq(sectPathProgress.membershipId, membershipId),
-        eq(sectPathProgress.pathId, pathId),
-      ),
-    );
-}
-
-export async function replaceAbilityLoadout(
-  membershipId: string,
-  abilitySlots: SectAbilitySlots,
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .delete(sectAbilityLoadouts)
-    .where(eq(sectAbilityLoadouts.membershipId, membershipId));
-  const values = abilitySlots.flatMap((abilityId, index) =>
-    abilityId ? [{ membershipId, slot: index + 1, abilityId }] : [],
-  );
-  if (values.length) await tx.insert(sectAbilityLoadouts).values(values);
-}
-
-export async function setPathTactic(
-  membershipId: string,
-  pathId: string,
-  tacticId: string,
-  tx: DbTransaction,
-): Promise<void> {
-  await tx
-    .update(sectPathProgress)
-    .set({ tacticId, updatedAt: new Date() })
-    .where(
-      and(
-        eq(sectPathProgress.membershipId, membershipId),
-        eq(sectPathProgress.pathId, pathId),
-      ),
-    );
-}
-
-export function createSectRepository(
-  runtime: SectRuntime = productionSectRuntime,
-) {
-  return {
-    loadCultivatorProgress: loadSectCultivatorProgress,
-    spendTrainingResources,
-    findMembership,
-    findMembershipForSect,
-    listMemberships,
-    loadCultivatorSectState: (
-      cultivatorId: string,
-      q: DbExecutor | DbTransaction,
-    ) => loadCultivatorSectState(cultivatorId, q, runtime),
-    loadCultivatorSectStateForSect: (
-      cultivatorId: string,
-      sectId: string,
-      q: DbExecutor | DbTransaction,
-    ) => loadCultivatorSectStateForSect(cultivatorId, sectId, q, runtime),
-    ensureMembershipCandidate,
-    activateMembership,
-    setMethodLevel,
-    createPathWithFirstLayer,
-    appendUnlockedPathLayer,
-    activatePathIfNone,
-    activatePath,
-    spendContribution,
-    replaceMeridianLoadout,
-    activateMeridianLoadout,
-    replaceAbilityLoadout,
-    setPathTactic,
-  };
-}
-
-export type SectRepositoryPort = ReturnType<typeof createSectRepository>;
-export const postgresSectRepository = createSectRepository();

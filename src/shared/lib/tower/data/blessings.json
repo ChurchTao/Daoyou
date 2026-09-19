@@ -1,0 +1,82 @@
+{
+  "$schema": "./blessings.schema.json",
+  "formatVersion": 2,
+  "contentRevision": 2,
+  "blessings": [
+    {
+      "id": "physical_power",
+      "name": "强攻",
+      "icon": "💪",
+      "label": "人物物理攻击",
+      "maxStacks": 3,
+      "effect": {
+        "target": "player",
+        "attributes": [
+          "physicalAtk"
+        ],
+        "perStack": 0.08
+      }
+    },
+    {
+      "id": "spell_power",
+      "name": "灵威",
+      "icon": "🔮",
+      "label": "人物法术攻击",
+      "maxStacks": 3,
+      "effect": {
+        "target": "player",
+        "attributes": [
+          "magicAtk"
+        ],
+        "perStack": 0.08
+      }
+    },
+    {
+      "id": "guard",
+      "name": "坚守",
+      "icon": "🛡️",
+      "label": "人物双防",
+      "maxStacks": 3,
+      "effect": {
+        "target": "player",
+        "attributes": [
+          "physicalDef",
+          "magicDef"
+        ],
+        "perStack": 0.08
+      }
+    },
+    {
+      "id": "swiftness",
+      "name": "疾行",
+      "icon": "👣",
+      "label": "人物速度",
+      "maxStacks": 3,
+      "effect": {
+        "target": "player",
+        "attributes": [
+          "speed"
+        ],
+        "perStack": 0.05
+      }
+    },
+    {
+      "id": "beast_power",
+      "name": "兽威",
+      "icon": "🐾",
+      "label": "灵兽双攻",
+      "maxStacks": 3,
+      "effect": {
+        "target": "beasts",
+        "attributes": [
+          "physicalAtk",
+          "magicAtk"
+        ],
+        "perStack": 0.08
+      }
+    }
+  ],
+  "choices": {
+    "count": 3
+  }
+}

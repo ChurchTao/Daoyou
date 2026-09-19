@@ -14,7 +14,7 @@ export function resolveMapCloseNavigation(
 ): SpecialBackNavigation {
   const intent = new URLSearchParams(search).get('intent');
 
-  if (intent === 'sect') {
+  if (intent !== 'market' && intent !== 'dungeon') {
     return {
       type: 'path',
       href: '/game',

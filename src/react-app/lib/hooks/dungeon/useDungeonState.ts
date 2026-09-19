@@ -1,82 +1,61 @@
-import { DungeonState } from '@shared/lib/dungeon/types';
-import { useEffect, useState } from 'react';
+import type { DungeonState } from '@shared/lib/dungeon/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-/**
- * 副本状态管理Hook
- * 负责获取和管理副本状态
- */
-export function useDungeonState(hasCultivator: boolean) {
+export function useDungeonState(cultivatorId: string | undefined) {
   const [state, setState] = useState<DungeonState | null>(null);
-  const [loading, setLoading] = useState(hasCultivator);
+  const [loading, setLoading] = useState(!!cultivatorId);
   const [error, setError] = useState<string | null>(null);
-
-  const fetchState = async () => {
-    if (!hasCultivator) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch('/api/dungeon/state');
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setState(data.state);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '获取副本状态失败');
-      setState(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 自动加载状态
+  const sequence = useRef(0);
+  const storageKey = `dungeon:last-run:${cultivatorId}`;
   useEffect(() => {
-    if (!hasCultivator) {
-      return;
+    if (cultivatorId && state?.runId)
+      sessionStorage.setItem(storageKey, state.runId);
+  }, [cultivatorId, state?.runId, storageKey]);
+
+  const refresh = useCallback(async () => {
+    if (!cultivatorId) return;
+    const request = ++sequence.current;
+    setLoading(true);
+    async function read(runId?: string): Promise<DungeonState | null> {
+      const res = await fetch(
+        `/api/dungeon/state${runId ? `?runId=${encodeURIComponent(runId)}` : ''}`,
+        { signal: AbortSignal.timeout(15000) },
+      );
+      if (res.status === 409 || res.status === 429)
+        throw new Error('探索仍在处理中，请稍后重新读取');
+      if (!res.ok) throw new Error('暂时无法读取探索结果，请重新读取');
+      const data = await res.json();
+      if (data.error || !('state' in data))
+        throw new Error('探索状态读取失败，请重新读取');
+      return data.state;
     }
+    try {
+      let next = await read();
+      const lastRun = sessionStorage.getItem(storageKey);
+      if (!next && lastRun) next = await read(lastRun);
+      if (request !== sequence.current) return;
+      setState(next);
+      setError(null);
+    } catch (reason) {
+      if (request !== sequence.current) return;
+      setError(
+        reason instanceof Error && reason.name !== 'SyntaxError'
+          ? reason.message
+          : '暂时无法读取探索结果，请重新读取',
+      );
+    } finally {
+      if (request === sequence.current) setLoading(false);
+    }
+  }, [cultivatorId, storageKey]);
 
-    let cancelled = false;
-
-    const loadState = async () => {
-      try {
-        const res = await fetch('/api/dungeon/state');
-        const data = await res.json();
-
-        if (cancelled) return;
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        setState(data.state);
-        setError(null);
-      } catch (e) {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : '获取副本状态失败');
-        setState(null);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadState();
-
+  useEffect(() => {
+    const timer = setTimeout(() => void refresh(), 0);
+    const requests = sequence;
     return () => {
-      cancelled = true;
+      clearTimeout(timer);
+      requests.current++;
     };
-  }, [hasCultivator]);
-
-  const refresh = () => {
-    fetchState();
-  };
+  }, [refresh]);
 
   return {
     state,
@@ -84,5 +63,9 @@ export function useDungeonState(hasCultivator: boolean) {
     loading,
     error,
     refresh,
+    dismissSettlement: () => {
+      sessionStorage.removeItem(storageKey);
+      setState(null);
+    },
   };
 }

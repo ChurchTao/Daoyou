@@ -1,49 +1,9 @@
-import { EnemyGenerator } from '@shared/engine/enemyGenerator';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import { buildPresetArtifact } from '@shared/engine/cultivator/creation/presetProducts';
-import { hasActiveConditionStatus } from '@shared/lib/condition';
+import { BREAKTHROUGH_CHALLENGES } from '@shared/engine/combat-v6/breakthrough/host';
 import type {
   TaskDefinition,
   TaskInstanceMetadata,
   TaskStageDefinition,
 } from '@shared/types/task';
-import { ServerEnemyCopyProvider } from '@server/lib/services/ServerEnemyCopyProvider';
-
-const challengeEnemyGenerator = new EnemyGenerator({
-  copyProvider: new ServerEnemyCopyProvider({
-    enabled: process.env.NODE_ENV !== 'test',
-  }),
-});
-
-const noviceGuardArtifact = buildPresetArtifact({
-  name: '入门护身玉佩',
-  slot: 'accessory',
-  element: '木',
-  description: '宗门交给新入道者的护身小器，灵光不盛，却足以挡住初次云游的几分凶险。',
-  affixIds: ['artifact-panel-accessory-utility', 'artifact-panel-vitality'],
-  realm: '炼气',
-  realmStage: '初期',
-});
-
-const noviceWeaponArtifact = buildPresetArtifact({
-  name: '入门青竹剑',
-  slot: 'weapon',
-  element: '木',
-  description: '以青竹淬灵制成的入门法剑，锋芒不躁，适合新入道者熟悉斗法节奏。',
-  affixIds: ['artifact-panel-weapon-dual-atk', 'artifact-panel-atk'],
-  realm: '炼气',
-  realmStage: '初期',
-});
-
-const noviceArmorArtifact = buildPresetArtifact({
-  name: '入门护身布甲',
-  slot: 'armor',
-  element: '土',
-  description: '缀有护身符线的粗布法甲，可缓冲初次探秘里的冲撞与余波。',
-  affixIds: ['artifact-panel-armor-dual-def', 'artifact-panel-def'],
-  realm: '炼气',
-  realmStage: '初期',
-});
 
 type TaskLinkKind =
   | 'alchemy'
@@ -65,8 +25,10 @@ export interface TaskStageTemplate extends TaskStageDefinition {
   }>;
 }
 
-export interface BreakthroughTaskDefinition
-  extends Omit<TaskDefinition, 'stages' | 'category' | 'fromRealm' | 'toRealm'> {
+export interface BreakthroughTaskDefinition extends Omit<
+  TaskDefinition,
+  'stages' | 'category' | 'fromRealm' | 'toRealm'
+> {
   category: 'breakthrough_major';
   fromRealm: NonNullable<TaskDefinition['fromRealm']>;
   toRealm: NonNullable<TaskDefinition['toRealm']>;
@@ -74,8 +36,10 @@ export interface BreakthroughTaskDefinition
   stages: TaskStageTemplate[];
 }
 
-export interface TutorialTaskDefinition
-  extends Omit<TaskDefinition, 'stages' | 'category'> {
+export interface TutorialTaskDefinition extends Omit<
+  TaskDefinition,
+  'stages' | 'category'
+> {
   category: 'tutorial';
   rewardCultivationExp: number;
   rewardAttachments: NonNullable<TaskDefinition['rewardAttachments']>;
@@ -83,172 +47,15 @@ export interface TutorialTaskDefinition
 }
 
 export type RuntimeTaskDefinition =
-  | BreakthroughTaskDefinition
-  | TutorialTaskDefinition;
+  BreakthroughTaskDefinition | TutorialTaskDefinition;
 
 export interface TaskChallengeProfile {
   id: string;
   title: string;
-  stateStrategy: 'persistent_world';
-  enemyDifficulty?: number;
-  buildOpponent: (
-    cultivator: CultivatorCombatInput,
-  ) => CultivatorCombatInput | Promise<CultivatorCombatInput>;
 }
-
-function cloneMirrorOpponent(
-  cultivator: CultivatorCombatInput,
-  options: {
-    name: string;
-    attributeMultiplier: number;
-    bonusWillpower?: number;
-    bonusSpeed?: number;
-  },
-): CultivatorCombatInput {
-  const multiplier = options.attributeMultiplier;
-
-  return {
-    ...structuredClone(cultivator),
-    id:
-      globalThis.crypto?.randomUUID?.() ??
-      `mirror-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name: options.name,
-    attributes: {
-      vitality: Math.max(1, Math.floor(cultivator.attributes.vitality * multiplier)),
-      strength: Math.max(1, Math.floor(cultivator.attributes.strength * multiplier)),
-      spirit: Math.max(1, Math.floor(cultivator.attributes.spirit * multiplier)),
-      endurance: Math.max(1, Math.floor(cultivator.attributes.endurance * multiplier)),
-      speed: Math.max(
-        1,
-        Math.floor(cultivator.attributes.speed * multiplier) + (options.bonusSpeed ?? 0),
-      ),
-      willpower: Math.max(
-        1,
-        Math.floor(cultivator.attributes.willpower * multiplier) +
-          (options.bonusWillpower ?? 0),
-      ),
-    },
-  };
-}
-
-async function buildGeneratedChallengeOpponent(
-  cultivator: CultivatorCombatInput,
-  options: {
-    name: string;
-    race: '灵族' | '魔族' | '古兽';
-    enemyDifficulty: number;
-    narrativeHint: string;
-  },
-): Promise<CultivatorCombatInput> {
-  const draft = challengeEnemyGenerator.buildDraft({
-    realm: cultivator.realm,
-    realmStage: cultivator.realm_stage,
-    race: options.race,
-    difficulty: options.enemyDifficulty,
-    isBoss: true,
-    name: options.name,
-    background: options.narrativeHint,
-    description: `${options.name}杀机炽盛，专为破境试炼而来。`,
-  });
-  const enriched = await challengeEnemyGenerator.enrichNarrative(draft);
-  return enriched.cultivator;
-}
-
-const BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY = {
-  tribulationDeity: 65,
-  lawInsightVoid: 75,
-  tribulationBody: 90,
-  heavenlyTribulationFinal: 100,
-} as const;
-
-const challengeProfiles: TaskChallengeProfile[] = [
-  {
-    id: 'heart_demon_nascent',
-    title: '心魔劫',
-    stateStrategy: 'persistent_world',
-    buildOpponent: (cultivator) =>
-      cloneMirrorOpponent(
-        cultivator,
-        hasActiveConditionStatus(cultivator.condition, 'clear_mind')
-          ? {
-              name: '心魔化身',
-              attributeMultiplier: 1,
-            }
-          : {
-              name: '心魔化身',
-              attributeMultiplier: 1.08,
-              bonusWillpower: 6,
-              bonusSpeed: 4,
-            },
-      ),
-  },
-  {
-    id: 'tribulation_deity',
-    title: '化神之扰',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationDeity,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '天劫投影',
-        race: '灵族',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationDeity,
-        narrativeHint: '天劫降临时凝聚而成的劫影，通体天罚雷光流转，奉天命阻断化神之路。',
-      }),
-  },
-  {
-    id: 'law_insight_void',
-    title: '法则试锋',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.lawInsightVoid,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '法则残影',
-        race: '灵族',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.lawInsightVoid,
-        narrativeHint: '法则碎片凝化的残影，举手投足间隐现天地规则之力，试探悟道者能否承受法则之重。',
-      }),
-  },
-  {
-    id: 'tribulation_body',
-    title: '雷劫淬体',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationBody,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '劫雷化身',
-        race: '古兽',
-        enemyDifficulty: BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.tribulationBody,
-        narrativeHint: '劫雷凝形的太古兽体，浑身雷弧缠绕，以雷霆之势淬炼渡劫者的道体根基。',
-      }),
-  },
-  {
-    id: 'inner_demon_grand',
-    title: '大执念劫',
-    stateStrategy: 'persistent_world',
-    buildOpponent: (cultivator) =>
-      cloneMirrorOpponent(cultivator, {
-        name: '执念化身',
-        attributeMultiplier: 1.12,
-        bonusWillpower: 12,
-        bonusSpeed: 6,
-      }),
-  },
-  {
-    id: 'heavenly_tribulation_final',
-    title: '天劫前奏',
-    stateStrategy: 'persistent_world',
-    enemyDifficulty:
-      BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.heavenlyTribulationFinal,
-    buildOpponent: (cultivator) =>
-      buildGeneratedChallengeOpponent(cultivator, {
-        name: '天道劫影',
-        race: '古兽',
-        enemyDifficulty:
-          BREAKTHROUGH_CHALLENGE_ENEMY_DIFFICULTY.heavenlyTribulationFinal,
-        narrativeHint: '天道意志所化的终极劫影，承载末法时代最后一缕天威，誓要将不配渡劫者碾为齑粉。',
-      }),
-  },
-];
+const challengeProfiles: TaskChallengeProfile[] = Object.entries(
+  BREAKTHROUGH_CHALLENGES,
+).map(([id, spec]) => ({ id, title: spec.title }));
 
 const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
   {
@@ -263,7 +70,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'foundation-pill',
         title: '凝破境意',
-        description: '筑基前先服下筑基丹，获得「破境凝神」状态。筑基丹可在炼丹房用温稳灵材配合“冲关蓄势、辅助筑基”之类丹意炼制，也可去修仙坊市寻访成丹。',
+        description:
+          '筑基前先服下筑基丹，获得「破境凝神」状态。筑基丹可在炼丹房用温稳灵材配合“冲关蓄势、辅助筑基”之类丹意炼制，也可去修仙坊市寻访成丹。',
         completionText: '破境凝神已成，药力可引灵气归府。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -294,7 +102,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'core-prep',
         title: '丹法并备',
-        description: '结丹前需借降尘丹压住丹田火候，再以玄品功法稳住成丹根基。降尘丹可在炼丹房以“结丹、凝丹、冲关蓄势”之类丹意炼制，也可去修仙坊市寻访。',
+        description:
+          '结丹前需借降尘丹压住丹田火候，再以玄品功法稳住成丹根基。降尘丹可在炼丹房以“结丹、凝丹、冲关蓄势”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '破境凝神与功法已备，凝丹条件已成。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -352,7 +161,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'nascent-mind',
         title: '先清心',
-        description: '元婴问心之前，先用清心丹洗去识海杂念。清心丹可在炼丹房以“清心、定神、心魔”之类丹意炼制，也可去修仙坊市碰碰机缘。',
+        description:
+          '元婴问心之前，先用清心丹洗去识海杂念。清心丹可在炼丹房以“清心、定神、心魔”之类丹意炼制，也可去修仙坊市碰碰机缘。',
         completionText: '识海已稳，杂念稍歇。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -402,7 +212,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'deity-prep',
         title: '护脉清心',
-        description: '化神前反噬极重，经脉与识海都要提前安顿。护脉丹、清心丹可在炼丹房按“护脉、清心、化神反噬”之类丹意炼制，也可去修仙坊市寻访。',
+        description:
+          '化神前反噬极重，经脉与识海都要提前安顿。护脉丹、清心丹可在炼丹房按“护脉、清心、化神反噬”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '道体与识海都已做足准备。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -524,7 +335,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'body-prep',
         title: '稳道体',
-        description: '合体前要先让道体能承住雷劫余威。护脉丹可在炼丹房按“护脉、稳固道体、承雷”之类丹意炼制，也可去修仙坊市寻访。',
+        description:
+          '合体前要先让道体能承住雷劫余威。护脉丹可在炼丹房按“护脉、稳固道体、承雷”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '道体准备已足，足可尝试承雷。',
         links: [
           { label: '返回静室', kind: 'retreat' },
@@ -589,7 +401,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'grand-prep',
         title: '先稳心神',
-        description: '大乘门前最怕执念反噬，先以清心丹稳住心神。清心丹可在炼丹房按“清心、定神、斩执念”之类丹意炼制，也可去修仙坊市寻访。',
+        description:
+          '大乘门前最怕执念反噬，先以清心丹稳住心神。清心丹可在炼丹房按“清心、定神、斩执念”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '心神已定，可入更深层试炼。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -654,7 +467,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'tribulation-prep',
         title: '备渡劫身',
-        description: '渡劫前要同时稳住道体与识海。护脉丹、清心丹可在炼丹房按“护脉、清心、渡劫”之类丹意炼制，也可去修仙坊市寻访。',
+        description:
+          '渡劫前要同时稳住道体与识海。护脉丹、清心丹可在炼丹房按“护脉、清心、渡劫”之类丹意炼制，也可去修仙坊市寻访。',
         completionText: '形神两端都已尽量稳住。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -688,7 +502,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
       {
         id: 'tribulation-trial',
         title: '入沉日神殿',
-        description: '先穿沉日神殿，再直面天道劫影，证明自己不会在第一道劫火下碎灭。',
+        description:
+          '先穿沉日神殿，再直面天道劫影，证明自己不会在第一道劫火下碎灭。',
         completionText: '神殿与天道劫影都已压过去。',
         links: [
           { label: '去云游探秘', kind: 'dungeon' },
@@ -721,7 +536,7 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
     id: 'tutorial_starter_supply',
     category: 'tutorial',
     title: '入门供给',
-    summary: '先领一份洞府供给，备好第一炉丹、第一次探秘和一整套入门装备。',
+    summary: '先领一份洞府供给，备好第一炉丹、第一次探秘。',
     rewardCultivationExp: 40,
     rewardAttachments: [
       {
@@ -755,30 +570,13 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
           quantity: 2,
         },
       },
-      {
-        type: 'artifact',
-        name: noviceWeaponArtifact.name,
-        quantity: 1,
-        data: noviceWeaponArtifact,
-      },
-      {
-        type: 'artifact',
-        name: noviceArmorArtifact.name,
-        quantity: 1,
-        data: noviceArmorArtifact,
-      },
-      {
-        type: 'artifact',
-        name: noviceGuardArtifact.name,
-        quantity: 1,
-        data: noviceGuardArtifact,
-      },
     ],
     stages: [
       {
         id: 'starter-supply',
         title: '领取供给',
-        description: '先把入门供给收入囊中。入门武器、护甲与玉佩建议尽早穿戴；第一炉丹与低危探秘可按卷宗继续推进。',
+        description:
+          '先把入门供给收入囊中。第一炉丹与低危探秘可按卷宗继续推进。',
         completionText: '供给已备，可以开始熟悉洞府里的修行循环。',
         links: [
           { label: '看道身状态', kind: 'cultivator' },
@@ -789,7 +587,7 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
             id: 'starter-supply-ready',
             kind: 'auto_complete',
             title: '供给已备',
-            description: '入门供给已经备好，领取后会获得修为、灵石、灵材与一整套入门装备。',
+            description: '入门供给已经备好，领取后会获得修为、灵石与灵材。',
           },
         ],
       },
@@ -825,7 +623,8 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
       {
         id: 'first-alchemy',
         title: '开炉一次',
-        description: '去炼丹房选择青露草、凝水花一类温和灵材，丹意可写“疗伤回元，药性温和”。',
+        description:
+          '去炼丹房选择青露草、凝水花一类温和灵材，丹意可写“疗伤回元，药性温和”。',
         completionText: '第一炉已成，你已经知道炼丹要先看材料药性与丹意方向。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
@@ -887,8 +686,10 @@ const tutorialDefinitions: TutorialTaskDefinition[] = [
       {
         id: 'first-dungeon',
         title: '完成一次探秘结算',
-        description: '进入云游探秘前先确认气血与法力，遇敌时先查探，危险就撤退。',
-        completionText: '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环，也带回了一份入门材料。',
+        description:
+          '进入云游探秘前先确认气血与法力，遇敌时先查探，危险就撤退。',
+        completionText:
+          '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环，也带回了一份入门材料。',
         links: [
           { label: '去云游探秘', kind: 'dungeon' },
           { label: '去灵眼之泉', kind: 'inn' },
@@ -914,7 +715,9 @@ const definitions: RuntimeTaskDefinition[] = [
   ...breakthroughDefinitions,
 ];
 
-const definitionMap = new Map(definitions.map((definition) => [definition.id, definition]));
+const definitionMap = new Map(
+  definitions.map((definition) => [definition.id, definition]),
+);
 const challengeProfileMap = new Map(
   challengeProfiles.map((profile) => [profile.id, profile]),
 );

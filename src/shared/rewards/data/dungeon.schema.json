@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "poolVersion": {
+      "minimum": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "books": {
+      "minItems": 1,
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "sources": {
+      "type": "object",
+      "properties": {
+        "exploration": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "battle": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "completion": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": ["exploration", "battle", "completion"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "poolVersion",
+    "books",
+    "sources"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "rewardId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weight": {
+          "minimum": 1,
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": ["rewardId", "weight"],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "experience": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "stones": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "$ref": "#/$defs/__schema0"
+        },
+        "weights": {
+          "type": "object",
+          "properties": {
+            "material": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "blueprint": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "book": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": ["material", "blueprint", "book"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["chance", "experience", "stones", "quantity", "weights"],
+      "additionalProperties": false
+    }
+  }
+}

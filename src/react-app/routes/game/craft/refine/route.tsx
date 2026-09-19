@@ -1,5 +1,5 @@
-import { RefineScene } from '@app/components/feature/craft/RefineScene';
+import { ForgingRoom } from '@app/components/feature/forging/ForgingRoom';
 
 export default function RefinePage() {
-  return <RefineScene />;
+  return <ForgingRoom />;
 }

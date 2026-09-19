@@ -1,4 +1,3 @@
-import type { MailAttachment } from '@shared/types/mail';
 import type { ResourceOperation } from '@shared/engine/resource/types';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
@@ -17,7 +16,10 @@ import {
   PILL_QUOTA_CATEGORY_VALUES,
   TALISMAN_SESSION_MODE_VALUES,
 } from '@shared/types/consumable';
+import type { MailAttachment } from '@shared/types/mail';
 import { z } from 'zod';
+import { BeastTransferSchema } from '../contracts/beastTrade';
+import { MailInventoryGrantSchema } from '../contracts/mail';
 
 const ConditionStatusDurationSchema = z.union([
   z.object({
@@ -30,6 +32,12 @@ const ConditionStatusDurationSchema = z.union([
 ]);
 
 const ConditionOperationSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('gain_beast_cultivation'),
+      value: z.number().int().positive().max(112125),
+    })
+    .strict(),
   z.object({
     type: z.literal('restore_resource'),
     resource: z.enum(['hp', 'mp']),
@@ -164,6 +172,20 @@ export const ItemLibraryArtifactPayloadSchema = z.object({
 });
 
 export const MailAttachmentSchema = z.discriminatedUnion('type', [
+  z.strictObject({
+    type: z.literal('beast_v1'),
+    name: z.string().min(1),
+    quantity: z.literal(1),
+    beast: BeastTransferSchema,
+  }),
+  z
+    .object({
+      type: z.literal('inventory_v1'),
+      name: z.string().min(1),
+      quantity: z.number().int().positive(),
+      inventory: MailInventoryGrantSchema,
+    })
+    .strict(),
   z.object({
     type: z.literal('spirit_stones'),
     name: z.string().trim().min(1).max(100),
@@ -292,11 +314,7 @@ export const ItemLibraryListQuerySchema = z.object({
   materialType: z.enum(MATERIAL_TYPE_VALUES).optional(),
   quality: z.enum(QUALITY_VALUES).optional(),
   q: z.string().trim().max(100).optional(),
-  itemIds: z
-    .string()
-    .trim()
-    .max(4000)
-    .optional(),
+  itemIds: z.string().trim().max(4000).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -342,8 +360,7 @@ export type ItemLibraryPayload =
   | z.infer<typeof ItemLibraryConsumablePayloadSchema>
   | z.infer<typeof ItemLibraryArtifactPayloadSchema>;
 export type ItemLibraryEditorConfig =
-  | Record<string, unknown>
-  | z.infer<typeof ArtifactEditorConfigSchema>;
+  Record<string, unknown> | z.infer<typeof ArtifactEditorConfigSchema>;
 export type CreateItemLibraryEntry = z.infer<
   typeof CreateItemLibraryEntrySchema
 >;
@@ -454,7 +471,9 @@ export function resolveItemLibrarySelections(
 
     const item = itemMap.get(selection.itemId);
     if (!item) {
-      throw new ItemLibraryResolveError(`道具库道具不存在：${selection.itemId}`);
+      throw new ItemLibraryResolveError(
+        `道具库道具不存在：${selection.itemId}`,
+      );
     }
 
     return buildAttachmentFromItemLibraryEntry(item, selection.quantity);

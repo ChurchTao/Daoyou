@@ -69,7 +69,7 @@ export function claimRedeemCode(args: {
       if (!reserved) {
         throw new RedeemClaimError('兑换码已被领完或失效');
       }
-      const mail = await MailService.sendMail(
+      const mail = await MailService.sendNewRewardMail(
         args.cultivatorId,
         redeemCode.mailTitle,
         redeemCode.mailContent,
