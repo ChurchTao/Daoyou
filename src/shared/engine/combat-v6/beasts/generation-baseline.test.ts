@@ -7,19 +7,20 @@ import {
   generateCapturedBeast,
 } from './progression';
 // Species revision 10 raises full native skill probabilities to 3–5%.
+// Individual v3 adds baby free points and a permanent wild point deficit.
 // Aptitude/growth draw order and progression revision 3 remain unchanged.
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: '5af4829e3ca58417152a85ecf7a4d5de30a502c59fd583fbc4fe6898eda5f75c',
+    hash: 'b32f2d959a2d0ce86ba563f195f4ce1c5c3c58a565c1d8d51a282ee7faf242d5',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: '11380e228da93c6e1a74180920ed96fe57de2e2571b7863021aed39377a59394',
+    hash: 'df6cc835d00a35e89563d0800d8b83a6538f85394de5f3c21529b66087c08ac1',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: '6c0d163a8d29c04fc6000d5fef8fe2623f7c406aef8f08c64d495b18026f48b9',
+    hash: 'a88d3b3862e151a8642c49471f8fb655453560c687203d013f015d7e2aa16e78',
   },
 ];
 function digest(speciesId: string) {

@@ -11,6 +11,7 @@ import {
   projectBeastRoster,
 } from './index';
 import { beastAttributes } from './projection';
+import { GeneratedBeastSchema } from './schema';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const id = '00000000-0000-4000-8000-000000000002';
@@ -27,7 +28,7 @@ describe('召唤兽正式个体', () => {
         endurance: 2,
         agility: 0,
       },
-      unallocatedPoints: 35,
+      unallocatedPoints: 85,
     });
     const preview = {
       level: beast.level,
@@ -40,7 +41,7 @@ describe('召唤兽正式个体', () => {
       endurance: 22,
       agility: 20,
     });
-    expect(beast.unallocatedPoints).toBe(35);
+    expect(beast.unallocatedPoints).toBe(85);
     expect(beast.allocatedAttributes.strength).toBe(8);
   });
   it('同系高级覆盖普通的投影效果，但不改变两个出生格位', () => {
@@ -71,11 +72,22 @@ describe('召唤兽正式个体', () => {
         (a, b) => a + b,
         beast.unallocatedPoints,
       ),
-    ).toBe(beast.level * 5);
+    ).toBe(50 + beast.level * 5);
     expect(() =>
-      BeastSchema.parse({ ...beast, unallocatedPoints: 1 }),
+      GeneratedBeastSchema.parse({ ...beast, unallocatedPoints: 1 }),
     ).toThrow();
     expect(() => BeastSchema.parse({ ...beast, skills: [] })).toThrow();
+  });
+  it('读取和面板允许历史点数差异且不修改存量数值，生成结果仍校验总点数', () => {
+    const existing = { ...starter(), unallocatedPoints: 0 };
+    const before = structuredClone(existing);
+    expect(BeastSchema.parse(existing)).toEqual(existing);
+    expect(() => beastPanel(existing)).not.toThrow();
+    expect(existing).toEqual(before);
+    expect(() => GeneratedBeastSchema.parse(existing)).toThrow(
+      '灵兽属性点总额不符合生成规则',
+    );
+    expect(GeneratedBeastSchema.parse(starter())).toEqual(starter());
   });
   it('独立面板、零修炼、满资源，投影不改个体', () => {
     const beast = starter();
@@ -117,7 +129,7 @@ describe('召唤兽正式个体', () => {
           endurance: 100,
           agility: 20,
         },
-        unallocatedPoints: 20,
+        unallocatedPoints: 70,
         generationContentRevision: 6,
       };
       const before = structuredClone(existing);
@@ -175,7 +187,7 @@ describe('手游参照召唤兽派生公式', () => {
       ...starter(),
       skills: ['beast.spirit-flame'],
       skillSlotCapacity: 1,
-      unallocatedPoints: 0,
+      unallocatedPoints: 50,
       level: 50,
       growth: 1.2,
       aptitudes: {
@@ -212,6 +224,7 @@ describe('手游参照召唤兽派生公式', () => {
     const beast = BeastSchema.parse({
       ...sample(),
       level: 0,
+      initialLevel: 0,
       growth: 1,
       allocatedAttributes: {
         constitution: 0,
@@ -266,7 +279,7 @@ describe('手游参照召唤兽派生公式', () => {
       ...base,
       aptitudes: { ...base.aptitudes, defense: 5000 },
       allocatedAttributes: { ...base.allocatedAttributes, agility: 0 },
-      unallocatedPoints: 30,
+      unallocatedPoints: 80,
     };
     expect(beastPanel(changed).magicDef).toBe(346);
     expect(

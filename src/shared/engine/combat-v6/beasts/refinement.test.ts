@@ -10,10 +10,20 @@ import {
   BeastRefinementPackShape,
   loadBeastRefinementPack,
 } from './refinement-config';
-import { BeastSchema } from './schema';
+import { BeastSchema, GeneratedBeastSchema } from './schema';
 import { rollBeastTraits } from './trait-generator';
 const id = '00000000-0000-4000-8000-000000000001';
 const [normal, advanced] = BEAST_REFINEMENT.items;
+it('历史点数不足仍可洗炼，结果恢复宝宝点数并通过生成校验', () => {
+  const old = {
+    ...generateCapturedBeast(id, id, BEAST_SPECIES[0].id, 0, 9),
+    unallocatedPoints: 0,
+  };
+  const next = refineBeast(old, advanced.id, 180, 42);
+  expect(next.unallocatedPoints).toBe(50);
+  expect(GeneratedBeastSchema.parse(next)).toEqual(next);
+  expect(old.unallocatedPoints).toBe(0);
+});
 it('洗炼配置与schema同步且非法数量与重复ID拒绝', () => {
   expect(schema).toEqual(z.toJSONSchema(BeastRefinementPackShape));
   const copy = structuredClone(BEAST_REFINEMENT);
@@ -59,7 +69,7 @@ it('归零、重抽、恢复寿命，保留身份与寿命上限，旧技能不�
     unallocatedPoints: 0,
     allocatedAttributes: {
       constitution: 0,
-      strength: 450,
+      strength: 270,
       magic: 0,
       endurance: 0,
       agility: 0,
@@ -68,7 +78,6 @@ it('归零、重抽、恢复寿命，保留身份与寿命上限，旧技能不�
     skillSlotCapacity: 1,
     maxLifespan: 1200,
     currentLifespan: 0,
-    generationVersion: 'summoned_beast_v1',
   });
   const before = structuredClone(old);
   const next = refineBeast(old, normal.id, 180, 42);
@@ -81,7 +90,9 @@ it('归零、重抽、恢复寿命，保留身份与寿命上限，旧技能不�
     speciesId: old.speciesId,
     level: 0,
     exp: 0,
-    unallocatedPoints: 0,
+    originKind: 'baby',
+    initialLevel: 0,
+    unallocatedPoints: 50,
     allocatedAttributes: {
       constitution: 0,
       strength: 0,
@@ -97,7 +108,7 @@ it('归零、重抽、恢复寿命，保留身份与寿命上限，旧技能不�
   expect(next.skillSlotCapacity).toBe(next.skills.length);
   expect(gainBeastExp(next, 100, 180)).toMatchObject({
     level: 1,
-    unallocatedPoints: 5,
+    unallocatedPoints: 55,
   });
   expect(() => refineBeast(old, 'book.beast.combo', 180, 42)).toThrow(
     '不是归元灵露',

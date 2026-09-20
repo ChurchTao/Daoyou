@@ -72,14 +72,14 @@ describe('野外寻觅配置与个体生成', () => {
       ),
     ).toBe(true);
   });
-  it('成年均衡加点有波动，所有等级点数守恒，幼崽没有待分配点', () => {
+  it('成年均衡加点有波动，所有等级点数守恒，幼崽保留50点自由属性', () => {
     for (const level of [0, 5, 9, 15, 30, 180]) {
       for (let seed = 0; seed < 100; seed++) {
         const values = Object.values(wildAllocation(level, seed));
         expect(values.reduce((a, b) => a + b, 0)).toBe(
-          level * BEAST_PROGRESSION.pointsPerLevel,
+          level * (BEAST_PROGRESSION.pointsPerLevel - 2),
         );
-        const mean = (level * BEAST_PROGRESSION.pointsPerLevel) / 5;
+        const mean = (level * (BEAST_PROGRESSION.pointsPerLevel - 2)) / 5;
         values.forEach((v) => {
           expect(v).toBeGreaterThanOrEqual(Math.floor(mean * 0.7));
           expect(v).toBeLessThanOrEqual(Math.ceil(mean * 1.3));
@@ -103,7 +103,7 @@ describe('野外寻觅配置与个体生成', () => {
       '20000000-0000-4000-8000-000000000001',
       41,
     );
-    expect(BeastSchema.parse(cub.beast).unallocatedPoints).toBe(0);
+    expect(BeastSchema.parse(cub.beast).unallocatedPoints).toBe(50);
     expect(Object.values(cub.beast.allocatedAttributes)).toEqual([
       0, 0, 0, 0, 0,
     ]);

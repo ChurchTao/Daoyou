@@ -4,6 +4,7 @@ import {
   BEAST_PROGRESSION,
   BEAST_SPECIES,
 } from '@shared/engine/combat-v6/beasts/content';
+import { beastOriginName } from '@shared/engine/combat-v6/beasts/identity';
 import { BEAST_ATTRIBUTE_NAMES } from '@shared/engine/combat-v6/beasts/progression';
 import { beastAttributes } from '@shared/engine/combat-v6/beasts/projection';
 import { useState } from 'react';
@@ -27,7 +28,8 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
             {beast.name} <BeastMutationTag isMutant={beast.isMutant} />
           </p>
           <p className="text-ink-secondary">
-            {species?.name} · <span className="font-mono">{beast.level}</span>级
+            {species?.name} · {beastOriginName(beast)} ·{' '}
+            <span className="font-mono">{beast.level}</span>级
           </p>
           <p>
             参战等级 <span className="font-mono">{species?.carryLevel}</span> ·
@@ -35,6 +37,12 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
           </p>
         </div>
       </div>
+      {beast.originKind === 'wild' && (
+        <p className="text-ink-secondary">
+          初始{beast.initialLevel}级，较同级宝宝少{50 + 2 * beast.initialLevel}
+          属性点
+        </p>
+      )}
       <p>
         成长 <span className="font-mono">{beast.growth.toFixed(3)}</span> · 寿命{' '}
         <span className="font-mono">

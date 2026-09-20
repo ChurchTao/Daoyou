@@ -1,10 +1,14 @@
 import {
   BEAST_GENERATION,
-  BEAST_PROGRESSION,
   BEAST_SPECIES,
   BEAST_SPECIES_REVISION,
 } from './content';
-import { BEAST_VERSION, BeastSchema, type SummonedBeast } from './schema';
+import { beastPointBudget, type BeastOriginKind } from './identity';
+import {
+  BEAST_VERSION,
+  GeneratedBeastSchema,
+  type SummonedBeast,
+} from './schema';
 import { rollBeastTraits } from './trait-generator';
 
 function createIndividual(
@@ -14,15 +18,18 @@ function createIndividual(
   level: number,
   seed: number,
   isMutant = false,
+  originKind: BeastOriginKind = 'baby',
 ): SummonedBeast {
   const species = BEAST_SPECIES.find((s) => s.id === speciesId);
   if (!species) throw new Error('未知召唤兽物种');
   const traits = rollBeastTraits(species, seed, isMutant);
-  return BeastSchema.parse({
+  return GeneratedBeastSchema.parse({
     id,
     ownerCultivatorId,
     speciesId,
     ...(isMutant ? { isMutant: true } : {}),
+    originKind,
+    initialLevel: level,
     name: species.name,
     level,
     exp: 0,
@@ -34,7 +41,11 @@ function createIndividual(
       endurance: 0,
       agility: 0,
     },
-    unallocatedPoints: level * BEAST_PROGRESSION.pointsPerLevel,
+    unallocatedPoints: beastPointBudget({
+      level,
+      initialLevel: level,
+      originKind,
+    }),
     skillSlotCapacity: traits.skills.length,
     currentLifespan: BEAST_GENERATION.lifespan,
     maxLifespan: BEAST_GENERATION.lifespan,
@@ -68,5 +79,13 @@ export function generateCapturedBeast(
   seed: number,
   isMutant = false,
 ): SummonedBeast {
-  return createIndividual(id, ownerId, speciesId, level, seed, isMutant);
+  return createIndividual(
+    id,
+    ownerId,
+    speciesId,
+    level,
+    seed,
+    isMutant,
+    isMutant || level === 0 ? 'baby' : 'wild',
+  );
 }

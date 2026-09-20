@@ -16,7 +16,7 @@ import { loadWildPack, WILD_PACK } from './pack';
 const id = '00000000-0000-4000-8000-000000000001';
 const nodeId = WILD_PACK.regions[0].nodeId;
 
-it('变异概率为千分之八，边界可控且不扰动物种、等级和数量抽签', () => {
+it('变异概率为千分之八，边界可控且不扰动物种和数量，变异均为0级', () => {
   expect(WILD_PACK.encounter.mutantChance).toBe(0.008);
   for (const bad of [-0.1, 1.1])
     expect(() =>
@@ -38,7 +38,9 @@ it('变异概率为千分之八，边界可控且不扰动物种、等级和数�
       const normal = generateWildEncounter(nodeId, seed, normalPack);
       const mutant = generateWildEncounter(nodeId, seed, mutantPack);
       expect(normal.every((c) => !c.isMutant)).toBe(true);
-      expect(mutant).toEqual(normal.map((c) => ({ ...c, isMutant: true })));
+      expect(mutant).toEqual(
+        normal.map((c) => ({ ...c, level: 0, isMutant: true })),
+      );
       expect(generateWildEncounter(nodeId, seed, mutantPack)).toEqual(mutant);
     }
   }

@@ -8,7 +8,7 @@
 - `encounter.minCount/maxCount`：每次寻觅数量，当前支持 1–3 只；物种允许重复，每只个体分别生成。
 - `encounter.cubChance`：每只灵兽独立成为 0 级幼崽的概率，当前暂定 5%。
 - `encounter.mutantChance`：每只灵兽独立变异的概率，当前 0.8%，幼崽与成年一致。变异使用独立随机流；预览、战斗与捕获保留身份，资质和成长按灵兽领域规则提高 10%。
-- `encounter.allocationSpread`：成年五维加点相对均值的波动范围，当前 30%，上下界按整数点数取整；总点数始终等于等级乘每级点数。幼崽五维额外加点和待分配点均为 0。
+- `encounter.allocationSpread`：成年五维加点相对均值的波动范围，当前 30%，上下界按整数点数取整；纯野生初始可支配总点数为等级的3倍，生成时全部分配；捕获后每级正常增加5自由点。幼崽五维额外加点为0、待分配点50，变异统一为0级宝宝。
 - `activity.explorationCooldownMs`：两次成功寻觅的最短间隔，当前 1 秒；不再设置每日次数上限。
 - 消耗统一维护于 `src/shared/config/qiSystem.ts` 的 `wild_search`，当前每次 2 点天地灵气。
 

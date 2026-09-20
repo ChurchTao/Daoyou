@@ -57,7 +57,7 @@ it.each(BEAST_SPECIES)(
       expect(Object.values(captured.allocatedAttributes)).toEqual([
         0, 0, 0, 0, 0,
       ]);
-      expect(captured.unallocatedPoints).toBe(300);
+      expect(captured.unallocatedPoints).toBe(180);
       for (const key of Object.keys(
         traits.aptitudes,
       ) as (keyof typeof traits.aptitudes)[]) {

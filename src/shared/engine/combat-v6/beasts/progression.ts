@@ -27,27 +27,27 @@ export const BeastAllocationSchema = z
       .number()
       .int()
       .min(0)
-      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+      .max(50 + 180 * BEAST_PROGRESSION.pointsPerLevel),
     strength: z
       .number()
       .int()
       .min(0)
-      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+      .max(50 + 180 * BEAST_PROGRESSION.pointsPerLevel),
     magic: z
       .number()
       .int()
       .min(0)
-      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+      .max(50 + 180 * BEAST_PROGRESSION.pointsPerLevel),
     endurance: z
       .number()
       .int()
       .min(0)
-      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+      .max(50 + 180 * BEAST_PROGRESSION.pointsPerLevel),
     agility: z
       .number()
       .int()
       .min(0)
-      .max(180 * BEAST_PROGRESSION.pointsPerLevel),
+      .max(50 + 180 * BEAST_PROGRESSION.pointsPerLevel),
   })
   .strict();
 export function captureMp(carryLevel: number) {

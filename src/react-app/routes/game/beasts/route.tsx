@@ -10,19 +10,25 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import { BEAST_STARTER_SPECIES } from '@shared/engine/combat-v6/beasts';
 import { BEAST_GENERATION } from '@shared/engine/combat-v6/beasts/content';
+import { beastOriginName } from '@shared/engine/combat-v6/beasts/identity';
 import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
 import { useEffect, useRef, useState } from 'react';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
+import { BeastFusionDrawer } from './BeastFusionDrawer';
 import { BeastLeadSeal, BeastPanel } from './BeastPanel';
 import { BeastRenameModal } from './BeastRenameModal';
 import { BeastRosterScroll } from './BeastRosterScroll';
 
 const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
+  const identity = useCultivatorIdentity();
+  const ownerId = identity.data?.cultivator?.id;
+  const [fusing, setFusing] = useState(false);
   const [view, setView] = useState<BeastManagementView>();
   const { pushToast } = useInkUI();
   const [failed, setFailed] = useState(false);
@@ -183,6 +189,12 @@ export default function BeastsPage() {
                 {view.beasts.length} / {BEAST_CAPACITY}
               </span>
             </span>
+            <InkButton
+              disabled={pending || !ownerId}
+              onClick={() => setFusing(true)}
+            >
+              灵兽融合
+            </InkButton>
           </div>
           {!view.starterClaimed ? (
             <div className="border-ink/15 space-y-3 border-b pb-4">
@@ -256,6 +268,7 @@ export default function BeastsPage() {
                         </span>
                         <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
                           <span className="font-mono">{beast.level} 级</span>
+                          <span>{beastOriginName(beast)}</span>
                           {view.lineup.leadBeastId === beast.id ? (
                             <BeastLeadSeal />
                           ) : view.lineup.carriedBeastIds.includes(beast.id) ? (
@@ -340,6 +353,20 @@ export default function BeastsPage() {
           </div>
         </>
       )}
+      {fusing && view && ownerId ? (
+        <BeastFusionDrawer
+          key={ownerId}
+          view={view}
+          ownerId={ownerId}
+          close={() => setFusing(false)}
+          onUpdate={(next, id) => {
+            controller.current?.abort();
+            setView(next);
+            setFilter('all');
+            setDetailId(id);
+          }}
+        />
+      ) : null}
       {renamingBeast ? (
         <BeastRenameModal
           key={renamingBeast.id}

@@ -1,6 +1,7 @@
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import type { BeastTradePreview } from '@shared/contracts/beastTrade';
 import { BEAST_SPECIES } from '@shared/engine/combat-v6/beasts/content';
+import { beastOriginName } from '@shared/engine/combat-v6/beasts/identity';
 import { BeastIcon } from './BeastIcon';
 import { BeastMutationTag } from './BeastMutationTag';
 
@@ -36,6 +37,7 @@ export function BeastTradeCard({
           <BeastMutationTag isMutant={beast.isMutant} />
         </span>
         <span className="text-ink-secondary block">
+          {beastOriginName(beast)} ·{' '}
           <span className="font-mono">{beast.level}</span>级 ·{' '}
           <span className="font-mono">{beast.skills.length}</span>技能
         </span>

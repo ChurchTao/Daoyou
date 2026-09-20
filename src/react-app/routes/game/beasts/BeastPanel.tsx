@@ -14,6 +14,7 @@ import {
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
 import { BEAST_PROGRESSION } from '@shared/engine/combat-v6/beasts/content';
+import { beastOriginName } from '@shared/engine/combat-v6/beasts/identity';
 import {
   allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
@@ -138,9 +139,16 @@ export function BeastPanel({
             </p>
           ) : null}
           <p className="text-ink-secondary text-xs leading-6">
-            等级 <span className="font-mono">{beast.level}</span> · 携带要求{' '}
+            {beastOriginName(beast)} · 等级{' '}
+            <span className="font-mono">{beast.level}</span> · 携带要求{' '}
             {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}
           </p>
+          {beast.originKind === 'wild' && (
+            <p className="text-ink-secondary text-xs">
+              初始{beast.initialLevel}级，较同级宝宝少
+              {50 + 2 * beast.initialLevel}属性点
+            </p>
+          )}
           <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 text-xs">
             <span>
               成长 <span className="font-mono">{beast.growth.toFixed(3)}</span>

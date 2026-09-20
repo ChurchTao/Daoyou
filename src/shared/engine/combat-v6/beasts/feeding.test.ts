@@ -48,12 +48,12 @@ describe('灵兽修为养成与喂养', () => {
     expect(gainBeastExp(born(), total, 180)).toMatchObject({
       level: 180,
       exp: 0,
-      unallocatedPoints: 900,
+      unallocatedPoints: 950,
     });
     expect(gainBeastExp(born(), total, 35)).toMatchObject({
       level: 35,
       exp: 0,
-      unallocatedPoints: 175,
+      unallocatedPoints: 225,
     });
   });
   it.each([
@@ -121,7 +121,7 @@ describe('灵兽修为养成与喂养', () => {
   it('归元为0级，清除加点，五项基础属性均从10点投影', () => {
     const grown = gainBeastExp(born(), 10000, 180);
     const reset = refineBeast(grown, BEAST_REFINEMENT.items[0].id, 180, 42);
-    expect(reset).toMatchObject({ level: 0, exp: 0, unallocatedPoints: 0 });
+    expect(reset).toMatchObject({ level: 0, exp: 0, unallocatedPoints: 50 });
     expect(Object.values(reset.allocatedAttributes)).toEqual([0, 0, 0, 0, 0]);
     expect(beastPanel(reset)).toEqual(beastPanel(born()));
     expect(beastPanel(reset).maxHp).toBe(Math.floor(10 * reset.growth * 7));

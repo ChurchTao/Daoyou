@@ -1,5 +1,10 @@
-import { db, type DbTransaction } from '@server/lib/drizzle/db';
 import {
+  db,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db';
+import {
+  cultivatorBeastFusions,
   cultivatorBeastLineups,
   cultivatorBeasts,
 } from '@server/lib/drizzle/schema';
@@ -10,7 +15,11 @@ import {
   readBeastRoster,
 } from '@server/lib/repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
-import { BeastNameSchema } from '@shared/contracts/combatV6Beasts';
+import {
+  BeastNameSchema,
+  type BeastFusionRequest,
+  type BeastFusionResponse,
+} from '@shared/contracts/combatV6Beasts';
 import {
   BEAST_STARTER_SPECIES,
   BeastLineupSchema,
@@ -19,13 +28,17 @@ import {
   type BeastLineup,
 } from '@shared/engine/combat-v6/beasts';
 import {
+  beastFusionReason,
+  fuseBeasts,
+} from '@shared/engine/combat-v6/beasts/fusion';
+import {
   allocateBeast,
   BEAST_CAPACITY,
   beastRestCost,
   type BeastAllocationSchema,
 } from '@shared/engine/combat-v6/beasts/progression';
-import { and, eq } from 'drizzle-orm';
-import { randomInt, randomUUID } from 'node:crypto';
+import { and, eq, inArray } from 'drizzle-orm';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { updateSpiritStones } from '../cultivator/CultivatorStateRepository';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
@@ -33,6 +46,95 @@ import { textFilter } from '../textFilter';
 
 import { assertBeastIdle, BeastError } from './BeastMutationGuard';
 export { BeastError } from './BeastMutationGuard';
+
+async function fusionRecord(
+  cultivatorId: string,
+  requestId: string,
+  tx: DbExecutor,
+) {
+  const [record] = await tx
+    .select()
+    .from(cultivatorBeastFusions)
+    .where(
+      and(
+        eq(cultivatorBeastFusions.cultivatorId, cultivatorId),
+        eq(cultivatorBeastFusions.requestId, requestId),
+      ),
+    );
+  return record;
+}
+
+export async function readBeastFusion(
+  cultivatorId: string,
+  requestId: string,
+): Promise<BeastFusionResponse | null> {
+  const record = await fusionRecord(cultivatorId, requestId, db);
+  return record
+    ? { view: await readBeastRoster(cultivatorId, db), result: record.result }
+    : null;
+}
+
+export async function fuseOwnedBeasts(
+  cultivatorId: string,
+  input: BeastFusionRequest,
+): Promise<BeastFusionResponse> {
+  const parents = [...input.parents].sort((a, b) =>
+    a.beastId.localeCompare(b.beastId),
+  );
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(parents.map((p) => [p.beastId, p.expectedRevision])))
+    .digest('hex');
+  return mutate(cultivatorId, async (tx) => {
+    const previous = await fusionRecord(cultivatorId, input.requestId, tx);
+    if (previous) {
+      if (previous.fingerprint !== fingerprint)
+        throw new BeastError('此融合请求已用于其他材料');
+      return {
+        view: await readBeastRoster(cultivatorId, tx),
+        result: previous.result,
+      };
+    }
+    const roster = await readBeastRoster(cultivatorId, tx);
+    const materials = parents.map((parent) => {
+      const beast = roster.beasts.find((b) => b.id === parent.beastId);
+      if (!beast || beast.revision !== parent.expectedRevision)
+        throw new BeastError('融合材料已变化，请刷新后重新选择');
+      return beast;
+    });
+    const [a, b] = materials;
+    const reason = beastFusionReason(a, b, roster.ownerLevel, roster.lineup);
+    if (reason) throw new BeastError(reason);
+    const result = fuseBeasts(a, b, randomUUID(), randomInt(0, 0x7fffffff));
+    const removed = await tx
+      .delete(cultivatorBeasts)
+      .where(
+        and(
+          eq(cultivatorBeasts.cultivatorId, cultivatorId),
+          inArray(cultivatorBeasts.id, [a.id, b.id]),
+        ),
+      )
+      .returning({ id: cultivatorBeasts.id });
+    if (removed.length !== 2) throw new BeastError('融合材料已变化');
+    await tx
+      .insert(cultivatorBeasts)
+      .values({
+        id: result.id,
+        cultivatorId,
+        individual: beastIndividualData(result),
+      });
+    await tx
+      .insert(cultivatorBeastFusions)
+      .values({
+        id: randomUUID(),
+        cultivatorId,
+        requestId: input.requestId,
+        fingerprint,
+        parents: [a, b],
+        result,
+      });
+    return { view: await readBeastRoster(cultivatorId, tx), result };
+  });
+}
 
 async function mutate<T>(
   cultivatorId: string,

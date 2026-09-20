@@ -279,9 +279,9 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   const id = '00000000-0000-4000-8000-000000000001';
   const born = generate(id, id, species.species[0].id, 42);
   expect(born.allocatedAttributes.magic).toBe(0);
-  expect(born.unallocatedPoints).toBe(60);
+  expect(born.unallocatedPoints).toBe(110);
   expect(nextBeastExp(10)).toBe(150);
-  expect(gainBeastExp(born, 150, 180).unallocatedPoints).toBe(66);
+  expect(gainBeastExp(born, 150, 180).unallocatedPoints).toBe(116);
   expect(beastPanel(born).maxHp).toBe(Math.floor(20 * born.growth * 7));
   expect(canDeployBeast({ ...born, currentLifespan: 30 }, 180)).toBe(true);
   expect(canDeployBeast({ ...born, currentLifespan: 29 }, 180)).toBe(false);
@@ -397,34 +397,13 @@ it.each([
 });
 
 it.each(['summoned_beast_v1', 'summoned_beast_capture_v1'] as const)(
-  '旧 %s 个体不重抽技能、资质、成长或加点',
-  async (version) => {
+  '未发布的旧版本 %s 不进行兼容推断',
+  async (generationVersion) => {
     const { BeastSchema } = await import('./schema');
     const id = '00000000-0000-4000-8000-000000000001';
     const current = generateStarterBeast(id, id, species.species[0].id, 42);
-    const { generationContentRevision: _revision, ...base } = current;
-    const old = {
-      ...base,
-      generationVersion: version,
-      growth: 1.001,
-      aptitudes: {
-        attack: 700,
-        defense: 900,
-        health: 3000,
-        mana: 1600,
-        speed: 900,
-      },
-      skills: ['beast.spirit-flame'],
-      skillSlotCapacity: 1,
-      allocatedAttributes: {
-        constitution: 0,
-        strength: 0,
-        magic: 50,
-        endurance: 0,
-        agility: 0,
-      },
-      unallocatedPoints: 0,
-    };
-    expect(BeastSchema.parse(old)).toEqual(old);
+    expect(
+      BeastSchema.safeParse({ ...current, generationVersion }).success,
+    ).toBe(false);
   },
 );

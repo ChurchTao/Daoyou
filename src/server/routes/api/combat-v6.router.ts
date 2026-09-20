@@ -29,6 +29,8 @@ import {
   BeastError,
   allocateBeastPoints,
   claimStarterBeast,
+  fuseOwnedBeasts,
+  readBeastFusion,
   releaseBeast,
   renameBeast,
   restBeast,
@@ -64,6 +66,7 @@ import {
 import {
   BeastAllocateSchema,
   BeastClaimSchema,
+  BeastFusionRequestSchema,
   BeastLineupRequestSchema,
   BeastRenameSchema,
   BeastRestSchema,
@@ -244,6 +247,46 @@ router.get('/beasts', async (c) => {
     return errorResponse(c, error);
   }
 });
+router.get('/beasts/fusions/:requestId', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  try {
+    return c.json({
+      success: true,
+      data: await readBeastFusion(
+        actor(c).cultivatorId,
+        z.uuid().parse(c.req.param('requestId')),
+      ),
+    });
+  } catch (error) {
+    return errorResponse(c, error);
+  }
+});
+router.post(
+  '/beasts/fuse',
+  validateJson(BeastFusionRequestSchema),
+  async (c) => {
+    try {
+      const input =
+        getValidatedJson<z.infer<typeof BeastFusionRequestSchema>>(c);
+      return c.json({
+        success: true,
+        data: await fuseOwnedBeasts(actor(c).cultivatorId, input),
+      });
+    } catch (error) {
+      if (error instanceof BeastError)
+        return c.json(
+          {
+            success: false,
+            error: error.message,
+            code: 'BEAST_FUSION_REJECTED',
+          },
+          409,
+        );
+      return errorResponse(c, error);
+    }
+  },
+);
+
 router.post('/beasts/claim', async (c) => {
   try {
     const input = BeastClaimSchema.parse(await c.req.json());

@@ -425,6 +425,29 @@ export const cultivatorBeasts = pgTable(
   (table) => [index('cultivator_beasts_owner_idx').on(table.cultivatorId)],
 );
 
+export const cultivatorBeastFusions = pgTable(
+  'wanjiedaoyou_cultivator_beast_fusions',
+  {
+    id: uuid('id').primaryKey(),
+    cultivatorId: uuid('cultivator_id')
+      .notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    requestId: uuid('request_id').notNull(),
+    fingerprint: varchar('fingerprint', { length: 64 }).notNull(),
+    parents: jsonb('parents').$type<[SummonedBeast, SummonedBeast]>().notNull(),
+    result: jsonb('result').$type<SummonedBeast>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('cultivator_beast_fusions_request_unique').on(
+      table.cultivatorId,
+      table.requestId,
+    ),
+  ],
+);
+
 export const cultivatorBeastLineups = pgTable(
   'wanjiedaoyou_cultivator_beast_lineups',
   {

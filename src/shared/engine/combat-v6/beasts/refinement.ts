@@ -1,6 +1,10 @@
 import { BEAST_SPECIES, BEAST_SPECIES_REVISION } from './content';
 import { BEAST_REFINEMENT } from './refinement-config';
-import { BEAST_VERSION, BeastSchema, type SummonedBeast } from './schema';
+import {
+  BEAST_VERSION,
+  GeneratedBeastSchema,
+  type SummonedBeast,
+} from './schema';
 import { rollBeastTraits } from './trait-generator';
 
 export function beastRefinementReason(
@@ -32,9 +36,11 @@ export function refineBeast(
     (species) => species.id === beast.speciesId,
   )!;
   const traits = rollBeastTraits(species, seed, beast.isMutant);
-  return BeastSchema.parse({
+  return GeneratedBeastSchema.parse({
     ...beast,
     ...traits,
+    originKind: 'baby',
+    initialLevel: 0,
     level: BEAST_REFINEMENT.resetLevel,
     exp: BEAST_REFINEMENT.resetExperience,
     allocatedAttributes: {
@@ -44,7 +50,7 @@ export function refineBeast(
       endurance: 0,
       agility: 0,
     },
-    unallocatedPoints: 0,
+    unallocatedPoints: 50,
     skillSlotCapacity: traits.skills.length,
     currentLifespan: BEAST_REFINEMENT.restoreLifespan
       ? beast.maxLifespan

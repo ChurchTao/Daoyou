@@ -3,7 +3,7 @@ import { learnBeastSkill } from '../../../inventory';
 import { BOOKS } from '../../../items/definitions/beast-books';
 import { BEAST_SPECIES } from './content';
 import { generateCapturedBeast, generateStarterBeast } from './generator';
-import { beastPanel } from './projection';
+import { beastAttributes, beastPanel } from './projection';
 import { refineBeast } from './refinement';
 import { BEAST_REFINEMENT } from './refinement-config';
 import { BeastSchema } from './schema';
@@ -32,7 +32,7 @@ it.each(BEAST_SPECIES)(
   },
 );
 
-it('旧个体无需变更存档；初始领取不会变异，非法变异标记被拒绝', () => {
+it('初始领取不会变异，非法变异标记被拒绝', () => {
   const normal = generateStarterBeast(id, id, BEAST_SPECIES[0].id, 42);
   expect(normal.isMutant ?? false).toBe(false);
   expect(BeastSchema.parse(normal)).toEqual(normal);
@@ -40,7 +40,7 @@ it('旧个体无需变更存档；初始领取不会变异，非法变异标记�
 });
 
 it.each(BEAST_SPECIES)(
-  '$name 变异的基础面板约提高10%，投影不重复强化',
+  '$name 变异增加基础点，资质成长提升只应用一次',
   (species) => {
     for (const level of [0, 60, 180]) {
       const normal = {
@@ -53,22 +53,22 @@ it.each(BEAST_SPECIES)(
         skills: [],
         skillSlotCapacity: 0,
       };
-      const a = beastPanel(normal),
-        b = beastPanel(mutant);
-      for (const key of [
-        'maxHp',
-        'maxMp',
-        'physicalAtk',
-        'physicalDef',
-        'magicAtk',
-        'magicDef',
-        'speed',
-      ] as const)
-        // Integer panels (especially level 0) and three-decimal growth round separately.
-        expect(Math.abs(b[key] - a[key] * 1.1)).toBeLessThanOrEqual(
-          2 + a[key] * 0.001,
-        );
-      expect(beastPanel({ ...mutant, isMutant: false })).toEqual(b);
+      const b = beastPanel(mutant);
+      const normalized = {
+        ...mutant,
+        isMutant: false,
+        allocatedAttributes: {
+          constitution: 10,
+          strength: 10,
+          magic: 10,
+          endurance: 10,
+          agility: 10,
+        },
+        unallocatedPoints: mutant.unallocatedPoints - 50,
+      };
+      expect(beastAttributes(mutant)).toEqual(beastAttributes(normalized));
+      expect(beastPanel(normalized)).toEqual(b);
+      expect(beastPanel(normal).maxHp).toBeLessThan(b.maxHp);
     }
   },
 );

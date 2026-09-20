@@ -7,6 +7,7 @@ import {
   BEAST_SKILL_FAMILIES,
   BEAST_SPECIES,
 } from './content';
+import { beastBaseAttribute } from './identity';
 import {
   BeastLineupSchema,
   BeastSchema,
@@ -28,10 +29,11 @@ export function activeBeastSkills(beast: SummonedBeast) {
 }
 
 export function beastAttributes(
-  beast: Pick<SummonedBeast, 'level' | 'allocatedAttributes'>,
+  beast: Pick<SummonedBeast, 'level' | 'allocatedAttributes' | 'isMutant'>,
 ): SummonedBeast['allocatedAttributes'] {
   const rule = BEAST_PROGRESSION.panel;
-  const natural = rule.naturalBase + beast.level * rule.naturalPerLevel;
+  const natural =
+    beastBaseAttribute(beast) + beast.level * rule.naturalPerLevel;
   return Object.fromEntries(
     Object.entries(beast.allocatedAttributes).map(([key, value]) => [
       key,

@@ -11,7 +11,11 @@ import {
   BeastSchema,
   generateStarterBeast,
 } from '@shared/engine/combat-v6/beasts';
-import { BEAST_CAPACITY } from '@shared/engine/combat-v6/beasts/progression';
+import {
+  BEAST_CAPACITY,
+  gainBeastExp,
+  nextBeastExp,
+} from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
 import { forgingInputs, forgingCost } from '@shared/forging/rules';
@@ -385,12 +389,22 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
         if (held.total >= BEAST_CAPACITY)
           throw new InventoryError('灵兽持有数量已达上限');
         const id = randomUUID();
-        const starter = generateStarterBeast(
+        let starter = generateStarterBeast(
           id,
           input.cultivatorId,
           grant.speciesId,
           randomInt(0x100000000),
         );
+        if (grant.level !== undefined) {
+          const { ownerLevel } = await readBeastOwner(input.cultivatorId, tx);
+          if (grant.level > ownerLevel)
+            throw new InventoryError('验收灵兽等级不能超过主人等级');
+          const experience = Array.from(
+            { length: grant.level - starter.level },
+            (_, index) => nextBeastExp(starter.level + index),
+          ).reduce((sum, value) => sum + value, 0);
+          starter = gainBeastExp(starter, experience, ownerLevel);
+        }
         const individual = grant.skills
           ? BeastSchema.parse({
               ...starter,

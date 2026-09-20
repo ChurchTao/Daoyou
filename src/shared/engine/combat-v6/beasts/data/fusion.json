@@ -1,0 +1,121 @@
+{
+  "$schema": "./fusion.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "minimumLevel": 30,
+  "babyChance": 0.95,
+  "pseudoBabyChance": 0.25,
+  "skillChance": 0.5,
+  "aptitudeCaps": {
+    "attack": 1991,
+    "defense": 1848,
+    "health": 6820,
+    "mana": 3960,
+    "speed": 1980
+  },
+  "growthMilliCap": 1300,
+  "aptitudeWeights": [
+    {
+      "value": 70,
+      "weight": 1
+    },
+    {
+      "value": 72,
+      "weight": 1
+    },
+    {
+      "value": 74,
+      "weight": 1
+    },
+    {
+      "value": 76,
+      "weight": 1
+    },
+    {
+      "value": 78,
+      "weight": 1
+    },
+    {
+      "value": 80,
+      "weight": 1
+    },
+    {
+      "value": 82,
+      "weight": 1
+    },
+    {
+      "value": 84,
+      "weight": 1
+    },
+    {
+      "value": 86,
+      "weight": 1
+    },
+    {
+      "value": 88,
+      "weight": 1
+    },
+    {
+      "value": 90,
+      "weight": 1
+    },
+    {
+      "value": 92,
+      "weight": 4
+    },
+    {
+      "value": 94,
+      "weight": 8
+    },
+    {
+      "value": 96,
+      "weight": 12
+    },
+    {
+      "value": 98,
+      "weight": 16
+    },
+    {
+      "value": 100,
+      "weight": 20
+    },
+    {
+      "value": 102,
+      "weight": 12
+    },
+    {
+      "value": 104,
+      "weight": 8
+    },
+    {
+      "value": 106,
+      "weight": 4
+    },
+    {
+      "value": 108,
+      "weight": 3
+    },
+    {
+      "value": 110,
+      "weight": 2
+    }
+  ],
+  "growthWeights": [
+    {
+      "value": 96,
+      "weight": 10
+    },
+    {
+      "value": 98,
+      "weight": 25
+    },
+    {
+      "value": 100,
+      "weight": 50
+    },
+    {
+      "value": 102,
+      "weight": 15
+    }
+  ]
+}

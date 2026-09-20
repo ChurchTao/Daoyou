@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   BeastLineupSchema,
   type BeastRoster,
+  type SummonedBeast,
 } from '../engine/combat-v6/beasts';
 import { BeastAllocationSchema } from '../engine/combat-v6/beasts/progression';
 export const BeastClaimSchema = z
@@ -17,6 +18,20 @@ export const BeastRestSchema = z
 export const BeastAllocateSchema = BeastRestSchema.extend({
   points: BeastAllocationSchema,
 });
+export const BeastFusionRequestSchema = z
+  .strictObject({
+    requestId: z.uuid(),
+    parents: z.tuple([BeastRestSchema, BeastRestSchema]),
+  })
+  .refine(
+    ({ parents }) => parents[0].beastId !== parents[1].beastId,
+    '请选择两只不同的灵兽',
+  );
+export type BeastFusionRequest = z.infer<typeof BeastFusionRequestSchema>;
+export type BeastFusionResponse = {
+  view: BeastManagementView;
+  result: SummonedBeast;
+};
 export type BeastManagementView = BeastRoster & {
   starterClaimed: boolean;
   ownerLevel: number;

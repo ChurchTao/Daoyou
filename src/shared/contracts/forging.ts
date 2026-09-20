@@ -96,6 +96,7 @@ export const DevGrantSchema = z
             .object({
               type: z.literal('beast'),
               speciesId: z.string().min(1).max(100),
+              level: z.number().int().min(10).max(180).optional(),
               skills: z.array(z.string().min(1).max(160)).min(1).max(8).optional(),
             })
             .strict(),
