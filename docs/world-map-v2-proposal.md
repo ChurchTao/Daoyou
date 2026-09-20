@@ -223,3 +223,13 @@ Canvas 内可用程序几何绘制简单交互标记；需要复用现有图标�
 - 保留 `mapSystem.ts`、`map.json`、`WildNodePreview`、正式地图与全部正式美术资源。宗门内部 `SectMap` 仍使用 `react-zoom-pan-pinch`，因此保留依赖及锁文件。
 
 验证：`bun run lint`、`bun run build`（客户端与服务端）通过；`bun run test src/shared/lib/game/mapAtlas.test.ts src/shared/lib/game/mapAtlasCategories.test.ts src/shared/lib/game/mapSystem.test.ts src/shared/engine/combat-v6/wild/pack.test.ts` 共 40 项通过。结构化比对确认全部 66 个地点的玩法数据未改变，仅删除旧坐标和连线；源码扫描确认旧组件和旧底图引用已清除，任务服务生成的链接也已迁移。按用户此前约定，本轮未执行浏览器或真机验收；构建仍有既有大包体及无效动态导入提示。
+
+## 13. 文字级联地图（2026-09-20）
+
+- `/game/map-v2` 同时提供「画卷 / 文字」显示模式；这不是恢复已下线的旧 DOM 地图。
+- 文字模式按「区域 → 地点类型 → 地点」浏览，桌面分栏、移动端逐级进入；类型默认展开，可折叠，未开放区域只展示名称。
+- 两种模式共享区域/节点数据、类型筛选、搜索、URL 选择状态和 `AtlasNodePanel` 操作入口。切换模式不修改区域、节点和类型参数；玩法返回继续沿用 `mapReturnTo`。
+- 文字模式不初始化 Phaser；切离画卷会销毁引擎实例。地图工具栏和系统设置的「游戏设置」均可切换显示模式。
+- 浏览器普通展示偏好统一从 `src/react-app/lib/game-setting.ts` 读取及更新，localStorage key 为 `game-setting`。当前结构：`{"version":1,"mapMode":"atlas"}`，`mapMode` 可为 `atlas` 或 `text`，默认画卷。
+- 配置属于当前浏览器，同浏览器账号共用；支持同页面订阅与跨标签页同步。损坏/不支持的配置使用默认值；存储不可用时保留本次会话中的选择。
+- 后续普通本地偏好扩展 `GameSettings`、默认值、解析与变更比较，禁止业务组件直接读写该 key。凭据（如模型 API Key）、服务器角色设置及临时玩法状态不并入展示偏好。

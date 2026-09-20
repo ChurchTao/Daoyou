@@ -6,6 +6,7 @@ import {
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
 import {
   ATLAS_REGIONS,
@@ -30,11 +31,14 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { AtlasNodeKinds } from './AtlasNodeKinds';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import type { AtlasController, AtlasView } from './AtlasPhaserRuntime';
+import { AtlasTextMap } from './AtlasTextMap';
 import { AtlasToolbar } from './AtlasToolbar';
 
 const locations = getAtlasLocations();
 
 export default function AtlasPage() {
+  const { mapMode } = useGameSettings();
+  const isAtlas = mapMode === 'atlas';
   const root = useRef<HTMLDivElement>(null);
   const toolbar = useRef<HTMLElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -166,6 +170,7 @@ export default function AtlasPage() {
   const getView = useEffectEvent(() => view);
 
   useEffect(() => {
+    if (!isAtlas) return;
     let disposed = false;
     let ready = false;
     let instance: AtlasController | undefined;
@@ -178,6 +183,8 @@ export default function AtlasPage() {
     ])
       .then(([runtime]) => {
         if (disposed || !root.current) return;
+        setLoading(true);
+        setError(null);
         instance = runtime.attachAtlasPhaser({
           root: root.current,
           view: getView(),
@@ -212,7 +219,7 @@ export default function AtlasPage() {
       controller.current = null;
       instance?.destroy();
     };
-  }, [attempt]);
+  }, [attempt, isAtlas]);
 
   useEffect(() => {
     controller.current?.setView(getView());
@@ -261,6 +268,7 @@ export default function AtlasPage() {
     measure();
     return () => observer.disconnect();
   }, [
+    isAtlas,
     selected?.id,
     filterOpen,
     searchOpen,
@@ -313,13 +321,21 @@ export default function AtlasPage() {
     >
       <div ref={root} className="absolute inset-0 overflow-hidden" />
 
-      {loading && !error ? (
+      {isAtlas && loading && !error ? (
         <div className="bg-paper/90 absolute inset-0 z-10">
           <GameLoadingState variant="scene" message="正在展开山河画卷……" />
         </div>
       ) : null}
 
       <AtlasToolbar
+        mapMode={mapMode}
+        onMapMode={(mode) => {
+          updateGameSettings({ mapMode: mode });
+          setSearchOpen(false);
+          setFilterOpen(false);
+          setOverlapIds([]);
+          setError(null);
+        }}
         toolbarRef={toolbar}
         popoverRef={toolsPopover}
         regionName={region?.name ?? '人界总览'}
@@ -352,7 +368,19 @@ export default function AtlasPage() {
         onSelect={(id) => selectNode(id, true)}
       />
 
-      {availableRegion && !visibleLocations.length ? (
+      {!isAtlas ? (
+        <AtlasTextMap
+          regionId={availableRegion ?? undefined}
+          locations={visibleLocations}
+          selected={selected}
+          actions={actions}
+          onRegion={changeRegion}
+          onSelect={selectNode}
+          onClose={closeNode}
+        />
+      ) : null}
+
+      {isAtlas && availableRegion && !visibleLocations.length ? (
         <div
           role="status"
           className="bg-paper/95 absolute top-[var(--atlas-toolbar-bottom)] left-3 z-20 p-3 text-sm"
@@ -361,7 +389,7 @@ export default function AtlasPage() {
           <InkButton onClick={() => updateCategories([])}>显示全部</InkButton>
         </div>
       ) : null}
-      {revealingFilteredNode ? (
+      {isAtlas && revealingFilteredNode ? (
         <p
           role="status"
           className="bg-paper/95 absolute top-[var(--atlas-toolbar-bottom)] left-3 z-20 p-2 text-sm"
@@ -370,7 +398,8 @@ export default function AtlasPage() {
         </p>
       ) : null}
 
-      {selected &&
+      {isAtlas &&
+      selected &&
       !unavailable &&
       !searchOpen &&
       !filterOpen &&
@@ -393,7 +422,7 @@ export default function AtlasPage() {
       ) : null}
 
       <InkDetailDrawer
-        isOpen={overlapIds.length > 0}
+        isOpen={isAtlas && overlapIds.length > 0}
         title="选择地点"
         size="sm"
         onClose={() => setOverlapIds([])}
@@ -428,7 +457,7 @@ export default function AtlasPage() {
         </div>
       ) : null}
 
-      {error ? (
+      {isAtlas && error ? (
         <div
           className="bg-paper/95 absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center"
           role="alert"
@@ -444,11 +473,19 @@ export default function AtlasPage() {
             >
               重新展开
             </InkButton>
+            <InkButton
+              onClick={() => {
+                setError(null);
+                updateGameSettings({ mapMode: 'text' });
+              }}
+            >
+              使用文字地图
+            </InkButton>
           </div>
         </div>
       ) : null}
 
-      {unavailable && !searchOpen && !error ? (
+      {unavailable && !searchOpen && (!isAtlas || !error) ? (
         <InkDetailDrawer
           isOpen
           title={`${region.name}舆图`}

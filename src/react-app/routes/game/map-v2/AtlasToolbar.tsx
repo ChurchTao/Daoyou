@@ -1,4 +1,5 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
+import type { GameSettings } from '@app/lib/game-setting';
 import { cn } from '@shared/lib/cn';
 import { getAtlasRegion } from '@shared/lib/game/mapAtlas';
 import {
@@ -14,6 +15,8 @@ const control =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-sm px-2.5 text-sm transition-colors hover:bg-ink/10 active:bg-ink/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/60';
 
 export function AtlasToolbar({
+  mapMode,
+  onMapMode,
   toolbarRef,
   popoverRef,
   regionName,
@@ -36,6 +39,8 @@ export function AtlasToolbar({
   onCategories,
   onSelect,
 }: {
+  mapMode: GameSettings['mapMode'];
+  onMapMode: (mode: GameSettings['mapMode']) => void;
   toolbarRef: RefObject<HTMLElement | null>;
   popoverRef: RefObject<HTMLDivElement | null>;
   regionName: string;
@@ -86,7 +91,7 @@ export function AtlasToolbar({
     >
       <nav
         aria-label="地图导航"
-        className="bg-paper/95 border-ink/15 pointer-events-auto flex w-fit items-center rounded-sm border p-0.5 shadow-sm backdrop-blur-sm"
+        className="bg-paper/95 border-ink/15 pointer-events-auto flex w-fit max-w-full flex-wrap items-center rounded-sm border p-0.5 shadow-sm backdrop-blur-sm"
       >
         <button type="button" onClick={onClose} className={control}>
           <GameIcon value="×" className="text-xl" />
@@ -101,6 +106,23 @@ export function AtlasToolbar({
             </button>
           </>
         ) : null}
+        <span className="bg-ink/15 h-5 w-px" aria-hidden="true" />
+        <div role="group" aria-label="地图显示方式" className="flex">
+          {(['atlas', 'text'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={mapMode === mode}
+              onClick={() => onMapMode(mode)}
+              className={cn(
+                control,
+                mapMode === mode ? 'bg-ink/10 font-semibold' : '',
+              )}
+            >
+              {mode === 'atlas' ? '画卷' : '文字'}
+            </button>
+          ))}
+        </div>
       </nav>
 
       <div className="pointer-events-auto relative ml-auto max-w-full">

@@ -1,5 +1,6 @@
-import { InkButton } from '@app/components/ui/InkButton';
 import { usePwaInstall } from '@app/components/providers/PwaInstallProvider';
+import { InkButton } from '@app/components/ui/InkButton';
+import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useState } from 'react';
 import {
@@ -10,6 +11,7 @@ import {
 import { formatDateTime } from './utils';
 
 export function GameSettingsTab() {
+  const { mapMode } = useGameSettings();
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const pwa = usePwaInstall();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -53,6 +55,29 @@ export function GameSettingsTab() {
 
   return (
     <div className="space-y-6">
+      <SettingsSection
+        title="地图显示"
+        description="保存在当前浏览器，也可在地图内随时切换。"
+      >
+        <SettingsField
+          label="显示方式"
+          value={mapMode === 'atlas' ? '山河画卷' : '文字地图'}
+          action={
+            <div role="group" aria-label="地图显示方式" className="flex gap-2">
+              {(['atlas', 'text'] as const).map((mode) => (
+                <InkButton
+                  key={mode}
+                  variant={mapMode === mode ? 'primary' : 'secondary'}
+                  aria-pressed={mapMode === mode}
+                  onClick={() => updateGameSettings({ mapMode: mode })}
+                >
+                  {mode === 'atlas' ? '画卷' : '文字'}
+                </InkButton>
+              ))}
+            </div>
+          }
+        />
+      </SettingsSection>
       <SettingsSection>
         <SettingsField
           label="角色 ID"
@@ -80,8 +105,12 @@ export function GameSettingsTab() {
           label="安装状态"
           value={installValue}
           action={
-            pwa.status === 'installed' || pwa.status === 'unavailable' ? null : (
-              <InkButton variant="secondary" onClick={() => void handleInstall()}>
+            pwa.status === 'installed' ||
+            pwa.status === 'unavailable' ? null : (
+              <InkButton
+                variant="secondary"
+                onClick={() => void handleInstall()}
+              >
                 {pwa.status === 'promptable' ? '安装到设备' : '查看方法'}
               </InkButton>
             )
