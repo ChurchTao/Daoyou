@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@shared/lib/cn';
 import { FurnaceGatherEffect } from '../craft/FurnaceGatherEffect';
@@ -41,13 +42,11 @@ export function ForgingFurnace({
           )}
         />
       ) : null}
-      <img
-        src="/assets/forging/earthfire-furnace.webp"
-        alt="墨铜炼器炉，朱色地火映亮炉膛"
-        width={600}
-        height={600}
+      <GameIcon
+        value="icon:earthfire-furnace"
+        label="写意墨铜炼器炉，朱砂地火映照炉膛"
         className={cn(
-          'pointer-events-none absolute top-[16%] left-[19%] h-[70%] w-[62%] object-contain transition-[filter] duration-700 motion-reduce:transition-none',
+          'pointer-events-none absolute top-[16%] left-[19%] h-[70%] w-[62%] transition-[filter] duration-700 motion-reduce:transition-none',
           session.pending &&
             'drop-shadow-[0_0_18px_rgba(178,80,30,0.45)] motion-safe:animate-pulse',
           session.result && 'drop-shadow-[0_0_12px_rgba(178,80,30,0.25)]',

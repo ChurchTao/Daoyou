@@ -20,9 +20,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '🌕 炼丹房', href: '/game/craft/alchemy' },
       { label: '🔥 炼器室', href: '/game/craft/refine' },
       { label: '👊 练功房', href: '/game/training-room' },
-      { label: '每日占卜', href: '/game/divination', icon: '🎲' },
       { label: '💧 灵眼之泉', href: '/game/inn' },
-      { label: '👤 道身概览', href: '/game/cultivator' },
     ],
   },
   {

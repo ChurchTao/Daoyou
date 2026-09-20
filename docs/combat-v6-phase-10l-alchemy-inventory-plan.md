@@ -52,7 +52,7 @@
 
 - 复用新版炼器的设施入口、桌面炉阵与物品栏双栏布局、移动端材料抽屉、开炉确认及结果交互。
 - 保留即兴炼丹、丹方炼丹、剂量调整、推演及结果信息，材料格数量遵循原炼丹上限。
-- 新炼丹炉采用独立透明背景素材，风格与现有炼器炉协调；不修改炼器炉素材。已生成素材位于 `public/assets/alchemy/xuanfire-furnace.png`，已接入页面。
+- 新炼丹炉采用独立透明背景素材。2026-09-20与炼器炉统一重制为写意国画水墨，现用 `public/assets/icons/xuanfire-furnace-ink.png`，通过 `GameIcon` 接入；[素材与提示词](art/craft-furnaces.md)。
 - 数字沿用 Tailwind `font-mono`，不添加全局数字字体变量。
 
 ### 旧生产清理

@@ -888,6 +888,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="beasts/fusion"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/beasts/fusion/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'beast-fusion',
+                  presentation: 'workflow',
+                  summary: '两灵相合，重塑新生。择一对灵兽，探一场造化。',
+                },
+                '灵兽融合',
+              )}
+            />
+            <Route
               path="arena"
               lazy={lazyRoute(() => import('@app/routes/game/arena/route'))}
               handle={scene(

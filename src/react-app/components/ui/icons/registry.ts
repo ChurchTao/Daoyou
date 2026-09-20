@@ -1,5 +1,8 @@
 /** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
 export const iconRegistry: ReadonlyMap<string, string> = new Map([
+  ['beast-fusion-cauldron', '/assets/icons/beast-fusion-cauldron.png'],
+  ['earthfire-furnace', '/assets/icons/earthfire-furnace-ink.png'],
+  ['xuanfire-furnace', '/assets/icons/xuanfire-furnace-ink.png'],
   ['map-wild', '/assets/icons/map-wild.webp'],
   ['map-dungeon', '/assets/icons/map-dungeon.webp'],
   ['map-market', '/assets/icons/map-market.webp'],

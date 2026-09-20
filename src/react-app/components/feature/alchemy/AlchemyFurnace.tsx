@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import { cn } from '@shared/lib/cn';
@@ -76,13 +77,11 @@ export function AlchemyFurnace({
             positions={materialPositions}
           />
         ) : null}
-        <img
-          src="/assets/alchemy/xuanfire-furnace.png"
-          alt="青玉铜丹炉，温火凝聚药蕴"
-          width={1280}
-          height={1280}
+        <GameIcon
+          value="icon:xuanfire-furnace"
+          label="青绿水墨丹炉，温火轻烟凝聚药蕴"
           className={cn(
-            'pointer-events-none absolute top-[16%] left-[19%] h-[70%] w-[62%] object-contain',
+            'pointer-events-none absolute top-[16%] left-[19%] h-[70%] w-[62%]',
             primary && 'drop-shadow-[0_0_12px_rgba(178,80,30,0.25)]',
             session.phase === 'firing' &&
               'drop-shadow-[0_0_18px_rgba(178,80,30,0.45)] motion-safe:animate-pulse',

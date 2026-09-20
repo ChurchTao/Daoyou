@@ -78,7 +78,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '修炼室',
         href: '/game/retreat',
       },
-      { id: 'divination', sceneLabel: '每日占卜', href: '/game/divination', expandedDockLabel: '每日占卜' },
+      { id: 'divination', sceneLabel: '每日占卜', href: '/game/divination', expandedDockLabel: '🎲 每日占卜' },
       {
         id: 'inn',
         sceneLabel: '灵眼之泉',
@@ -149,6 +149,7 @@ export const gameDockGroups: GameNavGroup[] = [
         href: '/game/beasts',
         expandedDockLabel: '🐯 灵兽袋',
       },
+      { id: 'beast-fusion', sceneLabel: '灵兽融合', href: '/game/beasts/fusion' },
       {
         id: 'inventory',
         sceneLabel: '储物袋',

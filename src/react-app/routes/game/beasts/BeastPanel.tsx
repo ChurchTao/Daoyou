@@ -5,6 +5,7 @@ import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkTag } from '@app/components/ui/InkTag';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import {
@@ -14,7 +15,6 @@ import {
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
 import { BEAST_PROGRESSION } from '@shared/engine/combat-v6/beasts/content';
-import { beastOriginName } from '@shared/engine/combat-v6/beasts/identity';
 import {
   allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
@@ -128,7 +128,17 @@ export function BeastPanel({
               {beast.name}
             </h2>
             {isLead ? <BeastLeadSeal /> : null}
-            <BeastMutationTag isMutant={beast.isMutant} />
+            {beast.isMutant ? (
+              <BeastMutationTag isMutant />
+            ) : (
+              <InkTag className="shrink-0 text-xs">
+                {beast.originKind === 'wild'
+                  ? '成年'
+                  : beast.originKind === 'pseudo_baby'
+                    ? '假幼崽'
+                    : '幼崽'}
+              </InkTag>
+            )}
             <InkButton variant="ghost" disabled={pending} onClick={rename}>
               改名
             </InkButton>
@@ -139,13 +149,13 @@ export function BeastPanel({
             </p>
           ) : null}
           <p className="text-ink-secondary text-xs leading-6">
-            {beastOriginName(beast)} · 等级{' '}
+            等级{' '}
             <span className="font-mono">{beast.level}</span> · 携带要求{' '}
             {definition ? getLevelRealmStage(definition.carryLevel).label : '—'}
           </p>
           {beast.originKind === 'wild' && (
             <p className="text-ink-secondary text-xs">
-              初始{beast.initialLevel}级，较同级宝宝少
+              初始{beast.initialLevel}级，较同级幼崽少
               {50 + 2 * beast.initialLevel}属性点
             </p>
           )}
