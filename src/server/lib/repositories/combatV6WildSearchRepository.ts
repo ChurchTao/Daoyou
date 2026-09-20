@@ -27,7 +27,11 @@ export async function saveWildSearch(
   encounter: WildEncounter,
   tx: DbTransaction,
 ) {
-  const value = { encounter, preparedBattle: null, updatedAt: new Date() };
+  const value = {
+    encounter: WildEncounterSchema.parse(encounter),
+    preparedBattle: null,
+    updatedAt: new Date(),
+  };
   await tx
     .insert(wildSearches)
     .values({ cultivatorId, ...value })
@@ -40,6 +44,10 @@ export async function prepareWildBattle(
 ) {
   await tx
     .update(wildSearches)
-    .set({ preparedBattle: runtime })
+    .set({
+      preparedBattle: WildRuntimeSchema.parse(
+        runtime,
+      ) as unknown as WildRuntime,
+    })
     .where(eq(wildSearches.cultivatorId, cultivatorId));
 }

@@ -75,6 +75,8 @@ export class CombatV6WildStore {
     return redis.get(wildLockKey(id));
   }
   async create(runtime: WildRuntime, s: WildSettlement, requestId: string) {
+    WildRuntimeSchema.parse(runtime);
+    WildSettlementSchema.parse(s);
     return redis.eval(
       CREATE,
       6,
@@ -98,6 +100,8 @@ export class CombatV6WildStore {
     event?: CombatV6TerminalOutboxV1,
     replay?: CombatV6ReplayV1,
   ) {
+    WildRuntimeSchema.parse(runtime);
+    WildSettlementSchema.parse(s);
     return redis.eval(
       SAVE,
       8,
@@ -119,6 +123,7 @@ export class CombatV6WildStore {
     ) as Promise<string>;
   }
   async finish(s: WildSettlement, event: CombatV6TerminalOutboxV1) {
+    WildSettlementSchema.parse(s);
     return redis.eval(
       FINISH,
       7,

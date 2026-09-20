@@ -8,37 +8,28 @@ import {
   type AtlasCategory,
 } from '@shared/lib/game/mapAtlasCategories';
 import type { WorldMapLocation } from '@shared/lib/game/mapSystem';
-import { useEffect, useEffectEvent, useRef, type RefObject } from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useSyncExternalStore,
+  type RefObject,
+} from 'react';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
+import { AtlasMobileToolbar } from './AtlasMobileToolbar';
 
 const control =
   'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-sm px-2.5 text-sm transition-colors hover:bg-ink/10 active:bg-ink/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink/60';
 
-export function AtlasToolbar({
-  mapMode,
-  onMapMode,
-  toolbarRef,
-  popoverRef,
-  regionName,
-  hasRegion,
-  canFilter,
-  categories,
-  regionLocations,
-  results,
-  query,
-  searchAll,
-  searchOpen,
-  filterOpen,
-  onClose,
-  onUp,
-  onQuery,
-  onSearchAll,
-  onSearchOpen,
-  onFilterOpen,
-  onDismiss,
-  onCategories,
-  onSelect,
-}: {
+const mobileQuery = '(max-width: 767px)';
+function subscribeViewport(listener: () => void) {
+  const media = window.matchMedia(mobileQuery);
+  media.addEventListener('change', listener);
+  return () => media.removeEventListener('change', listener);
+}
+const readMobile = () => window.matchMedia(mobileQuery).matches;
+
+export interface AtlasToolbarProps {
   mapMode: GameSettings['mapMode'];
   onMapMode: (mode: GameSettings['mapMode']) => void;
   toolbarRef: RefObject<HTMLElement | null>;
@@ -62,11 +53,43 @@ export function AtlasToolbar({
   onDismiss: () => void;
   onCategories: (types: AtlasCategory[]) => void;
   onSelect: (id: string) => void;
-}) {
+}
+
+export function AtlasToolbar(props: AtlasToolbarProps) {
+  const {
+    mapMode,
+    onMapMode,
+    toolbarRef,
+    popoverRef,
+    regionName,
+    hasRegion,
+    canFilter,
+    categories,
+    regionLocations,
+    results,
+    query,
+    searchAll,
+    searchOpen,
+    filterOpen,
+    onClose,
+    onUp,
+    onQuery,
+    onSearchAll,
+    onSearchOpen,
+    onFilterOpen,
+    onDismiss,
+    onCategories,
+    onSelect,
+  } = props;
+  const mobile = useSyncExternalStore(
+    subscribeViewport,
+    readMobile,
+    () => false,
+  );
   const searchResults = useRef<HTMLUListElement>(null);
   const dismiss = useEffectEvent(onDismiss);
   useEffect(() => {
-    if (!searchOpen && !filterOpen) return;
+    if (mobile || (!searchOpen && !filterOpen)) return;
     const outside = (event: PointerEvent) => {
       if (
         event.target instanceof Node &&
@@ -76,7 +99,9 @@ export function AtlasToolbar({
     };
     document.addEventListener('pointerdown', outside);
     return () => document.removeEventListener('pointerdown', outside);
-  }, [searchOpen, filterOpen, toolbarRef]);
+  }, [mobile, searchOpen, filterOpen, toolbarRef]);
+
+  if (mobile) return <AtlasMobileToolbar {...props} />;
 
   return (
     <header

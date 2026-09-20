@@ -1,8 +1,10 @@
 import type { CultivatorCondition } from '@shared/types/condition';
 import { describe, expect, it } from 'vitest';
 import {
+  WildEncounterSchema,
   wildEncounterView,
   WildRuntimeSchema,
+  WildSettlementSchema,
 } from '../../../contracts/combatV6Wild';
 import { WILD_DROP_POOLS } from '../../../rewards/wild';
 import { BEAST_SKILLS } from '../beasts/content';
@@ -172,6 +174,56 @@ describe('野外所见即所得', () => {
     expect(WildRuntimeSchema.parse(runtime).host.combatants[0].beast).toEqual(
       snapshot.combatants[0].beast,
     );
+    const encounter = WildEncounterSchema.parse(
+      JSON.parse(
+        JSON.stringify({
+          id: encounterId,
+          nodeId,
+          seed: 15,
+          createdAt: runtime.createdAt,
+          combatants: snapshot.combatants,
+        }),
+      ),
+    );
+    const restored = WildRuntimeSchema.parse(
+      JSON.parse(JSON.stringify(runtime)),
+    );
+    expect(restored.host.combatants).toEqual(encounter.combatants);
+    const resources = { hp: 100, mp: 0, maxHp: 100, maxMp: 0 };
+    const settlement = WildSettlementSchema.parse(
+      JSON.parse(
+        JSON.stringify({
+          schemaVersion: 1,
+          battleId: encounterId,
+          userId: owner,
+          cultivatorId: owner,
+          membershipId: owner,
+          metadata: runtime.metadata,
+          combatVersions: snapshot.state.versions,
+          createdAt: runtime.createdAt,
+          expiresAt: runtime.expiresAt,
+          revision: 0,
+          round: 1,
+          entry: resources,
+          final: resources,
+          capturedBeasts: restored.host.combatants.map((c) => c.beast),
+        }),
+      ),
+    );
+    expect(settlement.capturedBeasts).toEqual(
+      encounter.combatants.map((c) => c.beast),
+    );
+    for (const field of ['originKind', 'initialLevel', 'generationVersion']) {
+      const old = JSON.parse(JSON.stringify(runtime));
+      delete old.host.combatants[0].beast[field];
+      expect(WildRuntimeSchema.safeParse(old).success).toBe(false);
+      const oldEncounter = JSON.parse(JSON.stringify(encounter));
+      delete oldEncounter.combatants[0].beast[field];
+      expect(WildEncounterSchema.safeParse(oldEncounter).success).toBe(false);
+      const oldSettlement = JSON.parse(JSON.stringify(settlement));
+      delete oldSettlement.capturedBeasts[0][field];
+      expect(WildSettlementSchema.safeParse(oldSettlement).success).toBe(false);
+    }
   });
 });
 
