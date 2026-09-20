@@ -5,7 +5,7 @@ export function resolveMapReturnHref(href: string, state: unknown): string {
   const target = state.mapReturnTo;
   if (typeof target !== 'string' || !/^\/game\/map-v2(?:\?|$)/.test(target))
     return href;
-  if (!/^\/game\/map(?:\?|$)/.test(href)) return href;
+  if (!/^\/game\/map(?:-v2)?(?:\?|$)/.test(href)) return href;
   const params = new URLSearchParams(target.split('?')[1]);
   const requested = new URLSearchParams(href.split('?')[1]);
   for (const key of ['nodeId', 'intent']) {

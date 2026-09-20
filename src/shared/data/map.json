@@ -12,10 +12,7 @@
         "region_profile": "tiannan"
       },
       "tags": ["黄枫谷", "灵气中等", "新手区"],
-      "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。",
-      "connections": ["TN_YUE_02", "TN_YW_01", "TN_XI_01", "TN_BAICAO_01", "TN_BORDER_01"],
-      "x": 84,
-      "y": 85
+      "description": "越国七大派割据之地，黄枫谷所在地，山势雄奇。"
     },
     {
       "id": "TN_YUE_02",
@@ -23,10 +20,7 @@
       "region": "天南",
       "realm_requirement": "筑基",
       "tags": ["副本", "筑基丹主药", "空间禁制"],
-      "description": "每六十年开启一次，内部奇草无数，也伴随极高陨落风险。",
-      "connections": ["TN_YUE_01"],
-      "x": 80,
-      "y": 90
+      "description": "每六十年开启一次，内部奇草无数，也伴随极高陨落风险。"
     },
     {
       "id": "TN_YW_01",
@@ -39,10 +33,7 @@
         "region_profile": "tiannan"
       },
       "tags": ["天星宗", "阵法交易", "齐云霄"],
-      "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。",
-      "connections": ["TN_YUE_01", "TN_BAICAO_01", "TN_WE_01"],
-      "x": 88,
-      "y": 77
+      "description": "阵法之道极其发达，许多珍稀阵盘均产自此地。"
     },
     {
       "id": "TN_XI_01",
@@ -55,10 +46,7 @@
         "region_profile": "tiannan"
       },
       "tags": ["落云宗", "古剑门", "百巧院"],
-      "description": "天南灵气最浓郁的三个地点之一，三派共治。",
-      "connections": ["TN_YUE_01", "TN_BAICAO_01", "TN_ZMG_01"],
-      "x": 88,
-      "y": 70
+      "description": "天南灵气最浓郁的三个地点之一，三派共治。"
     },
     {
       "id": "TN_BAICAO_01",
@@ -76,10 +64,7 @@
         }
       },
       "tags": ["灵植商盟", "百草苗圃", "灵种集散地"],
-      "description": "天南诸家灵植夫与采药人共同经营的山谷集市，苗圃连绵，四方灵种在此分级封存、交换流通。",
-      "connections": ["TN_YUE_01", "TN_YW_01", "TN_XI_01"],
-      "x": 82,
-      "y": 74
+      "description": "天南诸家灵植夫与采药人共同经营的山谷集市，苗圃连绵，四方灵种在此分级封存、交换流通。"
     },
     {
       "id": "TN_ZMG_01",
@@ -87,10 +72,7 @@
       "region": "天南",
       "realm_requirement": "元婴",
       "tags": ["顶级副本", "空间裂缝", "古魔遗迹"],
-      "description": "天南第一禁地，内部充斥着空间裂缝，传闻有上古修士宝藏。",
-      "connections": ["TN_XI_01"],
-      "x": 94,
-      "y": 75
+      "description": "天南第一禁地，内部充斥着空间裂缝，传闻有上古修士宝藏。"
     },
     {
       "id": "TN_BORDER_01",
@@ -98,10 +80,7 @@
       "region": "天南",
       "realm_requirement": "筑基",
       "tags": ["魔道入侵", "古传送阵", "转折点"],
-      "description": "废弃灵石矿脉，深处隐藏着通往乱星海的古传送阵。",
-      "connections": ["TN_YUE_01", "LX_INNER_01"],
-      "x": 92,
-      "y": 84
+      "description": "废弃灵石矿脉，深处隐藏着通往乱星海的古传送阵。"
     },
     {
       "id": "ML_PLAINS_01",
@@ -109,10 +88,7 @@
       "region": "慕兰",
       "realm_requirement": "金丹",
       "tags": ["法士", "部落", "边境战争"],
-      "description": "天南修士与慕兰法士对峙的广袤草原，民风剽悍。",
-      "connections": ["TN_WE_01", "DJ_NORTH_01"],
-      "x": 90,
-      "y": 42
+      "description": "天南修士与慕兰法士对峙的广袤草原，民风剽悍。"
     },
     {
       "id": "LX_INNER_01",
@@ -125,10 +101,7 @@
         "region_profile": "luanxinghai"
       },
       "tags": ["枢纽", "星宫", "圣山", "修仙圣地"],
-      "description": "乱星海核心，围绕巨型灵脉建立的城市，严禁私斗。",
-      "connections": ["TN_BORDER_01", "LX_INNER_02", "LX_OUTER_01"],
-      "x": 55,
-      "y": 72
+      "description": "乱星海核心，围绕巨型灵脉建立的城市，严禁私斗。"
     },
     {
       "id": "LX_INNER_02",
@@ -136,10 +109,7 @@
       "region": "乱星海",
       "realm_requirement": "炼气",
       "tags": ["初期发育", "六连殿", "猎妖"],
-      "description": "内星海边缘岛屿，韩立初入乱星海的落脚点。",
-      "connections": ["LX_INNER_01"],
-      "x": 45,
-      "y": 84
+      "description": "内星海边缘岛屿，韩立初入乱星海的落脚点。"
     },
     {
       "id": "LX_OUTER_01",
@@ -152,10 +122,7 @@
         "region_profile": "luanxinghai"
       },
       "tags": ["高阶妖兽", "猎妖营地", "黑市"],
-      "description": "深入妖兽腹地的孤岛，是猎取高阶妖丹的绝佳去处。",
-      "connections": ["LX_INNER_01", "LX_VOID_01"],
-      "x": 37,
-      "y": 92
+      "description": "深入妖兽腹地的孤岛，是猎取高阶妖丹的绝佳去处。"
     },
     {
       "id": "LX_VOID_01",
@@ -163,10 +130,7 @@
       "region": "乱星海",
       "realm_requirement": "金丹",
       "tags": ["史诗副本", "虚天鼎", "极阴祖师"],
-      "description": "每数百年现世一次的上古秘殿，非结丹以上不可入。",
-      "connections": ["LX_INNER_01"],
-      "x": 55,
-      "y": 60
+      "description": "每数百年现世一次的上古秘殿，非结丹以上不可入。"
     },
     {
       "id": "DJ_CENTRAL_01",
@@ -179,10 +143,7 @@
         "region_profile": "dajin"
       },
       "tags": ["人界巅峰", "顶级拍卖会", "皇权"],
-      "description": "大晋帝都，商贸发达，元婴修士多如牛毛。",
-      "connections": ["ML_PLAINS_01", "DJ_SOUTH_01", "DJ_NORTH_01", "DJ_KW_01"],
-      "x": 40,
-      "y": 25
+      "description": "大晋帝都，商贸发达，元婴修士多如牛毛。"
     },
     {
       "id": "DJ_KW_01",
@@ -190,10 +151,7 @@
       "region": "大晋",
       "realm_requirement": "化神",
       "tags": ["终极副本", "封印", "通天灵宝"],
-      "description": "上古被封印的圣山，内部灵气已液化，镇压着元刹分魂。",
-      "connections": ["DJ_CENTRAL_01", "DJ_RIFT_01"],
-      "x": 45,
-      "y": 40
+      "description": "上古被封印的圣山，内部灵气已液化，镇压着元刹分魂。"
     },
     {
       "id": "DJ_NORTH_01",
@@ -201,10 +159,7 @@
       "region": "大晋",
       "realm_requirement": "元婴",
       "tags": ["冰属性", "寒髓", "传送阵"],
-      "description": "极北寒冷之地，擅长冰系功法，守卫着通往虚空殿的节点。",
-      "connections": ["DJ_CENTRAL_01"],
-      "x": 45,
-      "y": 5
+      "description": "极北寒冷之地，擅长冰系功法，守卫着通往虚空殿的节点。"
     },
     {
       "id": "DJ_SOUTH_01",
@@ -212,10 +167,7 @@
       "region": "大晋",
       "realm_requirement": "金丹",
       "tags": ["毒瘴", "阴气", "天鬼门"],
-      "description": "大晋南方的蛮荒之地，各种秘术和毒物横行。",
-      "connections": ["DJ_CENTRAL_01"],
-      "x": 60,
-      "y": 20
+      "description": "大晋南方的蛮荒之地，各种秘术和毒物横行。"
     },
     {
       "id": "DJ_RIFT_01",
@@ -223,10 +175,7 @@
       "region": "大晋",
       "realm_requirement": "炼虚",
       "tags": ["神话副本", "界面裂隙", "太古凶兽"],
-      "description": "昆吾山封印外侧撕开的巨渊，空间乱流化作刀罡，唯有炼虚修士方可深入。",
-      "connections": ["DJ_KW_01", "DJ_VOID_01"],
-      "x": 35,
-      "y": 42
+      "description": "昆吾山封印外侧撕开的巨渊，空间乱流化作刀罡，唯有炼虚修士方可深入。"
     },
     {
       "id": "DJ_VOID_01",
@@ -234,10 +183,7 @@
       "region": "大晋",
       "realm_requirement": "合体",
       "tags": ["远古副本", "冥海潮汐", "真魔遗蜕"],
-      "description": "深不见底的黑潮之海，传闻每次潮汐都会卷出上古真魔遗蜕，杀机与机缘并存。",
-      "connections": ["DJ_RIFT_01", "DJ_SKY_01"],
-      "x": 8,
-      "y": 28
+      "description": "深不见底的黑潮之海，传闻每次潮汐都会卷出上古真魔遗蜕，杀机与机缘并存。"
     },
     {
       "id": "DJ_SKY_01",
@@ -245,10 +191,7 @@
       "region": "大晋",
       "realm_requirement": "大乘",
       "tags": ["传说副本", "天罡雷域", "古仙战场"],
-      "description": "悬于九天罡风层的破碎关隘，古仙与真魔曾在此鏖战，残留法则仍可斩魂。",
-      "connections": ["DJ_VOID_01", "DJ_TRIB_01"],
-      "x": 26,
-      "y": 8
+      "description": "悬于九天罡风层的破碎关隘，古仙与真魔曾在此鏖战，残留法则仍可斩魂。"
     },
     {
       "id": "DJ_TRIB_01",
@@ -256,10 +199,7 @@
       "region": "大晋",
       "realm_requirement": "渡劫",
       "tags": ["终焉副本", "天劫化形", "飞升契机"],
-      "description": "传说中的飞升古台已化为万劫雷狱，唯有渡劫大能可在此搏一线飞升之机。",
-      "connections": ["DJ_SKY_01"],
-      "x": 5,
-      "y": 7
+      "description": "传说中的飞升古台已化为万劫雷狱，唯有渡劫大能可在此搏一线飞升之机。"
     }
   ],
   "sect_landmarks": [
@@ -270,9 +210,7 @@
       "parent_id": "TN_YW_01",
       "name": "红尘剑宗",
       "description": "山门立于城郭外的半山，门人负剑往来于红尘与山野之间。",
-      "tags": ["四大宗门", "入世问剑", "剑修"],
-      "x": 84,
-      "y": 74
+      "tags": ["四大宗门", "入世问剑", "剑修"]
     },
     {
       "id": "SECT_TIANYAN",
@@ -281,9 +219,7 @@
       "parent_id": "DJ_KW_01",
       "name": "天衍圣地",
       "description": "云上五峰环抱中宫，五行灵机沿山川院落周流不息。",
-      "tags": ["四大宗门", "五行推演", "云上圣地"],
-      "x": 50,
-      "y": 36
+      "tags": ["四大宗门", "五行推演", "云上圣地"]
     },
     {
       "id": "SECT_WUXIANG",
@@ -292,9 +228,7 @@
       "parent_id": "DJ_SOUTH_01",
       "name": "无相禅宗",
       "description": "黑白双峰隔着血莲池相望，不二门的未合圆环终年隐在雾中。",
-      "tags": ["四大宗门", "佛魔同修", "色身道场"],
-      "x": 66,
-      "y": 25
+      "tags": ["四大宗门", "佛魔同修", "色身道场"]
     },
     {
       "id": "SECT_YOUDU",
@@ -303,9 +237,7 @@
       "parent_id": "DJ_VOID_01",
       "name": "幽都",
       "description": "黑水穿山而过，三盏魂灯在无日关外为来客照出归路。",
-      "tags": ["四大宗门", "三魂七魄", "黑水魂灯"],
-      "x": 13,
-      "y": 24
+      "tags": ["四大宗门", "三魂七魄", "黑水魂灯"]
     },
     {
       "id": "SECT_JIUJIE",
@@ -314,9 +246,7 @@
       "parent_id": "DJ_TRIB_01",
       "name": "九劫天宫",
       "description": "雷墟天阙悬于万劫雷狱之上，九重天门在雷池尽头等待后来者。",
-      "tags": ["正统天道", "劫雷审判", "雷墟天阙"],
-      "x": 25,
-      "y": 12
+      "tags": ["正统天道", "劫雷审判", "雷墟天阙"]
     }
   ],
   "satellite_nodes": [
@@ -329,10 +259,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "阵法破解", "坐化遗骸", "古宝", "功法玉简"],
       "description": "掩映在瀑布后的隐秘洞穴，洞口禁制已然残破，透着一股岁月腐朽的气息。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["TN_YUE_01"],
-      "x": 82,
-      "y": 88
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_TN_02",
@@ -343,10 +270,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["断壁残垣", "残魂", "功法残页", "多重禁制"],
       "description": "昔日鼎盛的剑宗遗址，即便崩塌多年，空气中仍残留着令人心悸的剑意。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["TN_XI_01"],
-      "x": 88,
-      "y": 68
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_LX_01",
@@ -357,10 +281,7 @@
       "environmental_status": "abundant_qi",
       "tags": ["偏僻", "高阶灵草", "妖兽巢穴", "闭关地"],
       "description": "一座在海图上没有任何标记的孤岛，岛上怪石嶙峋，偶有惊人妖气冲天而起。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["LX_OUTER_01"],
-      "x": 64,
-      "y": 75
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_LX_02",
@@ -371,10 +292,7 @@
       "environmental_status": "freezing",
       "tags": ["水属性", "禁制宝箱", "海兽袭击"],
       "description": "数百年前大型商船的沉没之地，被密集的珊瑚与海草覆盖，幽暗中似有眼睛在窥视。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["LX_INNER_01"],
-      "x": 65,
-      "y": 92
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_ZMG_01",
@@ -385,10 +303,7 @@
       "environmental_status": null,
       "tags": ["空间裂缝", "古魔气", "瞬移危险"],
       "description": "此处空间极不稳定，肉眼可见道道漆黑裂缝如蛛网般蔓延，稍有不慎便会形神俱灭。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["TN_ZMG_01"],
-      "x": 97,
-      "y": 74
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "SAT_DJ_01",
@@ -399,10 +314,7 @@
       "environmental_status": "toxic_air",
       "tags": ["炼尸", "阴气滔天", "万年尸熊", "阴属性材料"],
       "description": "藏于沼泽深处的古老石墓，石门上刻满了镇邪符文，却掩盖不住内部溢出的尸气。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_SOUTH_01"],
-      "x": 58,
-      "y": 18
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_ML_01",
@@ -413,10 +325,7 @@
       "environmental_status": null,
       "tags": ["潜入", "圣兽分身", "慕兰灵石"],
       "description": "慕兰法士秘密举行祭祀的简易阵地，戒备森严，似乎在酝酿某种阴谋。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["ML_PLAINS_01"],
-      "x": 90,
-      "y": 38
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_TN_03",
@@ -427,10 +336,7 @@
       "environmental_status": null,
       "tags": ["灵药残存", "木灵气", "陷阱"],
       "description": "血色禁地边缘的一处荒废园子，虽然杂草丛生，但偶尔能惊鸿一瞥地看到年份久远的药草。",
-      "dungeon_config": { "difficulty": "easy" },
-      "connections": ["TN_YUE_02"],
-      "x": 85,
-      "y": 89
+      "dungeon_config": { "difficulty": "easy" }
     },
     {
       "id": "SAT_TN_08",
@@ -441,10 +347,7 @@
       "realm_requirement": "炼气",
       "environmental_status": null,
       "tags": ["灵兽栖息", "溪畔草坡", "低阶灵兽"],
-      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹，向阳石边偶见小巧猫爪印。",
-      "connections": ["TN_YUE_01"],
-      "x": 81,
-      "y": 86
+      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹，向阳石边偶见小巧猫爪印。"
     },
     {
       "id": "SAT_LX_07",
@@ -455,10 +358,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "近海妖兽", "潮汐礁洞", "炼气试炼"],
       "description": "魁星岛外海退潮后显露的礁洞，洞内多见低阶海兽踪迹，也藏着被潮水冲刷出的贝晶与水行材料。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["LX_INNER_02"],
-      "x": 43,
-      "y": 86
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_DJ_02",
@@ -469,10 +369,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "古龙逆鳞", "阵眼崩坏", "高危夺宝"],
       "description": "裂渊深处裸露出的古祭坛，阵纹已被岁月磨损，却仍在吞吐骇人的龙威。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["DJ_RIFT_01"],
-      "x": 33,
-      "y": 44
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "SAT_DJ_10",
@@ -483,10 +380,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "碎鳞石林", "界隙罡风", "合体历练"],
       "description": "逆鳞祭坛外侧散布着大片黑色石林，石面残留古龙鳞纹，罡风虽烈，却未触及祭坛核心杀机。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_RIFT_01"],
-      "x": 31,
-      "y": 47
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_DJ_03",
@@ -497,10 +391,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "神殿守卫", "法则碎片", "深海禁制"],
       "description": "沉没在黑潮最深处的神殿废墟，殿门未启已闻雷鸣，仿佛仍有古神在沉睡。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["DJ_VOID_01"],
-      "x": 12,
-      "y": 28
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "SAT_DJ_11",
@@ -511,10 +402,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "黑潮贝场", "冥海灵贝", "法则潮汐"],
       "description": "沉日神殿外围的黑潮贝场随冥海潮汐开合，灵贝与残破法则碎屑偶尔被卷上礁台。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_VOID_01"],
-      "x": 10,
-      "y": 31
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_DJ_04",
@@ -525,10 +413,7 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "劫火炼体", "天道投影", "飞升残卷"],
       "description": "飞升台外围回廊燃烧着不灭劫火，踏错一步便会被天道投影当场抹杀。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["DJ_TRIB_01"],
-      "x": 4,
-      "y": 12
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "SAT_DJ_12",
@@ -539,10 +424,7 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "残雷碑林", "劫纹参悟", "渡劫试炼"],
       "description": "飞升台边缘残立着成片雷碑，碑面劫纹时明时灭，可供渡劫修士参悟雷劫余韵。",
-      "dungeon_config": { "difficulty": "elite" },
-      "connections": ["DJ_TRIB_01"],
-      "x": 8,
-      "y": 10
+      "dungeon_config": { "difficulty": "elite" }
     },
     {
       "id": "SAT_TN_04",
@@ -553,10 +435,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "试炼阵", "木灵脉", "宗门秘库", "藏经残卷"],
       "description": "黄枫谷后山深处封存多年的试炼禁地，灵雾常年不散，偶有古阵自鸣。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["TN_YUE_01"],
-      "x": 83,
-      "y": 83
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_TN_05",
@@ -567,10 +446,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "传送残阵", "空间乱流", "跨海线索"],
       "description": "废矿最深处的巨井中埋着古传送阵核心，阵纹残破却仍偶尔闪烁跨域灵光。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["TN_BORDER_01"],
-      "x": 93,
-      "y": 82
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_TN_06",
@@ -581,10 +457,7 @@
       "environmental_status": "toxic_air",
       "tags": ["单人副本", "古魔印记", "魔气潮汐", "高危机缘"],
       "description": "坠魔谷深处散落着多座古魔祭坛，黑色魔纹时隐时现，令人神魂不宁。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["TN_ZMG_01"],
-      "x": 95,
-      "y": 72
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_YW_01",
@@ -595,10 +468,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "阵旗残卷", "傀儡守卫", "炼器材料"],
       "description": "天星宗封存旧阵盘的地下库房，禁制层层叠叠，稍有差池便会触发阵灵反噬。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["TN_YW_01"],
-      "x": 90,
-      "y": 76
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_LX_03",
@@ -609,10 +479,7 @@
       "environmental_status": "abundant_qi",
       "tags": ["单人副本", "星宫禁卫", "地脉结晶", "灵脉争夺"],
       "description": "圣山下方天然地脉形成的秘窟，灵气如潮，亦有星宫遗留禁卫巡弋。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["LX_INNER_01"],
-      "x": 57,
-      "y": 70
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_LX_04",
@@ -623,10 +490,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "妖兽伏击", "古殿残图", "寒煞之气"],
       "description": "六连殿下方被海潮浸蚀的古回廊，阴寒灵压交错，暗处潜伏大量海妖。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["LX_INNER_02"],
-      "x": 47,
-      "y": 82
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_LX_05",
@@ -637,10 +501,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "虚天鼎残影", "上古傀儡", "夺鼎线索", "上古秘术"],
       "description": "虚天殿深处的星辰石阶漂浮于虚空，越往上禁制越强，常有修士在此陨落。",
-      "dungeon_config": { "difficulty": "elite" },
-      "connections": ["LX_VOID_01"],
-      "x": 53,
-      "y": 58
+      "dungeon_config": { "difficulty": "elite" }
     },
     {
       "id": "SAT_ML_02",
@@ -651,10 +512,7 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "圣禽图腾", "法士军阵", "边境冲突"],
       "description": "慕兰法士供奉圣禽的古老祭台，祭阵发动时天地灵机紊乱，杀机四伏。",
-      "dungeon_config": { "difficulty": "normal" },
-      "connections": ["ML_PLAINS_01"],
-      "x": 87,
-      "y": 40
+      "dungeon_config": { "difficulty": "normal" }
     },
     {
       "id": "SAT_DJ_05",
@@ -665,10 +523,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "玄冰妖灵", "寒髓矿脉", "冰系传承", "冰系功法"],
       "description": "小极宫最深层的玄冰库封印了万年寒气，连神识都可能在此被冻结。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_NORTH_01"],
-      "x": 43,
-      "y": 7
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_DJ_06",
@@ -679,10 +534,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "镇魔符印", "塔灵试炼", "通天灵宝残片"],
       "description": "昆吾山腹地耸立的古塔镇压着多重魔魂，塔层越高，封印反噬越猛烈。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["DJ_KW_01"],
-      "x": 43,
-      "y": 38
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "SAT_DJ_13",
@@ -693,10 +545,7 @@
       "environmental_status": "abundant_qi",
       "tags": ["单人副本", "灵液暗河", "山腹禁制", "炼虚资源"],
       "description": "昆吾山封印外层有灵液暗河穿行山腹，河道禁制尚可周旋，偶能寻得被灵液浸润的古材。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_KW_01"],
-      "x": 47,
-      "y": 39
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_DJ_07",
@@ -707,10 +556,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "机关傀儡", "古卷秘档", "星象推演", "秘术典籍"],
       "description": "昔日名震人界的天机阁遗址，如今机关错乱，仍残存大量推演秘术。",
-      "dungeon_config": { "difficulty": "hard" },
-      "connections": ["DJ_CENTRAL_01"],
-      "x": 38,
-      "y": 27
+      "dungeon_config": { "difficulty": "hard" }
     },
     {
       "id": "SAT_TN_07",
@@ -721,10 +567,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "藏经阁", "功法残卷", "禁制书架"],
       "description": "黄枫谷旧藏经阁下方的封闭地窖，书架与玉简多有残缺，仍可寻到可修炼的基础功法。",
-      "dungeon_config": { "difficulty": "easy" },
-      "connections": ["TN_YUE_01"],
-      "x": 86,
-      "y": 84
+      "dungeon_config": { "difficulty": "easy" }
     },
     {
       "id": "SAT_LX_06",
@@ -735,10 +578,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "玉简密室", "神通刻痕", "上古秘术传承"],
       "description": "虚天殿侧翼封存玉简的回廊，墙壁刻有残缺术式轨迹，常伴随傀儡巡守与禁制反噬。",
-      "dungeon_config": { "difficulty": "elite" },
-      "connections": ["LX_VOID_01"],
-      "x": 57,
-      "y": 56
+      "dungeon_config": { "difficulty": "elite" }
     },
     {
       "id": "SAT_DJ_09",
@@ -749,10 +589,7 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "冰系功法玉简", "神识试炼", "长老封印"],
       "description": "小极宫历代长老封存冰系典籍之地，入内需以神识破封，失败则会被寒煞反噬。",
-      "dungeon_config": { "difficulty": "elite" },
-      "connections": ["DJ_NORTH_01"],
-      "x": 46,
-      "y": 9
+      "dungeon_config": { "difficulty": "elite" }
     },
     {
       "id": "SAT_DJ_08",
@@ -763,10 +600,7 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "法则风暴", "古仙残兵", "天关遗宝"],
       "description": "天关之外漂浮着破碎战场，法则风暴昼夜不息，稍有分神便会形神俱灭。",
-      "dungeon_config": { "difficulty": "boss" },
-      "connections": ["DJ_SKY_01"],
-      "x": 25,
-      "y": 4
+      "dungeon_config": { "difficulty": "boss" }
     },
     {
       "id": "WILD_TN_MINE",
@@ -777,10 +611,7 @@
       "realm_requirement": "筑基",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "旧支架斜撑着干燥的矿道，碎石间藏着洞穴，含灵矿土上留有拱掘的痕迹。",
-      "connections": ["TN_BORDER_01"],
-      "x": 96,
-      "y": 87
+      "description": "旧支架斜撑着干燥的矿道，碎石间藏着洞穴，含灵矿土上留有拱掘的痕迹。"
     },
     {
       "id": "WILD_YW_CROW",
@@ -791,10 +622,7 @@
       "realm_requirement": "筑基",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "地火沿赤岩裂隙涌出，热岩上散布着鸦巢，外围阴凉石缝中偶有沙响。",
-      "connections": ["TN_YW_01"],
-      "x": 94,
-      "y": 78
+      "description": "地火沿赤岩裂隙涌出，热岩上散布着鸦巢，外围阴凉石缝中偶有沙响。"
     },
     {
       "id": "WILD_TN_MOONLAKE",
@@ -805,10 +633,7 @@
       "realm_requirement": "金丹",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "高山灵池映着天光，浅滩接向幽深潭水，岸边的林子挂满灵果。",
-      "connections": ["TN_XI_01"],
-      "x": 84,
-      "y": 66
+      "description": "高山灵池映着天光，浅滩接向幽深潭水，岸边的林子挂满灵果。"
     },
     {
       "id": "WILD_ML_STONESEA",
@@ -819,10 +644,7 @@
       "realm_requirement": "元婴",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "长风掠过草原，裸露的灵脉岩层延向远处，石隙间留着深浅爪痕与扇状尾迹。",
-      "connections": ["ML_PLAINS_01"],
-      "x": 95,
-      "y": 44
+      "description": "长风掠过草原，裸露的灵脉岩层延向远处，石隙间留着深浅爪痕与扇状尾迹。"
     },
     {
       "id": "WILD_ZMG_BLACKPOOL",
@@ -833,10 +655,7 @@
       "realm_requirement": "元婴",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "暗河从山腹汇入黑潭，潭边苔石间泛起浊浪，岸侧地火泉眼蒸腾着灼热白汽。",
-      "connections": ["TN_ZMG_01"],
-      "x": 91,
-      "y": 72
+      "description": "暗河从山腹汇入黑潭，潭边苔石间泛起浊浪，岸侧地火泉眼蒸腾着灼热白汽。"
     },
     {
       "id": "WILD_ZMG_VINES",
@@ -847,10 +666,7 @@
       "realm_requirement": "元婴",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "层叠藤叶遮住林隙，灵果散落在湿土上，细枝偶尔无风轻颤。",
-      "connections": ["TN_ZMG_01"],
-      "x": 98,
-      "y": 69
+      "description": "层叠藤叶遮住林隙，灵果散落在湿土上，细枝偶尔无风轻颤。"
     },
     {
       "id": "WILD_DJ_BANYAN",
@@ -861,10 +677,7 @@
       "realm_requirement": "化神",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "一株古榕垂下无数气根，独自撑起大片林荫，树冠与枝叶间各藏兽踪。",
-      "connections": ["DJ_SOUTH_01"],
-      "x": 64,
-      "y": 16
+      "description": "一株古榕垂下无数气根，独自撑起大片林荫，树冠与枝叶间各藏兽踪。"
     },
     {
       "id": "WILD_DJ_DARKCAVE",
@@ -875,10 +688,7 @@
       "realm_requirement": "化神",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "古老地穴深不见光，阴灵气息沉在石隙间，幽绿蝶影时隐时现，深处偶有幽蓝鬼火映出厚重虎躯。",
-      "connections": ["DJ_SOUTH_01"],
-      "x": 55,
-      "y": 23
+      "description": "古老地穴深不见光，阴灵气息沉在石隙间，幽绿蝶影时隐时现，深处偶有幽蓝鬼火映出厚重虎躯。"
     },
     {
       "id": "WILD_KW_THUNDER",
@@ -889,10 +699,7 @@
       "realm_requirement": "化神",
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
-      "description": "高崖伸入云海，积雷在峰间低鸣，宽阔岩台上散着苍青羽翎。",
-      "connections": ["DJ_KW_01"],
-      "x": 40,
-      "y": 34
+      "description": "高崖伸入云海，积雷在峰间低鸣，宽阔岩台上散着苍青羽翎。"
     }
   ]
 }

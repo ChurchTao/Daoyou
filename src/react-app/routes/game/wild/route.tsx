@@ -48,7 +48,7 @@ export default function WildPage() {
 function WildRegion({ nodeId }: { nodeId: string }) {
   const { state } = useLocation();
   const mapHref = resolveMapReturnHref(
-    `/game/map?nodeId=${encodeURIComponent(nodeId)}`,
+    `/game/map-v2?nodeId=${encodeURIComponent(nodeId)}`,
     state,
   );
   const { openDialog } = useInkUI();

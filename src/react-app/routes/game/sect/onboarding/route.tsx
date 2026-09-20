@@ -184,8 +184,8 @@ export default function SectOnboardingPage() {
   const finish = resolveSectOnboardingFinish(activeSectId, selected.id);
   const landmark = getSectLandmarkBySectId(selected.id);
   const worldMapHref = landmark
-    ? `/game/map?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
-    : '/game/map?intent=sect';
+    ? `/game/map-v2?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
+    : '/game/map-v2?intent=sect';
 
   const join = async () => {
     if (joinAttemptSectIdRef.current !== selected.id) {

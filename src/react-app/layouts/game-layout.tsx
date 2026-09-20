@@ -9,10 +9,6 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
-import {
-  resolveMapCloseNavigation,
-  type SpecialBackNavigation,
-} from '@app/lib/router/mapCloseNavigation';
 import type { UserLoaderData } from '@app/lib/router/routeData';
 import {
   resolveGameScene,
@@ -44,7 +40,10 @@ import {
   useSpecialSceneBackOverride,
 } from './special-scene';
 
-type SpecialBackAction = SpecialBackNavigation & {
+type SpecialBackAction = {
+  type: 'path';
+  href: string;
+  replace?: boolean;
   label: string;
 };
 
@@ -116,23 +115,10 @@ function PlayerShell() {
 
 function resolveSpecialSceneDescriptor(
   pathname: string,
-  search: string,
   scene: GameSceneHandle | null,
 ): SpecialSceneDescriptor | null {
   if (!scene || scene.chrome !== 'immersive') {
     return null;
-  }
-
-  if (pathname === '/game/map' || pathname === '/game/map-v2') {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        label: '关闭地图',
-        ...(pathname === '/game/map-v2'
-          ? { type: 'path' as const, href: '/game', replace: true }
-          : resolveMapCloseNavigation(search)),
-      },
-    };
   }
 
   if (/^\/game\/sect\/[^/]+\/visit$/.test(pathname)) {
@@ -141,7 +127,7 @@ function resolveSpecialSceneDescriptor(
       backAction: {
         type: 'path',
         label: '返回大世界',
-        href: '/game/map?intent=sect',
+        href: '/game/map-v2?intent=sect',
         replace: true,
       },
     };
@@ -180,7 +166,7 @@ function resolveSpecialSceneDescriptor(
     };
   }
 
-  if (pathname === '/game/wild') return {sceneLabel:scene.label,backAction:{type:'path',label:'返回地图',href:'/game/map'}};
+  if (pathname === '/game/wild') return {sceneLabel:scene.label,backAction:{type:'path',label:'返回地图',href:'/game/map-v2'}};
 
   return null;
 }
@@ -191,9 +177,8 @@ function useResolvedSpecialScene() {
   const scene = resolveGameScene(matches);
   const routeTitle = resolveRouteTitle(matches, location);
   const descriptor = useMemo(
-    () =>
-      resolveSpecialSceneDescriptor(location.pathname, location.search, scene),
-    [location.pathname, location.search, scene],
+    () => resolveSpecialSceneDescriptor(location.pathname, scene),
+    [location.pathname, scene],
   );
 
   return {
@@ -220,16 +205,6 @@ function useSpecialSceneBackActionState(
 
     if (!descriptor) return;
 
-    if (descriptor.backAction.type === 'history-or-path') {
-      if (typeof window !== 'undefined' && window.history.length > 1) {
-        navigate(-1);
-        return;
-      }
-
-      navigate(descriptor.backAction.fallbackHref);
-      return;
-    }
-
     navigate(resolveMapReturnHref(descriptor.backAction.href, location.state), {
       replace: descriptor.backAction.replace,
     });
@@ -241,28 +216,14 @@ function useSpecialSceneBackActionState(
   };
 }
 
-function MapSceneChrome() {
+function SectVisitSceneChrome() {
   const { descriptor, location, routeTitle } = useResolvedSpecialScene();
   const { label, onBack } = useSpecialSceneBackActionState(descriptor);
 
-  // The atlas owns its integrated region/search/filter controls and navigation.
-  if (!descriptor || location.pathname === '/game/map-v2') {
+  // World atlas navigation is owned by AtlasToolbar; this chrome is only for sect visits.
+  if (!descriptor || !/^\/game\/sect\/[^/]+\/visit$/.test(location.pathname)) {
     return null;
   }
-
-  const searchParams = new URLSearchParams(location.search);
-  const isSectVisit = /^\/game\/sect\/[^/]+\/visit$/.test(location.pathname);
-  const intentLabel =
-    searchParams.get('intent') === 'market'
-      ? '坊市选址'
-      : searchParams.get('intent') === 'sect'
-        ? '诸宗山门'
-        : searchParams.get('intent') === 'dungeon'
-          ? '历练选址'
-          : null;
-  const contextLabel = isSectVisit
-    ? '人界 · 访宗舆图'
-    : ['人界', '全图', intentLabel].filter(Boolean).join(' · ');
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
@@ -278,7 +239,7 @@ function MapSceneChrome() {
       <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <div className="text-ink font-semibold">{routeTitle}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
-          {contextLabel}
+          人界 · 访宗舆图
         </div>
       </div>
     </div>
@@ -409,7 +370,7 @@ function GameMapLayoutBody() {
   return (
     <div className="bg-paper h-dvh overflow-hidden">
       <div className="relative h-full overflow-hidden">
-        <MapSceneChrome />
+        <SectVisitSceneChrome />
         <main className="h-full overflow-hidden">
           <Outlet />
         </main>

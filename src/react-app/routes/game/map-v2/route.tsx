@@ -275,7 +275,6 @@ export default function AtlasPage() {
   const actions =
     selected && !('sect_id' in selected)
       ? buildNodeActions(
-          'world',
           {
             selectedNodeId: selected.id,
             isMainNode: 'region' in selected,
@@ -289,7 +288,7 @@ export default function AtlasPage() {
             selected.sect_id,
             player.data?.activeCultivator?.sectId ?? null,
             launch,
-          ).filter((action) => action.key !== 'view-sect-introduction')
+          )
         : [];
   const regionLocations = locations.filter(
     (location) => getAtlasRegion(location)?.id === region?.id,

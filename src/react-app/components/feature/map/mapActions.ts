@@ -1,5 +1,13 @@
-import type { MapNodeDetailAction } from '@app/components/feature/map';
+import type { InkButton } from '@app/components/ui/InkButton';
 import { getMapNode } from '@shared/lib/game/mapSystem';
+import type { ComponentProps } from 'react';
+
+export interface MapNodeAction {
+  key: string;
+  label: string;
+  onClick: () => void;
+  variant?: ComponentProps<typeof InkButton>['variant'];
+}
 
 export type MapIntent = 'world' | 'market' | 'dungeon' | 'sect';
 
@@ -16,40 +24,13 @@ export function resolveMapIntent(value: string | null): MapIntent {
 }
 
 export function buildNodeActions(
-  intent: MapIntent,
   ctx: NodeActionContext,
   navigate: (path: string) => void,
-): MapNodeDetailAction[] {
-  if (intent === 'sect') return [];
+): MapNodeAction[] {
   const node = getMapNode(ctx.selectedNodeId);
   const hasDungeon = !!node?.dungeon_config;
-  if (intent === 'dungeon' && !hasDungeon) return [];
-
-  if (intent === 'dungeon') {
-    if (ctx.isMainNode) return [];
-    return [
-      ...(getMapNode(ctx.selectedNodeId)?.wild_encounter_id
-        ? [
-            {
-              key: 'wild-explore',
-              label: '进入野外',
-              variant: 'primary' as const,
-              onClick: () =>
-                navigate(`/game/wild?nodeId=${ctx.selectedNodeId}`),
-            },
-          ]
-        : []),
-      {
-        key: 'enter-dungeon',
-        label: '前往历练',
-        variant: 'primary',
-        onClick: () => navigate(`/game/dungeon?nodeId=${ctx.selectedNodeId}`),
-      },
-    ];
-  }
-
-  const actions: MapNodeDetailAction[] = [];
-  if (getMapNode(ctx.selectedNodeId)?.wild_encounter_id)
+  const actions: MapNodeAction[] = [];
+  if (node?.wild_encounter_id)
     actions.push({
       key: 'wild-explore',
       label: '进入野外',
@@ -80,7 +61,7 @@ export function buildSectLandmarkActions(
   sectId: string,
   activeSectId: string | null,
   navigate: (path: string) => void,
-): MapNodeDetailAction[] {
+): MapNodeAction[] {
   if (sectId === activeSectId) {
     return [
       {
@@ -93,13 +74,6 @@ export function buildSectLandmarkActions(
   }
 
   return [
-    {
-      key: 'view-sect-introduction',
-      label: '查看介绍',
-      variant: 'secondary',
-      onClick: () =>
-        navigate(`/game/sect/onboarding?sectId=${encodeURIComponent(sectId)}`),
-    },
     {
       key: 'visit-sect-gate',
       label: '拜访山门',

@@ -1,4 +1,4 @@
-import type { MapNodeDetailAction } from '@app/components/feature/map/MapNodeDetail';
+import type { MapNodeAction } from '@app/components/feature/map/mapActions';
 import { WildNodePreview } from '@app/components/feature/map/WildNodePreview';
 import { InkButton } from '@app/components/ui/InkButton';
 import { getAtlasCategory } from '@shared/lib/game/mapAtlasCategories';
@@ -15,7 +15,7 @@ export function AtlasNodePanel({
   onClose,
 }: {
   location: WorldMapLocation;
-  actions: MapNodeDetailAction[];
+  actions: MapNodeAction[];
   onClose: () => void;
 }) {
   const category = getAtlasCategory(location);

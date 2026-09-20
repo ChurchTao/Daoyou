@@ -30,7 +30,7 @@ export default function SectForeignGatePage() {
       candidate.battleTarget?.sectId === sectId,
   );
 
-  if (!definition) return <Navigate to="/game/map?intent=sect" replace />;
+  if (!definition) return <Navigate to="/game/map-v2?intent=sect" replace />;
   if (!tasks.data)
     return <GameImmersiveLoading message="正在核对悬赏令与山门来客……" />;
   if (!task?.battleTarget) return <Navigate to={visitHref} replace />;

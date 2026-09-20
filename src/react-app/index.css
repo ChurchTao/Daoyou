@@ -187,10 +187,6 @@ body {
   border-top: 1px dashed var(--color-battle-rule-strong);
 }
 
-.bgi-map {
-  background-image: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/map/map.webp');
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
   body {

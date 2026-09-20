@@ -1842,9 +1842,6 @@ export class DungeonService {
           realm_requirement: mapRealm,
           tags: [],
           description: '',
-          connections: [],
-          x: 0,
-          y: 0,
         });
     const realmGap = this.calculateRealmGap(state.playerInfo.realm, mapRealm);
     const phase = this.getPhase(state.currentRound, state.maxRounds, realmGap);

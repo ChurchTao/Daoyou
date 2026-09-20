@@ -93,9 +93,6 @@ export interface MapNode {
   realm_requirement: RealmType;
   tags: string[];
   description: string;
-  connections: string[];
-  x: number;
-  y: number;
   market_config?: NodeMarketConfig;
   dungeon_config?: DungeonMapConfig;
 }
@@ -108,9 +105,6 @@ export interface SatelliteNode {
   type: string;
   tags: string[];
   description: string;
-  connections: string[];
-  x: number;
-  y: number;
   realm_requirement: RealmType;
   environmental_status?:
     | 'scorching'
@@ -130,8 +124,6 @@ export interface SectLandmark {
   name: string;
   description: string;
   tags: string[];
-  x: number;
-  y: number;
 }
 
 export interface MapData {

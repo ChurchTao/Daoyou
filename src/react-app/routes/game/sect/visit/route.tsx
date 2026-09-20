@@ -21,8 +21,8 @@ export default function SectVisitPage() {
   const landmark = getSectLandmarkBySectId(sectId);
   const worldMapHref = resolveMapReturnHref(
     landmark
-      ? `/game/map?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
-      : '/game/map?intent=sect',
+      ? `/game/map-v2?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
+      : '/game/map-v2?intent=sect',
     state,
   );
   const backToWorld = useCallback(

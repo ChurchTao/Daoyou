@@ -29,7 +29,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
     title: '出洞府',
     areas: [
       { label: '⛰️ 外出云游', href: '/game/dungeon' },
-      { label: '🛖 坊市', href: '/game/map?intent=market' },
+      { label: '🛖 坊市', href: '/game/map-v2?intent=market' },
       { label: '🪞 蜃楼幻境', href: '/game/tower' },
       { label: '🔨 拍卖行', href: '/game/auction' },
     ],

@@ -224,11 +224,10 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'map',
-        sceneLabel: '修仙界地图',
+        sceneLabel: '山河舆图',
         href: '/game/map-v2',
         expandedDockLabel: '🗺️ 修仙界地图',
       },
-      { id: 'map-v2', sceneLabel: '山河舆图' },
     ],
   },
   {

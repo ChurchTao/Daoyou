@@ -186,7 +186,7 @@ function renderPreparationNotice(
         </p>
 
         <div className="flex flex-wrap gap-2">
-          <InkButton href="/game/map" variant="secondary">
+          <InkButton href="/game/map-v2" variant="secondary">
             {selectedNode ? '重选秘境' : '前往地图'}
           </InkButton>
           <InkButton href="/game/inn" variant="secondary">

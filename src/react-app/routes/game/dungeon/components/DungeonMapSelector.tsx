@@ -32,7 +32,7 @@ export function DungeonMapSelector({
     return (
       <InkCard className="p-8 text-center">
         <p className="text-ink-secondary">请选择一个秘境</p>
-        <InkButton href="/game/map" variant="primary" className="mt-4">
+        <InkButton href="/game/map-v2" variant="primary" className="mt-4">
           前往地图
         </InkButton>
       </InkCard>
@@ -51,7 +51,7 @@ export function DungeonMapSelector({
         </InkNotice>
       ) : null}
       <div className="flex justify-center gap-4">
-        <InkButton href="/game/map" disabled={isStarting}>
+        <InkButton href="/game/map-v2" disabled={isStarting}>
           重新选择
         </InkButton>
         <InkButton

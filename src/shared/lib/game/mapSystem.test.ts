@@ -23,9 +23,6 @@ function createNode(difficulty?: DungeonDifficultyTier): MapNodeInfo {
     realm_requirement: '筑基',
     tags: [],
     description: '',
-    connections: [],
-    x: 0,
-    y: 0,
     ...(difficulty ? { dungeon_config: { difficulty } } : {}),
   };
 }

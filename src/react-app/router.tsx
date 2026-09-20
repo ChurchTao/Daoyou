@@ -58,15 +58,6 @@ const scene = (
   };
 };
 
-const mapTitle: RouteTitleResolver = ({ searchParams }) =>
-  searchParams.get('intent') === 'market'
-    ? '修仙界地图 · 坊市选址'
-    : searchParams.get('intent') === 'sect'
-      ? '修仙界地图 · 诸宗山门'
-      : searchParams.get('intent') === 'dungeon'
-        ? '修仙界地图 · 历练选址'
-        : '修仙界地图';
-
 const sectVisitTitle: RouteTitleResolver = ({ params }) => {
   return resolveSectVisitTitle(params.sectId);
 };
@@ -1145,21 +1136,15 @@ export const router = createBrowserRouter(
               path="map-v2"
               lazy={lazyRoute(() => import('@app/routes/game/map-v2/route'))}
               handle={scene(
-                { id: 'map-v2', chrome: 'immersive', dock: 'hidden' },
+                { id: 'map', chrome: 'immersive', dock: 'hidden' },
                 '山河舆图',
               )}
             />
             <Route
               path="map"
-              loader={({ request }) => replace(`/game/map-v2${new URL(request.url).search}`)}
-              handle={scene(
-                {
-                  id: 'map',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                mapTitle,
-              )}
+              loader={({ request }) =>
+                replace(`/game/map-v2${new URL(request.url).search}`)
+              }
             />
             <Route
               path="sect/:sectId/visit"

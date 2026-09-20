@@ -608,15 +608,15 @@ function resolveStageLinks(
           label: link.label,
           href:
             pendingDungeonObjective?.kind === 'complete_dungeon'
-              ? `/game/map?intent=dungeon&nodeId=${encodeURIComponent(
+              ? `/game/map-v2?intent=dungeon&nodeId=${encodeURIComponent(
                   pendingDungeonObjective.mapNodeId,
                 )}`
-              : '/game/map?intent=dungeon',
+              : '/game/map-v2?intent=dungeon',
         };
       case 'inn':
         return { label: link.label, href: '/game/inn' };
       case 'market':
-        return { label: link.label, href: '/game/map?intent=market' };
+        return { label: link.label, href: '/game/map-v2?intent=market' };
       case 'inventory':
         return { label: link.label, href: '/game/inventory' };
       case 'ranking':
