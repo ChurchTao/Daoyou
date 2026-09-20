@@ -8,6 +8,7 @@ import {
 } from '@server/lib/redis/lock';
 import { getTopRankingCultivatorIds } from '@server/lib/redis/rankings';
 import { getItemLibraryDailyMaterialGenerationSettings } from '@server/lib/repositories/appSettingsRepository';
+import { getInfiniteTowerRankingRewardRecipients } from '@server/lib/repositories/infiniteTowerRepository';
 import { pruneMessageConsumptions } from '@server/lib/repositories/messageConsumptionRepository';
 import {
   prunePlayerMutationRequestsOlderThan,
@@ -308,6 +309,35 @@ export async function runRankRewardsJob(
           committed.state.replayed
             ? `${realm} Rank ${rank}: already mailed +${reward} reputation`
             : `${realm} Rank ${rank}: mailed +${reward} reputation`,
+        );
+      }
+    }
+
+    for (const realm of REALM_VALUES) {
+      const recipients = await getInfiniteTowerRankingRewardRecipients(
+        realm,
+        100,
+      );
+      processed += recipients.length;
+      for (const recipient of recipients) {
+        const reward = getRewardByRank(recipient.rank);
+        const committed = await sendWeeklyRankingRewardCommand({
+          userId: recipient.userId,
+          cultivatorId: recipient.cultivatorId,
+          requestKey: `infinite-tower-rank-reward:${settlementDate}:${realm}`,
+          requestFingerprint: `${settlementDate}:infinite-tower:${realm}:${recipient.cultivatorId}`,
+          title: '通天留名榜每周声望奖励',
+          content: [
+            `本周通天留名榜已于 ${settlementDate} 结算。`,
+            `道友以通关第 ${recipient.highestFloor} 层位列${realm}分榜第 ${recipient.rank} 名，可领取声望 ${reward}。`,
+            '请查收附件，领取后声望将计入道途声名。',
+          ].join('\n'),
+          attachments: buildRankingRewardAttachment(reward),
+        });
+        logs.push(
+          committed.state.replayed
+            ? `${realm} Infinite Tower Rank ${recipient.rank}: already mailed +${reward} reputation`
+            : `${realm} Infinite Tower Rank ${recipient.rank}: mailed +${reward} reputation`,
         );
       }
     }

@@ -1998,3 +1998,24 @@ export const towerWeeks = pgTable('wanjiedaoyou_tower_weeks', {
   config: jsonb('config').$type<StoredTowerWeek>().notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// 永久通天塔进度。最高层既是展示进度，也是逐层首通奖励的幂等边界。
+export const infiniteTowerProgress = pgTable(
+  'wanjiedaoyou_infinite_tower_progress',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .primaryKey()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    highestFloor: integer('highest_floor').notNull().default(0),
+    totalSpiritStonesEarned: bigint('total_spirit_stones_earned', {
+      mode: 'number',
+    })
+      .notNull()
+      .default(0),
+    firstReachedAt: timestamp('first_reached_at'),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('infinite_tower_progress_highest_floor_idx').on(table.highestFloor),
+  ],
+);

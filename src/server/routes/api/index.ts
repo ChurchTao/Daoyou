@@ -1,3 +1,4 @@
+import infiniteTowerRouter from './infinite-tower.router';
 import divinationRouter from './divination.router';
 import type { AppEnv } from '@server/lib/hono/types';
 import { getMessageInfrastructureHealthStatus } from '@server/lib/mq/domainEventRegistry';
@@ -122,6 +123,7 @@ apiRouter.route('/reputation-shop', reputationShopRouter);
 apiRouter.route('/save-character', saveCharacterRouter);
 apiRouter.route('/tasks', tasksRouter);
 apiRouter.route('/tower', towerRouter);
+apiRouter.route('/infinite-tower', infiniteTowerRouter);
 apiRouter.route('/sects', sectsRouter);
 apiRouter.route('/sponsorship', sponsorshipRouter);
 apiRouter.route('/spirit-field', spiritFieldRouter);

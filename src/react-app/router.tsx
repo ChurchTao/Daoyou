@@ -359,6 +359,19 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="infinite-tower"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/infinite-tower/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'infinite-tower',
+                  summary: '云阶不随岁月消散。逐层破关，把永久进度留在塔上。',
+                },
+                '通天塔',
+              )}
+            />
+            <Route
               path="tower"
               lazy={lazyRoute(() => import('@app/routes/game/tower/route'))}
               handle={scene(
@@ -1099,6 +1112,20 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '战斗回放',
+              )}
+            />
+            <Route
+              path="infinite-tower/battle"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/infinite-tower/battle/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'infinite-tower-battle',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '通天塔战局',
               )}
             />
             <Route

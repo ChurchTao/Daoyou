@@ -193,6 +193,12 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏔️ 云游探秘',
       },
       {
+        id: 'infinite-tower',
+        sceneLabel: '通天塔',
+        href: '/game/infinite-tower',
+        expandedDockLabel: '🗼 通天塔',
+      },
+      {
         id: 'tower',
         sceneLabel: '蜃楼幻境',
         href: '/game/tower',
@@ -306,6 +312,10 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'battle-replay',
         sceneLabel: '战斗回放',
+      },
+      {
+        id: 'infinite-tower-battle',
+        sceneLabel: '通天塔战局',
       },
       {
         id: 'tower-battle',
