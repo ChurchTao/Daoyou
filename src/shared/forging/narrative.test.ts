@@ -8,8 +8,9 @@ describe('forged equipment narrative', () => {
   it('counts intent and description by Unicode code points', () => {
     expect(ForgeIntentSchema.parse('  愿平安归家  ')).toBe('愿平安归家');
     expect(ForgeIntentSchema.parse(' ')).toBe('');
-    expect(ForgeIntentSchema.safeParse('𠮷'.repeat(100)).success).toBe(true);
-    expect(ForgeIntentSchema.safeParse('念'.repeat(101)).success).toBe(false);
+    expect(ForgeIntentSchema.safeParse('𠮷'.repeat(60)).success).toBe(true);
+    expect(ForgeIntentSchema.safeParse('𠮷'.repeat(61)).success).toBe(false);
+    expect(ForgeIntentSchema.safeParse('念'.repeat(61)).success).toBe(false);
     expect(
       ForgedEquipmentCopySchema.safeParse({
         name: '照归剑',

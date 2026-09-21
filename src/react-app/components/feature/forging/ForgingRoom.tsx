@@ -212,19 +212,19 @@ export function ForgingRoom() {
                     )
                   ) : (
                     <>
-                      <div className="mt-4">
+                      <div className="mt-4 [&_textarea]:min-h-16">
                         <InkInput
                           label="铸器心念（选填）"
                           multiline
+                          size="sm"
                           rows={2}
                           value={session.intent}
                           onChange={session.setIntent}
                           disabled={session.locked}
                           placeholder="可写所愿、所念，或希望器物呈现的意境。"
-                          hint={`仅影响器名与描述 · ${Array.from(session.intent.trim()).length}/${FORGE_INTENT_MAX_LENGTH}字`}
                           error={
                             session.intentTooLong
-                              ? '铸器心念不能超过100字'
+                              ? `铸器心念不能超过${FORGE_INTENT_MAX_LENGTH}字`
                               : undefined
                           }
                         />

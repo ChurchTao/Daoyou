@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-export const FORGE_INTENT_MAX_LENGTH = 100;
+export const FORGE_INTENT_MAX_LENGTH = 60;
 export const ForgeIntentSchema = z
   .string()
   .trim()
-  .max(200)
+  .max(FORGE_INTENT_MAX_LENGTH * 2)
   .refine(
     (value) => Array.from(value).length <= FORGE_INTENT_MAX_LENGTH,
-    '铸器心念不能超过100字',
+    `铸器心念不能超过${FORGE_INTENT_MAX_LENGTH}字`,
   );
 export const ForgedEquipmentNameSchema = z
   .string()
