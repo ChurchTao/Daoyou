@@ -1,7 +1,7 @@
 {
   "$schema": "./dungeon.schema.json",
-  "formatVersion": 1,
-  "contentRevision": 3,
+  "formatVersion": 2,
+  "contentRevision": 4,
   "sources": {
     "exploration": {
       "chance": 0.3,
@@ -12,6 +12,12 @@
         "material": 85,
         "blueprint": 10,
         "book": 5
+      },
+      "bonusChances": {
+        "originDew": 0.02,
+        "superiorOriginDew": 0.01,
+        "superiorBook": 0.002,
+        "blueprint": 0.002
       }
     },
     "battle": {
@@ -23,6 +29,12 @@
         "material": 70,
         "blueprint": 20,
         "book": 10
+      },
+      "bonusChances": {
+        "originDew": 0.1,
+        "superiorOriginDew": 0.025,
+        "superiorBook": 0.005,
+        "blueprint": 0.01
       }
     },
     "completion": {
@@ -34,6 +46,12 @@
         "material": 50,
         "blueprint": 30,
         "book": 20
+      },
+      "bonusChances": {
+        "originDew": 0.2,
+        "superiorOriginDew": 0.1,
+        "superiorBook": 0.0255,
+        "blueprint": 0.03
       }
     }
   },
@@ -307,5 +325,37 @@
       "rewardId": "book.beast.advanced-denial",
       "weight": 4
     }
+  ],
+  "bonusPoolVersion": 1,
+  "superiorBooks": [
+    "book.beast.advanced-combo",
+    "book.beast.advanced-counter",
+    "book.beast.advanced-critical",
+    "book.beast.advanced-spell-critical",
+    "book.beast.advanced-regeneration",
+    "book.beast.advanced-meditation",
+    "book.beast.advanced-agility",
+    "book.beast.advanced-spell-mastery",
+    "book.beast.advanced-lifesteal",
+    "book.beast.advanced-reflection",
+    "book.beast.advanced-divine-revival",
+    "book.beast.advanced-spell-reflection",
+    "book.beast.advanced-wisdom",
+    "book.beast.advanced-sneak-attack",
+    "book.beast.advanced-spell-resistance",
+    "book.beast.advanced-parry",
+    "book.beast.advanced-defense",
+    "book.beast.advanced-strength",
+    "book.beast.advanced-spell-combo",
+    "book.beast.advanced-spell-fluctuation",
+    "book.beast.advanced-stealth",
+    "book.beast.advanced-perception",
+    "book.beast.advanced-poison",
+    "book.beast.advanced-miracle",
+    "book.beast.advanced-concentration",
+    "book.beast.advanced-eternity",
+    "book.beast.advanced-ghost",
+    "book.beast.advanced-exorcism",
+    "book.beast.advanced-denial"
   ]
 }

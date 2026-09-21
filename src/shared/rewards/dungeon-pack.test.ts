@@ -12,6 +12,14 @@ describe('副本奖励数据包', () => {
       schema,
     ));
   it('三类来源、四档等级、128种子保持原有掉落件数及资源收益', () => {
+    const pack = loadDungeonRewardPack(raw);
+    for (const source of Object.values(pack.sources))
+      source.bonusChances = {
+        originDew: 0,
+        superiorOriginDew: 0,
+        superiorBook: 0,
+        blueprint: 0,
+      };
     const rows = (['exploration', 'battle', 'completion'] as const).flatMap(
       (source) =>
         [1, 60, 120, 180].flatMap((level) =>
@@ -22,6 +30,7 @@ describe('副本奖励数据包', () => {
                 `baseline-${seed}`,
                 source,
                 level,
+                pack,
               );
               return {
                 key: reward.key,
@@ -42,6 +51,12 @@ describe('副本奖励数据包', () => {
   it('材料、数量及经济配置进入最终奖励', () => {
     const data = structuredClone(raw);
     data.sources.battle = {
+      bonusChances: {
+        originDew: 0,
+        superiorOriginDew: 0,
+        superiorBook: 0,
+        blueprint: 0,
+      },
       chance: 1,
       quantity: 3,
       experience: 7,

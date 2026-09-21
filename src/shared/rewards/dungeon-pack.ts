@@ -9,6 +9,12 @@ const source = z.strictObject({
   experience: integer,
   stones: integer,
   quantity: integer.min(1).max(99),
+  bonusChances: z.strictObject({
+    originDew: z.number().min(0).max(1),
+    superiorOriginDew: z.number().min(0).max(1),
+    superiorBook: z.number().min(0).max(1),
+    blueprint: z.number().min(0).max(1),
+  }),
   weights: z.strictObject({
     material: integer,
     blueprint: integer,
@@ -17,9 +23,11 @@ const source = z.strictObject({
 });
 export const DungeonRewardPackShape = z.strictObject({
   $schema: z.string().optional(),
-  formatVersion: z.literal(1),
+  formatVersion: z.literal(2),
   contentRevision: integer.min(1),
   poolVersion: integer.min(1),
+  bonusPoolVersion: integer.min(1),
+  superiorBooks: z.array(z.string().min(1)).min(1).max(500),
   books: z
     .array(
       z.strictObject({ rewardId: z.string().min(1), weight: integer.min(1) }),
@@ -34,7 +42,32 @@ export const DungeonRewardPackShape = z.strictObject({
 });
 export function loadDungeonRewardPack(data: unknown) {
   const result = DungeonRewardPackShape.superRefine((pack, ctx) => {
+    const superiorBooks = new Set<string>();
+    pack.superiorBooks.forEach((id, i) => {
+      if (
+        findItemDefinition(id)?.kind !== 'beast_book' ||
+        !id.startsWith('book.beast.advanced-') ||
+        superiorBooks.has(id)
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: ['superiorBooks', i],
+          message: '上品灵印引用无效或重复',
+        });
+      superiorBooks.add(id);
+    });
     for (const [name, config] of Object.entries(pack.sources)) {
+      if (
+        Object.values(config.bonusChances).reduce(
+          (sum, value) => sum + value,
+          0,
+        ) > 1
+      )
+        ctx.addIssue({
+          code: 'custom',
+          path: ['sources', name, 'bonusChances'],
+          message: '额外奖励概率合计不能超过1',
+        });
       if (Object.values(config.weights).every((value) => value === 0))
         ctx.addIssue({
           code: 'custom',

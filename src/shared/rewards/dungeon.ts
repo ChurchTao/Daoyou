@@ -77,27 +77,24 @@ export function planDungeonReward(
   const items: ItemGrant[] = [];
   let materialCount = 0;
   const count = budget.rewards[0]?.quantity ?? 0;
+  const levels = OPEN_EQUIPMENT_LEVELS.filter(
+    (value) => equipmentRealm(value).requiredLevel <= level,
+  );
+  const blueprintLevel = levels[levels.length - 1] ?? OPEN_EQUIPMENT_LEVELS[0];
+  const blueprints = BLUEPRINTS.filter((item) => item.level === blueprintLevel);
+  const weightedEntries = (
+    entries: { rewardId: string; weight: number }[],
+    categoryWeight: number,
+  ) => {
+    if (categoryWeight === 0) return [];
+    const total = entries.reduce((sum, item) => sum + item.weight, 0);
+    return entries.map((item) => ({
+      rewardId: item.rewardId,
+      weight: (categoryWeight * item.weight) / total,
+      quantity: { min: 1, max: 1 },
+    }));
+  };
   if (count > 0) {
-    const levels = OPEN_EQUIPMENT_LEVELS.filter(
-      (value) => equipmentRealm(value).requiredLevel <= level,
-    );
-    const blueprintLevel =
-      levels[levels.length - 1] ?? OPEN_EQUIPMENT_LEVELS[0];
-    const blueprints = BLUEPRINTS.filter(
-      (item) => item.level === blueprintLevel,
-    );
-    const weightedEntries = (
-      entries: { rewardId: string; weight: number }[],
-      categoryWeight: number,
-    ) => {
-      if (categoryWeight === 0) return [];
-      const total = entries.reduce((sum, item) => sum + item.weight, 0);
-      return entries.map((item) => ({
-        rewardId: item.rewardId,
-        weight: (categoryWeight * item.weight) / total,
-        quantity: { min: 1, max: 1 },
-      }));
-    };
     const pool: DropPool = {
       id: `dungeon.${source}.items`,
       version: pack.poolVersion,
@@ -127,6 +124,51 @@ export function planDungeonReward(
         materialCount++;
         continue;
       }
+      const existing = items.find(
+        (item) => item.definitionId === reward.rewardId,
+      );
+      if (existing) existing.quantity++;
+      else items.push({ definitionId: reward.rewardId, quantity: 1 });
+    }
+  }
+  // One mutually exclusive bonus item, independent of the original reward streams.
+  const bonus = config.bonusChances;
+  const bonusChance = Object.values(bonus).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
+  if (bonusChance > 0) {
+    const pool: DropPool = {
+      id: `dungeon.${source}.bonus`,
+      version: pack.bonusPoolVersion,
+      groups: [
+        {
+          id: 'bonus',
+          chance: bonusChance,
+          entries: [
+            ...weightedEntries(
+              [{ rewardId: 'beast.refinement.origin-dew', weight: 1 }],
+              bonus.originDew,
+            ),
+            ...weightedEntries(
+              [{ rewardId: 'beast.refinement.superior-origin-dew', weight: 1 }],
+              bonus.superiorOriginDew,
+            ),
+            ...weightedEntries(
+              pack.superiorBooks.map((rewardId) => ({ rewardId, weight: 1 })),
+              bonus.superiorBook,
+            ),
+            ...weightedEntries(
+              blueprints.map((item) => ({ rewardId: item.id, weight: 1 })),
+              bonus.blueprint,
+            ),
+          ],
+        },
+      ],
+    };
+    for (const reward of rollDrops(pool, (group) =>
+      random(`${key}:${pool.id}:${pool.version}:${group}`),
+    ).rewards) {
       const existing = items.find(
         (item) => item.definitionId === reward.rewardId,
       );
