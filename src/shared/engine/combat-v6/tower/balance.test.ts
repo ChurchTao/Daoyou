@@ -78,7 +78,8 @@ describe('金丹普通构筑的关键层可玩性', () => {
             ).toBe('victory');
             if (floor === 1) {
               expect(host.trace().outcome).toBe('victory');
-              expect(host.trace().rounds.length).toBeLessThanOrEqual(5);
+              // 断尘移除每剑额外等级威力后，此普通构筑首层需要 6 回合。
+              expect(host.trace().rounds.length).toBeLessThanOrEqual(sectId === 'lingxiao' ? 6 : 5);
             }
           }
         }

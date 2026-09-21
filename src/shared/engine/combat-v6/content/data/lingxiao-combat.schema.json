@@ -69,10 +69,28 @@
               }
             ]
           },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
           "requireHpRatio": {
             "type": "number",
             "minimum": 0,
             "maximum": 1
+          },
+          "requireHpAboveRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "requireHpBelowRatio": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "forbidRevivedRound": {
+            "type": "boolean"
           },
           "resourceRequirements": {
             "type": "array",
@@ -126,6 +144,14 @@
                   "ally",
                   "self",
                   "any"
+                ]
+              },
+              "requireKind": {
+                "type": "string",
+                "enum": [
+                  "player",
+                  "pet",
+                  "npc"
                 ]
               },
               "mode": {
@@ -409,6 +435,42 @@
                 "maxLength": 200
               }
             ]
+          },
+          "immuneToSeal": {
+            "type": "boolean"
+          },
+          "physicalDefenseIgnore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "dispellable": {
+            "type": "boolean"
+          },
+          "extendable": {
+            "type": "boolean"
+          },
+          "expireSameRound": {
+            "type": "boolean"
+          },
+          "onExpire": {
+            "type": "object",
+            "properties": {
+              "statusId": {
+                "type": "string",
+                "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+              },
+              "duration": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 99
+              }
+            },
+            "required": [
+              "statusId",
+              "duration"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [

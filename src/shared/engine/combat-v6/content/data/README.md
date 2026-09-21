@@ -35,12 +35,12 @@
 - 多段物理伤害的 coeff 可以是数组；数组数量必须与 hits 相同。
 - 剑意 current 为战斗初始值，max 为上限；技能 resourceRequirements 的门槛不能超过上限。
 - modifyResource 的 amount 控制增量，mode 为 set 时直接设置数值；运行内核仍负责上限夹取。
-- 伏锋的抢先行动、储存攻击目标和摄心的随机指令仍由既有状态机制执行。只修改配置不会新增原语。
+- 惊雷的准备／攻击分期、储存攻击目标和剑龙吟的随机指令由通用状态机制执行。
 - 表达式校验现由 `authoring-expressions.ts` 共用，幽都与红尘不互相依赖对方数据包。
 
 `lingxiao-paths.json` 补齐红尘两流派、42 节点和全部相关被动。流派引用战斗包资源 ID，节点引用技能和被动 ID，学习关系继续由学习包管理。原宗门文件已收敛为 ID 与目录入口。
 
-红尘的 addPhysicalCoefficient 可修改已有段，也可紧接着追加一段：断尘三叠的 hitIndex=3 表示追加第四段。不得跳过中间索引制造空段。剑意条件须引用已定义资源，其最低门槛不能超过上限；具体积累、扣除与钩子目标仍由原内核执行。
+红尘的 addPhysicalCoefficient 可修改已有段，也可紧接着追加一段：断尘的 hitIndex=3 表示追加第四段。不得跳过中间索引制造空段。剑意条件须引用已定义资源，其最低门槛不能超过上限；具体积累、扣除与钩子目标仍由原内核执行。
 
 `wuxiang-combat.json` 维护无相禅宗的 10 个主动技能、6 个状态及“念”资源。治疗、护盾、复活、净化、法伤与无相状态沿用原内核原语。
 
@@ -87,3 +87,5 @@
 - 错乱的随机普攻目标、封法／封物理限制和五雷不可致死沿用原内核，不在配置中新增随机算法。
 
 `jiujie-paths.json` 维护两流派、42 节点和被动。setRandomBranchChance／setRandomBranchFixedPower 必须引用目标技能中存在的 branchId，可单独修改受控目标分支。电芒层数条件不能超过状态上限；按层增伤的 factor 和吸血上限均校验表达式。九劫没有流派资源，resources 保持空数组。
+
+红尘基础模组 revision 2：`requireHpAboveRatio`／`requireHpBelowRatio` 使用严格血线比较，`forbidRevivedRound` 限制复起当回合，`targeting.requireKind` 限定单位类型。状态 `onExpire` 仅自然到期转入下一状态，保存施法等级与原目标；`physicalDefenseIgnore` 只影响物理伤害，`immuneToSeal` 只拦截封印命中判定。基础剑息不可普通驱散，节点主动取消需使用 `removeStatus`。技能 `description` 维护意象与机制概述，血线、基础目标数、增益持续和休息条件由共享预览读取当前技能生成。

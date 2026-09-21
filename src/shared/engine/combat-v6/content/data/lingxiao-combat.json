@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 3,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -13,10 +13,9 @@
   "skills": [
     {
       "id": "lingxiao.skill.triple",
-      "name": "断尘三叠",
+      "name": "断尘",
       "school": "lingxiao",
       "costHp": "maxHp * 0.1",
-      "requireHpRatio": 0.5,
       "tags": [
         "physical"
       ],
@@ -33,22 +32,24 @@
             0.85,
             0.95
           ],
-          "power": "floor(skillLevel * 0.5)"
+          "power": 0
         },
         {
           "type": "skipNextAction"
         },
         {
           "type": "applyStatus",
-          "statusId": "lingxiao.status.rest",
+          "statusId": "lingxiao.status.recovery",
           "duration": 1,
           "self": true
         }
-      ]
+      ],
+      "requireHpAboveRatio": 0.5,
+      "description": "凝剑断尘，连续斩击一个敌人，剑势逐段增强。剑息期间免疫封印。"
     },
     {
       "id": "lingxiao.skill.waiting",
-      "name": "伏锋待机",
+      "name": "惊雷",
       "school": "lingxiao",
       "costHp": "hp * 0.05",
       "tags": [
@@ -61,16 +62,17 @@
       "effects": [
         {
           "type": "applyStatus",
-          "statusId": "lingxiao.status.waiting",
+          "statusId": "lingxiao.status.preparing",
           "duration": 1,
           "self": true,
           "storeTarget": true
         }
-      ]
+      ],
+      "description": "藏锋蓄势，消耗当前气血的5%，当回合不攻击；次回合提高物攻、命中和速度，自动攻击蓄势时选定的敌人，此后恢复自由行动。"
     },
     {
       "id": "lingxiao.skill.formation",
-      "name": "裂阵沉舟",
+      "name": "临渊",
       "school": "lingxiao",
       "costHp": "maxHp * 0.1",
       "tags": [
@@ -79,19 +81,31 @@
       "targeting": {
         "side": "enemy",
         "mode": "fill",
-        "count": "min(3, floor(skillLevel / 60) + 1)"
+        "count": 3
       },
       "effects": [
         {
           "type": "physicalHit",
           "coeff": 0.85,
           "power": "floor(skillLevel * 0.4)"
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.recovery",
+          "duration": 1,
+          "self": true
         }
-      ]
+      ],
+      "requireHpBelowRatio": 0.5,
+      "forbidRevivedRound": true,
+      "description": "临渊决剑，以气血为代价攻击多个敌人。剑息期间免疫封印，复起当回合不可施展。"
     },
     {
       "id": "lingxiao.skill.sword_aura",
-      "name": "剑煞凝罡",
+      "name": "破极剑意",
       "school": "lingxiao",
       "costMp": "20 + floor(skillLevel / 5)",
       "tags": [
@@ -105,13 +119,14 @@
         {
           "type": "applyStatus",
           "statusId": "lingxiao.status.sword_aura",
-          "duration": 5
+          "duration": 3
         }
-      ]
+      ],
+      "description": "以破极剑意加持一名友方，使其物理攻击忽视目标10%的物防；同类效果刷新，不叠加。"
     },
     {
       "id": "lingxiao.skill.clarity",
-      "name": "澄神守一",
+      "name": "剑心通明",
       "school": "lingxiao",
       "costMp": "20 + floor(skillLevel / 5)",
       "tags": [
@@ -127,11 +142,12 @@
           "duration": 5,
           "self": true
         }
-      ]
+      ],
+      "description": "剑心通明，凝神守一，提高自身法防与封抗。"
     },
     {
       "id": "lingxiao.skill.confuse",
-      "name": "摄心剑印",
+      "name": "剑龙吟",
       "school": "lingxiao",
       "costMp": "30 + floor(skillLevel / 2)",
       "tags": [
@@ -141,7 +157,8 @@
       "sealBase": 50,
       "targeting": {
         "side": "enemy",
-        "count": 1
+        "count": 1,
+        "requireKind": "npc"
       },
       "effects": [
         {
@@ -150,7 +167,8 @@
           "duration": 2,
           "hit": "seal"
         }
-      ]
+      ],
+      "description": "振剑长吟，剑鸣如龙，震慑敌方心神；有概率使一只怪物陷入混乱、随机攻击，无法作用于人物或召唤灵。"
     },
     {
       "id": "lingxiao.skill.blood_strike",
@@ -287,29 +305,28 @@
     },
     {
       "id": "lingxiao.status.waiting",
-      "name": "伏锋",
+      "name": "惊雷",
       "kind": "lingxiao.waiting",
       "category": "buff",
-      "actFirst": true,
       "commandPolicy": "storedAttack",
       "attrMods": {
         "physicalAtk": "skillLevel",
-        "physicalDef": "skillLevel",
         "hit": "skillLevel"
-      }
+      },
+      "speedMod": "skillLevel * 2",
+      "extendable": false,
+      "dispellable": false
     },
     {
       "id": "lingxiao.status.sword_aura",
-      "name": "剑煞凝罡",
+      "name": "破极剑意",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
-      "attrMods": {
-        "hit": "skillLevel"
-      }
+      "physicalDefenseIgnore": 0.1
     },
     {
       "id": "lingxiao.status.clarity",
-      "name": "澄神守一",
+      "name": "剑心通明",
       "kind": "lingxiao.clarity",
       "category": "buff",
       "attrMods": {
@@ -319,7 +336,7 @@
     },
     {
       "id": "lingxiao.status.confuse",
-      "name": "摄心",
+      "name": "剑龙吟",
       "kind": "lingxiao.confuse",
       "category": "control",
       "commandPolicy": "random"
@@ -357,6 +374,29 @@
       "name": "连破",
       "kind": "lingxiao.chain_break",
       "category": "buff"
+    },
+    {
+      "id": "lingxiao.status.recovery",
+      "name": "剑息",
+      "kind": "lingxiao.rest",
+      "category": "control",
+      "blocksAction": true,
+      "immuneToSeal": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "lingxiao.status.preparing",
+      "name": "藏锋",
+      "kind": "lingxiao.preparing",
+      "category": "buff",
+      "expireSameRound": true,
+      "extendable": false,
+      "dispellable": false,
+      "onExpire": {
+        "statusId": "lingxiao.status.waiting",
+        "duration": 1
+      }
     }
   ],
   "resources": [

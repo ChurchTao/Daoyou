@@ -1,6 +1,6 @@
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
-import { ATTR_NAMES, CommandPolicy, EffectType, SkillTag, StatusCategory, StatusHit, TargetMode, TargetSide, type SkillDef, type StatusDef } from '../core';
+import { ATTR_NAMES, CommandPolicy, EffectType, SkillTag, StatusCategory, StatusHit, TargetMode, TargetSide, UnitKind, type SkillDef, type StatusDef } from '../core';
 import { validateSectExpressions } from './authoring-expressions';
 import { sectSkillLearning } from './skill-learning';
 import type { SectSkillDefV6 } from './types';
@@ -10,7 +10,7 @@ const id = z.string().regex(/^lingxiao\.[a-z][a-z0-9_.]*$/);
 const name = z.string().min(1).max(80);
 const number = z.number().min(0).max(1000000);
 const expression = z.union([number, z.string().min(1).max(200)]);
-const targeting = z.strictObject({ side: z.enum(TargetSide), mode: z.enum(TargetMode).optional(), count: expression.optional() });
+const targeting = z.strictObject({ side: z.enum(TargetSide), requireKind: z.enum(UnitKind).optional(), mode: z.enum(TargetMode).optional(), count: expression.optional() });
 const effect = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal(EffectType.PhysicalHit), hits: number.int().min(1).max(20).optional(), coeff: z.union([number, z.array(number).min(1).max(20)]), power: expression }),
   z.strictObject({ type: z.literal(EffectType.SkipNextAction) }),
@@ -23,7 +23,11 @@ export const LingxiaoCombatPackShape = z.strictObject({
   skills: z.array(z.strictObject({
     id, name, school: z.literal('lingxiao'),
     costHp: expression.optional(), costMp: expression.optional(),
+    description: z.string().min(1).max(500).optional(),
     requireHpRatio: number.max(1).optional(),
+    requireHpAboveRatio: number.max(1).optional(),
+    requireHpBelowRatio: number.max(1).optional(),
+    forbidRevivedRound: z.boolean().optional(),
     resourceRequirements: z.array(z.strictObject({ resourceId: id, min: number })).optional(),
     tags: z.array(z.enum(SkillTag)).min(1), sealBase: number.max(100).optional(),
     targeting, effects: z.array(effect).min(1),
@@ -34,6 +38,9 @@ export const LingxiaoCombatPackShape = z.strictObject({
     commandPolicy: z.enum(CommandPolicy).optional(),
     attrMods: z.partialRecord(z.enum(ATTR_NAMES), expression).optional(),
     speedMod: expression.optional(),
+    immuneToSeal: z.boolean().optional(), physicalDefenseIgnore: number.max(1).optional(),
+    dispellable: z.boolean().optional(), extendable: z.boolean().optional(), expireSameRound: z.boolean().optional(),
+    onExpire: z.strictObject({ statusId: id, duration: number.int().min(1).max(99) }).optional(),
   })).min(1),
   resources: z.array(z.strictObject({ id, name, current: number.int(), max: number.int().positive() })).min(1),
 });
@@ -54,6 +61,10 @@ export function loadLingxiaoCombatPack(data: unknown) {
       return found;
     };
     pack.resources.forEach((r, i) => { if (r.current > r.max) issue(['resources', i, r.id, 'current'], '初始值超过上限'); });
+    pack.statuses.forEach((status, i) => {
+      if (status.onExpire && !pack.statuses.some(s => s.id === status.onExpire?.statusId))
+        issue(['statuses', i, 'onExpire', 'statusId'], '状态引用不存在：' + status.onExpire.statusId);
+    });
     pack.skills.forEach((skill, i) => {
       try { sectSkillLearning(skill.id); } catch { issue(['skills', i, skill.id], '缺少学习关系'); }
       skill.resourceRequirements?.forEach((r, j) => {

@@ -41,6 +41,7 @@ export function canSelect(
   skill: SkillDef,
   aoe: boolean,
 ): boolean {
+  if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
   if (target.flags.capturedBy || target.flags.benched) return false;
   if (skill.targeting.requireRevivable &&
     (target.statuses.some(s => ctx.statusDefs.get(s.id)?.blocksRevive) ||
@@ -214,7 +215,8 @@ export function resolveSkillTargets(
   const seen = new Set<string>();
   if (forcedPrimaryId) {
     const forced = ctx.state.units.find((unit) => unit.id === forcedPrimaryId);
-    if (forced && forced.id !== source.id && isStanding(forced)) {
+    if (forced && forced.id !== source.id && isStanding(forced) &&
+      (!skill.targeting.requireKind || forced.kind === skill.targeting.requireKind)) {
       picked.push(forced);
       seen.add(forced.id);
     }

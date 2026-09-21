@@ -3,6 +3,7 @@ import { EffectType, TargetSide } from '@shared/engine/combat-v6/core/enums';
 import { DAO_EQUIPMENT_ARTS_V1 } from '@shared/engine/combat-v6/equipment/special-content';
 import { describe, expect, it } from 'vitest';
 import { combatV6SkillDetails } from './skill-details';
+import { LINGXIAO_COMBAT } from '@shared/engine/combat-v6/content/lingxiao-pack';
 
 describe('combat skill previews', () => {
   it('shows combo chances from the authoritative hooks', () => {
@@ -52,4 +53,16 @@ describe('combat skill previews', () => {
       description: '满足条件时：造成物理伤害；施放成功后：恢复法力',
     });
   });
+});
+
+
+it('剑宗说明跟随当前血线与增益持续，不保留旧命名', () => {
+  const skills = LINGXIAO_COMBAT.baseSkills.map(s => structuredClone(s.definition));
+  const triple = skills.find(s => s.id === 'lingxiao.skill.triple')!;
+  triple.requireHpAboveRatio = 0.35;
+  const details = combatV6SkillDetails(skills, LINGXIAO_COMBAT.statuses);
+  expect(details[triple.id].description).toContain('高于35%');
+  expect(details[triple.id].description).not.toContain('50%');
+  expect(details['lingxiao.skill.formation'].description).toContain('低于50%');
+  expect(details['lingxiao.skill.sword_aura'].description).toContain('持续 3 回合');
 });

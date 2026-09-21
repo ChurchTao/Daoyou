@@ -59,6 +59,11 @@ export function checkSkillRequirements(
   )
     reasons.push(FailReason.HpRequirement);
 
+  if (skill.requireHpBelowRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp >= skill.requireHpBelowRatio)
+    reasons.push(FailReason.HpRequirement);
+  if (skill.forbidRevivedRound && unit.flags.revivedRound === ctx.state.round)
+    reasons.push(FailReason.RevivedThisRound);
+
   const missingRequirement = skill.resourceRequirements?.find(
     (requirement) =>
       (resourceOf(unit, requirement.resourceId)?.current ?? 0) <

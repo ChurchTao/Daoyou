@@ -78,7 +78,9 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     kind: input.kind,
     skillId,
     isPrimary,
-    defenseIgnore: input.defenseIgnore ?? 0,
+    defenseIgnore: (input.defenseIgnore ?? 0) + (input.kind === DamageKind.Physical
+      ? source.statuses.reduce((sum, status) => sum + (ctx.statusDefs.get(status.id)?.physicalDefenseIgnore ?? 0), 0)
+      : 0),
     origin,
   })
   const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
@@ -398,6 +400,7 @@ export function applyRevive(ctx: BattleContext, source: Unit, target: Unit, hp: 
   target.attrs.hp = restored
   target.flags.downed = false
   target.flags.dead = false
+  target.flags.revivedRound = ctx.state.round
   ctx.emit({ type: EventType.UnitRevived, unitId: target.id, hp: restored })
   ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: restored })
   return true
@@ -423,6 +426,7 @@ export function applyHpRestore(
     target.attrs.hp = restored
     target.flags.downed = false
     target.flags.dead = false
+    target.flags.revivedRound = ctx.state.round
     ctx.emit({ type: EventType.UnitRevived, unitId: target.id, hp: restored })
     ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: restored })
     return restored

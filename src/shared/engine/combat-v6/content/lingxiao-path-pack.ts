@@ -34,7 +34,7 @@ const hookEffect = z.union([
   z.strictObject({ type: z.literal(EffectType.ModifyStrike), factor: number }),
   z.strictObject({ type: z.literal(EffectType.ModifyDefenseIgnore), add: ratio }),
   z.strictObject({ type: z.literal(EffectType.ModifyChance), add: ratio }),
-  z.strictObject({ type: z.literal(EffectType.Dispel), statusIds: ids }),
+  z.strictObject({ type: z.enum([EffectType.Dispel, EffectType.RemoveStatus]), statusIds: ids }),
   z.strictObject({ type: z.literal(EffectType.ClearSkipNextAction) }),
 ]);
 const hook = z.strictObject({

@@ -133,12 +133,32 @@ export function combatV6SkillDetails(
     }
     return `${effect.when ? '满足条件时：' : ''}${text}`;
   };
+  const authoredDescription = (skill: SkillDef): string | undefined => {
+    if (!skill.description) return;
+    const lines = [skill.description];
+    if (skill.requireHpAboveRatio !== undefined)
+      lines.push(`当前气血须高于${Math.round(skill.requireHpAboveRatio * 100)}%。`);
+    if (skill.requireHpBelowRatio !== undefined)
+      lines.push(`当前气血须低于${Math.round(skill.requireHpBelowRatio * 100)}%。`);
+    if (typeof skill.targeting.count === 'number' && skill.targeting.count > 1)
+      lines.push(`基础目标数：最多${skill.targeting.count}个。`);
+    for (const effect of skill.effects) {
+      if (effect.type === EffectType.SkipNextAction) lines.push(describe(effect));
+      if (effect.type === EffectType.ApplyStatus) {
+        const status = statuses.find(s => s.id === effect.statusId);
+        if (status?.category === 'buff' && !status.onExpire && !status.commandPolicy)
+          lines.push(describe(effect));
+      }
+    }
+    return lines.join('\n');
+  };
   return Object.fromEntries(
     skills.map((skill) => [
       skill.id,
       {
         category: arts.has(skill.id) ? ('art' as const) : ('spell' as const),
         description:
+          authoredDescription(skill) ??
           arts.get(skill.id)?.description ??
           (skill.capture
             ? '尝试收服野生灵兽，气血越低越容易成功；执行时消耗法力，失败仍消耗。'

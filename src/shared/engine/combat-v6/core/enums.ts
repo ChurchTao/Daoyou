@@ -156,6 +156,7 @@ export const FailReason = {
   Rooted: 'rooted',
   InsufficientMp: 'insufficient-mp',
   HpRequirement: 'hp-requirement',
+  RevivedThisRound: 'revived-this-round',
   ResourceRequirement: 'resource-requirement',
   SkillNotKnown: 'skill-not-known',
   PassiveNotCastable: 'passive-not-castable',

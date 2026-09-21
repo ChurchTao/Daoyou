@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -13,7 +13,7 @@
     },
     "lingxiao.skill.formation": {
       "sourceMethodId": "lingxiao.method.formation",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 120
     },
     "lingxiao.skill.sword_aura": {
       "sourceMethodId": "lingxiao.method.sword_aura",

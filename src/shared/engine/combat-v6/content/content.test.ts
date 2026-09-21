@@ -101,10 +101,10 @@ describe("红尘剑宗 v6 内容与编译", () => {
 
     expect(byId.get(LINGXIAO_SKILL_ID.Triple)).toMatchObject({
       costHp: "maxHp * 0.1",
-      requireHpRatio: 0.5,
+      requireHpAboveRatio: 0.5,
       targeting: { count: 1 },
       effects: [
-        { type: EffectType.PhysicalHit, hits: 3, coeff: [0.75, 0.85, 0.95], power: "floor(skillLevel * 0.5)" },
+        { type: EffectType.PhysicalHit, hits: 3, coeff: [0.75, 0.85, 0.95], power: 0 },
         { type: EffectType.SkipNextAction },
         { type: EffectType.ApplyStatus, duration: 1, self: true },
       ],
@@ -115,15 +115,30 @@ describe("红尘剑宗 v6 内容与编译", () => {
     })
     expect(byId.get(LINGXIAO_SKILL_ID.Formation)).toMatchObject({
       costHp: "maxHp * 0.1",
-      targeting: { count: "min(3, floor(skillLevel / 60) + 1)" },
-      effects: [{ type: EffectType.PhysicalHit, coeff: 0.85, power: "floor(skillLevel * 0.4)" }],
+      requireHpBelowRatio: 0.5,
+      forbidRevivedRound: true,
+      targeting: { count: 3 },
+      effects: [{ type: EffectType.PhysicalHit, coeff: 0.85, power: "floor(skillLevel * 0.4)" },
+        { type: EffectType.SkipNextAction }, { type: EffectType.ApplyStatus, statusId: "lingxiao.status.recovery", duration: 1, self: true }],
     })
-    expect(byId.get(LINGXIAO_SKILL_ID.SwordAura)?.effects[0]).toMatchObject({ duration: 5 })
+    expect(byId.get(LINGXIAO_SKILL_ID.SwordAura)?.effects[0]).toMatchObject({ duration: 3 })
     expect(byId.get(LINGXIAO_SKILL_ID.Clarity)?.effects[0]).toMatchObject({ duration: 5, self: true })
     expect(byId.get(LINGXIAO_SKILL_ID.Confuse)).toMatchObject({
       sealBase: 50,
       effects: [{ type: EffectType.ApplyStatus, duration: 2, hit: "seal" }],
     })
+  })
+
+  it("临渊在心法120级解锁，降低血线和扩展人数的节点保留效果", () => {
+    for (const level of [119, 120]) {
+      const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, [], level))
+      expect(result.ok && result.projection.activeSkillIds.includes(LINGXIAO_SKILL_ID.Formation)).toBe(level === 120)
+    }
+    const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.4.1"]))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.projection.skillOverrides.find(s => s.id === LINGXIAO_SKILL_ID.Triple)?.requireHpAboveRatio).toBe(0.4)
+    const expanded = compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.4.3"]))
+    if (expanded.ok) expect(expanded.projection.skillOverrides.find(s => s.id === LINGXIAO_SKILL_ID.Formation)?.targeting.count).toBe(4)
   })
 
   it("拒绝心法缺失、越界和分支高于主心法", () => {
@@ -272,7 +287,7 @@ describe("红尘剑宗 v6 内容与编译", () => {
     expect(targetCountResult.ok).toBe(true)
     if (!targetCountResult.ok) return
     expect(targetCountResult.projection.skills.find((skill) => skill.id === LINGXIAO_SKILL_ID.Formation)?.targeting.countByResource).toEqual([
-      { resourceId: "lingxiao.resource.sword_intent", min: 2, count: "min(4, floor(skillLevel / 60) + 2)" },
+      { resourceId: "lingxiao.resource.sword_intent", min: 2, count: 4 },
     ])
 
     const result = compile(progress(LINGXIAO_PATH_ID.Guiyi, [

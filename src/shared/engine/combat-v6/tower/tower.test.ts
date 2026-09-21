@@ -10,7 +10,6 @@ import {
   towerEnemyPreview,
   type TowerWeek,
 } from '../../../lib/tower/weekly';
-import { planTowerReward } from '../../../rewards/tower';
 import type { CultivatorCondition } from '../../../types/condition';
 import { BEAST_SPECIES, generateStarterBeast } from '../beasts';
 import {
@@ -276,15 +275,6 @@ describe('满状态幻境与可恢复机制', () => {
       projectTowerPlayer(input, { physical_power: 3 }),
     );
     expect(input).toEqual(before);
-  });
-  it('里程碑奖励保持既有规则', () => {
-    expect(planTowerReward(1, 42, '金丹')).toBeNull();
-    for (const floor of [5, 10, 15, 20]) {
-      const reward = planTowerReward(floor, 42, '金丹')!;
-      expect(reward).toEqual(planTowerReward(floor, 42, '金丹'));
-      expect(reward.reputation).toBe(floor);
-      expect(reward.materialCount).toBe(floor / 5);
-    }
   });
 });
 

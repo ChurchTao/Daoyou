@@ -258,9 +258,13 @@ function patchConflictKey(patch: SkillPatchV6): string | undefined {
 
 function applyPatch(skill: SkillDef, patch: SkillPatchV6): SkillDef {
   const next = cloneSkill(skill)
-  if (patch.operation === "setRequireHpRatio") next.requireHpRatio = patch.value
+  if (patch.operation === "setRequireHpRatio") {
+    if (next.requireHpAboveRatio !== undefined) next.requireHpAboveRatio = patch.value
+    else next.requireHpRatio = patch.value
+  }
   if (patch.operation === "capRequireHpRatio") {
-    next.requireHpRatio = Math.min(next.requireHpRatio ?? 1, patch.value)
+    if (next.requireHpAboveRatio !== undefined) next.requireHpAboveRatio = Math.min(next.requireHpAboveRatio, patch.value)
+    else next.requireHpRatio = Math.min(next.requireHpRatio ?? 1, patch.value)
   }
   if (patch.operation === "setCostHp") next.costHp = patch.value
   if (patch.operation === "setTargetCount") next.targeting.count = patch.value

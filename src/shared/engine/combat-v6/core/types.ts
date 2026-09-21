@@ -178,6 +178,8 @@ export type StatusInstance = {
   speedMod: number;
   attrMods: Partial<Attrs>;
   storedTargetId?: UnitId;
+  /** 自然到期转入下一状态时沿用施法等级。 */
+  transitionSkillLevel?: number;
   damageTakenPhysical: number;
   damageTakenSpell: number;
   healTaken: number;
@@ -188,6 +190,7 @@ export type StatusInstance = {
 export type UnitFlags = {
   capturedBy?: UnitId;
   reviveAtRound?: number;
+  revivedRound?: number;
   defending: boolean;
   protecting?: UnitId;
   auto: boolean;
@@ -303,6 +306,7 @@ export type LineupUnit = {
 
 export type SkillTargeting = {
   side: TargetSide;
+  requireKind?: UnitKind;
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
   mode?: TargetMode;
   count?: Expr;
@@ -553,6 +557,9 @@ export type SkillDef = {
   costHpFrom?: CostHpFrom;
   requireHpRatio?: number;
   requireHpAboveRatio?: number;
+  requireHpBelowRatio?: number;
+  forbidRevivedRound?: boolean;
+  description?: string;
   successCostHp?: Expr;
   successCostMp?: Expr;
   resourceRequirements?: Array<{ resourceId: string; min: number }>;
@@ -579,6 +586,10 @@ export type SkillDef = {
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  immuneToSeal?: boolean;
+  physicalDefenseIgnore?: number;
+  /** 仅自然到期触发；驱散、替换、倒地不触发。 */
+  onExpire?: { statusId: StatusId; duration: number };
   id: StatusId;
   name: string;
   kind: string;

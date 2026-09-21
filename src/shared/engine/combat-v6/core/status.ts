@@ -147,6 +147,7 @@ export function applyStatus(
     speedMod: evalExpr(def.speedMod ?? 0, env),
     attrMods,
     storedTargetId: options.storedTargetId,
+    ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -215,8 +216,18 @@ export function tickStatuses(ctx: BattleContext): void {
       if (inst.appliedRound === ctx.state.round && !def?.ticks && !def?.expireSameRound) continue
       if (def?.untilBattleEnd) continue
       const next = inst.remainingRounds - 1
-      if (next <= 0) removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
-      else inst.remainingRounds = next
+      if (next <= 0) {
+        // A preceding tick may have killed the unit and removed its statuses.
+        if (!unit.statuses.includes(inst)) continue
+        removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
+        if (def?.onExpire && !unit.flags.downed && !unit.flags.dead) {
+          const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
+          applyStatus(ctx, unit, def.onExpire.statusId, def.onExpire.duration, inst.sourceId, {
+            storedTargetId: inst.storedTargetId,
+            env: { skillLevel: inst.transitionSkillLevel ?? 0, targets: 1, source, target: unit },
+          })
+        }
+      } else inst.remainingRounds = next
     }
   }
 }

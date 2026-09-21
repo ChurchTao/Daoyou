@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
       "id": "lingxiao.passive.zhanchen.wind_blade",
@@ -57,7 +57,8 @@
           "targetIsSelf": true,
           "when": {
             "requireStatusIds": [
-              "lingxiao.status.rest"
+              "lingxiao.status.rest",
+              "lingxiao.status.recovery"
             ]
           },
           "effects": [
@@ -256,11 +257,12 @@
               "type": "clearSkipNextAction"
             },
             {
-              "type": "dispel",
+              "type": "removeStatus",
               "statusIds": [
                 "lingxiao.status.rest",
                 "lingxiao.status.rest_resist",
-                "lingxiao.status.chain_break"
+                "lingxiao.status.chain_break",
+                "lingxiao.status.recovery"
               ]
             }
           ]
@@ -511,7 +513,8 @@
           "targetIsSelf": true,
           "when": {
             "requireStatusIds": [
-              "lingxiao.status.rest"
+              "lingxiao.status.rest",
+              "lingxiao.status.recovery"
             ]
           },
           "effects": [
@@ -692,7 +695,7 @@
           "name": "砺锋",
           "layer": 1,
           "slot": 1,
-          "description": "断尘三叠总伤害提高5%。",
+          "description": "断尘总伤害提高5%。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -740,7 +743,7 @@
           "name": "静岳",
           "layer": 2,
           "slot": 2,
-          "description": "断尘三叠休息期间物法承伤降低10%。",
+          "description": "断尘休息期间物法承伤降低10%。",
           "passives": [
             "lingxiao.passive.zhanchen.guarded_rest"
           ]
@@ -794,7 +797,7 @@
           "name": "神凝",
           "layer": 4,
           "slot": 1,
-          "description": "断尘三叠气血门槛降至40%。",
+          "description": "断尘气血门槛降至40%。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -808,7 +811,7 @@
           "name": "破空",
           "layer": 4,
           "slot": 2,
-          "description": "断尘三叠第三段系数增加0.15。",
+          "description": "断尘第三段系数增加0.15。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -823,12 +826,12 @@
           "name": "拓阵",
           "layer": 4,
           "slot": 3,
-          "description": "裂阵沉舟额外作用一个目标。",
+          "description": "临渊额外作用一个目标。",
           "patches": [
             {
               "skillId": "lingxiao.skill.formation",
               "operation": "setTargetCount",
-              "value": "min(4, floor(skillLevel / 60) + 2)"
+              "value": 4
             }
           ]
         },
@@ -837,7 +840,7 @@
           "name": "锐心",
           "layer": 5,
           "slot": 1,
-          "description": "断尘三叠暴击率提高5%。",
+          "description": "断尘暴击率提高5%。",
           "passives": [
             "lingxiao.passive.zhanchen.keen_heart"
           ]
@@ -858,7 +861,7 @@
           "name": "不惊",
           "layer": 5,
           "slot": 3,
-          "description": "断尘三叠休息期间封禁抵抗提高20。",
+          "description": "断尘休息期间封禁抵抗提高20。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -877,7 +880,7 @@
           "name": "连破",
           "layer": 6,
           "slot": 1,
-          "description": "断尘三叠击倒目标时取消休息。",
+          "description": "断尘击倒目标时取消休息。",
           "passives": [
             "lingxiao.passive.zhanchen.chain_break"
           ]
@@ -887,7 +890,7 @@
           "name": "血勇",
           "layer": 6,
           "slot": 2,
-          "description": "断尘三叠气血消耗降至5%，门槛降至35%。",
+          "description": "断尘气血消耗降至5%，门槛降至35%。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -906,7 +909,7 @@
           "name": "裂军",
           "layer": 6,
           "slot": 3,
-          "description": "裂阵沉舟伤害提高10%。",
+          "description": "临渊伤害提高10%。",
           "patches": [
             {
               "skillId": "lingxiao.skill.formation",
@@ -920,7 +923,7 @@
           "name": "四绝",
           "layer": 7,
           "slot": 1,
-          "description": "断尘三叠增加第四段攻击。",
+          "description": "断尘增加第四段攻击。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -972,7 +975,7 @@
           "name": "蓄意",
           "layer": 1,
           "slot": 1,
-          "description": "断尘三叠额外增加1点剑意。",
+          "description": "断尘额外增加1点剑意。",
           "passives": [
             "lingxiao.passive.guiyi.extra_triple_intent"
           ]
@@ -1031,7 +1034,7 @@
           "name": "候锋",
           "layer": 2,
           "slot": 3,
-          "description": "伏锋待机完成后额外增加1点剑意。",
+          "description": "惊雷完成后额外增加1点剑意。",
           "passives": [
             "lingxiao.passive.guiyi.waiting_intent"
           ]
@@ -1060,7 +1063,7 @@
           "name": "破甲",
           "layer": 3,
           "slot": 2,
-          "description": "2点剑意以上断尘三叠额外忽略5%物防。",
+          "description": "2点剑意以上断尘额外忽略5%物防。",
           "passives": [
             "lingxiao.passive.guiyi.armor_break"
           ]
@@ -1070,14 +1073,14 @@
           "name": "开阵",
           "layer": 3,
           "slot": 3,
-          "description": "2点剑意以上强化裂阵沉舟目标数。",
+          "description": "2点剑意以上强化临渊目标数。",
           "patches": [
             {
               "skillId": "lingxiao.skill.formation",
               "operation": "addResourceTargetCount",
               "resourceId": "lingxiao.resource.sword_intent",
               "min": 2,
-              "value": "min(4, floor(skillLevel / 60) + 2)"
+              "value": 4
             }
           ]
         },
@@ -1096,7 +1099,7 @@
           "name": "剑息",
           "layer": 4,
           "slot": 2,
-          "description": "断尘三叠休息期间承伤降低10%。",
+          "description": "断尘休息期间承伤降低10%。",
           "passives": [
             "lingxiao.passive.guiyi.guarded_rest"
           ]
@@ -1146,7 +1149,7 @@
           "name": "连破",
           "layer": 6,
           "slot": 1,
-          "description": "8点剑意以上消耗3点并取消断尘三叠休息。",
+          "description": "8点剑意以上消耗3点并取消断尘休息。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -1176,7 +1179,7 @@
               "operation": "appendEffect",
               "effect": {
                 "type": "applyStatus",
-                "statusId": "lingxiao.status.rest",
+                "statusId": "lingxiao.status.recovery",
                 "duration": 1,
                 "self": true,
                 "when": {
@@ -1237,7 +1240,7 @@
           "name": "四象归锋",
           "layer": 7,
           "slot": 1,
-          "description": "11点剑意时断尘三叠增加第四段。",
+          "description": "11点剑意时断尘增加第四段。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -1245,7 +1248,7 @@
               "effect": {
                 "type": "physicalHit",
                 "coeff": 0.95,
-                "power": "floor(skillLevel * 0.5)",
+                "power": 0,
                 "when": {
                   "sourceResource": {
                     "id": "lingxiao.resource.sword_intent",

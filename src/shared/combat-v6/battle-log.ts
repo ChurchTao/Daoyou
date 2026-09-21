@@ -33,6 +33,7 @@ export function reasonText(reason: string) {
     sealed: '受封术影响',
     rooted: '物理行动受限',
     'no-target': '没有合法目标',
+    'revived-this-round': '复起当回合无法施展',
     'hp-requirement': '气血未达到施展要求',
     'insufficient-mp': '法力不足',
     'resource-requirement': '战斗资源不足',

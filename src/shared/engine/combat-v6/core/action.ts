@@ -530,7 +530,7 @@ function resolveSkill(
   );
 
   if (targets.length === 0) {
-    if (skill.capture || skill.targeting.requireRevivable) {
+    if (skill.capture || skill.targeting.requireRevivable || skill.targeting.requireKind) {
       ctx.emit({
         type: EventType.ActionFailed,
         unitId: unit.id,
@@ -551,6 +551,14 @@ function resolveSkill(
   }
   if (skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio) {
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
+    return;
+  }
+  if (skill.requireHpBelowRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp >= skill.requireHpBelowRatio) {
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
+    return;
+  }
+  if (skill.forbidRevivedRound && unit.flags.revivedRound === ctx.state.round) {
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.RevivedThisRound });
     return;
   }
   const missingResource = skill.resourceRequirements?.find(
@@ -580,7 +588,7 @@ function resolveSkill(
     return;
   }
   if (unit.attrs.mp < mpCost) {
-    if (skill.capture || skill.targeting.requireRevivable) {
+    if (skill.capture || skill.targeting.requireRevivable || skill.targeting.requireKind) {
       ctx.emit({
         type: EventType.ActionFailed,
         unitId: unit.id,

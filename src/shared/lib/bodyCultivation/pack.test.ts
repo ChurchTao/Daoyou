@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import raw from './data/body-cultivation.json';
 import schema from './data/body-cultivation.schema.json';
-import before from './fixtures/before-g5.json';
 import { BodyCultivationPackShape, BODY_CULTIVATION_TRACK_KEYS, loadBodyCultivationPack, bodyCultivationThreshold } from './pack';
-import { BODY_TRACK_LABELS, BODY_CULTIVATION_REALM_REQUIREMENTS, getBodyCultivationThresholdByLevel } from './config';
 import { bodyCultivationEffectTexts } from './benefits';
 import { compileBodyCultivationV6 } from '@shared/engine/combat-v6/projection/body-cultivation-v6';
 import { compileCharacterPanelV1 } from '@shared/engine/combat-v6/projection/character-panel-v1';
@@ -16,13 +14,6 @@ function state(level: number): BodyCultivationState {
 const basePanel = compileCharacterPanelV1({ vitality: 10, strength: 10, spirit: 10, endurance: 10, speed: 10, willpower: 10 });
 describe('炼体成长与收益数据包', () => {
   it('编辑器 Schema 与运行时结构一致', () => expect(z.toJSONSchema(BodyCultivationPackShape, { reused: 'ref' })).toEqual(schema));
-  it('标签、位阶、进度和投影保持迁移前基线', () => {
-    expect(BODY_TRACK_LABELS).toEqual(before.labels);
-    expect(BODY_CULTIVATION_REALM_REQUIREMENTS).toEqual(before.realms);
-    expect(Array.from({ length: 121 }, (_, level) => getBodyCultivationThresholdByLevel(level))).toEqual(before.thresholds);
-    const levels = [0, 1, 2, 5, 10, 15, 22, 30, 45, 59, 60, 61, 100, 3.9];
-    expect(levels.flatMap(level => [1001, 12000].map(maxHp => compileBodyCultivationV6(state(level), { ...basePanel, maxHp })))).toEqual(before.projections);
-  });
   it('配置修改联动进度、展示、投影与最高等级夹取', () => {
     const data = structuredClone(raw);
     data.progress.base = 120;

@@ -277,7 +277,7 @@ function handleApplyStatus(
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
       const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase)
-      if (!ctx.rng.chance(chance)) {
+      if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
       }
