@@ -93,7 +93,8 @@ describe('基础模组状态与回合边界', () => {
       expect(b.unit('s').statuses.filter(s => s.id === 'lingxiao.status.sword_aura')).toHaveLength(buff ? 1 : 0);
       round(b, name);
       const first = 10000 - b.unit('t0').attrs.hp;
-      round(b); round(b);
+      for (let turn = 0; turn < 4; turn++) round(b);
+      expect(b.unit('s').statuses.some(s => s.id === 'lingxiao.status.sword_aura')).toBe(false);
       const hp = b.unit('t0').attrs.hp;
       round(b, name);
       return [first, hp - b.unit('t0').attrs.hp];

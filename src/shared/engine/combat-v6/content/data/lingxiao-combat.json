@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -119,7 +119,7 @@
         {
           "type": "applyStatus",
           "statusId": "lingxiao.status.sword_aura",
-          "duration": 3
+          "duration": 5
         }
       ],
       "description": "以破极剑意加持一名友方，使其物理攻击忽视目标10%的物防；同类效果刷新，不叠加。"

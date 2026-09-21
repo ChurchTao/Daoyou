@@ -64,5 +64,5 @@ it('剑宗说明跟随当前血线与增益持续，不保留旧命名', () => {
   expect(details[triple.id].description).toContain('高于35%');
   expect(details[triple.id].description).not.toContain('50%');
   expect(details['lingxiao.skill.formation'].description).toContain('低于50%');
-  expect(details['lingxiao.skill.sword_aura'].description).toContain('持续 3 回合');
+  expect(details['lingxiao.skill.sword_aura'].description).toContain('持续 5 回合');
 });

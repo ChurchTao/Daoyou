@@ -121,7 +121,7 @@ describe("红尘剑宗 v6 内容与编译", () => {
       effects: [{ type: EffectType.PhysicalHit, coeff: 0.85, power: "floor(skillLevel * 0.4)" },
         { type: EffectType.SkipNextAction }, { type: EffectType.ApplyStatus, statusId: "lingxiao.status.recovery", duration: 1, self: true }],
     })
-    expect(byId.get(LINGXIAO_SKILL_ID.SwordAura)?.effects[0]).toMatchObject({ duration: 3 })
+    expect(byId.get(LINGXIAO_SKILL_ID.SwordAura)?.effects[0]).toMatchObject({ duration: 5 })
     expect(byId.get(LINGXIAO_SKILL_ID.Clarity)?.effects[0]).toMatchObject({ duration: 5, self: true })
     expect(byId.get(LINGXIAO_SKILL_ID.Confuse)).toMatchObject({
       sealBase: 50,
