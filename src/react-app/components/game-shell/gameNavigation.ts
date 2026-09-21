@@ -93,6 +93,8 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'enlightenment',
         sceneLabel: '悟道室',
+        href: '/game/enlightenment',
+        expandedDockLabel: '📜 悟道室',
       },
       {
         id: 'techniques',

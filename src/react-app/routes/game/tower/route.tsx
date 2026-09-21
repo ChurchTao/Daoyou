@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router';
 import { TowerLeaderboard } from './components/TowerLeaderboard';
 import { TowerRewards } from './components/TowerRewards';
+import { TowerWeeklyEnemies } from './components/TowerWeeklyEnemies';
 
 function TowerBoard() {
   const [realm, setRealm] = useState<RealmType>(TOWER_MIN_REALM);
@@ -61,16 +62,10 @@ function TowerBoard() {
   );
 }
 
-function EnemyMembers({
-  enemy,
-  compact = false,
-}: {
-  enemy: TowerEnemyPreview;
-  compact?: boolean;
-}) {
+function EnemyMembers({ enemy }: { enemy: TowerEnemyPreview }) {
   return (
     <div
-      className={`flex items-end justify-center gap-5 ${compact ? 'my-2' : 'mt-4 mb-3'}`}
+      className="mt-4 mb-3 flex items-end justify-center gap-5"
       aria-label="敌方阵容"
     >
       {enemy.members.map((member) => (
@@ -81,13 +76,7 @@ function EnemyMembers({
           triggerContent={
             <GameIcon
               value={member.icon}
-              className={
-                compact
-                  ? 'text-2xl'
-                  : member.role === 'leader'
-                    ? 'text-6xl'
-                    : 'text-3xl'
-              }
+              className={member.role === 'leader' ? 'text-6xl' : 'text-3xl'}
             />
           }
         >
@@ -460,19 +449,10 @@ export default function TowerRoute() {
                 </InkButton>
               </div>
             ) : panel === 'week' ? (
-              <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
-                {view?.weeklyEnemies.map((foe) => (
-                  <div key={foe.floor} className="border-ink/15 border-b pb-6">
-                    <p className="mb-1 text-sm">
-                      <span className="font-mono">{foe.floor}</span> 层 ·{' '}
-                      {foe.name}
-                    </p>
-                    <EnemyMembers enemy={foe} compact />
-                    <EnemyDetails enemy={foe} />
-                  </div>
-                ))}
+              <div className="space-y-6">
+                <TowerWeeklyEnemies view={view} />
                 {state && !finished ? (
-                  <div className="md:col-span-2">
+                  <div>
                     <InkButton
                       variant="secondary"
                       onClick={() => setPanel('leave')}

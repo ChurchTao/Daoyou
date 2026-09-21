@@ -753,7 +753,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'enlightenment',
                   presentation: 'hub',
-                  summary: '静心入定，循境参悟所习功法。',
+                  summary: '静心研读典籍，将所悟功法凝录为玉简。',
                 },
                 '【悟道室】',
               )}

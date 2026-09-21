@@ -14,6 +14,7 @@ export const QI_ACTION_COSTS = {
   alchemy_improvised: 1,
   alchemy_formula: 1,
   equipment_forge: 7,
+  manual_enlightenment: 1,
   marrow_wash_breakthrough: 20,
   market_identify: 1,
   black_market_entry: 5,
