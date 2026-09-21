@@ -7,14 +7,9 @@ import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
-import {
-  daoEquipmentBaseRange,
-  daoEquipmentTemplateOf,
-} from '@shared/engine/combat-v6/equipment/content';
 import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
 import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
 import { itemDefinition } from '@shared/inventory';
-import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { ForgingFurnace } from './ForgingFurnace';
@@ -388,18 +383,6 @@ export function ForgingRoom() {
             <p>
               {session.cost?.spiritStones.toLocaleString()} 灵石 ·{' '}
               {session.cost?.qi} 天地灵气
-            </p>
-            {session.forging && session.definition ? (
-              <div className="space-y-1">
-                <p className="text-ink-secondary">本炉器胚范围</p>
-                {daoEquipmentTemplateOf(`dao_equipment.standard.${session.definition.slot}.v1`)?.baseStats.map((stat) => {
-                  const range = daoEquipmentBaseRange(stat, session.definition!.level!, session.forging!.baseQuality);
-                  return <p key={stat.attr}>{EQUIPMENT_ATTRIBUTE_NAMES[stat.attr]} <span className="font-mono">{range.min}–{range.max}</span></p>;
-                })}
-              </div>
-            ) : null}
-            <p className="text-ink-secondary">
-              必定铸成一件道装，属性随机，成品自动入包。
             </p>
           </div>
         </InkModal>
