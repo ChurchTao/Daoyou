@@ -19,6 +19,8 @@ export const redisLockKeys = {
     `lock:user:cultivator-creation:${userId}`,
   cultivatorMutation: (cultivatorId: string) =>
     `lock:cultivator:mutation:${cultivatorId}`,
+  forgingPreparation: (cultivatorId: string) =>
+    `lock:forging:preparation:${cultivatorId}`,
   auctionListing: (listingId: string) => `lock:auction:listing:${listingId}`,
   battleMatch: (matchId: string) => `lock:battle-match:${matchId}`,
   cron: (jobName: string) => `lock:cron:${jobName}`,

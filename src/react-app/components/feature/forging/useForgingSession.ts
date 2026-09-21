@@ -1,9 +1,13 @@
-import { equipmentRealm, isOpenEquipmentLevel } from '@shared/engine/combat-v6/equipment/realm';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
 import type { InventoryView } from '@shared/contracts/inventory';
+import {
+  equipmentRealm,
+  isOpenEquipmentLevel,
+} from '@shared/engine/combat-v6/equipment/realm';
 import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment/types';
+import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
 import { forgingCost, forgingInputs } from '@shared/forging/rules';
 import { itemDefinition } from '@shared/inventory';
 import { FORGING_MATERIAL_TYPES } from '@shared/items/definitions/materials';
@@ -24,6 +28,8 @@ export function useForgingSession() {
   const [blueprintId, setBlueprintId] = useState('');
   const [materialIds, setMaterialIds] = useState(emptyMaterials);
   const [pending, setPending] = useState(false);
+  const [intent, setIntent] = useState('');
+  const [retryInput, setRetryInput] = useState<ForgeRequest>();
   const [error, setError] = useState('');
   const [result, setResult] = useState<{
     equipment: DaoEquipmentInstanceV1;
@@ -67,6 +73,7 @@ export function useForgingSession() {
   const total = materialIds.filter(Boolean).length;
   const locked =
     pending ||
+    !!retryInput ||
     !view ||
     !!result ||
     !inventory ||
@@ -108,6 +115,8 @@ export function useForgingSession() {
         (view.spiritStones < cost!.spiritStones ? '灵石不足' : null) ??
         (view.qi < cost!.qi ? '天地灵气不足' : null));
 
+  const intentTooLong =
+    Array.from(intent.trim()).length > FORGE_INTENT_MAX_LENGTH;
   const forging = !problem && definition?.level && view
     ? forgingInputs(definition.level, view.ownerLevel, Array.from(quantities, ([id, quantity]) => {
         const item = byId.get(id)!;
@@ -152,19 +161,26 @@ export function useForgingSession() {
   function reload() {
     if (busy.current) return;
     setError('');
+    setRetryInput(undefined);
     void bagQuery.reload();
     setView(undefined);
     setMaterialIds(emptyMaterials());
     setRefresh((n) => n + 1);
   }
-  async function submit() {
-    if (busy.current || locked || problem || !blueprint) return;
+  async function submit(inputToRetry?: ForgeRequest) {
+    if (
+      busy.current ||
+      (!inputToRetry && (locked || problem || intentTooLong || !blueprint))
+    )
+      return;
     busy.current = true;
     setPending(true);
     setError('');
     reader.current?.abort();
-    const input: ForgeRequest = {
-      blueprint: { id: blueprint.id, revision: blueprint.revision },
+    const input: ForgeRequest = inputToRetry ?? {
+      requestId: crypto.randomUUID(),
+      intent: intent.trim(),
+      blueprint: { id: blueprint!.id, revision: blueprint!.revision },
       materials: Array.from(quantities, ([id, quantity]) => ({
         id,
         revision: byId.get(id)!.revision,
@@ -195,13 +211,18 @@ export function useForgingSession() {
         ),
         ceremony,
       ]);
-      if (alive.current) setResult(response);
+      if (alive.current) {
+        setResult(response);
+        setIntent('');
+        setRetryInput(undefined);
+      }
     } catch (e) {
       bagQuery.invalidate();
       if (alive.current) {
         setError(
-          `${e instanceof Error ? e.message : '请求失败'}。请核对储物袋后重新备料，勿重复开炉。`,
+          `${e instanceof Error ? e.message : '请求失败'}。可重试本次开炉以核对结果，或核对储物袋后重新备料。`,
         );
+        setRetryInput(input);
         setBlueprintId('');
       }
     } finally {
@@ -226,6 +247,13 @@ export function useForgingSession() {
     quantities,
     total,
     pending,
+    intent,
+    setIntent,
+    intentTooLong,
+    canRetry: !!retryInput,
+    retry: () => {
+      if (retryInput) void submit(retryInput);
+    },
     locked,
     error: error || bagQuery.error,
     result,

@@ -4,12 +4,17 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkInput } from '@app/components/ui/InkInput';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
-import { daoEquipmentBaseRange, daoEquipmentTemplateOf } from '@shared/engine/combat-v6/equipment/content';
+import {
+  daoEquipmentBaseRange,
+  daoEquipmentTemplateOf,
+} from '@shared/engine/combat-v6/equipment/content';
 import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
-import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
+import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
 import { itemDefinition } from '@shared/inventory';
+import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { ForgingFurnace } from './ForgingFurnace';
@@ -110,6 +115,11 @@ export function ForgingRoom() {
         {session.error ? (
           <p role="alert" className="text-crimson">
             {session.error}{' '}
+            {session.canRetry ? (
+              <InkButton disabled={session.pending} onClick={session.retry}>
+                重试本次开炉
+              </InkButton>
+            ) : null}
             <InkButton
               disabled={session.pending}
               onClick={() => {
@@ -202,6 +212,23 @@ export function ForgingRoom() {
                     )
                   ) : (
                     <>
+                      <div className="mt-4">
+                        <InkInput
+                          label="铸器心念（选填）"
+                          multiline
+                          rows={2}
+                          value={session.intent}
+                          onChange={session.setIntent}
+                          disabled={session.locked}
+                          placeholder="可写所愿、所念，或希望器物呈现的意境。"
+                          hint={`仅影响器名与描述 · ${Array.from(session.intent.trim()).length}/${FORGE_INTENT_MAX_LENGTH}字`}
+                          error={
+                            session.intentTooLong
+                              ? '铸器心念不能超过100字'
+                              : undefined
+                          }
+                        />
+                      </div>
                       <p
                         className="text-ink-secondary my-4 min-h-6 text-center text-xs"
                         role="status"
@@ -231,7 +258,11 @@ export function ForgingRoom() {
                           variant="primary"
                           pending={session.pending}
                           pendingLabel="铸造中……"
-                          disabled={session.locked || !!session.problem}
+                          disabled={
+                            session.locked ||
+                            !!session.problem ||
+                            session.intentTooLong
+                          }
                           onClick={() => setDrawer('confirm')}
                         >
                           开炉铸造
@@ -328,7 +359,9 @@ export function ForgingRoom() {
             <div className="flex justify-end gap-3">
               <InkButton onClick={() => setDrawer(undefined)}>取消</InkButton>
               <InkButton
-                disabled={session.locked || !!session.problem}
+                disabled={
+                  session.locked || !!session.problem || session.intentTooLong
+                }
                 onClick={() => {
                   setDrawer(undefined);
                   setSelected(undefined);
@@ -342,6 +375,11 @@ export function ForgingRoom() {
         >
           <div className="space-y-3 text-sm">
             <p>{session.blueprint?.name} ×1</p>
+            {session.intent.trim() ? (
+              <p className="text-ink-secondary break-words">
+                心念：{session.intent.trim()}
+              </p>
+            ) : null}
             {Array.from(session.quantities, ([id, quantity]) => (
               <p key={id}>
                 {session.byId.get(id)?.name} ×{quantity}

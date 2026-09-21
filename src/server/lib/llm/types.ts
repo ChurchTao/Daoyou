@@ -15,6 +15,7 @@ export type LlmSceneId =
   | 'dungeon-round'
   | 'dungeon-settlement'
   | 'fate-naming'
+  | 'equipment-forge-naming'
   | 'identity-reshape'
   | 'lifespan-exhausted'
   | 'material-generation'

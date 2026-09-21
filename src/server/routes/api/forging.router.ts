@@ -7,6 +7,7 @@ import {
   validateQuery,
 } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import {
   forgeEquipment,
   readForge,
@@ -38,7 +39,8 @@ router.onError((error, c) => {
   if (
     error instanceof InventoryError ||
     error instanceof InventoryRuleError ||
-    error instanceof QiServiceError
+    error instanceof QiServiceError ||
+    error instanceof PlayerCommandIdempotencyError
   )
     return c.json({ success: false, error: error.message }, 409);
   console.error('[forging] request failed', error);
@@ -59,6 +61,7 @@ router.post('/', validateJson(ForgeRequestSchema), async (c) =>
     ...(await forgeEquipment(
       c.get('activeCultivatorRef')!.cultivatorId,
       getValidatedJson(c),
+      c.get('activeCultivatorRef')!.userId,
     )),
   }),
 );

@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment';
+import {
+  EquipmentCrafterNameSchema,
+  ForgedEquipmentDescSchema,
+} from '../forging/narrative';
 import { CHARACTER_ATTRIBUTE_LABELS } from '../lib/characterAttributeLabels';
 // 器胚使用战斗面板名称；附灵展示必须使用 CHARACTER_ATTRIBUTE_LABELS。
 export const EQUIPMENT_ATTRIBUTE_NAMES = {
@@ -39,6 +43,8 @@ export const InventoryEquipmentSchema = z
     id: z.string().min(1),
     templateId: z.string().min(1),
     name: z.string().min(1).max(100),
+    desc: ForgedEquipmentDescSchema.optional(),
+    crafterName: EquipmentCrafterNameSchema.optional(),
     slot: z.enum(DAO_EQUIPMENT_SLOTS),
     equipmentLevel: z.number().int().nonnegative(),
     requiredLevel: z.number().int().nonnegative(),

@@ -155,7 +155,7 @@ describe('blueprint forging', () => {
             {
               [slot]: {
                 ...result.instance,
-                name: '非名称池中的名字',
+                name: '',
               },
             },
             180,

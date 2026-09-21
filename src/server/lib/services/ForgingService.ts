@@ -18,7 +18,7 @@ import {
 } from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
-import { forgingInputs, forgingCost } from '@shared/forging/rules';
+import { forgingCost, forgingInputs } from '@shared/forging/rules';
 import {
   addItems,
   itemDefinition,
@@ -36,7 +36,7 @@ import { parseMailAttachments } from '@shared/lib/itemLibrary';
 import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import { db, type DbTransaction } from '../drizzle/db';
+import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
 import {
   consumables,
   cultivatorBeasts,
@@ -49,9 +49,15 @@ import {
   beastIndividualData,
   readBeastOwner,
 } from '../repositories/combatV6BeastRepository';
-import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
+import {
+  findPlayerMutationRequest,
+  lockCultivatorForStateMutation,
+} from '../repositories/playerStateRepository';
+import { playerCommandExecutor } from './CommandExecutors';
 import { mapConsumableRow } from './consumablePersistence';
+import { readCultivatorName } from './cultivator/CultivatorFactsReader';
 import { addConsumableToInventoryInTransaction } from './cultivator/CultivatorInventoryRepository';
+import { generateForgingNarrative } from './ForgingNarrativeService';
 import {
   assertInventoryIdle,
   grantInventory,
@@ -128,116 +134,221 @@ export async function readForge(owner: string): Promise<ForgeView> {
   };
 }
 
-export async function forgeEquipment(owner: string, input: ForgeRequest) {
-  return mutate(owner, async (tx) => {
-    const before = (
-      await tx
-        .select()
-        .from(inventoryItems)
-        .where(
-          and(
-            eq(inventoryItems.cultivatorId, owner),
-            eq(inventoryItems.location, 'bag'),
-          ),
-        )
-    ).map(inventoryItemOf);
-    const requireItem = (ref: { id: string; revision: number }) => {
-      const item = before.find(
-        (i) => i.id === ref.id && i.revision === ref.revision,
-      );
-      if (!item) throw new InventoryError('物品已变化，请重新备料');
-      return item;
-    };
-    const blueprint = requireItem(input.blueprint);
-    const definition = itemDefinition(blueprint.definitionId);
-    if (
-      definition.kind !== 'blueprint' ||
-      !definition.slot ||
-      !definition.level
-    )
-      throw new InventoryError('请选择道装图纸');
-    const selected = input.materials.map((ref) => {
-      const item = requireItem(ref);
-      if (
-        itemDefinition(item.definitionId).kind !== 'material' ||
-        item.quantity < ref.quantity
-      )
-        throw new InventoryError('材料数量不足或类型无效');
-      return {
-        item,
-        quantity: ref.quantity,
-        facts: materialFactsOf(item.instanceData),
-      };
-    });
-    const character = await readBeastOwner(owner, tx);
-    const forging = forgingInputs(
-      definition.level,
-      character.ownerLevel,
-      selected,
-    );
-    const cost = forgingCost(definition.level);
-    if (character.spiritStones < cost.spiritStones)
-      throw new InventoryError('灵石不足');
-    const seed = randomInt(0x100000000);
-    const generated = generateForgedEquipment({
-      id: randomUUID(),
-      createdAt: new Date().toISOString(),
-      seed,
-      templateId: `dao_equipment.standard.${definition.slot}.v1`,
-      equipmentLevel: definition.level,
-      ...forging,
-    });
-    if (!generated.ok)
-      throw new InventoryError(generated.diagnostics[0].message);
-    const equipment = generated.instance;
-    const consumed = new Map([
-      [blueprint.id, 1],
-      ...selected.map((m) => [m.item.id, m.quantity] as const),
-    ]);
-    let next: InventoryItem[] = before.flatMap((item) => {
-      const quantity = item.quantity - (consumed.get(item.id) ?? 0);
-      return quantity
-        ? [
-            {
-              ...item,
-              quantity,
-              revision: item.revision + (consumed.has(item.id) ? 1 : 0),
-            },
-          ]
-        : [];
-    });
-    next = addItems(
-      next,
-      { definitionId: 'equipment.v6', quantity: 1, instanceData: equipment },
-      'bag',
-      false,
-      randomUUID,
-      null,
-    );
-    await QiService.reserveQi({
-      cultivatorId: owner,
-      action: 'equipment_forge',
-      actionInstanceId: equipment.id,
-      cost: cost.qi,
-      tx,
-    });
-    const paid = await tx
-      .update(cultivators)
-      .set({
-        spirit_stones: sql`${cultivators.spirit_stones} - ${cost.spiritStones}`,
-      })
+async function readForgeInputs(
+  owner: string,
+  input: ForgeRequest,
+  executor: DbExecutor,
+) {
+  const before = (
+    await executor
+      .select()
+      .from(inventoryItems)
       .where(
         and(
-          eq(cultivators.id, owner),
-          gte(cultivators.spirit_stones, cost.spiritStones),
+          eq(inventoryItems.cultivatorId, owner),
+          eq(inventoryItems.location, 'bag'),
         ),
       )
-      .returning({ id: cultivators.id });
-    if (!paid.length) throw new InventoryError('灵石不足');
-    await saveInventoryPlan(owner, before, next, tx);
-    await QiService.commitReservation({ actionInstanceId: equipment.id, tx });
-    return { equipment };
+  ).map(inventoryItemOf);
+  const requireItem = (ref: { id: string; revision: number }) => {
+    const item = before.find(
+      (i) => i.id === ref.id && i.revision === ref.revision,
+    );
+    if (!item) throw new InventoryError('物品已变化，请重新备料');
+    return item;
+  };
+  const blueprint = requireItem(input.blueprint);
+  const definition = itemDefinition(blueprint.definitionId);
+  if (definition.kind !== 'blueprint' || !definition.slot || !definition.level)
+    throw new InventoryError('请选择道装图纸');
+  const selected = input.materials.map((ref) => {
+    const item = requireItem(ref);
+    if (
+      itemDefinition(item.definitionId).kind !== 'material' ||
+      item.quantity < ref.quantity
+    )
+      throw new InventoryError('材料数量不足或类型无效');
+    return {
+      item,
+      quantity: ref.quantity,
+      facts: materialFactsOf(item.instanceData),
+    };
   });
+  const character = await readBeastOwner(owner, executor);
+  const forging = forgingInputs(
+    definition.level,
+    character.ownerLevel,
+    selected,
+  );
+  const cost = forgingCost(definition.level);
+  if (character.spiritStones < cost.spiritStones)
+    throw new InventoryError('灵石不足');
+  return {
+    before,
+    blueprint,
+    slot: definition.slot,
+    level: definition.level,
+    selected,
+    forging,
+    cost,
+  };
+}
+
+export async function forgeEquipment(
+  owner: string,
+  input: ForgeRequest,
+  userId: string,
+) {
+  // 只串行化同一角色的开炉请求；命名期间不持有角色写锁或数据库事务。
+  return withRedisLock(
+    {
+      key: redisLockKeys.forgingPreparation(owner),
+      context: 'forging-preparation',
+      timeoutMs: 30000,
+      retries: 0,
+    },
+    async (lease) => {
+      const existing = await findPlayerMutationRequest(
+        owner,
+        'forging',
+        input.requestId,
+      );
+      let narrative: Awaited<ReturnType<typeof generateForgingNarrative>> =
+        null;
+      if (!existing) {
+        await assertInventoryIdle(owner);
+        const prepared = await readForgeInputs(owner, input, db);
+        const qi = await QiService.getQiState(owner);
+        if (qi.current < prepared.cost.qi)
+          throw new InventoryError('天地灵气不足');
+        narrative = await generateForgingNarrative({
+          level: prepared.level,
+          slot: prepared.slot,
+          materials: prepared.selected,
+          intent: input.intent,
+        });
+      }
+      lease.assertHeld();
+      const seed = randomInt(0x100000000);
+      const equipmentId = randomUUID();
+      const createdAt = new Date().toISOString();
+      const committed = await playerCommandExecutor.executeWithLock({
+        userId,
+        cultivatorId: owner,
+        source: 'forging',
+        idempotency: {
+          key: input.requestId,
+          fingerprint: JSON.stringify(input),
+        },
+        command: async (tx) => {
+          lease.assertHeld();
+          if (existing)
+            throw new InventoryError('开炉凭据已失效，请核对储物袋');
+          await assertInventoryIdle(owner);
+          const { before, blueprint, slot, level, selected, forging, cost } =
+            await readForgeInputs(owner, input, tx);
+          const generated = generateForgedEquipment({
+            id: equipmentId,
+            createdAt,
+            seed,
+            templateId: `dao_equipment.standard.${slot}.v1`,
+            equipmentLevel: level,
+            ...forging,
+          });
+          if (!generated.ok)
+            throw new InventoryError(generated.diagnostics[0].message);
+          const { name: crafterName } = await readCultivatorName(owner, tx);
+          const equipment = {
+            ...generated.instance,
+            ...(narrative
+              ? { name: narrative.name, desc: narrative.desc }
+              : {}),
+            crafterName,
+          };
+          const consumed = new Map([
+            [blueprint.id, 1],
+            ...selected.map((m) => [m.item.id, m.quantity] as const),
+          ]);
+          let next: InventoryItem[] = before.flatMap((item) => {
+            const quantity = item.quantity - (consumed.get(item.id) ?? 0);
+            return quantity
+              ? [
+                  {
+                    ...item,
+                    quantity,
+                    revision: item.revision + (consumed.has(item.id) ? 1 : 0),
+                  },
+                ]
+              : [];
+          });
+          next = addItems(
+            next,
+            {
+              definitionId: 'equipment.v6',
+              quantity: 1,
+              instanceData: equipment,
+            },
+            'bag',
+            false,
+            randomUUID,
+            null,
+          );
+          await QiService.reserveQi({
+            cultivatorId: owner,
+            action: 'equipment_forge',
+            actionInstanceId: equipment.id,
+            cost: cost.qi,
+            tx,
+          });
+          const paid = await tx
+            .update(cultivators)
+            .set({
+              spirit_stones: sql`${cultivators.spirit_stones} - ${cost.spiritStones}`,
+            })
+            .where(
+              and(
+                eq(cultivators.id, owner),
+                gte(cultivators.spirit_stones, cost.spiritStones),
+              ),
+            )
+            .returning({ id: cultivators.id });
+          if (!paid.length) throw new InventoryError('灵石不足');
+          await saveInventoryPlan(owner, before, next, tx);
+          await QiService.commitReservation({
+            actionInstanceId: equipment.id,
+            tx,
+          });
+          lease.assertHeld();
+          return {
+            result: { equipment },
+            resourceChanges: [
+              {
+                resourceTopic: 'player.currency',
+                operation: 'invalidate',
+                eventType: 'forging.currency.changed',
+              },
+              {
+                resourceTopic: 'player.profile',
+                operation: 'invalidate',
+                eventType: 'forging.profile.changed',
+              },
+              {
+                resourceTopic: 'inventory.bag',
+                operation: 'invalidate',
+                eventType: 'inventory.forging.changed',
+              },
+              {
+                resourceTopic: 'inventory.materials',
+                operation: 'invalidate',
+                eventType: 'forging.materials.changed',
+              },
+            ],
+          };
+        },
+      });
+      return { data: committed.result, state: committed.state };
+    },
+  );
 }
 
 export async function readVault(

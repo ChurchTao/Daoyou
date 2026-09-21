@@ -1,7 +1,11 @@
 import { LEVELS_PER_REALM_STAGE } from '@shared/config/realmProgression';
 import { equipmentRealm, isOpenEquipmentLevel } from './realm';
 import type { Attributes } from '@shared/types/cultivator';
-import { isForgedName } from '../../../forging/names';
+import {
+  EquipmentCrafterNameSchema,
+  ForgedEquipmentDescSchema,
+  ForgedEquipmentNameSchema,
+} from '../../../forging/narrative';
 import type { CombatV6ProjectionDiagnostic } from '../projection/types.ts';
 import {
   daoEquipmentAttributeRange,
@@ -122,6 +126,10 @@ function validateInstance(
     instance.id.trim().length === 0 ||
     typeof instance.name !== 'string' ||
     instance.name.trim().length === 0 ||
+    (instance.desc !== undefined &&
+      !ForgedEquipmentDescSchema.safeParse(instance.desc).success) ||
+    (instance.crafterName !== undefined &&
+      !EquipmentCrafterNameSchema.safeParse(instance.crafterName).success) ||
     typeof instance.createdAt !== 'string' ||
     instance.createdAt.trim().length === 0 ||
     (!special
@@ -157,13 +165,13 @@ function validateInstance(
     template &&
     (instance.slot !== template.slot ||
       (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V3
-        ? !isForgedName(template.slot, instance.equipmentLevel, instance.name)
+        ? !ForgedEquipmentNameSchema.safeParse(instance.name).success
         : instance.name !== template.name))
   ) {
     diagnostics.push(
       diagnostic(
         'EQUIPMENT_SLOT_MISMATCH',
-        '道装部位或标准名称与模板不一致',
+        '道装部位或名称无效',
         'slot',
       ),
     );

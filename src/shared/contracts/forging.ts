@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
+import { ForgeIntentSchema } from '../forging/narrative';
 import { ForgingLevelSchema } from '../forging/rules';
 import { ItemGrantSchema } from '../inventory';
 import { ConsumableFactsSchema } from '../items/definitions/consumables';
@@ -13,6 +14,8 @@ const ref = {
 };
 export const ForgeRequestSchema = z
   .object({
+    requestId: z.uuid(),
+    intent: ForgeIntentSchema.optional(),
     blueprint: z.object(ref).strict(),
     materials: z
       .array(

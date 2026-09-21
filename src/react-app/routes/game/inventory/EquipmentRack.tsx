@@ -1,4 +1,5 @@
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { compileDaoEquipmentSpecialLoadoutV1 } from '@shared/engine/combat-v6/equipment/compiler';
@@ -117,7 +118,9 @@ export function EquipmentRack({
                   <ItemSlot
                     item={item}
                     emptyLabel={EQUIPMENT_SLOT_NAMES[slot]}
-                    emptyIcon={icons[slot]}
+                    emptyIcon={
+                      <GameIcon value={icons[slot]} className="opacity-30" />
+                    }
                     disabled={pending}
                     badge={item ? '穿' : undefined}
                     className="block w-full"

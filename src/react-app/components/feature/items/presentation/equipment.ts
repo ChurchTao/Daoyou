@@ -139,6 +139,9 @@ export const equipmentAdapter: ItemAdapter = (item) => {
           '要求',
           getLevelRealmStage(daoEquipmentRequiredLevel(equipment)).label,
         ),
+        ...(equipment.crafterName
+          ? [field('铸造者', equipment.crafterName)]
+          : []),
         ...(item.equipped
           ? [{ kind: 'status' as const, value: '已穿戴' }]
           : []),
@@ -150,6 +153,7 @@ export const equipmentAdapter: ItemAdapter = (item) => {
           : undefined,
         options.previous?.name,
       ),
+      description: equipment.desc,
       comparison: options.comparisonItem
         ? {
             title: `与已穿戴的${options.comparisonItem.name}比较`,

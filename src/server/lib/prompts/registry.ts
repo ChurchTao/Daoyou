@@ -12,6 +12,7 @@ import divineFortunePrompt from '@server/prompts/divine-fortune.md?raw';
 import dungeonRoundPrompt from '@server/prompts/dungeon-round.md?raw';
 import dungeonSettlementPrompt from '@server/prompts/dungeon-settlement.md?raw';
 import fateNamingPrompt from '@server/prompts/fate-naming.md?raw';
+import equipmentForgeNamingPrompt from '@server/prompts/equipment-forge-naming.md?raw';
 import identityReshapePrompt from '@server/prompts/identity-reshape.md?raw';
 import lifespanExhaustedPrompt from '@server/prompts/lifespan-exhausted.md?raw';
 import materialGenerationPrompt from '@server/prompts/material-generation.md?raw';
@@ -49,6 +50,7 @@ const bundledPromptSources: Record<string, string> = {
   'dungeon-round.md': dungeonRoundPrompt,
   'dungeon-settlement.md': dungeonSettlementPrompt,
   'fate-naming.md': fateNamingPrompt,
+  'equipment-forge-naming.md': equipmentForgeNamingPrompt,
   'identity-reshape.md': identityReshapePrompt,
   'lifespan-exhausted.md': lifespanExhaustedPrompt,
   'material-generation.md': materialGenerationPrompt,

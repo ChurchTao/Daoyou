@@ -68,6 +68,9 @@ export interface DaoEquipmentInstanceV1 {
   id: string;
   templateId: string;
   name: string;
+  desc?: string;
+  /** 铸造时的角色名称快照，不随角色改名或装备转手变化。 */
+  crafterName?: string;
   slot: DaoEquipmentSlot;
   equipmentLevel: number;
   requiredLevel: number;

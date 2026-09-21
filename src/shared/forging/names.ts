@@ -29,15 +29,6 @@ const forms: Record<DaoEquipmentSlot, readonly string[]> = {
   belt: ['带', '腰封', '束'],
   footwear: ['履', '靴', '踏云履'],
 };
-export function isForgedName(
-  slot: DaoEquipmentSlot,
-  level: number,
-  name: string,
-) {
-  const tier = tiers[level / 10 - 1];
-  if (!tier) return false;
-  return forms[slot]?.some((form) => `${tier}${form}` === name) ?? false;
-}
 export function forgedName(
   slot: DaoEquipmentSlot,
   level: number,
