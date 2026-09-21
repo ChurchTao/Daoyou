@@ -15,7 +15,23 @@ export interface TowerReward {
   spiritStones: number;
   reputation: number;
 }
+export interface TowerRewardPreview {
+  floor: number;
+  spiritStones: number;
+  reputation: number;
+  drops: {
+    id: string;
+    label: string;
+    chance: number;
+    quantity: number;
+    realmLimited: boolean;
+    random: boolean;
+    definitionIds: string[];
+  }[];
+}
 export interface TowerView {
+  rewardRealm: RealmType;
+  rewardPreviews: TowerRewardPreview[];
   season: TowerSeasonMeta;
   eligible: boolean;
   rewards: TowerReward[];

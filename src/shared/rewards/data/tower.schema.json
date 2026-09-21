@@ -7,41 +7,61 @@
     },
     "formatVersion": {
       "type": "number",
-      "const": 2
+      "const": 3
     },
     "contentRevision": {
       "minimum": 1,
       "$ref": "#/$defs/__schema0"
     },
-    "milestones": {
+    "pools": {
       "type": "object",
-      "properties": {
-        "C": {
-          "$ref": "#/$defs/__schema1"
-        },
-        "B": {
-          "$ref": "#/$defs/__schema1"
-        },
-        "A": {
-          "$ref": "#/$defs/__schema1"
-        },
-        "S": {
-          "$ref": "#/$defs/__schema1"
-        }
+      "propertyNames": {
+        "type": "string"
       },
-      "required": [
-        "C",
-        "B",
-        "A",
-        "S"
-      ],
-      "additionalProperties": false
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "beast_book",
+              "blueprint"
+            ]
+          },
+          "entries": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema1"
+            }
+          }
+        },
+        "required": [
+          "label",
+          "kind",
+          "entries"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "floors": {
+      "minItems": 20,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
     }
   },
   "required": [
     "formatVersion",
     "contentRevision",
-    "milestones"
+    "pools",
+    "floors"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -51,12 +71,15 @@
       "maximum": 1000000
     },
     "__schema1": {
+      "type": "string"
+    },
+    "__schema2": {
       "type": "object",
       "properties": {
-        "quantity": {
+        "floor": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 99,
+          "maximum": 20,
           "$ref": "#/$defs/__schema0"
         },
         "spiritStonesPerLevel": {
@@ -64,12 +87,85 @@
         },
         "reputation": {
           "$ref": "#/$defs/__schema0"
+        },
+        "drops": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
         }
       },
       "required": [
-        "quantity",
+        "floor",
         "spiritStonesPerLevel",
-        "reputation"
+        "reputation",
+        "drops"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 99,
+          "$ref": "#/$defs/__schema0"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "item"
+                },
+                "definitionId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "definitionId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "pool"
+                },
+                "poolId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "poolId"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "chance",
+        "quantity",
+        "source"
       ],
       "additionalProperties": false
     }

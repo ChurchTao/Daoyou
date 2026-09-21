@@ -43,13 +43,13 @@ export function ItemSlot({
   disabled?: boolean;
   badge?: string;
   emptyLabel?: string;
-  emptyIcon?: string;
+  emptyIcon?: ReactNode;
   className?: string;
   onQuickAction?: () => void;
   quickOnTouch?: boolean;
   children?: (close: () => void) => ReactNode;
   comparisonItem?: DisplayItem;
-  quantityLabel?: '持有' | '库存';
+  quantityLabel?: '持有' | '库存' | '奖励';
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -170,8 +170,12 @@ export function ItemSlot({
             item
               ? 'inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
               : emptyLabel && emptyIcon !== '·'
-                ? 'text-ink/25 inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
+                ? 'inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
                 : 'text-ink/25 inset-0 text-xl',
+            !item &&
+              emptyLabel &&
+              emptyIcon !== '·' &&
+              (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
           )}
         >
           {presentation?.icon ?? emptyIcon}

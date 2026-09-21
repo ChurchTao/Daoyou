@@ -1,9 +1,4 @@
-import {
-  GameLoadingState,
-  GameSceneSection,
-  GameSceneTabs,
-} from '@app/components/game-shell';
-import { InkCard } from '@app/components/ui/InkCard';
+import { GameLoadingState, GameSceneTabs } from '@app/components/game-shell';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { TOWER_ELIGIBLE_REALMS } from '@shared/lib/tower/helpers';
 import type { TowerLeaderboardEntry } from '@shared/lib/tower/types';
@@ -23,69 +18,67 @@ export function TowerLeaderboard({
   onRealmChange,
 }: TowerLeaderboardProps) {
   return (
-    <GameSceneSection title="留名榜">
-      <InkCard className="w-full min-w-0 space-y-4 overflow-hidden p-4">
-        <div className="md:hidden">
-          <InkSelect
-            value={activeRealm}
-            onChange={(value) => onRealmChange(value as RealmType)}
-            className="w-full"
-          >
-            {TOWER_ELIGIBLE_REALMS.map((realm) => (
-              <option key={realm} value={realm}>
-                {realm}榜
-              </option>
-            ))}
-          </InkSelect>
-        </div>
-
-        <GameSceneTabs
-          className="hidden md:block"
-          items={TOWER_ELIGIBLE_REALMS.map((realm) => ({
-            label: `${realm}榜`,
-            value: realm,
-          }))}
-          activeValue={activeRealm}
+    <div className="w-full min-w-0 space-y-6">
+      <div className="md:hidden">
+        <InkSelect
+          value={activeRealm}
           onChange={(value) => onRealmChange(value as RealmType)}
-        />
+          className="w-full"
+        >
+          {TOWER_ELIGIBLE_REALMS.map((realm) => (
+            <option key={realm} value={realm}>
+              {realm}榜
+            </option>
+          ))}
+        </InkSelect>
+      </div>
 
-        {loading ? (
-          <GameLoadingState message="正在校准榜位……" variant="inline" />
-        ) : entries.length === 0 ? (
-          <p className="text-ink-secondary py-6 text-center text-sm">
-            本周此境尚无人留名。
-          </p>
-        ) : (
-          <div className="max-h-80 space-y-3 overflow-x-hidden overflow-y-auto pr-1 md:max-h-120">
-            {entries.map((entry) => (
-              <div
-                key={`${entry.recordedRealm}:${entry.cultivatorId}`}
-                className="border-ink/15 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-dashed pb-3 last:border-b-0 last:pb-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-crimson min-w-12 text-sm font-semibold">
-                      第 {entry.rank} 名
-                    </span>
-                    <span className="min-w-0 truncate font-semibold">
-                      {entry.name}
-                      {entry.title ? `「${entry.title}」` : ''}
-                    </span>
-                  </div>
-                  <div className="text-ink-secondary mt-1 truncate text-xs">
-                    境界：{entry.realm} {entry.realmStage}
-                  </div>
+      <GameSceneTabs
+        className="hidden md:block"
+        items={TOWER_ELIGIBLE_REALMS.map((realm) => ({
+          label: `${realm}榜`,
+          value: realm,
+        }))}
+        activeValue={activeRealm}
+        onChange={(value) => onRealmChange(value as RealmType)}
+      />
+
+      {loading ? (
+        <GameLoadingState message="正在校准榜位……" variant="inline" />
+      ) : entries.length === 0 ? (
+        <p className="text-ink-secondary py-6 text-center text-sm">
+          本周此境尚无人留名。
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {entries.map((entry) => (
+            <div
+              key={`${entry.recordedRealm}:${entry.cultivatorId}`}
+              className="border-ink/15 grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-4 border-b border-dashed pb-3 last:border-b-0 last:pb-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-crimson min-w-12 font-mono text-sm font-semibold">
+                    第 {entry.rank} 名
+                  </span>
+                  <span className="min-w-0 truncate font-semibold">
+                    {entry.name}
+                    {entry.title ? `「${entry.title}」` : ''}
+                  </span>
                 </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-ink text-lg font-semibold">
-                    {entry.highestFloor} 层
-                  </div>
+                <div className="text-ink-secondary mt-1 truncate text-xs">
+                  境界：{entry.realm} {entry.realmStage}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </InkCard>
-    </GameSceneSection>
+              <div className="shrink-0 text-right">
+                <div className="text-ink font-mono text-lg font-semibold">
+                  {entry.highestFloor} 层
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

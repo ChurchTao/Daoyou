@@ -25,7 +25,6 @@ import {
   type TowerBattleSnapshot,
 } from '@shared/engine/combat-v6/tower/host';
 import { publishedTowerPreviews } from '@shared/engine/combat-v6/tower/published';
-import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import type { TowerBlessingId } from '@shared/lib/tower/blessings';
 import {
   buildTowerBlessingChoices,
@@ -41,7 +40,7 @@ import {
   TowerRewardSchema,
 } from '@shared/lib/tower/reward-state';
 import { getTowerSeasonMeta } from '@shared/lib/tower/season';
-import { planTowerReward } from '@shared/rewards/tower';
+import { planTowerReward, towerRewardPreviews } from '@shared/rewards/tower';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
 import { eq, sql } from 'drizzle-orm';
@@ -73,7 +72,6 @@ import {
   assertInventoryIdle,
   grantInventory,
 } from '../services/InventoryService';
-import { generateRealmMaterials } from '../services/MaterialRewardService';
 import { publishResourceEvents } from '../services/playerStateBroadcaster';
 import { ResourceEventCommitter } from '../services/ResourceEventCommitter';
 import { updateTowerWeeklyRecord } from './leaderboard';
@@ -126,6 +124,7 @@ async function publicView(
   owner: string,
   run: Run | null,
   eligible = true,
+  rewardRealm: RealmType = run?.realm ?? TOWER_MIN_REALM,
 ): Promise<TowerView> {
   const published = await currentWeek();
   const receipt = await readTowerRewardState(owner);
@@ -137,6 +136,8 @@ async function publicView(
         : null;
   return {
     season: published.season,
+    rewardRealm,
+    rewardPreviews: towerRewardPreviews(rewardRealm),
     eligible,
     rewards: towerRewards(receipt, published.season.seasonKey),
     weeklyEnemies: publishedTowerPreviews(published).filter(
@@ -172,7 +173,18 @@ export async function getTowerView(owner: string) {
       .where(eq(cultivators.id, owner)),
   ]);
   const eligible = !!row && isTowerRealmEligible(row.realm as RealmType);
-  return publicView(owner, run, eligible);
+  return publicView(
+    owner,
+    run,
+    eligible,
+    run &&
+      run.status !== 'FINISHED' &&
+      run.season.seasonKey === getTowerSeasonMeta().seasonKey
+      ? run.realm
+      : eligible
+        ? (row.realm as RealmType)
+        : TOWER_MIN_REALM,
+  );
 }
 function locked<T>(
   owner: string,
@@ -528,38 +540,14 @@ export async function changeTowerBattle(
       ) {
         reward = battle.reward ?? null;
         if (!reward) {
-          const plan = planTowerReward(
+          reward = planTowerReward(
             run.floor,
             hashTowerSeed(`${run.runId}:${run.floor}`),
             run.realm,
           );
-          if (plan) {
-            const materials = await generateRealmMaterials(
-              plan.materialRealm,
-              plan.materialCount,
-              plan.materialSeed,
-              true,
-            );
-            reward = {
-              floor: plan.floor,
-              spiritStones: plan.spiritStones,
-              reputation: plan.reputation,
-              items: materials.map((material) => ({
-                definitionId: 'material.v1',
-                quantity: 1,
-                instanceData: MaterialFactsSchema.parse({
-                  name: material.name,
-                  type: material.type,
-                  rank: material.rank,
-                  element: material.element ?? null,
-                  description: material.description ?? '',
-                }),
-              })),
-            };
-            // Freeze library facts before settlement; retries must not resample.
-            battle.reward = reward;
-            await save(owner, run, lease);
-          }
+          // Freeze the exact drops before settlement; retries must not resample.
+          battle.reward = reward;
+          await save(owner, run, lease);
         }
       }
       const changes = await db.transaction(async (tx) => {

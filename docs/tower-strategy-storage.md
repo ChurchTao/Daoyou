@@ -8,7 +8,7 @@
 - 每层保存 `floor`、`kind`、`budget.hpScale` 和 1–3 名敌人；每敌人保存层内 `id`、`archetype`、`role`、`behaviorId`、独立 `traits`、`budgetShare.hp/output`。
 - 原型提供基础属性；行动由明确的 `behaviorId` 决定，编译器不根据楼层或词条猜周期。护卫关系通过 `targetEnemyId` 指向同层成员。
 - 周记录不保存完整 NPC、技能、状态或预览副本。开战按当层策略和境界编译；Redis 单场快照冻结真实单位、技能、状态与行动计划，刷新不重编译。
-- `tower_reward_states` 仍每角色一行，仅保存本周最多四档领取事实。硬切保留 SQL 领奖记录与已发资产，不重发奖励。
+- `tower_reward_states` 仍每角色一行，仅保存本周最多20层领取事实。硬切保留 SQL 领奖记录与已发资产，不重发奖励。
 
 ## 配置与编译
 

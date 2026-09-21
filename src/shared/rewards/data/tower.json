@@ -1,27 +1,311 @@
 {
   "$schema": "./tower.schema.json",
-  "formatVersion": 2,
-  "contentRevision": 2,
-  "milestones": {
-    "C": {
-      "quantity": 1,
-      "spiritStonesPerLevel": 5,
-      "reputation": 5
+  "formatVersion": 3,
+  "contentRevision": 4,
+  "pools": {
+    "books": {
+      "label": "随机普通传承灵印",
+      "kind": "beast_book",
+      "entries": [
+        "book.beast.spirit-flame",
+        "book.beast.combo",
+        "book.beast.counter",
+        "book.beast.critical",
+        "book.beast.spell-critical",
+        "book.beast.regeneration",
+        "book.beast.meditation",
+        "book.beast.agility",
+        "book.beast.spell-mastery",
+        "book.beast.sluggish",
+        "book.beast.thunder",
+        "book.beast.falling-rock",
+        "book.beast.water-attack",
+        "book.beast.lifesteal",
+        "book.beast.reflection",
+        "book.beast.divine-revival",
+        "book.beast.spell-reflection",
+        "book.beast.wisdom",
+        "book.beast.sneak-attack",
+        "book.beast.spell-resistance",
+        "book.beast.parry",
+        "book.beast.defense",
+        "book.beast.strength",
+        "book.beast.thunderstorm",
+        "book.beast.mountain-crush",
+        "book.beast.flood",
+        "book.beast.wildfire",
+        "book.beast.spell-combo",
+        "book.beast.spell-fluctuation",
+        "book.beast.stealth",
+        "book.beast.perception",
+        "book.beast.poison",
+        "book.beast.miracle",
+        "book.beast.concentration",
+        "book.beast.eternity",
+        "book.beast.ghost",
+        "book.beast.exorcism",
+        "book.beast.denial"
+      ]
     },
-    "B": {
-      "quantity": 2,
-      "spiritStonesPerLevel": 10,
-      "reputation": 10
+    "superiorBooks": {
+      "label": "随机上品传承灵印",
+      "kind": "beast_book",
+      "entries": [
+        "book.beast.advanced-combo",
+        "book.beast.advanced-counter",
+        "book.beast.advanced-critical",
+        "book.beast.advanced-spell-critical",
+        "book.beast.advanced-regeneration",
+        "book.beast.advanced-meditation",
+        "book.beast.advanced-agility",
+        "book.beast.advanced-spell-mastery",
+        "book.beast.advanced-lifesteal",
+        "book.beast.advanced-reflection",
+        "book.beast.advanced-divine-revival",
+        "book.beast.advanced-spell-reflection",
+        "book.beast.advanced-wisdom",
+        "book.beast.advanced-sneak-attack",
+        "book.beast.advanced-spell-resistance",
+        "book.beast.advanced-parry",
+        "book.beast.advanced-defense",
+        "book.beast.advanced-strength",
+        "book.beast.advanced-spell-combo",
+        "book.beast.advanced-spell-fluctuation",
+        "book.beast.advanced-stealth",
+        "book.beast.advanced-perception",
+        "book.beast.advanced-poison",
+        "book.beast.advanced-miracle",
+        "book.beast.advanced-concentration",
+        "book.beast.advanced-eternity",
+        "book.beast.advanced-ghost",
+        "book.beast.advanced-exorcism",
+        "book.beast.advanced-denial"
+      ]
     },
-    "A": {
-      "quantity": 3,
-      "spiritStonesPerLevel": 15,
-      "reputation": 15
-    },
-    "S": {
-      "quantity": 4,
-      "spiritStonesPerLevel": 20,
-      "reputation": 20
+    "blueprints": {
+      "label": "随机境界、随机部位道装图纸",
+      "kind": "blueprint",
+      "entries": [
+        "blueprint.weapon.10",
+        "blueprint.head.10",
+        "blueprint.armor.10",
+        "blueprint.necklace.10",
+        "blueprint.belt.10",
+        "blueprint.footwear.10",
+        "blueprint.weapon.30",
+        "blueprint.head.30",
+        "blueprint.armor.30",
+        "blueprint.necklace.30",
+        "blueprint.belt.30",
+        "blueprint.footwear.30",
+        "blueprint.weapon.50",
+        "blueprint.head.50",
+        "blueprint.armor.50",
+        "blueprint.necklace.50",
+        "blueprint.belt.50",
+        "blueprint.footwear.50",
+        "blueprint.weapon.70",
+        "blueprint.head.70",
+        "blueprint.armor.70",
+        "blueprint.necklace.70",
+        "blueprint.belt.70",
+        "blueprint.footwear.70",
+        "blueprint.weapon.90",
+        "blueprint.head.90",
+        "blueprint.armor.90",
+        "blueprint.necklace.90",
+        "blueprint.belt.90",
+        "blueprint.footwear.90"
+      ]
     }
-  }
+  },
+  "floors": [
+    {
+      "floor": 1,
+      "spiritStonesPerLevel": 200,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 2,
+      "spiritStonesPerLevel": 200,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 3,
+      "spiritStonesPerLevel": 200,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 4,
+      "spiritStonesPerLevel": 200,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 5,
+      "spiritStonesPerLevel": 0,
+      "reputation": 30,
+      "drops": [
+        {
+          "id": "dew",
+          "chance": 1,
+          "quantity": 2,
+          "source": {
+            "kind": "item",
+            "definitionId": "beast.refinement.origin-dew"
+          }
+        },
+        {
+          "id": "bonus",
+          "chance": 0.15,
+          "quantity": 1,
+          "source": {
+            "kind": "item",
+            "definitionId": "beast.refinement.superior-origin-dew"
+          }
+        }
+      ]
+    },
+    {
+      "floor": 6,
+      "spiritStonesPerLevel": 300,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 7,
+      "spiritStonesPerLevel": 300,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 8,
+      "spiritStonesPerLevel": 300,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 9,
+      "spiritStonesPerLevel": 300,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 10,
+      "spiritStonesPerLevel": 0,
+      "reputation": 50,
+      "drops": [
+        {
+          "id": "book",
+          "chance": 1,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "books"
+          }
+        },
+        {
+          "id": "bonus",
+          "chance": 0.08,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "superiorBooks"
+          }
+        }
+      ]
+    },
+    {
+      "floor": 11,
+      "spiritStonesPerLevel": 400,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 12,
+      "spiritStonesPerLevel": 400,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 13,
+      "spiritStonesPerLevel": 400,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 14,
+      "spiritStonesPerLevel": 400,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 15,
+      "spiritStonesPerLevel": 0,
+      "reputation": 50,
+      "drops": [
+        {
+          "id": "blueprint",
+          "chance": 1,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "blueprints"
+          }
+        }
+      ]
+    },
+    {
+      "floor": 16,
+      "spiritStonesPerLevel": 500,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 17,
+      "spiritStonesPerLevel": 500,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 18,
+      "spiritStonesPerLevel": 500,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 19,
+      "spiritStonesPerLevel": 500,
+      "reputation": 0,
+      "drops": []
+    },
+    {
+      "floor": 20,
+      "spiritStonesPerLevel": 0,
+      "reputation": 50,
+      "drops": [
+        {
+          "id": "dew",
+          "chance": 1,
+          "quantity": 1,
+          "source": {
+            "kind": "item",
+            "definitionId": "beast.refinement.superior-origin-dew"
+          }
+        },
+        {
+          "id": "bonus",
+          "chance": 0.5,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "blueprints"
+          }
+        }
+      ]
+    }
+  ]
 }

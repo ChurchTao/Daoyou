@@ -3,7 +3,7 @@ import type { TowerReward } from '../../contracts/combatV6Tower';
 import { ItemGrantSchema } from '../../inventory';
 
 export const TowerRewardSchema = z.strictObject({
-  floor: z.union([z.literal(5), z.literal(10), z.literal(15), z.literal(20)]),
+  floor: z.number().int().min(1).max(20),
   spiritStones: z.number().int().nonnegative(),
   reputation: z.number().int().nonnegative(),
   items: z.array(ItemGrantSchema),
@@ -14,7 +14,7 @@ const claim = z.strictObject({
   reward: TowerRewardSchema,
 });
 export const TowerClaimsSchema = z
-  .partialRecord(z.enum(['5', '10', '15', '20']), claim)
+  .record(z.string().regex(/^(?:[1-9]|1[0-9]|20)$/), claim)
   .superRefine((claims, ctx) => {
     for (const [floor, entry] of Object.entries(claims)) {
       if (entry && entry.reward.floor !== Number(floor))
