@@ -52,7 +52,7 @@ export const YouduPathsPackShape = z.strictObject({
   contentRevision: z.number().int().positive(),
   passives: z.array(z.strictObject({ id, name: text, hooks: z.array(hook).min(1) })).min(1),
   paths: z.array(z.strictObject({
-    id, name: text, foundationPassives: ids,
+    id, name: text, foundationPassives: ids, grantSkills: ids.optional(),
     nodes: z.array(z.strictObject({
       id, name: text, layer: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
       slot: z.union([z.literal(1), z.literal(2), z.literal(3)]), description: text,
@@ -135,6 +135,7 @@ export function compileYouduPaths(pack: ReturnType<typeof loadYouduPathsPack>): 
   const passive = (id: string) => passives.get(id)!;
   const paths = pack.paths.map(path => ({
     ...path, foundationPassives: path.foundationPassives.map(passive),
+    grantSkills: path.grantSkills?.map(YOUDU_COMBAT.skill),
     nodes: path.nodes.map(node => {
       const { id, name, passives: passiveRefs, grantSkills: grantRefs, ...rest } = node;
       const compiled = { id, name, pathId: path.id, ...rest };

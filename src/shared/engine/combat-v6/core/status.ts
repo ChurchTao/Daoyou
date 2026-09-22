@@ -21,7 +21,7 @@ import { evalExpr, skillLevelOf } from "./expr.ts"
 import { skillOf, passiveSkills } from "./skills.ts"
 import { standingUnits } from "./query.ts"
 import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
-import { effectiveAttrs, recoverableHp } from "./units.ts"
+import { effectiveAttrs, isStanding, recoverableHp } from "./units.ts"
 import { applyDamage, applyMpDamage } from "./damage.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
@@ -124,6 +124,7 @@ export function applyStatus(
     existing.remainingRounds = duration
     existing.sourceId = sourceId
     existing.appliedRound = ctx.state.round
+    if (def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined) existing.tickSkillLevel = env.skillLevel
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
@@ -148,6 +149,7 @@ export function applyStatus(
     attrMods,
     storedTargetId: options.storedTargetId,
     ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
+    ...(def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -205,11 +207,23 @@ export function tickStatuses(ctx: BattleContext): void {
   for (const unit of [...standingUnits(ctx.state), ...ctx.state.units.filter((u) => u.flags.downed || (u.flags.dead && u.flags.reviveAtRound !== undefined))]) {
     for (const inst of [...unit.statuses]) {
       const def = statusDef(ctx, inst.id)
+      if (def?.upkeepMp && inst.appliedRound !== ctx.state.round && isStanding(unit)) {
+        const caster = ctx.state.units.find(candidate => candidate.id === inst.sourceId)
+        const cost = caster?.id === unit.id ? def.upkeepMp.self : def.upkeepMp.other
+        if (!caster || !isStanding(caster) || caster.attrs.mp < cost) {
+          removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
+          continue
+        }
+        applyMpDamage(ctx, caster, caster, cost)
+      }
       if (def?.ticks === StatusTick.RoundEnd && def.onTick?.type === TickKind.Dot && !unit.flags.downed && !unit.flags.dead) {
-        const amount = Math.max(1, Math.floor(unit.attrs.maxHp * def.onTick.ratioOfMaxHp))
         const source = ctx.state.units.find((candidate) => candidate.id === inst.sourceId) ?? unit
+        const env = { source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }
+        const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
+          def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
         applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
-        if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(unit.attrs.maxMp * def.onTick.ratioOfMaxMp))
+        if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(Math.min(unit.attrs.maxMp * def.onTick.ratioOfMaxMp,
+          def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
       }
 
       // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。

@@ -1,7 +1,7 @@
 import { ATTR_NAMES, createUnit, evalExpr } from '../core';
 import { ExprFn, ExprVar } from '../core/enums';
 
-const formulaFields = new Set(['costMp', 'costHp', 'count', 'power', 'duration', 'speedMod', 'value', 'factor', 'maxGainPerAction', 'followPower', 'healingPower', 'damageBonus', 'damageAdd', 'physicalAttackAdd', 'critChanceAdd', 'critMultiplierAdd', 'defenseIgnoreAdd', 'protectedDamageBonus', 'recoverySkipChance', 'targetCountAdd', 'chance', 'amount', 'aimCount']);
+const formulaFields = new Set(['hpCap', 'mpCap', 'costMp', 'costHp', 'count', 'power', 'duration', 'speedMod', 'value', 'factor', 'maxGainPerAction', 'followPower', 'healingPower', 'damageBonus', 'damageAdd', 'physicalAttackAdd', 'critChanceAdd', 'critMultiplierAdd', 'defenseIgnoreAdd', 'protectedDamageBonus', 'recoverySkipChance', 'targetCountAdd', 'chance', 'amount', 'aimCount']);
 const allowedVariables = new Set<string>([
   ...ATTR_NAMES, ...Object.values(ExprVar), ...Object.values(ExprFn),
   ...ATTR_NAMES.flatMap(attr => ['source.' + attr, 'target.' + attr]), 'source.level', 'target.level', 'originalResourceCost',

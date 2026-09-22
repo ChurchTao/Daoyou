@@ -34,3 +34,11 @@ export function modifierValue(modifiers: CombatModifier[], key: keyof CombatModi
 export function isReviveBlocked(ctx: BattleContext, target: Unit): boolean {
   return !combatModifiers(ctx, target).some(m => m.ignoreReviveBlock) && target.statuses.some(s => ctx.statusDefs.get(s.id)?.blocksRevive);
 }
+
+export function sealHitTakenFactor(ctx: Pick<BattleContext, 'skills' | 'statusDefs'>, target: Unit): number {
+  const factors = [
+    ...passiveSkills(ctx.skills, target).map(s => s.innate?.sealHitTakenFactor ?? 1),
+    ...target.statuses.map(s => ctx.statusDefs.get(s.id)?.sealHitTakenFactor ?? 1),
+  ];
+  return factors.reduce((factor, value) => factor * value, 1);
+}

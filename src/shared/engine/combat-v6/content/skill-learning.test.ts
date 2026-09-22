@@ -10,7 +10,7 @@ import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from
 
 describe('宗门技能学习配置', () => {
   it('技能、状态、流派和心法保持基线（含比例伤害分类）', () => {
-    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe('ae6fa65a4b3df628105644138eedb4e1915a66c3504da345db5f262a35697d6d');
+    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe('9500e6492bc746a054a86697323c41fa4b34d2d28056ab41e084f49d0583f6a0');
   });
   it('Schema 与编辑器一致', () => {
     expect(z.toJSONSchema(SectSkillLearningShape)).toEqual(schema);

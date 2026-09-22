@@ -23,6 +23,10 @@ export const YOUDU_SKILL_ID = {
   SoulSeal: "youdu.skill.soul_seal",
   Insight: "youdu.skill.insight",
   Sever: "youdu.skill.sever",
+  Judge: "youdu.skill.judge",
+  Revival: "youdu.skill.revival",
+  Dispel: "youdu.skill.dispel",
+  Stealth: "youdu.skill.stealth",
   LifeJudge: "youdu.skill.life_judge",
   FinalJudgment: "youdu.skill.final_judgment",
   GhostRift: "youdu.skill.ghost_rift",
@@ -36,6 +40,8 @@ export const YOUDU_STATUS_ID = {
   Insight: "youdu.status.insight",
   Rest: "youdu.status.rest",
   NextPhysical: "youdu.status.next_physical",
+  Revival: "youdu.status.revival",
+  Stealth: "youdu.status.stealth",
 } as const
 
 export const YOUDU_V6_DEFINITION: SectDefinitionV6 = {

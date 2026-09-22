@@ -1,5 +1,7 @@
 # combat-v6 幽都经典双流派纵切
 
+> 历史实现记录。基础模组已按阴曹地府方向调整，当前技能、适配系数与差异以[幽都基础技能还原记录](./combat-v6-youdu-restoration.md)及 V6 内容配置为准；下文“不引入隐身”等描述不再代表当前规则。
+
 > 状态：Phase 6A 已实现
 > 上位设计：[`宗门心法、技能与经脉系统设计`](./combat-v6-sect-skill-meridian-system-design.md)
 > 路线图：[`combat-v6 梦幻式战斗体系设计稿与迁移路线图`](./combat-v6-mhxy-redesign-roadmap.md)

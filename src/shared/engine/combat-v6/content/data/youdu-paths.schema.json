@@ -316,6 +316,13 @@
               "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
             }
           },
+          "grantSkills": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+            }
+          },
           "nodes": {
             "minItems": 21,
             "maxItems": 21,

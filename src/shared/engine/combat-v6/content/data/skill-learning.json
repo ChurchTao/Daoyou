@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -33,23 +33,23 @@
     },
     "youdu.skill.edict": {
       "sourceMethodId": "youdu.method.judge",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 25
     },
     "youdu.skill.wither": {
       "sourceMethodId": "youdu.method.wither",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 20
     },
     "youdu.skill.pursuit": {
       "sourceMethodId": "youdu.method.shadow",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 120
     },
     "youdu.skill.soul_seal": {
       "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 75
     },
     "youdu.skill.insight": {
       "sourceMethodId": "youdu.method.insight",
-      "unlockMethodLevel": 1
+      "unlockMethodLevel": 30
     },
     "youdu.skill.sever": {
       "sourceMethodId": "youdu.method.asura",
@@ -685,6 +685,26 @@
     },
     "lingxiao.passive.zhanchen.n4_2": {
       "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.judge": {
+      "sourceMethodId": "youdu.method.judge",
+      "unlockMethodLevel": 20
+    },
+    "youdu.skill.revival": {
+      "sourceMethodId": "youdu.method.judge",
+      "unlockMethodLevel": 120
+    },
+    "youdu.skill.dispel": {
+      "sourceMethodId": "youdu.method.asura",
+      "unlockMethodLevel": 50
+    },
+    "youdu.skill.stealth": {
+      "sourceMethodId": "youdu.method.wither",
+      "unlockMethodLevel": 20
+    },
+    "youdu.passive.soul_guard": {
+      "sourceMethodId": "youdu.method.canon",
       "unlockMethodLevel": 0
     }
   }

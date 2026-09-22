@@ -1,6 +1,6 @@
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
-import { ATTR_NAMES, EffectType, SkillTag, StatusCategory, StatusHit, StatusTick, TargetMode, TargetSide, TickKind, type SkillDef, type StatusDef } from '../core';
+import { ATTR_NAMES, EffectType, SkillTag, StatusCategory, StatusHit, StatusTick, TargetMode, TargetSide, TickKind, UnitKind, type SkillDef, type StatusDef } from '../core';
 import { validateSectExpressions } from './authoring-expressions';
 import { sectSkillLearning } from './skill-learning';
 import type { SectSkillDefV6 } from './types';
@@ -14,9 +14,13 @@ const ratio = z.number().min(0).max(1).multipleOf(0.000001);
 const targeting = z.strictObject({
   side: z.enum(TargetSide), mode: z.enum(TargetMode).optional(),
   count: expression.optional(), includeDowned: z.boolean().optional(),
+  requireKind: z.enum(UnitKind).optional(), onlyDowned: z.boolean().optional(), requireRevivable: z.boolean().optional(),
 });
 const effects = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal(EffectType.FixedHit), power: expression }),
+  z.strictObject({ type: z.literal(EffectType.FixedHit), power: expression, percentageDamage: z.boolean().optional() }),
+  z.strictObject({ type: z.literal(EffectType.DamageMp), power: expression }),
+  z.strictObject({ type: z.literal(EffectType.Revive), hpRatio: ratio }),
+  z.strictObject({ type: z.literal(EffectType.Dispel), categories: z.array(z.enum(StatusCategory)), schoolOnly: z.boolean().optional() }),
   z.strictObject({ type: z.literal(EffectType.Wound), power: expression }),
   z.strictObject({ type: z.literal(EffectType.Heal), power: expression, targeting: targeting.optional() }),
   z.strictObject({ type: z.literal(EffectType.PhysicalHit), coeff: scalar.nonnegative(), power: expression.optional(), cannotMiss: z.boolean().optional(), defenseIgnore: ratio.optional() }),
@@ -30,14 +34,20 @@ export const YouduCombatPackShape = z.strictObject({
   skills: z.array(z.strictObject({
     id, name: text, school: z.literal('youdu'),
     costMp: expression.optional(), costHp: expression.optional(),
+    description: z.string().min(1).max(500).optional(),
+    innate: z.strictObject({ sealHitTakenFactor: ratio }).optional(),
+    modifiers: z.array(z.strictObject({ when: z.strictObject({ skillIds: z.array(id), foeKind: z.enum(UnitKind) }), damageBonus: scalar.nonnegative() })).optional(),
     tags: z.array(z.enum(SkillTag)).min(1),
     formula: z.literal('fixed').optional(), sealBase: scalar.nonnegative().optional(),
-    targeting, effects: z.array(effects).min(1),
+    targeting, effects: z.array(effects),
   })).min(1),
   statuses: z.array(z.strictObject({
     id, name: text, kind: id, category: z.enum(StatusCategory),
     ticks: z.enum(StatusTick).optional(),
-    onTick: z.strictObject({ type: z.literal(TickKind.Dot), ratioOfMaxHp: ratio }).optional(),
+    onTick: z.strictObject({ type: z.literal(TickKind.Dot), ratioOfMaxHp: ratio, ratioOfMaxMp: ratio.optional(), hpCap: expression.optional(), mpCap: expression.optional() }).optional(),
+    sealHitTakenFactor: ratio.optional(), revealStealth: z.boolean().optional(),
+    untargetable: z.boolean().optional(), blocksSpell: z.boolean().optional(),
+    upkeepMp: z.strictObject({ self: scalar.nonnegative(), other: scalar.nonnegative() }).optional(),
     speedMod: expression.optional(),
     attrMods: z.partialRecord(z.enum(ATTR_NAMES), expression).optional(),
     blocksRevive: z.boolean().optional(), persistWhenDowned: z.boolean().optional(),
@@ -58,6 +68,7 @@ export function loadYouduCombatPack(data: unknown) {
       if (!pack.skills.some(s => s.id === id) || ids.indexOf(id) !== i) issue(['baseSkillIds', i], '技能引用不存在或重复：' + id);
     });
     pack.skills.forEach((skill, i) => {
+      if (!skill.effects.length && !skill.innate) issue(['skills', i, 'effects'], '技能缺少效果');
       try { sectSkillLearning(skill.id); } catch { issue(['skills', i, skill.id], '缺少技能学习关系'); }
       skill.effects.forEach((effect, j) => {
         if (effect.type === EffectType.ApplyStatus && !pack.statuses.some(s => s.id === effect.statusId))
@@ -76,7 +87,7 @@ export function loadYouduCombatPack(data: unknown) {
 
 export function compileYouduCombatPack(pack: ReturnType<typeof loadYouduCombatPack>) {
   const skills: SectSkillDefV6[] = pack.skills.map(definition => ({
-    ...sectSkillLearning(definition.id), kind: 'active', definition: definition satisfies SkillDef,
+    ...sectSkillLearning(definition.id), kind: definition.tags.includes(SkillTag.Passive) ? 'passive' : 'active', definition: definition satisfies SkillDef,
   }));
   const skill = (id: string): SectSkillDefV6 => {
     const found = skills.find(s => s.definition.id === id);

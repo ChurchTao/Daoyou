@@ -532,7 +532,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
     ok: true,
     projection: {
       skills: [...byId.values()],
-      statusDefs: input.definition.statuses.map((status) => structuredClone(status)),
+      statusDefs: input.definition.statuses.map((status) => ({ ...structuredClone(status), school: input.definition.id })),
       activeSkillIds: [...new Set(activeSkillIds)],
       passiveSkillIds: [...new Set(passiveSkillIds)],
       skillLevels,

@@ -72,6 +72,70 @@
               }
             ]
           },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "innate": {
+            "type": "object",
+            "properties": {
+              "sealHitTakenFactor": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "multipleOf": 0.000001
+              }
+            },
+            "required": [
+              "sealHitTakenFactor"
+            ],
+            "additionalProperties": false
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "when": {
+                  "type": "object",
+                  "properties": {
+                    "skillIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^youdu\\.[a-z][a-z0-9_.]*$"
+                      }
+                    },
+                    "foeKind": {
+                      "type": "string",
+                      "enum": [
+                        "player",
+                        "pet",
+                        "npc"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "skillIds",
+                    "foeKind"
+                  ],
+                  "additionalProperties": false
+                },
+                "damageBonus": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000,
+                  "multipleOf": 0.000001
+                }
+              },
+              "required": [
+                "when",
+                "damageBonus"
+              ],
+              "additionalProperties": false
+            }
+          },
           "tags": {
             "minItems": 1,
             "type": "array",
@@ -137,6 +201,20 @@
               },
               "includeDowned": {
                 "type": "boolean"
+              },
+              "requireKind": {
+                "type": "string",
+                "enum": [
+                  "player",
+                  "pet",
+                  "npc"
+                ]
+              },
+              "onlyDowned": {
+                "type": "boolean"
+              },
+              "requireRevivable": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -145,7 +223,6 @@
             "additionalProperties": false
           },
           "effects": {
-            "minItems": 1,
             "type": "array",
             "items": {
               "oneOf": [
@@ -170,11 +247,92 @@
                           "maxLength": 200
                         }
                       ]
+                    },
+                    "percentageDamage": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "type",
                     "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "damageMp"
+                    },
+                    "power": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": -1000000,
+                          "maximum": 1000000,
+                          "multipleOf": 0.000001
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "power"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "revive"
+                    },
+                    "hpRatio": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "multipleOf": 0.000001
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "hpRatio"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "dispel"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "buff",
+                          "debuff",
+                          "control",
+                          "dot"
+                        ]
+                      }
+                    },
+                    "schoolOnly": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "categories"
                   ],
                   "additionalProperties": false
                 },
@@ -268,6 +426,20 @@
                           ]
                         },
                         "includeDowned": {
+                          "type": "boolean"
+                        },
+                        "requireKind": {
+                          "type": "string",
+                          "enum": [
+                            "player",
+                            "pet",
+                            "npc"
+                          ]
+                        },
+                        "onlyDowned": {
+                          "type": "boolean"
+                        },
+                        "requireRevivable": {
                           "type": "boolean"
                         }
                       },
@@ -446,11 +618,84 @@
                 "minimum": 0,
                 "maximum": 1,
                 "multipleOf": 0.000001
+              },
+              "ratioOfMaxMp": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "multipleOf": 0.000001
+              },
+              "hpCap": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                ]
+              },
+              "mpCap": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000,
+                    "multipleOf": 0.000001
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                ]
               }
             },
             "required": [
               "type",
               "ratioOfMaxHp"
+            ],
+            "additionalProperties": false
+          },
+          "sealHitTakenFactor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "multipleOf": 0.000001
+          },
+          "revealStealth": {
+            "type": "boolean"
+          },
+          "untargetable": {
+            "type": "boolean"
+          },
+          "blocksSpell": {
+            "type": "boolean"
+          },
+          "upkeepMp": {
+            "type": "object",
+            "properties": {
+              "self": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000,
+                "multipleOf": 0.000001
+              },
+              "other": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000000,
+                "multipleOf": 0.000001
+              }
+            },
+            "required": [
+              "self",
+              "other"
             ],
             "additionalProperties": false
           },

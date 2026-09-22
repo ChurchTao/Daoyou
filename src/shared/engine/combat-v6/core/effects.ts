@@ -1,7 +1,7 @@
 /**
  * 效果原语派发。新增效果 = 注册一个 handler，不要在 applyEffect 里继续堆 if。
  */
-import { combatModifiers, modifierValue } from './modifiers';
+import { combatModifiers, modifierValue, sealHitTakenFactor } from './modifiers';
 import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
 import { applyBarrier } from "./barriers.ts"
@@ -278,7 +278,7 @@ function handleApplyStatus(
     if ((t.flags.downed || t.flags.dead) && !(effect.targeting?.includeDowned ?? skill.targeting.includeDowned)) continue
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
-      const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase)
+      const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase) * sealHitTakenFactor(ctx, t)
       if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
@@ -308,6 +308,7 @@ function handleDispel(
       .filter((status) => {
         const def = ctx.statusDefs.get(status.id)
         if (def?.dispellable === false) return false
+        if (effect.schoolOnly && !def?.school) return false
         if (effect.includeStatusFlags?.length && !effect.includeStatusFlags.some((flag) => Boolean(def?.[flag]))) return false
         if (effect.excludeStatusFlags?.some((flag) => Boolean(def?.[flag]))) return false
         return effect.statusIds?.includes(status.id) === true ||

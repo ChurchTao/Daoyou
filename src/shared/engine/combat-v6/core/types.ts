@@ -183,6 +183,8 @@ export type StatusInstance = {
   storedTargetId?: UnitId;
   /** 自然到期转入下一状态时沿用施法等级。 */
   transitionSkillLevel?: number;
+  /** 周期数值沿用施加时的技能等级，快照恢复不重新读取施法者技能。 */
+  tickSkillLevel?: number;
   damageTakenPhysical: number;
   damageTakenSpell: number;
   healTaken: number;
@@ -482,6 +484,8 @@ type EffectCore =
       chanceByClass?: Record<string, number>;
       includeStatusFlags?: StatusFlag[];
       excludeStatusFlags?: StatusFlag[];
+      /** 仅驱散由宗门内容定义的状态。 */
+      schoolOnly?: boolean;
     }
   | { type: typeof EffectType.SkipNextAction }
   | { type: typeof EffectType.DamageMp; power?: Expr }
@@ -627,11 +631,16 @@ export type SkillDef = {
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[];
   /** 开战即生效的能力，不占状态栏（感知看破隐身、简易耗蓝） */
-  innate?: { delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
+  innate?: { sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
 };
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  school?: string;
+  /** 对正常封印命中率作乘法修正，不改变基础命中率的上下限。 */
+  sealHitTakenFactor?: number;
+  /** 后续回合末由施法者支付；法力不足或施法者离场时移除此状态。 */
+  upkeepMp?: { self: number; other: number };
   sourceBound?: boolean;
   damageTakenFromSource?: number;
   immuneToSeal?: boolean;
@@ -660,7 +669,7 @@ export type StatusDef = {
   damageTakenPhysical?: number;
   damageTakenSpell?: number;
   ticks?: StatusTick;
-  onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number };
+  onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;
   /** 承伤分流：目标留下 keep，其余 toCaster 打到状态来源 */
