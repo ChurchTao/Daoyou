@@ -336,6 +336,15 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  targetDowned?: boolean;
+  targetDead?: boolean;
+  excludeFoeKinds?: UnitKind[];
+  targetOwnedStatus?: { kind: string; appliedThisRound?: boolean };
+  enemyStatusCount?: { kind: string; min: number };
+  removedStatusKind?: string;
+  statusRemoveReason?: string;
+  originalResourceCostMax?: number;
+  oncePerActionTarget?: boolean;
   pvp?: boolean;
   teamUniqueTag?: string;
   targetEnemy?: boolean;
@@ -516,6 +525,8 @@ type EffectCore =
       affectTarget?: boolean;
     }
   | { type: typeof EffectType.ModifyChance; add?: Expr; factor?: Expr }
+  | { type: typeof EffectType.ModifyCooldown; skillId: string; amount: Expr }
+  | { type: typeof EffectType.LoseHp; power: Expr }
   | { type: typeof EffectType.ClearSkipNextAction };
 
 export type SkillEffect = EffectCore & {
@@ -568,6 +579,14 @@ export type CombatModifier = {
   when?: EffectWhen;
   /** 同组队伍光环只取一次；来源倒地时失效。 */
   teamAura?: string;
+  sealChanceAdd?: Expr;
+  statusDurationAdd?: { statusId: string; amount: Expr };
+  ignoreSealStatusKinds?: string[];
+  bypassImmunity?: { statusKinds: string[]; passiveIds: string[] };
+  damageTakenAdd?: Expr;
+  damageTakenBonus?: Expr;
+  physicalFuryChanceAdd?: Expr;
+  sealResistanceAdd?: Expr;
   damageBonus?: Expr;
   damageAdd?: Expr;
   physicalAttackAdd?: Expr;
@@ -590,6 +609,7 @@ export type CombatModifier = {
 export type SkillDef = {
   modifiers?: CombatModifier[];
   cooldownRounds?: number;
+  initialCooldownRounds?: number;
   recoveryStatusId?: string;
   /** 折扣前资源标价，供跨系统效果读取。 */
   originalResourceCosts?: Array<{ resourceId: string; amount: Expr }>;
@@ -636,6 +656,7 @@ export type SkillDef = {
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  modifiers?: CombatModifier[];
   school?: string;
   /** 对正常封印命中率作乘法修正，不改变基础命中率的上下限。 */
   sealHitTakenFactor?: number;
@@ -930,6 +951,7 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  state?: Pick<BattleState, "round" | "units">;
   skillLevel: number;
   targets: number;
   source: Unit;
