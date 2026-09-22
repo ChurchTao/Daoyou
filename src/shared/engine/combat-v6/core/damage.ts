@@ -51,13 +51,13 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const skill = skillId ? skillOf(ctx.skills, source, skillId) : undefined
   const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin })
-  src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill)
+  src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
   const protector = input.kind === DamageKind.Physical && !modifiers.some(m => m.ignoreProtection) ? findProtector(ctx, target) : undefined
   if (protector) ctx.emit({ type: EventType.ProtectTrigger, protectorId: protector.id, originalTargetId: target.id })
 
   if (!input.cannotMiss && input.kind !== DamageKind.Fixed && !rollHit(ctx, source, target, src, dst, input.kind)) return
 
-  const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.physicalFuryRate)
+  const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.physicalFuryRate + modifierValue(modifiers, 'physicalFuryChanceAdd', source, target, skill, ctx))
   const isPrimary =
     input.isPrimary ?? (ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId)
   const critChance = input.kind === DamageKind.Fixed ? 0 : input.kind === DamageKind.Physical ? src.critRate : src.spellCritRate
@@ -67,7 +67,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     kind: input.kind,
     skillId,
     isPrimary,
-    chance: critChance + modifierValue(modifiers, 'critChanceAdd', source, target, skill),
+    chance: critChance + modifierValue(modifiers, 'critChanceAdd', source, target, skill, ctx),
     origin,
   })
   const crit = input.kind === DamageKind.Fixed ? false : critRoll.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll.chance ?? critChance)))
@@ -78,14 +78,14 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     kind: input.kind,
     skillId,
     isPrimary,
-    defenseIgnore: (input.defenseIgnore ?? 0) + modifierValue(modifiers, 'defenseIgnoreAdd', source, target, skill) + (input.kind === DamageKind.Physical
+    defenseIgnore: (input.defenseIgnore ?? 0) + modifierValue(modifiers, 'defenseIgnoreAdd', source, target, skill, ctx) + (input.kind === DamageKind.Physical
       ? source.statuses.reduce((sum, status) => sum + (ctx.statusDefs.get(status.id)?.physicalDefenseIgnore ?? 0), 0)
       : 0),
     origin,
   })
   const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
   let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
-  raw = crit ? Math.floor(raw * (ctx.rules.formulas.critMultiplier + modifierValue(modifiers, 'critMultiplierAdd', source, target, skill))) : raw
+  raw = crit ? Math.floor(raw * (ctx.rules.formulas.critMultiplier + modifierValue(modifiers, 'critMultiplierAdd', source, target, skill, ctx))) : raw
   if (input.kind !== DamageKind.Fixed) raw = applyFluctuation(ctx, raw, input.kind, source)
   raw = applyDefend(ctx, target, input.kind, raw)
   raw = floorAtLeast(MIN_DAMAGE, raw * damageTakenFactor(target, input.kind))
@@ -119,7 +119,10 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     }
   }
   const sourceBoundFactor = target.statuses.reduce((factor, status) => factor * (status.sourceId === source.id ? ctx.statusDefs.get(status.id)?.damageTakenFromSource ?? 1 : 1), 1)
-  const amount = floorAtLeast(MIN_DAMAGE, ((hooked.damage ?? raw) * (1 + modifierValue(modifiers, 'damageBonus', source, target, skill)) + modifierValue(modifiers, 'damageAdd', source, target, skill)) * repeatFactor * relationFactor * dealtFactor * sourceBoundFactor * (input.resultFactor ?? 1))
+  const defenseModifiers = combatModifiers(ctx, target, { target: source, skill, skillId, kind: input.kind, origin })
+  const incomingFactor = Math.max(0, 1 + modifierValue(defenseModifiers, 'damageTakenBonus', target, source, skill, ctx))
+  const incomingAdd = modifierValue(defenseModifiers, 'damageTakenAdd', target, source, skill, ctx)
+  const amount = floorAtLeast(MIN_DAMAGE, ((hooked.damage ?? raw) * (1 + modifierValue(modifiers, 'damageBonus', source, target, skill, ctx)) + modifierValue(modifiers, 'damageAdd', source, target, skill, ctx)) * repeatFactor * relationFactor * dealtFactor * sourceBoundFactor * (input.resultFactor ?? 1) * incomingFactor + incomingAdd)
 
   ctx.emit({
     type: EventType.Hit,
@@ -134,7 +137,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   if (protector) {
     const keep = ctx.rules.protectionTargetRatio ?? 0
     applyDamage(ctx, source, protector, Math.floor(amount * (1 - keep)), input.kind, silent, origin, input.cannotKill)
-    targetAmount = Math.floor(amount * keep * (1 + modifierValue(modifiers, 'protectedDamageBonus', source, target, skill)))
+    targetAmount = Math.floor(amount * keep * (1 + modifierValue(modifiers, 'protectedDamageBonus', source, target, skill, ctx)))
   }
   const hpDamage = applyDamage(ctx, source, target, targetAmount, input.kind, silent, origin, input.cannotKill)
   if (!silent) {

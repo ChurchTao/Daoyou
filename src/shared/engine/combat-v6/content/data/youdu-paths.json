@@ -1,182 +1,361 @@
 {
   "$schema": "./youdu-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 2,
   "passives": [
     {
-      "id": "youdu.passive.soul.foundation",
-      "name": "勾魂阎罗",
-      "hooks": [
+      "id": "youdu.passive.recoil",
+      "name": "回旋",
+      "modifiers": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
           "when": {
-            "skillIds": [
-              "youdu.skill.edict",
-              "youdu.skill.wither",
-              "youdu.skill.pursuit",
-              "youdu.skill.life_judge",
-              "youdu.skill.final_judgment",
-              "youdu.skill.judge"
-            ],
             "requireKind": "fixed",
-            "damageOrigins": [
-              "action-direct"
+            "skillTags": [
+              "spell"
             ]
           },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
+          "damageTakenAdd": -65
+        },
+        {
+          "when": {
+            "requireKind": "spell",
+            "skillTags": [
+              "spell"
+            ]
+          },
+          "damageTakenAdd": -65
         }
       ]
     },
     {
-      "id": "youdu.passive.soul.poisoned",
-      "name": "毒判",
+      "id": "youdu.passive.ghost_fire",
+      "name": "鬼火",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "on": "afterAction",
           "when": {
-            "skillIds": [
-              "youdu.skill.edict",
-              "youdu.skill.wither",
-              "youdu.skill.pursuit",
-              "youdu.skill.life_judge",
-              "youdu.skill.final_judgment",
-              "youdu.skill.judge"
+            "skillTags": [
+              "art"
             ],
-            "targetStatusKinds": [
-              "youdu.poison"
-            ],
-            "requireKind": "fixed",
-            "damageOrigins": [
-              "action-direct"
-            ]
+            "originalResourceCostMax": 90,
+            "actionSucceeded": true
           },
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.1
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 16
             }
-          ]
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
         }
       ]
     },
     {
-      "id": "youdu.passive.soul.low_hp",
-      "name": "命薄",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "youdu.skill.edict",
-              "youdu.skill.wither",
-              "youdu.skill.pursuit",
-              "youdu.skill.life_judge",
-              "youdu.skill.final_judgment",
-              "youdu.skill.judge"
-            ],
-            "targetHpRatioBelow": 0.5,
-            "requireKind": "fixed",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.12
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.soul.fixed",
-      "name": "判官",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "youdu.skill.edict",
-              "youdu.skill.wither",
-              "youdu.skill.pursuit",
-              "youdu.skill.life_judge",
-              "youdu.skill.final_judgment",
-              "youdu.skill.judge"
-            ],
-            "requireKind": "fixed",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.soul.heal",
-      "name": "济世",
-      "hooks": [
-        {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "youdu.skill.wither"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.25
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.soul.first_kill",
-      "name": "拘魂",
+      "id": "youdu.passive.soul_drain",
+      "name": "汲魂",
       "hooks": [
         {
           "on": "onDeath",
-          "sourceIsSelf": true,
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "foeKind": "player"
+          },
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "level * 6"
+            }
+          ],
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.yanluo",
+      "name": "阎罗",
+      "modifiers": [
+        {
           "when": {
             "skillIds": [
-              "youdu.skill.edict",
-              "youdu.skill.wither",
-              "youdu.skill.pursuit",
-              "youdu.skill.life_judge",
-              "youdu.skill.final_judgment",
+              "youdu.skill.edict"
+            ],
+            "pvp": false
+          },
+          "damageAdd": "fact.weaponDamage * 0.15"
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onDeath",
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "excludeFoeKinds": [
+              "pet"
+            ]
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.judgment_ready",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "when": {
+            "skillIds": [
               "youdu.skill.judge"
             ],
-            "requireKind": "fixed",
-            "damageOrigins": [
-              "action-direct"
+            "actionSucceeded": true,
+            "sourceInitialStatusIds": [
+              "youdu.status.judgment_ready"
             ],
-            "foeKind": "player",
-            "oncePerBattle": true
+            "actionKilledTarget": false,
+            "excludeFoeKinds": [
+              "pet"
+            ]
           },
-          "aim": "hookTarget",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "youdu.status.judgment_ready"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "when": {
+            "skillIds": [
+              "youdu.skill.judge"
+            ],
+            "actionSucceeded": true,
+            "sourceInitialStatusIds": [
+              "youdu.status.judgment_ready"
+            ],
+            "foeKind": "pet"
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "youdu.status.judgment_ready"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.night_walk",
+      "name": "夜行",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.edict"
+            ]
+          },
+          "damageAdd": 25
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.bone",
+      "name": "入骨",
+      "hooks": [
+        {
+          "on": "onStatusRemoved",
+          "when": {
+            "removedStatusKind": "youdu.poison",
+            "statusRemoveReason": "dispel"
+          },
+          "effects": [
+            {
+              "type": "loseHp",
+              "power": "min(target.hp * 0.05, level * 5)"
+            }
+          ],
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.bound_soul",
+      "name": "拘魄",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "when": {
+            "skillIds": [
+              "youdu.skill.siphon"
+            ],
+            "actionSucceeded": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.bound_soul",
+              "duration": 1,
+              "targeting": {
+                "side": "enemy",
+                "includeDowned": true
+              },
+              "when": {
+                "targetDowned": true
+              }
+            }
+          ],
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.soul_seek",
+      "name": "索魂",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ]
+          },
+          "sealChanceAdd": "min(round * 0.005, 0.12)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.soul_wound",
+      "name": "伤魂",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ],
+            "targetStatusKinds": [
+              "youdu.poison",
+              "beast.poison"
+            ]
+          },
+          "sealChanceAdd": 0.2
+        },
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ],
+            "targetStatusKinds": [
+              "youdu.poison"
+            ]
+          },
+          "sealChanceAdd": 0.04
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.counter",
+      "name": "克敌",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ],
+            "sourceTags": [
+              "equipment.weapon.water_ice_earth"
+            ]
+          },
+          "statusDurationAdd": {
+            "statusId": "youdu.status.soul_seal",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.ghost_light",
+      "name": "幽光",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ]
+          },
+          "ignoreSealStatusKinds": [
+            "youdu.insight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.spring_burst",
+      "name": "泉爆",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.pursuit"
+            ],
+            "teamUniqueTag": "sect.youdu"
+          },
+          "damageBonus": "if(uses.youdu.skill.pursuit == 0, 3, 0)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.soul_flight",
+      "name": "魂飞",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "when": {
+            "skillIds": [
+              "youdu.skill.dispel"
+            ],
+            "actionSucceeded": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.soul_flight",
+              "duration": 1,
+              "when": {
+                "foeKind": "player"
+              }
+            }
+          ],
+          "sourceIsSelf": true
+        },
+        {
+          "on": "onDeath",
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "foeKind": "player",
+            "targetOwnedStatus": {
+              "kind": "youdu.soul_flight",
+              "appliedThisRound": true
+            }
+          },
           "effects": [
             {
               "type": "applyStatus",
               "statusId": "youdu.status.soul_seal",
-              "duration": 3,
+              "duration": 2,
               "targeting": {
                 "side": "enemy",
                 "includeDowned": true
@@ -187,286 +366,445 @@
       ]
     },
     {
-      "id": "youdu.passive.six.foundation",
-      "name": "六道魍魉",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.poisoned",
-      "name": "蚀血",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "targetStatusKinds": [
-              "youdu.poison"
-            ],
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.direct",
-      "name": "夜战",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.ignore5",
-      "name": "破甲",
-      "hooks": [
-        {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyDefenseIgnore",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.low_hp",
-      "name": "斩衰",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "targetHpRatioBelow": 0.5,
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.ghost_crit",
-      "name": "凶星",
-      "hooks": [
-        {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "youdu.skill.ghost_rift"
-            ],
-            "requireKind": "physical"
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.ghost_poisoned",
-      "name": "百毒",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "youdu.skill.ghost_rift"
-            ],
-            "targetStatusKinds": [
-              "youdu.poison"
-            ],
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.15
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.kill_mark",
-      "name": "乘灭·蓄",
+      "id": "youdu.passive.echo",
+      "name": "回音",
       "hooks": [
         {
           "on": "onDeath",
-          "sourceIsSelf": true,
           "when": {
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
-            ]
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "foeKind": "player",
+            "targetOwnedStatus": {
+              "kind": "youdu.soul_seal"
+            }
           },
-          "aim": "self",
           "effects": [
             {
               "type": "applyStatus",
-              "statusId": "youdu.status.next_physical",
-              "duration": 99,
+              "statusId": "youdu.status.death_echo",
+              "duration": 3,
               "self": true
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "youdu.passive.six.kill_damage",
-      "name": "乘灭·斩",
-      "hooks": [
+          ],
+          "aim": "self"
+        },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "on": "afterAction",
           "when": {
-            "requireKind": "physical",
-            "requireStatusIds": [
-              "youdu.status.next_physical"
+            "skillIds": [
+              "youdu.skill.soul_seal"
             ],
-            "damageOrigins": [
-              "action-direct"
-            ]
+            "actionSucceeded": true
           },
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.12
-            },
-            {
-              "type": "dispel",
+              "type": "removeStatus",
               "statusIds": [
-                "youdu.status.next_physical"
+                "youdu.status.death_echo"
               ]
             }
-          ]
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
         }
       ]
     },
     {
-      "id": "youdu.passive.six.ignore10",
-      "name": "无甲",
+      "id": "youdu.passive.poison_blaze",
+      "name": "毒炽",
+      "modifiers": [
+        {
+          "when": {
+            "targetStatusKinds": [
+              "youdu.poison"
+            ]
+          },
+          "critChanceAdd": 0.12
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.shade",
+      "name": "阴翳",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.blood_shadow"
+            ],
+            "targetStatusKinds": [
+              "youdu.poison"
+            ]
+          },
+          "damageBonus": 0.3
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.break_poison",
+      "name": "破毒",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.diefeng"
+            ],
+            "primaryTargetStatusKinds": [
+              "youdu.poison"
+            ]
+          },
+          "damageBonus": 0.12
+        }
+      ],
       "hooks": [
         {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
+          "on": "afterStrike",
           "when": {
-            "requireKind": "physical",
-            "damageOrigins": [
-              "action-direct"
+            "skillIds": [
+              "dao_equipment.skill.diefeng"
             ]
           },
           "effects": [
             {
-              "type": "modifyDefenseIgnore",
-              "add": 0.1
+              "type": "applyStatus",
+              "statusId": "youdu.status.poison",
+              "duration": 3
             }
-          ]
+          ],
+          "sourceIsSelf": true
         }
       ]
     },
     {
-      "id": "youdu.passive.six.desperate_damage",
-      "name": "绝境·攻",
+      "id": "youdu.passive.enter_soul",
+      "name": "入魂",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "on": "afterAction",
           "when": {
-            "sourceHpRatioBelow": 0.5,
-            "requireKind": "physical",
+            "skillIds": [
+              "youdu.skill.siphon"
+            ],
+            "actionSucceeded": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.enter_soul_pending",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.poison_dread",
+      "name": "毒慑",
+      "modifiers": [
+        {
+          "when": {
+            "enemyStatusCount": {
+              "kind": "youdu.poison",
+              "min": 1
+            }
+          },
+          "damageBonus": 0.06
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.break_pet",
+      "name": "破印",
+      "modifiers": [
+        {
+          "when": {
+            "foeKind": "pet"
+          },
+          "damageBonus": 0.3
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.miasma",
+      "name": "瘴幕",
+      "modifiers": [
+        {
+          "when": {
+            "targetStatusKinds": [
+              "youdu.poison"
+            ]
+          },
+          "damageTakenBonus": -0.04
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.nether_poison",
+      "name": "冥毒",
+      "modifiers": [
+        {
+          "bypassImmunity": {
+            "statusKinds": [
+              "youdu.poison"
+            ],
+            "passiveIds": [
+              "beast.advanced-poison"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.feast",
+      "name": "狂宴",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "when": {
+            "oncePerActionTarget": true,
             "damageOrigins": [
               "action-direct"
+            ],
+            "initialTargetStatusKinds": [
+              "youdu.poison"
             ]
           },
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.15
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 2
             }
-          ]
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
         }
       ]
     },
     {
-      "id": "youdu.passive.six.desperate_taken",
-      "name": "绝境·险",
+      "id": "youdu.passive.reincarnation",
+      "name": "轮回",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
+          "on": "onRoundEnd",
           "when": {
-            "sourceHpRatioBelow": 0.5
+            "teamUniqueTag": "sect.youdu",
+            "enemyStatusCount": {
+              "kind": "youdu.poison",
+              "min": 6
+            },
+            "sourceStanding": true
           },
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.05
+              "type": "applyStatus",
+              "statusId": "youdu.status.reincarnation",
+              "duration": 6,
+              "self": true
             }
-          ]
+          ],
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.chase_life",
+      "name": "追命",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "teamUniqueTag": "sect.youdu",
+            "foeKind": "player"
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.soul_seal",
+              "duration": 3,
+              "targeting": {
+                "side": "enemy",
+                "includeDowned": true
+              }
+            }
+          ],
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.evil_flame",
+      "name": "恶焰",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "targetStatusKinds": [
+              "youdu.poison"
+            ],
+            "targetDead": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.evil_flame",
+              "duration": 6,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.poison_cycle",
+      "name": "魂毒侵体",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "when": {
+            "skillIds": [
+              "youdu.skill.blood_shadow",
+              "youdu.skill.ghost_swarm"
+            ],
+            "requireAbsentStatusIds": [
+              "youdu.status.poison_shroud"
+            ]
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.poison",
+              "duration": 3
+            }
+          ],
+          "sourceIsSelf": true,
+          "chance": 0.3
+        },
+        {
+          "on": "afterStrike",
+          "when": {
+            "skillIds": [
+              "youdu.skill.blood_shadow",
+              "youdu.skill.ghost_swarm"
+            ],
+            "requireStatusIds": [
+              "youdu.status.poison_shroud"
+            ]
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "youdu.status.poison",
+              "duration": 3
+            }
+          ],
+          "sourceIsSelf": true,
+          "chance": 0.6
+        }
+      ],
+      "description": "血影蚀心、百鬼噬魂命中时有30%概率附加3回合魂毒；森罗迷障期间为60%。概率与毒持续待校准。"
+    },
+    {
+      "id": "youdu.passive.crit_reward_1",
+      "name": "物理暴击等级",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "critChanceAdd": "40 / max(1, level * 10)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.crit_reward_2",
+      "name": "物理暴击等级",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "critChanceAdd": "40 / max(1, level * 10)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.recoil_poison",
+      "name": "回旋",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "fixed",
+            "skillTags": [
+              "spell"
+            ]
+          },
+          "damageTakenAdd": -65
+        },
+        {
+          "when": {
+            "requireKind": "spell",
+            "skillTags": [
+              "spell"
+            ]
+          },
+          "damageTakenAdd": -65
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.ghost_fire_poison",
+      "name": "鬼火",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "originalResourceCostMax": 90,
+            "actionSucceeded": true
+          },
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 16
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.soul_drain_poison",
+      "name": "汲魂",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "when": {
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "foeKind": "player"
+          },
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "level * 6"
+            }
+          ],
+          "aim": "self"
         }
       ]
     }
@@ -475,44 +813,235 @@
     {
       "id": "youdu.path.soul_judge",
       "name": "勾魂阎罗",
-      "foundationPassives": [
-        "youdu.passive.soul.foundation"
-      ],
+      "requiresConnectedNodes": true,
+      "foundationPassives": [],
       "nodes": [
         {
-          "id": "youdu.node.soul.1.1",
-          "name": "敕威",
+          "id": "youdu.node.soul_judge.yanluo",
+          "name": "阎罗",
           "layer": 1,
           "slot": 1,
-          "description": "裂魂咒伤害提高8%。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.edict",
-              "operation": "multiplyFixedPower",
-              "value": 1.08
-            }
+          "description": "与怪物队伍战斗时，裂魂咒增加武器伤害贡献×15%的伤害。敌方非召唤物阵亡后，下次灭魂杀伤害提高50%。",
+          "passives": [
+            "youdu.passive.yanluo"
           ]
         },
         {
-          "id": "youdu.node.soul.1.2",
-          "name": "蚀生",
+          "id": "youdu.node.soul_judge.recoil",
+          "name": "回旋",
           "layer": 1,
           "slot": 2,
-          "description": "销魂蚀骨直接伤害提高10%。",
-          "patches": [
+          "description": "受到的法术伤害（含固定伤害法术）减少65点。",
+          "passives": [
+            "youdu.passive.recoil"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.night_walk",
+          "name": "夜行",
+          "layer": 1,
+          "slot": 3,
+          "description": "常驻速度、物理攻击各增加20点，裂魂咒伤害增加25点。",
+          "passives": [
+            "youdu.passive.night_walk"
+          ],
+          "panel": [
             {
-              "skillId": "youdu.skill.wither",
-              "operation": "multiplyFixedPower",
-              "value": 1.1
+              "attr": "speed",
+              "mode": "add",
+              "value": 20
+            },
+            {
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 20
             }
           ]
         },
         {
-          "id": "youdu.node.soul.1.3",
-          "name": "鬼行",
-          "layer": 1,
+          "id": "youdu.node.soul_judge.bone",
+          "name": "入骨",
+          "layer": 2,
+          "slot": 1,
+          "description": "自己的魂毒被驱散时，目标损失5%当前气血，最多为自身等级×5。",
+          "passives": [
+            "youdu.passive.bone"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.gather",
+          "name": "聚魂",
+          "layer": 2,
+          "slot": 2,
+          "description": "摄魂的基础减伤与承伤增幅各增加5个百分点（口径待校准）。",
+          "patches": [
+            {
+              "skillId": "youdu.skill.siphon",
+              "operation": "replaceStatusId",
+              "from": "youdu.status.siphon",
+              "to": "youdu.status.siphon_strong"
+            }
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.bound_soul",
+          "name": "拘魄",
+          "layer": 2,
           "slot": 3,
-          "description": "速度提高30。",
+          "description": "摄魂可选择倒地敌人，令其本场受到的伤害提高3%；重复施加不叠层。",
+          "passives": [
+            "youdu.passive.bound_soul"
+          ],
+          "patches": [
+            {
+              "skillId": "youdu.skill.siphon",
+              "operation": "includeDownedTargets",
+              "value": true
+            }
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.soul_seek",
+          "name": "索魂",
+          "layer": 3,
+          "slot": 1,
+          "description": "拘灵术命中率增加当前回合数×0.5个百分点，最多增加12个百分点。",
+          "passives": [
+            "youdu.passive.soul_seek"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.soul_wound",
+          "name": "伤魂",
+          "layer": 3,
+          "slot": 2,
+          "description": "对带毒类异常的目标，拘灵术命中率增加20个百分点；魂毒额外增加4个百分点。",
+          "passives": [
+            "youdu.passive.soul_wound"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.counter",
+          "name": "克敌",
+          "layer": 3,
+          "slot": 3,
+          "description": "自身武器属于水、冰、土任一行时，拘灵术持续回合增加1。",
+          "passives": [
+            "youdu.passive.counter"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.yellow_spring",
+          "name": "黄泉",
+          "layer": 4,
+          "slot": 1,
+          "description": "滞魂咒的减速量提高50%。",
+          "patches": [
+            {
+              "skillId": "youdu.skill.pursuit",
+              "operation": "replaceStatusId",
+              "from": "youdu.status.slow",
+              "to": "youdu.status.slow_strong"
+            }
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.nether_eye",
+          "name": "幽冥",
+          "layer": 4,
+          "slot": 2,
+          "description": "洞幽法眼持续回合增加1。",
+          "patches": [
+            {
+              "skillId": "youdu.skill.insight",
+              "operation": "setStatusDuration",
+              "statusId": "youdu.status.insight",
+              "value": 6
+            }
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.nether_sight",
+          "name": "冥视",
+          "layer": 4,
+          "slot": 3,
+          "description": "洞幽法眼额外提高5%抗封，受封概率系数由90%降为85%。",
+          "patches": [
+            {
+              "skillId": "youdu.skill.insight",
+              "operation": "replaceStatusId",
+              "from": "youdu.status.insight",
+              "to": "youdu.status.insight_strong"
+            }
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.ghost_light",
+          "name": "幽光",
+          "layer": 5,
+          "slot": 1,
+          "description": "拘灵术忽略洞幽法眼提供的额外抗封，仍保留目标本身封抗与神魂自守。",
+          "passives": [
+            "youdu.passive.ghost_light"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.spring_burst",
+          "name": "泉爆",
+          "layer": 5,
+          "slot": 2,
+          "description": "己方仅一名幽都修士时，本场第一次滞魂咒造成400%伤害。",
+          "passives": [
+            "youdu.passive.spring_burst"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.ghost_fire",
+          "name": "鬼火",
+          "layer": 5,
+          "slot": 3,
+          "description": "使用原始战意消耗不超过90的装备特技后，恢复16点战意。",
+          "passives": [
+            "youdu.passive.ghost_fire"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.soul_flight",
+          "name": "魂飞",
+          "layer": 6,
+          "slot": 1,
+          "description": "涤魂诀首目标为人物且当回合倒地时，附加2回合拘灵。",
+          "passives": [
+            "youdu.passive.soul_flight"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.soul_drain",
+          "name": "汲魂",
+          "layer": 6,
+          "slot": 2,
+          "description": "每次敌方人物倒地，恢复自身等级×6的气血；无法复活自身。",
+          "passives": [
+            "youdu.passive.soul_drain"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.echo",
+          "name": "回音",
+          "layer": 6,
+          "slot": 3,
+          "description": "敌方带有自己拘灵的人物倒地时，获得3回合死亡回音，使下次拘灵术持续增加1回合。",
+          "passives": [
+            "youdu.passive.echo"
+          ]
+        },
+        {
+          "id": "youdu.node.soul_judge.reward_1",
+          "name": "额外能力",
+          "layer": 7,
+          "slot": 1,
+          "automatic": true,
+          "description": "速度增加30点。",
           "panel": [
             {
               "attr": "speed",
@@ -522,531 +1051,274 @@
           ]
         },
         {
-          "id": "youdu.node.soul.2.1",
-          "name": "裂魂",
-          "layer": 2,
-          "slot": 1,
-          "description": "裂魂咒伤势提高50%。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.edict",
-              "operation": "multiplyWoundPower",
-              "value": 1.5
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.2.2",
-          "name": "追命",
-          "layer": 2,
+          "id": "youdu.node.soul_judge.soul_chase",
+          "name": "魍魉追魂",
+          "layer": 7,
           "slot": 2,
-          "description": "滞魂咒伤害提高10%。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.pursuit",
-              "operation": "multiplyFixedPower",
-              "value": 1.1
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.2.3",
-          "name": "济幽",
-          "layer": 2,
-          "slot": 3,
-          "description": "销魂蚀骨的基础群疗提高三分之一。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.wither",
-              "operation": "multiplyHealPower",
-              "value": 1.3333333333333333
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.3.1",
-          "name": "生死簿",
-          "layer": 3,
-          "slot": 1,
-          "description": "授予生死裁。",
+          "description": "为己方倒地单位附加不可驱散的追魂印记，持续至战斗结束。造成的物理、法术伤害提高（4+2×己方印记单位数）%，此术不复活目标。",
           "grantSkills": [
-            "youdu.skill.life_judge"
+            "youdu.skill.soul_chase"
           ]
         },
         {
-          "id": "youdu.node.soul.3.2",
-          "name": "镇魄",
-          "layer": 3,
-          "slot": 2,
-          "description": "拘灵术底率提高10点。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.soul_seal",
-              "operation": "addSealBase",
-              "value": 10
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.3.3",
-          "name": "洞幽",
-          "layer": 3,
-          "slot": 3,
-          "description": "洞幽法眼延长2回合。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.insight",
-              "operation": "setStatusDuration",
-              "statusId": "youdu.status.insight",
-              "value": 7
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.4.1",
-          "name": "群判",
-          "layer": 4,
-          "slot": 1,
-          "description": "裂魂咒额外作用1个目标。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.edict",
-              "operation": "setTargetCount",
-              "value": "min(8, floor(skillLevel / 25) + 2)"
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.4.2",
-          "name": "毒绵",
-          "layer": 4,
-          "slot": 2,
-          "description": "魂毒延长1回合。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.wither",
-              "operation": "setStatusDuration",
-              "statusId": "youdu.status.poison",
-              "value": 4
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.4.3",
-          "name": "锁魂",
-          "layer": 4,
-          "slot": 3,
-          "description": "拘灵术延长1回合。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.soul_seal",
-              "operation": "setStatusDuration",
-              "statusId": "youdu.status.soul_seal",
-              "value": 6
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.5.1",
-          "name": "毒判",
-          "layer": 5,
-          "slot": 1,
-          "description": "对中毒目标固伤提高10%。",
-          "passives": [
-            "youdu.passive.soul.poisoned"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.5.2",
-          "name": "命薄",
-          "layer": 5,
-          "slot": 2,
-          "description": "对半血以下目标固伤提高12%。",
-          "passives": [
-            "youdu.passive.soul.low_hp"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.5.3",
-          "name": "冥威",
-          "layer": 5,
-          "slot": 3,
-          "description": "拘灵术底率再提高5点。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.soul_seal",
-              "operation": "addSealBase",
-              "value": 5
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.6.1",
-          "name": "判官",
-          "layer": 6,
-          "slot": 1,
-          "description": "主动固定伤害提高10%。",
-          "passives": [
-            "youdu.passive.soul.fixed"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.6.2",
-          "name": "摧魂",
-          "layer": 6,
-          "slot": 2,
-          "description": "幽都伤势提高30%。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.edict",
-              "operation": "multiplyWoundPower",
-              "value": 1.3
-            },
-            {
-              "skillId": "youdu.skill.life_judge",
-              "operation": "multiplyWoundPower",
-              "value": 1.3
-            },
-            {
-              "skillId": "youdu.skill.final_judgment",
-              "operation": "multiplyWoundPower",
-              "value": 1.3
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.soul.6.3",
-          "name": "济世",
-          "layer": 6,
-          "slot": 3,
-          "description": "销魂蚀骨群疗提高25%。",
-          "passives": [
-            "youdu.passive.soul.heal"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.7.1",
-          "name": "终审",
-          "layer": 7,
-          "slot": 1,
-          "description": "授予十殿终审。",
-          "grantSkills": [
-            "youdu.skill.final_judgment"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.7.2",
-          "name": "拘魂",
-          "layer": 7,
-          "slot": 2,
-          "description": "首次固伤击倒人物后施加锢魂。",
-          "passives": [
-            "youdu.passive.soul.first_kill"
-          ]
-        },
-        {
-          "id": "youdu.node.soul.7.3",
-          "name": "蚀骨",
+          "id": "youdu.node.soul_judge.reward_3",
+          "name": "勾魂阎罗",
           "layer": 7,
           "slot": 3,
-          "description": "销魂蚀骨改为6%魂毒并延长1回合。",
-          "patches": [
+          "automatic": true,
+          "description": "速度增加30点。",
+          "panel": [
             {
-              "skillId": "youdu.skill.wither",
-              "operation": "replaceStatusId",
-              "from": "youdu.status.poison",
-              "to": "youdu.status.strong_poison"
-            },
-            {
-              "skillId": "youdu.skill.wither",
-              "operation": "setStatusDuration",
-              "statusId": "youdu.status.strong_poison",
-              "value": 4
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
             }
           ]
         }
       ]
     },
     {
-      "id": "youdu.path.six_paths",
-      "name": "六道魍魉",
+      "id": "youdu.path.poison_master",
+      "name": "诛形毒师",
+      "requiresConnectedNodes": true,
       "foundationPassives": [
-        "youdu.passive.six.foundation"
+        "youdu.passive.poison_cycle"
       ],
       "nodes": [
         {
-          "id": "youdu.node.six.1.1",
-          "name": "断狱",
+          "id": "youdu.node.poison_master.poison_blaze",
+          "name": "毒炽",
           "layer": 1,
           "slot": 1,
-          "description": "六道断狱系数提高0.10。",
+          "description": "攻击带魂毒的目标时，临时增加12个百分点暴击率。",
+          "passives": [
+            "youdu.passive.poison_blaze"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.recoil",
+          "name": "回旋",
+          "layer": 1,
+          "slot": 2,
+          "description": "受到的法术伤害（含固定伤害法术）减少65点。",
+          "passives": [
+            "youdu.passive.recoil_poison"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.shade",
+          "name": "阴翳",
+          "layer": 1,
+          "slot": 3,
+          "description": "血影蚀心对带魂毒的目标伤害提高30%。",
+          "passives": [
+            "youdu.passive.shade"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.gather",
+          "name": "聚魂",
+          "layer": 2,
+          "slot": 1,
+          "description": "摄魂的基础减伤与承伤增幅各增加5个百分点（口径待校准）。",
           "patches": [
             {
-              "skillId": "youdu.skill.sever",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.1
+              "skillId": "youdu.skill.siphon",
+              "operation": "replaceStatusId",
+              "from": "youdu.status.siphon",
+              "to": "youdu.status.siphon_strong"
             }
           ]
         },
         {
-          "id": "youdu.node.six.1.2",
-          "name": "洞敌",
-          "layer": 1,
-          "slot": 2,
-          "description": "命中提高30。",
-          "panel": [
-            {
-              "attr": "hit",
-              "mode": "add",
-              "value": 30
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.six.1.3",
-          "name": "修罗躯",
-          "layer": 1,
-          "slot": 3,
-          "description": "最大气血提高3%。",
-          "panel": [
-            {
-              "attr": "maxHp",
-              "mode": "multiply",
-              "value": 1.03
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.six.2.1",
-          "name": "蚀血",
-          "layer": 2,
-          "slot": 1,
-          "description": "对中毒目标物伤提高8%。",
-          "passives": [
-            "youdu.passive.six.poisoned"
-          ]
-        },
-        {
-          "id": "youdu.node.six.2.2",
-          "name": "夜战",
+          "id": "youdu.node.poison_master.break_poison",
+          "name": "破毒",
           "layer": 2,
           "slot": 2,
-          "description": "主动物伤提高5%。",
+          "description": "双剑合璧命中后附加魂毒；出手前目标已带魂毒时，本次伤害提高12%。不授予装备特技。",
           "passives": [
-            "youdu.passive.six.direct"
+            "youdu.passive.break_poison"
           ]
         },
         {
-          "id": "youdu.node.six.2.3",
-          "name": "破甲",
+          "id": "youdu.node.poison_master.enter_soul",
+          "name": "入魂",
           "layer": 2,
           "slot": 3,
-          "description": "主动物理忽防5%。",
+          "description": "使用摄魂后，仅下回合造成的物理伤害提高15%。",
           "passives": [
-            "youdu.passive.six.ignore5"
+            "youdu.passive.enter_soul"
           ]
         },
         {
-          "id": "youdu.node.six.3.1",
-          "name": "万鬼",
+          "id": "youdu.node.poison_master.poison_dread",
+          "name": "毒慑",
           "layer": 3,
           "slot": 1,
-          "description": "授予万鬼裂界。",
+          "description": "敌方场上存在魂毒单位时，自己造成的攻击伤害提高6%。",
+          "passives": [
+            "youdu.passive.poison_dread"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.break_pet",
+          "name": "破印",
+          "layer": 3,
+          "slot": 2,
+          "description": "对灵兽造成的伤害提高30%。",
+          "passives": [
+            "youdu.passive.break_pet"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.miasma",
+          "name": "瘴幕",
+          "layer": 3,
+          "slot": 3,
+          "description": "受到魂毒单位攻击时，伤害降低4%。",
+          "passives": [
+            "youdu.passive.miasma"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.pardonless",
+          "name": "无赦咒令",
+          "layer": 4,
+          "slot": 1,
+          "description": "替代涤魂诀：50法力，110%普通物理伤害，随机驱散1个增益；目标带毒时驱散2个。",
           "grantSkills": [
-            "youdu.skill.ghost_rift"
+            "youdu.skill.pardonless"
+          ],
+          "revokeSkillIds": [
+            "youdu.skill.dispel"
           ]
         },
         {
-          "id": "youdu.node.six.3.2",
-          "name": "重狱",
-          "layer": 3,
-          "slot": 2,
-          "description": "六道断狱系数提高0.15。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.sever",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.15
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.six.3.3",
-          "name": "斩衰",
-          "layer": 3,
-          "slot": 3,
-          "description": "对半血以下目标物伤提高10%。",
-          "passives": [
-            "youdu.passive.six.low_hp"
-          ]
-        },
-        {
-          "id": "youdu.node.six.4.1",
-          "name": "裂界",
-          "layer": 4,
-          "slot": 1,
-          "description": "万鬼裂界系数提高0.08。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.ghost_rift",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.08
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.six.4.2",
-          "name": "透骨",
+          "id": "youdu.node.poison_master.nether_eye",
+          "name": "幽冥",
           "layer": 4,
           "slot": 2,
-          "description": "万鬼裂界忽防8%。",
+          "description": "洞幽法眼持续回合增加1。",
           "patches": [
             {
-              "skillId": "youdu.skill.ghost_rift",
-              "operation": "setPhysicalDefenseIgnore",
-              "value": 0.08
+              "skillId": "youdu.skill.insight",
+              "operation": "setStatusDuration",
+              "statusId": "youdu.status.insight",
+              "value": 6
             }
           ]
         },
         {
-          "id": "youdu.node.six.4.3",
-          "name": "凶星",
+          "id": "youdu.node.poison_master.nether_poison",
+          "name": "冥毒",
           "layer": 4,
           "slot": 3,
-          "description": "万鬼裂界暴击率提高5点。",
+          "description": "自己施加的魂毒忽略高级毒性的免疫，不穿透其他免疫。",
           "passives": [
-            "youdu.passive.six.ghost_crit"
+            "youdu.passive.nether_poison"
           ]
         },
         {
-          "id": "youdu.node.six.5.1",
-          "name": "百毒",
+          "id": "youdu.node.poison_master.feast",
+          "name": "狂宴",
           "layer": 5,
           "slot": 1,
-          "description": "万鬼攻击已有魂毒目标增伤15%。",
+          "description": "攻击带魂毒目标后恢复2战意；每次出手对每个目标结算一次（频率待校准）。",
           "passives": [
-            "youdu.passive.six.ghost_poisoned"
+            "youdu.passive.feast"
           ]
         },
         {
-          "id": "youdu.node.six.5.2",
-          "name": "鬼雄",
+          "id": "youdu.node.poison_master.ghost_fire",
+          "name": "鬼火",
           "layer": 5,
           "slot": 2,
-          "description": "物理暴击率提高5点。",
-          "panel": [
-            {
-              "attr": "critRate",
-              "mode": "add",
-              "value": 0.05
-            }
+          "description": "使用原始战意消耗不超过90的装备特技后，恢复16点战意。",
+          "passives": [
+            "youdu.passive.ghost_fire_poison"
           ]
         },
         {
-          "id": "youdu.node.six.5.3",
-          "name": "乘灭",
+          "id": "youdu.node.poison_master.reincarnation",
+          "name": "轮回",
           "layer": 5,
           "slot": 3,
-          "description": "物理击倒后下次物伤提高12%。",
+          "description": "己方仅一名幽都修士，回合结束敌方至少6个魂毒单位时，获得6回合轮回：物理攻击、暴击等级、穿刺等级、狂暴等级、抗封等级、格挡值各增加60。等级换算待校准。",
           "passives": [
-            "youdu.passive.six.kill_mark",
-            "youdu.passive.six.kill_damage"
+            "youdu.passive.reincarnation"
           ]
         },
         {
-          "id": "youdu.node.six.6.1",
-          "name": "无甲",
+          "id": "youdu.node.poison_master.chase_life",
+          "name": "追命",
           "layer": 6,
           "slot": 1,
-          "description": "主动物理额外忽防10%。",
+          "description": "己方仅一名幽都修士时，自己击倒敌方人物后附加3回合拘灵。",
           "passives": [
-            "youdu.passive.six.ignore10"
+            "youdu.passive.chase_life"
           ]
         },
         {
-          "id": "youdu.node.six.6.2",
-          "name": "鬼潮",
+          "id": "youdu.node.poison_master.soul_drain",
+          "name": "汲魂",
           "layer": 6,
           "slot": 2,
-          "description": "万鬼裂界系数再提高0.10。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.ghost_rift",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.1
-            }
+          "description": "每次敌方人物倒地，恢复自身等级×6的气血；无法复活自身。",
+          "passives": [
+            "youdu.passive.soul_drain_poison"
           ]
         },
         {
-          "id": "youdu.node.six.6.3",
-          "name": "必断",
+          "id": "youdu.node.poison_master.evil_flame",
+          "name": "恶焰",
           "layer": 6,
           "slot": 3,
-          "description": "六道断狱系数提高0.25且必中。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.sever",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.25
-            },
-            {
-              "skillId": "youdu.skill.sever",
-              "operation": "setPhysicalCannotMiss",
-              "value": true
-            }
+          "description": "自己击飞带魂毒的单位时，获得6回合物理伤害提高12%；人物倒地不触发。",
+          "passives": [
+            "youdu.passive.evil_flame"
           ]
         },
         {
-          "id": "youdu.node.six.7.1",
-          "name": "俱灭",
+          "id": "youdu.node.poison_master.reward_1",
+          "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "授予六道俱灭。",
+          "automatic": true,
+          "description": "物理暴击等级增加40点（等级换算待校准）。",
+          "passives": [
+            "youdu.passive.crit_reward_1"
+          ]
+        },
+        {
+          "id": "youdu.node.poison_master.life_and_death",
+          "name": "生杀予夺",
+          "layer": 7,
+          "slot": 2,
+          "description": "造成230%普通物理伤害，恢复目标本次实际损失的气血，随机驱散1个增益。目标带毒时暴击倍率增加60个百分点。开场冷却18回合，使用后冷却36回合。",
           "grantSkills": [
-            "youdu.skill.six_paths_ruin"
+            "youdu.skill.life_and_death"
           ]
         },
         {
-          "id": "youdu.node.six.7.2",
-          "name": "鬼啸",
-          "layer": 7,
-          "slot": 2,
-          "description": "万鬼对首目标追加一次攻击。",
-          "patches": [
-            {
-              "skillId": "youdu.skill.ghost_rift",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "physicalHit",
-                "coeff": 0.8,
-                "power": "floor(skillLevel * 0.2)",
-                "cannotMiss": true,
-                "when": {
-                  "targetSlot": "primary"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "id": "youdu.node.six.7.3",
-          "name": "绝境",
+          "id": "youdu.node.poison_master.reward_3",
+          "name": "诛形毒师",
           "layer": 7,
           "slot": 3,
-          "description": "半血以下增伤15%并承伤增加5%。",
+          "automatic": true,
+          "description": "物理暴击等级增加40点（等级换算待校准）。",
           "passives": [
-            "youdu.passive.six.desperate_damage",
-            "youdu.passive.six.desperate_taken"
+            "youdu.passive.crit_reward_2"
           ]
         }
       ],
       "grantSkills": [
-        "youdu.skill.sever"
+        "youdu.skill.blood_shadow",
+        "youdu.skill.ghost_swarm",
+        "youdu.skill.poison_shroud"
+      ],
+      "revokeSkillIds": [
+        "youdu.skill.judge",
+        "youdu.skill.revival"
       ]
     }
   ]

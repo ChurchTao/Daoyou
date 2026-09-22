@@ -50,10 +50,10 @@ describe('红尘经脉连通选择', () => {
       expect(result.projection.panel.filter(p => p.value === (path.id.endsWith('guiyi') ? 280 : 40))).toHaveLength(2);
     });
   }
-  it('其他宗门保持当前选择规则', () => {
+  it('幽都也要求沿相邻列逐层连通', () => {
     const path = COMBAT_V6_SECT_DEFINITIONS.youdu.paths[0];
     const node = path.nodes.find(n => n.layer === 3)!;
-    expect(canSelectMeridianNode(path, [], node)).toBe(true);
-    expect(connectedMeridianSelection(path, [node.id])).toEqual([node.id]);
+    expect(canSelectMeridianNode(path, [], node)).toBe(false);
+    expect(connectedMeridianSelection(path, [node.id])).toEqual([]);
   });
 });

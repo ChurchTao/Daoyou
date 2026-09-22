@@ -6,6 +6,7 @@ import {
   ForgedEquipmentDescSchema,
 } from '../forging/narrative';
 import { CHARACTER_ATTRIBUTE_LABELS } from '../lib/characterAttributeLabels';
+import { DAO_WEAPON_TYPES, equipmentWeaponTypeProblem } from '../engine/combat-v6/equipment/weapons';
 // 器胚使用战斗面板名称；附灵展示必须使用 CHARACTER_ATTRIBUTE_LABELS。
 export const EQUIPMENT_ATTRIBUTE_NAMES = {
   ...CHARACTER_ATTRIBUTE_LABELS,
@@ -48,6 +49,7 @@ export const InventoryEquipmentSchema = z
     crafterName: EquipmentCrafterNameSchema.optional(),
     element: z.enum(ELEMENT_VALUES).optional(),
     slot: z.enum(DAO_EQUIPMENT_SLOTS),
+    weaponType: z.enum(DAO_WEAPON_TYPES).optional(),
     equipmentLevel: z.number().int().nonnegative(),
     requiredLevel: z.number().int().nonnegative(),
     baseStats: z.array(roll).max(20),
@@ -64,11 +66,16 @@ export const InventoryEquipmentSchema = z
       'dao_equipment_generator_v2',
       'dao_equipment_generator_v3',
       'dao_equipment_generator_v4',
+      'dao_equipment_generator_v5',
     ]),
     createdAt: z.string(),
   })
   .strict()
-  .refine((equipment) => equipment.generatorVersion !== 'dao_equipment_generator_v4' || equipment.element !== undefined, {
+  .refine((equipment) => !['dao_equipment_generator_v4', 'dao_equipment_generator_v5'].includes(equipment.generatorVersion) || equipment.element !== undefined, {
     message: '新版锻造装备必须包含五行属性',
     path: ['element'],
+  })
+  .superRefine((equipment, ctx) => {
+    const message = equipmentWeaponTypeProblem(equipment);
+    if (message) ctx.addIssue({ code: 'custom', path: ['weaponType'], message });
   });

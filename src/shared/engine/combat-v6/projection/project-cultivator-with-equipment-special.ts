@@ -192,11 +192,12 @@ export function projectCultivatorWithEquipmentSpecialInternal(
         { ...DAO_RAGE_RESOURCE },
       ],
       combatFacts: {
+        weaponDamage: (input.equipment.weapon?.baseStats.filter(r => r.attr === 'physicalAtk').reduce((sum, r) => sum + r.value, 0) ?? 0) + (input.equipment.weapon?.formationInscription && daoFormationInscriptionOf(input.equipment.weapon.formationInscription.patternId)?.attr === 'physicalAtk' ? input.equipment.weapon.formationInscription.level * daoFormationInscriptionOf(input.equipment.weapon.formationInscription.patternId)!.valuePerLevel : 0),
         metalFireWindEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)).length,
         weaponXuanfengLevel: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level : 0,
         weaponXuanfengAttack: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level * daoFormationInscriptionOf('dao_inscription.xuanfeng')!.valuePerLevel : 0,
       },
-      tags: [...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? []),
+      tags: [...(input.equipment.weapon?.element && ['水', '冰', '土'].includes(input.equipment.weapon.element) ? ['equipment.weapon.water_ice_earth'] : []), ...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? []),
         ...([input.equipment.weapon, input.equipment.armor].every(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)) ? ['equipment.weapon_armor.metal_fire_wind'] : [])],
     },
     skills: [...(sect?.projection.skills ?? []), ...equipment.projection.skills],

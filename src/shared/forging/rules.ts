@@ -6,9 +6,25 @@ import {
 import { z } from 'zod';
 import type { ForgingBoosts } from '../engine/combat-v6/equipment/forging';
 import { DAO_EQUIPMENT_FORGING } from '../engine/combat-v6/equipment/forging-content';
+import type { DaoEquipmentSlot } from '../engine/combat-v6/equipment/types';
+import {
+  equipmentWeaponTypeProblem,
+  type DaoWeaponType,
+} from '../engine/combat-v6/equipment/weapons';
 import { InventoryRuleError } from '../inventory';
 import type { MaterialFacts } from '../items/definitions/materials';
 import { QUALITY_ORDER, type Quality } from '../types/constants';
+
+/** 部位来自服务端实际图纸；不得信任客户端自行声明的部位。 */
+export function validateForgeWeaponType(
+  slot: DaoEquipmentSlot,
+  weaponType?: DaoWeaponType,
+) {
+  const problem = equipmentWeaponTypeProblem({
+    slot, weaponType, generatorVersion: 'dao_equipment_generator_v5',
+  });
+  if (problem) throw new InventoryRuleError(problem);
+}
 
 export const ForgingLevelSchema = z
   .number()

@@ -42,3 +42,19 @@ describe('杀意和杀伐的装备条件投影', () => {
     }
   });
 });
+
+
+describe('幽都克敌与阎罗装备投影', () => {
+  it('克敌只检查自身武器的水冰土，衣服元素不参与；武器伤害独立于人物总物攻', () => {
+    for (const element of ELEMENT_VALUES) {
+      const result = projectCharacterToCombatV6({ ...input, equipment: {
+        weapon: { ...weapon.instance, element }, armor: { ...armor.instance, element: '水' },
+      } });
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      expect(result.unit.tags?.includes('equipment.weapon.water_ice_earth')).toBe(['水', '冰', '土'].includes(element));
+      const ownDamage = weapon.instance.baseStats.filter(r => r.attr === 'physicalAtk').reduce((sum, r) => sum + r.value, 0);
+      expect(result.unit.combatFacts?.weaponDamage).toBe(ownDamage);
+    }
+  });
+});

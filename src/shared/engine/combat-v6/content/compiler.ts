@@ -262,6 +262,7 @@ function patchConflictKey(patch: SkillPatchV6): string | undefined {
 
 function applyPatch(skill: SkillDef, patch: SkillPatchV6): SkillDef {
   const next = cloneSkill(skill)
+  if (patch.operation === "includeDownedTargets") next.targeting.includeDowned = patch.value
   if (patch.operation === "setRequireHpRatio") {
     if (next.requireHpAboveRatio !== undefined) next.requireHpAboveRatio = patch.value
     else next.requireHpRatio = patch.value

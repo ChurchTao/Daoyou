@@ -18,7 +18,7 @@ import {
 } from '@shared/engine/combat-v6/beasts/progression';
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
-import { forgingCost, forgingInputs } from '@shared/forging/rules';
+import { forgingCost, forgingInputs, validateForgeWeaponType } from '@shared/forging/rules';
 import {
   addItems,
   itemDefinition,
@@ -161,6 +161,7 @@ async function readForgeInputs(
   const definition = itemDefinition(blueprint.definitionId);
   if (definition.kind !== 'blueprint' || !definition.slot || !definition.level)
     throw new InventoryError('请选择道装图纸');
+  validateForgeWeaponType(definition.slot, input.weaponType);
   const selected = input.materials.map((ref) => {
     const item = requireItem(ref);
     if (
@@ -224,6 +225,7 @@ export async function forgeEquipment(
         narrative = await generateForgingNarrative({
           level: prepared.level,
           slot: prepared.slot,
+          weaponType: input.weaponType,
           materials: prepared.selected,
           intent: input.intent,
         });
@@ -253,6 +255,7 @@ export async function forgeEquipment(
             seed,
             templateId: `dao_equipment.standard.${slot}.v1`,
             equipmentLevel: level,
+            weaponType: input.weaponType,
             ...forging,
           });
           if (!generated.ok)
@@ -582,6 +585,7 @@ export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
           seed: randomInt(0x100000000),
           templateId: `dao_equipment.standard.${grant.slot}.v1`,
           equipmentLevel: grant.level,
+          weaponType: grant.weaponType,
           boosts: { ore: 0, essence: 0, attributes: 0 },
         });
         if (!generated.ok) throw new InventoryError('道装生成失败');

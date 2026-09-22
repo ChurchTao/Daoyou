@@ -41,12 +41,14 @@ const cast = (id: string, target = 't'): Command => ({ type: 'skill', skillId: S
 const dealt = (b: Battle, id: string) => b.log().filter(e => e.type === 'damage' && e.targetId === id).map(e => e.type === 'damage' ? e.amount : 0);
 
 describe('幽都基础模组还原', () => {
-  it('两流派共享抗封根基，六道断狱只由物理流派授予，并按心法分阶段解锁', () => {
-    for (const path of ['soul_judge', 'six_paths']) {
+  it('两流派共享抗封根基，毒师攻击只由物理流派授予，并按心法分阶段解锁', () => {
+    for (const path of ['soul_judge', 'poison_master']) {
       const p = project(path);
       expect(p.passiveSkillIds).toContain('youdu.passive.soul_guard');
-      for (const name of ['judge', 'revival', 'dispel', 'stealth']) expect(p.activeSkillIds).toContain(S(name));
-      expect(p.activeSkillIds.includes(S('sever'))).toBe(path === 'six_paths');
+      for (const name of ['dispel', 'stealth']) expect(p.activeSkillIds).toContain(S(name));
+      expect(p.activeSkillIds.includes(S('blood_shadow'))).toBe(path === 'poison_master');
+      expect(p.activeSkillIds.includes(S('judge'))).toBe(path === 'soul_judge');
+      expect(p.activeSkillIds.includes(S('revival'))).toBe(path === 'soul_judge');
     }
     expect(project('soul_judge', 74).activeSkillIds).not.toContain(S('soul_seal'));
     expect(project('soul_judge', 75).activeSkillIds).toContain(S('soul_seal'));
@@ -61,12 +63,12 @@ describe('幽都基础模组还原', () => {
     expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('slow') }));
     expect(c.unit('s').attrs.mp).toBe(9950);
   });
-  it('判官类技能同时削血削蓝，锢魂及延长节点分别为5与6回合', () => {
+  it('判官类技能同时削血削蓝，拘灵基础持续5回合', () => {
     const { b } = setup(); round(b, cast('judge'));
     expect(b.unit('t').attrs.hp).toBeLessThan(100000);
     expect(b.unit('t').attrs.mp).toBe(9820);
     expect(b.unit('s').attrs.mp).toBe(9980);
-    for (const [nodes, duration] of [[[], 5], [['youdu.node.soul.4.3'], 6]] as const) {
+    for (const [nodes, duration] of [[[], 5]] as const) {
       const c = setup('soul_judge', [...nodes]).b; round(c, cast('soul_seal'));
       expect(c.unit('t').statuses).toContainEqual(expect.objectContaining({ id: T('soul_seal'), remainingRounds: duration }));
       expect(c.unit('s').attrs.mp).toBe(9950);

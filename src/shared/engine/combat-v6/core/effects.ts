@@ -5,7 +5,7 @@ import { combatModifiers, modifierValue, sealHitTakenFactor } from './modifiers'
 import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
 import { applyBarrier } from "./barriers.ts"
-import { applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, changeWound, resolveStrike } from "./damage.ts"
+import { applyDamage, applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, changeWound, resolveStrike } from "./damage.ts"
 import { DamageKind, DamageOrigin, EffectType, EventType, FailReason, FormulaFamily, StatusCategory, StatusHit, StatusRemoveReason } from "./enums.ts"
 import { evalExpr } from "./expr.ts"
 import { atLeast, floorAtLeast } from "./math.ts"
@@ -25,6 +25,13 @@ type EffectHandler<T extends SkillEffect = SkillEffect> = (
 ) => void
 
 const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect, { type: K }>> } = {
+  [EffectType.ModifyCooldown]: (ctx, source, _skill, effect, _targets, env) => {
+    const ready = source.cooldowns?.[effect.skillId]
+    if (ready !== undefined && ready > ctx.state.round) source.cooldowns![effect.skillId] = Math.max(ctx.state.round, ready + Math.floor(evalExpr(effect.amount, { ...env, state: ctx.state })))
+  },
+  [EffectType.LoseHp]: (ctx, source, _skill, effect, targets, env) => {
+    for (const target of targets) applyDamage(ctx, source, target, Math.max(0, Math.floor(evalExpr(effect.power, { ...env, target }))), DamageKind.Fixed, true, DamageOrigin.Status)
+  },
   [EffectType.RandomBranch]: handleRandomBranch,
   [EffectType.SkipNextAction]: (_ctx, source) => {
     source.flags.skipNextAction = true
@@ -276,15 +283,18 @@ function handleApplyStatus(
   const duration = floorAtLeast(1, evalExpr(effect.duration, env))
   for (const t of dest) {
     if ((t.flags.downed || t.flags.dead) && !(effect.targeting?.includeDowned ?? skill.targeting.includeDowned)) continue
+    const modifiers = combatModifiers(ctx, source, { target: t, skill, skillId: skill.id })
+    const durationAdd = modifiers.reduce((sum, m) => sum + (m.statusDurationAdd?.statusId === effect.statusId ? evalExpr(m.statusDurationAdd.amount, { ...env, target: t, state: ctx.state }) : 0), 0)
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
-      const chance = ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase) * sealHitTakenFactor(ctx, t)
+      const targetModifiers = combatModifiers(ctx, t, { target: source, skill, skillId: skill.id })
+      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
       if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
       }
     }
-    applyStatus(ctx, t, effect.statusId, duration, source.id, {
+    applyStatus(ctx, t, effect.statusId, Math.max(1, Math.floor(duration + durationAdd)), source.id, {
       storedTargetId: effect.storeTarget ? (t.id === source.id ? env.target?.id : t.id) : undefined,
       env: { ...env, target: t },
     })
@@ -400,8 +410,6 @@ function handleHit(
     : effect.type === EffectType.PhysicalHit
       ? DamageKind.Physical
       : DamageKind.Spell
-  const power = evalExpr(effect.power, env)
-
   for (const t of targets) {
     if (effect.when?.targetSlot === "primary" && ctx.currentAction?.primaryTargetId !== t.id) continue
     for (let i = 0; i < hits; i++) {
@@ -415,7 +423,7 @@ function handleHit(
         coeff: coeffs[i] ?? coeffs[coeffs.length - 1] ?? 1,
         resultFactor: effect.resultFactors?.[i],
         mpDamageRatio: effect.type === EffectType.PhysicalHit ? effect.mpDamageRatio : undefined,
-        power,
+        power: evalExpr(effect.power, { ...env, target: t }),
         trueDamage,
         defenseIgnore:
           effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit

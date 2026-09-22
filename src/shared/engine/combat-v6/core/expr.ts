@@ -174,6 +174,13 @@ class Parser {
   }
 
   private lookup(name: string): number {
+    if (name === "round") return this.env.state?.round ?? 0
+    if (name === "enemyDownedPlayers") return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === "player" && u.flags.downed && !u.flags.escaped).length ?? 0
+    if (name.startsWith("enemyStatus.") || name.startsWith("allyStatus.")) {
+      const enemy = name.startsWith("enemyStatus.")
+      const kind = name.slice(enemy ? 12 : 11)
+      return this.env.state?.units.filter(u => (u.side !== this.env.source.side) === enemy && !u.flags.dead && !u.flags.escaped && !u.flags.benched && (!enemy || !u.flags.downed) && u.statuses.some(s => s.kind === kind)).length ?? 0
+    }
     if (name === "originalResourceCost") return this.env.originalResourceCost ?? 0
     if (name.startsWith("resource.")) return this.env.source.resources.find(r => r.id === name.slice(9))?.current ?? 0
     if (name.startsWith("fact.")) return this.env.source.combatFacts?.[name.slice(5)] ?? 0

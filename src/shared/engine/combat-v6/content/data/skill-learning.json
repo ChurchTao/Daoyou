@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -50,98 +50,6 @@
     "youdu.skill.insight": {
       "sourceMethodId": "youdu.method.insight",
       "unlockMethodLevel": 30
-    },
-    "youdu.skill.sever": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 1
-    },
-    "youdu.passive.soul.foundation": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.skill.life_judge": {
-      "sourceMethodId": "youdu.method.judge",
-      "unlockMethodLevel": 1
-    },
-    "youdu.passive.soul.poisoned": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.soul.low_hp": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.soul.fixed": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.soul.heal": {
-      "sourceMethodId": "youdu.method.wither",
-      "unlockMethodLevel": 0
-    },
-    "youdu.skill.final_judgment": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 100
-    },
-    "youdu.passive.soul.first_kill": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.foundation": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.poisoned": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.direct": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.ignore5": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
-    },
-    "youdu.skill.ghost_rift": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 1
-    },
-    "youdu.passive.six.low_hp": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.ghost_crit": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.ghost_poisoned": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.kill_mark": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.kill_damage": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.ignore10": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
-    },
-    "youdu.skill.six_paths_ruin": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 100
-    },
-    "youdu.passive.six.desperate_damage": {
-      "sourceMethodId": "youdu.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "youdu.passive.six.desperate_taken": {
-      "sourceMethodId": "youdu.method.asura",
-      "unlockMethodLevel": 0
     },
     "wuxiang.skill.single_heal": {
       "sourceMethodId": "wuxiang.method.canon",
@@ -704,6 +612,162 @@
       "unlockMethodLevel": 20
     },
     "youdu.passive.soul_guard": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.evil_flame": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.life_and_death": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.bone": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.break_poison": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.night_walk": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.feast": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.nether_poison": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.counter": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.enter_soul": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.siphon": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.chase_life": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.blood_shadow": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.recoil": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.shade": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.yanluo": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.poison_dread": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.bound_soul": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.poison_blaze": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.reincarnation": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul_wound": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.poison_cycle": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.ghost_fire": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.break_pet": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.crit_reward_1": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.poison_shroud": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.ghost_swarm": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.skill.soul_chase": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.spring_burst": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul_drain": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.ghost_light": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul_flight": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.echo": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.skill.pardonless": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "youdu.passive.soul_seek": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.crit_reward_2": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.miasma": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.recoil_poison": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.ghost_fire_poison": {
+      "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "youdu.passive.soul_drain_poison": {
       "sourceMethodId": "youdu.method.canon",
       "unlockMethodLevel": 0
     }

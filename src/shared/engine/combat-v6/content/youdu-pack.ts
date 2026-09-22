@@ -1,6 +1,7 @@
+import { ydTargeting as targeting, ydEffect as effects, ydModifier, ydHook } from './youdu-shapes';
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
-import { ATTR_NAMES, EffectType, SkillTag, StatusCategory, StatusHit, StatusTick, TargetMode, TargetSide, TickKind, UnitKind, type SkillDef, type StatusDef } from '../core';
+import { ATTR_NAMES, EffectType, SkillTag, StatusCategory, StatusTick, TickKind, type SkillDef, type StatusDef } from '../core';
 import { validateSectExpressions } from './authoring-expressions';
 import { sectSkillLearning } from './skill-learning';
 import type { SectSkillDefV6 } from './types';
@@ -11,22 +12,6 @@ const id = z.string().regex(/^youdu\.[a-z][a-z0-9_.]*$/);
 const scalar = z.number().min(-1_000_000).max(1_000_000).multipleOf(0.000001);
 const expression = z.union([scalar, z.string().min(1).max(200)]);
 const ratio = z.number().min(0).max(1).multipleOf(0.000001);
-const targeting = z.strictObject({
-  side: z.enum(TargetSide), mode: z.enum(TargetMode).optional(),
-  count: expression.optional(), includeDowned: z.boolean().optional(),
-  requireKind: z.enum(UnitKind).optional(), onlyDowned: z.boolean().optional(), requireRevivable: z.boolean().optional(),
-});
-const effects = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal(EffectType.FixedHit), power: expression, percentageDamage: z.boolean().optional() }),
-  z.strictObject({ type: z.literal(EffectType.DamageMp), power: expression }),
-  z.strictObject({ type: z.literal(EffectType.Revive), hpRatio: ratio }),
-  z.strictObject({ type: z.literal(EffectType.Dispel), categories: z.array(z.enum(StatusCategory)), schoolOnly: z.boolean().optional() }),
-  z.strictObject({ type: z.literal(EffectType.Wound), power: expression }),
-  z.strictObject({ type: z.literal(EffectType.Heal), power: expression, targeting: targeting.optional() }),
-  z.strictObject({ type: z.literal(EffectType.PhysicalHit), coeff: scalar.nonnegative(), power: expression.optional(), cannotMiss: z.boolean().optional(), defenseIgnore: ratio.optional() }),
-  z.strictObject({ type: z.literal(EffectType.ApplyStatus), statusId: id, duration: expression, hit: z.enum(StatusHit).optional(), self: z.boolean().optional() }),
-  z.strictObject({ type: z.literal(EffectType.SkipNextAction) }),
-]);
 export const YouduCombatPackShape = z.strictObject({
   $schema: z.string().optional(), formatVersion: z.literal(1),
   contentRevision: z.number().int().positive(),
@@ -36,7 +21,9 @@ export const YouduCombatPackShape = z.strictObject({
     costMp: expression.optional(), costHp: expression.optional(),
     description: z.string().min(1).max(500).optional(),
     innate: z.strictObject({ sealHitTakenFactor: ratio }).optional(),
-    modifiers: z.array(z.strictObject({ when: z.strictObject({ skillIds: z.array(id), foeKind: z.enum(UnitKind) }), damageBonus: scalar.nonnegative() })).optional(),
+    modifiers: z.array(ydModifier).optional(),
+    hooks: z.array(ydHook).optional(),
+    cooldownRounds: z.number().int().positive().optional(), initialCooldownRounds: z.number().int().nonnegative().optional(),
     tags: z.array(z.enum(SkillTag)).min(1),
     formula: z.literal('fixed').optional(), sealBase: scalar.nonnegative().optional(),
     targeting, effects: z.array(effects),
@@ -48,6 +35,12 @@ export const YouduCombatPackShape = z.strictObject({
     sealHitTakenFactor: ratio.optional(), revealStealth: z.boolean().optional(),
     untargetable: z.boolean().optional(), blocksSpell: z.boolean().optional(),
     upkeepMp: z.strictObject({ self: scalar.nonnegative(), other: scalar.nonnegative() }).optional(),
+    modifiers: z.array(ydModifier).optional(),
+    untilBattleEnd: z.boolean().optional(), dispellable: z.boolean().optional(), sourceBound: z.boolean().optional(),
+    expireSameRound: z.boolean().optional(), extendable: z.boolean().optional(),
+    onExpire: z.strictObject({ statusId: id, duration: z.number().int().positive() }).optional(),
+    damageTakenPhysical: scalar.optional(), damageTakenSpell: scalar.optional(),
+    damageDealtPhysical: scalar.optional(), damageDealtSpell: scalar.optional(),
     speedMod: expression.optional(),
     attrMods: z.partialRecord(z.enum(ATTR_NAMES), expression).optional(),
     blocksRevive: z.boolean().optional(), persistWhenDowned: z.boolean().optional(),

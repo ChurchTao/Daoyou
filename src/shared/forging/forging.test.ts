@@ -130,9 +130,10 @@ describe('blueprint forging', () => {
         if (!base.ok || !result.ok || !zero.ok) continue;
         expect(zero.instance).toEqual({
           ...base.instance,
-          generatorVersion: 'dao_equipment_generator_v4',
+          generatorVersion: 'dao_equipment_generator_v5',
           element: zero.instance.element,
-          name: forgedName(slot, 90, seed),
+          ...(slot === 'weapon' ? { weaponType: 'sword' } : {}),
+          name: forgedName(slot, 90, seed, slot === 'weapon' ? 'sword' : undefined),
         });
         expect(result.instance.artId).toBe(base.instance.artId);
         expect(result.instance.attributeBonuses.map((r) => r.attr)).toEqual(

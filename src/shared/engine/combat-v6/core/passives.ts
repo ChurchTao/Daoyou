@@ -54,7 +54,11 @@ export function bindDataHooks(ctx: BattleContext): void {
           const skillId = hctx.skillId ?? ctx.currentAction?.skillId
           const actor = hctx.source ?? unit
           const actionSkill = skillId ? skillOf(ctx.skills, actor, skillId) : undefined
+          const originalResourceCost = (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0)
           const scope: WhenScope = {
+            removedStatusKind: hctx.removedStatusKind,
+            statusRemoveReason: hctx.statusRemoveReason,
+            originalResourceCost,
             source: unit,
             target: hctx.target,
             skill: actionSkill,
@@ -71,6 +75,7 @@ export function bindDataHooks(ctx: BattleContext): void {
 
           const env = {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
+            state: ctx.state,
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
             originalResourceCost: (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0),

@@ -20,14 +20,18 @@ export function combatModifiers(ctx: BattleContext, source: Unit, scope: Omit<Wh
       }
     }
   }
+  for (const status of source.statuses) {
+    for (const modifier of ctx.statusDefs.get(status.id)?.modifiers ?? [])
+      if (matchesWhen(ctx, modifier.when, { ...scope, source })) result.push(modifier);
+  }
   return result;
 }
 
-export function modifierValue(modifiers: CombatModifier[], key: keyof CombatModifier, source: Unit, target?: Unit, skill?: SkillDef): number {
+export function modifierValue(modifiers: CombatModifier[], key: keyof CombatModifier, source: Unit, target?: Unit, skill?: SkillDef, ctx?: BattleContext): number {
   return modifiers.reduce((sum, modifier) => {
     const value = modifier[key];
     return sum + (typeof value === 'number' || typeof value === 'string'
-      ? evalExpr(value, { source, target, skillLevel: skill ? source.skillLevels[skill.id] ?? source.level : source.level, targets: 1 }) : 0);
+      ? evalExpr(value, { state: ctx?.state, source, target, skillLevel: skill ? source.skillLevels[skill.id] ?? source.level : source.level, targets: 1 }) : 0);
   }, 0);
 }
 
@@ -35,10 +39,10 @@ export function isReviveBlocked(ctx: BattleContext, target: Unit): boolean {
   return !combatModifiers(ctx, target).some(m => m.ignoreReviveBlock) && target.statuses.some(s => ctx.statusDefs.get(s.id)?.blocksRevive);
 }
 
-export function sealHitTakenFactor(ctx: Pick<BattleContext, 'skills' | 'statusDefs'>, target: Unit): number {
+export function sealHitTakenFactor(ctx: Pick<BattleContext, 'skills' | 'statusDefs'>, target: Unit, ignoredKinds: string[] = []): number {
   const factors = [
     ...passiveSkills(ctx.skills, target).map(s => s.innate?.sealHitTakenFactor ?? 1),
-    ...target.statuses.map(s => ctx.statusDefs.get(s.id)?.sealHitTakenFactor ?? 1),
+    ...target.statuses.filter(s => !ignoredKinds.includes(s.kind)).map(s => ctx.statusDefs.get(s.id)?.sealHitTakenFactor ?? 1),
   ];
   return factors.reduce((factor, value) => factor * value, 1);
 }

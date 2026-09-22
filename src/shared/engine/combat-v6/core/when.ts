@@ -8,6 +8,9 @@ import type { EffectWhen, SkillDef, SkillId, Unit } from "./types.ts"
 import { isStanding, resourceOf } from "./units.ts"
 
 export type WhenScope = {
+  removedStatusKind?: string
+  statusRemoveReason?: string
+  originalResourceCost?: number
   source: Unit
   target?: Unit
   skill?: SkillDef
@@ -64,6 +67,15 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
 export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
   const units = ctx.state.units ?? []
+  if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
+  if (when.statusRemoveReason && scope.statusRemoveReason !== when.statusRemoveReason) return false
+  if (when.originalResourceCostMax !== undefined && (scope.originalResourceCost === undefined || scope.originalResourceCost > when.originalResourceCostMax)) return false
+  if (when.targetDowned !== undefined && scope.target?.flags.downed !== when.targetDowned) return false
+  if (when.targetDead !== undefined && scope.target?.flags.dead !== when.targetDead) return false
+  if (when.excludeFoeKinds && (!scope.target || when.excludeFoeKinds.includes(scope.target.kind))) return false
+  if (when.targetOwnedStatus && !scope.target?.statuses.some(s => s.kind === when.targetOwnedStatus!.kind && s.sourceId === scope.source.id && (!when.targetOwnedStatus!.appliedThisRound || s.appliedRound === ctx.state.round))) return false
+  if (when.enemyStatusCount && units.filter(u => u.side !== scope.source.side && isStanding(u) && u.statuses.some(s => s.kind === when.enemyStatusCount!.kind)).length < when.enemyStatusCount.min) return false
+  if (when.oncePerActionTarget && (!ctx.currentAction || ctx.currentAction.triggeredTargets?.includes(`${scope.markKey}:${scope.target?.id}`))) return false
   if (when.pvp !== undefined && units.some(u => u.side !== scope.source.side && u.kind === 'player') !== when.pvp) return false
   if (when.teamUniqueTag && units.filter(u => u.side === scope.source.side && u.kind === 'player' && u.tags.includes(when.teamUniqueTag!)).length !== 1) return false
   if (when.targetEnemy && (!scope.target || scope.target.side === scope.source.side)) return false
@@ -129,6 +141,8 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
     if (when.targetStatusStack.min !== undefined && stacks < when.targetStatusStack.min) return false
     if (when.targetStatusStack.max !== undefined && stacks > when.targetStatusStack.max) return false
   }
+  if (when.sourceInitialStatusIds && !when.sourceInitialStatusIds.some(id => ctx.currentAction?.initialSourceStatusIds?.includes(id))) return false
+  if (when.initialTargetStatusKinds && !when.initialTargetStatusKinds.some(kind => scope.target && ctx.currentAction?.initialStatusKindsByTarget[scope.target.id]?.includes(kind))) return false
   const primaryId = ctx.currentAction?.primaryTargetId
   if (when.primaryTargetStatusIds?.length) {
     const ids = primaryId ? ctx.currentAction?.initialStatusIdsByTarget[primaryId] ?? [] : []
@@ -156,6 +170,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
 /** 条件通过并真正结算后调用，消耗 oncePerBattle / oncePerRound。 */
 export function consumeWhen(ctx: BattleContext, when: EffectWhen | undefined, scope: WhenScope): void {
   if (!when) return
+  if (when.oncePerActionTarget && ctx.currentAction) (ctx.currentAction.triggeredTargets ??= []).push(`${scope.markKey}:${scope.target?.id}`)
   const key = markName(scope, ctx.state.round, when)
   if (key && !scope.source.marks.includes(key)) scope.source.marks.push(key)
 }

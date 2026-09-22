@@ -113,7 +113,7 @@ it('同宗不同道途的技能按角色隔离，保留补丁与原始构筑', (
   const a = player('a');
   const b = player('b');
   a.sect.meridianDepth = 1;
-  a.sect.meridianLoadouts[0].nodeIds = ['youdu.node.soul.1.1'];
+  a.sect.meridianLoadouts[0].nodeIds = ['youdu.node.soul_judge.yanluo'];
   b.sect.activePathId = COMBAT_V6_SECT_DEFINITIONS_V4.youdu.paths[1].id;
   const original = structuredClone([a, b]);
   const projections = [a, b].map((p, side) => projectCharacterToCombatV6({ ...p, side: side as 0 | 1, slot: 0, resourcePolicy: 'full' }));

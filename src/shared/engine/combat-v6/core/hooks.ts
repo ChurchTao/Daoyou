@@ -8,6 +8,8 @@ import type { BattleEvent, SkillId, Unit } from "./types.ts"
 export type { HookName }
 
 export type HookContext = {
+  removedStatusKind?: string
+  statusRemoveReason?: string
   source?: Unit
   target?: Unit
   event?: BattleEvent

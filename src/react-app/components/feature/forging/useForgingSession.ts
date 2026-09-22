@@ -7,6 +7,7 @@ import {
   isOpenEquipmentLevel,
 } from '@shared/engine/combat-v6/equipment/realm';
 import type { DaoEquipmentInstanceV1 } from '@shared/engine/combat-v6/equipment/types';
+import type { DaoWeaponType } from '@shared/engine/combat-v6/equipment/weapons';
 import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
 import { forgingCost, forgingInputs } from '@shared/forging/rules';
 import { itemDefinition } from '@shared/inventory';
@@ -29,6 +30,7 @@ export function useForgingSession() {
   const [materialIds, setMaterialIds] = useState(emptyMaterials);
   const [pending, setPending] = useState(false);
   const [intent, setIntent] = useState('');
+  const [weaponType, setWeaponType] = useState<DaoWeaponType>('sword');
   const [retryInput, setRetryInput] = useState<ForgeRequest>();
   const [error, setError] = useState('');
   const [result, setResult] = useState<{
@@ -180,6 +182,7 @@ export function useForgingSession() {
     const input: ForgeRequest = inputToRetry ?? {
       requestId: crypto.randomUUID(),
       intent: intent.trim(),
+      ...(definition?.slot === 'weapon' ? { weaponType } : {}),
       blueprint: { id: blueprint!.id, revision: blueprint!.revision },
       materials: Array.from(quantities, ([id, quantity]) => ({
         id,
@@ -248,6 +251,8 @@ export function useForgingSession() {
     total,
     pending,
     intent,
+    weaponType,
+    setWeaponType,
     setIntent,
     intentTooLong,
     canRetry: !!retryInput,

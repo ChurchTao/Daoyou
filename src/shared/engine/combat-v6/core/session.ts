@@ -84,7 +84,13 @@ export class BattleSession {
         unitIds: units.map((u) => u.id),
         versions: { ...input.versions },
       })
-      for (const unit of units) applyEntryStatuses(this.ctx, unit)
+      for (const unit of units) {
+        for (const id of unit.skills) {
+          const initial = (unit.skillOverrides[id] ?? skills.get(id))?.initialCooldownRounds
+          if (initial) (unit.cooldowns ??= {})[id] = this.ctx.state.round + initial
+        }
+        applyEntryStatuses(this.ctx, unit)
+      }
       this.ctx.emit({ type: EventType.RoundStart, round: 1 })
       this.ctx.hooks.emit(HookName.OnRoundStart)
     }
@@ -225,8 +231,6 @@ export class BattleSession {
     if (delay && !ban) unit.flags.reviveAtRound = this.ctx.state.round + delay
     else unit.flags.reviveAtRound = undefined
     const outcome = this.ctx.rules.hpZeroOutcome(unit)
-    clearCombatStatuses(this.ctx, unit)
-    clearBarriers(this.ctx, unit)
     unit.attrs.hp = 0
     if (outcome === HpZeroOutcome.Downed) {
       unit.flags.downed = true
@@ -237,6 +241,8 @@ export class BattleSession {
     }
     if (source && this.ctx.currentAction && source.id === this.ctx.currentAction.sourceId) (this.ctx.currentAction.killedTargetIds ??= []).push(unit.id)
     this.ctx.hooks.emit(HookName.OnDeath, { source, target: unit, skillId, kind, origin })
+    clearCombatStatuses(this.ctx, unit)
+    clearBarriers(this.ctx, unit)
     this.finishIfNeeded(ResultReason.Wipe)
   }
 

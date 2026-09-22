@@ -24,7 +24,7 @@ function cast(data: unknown, index = 0) {
   return battle.snapshot();
 }
 describe('幽都技能与状态样板', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(YouduCombatPackShape)).toEqual(schema));
+  it('Schema 同步', () => expect(z.toJSONSchema(YouduCombatPackShape, { reused: 'ref' })).toEqual(schema));
   it('拒绝未知字段、机制、状态引用、表达式变量与语法', () => {
     const cases = [
       { ...raw, script: 'unsafe' },

@@ -105,6 +105,7 @@ export const HookName = {
   /** 成功命中后，包括被护盾完全吸收的攻击；不含派生伤害。 */
   AfterStrike: 'afterStrike',
   OnFatal: 'onFatal',
+  OnStatusRemoved: 'onStatusRemoved',
   OnDeath: 'onDeath',
   OnRoundStart: 'onRoundStart',
   OnRoundEnd: 'onRoundEnd',
@@ -229,6 +230,8 @@ export const EffectType = {
   SetCrit: 'setCrit',
   ModifyResource: 'modifyResource',
   ModifyChance: 'modifyChance',
+  ModifyCooldown: 'modifyCooldown',
+  LoseHp: 'loseHp',
   ClearSkipNextAction: 'clearSkipNextAction',
 } as const;
 export type EffectType = (typeof EffectType)[keyof typeof EffectType];

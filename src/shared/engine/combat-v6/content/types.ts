@@ -30,6 +30,7 @@ export type SectSkillDefV6 = {
 }
 
 export type SkillPatchV6 =
+  | { skillId: string; operation: "includeDownedTargets"; value: boolean }
   | { skillId: string; operation: "setRequireHpRatio"; value: number }
   | { skillId: string; operation: "capRequireHpRatio"; value: number }
   | { skillId: string; operation: "setCostHp"; value: number | string }

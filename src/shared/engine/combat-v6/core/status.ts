@@ -11,6 +11,7 @@ import {
   EventType,
   FailReason,
   failDetail,
+  HookName,
   StatusCategory,
   StatusFlag,
   StatusRemoveReason,
@@ -22,6 +23,7 @@ import { skillOf, passiveSkills } from "./skills.ts"
 import { standingUnits } from "./query.ts"
 import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
 import { effectiveAttrs, isStanding, recoverableHp } from "./units.ts"
+import { combatModifiers } from "./modifiers.ts"
 import { applyDamage, applyMpDamage } from "./damage.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
@@ -80,7 +82,7 @@ export function applyStatus(
     return
   }
 
-  if (isStatusImmune(ctx, unit, def)) return
+  if (isStatusImmune(ctx, unit, def, options.env?.source ?? ctx.state.units.find(u => u.id === sourceId))) return
   if (def.priority !== undefined) {
     const existing = unit.statuses.find(s => s.kind === def.kind)
     const previous = existing && statusDef(ctx, existing.id)
@@ -171,6 +173,7 @@ export function removeStatus(ctx: BattleContext, unit: Unit, statusId: StatusId,
   }
   unit.statuses = unit.statuses.filter((s) => s.id !== statusId || (sourceId !== undefined && s.sourceId !== sourceId))
   ctx.emit({ type: EventType.StatusRemoved, unitId: unit.id, statusId, reason })
+  ctx.hooks.emit(HookName.OnStatusRemoved, { source: ctx.state.units.find(u => u.id === inst.sourceId), target: unit, removedStatusKind: inst.kind, statusRemoveReason: reason })
 }
 
 /** 复制当前运行时快照；sourceId 仅改为本次施法者，不参与后续资格判断。 */
@@ -276,10 +279,11 @@ export function applyEntryStatuses(ctx: BattleContext, unit: Unit): void {
   }
 }
 
-function isStatusImmune(ctx: BattleContext, unit: Unit, def: StatusDef): boolean {
+function isStatusImmune(ctx: BattleContext, unit: Unit, def: StatusDef, source?: Unit): boolean {
   const passives = passiveSkills(ctx.skills, unit)
   if (def.category === StatusCategory.Buff && passives.some(s => s.innate?.rejectBuffs)) return true
   return !def.blocksRevive && def.dispellable !== false && passives.some(s => {
+    if (source && combatModifiers(ctx, source).some(m => m.bypassImmunity?.statusKinds.includes(def.kind) && m.bypassImmunity.passiveIds.includes(s.id))) return false
     const innate = s.innate
     return innate?.immuneStatusKinds?.includes(def.kind) || Boolean(def.category && innate?.immuneStatusCategories?.includes(def.category))
   })

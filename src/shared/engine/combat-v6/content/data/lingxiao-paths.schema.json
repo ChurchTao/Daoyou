@@ -47,6 +47,7 @@
                     "afterHit",
                     "afterStrike",
                     "onFatal",
+                    "onStatusRemoved",
                     "onDeath",
                     "onRoundStart",
                     "onRoundEnd",

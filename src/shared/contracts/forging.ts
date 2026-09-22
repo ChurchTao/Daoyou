@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
+import { DAO_WEAPON_TYPES } from '../engine/combat-v6/equipment/weapons';
 import { ForgeIntentSchema } from '../forging/narrative';
 import { ForgingLevelSchema } from '../forging/rules';
 import { ItemGrantSchema } from '../inventory';
@@ -16,6 +17,7 @@ export const ForgeRequestSchema = z
   .object({
     requestId: z.uuid(),
     intent: ForgeIntentSchema.optional(),
+    weaponType: z.enum(DAO_WEAPON_TYPES).optional(),
     blueprint: z.object(ref).strict(),
     materials: z
       .array(
@@ -114,6 +116,7 @@ export const DevGrantSchema = z
             .object({
               type: z.literal('equipment'),
               slot: z.enum(DAO_EQUIPMENT_SLOTS),
+              weaponType: z.enum(DAO_WEAPON_TYPES).optional(),
               level: ForgingLevelSchema,
             })
             .strict(),

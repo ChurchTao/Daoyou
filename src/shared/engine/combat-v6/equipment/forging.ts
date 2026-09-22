@@ -11,6 +11,7 @@ import type {
   DaoEquipmentGenerationResult,
   GenerateDaoEquipmentV2Input,
 } from './types';
+import { equipmentWeaponTypeProblem, type DaoWeaponType } from './weapons';
 
 export type ForgingBoosts = {
   ore: number;
@@ -27,10 +28,11 @@ export function rollHigher(
   return chance > 0 && random() < chance ? Math.max(first, draw()) : first;
 }
 
-/** Base V2 stream is unchanged. Boost groups and the V4 element draw use independent streams. */
+/** V5 器形复用 V2 白字抽样分位；附灵、器蕴、器诀及八行的随机流不变。 */
 export function generateForgedEquipment(
   input: Omit<GenerateDaoEquipmentV2Input, 'generatorVersion'> & {
     boosts: ForgingBoosts;
+    weaponType?: DaoWeaponType;
   },
 ): DaoEquipmentGenerationResult {
   const counts = Object.values(input.boosts);
@@ -55,6 +57,27 @@ export function generateForgedEquipment(
   if (!generated.ok) return generated;
   const instance = generated.instance;
   const template = daoEquipmentTemplateOf(input.templateId)!;
+  const weaponType = template.slot === 'weapon' && input.weaponType === undefined
+    ? 'sword'
+    : input.weaponType;
+  const weaponProblem = equipmentWeaponTypeProblem({
+    slot: template.slot,
+    weaponType,
+    generatorVersion: 'dao_equipment_generator_v5',
+  });
+  if (weaponProblem)
+    return {
+      ok: false,
+      diagnostics: [{
+        severity: 'error',
+        code: 'INVALID_EQUIPMENT_IDENTITY',
+        message: weaponProblem,
+        path: 'weaponType',
+      }],
+    };
+  if (weaponType) instance.weaponType = weaponType;
+  // V2 的前三次抽样仍对应器胚；用相同分位在器形区间抽样，不缩放已取整的成品。
+  const base = new SeededRng(input.seed);
   const ore = new SeededRng((input.seed ^ 0x41c64e6d) >>> 0);
   const bonus = new SeededRng((input.seed ^ 0x9e3779b9) >>> 0);
   const essence = new SeededRng((input.seed ^ 0x85ebca6b) >>> 0);
@@ -62,11 +85,11 @@ export function generateForgedEquipment(
     min + Math.floor(rng.next() * (max - min + 1));
   instance.baseStats = instance.baseStats.map((stat) => {
     const rule = template.baseStats.find((r) => r.attr === stat.attr)!;
-    const range = daoEquipmentBaseRange(rule, input.equipmentLevel, input.baseQuality ?? 0);
+    const range = daoEquipmentBaseRange(rule, input.equipmentLevel, input.baseQuality ?? 0, weaponType);
     return {
       ...stat,
       value: rollHigher(
-        stat.value,
+        integer(base, range.min, range.max),
         input.boosts.ore * FORGING_BOOST_PER_MATERIAL,
         () => ore.next(),
         () =>
@@ -106,13 +129,14 @@ export function generateForgedEquipment(
     instance.essenceIds.push(
       pool.splice(Math.floor(essence.next() * pool.length), 1)[0],
     );
-  instance.generatorVersion = 'dao_equipment_generator_v4';
+  instance.generatorVersion = 'dao_equipment_generator_v5';
   const element = new SeededRng((input.seed ^ 0x27d4eb2d) >>> 0);
   instance.element = ELEMENT_VALUES[Math.floor(element.next() * ELEMENT_VALUES.length)];
   instance.name = forgedName(
     instance.slot,
     instance.equipmentLevel,
     input.seed,
+    weaponType,
   );
   return generated;
 }

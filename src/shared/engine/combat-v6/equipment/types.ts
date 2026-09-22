@@ -1,6 +1,7 @@
 import type { Attributes } from '@shared/types/cultivator';
 import type { ElementType } from '@shared/types/constants';
 import type { SkillDef, StatusDef } from '../core/index.ts';
+import type { DaoWeaponType } from './weapons';
 import type {
   CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
@@ -14,11 +15,14 @@ export const DAO_EQUIPMENT_GENERATOR_VERSION_V3 =
   'dao_equipment_generator_v3' as const;
 export const DAO_EQUIPMENT_GENERATOR_VERSION_V4 =
   'dao_equipment_generator_v4' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V5 =
+  'dao_equipment_generator_v5' as const;
 export type DaoEquipmentGeneratorVersion =
   | typeof DAO_EQUIPMENT_GENERATOR_VERSION
   | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V2
   | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V3
-  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V4;
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V4
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V5;
 
 export const DAO_EQUIPMENT_SLOTS = [
   'weapon',
@@ -78,6 +82,8 @@ export interface DaoEquipmentInstanceV1 {
   /** 锻造时固定的八行属性；旧装备可缺省，精修不会重抽。 */
   element?: ElementType;
   slot: DaoEquipmentSlot;
+  /** 旧法兵缺省时视为剑；新打造法兵显式保存。 */
+  weaponType?: DaoWeaponType;
   equipmentLevel: number;
   requiredLevel: number;
   baseStats: DaoEquipmentPanelRoll[];

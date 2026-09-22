@@ -1,5 +1,6 @@
 import { SeededRng } from '../engine/combat-v6/core';
 import type { DaoEquipmentSlot } from '../engine/combat-v6/equipment/types';
+import { DAO_WEAPONS, type DaoWeaponType } from '../engine/combat-v6/equipment/weapons';
 // One explicit naming tier per equipment level. Cosmetic draws never affect equipment RNG.
 const tiers = [
   '青石',
@@ -33,8 +34,9 @@ export function forgedName(
   slot: DaoEquipmentSlot,
   level: number,
   seed: number,
+  weaponType?: DaoWeaponType,
 ) {
-  const pool = forms[slot];
+  const pool = slot === 'weapon' && weaponType ? [DAO_WEAPONS[weaponType].name] : forms[slot];
   return (
     tiers[level / 10 - 1] +
     pool[

@@ -3,6 +3,7 @@ import { generateAiObject } from '@server/utils/aiClient';
 import { truncateText } from '@server/utils/llmPayload';
 import { equipmentRealm } from '@shared/engine/combat-v6/equipment/realm';
 import type { DaoEquipmentSlot } from '@shared/engine/combat-v6/equipment/types';
+import { DAO_WEAPONS, type DaoWeaponType } from '@shared/engine/combat-v6/equipment/weapons';
 import { ForgedEquipmentCopySchema } from '@shared/forging/narrative';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import type { MaterialFacts } from '@shared/items/definitions/materials';
@@ -19,6 +20,7 @@ const generatedCopySchema = z
 export async function generateForgingNarrative(input: {
   level: number;
   slot: DaoEquipmentSlot;
+  weaponType?: DaoWeaponType;
   materials: { facts: MaterialFacts; quantity: number }[];
   intent?: string;
 }) {
@@ -32,6 +34,7 @@ export async function generateForgingNarrative(input: {
       factsJson: JSON.stringify({
         realm: equipmentRealm(input.level).realm,
         slot: EQUIPMENT_SLOT_NAMES[input.slot],
+        weaponType: input.weaponType ? DAO_WEAPONS[input.weaponType].name : undefined,
         materials: input.materials.map(({ facts, quantity }) => ({
           name: facts.name,
           description: truncateText(facts.description, 240),
@@ -50,7 +53,11 @@ export async function generateForgingNarrative(input: {
       timeoutMs: 8000,
       maxOutputTokens: 256,
     });
-    return ForgedEquipmentCopySchema.parse(result.output);
+    const copy = ForgedEquipmentCopySchema.parse(result.output);
+    // 器形由规则决定；命名不符合指定器形时使用确定性的默认器名。
+    if (input.weaponType && !copy.name.endsWith(DAO_WEAPONS[input.weaponType].name))
+      return null;
+    return copy;
   } catch {
     // 文案失败不影响打造；不记录玩家心念或提供商返回的正文。
     console.warn(

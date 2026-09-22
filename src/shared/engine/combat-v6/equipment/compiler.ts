@@ -25,6 +25,7 @@ import {
   DAO_EQUIPMENT_GENERATOR_VERSION_V2,
   DAO_EQUIPMENT_GENERATOR_VERSION_V3,
   DAO_EQUIPMENT_GENERATOR_VERSION_V4,
+  DAO_EQUIPMENT_GENERATOR_VERSION_V5,
   DAO_EQUIPMENT_SLOTS,
   type CompileDaoEquipmentLoadoutV1Result,
   type CompileDaoEquipmentSpecialLoadoutV1Result,
@@ -35,6 +36,7 @@ import {
   type DaoEquipmentLoadoutV1,
   type DaoEquipmentPanelRoll,
 } from './types.ts';
+import { daoWeaponTypeOf, equipmentWeaponTypeProblem } from './weapons';
 
 const ATTRIBUTE_KEYS: DaoEquipmentAttribute[] = [
   'vitality',
@@ -110,6 +112,8 @@ function validateInstance(
 ): CombatV6ProjectionDiagnostic[] {
   const diagnostics: CombatV6ProjectionDiagnostic[] = [];
   const raw = instance as unknown as Record<string, unknown>;
+  const weaponProblem = equipmentWeaponTypeProblem(instance);
+  if (weaponProblem) return [diagnostic('INVALID_EQUIPMENT_IDENTITY', weaponProblem, 'weaponType')];
   for (const key of Object.keys(raw)) {
     if (FORBIDDEN_FIELDS.has(key)) {
       diagnostics.push(
@@ -133,7 +137,7 @@ function validateInstance(
     (instance.crafterName !== undefined &&
       !EquipmentCrafterNameSchema.safeParse(instance.crafterName).success) ||
     (instance.element !== undefined && !ELEMENT_VALUES.includes(instance.element)) ||
-    (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4 && instance.element === undefined) ||
+    ((instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4 || instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V5) && instance.element === undefined) ||
     typeof instance.createdAt !== 'string' ||
     instance.createdAt.trim().length === 0 ||
     (!special
@@ -141,7 +145,8 @@ function validateInstance(
       : instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION &&
         instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V2 &&
         instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V3 &&
-        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V4) ||
+        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V4 &&
+        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V5) ||
     instance.appraisalState !== 'appraised'
   ) {
     diagnostics.push(
@@ -169,7 +174,7 @@ function validateInstance(
   if (
     template &&
     (instance.slot !== template.slot ||
-      (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V3 || instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4
+      (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V3 || instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4 || instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V5
         ? !ForgedEquipmentNameSchema.safeParse(instance.name).success
         : instance.name !== template.name))
   ) {
@@ -211,7 +216,7 @@ function validateInstance(
       const roll = instance.baseStats.find(
         (candidate) => candidate?.attr === rule.attr,
       );
-      const { min, max } = daoEquipmentBaseRange(rule, instance.equipmentLevel, instance.baseQuality ?? 0);
+      const { min, max } = daoEquipmentBaseRange(rule, instance.equipmentLevel, instance.baseQuality ?? 0, daoWeaponTypeOf(instance));
       if (
         !roll ||
         roll.attr !== rule.attr ||

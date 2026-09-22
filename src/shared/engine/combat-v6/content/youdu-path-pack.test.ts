@@ -5,10 +5,11 @@ import schema from './data/youdu-paths.schema.json';
 import { YouduPathsPackShape, loadYouduPathsPack, compileYouduPaths } from './youdu-path-pack';
 import { YOUDU_V6_DEFINITION } from './youdu';
 import { compileSectDefinitionV6 } from './compiler';
-import type { SectCombatProgressV6 } from './types';
+import { createEmptySectCombatProgressV6 } from '../build-state';
+import { canSelectMeridianNode } from './meridian-selection';
 
-describe('幽都完整流派配置', () => {
-  it('Schema 与编辑器同步', () => expect(z.toJSONSchema(YouduPathsPackShape)).toEqual(schema));
+describe('幽都原版经脉结构', () => {
+  it('Schema 与编辑器同步', () => expect(z.toJSONSchema(YouduPathsPackShape, { reused: 'ref' })).toEqual(schema));
   it('拒绝重复槽位、缺失引用、非法表达式', () => {
     const duplicate = structuredClone(raw);
     duplicate.paths[0].nodes[1].slot = 1;
@@ -16,58 +17,39 @@ describe('幽都完整流派配置', () => {
     const missing = structuredClone(raw);
     missing.paths[0].foundationPassives = ['youdu.passive.missing'];
     expect(() => loadYouduPathsPack(missing)).toThrow('引用不存在');
-    const expression = JSON.parse(JSON.stringify(raw));
-    expression.paths[0].nodes[9].patches[0].value = 'floor(';
-    expect(() => loadYouduPathsPack(expression)).toThrow('value');
+    const expression = structuredClone(raw);
+    expression.passives.find(p => p.name === '索魂')!.modifiers![0].sealChanceAdd = 'floor(';
+    expect(() => loadYouduPathsPack(expression)).toThrow('sealChanceAdd');
   });
-  it('全部 42 节点在满级进度下可编译', () => {
+  it('两树各19个可选节点、2个自动奖励，所有节点通过合法连线进入编译结果', () => {
     const paths = compileYouduPaths(loadYouduPathsPack(raw));
     const definition = { ...YOUDU_V6_DEFINITION, paths };
-    for (const path of paths) for (const node of path.nodes) {
-      const progress: SectCombatProgressV6 = {
-        version: 1, sectId: 'youdu', activePathId: path.id, meridianDepth: 7,
-        methods: Object.fromEntries(definition.methods.map(m => [m.id, 180])),
-        meridianLoadouts: paths.map(p => ({ pathId: p.id, nodeIds: p.id === path.id ? [node.id] : [], revision: 0 })) as SectCombatProgressV6['meridianLoadouts'],
-      };
-      expect(compileSectDefinitionV6({ definition, progress, characterLevel: 180 }).ok).toBe(true);
+    expect(paths.map(p => p.name)).toEqual(['勾魂阎罗', '诛形毒师']);
+    for (const path of paths) {
+      expect(path.nodes.filter(n => !n.automatic)).toHaveLength(19);
+      expect(path.nodes.filter(n => n.automatic)).toHaveLength(2);
+      for (const node of path.nodes.filter(n => !n.automatic)) {
+        const progress = createEmptySectCombatProgressV6('youdu', path.id, Object.fromEntries(definition.methods.map(m => [m.id, 180])));
+        progress.meridianDepth = 7;
+        const prefix = path.nodes.filter(n => n.layer < node.layer && n.slot === 2 && !n.automatic).map(n => n.id);
+        expect(canSelectMeridianNode(path, prefix, node)).toBe(true);
+        progress.meridianLoadouts.find(l => l.pathId === path.id)!.nodeIds = [...prefix, node.id];
+        const result = compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
+        expect(result.ok).toBe(true);
+        if (!result.ok) continue;
+        expect(result.projection.diagnostics.some(d => d.code === 'MERIDIAN_CONNECTION_INCOMPLETE')).toBe(false);
+        for (const p of node.passives ?? []) expect(result.projection.passiveSkillIds).toContain(p.definition.id);
+        for (const s of node.grantSkills ?? []) expect(result.projection.activeSkillIds).toContain(s.definition.id);
+        for (const id of node.revokeSkillIds ?? []) expect(result.projection.activeSkillIds).not.toContain(id);
+      }
     }
   });
-  it('伤害段索引允许紧接追加一段并拒绝空缺段', () => {
-    const data = structuredClone(raw);
-    const patch = data.paths[1].nodes[0].patches![0];
-    patch.hitIndex = 1;
-    const paths = compileYouduPaths(loadYouduPathsPack(data));
-    const definition = { ...YOUDU_V6_DEFINITION, paths };
-    const progress: SectCombatProgressV6 = {
-      version: 1, sectId: 'youdu', activePathId: paths[1].id, meridianDepth: 7,
-      methods: Object.fromEntries(definition.methods.map(m => [m.id, 180])),
-      meridianLoadouts: [{ pathId: paths[0].id, nodeIds: [], revision: 0 }, { pathId: paths[1].id, nodeIds: [paths[1].nodes[0].id], revision: 0 }],
-    };
-    const result = compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      const effect = result.projection.skills.find(s => s.id === patch.skillId)?.effects.find(e => e.type === 'physicalHit');
-      expect(effect).toMatchObject({ hits: 2, coeff: [1, 0.1] });
-    }
-    patch.hitIndex = 2;
-    expect(() => loadYouduPathsPack(data)).toThrow('紧接着追加一段');
-  });
-  it('节点及被动参数修改进入编译后的构筑', () => {
-    const data = JSON.parse(JSON.stringify(raw));
-    data.paths[0].nodes[2].panel[0].value = 123;
-    data.passives[0].hooks[0].effects[0].factor = 1.23;
-    const paths = compileYouduPaths(loadYouduPathsPack(data));
-    const definition = { ...YOUDU_V6_DEFINITION, paths };
-    const progress: SectCombatProgressV6 = {
-      version: 1, sectId: 'youdu', activePathId: paths[0].id, meridianDepth: 7,
-      methods: Object.fromEntries(definition.methods.map(m => [m.id, 180])),
-      meridianLoadouts: [{ pathId: paths[0].id, nodeIds: [paths[0].nodes[2].id], revision: 0 }, { pathId: paths[1].id, nodeIds: [], revision: 0 }],
-    };
-    const result = compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.projection.panel).toContainEqual({ attr: 'speed', mode: 'add', value: 123 });
-      expect(result.projection.skills.find(s => s.id === data.passives[0].id)?.hooks?.[0].effects[0]).toEqual({ type: 'modifyStrike', factor: 1.23 });
-    }
+  it('无赦替换涤魂，节点不授予装备特技；旧六道树与旧技能全部移除', () => {
+    const paths = compileYouduPaths(loadYouduPathsPack(raw));
+    const node = paths[1].nodes.find(n => n.name === '无赦咒令')!;
+    expect(node.revokeSkillIds).toEqual(['youdu.skill.dispel']);
+    expect(node.grantSkills?.map(s => s.definition.id)).toEqual(['youdu.skill.pardonless']);
+    expect(paths[1].nodes.find(n => n.name === '破毒')!.grantSkills).toBeUndefined();
+    expect(JSON.stringify(YOUDU_V6_DEFINITION)).not.toMatch(/six_paths|life_judge|final_judgment|ghost_rift|六道魍魉/);
   });
 });

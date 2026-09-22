@@ -306,6 +306,7 @@ function resolvePhysicalAttack(
     return;
   }
   ctx.currentAction = {
+    initialSourceStatusIds: unit.statuses.map(s => s.id),
     skillId: BUILTIN_SKILL_ID.Attack,
     sourceId: unit.id,
     primaryTargetId: target.id,
@@ -596,6 +597,7 @@ function resolveSkill(
   }
 
   ctx.currentAction = {
+    initialSourceStatusIds: unit.statuses.map(s => s.id),
     initialHpRatio: unit.attrs.hp / unit.attrs.maxHp,
     killedTargetIds: [],
     skillId: skill.id,

@@ -7,9 +7,18 @@ import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
+import {
+  daoEquipmentBaseRange,
+  daoEquipmentTemplateOf,
+} from '@shared/engine/combat-v6/equipment/content';
 import { DAO_EQUIPMENT_FORGING } from '@shared/engine/combat-v6/equipment/forging-content';
+import {
+  DAO_WEAPONS,
+  DAO_WEAPON_TYPES,
+} from '@shared/engine/combat-v6/equipment/weapons';
 import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
 import { itemDefinition } from '@shared/inventory';
+import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
 import { ForgingFurnace } from './ForgingFurnace';
@@ -104,6 +113,7 @@ export function ForgingRoom() {
       (item) => itemDefinition(item.definitionId).kind === 'blueprint',
     ) ?? [];
   const { result } = session;
+  const weapon = DAO_WEAPONS[session.weaponType];
   return (
     <GameSceneFrame variant="workflow">
       <div className="space-y-4 text-sm">
@@ -207,6 +217,34 @@ export function ForgingRoom() {
                     )
                   ) : (
                     <>
+                      {session.definition?.slot === 'weapon' ? (
+                        <fieldset
+                          disabled={session.locked}
+                          className="mt-3 space-y-1 disabled:opacity-50"
+                        >
+                          <legend className="font-medium">法兵器形</legend>
+                          <div className="flex flex-wrap gap-1">
+                            {DAO_WEAPON_TYPES.map((type) => (
+                              <label
+                                key={type}
+                                className="cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name="weaponType"
+                                  value={type}
+                                  checked={session.weaponType === type}
+                                  onChange={() => session.setWeaponType(type)}
+                                  className="peer sr-only"
+                                />
+                                <span className="peer-checked:bg-crimson/5 peer-checked:text-crimson peer-checked:font-semibold peer-focus-visible:ring-crimson/50 flex h-8 min-w-8 items-center justify-center rounded-sm px-2 peer-focus-visible:ring-1">
+                                  {DAO_WEAPONS[type].name}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      ) : null}
                       <div className="mt-4 [&_textarea]:min-h-16">
                         <InkInput
                           label="铸器心念（选填）"
@@ -315,7 +353,7 @@ export function ForgingRoom() {
                 <section>
                   <h3 className="mb-2 font-medium">依图定形</h3>
                   <p className="text-ink-secondary">
-                    图纸决定道装的境界与槽位，不可铸造高于人物境界的图纸。目前开放炼气至化神道装。每炉需要一卷图纸与规定数量、品质的材料。
+                    图纸决定道装的境界与槽位，不可铸造高于人物境界的图纸。法兵可在炉前选择器形，物攻与法攻各有偏重，治疗不变。目前开放炼气至化神道装。每炉需要一卷图纸与规定数量、品质的材料。
                   </p>
                 </section>
                 <section>
@@ -370,6 +408,26 @@ export function ForgingRoom() {
         >
           <div className="space-y-3 text-sm">
             <p>{session.blueprint?.name} ×1</p>
+            {session.definition?.slot === 'weapon' ? (
+              <div className="space-y-1">
+                <p>器形：{weapon.name}</p>
+                {daoEquipmentTemplateOf('dao_equipment.standard.weapon.v1')!
+                  .baseStats.map((stat) => {
+                    const range = daoEquipmentBaseRange(
+                      stat,
+                      session.definition!.level!,
+                      session.forging?.baseQuality ?? 0,
+                      session.weaponType,
+                    );
+                    return (
+                      <p key={stat.attr} className="text-ink-secondary">
+                        {EQUIPMENT_ATTRIBUTE_NAMES[stat.attr]}{' '}
+                        <span className="font-mono">{range.min}–{range.max}</span>
+                      </p>
+                    );
+                  })}
+              </div>
+            ) : null}
             {session.intent.trim() ? (
               <p className="text-ink-secondary break-words">
                 心念：{session.intent.trim()}

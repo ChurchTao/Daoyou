@@ -32,8 +32,11 @@ export {
   DAO_EQUIPMENT_GENERATOR_VERSION,
   DAO_EQUIPMENT_GENERATOR_VERSION_V2,
   DAO_EQUIPMENT_GENERATOR_VERSION_V4,
+  DAO_EQUIPMENT_GENERATOR_VERSION_V5,
   DAO_EQUIPMENT_SLOTS,
 } from "./types.ts"
+export { DAO_WEAPON_TYPES, DAO_WEAPONS, daoWeaponTypeOf } from './weapons';
+export type { DaoWeaponType } from './weapons';
 export type {
   CombatV6PanelAttr,
   CompileDaoEquipmentLoadoutV1Result,

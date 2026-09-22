@@ -381,6 +381,8 @@ export type EffectWhen = {
     min?: number;
     max?: number;
   };
+  initialTargetStatusKinds?: string[];
+  sourceInitialStatusIds?: StatusId[];
   primaryTargetStatusIds?: StatusId[];
   primaryTargetStatusKinds?: string[];
   sourceHpRatioBelow?: number;

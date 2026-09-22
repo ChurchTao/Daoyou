@@ -10,6 +10,7 @@ import {
   InventoryEquipmentSchema,
 } from '@shared/inventory/equipment';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
+import { DAO_WEAPONS, daoWeaponTypeOf } from '@shared/engine/combat-v6/equipment/weapons';
 import { CHARACTER_ATTRIBUTE_LABELS } from '@shared/lib/characterAttributeLabels';
 import { field, lines } from './helpers';
 import type { ItemAdapter, PreviewLine, PreviewSection } from './types';
@@ -124,17 +125,21 @@ function equipmentSections(
 }
 export const equipmentAdapter: ItemAdapter = (item) => {
   const equipment = InventoryEquipmentSchema.parse(item.instanceData);
+  const weaponType = daoWeaponTypeOf(equipment);
+  const equipmentType = weaponType
+    ? `${EQUIPMENT_SLOT_NAMES[equipment.slot]} · ${DAO_WEAPONS[weaponType].name}`
+    : EQUIPMENT_SLOT_NAMES[equipment.slot];
   const tier = getLevelRealmStage(equipment.equipmentLevel).realm;
   return {
     summary: {
       icon: icons[equipment.slot],
       color: tierColorMap[tier],
-      type: `${EQUIPMENT_SLOT_NAMES[equipment.slot]} · 御使境界`,
+      type: `${equipmentType} · 御使境界`,
       tier,
     },
     preview: (options) => ({
       header: [
-        field('类型', EQUIPMENT_SLOT_NAMES[equipment.slot]),
+        field('类型', equipmentType),
         field(
           '要求',
           getLevelRealmStage(daoEquipmentRequiredLevel(equipment)).label,

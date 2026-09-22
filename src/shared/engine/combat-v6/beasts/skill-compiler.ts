@@ -80,7 +80,7 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
     case 'poison':
       return {
         ...passive,
-        innate: e.immune ? { immuneStatusKinds: ['beast.poison'] } : undefined,
+        innate: e.immune ? { immuneStatusKinds: ['beast.poison', 'youdu.poison'] } : undefined,
         hooks: [
           {
             on: HookName.AfterHit,
