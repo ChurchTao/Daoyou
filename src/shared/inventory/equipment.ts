@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ELEMENT_VALUES } from '../types/constants';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment';
 import {
   EquipmentCrafterNameSchema,
@@ -45,6 +46,7 @@ export const InventoryEquipmentSchema = z
     name: z.string().min(1).max(100),
     desc: ForgedEquipmentDescSchema.optional(),
     crafterName: EquipmentCrafterNameSchema.optional(),
+    element: z.enum(ELEMENT_VALUES).optional(),
     slot: z.enum(DAO_EQUIPMENT_SLOTS),
     equipmentLevel: z.number().int().nonnegative(),
     requiredLevel: z.number().int().nonnegative(),
@@ -61,7 +63,12 @@ export const InventoryEquipmentSchema = z
       'dao_equipment_generator_v1',
       'dao_equipment_generator_v2',
       'dao_equipment_generator_v3',
+      'dao_equipment_generator_v4',
     ]),
     createdAt: z.string(),
   })
-  .strict();
+  .strict()
+  .refine((equipment) => equipment.generatorVersion !== 'dao_equipment_generator_v4' || equipment.element !== undefined, {
+    message: '新版锻造装备必须包含五行属性',
+    path: ['element'],
+  });

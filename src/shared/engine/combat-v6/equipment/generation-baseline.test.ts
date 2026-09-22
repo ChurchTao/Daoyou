@@ -4,7 +4,8 @@ import { generateForgedEquipment } from './forging';
 import { generateDaoEquipmentV1, generateDaoEquipmentV2 } from './generator';
 import { DAO_EQUIPMENT_SLOTS } from './types';
 
-// 经确认的14器蕴与38器诀产出池基线：炼气、化神、金丹，覆盖 V1/V2/V3 生成入口。
+// 经确认的14器蕴与38器诀产出池基线：炼气、化神、金丹。
+// V4 新增的独立八行抽取由 elements.test.ts 验证；这里继续锁定 V3 的全部旧产出事实。
 const baselines = [
   {
     slot: 'weapon',
@@ -123,7 +124,12 @@ function digest(
         { ore: 5, essence: 0, attributes: 0 },
         { ore: 0, essence: 0, attributes: 5 },
         { ore: 2, essence: 1, attributes: 2 },
-      ].map((boosts) => generateForgedEquipment({ ...input, boosts })),
+      ].map((boosts) => {
+        const result = generateForgedEquipment({ ...input, boosts });
+        if (!result.ok) return result;
+        const { element: _element, ...instance } = result.instance;
+        return { ...result, instance: { ...instance, generatorVersion: 'dao_equipment_generator_v3' } };
+      }),
     ];
   });
   return createHash('sha256').update(JSON.stringify(results)).digest('hex');

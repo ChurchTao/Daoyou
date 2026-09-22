@@ -29,6 +29,9 @@ export type BattleContext = {
   suppressHooks: number
   /** 当前这次出手；OnHitCalc / when.skillIds 读这里。 */
   currentAction?: {
+    splashTargetIds?: Record<string, UnitId[]>
+    initialHpRatio?: number
+    killedTargetIds?: UnitId[]
     skillId: SkillId
     sourceId: UnitId
     primaryTargetId?: UnitId

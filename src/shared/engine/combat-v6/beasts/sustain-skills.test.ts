@@ -389,7 +389,8 @@ describe('第三阶段：慧根、偷袭、耐法', () => {
       targets: ['owner'],
     });
     protect.lockAndResolve();
-    expect(protect.unit('beast:pet').attrs.hp).toBe(390);
+    expect(protect.unit('beast:pet').attrs.hp).toBe(423);
+    expect(protect.unit('owner').attrs.hp).toBe(967);
     expect(protect.unit('enemy').attrs.hp).toBe(1000);
   });
   it.each([

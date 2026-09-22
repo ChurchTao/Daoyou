@@ -1,441 +1,31 @@
 {
   "$schema": "./lingxiao-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 4,
   "passives": [
     {
-      "id": "lingxiao.passive.zhanchen.wind_blade",
-      "name": "风刃",
-      "hooks": [
+      "id": "lingxiao.passive.zhanchen.n1_1",
+      "name": "目空",
+      "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+      "modifiers": [
         {
-          "on": "afterHit",
-          "sourceIsSelf": true,
-          "aim": "others",
-          "aimCount": 2,
-          "aimMode": "random",
           "when": {
-            "skillIds": [
-              "attack"
+            "skillTags": [
+              "art"
             ],
-            "foeKind": "npc"
-          },
-          "effects": [
-            {
-              "type": "physicalHit",
-              "coeff": 0.2
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.bravery",
-      "name": "勇武",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "targetHpRatioBelow": 0.5,
             "requireKind": "physical"
           },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.guarded_rest",
-      "name": "静岳",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
-          "when": {
-            "requireStatusIds": [
-              "lingxiao.status.rest",
-              "lingxiao.status.recovery"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 0.9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.kill_intent",
-      "name": "杀意",
-      "hooks": [
-        {
-          "on": "onDeath",
-          "sourceIsSelf": true,
-          "aim": "self",
-          "effects": [
-            {
-              "type": "applyStatus",
-              "statusId": "lingxiao.status.next_damage",
-              "duration": 2,
-              "self": true
-            }
-          ]
+          "defenseIgnoreAdd": 0.1
         },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
           "when": {
-            "requireKind": "physical",
-            "requireStatusIds": [
-              "lingxiao.status.next_damage"
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
             ]
           },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            },
-            {
-              "type": "dispel",
-              "statusIds": [
-                "lingxiao.status.next_damage"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.stored_edge",
-      "name": "蓄锐",
-      "hooks": [
-        {
-          "on": "onBeHit",
-          "targetIsSelf": true,
-          "when": {
-            "sourceDefending": true,
-            "oncePerRound": true
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "applyStatus",
-              "statusId": "lingxiao.status.defend_damage",
-              "duration": 2,
-              "self": true
-            }
-          ]
+          "defenseIgnoreAdd": 0.1
         },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "requireStatusIds": [
-              "lingxiao.status.defend_damage"
-            ]
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.12
-            },
-            {
-              "type": "dispel",
-              "statusIds": [
-                "lingxiao.status.defend_damage"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.keen_heart",
-      "name": "锐心",
-      "hooks": [
-        {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "lingxiao.skill.triple"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.reckless_damage",
-      "name": "狂狷·攻",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "sourceHpRatioBelow": 0.5,
-            "requireKind": "physical"
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.reckless_taken",
-      "name": "狂狷·险",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
-          "when": {
-            "sourceHpRatioBelow": 0.5
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.chain_break",
-      "name": "连破",
-      "hooks": [
-        {
-          "on": "onDeath",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "lingxiao.skill.triple"
-            ]
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "applyStatus",
-              "statusId": "lingxiao.status.chain_break",
-              "duration": 1,
-              "self": true
-            }
-          ]
-        },
-        {
-          "on": "afterAction",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "lingxiao.skill.triple"
-            ],
-            "requireStatusIds": [
-              "lingxiao.status.chain_break"
-            ]
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "clearSkipNextAction"
-            },
-            {
-              "type": "removeStatus",
-              "statusIds": [
-                "lingxiao.status.rest",
-                "lingxiao.status.rest_resist",
-                "lingxiao.status.chain_break",
-                "lingxiao.status.recovery"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.zhanchen.victory_chase",
-      "name": "乘胜追锋",
-      "hooks": [
-        {
-          "on": "onDeath",
-          "sourceIsSelf": true,
-          "aim": "others",
-          "aimCount": 1,
-          "aimMode": "lowestHp",
-          "when": {
-            "oncePerBattle": true
-          },
-          "effects": [
-            {
-              "type": "physicalHit",
-              "coeff": 0.8
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.gain",
-      "name": "养意",
-      "hooks": [
-        {
-          "on": "afterAction",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "lingxiao.skill.triple",
-              "lingxiao.skill.formation"
-            ]
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyResource",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "amount": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.hit",
-      "name": "剑意初成",
-      "hooks": [
-        {
-          "on": "onHitRoll",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "sourceResource": {
-              "id": "lingxiao.resource.sword_intent",
-              "min": 2
-            }
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.damage",
-      "name": "剑势大成",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "sourceResource": {
-              "id": "lingxiao.resource.sword_intent",
-              "min": 5
-            },
-            "requireKind": "physical"
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.extra_triple_intent",
-      "name": "蓄意",
-      "hooks": [
-        {
-          "on": "afterAction",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "lingxiao.skill.triple"
-            ]
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyResource",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "amount": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.sharp",
-      "name": "凌厉",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "sourceResource": {
-              "id": "lingxiao.resource.sword_intent",
-              "min": 2
-            },
-            "requireKind": "physical"
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.03
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.guard_intent",
-      "name": "守意",
-      "hooks": [
-        {
-          "on": "onBeHit",
-          "targetIsSelf": true,
-          "when": {
-            "sourceDefending": true,
-            "oncePerRound": true
-          },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyResource",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "amount": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.waiting_intent",
-      "name": "候锋",
-      "hooks": [
-        {
-          "on": "afterAction",
-          "sourceIsSelf": true,
           "when": {
             "skillIds": [
               "attack"
@@ -444,245 +34,888 @@
               "lingxiao.status.waiting"
             ]
           },
-          "aim": "self",
+          "defenseIgnoreAdd": 0.1
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n1_2",
+      "name": "风刃",
+      "description": "与NPC战斗时，普攻向另外2个随机敌人溅射20%伤害；破极剑意状态下改为40%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "pvp": false,
+            "requireAbsentStatusIds": [
+              "lingxiao.status.sword_aura",
+              "lingxiao.status.sword_aura_ganjiang"
+            ]
+          },
+          "splash": {
+            "factor": 0.2,
+            "count": 2
+          }
+        },
+        {
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "pvp": false,
+            "requireStatusIds": [
+              "lingxiao.status.sword_aura",
+              "lingxiao.status.sword_aura_ganjiang"
+            ]
+          },
+          "splash": {
+            "factor": 0.4,
+            "count": 2
+          }
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n1_3",
+      "name": "扶阵",
+      "description": "自身在场存活时，全队总伤害提高3%，同名效果不叠加。",
+      "modifiers": [
+        {
+          "teamAura": "lingxiao.fuzhen",
+          "damageBonus": 0.03
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n2_1",
+      "name": "翩鸿",
+      "description": "惊鸿掠影伤害提高35%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          },
+          "damageBonus": 0.35,
+          "resetCooldownOnKill": true
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
           "effects": [
             {
-              "type": "modifyResource",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "amount": 1
+              "type": "dispel",
+              "categories": [
+                "buff"
+              ],
+              "maxCount": 1,
+              "random": true
             }
-          ]
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          }
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "dispel",
+              "categories": [
+                "buff"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          }
         }
       ]
     },
     {
-      "id": "lingxiao.passive.guiyi.armor_break",
-      "name": "破甲",
+      "id": "lingxiao.passive.zhanchen.n2_2",
+      "name": "勇武",
+      "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.waiting"
+            ]
+          },
+          "damageAdd": "target.physicalDef * 0.4"
+        }
+      ],
       "hooks": [
         {
-          "on": "onDefenseIgnoreCalc",
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "min(maxHp * 0.15, level * 8)"
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 10
+            }
+          ],
           "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.waiting"
+            ],
+            "actionSucceeded": true
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "lingxiao.status.bravery",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.waiting"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n3_1",
+      "name": "杀意",
+      "description": "武器、衣服每件属于金、火、风任一行，物理暴击倍率增加0.20，两件可叠加。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "critMultiplierAdd": "fact.metalFireWindEquipmentCount * 0.2"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n3_2",
+      "name": "念心",
+      "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "foeKind": "player",
+            "targetHasStandingPet": false
+          },
+          "critChanceAdd": 0.15
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n3_3",
+      "name": "静岳",
+      "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "sourceHasBarrier": true
+          },
+          "critChanceAdd": 0.04
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "applyBarrier",
+              "id": "lingxiao.barrier.jingyue",
+              "kind": "lingxiao.jingyue",
+              "name": "静岳",
+              "power": "level",
+              "duration": 1,
+              "untilBattleEnd": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "sourceHasBarrier": false,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n4_2",
+      "name": "破血",
+      "description": "已有器诀双剑合璧由两次攻击改为三次，不额外授予器诀。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.diefeng"
+            ]
+          },
+          "physicalHitsAdd": 1
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n4_3",
+      "name": "乘势",
+      "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+      "modifiers": [
+        {
           "when": {
             "skillIds": [
               "lingxiao.skill.triple"
             ],
-            "requireKind": "physical",
+            "requireStatusIds": [
+              "lingxiao.status.pursuit"
+            ]
+          },
+          "waiveHpCostAndRequirement": true
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n5_1",
+      "name": "执剑",
+      "description": "队伍只有一名红尘剑宗弟子时，本场首次临渊目标数增加3，且此次临渊暴击率提高10%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.formation"
+            ],
+            "teamUniqueTag": "sect.lingxiao"
+          },
+          "targetCountAdd": "if(uses.lingxiao.skill.formation == 0, 3, 0)",
+          "critChanceAdd": "if(uses.lingxiao.skill.formation == 0, 0.1, 0)"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n5_2",
+      "name": "不惊",
+      "description": "物理忽防提高max(0，武器玄锋阵纹等级×0.5−3)%，仅计算武器。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "defenseIgnoreAdd": "max(0, fact.weaponXuanfengLevel * 0.5 - 3) / 100"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n5_3",
+      "name": "傲视",
+      "description": "亲自击倒敌方人物后，物理伤害提高40%，持续3回合。",
+      "modifiers": [],
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "lingxiao.status.pride",
+              "duration": 3,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "foeKind": "player",
+            "targetEnemy": true,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n6_1",
+      "name": "破空",
+      "description": "攻击被保护时，被保护者所受伤害提高15%。",
+      "modifiers": [
+        {
+          "protectedDamageBonus": 0.15
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.zhanchen.n6_2",
+      "name": "历战",
+      "description": "与玩家战斗时，临渊气血条件改为不低于10%；仍消耗气血且复起当回合不可用。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.formation"
+            ],
+            "pvp": true
+          },
+          "hpRequirement": {
+            "min": 0.1
+          }
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.foundation",
+      "name": "剑意与连破",
+      "description": "成功施放断尘获得1层剑意，并有1%概率不休息。剑意倒地保留且无层数上限；2层起被保护者承伤提高5%，5层起总伤害提高5%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ]
+          },
+          "recoverySkipChance": 0.01
+        },
+        {
+          "when": {
             "sourceResource": {
               "id": "lingxiao.resource.sword_intent",
               "min": 2
             }
           },
-          "effects": [
-            {
-              "type": "modifyDefenseIgnore",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.crit",
-      "name": "剑心",
-      "hooks": [
+          "protectedDamageBonus": 0.05
+        },
         {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "sourceResource": {
-              "id": "lingxiao.resource.sword_intent",
-              "min": 5
-            }
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.guarded_rest",
-      "name": "剑息",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
-          "when": {
-            "requireStatusIds": [
-              "lingxiao.status.rest",
-              "lingxiao.status.recovery"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 0.9
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.shadow_guard",
-      "name": "影守",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
-          "when": {
-            "requireKind": "physical",
-            "requireStatusIds": [
-              "lingxiao.status.shadow"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 0.95
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.flourish",
-      "name": "锋盛",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
           "when": {
             "sourceResource": {
               "id": "lingxiao.resource.sword_intent",
               "min": 5
+            }
+          },
+          "damageBonus": 0.05
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "lingxiao.resource.sword_intent",
+              "amount": 1
             },
+            {
+              "type": "modifyResource",
+              "resourceId": "lingxiao.resource.art_momentum",
+              "amount": 0,
+              "mode": "set"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n1_1",
+      "name": "目空",
+      "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+      "modifiers": [
+        {
+          "when": {
+            "skillTags": [
+              "art"
+            ],
             "requireKind": "physical"
           },
+          "defenseIgnoreAdd": 0.1
+        },
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          },
+          "defenseIgnoreAdd": 0.1
+        },
+        {
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.waiting"
+            ]
+          },
+          "defenseIgnoreAdd": 0.1
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n1_2",
+      "name": "勇进",
+      "description": "与玩家战斗时，本场首次成功施放断尘必定触发连破。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "pvp": true
+          },
+          "recoverySkipChance": "if(uses.lingxiao.skill.triple == 0, 1, 0)"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n1_3",
+      "name": "突刺",
+      "description": "施放前气血不低于90%时，断尘伤害提高5%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "sourceInitialHpRatioMin": 0.9
+          },
+          "damageBonus": 0.05
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n2_1",
+      "name": "翩鸿",
+      "description": "惊鸿掠影伤害提高35%，每层剑意再提高5%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          },
+          "damageBonus": "0.35 + resource.lingxiao.resource.sword_intent * 0.05",
+          "resetCooldownOnKill": true
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.05
+              "type": "dispel",
+              "categories": [
+                "buff"
+              ],
+              "maxCount": 1,
+              "random": true
             }
-          ]
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          }
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "dispel",
+              "categories": [
+                "buff"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.shadow_strike"
+            ]
+          }
         }
       ]
     },
     {
-      "id": "lingxiao.passive.guiyi.steadfast",
-      "name": "势固",
+      "id": "lingxiao.passive.guiyi.n2_2",
+      "name": "勇武",
+      "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.waiting"
+            ]
+          },
+          "damageAdd": "target.physicalDef * 0.4"
+        }
+      ],
       "hooks": [
         {
-          "on": "onHitCalc",
-          "targetIsSelf": true,
-          "when": {
-            "sourceResource": {
-              "id": "lingxiao.resource.sword_intent",
-              "min": 5
-            }
-          },
+          "on": "afterAction",
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 0.95
+              "type": "restoreHp",
+              "power": "min(maxHp * 0.15, level * 8)"
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 10
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.receive_intent",
-      "name": "受锋",
-      "hooks": [
-        {
-          "on": "onBeHit",
-          "targetIsSelf": true,
-          "when": {
-            "oncePerRound": true
-          },
+          ],
+          "sourceIsSelf": true,
           "aim": "self",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.waiting"
+            ],
+            "actionSucceeded": true
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "lingxiao.status.bravery",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "attack"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.waiting"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n3_1",
+      "name": "亢强",
+      "description": "使用器诀后，其原价每点战意使下次断尘的连破概率提高0.3%；以最近一次器诀为准。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ]
+          },
+          "recoverySkipChance": "resource.lingxiao.resource.art_momentum * 0.003"
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "lingxiao.resource.art_momentum",
+              "amount": "originalResourceCost",
+              "mode": "set"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n3_2",
+      "name": "念心",
+      "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "foeKind": "player",
+            "targetHasStandingPet": false
+          },
+          "critChanceAdd": 0.15
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n3_3",
+      "name": "静岳",
+      "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "sourceHasBarrier": true
+          },
+          "critChanceAdd": 0.04
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "applyBarrier",
+              "id": "lingxiao.barrier.jingyue",
+              "kind": "lingxiao.jingyue",
+              "name": "静岳",
+              "power": "level",
+              "duration": 1,
+              "untilBattleEnd": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "sourceHasBarrier": false,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n4_2",
+      "name": "杀伐",
+      "description": "武器、衣服分别属于金、火、风任一行时（可混搭），敌方人物倒地且自身存活，有30%概率获得1层剑意，每回合最多成功一次。",
+      "modifiers": [],
+      "hooks": [
+        {
+          "on": "onDeath",
           "effects": [
             {
               "type": "modifyResource",
               "resourceId": "lingxiao.resource.sword_intent",
               "amount": 1
             }
-          ]
+          ],
+          "aim": "self",
+          "chance": 0.3,
+          "when": {
+            "sourceTags": [
+              "equipment.weapon_armor.metal_fire_wind"
+            ],
+            "foeKind": "player",
+            "targetEnemy": true,
+            "sourceStanding": true,
+            "oncePerRound": true
+          }
         }
       ]
     },
     {
-      "id": "lingxiao.passive.guiyi.unstoppable",
-      "name": "无前",
+      "id": "lingxiao.passive.guiyi.n4_3",
+      "name": "乘势",
+      "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.pursuit"
+            ]
+          },
+          "waiveHpCostAndRequirement": true
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n5_1",
+      "name": "执剑",
+      "description": "队伍只有一名红尘剑宗弟子时，本场首次临渊目标数增加3，且此次临渊暴击率提高10%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.formation"
+            ],
+            "teamUniqueTag": "sect.lingxiao"
+          },
+          "targetCountAdd": "if(uses.lingxiao.skill.formation == 0, 3, 0)",
+          "critChanceAdd": "if(uses.lingxiao.skill.formation == 0, 0.1, 0)"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n5_2",
+      "name": "不惊",
+      "description": "物理忽防提高max(0，武器玄锋阵纹等级×0.5−3)%，仅计算武器。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "defenseIgnoreAdd": "max(0, fact.weaponXuanfengLevel * 0.5 - 3) / 100"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n5_3",
+      "name": "突进",
+      "description": "每次直接物理攻击实际造成气血伤害后，物攻增加2，持续本场；多段逐段累计，派生溅射不重复累计。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "physicalAttackAdd": "resource.lingxiao.resource.advance * 2"
+        }
+      ],
       "hooks": [
         {
-          "on": "onDefenseIgnoreCalc",
+          "on": "afterHit",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "lingxiao.resource.advance",
+              "amount": 1
+            }
+          ],
           "sourceIsSelf": true,
+          "when": {
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n6_1",
+      "name": "剑破",
+      "description": "剑意达到13层时，武器玄锋阵纹提供的物攻提高200%。",
+      "modifiers": [
+        {
           "when": {
             "requireKind": "physical",
             "sourceResource": {
               "id": "lingxiao.resource.sword_intent",
-              "min": 5
+              "min": 13
             }
           },
-          "effects": [
-            {
-              "type": "modifyDefenseIgnore",
-              "add": 0.1
-            }
-          ]
+          "physicalAttackAdd": "fact.weaponXuanfengAttack * 2"
         }
-      ]
+      ],
+      "hooks": []
     },
     {
-      "id": "lingxiao.passive.guiyi.unending_damage",
-      "name": "剑意不绝·攻",
-      "hooks": [
+      "id": "lingxiao.passive.guiyi.n6_2",
+      "name": "连斩",
+      "description": "每层剑意使总伤害提高1.5%，与剑意5层的5%基础增伤相加。",
+      "modifiers": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "damageBonus": "resource.lingxiao.resource.sword_intent * 0.015"
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n6_3",
+      "name": "熟练",
+      "description": "队伍只有一名红尘剑宗弟子时，连破概率提高17%。",
+      "modifiers": [
+        {
           "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "teamUniqueTag": "sect.lingxiao"
+          },
+          "recoverySkipChance": 0.17
+        }
+      ],
+      "hooks": []
+    },
+    {
+      "id": "lingxiao.passive.guiyi.n7_2",
+      "name": "破军",
+      "description": "剑意11层起断尘不能被保护，并对额外3个单位溅射45%；17层起溅射4个；23层起无视禁复活效果，不会自动复活。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
             "sourceResource": {
               "id": "lingxiao.resource.sword_intent",
               "min": 11
-            },
-            "requireKind": "physical"
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.passive.guiyi.unending_cost",
-      "name": "剑意不绝·耗",
-      "hooks": [
+          },
+          "ignoreProtection": true,
+          "splash": {
+            "factor": 0.45,
+            "count": "if(resource.lingxiao.resource.sword_intent >= 17, 4, 3)"
+          }
+        },
         {
-          "on": "afterAction",
-          "sourceIsSelf": true,
           "when": {
             "sourceResource": {
               "id": "lingxiao.resource.sword_intent",
-              "min": 11
+              "min": 23
             }
           },
-          "aim": "self",
-          "effects": [
-            {
-              "type": "modifyResource",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "amount": -1
-            }
-          ]
+          "ignoreReviveBlock": true
         }
-      ]
+      ],
+      "hooks": []
     }
   ],
   "paths": [
@@ -692,16 +925,12 @@
       "nodes": [
         {
           "id": "lingxiao.node.zhanchen.1.1",
-          "name": "砺锋",
+          "name": "目空",
           "layer": 1,
           "slot": 1,
-          "description": "断尘总伤害提高5%。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "multiplyPhysicalCoefficients",
-              "value": 1.05
-            }
+          "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n1_1"
           ]
         },
         {
@@ -709,578 +938,492 @@
           "name": "风刃",
           "layer": 1,
           "slot": 2,
-          "description": "对NPC普通攻击时溅射另外两个目标。",
+          "description": "与NPC战斗时，普攻向另外2个随机敌人溅射20%伤害；破极剑意状态下改为40%。",
           "passives": [
-            "lingxiao.passive.zhanchen.wind_blade"
+            "lingxiao.passive.zhanchen.n1_2"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.1.3",
-          "name": "固元",
+          "name": "扶阵",
           "layer": 1,
           "slot": 3,
-          "description": "最大气血提高3%。",
-          "panel": [
-            {
-              "attr": "maxHp",
-              "mode": "multiply",
-              "value": 1.03
-            }
+          "description": "自身在场存活时，全队总伤害提高3%，同名效果不叠加。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n1_3"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.2.1",
-          "name": "勇武",
+          "name": "翩鸿",
           "layer": 2,
           "slot": 1,
-          "description": "对低于50%气血的目标造成伤害提高8%。",
+          "description": "惊鸿掠影伤害提高35%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
           "passives": [
-            "lingxiao.passive.zhanchen.bravery"
+            "lingxiao.passive.zhanchen.n2_1"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.2.2",
-          "name": "静岳",
+          "name": "勇武",
           "layer": 2,
           "slot": 2,
-          "description": "断尘休息期间物法承伤降低10%。",
+          "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
           "passives": [
-            "lingxiao.passive.zhanchen.guarded_rest"
-          ]
-        },
-        {
-          "id": "lingxiao.node.zhanchen.2.3",
-          "name": "明锋",
-          "layer": 2,
-          "slot": 3,
-          "description": "命中提高30。",
-          "panel": [
+            "lingxiao.passive.zhanchen.n2_2"
+          ],
+          "patches": [
             {
-              "attr": "hit",
-              "mode": "add",
-              "value": 30
+              "skillId": "lingxiao.skill.waiting",
+              "operation": "setCostHp",
+              "value": 0
             }
           ]
         },
         {
+          "id": "lingxiao.node.zhanchen.2.3",
+          "name": "长驱直入",
+          "layer": 2,
+          "slot": 3,
+          "description": "以长驱直入替换惊鸿掠影：110%普攻伤害结果，无法被保护，60%概率重创2回合；耗50法力，冷却6回合。",
+          "grantSkills": [
+            "lingxiao.skill.zhanchen_long_drive"
+          ],
+          "revokeSkillIds": [
+            "lingxiao.skill.shadow_strike"
+          ]
+        },
+        {
           "id": "lingxiao.node.zhanchen.3.1",
-          "name": "破血",
+          "name": "杀意",
           "layer": 3,
           "slot": 1,
-          "description": "授予血锋连斩。",
-          "grantSkills": [
-            "lingxiao.skill.blood_strike"
+          "description": "武器、衣服每件属于金、火、风任一行，物理暴击倍率增加0.20，两件可叠加。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n3_1"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.3.2",
-          "name": "杀意",
+          "name": "念心",
           "layer": 3,
           "slot": 2,
-          "description": "击倒目标后下一次物理伤害提高10%。",
+          "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
           "passives": [
-            "lingxiao.passive.zhanchen.kill_intent"
+            "lingxiao.passive.zhanchen.n3_2"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.3.3",
-          "name": "蓄锐",
+          "name": "静岳",
           "layer": 3,
           "slot": 3,
-          "description": "防御受击后下一次物理伤害提高12%。",
+          "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
           "passives": [
-            "lingxiao.passive.zhanchen.stored_edge"
+            "lingxiao.passive.zhanchen.n3_3"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.4.1",
-          "name": "神凝",
+          "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "断尘气血门槛降至40%。",
+          "description": "破极剑意效果提高50%，物理忽防由10%提高至15%，持续5回合。",
           "patches": [
             {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "capRequireHpRatio",
-              "value": 0.4
+              "skillId": "lingxiao.skill.sword_aura",
+              "operation": "replaceStatusId",
+              "from": "lingxiao.status.sword_aura",
+              "to": "lingxiao.status.sword_aura_ganjiang"
             }
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.4.2",
-          "name": "破空",
+          "name": "破血",
           "layer": 4,
           "slot": 2,
-          "description": "断尘第三段系数增加0.15。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 2,
-              "value": 0.15
-            }
+          "description": "已有器诀双剑合璧由两次攻击改为三次，不额外授予器诀。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n4_2"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.4.3",
-          "name": "拓阵",
+          "name": "乘势",
           "layer": 4,
           "slot": 3,
-          "description": "临渊额外作用一个目标。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.formation",
-              "operation": "setTargetCount",
-              "value": 4
-            }
+          "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n4_3"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.5.1",
-          "name": "锐心",
+          "name": "执剑",
           "layer": 5,
           "slot": 1,
-          "description": "断尘暴击率提高5%。",
+          "description": "队伍只有一名红尘剑宗弟子时，本场首次临渊目标数增加3，且此次临渊暴击率提高10%。",
           "passives": [
-            "lingxiao.passive.zhanchen.keen_heart"
+            "lingxiao.passive.zhanchen.n5_1"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.5.2",
-          "name": "狂狷",
+          "name": "不惊",
           "layer": 5,
           "slot": 2,
-          "description": "低于50%气血时增伤10%，承伤增加5%。",
+          "description": "物理忽防提高max(0，武器玄锋阵纹等级×0.5−3)%，仅计算武器。",
           "passives": [
-            "lingxiao.passive.zhanchen.reckless_damage",
-            "lingxiao.passive.zhanchen.reckless_taken"
+            "lingxiao.passive.zhanchen.n5_2"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.5.3",
-          "name": "不惊",
+          "name": "傲视",
           "layer": 5,
           "slot": 3,
-          "description": "断尘休息期间封禁抵抗提高20。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "applyStatus",
-                "statusId": "lingxiao.status.rest_resist",
-                "duration": 1,
-                "self": true
-              }
-            }
+          "description": "亲自击倒敌方人物后，物理伤害提高40%，持续3回合。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n5_3"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.6.1",
-          "name": "连破",
+          "name": "破空",
           "layer": 6,
           "slot": 1,
-          "description": "断尘击倒目标时取消休息。",
+          "description": "攻击被保护时，被保护者所受伤害提高15%。",
           "passives": [
-            "lingxiao.passive.zhanchen.chain_break"
+            "lingxiao.passive.zhanchen.n6_1"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.6.2",
-          "name": "血勇",
+          "name": "历战",
           "layer": 6,
           "slot": 2,
-          "description": "断尘气血消耗降至5%，门槛降至35%。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "setCostHp",
-              "value": "maxHp * 0.05"
-            },
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "capRequireHpRatio",
-              "value": 0.35
-            }
+          "description": "与玩家战斗时，临渊气血条件改为不低于10%；仍消耗气血且复起当回合不可用。",
+          "passives": [
+            "lingxiao.passive.zhanchen.n6_2"
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.6.3",
-          "name": "裂军",
+          "name": "安神",
           "layer": 6,
           "slot": 3,
-          "description": "临渊伤害提高10%。",
+          "description": "剑心通明额外使所受法术伤害降低50%，仍持续5回合。",
           "patches": [
             {
-              "skillId": "lingxiao.skill.formation",
-              "operation": "multiplyPhysicalCoefficients",
-              "value": 1.1
+              "skillId": "lingxiao.skill.clarity",
+              "operation": "replaceStatusId",
+              "from": "lingxiao.status.clarity",
+              "to": "lingxiao.status.clarity_anshen"
             }
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.7.1",
-          "name": "四绝",
+          "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "断尘增加第四段攻击。",
-          "patches": [
+          "description": "贯通第七层后自动获得40点物攻。",
+          "automatic": true,
+          "legacyReplacementId": "lingxiao.node.zhanchen.7.2",
+          "panel": [
             {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 3,
-              "value": 0.95
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
             }
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.7.2",
-          "name": "乘胜追锋",
+          "name": "无敌",
           "layer": 7,
           "slot": 2,
-          "description": "每场首次击倒后追击最低气血敌人。",
-          "passives": [
-            "lingxiao.passive.zhanchen.victory_chase"
+          "description": "断尘固定四次攻击，前三段系数0.75／0.85／0.95，末段系数1.10。",
+          "patches": [
+            {
+              "skillId": "lingxiao.skill.triple",
+              "operation": "addPhysicalCoefficient",
+              "hitIndex": 3,
+              "value": 1.1
+            }
           ]
         },
         {
           "id": "lingxiao.node.zhanchen.7.3",
-          "name": "开天",
+          "name": "斩尘证道",
           "layer": 7,
           "slot": 3,
-          "description": "授予终式一剑开天门。",
-          "grantSkills": [
-            "lingxiao.skill.zhanchen_ultimate"
+          "description": "贯通第七层后自动获得40点物攻及本流派称谓。",
+          "automatic": true,
+          "legacyReplacementId": "lingxiao.node.zhanchen.7.2",
+          "panel": [
+            {
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         }
-      ]
+      ],
+      "requiresConnectedNodes": true
     },
     {
       "id": "lingxiao.path.guiyi",
       "name": "万剑归一",
-      "foundationPassives": [
-        "lingxiao.passive.guiyi.gain",
-        "lingxiao.passive.guiyi.hit",
-        "lingxiao.passive.guiyi.damage"
-      ],
-      "grantSkills": [
-        "lingxiao.skill.shadow_strike"
-      ],
-      "resources": [
-        "lingxiao.resource.sword_intent"
-      ],
       "nodes": [
         {
           "id": "lingxiao.node.guiyi.1.1",
-          "name": "蓄意",
+          "name": "目空",
           "layer": 1,
           "slot": 1,
-          "description": "断尘额外增加1点剑意。",
+          "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
           "passives": [
-            "lingxiao.passive.guiyi.extra_triple_intent"
+            "lingxiao.passive.guiyi.n1_1"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.1.2",
-          "name": "飞鸿",
+          "name": "勇进",
           "layer": 1,
           "slot": 2,
-          "description": "惊鸿掠影系数增加0.15。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.shadow_strike",
-              "operation": "addPhysicalCoefficient",
-              "hitIndex": 0,
-              "value": 0.15
-            }
+          "description": "与玩家战斗时，本场首次成功施放断尘必定触发连破。",
+          "passives": [
+            "lingxiao.passive.guiyi.n1_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.1.3",
-          "name": "固元",
+          "name": "突刺",
           "layer": 1,
           "slot": 3,
-          "description": "最大气血提高3%。",
-          "panel": [
-            {
-              "attr": "maxHp",
-              "mode": "multiply",
-              "value": 1.03
-            }
+          "description": "施放前气血不低于90%时，断尘伤害提高5%。",
+          "passives": [
+            "lingxiao.passive.guiyi.n1_3"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.2.1",
-          "name": "凌厉",
+          "name": "翩鸿",
           "layer": 2,
           "slot": 1,
-          "description": "剑意达到2点时额外增伤3%。",
+          "description": "惊鸿掠影伤害提高35%，每层剑意再提高5%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
           "passives": [
-            "lingxiao.passive.guiyi.sharp"
+            "lingxiao.passive.guiyi.n2_1"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.2.2",
-          "name": "守意",
+          "name": "勇武",
           "layer": 2,
           "slot": 2,
-          "description": "防御受击后增加1点剑意。",
+          "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
           "passives": [
-            "lingxiao.passive.guiyi.guard_intent"
+            "lingxiao.passive.guiyi.n2_2"
+          ],
+          "patches": [
+            {
+              "skillId": "lingxiao.skill.waiting",
+              "operation": "setCostHp",
+              "value": 0
+            }
           ]
         },
         {
           "id": "lingxiao.node.guiyi.2.3",
-          "name": "候锋",
+          "name": "长驱直入",
           "layer": 2,
           "slot": 3,
-          "description": "惊雷完成后额外增加1点剑意。",
-          "passives": [
-            "lingxiao.passive.guiyi.waiting_intent"
+          "description": "以长驱直入替换惊鸿掠影：110%普攻伤害结果，无法被保护，60%概率重创2回合；耗50法力，冷却6回合。",
+          "grantSkills": [
+            "lingxiao.skill.guiyi_long_drive"
+          ],
+          "revokeSkillIds": [
+            "lingxiao.skill.shadow_strike"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.3.1",
-          "name": "长虹",
+          "name": "亢强",
           "layer": 3,
           "slot": 1,
-          "description": "惊鸿状态延长2回合。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.shadow_strike",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "applyStatus",
-                "statusId": "lingxiao.status.shadow",
-                "duration": 5,
-                "self": true
-              }
-            }
+          "description": "使用器诀后，其原价每点战意使下次断尘的连破概率提高0.3%；以最近一次器诀为准。",
+          "passives": [
+            "lingxiao.passive.guiyi.n3_1"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.3.2",
-          "name": "破甲",
+          "name": "念心",
           "layer": 3,
           "slot": 2,
-          "description": "2点剑意以上断尘额外忽略5%物防。",
+          "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
           "passives": [
-            "lingxiao.passive.guiyi.armor_break"
+            "lingxiao.passive.guiyi.n3_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.3.3",
-          "name": "开阵",
+          "name": "静岳",
           "layer": 3,
           "slot": 3,
-          "description": "2点剑意以上强化临渊目标数。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.formation",
-              "operation": "addResourceTargetCount",
-              "resourceId": "lingxiao.resource.sword_intent",
-              "min": 2,
-              "value": 4
-            }
+          "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+          "passives": [
+            "lingxiao.passive.guiyi.n3_3"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.4.1",
-          "name": "剑心",
+          "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "5点剑意以上物理暴击率提高5%。",
-          "passives": [
-            "lingxiao.passive.guiyi.crit"
+          "description": "破极剑意效果提高50%，物理忽防由10%提高至15%，持续5回合。",
+          "patches": [
+            {
+              "skillId": "lingxiao.skill.sword_aura",
+              "operation": "replaceStatusId",
+              "from": "lingxiao.status.sword_aura",
+              "to": "lingxiao.status.sword_aura_ganjiang"
+            }
           ]
         },
         {
           "id": "lingxiao.node.guiyi.4.2",
-          "name": "剑息",
+          "name": "杀伐",
           "layer": 4,
           "slot": 2,
-          "description": "断尘休息期间承伤降低10%。",
+          "description": "武器、衣服分别属于金、火、风任一行时（可混搭），敌方人物倒地且自身存活，有30%概率获得1层剑意，每回合最多成功一次。",
           "passives": [
-            "lingxiao.passive.guiyi.guarded_rest"
+            "lingxiao.passive.guiyi.n4_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.4.3",
-          "name": "影守",
+          "name": "乘势",
           "layer": 4,
           "slot": 3,
-          "description": "惊鸿状态同时提供5%物理减伤。",
+          "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
           "passives": [
-            "lingxiao.passive.guiyi.shadow_guard"
+            "lingxiao.passive.guiyi.n4_3"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.5.1",
-          "name": "锋盛",
+          "name": "执剑",
           "layer": 5,
           "slot": 1,
-          "description": "5点剑意以上再增伤5%。",
+          "description": "队伍只有一名红尘剑宗弟子时，本场首次临渊目标数增加3，且此次临渊暴击率提高10%。",
           "passives": [
-            "lingxiao.passive.guiyi.flourish"
+            "lingxiao.passive.guiyi.n5_1"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.5.2",
-          "name": "势固",
+          "name": "不惊",
           "layer": 5,
           "slot": 2,
-          "description": "5点剑意以上承伤降低5%。",
+          "description": "物理忽防提高max(0，武器玄锋阵纹等级×0.5−3)%，仅计算武器。",
           "passives": [
-            "lingxiao.passive.guiyi.steadfast"
+            "lingxiao.passive.guiyi.n5_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.5.3",
-          "name": "受锋",
+          "name": "突进",
           "layer": 5,
           "slot": 3,
-          "description": "每回合首次受到直接伤害增加1点剑意。",
+          "description": "每次直接物理攻击实际造成气血伤害后，物攻增加2，持续本场；多段逐段累计，派生溅射不重复累计。",
           "passives": [
-            "lingxiao.passive.guiyi.receive_intent"
+            "lingxiao.passive.guiyi.n5_3"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.6.1",
-          "name": "连破",
+          "name": "剑破",
           "layer": 6,
           "slot": 1,
-          "description": "8点剑意以上消耗3点并取消断尘休息。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "removeEffectType",
-              "effectType": "skipNextAction"
-            },
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "removeEffectType",
-              "effectType": "applyStatus"
-            },
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "skipNextAction",
-                "when": {
-                  "sourceResource": {
-                    "id": "lingxiao.resource.sword_intent",
-                    "max": 7
-                  }
-                }
-              }
-            },
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "applyStatus",
-                "statusId": "lingxiao.status.recovery",
-                "duration": 1,
-                "self": true,
-                "when": {
-                  "sourceResource": {
-                    "id": "lingxiao.resource.sword_intent",
-                    "max": 7
-                  }
-                }
-              }
-            },
-            {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "modifyResource",
-                "resourceId": "lingxiao.resource.sword_intent",
-                "amount": -3,
-                "when": {
-                  "sourceResource": {
-                    "id": "lingxiao.resource.sword_intent",
-                    "min": 8
-                  }
-                }
-              }
-            }
+          "description": "剑意达到13层时，武器玄锋阵纹提供的物攻提高200%。",
+          "passives": [
+            "lingxiao.passive.guiyi.n6_1"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.6.2",
-          "name": "无前",
+          "name": "连斩",
           "layer": 6,
           "slot": 2,
-          "description": "5点剑意以上物理攻击忽略10%物防。",
+          "description": "每层剑意使总伤害提高1.5%，与剑意5层的5%基础增伤相加。",
           "passives": [
-            "lingxiao.passive.guiyi.unstoppable"
+            "lingxiao.passive.guiyi.n6_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.6.3",
-          "name": "鸿意",
+          "name": "熟练",
           "layer": 6,
           "slot": 3,
-          "description": "惊鸿掠影额外增加1点剑意。",
-          "patches": [
-            {
-              "skillId": "lingxiao.skill.shadow_strike",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "modifyResource",
-                "resourceId": "lingxiao.resource.sword_intent",
-                "amount": 1
-              }
-            }
+          "description": "队伍只有一名红尘剑宗弟子时，连破概率提高17%。",
+          "passives": [
+            "lingxiao.passive.guiyi.n6_3"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.7.1",
-          "name": "四象归锋",
+          "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "11点剑意时断尘增加第四段。",
-          "patches": [
+          "description": "贯通第七层后自动获得280点气血上限。",
+          "automatic": true,
+          "legacyReplacementId": "lingxiao.node.guiyi.7.2",
+          "panel": [
             {
-              "skillId": "lingxiao.skill.triple",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "physicalHit",
-                "coeff": 0.95,
-                "power": 0,
-                "when": {
-                  "sourceResource": {
-                    "id": "lingxiao.resource.sword_intent",
-                    "min": 11
-                  }
-                }
-              }
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 280
             }
           ]
         },
         {
           "id": "lingxiao.node.guiyi.7.2",
-          "name": "一剑无双",
+          "name": "破军",
           "layer": 7,
           "slot": 2,
-          "description": "授予消耗全部剑意的终式万锋归一。",
-          "grantSkills": [
-            "lingxiao.skill.guiyi_ultimate"
+          "description": "剑意11层起断尘不能被保护，并对额外3个单位溅射45%；17层起溅射4个；23层起无视禁复活效果，不会自动复活。",
+          "passives": [
+            "lingxiao.passive.guiyi.n7_2"
           ]
         },
         {
           "id": "lingxiao.node.guiyi.7.3",
-          "name": "剑意不绝",
+          "name": "万剑归一",
           "layer": 7,
           "slot": 3,
-          "description": "11点剑意时再增伤10%，行动后失去1点剑意。",
-          "passives": [
-            "lingxiao.passive.guiyi.unending_damage",
-            "lingxiao.passive.guiyi.unending_cost"
+          "description": "贯通第七层后自动获得280点气血上限及本流派称谓。",
+          "automatic": true,
+          "legacyReplacementId": "lingxiao.node.guiyi.7.2",
+          "panel": [
+            {
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 280
+            }
           ]
         }
-      ]
+      ],
+      "resources": [
+        "lingxiao.resource.sword_intent",
+        "lingxiao.resource.art_momentum",
+        "lingxiao.resource.advance"
+      ],
+      "foundationPassives": [
+        "lingxiao.passive.guiyi.foundation"
+      ],
+      "requiresConnectedNodes": true
     }
   ]
 }

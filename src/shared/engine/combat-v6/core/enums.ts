@@ -102,6 +102,8 @@ export const HookName = {
   OnDefenseIgnoreCalc: 'onDefenseIgnoreCalc',
   OnBeHit: 'onBeHit',
   AfterHit: 'afterHit',
+  /** 成功命中后，包括被护盾完全吸收的攻击；不含派生伤害。 */
+  AfterStrike: 'afterStrike',
   OnFatal: 'onFatal',
   OnDeath: 'onDeath',
   OnRoundStart: 'onRoundStart',

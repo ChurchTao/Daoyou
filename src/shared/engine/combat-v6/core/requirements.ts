@@ -5,6 +5,7 @@ import { atLeast } from './math.ts';
 import { skillOf } from './skills.ts';
 import { hasBlock } from './status.ts';
 import type { SkillDef, Unit } from './types.ts';
+import { combatModifiers } from './modifiers';
 import { resourceOf } from './units.ts';
 
 export type SkillRequirementCheck = {
@@ -33,7 +34,10 @@ export function checkSkillRequirements(
         0,
         Math.floor(evalExpr(skill.costMp ?? 0, env) * mpCostFactor(ctx, unit, skill)),
       );
-  const hpCost = atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)));
+  const modifiers = combatModifiers(ctx, unit, { skill, skillId: skill.id });
+  const waivedHp = modifiers.some(m => m.waiveHpCostAndRequirement);
+  const hpRequirement = modifiers.find(m => m.hpRequirement)?.hpRequirement;
+  const hpCost = waivedHp ? 0 : atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)));
   const resourceCosts = resolveResourceCosts(skill, env);
   const reasons: string[] = [];
 
@@ -51,16 +55,18 @@ export function checkSkillRequirements(
   )
     reasons.push(FailReason.Rooted);
   if (targets.length === 0) reasons.push(FailReason.NoTarget);
-  if (skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio)
+  if (!waivedHp && !hpRequirement && skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio)
     reasons.push(FailReason.HpRequirement);
   if (
-    skill.requireHpRatio !== undefined &&
+    !waivedHp && !hpRequirement && skill.requireHpRatio !== undefined &&
     unit.attrs.hp / unit.attrs.maxHp < skill.requireHpRatio
   )
     reasons.push(FailReason.HpRequirement);
 
-  if (skill.requireHpBelowRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp >= skill.requireHpBelowRatio)
+  if (!waivedHp && !hpRequirement && skill.requireHpBelowRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp >= skill.requireHpBelowRatio)
     reasons.push(FailReason.HpRequirement);
+  if (!waivedHp && hpRequirement && unit.attrs.hp / unit.attrs.maxHp < hpRequirement.min) reasons.push(FailReason.HpRequirement);
+  if ((unit.cooldowns?.[skill.id] ?? 0) > ctx.state.round) reasons.push('cooldown');
   if (skill.forbidRevivedRound && unit.flags.revivedRound === ctx.state.round)
     reasons.push(FailReason.RevivedThisRound);
 

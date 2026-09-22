@@ -146,7 +146,7 @@ export function compileTianyanPaths(pack: ReturnType<typeof loadTianyanPaths>): 
       const fields = Object.fromEntries(Object.entries(rest).map(([key, value]) => [key,
         key === 'passives' ? node.passives!.map(passive) : key === 'grantSkills' ? node.grantSkills!.map(TIANYAN_SKILLS.skill)
           : key === 'patches' ? node.patches!.flatMap(compilePatch) : value,
-      ])) as Omit<MeridianNodeDefV6, 'id' | 'name' | 'pathId'>;
+      ])) as unknown as Omit<MeridianNodeDefV6, 'id' | 'name' | 'pathId'>;
       return { id, name, pathId: path.id, ...fields };
     }),
   }));

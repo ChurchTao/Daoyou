@@ -1,4 +1,5 @@
 import { forgedName } from '../../../forging/names';
+import { ELEMENT_VALUES } from '../../../types/constants';
 import { SeededRng } from '../core';
 import { daoEquipmentAttributeRange, daoEquipmentBaseRange, daoEquipmentTemplateOf } from './content';
 import {
@@ -26,7 +27,7 @@ export function rollHigher(
   return chance > 0 && random() < chance ? Math.max(first, draw()) : first;
 }
 
-/** Base V2 stream is unchanged. Each boost group has its own deterministic stream. */
+/** Base V2 stream is unchanged. Boost groups and the V4 element draw use independent streams. */
 export function generateForgedEquipment(
   input: Omit<GenerateDaoEquipmentV2Input, 'generatorVersion'> & {
     boosts: ForgingBoosts;
@@ -105,7 +106,9 @@ export function generateForgedEquipment(
     instance.essenceIds.push(
       pool.splice(Math.floor(essence.next() * pool.length), 1)[0],
     );
-  instance.generatorVersion = 'dao_equipment_generator_v3';
+  instance.generatorVersion = 'dao_equipment_generator_v4';
+  const element = new SeededRng((input.seed ^ 0x27d4eb2d) >>> 0);
+  instance.element = ELEMENT_VALUES[Math.floor(element.next() * ELEMENT_VALUES.length)];
   instance.name = forgedName(
     instance.slot,
     instance.equipmentLevel,

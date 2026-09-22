@@ -1,6 +1,7 @@
+import { lxEffect as actionEffect, lxHook as hook, lxModifier, lxPanel as panel } from './lingxiao-shapes';
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
-import { ATTR_NAMES, BUILTIN_SKILL_ID, TargetMode, EffectType, HookAim, HookName, SkillTag, TargetSide } from '../core';
+import { BUILTIN_SKILL_ID, EffectType, SkillTag, TargetSide } from '../core';
 import { sectSkillLearning } from './skill-learning';
 import { LINGXIAO_COMBAT } from './lingxiao-pack';
 import { validateSectExpressions } from './authoring-expressions';
@@ -13,38 +14,8 @@ const number = z.number().min(0).max(10000);
 const ratio = number.max(1);
 const expression = z.union([number, z.string().min(1).max(200)]);
 const text = z.string().min(1).max(200);
-const panel = z.array(z.strictObject({ attr: z.enum(ATTR_NAMES), mode: z.enum(['add', 'multiply']), value: number }));
-const resourceCondition = z.strictObject({ id, min: number.optional(), max: number.optional() });
-const when = z.strictObject({
-  skillIds: z.array(z.union([id, z.literal(BUILTIN_SKILL_ID.Attack)])).optional(),
-  requireKind: z.literal('physical').optional(),
-  targetHpRatioBelow: ratio.optional(), sourceHpRatioBelow: ratio.optional(),
-  requireStatusIds: ids.optional(), foeKind: z.literal('npc').optional(),
-  sourceDefending: z.boolean().optional(), oncePerRound: z.boolean().optional(),
-  oncePerBattle: z.boolean().optional(), sourceResource: resourceCondition.optional(),
-});
-const actionEffect = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal(EffectType.PhysicalHit), coeff: number, power: expression.optional(), when: when.optional() }),
-  z.strictObject({ type: z.literal(EffectType.ApplyStatus), statusId: id, duration: number.int().min(1).max(99), self: z.boolean(), when: when.optional() }),
-  z.strictObject({ type: z.literal(EffectType.ModifyResource), resourceId: id, amount: z.number().int().min(-10000).max(10000), when: when.optional() }),
-  z.strictObject({ type: z.literal(EffectType.SkipNextAction), when: when.optional() }),
-]);
-const hookEffect = z.union([
-  actionEffect,
-  z.strictObject({ type: z.literal(EffectType.ModifyStrike), factor: number }),
-  z.strictObject({ type: z.literal(EffectType.ModifyDefenseIgnore), add: ratio }),
-  z.strictObject({ type: z.literal(EffectType.ModifyChance), add: ratio }),
-  z.strictObject({ type: z.enum([EffectType.Dispel, EffectType.RemoveStatus]), statusIds: ids }),
-  z.strictObject({ type: z.literal(EffectType.ClearSkipNextAction) }),
-]);
-const hook = z.strictObject({
-  on: z.enum([HookName.AfterHit, HookName.OnHitCalc, HookName.OnDeath, HookName.OnBeHit, HookName.OnCritRoll, HookName.AfterAction, HookName.OnHitRoll, HookName.OnDefenseIgnoreCalc]),
-  sourceIsSelf: z.boolean().optional(), targetIsSelf: z.boolean().optional(),
-  aim: z.enum(HookAim).optional(), aimCount: number.int().min(1).max(10).optional(),
-  aimMode: z.enum(TargetMode).optional(), when: when.optional(),
-  effects: z.array(hookEffect).min(1),
-});
 const patch = z.discriminatedUnion('operation', [
+  z.strictObject({ skillId: id, operation: z.literal('replaceStatusId'), from: id, to: id }),
   z.strictObject({ skillId: id, operation: z.literal('multiplyPhysicalCoefficients'), value: number }),
   z.strictObject({ skillId: id, operation: z.literal('capRequireHpRatio'), value: ratio }),
   z.strictObject({ skillId: id, operation: z.enum(['setTargetCount', 'setCostHp']), value: expression }),
@@ -56,13 +27,14 @@ const patch = z.discriminatedUnion('operation', [
 export const LingxiaoPathsPackShape = z.strictObject({
   $schema: z.string().optional(), formatVersion: z.literal(1),
   contentRevision: z.number().int().positive(),
-  passives: z.array(z.strictObject({ id, name: text, hooks: z.array(hook).min(1) })).min(1),
+  passives: z.array(z.strictObject({ id, name: text, description: z.string().optional(), hooks: z.array(hook).optional(), modifiers: z.array(lxModifier).optional() })).min(1),
   paths: z.array(z.strictObject({
-    id, name: text, foundationPassives: ids.optional(), grantSkills: ids.optional(), resources: ids.optional(),
+    id, name: text, requiresConnectedNodes: z.boolean().optional(), foundationPassives: ids.optional(), grantSkills: ids.optional(), resources: ids.optional(),
     nodes: z.array(z.strictObject({
       id, name: text, layer: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
       slot: z.union([z.literal(1), z.literal(2), z.literal(3)]), description: text,
-      panel: panel.optional(), patches: z.array(patch).optional(),
+      automatic: z.boolean().optional(), legacyReplacementId: id.optional(),
+      revokeSkillIds: ids.optional(), panel: panel.optional(), patches: z.array(patch).optional(),
       passives: ids.optional(), grantSkills: ids.optional(),
     })).length(21),
   })).length(2),
@@ -87,16 +59,16 @@ export function loadLingxiaoPathsPack(data: unknown) {
         const check = (ids: string[], valid: (id: string) => boolean) => {
           for (const id of ids) if (!valid(id)) issue([...path, key], '引用不存在：' + id);
         };
-        const skillExists = (id: string) => { if (id === BUILTIN_SKILL_ID.Attack) return true; try { LINGXIAO_COMBAT.skill(id); return true; } catch { return false; } };
+        const skillExists = (id: string) => { if (id === BUILTIN_SKILL_ID.Attack || id === 'dao_equipment.skill.diefeng') return true; try { LINGXIAO_COMBAT.skill(id); return true; } catch { return false; } };
         if (['statusId', 'from', 'to'].includes(key)) check([child as string], id => statusIds.has(id));
         if (['statusIds', 'requireStatusIds'].includes(key)) check(child as string[], id => statusIds.has(id));
-        if (key === 'resourceId') check([child as string], id => resourceIds.has(id));
+        if (key === 'resourceId') check([child as string], id => resourceIds.has(id) || id === 'combat.resource.rage');
         if (key === 'resources') check(child as string[], id => resourceIds.has(id));
         if (key === 'sourceResource') {
           const condition = child as { id: string; min?: number; max?: number };
           const resource = LINGXIAO_COMBAT.resources.find(r => r.id === condition.id);
           if (!resource) issue([...path, key], '资源引用不存在：' + condition.id);
-          else if ((condition.min ?? 0) > resource.max || (condition.max !== undefined && condition.min !== undefined && condition.max < condition.min))
+          else if ((condition.min ?? 0) > (resource.max ?? Infinity) || (condition.max !== undefined && condition.min !== undefined && condition.max < condition.min))
             issue([...path, key], '资源门槛超出上限或区间倒置');
         }
         if (key === 'skillId') check([child as string], skillExists);
@@ -124,7 +96,7 @@ export function loadLingxiaoPathsPack(data: unknown) {
           const field = ['paths', i, 'nodes', j, 'patches', k];
           if (patch.operation === 'addResourceTargetCount') {
             const resource = LINGXIAO_COMBAT.resources.find(r => r.id === patch.resourceId);
-            if (resource && patch.min > resource.max) issue([...field, 'min'], '门槛超过资源上限');
+            if (resource && patch.min > (resource.max ?? Infinity)) issue([...field, 'min'], '门槛超过资源上限');
           }
           if (patch.operation === 'addPhysicalCoefficient') {
             try {
@@ -148,7 +120,7 @@ export function loadLingxiaoPathsPack(data: unknown) {
 export function compileLingxiaoPaths(pack: ReturnType<typeof loadLingxiaoPathsPack>): [SectPathDefV6, SectPathDefV6] {
   const passives = new Map(pack.passives.map(p => [p.id, {
     ...sectSkillLearning(p.id), kind: 'passive',
-    definition: { id: p.id, name: p.name, tags: [SkillTag.Passive], targeting: { side: TargetSide.Self }, effects: [], hooks: p.hooks },
+    definition: { id: p.id, name: p.name, description: p.description, modifiers: p.modifiers, tags: [SkillTag.Passive], targeting: { side: TargetSide.Self }, effects: [], hooks: p.hooks },
   } satisfies SectSkillDefV6]));
   const passive = (id: string) => passives.get(id)!;
   const paths = pack.paths.map(path => {

@@ -61,8 +61,16 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
   return undefined
 }
 
-export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
+export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
+  const units = ctx.state.units ?? []
+  if (when.pvp !== undefined && units.some(u => u.side !== scope.source.side && u.kind === 'player') !== when.pvp) return false
+  if (when.teamUniqueTag && units.filter(u => u.side === scope.source.side && u.kind === 'player' && u.tags.includes(when.teamUniqueTag!)).length !== 1) return false
+  if (when.targetEnemy && (!scope.target || scope.target.side === scope.source.side)) return false
+  if (when.targetHasStandingPet !== undefined && (!scope.target || units.some(u => u.kind === 'pet' && u.ownerId === scope.target!.id && isStanding(u)) !== when.targetHasStandingPet)) return false
+  if (when.actionSucceeded && (!ctx.currentAction || ctx.currentAction.failed)) return false
+  if (when.actionKilledTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.killedTargetIds?.includes(scope.target.id)) !== when.actionKilledTarget)) return false
+  if (when.sourceInitialHpRatioMin !== undefined && (ctx.currentAction?.initialHpRatio ?? hpRatio(scope.source)) < when.sourceInitialHpRatioMin) return false
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill
   if (when.excludeSkillTags?.some(tag => skill?.tags.includes(tag))) return false

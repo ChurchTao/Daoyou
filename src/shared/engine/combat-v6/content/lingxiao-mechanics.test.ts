@@ -2,9 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { CommandType, EventType, createBattle, restoreBattle, type SkillDef, type UnitKind } from '../core';
 import { createDaoyouRuleset } from '../rules-daoyou';
 import { LINGXIAO_COMBAT } from './lingxiao-pack';
-import { LINGXIAO_V6_DEFINITION } from './lingxiao';
-import { compileSectDefinitionV6 } from './compiler';
-import { createEmptySectCombatProgressV6 } from '../build-state';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
 const skillId = (name: string) => `lingxiao.skill.${name}`;
@@ -141,26 +138,6 @@ describe('基础模组状态与回合边界', () => {
   });
 });
 
-
-it('降低血线和击倒取消休息的经脉仍在真实战斗中生效', () => {
-  const def = LINGXIAO_V6_DEFINITION;
-  const progress = createEmptySectCombatProgressV6('lingxiao', def.paths[0].id,
-    Object.fromEntries(def.methods.map(m => [m.id, 120])));
-  progress.meridianDepth = 7;
-  progress.meridianLoadouts[0].nodeIds = ['lingxiao.node.zhanchen.4.1', 'lingxiao.node.zhanchen.6.1'];
-  const compiled = compileSectDefinitionV6({ definition: def, progress, characterLevel: 120 });
-  expect(compiled.ok).toBe(true);
-  if (!compiled.ok) return;
-  const b = setup(401, 'npc', [...compiled.projection.skills, ...compiled.projection.skillOverrides], compiled.projection.passiveSkillIds);
-  b.unit('t0').attrs.hp = 1;
-  round(b, 'triple');
-  expect(hits(b)).toHaveLength(1);
-  expect(b.unit('s').flags.skipNextAction).toBe(false);
-  expect(b.unit('s').statuses.some(s => s.id === 'lingxiao.status.recovery')).toBe(false);
-  b.unit('s').attrs.hp = 401;
-  round(b, 'triple', ['t1']);
-  expect(hits(b)).toHaveLength(4);
-});
 
 it('准备途中倒地不会在回合末获得惊雷攻击状态', () => {
   const lethal: SkillDef = { id: 'test.lethal', name: '致命伤害', tags: ['physical'], targeting: { side: 'enemy' }, effects: [{ type: 'fixedHit', power: 10000 }] };

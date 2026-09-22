@@ -135,8 +135,8 @@ export function applyStatus(
   }
 
   // 同类法术：以后一次的持续和效果为准（不可叠层时）。
-  for (const inst of unit.statuses.filter((s) => s.kind === def.kind)) {
-    removeStatus(ctx, unit, inst.id, StatusRemoveReason.Replaced)
+  for (const inst of unit.statuses.filter((s) => s.kind === def.kind && (!def.sourceBound || s.sourceId === sourceId))) {
+    removeStatus(ctx, unit, inst.id, StatusRemoveReason.Replaced, def.sourceBound ? sourceId : undefined)
   }
   unit.statuses.push({
     id: def.id,
@@ -159,15 +159,15 @@ export function applyStatus(
   ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration })
 }
 
-export function removeStatus(ctx: BattleContext, unit: Unit, statusId: StatusId, reason: string): void {
-  const inst = unit.statuses.find((s) => s.id === statusId)
+export function removeStatus(ctx: BattleContext, unit: Unit, statusId: StatusId, reason: string, sourceId?: string): void {
+  const inst = unit.statuses.find((s) => s.id === statusId && (!sourceId || s.sourceId === sourceId))
   if (!inst) return
   if (inst.attrMods.maxHp) {
     unit.attrs.maxHp = Math.max(MIN_MAX_HP, unit.attrs.maxHp - inst.attrMods.maxHp)
     unit.wound = Math.min(unit.wound, unit.attrs.maxHp - 1)
     if (unit.attrs.hp > recoverableHp(unit)) unit.attrs.hp = recoverableHp(unit)
   }
-  unit.statuses = unit.statuses.filter((s) => s.id !== statusId)
+  unit.statuses = unit.statuses.filter((s) => s.id !== statusId || (sourceId !== undefined && s.sourceId !== sourceId))
   ctx.emit({ type: EventType.StatusRemoved, unitId: unit.id, statusId, reason })
 }
 
@@ -181,8 +181,8 @@ export function copyStatusInstance(
 ): void {
   const def = statusDef(ctx, instance.id)
   if (!def || isStatusImmune(ctx, target, def)) return
-  for (const current of [...target.statuses].filter((status) => status.kind === instance.kind)) {
-    removeStatus(ctx, target, current.id, StatusRemoveReason.Replaced)
+  for (const current of [...target.statuses].filter((status) => status.kind === instance.kind && (!def.sourceBound || status.sourceId === source.id))) {
+    removeStatus(ctx, target, current.id, StatusRemoveReason.Replaced, def.sourceBound ? source.id : undefined)
   }
   const copy = {
     ...structuredClone(instance),
@@ -219,7 +219,7 @@ export function tickStatuses(ctx: BattleContext): void {
       if (next <= 0) {
         // A preceding tick may have killed the unit and removed its statuses.
         if (!unit.statuses.includes(inst)) continue
-        removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
+        removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired, def?.sourceBound ? inst.sourceId : undefined)
         if (def?.onExpire && !unit.flags.downed && !unit.flags.dead) {
           const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
           applyStatus(ctx, unit, def.onExpire.statusId, def.onExpire.duration, inst.sourceId, {

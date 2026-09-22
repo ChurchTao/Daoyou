@@ -151,7 +151,7 @@ export function compileWuxiangPaths(pack: ReturnType<typeof loadWuxiangPathsPack
           key,
           key === 'passives' ? node.passives!.map(passive)
             : key === 'grantSkills' ? node.grantSkills!.map(WUXIANG_COMBAT.skill) : value,
-        ])) as Omit<MeridianNodeDefV6, 'id' | 'name' | 'pathId'>;
+        ])) as unknown as Omit<MeridianNodeDefV6, 'id' | 'name' | 'pathId'>;
         return { id, name, pathId: path.id, ...fields };
       }),
     };

@@ -1,4 +1,5 @@
 import { LEVELS_PER_REALM_STAGE } from '@shared/config/realmProgression';
+import { ELEMENT_VALUES } from '@shared/types/constants';
 import { equipmentRealm, isOpenEquipmentLevel } from './realm';
 import type { Attributes } from '@shared/types/cultivator';
 import {
@@ -23,6 +24,7 @@ import {
   DAO_EQUIPMENT_GENERATOR_VERSION,
   DAO_EQUIPMENT_GENERATOR_VERSION_V2,
   DAO_EQUIPMENT_GENERATOR_VERSION_V3,
+  DAO_EQUIPMENT_GENERATOR_VERSION_V4,
   DAO_EQUIPMENT_SLOTS,
   type CompileDaoEquipmentLoadoutV1Result,
   type CompileDaoEquipmentSpecialLoadoutV1Result,
@@ -130,13 +132,16 @@ function validateInstance(
       !ForgedEquipmentDescSchema.safeParse(instance.desc).success) ||
     (instance.crafterName !== undefined &&
       !EquipmentCrafterNameSchema.safeParse(instance.crafterName).success) ||
+    (instance.element !== undefined && !ELEMENT_VALUES.includes(instance.element)) ||
+    (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4 && instance.element === undefined) ||
     typeof instance.createdAt !== 'string' ||
     instance.createdAt.trim().length === 0 ||
     (!special
       ? instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION
       : instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION &&
         instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V2 &&
-        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V3) ||
+        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V3 &&
+        instance.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V4) ||
     instance.appraisalState !== 'appraised'
   ) {
     diagnostics.push(
@@ -164,7 +169,7 @@ function validateInstance(
   if (
     template &&
     (instance.slot !== template.slot ||
-      (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V3
+      (instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V3 || instance.generatorVersion === DAO_EQUIPMENT_GENERATOR_VERSION_V4
         ? !ForgedEquipmentNameSchema.safeParse(instance.name).success
         : instance.name !== template.name))
   ) {
@@ -763,6 +768,7 @@ export function compileDaoEquipmentSpecialLoadoutV1(
       ? []
       : skills.map((skill) => ({
           ...skill,
+          originalResourceCosts: skill.resourceCosts?.map(cost => ({ ...cost })),
           resourceCosts: skill.resourceCosts?.map((cost) =>
             cost.resourceId === DAO_RAGE_RESOURCE_ID
               ? {

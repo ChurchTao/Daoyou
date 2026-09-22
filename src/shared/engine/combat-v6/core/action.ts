@@ -1,3 +1,4 @@
+import { combatModifiers, modifierValue } from './modifiers';
 import { applyEntryStatuses } from "./status.ts"
 /**
  * 单次出手结算。按指令类型派发，避免 resolveAction 堆叠成长方法。
@@ -522,7 +523,7 @@ function resolveSkill(
     forcedPrimaryId,
   );
   const env = makeEnv(unit, skill, targets);
-  const { mpCost, hpCost, resourceCosts } = checkSkillRequirements(
+  const { mpCost, hpCost, resourceCosts, reasons } = checkSkillRequirements(
     ctx,
     unit,
     skill,
@@ -542,19 +543,13 @@ function resolveSkill(
     return;
   }
 
-  if (
-    skill.requireHpRatio !== undefined &&
-    unit.attrs.hp / unit.attrs.maxHp < skill.requireHpRatio
-  ) {
-    fallbackToAttack(ctx, unit, targetIds, FailReason.HpRequirement);
+  if (reasons.includes('cooldown')) {
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: 'cooldown' });
     return;
   }
-  if (skill.requireHpAboveRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp <= skill.requireHpAboveRatio) {
-    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
-    return;
-  }
-  if (skill.requireHpBelowRatio !== undefined && unit.attrs.hp / unit.attrs.maxHp >= skill.requireHpBelowRatio) {
-    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
+  if (reasons.includes(FailReason.HpRequirement)) {
+    if (skill.requireHpRatio !== undefined) fallbackToAttack(ctx, unit, targetIds, FailReason.HpRequirement);
+    else ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: FailReason.HpRequirement });
     return;
   }
   if (skill.forbidRevivedRound && unit.flags.revivedRound === ctx.state.round) {
@@ -601,6 +596,8 @@ function resolveSkill(
   }
 
   ctx.currentAction = {
+    initialHpRatio: unit.attrs.hp / unit.attrs.maxHp,
+    killedTargetIds: [],
     skillId: skill.id,
     sourceId: unit.id,
     primaryTargetId: targets[0]?.id,
@@ -760,6 +757,22 @@ function resolveSkill(
     : skill.tags.includes(SkillTag.Spell)
       ? DamageKind.Spell
       : undefined;
+  if (!ctx.currentAction.failed) {
+    const modifiers = combatModifiers(ctx, unit, { skill, skillId: skill.id, target: targets[0], kind });
+    if (skill.cooldownRounds && !(ctx.currentAction.killedTargetIds?.length && modifiers.some(m => m.resetCooldownOnKill))) {
+      (unit.cooldowns ??= {})[skill.id] = ctx.state.round + skill.cooldownRounds;
+    }
+    const skipChance = modifierValue(modifiers, 'recoverySkipChance', unit, targets[0], skill);
+    if (skill.recoveryStatusId && skipChance > 0) {
+      const chance = Math.min(1, skipChance);
+      const success = ctx.rng.chance(chance);
+      ctx.emit({ type: EventType.ChanceResolved, branchId: `${skill.id}.recovery`, sourceId: unit.id, chance, success });
+      if (success) {
+        unit.flags.skipNextAction = false;
+        removeStatus(ctx, unit, skill.recoveryStatusId, StatusRemoveReason.Consumed);
+      }
+    }
+  }
   ctx.hooks.emit(HookName.AfterAction, {
     source: unit,
     target: targets[0],
@@ -767,6 +780,7 @@ function resolveSkill(
     kind,
     isPrimary: true,
   });
+  if (!ctx.currentAction.failed) (unit.skillUses ??= {})[skill.id] = (unit.skillUses?.[skill.id] ?? 0) + 1;
   ctx.currentAction = undefined;
 }
 

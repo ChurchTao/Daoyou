@@ -139,6 +139,7 @@ export const equipmentAdapter: ItemAdapter = (item) => {
           '要求',
           getLevelRealmStage(daoEquipmentRequiredLevel(equipment)).label,
         ),
+        ...(equipment.element ? [field('五行', equipment.element)] : []),
         ...(equipment.crafterName
           ? [field('铸造者', equipment.crafterName)]
           : []),

@@ -84,7 +84,7 @@ export function commandOptions(
       ctx,
       unit,
       skill,
-      targets.slice(0, targetCount(unit, skill, 1)),
+      targets.slice(0, targetCount(unit, skill, 1, ctx)),
     );
     const skillReasons = canSubmit
       ? check.reasons
@@ -92,6 +92,7 @@ export function commandOptions(
     return [
       {
         skillId,
+        ...((unit.cooldowns?.[skillId] ?? 0) > ctx.state.round ? { cooldownRemaining: unit.cooldowns![skillId] - ctx.state.round } : {}),
         name: skill.name,
         costs: {
           mp: check.mpCost,
@@ -99,12 +100,12 @@ export function commandOptions(
           resources: check.resourceCosts,
         },
         ready: ctx.rules.deferredPlayerCommands
-          ? canSubmit && targets.length > 0
+          ? canSubmit && targets.length > 0 && !check.reasons.includes('cooldown')
           : skillReasons.length === 0,
         reasons: [...new Set(skillReasons)],
         selectableTargetIds: targets.map((target) => target.id),
         targetMode: skill.targeting.mode ?? TargetMode.Explicit,
-        targetCount: targetCount(unit, skill, 1),
+        targetCount: targetCount(unit, skill, 1, ctx),
       },
     ];
   });

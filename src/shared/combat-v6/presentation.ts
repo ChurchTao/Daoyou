@@ -115,6 +115,7 @@ export function combatV6Units(
           name: b.name,
           current: b.current,
           remainingRounds: b.remainingRounds,
+          ...(b.untilBattleEnd ? { untilBattleEnd: true } : {}),
         })),
         resources: u.resources.map((r) => ({ ...r })),
       };

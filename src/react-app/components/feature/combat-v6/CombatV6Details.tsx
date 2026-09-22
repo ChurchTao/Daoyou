@@ -69,7 +69,7 @@ export function CombatV6Details({
               <div className="cv6-dl-row" key={r.id}>
                 <dt>{r.name}</dt>
                 <dd className="font-mono">
-                  {r.current} / {r.max}
+                  {r.current}{r.max === null ? '' : ` / ${r.max}`}
                 </dd>
               </div>
             ))}
@@ -81,8 +81,8 @@ export function CombatV6Details({
             ))}
           </dl>
           <ul>
-            {detailUnit.statuses.map((s) => (
-              <li key={s.id}>
+            {detailUnit.statuses.map((s, index) => (
+              <li key={`${s.id}:${index}`}>
                 {s.name ?? display?.statuses[s.id] ?? '未知状态'} ·{' '}
                 {s.untilBattleEnd ? (
                   '本场持续'
@@ -105,7 +105,7 @@ export function CombatV6Details({
                 <span className="font-mono">
                   {detailUnit.publicBars ? `${b.current / 100}%` : b.current}
                 </span>{' '}
-                · <span className="font-mono">{b.remainingRounds}</span> 回合
+                · {b.untilBattleEnd ? '至战斗结束' : <><span className="font-mono">{b.remainingRounds}</span> 回合</>}
               </li>
             ))}
           </ul>

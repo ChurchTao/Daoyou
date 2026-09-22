@@ -1,3 +1,4 @@
+import { connectedMeridianSelection, normalizeMeridianSelection } from './meridian-selection';
 import { EffectType, type SkillDef, type SkillEffect } from "../core/index.ts"
 import type { CombatV6ProjectionDiagnostic } from "../projection/types.ts"
 import type {
@@ -217,7 +218,7 @@ function validateProgress(
   const loadout = progress.meridianLoadouts.find((entry) => entry.pathId === path.id)!
   const nodes: MeridianNodeDefV6[] = []
   const selectedLayers = new Set<number>()
-  for (const nodeId of loadout.nodeIds) {
+  for (const nodeId of normalizeMeridianSelection(path, loadout.nodeIds)) {
     const node = path.nodes.find((entry) => entry.id === nodeId)
     if (!node) {
       const belongsElsewhere = definition.paths.some((entry) => entry.id !== path.id && entry.nodes.some((candidate) => candidate.id === nodeId))
@@ -240,7 +241,10 @@ function validateProgress(
       diagnostics.push(diagnostic("warning", "MERIDIAN_SELECTION_INCOMPLETE", `${path.name}第${layer}层尚未选择节点`, `progress.meridianLoadouts.${path.id}`))
     }
   }
-  return nodes.sort((a, b) => a.layer - b.layer || a.slot - b.slot)
+  const connected = new Set(connectedMeridianSelection(path, nodes.map(node => node.id)));
+  if (connected.size !== nodes.length) diagnostics.push(diagnostic("warning", "MERIDIAN_CONNECTION_INCOMPLETE", "未连通的后续经脉不生效", `progress.meridianLoadouts.${path.id}`));
+  return [...nodes.filter(node => connected.has(node.id)), ...path.nodes.filter(node => node.automatic && node.layer <= progress.meridianDepth)]
+    .sort((a, b) => a.layer - b.layer || a.slot - b.slot)
 }
 
 function patchConflictKey(patch: SkillPatchV6): string | undefined {
@@ -543,7 +547,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
         ...(activePath.panel ?? []).map((entry) => ({ ...entry })),
         ...selectedNodes.flatMap((node) => node.panel ?? []).map((entry) => ({ ...entry })),
       ],
-      unitTags: [],
+      unitTags: [`sect.${input.definition.id}`],
       diagnostics,
     },
   }

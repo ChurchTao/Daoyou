@@ -42,6 +42,8 @@ function compile(
   definition = LINGXIAO_V6_DEFINITION,
   characterLevel = 180,
 ) {
+  definition = structuredClone(definition)
+  for (const path of definition.paths) path.requiresConnectedNodes = false // 单独验证编译和节点效果。
   return compileSectDefinitionV6({ definition, progress: combatProgress, characterLevel })
 }
 
@@ -134,11 +136,14 @@ describe("红尘剑宗 v6 内容与编译", () => {
       const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, [], level))
       expect(result.ok && result.projection.activeSkillIds.includes(LINGXIAO_SKILL_ID.Formation)).toBe(level === 120)
     }
-    const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.4.1"]))
+    const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.6.2", "lingxiao.node.zhanchen.5.1"]))
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.projection.skillOverrides.find(s => s.id === LINGXIAO_SKILL_ID.Triple)?.requireHpAboveRatio).toBe(0.4)
-    const expanded = compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.4.3"]))
-    if (expanded.ok) expect(expanded.projection.skillOverrides.find(s => s.id === LINGXIAO_SKILL_ID.Formation)?.targeting.count).toBe(4)
+    if (result.ok) {
+      expect(result.projection.skills.flatMap(s => s.modifiers ?? [])).toEqual(expect.arrayContaining([
+        expect.objectContaining({ hpRequirement: { min: 0.1 }, when: { skillIds: [LINGXIAO_SKILL_ID.Formation], pvp: true } }),
+        expect.objectContaining({ targetCountAdd: 'if(uses.lingxiao.skill.formation == 0, 3, 0)' }),
+      ]))
+    }
   })
 
   it("拒绝心法缺失、越界和分支高于主心法", () => {
@@ -214,8 +219,8 @@ describe("红尘剑宗 v6 内容与编译", () => {
     })
 
     const conflict = cloneDefinition()
-    conflict.paths[0].patches = [{ skillId: LINGXIAO_SKILL_ID.Formation, operation: "setTargetCount", value: 2 }]
-    expect(compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.4.3"]), conflict)).toMatchObject({
+    conflict.paths[0].patches = [{ skillId: LINGXIAO_SKILL_ID.Waiting, operation: "setCostHp", value: 2 }]
+    expect(compile(progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.2.2"]), conflict)).toMatchObject({
       ok: false,
       diagnostics: expect.arrayContaining([expect.objectContaining({ code: "PATCH_CONFLICT" })]),
     })
@@ -245,12 +250,12 @@ describe("红尘剑宗 v6 内容与编译", () => {
     expect(result.projection.skills.some((skill) => skill.id === LINGXIAO_SKILL_ID.Confuse)).toBe(false)
   })
 
-  it("所有来源的技能均按所属心法等级解锁", () => {
-    const combatProgress = progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.7.3"], 99)
+  it("惊鸿及长驱的心法门槛在经脉选择后仍生效", () => {
+    const combatProgress = progress(LINGXIAO_PATH_ID.Zhanchen, ["lingxiao.node.zhanchen.2.3"], 44)
     const result = compile(combatProgress)
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.projection.activeSkillIds).not.toContain(LINGXIAO_SKILL_ID.ZhanchenUltimate)
+    expect(result.projection.activeSkillIds).not.toContain("lingxiao.skill.zhanchen_long_drive")
   })
 
   it("42个节点逐项都改变最终可观察内容", () => {
@@ -264,10 +269,10 @@ describe("红尘剑宗 v6 内容与编译", () => {
     }
   })
 
-  it("每层任取一个节点的全部合法组合均无 patch 冲突", () => {
+  it("隔离连通限制后每层任取一个节点均无 patch 冲突", () => {
     for (const path of LINGXIAO_V6_DEFINITION.paths) {
       const byLayer = Array.from({ length: 7 }, (_, index) =>
-        path.nodes.filter((node) => node.layer === index + 1),
+        path.nodes.filter((node) => node.layer === index + 1 && !node.automatic),
       )
       let combinations: string[][] = [[]]
       for (const layer of byLayer) {
@@ -280,32 +285,14 @@ describe("红尘剑宗 v6 内容与编译", () => {
     }
   })
 
-  it("万剑归一关键节点编译为条件目标数与条件忽防", () => {
-    const targetCountResult = compile(progress(LINGXIAO_PATH_ID.Guiyi, [
-      "lingxiao.node.guiyi.3.3",
-    ]))
-    expect(targetCountResult.ok).toBe(true)
-    if (!targetCountResult.ok) return
-    expect(targetCountResult.projection.skills.find((skill) => skill.id === LINGXIAO_SKILL_ID.Formation)?.targeting.countByResource).toEqual([
-      { resourceId: "lingxiao.resource.sword_intent", min: 2, count: 4 },
-    ])
-
-    const result = compile(progress(LINGXIAO_PATH_ID.Guiyi, [
-      "lingxiao.node.guiyi.3.2",
-      "lingxiao.node.guiyi.4.1",
-      "lingxiao.node.guiyi.5.1",
-      "lingxiao.node.guiyi.6.2",
-    ]))
+  it("无双基础剑意与破军门槛分别编译，剑意无上限", () => {
+    const result = compile(progress(LINGXIAO_PATH_ID.Guiyi, ["lingxiao.node.guiyi.7.2"]))
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    const armorBreak = result.projection.skills.find((skill) => skill.id === "lingxiao.passive.guiyi.armor_break")
-    expect(armorBreak?.hooks?.[0]).toMatchObject({
-      on: "onDefenseIgnoreCalc",
-      effects: [{ type: EffectType.ModifyDefenseIgnore, add: 0.05 }],
-    })
-    expect(result.projection.skills.find((skill) => skill.id === "lingxiao.passive.guiyi.unstoppable")?.hooks?.[0]).toMatchObject({
-      on: "onDefenseIgnoreCalc",
-      effects: [{ type: EffectType.ModifyDefenseIgnore, add: 0.1 }],
-    })
+    expect(result.projection.resources[0]).toMatchObject({ current: 0, max: null })
+    expect(result.projection.skills.flatMap(s => s.modifiers ?? [])).toEqual(expect.arrayContaining([
+      expect.objectContaining({ damageBonus: .05, when: { sourceResource: { id: 'lingxiao.resource.sword_intent', min: 5 } } }),
+      expect.objectContaining({ ignoreProtection: true, splash: { factor: .45, count: 'if(resource.lingxiao.resource.sword_intent >= 17, 4, 3)' } }),
+    ]))
   })
 })

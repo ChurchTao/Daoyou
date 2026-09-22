@@ -13,17 +13,18 @@ describe('红尘剑宗技能、状态与资源配置', () => {
     const coefficients = JSON.parse(JSON.stringify(raw));
     coefficients.skills[0].effects[0].coeff = [1];
     expect(() => loadLingxiaoCombatPack(coefficients)).toThrow('系数数量');
-    const cap = structuredClone(raw);
+    const cap = JSON.parse(JSON.stringify(raw));
     cap.resources[0].max = 5;
+    cap.skills[0].resourceRequirements = [{ resourceId: cap.resources[0].id, min: 6 }];
     expect(() => loadLingxiaoCombatPack(cap)).toThrow('门槛超过资源上限');
     const missing = JSON.parse(JSON.stringify(raw));
-    missing.skills.find((s: { id: string }) => s.id === 'lingxiao.skill.shadow_strike').effects[2].resourceId = 'lingxiao.resource.missing';
+    missing.skills[0].effects.push({ type: 'modifyResource', resourceId: 'lingxiao.resource.missing', amount: 1 });
     expect(() => loadLingxiaoCombatPack(missing)).toThrow('资源引用不存在');
   });
   it('资源配置进入真实施法结算', () => {
     function cast(amount: number) {
       const data = JSON.parse(JSON.stringify(raw));
-      data.skills.find((s: { id: string }) => s.id === 'lingxiao.skill.shadow_strike').effects[2].amount = amount;
+      data.skills.find((s: { id: string }) => s.id === 'lingxiao.skill.shadow_strike').effects.push({ type: 'modifyResource', resourceId: data.resources[0].id, amount });
       const pack = compileLingxiaoCombatPack(loadLingxiaoCombatPack(data));
       const skill = pack.skill('lingxiao.skill.shadow_strike').definition;
       const battle = createBattle({
@@ -41,6 +42,6 @@ describe('红尘剑宗技能、状态与资源配置', () => {
     }
     expect(cast(2).resources[0].current).toBe(2);
     expect(cast(4).resources[0].current).toBe(4);
-    expect(cast(100).resources[0].current).toBe(11);
+    expect(cast(100).resources[0].current).toBe(100);
   });
 });

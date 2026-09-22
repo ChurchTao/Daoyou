@@ -27,7 +27,7 @@ export type TowerBlessings = Partial<Record<TowerBlessingId, number>>;
 export const TOWER_V6_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v8',
+  rulesetVersion: 'daoyou_rules_v9',
   contentVersion: TOWER_CONTENT_VERSION,
 } as const;
 

@@ -235,6 +235,7 @@ export class BattleSession {
       unit.flags.dead = true
       this.ctx.emit({ type: EventType.UnitDead, unitId: unit.id })
     }
+    if (source && this.ctx.currentAction && source.id === this.ctx.currentAction.sourceId) (this.ctx.currentAction.killedTargetIds ??= []).push(unit.id)
     this.ctx.hooks.emit(HookName.OnDeath, { source, target: unit, skillId, kind, origin })
     this.finishIfNeeded(ResultReason.Wipe)
   }

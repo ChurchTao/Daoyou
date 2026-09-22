@@ -1,6 +1,7 @@
 /**
  * 效果原语派发。新增效果 = 注册一个 handler，不要在 applyEffect 里继续堆 if。
  */
+import { combatModifiers, modifierValue } from './modifiers';
 import { DEFAULT_HITS } from "./constants.ts"
 import type { BattleContext } from "./context.ts"
 import { applyBarrier } from "./barriers.ts"
@@ -70,6 +71,7 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
           skillId: ctx.currentAction?.skillId,
         }).barrier ?? 0,
         duration: evalExpr(effect.duration, { ...env, target }),
+        untilBattleEnd: effect.untilBattleEnd,
       })
     }
   },
@@ -247,7 +249,7 @@ function handleModifyResource(
     value = Math.min(value, Math.max(0, cap - (action.resourceGains[gainKey] ?? 0)))
   }
   const next = effect.mode === "set" ? value : before + value
-  resource.current = Math.min(resource.max, Math.max(0, next))
+  resource.current = Math.min(resource.max ?? Number.MAX_SAFE_INTEGER, Math.max(0, next))
   if (resource.current === before) return
   if (effect.mode !== "set" && resource.current > before && action) {
     action.resourceGains[gainKey] = (action.resourceGains[gainKey] ?? 0) + resource.current - before
@@ -319,8 +321,14 @@ function handleDispel(
         const bPriority = bCategory === undefined ? priority.length : priority.indexOf(bCategory)
         return aPriority - bPriority || a.appliedRound - b.appliedRound || a.id.localeCompare(b.id)
       })
-      .slice(0, maxCount)
-    for (const status of candidates) {
+
+    if (effect.random) {
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(ctx.rng.next() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+    }
+    for (const status of candidates.slice(0, maxCount)) {
       const cls = ctx.statusDefs.get(status.id)?.dispelClass;
       const chance = (cls ? effect.chanceByClass?.[cls] : undefined) ?? effect.chance;
       if (chance !== undefined) {
@@ -377,7 +385,8 @@ function handleHit(
   targets: Unit[],
   env: ExprEnv,
 ): void {
-  const hits = floorAtLeast(1, evalExpr(effect.hits ?? DEFAULT_HITS, env))
+  const hitModifiers = combatModifiers(ctx, source, { skill, skillId: skill.id });
+  const hits = floorAtLeast(1, evalExpr(effect.hits ?? DEFAULT_HITS, env) + (effect.type === EffectType.PhysicalHit ? modifierValue(hitModifiers, 'physicalHitsAdd', source, targets[0], skill) : 0))
   const coeffSpec = effect.coeff
   const coeffs: number[] = Array.isArray(coeffSpec)
     ? coeffSpec
@@ -402,7 +411,7 @@ function handleHit(
         source,
         target: t,
         kind,
-        coeff: coeffs[i] ?? 1,
+        coeff: coeffs[i] ?? coeffs[coeffs.length - 1] ?? 1,
         resultFactor: effect.resultFactors?.[i],
         mpDamageRatio: effect.type === EffectType.PhysicalHit ? effect.mpDamageRatio : undefined,
         power,

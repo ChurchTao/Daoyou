@@ -1,6 +1,7 @@
+import { lxEffect as effect, lxHook, lxModifier } from './lingxiao-shapes';
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
-import { ATTR_NAMES, CommandPolicy, EffectType, SkillTag, StatusCategory, StatusHit, TargetMode, TargetSide, UnitKind, type SkillDef, type StatusDef } from '../core';
+import { ATTR_NAMES, CommandPolicy, EffectType, SkillTag, StatusCategory, TargetMode, TargetSide, UnitKind, type SkillDef, type StatusDef } from '../core';
 import { validateSectExpressions } from './authoring-expressions';
 import { sectSkillLearning } from './skill-learning';
 import type { SectSkillDefV6 } from './types';
@@ -11,17 +12,13 @@ const name = z.string().min(1).max(80);
 const number = z.number().min(0).max(1000000);
 const expression = z.union([number, z.string().min(1).max(200)]);
 const targeting = z.strictObject({ side: z.enum(TargetSide), requireKind: z.enum(UnitKind).optional(), mode: z.enum(TargetMode).optional(), count: expression.optional() });
-const effect = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal(EffectType.PhysicalHit), hits: number.int().min(1).max(20).optional(), coeff: z.union([number, z.array(number).min(1).max(20)]), power: expression }),
-  z.strictObject({ type: z.literal(EffectType.SkipNextAction) }),
-  z.strictObject({ type: z.literal(EffectType.ApplyStatus), statusId: id, duration: number.int().min(1).max(99), self: z.boolean().optional(), storeTarget: z.boolean().optional(), hit: z.enum(StatusHit).optional() }),
-  z.strictObject({ type: z.literal(EffectType.ModifyResource), resourceId: id, amount: number, mode: z.literal('set').optional() }),
-]);
 export const LingxiaoCombatPackShape = z.strictObject({
   $schema: z.string().optional(), formatVersion: z.literal(1), contentRevision: z.number().int().positive(),
   baseSkillIds: z.array(id).min(1),
   skills: z.array(z.strictObject({
     id, name, school: z.literal('lingxiao'),
+    modifiers: z.array(lxModifier).optional(), hooks: z.array(lxHook).optional(),
+    cooldownRounds: number.int().min(1).optional(), recoveryStatusId: id.optional(),
     costHp: expression.optional(), costMp: expression.optional(),
     description: z.string().min(1).max(500).optional(),
     requireHpRatio: number.max(1).optional(),
@@ -34,6 +31,9 @@ export const LingxiaoCombatPackShape = z.strictObject({
   })).min(1),
   statuses: z.array(z.strictObject({
     id, name, kind: id, category: z.enum(StatusCategory),
+    sourceBound: z.boolean().optional(), damageTakenFromSource: number.optional(),
+    healTaken: number.optional(), damageTakenSpell: number.optional(), damageDealtPhysical: number.optional(),
+    untilBattleEnd: z.boolean().optional(), priority: number.optional(),
     blocksAction: z.boolean().optional(), actFirst: z.boolean().optional(),
     commandPolicy: z.enum(CommandPolicy).optional(),
     attrMods: z.partialRecord(z.enum(ATTR_NAMES), expression).optional(),
@@ -42,7 +42,7 @@ export const LingxiaoCombatPackShape = z.strictObject({
     dispellable: z.boolean().optional(), extendable: z.boolean().optional(), expireSameRound: z.boolean().optional(),
     onExpire: z.strictObject({ statusId: id, duration: number.int().min(1).max(99) }).optional(),
   })).min(1),
-  resources: z.array(z.strictObject({ id, name, current: number.int(), max: number.int().positive() })).min(1),
+  resources: z.array(z.strictObject({ id, name, current: number.int(), max: number.int().positive().nullable() })).min(1),
 });
 export function loadLingxiaoCombatPack(data: unknown) {
   const result = LingxiaoCombatPackShape.superRefine((pack, ctx) => {
@@ -60,7 +60,7 @@ export function loadLingxiaoCombatPack(data: unknown) {
       if (!found) issue(path, '资源引用不存在：' + id);
       return found;
     };
-    pack.resources.forEach((r, i) => { if (r.current > r.max) issue(['resources', i, r.id, 'current'], '初始值超过上限'); });
+    pack.resources.forEach((r, i) => { if (r.max !== null && r.current > r.max) issue(['resources', i, r.id, 'current'], '初始值超过上限'); });
     pack.statuses.forEach((status, i) => {
       if (status.onExpire && !pack.statuses.some(s => s.id === status.onExpire?.statusId))
         issue(['statuses', i, 'onExpire', 'statusId'], '状态引用不存在：' + status.onExpire.statusId);
@@ -69,7 +69,7 @@ export function loadLingxiaoCombatPack(data: unknown) {
       try { sectSkillLearning(skill.id); } catch { issue(['skills', i, skill.id], '缺少学习关系'); }
       skill.resourceRequirements?.forEach((r, j) => {
         const found = resource(r.resourceId, ['skills', i, skill.id, 'resourceRequirements', j]);
-        if (found && r.min > found.max) issue(['skills', i, skill.id, 'resourceRequirements', j, 'min'], '门槛超过资源上限');
+        if (found && found.max !== null && r.min > found.max) issue(['skills', i, skill.id, 'resourceRequirements', j, 'min'], '门槛超过资源上限');
       });
       skill.effects.forEach((e, j) => {
         const path = ['skills', i, skill.id, 'effects', j];

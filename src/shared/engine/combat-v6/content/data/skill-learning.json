@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -27,129 +27,9 @@
       "sourceMethodId": "lingxiao.method.clarity",
       "unlockMethodLevel": 30
     },
-    "lingxiao.passive.zhanchen.wind_blade": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.bravery": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.guarded_rest": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.skill.blood_strike": {
-      "sourceMethodId": "lingxiao.method.sword_aura",
-      "unlockMethodLevel": 1
-    },
-    "lingxiao.passive.zhanchen.kill_intent": {
-      "sourceMethodId": "lingxiao.method.sword_aura",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.stored_edge": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.keen_heart": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.reckless_damage": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.reckless_taken": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.chain_break": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.zhanchen.victory_chase": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.skill.zhanchen_ultimate": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 100
-    },
-    "lingxiao.passive.guiyi.gain": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.hit": {
-      "sourceMethodId": "lingxiao.method.shadow",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.damage": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
     "lingxiao.skill.shadow_strike": {
-      "sourceMethodId": "lingxiao.method.shadow",
-      "unlockMethodLevel": 1
-    },
-    "lingxiao.passive.guiyi.extra_triple_intent": {
       "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.sharp": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.guard_intent": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.waiting_intent": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.armor_break": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.crit": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.guarded_rest": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.shadow_guard": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.flourish": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.steadfast": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.receive_intent": {
-      "sourceMethodId": "lingxiao.method.waiting",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.unstoppable": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.skill.guiyi_ultimate": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 100
-    },
-    "lingxiao.passive.guiyi.unending_damage": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "lingxiao.passive.guiyi.unending_cost": {
-      "sourceMethodId": "lingxiao.method.canon",
-      "unlockMethodLevel": 0
+      "unlockMethodLevel": 45
     },
     "youdu.skill.edict": {
       "sourceMethodId": "youdu.method.judge",
@@ -661,6 +541,150 @@
     },
     "jiujie.passive.thunder.l7s3.detonate": {
       "sourceMethodId": "jiujie.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.zhanchen_long_drive": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 45
+    },
+    "lingxiao.passive.guiyi.n4_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n5_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n1_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n6_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n3_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n5_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n1_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n5_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n2_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.guiyi_long_drive": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 45
+    },
+    "lingxiao.passive.guiyi.n1_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n6_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n6_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n3_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n1_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n2_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n2_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n1_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n3_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n4_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.skill.pursuit": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 45
+    },
+    "lingxiao.passive.zhanchen.n2_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.foundation": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n1_1": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n3_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n6_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n3_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n7_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n4_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n5_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n5_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n6_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.guiyi.n5_3": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n3_2": {
+      "sourceMethodId": "lingxiao.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "lingxiao.passive.zhanchen.n4_2": {
+      "sourceMethodId": "lingxiao.method.canon",
       "unlockMethodLevel": 0
     }
   }

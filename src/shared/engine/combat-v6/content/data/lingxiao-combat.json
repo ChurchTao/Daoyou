@@ -1,14 +1,16 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 6,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
     "lingxiao.skill.formation",
     "lingxiao.skill.sword_aura",
     "lingxiao.skill.clarity",
-    "lingxiao.skill.confuse"
+    "lingxiao.skill.confuse",
+    "lingxiao.skill.shadow_strike",
+    "lingxiao.skill.pursuit"
   ],
   "skills": [
     {
@@ -45,7 +47,8 @@
         }
       ],
       "requireHpAboveRatio": 0.5,
-      "description": "凝剑断尘，连续斩击一个敌人，剑势逐段增强。剑息期间免疫封印。"
+      "description": "凝剑断尘，连续斩击一个敌人，剑势逐段增强。剑息期间免疫封印。",
+      "recoveryStatusId": "lingxiao.status.recovery"
     },
     {
       "id": "lingxiao.skill.waiting",
@@ -171,63 +174,10 @@
       "description": "振剑长吟，剑鸣如龙，震慑敌方心神；有概率使一只怪物陷入混乱、随机攻击，无法作用于人物或召唤灵。"
     },
     {
-      "id": "lingxiao.skill.blood_strike",
-      "name": "血锋连斩",
-      "school": "lingxiao",
-      "costHp": "maxHp * 0.08",
-      "tags": [
-        "physical"
-      ],
-      "targeting": {
-        "side": "enemy",
-        "count": 1
-      },
-      "effects": [
-        {
-          "type": "physicalHit",
-          "hits": 2,
-          "coeff": [
-            0.7,
-            0.8
-          ],
-          "power": "floor(skillLevel * 0.4)"
-        }
-      ]
-    },
-    {
-      "id": "lingxiao.skill.zhanchen_ultimate",
-      "name": "一剑开天门",
-      "school": "lingxiao",
-      "costHp": "maxHp * 0.15",
-      "tags": [
-        "physical"
-      ],
-      "targeting": {
-        "side": "enemy",
-        "count": 1
-      },
-      "effects": [
-        {
-          "type": "physicalHit",
-          "coeff": 1.65,
-          "power": "floor(skillLevel * 0.6)"
-        },
-        {
-          "type": "skipNextAction"
-        },
-        {
-          "type": "applyStatus",
-          "statusId": "lingxiao.status.rest",
-          "duration": 1,
-          "self": true
-        }
-      ]
-    },
-    {
       "id": "lingxiao.skill.shadow_strike",
       "name": "惊鸿掠影",
       "school": "lingxiao",
-      "costMp": "20 + floor(skillLevel / 5)",
+      "costMp": 50,
       "tags": [
         "physical"
       ],
@@ -238,32 +188,82 @@
       "effects": [
         {
           "type": "physicalHit",
-          "coeff": 0.8,
-          "power": "floor(skillLevel * 0.4)"
+          "coeff": 1,
+          "power": 0
         },
         {
           "type": "applyStatus",
-          "statusId": "lingxiao.status.shadow",
-          "duration": 3,
+          "statusId": "lingxiao.status.shadow_preparing",
+          "duration": 1,
           "self": true
-        },
+        }
+      ],
+      "cooldownRounds": 6,
+      "description": "攻击一个敌人，造成100%普通物理攻击伤害；仅下一回合速度提高15%。消耗50法力，冷却6回合。"
+    },
+    {
+      "id": "lingxiao.skill.pursuit",
+      "name": "乘胜追击",
+      "school": "lingxiao",
+      "costMp": 50,
+      "cooldownRounds": 6,
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
         {
-          "type": "modifyResource",
-          "resourceId": "lingxiao.resource.sword_intent",
-          "amount": 2
+          "type": "applyStatus",
+          "statusId": "lingxiao.status.pursuit",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "description": "蓄势追击，下一次断尘攻击人物时，对其在场召唤灵造成等量伤害；击倒主目标则保留追击状态。消耗50法力，冷却6回合。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "requireStatusIds": [
+              "lingxiao.status.pursuit"
+            ]
+          },
+          "mirrorToTargetPet": true
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "lingxiao.status.pursuit"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.triple"
+            ],
+            "actionSucceeded": true,
+            "actionKilledTarget": false
+          }
         }
       ]
     },
     {
-      "id": "lingxiao.skill.guiyi_ultimate",
-      "name": "万锋归一",
+      "id": "lingxiao.skill.zhanchen_long_drive",
+      "name": "长驱直入",
       "school": "lingxiao",
-      "resourceRequirements": [
-        {
-          "resourceId": "lingxiao.resource.sword_intent",
-          "min": 11
-        }
-      ],
+      "costMp": 50,
+      "cooldownRounds": 6,
       "tags": [
         "physical"
       ],
@@ -274,35 +274,102 @@
       "effects": [
         {
           "type": "physicalHit",
-          "coeff": 1.8,
-          "power": "floor(skillLevel * 0.6)"
-        },
+          "coeff": 1,
+          "resultFactors": [
+            1.1
+          ],
+          "power": 0
+        }
+      ],
+      "description": "造成110%普通物理攻击伤害结果，不能被保护；60%概率使目标重创2回合，回复降低30%，受到自己的伤害提高10%。消耗50法力，冷却6回合。",
+      "modifiers": [
         {
-          "type": "modifyResource",
-          "resourceId": "lingxiao.resource.sword_intent",
-          "amount": 0,
-          "mode": "set"
-        },
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.zhanchen_long_drive"
+            ]
+          },
+          "ignoreProtection": true
+        }
+      ],
+      "hooks": [
         {
-          "type": "skipNextAction"
-        },
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "lingxiao.status.wound",
+              "duration": 2
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "chance": 0.6,
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.zhanchen_long_drive"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lingxiao.skill.guiyi_long_drive",
+      "name": "长驱直入",
+      "school": "lingxiao",
+      "costMp": 50,
+      "cooldownRounds": 6,
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
         {
-          "type": "applyStatus",
-          "statusId": "lingxiao.status.rest",
-          "duration": 1,
-          "self": true
+          "type": "physicalHit",
+          "coeff": 1,
+          "resultFactors": [
+            1.1
+          ],
+          "power": 0
+        }
+      ],
+      "description": "造成110%普通物理攻击伤害结果，不能被保护；60%概率使目标重创2回合，回复降低30%，受到自己的伤害提高10%。消耗50法力，冷却6回合。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.guiyi_long_drive"
+            ]
+          },
+          "ignoreProtection": true
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "lingxiao.status.wound",
+              "duration": 2
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "chance": 0.6,
+          "when": {
+            "skillIds": [
+              "lingxiao.skill.guiyi_long_drive"
+            ]
+          }
         }
       ]
     }
   ],
   "statuses": [
-    {
-      "id": "lingxiao.status.rest",
-      "name": "剑息",
-      "kind": "lingxiao.rest",
-      "category": "control",
-      "blocksAction": true
-    },
     {
       "id": "lingxiao.status.waiting",
       "name": "惊雷",
@@ -322,7 +389,9 @@
       "name": "破极剑意",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
-      "physicalDefenseIgnore": 0.1
+      "physicalDefenseIgnore": 0.1,
+      "priority": 1,
+      "extendable": false
     },
     {
       "id": "lingxiao.status.clarity",
@@ -332,48 +401,16 @@
       "attrMods": {
         "magicDef": "skillLevel",
         "sealResist": "floor(skillLevel / 2)"
-      }
+      },
+      "extendable": false
     },
     {
       "id": "lingxiao.status.confuse",
       "name": "剑龙吟",
       "kind": "lingxiao.confuse",
       "category": "control",
-      "commandPolicy": "random"
-    },
-    {
-      "id": "lingxiao.status.shadow",
-      "name": "惊鸿",
-      "kind": "lingxiao.shadow",
-      "category": "buff",
-      "speedMod": "floor(skillLevel * 0.5)"
-    },
-    {
-      "id": "lingxiao.status.next_damage",
-      "name": "乘胜",
-      "kind": "lingxiao.next_damage",
-      "category": "buff"
-    },
-    {
-      "id": "lingxiao.status.defend_damage",
-      "name": "蓄势",
-      "kind": "lingxiao.defend_damage",
-      "category": "buff"
-    },
-    {
-      "id": "lingxiao.status.rest_resist",
-      "name": "不惊",
-      "kind": "lingxiao.rest_resist",
-      "category": "buff",
-      "attrMods": {
-        "sealResist": 20
-      }
-    },
-    {
-      "id": "lingxiao.status.chain_break",
-      "name": "连破",
-      "kind": "lingxiao.chain_break",
-      "category": "buff"
+      "commandPolicy": "random",
+      "extendable": false
     },
     {
       "id": "lingxiao.status.recovery",
@@ -397,6 +434,83 @@
         "statusId": "lingxiao.status.waiting",
         "duration": 1
       }
+    },
+    {
+      "id": "lingxiao.status.shadow_preparing",
+      "name": "惊鸿起势",
+      "kind": "lingxiao.shadow_preparing",
+      "category": "buff",
+      "expireSameRound": true,
+      "dispellable": false,
+      "extendable": false,
+      "onExpire": {
+        "statusId": "lingxiao.status.shadow",
+        "duration": 1
+      }
+    },
+    {
+      "id": "lingxiao.status.shadow",
+      "name": "惊鸿",
+      "kind": "lingxiao.shadow",
+      "category": "buff",
+      "speedMod": "target.speed * 0.15",
+      "extendable": false
+    },
+    {
+      "id": "lingxiao.status.sword_aura_ganjiang",
+      "name": "破极剑意",
+      "kind": "lingxiao.sword_aura",
+      "category": "buff",
+      "physicalDefenseIgnore": 0.15,
+      "priority": 2,
+      "extendable": false
+    },
+    {
+      "id": "lingxiao.status.clarity_anshen",
+      "name": "剑心通明",
+      "kind": "lingxiao.clarity",
+      "category": "buff",
+      "attrMods": {
+        "magicDef": "skillLevel",
+        "sealResist": "floor(skillLevel / 2)"
+      },
+      "damageTakenSpell": 0.5,
+      "priority": 2,
+      "extendable": false
+    },
+    {
+      "id": "lingxiao.status.wound",
+      "name": "重创",
+      "kind": "lingxiao.wound",
+      "category": "debuff",
+      "sourceBound": true,
+      "healTaken": 0.7,
+      "damageTakenFromSource": 1.1
+    },
+    {
+      "id": "lingxiao.status.bravery",
+      "name": "惊雷破绽",
+      "kind": "lingxiao.bravery",
+      "category": "debuff",
+      "sourceBound": true,
+      "untilBattleEnd": true,
+      "dispellable": false,
+      "damageTakenFromSource": 1.1
+    },
+    {
+      "id": "lingxiao.status.pride",
+      "name": "傲视",
+      "kind": "lingxiao.pride",
+      "category": "buff",
+      "damageDealtPhysical": 1.4
+    },
+    {
+      "id": "lingxiao.status.pursuit",
+      "name": "乘胜追击",
+      "kind": "lingxiao.pursuit",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "extendable": false
     }
   ],
   "resources": [
@@ -404,7 +518,19 @@
       "id": "lingxiao.resource.sword_intent",
       "name": "剑意",
       "current": 0,
-      "max": 11
+      "max": null
+    },
+    {
+      "id": "lingxiao.resource.art_momentum",
+      "name": "器诀余势",
+      "current": 0,
+      "max": null
+    },
+    {
+      "id": "lingxiao.resource.advance",
+      "name": "突进",
+      "current": 0,
+      "max": null
     }
   ]
 }

@@ -177,12 +177,13 @@ export interface CombatV6TrainingUnitViewV1 {
     stacks: number;
   }>;
   barriers: Array<{
+    untilBattleEnd?: boolean;
     id: string;
     name: string;
     current: number;
     remainingRounds: number;
   }>;
-  resources: Array<{ id: string; name: string; current: number; max: number }>;
+  resources: Array<{ id: string; name: string; current: number; max: number | null }>;
 }
 
 export type CombatV6UnitChanges = Partial<

@@ -1,3 +1,4 @@
+import { canSelectMeridianNode, normalizeMeridianSelection } from '../content/meridian-selection';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { SECT_PROGRESSION, configuredMethodCost, configuredMeridianCost, methodLevelCap } from './pack';
 import type { SectV6Action, SectV6Cost } from '@shared/contracts/combatV6Sect';
@@ -62,16 +63,19 @@ export function sectV6Change(
     } else {
       const loadout = next.meridianLoadouts.find((l) => l.pathId === path.id)!;
       const layers = new Set<number>();
-      for (const id of action.nodeIds) {
+      const normalized = normalizeMeridianSelection(path, action.nodeIds);
+      for (const id of normalized) {
         const node = path.nodes.find((n) => n.id === id);
         if (!node) throw new SectV6RuleError('节点不属于所选流派');
         if (node.layer > progress.meridianDepth)
           throw new SectV6RuleError('节点所在层尚未解锁');
         if (layers.has(node.layer))
           throw new SectV6RuleError('每层只能选择一个节点');
+        if (!canSelectMeridianNode(path, normalized, node))
+          throw new SectV6RuleError('节点必须与前一层已选经脉连通');
         layers.add(node.layer);
       }
-      loadout.nodeIds = [...action.nodeIds].sort(
+      loadout.nodeIds = normalizeMeridianSelection(path, action.nodeIds).sort(
         (a, b) =>
           path.nodes.find((n) => n.id === a)!.layer -
           path.nodes.find((n) => n.id === b)!.layer,

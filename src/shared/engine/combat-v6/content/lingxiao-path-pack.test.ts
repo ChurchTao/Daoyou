@@ -8,6 +8,8 @@ import { compileSectDefinitionV6 } from './compiler';
 import type { SectCombatProgressV6, SectDefinitionV6 } from './types';
 
 function compile(definition: SectDefinitionV6, pathIndex: number, nodeId: string) {
+  definition = structuredClone(definition);
+  for (const path of definition.paths) path.requiresConnectedNodes = false; // 隔离节点补丁；路径约束另测。
   const progress: SectCombatProgressV6 = {
     version: 1, sectId: 'lingxiao', activePathId: definition.paths[pathIndex].id, meridianDepth: 7,
     methods: Object.fromEntries(definition.methods.map(m => [m.id, 180])),

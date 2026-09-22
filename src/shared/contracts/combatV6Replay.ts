@@ -51,6 +51,7 @@ const unitSchema = z
     ),
     barriers: z.array(
       z.object({
+        untilBattleEnd: z.boolean().optional(),
         id: z.string(),
         name: z.string(),
         current: z.number(),
@@ -62,7 +63,7 @@ const unitSchema = z
         id: z.string(),
         name: z.string(),
         current: z.number(),
-        max: z.number(),
+        max: z.number().nullable(),
       }),
     ),
   })

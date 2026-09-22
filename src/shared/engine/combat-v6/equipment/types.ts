@@ -1,4 +1,5 @@
 import type { Attributes } from '@shared/types/cultivator';
+import type { ElementType } from '@shared/types/constants';
 import type { SkillDef, StatusDef } from '../core/index.ts';
 import type {
   CombatV6PanelContribution,
@@ -11,10 +12,13 @@ export const DAO_EQUIPMENT_GENERATOR_VERSION_V2 =
   'dao_equipment_generator_v2' as const;
 export const DAO_EQUIPMENT_GENERATOR_VERSION_V3 =
   'dao_equipment_generator_v3' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V4 =
+  'dao_equipment_generator_v4' as const;
 export type DaoEquipmentGeneratorVersion =
   | typeof DAO_EQUIPMENT_GENERATOR_VERSION
   | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V2
-  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V3;
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V3
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V4;
 
 export const DAO_EQUIPMENT_SLOTS = [
   'weapon',
@@ -71,6 +75,8 @@ export interface DaoEquipmentInstanceV1 {
   desc?: string;
   /** 铸造时的角色名称快照，不随角色改名或装备转手变化。 */
   crafterName?: string;
+  /** 锻造时固定的八行属性；旧装备可缺省，精修不会重抽。 */
+  element?: ElementType;
   slot: DaoEquipmentSlot;
   equipmentLevel: number;
   requiredLevel: number;

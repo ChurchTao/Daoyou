@@ -1,3 +1,4 @@
+import { combatModifiers, modifierValue, isReviveBlocked } from './modifiers';
 import { DEFAULT_TARGET_COUNT } from './constants.ts';
 import type { BattleContext } from './context.ts';
 import { TargetMode, TargetSide } from './enums.ts';
@@ -44,7 +45,7 @@ export function canSelect(
   if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
   if (target.flags.capturedBy || target.flags.benched) return false;
   if (skill.targeting.requireRevivable &&
-    (target.statuses.some(s => ctx.statusDefs.get(s.id)?.blocksRevive) ||
+    (isReviveBlocked(ctx, target) ||
       passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery))) return false;
   if (skill.targeting.onlyDowned && !target.flags.downed && !target.flags.dead) return false;
   if (
@@ -110,7 +111,7 @@ export function poolFor(
     pool = [...pool, ...extra.filter((u) => !pool.includes(u))];
   }
 
-  const count = targetCount(source, skill, 1);
+  const count = targetCount(source, skill, 1, ctx);
   const aoe = isAoe(skill, count);
   return pool
     .filter((u) => canSelect(ctx, source, u, skill, aoe))
@@ -121,6 +122,7 @@ export function targetCount(
   source: Unit,
   skill: SkillDef,
   fallbackTargets: number,
+  ctx?: BattleContext,
 ): number {
   const resourceCount = skill.targeting.countByResource
     ?.filter(
@@ -136,7 +138,8 @@ export function targetCount(
       source,
     },
   );
-  return Math.max(1, Math.floor(raw));
+  const bonus = ctx ? modifierValue(combatModifiers(ctx, source, { skill, skillId: skill.id }), 'targetCountAdd', source, undefined, skill) : 0;
+  return Math.max(1, Math.floor(raw + bonus));
 }
 
 /** 群体才忽略隐身；explicit 单目标不算 AOE。 */
@@ -168,7 +171,7 @@ export function resolveSkillTargets(
   const mode = skill.targeting.mode ?? TargetMode.Explicit;
   if (skill.targeting.side === TargetSide.Self) return [source];
 
-  const count = targetCount(source, skill, targetIds.length || 1);
+  const count = targetCount(source, skill, targetIds.length || 1, ctx);
   const pool = poolFor(ctx, source, skill);
   const aoe = isAoe(skill, count);
 

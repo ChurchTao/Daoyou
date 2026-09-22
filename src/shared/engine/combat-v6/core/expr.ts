@@ -174,6 +174,10 @@ class Parser {
   }
 
   private lookup(name: string): number {
+    if (name === "originalResourceCost") return this.env.originalResourceCost ?? 0
+    if (name.startsWith("resource.")) return this.env.source.resources.find(r => r.id === name.slice(9))?.current ?? 0
+    if (name.startsWith("fact.")) return this.env.source.combatFacts?.[name.slice(5)] ?? 0
+    if (name.startsWith("uses.")) return this.env.source.skillUses?.[name.slice(5)] ?? 0
     if (name === ExprVar.SkillLevel) return this.env.skillLevel
     if (name === ExprVar.Targets) return this.env.targets
     if (name === ExprVar.Damage) return this.env.damage ?? 0

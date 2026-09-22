@@ -4,6 +4,7 @@ import { compileSectCombatV6, compileSectCombatV6V2, compileSectCombatV6V3, comp
 import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit } from "../core/index.ts"
 import {
   DAO_EQUIPMENT_ARTS_V1,
+  daoFormationInscriptionOf,
   DAO_RAGE_RESOURCE_ID,
   compileDaoEquipmentSpecialLoadoutV1,
 } from "../equipment/index.ts"
@@ -19,6 +20,8 @@ import type {
   CompareDaoEquipmentSpecialLoadoutsV1Result,
   CharacterCombatInput,
 } from "./types.ts"
+
+const MERIDIAN_EQUIPMENT_ELEMENTS = new Set(['金', '火', '风']);
 
 const ATTRIBUTE_KEYS = [
   "vitality",
@@ -188,7 +191,13 @@ export function projectCultivatorWithEquipmentSpecialInternal(
         ...(sect?.projection.resources ?? []),
         { ...DAO_RAGE_RESOURCE },
       ],
-      tags: [...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? [])],
+      combatFacts: {
+        metalFireWindEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)).length,
+        weaponXuanfengLevel: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level : 0,
+        weaponXuanfengAttack: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level * daoFormationInscriptionOf('dao_inscription.xuanfeng')!.valuePerLevel : 0,
+      },
+      tags: [...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? []),
+        ...([input.equipment.weapon, input.equipment.armor].every(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)) ? ['equipment.weapon_armor.metal_fire_wind'] : [])],
     },
     skills: [...(sect?.projection.skills ?? []), ...equipment.projection.skills],
     statusDefs: [...(sect?.projection.statusDefs ?? []), ...equipment.projection.statusDefs],

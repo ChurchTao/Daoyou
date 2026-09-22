@@ -1,3 +1,4 @@
+import { canSelectMeridianNode, connectedMeridianSelection, meridianNodesConnect, toggleMeridianNode } from '@shared/engine/combat-v6/content/meridian-selection';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
@@ -49,9 +50,9 @@ export function MeridianEditor({
     readServerCompact,
   );
   const path = definition.paths.find((entry) => entry.id === pathId)!;
-  const original = progress.meridianLoadouts.find(
+  const original = connectedMeridianSelection(path, progress.meridianLoadouts.find(
     (entry) => entry.pathId === pathId,
-  )!.nodeIds;
+  )!.nodeIds);
   const nodes = draft ?? original;
   const dirty =
     nodes.length !== original.length ||
@@ -65,6 +66,15 @@ export function MeridianEditor({
       (node) => node.layer === index + 1 && nodes.includes(node.id),
     ),
   );
+  const connections = selectedByLayer.slice(0, -1).flatMap((from, index) => {
+    if (!from) return [];
+    const next = selectedByLayer[index + 1];
+    if (next) return [{ from, to: next }];
+    if (!path.requiresConnectedNodes) return [];
+    return path.nodes
+      .filter(to => to.layer <= progress.meridianDepth && meridianNodesConnect(from, to))
+      .map(to => ({ from, to }));
+  });
   const skillNames = new Map(
     [
       ...definition.skills,
@@ -102,18 +112,7 @@ export function MeridianEditor({
   const unlockProblem =
     progress.meridianDepth < 7 ? actionProblem(view, unlockAction) : null;
   function chooseNode() {
-    setDraft(
-      nodes.includes(focused.id)
-        ? nodes.filter((id) => id !== focused.id)
-        : [
-            ...nodes.filter(
-              (id) =>
-                path.nodes.find((node) => node.id === id)!.layer !==
-                focused.layer,
-            ),
-            focused.id,
-          ],
-    );
+    setDraft(toggleMeridianNode(path, nodes, focused));
     setDetailOpen(false);
   }
   const details = (
@@ -124,6 +123,7 @@ export function MeridianEditor({
       pathName={path.name}
       skillNames={skillNames}
       locked={locked}
+      reachable={canSelectMeridianNode(path, nodes, focused)}
       onChoose={chooseNode}
       showTitle={!compact}
     />
@@ -165,51 +165,61 @@ export function MeridianEditor({
       </header>
       <div className="grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:gap-6">
         <div>
-          <div className="relative my-4">
+          <div className="relative mx-auto my-4 w-full max-w-90">
             <svg
-              className="text-crimson/35 pointer-events-none absolute top-0 -left-1 h-112 w-[calc(100%+0.5rem)] [&_line]:stroke-current [&_line]:stroke-1"
-              viewBox="0 0 300 448"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              viewBox="0 0 300 616"
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-              {selectedByLayer.slice(0, -1).map((node, index) => {
-                const next = selectedByLayer[index + 1];
-                return node && next ? (
-                  <line
-                    key={node.id}
-                    x1={(node.slot - 0.5) * 100}
-                    y1={(index + 0.5) * 64}
-                    x2={(next.slot - 0.5) * 100}
-                    y2={(index + 1.5) * 64}
+              {connections.map(({ from, to }) => {
+                const active = nodes.includes(from.id) && nodes.includes(to.id);
+                const x1 = (from.slot - 0.5) * 100;
+                const x2 = (to.slot - 0.5) * 100;
+                const middle = from.layer * 88;
+                return (
+                  <path
+                    key={`${from.id}:${to.id}`}
+                    className={active ? 'stroke-crimson/70' : 'stroke-crimson/30'}
+                    strokeWidth={active ? 2 : 1.5}
+                    fill="none"
+                    strokeLinejoin="round"
+                    data-active={active}
+                    d={`M ${x1} ${middle - 12} V ${middle} H ${x2} V ${middle + 12}`}
                     vectorEffect="non-scaling-stroke"
                   />
-                ) : null;
+                );
               })}
             </svg>
             {MERIDIAN_LEVELS.map((_, index) => (
-              <div key={index} className="flex h-16 items-center">
-                <div className="grid w-full grid-cols-3 items-center gap-2">
+              <div key={index} className="flex h-22 items-center">
+                <div className="grid w-full grid-cols-3 place-items-center">
                   {path.nodes
                     .filter((node) => node.layer === index + 1)
                     .sort((a, b) => a.slot - b.slot)
                     .map((node) => {
-                      const selected = nodes.includes(node.id);
-                      const changed = selected !== original.includes(node.id);
+                      const selected = node.automatic ? node.layer <= progress.meridianDepth : nodes.includes(node.id);
+                      const changed = !node.automatic && selected !== original.includes(node.id);
+                      const reachable = node.automatic || canSelectMeridianNode(path, nodes, node);
+                      const available = !node.automatic && !selected && reachable && node.layer <= progress.meridianDepth && !selectedByLayer[index];
                       return (
                         <button
                           type="button"
                           key={node.id}
                           className={[
-                            'border-ink/15 bg-paper hover:border-ink/35 hover:bg-paper-dark focus-visible:outline-crimson/60 relative z-1 min-h-11 cursor-pointer border px-1 py-2 text-center text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none',
+                            'bg-paper hover:border-ink/40 focus-visible:outline-crimson/60 relative z-1 flex h-16 w-16 cursor-pointer items-center justify-center border text-center text-xs transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm motion-reduce:transition-none',
+                            node.automatic ? 'rounded-full' : '',
                             selected
-                              ? 'data-[selected=true]:border-crimson/50 data-[selected=true]:bg-paper-2 data-[selected=true]:text-crimson'
-                              : '',
-                            focused.id === node.id ? 'ring-ink/15 ring-2' : '',
-                            node.layer > progress.meridianDepth
-                              ? 'text-ink-secondary border-dashed'
-                              : '',
+                              ? 'border-crimson/65 bg-paper-2 text-crimson ring-crimson/10 ring-2'
+                              : available
+                                ? 'border-crimson/35 text-ink ring-crimson/10 ring-2'
+                                : !reachable || node.layer > progress.meridianDepth
+                                  ? 'border-ink/10 text-ink/35'
+                                  : 'border-ink/25 text-ink-secondary',
+                            focused.id === node.id ? 'outline-ink/25 outline outline-offset-3' : '',
                           ].join(' ')}
                           data-selected={selected}
+                          data-reachable={reachable}
                           aria-label={`第${node.layer}层 ${node.name}${selected ? ' 已选择' : ''}${node.layer > progress.meridianDepth ? ' 未解锁' : ''}${changed ? ' 待保存' : ''}`}
                           onClick={() => {
                             setFocusedId(node.id);
@@ -217,11 +227,8 @@ export function MeridianEditor({
                           }}
                         >
                           {node.name}
-                          {selected ? <span aria-hidden="true"> ·</span> : null}
                           {changed ? (
-                            <span className="bg-paper text-crimson absolute -top-2 right-1 px-1 text-[10px]">
-                              待保存
-                            </span>
+                            <span aria-hidden="true" className="bg-crimson border-paper absolute -right-1 -top-1 h-2 w-2 rounded-full border" />
                           ) : null}
                         </button>
                       );
@@ -385,6 +392,7 @@ function NodeDetails({
   pathName,
   skillNames,
   locked,
+  reachable,
   onChoose,
   showTitle,
 }: {
@@ -394,6 +402,7 @@ function NodeDetails({
   pathName: string;
   skillNames: Map<string, string>;
   locked: boolean;
+  reachable: boolean;
   onChoose: () => void;
   showTitle: boolean;
 }) {
@@ -448,7 +457,7 @@ function NodeDetails({
               </p>
             ))}
             <p className="text-ink-secondary text-xs leading-relaxed">
-              {selected ? '当前方案已选择此节点。' : '选择后替换本层原节点。'}
+              {node.automatic ? '贯通本层后自动获得，不占经脉选择。' : selected ? '当前方案已选择此节点。' : '选择后替换本层原节点。'}
             </p>
           </>
         )}
@@ -457,10 +466,10 @@ function NodeDetails({
         type="button"
         variant={selected ? 'secondary' : 'primary'}
         className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
-        disabled={locked || unavailable}
+        disabled={locked || unavailable || node.automatic || !reachable}
         onClick={onChoose}
       >
-        {unavailable ? '尚未解锁' : selected ? '取消选择' : '选择此节点'}
+        {unavailable ? '尚未解锁' : node.automatic ? '已自动获得' : selected ? '取消选择' : '选择此节点'}
       </InkButton>
     </>
   );

@@ -175,7 +175,7 @@ export function CombatV6SkillChoice({
             </dl>
             {selected.reasons.length ? (
               <p className="cv6-choice-warning">
-                {selected.reasons.map(reasonText).join('；')}
+                {selected.reasons.map(reason => reason === 'cooldown' ? `冷却剩余 ${selected.cooldownRemaining ?? 0} 回合` : reasonText(reason)).join('；')}
                 {selected.ready ? '（行动时判定）' : ''}
               </p>
             ) : null}

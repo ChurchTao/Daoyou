@@ -66,10 +66,12 @@ export type CombatResourceState = {
   id: string;
   name: string;
   current: number;
-  max: number;
+  /** null 表示本场累计资源没有玩法层数上限。 */
+  max: number | null;
 };
 
 export type BarrierState = {
+  untilBattleEnd?: boolean;
   id: string;
   kind: string;
   name: string;
@@ -114,7 +116,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v5'
     | 'daoyou_rules_v6'
     | 'daoyou_rules_v7'
-    | 'daoyou_rules_v8';
+    | 'daoyou_rules_v8'
+    | 'daoyou_rules_v9';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'
@@ -224,6 +227,9 @@ export type Unit = {
   skillOverrides: Record<SkillId, SkillDef>;
   /** 单位标签（鬼魂系等），给 when.foeTags 用，不是门派 id。 */
   tags: string[];
+  combatFacts?: Record<string, number>;
+  skillUses?: Record<string, number>;
+  cooldowns?: Record<string, number>;
   resources: CombatResourceState[];
   barriers: BarrierState[];
   /** 本场/本回合「只触发一次」的键。 */
@@ -246,6 +252,7 @@ export type BattleState = {
 };
 
 export type CombatV6SkillCommandOption = {
+  cooldownRemaining?: number;
   skillId: SkillId;
   name: string;
   costs: {
@@ -301,6 +308,7 @@ export type LineupUnit = {
   /** 入场时的技能补丁，按 id 覆盖底表。 */
   skillOverrides?: SkillDef[];
   tags?: string[];
+  combatFacts?: Record<string, number>;
   resources?: CombatResourceState[];
 };
 
@@ -326,6 +334,13 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  pvp?: boolean;
+  teamUniqueTag?: string;
+  targetEnemy?: boolean;
+  targetHasStandingPet?: boolean;
+  actionSucceeded?: boolean;
+  actionKilledTarget?: boolean;
+  sourceInitialHpRatioMin?: number;
   excludeSkillTags?: SkillTag[];
   excludePercentageDamage?: boolean;
   sourceMpRatioBelow?: number;
@@ -462,6 +477,7 @@ type EffectCore =
       categories?: StatusCategory[];
       maxCount?: Expr;
       categoryPriority?: StatusCategory[];
+      random?: boolean;
       chance?: number;
       chanceByClass?: Record<string, number>;
       includeStatusFlags?: StatusFlag[];
@@ -473,6 +489,7 @@ type EffectCore =
   | { type: typeof EffectType.RemoveWound; power: Expr }
   | {
       type: typeof EffectType.ApplyBarrier;
+      untilBattleEnd?: boolean;
       id: string;
       kind: string;
       name: string;
@@ -542,7 +559,36 @@ export type SplashSpec = {
 };
 
 /** 技能声明。主动效果在 effects，被动在 hooks；引擎不认技能 id。 */
+/** 连续修正由拥有该技能的单位提供；不在核心识别内容 ID。 */
+export type CombatModifier = {
+  when?: EffectWhen;
+  /** 同组队伍光环只取一次；来源倒地时失效。 */
+  teamAura?: string;
+  damageBonus?: Expr;
+  damageAdd?: Expr;
+  physicalAttackAdd?: Expr;
+  critChanceAdd?: Expr;
+  critMultiplierAdd?: Expr;
+  defenseIgnoreAdd?: Expr;
+  protectedDamageBonus?: Expr;
+  ignoreProtection?: boolean;
+  splash?: { factor: number; count: Expr };
+  mirrorToTargetPet?: boolean;
+  recoverySkipChance?: Expr;
+  waiveHpCostAndRequirement?: boolean;
+  hpRequirement?: { min: number };
+  targetCountAdd?: Expr;
+  physicalHitsAdd?: number;
+  resetCooldownOnKill?: boolean;
+  ignoreReviveBlock?: boolean;
+};
+
 export type SkillDef = {
+  modifiers?: CombatModifier[];
+  cooldownRounds?: number;
+  recoveryStatusId?: string;
+  /** 折扣前资源标价，供跨系统效果读取。 */
+  originalResourceCosts?: Array<{ resourceId: string; amount: Expr }>;
   /** Host freezes eligible targets/capacity; normal skill targeting and payment still apply. */
   capture?: {
     targetMpCosts: Record<UnitId, number>;
@@ -586,6 +632,8 @@ export type SkillDef = {
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  sourceBound?: boolean;
+  damageTakenFromSource?: number;
   immuneToSeal?: boolean;
   physicalDefenseIgnore?: number;
   /** 仅自然到期触发；驱散、替换、倒地不触发。 */
@@ -691,6 +739,7 @@ export type DecideCommandInput = {
 
 /** 规则插件。公式、死亡分型、默认指令都在这里，引擎保持规则无关。 */
 export type Ruleset = {
+  protectionTargetRatio?: number;
   name: string;
   /** Intent can be submitted before a player is revived or regains resources. */
   deferredPlayerCommands?: boolean;
@@ -881,4 +930,5 @@ export type ExprEnv = {
   hpDamage?: number;
   impactDamage?: number;
   targetStatusStacks?: number;
+  originalResourceCost?: number;
 };

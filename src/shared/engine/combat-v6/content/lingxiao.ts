@@ -26,10 +26,8 @@ export const LINGXIAO_SKILL_ID = {
   SwordAura: "lingxiao.skill.sword_aura",
   Clarity: "lingxiao.skill.clarity",
   Confuse: "lingxiao.skill.confuse",
-  BloodStrike: "lingxiao.skill.blood_strike",
-  ZhanchenUltimate: "lingxiao.skill.zhanchen_ultimate",
   ShadowStrike: "lingxiao.skill.shadow_strike",
-  GuiyiUltimate: "lingxiao.skill.guiyi_ultimate",
+  Pursuit: "lingxiao.skill.pursuit",
 } as const
 
 

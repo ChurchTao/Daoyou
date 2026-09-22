@@ -58,6 +58,9 @@ export function createUnit(input: LineupUnit, index: number): Unit {
     skillLevels: { ...(input.skillLevels ?? {}) },
     skillOverrides: overridesFrom(input.skillOverrides),
     tags: [...(input.tags ?? [])],
+    combatFacts: { ...input.combatFacts },
+    skillUses: {},
+    cooldowns: {},
     resources: normalizeResources(input.resources),
     barriers: [],
     marks: [],
@@ -91,6 +94,9 @@ export function cloneUnit(unit: Unit): Unit {
   return {
     ...unit,
     attrs: { ...unit.attrs },
+    combatFacts: { ...unit.combatFacts },
+    skillUses: { ...unit.skillUses },
+    cooldowns: { ...unit.cooldowns },
     skills: [...unit.skills],
     passives: [...unit.passives],
     skillLevels: { ...unit.skillLevels },
@@ -112,8 +118,8 @@ function normalizeResources(resources: CombatResourceState[] | undefined): Comba
   for (const resource of resources ?? []) {
     if (!resource.id || seen.has(resource.id)) continue
     seen.add(resource.id)
-    const max = Math.max(0, Math.floor(finiteOr(resource.max, 0)))
-    const current = Math.min(max, Math.max(0, Math.floor(finiteOr(resource.current, 0))))
+    const max = resource.max === null ? null : Math.max(0, Math.floor(finiteOr(resource.max, 0)))
+    const current = Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(finiteOr(resource.current, 0))))
     result.push({ id: resource.id, name: resource.name, current, max })
   }
   return result
@@ -168,7 +174,9 @@ export function damageTakenFactor(unit: Unit, kind: DamageKind): number {
 
 export function healTakenFactor(unit: Unit): number {
   let factor = DEFAULT_DAMAGE_TAKEN
-  for (const status of unit.statuses) factor *= status.healTaken
+  const kinds = new Map<string, number>()
+  for (const status of unit.statuses) kinds.set(status.kind, Math.min(kinds.get(status.kind) ?? status.healTaken, status.healTaken))
+  for (const value of kinds.values()) factor *= value
   return factor
 }
 

@@ -45,6 +45,7 @@ export function createDaoyouRuleset(options: DaoyouRulesetOptions = {}): Ruleset
   }
   return {
     name: "daoyou-rules-v1",
+    protectionTargetRatio: 0.3,
     maxRounds: options.maxRounds ?? DaoyouRule.maxRounds,
     formulas,
     hpZeroOutcome(unit) {

@@ -204,10 +204,10 @@ export function rankAutoActions(
                   : amount;
               const gain = Math.max(
                 -resource.current,
-                Math.min(resource.max - resource.current, capped),
+                Math.min((resource.max ?? Number.MAX_SAFE_INTEGER) - resource.current, capped),
               );
               benefits.economy -=
-                ((probability * gain) / Math.max(1, resource.max)) * 30;
+                ((probability * gain) / Math.max(1, resource.max ?? resource.current + 1)) * 30;
             }
             continue;
           }

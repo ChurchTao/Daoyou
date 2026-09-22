@@ -34,6 +34,7 @@ export function reasonText(reason: string) {
     rooted: '物理行动受限',
     'no-target': '没有合法目标',
     'revived-this-round': '复起当回合无法施展',
+    'cooldown': '神通尚在冷却中',
     'hp-requirement': '气血未达到施展要求',
     'insufficient-mp': '法力不足',
     'resource-requirement': '战斗资源不足',

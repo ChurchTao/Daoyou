@@ -70,6 +70,8 @@ export type SkillPatchV6 =
   | { skillId: string; operation: "multiplyEffectPower"; effectType: SkillEffect["type"]; value: number; primaryTargetStatusId?: string }
 
 export type MeridianNodeDefV6 = {
+  automatic?: boolean
+  legacyReplacementId?: string
   id: string
   name: string
   pathId: string
@@ -86,6 +88,7 @@ export type MeridianNodeDefV6 = {
 export type SectPathDefV6 = {
   id: string
   name: string
+  requiresConnectedNodes?: boolean
   panel?: CombatV6PanelContribution[]
   foundationPassives?: SectSkillDefV6[]
   grantSkills?: SectSkillDefV6[]

@@ -73,6 +73,7 @@ export function bindDataHooks(ctx: BattleContext): void {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
+            originalResourceCost: (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0),
             targetStatusStacks: targetStatusStacks(ctx, hook.when, hctx.target),
           }
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return

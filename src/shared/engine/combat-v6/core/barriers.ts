@@ -14,6 +14,7 @@ export function applyBarrier(
     name: string;
     amount: number;
     duration: number;
+    untilBattleEnd?: boolean;
   },
 ): void {
   if (!isStanding(target)) return;
@@ -27,6 +28,7 @@ export function applyBarrier(
     const before = existing.current;
     existing.current = Math.max(existing.current, amount);
     existing.remainingRounds = duration;
+    existing.untilBattleEnd = spec.untilBattleEnd;
     existing.sourceId = source.id;
     existing.appliedRound = ctx.state.round;
     ctx.emit({
@@ -46,6 +48,7 @@ export function applyBarrier(
     name: spec.name,
     current: amount,
     remainingRounds: duration,
+    ...(spec.untilBattleEnd ? { untilBattleEnd: true } : {}),
     sourceId: source.id,
     appliedRound: ctx.state.round,
   });
@@ -95,7 +98,7 @@ export function tickBarriers(ctx: BattleContext): void {
   for (const unit of ctx.state.units) {
     if (unit.flags.benched) continue;
     for (const barrier of [...unit.barriers]) {
-      if (barrier.appliedRound === ctx.state.round) continue;
+      if (barrier.untilBattleEnd || barrier.appliedRound === ctx.state.round) continue;
       barrier.remainingRounds -= 1;
       if (barrier.remainingRounds > 0) continue;
       unit.barriers = unit.barriers.filter(
