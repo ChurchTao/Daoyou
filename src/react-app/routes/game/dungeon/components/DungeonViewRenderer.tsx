@@ -208,7 +208,6 @@ export function DungeonViewRenderer({
   viewState,
   cultivator,
   displayResources,
-  tasks,
   processing,
   actions,
   onSettlementConfirm,
@@ -387,9 +386,6 @@ export function DungeonViewRenderer({
     const selectedNode = viewState.preSelectedNodeId
       ? getMapNode(viewState.preSelectedNodeId)
       : null;
-    const firstDungeonTask = tasks.find(
-      (task) => task.definitionId === 'tutorial_first_dungeon',
-    );
     const selectedNodeRealm =
       selectedNode && 'realm_requirement' in selectedNode
         ? selectedNode.realm_requirement
@@ -407,9 +403,7 @@ export function DungeonViewRenderer({
             selectedNodeRealm,
             hp: displayResources.hp,
             mp: displayResources.mp,
-            firstVisit: Boolean(
-              firstDungeonTask && !firstDungeonTask.snapshot.isCompleted,
-            ),
+            firstVisit: false,
           })
         : null;
 

@@ -3,7 +3,7 @@
 ## `/game` 路由归属
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
-- `GameNarrativeLayout`：`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出
+- `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出。`/game/story` 播放当前剧情演出；本地开发另有 `/game/story/preview/:scriptId` 只读预览。
 - `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗

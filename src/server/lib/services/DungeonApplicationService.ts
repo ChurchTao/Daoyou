@@ -21,11 +21,11 @@ import {
   getMapNode,
   isSatelliteNode,
 } from '@shared/lib/game/mapSystem';
-import {} from '@shared/lib/noviceGuidance';
+
 import { playerCommandExecutor } from './CommandExecutors';
 
 import { toPlayerStateMutationResponse } from './ResourceMutationResponse';
-import { TaskService } from './TaskService';
+
 
 type DungeonCommand =
   | { kind: 'start'; mapNodeId: string }
@@ -167,8 +167,6 @@ async function assertDungeonStartReady(args: {
     throw new DungeonStartError('只有秘境节点可以进行副本挑战', 400);
   }
 
-  const isFirstDungeonTutorialActive =
-    await TaskService.isFirstDungeonTutorialActive(args.cultivatorId);
   const { player, caps } = await dungeonPlayer(args.cultivatorId);
   const cultivator = player.cultivator;
   const selectedNode = getMapNode(args.mapNodeId);
@@ -200,7 +198,7 @@ async function assertDungeonStartReady(args: {
     selectedNodeRealm,
     hp: entryState.hp,
     mp: entryState.mp,
-    firstVisit: isFirstDungeonTutorialActive,
+    firstVisit: false,
   });
   if (readiness.shouldBlock) {
     throw new DungeonStartError(readiness.reasons.join('；'), 409, readiness);

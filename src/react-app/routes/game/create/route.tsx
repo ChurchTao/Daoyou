@@ -300,10 +300,10 @@ export default function CreatePage() {
       await consumeResourceMutation(saveResponse);
 
       pushToast({
-        message: '道友真形已落地，山门正在云外相候。',
+        message: '道友真形已落地，玉简正在案上显字。',
         tone: 'success',
       });
-      navigate('/game/sect/onboarding', { replace: true });
+      navigate('/game/story', { replace: true });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';

@@ -1,0 +1,32 @@
+{
+  "id": "arrival-fall",
+  "title": "入世",
+  "requires": ["name", "background"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "src": "/assets/maps/world-overview-v1.webp",
+      "alt": "云海之间的山河，北地雪山与南边群岛都还笼在晨雾里",
+      "focus": "50% 28%",
+      "tone": "mist"
+    },
+    { "type": "title", "kicker": "洞府 · 初醒", "text": "入世" },
+    {
+      "type": "narration",
+      "text": "{name}在一处空着的洞府里醒来。石壁还凉，案上只有一块未具名的玉简。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "你写下的来处是：{background}"
+    },
+    {
+      "type": "narration",
+      "text": "玉简暗下去。门外有风，府里的炉、榻和储物都还空着。路还长，先把这处洞府当成自己的。"
+    },
+    { "type": "end", "outcome": "entered" }
+  ]
+}

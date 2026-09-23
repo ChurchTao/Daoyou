@@ -14,6 +14,7 @@ export {
   playerProgressResource,
   playerSessionResource,
   playerTaskSummaryResource,
+  playerStoryResource,
   playerTasksResource,
   type PlayerTasksParams,
 } from './playerDefinitions';
@@ -42,6 +43,7 @@ import {
   playerProfileResource,
   playerProgressResource,
   playerSessionResource,
+  playerStoryResource,
   playerTaskSummaryResource,
   playerTasksResource,
 } from './playerDefinitions';
@@ -66,6 +68,7 @@ export const resourceRegistry = {
   playerCombatV6Build: playerSectCombatResource,
   playerMailSummary: playerMailSummaryResource,
   playerTaskSummary: playerTaskSummaryResource,
+  playerStory: playerStoryResource,
   playerTasks: playerTasksResource,
   sectContext: sectContextResource,
   sectMembers: sectMembersResource,

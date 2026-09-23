@@ -59,6 +59,7 @@ export const RESOURCE_TOPIC_SCOPE_KIND = {
   'player.mail-summary': 'cultivator',
   'player.task-summary': 'cultivator',
   'player.tasks': 'cultivator',
+  'player.story': 'cultivator',
   'sect.membership': 'cultivator',
   'sect.members': 'sect',
   'sect.contribution-ranking': 'sect',

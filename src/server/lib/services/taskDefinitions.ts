@@ -36,18 +36,7 @@ export interface BreakthroughTaskDefinition extends Omit<
   stages: TaskStageTemplate[];
 }
 
-export interface TutorialTaskDefinition extends Omit<
-  TaskDefinition,
-  'stages' | 'category'
-> {
-  category: 'tutorial';
-  rewardCultivationExp: number;
-  rewardAttachments: NonNullable<TaskDefinition['rewardAttachments']>;
-  stages: TaskStageTemplate[];
-}
-
-export type RuntimeTaskDefinition =
-  BreakthroughTaskDefinition | TutorialTaskDefinition;
+export type RuntimeTaskDefinition = BreakthroughTaskDefinition;
 
 export interface TaskChallengeProfile {
   id: string;
@@ -531,189 +520,8 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
   },
 ];
 
-const tutorialDefinitions: TutorialTaskDefinition[] = [
-  {
-    id: 'tutorial_starter_supply',
-    category: 'tutorial',
-    title: '入门供给',
-    summary: '先领一份洞府供给，备好第一炉丹、第一次探秘。',
-    rewardCultivationExp: 40,
-    rewardAttachments: [
-      {
-        type: 'spirit_stones',
-        name: '灵石',
-        quantity: 5000,
-      },
-      {
-        type: 'material',
-        name: '青露草',
-        quantity: 3,
-        data: {
-          name: '青露草',
-          type: 'herb',
-          rank: '凡品',
-          element: '木',
-          description: '叶尖含露，药性温和，适合作为第一炉疗伤丹的主材。',
-          quantity: 3,
-        },
-      },
-      {
-        type: 'material',
-        name: '凝水花',
-        quantity: 2,
-        data: {
-          name: '凝水花',
-          type: 'herb',
-          rank: '凡品',
-          element: '水',
-          description: '花瓣凝水成珠，能缓和炉火躁性，常用于回元与疗伤。',
-          quantity: 2,
-        },
-      },
-    ],
-    stages: [
-      {
-        id: 'starter-supply',
-        title: '领取供给',
-        description:
-          '先把入门供给收入囊中。第一炉丹与低危探秘可按卷宗继续推进。',
-        completionText: '供给已备，可以开始熟悉洞府里的修行循环。',
-        links: [
-          { label: '看道身状态', kind: 'cultivator' },
-          { label: '去储物袋', kind: 'inventory' },
-        ],
-        objectives: [
-          {
-            id: 'starter-supply-ready',
-            kind: 'auto_complete',
-            title: '供给已备',
-            description: '入门供给已经备好，领取后会获得修为、灵石与灵材。',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'tutorial_first_alchemy',
-    category: 'tutorial',
-    title: '第一炉疗伤丹',
-    summary: '用温和灵草开一次炉，学会材料、丹意、消耗和成丹结果之间的关系。',
-    rewardCultivationExp: 40,
-    rewardAttachments: [
-      {
-        type: 'spirit_stones',
-        name: '灵石',
-        quantity: 3000,
-      },
-      {
-        type: 'material',
-        name: '赤芽果',
-        quantity: 2,
-        data: {
-          name: '赤芽果',
-          type: 'herb',
-          rank: '凡品',
-          element: '火',
-          description: '药力较活，少量投入可提振丹势，过量则容易使炉火躁烈。',
-          quantity: 2,
-        },
-      },
-    ],
-    stages: [
-      {
-        id: 'first-alchemy',
-        title: '开炉一次',
-        description:
-          '去炼丹房选择青露草、凝水花一类温和灵材，丹意可写“疗伤回元，药性温和”。',
-        completionText: '第一炉已成，你已经知道炼丹要先看材料药性与丹意方向。',
-        links: [
-          { label: '去炼丹房', kind: 'alchemy' },
-          { label: '查看储物袋', kind: 'inventory' },
-        ],
-        objectives: [
-          {
-            id: 'first-alchemy-crafted',
-            kind: 'event_count',
-            title: '完成 1 次炼丹',
-            description: '成功开炉一次即可完成，不要求丹药品阶。',
-            event: 'alchemy_crafted',
-            threshold: 1,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'tutorial_first_dungeon',
-    category: 'tutorial',
-    title: '第一次低危探秘',
-    summary: '满状态再进低危秘境，学会查探、撤退、结算和战后恢复。',
-    rewardCultivationExp: 50,
-    rewardAttachments: [
-      {
-        type: 'spirit_stones',
-        name: '灵石',
-        quantity: 5000,
-      },
-      {
-        type: 'material',
-        name: '铁木枝',
-        quantity: 2,
-        data: {
-          name: '铁木枝',
-          type: 'aux',
-          rank: '凡品',
-          element: '木',
-          description: '木质坚韧，可作炼器辅材，也能在炼丹时稳住药路。',
-          quantity: 2,
-        },
-      },
-      {
-        type: 'material',
-        name: '青纹回元草',
-        quantity: 1,
-        data: {
-          name: '青纹回元草',
-          type: 'herb',
-          rank: '凡品',
-          element: '木',
-          description: '木气温润的灵草，可调和炉势并稳住药力。',
-          quantity: 1,
-        },
-      },
-    ],
-    stages: [
-      {
-        id: 'first-dungeon',
-        title: '完成一次探秘结算',
-        description:
-          '进入云游探秘前先确认气血与法力，遇敌时先查探，危险就撤退。',
-        completionText:
-          '第一次探秘已结算，你已经走完修炼、准备、探索、恢复的基础循环，也带回了一份入门材料。',
-        links: [
-          { label: '去云游探秘', kind: 'dungeon' },
-          { label: '去灵眼之泉', kind: 'inn' },
-          { label: '去练功房', kind: 'training' },
-        ],
-        objectives: [
-          {
-            id: 'first-dungeon-completed',
-            kind: 'event_count',
-            title: '完成 1 次探秘',
-            description: '完成一次云游探秘结算即可，成功撤退也能学到风险判断。',
-            event: 'dungeon_completed',
-            threshold: 1,
-          },
-        ],
-      },
-    ],
-  },
-];
 
-const definitions: RuntimeTaskDefinition[] = [
-  ...tutorialDefinitions,
-  ...breakthroughDefinitions,
-];
+const definitions: RuntimeTaskDefinition[] = [...breakthroughDefinitions];
 
 const definitionMap = new Map(
   definitions.map((definition) => [definition.id, definition]),
@@ -741,10 +549,6 @@ export function getBreakthroughTaskDefinitionByTransition(
         definition.fromRealm === fromRealm && definition.toRealm === toRealm,
     ) ?? null
   );
-}
-
-export function getTutorialTaskDefinitions() {
-  return tutorialDefinitions;
 }
 
 export function getTaskChallengeProfile(challengeId: string) {

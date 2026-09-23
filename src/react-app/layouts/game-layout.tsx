@@ -15,7 +15,7 @@ import {
   resolveRouteTitle,
   type GameSceneHandle,
 } from '@app/lib/router/routeTitle';
-import { resolveSectOnboardingRedirect } from '@app/lib/router/sectOnboardingGuard';
+
 import { DungeonSceneProvider } from '@app/routes/game/dungeon/dungeonScene';
 import { useResolvedDungeonScene } from '@app/routes/game/dungeon/dungeonSceneContext';
 import {
@@ -28,7 +28,6 @@ import {
   type RefObject,
 } from 'react';
 import {
-  Navigate,
   Outlet,
   useLoaderData,
   useLocation,
@@ -61,7 +60,6 @@ function PlayerShell() {
   const note = session.data?.note;
   const hasActiveCultivator = Boolean(session.data?.activeCultivator);
   const isLoading = session.status === 'idle' || session.status === 'loading';
-  const location = useLocation();
 
   if (isLoading && !hasActiveCultivator) {
     return <LoadingScreen message="正在推演命盘……" />;
@@ -92,18 +90,6 @@ function PlayerShell() {
         </div>
       </div>
     );
-  }
-
-  const sectState = session.data?.activeCultivator?.sectId ? 'joined' : 'none';
-  const redirect = resolveSectOnboardingRedirect(
-    location.pathname,
-    hasActiveCultivator,
-    sectState,
-    location.search,
-  );
-
-  if (redirect) {
-    return <Navigate to={redirect} replace />;
   }
 
   return (

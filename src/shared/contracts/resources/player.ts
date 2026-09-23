@@ -7,6 +7,7 @@ import {
   REALM_VALUES,
   SPIRITUAL_ROOT_GRADE_VALUES,
 } from '@shared/types/constants';
+import { StoryViewSchema, type StoryView } from '@shared/story/schema';
 import type { TaskInstance } from '@shared/types/task';
 import { z } from 'zod';
 import { SectCombatReadinessSchema } from '../combatV6';
@@ -33,6 +34,7 @@ export const PLAYER_RESOURCE_TOPICS = [
   'player.mail-summary',
   'player.task-summary',
   'player.tasks',
+  'player.story',
 ] as const;
 
 export type PlayerResourceTopic = (typeof PLAYER_RESOURCE_TOPICS)[number];
@@ -47,6 +49,7 @@ export interface PlayerResourceDataMap {
   'player.mail-summary': PlayerResourceMap['mail-summary'];
   'player.task-summary': PlayerResourceMap['task-summary'];
   'player.tasks': TaskInstance[];
+  'player.story': StoryView;
 }
 
 export type TaskResourceViewParams = {
@@ -523,6 +526,7 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
     })
     .strict(),
   'player.tasks': z.array(taskInstanceSchema),
+  'player.story': StoryViewSchema,
 } satisfies {
   [TTopic in PlayerResourceTopic]: z.ZodType<PlayerResourceDataMap[TTopic]>;
 };

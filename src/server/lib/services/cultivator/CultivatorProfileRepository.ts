@@ -26,6 +26,8 @@ import {
   type DbTransaction,
 } from '../../drizzle/db';
 import * as schema from '../../drizzle/schema';
+import { openingStoryProgress } from '@shared/story/catalog';
+import { insertCultivatorStory } from '@server/lib/repositories/storyRepository';
 import { ConditionService } from '../ConditionService';
 import { FateEngine } from '../FateEngine';
 import { assertCultivatorOwnership } from './CultivatorStateRepository';
@@ -167,6 +169,7 @@ export async function createCultivator(
 
     const cultivatorRecord = cultivatorResult[0];
     const cultivatorId = cultivatorRecord.id;
+    await insertCultivatorStory(cultivatorId, openingStoryProgress(), tx);
 
     // 2. 创建灵根
     if (cultivator.spiritual_roots.length > 0) {

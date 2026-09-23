@@ -194,6 +194,15 @@ export interface PlayerTasksParams {
   status?: TaskStatus;
 }
 
+export const playerStoryResource: ResourceDefinition<'player.story', void> = {
+  topic: 'player.story',
+  resolveScope: (scopes) => resolveTopicScope('player.story', scopes),
+  normalizeParams: () => undefined,
+  load: (scope, _params, signal) =>
+    loadResourceEndpoint('player.story', '/api/story', scope, signal),
+  reduce: (current, change) => defaultResourceReducer(current, change),
+};
+
 export const playerTasksResource: ResourceDefinition<
   'player.tasks',
   PlayerTasksParams

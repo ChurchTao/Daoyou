@@ -11,7 +11,7 @@ import {
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useCultivatorProgress } from '@app/lib/resources/player';
-import { getNextNoviceHomeAction } from '@app/lib/tasks/noviceHomeAction';
+import { useStory } from '@app/lib/story/useStory';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
 import { getBodyCultivationSummary } from '@shared/lib/bodyCultivation/summary';
 import { getNextMajorRealm } from '@shared/lib/breakthroughPill';
@@ -117,6 +117,8 @@ export function HomeView() {
     () => (tasks ? findCurrentMajorBreakthroughTask(cultivator, tasks) : null),
     [cultivator, tasks],
   );
+  const story = useStory(Boolean(cultivator));
+  const storyCue = story.story?.prompt ? story.story : null;
 
   if (isLoading || tasksLoading || !tasks) {
     return <GameSceneLoading message="正在推演天机……" />;
@@ -138,11 +140,6 @@ export function HomeView() {
   const urgentItems: ReactNode[] = [];
   const unallocatedAttributePoints =
     cultivator.unallocated_attribute_points ?? 0;
-  const noviceAction = getNextNoviceHomeAction({
-    tasks,
-    hp: display?.resources.hp,
-    mp: display?.resources.mp,
-  });
   const hasYieldAlert = yieldHours >= 1;
   const hasResourceAlert =
     caveStatus !== null &&
@@ -154,15 +151,15 @@ export function HomeView() {
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
-  if (noviceAction) {
+  if (storyCue) {
     urgentItems.push(
       <HomeUrgentRow
-        key="novice-action"
-        title={<span className="text-wood">{noviceAction.title}</span>}
-        summary={noviceAction.summary}
+        key="story-cue"
+        title={<span className="text-wood">玉简</span>}
+        summary={storyCue.prompt}
         action={
-          <InkButton href={noviceAction.href} variant="primary">
-            {noviceAction.label}
+          <InkButton href={storyCue.href} variant="primary">
+            展开
           </InkButton>
         }
       />,

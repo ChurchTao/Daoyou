@@ -1,0 +1,23 @@
+{
+  "id": "arrival",
+  "track": "main",
+  "title": "入世",
+  "beats": [
+    {
+      "id": "fall",
+      "kind": "performance",
+      "script": "arrival-fall",
+      "outcome": "entered",
+      "scene": "story",
+      "prompt": "玉简还有一段没看完。",
+      "href": "/game/story"
+    },
+    {
+      "id": "entered",
+      "kind": "life",
+      "scene": "cave",
+      "prompt": "",
+      "href": "/game"
+    }
+  ]
+}

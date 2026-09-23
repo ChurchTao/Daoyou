@@ -1,3 +1,4 @@
+import type { StoryStatus, StoryTrack } from '@shared/story/schema';
 import type { SystemMailConditions } from '@shared/contracts/systemMail';
 import type { RewardSelection } from '@shared/contracts/adminRewards';
 import type { ItemGrant } from '@shared/inventory';
@@ -941,6 +942,43 @@ export const cultivatorTasks = pgTable(
     uniqueIndex('cultivator_tasks_cultivator_definition_unique').on(
       table.cultivatorId,
       table.definitionId,
+    ),
+  ],
+);
+
+export const cultivatorStories = pgTable(
+  'wanjiedaoyou_cultivator_stories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    track: varchar('track', { length: 32 }).$type<StoryTrack>().notNull(),
+    storyId: varchar('story_id', { length: 80 }).notNull(),
+    beatId: varchar('beat_id', { length: 80 }).notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<StoryStatus>()
+      .notNull()
+      .default('active'),
+    acks: jsonb('acks').$type<string[]>().notNull().default([]),
+    grants: jsonb('grants').$type<string[]>().notNull().default([]),
+    marks: jsonb('marks').$type<string[]>().notNull().default([]),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('cultivator_stories_owner_track_story_unique').on(
+      table.cultivatorId,
+      table.track,
+      table.storyId,
+    ),
+    index('cultivator_stories_owner_track_status_idx').on(
+      table.cultivatorId,
+      table.track,
+      table.status,
     ),
   ],
 );

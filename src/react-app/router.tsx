@@ -155,6 +155,34 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="story"
+              lazy={lazyRoute(() => import('@app/routes/game/story/route'))}
+              handle={scene(
+                {
+                  id: 'story',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '入世',
+              )}
+            />
+            {import.meta.env.DEV ? (
+              <Route
+                path="story/preview/:scriptId"
+                lazy={lazyRoute(
+                  () => import('@app/routes/game/story/preview/route'),
+                )}
+                handle={scene(
+                  {
+                    id: 'story-preview',
+                    chrome: 'immersive',
+                    dock: 'hidden',
+                  },
+                  '演出预览',
+                )}
+              />
+            ) : null}
+            <Route
               path="sect/onboarding"
               lazy={lazyRoute(
                 () => import('@app/routes/game/sect/onboarding/route'),
