@@ -730,7 +730,7 @@ export type StatusDef = {
   ticks?: StatusTick;
   /** Round-end healing uses the ordinary outgoing/incoming healing pipeline. */
   healingPerRound?: Expr;
-  /** Consumed after an action deals damage, including damage absorbed by barriers. */
+  /** Consumed after physical/spell action damage, including barriers; fixed damage is excluded. */
   consumeAfterDamagingAction?: boolean;
   onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr };
   /** 施加当回合结束也扣持续（复活当回合护体） */

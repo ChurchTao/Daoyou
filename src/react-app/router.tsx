@@ -1247,7 +1247,7 @@ export const router = createBrowserRouter(
         <Route
           path="item-library"
           lazy={lazyRoute(() => import('@app/routes/admin/item-library/route'))}
-          handle={title('道具库')}
+          handle={title('材料库')}
         />
         <Route
           path="reputation-shop"

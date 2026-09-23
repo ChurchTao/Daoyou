@@ -11,7 +11,7 @@ import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from
 describe('宗门技能学习配置', () => {
   it('技能、状态、流派和心法保持基线（含比例伤害分类）', () => {
     // 包含天衍自身法印与双流派重做；机制行为由专项测试验证。
-    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("bab4ba61a4f005244dc8e6d3e1990ac35ddd6cedfe1b79d23532931756df57fb");
+    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("c779ad8296bc1436c7dae327ae65343e8723691bf3fcfa77ea390d33e3b44788");
   });
   it('Schema 与编辑器一致', () => {
     expect(z.toJSONSchema(SectSkillLearningShape)).toEqual(schema);

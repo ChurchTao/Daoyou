@@ -2,7 +2,6 @@ import {
   InventoryGrid,
   ItemSlot,
 } from '@app/components/feature/items/ItemSlot';
-import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
 import { TALISMAN_SCENARIO_OPTIONS } from '@shared/config/talismanScenarios';
 import {
@@ -16,15 +15,21 @@ import {
 } from '@shared/engine/combat-v6/equipment/realm';
 import { DAO_WEAPONS } from '@shared/engine/combat-v6/equipment/weapons';
 import type { ItemGrant } from '@shared/inventory';
+import { INVENTORY_MATERIAL_TYPES, MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { libraryMaterialGrant } from '@shared/items/libraryMaterialGrant';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
 import { ALCHEMY_PROPERTY_LABELS } from '@shared/lib/alchemyProperties';
 import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
 import { QUALITY_VALUES } from '@shared/types/constants';
 import { useEffect, useState } from 'react';
+import { AdminDialog } from './AdminDialog';
 
 const kinds = {
-  fixed: '固定道具',
+  beast_book: '传承灵印',
+  beast_refinement: '归元灵露',
+  manual_jade: '功法玉简',
+  blueprint: '图纸',
+  inscription: '阵纹',
   material: '材料',
   seed: '灵种',
   pill: '丹药',
@@ -45,15 +50,6 @@ const families = {
   longevity: '延寿',
   hybrid: '复合',
 };
-const fixedKinds = {
-  all: '全部',
-  beast_book: '传承灵印',
-  beast_refinement: '归元灵露',
-  manual_jade: '功法玉简',
-  blueprint: '图纸',
-  inscription: '阵纹',
-};
-
 export function RewardItemPicker({
   onSelect,
   disabled = false,
@@ -64,13 +60,16 @@ export function RewardItemPicker({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<keyof typeof kinds>('fixed');
-  const [fixedKind, setFixedKind] = useState('all');
+  const [kind, setKind] = useState<keyof typeof kinds>('beast_book');
   const [query, setQuery] = useState('');
+  const [materialType, setMaterialType] = useState<string>('herb');
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [materials, setMaterials] = useState<ItemGrant[]>([]);
-  const [generated, setGenerated] = useState<ItemGrant>();
+  const [generated, setGenerated] = useState<
+    Array<{ kind: string; item: ItemGrant }>
+  >([]);
+  const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
@@ -89,6 +88,12 @@ export function RewardItemPicker({
   const [level, setLevel] = useState('10');
   const [baseQuality, setBaseQuality] = useState('0');
   const [weapon, setWeapon] = useState('sword');
+  const isGenerator = [
+    'pill',
+    'spirit_fruit',
+    'talisman',
+    'equipment',
+  ].includes(kind);
   const isLibrary = kind === 'material' || kind === 'seed';
   useEffect(() => {
     if (!open || !isLibrary) return;
@@ -102,9 +107,9 @@ export function RewardItemPicker({
           type: 'material',
           status: 'published',
           page: String(page),
-          pageSize: '40',
+          pageSize: '24',
           q: query,
-          ...(kind === 'seed' ? { materialType: 'seed' } : {}),
+          materialType: kind === 'seed' ? 'seed' : materialType,
         });
         const response = await fetch(`/api/admin/item-library?${params}`, {
           signal: controller.signal,
@@ -136,21 +141,24 @@ export function RewardItemPicker({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [open, isLibrary, kind, query, page]);
-  const fixed = ITEM_DEFINITIONS.filter(
-    (d) =>
-      !['equipment', 'material', 'seed', 'consumable'].includes(d.kind) &&
-      (fixedKind === 'all' || d.kind === fixedKind) &&
-      d.name.includes(query),
+  }, [open, isLibrary, kind, query, page, materialType]);
+  const catalogue: ItemGrant[] = isGenerator
+    ? generated
+        .filter((entry) => entry.kind === kind)
+        .map((entry) => entry.item)
+    : ITEM_DEFINITIONS.filter((d) => d.kind === kind).map((d) => ({
+        definitionId: d.id,
+        quantity: 1,
+      }));
+  const filtered = catalogue.filter((item) =>
+    rewardDisplayItem(item).name.includes(query),
   );
-  const totalPages =
-    kind === 'fixed' ? Math.max(1, Math.ceil(fixed.length / 40)) : pages;
-  const items: ItemGrant[] =
-    kind === 'fixed'
-      ? fixed
-          .slice((page - 1) * 40, page * 40)
-          .map((d) => ({ definitionId: d.id, quantity: 1 }))
-      : materials;
+  const totalPages = isLibrary
+    ? pages
+    : Math.max(1, Math.ceil(filtered.length / 24));
+  const items = isLibrary
+    ? materials
+    : filtered.slice((page - 1) * 24, page * 24);
   function select(item: ItemGrant) {
     onSelect(RewardItemSchema.parse(item));
     setOpen(false);
@@ -158,7 +166,7 @@ export function RewardItemPicker({
   async function generate() {
     setPending(true);
     setError('');
-    setGenerated(undefined);
+
     try {
       const input =
         kind === 'equipment'
@@ -189,7 +197,11 @@ export function RewardItemPicker({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? '生成失败');
-      setGenerated(RewardItemSchema.parse(data.item));
+      const item = RewardItemSchema.parse(data.item);
+      setGenerated((previous) => [{ kind, item }, ...previous]);
+      setQuery('');
+      setPage(1);
+      setCreating(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : '生成失败');
     } finally {
@@ -206,69 +218,100 @@ export function RewardItemPicker({
       >
         {label}
       </InkButton>
-      <InkModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        title="选择奖励道具"
-        className="max-w-4xl"
+      <AdminDialog
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setCreating(false);
+        }}
+        title={creating ? `生成${kinds[kind]}` : '选择道具'}
+        wide
+        busy={pending}
+        footer={
+          creating ? (
+            <>
+              <InkButton disabled={pending} onClick={() => setCreating(false)}>
+                返回道具列表
+              </InkButton>
+              <InkButton
+                variant="primary"
+                pending={pending}
+                onClick={() => void generate()}
+              >
+                生成并预览
+              </InkButton>
+            </>
+          ) : (
+            <span className="text-ink-secondary mr-auto text-sm">
+              点击物品格查看详情，在预览中选择。
+            </span>
+          )
+        }
       >
         <div className="space-y-4">
-          <InkSelect
-            label="道具来源"
-            value={kind}
-            onChange={(v) => {
-              setKind(v as keyof typeof kinds);
-              setPage(1);
-              setGenerated(undefined);
-              setError('');
-            }}
-          >
-            {Object.entries(kinds).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </InkSelect>
-          {kind === 'fixed' || isLibrary ? (
+          {!creating ? (
             <>
-              <div className="flex flex-wrap gap-3">
+              <div
+                className="flex flex-wrap gap-x-4 gap-y-2"
+                role="group"
+                aria-label="道具分类"
+              >
+                {Object.entries(kinds).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={kind === value}
+                    disabled={pending}
+                    className={`border-b-2 py-1 text-sm ${kind === value ? 'border-crimson text-crimson font-semibold' : 'text-ink-secondary hover:text-ink border-transparent'}`}
+                    onClick={() => {
+                      setKind(value as keyof typeof kinds);
+                      setPage(1);
+                      setQuery('');
+                      setMaterials([]);
+                      setError('');
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <InkInput
-                  label="搜索名称"
+                  label="搜索道具"
                   value={query}
                   onChange={(v) => {
                     setQuery(v);
                     setPage(1);
                   }}
                 />
-                {kind === 'fixed' && (
-                  <InkSelect
-                    label="分类"
-                    value={fixedKind}
-                    onChange={(v) => {
-                      setFixedKind(v);
-                      setPage(1);
+                {kind === 'material' && <InkSelect label="材料种类" value={materialType} onChange={(v) => { setMaterialType(v); setPage(1); }}>
+                {INVENTORY_MATERIAL_TYPES.map((v) => <option key={v} value={v}>{MATERIAL_TYPE_NAMES[v]}</option>)}
+              </InkSelect>}
+              {isGenerator && (
+                  <InkButton
+                    variant="primary"
+                    onClick={() => {
+                      setCreating(true);
+                      setError('');
                     }}
                   >
-                    {Object.entries(fixedKinds).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
-                  </InkSelect>
+                    生成{kinds[kind]}
+                  </InkButton>
                 )}
               </div>
               {pending ? (
                 <InkNotice>加载中…</InkNotice>
               ) : (
-                <InventoryGrid>
-                  {items.map((item, i) => (
+                <InventoryGrid className="grid-cols-3 sm:grid-cols-6">
+                  {items.map((item, index) => (
                     <ItemSlot
-                      key={`${item.definitionId}-${i}`}
+                      key={`${kind}-${page}-${index}`}
                       item={rewardDisplayItem(item)}
                       quantityLabel="奖励"
-                      >
+                    >
                       {(close) => (
                         <InkButton
+                          variant="primary"
                           onClick={() => {
                             close();
                             select(item);
@@ -281,33 +324,37 @@ export function RewardItemPicker({
                   ))}
                 </InventoryGrid>
               )}
-              {!pending && items.length === 0 && (
-                <InkNotice>没有匹配的道具</InkNotice>
+              {!pending && !items.length && (
+                <div className="text-ink-secondary py-10 text-center text-sm">
+                  {isGenerator &&
+                  !generated.some((entry) => entry.kind === kind)
+                    ? `尚未生成${kinds[kind]}，生成后将在这里预览与选择。`
+                    : '没有匹配的道具'}
+                </div>
               )}
-              <div className="flex items-center justify-between">
-                <InkButton
-                  disabled={page <= 1 || pending}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  上一页
-                </InkButton>
-                <span className="font-mono">
-                  {page} / {totalPages}
-                </span>
-                <InkButton
-                  disabled={page >= totalPages || pending}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  下一页
-                </InkButton>
-              </div>
+              {totalPages > 1 && (
+                <div className="border-ink/10 flex items-center justify-between border-t pt-3">
+                  <InkButton
+                    disabled={page <= 1 || pending}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    上一页
+                  </InkButton>
+                  <span className="font-mono text-sm">
+                    {page} / {totalPages}
+                  </span>
+                  <InkButton
+                    disabled={page >= totalPages || pending}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    下一页
+                  </InkButton>
+                </div>
+              )}
             </>
           ) : (
             <>
-              <div
-                className="grid gap-3 sm:grid-cols-2"
-                onChangeCapture={() => setGenerated(undefined)}
-              >
+              <div className="grid gap-3 sm:grid-cols-2">
                 {(kind === 'pill' || kind === 'spirit_fruit') && (
                   <>
                     <InkInput label="名称" value={name} onChange={setName} />
@@ -426,27 +473,11 @@ export function RewardItemPicker({
                   </>
                 )}
               </div>
-              <InkButton disabled={pending} onClick={() => void generate()}>
-                {pending ? '生成中…' : generated ? '重新生成' : '生成预览'}
-              </InkButton>
-              {generated && (
-                <div className="flex items-center gap-4">
-                  <div className="w-24">
-                    <ItemSlot
-                      item={rewardDisplayItem(generated)}
-                      quantityLabel="奖励"
-                    />
-                  </div>
-                  <InkButton onClick={() => select(generated)}>
-                    使用此道具
-                  </InkButton>
-                </div>
-              )}
             </>
           )}
           {error && <InkNotice tone="warning">{error}</InkNotice>}
         </div>
-      </InkModal>
+      </AdminDialog>
     </>
   );
 }

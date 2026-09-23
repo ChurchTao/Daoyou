@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "baseSkillIds": [
     "tianyan.skill.wood",
     "tianyan.skill.fire",
@@ -130,9 +130,9 @@
       "skill": {
         "id": "tianyan.skill.earth",
         "name": "山河倾覆",
-        "description": "攻击一个敌人，使其下一次造成伤害的行动伤害降低15%，2回合内有效。火印→烬垒：施法后为自身附加2回合护盾。水印→截流：按封印命中规则附加1回合封法。 成功施放后留下自身土行法印；只保留最后一道法印。",
+        "description": "攻击一个敌人，使其下一次造成物理或法术伤害的行动伤害降低15%，2回合内有效。火印→烬垒：施法后为自身附加2回合护盾。水印→截流：按封印命中规则附加1回合封法。 成功施放后留下自身土行法印；只保留最后一道法印。",
         "school": "tianyan",
-        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+0.20*known.tianyan.passive.mountain)",
+        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+known.tianyan.passive.mountain*(0.20-0.30*known.tianyan.passive.severance))",
         "tags": [
           "spell"
         ],
@@ -507,7 +507,7 @@
     {
       "id": "tianyan.skill.truce",
       "name": "止戈",
-      "description": "攻击一个敌人，使其下一次造成伤害的行动伤害降低25%，2回合内有效。不改变法印。",
+      "description": "攻击一个敌人，使其下一次造成物理或法术伤害的行动伤害降低25%，2回合内有效。不改变法印。",
       "school": "tianyan",
       "costMp": 50,
       "cooldownRounds": 5,

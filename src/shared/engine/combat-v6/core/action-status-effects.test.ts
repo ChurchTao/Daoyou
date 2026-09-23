@@ -112,6 +112,28 @@ describe('护盾额外损伤', () => {
   });
 });
 describe('下一次伤害行动状态', () => {
+  it.each([0, 1000])('纯固伤不消耗弱化，包括被 %s 点护盾吸收时', (barrier) => {
+    const fixed: SkillDef = { ...attack, id: 'fixed', effects: [{ type: 'fixedHit', power: 100 }] };
+    const b = setup([attack, fixed], [weak]);
+    b.applyStatus('s', 'weak', 5);
+    if (barrier) shield(b, barrier);
+    round(b, { type: 'skill', skillId: 'fixed', targets: ['t'] });
+    expect(b.unit('s').statuses.some(s => s.id === 'weak')).toBe(true);
+    expect(b.unit('t').attrs.hp).toBe(barrier ? 10000 : 9900);
+    if (barrier) expect(b.unit('t').barriers[0].current).toBe(900);
+    round(b);
+    expect(b.unit('s').statuses.some(s => s.id === 'weak')).toBe(false);
+    expect(b.unit('t').attrs.hp).toBe(barrier ? 10000 : 9850);
+    if (barrier) expect(b.unit('t').barriers[0].current).toBe(850);
+  });
+  it.each([0, 1])('混合伤害行动仅在物法实际命中时消耗：命中率 %s', (hit) => {
+    const mixed: SkillDef = { ...attack, effects: [{ type: 'fixedHit', power: 100 }, attack.effects[0], attack.effects[0]] };
+    const b = setup([mixed], [weak], hit);
+    b.applyStatus('s', 'weak', 5);
+    round(b);
+    expect(b.unit('t').attrs.hp).toBe(hit ? 9800 : 9900);
+    expect(b.unit('s').statuses.some(s => s.id === 'weak')).toBe(!hit);
+  });
   it('整次多段攻击都受削弱，随后消耗；辅助行动不消耗', () => {
     const b = setup(
       [{ ...attack, effects: [attack.effects[0], attack.effects[0]] }],

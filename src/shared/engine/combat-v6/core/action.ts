@@ -926,9 +926,9 @@ function fallbackToAttack(
   if (fallback) resolvePhysicalAttack(ctx, unit, fallback.id);
 }
 
-/** Keep the reduction for the entire multi-hit action, and preserve it on support/misses. */
+/** Keep physical/spell reduction for the entire action; fixed damage cannot consume it. */
 function consumeDamagingActionStatuses(ctx: BattleContext, unit: Unit): void {
-  if (!ctx.currentAction || !Object.values(ctx.currentAction.impactDamageByTarget).some(n => n > 0)) return;
+  if (!ctx.currentAction?.hasPhysicalOrSpellImpact) return;
   for (const id of ctx.currentAction.initialSourceStatusIds ?? [])
     if (ctx.statusDefs.get(id)?.consumeAfterDamagingAction) removeStatus(ctx, unit, id, StatusRemoveReason.Consumed);
 }

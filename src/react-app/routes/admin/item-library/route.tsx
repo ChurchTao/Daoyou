@@ -24,6 +24,8 @@ import {
   QUALITY_VALUES,
 } from '@shared/types/constants';
 import { useCallback, useEffect, useState } from 'react';
+import { AdminDialog } from '../_components/AdminDialog';
+import { AdminPageHeader } from '../_components/AdminPage';
 import {
   buildItemLibrarySubmitBody,
   createEmptyDraft,
@@ -49,6 +51,11 @@ export default function ItemLibraryAdminPage() {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [panel, setPanel] = useState<'edit' | 'generate' | 'daily' | null>(
+    null,
+  );
+  const [generationKind, setGenerationKind] = useState('material');
+  const [materialFilter, setMaterialFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('published');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -70,50 +77,55 @@ export default function ItemLibraryAdminPage() {
   const [dailySettingsLoading, setDailySettingsLoading] = useState(true);
   const [dailySettingsSaving, setDailySettingsSaving] = useState(false);
 
-  const loadItems = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (statusFilter) params.set('status', statusFilter);
-    params.set('type', 'material');
-    if (query.trim()) params.set('q', query.trim());
-    params.set('page', String(page));
-    params.set('pageSize', '20');
+  const loadItems = useCallback(
+    async (signal?: AbortSignal) => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      params.set('type', 'material');
+      if (query.trim()) params.set('q', query.trim());
+      params.set('page', String(page));
+      params.set('pageSize', '24');
+      if (materialFilter) params.set('materialType', materialFilter);
 
-    const response = await fetch(
-      `/api/admin/item-library?${params.toString()}`,
-    );
-    const data = (await response.json()) as ItemLibraryResponse;
-    if (!response.ok) {
-      throw new Error(data.error ?? '加载道具库失败');
-    }
-    setItems(data.items ?? []);
-    setTotalPages(data.totalPages ?? 1);
-  }, [page, query, statusFilter]);
+      const response = await fetch(
+        `/api/admin/item-library?${params.toString()}`,
+        { signal },
+      );
+      const data = (await response.json()) as ItemLibraryResponse;
+      if (!response.ok) {
+        throw new Error(data.error ?? '加载道具库失败');
+      }
+      if (signal?.aborted) return;
+      setItems(data.items ?? []);
+      setTotalPages(data.totalPages ?? 1);
+    },
+    [page, query, statusFilter, materialFilter],
+  );
 
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        await loadItems();
+        await loadItems(controller.signal);
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted)
           pushToast({
-            message: error instanceof Error ? error.message : '加载道具库失败',
+            message: error instanceof Error ? error.message : '加载材料库失败',
             tone: 'danger',
           });
-        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
-    })();
-
+    }, 200);
     return () => {
-      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
     };
   }, [loadItems, pushToast]);
 
   useEffect(() => {
+    if (panel !== 'daily') return;
     let cancelled = false;
 
     (async () => {
@@ -144,7 +156,7 @@ export default function ItemLibraryAdminPage() {
     return () => {
       cancelled = true;
     };
-  }, [pushToast]);
+  }, [pushToast, panel]);
 
   const setDraftField = <K extends keyof ItemLibraryDraft>(
     key: K,
@@ -191,7 +203,8 @@ export default function ItemLibraryAdminPage() {
 
       setDraft(entryToDraft(data.item));
       await loadItems();
-      pushToast({ message: '道具已保存', tone: 'success' });
+      setPanel(null);
+      pushToast({ message: '材料已保存', tone: 'success' });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '保存道具失败',
@@ -216,7 +229,8 @@ export default function ItemLibraryAdminPage() {
       }
       setDraft(entryToDraft(data.item));
       await loadItems();
-      pushToast({ message: '道具已归档', tone: 'success' });
+      setPanel(null);
+      pushToast({ message: '材料已归档', tone: 'success' });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '归档道具失败',
@@ -258,6 +272,7 @@ export default function ItemLibraryAdminPage() {
         tone: 'success',
       });
       await loadItems();
+      setPanel(null);
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '批量生成材料失败',
@@ -300,6 +315,7 @@ export default function ItemLibraryAdminPage() {
       setQuery('');
       setPage(1);
       await loadItems();
+      setPanel(null);
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '批量生成灵种失败',
@@ -332,6 +348,7 @@ export default function ItemLibraryAdminPage() {
         throw new Error(data.error ?? '保存每日生成配置失败');
       }
       setDailySettings(data.settings);
+      setPanel(null);
       pushToast({ message: '每日生成配置已保存', tone: 'success' });
     } catch (error) {
       pushToast({
@@ -344,81 +361,160 @@ export default function ItemLibraryAdminPage() {
     }
   };
 
+  const available = items.flatMap((entry) => {
+    try {
+      return [{ entry, item: rewardDisplayItem(libraryMaterialGrant(entry)) }];
+    } catch {
+      return [];
+    }
+  });
+  const unavailable = items.filter(
+    (entry) => !available.some((value) => value.entry.id === entry.id),
+  );
   return (
     <div className="space-y-6">
-      <h2 className="font-heading text-3xl">材料库</h2>
-      <section className="space-y-4">
-        <div className="flex flex-wrap gap-3">
-          <InkInput
-            label="搜索材料"
-            value={query}
-            onChange={(v) => {
-              setQuery(v);
-              setPage(1);
-            }}
-          />
-          <InkSelect
-            label="状态"
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-            }}
-          >
-            <option value="published">已发布</option>
-            <option value="archived">已归档</option>
-          </InkSelect>
-        </div>
-        {loading ? (
-          <InkNotice>加载中…</InkNotice>
-        ) : (
-          <InventoryGrid>
-            {items.map((entry) => {
-              let item;
-              try {
-                item = rewardDisplayItem(libraryMaterialGrant(entry));
-              } catch {
-                return (
-                  <div key={entry.id} className="text-sm text-ink-secondary">
-                    {entry.name} · 已弃用，不能用于新版发放
-                  </div>
-                );
-              }
-              return (
-                <ItemSlot key={entry.id} item={item}>
-                  {(close) => (
-                    <InkButton
-                      onClick={() => {
-                        close();
-                        setDraft(entryToDraft(entry));
-                      }}
-                    >
-                      编辑材料
-                    </InkButton>
-                  )}
-                </ItemSlot>
-              );
-            })}
+      <AdminPageHeader
+        title="材料库"
+        description="维护可用于上架和发放的材料与灵种。"
+        actions={
+          <>
+            <InkButton variant="secondary" onClick={() => setPanel('daily')}>
+              每日生成设置
+            </InkButton>
+            <InkButton onClick={() => setPanel('generate')}>批量生成</InkButton>
+            <InkButton
+              variant="primary"
+              onClick={() => {
+                setDraft(createEmptyDraft());
+                setPanel('edit');
+              }}
+            >
+              新增材料
+            </InkButton>
+          </>
+        }
+      />
+      <div className="flex flex-wrap items-end gap-4">
+        <InkInput
+          label="搜索材料"
+          value={query}
+          onChange={(v) => {
+            setQuery(v);
+            setPage(1);
+          }}
+        />
+        <InkSelect
+          label="材料分类"
+          value={materialFilter}
+          onChange={(v) => {
+            setMaterialFilter(v);
+            setPage(1);
+          }}
+        >
+          <option value="">全部</option>
+          {INVENTORY_MATERIAL_TYPES.map((v) => (
+            <option key={v} value={v}>
+              {MATERIAL_TYPE_NAMES[v]}
+            </option>
+          ))}
+          <option value="seed">灵种</option>
+        </InkSelect>
+        <InkSelect
+          label="状态"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+        >
+          <option value="published">已发布</option>
+          <option value="archived">已归档</option>
+        </InkSelect>
+      </div>
+      {loading ? (
+        <InkNotice>加载中…</InkNotice>
+      ) : (
+        <>
+          {!available.length && <InkNotice>当前条件下没有可用材料</InkNotice>}
+          <InventoryGrid className="grid-cols-3 sm:grid-cols-6 lg:grid-cols-8">
+            {available.map(({ entry, item }) => (
+              <ItemSlot key={entry.id} item={item} quantityLabel="库存">
+                {(close) => (
+                  <InkButton
+                    onClick={() => {
+                      close();
+                      setDraft(entryToDraft(entry));
+                      setPanel('edit');
+                    }}
+                  >
+                    编辑材料
+                  </InkButton>
+                )}
+              </ItemSlot>
+            ))}
           </InventoryGrid>
-        )}
-        <div className="flex items-center gap-4">
-          <InkButton disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            上一页
-          </InkButton>
-          <span className="font-mono">
-            {page} / {totalPages}
-          </span>
-          <InkButton
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            下一页
-          </InkButton>
-        </div>
-      </section>
-      <section className="border-ink/15 space-y-4 border-t pt-4">
-        <h3>{draft.rowId ? '编辑材料' : '新增材料'}</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+          {unavailable.length > 0 && (
+            <details className="text-ink-secondary border-ink/10 border-t pt-4 text-sm">
+              <summary className="cursor-pointer">
+                本页另有 {unavailable.length} 项弃用材料
+              </summary>
+              <p className="mt-2">这些旧材料不能用于新版发放。</p>
+              <ul className="mt-2 space-y-1">
+                {unavailable.map((entry) => (
+                  <li key={entry.id}>{entry.name}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </>
+      )}
+      <div className="border-ink/10 flex items-center justify-between border-t pt-3">
+        <InkButton
+          disabled={loading || page <= 1}
+          onClick={() => setPage((p) => p - 1)}
+        >
+          上一页
+        </InkButton>
+        <span className="font-mono text-sm">
+          {page} / {totalPages}
+        </span>
+        <InkButton
+          disabled={loading || page >= totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          下一页
+        </InkButton>
+      </div>
+      <AdminDialog
+        open={panel === 'edit'}
+        onClose={() => setPanel(null)}
+        busy={saving}
+        title={draft.rowId ? '编辑材料' : '新增材料'}
+        footer={
+          <>
+            {draft.rowId && draft.status !== 'archived' && (
+              <InkButton
+                disabled={saving}
+                className="mr-auto"
+                onClick={() => void archive()}
+              >
+                归档材料
+              </InkButton>
+            )}
+            <InkButton disabled={saving} onClick={() => setPanel(null)}>
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              pending={saving}
+              onClick={() => void save()}
+            >
+              保存材料
+            </InkButton>
+          </>
+        }
+      >
+        <fieldset disabled={saving} className="grid gap-4 sm:grid-cols-2">
           <InkInput
             label="材料 ID"
             value={draft.itemId}
@@ -498,117 +594,155 @@ export default function ItemLibraryAdminPage() {
             disabled={draft.materialType === 'seed'}
             onChange={(v) => setDraftField('description', v)}
           />
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <InkButton disabled={saving} onClick={() => void save()}>
-            保存材料
-          </InkButton>
-          <InkButton
-            disabled={saving || !draft.rowId}
-            onClick={() => void archive()}
-          >
-            归档
-          </InkButton>
-          <InkButton onClick={() => setDraft(createEmptyDraft())}>
-            新增材料
-          </InkButton>
-        </div>
-      </section>
-      <details className="border-ink/15 space-y-4 border-t pt-4">
-        <summary>批量生成与每日生成</summary>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <InkInput
-            label="生成数量"
-            value={generateCount}
-            onChange={setGenerateCount}
-          />
-          <InkSelect
-            label="材料种类"
-            value={generateType}
-            onChange={(v) => setGenerateType(v as typeof generateType)}
-          >
-            {INVENTORY_MATERIAL_TYPES.map((v) => (
-              <option key={v} value={v}>
-                {MATERIAL_TYPE_NAMES[v]}
-              </option>
-            ))}
-          </InkSelect>
-          <InkSelect
-            label="生成品阶"
-            value={generateQuality}
-            onChange={(v) => setGenerateQuality(v as typeof generateQuality)}
-          >
-            {QUALITY_VALUES.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </InkSelect>
-          <InkInput
-            label="生成种子（可留空）"
-            value={generateSeed}
-            onChange={setGenerateSeed}
-          />
-        </div>
-        <InkButton disabled={saving} onClick={() => void generateMaterials()}>
-          生成材料
-        </InkButton>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <InkInput
-            label="灵种数量"
-            value={seedGenerateCount}
-            onChange={setSeedGenerateCount}
-          />
-          <InkSelect
-            label="灵种品阶"
-            value={seedGenerateQuality}
-            onChange={(v) =>
-              setSeedGenerateQuality(v as typeof seedGenerateQuality)
-            }
-          >
-            {QUALITY_VALUES.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </InkSelect>
-          <InkSelect
-            label="灵种五行"
-            value={seedGenerateElement}
-            onChange={setSeedGenerateElement}
-          >
-            <option value="">随机</option>
-            {ELEMENT_VALUES.map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </InkSelect>
-        </div>
-        <InkButton disabled={saving} onClick={() => void generateSpiritSeeds()}>
-          生成灵种
-        </InkButton>
-        <div className="flex flex-wrap items-center gap-3">
-          <label>
-            <input
-              type="checkbox"
-              checked={dailySettings.enabled}
-              disabled={dailySettingsLoading}
-              onChange={(e) =>
-                setDailySettings((s) => ({ ...s, enabled: e.target.checked }))
+        </fieldset>
+      </AdminDialog>
+      <AdminDialog
+        open={panel === 'generate'}
+        onClose={() => setPanel(null)}
+        busy={saving}
+        title="批量生成"
+        footer={
+          <>
+            <InkButton disabled={saving} onClick={() => setPanel(null)}>
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              pending={saving}
+              onClick={() =>
+                void (generationKind === 'material'
+                  ? generateMaterials()
+                  : generateSpiritSeeds())
               }
-            />{' '}
-            每日生成材料
-          </label>
-          <InkInput
-            label="每日数量"
-            value={String(dailySettings.count)}
-            onChange={(v) =>
-              setDailySettings((s) => ({ ...s, count: Number(v) }))
-            }
-          />
-          <InkButton
-            disabled={dailySettingsLoading || dailySettingsSaving}
-            onClick={() => void saveDailySettings()}
+            >
+              生成并发布
+            </InkButton>
+          </>
+        }
+      >
+        <fieldset disabled={saving} className="space-y-5">
+          <InkSelect
+            label="生成内容"
+            value={generationKind}
+            onChange={setGenerationKind}
           >
-            保存生成配置
-          </InkButton>
-        </div>
-      </details>
+            <option value="material">材料</option>
+            <option value="seed">灵种</option>
+          </InkSelect>
+          {generationKind === 'material' ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <InkInput
+                label="生成数量"
+                value={generateCount}
+                onChange={setGenerateCount}
+              />
+              <InkSelect
+                label="材料种类"
+                value={generateType}
+                onChange={(v) => setGenerateType(v as typeof generateType)}
+              >
+                {INVENTORY_MATERIAL_TYPES.map((v) => (
+                  <option key={v} value={v}>
+                    {MATERIAL_TYPE_NAMES[v]}
+                  </option>
+                ))}
+              </InkSelect>
+              <InkSelect
+                label="生成品阶"
+                value={generateQuality}
+                onChange={(v) =>
+                  setGenerateQuality(v as typeof generateQuality)
+                }
+              >
+                {QUALITY_VALUES.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </InkSelect>
+              <InkInput
+                label="生成种子（可留空）"
+                value={generateSeed}
+                onChange={setGenerateSeed}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <InkInput
+                label="灵种数量"
+                value={seedGenerateCount}
+                onChange={setSeedGenerateCount}
+              />
+              <InkSelect
+                label="灵种品阶"
+                value={seedGenerateQuality}
+                onChange={(v) =>
+                  setSeedGenerateQuality(v as typeof seedGenerateQuality)
+                }
+              >
+                {QUALITY_VALUES.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </InkSelect>
+              <InkSelect
+                label="灵种五行"
+                value={seedGenerateElement}
+                onChange={setSeedGenerateElement}
+              >
+                <option value="">随机</option>
+                {ELEMENT_VALUES.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </InkSelect>
+            </div>
+          )}
+        </fieldset>
+      </AdminDialog>
+      <AdminDialog
+        open={panel === 'daily'}
+        onClose={() => setPanel(null)}
+        busy={dailySettingsSaving}
+        title="每日生成设置"
+        footer={
+          <>
+            <InkButton
+              disabled={dailySettingsSaving}
+              onClick={() => setPanel(null)}
+            >
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              disabled={dailySettingsLoading}
+              pending={dailySettingsSaving}
+              onClick={() => void saveDailySettings()}
+            >
+              保存设置
+            </InkButton>
+          </>
+        }
+      >
+        <fieldset disabled={dailySettingsLoading || dailySettingsSaving}>
+          <div className="flex flex-wrap items-center gap-3">
+            <label>
+              <input
+                type="checkbox"
+                checked={dailySettings.enabled}
+                disabled={dailySettingsLoading}
+                onChange={(e) =>
+                  setDailySettings((s) => ({ ...s, enabled: e.target.checked }))
+                }
+              />{' '}
+              每日生成材料
+            </label>
+            <InkInput
+              label="每日数量"
+              value={String(dailySettings.count)}
+              onChange={(v) =>
+                setDailySettings((s) => ({ ...s, count: Number(v) }))
+              }
+            />
+          </div>
+        </fieldset>
+      </AdminDialog>
     </div>
   );
 }

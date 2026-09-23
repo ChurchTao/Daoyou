@@ -366,6 +366,92 @@ describe('天衍经脉机制分化', () => {
   });
 });
 
+describe('天衍节点组合收益回归', () => {
+  it('镇岳独立强化至25%；点出镇世后转为节蓝，保留40%削弱', () => {
+    const { b: mountain } = setup('luoshu', ['1.3']);
+    round(mountain, { s: cmd('earth') });
+    expect(st(mountain, 't', 'weaken_deep')).toBeDefined();
+    expect(mountain.unit('s').attrs.mp).toBe(9957);
+    const { b: end } = setup('luoshu', ['7.2']);
+    const { b: both } = setup('luoshu', ['1.3', '7.2']);
+    for (const b of [end, both]) {
+      round(b, { s: cmd('earth') });
+      expect(st(b, 't', 'truce_deep')).toBeDefined();
+      expect(st(b, 't', 'weaken_deep')).toBeUndefined();
+    }
+    expect(damage(both)).toBe(damage(end));
+    expect(end.unit('s').attrs.mp).toBe(9964);
+    expect(both.unit('s').attrs.mp).toBe(9968);
+  });
+  it('留隙搭配禁流将稳定削弱从25%提高到35%，不附加封法', () => {
+    function incoming(nodes: string[]) {
+      const { input } = setup('luoshu', nodes);
+      input.skills!.push({ id: 'enemy.spell', name: '法术', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{ type: 'spellHit', coeff: 1, power: 0 }] });
+      input.units[2].skills = ['enemy.spell'];
+      const b = createBattle(input);
+      seal(b, 'water');
+      round(b, { s: cmd('earth'), t: { type: 'skill', skillId: 'enemy.spell', targets: ['s'] } });
+      return { b, lost: 10000 - b.unit('s').attrs.hp };
+    }
+    const normal = incoming(['3.2']);
+    const enhanced = incoming(['3.2', '4.3']);
+    expect(st(normal.b, 't', 'spell_dull')).toBeDefined();
+    expect(st(enhanced.b, 't', 'spell_dull_deep')).toBeDefined();
+    expect(st(enhanced.b, 't', 'spell_dull')).toBeUndefined();
+    expect(enhanced.lost / normal.lost).toBeCloseTo(0.65 / 0.75, 2);
+    for (const b of [normal.b, enhanced.b]) expect(st(b, 't', 'seal')).toBeUndefined();
+  });
+  it('天人不降低任何基础五行伤害，并强化燎原和淬锋', () => {
+    const prefix = ['1.2', '2.2', '3.2', '4.2', '5.2', '6.2'];
+    for (const element of elements) {
+      const { b: base } = setup('hetu', prefix);
+      const { b: end } = setup('hetu', [...prefix, '7.2']);
+      round(base, { s: cmd(element) });
+      round(end, { s: cmd(element) });
+      expect(damage(end)).toBe(damage(base));
+    }
+    for (const [old, next] of [['wood', 'fire'], ['earth', 'metal']]) {
+      const { b: base } = setup('hetu', prefix);
+      const { b: end } = setup('hetu', [...prefix, '7.2']);
+      for (const b of [base, end]) { seal(b, old); round(b, { s: cmd(next) }); }
+      // 同类增伤相加：已有衍法+5%、映霞-4%，金法主目标另有分锋-15%。
+      const beforeFactor = next === 'metal' ? 0.86 : 1.01;
+      expect(Math.abs(damage(end) - damage(base) * (beforeFactor + 0.05) / beforeFactor)).toBeLessThan(2);
+    }
+  });
+  it('天人仍将凝露、滋荣和火生土护盾提高25%', () => {
+    const prefix = ['1.2', '2.2', '3.2', '4.2', '5.2', '6.2'];
+    for (const [old, next] of [['metal', 'water'], ['water', 'wood'], ['fire', 'earth']]) {
+      const values: number[] = [];
+      for (const nodes of [prefix, [...prefix, '7.2']]) {
+        const { b } = setup('hetu', nodes);
+        b.unit('a').attrs.hp = 1000;
+        seal(b, old);
+        round(b, { s: cmd(next) });
+        values.push(next === 'earth' ? b.unit('s').barriers[0].current : b.unit('a').attrs.hp - 1000);
+      }
+      expect(Math.abs(values[1] - values[0] * 1.25)).toBeLessThan(2);
+    }
+  });
+  it('余火以延迟两跳换取高气血目标的完整周期收益，仍受气血比例限制', () => {
+    const totals: number[] = [];
+    for (const nodes of [['1.1'], ['1.1', '2.1']]) {
+      const { b } = setup('hetu', nodes);
+      for (const u of b.state.units.filter(u => u.side === 1)) u.attrs.hp = u.attrs.maxHp = 20000;
+      seal(b, 'wood');
+      round(b, { s: cmd('fire') });
+      round(b);
+      totals.push(b.log().filter(e => e.type === 'damage' && e.sourceId === 's').reduce((n, e) => n + (e.type === 'damage' ? e.amount : 0), 0));
+    }
+    expect(totals).toEqual([4056, 4418]);
+    const { b } = setup('hetu', ['2.1']);
+    seal(b, 'wood');
+    round(b, { s: cmd('fire') });
+    const tick = b.log().filter(e => e.type === 'damage' && e.sourceId === 's' && e.kind === 'fixed');
+    expect(tick.map(e => e.type === 'damage' ? e.amount : 0)).toEqual([200, 200]);
+  });
+});
+
 describe('38 个可选节点实际结算差异', () => {
   for (const path of definition.paths)
     for (const node of path.nodes.filter((n) => !n.automatic)) {

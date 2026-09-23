@@ -45,6 +45,7 @@ export type BattleContext = {
     /** 独立气血恢复的行动内累计量；行动结束即销毁。 */
     hpRestoreGains: Record<string, number>
     impactDamageByTarget: Record<UnitId, number>
+    hasPhysicalOrSpellImpact?: boolean
     initialStatusIdsByTarget: Record<UnitId, string[]>
     initialStatusKindsByTarget: Record<UnitId, string[]>
     /** 主效果产生 ActionFailed 后禁止 successEffects。 */

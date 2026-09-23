@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-foundation.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "elements": [
     {
       "element": "wood",
@@ -150,6 +150,14 @@
       "damageDealtSpell": 0.75
     },
     {
+      "id": "tianyan.status.spell_dull_deep",
+      "kind": "tianyan.status.spell_dull",
+      "name": "禁流",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtSpell": 0.65
+    },
+    {
       "id": "tianyan.status.foundation_break",
       "kind": "tianyan.status.foundation_break",
       "name": "裂土",
@@ -208,7 +216,7 @@
       "onTick": {
         "type": "dot",
         "ratioOfMaxHp": 0.02,
-        "hpCap": "skillLevel*0.35+effective.magicAtk*0.06"
+        "hpCap": "skillLevel*0.8+effective.magicAtk*0.2"
       }
     },
     {
@@ -357,7 +365,15 @@
           "statusId": "tianyan.status.spell_dull",
           "duration": 2,
           "when": {
-            "expression": "known.tianyan.passive.gap"
+            "expression": "known.tianyan.passive.gap*(1-known.tianyan.passive.ban)"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.spell_dull_deep",
+          "duration": 2,
+          "when": {
+            "expression": "known.tianyan.passive.gap*known.tianyan.passive.ban"
           }
         }
       ]

@@ -320,6 +320,10 @@ export function applyDamage(
     ? Math.min(enteringHp, Math.max(0, target.attrs.hp - MIN_HP))
     : enteringHp
   ctx.lastStrikeDamage = enteringHp
+  if (origin === DamageOrigin.ActionDirect && ctx.currentAction?.sourceId === source.id &&
+    kind !== DamageKind.Fixed && (barrierAbsorbed > 0 || appliedToHp > 0)) {
+    ctx.currentAction.hasPhysicalOrSpellImpact = true
+  }
   if (origin === DamageOrigin.ActionDirect && ctx.currentAction?.sourceId === source.id && barrierAbsorbed > 0) {
     ctx.currentAction.impactDamageByTarget[target.id] =
       (ctx.currentAction.impactDamageByTarget[target.id] ?? 0) + barrierAbsorbed

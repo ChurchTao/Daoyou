@@ -18,6 +18,11 @@ export function parseRewardSelectionDrafts(
 ) {
   if (!drafts.length && !options?.allowEmpty)
     throw new Error('至少选择一项奖励');
+  for (const draft of drafts) {
+    const quantity = Number(draft.quantity);
+    const max = draft.type === 'inventory_v1' ? (draft.inventory.definitionId === 'equipment.v6' ? 1 : 99) : 100000000;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > max) throw new Error(`奖励数量必须为 1 至 ${max} 的整数`);
+  }
   return RewardSelectionsSchema.parse(
     drafts.map((d) =>
       d.type === 'inventory_v1'

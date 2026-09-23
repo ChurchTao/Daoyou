@@ -1,7 +1,4 @@
-import {
-  InventoryGrid,
-  ItemSlot,
-} from '@app/components/feature/items/ItemSlot';
+import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
 import {
@@ -16,6 +13,8 @@ import {
 } from '@shared/contracts/itemExchangeShop';
 import type { ItemGrant } from '@shared/inventory';
 import { useCallback, useEffect, useState } from 'react';
+import { AdminDialog } from './AdminDialog';
+import { AdminPageHeader } from './AdminPage';
 import { RewardItemPicker } from './RewardItemPicker';
 
 interface DraftState {
@@ -71,7 +70,6 @@ export interface ItemExchangeShopAdminPageProps {
 
 export function ItemExchangeShopAdminPage({
   endpoint,
-  eyebrow,
   title,
   priceLabel,
   currencyLabel,
@@ -83,6 +81,9 @@ export function ItemExchangeShopAdminPage({
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -110,6 +111,7 @@ export function ItemExchangeShopAdminPage({
 
   const reset = () => setDraft({ ...emptyDraft });
   const edit = (item: ItemExchangeShopItemView) => {
+    setEditorOpen(true);
     setDraft({
       id: item.id,
       item: item.item
@@ -144,6 +146,7 @@ export function ItemExchangeShopAdminPage({
       if (!response.ok) throw new Error(data.error ?? '保存失败');
       pushToast({ message: successText, tone: 'success' });
       reset();
+      setEditorOpen(false);
       await load();
     } catch (error) {
       pushToast({
@@ -156,36 +159,139 @@ export function ItemExchangeShopAdminPage({
   };
 
   const archive = async (item: ItemExchangeShopItemView) => {
-    const response = await fetch(`${endpoint}/${item.id}/archive`, {
-      method: 'POST',
-    });
-    const data = (await response.json()) as { error?: string };
-    if (!response.ok) {
-      pushToast({ message: data.error ?? '下架失败', tone: 'danger' });
-      return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${endpoint}/${item.id}/archive`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? '下架失败');
+      pushToast({ message: '商品已下架', tone: 'success' });
+      await load();
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '下架失败',
+        tone: 'danger',
+      });
+    } finally {
+      setSaving(false);
     }
-    pushToast({ message: '商品已下架', tone: 'success' });
-    await load();
   };
+  const visibleItems = items.filter(
+    (item) =>
+      (filter === 'all' || item.status === filter) &&
+      (item.item?.name ?? item.itemLibraryItemId ?? '').includes(query),
+  );
 
   return (
-    <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <p className="text-ink-secondary text-xs tracking-[0.2em]">{eyebrow}</p>
-        <h2 className="font-heading text-ink mt-2 text-4xl">{title}</h2>
-      </header>
-
-      <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <RewardItemPicker
-              disabled={saving}
-              onSelect={(item) =>
-                setDraft((current) => ({ ...current, item, quantity: '1' }))
-              }
-            />
+    <div className="space-y-6">
+      <AdminPageHeader
+        title={title}
+        description="管理商品、兑换价格与每周限购。"
+        actions={
+          <InkButton
+            variant="primary"
+            onClick={() => {
+              reset();
+              setEditorOpen(true);
+            }}
+          >
+            新增商品
+          </InkButton>
+        }
+      />
+      <div className="flex flex-wrap items-end gap-4">
+        <InkInput label="搜索商品" value={query} onChange={setQuery} />
+        <InkSelect label="商品状态" value={filter} onChange={setFilter}>
+          <option value="all">全部</option>
+          <option value="active">上架中</option>
+          <option value="archived">已下架</option>
+        </InkSelect>
+        <span className="text-ink-secondary pb-2 text-sm">
+          共 <span className="font-mono">{visibleItems.length}</span> 件商品
+        </span>
+      </div>
+      {loading ? (
+        <InkNotice>商品加载中…</InkNotice>
+      ) : !visibleItems.length ? (
+        <InkNotice>
+          {query || filter !== 'all' ? '没有匹配的商品' : emptyText}
+        </InkNotice>
+      ) : (
+        <div className="grid gap-x-8 md:grid-cols-2">
+          {visibleItems.map((item) => (
+            <article
+              key={item.id}
+              className="border-ink/10 flex min-w-0 gap-4 border-b py-5"
+            >
+              {item.item && (
+                <div className="grid w-20 shrink-0 self-start">
+                  <ItemSlot item={item.item} quantityLabel="奖励" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-semibold break-words">
+                    {item.item?.name ?? '待重新配置的旧商品'}
+                  </p>
+                  <span
+                    className={`text-xs ${item.status === 'active' ? 'text-crimson' : 'text-ink-secondary'}`}
+                  >
+                    {item.status === 'active' ? '上架中' : '已下架'}
+                  </span>
+                </div>
+                <p className="text-sm">
+                  <span className="font-mono">{item.price}</span>{' '}
+                  {currencyLabel} · 每次{' '}
+                  <span className="font-mono">{item.quantity}</span> 件
+                </p>
+                <p className="text-ink-secondary text-xs">
+                  每周限购 {item.perUserLimit ?? '不限'} · 排序 {item.sortOrder}
+                </p>
+                <div className="flex gap-2">
+                  <InkButton disabled={saving} onClick={() => edit(item)}>
+                    {item.item ? '编辑' : '重新配置'}
+                  </InkButton>
+                  {item.status === 'active' && (
+                    <InkButton
+                      disabled={saving}
+                      variant="secondary"
+                      onClick={() => void archive(item)}
+                    >
+                      下架
+                    </InkButton>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      <AdminDialog
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        busy={saving}
+        title={draft.id ? '编辑商品' : '新增商品'}
+        footer={
+          <>
+            <InkButton disabled={saving} onClick={() => setEditorOpen(false)}>
+              取消
+            </InkButton>
+            <InkButton
+              variant="primary"
+              pending={saving}
+              onClick={save}
+              disabled={!draft.item}
+            >
+              {draft.id ? '保存修改' : '保存商品'}
+            </InkButton>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div className="flex items-center gap-4">
             {draft.item && (
-              <div className="w-24">
+              <div className="grid w-24 shrink-0">
                 <ItemSlot
                   item={rewardDisplayItem({
                     ...draft.item,
@@ -195,130 +301,72 @@ export function ItemExchangeShopAdminPage({
                 />
               </div>
             )}
+            <div className="space-y-2">
+              {draft.item && (
+                <p className="font-semibold">
+                  {rewardDisplayItem(draft.item).name}
+                </p>
+              )}
+              <RewardItemPicker
+                label={draft.item ? '更换道具' : '选择道具'}
+                disabled={saving}
+                onSelect={(item) =>
+                  setDraft((current) => ({ ...current, item, quantity: '1' }))
+                }
+              />
+            </div>
           </div>
-          <InkInput
-            label={priceLabel}
-            value={draft.price}
-            onChange={(price) => setDraft((current) => ({ ...current, price }))}
-            hint={`最高 ${ITEM_EXCHANGE_SHOP_MAX_PRICE}`}
-          />
-          <InkInput
-            label="单次获得"
-            value={draft.quantity}
-            onChange={(quantity) =>
-              setDraft((current) => ({ ...current, quantity }))
-            }
-            disabled={draft.item?.definitionId === 'equipment.v6'}
-            hint="道装固定 1 件，其他道具最高 30 件"
-          />
-          <InkInput
-            label="每周限购"
-            value={draft.perUserLimit}
-            onChange={(perUserLimit) =>
-              setDraft((current) => ({ ...current, perUserLimit }))
-            }
-            placeholder="留空表示不限"
-          />
-          <InkInput
-            label="排序"
-            value={draft.sortOrder}
-            onChange={(sortOrder) =>
-              setDraft((current) => ({ ...current, sortOrder }))
-            }
-          />
-          <InkSelect
-            label="状态"
-            value={draft.status}
-            onChange={(status) =>
-              setDraft((current) => ({
-                ...current,
-                status: status as DraftState['status'],
-              }))
-            }
-          >
-            <option value="active">上架</option>
-            <option value="archived">下架</option>
-          </InkSelect>
+          {draft.item && (
+            <fieldset disabled={saving} className="grid gap-4 sm:grid-cols-2">
+              <InkInput
+                label={priceLabel}
+                value={draft.price}
+                onChange={(price) =>
+                  setDraft((current) => ({ ...current, price }))
+                }
+                hint={`最高 ${ITEM_EXCHANGE_SHOP_MAX_PRICE}`}
+              />
+              <InkInput
+                label="单次获得"
+                value={draft.quantity}
+                onChange={(quantity) =>
+                  setDraft((current) => ({ ...current, quantity }))
+                }
+                disabled={draft.item?.definitionId === 'equipment.v6'}
+                hint="道装固定 1 件，其他道具最高 30 件"
+              />
+              <InkInput
+                label="每周限购"
+                value={draft.perUserLimit}
+                onChange={(perUserLimit) =>
+                  setDraft((current) => ({ ...current, perUserLimit }))
+                }
+                placeholder="留空表示不限"
+              />
+              <InkInput
+                label="排序"
+                value={draft.sortOrder}
+                onChange={(sortOrder) =>
+                  setDraft((current) => ({ ...current, sortOrder }))
+                }
+              />
+              <InkSelect
+                label="状态"
+                value={draft.status}
+                onChange={(status) =>
+                  setDraft((current) => ({
+                    ...current,
+                    status: status as DraftState['status'],
+                  }))
+                }
+              >
+                <option value="active">上架</option>
+                <option value="archived">下架</option>
+              </InkSelect>
+            </fieldset>
+          )}
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <InkButton
-            type="button"
-            variant="primary"
-            onClick={save}
-            disabled={saving || !draft.item}
-          >
-            {draft.id ? '保存修改' : '新增商品'}
-          </InkButton>
-          <InkButton type="button" variant="secondary" onClick={reset}>
-            清空表单
-          </InkButton>
-        </div>
-      </section>
-
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        {loading ? (
-          <InkNotice tone="muted">商品加载中...</InkNotice>
-        ) : items.length === 0 ? (
-          <InkNotice tone="muted">{emptyText}</InkNotice>
-        ) : (
-          <div className="space-y-4">
-            <InventoryGrid>
-              {items
-                .filter((i) => i.item)
-                .map((item) => (
-                  <ItemSlot
-                    key={item.id}
-                    item={item.item!}
-                    badge={item.status === 'active' ? '上架' : '下架'}
-                    quantityLabel="奖励"
-                  >
-                    {(close) => (
-                      <div className="space-y-3">
-                        <p className="font-mono">
-                          {item.price} {currencyLabel} · 每周限购{' '}
-                          {item.perUserLimit ?? '不限'}
-                        </p>
-                        <div className="flex gap-2">
-                          <InkButton
-                            onClick={() => {
-                              close();
-                              edit(item);
-                            }}
-                          >
-                            编辑
-                          </InkButton>
-                          <InkButton
-                            disabled={item.status === 'archived'}
-                            onClick={() => {
-                              close();
-                              void archive(item);
-                            }}
-                          >
-                            下架
-                          </InkButton>
-                        </div>
-                      </div>
-                    )}
-                  </ItemSlot>
-                ))}
-            </InventoryGrid>
-            {items
-              .filter((i) => !i.item)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center gap-3"
-                >
-                  <span>
-                    旧商品 {item.itemLibraryItemId} · 已下架，需重新选择道具
-                  </span>
-                  <InkButton onClick={() => edit(item)}>重新配置</InkButton>
-                </div>
-              ))}
-          </div>
-        )}
-      </section>
+      </AdminDialog>
     </div>
   );
 }

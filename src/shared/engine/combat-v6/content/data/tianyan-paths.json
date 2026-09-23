@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "passives": [
     {
       "id": "tianyan.passive.yan_root",
@@ -441,20 +441,33 @@
     {
       "id": "tianyan.passive.harmony",
       "name": "天人",
-      "description": "凝露、滋荣的恢复与烬垒护盾提高25%；五行法术伤害降低8%。",
+      "description": "凝露、滋荣的恢复与火生土的烬垒护盾提高25%；触发燎原、淬锋时，该次五行法术伤害提高5%。",
       "modifiers": [
         {
-          "damageBonus": -0.08,
+          "damageBonus": 0.05,
           "when": {
             "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water"
+              "tianyan.skill.fire"
             ],
             "damageOrigins": [
               "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.wood"
+            ]
+          }
+        },
+        {
+          "damageBonus": 0.05,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.earth"
             ]
           }
         }
@@ -500,7 +513,7 @@
     {
       "id": "tianyan.passive.mountain",
       "name": "镇岳",
-      "description": "山河倾覆对下一次伤害行动的削弱提高至25%，法力消耗提高20%。"
+      "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至25%，法力消耗提高20%；点出镇世后削弱仍为40%，本节点改为法力消耗降低10%，不再增加消耗。"
     },
     {
       "id": "tianyan.passive.prune",
@@ -552,7 +565,7 @@
     {
       "id": "tianyan.passive.truce",
       "name": "止戈",
-      "description": "领悟止戈：单体攻击并削弱目标下一次伤害行动25%，2回合内有效。50法力，冷却5回合。"
+      "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动25%，2回合内有效。50法力，冷却5回合。"
     },
     {
       "id": "tianyan.passive.gap",
@@ -632,10 +645,10 @@
     {
       "id": "tianyan.passive.ban",
       "name": "禁流",
-      "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后不再提供命中收益。",
+      "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后，命中提升改为将法术伤害削弱从25%提高至35%。",
       "modifiers": [
         {
-          "sealChanceAdd": 0.1,
+          "sealChanceAdd": "0.1*(1-known.tianyan.passive.gap)",
           "when": {
             "skillIds": [
               "tianyan.skill.earth"
@@ -773,7 +786,7 @@
     {
       "id": "tianyan.passive.severance",
       "name": "镇世",
-      "description": "山河倾覆对下一次伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
+      "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
       "modifiers": [
         {
           "damageBonus": -0.15,
@@ -1014,7 +1027,7 @@
         {
           "id": "tianyan.node.hetu.7.2",
           "name": "天人",
-          "description": "凝露、滋荣的恢复与烬垒护盾提高25%；五行法术伤害降低8%。",
+          "description": "凝露、滋荣的恢复与火生土的烬垒护盾提高25%；触发燎原、淬锋时，该次五行法术伤害提高5%。",
           "layer": 7,
           "slot": 2,
           "passives": [
@@ -1070,7 +1083,7 @@
         {
           "id": "tianyan.node.luoshu.1.3",
           "name": "镇岳",
-          "description": "山河倾覆对下一次伤害行动的削弱提高至25%，法力消耗提高20%。",
+          "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至25%，法力消耗提高20%；点出镇世后削弱仍为40%，本节点改为法力消耗降低10%，不再增加消耗。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -1110,7 +1123,7 @@
         {
           "id": "tianyan.node.luoshu.3.1",
           "name": "止戈",
-          "description": "领悟止戈：单体攻击并削弱目标下一次伤害行动25%，2回合内有效。50法力，冷却5回合。",
+          "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动25%，2回合内有效。50法力，冷却5回合。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1170,7 +1183,7 @@
         {
           "id": "tianyan.node.luoshu.4.3",
           "name": "禁流",
-          "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后不再提供命中收益。",
+          "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后，命中提升改为将法术伤害削弱从25%提高至35%。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -1256,7 +1269,7 @@
         {
           "id": "tianyan.node.luoshu.7.2",
           "name": "镇世",
-          "description": "山河倾覆对下一次伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
+          "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
           "layer": 7,
           "slot": 2,
           "passives": [
