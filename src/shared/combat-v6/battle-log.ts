@@ -29,6 +29,7 @@ export function reasonText(reason: string) {
   const labels: Record<string, string> = {
     'not-command-phase': '当前不能下令',
     'unit-cannot-act': '当前无法行动',
+    'command-restricted': '当前状态禁止此行动',
     'blocks-action': '受控制，无法行动',
     sealed: '受封术影响',
     rooted: '物理行动受限',

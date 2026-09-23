@@ -186,7 +186,7 @@ describe('production sect affairs presentations', () => {
       );
       expect(notes).toEqual(
         theme.sectId === 'jiujie'
-          ? { ...canonicalMapNotes, cliff: '劫眼临身 · 流派参悟', condemnation: '天谴加身 · 流派参悟' }
+          ? { ...canonicalMapNotes, cliff: '霹雳真君 · 流派参悟', condemnation: '踏雷天尊 · 流派参悟' }
           : canonicalMapNotes,
       );
     }

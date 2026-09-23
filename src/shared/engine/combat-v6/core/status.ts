@@ -21,7 +21,7 @@ import {
 import { evalExpr, skillLevelOf } from "./expr.ts"
 import { skillOf, passiveSkills } from "./skills.ts"
 import { standingUnits } from "./query.ts"
-import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, StatusInstance, Unit, UnitId } from "./types.ts"
+import type { Attrs, Command, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, StatusInstance, Unit, UnitId } from "./types.ts"
 import { effectiveAttrs, isStanding, recoverableHp } from "./units.ts"
 import { combatModifiers } from "./modifiers.ts"
 import { applyDamage, applyMpDamage } from "./damage.ts"
@@ -40,6 +40,18 @@ export function hasBlock(
   key: typeof StatusFlag.BlocksAction | typeof StatusFlag.BlocksSpell | typeof StatusFlag.BlocksPhysical,
 ): boolean {
   return unit.statuses.some((s) => statusDef(ctx, s.id)?.[key])
+}
+
+/** Fine-grained restrictions; ordinary seal fallback behavior remains separate. */
+export function commandBlockReason(ctx: BattleContext, unit: Unit, command: Command): string | undefined {
+  const skill = command.type === 'skill' ? skillOf(ctx.skills, unit, command.skillId) : undefined
+  for (const instance of unit.statuses) {
+    const def = statusDef(ctx, instance.id)
+    if (def?.blockedCommands?.includes(command.type) ||
+        (skill && def?.blocksNonArtSkills && !skill.tags.includes('art')) ||
+        (skill && def?.blocksArts && skill.tags.includes('art'))) return 'command-restricted'
+  }
+  return undefined
 }
 
 export function hasStatusFlag(

@@ -10,8 +10,8 @@ import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from
 
 describe('宗门技能学习配置', () => {
   it('技能、状态、流派和心法保持基线（含比例伤害分类）', () => {
-    // 包含双孔玄锋文案、无相基础系数校准与独立治疗通道修正。
-    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("274b55528078279353296989128858920c7248e54fe85bdd68f32ecaa90eb12d");
+    // 包含九劫霹雳／踏雷重做；机制行为由专项测试验证。
+    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("9268a24b0e6a5f9f27b4224cb0cf8a0814d37a023d62302273b88353402d739d");
   });
   it('Schema 与编辑器一致', () => {
     expect(z.toJSONSchema(SectSkillLearningShape)).toEqual(schema);

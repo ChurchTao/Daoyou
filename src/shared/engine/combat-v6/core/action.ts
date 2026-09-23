@@ -37,6 +37,7 @@ import { standingUnits } from './query.ts';
 import { checkSkillRequirements } from './requirements.ts';
 import { skillOf } from './skills.ts';
 import {
+  commandBlockReason,
   commandPolicyOf,
   hasBlock,
   hasStatusFlag,
@@ -94,7 +95,7 @@ export function lockCommands(ctx: BattleContext): void {
       rememberCommand(unit, command);
       ctx.emit({ type: EventType.CommandDefaulted, unitId: unit.id, command });
     }
-    applyRoundFlags(unit, command);
+    if (!commandBlockReason(ctx, unit, command)) applyRoundFlags(unit, command);
   }
 }
 
@@ -140,6 +141,14 @@ export function resolveAction(ctx: BattleContext, unit: Unit): void {
       unitId: unit.id,
       reason: SkipReason.NoCommand,
     });
+    return;
+  }
+
+  const restriction = commandBlockReason(ctx, unit, command);
+  if (restriction) {
+    unit.flags.defending = false;
+    unit.flags.protecting = undefined;
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: restriction });
     return;
   }
 
@@ -215,7 +224,7 @@ const commandHandlers: Partial<
       ctx,
       unit,
       command.target,
-      commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget,
+      (commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget || commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomNormalAttackTarget),
     );
   },
 };
@@ -242,11 +251,11 @@ function applyCommandPolicy(ctx: BattleContext, unit: Unit): void {
     unit.command = { type: CommandType.Attack, target: pick.id };
     return;
   }
-  if (policy === CommandPolicy.RandomAttackTarget) {
+  if (policy === CommandPolicy.RandomAttackTarget || policy === CommandPolicy.RandomNormalAttackTarget) {
     const command = unit.command;
     const physical =
       command?.type === CommandType.Attack ||
-      (command?.type === CommandType.Skill &&
+      (policy === CommandPolicy.RandomAttackTarget && command?.type === CommandType.Skill &&
         Boolean(
           skillOf(ctx.skills, unit, command.skillId)?.tags.includes(
             SkillTag.Physical,
@@ -460,9 +469,11 @@ function resolveSkillCommand(
       unitId: unit.id,
       reason: FailReason.Sealed,
     });
-    if (!hasBlock(ctx, unit, StatusFlag.BlocksPhysical)) {
+    if (!hasBlock(ctx, unit, StatusFlag.BlocksPhysical) && !commandBlockReason(ctx, unit, { type: CommandType.Attack, target: targets[0] ?? "" })) {
       const randomTarget =
-        commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget
+        commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomNormalAttackTarget
+          ? pickRandomAttackTarget(ctx, unit)
+          : commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget
           ? skill.tags.includes(SkillTag.Physical)
             ? ctx.state.units.find(
                 (candidate) =>
@@ -881,10 +892,12 @@ function fallbackToAttack(
   reason: string,
 ): void {
   ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason });
-  if (commandPolicyOf(ctx, unit).policy === CommandPolicy.RandomAttackTarget) {
+  if (commandBlockReason(ctx, unit, { type: CommandType.Attack, target: targetIds[0] ?? "" })) return;
+  const policy = commandPolicyOf(ctx, unit).policy;
+  if (policy === CommandPolicy.RandomAttackTarget || policy === CommandPolicy.RandomNormalAttackTarget) {
     const command = unit.command;
     const target =
-      command?.type === CommandType.Skill &&
+      policy === CommandPolicy.RandomAttackTarget && command?.type === CommandType.Skill &&
       skillOf(ctx.skills, unit, command.skillId)?.tags.includes(
         SkillTag.Physical,
       )

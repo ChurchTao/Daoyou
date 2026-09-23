@@ -264,6 +264,7 @@ export default function InventoryV6() {
               <option value="beast_book">传承灵印</option>
               <option value="beast_refinement">归元灵露</option>
               <option value="manual_jade">功法玉简</option>
+              <option value="inscription">阵纹</option>
               <option value="equipment">道装</option>
               <option value="blueprint">图纸</option>
               <option value="material">材料</option>

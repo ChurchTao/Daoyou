@@ -82,6 +82,7 @@ export const CommandPolicy = {
   None: 'none',
   Random: 'random',
   RandomAttackTarget: 'randomAttackTarget',
+  RandomNormalAttackTarget: 'randomNormalAttackTarget',
   StoredAttack: 'storedAttack',
 } as const;
 export type CommandPolicy = (typeof CommandPolicy)[keyof typeof CommandPolicy];
@@ -204,6 +205,7 @@ export const FormulaFamily = {
 export type FormulaFamily = (typeof FormulaFamily)[keyof typeof FormulaFamily];
 
 export const EffectType = {
+  Repeat: 'repeat',
   ModifyFact: 'modifyFact',
   ModifyStatusDuration: 'modifyStatusDuration',
   RandomBranch: 'randomBranch',

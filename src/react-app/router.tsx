@@ -759,6 +759,11 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="inscriptions"
+              lazy={lazyRoute(() => import('@app/routes/game/inscriptions/route'))}
+              handle={scene({ id: 'inscriptions', summary: '研材绘纹，合纹升阶，将阵法烙入道装。' }, '【阵纹室】')}
+            />
+            <Route
               path="enlightenment/gongfa"
               lazy={lazyRoute(
                 () => import('@app/routes/game/enlightenment/gongfa/route'),

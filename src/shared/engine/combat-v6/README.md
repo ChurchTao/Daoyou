@@ -20,7 +20,7 @@
 天衍圣地河洛九宫纵切见
 [`docs/combat-v6-tianyan-sect-design.md`](../../../../docs/combat-v6-tianyan-sect-design.md)。
 九劫天宫经典双流派纵切见
-[`docs/combat-v6-jiujie-sect-design.md`](../../../../docs/combat-v6-jiujie-sect-design.md)。
+[`docs/combat-v6-jiujie-tiangong-redesign.md`](../../../../docs/combat-v6-jiujie-tiangong-redesign.md)。
 Phase 7A 遭遇与训练 Host 见
 [`docs/combat-v6-phase-7a-training-host-design.md`](../../../../docs/combat-v6-phase-7a-training-host-design.md)。
 Phase 7B 权威构筑与训练房接入见
@@ -45,6 +45,7 @@ Phase 7C Redis权威运行时与回放归档见
 - Phase 6A 已交付多宗门注册表、幽都六心法与“勾魂阎罗/六道魍魉”双流派、42个经脉节点、固定伤害、独立伤势和 `character_build_v2` 完整投影。
 - Phase 6B 已交付护盾、疗伤、稳定净化、成功结算段、rules v3 法术公式，以及无相禅宗“慈航渡厄/明王镇狱”双流派、念与无相循环、42个经脉节点和 `character_build_v3` 完整投影。
 - Phase 6C 已交付状态消费/复制、有效冲击伤害、通用机制事件、天衍圣地五行法印与十种协同反应、河图演生/洛书制化双流派、42个经脉节点和 `character_build_v4` 完整投影。
+- 2026-09 九劫重做已替换为霹雳真君／踏雷天尊，支持分级休息、灌注升重、普通／赤雷印和38个可选经脉节点＋4个自动奖励；Phase 6D 的旧流派描述仅为历史。
 - Phase 6D 已交付通用概率分支、非致命打击、状态层数读取、随机物理攻击目标策略，以及九劫天宫“天律镇妖/九霄驭雷”双流派、三封、五雷、电芒协同、42个经脉节点和 `character_build_v5` 完整投影。
 - Phase 7A 已交付60/120/180三档独立训练 NPC、六类训练遭遇、三种确定性策略、结构化指令查询、纯逻辑 Encounter Host、结果摘要和非持久调试转录。
 - Phase 7B 已交付独立 v6 构筑持久态、五宗门旧心法单次迁移、权威人物装配器、进程内训练会话、训练 API 和 v6 原生练功房页面。

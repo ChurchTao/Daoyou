@@ -144,6 +144,10 @@ function validateDefinition(
           diagnostics.push(diagnostic("error", "INVALID_STATUS_STACK_REQUIREMENT", `技能 ${skill.definition.id} 的状态层数条件非法`, `skills.${skill.definition.id}.effects`))
         }
       }
+      if (effect.type === EffectType.Repeat) {
+        if (effect.min > effect.max || effect.min < 1 || effect.max > 9) diagnostics.push(diagnostic("error", "INVALID_REPEAT_RANGE", "连续效果次数范围非法", `skills.${skill.definition.id}.effects`))
+        validateEffects(effect.effects)
+      }
       if (effect.type === EffectType.RandomBranch) {
         if (!effect.branchId) {
           diagnostics.push(diagnostic("error", "INVALID_CHANCE_BRANCH", `技能 ${skill.definition.id} 的概率分支非法`, `skills.${skill.definition.id}.effects`))

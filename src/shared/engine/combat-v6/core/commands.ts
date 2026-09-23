@@ -4,6 +4,7 @@
  */
 import type { BattleContext } from "./context.ts"
 import { CommandType } from "./enums.ts"
+import { commandBlockReason } from "./status.ts"
 import { enemiesOf, firstEnemy } from "./query.ts"
 import type { Command, Unit } from "./types.ts"
 
@@ -17,7 +18,7 @@ export function materializeCommand(ctx: BattleContext, unit: Unit, command: Comm
   if (command.type === CommandType.Auto) {
     unit.flags.auto = true
     if (unit.lastCommand && unit.lastCommand.type !== CommandType.Auto) {
-      return materializeCommand(ctx, unit, unit.lastCommand)
+      return commandBlockReason(ctx, unit, unit.lastCommand) ? defaultAttack(ctx, unit) : materializeCommand(ctx, unit, unit.lastCommand)
     }
     return defaultAttack(ctx, unit)
   }
@@ -32,13 +33,13 @@ export function defaultAttack(ctx: BattleContext, unit: Unit): Command {
   const last = unit.lastTargetId
   const still = last ? enemiesOf(ctx.state, unit).find((e) => e.id === last) : undefined
   const target = still ?? firstEnemy(ctx.state, unit)
-  if (!target) return { type: CommandType.Defend }
+  if (!target || commandBlockReason(ctx, unit, { type: CommandType.Attack, target: target.id })) return { type: CommandType.Defend }
   return { type: CommandType.Attack, target: target.id }
 }
 
 export function fillMissingCommand(ctx: BattleContext, unit: Unit): Command {
   if (unit.flags.auto && unit.lastCommand && unit.lastCommand.type !== CommandType.Auto) {
-    return materializeCommand(ctx, unit, unit.lastCommand)
+    return commandBlockReason(ctx, unit, unit.lastCommand) ? defaultAttack(ctx, unit) : materializeCommand(ctx, unit, unit.lastCommand)
   }
   return ctx.rules.decideCommand({
     unit,

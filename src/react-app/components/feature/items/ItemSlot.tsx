@@ -50,7 +50,7 @@ export function ItemSlot({
   quickOnTouch?: boolean;
   children?: (close: () => void) => ReactNode;
   comparisonItem?: DisplayItem;
-  quantityLabel?: '持有' | '库存' | '奖励';
+  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);

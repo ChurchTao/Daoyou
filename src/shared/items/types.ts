@@ -10,11 +10,13 @@ export interface ItemDefinition {
     | 'blueprint'
     | 'material'
     | 'manual_jade'
+    | 'inscription'
     | 'consumable'
     | 'seed';
   stackLimit: number;
   skillId?: string;
   manualId?: string;
+  patternId?: string;
   slot?: DaoEquipmentSlot;
   level?: number;
 }

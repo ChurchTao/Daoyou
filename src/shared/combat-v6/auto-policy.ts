@@ -1,5 +1,5 @@
 /** Bump whenever estimates, weights or tie-breaking change. Frozen with battle versions. */
-export const AUTO_POLICY_VERSION = 'combat_auto_utility_v1' as const;
+export const AUTO_POLICY_VERSION = 'combat_auto_utility_v2' as const;
 
 export const AUTO_POLICIES = {
   balanced: { offense: 1, survival: 1.2, control: 1, economy: 0.5 },

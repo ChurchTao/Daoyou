@@ -48,6 +48,7 @@ import breakthroughV6Router from './combat-v6-breakthrough.router';
 import devResourcesRouter from './dev-resources.router';
 import forgingRouter from './forging.router';
 import enlightenmentRouter from './enlightenment.router';
+import inscriptionsRouter from './inscriptions.router';
 
 const apiRouter = new Hono<AppEnv>();
 
@@ -97,6 +98,7 @@ apiRouter.route('/community', communityRouter);
 apiRouter.route('/combat-v6/arena', combatV6ArenaRouter);
 apiRouter.route('/combat-v6/forging', forgingRouter);
 apiRouter.route('/combat-v6/enlightenment', enlightenmentRouter);
+apiRouter.route('/combat-v6/inscriptions', inscriptionsRouter);
 apiRouter.route('/combat-v6/manuals', manualsRouter);
 apiRouter.route('/combat-v6/sect', sectV6Router);
 apiRouter.route('/combat-v6/sect-tasks', sectTasksV6Router);

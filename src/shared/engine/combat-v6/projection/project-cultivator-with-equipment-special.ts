@@ -200,6 +200,12 @@ export function projectCultivatorWithEquipmentSpecialInternal(
         { ...DAO_RAGE_RESOURCE },
       ],
       combatFacts: {
+        ...(input.sect?.sectId === "jiujie" ? {
+        spiritPoints: effectiveAttributes.spirit,
+        thunderMethodLevel: input.sect?.methods['jiujie.method.thunder'] ?? 0,
+        metalWindThunderEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element && ['金', '风', '雷'].includes(e.element)).length,
+        lingyaoMagicAtk: Object.values(input.equipment).reduce((sum, equipment) => sum + (equipment?.formationInscriptions ?? []).reduce((subtotal, formation) => subtotal + (formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Lingyao ? formation.level * daoFormationInscriptionOf(DAO_FORMATION_INSCRIPTION_ID.Lingyao)!.valuePerLevel : 0), 0), 0),
+        } : {}),
         beltMaxHp: equipmentContribution(input.equipment.belt, 'maxHp'),
         beltPhysicalDef: equipmentContribution(input.equipment.belt, 'physicalDef'),
         wuxiang_wind_weapon: input.equipment.weapon?.element === '风' ? 1 : 0,

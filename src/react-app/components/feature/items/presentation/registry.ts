@@ -10,6 +10,7 @@ import {
 } from './basic';
 import { consumableAdapter } from './consumable';
 import { equipmentAdapter } from './equipment';
+import { inscriptionAdapter } from './inscription';
 import type { DisplayItem, ItemAdapter } from './types';
 
 const adapters = {
@@ -19,6 +20,7 @@ const adapters = {
   material: materialAdapter,
   seed: seedAdapter,
   manual_jade: manualAdapter,
+  inscription: inscriptionAdapter,
   beast_book: beastBookAdapter,
   beast_refinement: refinementAdapter,
 } satisfies Record<ItemDefinition['kind'], ItemAdapter>;

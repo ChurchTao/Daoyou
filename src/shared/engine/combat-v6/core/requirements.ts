@@ -3,7 +3,7 @@ import { FailReason, SkillTag, StatusFlag, failDetail } from './enums.ts';
 import { evalExpr } from './expr.ts';
 import { atLeast } from './math.ts';
 import { skillOf } from './skills.ts';
-import { hasBlock } from './status.ts';
+import { commandBlockReason, hasBlock } from './status.ts';
 import type { SkillDef, Unit } from './types.ts';
 import { combatModifiers } from './modifiers';
 import { resourceOf } from './units.ts';
@@ -41,6 +41,8 @@ export function checkSkillRequirements(
   const hpCost = waivedHp ? 0 : atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)));
   const resourceCosts = resolveResourceCosts(skill, env);
   const reasons: string[] = [];
+  const restriction = commandBlockReason(ctx, unit, { type: "skill", skillId: skill.id, targets: targets.map(t => t.id) });
+  if (restriction) reasons.push(restriction);
   if (skill.requirement !== undefined && !evalExpr(skill.requirement, env)) reasons.push('skill-condition');
 
   if (hasBlock(ctx, unit, StatusFlag.BlocksAction))

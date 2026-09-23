@@ -3,6 +3,7 @@
  */
 import type { BattleContext } from './context.ts';
 import { BattlePhase, TargetMode, oppositeSide } from './enums.ts';
+import { commandBlockReason } from './status.ts';
 import { checkSkillRequirements } from './requirements.ts';
 import { skillOf } from './skills.ts';
 import { isUntargetableBy, poolFor, targetCount } from './targeting.ts';
@@ -100,7 +101,7 @@ export function commandOptions(
           resources: check.resourceCosts,
         },
         ready: ctx.rules.deferredPlayerCommands
-          ? canSubmit && targets.length > 0 && !check.reasons.includes('cooldown')
+          ? canSubmit && targets.length > 0 && !check.reasons.includes('cooldown') && !check.reasons.includes('command-restricted')
           : skillReasons.length === 0,
         reasons: [...new Set(skillReasons)],
         selectableTargetIds: targets.map((target) => target.id),
@@ -113,14 +114,14 @@ export function commandOptions(
     unitId,
     canSubmit,
     reasons,
-    attackTargetIds: enemies
+    attackTargetIds: (commandBlockReason(ctx, unit, { type: "attack", target: "" }) ? [] : enemies)
       .filter((target) => !isUntargetableBy(ctx, unit, target, false))
       .map((target) => target.id),
-    protectTargetIds: allies.map((target) => target.id),
-    canDefend: canSubmit,
-    canFlee: canSubmit && enemies.length > 0,
+    protectTargetIds: (commandBlockReason(ctx, unit, { type: "protect", target: "" }) ? [] : allies).map((target) => target.id),
+    canDefend: canSubmit && !commandBlockReason(ctx, unit, { type: "defend" }),
+    canFlee: canSubmit && enemies.length > 0 && !commandBlockReason(ctx, unit, { type: "flee" }),
     summonablePets:
-      canSubmit && isStanding(unit) && unit.kind === 'player'
+      canSubmit && !commandBlockReason(ctx, unit, { type: 'summon', petId: '' }) && isStanding(unit) && unit.kind === 'player'
         ? ctx.state.units
             .filter(
               (pet) =>
@@ -140,7 +141,7 @@ export function commandOptions(
             }))
         : [],
     canRecall:
-      canSubmit &&
+      canSubmit && !commandBlockReason(ctx, unit, { type: "recall" }) &&
       isStanding(unit) &&
       unit.kind === 'player' &&
       ctx.state.units.some(

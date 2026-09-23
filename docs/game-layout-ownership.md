@@ -59,3 +59,7 @@
 ## 悟道室（2026-09-21）
 
 `/game/enlightenment` 在 `GameViewportLayout` 下提供独立典籍参悟流程，由 `EnlightenmentRoom` 拥有四格选材、概率、费用确认和结果展示。洞府与展开导航提供悟道室入口；旧 `/game/enlightenment/gongfa`、`replace`、`skill` 仍沿用既有角色页重定向，不承担新典籍参悟。
+
+## 阵纹室（2026-09-23）
+
+`/game/inscriptions` 归属 `GameViewportLayout`，洞府与展开导航提供入口。`InscriptionRoom` 持有绘制／强化／烙印三个页签、四格堆叠材料、背包选择、双孔操作和费用确认；桌面左右布局，手机使用物品抽屉。共享物品格与预览沿用原组件，绘制台使用独立透明水墨素材。规则见 [阵纹室](inscription-room.md)。

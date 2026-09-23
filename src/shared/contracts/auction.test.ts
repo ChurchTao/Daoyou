@@ -13,7 +13,7 @@ import {
 describe('新版寄售规则', () => {
   it('所有无品质品类开放寄售，不合成品质或按旧品质限价', () => {
     for (const definition of ITEM_DEFINITIONS.filter((d) =>
-      ['equipment', 'blueprint', 'manual_jade', 'beast_book'].includes(d.kind),
+      ['equipment', 'blueprint', 'manual_jade', 'beast_book', 'inscription'].includes(d.kind),
     )) {
       const item = {
         definitionId: definition.id,

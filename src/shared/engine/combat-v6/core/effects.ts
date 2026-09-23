@@ -25,14 +25,30 @@ type EffectHandler<T extends SkillEffect = SkillEffect> = (
 ) => void
 
 const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect, { type: K }>> } = {
+  [EffectType.Repeat]: (ctx, source, skill, effect, targets, env) => {
+    const count = effect.min + Math.floor(ctx.rng.next() * (effect.max - effect.min + 1))
+    for (let i = 0; i < count && isStanding(source) && !ctx.state.result; i++) {
+      applyBranchEffects(ctx, source, skill, effect.effects, targets, env, true)
+    }
+  },
   [EffectType.ModifyFact]: (ctx, source, _skill, effect, _targets, env) => {
     (source.combatFacts ??= {})[effect.key] = evalExpr(effect.value, { ...env, state: ctx.state })
   },
   [EffectType.ModifyStatusDuration]: (ctx, source, _skill, effect, targets, env) => {
-    for (const target of targets) for (const status of [...target.statuses]) {
-      if (!effect.kinds.includes(status.kind) || (effect.ownedOnly && status.sourceId !== source.id)) continue
-      status.remainingRounds += Math.floor(evalExpr(effect.amount, { ...env, target, state: ctx.state }))
-      if (status.remainingRounds <= 0) removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, status.sourceId)
+    for (const target of targets) {
+      const statuses = target.statuses.filter(status => {
+        const def = ctx.statusDefs.get(status.id)
+        return (!effect.ownedOnly || status.sourceId === source.id) &&
+          (effect.kinds?.includes(status.kind) || (def?.dispellable !== false && def?.category && effect.categories?.includes(def.category)))
+      })
+      if (effect.random) for (let i = statuses.length - 1; i > 0; i--) {
+        const j = Math.floor(ctx.rng.next() * (i + 1));
+        [statuses[i], statuses[j]] = [statuses[j], statuses[i]]
+      }
+      for (const status of statuses.slice(0, effect.maxCount)) {
+        status.remainingRounds += Math.floor(evalExpr(effect.amount, { ...env, target, state: ctx.state }))
+        if (status.remainingRounds <= 0) removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, status.sourceId)
+      }
     }
   },
   [EffectType.ModifyCooldown]: (ctx, source, _skill, effect, _targets, env) => {
@@ -127,7 +143,12 @@ function handleRandomBranch(
     success,
   })
   const branch = success ? effect.successEffects : effect.failureEffects
+  applyBranchEffects(ctx, source, skill, branch, targets, env)
+}
+
+function applyBranchEffects(ctx: BattleContext, source: Unit, skill: SkillDef, branch: SkillEffect[], targets: Unit[], env: ExprEnv, stopOnDeath = false): void {
   for (const child of branch) {
+    if (stopOnDeath && (!isStanding(source) || ctx.state.result)) break;
     const resolved = child.targeting
       ? resolveSkillTargets(ctx, source, { ...skill, targeting: child.targeting }, targets.map((target) => target.id))
       : targets
@@ -184,6 +205,7 @@ export function applyEffect(
   if (
     effect.type !== EffectType.SkipNextAction &&
     effect.type !== EffectType.RandomBranch &&
+    effect.type !== EffectType.Repeat &&
     effect.type !== EffectType.ApplyStatus &&
     effect.type !== EffectType.RemoveStatus &&
     effect.type !== EffectType.CopyStatus &&
@@ -299,10 +321,21 @@ function handleApplyStatus(
     if ((t.flags.downed || t.flags.dead) && !(effect.targeting?.includeDowned ?? skill.targeting.includeDowned)) continue
     const modifiers = combatModifiers(ctx, source, { target: t, skill, skillId: skill.id })
     const durationAdd = modifiers.reduce((sum, m) => sum + (m.statusDurationAdd?.statusId === effect.statusId ? evalExpr(m.statusDurationAdd.amount, { ...env, target: t, state: ctx.state }) : 0), 0)
+    const def = ctx.statusDefs.get(effect.statusId)
+    const actionSkill = ctx.currentAction?.sourceId === source.id ? (source.skillOverrides[ctx.currentAction.skillId] ?? ctx.skills.get(ctx.currentAction.skillId)) : undefined
+    // Resist hostile negative spell statuses, never damage or self-imposed costs/rest.
+    if (source.side !== t.side && def?.category && def.category !== StatusCategory.Buff &&
+        ((actionSkill ?? skill).tags.includes('spell') || (actionSkill ?? skill).tags.includes('seal'))) {
+      const resistance = Math.min(0.25, t.passives.reduce((sum, id) => sum + ((t.skillOverrides[id] ?? ctx.skills.get(id))?.innate?.negativeSpellResistance ?? 0), 0))
+      if (resistance > 0 && ctx.rng.chance(resistance)) {
+        ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
+        continue
+      }
+    }
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
       const targetModifiers = combatModifiers(ctx, t, { target: source, skill, skillId: skill.id })
-      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance({ ...source, attrs: effectiveAttrs(source) }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
+      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance({ ...source, attrs: effectiveAttrs(source) }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * modifiers.reduce((factor, m) => factor * evalExpr(m.sealChanceFactor ?? 1, env), 1) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
       if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
@@ -362,7 +395,7 @@ function handleDispel(
         if (!success) continue;
       }
       removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
-      if (effect.preventReapplyThisRound) (t.flags.statusImmunityThroughRound ??= {})[status.kind] = ctx.state.round
+      if (effect.preventReapplyThisRound || effect.immunityRounds) (t.flags.statusImmunityThroughRound ??= {})[status.kind] = ctx.state.round + (effect.immunityRounds ?? 0)
     }
   }
 }

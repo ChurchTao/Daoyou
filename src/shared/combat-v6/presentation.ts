@@ -61,6 +61,9 @@ export function combatV6Units(
     statuses.map((s) => [
       s.id,
       s.blocksAction ||
+      s.blockedCommands?.length ||
+      s.blocksNonArtSkills ||
+      s.blocksArts ||
       s.blocksSpell ||
       s.blocksPhysical ||
       s.blocksRevive ||

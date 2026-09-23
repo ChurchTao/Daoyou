@@ -191,7 +191,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
 function findProtector(ctx: BattleContext, target: Unit): Unit | undefined {
   if (!isStanding(target)) return undefined
   return alliesOf(ctx.state, target).find(
-    (ally) => ally.flags.protecting === target.id && isStanding(ally) && ally.id !== target.id,
+    (ally) => (ally.flags.protecting === target.id || target.statuses.some(s => s.sourceId === ally.id && ctx.statusDefs.get(s.id)?.protectsTarget)) && isStanding(ally) && ally.id !== target.id,
   )
 }
 

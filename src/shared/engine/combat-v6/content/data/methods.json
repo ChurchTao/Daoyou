@@ -282,15 +282,15 @@
         "name": "《九劫天书》",
         "isPrimary": true,
         "panel": {
-          "attr": "maxMp",
+          "attr": "physicalAtk",
           "mode": "add",
-          "value": 2
+          "value": 0.5
         }
       },
       {
         "id": "jiujie.method.seal",
         "slot": 2,
-        "name": "《乾坤镇妖录》",
+        "name": "《乾坤敕令》",
         "isPrimary": false,
         "panel": {
           "attr": "sealHit",
@@ -315,7 +315,7 @@
         "name": "《天罡护体经》",
         "isPrimary": false,
         "panel": {
-          "attr": "magicDef",
+          "attr": "physicalDef",
           "mode": "add",
           "value": 0.4
         }
@@ -323,12 +323,12 @@
       {
         "id": "jiujie.method.pride",
         "slot": 5,
-        "name": "《傲世神诀》",
+        "name": "《清明观照经》",
         "isPrimary": false,
         "panel": {
-          "attr": "sealResist",
+          "attr": "magicDef",
           "mode": "add",
-          "value": 0.25
+          "value": 0.4
         }
       },
       {

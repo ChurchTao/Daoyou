@@ -1,1145 +1,1418 @@
 {
   "$schema": "./jiujie-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
-      "id": "jiujie.passive.thunder.l1s1",
-      "name": "雷动九霄",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
+      "id": "jiujie.passive.physical",
+      "name": "以身承雷",
+      "description": "以身承雷，以兵行劫。可直接选择震岳、掠霆的一至三重；灌注能强化本次重数，高重数需承担休息风险。"
     },
     {
-      "id": "jiujie.passive.thunder.l2s1",
-      "name": "电芒引雷",
+      "id": "jiujie.passive.magic",
+      "name": "以印引劫",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetStatusStack": {
-              "kind": "jiujie.status.electric",
-              "min": 1
-            }
-          },
+          "on": "onRoundStart",
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": "1 + targetStatusStacks * 0.05"
+              "type": "applyStatus",
+              "statusId": "jiujie.status.attunement",
+              "duration": 1,
+              "self": true
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "jiujie.passive.thunder.l2s2",
-      "name": "雷心炽盛",
-      "hooks": [
-        {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
+          ],
           "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
+            "oncePerBattle": true
+          }
+        },
+        {
+          "on": "afterStrike",
           "effects": [
             {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "jiujie.passive.thunder.l2s3",
-      "name": "破霄洞真",
-      "hooks": [
-        {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
+              "type": "removeStatus",
+              "kinds": [
+                "jiujie.status.red"
+              ],
+              "ownedOnly": true
+            },
             {
-              "type": "modifyDefenseIgnore",
-              "add": 0.05
+              "type": "applyStatus",
+              "statusId": "jiujie.status.electric",
+              "duration": 3
             }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "jiujie.passive.thunder.l4s3",
-      "name": "雷眼昭明",
-      "hooks": [
-        {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
+          ],
           "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "jiujie.passive.thunder.l5s1",
-      "name": "乘雷破阵",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetStatusKinds": [
-              "jiujie.status.electric"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "jiujie.passive.thunder.lifesteal",
-      "name": "雷泽回生",
-      "hooks": [
-        {
-          "on": "afterHit",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
             "requireKind": "spell",
-            "damageOrigins": [
-              "action-direct"
+            "targetOwnedStatus": {
+              "kind": "jiujie.status.red"
+            }
+          },
+          "sourceIsSelf": true
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "jiujie.branch.red_mark",
+              "chance": "known.jiujie.passive.chiji * if(allyTagCount.sect.jiujie == 1, 0.1, 0)",
+              "successEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.electric"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.red",
+                  "duration": 3
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.red"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.electric",
+                  "duration": 3
+                }
+              ]
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.thunderstorm",
+              "jiujie.skill.edict",
+              "jiujie.skill.six_thunder"
+            ],
+            "targetEnemy": true,
+            "sourceStanding": true
+          },
+          "sourceIsSelf": true
+        }
+      ],
+      "modifiers": [
+        {
+          "sealChanceFactor": 0.85
+        },
+        {
+          "when": {
+            "requireKind": "spell",
+            "targetOwnedStatus": {
+              "kind": "jiujie.status.electric"
+            },
+            "expression": "1 - ownedTargetStatus.jiujie.status.red"
+          },
+          "damageBonus": 0.12
+        },
+        {
+          "when": {
+            "requireKind": "spell",
+            "targetOwnedStatus": {
+              "kind": "jiujie.status.red"
+            }
+          },
+          "damageBonus": 0.7
+        }
+      ],
+      "description": "群雷命中后留下持续3回合的雷印，自身后续对其造成的法术伤害提高12%；自身封印命中率降低15%。"
+    },
+    {
+      "id": "jiujie.passive.tingzhen",
+      "name": "霆震",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "requireKind": "physical",
+            "expression": "(fact.jiujie_type == 2) * (effective.speed > targetEffective.speed)"
+          },
+          "damageBonus": 0.08
+        }
+      ],
+      "description": "掠霆攻击速度低于自己的目标时，伤害提高8%。"
+    },
+    {
+      "id": "jiujie.passive.jilei",
+      "name": "疾雷",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "requireKind": "physical",
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank >= 2) * (fact.jiujie_streak >= 2)"
+          },
+          "defenseIgnoreAdd": 0.1
+        }
+      ],
+      "description": "连续两次使用二重及以上核心招式而未休息后，震岳忽略10%物防，掠霆基础休息率降低10个百分点，直至休息。"
+    },
+    {
+      "id": "jiujie.passive.jiyue",
+      "name": "激越",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "requireKind": "physical",
+            "expression": "(fact.jiujie_type == 1) * (hp > target.hp)"
+          },
+          "damageBonus": 0.05
+        }
+      ],
+      "description": "震岳攻击当前气血值低于自己的目标时，伤害提高5%。"
+    },
+    {
+      "id": "jiujie.passive.cunxiong",
+      "name": "存雄",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.cunxiong",
+              "duration": 3,
+              "self": true
+            }
+          ],
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true
+          },
+          "sourceIsSelf": true
+        }
+      ],
+      "description": "成功使用器诀后，震岳、掠霆及九劫归一的物理伤害提高10%，持续3回合。"
+    },
+    {
+      "id": "jiujie.passive.yuyun",
+      "name": "余韵",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_echo",
+              "value": 1
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.diefeng",
+              "dao_equipment.skill.cuiling"
+            ],
+            "actionSucceeded": true
+          },
+          "sourceIsSelf": true
+        }
+      ],
+      "description": "使用双剑合璧或摧灵斩后，下次核心招式提高一重；九劫归一的两类攻击均受益。"
+    },
+    {
+      "id": "jiujie.passive.cuiling",
+      "name": "摧灵",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.cuiling"
             ]
           },
-          "aim": "self",
+          "damageBonus": 0.42
+        }
+      ],
+      "description": "摧灵斩伤害提高42%。"
+    },
+    {
+      "id": "jiujie.passive.jingting",
+      "name": "惊霆",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "primary",
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank <= 2)"
+          },
+          "damageBonus": 0.3
+        }
+      ],
+      "description": "实际一、二重掠霆对首目标伤害提高30%。"
+    },
+    {
+      "id": "jiujie.passive.physical_pet",
+      "name": "电掣",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "foeKind": "pet"
+          },
+          "damageBonus": 0.2,
+          "defenseIgnoreAdd": 0.1
+        }
+      ],
+      "description": "对灵兽忽略10%物防，造成的物理伤害提高20%。"
+    },
+    {
+      "id": "jiujie.passive.magic_pet",
+      "name": "电掣",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell",
+            "foeKind": "pet"
+          },
+          "damageBonus": 0.2,
+          "defenseIgnoreAdd": 0.1
+        }
+      ],
+      "description": "对灵兽忽略10%法防，造成的法术伤害提高20%。"
+    },
+    {
+      "id": "jiujie.passive.dianguang",
+      "name": "电光",
+      "description": "实际一、二重震岳有18%概率再提高一重；九劫归一首目标段同样生效。"
+    },
+    {
+      "id": "jiujie.passive.leitun",
+      "name": "雷吞",
+      "description": "武器、衣服每有一件属于金、风、雷，主动引劫入体额外获得1层灌注，允许混搭。"
+    },
+    {
+      "id": "jiujie.passive.shencai",
+      "name": "神采",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_kill_sweep",
+              "value": 1
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "excludeFoeKinds": [
+              "npc"
+            ],
+            "targetEnemy": true,
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          },
+          "sourceIsSelf": true
+        }
+      ],
+      "description": "实际三重掠霆击倒至少一名人物或灵兽时，25%概率免除本次休息，每次施法只判一次。"
+    },
+    {
+      "id": "jiujie.passive.zhenhun",
+      "name": "震魂",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.confuse",
+              "duration": 1,
+              "targeting": {
+                "side": "enemy",
+                "mode": "explicit",
+                "count": 1,
+                "includeDowned": true,
+                "includeDead": true
+              }
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "excludeFoeKinds": [
+              "npc"
+            ],
+            "targetEnemy": true,
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          },
+          "chance": 0.5,
+          "sourceIsSelf": true
+        }
+      ],
+      "description": "实际三重震岳击倒人物或灵兽时，有50%概率施加1回合乱神雷咒；期限内复起仍受影响。"
+    },
+    {
+      "id": "jiujie.passive.rebirth",
+      "name": "劫后逢生",
+      "hooks": [
+        {
+          "on": "onFatal",
           "effects": [
             {
               "type": "restoreHp",
-              "power": "floor(hpDamage * 0.1)",
-              "maxGainPerAction": "floor(source.maxHp * 0.15)"
+              "power": "maxHp * 0.1",
+              "allowFatal": true
             }
-          ]
+          ],
+          "when": {
+            "requireStatusIds": [
+              "jiujie.status.guardian"
+            ],
+            "oncePerBattle": true
+          },
+          "targetIsSelf": true,
+          "aim": "self"
         }
-      ]
+      ],
+      "description": "自身天罡护体期间受到致命伤害，恢复至10%最大气血，每场一次。"
     },
     {
-      "id": "jiujie.passive.thunder.l5s3",
-      "name": "追亡逐电",
-      "hooks": [
+      "id": "jiujie.passive.qishi",
+      "name": "气势",
+      "description": "本场首次使用每一实际重数的震岳、掠霆时，15%概率免除本次休息，两类分别记录。"
+    },
+    {
+      "id": "jiujie.passive.poyue",
+      "name": "破岳",
+      "modifiers": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
           "when": {
             "skillIds": [
-              "jiujie.skill.thunderstorm"
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
             ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetHpRatioBelow": 0.5
+            "requireKind": "physical",
+            "expression": "fact.jiujie_type == 1"
           },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
+          "defenseIgnoreAdd": 0.05
         }
-      ]
+      ],
+      "description": "震岳忽略5%物防，九劫归一首目标段同样生效。"
     },
     {
-      "id": "jiujie.passive.thunder.l6s1",
-      "name": "九霄震怒",
+      "id": "jiujie.passive.gandian",
+      "name": "感电",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "jiujie.branch.red_mark",
+              "chance": "known.jiujie.passive.chiji * if(allyTagCount.sect.jiujie == 1, 0.1, 0)",
+              "successEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.electric"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.red",
+                  "duration": 3
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.red"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.electric",
+                  "duration": 3
+                }
+              ]
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "expression": "enemyStatus.jiujie.status.electric + enemyStatus.jiujie.status.red < 3"
+          },
+          "targeting": {
+            "side": "enemy",
+            "mode": "random",
+            "count": 1
+          }
+        }
+      ],
+      "description": "回合开始时，若敌方带雷印单位不足3个，随机一名可选敌人获得雷印。"
+    },
+    {
+      "id": "jiujie.passive.luanliu",
+      "name": "乱流",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "jiujie.branch.red_mark",
+              "chance": "known.jiujie.passive.chiji * if(allyTagCount.sect.jiujie == 1, 0.1, 0)",
+              "successEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.electric"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.red",
+                  "duration": 3
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.red"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.electric",
+                  "duration": 3
+                }
+              ]
+            }
+          ],
           "when": {
             "skillIds": [
               "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
+              "jiujie.skill.edict",
+              "jiujie.skill.six_thunder"
             ],
-            "damageOrigins": [
-              "action-direct"
-            ]
+            "initialTargetStatusKinds": [
+              "jiujie.status.electric",
+              "jiujie.status.red"
+            ],
+            "targetEnemy": true
           },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
+          "sourceIsSelf": true,
+          "chance": 0.1,
+          "targeting": {
+            "side": "enemy",
+            "mode": "random",
+            "count": 1
+          }
         }
-      ]
+      ],
+      "description": "群雷命中施放前已带雷印的目标时，10%概率使随机一名可选敌人获得雷印。"
     },
     {
-      "id": "jiujie.passive.thunder.l6s2",
-      "name": "雷界无壁",
+      "id": "jiujie.passive.shuang",
+      "name": "霜雷",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageBonus": 0.05
+        }
+      ],
+      "description": "法术伤害提高5%。"
+    },
+    {
+      "id": "jiujie.passive.hongming",
+      "name": "轰鸣",
+      "description": "混天雷法等级不低于人物映射等级时，法攻提高60。"
+    },
+    {
+      "id": "jiujie.passive.yuyi",
+      "name": "驭意",
+      "description": "按灵力属性点获得5%速度、10%法攻，同时失去24%法防；不以最终法攻为基数。"
+    },
+    {
+      "id": "jiujie.passive.gangwei",
+      "name": "罡威",
+      "description": "天罡护体的法攻增量提高50%，不放大法防增量。"
+    },
+    {
+      "id": "jiujie.passive.six",
+      "name": "六霄雷劫",
+      "description": "群雷不再消耗灌注；获得主动六霄雷劫，消耗1层灌注对至多6人施放强化群雷。"
+    },
+    {
+      "id": "jiujie.passive.chiji",
+      "name": "赤殛",
+      "description": "队伍仅有一名九劫修士时，施加雷印有10%概率成为赤雷印；自身下一次法术命中的雷印增伤改为70%，随后退为普通雷印。"
+    },
+    {
+      "id": "jiujie.passive.lingguang",
+      "name": "灵光",
+      "description": "所有装备的灵曜阵纹所提供的法攻额外提高25%。"
+    },
+    {
+      "id": "jiujie.passive.yulei",
+      "name": "驭雷",
       "hooks": [
         {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
+          "on": "afterAction",
           "effects": [
             {
-              "type": "modifyDefenseIgnore",
-              "add": 0.1
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 10
             }
-          ]
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.charge"
+            ],
+            "actionSucceeded": true
+          },
+          "sourceIsSelf": true
         }
-      ]
+      ],
+      "description": "主动使用引劫入体后回复10战意；被动获得灌注不触发。"
     },
     {
-      "id": "jiujie.passive.thunder.l6s3",
-      "name": "万雷同鸣",
+      "id": "jiujie.passive.gongming",
+      "name": "共鸣",
       "hooks": [
         {
           "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
           "effects": [
             {
               "type": "modifyStrike",
               "factor": 1.12
             }
-          ]
+          ],
+          "when": {
+            "skillIds": [
+              "beast.thunder",
+              "beast.thunderstorm"
+            ],
+            "requireKind": "spell"
+          },
+          "sourceIsOwnedPet": true
         }
-      ]
+      ],
+      "description": "自己的灵兽施放雷击、奔雷时，伤害提高12%。"
     },
     {
-      "id": "jiujie.passive.thunder.l7s3.crit",
-      "name": "三劫雷极·雷暴",
+      "id": "jiujie.passive.xianyin",
+      "name": "仙音",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.sandie"
+            ],
+            "targetStatusKinds": [
+              "jiujie.status.electric",
+              "jiujie.status.red"
+            ]
+          },
+          "damageBonus": 0.2
+        }
+      ],
+      "description": "三叠仙音攻击带雷印单位时，伤害提高20%。"
+    },
+    {
+      "id": "jiujie.passive.leibo",
+      "name": "雷波",
       "hooks": [
         {
-          "on": "onCritRoll",
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "jiujie.branch.red_mark",
+              "chance": "known.jiujie.passive.chiji * if(allyTagCount.sect.jiujie == 1, 0.1, 0)",
+              "successEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.electric"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.red",
+                  "duration": 3
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "jiujie.status.red"
+                  ],
+                  "ownedOnly": true
+                },
+                {
+                  "type": "applyStatus",
+                  "statusId": "jiujie.status.electric",
+                  "duration": 3
+                }
+              ]
+            }
+          ],
+          "when": {
+            "targetEnemy": true,
+            "targetStatusKinds": [
+              "jiujie.status.electric",
+              "jiujie.status.red"
+            ],
+            "expression": 1
+          },
           "sourceIsSelf": true,
+          "targeting": {
+            "side": "enemy",
+            "mode": "all"
+          }
+        }
+      ],
+      "modifiers": [
+        {
           "when": {
             "skillIds": [
               "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
+              "jiujie.skill.edict",
+              "jiujie.skill.six_thunder"
             ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetStatusStack": {
-              "kind": "jiujie.status.electric",
-              "min": 3
-            }
+            "targetSlot": "primary",
+            "requireKind": "spell"
           },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.1
-            }
-          ]
+          "damageBonus": 0.08
         }
-      ]
+      ],
+      "description": "群雷首目标伤害提高8%；自身击倒带雷印的敌人时，使所有存活敌人获得雷印。"
     },
     {
-      "id": "jiujie.passive.thunder.l7s3.detonate",
-      "name": "三劫雷极·引爆",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "requireKind": "fixed",
-          "when": {
-            "skillIds": [
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "hook-derived"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.2
-            }
-          ]
-        }
-      ]
+      "id": "jiujie.passive.law.trait",
+      "name": "天罡辟邪",
+      "innate": {
+        "negativeSpellResistance": 0.15
+      },
+      "description": "有15%概率抵御敌方负面法术状态；同类概率相加，最高25%。不抵御直接伤害。"
     },
     {
-      "id": "jiujie.passive.thunder.foundation",
-      "name": "九霄驭雷",
+      "id": "jiujie.passive.thunder.trait",
+      "name": "天罡辟邪",
+      "innate": {
+        "negativeSpellResistance": 0.15
+      },
+      "description": "有15%概率抵御敌方负面法术状态；同类概率相加，最高25%。不抵御直接伤害。"
+    },
+    {
+      "id": "jiujie.passive.law.leixing",
+      "name": "雷醒",
       "hooks": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "jiujie.skill.thunderstorm",
-              "jiujie.skill.startling_thunder",
-              "jiujie.skill.nine_heavens_thunder"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
+          "on": "onRoundStart",
           "effects": [
             {
-              "type": "modifyStrike",
-              "factor": 1.05
+              "type": "modifyFact",
+              "key": "jiujie_round_loss",
+              "value": 0
             }
           ]
+        },
+        {
+          "on": "onBeHit",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_round_loss",
+              "value": "fact.jiujie_round_loss + hpDamage"
+            }
+          ],
+          "targetIsSelf": true
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "dispel",
+              "categories": [
+                "control"
+              ]
+            },
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "youdu.status.soul_seal"
+              ]
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "expression": "fact.jiujie_round_loss >= maxHp * 0.3"
+          },
+          "aim": "self"
         }
-      ]
+      ],
+      "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。"
+    },
+    {
+      "id": "jiujie.passive.thunder.leixing",
+      "name": "雷醒",
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_round_loss",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "on": "onBeHit",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_round_loss",
+              "value": "fact.jiujie_round_loss + hpDamage"
+            }
+          ],
+          "targetIsSelf": true
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "dispel",
+              "categories": [
+                "control"
+              ]
+            },
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "youdu.status.soul_seal"
+              ]
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "expression": "fact.jiujie_round_loss >= maxHp * 0.3"
+          },
+          "aim": "self"
+        }
+      ],
+      "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。"
+    },
+    {
+      "id": "jiujie.passive.law.tianjie",
+      "name": "天劫",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "jiujie.resource.charge",
+              "amount": 1
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.divine_guardian"
+            ],
+            "actionSucceeded": true,
+            "oncePerBattle": true
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ],
+      "description": "每场首次主动使用天罡护体后，获得1层灌注。"
+    },
+    {
+      "id": "jiujie.passive.thunder.tianjie",
+      "name": "天劫",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "jiujie.resource.charge",
+              "amount": 1
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "jiujie.skill.divine_guardian"
+            ],
+            "actionSucceeded": true,
+            "oncePerBattle": true
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ],
+      "description": "每场首次主动使用天罡护体后，获得1层灌注。"
     }
   ],
   "paths": [
     {
       "id": "jiujie.path.law",
-      "name": "天律镇妖",
-      "panel": [
-        {
-          "attr": "sealHit",
-          "mode": "add",
-          "value": 20
-        }
+      "name": "霹雳真君",
+      "requiresConnectedNodes": true,
+      "unitTags": [
+        "sect.jiujie"
+      ],
+      "foundationPassives": [
+        "jiujie.passive.law.trait",
+        "jiujie.passive.physical"
+      ],
+      "grantSkills": [
+        "jiujie.skill.strike_1",
+        "jiujie.skill.strike_2",
+        "jiujie.skill.strike_3",
+        "jiujie.skill.sweep_1",
+        "jiujie.skill.sweep_2",
+        "jiujie.skill.sweep_3"
+      ],
+      "resources": [
+        "jiujie.resource.charge"
       ],
       "nodes": [
         {
           "id": "jiujie.node.law.1.1",
-          "name": "镇妖威仪",
+          "name": "霆震",
           "layer": 1,
           "slot": 1,
-          "description": "镇妖威仪",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "addSealBase",
-              "value": 8
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "掠霆攻击速度低于自己的目标时，伤害提高8%。",
+          "passives": [
+            "jiujie.passive.tingzhen"
+          ]
         },
         {
           "id": "jiujie.node.law.1.2",
-          "name": "乱神摄魄",
+          "name": "疾雷",
           "layer": 1,
           "slot": 2,
-          "description": "乱神摄魄",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "addSealBase",
-              "value": 8
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "连续两次使用二重及以上核心招式而未休息后，震岳忽略10%物防，掠霆基础休息率降低10个百分点，直至休息。",
+          "passives": [
+            "jiujie.passive.jilei"
+          ]
         },
         {
           "id": "jiujie.node.law.1.3",
-          "name": "踏罡先机",
+          "name": "激越",
           "layer": 1,
           "slot": 3,
-          "description": "踏罡先机",
-          "panel": [
-            {
-              "attr": "speed",
-              "mode": "add",
-              "value": 30
-            }
-          ],
-          "patches": [],
-          "passives": [],
-          "grantSkills": []
+          "description": "震岳攻击当前气血值低于自己的目标时，伤害提高5%。",
+          "passives": [
+            "jiujie.passive.jiyue"
+          ]
         },
         {
           "id": "jiujie.node.law.2.1",
-          "name": "神兵禁武",
+          "name": "存雄",
           "layer": 2,
           "slot": 1,
-          "description": "神兵禁武",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "addSealBase",
-              "value": 8
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "成功使用器诀后，震岳、掠霆及九劫归一的物理伤害提高10%，持续3回合。",
+          "passives": [
+            "jiujie.passive.cunxiong"
+          ]
         },
         {
           "id": "jiujie.node.law.2.2",
-          "name": "天律无耗",
+          "name": "余韵",
           "layer": 2,
           "slot": 2,
-          "description": "天律无耗",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "multiplyCostMp",
-              "value": 0.85
-            },
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "multiplyCostMp",
-              "value": 0.85
-            },
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "multiplyCostMp",
-              "value": 0.85
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "使用双剑合璧或摧灵斩后，下次核心招式提高一重；九劫归一的两类攻击均受益。",
+          "passives": [
+            "jiujie.passive.yuyun"
+          ]
         },
         {
           "id": "jiujie.node.law.2.3",
-          "name": "玉阙清明",
+          "name": "摧灵",
           "layer": 2,
           "slot": 3,
-          "description": "玉阙清明",
-          "panel": [
-            {
-              "attr": "sealResist",
-              "mode": "add",
-              "value": 30
-            }
-          ],
-          "patches": [],
-          "passives": [],
-          "grantSkills": []
+          "description": "摧灵斩伤害提高42%。",
+          "passives": [
+            "jiujie.passive.cuiling"
+          ]
         },
         {
           "id": "jiujie.node.law.3.1",
-          "name": "天神护法",
+          "name": "惊霆",
           "layer": 3,
           "slot": 1,
-          "description": "天神护法",
-          "panel": [],
-          "patches": [],
-          "passives": [],
-          "grantSkills": [
-            "jiujie.skill.divine_guardian"
+          "description": "实际一、二重掠霆对首目标伤害提高30%。",
+          "passives": [
+            "jiujie.passive.jingting"
           ]
         },
         {
           "id": "jiujie.node.law.3.2",
-          "name": "禁域深严",
+          "name": "电掣",
           "layer": 3,
           "slot": 2,
-          "description": "禁域深严",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.suppress",
-              "value": 2
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "对灵兽忽略10%物防，造成的物理伤害提高20%。",
+          "passives": [
+            "jiujie.passive.physical_pet"
+          ]
         },
         {
           "id": "jiujie.node.law.3.3",
-          "name": "雷判无差",
+          "name": "电光",
           "layer": 3,
           "slot": 3,
-          "description": "雷判无差",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.five_thunder",
-              "operation": "setRandomBranchChance",
-              "branchId": "jiujie.branch.five_thunder.normal",
-              "value": 0.6
-            },
-            {
-              "skillId": "jiujie.skill.five_thunder",
-              "operation": "setRandomBranchChance",
-              "branchId": "jiujie.branch.five_thunder.controlled",
-              "value": 0.6
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "实际一、二重震岳有18%概率再提高一重；九劫归一首目标段同样生效。",
+          "passives": [
+            "jiujie.passive.dianguang"
+          ]
         },
         {
           "id": "jiujie.node.law.4.1",
-          "name": "乱神削灵",
+          "name": "雷吞",
           "layer": 4,
           "slot": 1,
-          "description": "乱神削灵",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "replaceStatusId",
-              "from": "jiujie.status.confuse",
-              "to": "jiujie.status.confuse_weaken"
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "武器、衣服每有一件属于金、风、雷，主动引劫入体额外获得1层灌注，允许混搭。",
+          "passives": [
+            "jiujie.passive.leitun"
+          ]
         },
         {
           "id": "jiujie.node.law.4.2",
-          "name": "神兵挫锐",
+          "name": "雷醒",
           "layer": 4,
           "slot": 2,
-          "description": "神兵挫锐",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "replaceStatusId",
-              "from": "jiujie.status.million_weapons",
-              "to": "jiujie.status.million_weapons_weaken"
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。",
+          "passives": [
+            "jiujie.passive.law.leixing"
+          ]
         },
         {
           "id": "jiujie.node.law.4.3",
-          "name": "天雷破障",
+          "name": "天劫",
           "layer": 4,
           "slot": 3,
-          "description": "天雷破障",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunder_slash",
-              "operation": "replaceStatusId",
-              "from": "jiujie.status.magic_def_break",
-              "to": "jiujie.status.magic_def_break_strong"
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "每场首次主动使用天罡护体后，获得1层灌注。",
+          "passives": [
+            "jiujie.passive.law.tianjie"
+          ]
         },
         {
           "id": "jiujie.node.law.5.1",
-          "name": "乘隙行刑",
+          "name": "神采",
           "layer": 5,
           "slot": 1,
-          "description": "乘隙行刑",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.five_thunder",
-              "operation": "setRandomBranchChance",
-              "branchId": "jiujie.branch.five_thunder.controlled",
-              "value": 0.65
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "实际三重掠霆击倒至少一名人物或灵兽时，25%概率免除本次休息，每次施法只判一次。",
+          "passives": [
+            "jiujie.passive.shencai"
+          ]
         },
         {
           "id": "jiujie.node.law.5.2",
-          "name": "天威不动",
+          "name": "劲健",
           "layer": 5,
           "slot": 2,
-          "description": "天威不动",
+          "description": "物攻提高50。",
           "panel": [
             {
-              "attr": "magicDef",
+              "attr": "physicalAtk",
               "mode": "add",
-              "value": 40
+              "value": 50
             }
-          ],
-          "patches": [],
-          "passives": [],
-          "grantSkills": []
+          ]
         },
         {
           "id": "jiujie.node.law.5.3",
-          "name": "凌霄法眼",
+          "name": "震魂",
           "layer": 5,
           "slot": 3,
-          "description": "凌霄法眼",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "addSealBase",
-              "value": 5
-            },
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "addSealBase",
-              "value": 5
-            },
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "addSealBase",
-              "value": 5
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "实际三重震岳击倒人物或灵兽时，有50%概率施加1回合乱神雷咒；期限内复起仍受影响。",
+          "passives": [
+            "jiujie.passive.zhenhun"
+          ]
         },
         {
           "id": "jiujie.node.law.6.1",
-          "name": "执律森严",
+          "name": "劫后逢生",
           "layer": 6,
           "slot": 1,
-          "description": "执律森严",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "addSealBase",
-              "value": 10
-            },
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "addSealBase",
-              "value": 10
-            },
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "addSealBase",
-              "value": 10
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "自身天罡护体期间受到致命伤害，恢复至10%最大气血，每场一次。",
+          "passives": [
+            "jiujie.passive.rebirth"
+          ]
         },
         {
           "id": "jiujie.node.law.6.2",
-          "name": "禁法久缚",
+          "name": "气势",
           "layer": 6,
           "slot": 2,
-          "description": "禁法久缚",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.confuse",
-              "value": 3
-            },
-            {
-              "skillId": "jiujie.skill.confuse",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.confuse_weaken",
-              "value": 3
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "本场首次使用每一实际重数的震岳、掠霆时，15%概率免除本次休息，两类分别记录。",
+          "passives": [
+            "jiujie.passive.qishi"
+          ]
         },
         {
           "id": "jiujie.node.law.6.3",
-          "name": "禁武久缚",
+          "name": "破岳",
           "layer": 6,
           "slot": 3,
-          "description": "禁武久缚",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.million_weapons",
-              "value": 3
-            },
-            {
-              "skillId": "jiujie.skill.million_weapons",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.million_weapons_weaken",
-              "value": 3
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "震岳忽略5%物防，九劫归一首目标段同样生效。",
+          "passives": [
+            "jiujie.passive.poyue"
+          ]
         },
         {
           "id": "jiujie.node.law.7.1",
-          "name": "九天镇狱",
+          "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "九天镇狱",
-          "panel": [],
-          "patches": [],
-          "passives": [],
-          "grantSkills": [
-            "jiujie.skill.heavenly_prison"
+          "description": "物攻提高40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         },
         {
           "id": "jiujie.node.law.7.2",
-          "name": "诸法皆禁",
+          "name": "九劫归一",
           "layer": 7,
           "slot": 2,
-          "description": "诸法皆禁",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "setSealBase",
-              "value": 60
-            },
-            {
-              "skillId": "jiujie.skill.suppress",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.suppress",
-              "value": 2
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，至多5人。可能自损倒地；按较高重数结算一次休息。",
+          "grantSkills": [
+            "jiujie.skill.tribulation"
+          ]
         },
         {
           "id": "jiujie.node.law.7.3",
-          "name": "五雷正法",
+          "name": "霹雳真君",
           "layer": 7,
           "slot": 3,
-          "description": "五雷正法",
-          "panel": [],
-          "patches": [
+          "description": "物攻提高40。",
+          "automatic": true,
+          "panel": [
             {
-              "skillId": "jiujie.skill.five_thunder",
-              "operation": "setRandomBranchChance",
-              "branchId": "jiujie.branch.five_thunder.controlled",
-              "value": 1
-            },
-            {
-              "skillId": "jiujie.skill.five_thunder",
-              "operation": "setRandomBranchFixedPower",
-              "branchId": "jiujie.branch.five_thunder.controlled",
-              "value": "min(floor(target.hp * 0.3), 60 * skillLevel)"
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
             }
-          ],
-          "passives": [],
-          "grantSkills": []
+          ]
         }
-      ],
-      "foundationPassives": [],
-      "patches": [],
-      "grantSkills": [],
-      "resources": []
+      ]
     },
     {
       "id": "jiujie.path.thunder",
-      "name": "九霄驭雷",
+      "name": "踏雷天尊",
+      "requiresConnectedNodes": true,
+      "unitTags": [
+        "sect.jiujie"
+      ],
+      "foundationPassives": [
+        "jiujie.passive.thunder.trait",
+        "jiujie.passive.magic"
+      ],
+      "grantSkills": [
+        "jiujie.skill.thunderstorm"
+      ],
+      "resources": [
+        "jiujie.resource.charge"
+      ],
       "nodes": [
         {
           "id": "jiujie.node.thunder.1.1",
-          "name": "雷动九霄",
+          "name": "敕雷",
           "layer": 1,
           "slot": 1,
-          "description": "雷动九霄",
-          "panel": [],
-          "patches": [],
-          "passives": [
-            "jiujie.passive.thunder.l1s1"
-          ],
-          "grantSkills": []
+          "description": "获得敕雷：可自行指定全部群雷目标，冷却5回合。",
+          "grantSkills": [
+            "jiujie.skill.edict"
+          ]
         },
         {
           "id": "jiujie.node.thunder.1.2",
-          "name": "万钧齐落",
+          "name": "感电",
           "layer": 1,
           "slot": 2,
-          "description": "万钧齐落",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "setTargetCount",
-              "value": "min(6, floor(skillLevel / 45) + 2)"
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "回合开始时，若敌方带雷印单位不足3个，随机一名可选敌人获得雷印。",
+          "passives": [
+            "jiujie.passive.gandian"
+          ]
         },
         {
           "id": "jiujie.node.thunder.1.3",
-          "name": "雷府灌顶",
+          "name": "乱流",
           "layer": 1,
           "slot": 3,
-          "description": "雷府灌顶",
-          "panel": [
-            {
-              "attr": "magicAtk",
-              "mode": "add",
-              "value": 30
-            }
-          ],
-          "patches": [],
-          "passives": [],
-          "grantSkills": []
+          "description": "群雷命中施放前已带雷印的目标时，10%概率使随机一名可选敌人获得雷印。",
+          "passives": [
+            "jiujie.passive.luanliu"
+          ]
         },
         {
           "id": "jiujie.node.thunder.2.1",
-          "name": "电芒引雷",
+          "name": "霜雷",
           "layer": 2,
           "slot": 1,
-          "description": "电芒引雷",
-          "panel": [],
-          "patches": [],
+          "description": "法术伤害提高5%。",
           "passives": [
-            "jiujie.passive.thunder.l2s1"
-          ],
-          "grantSkills": []
+            "jiujie.passive.shuang"
+          ]
         },
         {
           "id": "jiujie.node.thunder.2.2",
-          "name": "雷心炽盛",
+          "name": "轰鸣",
           "layer": 2,
           "slot": 2,
-          "description": "雷心炽盛",
-          "panel": [],
-          "patches": [],
+          "description": "混天雷法等级不低于人物映射等级时，法攻提高60。",
           "passives": [
-            "jiujie.passive.thunder.l2s2"
-          ],
-          "grantSkills": []
+            "jiujie.passive.hongming"
+          ]
         },
         {
           "id": "jiujie.node.thunder.2.3",
-          "name": "破霄洞真",
+          "name": "驭意",
           "layer": 2,
           "slot": 3,
-          "description": "破霄洞真",
-          "panel": [],
-          "patches": [],
+          "description": "按灵力属性点获得5%速度、10%法攻，同时失去24%法防；不以最终法攻为基数。",
           "passives": [
-            "jiujie.passive.thunder.l2s3"
-          ],
-          "grantSkills": []
+            "jiujie.passive.yuyi"
+          ]
         },
         {
           "id": "jiujie.node.thunder.3.1",
-          "name": "惊曜天雷",
+          "name": "电掣",
           "layer": 3,
           "slot": 1,
-          "description": "惊曜天雷",
-          "panel": [],
-          "patches": [],
-          "passives": [],
-          "grantSkills": [
-            "jiujie.skill.startling_thunder"
+          "description": "对灵兽忽略10%法防，造成的法术伤害提高20%。",
+          "passives": [
+            "jiujie.passive.magic_pet"
           ]
         },
         {
           "id": "jiujie.node.thunder.3.2",
-          "name": "聚芒一点",
+          "name": "驭雷",
           "layer": 3,
           "slot": 2,
-          "description": "聚芒一点",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "applyStatus",
-                "statusId": "jiujie.status.electric",
-                "duration": 3,
-                "when": {
-                  "targetSlot": "primary"
-                }
-              }
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "主动使用引劫入体后回复10战意；被动获得灌注不触发。",
+          "passives": [
+            "jiujie.passive.yulei"
+          ]
         },
         {
           "id": "jiujie.node.thunder.3.3",
-          "name": "雷网无垠",
+          "name": "罡威",
           "layer": 3,
           "slot": 3,
-          "description": "雷网无垠",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "setSplash",
-              "perTarget": 0.06,
-              "floor": 0.7
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "天罡护体的法攻增量提高50%，不放大法防增量。",
+          "passives": [
+            "jiujie.passive.gangwei"
+          ]
         },
         {
           "id": "jiujie.node.thunder.4.1",
-          "name": "万钧增威",
+          "name": "六霄雷劫",
           "layer": 4,
           "slot": 1,
-          "description": "万钧增威",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "multiplySpellCoefficients",
-              "value": 1.0941176470588236
-            }
+          "description": "群雷不再消耗灌注；获得主动六霄雷劫，消耗1层灌注对至多6人施放强化群雷。",
+          "passives": [
+            "jiujie.passive.six"
           ],
-          "passives": [],
-          "grantSkills": []
+          "grantSkills": [
+            "jiujie.skill.six_thunder"
+          ]
         },
         {
           "id": "jiujie.node.thunder.4.2",
-          "name": "电光久驻",
+          "name": "雷醒",
           "layer": 4,
           "slot": 2,
-          "description": "电光久驻",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "setStatusDuration",
-              "statusId": "jiujie.status.electric",
-              "value": 4
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。",
+          "passives": [
+            "jiujie.passive.thunder.leixing"
+          ]
         },
         {
           "id": "jiujie.node.thunder.4.3",
-          "name": "雷眼昭明",
+          "name": "天劫",
           "layer": 4,
           "slot": 3,
-          "description": "雷眼昭明",
-          "panel": [],
-          "patches": [],
+          "description": "每场首次主动使用天罡护体后，获得1层灌注。",
           "passives": [
-            "jiujie.passive.thunder.l4s3"
-          ],
-          "grantSkills": []
+            "jiujie.passive.thunder.tianjie"
+          ]
         },
         {
           "id": "jiujie.node.thunder.5.1",
-          "name": "乘雷破阵",
+          "name": "共鸣",
           "layer": 5,
           "slot": 1,
-          "description": "乘雷破阵",
-          "panel": [],
-          "patches": [],
+          "description": "自己的灵兽施放雷击、奔雷时，伤害提高12%。",
           "passives": [
-            "jiujie.passive.thunder.l5s1"
-          ],
-          "grantSkills": []
+            "jiujie.passive.gongming"
+          ]
         },
         {
           "id": "jiujie.node.thunder.5.2",
-          "name": "雷泽回生",
+          "name": "赤殛",
           "layer": 5,
           "slot": 2,
-          "description": "雷泽回生",
-          "panel": [],
-          "patches": [],
+          "description": "队伍仅有一名九劫修士时，施加雷印有10%概率成为赤雷印；自身下一次法术命中的雷印增伤改为70%，随后退为普通雷印。",
           "passives": [
-            "jiujie.passive.thunder.lifesteal"
-          ],
-          "grantSkills": []
+            "jiujie.passive.chiji"
+          ]
         },
         {
           "id": "jiujie.node.thunder.5.3",
-          "name": "追亡逐电",
+          "name": "灵光",
           "layer": 5,
           "slot": 3,
-          "description": "追亡逐电",
-          "panel": [],
-          "patches": [],
+          "description": "所有装备的灵曜阵纹所提供的法攻额外提高25%。",
           "passives": [
-            "jiujie.passive.thunder.l5s3"
-          ],
-          "grantSkills": []
+            "jiujie.passive.lingguang"
+          ]
         },
         {
           "id": "jiujie.node.thunder.6.1",
-          "name": "九霄震怒",
+          "name": "天目洞真",
           "layer": 6,
           "slot": 1,
-          "description": "九霄震怒",
-          "panel": [],
-          "patches": [],
-          "passives": [
-            "jiujie.passive.thunder.l6s1"
-          ],
-          "grantSkills": []
+          "description": "获得主动天目洞真：80法力，使自身六项攻防与封抗各增加人物等级×2，持续3回合。",
+          "grantSkills": [
+            "jiujie.skill.insight"
+          ]
         },
         {
           "id": "jiujie.node.thunder.6.2",
-          "name": "雷界无壁",
+          "name": "仙音",
           "layer": 6,
           "slot": 2,
-          "description": "雷界无壁",
-          "panel": [],
-          "patches": [],
+          "description": "三叠仙音攻击带雷印单位时，伤害提高20%。",
           "passives": [
-            "jiujie.passive.thunder.l6s2"
-          ],
-          "grantSkills": []
+            "jiujie.passive.xianyin"
+          ]
         },
         {
           "id": "jiujie.node.thunder.6.3",
-          "name": "万雷同鸣",
+          "name": "雷波",
           "layer": 6,
           "slot": 3,
-          "description": "万雷同鸣",
-          "panel": [],
-          "patches": [],
+          "description": "群雷首目标伤害提高8%；自身击倒带雷印的敌人时，使所有存活敌人获得雷印。",
           "passives": [
-            "jiujie.passive.thunder.l6s3"
-          ],
-          "grantSkills": []
+            "jiujie.passive.leibo"
+          ]
         },
         {
           "id": "jiujie.node.thunder.7.1",
-          "name": "九霄神雷",
+          "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "九霄神雷",
-          "panel": [],
-          "patches": [],
-          "passives": [],
-          "grantSkills": [
-            "jiujie.skill.nine_heavens_thunder"
+          "description": "法攻提高40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         },
         {
           "id": "jiujie.node.thunder.7.2",
-          "name": "雷霆复奏",
+          "name": "摄雷归一",
           "layer": 7,
           "slot": 2,
-          "description": "雷霆复奏",
-          "panel": [],
-          "patches": [
-            {
-              "skillId": "jiujie.skill.thunderstorm",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "spellHit",
-                "coeff": 0.75,
-                "power": "35 + floor(skillLevel * 1.2)",
-                "when": {
-                  "targetSlot": "primary"
-                }
-              }
-            }
-          ],
-          "passives": [],
-          "grantSkills": []
+          "description": "法术攻击敌方单体，吸收自身施加的雷印并驱散1个增益；吸收普通印时伤害提高75%，赤印提高200%。吸收收益替代该印原有增伤。",
+          "grantSkills": [
+            "jiujie.skill.absorb"
+          ]
         },
         {
           "id": "jiujie.node.thunder.7.3",
-          "name": "三劫雷极",
+          "name": "踏雷天尊",
           "layer": 7,
           "slot": 3,
-          "description": "三劫雷极",
-          "panel": [],
-          "patches": [],
-          "passives": [
-            "jiujie.passive.thunder.l7s3.crit",
-            "jiujie.passive.thunder.l7s3.detonate"
-          ],
-          "grantSkills": []
+          "description": "法攻提高40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
         }
-      ],
-      "foundationPassives": [
-        "jiujie.passive.thunder.foundation"
-      ],
-      "patches": [],
-      "grantSkills": [],
-      "resources": []
+      ]
     }
   ]
 }

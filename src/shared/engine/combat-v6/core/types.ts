@@ -317,6 +317,9 @@ export type LineupUnit = {
 };
 
 export type SkillTargeting = {
+  /** Maximum manually selected targets; fill chooses the remainder. */
+  maxSelected?: number;
+  excludeSelf?: boolean;
   includeOwnedStatusKind?: string;
   side: TargetSide;
   requireKind?: UnitKind;
@@ -395,7 +398,7 @@ export type EffectWhen = {
   targetHpRatioBelow?: number;
   targetHpRatioAbove?: number;
   /** primary=只对这次出手的首目标 */
-  targetSlot?: 'primary' | 'all' | 'normal';
+  targetSlot?: 'primary' | 'secondary' | 'all' | 'normal';
   foeKind?: UnitKind;
   foeTags?: string[];
   sourceTags?: string[];
@@ -409,8 +412,9 @@ export type EffectWhen = {
 };
 
 type EffectCore =
+  | { type: typeof EffectType.Repeat; min: number; max: number; effects: SkillEffect[] }
   | { type: typeof EffectType.ModifyFact; key: string; value: Expr }
-  | { type: typeof EffectType.ModifyStatusDuration; kinds: string[]; amount: Expr; ownedOnly?: boolean }
+  | { type: typeof EffectType.ModifyStatusDuration; kinds?: string[]; categories?: StatusCategory[]; maxCount?: number; random?: boolean; amount: Expr; ownedOnly?: boolean }
   | {
       type: typeof EffectType.RandomBranch;
       branchId: string;
@@ -507,6 +511,7 @@ type EffectCore =
       /** 仅驱散由宗门内容定义的状态。 */
       schoolOnly?: boolean;
       preventReapplyThisRound?: boolean;
+      immunityRounds?: number;
     }
   | { type: typeof EffectType.SkipNextAction }
   | { type: typeof EffectType.DamageMp; power?: Expr }
@@ -560,6 +565,7 @@ export type SkillHook = {
   when?: EffectWhen;
   targetIsSelf?: boolean;
   sourceIsSelf?: boolean;
+  sourceIsOwnedPet?: boolean;
   requireKind?: DamageKind;
   /** hookSource=反击/反震打回来；hookTarget=连击再打原目标；others=其他敌人 */
   aim?: HookAim;
@@ -594,6 +600,7 @@ export type CombatModifier = {
   when?: EffectWhen;
   /** 同组队伍光环只取一次；来源倒地时失效。 */
   teamAura?: string;
+  sealChanceFactor?: Expr;
   sealChanceAdd?: Expr;
   statusDurationAdd?: { statusId: string; amount: Expr };
   ignoreSealStatusKinds?: string[];
@@ -667,11 +674,16 @@ export type SkillDef = {
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[];
   /** 开战即生效的能力，不占状态栏（感知看破隐身、简易耗蓝） */
-  innate?: { sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
+  innate?: { negativeSpellResistance?: number; sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
 };
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  /** Command restrictions also apply to preflight/UI; resting is not a seal. */
+  blockedCommands?: CommandType[];
+  blocksNonArtSkills?: boolean;
+  blocksArts?: boolean;
+  protectsTarget?: boolean;
   snapshotModifiers?: boolean;
   modifiers?: CombatModifier[];
   school?: string;

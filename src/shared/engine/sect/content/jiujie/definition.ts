@@ -5,7 +5,7 @@ export const JIUJIE_DEFINITION: SectDefinition = {
   id: 'jiujie',
   name: '九劫天宫',
   description:
-    '九劫天宫奉天听而执劫簿，以不可驱散的劫雷记录出手，以劫债等待天道清算。',
+    '九劫天宫以劫雷淬体，以雷律御法。修士可纳雷入兵、近身摧岳，亦可敕令九霄、以雷印牵引天罚。雷威愈盛，驾驭之险亦愈深。',
   raceIds: ['human'],
   configVersion: 1,
   methods: [

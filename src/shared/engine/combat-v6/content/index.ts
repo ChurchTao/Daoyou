@@ -157,7 +157,6 @@ export {
 } from "./tianyan.ts"
 export type { TianyanElementV1, TianyanReactionDefV1, TianyanReactionKindV1 } from "./tianyan.ts"
 export {
-  JIUJIE_MECHANIC_ID,
   JIUJIE_METHOD_ID,
   JIUJIE_PATH_ID,
   JIUJIE_SKILL_ID,

@@ -62,7 +62,7 @@ export function rankAutoActions(
   // matchesWhen only reads the round, visible units and definitions; never a live context.
   const context = {
     statusDefs: definitions,
-    state: { round: observation.round },
+    state: { round: observation.round, units: observation.units },
   };
   const planned = (target: Unit) =>
     intents.filter((intent) => intent.targetId === target.id);
@@ -90,6 +90,9 @@ export function rankAutoActions(
     skill: SkillDef,
     selected: Unit[],
   ): { benefits: Benefits; notes: string[]; intentions: AutoIntent[] } {
+    // Evaluate preparatory facts on a private actor copy, never on the observation.
+    const actor = observation.units.find(unit => unit.id === sourceId)!;
+    const source = { ...actor, combatFacts: { ...actor.combatFacts } };
     const benefits = empty();
     const intentions: AutoIntent[] = [];
     const notes = new Set<string>(['未知属性按观察者基线估算；不推演被动连锁']);
@@ -145,12 +148,22 @@ export function rankAutoActions(
             isPrimary: target.id === selected[0]?.id,
           }),
         );
+        if (effect.type === 'modifyFact') {
+          if (targets.length) source.combatFacts[effect.key] = evalExpr(effect.value, { state: context.state, source, target: targets[0], skillLevel: skillLevelOf(source, skill.id), targets: selected.length });
+          continue;
+        }
+        if (effect.type === 'repeat') {
+          // Deterministic midpoint estimate; no RNG or actual damage is performed.
+          for (let i = 0; i < Math.round((effect.min + effect.max) / 2); i++) effects(effect.effects, targets, probability);
+          continue;
+        }
         if (effect.type === 'randomBranch') {
           const chance = Math.max(
             0,
             Math.min(
               1,
               evalExpr(effect.chance, {
+                state: context.state,
                 source,
                 target: targets[0],
                 skillLevel: skillLevelOf(source, skill.id),
@@ -158,12 +171,17 @@ export function rankAutoActions(
               }),
             ),
           );
+          const before = { ...source.combatFacts };
           effects(effect.successEffects, targets, probability * chance);
+          const success = source.combatFacts;
+          source.combatFacts = { ...before };
           effects(effect.failureEffects, targets, probability * (1 - chance));
+          if (chance >= 0.5) source.combatFacts = success;
           continue;
         }
         for (const target of targets) {
           const env = {
+            state: context.state,
             source,
             target,
             skillLevel: skillLevelOf(source, skill.id),
@@ -346,10 +364,16 @@ export function rankAutoActions(
               )
                 ? 0.25
                 : 1;
+              // A small panel buff is not worth the same as a full control turn.
+              // Estimate its relative contribution using the recipient's panel.
+              const attributeValue = def?.attrMods
+                ? Math.min(8, Object.entries(def.attrMods).reduce((sum, [attr, amount]) =>
+                    sum + Math.abs(value(amount)) / Math.max(1, Math.abs(target.attrs[attr as keyof typeof target.attrs])) * 20, 0))
+                : 8;
               control =
                 sign *
                 duration *
-                (def?.blocksAction ? 14 : 8) *
+                (def?.protectsTarget ? Math.max(0, 1 - ratio(target)) * 8 : def?.blocksAction ? 14 : def?.blocksArts ? 2 : def?.blockedCommands?.length === 1 ? 4 : attributeValue) *
                 chance *
                 coordination;
               if (probability * chance >= 0.5)
@@ -426,6 +450,8 @@ export function rankAutoActions(
                   ),
               ) *
               30;
+          } else if (effect.type === 'loseHp') {
+            survival = -(Math.min(1, value(effect.power) / Math.max(1, source.attrs.hp)) * 100);
           } else if (effect.type === 'skipNextAction') {
             survival = -15 / Math.max(1, targets.length);
           } else if (effect.type !== 'emitMechanic') {
@@ -440,6 +466,23 @@ export function rankAutoActions(
     }
     effects(skill.effects, selected);
     effects(skill.successEffects ?? [], selected);
+    // One direct-hit layer only: value the authored on-hit statuses without
+    // recursively simulating attacks, deaths, retaliation or random outcomes.
+    const hit = skill.effects.find(effect => effect.type === 'physicalHit' || effect.type === 'spellHit');
+    if (hit) for (const id of [...source.passives, skill.id]) {
+      const ownerSkill = source.skillOverrides[id] ?? skills.find(s => s.id === id);
+      for (const hook of ownerSkill?.hooks ?? []) {
+        if (hook.on !== 'afterStrike' || !hook.sourceIsSelf || hook.targeting || (hook.aim && hook.aim !== 'hookTarget')) continue;
+        for (const target of selected) {
+          const kind = hit.type === 'physicalHit' ? 'physical' : 'spell';
+          if (hook.requireKind && hook.requireKind !== kind) continue;
+          if (!matchesWhen(context, hook.when, { source, target, skill, skillId: skill.id, kind, isPrimary: target.id === selected[0]?.id })) continue;
+          const chance = Math.min(1, Math.max(0, evalExpr(hook.chance ?? 1, { state: context.state, source, target, skillLevel: skillLevelOf(source, skill.id), targets: selected.length })));
+          const hitChance = kind === 'physical' ? formulas.physicalHitChance(source, target) : formulas.spellHitChance(source, target);
+          effects(hook.effects.filter(e => ['applyStatus', 'removeStatus', 'randomBranch'].includes(e.type)), [target], chance * hitChance);
+        }
+      }
+    }
     return { benefits, notes: [...notes], intentions };
   }
   function add(

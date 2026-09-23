@@ -26,23 +26,24 @@ export const JIUJIE_SKILL_ID = {
   Confuse: "jiujie.skill.confuse",
   MillionWeapons: "jiujie.skill.million_weapons",
   DivineGuardian: "jiujie.skill.divine_guardian",
-  HeavenlyPrison: "jiujie.skill.heavenly_prison",
-  StartlingThunder: "jiujie.skill.startling_thunder",
-  NineHeavensThunder: "jiujie.skill.nine_heavens_thunder",
+  Protection: "jiujie.skill.protection",
+  Calm: "jiujie.skill.calm",
+  Charge: "jiujie.skill.charge",
+  Edict: "jiujie.skill.edict",
+  SixThunder: "jiujie.skill.six_thunder",
+  Insight: "jiujie.skill.insight",
+  Absorb: "jiujie.skill.absorb",
+  Tribulation: "jiujie.skill.tribulation",
 } as const
 export const JIUJIE_STATUS_ID = {
   Electric: "jiujie.status.electric",
+  Red: "jiujie.status.red",
   Suppress: "jiujie.status.suppress",
   Confuse: "jiujie.status.confuse",
-  ConfuseWeaken: "jiujie.status.confuse_weaken",
   MillionWeapons: "jiujie.status.million_weapons",
-  MillionWeaponsWeaken: "jiujie.status.million_weapons_weaken",
-  MagicDefBreak: "jiujie.status.magic_def_break",
-  MagicDefBreakStrong: "jiujie.status.magic_def_break_strong",
   Guardian: "jiujie.status.guardian",
-} as const
-export const JIUJIE_MECHANIC_ID = {
-  Detonate: "jiujie.mechanic.electric_detonate",
+  RestMinor: "jiujie.status.rest_minor",
+  RestMajor: "jiujie.status.rest_major",
 } as const
 
 export const JIUJIE_V6_DEFINITION: SectDefinitionV6 = {
@@ -57,8 +58,8 @@ export const JIUJIE_V6_DEFINITION: SectDefinitionV6 = {
 export function validateJiujieContentV1(): CombatV6ProjectionDiagnostic[] {
   const diagnostics: CombatV6ProjectionDiagnostic[] = []
   const electric = JIUJIE_V6_DEFINITION.statuses.find((status) => status.id === JIUJIE_STATUS_ID.Electric)
-  if (!electric || electric.kind !== JIUJIE_STATUS_ID.Electric || electric.maxStacks !== 3 || electric.category !== StatusCategory.Debuff) {
-    diagnostics.push({ severity: "error", code: "INVALID_ELECTRIC_STATUS_CONTENT", message: "九劫电芒必须是三层协同减益状态" })
+  if (!electric || electric.kind !== JIUJIE_STATUS_ID.Electric || (electric.maxStacks ?? 1) !== 1 || electric.category !== StatusCategory.Debuff) {
+    diagnostics.push({ severity: "error", code: "INVALID_ELECTRIC_STATUS_CONTENT", message: "九劫雷印必须是不可叠层的减益状态" })
   }
   return diagnostics
 }

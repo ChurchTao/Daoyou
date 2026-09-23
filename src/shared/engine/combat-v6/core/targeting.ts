@@ -42,6 +42,7 @@ export function canSelect(
   skill: SkillDef,
   aoe: boolean,
 ): boolean {
+  if (skill.targeting.excludeSelf && source.id === target.id) return false;
   if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
   if (target.flags.capturedBy || target.flags.benched) return false;
   if (skill.targeting.requireRevivable &&
@@ -228,7 +229,7 @@ export function resolveSkillTargets(
       seen.add(forced.id);
     }
   }
-  for (const id of targetIds) {
+  for (const id of targetIds.slice(0, skill.targeting.maxSelected ?? targetIds.length)) {
     if (picked.length >= count) break;
     const unit = ctx.state.units.find((u) => u.id === id);
     if (!unit || seen.has(unit.id)) continue;

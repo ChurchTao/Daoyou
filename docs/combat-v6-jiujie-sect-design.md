@@ -4,7 +4,7 @@
 > 稳定宗门 ID：`jiujie`  
 > 适用版本：`daoyou_rules_v5` / `daoyou_character_build_content_v5` / `character_build_v5`
 
-本文是九劫天宫在 combat-v6 中唯一有效的战斗设计。旧九劫稿只保留 battle-v5 历史与世界观参考价值；劫雷、劫债、劫数、行动后处罚、整技能免疫、劫眼临身和天谴加身均不进入 v6。
+本文为已被替换的 Phase 6D 历史记录。当前实现以[天宫对齐重做文档](combat-v6-jiujie-tiangong-redesign.md)和对应内容包为准，不再沿用下述封印／法术双系。旧九劫稿只保留 battle-v5 历史与世界观参考价值；劫雷、劫债、劫数、行动后处罚、整技能免疫、劫眼临身和天谴加身均不进入 v6。
 
 ## 1. 构筑定位
 

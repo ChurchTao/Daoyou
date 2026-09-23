@@ -131,6 +131,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetAbsentSkillIds && foe && when.targetAbsentSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id))) return false
   if (when.targetSkillIds && (!foe || !when.targetSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id)))) return false
   if (when.targetSlot === "primary" && !isPrimary) return false
+  if (when.targetSlot === "secondary" && (isPrimary || !scope.target)) return false
   if (when.targetSlot === "normal" && (!scope.target || !ctx.currentAction?.normalTargetIds?.includes(scope.target.id))) return false
   if (when.initialTargetOwnedStatus && (!scope.target || !ctx.currentAction?.initialOwnedStatusKindsByTarget?.[scope.target.id]?.includes(when.initialTargetOwnedStatus))) return false
   if (when.foeKind && foe?.kind !== when.foeKind) return false

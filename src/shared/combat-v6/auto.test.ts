@@ -193,6 +193,17 @@ describe('当前场次托管', () => {
     battle.unit('enemy').flags.escaped = true;
     expect(choose(battle)[0].command).toEqual({ type: 'defend' });
   });
+  it('小幅属性增益不会挤掉有效输出，估值不改变观察快照', () => {
+    const battle = fixture(['ward', 'strike']);
+    const observation = observeAutoBattle(battle.snapshot(), 'player', []);
+    const before = structuredClone(observation);
+    const candidates = rankAutoActions(observation, 'player', skills, [
+      { id: 'guard', name: '护体', kind: 'guard', category: 'buff', attrMods: { physicalAtk: 1 } },
+    ], battle.queryCommands('player'));
+    expect(candidates[0].command).toMatchObject({ type: 'skill', skillId: 'strike' });
+    expect(candidates.find(c => c.command.type === 'skill' && c.command.skillId === 'ward')!.benefits.control).toBeCloseTo(1.2);
+    expect(observation).toEqual(before);
+  });
   it('无蓝时不普攻隐身目标，有感知后可以攻击', () => {
     const battle = fixture([]);
     battle.applyStatus('enemy', 'stealth', 3);
