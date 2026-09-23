@@ -35,6 +35,7 @@
 | `dungeon.run.settled` | `daoyou.domain.activity.dungeon-run-settled.v1` | `task-projector-v1` |
 | `yield.claimed` | `daoyou.domain.activity.yield-claimed.v1` | `yield-reward-projector-v1` |
 | `cultivator.realm.changed` | `daoyou.domain.gameplay.cultivator-realm-changed.v1` | `world-rumor-projector-v1`、`ranking-realm-projector-v1` |
+| `cultivator.mail-audience.observed` | `daoyou.domain.system-mail.audience-observed.v1` | `system-mail-projector-v1` |
 | `mail.created` | `daoyou.domain.communication.mail-created.v1` | `mail-notification-projector-v1` |
 | `craft.item.created` | `daoyou.domain.gameplay.craft-item-created.v1` | `world-rumor-projector-v1` |
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |

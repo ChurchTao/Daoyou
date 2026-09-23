@@ -23,7 +23,7 @@ export function mailRealmRank(value: MailRealm): number {
 
 export const SystemMailConditionsSchema = z
   .object({
-    targetCultivatorId: z.uuid().optional(),
+    targetCultivatorId: z.uuid('请填写有效的目标角色 ID').optional(),
     createdFrom: InstantSchema.optional(),
     createdBefore: InstantSchema.optional(),
     createdBeforePublication: z.boolean().default(false),

@@ -13,11 +13,9 @@ import { InkList, InkTabs } from '@app/components/ui';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { realtimeClient } from '@app/lib/realtime/realtimeClient';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import {
-  usePlayerMailSummary,
-  usePlayerSession,
-} from '@app/lib/resources/player';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import type {
   FriendCultivatorSummary,
@@ -25,7 +23,7 @@ import type {
   FriendSearchResult,
 } from '@shared/contracts/friends';
 import { mailLocationText } from '@shared/contracts/mail';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 const PAGE_SIZE = 20;
@@ -35,7 +33,7 @@ const MAIL_PAGE_TABS = [
 ];
 export default function MailPage() {
   const cultivator = usePlayerSession().data?.activeCultivator;
-  const mailVersion = usePlayerMailSummary().version;
+  const mailRequest = useRef<AbortController | null>(null);
   const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -119,6 +117,9 @@ export default function MailPage() {
 
   const fetchMails = useCallback(
     async (targetPage: number, append: boolean) => {
+      mailRequest.current?.abort();
+      const controller = new AbortController();
+      mailRequest.current = controller;
       try {
         if (append) {
           setLoadingMore(true);
@@ -127,8 +128,10 @@ export default function MailPage() {
         }
         const res = await fetch(
           `/api/cultivator/mail?page=${targetPage}&pageSize=${PAGE_SIZE}`,
+          { signal: controller.signal },
         );
         const data = await res.json();
+        if (controller.signal.aborted) return;
         if (res.ok) {
           const nextMails = (data.mails || []) as Mail[];
           setMails((prev) => (append ? [...prev, ...nextMails] : nextMails));
@@ -136,11 +139,10 @@ export default function MailPage() {
           setPage(targetPage);
         }
       } catch (e) {
-        console.error(e);
+        if (!controller.signal.aborted) console.error(e);
       } finally {
-        if (append) {
+        if (!controller.signal.aborted) {
           setLoadingMore(false);
-        } else {
           setLoading(false);
         }
       }
@@ -150,14 +152,17 @@ export default function MailPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
+    mailRequest.current = controller;
 
     const loadInitialMails = async () => {
       try {
         const res = await fetch(
           `/api/cultivator/mail?page=1&pageSize=${PAGE_SIZE}`,
+          { signal: controller.signal },
         );
         const data = await res.json();
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
         if (res.ok) {
           const nextMails = (data.mails || []) as Mail[];
           setMails(nextMails);
@@ -165,11 +170,11 @@ export default function MailPage() {
           setPage(1);
         }
       } catch (e) {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           console.error(e);
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -179,8 +184,32 @@ export default function MailPage() {
 
     return () => {
       cancelled = true;
+      mailRequest.current?.abort();
     };
-  }, [mailVersion, cultivator?.id]);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = realtimeClient.subscribe(
+      'player-state.events',
+      ({ payload }) => {
+        if (
+          payload.changes.some(
+            (change) =>
+              change.resourceTopic === 'player.mail-summary' &&
+              change.eventType === 'mail.created',
+          )
+        )
+          void fetchMails(1, false);
+      },
+    );
+    const unsubscribeReady = realtimeClient.subscribe('ready', () => {
+      void fetchMails(1, false);
+    });
+    return () => {
+      unsubscribe();
+      unsubscribeReady();
+    };
+  }, [fetchMails]);
 
   useEffect(() => {
     fetch('/api/friends')
