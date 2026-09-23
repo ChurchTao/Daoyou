@@ -10,7 +10,7 @@ import {
   sectShopPurchases,
   sectStipendClaims,
 } from '@server/lib/drizzle/schema';
-import { and, inArray, lt, ne, sql } from 'drizzle-orm';
+import { and, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 
 export type ExpiredDataCleanupCutoffs = {
   mails: Date;
@@ -53,6 +53,8 @@ export async function pruneExpiredData(
       .delete(mails)
       .where(
         and(
+          // Campaign mails are also delivery receipts; keep them across replays.
+          isNull(mails.systemMailCampaignId),
           lt(mails.createdAt, cutoffs.mails),
           sql`(${mails.isClaimed} = true OR ${mails.attachments} IS NULL OR jsonb_typeof(${mails.attachments}) <> 'array' OR jsonb_array_length(${mails.attachments}) = 0)`,
         ),

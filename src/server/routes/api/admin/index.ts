@@ -1,9 +1,7 @@
-import rewardItemsRouter from './reward-items.router';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import accountsRouter from '@server/routes/api/admin/accounts.router';
 import announcementRouter from '@server/routes/api/admin/announcement.router';
-import broadcastRouter from '@server/routes/api/admin/broadcast.router';
 import communityGroupRouter from '@server/routes/api/admin/community-qrcode.router';
 import feedbackRouter from '@server/routes/api/admin/feedback.router';
 import itemLibraryRouter from '@server/routes/api/admin/item-library.router';
@@ -13,8 +11,10 @@ import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import reputationShopRouter from '@server/routes/api/admin/reputation-shop.router';
 import sectShopRouter from '@server/routes/api/admin/sect-shop.router';
 import sponsorshipRouter from '@server/routes/api/admin/sponsorship.router';
+import systemMailsRouter from '@server/routes/api/admin/system-mails.router';
 import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.router';
 import { Hono } from 'hono';
+import rewardItemsRouter from './reward-items.router';
 
 const router = new Hono<AppEnv>();
 
@@ -29,7 +29,7 @@ router.get('/session', requireAdmin(), (c) => {
 
 router.route('/accounts', accountsRouter);
 router.route('/feedback', feedbackRouter);
-router.route('/broadcast', broadcastRouter);
+router.route('/system-mails', systemMailsRouter);
 router.route('/announcement', announcementRouter);
 router.route('/item-library', itemLibraryRouter);
 router.route('/reward-items', rewardItemsRouter);

@@ -1237,7 +1237,7 @@ export const router = createBrowserRouter(
           lazy={lazyRoute(
             () => import('@app/routes/admin/broadcast/game-mail/route'),
           )}
-          handle={title('游戏邮件')}
+          handle={title('系统邮件')}
         />
         <Route
           path="announcement"

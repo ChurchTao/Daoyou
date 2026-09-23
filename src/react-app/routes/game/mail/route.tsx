@@ -14,7 +14,10 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { usePlayerSession } from '@app/lib/resources/player';
+import {
+  usePlayerMailSummary,
+  usePlayerSession,
+} from '@app/lib/resources/player';
 import { MAX_FRIENDS_PER_CULTIVATOR } from '@shared/config/socialConfig';
 import type {
   FriendCultivatorSummary,
@@ -32,6 +35,7 @@ const MAIL_PAGE_TABS = [
 ];
 export default function MailPage() {
   const cultivator = usePlayerSession().data?.activeCultivator;
+  const mailVersion = usePlayerMailSummary().version;
   const [mails, setMails] = useState<Mail[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -176,7 +180,7 @@ export default function MailPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mailVersion, cultivator?.id]);
 
   useEffect(() => {
     fetch('/api/friends')

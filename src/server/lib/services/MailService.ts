@@ -44,19 +44,12 @@ export class MailService {
         })
         .returning({ id: mails.id });
       if (!mail) throw new Error('邮件创建失败');
-      const event = await createDomainEvent(
-        {
-          type: 'mail.created',
-          aggregate: { type: 'mail', id: mail.id },
-          data: {
-            mailId: mail.id,
-            cultivatorId,
-            mailType,
-            attachmentCount: attachments.length,
-          },
-          deduplicationKey: mail.id,
-        },
+      const event = await createMailNotification(
         q,
+        mail.id,
+        cultivatorId,
+        mailType,
+        attachments.length,
       );
       return { ...mail, domainEventId: event.id };
     };
@@ -69,6 +62,43 @@ export class MailService {
       mailId: mail.id,
     });
     return mail;
+  }
+
+  static async sendCampaignRewardMail(
+    input: {
+      campaignId: string;
+      cultivatorId: string;
+      title: string;
+      content: string;
+      attachments: MailAttachment[];
+    },
+    tx: DbTransaction,
+  ): Promise<boolean> {
+    const attachments = input.attachments.map(newRewardAttachment);
+    const type = attachments.length ? 'reward' : 'system';
+    const [mail] = await tx
+      .insert(mails)
+      .values({
+        systemMailCampaignId: input.campaignId,
+        cultivatorId: input.cultivatorId,
+        title: input.title,
+        content: input.content,
+        attachments,
+        type,
+      })
+      .onConflictDoNothing({
+        target: [mails.systemMailCampaignId, mails.cultivatorId],
+      })
+      .returning({ id: mails.id });
+    if (!mail) return false;
+    await createMailNotification(
+      tx,
+      mail.id,
+      input.cultivatorId,
+      type,
+      attachments.length,
+    );
+    return true;
   }
 
   /**
@@ -93,4 +123,22 @@ export class MailService {
       orderBy: (mails, { desc }) => [desc(mails.createdAt)],
     });
   }
+}
+
+async function createMailNotification(
+  tx: DbTransaction,
+  mailId: string,
+  cultivatorId: string,
+  mailType: 'system' | 'reward',
+  attachmentCount: number,
+) {
+  return createDomainEvent(
+    {
+      type: 'mail.created',
+      aggregate: { type: 'mail', id: mailId },
+      data: { mailId, cultivatorId, mailType, attachmentCount },
+      deduplicationKey: mailId,
+    },
+    tx,
+  );
 }

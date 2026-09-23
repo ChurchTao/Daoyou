@@ -1,3 +1,4 @@
+import { scheduleSystemMailObservation } from '@server/lib/services/SystemMailService';
 import {
   getExecutor,
   type DbExecutor,
@@ -48,6 +49,7 @@ const mailRouter = new Hono<AppEnv>();
 mailRouter.get('/', requireActiveCultivatorRef(), async (c) => {
   const ref = c.get('activeCultivatorRef');
   if (!ref) return c.json({ error: '当前没有活跃角色' }, 404);
+  scheduleSystemMailObservation(ref.cultivatorId, 'mailbox');
   const pageRaw = parseInt(c.req.query('page') || '1', 10);
   const pageSizeRaw = parseInt(c.req.query('pageSize') || '20', 10);
   const page = Number.isNaN(pageRaw) ? 1 : Math.max(1, pageRaw);

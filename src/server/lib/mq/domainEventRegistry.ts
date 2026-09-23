@@ -1,3 +1,4 @@
+import { projectSystemMailAudience } from '@server/lib/services/SystemMailService';
 import { db } from '@server/lib/drizzle/db';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
@@ -51,6 +52,20 @@ export async function registerMessageInfrastructure(): Promise<void> {
   await ensureMessageTopology();
   await Promise.all([
     startBackgroundCommandConsumer(),
+    startDomainEventConsumer({
+      consumerName: DOMAIN_EVENT_CONSUMERS.systemMailProjector.name,
+      concurrency: DOMAIN_EVENT_CONSUMERS.systemMailProjector.concurrency,
+      acceptedTypes: ['cultivator.mail-audience.observed'],
+      handle: async event => {
+        if (!isDomainEventType(event, 'cultivator.mail-audience.observed')) throw new Error('系统邮件事件类型错误');
+        await executeDomainEvent({
+          consumerName: DOMAIN_EVENT_CONSUMERS.systemMailProjector.name,
+          source: 'system_mail_audience',
+          event,
+          handle: projectSystemMailAudience,
+        });
+      },
+    }),
     startCombatV6Messaging(),
     startDomainEventConsumer({
       consumerName: DOMAIN_EVENT_CONSUMERS.combatV6Condition.name,

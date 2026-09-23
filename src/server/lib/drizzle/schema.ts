@@ -1,3 +1,5 @@
+import type { SystemMailConditions } from '@shared/contracts/systemMail';
+import type { RewardSelection } from '@shared/contracts/adminRewards';
 import type { ItemGrant } from '@shared/inventory';
 import type { StoredTowerWeek } from '@shared/engine/combat-v6/tower/published';
 import type { TowerClaims } from '@shared/lib/tower/reward-state';
@@ -1070,9 +1072,31 @@ export const combatReplayParticipants = pgTable(
 );
 
 // 邮件/传音玉简表
+// Published campaigns are immutable; mails are the durable per-role delivery receipt.
+export const systemMailCampaigns = pgTable(
+  'wanjiedaoyou_system_mail_campaigns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    creationFingerprint: text('creation_fingerprint').notNull(),
+    title: varchar('title', { length: 200 }).notNull(),
+    content: text('content').notNull(),
+    rewardSelections: jsonb('reward_selections').$type<RewardSelection[]>().notNull(),
+    conditions: jsonb('conditions').$type<SystemMailConditions>().notNull(),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    status: varchar('status', { length: 20 }).$type<'draft' | 'published' | 'stopped'>().notNull().default('draft'),
+    revision: integer('revision').notNull().default(1),
+    createdBy: uuid('created_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  table => [index('system_mail_campaigns_window_idx').on(table.status, table.endsAt, table.startsAt)],
+);
+
 export const mails = pgTable(
   'wanjiedaoyou_mails',
   {
+    systemMailCampaignId: uuid('system_mail_campaign_id').references(() => systemMailCampaigns.id, { onDelete: 'restrict' }),
     id: uuid('id').primaryKey().defaultRandom(),
     cultivatorId: uuid('cultivator_id')
       .references(() => cultivators.id, { onDelete: 'cascade' })
@@ -1086,6 +1110,7 @@ export const mails = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    uniqueIndex('mails_campaign_cultivator_unique').on(table.systemMailCampaignId, table.cultivatorId),
     index('mails_cultivator_created_idx').on(
       table.cultivatorId,
       table.createdAt,

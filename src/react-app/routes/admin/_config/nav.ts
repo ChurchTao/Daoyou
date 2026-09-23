@@ -21,8 +21,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/accounts',
   },
   {
-    title: '游戏邮件',
-    description: '公告与奖励批量发放',
+    title: '系统邮件',
+    description: '按条件发布公告与奖励',
     href: '/admin/broadcast/game-mail',
   },
   {

@@ -8,6 +8,7 @@ import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
 import { ItemGrantSchema } from '../inventory';
 import { CombatV6BattleFinishedDataV1Schema } from './combatV6Runtime';
+import { SystemMailAudienceSnapshotSchema } from './systemMail';
 
 export const DOMAIN_EVENT_STREAM = 'DAOYOU_DOMAIN_EVENTS';
 export const DOMAIN_EVENT_SUBJECT_PREFIX = 'daoyou.domain';
@@ -24,6 +25,7 @@ export const DOMAIN_EVENT_TYPES = [
   'spirit-field.upgraded',
   'cultivator.realm.changed',
   'mail.created',
+  'cultivator.mail-audience.observed',
   'craft.item.created',
   'market.material.revealed',
   'ranking.position.changed',
@@ -36,6 +38,7 @@ export type DomainEventType = (typeof DOMAIN_EVENT_TYPES)[number];
 export const DomainEventTypeSchema = z.enum(DOMAIN_EVENT_TYPES);
 
 export const DomainEventDataSchemas = {
+  'cultivator.mail-audience.observed': SystemMailAudienceSnapshotSchema,
   'sect.construction.donated': z
     .object({
       cultivatorId: z.uuid(),
@@ -221,6 +224,10 @@ export type DomainEventData<TType extends DomainEventType> = z.infer<
 >;
 
 export const DOMAIN_EVENT_DEFINITIONS = {
+  'cultivator.mail-audience.observed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.system-mail.audience-observed.v1`,
+  },
   'sect.construction.donated': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sect.construction-donated.v1`,
