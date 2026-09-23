@@ -7,6 +7,58 @@ import { compileSectDefinitionV6 } from './compiler';
 import { sectV6Change } from '../sect-progression';
 
 const ref = { membershipId: '00000000-0000-4000-8000-000000000001', expectedRevision: 0 };
+describe('全宗门统一末层结构', () => {
+  for (const sect of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+    for (const path of sect.paths) {
+      it(`${sect.name}·${path.name}仅末层中间可选，两侧解锁后自动获得`, () => {
+        const rewards = path.nodes.filter(n => n.automatic);
+        expect(rewards.map(n => [n.layer, n.slot]).sort()).toEqual([[7, 1], [7, 3]]);
+        expect(path.nodes.filter(n => !n.automatic)).toHaveLength(19);
+        const center = path.nodes.find(n => n.layer === 7 && n.slot === 2)!;
+        for (const parent of path.nodes.filter(n => n.layer === 6)) {
+          expect(meridianNodesConnect(parent, center)).toBe(true);
+          expect(canSelectMeridianNode(path, [parent.id], center)).toBe(true);
+          for (const reward of rewards) {
+            expect(meridianNodesConnect(parent, reward)).toBe(false);
+            expect(canSelectMeridianNode(path, [parent.id], reward)).toBe(false);
+          }
+        }
+        const progress = createEmptySectCombatProgressV6(sect.id, path.id, Object.fromEntries(sect.methods.map(m => [m.id, 180])));
+        progress.meridianDepth = 6;
+        const before = compileSectDefinitionV6({ definition: sect, progress, characterLevel: 180 });
+        progress.meridianDepth = 7;
+        const after = compileSectDefinitionV6({ definition: sect, progress, characterLevel: 180 });
+        expect(before.ok).toBe(true);
+        expect(after.ok).toBe(true);
+        if (!before.ok || !after.ok) return;
+        expect(after.projection.panel).toEqual([
+          ...before.projection.panel, ...rewards.flatMap(n => n.panel ?? []),
+        ]);
+        expect(after.projection.passiveSkillIds).toEqual([
+          ...before.projection.passiveSkillIds,
+          ...rewards.flatMap(n => (n.passives ?? []).map(s => s.definition.id)),
+        ]);
+        for (const passive of center.passives ?? [])
+          expect(after.projection.passiveSkillIds).not.toContain(passive.definition.id);
+        for (const skill of center.grantSkills ?? [])
+          expect(after.projection.activeSkillIds).not.toContain(skill.definition.id);
+      });
+    }
+  }
+  it.each([[1, 1], [7, 1], [7, 2], [7, 3]])('共用编译器拒绝第 %i 层第 %i 列违反自动奖励规则', (layer, slot) => {
+    const invalid = structuredClone(COMBAT_V6_SECT_DEFINITIONS.tianyan);
+    const path = invalid.paths[0];
+    const node = path.nodes.find(n => n.layer === layer && n.slot === slot)!;
+    node.automatic = !node.automatic;
+    const progress = createEmptySectCombatProgressV6(invalid.id, path.id, Object.fromEntries(invalid.methods.map(m => [m.id, 180])));
+    const result = compileSectDefinitionV6({ definition: invalid, progress, characterLevel: 180 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'INVALID_MERIDIAN_LOADOUT', message: expect.stringContaining('所有流派统一') }),
+    ]));
+  });
+});
+
 describe('红尘经脉连通选择', () => {
   for (const path of definition.paths) {
     const node = (layer: number, slot: number) => path.nodes.find(n => n.layer === layer && n.slot === slot)!;

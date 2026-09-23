@@ -501,12 +501,12 @@ it('Host编译策略后冻结战斗，恢复不重新读取周策略', () => {
     42,
     pack,
   );
-  expect(host.state.units.find((u) => u.id === 'tower.enemy.0')!.attrs.hp).toBe(
-    1250,
-  );
+  const frozenHp = host.state.units.find((u) => u.id === 'tower.enemy.0')!.attrs
+    .hp;
+  expect(frozenHp).toBeGreaterThan(0);
   pack.floors[0].enemies[0].traits = [];
   expect(host.state.units.find((u) => u.id === 'tower.enemy.0')!.attrs.hp).toBe(
-    1250,
+    frozenHp,
   );
   const restored = new TowerHost(
     host.runtimeSnapshot(),

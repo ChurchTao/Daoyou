@@ -6,7 +6,7 @@ import { redis } from '../redis';
 import { parseRedisJson } from '../redis/json';
 
 export const towerRunKey = (owner: string) =>
-  `tower:v6:configured-v7:run:${owner}`;
+  `tower:v6:configured-v8:run:${owner}`;
 export async function hasActiveTower(owner: string) {
   const key = towerRunKey(owner);
   const state = parseRedisJson<TowerLifecycleState>(await redis.get(key), key);

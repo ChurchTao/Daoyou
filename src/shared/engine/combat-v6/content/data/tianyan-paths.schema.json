@@ -36,316 +36,92 @@
               "type": "object",
               "properties": {
                 "when": {
-                  "$ref": "#/$defs/__schema1"
+                  "type": "object",
+                  "properties": {
+                    "expression": {
+                      "$ref": "#/$defs/__schema1"
+                    },
+                    "requireStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "sourceInitialStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "skillIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "requireKind": {
+                      "type": "string",
+                      "enum": [
+                        "physical",
+                        "spell",
+                        "fixed"
+                      ]
+                    },
+                    "damageOrigins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "action-direct",
+                          "hook-derived",
+                          "status"
+                        ]
+                      }
+                    },
+                    "targetSlot": {
+                      "type": "string",
+                      "enum": [
+                        "primary",
+                        "secondary"
+                      ]
+                    },
+                    "sourceHasBarrier": {
+                      "type": "boolean"
+                    },
+                    "targetHasBarrier": {
+                      "type": "boolean"
+                    },
+                    "sourceHpRatioBelow": {
+                      "type": "number"
+                    },
+                    "targetHpRatioAbove": {
+                      "type": "number"
+                    },
+                    "targetStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
                 },
                 "damageBonus": {
-                  "$ref": "#/$defs/__schema2"
-                },
-                "defenseIgnoreAdd": {
-                  "$ref": "#/$defs/__schema2"
-                },
-                "barrierDamageBonus": {
-                  "$ref": "#/$defs/__schema2"
-                },
-                "damageTakenBonus": {
-                  "$ref": "#/$defs/__schema2"
-                },
-                "sealChanceAdd": {
-                  "$ref": "#/$defs/__schema2"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "hooks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "on": {
-                  "type": "string",
-                  "enum": [
-                    "beforeAction",
-                    "onHitCalc",
-                    "onDefenseIgnoreCalc",
-                    "onBeHit",
-                    "afterHit",
-                    "afterStrike",
-                    "onFatal",
-                    "onStatusRemoved",
-                    "onDeath",
-                    "onRoundStart",
-                    "onRoundEnd",
-                    "onTargetLost",
-                    "afterAction",
-                    "onCritRoll",
-                    "onHitRoll",
-                    "onHealCalc",
-                    "onBarrierCalc",
-                    "onWoundCalc"
-                  ]
-                },
-                "sourceIsSelf": {
-                  "type": "boolean"
-                },
-                "targetIsSelf": {
-                  "type": "boolean"
-                },
-                "aim": {
-                  "type": "string",
-                  "enum": [
-                    "self",
-                    "hookTarget",
-                    "hookSource",
-                    "others"
-                  ]
-                },
-                "when": {
                   "$ref": "#/$defs/__schema1"
                 },
-                "effects": {
-                  "type": "array",
-                  "items": {
-                    "oneOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "spellHit"
-                          },
-                          "coeff": {
-                            "type": "number"
-                          },
-                          "power": {
-                            "$ref": "#/$defs/__schema2"
-                          },
-                          "defenseIgnore": {
-                            "$ref": "#/$defs/__schema2"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "coeff",
-                          "power"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "applyStatus"
-                          },
-                          "statusId": {
-                            "$ref": "#/$defs/__schema0"
-                          },
-                          "duration": {
-                            "$ref": "#/$defs/__schema2"
-                          },
-                          "hit": {
-                            "type": "string",
-                            "enum": [
-                              "always",
-                              "seal"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "statusId",
-                          "duration"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "applyBarrier"
-                          },
-                          "id": {
-                            "$ref": "#/$defs/__schema0"
-                          },
-                          "kind": {
-                            "$ref": "#/$defs/__schema0"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "power": {
-                            "$ref": "#/$defs/__schema2"
-                          },
-                          "duration": {
-                            "$ref": "#/$defs/__schema2"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "id",
-                          "kind",
-                          "name",
-                          "power",
-                          "duration"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "heal"
-                          },
-                          "power": {
-                            "$ref": "#/$defs/__schema2"
-                          },
-                          "includeHealPower": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "power"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "restoreMp"
-                          },
-                          "power": {
-                            "$ref": "#/$defs/__schema2"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "power"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "dispel"
-                          },
-                          "categories": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "enum": [
-                                "buff",
-                                "debuff",
-                                "control",
-                                "dot"
-                              ]
-                            }
-                          },
-                          "maxCount": {
-                            "$ref": "#/$defs/__schema2"
-                          },
-                          "excludeStatusFlags": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "enum": [
-                                "blocksAction",
-                                "blocksSpell",
-                                "blocksPhysical",
-                                "blocksRevive",
-                                "actFirst",
-                                "untargetable",
-                                "revealStealth",
-                                "persistWhenDowned"
-                              ]
-                            }
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "categories",
-                          "maxCount"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "when": {
-                            "$ref": "#/$defs/__schema3"
-                          },
-                          "targeting": {
-                            "$ref": "#/$defs/__schema4"
-                          },
-                          "type": {
-                            "type": "string",
-                            "const": "emitMechanic"
-                          },
-                          "mechanicId": {
-                            "$ref": "#/$defs/__schema0"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "mechanicId",
-                          "name"
-                        ],
-                        "additionalProperties": false
-                      }
-                    ]
-                  }
+                "defenseIgnoreAdd": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "barrierDamageBonus": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "damageTakenBonus": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "sealChanceAdd": {
+                  "$ref": "#/$defs/__schema1"
                 }
               },
-              "required": [
-                "on",
-                "effects"
-              ],
               "additionalProperties": false
             }
           }
@@ -363,7 +139,7 @@
       "maxItems": 2,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema5"
+        "$ref": "#/$defs/__schema2"
       }
     }
   },
@@ -380,77 +156,6 @@
       "pattern": "^tianyan\\.[a-z][a-z0-9_.]*$"
     },
     "__schema1": {
-      "type": "object",
-      "properties": {
-        "expression": {
-          "$ref": "#/$defs/__schema2"
-        },
-        "requireStatusIds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema0"
-          }
-        },
-        "sourceInitialStatusIds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema0"
-          }
-        },
-        "skillIds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema0"
-          }
-        },
-        "requireKind": {
-          "type": "string",
-          "enum": [
-            "physical",
-            "spell",
-            "fixed"
-          ]
-        },
-        "damageOrigins": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "action-direct",
-              "hook-derived",
-              "status"
-            ]
-          }
-        },
-        "targetSlot": {
-          "type": "string",
-          "enum": [
-            "primary",
-            "secondary"
-          ]
-        },
-        "sourceHasBarrier": {
-          "type": "boolean"
-        },
-        "targetHasBarrier": {
-          "type": "boolean"
-        },
-        "sourceHpRatioBelow": {
-          "type": "number"
-        },
-        "targetHpRatioAbove": {
-          "type": "number"
-        },
-        "targetStatusIds": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema0"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "__schema2": {
       "anyOf": [
         {
           "type": "number"
@@ -462,42 +167,7 @@
         }
       ]
     },
-    "__schema3": {
-      "$ref": "#/$defs/__schema1"
-    },
-    "__schema4": {
-      "type": "object",
-      "properties": {
-        "side": {
-          "type": "string",
-          "enum": [
-            "enemy",
-            "ally",
-            "self",
-            "any"
-          ]
-        },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "explicit",
-            "fill",
-            "all",
-            "random",
-            "lowestHp",
-            "lowestDef"
-          ]
-        },
-        "count": {
-          "$ref": "#/$defs/__schema2"
-        }
-      },
-      "required": [
-        "side"
-      ],
-      "additionalProperties": false
-    },
-    "__schema5": {
+    "__schema2": {
       "type": "object",
       "properties": {
         "id": {
@@ -522,7 +192,7 @@
           "maxItems": 21,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema6"
+            "$ref": "#/$defs/__schema3"
           }
         }
       },
@@ -535,7 +205,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema6": {
+    "__schema3": {
       "type": "object",
       "properties": {
         "id": {
@@ -558,6 +228,59 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 3
+        },
+        "automatic": {
+          "type": "boolean"
+        },
+        "panel": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attr": {
+                "type": "string",
+                "enum": [
+                  "hp",
+                  "maxHp",
+                  "mp",
+                  "maxMp",
+                  "physicalAtk",
+                  "physicalDef",
+                  "magicAtk",
+                  "magicDef",
+                  "healPower",
+                  "speed",
+                  "hit",
+                  "dodge",
+                  "critRate",
+                  "spellCritRate",
+                  "physicalFuryRate",
+                  "sealHit",
+                  "sealResist",
+                  "attackCultivate",
+                  "defenseCultivate",
+                  "spellCultivate",
+                  "resistSpellCultivate"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "multiply"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "attr",
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false
+          }
         },
         "passives": {
           "type": "array",

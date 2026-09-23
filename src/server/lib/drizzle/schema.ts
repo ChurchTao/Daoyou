@@ -1,3 +1,4 @@
+import type { ItemGrant } from '@shared/inventory';
 import type { StoredTowerWeek } from '@shared/engine/combat-v6/tower/published';
 import type { TowerClaims } from '@shared/lib/tower/reward-state';
 import type { DivinationDice, DivinationDirection } from '@shared/lib/divination';
@@ -1464,7 +1465,7 @@ export const itemLibrary = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     itemId: varchar('item_id', { length: 120 }).notNull(),
-    type: varchar('type', { length: 20 }).notNull(), // material | consumable | artifact
+    type: varchar('type', { length: 20 }).notNull(), // Current authoring: material only; consumable/artifact are deprecated historical rows.
     status: varchar('status', { length: 20 }).notNull().default('published'),
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
@@ -1504,8 +1505,8 @@ export const reputationShopItems = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     itemLibraryItemId: varchar('item_library_item_id', { length: 120 })
-      .notNull()
       .references(() => itemLibrary.itemId),
+    itemSnapshot: jsonb('item_snapshot').$type<Omit<ItemGrant, 'quantity'>>(),
     price: integer('price').notNull(),
     quantity: integer('quantity').notNull().default(1),
     perUserLimit: integer('per_user_limit'),
@@ -1520,9 +1521,6 @@ export const reputationShopItems = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex('reputation_shop_item_library_item_uidx').on(
-      table.itemLibraryItemId,
-    ),
     index('reputation_shop_status_sort_idx').on(
       table.status,
       table.sortOrder,
@@ -1536,8 +1534,8 @@ export const sectShopItems = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     itemLibraryItemId: varchar('item_library_item_id', { length: 120 })
-      .notNull()
       .references(() => itemLibrary.itemId),
+    itemSnapshot: jsonb('item_snapshot').$type<Omit<ItemGrant, 'quantity'>>(),
     price: integer('price').notNull(),
     quantity: integer('quantity').notNull().default(1),
     perUserLimit: integer('per_user_limit'),
@@ -1552,7 +1550,6 @@ export const sectShopItems = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex('sect_shop_item_library_item_uidx').on(table.itemLibraryItemId),
     index('sect_shop_status_sort_idx').on(
       table.status,
       table.sortOrder,
@@ -1576,7 +1573,7 @@ export const sectShopPurchases = pgTable(
     }),
     itemLibraryItemId: varchar('item_library_item_id', {
       length: 120,
-    }).notNull(),
+    }),
     quantity: integer('quantity').notNull(),
     contributionCost: integer('contribution_cost').notNull(),
     purchaseWeek: varchar('purchase_week', { length: 10 }).notNull(),
@@ -1608,7 +1605,7 @@ export const reputationShopPurchases = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' }),
     itemLibraryItemId: varchar('item_library_item_id', {
       length: 120,
-    }).notNull(),
+    }),
     quantity: integer('quantity').notNull(),
     reputationCost: integer('reputation_cost').notNull(),
     purchaseWeek: varchar('purchase_week', { length: 10 }).notNull(),

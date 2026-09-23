@@ -3,7 +3,7 @@ import { validateSectSkillLearningContent } from "./skill-learning"
 import { LINGXIAO_V6_DEFINITION } from "./lingxiao.ts"
 import { YOUDU_V6_DEFINITION } from "./youdu.ts"
 import { WUXIANG_V6_DEFINITION } from "./wuxiang.ts"
-import { TIANYAN_V6_DEFINITION, validateTianyanReactionMatrixV1 } from "./tianyan.ts"
+import { TIANYAN_V6_DEFINITION } from "./tianyan.ts"
 import { JIUJIE_V6_DEFINITION, validateJiujieContentV1 } from "./jiujie.ts"
 import type { CompileSectCombatV6Result, SectCombatProgressV6, SectDefinitionV6 } from "./types.ts"
 
@@ -79,13 +79,13 @@ export function validateCombatV6SectRegistryV2(
 export function validateCombatV6SectRegistryV3(
   registry: Record<string, SectDefinitionV6> = COMBAT_V6_SECT_DEFINITIONS_V3,
 ): import("../projection/types.ts").CombatV6ProjectionDiagnostic[] {
-  return [...validateCombatV6SectRegistryV1(registry), ...validateTianyanReactionMatrixV1()]
+  return [...validateCombatV6SectRegistryV1(registry)]
 }
 
 export function validateCombatV6SectRegistryV4(
   registry: Record<string, SectDefinitionV6> = COMBAT_V6_SECT_DEFINITIONS_V4,
 ): import("../projection/types.ts").CombatV6ProjectionDiagnostic[] {
-  return [...validateCombatV6SectRegistryV1(registry), ...validateTianyanReactionMatrixV1(), ...validateJiujieContentV1()]
+  return [...validateCombatV6SectRegistryV1(registry), ...validateJiujieContentV1()]
 }
 
 type SectCompileInput = { progress: SectCombatProgressV6; characterLevel: number }
@@ -150,7 +150,6 @@ export {
   TIANYAN_SKILL_ID,
   TIANYAN_V6_DEFINITION,
   TIANYAN_V6_ID,
-  validateTianyanReactionMatrixV1,
 } from "./tianyan.ts"
 export type { TianyanElementV1, TianyanReactionDefV1, TianyanReactionKindV1 } from "./tianyan.ts"
 export {

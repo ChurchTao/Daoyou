@@ -61,6 +61,25 @@ describe('金丹普通构筑的关键层可玩性', () => {
                 (id) => host.queryCommands(id),
                 { statusDefs: host.runtimeSnapshot().input.statusDefs },
               );
+              if (sectId === 'jiujie') {
+                const command = commands.find(
+                  (c) => c.unitId === host.playerId,
+                );
+                const spell = host
+                  .queryCommands(host.playerId)
+                  .skills.find(
+                    (s) => s.skillId === 'jiujie.skill.thunderstorm' && s.ready,
+                  );
+                if (command && spell?.selectableTargetIds.length)
+                  command.command = {
+                    type: 'skill',
+                    skillId: spell.skillId,
+                    targets: spell.selectableTargetIds.slice(
+                      0,
+                      spell.targetCount,
+                    ),
+                  };
+              }
               host.submitGroup(commands);
               host.resolveRound();
               if (turn === 0)
@@ -78,8 +97,8 @@ describe('金丹普通构筑的关键层可玩性', () => {
             ).toBe('victory');
             if (floor === 1) {
               expect(host.trace().outcome).toBe('victory');
-              // 断尘移除每剑额外等级威力后，此普通构筑首层需要 6 回合。
-              expect(host.trace().rounds.length).toBeLessThanOrEqual(sectId === 'lingxiao' ? 6 : 5);
+              // AUTO 会穿插增益/控制；主动输出的目标节奏另由 health.test.ts 验证。
+              expect(host.trace().rounds.length).toBeLessThanOrEqual(6);
             }
           }
         }

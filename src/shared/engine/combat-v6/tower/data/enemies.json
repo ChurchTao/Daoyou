@@ -116,7 +116,8 @@
       "label": "灵障",
       "group": "survival",
       "multiply": {
-        "magicDef": 1.5
+        "magicDef": 1.5,
+        "hp": 0.8
       },
       "add": {},
       "passives": [],

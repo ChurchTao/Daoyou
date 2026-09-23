@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -943,15 +943,7 @@
       "sourceMethodId": "tianyan.method.canon",
       "unlockMethodLevel": 1
     },
-    "tianyan.passive.myriad": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 1
-    },
     "tianyan.passive.harmony": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.passive.ceaseless": {
       "sourceMethodId": "tianyan.method.canon",
       "unlockMethodLevel": 1
     },
@@ -1027,15 +1019,7 @@
       "sourceMethodId": "tianyan.method.canon",
       "unlockMethodLevel": 1
     },
-    "tianyan.passive.law": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 1
-    },
     "tianyan.passive.severance": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.passive.balance": {
       "sourceMethodId": "tianyan.method.canon",
       "unlockMethodLevel": 1
     }

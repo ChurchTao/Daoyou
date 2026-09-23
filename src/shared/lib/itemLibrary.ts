@@ -1,5 +1,4 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
-import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import {
   CONSUMABLE_TYPE_VALUES,
   ELEMENT_VALUES,
@@ -20,6 +19,8 @@ import type { MailAttachment } from '@shared/types/mail';
 import { z } from 'zod';
 import { BeastTransferSchema } from '../contracts/beastTrade';
 import { MailInventoryGrantSchema } from '../contracts/mail';
+import { MaterialFactsSchema, INVENTORY_MATERIAL_TYPES } from '../items/definitions/materials';
+import { seedFactsOf } from '../items/definitions/seeds';
 
 const ConditionStatusDurationSchema = z.union([
   z.object({
@@ -278,35 +279,34 @@ export const ItemLibraryEntrySchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-export const CreateItemLibraryEntrySchema = z.discriminatedUnion('type', [
-  z.object({
-    itemId: ItemLibraryItemIdSchema,
-    type: z.literal('material'),
-    status: ItemLibraryStatusSchema.default('published'),
-    payload: ItemLibraryMaterialPayloadSchema,
-    editorConfig: z.record(z.string(), z.unknown()).default({}),
+// Legacy entry/attachment schemas above are retained only for historical reads.
+export const CreateItemLibraryEntrySchema = z.object({
+  itemId: ItemLibraryItemIdSchema,
+  type: z.literal('material'),
+  status: ItemLibraryStatusSchema.default('published'),
+  payload: ItemLibraryMaterialPayloadSchema.superRefine((payload, ctx) => {
+    try {
+      if (payload.type === 'seed') seedFactsOf(payload);
+      else
+        MaterialFactsSchema.parse({
+          name: payload.name,
+          type: payload.type,
+          rank: payload.rank,
+          element: payload.element ?? null,
+          description: payload.description ?? '',
+        });
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: '仅支持新版材料或具有完整生长事实的灵种',
+      });
+    }
   }),
-  z.object({
-    itemId: ItemLibraryItemIdSchema,
-    type: z.literal('consumable'),
-    status: ItemLibraryStatusSchema.default('published'),
-    payload: ItemLibraryConsumablePayloadSchema,
-    editorConfig: z.record(z.string(), z.unknown()).default({}),
-  }),
-  z.object({
-    itemId: ItemLibraryItemIdSchema,
-    type: z.literal('artifact'),
-    status: ItemLibraryStatusSchema.default('published'),
-    payload: ItemLibraryArtifactPayloadSchema,
-    editorConfig: ArtifactEditorConfigSchema,
-  }),
-]);
-
-export const UpdateItemLibraryEntrySchema = z.discriminatedUnion('type', [
-  CreateItemLibraryEntrySchema.options[0].omit({ itemId: true }),
-  CreateItemLibraryEntrySchema.options[1].omit({ itemId: true }),
-  CreateItemLibraryEntrySchema.options[2].omit({ itemId: true }),
-]);
+  editorConfig: z.record(z.string(), z.unknown()).default({}),
+});
+export const UpdateItemLibraryEntrySchema = CreateItemLibraryEntrySchema.omit({
+  itemId: true,
+});
 
 export const ItemLibraryListQuerySchema = z.object({
   status: ItemLibraryStatusSchema.optional(),
@@ -321,7 +321,7 @@ export const ItemLibraryListQuerySchema = z.object({
 
 export const ItemLibraryMaterialGenerateSchema = z.object({
   count: z.number().int().min(1).max(200),
-  materialType: z.enum(MATERIAL_TYPE_VALUES),
+  materialType: z.enum([...INVENTORY_MATERIAL_TYPES, 'seed']),
   quality: z.enum(QUALITY_VALUES),
   status: ItemLibraryStatusSchema.default('published'),
   seed: z.string().trim().min(1).max(120).optional(),
@@ -333,26 +333,6 @@ export const ItemLibrarySpiritSeedGenerateSchema = z.object({
   element: z.enum(ELEMENT_VALUES).optional(),
   status: ItemLibraryStatusSchema.default('published'),
 });
-
-export const ItemLibraryRewardSelectionSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('spirit_stones'),
-    quantity: z.number().int().min(1).max(100000000),
-  }),
-  z.object({
-    type: z.literal('reputation'),
-    quantity: z.number().int().min(1).max(100000000),
-  }),
-  z.object({
-    type: z.literal('item_library'),
-    itemId: ItemLibraryItemIdSchema,
-    quantity: z.number().int().min(1).max(100000000),
-  }),
-]);
-
-export const ItemLibraryRewardSelectionsSchema = z.array(
-  ItemLibraryRewardSelectionSchema,
-);
 
 export type ItemLibraryEntry = z.infer<typeof ItemLibraryEntrySchema>;
 export type ItemLibraryPayload =
@@ -367,9 +347,6 @@ export type CreateItemLibraryEntry = z.infer<
 export type UpdateItemLibraryEntry = z.infer<
   typeof UpdateItemLibraryEntrySchema
 >;
-export type ItemLibraryRewardSelection = z.infer<
-  typeof ItemLibraryRewardSelectionSchema
->;
 export type ItemLibraryListQuery = z.infer<typeof ItemLibraryListQuerySchema>;
 export type ItemLibraryMaterialGenerateInput = z.infer<
   typeof ItemLibraryMaterialGenerateSchema
@@ -377,10 +354,6 @@ export type ItemLibraryMaterialGenerateInput = z.infer<
 export type ItemLibrarySpiritSeedGenerateInput = z.infer<
   typeof ItemLibrarySpiritSeedGenerateSchema
 >;
-
-function clonePlainData<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
 
 export function parseItemLibraryEntry(input: unknown): ItemLibraryEntry {
   return ItemLibraryEntrySchema.parse(input);
@@ -390,94 +363,8 @@ export function parseItemLibraryEntries(input: unknown): ItemLibraryEntry[] {
   return z.array(ItemLibraryEntrySchema).parse(input);
 }
 
-export function parseItemLibraryRewardSelections(
-  input: unknown,
-): ItemLibraryRewardSelection[] {
-  return ItemLibraryRewardSelectionsSchema.parse(input);
-}
-
 export function parseMailAttachments(input: unknown): MailAttachment[] {
   return MailAttachmentsSchema.parse(input) as MailAttachment[];
-}
-
-export function buildAttachmentFromItemLibraryEntry(
-  entry: ItemLibraryEntry,
-  quantity: number,
-): MailAttachment {
-  if (entry.status !== 'published') {
-    throw new ItemLibraryResolveError(`道具已下架：${entry.itemId}`);
-  }
-
-  switch (entry.type) {
-    case 'material':
-      return {
-        type: 'material',
-        name: entry.payload.name,
-        quantity,
-        data: {
-          ...clonePlainData(entry.payload),
-          quantity,
-        } as MailAttachment['data'],
-      };
-    case 'consumable':
-      return {
-        type: 'consumable',
-        name: entry.payload.name,
-        quantity,
-        data: {
-          ...clonePlainData(entry.payload),
-          quantity,
-        } as MailAttachment['data'],
-      };
-    case 'artifact':
-      return {
-        type: 'artifact',
-        name: entry.payload.name,
-        quantity,
-        data: clonePlainData(entry.payload) as MailAttachment['data'],
-      };
-  }
-}
-
-export class ItemLibraryResolveError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ItemLibraryResolveError';
-  }
-}
-
-export function resolveItemLibrarySelections(
-  rewardSelections: ItemLibraryRewardSelection[],
-  entries: ItemLibraryEntry[],
-): MailAttachment[] {
-  const itemMap = new Map(entries.map((item) => [item.itemId, item]));
-
-  return rewardSelections.map((selection) => {
-    if (selection.type === 'spirit_stones') {
-      return {
-        type: 'spirit_stones',
-        name: getGameConceptLabel('spirit_stones'),
-        quantity: selection.quantity,
-      };
-    }
-
-    if (selection.type === 'reputation') {
-      return {
-        type: 'reputation',
-        name: getGameConceptLabel('reputation'),
-        quantity: selection.quantity,
-      };
-    }
-
-    const item = itemMap.get(selection.itemId);
-    if (!item) {
-      throw new ItemLibraryResolveError(
-        `道具库道具不存在：${selection.itemId}`,
-      );
-    }
-
-    return buildAttachmentFromItemLibraryEntry(item, selection.quantity);
-  });
 }
 
 export function attachmentsToResourceOperations(
@@ -535,7 +422,5 @@ export function summarizeMailAttachment(attachment: MailAttachment): string {
 export function summarizeMailAttachments(
   attachments: MailAttachment[],
 ): string[] {
-  return attachments.map((attachment) =>
-    summarizeMailAttachment(clonePlainData(attachment)),
-  );
+  return attachments.map((attachment) => summarizeMailAttachment(attachment));
 }

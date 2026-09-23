@@ -5,7 +5,7 @@ export const TIANYAN_DEFINITION: SectDefinition = {
   id: 'tianyan',
   name: '天衍圣地',
   description:
-    '以五行法印推演前后术式的圣地。门人兼修金木水火土，却只能携四门主动神通入阵；胜负不在单法强弱，而在每一次留印之后如何落下下一子。',
+    '天衍门人兼修金木水火土，以自身法印承接前一道术式。顺其相生可延展法势、滋养生机，执其相克可破护断势；一法既出，下一法仍有不同去处。',
   raceIds: ['human'],
   configVersion: 1,
   methods: [

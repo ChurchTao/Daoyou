@@ -127,7 +127,7 @@
     }
   ],
   "scaling": {
-    "hpGrowth": 0.04,
+    "hpGrowth": 0.025,
     "outputGrowth": 0.025,
     "defenseGrowth": 0.005,
     "types": {
@@ -137,11 +137,11 @@
       },
       "elite": {
         "output": 1.2,
-        "rounds": 5
+        "rounds": 5.5
       },
       "boss": {
         "output": 1.3,
-        "rounds": 7
+        "rounds": 8
       }
     }
   },
@@ -156,7 +156,7 @@
       "dodge": 90,
       "referencePhysicalDef": 430,
       "referenceMagicDef": 510,
-      "damagePerRound": 650
+      "damagePerRound": 775
     },
     "元婴": {
       "physicalAtk": 850,
@@ -216,7 +216,7 @@
       "dodge": 165,
       "referencePhysicalDef": 910,
       "referenceMagicDef": 1220,
-      "damagePerRound": 2000
+      "damagePerRound": 1850
     },
     "渡劫": {
       "physicalAtk": 1420,
@@ -228,7 +228,7 @@
       "dodge": 185,
       "referencePhysicalDef": 970,
       "referenceMagicDef": 1340,
-      "damagePerRound": 2200
+      "damagePerRound": 2050
     }
   }
 }

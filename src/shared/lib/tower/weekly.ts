@@ -10,7 +10,7 @@ import {
 import { hashTowerSeed } from './helpers';
 import type { TowerSeasonMeta } from './types';
 
-export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v7' as const;
+export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v8' as const;
 export const TOWER_KEY_FLOORS = [5, 10, 15, 20] as const;
 export const TOWER_COMBINATIONS = generation.combinations;
 export type TowerCombination = (typeof TOWER_COMBINATIONS)[number];

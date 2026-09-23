@@ -65,7 +65,7 @@ function TreasuryConversation({
       );
       attempts.current.delete(item.id);
       pushToast({
-        message: `已支取 ${result.purchasedItem.item.name}，存入${result.destinations.map(location => location === 'bag' ? '背包' : '储藏室').join('／')}`,
+        message: `已支取 ${(result.purchasedItem.item?.name ?? '道具')}，存入${result.destinations.map(location => location === 'bag' ? '背包' : '储藏室').join('／')}`,
         tone: 'success',
       });
       await shop.reload();
@@ -95,7 +95,7 @@ function TreasuryConversation({
         title: '高额兑换确认',
         content: (
           <div className="space-y-2 text-sm leading-7">
-            <p>确定兑换「{item.item.name}」吗？</p>
+            <p>确定兑换「{(item.item?.name ?? '道具')}」吗？</p>
             <p className="text-crimson font-bold">
               将消耗：{item.price} 宗门贡献
             </p>

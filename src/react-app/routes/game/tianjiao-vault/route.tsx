@@ -80,7 +80,7 @@ export default function TianjiaoVaultPage() {
       );
       attempts.current.delete(item.id);
       pushToast({
-        message: `已兑换 ${result.purchasedItem.item.name}，已放入${result.destinations.map((location) => (location === 'bag' ? '背包' : '储藏室')).join('、')}`,
+        message: `已兑换 ${(result.purchasedItem.item?.name ?? '道具')}，已放入${result.destinations.map((location) => (location === 'bag' ? '背包' : '储藏室')).join('、')}`,
         tone: 'success',
       });
       await refresh();

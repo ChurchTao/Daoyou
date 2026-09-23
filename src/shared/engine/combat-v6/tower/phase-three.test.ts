@@ -74,20 +74,7 @@ function play(
       )
         entry.command = { type: 'attack', target: target.id };
       if (entry.unitId !== host.playerId) continue;
-      const priorities =
-        sect === 'jiujie'
-          ? enemies.length > 1
-            ? [
-                'jiujie.skill.nine_heavens_thunder',
-                'jiujie.skill.thunderstorm',
-                'jiujie.skill.startling_thunder',
-              ]
-            : [
-                'jiujie.skill.startling_thunder',
-                'jiujie.skill.nine_heavens_thunder',
-                'jiujie.skill.thunderstorm',
-              ]
-          : [];
+      const priorities = sect === 'jiujie' ? ['jiujie.skill.thunderstorm'] : [];
       const selected = priorities
         .map((id) =>
           options.skills.find(

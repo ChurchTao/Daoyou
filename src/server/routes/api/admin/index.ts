@@ -1,3 +1,4 @@
+import rewardItemsRouter from './reward-items.router';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
 import accountsRouter from '@server/routes/api/admin/accounts.router';
@@ -31,6 +32,7 @@ router.route('/feedback', feedbackRouter);
 router.route('/broadcast', broadcastRouter);
 router.route('/announcement', announcementRouter);
 router.route('/item-library', itemLibraryRouter);
+router.route('/reward-items', rewardItemsRouter);
 router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/sect-shop', sectShopRouter);

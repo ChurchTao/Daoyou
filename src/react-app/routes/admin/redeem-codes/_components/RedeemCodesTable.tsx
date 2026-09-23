@@ -1,6 +1,12 @@
+import {
+  InventoryGrid,
+  ItemSlot,
+} from '@app/components/feature/items/ItemSlot';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkSelect } from '@app/components/ui/InkSelect';
+import { rewardDisplayItem } from '@shared/contracts/adminRewards';
+import { MailAttachmentsSchema } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
 
 interface RedeemCodeItem {
@@ -19,6 +25,7 @@ interface RedeemCodeItem {
 }
 
 const SNAPSHOT_REWARD_PRESET_IDS = new Set([
+  '__inventory_v1_snapshot__',
   '__item_library_snapshot__',
   '__reward_catalog_snapshot__',
 ]);
@@ -27,9 +34,8 @@ function getRewardSourceLabel(item: RedeemCodeItem) {
   const hasBrokenSummary = item.rewardSummary.some(
     (entry) => entry === '奖励快照异常' || entry === '奖励配置异常',
   );
-  const hasExpiredLegacySummary = item.rewardSummary.includes(
-    '旧版兑换码（已失效）',
-  );
+  const hasExpiredLegacySummary =
+    item.rewardSummary.includes('旧版兑换码（已失效）');
 
   if (item.rewardSource === 'broken_snapshot') {
     return '快照奖励异常';
@@ -44,7 +50,11 @@ function getRewardSourceLabel(item: RedeemCodeItem) {
   }
 
   if (SNAPSHOT_REWARD_PRESET_IDS.has(item.rewardPresetId ?? '')) {
-    if (!hasBrokenSummary && !hasExpiredLegacySummary && item.rewardSummary.length > 0) {
+    if (
+      !hasBrokenSummary &&
+      !hasExpiredLegacySummary &&
+      item.rewardSummary.length > 0
+    ) {
       return '快照奖励';
     }
     return '快照奖励异常';
@@ -59,6 +69,26 @@ function getRewardSourceLabel(item: RedeemCodeItem) {
   }
 
   return '旧版兑换码（已失效）';
+}
+
+function RewardPreview({ attachments }: { attachments: unknown }) {
+  const parsed = MailAttachmentsSchema.safeParse(attachments);
+  if (!parsed.success) return null;
+  const items = parsed.data.flatMap((a) =>
+    a.type === 'inventory_v1' ? [a.inventory] : [],
+  );
+  if (!items.length) return null;
+  return (
+    <InventoryGrid className="mt-2 sm:grid-cols-4">
+      {items.map((item, index) => (
+        <ItemSlot
+          key={index}
+          item={rewardDisplayItem(item)}
+          quantityLabel="奖励"
+        />
+      ))}
+    </InventoryGrid>
+  );
 }
 
 export function RedeemCodesTable() {
@@ -188,10 +218,13 @@ export function RedeemCodesTable() {
             ) : (
               items.map((item) => (
                 <tr key={item.id} className="border-ink/8 border-b">
-                  <td className="px-3 py-2 font-mono tracking-wide">{item.code}</td>
+                  <td className="px-3 py-2 font-mono tracking-wide">
+                    {item.code}
+                  </td>
                   <td className="px-3 py-2">
                     <div className="font-semibold">
                       {item.rewardSummary.join('、')}
+                      <RewardPreview attachments={item.rewardAttachments} />
                     </div>
                     <div className="text-ink-secondary text-xs">
                       {getRewardSourceLabel(item)}

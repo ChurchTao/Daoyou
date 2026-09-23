@@ -2,13 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import raw from './data/tianyan-foundation.json';
 import schema from './data/tianyan-foundation.schema.json';
-import { TianyanFoundationShape, loadTianyanFoundation } from './tianyan-foundation';
+import {
+  TianyanFoundationShape,
+  loadTianyanFoundation,
+} from './tianyan-foundation';
 
 describe('天衍生克状态配置', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(TianyanFoundationShape, { reused: 'ref' })).toEqual(schema));
+  it('Schema 同步', () =>
+    expect(z.toJSONSchema(TianyanFoundationShape, { reused: 'ref' })).toEqual(
+      schema,
+    ));
   it('拒绝重复组合、反转的克制方向和可驱散法印', () => {
     const duplicate = structuredClone(raw);
-    Object.assign(duplicate.reactions[1], { oldElement: duplicate.reactions[0].oldElement, newElement: duplicate.reactions[0].newElement });
+    Object.assign(duplicate.reactions[1], {
+      oldElement: duplicate.reactions[0].oldElement,
+      newElement: duplicate.reactions[0].newElement,
+    });
     expect(() => loadTianyanFoundation(duplicate)).toThrow('反应有序组合');
     const reverse = structuredClone(raw);
     const r = reverse.reactions[5];
@@ -23,7 +32,7 @@ describe('天衍生克状态配置', () => {
     missing.elements[0].markId = 'tianyan.status.missing';
     expect(() => loadTianyanFoundation(missing)).toThrow('状态引用不存在');
     const formula = structuredClone(raw);
-    formula.statuses.find(s => s.healingPerRound)!.healingPerRound = 'floor(';
+    formula.statuses.find((s) => s.healingPerRound)!.healingPerRound = 'floor(';
     expect(() => loadTianyanFoundation(formula)).toThrow('healingPerRound');
   });
 });

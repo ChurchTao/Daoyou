@@ -5,25 +5,22 @@ import {
 import { db } from '@server/lib/drizzle/db';
 import { requireAdmin } from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import { findPublishedItemLibraryForSelections } from '@server/lib/repositories/itemLibraryRepository';
+import { MailService } from '@server/lib/services/MailService';
 import {
-  MailService,
-  type MailAttachment,
-} from '@server/lib/services/MailService';
-import {
-  ItemLibraryResolveError,
-  ItemLibraryRewardSelectionsSchema,
-  resolveItemLibrarySelections,
-  summarizeMailAttachments,
-} from '@shared/lib/itemLibrary';
+  RewardSelectionsSchema,
+  materializeRewardAttachments,
+  rewardAttachments,
+} from '@shared/contracts/adminRewards';
+import { summarizeMailAttachments } from '@shared/lib/itemLibrary';
 import { REALM_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 const GameMailBroadcastSchema = z.object({
   title: z.string().trim().min(1).max(200),
   content: z.string().trim().min(1).max(10000),
-  rewardSelections: ItemLibraryRewardSelectionsSchema.default([]),
+  rewardSelections: RewardSelectionsSchema.default([]),
   filters: z
     .object({
       targetCultivatorId: z.string().uuid().optional(),
@@ -60,35 +57,15 @@ router.post('/game-mail', requireAdmin(), async (c) => {
     throw error;
   }
 
+  const attachments = rewardAttachments(parsed.data.rewardSelections);
+
   if (dryRun) {
     return c.json({
       dryRun: true,
+      rewardSummary: summarizeMailAttachments(attachments),
       totalRecipients: resolvedRecipients.totalCount,
       sampleRecipients: resolvedRecipients.sampleRecipients,
     });
-  }
-
-  let attachments: MailAttachment[] = [];
-
-  try {
-    const itemLibraryEntries = await findPublishedItemLibraryForSelections(
-      parsed.data.rewardSelections,
-    );
-    attachments = resolveItemLibrarySelections(
-      parsed.data.rewardSelections,
-      itemLibraryEntries,
-    );
-  } catch (error) {
-    if (error instanceof ItemLibraryResolveError) {
-      return c.json({ error: error.message }, 400);
-    }
-
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : '道具库加载失败',
-      },
-      500,
-    );
   }
 
   const type = attachments.length > 0 ? 'reward' : 'system';
@@ -96,7 +73,7 @@ router.post('/game-mail', requireAdmin(), async (c) => {
     cultivatorId: recipient.recipientKey,
     title,
     content,
-    attachments,
+    attachments: materializeRewardAttachments(attachments, randomUUID),
   }));
 
   const batchSize = Number(process.env.ADMIN_BROADCAST_BATCH_SIZE ?? 500);

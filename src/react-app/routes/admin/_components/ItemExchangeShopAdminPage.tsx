@@ -1,27 +1,26 @@
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
-  InkBadge,
-  InkButton,
-  InkInput,
-  InkList,
-  InkListItem,
-  InkNotice,
-  InkSelect,
-} from '@app/components/ui';
+  InventoryGrid,
+  ItemSlot,
+} from '@app/components/feature/items/ItemSlot';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
+import {
+  RewardItemSchema,
+  rewardDisplayItem,
+} from '@shared/contracts/adminRewards';
 import {
   ITEM_EXCHANGE_SHOP_MAX_PRICE,
-  ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY,
+  ItemExchangeShopItemMutationSchema,
   type ItemExchangeShopItemMutation,
   type ItemExchangeShopItemView,
 } from '@shared/contracts/itemExchangeShop';
-import type { ItemLibraryEntry } from '@shared/lib/itemLibrary';
-import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ItemLibraryPicker } from './ItemLibraryPicker';
+import type { ItemGrant } from '@shared/inventory';
+import { useCallback, useEffect, useState } from 'react';
+import { RewardItemPicker } from './RewardItemPicker';
 
 interface DraftState {
   id: string | null;
-  itemLibraryItemId: string;
+  item: ItemGrant | null;
   price: string;
   quantity: string;
   perUserLimit: string;
@@ -31,7 +30,7 @@ interface DraftState {
 
 const emptyDraft: DraftState = {
   id: null,
-  itemLibraryItemId: '',
+  item: null,
   price: '1000',
   quantity: '1',
   perUserLimit: '',
@@ -47,54 +46,17 @@ function parsePositiveInt(value: string, label: string) {
   return parsed;
 }
 
-function normalizeQuantity(
-  quantity: string,
-  item: ItemLibraryEntry | undefined,
-) {
-  return item?.type === 'artifact' ? '1' : quantity;
-}
-
-function toMutation(
-  draft: DraftState,
-  item: ItemLibraryEntry | undefined,
-): ItemExchangeShopItemMutation {
-  const price = parsePositiveInt(draft.price, '价格');
-  if (price > ITEM_EXCHANGE_SHOP_MAX_PRICE) {
-    throw new Error(`价格最高为 ${ITEM_EXCHANGE_SHOP_MAX_PRICE}`);
-  }
-  const quantity = parsePositiveInt(
-    normalizeQuantity(draft.quantity, item),
-    '数量',
-  );
-  if (item?.type === 'artifact' && quantity !== 1) {
-    throw new Error('法宝类商品每次只能发放 1 件');
-  }
-  if (
-    item?.type !== 'artifact' &&
-    quantity > ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY
-  ) {
-    throw new Error(
-      `材料和消耗品每次最多发放 ${ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY} 件`,
-    );
-  }
-  return {
-    itemLibraryItemId: draft.itemLibraryItemId,
-    price,
-    quantity,
+function toMutation(draft: DraftState): ItemExchangeShopItemMutation {
+  if (!draft.item) throw new Error('请选择道具');
+  return ItemExchangeShopItemMutationSchema.parse({
+    item: { ...draft.item, quantity: parsePositiveInt(draft.quantity, '数量') },
+    price: parsePositiveInt(draft.price, '价格'),
     perUserLimit: draft.perUserLimit.trim()
       ? parsePositiveInt(draft.perUserLimit, '每周限购')
       : null,
     status: draft.status,
-    sortOrder: Number.isInteger(Number(draft.sortOrder))
-      ? Number(draft.sortOrder)
-      : 0,
-  };
-}
-
-function qualityTier(quality: string | null | undefined): Quality | undefined {
-  return QUALITY_VALUES.includes(quality as Quality)
-    ? (quality as Quality)
-    : undefined;
+    sortOrder: Number(draft.sortOrder),
+  });
 }
 
 export interface ItemExchangeShopAdminPageProps {
@@ -118,16 +80,9 @@ export function ItemExchangeShopAdminPage({
 }: ItemExchangeShopAdminPageProps) {
   const { pushToast } = useInkUI();
   const [items, setItems] = useState<ItemExchangeShopItemView[]>([]);
-  const [libraryItems, setLibraryItems] = useState<ItemLibraryEntry[]>([]);
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const libraryById = useMemo(
-    () => new Map(libraryItems.map((item) => [item.itemId, item])),
-    [libraryItems],
-  );
-  const selectedItem = libraryById.get(draft.itemLibraryItemId);
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -139,11 +94,6 @@ export function ItemExchangeShopAdminPage({
       if (!response.ok) throw new Error(data.error ?? '加载商店失败');
       const nextItems = data.items ?? [];
       setItems(nextItems);
-      setLibraryItems((current) => {
-        const byId = new Map(current.map((item) => [item.itemId, item]));
-        nextItems.forEach((item) => byId.set(item.item.itemId, item.item));
-        return Array.from(byId.values());
-      });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '加载失败',
@@ -160,16 +110,19 @@ export function ItemExchangeShopAdminPage({
 
   const reset = () => setDraft({ ...emptyDraft });
   const edit = (item: ItemExchangeShopItemView) => {
-    setLibraryItems((current) =>
-      current.some((entry) => entry.itemId === item.item.itemId)
-        ? current
-        : [...current, item.item],
-    );
     setDraft({
       id: item.id,
-      itemLibraryItemId: item.itemLibraryItemId,
+      item: item.item
+        ? RewardItemSchema.parse({
+            definitionId: item.item.definitionId,
+            quantity: item.quantity,
+            ...(item.item.instanceData
+              ? { instanceData: item.item.instanceData }
+              : {}),
+          })
+        : null,
       price: String(item.price),
-      quantity: normalizeQuantity(String(item.quantity), item.item),
+      quantity: String(item.quantity),
       perUserLimit: item.perUserLimit ? String(item.perUserLimit) : '',
       status: item.status,
       sortOrder: String(item.sortOrder),
@@ -184,7 +137,7 @@ export function ItemExchangeShopAdminPage({
         {
           method: draft.id ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(toMutation(draft, selectedItem)),
+          body: JSON.stringify(toMutation(draft)),
         },
       );
       const data = (await response.json()) as { error?: string };
@@ -218,32 +171,31 @@ export function ItemExchangeShopAdminPage({
   return (
     <div className="space-y-5">
       <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <p className="text-ink-secondary text-xs tracking-[0.2em]">
-          {eyebrow}
-        </p>
+        <p className="text-ink-secondary text-xs tracking-[0.2em]">{eyebrow}</p>
         <h2 className="font-heading text-ink mt-2 text-4xl">{title}</h2>
       </header>
 
       <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
         <div className="grid gap-4 md:grid-cols-3">
-          <ItemLibraryPicker
-            label="道具库道具"
-            value={draft.itemLibraryItemId}
-            onChange={(itemLibraryItemId, item) => {
-              if (item) {
-                setLibraryItems((current) =>
-                  current.some((entry) => entry.itemId === item.itemId)
-                    ? current
-                    : [...current, item],
-                );
+          <div className="space-y-2">
+            <RewardItemPicker
+              disabled={saving}
+              onSelect={(item) =>
+                setDraft((current) => ({ ...current, item, quantity: '1' }))
               }
-              setDraft((current) => ({
-                ...current,
-                itemLibraryItemId,
-                quantity: normalizeQuantity(current.quantity, item),
-              }));
-            }}
-          />
+            />
+            {draft.item && (
+              <div className="w-24">
+                <ItemSlot
+                  item={rewardDisplayItem({
+                    ...draft.item,
+                    quantity: Number(draft.quantity) || 1,
+                  })}
+                  quantityLabel="奖励"
+                />
+              </div>
+            )}
+          </div>
           <InkInput
             label={priceLabel}
             value={draft.price}
@@ -252,16 +204,12 @@ export function ItemExchangeShopAdminPage({
           />
           <InkInput
             label="单次获得"
-            value={normalizeQuantity(draft.quantity, selectedItem)}
+            value={draft.quantity}
             onChange={(quantity) =>
               setDraft((current) => ({ ...current, quantity }))
             }
-            disabled={selectedItem?.type === 'artifact'}
-            hint={
-              selectedItem?.type === 'artifact'
-                ? '法宝固定发放 1 件'
-                : `材料/消耗品最高 ${ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY} 件`
-            }
+            disabled={draft.item?.definitionId === 'equipment.v6'}
+            hint="道装固定 1 件，其他道具最高 30 件"
           />
           <InkInput
             label="每周限购"
@@ -293,20 +241,12 @@ export function ItemExchangeShopAdminPage({
           </InkSelect>
         </div>
 
-        {draft.itemLibraryItemId ? (
-          <InkNotice tone="muted">
-            当前选择：
-            {libraryById.get(draft.itemLibraryItemId)?.name ??
-              draft.itemLibraryItemId}
-          </InkNotice>
-        ) : null}
-
         <div className="flex flex-wrap gap-3">
           <InkButton
             type="button"
             variant="primary"
             onClick={save}
-            disabled={saving || !draft.itemLibraryItemId}
+            disabled={saving || !draft.item}
           >
             {draft.id ? '保存修改' : '新增商品'}
           </InkButton>
@@ -322,46 +262,61 @@ export function ItemExchangeShopAdminPage({
         ) : items.length === 0 ? (
           <InkNotice tone="muted">{emptyText}</InkNotice>
         ) : (
-          <InkList>
-            {items.map((item) => (
-              <InkListItem
-                key={item.id}
-                title={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span>{item.item.name}</span>
-                    <InkBadge tier={qualityTier(item.item.quality)}>
-                      {item.status === 'active' ? '上架' : '下架'}
-                    </InkBadge>
-                  </div>
-                }
-                meta={`价格 ${item.price} ${currencyLabel} · 单次获得 ${item.quantity} · 每周限购 ${
-                  item.perUserLimit ?? '不限'
-                } · 排序 ${item.sortOrder}`}
-                description={
-                  item.item.description ?? item.item.payload.description
-                }
-                actions={
-                  <div className="flex gap-2">
-                    <InkButton
-                      type="button"
-                      variant="secondary"
-                      onClick={() => edit(item)}
-                    >
-                      编辑
-                    </InkButton>
-                    <InkButton
-                      type="button"
-                      variant="secondary"
-                      onClick={() => archive(item)}
-                      disabled={item.status === 'archived'}
-                    >
-                      下架
-                    </InkButton>
-                  </div>
-                }
-              />
-            ))}
-          </InkList>
+          <div className="space-y-4">
+            <InventoryGrid>
+              {items
+                .filter((i) => i.item)
+                .map((item) => (
+                  <ItemSlot
+                    key={item.id}
+                    item={item.item!}
+                    badge={item.status === 'active' ? '上架' : '下架'}
+                    quantityLabel="奖励"
+                  >
+                    {(close) => (
+                      <div className="space-y-3">
+                        <p className="font-mono">
+                          {item.price} {currencyLabel} · 每周限购{' '}
+                          {item.perUserLimit ?? '不限'}
+                        </p>
+                        <div className="flex gap-2">
+                          <InkButton
+                            onClick={() => {
+                              close();
+                              edit(item);
+                            }}
+                          >
+                            编辑
+                          </InkButton>
+                          <InkButton
+                            disabled={item.status === 'archived'}
+                            onClick={() => {
+                              close();
+                              void archive(item);
+                            }}
+                          >
+                            下架
+                          </InkButton>
+                        </div>
+                      </div>
+                    )}
+                  </ItemSlot>
+                ))}
+            </InventoryGrid>
+            {items
+              .filter((i) => !i.item)
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center gap-3"
+                >
+                  <span>
+                    旧商品 {item.itemLibraryItemId} · 已下架，需重新选择道具
+                  </span>
+                  <InkButton onClick={() => edit(item)}>重新配置</InkButton>
+                </div>
+              ))}
+          </div>
         )}
       </section>
     </div>

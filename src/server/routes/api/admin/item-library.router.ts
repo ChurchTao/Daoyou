@@ -37,7 +37,7 @@ function isUniqueViolation(error: unknown): boolean {
 router.get('/', requireAdmin(), async (c) => {
   const parsed = ItemLibraryListQuerySchema.safeParse({
     status: c.req.query('status') || undefined,
-    type: c.req.query('type') || undefined,
+    type: 'material',
     materialType: c.req.query('materialType') || undefined,
     quality: c.req.query('quality') || undefined,
     q: c.req.query('q') || undefined,
@@ -152,8 +152,8 @@ router.post('/', requireAdmin(), async (c) => {
   }
 
   const body = await c.req.json().catch(() => null);
-  if (body?.type === 'artifact')
-    return c.json({ error: '旧装备生产已停用' }, 410);
+  if (body?.type !== 'material')
+    return c.json({ error: '旧法宝与消耗品库已停用，请直接配置新版奖励' }, 410);
   const parsed = CreateItemLibraryEntrySchema.safeParse(body);
 
   if (!parsed.success) {
@@ -185,11 +185,11 @@ router.put('/:id', requireAdmin(), async (c) => {
 
   const id = c.req.param('id');
   const existing = await findItemLibraryById(id);
-  if (existing?.type === 'artifact')
-    return c.json({ error: '旧装备生产已停用' }, 410);
+  if (existing && existing.type !== 'material')
+    return c.json({ error: '旧法宝与消耗品库已停用，请直接配置新版奖励' }, 410);
   const body = await c.req.json().catch(() => null);
-  if (body?.type === 'artifact')
-    return c.json({ error: '旧装备生产已停用' }, 410);
+  if (body?.type !== 'material')
+    return c.json({ error: '旧法宝与消耗品库已停用，请直接配置新版奖励' }, 410);
   const parsed = UpdateItemLibraryEntrySchema.safeParse(body);
 
   if (!parsed.success) {
@@ -217,7 +217,7 @@ router.put('/:id', requireAdmin(), async (c) => {
 });
 
 router.post('/artifact/preview', requireAdmin(), (c) =>
-  c.json({ error: '旧装备生产已停用' }, 410),
+  c.json({ error: '旧法宝与消耗品库已停用，请直接配置新版奖励' }, 410),
 );
 
 router.post('/:id/archive', requireAdmin(), async (c) => {
@@ -226,12 +226,16 @@ router.post('/:id/archive', requireAdmin(), async (c) => {
     return c.json({ error: '未授权访问' }, 401);
   }
 
+  const existing = await findItemLibraryById(c.req.param('id'));
+  if (!existing || existing.type !== 'material')
+    return c.json({ error: '材料不存在' }, 404);
+
   const item = await archiveItemLibraryEntry({
     id: c.req.param('id'),
     userId: user.id,
   });
 
-  if (!item) {
+  if (!item || item.type !== 'material') {
     return c.json({ error: '道具不存在' }, 404);
   }
 
@@ -240,7 +244,7 @@ router.post('/:id/archive', requireAdmin(), async (c) => {
 
 router.get('/:id', requireAdmin(), async (c) => {
   const item = await findItemLibraryById(c.req.param('id'));
-  if (!item) {
+  if (!item || item.type !== 'material') {
     return c.json({ error: '道具不存在' }, 404);
   }
   return c.json({ item });

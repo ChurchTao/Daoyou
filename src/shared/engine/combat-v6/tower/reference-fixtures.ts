@@ -3,6 +3,11 @@ import {
   getRealmStageNaturalAttributeValue,
   getRealmStageUnallocatedAttributeBudget,
 } from '../../../config/realmProgression';
+import { BODY_CULTIVATION_TRACK_KEYS } from '../../../lib/bodyCultivation/pack';
+import type {
+  BodyCultivationRealm,
+  BodyCultivationState,
+} from '../../../types/condition';
 import type { RealmStage, RealmType } from '../../../types/constants';
 import { generateStarterBeast } from '../beasts';
 import { allocateBeast, gainBeastExp } from '../beasts/progression';
@@ -14,11 +19,11 @@ import {
   generateDaoEquipmentV1,
 } from '../equipment';
 import { OPEN_EQUIPMENT_LEVELS, equipmentRealm } from '../equipment/realm';
-import { BODY_CULTIVATION_TRACK_KEYS } from '../../../lib/bodyCultivation/pack';
-import type { BodyCultivationRealm, BodyCultivationState } from '../../../types/condition';
 
 // Frozen progression samples; never inferred from the challenger at runtime.
-const trainingByRealm: Partial<Record<RealmType, [BodyCultivationRealm, number]>> = {
+const trainingByRealm: Partial<
+  Record<RealmType, [BodyCultivationRealm, number]>
+> = {
   金丹: ['jade_marrow', 15],
   元婴: ['golden_body', 20],
   化神: ['dharma_body', 30],
@@ -36,7 +41,10 @@ export function towerReferenceBuild(
 ): CombatV6TrainingPlayerInput {
   const def = COMBAT_V6_SECT_DEFINITIONS[sectId];
   const level = getRealmStageLevel(realm, stage);
-  const [bodyRealm, trainingLevel] = trainingByRealm[realm] ?? ['mortal_body', 0];
+  const [bodyRealm, trainingLevel] = trainingByRealm[realm] ?? [
+    'mortal_body',
+    0,
+  ];
   const natural = getRealmStageNaturalAttributeValue(realm, stage);
   const budget = getRealmStageUnallocatedAttributeBudget(realm, stage);
   const weights =
@@ -88,16 +96,31 @@ export function towerReferenceBuild(
         resources: { hp: { current: 1 }, mp: { current: 1 } },
         gauges: { pillToxicity: 0 },
         tracks: {
+          tempering: {
+            vitality: { level: 0, progress: 0 },
+            spirit: { level: 0, progress: 0 },
+            wisdom: { level: 0, progress: 0 },
+            speed: { level: 0, progress: 0 },
+            willpower: { level: 0, progress: 0 },
+          },
+          marrowWash: { level: 0, progress: 0 },
           bodyCultivation: {
             version: 1,
             realm: bodyRealm,
-            tracks: Object.fromEntries(BODY_CULTIVATION_TRACK_KEYS.map(key =>
-              [key, { level: trainingLevel, progress: 0 }],
-            )) as BodyCultivationState['tracks'],
+            tracks: Object.fromEntries(
+              BODY_CULTIVATION_TRACK_KEYS.map((key) => [
+                key,
+                { level: trainingLevel, progress: 0 },
+              ]),
+            ) as BodyCultivationState['tracks'],
             milestones: {},
           },
         },
-        counters: { longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {} },
+        counters: {
+          longTermPillUsesByRealm: {},
+          cultivationPillUsesByRealm: {},
+          longevityPillUsesByRealm: {},
+        },
         statuses: [],
         timestamps: {},
       },

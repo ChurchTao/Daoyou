@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AUCTION_MAX_UNIT_PRICE } from '../config/auctionConfig';
+import { buildSpiritFruitSpec } from '../engine/spirit-field/spiritFruit';
 import { ITEM_DEFINITIONS } from '../items/registry';
 import {
   auctionBlockReason,
@@ -13,7 +14,13 @@ import {
 describe('新版寄售规则', () => {
   it('所有无品质品类开放寄售，不合成品质或按旧品质限价', () => {
     for (const definition of ITEM_DEFINITIONS.filter((d) =>
-      ['equipment', 'blueprint', 'manual_jade', 'beast_book', 'inscription'].includes(d.kind),
+      [
+        'equipment',
+        'blueprint',
+        'manual_jade',
+        'beast_book',
+        'inscription',
+      ].includes(d.kind),
     )) {
       const item = {
         definitionId: definition.id,
@@ -78,7 +85,26 @@ describe('新版寄售规则', () => {
         name: '药品',
         type: '丹药',
         quality: '玄品',
-        spec: { kind: 'pill' },
+        spec: {
+          kind: 'pill',
+          family: 'healing',
+          operations: [
+            {
+              type: 'restore_resource',
+              resource: 'hp',
+              mode: 'percent',
+              value: 0.1,
+            },
+          ],
+          consumeRules: { scene: 'out_of_battle_only', quotaCategory: 'none' },
+          alchemyMeta: {
+            source: 'improvised',
+            sourceMaterials: [],
+            stability: 100,
+            toxicityRating: 0,
+            tags: [],
+          },
+        },
       },
     };
     expect(auctionBlockReason(item)).toBeNull();
@@ -95,7 +121,7 @@ describe('新版寄售规则', () => {
         instanceData: {
           ...item.instanceData,
           type: '灵果',
-          spec: { kind: 'spirit_fruit' },
+          spec: buildSpiritFruitSpec({ family: 'healing', quality: '玄品' }),
         },
       }),
     ).toBeNull();
@@ -105,7 +131,11 @@ describe('新版寄售规则', () => {
         instanceData: {
           ...item.instanceData,
           type: '符箓',
-          spec: { kind: 'talisman' },
+          spec: {
+            kind: 'talisman',
+            scenario: 'attribute_reset',
+            sessionMode: 'consume_on_action',
+          },
         },
       }),
     ).toContain('丹药与灵果');

@@ -379,6 +379,13 @@
       "when": 1789833248784,
       "tag": "0053_beast_fusion",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790156976107,
+      "tag": "0054_admin_inventory_rewards",
+      "breakpoints": true
     }
   ]
 }

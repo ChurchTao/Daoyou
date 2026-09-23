@@ -29,7 +29,7 @@ export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
     '五峰水脉本旬将依新阵图调度，诸弟子行经中宫时请勿挪动地刻与测算标记。',
   onboarding: {
     summary: '以无色太初灵气推演五行，让前一法留下的余势决定后一法的变化。',
-    traits: ['五行推演', '法印衔术', '四法择局'],
+    traits: ['五行生克', '法印衔术', '万法随势'],
     script: {
       id: 'tianyan-onboarding',
       title: '天衍有缺',
@@ -63,18 +63,18 @@ export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
           id: 'one-art-leaves-mark',
           title: '一法留痕',
           scene: '天衍圣地 · 五行地刻',
-          body: '木气先在傀儡胸前结成一枚青印。下一刻，火光沿印纹展开，不再只是一束直焰；余火映入雨水，沿石缝中原有的细流照亮了另一段去路。',
+          body: '木气掠过傀儡，在执教掌中留下一枚青印。下一刻，火光承印而起，铺向相邻的数具傀儡；掌中青色随之化为赤红，等待下一道法术。',
           speaker: '执教：“第一法不是未完成的失败。它是在替第二法留下去处。”',
           backgroundPosition: '72% 58%',
           tone: 'ember',
         },
         {
           id: 'the-escaped-one',
-          title: '遁去其一',
+          title: '随势生变',
           scene: '天衍圣地 · 五经阁前',
-          body: '五枚经简在案上依次展开，执教却只将四枚推到你面前。余下的一枚没有收走，只被放在灯影之外。',
+          body: '五枚经简在案上依次展开。执教先以水势润木，又翻掌运土截断水流；同一枚法印，在不同的下一法中显出不同用途。',
           speaker:
-            '执教：“五行皆可学，临敌不可尽携。肯留下一个未知，才算真正开始推演。”',
+            '执教：“五行皆可用，先辨眼前之势。该生时生，该断时断，不必将五行依次走遍。”',
           backgroundPosition: '28% 42%',
           tone: 'steel',
         },
@@ -282,7 +282,7 @@ export const TIANYAN_SECT_PRESENTATION: SectPresentationTheme = {
     paths: {
       title: '河洛台',
       description:
-        '河图刻流，洛书定位。两条道途同观五行，一条顺势成图，一条移宫断局。',
+        '衍法天师借五行变化延展法势，执衡真君以生克之理破护断势。两条道途同修五行，各有取舍。',
     },
     arena: {
       title: '中宫演法台',

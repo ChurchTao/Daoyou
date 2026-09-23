@@ -1,81 +1,31 @@
+import { RewardSelectionsSchema } from '@shared/contracts/adminRewards';
+import type { ItemGrant } from '@shared/inventory';
+
 export type RewardSelectionDraft =
-  | {
-      type: 'spirit_stones';
-      quantity: string;
-    }
-  | {
-      type: 'reputation';
-      quantity: string;
-    }
-  | {
-      type: 'item_library';
-      itemId: string;
-      quantity: string;
-    };
-
-export function createSpiritStoneDraft(): RewardSelectionDraft {
-  return {
-    type: 'spirit_stones',
-    quantity: '1',
-  };
-}
-
-export function createReputationDraft(): RewardSelectionDraft {
-  return {
-    type: 'reputation',
-    quantity: '1',
-  };
-}
-
-export function createItemLibraryItemDraft(itemId = ''): RewardSelectionDraft {
-  return {
-    type: 'item_library',
-    itemId,
-    quantity: '1',
-  };
-}
-
+  | { type: 'spirit_stones' | 'reputation'; quantity: string }
+  | { type: 'inventory_v1'; inventory: ItemGrant; quantity: string };
+export const createSpiritStoneDraft = (): RewardSelectionDraft => ({
+  type: 'spirit_stones',
+  quantity: '1',
+});
+export const createReputationDraft = (): RewardSelectionDraft => ({
+  type: 'reputation',
+  quantity: '1',
+});
 export function parseRewardSelectionDrafts(
   drafts: RewardSelectionDraft[],
-  options?: {
-    allowEmpty?: boolean;
-  },
+  options?: { allowEmpty?: boolean },
 ) {
-  if (drafts.length === 0) {
-    if (options?.allowEmpty) {
-      return [];
-    }
+  if (!drafts.length && !options?.allowEmpty)
     throw new Error('至少选择一项奖励');
-  }
-
-  return drafts.map((draft, index) => {
-    const quantity = Number(draft.quantity.trim());
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new Error(`第 ${index + 1} 项奖励数量必须是大于 0 的整数`);
-    }
-
-    if (draft.type === 'spirit_stones') {
-      return {
-        type: 'spirit_stones' as const,
-        quantity,
-      };
-    }
-
-    if (draft.type === 'reputation') {
-      return {
-        type: 'reputation' as const,
-        quantity,
-      };
-    }
-
-    if (!draft.itemId) {
-      throw new Error(`第 ${index + 1} 项奖励未选择道具库道具`);
-    }
-
-    return {
-      type: 'item_library' as const,
-      itemId: draft.itemId,
-      quantity,
-    };
-  });
+  return RewardSelectionsSchema.parse(
+    drafts.map((d) =>
+      d.type === 'inventory_v1'
+        ? {
+            type: d.type,
+            inventory: { ...d.inventory, quantity: Number(d.quantity) },
+          }
+        : { type: d.type, quantity: Number(d.quantity) },
+    ),
+  );
 }

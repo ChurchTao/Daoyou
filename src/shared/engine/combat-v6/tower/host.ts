@@ -66,7 +66,7 @@ export function projectTowerPlayer(
   return projected;
 }
 export interface TowerBattleSnapshot extends PveRestoredState {
-  version: 'tower-v6-v7';
+  version: 'tower-v6-v8';
   playerId: string;
   input: PresentedBattleInput;
   npcPlans: Record<string, TowerNpcPlan>;
@@ -80,7 +80,7 @@ export class TowerHost extends CombatV6PveHostSession {
     restored?: PveRestoredState,
   ) {
     if (
-      source.version !== 'tower-v6-v7' ||
+      source.version !== 'tower-v6-v8' ||
       source.input.versions?.contentVersion !== TOWER_CONTENT_VERSION ||
       !source.npcPlans
     )
@@ -158,7 +158,7 @@ export function createTowerHost(
     ? publishedTowerEncounter(published, realm, floor)
     : compileTowerEncounter(realm, floor, week!);
   return new TowerHost({
-    version: 'tower-v6-v7',
+    version: 'tower-v6-v8',
     playerId: unit.id!,
     npcPlans: enemies.plans,
     input: {

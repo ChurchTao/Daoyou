@@ -61,11 +61,14 @@ function validateDefinition(
   for (const path of definition.paths) {
     for (const node of path.nodes) {
       if (node.pathId !== path.id) diagnostics.push(diagnostic("error", "SECT_DEFINITION_MISMATCH", `节点 ${node.id} 的流派归属不一致`, `definition.paths.${path.id}.nodes.${node.id}`))
+      if (Boolean(node.automatic) !== (node.layer === 7 && node.slot !== 2)) {
+        diagnostics.push(diagnostic("error", "INVALID_MERIDIAN_LOADOUT", "所有流派统一：第七层中间为可选节点，两侧为自动奖励，前六层均为可选节点", `definition.paths.${path.id}.nodes.${node.id}`))
+      }
     }
     for (let layer = 1; layer <= 7; layer++) {
       const nodes = path.nodes.filter((node) => node.layer === layer)
       if (nodes.length !== 3 || new Set(nodes.map((node) => node.slot)).size !== 3) {
-        diagnostics.push(diagnostic("error", "INVALID_MERIDIAN_LOADOUT", `${path.name}第${layer}层必须恰好三个互斥节点`, `definition.paths.${path.id}`))
+        diagnostics.push(diagnostic("error", "INVALID_MERIDIAN_LOADOUT", `${path.name}第${layer}层必须恰好包含三个不同槽位`, `definition.paths.${path.id}`))
       }
     }
   }

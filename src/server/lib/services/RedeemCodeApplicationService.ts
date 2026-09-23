@@ -1,6 +1,8 @@
 import { redeemCodeClaims, redeemCodes } from '@server/lib/drizzle/schema';
 import { resolveRedeemCodeRewardAttachments } from '@server/lib/redeem/reward';
+import { materializeRewardAttachments } from '@shared/contracts/adminRewards';
 import { and, eq, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import { playerCommandExecutor } from './CommandExecutors';
 import { MailService } from './MailService';
 
@@ -69,11 +71,12 @@ export function claimRedeemCode(args: {
       if (!reserved) {
         throw new RedeemClaimError('兑换码已被领完或失效');
       }
-      const mail = await MailService.sendNewRewardMail(
+      // Stored snapshots keep their original delivery protocol, including legacy rewards.
+      const mail = await MailService.sendMail(
         args.cultivatorId,
         redeemCode.mailTitle,
         redeemCode.mailContent,
-        attachments,
+        materializeRewardAttachments(attachments, randomUUID),
         'reward',
         tx,
       );

@@ -64,7 +64,7 @@ describe('幻境内容与固定周表', () => {
     const first = compileTowerEncounter('金丹', 1, week).units[0].attrs.hp;
     const pair = compileTowerEncounter('金丹', 2, week).units;
     expect(pair.reduce((sum, u) => sum + u.attrs.hp, 0)).toBe(
-      Math.round(first * 1.04),
+      Math.round(first * 1.025),
     );
   });
   it('拒绝缺层、错误里程碑与过快防御成长', () => {

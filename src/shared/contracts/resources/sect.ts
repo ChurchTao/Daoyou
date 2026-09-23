@@ -1,15 +1,12 @@
 import { SectDeliveryRequirementSchema } from '@shared/engine/sect/core/organization/taskRequirements';
 import { SectTaskRewardSnapshotSchema } from '@shared/engine/sect/core/organization/taskRewards';
-import { ItemLibraryEntrySchema } from '@shared/lib/itemLibrary';
-import {
-  REALM_STAGE_VALUES,
-  REALM_VALUES,
-} from '@shared/types/constants';
+import { ItemGrantSchema } from '@shared/inventory';
+import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 import type {
   SectConstructionMemberData,
-  SectContributionRankingData,
   SectContextData,
+  SectContributionRankingData,
   SectInfrastructureData,
   SectMembersData,
   SectShopData,
@@ -105,7 +102,7 @@ export const sectTaskViewSchema = z
 const sectShopItemSchema = z
   .object({
     id: z.string().uuid(),
-    itemLibraryItemId: z.string(),
+    itemLibraryItemId: z.string().nullable(),
     price: z.number().int().positive(),
     quantity: z.number().int().positive(),
     perUserLimit: z.number().int().positive().nullable(),
@@ -113,7 +110,10 @@ const sectShopItemSchema = z
     sortOrder: z.number().int(),
     purchasedCount: z.number().int().nonnegative(),
     remainingPurchases: z.number().int().nonnegative().nullable(),
-    item: ItemLibraryEntrySchema,
+    item: ItemGrantSchema.extend({
+      name: z.string(),
+      instanceData: ItemGrantSchema.shape.instanceData.unwrap().nullable(),
+    }).nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

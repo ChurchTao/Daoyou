@@ -17,7 +17,10 @@ interface GameMailBroadcastResult {
   success?: boolean;
   mailType?: string;
   rewardSummary?: string[];
-  sampleRecipients?: Array<{ recipientKey: string }>;
+  sampleRecipients?: Array<{
+    recipientKey: string;
+    metadata?: { cultivatorName?: string; realm?: string };
+  }>;
 }
 
 export function GameMailBroadcastForm() {
@@ -96,9 +99,8 @@ export function GameMailBroadcastForm() {
   return (
     <div className="space-y-5">
       <InkNotice tone="info">
-        按角色或人群筛选发送。奖励支持灵石、声望与道具库 published
-        道具，留空时发送纯公告。 填写目标角色 ID
-        时进入单发模式，并忽略下方群发筛选条件。
+        按角色或人群筛选发送。奖励支持灵石、声望与新版物品栏道具，留空时发送纯公告。
+        填写目标角色 ID 时进入单发模式，并忽略下方群发筛选条件。
       </InkNotice>
 
       <InkInput
@@ -187,7 +189,7 @@ export function GameMailBroadcastForm() {
           onClick={() => submit(true)}
           disabled={loading}
         >
-          预览发送人数
+          预览收件人与奖励
         </InkButton>
         <InkButton
           variant="primary"
@@ -199,9 +201,29 @@ export function GameMailBroadcastForm() {
       </div>
 
       {result && (
-        <pre className="border-ink/15 bg-bgpaper/60 overflow-x-auto border border-dashed p-3 text-xs leading-5">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        <div
+          className="border-ink/15 space-y-2 border-t pt-4 text-sm"
+          role="status"
+        >
+          <p>
+            {result.dryRun ? '预计发送' : '已发送'}{' '}
+            <span className="font-mono">{result.totalRecipients ?? 0}</span>{' '}
+            位角色
+          </p>
+          <p>
+            {result.rewardSummary?.length
+              ? `每人奖励：${result.rewardSummary.join('、')}`
+              : '公告邮件，无附件'}
+          </p>
+          {result.dryRun && result.sampleRecipients?.length ? (
+            <p className="text-ink-secondary">
+              收件人示例：
+              {result.sampleRecipients
+                .map((r) => r.metadata?.cultivatorName ?? r.recipientKey)
+                .join('、')}
+            </p>
+          ) : null}
+        </div>
       )}
     </div>
   );

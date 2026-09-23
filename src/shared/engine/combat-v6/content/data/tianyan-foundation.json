@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-foundation.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "elements": [
     {
       "element": "wood",
@@ -199,15 +199,6 @@
       }
     },
     {
-      "id": "tianyan.status.balance",
-      "kind": "tianyan.status.balance",
-      "name": "守衡",
-      "school": "tianyan",
-      "category": "buff",
-      "damageTakenPhysical": 0.9,
-      "damageTakenSpell": 0.9
-    },
-    {
       "id": "tianyan.status.ember",
       "kind": "tianyan.status.ember",
       "name": "余火",
@@ -381,7 +372,7 @@
         {
           "type": "applyStatus",
           "statusId": "tianyan.status.foundation_break",
-          "duration": "2-known.tianyan.passive.corrode+known.tianyan.passive.law"
+          "duration": "2-known.tianyan.passive.corrode"
         }
       ]
     },
@@ -425,7 +416,7 @@
         {
           "type": "applyStatus",
           "statusId": "tianyan.status.melt",
-          "duration": "2+known.tianyan.passive.law"
+          "duration": 2
         }
       ]
     }

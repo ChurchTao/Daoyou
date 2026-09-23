@@ -72,6 +72,7 @@ export type SkillPatchV6 =
   | { skillId: string; operation: "multiplyEffectPower"; effectType: SkillEffect["type"]; value: number; primaryTargetStatusId?: string }
 
 export type MeridianNodeDefV6 = {
+  /** 仅第七层两侧为自动奖励；中间及前六层为可选节点。 */
   automatic?: boolean
   legacyReplacementId?: string
   id: string

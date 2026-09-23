@@ -31,8 +31,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/announcement',
   },
   {
-    title: '道具库',
-    description: '可引用与发放的道具库',
+    title: '材料库',
+    description: '材料与灵种来源维护',
     href: '/admin/item-library',
   },
   {

@@ -129,6 +129,7 @@ export type CombatV6VersionStamp = {
     | 'combat-v6-tower-v5'
     | 'combat-v6-tower-v6'
     | 'combat-v6-tower-v7'
+    | 'combat-v6-tower-v8'
     | 'combat-v6-ranking-v1'
     | 'combat-v6-sect-task-v1'
     | 'combat-v6-breakthrough-v1'

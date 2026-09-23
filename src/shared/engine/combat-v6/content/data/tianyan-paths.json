@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "tianyan.passive.yan_root",
@@ -261,7 +261,15 @@
         {
           "damageTakenBonus": -0.08,
           "when": {
-            "sourceHpRatioBelow": 0.4
+            "sourceHpRatioBelow": 0.4,
+            "requireKind": "physical"
+          }
+        },
+        {
+          "damageTakenBonus": -0.08,
+          "when": {
+            "sourceHpRatioBelow": 0.4,
+            "requireKind": "spell"
           }
         },
         {
@@ -431,67 +439,12 @@
       ]
     },
     {
-      "id": "tianyan.passive.myriad",
-      "name": "万象",
-      "description": "焚天流火、沧海横流对次要目标伤害提高15%，对主要目标伤害降低10%。",
-      "modifiers": [
-        {
-          "damageBonus": 0.15,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire",
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetSlot": "secondary"
-          }
-        },
-        {
-          "damageBonus": -0.1,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire",
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetSlot": "primary"
-          }
-        }
-      ]
-    },
-    {
       "id": "tianyan.passive.harmony",
       "name": "天人",
       "description": "凝露、滋荣的恢复与烬垒护盾提高25%；五行法术伤害降低8%。",
       "modifiers": [
         {
           "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.ceaseless",
-      "name": "不息",
-      "description": "五行法术法力消耗降低15%，伤害降低5%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.05,
           "when": {
             "skillIds": [
               "tianyan.skill.wood",
@@ -789,32 +742,19 @@
       "description": "自身物理、法术承伤降低6%，五行法术伤害降低8%。",
       "modifiers": [
         {
-          "damageTakenBonus": -0.06
+          "damageTakenBonus": -0.06,
+          "when": {
+            "requireKind": "physical"
+          }
+        },
+        {
+          "damageTakenBonus": -0.06,
+          "when": {
+            "requireKind": "spell"
+          }
         },
         {
           "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.law",
-      "name": "法度",
-      "description": "森罗缚减速、裂土、熔锋持续增加1回合；五行法术伤害降低10%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.1,
           "when": {
             "skillIds": [
               "tianyan.skill.wood",
@@ -843,83 +783,6 @@
             ],
             "damageOrigins": [
               "action-direct"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.balance",
-      "name": "守衡",
-      "description": "触发相克后自身物理、法术承伤降低10%，持续1回合；该次五行法术伤害降低6%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.06,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.earth"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.06,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.metal"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.06,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.earth"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.water"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.06,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.wood"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.06,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.fire"
             ]
           }
         }
@@ -1134,12 +997,18 @@
         },
         {
           "id": "tianyan.node.hetu.7.1",
-          "name": "万象",
-          "description": "焚天流火、沧海横流对次要目标伤害提高15%，对主要目标伤害降低10%。",
+          "name": "额外能力",
+          "description": "第七层解锁时自动获得：法术攻击提高40点。",
           "layer": 7,
           "slot": 1,
-          "passives": [
-            "tianyan.passive.myriad"
+          "passives": [],
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         },
         {
@@ -1154,12 +1023,18 @@
         },
         {
           "id": "tianyan.node.hetu.7.3",
-          "name": "不息",
-          "description": "五行法术法力消耗降低15%，伤害降低5%。",
+          "name": "衍法天师",
+          "description": "第七层解锁时自动获得：法术攻击提高40点。",
           "layer": 7,
           "slot": 3,
-          "passives": [
-            "tianyan.passive.ceaseless"
+          "passives": [],
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         }
       ]
@@ -1364,12 +1239,18 @@
         },
         {
           "id": "tianyan.node.luoshu.7.1",
-          "name": "法度",
-          "description": "森罗缚减速、裂土、熔锋持续增加1回合；五行法术伤害降低10%。",
+          "name": "额外能力",
+          "description": "第七层解锁时自动获得：法术攻击提高40点。",
           "layer": 7,
           "slot": 1,
-          "passives": [
-            "tianyan.passive.law"
+          "passives": [],
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         },
         {
@@ -1384,12 +1265,18 @@
         },
         {
           "id": "tianyan.node.luoshu.7.3",
-          "name": "守衡",
-          "description": "触发相克后自身物理、法术承伤降低10%，持续1回合；该次五行法术伤害降低6%。",
+          "name": "执衡真君",
+          "description": "第七层解锁时自动获得：法术攻击提高40点。",
           "layer": 7,
           "slot": 3,
-          "passives": [
-            "tianyan.passive.balance"
+          "passives": [],
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
           ]
         }
       ]

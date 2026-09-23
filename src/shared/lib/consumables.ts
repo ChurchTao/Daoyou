@@ -1,3 +1,4 @@
+import { parseConsumableSpec } from './consumableSpec';
 import type {
   AddStatusOperation,
   AdvanceTrackOperation,
@@ -97,25 +98,7 @@ export function isIncreaseLifespanOperation(
 }
 
 export function assertConsumableSpec(value: unknown): ConsumableSpec {
-  if (!isRecord(value) || typeof value.kind !== 'string') {
-    throw new Error(
-      '消耗品数据缺少有效 spec，请清理旧 consumables 数据后重试。',
-    );
-  }
-
-  if (value.kind === 'pill') {
-    return value as unknown as ConsumableSpec;
-  }
-
-  if (value.kind === 'talisman') {
-    return value as unknown as ConsumableSpec;
-  }
-
-  if (value.kind === 'spirit_fruit') {
-    return value as unknown as ConsumableSpec;
-  }
-
-  throw new Error('消耗品 spec.kind 非法，请清理旧 consumables 数据后重试。');
+  return parseConsumableSpec(value);
 }
 
 function sortJsonValue(value: unknown): unknown {

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { TowerEnemyPreview } from '../../../lib/tower/weekly';
 import { TOWER_CATALOG, TOWER_SKILLS, towerContentNote } from './catalog';
 
-export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v7' as const;
+export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v8' as const;
 const trait = z.strictObject({
   id: z.string().min(1),
   targetEnemyId: z.string().min(1).optional(),

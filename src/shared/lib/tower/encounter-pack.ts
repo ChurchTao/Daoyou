@@ -15,7 +15,10 @@ const baseline = z.strictObject({
   hit: positive,
   dodge: positive,
 });
-const scale = z.strictObject({ rounds: z.number().min(1).max(12), output: positive });
+const scale = z.strictObject({
+  rounds: z.number().min(1).max(12),
+  output: positive,
+});
 export const TowerEncounterPackShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(3),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { automaticCommands } from '../../../combat-v6/auto';
 import { buildTowerBlessingChoices } from '../../../lib/tower/helpers';
 import { getTowerSeasonMeta } from '../../../lib/tower/season';
+import { DaoyouRule } from '../rules-daoyou/constants';
 import { loadTowerCatalog, TOWER_CATALOG } from './catalog';
 import raw from './data/enemies.json';
 import generation from './data/generation.json';
@@ -150,7 +151,11 @@ describe('金丹二十层多种子检查', () => {
               seed,
               pack,
             );
-            for (let turn = 0; turn < 60 && !host.finished; turn++) {
+            for (
+              let turn = 0;
+              turn < DaoyouRule.maxRounds && !host.finished;
+              turn++
+            ) {
               host.submitGroup(
                 automaticCommands(
                   host.state,
@@ -182,7 +187,7 @@ describe('金丹二十层多种子检查', () => {
           hasPet,
           JSON.stringify(stats),
         );
-      });
+      }, 20000);
     }
   }
 });

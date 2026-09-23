@@ -93,6 +93,10 @@ export function rankAutoActions(
     // Evaluate preparatory facts on a private actor copy, never on the observation.
     const actor = observation.units.find(unit => unit.id === sourceId)!;
     const source = { ...actor, combatFacts: { ...actor.combatFacts } };
+    // Value the current spell's declared modifiers; passive hook chains remain outside this estimate.
+    function modifiers(target: Unit, kind: 'physical' | 'spell' | 'fixed') {
+      return (skill.modifiers ?? []).filter(m => matchesWhen(context, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === selected[0]?.id }));
+    }
     const benefits = empty();
     const intentions: AutoIntent[] = [];
     const notes = new Set<string>(['未知属性按观察者基线估算；不推演被动连锁']);
@@ -123,7 +127,7 @@ export function rankAutoActions(
             targets = targets
               .sort(
                 (a, b) =>
-                  Number(selected.includes(b)) - Number(selected.includes(a)) ||
+                  (spec.mode === 'lowestHp' ? ratio(a) - ratio(b) : Number(selected.includes(b)) - Number(selected.includes(a))) ||
                   stable(a, b),
               )
               .slice(
@@ -241,6 +245,13 @@ export function rankAutoActions(
                   ? 'spell'
                   : 'fixed';
             const hits = Math.max(1, Math.min(20, value(effect.hits ?? 1)));
+            const declared = modifiers(target, kind);
+            const modifier = (key: 'damageBonus' | 'defenseIgnoreAdd' | 'barrierDamageBonus') => declared.reduce((sum, m) => sum + value(m[key]), 0);
+            const ignore = Math.max(0, Math.min(1, value('defenseIgnore' in effect ? effect.defenseIgnore : undefined) + modifier('defenseIgnoreAdd')));
+            const defender = { ...target, attrs: { ...target.attrs,
+              physicalDef: kind === 'physical' ? target.attrs.physicalDef * (1 - ignore) : target.attrs.physicalDef,
+              magicDef: kind === 'spell' ? target.attrs.magicDef * (1 - ignore) : target.attrs.magicDef,
+            } };
             let damage = 0;
             for (let hit = 0; hit < hits; hit++) {
               const coeff = Array.isArray(effect.coeff)
@@ -248,7 +259,7 @@ export function rankAutoActions(
                 : (effect.coeff ?? 1);
               damage += formulas.baseDamage({
                 source,
-                target,
+                target: defender,
                 kind,
                 family:
                   effect.formula ??
@@ -277,10 +288,13 @@ export function rankAutoActions(
                 : kind === 'spell'
                   ? taken(target, 'damageTakenSpell')
                   : 1;
-            offense =
-              (friendly ? -1 : 1) *
-              damageValue(target, damage * chance, effect.cannotKill);
-            intent.damage = damage * chance * probability;
+            damage *= Math.max(0, 1 + modifier('damageBonus'));
+            const barrier = target.barriers.reduce((sum, b) => sum + b.current, 0);
+            const barrierFactor = Math.max(1, 1 + modifier('barrierDamageBonus'));
+            const removedBarrier = Math.min(barrier, damage * barrierFactor);
+            const hpDamage = Math.max(0, damage - removedBarrier / barrierFactor);
+            offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage * chance, effect.cannotKill) + removedBarrier / Math.max(1, target.attrs.maxHp) * 60 * chance);
+            intent.damage = hpDamage * chance * probability;
           } else if (
             effect.type === 'revive' ||
             (effect.type === 'restoreHp' && effect.revive && !alive(target))
@@ -366,7 +380,13 @@ export function rankAutoActions(
                 : 1;
               // A small panel buff is not worth the same as a full control turn.
               // Estimate its relative contribution using the recipient's panel.
-              const attributeValue = def?.attrMods
+              if (def?.healingPerRound !== undefined) {
+                const healing = Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), value(def.healingPerRound) * duration * taken(source, 'healDealt') * taken(target, 'healTaken'));
+                survival += (friendly ? 1 : -1) * healing / Math.max(1, target.attrs.maxHp) * 100;
+                intent.healing = healing * probability;
+              }
+              const inert = def?.category === 'buff' && def.untilBattleEnd && def.dispellable === false && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.attrMods && !def.speedMod && !def.modifiers?.length && !def.onTick && !def.damageDealtPhysical && !def.damageDealtSpell && !def.damageTakenPhysical && !def.damageTakenSpell && !def.protectsTarget && !def.blockedCommands?.length && !def.blocksArts;
+              const attributeValue = inert ? 0 : def?.attrMods
                 ? Math.min(8, Object.entries(def.attrMods).reduce((sum, [attr, amount]) =>
                     sum + Math.abs(value(amount)) / Math.max(1, Math.abs(target.attrs[attr as keyof typeof target.attrs])) * 20, 0))
                 : 8;
