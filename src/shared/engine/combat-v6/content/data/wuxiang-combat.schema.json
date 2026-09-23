@@ -603,6 +603,9 @@
             },
             "fixedBase": {
               "type": "boolean"
+            },
+            "includeHealPower": {
+              "type": "boolean"
             }
           },
           "required": [

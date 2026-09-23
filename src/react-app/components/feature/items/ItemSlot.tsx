@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@shared/lib/cn';
 import {
   useEffect,
@@ -6,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { ItemPreview } from './ItemPreview';
 import { itemPresentation, type DisplayItem } from './itemPresentation';
+import { ItemPreview } from './ItemPreview';
 
 export function InventoryGrid({
   children,
@@ -178,7 +179,11 @@ export function ItemSlot({
               (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
           )}
         >
-          {presentation?.icon ?? emptyIcon}
+          {presentation ? (
+            <GameIcon value={presentation.icon} purpose="artwork" />
+          ) : (
+            emptyIcon
+          )}
         </span>
         {item || emptyLabel ? (
           <span

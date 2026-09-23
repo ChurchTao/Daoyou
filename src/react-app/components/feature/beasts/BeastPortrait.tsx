@@ -9,6 +9,7 @@ export function BeastPortrait({
 }: GameIconProps & { isMutant?: boolean }) {
   return (
     <GameIcon
+      purpose="artwork"
       {...props}
       className={cn(
         className,

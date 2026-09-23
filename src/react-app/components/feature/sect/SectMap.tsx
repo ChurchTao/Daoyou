@@ -1,3 +1,4 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type {
@@ -341,7 +342,7 @@ export function SectMap({
                   style={{ aspectRatio }}
                   onClickCapture={handleHotspotClickCapture}
                 >
-                  <img
+                  <GameImage
                     src={image}
                     alt={alt}
                     className="pointer-events-none block h-full w-full select-none"

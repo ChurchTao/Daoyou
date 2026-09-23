@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@shared/lib/cn';
 import type { ReactNode } from 'react';
 import type {
@@ -154,7 +155,7 @@ export function ItemPreviewView({
           className="border-ink/20 bg-paper flex size-14 shrink-0 items-center justify-center rounded-sm border text-4xl"
           aria-hidden="true"
         >
-          {model.icon}
+          <GameIcon value={model.icon} purpose="artwork" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <h2

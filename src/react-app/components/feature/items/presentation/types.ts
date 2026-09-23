@@ -2,7 +2,6 @@ import type { InventoryView } from '@shared/contracts/inventory';
 import type { ItemDefinition } from '@shared/items/types';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
-import type { ReactNode } from 'react';
 
 export type DisplayItem = Pick<
   InventoryView['items'][number],
@@ -46,7 +45,7 @@ export type PreviewOptions = {
   condition?: CultivatorCondition;
 };
 export type ItemSummary = {
-  icon: ReactNode;
+  icon: string;
   color: string;
   type: string;
   tier: string;
@@ -59,7 +58,7 @@ export type PreviewContent = {
 };
 export type ItemPreviewModel = PreviewContent & {
   title: string;
-  icon: ReactNode;
+  icon: string;
   titleColor: string;
 };
 /** resolve 只读取事实和轻量信息；详细效果延迟到 preview 调用。 */

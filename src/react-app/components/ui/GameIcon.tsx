@@ -1,4 +1,5 @@
 import { cn } from '@shared/lib/cn';
+import { GameArtwork, GameImage, type GameImagePurpose } from './GameImage';
 import { iconRegistry } from './icons/registry';
 
 export interface GameIconProps {
@@ -6,12 +7,31 @@ export interface GameIconProps {
   className?: string;
   /** Omit when adjacent text already names the icon. */
   label?: string;
+  purpose?: GameImagePurpose;
 }
 
 /** Emoji or registered SVG/WebP/PNG via icon:name; size follows the font. */
-export function GameIcon({ value, className, label }: GameIconProps) {
+export function GameIcon({
+  value,
+  className,
+  label,
+  purpose = 'interface',
+}: GameIconProps) {
   const isRegisteredIcon = value.startsWith('icon:');
   const source = GameIcon.resolveSource(value);
+  const content = source ? (
+    <GameImage
+      purpose="interface"
+      src={source}
+      alt=""
+      draggable={false}
+      className="block size-full object-contain"
+    />
+  ) : isRegisteredIcon || !value.trim() ? (
+    '❔'
+  ) : (
+    value
+  );
 
   return (
     <span
@@ -23,17 +43,12 @@ export function GameIcon({ value, className, label }: GameIconProps) {
       aria-label={label || undefined}
       aria-hidden={label ? undefined : true}
     >
-      {source ? (
-        <img
-          src={source}
-          alt=""
-          draggable={false}
-          className="block size-full object-contain"
-        />
-      ) : isRegisteredIcon || !value.trim() ? (
-        '❔'
+      {purpose === 'artwork' ? (
+        <GameArtwork className="inline-flex size-full items-center justify-center">
+          {content}
+        </GameArtwork>
       ) : (
-        value
+        content
       )}
     </span>
   );

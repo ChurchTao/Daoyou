@@ -200,6 +200,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
       ) : request && !pending ? (
         <div className="flex flex-col items-center gap-5 py-8 text-center">
           <GameIcon
+            purpose="artwork"
             value="icon:beast-fusion-cauldron"
             className="text-[160px]"
           />
@@ -250,6 +251,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
                   className="border-ink/15 absolute inset-x-0 top-1/2 border-t border-dashed"
                 />
                 <GameIcon
+                  purpose="artwork"
                   value="icon:beast-fusion-cauldron"
                   className={`relative text-[120px] md:text-[180px] lg:text-[210px] ${pending ? 'motion-safe:animate-pulse' : ''}`}
                 />

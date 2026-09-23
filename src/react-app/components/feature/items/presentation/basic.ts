@@ -13,8 +13,6 @@ import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { REALM_VALUES } from '@shared/types/constants';
-import { createElement } from 'react';
-import { OriginDewIcon } from '../OriginDewIcon';
 import { field, lines, quantity } from './helpers';
 import type { ItemAdapter } from './types';
 
@@ -166,7 +164,7 @@ export const refinementAdapter: ItemAdapter = (item, def) => {
   const color = dew.color === 'jade' ? 'text-teal' : 'text-tier-tian';
   return {
     summary: {
-      icon: createElement(OriginDewIcon, { className: color }),
+      icon: '💧',
       color,
       tier: '',
       type: '归元灵露',

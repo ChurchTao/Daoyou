@@ -38,7 +38,10 @@
               "wuxiang.skill.empower",
               "wuxiang.skill.renew"
             ],
-            "foeKind": "pet"
+            "foeKind": "pet",
+            "damageOrigins": [
+              "action-direct"
+            ]
           },
           "sourceIsSelf": true
         },
@@ -93,7 +96,10 @@
               "wuxiang.skill.empower",
               "wuxiang.skill.renew"
             ],
-            "sourceHpRatioBelow": 0.3
+            "sourceHpRatioBelow": 0.3,
+            "damageOrigins": [
+              "action-direct"
+            ]
           },
           "targetIsSelf": true
         },
@@ -364,12 +370,12 @@
             {
               "type": "heal",
               "power": "(level + effective.healPower * 0.2) * (1 + known.wuxiang.passive.compassion.2.2)",
-              "fixedBase": true,
               "when": {
                 "targetOwnedStatus": {
                   "kind": "wuxiang.vow"
                 }
-              }
+              },
+              "includeHealPower": false
             }
           ],
           "when": {
@@ -622,8 +628,6 @@
         {
           "when": {
             "skillIds": [
-              "wuxiang.skill.strike",
-              "wuxiang.skill.stars",
               "wuxiang.skill.overload"
             ]
           },

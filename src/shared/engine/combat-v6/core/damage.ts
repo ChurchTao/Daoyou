@@ -390,7 +390,7 @@ function redirectOverflow(
 }
 
 /** 倒地单位不受治疗，只能走 revive。 */
-export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power: number, healMaxHp = false, fixedBase = false): void {
+export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power: number, healMaxHp = false, fixedBase = false, includeHealPower = true): void {
   if (target.flags.dead || target.flags.escaped || target.flags.downed) return
   if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return
 
@@ -401,7 +401,8 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     return
   }
 
-  const amount = floorAtLeast(MIN_DAMAGE, power + (fixedBase ? 0 : effectiveAttrs(source).healPower))
+  // 独立治疗公式可自行计入治疗能力，同时仍接受通用施疗与受疗修正。
+  const amount = floorAtLeast(MIN_DAMAGE, power + (fixedBase || !includeHealPower ? 0 : effectiveAttrs(source).healPower))
   const isPrimary =
     ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId
   const taken = healTakenFactor(target) * (fixedBase ? 1 : healDealtFactor(source))

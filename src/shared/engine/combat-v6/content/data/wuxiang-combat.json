@@ -458,7 +458,7 @@
       "id": "wuxiang.skill.pierce",
       "name": "破妄指",
       "school": "wuxiang",
-      "description": "造成固定伤害；对战人物时只作用一人，对战生灵时随技能修为最多作用三人。 本相成功施放后获得1枚烈念。",
+      "description": "造成固定伤害；对战人物时只作用一人，对战生灵时在技能39、60级分别增至二、三人。 本相成功施放后获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -466,12 +466,12 @@
       "targeting": {
         "side": "enemy",
         "mode": "fill",
-        "count": "if(enemyPlayers > 0, 1, if(skillLevel >= 60, 3, if(skillLevel >= 30, 2, 1)))"
+        "count": "if(enemyPlayers > 0, 1, if(skillLevel >= 60, 3, if(skillLevel >= 39, 2, 1)))"
       },
       "effects": [
         {
           "type": "fixedHit",
-          "power": "50 + skillLevel * 2 + physicalAtk * 0.3"
+          "power": "20 + skillLevel * 2.45 + physicalAtk / 3"
         }
       ],
       "formula": "fixed",
@@ -625,15 +625,15 @@
       },
       "effects": [
         {
-          "type": "heal",
-          "power": "level * 4 * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.2)"
-        },
-        {
           "type": "removeWound",
           "power": "level * 2",
           "when": {
             "expression": "fact.wuxiang_form == 0"
           }
+        },
+        {
+          "type": "heal",
+          "power": "level * 4 * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.2)"
         },
         {
           "type": "applyStatus",
@@ -661,7 +661,7 @@
       "id": "wuxiang.skill.strike",
       "name": "摧岳",
       "school": "wuxiang",
-      "description": "对单体发动一次物理攻击；显相时伤害提高20%。 本相成功施放后获得1枚烈念。",
+      "description": "对单体发动一次物理攻击；显相时基础威力提高40%，烈念增幅另计。 本相成功施放后获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -671,7 +671,17 @@
       "effects": [
         {
           "type": "physicalHit",
-          "coeff": 1
+          "coeff": 1,
+          "when": {
+            "expression": "fact.wuxiang_form == 0"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.4,
+          "when": {
+            "expression": "fact.wuxiang_form"
+          }
         }
       ],
       "costMp": 50
@@ -680,7 +690,7 @@
       "id": "wuxiang.skill.stars",
       "name": "劫火散华",
       "school": "wuxiang",
-      "description": "对三个敌方目标各发动一次物理攻击；显相时伤害提高20%。 本相成功施放后获得1枚烈念。",
+      "description": "对三个目标各发动一次物理攻击，基础威力为普通攻击的55%，显相时提升至80%，烈念增幅另计。 本相成功施放后获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -694,7 +704,17 @@
       "effects": [
         {
           "type": "physicalHit",
-          "coeff": 0.8
+          "coeff": 0.55,
+          "when": {
+            "expression": "fact.wuxiang_form == 0"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.8,
+          "when": {
+            "expression": "fact.wuxiang_form"
+          }
         }
       ],
       "costMp": 10
@@ -724,7 +744,7 @@
       "id": "wuxiang.skill.burn",
       "name": "三念俱焚",
       "school": "wuxiang",
-      "description": "燃尽尚未显化的念头，造成固定伤害；每枚念头使本次伤害提高30%。",
+      "description": "燃尽尚未显化的念头，造成固定伤害；每枚念头使本次伤害提高15%。",
       "tags": [
         "spell",
         "support"
@@ -735,7 +755,7 @@
       "effects": [
         {
           "type": "fixedHit",
-          "power": "(50 + skillLevel * 2 + physicalAtk * 0.3) * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.3)"
+          "power": "(20 + skillLevel * 2.45 + physicalAtk / 3) * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.15)"
         },
         {
           "type": "modifyResource",

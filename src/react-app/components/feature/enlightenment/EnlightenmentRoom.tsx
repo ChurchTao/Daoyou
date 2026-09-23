@@ -1,6 +1,7 @@
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
@@ -149,17 +150,21 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
               className="relative mx-auto aspect-square w-full max-w-lg"
               aria-label="四格典籍参悟台"
             >
-              <img
-                src={`/assets/manuals/cultivator-${session.view?.gender === '女' ? 'female' : 'male'}-meditation.webp`}
-                alt="静坐参悟的修士"
-                width={960}
-                height={960}
-                draggable={false}
+              <div
                 className={cn(
-                  'pointer-events-none absolute inset-[8%] h-[84%] w-[84%] object-contain select-none',
+                  'pointer-events-none absolute inset-[8%] h-[84%] w-[84%] select-none',
                   session.pending && 'motion-safe:animate-pulse',
                 )}
-              />
+              >
+                <GameImage
+                  src={`/assets/manuals/cultivator-${session.view?.gender === '女' ? 'female' : 'male'}-meditation.webp`}
+                  alt="静坐参悟的修士"
+                  width={960}
+                  height={960}
+                  draggable={false}
+                  className="size-full object-contain"
+                />
+              </div>
               {positions.map((position, index) => {
                 const id = session.slots[index];
                 const item = id ? session.byId.get(id) : undefined;

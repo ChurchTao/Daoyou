@@ -55,6 +55,7 @@ export function CultivatorIdentity({
         className="grid grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[7.5rem_minmax(0,1fr)] md:gap-5"
       >
         <GameIcon
+          purpose="artwork"
           value={
             cultivator.gender === '女'
               ? 'icon:cultivator-female-avatar'

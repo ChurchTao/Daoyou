@@ -138,6 +138,7 @@ export const wxEffect: z.ZodType<SkillEffect> = z.lazy(() =>
       type: z.literal(EffectType.Heal),
       power: wxExpr,
       fixedBase: z.boolean().optional(),
+      includeHealPower: z.boolean().optional(),
     }),
     z.strictObject({
       ...common,

@@ -54,7 +54,7 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
   },
   [EffectType.Dispel]: handleDispel,
   [EffectType.Heal]: (ctx, source, _skill, effect, targets, env) => {
-    for (const t of targets) applyHeal(ctx, source, t, evalExpr(effect.power, { ...env, target: t }), effect.healMaxHp, effect.fixedBase)
+    for (const t of targets) applyHeal(ctx, source, t, evalExpr(effect.power, { ...env, target: t }), effect.healMaxHp, effect.fixedBase, effect.includeHealPower)
   },
   [EffectType.RestoreHp]: handleRestoreHp,
   [EffectType.RestoreMp]: handleRestoreMp,

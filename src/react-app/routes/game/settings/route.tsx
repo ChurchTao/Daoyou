@@ -1,5 +1,4 @@
 import {
-  GameSceneAsideSection,
   GameSceneFrame,
   GameSceneTabs,
 } from '@app/components/game-shell';
@@ -37,25 +36,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <GameSceneFrame
-      variant="workflow"
-      title="系统设置"
-      description="集中管理当前角色、账号维护与本地模型配置。"
-      aside={
-        <>
-          <GameSceneAsideSection title="当前页">
-            <p className="text-ink-secondary text-sm leading-7">
-              设置项只影响当前登录账号与当前浏览器内的本地配置。
-            </p>
-          </GameSceneAsideSection>
-          <GameSceneAsideSection title="模型配置">
-            <p className="text-ink-secondary text-sm leading-7">
-              API Key 仍仅保存在浏览器 localStorage，不会持久化到服务器。
-            </p>
-          </GameSceneAsideSection>
-        </>
-      }
-    >
+    <GameSceneFrame variant="workflow" title="系统设置">
       <GameSceneTabs
         items={SETTINGS_TABS.map((tab) => ({
           label: tab.label,

@@ -1,5 +1,6 @@
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { compileDaoEquipmentSpecialLoadoutV1 } from '@shared/engine/combat-v6/equipment/compiler';
@@ -98,7 +99,7 @@ export function EquipmentRack({
     >
       <div className="relative mx-auto grid h-64 max-w-80 grid-cols-[4rem_minmax(0,1fr)_4rem] items-center gap-2 lg:h-[30rem] lg:max-w-none lg:grid-cols-[6rem_minmax(0,1fr)_6rem]">
         {gender ? (
-          <img
+          <GameImage
             src={`/assets/inventory/cultivator-${gender === '女' ? 'female' : 'male'}-ink.webp`}
             alt=""
             width={640}

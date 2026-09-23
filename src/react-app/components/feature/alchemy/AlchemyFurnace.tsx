@@ -78,6 +78,7 @@ export function AlchemyFurnace({
           />
         ) : null}
         <GameIcon
+          purpose="artwork"
           value="icon:xuanfire-furnace"
           label="青绿水墨丹炉，温火轻烟凝聚药蕴"
           className={cn(

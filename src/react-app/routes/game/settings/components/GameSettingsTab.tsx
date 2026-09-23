@@ -7,11 +7,12 @@ import {
   SettingsField,
   SettingsMessage,
   SettingsSection,
+  settingsLabelClass,
 } from './SettingsFields';
 import { formatDateTime } from './utils';
 
 export function GameSettingsTab() {
-  const { mapMode } = useGameSettings();
+  const { mapMode, imageOpacity } = useGameSettings();
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const pwa = usePwaInstall();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -55,13 +56,42 @@ export function GameSettingsTab() {
 
   return (
     <div className="space-y-6">
-      <SettingsSection
-        title="地图显示"
-        description="保存在当前浏览器，也可在地图内随时切换。"
-      >
+      <SettingsSection>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label htmlFor="game-image-opacity" className={settingsLabelClass}>
+            图片显示强度
+            <output htmlFor="game-image-opacity" className="ml-3 font-mono">
+              {Math.round(imageOpacity * 100)}%
+            </output>
+          </label>
+          <InkButton
+            variant="secondary"
+            disabled={imageOpacity === 1}
+            onClick={() => updateGameSettings({ imageOpacity: 1 })}
+          >
+            恢复默认
+          </InkButton>
+        </div>
+        <input
+          id="game-image-opacity"
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={Math.round(imageOpacity * 100)}
+          aria-valuetext={`${Math.round(imageOpacity * 100)}%`}
+          className="accent-crimson focus-visible:outline-crimson mt-2 h-11 w-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2"
+          onChange={(event) =>
+            updateGameSettings({
+              imageOpacity: event.currentTarget.valueAsNumber / 100,
+            })
+          }
+        />
+      </SettingsSection>
+      <SettingsSection>
         <SettingsField
-          label="显示方式"
-          value={mapMode === 'atlas' ? '山河画卷' : '文字地图'}
+          label="地图显示"
+          value={null}
           action={
             <div role="group" aria-label="地图显示方式" className="flex gap-2">
               {(['atlas', 'text'] as const).map((mode) => (
@@ -97,12 +127,9 @@ export function GameSettingsTab() {
         />
       </SettingsSection>
       {copyMessage ? <SettingsMessage>{copyMessage}</SettingsMessage> : null}
-      <SettingsSection
-        title="移动端体验"
-        description="从主屏幕启动可隐藏浏览器地址栏，小游戏会继续按设备能力申请横屏。"
-      >
+      <SettingsSection>
         <SettingsField
-          label="安装状态"
+          label="应用安装"
           value={installValue}
           action={
             pwa.status === 'installed' ||

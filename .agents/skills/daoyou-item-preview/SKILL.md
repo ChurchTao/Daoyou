@@ -33,6 +33,7 @@ description: 万界道友物品预览的固定展示与接入规范。新增道�
 - 沿用 `ItemPreviewView`：名称 `text-base leading-6 font-semibold`（16px），正文 `text-sm leading-6`（14px/24px）；名称按既定分级着色，分组标题琥珀色，收益青色，代价／限制朱色，描述次级墨色。
 - 数值数据用 Tailwind 默认 `font-mono`，正文仍用正文字体；不要改全局等宽字体或新增数字字体 token。见 [数字排版规范](../../../docs/numeric-typography.md)。
 - 颜色表达语义，缩进表达所属关系，不因内容少就加边框、标签、摘要或重复标题填满空间。
+- 物品格与预览头部直接使用 `GameIcon purpose="artwork"`，图标契约仅接受字符串（emoji 或 `icon:名称`），不传入 React 元素。归元灵露统一使用 💧；emoji 与注册图片都遵循本地图片显示强度，名称、数量、角标和空格提示保持清晰。透明度交给共享组件，不在适配器或页面内计算。
 
 ## 组件职责：数据决定内容，视图只渲染
 

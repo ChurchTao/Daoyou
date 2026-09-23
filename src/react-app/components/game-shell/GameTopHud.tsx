@@ -10,6 +10,7 @@ import { useSectIdentityDialog } from '@app/components/feature/sect/useSectIdent
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import Link from '@app/components/router/AppLink';
 import { InkButton, InkHorizontalScroll } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
@@ -786,7 +787,8 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
             aria-label="查看角色"
             className="border-ink/12 bg-bgpaper/85 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed md:h-16 md:w-16"
           >
-            <img
+            <GameImage
+              purpose="interface"
               src="/assets/daoyou_logo.webp"
               alt=""
               className="-mt-0.5 h-9 w-9 object-contain md:h-12 md:w-12"

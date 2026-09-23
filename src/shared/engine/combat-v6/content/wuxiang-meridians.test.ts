@@ -531,6 +531,77 @@ describe('无相经脉条件与代价', () => {
     });
     expect(thought(c, 'still').current + thought(c, 'fierce').current).toBe(0);
   });
+  it.each([[38, 1], [39, 2], [59, 2], [60, 3]])(
+    '破妄指技能 %i 级在PVE作用 %i 人，费用随实际人数结算',
+    (level, count) => {
+      const b = setup('wrath', [], false).b;
+      b.unit('s').skillLevels[S('pierce')] = level;
+      const mp = b.unit('s').attrs.mp;
+      round(b, { s: skill('pierce') });
+      expect(damage(b)).toHaveLength(count);
+      expect(b.unit('s').attrs.mp).toBe(mp - 30 * count);
+    },
+  );
+  it.each([0, 1, 2])('三念俱焚消耗 %i 念，每念增伤15%，使用独立于破妄目标数的单体公式', (count) => {
+    const base = setup().b, charged = setup().b;
+    thought(charged, 'still').current = count;
+    round(base, { s: skill('burn') });
+    round(charged, { s: skill('burn') });
+    expect(damage(base)).toEqual([794]);
+    expect(damage(charged)).toEqual([Math.floor((20 + 180 * 2.45 + 1000 / 3) * (1 + count * 0.15))]);
+    expect(thought(charged, 'still').current).toBe(0);
+  });
+  it.each([
+    ['strike', false, 1, 1],
+    ['strike', true, 1.4, 1],
+    ['stars', false, 0.55, 3],
+    ['stars', true, 0.8, 3],
+  ] as const)('%s 显相=%s 的基础物理系数为 %s', (name, transformed, coeff, count) => {
+    const b = setup().b;
+    if (transformed) enter(b, 0);
+    // 双方同速差与防御指令固定；剔除破绽、暴击和烈念，比较相同防御下普攻。
+    const control = setup().b;
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(p => p >= 1);
+    round(control, { s: { type: 'attack', targets: ['t'] } });
+    round(b, { s: skill(name) });
+    expect(damage(b)).toHaveLength(count);
+    for (const hit of damage(b)) expect(hit).toBeCloseTo(damage(control)[0] * coeff, 0);
+  });
+  it('返照先修复伤势，在原可恢复上限处也能回复气血', () => {
+    const b = setup().b;
+    b.unit('s').wound = 1000;
+    b.unit('s').attrs.hp = 99000;
+    round(b, { s: skill('restore', 's') });
+    expect(b.unit('s').wound).toBe(640);
+    expect(b.unit('s').attrs.hp).toBe(99360);
+  });
+  it.each([[1.25, 230], [0.5, 92]])(
+    '独立本愿治疗计入通用施疗倍率 %s、受疗倍率和济世独行，不重复添加治疗能力',
+    (outgoing, expected) => {
+      const { input } = setup('compassion', ['2.1', '3.2']);
+      input.statusDefs!.push(
+        { id: 'review.outgoing', name: '施疗修正', kind: 'review.outgoing', healDealt: outgoing },
+        { id: 'review.incoming', name: '受疗修正', kind: 'review.incoming', healTaken: 0.8 },
+      );
+      const b = createBattle(input);
+      b.unit('a').attrs.hp = 1000;
+      round(b, { s: skill('vow', 'a') });
+      enter(b, 0);
+      b.applyStatus('s', 'review.outgoing', 3, 's');
+      b.applyStatus('a', 'review.incoming', 3, 's');
+      round(b, { s: skill('ward', 'a') });
+      expect(heal(b, 'a')).toEqual([expected]);
+    },
+  );
+  it('本愿独立治疗不继承触发愿法的灵兽增效与重合增效', () => {
+    const { input } = setup('compassion', ['2.1']);
+    input.units.find(u => u.id === 'a')!.kind = 'pet';
+    const b = createBattle(input);
+    b.unit('a').attrs.hp = 1000;
+    round(b, { s: skill('vow', 'a') });
+    round(b, { s: skill('nectar', 'a') });
+    expect(heal(b, 'a')).toEqual([975, 200]);
+  });
   it('返照本相疗伤，入相重置冷却；显相延长一回合', () => {
     const b = setup().b;
     b.unit('s').attrs.hp = 1000;

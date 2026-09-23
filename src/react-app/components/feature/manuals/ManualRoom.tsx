@@ -1,3 +1,4 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
@@ -241,7 +242,7 @@ export function ManualRoom() {
               className="relative grid grid-cols-2 gap-2 lg:sticky lg:top-3 lg:min-h-[32rem] lg:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem] lg:grid-rows-2 lg:items-center lg:gap-y-12 lg:py-12"
             >
               {gender ? (
-                <img
+                <GameImage
                   src={`/assets/manuals/cultivator-${gender === '女' ? 'female' : 'male'}-meditation.webp`}
                   alt=""
                   width={960}

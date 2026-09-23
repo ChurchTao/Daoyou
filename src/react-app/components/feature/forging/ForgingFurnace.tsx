@@ -43,6 +43,7 @@ export function ForgingFurnace({
         />
       ) : null}
       <GameIcon
+        purpose="artwork"
         value="icon:earthfire-furnace"
         label="写意墨铜炼器炉，朱砂地火映照炉膛"
         className={cn(

@@ -10,8 +10,8 @@ import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from
 
 describe('宗门技能学习配置', () => {
   it('技能、状态、流派和心法保持基线（含比例伤害分类）', () => {
-    // 双孔玄锋文案明确最高等级与物攻之和，技能表达式保持原规则。
-    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("9ba1f3831edc745e9c518f87e71554adaed9eecf6232093c6da87de9821765e8");
+    // 包含双孔玄锋文案、无相基础系数校准与独立治疗通道修正。
+    expect(createHash('sha256').update(JSON.stringify(COMBAT_V6_SECT_DEFINITIONS)).digest('hex')).toBe("274b55528078279353296989128858920c7248e54fe85bdd68f32ecaa90eb12d");
   });
   it('Schema 与编辑器一致', () => {
     expect(z.toJSONSchema(SectSkillLearningShape)).toEqual(schema);

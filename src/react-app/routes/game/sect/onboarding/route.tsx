@@ -1,6 +1,7 @@
 import { NarrativePerformanceLoading } from '@app/components/feature/narrative/NarrativePerformanceLoading';
 import { NarrativePerformanceStage } from '@app/components/feature/narrative/NarrativePerformanceStage';
 import { InkButton } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorIdentity,
@@ -125,7 +126,7 @@ export default function SectOnboardingPage() {
                   key={sect.id}
                   className="group relative isolate flex min-h-[28rem] overflow-hidden border border-[#2c241d]/15 bg-[#1d211d] p-6 text-[#f4eddd] shadow-[0_18px_55px_rgba(41,31,22,0.18)] sm:p-8"
                 >
-                  <img
+                  <GameImage
                     src={presentation.script.backdrop.src}
                     alt=""
                     className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"

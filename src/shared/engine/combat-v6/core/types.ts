@@ -457,7 +457,7 @@ type EffectCore =
       origin?: DamageOrigin;
       cannotKill?: boolean;
     }
-  | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean; fixedBase?: boolean }
+  | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean; fixedBase?: boolean; includeHealPower?: boolean }
   | {
       type: typeof EffectType.RestoreHp;
       power: Expr;
