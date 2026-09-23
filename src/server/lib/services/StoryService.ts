@@ -11,6 +11,7 @@ import {
 import {
   acknowledgePerformance,
   presentStory,
+  rewindToUnwatchedPerformance,
 } from '@shared/story/resolve';
 import { emptyStoryFacts, type StoryView } from '@shared/story/schema';
 
@@ -18,14 +19,12 @@ const MAIN_STORY_ID = 'arrival';
 
 export const StoryService = {
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
-    const progress =
+    const stored =
       (await findCultivatorStory(cultivatorId, 'main', MAIN_STORY_ID, tx)) ??
       restingStoryProgress();
-    return presentStory(
-      getStoryChapter(progress.storyId),
-      progress,
-      emptyStoryFacts(),
-    );
+    const chapter = getStoryChapter(stored.storyId);
+    const progress = rewindToUnwatchedPerformance(chapter, stored);
+    return presentStory(chapter, progress, emptyStoryFacts());
   },
 
   async completePerformance(
@@ -40,8 +39,11 @@ export const StoryService = {
       MAIN_STORY_ID,
       tx,
     );
-    const progress = stored ?? restingStoryProgress();
-    const chapter = getStoryChapter(progress.storyId);
+    const chapter = getStoryChapter((stored ?? restingStoryProgress()).storyId);
+    const progress = rewindToUnwatchedPerformance(
+      chapter,
+      stored ?? restingStoryProgress(),
+    );
     const facts = emptyStoryFacts();
     const resolved = acknowledgePerformance(
       chapter,

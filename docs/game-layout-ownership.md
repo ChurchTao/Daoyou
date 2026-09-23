@@ -4,7 +4,7 @@
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出。`/game/story` 播放当前剧情演出；本地开发另有 `/game/story/preview/:scriptId` 只读预览。
-- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
+- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
 - `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
@@ -12,6 +12,8 @@
 - `GameDungeonLayout`：`/game/dungeon`
 
 ## 共享组件归位
+
+- 洞府「育兽室」进入 `/game/beast-room`，复用炼丹房的 `RoomView` 设施选择界面，可分别进入灵兽袋和灵兽融合；「储藏室」「灵田」直接进入各自页面。旧 `/game/craft` 造物仙炉汇总页已删除，炼丹房与炼器室保留独立入口。
 
 - `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示灵兽袋（拥有上限 24，只选最多 6 只出战编组）；桌面左侧名册、右侧属性与技能，移动端名册在上。技能使用统一浮层，加点在面板内预分配并弹窗确认，学习兽诀抽屉复用通用物品栏；战斗中的召唤选择仍由 v6 指令组件负责。
 - `/game/beasts/fusion` 为同壳独立融合页，从灵兽袋进入。左右灵兽位对照资质、成长与技能，中央水墨炉提供预览入口；移动端保持双列对照，融合操作移至下方。选择与确认使用辅助抽屉，结果原地展示；请求持久化至会话存储，刷新后可恢复同一次融合。结果通过 `/game/beasts?beast=个体ID` 定位回灵兽袋。

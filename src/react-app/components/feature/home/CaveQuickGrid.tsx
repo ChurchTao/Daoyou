@@ -23,6 +23,10 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '阵纹室', icon: '🔶', href: '/game/inscriptions' },
       { label: '👊 练功房', href: '/game/training-room' },
       { label: '💧 灵眼之泉', href: '/game/inn' },
+      { label: '储藏室', icon: '📦', href: '/game/cave/storage/new?location=storage' },
+      { label: '灵田', icon: '🌱', href: '/game/spirit-field' },
+      { label: '育兽室', icon: '🐯', href: '/game/beast-room' },
+      { label: '旧藏宝库', icon: '📦', href: '/game/cave/storage' },
     ],
   },
   {

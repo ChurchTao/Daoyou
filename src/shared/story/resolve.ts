@@ -99,6 +99,22 @@ export function acknowledgePerformance(
   );
 }
 
+export function rewindToUnwatchedPerformance(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+): StoryProgress {
+  if (progress.track !== chapter.track || progress.storyId !== chapter.id) {
+    return progress;
+  }
+  const opening = chapter.beats.find((beat) => beat.kind === 'performance');
+  if (!opening || opening.kind !== 'performance') return progress;
+  const key = `${opening.script}:${opening.outcome}`;
+  if (progress.acks.includes(key) || progress.beatId === opening.id) {
+    return progress;
+  }
+  return { ...progress, beatId: opening.id, status: 'active' };
+}
+
 export function presentStory(
   chapter: StoryChapter,
   progress: StoryProgress,

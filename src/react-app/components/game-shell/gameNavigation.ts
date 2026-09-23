@@ -154,6 +154,11 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
       {
+        id: 'beast-room',
+        sceneLabel: '育兽室',
+        href: '/game/beast-room',
+      },
+      {
         id: 'beasts',
         sceneLabel: '灵兽袋',
         href: '/game/beasts',
@@ -207,11 +212,6 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '蜃楼幻境',
         href: '/game/tower',
         expandedDockLabel: '🪞 蜃楼幻境',
-      },
-      {
-        id: 'craft',
-        sceneLabel: '造物仙炉',
-        href: '/game/craft',
       },
       {
         id: 'fate-reshape',

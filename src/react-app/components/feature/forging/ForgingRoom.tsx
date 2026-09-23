@@ -31,7 +31,7 @@ const maxBoostPercent = Number((DAO_EQUIPMENT_FORGING.boostPerMaterial * 5 * 100
 const facilities: RoomActorView[] = [
   {
     id: 'furnace',
-    sigil: '炉',
+    sigil: '🔥',
     name: '地火器炉',
     identity: '铸造设施',
     responsibility: '依图定形，借地火锻成道装',
@@ -39,7 +39,7 @@ const facilities: RoomActorView[] = [
   },
   {
     id: 'archive',
-    sigil: '卷',
+    sigil: '📜',
     name: '道装图录',
     identity: '图纸设施',
     responsibility: '翻阅随身图纸，择一卷开炉',
@@ -47,7 +47,7 @@ const facilities: RoomActorView[] = [
   },
   {
     id: 'guide',
-    sigil: '碑',
+    sigil: '🪨',
     name: '铸器碑',
     identity: '指引设施',
     responsibility: '辨灵材之性，知铸器之理',

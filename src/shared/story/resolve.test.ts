@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { getStoryChapter, openingStoryProgress } from './catalog';
-import { acknowledgePerformance, presentStory, resolveStory } from './resolve';
+import {
+  acknowledgePerformance,
+  presentStory,
+  resolveStory,
+  rewindToUnwatchedPerformance,
+} from './resolve';
 import {
   emptyStoryFacts,
   type StoryChapter,
@@ -98,6 +103,35 @@ describe('story resolver', () => {
     expect(resolveStory(chapter, stayed, emptyStoryFacts()).progress.beatId).toBe(
       'stay',
     );
+  });
+
+  it('sends an arrival record that never watched the performance back to the opening', () => {
+    const arrival = getStoryChapter();
+    const skipped = {
+      track: 'main' as const,
+      storyId: 'arrival',
+      beatId: 'entered',
+      status: 'active' as const,
+      acks: [],
+      grants: [],
+      marks: [],
+    };
+    const rewound = rewindToUnwatchedPerformance(arrival, skipped);
+    expect(rewound.beatId).toBe('fall');
+    expect(presentStory(arrival, rewound, emptyStoryFacts()).scriptId).toBe(
+      'arrival-fall',
+    );
+
+    const watched = acknowledgePerformance(
+      arrival,
+      openingStoryProgress(),
+      emptyStoryFacts(),
+      'arrival-fall',
+      'entered',
+    );
+    expect(
+      rewindToUnwatchedPerformance(arrival, watched.progress).beatId,
+    ).toBe('entered');
   });
 
   it('rejects an outcome that does not belong to the current beat', () => {

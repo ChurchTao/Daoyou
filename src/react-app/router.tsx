@@ -748,18 +748,6 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="craft"
-              lazy={lazyRoute(() => import('@app/routes/game/craft/route'))}
-              handle={scene(
-                {
-                  id: 'craft',
-                  presentation: 'hub',
-                  summary: '分清炼器与炼丹，再携灵材入炉。',
-                },
-                '【造物仙炉】',
-              )}
-            />
-            <Route
               path="craft/refine"
               lazy={lazyRoute(
                 () => import('@app/routes/game/craft/refine/route'),
@@ -906,6 +894,18 @@ export const router = createBrowserRouter(
                   summary: '看榜、领赏、择敌挑战。',
                 },
                 '天骄榜',
+              )}
+            />
+            <Route
+              path="beast-room"
+              lazy={lazyRoute(() => import('@app/routes/game/beast-room/route'))}
+              handle={scene(
+                {
+                  id: 'beast-room',
+                  presentation: 'hub',
+                  summary: '照料灵兽，或引两灵相合、孕育新生。',
+                },
+                '育兽室',
               )}
             />
             <Route

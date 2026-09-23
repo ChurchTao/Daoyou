@@ -32,6 +32,10 @@ export default function SectPage() {
       <GameSceneFrame
         title="诸宗山门"
         description="你还没有拜入山门，仍以散修身份行走。"
+        identityOverride={{
+          label: '诸宗山门',
+          summary: '你还没有拜入山门，仍以散修身份行走。',
+        }}
       >
         <p className="text-ink-secondary text-sm leading-7">
           山门没有拦你。想认一认诸宗，可以自己进去看看；眼下洞府里的路也走得通。
