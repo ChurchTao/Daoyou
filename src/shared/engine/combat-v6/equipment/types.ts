@@ -90,7 +90,8 @@ export interface DaoEquipmentInstanceV1 {
   attributeBonuses: DaoEquipmentAttributeRoll[];
   essenceIds: string[];
   artId?: string;
-  formationInscription?: DaoFormationInscriptionStateV1;
+  /** 固定双孔；空孔保存为 null，不按装备境界增减孔数。 */
+  formationInscriptions: [DaoFormationInscriptionStateV1 | null, DaoFormationInscriptionStateV1 | null];
   appraisalState: 'appraised';
   generatorVersion: DaoEquipmentGeneratorVersion;
   createdAt: string;

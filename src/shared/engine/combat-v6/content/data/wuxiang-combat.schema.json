@@ -18,984 +18,28 @@
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "string",
-        "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+        "$ref": "#/$defs/__schema0"
       }
     },
     "skills": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "school": {
-            "type": "string",
-            "const": "wuxiang"
-          },
-          "costHp": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              }
-            ]
-          },
-          "costMp": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              }
-            ]
-          },
-          "requireHpRatio": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "resourceRequirements": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "resourceId": {
-                  "type": "string",
-                  "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                },
-                "min": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                }
-              },
-              "required": [
-                "resourceId",
-                "min"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "resourceCosts": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "resourceId": {
-                  "type": "string",
-                  "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                },
-                "amount": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                }
-              },
-              "required": [
-                "resourceId",
-                "amount"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "tags": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "physical",
-                "spell",
-                "seal",
-                "support",
-                "passive",
-                "art"
-              ]
-            }
-          },
-          "formula": {
-            "type": "string",
-            "const": "spell"
-          },
-          "splash": {
-            "type": "object",
-            "properties": {
-              "perTarget": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "floor": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              }
-            },
-            "required": [
-              "perTarget",
-              "floor"
-            ],
-            "additionalProperties": false
-          },
-          "targeting": {
-            "type": "object",
-            "properties": {
-              "side": {
-                "type": "string",
-                "enum": [
-                  "enemy",
-                  "ally",
-                  "self",
-                  "any"
-                ]
-              },
-              "mode": {
-                "type": "string",
-                "enum": [
-                  "explicit",
-                  "fill",
-                  "all",
-                  "random",
-                  "lowestHp",
-                  "lowestDef"
-                ]
-              },
-              "count": {
-                "anyOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1000000
-                  },
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200
-                  }
-                ]
-              },
-              "includeDowned": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "side"
-            ],
-            "additionalProperties": false
-          },
-          "effects": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "heal"
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "removeWound"
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "spellHit"
-                    },
-                    "coeff": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1000000
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    },
-                    "defenseIgnore": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "coeff",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyBarrier"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 80
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    },
-                    "duration": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "id",
-                    "kind",
-                    "name",
-                    "power",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "dispel"
-                    },
-                    "categories": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "buff",
-                          "debuff",
-                          "control",
-                          "dot"
-                        ]
-                      }
-                    },
-                    "maxCount": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    },
-                    "excludeStatusFlags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "blocksAction",
-                          "blocksSpell",
-                          "blocksPhysical",
-                          "blocksRevive",
-                          "actFirst",
-                          "untargetable",
-                          "revealStealth",
-                          "persistWhenDowned"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "categories",
-                    "maxCount",
-                    "excludeStatusFlags"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "revive"
-                    },
-                    "hpRatio": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "hpRatio",
-                    "when"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "skipNextAction"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyStatus"
-                    },
-                    "statusId": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "duration": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    },
-                    "self": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "statusId",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "modifyResource"
-                    },
-                    "resourceId": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "amount": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1000000
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "resourceId",
-                    "amount"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          },
-          "successEffects": {
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "heal"
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "removeWound"
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "spellHit"
-                    },
-                    "coeff": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1000000
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    },
-                    "defenseIgnore": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "coeff",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyBarrier"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 80
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000000
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 200
-                        }
-                      ]
-                    },
-                    "duration": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "id",
-                    "kind",
-                    "name",
-                    "power",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "dispel"
-                    },
-                    "categories": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "buff",
-                          "debuff",
-                          "control",
-                          "dot"
-                        ]
-                      }
-                    },
-                    "maxCount": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    },
-                    "excludeStatusFlags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "blocksAction",
-                          "blocksSpell",
-                          "blocksPhysical",
-                          "blocksRevive",
-                          "actFirst",
-                          "untargetable",
-                          "revealStealth",
-                          "persistWhenDowned"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "categories",
-                    "maxCount",
-                    "excludeStatusFlags"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "revive"
-                    },
-                    "hpRatio": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "hpRatio",
-                    "when"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "skipNextAction"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyStatus"
-                    },
-                    "statusId": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "duration": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 99
-                    },
-                    "self": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "statusId",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "modifyResource"
-                    },
-                    "resourceId": {
-                      "type": "string",
-                      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "amount": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1000000
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-                          }
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "resourceId",
-                    "amount"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "school",
-          "tags",
-          "targeting",
-          "effects"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema1"
       }
     },
     "statuses": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "kind": {
-            "type": "string",
-            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-          },
-          "category": {
-            "type": "string",
-            "enum": [
-              "buff",
-              "debuff",
-              "control",
-              "dot"
-            ]
-          },
-          "blocksAction": {
-            "type": "boolean"
-          },
-          "dispellable": {
-            "type": "boolean"
-          },
-          "damageTakenPhysical": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 10
-          },
-          "damageTakenSpell": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 10
-          },
-          "attrMods": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string",
-              "enum": [
-                "hp",
-                "maxHp",
-                "mp",
-                "maxMp",
-                "physicalAtk",
-                "physicalDef",
-                "magicAtk",
-                "magicDef",
-                "healPower",
-                "speed",
-                "hit",
-                "dodge",
-                "critRate",
-                "spellCritRate",
-                "physicalFuryRate",
-                "sealHit",
-                "sealResist",
-                "attackCultivate",
-                "defenseCultivate",
-                "spellCultivate",
-                "resistSpellCultivate"
-              ]
-            },
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                },
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "kind",
-          "category"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema11"
       }
     },
     "resources": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "current": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "max": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 1000000
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "current",
-          "max"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema12"
       }
     }
   },
@@ -1007,5 +51,1124 @@
     "statuses",
     "resources"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "school": {
+          "type": "string",
+          "const": "wuxiang"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "costMp": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "requirement": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "resourceCosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "resourceId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "amount": {
+                "$ref": "#/$defs/__schema2"
+              }
+            },
+            "required": [
+              "resourceId",
+              "amount"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cooldownRounds": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "initialCooldownRounds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "tags": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "formula": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "spell",
+            "dragon",
+            "judge",
+            "fixed"
+          ]
+        },
+        "targeting": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        "successEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "on": {
+                "type": "string",
+                "enum": [
+                  "beforeAction",
+                  "onHitCalc",
+                  "onDefenseIgnoreCalc",
+                  "onBeHit",
+                  "afterHit",
+                  "afterStrike",
+                  "onFatal",
+                  "onStatusRemoved",
+                  "onDeath",
+                  "onRoundStart",
+                  "onRoundEnd",
+                  "onTargetLost",
+                  "afterAction",
+                  "onCritRoll",
+                  "onHitRoll",
+                  "onHealCalc",
+                  "onBarrierCalc",
+                  "onWoundCalc"
+                ]
+              },
+              "sourceIsSelf": {
+                "type": "boolean"
+              },
+              "targetIsSelf": {
+                "type": "boolean"
+              },
+              "requireKind": {
+                "type": "string",
+                "enum": [
+                  "physical",
+                  "spell",
+                  "fixed"
+                ]
+              },
+              "aim": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "hookTarget",
+                  "hookSource",
+                  "others"
+                ]
+              },
+              "targeting": {
+                "$ref": "#/$defs/__schema4"
+              },
+              "chance": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "when": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "effects": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema6"
+                }
+              }
+            },
+            "required": [
+              "on",
+              "effects"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "school",
+        "description",
+        "tags",
+        "targeting",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      ]
+    },
+    "__schema3": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "seal",
+        "support",
+        "passive",
+        "art"
+      ]
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "enemy",
+            "ally",
+            "self",
+            "any"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "fill",
+            "all",
+            "random",
+            "lowestHp",
+            "lowestDef"
+          ]
+        },
+        "count": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "extraCount": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "extraChance": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "includeOwnedStatusKind": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "includeDowned": {
+          "type": "boolean"
+        },
+        "onlyDowned": {
+          "type": "boolean"
+        },
+        "requireStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        }
+      },
+      "required": [
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema6": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "randomBranch"
+            },
+            "branchId": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "chance": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "successEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            },
+            "failureEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "branchId",
+            "chance",
+            "successEffects",
+            "failureEffects"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "fixedHit"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "physicalHit"
+            },
+            "coeff": {
+              "type": "number",
+              "minimum": 0
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "coeff"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "applyStatus"
+            },
+            "statusId": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "duration": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "self": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeStatus"
+            },
+            "statusIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStatusDuration"
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "kinds",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "dispel"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "buff",
+                  "debuff",
+                  "control",
+                  "dot"
+                ]
+              }
+            },
+            "maxCount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "random": {
+              "type": "boolean"
+            },
+            "preventReapplyThisRound": {
+              "type": "boolean"
+            },
+            "excludeStatusFlags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "const": "blocksRevive"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "categories"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "revive"
+            },
+            "hpRatio": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "hpRatio"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "heal"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "fixedBase": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeWound"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "restoreHp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "allowFatal": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyCooldown"
+            },
+            "skillId": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "skillId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyFact"
+            },
+            "key": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "value": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "key",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyResource"
+            },
+            "resourceId": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "add",
+                "set"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "resourceId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyHeal"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyWound"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStrike"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema9"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyChance"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema7": {
+      "$ref": "#/$defs/__schema8"
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "skillTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "physical",
+              "spell",
+              "seal",
+              "support",
+              "passive",
+              "art"
+            ]
+          }
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "spell",
+            "fixed"
+          ]
+        },
+        "damageOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "action-direct",
+              "hook-derived",
+              "status"
+            ]
+          }
+        },
+        "pvp": {
+          "type": "boolean"
+        },
+        "teamUniqueTag": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "targetEnemy": {
+          "type": "boolean"
+        },
+        "targetHasStandingPet": {
+          "type": "boolean"
+        },
+        "actionKilledTarget": {
+          "type": "boolean"
+        },
+        "sourceStanding": {
+          "type": "boolean"
+        },
+        "actionSucceeded": {
+          "type": "boolean"
+        },
+        "sourceTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "targetDowned": {
+          "type": "boolean"
+        },
+        "foeKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "targetStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "targetAbsentStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "targetOwnedStatus": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "appliedThisRound": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "requireStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "requireAbsentStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "removedStatusKind": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "statusRemoveReason": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "oncePerActionTarget": {
+          "type": "boolean"
+        },
+        "oncePerRound": {
+          "type": "boolean"
+        },
+        "oncePerBattle": {
+          "type": "boolean"
+        },
+        "initialTargetStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "targetSlot": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "normal"
+          ]
+        },
+        "initialTargetOwnedStatus": {
+          "$ref": "#/$defs/__schema5"
+        },
+        "sourceHpRatioBelow": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "__schema10": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "hitAdd": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "allDamageTakenBonus": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "damageBonus": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "damageAdd": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "damageTakenBonus": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "physicalAttackAdd": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "sealResistanceAdd": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "targetCountAdd": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema11": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "buff",
+            "debuff",
+            "control",
+            "dot"
+          ]
+        },
+        "dispellable": {
+          "type": "boolean"
+        },
+        "extendable": {
+          "type": "boolean"
+        },
+        "expireSameRound": {
+          "type": "boolean"
+        },
+        "untilBattleEnd": {
+          "type": "boolean"
+        },
+        "sourceBound": {
+          "type": "boolean"
+        },
+        "persistWhenDowned": {
+          "type": "boolean"
+        },
+        "snapshotModifiers": {
+          "type": "boolean"
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        },
+        "attrMods": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "hp",
+              "maxHp",
+              "mp",
+              "maxMp",
+              "physicalAtk",
+              "physicalDef",
+              "magicAtk",
+              "magicDef",
+              "healPower",
+              "speed",
+              "hit",
+              "dodge",
+              "critRate",
+              "spellCritRate",
+              "physicalFuryRate",
+              "sealHit",
+              "sealResist",
+              "attackCultivate",
+              "defenseCultivate",
+              "spellCultivate",
+              "resistSpellCultivate"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema2"
+          }
+        },
+        "speedMod": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "category"
+      ],
+      "additionalProperties": false
+    },
+    "__schema12": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "current",
+        "max"
+      ],
+      "additionalProperties": false
+    }
+  }
 }

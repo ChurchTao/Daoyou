@@ -1,6 +1,8 @@
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { daoEquipmentRequiredLevel } from '@shared/engine/combat-v6/equipment/compiler';
+import { daoFormationInscriptionOf } from '@shared/engine/combat-v6/equipment/content';
+import { daoFormationMaxLevel, daoFormationPanel } from '@shared/engine/combat-v6/equipment/inscriptions';
 import {
   DAO_EQUIPMENT_ARTS_V1,
   DAO_EQUIPMENT_ESSENCES_V1,
@@ -62,6 +64,43 @@ function equipmentSections(
       sections.push({
         title: key === 'baseStats' ? '器胚属性' : '附灵属性',
         entries: rows.map((row) => ({ kind: 'line', ...row })),
+      });
+  }
+  const formationRows: PreviewLine[] = equipment.formationInscriptions.flatMap((formation, index) => {
+    if (!formation) return [];
+    const definition = daoFormationInscriptionOf(formation.patternId)!;
+    return [{
+      label: `第${index + 1}孔`,
+      value: `${definition.name} · ${formation.level}级`,
+    }, {
+      label: EQUIPMENT_ATTRIBUTE_NAMES[definition.attr],
+      value: signed(definition.valuePerLevel * formation.level),
+      numeric: true,
+      tone: 'positive' as const,
+    }];
+  });
+  if (formationRows.length)
+    sections.push({
+      title: '阵纹',
+      entries: [
+        { kind: 'line', label: '每孔上限', value: `${daoFormationMaxLevel(equipment.equipmentLevel)}级`, numeric: true },
+        ...formationRows.map(row => ({ kind: 'line' as const, ...row })),
+      ],
+    });
+  if (old) {
+    const currentPanel = daoFormationPanel(equipment);
+    const previousPanel = daoFormationPanel(old);
+    const attributes = new Set([...currentPanel, ...previousPanel].map(roll => roll.attr));
+    if (attributes.size)
+      sections.push({
+        title: '阵纹属性比较',
+        entries: [...attributes].map(attr => {
+          const value = currentPanel.find(roll => roll.attr === attr)?.value ?? 0;
+          return {
+            kind: 'line', label: EQUIPMENT_ATTRIBUTE_NAMES[attr], value: signed(value), numeric: true,
+            delta: value - (previousPanel.find(roll => roll.attr === attr)?.value ?? 0),
+          };
+        }),
       });
   }
   const essences = equipment.essenceIds

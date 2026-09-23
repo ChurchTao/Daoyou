@@ -12,7 +12,6 @@ import {
   daoEquipmentAttributeRange,
   daoEquipmentBaseRange,
   daoEquipmentTemplateOf,
-  daoFormationInscriptionOf,
 } from './content.ts';
 import {
   DAO_EQUIPMENT_ARTS_V1,
@@ -37,6 +36,7 @@ import {
   type DaoEquipmentPanelRoll,
 } from './types.ts';
 import { daoWeaponTypeOf, equipmentWeaponTypeProblem } from './weapons';
+import { daoFormationPanel, validateFormationInscriptions } from './inscriptions';
 
 const ATTRIBUTE_KEYS: DaoEquipmentAttribute[] = [
   'vitality',
@@ -75,6 +75,7 @@ const FORBIDDEN_FIELDS = new Set([
   'battleProjection',
   'SkillDef',
   'tempering',
+  'formationInscription',
 ]);
 
 function diagnostic(
@@ -321,41 +322,7 @@ function validateInstance(
     );
   }
 
-  if (instance.formationInscription) {
-    const formation = instance.formationInscription;
-    const definition = daoFormationInscriptionOf(formation.patternId);
-    if (!definition) {
-      diagnostics.push(
-        diagnostic(
-          'UNKNOWN_FORMATION_INSCRIPTION',
-          '阵法灵纹不存在',
-          'formationInscription.patternId',
-        ),
-      );
-    } else if (!definition.allowedSlots.includes(instance.slot)) {
-      diagnostics.push(
-        diagnostic(
-          'FORMATION_INSCRIPTION_SLOT_MISMATCH',
-          '阵法灵纹不能刻于该部位',
-          'formationInscription.patternId',
-        ),
-      );
-    }
-    const maxLevel = Math.min(18, instance.equipmentLevel / 10);
-    if (
-      !Number.isInteger(formation.level) ||
-      formation.level < 1 ||
-      formation.level > maxLevel
-    ) {
-      diagnostics.push(
-        diagnostic(
-          'FORMATION_INSCRIPTION_LEVEL_INVALID',
-          `阵法灵纹等级必须为1～${maxLevel}的整数`,
-          'formationInscription.level',
-        ),
-      );
-    }
-  }
+  diagnostics.push(...validateFormationInscriptions(instance));
 
   return diagnostics;
 }
@@ -449,15 +416,7 @@ export function compileDaoEquipmentLoadoutV1(
     for (const roll of instance.attributeBonuses)
       attributes[roll.attr] += roll.value;
     for (const roll of instance.baseStats) addPanelRoll(panel, roll);
-    if (instance.formationInscription) {
-      const definition = daoFormationInscriptionOf(
-        instance.formationInscription.patternId,
-      )!;
-      addPanelRoll(panel, {
-        attr: definition.attr,
-        value: definition.valuePerLevel * instance.formationInscription.level,
-      });
-    }
+    for (const roll of daoFormationPanel(instance)) addPanelRoll(panel, roll);
   }
 
   return {
@@ -685,15 +644,7 @@ export function compileDaoEquipmentSpecialLoadoutV1(
     for (const roll of instance.attributeBonuses)
       attributes[roll.attr] += roll.value;
     for (const roll of instance.baseStats) addPanelRoll(panel, roll);
-    if (instance.formationInscription) {
-      const definition = daoFormationInscriptionOf(
-        instance.formationInscription.patternId,
-      )!;
-      addPanelRoll(panel, {
-        attr: definition.attr,
-        value: definition.valuePerLevel * instance.formationInscription.level,
-      });
-    }
+    for (const roll of daoFormationPanel(instance)) addPanelRoll(panel, roll);
   }
 
   const effectiveEssenceIds: string[] = [];

@@ -83,6 +83,8 @@ function beastComboDescription(skill: SkillDef): string | undefined {
   return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。`;
 }
 const effectLabels: Record<SkillEffect['type'], string> = {
+  modifyFact: "心念流转",
+  modifyStatusDuration: "调整状态持续",
   modifyCooldown: '调整冷却',
   loseHp: '损失气血',
   physicalHit: '造成物理伤害',

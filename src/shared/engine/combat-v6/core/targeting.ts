@@ -133,6 +133,7 @@ export function targetCount(
   const raw = evalExpr(
     resourceCount ?? skill.targeting.count ?? DEFAULT_TARGET_COUNT,
     {
+      state: ctx?.state,
       skillLevel: skillLevelOf(source, skill.id),
       targets: fallbackTargets,
       source,
@@ -167,6 +168,7 @@ export function resolveSkillTargets(
   skill: SkillDef,
   targetIds: string[],
   forcedPrimaryId?: string,
+  normalTargetIds?: string[],
 ): Unit[] {
   const mode = skill.targeting.mode ?? TargetMode.Explicit;
   if (skill.targeting.side === TargetSide.Self) return [source];
@@ -178,10 +180,10 @@ export function resolveSkillTargets(
   if (mode === TargetMode.All) {
     const picked =
       skill.targeting.count === undefined ? pool : pool.slice(0, count);
-    return addExtra(ctx, source, skill, picked, pool);
+    return addExtra(ctx, source, skill, picked, pool, normalTargetIds);
   }
   if (mode === TargetMode.Random)
-    return addExtra(ctx, source, skill, shuffleTake(ctx, pool, count), pool);
+    return addExtra(ctx, source, skill, shuffleTake(ctx, pool, count), pool, normalTargetIds);
   if (mode === TargetMode.LowestHp) {
     return addExtra(
       ctx,
@@ -196,6 +198,7 @@ export function resolveSkillTargets(
         )
         .slice(0, count),
       pool,
+      normalTargetIds,
     );
   }
   if (mode === TargetMode.LowestDef) {
@@ -211,6 +214,7 @@ export function resolveSkillTargets(
         )
         .slice(0, count),
       pool,
+      normalTargetIds,
     );
   }
 
@@ -235,7 +239,7 @@ export function resolveSkillTargets(
   }
 
   if (mode === TargetMode.Explicit)
-    return addExtra(ctx, source, skill, picked, pool);
+    return addExtra(ctx, source, skill, picked, pool, normalTargetIds);
 
   for (const unit of pool) {
     if (picked.length >= count) break;
@@ -244,7 +248,7 @@ export function resolveSkillTargets(
     seen.add(unit.id);
     if (picked.length >= count) break;
   }
-  return addExtra(ctx, source, skill, picked, pool);
+  return addExtra(ctx, source, skill, picked, pool, normalTargetIds);
 }
 
 function addExtra(
@@ -253,8 +257,13 @@ function addExtra(
   skill: SkillDef,
   picked: Unit[],
   pool: Unit[],
+  normalTargetIds?: string[],
 ): Unit[] {
+  normalTargetIds?.push(...picked.map(u => u.id));
   const extraCount = skill.targeting.extraCount;
+  if (picked.length && skill.targeting.includeOwnedStatusKind) {
+    picked = [...picked, ...pool.filter(u => !picked.includes(u) && u.statuses.some(s => s.kind === skill.targeting.includeOwnedStatusKind && s.sourceId === source.id))];
+  }
   const extraChance = skill.targeting.extraChance;
   if (extraCount === undefined && extraChance === undefined) return picked;
   const env = {

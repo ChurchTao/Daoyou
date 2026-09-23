@@ -1,265 +1,558 @@
 {
   "$schema": "./wuxiang-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "baseSkillIds": [
-    "wuxiang.skill.single_heal",
-    "wuxiang.skill.group_heal",
-    "wuxiang.skill.barrier",
-    "wuxiang.skill.spell",
-    "wuxiang.skill.purify",
-    "wuxiang.skill.revive",
-    "wuxiang.skill.formless"
+    "wuxiang.skill.mind",
+    "wuxiang.skill.pierce",
+    "wuxiang.skill.nectar",
+    "wuxiang.skill.ward",
+    "wuxiang.skill.empower",
+    "wuxiang.skill.turn",
+    "wuxiang.skill.restore"
   ],
   "skills": [
     {
-      "id": "wuxiang.skill.single_heal",
-      "name": "拈花济世",
+      "id": "wuxiang.skill.mind",
+      "name": "一念生相",
       "school": "wuxiang",
-      "costMp": "25 + floor(skillLevel * 0.35)",
+      "description": "指定宗门技能积烈念或寂念。集齐三念，于回合末显相；烈念较多为魔相，寂念较多为佛相。三烈、二烈一寂、一烈二寂、三寂分别持续3、4、5、8回合。显相期间停止普通积念。三寂法相可在致死时破相，回复人物等级×12气血。所有承伤降低1%。",
       "tags": [
-        "spell",
-        "support"
+        "passive"
       ],
       "targeting": {
-        "side": "ally",
-        "count": 1
+        "side": "self"
       },
-      "effects": [
+      "effects": [],
+      "hooks": [
         {
-          "type": "heal",
-          "power": "60 + floor(skillLevel * 1.4)"
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.fierce",
+              "amount": 3,
+              "mode": "set"
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.still",
+              "amount": 0,
+              "mode": "set"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_normal",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_a",
+              "value": "resource.wuxiang.resource.fierce"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_b",
+              "value": "resource.wuxiang.resource.still"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_form",
+              "value": 1
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_broken",
+              "value": 0
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "resource.wuxiang.resource.fierce >= 2",
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wuxiang.status.demon",
+                  "duration": "(3 + fact.wuxiang_b + if(fact.wuxiang_b == 3, 2, 0)) * (1 + known.wuxiang.passive.wrath.6.3 * if(fact.wuxiang_a == 3, 1, 0) * fact.wuxiang_done0 * fact.wuxiang_done1 * fact.wuxiang_done2 * fact.wuxiang_done3)"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wuxiang.status.buddha",
+                  "duration": "(3 + fact.wuxiang_b + if(fact.wuxiang_b == 3, 2, 0)) * (1 + known.wuxiang.passive.wrath.6.3 * if(fact.wuxiang_a == 3, 1, 0) * fact.wuxiang_done0 * fact.wuxiang_done1 * fact.wuxiang_done2 * fact.wuxiang_done3)"
+                }
+              ]
+            },
+            {
+              "type": "modifyCooldown",
+              "skillId": "wuxiang.skill.restore",
+              "amount": -150
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_initiative_round",
+              "value": "if(known.wuxiang.passive.wrath.2.3, round + 1, 0)"
+            }
+          ],
+          "when": {
+            "pvp": false,
+            "oncePerBattle": true,
+            "expression": "known.wuxiang.passive.wrath.1.2"
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wuxiang.status.initiative",
+              "duration": 1
+            }
+          ],
+          "when": {
+            "expression": "if(fact.wuxiang_initiative_round == round, 1, 0)"
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wuxiang.status.cultivation",
+              "duration": 1
+            }
+          ],
+          "when": {
+            "sourceStanding": true
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_broken",
+              "value": 1
+            },
+            {
+              "type": "removeStatus",
+              "kinds": [
+                "wuxiang.form"
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_overloaded",
+              "value": 0
+            }
+          ],
+          "when": {
+            "expression": "fact.wuxiang_overloaded"
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_normal",
+              "value": 1
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_a",
+              "value": "resource.wuxiang.resource.fierce"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_b",
+              "value": "resource.wuxiang.resource.still"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_form",
+              "value": 1
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_broken",
+              "value": 0
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "resource.wuxiang.resource.fierce >= 2",
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wuxiang.status.demon",
+                  "duration": "(3 + fact.wuxiang_b + if(fact.wuxiang_b == 3, 2, 0)) * (1 + known.wuxiang.passive.wrath.6.3 * if(fact.wuxiang_a == 3, 1, 0) * fact.wuxiang_done0 * fact.wuxiang_done1 * fact.wuxiang_done2 * fact.wuxiang_done3)"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wuxiang.status.buddha",
+                  "duration": "(3 + fact.wuxiang_b + if(fact.wuxiang_b == 3, 2, 0)) * (1 + known.wuxiang.passive.wrath.6.3 * if(fact.wuxiang_a == 3, 1, 0) * fact.wuxiang_done0 * fact.wuxiang_done1 * fact.wuxiang_done2 * fact.wuxiang_done3)"
+                }
+              ]
+            },
+            {
+              "type": "modifyCooldown",
+              "skillId": "wuxiang.skill.restore",
+              "amount": -150
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_initiative_round",
+              "value": "if(known.wuxiang.passive.wrath.2.3, round + 1, 0)"
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "expression": "if(fact.wuxiang_form == 0, if(resource.wuxiang.resource.fierce + resource.wuxiang.resource.still >= 3, 1, 0), 0)"
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "if(fact.wuxiang_a == 0, fact.wuxiang_normal * (1 - fact.wuxiang_broken), 0)",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_done0",
+                  "value": 1
+                }
+              ],
+              "failureEffects": []
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "if(fact.wuxiang_a == 1, fact.wuxiang_normal * (1 - fact.wuxiang_broken), 0)",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_done1",
+                  "value": 1
+                }
+              ],
+              "failureEffects": []
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "if(fact.wuxiang_a == 2, fact.wuxiang_normal * (1 - fact.wuxiang_broken), 0)",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_done2",
+                  "value": 1
+                }
+              ],
+              "failureEffects": []
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "if(fact.wuxiang_a == 3, fact.wuxiang_normal * (1 - fact.wuxiang_broken), 0)",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_done3",
+                  "value": 1
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "when": {
+            "removedStatusKind": "wuxiang.form",
+            "statusRemoveReason": "expired"
+          },
+          "sourceIsSelf": true,
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_retained",
+              "value": 0
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.retain",
+              "chance": "0.4 * (known.wuxiang.passive.compassion.1.1+known.wuxiang.passive.wrath.1.1) * (1 - fact.wuxiang_broken)",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_retained",
+                  "value": 1
+                }
+              ],
+              "failureEffects": []
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.fierce",
+              "amount": "if(fact.wuxiang_a >= fact.wuxiang_b, fact.wuxiang_retained, 0)",
+              "mode": "set"
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.still",
+              "amount": "if(fact.wuxiang_a < fact.wuxiang_b, fact.wuxiang_retained, 0)",
+              "mode": "set"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_form",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_a",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_b",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_normal",
+              "value": 0
+            }
+          ],
+          "when": {
+            "removedStatusKind": "wuxiang.form"
+          },
+          "sourceIsSelf": true,
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_broken",
+              "value": 1
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.fierce",
+              "amount": 0,
+              "mode": "set"
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.still",
+              "amount": 0,
+              "mode": "set"
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onFatal",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_broken",
+              "value": 1
+            },
+            {
+              "type": "restoreHp",
+              "power": "level * 12 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3))",
+              "allowFatal": true
+            },
+            {
+              "type": "removeStatus",
+              "kinds": [
+                "wuxiang.form"
+              ]
+            }
+          ],
+          "when": {
+            "expression": "fact.wuxiang_form * min(1, if(fact.wuxiang_b == 3, 1, 0) + (known.wuxiang.passive.compassion.3.3+known.wuxiang.passive.wrath.3.3))"
+          },
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.fierce",
+              "amount": "min(3 - resource.wuxiang.resource.still, resource.wuxiang.resource.fierce + 1)",
+              "mode": "set"
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.pierce",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.strike",
+              "wuxiang.skill.stars",
+              "wuxiang.skill.expose"
+            ],
+            "actionSucceeded": true,
+            "sourceStanding": true,
+            "expression": "fact.wuxiang_form == 0"
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wuxiang.resource.still",
+              "amount": "min(3 - resource.wuxiang.resource.fierce, resource.wuxiang.resource.still + 1)",
+              "mode": "set"
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.renew",
+              "wuxiang.skill.vow",
+              "wuxiang.skill.revive",
+              "wuxiang.skill.insight",
+              "wuxiang.skill.unbind",
+              "wuxiang.skill.restore"
+            ],
+            "actionSucceeded": true,
+            "sourceStanding": true,
+            "expression": "fact.wuxiang_form == 0"
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
         }
       ],
-      "successEffects": [
+      "modifiers": [
         {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 1,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
+          "allDamageTakenBonus": -0.01
         }
       ]
     },
     {
-      "id": "wuxiang.skill.group_heal",
-      "name": "慈航普度",
+      "id": "wuxiang.skill.pierce",
+      "name": "破妄指",
       "school": "wuxiang",
-      "costMp": "35 + floor(skillLevel * 0.5)",
+      "description": "造成固定伤害；对战人物时只作用一人，对战生灵时随技能修为最多作用三人。 本相成功施放后获得1枚烈念。",
       "tags": [
         "spell",
         "support"
       ],
-      "targeting": {
-        "side": "ally",
-        "mode": "fill",
-        "count": 5
-      },
-      "effects": [
-        {
-          "type": "heal",
-          "power": "30 + floor(skillLevel * 0.9)"
-        }
-      ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 2,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "wuxiang.skill.barrier",
-      "name": "金刚结界",
-      "school": "wuxiang",
-      "costMp": "30 + floor(skillLevel * 0.4)",
-      "tags": [
-        "spell",
-        "support"
-      ],
-      "targeting": {
-        "side": "ally",
-        "mode": "fill",
-        "count": 4
-      },
-      "effects": [
-        {
-          "type": "applyBarrier",
-          "id": "wuxiang.barrier.guardian",
-          "kind": "wuxiang.guardian",
-          "name": "金刚结界",
-          "power": "40 + floor(skillLevel * 1.1) + floor(target.maxHp * 0.04)",
-          "duration": 3
-        }
-      ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 1,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "id": "wuxiang.skill.spell",
-      "name": "明王法印",
-      "school": "wuxiang",
-      "costMp": "25 + floor(skillLevel * 0.45)",
-      "tags": [
-        "spell"
-      ],
-      "formula": "spell",
-      "splash": {
-        "perTarget": 0.08,
-        "floor": 0.6
-      },
       "targeting": {
         "side": "enemy",
         "mode": "fill",
-        "count": 5
+        "count": "if(enemyPlayers > 0, 1, if(skillLevel >= 60, 3, if(skillLevel >= 30, 2, 1)))"
       },
       "effects": [
         {
-          "type": "spellHit",
-          "coeff": 1,
-          "power": "30 + floor(skillLevel * 1.25)"
+          "type": "fixedHit",
+          "power": "50 + skillLevel * 2 + physicalAtk * 0.3"
         }
       ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 2,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
+      "formula": "fixed",
+      "costMp": "30 * targets"
     },
     {
-      "id": "wuxiang.skill.purify",
-      "name": "六根清净",
+      "id": "wuxiang.skill.nectar",
+      "name": "甘露愿",
       "school": "wuxiang",
-      "costMp": "30 + floor(skillLevel * 0.4)",
+      "description": "为友方恢复气血；显相时最多扩展三个目标，并额外照拂本愿印持有者。 本相成功施放后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
       ],
       "targeting": {
         "side": "ally",
-        "count": 1
+        "mode": "fill",
+        "count": "1 + fact.wuxiang_form * min(3, floor(skillLevel / 40))",
+        "includeOwnedStatusKind": "wuxiang.vow"
       },
       "effects": [
         {
-          "type": "removeWound",
-          "power": "floor(skillLevel * 1.5) + floor(target.maxHp * 0.05)"
-        },
-        {
-          "type": "dispel",
-          "categories": [
-            "control",
-            "debuff",
-            "dot"
-          ],
-          "maxCount": 1,
-          "excludeStatusFlags": [
-            "blocksRevive"
-          ]
+          "type": "heal",
+          "power": "60 + skillLevel * 2"
         }
       ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 1,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
+      "costMp": 80
     },
     {
-      "id": "wuxiang.skill.revive",
-      "name": "涅槃还生",
+      "id": "wuxiang.skill.ward",
+      "name": "护生愿",
       "school": "wuxiang",
-      "costMp": "80 + floor(skillLevel * 0.8)",
+      "description": "降低友方本回合所受所有伤害，基础减伤20%；显相时扩大作用范围。 本相成功施放后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
       ],
       "targeting": {
         "side": "ally",
-        "count": 1,
-        "includeDowned": true
+        "mode": "fill",
+        "count": "1 + fact.wuxiang_form * min(3, floor(skillLevel / 40)) * (1 - known.wuxiang.passive.compassion.2.3)",
+        "includeOwnedStatusKind": "wuxiang.vow"
       },
       "effects": [
         {
-          "type": "revive",
-          "hpRatio": 0.2,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        },
-        {
-          "type": "revive",
-          "hpRatio": 0.2,
-          "when": {
-            "requireStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.ward",
+          "duration": 1
         }
       ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 2,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
+      "costMp": 100
     },
     {
-      "id": "wuxiang.skill.formless",
-      "name": "无相诀",
+      "id": "wuxiang.skill.empower",
+      "name": "破障愿",
       "school": "wuxiang",
-      "costMp": "40 + floor(skillLevel * 0.3)",
-      "resourceRequirements": [
+      "description": "提高友方本回合造成的所有伤害，基础增伤20%；显相时扩大作用范围。 本相成功施放后获得1枚烈念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": "1 + fact.wuxiang_form * min(3, floor(skillLevel / 40)) * (1 - known.wuxiang.passive.compassion.2.3)",
+        "includeOwnedStatusKind": "wuxiang.vow"
+      },
+      "effects": [
         {
-          "resourceId": "wuxiang.resource.mind",
-          "min": 6
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.empower",
+          "duration": 1
         }
       ],
-      "resourceCosts": [
-        {
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 6
-        }
-      ],
+      "costMp": 100
+    },
+    {
+      "id": "wuxiang.skill.turn",
+      "name": "一念回转",
+      "school": "wuxiang",
+      "description": "交换尚未显相时的烈念与寂念。",
       "tags": [
         "spell",
         "support"
@@ -269,190 +562,647 @@
       },
       "effects": [
         {
-          "type": "applyStatus",
-          "statusId": "wuxiang.status.formless",
-          "duration": 2,
-          "self": true
+          "type": "modifyFact",
+          "key": "wuxiang_swap",
+          "value": "resource.wuxiang.resource.fierce"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.fierce",
+          "amount": "resource.wuxiang.resource.still",
+          "mode": "set"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.still",
+          "amount": "fact.wuxiang_swap",
+          "mode": "set"
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wuxiang.branch.choice",
+          "chance": "(known.wuxiang.passive.compassion.5.3+known.wuxiang.passive.wrath.5.3)",
+          "successEffects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "resource.wuxiang.resource.fierce >= resource.wuxiang.resource.still",
+              "successEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.fierce",
+                  "amount": "min(3 - resource.wuxiang.resource.still, resource.wuxiang.resource.fierce + 1)",
+                  "mode": "set"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.still",
+                  "amount": "min(3 - resource.wuxiang.resource.fierce, resource.wuxiang.resource.still + 1)",
+                  "mode": "set"
+                }
+              ]
+            }
+          ],
+          "failureEffects": []
         }
-      ]
+      ],
+      "requirement": "if(fact.wuxiang_form == 0, resource.wuxiang.resource.fierce + resource.wuxiang.resource.still > 0, 0)",
+      "costMp": 30
     },
     {
-      "id": "wuxiang.skill.great_barrier",
-      "name": "摩诃护持",
+      "id": "wuxiang.skill.restore",
+      "name": "返照归真",
       "school": "wuxiang",
-      "costMp": "50 + floor(skillLevel * 0.5)",
+      "description": "回复自身气血。本相额外修复伤势；显相时本回合减伤20%并延长法相1回合。每次显相重置冷却。 本相成功施放后获得1枚寂念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "heal",
+          "power": "level * 4 * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.2)"
+        },
+        {
+          "type": "removeWound",
+          "power": "level * 2",
+          "when": {
+            "expression": "fact.wuxiang_form == 0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.repair_guard",
+          "duration": 1,
+          "when": {
+            "expression": "fact.wuxiang_form"
+          }
+        },
+        {
+          "type": "modifyStatusDuration",
+          "kinds": [
+            "wuxiang.form"
+          ],
+          "amount": 1,
+          "when": {
+            "expression": "fact.wuxiang_form"
+          }
+        }
+      ],
+      "cooldownRounds": 150,
+      "costMp": 50
+    },
+    {
+      "id": "wuxiang.skill.strike",
+      "name": "摧岳",
+      "school": "wuxiang",
+      "description": "对单体发动一次物理攻击；显相时伤害提高20%。 本相成功施放后获得1枚烈念。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy"
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "wuxiang.skill.stars",
+      "name": "劫火散华",
+      "school": "wuxiang",
+      "description": "对三个敌方目标各发动一次物理攻击；显相时伤害提高20%。 本相成功施放后获得1枚烈念。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 3,
+        "extraCount": 1,
+        "extraChance": "0.33 * known.wuxiang.passive.wrath.4.3 * fact.wuxiang_wind_weapon"
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.8
+        }
+      ],
+      "costMp": 10
+    },
+    {
+      "id": "wuxiang.skill.expose",
+      "name": "照隙",
+      "school": "wuxiang",
+      "description": "为指定敌人附加持续5回合的破绽。 本相成功施放后获得1枚烈念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.breach",
+          "duration": 5
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "wuxiang.skill.burn",
+      "name": "三念俱焚",
+      "school": "wuxiang",
+      "description": "燃尽尚未显化的念头，造成固定伤害；每枚念头使本次伤害提高30%。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy"
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "(50 + skillLevel * 2 + physicalAtk * 0.3) * (1 + (resource.wuxiang.resource.fierce + resource.wuxiang.resource.still) * 0.3)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.fierce",
+          "amount": 0,
+          "mode": "set"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wuxiang.resource.still",
+          "amount": 0,
+          "mode": "set"
+        }
+      ],
+      "formula": "fixed",
+      "requirement": "fact.wuxiang_form == 0",
+      "resourceCosts": [
+        {
+          "resourceId": "combat.resource.rage",
+          "amount": 40
+        }
+      ],
+      "costMp": 60
+    },
+    {
+      "id": "wuxiang.skill.vow",
+      "name": "本愿印",
+      "school": "wuxiang",
+      "description": "为一名友方结下本愿印，持续整场；再次施放会转移自己的旧印。愿法额外惠及结印者；与普通作用目标重合时，效果提高50%。施放愿法后额外为结印者恢复人物等级＋治疗能力×20%的气血。 本相成功施放后获得1枚寂念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally"
+      },
+      "effects": [
+        {
+          "type": "removeStatus",
+          "kinds": [
+            "wuxiang.vow"
+          ],
+          "ownedOnly": true,
+          "targeting": {
+            "side": "ally",
+            "mode": "all",
+            "includeDowned": true
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wuxiang.status.vow",
+          "duration": 1
+        }
+      ],
+      "costMp": 200
+    },
+    {
+      "id": "wuxiang.skill.renew",
+      "name": "归元愿",
+      "school": "wuxiang",
+      "description": "为友方恢复气血并修复伤势，使受损的气血上限复原。 本相成功施放后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
       ],
       "targeting": {
         "side": "ally",
-        "count": 1
+        "mode": "fill",
+        "count": 1,
+        "includeOwnedStatusKind": "wuxiang.vow"
       },
       "effects": [
         {
-          "type": "applyBarrier",
-          "id": "wuxiang.barrier.great",
-          "kind": "wuxiang.great",
-          "name": "摩诃护持",
-          "power": "floor(target.maxHp * 0.12) + skillLevel",
-          "duration": 2
+          "type": "removeWound",
+          "power": "skillLevel * 2"
+        },
+        {
+          "type": "heal",
+          "power": "40 + skillLevel * 1.5"
+        }
+      ],
+      "costMp": 80
+    },
+    {
+      "id": "wuxiang.skill.revive",
+      "name": "莲华还生",
+      "school": "wuxiang",
+      "description": "复活一名倒地友方人物，恢复20%气血；无法越过禁复活效果。 本相成功施放后获得1枚寂念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "requireKind": "player",
+        "includeDowned": true,
+        "onlyDowned": true
+      },
+      "effects": [
+        {
+          "type": "revive",
+          "hpRatio": 0.2
+        }
+      ],
+      "costMp": 120
+    },
+    {
+      "id": "wuxiang.skill.insight",
+      "name": "慧眼观照",
+      "school": "wuxiang",
+      "description": "洞察友方气机，修复其伤势，并使其治疗能力增加自身等级的一半，持续3回合。 本相成功施放后获得1枚寂念。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally"
+      },
+      "effects": [
+        {
+          "type": "removeWound",
+          "power": "level * 2"
         },
         {
           "type": "applyStatus",
-          "statusId": "wuxiang.status.great_barrier_guard",
-          "duration": 2
+          "statusId": "wuxiang.status.insight",
+          "duration": 3
         }
       ],
-      "successEffects": [
-        {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 1,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
-        }
-      ]
+      "costMp": 120
     },
     {
-      "id": "wuxiang.skill.wrath_strike",
-      "name": "忿怒明王",
+      "id": "wuxiang.skill.unbind",
+      "name": "解缚还生",
       "school": "wuxiang",
-      "costMp": "40 + floor(skillLevel * 0.5)",
-      "costHp": "maxHp * 0.05",
-      "requireHpRatio": 0.15,
+      "description": "消耗30战意，使倒地友方人物的拘灵缩短1回合。禁复活效果解除后将其复活并恢复20%气血；仍被拘灵时仅削减持续。 本相成功施放后获得1枚寂念。",
       "tags": [
-        "spell"
+        "spell",
+        "support"
       ],
-      "formula": "spell",
       "targeting": {
-        "side": "enemy",
-        "count": 1
+        "side": "ally",
+        "requireKind": "player",
+        "includeDowned": true,
+        "onlyDowned": true
       },
       "effects": [
         {
-          "type": "spellHit",
-          "coeff": 1.35,
-          "power": "50 + floor(skillLevel * 1.3)"
-        }
-      ],
-      "successEffects": [
+          "type": "modifyStatusDuration",
+          "kinds": [
+            "youdu.soul_seal"
+          ],
+          "amount": -1
+        },
         {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 2,
+          "type": "revive",
+          "hpRatio": 0.2,
           "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
+            "targetAbsentStatusKinds": [
+              "youdu.soul_seal"
             ]
           }
         }
-      ]
+      ],
+      "resourceCosts": [
+        {
+          "resourceId": "combat.resource.rage",
+          "amount": 30
+        }
+      ],
+      "costMp": 120
     },
     {
-      "id": "wuxiang.skill.final_silence",
-      "name": "无量寂灭",
+      "id": "wuxiang.skill.overload",
+      "name": "魔临无间",
       "school": "wuxiang",
-      "costMp": "80 + floor(skillLevel * 0.8)",
-      "costHp": "maxHp * 0.1",
-      "requireHpRatio": 0.2,
+      "description": "显相时随机施展一式：摧岳式使烈念物伤增益翻倍，击倒时延长法相1回合并免于本次过载退相；散华式攻击六个目标。未豁免时本回合末退相。冷却4回合，开场冷却2回合。",
       "tags": [
-        "spell"
+        "physical"
       ],
-      "formula": "spell",
       "targeting": {
-        "side": "enemy",
-        "count": 1
+        "side": "enemy"
       },
       "effects": [
         {
-          "type": "spellHit",
-          "coeff": 1.8,
-          "power": "80 + floor(skillLevel * 1.6)",
-          "defenseIgnore": 0.15
+          "type": "modifyFact",
+          "key": "wuxiang_overloaded",
+          "value": 1
         },
         {
-          "type": "skipNextAction"
-        },
-        {
-          "type": "applyStatus",
-          "statusId": "wuxiang.status.rest",
-          "duration": 1,
-          "self": true
+          "type": "randomBranch",
+          "branchId": "wuxiang.branch.overload",
+          "chance": 0.5,
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_overload",
+              "value": 1
+            },
+            {
+              "type": "physicalHit",
+              "coeff": 1
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "actionKillsTarget",
+              "successEffects": [
+                {
+                  "type": "modifyFact",
+                  "key": "wuxiang_overloaded",
+                  "value": 0
+                },
+                {
+                  "type": "modifyStatusDuration",
+                  "kinds": [
+                    "wuxiang.form"
+                  ],
+                  "amount": 1,
+                  "targeting": {
+                    "side": "self"
+                  }
+                }
+              ],
+              "failureEffects": []
+            },
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_overload",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "physicalHit",
+              "coeff": 0.8,
+              "targeting": {
+                "side": "enemy",
+                "mode": "fill",
+                "count": 6
+              }
+            }
+          ]
         }
       ],
-      "successEffects": [
+      "requirement": "fact.wuxiang_form",
+      "cooldownRounds": 4,
+      "initialCooldownRounds": 2,
+      "costMp": 100
+    },
+    {
+      "id": "wuxiang.skill.cleanse",
+      "name": "净业愿",
+      "school": "wuxiang",
+      "description": "显相时随机解除目标一种可净化的异常，使其本回合不再获得相同异常。施放后法相过载，本回合末退相。",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally"
+      },
+      "effects": [
         {
-          "type": "modifyResource",
-          "resourceId": "wuxiang.resource.mind",
-          "amount": 3,
-          "when": {
-            "requireAbsentStatusIds": [
-              "wuxiang.status.formless"
-            ]
-          }
+          "type": "dispel",
+          "categories": [
+            "control",
+            "debuff",
+            "dot"
+          ],
+          "maxCount": 1,
+          "random": true,
+          "preventReapplyThisRound": true,
+          "excludeStatusFlags": [
+            "blocksRevive"
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "wuxiang_broken",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "wuxiang_overloaded",
+          "value": 1
         }
-      ]
+      ],
+      "requirement": "fact.wuxiang_form",
+      "resourceCosts": [
+        {
+          "resourceId": "combat.resource.rage",
+          "amount": 20
+        }
+      ],
+      "cooldownRounds": 8,
+      "initialCooldownRounds": 4,
+      "costMp": 0
     }
   ],
   "statuses": [
     {
-      "id": "wuxiang.status.formless",
-      "name": "无相",
-      "kind": "wuxiang.formless",
+      "id": "wuxiang.status.ward",
+      "name": "护生愿",
+      "kind": "wuxiang.ward",
       "category": "buff",
-      "dispellable": false
+      "expireSameRound": true,
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "allDamageTakenBonus": "-min(0.8, 0.2 * (1 + fact.wuxiang_form * (fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3)) + if(fact.wuxiang_a == 3, 0.1, 0))) * (1 + 0.5 * ownedTargetStatus.wuxiang.vow * normalTarget) * (1 + 0.25 * known.wuxiang.passive.compassion.2.1 * targetIsPet) * (1 + 0.25 * targetKnown.wuxiang.passive.compassion.3.1 * if(target.hp < target.maxHp * 0.3, 1, 0)) * (1 + fact.wuxiang_form * known.wuxiang.passive.compassion.2.3 * effective.healPower / 1000))"
+        }
+      ]
     },
     {
-      "id": "wuxiang.status.great_barrier_guard",
-      "name": "摩诃护持",
-      "kind": "wuxiang.great_guard",
+      "id": "wuxiang.status.empower",
+      "name": "破障愿",
+      "kind": "wuxiang.empower",
       "category": "buff",
-      "damageTakenPhysical": 0.9,
-      "damageTakenSpell": 0.9
+      "expireSameRound": true,
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "damageBonus": "0.2 * (1 + fact.wuxiang_form * (fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3)) + if(fact.wuxiang_a == 3, 0.1, 0))) * (1 + 0.5 * ownedTargetStatus.wuxiang.vow * normalTarget) * (1 + 0.25 * known.wuxiang.passive.compassion.2.1 * targetIsPet) * (1 + 0.25 * targetKnown.wuxiang.passive.compassion.3.1 * if(target.hp < target.maxHp * 0.3, 1, 0)) * (1 + fact.wuxiang_form * known.wuxiang.passive.compassion.2.3 * effective.healPower / 1000)"
+        }
+      ]
     },
     {
-      "id": "wuxiang.status.magic_guard",
-      "name": "金身护法",
-      "kind": "wuxiang.magic_guard",
+      "id": "wuxiang.status.vow",
+      "name": "本愿印",
+      "kind": "wuxiang.vow",
+      "category": "buff",
+      "sourceBound": true,
+      "untilBattleEnd": true,
+      "persistWhenDowned": true
+    },
+    {
+      "id": "wuxiang.status.breach",
+      "name": "破绽",
+      "kind": "wuxiang.breach",
+      "category": "debuff",
+      "sourceBound": true
+    },
+    {
+      "id": "wuxiang.status.insight",
+      "name": "慧眼观照",
+      "kind": "wuxiang.insight",
       "category": "buff",
       "attrMods": {
-        "magicDef": "floor(target.magicDef * 0.1)"
+        "healPower": "floor(level * 0.5)"
       }
     },
     {
-      "id": "wuxiang.status.revive_guard",
-      "name": "还阳护体",
-      "kind": "wuxiang.revive_guard",
+      "id": "wuxiang.status.insight_self",
+      "name": "观照生慧",
+      "kind": "wuxiang.insight_self",
       "category": "buff",
-      "damageTakenPhysical": 0.8,
-      "damageTakenSpell": 0.8
+      "attrMods": {
+        "healPower": "level"
+      }
     },
     {
-      "id": "wuxiang.status.formless_guard",
-      "name": "无量法界",
-      "kind": "wuxiang.formless_guard",
+      "id": "wuxiang.status.initiative",
+      "name": "先机",
+      "kind": "wuxiang.initiative",
       "category": "buff",
-      "damageTakenPhysical": 0.9,
-      "damageTakenSpell": 0.9
+      "expireSameRound": true,
+      "speedMod": "floor(target.speed * 0.15)"
     },
     {
-      "id": "wuxiang.status.rest",
-      "name": "寂灭反噬",
-      "kind": "wuxiang.rest",
-      "category": "control",
-      "blocksAction": true
+      "id": "wuxiang.status.repair_guard",
+      "name": "返照护持",
+      "kind": "wuxiang.repair_guard",
+      "category": "buff",
+      "expireSameRound": true,
+      "modifiers": [
+        {
+          "allDamageTakenBonus": -0.2
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.status.demon",
+      "name": "魔相",
+      "kind": "wuxiang.form",
+      "category": "buff",
+      "dispellable": false,
+      "extendable": false,
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "damageBonus": "known.wuxiang.passive.wrath.foundation * fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3))"
+        },
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageTakenBonus": "0.2 * if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2)"
+        },
+        {
+          "sealResistanceAdd": "known.wuxiang.passive.compassion.4.3 * if(fact.wuxiang_a == 3, 0.1, 0)"
+        }
+      ],
+      "attrMods": {
+        "maxHp": "floor(if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2) * fact.wuxiang_a * 0.2 * fact.beltMaxHp)",
+        "physicalDef": "floor(if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2) * fact.wuxiang_b * 0.2 * fact.beltPhysicalDef)"
+      }
+    },
+    {
+      "id": "wuxiang.status.buddha",
+      "name": "佛相",
+      "kind": "wuxiang.form",
+      "category": "buff",
+      "dispellable": false,
+      "extendable": false,
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "damageBonus": "known.wuxiang.passive.wrath.foundation * fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3))"
+        },
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageTakenBonus": "0.2 * if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2)"
+        },
+        {
+          "sealResistanceAdd": "known.wuxiang.passive.compassion.4.3 * if(fact.wuxiang_a == 3, 0.1, 0)"
+        }
+      ],
+      "attrMods": {
+        "maxHp": "floor(if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2) * fact.wuxiang_a * 0.2 * fact.beltMaxHp)",
+        "physicalDef": "floor(if(allyTagCount.sect.wuxiang == 1, 1, 0) * (known.wuxiang.passive.compassion.5.2 + known.wuxiang.passive.wrath.5.2) * fact.wuxiang_b * 0.2 * fact.beltPhysicalDef)"
+      }
+    },
+    {
+      "id": "wuxiang.status.cultivation",
+      "name": "愿力修持",
+      "kind": "wuxiang.cultivation",
+      "category": "buff",
+      "dispellable": false,
+      "extendable": false,
+      "attrMods": {
+        "healPower": "floor(known.wuxiang.passive.compassion.1.2 * fact.weaponDamage * 0.24)",
+        "sealResist": "fact.wuxiang_resist"
+      }
     }
   ],
   "resources": [
     {
-      "id": "wuxiang.resource.mind",
-      "name": "念",
+      "id": "wuxiang.resource.fierce",
+      "name": "烈念",
       "current": 0,
-      "max": 6
+      "max": 3
+    },
+    {
+      "id": "wuxiang.resource.still",
+      "name": "寂念",
+      "current": 0,
+      "max": 3
     }
   ]
 }

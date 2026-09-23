@@ -105,8 +105,8 @@ export function cloneUnit(unit: Unit): Unit {
     resources: unit.resources.map((resource) => ({ ...resource })),
     barriers: unit.barriers.map((barrier) => ({ ...barrier })),
     marks: [...unit.marks],
-    statuses: unit.statuses.map((s) => ({ ...s, attrMods: { ...s.attrMods } })),
-    flags: { ...unit.flags },
+    statuses: unit.statuses.map((s) => ({ ...s, attrMods: { ...s.attrMods }, ...(s.snapshotModifiers ? { snapshotModifiers: structuredClone(s.snapshotModifiers) } : {}) })),
+    flags: { ...unit.flags, ...(unit.flags.statusImmunityThroughRound ? { statusImmunityThroughRound: { ...unit.flags.statusImmunityThroughRound } } : {}) },
     command: unit.command ? { ...unit.command } : undefined,
     lastCommand: unit.lastCommand ? { ...unit.lastCommand } : undefined,
   }
@@ -153,7 +153,8 @@ export function effectiveAttrs(unit: Unit): Attrs {
   for (const status of unit.statuses) {
     attrs.speed += status.speedMod
     for (const [key, value] of Object.entries(status.attrMods) as Array<[keyof Attrs, number]>) {
-      attrs[key] += value
+      // Maximum HP is already materialized by applyStatus/removeStatus.
+      if (key !== "maxHp") attrs[key] += value
     }
   }
   return attrs

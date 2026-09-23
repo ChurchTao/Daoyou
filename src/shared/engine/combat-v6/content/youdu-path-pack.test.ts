@@ -24,7 +24,7 @@ describe('幽都原版经脉结构', () => {
   it('两树各19个可选节点、2个自动奖励，所有节点通过合法连线进入编译结果', () => {
     const paths = compileYouduPaths(loadYouduPathsPack(raw));
     const definition = { ...YOUDU_V6_DEFINITION, paths };
-    expect(paths.map(p => p.name)).toEqual(['勾魂阎罗', '诛形毒师']);
+    expect(paths.map(p => p.name)).toEqual(['拘魂锁命', '蚀魂摧形']);
     for (const path of paths) {
       expect(path.nodes.filter(n => !n.automatic)).toHaveLength(19);
       expect(path.nodes.filter(n => n.automatic)).toHaveLength(2);
@@ -44,12 +44,12 @@ describe('幽都原版经脉结构', () => {
       }
     }
   });
-  it('无赦替换涤魂，节点不授予装备特技；旧六道树与旧技能全部移除', () => {
+  it('摧形散法替换涤魂，节点不授予装备特技；旧六道树与旧技能全部移除', () => {
     const paths = compileYouduPaths(loadYouduPathsPack(raw));
-    const node = paths[1].nodes.find(n => n.name === '无赦咒令')!;
+    const node = paths[1].nodes.find(n => n.name === '摧形散法')!;
     expect(node.revokeSkillIds).toEqual(['youdu.skill.dispel']);
     expect(node.grantSkills?.map(s => s.definition.id)).toEqual(['youdu.skill.pardonless']);
-    expect(paths[1].nodes.find(n => n.name === '破毒')!.grantSkills).toBeUndefined();
+    expect(paths[1].nodes.find(n => n.name === '引毒入魂')!.grantSkills).toBeUndefined();
     expect(JSON.stringify(YOUDU_V6_DEFINITION)).not.toMatch(/six_paths|life_judge|final_judgment|ghost_rift|六道魍魉/);
   });
 });

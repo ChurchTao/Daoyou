@@ -11,7 +11,7 @@ import { commandOptions, teamFled, teamWiped, unitById } from "./query.ts"
 import { SeededRng } from "./rng.ts"
 import { bindDataHooks } from "./passives.ts"
 import { clearBarriers, tickBarriers } from "./barriers.ts"
-import { applyStatus, clearCombatStatuses, tickStatuses } from "./status.ts"
+import { applyStatus, clearCombatStatuses, expireRoundEndStatuses, tickStatuses } from "./status.ts"
 import type {
   BattleEvent,
   BattleResult,
@@ -179,6 +179,7 @@ export class BattleSession {
 
     this.ctx.emit({ type: EventType.RoundEnd, round: this.ctx.state.round })
     this.ctx.hooks.emit(HookName.OnRoundEnd)
+    expireRoundEndStatuses(this.ctx)
     this.finishIfNeeded()
 
     if (this.ctx.state.result) {

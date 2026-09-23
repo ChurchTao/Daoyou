@@ -21,7 +21,7 @@ import {
 import { evalExpr, skillLevelOf } from "./expr.ts"
 import { skillOf, passiveSkills } from "./skills.ts"
 import { standingUnits } from "./query.ts"
-import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, Unit, UnitId } from "./types.ts"
+import type { Attrs, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, StatusInstance, Unit, UnitId } from "./types.ts"
 import { effectiveAttrs, isStanding, recoverableHp } from "./units.ts"
 import { combatModifiers } from "./modifiers.ts"
 import { applyDamage, applyMpDamage } from "./damage.ts"
@@ -109,6 +109,8 @@ export function applyStatus(
   const snapshotTarget = { ...unit, attrs: effectiveAttrs(withoutSameKind) }
   const env: ExprEnv = {
     ...baseEnv,
+    state: ctx.state,
+    normalTargetIds: ctx.currentAction?.normalTargetIds,
     target: baseEnv.target?.id === unit.id ? snapshotTarget : baseEnv.target,
     source: baseEnv.source.id === unit.id ? snapshotTarget : baseEnv.source,
   }
@@ -142,6 +144,7 @@ export function applyStatus(
     removeStatus(ctx, unit, inst.id, StatusRemoveReason.Replaced, def.sourceBound ? sourceId : undefined)
   }
   unit.statuses.push({
+    ...(def.snapshotModifiers ? { snapshotModifiers: def.modifiers?.map(m => Object.fromEntries(Object.entries(m).map(([key, value]) => [key, (typeof value === 'string' && key !== 'teamAura') || typeof value === 'number' ? evalExpr(value, { ...env, state: ctx.state }) : structuredClone(value)]))) } : {}),
     id: def.id,
     kind: def.kind,
     remainingRounds: duration,
@@ -229,23 +232,37 @@ export function tickStatuses(ctx: BattleContext): void {
           def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
       }
 
-      // Dot 当回合就跳并扣持续；普通状态当回合不扣；expireSameRound（我佛护体）当回合结束即卸。
-      if (inst.appliedRound === ctx.state.round && !def?.ticks && !def?.expireSameRound) continue
+      // 当回合结束过期的状态保留到所有跳伤和回合末钩子结算完成。
+      if (def?.expireSameRound) continue
+      // Dot 当回合就跳并扣持续；普通状态当回合不扣。
+      if (inst.appliedRound === ctx.state.round && !def?.ticks) continue
       if (def?.untilBattleEnd) continue
-      const next = inst.remainingRounds - 1
-      if (next <= 0) {
-        // A preceding tick may have killed the unit and removed its statuses.
-        if (!unit.statuses.includes(inst)) continue
-        removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired, def?.sourceBound ? inst.sourceId : undefined)
-        if (def?.onExpire && !unit.flags.downed && !unit.flags.dead) {
-          const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
-          applyStatus(ctx, unit, def.onExpire.statusId, def.onExpire.duration, inst.sourceId, {
-            storedTargetId: inst.storedTargetId,
-            env: { skillLevel: inst.transitionSkillLevel ?? 0, targets: 1, source, target: unit },
-          })
-        }
-      } else inst.remainingRounds = next
+      tickStatusDuration(ctx, unit, inst, def)
     }
+  }
+}
+
+export function expireRoundEndStatuses(ctx: BattleContext): void {
+  for (const unit of ctx.state.units) {
+    for (const inst of [...unit.statuses]) {
+      const def = statusDef(ctx, inst.id)
+      if (def?.expireSameRound && !def.untilBattleEnd) tickStatusDuration(ctx, unit, inst, def)
+    }
+  }
+}
+
+function tickStatusDuration(ctx: BattleContext, unit: Unit, inst: StatusInstance, def: StatusDef | undefined): void {
+  // A preceding tick may have killed the unit and removed its statuses.
+  if (!unit.statuses.includes(inst)) return
+  const next = inst.remainingRounds - 1
+  if (next > 0) { inst.remainingRounds = next; return }
+  removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired, def?.sourceBound ? inst.sourceId : undefined)
+  if (def?.onExpire && !unit.flags.downed && !unit.flags.dead) {
+    const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
+    applyStatus(ctx, unit, def.onExpire.statusId, def.onExpire.duration, inst.sourceId, {
+      storedTargetId: inst.storedTargetId,
+      env: { skillLevel: inst.transitionSkillLevel ?? 0, targets: 1, source, target: unit },
+    })
   }
 }
 
@@ -269,6 +286,7 @@ export function envFor(unit: Unit, skillId: string, targets = 1, target?: Unit):
 /** Initial deployment effects run once per battle; marks survive recall and restore. */
 export function applyEntryStatuses(ctx: BattleContext, unit: Unit): void {
   if (unit.flags.benched || unit.flags.dead || unit.flags.escaped) return
+  if (unit.kind === 'pet' && !unit.marks.includes('battle:deployed')) unit.marks.push('battle:deployed')
   for (const id of unit.passives) {
     const entry = skillOf(ctx.skills, unit, id)?.innate?.entryStatus
     const mark = `battle:entry:${id}`
@@ -280,6 +298,7 @@ export function applyEntryStatuses(ctx: BattleContext, unit: Unit): void {
 }
 
 function isStatusImmune(ctx: BattleContext, unit: Unit, def: StatusDef, source?: Unit): boolean {
+  if ((unit.flags.statusImmunityThroughRound?.[def.kind] ?? -1) >= ctx.state.round) return true
   const passives = passiveSkills(ctx.skills, unit)
   if (def.category === StatusCategory.Buff && passives.some(s => s.innate?.rejectBuffs)) return true
   return !def.blocksRevive && def.dispellable !== false && passives.some(s => {

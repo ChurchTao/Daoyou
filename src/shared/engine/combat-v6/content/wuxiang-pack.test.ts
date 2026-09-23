@@ -2,46 +2,42 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import raw from './data/wuxiang-combat.json';
 import schema from './data/wuxiang-combat.schema.json';
-import { WuxiangCombatPackShape, loadWuxiangCombatPack, compileWuxiangCombatPack } from './wuxiang-pack';
-import { CommandType, createBattle } from '../core';
-import { createDaoyouRuleset } from '../rules-daoyou';
-import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
+import {
+  loadWuxiangCombatPack,
+  WUXIANG_COMBAT,
+  WuxiangCombatPackShape,
+} from './wuxiang-pack';
 
-function heal(data: unknown) {
-  const pack = compileWuxiangCombatPack(loadWuxiangCombatPack(data));
-  const skill = pack.baseSkills[0].definition;
-  const battle = createBattle({
-    seed: 7, versions: COMBAT_V6_PHASE_6D_VERSIONS, ruleset: createDaoyouRuleset(),
-    skills: [skill], statusDefs: pack.statuses,
-    units: [
-      { id: 'caster', name: '施法者', side: 0, kind: 'player', skills: [skill.id], resources: pack.resources, skillLevels: { [skill.id]: 10 }, attrs: { hp: 1000, mp: 1000, maxMp: 1000, speed: 100, physicalAtk: 10, physicalDef: 10 } },
-      { id: 'ally', name: '伤者', side: 0, kind: 'player', attrs: { hp: 100, maxHp: 1000, speed: 10, physicalAtk: 10, physicalDef: 10 } },
-      { id: 'enemy', name: '敌人', side: 1, kind: 'npc', attrs: { hp: 1000, speed: 1, physicalAtk: 10, physicalDef: 10 } },
-    ],
+describe('无相天机技能包', () => {
+  it('Schema 同步，递归效果使用引用', () =>
+    expect(z.toJSONSchema(WuxiangCombatPackShape, { reused: 'ref' })).toEqual(
+      schema,
+    ));
+  it('七项共享能力、两类念头；旧主动化相与群盾不再授予', () => {
+    expect(WUXIANG_COMBAT.baseSkills).toHaveLength(7);
+    expect(WUXIANG_COMBAT.resources.map((r) => [r.name, r.max])).toEqual([
+      ['烈念', 3],
+      ['寂念', 3],
+    ]);
+    expect(
+      WUXIANG_COMBAT.skills.some((s) =>
+        /single_heal|group_heal|barrier|formless|final_silence/.test(
+          s.definition.id,
+        ),
+      ),
+    ).toBe(false);
   });
-  battle.submit('caster', { type: CommandType.Skill, skillId: skill.id, targets: ['ally'] });
-  battle.submit('ally', { type: CommandType.Defend });
-  battle.submit('enemy', { type: CommandType.Defend });
-  battle.lockAndResolve();
-  return battle.snapshot();
-}
-describe('无相技能、状态与念资源', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(WuxiangCombatPackShape)).toEqual(schema));
-  it('拒绝不存在的状态条件和超过上限的资源消耗', () => {
-    const condition = JSON.parse(JSON.stringify(raw));
-    condition.skills[0].successEffects[0].when.requireAbsentStatusIds = ['wuxiang.status.missing'];
-    expect(() => loadWuxiangCombatPack(condition)).toThrow('状态条件引用不存在');
-    const cost = JSON.parse(JSON.stringify(raw));
-    cost.skills.find((s: { resourceCosts?: unknown }) => s.resourceCosts).resourceCosts[0].amount = 7;
-    expect(() => loadWuxiangCombatPack(cost)).toThrow('消耗超过资源上限');
-  });
-  it('治疗和成功后念增长采用配置', () => {
-    const data = JSON.parse(JSON.stringify(raw));
-    data.skills[0].effects[0].power = 300;
-    data.skills[0].successEffects[0].amount = 3;
-    const before = heal(raw), after = heal(data);
-    expect(after.units.find(u => u.id === 'ally')!.attrs.hp).toBeGreaterThan(before.units.find(u => u.id === 'ally')!.attrs.hp);
-    expect(before.units.find(u => u.id === 'caster')!.resources[0].current).toBe(1);
-    expect(after.units.find(u => u.id === 'caster')!.resources[0].current).toBe(3);
+  it('拒绝不存在的状态引用、无效表达式和超限初始资源', () => {
+    const condition = structuredClone(raw);
+    condition.skills[0].hooks![0].when!.requireAbsentStatusIds = [
+      'wuxiang.status.missing',
+    ];
+    expect(() => loadWuxiangCombatPack(condition)).toThrow('引用不存在');
+    const formula = structuredClone(raw);
+    formula.skills[1].effects[0].power = 'floor(';
+    expect(() => loadWuxiangCombatPack(formula)).toThrow('power');
+    const resource = structuredClone(raw);
+    resource.resources[0].current = 4;
+    expect(() => loadWuxiangCombatPack(resource)).toThrow('初始值超过上限');
   });
 });

@@ -15,6 +15,31 @@ function battle(chance: number, factor?: number, statusFactor?: number) {
   return b;
 }
 afterEach(() => vi.restoreAllMocks());
+describe('当回合状态到期时序', () => {
+  it('回合末钩子仍能读取当回合状态，到期衔接的状态完整保留到下一回合', () => {
+    const passive: SkillDef = { id: 'end-heal', name: '回合末恢复', tags: ['passive'], effects: [],
+      hooks: [{ on: 'onRoundEnd', when: { requireStatusKinds: ['preparing'] }, aim: 'self',
+        effects: [{ type: 'restoreHp', power: 100 }] }],
+    };
+    const b = createBattle({ seed: 1, versions, ruleset: createDaoyouRuleset(), skills: [passive],
+      statusDefs: [
+        { id: 'preparing', kind: 'preparing', name: '准备', expireSameRound: true, onExpire: { statusId: 'ready', duration: 1 } },
+        { id: 'ready', kind: 'ready', name: '就绪' },
+      ],
+      units: [
+        { id: 's', name: '施法者', side: 0, kind: 'player', attrs: { hp: 1000 }, passives: [passive.id] },
+        { id: 't', name: '目标', side: 1, kind: 'player', attrs: { hp: 1000 } },
+      ],
+    });
+    b.unit('s').attrs.hp = 500;
+    b.applyStatus('s', 'preparing', 1);
+    for (const expected of [['ready'], []]) {
+      b.submit('s', { type: 'defend' }); b.submit('t', { type: 'defend' }); b.lockAndResolve();
+      expect(b.unit('s').attrs.hp).toBe(600);
+      expect(b.unit('s').statuses.map(s => s.id)).toEqual(expected);
+    }
+  });
+});
 describe('封印概率乘区', () => {
   it.each([[.5, .7, undefined, .35], [.2, .7, undefined, .14], [.9, .7, .9, .567], [.5, undefined, undefined, .5]])(
     '正常概率 %s、被动倍率 %s、状态倍率 %s，实际按 %s 掷骰', (chance, factor, statusFactor, expected) => {

@@ -30,6 +30,8 @@ export type BattleContext = {
   /** 当前这次出手；OnHitCalc / when.skillIds 读这里。 */
   currentAction?: {
     triggeredTargets?: string[]
+    normalTargetIds?: UnitId[]
+    initialOwnedStatusKindsByTarget?: Record<UnitId, string[]>
     splashTargetIds?: Record<string, UnitId[]>
     initialSourceStatusIds?: string[]
     initialHpRatio?: number

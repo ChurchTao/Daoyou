@@ -35,10 +35,10 @@ export const DAO_FORMATION_INSCRIPTION_ID = {
   Jingang: 'dao_inscription.jingang',
   Xuanjia: 'dao_inscription.xuanjia',
   Changsheng: 'dao_inscription.changsheng',
-  Canghai: 'dao_inscription.canghai',
   Jifeng: 'dao_inscription.jifeng',
   Dongming: 'dao_inscription.dongming',
   Liuyun: 'dao_inscription.liuyun',
+  Huichun: 'dao_inscription.huichun',
 } as const;
 
 export const DAO_FORMATION_INSCRIPTIONS_V1: readonly DaoFormationInscriptionDefV1[] =

@@ -76,6 +76,7 @@ export function bindDataHooks(ctx: BattleContext): void {
           const env = {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             state: ctx.state,
+            normalTargetIds: ctx.currentAction?.normalTargetIds,
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
             originalResourceCost: (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0),
@@ -84,23 +85,35 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return
 
           const targets = resolveHookTargets(ctx, hook, unit, hctx, skill)
-          const usable = hook.effects.filter((effect) => matchesWhen(ctx, effect.when, { ...scope, markKey: `${scope.markKey}:${effect.type}` }))
-          if (usable.length === 0 && hook.effects.length > 0) return
-          if (targets.length === 0 && usable.some((e) => needsHookTarget(e))) return
-
+          let applied = false
           ctx.suppressHooks += 1
           try {
-            for (const effect of usable.length ? usable : hook.effects) {
-              applyHookEffect(ctx, unit, skill, effect, targets, {
-                ...env,
-                targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, hctx.target),
-              }, hctx)
+            for (const [effectIndex, effect] of hook.effects.entries()) {
+              const effectScope = { ...scope, markKey: `${scope.markKey}:${effectIndex}` }
+              // Explicit target selectors evaluate child conditions against each selected unit.
+              if (hook.targeting || effect.targeting) {
+                const resolved = effect.targeting
+                  ? resolveSkillTargets(ctx, unit, { ...skill, targeting: effect.targeting }, targets.map(t => t.id))
+                  : targets
+                for (const target of resolved) {
+                  const selectedScope = { ...effectScope, target }
+                  if (!matchesWhen(ctx, effect.when, selectedScope)) continue
+                  applyHookEffect(ctx, unit, skill, effect, [target], { ...env, target, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, target) }, hctx)
+                  consumeWhen(ctx, effect.when, selectedScope)
+                  applied = true
+                }
+              } else {
+                if (!matchesWhen(ctx, effect.when, effectScope)) continue
+                if (!targets.length && needsHookTarget(effect)) continue
+                applyHookEffect(ctx, unit, skill, effect, targets, { ...env, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, hctx.target) }, hctx)
+                consumeWhen(ctx, effect.when, effectScope)
+                applied = true
+              }
             }
           } finally {
             ctx.suppressHooks -= 1
           }
-          if (hook.limitConsumption !== "onAttempt") consumeWhen(ctx, hook.when, scope)
-          for (const effect of usable) consumeWhen(ctx, effect.when, { ...scope, markKey: `${scope.markKey}:${effect.type}` })
+          if (applied && hook.limitConsumption !== "onAttempt") consumeWhen(ctx, hook.when, scope)
         })
       })
     }
@@ -119,6 +132,7 @@ function needsHookTarget(effect: SkillEffect): boolean {
     effect.type !== EffectType.ModifyWound &&
     effect.type !== EffectType.SetCrit &&
     effect.type !== EffectType.ModifyResource &&
+    effect.type !== EffectType.ModifyFact &&
     effect.type !== EffectType.ModifyChance &&
     effect.type !== EffectType.ClearSkipNextAction
   )

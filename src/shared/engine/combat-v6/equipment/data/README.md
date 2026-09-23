@@ -58,12 +58,36 @@ t = min(1, 平均超额品阶 ÷ 2)
 
 旧V1～V4法兵缺少器形时，统一经 `daoWeaponTypeOf` 解析为剑，不改写原名、白字或库存JSON；旧名字即使含刀／戟也不用于推断类别。旧版本只能缺省类别或显式为剑，非法类别不会回退。新旧装备继续使用 `schemaVersion: 1`、`numericVersion: 2`：基础曲线和材料算法不变，V5标识新增的器形规则。无需数据库列变更或批量迁移；上线后更改器形系数仍须考虑已生成装备的范围校验，不能当作无影响的热更新。
 
+## 双孔阵纹
+
+所有开放境界、六个装备部位均固定双孔，允许同种、异种、不同等级和空孔。单孔上限按装备资产档位明确配置在 `../inscriptions.ts`：10／30／50／70／90 对应 3／5／7／9／11 级；人物升级、材料品阶和器形不提高上限。尚未开放的境界不外推。
+
+| 阵纹 | ID | 每级贡献 | 适用部位 |
+| --- | --- | --- | --- |
+| 玄锋 | dao_inscription.xuanfeng | 物攻 +6 | 法兵、法冠 |
+| 灵曜 | dao_inscription.lingyao | 法攻 +4 | 法兵、灵佩 |
+| 金刚 | dao_inscription.jingang | 物防 +8 | 法冠、法衣 |
+| 玄甲 | dao_inscription.xuanjia | 法防 +6 | 法衣、灵佩 |
+| 长生 | dao_inscription.changsheng | 气血 +40 | 法衣、腰封 |
+| 疾风 | dao_inscription.jifeng | 速度 +4 | 腰封、云履 |
+| 洞明 | dao_inscription.dongming | 封印命中 +1 | 法兵 |
+| 定神 | dao_inscription.liuyun | 封印抵抗 +1 | 腰封、云履 |
+| 回春 | dao_inscription.huichun | 治疗 +6 | 法兵、法衣 |
+
+沧海删除；已有其余类型 ID 保留，流云改名定神、洞明改为封印命中，新增回春。封印属性是点数，进入当前封印概率公式；不是直接百分比。
+
+`formationInscriptions` 为必填双元素元组，每孔保存 `{ patternId, level }` 或 `null`。生成器默认 `[null, null]`，单孔字段 `formationInscription` 直接拒绝，不迁移、不兼容。装备及阵纹尚未上线，本次按确认方案干净硬切；不增加数据库列或过渡版本。
+
+两孔贡献按“每级数值 × 等级”相加，不乘器形或材料倍率。库存解析与装备投影共用类型／孔数／部位／等级校验；完整人物面板、战斗投影和预览读取同一贡献算法。玄锋经脉的等级取武器两孔中最高值，玄锋物攻取两孔之和；武器伤害、腰带来源只统计对应装备的器胚和阵纹，其他装备及人物总面板不混入。
+
+本次交付规则、双孔数据、校验、投影、宗门联动和装备预览。阵纹物品产出、合成／烙印／替换接口、费用及操作页面尚未接入，不由本次数值方案推定经济规则。
+
 ## 实例与迁移
 
 新实例保存 `numericVersion: 2` 和 `baseQuality: t`，实际白字和绿字仍直接保存。生成、择优重抽与校验共享 `daoEquipmentBaseRange`／`daoEquipmentAttributeRange`。现有V1／V2／V3字段区分生成入口，numericVersion区分数值规则。
 
 
-配置不是线上热更新。后续缩小范围或删除属性时仍需制定迁移策略，不能仅递增contentRevision。阵纹、器蕴、器诀不在本次数值精修范围内，见 [特殊内容与打造配置](./README-special-forging.md)。
+配置不是线上热更新。后续缩小范围或删除属性时仍需制定迁移策略，不能仅递增contentRevision。阵纹规则见上节；器蕴、器诀见 [特殊内容与打造配置](./README-special-forging.md)。
 
 ## 验证
 

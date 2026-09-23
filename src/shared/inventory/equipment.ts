@@ -7,6 +7,7 @@ import {
 } from '../forging/narrative';
 import { CHARACTER_ATTRIBUTE_LABELS } from '../lib/characterAttributeLabels';
 import { DAO_WEAPON_TYPES, equipmentWeaponTypeProblem } from '../engine/combat-v6/equipment/weapons';
+import { FormationInscriptionsSchema, validateFormationInscriptions } from '../engine/combat-v6/equipment/inscriptions';
 // 器胚使用战斗面板名称；附灵展示必须使用 CHARACTER_ATTRIBUTE_LABELS。
 export const EQUIPMENT_ATTRIBUTE_NAMES = {
   ...CHARACTER_ATTRIBUTE_LABELS,
@@ -56,10 +57,7 @@ export const InventoryEquipmentSchema = z
     attributeBonuses: z.array(roll).max(20),
     essenceIds: z.array(z.string()).max(20),
     artId: z.string().optional(),
-    formationInscription: z
-      .object({ patternId: z.string(), level: z.number().int().nonnegative() })
-      .strict()
-      .optional(),
+    formationInscriptions: FormationInscriptionsSchema,
     appraisalState: z.literal('appraised'),
     generatorVersion: z.enum([
       'dao_equipment_generator_v1',
@@ -78,4 +76,6 @@ export const InventoryEquipmentSchema = z
   .superRefine((equipment, ctx) => {
     const message = equipmentWeaponTypeProblem(equipment);
     if (message) ctx.addIssue({ code: 'custom', path: ['weaponType'], message });
+    for (const problem of validateFormationInscriptions(equipment))
+      ctx.addIssue({ code: 'custom', path: problem.path?.split('.'), message: problem.message });
   });

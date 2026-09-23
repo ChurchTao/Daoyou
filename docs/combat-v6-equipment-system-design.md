@@ -53,7 +53,7 @@ interface DaoEquipmentInstanceV1 {
   attributeBonuses: DaoEquipmentAttributeRoll[];
   essenceIds: string[];
   artId?: string;
-  formationInscription?: { patternId: string; level: number };
+  formationInscriptions: [{ patternId: string; level: number } | null, { patternId: string; level: number } | null];
   appraisalState: 'appraised';
   generatorVersion: 'dao_equipment_generator_v1';
   createdAt: string;
@@ -109,21 +109,11 @@ interface DaoEquipmentInstanceV1 {
 
 ## 6. 阵法灵纹
 
-每件最多一槽一纹，等级为 1 至 `equipmentLevel / 10`，最高 18。同纹可跨装备重复；没有多孔、组合阵法或套装联动。
+2026-09-23 按确认方案硬切双孔：所有开放境界固定两孔，炼气／筑基／金丹／元婴／化神对应每孔上限 3／5／7／9／11。两孔可以同种、异种或空孔，固定属性相加，不乘武器器形或材料倍率。
 
-| 灵纹 | 每级贡献 | 合法部位 |
-| --- | ---: | --- |
-| 玄锋阵纹 | 物攻 +6 | 法兵、法冠 |
-| 灵曜阵纹 | 法攻 +6 | 法兵、灵佩 |
-| 金刚阵纹 | 物防 +4 | 法冠、法衣、腰封、云履 |
-| 玄甲阵纹 | 法防 +4 | 法衣、灵佩 |
-| 长生阵纹 | 气血 +80 | 腰封 |
-| 沧海阵纹 | 法力 +40 | 法冠 |
-| 疾风阵纹 | 速度 +4 | 云履 |
-| 洞明阵纹 | 命中 +6 | 法兵 |
-| 流云阵纹 | 闪避 +6 | 云履 |
+现行九种阵纹、保留 ID、部位与每级数值以 [双孔阵纹规则](../src/shared/engine/combat-v6/equipment/data/README.md#双孔阵纹) 为准。沧海删除、流云改名定神，洞明与定神分别改为封印命中和抵抗，新增回春治疗。旧单孔结构不保留兼容或迁移。
 
-Phase 4A 只实现注册表、校验和属性贡献，不实现获取、替换、升级操作或经济消耗。
+已实现注册表、双孔校验、属性贡献、宗门联动和装备预览；获取、合成、烙印、替换操作与经济消耗尚未接入。
 
 ## 7. 投影顺序
 

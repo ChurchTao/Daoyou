@@ -173,6 +173,7 @@ export type CombatV6VersionStamp = {
 
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
 export type StatusInstance = {
+  snapshotModifiers?: CombatModifier[];
   id: StatusId;
   kind: string;
   remainingRounds: number;
@@ -193,6 +194,7 @@ export type StatusInstance = {
 };
 
 export type UnitFlags = {
+  statusImmunityThroughRound?: Record<string, number>;
   capturedBy?: UnitId;
   reviveAtRound?: number;
   revivedRound?: number;
@@ -315,6 +317,7 @@ export type LineupUnit = {
 };
 
 export type SkillTargeting = {
+  includeOwnedStatusKind?: string;
   side: TargetSide;
   requireKind?: UnitKind;
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
@@ -336,6 +339,7 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  expression?: Expr;
   targetDowned?: boolean;
   targetDead?: boolean;
   excludeFoeKinds?: UnitKind[];
@@ -382,6 +386,7 @@ export type EffectWhen = {
     max?: number;
   };
   initialTargetStatusKinds?: string[];
+  initialTargetOwnedStatus?: string;
   sourceInitialStatusIds?: StatusId[];
   primaryTargetStatusIds?: StatusId[];
   primaryTargetStatusKinds?: string[];
@@ -390,7 +395,7 @@ export type EffectWhen = {
   targetHpRatioBelow?: number;
   targetHpRatioAbove?: number;
   /** primary=只对这次出手的首目标 */
-  targetSlot?: 'primary' | 'all';
+  targetSlot?: 'primary' | 'all' | 'normal';
   foeKind?: UnitKind;
   foeTags?: string[];
   sourceTags?: string[];
@@ -404,6 +409,8 @@ export type EffectWhen = {
 };
 
 type EffectCore =
+  | { type: typeof EffectType.ModifyFact; key: string; value: Expr }
+  | { type: typeof EffectType.ModifyStatusDuration; kinds: string[]; amount: Expr; ownedOnly?: boolean }
   | {
       type: typeof EffectType.RandomBranch;
       branchId: string;
@@ -456,6 +463,7 @@ type EffectCore =
       power: Expr;
       maxGainPerAction?: Expr;
       revive?: boolean;
+      allowFatal?: boolean;
       clearStatuses?: boolean;
     }
   | { type: typeof EffectType.RestoreMp; power: Expr }
@@ -474,6 +482,7 @@ type EffectCore =
       statusIds?: StatusId[];
       kinds?: string[];
       maxCount?: Expr;
+      ownedOnly?: boolean;
     }
   | {
       type: typeof EffectType.CopyStatus;
@@ -497,6 +506,7 @@ type EffectCore =
       excludeStatusFlags?: StatusFlag[];
       /** 仅驱散由宗门内容定义的状态。 */
       schoolOnly?: boolean;
+      preventReapplyThisRound?: boolean;
     }
   | { type: typeof EffectType.SkipNextAction }
   | { type: typeof EffectType.DamageMp; power?: Expr }
@@ -578,6 +588,9 @@ export type SplashSpec = {
 /** 技能声明。主动效果在 effects，被动在 hooks；引擎不认技能 id。 */
 /** 连续修正由拥有该技能的单位提供；不在核心识别内容 ID。 */
 export type CombatModifier = {
+  /** Applied once before barriers, including periodic and derived damage. */
+  allDamageTakenBonus?: Expr;
+  hitAdd?: Expr;
   when?: EffectWhen;
   /** 同组队伍光环只取一次；来源倒地时失效。 */
   teamAura?: string;
@@ -609,6 +622,7 @@ export type CombatModifier = {
 };
 
 export type SkillDef = {
+  requirement?: Expr;
   modifiers?: CombatModifier[];
   cooldownRounds?: number;
   initialCooldownRounds?: number;
@@ -658,6 +672,7 @@ export type SkillDef = {
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  snapshotModifiers?: boolean;
   modifiers?: CombatModifier[];
   school?: string;
   /** 对正常封印命中率作乘法修正，不改变基础命中率的上下限。 */
@@ -953,6 +968,8 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  normalTargetIds?: string[];
+  killedTargetIds?: string[];
   state?: Pick<BattleState, "round" | "units">;
   skillLevel: number;
   targets: number;

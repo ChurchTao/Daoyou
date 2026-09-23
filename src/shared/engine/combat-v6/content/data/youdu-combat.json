@@ -303,7 +303,7 @@
     },
     {
       "id": "youdu.skill.soul_chase",
-      "name": "魍魉追魂",
+      "name": "魂契共鸣",
       "school": "youdu",
       "costMp": 100,
       "tags": [
@@ -323,7 +323,7 @@
         }
       ],
       "cooldownRounds": 4,
-      "description": "为己方倒地单位附加不可驱散的追魂印记，持续至战斗结束。造成的物理、法术伤害提高（4+2×己方印记单位数）%，此术不复活目标。"
+      "description": "为己方倒地单位附加不可驱散的魂契印记，持续至战斗结束。造成的物理、法术伤害提高（4+2×己方印记单位数）%，此术不复活目标。"
     },
     {
       "id": "youdu.skill.blood_shadow",
@@ -395,7 +395,7 @@
     },
     {
       "id": "youdu.skill.pardonless",
-      "name": "无赦咒令",
+      "name": "摧形散法",
       "school": "youdu",
       "costMp": 50,
       "tags": [
@@ -446,7 +446,7 @@
     },
     {
       "id": "youdu.skill.life_and_death",
-      "name": "生杀予夺",
+      "name": "噬魂夺生",
       "school": "youdu",
       "costMp": 100,
       "tags": [
@@ -642,7 +642,7 @@
     },
     {
       "id": "youdu.status.judgment_ready",
-      "name": "阎罗",
+      "name": "断魂",
       "kind": "youdu.judgment_ready",
       "category": "buff",
       "untilBattleEnd": true,
@@ -674,7 +674,7 @@
     },
     {
       "id": "youdu.status.soul_flight",
-      "name": "魂飞",
+      "name": "封魂",
       "kind": "youdu.soul_flight",
       "category": "debuff",
       "expireSameRound": true,
@@ -684,7 +684,7 @@
     },
     {
       "id": "youdu.status.death_echo",
-      "name": "死亡回音",
+      "name": "魂响",
       "kind": "youdu.death_echo",
       "category": "buff",
       "extendable": false,
@@ -704,7 +704,7 @@
     },
     {
       "id": "youdu.status.soul_chase",
-      "name": "魍魉追魂",
+      "name": "魂契共鸣",
       "kind": "youdu.soul_chase",
       "category": "buff",
       "untilBattleEnd": true,
@@ -766,7 +766,7 @@
     },
     {
       "id": "youdu.status.evil_flame",
-      "name": "恶焰",
+      "name": "噬魂增威",
       "kind": "youdu.evil_flame",
       "category": "buff",
       "extendable": false,
@@ -774,7 +774,7 @@
     },
     {
       "id": "youdu.status.reincarnation",
-      "name": "轮回",
+      "name": "六魂归元",
       "kind": "youdu.reincarnation",
       "category": "buff",
       "extendable": false,

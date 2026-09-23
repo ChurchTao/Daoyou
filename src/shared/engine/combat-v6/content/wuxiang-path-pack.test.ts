@@ -1,49 +1,66 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { createEmptySectCombatProgressV6 } from '../build-state';
+import { compileSectDefinitionV6 } from './compiler';
 import raw from './data/wuxiang-paths.json';
 import schema from './data/wuxiang-paths.schema.json';
-import { WuxiangPathsPackShape, loadWuxiangPathsPack, compileWuxiangPaths } from './wuxiang-path-pack';
-import { WUXIANG_V6_DEFINITION } from './wuxiang';
-import { compileSectDefinitionV6 } from './compiler';
-import type { SectCombatProgressV6, SectDefinitionV6 } from './types';
+import { WUXIANG_V6_DEFINITION as definition } from './wuxiang';
+import {
+  WuxiangPathsPackShape,
+  loadWuxiangPathsPack,
+} from './wuxiang-path-pack';
 
-function compile(definition: SectDefinitionV6, pathIndex: number, nodeId: string) {
-  const progress: SectCombatProgressV6 = {
-    version: 1, sectId: 'wuxiang', activePathId: definition.paths[pathIndex].id, meridianDepth: 7,
-    methods: Object.fromEntries(definition.methods.map(m => [m.id, 180])),
-    meridianLoadouts: definition.paths.map((p, i) => ({ pathId: p.id, nodeIds: i === pathIndex ? [nodeId] : [], revision: 0 })) as SectCombatProgressV6['meridianLoadouts'],
-  };
-  return compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
-}
-describe('无相完整流派配置', () => {
-  it('Schema 同步，重复结构使用引用', () => expect(z.toJSONSchema(WuxiangPathsPackShape, { reused: 'ref' })).toEqual(schema));
-  it('42 节点均可编译', () => {
-    for (const [i, path] of WUXIANG_V6_DEFINITION.paths.entries())
-      for (const node of path.nodes) expect(compile(WUXIANG_V6_DEFINITION, i, node.id).ok).toBe(true);
-  });
-  it('改变流派复活比例仅修改匹配状态的复活分支', () => {
-    const data = JSON.parse(JSON.stringify(raw));
-    data.paths[0].patches[0].value = 0.45;
-    const definition = { ...WUXIANG_V6_DEFINITION, paths: compileWuxiangPaths(loadWuxiangPathsPack(data)) };
-    const result = compile(definition, 0, definition.paths[0].nodes[0].id);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      const skill = result.projection.skillOverrides.find(s => s.id === 'wuxiang.skill.revive');
-      expect(skill?.effects[0]).toMatchObject({ type: 'revive', hpRatio: 0.2 });
-      expect(skill?.effects[1]).toMatchObject({ type: 'revive', hpRatio: 0.45 });
+describe('无相两条完整经脉', () => {
+  it('Schema 同步', () =>
+    expect(z.toJSONSchema(WuxiangPathsPackShape, { reused: 'ref' })).toEqual(
+      schema,
+    ));
+  it('38 可选节点均通过相邻连线编译，4 项自动奖励保留', () => {
+    for (const path of definition.paths) {
+      expect(path.nodes.filter((n) => n.automatic)).toHaveLength(2);
+      for (const node of path.nodes.filter((n) => !n.automatic)) {
+        const progress = createEmptySectCombatProgressV6(
+          'wuxiang',
+          path.id,
+          Object.fromEntries(definition.methods.map((m) => [m.id, 180])),
+        );
+        progress.meridianDepth = 7;
+        progress.meridianLoadouts.find((p) => p.pathId === path.id)!.nodeIds =
+          Array.from(
+            { length: node.layer },
+            (_, i) =>
+              path.nodes.find(
+                (n) =>
+                  n.layer === i + 1 &&
+                  n.slot === (i + 1 === node.layer ? node.slot : 2),
+              )!.id,
+          );
+        const result = compileSectDefinitionV6({
+          definition,
+          progress,
+          characterLevel: 180,
+        });
+        expect(result.ok).toBe(true);
+        if (result.ok)
+          expect(
+            result.projection.diagnostics.filter(
+              (d) => d.code !== 'MERIDIAN_SELECTION_INCOMPLETE',
+            ),
+          ).toEqual([]);
+      }
     }
   });
-  it('拒绝重复槽位、缺失护盾及无效表达式', () => {
+  it('拒绝重复槽位、悬空被动与非法公式', () => {
     const duplicate = structuredClone(raw);
     duplicate.paths[0].nodes[1].slot = 1;
     expect(() => loadWuxiangPathsPack(duplicate)).toThrow('层级槽位重复');
-    const barrier = JSON.parse(JSON.stringify(raw));
-    const node = barrier.paths[0].nodes.find((n: { patches?: { operation: string }[] }) => n.patches?.some(p => p.operation === 'setBarrierDuration'));
-    node.patches[0].barrierId = 'wuxiang.barrier.missing';
-    expect(() => loadWuxiangPathsPack(barrier)).toThrow('引用不存在');
-    const formula = JSON.parse(JSON.stringify(raw));
-    const passive = formula.passives.find((p: { hooks: { effects: { type: string }[] }[] }) => p.hooks.some(h => h.effects.some(e => e.type === 'restoreHp')));
-    passive.hooks[0].effects[0].maxGainPerAction = 'floor(';
-    expect(() => loadWuxiangPathsPack(formula)).toThrow('maxGainPerAction');
+    const missing = structuredClone(raw);
+    missing.paths[0].nodes[0].passives = ['wuxiang.passive.missing'];
+    expect(() => loadWuxiangPathsPack(missing)).toThrow('引用不存在');
+    const formula = structuredClone(raw);
+    formula.passives.find(
+      (p) => p.modifiers?.length,
+    )!.modifiers![0].damageBonus = 'missingVariable';
+    expect(() => loadWuxiangPathsPack(formula)).toThrow('未知表达式标识');
   });
 });

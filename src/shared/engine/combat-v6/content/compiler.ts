@@ -98,7 +98,7 @@ function validateDefinition(
         diagnostics.push(diagnostic("error", "INVALID_SUCCESS_EFFECT", `技能 ${skill.definition.id} 的成功结算效果非法`, `skills.${skill.definition.id}.successEffects`))
       }
     }
-    const validateEffects = (effects: SkillEffect[], nested = false): void => {
+    const validateEffects = (effects: SkillEffect[]): void => {
     for (const effect of effects) {
       if (effect.targeting && !["enemy", "ally", "self", "any"].includes(effect.targeting.side)) {
         diagnostics.push(diagnostic("error", "INVALID_EFFECT_TARGETING", `技能 ${skill.definition.id} 的效果级目标非法`, `skills.${skill.definition.id}.effects`))
@@ -149,9 +149,8 @@ function validateDefinition(
           diagnostics.push(diagnostic("error", "INVALID_CHANCE_BRANCH", `技能 ${skill.definition.id} 的概率分支非法`, `skills.${skill.definition.id}.effects`))
         }
         if (typeof effect.chance === "number" && (!Number.isFinite(effect.chance) || effect.chance < 0 || effect.chance > 1)) diagnostics.push(diagnostic("error", "INVALID_CHANCE_VALUE", `技能 ${skill.definition.id} 的概率值非法`, `skills.${skill.definition.id}.effects`))
-        if (nested) diagnostics.push(diagnostic("error", "NESTED_CHANCE_BRANCH_UNSUPPORTED", `技能 ${skill.definition.id} 不支持嵌套概率分支`, `skills.${skill.definition.id}.effects`))
-        validateEffects(effect.successEffects, true)
-        validateEffects(effect.failureEffects, true)
+        validateEffects(effect.successEffects)
+        validateEffects(effect.failureEffects)
       }
       if ((effect.type === EffectType.PhysicalHit || effect.type === EffectType.SpellHit || effect.type === EffectType.FixedHit) && effect.cannotKill !== undefined && typeof effect.cannotKill !== "boolean") {
         diagnostics.push(diagnostic("error", "INVALID_NONLETHAL_HIT", `技能 ${skill.definition.id} 的非致命声明非法`, `skills.${skill.definition.id}.effects`))
@@ -262,6 +261,7 @@ function patchConflictKey(patch: SkillPatchV6): string | undefined {
 
 function applyPatch(skill: SkillDef, patch: SkillPatchV6): SkillDef {
   const next = cloneSkill(skill)
+  if (patch.operation === "setCooldownRounds") next.cooldownRounds = patch.value
   if (patch.operation === "includeDownedTargets") next.targeting.includeDowned = patch.value
   if (patch.operation === "setRequireHpRatio") {
     if (next.requireHpAboveRatio !== undefined) next.requireHpAboveRatio = patch.value
@@ -548,7 +548,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
         ...(activePath.panel ?? []).map((entry) => ({ ...entry })),
         ...selectedNodes.flatMap((node) => node.panel ?? []).map((entry) => ({ ...entry })),
       ],
-      unitTags: [`sect.${input.definition.id}`],
+      unitTags: [`sect.${input.definition.id}`, ...(activePath.unitTags ?? [])],
       diagnostics,
     },
   }

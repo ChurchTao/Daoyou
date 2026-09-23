@@ -12,7 +12,7 @@ import { atLeast, floorAtLeast } from "./math.ts"
 import { applyStatus, copyStatusInstance, envFor, removeStatus } from "./status.ts"
 import { resolveSkillTargets } from "./targeting.ts"
 import type { ExprEnv, SkillDef, SkillEffect, Unit } from "./types.ts"
-import { healTakenFactor, isStanding, resourceOf } from "./units.ts"
+import { effectiveAttrs, healTakenFactor, isStanding, resourceOf } from "./units.ts"
 import { matchesWhen, targetStatusStacks } from "./when.ts"
 
 type EffectHandler<T extends SkillEffect = SkillEffect> = (
@@ -25,6 +25,16 @@ type EffectHandler<T extends SkillEffect = SkillEffect> = (
 ) => void
 
 const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect, { type: K }>> } = {
+  [EffectType.ModifyFact]: (ctx, source, _skill, effect, _targets, env) => {
+    (source.combatFacts ??= {})[effect.key] = evalExpr(effect.value, { ...env, state: ctx.state })
+  },
+  [EffectType.ModifyStatusDuration]: (ctx, source, _skill, effect, targets, env) => {
+    for (const target of targets) for (const status of [...target.statuses]) {
+      if (!effect.kinds.includes(status.kind) || (effect.ownedOnly && status.sourceId !== source.id)) continue
+      status.remainingRounds += Math.floor(evalExpr(effect.amount, { ...env, target, state: ctx.state }))
+      if (status.remainingRounds <= 0) removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, status.sourceId)
+    }
+  },
   [EffectType.ModifyCooldown]: (ctx, source, _skill, effect, _targets, env) => {
     const ready = source.cooldowns?.[effect.skillId]
     if (ready !== undefined && ready > ctx.state.round) source.cooldowns![effect.skillId] = Math.max(ctx.state.round, ready + Math.floor(evalExpr(effect.amount, { ...env, state: ctx.state })))
@@ -124,6 +134,7 @@ function handleRandomBranch(
     const matched = child.when
       ? resolved.filter((target) => matchesWhen(ctx, child.when, { source, target, skill, skillId: skill.id }))
       : resolved
+    if (resolved.length > 0 && matched.length === 0) continue
     const childEnv = {
       ...env,
       target: matched[0] ?? env.target,
@@ -151,6 +162,7 @@ function handleRestoreHp(
   for (const target of targets) {
     const restored = applyHpRestore(ctx, source, target, power, {
       revive: effect.revive,
+      allowFatal: effect.allowFatal,
       clearStatuses: effect.clearStatuses,
     })
     if (action && restored > 0) {
@@ -168,6 +180,7 @@ export function applyEffect(
   env: ExprEnv,
 ): void {
   // 休息、给自己上状态、驱散可以没有敌方目标。
+  env = { ...env, state: ctx.state, normalTargetIds: ctx.currentAction?.normalTargetIds, killedTargetIds: ctx.currentAction?.killedTargetIds }
   if (
     effect.type !== EffectType.SkipNextAction &&
     effect.type !== EffectType.RandomBranch &&
@@ -181,6 +194,7 @@ export function applyEffect(
     effect.type !== EffectType.ModifyHeal &&
     effect.type !== EffectType.SetCrit &&
     effect.type !== EffectType.ModifyResource &&
+    effect.type !== EffectType.ModifyFact &&
     effect.type !== EffectType.ModifyChance &&
     effect.type !== EffectType.ClearSkipNextAction
   ) {
@@ -201,7 +215,7 @@ function matchingStatuses(unit: Unit, spec: { statusIds?: string[]; kinds?: stri
 
 function handleRemoveStatus(
   ctx: BattleContext,
-  _source: Unit,
+  source: Unit,
   _skill: SkillDef,
   effect: Extract<SkillEffect, { type: typeof EffectType.RemoveStatus }>,
   targets: Unit[],
@@ -209,8 +223,8 @@ function handleRemoveStatus(
 ): void {
   for (const target of targets) {
     const max = effect.maxCount === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(evalExpr(effect.maxCount, { ...env, target })))
-    for (const status of matchingStatuses(target, effect).slice(0, max)) {
-      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed)
+    for (const status of matchingStatuses(target, effect).filter(s => !effect.ownedOnly || s.sourceId === source.id).slice(0, max)) {
+      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, effect.ownedOnly ? source.id : undefined)
     }
   }
 }
@@ -288,7 +302,7 @@ function handleApplyStatus(
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
       const targetModifiers = combatModifiers(ctx, t, { target: source, skill, skillId: skill.id })
-      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance(source, t, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
+      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance({ ...source, attrs: effectiveAttrs(source) }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
       if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue
@@ -348,6 +362,7 @@ function handleDispel(
         if (!success) continue;
       }
       removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
+      if (effect.preventReapplyThisRound) (t.flags.statusImmunityThroughRound ??= {})[status.kind] = ctx.state.round
     }
   }
 }

@@ -306,6 +306,8 @@ function resolvePhysicalAttack(
     return;
   }
   ctx.currentAction = {
+    normalTargetIds: [target.id],
+    initialOwnedStatusKindsByTarget: Object.fromEntries(ctx.state.units.map(target => [target.id, target.statuses.filter(s => s.sourceId === unit.id).map(s => s.kind)])),
     initialSourceStatusIds: unit.statuses.map(s => s.id),
     skillId: BUILTIN_SKILL_ID.Attack,
     sourceId: unit.id,
@@ -516,12 +518,14 @@ function resolveSkill(
     return;
   }
 
+  const normalTargetIds: string[] = [];
   const targets = resolveSkillTargets(
     ctx,
     unit,
     skill,
     targetIds,
     forcedPrimaryId,
+    normalTargetIds,
   );
   const env = makeEnv(unit, skill, targets);
   const { mpCost, hpCost, resourceCosts, reasons } = checkSkillRequirements(
@@ -546,6 +550,10 @@ function resolveSkill(
 
   if (reasons.includes('cooldown')) {
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: 'cooldown' });
+    return;
+  }
+  if (reasons.includes('skill-condition')) {
+    ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: 'skill-condition' });
     return;
   }
   if (reasons.includes(FailReason.HpRequirement)) {
@@ -597,6 +605,8 @@ function resolveSkill(
   }
 
   ctx.currentAction = {
+    normalTargetIds,
+    initialOwnedStatusKindsByTarget: Object.fromEntries(ctx.state.units.map(target => [target.id, target.statuses.filter(s => s.sourceId === unit.id).map(s => s.kind)])),
     initialSourceStatusIds: unit.statuses.map(s => s.id),
     initialHpRatio: unit.attrs.hp / unit.attrs.maxHp,
     killedTargetIds: [],

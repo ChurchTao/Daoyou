@@ -37,6 +37,7 @@ export {
 } from "./types.ts"
 export { DAO_WEAPON_TYPES, DAO_WEAPONS, daoWeaponTypeOf } from './weapons';
 export type { DaoWeaponType } from './weapons';
+export { daoFormationMaxLevel, daoFormationPanel } from './inscriptions';
 export type {
   CombatV6PanelAttr,
   CompileDaoEquipmentLoadoutV1Result,

@@ -204,6 +204,8 @@ export const FormulaFamily = {
 export type FormulaFamily = (typeof FormulaFamily)[keyof typeof FormulaFamily];
 
 export const EffectType = {
+  ModifyFact: 'modifyFact',
+  ModifyStatusDuration: 'modifyStatusDuration',
   RandomBranch: 'randomBranch',
   PhysicalHit: 'physicalHit',
   SpellHit: 'spellHit',

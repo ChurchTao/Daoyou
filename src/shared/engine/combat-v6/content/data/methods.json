@@ -143,7 +143,7 @@
       {
         "id": "wuxiang.method.canon",
         "slot": 1,
-        "name": "《无相菩提总经》",
+        "name": "《无相本心经》",
         "isPrimary": true,
         "panel": {
           "attr": "maxHp",
@@ -154,7 +154,7 @@
       {
         "id": "wuxiang.method.compassion",
         "slot": 2,
-        "name": "《慈航渡厄经》",
+        "name": "《大悲本愿经》",
         "isPrimary": false,
         "panel": {
           "attr": "healPower",
@@ -165,7 +165,7 @@
       {
         "id": "wuxiang.method.guardian",
         "slot": 3,
-        "name": "《金刚护生篇》",
+        "name": "《金身护生经》",
         "isPrimary": false,
         "panel": {
           "attr": "physicalDef",
@@ -176,10 +176,10 @@
       {
         "id": "wuxiang.method.wrath",
         "slot": 4,
-        "name": "《明王镇狱录》",
+        "name": "《修罗摧岳篇》",
         "isPrimary": false,
         "panel": {
-          "attr": "magicAtk",
+          "attr": "physicalAtk",
           "mode": "add",
           "value": 0.5
         }
@@ -187,7 +187,7 @@
       {
         "id": "wuxiang.method.purity",
         "slot": 5,
-        "name": "《六根清净诀》",
+        "name": "《般若照见经》",
         "isPrimary": false,
         "panel": {
           "attr": "sealResist",
@@ -198,7 +198,7 @@
       {
         "id": "wuxiang.method.crossing",
         "slot": 6,
-        "name": "《一苇凌虚章》",
+        "name": "《莲华续命篇》",
         "isPrimary": false,
         "panel": {
           "attr": "speed",

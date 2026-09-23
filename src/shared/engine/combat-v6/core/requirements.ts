@@ -23,6 +23,7 @@ export function checkSkillRequirements(
   targets: Unit[],
 ): SkillRequirementCheck {
   const env = {
+    state: ctx.state,
     skillLevel: unit.skillLevels[skill.id] ?? unit.level,
     targets: targets.length,
     source: unit,
@@ -40,6 +41,7 @@ export function checkSkillRequirements(
   const hpCost = waivedHp ? 0 : atLeast(0, Math.floor(evalExpr(skill.costHp ?? 0, env)));
   const resourceCosts = resolveResourceCosts(skill, env);
   const reasons: string[] = [];
+  if (skill.requirement !== undefined && !evalExpr(skill.requirement, env)) reasons.push('skill-condition');
 
   if (hasBlock(ctx, unit, StatusFlag.BlocksAction))
     reasons.push('blocks-action');

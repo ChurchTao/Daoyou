@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ELEMENT_VALUES } from '../../../types/constants';
+import type { DaoEquipmentInstanceV1 } from '../equipment/types';
 import { generateForgedEquipment } from '../equipment/forging';
 import { generateDaoEquipmentV2 } from '../equipment/generator';
 import { projectCharacterToCombatV6, type CharacterCombatInput } from './index';
@@ -56,5 +57,20 @@ describe('幽都克敌与阎罗装备投影', () => {
       const ownDamage = weapon.instance.baseStats.filter(r => r.attr === 'physicalAtk').reduce((sum, r) => sum + r.value, 0);
       expect(result.unit.combatFacts?.weaponDamage).toBe(ownDamage);
     }
+  });
+});
+
+describe('无相腰带来源折算', () => {
+  it('只读取腰带气血／物防及对应阵纹，裸身和其他装备不混入', () => {
+    const made = generateForgedEquipment({ ...weaponInput, id: 'meridian-belt', templateId: 'dao_equipment.standard.belt.v1' });
+    if (!made.ok) throw new Error('腰带锻造失败');
+    const belt = { ...made.instance, formationInscriptions: [{ patternId: 'dao_inscription.changsheng', level: 1 }, { patternId: 'dao_inscription.changsheng', level: 2 }] as DaoEquipmentInstanceV1['formationInscriptions'] };
+    const base = projectCharacterToCombatV6({ ...input, equipment: { belt } });
+    const stronger = projectCharacterToCombatV6({ ...input, cultivator: { ...input.cultivator, attributes: { ...input.cultivator.attributes, vitality: input.cultivator.attributes.vitality + 1000 } }, equipment: { belt, weapon: weapon.instance } });
+    if (!base.ok || !stronger.ok) throw new Error('腰带投影失败：'+JSON.stringify([base,stronger]));
+    expect(base.unit.combatFacts).toMatchObject({ beltMaxHp: belt.baseStats.find(r=>r.attr==='maxHp')!.value+120, beltPhysicalDef: belt.baseStats.find(r=>r.attr==='physicalDef')!.value });
+    for (const key of ['beltMaxHp', 'beltPhysicalDef']) expect(stronger.unit.combatFacts?.[key]).toBe(base.unit.combatFacts?.[key]);
+    const empty = projectCharacterToCombatV6({ ...input, equipment: {} });
+    expect(empty.ok && empty.unit.combatFacts?.beltMaxHp).toBe(0);
   });
 });

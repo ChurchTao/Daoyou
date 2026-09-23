@@ -131,7 +131,13 @@ function digest(
         const { element: _element, weaponType: _weaponType, ...instance } = result.instance;
         return { ...result, instance: { ...instance, name: forgedName(slot, equipmentLevel, seed), generatorVersion: 'dao_equipment_generator_v3' } };
       }),
-    ];
+    ].map(result => {
+      if (!result.ok) return result;
+      // 双空孔是新增存储结构；独立验证后剔除，以继续锁定原数值和随机流摘要。
+      expect(result.instance.formationInscriptions).toEqual([null, null]);
+      const { formationInscriptions: _formations, ...instance } = result.instance;
+      return { ...result, instance };
+    });
   });
   return createHash('sha256').update(JSON.stringify(results)).digest('hex');
 }

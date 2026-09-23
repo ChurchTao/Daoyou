@@ -51,6 +51,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const skill = skillId ? skillOf(ctx.skills, source, skillId) : undefined
   const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin })
+  src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
   src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
   const protector = input.kind === DamageKind.Physical && !modifiers.some(m => m.ignoreProtection) ? findProtector(ctx, target) : undefined
   if (protector) ctx.emit({ type: EventType.ProtectTrigger, protectorId: protector.id, originalTargetId: target.id })
@@ -307,7 +308,10 @@ export function applyDamage(
 ): number {
   if (!isStanding(target) || target.flags.downed) return 0
 
-  const kept = redirectOverflow(ctx, source, target, amount, kind, origin)
+  const skill = ctx.currentAction?.skillId ? skillOf(ctx.skills, source, ctx.currentAction.skillId) : undefined
+  const finalModifiers = combatModifiers(ctx, target, { target: source, skill, skillId: skill?.id, kind, origin })
+  const received = Math.max(0, Math.floor(amount * Math.max(0, 1 + modifierValue(finalModifiers, 'allDamageTakenBonus', target, source, skill, ctx))))
+  const kept = redirectOverflow(ctx, source, target, received, kind, origin)
   const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept)
   const barrierAbsorbed = kept - enteringHp
   const appliedToHp = cannotKill
@@ -443,7 +447,7 @@ export function applyHpRestore(
   source: Unit,
   target: Unit,
   amount: number,
-  options: { revive?: boolean; clearStatuses?: boolean } = {},
+  options: { revive?: boolean; clearStatuses?: boolean; allowFatal?: boolean } = {},
 ): number {
   if (target.flags.escaped) return 0
   if (passiveSkills(ctx.skills, target).some(s => s.innate?.rejectHpRecovery)) return 0
@@ -462,7 +466,7 @@ export function applyHpRestore(
     ctx.emit({ type: EventType.Heal, sourceId: source.id, targetId: target.id, amount: restored, hpAfter: restored })
     return restored
   }
-  if (!isStanding(target)) return 0
+  if (!isStanding(target) && !(options.allowFatal && target.attrs.hp <= 0 && !target.flags.downed && !target.flags.dead && !target.flags.benched)) return 0
   const restored = Math.max(0, Math.min(recoverableHp(target) - target.attrs.hp, Math.floor(amount)))
   if (restored <= 0) return 0
   target.attrs.hp += restored

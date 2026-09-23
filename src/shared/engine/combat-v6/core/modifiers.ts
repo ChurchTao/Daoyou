@@ -21,7 +21,7 @@ export function combatModifiers(ctx: BattleContext, source: Unit, scope: Omit<Wh
     }
   }
   for (const status of source.statuses) {
-    for (const modifier of ctx.statusDefs.get(status.id)?.modifiers ?? [])
+    for (const modifier of status.snapshotModifiers ?? ctx.statusDefs.get(status.id)?.modifiers ?? [])
       if (matchesWhen(ctx, modifier.when, { ...scope, source })) result.push(modifier);
   }
   return result;

@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-base.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "templates": [
     {
       "id": "dao_equipment.standard.weapon.v1",
@@ -841,7 +841,7 @@
       "id": "dao_inscription.lingyao",
       "name": "灵曜阵纹",
       "attr": "magicAtk",
-      "valuePerLevel": 6,
+      "valuePerLevel": 4,
       "allowedSlots": [
         "weapon",
         "necklace"
@@ -851,19 +851,17 @@
       "id": "dao_inscription.jingang",
       "name": "金刚阵纹",
       "attr": "physicalDef",
-      "valuePerLevel": 4,
+      "valuePerLevel": 8,
       "allowedSlots": [
         "head",
-        "armor",
-        "belt",
-        "footwear"
+        "armor"
       ]
     },
     {
       "id": "dao_inscription.xuanjia",
       "name": "玄甲阵纹",
       "attr": "magicDef",
-      "valuePerLevel": 4,
+      "valuePerLevel": 6,
       "allowedSlots": [
         "armor",
         "necklace"
@@ -873,18 +871,10 @@
       "id": "dao_inscription.changsheng",
       "name": "长生阵纹",
       "attr": "maxHp",
-      "valuePerLevel": 80,
-      "allowedSlots": [
-        "belt"
-      ]
-    },
-    {
-      "id": "dao_inscription.canghai",
-      "name": "沧海阵纹",
-      "attr": "maxMp",
       "valuePerLevel": 40,
       "allowedSlots": [
-        "head"
+        "armor",
+        "belt"
       ]
     },
     {
@@ -893,25 +883,37 @@
       "attr": "speed",
       "valuePerLevel": 4,
       "allowedSlots": [
+        "belt",
         "footwear"
       ]
     },
     {
       "id": "dao_inscription.dongming",
       "name": "洞明阵纹",
-      "attr": "hit",
-      "valuePerLevel": 6,
+      "attr": "sealHit",
+      "valuePerLevel": 1,
       "allowedSlots": [
         "weapon"
       ]
     },
     {
       "id": "dao_inscription.liuyun",
-      "name": "流云阵纹",
-      "attr": "dodge",
+      "name": "定神阵纹",
+      "attr": "sealResist",
+      "valuePerLevel": 1,
+      "allowedSlots": [
+        "belt",
+        "footwear"
+      ]
+    },
+    {
+      "id": "dao_inscription.huichun",
+      "name": "回春阵纹",
+      "attr": "healPower",
       "valuePerLevel": 6,
       "allowedSlots": [
-        "footwear"
+        "weapon",
+        "armor"
       ]
     }
   ],

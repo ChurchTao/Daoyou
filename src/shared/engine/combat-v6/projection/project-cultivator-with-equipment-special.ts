@@ -5,6 +5,9 @@ import { ATTR_NAMES, type AttrName, type CombatV6VersionStamp, type LineupUnit }
 import {
   DAO_EQUIPMENT_ARTS_V1,
   daoFormationInscriptionOf,
+  daoFormationPanel,
+  DAO_FORMATION_INSCRIPTION_ID,
+  type DaoEquipmentInstanceV1,
   DAO_RAGE_RESOURCE_ID,
   compileDaoEquipmentSpecialLoadoutV1,
 } from "../equipment/index.ts"
@@ -144,6 +147,11 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   const effectiveAttributes = { ...input.cultivator.attributes }
   for (const key of ATTRIBUTE_KEYS) effectiveAttributes[key] += equipment.projection.attributeBonuses[key]
   const characterPanel = compileCharacterPanelV1(effectiveAttributes)
+  const equipmentContribution = (item: DaoEquipmentInstanceV1 | undefined, attr: 'maxHp' | 'physicalDef' | 'physicalAtk') =>
+    [...(item?.baseStats ?? []), ...daoFormationPanel(item)].filter(r => r.attr === attr).reduce((sum, r) => sum + r.value, 0)
+  const weaponXuanfeng = input.equipment.weapon?.formationInscriptions.flatMap(formation =>
+    formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Xuanfeng ? [formation] : []) ?? []
+
   const training = compileBodyCultivationV6(input.cultivator.condition?.tracks.bodyCultivation, characterPanel)
   const sect = !input.sect ? undefined : allowJiujie
     ? compileCurrentSectCombatV6({ progress: input.sect, characterLevel: base.unit.level ?? 0 })
@@ -192,10 +200,13 @@ export function projectCultivatorWithEquipmentSpecialInternal(
         { ...DAO_RAGE_RESOURCE },
       ],
       combatFacts: {
-        weaponDamage: (input.equipment.weapon?.baseStats.filter(r => r.attr === 'physicalAtk').reduce((sum, r) => sum + r.value, 0) ?? 0) + (input.equipment.weapon?.formationInscription && daoFormationInscriptionOf(input.equipment.weapon.formationInscription.patternId)?.attr === 'physicalAtk' ? input.equipment.weapon.formationInscription.level * daoFormationInscriptionOf(input.equipment.weapon.formationInscription.patternId)!.valuePerLevel : 0),
+        beltMaxHp: equipmentContribution(input.equipment.belt, 'maxHp'),
+        beltPhysicalDef: equipmentContribution(input.equipment.belt, 'physicalDef'),
+        wuxiang_wind_weapon: input.equipment.weapon?.element === '风' ? 1 : 0,
+        weaponDamage: equipmentContribution(input.equipment.weapon, 'physicalAtk'),
         metalFireWindEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)).length,
-        weaponXuanfengLevel: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level : 0,
-        weaponXuanfengAttack: input.equipment.weapon?.formationInscription?.patternId === 'dao_inscription.xuanfeng' ? input.equipment.weapon.formationInscription.level * daoFormationInscriptionOf('dao_inscription.xuanfeng')!.valuePerLevel : 0,
+        weaponXuanfengLevel: Math.max(0, ...weaponXuanfeng.map(formation => formation.level)),
+        weaponXuanfengAttack: weaponXuanfeng.reduce((sum, formation) => sum + formation.level, 0) * daoFormationInscriptionOf(DAO_FORMATION_INSCRIPTION_ID.Xuanfeng)!.valuePerLevel,
       },
       tags: [...(input.equipment.weapon?.element && ['水', '冰', '土'].includes(input.equipment.weapon.element) ? ['equipment.weapon.water_ice_earth'] : []), ...(base.unit.tags ?? []), ...(sect?.projection.unitTags ?? []),
         ...([input.equipment.weapon, input.equipment.armor].every(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)) ? ['equipment.weapon_armor.metal_fire_wind'] : [])],

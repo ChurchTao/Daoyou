@@ -5,6 +5,7 @@
 import { ATTR_NAMES } from "./constants.ts"
 import { ExprFn, ExprVar } from "./enums.ts"
 import type { Expr, ExprEnv, Unit } from "./types.ts"
+import { effectiveAttrs } from './units'
 
 export function evalExpr(expr: Expr | undefined, env: ExprEnv): number {
   if (expr === undefined) return 0
@@ -174,6 +175,20 @@ class Parser {
   }
 
   private lookup(name: string): number {
+    if (name === 'actionKillsTarget') return this.env.target && this.env.killedTargetIds?.includes(this.env.target.id) ? 1 : 0
+    if (name === 'normalTarget') return this.env.target && this.env.normalTargetIds?.includes(this.env.target.id) ? 1 : 0
+    if (name === 'enemyPlayers') return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === 'player').length ?? 0
+    if (name === 'targetIsPet') return this.env.target?.kind === 'pet' ? 1 : 0
+    if (name.startsWith('targetKnown.')) return this.env.target && [...this.env.target.skills, ...this.env.target.passives].includes(name.slice(12)) ? 1 : 0
+    if (name.startsWith('effective.')) return effectiveAttrs(this.env.source)[name.slice(10) as keyof Unit['attrs']] ?? 0
+    if (name.startsWith('allyTagCount.')) return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'player' && u.tags.includes(name.slice(13))).length ?? 0
+    if (name.startsWith('known.')) return [...this.env.source.skills, ...this.env.source.passives].includes(name.slice(6)) ? 1 : 0
+    if (name.startsWith('statusRounds.')) return this.env.source.statuses.find(s => s.kind === name.slice(13))?.remainingRounds ?? 0
+    if (name.startsWith('targetStatusRounds.')) return this.env.target?.statuses.find(s => s.kind === name.slice(19))?.remainingRounds ?? 0
+    if (name.startsWith('ownedTargetStatus.')) return this.env.target?.statuses.some(s => s.kind === name.slice(18) && s.sourceId === this.env.source.id) ? 1 : 0
+    if (name === 'allyDownedPlayers') return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'player' && u.flags.downed && !u.flags.escaped).length ?? 0
+    if (name === 'allyMaxMagicAtk') return Math.max(0, ...(this.env.state?.units.filter(u => u.side === this.env.source.side && u.id !== this.env.source.id && u.kind === 'player').map(u => u.attrs.magicAtk) ?? []))
+    if (name === 'targetDeployedPets') return this.env.state?.units.filter(u => u.kind === 'pet' && u.ownerId === this.env.target?.id && u.marks.includes('battle:deployed')).length ?? 0
     if (name === "round") return this.env.state?.round ?? 0
     if (name === "enemyDownedPlayers") return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === "player" && u.flags.downed && !u.flags.escaped).length ?? 0
     if (name.startsWith("enemyStatus.") || name.startsWith("allyStatus.")) {

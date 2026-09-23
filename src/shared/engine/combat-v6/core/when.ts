@@ -1,4 +1,5 @@
 import { passiveSkills } from "./skills.ts"
+import { evalExpr } from './expr'
 /**
  * 钩子/效果条件匹配。只认标签、状态、技能 id 列表和数值门槛，不认门派。
  */
@@ -66,6 +67,7 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
 
 export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
+  if (when.expression !== undefined && !evalExpr(when.expression, { source: scope.source, target: scope.target, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
   if (when.statusRemoveReason && scope.statusRemoveReason !== when.statusRemoveReason) return false
@@ -129,6 +131,8 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetAbsentSkillIds && foe && when.targetAbsentSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id))) return false
   if (when.targetSkillIds && (!foe || !when.targetSkillIds.some(id => foe.passives.includes(id) || foe.skills.includes(id)))) return false
   if (when.targetSlot === "primary" && !isPrimary) return false
+  if (when.targetSlot === "normal" && (!scope.target || !ctx.currentAction?.normalTargetIds?.includes(scope.target.id))) return false
+  if (when.initialTargetOwnedStatus && (!scope.target || !ctx.currentAction?.initialOwnedStatusKindsByTarget?.[scope.target.id]?.includes(when.initialTargetOwnedStatus))) return false
   if (when.foeKind && foe?.kind !== when.foeKind) return false
   if (when.targetStatusIds && (!foe || !hasId(foe, when.targetStatusIds))) return false
   if (when.targetStatusKinds && (!foe || !hasKind(foe, when.targetStatusKinds))) return false

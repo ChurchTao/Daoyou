@@ -134,7 +134,6 @@ export {
   YOUDU_V6_ID,
 } from "./youdu.ts"
 export {
-  WUXIANG_BARRIER_ID,
   WUXIANG_METHOD_ID,
   WUXIANG_PATH_ID,
   WUXIANG_RESOURCE_ID,

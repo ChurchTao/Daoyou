@@ -51,154 +51,6 @@
       "sourceMethodId": "youdu.method.insight",
       "unlockMethodLevel": 30
     },
-    "wuxiang.skill.single_heal": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.group_heal": {
-      "sourceMethodId": "wuxiang.method.compassion",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.barrier": {
-      "sourceMethodId": "wuxiang.method.guardian",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.spell": {
-      "sourceMethodId": "wuxiang.method.wrath",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.purify": {
-      "sourceMethodId": "wuxiang.method.purity",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.revive": {
-      "sourceMethodId": "wuxiang.method.crossing",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.skill.formless": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 1
-    },
-    "wuxiang.passive.compassion.foundation.heal": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.foundation.barrier": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.formless.heal": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.formless.barrier": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.formless.wound": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.1.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.1.2": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.skill.great_barrier": {
-      "sourceMethodId": "wuxiang.method.guardian",
-      "unlockMethodLevel": 60
-    },
-    "wuxiang.passive.compassion.5.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.6.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.6.2": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.compassion.6.3": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.foundation": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.formless.damage": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.formless.ignore": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.1.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.2.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.2.2": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.2.3": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.skill.wrath_strike": {
-      "sourceMethodId": "wuxiang.method.wrath",
-      "unlockMethodLevel": 60
-    },
-    "wuxiang.passive.wrath.4.3": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.5.1": {
-      "sourceMethodId": "wuxiang.method.wrath",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.5.2.damage": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.5.2.taken": {
-      "sourceMethodId": "wuxiang.method.wrath",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.6.1": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.6.2": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.6.3": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.skill.final_silence": {
-      "sourceMethodId": "wuxiang.method.wrath",
-      "unlockMethodLevel": 100
-    },
-    "wuxiang.passive.wrath.7.3.damage": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "wuxiang.passive.wrath.7.3.crit": {
-      "sourceMethodId": "wuxiang.method.canon",
-      "unlockMethodLevel": 0
-    },
     "tianyan.skill.wood": {
       "sourceMethodId": "tianyan.method.wood",
       "unlockMethodLevel": 1
@@ -769,6 +621,230 @@
     },
     "youdu.passive.soul_drain_poison": {
       "sourceMethodId": "youdu.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.mind": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.pierce": {
+      "sourceMethodId": "wuxiang.method.purity",
+      "unlockMethodLevel": 1
+    },
+    "wuxiang.skill.nectar": {
+      "sourceMethodId": "wuxiang.method.compassion",
+      "unlockMethodLevel": 25
+    },
+    "wuxiang.skill.ward": {
+      "sourceMethodId": "wuxiang.method.guardian",
+      "unlockMethodLevel": 35
+    },
+    "wuxiang.skill.empower": {
+      "sourceMethodId": "wuxiang.method.compassion",
+      "unlockMethodLevel": 120
+    },
+    "wuxiang.skill.turn": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 120
+    },
+    "wuxiang.skill.restore": {
+      "sourceMethodId": "wuxiang.method.guardian",
+      "unlockMethodLevel": 45
+    },
+    "wuxiang.skill.strike": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 25
+    },
+    "wuxiang.skill.stars": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 45
+    },
+    "wuxiang.skill.expose": {
+      "sourceMethodId": "wuxiang.method.purity",
+      "unlockMethodLevel": 25
+    },
+    "wuxiang.skill.burn": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 45
+    },
+    "wuxiang.skill.vow": {
+      "sourceMethodId": "wuxiang.method.compassion",
+      "unlockMethodLevel": 25
+    },
+    "wuxiang.skill.renew": {
+      "sourceMethodId": "wuxiang.method.compassion",
+      "unlockMethodLevel": 45
+    },
+    "wuxiang.skill.revive": {
+      "sourceMethodId": "wuxiang.method.crossing",
+      "unlockMethodLevel": 45
+    },
+    "wuxiang.skill.insight": {
+      "sourceMethodId": "wuxiang.method.purity",
+      "unlockMethodLevel": 120
+    },
+    "wuxiang.skill.unbind": {
+      "sourceMethodId": "wuxiang.method.crossing",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.overload": {
+      "sourceMethodId": "wuxiang.method.wrath",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.skill.cleanse": {
+      "sourceMethodId": "wuxiang.method.purity",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.1.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.1.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.1.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.2.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.2.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.2.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.3.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.3.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.3.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.4.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.4.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.4.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.5.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.5.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.5.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.6.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.compassion.foundation": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.1.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.1.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.1.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.2.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.3.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.3.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.3.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.4.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.4.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.4.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.5.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.1": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.2": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.6.3": {
+      "sourceMethodId": "wuxiang.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "wuxiang.passive.wrath.foundation": {
+      "sourceMethodId": "wuxiang.method.canon",
       "unlockMethodLevel": 0
     }
   }

@@ -159,7 +159,7 @@ describe("道装实例、装配和灵纹校验", () => {
       const base = generate(template.id)
       const plain = compileDaoEquipmentLoadoutV1({ [base.slot]: base }, 90)
       const inscribed = compileDaoEquipmentLoadoutV1({
-        [base.slot]: { ...base, formationInscription: { patternId: definition.id, level: 2 } },
+        [base.slot]: { ...base, formationInscriptions: [{ patternId: definition.id, level: 2 }, null] },
       }, 90)
       expect(plain.ok && inscribed.ok).toBe(true)
       if (!plain.ok || !inscribed.ok) continue
@@ -171,9 +171,9 @@ describe("道装实例、装配和灵纹校验", () => {
 
   it("拒绝未知、错部位和越级灵纹", () => {
     const weapon = generate(DAO_EQUIPMENT_TEMPLATE_ID.Weapon, 10)
-    const unknown = { ...weapon, formationInscription: { patternId: "missing", level: 1 } }
-    const wrongSlot = { ...weapon, formationInscription: { patternId: DAO_FORMATION_INSCRIPTION_ID.Liuyun, level: 1 } }
-    const overLevel = { ...weapon, formationInscription: { patternId: DAO_FORMATION_INSCRIPTION_ID.Xuanfeng, level: 2 } }
+    const unknown = { ...weapon, formationInscriptions: [{ patternId: "missing", level: 1 }, null] as DaoEquipmentInstanceV1["formationInscriptions"] }
+    const wrongSlot = { ...weapon, formationInscriptions: [{ patternId: DAO_FORMATION_INSCRIPTION_ID.Liuyun, level: 1 }, null] as DaoEquipmentInstanceV1["formationInscriptions"] }
+    const overLevel = { ...weapon, formationInscriptions: [{ patternId: DAO_FORMATION_INSCRIPTION_ID.Xuanfeng, level: 4 }, null] as DaoEquipmentInstanceV1["formationInscriptions"] }
     expect(validateDaoEquipmentInstanceV1(unknown).map((item) => item.code)).toContain("UNKNOWN_FORMATION_INSCRIPTION")
     expect(validateDaoEquipmentInstanceV1(wrongSlot).map((item) => item.code)).toContain("FORMATION_INSCRIPTION_SLOT_MISMATCH")
     expect(validateDaoEquipmentInstanceV1(overLevel).map((item) => item.code)).toContain("FORMATION_INSCRIPTION_LEVEL_INVALID")

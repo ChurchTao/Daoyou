@@ -30,6 +30,7 @@ export type SectSkillDefV6 = {
 }
 
 export type SkillPatchV6 =
+  | { skillId: string; operation: "setCooldownRounds"; value: number }
   | { skillId: string; operation: "includeDownedTargets"; value: boolean }
   | { skillId: string; operation: "setRequireHpRatio"; value: number }
   | { skillId: string; operation: "capRequireHpRatio"; value: number }
@@ -87,6 +88,7 @@ export type MeridianNodeDefV6 = {
 }
 
 export type SectPathDefV6 = {
+  unitTags?: string[]
   id: string
   name: string
   requiresConnectedNodes?: boolean
