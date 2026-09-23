@@ -67,8 +67,10 @@ export function absorbBarriers(
   ctx: BattleContext,
   target: Unit,
   amount: number,
+  destructionFactor = 1,
 ): number {
   let remaining = atLeast(0, Math.floor(amount));
+  const factor = Math.max(1, destructionFactor);
   const ordered = target.barriers
     .filter((barrier) => barrier.current > 0)
     .sort(
@@ -77,9 +79,9 @@ export function absorbBarriers(
   for (const barrier of ordered) {
     if (remaining <= 0) break;
     const before = barrier.current;
-    const absorbed = Math.min(before, remaining);
+    const absorbed = Math.min(before, Math.floor(remaining * factor));
     barrier.current -= absorbed;
-    remaining -= absorbed;
+    remaining -= absorbed / factor;
     ctx.emit({
       type: EventType.BarrierChanged,
       sourceId: barrier.sourceId,
@@ -91,7 +93,7 @@ export function absorbBarriers(
     });
   }
   target.barriers = target.barriers.filter((barrier) => barrier.current > 0);
-  return remaining;
+  return Math.max(0, Math.floor(remaining));
 }
 
 export function tickBarriers(ctx: BattleContext): void {

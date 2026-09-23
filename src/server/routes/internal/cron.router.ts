@@ -5,7 +5,6 @@ import {
   runMaterialLibraryDailyGenerationJob,
   runResourceReplayCleanupJob,
   runRankRewardsJob,
-  runTowerEnemySetRefreshJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
   runSponsorshipAdminDigestJob,
@@ -72,10 +71,6 @@ router.get('/rank-rewards', (c) =>
 
 router.get('/market-refresh', (c) =>
   handleCronRequest(c.req.raw, runMarketRefreshCronJob),
-);
-
-router.get('/tower-enemy-sets', (c) =>
-  handleCronRequest(c.req.raw, runTowerEnemySetRefreshJob),
 );
 
 router.get('/resource-replay-cleanup', (c) =>

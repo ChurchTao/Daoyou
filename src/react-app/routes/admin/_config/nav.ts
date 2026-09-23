@@ -21,11 +21,6 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/accounts',
   },
   {
-    title: '邮箱群发',
-    description: '面向已验证邮箱用户',
-    href: '/admin/broadcast/email',
-  },
-  {
     title: '游戏邮件',
     description: '公告与奖励批量发放',
     href: '/admin/broadcast/game-mail',
@@ -51,11 +46,6 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/sect-shop',
   },
   {
-    title: '模板中心',
-    description: '运营文案模板管理',
-    href: '/admin/templates',
-  },
-  {
     title: '兑换码管理',
     description: '活动兑换码创建与停用',
     href: '/admin/redeem-codes',
@@ -77,7 +67,7 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     title: '蜃楼敌人',
-    description: '按周查看与手动生成敌人',
+    description: '查看每周阵容、机制与战斗属性',
     href: '/admin/tower-enemy-sets',
   },
   {

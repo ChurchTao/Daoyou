@@ -24,7 +24,7 @@ import { standingUnits } from "./query.ts"
 import type { Attrs, Command, CommandPolicy as CommandPolicyType, ExprEnv, StatusDef, StatusId, StatusInstance, Unit, UnitId } from "./types.ts"
 import { effectiveAttrs, isStanding, recoverableHp } from "./units.ts"
 import { combatModifiers } from "./modifiers.ts"
-import { applyDamage, applyMpDamage } from "./damage.ts"
+import { applyDamage, applyMpDamage, applyHeal } from "./damage.ts"
 
 export function statusDef(ctx: BattleContext, id: StatusId): StatusDef | undefined {
   return ctx.statusDefs.get(id)
@@ -140,7 +140,7 @@ export function applyStatus(
     existing.remainingRounds = duration
     existing.sourceId = sourceId
     existing.appliedRound = ctx.state.round
-    if (def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined) existing.tickSkillLevel = env.skillLevel
+    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined) existing.tickSkillLevel = env.skillLevel
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
@@ -166,7 +166,7 @@ export function applyStatus(
     attrMods,
     storedTargetId: options.storedTargetId,
     ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
-    ...(def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
+    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -242,6 +242,11 @@ export function tickStatuses(ctx: BattleContext): void {
         applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
         if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(Math.min(unit.attrs.maxMp * def.onTick.ratioOfMaxMp,
           def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
+      }
+
+      if (def?.ticks === StatusTick.RoundEnd && def.healingPerRound !== undefined && isStanding(unit)) {
+        const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
+        applyHeal(ctx, source, unit, evalExpr(def.healingPerRound, { state: ctx.state, source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }), false, false, false)
       }
 
       // 当回合结束过期的状态保留到所有跳伤和回合末钩子结算完成。

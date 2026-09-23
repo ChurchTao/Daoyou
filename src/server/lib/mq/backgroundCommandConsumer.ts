@@ -15,7 +15,6 @@ import {
   runSponsorshipAdminDigestJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
-  runTowerEnemySetRefreshJob,
 } from '../jobs/internalCron';
 import {
   BACKGROUND_COMMAND_CONSUMER,
@@ -42,7 +41,6 @@ const handlers = {
   'ranking.rewards.distribute': (command) =>
     runRankRewardsJob(new Date(command.requestedAt)),
   'market.refresh': () => runMarketRefreshCronJob(),
-  'tower.enemy-sets.refresh': () => runTowerEnemySetRefreshJob(),
   'resource-replay.cleanup': () => runResourceReplayCleanupJob(),
   'expired-data.cleanup': () => runExpiredDataCleanupJob(),
   'material-library.generate': (command) =>

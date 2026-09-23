@@ -1,318 +1,26 @@
 {
   "$schema": "./tianyan-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
-      "id": "tianyan.passive.hetu.foundation.heal",
-      "name": "河图演生·生息",
-      "hooks": [
+      "id": "tianyan.passive.yan_root",
+      "name": "衍法",
+      "description": "五行法术触发相生或相克时，伤害提高5%。",
+      "modifiers": [
         {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.foundation.barrier",
-      "name": "河图演生·护元",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.ward",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.1.1",
-      "name": "生机流转",
-      "hooks": [
-        {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
+          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
           "when": {
             "skillIds": [
               "tianyan.skill.wood"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.1.2",
-      "name": "厚土载物",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.earth"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.4.1",
-      "name": "木德滋荣",
-      "hooks": [
-        {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.15
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.4.2",
-      "name": "土德重垣",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.earth"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.15
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.4.3",
-      "name": "周天固阵",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.ward"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.2
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.5.1",
-      "name": "雪中回春",
-      "hooks": [
-        {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ],
-            "targetHpRatioBelow": 0.5
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.15
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.5.2",
-      "name": "危垣加护",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.ward",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ],
-            "targetHpRatioBelow": 0.5
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.15
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.6.1",
-      "name": "大衍生生",
-      "hooks": [
-        {
-          "on": "onHealCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyHeal",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.hetu.6.2",
-      "name": "万象成垣",
-      "hooks": [
-        {
-          "on": "onBarrierCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.ward",
-              "tianyan.skill.hetu_ultimate",
-              "tianyan.skill.life_array"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyBarrier",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.foundation",
-      "name": "洛书制化",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
             ],
             "damageOrigins": [
               "action-direct"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.1.1",
-      "name": "离明炽盛",
-      "hooks": [
+          }
+        },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
           "when": {
             "skillIds": [
               "tianyan.skill.fire"
@@ -320,23 +28,21 @@
             "damageOrigins": [
               "action-direct"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.1.2",
-      "name": "庚金肃杀",
-      "hooks": [
+          }
+        },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
           "when": {
             "skillIds": [
               "tianyan.skill.metal"
@@ -344,207 +50,878 @@
             "damageOrigins": [
               "action-direct"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
+          }
+        },
+        {
+          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
         }
       ]
     },
     {
-      "id": "tianyan.passive.luoshu.2.1",
-      "name": "观印知隙",
-      "hooks": [
+      "id": "tianyan.passive.heng_root",
+      "name": "执衡",
+      "description": "森罗缚、山河倾覆、天锋一线的法力消耗降低10%。"
+    },
+    {
+      "id": "tianyan.passive.scarlet",
+      "name": "朱焰",
+      "description": "焚天流火伤害提高8%，法力消耗提高10%。",
+      "modifiers": [
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "damageBonus": 0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.stream",
+      "name": "涓流",
+      "description": "沧海横流法力消耗降低20%，伤害降低5%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.05,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.edge",
+      "name": "锋芒",
+      "description": "天锋一线伤害提高10%，额外破盾由50%降至25%。",
+      "modifiers": [
+        {
+          "damageBonus": 0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.ember",
+      "name": "余火",
+      "description": "燎原不再增加基础攻击人数，改为对次要目标附加2次余火伤害。"
+    },
+    {
+      "id": "tianyan.passive.split",
+      "name": "分锋",
+      "description": "淬锋额外攻击一个目标，主要目标伤害降低15%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.15,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.earth"
+            ],
+            "targetSlot": "primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.rain",
+      "name": "润物",
+      "description": "凝露、滋荣作用于两名气血比例最低的友方，每人恢复降低30%。"
+    },
+    {
+      "id": "tianyan.passive.borrow",
+      "name": "借势",
+      "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。55法力，冷却5回合。"
+    },
+    {
+      "id": "tianyan.passive.plain",
+      "name": "守拙",
+      "description": "玄元守一减伤提高至30%，持续降至1回合，冷却降至4回合。"
+    },
+    {
+      "id": "tianyan.passive.clear",
+      "name": "澄明",
+      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。"
+    },
+    {
+      "id": "tianyan.passive.wild",
+      "name": "燎野",
+      "description": "燎原额外增加一个攻击目标，该次火法伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.wood"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.dew",
+      "name": "温泽",
+      "description": "凝露治疗提高35%，触发凝露的水法伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.metal"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.spring",
+      "name": "长春",
+      "description": "滋荣多恢复一次，每次恢复降低20%；触发滋荣的木法伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.solitary",
+      "name": "独照",
+      "description": "场上存活敌人不足三人时，每少一人，焚天流火、沧海横流伤害提高6%。",
+      "modifiers": [
+        {
+          "damageBonus": "max(0,3-enemyCount)*0.06",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.reflection",
+      "name": "映霞",
+      "description": "自身气血低于40%时，物理、法术承伤降低8%；五行法术伤害降低4%。",
+      "modifiers": [
+        {
+          "damageTakenBonus": -0.08,
+          "when": {
+            "sourceHpRatioBelow": 0.4
+          }
+        },
+        {
+          "damageBonus": -0.04,
           "when": {
             "skillIds": [
               "tianyan.skill.wood",
               "tianyan.skill.fire",
               "tianyan.skill.earth",
               "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.springwater",
+      "name": "清泉",
+      "description": "澄灵诀附加少量治疗，法力消耗提高20%。"
+    },
+    {
+      "id": "tianyan.passive.return",
+      "name": "归流",
+      "description": "触发生克的五行法术法力消耗降低25%，伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.breath",
+      "name": "生息",
+      "description": "五行法术触发相生时，自身恢复10法力，每次施法一次。"
+    },
+    {
+      "id": "tianyan.passive.adapt",
+      "name": "御变",
+      "description": "五行法术触发相克时，自身法防提高10%，持续2回合；该次伤害降低4%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.earth"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.metal"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.wood"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.fire"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.myriad",
+      "name": "万象",
+      "description": "焚天流火、沧海横流对次要目标伤害提高15%，对主要目标伤害降低10%。",
+      "modifiers": [
+        {
+          "damageBonus": 0.15,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "damageBonus": -0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.harmony",
+      "name": "天人",
+      "description": "凝露、滋荣的恢复与烬垒护盾提高25%；五行法术伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.ceaseless",
+      "name": "不息",
+      "description": "五行法术法力消耗降低15%，伤害降低5%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.05,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.wall",
+      "name": "摧垣",
+      "description": "天锋一线额外破盾由50%提高至125%；对没有护盾的目标伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetHasBarrier": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.roots",
+      "name": "盘根",
+      "description": "森罗缚减速提高至25%，伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.mountain",
+      "name": "镇岳",
+      "description": "山河倾覆对下一次伤害行动的削弱提高至25%，法力消耗提高20%。"
+    },
+    {
+      "id": "tianyan.passive.prune",
+      "name": "斩蔓",
+      "description": "断枝额外驱散一个增益，该次金法伤害降低12%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.12,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.wood"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.corrode",
+      "name": "蚀基",
+      "description": "裂土降低法防提高至25%，基础持续降至1回合；该次木法伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.earth"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.blunt",
+      "name": "钝兵",
+      "description": "熔锋降低物攻、法攻提高至20%；焚天流火攻击人数减少一人。"
+    },
+    {
+      "id": "tianyan.passive.truce",
+      "name": "止戈",
+      "description": "领悟止戈：单体攻击并削弱目标下一次伤害行动25%，2回合内有效。50法力，冷却5回合。"
+    },
+    {
+      "id": "tianyan.passive.gap",
+      "name": "留隙",
+      "description": "截流改为必定附加法术伤害降低25%，持续2回合，不再封法；该次土法伤害降低8%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.mirror",
+      "name": "明镜",
+      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。"
+    },
+    {
+      "id": "tianyan.passive.breach",
+      "name": "破障",
+      "description": "天锋一线攻击有护盾的目标时额外忽视10%法防；对无护盾目标伤害降低4%。",
+      "modifiers": [
+        {
+          "defenseIgnoreAdd": 0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "targetHasBarrier": true
+          }
+        },
+        {
+          "damageBonus": -0.04,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetHasBarrier": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.coldflame",
+      "name": "冷焰",
+      "description": "蒸腾额外驱散主要目标一个增益，该次水法伤害降低12%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.12,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.fire"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.ban",
+      "name": "禁流",
+      "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后不再提供命中收益。",
+      "modifiers": [
+        {
+          "sealChanceAdd": 0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.exploit",
+      "name": "乘虚",
+      "description": "五行法术攻击处于裂土状态的目标，伤害提高8%。",
+      "modifiers": [
+        {
+          "damageBonus": 0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
             ],
             "targetStatusIds": [
-              "tianyan.status.mark.wood",
-              "tianyan.status.mark.fire",
-              "tianyan.status.mark.earth",
-              "tianyan.status.mark.metal",
+              "tianyan.status.foundation_break"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.pressure",
+      "name": "挫锐",
+      "description": "五行法术对气血高于80%的目标伤害提高8%，对其他目标伤害降低4%。",
+      "modifiers": [
+        {
+          "damageBonus": "if(target.hp>target.maxHp*0.8,0.08,-0.04)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.firm",
+      "name": "固本",
+      "description": "玄元守一附加少量自身治疗。"
+    },
+    {
+      "id": "tianyan.passive.sheathe",
+      "name": "缄锋",
+      "description": "触发断枝时自身获得少量2回合护盾，每次施法一次。"
+    },
+    {
+      "id": "tianyan.passive.calm",
+      "name": "定波",
+      "description": "沧海横流法力消耗降低10%，伤害降低5%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.05,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.restraint",
+      "name": "敛芒",
+      "description": "自身物理、法术承伤降低6%，五行法术伤害降低8%。",
+      "modifiers": [
+        {
+          "damageTakenBonus": -0.06
+        },
+        {
+          "damageBonus": -0.08,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.law",
+      "name": "法度",
+      "description": "森罗缚减速、裂土、熔锋持续增加1回合；五行法术伤害降低10%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.1,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood",
+              "tianyan.skill.fire",
+              "tianyan.skill.earth",
+              "tianyan.skill.metal",
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.severance",
+      "name": "镇世",
+      "description": "山河倾覆对下一次伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.15,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.passive.balance",
+      "name": "守衡",
+      "description": "触发相克后自身物理、法术承伤降低10%，持续1回合；该次五行法术伤害降低6%。",
+      "modifiers": [
+        {
+          "damageBonus": -0.06,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.earth"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.06,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.metal"
+            ]
+          }
+        },
+        {
+          "damageBonus": -0.06,
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireStatusIds": [
               "tianyan.status.mark.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.2.3",
-      "name": "破妄见真",
-      "hooks": [
+          }
+        },
         {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
+          "damageBonus": -0.06,
           "when": {
             "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
+              "tianyan.skill.metal"
             ],
             "damageOrigins": [
               "action-direct"
+            ],
+            "requireStatusIds": [
+              "tianyan.status.mark.wood"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyDefenseIgnore",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.5.1",
-      "name": "盛极当制",
-      "hooks": [
+          }
+        },
         {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
+          "damageBonus": -0.06,
           "when": {
             "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
-            ],
-            "targetHpRatioAbove": 0.7,
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.08
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.5.2",
-      "name": "天机暴显",
-      "hooks": [
-        {
-          "on": "onCritRoll",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
+              "tianyan.skill.water"
             ],
             "damageOrigins": [
               "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyChance",
-              "add": 0.05
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.6.1",
-      "name": "万法归算",
-      "hooks": [
-        {
-          "on": "onHitCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
             ],
-            "damageOrigins": [
-              "action-direct"
+            "requireStatusIds": [
+              "tianyan.status.mark.fire"
             ]
-          },
-          "effects": [
-            {
-              "type": "modifyStrike",
-              "factor": 1.1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "tianyan.passive.luoshu.6.2",
-      "name": "法界无蔽",
-      "hooks": [
-        {
-          "on": "onDefenseIgnoreCalc",
-          "sourceIsSelf": true,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water",
-              "tianyan.skill.luoshu_ultimate",
-              "tianyan.skill.reverse_divination",
-              "tianyan.skill.reverse_divination_strong"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          },
-          "effects": [
-            {
-              "type": "modifyDefenseIgnore",
-              "add": 0.1
-            }
-          ]
+          }
         }
       ]
     }
@@ -552,657 +929,470 @@
   "paths": [
     {
       "id": "tianyan.path.hetu",
-      "name": "河图演生",
+      "name": "衍法天师",
+      "requiresConnectedNodes": true,
       "foundationPassives": [
-        "tianyan.passive.hetu.foundation.heal",
-        "tianyan.passive.hetu.foundation.barrier"
-      ],
-      "grantSkills": [
-        "tianyan.skill.hetu_ultimate"
-      ],
-      "resources": [
-        "tianyan.resource.derivation"
+        "tianyan.passive.yan_root"
       ],
       "nodes": [
         {
           "id": "tianyan.node.hetu.1.1",
-          "name": "生机流转",
+          "name": "朱焰",
+          "description": "焚天流火伤害提高8%，法力消耗提高10%。",
           "layer": 1,
           "slot": 1,
-          "description": "生机流转",
           "passives": [
-            "tianyan.passive.hetu.1.1"
+            "tianyan.passive.scarlet"
           ]
         },
         {
           "id": "tianyan.node.hetu.1.2",
-          "name": "厚土载物",
+          "name": "涓流",
+          "description": "沧海横流法力消耗降低20%，伤害降低5%。",
           "layer": 1,
           "slot": 2,
-          "description": "厚土载物",
           "passives": [
-            "tianyan.passive.hetu.1.2"
+            "tianyan.passive.stream"
           ]
         },
         {
           "id": "tianyan.node.hetu.1.3",
-          "name": "灵枢洞明",
+          "name": "锋芒",
+          "description": "天锋一线伤害提高10%，额外破盾由50%降至25%。",
           "layer": 1,
           "slot": 3,
-          "description": "灵枢洞明",
-          "panel": [
-            {
-              "attr": "healPower",
-              "mode": "add",
-              "value": 30
-            }
+          "passives": [
+            "tianyan.passive.edge"
           ]
         },
         {
           "id": "tianyan.node.hetu.2.1",
-          "name": "河图生息",
+          "name": "余火",
+          "description": "燎原不再增加基础攻击人数，改为对次要目标附加2次余火伤害。",
           "layer": 2,
           "slot": 1,
-          "description": "河图生息",
-          "patches": [
-            {
-              "operation": "appendReactionEffect",
-              "kind": "generate",
-              "effect": {
-                "type": "heal",
-                "power": "floor(target.maxHp * 0.02) + floor(skillLevel * 0.3)",
-                "targeting": {
-                  "side": "ally",
-                  "mode": "lowestHp",
-                  "count": 1
-                }
-              }
-            }
+          "passives": [
+            "tianyan.passive.ember"
           ]
         },
         {
           "id": "tianyan.node.hetu.2.2",
-          "name": "九宫护元",
+          "name": "分锋",
+          "description": "淬锋额外攻击一个目标，主要目标伤害降低15%。",
           "layer": 2,
           "slot": 2,
-          "description": "九宫护元",
-          "patches": [
-            {
-              "operation": "appendReactionEffect",
-              "kind": "generate",
-              "effect": {
-                "type": "applyBarrier",
-                "id": "tianyan.barrier.reaction",
-                "kind": "tianyan.reaction",
-                "name": "九宫护元",
-                "power": "floor(target.maxHp * 0.03) + floor(skillLevel * 0.3)",
-                "duration": 2,
-                "targeting": {
-                  "side": "ally",
-                  "mode": "lowestHp",
-                  "count": 1
-                }
-              }
-            }
+          "passives": [
+            "tianyan.passive.split"
           ]
         },
         {
           "id": "tianyan.node.hetu.2.3",
-          "name": "步罡踏斗",
+          "name": "润物",
+          "description": "凝露、滋荣作用于两名气血比例最低的友方，每人恢复降低30%。",
           "layer": 2,
           "slot": 3,
-          "description": "步罡踏斗",
-          "panel": [
-            {
-              "attr": "speed",
-              "mode": "add",
-              "value": 30
-            }
+          "passives": [
+            "tianyan.passive.rain"
           ]
         },
         {
           "id": "tianyan.node.hetu.3.1",
-          "name": "生生化阵",
+          "name": "借势",
+          "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。55法力，冷却5回合。",
           "layer": 3,
           "slot": 1,
-          "description": "生生化阵",
+          "passives": [
+            "tianyan.passive.borrow"
+          ],
           "grantSkills": [
-            "tianyan.skill.life_array"
+            "tianyan.skill.borrow"
           ]
         },
         {
           "id": "tianyan.node.hetu.3.2",
-          "name": "印布三才",
+          "name": "守拙",
+          "description": "玄元守一减伤提高至30%，持续降至1回合，冷却降至4回合。",
           "layer": 3,
           "slot": 2,
-          "description": "印布三才",
+          "passives": [
+            "tianyan.passive.plain"
+          ],
           "patches": [
             {
-              "skillId": "tianyan.skill.transfer",
-              "operation": "setEffectTargetCount",
-              "effectType": "copyStatus",
+              "skillId": "tianyan.skill.ward",
+              "operation": "setCooldownRounds",
               "value": 4
             }
           ]
         },
         {
           "id": "tianyan.node.hetu.3.3",
-          "name": "九宫久驻",
+          "name": "澄明",
+          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。",
           "layer": 3,
           "slot": 3,
-          "description": "九宫久驻",
+          "passives": [
+            "tianyan.passive.clear"
+          ],
           "patches": [
             {
-              "skillId": "tianyan.skill.formation",
-              "operation": "setStatusDuration",
-              "statusId": "tianyan.status.formation",
-              "value": 5
+              "skillId": "tianyan.skill.clarity",
+              "operation": "setCooldownRounds",
+              "value": 3
             }
           ]
         },
         {
           "id": "tianyan.node.hetu.4.1",
-          "name": "木德滋荣",
+          "name": "燎野",
+          "description": "燎原额外增加一个攻击目标，该次火法伤害降低8%。",
           "layer": 4,
           "slot": 1,
-          "description": "木德滋荣",
           "passives": [
-            "tianyan.passive.hetu.4.1"
+            "tianyan.passive.wild"
           ]
         },
         {
           "id": "tianyan.node.hetu.4.2",
-          "name": "土德重垣",
+          "name": "温泽",
+          "description": "凝露治疗提高35%，触发凝露的水法伤害降低8%。",
           "layer": 4,
           "slot": 2,
-          "description": "土德重垣",
           "passives": [
-            "tianyan.passive.hetu.4.2"
+            "tianyan.passive.dew"
           ]
         },
         {
           "id": "tianyan.node.hetu.4.3",
-          "name": "周天固阵",
+          "name": "长春",
+          "description": "滋荣多恢复一次，每次恢复降低20%；触发滋荣的木法伤害降低8%。",
           "layer": 4,
           "slot": 3,
-          "description": "周天固阵",
           "passives": [
-            "tianyan.passive.hetu.4.3"
+            "tianyan.passive.spring"
           ]
         },
         {
           "id": "tianyan.node.hetu.5.1",
-          "name": "雪中回春",
+          "name": "独照",
+          "description": "场上存活敌人不足三人时，每少一人，焚天流火、沧海横流伤害提高6%。",
           "layer": 5,
           "slot": 1,
-          "description": "雪中回春",
           "passives": [
-            "tianyan.passive.hetu.5.1"
+            "tianyan.passive.solitary"
           ]
         },
         {
           "id": "tianyan.node.hetu.5.2",
-          "name": "危垣加护",
+          "name": "映霞",
+          "description": "自身气血低于40%时，物理、法术承伤降低8%；五行法术伤害降低4%。",
           "layer": 5,
           "slot": 2,
-          "description": "危垣加护",
           "passives": [
-            "tianyan.passive.hetu.5.2"
+            "tianyan.passive.reflection"
           ]
         },
         {
           "id": "tianyan.node.hetu.5.3",
-          "name": "洗髓归元",
+          "name": "清泉",
+          "description": "澄灵诀附加少量治疗，法力消耗提高20%。",
           "layer": 5,
           "slot": 3,
-          "description": "洗髓归元",
-          "patches": [
-            {
-              "operation": "appendReactionEffect",
-              "kind": "generate",
-              "effect": {
-                "type": "removeWound",
-                "power": "floor(skillLevel * 0.6)",
-                "targeting": {
-                  "side": "ally",
-                  "mode": "lowestHp",
-                  "count": 1
-                }
-              }
-            }
+          "passives": [
+            "tianyan.passive.springwater"
           ]
         },
         {
           "id": "tianyan.node.hetu.6.1",
-          "name": "大衍生生",
+          "name": "归流",
+          "description": "触发生克的五行法术法力消耗降低25%，伤害降低8%。",
           "layer": 6,
           "slot": 1,
-          "description": "大衍生生",
           "passives": [
-            "tianyan.passive.hetu.6.1"
+            "tianyan.passive.return"
           ]
         },
         {
           "id": "tianyan.node.hetu.6.2",
-          "name": "万象成垣",
+          "name": "生息",
+          "description": "五行法术触发相生时，自身恢复10法力，每次施法一次。",
           "layer": 6,
           "slot": 2,
-          "description": "万象成垣",
           "passives": [
-            "tianyan.passive.hetu.6.2"
-          ],
-          "patches": [
-            {
-              "operation": "setAllBarrierDuration",
-              "value": 3
-            }
+            "tianyan.passive.breath"
           ]
         },
         {
           "id": "tianyan.node.hetu.6.3",
-          "name": "移宫久印",
+          "name": "御变",
+          "description": "五行法术触发相克时，自身法防提高10%，持续2回合；该次伤害降低4%。",
           "layer": 6,
           "slot": 3,
-          "description": "移宫久印",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.transfer",
-              "operation": "setCopyStatusDurationAdd",
-              "value": 1
-            }
+          "passives": [
+            "tianyan.passive.adapt"
           ]
         },
         {
           "id": "tianyan.node.hetu.7.1",
-          "name": "众生归元",
+          "name": "万象",
+          "description": "焚天流火、沧海横流对次要目标伤害提高15%，对主要目标伤害降低10%。",
           "layer": 7,
           "slot": 1,
-          "description": "众生归元",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "prependEffect",
-              "effect": {
-                "type": "removeWound",
-                "power": "floor(target.maxHp * 0.05)"
-              }
-            },
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "multiplyHealPower",
-              "value": 1.6
-            }
+          "passives": [
+            "tianyan.passive.myriad"
           ]
         },
         {
           "id": "tianyan.node.hetu.7.2",
-          "name": "河图天幕",
+          "name": "天人",
+          "description": "凝露、滋荣的恢复与烬垒护盾提高25%；五行法术伤害降低8%。",
           "layer": 7,
           "slot": 2,
-          "description": "河图天幕",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "multiplyBarrierPower",
-              "value": 1.6
-            },
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "setBarrierDuration",
-              "barrierId": "tianyan.barrier.ultimate",
-              "value": 3
-            }
+          "passives": [
+            "tianyan.passive.harmony"
           ]
         },
         {
           "id": "tianyan.node.hetu.7.3",
-          "name": "生数不绝",
+          "name": "不息",
+          "description": "五行法术法力消耗降低15%，伤害降低5%。",
           "layer": 7,
           "slot": 3,
-          "description": "生数不绝",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "multiplyRestoreMpPower",
-              "value": 2
-            },
-            {
-              "skillId": "tianyan.skill.hetu_ultimate",
-              "operation": "appendEffect",
-              "effect": {
-                "type": "modifyResource",
-                "resourceId": "tianyan.resource.derivation",
-                "amount": 1
-              }
-            }
+          "passives": [
+            "tianyan.passive.ceaseless"
           ]
         }
       ]
     },
     {
       "id": "tianyan.path.luoshu",
-      "name": "洛书制化",
+      "name": "执衡真君",
+      "requiresConnectedNodes": true,
       "foundationPassives": [
-        "tianyan.passive.luoshu.foundation"
-      ],
-      "grantSkills": [
-        "tianyan.skill.luoshu_ultimate"
-      ],
-      "resources": [
-        "tianyan.resource.derivation"
+        "tianyan.passive.heng_root"
       ],
       "nodes": [
         {
           "id": "tianyan.node.luoshu.1.1",
-          "name": "离明炽盛",
+          "name": "摧垣",
+          "description": "天锋一线额外破盾由50%提高至125%；对没有护盾的目标伤害降低8%。",
           "layer": 1,
           "slot": 1,
-          "description": "离明炽盛",
           "passives": [
-            "tianyan.passive.luoshu.1.1"
+            "tianyan.passive.wall"
           ]
         },
         {
           "id": "tianyan.node.luoshu.1.2",
-          "name": "庚金肃杀",
+          "name": "盘根",
+          "description": "森罗缚减速提高至25%，伤害降低8%。",
           "layer": 1,
           "slot": 2,
-          "description": "庚金肃杀",
           "passives": [
-            "tianyan.passive.luoshu.1.2"
+            "tianyan.passive.roots"
           ]
         },
         {
           "id": "tianyan.node.luoshu.1.3",
-          "name": "星枢灌顶",
+          "name": "镇岳",
+          "description": "山河倾覆对下一次伤害行动的削弱提高至25%，法力消耗提高20%。",
           "layer": 1,
           "slot": 3,
-          "description": "星枢灌顶",
-          "panel": [
-            {
-              "attr": "magicAtk",
-              "mode": "add",
-              "value": 30
-            }
+          "passives": [
+            "tianyan.passive.mountain"
           ]
         },
         {
           "id": "tianyan.node.luoshu.2.1",
-          "name": "观印知隙",
+          "name": "斩蔓",
+          "description": "断枝额外驱散一个增益，该次金法伤害降低12%。",
           "layer": 2,
           "slot": 1,
-          "description": "观印知隙",
           "passives": [
-            "tianyan.passive.luoshu.2.1"
+            "tianyan.passive.prune"
           ]
         },
         {
           "id": "tianyan.node.luoshu.2.2",
-          "name": "制化余威",
+          "name": "蚀基",
+          "description": "裂土降低法防提高至25%，基础持续降至1回合；该次木法伤害降低8%。",
           "layer": 2,
           "slot": 2,
-          "description": "制化余威",
-          "patches": [
-            {
-              "operation": "multiplyReactionPower",
-              "value": 1.15
-            }
+          "passives": [
+            "tianyan.passive.corrode"
           ]
         },
         {
           "id": "tianyan.node.luoshu.2.3",
-          "name": "破妄见真",
+          "name": "钝兵",
+          "description": "熔锋降低物攻、法攻提高至20%；焚天流火攻击人数减少一人。",
           "layer": 2,
           "slot": 3,
-          "description": "破妄见真",
           "passives": [
-            "tianyan.passive.luoshu.2.3"
+            "tianyan.passive.blunt"
           ]
         },
         {
           "id": "tianyan.node.luoshu.3.1",
-          "name": "逆演天机",
+          "name": "止戈",
+          "description": "领悟止戈：单体攻击并削弱目标下一次伤害行动25%，2回合内有效。50法力，冷却5回合。",
           "layer": 3,
           "slot": 1,
-          "description": "逆演天机",
+          "passives": [
+            "tianyan.passive.truce"
+          ],
           "grantSkills": [
-            "tianyan.skill.reverse_divination"
+            "tianyan.skill.truce"
           ]
         },
         {
           "id": "tianyan.node.luoshu.3.2",
-          "name": "坎水激流",
+          "name": "留隙",
+          "description": "截流改为必定附加法术伤害降低25%，持续2回合，不再封法；该次土法伤害降低8%。",
           "layer": 3,
           "slot": 2,
-          "description": "坎水激流",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.water",
-              "operation": "multiplySpellCoefficients",
-              "value": 1.1538461538461537
-            }
+          "passives": [
+            "tianyan.passive.gap"
           ]
         },
         {
           "id": "tianyan.node.luoshu.3.3",
-          "name": "逆数增煞",
+          "name": "明镜",
+          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。",
           "layer": 3,
           "slot": 3,
-          "description": "逆数增煞",
-          "grantSkills": [
-            "tianyan.skill.reverse_divination_strong"
+          "passives": [
+            "tianyan.passive.mirror"
+          ],
+          "patches": [
+            {
+              "skillId": "tianyan.skill.clarity",
+              "operation": "setCooldownRounds",
+              "value": 3
+            }
           ]
         },
         {
           "id": "tianyan.node.luoshu.4.1",
-          "name": "九紫余烬",
+          "name": "破障",
+          "description": "天锋一线攻击有护盾的目标时额外忽视10%法防；对无护盾目标伤害降低4%。",
           "layer": 4,
           "slot": 1,
-          "description": "九紫余烬",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.fire",
-              "operation": "replaceStatusId",
-              "from": "tianyan.status.scorch",
-              "to": "tianyan.status.scorch_strong"
-            }
+          "passives": [
+            "tianyan.passive.breach"
           ]
         },
         {
           "id": "tianyan.node.luoshu.4.2",
-          "name": "七赤破阵",
+          "name": "冷焰",
+          "description": "蒸腾额外驱散主要目标一个增益，该次水法伤害降低12%。",
           "layer": 4,
           "slot": 2,
-          "description": "七赤破阵",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.metal",
-              "operation": "setDispelMaxCount",
-              "value": 2
-            }
+          "passives": [
+            "tianyan.passive.coldflame"
           ]
         },
         {
           "id": "tianyan.node.luoshu.4.3",
-          "name": "一白凝时",
+          "name": "禁流",
+          "description": "截流封印命中率提高10个百分点，该次土法伤害降低10%；选择留隙后不再提供命中收益。",
           "layer": 4,
           "slot": 3,
-          "description": "一白凝时",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.water",
-              "operation": "setStatusDuration",
-              "statusId": "tianyan.status.water_slow",
-              "value": 3
-            },
-            {
-              "skillId": "tianyan.skill.water",
-              "operation": "setStatusDuration",
-              "statusId": "tianyan.status.cold_spring",
-              "value": 3
-            }
+          "passives": [
+            "tianyan.passive.ban"
           ]
         },
         {
           "id": "tianyan.node.luoshu.5.1",
-          "name": "盛极当制",
+          "name": "乘虚",
+          "description": "五行法术攻击处于裂土状态的目标，伤害提高8%。",
           "layer": 5,
           "slot": 1,
-          "description": "盛极当制",
           "passives": [
-            "tianyan.passive.luoshu.5.1"
+            "tianyan.passive.exploit"
           ]
         },
         {
           "id": "tianyan.node.luoshu.5.2",
-          "name": "天机暴显",
+          "name": "挫锐",
+          "description": "五行法术对气血高于80%的目标伤害提高8%，对其他目标伤害降低4%。",
           "layer": 5,
           "slot": 2,
-          "description": "天机暴显",
           "passives": [
-            "tianyan.passive.luoshu.5.2"
+            "tianyan.passive.pressure"
           ]
         },
         {
           "id": "tianyan.node.luoshu.5.3",
-          "name": "冲克加刑",
+          "name": "固本",
+          "description": "玄元守一附加少量自身治疗。",
           "layer": 5,
           "slot": 3,
-          "description": "冲克加刑",
-          "patches": [
-            {
-              "operation": "multiplyReactionPower",
-              "kind": "overcome",
-              "value": 1.2
-            }
+          "passives": [
+            "tianyan.passive.firm"
           ]
         },
         {
           "id": "tianyan.node.luoshu.6.1",
-          "name": "万法归算",
+          "name": "缄锋",
+          "description": "触发断枝时自身获得少量2回合护盾，每次施法一次。",
           "layer": 6,
           "slot": 1,
-          "description": "万法归算",
           "passives": [
-            "tianyan.passive.luoshu.6.1"
+            "tianyan.passive.sheathe"
           ]
         },
         {
           "id": "tianyan.node.luoshu.6.2",
-          "name": "法界无蔽",
+          "name": "定波",
+          "description": "沧海横流法力消耗降低10%，伤害降低5%。",
           "layer": 6,
           "slot": 2,
-          "description": "法界无蔽",
           "passives": [
-            "tianyan.passive.luoshu.6.2"
+            "tianyan.passive.calm"
           ]
         },
         {
           "id": "tianyan.node.luoshu.6.3",
-          "name": "逆演重构",
+          "name": "敛芒",
+          "description": "自身物理、法术承伤降低6%，五行法术伤害降低8%。",
           "layer": 6,
           "slot": 3,
-          "description": "逆演重构",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.reverse_divination",
-              "operation": "multiplySpellCoefficients",
-              "value": 1.16
-            },
-            {
-              "skillId": "tianyan.skill.reverse_divination_strong",
-              "operation": "multiplySpellCoefficients",
-              "value": 1.16
-            }
+          "passives": [
+            "tianyan.passive.restraint"
           ]
         },
         {
           "id": "tianyan.node.luoshu.7.1",
-          "name": "天罚增威",
+          "name": "法度",
+          "description": "森罗缚减速、裂土、熔锋持续增加1回合；五行法术伤害降低10%。",
           "layer": 7,
           "slot": 1,
-          "description": "天罚增威",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.luoshu_ultimate",
-              "operation": "multiplySpellCoefficients",
-              "value": 1.125
-            }
+          "passives": [
+            "tianyan.passive.law"
           ]
         },
         {
           "id": "tianyan.node.luoshu.7.2",
-          "name": "破阵尽除",
+          "name": "镇世",
+          "description": "山河倾覆对下一次伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
           "layer": 7,
           "slot": 2,
-          "description": "破阵尽除",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.luoshu_ultimate",
-              "operation": "setDispelMaxCount",
-              "value": 2
-            }
+          "passives": [
+            "tianyan.passive.severance"
           ]
         },
         {
           "id": "tianyan.node.luoshu.7.3",
-          "name": "断局封天",
+          "name": "守衡",
+          "description": "触发相克后自身物理、法术承伤降低10%，持续1回合；该次五行法术伤害降低6%。",
           "layer": 7,
           "slot": 3,
-          "description": "断局封天",
-          "patches": [
-            {
-              "skillId": "tianyan.skill.luoshu_ultimate",
-              "operation": "setSealBase",
-              "value": 65
-            },
-            {
-              "skillId": "tianyan.skill.luoshu_ultimate",
-              "operation": "setStatusDuration",
-              "statusId": "tianyan.status.sever_meridian",
-              "value": 2
-            }
+          "passives": [
+            "tianyan.passive.balance"
           ]
         }
       ]
-    }
-  ],
-  "barrierDurationTargets": [
-    {
-      "skillId": "tianyan.skill.earth",
-      "barrierId": "tianyan.barrier.earth"
-    },
-    {
-      "skillId": "tianyan.skill.ward",
-      "barrierId": "tianyan.barrier.ward"
-    },
-    {
-      "skillId": "tianyan.skill.life_array",
-      "barrierId": "tianyan.barrier.life_array"
-    },
-    {
-      "skillId": "tianyan.skill.hetu_ultimate",
-      "barrierId": "tianyan.barrier.ultimate"
-    },
-    {
-      "skillId": "tianyan.skill.wood",
-      "barrierId": "tianyan.barrier.reaction"
-    },
-    {
-      "skillId": "tianyan.skill.fire",
-      "barrierId": "tianyan.barrier.reaction"
-    },
-    {
-      "skillId": "tianyan.skill.earth",
-      "barrierId": "tianyan.barrier.reaction"
-    },
-    {
-      "skillId": "tianyan.skill.metal",
-      "barrierId": "tianyan.barrier.reaction"
-    },
-    {
-      "skillId": "tianyan.skill.water",
-      "barrierId": "tianyan.barrier.reaction"
     }
   ]
 }

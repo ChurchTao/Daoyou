@@ -136,7 +136,7 @@ function seed(b: Battle, unit: string, def: StatusDef) {
 const suppress: StatusDef = {
   id: 'test.seal',
   name: '封法',
-  kind: 'tianyan.sever_meridian',
+  kind: 'tianyan.status.seal',
   category: StatusCategory.Control,
   blocksSpell: true,
 };

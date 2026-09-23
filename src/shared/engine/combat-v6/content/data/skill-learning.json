@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 6,
+  "contentRevision": 7,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -50,162 +50,6 @@
     "youdu.skill.insight": {
       "sourceMethodId": "youdu.method.insight",
       "unlockMethodLevel": 30
-    },
-    "tianyan.skill.wood": {
-      "sourceMethodId": "tianyan.method.wood",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.skill.fire": {
-      "sourceMethodId": "tianyan.method.fire",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.skill.earth": {
-      "sourceMethodId": "tianyan.method.earth",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.skill.metal": {
-      "sourceMethodId": "tianyan.method.metal",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.skill.water": {
-      "sourceMethodId": "tianyan.method.water",
-      "unlockMethodLevel": 1
-    },
-    "tianyan.skill.formation": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 20
-    },
-    "tianyan.skill.transfer": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 40
-    },
-    "tianyan.skill.ward": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.passive.reaction.tianyan.reaction.wildfire.damage": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.reaction.tianyan.reaction.magma.damage": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.reaction.tianyan.reaction.forging.damage": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.reaction.tianyan.reaction.forging.ignore": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.reaction.tianyan.reaction.cold_spring.damage": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.reaction.tianyan.reaction.flourish.damage": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.foundation.heal": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.foundation.barrier": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.skill.hetu_ultimate": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.passive.hetu.1.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.1.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.skill.life_array": {
-      "sourceMethodId": "tianyan.method.wood",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.passive.hetu.4.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.4.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.4.3": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.5.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.5.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.6.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.hetu.6.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.foundation": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.skill.luoshu_ultimate": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.passive.luoshu.1.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.1.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.2.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.2.3": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.skill.reverse_divination": {
-      "sourceMethodId": "tianyan.method.fire",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.skill.reverse_divination_strong": {
-      "sourceMethodId": "tianyan.method.fire",
-      "unlockMethodLevel": 60
-    },
-    "tianyan.passive.luoshu.5.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.5.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.6.1": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
-    },
-    "tianyan.passive.luoshu.6.2": {
-      "sourceMethodId": "tianyan.method.canon",
-      "unlockMethodLevel": 0
     },
     "lingxiao.skill.zhanchen_long_drive": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -981,6 +825,218 @@
     },
     "jiujie.passive.thunder.tianjie": {
       "sourceMethodId": "jiujie.method.thunder",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.wood": {
+      "sourceMethodId": "tianyan.method.wood",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.fire": {
+      "sourceMethodId": "tianyan.method.fire",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.earth": {
+      "sourceMethodId": "tianyan.method.earth",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.metal": {
+      "sourceMethodId": "tianyan.method.metal",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.water": {
+      "sourceMethodId": "tianyan.method.water",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.ward": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 30
+    },
+    "tianyan.skill.clarity": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 30
+    },
+    "tianyan.skill.borrow": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.skill.truce": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.yan_root": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.heng_root": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.scarlet": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.stream": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.edge": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.ember": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.split": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.rain": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.borrow": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.plain": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.clear": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.wild": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.dew": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.spring": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.solitary": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.reflection": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.springwater": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.return": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.breath": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.adapt": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.myriad": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.harmony": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.ceaseless": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.wall": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.roots": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.mountain": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.prune": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.corrode": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.blunt": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.truce": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.gap": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.mirror": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.breach": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.coldflame": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.ban": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.exploit": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.pressure": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.firm": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.sheathe": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.calm": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.restraint": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.law": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.severance": {
+      "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "tianyan.passive.balance": {
+      "sourceMethodId": "tianyan.method.canon",
       "unlockMethodLevel": 1
     }
   }

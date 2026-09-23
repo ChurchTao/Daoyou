@@ -140,7 +140,8 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     applyDamage(ctx, source, protector, Math.floor(amount * (1 - keep)), input.kind, silent, origin, input.cannotKill)
     targetAmount = Math.floor(amount * keep * (1 + modifierValue(modifiers, 'protectedDamageBonus', source, target, skill, ctx)))
   }
-  const hpDamage = applyDamage(ctx, source, target, targetAmount, input.kind, silent, origin, input.cannotKill)
+  const barrierFactor = 1 + modifierValue(modifiers, 'barrierDamageBonus', source, target, skill, ctx)
+  const hpDamage = applyDamage(ctx, source, target, targetAmount, input.kind, silent, origin, input.cannotKill, barrierFactor)
   if (!silent) {
     // 溅射继承本击的最终结果；不重新命中、暴击、减防或递归触发溅射。
     for (const modifier of modifiers) {
@@ -305,6 +306,7 @@ export function applyDamage(
   silent = false,
   origin: DamageOriginType = silent ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
   cannotKill = false,
+  barrierDestructionFactor = 1,
 ): number {
   if (!isStanding(target) || target.flags.downed) return 0
 
@@ -312,7 +314,7 @@ export function applyDamage(
   const finalModifiers = combatModifiers(ctx, target, { target: source, skill, skillId: skill?.id, kind, origin })
   const received = Math.max(0, Math.floor(amount * Math.max(0, 1 + modifierValue(finalModifiers, 'allDamageTakenBonus', target, source, skill, ctx))))
   const kept = redirectOverflow(ctx, source, target, received, kind, origin)
-  const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept)
+  const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept, barrierDestructionFactor)
   const barrierAbsorbed = kept - enteringHp
   const appliedToHp = cannotKill
     ? Math.min(enteringHp, Math.max(0, target.attrs.hp - MIN_HP))

@@ -105,9 +105,9 @@ export function compileTowerStrategy(
         0,
       );
     const pool = Math.round(
-      base.hp *
+      base.damagePerRound *
         (1 + scaling.hpGrowth * (f.floor - 1)) *
-        scaling.types[f.kind].hp *
+        scaling.types[f.kind].rounds *
         f.budget.hpScale *
         scale('hp') +
         add('hp'),

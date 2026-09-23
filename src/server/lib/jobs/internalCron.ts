@@ -113,12 +113,6 @@ export type RankRewardsJobResult = CronJobResult & {
   logs?: string[];
 };
 
-export type TowerEnemySetsJobResult = CronJobResult & {
-  generated: number;
-  failed: number;
-  logs: string[];
-};
-
 export type ExpiredDataCleanupJobResult = CronJobResult & {
   deleted: ExpiredDataCleanupResult & {
     transactionalMessages: number;
@@ -371,15 +365,6 @@ export async function runMaterialLibraryDailyGenerationJob(
     },
     MATERIAL_LIBRARY_DAILY_GENERATION_LOCK_TTL_SECONDS,
   );
-}
-
-export async function runTowerEnemySetRefreshJob(): Promise<CronJobResult> {
-  return {
-    success: true,
-    processed: 0,
-    skipped: true,
-    reason: 'v6-configured-enemies',
-  };
 }
 
 export async function runResourceReplayCleanupJob(): Promise<CronJobResult> {

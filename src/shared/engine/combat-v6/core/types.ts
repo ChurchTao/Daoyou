@@ -596,6 +596,8 @@ export type SplashSpec = {
 /** 技能声明。主动效果在 effects，被动在 hooks；引擎不认技能 id。 */
 /** 连续修正由拥有该技能的单位提供；不在核心识别内容 ID。 */
 export type CombatModifier = {
+  /** Extra barrier destruction; never amplifies damage to HP. */
+  barrierDamageBonus?: Expr;
   /** Applied once before barriers, including periodic and derived damage. */
   allDamageTakenBonus?: Expr;
   hitAdd?: Expr;
@@ -725,6 +727,10 @@ export type StatusDef = {
   damageTakenPhysical?: number;
   damageTakenSpell?: number;
   ticks?: StatusTick;
+  /** Round-end healing uses the ordinary outgoing/incoming healing pipeline. */
+  healingPerRound?: Expr;
+  /** Consumed after an action deals damage, including damage absorbed by barriers. */
+  consumeAfterDamagingAction?: boolean;
   onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;

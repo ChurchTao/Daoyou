@@ -12,7 +12,6 @@ import redeemCodesRouter from '@server/routes/api/admin/redeem-codes.router';
 import reputationShopRouter from '@server/routes/api/admin/reputation-shop.router';
 import sectShopRouter from '@server/routes/api/admin/sect-shop.router';
 import sponsorshipRouter from '@server/routes/api/admin/sponsorship.router';
-import templatesRouter from '@server/routes/api/admin/templates.router';
 import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.router';
 import { Hono } from 'hono';
 
@@ -28,7 +27,6 @@ router.get('/session', requireAdmin(), (c) => {
 });
 
 router.route('/accounts', accountsRouter);
-router.route('/templates', templatesRouter);
 router.route('/feedback', feedbackRouter);
 router.route('/broadcast', broadcastRouter);
 router.route('/announcement', announcementRouter);

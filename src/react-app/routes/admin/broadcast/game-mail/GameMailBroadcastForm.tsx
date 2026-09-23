@@ -4,17 +4,12 @@ import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES } from '@shared/types/constants';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { RewardSelectionEditor } from '../../_components/RewardSelectionEditor';
 import {
   parseRewardSelectionDrafts,
   type RewardSelectionDraft,
 } from '../../_components/RewardSelectionEditor.helpers';
-
-interface GameMailTemplateOption {
-  id: string;
-  name: string;
-}
 
 interface GameMailBroadcastResult {
   dryRun?: boolean;
@@ -29,8 +24,6 @@ export function GameMailBroadcastForm() {
   const { pushToast } = useInkUI();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [templateId, setTemplateId] = useState('');
-  const [payloadText, setPayloadText] = useState('{}');
   const [rewardSelections, setRewardSelections] = useState<
     RewardSelectionDraft[]
   >([]);
@@ -41,40 +34,9 @@ export function GameMailBroadcastForm() {
   const [realmMax, setRealmMax] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GameMailBroadcastResult | null>(null);
-  const [templates, setTemplates] = useState<GameMailTemplateOption[]>([]);
-
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const res = await fetch(
-          '/api/admin/templates?channel=game_mail&status=active',
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? '加载模板失败');
-        setTemplates(
-          (data.templates ?? []).map((item: { id: string; name: string }) => ({
-            id: item.id,
-            name: item.name,
-          })),
-        );
-      } catch {
-        // 模板加载失败不阻塞手动发送
-      }
-    };
-    loadTemplates();
-  }, []);
-
   const submit = async (dryRun: boolean) => {
-    if (!templateId && (!title.trim() || !content.trim())) {
-      pushToast({ message: '请填写标题和内容，或选择模板', tone: 'warning' });
-      return;
-    }
-
-    let payload: unknown;
-    try {
-      payload = JSON.parse(payloadText || '{}');
-    } catch {
-      pushToast({ message: '变量 JSON 格式错误', tone: 'warning' });
+    if (!title.trim() || !content.trim()) {
+      pushToast({ message: '请填写标题和内容', tone: 'warning' });
       return;
     }
 
@@ -97,11 +59,9 @@ export function GameMailBroadcastForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateId: templateId || undefined,
           title: title.trim() || undefined,
           content: content.trim() || undefined,
           rewardSelections: parsedRewardSelections,
-          payload,
           filters: {
             targetCultivatorId: targetCultivatorId.trim() || undefined,
             cultivatorCreatedFrom: createdFrom || undefined,
@@ -136,26 +96,13 @@ export function GameMailBroadcastForm() {
   return (
     <div className="space-y-5">
       <InkNotice tone="info">
-        可选模板 + 人群筛选。奖励支持灵石、声望与道具库 published 道具，留空时发送纯公告。
-        填写目标角色 ID 时进入单发模式，并忽略下方群发筛选条件。
+        按角色或人群筛选发送。奖励支持灵石、声望与道具库 published
+        道具，留空时发送纯公告。 填写目标角色 ID
+        时进入单发模式，并忽略下方群发筛选条件。
       </InkNotice>
 
-      <InkSelect
-        label="模板（可选）"
-        value={templateId}
-        onChange={(value) => setTemplateId(value)}
-        disabled={loading}
-      >
-          <option value="">不使用模板（手动填写）</option>
-          {templates.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-      </InkSelect>
-
       <InkInput
-        label="邮件标题（手动填写）"
+        label="邮件标题"
         value={title}
         onChange={(value) => setTitle(value)}
         placeholder="例如：版本维护补偿"
@@ -163,21 +110,12 @@ export function GameMailBroadcastForm() {
       />
 
       <InkInput
-        label="邮件内容（手动填写）"
+        label="邮件内容"
         value={content}
         onChange={(value) => setContent(value)}
         placeholder="请输入游戏内邮件正文"
         multiline
         rows={8}
-        disabled={loading}
-      />
-
-      <InkInput
-        label="模板变量（JSON）"
-        value={payloadText}
-        onChange={(value) => setPayloadText(value)}
-        multiline
-        rows={4}
         disabled={loading}
       />
 
@@ -221,12 +159,12 @@ export function GameMailBroadcastForm() {
           onChange={(value) => setRealmMin(value)}
           disabled={loading || Boolean(targetCultivatorId.trim())}
         >
-            <option value="">不限</option>
-            {REALM_VALUES.map((realm) => (
-              <option key={realm} value={realm}>
-                {realm}
-              </option>
-            ))}
+          <option value="">不限</option>
+          {REALM_VALUES.map((realm) => (
+            <option key={realm} value={realm}>
+              {realm}
+            </option>
+          ))}
         </InkSelect>
         <InkSelect
           label="境界上限"
@@ -234,12 +172,12 @@ export function GameMailBroadcastForm() {
           onChange={(value) => setRealmMax(value)}
           disabled={loading || Boolean(targetCultivatorId.trim())}
         >
-            <option value="">不限</option>
-            {REALM_VALUES.map((realm) => (
-              <option key={realm} value={realm}>
-                {realm}
-              </option>
-            ))}
+          <option value="">不限</option>
+          {REALM_VALUES.map((realm) => (
+            <option key={realm} value={realm}>
+              {realm}
+            </option>
+          ))}
         </InkSelect>
       </div>
 

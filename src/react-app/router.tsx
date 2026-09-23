@@ -1233,13 +1233,6 @@ export const router = createBrowserRouter(
           handle={title('账号管理')}
         />
         <Route
-          path="broadcast/email"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/broadcast/email/route'),
-          )}
-          handle={title('邮箱群发')}
-        />
-        <Route
           path="broadcast/game-mail"
           lazy={lazyRoute(
             () => import('@app/routes/admin/broadcast/game-mail/route'),
@@ -1267,25 +1260,6 @@ export const router = createBrowserRouter(
           path="sect-shop"
           lazy={lazyRoute(() => import('@app/routes/admin/sect-shop/route'))}
           handle={title('宗门宝库管理')}
-        />
-        <Route
-          path="templates"
-          lazy={lazyRoute(() => import('@app/routes/admin/templates/route'))}
-          handle={title('模板中心')}
-        />
-        <Route
-          path="templates/new"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/templates/new/route'),
-          )}
-          handle={title('新建模板')}
-        />
-        <Route
-          path="templates/:id"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/templates/detail/route'),
-          )}
-          handle={title('模板详情')}
         />
         <Route
           path="redeem-codes"

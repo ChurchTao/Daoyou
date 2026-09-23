@@ -7,7 +7,7 @@
     },
     "formatVersion": {
       "type": "number",
-      "const": 2
+      "const": 3
     },
     "contentRevision": {
       "type": "integer",
@@ -178,15 +178,17 @@
     "__schema2": {
       "type": "object",
       "properties": {
-        "hp": {
-          "$ref": "#/$defs/__schema0"
+        "rounds": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 12
         },
         "output": {
           "$ref": "#/$defs/__schema0"
         }
       },
       "required": [
-        "hp",
+        "rounds",
         "output"
       ],
       "additionalProperties": false
@@ -200,7 +202,7 @@
         "referenceMagicDef": {
           "$ref": "#/$defs/__schema0"
         },
-        "hp": {
+        "damagePerRound": {
           "$ref": "#/$defs/__schema0"
         },
         "physicalAtk": {
@@ -228,7 +230,7 @@
       "required": [
         "referencePhysicalDef",
         "referenceMagicDef",
-        "hp",
+        "damagePerRound",
         "physicalAtk",
         "magicAtk",
         "physicalDef",

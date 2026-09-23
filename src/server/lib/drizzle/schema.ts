@@ -1176,7 +1176,7 @@ export const redeemCodeClaims = pgTable(
   ],
 );
 
-// 运营模板表
+/** @deprecated 模板中心已退役，仅保留历史结构与数据；后续版本统一删除。 */
 export const adminMessageTemplates = pgTable(
   'wanjiedaoyou_admin_message_templates',
   {
@@ -1687,7 +1687,7 @@ export const dungeonRuns = pgTable(
   ],
 );
 
-// 蜃楼幻境每周预生成敌人，按层拆分以避免整包 JSON 读写
+/** @deprecated 旧 AI 蜃楼敌人表，V6 使用 towerWeeks；仅保留历史结构与数据。 */
 export const towerEnemyFloors = pgTable(
   'wanjiedaoyou_tower_enemy_floors',
   {

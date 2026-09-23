@@ -14,6 +14,19 @@ import {
   generateDaoEquipmentV1,
 } from '../equipment';
 import { OPEN_EQUIPMENT_LEVELS, equipmentRealm } from '../equipment/realm';
+import { BODY_CULTIVATION_TRACK_KEYS } from '../../../lib/bodyCultivation/pack';
+import type { BodyCultivationRealm, BodyCultivationState } from '../../../types/condition';
+
+// Frozen progression samples; never inferred from the challenger at runtime.
+const trainingByRealm: Partial<Record<RealmType, [BodyCultivationRealm, number]>> = {
+  金丹: ['jade_marrow', 15],
+  元婴: ['golden_body', 20],
+  化神: ['dharma_body', 30],
+  炼虚: ['dharma_body', 40],
+  合体: ['dao_body', 45],
+  大乘: ['dao_body', 50],
+  渡劫: ['dao_body', 60],
+};
 // Legal attribute budgets and currently obtainable equipment. No rare bonuses.
 export function towerReferenceBuild(
   sectId: CombatV6SectId,
@@ -23,6 +36,7 @@ export function towerReferenceBuild(
 ): CombatV6TrainingPlayerInput {
   const def = COMBAT_V6_SECT_DEFINITIONS[sectId];
   const level = getRealmStageLevel(realm, stage);
+  const [bodyRealm, trainingLevel] = trainingByRealm[realm] ?? ['mortal_body', 0];
   const natural = getRealmStageNaturalAttributeValue(realm, stage);
   const budget = getRealmStageUnallocatedAttributeBudget(realm, stage);
   const weights =
@@ -69,6 +83,24 @@ export function towerReferenceBuild(
       name: sectId,
       realm,
       realm_stage: stage,
+      condition: {
+        version: 1,
+        resources: { hp: { current: 1 }, mp: { current: 1 } },
+        gauges: { pillToxicity: 0 },
+        tracks: {
+          bodyCultivation: {
+            version: 1,
+            realm: bodyRealm,
+            tracks: Object.fromEntries(BODY_CULTIVATION_TRACK_KEYS.map(key =>
+              [key, { level: trainingLevel, progress: 0 }],
+            )) as BodyCultivationState['tracks'],
+            milestones: {},
+          },
+        },
+        counters: { longTermPillUsesByRealm: {}, cultivationPillUsesByRealm: {}, longevityPillUsesByRealm: {} },
+        statuses: [],
+        timestamps: {},
+      },
       attributes: {
         vitality: attrs[0],
         strength: attrs[1],

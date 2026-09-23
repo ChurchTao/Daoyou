@@ -6,7 +6,7 @@ const positive = z.number().positive().max(1000000);
 const baseline = z.strictObject({
   referencePhysicalDef: positive,
   referenceMagicDef: positive,
-  hp: positive,
+  damagePerRound: positive,
   physicalAtk: positive,
   magicAtk: positive,
   physicalDef: positive,
@@ -15,10 +15,10 @@ const baseline = z.strictObject({
   hit: positive,
   dodge: positive,
 });
-const scale = z.strictObject({ hp: positive, output: positive });
+const scale = z.strictObject({ rounds: z.number().min(1).max(12), output: positive });
 export const TowerEncounterPackShape = z.strictObject({
   $schema: z.string().optional(),
-  formatVersion: z.literal(2),
+  formatVersion: z.literal(3),
   contentRevision: z.number().int().positive(),
   minRealm: z.literal('金丹'),
   difficultyStep: positive.int(),

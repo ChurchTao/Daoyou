@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "sects": {
     "lingxiao": [
       {
@@ -211,7 +211,7 @@
       {
         "id": "tianyan.method.canon",
         "slot": 1,
-        "name": "《河洛衍天总经》",
+        "name": "《玄元道藏》",
         "isPrimary": true,
         "panel": {
           "attr": "maxMp",
@@ -222,18 +222,18 @@
       {
         "id": "tianyan.method.wood",
         "slot": 2,
-        "name": "《三碧生化篇》",
+        "name": "《森罗万象经》",
         "isPrimary": false,
         "panel": {
-          "attr": "healPower",
+          "attr": "maxHp",
           "mode": "add",
-          "value": 0.5
+          "value": 2
         }
       },
       {
         "id": "tianyan.method.fire",
         "slot": 3,
-        "name": "《九紫离明录》",
+        "name": "《焚天秘典》",
         "isPrimary": false,
         "panel": {
           "attr": "magicAtk",
@@ -244,7 +244,18 @@
       {
         "id": "tianyan.method.earth",
         "slot": 4,
-        "name": "《五中承天经》",
+        "name": "《山河镇岳篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "tianyan.method.metal",
+        "slot": 5,
+        "name": "《天锋诀》",
         "isPrimary": false,
         "panel": {
           "attr": "magicDef",
@@ -253,20 +264,9 @@
         }
       },
       {
-        "id": "tianyan.method.metal",
-        "slot": 5,
-        "name": "《七赤断法章》",
-        "isPrimary": false,
-        "panel": {
-          "attr": "sealHit",
-          "mode": "add",
-          "value": 0.4
-        }
-      },
-      {
         "id": "tianyan.method.water",
         "slot": 6,
-        "name": "《一白玄水诀》",
+        "name": "《沧海归流经》",
         "isPrimary": false,
         "panel": {
           "attr": "speed",

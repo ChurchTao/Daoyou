@@ -9,7 +9,7 @@ export default function AdminGameMailBroadcastPage() {
         </p>
         <h2 className="font-heading text-ink mt-2 text-4xl">游戏邮件群发</h2>
         <p className="text-ink-secondary mt-2 text-sm">
-          向活跃角色同步群发公告或奖励，支持模板、创建时间和境界筛选。
+          向活跃角色同步群发公告或奖励，支持指定角色、创建时间和境界筛选。
         </p>
       </header>
 

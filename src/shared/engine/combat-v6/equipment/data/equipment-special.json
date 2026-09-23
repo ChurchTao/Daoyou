@@ -251,8 +251,7 @@
           "jiujie.control.suppress",
           "jiujie.control.confuse",
           "jiujie.control.million_weapons",
-          "tianyan.mire",
-          "tianyan.sever_meridian",
+          "tianyan.status.seal",
           "combat.training.status.control"
         ],
         "healRatio": 0
@@ -272,8 +271,7 @@
           "jiujie.control.suppress",
           "jiujie.control.confuse",
           "jiujie.control.million_weapons",
-          "tianyan.mire",
-          "tianyan.sever_meridian",
+          "tianyan.status.seal",
           "combat.training.status.control"
         ],
         "healRatio": 0.25
@@ -293,8 +291,7 @@
           "jiujie.control.suppress",
           "jiujie.control.confuse",
           "jiujie.control.million_weapons",
-          "tianyan.mire",
-          "tianyan.sever_meridian",
+          "tianyan.status.seal",
           "combat.training.status.control"
         ],
         "healRatio": 0
@@ -314,8 +311,7 @@
           "jiujie.control.suppress",
           "jiujie.control.confuse",
           "jiujie.control.million_weapons",
-          "tianyan.mire",
-          "tianyan.sever_meridian",
+          "tianyan.status.seal",
           "combat.training.status.control"
         ],
         "healRatio": 0.15

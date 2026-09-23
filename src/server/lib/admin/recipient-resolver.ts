@@ -1,13 +1,10 @@
-import { authUsers } from '@server/lib/auth/schema';
 import { getExecutor } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
 import {
   BroadcastRecipientSeed,
-  EmailAudienceFilter,
   GameMailAudienceFilter,
   RecipientResolveResult,
 } from '@shared/types/admin-broadcast';
-import { RealmType } from '@shared/types/constants';
 import { and, eq, gte, lte } from 'drizzle-orm';
 import { isRealmInRange, toRealmType } from './realm';
 
@@ -41,87 +38,6 @@ export class RecipientResolveError extends Error {
     super(message);
     this.name = 'RecipientResolveError';
   }
-}
-
-export async function resolveEmailRecipients(
-  filters: EmailAudienceFilter = {},
-): Promise<RecipientResolveResult> {
-  const recipients: BroadcastRecipientSeed[] = [];
-
-  const from = toStartOfDay(filters.registeredFrom);
-  const to = toEndOfDay(filters.registeredTo);
-
-  const needCultivatorFilter =
-    filters.hasActiveCultivator !== undefined ||
-    !!filters.realmMin ||
-    !!filters.realmMax;
-
-  const activeCultivatorMap = new Map<string, { realm: RealmType }>();
-  if (needCultivatorFilter) {
-    const activeCultivators = await getExecutor()
-      .select({
-        userId: cultivators.userId,
-        realm: cultivators.realm,
-      })
-      .from(cultivators)
-      .where(eq(cultivators.status, 'active'));
-
-    for (const item of activeCultivators) {
-      const realm = toRealmType(item.realm);
-      if (!realm) continue;
-      activeCultivatorMap.set(item.userId, { realm });
-    }
-  }
-
-  const authUserConditions = [eq(authUsers.emailVerified, true)];
-  if (from) {
-    authUserConditions.push(gte(authUsers.createdAt, from));
-  }
-  if (to) {
-    authUserConditions.push(lte(authUsers.createdAt, to));
-  }
-
-  const users = await getExecutor()
-    .select({
-      id: authUsers.id,
-      email: authUsers.email,
-      createdAt: authUsers.createdAt,
-    })
-    .from(authUsers)
-    .where(and(...authUserConditions));
-
-  for (const user of users) {
-    if (needCultivatorFilter) {
-      const activeCultivator = activeCultivatorMap.get(user.id);
-
-      if (filters.hasActiveCultivator === true && !activeCultivator) continue;
-      if (filters.hasActiveCultivator === false && activeCultivator) continue;
-
-      if (filters.realmMin || filters.realmMax) {
-        if (!activeCultivator) continue;
-        if (
-          !isRealmInRange(
-            activeCultivator.realm,
-            filters.realmMin,
-            filters.realmMax,
-          )
-        ) {
-          continue;
-        }
-      }
-    }
-
-    recipients.push({
-      recipientType: 'email',
-      recipientKey: user.email.toLowerCase(),
-      metadata: {
-        userId: user.id,
-        registeredAt: user.createdAt?.toISOString(),
-      },
-    });
-  }
-
-  return buildResolveResult(recipients);
 }
 
 export async function resolveGameMailRecipients(
