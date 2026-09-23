@@ -15,7 +15,10 @@ import {
 } from '@shared/engine/combat-v6/equipment/realm';
 import { DAO_WEAPONS } from '@shared/engine/combat-v6/equipment/weapons';
 import type { ItemGrant } from '@shared/inventory';
-import { INVENTORY_MATERIAL_TYPES, MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
+import {
+  INVENTORY_MATERIAL_TYPES,
+  MATERIAL_TYPE_NAMES,
+} from '@shared/items/definitions/materials';
 import { libraryMaterialGrant } from '@shared/items/libraryMaterialGrant';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
 import { ALCHEMY_PROPERTY_LABELS } from '@shared/lib/alchemyProperties';
@@ -284,10 +287,23 @@ export function RewardItemPicker({
                     setPage(1);
                   }}
                 />
-                {kind === 'material' && <InkSelect label="材料种类" value={materialType} onChange={(v) => { setMaterialType(v); setPage(1); }}>
-                {INVENTORY_MATERIAL_TYPES.map((v) => <option key={v} value={v}>{MATERIAL_TYPE_NAMES[v]}</option>)}
-              </InkSelect>}
-              {isGenerator && (
+                {kind === 'material' && (
+                  <InkSelect
+                    label="材料种类"
+                    value={materialType}
+                    onChange={(v) => {
+                      setMaterialType(v);
+                      setPage(1);
+                    }}
+                  >
+                    {INVENTORY_MATERIAL_TYPES.map((v) => (
+                      <option key={v} value={v}>
+                        {MATERIAL_TYPE_NAMES[v]}
+                      </option>
+                    ))}
+                  </InkSelect>
+                )}
+                {isGenerator && (
                   <InkButton
                     variant="primary"
                     onClick={() => {
@@ -354,7 +370,10 @@ export function RewardItemPicker({
             </>
           ) : (
             <>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <fieldset
+                disabled={pending}
+                className="grid gap-3 sm:grid-cols-2"
+              >
                 {(kind === 'pill' || kind === 'spirit_fruit') && (
                   <>
                     <InkInput label="名称" value={name} onChange={setName} />
@@ -472,7 +491,7 @@ export function RewardItemPicker({
                     )}
                   </>
                 )}
-              </div>
+              </fieldset>
             </>
           )}
           {error && <InkNotice tone="warning">{error}</InkNotice>}

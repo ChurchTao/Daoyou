@@ -3,6 +3,9 @@ import { cn } from '@shared/lib/cn';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
+let openDialogs = 0;
+let previousOverflow = '';
+
 /** Native dialogs keep focus and Escape scoped to the active editor or picker. */
 export function AdminDialog({
   open,
@@ -12,6 +15,7 @@ export function AdminDialog({
   footer,
   wide = false,
   busy = false,
+  error,
 }: {
   open: boolean;
   onClose: () => void;
@@ -20,9 +24,20 @@ export function AdminDialog({
   footer?: ReactNode;
   wide?: boolean;
   busy?: boolean;
+  error?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  useEffect(() => {
+    if (!open) return;
+    if (openDialogs++ === 0) {
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      if (--openDialogs === 0) document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -65,6 +80,11 @@ export function AdminDialog({
           <div className="battle-scroll min-h-0 overflow-y-auto overscroll-contain p-5">
             {children}
           </div>
+          {error && (
+            <p role="alert" className="text-crimson shrink-0 px-5 py-3 text-sm">
+              {error}
+            </p>
+          )}
           {footer && (
             <footer className="border-ink/10 flex shrink-0 flex-wrap items-center justify-end gap-3 border-t px-5 py-3">
               {footer}

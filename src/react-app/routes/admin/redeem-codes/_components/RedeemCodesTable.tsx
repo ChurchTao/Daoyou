@@ -63,6 +63,8 @@ const formatTime = (value: string | null) =>
   value ? new Date(value).toLocaleString() : '—';
 function statusLabel(item: RedeemCodeItem) {
   if (item.status === 'disabled') return '已停用';
+  if (item.rewardSource === 'broken_snapshot') return '奖励异常';
+  if (item.rewardSource === 'expired_legacy') return '旧版已失效';
   if (item.endsAt && new Date(item.endsAt).getTime() <= Date.now())
     return '已过期';
   if (item.totalLimit !== null && item.claimedCount >= item.totalLimit)
@@ -79,6 +81,8 @@ export function RedeemCodesTable() {
   const [items, setItems] = useState<RedeemCodeItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [copiedCode, setCopiedCode] = useState('');
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
   const selected = items.find((item) => item.id === selectedId);
@@ -109,6 +113,7 @@ export function RedeemCodesTable() {
     return () => controller.abort();
   }, [pushToast, status, revision]);
   const toggleStatus = async (item: RedeemCodeItem) => {
+    setDetailError('');
     setPending(true);
     try {
       const res = await fetch(`/api/admin/redeem-codes/${item.id}/toggle`, {
@@ -123,10 +128,7 @@ export function RedeemCodesTable() {
       setSelectedId(null);
       setRevision((v) => v + 1);
     } catch (e) {
-      pushToast({
-        message: e instanceof Error ? e.message : '切换状态失败',
-        tone: 'danger',
-      });
+      setDetailError(e instanceof Error ? e.message : '切换状态失败');
     } finally {
       setPending(false);
     }
@@ -194,7 +196,13 @@ export function RedeemCodesTable() {
                   {item.claimedCount} / {item.totalLimit ?? '不限'}
                 </span>
                 <div className="col-span-2 text-right md:col-span-1">
-                  <InkButton onClick={() => setSelectedId(item.id)}>
+                  <InkButton
+                    onClick={() => {
+                      setDetailError('');
+                      setCopiedCode('');
+                      setSelectedId(item.id);
+                    }}
+                  >
                     查看详情
                   </InkButton>
                 </div>
@@ -222,6 +230,7 @@ export function RedeemCodesTable() {
         </div>
       )}
       <AdminDialog
+        error={detailError}
         open={!!selected}
         onClose={() => setSelectedId(null)}
         busy={pending}
@@ -235,16 +244,13 @@ export function RedeemCodesTable() {
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(selected.code);
-                    pushToast({ message: '兑换码已复制', tone: 'success' });
+                    setCopiedCode(selected.code);
                   } catch {
-                    pushToast({
-                      message: '复制失败，请手动复制',
-                      tone: 'warning',
-                    });
+                    setDetailError('复制失败，请手动复制');
                   }
                 }}
               >
-                复制兑换码
+                {copiedCode === selected.code ? '已复制' : '复制兑换码'}
               </InkButton>
               <InkButton
                 pending={pending}

@@ -51,6 +51,7 @@ export default function ItemLibraryAdminPage() {
   );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dialogError, setDialogError] = useState('');
   const [panel, setPanel] = useState<'edit' | 'generate' | 'daily' | null>(
     null,
   );
@@ -76,6 +77,11 @@ export default function ItemLibraryAdminPage() {
     );
   const [dailySettingsLoading, setDailySettingsLoading] = useState(true);
   const [dailySettingsSaving, setDailySettingsSaving] = useState(false);
+
+  const openPanel = (next: typeof panel) => {
+    setDialogError('');
+    setPanel(next);
+  };
 
   const loadItems = useCallback(
     async (signal?: AbortSignal) => {
@@ -142,11 +148,9 @@ export default function ItemLibraryAdminPage() {
         if (!cancelled) setDailySettings(data.settings);
       } catch (error) {
         if (!cancelled) {
-          pushToast({
-            message:
-              error instanceof Error ? error.message : '加载每日生成配置失败',
-            tone: 'danger',
-          });
+          setDialogError(
+            error instanceof Error ? error.message : '加载每日生成配置失败',
+          );
         }
       } finally {
         if (!cancelled) setDailySettingsLoading(false);
@@ -171,10 +175,11 @@ export default function ItemLibraryAdminPage() {
 
   const save = async () => {
     if (!draft.rowId && !draft.itemId.trim()) {
-      pushToast({ message: '请填写道具 ID', tone: 'warning' });
+      setDialogError('请填写材料 ID');
       return;
     }
 
+    setDialogError('');
     setSaving(true);
     try {
       const body = await buildSubmitBody();
@@ -203,13 +208,10 @@ export default function ItemLibraryAdminPage() {
 
       setDraft(entryToDraft(data.item));
       await loadItems();
-      setPanel(null);
+      openPanel(null);
       pushToast({ message: '材料已保存', tone: 'success' });
     } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '保存道具失败',
-        tone: 'danger',
-      });
+      setDialogError(error instanceof Error ? error.message : '保存道具失败');
     } finally {
       setSaving(false);
     }
@@ -217,6 +219,7 @@ export default function ItemLibraryAdminPage() {
 
   const archive = async () => {
     if (!draft.rowId) return;
+    setDialogError('');
     setSaving(true);
     try {
       const response = await fetch(
@@ -229,13 +232,10 @@ export default function ItemLibraryAdminPage() {
       }
       setDraft(entryToDraft(data.item));
       await loadItems();
-      setPanel(null);
+      openPanel(null);
       pushToast({ message: '材料已归档', tone: 'success' });
     } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '归档道具失败',
-        tone: 'danger',
-      });
+      setDialogError(error instanceof Error ? error.message : '归档道具失败');
     } finally {
       setSaving(false);
     }
@@ -244,9 +244,10 @@ export default function ItemLibraryAdminPage() {
   const generateMaterials = async () => {
     const count = Number(generateCount);
     if (!Number.isInteger(count) || count < 1) {
-      pushToast({ message: '生成数量必须为正整数', tone: 'warning' });
+      setDialogError('生成数量必须为正整数');
       return;
     }
+    setDialogError('');
     setSaving(true);
     try {
       const response = await fetch(
@@ -272,12 +273,11 @@ export default function ItemLibraryAdminPage() {
         tone: 'success',
       });
       await loadItems();
-      setPanel(null);
+      openPanel(null);
     } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '批量生成材料失败',
-        tone: 'danger',
-      });
+      setDialogError(
+        error instanceof Error ? error.message : '批量生成材料失败',
+      );
     } finally {
       setSaving(false);
     }
@@ -286,12 +286,10 @@ export default function ItemLibraryAdminPage() {
   const generateSpiritSeeds = async () => {
     const count = Number(seedGenerateCount);
     if (!Number.isInteger(count) || count < 1 || count > 50) {
-      pushToast({
-        message: '灵种生成数量必须为 1 至 50 的整数',
-        tone: 'warning',
-      });
+      setDialogError('灵种生成数量必须为 1 至 50 的整数');
       return;
     }
+    setDialogError('');
     setSaving(true);
     try {
       const response = await fetch('/api/admin/item-library/seeds/generate', {
@@ -315,12 +313,11 @@ export default function ItemLibraryAdminPage() {
       setQuery('');
       setPage(1);
       await loadItems();
-      setPanel(null);
+      openPanel(null);
     } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '批量生成灵种失败',
-        tone: 'danger',
-      });
+      setDialogError(
+        error instanceof Error ? error.message : '批量生成灵种失败',
+      );
     } finally {
       setSaving(false);
     }
@@ -328,10 +325,11 @@ export default function ItemLibraryAdminPage() {
 
   const saveDailySettings = async () => {
     if (!Number.isInteger(dailySettings.count) || dailySettings.count < 1) {
-      pushToast({ message: '每日生成数量必须为正整数', tone: 'warning' });
+      setDialogError('每日生成数量必须为正整数');
       return;
     }
 
+    setDialogError('');
     setDailySettingsSaving(true);
     try {
       const response = await fetch(
@@ -348,14 +346,12 @@ export default function ItemLibraryAdminPage() {
         throw new Error(data.error ?? '保存每日生成配置失败');
       }
       setDailySettings(data.settings);
-      setPanel(null);
+      openPanel(null);
       pushToast({ message: '每日生成配置已保存', tone: 'success' });
     } catch (error) {
-      pushToast({
-        message:
-          error instanceof Error ? error.message : '保存每日生成配置失败',
-        tone: 'danger',
-      });
+      setDialogError(
+        error instanceof Error ? error.message : '保存每日生成配置失败',
+      );
     } finally {
       setDailySettingsSaving(false);
     }
@@ -378,18 +374,20 @@ export default function ItemLibraryAdminPage() {
         description="维护可用于上架和发放的材料与灵种。"
         actions={
           <>
-            <InkButton variant="secondary" onClick={() => setPanel('daily')}>
-              每日生成设置
-            </InkButton>
-            <InkButton onClick={() => setPanel('generate')}>批量生成</InkButton>
             <InkButton
               variant="primary"
               onClick={() => {
                 setDraft(createEmptyDraft());
-                setPanel('edit');
+                openPanel('edit');
               }}
             >
               新增材料
+            </InkButton>
+            <InkButton variant="secondary" onClick={() => openPanel('daily')}>
+              每日生成设置
+            </InkButton>
+            <InkButton onClick={() => openPanel('generate')}>
+              批量生成
             </InkButton>
           </>
         }
@@ -444,7 +442,7 @@ export default function ItemLibraryAdminPage() {
                     onClick={() => {
                       close();
                       setDraft(entryToDraft(entry));
-                      setPanel('edit');
+                      openPanel('edit');
                     }}
                   >
                     编辑材料
@@ -486,8 +484,9 @@ export default function ItemLibraryAdminPage() {
         </InkButton>
       </div>
       <AdminDialog
+        error={dialogError}
         open={panel === 'edit'}
-        onClose={() => setPanel(null)}
+        onClose={() => openPanel(null)}
         busy={saving}
         title={draft.rowId ? '编辑材料' : '新增材料'}
         footer={
@@ -501,7 +500,7 @@ export default function ItemLibraryAdminPage() {
                 归档材料
               </InkButton>
             )}
-            <InkButton disabled={saving} onClick={() => setPanel(null)}>
+            <InkButton disabled={saving} onClick={() => openPanel(null)}>
               取消
             </InkButton>
             <InkButton
@@ -597,13 +596,14 @@ export default function ItemLibraryAdminPage() {
         </fieldset>
       </AdminDialog>
       <AdminDialog
+        error={dialogError}
         open={panel === 'generate'}
-        onClose={() => setPanel(null)}
+        onClose={() => openPanel(null)}
         busy={saving}
         title="批量生成"
         footer={
           <>
-            <InkButton disabled={saving} onClick={() => setPanel(null)}>
+            <InkButton disabled={saving} onClick={() => openPanel(null)}>
               取消
             </InkButton>
             <InkButton
@@ -697,15 +697,16 @@ export default function ItemLibraryAdminPage() {
         </fieldset>
       </AdminDialog>
       <AdminDialog
+        error={dialogError}
         open={panel === 'daily'}
-        onClose={() => setPanel(null)}
+        onClose={() => openPanel(null)}
         busy={dailySettingsSaving}
         title="每日生成设置"
         footer={
           <>
             <InkButton
               disabled={dailySettingsSaving}
-              onClick={() => setPanel(null)}
+              onClick={() => openPanel(null)}
             >
               取消
             </InkButton>

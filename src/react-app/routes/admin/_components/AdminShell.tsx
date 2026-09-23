@@ -77,9 +77,12 @@ export function AdminShell({
             <p className="text-ink-secondary mt-3 text-xs break-all">
               {adminEmail}
             </p>
+            <Link href="/game" className="mt-3 inline-block text-sm">
+              返回游戏
+            </Link>
           </details>
 
-          <div className="mt-2 flex gap-3 text-sm lg:mt-6">
+          <div className="mt-6 hidden gap-3 text-sm lg:flex">
             <Link
               href="/game"
               className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson border border-dashed px-2 py-1 no-underline"

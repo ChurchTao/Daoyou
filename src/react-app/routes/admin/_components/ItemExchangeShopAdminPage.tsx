@@ -81,6 +81,7 @@ export function ItemExchangeShopAdminPage({
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editorError, setEditorError] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -111,6 +112,7 @@ export function ItemExchangeShopAdminPage({
 
   const reset = () => setDraft({ ...emptyDraft });
   const edit = (item: ItemExchangeShopItemView) => {
+    setEditorError('');
     setEditorOpen(true);
     setDraft({
       id: item.id,
@@ -132,6 +134,7 @@ export function ItemExchangeShopAdminPage({
   };
 
   const save = async () => {
+    setEditorError('');
     setSaving(true);
     try {
       const response = await fetch(
@@ -149,10 +152,7 @@ export function ItemExchangeShopAdminPage({
       setEditorOpen(false);
       await load();
     } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '保存失败',
-        tone: 'danger',
-      });
+      setEditorError(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSaving(false);
     }
@@ -193,6 +193,7 @@ export function ItemExchangeShopAdminPage({
             variant="primary"
             onClick={() => {
               reset();
+              setEditorError('');
               setEditorOpen(true);
             }}
           >
@@ -268,6 +269,7 @@ export function ItemExchangeShopAdminPage({
         </div>
       )}
       <AdminDialog
+        error={editorError}
         open={editorOpen}
         onClose={() => setEditorOpen(false)}
         busy={saving}
