@@ -139,6 +139,10 @@ describe("combat-v6 phase 3 generic primitives", () => {
     lethal.submit("source", { type: CommandType.Skill, skillId: "resource-strike", targets: ["target"] })
     lethal.lockAndResolve()
     expect(hpDamage).toBe(30)
+    expect(lethal.unit("target").hpDamageThisRound).toEqual({ round: 1, amount: 30 })
+    const snapshot = lethal.snapshot()
+    snapshot.units.find(u => u.id === "target")!.hpDamageThisRound!.amount = 1000
+    expect(lethal.unit("target").hpDamageThisRound!.amount).toBe(30)
   })
 
   it("clamps resource changes and persists them in snapshots and events", () => {

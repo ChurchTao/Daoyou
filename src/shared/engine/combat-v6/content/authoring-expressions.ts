@@ -1,10 +1,10 @@
 import { ATTR_NAMES, createUnit, evalExpr } from '../core';
 import { ExprFn, ExprVar } from '../core/enums';
 
-const formulaFields = new Set(['sealChanceFactor', 'allDamageTakenBonus', 'hitAdd', 'expression', 'requirement', 'extraCount', 'extraChance', 'hpRatio', 'hpCap', 'mpCap', 'costMp', 'costHp', 'count', 'power', 'duration', 'speedMod', 'value', 'factor', 'maxGainPerAction', 'followPower', 'healingPower', 'sealChanceAdd', 'damageTakenAdd', 'damageTakenBonus', 'physicalFuryChanceAdd', 'sealResistanceAdd', 'damageBonus', 'damageAdd', 'physicalAttackAdd', 'critChanceAdd', 'critMultiplierAdd', 'defenseIgnoreAdd', 'protectedDamageBonus', 'recoverySkipChance', 'targetCountAdd', 'chance', 'amount', 'aimCount']);
+const formulaFields = new Set(['sealChanceFactor', 'allDamageTakenBonus', 'hitAdd', 'expression', 'requirement', 'extraCount', 'extraChance', 'hpRatio', 'hpCap', 'mpCap', 'costMp', 'costHp', 'targetCount', 'count', 'power', 'duration', 'speedMod', 'value', 'factor', 'maxGainPerAction', 'followPower', 'healingPower', 'sealChanceAdd', 'damageTakenAdd', 'damageTakenBonus', 'physicalFuryChanceAdd', 'sealResistanceAdd', 'damageBonus', 'damageAdd', 'physicalAttackAdd', 'critChanceAdd', 'critMultiplierAdd', 'defenseIgnoreAdd', 'protectedDamageBonus', 'recoverySkipChance', 'targetCountAdd', 'chance', 'amount', 'aimCount']);
 const allowedVariables = new Set<string>([
   ...ATTR_NAMES, ...Object.values(ExprVar), ...Object.values(ExprFn),
-  ...ATTR_NAMES.flatMap(attr => ['source.' + attr, 'target.' + attr]), 'source.level', 'target.level', 'originalResourceCost', 'round', 'enemyDownedPlayers', 'allyDownedPlayers', 'allyMaxMagicAtk', 'actionKillsTarget', 'targetDeployedPets', 'enemyPlayers', 'targetIsPet', 'normalTarget',
+  ...ATTR_NAMES.flatMap(attr => ['source.' + attr, 'target.' + attr]), 'source.level', 'target.level', 'originalResourceCost', 'round', 'roundHpDamage', 'enemyDownedPlayers', 'allyDownedPlayers', 'allyMaxMagicAtk', 'actionKillsTarget', 'targetDeployedPets', 'enemyPlayers', 'targetIsPet', 'normalTarget',
 ]);
 const expressionUnit = createUnit({ id: 'config-validation', name: '配置校验', kind: 'npc', side: 0, slot: 0, level: 180, attrs: { hp: 1000, maxHp: 1000, speed: 10, physicalAtk: 10, physicalDef: 10 } }, 0);
 export function validateSectExpressions(pack: unknown, issue: (path: (string | number)[], message: string) => void) {

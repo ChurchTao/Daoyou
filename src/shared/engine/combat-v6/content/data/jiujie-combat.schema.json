@@ -137,6 +137,25 @@
         "targeting": {
           "$ref": "#/$defs/__schema4"
         },
+        "preparation": {
+          "type": "object",
+          "properties": {
+            "effects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            },
+            "targetCount": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "effects",
+            "targetCount"
+          ],
+          "additionalProperties": false
+        },
         "effects": {
           "type": "array",
           "items": {

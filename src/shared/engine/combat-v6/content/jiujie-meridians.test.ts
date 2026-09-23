@@ -7,6 +7,7 @@ import { DAO_EQUIPMENT_ARTS_V1 } from '../equipment/special-content';
 import { YOUDU_COMBAT } from './youdu-pack';
 import { JIUJIE_V6_DEFINITION as definition } from './jiujie';
 import { JIUJIE_COMBAT } from './jiujie-pack';
+import { daoyouFormulas } from '../rules-daoyou/formulas';
 import { compileSectDefinitionV6 } from './compiler';
 
 const S = (x: string) => `jiujie.skill.${x}`;
@@ -44,6 +45,147 @@ const restProc=()=>vi.spyOn(SeededRng.prototype,'chance').mockImplementation(p=>
 function grant(b:B,id:string) { b.unit('s').skills.push(id); }
 const hits=(b:B,id='t')=>b.log().filter(e=>e.type==='damage' && e.sourceId==='s' && e.targetId===id).map(e=>e.type==='damage'?e.amount:0);
 afterEach(()=>vi.restoreAllMocks());
+
+describe('九劫还原修正回归', () => {
+  it.each([true, false])('九劫归一依实际掠霆重数选人并支付对应法力（强化单体=%s）', single => {
+    vi.spyOn(SeededRng.prototype, 'next').mockReturnValue(0);
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(p => p >= 1 || (p === 0.5 && single));
+    const { b } = setup('law', ['7.2']);
+    b.unit('s').cooldowns![S('tribulation')] = 0;
+    round(b, { s: cmd('tribulation', ['t3']) });
+    const count = single ? 3 : 5;
+    expect(b.unit('s').combatFacts!.jiujie_sweep_rank).toBe(single ? 1 : 3);
+    expect(b.log().filter(e => e.type === 'damage' && e.sourceId === 's' && e.targetId !== 's')).toHaveLength(count);
+    expect(hits(b, 't3')).toHaveLength(1);
+    expect(b.unit('s').attrs.mp).toBe(100000 - (20 * count + 10));
+  });
+
+  it.each(['law', 'thunder'])('雷醒包含回合末持续伤害（%s）', path => {
+    noProc();
+    const { input } = setup(path, ['4.2']);
+    input.statusDefs!.push({ id: 'test.dot', kind: 'test.dot', category: 'dot', ticks: 'roundEnd', onTick: { type: 'dot', ratioOfMaxHp: 0.3 } });
+    const b = createBattle(input);
+    b.applyStatus('s', T('suppress'), 5);
+    b.applyStatus('s', 'youdu.status.soul_seal', 5);
+    b.applyStatus('s', T('rest_minor'), 5);
+    b.applyStatus('s', 'test.dot', 1);
+    round(b);
+    expect(b.unit('s').attrs.hp).toBe(70000);
+    expect(st(b, 's', 'suppress')).toBeUndefined();
+    expect(b.unit('s').statuses.some(s => s.id === 'youdu.status.soul_seal')).toBe(false);
+    expect(st(b, 's', 'rest_minor')).toBeDefined();
+    b.applyStatus('s', T('suppress'), 5);
+    round(b);
+    expect(st(b, 's', 'suppress')).toBeDefined();
+  });
+
+  it('雷醒包含反震掉血，护盾吸收与主动气血成本不计入', () => {
+    noProc();
+    const { input } = setup('law', ['4.2']);
+    const reflect: SkillDef = { id: 'test.reflect', name: '反震', tags: ['passive'], targeting: { side: 'self' }, effects: [], hooks: [{ on: 'onBeHit', targetIsSelf: true, aim: 'hookSource', effects: [{ type: 'fixedHit', power: 30000 }] }] };
+    input.skills!.push(reflect); input.units[2].passives = [reflect.id];
+    const b = createBattle(input);
+    b.applyStatus('s', T('suppress'), 5);
+    round(b, { s: { type: 'attack', target: 't' } });
+    expect(st(b, 's', 'suppress')).toBeUndefined();
+    expect(b.unit('s').hpDamageThisRound).toEqual({ round: 1, amount: 30000 });
+    b.applyStatus('s', T('suppress'), 5);
+    b.unit('s').barriers.push({ id: 'test', kind: 'test', name: '护盾', sourceId: 's', current: 30000, remainingRounds: 3, appliedRound: b.state.round });
+    round(b, { s: { type: 'attack', target: 't' } });
+    expect(st(b, 's', 'suppress')).toBeDefined();
+    round(b, { s: cmd('charge', ['s']) });
+    expect(st(b, 's', 'suppress')).toBeDefined();
+    expect(b.unit('s').hpDamageThisRound).toEqual({ round: 1, amount: 30000 });
+  });
+
+  it('九劫归一蓝不足不执行准备；最高掠霆可覆盖七人且只消费一层灌注', () => {
+    noProc();
+    const { input } = setup('law', ['7.2']);
+    input.units.push({ ...input.units[2], id: 't6' });
+    const b = createBattle(input);
+    b.unit('s').cooldowns![S('tribulation')] = 0;
+    res(b).current = 2;
+    b.unit('s').attrs.mp = 149;
+    const rngBefore = b.snapshot().rngState;
+    expect(b.queryCommands('s').skills.find(s => s.skillId === S('tribulation'))?.ready).toBe(false);
+    expect(b.snapshot().rngState).toBe(rngBefore);
+    round(b, { s: cmd('tribulation') });
+    expect(b.unit('s').attrs.hp).toBe(100000);
+    expect(res(b).current).toBe(2);
+    expect(b.unit('s').combatFacts?.jiujie_single_rank).toBeUndefined();
+    b.unit('s').attrs.mp = 150;
+    vi.spyOn(SeededRng.prototype, 'next').mockReturnValue(0.999);
+    round(b, { s: cmd('tribulation', ['t6']) });
+    expect(b.unit('s').combatFacts!.jiujie_sweep_rank).toBe(5);
+    expect(b.unit('s').attrs.mp).toBe(0);
+    expect(res(b).current).toBe(1);
+    const action = b.log().find(e => e.type === 'actionStart' && e.command.type === 'skill' && e.command.skillId === S('tribulation'));
+    if (action?.type !== 'actionStart' || action.command.type !== 'skill') throw new Error('缺少大招行动');
+    expect(action.command.targets).toHaveLength(7);
+    expect(action.command.targets[0]).toBe('t6');
+  });
+
+  it.each(['physicalHit', 'fixedHit'] as const)('赤印被%s命中后退化，但不额外增伤', type => {
+    noProc();
+    const { b } = setup('thunder');
+    const hit: SkillDef = { id: 'test.nonspell', name: '非术法打击', tags: ['physical'], targeting: { side: 'enemy' }, effects: [{ type, power: 1000, coeff: 1 }] };
+    const red: SkillDef = { id: 'test.red', name: '赤印', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{ type: 'applyStatus', statusId: T('red'), duration: 5 }] };
+    for (const s of [hit, red]) { grant(b, s.id); b.unit('s').skillOverrides[s.id] = s; }
+    round(b, { s: { type: 'skill', skillId: red.id, targets: ['t'] } });
+    round(b, { s: { type: 'skill', skillId: hit.id, targets: ['t'] } });
+    expect(st(b, 't', 'red')).toBeUndefined();
+    expect(st(b, 't', 'electric')).toBeDefined();
+    round(b, { s: { type: 'skill', skillId: hit.id, targets: ['t'] } });
+    expect(hits(b)[0]).toBe(hits(b)[1]);
+  });
+
+  it('共鸣在主人倒地后继续强化本人灵兽', () => {
+    noProc();
+    const { input } = setup('thunder', ['5.1']);
+    const spell: SkillDef = { id: 'beast.thunder', name: '雷击', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{ type: 'spellHit', coeff: 1 }] };
+    input.skills!.push(spell);
+    input.units.push({ id: 'pet', name: '本宠', side: 0, kind: 'pet', ownerId: 's', attrs: { hp: 10000, mp: 1000, speed: 300, magicAtk: 1000 }, skills: [spell.id] });
+    const b = createBattle(input);
+    round(b, { pet: { type: 'skill', skillId: spell.id, targets: ['t'] } });
+    b.unit('s').attrs.hp = 0; b.unit('s').flags.downed = true;
+    round(b, { pet: { type: 'skill', skillId: spell.id, targets: ['t'] } });
+    const damage = b.log().filter(e => e.type === 'damage' && e.sourceId === 'pet');
+    expect(damage).toHaveLength(2);
+    if (damage[0].type === 'damage' && damage[1].type === 'damage') expect(damage[1].amount).toBe(damage[0].amount);
+  });
+
+  it('以身承雷同时提供物理收益、法伤与封印代价，固伤不受影响', () => {
+    noProc();
+    const damage = (foundation: boolean, type: 'physicalHit' | 'spellHit' | 'fixedHit') => {
+      const { b } = setup('law');
+      if (!foundation) b.unit('s').passives = b.unit('s').passives.filter(id => id !== 'jiujie.passive.physical');
+      const hit: SkillDef = { id: 'test.foundation', name: '测试', tags: [type === 'spellHit' ? 'spell' : 'physical'], targeting: { side: 'enemy' }, effects: [{ type, coeff: 1, power: 1000 }] };
+      grant(b, hit.id); b.unit('s').skillOverrides[hit.id] = hit;
+      round(b, { s: { type: 'skill', skillId: hit.id, targets: ['t'] } });
+      return hits(b)[0];
+    };
+    expect(damage(true, 'physicalHit') / damage(false, 'physicalHit')).toBeCloseTo(1.1, 2);
+    expect(damage(true, 'spellHit') / damage(false, 'spellHit')).toBeCloseTo(0.85, 2);
+    expect(damage(true, 'fixedHit')).toBe(damage(false, 'fixedHit'));
+    const { b } = setup('law');
+    const chance = vi.spyOn(SeededRng.prototype, 'chance');
+    round(b, { s: cmd('suppress') });
+    expect(chance).toHaveBeenCalledWith(0.85);
+  });
+
+  it.each([100, 180])('洞真在%s级按本项目封印量纲增益，双向均不直接顶满概率', level => {
+    noProc();
+    const { b } = setup('thunder', ['6.1']);
+    b.unit('s').level = level; b.unit('t').level = level;
+    const source = b.unit('s'), target = b.unit('t');
+    const beforeHit = daoyouFormulas.sealHitChance(source, target, level);
+    const beforeResist = daoyouFormulas.sealHitChance(target, source, level);
+    round(b, { s: cmd('insight', ['s']) });
+    const enhanced = { ...source, attrs: effectiveAttrs(source) };
+    expect(daoyouFormulas.sealHitChance(enhanced, target, level) - beforeHit).toBeCloseTo(level / 2000);
+    expect(beforeResist - daoyouFormulas.sealHitChance(target, enhanced, level)).toBeCloseTo(level / 2000);
+  });
+});
 
 describe('九劫基础循环与指令',()=>{
   it('一重稳定出手；二重休息禁门派技能，允许普攻和器诀',()=>{

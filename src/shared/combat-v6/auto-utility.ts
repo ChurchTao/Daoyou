@@ -464,6 +464,11 @@ export function rankAutoActions(
         }
       }
     }
+    if (skill.preparation) {
+      effects(skill.preparation.effects, selected);
+      const count = Math.max(1, Math.floor(evalExpr(skill.preparation.targetCount, { state: context.state, source, target: selected[0], skillLevel: skillLevelOf(source, skill.id), targets: selected.length })));
+      selected = selected.slice(0, count);
+    }
     effects(skill.effects, selected);
     effects(skill.successEffects ?? [], selected);
     // One direct-hit layer only: value the authored on-hit statuses without

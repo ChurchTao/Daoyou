@@ -31,7 +31,7 @@ export function bindDataHooks(ctx: BattleContext): void {
         ctx.hooks.on(hook.on, (hctx) => {
           if (hook.targetIsSelf && hctx.target?.id !== unit.id) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return
-          if (hook.sourceIsOwnedPet && (hctx.source?.kind !== "pet" || hctx.source.ownerId !== unit.id || !isStanding(unit))) return
+          if (hook.sourceIsOwnedPet && (hctx.source?.kind !== "pet" || hctx.source.ownerId !== unit.id)) return
           if (hook.requireKind && hctx.kind !== hook.requireKind) return
           if (hook.parry && hctx.source) {
             const attacker = hctx.source

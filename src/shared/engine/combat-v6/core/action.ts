@@ -642,26 +642,33 @@ function resolveSkill(
     ),
     failed: false,
   };
-  ctx.emit({
-    type: EventType.ActionStart,
-    unitId: unit.id,
-    command: {
-      type: CommandType.Skill,
-      skillId: skill.id,
-      targets: targets.map((t) => t.id),
-    },
-  });
+  // 本次行动同步结算；准备阶段完成后，再把日志里的目标列表收束为实际出手名单。
+  const actionCommand: Command = { type: CommandType.Skill, skillId: skill.id, targets: targets.map(t => t.id) };
+  ctx.emit({ type: EventType.ActionStart, unitId: unit.id, command: actionCommand });
+
+  let settledMpCost = mpCost;
+  if (skill.preparation) {
+    applyDeclaredEffects(ctx, unit, skill, skill.preparation.effects, targets, targetIds, env);
+    const count = Math.max(1, Math.floor(evalExpr(skill.preparation.targetCount, { ...env, state: ctx.state })));
+    targets.splice(count);
+    normalTargetIds.splice(count);
+    env.targets = targets.length;
+    ctx.currentAction.targetIds = targets.map(t => t.id);
+    actionCommand.targets = [...ctx.currentAction.targetIds];
+    // 准备阶段只缩小候选集合，预检的最高标价保证不会在自损后才发现蓝不足。
+    settledMpCost = checkSkillRequirements(ctx, unit, skill, targets).mpCost;
+  }
 
   const waiverChance = skill.capture ? 0 : Math.max(0, ...unit.passives.map(
     (id) => skillOf(ctx.skills, unit, id)?.innate?.mpCostWaiverChance ?? 0,
   ));
-  const waiveMp = mpCost > 0 && waiverChance > 0 && ctx.rng.chance(waiverChance);
-  if (mpCost > 0 && !waiveMp) {
-    unit.attrs.mp -= mpCost;
+  const waiveMp = settledMpCost > 0 && waiverChance > 0 && ctx.rng.chance(waiverChance);
+  if (settledMpCost > 0 && !waiveMp) {
+    unit.attrs.mp -= settledMpCost;
     ctx.emit({
       type: EventType.MpCost,
       unitId: unit.id,
-      amount: mpCost,
+      amount: settledMpCost,
       mpAfter: unit.attrs.mp,
     });
   }
@@ -729,7 +736,7 @@ function resolveSkill(
     ctx,
     unit,
     skill,
-    skill.effects,
+    skill.preparation && !isStanding(unit) ? [] : skill.effects,
     targets,
     targetIds,
     env,

@@ -232,6 +232,8 @@ export type Unit = {
   /** 单位标签（鬼魂系等），给 when.foeTags 用，不是门派 id。 */
   tags: string[];
   combatFacts?: Record<string, number>;
+  /** 所有伤害路径的实际掉血累计；不含护盾、过量伤害和技能气血成本。 */
+  hpDamageThisRound?: { round: number; amount: number };
   skillUses?: Record<string, number>;
   cooldowns?: Record<string, number>;
   resources: CombatResourceState[];
@@ -667,6 +669,10 @@ export type SkillDef = {
   /** 封印底（百分点，如 55）；缺省由 rules 的 sealChanceBase 决定 */
   sealBase?: number;
   targeting: SkillTargeting;
+  /** 按 targeting 的最大候选人数预检法力；准备完成后截取实际人数并按 costMp 结算。
+   * 准备阶段不得增加候选人数或法力标价；只用于先承受风险、再决定出手规模的技能。
+   */
+  preparation?: { effects: SkillEffect[]; targetCount: Expr };
   effects: SkillEffect[];
   /** 主效果没有产生 ActionFailed 时执行；合法 no-op 仍算成功。 */
   successEffects?: SkillEffect[];

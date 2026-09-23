@@ -214,6 +214,25 @@ describe('当前场次托管', () => {
       target: 'enemy',
     });
   });
+  it('准备阶段参与伤害及自损估值，但不改变观察和真实战局', () => {
+    const prepared: SkillDef = {
+      id: 'prepared', name: '先自损后攻击', tags: ['spell'], targeting: { side: 'enemy' },
+      preparation: { targetCount: 1, effects: [
+        { type: 'modifyFact', key: 'ready', value: 1 },
+        { type: 'loseHp', power: 100, targeting: { side: 'self' } },
+      ] },
+      effects: [{ type: 'spellHit', power: 400, when: { expression: 'fact.ready == 1' } }],
+    };
+    const b = fixture([prepared.id], [prepared]);
+    const observation = observeAutoBattle(b.snapshot(), 'player', []);
+    const before = structuredClone(observation), state = b.snapshot();
+    const candidates = rankAutoActions(observation, 'player', [prepared], [], b.queryCommands('player'));
+    const cast = candidates.find(c => c.command.type === 'skill' && c.command.skillId === prepared.id)!;
+    expect(cast.benefits.offense).toBeGreaterThan(0);
+    expect(cast.benefits.survival).toBeLessThan(0);
+    expect(observation).toEqual(before);
+    expect(b.snapshot()).toEqual(state);
+  });
 });
 
 describe('通用效用策略与观察边界', () => {

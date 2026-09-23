@@ -1,7 +1,7 @@
 {
   "$schema": "./jiujie-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "baseSkillIds": [
     "jiujie.skill.thunder_slash",
     "jiujie.skill.five_thunder",
@@ -1622,7 +1622,7 @@
     {
       "id": "jiujie.skill.tribulation",
       "name": "九劫归一",
-      "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，至多5人。可能自损倒地；按较高重数结算一次休息。",
+      "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，人数随实际掠霆重数增加（75级起为重数＋2，至多7人）。可能自损倒地；按较高重数结算一次休息。消耗20×实际目标数＋10法力；施放前需备足场上至多7人的法力。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -1632,81 +1632,9 @@
         "side": "enemy",
         "mode": "fill",
         "maxSelected": 1,
-        "count": 5
+        "count": 7
       },
       "effects": [
-        {
-          "type": "modifyFact",
-          "key": "jiujie_single_rank",
-          "value": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
-        },
-        {
-          "type": "modifyFact",
-          "key": "jiujie_sweep_rank",
-          "value": "fact.jiujie_single_rank"
-        },
-        {
-          "type": "modifyFact",
-          "key": "jiujie_echo",
-          "value": 0
-        },
-        {
-          "type": "modifyFact",
-          "key": "jiujie_kill_sweep",
-          "value": 0
-        },
-        {
-          "type": "modifyResource",
-          "resourceId": "jiujie.resource.charge",
-          "amount": -1
-        },
-        {
-          "type": "repeat",
-          "min": 2,
-          "max": 9,
-          "effects": [
-            {
-              "type": "loseHp",
-              "power": "maxHp * 0.08",
-              "targeting": {
-                "side": "self"
-              }
-            },
-            {
-              "type": "randomBranch",
-              "branchId": "jiujie.branch.tribulation_rank",
-              "chance": 0.5,
-              "successEffects": [
-                {
-                  "type": "modifyFact",
-                  "key": "jiujie_single_rank",
-                  "value": "min(5, fact.jiujie_single_rank + 1)"
-                }
-              ],
-              "failureEffects": [
-                {
-                  "type": "modifyFact",
-                  "key": "jiujie_sweep_rank",
-                  "value": "min(5, fact.jiujie_sweep_rank + 1)"
-                }
-              ]
-            },
-            {
-              "type": "modifyStatusDuration",
-              "categories": [
-                "control",
-                "debuff",
-                "dot"
-              ],
-              "maxCount": 1,
-              "random": true,
-              "amount": -1,
-              "targeting": {
-                "side": "self"
-              }
-            }
-          ]
-        },
         {
           "type": "modifyFact",
           "key": "jiujie_type",
@@ -1955,12 +1883,89 @@
       ],
       "costMp": "20 * targets + 10",
       "cooldownRounds": 8,
-      "initialCooldownRounds": 4
+      "initialCooldownRounds": 4,
+      "preparation": {
+        "effects": [
+          {
+            "type": "modifyFact",
+            "key": "jiujie_single_rank",
+            "value": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_sweep_rank",
+            "value": "fact.jiujie_single_rank"
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_echo",
+            "value": 0
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_kill_sweep",
+            "value": 0
+          },
+          {
+            "type": "modifyResource",
+            "resourceId": "jiujie.resource.charge",
+            "amount": -1
+          },
+          {
+            "type": "repeat",
+            "min": 2,
+            "max": 9,
+            "effects": [
+              {
+                "type": "loseHp",
+                "power": "maxHp * 0.08",
+                "targeting": {
+                  "side": "self"
+                }
+              },
+              {
+                "type": "randomBranch",
+                "branchId": "jiujie.branch.tribulation_rank",
+                "chance": 0.5,
+                "successEffects": [
+                  {
+                    "type": "modifyFact",
+                    "key": "jiujie_single_rank",
+                    "value": "min(5, fact.jiujie_single_rank + 1)"
+                  }
+                ],
+                "failureEffects": [
+                  {
+                    "type": "modifyFact",
+                    "key": "jiujie_sweep_rank",
+                    "value": "min(5, fact.jiujie_sweep_rank + 1)"
+                  }
+                ]
+              },
+              {
+                "type": "modifyStatusDuration",
+                "categories": [
+                  "control",
+                  "debuff",
+                  "dot"
+                ],
+                "maxCount": 1,
+                "random": true,
+                "amount": -1,
+                "targeting": {
+                  "side": "self"
+                }
+              }
+            ]
+          }
+        ],
+        "targetCount": "fact.jiujie_sweep_rank + 1 + if(skillLevel >= 75, 1, 0)"
+      }
     },
     {
       "id": "jiujie.skill.insight",
       "name": "天目洞真",
-      "description": "凝神洞彻雷机，提高自身物攻、物防、法攻、法防、封印与抗封各人物等级×2，持续3回合；再次施展刷新。",
+      "description": "消耗80法力，以天目照彻自身，使物攻、物防、法攻、法防各增加人物等级×2，封命中、封抗各增加人物等级×0.1，持续3回合，可刷新、不叠加。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -2194,8 +2199,8 @@
         "physicalDef": "level * 2",
         "magicAtk": "level * 2",
         "magicDef": "level * 2",
-        "sealHit": "level * 2",
-        "sealResist": "level * 2"
+        "sealHit": "level * 0.1",
+        "sealResist": "level * 0.1"
       }
     },
     {

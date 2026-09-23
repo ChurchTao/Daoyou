@@ -161,7 +161,7 @@ function validateDefinition(
       }
     }
     }
-    validateEffects([...skill.definition.effects, ...successEffects])
+    validateEffects([...(skill.definition.preparation?.effects ?? []), ...skill.definition.effects, ...successEffects])
   }
 }
 

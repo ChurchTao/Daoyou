@@ -46,6 +46,7 @@ export const JiujieCombatShape = z.strictObject({
         tags: z.array(z.enum(SkillTag)).min(1),
         formula: z.enum(FormulaFamily).optional(),
         targeting: jjTargeting,
+        preparation: z.strictObject({ effects: z.array(jjEffect), targetCount: jjExpr }).optional(),
         effects: z.array(jjEffect),
         successEffects: z.array(jjEffect).optional(),
         hooks: z.array(jjHook).optional(),

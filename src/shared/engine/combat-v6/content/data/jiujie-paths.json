@@ -1,12 +1,29 @@
 {
   "$schema": "./jiujie-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "jiujie.passive.physical",
       "name": "以身承雷",
-      "description": "以身承雷，以兵行劫。可直接选择震岳、掠霆的一至三重；灌注能强化本次重数，高重数需承担休息风险。"
+      "description": "以身承雷，以兵行劫。可直接选择震岳、掠霆的一至三重；灌注能强化本次重数，高重数需承担休息风险。物理伤害提高10%，法术伤害降低15%，封印命中概率乘以85%。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "damageBonus": 0.1
+        },
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageBonus": -0.15
+        },
+        {
+          "sealChanceFactor": 0.85
+        }
+      ]
     },
     {
       "id": "jiujie.passive.magic",
@@ -43,7 +60,6 @@
             }
           ],
           "when": {
-            "requireKind": "spell",
             "targetOwnedStatus": {
               "kind": "jiujie.status.red"
             }
@@ -773,27 +789,6 @@
       "name": "雷醒",
       "hooks": [
         {
-          "on": "onRoundStart",
-          "effects": [
-            {
-              "type": "modifyFact",
-              "key": "jiujie_round_loss",
-              "value": 0
-            }
-          ]
-        },
-        {
-          "on": "onBeHit",
-          "effects": [
-            {
-              "type": "modifyFact",
-              "key": "jiujie_round_loss",
-              "value": "fact.jiujie_round_loss + hpDamage"
-            }
-          ],
-          "targetIsSelf": true
-        },
-        {
           "on": "onRoundEnd",
           "effects": [
             {
@@ -811,7 +806,7 @@
           ],
           "when": {
             "sourceStanding": true,
-            "expression": "fact.jiujie_round_loss >= maxHp * 0.3"
+            "expression": "roundHpDamage >= maxHp * 0.3"
           },
           "aim": "self"
         }
@@ -823,27 +818,6 @@
       "name": "雷醒",
       "hooks": [
         {
-          "on": "onRoundStart",
-          "effects": [
-            {
-              "type": "modifyFact",
-              "key": "jiujie_round_loss",
-              "value": 0
-            }
-          ]
-        },
-        {
-          "on": "onBeHit",
-          "effects": [
-            {
-              "type": "modifyFact",
-              "key": "jiujie_round_loss",
-              "value": "fact.jiujie_round_loss + hpDamage"
-            }
-          ],
-          "targetIsSelf": true
-        },
-        {
           "on": "onRoundEnd",
           "effects": [
             {
@@ -861,7 +835,7 @@
           ],
           "when": {
             "sourceStanding": true,
-            "expression": "fact.jiujie_round_loss >= maxHp * 0.3"
+            "expression": "roundHpDamage >= maxHp * 0.3"
           },
           "aim": "self"
         }
@@ -1149,7 +1123,7 @@
           "name": "九劫归一",
           "layer": 7,
           "slot": 2,
-          "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，至多5人。可能自损倒地；按较高重数结算一次休息。",
+          "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，人数随实际掠霆重数增加（75级起为重数＋2，至多7人）。可能自损倒地；按较高重数结算一次休息。消耗20×实际目标数＋10法力；施放前需备足场上至多7人的法力。",
           "grantSkills": [
             "jiujie.skill.tribulation"
           ]
@@ -1347,7 +1321,7 @@
           "name": "天目洞真",
           "layer": 6,
           "slot": 1,
-          "description": "获得主动天目洞真：80法力，使自身六项攻防与封抗各增加人物等级×2，持续3回合。",
+          "description": "获得主动天目洞真：消耗80法力，以天目照彻自身，使物攻、物防、法攻、法防各增加人物等级×2，封命中、封抗各增加人物等级×0.1，持续3回合，可刷新、不叠加。",
           "grantSkills": [
             "jiujie.skill.insight"
           ]

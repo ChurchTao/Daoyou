@@ -331,6 +331,7 @@ export function applyDamage(
       (ctx.currentAction.impactDamageByTarget[target.id] ?? 0) + hpDamage
   }
   target.attrs.hp = hp
+  recordHpDamage(ctx, target, hpDamage)
   ctx.emit({
     type: EventType.Damage,
     sourceId: source.id,
@@ -356,6 +357,14 @@ export function applyDamage(
   return hpDamage
 }
 
+function recordHpDamage(ctx: BattleContext, target: Unit, amount: number): void {
+  const previous = target.hpDamageThisRound
+  target.hpDamageThisRound = {
+    round: ctx.state.round,
+    amount: (previous?.round === ctx.state.round ? previous.amount : 0) + amount,
+  }
+}
+
 /** 我佛慈悲一类：目标留下 keep，其余打到状态来源。 */
 function redirectOverflow(
   ctx: BattleContext,
@@ -375,6 +384,7 @@ function redirectOverflow(
     const enteringHp = origin === DamageOrigin.Status ? bounced : absorbBarriers(ctx, caster, bounced)
     if (enteringHp <= 0) return kept
     const hp = atLeast(0, caster.attrs.hp - enteringHp)
+    recordHpDamage(ctx, caster, caster.attrs.hp - hp)
     caster.attrs.hp = hp
     ctx.emit({
       type: EventType.Damage,
