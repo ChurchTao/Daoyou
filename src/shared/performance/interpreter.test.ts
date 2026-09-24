@@ -48,6 +48,22 @@ function playToChoice(filled: PerformanceScript) {
 }
 
 describe('performance interpreter', () => {
+  it('allows a scene that has words and no picture', () => {
+    expect(() =>
+      parsePerformanceScript({
+        id: 'words',
+        title: '无画',
+        requires: [],
+        cast: {},
+        cues: [
+          { type: 'scene', alt: '石室里只有一盏将尽的灯。' },
+          { type: 'narration', text: '灯还亮着。' },
+          { type: 'end', outcome: 'done' },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   it('rejects a jump that has no mark', () => {
     expect(() =>
       parsePerformanceScript({
@@ -78,7 +94,16 @@ describe('performance interpreter', () => {
       index: 0,
     });
     expect(state.ending).toBe(true);
-    expect(state.log.map((entry) => entry.text)).toContain('阿青停下脚步。');
+    expect(state.log).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'narration', text: '阿青停下脚步。' }),
+        expect.objectContaining({
+          kind: 'line',
+          speaker: '引路人',
+          text: '要入山吗？',
+        }),
+      ]),
+    );
   });
 
   it('returns an outcome from a choice and can restart', () => {

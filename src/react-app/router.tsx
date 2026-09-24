@@ -168,7 +168,7 @@ export const router = createBrowserRouter(
             />
             {import.meta.env.DEV ? (
               <Route
-                path="story/preview/:scriptId"
+                path="story/preview/:scriptId?"
                 lazy={lazyRoute(
                   () => import('@app/routes/game/story/preview/route'),
                 )}
@@ -178,7 +178,7 @@ export const router = createBrowserRouter(
                     chrome: 'immersive',
                     dock: 'hidden',
                   },
-                  '演出预览',
+                  '看演出',
                 )}
               />
             ) : null}

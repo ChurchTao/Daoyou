@@ -13,6 +13,7 @@ export interface PerformanceBackdrop {
 }
 
 export interface PerformanceLogEntry {
+  kind: 'title' | 'narration' | 'line';
   speaker?: string;
   text: string;
 }
@@ -112,7 +113,7 @@ function remember(script: PerformanceScript, state: PerformanceState): Performan
   if (!cue || !isText(cue)) return state.log;
   const speaker =
     cue.type === 'line' ? script.cast[cue.speaker]?.name : undefined;
-  return [...state.log, { speaker, text: cue.text }];
+  return [...state.log, { kind: cue.type, speaker, text: cue.text }];
 }
 
 export function reducePerformance(

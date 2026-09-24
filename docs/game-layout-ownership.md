@@ -3,7 +3,7 @@
 ## `/game` 路由归属
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
-- `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出。`/game/story` 播放当前剧情演出；本地开发另有 `/game/story/preview/:scriptId` 只读预览。
+- `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的沉浸页。`/game/story` 用剧情播放器读当前演出；本地开发另有 `/game/story/preview`：按演出编号读取同一套配置来看，不写进度。
 - `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
@@ -27,7 +27,7 @@
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
 - `/game/cultivator` 使用「人物属性 / 先天设定 / 所修功法 / 肉身修炼」四页签，桌面左侧纵向排列，移动端顶部横向排列，URL 的 `tab=innate|manuals|body` 支持直达。人物属性独占左侧墨像与右侧姓名、名号、境界、宗门和寿元，随后显示气血法力、状态、战斗属性与六维加点、修为。先天设定合并先天灵根（仅原始强度）、命格与人物志，转世重修置于该页末尾；后天灵根增益仅在肉身修炼的洗髓区域展示。所修功法复用 `ManualRoom`；肉身修炼按肉身阶位、五轨修炼、洗髓、灵根后天增益排序，以浅底色分组突出阶位与等级，五轨直接展示实际战斗收益的简短说明与进度，不设展开详情，升阶条件按需展开；洗髓保留破限操作，后天灵根突出增益并辅以先天与当前强度。各页签不重复身份资料或场景壳，以留白分组。旧功法、炼体、洗髓地址继续重定向并透传参数，旧加点地址进入人物属性加点状态。加点预览仍走只读 V6 投影接口。
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
-- 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`
+- 剧情演出播放器在 `src/react-app/components/feature/performance/PerformancePlayer.tsx`。配图铺满自己的那一块，不加边框和边距；手机上它只是一截辅助，字占主要位置。没有配图时不留画框，场景说明改写在简上。眼前、旁白和人物说的话三种样子分开。点简文继续，第一下只把当前句看完；选项写在简上，看完才离开这一幕。回看翻开前面的字，离开不推进剧情。本地开发的 `/game/story/preview` 用同一播放器按演出编号观看，不写进度。宗门入门仍用 `src/react-app/components/feature/narrative/` 的旧舞台，两者不共用画面和操作。
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`
 - 清扫摇杆使用 `phaser4-rex-plugins` 的 Virtual Joystick，并由清扫 Phaser runtime 持有、渲染和销毁；采掘放索按钮仍是玩法私有 DOM 控件。各玩法 runtime 与服务端重放规则保持独立
 - PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口

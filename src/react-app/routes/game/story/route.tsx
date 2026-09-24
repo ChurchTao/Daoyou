@@ -1,5 +1,5 @@
 import { PerformancePlayer } from '@app/components/feature/performance/PerformancePlayer';
-import { NarrativePerformanceLoading } from '@app/components/feature/narrative/NarrativePerformanceLoading';
+import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
@@ -19,12 +19,12 @@ export default function StoryRoute() {
   const scriptId = story.story?.scriptId;
 
   if (story.loading || profile.loading) {
-    return <NarrativePerformanceLoading message="玉简还在显字……" />;
+    return <GameLoadingState variant="fullscreen" message="玉简还在显字……" />;
   }
 
   if (story.error || profile.error || !cultivator) {
     return (
-      <div className="flex min-h-[100svh] items-center justify-center px-6 text-[#f3ecdc]">
+      <div className="app-safe-area-page flex min-h-[100svh] items-center justify-center bg-paper px-6 text-ink">
         <div className="max-w-md text-center">
           <p>玉简暂时读不清。</p>
           <InkButton onClick={() => navigate('/game')} className="mt-5">
@@ -69,7 +69,7 @@ export default function StoryRoute() {
         )
           .then(() => navigate('/game', { replace: true }))
           .catch((reason: unknown) => {
-            setError(reason instanceof Error ? reason.message : '演出没能记下');
+            setError(reason instanceof Error ? reason.message : '这页没能记住，再试一次。');
             setBusy(false);
           });
       }}

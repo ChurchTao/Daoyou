@@ -132,7 +132,7 @@ function textOf(cue: PerformanceCue): string | null {
 export function parsePerformanceScript(input: unknown): PerformanceScript {
   const script = PerformanceScriptSchema.parse(input);
   const marks = new Set<string>();
-  let sceneReady = false;
+  let sceneOpened = false;
   let ending = false;
 
   for (const cue of script.cues) {
@@ -142,7 +142,7 @@ export function parsePerformanceScript(input: unknown): PerformanceScript {
       }
       marks.add(cue.id);
     }
-    if (cue.type === 'scene' && cue.src) sceneReady = true;
+    if (cue.type === 'scene') sceneOpened = true;
     if (cue.type === 'line' && !script.cast[cue.speaker]) {
       throw new Error(`演出说话人未登记：${cue.speaker}`);
     }
@@ -152,9 +152,9 @@ export function parsePerformanceScript(input: unknown): PerformanceScript {
         cue.type === 'title' ||
         cue.type === 'choice' ||
         cue.type === 'end') &&
-      !sceneReady
+      !sceneOpened
     ) {
-      throw new Error('演出在第一张画面之前就有正文');
+      throw new Error('演出在场景之前就有正文');
     }
     const text = textOf(cue);
     if (text) {
@@ -177,7 +177,7 @@ export function parsePerformanceScript(input: unknown): PerformanceScript {
     }
   }
 
-  if (!sceneReady) throw new Error('演出缺少画面');
+  if (!sceneOpened) throw new Error('演出缺少场景');
   if (!ending) throw new Error('演出缺少结尾');
   return script;
 }

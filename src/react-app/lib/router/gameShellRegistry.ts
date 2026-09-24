@@ -16,6 +16,7 @@ export function resolveGameShellKind(pathname: string): GameShellKind | null {
     pathname === '/game/sect/onboarding' ||
     pathname === '/game/identity-reshape' ||
     pathname === '/game/story' ||
+    pathname === '/game/story/preview' ||
     pathname.startsWith('/game/story/preview/')
   ) {
     return 'narrative';
