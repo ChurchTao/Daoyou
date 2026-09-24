@@ -244,8 +244,7 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                     神品额外赠送灵石{' '}
                     <span className="font-mono">
                       {confirm.spiritStones.toLocaleString()}
-                    </span>{' '}
-                    和小聚灵符 <span className="font-mono">×1</span>。
+                    </span>。
                   </p>
                 )}
                 <p className="text-ink-secondary">

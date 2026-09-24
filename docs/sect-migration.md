@@ -22,6 +22,24 @@ bun --env-file=你的环境文件 src/server/routes/api/admin/sect-migration/ser
 
 ## 迁移与补偿
 
+### 命令行执行
+
+停机期间也可直接运行同目录的 `cli.ts`，无需启动 API 或浏览器。脚本与管理后台共用逐人迁移函数，保留战斗占用检查、事务、退款、凭证及成功后删除来源的逻辑。脚本在操作者明确确认停机时跳过 Redis 角色互斥锁和角色状态串行锁，最多同时处理 16 人，各自使用独立事务，每 20 人输出进度；后台仍按原方式加锁并串行执行。来源行锁、归属校验及防重复发放检查保持。战斗占用检查复用当前事务，避免并发时额外申请数据库连接。全量预检在开始执行时完成，避免每批重复全量扫描，报告统一批量读取感悟果数量。失败或阻塞的来源保留，重新运行只处理仍可迁移的成员。
+
+```bash
+# 默认只预检，不写数据库
+bun --env-file=env/staging.env src/server/routes/api/admin/sect-migration/cli.ts --dry-run
+
+# ADMIN_USER_ID 替换为环境配置中已有管理员的用户 UUID；凭证路径必须不存在
+DB_MAX_CONNECTIONS=32 bun --env-file=env/staging.env src/server/routes/api/admin/sect-migration/cli.ts \
+  --apply --maintenance --operator-id "$ADMIN_USER_ID" \
+  --audit /绝对路径/sect-migration-audit.json
+```
+
+执行前关闭后台页面的迁移操作。`--maintenance` 表示操作者确认已经停机，不会自动停止服务。脚本不启动定时任务或消费者。死亡角色、归属异常、已有新版进度等仍按后台规则阻塞，不自动清除来源。凭证文件包含完整最终报告和逐人凭证，权限为 `0600`；存在阻塞或失败时退出码为 2，执行异常为 1，全部核对通过才返回 0。中断后已提交的凭证保留在数据库，可以重跑续作。
+
+### 继承规则
+
 - 五个宗门的固定映射在 `src/shared/sect-migration/mapping.json`。六本心法按槽位继承等级，不匹配名字或技能效果。未知 ID、越界、分支超过主心法等情况阻止该成员迁移，不静默裁剪。
 - 旧六层经脉包含 `ultimate`。新版共享深度取双流派最大值，第 7 层不赠送；节点清空让玩家重选。旧当前流派按固定映射继承，未选择流派的成员保留待选择状态。
 - 另一流派的投入按旧标准累计返还：第 n 层修为 `5000 × 4^(n-1)`，灵石为修为的 5 倍，感悟每层 100。退款公式冻结。

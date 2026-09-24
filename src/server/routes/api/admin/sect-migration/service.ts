@@ -183,12 +183,12 @@ async function readTarget(membershipIds: string[], q: DbExecutor) {
   return { states, methods, loadouts, nodes };
 }
 
-async function verifyCompleted(
+function verifyCompleted(
   id: string,
   target: Awaited<ReturnType<typeof readTarget>>,
   receipt: Receipt,
   character: Character,
-  q: DbExecutor,
+  insightCount: number,
 ) {
   const plan = receipt.plan;
   const state = target.states.find((s) => s.membershipId === id);
@@ -225,7 +225,7 @@ async function verifyCompleted(
   if (
     receipt.insightItems.after - receipt.insightItems.before !==
       migrationInsightQuantity(plan.refund.comprehensionInsight) ||
-    (await insightItemCount(character.id, q)) !== receipt.insightItems.after
+    insightCount !== receipt.insightItems.after
   )
     throw new Error('感悟补偿道具数量与迁移凭证不一致');
 }
@@ -341,6 +341,10 @@ export async function sectMigrationReport(): Promise<SectMigrationReport> {
             )
         : [];
       const target = await readTarget(ids, tx);
+      const insightCounts = await insightItemCounts(
+        characters.map((c) => c.id),
+        tx,
+      );
       for (const membership of memberships) {
         if (!ids.includes(membership.id))
           report.issues.push(`升级清单缺少当前宗门成员 ${membership.id}`);
@@ -377,12 +381,12 @@ export async function sectMigrationReport(): Promise<SectMigrationReport> {
           );
           if (raw) {
             const receipt = JSON.parse(raw.value) as Receipt;
-            await verifyCompleted(
+            verifyCompleted(
               source.membershipId,
               target,
               receipt,
               character,
-              tx,
+              insightCounts.get(character.id) ?? 0,
             );
             row.status = 'completed';
           } else {
@@ -415,7 +419,146 @@ export async function sectMigrationReport(): Promise<SectMigrationReport> {
   );
 }
 
-async function migrateMember(source: LegacySectMember, operatorId: string) {
+async function migrateMember(
+  source: LegacySectMember,
+  operatorId: string,
+  maintenance: boolean,
+) {
+  const migrate = (assertHeld?: () => void) =>
+    db.transaction(async (tx) => {
+      if (!maintenance)
+        await lockCultivatorForStateMutation(tx, source.cultivatorId);
+      const [raw] = await tx
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, RECEIPT_PREFIX + source.membershipId));
+      if (raw) {
+        return 'skipped' as const;
+      }
+      const [pending] = await tx
+        .select()
+        .from(appSettings)
+        .where(eq(appSettings.key, QUEUE_PREFIX + source.membershipId))
+        .for('update');
+      if (
+        !pending ||
+        JSON.stringify(
+          LegacySectMemberSchema.parse(JSON.parse(pending.value)),
+        ) !== JSON.stringify(source)
+      )
+        throw new Error('旧宗门待处理记录已变化');
+      await assertInventoryIdle(source.cultivatorId, undefined, tx);
+      const [membership] = await tx
+        .select()
+        .from(sectMemberships)
+        .where(
+          and(
+            eq(sectMemberships.id, source.membershipId),
+            eq(sectMemberships.status, 'active'),
+          ),
+        )
+        .for('update');
+      const [character] = await tx
+        .select()
+        .from(cultivators)
+        .where(eq(cultivators.id, source.cultivatorId));
+      if (
+        !character ||
+        character.status !== 'active' ||
+        !membership ||
+        membership.cultivatorId !== source.cultivatorId ||
+        membership.sectId !== source.sectId
+      )
+        throw new Error('角色或宗门成员归属已变化');
+      const target = await readTarget([source.membershipId], tx);
+      if (
+        target.states.length ||
+        target.methods.length ||
+        target.loadouts.length
+      )
+        throw new Error('已有新版宗门数据，禁止覆盖');
+      const plan = planLegacySectMigration(source);
+      validatePlan(source, character, plan);
+      const before = balances(character);
+      const insightBefore = await insightItemCount(character.id, tx);
+      const after = expectedBalances(before, plan.refund);
+      await tx.insert(sectCombatStates).values({
+        membershipId: source.membershipId,
+        activePathId: plan.activePathId,
+        meridianDepth: plan.meridianDepth,
+        revision: 1,
+      });
+      await tx.insert(sectMethodProgress).values(
+        plan.methods.map((m) => ({
+          ...m,
+          membershipId: source.membershipId,
+        })),
+      );
+      if (plan.activePathId)
+        await tx.insert(sectMeridianLoadouts).values(
+          plan.pathIds.map((pathId) => ({
+            membershipId: source.membershipId,
+            pathId,
+            revision: 0,
+          })),
+        );
+      await refundResources(character, plan.refund, tx);
+      await new ResourceEventCommitter().commit(tx, {
+        actor: { userId: character.userId, cultivatorId: character.id },
+        source: 'sect-migration-v1',
+        requestId: source.membershipId,
+        scopeDefaults: { cultivatorId: character.id },
+        changes: (
+          [
+            'player.sect-combat',
+            'player.currency',
+            'player.progress',
+            'inventory.bag',
+          ] as const
+        ).map((resourceTopic) => ({
+          resourceTopic,
+          operation: 'invalidate',
+          eventType: 'sect.migrated',
+        })),
+      });
+      const receipt: Receipt = {
+        source,
+        plan,
+        before,
+        after,
+        insightItems: {
+          before: insightBefore,
+          after:
+            insightBefore +
+            migrationInsightQuantity(plan.refund.comprehensionInsight),
+          facts: migrationInsightFacts,
+        },
+        completedAt: new Date().toISOString(),
+        operatorId,
+      };
+      const [updated] = await tx
+        .select()
+        .from(cultivators)
+        .where(eq(cultivators.id, character.id));
+      verifyCompleted(
+        source.membershipId,
+        await readTarget([source.membershipId], tx),
+        receipt,
+        updated,
+        await insightItemCount(character.id, tx),
+      );
+      await tx.insert(appSettings).values({
+        key: RECEIPT_PREFIX + source.membershipId,
+        value: JSON.stringify(receipt),
+        updatedBy: operatorId,
+      });
+      await tx
+        .delete(appSettings)
+        .where(eq(appSettings.key, QUEUE_PREFIX + source.membershipId));
+      assertHeld?.();
+      return 'completed' as const;
+    });
+  if (maintenance) return migrate();
   return withRedisLock(
     {
       key: redisLockKeys.cultivatorMutation(source.cultivatorId),
@@ -423,157 +566,34 @@ async function migrateMember(source: LegacySectMember, operatorId: string) {
       timeoutMs: 30000,
       retries: 0,
     },
-    async (lease) =>
-      db.transaction(async (tx) => {
-        await lockCultivatorForStateMutation(tx, source.cultivatorId);
-        const [raw] = await tx
-          .select()
-          .from(appSettings)
-          .where(eq(appSettings.key, RECEIPT_PREFIX + source.membershipId));
-        if (raw) {
-          return 'skipped' as const;
-        }
-        const [pending] = await tx
-          .select()
-          .from(appSettings)
-          .where(eq(appSettings.key, QUEUE_PREFIX + source.membershipId))
-          .for('update');
-        if (
-          !pending ||
-          JSON.stringify(
-            LegacySectMemberSchema.parse(JSON.parse(pending.value)),
-          ) !== JSON.stringify(source)
-        )
-          throw new Error('旧宗门待处理记录已变化');
-        await assertInventoryIdle(source.cultivatorId);
-        const [membership] = await tx
-          .select()
-          .from(sectMemberships)
-          .where(
-            and(
-              eq(sectMemberships.id, source.membershipId),
-              eq(sectMemberships.status, 'active'),
-            ),
-          )
-          .for('update');
-        const [character] = await tx
-          .select()
-          .from(cultivators)
-          .where(eq(cultivators.id, source.cultivatorId));
-        if (
-          !character ||
-          character.status !== 'active' ||
-          !membership ||
-          membership.cultivatorId !== source.cultivatorId ||
-          membership.sectId !== source.sectId
-        )
-          throw new Error('角色或宗门成员归属已变化');
-        const target = await readTarget([source.membershipId], tx);
-        if (
-          target.states.length ||
-          target.methods.length ||
-          target.loadouts.length
-        )
-          throw new Error('已有新版宗门数据，禁止覆盖');
-        const plan = planLegacySectMigration(source);
-        validatePlan(source, character, plan);
-        const before = balances(character);
-        const insightBefore = await insightItemCount(character.id, tx);
-        const after = expectedBalances(before, plan.refund);
-        await tx.insert(sectCombatStates).values({
-          membershipId: source.membershipId,
-          activePathId: plan.activePathId,
-          meridianDepth: plan.meridianDepth,
-          revision: 1,
-        });
-        await tx.insert(sectMethodProgress).values(
-          plan.methods.map((m) => ({
-            ...m,
-            membershipId: source.membershipId,
-          })),
-        );
-        if (plan.activePathId)
-          await tx.insert(sectMeridianLoadouts).values(
-            plan.pathIds.map((pathId) => ({
-              membershipId: source.membershipId,
-              pathId,
-              revision: 0,
-            })),
-          );
-        await refundResources(character, plan.refund, tx);
-        await new ResourceEventCommitter().commit(tx, {
-          actor: { userId: character.userId, cultivatorId: character.id },
-          source: 'sect-migration-v1',
-          requestId: source.membershipId,
-          scopeDefaults: { cultivatorId: character.id },
-          changes: (
-            [
-              'player.sect-combat',
-              'player.currency',
-              'player.progress',
-              'inventory.bag',
-            ] as const
-          ).map((resourceTopic) => ({
-            resourceTopic,
-            operation: 'invalidate',
-            eventType: 'sect.migrated',
-          })),
-        });
-        const receipt: Receipt = {
-          source,
-          plan,
-          before,
-          after,
-          insightItems: {
-            before: insightBefore,
-            after:
-              insightBefore +
-              migrationInsightQuantity(plan.refund.comprehensionInsight),
-            facts: migrationInsightFacts,
-          },
-          completedAt: new Date().toISOString(),
-          operatorId,
-        };
-        const [updated] = await tx
-          .select()
-          .from(cultivators)
-          .where(eq(cultivators.id, character.id));
-        await verifyCompleted(
-          source.membershipId,
-          await readTarget([source.membershipId], tx),
-          receipt,
-          updated,
-          tx,
-        );
-        await tx.insert(appSettings).values({
-          key: RECEIPT_PREFIX + source.membershipId,
-          value: JSON.stringify(receipt),
-          updatedBy: operatorId,
-        });
-        await tx
-          .delete(appSettings)
-          .where(eq(appSettings.key, QUEUE_PREFIX + source.membershipId));
-        lease.assertHeld();
-        return 'completed' as const;
-      }),
+    (lease) => migrate(() => lease.assertHeld()),
   );
 }
 
 async function insightItemCount(owner: string, q: DbExecutor) {
+  return (await insightItemCounts([owner], q)).get(owner) ?? 0;
+}
+
+async function insightItemCounts(owners: string[], q: DbExecutor) {
+  if (!owners.length) return new Map<string, number>();
   const rows = await q
-    .select({ quantity: inventoryItems.quantity })
+    .select({
+      owner: inventoryItems.cultivatorId,
+      quantity: sql<string>`sum(${inventoryItems.quantity})`,
+    })
     .from(inventoryItems)
     .where(
       and(
-        eq(inventoryItems.cultivatorId, owner),
+        inArray(inventoryItems.cultivatorId, owners),
         eq(inventoryItems.definitionId, 'consumable.v1'),
         eq(
           inventoryItems.stackKey,
           inventoryStackKey('consumable.v1', migrationInsightFacts)!,
         ),
       ),
-    );
-  return rows.reduce((sum, row) => sum + row.quantity, 0);
+    )
+    .groupBy(inventoryItems.cultivatorId);
+  return new Map(rows.map((row) => [row.owner, Number(row.quantity)]));
 }
 
 async function refundResources(
@@ -602,13 +622,18 @@ async function refundResources(
   );
 }
 
-export async function executeSectMigration(ids: string[], operatorId: string) {
+type MigrationResult = { membershipId: string; status: string; error?: string };
+
+/** Shared by the admin batch endpoint and the temporary offline CLI. */
+export async function* streamSectMigration(
+  ids: string[],
+  operatorId: string,
+  maintenance = false,
+): AsyncGenerator<MigrationResult> {
   const preflight = await sectMigrationReport();
   if (!preflight.enabled) throw new Error('请先完成数据库结构升级');
   if (preflight.issues.length) throw new Error(preflight.issues.join('；'));
-  const results: { membershipId: string; status: string; error?: string }[] =
-    [];
-  for (const id of new Set(ids)) {
+  async function migrateId(id: string): Promise<MigrationResult> {
     try {
       const [raw] = await db
         .select()
@@ -620,23 +645,36 @@ export async function executeSectMigration(ids: string[], operatorId: string) {
           .from(appSettings)
           .where(eq(appSettings.key, RECEIPT_PREFIX + id));
         if (!receipt) throw new Error('没有待处理记录或迁移凭证');
-        results.push({ membershipId: id, status: 'skipped' });
-        continue;
+        return { membershipId: id, status: 'skipped' };
       }
       const source = LegacySectMemberSchema.parse(JSON.parse(raw.value));
       if (source.membershipId !== id) throw new Error('来源成员 ID 不一致');
-      results.push({
+      return {
         membershipId: id,
-        status: await migrateMember(source, operatorId),
-      });
+        status: await migrateMember(source, operatorId, maintenance),
+      };
     } catch (error) {
-      results.push({
+      return {
         membershipId: id,
         status: 'failed',
         error: error instanceof Error ? error.message : '迁移失败',
-      });
+      };
     }
   }
+  const uniqueIds = [...new Set(ids)];
+  const concurrency = maintenance ? 16 : 1;
+  for (let offset = 0; offset < uniqueIds.length; offset += concurrency) {
+    const results = await Promise.all(
+      uniqueIds.slice(offset, offset + concurrency).map(migrateId),
+    );
+    for (const result of results) yield result;
+  }
+}
+
+export async function executeSectMigration(ids: string[], operatorId: string) {
+  const results: MigrationResult[] = [];
+  for await (const result of streamSectMigration(ids, operatorId))
+    results.push(result);
   return results;
 }
 

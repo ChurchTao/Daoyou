@@ -1,23 +1,8 @@
-import { QI_RESTORE_TALISMAN_SCENARIOS } from '../config/qiSystem';
 import type { ArtifactMigrationPlan } from '../contracts/artifactMigration';
 import { EQUIPMENT_LEVELS } from '../engine/combat-v6/equipment/realm';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
-import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { legacyRecord } from '../legacy/products';
 import { REALM_VALUES, type RealmType } from '../types/constants';
-
-const smallQiTalisman = QI_RESTORE_TALISMAN_SCENARIOS.qi_restore_small;
-export const artifactMigrationTalismanFacts = ConsumableFactsSchema.parse({
-  name: smallQiTalisman.label,
-  type: '符箓',
-  quality: '凡品',
-  description: `聚拢天地清气的符箓，使用后恢复${smallQiTalisman.amount}点天地灵气。`,
-  spec: {
-    kind: 'talisman',
-    scenario: 'qi_restore_small',
-    sessionMode: 'consume_on_action',
-  },
-});
 
 /** Scores affect blueprint quantity only; every valid source grants one equipment. */
 export function artifactBlueprintCount(score: number): number {
@@ -58,16 +43,7 @@ export function artifactMigrationPlan(source: {
     ...artifactMigrationRealm(source.productModel),
     blueprints: artifactBlueprintCount(source.score),
     spiritStones: source.quality === '神品' ? 500_000 : 0,
-    bonusGrants:
-      source.quality === '神品'
-        ? [
-            {
-              definitionId: 'consumable.v1',
-              quantity: 1,
-              instanceData: artifactMigrationTalismanFacts,
-            },
-          ]
-        : [],
+    bonusGrants: [],
   };
 }
 export function drawArtifactBlueprints(
