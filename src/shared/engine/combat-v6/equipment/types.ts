@@ -1,0 +1,195 @@
+import type { Attributes } from '@shared/types/cultivator';
+import type { ElementType } from '@shared/types/constants';
+import type { SkillDef, StatusDef } from '../core/index.ts';
+import type { DaoWeaponType } from './weapons';
+import type {
+  CombatV6PanelContribution,
+  CombatV6ProjectionDiagnostic,
+} from '../projection/types.ts';
+
+export const DAO_EQUIPMENT_GENERATOR_VERSION =
+  'dao_equipment_generator_v1' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V2 =
+  'dao_equipment_generator_v2' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V3 =
+  'dao_equipment_generator_v3' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V4 =
+  'dao_equipment_generator_v4' as const;
+export const DAO_EQUIPMENT_GENERATOR_VERSION_V5 =
+  'dao_equipment_generator_v5' as const;
+export type DaoEquipmentGeneratorVersion =
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V2
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V3
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V4
+  | typeof DAO_EQUIPMENT_GENERATOR_VERSION_V5;
+
+export const DAO_EQUIPMENT_SLOTS = [
+  'weapon',
+  'head',
+  'armor',
+  'necklace',
+  'belt',
+  'footwear',
+] as const;
+
+export type DaoEquipmentSlot = (typeof DAO_EQUIPMENT_SLOTS)[number];
+
+export type CombatV6PanelAttr =
+  | 'physicalAtk'
+  | 'physicalDef'
+  | 'magicAtk'
+  | 'magicDef'
+  | 'maxHp'
+  | 'maxMp'
+  | 'healPower'
+  | 'speed'
+  | 'hit'
+  | 'dodge'
+  | 'critRate'
+  | 'spellCritRate'
+  | 'physicalFuryRate'
+  | 'sealHit'
+  | 'sealResist';
+
+export type DaoEquipmentAttribute = keyof Attributes;
+
+export interface DaoEquipmentPanelRoll {
+  attr: CombatV6PanelAttr;
+  value: number;
+}
+
+export interface DaoEquipmentAttributeRoll {
+  attr: DaoEquipmentAttribute;
+  value: number;
+}
+
+export interface DaoFormationInscriptionStateV1 {
+  patternId: string;
+  level: number;
+}
+
+export interface DaoEquipmentInstanceV1 {
+  schemaVersion: 1;
+  numericVersion: 2;
+  baseQuality: number;
+  id: string;
+  templateId: string;
+  name: string;
+  desc?: string;
+  /** 铸造时的角色名称快照，不随角色改名或装备转手变化。 */
+  crafterName?: string;
+  /** 锻造时固定的八行属性；旧装备可缺省，精修不会重抽。 */
+  element?: ElementType;
+  slot: DaoEquipmentSlot;
+  /** 旧法兵缺省时视为剑；新打造法兵显式保存。 */
+  weaponType?: DaoWeaponType;
+  equipmentLevel: number;
+  requiredLevel: number;
+  baseStats: DaoEquipmentPanelRoll[];
+  attributeBonuses: DaoEquipmentAttributeRoll[];
+  essenceIds: string[];
+  artId?: string;
+  /** 固定双孔；空孔保存为 null，不按装备境界增减孔数。 */
+  formationInscriptions: [DaoFormationInscriptionStateV1 | null, DaoFormationInscriptionStateV1 | null];
+  appraisalState: 'appraised';
+  generatorVersion: DaoEquipmentGeneratorVersion;
+  createdAt: string;
+}
+
+export type DaoEquipmentLoadoutV1 = Partial<
+  Record<DaoEquipmentSlot, DaoEquipmentInstanceV1>
+>;
+
+export interface DaoEquipmentTemplateV1 {
+  id: string;
+  name: string;
+  slot: DaoEquipmentSlot;
+  baseStats: Array<{
+    attr: CombatV6PanelAttr;
+    ranges: Array<{ level: number; normal: [number, number]; enhanced: [number, number] }>;
+  }>;
+}
+
+export interface DaoFormationInscriptionDefV1 {
+  id: string;
+  name: string;
+  attr: CombatV6PanelAttr;
+  valuePerLevel: number;
+  allowedSlots: DaoEquipmentSlot[];
+}
+
+export interface DaoEquipmentEssenceDefV1 {
+  id: string;
+  name: string;
+  allowedSlots?: DaoEquipmentSlot[];
+  stackPolicy: 'stack' | 'unique' | 'highest';
+  conflictGroup?: string;
+  panel?: CombatV6PanelContribution[];
+  description?: string;
+  passive?: SkillDef;
+  requiredStageOffset?: number;
+  resourceGainFactors?: Record<string, number>;
+  resourceCostFactors?: Record<string, number>;
+}
+
+export interface DaoEquipmentArtDefV1 {
+  id: string;
+  name: string;
+  description: string;
+  allowedSlots?: DaoEquipmentSlot[];
+  rageCost: number;
+  skill: SkillDef;
+  statusDefs?: StatusDef[];
+}
+
+export interface GenerateDaoEquipmentV1Input {
+  id: string;
+  createdAt: string;
+  seed: number;
+  baseQuality?: number;
+  templateId: string;
+  equipmentLevel: number;
+  generatorVersion: typeof DAO_EQUIPMENT_GENERATOR_VERSION;
+}
+
+export interface GenerateDaoEquipmentV2Input extends Omit<
+  GenerateDaoEquipmentV1Input,
+  'generatorVersion'
+> {
+  generatorVersion: typeof DAO_EQUIPMENT_GENERATOR_VERSION_V2;
+}
+
+export type DaoEquipmentGenerationResult =
+  | {
+      ok: true;
+      instance: DaoEquipmentInstanceV1;
+      diagnostics: CombatV6ProjectionDiagnostic[];
+    }
+  | { ok: false; diagnostics: CombatV6ProjectionDiagnostic[] };
+
+export type DaoEquipmentProjectionV1 = {
+  attributeBonuses: Attributes;
+  panel: DaoEquipmentPanelRoll[];
+  diagnostics: CombatV6ProjectionDiagnostic[];
+};
+
+export type CompileDaoEquipmentLoadoutV1Result =
+  | { ok: true; projection: DaoEquipmentProjectionV1 }
+  | { ok: false; diagnostics: CombatV6ProjectionDiagnostic[] };
+
+export type DaoEquipmentSpecialProjectionV1 = DaoEquipmentProjectionV1 & {
+  effectiveEssenceIds: string[];
+  grantedArtIds: string[];
+  skills: SkillDef[];
+  statusDefs: StatusDef[];
+  passiveSkillIds: string[];
+  skillOverrides: SkillDef[];
+  effectiveRequiredLevels: Partial<Record<DaoEquipmentSlot, number>>;
+  rageGainFactor: number;
+  rageCostFactor: number;
+};
+
+export type CompileDaoEquipmentSpecialLoadoutV1Result =
+  | { ok: true; projection: DaoEquipmentSpecialProjectionV1 }
+  | { ok: false; diagnostics: CombatV6ProjectionDiagnostic[] };

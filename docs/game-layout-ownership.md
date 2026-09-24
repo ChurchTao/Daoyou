@@ -3,18 +3,31 @@
 ## `/game` 路由归属
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
-- `GameNarrativeLayout`：`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的分幕演出
-- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft*`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`、`/game/bet-battle`
+- `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的沉浸页。`/game/story` 用剧情播放器读当前演出；本地开发另有 `/game/story/preview`：按演出编号读取同一套配置来看，不写进度。
+- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
-- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、`/game/bet-battle/challenge`、`/game/training-room`、宗门任务战斗
-- `GameMapLayout`：`/game/map`
+- `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
+- `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
+- `GameMapLayout`：`/game/map`、`/game/map-v2`
 - `GameDungeonLayout`：`/game/dungeon`
 
 ## 共享组件归位
 
+- 洞府「育兽室」进入 `/game/beast-room`，复用炼丹房的 `RoomView` 设施选择界面，可分别进入灵兽袋和灵兽融合；「储藏室」「灵田」直接进入各自页面。旧 `/game/craft` 造物仙炉汇总页已删除，炼丹房与炼器室保留独立入口。
+
+- `/game/beasts` 归属 `GameViewportLayout`，使用 `GameSceneFrame` 展示灵兽袋（拥有上限 24，只选最多 6 只出战编组）；桌面左侧名册、右侧属性与技能，移动端名册在上。技能使用统一浮层，加点在面板内预分配并弹窗确认，学习兽诀抽屉复用通用物品栏；战斗中的召唤选择仍由 v6 指令组件负责。
+- `/game/beasts/fusion` 为同壳独立融合页，从灵兽袋进入。左右灵兽位对照资质、成长与技能，中央水墨炉提供预览入口；移动端保持双列对照，融合操作移至下方。选择与确认使用辅助抽屉，结果原地展示；请求持久化至会话存储，刷新后可恢复同一次融合。结果通过 `/game/beasts?beast=个体ID` 定位回灵兽袋。
+- 全局地图、野外与坊市选址入口统一进入 `/game/map-v2`；旧 `/game/map` 仅作为兼容地址，通过 replace 重定向保留查询参数，旧 DOM 页面及专属组件已删除；正式地图统一登记为 `map` 场景，兼容地址不再拥有独立场景。
+- `/game/map-v2` 是 Phaser 沉浸地图，接入世界总览与天南、慕兰草原、乱星海、大晋皇朝、南疆、北境冰原。地图路由拥有自身顶部控件，访宗专属 `SectVisitSceneChrome` 不参与世界地图绘制：左上角为“关闭地图 / 返回上层”，右上角采用紧凑单行工具条，合并区域名、直接可输入的地点搜索框与类型下拉，搜索结果和类型选项在下方就地展开。关闭固定返回洞府，上层返回人界总览；只保留一个非模态节点信息与操作面板，画布负责地形、镜头与标记。`types` 保存筛选，玩法历史项的 `mapReturnTo` 保留直接返回来源。
+- `/game/wild` 在 `CombatV6Layout` 中分为寻觅准备页和既有 V6 战斗页。准备页由节点配置驱动，使用统一 `InkButton`、`GameLoadingState`、`BeastIcon` 与语义配色；只展示本次物种、等级、成年／幼崽及两个动作。每次寻觅消耗 2 点天地灵气，捕捉在战斗中完成。见 [野外寻觅](combat-v6-wild-seeking.md)。
+- `/game/tower` 使用主流程壳展示挑战、祝福和周榜；活动战斗跳转 `/game/tower/battle` 的既有沉浸壳，复用 v6 公共战斗组件。结算播放结束后返回幻境，不在入口正文嵌入旧战斗播放器。
+- `/game/rankings` 保留榜单主流程壳；`/game/battle/challenge` 使用 v6 公共回放播放器自动逐行动播放服务端已结算的挑战，播放完成后展示名次摘要。挑战请求 UUID 保留在 URL，刷新及失败后恢复同一结果，观看不占用角色。
+
+- v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
 - 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
+- `/game/cultivator` 使用「人物属性 / 先天设定 / 所修功法 / 肉身修炼」四页签，桌面左侧纵向排列，移动端顶部横向排列，URL 的 `tab=innate|manuals|body` 支持直达。人物属性独占左侧墨像与右侧姓名、名号、境界、宗门和寿元，随后显示气血法力、状态、战斗属性与六维加点、修为。先天设定合并先天灵根（仅原始强度）、命格与人物志，转世重修置于该页末尾；后天灵根增益仅在肉身修炼的洗髓区域展示。所修功法复用 `ManualRoom`；肉身修炼按肉身阶位、五轨修炼、洗髓、灵根后天增益排序，以浅底色分组突出阶位与等级，五轨直接展示实际战斗收益的简短说明与进度，不设展开详情，升阶条件按需展开；洗髓保留破限操作，后天灵根突出增益并辅以先天与当前强度。各页签不重复身份资料或场景壳，以留白分组。旧功法、炼体、洗髓地址继续重定向并透传参数，旧加点地址进入人物属性加点状态。加点预览仍走只读 V6 投影接口。
 - 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
-- 跨玩法复用的分幕演出舞台放在 `src/react-app/components/feature/narrative/`
+- 剧情演出播放器在 `src/react-app/components/feature/performance/PerformancePlayer.tsx`。配图铺满自己的那一块，不加边框和边距；手机上它只是一截辅助，字占主要位置。没有配图时不留画框，场景说明改写在简上。眼前、旁白和人物说的话三种样子分开。点简文继续，第一下只把当前句看完；选项写在简上，看完才离开这一幕。回看翻开前面的字，离开不推进剧情。本地开发的 `/game/story/preview` 用同一播放器按演出编号观看，不写进度。页面教学播放器在 `src/react-app/components/feature/guide/GuideOverlay.tsx`，挂在主流程壳和山河舆图壳上。只有当前这一幕的配置要求这场教学时才挖孔；看完才记下，先不看不记。没有教学的幕不会因为地址上带着 `guide` 而罩住页面。丹房第一课是 `guide=alchemy-first-furnace`。青溪一课是 `guide=map-qingxi`，只在文字舆图上指出天南和青溪坡。灵兽袋一课是 `guide=beast-pouch`，指出袋子、名册和详情。洞府一课是 `guide=cave-layout`，指出洞府内、灵眼之泉和出洞府。炼器一课是 `guide=forge-first-weapon`，指出器炉、图录和开炉；看完还要真的铸成法兵。山门一课是 `guide=sect-door`，只给散修指出身份和自愿的门；看完不结束这一幕，拜入任一宗才过。宗门入门仍用 `src/react-app/components/feature/narrative/` 的旧舞台，两者不共用画面和操作。
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`
 - 清扫摇杆使用 `phaser4-rex-plugins` 的 Virtual Joystick，并由清扫 Phaser runtime 持有、渲染和销毁；采掘放索按钮仍是玩法私有 DOM 控件。各玩法 runtime 与服务端重放规则保持独立
 - PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口
@@ -38,3 +51,21 @@
 - `InkPageShell` 当前只允许 auth 流程通过 `AuthPageShell` 间接使用，不再属于游戏主流程布局组件
 - `quickActionGroups`、`QuickActionsGrid`、`useHomeViewModel` 不再作为导航或首页编排来源
 - `components/game-shell/immersiveSceneDescriptor.ts` 已废弃；副本或专属页需要私有 scene descriptor 时，放在对应路由族内部
+
+### 人物属性排版约束
+
+人物属性顶部采用左侧透明墨像、右侧身份资料，桌面墨像约 120 × 140px，移动端约 84 × 108px。资源条通栏，战斗属性与六维根基桌面并排、窄屏堆叠，数值右对齐并使用 `font-mono`；每组内部保持固定行序，不再自动拆成多列。加点控件手机保留 44px 触控区域，窄屏变化摘要靠近确认操作。正文仅在资源状态与属性区域之间保留一条细分隔线，其余通过标题和留白分组。先天设定以浅底分组：灵根突出元素图标、名称与先天强度，品阶使用现有 `InkBadge`；命格在宽屏并列、手机堆叠，名称与品级同排并沿用品阶色，外部仅保留图标、名称、品级和详情入口，所有效果与描述均进入详情。人物志将短字段与生平长文分组，长文本自然换行，不再将所有信息铺成同权重的资料行。身份、头像、后天增益均不重复出现在先天设定中。
+
+- `/game/divination` 使用主流程壳与独立 Phaser 案台；React 持有方向选择、SSE 签文与领取状态，Phaser 负责底画、骰子点数及掷骰演出。洞府与扩展导航提供每日占卜入口。
+
+## 悟道室（2026-09-21）
+
+`/game/enlightenment` 在 `GameViewportLayout` 下提供独立典籍参悟流程，由 `EnlightenmentRoom` 拥有四格选材、概率、费用确认和结果展示。洞府与展开导航提供悟道室入口；旧 `/game/enlightenment/gongfa`、`replace`、`skill` 仍沿用既有角色页重定向，不承担新典籍参悟。
+
+## 阵纹室（2026-09-23）
+
+`/game/inscriptions` 归属 `GameViewportLayout`，洞府与展开导航提供入口。`InscriptionRoom` 持有绘制／强化／烙印三个页签、四格堆叠材料、背包选择、双孔操作和费用确认；桌面左右布局，手机使用物品抽屉。共享物品格与预览沿用原组件，绘制台使用独立透明水墨素材。规则见 [阵纹室](inscription-room.md)。
+
+临时旧功法传承页 `/game/manual-migration` 属于 `GameViewportLayout`，使用 `manual-migration` scene 与 workflow 正文；洞府“洞府内”快捷区固定显示入口，无待兑换资产时在页面内展示空状态。自选与一次性兑换领取在该页面完成，工具删除边界见 `docs/manual-migration.md`。
+
+临时旧法宝焕新页 `/game/artifact-migration` 属于 `GameViewportLayout`，使用 `artifact-migration` scene 与 workflow 正文；洞府“洞府内”快捷区固定显示入口，无待兑换资产时在页面内展示空状态。选部位、确认兑换和奖励预览在该页面完成，删除边界见 `docs/artifact-migration.md`。

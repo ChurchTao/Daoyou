@@ -1,21 +1,19 @@
+import { InkButton } from '@app/components/ui/InkButton';
+import { AdminPageHeader } from '../_components/AdminPage';
 import { RedeemCodesTable } from './_components/RedeemCodesTable';
-
 export default function RedeemCodesPage() {
   return (
-    <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <p className="text-ink-secondary text-xs tracking-[0.2em]">
-          REDEEM CODES
-        </p>
-        <h2 className="font-heading text-ink mt-2 text-4xl">兑换码管理</h2>
-        <p className="text-ink-secondary mt-2 text-sm">
-          管理兑换码状态、名额与生效时间，奖励通过游戏内邮件发放。
-        </p>
-      </header>
-
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <RedeemCodesTable />
-      </section>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="兑换码"
+        description="查看领取情况，管理奖励与有效期。"
+        actions={
+          <InkButton href="/admin/redeem-codes/new" variant="primary">
+            新建兑换码
+          </InkButton>
+        }
+      />
+      <RedeemCodesTable />
     </div>
   );
 }

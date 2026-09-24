@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import { useTypewriter } from '@app/lib/hooks/useTypewriter';
 import type {
   NarrativeAct,
@@ -191,15 +192,12 @@ export function NarrativePerformanceStage({
       className="relative isolate min-h-[100svh] overflow-hidden bg-[#111713] text-[#f5efdf]"
       aria-label={script.title}
     >
-      <div
+      <GameImage
         key={act.id}
-        role="img"
-        aria-label={script.backdrop.alt}
-        className="absolute inset-0 -z-20 scale-[1.03] bg-cover bg-center motion-safe:animate-[narrative-drift_18s_ease-out_forwards]"
-        style={{
-          backgroundImage: `url(${script.backdrop.src})`,
-          backgroundPosition: act.backgroundPosition,
-        }}
+        src={script.backdrop.src}
+        alt={script.backdrop.alt}
+        className="pointer-events-none absolute inset-0 -z-20 size-full scale-[1.03] object-cover object-center motion-safe:animate-[narrative-drift_18s_ease-out_forwards]"
+        style={{ objectPosition: act.backgroundPosition }}
       />
       <div
         className={`absolute inset-0 -z-10 ${toneWash[act.tone ?? script.theme]}`}

@@ -1,15 +1,12 @@
 import type { DbTransaction } from '@server/lib/drizzle/db';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
+import { playerCommandExecutor } from './CommandExecutors';
 import {
   FateReshapeService,
   prepareFateReshapeConfirmation,
   prepareFateReshapeStart,
 } from './FateReshapeService';
-import {
-  redisLockKeys,
-  withRedisLock,
-} from '@server/lib/redis/lock';
-import { playerCommandExecutor } from './CommandExecutors';
 
 export function startFateReshapeCommand(args: {
   userId: string;
@@ -42,8 +39,9 @@ export function startFateReshapeCommand(args: {
         },
       });
       await afterCommit?.();
-      const talismanCount =
-        await FateReshapeService.getAvailableTalismanCount(args.cultivatorId);
+      const talismanCount = await FateReshapeService.getAvailableTalismanCount(
+        args.cultivatorId,
+      );
       return {
         ...committed,
         result: { ...committed.result, talismanCount },
@@ -114,29 +112,13 @@ export async function executeFateReshapeStartCommand(
   return {
     result: { session: committed.session },
     resourceChanges: committed.consumption
-      ? committed.consumption.removed
-        ? [
-            {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.fate_reshape.consumed',
-              operation: 'remove-items',
-              payload: {
-                idKey: 'id',
-                ids: [committed.consumption.itemId],
-              },
-            },
-          ]
-        : [
-            {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.fate_reshape.consumed',
-              operation: 'upsert-items',
-              payload: {
-                idKey: 'id',
-                items: [committed.consumption.remaining!],
-              },
-            },
-          ]
+      ? [
+          {
+            resourceTopic: 'inventory.consumables',
+            eventType: 'inventory.fate_reshape.consumed',
+            operation: 'invalidate',
+          },
+        ]
       : [],
     afterCommit: committed.afterCommit,
   };
@@ -146,7 +128,9 @@ export async function executeFateReshapeConfirmationCommand(
   prepared: PreparedFateReshapeConfirmation,
   tx: DbTransaction,
 ): Promise<{
-  result: { selectedFates: Awaited<ReturnType<typeof prepared.commit>>['selectedFates'] };
+  result: {
+    selectedFates: Awaited<ReturnType<typeof prepared.commit>>['selectedFates'];
+  };
   resourceChanges: ResourceChangeDescriptor[];
   afterCommit?: () => Promise<void>;
 }> {

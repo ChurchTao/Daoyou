@@ -1,0 +1,2230 @@
+{
+  "$schema": "./jiujie-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 3,
+  "baseSkillIds": [
+    "jiujie.skill.thunder_slash",
+    "jiujie.skill.five_thunder",
+    "jiujie.skill.divine_guardian",
+    "jiujie.skill.protection",
+    "jiujie.skill.calm",
+    "jiujie.skill.suppress",
+    "jiujie.skill.confuse",
+    "jiujie.skill.million_weapons",
+    "jiujie.skill.charge"
+  ],
+  "skills": [
+    {
+      "id": "jiujie.skill.thunder_slash",
+      "name": "引雷斩",
+      "description": "引雷入兵，攻击敌方；对战修士仅攻击单体，对战妖物最多攻击3个目标。命中后降低目标法攻、法防各5%，自身物防降低5%，持续3回合。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "if(enemyPlayers > 0, 1, 3)",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.1
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.physical_break",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": "30 * targets",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.magic_break",
+              "duration": 3
+            }
+          ],
+          "when": {
+            "targetEnemy": true,
+            "skillIds": [
+              "jiujie.skill.thunder_slash"
+            ]
+          },
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "jiujie.skill.five_thunder",
+      "name": "五雷天罚",
+      "description": "裁落五雷：50%概率削去目标25%当前气血与法力，气血损失至多人物等级×50；失败仅削去5%当前气血。此术不会直接致死。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.five_thunder",
+          "chance": 0.5,
+          "successEffects": [
+            {
+              "type": "fixedHit",
+              "power": "min(target.hp * 0.25, level * 50)",
+              "percentageDamage": true,
+              "cannotKill": true
+            },
+            {
+              "type": "damageMp",
+              "power": "target.mp * 0.25"
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "fixedHit",
+              "power": "target.hp * 0.05",
+              "percentageDamage": true,
+              "cannotKill": true
+            }
+          ]
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "jiujie.skill.divine_guardian",
+      "name": "天罡护体",
+      "description": "引罡雷护身。霹雳真君提高物攻；踏雷天尊提高法攻与法防。随心法等级持续3至7回合。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.guardian",
+          "duration": "min(7, 3 + floor(skillLevel / 40))",
+          "self": true
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "jiujie.skill.protection",
+      "name": "天罡护法",
+      "description": "为一名队友护法，持续5回合，代其承受物理攻击分担伤害；每个后续回合末消耗10法力，法力不足或自身倒地时失效。",
+      "school": "jiujie",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "explicit",
+        "count": 1,
+        "excludeSelf": true
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.protection",
+          "duration": 5
+        }
+      ],
+      "costMp": 30
+    },
+    {
+      "id": "jiujie.skill.calm",
+      "name": "定神雷音",
+      "description": "解除一名队友1个可解常规封印，并免疫该类封印至此后第2回合结束。不能解除休息或禁复活。",
+      "school": "jiujie",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "control"
+          ],
+          "maxCount": 1,
+          "excludeStatusFlags": [
+            "blocksRevive"
+          ],
+          "immunityRounds": 2
+        }
+      ],
+      "costMp": 30
+    },
+    {
+      "id": "jiujie.skill.suppress",
+      "name": "禁诀敕令",
+      "description": "封禁敌方单体的装备器诀，持续3回合。",
+      "school": "jiujie",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.suppress",
+          "duration": 3,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 45,
+      "sealBase": 55
+    },
+    {
+      "id": "jiujie.skill.confuse",
+      "name": "乱神雷咒",
+      "description": "封住敌方法术，并使其普通攻击随机指向其他在场单位，持续3回合；物理技能不会被扰乱目标。",
+      "school": "jiujie",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.confuse",
+          "duration": 3,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 60,
+      "sealBase": 55
+    },
+    {
+      "id": "jiujie.skill.million_weapons",
+      "name": "封兵敕令",
+      "description": "封住敌方单体的普通攻击，持续3回合。",
+      "school": "jiujie",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.million_weapons",
+          "duration": 3,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 60,
+      "sealBase": 55
+    },
+    {
+      "id": "jiujie.skill.charge",
+      "name": "引劫入体",
+      "description": "承受当前气血25%的消耗，获得1层劫雷灌注。霹雳核心攻击每次消耗1层升一重；踏雷的下一次群雷消耗1层，额外攻击3个目标。层数留存至战斗结束。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": "1 + known.jiujie.passive.leitun * fact.metalWindThunderEquipmentCount"
+        }
+      ],
+      "costMp": 100,
+      "costHp": "hp * 0.25"
+    },
+    {
+      "id": "jiujie.skill.thunderstorm",
+      "name": "万钧雷狱",
+      "description": "召雷攻击3个敌人并留下雷印。有灌注时额外攻击3人，通常消耗1层；修习六霄雷劫后保留灌注。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": "3 + if(resource.jiujie.resource.charge > 0, 3, 0)"
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "skillLevel * 1.5"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1,
+          "when": {
+            "expression": "if(known.jiujie.passive.six, 0, resource.jiujie.resource.charge > 0)"
+          }
+        }
+      ],
+      "costMp": "35 * targets"
+    },
+    {
+      "id": "jiujie.skill.edict",
+      "name": "敕雷",
+      "description": "自行指定全部群雷目标，基础至多3人；灌注额外增加3人。冷却5回合。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": "3 + if(resource.jiujie.resource.charge > 0, 3, 0)"
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "skillLevel * 1.5"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1,
+          "when": {
+            "expression": "if(known.jiujie.passive.six, 0, resource.jiujie.resource.charge > 0)"
+          }
+        }
+      ],
+      "costMp": "35 * targets",
+      "cooldownRounds": 5
+    },
+    {
+      "id": "jiujie.skill.six_thunder",
+      "name": "六霄雷劫",
+      "description": "消耗1层灌注，召来更强的劫雷攻击至多6个敌人，并留下雷印。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": 6
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 1.15,
+          "power": "skillLevel * 1.5"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1,
+          "when": {
+            "expression": 1
+          }
+        }
+      ],
+      "costMp": "35 * targets",
+      "requirement": "resource.jiujie.resource.charge >= 1"
+    },
+    {
+      "id": "jiujie.skill.strike_1",
+      "name": "震岳·一重",
+      "description": "以1重劫雷重击单体。一重无基础休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.35,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.7,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 2.2,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.strike_2",
+      "name": "震岳·二重",
+      "description": "以2重劫雷重击单体。有50%基础概率在下回合休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 2 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.35,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.7,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 2.2,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.strike_3",
+      "name": "震岳·三重",
+      "description": "以3重劫雷重击单体。有50%基础概率在下回合休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 3 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.35,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.7,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 2.2,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.sweep_1",
+      "name": "掠霆·一重",
+      "description": "以1重劫雷掠阵群攻，75级起增加1个目标。一重无基础休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo) + 1 + if(skillLevel >= 75, 1, 0)"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 2
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.15,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.25,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.sweep_2",
+      "name": "掠霆·二重",
+      "description": "以2重劫雷掠阵群攻，75级起增加1个目标。有50%基础概率在下回合休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": "min(5, 2 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo) + 1 + if(skillLevel >= 75, 1, 0)"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 2 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 2
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.15,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.25,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.sweep_3",
+      "name": "掠霆·三重",
+      "description": "以3重劫雷掠阵群攻，75级起增加1个目标。有50%基础概率在下回合休息。灌注与余韵各可提高一重，升至二重及以上后按实际重数承担休息风险。二重仅禁门派技能，三重及以上仅可防御。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": "min(5, 3 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo) + 1 + if(skillLevel >= 75, 1, 0)"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "min(5, 3 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 2
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_kill_sweep",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "jiujie.resource.charge",
+          "amount": -1
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.electric_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0) * if(fact.jiujie_type == 1, 1, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85,
+          "when": {
+            "expression": "fact.jiujie_rank == 1"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 2"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 3"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.15,
+          "when": {
+            "expression": "fact.jiujie_rank == 4"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.25,
+          "when": {
+            "expression": "fact.jiujie_rank == 5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 1) * (fact.jiujie_rank == 5)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 1)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 2)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 3)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 4)"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "(fact.jiujie_type == 2) * (fact.jiujie_rank == 5)"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10"
+    },
+    {
+      "id": "jiujie.skill.tribulation",
+      "name": "九劫归一",
+      "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，人数随实际掠霆重数增加（75级起为重数＋2，至多7人）。可能自损倒地；按较高重数结算一次休息。消耗20×实际目标数＋10法力；施放前需备足场上至多7人的法力。",
+      "school": "jiujie",
+      "tags": [
+        "physical",
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "maxSelected": 1,
+        "count": 7
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "fact.jiujie_single_rank"
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.ultimate_light",
+          "chance": "known.jiujie.passive.dianguang * if(fact.jiujie_rank <= 2, 0.18, 0)",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_rank",
+              "value": "fact.jiujie_rank + 1"
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_single_rank",
+          "value": "fact.jiujie_rank"
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 1",
+            "targetSlot": "primary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.35,
+          "when": {
+            "expression": "fact.jiujie_rank == 2",
+            "targetSlot": "primary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.7,
+          "when": {
+            "expression": "fact.jiujie_rank == 3",
+            "targetSlot": "primary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 4",
+            "targetSlot": "primary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 2.2,
+          "when": {
+            "expression": "fact.jiujie_rank == 5",
+            "targetSlot": "primary"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": 2
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "fact.jiujie_sweep_rank"
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85,
+          "when": {
+            "expression": "fact.jiujie_rank == 1",
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.95,
+          "when": {
+            "expression": "fact.jiujie_rank == 2",
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.05,
+          "when": {
+            "expression": "fact.jiujie_rank == 3",
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.15,
+          "when": {
+            "expression": "fact.jiujie_rank == 4",
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 1.25,
+          "when": {
+            "expression": "fact.jiujie_rank == 5",
+            "targetSlot": "secondary"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_rank",
+          "value": "max(fact.jiujie_single_rank, fact.jiujie_sweep_rank)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_type",
+          "value": "if(fact.jiujie_single_rank > fact.jiujie_sweep_rank, 1, 2)"
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "jiujie.branch.rest",
+          "chance": "if(fact.jiujie_rank >= 2, (0.5 - known.jiujie.passive.jilei * if((fact.jiujie_type == 2) * (fact.jiujie_streak >= 2), 0.1, 0)) * (1 - known.jiujie.passive.shencai * fact.jiujie_kill_sweep * 0.25) * (1 - known.jiujie.passive.qishi * (if((fact.jiujie_type == 1) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_1_1, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_1_2, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_1_3, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_1_4, 0)+if((fact.jiujie_type == 1) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_1_5, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 1), 1 - fact.jiujie_used_2_1, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 2), 1 - fact.jiujie_used_2_2, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 3), 1 - fact.jiujie_used_2_3, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 4), 1 - fact.jiujie_used_2_4, 0)+if((fact.jiujie_type == 2) * (fact.jiujie_rank == 5), 1 - fact.jiujie_used_2_5, 0)) * 0.15), 0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_minor",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank == 2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "jiujie.status.rest_major",
+              "duration": 1,
+              "self": true,
+              "when": {
+                "expression": "fact.jiujie_rank >= 3"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": 0
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "modifyFact",
+              "key": "jiujie_streak",
+              "value": "if(fact.jiujie_rank >= 2, fact.jiujie_streak + 1, fact.jiujie_streak)"
+            }
+          ]
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_1",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_single_rank == 1"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_2",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_single_rank == 2"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_3",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_single_rank == 3"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_4",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_single_rank == 4"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_1_5",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_single_rank == 5"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_1",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_sweep_rank == 1"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_2",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_sweep_rank == 2"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_3",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_sweep_rank == 3"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_4",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_sweep_rank == 4"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "jiujie_used_2_5",
+          "value": 1,
+          "when": {
+            "expression": "fact.jiujie_sweep_rank == 5"
+          }
+        }
+      ],
+      "costMp": "20 * targets + 10",
+      "cooldownRounds": 8,
+      "initialCooldownRounds": 4,
+      "preparation": {
+        "effects": [
+          {
+            "type": "modifyFact",
+            "key": "jiujie_single_rank",
+            "value": "min(5, 1 + if(resource.jiujie.resource.charge > 0, 1, 0) + fact.jiujie_echo)"
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_sweep_rank",
+            "value": "fact.jiujie_single_rank"
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_echo",
+            "value": 0
+          },
+          {
+            "type": "modifyFact",
+            "key": "jiujie_kill_sweep",
+            "value": 0
+          },
+          {
+            "type": "modifyResource",
+            "resourceId": "jiujie.resource.charge",
+            "amount": -1
+          },
+          {
+            "type": "repeat",
+            "min": 2,
+            "max": 9,
+            "effects": [
+              {
+                "type": "loseHp",
+                "power": "maxHp * 0.08",
+                "targeting": {
+                  "side": "self"
+                }
+              },
+              {
+                "type": "randomBranch",
+                "branchId": "jiujie.branch.tribulation_rank",
+                "chance": 0.5,
+                "successEffects": [
+                  {
+                    "type": "modifyFact",
+                    "key": "jiujie_single_rank",
+                    "value": "min(5, fact.jiujie_single_rank + 1)"
+                  }
+                ],
+                "failureEffects": [
+                  {
+                    "type": "modifyFact",
+                    "key": "jiujie_sweep_rank",
+                    "value": "min(5, fact.jiujie_sweep_rank + 1)"
+                  }
+                ]
+              },
+              {
+                "type": "modifyStatusDuration",
+                "categories": [
+                  "control",
+                  "debuff",
+                  "dot"
+                ],
+                "maxCount": 1,
+                "random": true,
+                "amount": -1,
+                "targeting": {
+                  "side": "self"
+                }
+              }
+            ]
+          }
+        ],
+        "targetCount": "fact.jiujie_sweep_rank + 1 + if(skillLevel >= 75, 1, 0)"
+      }
+    },
+    {
+      "id": "jiujie.skill.insight",
+      "name": "天目洞真",
+      "description": "消耗80法力，以天目照彻自身，使物攻、物防、法攻、法防各增加人物等级×2，封命中、封抗各增加人物等级×0.1，持续3回合，可刷新、不叠加。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "jiujie.status.insight",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": 80
+    },
+    {
+      "id": "jiujie.skill.absorb",
+      "name": "摄雷归一",
+      "description": "法术攻击敌方单体，吸收自身施加的雷印并驱散1个增益；吸收普通印时伤害提高75%，赤印提高200%。吸收收益替代该印原有增伤。",
+      "school": "jiujie",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "explicit",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "jiujie_absorb",
+          "value": "if(ownedTargetStatus.jiujie.status.red, 3, if(ownedTargetStatus.jiujie.status.electric, 1.75, 1))"
+        },
+        {
+          "type": "removeStatus",
+          "kinds": [
+            "jiujie.status.electric",
+            "jiujie.status.red"
+          ],
+          "ownedOnly": true
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1,
+          "when": {
+            "expression": "fact.jiujie_absorb > 1"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "skillLevel * 1.5"
+        }
+      ],
+      "costMp": 60,
+      "resourceCosts": [
+        {
+          "resourceId": "combat.resource.rage",
+          "amount": 10
+        }
+      ],
+      "modifiers": [
+        {
+          "damageBonus": "fact.jiujie_absorb - 1",
+          "when": {
+            "skillIds": [
+              "jiujie.skill.absorb"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "jiujie.status.rest_minor",
+      "kind": "jiujie.status.rest_minor",
+      "name": "雷息·二重",
+      "category": "debuff",
+      "school": "jiujie",
+      "dispellable": false,
+      "extendable": false,
+      "blocksNonArtSkills": true
+    },
+    {
+      "id": "jiujie.status.rest_major",
+      "kind": "jiujie.status.rest_major",
+      "name": "雷息·三重",
+      "category": "debuff",
+      "school": "jiujie",
+      "dispellable": false,
+      "extendable": false,
+      "blockedCommands": [
+        "attack",
+        "skill",
+        "item",
+        "summon",
+        "recall",
+        "catch",
+        "protect",
+        "flee"
+      ]
+    },
+    {
+      "id": "jiujie.status.suppress",
+      "kind": "jiujie.status.suppress",
+      "name": "禁诀敕令",
+      "category": "control",
+      "school": "jiujie",
+      "blocksArts": true
+    },
+    {
+      "id": "jiujie.status.confuse",
+      "kind": "jiujie.status.confuse",
+      "name": "乱神雷咒",
+      "category": "control",
+      "school": "jiujie",
+      "blocksSpell": true,
+      "commandPolicy": "randomNormalAttackTarget",
+      "persistWhenDowned": true
+    },
+    {
+      "id": "jiujie.status.million_weapons",
+      "kind": "jiujie.status.million_weapons",
+      "name": "封兵敕令",
+      "category": "control",
+      "school": "jiujie",
+      "blockedCommands": [
+        "attack"
+      ]
+    },
+    {
+      "id": "jiujie.status.magic_break",
+      "kind": "jiujie.status.magic_break",
+      "name": "引雷·破法",
+      "category": "debuff",
+      "school": "jiujie",
+      "attrMods": {
+        "magicAtk": "target.magicAtk * -0.05",
+        "magicDef": "target.magicDef * -0.05"
+      }
+    },
+    {
+      "id": "jiujie.status.physical_break",
+      "kind": "jiujie.status.physical_break",
+      "name": "引雷·裂甲",
+      "category": "debuff",
+      "school": "jiujie",
+      "attrMods": {
+        "physicalDef": "physicalDef * -0.05"
+      }
+    },
+    {
+      "id": "jiujie.status.guardian",
+      "kind": "jiujie.status.guardian",
+      "name": "天罡护体",
+      "category": "buff",
+      "school": "jiujie",
+      "attrMods": {
+        "physicalAtk": "if(known.jiujie.passive.physical, skillLevel * 0.8, 0)",
+        "magicAtk": "if(known.jiujie.passive.magic, skillLevel * 0.8 * (1 + known.jiujie.passive.gangwei * 0.5), 0)",
+        "magicDef": "if(known.jiujie.passive.magic, skillLevel * 0.5, 0)"
+      }
+    },
+    {
+      "id": "jiujie.status.protection",
+      "kind": "jiujie.status.protection",
+      "name": "天罡护法",
+      "category": "buff",
+      "school": "jiujie",
+      "protectsTarget": true,
+      "upkeepMp": {
+        "self": 0,
+        "other": 10
+      }
+    },
+    {
+      "id": "jiujie.status.electric",
+      "kind": "jiujie.status.electric",
+      "name": "雷印",
+      "category": "debuff",
+      "school": "jiujie",
+      "sourceBound": true
+    },
+    {
+      "id": "jiujie.status.red",
+      "kind": "jiujie.status.red",
+      "name": "赤雷印",
+      "category": "debuff",
+      "school": "jiujie",
+      "sourceBound": true
+    },
+    {
+      "id": "jiujie.status.cunxiong",
+      "kind": "jiujie.status.cunxiong",
+      "name": "存雄",
+      "category": "buff",
+      "school": "jiujie",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "jiujie.skill.strike_1",
+              "jiujie.skill.strike_2",
+              "jiujie.skill.strike_3",
+              "jiujie.skill.sweep_1",
+              "jiujie.skill.sweep_2",
+              "jiujie.skill.sweep_3",
+              "jiujie.skill.tribulation"
+            ],
+            "requireKind": "physical"
+          },
+          "damageBonus": 0.1
+        }
+      ]
+    },
+    {
+      "id": "jiujie.status.insight",
+      "kind": "jiujie.status.insight",
+      "name": "天目洞真",
+      "category": "buff",
+      "school": "jiujie",
+      "attrMods": {
+        "physicalAtk": "level * 2",
+        "physicalDef": "level * 2",
+        "magicAtk": "level * 2",
+        "magicDef": "level * 2",
+        "sealHit": "level * 0.1",
+        "sealResist": "level * 0.1"
+      }
+    },
+    {
+      "id": "jiujie.status.attunement",
+      "kind": "jiujie.status.attunement",
+      "name": "驭雷根基",
+      "category": "buff",
+      "school": "jiujie",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "attrMods": {
+        "magicAtk": "known.jiujie.passive.hongming * if(fact.thunderMethodLevel >= level, 60, 0) + known.jiujie.passive.yuyi * fact.spiritPoints * 0.1 + known.jiujie.passive.lingguang * fact.lingyaoMagicAtk * 0.25",
+        "magicDef": "known.jiujie.passive.yuyi * fact.spiritPoints * -0.24",
+        "speed": "known.jiujie.passive.yuyi * fact.spiritPoints * 0.05"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "id": "jiujie.resource.charge",
+      "name": "劫雷灌注",
+      "current": 0,
+      "max": null
+    }
+  ]
+}

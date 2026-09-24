@@ -1,146 +1,30 @@
-import { getTowerBlessingDefinition, type TowerBlessingId } from './blessings';
-
-export interface TowerBlessingEffectPreview {
-  currentLabel: string;
-  nextLabel?: string;
-  formulaLabel: string;
-}
-
-export interface TowerBlessingEffectPreviewArgs {
-  blessingId: TowerBlessingId;
-  currentStacks: number;
-  nextStacks?: number;
-  maxHp?: number;
-  currentHp?: number;
-  maxMp?: number;
-  currentMp?: number;
-}
-
-function clampStacks(value: number) {
-  if (!Number.isFinite(value) || value <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.floor(value));
-}
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
-
-function formatRecoveryAmount(args: {
-  ratio: number;
-  current: number | undefined;
-  max: number | undefined;
-}) {
-  const current = args.current ?? NaN;
-  const max = args.max ?? NaN;
-  if (!Number.isFinite(current) || !Number.isFinite(max) || max <= current) {
-    return null;
-  }
-
-  return Math.floor((max - current) * args.ratio);
-}
-
-function describeStackValue(
-  blessingId: TowerBlessingId,
-  stacks: number,
-  args: TowerBlessingEffectPreviewArgs,
-) {
-  if (stacks <= 0) {
-    return '尚未承接';
-  }
-
-  switch (blessingId) {
-    case 'vitality_surge':
-      return `体魄 +${stacks * 8}%`;
-    case 'strength_surge':
-      return `力道 +${stacks * 8}%`;
-    case 'spirit_surge':
-      return `灵力 +${stacks * 8}%`;
-    case 'endurance_surge':
-      return `根骨 +${stacks * 8}%`;
-    case 'swift_step':
-      return `身法 +${stacks * 8}%`;
-    case 'mind_focus':
-      return `神识 +${stacks * 8}%`;
-    case 'jade_bones':
-      return `最大气血 +${stacks * 10}%`;
-    case 'sea_of_qi':
-      return `最大法力 +${stacks * 12}%`;
-    case 'balanced_dao':
-      return `六维主属性 +${stacks * 5}%`;
-    case 'breathing_technique': {
-      const ratio = 0.1 * stacks;
-      const recovered = formatRecoveryAmount({
-        ratio,
-        current: args.currentHp,
-        max: args.maxHp,
-      });
-      return recovered === null
-        ? `战前回复 ${formatPercent(ratio)} 缺失气血`
-        : `战前回复 ${formatPercent(ratio)} 缺失气血（约 ${recovered} 点）`;
-    }
-    case 'meridian_cycle': {
-      const ratio = 0.15 * stacks;
-      const recovered = formatRecoveryAmount({
-        ratio,
-        current: args.currentMp,
-        max: args.maxMp,
-      });
-      return recovered === null
-        ? `战前回复 ${formatPercent(ratio)} 缺失法力`
-        : `战前回复 ${formatPercent(ratio)} 缺失法力（约 ${recovered} 点）`;
-    }
-  }
-}
-
-function describeFormula(blessingId: TowerBlessingId) {
-  switch (blessingId) {
-    case 'vitality_surge':
-      return '公式：每层体魄 +8%。';
-    case 'strength_surge':
-      return '公式：每层力道 +8%。';
-    case 'spirit_surge':
-      return '公式：每层灵力 +8%。';
-    case 'endurance_surge':
-      return '公式：每层根骨 +8%。';
-    case 'swift_step':
-      return '公式：每层身法 +8%。';
-    case 'mind_focus':
-      return '公式：每层神识 +8%。';
-    case 'jade_bones':
-      return '公式：每层最大气血 +10%。';
-    case 'sea_of_qi':
-      return '公式：每层最大法力 +12%。';
-    case 'breathing_technique':
-      return '公式：每层战前回复 10% 缺失气血。';
-    case 'meridian_cycle':
-      return '公式：每层战前回复 15% 缺失法力。';
-    case 'balanced_dao':
-      return '公式：每层六维主属性同步 +5%。';
-  }
-}
+import {
+  TOWER_BLESSINGS_PACK,
+  towerBlessingRule,
+  type TowerBlessingId,
+} from './blessing-pack';
 
 export function getTowerBlessingEffectPreview(
-  args: TowerBlessingEffectPreviewArgs,
-): TowerBlessingEffectPreview {
-  const definition = getTowerBlessingDefinition(args.blessingId);
-  const currentStacks = Math.min(
-    definition.maxStacks,
-    clampStacks(args.currentStacks),
-  );
-  const nextStacks =
-    args.nextStacks == null
-      ? undefined
-      : Math.min(definition.maxStacks, clampStacks(args.nextStacks));
-
+  args: {
+    blessingId: TowerBlessingId;
+    currentStacks: number;
+    nextStacks?: number;
+  },
+  pack = TOWER_BLESSINGS_PACK,
+) {
+  const rule = towerBlessingRule(args.blessingId, pack);
+  const label = (n: number) => {
+    const stacks = Number.isFinite(n)
+      ? Math.max(0, Math.min(rule.maxStacks, Math.floor(n)))
+      : 0;
+    return stacks
+      ? `${rule.label} +${Math.round(stacks * rule.effect.perStack * 100)}%`
+      : '尚未承接';
+  };
   return {
-    currentLabel: describeStackValue(args.blessingId, currentStacks, args),
+    currentLabel: label(args.currentStacks),
     nextLabel:
-      nextStacks == null
-        ? undefined
-        : describeStackValue(args.blessingId, nextStacks, args),
-    formulaLabel: `${describeFormula(args.blessingId)} 上限 ${definition.maxStacks} 层。`,
+      args.nextStacks === undefined ? undefined : label(args.nextStacks),
+    formulaLabel: `每次${rule.label} +${Math.round(rule.effect.perStack * 100)}%，最多 ${rule.maxStacks} 次，同项加成相加。`,
   };
 }

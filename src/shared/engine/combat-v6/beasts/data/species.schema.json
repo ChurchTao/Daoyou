@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 2
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "species": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^combat\\.wild\\.species\\.[a-z][a-z0-9-]*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "carryLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 180
+          },
+          "realm": {
+            "type": "string",
+            "enum": [
+              "炼气",
+              "筑基",
+              "金丹",
+              "元婴",
+              "化神",
+              "炼虚",
+              "合体",
+              "大乘",
+              "渡劫"
+            ]
+          },
+          "icon": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "starter": {
+            "type": "boolean"
+          },
+          "birthSkills": {
+            "type": "object",
+            "properties": {
+              "core": {
+                "maxItems": 2,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+                }
+              },
+              "candidates": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^beast\\.[a-z][a-z0-9-]*$"
+                }
+              },
+              "extraCountWeights": {
+                "minItems": 1,
+                "maxItems": 9,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8
+                    },
+                    "weight": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "weight"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "core",
+              "candidates",
+              "extraCountWeights"
+            ],
+            "additionalProperties": false
+          },
+          "aptitudes": {
+            "type": "object",
+            "properties": {
+              "attack": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "defense": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "health": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "mana": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              },
+              "speed": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "attack",
+              "defense",
+              "health",
+              "mana",
+              "speed"
+            ],
+            "additionalProperties": false
+          },
+          "growthMilli": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 3000
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 3000
+              }
+            },
+            "required": [
+              "min",
+              "max"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "carryLevel",
+          "realm",
+          "icon",
+          "description",
+          "starter",
+          "birthSkills",
+          "aptitudes",
+          "growthMilli"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "generation": {
+      "type": "object",
+      "properties": {
+        "starterLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 180
+        },
+        "lifespan": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "minBirthSkills": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "maxBirthSkills": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "required": [
+        "starterLevel",
+        "lifespan",
+        "minBirthSkills",
+        "maxBirthSkills"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "species",
+    "generation"
+  ],
+  "additionalProperties": false
+}

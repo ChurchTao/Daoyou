@@ -1,84 +1,27 @@
-import type { BodyCultivationRealm } from '@shared/types/condition';
-import type { MaterialType, Quality } from '@shared/types/constants';
-import type { AlchemyPropertyKey, PillFamily } from '@shared/types/consumable';
+import type {
+  BodyCultivationRealm,
+  CultivatorCondition,
+} from '@shared/types/condition';
+import type { RealmType } from '@shared/types/constants';
 import type { ApiSuccess } from './http';
 
-export type BodyCultivationBreakthroughCostType = 'material' | 'consumable';
-
-export interface BodyCultivationBreakthroughCostRequirement {
-  type: BodyCultivationBreakthroughCostType;
-  name: string;
-  label?: string;
-  quantity: number;
-  materialType?: MaterialType;
-  family?: PillFamily;
-  property?: AlchemyPropertyKey;
-  minQuality?: Quality;
-}
-
-export interface BodyCultivationBreakthroughInventoryRequirement extends BodyCultivationBreakthroughCostRequirement {
-  ownedQuantity: number;
-  met: boolean;
-}
-
 export interface BodyCultivationBreakthroughReadinessData {
+  currentRealm: BodyCultivationRealm;
   nextRealm: BodyCultivationRealm | null;
-  canAttempt: boolean;
-  successChance: number;
-  guaranteeProgress: number;
-  failedAttempts: number;
-  ruleRequirements: {
-    label: string;
-    met: boolean;
-  }[];
-  costRequirements: BodyCultivationBreakthroughCostRequirement[];
-  inventoryRequirements?: BodyCultivationBreakthroughInventoryRequirement[];
+  canAdvance: boolean;
+  totalLevel: number;
+  requiredTotalLevel: number | null;
+  requiredCultivationRealm: RealmType | null;
+  requirements: Array<{ label: string; met: boolean }>;
 }
 
 export type BodyCultivationBreakthroughReadinessResponse =
   ApiSuccess<BodyCultivationBreakthroughReadinessData>;
 
-export interface BodyCultivationBreakthroughSelection {
-  id: string;
-  quantity: number;
-}
+export type BodyCultivationBreakthroughRequest = Record<string, never>;
 
-export interface BodyCultivationBreakthroughRequest {
-  materialSelections: BodyCultivationBreakthroughSelection[];
-  consumableSelections: BodyCultivationBreakthroughSelection[];
+export interface BodyCultivationBreakthroughResultData {
+  fromRealm: BodyCultivationRealm;
+  toRealm: BodyCultivationRealm;
+  condition: CultivatorCondition;
 }
-
-export interface BodyCultivationBreakthroughEligibleData {
-  requirements: BodyCultivationBreakthroughCostRequirement[];
-  materials: Array<{
-    id: string;
-    name: string;
-    type: MaterialType;
-    rank: Quality;
-    quantity: number;
-    element?: string;
-    description?: string;
-    requirementLabel: string;
-  }>;
-  consumables: Array<{
-    id: string;
-    name: string;
-    type: string;
-    quality: Quality;
-    quantity: number;
-    requirementLabel: string;
-  }>;
-  pagination: {
-    materials: BodyCultivationBreakthroughEligiblePage;
-    consumables: BodyCultivationBreakthroughEligiblePage;
-  };
-}
-
-export interface BodyCultivationBreakthroughEligiblePage {
-  page: number;
-  pageSize: number;
-  total: number;
-}
-
-export type BodyCultivationBreakthroughEligibleResponse =
-  ApiSuccess<BodyCultivationBreakthroughEligibleData>;

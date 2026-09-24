@@ -1,0 +1,954 @@
+{
+  "$schema": "./equipment-base.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 3,
+  "templates": [
+    {
+      "id": "dao_equipment.standard.weapon.v1",
+      "name": "法兵",
+      "slot": "weapon",
+      "baseStats": [
+        {
+          "attr": "physicalAtk",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                164
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                233,
+                299
+              ],
+              "enhanced": [
+                256,
+                328
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                350,
+                450
+              ],
+              "enhanced": [
+                385,
+                495
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                583,
+                749
+              ],
+              "enhanced": [
+                641,
+                823
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "magicAtk",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                25,
+                33
+              ],
+              "enhanced": [
+                28,
+                36
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                78,
+                100
+              ],
+              "enhanced": [
+                85,
+                110
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                105,
+                135
+              ],
+              "enhanced": [
+                115,
+                148
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                130,
+                168
+              ],
+              "enhanced": [
+                143,
+                184
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "healPower",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                30,
+                54
+              ],
+              "enhanced": [
+                33,
+                59
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                60,
+                108
+              ],
+              "enhanced": [
+                66,
+                118
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                90,
+                162
+              ],
+              "enhanced": [
+                99,
+                178
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                120,
+                216
+              ],
+              "enhanced": [
+                132,
+                237
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                150,
+                270
+              ],
+              "enhanced": [
+                165,
+                297
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.head.v1",
+      "name": "法冠",
+      "slot": "head",
+      "baseStats": [
+        {
+          "attr": "maxMp",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                164
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                233,
+                299
+              ],
+              "enhanced": [
+                256,
+                328
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                350,
+                450
+              ],
+              "enhanced": [
+                385,
+                495
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                583,
+                749
+              ],
+              "enhanced": [
+                641,
+                823
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "physicalDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.armor.v1",
+      "name": "法衣",
+      "slot": "armor",
+      "baseStats": [
+        {
+          "attr": "maxHp",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                93,
+                119
+              ],
+              "enhanced": [
+                102,
+                131
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                186,
+                239
+              ],
+              "enhanced": [
+                205,
+                263
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                280,
+                360
+              ],
+              "enhanced": [
+                308,
+                396
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                373,
+                479
+              ],
+              "enhanced": [
+                410,
+                526
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                466,
+                599
+              ],
+              "enhanced": [
+                512,
+                658
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "physicalDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                29,
+                37
+              ],
+              "enhanced": [
+                31,
+                41
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                58,
+                74
+              ],
+              "enhanced": [
+                63,
+                81
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                116,
+                149
+              ],
+              "enhanced": [
+                127,
+                163
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                145,
+                187
+              ],
+              "enhanced": [
+                159,
+                205
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.necklace.v1",
+      "name": "灵佩",
+      "slot": "necklace",
+      "baseStats": [
+        {
+          "attr": "magicAtk",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                32,
+                41
+              ],
+              "enhanced": [
+                35,
+                45
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                64,
+                82
+              ],
+              "enhanced": [
+                70,
+                90
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                95,
+                123
+              ],
+              "enhanced": [
+                104,
+                135
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                128,
+                164
+              ],
+              "enhanced": [
+                140,
+                180
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                160,
+                206
+              ],
+              "enhanced": [
+                176,
+                226
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "magicDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.belt.v1",
+      "name": "腰封",
+      "slot": "belt",
+      "baseStats": [
+        {
+          "attr": "maxHp",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                140,
+                180
+              ],
+              "enhanced": [
+                154,
+                198
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                280,
+                360
+              ],
+              "enhanced": [
+                308,
+                396
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                420,
+                540
+              ],
+              "enhanced": [
+                462,
+                594
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                560,
+                720
+              ],
+              "enhanced": [
+                616,
+                792
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                700,
+                900
+              ],
+              "enhanced": [
+                770,
+                990
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "physicalDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                11,
+                15
+              ],
+              "enhanced": [
+                12,
+                16
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                23,
+                30
+              ],
+              "enhanced": [
+                25,
+                33
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                46,
+                59
+              ],
+              "enhanced": [
+                50,
+                64
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                58,
+                74
+              ],
+              "enhanced": [
+                63,
+                81
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao_equipment.standard.footwear.v1",
+      "name": "云履",
+      "slot": "footwear",
+      "baseStats": [
+        {
+          "attr": "magicDef",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                17,
+                22
+              ],
+              "enhanced": [
+                19,
+                24
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                35,
+                45
+              ],
+              "enhanced": [
+                38,
+                49
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                52,
+                67
+              ],
+              "enhanced": [
+                57,
+                73
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                70,
+                90
+              ],
+              "enhanced": [
+                77,
+                99
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                87,
+                112
+              ],
+              "enhanced": [
+                95,
+                123
+              ]
+            }
+          ]
+        },
+        {
+          "attr": "speed",
+          "ranges": [
+            {
+              "level": 10,
+              "normal": [
+                13,
+                23
+              ],
+              "enhanced": [
+                14,
+                25
+              ]
+            },
+            {
+              "level": 30,
+              "normal": [
+                26,
+                47
+              ],
+              "enhanced": [
+                29,
+                52
+              ]
+            },
+            {
+              "level": 50,
+              "normal": [
+                40,
+                72
+              ],
+              "enhanced": [
+                44,
+                79
+              ]
+            },
+            {
+              "level": 70,
+              "normal": [
+                53,
+                95
+              ],
+              "enhanced": [
+                58,
+                104
+              ]
+            },
+            {
+              "level": 90,
+              "normal": [
+                66,
+                119
+              ],
+              "enhanced": [
+                72,
+                130
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "inscriptions": [
+    {
+      "id": "dao_inscription.xuanfeng",
+      "name": "玄锋阵纹",
+      "attr": "physicalAtk",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "weapon",
+        "head"
+      ]
+    },
+    {
+      "id": "dao_inscription.lingyao",
+      "name": "灵曜阵纹",
+      "attr": "magicAtk",
+      "valuePerLevel": 4,
+      "allowedSlots": [
+        "weapon",
+        "necklace"
+      ]
+    },
+    {
+      "id": "dao_inscription.jingang",
+      "name": "金刚阵纹",
+      "attr": "physicalDef",
+      "valuePerLevel": 8,
+      "allowedSlots": [
+        "head",
+        "armor"
+      ]
+    },
+    {
+      "id": "dao_inscription.xuanjia",
+      "name": "玄甲阵纹",
+      "attr": "magicDef",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "armor",
+        "necklace"
+      ]
+    },
+    {
+      "id": "dao_inscription.changsheng",
+      "name": "长生阵纹",
+      "attr": "maxHp",
+      "valuePerLevel": 40,
+      "allowedSlots": [
+        "armor",
+        "belt"
+      ]
+    },
+    {
+      "id": "dao_inscription.jifeng",
+      "name": "疾风阵纹",
+      "attr": "speed",
+      "valuePerLevel": 4,
+      "allowedSlots": [
+        "belt",
+        "footwear"
+      ]
+    },
+    {
+      "id": "dao_inscription.dongming",
+      "name": "洞明阵纹",
+      "attr": "sealHit",
+      "valuePerLevel": 1,
+      "allowedSlots": [
+        "weapon"
+      ]
+    },
+    {
+      "id": "dao_inscription.liuyun",
+      "name": "定神阵纹",
+      "attr": "sealResist",
+      "valuePerLevel": 1,
+      "allowedSlots": [
+        "belt",
+        "footwear"
+      ]
+    },
+    {
+      "id": "dao_inscription.huichun",
+      "name": "回春阵纹",
+      "attr": "healPower",
+      "valuePerLevel": 6,
+      "allowedSlots": [
+        "weapon",
+        "armor"
+      ]
+    }
+  ],
+  "generation": {
+    "bonusCountProbabilities": [
+      0.5,
+      0.4,
+      0.1
+    ],
+    "bonusRanges": [
+      {
+        "level": 10,
+        "min": 4,
+        "max": 7
+      },
+      {
+        "level": 30,
+        "min": 7,
+        "max": 14
+      },
+      {
+        "level": 50,
+        "min": 11,
+        "max": 22
+      },
+      {
+        "level": 70,
+        "min": 15,
+        "max": 29
+      },
+      {
+        "level": 90,
+        "min": 18,
+        "max": 36
+      }
+    ]
+  }
+}

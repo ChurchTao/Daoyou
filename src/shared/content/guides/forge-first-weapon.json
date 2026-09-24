@@ -1,0 +1,27 @@
+{
+  "id": "forge-first-weapon",
+  "title": "趁手",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "forge.furnace",
+      "text": "地火器炉在这里。兵器从这口炉里出来。"
+    },
+    {
+      "type": "press",
+      "anchor": "forge.archive",
+      "text": "图纸在图录里。把炼气期法兵带出来。"
+    },
+    {
+      "type": "press",
+      "anchor": "forge.blueprint",
+      "text": "带进器炉。"
+    },
+    {
+      "type": "look",
+      "anchor": "forge.fire",
+      "text": "青石和灵石都齐了。点开炉铸造，兵器才会落进袋子。"
+    },
+    { "type": "end" }
+  ]
+}

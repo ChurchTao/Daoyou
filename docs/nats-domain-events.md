@@ -35,11 +35,10 @@
 | `dungeon.run.settled` | `daoyou.domain.activity.dungeon-run-settled.v1` | `task-projector-v1` |
 | `yield.claimed` | `daoyou.domain.activity.yield-claimed.v1` | `yield-reward-projector-v1` |
 | `cultivator.realm.changed` | `daoyou.domain.gameplay.cultivator-realm-changed.v1` | `world-rumor-projector-v1`、`ranking-realm-projector-v1` |
+| `cultivator.mail-audience.observed` | `daoyou.domain.system-mail.audience-observed.v1` | `system-mail-projector-v1` |
 | `mail.created` | `daoyou.domain.communication.mail-created.v1` | `mail-notification-projector-v1` |
 | `craft.item.created` | `daoyou.domain.gameplay.craft-item-created.v1` | `world-rumor-projector-v1` |
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
-| `bet-battle.created` | `daoyou.domain.gameplay.bet-battle-created.v1` | `world-rumor-projector-v1` |
-| `bet-battle.settled` | `daoyou.domain.gameplay.bet-battle-settled.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
 
 `ranking.challenge.completed` 仍保留为战斗完成事实，但当前任务定义没有对应计数目标，任务投影器会显式忽略它。
@@ -49,7 +48,6 @@
 Bun Cron 只负责把以下 command 发布到 WorkQueue Stream，实际 job runner 由 durable consumer `background-command-worker-v1` 执行：
 
 - `auction.expire`
-- `bet-battle.expire`
 - `ranking.rewards.distribute`
 - `market.refresh`
 - `tower.enemy-sets.refresh`
@@ -96,7 +94,7 @@ docker compose -f docker-compose.nats.yml up -d
 docker compose -f docker-compose.nats.yml ps
 ```
 
-开发容器凭据在 `.env.example` 中。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
+开发容器凭据在 `env/example.env` 中。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
 
 ## 故障检查
 

@@ -1,0 +1,22 @@
+{
+  "id": "arrival-prints",
+  "title": "爪印",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "坡上有草，也有新爪印。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "爪印" },
+    {
+      "type": "narration",
+      "text": "坡上有草，也有新爪印。"
+    },
+    {
+      "type": "narration",
+      "text": "石室还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "seen" }
+  ]
+}

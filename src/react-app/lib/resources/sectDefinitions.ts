@@ -28,10 +28,6 @@ export const sectInfrastructureResource = endpointResource(
   'sect.infrastructure',
   '/api/sects/current/infrastructure',
 );
-export const sectProgressionResource = endpointResource(
-  'sect.progression',
-  '/api/sects/current/progression',
-);
 export const sectTasksResource = endpointResource(
   'sect.tasks',
   '/api/sects/current/tasks',

@@ -1,5 +1,6 @@
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import type { AnchorHTMLAttributes, ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 type AppLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & {
   href: string;
@@ -11,8 +12,9 @@ export default function AppLink({
   children,
   ...props
 }: AppLinkProps) {
+  const { state } = useLocation();
   return (
-    <Link to={href} {...props}>
+    <Link to={resolveMapReturnHref(href, state)} {...props}>
       {children}
     </Link>
   );

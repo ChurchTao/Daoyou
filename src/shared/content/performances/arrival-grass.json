@@ -1,0 +1,22 @@
+{
+  "id": "arrival-grass",
+  "title": "草气",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "风里有草气，和洞里那三株翠芽草是同一种。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "草气" },
+    {
+      "type": "narration",
+      "text": "溪坡还远。风里的草气，却和简下那三株一样。"
+    },
+    {
+      "type": "narration",
+      "text": "石室还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "known" }
+  ]
+}

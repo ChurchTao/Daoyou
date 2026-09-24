@@ -1,15 +1,15 @@
 import { InkSection } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
-import type { CultivatorDisplaySnapshot } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
 import type { DungeonState } from '@shared/lib/dungeon/types';
 import type { Cultivator } from '@shared/types/cultivator';
+import type { DungeonDisplayResources } from './DungeonRunPanel';
 import { DungeonRunPanel } from './DungeonRunPanel';
 
 interface DungeonLootingProps {
   state: DungeonState;
   cultivator: Pick<Cultivator, 'realm' | 'condition'> | null;
-  displayResources?: CultivatorDisplaySnapshot['resources'];
+  displayResources?: DungeonDisplayResources;
   onContinue: () => Promise<void>;
   onEscape: () => Promise<void>;
   onQuit: () => Promise<boolean>;
@@ -25,6 +25,7 @@ export function DungeonLooting({
   onQuit,
   processing,
 }: DungeonLootingProps) {
+  const finalRound = state.currentRound >= state.maxRounds;
   return (
     <div className="space-y-6 pb-28">
       <DungeonRunPanel
@@ -32,6 +33,7 @@ export function DungeonLooting({
         cultivator={cultivator}
         displayResources={displayResources}
         onQuit={onQuit}
+        processing={processing}
       />
 
       <InkCard className="mb-6 p-6">
@@ -49,9 +51,13 @@ export function DungeonLooting({
       <InkSection title="下一步抉择">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="border-ink/20 bg-paper flex flex-col gap-2 border border-dashed p-4 text-center">
-            <h4 className="font-bold">继续深入</h4>
+            <h4 className="font-bold">
+              {finalRound ? '完成探索' : '继续深入'}
+            </h4>
             <p className="text-ink-secondary mb-4 text-xs">
-              向秘境更深处进发，寻找更大的机缘。
+              {finalRound
+                ? '领取通关奖励，并结算本次探索收获。'
+                : '向秘境更深处进发，寻找更大的机缘。'}
             </p>
             <InkButton
               variant="primary"
@@ -60,7 +66,7 @@ export function DungeonLooting({
               onClick={onContinue}
               className="mt-auto"
             >
-              继续深入
+              {finalRound ? '完成探索' : '继续深入'}
             </InkButton>
           </div>
 

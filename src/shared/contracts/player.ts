@@ -1,18 +1,12 @@
 import type { ApiSuccess } from '@shared/contracts/http';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import type { QiProjectionBaseline } from '@shared/types/qi';
+import type { SectCombatView } from './combatV6';
 import type {
   ResourceChange,
   ResourceReadMeta,
   ResourceScope,
 } from './resources';
-
-export type PlayerLoadout = {
-  skills: Cultivator['skills'];
-  cultivations: Cultivator['cultivations'];
-  artifacts: Cultivator['inventory']['artifacts'];
-  equipped: Cultivator['equipped'];
-};
 
 export type CultivatorInspectionData = Pick<
   Cultivator,
@@ -27,13 +21,10 @@ export type CultivatorInspectionData = Pick<
   | 'attributes'
   | 'spiritual_roots'
   | 'pre_heaven_fates'
-  | 'cultivations'
-  | 'skills'
-  | 'equipped'
   | 'condition'
-  | 'sect'
 > & {
-  inventory: Pick<Cultivator['inventory'], 'artifacts'>;
+  combatPanel: import('@shared/engine/combat-v6/projection').CharacterPanelV1 | null;
+  build: import('@shared/combat-v6/public-build').PublicCombatV6Build | null;
 };
 
 export type PlayerIdentityCultivator = Omit<
@@ -60,7 +51,7 @@ export const PLAYER_RESOURCE_KEYS = [
   'condition',
   'progress',
   'currency',
-  'loadout',
+  'sect-combat',
   'mail-summary',
   'task-summary',
 ] as const;
@@ -81,13 +72,13 @@ export interface PlayerResourceMap {
   profile: {
     cultivator: PlayerIdentityCultivator;
   };
-  condition: Cultivator['condition'];
+  condition: (NonNullable<Cultivator['condition']> & { combatV6?: import('@shared/lib/cultivatorDisplay').CombatV6ResourceAuthority }) | undefined;
   progress: CultivationProgress;
   currency: QiProjectionBaseline & {
     spiritStones: number;
     reputation: number;
   };
-  loadout: PlayerLoadout;
+  'sect-combat': SectCombatView;
   'mail-summary': {
     unreadCount: number;
   };

@@ -1,0 +1,29 @@
+{
+  "id": "arrival-spring",
+  "title": "灵泉",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "石室里泉声很轻，衣上还有坡上的土。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "灵泉" },
+    {
+      "type": "narration",
+      "text": "{name}从青溪坡回来，臂上和肋下都在发热。"
+    },
+    {
+      "type": "narration",
+      "text": "玉简凉了一凉，又热起来。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "伤了就回洞府。泉在深处。"
+    },
+    { "type": "end", "outcome": "spring" }
+  ]
+}

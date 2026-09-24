@@ -1,0 +1,440 @@
+{
+  "$schema": "./tianyan-foundation.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 4,
+  "elements": [
+    {
+      "element": "wood",
+      "markId": "tianyan.status.mark.wood",
+      "skillId": "tianyan.skill.wood"
+    },
+    {
+      "element": "fire",
+      "markId": "tianyan.status.mark.fire",
+      "skillId": "tianyan.skill.fire"
+    },
+    {
+      "element": "earth",
+      "markId": "tianyan.status.mark.earth",
+      "skillId": "tianyan.skill.earth"
+    },
+    {
+      "element": "metal",
+      "markId": "tianyan.status.mark.metal",
+      "skillId": "tianyan.skill.metal"
+    },
+    {
+      "element": "water",
+      "markId": "tianyan.status.mark.water",
+      "skillId": "tianyan.skill.water"
+    }
+  ],
+  "statuses": [
+    {
+      "id": "tianyan.status.mark.wood",
+      "kind": "tianyan.status.mark",
+      "name": "木行法印",
+      "school": "tianyan",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "tianyan.status.mark.fire",
+      "kind": "tianyan.status.mark",
+      "name": "火行法印",
+      "school": "tianyan",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "tianyan.status.mark.earth",
+      "kind": "tianyan.status.mark",
+      "name": "土行法印",
+      "school": "tianyan",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "tianyan.status.mark.metal",
+      "kind": "tianyan.status.mark",
+      "name": "金行法印",
+      "school": "tianyan",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "tianyan.status.mark.water",
+      "kind": "tianyan.status.mark",
+      "name": "水行法印",
+      "school": "tianyan",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false
+    },
+    {
+      "id": "tianyan.status.bind",
+      "kind": "tianyan.status.bind",
+      "name": "森罗缚",
+      "school": "tianyan",
+      "category": "debuff",
+      "speedMod": "-target.speed*(0.10+0.15*known.tianyan.passive.roots)"
+    },
+    {
+      "id": "tianyan.status.weaken",
+      "kind": "tianyan.status.next_damage",
+      "name": "山河压身",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtPhysical": 0.85,
+      "damageDealtSpell": 0.85,
+      "consumeAfterDamagingAction": true
+    },
+    {
+      "id": "tianyan.status.weaken_deep",
+      "kind": "tianyan.status.next_damage",
+      "name": "镇岳",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtPhysical": 0.75,
+      "damageDealtSpell": 0.75,
+      "consumeAfterDamagingAction": true
+    },
+    {
+      "id": "tianyan.status.truce",
+      "kind": "tianyan.status.next_damage",
+      "name": "止戈",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtPhysical": 0.75,
+      "damageDealtSpell": 0.75,
+      "consumeAfterDamagingAction": true
+    },
+    {
+      "id": "tianyan.status.truce_deep",
+      "kind": "tianyan.status.next_damage",
+      "name": "镇世",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtPhysical": 0.6,
+      "damageDealtSpell": 0.6,
+      "consumeAfterDamagingAction": true
+    },
+    {
+      "id": "tianyan.status.seal",
+      "kind": "tianyan.status.seal",
+      "name": "截流",
+      "school": "tianyan",
+      "category": "control",
+      "blocksSpell": true
+    },
+    {
+      "id": "tianyan.status.spell_dull",
+      "kind": "tianyan.status.spell_dull",
+      "name": "留隙",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtSpell": 0.75
+    },
+    {
+      "id": "tianyan.status.spell_dull_deep",
+      "kind": "tianyan.status.spell_dull",
+      "name": "禁流",
+      "school": "tianyan",
+      "category": "debuff",
+      "damageDealtSpell": 0.65
+    },
+    {
+      "id": "tianyan.status.foundation_break",
+      "kind": "tianyan.status.foundation_break",
+      "name": "裂土",
+      "school": "tianyan",
+      "category": "debuff",
+      "attrMods": {
+        "magicDef": "-target.magicDef*(0.15+0.10*known.tianyan.passive.corrode)"
+      }
+    },
+    {
+      "id": "tianyan.status.melt",
+      "kind": "tianyan.status.melt",
+      "name": "熔锋",
+      "school": "tianyan",
+      "category": "debuff",
+      "attrMods": {
+        "physicalAtk": "-target.physicalAtk*(0.10+0.10*known.tianyan.passive.blunt)",
+        "magicAtk": "-target.magicAtk*(0.10+0.10*known.tianyan.passive.blunt)"
+      }
+    },
+    {
+      "id": "tianyan.status.ward",
+      "kind": "tianyan.status.ward",
+      "name": "玄元守一",
+      "school": "tianyan",
+      "category": "buff",
+      "damageTakenPhysical": 0.8,
+      "damageTakenSpell": 0.8
+    },
+    {
+      "id": "tianyan.status.ward_deep",
+      "kind": "tianyan.status.ward",
+      "name": "守拙",
+      "school": "tianyan",
+      "category": "buff",
+      "damageTakenPhysical": 0.7,
+      "damageTakenSpell": 0.7
+    },
+    {
+      "id": "tianyan.status.adapt",
+      "kind": "tianyan.status.adapt",
+      "name": "御变",
+      "school": "tianyan",
+      "category": "buff",
+      "attrMods": {
+        "magicDef": "target.magicDef*0.1"
+      }
+    },
+    {
+      "id": "tianyan.status.ember",
+      "kind": "tianyan.status.ember",
+      "name": "余火",
+      "school": "tianyan",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.02,
+        "hpCap": "skillLevel*0.8+effective.magicAtk*0.2"
+      }
+    },
+    {
+      "id": "tianyan.status.regrowth",
+      "kind": "tianyan.status.regrowth",
+      "name": "滋荣",
+      "school": "tianyan",
+      "category": "buff",
+      "ticks": "roundEnd",
+      "healingPerRound": "(skillLevel*0.7+effective.magicAtk*0.12)*(1-0.3*known.tianyan.passive.rain)*(1-0.2*known.tianyan.passive.spring)*(1+0.25*known.tianyan.passive.harmony)"
+    }
+  ],
+  "reactions": [
+    {
+      "id": "tianyan.reaction.wildfire",
+      "name": "燎原",
+      "kind": "generate",
+      "oldElement": "wood",
+      "newElement": "fire",
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.ember",
+          "duration": 2,
+          "when": {
+            "expression": "known.tianyan.passive.ember",
+            "targetSlot": "secondary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.rampart",
+      "name": "烬垒",
+      "kind": "generate",
+      "oldElement": "fire",
+      "newElement": "earth",
+      "effects": [
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.ember",
+          "kind": "tianyan.barrier.ember",
+          "name": "烬垒",
+          "power": "(skillLevel*1.2+effective.magicAtk*0.25)*(1+0.25*known.tianyan.passive.harmony)",
+          "duration": 2,
+          "targeting": {
+            "side": "self"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.temper",
+      "name": "淬锋",
+      "kind": "generate",
+      "oldElement": "earth",
+      "newElement": "metal",
+      "effects": [],
+      "modifiers": [
+        {
+          "defenseIgnoreAdd": 0.2
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.dew",
+      "name": "凝露",
+      "kind": "generate",
+      "oldElement": "metal",
+      "newElement": "water",
+      "effects": [
+        {
+          "type": "heal",
+          "power": "(skillLevel*1.2+effective.magicAtk*0.20)*(1-0.3*known.tianyan.passive.rain)*(1+0.35*known.tianyan.passive.dew)*(1+0.25*known.tianyan.passive.harmony)",
+          "includeHealPower": false,
+          "targeting": {
+            "side": "ally",
+            "mode": "lowestHp",
+            "count": "1+known.tianyan.passive.rain"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.regrowth",
+      "name": "滋荣",
+      "kind": "generate",
+      "oldElement": "water",
+      "newElement": "wood",
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.regrowth",
+          "duration": "2+known.tianyan.passive.spring",
+          "targeting": {
+            "side": "ally",
+            "mode": "lowestHp",
+            "count": "1+known.tianyan.passive.rain"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.steam",
+      "name": "蒸腾",
+      "kind": "overcome",
+      "oldElement": "fire",
+      "newElement": "water",
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1,
+          "when": {
+            "expression": "known.tianyan.passive.coldflame",
+            "targetSlot": "primary"
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "damageBonus": 0.2
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.dam",
+      "name": "截流",
+      "kind": "overcome",
+      "oldElement": "water",
+      "newElement": "earth",
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.seal",
+          "duration": 1,
+          "hit": "seal",
+          "when": {
+            "expression": "1-known.tianyan.passive.gap"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.spell_dull",
+          "duration": 2,
+          "when": {
+            "expression": "known.tianyan.passive.gap*(1-known.tianyan.passive.ban)"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.spell_dull_deep",
+          "duration": 2,
+          "when": {
+            "expression": "known.tianyan.passive.gap*known.tianyan.passive.ban"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.crack",
+      "name": "裂土",
+      "kind": "overcome",
+      "oldElement": "earth",
+      "newElement": "wood",
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.foundation_break",
+          "duration": "2-known.tianyan.passive.corrode"
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.sever",
+      "name": "断枝",
+      "kind": "overcome",
+      "oldElement": "wood",
+      "newElement": "metal",
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": "1+known.tianyan.passive.prune"
+        },
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.ember",
+          "kind": "tianyan.barrier.ember",
+          "name": "烬垒",
+          "power": "skillLevel*0.8",
+          "duration": 2,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "known.tianyan.passive.sheathe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.reaction.melt",
+      "name": "熔锋",
+      "kind": "overcome",
+      "oldElement": "metal",
+      "newElement": "fire",
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.melt",
+          "duration": 2
+        }
+      ]
+    }
+  ]
+}

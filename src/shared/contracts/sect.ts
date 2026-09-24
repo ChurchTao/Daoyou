@@ -1,3 +1,4 @@
+import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type {
   CultivatorSectState,
   SectBattleTargetSummary,
@@ -11,30 +12,10 @@ import type {
   SectTaskDialoguePresentation,
   SectTaskRewardSnapshot,
 } from '@shared/engine/sect';
-import { StandardSectRules } from '@shared/engine/sect';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { z } from 'zod';
-import { MAX_PLAYER_ITEM_QUANTITY } from '@shared/config/itemQuantity';
 import type { PlayerStateMutationResponse } from './player';
 
-export const SectLevelTrainRequestSchema = z.object({
-  targetLevel: z.number().int().positive(),
-});
-export const SectMethodTrainRequestSchema = SectLevelTrainRequestSchema;
-export const SectMeridianLoadoutRequestSchema = z.object({
-  nodeIds: z
-    .array(z.string().min(1).max(64))
-    .max(StandardSectRules.meridianNodeTransportLimit),
-});
-export const SectAbilityLoadoutRequestSchema = z.object({
-  abilityIds: z
-    .array(z.string().min(1).max(64).nullable())
-    .length(StandardSectRules.activeAbilitySlotCount),
-});
-export const SectTacticRequestSchema = z.object({
-  tacticId: z.string().min(1).max(32),
-});
 export const SectTaskActionRequestSchema = z
   .object({
     input: z.record(z.string(), z.json()).default({}),
@@ -47,11 +28,8 @@ export const SectTaskSubmissionInputSchema = z
         z
           .object({
             itemId: z.string().uuid(),
-            quantity: z
-              .number()
-              .int()
-              .positive()
-              .max(MAX_PLAYER_ITEM_QUANTITY),
+            revision: z.number().int().nonnegative(),
+            quantity: z.number().int().positive().max(MAX_PLAYER_ITEM_QUANTITY),
           })
           .strict(),
       )
@@ -67,11 +45,6 @@ export const SectTaskSubmissionInputSchema = z
 export type SectTaskSubmissionInput = z.infer<
   typeof SectTaskSubmissionInputSchema
 >;
-export const SectSubmissionCandidatesQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  pageSize: z.coerce.number().int().min(1).max(50).default(30),
-  eligible: z.enum(['all', 'yes', 'no']).default('all'),
-});
 export const SectDonationRequestSchema = z
   .object({
     facilityKey: z.string().min(1).max(32),
@@ -256,19 +229,11 @@ export interface SectTaskSettlementData {
   spiritStones?: number;
   cultivationProgress?: CultivationProgress;
   inventory: Array<{
-    topic:
-      'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables';
+    topic: 'inventory-v6';
     itemId: string;
     remainingQuantity: number;
     removed: boolean;
   }>;
-}
-
-export interface SectBattleOutcomeData {
-  battle: BattleRecordV3;
-  won: boolean;
-  challengeTitle: string;
-  taskFulfilled: boolean;
 }
 
 export interface SectTaskRewardReceipt {
@@ -291,18 +256,12 @@ export interface SectSubmissionCandidateData {
 export interface SectSubmissionCandidatesData {
   requirement: SectDeliveryRequirement;
   items: SectSubmissionCandidateData[];
-  page: number;
-  pageSize: number;
-  total: number;
 }
 
 export type SectTaskActionResponse =
   PlayerStateMutationResponse<SectTaskActionData>;
 
-export type {
-  SectShopData,
-  SectShopItemData,
-} from './sectShop';
+export type { SectShopData, SectShopItemData } from './sectShop';
 
 export interface SectInfrastructureData {
   facilities: SectFacilityState[];
@@ -320,13 +279,6 @@ export interface SectContextData {
   promotedAt?: string;
   permissions: Record<string, SectPermissionState>;
   configVersion: number;
-}
-
-export interface SectProgressionData {
-  activePathId?: CultivatorSectState['activePathId'];
-  methods: CultivatorSectState['methods'];
-  paths: CultivatorSectState['paths'];
-  abilityLoadout: CultivatorSectState['abilityLoadout'];
 }
 
 export interface SectStipendData {

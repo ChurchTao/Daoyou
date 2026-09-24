@@ -13,6 +13,7 @@ const PAGE_SIZE = 20;
 
 const ACTION_LABELS: Record<string, string> = {
   dungeon_start: '秘境探索',
+  wild_search: '野外寻觅',
   retreat_10_years: '闭关修行',
   breakthrough_attempt: '突破',
   alchemy_improvised: '即兴炼丹',

@@ -1,3 +1,4 @@
+import { scheduleSystemMailObservation } from './SystemMailService';
 import { redis } from '@server/lib/redis';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
@@ -189,6 +190,7 @@ function setMemoryOnline(cultivatorId: string, online: boolean) {
 }
 
 export function recordRealtimeConnectionOpen(cultivatorId: string): void {
+  scheduleSystemMailObservation(cultivatorId, 'connection');
   persistLastActive(cultivatorId, true);
   const next = (localConnectionCounts.get(cultivatorId) ?? 0) + 1;
   localConnectionCounts.set(cultivatorId, next);
@@ -210,6 +212,7 @@ export function recordRealtimeConnectionHeartbeat(cultivatorId: string): void {
     return;
   }
 
+  scheduleSystemMailObservation(cultivatorId, 'heartbeat');
   persistLastActive(cultivatorId, false);
   void syncOnlineChangeToRedis(cultivatorId, true).catch((error) => {
     console.warn('[online-presence] failed to refresh online cultivator', {

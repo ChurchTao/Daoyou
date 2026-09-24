@@ -1,7 +1,10 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkButton } from '@app/components/ui/InkButton';
-import { InkSelect } from '@app/components/ui/InkSelect';
+import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
+import { MailAttachmentsSchema } from '@shared/lib/itemLibrary';
 import { useEffect, useState } from 'react';
+import { AdminDialog } from '../../_components/AdminDialog';
+import { RewardSelectionPreview } from '../../_components/RewardSelectionEditor';
+import type { RewardSelectionDraft } from '../../_components/RewardSelectionEditor.helpers';
 
 interface RedeemCodeItem {
   id: string;
@@ -18,208 +21,275 @@ interface RedeemCodeItem {
   createdAt: string;
 }
 
-const SNAPSHOT_REWARD_PRESET_IDS = new Set([
-  '__item_library_snapshot__',
-  '__reward_catalog_snapshot__',
-]);
-
-function getRewardSourceLabel(item: RedeemCodeItem) {
-  const hasBrokenSummary = item.rewardSummary.some(
-    (entry) => entry === '奖励快照异常' || entry === '奖励配置异常',
+function RewardPreview({ item }: { item: RedeemCodeItem }) {
+  const parsed = MailAttachmentsSchema.safeParse(item.rewardAttachments);
+  if (!parsed.success)
+    return (
+      <p className="text-ink-secondary text-sm">
+        {item.rewardSummary.join('、') || '奖励数据不可用'}
+      </p>
+    );
+  const current: RewardSelectionDraft[] = [];
+  const historical: string[] = [];
+  for (const attachment of parsed.data) {
+    if (attachment.type === 'inventory_v1')
+      current.push({
+        type: 'inventory_v1',
+        inventory: attachment.inventory,
+        quantity: String(attachment.quantity),
+      });
+    else if (
+      attachment.type === 'spirit_stones' ||
+      attachment.type === 'reputation'
+    )
+      current.push({
+        type: attachment.type,
+        quantity: String(attachment.quantity),
+      });
+    else historical.push(`${attachment.name} ×${attachment.quantity}`);
+  }
+  return (
+    <div className="space-y-3">
+      {current.length > 0 && <RewardSelectionPreview value={current} />}
+      {historical.length > 0 && (
+        <p className="text-ink-secondary text-sm">
+          历史附件：{historical.join('、')}
+        </p>
+      )}
+    </div>
   );
-  const hasExpiredLegacySummary = item.rewardSummary.includes(
-    '旧版兑换码（已失效）',
-  );
-
-  if (item.rewardSource === 'broken_snapshot') {
-    return '快照奖励异常';
-  }
-
-  if (item.rewardSource === 'snapshot') {
-    return '快照奖励';
-  }
-
-  if (item.rewardAttachments !== null && item.rewardAttachments !== undefined) {
-    return '快照奖励';
-  }
-
-  if (SNAPSHOT_REWARD_PRESET_IDS.has(item.rewardPresetId ?? '')) {
-    if (!hasBrokenSummary && !hasExpiredLegacySummary && item.rewardSummary.length > 0) {
-      return '快照奖励';
-    }
-    return '快照奖励异常';
-  }
-
-  if (hasBrokenSummary) {
-    return '快照奖励异常';
-  }
-
-  if (!hasExpiredLegacySummary && item.rewardSummary.length > 0) {
-    return '快照奖励';
-  }
-
-  return '旧版兑换码（已失效）';
 }
-
+const formatTime = (value: string | null) =>
+  value ? new Date(value).toLocaleString() : '—';
+function statusLabel(item: RedeemCodeItem) {
+  if (item.status === 'disabled') return '已停用';
+  if (item.rewardSource === 'broken_snapshot') return '奖励异常';
+  if (item.rewardSource === 'expired_legacy') return '旧版已失效';
+  if (item.endsAt && new Date(item.endsAt).getTime() <= Date.now())
+    return '已过期';
+  if (item.totalLimit !== null && item.claimedCount >= item.totalLimit)
+    return '已领完';
+  if (item.startsAt && new Date(item.startsAt).getTime() > Date.now())
+    return '未生效';
+  return '可领取';
+}
 export function RedeemCodesTable() {
   const { pushToast } = useInkUI();
-  const [status, setStatus] = useState<'all' | 'active' | 'disabled'>('all');
+  const [status, setStatus] = useState('all');
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<RedeemCodeItem[]>([]);
-
-  const fetchCodes = async () => {
-    setLoading(true);
-    try {
-      const query = new URLSearchParams();
-      if (status !== 'all') query.set('status', status);
-      const res = await fetch(`/api/admin/redeem-codes?${query.toString()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? '加载兑换码失败');
-      setItems(data.redeemCodes ?? []);
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '加载兑换码失败',
-        tone: 'danger',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [copiedCode, setCopiedCode] = useState('');
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
+  const selected = items.find((item) => item.id === selectedId);
   useEffect(() => {
-    let cancelled = false;
-
-    const loadCodes = async () => {
+    const controller = new AbortController();
+    const load = async () => {
+      setLoading(true);
       try {
-        const query = new URLSearchParams();
-        if (status !== 'all') query.set('status', status);
-        const res = await fetch(`/api/admin/redeem-codes?${query.toString()}`);
+        const params = new URLSearchParams();
+        if (status !== 'all') params.set('status', status);
+        const res = await fetch(`/api/admin/redeem-codes?${params}`, {
+          signal: controller.signal,
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? '加载兑换码失败');
-        if (!cancelled) {
-          setItems(data.redeemCodes ?? []);
-        }
-      } catch (error) {
-        if (cancelled) return;
-        pushToast({
-          message: error instanceof Error ? error.message : '加载兑换码失败',
-          tone: 'danger',
-        });
+        if (!controller.signal.aborted) setItems(data.redeemCodes ?? []);
+      } catch (e) {
+        if (!controller.signal.aborted)
+          pushToast({
+            message: e instanceof Error ? e.message : '加载失败',
+            tone: 'danger',
+          });
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
-
-    void loadCodes();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pushToast, status]);
-
-  const toggleStatus = async (id: string) => {
+    void load();
+    return () => controller.abort();
+  }, [pushToast, status, revision]);
+  const toggleStatus = async (item: RedeemCodeItem) => {
+    setDetailError('');
+    setPending(true);
     try {
-      const res = await fetch(`/api/admin/redeem-codes/${id}/toggle`, {
+      const res = await fetch(`/api/admin/redeem-codes/${item.id}/toggle`, {
         method: 'POST',
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? '切换状态失败');
-      pushToast({ message: '兑换码状态已更新', tone: 'success' });
-      fetchCodes();
-    } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '切换状态失败',
-        tone: 'danger',
+        message: item.status === 'active' ? '兑换码已停用' : '兑换码已启用',
+        tone: 'success',
       });
+      setSelectedId(null);
+      setRevision((v) => v + 1);
+    } catch (e) {
+      setDetailError(e instanceof Error ? e.message : '切换状态失败');
+    } finally {
+      setPending(false);
     }
   };
-
-  const formatTime = (value: string | null) =>
-    value ? new Date(value).toLocaleString() : '-';
-
+  const filtered = items.filter((item) =>
+    item.code.toLowerCase().includes(query.toLowerCase()),
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / 12));
+  const currentPage = Math.min(page, totalPages);
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end gap-4">
+        <InkInput
+          label="搜索兑换码"
+          value={query}
+          onChange={(v) => {
+            setQuery(v);
+            setPage(1);
+          }}
+        />
         <InkSelect
-          size="sm"
+          label="状态"
           value={status}
-          onChange={(value) =>
-            setStatus(value as 'all' | 'active' | 'disabled')
-          }
+          onChange={(v) => {
+            setStatus(v);
+            setPage(1);
+          }}
         >
-          <option value="all">全部状态</option>
-          <option value="active">active</option>
-          <option value="disabled">disabled</option>
+          <option value="all">全部</option>
+          <option value="active">已启用</option>
+          <option value="disabled">已停用</option>
         </InkSelect>
-        <InkButton href="/admin/redeem-codes/new" variant="primary">
-          新建兑换码
-        </InkButton>
       </div>
-
-      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
-        <table className="w-full min-w-[1080px] text-sm">
-          <thead className="border-ink/10 text-ink-secondary border-b text-left">
-            <tr>
-              <th className="px-3 py-2">兑换码</th>
-              <th className="px-3 py-2">奖励</th>
-              <th className="px-3 py-2">状态</th>
-              <th className="px-3 py-2">名额</th>
-              <th className="px-3 py-2">生效时间</th>
-              <th className="px-3 py-2">过期时间</th>
-              <th className="px-3 py-2">创建时间</th>
-              <th className="px-3 py-2">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td className="text-ink-secondary px-3 py-4" colSpan={8}>
-                  加载中...
-                </td>
-              </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td className="text-ink-secondary px-3 py-4" colSpan={8}>
-                  暂无兑换码
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id} className="border-ink/8 border-b">
-                  <td className="px-3 py-2 font-mono tracking-wide">{item.code}</td>
-                  <td className="px-3 py-2">
-                    <div className="font-semibold">
-                      {item.rewardSummary.join('、')}
-                    </div>
-                    <div className="text-ink-secondary text-xs">
-                      {getRewardSourceLabel(item)}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">{item.status}</td>
-                  <td className="px-3 py-2">
-                    {item.claimedCount}/{item.totalLimit ?? '∞'}
-                  </td>
-                  <td className="px-3 py-2">{formatTime(item.startsAt)}</td>
-                  <td className="px-3 py-2">{formatTime(item.endsAt)}</td>
-                  <td className="px-3 py-2">
-                    {new Date(item.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2">
-                    <InkButton
-                      onClick={() => toggleStatus(item.id)}
-                      variant="secondary"
-                    >
-                      {item.status === 'active' ? '停用' : '启用'}
-                    </InkButton>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <InkNotice>加载中…</InkNotice>
+      ) : !filtered.length ? (
+        <InkNotice>没有匹配的兑换码</InkNotice>
+      ) : (
+        <div>
+          <div className="border-ink/15 text-ink-secondary hidden grid-cols-[minmax(0,2fr)_1fr_1fr_auto] gap-6 border-b py-2 text-xs md:grid">
+            <span>兑换码 / 有效期</span>
+            <span>状态</span>
+            <span>已领 / 名额</span>
+            <span>操作</span>
+          </div>
+          {filtered
+            .slice((currentPage - 1) * 12, currentPage * 12)
+            .map((item) => (
+              <article
+                key={item.id}
+                className="border-ink/10 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-3 border-b py-4 md:grid-cols-[minmax(0,2fr)_1fr_1fr_auto]"
+              >
+                <div className="col-span-2 min-w-0 md:col-span-1">
+                  <p className="font-mono text-sm font-semibold break-all">
+                    {item.code}
+                  </p>
+                  <p className="text-ink-secondary mt-1 text-xs">
+                    {item.endsAt
+                      ? `有效至 ${formatTime(item.endsAt)}`
+                      : '长期有效'}
+                  </p>
+                </div>
+                <span className="text-sm">{statusLabel(item)}</span>
+                <span className="text-right font-mono text-sm md:text-left">
+                  {item.claimedCount} / {item.totalLimit ?? '不限'}
+                </span>
+                <div className="col-span-2 text-right md:col-span-1">
+                  <InkButton
+                    onClick={() => {
+                      setDetailError('');
+                      setCopiedCode('');
+                      setSelectedId(item.id);
+                    }}
+                  >
+                    查看详情
+                  </InkButton>
+                </div>
+              </article>
+            ))}
+        </div>
+      )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <InkButton
+            disabled={loading || currentPage <= 1}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            上一页
+          </InkButton>
+          <span className="font-mono text-sm">
+            {currentPage} / {totalPages}
+          </span>
+          <InkButton
+            disabled={loading || currentPage >= totalPages}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            下一页
+          </InkButton>
+        </div>
+      )}
+      <AdminDialog
+        error={detailError}
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        busy={pending}
+        title="兑换码详情"
+        wide
+        footer={
+          selected && (
+            <>
+              <InkButton
+                disabled={pending}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(selected.code);
+                    setCopiedCode(selected.code);
+                  } catch {
+                    setDetailError('复制失败，请手动复制');
+                  }
+                }}
+              >
+                {copiedCode === selected.code ? '已复制' : '复制兑换码'}
+              </InkButton>
+              <InkButton
+                pending={pending}
+                onClick={() => void toggleStatus(selected)}
+              >
+                {selected.status === 'active' ? '停用兑换码' : '启用兑换码'}
+              </InkButton>
+            </>
+          )
+        }
+      >
+        {selected && (
+          <div className="space-y-6">
+            <div>
+              <p className="font-mono text-xl break-all">{selected.code}</p>
+              <p className="text-ink-secondary mt-2 text-sm">
+                {statusLabel(selected)} · 已领取 {selected.claimedCount} /{' '}
+                {selected.totalLimit ?? '不限'}
+              </p>
+            </div>
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold">兑换奖励</h4>
+              <RewardPreview item={selected} />
+            </section>
+            <dl className="border-ink/10 grid grid-cols-[auto_1fr] gap-x-5 gap-y-3 border-t pt-4 text-sm">
+              <dt className="text-ink-secondary">生效时间</dt>
+              <dd>
+                {selected.startsAt ? formatTime(selected.startsAt) : '立即生效'}
+              </dd>
+              <dt className="text-ink-secondary">结束时间</dt>
+              <dd>
+                {selected.endsAt ? formatTime(selected.endsAt) : '长期有效'}
+              </dd>
+              <dt className="text-ink-secondary">创建时间</dt>
+              <dd>{formatTime(selected.createdAt)}</dd>
+            </dl>
+          </div>
+        )}
+      </AdminDialog>
     </div>
   );
 }

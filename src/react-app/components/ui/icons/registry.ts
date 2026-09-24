@@ -1,0 +1,33 @@
+/** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
+export const iconRegistry: ReadonlyMap<string, string> = new Map([
+  ['beast-fusion-cauldron', '/assets/icons/beast-fusion-cauldron.png'],
+  ['earthfire-furnace', '/assets/icons/earthfire-furnace-ink.png'],
+  ['xuanfire-furnace', '/assets/icons/xuanfire-furnace-ink.png'],
+  ['map-wild', '/assets/icons/map-wild.webp'],
+  ['map-dungeon', '/assets/icons/map-dungeon.webp'],
+  ['map-market', '/assets/icons/map-market.webp'],
+  ['map-sect', '/assets/icons/map-sect.webp'],
+  ['map-landmark', '/assets/icons/map-landmark.webp'],
+
+  ['cultivator-male-avatar', '/assets/icons/cultivator-male-avatar.png'],
+  ['cultivator-female-avatar', '/assets/icons/cultivator-female-avatar.png'],
+  ['beast-fire-crow', '/assets/icons/beast-fire-crow.webp'],
+  ['beast-mimi', '/assets/icons/beast-mimi.webp'],
+  ['beast-nether-tiger', '/assets/icons/beast-nether-tiger.webp'],
+  [
+    'beast-lantern-butterfly',
+    '/assets/icons/beast-ghost-lantern-butterfly.webp',
+  ],
+  ['beast-ink-jiao', '/assets/icons/beast-ink-jiao.webp'],
+  ['beast-moon-marten', '/assets/icons/beast-moon-marten.webp'],
+  ['beast-silverwing-mantis', '/assets/icons/beast-silverwing-mantis.webp'],
+  ['beast-six-eyed-ape', '/assets/icons/beast-six-eyed-ape.webp'],
+  ['beast-snow-crane', '/assets/icons/beast-snow-crane.webp'],
+  ['beast-thunder-peng', '/assets/icons/beast-thunder-peng.webp'],
+  ['beast-zheng', '/assets/icons/beast-zheng.webp'],
+  ['beast-snake-neck-turtle', '/assets/icons/beast-snake-neck-turtle.webp'],
+  [
+    'beast-golden-toad',
+    '/assets/icons/beast-three-legged-golden-toad.webp',
+  ],
+]);

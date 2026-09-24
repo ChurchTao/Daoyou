@@ -14,19 +14,13 @@ import {
   findCultivatorTaskByDefinition,
   findCultivatorTaskById,
   listCultivatorTasks,
-  markTaskRewardGrantPendingForKey,
-  markTaskRewardGrantedForKey,
   updateCultivatorTask,
   type CultivatorTaskRecord,
 } from '@server/lib/repositories/taskRepository';
-import { loadCultivatorCombatInput } from '@server/lib/services/cultivator/CultivatorCombatProjectionReader';
-import { updateCultivator } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import { getNextStage } from '@server/utils/breakthroughCalculator';
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { isConditionStatusActive } from '@shared/lib/condition';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { ConditionStatusKey } from '@shared/types/condition';
 import {
   QUALITY_ORDER,
@@ -48,18 +42,14 @@ import type {
   TaskStageProgress,
   TaskStatus,
 } from '@shared/types/task';
-import { MailService } from './MailService';
-import { executePersistentWorldBattle } from './BattleStateCoordinator';
 import {
   getBreakthroughTaskDefinition,
   getBreakthroughTaskDefinitionByTransition,
   getTaskChallengeProfile,
   getTaskDefinition,
-  getTutorialTaskDefinitions,
   type BreakthroughTaskDefinition,
   type RuntimeTaskDefinition,
   type TaskStageTemplate,
-  type TutorialTaskDefinition,
 } from './taskDefinitions';
 
 interface TaskServiceWriteOptions {
@@ -69,14 +59,6 @@ interface TaskServiceWriteOptions {
 
 interface TaskSyncOptions extends TaskServiceWriteOptions {
   hideCompletedBreakthrough?: boolean;
-}
-
-export interface TaskChallengeResult {
-  task: TaskInstance;
-  battleResult: BattleRecordV3;
-  isWin: boolean;
-  challengeTitle: string;
-  condition: NonNullable<Cultivator['condition']>;
 }
 
 export interface MajorBreakthroughGate {
@@ -116,14 +98,6 @@ function resolveTaskRewardMailAttachments(
   },
 ): MailAttachment[] {
   const attachments = [...resolveTaskRewardAttachments(definition)];
-
-  if (definition.category === 'tutorial' && definition.rewardCultivationExp) {
-    attachments.unshift({
-      type: 'cultivation_exp',
-      name: '修为',
-      quantity: definition.rewardCultivationExp,
-    });
-  }
 
   return attachments;
 }
@@ -621,15 +595,15 @@ function resolveStageLinks(
           label: link.label,
           href:
             pendingDungeonObjective?.kind === 'complete_dungeon'
-              ? `/game/map?intent=dungeon&nodeId=${encodeURIComponent(
+              ? `/game/map-v2?intent=dungeon&nodeId=${encodeURIComponent(
                   pendingDungeonObjective.mapNodeId,
                 )}`
-              : '/game/map?intent=dungeon',
+              : '/game/map-v2?intent=dungeon',
         };
       case 'inn':
         return { label: link.label, href: '/game/inn' };
       case 'market':
-        return { label: link.label, href: '/game/map?intent=market' };
+        return { label: link.label, href: '/game/map-v2?intent=market' };
       case 'inventory':
         return { label: link.label, href: '/game/inventory' };
       case 'ranking':
@@ -645,14 +619,6 @@ function resolveStageLinks(
         return { label: link.label, href: '/game/tasks' };
     }
   });
-}
-
-function withoutRewardGrantPendingKey(
-  metadata: TaskInstanceMetadata,
-): TaskInstanceMetadata {
-  const next = { ...metadata };
-  delete next.rewardGrantPendingKey;
-  return next;
 }
 
 function buildTaskSnapshot(
@@ -896,12 +862,6 @@ async function archiveOutdatedBreakthroughRecord(
   );
 }
 
-function isTutorialTaskDefinition(
-  definition: RuntimeTaskDefinition,
-): definition is TutorialTaskDefinition {
-  return definition.category === 'tutorial';
-}
-
 async function createTaskRecordIfMissing(
   context: TaskProgressContext,
   definition: RuntimeTaskDefinition,
@@ -945,10 +905,9 @@ async function ensureCurrentTaskRecords(
   options: TaskServiceWriteOptions = {},
 ): Promise<void> {
   const currentMajorDefinition = getCurrentMajorDefinition(context);
-  const definitions: RuntimeTaskDefinition[] = [
-    ...getTutorialTaskDefinitions(),
-    ...(currentMajorDefinition ? [currentMajorDefinition] : []),
-  ];
+  const definitions: RuntimeTaskDefinition[] = currentMajorDefinition
+    ? [currentMajorDefinition]
+    : [];
 
   for (const definition of definitions) {
     await createTaskRecordIfMissing(context, definition, options);
@@ -959,9 +918,10 @@ async function syncTaskRecord(
   context: TaskProgressContext,
   record: CultivatorTaskRecord,
   options: TaskServiceWriteOptions = {},
-): Promise<TaskInstance> {
+): Promise<TaskInstance | null> {
   const definition = getTaskDefinition(record.definitionId);
   if (!definition) {
+    if (record.category === 'tutorial') return null;
     throw new Error(`缺少任务定义：${record.definitionId}`);
   }
 
@@ -1034,18 +994,6 @@ async function syncTaskRecord(
   return mapTaskInstance(nextRecord, resolved.snapshot);
 }
 
-async function loadCombatInputOrThrow(
-  cultivatorId: string,
-  options: TaskServiceWriteOptions = {},
-): Promise<CultivatorCombatInput> {
-  const bundle = await loadCultivatorCombatInput(cultivatorId, options.tx);
-  if (!bundle) {
-    throw new Error('角色不存在');
-  }
-
-  return bundle.cultivator;
-}
-
 async function syncCultivatorTasksWithContext(
   context: TaskProgressContext,
   options: TaskSyncOptions = {},
@@ -1058,12 +1006,14 @@ async function syncCultivatorTasksWithContext(
   });
   const activeRecords = records.filter((record) => record.category !== 'daily');
   const q = options.tx ?? getExecutor();
-  const visibleTasks = await runDbTasks(
-    q,
-    activeRecords.map(
-      (record) => () => syncTaskRecord(context, record, options),
-    ),
-  );
+  const visibleTasks = (
+    await runDbTasks(
+      q,
+      activeRecords.map(
+        (record) => () => syncTaskRecord(context, record, options),
+      ),
+    )
+  ).filter((task): task is TaskInstance => task !== null);
 
   if (!options.hideCompletedBreakthrough) {
     return visibleTasks;
@@ -1081,16 +1031,6 @@ async function syncCultivatorTasksWithContext(
 }
 
 export const TaskService = {
-  async isFirstDungeonTutorialActive(cultivatorId: string): Promise<boolean> {
-    const context = await loadTaskProgressContextOrThrow(cultivatorId);
-    await ensureCurrentTaskRecords(context);
-    const task = await findCultivatorTaskByDefinition(
-      cultivatorId,
-      'tutorial_first_dungeon',
-    );
-    return task?.status === 'active';
-  },
-
   async syncCultivatorTasks(
     cultivatorId: string,
     tx?: DbTransaction,
@@ -1236,107 +1176,11 @@ export const TaskService = {
 
   async recordTaskEvent(
     cultivatorId: string,
-    event: TaskEvent,
+    _event: TaskEvent,
     options: TaskServiceWriteOptions = {},
   ): Promise<TaskInstance[]> {
     const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
     await ensureCurrentTaskRecords(context, options);
-
-    const records = await listCultivatorTasks(cultivatorId, {
-      q: options.tx,
-    });
-    let changedAny = false;
-
-    for (const originalRecord of records) {
-      const definition = getTaskDefinition(originalRecord.definitionId);
-      if (!definition || !isTutorialTaskDefinition(definition)) {
-        continue;
-      }
-
-      let record = originalRecord;
-
-      if (record.status !== 'active') {
-        continue;
-      }
-
-      const nextStates = normalizeObjectiveStates(record.objectives);
-      let changed = false;
-
-      for (const stage of definition.stages) {
-        for (const objective of stage.objectives) {
-          if (objective.kind !== 'event_count' || objective.event !== event) {
-            continue;
-          }
-
-          const stateIndex = nextStates.findIndex(
-            (state) => state.objectiveId === objective.id,
-          );
-          const currentState =
-            stateIndex >= 0
-              ? nextStates[stateIndex]
-              : createDefaultObjectiveState(objective.id);
-
-          if (currentState.completed) {
-            continue;
-          }
-
-          const nextProgress = Math.min(
-            objective.threshold,
-            Math.max(0, currentState.progressValue ?? 0) + 1,
-          );
-          const completed = nextProgress >= objective.threshold;
-          const nextState = completed
-            ? completeObjectiveState(
-                {
-                  ...currentState,
-                  objectiveId: objective.id,
-                },
-                nextProgress,
-                new Date().toISOString(),
-              )
-            : {
-                ...createDefaultObjectiveState(objective.id),
-                ...currentState,
-                objectiveId: objective.id,
-                progressValue: nextProgress,
-                updatedAt: new Date().toISOString(),
-              };
-
-          if (stateIndex >= 0) {
-            nextStates[stateIndex] = nextState;
-          } else {
-            nextStates.push(nextState);
-          }
-          changed = true;
-        }
-      }
-
-      if (!changed) {
-        continue;
-      }
-
-      const nextMetadata = createTaskMetadata(definition);
-      record = (await updateCultivatorTask(
-        record.id,
-        cultivatorId,
-        {
-          objectives: nextStates,
-          metadata: nextMetadata,
-        },
-        options.tx,
-      )) ?? {
-        ...record,
-        objectives: nextStates,
-        metadata: nextMetadata,
-      };
-      await syncTaskRecord(context, record, options);
-      changedAny = true;
-    }
-
-    if (!changedAny) {
-      return syncCultivatorTasksWithContext(context, options);
-    }
-
     return syncCultivatorTasksWithContext(context, options);
   },
 
@@ -1345,116 +1189,18 @@ export const TaskService = {
     taskId: string,
     tx: DbTransaction,
   ): Promise<TaskRewardClaimResult> {
-    const options = { tx };
-    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
-    await ensureCurrentTaskRecords(context, options);
-    const taskRecord = await findCultivatorTaskById(
-      cultivatorId,
-      taskId,
-      options.tx,
-    );
-    if (!taskRecord) {
-      throw new Error('任务不存在');
-    }
-    let task = await syncTaskRecord(context, taskRecord, options);
-
-    const definition = getTaskDefinition(task.definitionId);
-    if (!definition || !isTutorialTaskDefinition(definition)) {
-      throw new Error('该任务没有可手动领取的新手奖励');
-    }
-    if (task.status !== 'completed') {
-      throw new Error('任务尚未完成');
-    }
-    const grantKey = `tutorial:${definition.id}`;
-    if (
-      task.metadata.rewardClaimedAt ||
-      task.metadata.rewardGrantedKey === grantKey
-    ) {
-      throw new Error('奖励已经领取');
-    }
-
-    const mailAttachments = resolveTaskRewardMailAttachments(definition);
-    const rewards = formatTaskRewardSummary(definition);
-    const claimedAt = new Date().toISOString();
-    const currentMetadata = task.metadata;
-    const claimedTask = task;
-
-    let grantedRecord: CultivatorTaskRecord | null = null;
-    const grantReward = async (tx: DbTransaction) => {
-      const pendingRecord = await markTaskRewardGrantPendingForKey(
-        taskId,
-        cultivatorId,
-        grantKey,
-        {
-          ...currentMetadata,
-          rewardClaimedAt: currentMetadata.rewardClaimedAt ?? claimedAt,
-          rewardSummary: rewards,
-          rewardGrantPendingKey: grantKey,
-        },
-        tx,
-      );
-      if (!pendingRecord) {
-        throw new Error('奖励已经领取');
-      }
-
-      if (mailAttachments.length > 0) {
-        await MailService.sendMail(
-          cultivatorId,
-          `【任务奖励】${claimedTask.snapshot.title}`,
-          `道友已完成"${claimedTask.snapshot.title}"，任务奖励已封入附件，请前往传音符诏领取。`,
-          mailAttachments,
-          'reward',
-          tx,
-        );
-      }
-
-      grantedRecord = await markTaskRewardGrantedForKey(
-        taskId,
-        cultivatorId,
-        grantKey,
-        {
-          ...withoutRewardGrantPendingKey(
-            pendingRecord.metadata as TaskInstanceMetadata,
-          ),
-          rewardGrantedKey: grantKey,
-        },
-        tx,
-      );
-      if (!grantedRecord) {
-        throw new Error('奖励已经领取');
-      }
-    };
-
-    await grantReward(tx);
-
-    if (!grantedRecord) {
-      throw new Error('奖励已经领取');
-    }
-
-    const updatedSnapshot = buildTaskSnapshot(
-      grantedRecord,
-      definition,
-      context,
-      new Date().toISOString(),
-    );
-    task = mapTaskInstance(grantedRecord, updatedSnapshot.snapshot);
-
-    return {
-      task,
-      rewards,
-    };
+    const taskRecord = await findCultivatorTaskById(cultivatorId, taskId, tx);
+    if (!taskRecord) throw new Error('任务不存在');
+    throw new Error('该任务没有可手动领取的新手奖励');
   },
 
-  async runTaskChallenge(
+
+  async prepareTaskChallenge(
     cultivatorId: string,
     taskId: string,
     options: TaskServiceWriteOptions = {},
-  ): Promise<TaskChallengeResult> {
-    const q = options.tx ?? getExecutor();
-    const [cultivator, context] = await runDbTasks(q, [
-      () => loadCombatInputOrThrow(cultivatorId, options),
-      () => loadTaskProgressContextOrThrow(cultivatorId, options),
-    ]);
+  ) {
+    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
     await ensureCurrentTaskRecords(context, options);
     const record = await findCultivatorTaskById(
       cultivatorId,
@@ -1466,8 +1212,8 @@ export const TaskService = {
     }
 
     const definition = getBreakthroughTaskDefinition(record.definitionId);
-    if (!definition) {
-      throw new Error('任务定义不存在');
+    if (!definition || context.realm !== definition.fromRealm || context.realmStage !== '圆满') {
+      throw new Error('当前境界没有可执行的试炼');
     }
 
     const preview = buildTaskSnapshot(
@@ -1505,68 +1251,30 @@ export const TaskService = {
       throw new Error('试炼配置不存在');
     }
 
-    const opponent = await challengeProfile.buildOpponent(cultivator);
-    const execution = executePersistentWorldBattle({
-      strategyId: challengeProfile.stateStrategy,
-      player: cultivator,
-      opponent,
-    });
-    const { battleResult, nextCondition, didLose } = execution;
-    const isWin = !didLose;
-    await updateCultivator(
-      cultivatorId,
-      { condition: nextCondition },
-      options.tx,
+    return { record, objectiveId: challengeObjective.id, challengeId: challengeProfile.id };
+  },
+
+  async completeTaskChallenge(
+    cultivatorId: string,
+    taskId: string,
+    objectiveId: string,
+    tx: DbTransaction,
+  ) {
+    const record = await findCultivatorTaskById(cultivatorId, taskId, tx);
+    if (!record) throw new Error('任务不存在');
+    const definition = getBreakthroughTaskDefinition(record.definitionId);
+    if (!definition?.stages.some((stage) => stage.objectives.some((objective) =>
+      objective.id === objectiveId && objective.kind === 'win_task_challenge')))
+      throw new Error('试炼目标不存在');
+    const nextStates = normalizeObjectiveStates(record.objectives);
+    const index = nextStates.findIndex((state) => state.objectiveId === objectiveId);
+    const completed = completeObjectiveState(
+      index >= 0 ? nextStates[index] : createDefaultObjectiveState(objectiveId),
+      1, new Date().toISOString(),
     );
-
-    if (isWin) {
-      const nextStates = normalizeObjectiveStates(record.objectives);
-      const nowIso = new Date().toISOString();
-      const stateIndex = nextStates.findIndex(
-        (state) => state.objectiveId === challengeObjective.id,
-      );
-      const currentState =
-        stateIndex >= 0
-          ? nextStates[stateIndex]
-          : createDefaultObjectiveState(challengeObjective.id);
-      const completedState = completeObjectiveState(
-        {
-          ...currentState,
-          objectiveId: challengeObjective.id,
-        },
-        1,
-        nowIso,
-      );
-
-      if (stateIndex >= 0) {
-        nextStates[stateIndex] = completedState;
-      } else {
-        nextStates.push(completedState);
-      }
-
-      await updateCultivatorTask(
-        record.id,
-        cultivatorId,
-        {
-          objectives: nextStates,
-        },
-        options.tx,
-      );
-    }
-
-    const task = (await syncCultivatorTasksWithContext(context, options)).find(
-      (item) => item.id === taskId,
-    );
-    if (!task) {
-      throw new Error('任务同步失败');
-    }
-
-    return {
-      task,
-      battleResult,
-      isWin,
-      challengeTitle: challengeProfile.title,
-      condition: nextCondition,
-    };
+    if (index >= 0) nextStates[index] = completed;
+    else nextStates.push(completed);
+    await updateCultivatorTask(taskId, cultivatorId, { objectives: nextStates }, tx);
+    return this.syncCultivatorTasks(cultivatorId, tx);
   },
 };

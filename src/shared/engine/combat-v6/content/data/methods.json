@@ -1,0 +1,347 @@
+{
+  "$schema": "./methods.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 2,
+  "sects": {
+    "lingxiao": [
+      {
+        "id": "lingxiao.method.canon",
+        "slot": 1,
+        "name": "《问剑证道总纲》",
+        "isPrimary": true,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "lingxiao.method.sword_aura",
+        "slot": 2,
+        "name": "《剑煞破军录》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "hit",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "lingxiao.method.waiting",
+        "slot": 3,
+        "name": "《伏锋候时篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "lingxiao.method.shadow",
+        "slot": 4,
+        "name": "《惊鸿逐影诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "speed",
+          "mode": "add",
+          "value": 0.15
+        }
+      },
+      {
+        "id": "lingxiao.method.formation",
+        "slot": 5,
+        "name": "《裂阵沉锋章》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "maxHp",
+          "mode": "add",
+          "value": 2
+        }
+      },
+      {
+        "id": "lingxiao.method.clarity",
+        "slot": 6,
+        "name": "《澄神洗剑经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "sealResist",
+          "mode": "add",
+          "value": 0.25
+        }
+      }
+    ],
+    "youdu": [
+      {
+        "id": "youdu.method.canon",
+        "slot": 1,
+        "name": "《幽都轮回总典》",
+        "isPrimary": true,
+        "panel": {
+          "attr": "maxHp",
+          "mode": "add",
+          "value": 2
+        }
+      },
+      {
+        "id": "youdu.method.judge",
+        "slot": 2,
+        "name": "《十殿判魂录》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "sealHit",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "youdu.method.wither",
+        "slot": 3,
+        "name": "《黄泉蚀命篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "youdu.method.shadow",
+        "slot": 4,
+        "name": "《无常逐影诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "speed",
+          "mode": "add",
+          "value": 0.15
+        }
+      },
+      {
+        "id": "youdu.method.asura",
+        "slot": 5,
+        "name": "《六道修罗经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "youdu.method.insight",
+        "slot": 6,
+        "name": "《幽冥洞照章》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "hit",
+          "mode": "add",
+          "value": 0.5
+        }
+      }
+    ],
+    "wuxiang": [
+      {
+        "id": "wuxiang.method.canon",
+        "slot": 1,
+        "name": "《无相本心经》",
+        "isPrimary": true,
+        "panel": {
+          "attr": "maxHp",
+          "mode": "add",
+          "value": 2
+        }
+      },
+      {
+        "id": "wuxiang.method.compassion",
+        "slot": 2,
+        "name": "《大悲本愿经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "healPower",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wuxiang.method.guardian",
+        "slot": 3,
+        "name": "《金身护生经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "wuxiang.method.wrath",
+        "slot": 4,
+        "name": "《修罗摧岳篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wuxiang.method.purity",
+        "slot": 5,
+        "name": "《般若照见经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "sealResist",
+          "mode": "add",
+          "value": 0.25
+        }
+      },
+      {
+        "id": "wuxiang.method.crossing",
+        "slot": 6,
+        "name": "《莲华续命篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "speed",
+          "mode": "add",
+          "value": 0.15
+        }
+      }
+    ],
+    "tianyan": [
+      {
+        "id": "tianyan.method.canon",
+        "slot": 1,
+        "name": "《玄元道藏》",
+        "isPrimary": true,
+        "panel": {
+          "attr": "maxMp",
+          "mode": "add",
+          "value": 2
+        }
+      },
+      {
+        "id": "tianyan.method.wood",
+        "slot": 2,
+        "name": "《森罗万象经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "maxHp",
+          "mode": "add",
+          "value": 2
+        }
+      },
+      {
+        "id": "tianyan.method.fire",
+        "slot": 3,
+        "name": "《焚天秘典》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "tianyan.method.earth",
+        "slot": 4,
+        "name": "《山河镇岳篇》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "tianyan.method.metal",
+        "slot": 5,
+        "name": "《天锋诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "tianyan.method.water",
+        "slot": 6,
+        "name": "《沧海归流经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "speed",
+          "mode": "add",
+          "value": 0.15
+        }
+      }
+    ],
+    "jiujie": [
+      {
+        "id": "jiujie.method.canon",
+        "slot": 1,
+        "name": "《九劫天书》",
+        "isPrimary": true,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "jiujie.method.seal",
+        "slot": 2,
+        "name": "《乾坤敕令》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "sealHit",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "jiujie.method.thunder",
+        "slot": 3,
+        "name": "《混天雷法》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "jiujie.method.guardian",
+        "slot": 4,
+        "name": "《天罡护体经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "jiujie.method.pride",
+        "slot": 5,
+        "name": "《清明观照经》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "jiujie.method.cloud",
+        "slot": 6,
+        "name": "《云霄步》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "speed",
+          "mode": "add",
+          "value": 0.15
+        }
+      }
+    ]
+  }
+}

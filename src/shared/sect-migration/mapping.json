@@ -1,0 +1,72 @@
+{
+  "lingxiao": {
+    "methods": [
+      ["lingxiao-canon", "lingxiao.method.canon"],
+      ["edge-cleansing", "lingxiao.method.sword_aura"],
+      ["sword-guidance", "lingxiao.method.waiting"],
+      ["void-step", "lingxiao.method.shadow"],
+      ["origin-returning", "lingxiao.method.formation"],
+      ["sword-nurturing", "lingxiao.method.clarity"]
+    ],
+    "paths": [
+      ["swift-sword", "lingxiao.path.zhanchen"],
+      ["heavy-sword", "lingxiao.path.guiyi"]
+    ]
+  },
+  "youdu": {
+    "methods": [
+      ["youdu-canon", "youdu.method.canon"],
+      ["three-souls-separation", "youdu.method.judge"],
+      ["forgetful-river-record", "youdu.method.wither"],
+      ["seven-souls-seizure", "youdu.method.shadow"],
+      ["soul-pinning-ironbook", "youdu.method.asura"],
+      ["dead-heart-living-spirit", "youdu.method.insight"]
+    ],
+    "paths": [
+      ["tide", "youdu.path.soul_judge"],
+      ["decree", "youdu.path.poison_master"]
+    ]
+  },
+  "wuxiang": {
+    "methods": [
+      ["wuxiang-canon", "wuxiang.method.canon"],
+      ["blood-lotus", "wuxiang.method.compassion"],
+      ["white-bone", "wuxiang.method.guardian"],
+      ["wrathful-ming", "wuxiang.method.wrath"],
+      ["six-senses", "wuxiang.method.purity"],
+      ["reed-crossing-method", "wuxiang.method.crossing"]
+    ],
+    "paths": [
+      ["mirror-karma", "wuxiang.path.compassion"],
+      ["demon-crossing", "wuxiang.path.wrath"]
+    ]
+  },
+  "tianyan": {
+    "methods": [
+      ["tianyan-canon", "tianyan.method.canon"],
+      ["wood-vitality", "tianyan.method.wood"],
+      ["fire-illumination", "tianyan.method.fire"],
+      ["earth-bearing", "tianyan.method.earth"],
+      ["metal-severing", "tianyan.method.metal"],
+      ["water-flowing", "tianyan.method.water"]
+    ],
+    "paths": [
+      ["hetu-evolution", "tianyan.path.hetu"],
+      ["luoshu-control", "tianyan.path.luoshu"]
+    ]
+  },
+  "jiujie": {
+    "methods": [
+      ["jiujie-canon", "jiujie.method.canon"],
+      ["calamity-eye", "jiujie.method.seal"],
+      ["heavenly-record", "jiujie.method.thunder"],
+      ["thunder-prison", "jiujie.method.guardian"],
+      ["cause-judgment", "jiujie.method.pride"],
+      ["crossing-calamity", "jiujie.method.cloud"]
+    ],
+    "paths": [
+      ["calamity-eye", "jiujie.path.law"],
+      ["heavenly-condemnation", "jiujie.path.thunder"]
+    ]
+  }
+}

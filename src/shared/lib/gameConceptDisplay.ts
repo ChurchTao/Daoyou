@@ -1,3 +1,4 @@
+import { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
 import type { ConditionResourceKey } from '@shared/types/condition';
 import type {
   ConsumableType,
@@ -56,7 +57,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   reputation: {
     label: '声望',
     icon: '🏵️',
-    description: '天骄宝阁兑换所需的声望',
+    description: '万界商行兑换所需的声望',
   },
   contribution: {
     label: '宗门贡献',
@@ -100,7 +101,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   },
   consumable: {
     label: '消耗品',
-    icon: '💊',
+    icon: '🌕',
     description: '丹药、符箓等消耗品',
   },
   battle: {
@@ -109,40 +110,40 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     description: '战斗事件或代价',
   },
   vitality: {
-    label: '体魄',
+    label: CHARACTER_ATTRIBUTE_LABELS.vitality,
     icon: '💪',
     shortLabel: '体',
-    description: '气血与生命根基，决定最大气血并提供少量法术防御',
+    description: '气血与生命根基，提升最大气血、治疗强度，并提供少量法术防御与行动速度',
   },
   strength: {
-    label: '力道',
+    label: CHARACTER_ATTRIBUTE_LABELS.strength,
     icon: '⚔️',
     shortLabel: '力',
-    description: '筋力与兵刃威势，决定物理攻击',
+    description: '筋力与兵刃威势，提升物理攻击，并提供少量法术防御与行动速度',
   },
   spirit: {
-    label: '灵力',
+    label: CHARACTER_ATTRIBUTE_LABELS.spirit,
     icon: '⚡',
     shortLabel: '灵',
-    description: '灵力浑厚程度，决定法术攻击并提供少量法力',
+    description: '灵力浑厚程度，提升法术攻击、法力和封印命中，并提供少量法术防御',
   },
   endurance: {
-    label: '根骨',
+    label: CHARACTER_ATTRIBUTE_LABELS.endurance,
     icon: '🦴',
     shortLabel: '骨',
-    description: '筋骨坚韧程度，决定物理防御并提供少量最大气血',
+    description: '筋骨坚韧程度，提升物理防御，并提供少量法术防御与行动速度',
   },
   speed: {
-    label: '身法',
+    label: CHARACTER_ATTRIBUTE_LABELS.speed,
     icon: '🦶',
     shortLabel: '身',
     description: '身形腾挪与步法根基，影响闪避、命中与行动速度',
   },
   willpower: {
-    label: '神识',
+    label: CHARACTER_ATTRIBUTE_LABELS.willpower,
     icon: '👁️',
     shortLabel: '识',
-    description: '神魂与意志强度，影响法术防御、法力和控制攻防',
+    description: '神魂与意志强度，提升法术防御、法力、治疗强度和封印抵抗',
   },
   gongfa: {
     label: '功法',
@@ -454,7 +455,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   status_weakness: {
     label: '虚弱',
     icon: '😰',
-    description: '元气大伤，战力大幅下降',
+    description: '元气大伤，尚待恢复',
   },
   status_minor_wound: {
     label: '轻伤',
@@ -464,7 +465,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   status_major_wound: {
     label: '重伤',
     icon: '💥',
-    description: '身负重伤，实力大损',
+    description: '身负重伤，自然恢复减慢',
   },
   status_near_death: {
     label: '濒死',
@@ -632,7 +633,7 @@ export function getElementInfo(key: ElementType): ElementDisplayInfo {
 }
 
 /**
- * 展示层用属性键：基础六维 + battle-v5 派生键。
+ * 展示层用属性键：基础六维与历史派生属性键。
  */
 export type AttributeKey =
   | keyof Attributes

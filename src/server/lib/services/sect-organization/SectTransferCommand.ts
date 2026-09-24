@@ -5,7 +5,7 @@ import {
 } from './commandSupport';
 import { executeSectTransfer } from './SectTransferApplicationService';
 
-export function executeSectTransferCommand(
+export async function executeSectTransferCommand(
   args: SectCommandArgs & {
     targetSectId: string;
     reversePaths: boolean;
@@ -15,8 +15,13 @@ export function executeSectTransferCommand(
   return executeSectPlayerCommand(args, async (tx) => {
     const result = await executeSectTransfer({ ...args, tx });
     return {
-      result: { sect: result.sect },
+      result: { membership: result.membership },
       resourceChanges: [
+        {
+          resourceTopic: 'player.sect-combat',
+          operation: 'invalidate',
+          eventType: 'combat_v6.sect.transferred',
+        },
         {
           resourceTopic: 'player.session',
           eventType: 'sect.transferred',
@@ -25,7 +30,7 @@ export function executeSectTransferCommand(
             activeCultivator: {
               id: args.cultivatorId,
               status: 'active',
-              sectId: result.sect.sectId,
+              sectId: result.membership.sectId,
             },
           },
         },
@@ -36,29 +41,10 @@ export function executeSectTransferCommand(
           payload: result.membership,
         },
         {
-          resourceTopic: 'sect.progression',
-          eventType: 'sect.transferred',
-          operation: 'replace',
-          payload: {
-            activePathId: result.sect.activePathId,
-            methods: result.sect.methods,
-            paths: result.sect.paths,
-            abilityLoadout: result.sect.abilityLoadout,
-          },
+          resourceTopic: 'inventory.consumables',
+          eventType: 'inventory.sect_transfer.used',
+          operation: 'invalidate',
         },
-        result.remainingTalisman
-          ? {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.sect_transfer.used',
-              operation: 'upsert-items',
-              payload: { idKey: 'id', items: [result.remainingTalisman] },
-            }
-          : {
-              resourceTopic: 'inventory.consumables',
-              eventType: 'inventory.sect_transfer.used',
-              operation: 'remove-items',
-              payload: { idKey: 'id', ids: [result.consumedTalismanId] },
-            },
         {
           scope: { kind: 'sect', id: result.sourceSectId },
           resourceTopic: 'sect.members',
@@ -66,7 +52,7 @@ export function executeSectTransferCommand(
           operation: 'invalidate',
         },
         {
-          scope: { kind: 'sect', id: result.sect.sectId },
+          scope: { kind: 'sect', id: result.membership.sectId },
           resourceTopic: 'sect.members',
           eventType: 'sect.member_transferred',
           operation: 'invalidate',

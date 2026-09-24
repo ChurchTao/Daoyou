@@ -1,9 +1,8 @@
 import {
-  getCultivatorDisplayAttributes,
+  characterResourceMaxima,
+  normalizeCharacterResource,
   type CultivatorDisplayInput,
-} from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import type { BattleUnitInitFragment } from '@shared/engine/battle-v5/setup/types';
-import type { UnitStateSnapshot } from '@shared/engine/battle-v5/systems/state/types';
+} from '@shared/lib/cultivatorDisplay';
 import {
   getBreakthroughPenalty,
   isConditionStatusActive,
@@ -20,7 +19,6 @@ import {
 import {
   breakthroughBodyCultivationRealm as advanceBodyCultivationRealm,
 } from '@shared/lib/bodyCultivation/breakthrough';
-import { buildConditionBattleUnitInitFragment } from '@shared/lib/conditionBattle';
 import { PILL_TOXICITY_CAP } from '@shared/config/consumableSystem';
 import { normalizeMarrowWashState } from '@shared/lib/marrowWash';
 import type {
@@ -36,12 +34,6 @@ import type { Cultivator } from '@shared/types/cultivator';
 
 export type ConditionCultivatorFacts = CultivatorDisplayInput &
   Pick<Cultivator, 'pre_heaven_fates'>;
-
-const WOUND_SEVERITY_ORDER: ConditionStatusKey[] = [
-  'minor_wound',
-  'major_wound',
-  'near_death',
-];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -164,14 +156,6 @@ function replaceStatus(
   ];
 }
 
-function removeStatuses(
-  statuses: ConditionStatusInstance[],
-  keys: ConditionStatusKey[],
-): ConditionStatusInstance[] {
-  const keySet = new Set(keys);
-  return statuses.filter((status) => !keySet.has(status.key));
-}
-
 export interface ExternalResourceLossPreview {
   maxHp: number;
   maxMp: number;
@@ -186,85 +170,11 @@ export interface ExternalResourceLossPreview {
   triggerTexts: string[];
 }
 
-interface ConditionResourceMaxSnapshot {
-  maxHp: number;
-  maxMp: number;
-}
-
-interface NormalizeConditionOptions {
-  legacyMaxResources?: ConditionResourceMaxSnapshot;
-}
-
-function getWoundSeverityIndex(key: ConditionStatusKey): number {
-  return WOUND_SEVERITY_ORDER.indexOf(key);
-}
-
-function getCurrentWoundStatus(
-  statuses: ConditionStatusInstance[],
-): ConditionStatusKey | null {
-  const woundStatuses = statuses
-    .map((status) => status.key)
-    .filter((key): key is ConditionStatusKey => getWoundSeverityIndex(key) >= 0);
-
-  if (woundStatuses.length === 0) return null;
-  return woundStatuses.sort(
-    (left, right) => getWoundSeverityIndex(right) - getWoundSeverityIndex(left),
-  )[0] ?? null;
-}
-
-function downgradeWoundStatus(
-  woundStatus: ConditionStatusKey,
-  steps: number,
-): ConditionStatusKey | null {
-  const currentIndex = getWoundSeverityIndex(woundStatus);
-  if (currentIndex < 0) return woundStatus;
-  const nextIndex = currentIndex - Math.max(0, Math.floor(steps));
-  return nextIndex >= 0 ? WOUND_SEVERITY_ORDER[nextIndex] : null;
-}
-
-function setMinimumWoundStatus(
-  statuses: ConditionStatusInstance[],
-  target: ConditionStatusKey,
-  now: Date,
-): ConditionStatusInstance[] {
-  const current = getCurrentWoundStatus(statuses);
-  const currentIndex = current ? getWoundSeverityIndex(current) : -1;
-  const targetIndex = getWoundSeverityIndex(target);
-  const nextKey =
-    currentIndex > targetIndex && current ? current : target;
-
-  return replaceStatus(
-    removeStatuses(statuses, WOUND_SEVERITY_ORDER),
-    {
-      key: nextKey,
-      stacks: 1,
-      source: 'battle',
-      duration: createUntilRemovedDuration(),
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    },
-  );
-}
-
-function setBattleWoundStatus(
-  statuses: ConditionStatusInstance[],
-  target: ConditionStatusKey,
-  downgradeSteps: number,
-  now: Date,
-): ConditionStatusInstance[] {
-  const downgraded = downgradeWoundStatus(target, downgradeSteps);
-  if (!downgraded) {
-    return removeStatuses(statuses, WOUND_SEVERITY_ORDER);
-  }
-
-  return setMinimumWoundStatus(statuses, downgraded, now);
-}
-
 function buildDefaultCondition(
   cultivator: CultivatorDisplayInput,
   now: Date,
 ): CultivatorCondition {
-  const display = getCultivatorDisplayAttributes(cultivator);
+  const display = characterResourceMaxima(cultivator);
   return {
     version: 1,
     resources: {
@@ -302,68 +212,38 @@ function buildDefaultCondition(
   };
 }
 
-function getStoredResourceMax(value: unknown): number | undefined {
-  if (
-    typeof value === 'number' &&
-    Number.isFinite(value) &&
-    value >= 0
-  ) {
-    return Math.floor(value);
-  }
-
-  return undefined;
-}
-
 function normalizeResourcePoint(args: {
   current: number | undefined;
   defaultCurrent: number;
   runtimeMax: number;
-  storedMax?: number;
-  legacyMax?: number;
 }): ConditionResourcePoint {
   const rawCurrent =
     typeof args.current === 'number' && Number.isFinite(args.current)
       ? Math.floor(args.current)
       : args.defaultCurrent;
-  const previousMax = args.storedMax ?? args.legacyMax;
-  const shouldPreserveFullState =
-    previousMax !== undefined &&
-    args.runtimeMax > previousMax &&
-    rawCurrent >= previousMax;
-  const current = shouldPreserveFullState
-    ? args.runtimeMax
-    : clamp(rawCurrent, 0, args.runtimeMax);
-
-  return {
-    current,
-    max: args.runtimeMax,
-  };
+  return normalizeCharacterResource(rawCurrent, args.runtimeMax);
 }
 
 export const ConditionService = {
+  /** v6 supplies authoritative maxima; this path never invokes legacy projections. */
+  applyCombatV6Resources(condition: CultivatorCondition, resources: {hp:number;mp:number;maxHp:number;maxMp:number}, now = new Date()): CultivatorCondition {
+    return { ...structuredClone(condition), resources: {hp:{current:resources.hp,max:resources.maxHp},mp:{current:resources.mp,max:resources.maxMp}}, timestamps:{...condition.timestamps,lastRecoveryAt:now.toISOString(),lastBattleAt:now.toISOString()} };
+  },
+  recoverCombatV6Resources(condition: CultivatorCondition, maxima: {maxHp:number;maxMp:number}, now = new Date(), recovery: {toxicityPenaltyMultiplier:number;naturalRecoveryMultiplier:number} = {toxicityPenaltyMultiplier:1,naturalRecoveryMultiplier:1}): CultivatorCondition {
+    const projection = projectNaturalRecoveryResources({conditionInput:condition,...maxima,now,...recovery});
+    return {...structuredClone(condition),resources:projection.resources,timestamps:{...condition.timestamps,lastRecoveryAt:now.toISOString()}};
+  },
   getMaxResources(
     cultivator: CultivatorDisplayInput,
     conditionInput?: CultivatorCondition,
   ): { maxHp: number; maxMp: number } {
-    const display = getCultivatorDisplayAttributes(
-      conditionInput
-        ? {
-            ...cultivator,
-            condition: conditionInput,
-          }
-        : cultivator,
-    );
-    return {
-      maxHp: display.maxHp,
-      maxMp: display.maxMp,
-    };
+    return characterResourceMaxima(cultivator, conditionInput);
   },
 
   normalizeCondition(
     cultivator: CultivatorDisplayInput,
     input?: CultivatorCondition,
     now: Date = new Date(),
-    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
     const defaults = buildDefaultCondition(cultivator, now);
     const raw = input ?? cultivator.condition;
@@ -377,15 +257,11 @@ export const ConditionService = {
           current: raw?.resources?.hp?.current,
           defaultCurrent: defaults.resources.hp.current,
           runtimeMax: maxHp,
-          storedMax: getStoredResourceMax(raw?.resources?.hp?.max),
-          legacyMax: options.legacyMaxResources?.maxHp,
         }),
         mp: normalizeResourcePoint({
           current: raw?.resources?.mp?.current,
           defaultCurrent: defaults.resources.mp.current,
           runtimeMax: maxMp,
-          storedMax: getStoredResourceMax(raw?.resources?.mp?.max),
-          legacyMax: options.legacyMaxResources?.maxMp,
         }),
       },
       gauges: {
@@ -460,16 +336,15 @@ export const ConditionService = {
     cultivator: ConditionCultivatorFacts,
     conditionInput?: CultivatorCondition,
     now: Date = new Date(),
-    options: NormalizeConditionOptions = {},
   ): CultivatorCondition {
     const condition = this.normalizeCondition(
       cultivator,
       conditionInput,
       now,
-      options,
     );
     const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
     const statuses = pruneInactiveStatuses(condition.statuses, now);
+    if (cultivator.combatV6ResourceAuthority?.recoveryPaused) return {...condition,statuses};
     const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
     const projection = projectNaturalRecoveryResources({
       conditionInput: condition,
@@ -615,100 +490,6 @@ export const ConditionService = {
     };
   },
 
-  preparePersistentBattleCondition(
-    cultivator: ConditionCultivatorFacts,
-    conditionInput: CultivatorCondition | undefined,
-    now: Date = new Date(),
-  ): {
-    condition: CultivatorCondition;
-    playerFragment: BattleUnitInitFragment;
-  } {
-    const condition = this.tickNaturalRecovery(cultivator, conditionInput, now);
-
-    return {
-      condition,
-      playerFragment: {
-        ...buildConditionBattleUnitInitFragment(condition, now),
-        resourceState: {
-          hp: {
-            mode: 'absolute',
-            value: condition.resources.hp.current,
-          },
-          mp: {
-            mode: 'absolute',
-            value: condition.resources.mp.current,
-          },
-        },
-      },
-    };
-  },
-
-  settlePersistentBattleCondition(
-    cultivator: ConditionCultivatorFacts,
-    conditionBaseline: CultivatorCondition,
-    playerSnapshot: UnitStateSnapshot,
-    didLose: boolean,
-    now: Date = new Date(),
-  ): CultivatorCondition {
-    const condition = this.normalizeCondition(
-      cultivator,
-      conditionBaseline,
-      now,
-    );
-    const { maxHp, maxMp } = this.getMaxResources(cultivator, condition);
-
-    if (didLose) {
-      return {
-        ...condition,
-        resources: {
-          hp: { current: 1, max: maxHp },
-          mp: { current: 0, max: maxMp },
-        },
-        statuses: setMinimumWoundStatus(condition.statuses, 'near_death', now),
-        timestamps: {
-          ...condition.timestamps,
-          lastBattleAt: now.toISOString(),
-          lastRecoveryAt: now.toISOString(),
-        },
-      };
-    }
-
-    const currentHp = clamp(playerSnapshot.hp.current, 0, maxHp);
-    const currentMp = clamp(playerSnapshot.mp.current, 0, maxMp);
-    const hpRatio = maxHp > 0 ? currentHp / maxHp : 0;
-    let statuses = condition.statuses;
-
-    if (hpRatio <= 0.15) {
-      statuses = setBattleWoundStatus(
-        statuses,
-        'major_wound',
-        0,
-        now,
-      );
-    } else if (hpRatio <= 0.35) {
-      statuses = setBattleWoundStatus(
-        statuses,
-        'minor_wound',
-        0,
-        now,
-      );
-    }
-
-    return {
-      ...condition,
-      resources: {
-        hp: { current: currentHp, max: maxHp },
-        mp: { current: currentMp, max: maxMp },
-      },
-      statuses,
-      timestamps: {
-        ...condition.timestamps,
-        lastBattleAt: now.toISOString(),
-        lastRecoveryAt: now.toISOString(),
-      },
-    };
-  },
-
   getBreakthroughPenalty(
     cultivator: Pick<Cultivator, 'pre_heaven_fates'>,
     conditionInput: CultivatorCondition | undefined,
@@ -722,16 +503,10 @@ export const ConditionService = {
   breakthroughBodyCultivationRealm(
     cultivator: Pick<Cultivator, 'realm' | 'condition'>,
     conditionInput: CultivatorCondition | undefined,
-    rng: () => number = Math.random,
   ): {
     condition: CultivatorCondition;
     fromRealm: BodyCultivationRealm;
     toRealm: BodyCultivationRealm;
-    success: boolean;
-    chance: number;
-    roll: number;
-    failedAttempts: number;
-    guaranteeProgress: number;
   } {
     const condition = conditionInput ?? cultivator.condition;
     if (!condition) {
@@ -739,7 +514,7 @@ export const ConditionService = {
     }
     const result = advanceBodyCultivationRealm(condition, {
       cultivatorRealm: cultivator.realm,
-    }, rng);
+    });
 
     return {
       condition: {
@@ -751,11 +526,6 @@ export const ConditionService = {
       },
       fromRealm: result.fromRealm,
       toRealm: result.toRealm,
-      success: result.success,
-      chance: result.chance,
-      roll: result.roll,
-      failedAttempts: result.failedAttempts,
-      guaranteeProgress: result.guaranteeProgress,
     };
   },
 };

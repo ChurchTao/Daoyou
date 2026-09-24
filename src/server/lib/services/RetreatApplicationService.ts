@@ -76,6 +76,7 @@ export function executeRetreatCommand(args: {
       retries: 0,
     },
     async (lease) => {
+      await assertCombatV6MutationAllowed(args.cultivatorId, `retreat_${args.action}`);
       const cultivator = await loadPlayerRetreatFacts(
         args.userId,
         args.cultivatorId,
@@ -417,3 +418,4 @@ export async function commitBreakthroughRetreat(args: {
   });
   return { committed, domainEventId };
 }
+import { assertCombatV6MutationAllowed } from './combat-v6/CombatV6MutationGuard';

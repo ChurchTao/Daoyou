@@ -6,14 +6,15 @@ export {
   type InventoryPageParams,
 } from './inventoryDefinitions';
 export {
+  playerSectCombatResource,
   playerConditionResource,
   playerCurrencyResource,
-  playerLoadoutResource,
   playerMailSummaryResource,
   playerProfileResource,
   playerProgressResource,
   playerSessionResource,
   playerTaskSummaryResource,
+  playerStoryResource,
   playerTasksResource,
   type PlayerTasksParams,
 } from './playerDefinitions';
@@ -23,25 +24,26 @@ export {
   sectContextResource,
   sectInfrastructureResource,
   sectMembersResource,
-  sectProgressionResource,
   sectShopResource,
   sectTasksResource,
   type SectMembersParams,
 } from './sectDefinitions';
 
+import { inventoryBagResource } from './bag';
 import {
   inventoryArtifactsResource,
   inventoryConsumablesResource,
   inventoryMaterialsResource,
 } from './inventoryDefinitions';
 import {
+  playerSectCombatResource,
   playerConditionResource,
   playerCurrencyResource,
-  playerLoadoutResource,
   playerMailSummaryResource,
   playerProfileResource,
   playerProgressResource,
   playerSessionResource,
+  playerStoryResource,
   playerTaskSummaryResource,
   playerTasksResource,
 } from './playerDefinitions';
@@ -51,26 +53,26 @@ import {
   sectContextResource,
   sectInfrastructureResource,
   sectMembersResource,
-  sectProgressionResource,
   sectShopResource,
   sectTasksResource,
 } from './sectDefinitions';
 
 /** All production definitions are registered here; pages only select them. */
 export const resourceRegistry = {
+  inventoryBag: inventoryBagResource,
   playerSession: playerSessionResource,
   playerProfile: playerProfileResource,
   playerCondition: playerConditionResource,
   playerProgress: playerProgressResource,
   playerCurrency: playerCurrencyResource,
-  playerLoadout: playerLoadoutResource,
+  playerCombatV6Build: playerSectCombatResource,
   playerMailSummary: playerMailSummaryResource,
   playerTaskSummary: playerTaskSummaryResource,
+  playerStory: playerStoryResource,
   playerTasks: playerTasksResource,
   sectContext: sectContextResource,
   sectMembers: sectMembersResource,
   sectInfrastructure: sectInfrastructureResource,
-  sectProgression: sectProgressionResource,
   sectTasks: sectTasksResource,
   sectShop: sectShopResource,
   sectConstructionMember: sectConstructionMemberResource,

@@ -86,29 +86,25 @@ export const DUNGEON_ENEMY_DIFFICULTY_TABLE: Record<
 };
 
 export interface MapNode {
+  wild_encounter_id?: string;
   id: string;
   name: string;
   region: string;
   realm_requirement: RealmType;
   tags: string[];
   description: string;
-  connections: string[];
-  x: number;
-  y: number;
   market_config?: NodeMarketConfig;
   dungeon_config?: DungeonMapConfig;
 }
 
 export interface SatelliteNode {
+  wild_encounter_id?: string;
   id: string;
   name: string;
   parent_id: string;
   type: string;
   tags: string[];
   description: string;
-  connections: string[];
-  x: number;
-  y: number;
   realm_requirement: RealmType;
   environmental_status?:
     | 'scorching'
@@ -128,8 +124,6 @@ export interface SectLandmark {
   name: string;
   description: string;
   tags: string[];
-  x: number;
-  y: number;
 }
 
 export interface MapData {

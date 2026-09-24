@@ -1,0 +1,536 @@
+{
+  "$schema": "./tianyan-skills.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 4,
+  "baseSkillIds": [
+    "tianyan.skill.wood",
+    "tianyan.skill.fire",
+    "tianyan.skill.earth",
+    "tianyan.skill.metal",
+    "tianyan.skill.water",
+    "tianyan.skill.ward",
+    "tianyan.skill.clarity"
+  ],
+  "elemental": [
+    {
+      "element": "wood",
+      "skill": {
+        "id": "tianyan.skill.wood",
+        "name": "森罗缚",
+        "description": "攻击一个敌人，令其速度降低10%，持续2回合。水印→滋荣：为气血比例最低的一名友方附加2次回合末恢复。土印→裂土：令目标法防降低15%，持续2回合。 成功施放后留下自身木行法印；只保留最后一道法印。",
+        "school": "tianyan",
+        "costMp": "35*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth))*(1-0.10*known.tianyan.passive.heng_root)",
+        "tags": [
+          "spell"
+        ],
+        "formula": "spell",
+        "sealBase": 45,
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 1.0,
+            "power": "skillLevel*1.1"
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.bind",
+            "duration": 2
+          },
+          {
+            "type": "restoreMp",
+            "power": 10,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.water"
+              ],
+              "expression": "known.tianyan.passive.breath"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.adapt",
+            "duration": 2,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.earth"
+              ],
+              "expression": "known.tianyan.passive.adapt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "element": "fire",
+      "skill": {
+        "id": "tianyan.skill.fire",
+        "name": "焚天流火",
+        "description": "攻击三个敌人。木印→燎原：攻击人数增加至四人。金印→熔锋：令受击目标物攻、法攻降低10%，持续2回合。 成功施放后留下自身火行法印；只保留最后一道法印。",
+        "school": "tianyan",
+        "costMp": "75*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal))*(1+0.10*known.tianyan.passive.scarlet)",
+        "tags": [
+          "spell"
+        ],
+        "formula": "spell",
+        "sealBase": 45,
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": "3+hasStatus.tianyan.status.mark.wood*(1-known.tianyan.passive.ember+known.tianyan.passive.wild)-known.tianyan.passive.blunt"
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 1.05,
+            "power": "skillLevel*1.1"
+          },
+          {
+            "type": "restoreMp",
+            "power": 10,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.wood"
+              ],
+              "expression": "known.tianyan.passive.breath"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.adapt",
+            "duration": 2,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.metal"
+              ],
+              "expression": "known.tianyan.passive.adapt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "element": "earth",
+      "skill": {
+        "id": "tianyan.skill.earth",
+        "name": "山河倾覆",
+        "description": "攻击一个敌人，使其下一次造成物理或法术伤害的行动伤害降低15%，2回合内有效。火印→烬垒：施法后为自身附加2回合护盾。水印→截流：按封印命中规则附加1回合封法。 成功施放后留下自身土行法印；只保留最后一道法印。",
+        "school": "tianyan",
+        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+known.tianyan.passive.mountain*(0.20-0.30*known.tianyan.passive.severance))",
+        "tags": [
+          "spell"
+        ],
+        "formula": "spell",
+        "sealBase": 45,
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": 1
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 1.05,
+            "power": "skillLevel*1.2"
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.weaken",
+            "duration": 2,
+            "when": {
+              "expression": "(1-known.tianyan.passive.mountain)*(1-known.tianyan.passive.severance)"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.weaken_deep",
+            "duration": 2,
+            "when": {
+              "expression": "(known.tianyan.passive.mountain)*(1-known.tianyan.passive.severance)"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.truce_deep",
+            "duration": 2,
+            "when": {
+              "expression": "known.tianyan.passive.severance"
+            }
+          },
+          {
+            "type": "restoreMp",
+            "power": 10,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.fire"
+              ],
+              "expression": "known.tianyan.passive.breath"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.adapt",
+            "duration": 2,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.water"
+              ],
+              "expression": "known.tianyan.passive.adapt"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "element": "metal",
+      "skill": {
+        "id": "tianyan.skill.metal",
+        "name": "天锋一线",
+        "description": "攻击一个敌人，护盾承受的伤害额外提高50%，溢出的气血伤害不提高。土印→淬锋：额外忽视20%法防。木印→断枝：驱散目标一个可驱散增益。 成功施放后留下自身金行法印；只保留最后一道法印。",
+        "school": "tianyan",
+        "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood))*(1-0.10*known.tianyan.passive.heng_root)",
+        "tags": [
+          "spell"
+        ],
+        "formula": "spell",
+        "sealBase": 45,
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": "1+hasStatus.tianyan.status.mark.earth*known.tianyan.passive.split"
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 1.15,
+            "power": "skillLevel*1.4"
+          },
+          {
+            "type": "restoreMp",
+            "power": 10,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.earth"
+              ],
+              "expression": "known.tianyan.passive.breath"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.adapt",
+            "duration": 2,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.wood"
+              ],
+              "expression": "known.tianyan.passive.adapt"
+            }
+          }
+        ],
+        "modifiers": [
+          {
+            "barrierDamageBonus": "0.5-0.25*known.tianyan.passive.edge+0.75*known.tianyan.passive.wall",
+            "when": {
+              "skillIds": [
+                "tianyan.skill.metal"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "element": "water",
+      "skill": {
+        "id": "tianyan.skill.water",
+        "name": "沧海横流",
+        "description": "以较低法力攻击三个敌人。金印→凝露：施法后治疗气血比例最低的一名友方。火印→蒸腾：本次法术伤害提高20%。 成功施放后留下自身水行法印；只保留最后一道法印。",
+        "school": "tianyan",
+        "costMp": "45*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire))*(1-0.20*known.tianyan.passive.stream)*(1-0.10*known.tianyan.passive.calm)",
+        "tags": [
+          "spell"
+        ],
+        "formula": "spell",
+        "sealBase": 45,
+        "targeting": {
+          "side": "enemy",
+          "mode": "fill",
+          "count": 3
+        },
+        "effects": [
+          {
+            "type": "spellHit",
+            "coeff": 0.85,
+            "power": "skillLevel*0.9"
+          },
+          {
+            "type": "restoreMp",
+            "power": 10,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.metal"
+              ],
+              "expression": "known.tianyan.passive.breath"
+            }
+          },
+          {
+            "type": "applyStatus",
+            "statusId": "tianyan.status.adapt",
+            "duration": 2,
+            "targeting": {
+              "side": "self"
+            },
+            "when": {
+              "requireStatusIds": [
+                "tianyan.status.mark.fire"
+              ],
+              "expression": "known.tianyan.passive.adapt"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "skills": [
+    {
+      "id": "tianyan.skill.ward",
+      "name": "玄元守一",
+      "description": "自身物理、法术承伤降低20%，持续2回合；不改变法印。",
+      "school": "tianyan",
+      "costMp": 35,
+      "cooldownRounds": 5,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.ward",
+          "duration": 2,
+          "when": {
+            "expression": "1-known.tianyan.passive.plain"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.ward_deep",
+          "duration": 1,
+          "when": {
+            "expression": "known.tianyan.passive.plain"
+          }
+        },
+        {
+          "type": "heal",
+          "power": "skillLevel*0.8+effective.magicAtk*0.15",
+          "includeHealPower": false,
+          "when": {
+            "expression": "known.tianyan.passive.firm"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.clarity",
+      "name": "澄灵诀",
+      "description": "为一名友方移除一个可驱散的持续伤害或属性减益；不能解除行动、物理、法术或复活封禁。不改变法印。",
+      "school": "tianyan",
+      "costMp": "30*(1+0.5*max(known.tianyan.passive.clear,known.tianyan.passive.mirror))*(1+0.2*known.tianyan.passive.springwater)",
+      "cooldownRounds": 2,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "dot",
+            "debuff"
+          ],
+          "excludeStatusFlags": [
+            "blocksAction",
+            "blocksPhysical",
+            "blocksSpell",
+            "blocksRevive"
+          ],
+          "maxCount": "1+max(known.tianyan.passive.clear,known.tianyan.passive.mirror)"
+        },
+        {
+          "type": "heal",
+          "power": "skillLevel*0.8+effective.magicAtk*0.15",
+          "includeHealPower": false,
+          "when": {
+            "expression": "known.tianyan.passive.springwater"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.borrow",
+      "name": "借势",
+      "description": "对一个敌人造成法术伤害并获得2回合护盾，将现有法印推进至相生的下一行。须已有法印；不触发五种基础法术的专属变式。",
+      "school": "tianyan",
+      "costMp": 55,
+      "cooldownRounds": 5,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 0.9,
+          "power": "skillLevel"
+        },
+        {
+          "type": "applyBarrier",
+          "id": "tianyan.barrier.ember",
+          "kind": "tianyan.barrier.ember",
+          "name": "烬垒",
+          "power": "skillLevel+effective.magicAtk*0.15",
+          "duration": 2,
+          "targeting": {
+            "side": "self"
+          }
+        }
+      ],
+      "requirement": "hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.water",
+      "formula": "spell",
+      "successEffects": [
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.mark.fire",
+          "duration": 1,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "sourceInitialStatusIds": [
+              "tianyan.status.mark.wood"
+            ]
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.mark.earth",
+          "duration": 1,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "sourceInitialStatusIds": [
+              "tianyan.status.mark.fire"
+            ]
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.mark.metal",
+          "duration": 1,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "sourceInitialStatusIds": [
+              "tianyan.status.mark.earth"
+            ]
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.mark.water",
+          "duration": 1,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "sourceInitialStatusIds": [
+              "tianyan.status.mark.metal"
+            ]
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.mark.wood",
+          "duration": 1,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "sourceInitialStatusIds": [
+              "tianyan.status.mark.water"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tianyan.skill.truce",
+      "name": "止戈",
+      "description": "攻击一个敌人，使其下一次造成物理或法术伤害的行动伤害降低25%，2回合内有效。不改变法印。",
+      "school": "tianyan",
+      "costMp": 50,
+      "cooldownRounds": 5,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "spellHit",
+          "coeff": 0.8,
+          "power": "skillLevel*0.8"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "tianyan.status.truce",
+          "duration": 2
+        }
+      ],
+      "formula": "spell"
+    }
+  ]
+}

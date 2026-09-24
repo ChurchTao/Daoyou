@@ -1,0 +1,25 @@
+{
+  "id": "arrival-handy",
+  "title": "趁手",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "器炉还留着一点热，手里却是空的。"
+    },
+    { "type": "title", "kicker": "洞府 · 器炉", "text": "趁手" },
+    {
+      "type": "narration",
+      "text": "伤养好了。青溪坡上那一回，{name}还是觉得手里空。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "丹炉旁边还有一口器炉。先打一件能握住的。"
+    },
+    { "type": "end", "outcome": "forge" }
+  ]
+}

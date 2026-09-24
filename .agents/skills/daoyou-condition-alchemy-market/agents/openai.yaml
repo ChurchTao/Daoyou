@@ -1,4 +1,0 @@
-interface:
-  display_name: "Daoyou Condition Alchemy Market"
-  short_description: "Daoyou 状态、丹药、炼丹与坊市规则"
-  default_prompt: "Use $daoyou-condition-alchemy-market to modify Daoyou condition, pills, alchemy, market, recycle, or manual draw behavior."

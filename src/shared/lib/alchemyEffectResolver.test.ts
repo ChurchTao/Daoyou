@@ -218,3 +218,30 @@ describe('alchemy effect resolver v4', () => {
     expect(resolveAlchemyEffects(input)).toEqual(resolveAlchemyEffects(input));
   });
 });
+
+it('灵兽修为路线与人物药效分离，不改变既有人物路线', () => {
+  expect(
+    normalizeAlchemyEffectRoute({
+      effects: [
+        { key: 'beast_cultivation', weight: 0.8 },
+        { key: 'restore_hp', weight: 0.2 },
+      ],
+    }),
+  ).toEqual({ effects: [{ key: 'beast_cultivation', weight: 1 }] });
+  expect(
+    normalizeAlchemyEffectRoute({
+      effects: [
+        { key: 'restore_hp', weight: 0.8 },
+        { key: 'beast_cultivation', weight: 0.2 },
+      ],
+    }),
+  ).toEqual({ effects: [{ key: 'restore_hp', weight: 1 }] });
+  expect(() =>
+    validateAlchemyEffectRoute({
+      effects: [
+        { key: 'beast_cultivation', weight: 0.8 },
+        { key: 'restore_hp', weight: 0.2 },
+      ],
+    }),
+  ).toThrow('不能混入人物药效');
+});

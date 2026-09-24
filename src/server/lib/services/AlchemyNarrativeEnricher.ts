@@ -17,6 +17,8 @@ function getPillFamilyLabel(family: PillFamily): string {
       return '回元丹';
     case 'detox':
       return '解毒丹';
+    case 'beast_cultivation':
+      return '灵兽修为';
     case 'cultivation':
       return '养元丹';
     case 'insight':

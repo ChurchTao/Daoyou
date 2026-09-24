@@ -11,7 +11,10 @@ import {
   recordPendingAccountDeletion,
 } from '../repositories/accountDeletionRepository';
 import { getAdminUserIds } from './adminAccess';
-import { getCookieDomainConfig } from './cookieDomain';
+import {
+  getCookieDomainConfig,
+  getCrossSiteCookieConfig,
+} from './cookieDomain';
 import { BETTER_AUTH_SCHEMA_NAME, betterAuthSchema } from './schema';
 
 function getRequiredEnv(name: 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL') {
@@ -94,10 +97,9 @@ export const auth = betterAuth({
     camelCase: true,
     transaction: true,
   }),
-  ...(getCookieDomainConfig()
-    ? { crossSubDomainCookies: getCookieDomainConfig() }
-    : {}),
   advanced: {
+    crossSubDomainCookies: getCookieDomainConfig(),
+    defaultCookieAttributes: getCrossSiteCookieConfig(),
     database: {
       generateId: 'uuid',
     },

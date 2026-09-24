@@ -5,30 +5,25 @@ import {
   type RealmStage,
   type RealmType,
 } from '@shared/types/constants';
+import { TOWER_BLESSINGS_PACK } from './blessing-pack';
 import {
-  TOWER_BLESSING_DEFINITIONS,
-  TOWER_BLESSING_IDS,
+  compileTowerBlessingDefinitions,
   type TowerBlessingId,
 } from './blessings';
+import { TOWER_ENCOUNTER_PACK } from './encounter-pack';
 import type {
   TowerBlessingChoice,
-  TowerMilestoneTier,
   TowerFloorKind,
+  TowerMilestoneTier,
 } from './types';
 
-export const TOWER_MAX_FLOOR = 20;
-export const TOWER_DIFFICULTY_STEP = 5;
+export const TOWER_MAX_FLOOR = TOWER_ENCOUNTER_PACK.floors.length;
+export const TOWER_DIFFICULTY_STEP = TOWER_ENCOUNTER_PACK.difficultyStep;
 export const TOWER_LEADERBOARD_SCORE_UNIT = 1_000_000_000;
-export const TOWER_ELIGIBLE_REALMS = [
-  '金丹',
-  '元婴',
-  '化神',
-  '炼虚',
-  '合体',
-  '大乘',
-  '渡劫',
-] as const satisfies readonly RealmType[];
-export const TOWER_MIN_REALM: RealmType = '金丹';
+export const TOWER_MIN_REALM: RealmType = TOWER_ENCOUNTER_PACK.minRealm;
+export const TOWER_ELIGIBLE_REALMS = (
+  Object.keys(REALM_ORDER) as RealmType[]
+).filter((realm) => REALM_ORDER[realm] >= REALM_ORDER[TOWER_MIN_REALM]);
 
 export function isTowerRealmEligible(realm: RealmType): boolean {
   return REALM_ORDER[realm] >= REALM_ORDER[TOWER_MIN_REALM];
@@ -43,36 +38,25 @@ export function resolveTowerDifficulty(floor: number) {
 }
 
 export function resolveTowerFloorKind(floor: number): TowerFloorKind {
-  const safeFloor = clampTowerFloor(floor);
-  if (safeFloor % 10 === 0) return 'boss';
-  if (safeFloor % 5 === 0) return 'elite';
-  return 'normal';
+  return (
+    TOWER_ENCOUNTER_PACK.floors[clampTowerFloor(floor) - 1]?.kind ?? 'normal'
+  );
 }
 
 export function resolveTowerRealmStage(floor: number): RealmStage {
-  const normalized = ((clampTowerFloor(floor) - 1) % 10) + 1;
-  if (normalized <= 3) return '初期';
-  if (normalized <= 6) return '中期';
-  if (normalized <= 9) return '后期';
-  return '圆满';
+  return (
+    TOWER_ENCOUNTER_PACK.floors[clampTowerFloor(floor) - 1]?.realmStage ??
+    '圆满'
+  );
 }
 
 export function resolveTowerMilestoneTier(
   floor: number,
 ): TowerMilestoneTier | null {
-  const normalizedFloor = Math.floor(floor);
-  switch (normalizedFloor) {
-    case 5:
-      return 'C';
-    case 10:
-      return 'B';
-    case 15:
-      return 'A';
-    case 20:
-      return 'S';
-    default:
-      return null;
-  }
+  return (
+    TOWER_ENCOUNTER_PACK.floors.find((row) => row.floor === Math.floor(floor))
+      ?.milestone ?? null
+  );
 }
 
 export function hashTowerSeed(seed: string) {
@@ -85,7 +69,9 @@ export function hashTowerSeed(seed: string) {
 }
 
 export function pickTowerRace(runId: string, floor: number): EnemyRace {
-  return ENEMY_RACE_VALUES[hashTowerSeed(`${runId}:${floor}:race`) % ENEMY_RACE_VALUES.length];
+  return ENEMY_RACE_VALUES[
+    hashTowerSeed(`${runId}:${floor}:race`) % ENEMY_RACE_VALUES.length
+  ];
 }
 
 export function buildTowerEnemyVariantSeed(args: {
@@ -112,8 +98,7 @@ export function unpackTowerLeaderboardScore(
   seasonEndAtMs: number,
 ) {
   const floor = Math.floor(score / TOWER_LEADERBOARD_SCORE_UNIT);
-  const tieValue =
-    Math.round(score) - floor * TOWER_LEADERBOARD_SCORE_UNIT;
+  const tieValue = Math.round(score) - floor * TOWER_LEADERBOARD_SCORE_UNIT;
 
   return {
     highestFloor: floor,
@@ -121,61 +106,32 @@ export function unpackTowerLeaderboardScore(
   };
 }
 
-export function buildTowerBlessingChoices(args: {
-  runId: string;
-  clearedFloor: number;
-  blessings: Partial<Record<TowerBlessingId, number>>;
-  currentHp: number;
-  maxHp: number;
-  currentMp: number;
-  maxMp: number;
-}): TowerBlessingChoice[] {
-  const available = TOWER_BLESSING_IDS.filter((id) => {
-    const currentStacks = args.blessings[id] ?? 0;
-    return currentStacks < TOWER_BLESSING_DEFINITIONS[id].maxStacks;
-  });
-
-  if (available.length === 0) {
-    return [];
-  }
-
-  const forced = new Set<TowerBlessingId>();
-  if (
-    args.maxHp > 0 &&
-    args.currentHp / args.maxHp <= 0.5 &&
-    available.includes('breathing_technique')
-  ) {
-    forced.add('breathing_technique');
-  }
-  if (
-    args.maxMp > 0 &&
-    args.currentMp / args.maxMp <= 0.35 &&
-    available.includes('meridian_cycle')
-  ) {
-    forced.add('meridian_cycle');
-  }
-
-  const sorted = [...available].sort(
-    (left, right) =>
-      hashTowerSeed(`${args.runId}:${args.clearedFloor}:${left}`) -
-      hashTowerSeed(`${args.runId}:${args.clearedFloor}:${right}`),
-  );
-
-  const ordered = [
-    ...Array.from(forced),
-    ...sorted.filter((id) => !forced.has(id)),
-  ].slice(0, Math.min(3, available.length));
-
-  return ordered.map((id) => {
-    const definition = TOWER_BLESSING_DEFINITIONS[id];
-    const currentStacks = args.blessings[id] ?? 0;
-    return {
-      id,
-      name: definition.name,
-      description: definition.description,
-      currentStacks,
-      nextStacks: Math.min(definition.maxStacks, currentStacks + 1),
-      maxStacks: definition.maxStacks,
-    };
-  });
+export function buildTowerBlessingChoices(
+  args: {
+    runId: string;
+    clearedFloor: number;
+    blessings: Partial<Record<TowerBlessingId, number>>;
+    hasBeasts: boolean;
+  },
+  pack = TOWER_BLESSINGS_PACK,
+): TowerBlessingChoice[] {
+  if (!pack.choices.afterFloors.includes(args.clearedFloor)) return [];
+  const definitions = compileTowerBlessingDefinitions(pack);
+  return pack.blessings
+    .filter(
+      (b) =>
+        (args.blessings[b.id] ?? 0) < b.maxStacks &&
+        (b.effect.target !== 'beasts' || args.hasBeasts),
+    )
+    .sort(
+      (a, b) =>
+        hashTowerSeed(`${args.runId}:${args.clearedFloor}:${a.id}`) -
+        hashTowerSeed(`${args.runId}:${args.clearedFloor}:${b.id}`),
+    )
+    .slice(0, pack.choices.count)
+    .map((b) => ({
+      ...definitions[b.id],
+      currentStacks: args.blessings[b.id] ?? 0,
+      nextStacks: (args.blessings[b.id] ?? 0) + 1,
+    }));
 }

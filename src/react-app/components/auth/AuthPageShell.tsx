@@ -75,7 +75,7 @@ export function AuthPageShell({
 
           <header className="mb-4 text-center">
             <p className="text-ink-secondary/80 mb-3 text-[0.72rem] tracking-[0.38em] sm:mb-4">
-              WANJIE DAOYOU
+              DAOYOU.ORG
             </p>
             <div className="border-ink/12 bg-paper/90 mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full border border-dashed shadow-[0_12px_36px_rgba(44,24,16,0.08)] sm:mb-5 sm:h-32 sm:w-32">
               <img

@@ -3,22 +3,9 @@ import type { RealmStage, RealmType } from '@shared/types/constants';
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { ConsumableSpec } from '@shared/types/consumable';
 import {
-  StandardSectRules,
-  type CultivatorSectState,
-  type SectAbilitySlots,
-  type SectDefinition,
-} from '../domain';
-import {
   realmMeetsSectRank,
   type SectRankRequirement,
 } from '../domain/organization';
-import { createAbilitySlots } from '../presentation/abilityLoadout';
-import {
-  assertMethodTrainingTarget,
-  isAbilityUnlocked,
-  validateMeridianLoadoutUpdate,
-  validateMeridianNodeIds,
-} from '../progression/progression';
 
 export interface PromotionCandidateFacts {
   realm: RealmType;
@@ -151,50 +138,5 @@ export class MaterialDeliverySpecification implements DeliverySpecification<{
     if (candidate.quantity < requirement.quantity)
       violations.push('材料数量不足');
     return violations;
-  }
-}
-
-export class MethodTrainingSpecification {
-  assert(candidate: Parameters<typeof assertMethodTrainingTarget>[0]): void {
-    assertMethodTrainingTarget(candidate);
-  }
-}
-
-export class MeridianLoadoutSpecification {
-  validate(candidate: Parameters<typeof validateMeridianNodeIds>[0]): string[] {
-    return validateMeridianNodeIds(candidate);
-  }
-
-  validateUpdate(
-    candidate: Parameters<typeof validateMeridianLoadoutUpdate>[0],
-  ): string[] {
-    return validateMeridianLoadoutUpdate(candidate);
-  }
-}
-
-export class AbilityLoadoutSpecification {
-  validate(
-    definition: SectDefinition,
-    sect: CultivatorSectState,
-    rawSlots: Array<string | null>,
-  ): SectAbilitySlots {
-    if (rawSlots.length !== StandardSectRules.activeAbilitySlotCount)
-      throw new Error(
-        `神通栏必须包含${StandardSectRules.activeAbilitySlotCount}个固定槽位`,
-      );
-    const slots = createAbilitySlots(rawSlots as SectAbilitySlots);
-    const ids = slots.filter((id): id is string => id !== null);
-    if (new Set(ids).size !== ids.length)
-      throw new Error('神通栏不能包含重复神通');
-    if (
-      ids.some((id) => {
-        const ability = definition.abilities.find((entry) => entry.id === id);
-        return (
-          ability?.kind !== 'active' || !isAbilityUnlocked(definition, id, sect)
-        );
-      })
-    )
-      throw new Error('神通栏包含未解锁或非宗门神通');
-    return slots;
   }
 }

@@ -8,22 +8,31 @@ import * as auctionRepository from '@server/lib/repositories/auctionRepository';
 import {
   buyAuctionListing,
   cancelAuctionListing,
+  listAuctionBeast,
   listAuctionItem,
 } from '@server/lib/services/AuctionApplicationService';
-import { AuctionServiceError } from '@server/lib/services/AuctionService';
-import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
-import { sanitizeMaterialForClient } from '@server/lib/services/materialDetailsPrivacy';
 import {
-  AUCTION_MAX_PURCHASE_QUANTITY,
-  AUCTION_MAX_UNIT_PRICE,
-} from '@shared/config/auctionConfig';
+  AuctionServiceError,
+  publicAuctionListing,
+} from '@server/lib/services/AuctionService';
+import { BeastError } from '@server/lib/services/combat-v6/BeastMutationGuard';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
+import { InventoryError } from '@server/lib/services/InventoryService';
+import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
+import {
+  AUCTION_ITEM_TYPES,
+  AuctionBeastListSchema,
+  AuctionBuySchema,
+  AuctionListSchema,
+} from '@shared/contracts/auction';
 import { QUALITY_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const ListingsSchema = z.object({
   scope: z.enum(['all', 'mine']).default('all'),
-  itemType: z.enum(['material', 'artifact', 'consumable']).optional(),
+  assetType: z.enum(['item', 'beast']).optional(),
+  itemType: z.enum(AUCTION_ITEM_TYPES).optional(),
   itemCategory: z.string().trim().min(1).max(50).optional(),
   itemQuality: z.enum(QUALITY_VALUES).optional(),
   itemName: z.string().trim().min(1).max(200).optional(),
@@ -33,31 +42,6 @@ const ListingsSchema = z.object({
   sortBy: z.enum(['price_asc', 'price_desc', 'latest']).optional(),
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
-});
-
-const BuySchema = z.object({
-  listingId: z.string().uuid(),
-  quantity: z
-    .number()
-    .int()
-    .min(1)
-    .max(AUCTION_MAX_PURCHASE_QUANTITY)
-    .default(1),
-  requestId: z.string().uuid().optional(),
-});
-
-const ListSchema = z.object({
-  itemType: z.enum(['material', 'artifact', 'consumable']),
-  itemId: z.string().uuid(),
-  price: z.number().int().min(1).max(AUCTION_MAX_UNIT_PRICE),
-  quantity: z
-    .number()
-    .int()
-    .min(1)
-    .max(AUCTION_MAX_PURCHASE_QUANTITY)
-    .default(1),
-  visibility: z.enum(['public', 'private']).default('public'),
-  targetCultivatorId: z.string().uuid().optional(),
 });
 
 const statusMap: Record<string, number> = {
@@ -72,7 +56,6 @@ const statusMap: Record<string, number> = {
   INVALID_PRICE: 400,
   INVALID_QUANTITY: 400,
   INVALID_ITEM_QUALITY: 400,
-  CONSUMABLE_LISTING_DISABLED: 400,
   SAME_OWNER: 403,
   INVALID_VISIBILITY: 400,
   TARGET_NOT_FRIEND: 403,
@@ -95,6 +78,7 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
   try {
     const params = ListingsSchema.parse({
       scope: c.req.query('scope') || undefined,
+      assetType: c.req.query('assetType') || undefined,
       itemType: c.req.query('itemType') || undefined,
       itemCategory: c.req.query('itemCategory') || undefined,
       itemQuality: c.req.query('itemQuality') || undefined,
@@ -111,6 +95,8 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
       limit: c.req.query('limit') ? Number(c.req.query('limit')) : undefined,
     });
 
+    if (params.assetType === 'beast' || params.itemType === 'beast')
+      params.itemQuality = undefined;
     const result = await auctionRepository.findActiveListings({
       ...params,
       viewerCultivatorId: cultivator.cultivatorId,
@@ -120,15 +106,7 @@ router.get('/listings', requireActiveCultivatorRef(), async (c) => {
     const totalPages = Math.ceil(result.total / limit);
 
     return c.json({
-      listings: result.listings.map((listing) => ({
-        ...listing,
-        itemSnapshot:
-          listing.itemType === 'material'
-            ? sanitizeMaterialForClient(
-                listing.itemSnapshot as { details?: unknown },
-              )
-            : listing.itemSnapshot,
-      })),
+      listings: result.listings.map(publicAuctionListing),
       pagination: {
         page,
         limit,
@@ -155,7 +133,7 @@ router.post('/buy', requireActiveCultivatorRef(), async (c) => {
   }
 
   try {
-    const { listingId, quantity, requestId } = BuySchema.parse(
+    const { listingId, quantity, requestId } = AuctionBuySchema.parse(
       await c.req.json(),
     );
 
@@ -166,7 +144,7 @@ router.post('/buy', requireActiveCultivatorRef(), async (c) => {
       },
       listingId,
       quantity,
-      requestId: requestId ?? crypto.randomUUID(),
+      requestId,
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {
@@ -176,6 +154,11 @@ router.post('/buy', requireActiveCultivatorRef(), async (c) => {
       return c.json({ error: '参数错误', details: error.issues }, 400);
     }
 
+    if (
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
     if (error instanceof AuctionServiceError) {
       return jsonWithStatus(
         c,
@@ -196,7 +179,7 @@ router.post('/list', requireActiveCultivatorRef(), async (c) => {
     return c.json({ error: '未授权访问' }, 401);
   }
 
-  const request = ListSchema.safeParse(
+  const request = AuctionListSchema.safeParse(
     await c.req.json().catch(() => undefined),
   );
   if (!request.success) {
@@ -205,7 +188,8 @@ router.post('/list', requireActiveCultivatorRef(), async (c) => {
 
   try {
     const {
-      itemType,
+      requestId,
+      revision,
       itemId,
       price,
       quantity,
@@ -218,7 +202,8 @@ router.post('/list', requireActiveCultivatorRef(), async (c) => {
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,
       },
-      itemType,
+      requestId,
+      revision,
       itemId,
       price,
       quantity,
@@ -229,6 +214,53 @@ router.post('/list', requireActiveCultivatorRef(), async (c) => {
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
+    if (
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
+    if (error instanceof AuctionServiceError) {
+      return jsonWithStatus(
+        c,
+        { error: error.message },
+        getAuctionErrorStatus(error),
+      );
+    }
+
+    console.error('Auction List API Error:', error);
+    return c.json({ error: '上架失败，请稍后重试' }, 500);
+  }
+});
+
+router.post('/list-beast', requireActiveCultivatorRef(), async (c) => {
+  const user = c.get('user');
+  const cultivator = c.get('activeCultivatorRef');
+  if (!user || !cultivator) {
+    return c.json({ error: '未授权访问' }, 401);
+  }
+
+  const request = AuctionBeastListSchema.safeParse(
+    await c.req.json().catch(() => undefined),
+  );
+  if (!request.success) {
+    return c.json({ error: '参数错误', details: request.error.issues }, 400);
+  }
+
+  try {
+    const committed = await listAuctionBeast({
+      ...request.data,
+      actor: { userId: user.id, cultivatorId: cultivator.cultivatorId },
+    });
+    return c.json(toPlayerStateMutationResponse(committed));
+  } catch (error) {
+    const lockErrorResponse = redisLockErrorResponse(error);
+    if (lockErrorResponse) return lockErrorResponse;
+    if (
+      error instanceof BeastError ||
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
     if (error instanceof AuctionServiceError) {
       return jsonWithStatus(
         c,
@@ -250,7 +282,9 @@ router.delete('/:id', requireActiveCultivatorRef(), async (c) => {
   }
 
   try {
-    const listingId = c.req.param('id');
+    const parsedId = z.uuid().safeParse(c.req.param('id'));
+    if (!parsedId.success) return c.json({ error: '货单标识无效' }, 400);
+    const listingId = parsedId.data;
     const committed = await cancelAuctionListing({
       actor: {
         userId: user.id,
@@ -262,6 +296,11 @@ router.delete('/:id', requireActiveCultivatorRef(), async (c) => {
   } catch (error) {
     const lockErrorResponse = redisLockErrorResponse(error);
     if (lockErrorResponse) return lockErrorResponse;
+    if (
+      error instanceof InventoryError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return c.json({ error: error.message }, 409);
     if (error instanceof AuctionServiceError) {
       return jsonWithStatus(
         c,

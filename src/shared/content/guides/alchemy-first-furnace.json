@@ -1,0 +1,27 @@
+{
+  "id": "alchemy-first-furnace",
+  "title": "第一炉",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "alchemy.furnace",
+      "text": "丹房这一口炉，就是炼丹的地方。"
+    },
+    {
+      "type": "press",
+      "anchor": "alchemy.furnace",
+      "text": "走近丹炉。"
+    },
+    {
+      "type": "look",
+      "anchor": "alchemy.hearth",
+      "text": "炉口在这里。材料放进去，再从下面开炉。"
+    },
+    {
+      "type": "look",
+      "anchor": "alchemy.fire",
+      "text": "材料齐了，就点开炉炼丹。这一课先指到这里。"
+    },
+    { "type": "end" }
+  ]
+}

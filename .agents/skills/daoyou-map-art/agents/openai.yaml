@@ -1,0 +1,4 @@
+interface:
+  display_name: "道友 · 水墨地图"
+  short_description: "统一世界与区域地图的国画笔墨、地域辨识、空间尺度和素材交付规范"
+  default_prompt: "使用 $daoyou-map-art，依据指定地区的设定独立设计或评审国画水墨地图，检查地域特色、空间尺度与笔墨一致性。"

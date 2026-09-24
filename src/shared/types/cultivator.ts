@@ -1,10 +1,12 @@
 // ===== 新一代修仙底层数据模型 =====
 
-import type { AbilityConfig } from '@shared/engine/creation-v2/contracts/battle';
-import type { AttributeModifierConfig } from '@shared/engine/battle-v5/core/configs';
-import type { ConsumableSpec } from '@shared/types/consumable';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type { CultivatorSectState, PlayerRaceId } from '@shared/engine/sect';
+import type {
+  LegacyAbilitySnapshot as AbilityConfig,
+  LegacyAttributeModifier as AttributeModifierConfig,
+} from '@shared/legacy/products';
+import type { CultivatorCondition } from '@shared/types/condition';
+import type { ConsumableSpec } from '@shared/types/consumable';
 import type {
   ConsumableType,
   ElementType,
@@ -21,20 +23,15 @@ import type {
 /**
  * 基础属性（仅六维）。
  *
- * 所有派生属性（暴击率、闪避率、气血上限 等）都由 battle-v5
- * 的 AttributeSystem/AttrsStateView 动态计算，不再写入 DB 与实体。
- *
- * 展示层需要派生属性时，请通过
- *   `CultivatorDisplayAdapter.snapshot(cultivator)` 或
- *   `getCultivatorDisplayAttributes(cultivator)` 取 AttrsStateView。
+ * 派生属性由 V6 权威面板计算，不写入角色基础属性。
  */
 export interface Attributes {
-  vitality: number; // 体魄：气血上限、少量法术防御
-  strength: number; // 力道：物理攻击
-  spirit: number; // 灵力：法术攻击、少量法力
-  endurance: number; // 根骨：物理防御、少量气血上限
+  vitality: number; // 体魄：气血上限、少量法防、速度与治疗强度
+  strength: number; // 力道：物理攻击、少量法防与速度
+  spirit: number; // 灵力：法术攻击、法力、少量法防与封禁命中
+  endurance: number; // 根骨：物理防御、少量法防与速度
   speed: number; // 身法：行动速度、闪避率、命中
-  willpower: number; // 神识：法防、法力、控制命中与抗性
+  willpower: number; // 神识：法防、法力、治疗强度与封禁抵抗
 }
 
 // 灵根
@@ -311,5 +308,4 @@ export interface Cultivator {
 
   // 角色当前状态（用于存储战斗/副本中产生的持久状态）
   condition?: CultivatorCondition;
-
 }

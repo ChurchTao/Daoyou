@@ -1,0 +1,17 @@
+{
+  "id": "sect-door",
+  "title": "山门",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "sect.self",
+      "text": "你还没有拜入山门，仍以散修身份行走。山门没有拦你。"
+    },
+    {
+      "type": "look",
+      "anchor": "sect.door",
+      "text": "这扇门可以自己推开，去认一认诸宗。不推，洞府里的路也走得通。"
+    },
+    { "type": "end" }
+  ]
+}

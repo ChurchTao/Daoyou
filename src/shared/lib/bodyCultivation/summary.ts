@@ -1,3 +1,5 @@
+import { BODY_CULTIVATION_PACK } from './pack';
+import { bodyCultivationEffectTexts } from './benefits';
 import type {
   BodyCultivationRealm,
   BodyCultivationTrackKey,
@@ -56,69 +58,14 @@ export interface BodyCultivationSummary {
   nextRealm: BodyCultivationNextRealmSummary | null;
 }
 
-function formatPercent(value: number): string {
-  const percent = Number((value * 100).toFixed(1));
-  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function getEffectTexts(key: BodyCultivationTrackKey, level: number): string[] {
-  switch (key) {
-    case 'skin':
-      return [
-        `物防 +${formatPercent(clamp(level * 0.0035, 0, 0.35))}`,
-        `法防 +${formatPercent(clamp(level * 0.0025, 0, 0.25))}`,
-        `受到直接伤害 -${formatPercent(clamp(level * 0.003, 0, 0.3))}`,
-        ...(level >= 5
-          ? [`中毒持续 -${clamp(Math.floor(level / 5), 1, 3)} 回合`]
-          : []),
-      ];
-    case 'sinew_bone':
-      return [
-        `气血上限 +${formatPercent(clamp(level * 0.008, 0, 1.1))}`,
-        `暴击伤害减免 +${formatPercent(clamp(level * 0.008, 0, 0.5))}`,
-      ];
-    case 'organs':
-      return [
-        `物攻 +${formatPercent(clamp(level * 0.005, 0, 0.35))}`,
-        `法攻 +${formatPercent(clamp(level * 0.004, 0, 0.3))}`,
-        ...(level >= 5
-          ? [
-              `首次高耗蓝技能回蓝 ${formatPercent(
-                clamp(0.08 + Math.floor(level / 5) * 0.02, 0.1, 0.24),
-              )}`,
-            ]
-          : []),
-      ];
-    case 'qi_blood':
-      return [
-        `气血上限 +${formatPercent(clamp(level * 0.01, 0, 1.1))}`,
-        `治疗效果 +${formatPercent(clamp(level * 0.004, 0, 0.25))}`,
-      ];
-    case 'primordial_spirit':
-      return [
-        `控制抗性 +${formatPercent(clamp(level * 0.008, 0, 0.45))}`,
-        `抗暴 +${formatPercent(clamp(level * 0.005, 0, 0.3))}`,
-        `最大法力 +${formatPercent(clamp(level * 0.005, 0, 0.3))}`,
-      ];
-  }
-}
-
 function getNextMilestoneLevel(level: number): number {
-  return Math.max(5, Math.ceil((Math.max(0, level) + 1) / 5) * 5);
-}
-
-function getTrackLabel(key: BodyCultivationTrackKey): string {
-  return BODY_TRACK_LABELS[key].name.replace('炼体·', '');
+  const interval = BODY_CULTIVATION_PACK.progress.milestoneInterval;
+  return Math.max(interval, Math.ceil((Math.max(0, level) + 1) / interval) * interval);
 }
 
 function buildNextRealmSummary(options: {
   currentRealm: BodyCultivationRealm;
   totalLevel: number;
-  trackLevels: Record<BodyCultivationTrackKey, number>;
   cultivatorRealm?: RealmType;
 }): BodyCultivationNextRealmSummary | null {
   const nextRealm = getNextBodyCultivationRealm(options.currentRealm);
@@ -140,35 +87,6 @@ function buildNextRealmSummary(options: {
     },
   ];
 
-  if (config.requiredAnyTracks) {
-    const reachedCount = BODY_CULTIVATION_TRACK_KEYS.filter(
-      (key) => options.trackLevels[key] >= config.requiredAnyTracks!.minLevel,
-    ).length;
-    requirements.push({
-      label: `任意${config.requiredAnyTracks.count}轨 Lv.${config.requiredAnyTracks.minLevel}（${reachedCount}/${config.requiredAnyTracks.count}）`,
-      met: reachedCount >= config.requiredAnyTracks.count,
-    });
-  }
-
-  for (const [key, level] of Object.entries(
-    config.requiredTrackLevels ?? {},
-  ) as Array<[BodyCultivationTrackKey, number]>) {
-    requirements.push({
-      label: `${getTrackLabel(key)} Lv.${options.trackLevels[key]}/${level}`,
-      met: options.trackLevels[key] >= level,
-    });
-  }
-
-  if (config.minAllTracksLevel) {
-    const lowest = Math.min(
-      ...BODY_CULTIVATION_TRACK_KEYS.map((key) => options.trackLevels[key]),
-    );
-    requirements.push({
-      label: `五轨最低 Lv.${lowest}/${config.minAllTracksLevel}`,
-      met: lowest >= config.minAllTracksLevel,
-    });
-  }
-
   return {
     key: config.realm,
     label: config.label,
@@ -185,9 +103,6 @@ export function getBodyCultivationSummary(
 ): BodyCultivationSummary {
   const state = normalizeBodyCultivationState(condition);
   const realmConfig = BODY_CULTIVATION_REALM_REQUIREMENTS[state.realm];
-  const trackLevels = Object.fromEntries(
-    BODY_CULTIVATION_TRACK_KEYS.map((key) => [key, state.tracks[key].level]),
-  ) as Record<BodyCultivationTrackKey, number>;
   const tracks = BODY_CULTIVATION_TRACK_KEYS.map((key) => {
     const progress = state.tracks[key];
     const labels = BODY_TRACK_LABELS[key];
@@ -203,8 +118,8 @@ export function getBodyCultivationSummary(
       threshold: getBodyCultivationThresholdByLevel(progress.level),
       nextMilestoneLevel,
       levelsToNextMilestone: nextMilestoneLevel - progress.level,
-      currentEffects: getEffectTexts(key, progress.level),
-      nextLevelEffects: getEffectTexts(key, progress.level + 1),
+      currentEffects: bodyCultivationEffectTexts(key, progress.level),
+      nextLevelEffects: bodyCultivationEffectTexts(key, progress.level + 1),
     };
   });
   const totalLevel = tracks.reduce((sum, track) => sum + track.level, 0);
@@ -221,7 +136,6 @@ export function getBodyCultivationSummary(
     nextRealm: buildNextRealmSummary({
       currentRealm: state.realm,
       totalLevel,
-      trackLevels,
       cultivatorRealm: options.cultivatorRealm,
     }),
   };

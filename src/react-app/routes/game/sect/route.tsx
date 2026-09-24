@@ -6,6 +6,7 @@ import {
   useSectInfrastructureQuery,
 } from '@app/components/feature/sect/sectResources';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
+import { InkButton } from '@app/components/ui';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { useMemo } from 'react';
@@ -25,6 +26,28 @@ export default function SectPage() {
       new Map(infrastructure.data?.facilities.map((item) => [item.key, item])),
     [infrastructure.data?.facilities],
   );
+
+  if (error === '尚未拜入宗门') {
+    return (
+      <GameSceneFrame
+        title="诸宗山门"
+        description="你还没有拜入山门，仍以散修身份行走。"
+        identityOverride={{
+          label: '诸宗山门',
+          summary: '你还没有拜入山门，仍以散修身份行走。',
+        }}
+      >
+        <p data-guide="sect.self" className="text-ink-secondary text-sm leading-7">
+          山门没有拦你。想认一认诸宗，可以自己进去看看；眼下洞府里的路也走得通。
+        </p>
+        <span data-guide="sect.door" className="mt-4 inline-flex">
+          <InkButton href="/game/sect/onboarding" variant="primary">
+            去看看山门
+          </InkButton>
+        </span>
+      </GameSceneFrame>
+    );
+  }
 
   if (error)
     return (

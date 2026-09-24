@@ -1,0 +1,22 @@
+{
+  "id": "arrival-satchel",
+  "title": "袋口",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "灵兽袋已经认得了。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "袋口" },
+    {
+      "type": "narration",
+      "text": "灵兽袋的用法，{name}看过了。"
+    },
+    {
+      "type": "narration",
+      "text": "石室还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "read" }
+  ]
+}

@@ -1,111 +1,109 @@
-import { requireAdmin } from '@server/lib/hono/middleware';
+import {
+  getValidatedJson,
+  getValidatedQuery,
+  requireAdmin,
+  validateJson,
+  validateQuery,
+} from '@server/lib/hono/middleware';
 import type { AppEnv } from '@server/lib/hono/types';
-import { towerEnemySetService } from '@server/lib/tower/enemySets';
+import {
+  listTowerPublishedWeeks,
+  parseTowerWeekRecord,
+  readTowerWeekRecord,
+  regenerateTowerWeek,
+  towerWeekFingerprint,
+} from '@server/lib/repositories/towerRepository';
+import type { AdminTowerView } from '@shared/contracts/adminTower';
+import {
+  publishedTowerEncounter,
+  publishedTowerPreviews,
+} from '@shared/engine/combat-v6/tower/published';
+import {
+  TOWER_ELIGIBLE_REALMS,
+  TOWER_MAX_FLOOR,
+  TOWER_MIN_REALM,
+} from '@shared/lib/tower/helpers';
 import {
   getNextTowerSeasonMeta,
   getTowerSeasonMeta,
-  TOWER_ELIGIBLE_REALMS,
-  type TowerSeasonMeta,
-} from '@shared/lib/tower';
+} from '@shared/lib/tower/season';
+import { REALM_VALUES } from '@shared/types/constants';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const SeasonKeySchema = z
   .string()
-  .regex(/^\d{4}-W\d{2}@Asia\/Shanghai$/, 'invalid seasonKey');
-
-const GenerateBodySchema = z.object({
+  .regex(/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])@Asia\/Shanghai$/);
+const QuerySchema = z.object({
   seasonKey: SeasonKeySchema.optional(),
-  realm: z.enum(TOWER_ELIGIBLE_REALMS).optional(),
-  force: z.boolean().optional().default(false),
+  realm: z
+    .enum(REALM_VALUES)
+    .refine((realm) => TOWER_ELIGIBLE_REALMS.includes(realm), '蜃楼境界未开放')
+    .default(TOWER_MIN_REALM),
+  floor: z.coerce.number().int().min(1).max(TOWER_MAX_FLOOR).default(1),
 });
-
-const RealmQuerySchema = z.object({
+const RegenerateSchema = z.strictObject({
   seasonKey: SeasonKeySchema,
-  realm: z.enum(TOWER_ELIGIBLE_REALMS),
+  expectedFingerprint: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .nullable(),
 });
-
-function buildSeasonFromKey(seasonKey: string): TowerSeasonMeta {
-  return {
-    seasonKey,
-    seasonStartedAt: '',
-    seasonEndsAt: '',
-    nextResetAt: '',
-  };
-}
-
 const router = new Hono<AppEnv>();
+router.use('*', requireAdmin());
 
-router.get('/', requireAdmin(), async (c) => {
+router.get('/', validateQuery(QuerySchema), async (c) => {
+  const query = getValidatedQuery<z.infer<typeof QuerySchema>>(c);
   const currentSeason = getTowerSeasonMeta();
-  const nextSeason = getNextTowerSeasonMeta();
-  const rawSeasonKey = c.req.query('seasonKey')?.trim() || currentSeason.seasonKey;
-  const parsed = SeasonKeySchema.safeParse(rawSeasonKey);
-
-  if (!parsed.success) {
-    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
-  }
-
-  const snapshot = await towerEnemySetService.getAdminSnapshot(parsed.data);
-
-  return c.json({
-    success: true,
-    data: {
-      currentSeason,
-      nextSeason,
-      snapshot,
-    },
+  const nextSeason = getNextTowerSeasonMeta(
+    new Date(currentSeason.seasonStartedAt),
+  );
+  const seasonKey = query.seasonKey ?? currentSeason.seasonKey;
+  const [weeks, row] = await Promise.all([
+    listTowerPublishedWeeks(),
+    readTowerWeekRecord(seasonKey),
+  ]);
+  // Read and validate this exact snapshot, keeping its fingerprint and display consistent.
+  const pack = parseTowerWeekRecord(row);
+  const summarize = (item: (typeof weeks)[number]) => ({
+    seasonKey: item.seasonKey,
+    schemaVersion: item.schemaVersion,
+    contentVersion: item.contentVersion,
+    generatorVersion: item.generatorVersion,
+    publishedAt: item.createdAt.toISOString(),
   });
+  const data: AdminTowerView = {
+    currentSeason,
+    nextSeason,
+    seasonKey,
+    realm: query.realm,
+    floor: query.floor,
+    weeks: weeks.map(summarize),
+    fingerprint: towerWeekFingerprint(row),
+    published: row ? summarize(row) : null,
+    configuration: pack
+      ? {
+          season: pack.season,
+          previews: publishedTowerPreviews(pack),
+          encounter: publishedTowerEncounter(pack, query.realm, query.floor),
+        }
+      : null,
+  };
+  c.header('Cache-Control', 'no-store');
+  return c.json({ success: true, data });
 });
 
-router.get('/realm', requireAdmin(), async (c) => {
-  const parsed = RealmQuerySchema.safeParse({
-    seasonKey: c.req.query('seasonKey')?.trim(),
-    realm: c.req.query('realm')?.trim(),
-  });
-
-  if (!parsed.success) {
-    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
-  }
-
-  const detail = await towerEnemySetService.getAdminRealmDetail(parsed.data);
-
-  return c.json({
-    success: true,
-    data: {
-      detail,
-    },
-  });
+router.post('/regenerate', validateJson(RegenerateSchema), async (c) => {
+  const input = getValidatedJson<z.infer<typeof RegenerateSchema>>(c);
+  const current = getTowerSeasonMeta();
+  const next = getNextTowerSeasonMeta(new Date(current.seasonStartedAt));
+  const season = [current, next].find(
+    (item) => item.seasonKey === input.seasonKey,
+  );
+  if (!season) return c.json({ error: '仅可重新生成本周或下周配置' }, 400);
+  const replaced = await regenerateTowerWeek(season, input.expectedFingerprint);
+  if (!replaced)
+    return c.json({ error: '周配置已变化，请刷新后重新生成' }, 409);
+  return c.json({ success: true });
 });
-
-router.post('/generate', requireAdmin(), async (c) => {
-  const body = await c.req.json().catch(() => null);
-  const parsed = GenerateBodySchema.safeParse(body);
-
-  if (!parsed.success) {
-    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
-  }
-
-  const seasonKey = parsed.data.seasonKey ?? getTowerSeasonMeta().seasonKey;
-  const season = buildSeasonFromKey(seasonKey);
-  const result = parsed.data.realm
-    ? await towerEnemySetService.ensureTowerEnemySet(
-        season,
-        parsed.data.realm,
-        { force: parsed.data.force },
-      )
-    : await towerEnemySetService.ensureTowerEnemySetsForSeason(season, {
-        force: parsed.data.force,
-      });
-  const snapshot = await towerEnemySetService.getAdminSnapshot(seasonKey);
-
-  return c.json({
-    success: true,
-    data: {
-      result,
-      snapshot,
-    },
-  });
-});
-
 export default router;

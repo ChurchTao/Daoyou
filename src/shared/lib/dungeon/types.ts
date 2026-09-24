@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { ItemGrantSchema } from '@shared/inventory';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 
@@ -52,7 +53,7 @@ export const DungeonCostSchema = z
     name: z
       .string()
       .optional()
-      .describe('材料名称（material 类型需要，如果未知可省略留给系统匹配）'),
+      .describe('材料名称（未知可省略；由玩家按要求选择提交物品）'),
     required_quality: z
       .enum(DUNGEON_QUALITY_VALUES)
       .optional()
@@ -184,6 +185,7 @@ export const DungeonRoundSchema = z.object({
 // Settlement info from AI
 export const DungeonSettlementSchema = z
   .object({
+    inventoryRewards: z.array(ItemGrantSchema).optional(),
     ending_narrative: z.string().describe('结局叙述'),
     settlement: z.object({
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
@@ -268,6 +270,7 @@ export type DungeonRecoverAction =
   'retry' | 'retry_continue' | 'retry_settle' | 'safe_retreat' | 'force_quit';
 
 export interface DungeonCostLedgerEntry {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   round: number;
   choiceId?: number;
@@ -284,6 +287,7 @@ export interface DungeonGainLedgerEntry {
 }
 
 export interface DungeonPendingAction {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   choiceId?: number;
   choiceText?: string;
@@ -297,6 +301,11 @@ export interface DungeonPendingAction {
 // === Internal State Management ===
 
 export interface DungeonState {
+  encounter?: import('@shared/contracts/combatV6Dungeon').DungeonEncounterView;
+  rewardSeed?: number;
+  v6Rewards?: import('@shared/rewards/dungeon').DungeonRewardEntry[];
+  beastResources?: Record<string, { hp: number; mp: number }>;
+  endDisposition?: import('@shared/lib/dungeon/settlementPolicy').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;
   mapNodeId: string;

@@ -1,0 +1,23 @@
+{
+  "$schema": "./progression.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "method": {
+    "maxLevel": 180,
+    "characterLevelAllowance": 10,
+    "expBase": 50,
+    "expGrowth": 1.05,
+    "expRounding": 10,
+    "stonesPerExp": 3,
+    "stonesRounding": 100,
+    "insight": 0
+  },
+  "meridian": {
+    "characterLevels": [30, 60, 90, 120, 150, 170, 180],
+    "expBase": 5000,
+    "expGrowth": 4,
+    "growthExponentCap": 5,
+    "stonesPerExp": 5,
+    "insight": 100
+  }
+}

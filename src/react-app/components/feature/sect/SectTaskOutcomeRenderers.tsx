@@ -1,24 +1,9 @@
-import { BattlePageLayout } from '@app/components/feature/battle/BattlePageLayout';
-import { BattlePlaybackPanel } from '@app/components/feature/battle/v3/BattlePlaybackPanel';
-import { useBattlePlaybackState } from '@app/components/feature/battle/v3/useBattlePlaybackState';
-import { CombatResultDialog } from '@app/components/feature/battle/v5/CombatResultDialog';
 import { InkButton, InkDialog, InkNotice } from '@app/components/ui';
 import type { SectOutcomeRendererProps } from '@app/lib/sect/presentation/core/registry';
 import type {
-  SectBattleOutcomeData,
   SectTaskRewardReceipt,
 } from '@shared/contracts/sect';
-import { useNavigate, useSearchParams } from 'react-router';
-import {
-  getSectPresentationForContext,
-  useSectContextQuery,
-} from './sectResources';
 import { createSectRoomNpcHref } from './sectRoomNavigation';
-import {
-  createSectTaskBattleHref,
-  getSectTaskActivityLocation,
-  resolveSectTaskActivityOrigin,
-} from './sectTaskActivityLocations';
 import { useSectTaskInteraction } from './SectTaskInteractionProvider';
 
 export function SweepSessionOutcome({
@@ -128,69 +113,5 @@ export function RewardClaimedOutcome({
       }}
       onClose={clearOutcome}
     />
-  );
-}
-
-export function BattleOutcome({
-  task,
-  data,
-}: SectOutcomeRendererProps<unknown>) {
-  const context = useSectContextQuery();
-  const presentation = getSectPresentationForContext(context.data);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const attemptId = searchParams.get('attemptId') ?? 'unknown';
-  const origin = resolveSectTaskActivityOrigin(searchParams.get('origin'));
-  const returnTarget = origin
-    ? getSectTaskActivityLocation(origin, task, 'return')
-    : {
-        route: '/game/sect/affairs',
-        returnLabel: presentation.terms.returnToAffairs,
-      };
-  const battle = data as SectBattleOutcomeData;
-  const playback = useBattlePlaybackState(battle.battle);
-  const retry = () =>
-    navigate(createSectTaskBattleHref(task.definitionId, origin), {
-      replace: true,
-    });
-  return (
-    <BattlePageLayout
-      title={battle.challengeTitle}
-      subtitle="任务封签已启，此局只用于核验任务结果。"
-      variant="immersive-battle"
-      battleResult={battle.battle}
-    >
-      <BattlePlaybackPanel
-        battleResult={battle.battle}
-        playback={playback}
-        statusActions={[
-          {
-            label: returnTarget.returnLabel,
-            onClick: () => navigate(returnTarget.route),
-          },
-        ]}
-      />
-      <CombatResultDialog
-        key={`${attemptId}-${battle.battle.outcome.turns}`}
-        dialogKey={`sect-task-${attemptId}`}
-        open={playback.isPlaybackFinished}
-        title={battle.won ? '宗门战局得胜' : '宗门战局失利'}
-        confirmLabel={returnTarget.returnLabel}
-        cancelLabel={battle.won ? '重看战局' : '重新挑战'}
-        onConfirm={() => navigate(returnTarget.route)}
-        onCancel={battle.won ? playback.reset : retry}
-        content={
-          <p className="leading-8">
-            {battle.won
-              ? battle.taskFulfilled
-                ? origin
-                  ? '胜绩回执已成，返回此地后便可回事务堂复命。'
-                  : '胜绩回执已成，请回事务堂领取赏赐。'
-                : '胜绩已经记入宗门卷宗。'
-              : '此战未能击败对手，任务仍然保留，可整顿后再次挑战。'}
-          </p>
-        }
-      />
-    </BattlePageLayout>
   );
 }

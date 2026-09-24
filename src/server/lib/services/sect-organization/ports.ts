@@ -1,19 +1,9 @@
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import type { DomainEventWriter } from '@server/lib/mq/domainEventWriter';
-import type {
-  DbExecutor,
-  DbTransaction,
-} from '@server/lib/drizzle/db';
-import type {
-  ResourceChangeDescriptor,
-  ResourceDataMap,
-} from '@shared/contracts/resources';
+import type { ResourceDataMap } from '@shared/contracts/resources';
 import type { SectTaskSettlementData } from '@shared/contracts/sect';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import type { SectBattleStateStrategy } from '@shared/engine/sect';
-import type { CultivatorCondition } from '@shared/types/condition';
 import type {
   CultivatorSectState,
-  SectAbilitySlots,
   SectDefinition,
   SectDiscipleRank,
   SectOffice,
@@ -21,9 +11,7 @@ import type {
   SectSubmissionItemFacts,
   SectSubmissionItemKind,
   SectTaskRecordPayload,
-  SectTrainingCost,
 } from '@shared/engine/sect';
-import type { BattleRecordV3 } from '@shared/types/battle';
 import type { Quality, RealmStage, RealmType } from '@shared/types/constants';
 import type { Material } from '@shared/types/cultivator';
 import type { SectCommandEffects } from './SectCommandEffects';
@@ -88,52 +76,8 @@ export interface SectTrainingResourceSnapshot {
   playerRace: 'human';
 }
 
-export interface SectTrainingResourceGateway {
+export interface SectAdmissionResourceReader {
   load(cultivatorId: string): Promise<SectTrainingResourceSnapshot | null>;
-  spend(cultivatorId: string, cost: SectTrainingCost): Promise<boolean>;
-  methodLevelCap(cultivatorId: string): Promise<number>;
-}
-
-export interface SectTraditionRepository extends SectStateRepository {
-  setMethodLevel(
-    membershipId: string,
-    methodId: string,
-    level: number,
-  ): Promise<void>;
-  createPathWithFirstLayer(
-    membershipId: string,
-    pathId: string,
-    tacticId: string,
-    layerId: string,
-  ): Promise<boolean>;
-  appendUnlockedPathLayer(
-    membershipId: string,
-    pathId: string,
-    layerId: string,
-    expectedUnlockedCount: number,
-  ): Promise<boolean>;
-  activatePathIfNone(membershipId: string, pathId: string): Promise<void>;
-  activatePath(membershipId: string, pathId: string): Promise<boolean>;
-  replaceMeridianLoadout(
-    membershipId: string,
-    pathId: string,
-    slot: number,
-    nodeIds: string[],
-  ): Promise<void>;
-  activateMeridianLoadout(
-    membershipId: string,
-    pathId: string,
-    slot: number,
-  ): Promise<void>;
-  replaceAbilityLoadout(
-    membershipId: string,
-    slots: SectAbilitySlots,
-  ): Promise<void>;
-  setPathTactic(
-    membershipId: string,
-    pathId: string,
-    tacticId: string,
-  ): Promise<void>;
 }
 
 export interface SectMembershipRecord {
@@ -245,19 +189,14 @@ export interface SectTaskRepository extends SectTaskReadRepository {
 
 export interface SectInventorySettlementResult {
   consumed: boolean;
-  change?: ResourceChangeDescriptor<
-    'inventory.artifacts' | 'inventory.materials' | 'inventory.consumables'
-  >;
   settlement?: SectTaskSettlementData['inventory'][number];
 }
 
 export interface SectSubmissionInventoryReadGateway {
-  listSubmissionItemsPage(input: {
+  listSubmissionItems(input: {
     cultivatorId: string;
     kind: SectSubmissionItemKind;
-    page: number;
-    pageSize: number;
-  }): Promise<{ items: SectSubmissionItemFacts[]; total: number }>;
+  }): Promise<SectSubmissionItemFacts[]>;
   findSubmissionItem(
     cultivatorId: string,
     kind: SectSubmissionItemKind,
@@ -270,30 +209,16 @@ export interface SectSubmissionInventoryGateway extends SectSubmissionInventoryR
     cultivatorId: string;
     kind: SectSubmissionItemKind;
     itemId: string;
+    revision: number;
     quantity: number;
   }): Promise<SectInventorySettlementResult>;
 }
 
 export interface SectCultivatorGateway {
-  loadRuntime(cultivatorId: string): Promise<CultivatorCombatInput | null>;
-  findBattleTargetCandidate(input: {
-    requesterSectId: string;
-    excludeCultivatorId: string;
-    realms: readonly RealmType[];
-    relation: 'same-sect' | 'other-sect';
-  }): Promise<{
-    cultivatorId: string;
-    sectId: string;
-    sectName: string;
-  } | null>;
   loadProgress(cultivatorId: string): Promise<{
     realm: RealmType;
     stage: RealmStage;
   } | null>;
-  saveCondition(
-    cultivatorId: string,
-    condition: CultivatorCondition,
-  ): Promise<void>;
 }
 
 export interface SectRewardMaterialCandidate {
@@ -313,15 +238,12 @@ export interface SectRewardMaterialCatalogGateway {
 }
 
 export interface SectBattleGateway {
-  execute(
-    player: CultivatorCombatInput,
-    opponent: CultivatorCombatInput,
-    strategy: SectBattleStateStrategy,
-    seed: string,
-  ): {
-    battleResult: BattleRecordV3;
-    nextCondition?: CultivatorCondition;
-  };
+  freeze(
+    context: import('./task-executors/SectTaskExecutor').SectTaskEnrollmentContext,
+  ): Promise<import('@shared/contracts/combatV6SectTask').SectV6Target>;
+  start(
+    context: import('./task-executors/SectTaskExecutor').SectTaskExecutionContext,
+  ): Promise<{ battleId: string }>;
 }
 
 export interface SectRewardGateway {

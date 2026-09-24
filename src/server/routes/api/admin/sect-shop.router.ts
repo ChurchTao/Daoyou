@@ -16,14 +16,6 @@ import { Hono } from 'hono';
 
 const router = new Hono<AppEnv>();
 
-function isUniqueViolation(error: unknown): boolean {
-  return Boolean(
-    error &&
-      typeof error === 'object' &&
-      (error as { code?: string }).code === '23505',
-  );
-}
-
 router.get('/', requireAdmin(), async (c) => {
   const parsed = SectShopListQuerySchema.safeParse({
     status: c.req.query('status') || undefined,
@@ -57,9 +49,6 @@ router.post('/', requireAdmin(), async (c) => {
     if (error instanceof SectShopError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
-    if (isUniqueViolation(error)) {
-      return c.json({ error: '该道具已在宗门宝库中' }, 409);
-    }
     return c.json(
       { error: error instanceof Error ? error.message : '创建商品失败' },
       400,
@@ -87,9 +76,6 @@ router.put('/:id', requireAdmin(), async (c) => {
   } catch (error) {
     if (error instanceof SectShopError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (isUniqueViolation(error)) {
-      return c.json({ error: '该道具已在宗门宝库中' }, 409);
     }
     return c.json(
       { error: error instanceof Error ? error.message : '更新商品失败' },

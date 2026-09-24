@@ -2,7 +2,6 @@ import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
 import {
-  AbilityMetaLine,
   AffixInlineList,
   toProductDisplayModel,
   type ProductRecordLike,
@@ -32,10 +31,13 @@ import {
   type CharacterGenerationQuotaResponse,
   type GenerateCharacterResponse,
 } from '@shared/contracts/character-generation';
-import { getCultivatorDisplayAttributes } from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import { AttributeType } from '@shared/engine/battle-v5/core/types';
-import { attrLabel } from '@shared/engine/battle-v5/effects/affixText/attributes';
 import { cn } from '@shared/lib/cn';
+import {
+  characterDisplayRows,
+  formatCharacterAttributeValue as formatAttributeValue,
+  formatCharacterAttributeModifier as formatModifier,
+  projectCharacterDisplay,
+} from '@shared/lib/cultivatorDisplay';
 import {
   getGameConceptIcon,
   getResourceLabel,
@@ -49,76 +51,8 @@ const MAX_PROMPT_LENGTH = 200;
 
 const countChars = (input: string): number => Array.from(input).length;
 
-const PRIMARY_ATTR_ORDER: AttributeType[] = [
-  AttributeType.VITALITY,
-  AttributeType.STRENGTH,
-  AttributeType.SPIRIT,
-  AttributeType.ENDURANCE,
-  AttributeType.SPEED,
-  AttributeType.WILLPOWER,
-];
-
-const SECONDARY_ATTR_ORDER: AttributeType[] = [
-  AttributeType.ATK,
-  AttributeType.DEF,
-  AttributeType.MAGIC_ATK,
-  AttributeType.MAGIC_DEF,
-  AttributeType.ACTION_SPEED,
-  AttributeType.CRIT_RATE,
-  AttributeType.CRIT_DAMAGE_MULT,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-];
-
-const PERCENT_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_RATE,
-  AttributeType.EVASION_RATE,
-  AttributeType.CONTROL_HIT,
-  AttributeType.CONTROL_RESISTANCE,
-  AttributeType.ARMOR_PENETRATION,
-  AttributeType.MAGIC_PENETRATION,
-  AttributeType.CRIT_RESIST,
-  AttributeType.CRIT_DAMAGE_REDUCTION,
-  AttributeType.ACCURACY,
-  AttributeType.HEAL_AMPLIFY,
-]);
-
-const MULTIPLIER_ATTRS = new Set<AttributeType>([
-  AttributeType.CRIT_DAMAGE_MULT,
-]);
-
 const genesisPanelClassName =
   'border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 md:px-5 md:py-5';
-
-function formatAttributeValue(attrType: AttributeType, value: number): string {
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${(value * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${value.toFixed(2)}x`;
-  }
-  return Number.isInteger(value) ? `${value}` : value.toFixed(2);
-}
-
-function formatModifier(attrType: AttributeType, value: number): string {
-  const abs = Math.abs(value);
-  const sign = value >= 0 ? '+' : '-';
-  if (PERCENT_ATTRS.has(attrType)) {
-    return `${sign}${(abs * 100).toFixed(1)}%`;
-  }
-  if (MULTIPLIER_ATTRS.has(attrType)) {
-    return `${sign}${abs.toFixed(2)}x`;
-  }
-  const rendered = Number.isInteger(abs) ? `${abs}` : abs.toFixed(2);
-  return `${sign}${rendered}`;
-}
 
 function chunkPairs<T>(items: T[]): T[][] {
   const rows: T[][] = [];
@@ -366,10 +300,10 @@ export default function CreatePage() {
       await consumeResourceMutation(saveResponse);
 
       pushToast({
-        message: '道友真形已落地，山门正在云外相候。',
+        message: '道友真形已落地，玉简正在案上显字。',
         tone: 'success',
       });
-      navigate('/game/sect/onboarding', { replace: true });
+      navigate('/game/story', { replace: true });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : '保存角色失败，请检查控制台';
@@ -431,26 +365,11 @@ export default function CreatePage() {
 
   const previewStats = useMemo(() => {
     if (!player) return null;
-    const { unit, maxHp, maxMp } = getCultivatorDisplayAttributes(player);
-    const orderedAttributes = [...PRIMARY_ATTR_ORDER, ...SECONDARY_ATTR_ORDER];
-    const displayAttributes = orderedAttributes.map((attrType) => {
-      const baseValue = unit.attributes.getBaseValue(attrType);
-      const finalValue = unit.attributes.getValue(attrType);
-      const modifier = finalValue - baseValue;
-      return {
-        type: attrType,
-        label: attrLabel(attrType),
-        baseValue,
-        finalValue,
-        modifier,
-      };
-    });
-
+    const panel = projectCharacterDisplay(player, null);
     return {
-      maxHp,
-      maxMp,
-      primaryRows: displayAttributes.slice(0, PRIMARY_ATTR_ORDER.length),
-      secondaryAll: displayAttributes.slice(PRIMARY_ATTR_ORDER.length),
+      maxHp: panel.maxHp,
+      maxMp: panel.maxMp,
+      ...characterDisplayRows(player.attributes, panel),
     };
   }, [player]);
 
@@ -846,9 +765,6 @@ export default function CreatePage() {
                             meta={
                               <div className="space-y-1">
                                 <AffixInlineList affixes={product.affixes} />
-                                <AbilityMetaLine
-                                  projection={product.projection}
-                                />
                               </div>
                             }
                             description={skill.description}

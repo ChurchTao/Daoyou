@@ -5,16 +5,16 @@ export const JIUJIE_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: JIUJIE_SECT_ID,
   announcement: '雷池今夜三次合鸣，劫簿殿已封存旧页。弟子行经天阶，须先听雷，再入宫门。',
   onboarding: {
-    summary: '引天听记录众生出手，以身承劫，或以簿定罪；待劫数归于九霄，再作最后清算。',
-    traits: ['天听记行', '劫雷不散', '承劫定罪'],
+    summary: '以劫雷淬体，以雷律御法。或纳雷入兵，近身摧岳；或敕令群雷，借印引劫。',
+    traits: ['天罡辟邪', '以身承雷', '以印引劫'],
     script: {
       id: 'jiujie-onboarding', title: '雷池听劫', theme: 'steel',
       backdrop: { src: '/assets/sect/onboarding/jiujie.webp', alt: '九劫天宫中天雷池前，新弟子接受执簿天官验名，远处九重天宫悬于云海雷光之上' },
       acts: [
         { id: 'ascend-heaven-stair', title: '登天有阶', scene: '九劫天宫 · 引雷天阶', body: '你沿着悬在云海之上的石阶上行。阶下是无边云海，阶上没有迎客钟，也没有引路童子。只有远处宫阙之间，一道道雷光按着相同的间隔落下，像有人正在天上校准一座看不见的法阵。', speaker: '守天阶：“天宫不问来者从何处来。登上这九重天阶，便要让天听知道你将如何行事。”', backgroundPosition: '50% 46%', tone: 'mist' },
         { id: 'thunder-pool-verdict', title: '雷池验名', scene: '九劫天宫 · 中天雷池', body: '雷池中央立着一方空白石碑。执簿天官将你的姓名写上去，墨迹尚未干透，天雷便从云层深处垂落。雷光没有击碎石碑，只在碑面留下第一道细密的雷痕。', speaker: '执簿天官：“天威不替你行事。它只记下你已经做过的事。”', backgroundPosition: '50% 60%', tone: 'steel' },
-        { id: 'calamity-eye', title: '劫眼临身', scene: '九劫天宫 · 劫眼峰', body: '左侧劫眼峰上的阵纹忽然睁开。雷光落在你的身上，并未立刻消散，而是沿着衣袍与经脉留下的雷痕缓缓回流。你感受到的不是一击，而是一场尚未结束的劫。', speaker: '劫眼峰长老：“若以自身为劫眼，便要先学会承受。来力经过你，才知道该归向何处。”', backgroundPosition: '24% 48%', tone: 'ember' },
-        { id: 'heavenly-condemnation', title: '天谴加身', scene: '九劫天宫 · 天谴司', body: '右侧天谴司内，数枚雷简依次浮起。有人挥掌，雷简记下伤害；有人施术护持，雷简记下增益；有人试图封住来路，雷简便留下控制的判印。相同的雷痕再次出现时，第二道墨色判印随之落下。', speaker: '司谴官：“天宫不禁你出手。只是同一条路若再走一次，便不能说自己不知它通向何处。”', backgroundPosition: '76% 48%', tone: 'steel' },
+        { id: 'calamity-eye', title: '以身承雷', scene: '九劫天宫 · 劫眼峰', body: '左侧劫眼峰上的阵纹忽然睁开。长老将一道劫雷纳入法兵，挥击时山石应声裂开；第二道、第三道雷光接连汇入，兵锋愈盛，执兵的手臂也开始微微颤抖。', speaker: '劫眼峰长老：“霹雳真君，以兵行劫。取几重雷威，便须知自己能承几重。”', backgroundPosition: '24% 48%', tone: 'ember' },
+        { id: 'heavenly-condemnation', title: '以印引劫', scene: '九劫天宫 · 天谴司', body: '右侧天谴司内，司谴官抬指敕雷，数座石像同时亮起雷印。其中一枚忽转赤色，下一道雷光沿印贯入，顷刻照彻殿庭。余光散去，赤印又归于寻常。', speaker: '司谴官：“踏雷天尊，以神驭雷。识得雷印流转，方能引九霄之威归于一处。”', backgroundPosition: '76% 48%', tone: 'steel' },
         { id: 'nine-gates-entry', title: '九门入宫', scene: '九劫天宫 · 九劫天门', body: '你回到雷池中央。石碑上的雷痕已经不再空白：有的沿着你的身躯回流，有的沉入天谴司的雷简。九座天门同时亮起，却只开启了最下方的一重。', speaker: '宫门内：“我不求无劫，只求劫有所归。今日入宫，先听一雷。”', backgroundPosition: '50% 38%', tone: 'mist' },
       ],
     },
@@ -26,8 +26,8 @@ export const JIUJIE_SECT_PRESENTATION: SectPresentationTheme = {
     hotspots: [
       h('hall', '中天雷池', '50%', '50%', '/game/sect/hall', 'sect.hall.view', '身份 · 同门 · 周俸'),
       h('archive', '劫簿殿', '50%', '8%', '/game/sect/archive', 'sect.archive.use', '心法研习', 'archive'),
-      h('cliff', '劫眼峰', '17%', '31%', '/game/sect/enlightenment-cliff', 'sect.enlightenment.use', '劫眼临身 · 流派参悟'),
-      h('condemnation', '天谴司', '82%', '31%', '/game/sect/enlightenment-cliff', 'sect.enlightenment.use', '天谴加身 · 流派参悟'),
+      h('cliff', '劫眼峰', '17%', '31%', '/game/sect/enlightenment-cliff', 'sect.enlightenment.use', '霹雳真君 · 流派参悟'),
+      h('condemnation', '天谴司', '82%', '31%', '/game/sect/enlightenment-cliff', 'sect.enlightenment.use', '踏雷天尊 · 流派参悟'),
       h('affairs', '引雷天阶', '50%', '71%', '/game/sect/affairs', 'sect.tasks.use', '日常 · 周常 · 晋升'),
       h('arena', '雷台演武场', '50%', '28%', '/game/sect/arena', 'sect.arena.use', '神通 · 战术 · 小比'),
       h('treasury', '天衡库', '74%', '42%', '/game/sect/treasury', 'sect.shop.use', '贡献兑换'),

@@ -14,8 +14,19 @@ import {
   sectTaskRecords,
 } from '@server/lib/drizzle/schema';
 import type { SectDiscipleRank, SectOffice } from '@shared/engine/sect';
-import type { RealmType } from '@shared/types/constants';
-import { and, asc, count, desc, eq, gt, gte, inArray, lte, ne, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  lte,
+  ne,
+  sql,
+} from 'drizzle-orm';
 
 export async function ensureSectFacilities(
   sectId: string,
@@ -96,8 +107,7 @@ export async function addSectContribution(
     .update(sectMemberships)
     .set({
       contribution: sql`${sectMemberships.contribution} + ${amount}`,
-      lifetimeContribution:
-        sql`${sectMemberships.lifetimeContribution} + ${amount}`,
+      lifetimeContribution: sql`${sectMemberships.lifetimeContribution} + ${amount}`,
       updatedAt: new Date(),
     })
     .where(eq(sectMemberships.id, membershipId))
@@ -159,7 +169,10 @@ export async function listSectTaskRecords(
     .where(
       and(
         eq(sectTaskRecords.membershipId, membershipId),
-        inArray(sectTaskRecords.periodKey, [...new Set(periodKeys)]),
+        sql`(${inArray(sectTaskRecords.periodKey, [...new Set(periodKeys)])}
+          OR ${sectTaskRecords.payload}->'executorData'->>'battleSettled' = 'false'
+          OR (${sectTaskRecords.status} = 'completed' AND ${sectTaskRecords.claimedAt} IS NULL
+            AND ${sectTaskRecords.payload}->'executorData'->'battleTarget'->>'schemaVersion' = '2'))`,
       ),
     )
     .orderBy(desc(sectTaskRecords.createdAt));
@@ -193,7 +206,9 @@ export async function getNextSectTaskAttempt(
   q: DbExecutor | DbTransaction,
 ) {
   const [row] = await q
-    .select({ attempt: sql<number>`coalesce(max(${sectTaskRecords.attempt}), 0)` })
+    .select({
+      attempt: sql<number>`coalesce(max(${sectTaskRecords.attempt}), 0)`,
+    })
     .from(sectTaskRecords)
     .where(
       and(
@@ -475,210 +490,6 @@ export async function spendCultivatorSpiritStones(
     : { spent: false as const };
 }
 
-export async function findOwnedMaterial(
-  cultivatorId: string,
-  itemId: string,
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select()
-    .from(materials)
-    .where(
-      and(eq(materials.cultivatorId, cultivatorId), eq(materials.id, itemId)),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
-export async function findOwnedConsumable(
-  cultivatorId: string,
-  itemId: string,
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select()
-    .from(consumables)
-    .where(
-      and(
-        eq(consumables.cultivatorId, cultivatorId),
-        eq(consumables.id, itemId),
-      ),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
-export async function findOwnedArtifact(
-  cultivatorId: string,
-  itemId: string,
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select()
-    .from(creationProducts)
-    .where(
-      and(
-        eq(creationProducts.cultivatorId, cultivatorId),
-        eq(creationProducts.id, itemId),
-        eq(creationProducts.productType, 'artifact'),
-      ),
-    )
-    .limit(1);
-  return row ?? null;
-}
-
-export async function listOwnedSubmissionMaterials(
-  cultivatorId: string,
-  page: number,
-  pageSize: number,
-  q: DbExecutor | DbTransaction,
-) {
-  const where = eq(materials.cultivatorId, cultivatorId);
-  const [rows, totals] = await runDbTasks(q, [
-    () =>
-      q
-        .select()
-        .from(materials)
-        .where(where)
-        .orderBy(desc(materials.createdAt), asc(materials.id))
-        .limit(pageSize)
-        .offset((page - 1) * pageSize),
-    () => q.select({ total: count() }).from(materials).where(where),
-  ]);
-  return { rows, total: Number(totals[0]?.total ?? 0) };
-}
-
-export async function listOwnedSubmissionConsumables(
-  cultivatorId: string,
-  page: number,
-  pageSize: number,
-  q: DbExecutor | DbTransaction,
-) {
-  const condition = and(
-    eq(consumables.cultivatorId, cultivatorId),
-    eq(consumables.type, '丹药'),
-    sql`${consumables.spec} ->> 'kind' = 'pill'`,
-  );
-  const [rows, totals] = await runDbTasks(q, [
-    () =>
-      q
-        .select()
-        .from(consumables)
-        .where(condition)
-        .orderBy(desc(consumables.createdAt), asc(consumables.id))
-        .limit(pageSize)
-        .offset((page - 1) * pageSize),
-    () => q.select({ total: count() }).from(consumables).where(condition),
-  ]);
-  return { rows, total: Number(totals[0]?.total ?? 0) };
-}
-
-export async function listOwnedSubmissionArtifacts(
-  cultivatorId: string,
-  page: number,
-  pageSize: number,
-  q: DbExecutor | DbTransaction,
-) {
-  const condition = and(
-    eq(creationProducts.cultivatorId, cultivatorId),
-    eq(creationProducts.productType, 'artifact'),
-  );
-  const [rows, totals] = await runDbTasks(q, [
-    () =>
-      q
-        .select()
-        .from(creationProducts)
-        .where(condition)
-        .orderBy(desc(creationProducts.createdAt), asc(creationProducts.id))
-        .limit(pageSize)
-        .offset((page - 1) * pageSize),
-    () => q.select({ total: count() }).from(creationProducts).where(condition),
-  ]);
-  return { rows, total: Number(totals[0]?.total ?? 0) };
-}
-
-export async function consumeOwnedSubmissionMaterial(
-  cultivatorId: string,
-  itemId: string,
-  quantity: number,
-  tx: DbTransaction,
-) {
-  const [row] = await tx
-    .update(materials)
-    .set({ quantity: sql`${materials.quantity} - ${quantity}` })
-    .where(
-      and(
-        eq(materials.id, itemId),
-        eq(materials.cultivatorId, cultivatorId),
-        gte(materials.quantity, quantity),
-      ),
-    )
-    .returning({ id: materials.id, quantity: materials.quantity });
-  if (!row) return false;
-  if (row.quantity === 0)
-    await tx
-      .delete(materials)
-      .where(
-        and(
-          eq(materials.id, itemId),
-          eq(materials.cultivatorId, cultivatorId),
-          eq(materials.quantity, 0),
-        ),
-      );
-  return true;
-}
-
-export async function consumeOwnedSubmissionConsumable(
-  cultivatorId: string,
-  itemId: string,
-  quantity: number,
-  tx: DbTransaction,
-) {
-  const [row] = await tx
-    .update(consumables)
-    .set({ quantity: sql`${consumables.quantity} - ${quantity}` })
-    .where(
-      and(
-        eq(consumables.id, itemId),
-        eq(consumables.cultivatorId, cultivatorId),
-        eq(consumables.type, '丹药'),
-        gte(consumables.quantity, quantity),
-      ),
-    )
-    .returning({ id: consumables.id, quantity: consumables.quantity });
-  if (!row) return false;
-  if (row.quantity === 0)
-    await tx
-      .delete(consumables)
-      .where(
-        and(
-          eq(consumables.id, itemId),
-          eq(consumables.cultivatorId, cultivatorId),
-          eq(consumables.quantity, 0),
-        ),
-      );
-  return true;
-}
-
-export async function consumeOwnedSubmissionArtifact(
-  cultivatorId: string,
-  itemId: string,
-  tx: DbTransaction,
-) {
-  const rows = await tx
-    .delete(creationProducts)
-    .where(
-      and(
-        eq(creationProducts.id, itemId),
-        eq(creationProducts.cultivatorId, cultivatorId),
-        eq(creationProducts.productType, 'artifact'),
-        eq(creationProducts.isEquipped, false),
-      ),
-    )
-    .returning({ id: creationProducts.id });
-  return rows.length === 1;
-}
-
 export async function consumeOwnedMaterial(
   itemId: string,
   quantity: number,
@@ -850,36 +661,4 @@ export async function countSectMembersAboveLifetimeContribution(
       ),
     );
   return Number(row?.value ?? 0);
-}
-
-export async function findSectBattleTargetCandidate(
-  input: {
-    requesterSectId: string;
-    excludeCultivatorId: string;
-    realms: readonly RealmType[];
-    relation: 'same-sect' | 'other-sect';
-  },
-  q: DbExecutor | DbTransaction,
-) {
-  const [row] = await q
-    .select({
-      cultivatorId: sectMemberships.cultivatorId,
-      sectId: sectMemberships.sectId,
-    })
-    .from(sectMemberships)
-    .innerJoin(cultivators, eq(cultivators.id, sectMemberships.cultivatorId))
-    .where(
-      and(
-        eq(sectMemberships.status, 'active'),
-        eq(cultivators.status, 'active'),
-        inArray(cultivators.realm, input.realms),
-        sql`${sectMemberships.cultivatorId} <> ${input.excludeCultivatorId}`,
-        input.relation === 'same-sect'
-          ? eq(sectMemberships.sectId, input.requesterSectId)
-          : sql`${sectMemberships.sectId} <> ${input.requesterSectId}`,
-      ),
-    )
-    .orderBy(sql`random()`)
-    .limit(1);
-  return row ?? null;
 }

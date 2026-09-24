@@ -1,0 +1,306 @@
+{
+  "defaults": {
+    "maxMp": 1500,
+    "critRate": 0.03,
+    "spellCritRate": 0.03,
+    "sealHit": 45,
+    "sealResist": 50
+  },
+  "kinds": {
+    "normal": {
+      "multiply": {
+        "hp": 1,
+        "physicalDef": 1,
+        "magicDef": 1,
+        "output": 1
+      },
+      "maxGuards": 2
+    },
+    "elite": {
+      "multiply": {
+        "hp": 0.92,
+        "physicalDef": 0.8,
+        "magicDef": 0.8,
+        "output": 1
+      },
+      "maxGuards": 1
+    },
+    "boss": {
+      "multiply": {
+        "hp": 0.92,
+        "physicalDef": 0.8,
+        "magicDef": 0.8,
+        "output": 0.95
+      },
+      "maxGuards": 2
+    }
+  },
+  "archetypes": {
+    "warrior": {
+      "name": "负碑蜃卫",
+      "icon": "⚔️",
+      "multiply": {
+        "hp": 1,
+        "physicalDef": 1,
+        "magicDef": 1,
+        "speed": 0.95,
+        "output": 1
+      }
+    },
+    "mage": {
+      "name": "照影镜主",
+      "icon": "🔮",
+      "multiply": {
+        "hp": 1,
+        "physicalDef": 1,
+        "magicDef": 1,
+        "speed": 0.95,
+        "output": 1
+      }
+    },
+    "binder": {
+      "name": "缚梦幻师",
+      "icon": "🪬",
+      "multiply": {
+        "hp": 1,
+        "physicalDef": 1,
+        "magicDef": 1,
+        "speed": 0.95,
+        "output": 0.65
+      },
+      "maxEnemies": 1
+    },
+    "attendant": {
+      "name": "幻侍",
+      "icon": "🪞",
+      "multiply": {
+        "hp": 1,
+        "physicalDef": 0.8125,
+        "magicDef": 0.8125,
+        "speed": 0.85,
+        "output": 1
+      },
+      "kindMultiply": {
+        "normal": {
+          "physicalDef": 0.8,
+          "magicDef": 0.8
+        }
+      }
+    }
+  },
+  "traits": {
+    "vital": {
+      "label": "厚血",
+      "group": "survival",
+      "multiply": {
+        "hp": 1.25
+      },
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "armor": {
+      "label": "铁甲",
+      "group": "survival",
+      "multiply": {
+        "physicalDef": 1.5625
+      },
+      "maxGuards": 1,
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "magic_ward": {
+      "label": "灵障",
+      "group": "survival",
+      "multiply": {
+        "magicDef": 1.5,
+        "hp": 0.8
+      },
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "swift": {
+      "label": "疾行",
+      "group": "tempo",
+      "multiply": {
+        "speed": 1.1578947368421053
+      },
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "seal_resist": {
+      "label": "定神",
+      "group": "tempo",
+      "add": {
+        "sealResist": 10
+      },
+      "multiply": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "charge": {
+      "label": "蓄势",
+      "group": "tempo",
+      "archetypes": ["warrior"],
+      "multiply": {
+        "speed": 0.8421052631578948
+      },
+      "forbids": ["limited_healing"],
+      "add": {},
+      "passives": []
+    },
+    "limited_healing": {
+      "label": "续灯",
+      "multiply": {},
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"],
+      "presentation": {
+        "name": "执灯幻侍",
+        "icon": "🏮"
+      }
+    },
+    "last_stand": {
+      "label": "碎梦",
+      "passives": ["tower.last-stand"],
+      "multiply": {},
+      "add": {},
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"]
+    },
+    "guard": {
+      "label": "护卫",
+      "relation": {
+        "anchorStatus": "tower.mirror-anchor",
+        "targetPassive": "tower.mirror-master",
+        "sourcePassive": "tower.mirror-guard"
+      },
+      "multiply": {},
+      "add": {},
+      "passives": [],
+      "forbids": [],
+      "archetypes": ["warrior", "mage", "binder", "attendant"],
+      "presentation": {
+        "name": "镜侍",
+        "icon": "🪞"
+      }
+    }
+  },
+  "behaviors": {
+    "basic": {
+      "archetypes": ["warrior"],
+      "cycle": ["attack", "attack", "tower.strike"],
+      "tip": "集火可减少敌方行动。",
+      "requires": [],
+      "forbids": ["charge", "limited_healing"],
+      "fallback": "attack"
+    },
+    "strike": {
+      "archetypes": ["warrior"],
+      "cycle": ["tower.strike", "tower.strike", "tower.double"],
+      "tip": "双斩前可防御或保护。",
+      "requires": [],
+      "forbids": ["charge", "limited_healing"],
+      "fallback": "attack"
+    },
+    "strike_late": {
+      "archetypes": ["warrior"],
+      "cycle": ["tower.strike", "tower.double", "attack", "tower.strike"],
+      "tip": "第二回合双斩，之后可调整攻守。",
+      "requires": [],
+      "forbids": ["charge", "limited_healing"],
+      "fallback": "attack"
+    },
+    "charge": {
+      "archetypes": ["warrior"],
+      "cycle": ["tower.charge", "tower.heavy", "attack"],
+      "tip": "重击前可防御或控制，重击后有破绽。",
+      "requires": ["charge"],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "charge_late": {
+      "archetypes": ["warrior"],
+      "cycle": ["attack", "tower.charge", "tower.heavy", "attack"],
+      "tip": "先普攻再蓄势，可提前安排重击回合的防御。",
+      "requires": ["charge"],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "spell": {
+      "archetypes": ["mage"],
+      "cycle": ["tower.bolt", "tower.bolt", "tower.wave"],
+      "tip": "群法后有破绽，可集中反击。",
+      "requires": [],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "spell_late": {
+      "archetypes": ["mage"],
+      "cycle": ["tower.bolt", "tower.wave", "tower.bolt", "tower.bolt"],
+      "tip": "群法提前至第二回合，之后留下进攻空档。",
+      "requires": [],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "seal": {
+      "archetypes": ["binder"],
+      "cycle": ["tower.seal", "tower.bolt", "tower.bolt"],
+      "tip": "封印持续当回合及下一回合，利用空档施放技能。",
+      "requires": [],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "seal_late": {
+      "archetypes": ["binder"],
+      "cycle": ["tower.bolt", "tower.seal", "tower.bolt", "tower.bolt"],
+      "tip": "先单法再封印，利用周期末的技能空档。",
+      "requires": [],
+      "forbids": ["limited_healing"],
+      "fallback": "attack"
+    },
+    "support": {
+      "archetypes": ["attendant"],
+      "cycle": ["tower.support-strike"],
+      "tip": "弱攻击。",
+      "requires": [],
+      "forbids": ["limited_healing"],
+      "fallback": "tower.support-strike"
+    },
+    "healing": {
+      "archetypes": ["attendant", "warrior", "mage"],
+      "cycle": ["tower.support-strike", "tower.support-strike", "tower.heal"],
+      "tip": "先击破或控制治疗者，可减少续航。",
+      "requires": ["limited_healing"],
+      "forbids": [],
+      "fallback": "tower.support-strike",
+      "maxMp": 36
+    },
+    "healing_late": {
+      "archetypes": ["attendant", "warrior", "mage"],
+      "cycle": ["tower.support-strike", "tower.heal", "tower.support-strike"],
+      "tip": "治疗提前，注意辅助与主敌的配合。",
+      "requires": ["limited_healing"],
+      "forbids": [],
+      "fallback": "tower.support-strike",
+      "maxMp": 36
+    }
+  },
+  "notes": {
+    "guard": "每名护卫提供 {guardReduction:percent}% 物理与法术减伤，最多 {guardStacks:number} 层；不覆盖固定伤害，死亡后下一回合降低。",
+    "last_stand": "回合开始气血首次低于 {furyThreshold:percent}% 时伤害提高 {furyFactor:increase}%，不额外行动。",
+    "tower.heal": "每次回复自身气血上限的 {healRatio:percent}%。",
+    "tower.heavy": "重击可被控制跳过，施放后至下一回合结束物理与法术承伤提高 {exposedFactor:increase}%。",
+    "tower.wave": "群法后至下一回合结束物理与法术承伤提高 {exposedFactor:increase}%。",
+    "tower.seal": "封住目标物理与法术技能，持续当回合及之后 {sealDuration:number} 回合；防御、保护仍可使用。"
+  }
+}

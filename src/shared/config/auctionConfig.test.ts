@@ -1,10 +1,11 @@
+import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
+import { auctionBlockReason, auctionItemPriceCap } from '../contracts/auction';
+import { seedFactsOf } from '../items/definitions/seeds';
 import {
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
-  isAuctionListableMaterial,
   isAuctionListableQuality,
 } from './auctionConfig';
-import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
 
 describe('auctionConfig', () => {
   it('按单价超额累进计税并乘以成交数量', () => {
@@ -40,7 +41,11 @@ describe('auctionConfig', () => {
       quality: '凡品',
       element: '木',
       minRealm: '炼气',
-      stageDurationMs: { germination: 4 * 60_000, nourishing: 4 * 60_000, forming: 4 * 60_000 },
+      stageDurationMs: {
+        germination: 4 * 60_000,
+        nourishing: 4 * 60_000,
+        forming: 4 * 60_000,
+      },
       growthForm: 'herb',
       harvestPart: 'leaf',
       preferredMethods: ['seasonal_nurture'],
@@ -55,14 +60,31 @@ describe('auctionConfig', () => {
       baseYieldMax: 6,
     });
     expect(isAuctionListableQuality(seed.rank)).toBe(false);
-    expect(isAuctionListableMaterial(seed)).toBe(false);
-    const highSeed = { ...seed, rank: '玄品' as const };
-    expect(isAuctionListableMaterial(highSeed)).toBe(true);
-    expect(
-      isAuctionListableMaterial({
-        rank: '凡品',
-        details: {},
+    const item = {
+      definitionId: 'seed.v1',
+      location: 'bag',
+      instanceData: seedFactsOf(seed),
+    };
+    expect(auctionBlockReason(item)).toContain('玄品');
+    const highSeed = {
+      ...item,
+      instanceData: seedFactsOf(
+        buildSpiritFieldSeedMaterialFromPlant({
+          ...item.instanceData.seedSpec.plant,
+          quality: '玄品',
+        }),
+      ),
+    };
+    expect(auctionBlockReason(highSeed)).toBeNull();
+    expect(auctionItemPriceCap(highSeed)).toBe(100000);
+    expect(() =>
+      auctionItemPriceCap({
+        ...item,
+        instanceData: {
+          ...item.instanceData,
+          seedSpec: { ...item.instanceData.seedSpec, fingerprint: 'invalid' },
+        },
       }),
-    ).toBe(false);
+    ).toThrow();
   });
 });

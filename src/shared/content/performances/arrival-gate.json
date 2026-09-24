@@ -1,0 +1,25 @@
+{
+  "id": "arrival-gate",
+  "title": "山门",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "兵器还温着，玉简上多了一行山门的字。"
+    },
+    { "type": "title", "kicker": "洞府 · 门外", "text": "山门" },
+    {
+      "type": "narration",
+      "text": "手里的兵器还温着。{name}在石室里坐了一坐。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "世上有山门。可以去看看，也可以就住在这里。"
+    },
+    { "type": "end", "outcome": "gate" }
+  ]
+}

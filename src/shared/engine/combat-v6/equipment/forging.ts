@@ -1,0 +1,142 @@
+import { forgedName } from '../../../forging/names';
+import { ELEMENT_VALUES } from '../../../types/constants';
+import { SeededRng } from '../core';
+import { daoEquipmentAttributeRange, daoEquipmentBaseRange, daoEquipmentTemplateOf } from './content';
+import {
+  daoEquipmentGenerationRulesV2,
+  generateDaoEquipmentV2,
+} from './generator';
+import { DAO_EQUIPMENT_FORGING, equipmentEssencePool } from './forging-content';
+import type {
+  DaoEquipmentGenerationResult,
+  GenerateDaoEquipmentV2Input,
+} from './types';
+import { equipmentWeaponTypeProblem, type DaoWeaponType } from './weapons';
+
+export type ForgingBoosts = {
+  ore: number;
+  essence: number;
+  attributes: number;
+};
+export const FORGING_BOOST_PER_MATERIAL = DAO_EQUIPMENT_FORGING.boostPerMaterial;
+export function rollHigher(
+  first: number,
+  chance: number,
+  random: () => number,
+  draw: () => number,
+) {
+  return chance > 0 && random() < chance ? Math.max(first, draw()) : first;
+}
+
+/** V5 器形复用 V2 白字抽样分位；附灵、器蕴、器诀及八行的随机流不变。 */
+export function generateForgedEquipment(
+  input: Omit<GenerateDaoEquipmentV2Input, 'generatorVersion'> & {
+    boosts: ForgingBoosts;
+    weaponType?: DaoWeaponType;
+  },
+): DaoEquipmentGenerationResult {
+  const counts = Object.values(input.boosts);
+  if (
+    counts.some((n) => !Number.isInteger(n) || n < 0) ||
+    counts.reduce((a, b) => a + b, 0) > 5
+  )
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          severity: 'error',
+          code: 'INVALID_EQUIPMENT_IDENTITY',
+          message: '铸造材料数量无效',
+        },
+      ],
+    };
+  const generated = generateDaoEquipmentV2({
+    ...input,
+    generatorVersion: 'dao_equipment_generator_v2',
+  });
+  if (!generated.ok) return generated;
+  const instance = generated.instance;
+  const template = daoEquipmentTemplateOf(input.templateId)!;
+  const weaponType = template.slot === 'weapon' && input.weaponType === undefined
+    ? 'sword'
+    : input.weaponType;
+  const weaponProblem = equipmentWeaponTypeProblem({
+    slot: template.slot,
+    weaponType,
+    generatorVersion: 'dao_equipment_generator_v5',
+  });
+  if (weaponProblem)
+    return {
+      ok: false,
+      diagnostics: [{
+        severity: 'error',
+        code: 'INVALID_EQUIPMENT_IDENTITY',
+        message: weaponProblem,
+        path: 'weaponType',
+      }],
+    };
+  if (weaponType) instance.weaponType = weaponType;
+  // V2 的前三次抽样仍对应器胚；用相同分位在器形区间抽样，不缩放已取整的成品。
+  const base = new SeededRng(input.seed);
+  const ore = new SeededRng((input.seed ^ 0x41c64e6d) >>> 0);
+  const bonus = new SeededRng((input.seed ^ 0x9e3779b9) >>> 0);
+  const essence = new SeededRng((input.seed ^ 0x85ebca6b) >>> 0);
+  const integer = (rng: SeededRng, min: number, max: number) =>
+    min + Math.floor(rng.next() * (max - min + 1));
+  instance.baseStats = instance.baseStats.map((stat) => {
+    const rule = template.baseStats.find((r) => r.attr === stat.attr)!;
+    const range = daoEquipmentBaseRange(rule, input.equipmentLevel, input.baseQuality ?? 0, weaponType);
+    return {
+      ...stat,
+      value: rollHigher(
+        integer(base, range.min, range.max),
+        input.boosts.ore * FORGING_BOOST_PER_MATERIAL,
+        () => ore.next(),
+        () =>
+          integer(
+            ore,
+            range.min,
+            range.max,
+          ),
+      ),
+    };
+  });
+  const bonusRange = daoEquipmentAttributeRange(input.equipmentLevel);
+  instance.attributeBonuses = instance.attributeBonuses.map((stat) => ({
+    ...stat,
+    value: rollHigher(
+      stat.value,
+      input.boosts.attributes * FORGING_BOOST_PER_MATERIAL,
+      () => bonus.next(),
+      () =>
+        integer(
+          bonus,
+          bonusRange.min,
+          bonusRange.max,
+        ),
+    ),
+  }));
+  const count = rollHigher(
+    instance.essenceIds.length,
+    input.boosts.essence * FORGING_BOOST_PER_MATERIAL,
+    () => essence.next(),
+    () => daoEquipmentGenerationRulesV2.essenceCount(essence.next()),
+  );
+  const pool = equipmentEssencePool(instance.slot).filter(
+    (id) => !instance.essenceIds.includes(id),
+  );
+  while (instance.essenceIds.length < count && pool.length)
+    instance.essenceIds.push(
+      pool.splice(Math.floor(essence.next() * pool.length), 1)[0],
+    );
+  instance.generatorVersion = 'dao_equipment_generator_v5';
+  const element = new SeededRng((input.seed ^ 0x27d4eb2d) >>> 0);
+  instance.element = ELEMENT_VALUES[Math.floor(element.next() * ELEMENT_VALUES.length)];
+  instance.name = forgedName(
+    instance.slot,
+    instance.equipmentLevel,
+    input.seed,
+    weaponType,
+  );
+  return generated;
+}

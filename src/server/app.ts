@@ -52,7 +52,18 @@ app.use('/internal/*', jsonError());
 app.route('/api', apiRouter);
 app.route('/internal', internalRouter);
 
-app.notFound((c) => c.redirect('https://client.daoyou.org'));
+app.notFound((c) => {
+  const path = c.req.path;
+  if (
+    path === '/api' ||
+    path.startsWith('/api/') ||
+    path === '/internal' ||
+    path.startsWith('/internal/')
+  ) {
+    return c.json({ success: false, error: '接口不存在' }, 404);
+  }
+  return c.redirect('https://client.daoyou.org');
+});
 
 app.onError((error, c) => {
   const lockErrorResponse = redisLockErrorResponse(error);

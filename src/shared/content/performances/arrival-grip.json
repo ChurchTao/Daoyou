@@ -1,0 +1,22 @@
+{
+  "id": "arrival-grip",
+  "title": "握住",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "手里终于有一件能握住的。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "握住" },
+    {
+      "type": "narration",
+      "text": "手里终于有一件能握住的。"
+    },
+    {
+      "type": "narration",
+      "text": "石室还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "held" }
+  ]
+}

@@ -1,13 +1,8 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(process.cwd(), 'src/shared/engine/sect');
-const battleRoot = resolve(process.cwd(), 'src/shared/engine/battle-v5');
-const battleUiRoot = resolve(
-  process.cwd(),
-  'src/react-app/components/feature/battle/v5',
-);
 
 const productionSectTerms =
   /lingxiao|红尘剑宗|凌霄|wuxiang|无相|tianyan|天衍|youdu|幽都|jiujie|九劫天宫|sect\.(?:lingxiao|wuxiang|tianyan|youdu|jiujie)/i;
@@ -28,6 +23,16 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('宗门插件架构守卫', () => {
+  it('宗门组织和静态历史目录不再导入旧战斗或造物引擎', () => {
+    for (const file of sourceFiles(root).filter(
+      (path) => !/\.test\.(ts|tsx)$/.test(path),
+    )) {
+      expect(readFileSync(file, 'utf8'), relative(root, file)).not.toMatch(
+        /battle-v5|creation-v2/,
+      );
+    }
+  });
+
   it('根目录只保留公共入口、说明和分层目录', () => {
     expect(readdirSync(root).sort()).toEqual(
       ['README.md', 'content', 'core', 'index.ts', 'testing'].sort(),
@@ -52,35 +57,8 @@ describe('宗门插件架构守卫', () => {
     );
   });
 
-  it('battle-v5 非适配器核心不依赖任何生产宗门、宗门内容或 React', () => {
-    for (const file of sourceFiles(battleRoot).filter(
-      (path) => !path.includes('/tests/') && !path.includes('/adapters/'),
-    )) {
-      const source = readFileSync(file, 'utf8');
-      const label = relative(process.cwd(), file);
-      expect(source, label).not.toMatch(productionSectTerms);
-      expect(source, label).not.toMatch(forbiddenBattleDependency);
-    }
-  });
-
-  it('通用战斗 UI 不包含具体生产宗门或宗门主题分支', () => {
-    for (const file of sourceFiles(battleUiRoot).filter(
-      (path) => !/\.test\.(ts|tsx)$/.test(path),
-    )) {
-      const source = readFileSync(file, 'utf8');
-      expect(source, relative(process.cwd(), file)).not.toMatch(
-        productionSectTerms,
-      );
-    }
-  });
-
   it('已退出的单宗门战斗扩展不会重新进入生产源码', () => {
-    const productionRoots = [
-      battleRoot,
-      join(root, 'core'),
-      join(root, 'content'),
-      battleUiRoot,
-    ];
+    const productionRoots = [join(root, 'core'), join(root, 'content')];
     for (const file of productionRoots
       .flatMap(sourceFiles)
       .filter((path) => !/\.(?:test|spec)\.(ts|tsx)$/.test(path))) {
@@ -102,27 +80,6 @@ describe('宗门插件架构守卫', () => {
     expect('manualSettlementEffects').toMatch(removedBattleExtensions);
   });
 
-  it('流派基础编译器不按节点ID集中分派', () => {
-    for (const file of [
-      join(root, 'content/lingxiao/paths/swift/variants.ts'),
-      join(root, 'content/lingxiao/paths/heavy/variants.ts'),
-      join(root, 'content/jiujie/base/JiujieBaseCompiler.ts'),
-      join(root, 'content/jiujie/shared/buildFacade.ts'),
-    ]) {
-      const source = readFileSync(file, 'utf8');
-      expect(source, relative(root, file)).not.toMatch(/nodes\.has\s*\(/);
-      expect(source, relative(root, file)).not.toMatch(
-        /if\s*\([^)]*(swift-|heavy-)/,
-      );
-      expect(source, relative(root, file)).not.toContain('path.level');
-      if (file.includes('/jiujie/')) {
-        expect(source, relative(root, file)).not.toMatch(
-          /(?:if|switch)\s*\([^)]*(?:eye-|condemnation-)/,
-        );
-      }
-    }
-  });
-
   it('通用核心不固定流派层数或每层节点数', () => {
     for (const file of sourceFiles(join(root, 'core')).filter(
       (path) => !path.includes('/tests/'),
@@ -140,22 +97,6 @@ describe('宗门插件架构守卫', () => {
       'utf8',
     );
     expect(production).not.toMatch(/fixture|testing/);
-  });
-
-  it('红尘剑宗内容不手写神通详情或启动期组合穷举', () => {
-    const contentRoot = join(root, 'content/lingxiao');
-    for (const file of sourceFiles(contentRoot).filter(
-      (path) => !path.includes('/tests/'),
-    )) {
-      const source = readFileSync(file, 'utf8');
-      const label = relative(root, file);
-      expect(source, label).not.toContain('detailRows');
-    }
-    const compilationRule = readFileSync(
-      join(root, 'core/validation/SectCompilationRule.ts'),
-      'utf8',
-    );
-    expect(compilationRule).not.toMatch(/compileCombination|JSON\.stringify/);
   });
 
   it('通用宗门前端不依赖具体宗门或固定内容数量', () => {
