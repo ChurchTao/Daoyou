@@ -1,0 +1,242 @@
+{
+  "$schema": "./wild.schema.json",
+  "formatVersion": 4,
+  "contentRevision": 8,
+  "regions": [
+    {
+      "nodeId": "SAT_TN_08",
+      "id": "combat.wild.region.qingxi",
+      "name": "青溪坡",
+      "description": "溪水穿过草坡，灵泉旁草木丰茂，碎石土间留着新翻的兽迹，向阳石边偶见小巧猫爪印。",
+      "searchText": "你收敛气息，留意草木与向阳石边的动静……",
+      "realmRequirement": "炼气",
+      "scenery": "meadow",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.spirit-fox",
+          "minLevel": 5,
+          "maxLevel": 15
+        },
+        {
+          "speciesId": "combat.wild.species.rock-boar",
+          "minLevel": 5,
+          "maxLevel": 15
+        },
+        {
+          "speciesId": "combat.wild.species.wind-wolf",
+          "minLevel": 5,
+          "maxLevel": 15
+        },
+        {
+          "speciesId": "combat.wild.species.mimi",
+          "minLevel": 5,
+          "maxLevel": 15
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_TN_MINE",
+      "id": "combat.wild.region.old-mine",
+      "name": "废矿深处",
+      "description": "旧支架斜撑着干燥的矿道，碎石间藏着洞穴，含灵矿土上留有拱掘的痕迹。",
+      "searchText": "你放轻脚步，辨听碎石深处的窸窣声……",
+      "realmRequirement": "筑基",
+      "scenery": "mine",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.stoneback-bear",
+          "minLevel": 25,
+          "maxLevel": 35
+        },
+        {
+          "speciesId": "combat.wild.species.red-tail-scorpion",
+          "minLevel": 25,
+          "maxLevel": 35
+        },
+        {
+          "speciesId": "combat.wild.species.rock-boar",
+          "minLevel": 15,
+          "maxLevel": 25
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_YW_CROW",
+      "id": "combat.wild.region.fire-nests",
+      "name": "地火旁的鸦巢",
+      "description": "地火沿赤岩裂隙涌出，热岩上散布着鸦巢，外围阴凉石缝中偶有沙响。",
+      "searchText": "热风掠过岩壁，你留意着巢边散落的羽毛……",
+      "realmRequirement": "筑基",
+      "scenery": "volcanic",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.fire-crow",
+          "minLevel": 25,
+          "maxLevel": 35
+        },
+        {
+          "speciesId": "combat.wild.species.red-tail-scorpion",
+          "minLevel": 25,
+          "maxLevel": 35
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_TN_MOONLAKE",
+      "id": "combat.wild.region.moon-lake",
+      "name": "月照天池",
+      "description": "高山灵池映着天光，浅滩接向幽深潭水，岸边的林子挂满灵果。",
+      "searchText": "水面泛起细纹，你循着岸边的足迹望去……",
+      "realmRequirement": "金丹",
+      "scenery": "lake",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.snow-crane",
+          "minLevel": 45,
+          "maxLevel": 55
+        },
+        {
+          "speciesId": "combat.wild.species.dark-shell-turtle",
+          "minLevel": 45,
+          "maxLevel": 55
+        },
+        {
+          "speciesId": "combat.wild.species.moon-marten",
+          "minLevel": 45,
+          "maxLevel": 55
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_ML_STONESEA",
+      "id": "combat.wild.region.wind-stones",
+      "name": "长风石海",
+      "description": "长风掠过草原，裸露的灵脉岩层延向远处，石隙间留着深浅爪痕与扇状尾迹。",
+      "searchText": "你循着石原上的爪痕，辨认风中传来的兽鸣……",
+      "realmRequirement": "元婴",
+      "scenery": "stone",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.rock-horn-rhino",
+          "minLevel": 65,
+          "maxLevel": 75
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_ZMG_BLACKPOOL",
+      "id": "combat.wild.region.black-pool",
+      "name": "黑水潭",
+      "description": "暗河从山腹汇入黑潭，潭边苔石间泛起浊浪，岸侧地火泉眼蒸腾着灼热白汽。",
+      "searchText": "暗流撞上石壁，泉眼白汽翻涌，你屏息留意潭岸的动静……",
+      "realmRequirement": "元婴",
+      "scenery": "river",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.ink-jiao",
+          "minLevel": 65,
+          "maxLevel": 75
+        },
+        {
+          "speciesId": "combat.wild.species.dark-shell-turtle",
+          "minLevel": 55,
+          "maxLevel": 65
+        },
+        {
+          "speciesId": "combat.wild.species.three-legged-golden-toad",
+          "minLevel": 65,
+          "maxLevel": 75
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_ZMG_VINES",
+      "id": "combat.wild.region.hidden-vines",
+      "name": "幽藤密林",
+      "description": "层叠藤叶遮住林隙，灵果散落在湿土上，细枝偶尔无风轻颤。",
+      "searchText": "你拨开垂落的藤叶，辨认林间细微的响动……",
+      "realmRequirement": "元婴",
+      "scenery": "forest",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.silverwing-mantis",
+          "minLevel": 65,
+          "maxLevel": 75
+        },
+        {
+          "speciesId": "combat.wild.species.moon-marten",
+          "minLevel": 55,
+          "maxLevel": 65
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_DJ_BANYAN",
+      "id": "combat.wild.region.ancient-banyan",
+      "name": "独木成林",
+      "description": "一株古榕垂下无数气根，独自撑起大片林荫，树冠与枝叶间各藏兽踪。",
+      "searchText": "枝叶在高处轻晃，你循声望向交错的树冠……",
+      "realmRequirement": "化神",
+      "scenery": "forest",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.six-eyed-ape",
+          "minLevel": 85,
+          "maxLevel": 95
+        },
+        {
+          "speciesId": "combat.wild.species.silverwing-mantis",
+          "minLevel": 75,
+          "maxLevel": 85
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_DJ_DARKCAVE",
+      "id": "combat.wild.region.sunless-cave",
+      "name": "不见天",
+      "description": "古老地穴深不见光，阴灵气息沉在石隙间，幽绿蝶影时隐时现，深处偶有幽蓝鬼火映出厚重虎躯。",
+      "searchText": "幽绿与幽蓝在石隙间明灭，你凝神辨听地穴深处的低沉足音……",
+      "realmRequirement": "化神",
+      "scenery": "cave",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.ghost-lantern-butterfly",
+          "minLevel": 85,
+          "maxLevel": 95
+        },
+        {
+          "speciesId": "combat.wild.species.nether-tiger",
+          "minLevel": 85,
+          "maxLevel": 95
+        }
+      ]
+    },
+    {
+      "nodeId": "WILD_KW_THUNDER",
+      "id": "combat.wild.region.thunder-cliff",
+      "name": "雷云崖",
+      "description": "高崖伸入云海，积雷在峰间低鸣，宽阔岩台上散着苍青羽翎。",
+      "searchText": "雷声沿云海滚来，你凝神分辨崖外掠过的巨影……",
+      "realmRequirement": "化神",
+      "scenery": "storm",
+      "species": [
+        {
+          "speciesId": "combat.wild.species.thunder-peng",
+          "minLevel": 85,
+          "maxLevel": 95
+        }
+      ]
+    }
+  ],
+  "encounter": {
+    "minCount": 1,
+    "maxCount": 3,
+    "cubChance": 0.05,
+    "mutantChance": 0.008,
+    "allocationSpread": 0.3
+  },
+  "activity": {
+    "explorationCooldownMs": 1000
+  }
+}

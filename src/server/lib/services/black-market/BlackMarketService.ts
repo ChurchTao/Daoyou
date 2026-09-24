@@ -1,5 +1,6 @@
+import { deliverMarketMaterial } from '../MarketInventoryDelivery';
 import type { DbTransaction } from '@server/lib/drizzle/db';
-import { cultivators, materials } from '@server/lib/drizzle/schema';
+import { cultivators } from '@server/lib/drizzle/schema';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
 import { playerCommandExecutor } from '@server/lib/services/CommandExecutors';
@@ -8,9 +9,8 @@ import {
   sampleMaterialLibraryEntryByPreferences,
 } from '@server/lib/services/MaterialLibraryService';
 import { readCultivatorRealm } from '@server/lib/services/cultivator/CultivatorFactsReader';
-import { mapMaterialRow } from '@server/lib/services/cultivator/CultivatorInventoryRepository';
-import { addMaterialStackToInventory } from '@server/lib/services/materialInventory';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
+import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import {
   applyBlackMarketBeliefPatch,
   describeBlackMarketClaimMode,
@@ -54,7 +54,7 @@ import {
   type BlackMarketReveal,
   type BlackMarketSessionView,
 } from '@shared/types/blackMarket';
-import { MATERIAL_TYPE_VALUES, QUALITY_ORDER } from '@shared/types/constants';
+import { QUALITY_ORDER } from '@shared/types/constants';
 import { and, eq, sql } from 'drizzle-orm';
 import { createHmac, randomUUID } from 'node:crypto';
 import {
@@ -154,7 +154,7 @@ function rotatePreferred<T>(values: readonly T[], preferred: T): T[] {
 
 function selectMaterialPreferences(seed: string, nodeId: string) {
   const profile = getRegionProfile(nodeId);
-  const materialPool = MATERIAL_TYPE_VALUES.filter((value) => value !== 'seed');
+  const materialPool = MaterialFactsSchema.shape.type.options;
   const materialType = weightedPick(
     materialPool.map((value) => ({
       value,
@@ -272,6 +272,14 @@ function publicSession(
   };
 }
 
+function assertStockAvailable(session: BlackMarketInternalSession): void {
+  if (
+    !MaterialFactsSchema.shape.type.safeParse(session.hiddenItem.type).success
+  ) {
+    throw new BlackMarketServiceError(410, '这批黑市货物已下架，请明日再来');
+  }
+}
+
 function assertCurrentSession(
   session: BlackMarketInternalSession,
   actor: Actor,
@@ -288,6 +296,7 @@ function assertCurrentSession(
   if (session.phase === 'completed') {
     throw new BlackMarketServiceError(409, '这件货物已经成交');
   }
+  assertStockAvailable(session);
 }
 
 function assertConversationOpen(session: BlackMarketInternalSession): void {
@@ -487,6 +496,7 @@ async function getOrGenerateInternal(input: {
           await blackMarketSessionRepository.save(existing);
           return existing;
         }
+        assertStockAvailable(existing);
         if (existing.phase === 'abandoned') {
           existing.phase = 'talking';
           existing.version += 1;
@@ -774,6 +784,9 @@ export async function openBlackMarketSession(input: {
       entry,
     };
   } catch (error) {
+    if (error instanceof BlackMarketServiceError && error.status === 410) {
+      throw error;
+    }
     console.warn('[black-market] granted entry session generation failed', {
       cultivatorId: input.actor.cultivatorId,
       dayKey,
@@ -1127,9 +1140,9 @@ async function preparePurchase(
   tx: DbTransaction,
 ): Promise<{
   reveal: BlackMarketReveal;
-  inventoryItem: ReturnType<typeof mapMaterialRow>;
   remainingSpiritStones: number;
 }> {
+  assertStockAvailable(session);
   const price = session.pricing.currentPrice;
   const [updatedCultivator] = await tx
     .update(cultivators)
@@ -1144,29 +1157,14 @@ async function preparePurchase(
   if (!updatedCultivator) {
     throw new BlackMarketServiceError(400, '囊中羞涩，灵石不足');
   }
-  const stored = await addMaterialStackToInventory(
-    session.cultivatorId,
-    { ...session.hiddenItem, quantity: 1, details: {} },
-    tx,
-  );
-  const [row] = await tx
-    .select()
-    .from(materials)
-    .where(
-      and(
-        eq(materials.id, stored.id),
-        eq(materials.cultivatorId, session.cultivatorId),
-      ),
-    )
-    .limit(1);
-  if (!row) throw new BlackMarketServiceError(500, '黑市货物入袋失败');
-  const inventoryItem = mapMaterialRow(row);
+  const stored = await deliverMarketMaterial(session.cultivatorId, session.hiddenItem, tx);
   const assessment = classifyBlackMarketReveal(
     price,
     session.pricing.trueValue,
   );
   const npc = getBlackMarketNpc(session.npcId);
   const reveal: BlackMarketReveal = {
+    location: stored.location,
     material: {
       id: stored.id,
       name: session.hiddenItem.name,
@@ -1209,7 +1207,6 @@ async function preparePurchase(
   };
   return {
     reveal,
-    inventoryItem,
     remainingSpiritStones: updatedCultivator.spiritStones,
   };
 }
@@ -1281,12 +1278,6 @@ export async function commitBlackMarketPurchase(input: {
               eventType: 'currency.black-market.spent',
               operation: 'merge',
               payload: { spiritStones: purchased.remainingSpiritStones },
-            },
-            {
-              resourceTopic: 'inventory.materials',
-              eventType: 'inventory.black-market.purchased',
-              operation: 'upsert-items',
-              payload: { idKey: 'id', items: [purchased.inventoryItem] },
             },
           ];
           return {

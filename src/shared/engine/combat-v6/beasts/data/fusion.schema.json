@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "minimumLevel": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 180
+    },
+    "babyChance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "pseudoBabyChance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "skillChance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "aptitudeCaps": {
+      "type": "object",
+      "properties": {
+        "attack": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "defense": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "health": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "mana": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "speed": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "attack",
+        "defense",
+        "health",
+        "mana",
+        "speed"
+      ],
+      "additionalProperties": false
+    },
+    "growthMilliCap": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 3000
+    },
+    "aptitudeWeights": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "weight": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "value",
+          "weight"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "growthWeights": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "weight": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "value",
+          "weight"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "minimumLevel",
+    "babyChance",
+    "pseudoBabyChance",
+    "skillChance",
+    "aptitudeCaps",
+    "growthMilliCap",
+    "aptitudeWeights",
+    "growthWeights"
+  ],
+  "additionalProperties": false
+}

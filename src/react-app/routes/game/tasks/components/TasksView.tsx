@@ -1,7 +1,5 @@
 import { BreakthroughTaskCard } from '@app/components/feature/tasks/BreakthroughTaskCard';
-import { TutorialTaskCard } from '@app/components/feature/tasks/TutorialTaskCard';
 import {
-  GameLoadingState,
   GameSceneFrame,
   GameSceneLoading,
   GameSceneSection,
@@ -9,7 +7,6 @@ import {
 import { InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { usePlayerSession } from '@app/lib/resources/player';
-import { findNextTutorialTask } from '@app/lib/tasks/taskClient';
 
 export function TasksView() {
   const session = usePlayerSession();
@@ -32,34 +29,17 @@ export function TasksView() {
   const breakthroughTasks = tasks?.filter(
     (task) => task.category === 'breakthrough_major',
   );
-  const nextTutorialTask = tasks ? findNextTutorialTask(tasks) : null;
 
   return (
     <GameSceneFrame
       title="任务中心"
-      description="入门引导与破境卷宗归在此处。宗门勤务已经移交执事堂，不再与通用任务混列。"
+      description="破境卷宗归在此处。宗门勤务已经移交执事堂。"
     >
-      <GameSceneSection title="入门卷宗">
-        {loading || !tasks ? (
-          <GameLoadingState message="正在整理入门卷宗……" variant="inline" />
-        ) : error ? (
-          <InkNotice>{error}</InkNotice>
-        ) : (
-          <div className="space-y-4">
-            {nextTutorialTask ? (
-              <TutorialTaskCard
-                key={nextTutorialTask.id}
-                task={nextTutorialTask}
-              />
-            ) : null}
-            {!nextTutorialTask ? (
-              <p className="text-ink-secondary text-sm leading-7">
-                入门卷宗已办妥。之后可按破境卷宗、宗门执事堂与洞府状态推进。
-              </p>
-            ) : null}
-          </div>
-        )}
-      </GameSceneSection>
+      {loading || !tasks ? (
+        <GameSceneLoading message="正在整理卷宗……" />
+      ) : error ? (
+        <InkNotice>{error}</InkNotice>
+      ) : null}
 
       {!loading && !error && breakthroughTasks ? (
         <GameSceneSection title="破境卷宗">

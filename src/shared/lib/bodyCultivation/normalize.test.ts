@@ -5,18 +5,18 @@ import {
 } from './breakthrough';
 import { normalizeBodyCultivationState } from './normalize';
 import { getBodyCultivationSummary } from './summary';
-import type { CultivatorCondition } from '@shared/types/condition';
+import type {
+  BodyCultivationRealm,
+  BodyCultivationTrackKey,
+  CultivatorCondition,
+} from '@shared/types/condition';
+import type { RealmType } from '@shared/types/constants';
 
-function createLegacyCondition(): CultivatorCondition {
+function createCondition(): CultivatorCondition {
   return {
     version: 1,
-    resources: {
-      hp: { current: 100 },
-      mp: { current: 100 },
-    },
-    gauges: {
-      pillToxicity: 0,
-    },
+    resources: { hp: { current: 100 }, mp: { current: 100 } },
+    gauges: { pillToxicity: 0 },
     tracks: {
       tempering: {
         vitality: { level: 1, progress: 10 },
@@ -37,292 +37,155 @@ function createLegacyCondition(): CultivatorCondition {
   };
 }
 
-describe('normalizeBodyCultivationState', () => {
-  it('lazily maps legacy tempering tracks into the new body cultivation tracks', () => {
-    const state = normalizeBodyCultivationState(createLegacyCondition());
+function setBodyState(
+  condition: CultivatorCondition,
+  realm: BodyCultivationRealm,
+  levels: Record<BodyCultivationTrackKey, number>,
+): void {
+  condition.tracks.bodyCultivation = {
+    version: 1,
+    realm,
+    tracks: {
+      skin: { level: levels.skin, progress: 11 },
+      sinew_bone: { level: levels.sinew_bone, progress: 12 },
+      organs: { level: levels.organs, progress: 13 },
+      qi_blood: { level: levels.qi_blood, progress: 14 },
+      primordial_spirit: { level: levels.primordial_spirit, progress: 15 },
+    },
+    milestones: { legacy: true },
+    breakthrough: {
+      targetRealm: 'bronze_skin',
+      progress: 68,
+      failedAttempts: 2,
+    },
+  };
+}
+
+describe('body cultivation normalization and advancement', () => {
+  it('lazily maps legacy tempering tracks into body cultivation tracks', () => {
+    const state = normalizeBodyCultivationState(createCondition());
 
     expect(state.tracks.qi_blood).toEqual({ level: 1, progress: 10 });
     expect(state.tracks.organs).toEqual({ level: 2, progress: 20 });
-    expect(state.tracks.primordial_spirit).toEqual({
-      level: 3,
-      progress: 30,
-    });
+    expect(state.tracks.primordial_spirit).toEqual({ level: 3, progress: 30 });
     expect(state.tracks.skin).toEqual({ level: 4, progress: 40 });
     expect(state.tracks.sinew_bone).toEqual({ level: 5, progress: 50 });
   });
 
-  it('summarizes the next body realm breakthrough requirements', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'mortal_body',
-      tracks: {
-        skin: { level: 3, progress: 0 },
-        sinew_bone: { level: 3, progress: 0 },
-        organs: { level: 3, progress: 0 },
-        qi_blood: { level: 3, progress: 0 },
-        primordial_spirit: { level: 0, progress: 0 },
-      },
-      milestones: {},
-    };
+  it('only checks cultivation realm and total five-track level', () => {
+    const condition = createCondition();
+    setBodyState(condition, 'bronze_skin', {
+      skin: 0,
+      sinew_bone: 0,
+      organs: 0,
+      qi_blood: 0,
+      primordial_spirit: 30,
+    });
 
-    const summary = getBodyCultivationSummary(condition, {
+    const ready = getBodyCultivationSummary(condition, {
+      cultivatorRealm: '筑基',
+    });
+    const blocked = getBodyCultivationSummary(condition, {
       cultivatorRealm: '炼气',
     });
 
-    expect(summary.realm.label).toBe('凡躯');
-    expect(summary.totalLevel).toBe(12);
-    expect(summary.nextRealm).toMatchObject({
-      key: 'bronze_skin',
-      label: '铜皮',
+    expect(ready.nextRealm).toMatchObject({
+      key: 'iron_bone',
       canAttempt: true,
+      requirements: [
+        { label: '总炼体 Lv.30/30', met: true },
+        { label: '修为境界达到筑基', met: true },
+      ],
     });
+    expect(blocked.nextRealm?.canAttempt).toBe(false);
   });
 
-  it('reports unmet requirements for higher body realms', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'bronze_skin',
-      tracks: {
-        skin: { level: 5, progress: 0 },
-        sinew_bone: { level: 8, progress: 0 },
-        organs: { level: 7, progress: 0 },
-        qi_blood: { level: 5, progress: 0 },
-        primordial_spirit: { level: 5, progress: 0 },
-      },
-      milestones: {},
-    };
-
-    const summary = getBodyCultivationSummary(condition, {
-      cultivatorRealm: '炼气',
+  it('advances deterministically one realm and preserves tracks and milestones', () => {
+    const condition = createCondition();
+    setBodyState(condition, 'mortal_body', {
+      skin: 12,
+      sinew_bone: 0,
+      organs: 0,
+      qi_blood: 0,
+      primordial_spirit: 0,
     });
-
-    expect(summary.nextRealm?.key).toBe('iron_bone');
-    expect(summary.nextRealm?.canAttempt).toBe(false);
-    expect(summary.nextRealm?.requirements).toEqual(
-      expect.arrayContaining([
-        { label: '修为境界达到筑基', met: false },
-        { label: '皮肤 Lv.5/6', met: false },
-      ]),
-    );
-  });
-
-  it('previews and advances body realm breakthrough when requirements are met', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'mortal_body',
-      tracks: {
-        skin: { level: 4, progress: 0 },
-        sinew_bone: { level: 4, progress: 0 },
-        organs: { level: 4, progress: 0 },
-        qi_blood: { level: 0, progress: 0 },
-        primordial_spirit: { level: 0, progress: 0 },
-      },
-      milestones: {},
-    };
-
+    const before = structuredClone(condition);
     const preview = previewBodyCultivationRealmBreakthrough(condition, {
       cultivatorRealm: '炼气',
     });
     const result = breakthroughBodyCultivationRealm(condition, {
       cultivatorRealm: '炼气',
-    }, () => 0);
+    });
 
     expect(preview).toMatchObject({
       currentRealm: 'mortal_body',
       nextRealm: 'bronze_skin',
-      canAttempt: true,
-      successChance: 0.82,
-      guaranteeProgress: 0,
-      failedAttempts: 0,
-      costs: [
-        {
-          type: 'material',
-          name: '进阶材料（特殊辅料，玄品以上）',
-          label: '进阶材料（特殊辅料，玄品以上）',
-          quantity: 1,
-          materialType: 'aux',
-          minQuality: '玄品',
-        },
-        {
-          type: 'consumable',
-          name: '皮肤方向炼体丹（玄品以上）',
-          label: '皮肤方向炼体丹（玄品以上）',
-          quantity: 1,
-          family: 'tempering',
-          property: 'body_skin',
-          minQuality: '玄品',
-        },
-      ],
+      canAdvance: true,
+      totalLevel: 12,
+      requiredTotalLevel: 12,
+      requiredCultivationRealm: '炼气',
     });
-    expect(result.fromRealm).toBe('mortal_body');
-    expect(result.toRealm).toBe('bronze_skin');
-    expect(result.success).toBe(true);
-    expect(result.chance).toBe(0.82);
-    expect(result.roll).toBe(0);
-    expect(result.state.realm).toBe('bronze_skin');
-    expect(result.state.milestones['realm.bronze_skin']).toBe(true);
-    expect(result.state.breakthrough).toBeUndefined();
-  });
-
-  it('records failed body realm breakthrough attempts without advancing realm', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'mortal_body',
-      tracks: {
-        skin: { level: 4, progress: 0 },
-        sinew_bone: { level: 4, progress: 0 },
-        organs: { level: 4, progress: 0 },
-        qi_blood: { level: 0, progress: 0 },
-        primordial_spirit: { level: 0, progress: 0 },
-      },
-      milestones: {},
-    };
-
-    const result = breakthroughBodyCultivationRealm(condition, {
-      cultivatorRealm: '炼气',
-    }, () => 0.99);
-
     expect(result).toMatchObject({
       fromRealm: 'mortal_body',
       toRealm: 'bronze_skin',
-      success: false,
-      chance: 0.82,
-      roll: 0.99,
-      failedAttempts: 1,
-      guaranteeProgress: 34,
+      state: {
+        realm: 'bronze_skin',
+        milestones: { legacy: true },
+        tracks: before.tracks.bodyCultivation!.tracks,
+      },
     });
-    expect(result.state.realm).toBe('mortal_body');
-    expect(result.state.breakthrough).toEqual({
-      targetRealm: 'bronze_skin',
-      progress: 34,
-      failedAttempts: 1,
-    });
-  });
-
-  it('uses failed attempts and guarantee progress when previewing body breakthrough', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'mortal_body',
-      tracks: {
-        skin: { level: 4, progress: 0 },
-        sinew_bone: { level: 4, progress: 0 },
-        organs: { level: 4, progress: 0 },
-        qi_blood: { level: 0, progress: 0 },
-        primordial_spirit: { level: 0, progress: 0 },
-      },
-      milestones: {},
-      breakthrough: {
-        targetRealm: 'bronze_skin',
-        progress: 68,
-        failedAttempts: 2,
-      },
-    };
-
-    const preview = previewBodyCultivationRealmBreakthrough(condition, {
-      cultivatorRealm: '炼气',
-    });
-
-    expect(preview.successChance).toBeCloseTo(0.98, 5);
-    expect(preview.guaranteeProgress).toBe(68);
-    expect(preview.failedAttempts).toBe(2);
-  });
-
-  it('guarantees body breakthrough once progress reaches full', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'mortal_body',
-      tracks: {
-        skin: { level: 4, progress: 0 },
-        sinew_bone: { level: 4, progress: 0 },
-        organs: { level: 4, progress: 0 },
-        qi_blood: { level: 0, progress: 0 },
-        primordial_spirit: { level: 0, progress: 0 },
-      },
-      milestones: {},
-      breakthrough: {
-        targetRealm: 'bronze_skin',
-        progress: 100,
-        failedAttempts: 3,
-      },
-    };
-
-    const result = breakthroughBodyCultivationRealm(condition, {
-      cultivatorRealm: '炼气',
-    }, () => 0.9999);
-
-    expect(result.success).toBe(true);
-    expect(result.chance).toBe(1);
-    expect(result.state.realm).toBe('bronze_skin');
     expect(result.state.breakthrough).toBeUndefined();
+    expect(condition).toEqual(before);
   });
 
-  it('allows dharma body to reach the existing dao body total-level requirement', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'dharma_body',
-      tracks: {
-        skin: { level: 45, progress: 0 },
-        sinew_bone: { level: 45, progress: 0 },
-        organs: { level: 45, progress: 0 },
-        qi_blood: { level: 45, progress: 0 },
-        primordial_spirit: { level: 40, progress: 0 },
-      },
-      milestones: {},
-    };
+  it.each([
+    ['mortal_body', '炼气', 12, 'bronze_skin'],
+    ['bronze_skin', '筑基', 30, 'iron_bone'],
+    ['iron_bone', '金丹', 55, 'jade_marrow'],
+    ['jade_marrow', '元婴', 90, 'golden_body'],
+    ['golden_body', '化神', 140, 'dharma_body'],
+    ['dharma_body', '合体', 220, 'dao_body'],
+  ] as const)(
+    'advances %s at the locked realm and total-level threshold',
+    (fromRealm, cultivatorRealm, totalLevel, toRealm) => {
+      const condition = createCondition();
+      setBodyState(condition, fromRealm, {
+        skin: totalLevel,
+        sinew_bone: 0,
+        organs: 0,
+        qi_blood: 0,
+        primordial_spirit: 0,
+      });
 
-    const summary = getBodyCultivationSummary(condition, {
-      cultivatorRealm: '合体',
-    });
-    const preview = previewBodyCultivationRealmBreakthrough(condition, {
-      cultivatorRealm: '合体',
-    });
-    const result = breakthroughBodyCultivationRealm(condition, {
-      cultivatorRealm: '合体',
-    }, () => 0);
+      expect(
+        breakthroughBodyCultivationRealm(condition, { cultivatorRealm }).toRealm,
+      ).toBe(toRealm);
+    },
+  );
 
-    expect(summary.totalLevel).toBe(220);
-    expect(summary.nextRealm?.requirements).toEqual(
-      expect.arrayContaining([
-        { label: '总炼体 Lv.220/220', met: true },
-      ]),
-    );
-    expect(preview).toMatchObject({
-      currentRealm: 'dharma_body',
-      nextRealm: 'dao_body',
-      canAttempt: true,
+  it('rejects unmet conditions and the maximum realm without mutation', () => {
+    const condition = createCondition();
+    setBodyState(condition, 'bronze_skin', {
+      skin: 30,
+      sinew_bone: 0,
+      organs: 0,
+      qi_blood: 0,
+      primordial_spirit: 0,
     });
-    expect(result.success).toBe(true);
-    expect(result.state.realm).toBe('dao_body');
-  });
-
-  it('rejects body realm breakthrough without mutating the input state', () => {
-    const condition = createLegacyCondition();
-    condition.tracks.bodyCultivation = {
-      version: 1,
-      realm: 'bronze_skin',
-      tracks: {
-        skin: { level: 5, progress: 0 },
-        sinew_bone: { level: 8, progress: 0 },
-        organs: { level: 7, progress: 0 },
-        qi_blood: { level: 5, progress: 0 },
-        primordial_spirit: { level: 5, progress: 0 },
-      },
-      milestones: {},
-    };
+    const before = structuredClone(condition);
 
     expect(() =>
       breakthroughBodyCultivationRealm(condition, {
         cultivatorRealm: '炼气',
       }),
     ).toThrow('肉身进阶条件不足');
-    expect(condition.tracks.bodyCultivation.realm).toBe('bronze_skin');
-    expect(condition.tracks.bodyCultivation.milestones).toEqual({});
+    expect(condition).toEqual(before);
+
+    condition.tracks.bodyCultivation!.realm = 'dao_body';
+    expect(() =>
+      breakthroughBodyCultivationRealm(condition, {
+        cultivatorRealm: '渡劫' as RealmType,
+      }),
+    ).toThrow('肉身已达最高阶位');
   });
 });

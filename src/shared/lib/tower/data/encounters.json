@@ -1,0 +1,234 @@
+{
+  "$schema": "./encounters.schema.json",
+  "formatVersion": 3,
+  "contentRevision": 4,
+  "minRealm": "金丹",
+  "difficultyStep": 5,
+  "floors": [
+    {
+      "floor": 1,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 2,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 3,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 4,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 5,
+      "kind": "elite",
+      "realmStage": "中期",
+      "milestone": "C"
+    },
+    {
+      "floor": 6,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 7,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 8,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 9,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 10,
+      "kind": "boss",
+      "realmStage": "中期",
+      "milestone": "B"
+    },
+    {
+      "floor": 11,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 12,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 13,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 14,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 15,
+      "kind": "elite",
+      "realmStage": "中期",
+      "milestone": "A"
+    },
+    {
+      "floor": 16,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 17,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 18,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 19,
+      "kind": "normal",
+      "realmStage": "中期",
+      "milestone": null
+    },
+    {
+      "floor": 20,
+      "kind": "boss",
+      "realmStage": "中期",
+      "milestone": "S"
+    }
+  ],
+  "scaling": {
+    "hpGrowth": 0.025,
+    "outputGrowth": 0.025,
+    "defenseGrowth": 0.005,
+    "types": {
+      "normal": {
+        "output": 1,
+        "rounds": 2.5
+      },
+      "elite": {
+        "output": 1.2,
+        "rounds": 5.5
+      },
+      "boss": {
+        "output": 1.3,
+        "rounds": 8
+      }
+    }
+  },
+  "baselines": {
+    "金丹": {
+      "physicalAtk": 640,
+      "magicAtk": 710,
+      "physicalDef": 220,
+      "magicDef": 300,
+      "speed": 255,
+      "hit": 170,
+      "dodge": 90,
+      "referencePhysicalDef": 430,
+      "referenceMagicDef": 510,
+      "damagePerRound": 775
+    },
+    "元婴": {
+      "physicalAtk": 850,
+      "magicAtk": 950,
+      "physicalDef": 275,
+      "magicDef": 370,
+      "speed": 330,
+      "hit": 175,
+      "dodge": 85,
+      "referencePhysicalDef": 580,
+      "referenceMagicDef": 690,
+      "damagePerRound": 1100
+    },
+    "化神": {
+      "physicalAtk": 1040,
+      "magicAtk": 1140,
+      "physicalDef": 330,
+      "magicDef": 440,
+      "speed": 405,
+      "hit": 195,
+      "dodge": 105,
+      "referencePhysicalDef": 720,
+      "referenceMagicDef": 860,
+      "damagePerRound": 1400
+    },
+    "炼虚": {
+      "physicalAtk": 1130,
+      "magicAtk": 1280,
+      "physicalDef": 360,
+      "magicDef": 485,
+      "speed": 480,
+      "hit": 215,
+      "dodge": 125,
+      "referencePhysicalDef": 780,
+      "referenceMagicDef": 980,
+      "damagePerRound": 1600
+    },
+    "合体": {
+      "physicalAtk": 1240,
+      "magicAtk": 1420,
+      "physicalDef": 390,
+      "magicDef": 530,
+      "speed": 555,
+      "hit": 235,
+      "dodge": 145,
+      "referencePhysicalDef": 850,
+      "referenceMagicDef": 1100,
+      "damagePerRound": 1800
+    },
+    "大乘": {
+      "physicalAtk": 1330,
+      "magicAtk": 1560,
+      "physicalDef": 420,
+      "magicDef": 575,
+      "speed": 630,
+      "hit": 255,
+      "dodge": 165,
+      "referencePhysicalDef": 910,
+      "referenceMagicDef": 1220,
+      "damagePerRound": 1850
+    },
+    "渡劫": {
+      "physicalAtk": 1420,
+      "magicAtk": 1700,
+      "physicalDef": 450,
+      "magicDef": 620,
+      "speed": 705,
+      "hit": 275,
+      "dodge": 185,
+      "referencePhysicalDef": 970,
+      "referenceMagicDef": 1340,
+      "damagePerRound": 2050
+    }
+  }
+}

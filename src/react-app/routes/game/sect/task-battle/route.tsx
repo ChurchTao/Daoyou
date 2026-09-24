@@ -1,23 +1,20 @@
-import {
-  getSectPresentationForContext,
-  useSectContextQuery,
-  useSectTasksQuery,
-} from '@app/components/feature/sect/sectResources';
+import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
+import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
+import { combatV6Request } from '@app/components/feature/combat-v6/request';
+import { useCombatV6Session } from '@app/components/feature/combat-v6/useCombatV6Session';
+import { useSectTasksQuery } from '@app/components/feature/sect/sectResources';
 import {
   getSectTaskActivityLocation,
   resolveSectTaskActivityOrigin,
 } from '@app/components/feature/sect/sectTaskActivityLocations';
-import { decodeSectTaskOutcome } from '@app/components/feature/sect/sectTaskOutcomeRegistry';
-import { GameImmersiveLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
-import { formatDocumentTitle } from '@app/lib/router/routeTitle';
-import { sectTaskRendererRegistry } from '@app/lib/sect/presentation/compositionRoot';
 import { startSectTaskBattleOnce } from '@app/lib/sect/sectClient';
-import type { SectTaskActionData } from '@shared/contracts/sect';
-import { createElement, useEffect, useState } from 'react';
+import type { SectTaskSessionView } from '@shared/contracts/combatV6SectTask';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { SectPermissionBoundary } from '../components/SectScene';
 
+const base = '/api/combat-v6/sect-tasks';
 export default function SectTaskBattlePage() {
   return (
     <SectPermissionBoundary permission="sect.tasks.use" sceneKey="taskBattle">
@@ -25,99 +22,92 @@ export default function SectTaskBattlePage() {
     </SectPermissionBoundary>
   );
 }
-
 function SectTaskBattleBody() {
-  const context = useSectContextQuery();
+  const combat = useCombatV6Session<SectTaskSessionView>(base);
   const tasks = useSectTasksQuery();
-  const presentation = getSectPresentationForContext(context.data);
-  const scene = presentation.scenes.taskBattle;
   const navigate = useNavigate();
   const { taskId } = useParams();
-  const [searchParams] = useSearchParams();
-  const attemptId = searchParams.get('attemptId');
-  const origin = resolveSectTaskActivityOrigin(searchParams.get('origin'));
-  const [result, setResult] = useState<SectTaskActionData>();
-  const [error, setError] = useState<string>();
-  const listedTask = tasks.data?.items.find(
-    (candidate) => candidate.definitionId === taskId,
+  const [params] = useSearchParams();
+  const attemptId = params.get('attemptId');
+  const origin = resolveSectTaskActivityOrigin(params.get('origin'));
+  const task = tasks.data?.items.find(
+    (item) => item.definitionId === (combat.session?.taskId ?? taskId),
   );
-  const returnTask = result?.primaryTask ?? listedTask;
-  const returnTarget = origin
-    ? getSectTaskActivityLocation(origin, returnTask, 'return')
-    : {
-        route: '/game/sect/affairs',
-        returnLabel: presentation.terms.returnToAffairs,
-      };
-  const parameterError = !taskId || !attemptId ? '缺少宗门战斗标识' : undefined;
-
+  const back = origin
+    ? getSectTaskActivityLocation(origin, task, 'return').route
+    : '/game/sect/affairs';
+  const [startError, setStartError] = useState('');
+  const started = useRef(false);
+  const { loading, session, acceptSession } = combat;
+  const { invalidate: invalidateTasks } = tasks;
   useEffect(() => {
-    let cancelled = false;
-    if (!taskId || !attemptId) return;
+    if (session?.settlement === 'settled') invalidateTasks();
+  }, [session?.sessionId, session?.settlement, invalidateTasks]);
+  useEffect(() => {
+    if (loading || session || started.current || !taskId || !attemptId) return;
+    started.current = true;
     void startSectTaskBattleOnce(taskId, attemptId)
-      .then((data) => {
-        if (!cancelled) setResult(data);
+      .then(async (result) => {
+        const battleId = result.outcome.data.battleId;
+        if (typeof battleId !== 'string')
+          throw new Error('旧版战斗入口已停止，请重新进入任务');
+        acceptSession(
+          await combatV6Request<SectTaskSessionView>(
+            `${base}/sessions/${battleId}`,
+          ),
+        );
       })
-      .catch((reason) => {
-        if (!cancelled)
-          setError(
-            reason instanceof Error ? reason.message : '宗门战局推演失败',
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [attemptId, taskId]);
-
-  if (error || parameterError)
-    return (
-      <>
-        <title>{formatDocumentTitle(scene.title)}</title>
-        <div className="flex h-full items-center justify-center px-4 py-20">
-          <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
-            <p className="text-crimson mb-4">{error ?? parameterError}</p>
-            <InkButton onClick={() => navigate(returnTarget.route)}>
-              {returnTarget.returnLabel}
-            </InkButton>
-          </div>
-        </div>
-      </>
-    );
-
-  if (!result)
-    return (
-      <>
-        <title>{formatDocumentTitle(scene.title)}</title>
-        <GameImmersiveLoading message={scene.loadingText} />
-      </>
-    );
-
-  const decoded = decodeSectTaskOutcome(result.outcome);
-  const contribution = decoded.ok
-    ? sectTaskRendererRegistry().outcome(decoded.value.renderer)
-    : undefined;
-  if (!decoded.ok || !contribution)
-    return (
-      <>
-        <title>{formatDocumentTitle(scene.title)}</title>
-        <div className="flex h-full items-center justify-center px-4 py-20">
-          <div className="border-battle-rule-strong max-w-md border border-dashed bg-[rgba(248,243,230,0.92)] px-5 py-5 text-center">
-            <p className="text-crimson mb-4">
-              {decoded.ok ? '暂不支持此宗门战斗结果' : decoded.error}
-            </p>
-            <InkButton onClick={() => navigate(returnTarget.route)}>
-              {returnTarget.returnLabel}
-            </InkButton>
-          </div>
-        </div>
-      </>
-    );
+      .catch((error: unknown) =>
+        setStartError(error instanceof Error ? error.message : '开战失败'),
+      );
+  }, [loading, session, taskId, attemptId, acceptSession]);
+  const error =
+    combat.error ||
+    startError ||
+    (!taskId || !attemptId ? '缺少宗门挑战标识' : '');
   return (
-    <>
-      <title>{formatDocumentTitle(scene.title)}</title>
-      {createElement(contribution.renderer, {
-        task: result.primaryTask,
-        data: decoded.value.data,
-      })}
-    </>
+    <CombatV6Page title="宗门挑战" active>
+      {error ? (
+        <p role="alert">
+          {error}{' '}
+          <InkButton onClick={() => startError ? navigate(0) : void combat.refresh(true)}>
+            刷新战局
+          </InkButton>
+        </p>
+      ) : null}
+      {session?.settlement === 'pending' ? (
+        <InkButton
+          pending={combat.pending}
+          onClick={() => void combat.resolve()}
+        >
+          重试结算
+        </InkButton>
+      ) : null}
+      {session ? (
+        <CombatV6Battle
+          allowAbandon={false}
+          title="宗门挑战"
+          session={session}
+          shown={combat.shown}
+          log={combat.log}
+          playing={combat.playing}
+          pending={combat.pending}
+          onCommand={combat.submit}
+          onResolve={combat.resolve}
+          onAuto={combat.submitAuto}
+          onClose={() => {
+            if (session.settlement === 'settled' && !combat.playing)
+              navigate(back, { replace: true });
+          }}
+          back={back}
+          backLabel="返回任务地点"
+        />
+      ) : (
+        <p>
+          {error ? '尚未进入战斗。' : '正在准备战局…'}{' '}
+          <InkButton href={back}>返回任务地点</InkButton>
+        </p>
+      )}
+    </CombatV6Page>
   );
 }

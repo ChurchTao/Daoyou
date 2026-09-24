@@ -49,6 +49,22 @@ function room(
 }
 
 describe('arena room contract', () => {
+  it('excludes spectators from readiness and frozen battle participants', () => {
+    const watching = {
+      ...room([seat('alpha')], [seat('beta')]),
+      spectators: [seat('watcher', false)],
+    };
+    expect(allArenaSeatsReady(watching)).toBe(true);
+    expect(
+      freezeArenaRoster(watching, 'start', 1).seats.map((s) => s.userId),
+    ).toEqual(['alpha', 'beta']);
+    expect(
+      hasBothArenaTeams({
+        ...watching,
+        teams: { alpha: [seat('alpha')], beta: [] },
+      }),
+    ).toBe(false);
+  });
   it('only accepts six digit invitation codes', () => {
     expect(ArenaInviteCodeSchema.safeParse('012345').success).toBe(true);
     expect(ArenaInviteCodeSchema.safeParse('12345').success).toBe(false);

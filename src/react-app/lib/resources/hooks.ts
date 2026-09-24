@@ -37,9 +37,7 @@ export function useResource<TTopic extends ResourceTopic, TParams>(
   const key = enabled ? resourceStore.register(definition, params) : null;
   const subscribe = useCallback(
     (listener: () => void) =>
-      enabled && key
-        ? resourceStore.subscribe(key, listener)
-        : () => undefined,
+      enabled && key ? resourceStore.subscribe(key, listener) : () => undefined,
     [enabled, key],
   );
   const getSnapshot = useCallback(
@@ -50,24 +48,27 @@ export function useResource<TTopic extends ResourceTopic, TParams>(
     [key],
   );
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  // Resource notifications change snapshots, not the identity of resource actions.
+  // Effects may depend on reload; recreating it on loading/ready updates causes loops.
+  const actions = useMemo(() => {
+    const reload = () => (key ? resourceStore.reload(key) : Promise.resolve());
+    return {
+      reload,
+      retry: reload,
+      invalidate: () => {
+        if (key) resourceStore.invalidate(key);
+      },
+      setData: (data: ResourceDataMap[TTopic]) =>
+        key ? resourceStore.setData(key, data) : undefined,
+    };
+  }, [key]);
   return useMemo(
-    () => {
-      const reload = () =>
-        key ? resourceStore.reload(key) : Promise.resolve();
-      return {
-        ...snapshot,
-        loading:
-          snapshot.status === 'idle' || snapshot.status === 'loading',
-        reload,
-        retry: reload,
-        invalidate: () => {
-          if (key) resourceStore.invalidate(key);
-        },
-        setData: (data: ResourceDataMap[TTopic]) =>
-          key ? resourceStore.setData(key, data) : undefined,
-      };
-    },
-    [key, snapshot],
+    () => ({
+      ...snapshot,
+      loading: snapshot.status === 'idle' || snapshot.status === 'loading',
+      ...actions,
+    }),
+    [snapshot, actions],
   );
 }
 

@@ -1,0 +1,22 @@
+{
+  "id": "beast-pouch",
+  "title": "灵兽袋",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "beast.bag",
+      "text": "这是灵兽袋。捉住的灵兽收在这里，上面的数目是已经收了多少。"
+    },
+    {
+      "type": "look",
+      "anchor": "beast.roster",
+      "text": "左边是名册。携带之后，才能在战斗里召唤。排第一的是首发，开打就会入场。"
+    },
+    {
+      "type": "look",
+      "anchor": "beast.detail",
+      "text": "点开一只，能看见它的等级、资质和技能。袋子还空着，就先没有可看的。"
+    },
+    { "type": "end" }
+  ]
+}

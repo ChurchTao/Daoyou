@@ -19,6 +19,7 @@ RetreatRecord
 } from '@shared/types/cultivator';
 import { and,eq,sql } from 'drizzle-orm';
 import {
+db,
 getExecutor,
 type DbExecutor,
 type DbTransaction
@@ -156,18 +157,22 @@ export async function deleteCultivator(
   userId: string,
   cultivatorId: string,
 ): Promise<boolean> {
-  // 由于设置了 onDelete: 'cascade'，删除主表记录会自动删除所有关联记录
-  const deleted = await getExecutor()
-    .delete(schema.cultivators)
-    .where(
-      and(
-        eq(schema.cultivators.id, cultivatorId),
-        eq(schema.cultivators.userId, userId),
-      ),
-    )
-    .returning({ id: schema.cultivators.id });
-
-  return deleted.length > 0;
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(schema.cultivators)
+      .where(
+        and(
+          eq(schema.cultivators.id, cultivatorId),
+          eq(schema.cultivators.userId, userId),
+        ),
+      )
+      .returning({ id: schema.cultivators.id });
+    if (!deleted.length) return false;
+    // 占卜记录无外键，在角色删除事务内显式清理。
+    await tx.delete(schema.dailyDivinations)
+      .where(eq(schema.dailyDivinations.cultivatorId, cultivatorId));
+    return true;
+  });
 }
 
 // ===== 单独获取数据的接口 =====

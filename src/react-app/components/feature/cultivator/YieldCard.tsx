@@ -30,7 +30,7 @@ export function YieldCard({
     materials?: GeneratedMaterial[];
     expGain?: number;
     insightGain?: number;
-    materialCount?: number; // 材料生成数量（异步）
+    rewardCount?: number; // 物品总数（邮件异步送达）
   } | null>(null);
 
   const [claiming, setClaiming] = useState(false);
@@ -81,7 +81,7 @@ export function YieldCard({
               materials: data.data.materials,
               expGain: data.data.expGain,
               insightGain: data.data.insightGain,
-              materialCount: data.data.materialCount,
+              rewardCount: data.data.rewardCount,
               story: currentStory || '',
             }));
           } else if (data.type === 'chunk') {
@@ -271,16 +271,16 @@ export function YieldCard({
           </div>
         )}
 
-        {yieldResult?.materialCount &&
-          yieldResult.materialCount > 0 &&
+        {yieldResult?.rewardCount &&
+          yieldResult.rewardCount > 0 &&
           (!yieldResult.materials || yieldResult.materials.length === 0) && (
             <div className="border-crimson/30 bg-bgpaper mb-6 border border-dashed p-3 text-center">
               <p className="text-ink-secondary text-sm">
                 另有{' '}
                 <span className="text-crimson font-bold">
-                  {yieldResult.materialCount}
+                  {yieldResult.rewardCount}
                 </span>{' '}
-                份天材地宝正在运送中，稍后将通过传音玉简（邮件）送达。
+                件历练所得正在运送中，稍后将通过传音玉简（邮件）送达。
               </p>
             </div>
           )}

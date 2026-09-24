@@ -7,7 +7,6 @@ import {
 import { JSONCodec, type ConsumerMessages, type JsMsg } from 'nats';
 import {
   runAuctionExpireJob,
-  runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
@@ -16,7 +15,6 @@ import {
   runSponsorshipAdminDigestJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
-  runTowerEnemySetRefreshJob,
 } from '../jobs/internalCron';
 import {
   BACKGROUND_COMMAND_CONSUMER,
@@ -40,11 +38,9 @@ const activeHandlers = new Set<Promise<void>>();
 
 const handlers = {
   'auction.expire': () => runAuctionExpireJob(),
-  'bet-battle.expire': () => runBetBattleExpireJob(),
   'ranking.rewards.distribute': (command) =>
     runRankRewardsJob(new Date(command.requestedAt)),
   'market.refresh': () => runMarketRefreshCronJob(),
-  'tower.enemy-sets.refresh': () => runTowerEnemySetRefreshJob(),
   'resource-replay.cleanup': () => runResourceReplayCleanupJob(),
   'expired-data.cleanup': () => runExpiredDataCleanupJob(),
   'material-library.generate': (command) =>

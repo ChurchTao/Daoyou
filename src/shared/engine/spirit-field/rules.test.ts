@@ -56,3 +56,12 @@ describe('spirit field three-stage rules', () => {
     expect(['灵品', '玄品']).toContain(result.quality);
   });
 });
+
+it('灵兽滋养灵种在灵果成型时保留灵兽修为用途', () => {
+  const plot = completedPlot([80, 80, 80], 'flower_fruit');
+  plot.plant = { ...plant, useTags: ['beast-nurturing'], outcomeBiases: ['spirit_fruit'] };
+  const results = Array.from({ length: 30 }, (_, i) => settleSpiritFieldHarvest(plot, `beast-fruit:${i}`));
+  const fruits = results.filter((r) => r.outcomeKind === 'spirit_fruit');
+  expect(fruits.length).toBeGreaterThan(0);
+  expect(fruits.every((r) => r.fruitFamily === 'beast_cultivation')).toBe(true);
+});

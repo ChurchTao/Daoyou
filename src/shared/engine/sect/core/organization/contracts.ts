@@ -1,6 +1,4 @@
 import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-strategies/types';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
-import type { BattleStateStrategyId } from '@shared/engine/battle-v5/setup/types';
 import type { RealmType } from '@shared/types/constants';
 import type {
   SectDiscipleRank,
@@ -182,39 +180,7 @@ export interface SectConstructionPolicy {
   upgradeTarget(currentLevel: number): number | null;
 }
 
-export interface SectOpponentFactoryContext {
-  player: CultivatorCombatInput;
-  target: CultivatorCombatInput | null;
-  sectId: string;
-  opponentId: string;
-}
-
-export interface SectOpponentFactoryResult {
-  opponent: CultivatorCombatInput;
-  title: string;
-  presetId?: string;
-  description: string;
-}
-
-export type SectBattleTargetAcquisition =
-  | 'preset'
-  | 'same-sect'
-  | 'other-sect';
-
-export type SectBattleStateStrategy = Extract<
-  BattleStateStrategyId,
-  'standard_full' | 'persistent_world'
->;
-
-export interface SectOpponentFactory {
-  readonly acquisition: SectBattleTargetAcquisition;
-  readonly stateStrategy: SectBattleStateStrategy;
-  create(context: SectOpponentFactoryContext): SectOpponentFactoryResult;
-}
-
-export interface SectBattleScenarioCatalog {
-  get(taskId: SectOrganizationTaskId): SectOpponentFactory | undefined;
-}
+export type SectBattleTargetAcquisition = 'preset' | 'same-sect' | 'other-sect';
 
 export interface SectRankPolicy {
   nextRank(rank: SectDiscipleRank): SectDiscipleRank | null;
@@ -268,6 +234,5 @@ export interface SectOrganizationModule {
   readonly tasks: SectTaskCatalog;
   readonly economy: SectEconomyPolicy;
   readonly construction: SectConstructionPolicy;
-  readonly battles: SectBattleScenarioCatalog;
   readonly benefits: SectBenefitPolicy;
 }

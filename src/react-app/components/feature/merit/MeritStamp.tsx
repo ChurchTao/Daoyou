@@ -1,3 +1,4 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import { cn } from '@shared/lib/cn';
 import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import { SPONSORSHIP_TIER_META } from '@shared/lib/sponsorship';
@@ -38,7 +39,8 @@ export function MeritStamp({
 }) {
   const presentation = MERIT_STAMP_PRESENTATION[tier];
   return (
-    <img
+    <GameImage
+      purpose="interface"
       src={presentation.stampSrc}
       alt={`${SPONSORSHIP_TIER_META[tier].name}印戳`}
       className={cn(

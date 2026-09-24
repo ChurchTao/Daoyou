@@ -1,0 +1,1218 @@
+{
+  "$schema": "./wuxiang-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 2,
+  "passives": [
+    {
+      "id": "wuxiang.passive.compassion.1.1",
+      "name": "余念",
+      "description": "退相时有40%概率保留一念；破损或倒地不保留。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.1.2",
+      "name": "愿力",
+      "description": "治疗能力增加武器伤害贡献的24%。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.1.3",
+      "name": "凝念",
+      "description": "烈念带来的增效提高30%，寂念带来的守御恢复提高30%。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.2.1",
+      "name": "慈佑灵兽",
+      "description": "愿法对召唤灵的效果提高25%。",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.25
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "foeKind": "pet",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "sourceIsSelf": true
+        },
+        {
+          "on": "onWoundCalc",
+          "effects": [
+            {
+              "type": "modifyWound",
+              "factor": 1.25
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "foeKind": "pet"
+          },
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.2.2",
+      "name": "本愿深结",
+      "description": "本愿印额外治疗翻倍；甘露愿、归元愿的直接治疗降低30%。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.2.3",
+      "name": "愿归一心",
+      "description": "显相时护生愿、破障愿不再额外扩展目标，效果额外提高治疗能力/10%；护生愿减伤最高80%。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.3.1",
+      "name": "危中自渡",
+      "description": "自身气血低于30%时，接受愿法的效果提高25%。",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.25
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "sourceHpRatioBelow": 0.3,
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "targetIsSelf": true
+        },
+        {
+          "on": "onWoundCalc",
+          "effects": [
+            {
+              "type": "modifyWound",
+              "factor": 1.25
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "sourceHpRatioBelow": 0.3
+          },
+          "targetIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.3.2",
+      "name": "济世独行",
+      "description": "显相治疗提高5%；为队伍唯一治疗流派时，再提高10%。",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": "1.05 + if(allyTagCount.role.healer == 1, 0.1, 0)"
+            }
+          ],
+          "when": {
+            "expression": "fact.wuxiang_form"
+          },
+          "sourceIsSelf": true
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.3.3",
+      "name": "金身不拘",
+      "description": "所有法相均可触发金身护命，不再限定三寂构成。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.4.1",
+      "name": "破妄蓄势",
+      "description": "破妄指对人物伤害提高100%，但获得4回合冷却。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.pierce"
+            ],
+            "foeKind": "player"
+          },
+          "damageBonus": 1
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.4.2",
+      "name": "众生安住",
+      "description": "回合末，己方没有人物倒地时，自身封抗增加2，持续本场。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wuxiang_resist",
+              "value": "fact.wuxiang_resist + 2"
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "expression": "allyDownedPlayers == 0"
+          },
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.4.3",
+      "name": "烈念护心",
+      "description": "三烈魔相期间额外增加10%封印抵抗概率。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.5.1",
+      "name": "观照生慧",
+      "description": "使用慧眼观照后，自身治疗能力增加人物等级，持续3回合。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wuxiang.status.insight_self",
+              "duration": 3
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.insight"
+            ],
+            "actionSucceeded": true
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.5.2",
+      "name": "烈寂同修",
+      "description": "队伍只有一名无相时：显相法术承伤提高20%；每烈念使腰带气血上限贡献提高20%，每寂念使腰带物防贡献提高20%。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.5.3",
+      "name": "念转相生",
+      "description": "一念回转额外获得一念，总数不超过三枚。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.1",
+      "name": "灵悟",
+      "description": "使用装备特技后有36%概率获得一念，优先积存较多类型；显相期间不积念。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "resource.wuxiang.resource.fierce >= resource.wuxiang.resource.still",
+              "successEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.fierce",
+                  "amount": "min(3 - resource.wuxiang.resource.still, resource.wuxiang.resource.fierce + 1)",
+                  "mode": "set"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.still",
+                  "amount": "min(3 - resource.wuxiang.resource.fierce, resource.wuxiang.resource.still + 1)",
+                  "mode": "set"
+                }
+              ]
+            }
+          ],
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true,
+            "expression": "fact.wuxiang_form == 0"
+          },
+          "sourceIsSelf": true,
+          "aim": "self",
+          "chance": 0.36
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.2",
+      "name": "战念不息",
+      "description": "显相使用装备特技后，回复烈念数×20战意。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": "fact.wuxiang_a * 20"
+            }
+          ],
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true,
+            "expression": "fact.wuxiang_form"
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.compassion.6.3",
+      "name": "解缚还生",
+      "description": "莲华还生替换为解缚还生：消耗30战意削减1回合拘灵，解除后复活，未解除则只完成削减。"
+    },
+    {
+      "id": "wuxiang.passive.compassion.foundation",
+      "name": "佛心济世",
+      "hooks": [
+        {
+          "on": "onHealCalc",
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": "(1 + fact.wuxiang_form * (fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3)) + if(fact.wuxiang_a == 3, 0.1, 0))) * (1 - 0.3 * known.wuxiang.passive.compassion.2.2)"
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.renew"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "sourceIsSelf": true
+        },
+        {
+          "on": "onHealCalc",
+          "effects": [
+            {
+              "type": "modifyHeal",
+              "factor": 1.5
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "targetOwnedStatus": {
+              "kind": "wuxiang.vow"
+            },
+            "targetSlot": "normal",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "sourceIsSelf": true
+        },
+        {
+          "on": "onWoundCalc",
+          "effects": [
+            {
+              "type": "modifyWound",
+              "factor": "(1 + fact.wuxiang_form * (fact.wuxiang_a * 0.08 * (1 + 0.3 * (known.wuxiang.passive.compassion.1.3+known.wuxiang.passive.wrath.1.3)) + if(fact.wuxiang_a == 3, 0.1, 0))) * (1 + 0.5 * ownedTargetStatus.wuxiang.vow * normalTarget)"
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.renew"
+            ]
+          },
+          "sourceIsSelf": true
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "heal",
+              "power": "(level + effective.healPower * 0.2) * (1 + known.wuxiang.passive.compassion.2.2)",
+              "when": {
+                "targetOwnedStatus": {
+                  "kind": "wuxiang.vow"
+                }
+              },
+              "includeHealPower": false
+            }
+          ],
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.nectar",
+              "wuxiang.skill.ward",
+              "wuxiang.skill.empower",
+              "wuxiang.skill.renew"
+            ],
+            "actionSucceeded": true
+          },
+          "sourceIsSelf": true,
+          "targeting": {
+            "side": "ally",
+            "mode": "all",
+            "requireStatusKinds": [
+              "wuxiang.vow"
+            ]
+          }
+        }
+      ],
+      "description": "显相期间，每枚烈念提高愿法效果8%，三烈另提高10%。可为队友结下本愿印，愿法额外照拂结印者；重合目标增效与独立印记治疗分别结算。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.1.1",
+      "name": "余念",
+      "description": "退相时有40%概率保留一枚念头；破损或倒地不保留。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.1.2",
+      "name": "魔相初成",
+      "description": "对战生灵时开场显化三烈魔相，但附加破绽的概率减半。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.1.3",
+      "name": "凝念",
+      "description": "烈念带来的增效提高30%，寂念带来的守御恢复提高30%。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.1",
+      "name": "破执",
+      "description": "击破破绽时，随机驱散目标一个可驱散增益。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.2",
+      "name": "猎灵",
+      "description": "摧岳对召唤灵的伤害提高30%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.strike"
+            ],
+            "foeKind": "pet"
+          },
+          "damageBonus": 0.3
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.2.3",
+      "name": "先机",
+      "description": "每次显相后，下个回合速度提高15%；不增加行动次数。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.3.1",
+      "name": "灵悟",
+      "description": "使用装备特技后有36%概率获得一念，优先积存较多类型；显相期间不积念。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "resource.wuxiang.resource.fierce >= resource.wuxiang.resource.still",
+              "successEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.fierce",
+                  "amount": "min(3 - resource.wuxiang.resource.still, resource.wuxiang.resource.fierce + 1)",
+                  "mode": "set"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "modifyResource",
+                  "resourceId": "wuxiang.resource.still",
+                  "amount": "min(3 - resource.wuxiang.resource.fierce, resource.wuxiang.resource.still + 1)",
+                  "mode": "set"
+                }
+              ]
+            }
+          ],
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true,
+            "expression": "fact.wuxiang_form == 0"
+          },
+          "sourceIsSelf": true,
+          "aim": "self",
+          "chance": 0.36
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.3.2",
+      "name": "借法助威",
+      "description": "显相时物伤提高5%；有队友法攻高于自身600时再提高10%。",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "expression": "fact.wuxiang_form"
+          },
+          "damageBonus": "0.05 + if(allyMaxMagicAtk > source.magicAtk + 600, 0.1, 0)"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.3.3",
+      "name": "金身不拘",
+      "description": "所有法相均可触发金身护命，不再限定三寂构成。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.4.1",
+      "name": "暴烈",
+      "description": "双剑合璧与摧灵斩伤害提高20%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.diefeng",
+              "dao_equipment.skill.cuiling"
+            ]
+          },
+          "damageBonus": 0.2
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.4.2",
+      "name": "孤阵见隙",
+      "description": "回合末，当前没有召唤灵在场的敌方人物有20%×已出战灵兽数的概率获得破绽。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.exposed",
+              "chance": "min(1, 0.2 * targetDeployedPets)",
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wuxiang.status.breach",
+                  "duration": 5
+                }
+              ],
+              "failureEffects": [],
+              "when": {
+                "targetHasStandingPet": false
+              }
+            }
+          ],
+          "when": {
+            "sourceStanding": true
+          },
+          "targeting": {
+            "side": "enemy",
+            "mode": "all",
+            "requireKind": "player"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.4.3",
+      "name": "风劫",
+      "description": "武器为风行时，劫火散华有33%概率额外作用一人。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.1",
+      "name": "魔威",
+      "description": "摧岳与劫火散华增加所属技能等级×2命中。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.strike",
+              "wuxiang.skill.stars"
+            ]
+          },
+          "hitAdd": "skillLevel * 2"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.2",
+      "name": "烈寂同修",
+      "description": "队伍只有一名无相时：显相法术承伤提高20%；每烈念使腰带气血上限贡献提高20%，每寂念使腰带物防贡献提高20%。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.5.3",
+      "name": "念转相生",
+      "description": "一念回转额外获得一念，总数不超过三枚。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.1",
+      "name": "乘隙",
+      "description": "显相时，击破破绽提供的伤害增量再提高5个百分点。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.2",
+      "name": "战念不息",
+      "description": "显相使用装备特技后，回复烈念数×20战意。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": "fact.wuxiang_a * 20"
+            }
+          ],
+          "when": {
+            "skillTags": [
+              "art"
+            ],
+            "actionSucceeded": true,
+            "expression": "fact.wuxiang_form"
+          },
+          "sourceIsSelf": true,
+          "aim": "self"
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.passive.wrath.6.3",
+      "name": "四相圆融",
+      "description": "本场正常进入并退出全部四种构成后，后续三烈法相持续翻倍；开场显相和破损不计。"
+    },
+    {
+      "id": "wuxiang.passive.wrath.foundation",
+      "name": "魔心修罗",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.overload"
+            ]
+          },
+          "damageBonus": "0.2 * fact.wuxiang_form"
+        },
+        {
+          "when": {
+            "requireKind": "physical",
+            "targetOwnedStatus": {
+              "kind": "wuxiang.breach"
+            },
+            "initialTargetOwnedStatus": "wuxiang.breach"
+          },
+          "damageBonus": "0.3 * (1 + if(fact.wuxiang_a == 3, fact.wuxiang_form, 0)) + known.wuxiang.passive.wrath.6.1 * fact.wuxiang_form * 0.05"
+        },
+        {
+          "when": {
+            "skillIds": [
+              "wuxiang.skill.overload"
+            ]
+          },
+          "damageBonus": "fact.wuxiang_overload * fact.wuxiang_a * 0.08 * (1 + 0.3 * known.wuxiang.passive.wrath.1.3)"
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wuxiang.branch.choice",
+              "chance": "ownedTargetStatus.wuxiang.breach",
+              "successEffects": [
+                {
+                  "type": "randomBranch",
+                  "branchId": "wuxiang.branch.choice",
+                  "chance": "known.wuxiang.passive.wrath.2.1",
+                  "successEffects": [
+                    {
+                      "type": "dispel",
+                      "categories": [
+                        "buff"
+                      ],
+                      "maxCount": 1,
+                      "random": true
+                    }
+                  ],
+                  "failureEffects": []
+                },
+                {
+                  "type": "removeStatus",
+                  "kinds": [
+                    "wuxiang.breach"
+                  ],
+                  "ownedOnly": true
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "randomBranch",
+                  "branchId": "wuxiang.branch.breach",
+                  "chance": "(0.3 + 0.15 * fact.wuxiang_form) * (1 - 0.5 * known.wuxiang.passive.wrath.1.2)",
+                  "successEffects": [
+                    {
+                      "type": "applyStatus",
+                      "statusId": "wuxiang.status.breach",
+                      "duration": 5
+                    }
+                  ],
+                  "failureEffects": []
+                }
+              ]
+            }
+          ],
+          "when": {
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerActionTarget": true
+          },
+          "sourceIsSelf": true,
+          "aim": "hookTarget"
+        }
+      ],
+      "description": "物理攻击有30%概率附加破绽，显相时提高至45%。击中自身已有破绽时增伤30%并消耗破绽；三烈显相使此增幅翻倍。同招对同一目标只附加或消耗一次。显相每枚烈念额外提高8%物理伤害。"
+    }
+  ],
+  "paths": [
+    {
+      "id": "wuxiang.path.compassion",
+      "name": "佛心济世",
+      "requiresConnectedNodes": true,
+      "unitTags": [
+        "role.healer"
+      ],
+      "foundationPassives": [
+        "wuxiang.passive.compassion.foundation"
+      ],
+      "grantSkills": [
+        "wuxiang.skill.vow",
+        "wuxiang.skill.renew",
+        "wuxiang.skill.revive",
+        "wuxiang.skill.insight"
+      ],
+      "resources": [
+        "wuxiang.resource.fierce",
+        "wuxiang.resource.still"
+      ],
+      "nodes": [
+        {
+          "id": "wuxiang.node.compassion.1.1",
+          "name": "余念",
+          "layer": 1,
+          "slot": 1,
+          "description": "退相时有40%概率保留一念；破损或倒地不保留。",
+          "passives": [
+            "wuxiang.passive.compassion.1.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.1.2",
+          "name": "愿力",
+          "layer": 1,
+          "slot": 2,
+          "description": "治疗能力增加武器伤害贡献的24%。",
+          "passives": [
+            "wuxiang.passive.compassion.1.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.1.3",
+          "name": "凝念",
+          "layer": 1,
+          "slot": 3,
+          "description": "烈念带来的增效提高30%，寂念带来的守御恢复提高30%。",
+          "passives": [
+            "wuxiang.passive.compassion.1.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.1",
+          "name": "慈佑灵兽",
+          "layer": 2,
+          "slot": 1,
+          "description": "愿法对召唤灵的效果提高25%。",
+          "passives": [
+            "wuxiang.passive.compassion.2.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.2",
+          "name": "本愿深结",
+          "layer": 2,
+          "slot": 2,
+          "description": "本愿印额外治疗翻倍；甘露愿、归元愿的直接治疗降低30%。",
+          "passives": [
+            "wuxiang.passive.compassion.2.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.2.3",
+          "name": "愿归一心",
+          "layer": 2,
+          "slot": 3,
+          "description": "显相时护生愿、破障愿不再额外扩展目标，效果额外提高治疗能力/10%；护生愿减伤最高80%。",
+          "passives": [
+            "wuxiang.passive.compassion.2.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.1",
+          "name": "危中自渡",
+          "layer": 3,
+          "slot": 1,
+          "description": "自身气血低于30%时，接受愿法的效果提高25%。",
+          "passives": [
+            "wuxiang.passive.compassion.3.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.2",
+          "name": "济世独行",
+          "layer": 3,
+          "slot": 2,
+          "description": "显相治疗提高5%；为队伍唯一治疗流派时，再提高10%。",
+          "passives": [
+            "wuxiang.passive.compassion.3.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.3.3",
+          "name": "金身不拘",
+          "layer": 3,
+          "slot": 3,
+          "description": "所有法相均可触发金身护命，不再限定三寂构成。",
+          "passives": [
+            "wuxiang.passive.compassion.3.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.1",
+          "name": "破妄蓄势",
+          "layer": 4,
+          "slot": 1,
+          "description": "破妄指对人物伤害提高100%，但获得4回合冷却。",
+          "passives": [
+            "wuxiang.passive.compassion.4.1"
+          ],
+          "patches": [
+            {
+              "skillId": "wuxiang.skill.pierce",
+              "operation": "setCooldownRounds",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.2",
+          "name": "众生安住",
+          "layer": 4,
+          "slot": 2,
+          "description": "回合末，己方没有人物倒地时，自身封抗增加2，持续本场。",
+          "passives": [
+            "wuxiang.passive.compassion.4.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.4.3",
+          "name": "烈念护心",
+          "layer": 4,
+          "slot": 3,
+          "description": "三烈魔相期间额外增加10%封印抵抗概率。",
+          "passives": [
+            "wuxiang.passive.compassion.4.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.1",
+          "name": "观照生慧",
+          "layer": 5,
+          "slot": 1,
+          "description": "使用慧眼观照后，自身治疗能力增加人物等级，持续3回合。",
+          "passives": [
+            "wuxiang.passive.compassion.5.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.2",
+          "name": "烈寂同修",
+          "layer": 5,
+          "slot": 2,
+          "description": "队伍只有一名无相时：显相法术承伤提高20%；每烈念使腰带气血上限贡献提高20%，每寂念使腰带物防贡献提高20%。",
+          "passives": [
+            "wuxiang.passive.compassion.5.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.5.3",
+          "name": "念转相生",
+          "layer": 5,
+          "slot": 3,
+          "description": "一念回转额外获得一念，总数不超过三枚。",
+          "passives": [
+            "wuxiang.passive.compassion.5.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.1",
+          "name": "灵悟",
+          "layer": 6,
+          "slot": 1,
+          "description": "使用装备特技后有36%概率获得一念，优先积存较多类型；显相期间不积念。",
+          "passives": [
+            "wuxiang.passive.compassion.6.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.2",
+          "name": "战念不息",
+          "layer": 6,
+          "slot": 2,
+          "description": "显相使用装备特技后，回复烈念数×20战意。",
+          "passives": [
+            "wuxiang.passive.compassion.6.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.6.3",
+          "name": "解缚还生",
+          "layer": 6,
+          "slot": 3,
+          "description": "莲华还生替换为解缚还生：消耗30战意削减1回合拘灵，解除后复活，未解除则只完成削减。",
+          "passives": [
+            "wuxiang.passive.compassion.6.3"
+          ],
+          "grantSkills": [
+            "wuxiang.skill.unbind"
+          ],
+          "revokeSkillIds": [
+            "wuxiang.skill.revive"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.1",
+          "name": "慈悲愿",
+          "layer": 7,
+          "slot": 1,
+          "description": "治疗能力增加30。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "healPower",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.2",
+          "name": "净业愿",
+          "layer": 7,
+          "slot": 2,
+          "description": "显相时随机解除目标一种可净化的异常，使其本回合不再获得相同异常。施放后法相过载，本回合末退相。",
+          "grantSkills": [
+            "wuxiang.skill.cleanse"
+          ]
+        },
+        {
+          "id": "wuxiang.node.compassion.7.3",
+          "name": "佛心济世",
+          "layer": 7,
+          "slot": 3,
+          "description": "治疗能力增加30。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "healPower",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wuxiang.path.wrath",
+      "name": "魔心修罗",
+      "requiresConnectedNodes": true,
+      "unitTags": [],
+      "foundationPassives": [
+        "wuxiang.passive.wrath.foundation"
+      ],
+      "grantSkills": [
+        "wuxiang.skill.strike",
+        "wuxiang.skill.stars",
+        "wuxiang.skill.expose",
+        "wuxiang.skill.burn"
+      ],
+      "resources": [
+        "wuxiang.resource.fierce",
+        "wuxiang.resource.still"
+      ],
+      "nodes": [
+        {
+          "id": "wuxiang.node.wrath.1.1",
+          "name": "余念",
+          "layer": 1,
+          "slot": 1,
+          "description": "退相时有40%概率保留一枚念头；破损或倒地不保留。",
+          "passives": [
+            "wuxiang.passive.wrath.1.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.1.2",
+          "name": "魔相初成",
+          "layer": 1,
+          "slot": 2,
+          "description": "对战生灵时开场显化三烈魔相，但附加破绽的概率减半。",
+          "passives": [
+            "wuxiang.passive.wrath.1.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.1.3",
+          "name": "凝念",
+          "layer": 1,
+          "slot": 3,
+          "description": "烈念带来的增效提高30%，寂念带来的守御恢复提高30%。",
+          "passives": [
+            "wuxiang.passive.wrath.1.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.1",
+          "name": "破执",
+          "layer": 2,
+          "slot": 1,
+          "description": "击破破绽时，随机驱散目标一个可驱散增益。",
+          "passives": [
+            "wuxiang.passive.wrath.2.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.2",
+          "name": "猎灵",
+          "layer": 2,
+          "slot": 2,
+          "description": "摧岳对召唤灵的伤害提高30%。",
+          "passives": [
+            "wuxiang.passive.wrath.2.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.2.3",
+          "name": "先机",
+          "layer": 2,
+          "slot": 3,
+          "description": "每次显相后，下个回合速度提高15%；不增加行动次数。",
+          "passives": [
+            "wuxiang.passive.wrath.2.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.1",
+          "name": "灵悟",
+          "layer": 3,
+          "slot": 1,
+          "description": "使用装备特技后有36%概率获得一念，优先积存较多类型；显相期间不积念。",
+          "passives": [
+            "wuxiang.passive.wrath.3.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.2",
+          "name": "借法助威",
+          "layer": 3,
+          "slot": 2,
+          "description": "显相时物伤提高5%；有队友法攻高于自身600时再提高10%。",
+          "passives": [
+            "wuxiang.passive.wrath.3.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.3.3",
+          "name": "金身不拘",
+          "layer": 3,
+          "slot": 3,
+          "description": "所有法相均可触发金身护命，不再限定三寂构成。",
+          "passives": [
+            "wuxiang.passive.wrath.3.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.1",
+          "name": "暴烈",
+          "layer": 4,
+          "slot": 1,
+          "description": "双剑合璧与摧灵斩伤害提高20%。",
+          "passives": [
+            "wuxiang.passive.wrath.4.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.2",
+          "name": "孤阵见隙",
+          "layer": 4,
+          "slot": 2,
+          "description": "回合末，当前没有召唤灵在场的敌方人物有20%×已出战灵兽数的概率获得破绽。",
+          "passives": [
+            "wuxiang.passive.wrath.4.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.4.3",
+          "name": "风劫",
+          "layer": 4,
+          "slot": 3,
+          "description": "武器为风行时，劫火散华有33%概率额外作用一人。",
+          "passives": [
+            "wuxiang.passive.wrath.4.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.1",
+          "name": "魔威",
+          "layer": 5,
+          "slot": 1,
+          "description": "摧岳与劫火散华增加所属技能等级×2命中。",
+          "passives": [
+            "wuxiang.passive.wrath.5.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.2",
+          "name": "烈寂同修",
+          "layer": 5,
+          "slot": 2,
+          "description": "队伍只有一名无相时：显相法术承伤提高20%；每烈念使腰带气血上限贡献提高20%，每寂念使腰带物防贡献提高20%。",
+          "passives": [
+            "wuxiang.passive.wrath.5.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.5.3",
+          "name": "念转相生",
+          "layer": 5,
+          "slot": 3,
+          "description": "一念回转额外获得一念，总数不超过三枚。",
+          "passives": [
+            "wuxiang.passive.wrath.5.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.1",
+          "name": "乘隙",
+          "layer": 6,
+          "slot": 1,
+          "description": "显相时，击破破绽提供的伤害增量再提高5个百分点。",
+          "passives": [
+            "wuxiang.passive.wrath.6.1"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.2",
+          "name": "战念不息",
+          "layer": 6,
+          "slot": 2,
+          "description": "显相使用装备特技后，回复烈念数×20战意。",
+          "passives": [
+            "wuxiang.passive.wrath.6.2"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.6.3",
+          "name": "四相圆融",
+          "layer": 6,
+          "slot": 3,
+          "description": "本场正常进入并退出全部四种构成后，后续三烈法相持续翻倍；开场显相和破损不计。",
+          "passives": [
+            "wuxiang.passive.wrath.6.3"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.1",
+          "name": "修罗骨",
+          "layer": 7,
+          "slot": 1,
+          "description": "物理攻击增加40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.2",
+          "name": "魔临无间",
+          "layer": 7,
+          "slot": 2,
+          "description": "显相时随机施展一式：摧岳式使烈念物伤增益翻倍，击倒时延长法相1回合并免于本次过载退相；散华式攻击六个目标。未豁免时本回合末退相。冷却4回合，开场冷却2回合。",
+          "grantSkills": [
+            "wuxiang.skill.overload"
+          ]
+        },
+        {
+          "id": "wuxiang.node.wrath.7.3",
+          "name": "魔心修罗",
+          "layer": 7,
+          "slot": 3,
+          "description": "物理攻击增加40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "physicalAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

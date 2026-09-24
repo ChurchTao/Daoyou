@@ -1,6 +1,7 @@
 import App, { RootRouteErrorBoundary } from '@app/App';
 import { AppBootScreen } from '@app/components/feature/app-boot/AppBootScreen';
 import { getGameSceneMeta } from '@app/components/game-shell/gameNavigation';
+import { CombatV6Layout } from '@app/layouts/combat-v6-layout';
 import {
   GameActivityLayout,
   GameCombatLayout,
@@ -22,6 +23,7 @@ import { resolveSectVisitTitle } from '@app/lib/router/routeTitle';
 import {
   createBrowserRouter,
   createRoutesFromElements,
+  replace,
   Route,
 } from 'react-router';
 
@@ -55,13 +57,6 @@ const scene = (
     },
   };
 };
-
-const mapTitle: RouteTitleResolver = ({ searchParams }) =>
-  searchParams.get('intent') === 'market'
-    ? '修仙界地图 · 坊市选址'
-    : searchParams.get('intent') === 'sect'
-      ? '修仙界地图 · 诸宗山门'
-      : '修仙界地图 · 历练选址';
 
 const sectVisitTitle: RouteTitleResolver = ({ params }) => {
   return resolveSectVisitTitle(params.sectId);
@@ -160,6 +155,34 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="story"
+              lazy={lazyRoute(() => import('@app/routes/game/story/route'))}
+              handle={scene(
+                {
+                  id: 'story',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '入世',
+              )}
+            />
+            {import.meta.env.DEV ? (
+              <Route
+                path="story/preview/:scriptId?"
+                lazy={lazyRoute(
+                  () => import('@app/routes/game/story/preview/route'),
+                )}
+                handle={scene(
+                  {
+                    id: 'story-preview',
+                    chrome: 'immersive',
+                    dock: 'hidden',
+                  },
+                  '看演出',
+                )}
+              />
+            ) : null}
+            <Route
               path="sect/onboarding"
               lazy={lazyRoute(
                 () => import('@app/routes/game/sect/onboarding/route'),
@@ -198,7 +221,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'cultivator',
                   presentation: 'archive',
-                  summary: '名号、命格、根基与所修皆在此归卷。',
+                  summary: '观照此身，循法修行。',
                 },
                 '道身',
               )}
@@ -226,7 +249,8 @@ export const router = createBrowserRouter(
                 {
                   id: 'spirit-field',
                   presentation: 'workflow',
-                  summary: '在个人洞府药圃中播种，并以三阶段培育等待天地造化成型。',
+                  summary:
+                    '在个人洞府药圃中播种，并以三阶段培育等待天地造化成型。',
                 },
                 '洞府灵田',
               )}
@@ -255,7 +279,7 @@ export const router = createBrowserRouter(
                   id: 'body-cultivation',
                   summary: '五轨炼体等级、当前收益与进阶准备归于此处。',
                 },
-                '肉身破限',
+                '肉身升阶',
               )}
             />
             <Route
@@ -273,7 +297,9 @@ export const router = createBrowserRouter(
             />
             <Route
               path="inventory"
-              lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
+              lazy={lazyRoute(
+                () => import('@app/routes/game/inventory/InventoryV6'),
+              )}
               handle={scene(
                 {
                   id: 'inventory',
@@ -281,6 +307,32 @@ export const router = createBrowserRouter(
                   summary: '点清身边诸物，再决定去留流转。',
                 },
                 '储物袋',
+              )}
+            />
+            <Route
+              path="cave/storage"
+              lazy={lazyRoute(() => import('@app/routes/game/inventory/route'))}
+              handle={scene(
+                {
+                  id: 'legacy-storage',
+                  presentation: 'service',
+                  summary: '收藏洞府旧物，取出灵材与丹药放入储物袋。',
+                },
+                '洞府宝库',
+              )}
+            />
+            <Route
+              path="cave/storage/new"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/inventory/InventoryV6'),
+              )}
+              handle={scene(
+                {
+                  id: 'storage',
+                  presentation: 'service',
+                  summary: '收存随身之外的物品。',
+                },
+                '洞府储藏室',
               )}
             />
             <Route
@@ -358,6 +410,11 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="divination"
+              lazy={lazyRoute(() => import('@app/routes/game/divination/route'))}
+              handle={scene({ id: 'divination', presentation: 'workflow' }, '每日占卜')}
+            />
+            <Route
               path="inn"
               lazy={lazyRoute(() => import('@app/routes/game/inn/route'))}
               handle={scene(
@@ -388,7 +445,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'skills',
                   presentation: 'archive',
-                  summary: '已成诸术归卷，便于查阅与取舍。',
+                  summary: '旧日诸术归卷，留存往昔修行记录。',
                 },
                 '【所修神通】',
               )}
@@ -677,6 +734,34 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="artifact-migration"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/artifact-migration/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'artifact-migration',
+                  presentation: 'workflow',
+                  summary: '旧器续新缘，择一器形，再赴仙途。',
+                },
+                '旧法宝焕新',
+              )}
+            />
+            <Route
+              path="manual-migration"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/manual-migration/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'manual-migration',
+                  presentation: 'workflow',
+                  summary: '旧卷换新篇，将往昔所藏续作今日传承。',
+                },
+                '旧功法传承',
+              )}
+            />
+            <Route
               path="techniques"
               lazy={lazyRoute(
                 () => import('@app/routes/game/techniques/route'),
@@ -685,21 +770,9 @@ export const router = createBrowserRouter(
                 {
                   id: 'techniques',
                   presentation: 'archive',
-                  summary: '功法道基在此归档，便于比照深浅。',
+                  summary: '旧日功法归档，留存往昔修行记录。',
                 },
                 '【所修功法】',
-              )}
-            />
-            <Route
-              path="craft"
-              lazy={lazyRoute(() => import('@app/routes/game/craft/route'))}
-              handle={scene(
-                {
-                  id: 'craft',
-                  presentation: 'hub',
-                  summary: '分清炼器与炼丹，再携灵材入炉。',
-                },
-                '【造物仙炉】',
               )}
             />
             <Route
@@ -724,10 +797,15 @@ export const router = createBrowserRouter(
                 {
                   id: 'enlightenment',
                   presentation: 'hub',
-                  summary: '推演、求卷与取舍都归书案。',
+                  summary: '静心研读典籍，将所悟功法凝录为玉简。',
                 },
                 '【悟道室】',
               )}
+            />
+            <Route
+              path="inscriptions"
+              lazy={lazyRoute(() => import('@app/routes/game/inscriptions/route'))}
+              handle={scene({ id: 'inscriptions', summary: '研材绘纹，合纹升阶，将阵法烙入道装。' }, '【阵纹室】')}
             />
             <Route
               path="enlightenment/gongfa"
@@ -737,23 +815,9 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'gongfa-enlightenment',
-                  summary: '衡量悟性与投入，细推功法脉络。',
+                  summary: '参悟玉简，将所学铭刻于道基。',
                 },
                 '【功法参悟】',
-              )}
-            />
-            <Route
-              path="enlightenment/manual-draw"
-              lazy={lazyRoute(
-                () =>
-                  import('@app/routes/game/enlightenment/manual-draw/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'manual-draw',
-                  summary: '请符求卷，补足今日所缺法门。',
-                },
-                '问法寻卷',
               )}
             />
             <Route
@@ -803,7 +867,7 @@ export const router = createBrowserRouter(
               handle={scene(
                 {
                   id: 'market-recycle',
-                  summary: '识别去留，批量回收冗余之物。',
+                  summary: '与掌柜商量一桩旧物换灵石的买卖。',
                 },
                 '坊市鉴宝',
               )}
@@ -817,9 +881,9 @@ export const router = createBrowserRouter(
                 {
                   id: 'tianjiao-vault',
                   presentation: 'service',
-                  summary: '凭声望换取宝阁珍藏。',
+                  summary: '凭声望换取万界商行珍藏。',
                 },
-                '天骄宝阁',
+                '万界商行',
               )}
             />
             <Route
@@ -829,7 +893,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'auction',
                   presentation: 'service',
-                  summary: '观市、寄售与竞拍合为一案。',
+                  summary: '珍材、道装与灵兽在此寄售，成交后由传音送达。',
                 },
                 '拍卖行',
               )}
@@ -843,7 +907,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'battle-history',
                   presentation: 'archive',
-                  summary: '斗法卷宗与旧战回放在此归档。',
+                  summary: '翻阅天骄榜与擂台战绩，回看斗法交锋。',
                 },
                 '【全部战绩】',
               )}
@@ -861,16 +925,41 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
-              path="bet-battle"
+              path="beast-room"
+              lazy={lazyRoute(() => import('@app/routes/game/beast-room/route'))}
+              handle={scene(
+                {
+                  id: 'beast-room',
+                  presentation: 'hub',
+                  summary: '照料灵兽，或引两灵相合、孕育新生。',
+                },
+                '育兽室',
+              )}
+            />
+            <Route
+              path="beasts"
+              lazy={lazyRoute(() => import('@app/routes/game/beasts/route'))}
+              handle={scene(
+                {
+                  id: 'beasts',
+                  presentation: 'workflow',
+                  summary: '与灵兽结缘，携带出战或安心休养。',
+                },
+                '灵兽袋',
+              )}
+            />
+            <Route
+              path="beasts/fusion"
               lazy={lazyRoute(
-                () => import('@app/routes/game/bet-battle/route'),
+                () => import('@app/routes/game/beasts/fusion/route'),
               )}
               handle={scene(
                 {
-                  id: 'bet-battle',
-                  summary: '设注、应战与结算皆在赌战台。',
+                  id: 'beast-fusion',
+                  presentation: 'workflow',
+                  summary: '两灵相合，重塑新生。择一对灵兽，探一场造化。',
                 },
-                '赌战台',
+                '灵兽融合',
               )}
             />
             <Route
@@ -1010,6 +1099,40 @@ export const router = createBrowserRouter(
             />
           </Route>
 
+          <Route element={<CombatV6Layout />}>
+            <Route
+              path="combat-v6/arena/:battleId"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/combat-v6/arena/route'),
+              )}
+              handle={scene(
+                { id: 'arena-sparring', chrome: 'immersive', dock: 'hidden' },
+                '擂台切磋',
+              )}
+            />
+            <Route
+              path="training-room"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/training-room/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'training-room',
+                  chrome: 'immersive',
+                  dock: 'hidden',
+                },
+                '练功房',
+              )}
+            />
+            <Route
+              path="wild"
+              lazy={lazyRoute(() => import('@app/routes/game/wild/route'))}
+              handle={scene(
+                { id: 'wild', chrome: 'immersive', dock: 'hidden' },
+                '野外寻觅',
+              )}
+            />
+          </Route>
           <Route element={<GameCombatLayout />}>
             <Route
               path="battle/challenge"
@@ -1023,34 +1146,6 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '挑战天骄',
-              )}
-            />
-            <Route
-              path="battle/live"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/battle/live/lobby'),
-              )}
-              handle={scene(
-                {
-                  id: 'battle-live-lobby',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '多人战斗邀请',
-              )}
-            />
-            <Route
-              path="battle/live/:matchId"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/battle/live/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'battle-live-match',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '实时多人战局',
               )}
             />
             <Route
@@ -1079,34 +1174,6 @@ export const router = createBrowserRouter(
                   dock: 'hidden',
                 },
                 '蜃楼战局',
-              )}
-            />
-            <Route
-              path="bet-battle/challenge"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/bet-battle/challenge/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'bet-battle-challenge',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '赌战挑战',
-              )}
-            />
-            <Route
-              path="training-room"
-              lazy={lazyRoute(
-                () => import('@app/routes/game/training-room/route'),
-              )}
-              handle={scene(
-                {
-                  id: 'training-room',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                '练功房',
               )}
             />
             <Route
@@ -1141,16 +1208,18 @@ export const router = createBrowserRouter(
 
           <Route element={<GameMapLayout />}>
             <Route
-              path="map"
-              lazy={lazyRoute(() => import('@app/routes/game/map/route'))}
+              path="map-v2"
+              lazy={lazyRoute(() => import('@app/routes/game/map-v2/route'))}
               handle={scene(
-                {
-                  id: 'map',
-                  chrome: 'immersive',
-                  dock: 'hidden',
-                },
-                mapTitle,
+                { id: 'map', chrome: 'immersive', dock: 'hidden' },
+                '山河舆图',
               )}
+            />
+            <Route
+              path="map"
+              loader={({ request }) =>
+                replace(`/game/map-v2${new URL(request.url).search}`)
+              }
             />
             <Route
               path="sect/:sectId/visit"
@@ -1215,23 +1284,28 @@ export const router = createBrowserRouter(
           handle={title('用户反馈')}
         />
         <Route
+          path="manual-migration"
+          lazy={lazyRoute(
+            () => import('@app/routes/admin/manual-migration/route'),
+          )}
+          handle={title('旧功法迁移')}
+        />
+        <Route
+          path="sect-migration"
+          lazy={lazyRoute(() => import('@app/routes/admin/sect-migration/route'))}
+          handle={title('宗门迁移')}
+        />
+        <Route
           path="accounts"
           lazy={lazyRoute(() => import('@app/routes/admin/accounts/route'))}
           handle={title('账号管理')}
-        />
-        <Route
-          path="broadcast/email"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/broadcast/email/route'),
-          )}
-          handle={title('邮箱群发')}
         />
         <Route
           path="broadcast/game-mail"
           lazy={lazyRoute(
             () => import('@app/routes/admin/broadcast/game-mail/route'),
           )}
-          handle={title('游戏邮件')}
+          handle={title('系统邮件')}
         />
         <Route
           path="announcement"
@@ -1241,7 +1315,7 @@ export const router = createBrowserRouter(
         <Route
           path="item-library"
           lazy={lazyRoute(() => import('@app/routes/admin/item-library/route'))}
-          handle={title('道具库')}
+          handle={title('材料库')}
         />
         <Route
           path="reputation-shop"
@@ -1254,25 +1328,6 @@ export const router = createBrowserRouter(
           path="sect-shop"
           lazy={lazyRoute(() => import('@app/routes/admin/sect-shop/route'))}
           handle={title('宗门宝库管理')}
-        />
-        <Route
-          path="templates"
-          lazy={lazyRoute(() => import('@app/routes/admin/templates/route'))}
-          handle={title('模板中心')}
-        />
-        <Route
-          path="templates/new"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/templates/new/route'),
-          )}
-          handle={title('新建模板')}
-        />
-        <Route
-          path="templates/:id"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/templates/detail/route'),
-          )}
-          handle={title('模板详情')}
         />
         <Route
           path="redeem-codes"
@@ -1300,13 +1355,6 @@ export const router = createBrowserRouter(
           path="online-users"
           lazy={lazyRoute(() => import('@app/routes/admin/online-users/route'))}
           handle={title('在线人数')}
-        />
-        <Route
-          path="battle-simulator"
-          lazy={lazyRoute(
-            () => import('@app/routes/admin/battle-simulator/route'),
-          )}
-          handle={title('对战模拟器')}
         />
         <Route
           path="tower-enemy-sets"

@@ -1,12 +1,10 @@
 import {
   runAuctionExpireJob,
-  runBetBattleExpireJob,
   runExpiredDataCleanupJob,
   runMarketRefreshCronJob,
   runMaterialLibraryDailyGenerationJob,
   runResourceReplayCleanupJob,
   runRankRewardsJob,
-  runTowerEnemySetRefreshJob,
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
   runSponsorshipAdminDigestJob,
@@ -67,20 +65,12 @@ router.get('/auction-expire', (c) =>
   handleCronRequest(c.req.raw, runAuctionExpireJob),
 );
 
-router.get('/bet-battle-expire', (c) =>
-  handleCronRequest(c.req.raw, runBetBattleExpireJob),
-);
-
 router.get('/rank-rewards', (c) =>
   handleCronRequest(c.req.raw, runRankRewardsJob),
 );
 
 router.get('/market-refresh', (c) =>
   handleCronRequest(c.req.raw, runMarketRefreshCronJob),
-);
-
-router.get('/tower-enemy-sets', (c) =>
-  handleCronRequest(c.req.raw, runTowerEnemySetRefreshJob),
 );
 
 router.get('/resource-replay-cleanup', (c) =>

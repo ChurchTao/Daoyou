@@ -275,8 +275,7 @@ export const YOUDU_SECT_PRESENTATION: SectPresentationTheme = {
     },
     paths: {
       title: '七魄台',
-      description:
-        '招魂渡夜与镇魄司命由此分途：一者让黑水漫长，一者令铁钉落准。',
+      description: '魂灯照见两条道途，沿着七魄留下的痕迹，静心参悟各自的传承。',
     },
     arena: {
       title: '照影场',

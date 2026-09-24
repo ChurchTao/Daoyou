@@ -3,6 +3,7 @@ import { cultivators } from '@server/lib/drizzle/schema';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 import { SectError } from '../SectError';
+import { StoryService } from '../StoryService';
 import { sectOrganizationFacade } from '.';
 import { createPostgresSectMembershipCommandContext } from './PostgresSectOrganizationAdapters';
 import {
@@ -38,9 +39,20 @@ export function executeSectJoinCommand(
     ) => ReturnType<typeof sectOrganizationFacade.admission>;
   },
 ) {
-  return executeSectPlayerCommand(args, (tx) =>
-    args.admission(tx).joinCommand(args.cultivatorId, args.sectId),
-  );
+  return executeSectPlayerCommand(args, async (tx) => {
+    const joined = await args.admission(tx).joinCommand(
+      args.cultivatorId,
+      args.sectId,
+    );
+    const story = await StoryService.reconcile(args.cultivatorId, tx);
+    return {
+      result: joined.result,
+      resourceChanges: [
+        ...joined.resourceChanges,
+        ...(story?.changes ?? []),
+      ],
+    };
+  });
 }
 
 async function requireCultivatorSectFacts(

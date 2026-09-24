@@ -1,10 +1,11 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { dungeonReadiness } from '@shared/lib/dungeon/readiness';
 import { MapNodeInfo } from '@shared/lib/game/mapSystem';
-import type { NoviceDungeonReadiness } from '@shared/lib/noviceGuidance';
 import type { RealmType } from '@shared/types/constants';
 import { MapNodeCard } from '../MapNodeCard';
+type NoviceDungeonReadiness = ReturnType<typeof dungeonReadiness>;
 
 interface DungeonMapSelectorProps {
   selectedNode: MapNodeInfo | null;
@@ -31,7 +32,7 @@ export function DungeonMapSelector({
     return (
       <InkCard className="p-8 text-center">
         <p className="text-ink-secondary">请选择一个秘境</p>
-        <InkButton href="/game/map" variant="primary" className="mt-4">
+        <InkButton href="/game/map-v2" variant="primary" className="mt-4">
           前往地图
         </InkButton>
       </InkCard>
@@ -50,7 +51,7 @@ export function DungeonMapSelector({
         </InkNotice>
       ) : null}
       <div className="flex justify-center gap-4">
-        <InkButton href="/game/map" disabled={isStarting}>
+        <InkButton href="/game/map-v2" disabled={isStarting}>
           重新选择
         </InkButton>
         <InkButton

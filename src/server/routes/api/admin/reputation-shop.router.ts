@@ -16,11 +16,6 @@ import { Hono } from 'hono';
 
 const router = new Hono<AppEnv>();
 
-function isUniqueViolation(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  return (error as { code?: string }).code === '23505';
-}
-
 router.get('/', requireAdmin(), async (c) => {
   const parsed = ReputationShopListQuerySchema.safeParse({
     status: c.req.query('status') || undefined,
@@ -58,9 +53,6 @@ router.post('/', requireAdmin(), async (c) => {
     if (error instanceof ReputationShopError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
     }
-    if (isUniqueViolation(error)) {
-      return c.json({ error: '该道具已在声望商店中' }, 409);
-    }
     return c.json(
       { error: error instanceof Error ? error.message : '创建商品失败' },
       400,
@@ -93,9 +85,6 @@ router.put('/:id', requireAdmin(), async (c) => {
   } catch (error) {
     if (error instanceof ReputationShopError) {
       return jsonWithStatus(c, { error: error.message }, error.status);
-    }
-    if (isUniqueViolation(error)) {
-      return c.json({ error: '该道具已在声望商店中' }, 409);
     }
     return c.json(
       { error: error instanceof Error ? error.message : '更新商品失败' },

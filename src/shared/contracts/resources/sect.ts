@@ -1,18 +1,14 @@
 import { SectDeliveryRequirementSchema } from '@shared/engine/sect/core/organization/taskRequirements';
 import { SectTaskRewardSnapshotSchema } from '@shared/engine/sect/core/organization/taskRewards';
-import { ItemLibraryEntrySchema } from '@shared/lib/itemLibrary';
-import {
-  REALM_STAGE_VALUES,
-  REALM_VALUES,
-} from '@shared/types/constants';
+import { ItemGrantSchema } from '@shared/inventory';
+import { REALM_STAGE_VALUES, REALM_VALUES } from '@shared/types/constants';
 import { z } from 'zod';
 import type {
   SectConstructionMemberData,
-  SectContributionRankingData,
   SectContextData,
+  SectContributionRankingData,
   SectInfrastructureData,
   SectMembersData,
-  SectProgressionData,
   SectShopData,
   SectTasksData,
 } from '../sect';
@@ -22,7 +18,6 @@ export const SECT_RESOURCE_TOPICS = [
   'sect.members',
   'sect.contribution-ranking',
   'sect.infrastructure',
-  'sect.progression',
   'sect.tasks',
   'sect.shop',
   'sect.construction-member',
@@ -35,29 +30,11 @@ export interface SectResourceDataMap {
   'sect.members': SectMembersData;
   'sect.contribution-ranking': SectContributionRankingData;
   'sect.infrastructure': SectInfrastructureData;
-  'sect.progression': SectProgressionData;
   'sect.tasks': SectTasksData;
   'sect.shop': SectShopData;
   'sect.construction-member': SectConstructionMemberData;
 }
 
-const sectPathStateSchema = z
-  .object({
-    pathId: z.string(),
-    unlockedLayerIds: z.array(z.string()),
-    tacticId: z.string(),
-    activeMeridianSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-    meridianLoadouts: z.array(
-      z
-        .object({
-          slot: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-          nodeIds: z.array(z.string()),
-          version: z.number(),
-        })
-        .strict(),
-    ),
-  })
-  .strict();
 const sectTaskDialoguePresentationSchema = z
   .object({
     offeredReply: z.string(),
@@ -125,7 +102,7 @@ export const sectTaskViewSchema = z
 const sectShopItemSchema = z
   .object({
     id: z.string().uuid(),
-    itemLibraryItemId: z.string(),
+    itemLibraryItemId: z.string().nullable(),
     price: z.number().int().positive(),
     quantity: z.number().int().positive(),
     perUserLimit: z.number().int().positive().nullable(),
@@ -133,7 +110,10 @@ const sectShopItemSchema = z
     sortOrder: z.number().int(),
     purchasedCount: z.number().int().nonnegative(),
     remainingPurchases: z.number().int().nonnegative().nullable(),
-    item: ItemLibraryEntrySchema,
+    item: ItemGrantSchema.extend({
+      name: z.string(),
+      instanceData: ItemGrantSchema.shape.instanceData.unwrap().nullable(),
+    }).nullable(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -240,19 +220,6 @@ export const SECT_RESOURCE_DATA_SCHEMAS = {
           })
           .strict(),
       ),
-    })
-    .strict(),
-  'sect.progression': z
-    .object({
-      activePathId: z.string().optional(),
-      methods: z.record(z.string(), z.number()),
-      paths: z.array(sectPathStateSchema),
-      abilityLoadout: z.tuple([
-        z.string().nullable(),
-        z.string().nullable(),
-        z.string().nullable(),
-        z.string().nullable(),
-      ]),
     })
     .strict(),
   'sect.tasks': z

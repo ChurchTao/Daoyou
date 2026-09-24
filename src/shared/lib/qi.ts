@@ -1,7 +1,7 @@
 import {
   QI_MAX,
   QI_NATURAL_RESTORE_INTERVAL_MS,
-  QI_NATURAL_RESTORE_PER_HOUR,
+  QI_NATURAL_RESTORE_PER_INTERVAL,
   QI_OVERFLOW_MAX,
 } from '@shared/config/qiSystem';
 
@@ -57,8 +57,8 @@ export function projectNaturalQiState(options: {
   const restorePerInterval = Math.max(
     0,
     normalizeInteger(
-      options.restorePerInterval ?? QI_NATURAL_RESTORE_PER_HOUR,
-      QI_NATURAL_RESTORE_PER_HOUR,
+      options.restorePerInterval ?? QI_NATURAL_RESTORE_PER_INTERVAL,
+      QI_NATURAL_RESTORE_PER_INTERVAL,
     ),
   );
   const restoreIntervalMs = Math.max(

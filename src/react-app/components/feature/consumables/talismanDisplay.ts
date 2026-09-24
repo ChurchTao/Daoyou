@@ -23,7 +23,6 @@ import {
 } from '@shared/config/socialConfig';
 import { isTalismanConsumable } from '@shared/lib/consumables';
 import type { Consumable } from '@shared/types/cultivator';
-import { buildManualDrawHref } from '@shared/types/manualDraw';
 
 const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: '根基属性重洗',
@@ -31,8 +30,8 @@ const TALISMAN_SCENARIO_LABELS: Record<string, string> = {
   [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]: '洗脉符·流派节点重置',
   fate_reshape: '命格重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '改天换地·身份重塑',
-  draw_gongfa: '问法寻卷·功法抽取',
-  draw_skill: '问法寻卷·神通抽取',
+  draw_gongfa: '旧版功法抽取（已停用）',
+  draw_skill: '旧版神通抽取（已停用）',
   [FRIEND_MAIL_TALISMAN_SCENARIO]: '传音玉简·好友传音',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '拍卖行·专属交易',
 };
@@ -41,8 +40,6 @@ const TALISMAN_SCENARIO_HREFS: Record<string, string> = {
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '/game/sect/transfer',
   fate_reshape: '/game/fate-reshape',
   [IDENTITY_RESHAPE_SCENARIO]: '/game/identity-reshape',
-  draw_gongfa: buildManualDrawHref('gongfa'),
-  draw_skill: buildManualDrawHref('skill'),
   [FRIEND_MAIL_TALISMAN_SCENARIO]: '/game/mail',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '/game/auction',
 };
@@ -53,8 +50,6 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]: '前往欺天台转宗',
   fate_reshape: '前往重塑',
   [IDENTITY_RESHAPE_SCENARIO]: '前往改命',
-  draw_gongfa: '抽功法秘籍',
-  draw_skill: '抽神通秘籍',
   [FRIEND_MAIL_TALISMAN_SCENARIO]: '去传音',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]: '去上架',
 };
@@ -62,17 +57,17 @@ const TALISMAN_SCENARIO_ACTION_LABELS: Record<string, string> = {
 const TALISMAN_USAGE_HINTS: Record<string, string> = {
   [ATTRIBUTE_RESET_TALISMAN_SCENARIO]: `【可在背包中直接使用，重置六维自由分配并返还属性点】`,
   [SECT_MERIDIAN_RESET_TALISMAN_SCENARIO]:
-    '【可在背包中直接使用，清空当前宗门所有流派节点方案】',
+    '【战斗外使用，清空新版宗门两流派节点，保留共用深度】',
   [CHEAT_HEAVEN_TALISMAN_SCENARIO]:
     '【前往欺天台查看转宗后的变化，确认成功后才会消耗】',
   fate_reshape: '【前往命格重塑功能页启封，开启时立即扣除】',
   [IDENTITY_RESHAPE_SCENARIO]: '【前往身份重塑文戏启封，开启时立即扣除】',
-  draw_gongfa: '【前往问法寻卷，直接消耗符箓抽取功法秘籍】',
-  draw_skill: '【前往问法寻卷，直接消耗符箓抽取神通秘籍】',
+  draw_gongfa: '【旧版抽取已停用，符箓暂存，后续玩法另行设计】',
+  draw_skill: '【旧版抽取已停用，符箓暂存，后续玩法另行设计】',
   [FRIEND_MAIL_TALISMAN_SCENARIO]:
-    '【前往传音玉简，给好友发送传音时消耗；不足时可去天骄宝阁购买】',
+    '【前往传音玉简，给好友发送传音时消耗；不足时可去万界商行购买】',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]:
-    '【前往拍卖行，上架专属交易时消耗；不足时可去天骄宝阁购买】',
+    '【前往拍卖行，上架专属交易时消耗；不足时可去万界商行购买】',
 };
 
 function getQiRestoreEffectText(scenario: string): string | null {
@@ -151,44 +146,84 @@ export function getTalismanUsageHint(consumable: Consumable): string {
   );
 }
 
-export function buildTalismanDetailText(consumable: Consumable): string {
-  if (!isTalismanConsumable(consumable)) {
-    return consumable.description ?? '';
+export interface TalismanDetailRow {
+  label?: string;
+  value: string;
+}
+
+/** 具体效果与用途分离，详情预览和使用确认共享同一份结构化内容。 */
+export function talismanDetailRows(
+  consumable: Consumable,
+): TalismanDetailRow[] {
+  if (!isTalismanConsumable(consumable)) return [];
+  const scenario = consumable.spec.scenario;
+  if (['draw_gongfa', 'draw_skill'].includes(scenario)) {
+    return [
+      {
+        value: '旧版抽取已停用，符箓暂存；暂不转换、不补偿，后续玩法另行设计。',
+      },
+    ];
   }
-
-  const restoreText = getQiRestoreEffectText(consumable.spec.scenario);
-  const lines = isAttributeResetTalismanScenario(consumable.spec.scenario)
-    ? [
-        `用途：重置六维自由分配，返还已投入的可分配属性点`,
-        '使用方式：可在背包中直接使用，也可在根基属性页确认启封',
-        consumable.spec.notes ??
-          `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，六维回到当前境界自然成长值。`,
-        consumable.description,
-      ]
-    : isSectMeridianResetTalismanScenario(consumable.spec.scenario)
-      ? [
-          '用途：清空当前宗门所有已习得流派的三套节点方案',
-          '保留：流派解锁层数、心法、战术和宗门神通配置',
-          '使用方式：可在背包中直接使用；没有已选节点时不会消耗',
+  const restoreText = getQiRestoreEffectText(scenario);
+  let rows: TalismanDetailRow[];
+  if (isAttributeResetTalismanScenario(scenario)) {
+    rows = [
+      { label: '用途', value: '重置六维自由分配，返还已投入的可分配属性点' },
+      {
+        label: '使用方式',
+        value: '可在背包中直接使用，也可在根基属性页确认启封',
+      },
+      {
+        value:
           consumable.spec.notes ??
-            `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的流派层数重新参悟。`,
-          consumable.description,
-        ]
-      : restoreText
-        ? [
-            `用途：${restoreText}`,
-            '使用方式：可在背包中直接使用',
-            consumable.spec.notes,
-            consumable.description,
-          ]
-        : [
-            `适用玩法：${getTalismanScenarioLabel(consumable.spec.scenario)}`,
-            '使用方式：需在对应玩法入口使用',
-            consumable.spec.notes,
-            consumable.description,
-          ];
+          `${ATTRIBUTE_RESET_TALISMAN_NAME}启封后，六维回到当前境界自然成长值。`,
+      },
+    ];
+  } else if (isSectMeridianResetTalismanScenario(scenario)) {
+    rows = [
+      { label: '用途', value: '清空新版宗门两流派各一套节点方案' },
+      { label: '保留', value: '共用经脉深度、心法等级、当前流派、道印与装备' },
+      {
+        label: '使用方式',
+        value: '可在背包中直接使用；没有已选节点时不会消耗',
+      },
+      {
+        value:
+          consumable.spec.notes ??
+          `${SECT_MERIDIAN_RESET_TALISMAN_NAME}启封后，可按已解锁的共用深度重新参悟；平时也可免费逐层调整节点。`,
+      },
+    ];
+  } else {
+    rows = [
+      ...(restoreText ? [{ label: '用途', value: restoreText }] : []),
+      {
+        label: '使用方式',
+        value: restoreText ? '可在背包中直接使用' : '需在对应玩法入口使用',
+      },
+      ...(consumable.spec.notes ? [{ value: consumable.spec.notes }] : []),
+    ];
+  }
+  return rows.filter((row) => Boolean(row.value));
+}
 
-  return lines.filter(Boolean).join('\n');
+export function buildTalismanDetailText(consumable: Consumable): string {
+  if (!isTalismanConsumable(consumable)) return consumable.description ?? '';
+  const scenario = consumable.spec.scenario;
+  const retired = ['draw_gongfa', 'draw_skill'].includes(scenario);
+  const genericScenario =
+    !retired &&
+    !isAttributeResetTalismanScenario(scenario) &&
+    !isSectMeridianResetTalismanScenario(scenario) &&
+    !getQiRestoreEffectText(scenario);
+  return [
+    ...(genericScenario
+      ? [`适用玩法：${getTalismanScenarioLabel(scenario)}`]
+      : []),
+    ...talismanDetailRows(consumable).map((row) =>
+      row.label ? `${row.label}：${row.value}` : row.value,
+    ),
+    ...(!retired && consumable.description ? [consumable.description] : []),
+  ].join('\n');
 }
 
 export function buildTalismanUseConfirmText(consumable: Consumable): string {

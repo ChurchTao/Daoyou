@@ -1,0 +1,25 @@
+{
+  "id": "arrival-pouch",
+  "title": "灵兽",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "玉简上多了一行小字，写的是灵兽袋。"
+    },
+    { "type": "title", "kicker": "洞府 · 袋口", "text": "灵兽" },
+    {
+      "type": "narration",
+      "text": "爪印还留在坡上。{name}回到石室，玉简自己热了一热。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "袋子在这里。捉住的收进去，带着的才能唤出来。"
+    },
+    { "type": "end", "outcome": "pouch" }
+  ]
+}

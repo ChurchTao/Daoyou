@@ -6,9 +6,9 @@ import {
   type CreateItemLibraryEntry,
   type ItemLibraryEntry,
   type ItemLibraryListQuery,
-  type ItemLibraryRewardSelection,
   type UpdateItemLibraryEntry,
 } from '@shared/lib/itemLibrary';
+import { assertCurrentRewardItem } from '@shared/lib/retiredDraw';
 import {
   and,
   asc,
@@ -62,7 +62,9 @@ function parseRow(row: ItemLibraryRow): ItemLibraryEntry {
   });
 }
 
-function toSearchableColumns(entry: CreateItemLibraryEntry | UpdateItemLibraryEntry) {
+function toSearchableColumns(
+  entry: CreateItemLibraryEntry | UpdateItemLibraryEntry,
+) {
   switch (entry.type) {
     case 'material':
       return {
@@ -71,25 +73,6 @@ function toSearchableColumns(entry: CreateItemLibraryEntry | UpdateItemLibraryEn
         quality: entry.payload.rank,
         element: entry.payload.element ?? null,
         category: entry.payload.type,
-      };
-    case 'consumable':
-      return {
-        name: entry.payload.name,
-        description: entry.payload.description ?? null,
-        quality: entry.payload.quality ?? null,
-        element:
-          entry.payload.spec.kind === 'pill'
-            ? entry.payload.spec.alchemyMeta.dominantElement ?? null
-            : null,
-        category: entry.payload.type,
-      };
-    case 'artifact':
-      return {
-        name: entry.payload.name,
-        description: entry.payload.description ?? null,
-        quality: entry.payload.quality ?? null,
-        element: entry.payload.element,
-        category: entry.payload.slot,
       };
   }
 }
@@ -121,14 +104,12 @@ export async function listItemLibrary(
   if (filters.q?.trim()) {
     const pattern = `%${filters.q.trim()}%`;
     whereConditions.push(
-      or(
-        ilike(itemLibrary.itemId, pattern),
-        ilike(itemLibrary.name, pattern),
-      )!,
+      or(ilike(itemLibrary.itemId, pattern), ilike(itemLibrary.name, pattern))!,
     );
   }
 
-  const whereExpr = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+  const whereExpr =
+    whereConditions.length > 0 ? and(...whereConditions) : undefined;
   const totalQuery = q.select({ total: count() }).from(itemLibrary);
   const [totalRow] = whereExpr
     ? await totalQuery.where(whereExpr)
@@ -140,10 +121,7 @@ export async function listItemLibrary(
     .orderBy(desc(itemLibrary.updatedAt), desc(itemLibrary.createdAt))
     .limit(pageSize)
     .offset(offset);
-  const rows =
-    whereExpr
-      ? await query.where(whereExpr)
-      : await query;
+  const rows = whereExpr ? await query.where(whereExpr) : await query;
 
   const total = Number(totalRow?.total ?? 0);
   return {
@@ -225,20 +203,12 @@ export async function findItemLibraryByItemIds(
   return rows.map(parseRow);
 }
 
-export async function findPublishedItemLibraryForSelections(
-  selections: ItemLibraryRewardSelection[],
-): Promise<ItemLibraryEntry[]> {
-  const itemIds = selections
-    .filter((selection) => selection.type === 'item_library')
-    .map((selection) => selection.itemId);
-
-  return findPublishedItemLibraryByItemIds(itemIds);
-}
-
 export async function createItemLibraryEntry(params: {
   entry: CreateItemLibraryEntry;
   userId: string;
 }): Promise<ItemLibraryEntry> {
+  if (params.entry.status === 'published')
+    assertCurrentRewardItem(params.entry.payload);
   const columns = toSearchableColumns(params.entry);
   const q = getExecutor();
   const [row] = await q
@@ -264,6 +234,8 @@ export async function updateItemLibraryEntry(params: {
   entry: UpdateItemLibraryEntry;
   userId: string;
 }): Promise<ItemLibraryEntry | null> {
+  if (params.entry.status === 'published')
+    assertCurrentRewardItem(params.entry.payload);
   const columns = toSearchableColumns(params.entry);
   const q = getExecutor();
   const [row] = await q

@@ -8,6 +8,22 @@ import { projectNaturalQiState } from './qi';
 const BASE_MS = Date.parse('2026-07-30T00:00:00.000Z');
 
 describe('projectNaturalQiState', () => {
+  it('默认每六分钟恢复一点，从零到240需要24小时', () => {
+    const project = (elapsedMs: number) => projectNaturalQiState({
+      qi: 0,
+      qiLastRefreshedAt: new Date(BASE_MS),
+      now: new Date(BASE_MS + elapsedMs),
+    });
+
+    expect(project(6 * 60_000 - 1).current).toBe(0);
+    expect(project(6 * 60_000).current).toBe(1);
+    expect(project(60 * 60_000).current).toBe(10);
+    expect(project(0).recovery.fullRestoreInMs).toBe(24 * 60 * 60_000);
+    expect(project(24 * 60 * 60_000).current).toBe(240);
+    expect(project(48 * 60 * 60_000).current).toBe(240);
+    expect(project(0).max).toBe(240);
+  });
+
   it.each([
     {
       name: '恢复边界前不增加',
@@ -17,25 +33,25 @@ describe('projectNaturalQiState', () => {
       restored: 0,
     },
     {
-      name: '恢复边界按小时增加',
+      name: '六分钟恢复一点',
       qi: 100,
       nowMs: BASE_MS + QI_NATURAL_RESTORE_INTERVAL_MS,
-      expected: 110,
-      restored: 10,
+      expected: 101,
+      restored: 1,
     },
     {
-      name: '连续多个小时一次追算',
+      name: '连续多个恢复周期一次追算',
       qi: 100,
       nowMs: BASE_MS + 3 * QI_NATURAL_RESTORE_INTERVAL_MS,
-      expected: 130,
-      restored: 30,
+      expected: 103,
+      restored: 3,
     },
     {
       name: '恢复量钳制到自然上限',
-      qi: 195,
+      qi: 239,
       nowMs: BASE_MS + 2 * QI_NATURAL_RESTORE_INTERVAL_MS,
       expected: QI_MAX,
-      restored: 5,
+      restored: 1,
     },
   ])('$name', ({ qi, nowMs, expected, restored }) => {
     const projection = projectNaturalQiState({
@@ -48,24 +64,24 @@ describe('projectNaturalQiState', () => {
     expect(projection.restored).toBe(restored);
   });
 
-  it('保留未满资源的小时余量并给出精确恢复时间', () => {
-    const nowMs = BASE_MS + QI_NATURAL_RESTORE_INTERVAL_MS + 15 * 60_000;
+  it('保留未满资源的六分钟周期余量并给出精确恢复时间', () => {
+    const nowMs = BASE_MS + QI_NATURAL_RESTORE_INTERVAL_MS + 2 * 60_000;
     const projection = projectNaturalQiState({
       qi: 100,
       qiLastRefreshedAt: new Date(BASE_MS),
       now: new Date(nowMs),
     });
 
-    expect(projection.current).toBe(110);
+    expect(projection.current).toBe(101);
     expect(projection.baselineAt.getTime()).toBe(
       BASE_MS + QI_NATURAL_RESTORE_INTERVAL_MS,
     );
     expect(projection.recovery.nextRestoreAt?.getTime()).toBe(
       BASE_MS + 2 * QI_NATURAL_RESTORE_INTERVAL_MS,
     );
-    expect(projection.recovery.nextRestoreInMs).toBe(45 * 60_000);
+    expect(projection.recovery.nextRestoreInMs).toBe(4 * 60_000);
     expect(projection.recovery.fullRestoreAt?.getTime()).toBe(
-      BASE_MS + 10 * QI_NATURAL_RESTORE_INTERVAL_MS,
+      BASE_MS + 140 * QI_NATURAL_RESTORE_INTERVAL_MS,
     );
   });
 
@@ -151,7 +167,7 @@ describe('projectNaturalQiState', () => {
 
   it('使用投影后的值和基线连续投影不会重复恢复', () => {
     const firstNowMs =
-      BASE_MS + 2 * QI_NATURAL_RESTORE_INTERVAL_MS + 20 * 60_000;
+      BASE_MS + 2 * QI_NATURAL_RESTORE_INTERVAL_MS + 2 * 60_000;
     const first = projectNaturalQiState({
       qi: 100,
       qiLastRefreshedAt: new Date(BASE_MS),
@@ -160,11 +176,11 @@ describe('projectNaturalQiState', () => {
     const second = projectNaturalQiState({
       qi: first.current,
       qiLastRefreshedAt: first.baselineAt,
-      now: new Date(firstNowMs + 30 * 60_000),
+      now: new Date(firstNowMs + 3 * 60_000),
     });
 
-    expect(first.current).toBe(120);
-    expect(second.current).toBe(120);
+    expect(first.current).toBe(102);
+    expect(second.current).toBe(102);
     expect(second.restored).toBe(0);
     expect(second.baselineAt.getTime()).toBe(first.baselineAt.getTime());
   });

@@ -4,7 +4,7 @@ import { consumableSchema } from '@shared/contracts/resources/inventory';
 import {
   ItemLibraryConsumablePayloadSchema,
   ItemLibraryMaterialPayloadSchema,
-  buildAttachmentFromItemLibraryEntry,
+  MailAttachmentsSchema,
 } from './itemLibrary';
 
 function buildPillPayload() {
@@ -105,7 +105,7 @@ describe('ItemLibraryConsumablePayloadSchema', () => {
 });
 
 describe('ItemLibraryMaterialPayloadSchema', () => {
-  it('preserves hidden spirit-seed details when building a reward attachment', () => {
+  it('preserves historical spirit-seed attachment snapshots', () => {
     const payload = ItemLibraryMaterialPayloadSchema.parse({
       name: '青纹眠籽',
       type: 'seed',
@@ -120,26 +120,14 @@ describe('ItemLibraryMaterialPayloadSchema', () => {
         },
       },
     });
-    const attachment = buildAttachmentFromItemLibraryEntry(
+    const [attachment] = MailAttachmentsSchema.parse([
       {
-        id: '00000000-0000-4000-8000-000000000001',
-        itemId: 'mat_seed_example',
         type: 'material',
-        status: 'published',
         name: payload.name,
-        description: payload.description,
-        quality: payload.rank,
-        element: payload.element,
-        category: payload.type,
-        payload,
-        editorConfig: {},
-        createdBy: '00000000-0000-4000-8000-000000000002',
-        updatedBy: '00000000-0000-4000-8000-000000000002',
-        createdAt: new Date(0),
-        updatedAt: new Date(0),
+        quantity: 2,
+        data: { ...payload, quantity: 2 },
       },
-      2,
-    );
+    ]);
 
     expect(attachment.type).toBe('material');
     if (attachment.type !== 'material') return;

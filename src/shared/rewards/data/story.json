@@ -1,0 +1,78 @@
+{
+  "formatVersion": 1,
+  "contentRevision": 2,
+  "materials": {
+    "story.ore.qingshi": {
+      "name": "青石",
+      "type": "ore",
+      "rank": "凡品",
+      "element": "土",
+      "description": "洞壁上敲下来的青石，可以入器炉。"
+    },
+    "story.herb.cuibucao": {
+      "name": "翠芽草",
+      "type": "herb",
+      "rank": "凡品",
+      "element": "木",
+      "description": "生于山间溪畔的常见药草，可以入炉。"
+    }
+  },
+  "payouts": [
+    {
+      "id": "first-herbs",
+      "poolVersion": 1,
+      "groups": [
+        {
+          "id": "herbs",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "story.herb.cuibucao",
+              "weight": 1,
+              "quantity": { "min": 3, "max": 3 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "first-weapon",
+      "poolVersion": 1,
+      "groups": [
+        {
+          "id": "blueprint",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "blueprint.weapon.10",
+              "weight": 1,
+              "quantity": { "min": 1, "max": 1 }
+            }
+          ]
+        },
+        {
+          "id": "ore",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "story.ore.qingshi",
+              "weight": 1,
+              "quantity": { "min": 1, "max": 1 }
+            }
+          ]
+        },
+        {
+          "id": "stones",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "currency.spirit-stones",
+              "weight": 1,
+              "quantity": { "min": 100, "max": 100 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+Daoyou text-filter dictionary — modified community lexicon
+Modified on 2026-09-17.
+
+The file src/server/config/text-filter.dictionary.json is a modified selection
+from the following projects, merged with Daoyou's original 13 seed entries:
+
+1. fwwdn/sensitive-stop-words
+   https://github.com/fwwdn/sensitive-stop-words
+   Revision: a7d06bb1c321e669943b6841570d9da6dad8ce2b
+   Copyright 2017-present fwwdn
+   License: Apache License 2.0 (see fwwdn-Apache-2.0.txt)
+   Selected files: 政治类.txt, 色情类.txt, 广告.txt
+
+2. konsheng/Sensitive-lexicon
+   https://github.com/konsheng/Sensitive-lexicon
+   Revision: d967c30b053fa40b06c5a0dddf0be493f2dfae46
+   Copyright (c) 2024~2099 Konsheng
+   License: MIT (see konsheng-MIT.txt)
+   Selected files: Vocabulary/反动词库.txt, Vocabulary/暴恐词库.txt
+
+Daoyou modifications: category selection, removal of ambiguous entries,
+normalization-aware deduplication, conversion to JSON, and merging local entries.
+The resulting initial dictionary contains 522 blocked entries.
+See docs/text-filter-dictionary.md and docs/text-filter-dictionary-sources.json
+in the source distribution for selection details and source file hashes.
+
+This notice records attribution and modifications. It does not change the
+upstream licenses or imply upstream endorsement of Daoyou's filtering policy.

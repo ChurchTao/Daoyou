@@ -1,9 +1,6 @@
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
+import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import type { RedisLeaseContext } from '@server/lib/redis/lock';
@@ -28,42 +25,23 @@ import {
   isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@shared/lib/consumables';
+import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
 import { getAttributeLabel } from '@shared/lib/gameConceptDisplay';
 import { getTrackConfig } from '@shared/lib/trackConfigRegistry';
 import type { Consumable } from '@shared/types/cultivator';
 import { randomUUID } from 'crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import {
   AttributeResetService,
   withAttributeResetLock,
 } from './AttributeResetService';
+import { getBagConsumable as loadOwnedConsumable } from './BagConsumables';
 import {
   PillOperationExecutor,
   type PillCultivatorFacts,
 } from './PillOperationExecutor';
 import { QiService } from './QiService';
 import { SectMeridianResetService } from './SectMeridianResetService';
-import { mapConsumableRow } from './consumablePersistence';
-
-async function loadOwnedConsumable(
-  cultivatorId: string,
-  consumableId: string,
-  executor?: DbExecutor | DbTransaction,
-): Promise<Consumable | null> {
-  const q = executor ?? getExecutor();
-  const rows = await q
-    .select()
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.id, consumableId),
-        eq(schema.consumables.cultivatorId, cultivatorId),
-      ),
-    )
-    .limit(1);
-
-  return rows[0] ? mapConsumableRow(rows[0]) : null;
-}
 
 function describeTrackLevelUp(levelUp: {
   track: Parameters<typeof getTrackConfig>[0];
@@ -116,6 +94,26 @@ export const ConsumableUseEngine = {
     );
     if (!consumable) {
       throw new Error('该消耗品不存在或已耗尽。');
+    }
+    if (await hasActiveDungeon(cultivatorId)) {
+      const [run] = await getExecutor(options.tx)
+        .select({
+          activeBattleId: schema.dungeonRuns.activeBattleId,
+          status: schema.dungeonRuns.status,
+        })
+        .from(schema.dungeonRuns)
+        .where(
+          and(
+            eq(schema.dungeonRuns.cultivatorId, cultivatorId),
+            ne(schema.dungeonRuns.status, 'FINISHED'),
+          ),
+        )
+        .limit(1);
+      if (!run || !canUseDungeonRecoveryPill(run, consumable)) {
+        throw new Error(
+          '秘境休整期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
+        );
+      }
     }
 
     if (isTalismanConsumable(consumable)) {
@@ -217,6 +215,10 @@ export const ConsumableUseEngine = {
 
     if (!isPillConsumable(consumable) && !isSpiritFruitConsumable(consumable)) {
       throw new Error('该消耗品缺少有效丹药或灵果 spec。');
+    }
+
+    if (consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation')) {
+      throw new Error('请在灵兽页选择灵兽后喂养');
     }
 
     const cultivator = await loadPlayerConsumableOperationFacts(

@@ -75,8 +75,8 @@ export function CultivatorInspectionModal({
         ) : null}
 
         <BodyCultivationInspectionSection cultivator={cultivator} />
-        <CultivatorAttributeTable cultivator={cultivator} />
-        <CultivatorLoadoutSections cultivator={cultivator} />
+        {cultivator.combatPanel ? <CultivatorAttributeTable cultivator={{ ...cultivator, combatPanel: cultivator.combatPanel }} /> : null}
+        <CultivatorLoadoutSections build={cultivator.build} />
         {mode === 'cultivator' ? (
           <CultivatorFateSection cultivator={cultivator} />
         ) : null}

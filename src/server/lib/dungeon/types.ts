@@ -1,4 +1,5 @@
 import type { ResourceOperation } from '@shared/engine/resource/types';
+import { ItemGrantSchema } from '@shared/inventory';
 import { DUNGEON_COST_RANK_VALUES } from '@shared/lib/dungeon/costPolicy';
 import type { DungeonEndDisposition } from '@shared/lib/dungeon/settlementPolicy';
 import { ENEMY_RACE_VALUES, REALM_STAGE_VALUES } from '@shared/types/constants';
@@ -349,6 +350,7 @@ export function createDungeonRoundLlmSchema(maxRewardCount: number) {
 // Settlement info from AI
 export const DungeonSettlementSchema = z
   .object({
+    inventoryRewards: z.array(ItemGrantSchema).optional(),
     ending_narrative: z.string().describe('结局叙述'),
     settlement: z.object({
       reward_tier: z.enum(['S', 'A', 'B', 'C', 'D']).describe('奖励等级'),
@@ -462,6 +464,7 @@ export type DungeonRecoverAction =
   'retry' | 'retry_continue' | 'retry_settle' | 'safe_retreat' | 'force_quit';
 
 export interface DungeonCostLedgerEntry {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   round: number;
   choiceId?: number;
@@ -478,6 +481,7 @@ export interface DungeonGainLedgerEntry {
 }
 
 export interface DungeonPendingAction {
+  materialSelections?: import('@shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
   actionId: string;
   choiceId?: number;
   choiceText?: string;
@@ -491,6 +495,11 @@ export interface DungeonPendingAction {
 // === Internal State Management ===
 
 export interface DungeonState {
+  encounter?: import('@shared/contracts/combatV6Dungeon').DungeonEncounterView;
+  rewardSeed?: number;
+  v6Rewards?: import('@shared/rewards/dungeon').DungeonRewardEntry[];
+  beastResources?: Record<string, { hp: number; mp: number }>;
+  endDisposition?: import('@shared/lib/dungeon/settlementPolicy').DungeonEndDisposition;
   runId?: string;
   cultivatorId: string;
   mapNodeId: string;

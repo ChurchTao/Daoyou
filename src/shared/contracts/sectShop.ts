@@ -13,8 +13,7 @@ export const SectShopItemStatusSchema = ItemExchangeShopItemStatusSchema;
 export const SectShopListQuerySchema = z.object({
   status: SectShopItemStatusSchema.optional(),
 });
-export const SectShopItemMutationSchema =
-  ItemExchangeShopItemMutationSchema;
+export const SectShopItemMutationSchema = ItemExchangeShopItemMutationSchema;
 export const SectShopBuyParamsSchema = z.object({
   id: z.string().uuid(),
 });
@@ -34,6 +33,7 @@ export interface SectShopData {
 }
 
 export interface SectShopBuyResponse {
+  destinations: Array<'bag' | 'storage'>;
   purchasedItem: SectShopItemData;
   contribution: number;
 }

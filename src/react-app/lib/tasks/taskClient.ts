@@ -4,10 +4,6 @@ import type {
   TaskRewardClaimResponse,
 } from '@shared/contracts/task';
 import { getNextMajorRealm } from '@shared/lib/breakthroughPill';
-import {
-  TUTORIAL_TASK_ORDER,
-  hasClaimedTutorialReward,
-} from '@shared/lib/noviceGuidance';
 import type { Cultivator } from '@shared/types/cultivator';
 import type { TaskInstance } from '@shared/types/task';
 
@@ -28,7 +24,6 @@ export async function startTaskChallenge(taskId: string) {
     method: 'POST',
   });
   const payload = await readJsonOrThrow<TaskChallengeResponse>(response);
-  await consumeResourceMutation(payload);
   return payload;
 }
 
@@ -84,25 +79,3 @@ export function findCurrentMajorBreakthroughTask(
   );
 }
 
-export function findNextTutorialTask(
-  tasks: TaskInstance[],
-): TaskInstance | null {
-  const tutorialByDefinition = new Map(
-    tasks
-      .filter((task) => task.category === 'tutorial')
-      .map((task) => [task.definitionId, task]),
-  );
-
-  for (const definitionId of TUTORIAL_TASK_ORDER) {
-    const task = tutorialByDefinition.get(definitionId);
-    if (!task) {
-      return null;
-    }
-
-    if (!task.snapshot.isCompleted || !hasClaimedTutorialReward(task)) {
-      return task;
-    }
-  }
-
-  return null;
-}

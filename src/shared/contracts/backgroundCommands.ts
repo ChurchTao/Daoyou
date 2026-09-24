@@ -5,10 +5,8 @@ export const BACKGROUND_COMMAND_SUBJECT_PREFIX = 'daoyou.command.cron';
 
 export const BACKGROUND_COMMAND_TYPES = [
   'auction.expire',
-  'bet-battle.expire',
   'ranking.rewards.distribute',
   'market.refresh',
-  'tower.enemy-sets.refresh',
   'resource-replay.cleanup',
   'expired-data.cleanup',
   'material-library.generate',
@@ -26,11 +24,6 @@ export const BACKGROUND_COMMAND_DEFINITIONS = {
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.auction-expire.v1`,
     scheduleBucketMs: 2 * 60_000,
   },
-  'bet-battle.expire': {
-    version: 1,
-    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.bet-battle-expire.v1`,
-    scheduleBucketMs: 2 * 60_000,
-  },
   'ranking.rewards.distribute': {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.ranking-rewards-distribute.v1`,
@@ -40,11 +33,6 @@ export const BACKGROUND_COMMAND_DEFINITIONS = {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.market-refresh.v1`,
     scheduleBucketMs: 5 * 60_000,
-  },
-  'tower.enemy-sets.refresh': {
-    version: 1,
-    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.tower-enemy-sets-refresh.v1`,
-    scheduleBucketMs: 60 * 60_000,
   },
   'resource-replay.cleanup': {
     version: 1,

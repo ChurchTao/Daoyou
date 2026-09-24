@@ -1,0 +1,29 @@
+{
+  "id": "arrival-tracks",
+  "title": "兽迹",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "青溪坡的风里，有一串新爪印。"
+    },
+    { "type": "title", "kicker": "青溪 · 坡上", "text": "兽迹" },
+    {
+      "type": "narration",
+      "text": "草气又来了。这一次，风里带着细碎的土腥。"
+    },
+    {
+      "type": "narration",
+      "text": "{name}顺着石痕望去。青溪坡上有一串新爪印，朝向和洞口那道痕一样。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "打一场，或捉一只，都行。"
+    },
+    { "type": "end", "outcome": "tracks" }
+  ]
+}

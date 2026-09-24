@@ -30,7 +30,7 @@ export function InkDivider({
   }
 
   return (
-    <div className={cn('text-ink/60 my-4 text-center font-mono', className)}>
+    <div className={cn('text-ink/60 my-4 text-center', className)}>
       ┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     </div>
   );

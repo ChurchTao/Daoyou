@@ -4,7 +4,7 @@ import type { SectAdmissionContext, SectRuntime } from '@shared/engine/sect';
 import { SectError } from '../SectError';
 import type {
   SectAdmissionRepository,
-  SectTrainingResourceGateway,
+  SectAdmissionResourceReader,
 } from './ports';
 
 /** Admission use cases. Persistence and transaction ownership stay outside this class. */
@@ -12,7 +12,7 @@ export class SectAdmissionApplicationService {
   constructor(
     readonly runtime: SectRuntime,
     private readonly repository: SectAdmissionRepository,
-    private readonly resources: Pick<SectTrainingResourceGateway, 'load'>,
+    private readonly resources: SectAdmissionResourceReader,
   ) {}
 
   listDefinitions() {
@@ -87,6 +87,11 @@ export class SectAdmissionApplicationService {
     return {
       result: { sect },
       resourceChanges: [
+        {
+          resourceTopic: 'player.sect-combat',
+          eventType: 'sect.joined',
+          operation: 'invalidate',
+        },
         {
           resourceTopic: 'player.session',
           eventType: 'sect.joined',

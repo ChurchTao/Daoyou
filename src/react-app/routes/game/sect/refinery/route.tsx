@@ -1,4 +1,4 @@
-import { RefineScene } from '@app/components/feature/craft/RefineScene';
+import { ForgingRoom } from '@app/components/feature/forging/ForgingRoom';
 import {
   SectFacilityWorkspaceConversation,
   SectNpcConversationRegistry,
@@ -6,15 +6,12 @@ import {
 } from '@app/components/feature/sect/room';
 import {
   getSectPresentationForContext,
-  resolveSectBenefits,
   useSectContextQuery,
   useSectInfrastructureQuery,
 } from '@app/components/feature/sect/sectResources';
-import { createSectRoomNpcHref } from '@app/components/feature/sect/sectRoomNavigation';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
-import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
 import { STANDARD_SECT_PRESENTATION } from '@shared/engine/sect';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import {
   SectPageLoading,
   SectPermissionBoundary,
@@ -41,32 +38,14 @@ function SectRefineryBody() {
   const infrastructure = useSectInfrastructureQuery();
   const presentation = getSectPresentationForContext(context.data);
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   if (!context.data || !infrastructure.data)
     return <SectPageLoading sceneKey="refinery" />;
-  const effect = resolveSectBenefits(context.data, infrastructure.data)
-    .facilityEffects.refinery;
-  const level = getSectBenefitMetric(effect, 'level', 1);
-  const discountPercent = getSectBenefitMetric(effect, 'discount') * 100;
   const scene = presentation.scenes.refinery;
   if (searchParams.get('workspace') === 'craft')
     return (
       <>
         <title>{formatDocumentTitle(scene.title)}</title>
-        <RefineScene
-          sectContext={{
-            facilityLevel: level,
-            discountPercent,
-            facilityLabel:
-              presentation.facilityLabels.refinery ??
-              presentation.facilityLabels.workshop,
-            scene,
-            onExit: () =>
-              navigate(createSectRoomNpcHref('/game/sect/refinery', 'keeper'), {
-                replace: true,
-              }),
-          }}
-        />
+        <ForgingRoom />
       </>
     );
   return (

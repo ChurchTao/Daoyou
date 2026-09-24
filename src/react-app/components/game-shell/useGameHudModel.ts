@@ -11,7 +11,7 @@ import {
 import {
   type CultivatorDisplayInput,
   type CultivatorDisplaySnapshot,
-} from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
+} from '@shared/lib/cultivatorDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
 import { BOTTLENECK_THRESHOLD } from '@shared/config/cultivationTuning';
 import {

@@ -1,0 +1,437 @@
+{
+  "$schema": "./training.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "tiers": [
+    {
+      "level": 60,
+      "attrs": {
+        "hp": 6000,
+        "maxHp": 6000,
+        "mp": 1200,
+        "maxMp": 1200,
+        "physicalAtk": 420,
+        "physicalDef": 300,
+        "magicAtk": 420,
+        "magicDef": 300,
+        "healPower": 0,
+        "speed": 120,
+        "hit": 240,
+        "dodge": 60,
+        "critRate": 0,
+        "spellCritRate": 0,
+        "physicalFuryRate": 0,
+        "sealHit": 30,
+        "sealResist": 30,
+        "attackCultivate": 6,
+        "defenseCultivate": 6,
+        "spellCultivate": 6,
+        "resistSpellCultivate": 6
+      }
+    },
+    {
+      "level": 120,
+      "attrs": {
+        "hp": 18000,
+        "maxHp": 18000,
+        "mp": 2400,
+        "maxMp": 2400,
+        "physicalAtk": 900,
+        "physicalDef": 650,
+        "magicAtk": 900,
+        "magicDef": 650,
+        "healPower": 0,
+        "speed": 240,
+        "hit": 420,
+        "dodge": 120,
+        "critRate": 0,
+        "spellCritRate": 0,
+        "physicalFuryRate": 0,
+        "sealHit": 60,
+        "sealResist": 60,
+        "attackCultivate": 12,
+        "defenseCultivate": 12,
+        "spellCultivate": 12,
+        "resistSpellCultivate": 12
+      }
+    },
+    {
+      "level": 180,
+      "attrs": {
+        "hp": 36000,
+        "maxHp": 36000,
+        "mp": 3600,
+        "maxMp": 3600,
+        "physicalAtk": 1450,
+        "physicalDef": 1050,
+        "magicAtk": 1450,
+        "magicDef": 1050,
+        "healPower": 0,
+        "speed": 360,
+        "hit": 600,
+        "dodge": 180,
+        "critRate": 0,
+        "spellCritRate": 0,
+        "physicalFuryRate": 0,
+        "sealHit": 90,
+        "sealResist": 90,
+        "attackCultivate": 18,
+        "defenseCultivate": 18,
+        "spellCultivate": 18,
+        "resistSpellCultivate": 18
+      }
+    }
+  ],
+  "templates": [
+    {
+      "id": "combat.training.npc.dummy",
+      "name": "演武木桩",
+      "kind": "npc",
+      "skillIds": [],
+      "strategy": {
+        "type": "defend"
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1,
+        "speed": 1
+      },
+      "maxHpMultiplier": 5
+    },
+    {
+      "id": "combat.training.npc.sparring",
+      "name": "演武陪练",
+      "kind": "npc",
+      "skillIds": [],
+      "strategy": {
+        "type": "attack"
+      },
+      "attrOverrides": {}
+    },
+    {
+      "id": "combat.training.npc.wounded-ally",
+      "name": "负伤同伴",
+      "kind": "player",
+      "skillIds": [],
+      "strategy": {
+        "type": "defend"
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1
+      },
+      "initialHpRatio": 0.25
+    },
+    {
+      "id": "combat.training.npc.afflicted-ally",
+      "name": "受术同伴",
+      "kind": "player",
+      "skillIds": [],
+      "strategy": {
+        "type": "defend"
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1
+      }
+    },
+    {
+      "id": "combat.training.npc.afflicter",
+      "name": "术法陪练",
+      "kind": "npc",
+      "skillIds": [
+        "combat.training.skill.control",
+        "combat.training.skill.debuff",
+        "combat.training.skill.dot",
+        "combat.training.skill.wound"
+      ],
+      "strategy": {
+        "type": "skill-rotation",
+        "skillIds": [
+          "combat.training.skill.control",
+          "combat.training.skill.debuff",
+          "combat.training.skill.dot",
+          "combat.training.skill.wound"
+        ]
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1
+      },
+      "speedBonus": 100
+    },
+    {
+      "id": "combat.training.npc.fragile-ally",
+      "name": "待援同伴",
+      "kind": "player",
+      "skillIds": [],
+      "strategy": {
+        "type": "defend"
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1
+      },
+      "initialHpFromLevel": true
+    },
+    {
+      "id": "combat.training.npc.executioner",
+      "name": "击倒陪练",
+      "kind": "npc",
+      "skillIds": [
+        "combat.training.skill.execute",
+        "combat.training.skill.pause"
+      ],
+      "strategy": {
+        "type": "skill-rotation",
+        "skillIds": [
+          "combat.training.skill.execute",
+          "combat.training.skill.pause"
+        ]
+      },
+      "attrOverrides": {
+        "physicalAtk": 1,
+        "magicAtk": 1
+      },
+      "speedBonus": 100
+    }
+  ],
+  "skills": [
+    {
+      "id": "combat.training.skill.control",
+      "name": "训练封禁",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "combat.training.status.control",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "combat.training.skill.debuff",
+      "name": "训练衰弱",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "combat.training.status.debuff",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "combat.training.skill.dot",
+      "name": "训练灼伤",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "combat.training.status.dot",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "combat.training.skill.wound",
+      "name": "训练伤势",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "wound",
+          "power": "skillLevel"
+        }
+      ]
+    },
+    {
+      "id": "combat.training.skill.execute",
+      "name": "训练击倒",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "formula": "fixed",
+          "power": "target.maxHp",
+          "origin": "action-direct"
+        }
+      ]
+    },
+    {
+      "id": "combat.training.skill.pause",
+      "name": "训练停手",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self",
+        "count": 1
+      },
+      "effects": []
+    }
+  ],
+  "statusDefs": [
+    {
+      "id": "combat.training.status.control",
+      "name": "训练封法",
+      "kind": "combat.training.status.control",
+      "category": "control",
+      "blocksSpell": true
+    },
+    {
+      "id": "combat.training.status.debuff",
+      "name": "训练衰弱",
+      "kind": "combat.training.status.debuff",
+      "category": "debuff",
+      "attrMods": {
+        "physicalAtk": -20,
+        "magicAtk": -20
+      }
+    },
+    {
+      "id": "combat.training.status.dot",
+      "name": "训练灼伤",
+      "kind": "combat.training.status.dot",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.02
+      }
+    }
+  ],
+  "encounters": [
+    {
+      "id": "combat.training.encounter.single-dummy",
+      "name": "单体木桩",
+      "playerSlot": 0,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.dummy",
+          "side": 1,
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "combat.training.encounter.single-sparring",
+      "name": "攻击陪练",
+      "playerSlot": 0,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.sparring",
+          "side": 1,
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "combat.training.encounter.triple-dummy",
+      "name": "三体木桩",
+      "playerSlot": 0,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.dummy",
+          "side": 1,
+          "slot": 0
+        },
+        {
+          "combatantId": "combat.training.npc.dummy",
+          "side": 1,
+          "slot": 1
+        },
+        {
+          "combatantId": "combat.training.npc.dummy",
+          "side": 1,
+          "slot": 2
+        }
+      ]
+    },
+    {
+      "id": "combat.training.encounter.support-recovery",
+      "name": "治疗防护",
+      "playerSlot": 1,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.wounded-ally",
+          "side": 0,
+          "slot": 0
+        },
+        {
+          "combatantId": "combat.training.npc.dummy",
+          "side": 1,
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "combat.training.encounter.support-cleanse",
+      "name": "净化训练",
+      "playerSlot": 1,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.afflicted-ally",
+          "side": 0,
+          "slot": 0
+        },
+        {
+          "combatantId": "combat.training.npc.afflicter",
+          "side": 1,
+          "slot": 0
+        }
+      ]
+    },
+    {
+      "id": "combat.training.encounter.support-revive",
+      "name": "复活训练",
+      "playerSlot": 1,
+      "participants": [
+        {
+          "combatantId": "combat.training.npc.fragile-ally",
+          "side": 0,
+          "slot": 0
+        },
+        {
+          "combatantId": "combat.training.npc.executioner",
+          "side": 1,
+          "slot": 0
+        }
+      ]
+    }
+  ]
+}

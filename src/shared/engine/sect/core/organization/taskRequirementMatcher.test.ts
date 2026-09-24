@@ -113,29 +113,35 @@ describe('sect delivery requirement matcher', () => {
     ).toContain('appearance_mismatch');
   });
 
-  it('rejects equipped artifacts and counts persisted perfect affixes', () => {
+  it('accepts equipment using only level, slot and unequipped state', () => {
+    const requirement = {
+      kind: 'equipment' as const,
+      quantity: 1 as const,
+      minEquipmentLevel: 30,
+      slot: 'head' as const,
+      mustBeUnequipped: true as const,
+    };
+    const item = {
+      kind: 'equipment' as const,
+      id: 'equipment-1',
+      name: '法冠',
+      quantity: 1 as const,
+      slot: 'head' as const,
+      equipmentLevel: 30,
+      isEquipped: false,
+    };
+    expect(matchSectDeliveryRequirement(requirement, item)).toEqual({
+      eligible: true,
+      violations: [],
+    });
     expect(
-      matchSectDeliveryRequirement(
-        {
-          kind: 'artifact',
-          quantity: 1,
-          minQuality: '玄品',
-          slot: 'weapon',
-          mustBeUnequipped: true,
-          minPerfectAffixCount: 1,
-        },
-        {
-          kind: 'artifact',
-          id: 'artifact-1',
-          name: '灵剑',
-          quality: '玄品',
-          quantity: 1,
-          slot: 'weapon',
-          perfectAffixCount: 0,
-          isEquipped: true,
-        },
-      ).violations.map((item) => item.code),
-    ).toEqual(['item_equipped', 'perfect_affix_missing']);
+      matchSectDeliveryRequirement(requirement, {
+        ...item,
+        equipmentLevel: 20,
+        isEquipped: true,
+        slot: 'weapon',
+      }).violations.map((v) => v.code),
+    ).toEqual(['item_equipped', 'wrong_slot', 'level_too_low']);
   });
 
   it('allows multiple qualifying material stacks to satisfy one requirement', () => {

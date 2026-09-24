@@ -1,6 +1,8 @@
+import { InkButton } from '@app/components/ui';
 import { resolveGameScene } from '@app/lib/router/routeTitle';
 import { cn } from '@shared/lib/cn';
 import type { ReactNode } from 'react';
+import { useStory } from '@app/lib/story/useStory';
 import { useMatches } from 'react-router';
 import { GameLoadingState } from './GameLoadingState';
 import { getGameSceneGroupTitle } from './gameNavigation';
@@ -202,6 +204,9 @@ export function GameSceneFrame({
 }: GameSceneFrameProps) {
   const matches = useMatches();
   const scene = resolveGameScene(matches);
+  const story = useStory();
+  const storyCue =
+    story.story?.prompt && scene?.id === story.story.scene ? story.story : null;
   const sceneGroup = scene?.group ? getGameSceneGroupTitle(scene.group) : null;
   const header = resolveGameSceneFrameHeader({
     sceneLabel: identityOverride?.label ?? scene?.label,
@@ -238,6 +243,14 @@ export function GameSceneFrame({
               compact={variant !== 'default'}
               className={contentClassName}
             >
+              {storyCue ? (
+                <p className="text-ink-secondary mb-4 flex flex-wrap items-center gap-x-3 text-sm leading-7">
+                  <span>{storyCue.prompt}</span>
+                  <InkButton href={storyCue.href} variant="primary">
+                    前往
+                  </InkButton>
+                </p>
+              ) : null}
               {children}
             </SceneBody>
           </SceneSurface>

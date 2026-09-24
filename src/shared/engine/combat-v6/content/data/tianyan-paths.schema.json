@@ -1,0 +1,335 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "passives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "when": {
+                  "type": "object",
+                  "properties": {
+                    "expression": {
+                      "$ref": "#/$defs/__schema1"
+                    },
+                    "requireStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "sourceInitialStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "skillIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    },
+                    "requireKind": {
+                      "type": "string",
+                      "enum": [
+                        "physical",
+                        "spell",
+                        "fixed"
+                      ]
+                    },
+                    "damageOrigins": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "action-direct",
+                          "hook-derived",
+                          "status"
+                        ]
+                      }
+                    },
+                    "targetSlot": {
+                      "type": "string",
+                      "enum": [
+                        "primary",
+                        "secondary"
+                      ]
+                    },
+                    "sourceHasBarrier": {
+                      "type": "boolean"
+                    },
+                    "targetHasBarrier": {
+                      "type": "boolean"
+                    },
+                    "sourceHpRatioBelow": {
+                      "type": "number"
+                    },
+                    "targetHpRatioAbove": {
+                      "type": "number"
+                    },
+                    "targetStatusIds": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/__schema0"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "damageBonus": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "defenseIgnoreAdd": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "barrierDamageBonus": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "damageTakenBonus": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "sealChanceAdd": {
+                  "$ref": "#/$defs/__schema1"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "paths": {
+      "minItems": 2,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema2"
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "passives",
+    "paths"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^tianyan\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema1": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      ]
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresConnectedNodes": {
+          "type": "boolean",
+          "const": true
+        },
+        "foundationPassives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "nodes": {
+          "minItems": 21,
+          "maxItems": 21,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "requiresConnectedNodes",
+        "foundationPassives",
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "automatic": {
+          "type": "boolean"
+        },
+        "panel": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attr": {
+                "type": "string",
+                "enum": [
+                  "hp",
+                  "maxHp",
+                  "mp",
+                  "maxMp",
+                  "physicalAtk",
+                  "physicalDef",
+                  "magicAtk",
+                  "magicDef",
+                  "healPower",
+                  "speed",
+                  "hit",
+                  "dodge",
+                  "critRate",
+                  "spellCritRate",
+                  "physicalFuryRate",
+                  "sealHit",
+                  "sealResist",
+                  "attackCultivate",
+                  "defenseCultivate",
+                  "spellCultivate",
+                  "resistSpellCultivate"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "multiply"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "attr",
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "passives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "grantSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "patches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skillId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "operation": {
+                "type": "string",
+                "const": "setCooldownRounds"
+              },
+              "value": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "skillId",
+              "operation",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "layer",
+        "slot",
+        "passives"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

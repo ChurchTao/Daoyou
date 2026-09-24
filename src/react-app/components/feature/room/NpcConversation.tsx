@@ -25,6 +25,7 @@ export interface NpcConversationOption {
   label: string;
   tone?: 'normal' | 'primary' | 'muted';
   disabled?: boolean;
+  guideAnchor?: string;
 }
 
 export interface NpcConversationProps {
@@ -216,6 +217,7 @@ export function NpcConversation({
                 <button
                   key={option.id}
                   type="button"
+                  data-guide={option.guideAnchor}
                   disabled={busy || option.disabled}
                   aria-pressed={
                     selectedOptionId === undefined ? undefined : selected

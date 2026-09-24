@@ -1,11 +1,12 @@
+import { getLevelRealmStage } from '@shared/config/realmProgression';
+import { DAO_EQUIPMENT_SLOTS } from '@shared/engine/combat-v6/equipment/types';
+import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-strategies/types';
-import {
-  getEquipmentSlotLabel,
-  getMaterialTypeLabel,
-} from '@shared/lib/gameConceptDisplay';
+import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
+import { getMaterialTypeLabel } from '@shared/lib/gameConceptDisplay';
 import { getPillAppearanceLabel } from '@shared/lib/pillAppearance';
+import type { RealmStage } from '@shared/types/constants';
 import {
-  EQUIPMENT_SLOT_VALUES,
   MATERIAL_TYPE_VALUES,
   QUALITY_ORDER,
   QUALITY_VALUES,
@@ -17,8 +18,8 @@ import {
 } from '@shared/types/constants';
 import {
   PILL_APPEARANCE_GRADE_VALUES,
-  type PillAppearanceGrade,
   PILL_FAMILY_VALUES,
+  type PillAppearanceGrade,
   type PillFamily,
 } from '@shared/types/consumable';
 import { z } from 'zod';
@@ -26,6 +27,9 @@ import type {
   SectTaskDialogueEmphasis,
   SectTaskDialogueSegment,
 } from './contracts';
+
+// 宗门交装保留现行10级要求，不再耦合野外掉落。
+const SECT_DELIVERY_EQUIPMENT_LEVELS = [10];
 
 export const SECT_PILL_TRAIT_KEYS = [
   'restore_hp',
@@ -40,13 +44,14 @@ export const SECT_PILL_TRAIT_KEYS = [
 ] as const;
 
 export type SectPillTraitKey = (typeof SECT_PILL_TRAIT_KEYS)[number];
-export type SectSubmissionItemKind = 'pill' | 'artifact' | 'material';
+export type SectSubmissionItemKind = 'pill' | 'equipment' | 'material';
 
 const SECT_PILL_FAMILY_LABELS: Record<PillFamily, string> = {
   healing: '疗伤丹',
   mana: '回元丹',
   detox: '解毒丹',
   cultivation: '修为丹',
+  beast_cultivation: '灵兽修为丹',
   insight: '悟性丹',
   breakthrough: '破境辅助丹',
   tempering: '淬体丹',
@@ -78,7 +83,7 @@ export function getSectPillTraitLabel(trait: SectPillTraitKey): string {
 export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
   quantity: {
     pill: 1,
-    artifact: 1,
+    equipment: 1,
     material: {
       min: 1,
       max: 3,
@@ -93,7 +98,6 @@ export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
     { grade: 'perfect', weight: 5 },
   ],
   optionalConditionChance: {
-    artifactPerfectAffix: 0.45,
     materialElement: 0.35,
   },
   difficulty: {
@@ -102,8 +106,6 @@ export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
       pillCore: 3,
       exactAppearance: 3,
       highAppearance: 2,
-      artifactCore: 1,
-      perfectAffix: 3,
       materialCore: 1,
       element: 1,
     },
@@ -116,7 +118,7 @@ export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
 } as const satisfies {
   quantity: {
     pill: 1;
-    artifact: 1;
+    equipment: 1;
     material: {
       min: number;
       max: number;
@@ -129,7 +131,6 @@ export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
     weight: number;
   }[];
   optionalConditionChance: {
-    artifactPerfectAffix: number;
     materialElement: number;
   };
   difficulty: {
@@ -138,8 +139,6 @@ export const STANDARD_SECT_TASK_REQUIREMENT_CURVE = {
       pillCore: number;
       exactAppearance: number;
       highAppearance: number;
-      artifactCore: number;
-      perfectAffix: number;
       materialCore: number;
       element: number;
     };
@@ -185,9 +184,7 @@ export function assertStandardSectTaskRequirementCurve(): void {
   ];
   const maximumScore = curve.difficulty.maximumScore;
   if (
-    scoreValues.some(
-      (score) => !Number.isInteger(score) || score < 0,
-    ) ||
+    scoreValues.some((score) => !Number.isInteger(score) || score < 0) ||
     !(
       maximumScore.easy < maximumScore.normal &&
       maximumScore.normal < maximumScore.hard
@@ -213,14 +210,15 @@ export const SectPillDeliveryRequirementSchema = z
   })
   .strict();
 
-export const SectArtifactDeliveryRequirementSchema = z
+export const SectEquipmentDeliveryRequirementSchema = z
   .object({
-    kind: z.literal('artifact'),
-    quantity: z.literal(STANDARD_SECT_TASK_REQUIREMENT_CURVE.quantity.artifact),
-    minQuality: QualitySchema,
-    slot: z.enum(EQUIPMENT_SLOT_VALUES),
+    kind: z.literal('equipment'),
+    quantity: z.literal(
+      STANDARD_SECT_TASK_REQUIREMENT_CURVE.quantity.equipment,
+    ),
+    minEquipmentLevel: z.number().int().min(10).max(180).multipleOf(10),
+    slot: z.enum(DAO_EQUIPMENT_SLOTS),
     mustBeUnequipped: z.literal(true),
-    minPerfectAffixCount: z.number().int().min(1).max(8).optional(),
   })
   .strict();
 
@@ -242,15 +240,15 @@ export const SectMaterialDeliveryRequirementSchema = z
 
 export const SectDeliveryRequirementSchema = z.discriminatedUnion('kind', [
   SectPillDeliveryRequirementSchema,
-  SectArtifactDeliveryRequirementSchema,
+  SectEquipmentDeliveryRequirementSchema,
   SectMaterialDeliveryRequirementSchema,
 ]);
 
 export type SectPillDeliveryRequirement = z.infer<
   typeof SectPillDeliveryRequirementSchema
 >;
-export type SectArtifactDeliveryRequirement = z.infer<
-  typeof SectArtifactDeliveryRequirementSchema
+export type SectEquipmentDeliveryRequirement = z.infer<
+  typeof SectEquipmentDeliveryRequirementSchema
 >;
 export type SectMaterialDeliveryRequirement = z.infer<
   typeof SectMaterialDeliveryRequirementSchema
@@ -400,8 +398,7 @@ function pickPillAppearanceRequirement(
 ): NonNullable<SectPillDeliveryRequirement['appearance']> {
   const roll = random.next() * 100;
   let cumulative = 0;
-  const weights =
-    STANDARD_SECT_TASK_REQUIREMENT_CURVE.pillAppearanceWeights;
+  const weights = STANDARD_SECT_TASK_REQUIREMENT_CURVE.pillAppearanceWeights;
   for (const entry of weights) {
     cumulative += entry.weight;
     if (roll < cumulative)
@@ -416,10 +413,30 @@ function pickPillAppearanceRequirement(
 export function generateSectDeliveryRequirement(input: {
   kind: SectSubmissionItemKind;
   realm: RealmType;
+  realmStage?: RealmStage;
   seed: string;
 }): SectDeliveryRequirement {
   const curve = STANDARD_SECT_TASK_REQUIREMENT_CURVE;
   const random = new SectTaskRandomSource(input.seed);
+  if (input.kind === 'equipment') {
+    return {
+      kind: 'equipment',
+      quantity: 1,
+      minEquipmentLevel: Math.max(
+        ...SECT_DELIVERY_EQUIPMENT_LEVELS.filter(
+          (level) =>
+            level <=
+            Math.max(
+              10,
+              combatCharacterLevel(input.realm, input.realmStage ?? '初期'),
+            ),
+        ),
+      ),
+      slot: random.pick(DAO_EQUIPMENT_SLOTS),
+      mustBeUnequipped: true,
+    };
+  }
+
   const minQuality = pickSectTaskMinimumQuality(input.realm, random);
 
   if (input.kind === 'pill') {
@@ -431,20 +448,6 @@ export function generateSectDeliveryRequirement(input: {
       family: template.family,
       trait: template.trait,
       appearance: pickPillAppearanceRequirement(random),
-    };
-  }
-
-  if (input.kind === 'artifact') {
-    const slot = random.pick(EQUIPMENT_SLOT_VALUES);
-    const includePerfectAffix =
-      random.next() < curve.optionalConditionChance.artifactPerfectAffix;
-    return {
-      kind: 'artifact',
-      quantity: curve.quantity.artifact,
-      minQuality,
-      slot,
-      mustBeUnequipped: true,
-      ...(includePerfectAffix ? { minPerfectAffixCount: 1 } : {}),
     };
   }
 
@@ -473,6 +476,16 @@ export function generateSectDeliveryRequirement(input: {
 export function calculateSectDeliveryDifficulty(
   requirement: SectDeliveryRequirement,
 ): DailyTaskDifficulty {
+  if (requirement.kind === 'equipment') {
+    const level = requirement.minEquipmentLevel;
+    return level <= 40
+      ? 'easy'
+      : level <= 80
+        ? 'normal'
+        : level <= 120
+          ? 'hard'
+          : 'elite';
+  }
   const curve = STANDARD_SECT_TASK_REQUIREMENT_CURVE.difficulty;
   let score =
     QUALITY_ORDER[requirement.minQuality] * curve.qualityScoreMultiplier;
@@ -482,10 +495,6 @@ export function calculateSectDeliveryDifficulty(
       score += curve.conditionScore.exactAppearance;
     else if (['high', 'perfect'].includes(requirement.appearance.grade))
       score += curve.conditionScore.highAppearance;
-  } else if (requirement.kind === 'artifact') {
-    score += curve.conditionScore.artifactCore;
-    if ((requirement.minPerfectAffixCount ?? 0) > 0)
-      score += curve.conditionScore.perfectAffix;
   } else {
     score += curve.conditionScore.materialCore;
     if (requirement.element) score += curve.conditionScore.element;
@@ -506,9 +515,21 @@ function emphasized(
 export function formatSectDeliveryRequirement(
   requirement: SectDeliveryRequirement,
 ): readonly SectTaskDialogueSegment[] {
+  if (requirement.kind === 'equipment')
+    return [
+      emphasized('1件', 'quantity'),
+      emphasized(
+        `${getLevelRealmStage(requirement.minEquipmentLevel).realm}及以上`,
+        'effect',
+      ),
+      emphasized(EQUIPMENT_SLOT_NAMES[requirement.slot], 'effect'),
+      { text: '，必须处于' },
+      emphasized('未装备', 'warning'),
+      { text: '状态' },
+    ];
   const segments: SectTaskDialogueSegment[] = [
     emphasized(
-      `${requirement.quantity}${requirement.kind === 'pill' ? '颗' : requirement.kind === 'artifact' ? '件' : '份'}`,
+      `${requirement.quantity}${requirement.kind === 'pill' ? '颗' : '份'}`,
       'quantity',
     ),
     emphasized(`${requirement.minQuality}以上`, 'quality'),
@@ -531,24 +552,6 @@ export function formatSectDeliveryRequirement(
         'appearance',
       ),
     );
-    return segments;
-  }
-
-  if (requirement.kind === 'artifact') {
-    segments.push(
-      { text: '的' },
-      emphasized(getEquipmentSlotLabel(requirement.slot), 'effect'),
-    );
-    segments.push({ text: '，必须处于' }, emphasized('未装备', 'warning'), {
-      text: '状态',
-    });
-    if (requirement.minPerfectAffixCount) {
-      segments.push(
-        { text: '，并带有至少' },
-        emphasized(`${requirement.minPerfectAffixCount}条`, 'quantity'),
-        { text: '完美词条' },
-      );
-    }
     return segments;
   }
 

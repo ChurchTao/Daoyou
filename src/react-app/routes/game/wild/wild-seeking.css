@@ -1,0 +1,82 @@
+.wild-seeking-scene {
+  max-width: 1120px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: calc(88svh - 3rem);
+  padding-bottom: 1.5rem;
+}
+.wild-seeking-header {
+  padding-top: clamp(1.5rem, 4svh, 4rem);
+  padding-bottom: 1rem;
+}
+.wild-seeking-stage {
+  min-height: 21rem;
+}
+.wild-seeking-landscape {
+  margin-inline: -1rem;
+  mask-image: radial-gradient(
+    ellipse 50% 49% at 50% 52%,
+    black 25%,
+    transparent 100%
+  );
+}
+.wild-seeking-landscape::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 43%,
+    var(--color-paper) 4%,
+    transparent 65%
+  );
+}
+.wild-seeking-roster {
+  gap: clamp(0.5rem, 4vw, 4rem);
+}
+.wild-seeking-beast {
+  width: clamp(5.5rem, 15vw, 11rem);
+}
+.wild-seeking-portrait {
+  padding: 0.75rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-paper) 25%, transparent 72%);
+}
+.wild-seeking-portrait-cub {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-teal) 16%, var(--color-paper)),
+    transparent 72%
+  );
+}
+.wild-seeking-beast-icon {
+  font-size: clamp(4rem, 8vw, 8rem);
+}
+.wild-seeking-actions {
+  padding-top: 0.5rem;
+}
+.wild-seeking-result {
+  animation: wild-seeking-reveal 320ms ease-out both;
+}
+@media (min-width: 768px) {
+  .wild-seeking-stage {
+    min-height: 26rem;
+  }
+  .wild-seeking-landscape {
+    margin-inline: -4rem;
+  }
+}
+@keyframes wild-seeking-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wild-seeking-result {
+    animation: none;
+  }
+}

@@ -2,9 +2,6 @@ import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import { getExecutor } from '@server/lib/drizzle/db';
 import {
   auctionListings,
-  battleReplayArchives,
-  battleRecordsV3,
-  betBattles,
   dungeonHistories,
   dungeonRuns,
   mails,
@@ -13,16 +10,13 @@ import {
   sectShopPurchases,
   sectStipendClaims,
 } from '@server/lib/drizzle/schema';
-import { and, inArray, lt, ne, sql } from 'drizzle-orm';
+import { and, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 
 export type ExpiredDataCleanupCutoffs = {
   mails: Date;
   qiLogs: Date;
   dungeonHistories: Date;
   dungeonRuns: Date;
-  battleReplayArchives: Date;
-  battleRecordsV3: Date;
-  betBattles: Date;
   reputationShopPurchases: Date;
   sectShopPurchases: Date;
   sectStipendClaims: Date;
@@ -34,9 +28,6 @@ export type ExpiredDataCleanupResult = {
   qiLogs: number;
   dungeonHistories: number;
   dungeonRuns: number;
-  battleReplayArchives: number;
-  battleRecordsV3: number;
-  betBattles: number;
   reputationShopPurchases: number;
   sectShopPurchases: number;
   sectStipendClaims: number;
@@ -62,6 +53,8 @@ export async function pruneExpiredData(
       .delete(mails)
       .where(
         and(
+          // Campaign mails are also delivery receipts; keep them across replays.
+          isNull(mails.systemMailCampaignId),
           lt(mails.createdAt, cutoffs.mails),
           sql`(${mails.isClaimed} = true OR ${mails.attachments} IS NULL OR jsonb_typeof(${mails.attachments}) <> 'array' OR jsonb_array_length(${mails.attachments}) = 0)`,
         ),
@@ -88,37 +81,6 @@ export async function pruneExpiredData(
       .delete(dungeonRuns)
       .where(lt(dungeonRuns.updatedAt, cutoffs.dungeonRuns))
       .returning({ id: dungeonRuns.id }),
-  );
-
-  const battleReplayArchivesDeleted = await deleteExpiredRows(q, (executor) =>
-    executor
-      .delete(battleReplayArchives)
-      .where(
-        lt(
-          battleReplayArchives.archivedAt,
-          cutoffs.battleReplayArchives,
-        ),
-      )
-      .returning({ id: battleReplayArchives.matchId }),
-  );
-
-  const battleRecordsV3Deleted = await deleteExpiredRows(q, (executor) =>
-    executor
-      .delete(battleRecordsV3)
-      .where(lt(battleRecordsV3.createdAt, cutoffs.battleRecordsV3))
-      .returning({ id: battleRecordsV3.id }),
-  );
-
-  const betBattlesDeleted = await deleteExpiredRows(q, (executor) =>
-    executor
-      .delete(betBattles)
-      .where(
-        and(
-          inArray(betBattles.status, ['settled', 'cancelled', 'expired']),
-          lt(betBattles.createdAt, cutoffs.betBattles),
-        ),
-      )
-      .returning({ id: betBattles.id }),
   );
 
   const reputationShopPurchasesDeleted = await deleteExpiredRows(
@@ -167,9 +129,6 @@ export async function pruneExpiredData(
     qiLogs: qiLogsDeleted,
     dungeonHistories: dungeonHistoriesDeleted,
     dungeonRuns: dungeonRunsDeleted,
-    battleReplayArchives: battleReplayArchivesDeleted,
-    battleRecordsV3: battleRecordsV3Deleted,
-    betBattles: betBattlesDeleted,
     reputationShopPurchases: reputationShopPurchasesDeleted,
     sectShopPurchases: sectShopPurchasesDeleted,
     sectStipendClaims: sectStipendClaimsDeleted,

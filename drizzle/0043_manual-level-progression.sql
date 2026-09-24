@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_combat_v6_manual_states" ADD COLUMN "learned" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -1,0 +1,807 @@
+{
+  "$schema": "./youdu-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 4,
+  "baseSkillIds": [
+    "youdu.skill.edict",
+    "youdu.skill.wither",
+    "youdu.skill.pursuit",
+    "youdu.skill.soul_seal",
+    "youdu.skill.insight",
+    "youdu.skill.judge",
+    "youdu.skill.revival",
+    "youdu.skill.dispel",
+    "youdu.skill.stealth",
+    "youdu.passive.soul_guard",
+    "youdu.skill.siphon"
+  ],
+  "skills": [
+    {
+      "id": "youdu.skill.edict",
+      "name": "裂魂咒",
+      "school": "youdu",
+      "costMp": "20 * targets",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(7, floor(skillLevel / 25) + 1)"
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "40 + floor(skillLevel * 1.35)"
+        },
+        {
+          "type": "wound",
+          "power": "skillLevel"
+        }
+      ],
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.edict"
+            ],
+            "foeKind": "npc"
+          },
+          "damageBonus": 1
+        }
+      ],
+      "description": "震裂多名敌人的神魂，造成无视防御的固定伤害，并留下魂伤，降低其气血恢复上限。对怪物造成的伤害提高100%。"
+    },
+    {
+      "id": "youdu.skill.wither",
+      "name": "销魂蚀骨",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "min(target.hp * 0.1, skillLevel * 8)",
+          "percentageDamage": true
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.poison",
+          "duration": 3
+        },
+        {
+          "type": "heal",
+          "power": "skillLevel * 2",
+          "targeting": {
+            "side": "ally",
+            "mode": "all",
+            "requireKind": "player"
+          }
+        }
+      ],
+      "costMp": 40,
+      "description": "以魂毒侵蚀敌人的神魂与形体，造成固定伤害，并持续损耗其气血与法力；同时为己方存活人物恢复气血。"
+    },
+    {
+      "id": "youdu.skill.pursuit",
+      "name": "滞魂咒",
+      "school": "youdu",
+      "tags": [
+        "spell"
+      ],
+      "formula": "fixed",
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "35 + floor(skillLevel * 1.05)"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.slow",
+          "duration": 3
+        }
+      ],
+      "costMp": 50,
+      "description": "扰乱敌人的神魂与形体协调，造成固定伤害，并降低其速度。"
+    },
+    {
+      "id": "youdu.skill.soul_seal",
+      "name": "拘灵术",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "seal"
+      ],
+      "sealBase": 50,
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "includeDowned": true,
+        "requireKind": "player"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.soul_seal",
+          "duration": 5,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 50,
+      "description": "拘禁敌方人物的命魂，命中后使其在效果持续期间无法被复活；目标倒地后，禁制仍然保留。"
+    },
+    {
+      "id": "youdu.skill.insight",
+      "name": "洞幽法眼",
+      "school": "youdu",
+      "tags": [
+        "spell",
+        "support"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": "min(6, floor(skillLevel / 30) + 1)"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.insight",
+          "duration": 5
+        }
+      ],
+      "costMp": 20,
+      "description": "为友方开启法眼，看破隐身目标，并降低受到封印的概率。"
+    },
+    {
+      "id": "youdu.skill.judge",
+      "name": "灭魂杀",
+      "school": "youdu",
+      "costMp": 20,
+      "description": "直击单个敌人的神魂，造成无视防御的固定伤害，同时削减其法力。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "fixedHit",
+          "power": "35 + floor(skillLevel * 1.05)"
+        },
+        {
+          "type": "damageMp",
+          "power": "skillLevel"
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.revival",
+      "name": "还魂决",
+      "school": "youdu",
+      "costMp": 150,
+      "description": "引导倒地队友的神魂重归肉身，恢复部分气血；归魂之力暂时提高其物理攻击，同时降低物理防御。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1,
+        "includeDowned": true,
+        "onlyDowned": true,
+        "requireRevivable": true,
+        "requireKind": "player"
+      },
+      "effects": [
+        {
+          "type": "revive",
+          "hpRatio": 0.3
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.revival",
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.dispel",
+      "name": "涤魂诀",
+      "school": "youdu",
+      "costMp": 40,
+      "description": "以神魂之力涤去敌人身上的护持术法，移除其由宗门法术赋予的可驱散增益。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "schoolOnly": true
+        }
+      ]
+    },
+    {
+      "id": "youdu.skill.stealth",
+      "name": "幽影遁",
+      "school": "youdu",
+      "costMp": 150,
+      "description": "收敛神魂气息，隐去自己或队友的身形。隐身期间无法施法，施术者需持续消耗法力维持。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "ally",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.stealth",
+          "duration": 4
+        }
+      ]
+    },
+    {
+      "id": "youdu.passive.soul_guard",
+      "name": "神魂自守",
+      "school": "youdu",
+      "description": "幽都修士专修神魂，心神稳固。受到封印时，命中概率为正常概率的70%。",
+      "tags": [
+        "passive"
+      ],
+      "innate": {
+        "sealHitTakenFactor": 0.7
+      },
+      "targeting": {
+        "side": "self"
+      },
+      "effects": []
+    },
+    {
+      "id": "youdu.skill.siphon",
+      "name": "摄魂",
+      "school": "youdu",
+      "costMp": 50,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.siphon",
+          "duration": 3,
+          "when": {
+            "targetDowned": false
+          }
+        }
+      ],
+      "description": "摄取敌方神魂，3回合内使其造成的伤害降低10%，受到的伤害提高10%。基础数值待校准。"
+    },
+    {
+      "id": "youdu.skill.soul_chase",
+      "name": "魂契共鸣",
+      "school": "youdu",
+      "costMp": 100,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "ally",
+        "onlyDowned": true,
+        "includeDowned": true,
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.soul_chase",
+          "duration": 1
+        }
+      ],
+      "cooldownRounds": 4,
+      "description": "为己方倒地单位附加不可驱散的魂契印记，持续至战斗结束。造成的物理、法术伤害提高（4+2×己方印记单位数）%，此术不复活目标。"
+    },
+    {
+      "id": "youdu.skill.blood_shadow",
+      "name": "血影蚀心",
+      "school": "youdu",
+      "costMp": 50,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "resultFactors": [
+            1
+          ]
+        }
+      ],
+      "description": "侵蚀敌人的形体，造成一次100%普通物理伤害。倍率、消耗及流派附毒概率待校准。"
+    },
+    {
+      "id": "youdu.skill.ghost_swarm",
+      "name": "百鬼噬魂",
+      "school": "youdu",
+      "costMp": "35 * targets",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 4
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "resultFactors": [
+            0.8
+          ]
+        }
+      ],
+      "description": "对4个敌人各造成80%普通物理伤害，并有概率附加魂毒；每个目标消耗35法力。伤害倍率与附毒概率待校准。"
+    },
+    {
+      "id": "youdu.skill.poison_shroud",
+      "name": "森罗迷障",
+      "school": "youdu",
+      "costMp": 100,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "youdu.status.poison_shroud",
+          "duration": 10,
+          "self": true
+        }
+      ],
+      "description": "自身获得10回合森罗迷障，提高血影蚀心、百鬼噬魂附加魂毒的概率。当前由30%提高至60%，概率待校准。"
+    },
+    {
+      "id": "youdu.skill.pardonless",
+      "name": "摧形散法",
+      "school": "youdu",
+      "costMp": 50,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "resultFactors": [
+            1.1
+          ]
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1,
+          "random": true,
+          "when": {
+            "targetAbsentStatusKinds": [
+              "youdu.poison",
+              "beast.poison"
+            ]
+          }
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 2,
+          "random": true,
+          "when": {
+            "targetStatusKinds": [
+              "youdu.poison",
+              "beast.poison"
+            ]
+          }
+        }
+      ],
+      "description": "造成110%普通物理伤害，随机驱散1个可驱散增益；目标有毒类异常时改为驱散2个。"
+    },
+    {
+      "id": "youdu.skill.life_and_death",
+      "name": "噬魂夺生",
+      "school": "youdu",
+      "costMp": 100,
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1,
+          "resultFactors": [
+            2.3
+          ]
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1,
+          "random": true
+        }
+      ],
+      "cooldownRounds": 36,
+      "initialCooldownRounds": 18,
+      "description": "造成230%普通物理伤害，恢复目标本次实际损失的气血，随机驱散1个增益。目标带毒时暴击倍率增加60个百分点。开场冷却18回合，使用后冷却36回合。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.life_and_death"
+            ],
+            "targetStatusKinds": [
+              "youdu.poison",
+              "beast.poison"
+            ]
+          },
+          "critMultiplierAdd": 0.6
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onBeHit",
+          "when": {
+            "skillIds": [
+              "youdu.skill.life_and_death"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "primary"
+          },
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "hpDamage"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onRoundEnd",
+          "when": {
+            "teamUniqueTag": "sect.youdu"
+          },
+          "effects": [
+            {
+              "type": "modifyCooldown",
+              "skillId": "youdu.skill.life_and_death",
+              "amount": "-2 * (enemyStatus.youdu.poison + enemyDownedPlayers)"
+            }
+          ],
+          "aim": "self"
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "youdu.status.poison",
+      "name": "魂毒",
+      "kind": "youdu.poison",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.04,
+        "ratioOfMaxMp": 0.02,
+        "hpCap": "skillLevel * 8",
+        "mpCap": "skillLevel"
+      }
+    },
+    {
+      "id": "youdu.status.strong_poison",
+      "name": "蚀骨魂毒",
+      "kind": "youdu.poison",
+      "category": "dot",
+      "ticks": "roundEnd",
+      "onTick": {
+        "type": "dot",
+        "ratioOfMaxHp": 0.06,
+        "ratioOfMaxMp": 0.02,
+        "hpCap": "skillLevel * 12",
+        "mpCap": "skillLevel"
+      }
+    },
+    {
+      "id": "youdu.status.slow",
+      "name": "滞魂",
+      "kind": "youdu.slow",
+      "category": "debuff",
+      "speedMod": "-floor(skillLevel * 0.2)"
+    },
+    {
+      "id": "youdu.status.soul_seal",
+      "name": "拘灵",
+      "kind": "youdu.soul_seal",
+      "category": "control",
+      "blocksRevive": true,
+      "persistWhenDowned": true
+    },
+    {
+      "id": "youdu.status.insight",
+      "name": "洞幽法眼",
+      "kind": "youdu.insight",
+      "category": "buff",
+      "revealStealth": true,
+      "sealHitTakenFactor": 0.9
+    },
+    {
+      "id": "youdu.status.revival",
+      "name": "还魂",
+      "kind": "youdu.revival",
+      "category": "buff",
+      "attrMods": {
+        "physicalAtk": "target.physicalAtk * 0.2",
+        "physicalDef": "-target.physicalDef * 0.2"
+      }
+    },
+    {
+      "id": "youdu.status.stealth",
+      "name": "幽影",
+      "kind": "youdu.stealth",
+      "category": "buff",
+      "untargetable": true,
+      "blocksSpell": true,
+      "upkeepMp": {
+        "self": 15,
+        "other": 10
+      }
+    },
+    {
+      "id": "youdu.status.siphon",
+      "name": "摄魂",
+      "kind": "youdu.siphon",
+      "category": "debuff",
+      "modifiers": [
+        {
+          "damageBonus": -0.1,
+          "damageTakenBonus": 0.1
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.siphon_strong",
+      "name": "摄魂",
+      "kind": "youdu.siphon",
+      "category": "debuff",
+      "modifiers": [
+        {
+          "damageBonus": -0.15,
+          "damageTakenBonus": 0.15
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.bound_soul",
+      "name": "拘魄",
+      "kind": "youdu.bound_soul",
+      "category": "debuff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageTakenBonus": 0.03
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.judgment_ready",
+      "name": "断魂",
+      "kind": "youdu.judgment_ready",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.judge"
+            ]
+          },
+          "damageBonus": 0.5
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.slow_strong",
+      "name": "滞魂",
+      "kind": "youdu.slow",
+      "category": "debuff",
+      "speedMod": "-floor(skillLevel * 0.2) * 1.5"
+    },
+    {
+      "id": "youdu.status.insight_strong",
+      "name": "洞幽法眼",
+      "kind": "youdu.insight",
+      "category": "buff",
+      "revealStealth": true,
+      "sealHitTakenFactor": 0.85
+    },
+    {
+      "id": "youdu.status.soul_flight",
+      "name": "封魂",
+      "kind": "youdu.soul_flight",
+      "category": "debuff",
+      "expireSameRound": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "youdu.status.death_echo",
+      "name": "魂响",
+      "kind": "youdu.death_echo",
+      "category": "buff",
+      "extendable": false,
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "youdu.skill.soul_seal"
+            ]
+          },
+          "statusDurationAdd": {
+            "statusId": "youdu.status.soul_seal",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.soul_chase",
+      "name": "魂契共鸣",
+      "kind": "youdu.soul_chase",
+      "category": "buff",
+      "untilBattleEnd": true,
+      "persistWhenDowned": true,
+      "dispellable": false,
+      "extendable": false,
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "damageBonus": "0.04 + 0.02 * allyStatus.youdu.soul_chase"
+        },
+        {
+          "when": {
+            "requireKind": "spell",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "damageBonus": "0.04 + 0.02 * allyStatus.youdu.soul_chase"
+        },
+        {
+          "when": {
+            "requireKind": "fixed",
+            "skillTags": [
+              "spell"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          },
+          "damageBonus": "0.04 + 0.02 * allyStatus.youdu.soul_chase"
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.enter_soul_pending",
+      "name": "入魂蓄势",
+      "kind": "youdu.enter_soul_pending",
+      "category": "buff",
+      "expireSameRound": true,
+      "extendable": false,
+      "onExpire": {
+        "statusId": "youdu.status.enter_soul",
+        "duration": 1
+      }
+    },
+    {
+      "id": "youdu.status.enter_soul",
+      "name": "入魂",
+      "kind": "youdu.enter_soul",
+      "category": "buff",
+      "extendable": false,
+      "damageDealtPhysical": 1.15
+    },
+    {
+      "id": "youdu.status.evil_flame",
+      "name": "噬魂增威",
+      "kind": "youdu.evil_flame",
+      "category": "buff",
+      "extendable": false,
+      "damageDealtPhysical": 1.12
+    },
+    {
+      "id": "youdu.status.reincarnation",
+      "name": "六魂归元",
+      "kind": "youdu.reincarnation",
+      "category": "buff",
+      "extendable": false,
+      "attrMods": {
+        "physicalAtk": 60
+      },
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "physical"
+          },
+          "critChanceAdd": "60 / max(1, level * 10)",
+          "defenseIgnoreAdd": "60 / max(1, level * 10)",
+          "physicalFuryChanceAdd": "60 / max(1, level * 10)",
+          "damageTakenAdd": -60
+        },
+        {
+          "sealResistanceAdd": "60 / max(1, level * 10)"
+        }
+      ]
+    },
+    {
+      "id": "youdu.status.poison_shroud",
+      "name": "森罗迷障",
+      "kind": "youdu.poison_shroud",
+      "category": "buff",
+      "extendable": false
+    }
+  ]
+}

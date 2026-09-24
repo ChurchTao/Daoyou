@@ -1,0 +1,1144 @@
+{
+  "$schema": "./species.schema.json",
+  "formatVersion": 2,
+  "contentRevision": 10,
+  "species": [
+    {
+      "id": "combat.wild.species.spirit-fox",
+      "name": "烛尾狐",
+      "realm": "炼气",
+      "icon": "🦊",
+      "description": "灰白小狐，尾端长毛聚起灵火时宛如烛芯；夜间常蹲在灵泉旁，将蓬尾绕至身前，以尾尖火光映脸。",
+      "carryLevel": 5,
+      "starter": true,
+      "aptitudes": {
+        "attack": {
+          "min": 672,
+          "max": 840
+        },
+        "defense": {
+          "min": 864,
+          "max": 1080
+        },
+        "health": {
+          "min": 2880,
+          "max": 3600
+        },
+        "mana": {
+          "min": 1536,
+          "max": 1920
+        },
+        "speed": {
+          "min": 864,
+          "max": 1080
+        }
+      },
+      "growthMilli": {
+        "min": 982,
+        "max": 1030
+      },
+      "birthSkills": {
+        "core": [
+          "beast.spirit-flame"
+        ],
+        "candidates": [
+          "beast.wisdom",
+          "beast.meditation"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 20
+          },
+          {
+            "count": 2,
+            "weight": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.rock-boar",
+      "name": "钢背猪",
+      "realm": "炼气",
+      "icon": "🐗",
+      "description": "身躯矮壮，肩背高耸，钢灰硬皮自颈后连至臀部；性情暴躁，稍受惊扰便喷鼻冲撞，受击时立即转身顶向来敌。",
+      "carryLevel": 5,
+      "starter": true,
+      "aptitudes": {
+        "attack": {
+          "min": 816,
+          "max": 1020
+        },
+        "defense": {
+          "min": 1180,
+          "max": 1440
+        },
+        "health": {
+          "min": 3960,
+          "max": 4950
+        },
+        "mana": {
+          "min": 1536,
+          "max": 1920
+        },
+        "speed": {
+          "min": 576,
+          "max": 720
+        }
+      },
+      "growthMilli": {
+        "min": 1012,
+        "max": 1060
+      },
+      "birthSkills": {
+        "core": [
+          "beast.defense"
+        ],
+        "candidates": [
+          "beast.counter",
+          "beast.sluggish",
+          "beast.strength"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 17
+          },
+          {
+            "count": 2,
+            "weight": 4
+          },
+          {
+            "count": 3,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.wind-wolf",
+      "name": "精灵狼",
+      "realm": "炼气",
+      "icon": "🐺",
+      "description": "身形轻瘦，灰银细毛，耳尖与尾缘泛着淡青光泽；警觉时隐去身形，潜伏于幽林，待猎物走近才突然扑出。",
+      "carryLevel": 5,
+      "starter": true,
+      "aptitudes": {
+        "attack": {
+          "min": 1104,
+          "max": 1380
+        },
+        "defense": {
+          "min": 624,
+          "max": 780
+        },
+        "health": {
+          "min": 2160,
+          "max": 2700
+        },
+        "mana": {
+          "min": 960,
+          "max": 1200
+        },
+        "speed": {
+          "min": 864,
+          "max": 1080
+        }
+      },
+      "growthMilli": {
+        "min": 952,
+        "max": 1000
+      },
+      "birthSkills": {
+        "core": [
+          "beast.stealth"
+        ],
+        "candidates": [
+          "beast.sneak-attack",
+          "beast.agility"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 20
+          },
+          {
+            "count": 2,
+            "weight": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.mimi",
+      "name": "咪咪",
+      "realm": "炼气",
+      "icon": "icon:beast-mimi",
+      "description": "银灰虎斑的小灵猫，圆脸短足，胸腹雪白，四爪如穿白袜。常将前爪拢在胸前伏成一团，长尾绕身；灵息稍有异动，便竖耳抬头，以黄绿圆眼凝望来处。",
+      "carryLevel": 5,
+      "starter": true,
+      "aptitudes": {
+        "attack": {
+          "min": 780,
+          "max": 1050
+        },
+        "defense": {
+          "min": 820,
+          "max": 1090
+        },
+        "health": {
+          "min": 3300,
+          "max": 4300
+        },
+        "mana": {
+          "min": 1320,
+          "max": 1800
+        },
+        "speed": {
+          "min": 720,
+          "max": 990
+        }
+      },
+      "growthMilli": {
+        "min": 990,
+        "max": 1060
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.perception",
+          "beast.parry",
+          "beast.regeneration"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 20
+          },
+          {
+            "count": 1,
+            "weight": 53
+          },
+          {
+            "count": 2,
+            "weight": 22
+          },
+          {
+            "count": 3,
+            "weight": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.fire-crow",
+      "name": "火鸦",
+      "realm": "筑基",
+      "icon": "icon:beast-fire-crow",
+      "description": "黑羽赤喉，翼下藏有暗红火羽，振翅时散出火星；常衔焦枝，在地火裂隙旁筑巢。",
+      "carryLevel": 25,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 720,
+          "max": 980
+        },
+        "defense": {
+          "min": 700,
+          "max": 940
+        },
+        "health": {
+          "min": 2700,
+          "max": 3500
+        },
+        "mana": {
+          "min": 1800,
+          "max": 2300
+        },
+        "speed": {
+          "min": 950,
+          "max": 1280
+        }
+      },
+      "growthMilli": {
+        "min": 1020,
+        "max": 1090
+      },
+      "birthSkills": {
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.meditation",
+          "beast.spell-fluctuation"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 20
+          },
+          {
+            "count": 2,
+            "weight": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.red-tail-scorpion",
+      "name": "双尾蝎",
+      "realm": "筑基",
+      "icon": "🦂",
+      "description": "沙褐甲壳，腹后生着两条暗红毒尾，静伏时交叠于背，受惊后分别扬起；白日藏石缝，夜间循震动捕猎。",
+      "carryLevel": 25,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1050,
+          "max": 1390
+        },
+        "defense": {
+          "min": 1040,
+          "max": 1320
+        },
+        "health": {
+          "min": 2500,
+          "max": 3300
+        },
+        "mana": {
+          "min": 900,
+          "max": 1250
+        },
+        "speed": {
+          "min": 780,
+          "max": 1150
+        }
+      },
+      "growthMilli": {
+        "min": 1010,
+        "max": 1080
+      },
+      "birthSkills": {
+        "core": [
+          "beast.poison"
+        ],
+        "candidates": [
+          "beast.sneak-attack",
+          "beast.defense"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 20
+          },
+          {
+            "count": 2,
+            "weight": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.stoneback-bear",
+      "name": "抱月熊",
+      "realm": "筑基",
+      "icon": "🐻",
+      "description": "深褐长毛，胸腹有浅金圆斑，常坐倚老树，前掌拢腹如抱满月；受伤后蜷身长眠，受逼近时骤起反扑。",
+      "carryLevel": 25,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1100,
+          "max": 1420
+        },
+        "defense": {
+          "min": 980,
+          "max": 1260
+        },
+        "health": {
+          "min": 4100,
+          "max": 5300
+        },
+        "mana": {
+          "min": 1100,
+          "max": 1500
+        },
+        "speed": {
+          "min": 600,
+          "max": 830
+        }
+      },
+      "growthMilli": {
+        "min": 1035,
+        "max": 1100
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.counter",
+          "beast.regeneration",
+          "beast.strength",
+          "beast.sluggish"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 20
+          },
+          {
+            "count": 1,
+            "weight": 52
+          },
+          {
+            "count": 2,
+            "weight": 20
+          },
+          {
+            "count": 3,
+            "weight": 4
+          },
+          {
+            "count": 4,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.snow-crane",
+      "name": "琉璃鹤",
+      "realm": "金丹",
+      "icon": "icon:beast-snow-crane",
+      "description": "身形修长，喙足淡青，羽毛有半透明玉质光泽；背光近乎雪白，迎光展翼透出青碧淡金，常静立于高山灵池。",
+      "carryLevel": 45,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 780,
+          "max": 1060
+        },
+        "defense": {
+          "min": 950,
+          "max": 1230
+        },
+        "health": {
+          "min": 3400,
+          "max": 4500
+        },
+        "mana": {
+          "min": 2200,
+          "max": 2800
+        },
+        "speed": {
+          "min": 1120,
+          "max": 1450
+        }
+      },
+      "growthMilli": {
+        "min": 1070,
+        "max": 1145
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.miracle",
+          "beast.water-attack",
+          "beast.wisdom",
+          "beast.agility"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 20
+          },
+          {
+            "count": 1,
+            "weight": 52
+          },
+          {
+            "count": 2,
+            "weight": 20
+          },
+          {
+            "count": 3,
+            "weight": 4
+          },
+          {
+            "count": 4,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.moon-marten",
+      "name": "无影貂",
+      "realm": "金丹",
+      "icon": "icon:beast-moon-marten",
+      "description": "深灰细毛，腹部银白，长尾蓬松；警觉时从尾端开始隐去身形，疾行转折间偶尔露出一道银白腹影。",
+      "carryLevel": 45,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1050,
+          "max": 1460
+        },
+        "defense": {
+          "min": 780,
+          "max": 1040
+        },
+        "health": {
+          "min": 2700,
+          "max": 3600
+        },
+        "mana": {
+          "min": 1500,
+          "max": 2150
+        },
+        "speed": {
+          "min": 1380,
+          "max": 1660
+        }
+      },
+      "growthMilli": {
+        "min": 1055,
+        "max": 1130
+      },
+      "birthSkills": {
+        "core": [
+          "beast.stealth"
+        ],
+        "candidates": [
+          "beast.sneak-attack",
+          "beast.agility",
+          "beast.perception"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 17
+          },
+          {
+            "count": 2,
+            "weight": 4
+          },
+          {
+            "count": 3,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.dark-shell-turtle",
+      "name": "蛇颈玄龟",
+      "realm": "金丹",
+      "icon": "icon:beast-snake-neck-turtle",
+      "description": "黑青厚甲低伏宽展，甲缝附着水苔，甲下藏着蛇一般的长颈；沉居深潭，探颈观察四周，受扰便收颈伏底。",
+      "carryLevel": 45,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 980,
+          "max": 1260
+        },
+        "defense": {
+          "min": 1450,
+          "max": 1680
+        },
+        "health": {
+          "min": 4400,
+          "max": 5600
+        },
+        "mana": {
+          "min": 1900,
+          "max": 2500
+        },
+        "speed": {
+          "min": 480,
+          "max": 680
+        }
+      },
+      "growthMilli": {
+        "min": 1090,
+        "max": 1160
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-defense"
+        ],
+        "candidates": [
+          "beast.sluggish",
+          "beast.water-attack",
+          "beast.regeneration"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 17
+          },
+          {
+            "count": 2,
+            "weight": 4
+          },
+          {
+            "count": 3,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.ink-jiao",
+      "name": "墨蛟",
+      "realm": "元婴",
+      "icon": "icon:beast-ink-jiao",
+      "description": "墨鳞短角，颈侧生须，盘踞地下暗河，唾液含毒，出水时带起浊浪。",
+      "carryLevel": 65,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1230,
+          "max": 1580
+        },
+        "defense": {
+          "min": 1120,
+          "max": 1450
+        },
+        "health": {
+          "min": 4400,
+          "max": 5800
+        },
+        "mana": {
+          "min": 2350,
+          "max": 3000
+        },
+        "speed": {
+          "min": 850,
+          "max": 1170
+        }
+      },
+      "growthMilli": {
+        "min": 1125,
+        "max": 1200
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-poison",
+          "beast.flood"
+        ],
+        "candidates": [
+          "beast.strength",
+          "beast.meditation",
+          "beast.spell-resistance"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 85
+          },
+          {
+            "count": 1,
+            "weight": 10
+          },
+          {
+            "count": 2,
+            "weight": 2
+          },
+          {
+            "count": 3,
+            "weight": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.silverwing-mantis",
+      "name": "银翅螳螂",
+      "realm": "元婴",
+      "icon": "icon:beast-silverwing-mantis",
+      "description": "银灰甲壳，前肢如弯刃，薄翅收拢时近乎透明，展开时泛起银光；常静伏许久，出击时连续挥斩。",
+      "carryLevel": 65,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1450,
+          "max": 1750
+        },
+        "defense": {
+          "min": 1000,
+          "max": 1280
+        },
+        "health": {
+          "min": 2850,
+          "max": 3850
+        },
+        "mana": {
+          "min": 1200,
+          "max": 1680
+        },
+        "speed": {
+          "min": 1420,
+          "max": 1720
+        }
+      },
+      "growthMilli": {
+        "min": 1100,
+        "max": 1185
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-combo"
+        ],
+        "candidates": [
+          "beast.agility",
+          "beast.parry",
+          "beast.critical"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 17
+          },
+          {
+            "count": 2,
+            "weight": 4
+          },
+          {
+            "count": 3,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.rock-horn-rhino",
+      "name": "狰",
+      "realm": "元婴",
+      "icon": "icon:beast-zheng",
+      "description": "形如健壮山豹，赤褐短毛，额生后弯黑角，五尾分展如扇；独居灵脉石岭，以垂尾感知气流与震动，转身卸力后回爪反击。",
+      "carryLevel": 65,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1320,
+          "max": 1660
+        },
+        "defense": {
+          "min": 1200,
+          "max": 1530
+        },
+        "health": {
+          "min": 4300,
+          "max": 5700
+        },
+        "mana": {
+          "min": 1100,
+          "max": 1570
+        },
+        "speed": {
+          "min": 1080,
+          "max": 1440
+        }
+      },
+      "growthMilli": {
+        "min": 1125,
+        "max": 1205
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-counter"
+        ],
+        "candidates": [
+          "beast.parry",
+          "beast.strength",
+          "beast.perception"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 17
+          },
+          {
+            "count": 2,
+            "weight": 4
+          },
+          {
+            "count": 3,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.three-legged-golden-toad",
+      "name": "三足金蟾",
+      "realm": "元婴",
+      "icon": "icon:beast-golden-toad",
+      "description": "身躯浑圆，三足粗壮，暗金背疣间透着朱红细纹；腹内火囊蓄纳地火灵息，施法时喉腹鼓起，红纹如炭，张口吐出大片烈焰。",
+      "carryLevel": 65,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 850,
+          "max": 1180
+        },
+        "defense": {
+          "min": 1080,
+          "max": 1420
+        },
+        "health": {
+          "min": 4600,
+          "max": 6100
+        },
+        "mana": {
+          "min": 2500,
+          "max": 3150
+        },
+        "speed": {
+          "min": 600,
+          "max": 880
+        }
+      },
+      "growthMilli": {
+        "min": 1120,
+        "max": 1205
+      },
+      "birthSkills": {
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.wisdom",
+          "beast.meditation",
+          "beast.spell-critical",
+          "beast.sluggish"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 16
+          },
+          {
+            "count": 2,
+            "weight": 5
+          },
+          {
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "count": 4,
+            "weight": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.thunder-peng",
+      "name": "雷鹏",
+      "realm": "化神",
+      "icon": "icon:beast-thunder-peng",
+      "description": "苍青巨翼，颈覆银羽，翼尖深紫，常在云海雷区活动，羽翼能积蓄雷息。",
+      "carryLevel": 85,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1250,
+          "max": 1600
+        },
+        "defense": {
+          "min": 1080,
+          "max": 1390
+        },
+        "health": {
+          "min": 3900,
+          "max": 5100
+        },
+        "mana": {
+          "min": 2700,
+          "max": 3400
+        },
+        "speed": {
+          "min": 1490,
+          "max": 1800
+        }
+      },
+      "growthMilli": {
+        "min": 1175,
+        "max": 1250
+      },
+      "birthSkills": {
+        "core": [
+          "beast.thunderstorm",
+          "beast.advanced-spell-fluctuation"
+        ],
+        "candidates": [
+          "beast.agility",
+          "beast.meditation"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 85
+          },
+          {
+            "count": 1,
+            "weight": 11
+          },
+          {
+            "count": 2,
+            "weight": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.six-eyed-ape",
+      "name": "六目灵猿",
+      "realm": "化神",
+      "icon": "icon:beast-six-eyed-ape",
+      "description": "灰白长毛，眉侧各生两枚小灵目，攀行古林，遇敌时灵目逐次睁开。",
+      "carryLevel": 85,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1430,
+          "max": 1770
+        },
+        "defense": {
+          "min": 1320,
+          "max": 1640
+        },
+        "health": {
+          "min": 4500,
+          "max": 5900
+        },
+        "mana": {
+          "min": 1800,
+          "max": 2500
+        },
+        "speed": {
+          "min": 1120,
+          "max": 1510
+        }
+      },
+      "growthMilli": {
+        "min": 1185,
+        "max": 1260
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-perception"
+        ],
+        "candidates": [
+          "beast.counter",
+          "beast.strength",
+          "beast.parry",
+          "beast.agility"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 16
+          },
+          {
+            "count": 2,
+            "weight": 5
+          },
+          {
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "count": 4,
+            "weight": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.ghost-lantern-butterfly",
+      "name": "冥灯蝶",
+      "realm": "化神",
+      "icon": "icon:beast-lantern-butterfly",
+      "description": "墨蓝双翼的翅脉泛出幽绿微光，在古老地穴缓缓飞行，如一盏游移的幽灯；躯壳死寂后仍能保住本命灵息。",
+      "carryLevel": 85,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 650,
+          "max": 950
+        },
+        "defense": {
+          "min": 820,
+          "max": 1120
+        },
+        "health": {
+          "min": 2600,
+          "max": 3600
+        },
+        "mana": {
+          "min": 2850,
+          "max": 3600
+        },
+        "speed": {
+          "min": 1050,
+          "max": 1620
+        }
+      },
+      "growthMilli": {
+        "min": 1200,
+        "max": 1280
+      },
+      "birthSkills": {
+        "core": [
+          "beast.ghost"
+        ],
+        "candidates": [
+          "beast.meditation",
+          "beast.spell-fluctuation",
+          "beast.perception",
+          "beast.agility",
+          "beast.water-attack"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 75
+          },
+          {
+            "count": 1,
+            "weight": 15
+          },
+          {
+            "count": 2,
+            "weight": 5
+          },
+          {
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "count": 5,
+            "weight": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.nether-tiger",
+      "name": "幽冥虎",
+      "realm": "化神",
+      "icon": "icon:beast-nether-tiger",
+      "description": "墨黑虎躯，肩背厚重，幽蓝虎纹隐现，背脊与尾端浮起鬼火。久居阴灵汇聚的古老地穴，常压低头颅缓步巡视，吐出的幽焰与扑击皆能震慑魂生之体。",
+      "carryLevel": 85,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1500,
+          "max": 1810
+        },
+        "defense": {
+          "min": 1080,
+          "max": 1400
+        },
+        "health": {
+          "min": 4800,
+          "max": 6200
+        },
+        "mana": {
+          "min": 2250,
+          "max": 2950
+        },
+        "speed": {
+          "min": 900,
+          "max": 1250
+        }
+      },
+      "growthMilli": {
+        "min": 1165,
+        "max": 1245
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-exorcism",
+          "beast.spirit-flame"
+        ],
+        "candidates": [
+          "beast.strength",
+          "beast.perception"
+        ],
+        "extraCountWeights": [
+          {
+            "count": 0,
+            "weight": 85
+          },
+          {
+            "count": 1,
+            "weight": 11
+          },
+          {
+            "count": 2,
+            "weight": 4
+          }
+        ]
+      }
+    }
+  ],
+  "generation": {
+    "starterLevel": 10,
+    "lifespan": 1000,
+    "minBirthSkills": 0,
+    "maxBirthSkills": 6
+  }
+}

@@ -10,6 +10,7 @@ export const PILL_FAMILY_VALUES = [
   'mana',
   'detox',
   'cultivation',
+  'beast_cultivation',
   'insight',
   'breakthrough',
   'tempering',
@@ -48,6 +49,7 @@ export const ALCHEMY_PROPERTY_KEY_VALUES = [
   'restore_mp',
   'detox',
   'cultivation',
+  'beast_cultivation',
   'insight',
   'clear_mind_support',
   'protect_meridians_support',
@@ -295,7 +297,13 @@ export interface IncreaseLifespanOperation {
   value: number;
 }
 
+export interface GainBeastCultivationOperation {
+  type: 'gain_beast_cultivation';
+  value: number;
+}
+
 export type ConditionOperation =
+  | GainBeastCultivationOperation
   | RestoreResourceOperation
   | ChangeGaugeOperation
   | AddStatusOperation

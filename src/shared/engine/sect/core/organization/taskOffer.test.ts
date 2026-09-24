@@ -57,6 +57,68 @@ describe('sect task offer snapshot', () => {
     ).toThrow();
   });
 
+  it('preserves reward and delivery archives after removing retired requirements', () => {
+    const offer = build(1);
+    const payload = {
+      schemaVersion: 2,
+      target: 1,
+      executorData: {},
+      offer: {
+        ...offer,
+        executorKey: 'sect.delivery.equipment',
+        requirement: undefined,
+      },
+      completionData: {
+        submittedItems: [
+          {
+            itemId: 'old-item',
+            kind: 'artifact',
+            name: '旧法宝',
+            quality: '玄品',
+            quantity: 1,
+            matchedFacts: ['历史交付'],
+          },
+        ],
+      },
+    };
+    const archive = SectTaskRecordPayloadSchema.parse(payload);
+    expect(resolveSectTaskClaimReward(archive)).toEqual(offer.reward);
+    expect(archive.completionData?.submittedItems?.[0].name).toBe('旧法宝');
+    expect(() =>
+      SectTaskRecordPayloadSchema.parse({
+        ...payload,
+        offer: {
+          ...payload.offer,
+          requirement: {
+            kind: 'artifact',
+            quantity: 1,
+            minQuality: '玄品',
+            slot: 'weapon',
+            mustBeUnequipped: true,
+          },
+        },
+      }),
+    ).toThrow();
+    const current = SectTaskRecordPayloadSchema.parse({
+      ...payload,
+      completionData: {
+        submittedItems: [
+          {
+            itemId: 'new-item',
+            kind: 'equipment',
+            name: '青石甲',
+            equipmentLevel: 10,
+            quantity: 1,
+            matchedFacts: ['10级法衣'],
+          },
+        ],
+      },
+    });
+    expect(current.completionData?.submittedItems?.[0]).not.toHaveProperty(
+      'quality',
+    );
+  });
+
   it('only parses the v2 batch completion snapshot', () => {
     const offer = build(1);
     const item = {

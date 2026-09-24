@@ -1,0 +1,279 @@
+{
+  "poolId": "yield",
+  "poolVersion": 1,
+  "weights": {
+    "material": 75,
+    "blueprint": 20,
+    "book": 5
+  },
+  "books": [
+    {
+      "rewardId": "book.beast.spirit-flame",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.combo",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-combo",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.counter",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-counter",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.critical",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-critical",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.spell-critical",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-critical",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.regeneration",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-regeneration",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.meditation",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-meditation",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.agility",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-agility",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.spell-mastery",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-mastery",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.sluggish",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.thunder",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.falling-rock",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.water-attack",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.lifesteal",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-lifesteal",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.reflection",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-reflection",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.divine-revival",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-divine-revival",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.spell-reflection",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-reflection",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.wisdom",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-wisdom",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.sneak-attack",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-sneak-attack",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.spell-resistance",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-resistance",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.parry",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-parry",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.defense",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-defense",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.strength",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-strength",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.thunderstorm",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.mountain-crush",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.flood",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.wildfire",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.spell-combo",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-combo",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.spell-fluctuation",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-spell-fluctuation",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.stealth",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-stealth",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.perception",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-perception",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.poison",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-poison",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.miracle",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-miracle",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.concentration",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-concentration",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.eternity",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-eternity",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.ghost",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-ghost",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.exorcism",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-exorcism",
+      "weight": 4
+    },
+    {
+      "rewardId": "book.beast.denial",
+      "weight": 24
+    },
+    {
+      "rewardId": "book.beast.advanced-denial",
+      "weight": 4
+    }
+  ]
+}

@@ -1,0 +1,1133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "passives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "hooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "on": {
+                  "type": "string",
+                  "enum": [
+                    "beforeAction",
+                    "onHitCalc",
+                    "onDefenseIgnoreCalc",
+                    "onBeHit",
+                    "afterHit",
+                    "afterStrike",
+                    "onFatal",
+                    "onStatusRemoved",
+                    "onDeath",
+                    "onRoundStart",
+                    "onRoundEnd",
+                    "onTargetLost",
+                    "afterAction",
+                    "onCritRoll",
+                    "onHitRoll",
+                    "onHealCalc",
+                    "onBarrierCalc",
+                    "onWoundCalc"
+                  ]
+                },
+                "sourceIsSelf": {
+                  "type": "boolean"
+                },
+                "targetIsSelf": {
+                  "type": "boolean"
+                },
+                "requireKind": {
+                  "type": "string",
+                  "enum": [
+                    "physical",
+                    "spell",
+                    "fixed"
+                  ]
+                },
+                "aim": {
+                  "type": "string",
+                  "enum": [
+                    "self",
+                    "hookTarget",
+                    "hookSource",
+                    "others"
+                  ]
+                },
+                "targeting": {
+                  "$ref": "#/$defs/__schema1"
+                },
+                "chance": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "when": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "effects": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema5"
+                  }
+                }
+              },
+              "required": [
+                "on",
+                "effects"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "when": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "hitAdd": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "allDamageTakenBonus": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "damageBonus": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "damageAdd": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "damageTakenBonus": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "physicalAttackAdd": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "sealResistanceAdd": {
+                  "$ref": "#/$defs/__schema2"
+                },
+                "targetCountAdd": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "paths": {
+      "minItems": 2,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema8"
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "passives",
+    "paths"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^wuxiang\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "enemy",
+            "ally",
+            "self",
+            "any"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "fill",
+            "all",
+            "random",
+            "lowestHp",
+            "lowestDef"
+          ]
+        },
+        "count": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "extraCount": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "extraChance": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "includeOwnedStatusKind": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "includeDowned": {
+          "type": "boolean"
+        },
+        "onlyDowned": {
+          "type": "boolean"
+        },
+        "requireStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        }
+      },
+      "required": [
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      ]
+    },
+    "__schema3": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "skillTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "physical",
+              "spell",
+              "seal",
+              "support",
+              "passive",
+              "art"
+            ]
+          }
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "spell",
+            "fixed"
+          ]
+        },
+        "damageOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "action-direct",
+              "hook-derived",
+              "status"
+            ]
+          }
+        },
+        "pvp": {
+          "type": "boolean"
+        },
+        "teamUniqueTag": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "targetEnemy": {
+          "type": "boolean"
+        },
+        "targetHasStandingPet": {
+          "type": "boolean"
+        },
+        "actionKilledTarget": {
+          "type": "boolean"
+        },
+        "sourceStanding": {
+          "type": "boolean"
+        },
+        "actionSucceeded": {
+          "type": "boolean"
+        },
+        "sourceTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "targetDowned": {
+          "type": "boolean"
+        },
+        "foeKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "targetStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "targetAbsentStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "targetOwnedStatus": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "appliedThisRound": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "requireStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "requireAbsentStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "removedStatusKind": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "statusRemoveReason": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "oncePerActionTarget": {
+          "type": "boolean"
+        },
+        "oncePerRound": {
+          "type": "boolean"
+        },
+        "oncePerBattle": {
+          "type": "boolean"
+        },
+        "initialTargetStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "targetSlot": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "normal"
+          ]
+        },
+        "initialTargetOwnedStatus": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "sourceHpRatioBelow": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema5": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "randomBranch"
+            },
+            "branchId": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "chance": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "successEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
+            "failureEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "branchId",
+            "chance",
+            "successEffects",
+            "failureEffects"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "fixedHit"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "physicalHit"
+            },
+            "coeff": {
+              "type": "number",
+              "minimum": 0
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "coeff"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "applyStatus"
+            },
+            "statusId": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "duration": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "self": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeStatus"
+            },
+            "statusIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema3"
+              }
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema3"
+              }
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStatusDuration"
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema3"
+              }
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "kinds",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "dispel"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "buff",
+                  "debuff",
+                  "control",
+                  "dot"
+                ]
+              }
+            },
+            "maxCount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "random": {
+              "type": "boolean"
+            },
+            "preventReapplyThisRound": {
+              "type": "boolean"
+            },
+            "excludeStatusFlags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "const": "blocksRevive"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "categories"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "revive"
+            },
+            "hpRatio": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "hpRatio"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "heal"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "fixedBase": {
+              "type": "boolean"
+            },
+            "includeHealPower": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeWound"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "restoreHp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "allowFatal": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyCooldown"
+            },
+            "skillId": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "skillId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyFact"
+            },
+            "key": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "value": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type",
+            "key",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyResource"
+            },
+            "resourceId": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "add",
+                "set"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "resourceId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyHeal"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyWound"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStrike"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyChance"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema6": {
+      "$ref": "#/$defs/__schema4"
+    },
+    "__schema7": {
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresConnectedNodes": {
+          "type": "boolean",
+          "const": true
+        },
+        "unitTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "foundationPassives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "grantSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "nodes": {
+          "minItems": 21,
+          "maxItems": 21,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema9"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "requiresConnectedNodes",
+        "foundationPassives",
+        "grantSkills",
+        "resources",
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skillId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "operation": {
+                "type": "string",
+                "const": "setCooldownRounds"
+              },
+              "value": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "skillId",
+              "operation",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "automatic": {
+          "type": "boolean"
+        },
+        "passives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "grantSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "revokeSkillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "panel": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attr": {
+                "type": "string",
+                "enum": [
+                  "hp",
+                  "maxHp",
+                  "mp",
+                  "maxMp",
+                  "physicalAtk",
+                  "physicalDef",
+                  "magicAtk",
+                  "magicDef",
+                  "healPower",
+                  "speed",
+                  "hit",
+                  "dodge",
+                  "critRate",
+                  "spellCritRate",
+                  "physicalFuryRate",
+                  "sealHit",
+                  "sealResist",
+                  "attackCultivate",
+                  "defenseCultivate",
+                  "spellCultivate",
+                  "resistSpellCultivate"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "multiply"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "attr",
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "layer",
+        "slot",
+        "description"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -276,7 +276,7 @@ export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
     paths: {
       title: '照业壁',
       description:
-        '石壁正面如镜，背面焦黑。明镜照业与魔心渡厄并非善恶二路，只是承受与偿还的先后不同。',
+        '石壁正面如镜，背面焦黑。两条道途的痕迹交映于此，等待弟子静心参悟。',
     },
     arena: {
       title: '问身场',

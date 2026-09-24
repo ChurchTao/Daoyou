@@ -15,6 +15,7 @@ export const ALCHEMY_PROPERTY_LABELS: Record<AlchemyPropertyKey, string> = {
   heal_wounds: '治愈伤势',
   restore_mp: `回补${getGameConceptLabel('mp')}`,
   detox: '解毒祛浊',
+  beast_cultivation: '滋养灵兽修为',
   cultivation: `积蓄${getGameConceptLabel('cultivation_exp')}`,
   insight: `澄明${getGameConceptLabel('comprehension_insight')}`,
   clear_mind_support: '清心定神',
@@ -43,6 +44,7 @@ const PROPERTY_SORT_ORDER: Record<CompatibleAlchemyPropertyKey, number> = {
   restore_mp: 2,
   detox: 3,
   cultivation: 4,
+  beast_cultivation: 21,
   insight: 5,
   clear_mind_support: 6,
   protect_meridians_support: 7,
@@ -108,6 +110,8 @@ export function getAlchemyPropertyFamily(
       return 'mana';
     case 'detox':
       return 'detox';
+    case 'beast_cultivation':
+      return 'beast_cultivation';
     case 'cultivation':
       return 'cultivation';
     case 'insight':

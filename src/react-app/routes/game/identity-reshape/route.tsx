@@ -265,7 +265,7 @@ export default function IdentityReshapePage() {
       if (!response.ok || !result.success) {
         throw new Error(result.error ?? '放弃会话失败');
       }
-      navigate('/game/inventory', { replace: true });
+      navigate('/game/cave/storage', { replace: true });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '放弃会话失败',
@@ -278,13 +278,13 @@ export default function IdentityReshapePage() {
 
   const temporarilyLeave = async () => {
     if (!session) {
-      navigate('/game/inventory');
+      navigate('/game/cave/storage');
       return;
     }
     if (!session.candidate) {
       if (!(await saveDraft(answers, description))) return;
     }
-    navigate('/game/inventory');
+    navigate('/game/cave/storage');
   };
 
   if (loading) {
@@ -323,7 +323,7 @@ export default function IdentityReshapePage() {
             >
               启封问命
             </InkButton>
-            <InkButton href="/game/inventory" className="text-[#d9cfba]">
+            <InkButton href="/game/cave/storage" className="text-[#d9cfba]">
               返回储物袋
             </InkButton>
           </div>

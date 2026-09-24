@@ -1,538 +1,334 @@
-import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkInput } from '@app/components/ui/InkInput';
+import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
+import type { AdminTowerView } from '@shared/contracts/adminTower';
 import {
   TOWER_ELIGIBLE_REALMS,
-  type TowerPreparedEnemySetStatus,
-} from '@shared/lib/tower';
-import type { EnemyRace, RealmStage, RealmType } from '@shared/types/constants';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+  TOWER_MIN_REALM,
+} from '@shared/lib/tower/helpers';
+import { useEffect, useState } from 'react';
 
-type TowerSeasonMeta = {
-  seasonKey: string;
-  seasonStartedAt: string;
-  seasonEndsAt: string;
-  nextResetAt: string;
+const kindLabels = { normal: '普通', elite: '精英', boss: '首领' };
+const roleLabels = {
+  leader: '主敌',
+  striker: '输出',
+  healer: '治疗',
+  guard: '护卫',
 };
+const attributes = [
+  ['maxHp', '气血'],
+  ['maxMp', '法力'],
+  ['physicalAtk', '物攻'],
+  ['magicAtk', '法攻'],
+  ['physicalDef', '物防'],
+  ['magicDef', '法防'],
+  ['speed', '速度'],
+] as const;
 
-type TowerEnemySummary = {
-  floor: number;
-  kind: 'normal' | 'elite' | 'boss';
-  difficulty: number;
-  race: EnemyRace;
-  realmStage: RealmStage;
-  name: string;
-  title: string | null;
-  source: 'llm' | 'fallback';
-  generatedAt: string;
-};
-
-type TowerEnemySetRealmSummary = {
-  seasonKey: string;
-  realm: RealmType;
-  status: TowerPreparedEnemySetStatus | 'missing' | 'incomplete';
-  schemaVersion: number | null;
-  enemyCount: number;
-  generatedAt: string | null;
-  updatedAt: string | null;
-  errorMessage: string | null;
-};
-
-type TowerEnemySetRealmDetail = TowerEnemySetRealmSummary & {
-  sourceCounts: Record<'llm' | 'fallback', number>;
-  enemies: TowerEnemySummary[];
-};
-
-type TowerEnemySetSnapshot = {
-  seasonKey: string;
-  realms: TowerEnemySetRealmSummary[];
-};
-
-type TowerEnemySetsResponse = {
-  success?: boolean;
-  error?: string;
-  data?: {
-    currentSeason: TowerSeasonMeta;
-    nextSeason: TowerSeasonMeta;
-    snapshot: TowerEnemySetSnapshot;
-  };
-};
-
-type GenerateResponse = {
-  success?: boolean;
-  error?: string;
-  data?: {
-    result: unknown;
-    snapshot: TowerEnemySetSnapshot;
-  };
-};
-
-type RealmDetailResponse = {
-  success?: boolean;
-  error?: string;
-  data?: {
-    detail: TowerEnemySetRealmDetail;
-  };
-};
-
-type TowerEnemySetsData = NonNullable<TowerEnemySetsResponse['data']>;
-type GenerateData = NonNullable<GenerateResponse['data']>;
-type RealmDetailData = NonNullable<RealmDetailResponse['data']>;
-
-function formatDateTime(value: string | null): string {
-  if (!value) return '暂无';
-  return new Date(value).toLocaleString();
-}
-
-function getStatusLabel(status: TowerEnemySetRealmSummary['status']): string {
-  switch (status) {
-    case 'ready':
-      return '已就绪';
-    case 'failed':
-      return '生成失败';
-    case 'missing':
-      return '未生成';
-    case 'incomplete':
-      return '数据不完整';
-  }
-}
-
-function getKindLabel(kind: TowerEnemySummary['kind']): string {
-  switch (kind) {
-    case 'normal':
-      return '普通';
-    case 'elite':
-      return '精英';
-    case 'boss':
-      return '首领';
-  }
-}
-
-async function fetchTowerEnemySets(
-  seasonKey: string,
-): Promise<TowerEnemySetsData> {
-  const query = new URLSearchParams();
-  if (seasonKey.trim()) {
-    query.set('seasonKey', seasonKey.trim());
-  }
-  const response = await fetch(`/api/admin/tower-enemy-sets?${query.toString()}`, {
-    cache: 'no-store',
-  });
-  const payload = (await response.json()) as TowerEnemySetsResponse;
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error ?? '加载蜃楼敌人失败');
-  }
-  return payload.data;
-}
-
-async function fetchTowerEnemySetRealmDetail(args: {
-  seasonKey: string;
-  realm: RealmType;
-}): Promise<RealmDetailData> {
-  const query = new URLSearchParams({
-    seasonKey: args.seasonKey,
-    realm: args.realm,
-  });
-  const response = await fetch(
-    `/api/admin/tower-enemy-sets/realm?${query.toString()}`,
-    { cache: 'no-store' },
-  );
-  const payload = (await response.json()) as RealmDetailResponse;
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error ?? '加载境界敌人明细失败');
-  }
-  return payload.data;
-}
-
-async function generateTowerEnemySets(args: {
-  seasonKey: string;
-  realm: RealmType | 'all';
-  force: boolean;
-}): Promise<GenerateData> {
-  const response = await fetch('/api/admin/tower-enemy-sets/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      seasonKey: args.seasonKey,
-      realm: args.realm === 'all' ? undefined : args.realm,
-      force: args.force,
-    }),
-  });
-  const payload = (await response.json()) as GenerateResponse;
-  if (!response.ok || !payload.success || !payload.data) {
-    throw new Error(payload.error ?? '手动生成失败');
-  }
-  return payload.data;
-}
-
-export default function AdminTowerEnemySetsPage() {
-  const { pushToast } = useInkUI();
+export default function TowerEnemySetsRoute() {
   const [seasonKey, setSeasonKey] = useState('');
-  const [snapshot, setSnapshot] = useState<TowerEnemySetSnapshot | null>(null);
-  const [realmDetails, setRealmDetails] = useState<
-    Partial<Record<RealmType, TowerEnemySetRealmDetail>>
-  >({});
-  const [detailLoadingRealm, setDetailLoadingRealm] = useState<RealmType | null>(
-    null,
-  );
-  const [currentSeason, setCurrentSeason] = useState<TowerSeasonMeta | null>(null);
-  const [nextSeason, setNextSeason] = useState<TowerSeasonMeta | null>(null);
-  const [targetRealm, setTargetRealm] = useState<RealmType | 'all'>('all');
-  const [force, setForce] = useState(false);
+  const [realm, setRealm] = useState<string>(TOWER_MIN_REALM);
+  const [floor, setFloor] = useState('1');
+  const [refresh, setRefresh] = useState(0);
+  const [data, setData] = useState<AdminTowerView | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-
-  const effectiveSeasonKey = seasonKey.trim() || currentSeason?.seasonKey || '';
-
-  const load = useCallback(
-    async (nextSeasonKey = seasonKey) => {
-      try {
-        setLoading(true);
-        const data = await fetchTowerEnemySets(nextSeasonKey);
-        setCurrentSeason(data.currentSeason);
-        setNextSeason(data.nextSeason);
-        setSnapshot(data.snapshot);
-        setRealmDetails({});
-        setSeasonKey(data.snapshot.seasonKey);
-      } catch (error) {
-        pushToast({
-          message: error instanceof Error ? error.message : '加载蜃楼敌人失败',
-          tone: 'danger',
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [pushToast, seasonKey],
-  );
+  const [publishing, setPublishing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    let cancelled = false;
-
-    void fetchTowerEnemySets('')
-      .then((data) => {
-        if (cancelled) return;
-        setCurrentSeason(data.currentSeason);
-        setNextSeason(data.nextSeason);
-        setSnapshot(data.snapshot);
-        setRealmDetails({});
-        setSeasonKey(data.snapshot.seasonKey);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        pushToast({
-          message: error instanceof Error ? error.message : '加载蜃楼敌人失败',
-          tone: 'danger',
-        });
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pushToast]);
-
-  const totals = useMemo(() => {
-    const realms = snapshot?.realms ?? [];
-    return {
-      ready: realms.filter((realm) => realm.status === 'ready').length,
-      missing: realms.filter((realm) => realm.status === 'missing').length,
-      failed: realms.filter((realm) => realm.status === 'failed').length,
-      incomplete: realms.filter((realm) => realm.status === 'incomplete').length,
-      enemies: realms.reduce((sum, realm) => sum + realm.enemyCount, 0),
-    };
-  }, [snapshot]);
-
-  const loadRealmDetail = useCallback(
-    async (realm: RealmType) => {
-      if (!effectiveSeasonKey) {
-        pushToast({ message: '请先选择周版本', tone: 'danger' });
-        return;
-      }
-
+    const controller = new AbortController();
+    const query = new URLSearchParams({ realm, floor });
+    if (seasonKey) query.set('seasonKey', seasonKey);
+    void (async () => {
       try {
-        setDetailLoadingRealm(realm);
-        const data = await fetchTowerEnemySetRealmDetail({
-          seasonKey: effectiveSeasonKey,
-          realm,
+        const response = await fetch(`/api/admin/tower-enemy-sets?${query}`, {
+          signal: controller.signal,
+          cache: 'no-store',
         });
-        setRealmDetails((current) => ({
-          ...current,
-          [realm]: data.detail,
-        }));
-      } catch (error) {
-        pushToast({
-          message:
-            error instanceof Error ? error.message : '加载境界敌人明细失败',
-          tone: 'danger',
-        });
-      } finally {
-        setDetailLoadingRealm(null);
-      }
-    },
-    [effectiveSeasonKey, pushToast],
-  );
-
-  const submitGenerate = async () => {
-    if (!effectiveSeasonKey) {
-      pushToast({ message: '请先选择周版本', tone: 'danger' });
-      return;
-    }
-
-    try {
-      setGenerating(true);
-      const data = await generateTowerEnemySets({
-        seasonKey: effectiveSeasonKey,
-        realm: targetRealm,
-        force,
-      });
-      setSnapshot(data.snapshot);
-      setSeasonKey(data.snapshot.seasonKey);
-      setRealmDetails((current) => {
-        if (targetRealm === 'all') {
-          return {};
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error ?? '加载蜃楼配置失败');
+        if (!controller.signal.aborted) setData(payload.data);
+      } catch (cause) {
+        if (!controller.signal.aborted) {
+          setData(null);
+          setError(cause instanceof Error ? cause.message : '加载蜃楼配置失败');
         }
-        const next = { ...current };
-        delete next[targetRealm];
-        return next;
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
+  }, [seasonKey, realm, floor, refresh]);
+
+  const beginLoad = () => {
+    setLoading(true);
+    setError('');
+    setMessage('');
+    setConfirming(false);
+  };
+
+  const regenerate = async () => {
+    if (!data || loading || publishing) return;
+    setPublishing(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await fetch('/api/admin/tower-enemy-sets/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          seasonKey: data.seasonKey,
+          expectedFingerprint: data.fingerprint,
+        }),
       });
-      pushToast({
-        message:
-          targetRealm === 'all'
-            ? '已触发全部境界生成'
-            : `已触发${targetRealm}敌人生成`,
-        tone: 'success',
-      });
-    } catch (error) {
-      pushToast({
-        message: error instanceof Error ? error.message : '手动生成失败',
-        tone: 'danger',
-      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? '重新生成失败');
+      setMessage('周配置已重新生成并发布。相同生成条件下，阵容可能保持一致。');
+      setLoading(true);
+      setRefresh((value) => value + 1);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '重新生成失败');
     } finally {
-      setGenerating(false);
+      setPublishing(false);
+      setConfirming(false);
     }
   };
 
+  const weeks = data
+    ? [
+        ...new Set([
+          data.nextSeason.seasonKey,
+          data.currentSeason.seasonKey,
+          data.seasonKey,
+          ...data.weeks.map((week) => week.seasonKey),
+        ]),
+      ]
+        .sort()
+        .reverse()
+    : [];
+  const configuration = !loading ? data?.configuration : null;
+  const preview = configuration?.previews.find(
+    (item) => item.floor === data?.floor,
+  );
+  const canPublish =
+    data &&
+    [data.currentSeason.seasonKey, data.nextSeason.seasonKey].includes(
+      data.seasonKey,
+    );
+  const skillName = (id: string) =>
+    configuration?.encounter.skills.find((skill) => skill.id === id)?.name ??
+    (id === 'attack' ? '普攻' : id === 'defend' ? '防御' : id);
+
   return (
-    <div className="space-y-6">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
-        <p className="text-ink-secondary text-xs tracking-[0.22em]">
-          TOWER OPS
-        </p>
-        <h2 className="font-heading text-ink mt-2 text-3xl">蜃楼敌人周表</h2>
-        <p className="text-ink-secondary mt-3 max-w-3xl text-sm leading-7">
-          查看每周蜃楼幻境预生成敌人的覆盖情况，并在缺失或失败时手动补齐。
-          手动生成会触发敌人文案 LLM 调用。
+    <section className="space-y-5">
+      <header>
+        <h1 className="font-heading text-2xl">蜃楼敌人</h1>
+        <p className="text-ink-secondary mt-2 text-sm">
+          查看已发布的每周二十层阵容，按挑战境界核查实际战斗属性。
         </p>
       </header>
-
-      <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-          <InkInput
-            label="周版本"
-            value={seasonKey}
-            onChange={setSeasonKey}
-            placeholder="2026-W23@Asia/Shanghai"
-            hint="留空加载当前周；也可填指定 seasonKey 查询历史周。"
-            disabled={loading || generating}
-          />
-          <div className="flex flex-wrap gap-2">
-            <InkButton
-              variant="secondary"
-              disabled={loading || generating}
-              onClick={() => void load(seasonKey)}
-            >
-              查询
-            </InkButton>
-            <InkButton
-              variant="secondary"
-              disabled={loading || generating || !currentSeason}
-              onClick={() => {
-                const key = currentSeason?.seasonKey ?? '';
-                setSeasonKey(key);
-                void load(key);
-              }}
-            >
-              当前周
-            </InkButton>
-            <InkButton
-              variant="secondary"
-              disabled={loading || generating || !nextSeason}
-              onClick={() => {
-                const key = nextSeason?.seasonKey ?? '';
-                setSeasonKey(key);
-                void load(key);
-              }}
-            >
-              下周
-            </InkButton>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-          <SummaryTile label="已就绪" value={String(totals.ready)} />
-          <SummaryTile label="未生成" value={String(totals.missing)} />
-          <SummaryTile label="失败" value={String(totals.failed)} />
-          <SummaryTile label="不完整" value={String(totals.incomplete)} />
-          <SummaryTile label="敌人数" value={String(totals.enemies)} />
-        </div>
-
-        <div className="border-ink/15 bg-paper/80 grid gap-3 border border-dashed p-4 md:grid-cols-[minmax(0,220px)_auto_auto] md:items-end">
-          <InkSelect
-            label="生成范围"
-            value={targetRealm}
-            onChange={(value) => setTargetRealm(value as RealmType | 'all')}
-            disabled={loading || generating}
-          >
-            <option value="all">全部开放境界</option>
-            {TOWER_ELIGIBLE_REALMS.map((realm) => (
-              <option key={realm} value={realm}>
-                {realm}
-              </option>
-            ))}
-          </InkSelect>
-          <label className="text-ink-secondary flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={force}
-              disabled={loading || generating}
-              onChange={(event) => setForce(event.target.checked)}
-            />
-            强制覆盖已有 ready 数据
-          </label>
-          <InkButton
-            variant="primary"
-            disabled={loading || generating || !effectiveSeasonKey}
-            onClick={() => void submitGenerate()}
-          >
-            {generating ? '生成中...' : '手动生成'}
-          </InkButton>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        {loading ? (
-          <p className="text-ink-secondary text-sm">正在加载蜃楼敌人周表...</p>
-        ) : null}
-        {(snapshot?.realms ?? []).map((realm) => (
-          <RealmPanel
-            key={realm.realm}
-            realm={realm}
-            detail={realmDetails[realm.realm]}
-            loadingDetail={detailLoadingRealm === realm.realm}
-            onLoadDetail={() => void loadRealmDetail(realm.realm)}
-          />
-        ))}
-      </section>
-    </div>
-  );
-}
-
-function SummaryTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-ink/15 bg-paper/80 border border-dashed p-3">
-      <p className="text-ink-secondary text-xs tracking-[0.16em]">{label}</p>
-      <p className="text-ink mt-1 text-lg font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function RealmPanel({
-  realm,
-  detail,
-  loadingDetail,
-  onLoadDetail,
-}: {
-  realm: TowerEnemySetRealmSummary;
-  detail?: TowerEnemySetRealmDetail;
-  loadingDetail: boolean;
-  onLoadDetail: () => void;
-}) {
-  return (
-    <div className="border-ink/15 bg-bgpaper/90 border border-dashed p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-ink text-xl font-semibold">{realm.realm}</h3>
-          <p className="text-ink-secondary mt-1 text-sm">
-            {getStatusLabel(realm.status)} · {realm.enemyCount}/20 层 ·
-            schema {realm.schemaVersion ?? '-'}
-          </p>
-        </div>
-        <div className="text-ink-secondary text-right text-xs leading-6">
-          <div>生成：{formatDateTime(realm.generatedAt)}</div>
-          <div>更新：{formatDateTime(realm.updatedAt)}</div>
-        </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <InkSelect
+          label="周次"
+          value={seasonKey || data?.currentSeason.seasonKey || ''}
+          onChange={(value) => {
+            if (value !== (seasonKey || data?.currentSeason.seasonKey)) {
+              beginLoad();
+              setSeasonKey(value);
+            }
+          }}
+          disabled={loading || publishing}
+        >
+          {!data && <option value="">本周</option>}
+          {weeks.map((key) => (
+            <option key={key} value={key}>
+              {key.split('@')[0]}
+              {key === data?.currentSeason.seasonKey
+                ? ' · 本周'
+                : key === data?.nextSeason.seasonKey
+                  ? ' · 下周'
+                  : ''}
+            </option>
+          ))}
+        </InkSelect>
+        <InkSelect
+          label="挑战境界"
+          value={realm}
+          onChange={(value) => {
+            if (value !== realm) {
+              beginLoad();
+              setRealm(value);
+            }
+          }}
+          disabled={loading || publishing}
+        >
+          {TOWER_ELIGIBLE_REALMS.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </InkSelect>
+        <InkSelect
+          label="楼层"
+          value={floor}
+          onChange={(value) => {
+            if (value !== floor) {
+              beginLoad();
+              setFloor(value);
+            }
+          }}
+          disabled={loading || publishing}
+        >
+          {Array.from({ length: 20 }, (_, index) => (
+            <option key={index + 1} value={index + 1}>
+              第 {index + 1} 层 ·{' '}
+              {
+                kindLabels[
+                  (index + 1) % 10 === 0
+                    ? 'boss'
+                    : (index + 1) % 5 === 0
+                      ? 'elite'
+                      : 'normal'
+                ]
+              }
+            </option>
+          ))}
+        </InkSelect>
       </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap gap-3">
         <InkButton
           variant="secondary"
-          disabled={loadingDetail}
-          onClick={onLoadDetail}
+          disabled={loading || publishing}
+          onClick={() => {
+            beginLoad();
+            setRefresh((value) => value + 1);
+          }}
         >
-          {loadingDetail ? '加载中...' : detail ? '刷新明细' : '加载明细'}
+          刷新
         </InkButton>
-        {detail ? (
-          <span className="text-ink-secondary text-sm">
-            {detail.sourceCounts.llm} LLM / {detail.sourceCounts.fallback}{' '}
-            fallback
-          </span>
-        ) : null}
+        {canPublish && (
+          <InkButton
+            disabled={loading || publishing}
+            onClick={() => setConfirming(true)}
+          >
+            {publishing
+              ? '发布中…'
+              : data?.published
+                ? '重新生成周配置'
+                : '生成并发布周配置'}
+          </InkButton>
+        )}
       </div>
-
-      {realm.errorMessage ? (
-        <p className="text-crimson mt-3 text-sm">{realm.errorMessage}</p>
-      ) : null}
-
-      {detail?.enemies.length ? (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="text-ink-secondary border-ink/15 border-b">
-              <tr>
-                <th className="px-2 py-2 font-semibold">层</th>
-                <th className="px-2 py-2 font-semibold">类型</th>
-                <th className="px-2 py-2 font-semibold">敌人</th>
-                <th className="px-2 py-2 font-semibold">种族/阶段</th>
-                <th className="px-2 py-2 font-semibold">难度</th>
-                <th className="px-2 py-2 font-semibold">来源</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.enemies.map((enemy) => (
-                <tr
-                  key={`${realm.realm}:${enemy.floor}`}
-                  className="border-ink/10 border-b last:border-b-0"
-                >
-                  <td className="px-2 py-2">{enemy.floor}</td>
-                  <td className="px-2 py-2">{getKindLabel(enemy.kind)}</td>
-                  <td className="px-2 py-2">
-                    {enemy.name}
-                    {enemy.title ? (
-                      <span className="text-ink-secondary">「{enemy.title}」</span>
-                    ) : null}
-                  </td>
-                  <td className="px-2 py-2">
-                    {enemy.race} / {enemy.realmStage}
-                  </td>
-                  <td className="px-2 py-2">{enemy.difficulty}</td>
-                  <td className="px-2 py-2">{enemy.source}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : detail ? (
-        <p className="text-ink-secondary mt-4 text-sm">暂无敌人数据。</p>
-      ) : (
-        <p className="text-ink-secondary mt-4 text-sm">
-          明细按境界按需加载，不会随周汇总一次性返回。
-        </p>
+      {confirming && (
+        <InkNotice tone="warning">
+          <p>
+            将发布 {data?.seasonKey.split('@')[0]}{' '}
+            的全部二十层配置，所有境界共同使用。后续进入的楼层会使用新配置，已开战的战斗保持原快照，领奖记录不变。
+          </p>
+          <p className="mt-2">
+            沿用现有确定性生成规则，相同周次、内容版本和历史配置可能生成相同阵容。
+          </p>
+          <div className="mt-3 flex gap-3">
+            <InkButton disabled={publishing} onClick={() => void regenerate()}>
+              确认生成并发布
+            </InkButton>
+            <InkButton
+              variant="secondary"
+              disabled={publishing}
+              onClick={() => setConfirming(false)}
+            >
+              取消
+            </InkButton>
+          </div>
+        </InkNotice>
       )}
-    </div>
+      {error && <InkNotice tone="danger">{error}</InkNotice>}
+      {message && <InkNotice tone="info">{message}</InkNotice>}
+      {loading && <p role="status">正在读取周配置…</p>}
+      {!loading && data && (
+        <div className="text-ink-secondary space-y-1 text-sm break-all">
+          <p>
+            {data.published
+              ? `内容版本：${data.published.contentVersion} · 生成器：${data.published.generatorVersion} · 结构版本：${data.published.schemaVersion}`
+              : '该周尚未发布配置。'}{' '}
+          </p>
+          {configuration && (
+            <p>
+              周期：
+              {new Date(
+                configuration.season.seasonStartedAt,
+              ).toLocaleString()}{' '}
+              — {new Date(configuration.season.seasonEndsAt).toLocaleString()}
+            </p>
+          )}
+          {data.published && !configuration && (
+            <InkNotice tone="warning">
+              该周属于旧内容版本，无法按当前规则展示。历史周仅保留记录，本周或下周可重新生成。
+            </InkNotice>
+          )}
+        </div>
+      )}
+      {preview && configuration && (
+        <>
+          <header className="border-ink/15 border-t pt-4">
+            <h2 className="text-xl">
+              第 <span className="font-mono">{preview.floor}</span> 层 ·{' '}
+              {kindLabels[preview.kind]} · {preview.name}
+            </h2>
+            <p className="text-ink-secondary mt-2 text-sm">
+              {preview.labels.join(' · ')}
+            </p>
+          </header>
+          <div className="space-y-4">
+            {configuration.encounter.units.map((unit) => {
+              const member = preview.members.find(
+                (item) => item.id === unit.id,
+              )!;
+              const plan = configuration.encounter.plans[member.id];
+              return (
+                <article
+                  key={unit.id}
+                  className="border-ink/15 space-y-3 border border-dashed p-4"
+                >
+                  <h3 className="flex items-center gap-2 text-lg">
+                    <GameIcon value={member.icon} />
+                    {member.name}
+                    <span className="text-ink-secondary text-sm">
+                      {roleLabels[member.role]} · 等级{' '}
+                      <span className="font-mono">{unit.level}</span>
+                    </span>
+                  </h3>
+                  <dl className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                    {attributes.map(([key, label]) => (
+                      <div key={key}>
+                        <dt className="text-ink-secondary text-xs">{label}</dt>
+                        <dd className="font-mono">{unit.attrs[key] ?? 0}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="text-sm">
+                    行动循环：{plan.cycle.map(skillName).join(' → ')}；备用：
+                    {skillName(plan.fallback)}
+                  </p>
+                  <p className="text-sm">
+                    主动技能：{unit.skills?.map(skillName).join('、') || '无'}
+                    ；被动技能：
+                    {unit.passives?.map(skillName).join('、') || '无'}
+                  </p>
+                  <ul className="text-ink-secondary list-disc space-y-1 pl-5 text-sm">
+                    {member.details.map((detail, index) => (
+                      <li key={index}>{detail}</li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </section>
   );
 }

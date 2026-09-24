@@ -10,36 +10,19 @@ export const WorldChatTextMessageSchema = z.object({
     .optional(),
 });
 
-export const WorldChatItemShowcaseMessageSchema = z.object({
-  messageType: z.literal('item_showcase'),
-  itemType: z.enum(['artifact', 'material', 'consumable', 'skill', 'gongfa']),
-  itemId: z.string().trim().min(1),
-  textContent: z.string().trim().max(100).optional(),
-  payload: z
-    .object({
-      text: z.string().trim().max(100),
-    })
-    .optional(),
-});
-
-export const WorldChatBattleShowcaseMessageSchema = z.object({
-  messageType: z.literal('battle_showcase'),
-  battleRecordId: z.string().uuid(),
-  textContent: z
-    .string()
-    .trim()
-    .max(200)
-    .refine((value) => Array.from(value).length <= 100)
-    .optional(),
-});
+export const WorldChatItemShowcaseMessageSchema = z
+  .object({
+    messageType: z.literal('item_showcase'),
+    itemId: z.string().trim().min(1).max(160),
+    revision: z.number().int().nonnegative(),
+    textContent: z.string().trim().max(100).optional(),
+  })
+  .strict();
 
 export const WorldChatCreateMessageSchema = z.discriminatedUnion(
   'messageType',
-  [
-    WorldChatTextMessageSchema,
-    WorldChatItemShowcaseMessageSchema,
-    WorldChatBattleShowcaseMessageSchema,
-  ],
+  [WorldChatTextMessageSchema, WorldChatItemShowcaseMessageSchema],
+  { error: '仅支持文字与道具消息，旧版战报分享已停用' },
 );
 
 export const WorldChatListQuerySchema = z.object({

@@ -1,0 +1,55 @@
+{
+  "id": "arrival-mouth",
+  "title": "洞口",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "洞口外的风把药气吹薄了，路还看不远。"
+    },
+    { "type": "title", "kicker": "洞府 · 门外", "text": "洞口" },
+    {
+      "type": "narration",
+      "text": "炉边的药气淡了以后，风从洞口倒灌进来。"
+    },
+    {
+      "type": "narration",
+      "text": "{name}走到门口。石上有一道新痕，像是有人用指节磕过，又没有留下名字。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "外面的路，还不是今天的。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        { "label": "在门口站一会儿", "jump": "stay" },
+        { "label": "退回石室", "jump": "back" }
+      ]
+    },
+    { "type": "mark", "id": "stay" },
+    {
+      "type": "narration",
+      "text": "{name}在门口站了一会儿。风停在洞口，没有跟进来。"
+    },
+    {
+      "type": "narration",
+      "text": "石室仍在身后。"
+    },
+    { "type": "end", "outcome": "returned" },
+    { "type": "mark", "id": "back" },
+    {
+      "type": "narration",
+      "text": "{name}退回石室。风停在洞口，没有跟进来。"
+    },
+    {
+      "type": "narration",
+      "text": "石室仍在身后。"
+    },
+    { "type": "end", "outcome": "returned" }
+  ]
+}

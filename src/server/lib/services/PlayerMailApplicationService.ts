@@ -1,21 +1,20 @@
 import { getExecutor } from '@server/lib/drizzle/db';
 import { mails } from '@server/lib/drizzle/schema';
-import {
-  redisLockKeys,
-  withRedisLock,
-} from '@server/lib/redis/lock';
-import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import { resourceEngine } from '@server/lib/services/resource/ResourceEngine';
-import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
+import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
-import type { MailAttachment } from './MailService';
+import { attachmentsToResourceOperations } from '@shared/lib/itemLibrary';
 import { and, eq, inArray } from 'drizzle-orm';
 import { playerCommandExecutor } from './CommandExecutors';
-import { getPlayerLoadoutByCultivatorId } from '@server/lib/services/cultivator/CultivatorLoadoutReader';
 import {
-  readPlayerMailSummary,
-} from './PlayerResourceReaderService';
+  deliverMailBeasts,
+  selectClaimableBeastMails,
+} from './MailBeastDelivery';
+import { deliverMailInventory } from './MailInventory';
+import type { MailAttachment } from './MailService';
 import { sendPlayerMail } from './PlayerMailService';
+import { readPlayerMailSummary } from './PlayerResourceReaderService';
 import { readCultivatorName } from './cultivator/CultivatorFactsReader';
 import { sanitizeMaterialForClient } from './materialDetailsPrivacy';
 
@@ -37,6 +36,7 @@ function mailClaimChanges(args: {
   eventType: string;
   unreadCount: number;
   settlement: ResourceOperationSettlement;
+  attachments: MailAttachment[];
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
     {
@@ -46,6 +46,13 @@ function mailClaimChanges(args: {
       payload: { unreadCount: args.unreadCount },
     },
   ];
+  if (args.attachments.some((attachment) => attachment.type !== 'beast_v1')) {
+    changes.unshift({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.mail.claimed',
+      operation: 'invalidate',
+    });
+  }
   for (const inventoryChange of args.settlement.inventoryChanges) {
     changes.push(
       inventoryChange.operation === 'upsert'
@@ -103,12 +110,22 @@ export function sendCultivatorMail(args: {
   actor: MailActor;
   recipientCultivatorId: string;
   content: string;
+  requestId: string;
   attachment?: Parameters<typeof sendPlayerMail>[0]['attachment'];
 }) {
   return playerCommandExecutor.executeWithLock({
     userId: args.actor.userId,
     cultivatorId: args.actor.cultivatorId,
     source: 'player_mail_send',
+    requestId: args.requestId,
+    idempotency: {
+      key: args.requestId,
+      fingerprint: JSON.stringify([
+        args.recipientCultivatorId,
+        args.content,
+        args.attachment,
+      ]),
+    },
     allowEmpty: true,
     command: async (tx) => {
       const { name: senderName } = await readCultivatorName(
@@ -123,77 +140,13 @@ export function sendCultivatorMail(args: {
         attachment: args.attachment,
         tx,
       });
-      const resourceChanges: ResourceChangeDescriptor[] = [];
-      const loadout = result.inventorySettlements.some(
-        (settlement) => settlement.itemType === 'artifact',
-      )
-        ? await getPlayerLoadoutByCultivatorId(
-            args.actor.cultivatorId,
-            tx,
-          )
-        : undefined;
-      for (const settlement of result.inventorySettlements) {
-        if (settlement.itemType === 'artifact') {
-          resourceChanges.push(
-            settlement.remaining
-              ? {
-                  resourceTopic: 'inventory.artifacts',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'upsert-items',
-                  payload: { idKey: 'id', items: [settlement.remaining] },
-                }
-              : {
-                  resourceTopic: 'inventory.artifacts',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'remove-items',
-                  payload: { idKey: 'id', ids: [settlement.itemId] },
-                },
-          );
-        } else if (settlement.itemType === 'consumable') {
-          resourceChanges.push(
-            settlement.remaining
-                ? {
-                  resourceTopic: 'inventory.consumables',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'upsert-items',
-                  payload: { idKey: 'id', items: [settlement.remaining] },
-                }
-              : {
-                  resourceTopic: 'inventory.consumables',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'remove-items',
-                  payload: { idKey: 'id', ids: [settlement.itemId] },
-                },
-          );
-        } else {
-          resourceChanges.push(
-            settlement.remaining
-                ? {
-                  resourceTopic: 'inventory.materials',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'upsert-items',
-                  payload: {
-                    idKey: 'id',
-                    items: [sanitizeMaterialForClient(settlement.remaining)],
-                  },
-                }
-              : {
-                  resourceTopic: 'inventory.materials',
-                  eventType: 'inventory.mail.sent',
-                  operation: 'remove-items',
-                  payload: { idKey: 'id', ids: [settlement.itemId] },
-                },
-          );
-        }
-        if (settlement.itemType === 'artifact' && loadout) {
-          resourceChanges.push({
-            resourceTopic: 'player.loadout',
-            eventType: 'loadout.mail.sent',
-            operation: 'replace',
-            payload: loadout,
-          });
-        }
-      }
+      const resourceChanges: ResourceChangeDescriptor[] = [
+        {
+          resourceTopic: 'inventory.bag',
+          eventType: 'inventory.mail.sent',
+          operation: 'invalidate',
+        },
+      ];
       return {
         result: {
           message: `已向${result.recipientName}发出传音`,
@@ -223,10 +176,13 @@ export function claimCultivatorMail(args: {
         throw new PlayerMailCommandError('Already claimed', 400);
       }
       const attachments = (mail.attachments as MailAttachment[]) || [];
-      const gains = attachmentsToResourceOperations(attachments);
       return playerCommandExecutor.execute<
         | { message: string }
-        | { claimedMailId: string; unreadMailCount: number }
+        | {
+            claimedMailId: string;
+            unreadMailCount: number;
+            locations: string[];
+          }
       >({
         coordination: { mode: 'redis', lease },
         userId: args.actor.userId,
@@ -238,12 +194,35 @@ export function claimCultivatorMail(args: {
         },
         allowEmpty: attachments.length === 0,
         command: async (tx) => {
+          const current = await tx.query.mails.findFirst({
+            where: and(
+              eq(mails.id, args.mailId),
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+              eq(mails.isClaimed, false),
+            ),
+          });
+          if (!current)
+            throw new PlayerMailCommandError('邮件已领取或不存在', 400);
+          const attachments = (current.attachments as MailAttachment[]) || [];
+          const gains = attachmentsToResourceOperations(attachments);
           if (attachments.length === 0) {
             return {
               result: { message: 'No attachments' },
               resourceChanges: [],
             };
           }
+          const locations = [
+            ...(await deliverMailBeasts(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+            ...(await deliverMailInventory(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+          ];
           const result = await resourceEngine.applyInTransaction({
             userId: args.actor.userId,
             cultivatorId: args.actor.cultivatorId,
@@ -256,9 +235,7 @@ export function claimCultivatorMail(args: {
           const [updated] = await tx
             .update(mails)
             .set({ isClaimed: true, isRead: true })
-            .where(
-              and(eq(mails.id, args.mailId), eq(mails.isClaimed, false)),
-            )
+            .where(and(eq(mails.id, args.mailId), eq(mails.isClaimed, false)))
             .returning({ id: mails.id });
           if (!updated) throw new Error('邮件已被领取（并发冲突）');
           const mailSummary = await readPlayerMailSummary(
@@ -269,11 +246,13 @@ export function claimCultivatorMail(args: {
             result: {
               claimedMailId: args.mailId,
               unreadMailCount: mailSummary.unreadCount,
+              locations,
             },
             resourceChanges: mailClaimChanges({
               eventType: 'mail.claimed',
               unreadCount: mailSummary.unreadCount,
               settlement: result.settlement!,
+              attachments,
             }),
           };
         },
@@ -291,33 +270,61 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
       retries: 0,
     },
     async (lease) => {
-      const pendingMails = await mailsQueryAll(args.actor.cultivatorId);
-      const claimable = pendingMails.filter(
-        (mail) => ((mail.attachments as MailAttachment[]) || []).length > 0,
-      );
-      const mailIds = claimable.map((mail) => mail.id);
-      const gains = claimable.flatMap((mail) =>
-        attachmentsToResourceOperations(
-          (mail.attachments as MailAttachment[]) || [],
-        ),
-      );
       return playerCommandExecutor.execute<{
+        skipped: { id: string; reason: 'capacity' | 'occupied' }[];
         claimedCount: number;
         claimedMailIds: string[];
         unreadMailCount?: number;
+        locations?: string[];
       }>({
         coordination: { mode: 'redis', lease },
         userId: args.actor.userId,
         cultivatorId: args.actor.cultivatorId,
         source: 'mail_claim_all',
-        allowEmpty: mailIds.length === 0,
+        allowEmpty: true,
         command: async (tx) => {
+          const pendingMails = await tx.query.mails.findMany({
+            where: and(
+              eq(mails.type, 'reward'),
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+              eq(mails.isClaimed, false),
+            ),
+          });
+          const { claimable, skipped } = await selectClaimableBeastMails(
+            args.actor.cultivatorId,
+            pendingMails.filter(
+              (mail) =>
+                ((mail.attachments as MailAttachment[]) || []).length > 0,
+            ),
+            tx,
+          );
+          const mailIds = claimable.map((mail) => mail.id);
+          const attachments = claimable.flatMap(
+            (mail) => (mail.attachments as MailAttachment[]) || [],
+          );
+          const gains = attachmentsToResourceOperations(attachments);
           if (mailIds.length === 0) {
             return {
-              result: { claimedCount: 0, claimedMailIds: [] as string[] },
+              result: {
+                claimedCount: 0,
+                claimedMailIds: [] as string[],
+                skipped,
+              },
               resourceChanges: [],
             };
           }
+          const locations = [
+            ...(await deliverMailBeasts(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+            ...(await deliverMailInventory(
+              args.actor.cultivatorId,
+              attachments,
+              tx,
+            )),
+          ];
           const result = await resourceEngine.applyInTransaction({
             userId: args.actor.userId,
             cultivatorId: args.actor.cultivatorId,
@@ -330,9 +337,7 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
           const updated = await tx
             .update(mails)
             .set({ isClaimed: true, isRead: true })
-            .where(
-              and(inArray(mails.id, mailIds), eq(mails.isClaimed, false)),
-            )
+            .where(and(inArray(mails.id, mailIds), eq(mails.isClaimed, false)))
             .returning({ id: mails.id });
           if (updated.length !== mailIds.length) {
             throw new Error('部分邮件已被领取（并发冲突）');
@@ -343,14 +348,17 @@ export function claimAllCultivatorMail(args: { actor: MailActor }) {
           );
           return {
             result: {
+              skipped,
               claimedCount: mailIds.length,
               claimedMailIds: mailIds,
               unreadMailCount: mailSummary.unreadCount,
+              locations,
             },
             resourceChanges: mailClaimChanges({
               eventType: 'mail.claimed_all',
               unreadCount: mailSummary.unreadCount,
               settlement: result.settlement!,
+              attachments,
             }),
           };
         },
@@ -382,10 +390,7 @@ export function markCultivatorMailRead(args: {
       if (updated.length === 0) {
         throw new PlayerMailCommandError('Mail not found', 404);
       }
-      const summary = await readPlayerMailSummary(
-        args.actor.cultivatorId,
-        tx,
-      );
+      const summary = await readPlayerMailSummary(args.actor.cultivatorId, tx);
       return {
         result: { mailId: args.mailId, unreadMailCount: summary.unreadCount },
         resourceChanges: [
@@ -418,10 +423,7 @@ export function markAllCultivatorMailRead(args: { actor: MailActor }) {
           ),
         )
         .returning({ id: mails.id });
-      const summary = await readPlayerMailSummary(
-        args.actor.cultivatorId,
-        tx,
-      );
+      const summary = await readPlayerMailSummary(args.actor.cultivatorId, tx);
       return {
         result: {
           updatedCount: updated.length,
@@ -443,15 +445,5 @@ export function markAllCultivatorMailRead(args: { actor: MailActor }) {
 async function mailsQuery(cultivatorId: string, mailId: string) {
   return getExecutor().query.mails.findFirst({
     where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivatorId)),
-  });
-}
-
-async function mailsQueryAll(cultivatorId: string) {
-  return getExecutor().query.mails.findMany({
-    where: and(
-      eq(mails.type, 'reward'),
-      eq(mails.cultivatorId, cultivatorId),
-      eq(mails.isClaimed, false),
-    ),
   });
 }

@@ -19,6 +19,7 @@ import {
 } from '@app/components/feature/sect/sectTaskOutcomeRegistry';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import {
   readActivityImmersiveNavigationState,
   releaseActivityImmersiveMode,
@@ -306,11 +307,11 @@ export default function SectSpiritVeinMiningPage() {
       className="fixed inset-0 isolate overflow-hidden bg-[#07110f] text-stone-50"
       aria-label="灵索采矿小游戏"
     >
-      <div
-        className="absolute -inset-8 scale-110 bg-cover bg-center opacity-55 blur-xl"
-        style={{
-          backgroundImage: "url('/assets/sect/mining/spirit-vein-cavern.webp')",
-        }}
+      <GameImage
+        src="/assets/sect/mining/spirit-vein-cavern.webp"
+        alt=""
+        className="pointer-events-none absolute -top-8 -left-8 h-[calc(100%+4rem)] w-[calc(100%+4rem)] max-w-none scale-110 object-cover object-center blur-xl"
+        style={{ opacity: 0.55 }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-[#06100e]/35" aria-hidden="true" />

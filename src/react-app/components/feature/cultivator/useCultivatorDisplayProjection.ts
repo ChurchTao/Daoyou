@@ -1,22 +1,19 @@
 import {
-  buildSectProgressionState,
+  membershipState,
   useActiveSectContextQuery,
-  useSectProgressionQuery,
 } from '@app/components/feature/sect/sectResources';
 import {
   useCultivatorCondition,
   useCultivatorIdentity,
-  usePlayerLoadout,
 } from '@app/lib/resources/player';
 import {
   getEstimatedServerNowMs,
   useRecoveryClock,
 } from '@app/lib/resources/recoveryClock';
 import {
-  getCultivatorDisplaySnapshot,
   type CultivatorDisplayInput,
-} from '@shared/engine/battle-v5/adapters/CultivatorDisplayAdapter';
-import type { CultivatorCombatInput } from '@shared/engine/battle-v5/adapters/CultivatorCombatAdapter';
+} from '@shared/lib/cultivatorDisplay';
+import type { CombatV6ResourceAuthority, CultivatorDisplaySnapshot } from '@shared/lib/cultivatorDisplay';
 import {
   getNextConditionStatusExpiryMs,
   isConditionStatusActive,
@@ -31,15 +28,15 @@ import { useMemo } from 'react';
 
 export type CultivatorDisplayProjectionInput = PlayerIdentityCultivator &
   Omit<CultivatorDisplayInput, 'condition'> &
-  Pick<CultivatorCombatInput, 'skills' | 'spiritual_roots'> &
+  Pick<Cultivator, 'spiritual_roots'> &
   Pick<Cultivator, 'pre_heaven_fates'> & {
-    condition: CultivatorCondition;
+    condition: CultivatorCondition & { combatV6: CombatV6ResourceAuthority };
   };
 
 export interface CultivatorDisplayProjection {
   cultivator: CultivatorDisplayProjectionInput;
   projectedCondition: CultivatorCondition;
-  display: ReturnType<typeof getCultivatorDisplaySnapshot>;
+  display: CultivatorDisplaySnapshot;
   recovery: NaturalRecoveryProjection['recovery'];
   now: Date;
 }
@@ -60,21 +57,16 @@ function buildProjectedResourceView(resource: {
 export function useCultivatorDisplayProjection(enabled = true) {
   const profile = useCultivatorIdentity(enabled);
   const condition = useCultivatorCondition(enabled);
-  const loadout = usePlayerLoadout(enabled);
   const sectContext = useActiveSectContextQuery(enabled);
-  const sectProgression = useSectProgressionQuery(
-    enabled && sectContext.hasSect,
-  );
   const identity = profile.data?.cultivator;
   const sect = useMemo(
     () =>
-      sectContext.hasSect && sectContext.data && sectProgression.data
-        ? buildSectProgressionState(sectContext.data, sectProgression.data)
+      sectContext.hasSect && sectContext.data
+        ? membershipState(sectContext.data)
         : undefined,
     [
       sectContext.data,
       sectContext.hasSect,
-      sectProgression.data,
     ],
   );
   const sectReady =
@@ -86,33 +78,29 @@ export function useCultivatorDisplayProjection(enabled = true) {
   const basis = useMemo(() => {
     if (
       !identity ||
-      !condition.data ||
-      !loadout.data ||
+      !condition.data?.combatV6 ||
       !sectReady
     ) {
       return null;
     }
     const cultivator: CultivatorDisplayProjectionInput = {
       ...identity,
-      condition: condition.data,
-      skills: loadout.data.skills,
-      cultivations: loadout.data.cultivations,
-      equipped: loadout.data.equipped,
-      inventory: { artifacts: loadout.data.artifacts },
+      condition: { ...condition.data, combatV6: condition.data.combatV6 },
       sect,
     };
-    const display = getCultivatorDisplaySnapshot(cultivator);
+    const display = { attrs: condition.data.combatV6.attrs };
     const fateContext = evaluateFateContext(
       cultivator.pre_heaven_fates ?? [],
     );
     return {
       cultivator,
       display,
-      maxHp: display.resources.hp.max,
-      maxMp: display.resources.mp.max,
+      maxHp: condition.data.combatV6.maxHp,
+      maxMp: condition.data.combatV6.maxMp,
+      recoveryPaused: condition.data.combatV6.recoveryPaused,
       fateContext,
     };
-  }, [condition.data, identity, loadout.data, sect, sectReady]);
+  }, [condition.data, identity, sect, sectReady]);
 
   const estimatedNowMs = getEstimatedServerNowMs();
   const initialProjection = useMemo(
@@ -125,7 +113,7 @@ export function useCultivatorDisplayProjection(enabled = true) {
             toxicityPenaltyMultiplier:
               basis.fateContext.toxicityPenaltyMultiplier,
             naturalRecoveryMultiplier:
-              basis.fateContext.naturalRecoveryMultiplier,
+              basis.recoveryPaused ? 0 : basis.fateContext.naturalRecoveryMultiplier,
             now: new Date(estimatedNowMs),
           })
         : null,
@@ -154,10 +142,10 @@ export function useCultivatorDisplayProjection(enabled = true) {
       toxicityPenaltyMultiplier:
         basis.fateContext.toxicityPenaltyMultiplier,
       naturalRecoveryMultiplier:
-        basis.fateContext.naturalRecoveryMultiplier,
+        basis.recoveryPaused ? 0 : basis.fateContext.naturalRecoveryMultiplier,
       now: new Date(nowMs),
     });
-    const projectedCondition: CultivatorCondition = {
+    const projectedCondition: CultivatorDisplayProjectionInput['condition'] = {
       ...basis.cultivator.condition,
       resources: projection.resources,
       statuses: basis.cultivator.condition.statuses.filter((status) =>
@@ -188,17 +176,15 @@ export function useCultivatorDisplayProjection(enabled = true) {
     enabled &&
     (profile.loading ||
       condition.loading ||
-      loadout.loading ||
       sectContext.sessionLoading ||
       (sectContext.hasSect &&
-        (sectContext.loading || sectProgression.loading)));
+        sectContext.loading));
   const error =
     profile.error ??
     condition.error ??
-    loadout.error ??
+    (condition.data && !condition.data.combatV6 ? '角色战斗属性尚未加载' : undefined) ??
     sectContext.sessionError ??
-    sectContext.error ??
-    (sectContext.hasSect ? sectProgression.error : undefined);
+    sectContext.error;
 
   return {
     data,

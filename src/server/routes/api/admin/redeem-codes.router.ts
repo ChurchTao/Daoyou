@@ -1,29 +1,29 @@
 import { getExecutor } from '@server/lib/drizzle/db';
 import { redeemCodes } from '@server/lib/drizzle/schema';
-import { findPublishedItemLibraryForSelections } from '@server/lib/repositories/itemLibraryRepository';
+import { requireAdmin } from '@server/lib/hono/middleware';
+import type { AppEnv } from '@server/lib/hono/types';
 import {
   generateRedeemCode,
   isValidRedeemCodeFormat,
   normalizeRedeemCode,
 } from '@server/lib/redeem/code';
 import { describeRedeemCodeReward } from '@server/lib/redeem/reward';
-import { requireAdmin } from '@server/lib/hono/middleware';
-import type { AppEnv } from '@server/lib/hono/types';
-import type { MailAttachment } from '@shared/types/mail';
 import {
-  ItemLibraryResolveError,
-  ItemLibraryRewardSelectionsSchema,
-  resolveItemLibrarySelections,
-} from '@shared/lib/itemLibrary';
+  RewardSelectionsSchema,
+  rewardAttachments as buildRewardAttachments,
+} from '@shared/contracts/adminRewards';
+import type { MailAttachment } from '@shared/types/mail';
 import { and, desc, eq, type SQL } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+const INVENTORY_SNAPSHOT_REWARD_PRESET_ID = '__inventory_v1_snapshot__';
 const ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID = '__item_library_snapshot__';
 const LEGACY_REWARD_CATALOG_SNAPSHOT_PRESET_ID = '__reward_catalog_snapshot__';
 
 function isSnapshotRewardPresetId(value: string | null | undefined): boolean {
   return (
+    value === INVENTORY_SNAPSHOT_REWARD_PRESET_ID ||
     value === ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID ||
     value === LEGACY_REWARD_CATALOG_SNAPSHOT_PRESET_ID
   );
@@ -32,7 +32,7 @@ function isSnapshotRewardPresetId(value: string | null | undefined): boolean {
 const CreateRedeemCodeSchema = z
   .object({
     code: z.string().trim().max(64).optional(),
-    rewardSelections: ItemLibraryRewardSelectionsSchema.min(1, '至少选择一项奖励'),
+    rewardSelections: RewardSelectionsSchema.min(1, '至少选择一项奖励'),
     mailTitle: z.string().trim().min(1).max(200),
     mailContent: z.string().trim().min(1).max(10000),
     totalLimit: z.number().int().min(1).max(100000000).nullable().optional(),
@@ -57,7 +57,11 @@ const CreateRedeemCodeSchema = z
     if (value.startsAt && value.endsAt) {
       const startsAt = new Date(value.startsAt).getTime();
       const endsAt = new Date(value.endsAt).getTime();
-      if (!Number.isNaN(startsAt) && !Number.isNaN(endsAt) && startsAt > endsAt) {
+      if (
+        !Number.isNaN(startsAt) &&
+        !Number.isNaN(endsAt) &&
+        startsAt > endsAt
+      ) {
         ctx.addIssue({
           code: 'custom',
           path: ['endsAt'],
@@ -91,7 +95,7 @@ async function createWithAutoCode(params: {
         .insert(redeemCodes)
         .values({
           code,
-          rewardPresetId: ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID,
+          rewardPresetId: INVENTORY_SNAPSHOT_REWARD_PRESET_ID,
           rewardAttachments: params.rewardAttachments,
           mailTitle: params.mailTitle,
           mailContent: params.mailContent,
@@ -172,10 +176,7 @@ router.post('/', requireAdmin(), async (c) => {
   const parsed = CreateRedeemCodeSchema.safeParse(body);
 
   if (!parsed.success) {
-    return c.json(
-      { error: '参数错误', details: parsed.error.flatten() },
-      400,
-    );
+    return c.json({ error: '参数错误', details: parsed.error.flatten() }, 400);
   }
 
   const startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
@@ -184,29 +185,9 @@ router.post('/', requireAdmin(), async (c) => {
   const manualCode = parsed.data.code
     ? normalizeRedeemCode(parsed.data.code)
     : '';
-  let rewardAttachments: MailAttachment[];
-
-  try {
-    const itemLibraryEntries = await findPublishedItemLibraryForSelections(
-      parsed.data.rewardSelections,
-    );
-    rewardAttachments = resolveItemLibrarySelections(
-      parsed.data.rewardSelections,
-      itemLibraryEntries,
-    );
-  } catch (error) {
-    if (error instanceof ItemLibraryResolveError) {
-      return c.json({ error: error.message }, 400);
-    }
-
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : '道具库加载失败',
-      },
-      500,
-    );
-  }
+  const rewardAttachments = buildRewardAttachments(
+    parsed.data.rewardSelections,
+  );
 
   try {
     if (manualCode) {
@@ -221,7 +202,7 @@ router.post('/', requireAdmin(), async (c) => {
         .insert(redeemCodes)
         .values({
           code: manualCode,
-          rewardPresetId: ITEM_LIBRARY_SNAPSHOT_REWARD_PRESET_ID,
+          rewardPresetId: INVENTORY_SNAPSHOT_REWARD_PRESET_ID,
           rewardAttachments,
           mailTitle: parsed.data.mailTitle,
           mailContent: parsed.data.mailContent,

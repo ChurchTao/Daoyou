@@ -106,6 +106,7 @@ export interface BlackMarketRevealedMaterial {
 }
 
 export interface BlackMarketReveal {
+  location?: 'bag' | 'storage';
   material: BlackMarketRevealedMaterial;
   ownerAskPrice: number;
   paidPrice: number;

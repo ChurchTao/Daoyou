@@ -1,0 +1,55 @@
+{
+  "id": "arrival-fall",
+  "title": "入世",
+  "requires": ["name", "background"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "石室空着，洞口有一点天光。"
+    },
+    { "type": "title", "kicker": "洞府 · 初醒", "text": "入世" },
+    {
+      "type": "narration",
+      "text": "{name}在一处没有别人的洞府里醒来。石壁是凉的，案上压着一块玉简。"
+    },
+    {
+      "type": "narration",
+      "text": "玉简自己热了一热，上面的字是熟悉的。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "{background}"
+    },
+    {
+      "type": "choice",
+      "options": [
+        { "label": "握住玉简", "jump": "hold" },
+        { "label": "先看洞口", "jump": "mouth" }
+      ]
+    },
+    { "type": "mark", "id": "hold" },
+    {
+      "type": "narration",
+      "text": "玉简凉回掌心，洞里终于安静。"
+    },
+    {
+      "type": "narration",
+      "text": "这里可以先住下。"
+    },
+    { "type": "end", "outcome": "entered" },
+    { "type": "mark", "id": "mouth" },
+    {
+      "type": "narration",
+      "text": "门外有风，路还认不得。这间石室倒是能挡风。"
+    },
+    {
+      "type": "narration",
+      "text": "这里可以先住下。"
+    },
+    { "type": "end", "outcome": "entered" }
+  ]
+}

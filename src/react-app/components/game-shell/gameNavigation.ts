@@ -46,6 +46,16 @@ export const gameDockGroups: GameNavGroup[] = [
         coreDockLabel: '洞府',
       },
       {
+        id: 'storage',
+        sceneLabel: '洞府储藏室',
+        href: '/game/cave/storage/new?location=storage',
+      },
+      {
+        id: 'legacy-storage',
+        sceneLabel: '洞府宝库',
+        href: '/game/cave/storage',
+      },
+      {
         id: 'cultivator',
         sceneLabel: '道身',
         href: '/game/cultivator',
@@ -68,6 +78,7 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '修炼室',
         href: '/game/retreat',
       },
+      { id: 'divination', sceneLabel: '每日占卜', href: '/game/divination', expandedDockLabel: '🎲 每日占卜' },
       {
         id: 'inn',
         sceneLabel: '灵眼之泉',
@@ -83,12 +94,27 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'enlightenment',
         sceneLabel: '悟道室',
         href: '/game/enlightenment',
+        expandedDockLabel: '📜 悟道室',
+      },
+      {
+        id: 'inscriptions',
+        sceneLabel: '阵纹室',
+        href: '/game/inscriptions',
+        expandedDockLabel: '🔶 阵纹室',
+      },
+      {
+        id: 'artifact-migration',
+        sceneLabel: '旧法宝焕新',
+        href: '/game/artifact-migration',
+      },
+      {
+        id: 'manual-migration',
+        sceneLabel: '旧功法传承',
+        href: '/game/manual-migration',
       },
       {
         id: 'techniques',
         sceneLabel: '所修功法',
-        href: '/game/techniques',
-        expandedDockLabel: '📘 所修功法',
       },
       {
         id: 'skills',
@@ -109,6 +135,8 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '⛰️ 宗门',
       },
       { id: 'sect-onboarding', sceneLabel: '诸宗山门' },
+      { id: 'story', sceneLabel: '入世' },
+      { id: 'story-preview', sceneLabel: '看演出' },
       { id: 'sect-transfer', sceneLabel: '欺天台 · 转宗' },
       { id: 'identity-reshape', sceneLabel: '改天换地' },
       { id: 'sect-visit', sceneLabel: '访宗舆图' },
@@ -134,6 +162,19 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '练功房',
         href: '/game/training-room',
       },
+      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
+      {
+        id: 'beast-room',
+        sceneLabel: '育兽室',
+        href: '/game/beast-room',
+      },
+      {
+        id: 'beasts',
+        sceneLabel: '灵兽袋',
+        href: '/game/beasts',
+        expandedDockLabel: '🐯 灵兽袋',
+      },
+      { id: 'beast-fusion', sceneLabel: '灵兽融合', href: '/game/beasts/fusion' },
       {
         id: 'inventory',
         sceneLabel: '储物袋',
@@ -183,11 +224,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🪞 蜃楼幻境',
       },
       {
-        id: 'craft',
-        sceneLabel: '造物仙炉',
-        href: '/game/craft',
-      },
-      {
         id: 'fate-reshape',
         sceneLabel: '重塑命格',
         href: '/game/fate-reshape',
@@ -200,11 +236,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '📜 任务中心',
       },
       {
-        id: 'manual-draw',
-        sceneLabel: '悟道演法',
-        href: '/game/enlightenment/manual-draw',
-      },
-      {
         id: 'alchemy',
         sceneLabel: '炼丹房',
       },
@@ -214,7 +245,9 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'map',
-        sceneLabel: '修仙界地图',
+        sceneLabel: '山河舆图',
+        href: '/game/map-v2',
+        expandedDockLabel: '🗺️ 修仙界地图',
       },
     ],
   },
@@ -225,7 +258,7 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'market',
         sceneLabel: '修仙坊市',
-        href: '/game/map?intent=market',
+        href: '/game/map-v2?intent=market',
         expandedDockLabel: '🛖 修仙坊市',
       },
       {
@@ -240,9 +273,9 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'tianjiao-vault',
-        sceneLabel: '天骄宝阁',
+        sceneLabel: '万界商行',
         href: '/game/tianjiao-vault',
-        expandedDockLabel: '🏵️ 天骄宝阁',
+        expandedDockLabel: '🏵️ 万界商行',
       },
       {
         id: 'auction',
@@ -281,12 +314,6 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏆 天骄榜',
       },
       {
-        id: 'bet-battle',
-        sceneLabel: '赌战台',
-        href: '/game/bet-battle',
-        expandedDockLabel: '⚔️ 赌战台',
-      },
-      {
         id: 'arena-sparring',
         sceneLabel: '擂台切磋',
         href: '/game/arena',
@@ -295,15 +322,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'battle-challenge',
         sceneLabel: '挑战天骄',
-      },
-      {
-        id: 'battle-live-lobby',
-        sceneLabel: '多人战斗邀请',
-        href: '/game/battle/live',
-      },
-      {
-        id: 'battle-live-match',
-        sceneLabel: '实时多人战局',
       },
       {
         id: 'battle-replay',
@@ -316,10 +334,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'task-challenge',
         sceneLabel: '破境试炼',
-      },
-      {
-        id: 'bet-battle-challenge',
-        sceneLabel: '赌战挑战',
       },
     ],
   },

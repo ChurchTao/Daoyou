@@ -6,6 +6,16 @@ export interface AdminNavItem {
 
 export const adminNavItems: AdminNavItem[] = [
   {
+    title: '旧功法迁移',
+    description: '查看待兑换功法与异常记录',
+    href: '/admin/manual-migration',
+  },
+  {
+    title: '宗门迁移',
+    description: '旧心法、经脉继承与退款核对',
+    href: '/admin/sect-migration',
+  },
+  {
     title: '总览',
     description: '后台入口与能力地图',
     href: '/admin',
@@ -21,13 +31,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/accounts',
   },
   {
-    title: '邮箱群发',
-    description: '面向已验证邮箱用户',
-    href: '/admin/broadcast/email',
-  },
-  {
-    title: '游戏邮件',
-    description: '公告与奖励批量发放',
+    title: '系统邮件',
+    description: '按条件发布公告与奖励',
     href: '/admin/broadcast/game-mail',
   },
   {
@@ -36,24 +41,19 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/announcement',
   },
   {
-    title: '道具库',
-    description: '可引用与发放的道具库',
+    title: '材料库',
+    description: '材料与灵种来源维护',
     href: '/admin/item-library',
   },
   {
     title: '声望商店管理',
-    description: '配置天骄宝阁兑换商品',
+    description: '配置万界商行兑换商品',
     href: '/admin/reputation-shop',
   },
   {
     title: '宗门宝库管理',
     description: '配置宗门贡献兑换商品',
     href: '/admin/sect-shop',
-  },
-  {
-    title: '模板中心',
-    description: '运营文案模板管理',
-    href: '/admin/templates',
   },
   {
     title: '兑换码管理',
@@ -76,13 +76,8 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/online-users',
   },
   {
-    title: '对战模拟器',
-    description: '验证角色对战与数值样本',
-    href: '/admin/battle-simulator',
-  },
-  {
     title: '蜃楼敌人',
-    description: '按周查看与手动生成敌人',
+    description: '查看每周阵容、机制与战斗属性',
     href: '/admin/tower-enemy-sets',
   },
   {

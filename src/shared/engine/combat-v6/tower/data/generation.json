@@ -1,0 +1,207 @@
+{
+  "combinations": [
+    {
+      "id": "warrior-ward-calm",
+      "style": "physical",
+      "survival": "ward",
+      "tempo": "calm",
+      "archetype": "warrior",
+      "traits": ["magic_ward", "seal_resist"],
+      "behavior": "strike",
+      "lateBehavior": "strike_late"
+    },
+    {
+      "id": "warrior-armor-charge",
+      "style": "physical",
+      "survival": "armor",
+      "tempo": "charge",
+      "archetype": "warrior",
+      "traits": ["armor", "charge"],
+      "behavior": "charge",
+      "lateBehavior": "charge_late"
+    },
+    {
+      "id": "mage-vital-swift",
+      "style": "spell",
+      "survival": "vital",
+      "tempo": "swift",
+      "archetype": "mage",
+      "traits": ["vital", "swift"],
+      "behavior": "spell",
+      "lateBehavior": "spell_late"
+    },
+    {
+      "id": "mage-armor-calm",
+      "style": "spell",
+      "survival": "armor",
+      "tempo": "calm",
+      "archetype": "mage",
+      "traits": ["armor", "seal_resist"],
+      "behavior": "spell",
+      "lateBehavior": "spell_late"
+    },
+    {
+      "id": "binder-vital-swift",
+      "style": "seal",
+      "survival": "vital",
+      "tempo": "swift",
+      "archetype": "binder",
+      "traits": ["vital", "swift"],
+      "behavior": "seal",
+      "lateBehavior": "seal_late"
+    },
+    {
+      "id": "binder-ward-calm",
+      "style": "seal",
+      "survival": "ward",
+      "tempo": "calm",
+      "archetype": "binder",
+      "traits": ["magic_ward", "seal_resist"],
+      "behavior": "seal",
+      "lateBehavior": "seal_late"
+    }
+  ],
+  "roles": {
+    "leader": {},
+    "striker": {},
+    "healer": {
+      "archetype": "attendant",
+      "traits": ["limited_healing"],
+      "behavior": "healing",
+      "lateBehavior": "healing_late"
+    },
+    "guard": {
+      "archetype": "attendant",
+      "traits": ["guard"],
+      "behavior": "support",
+      "lateBehavior": "support"
+    }
+  },
+  "lateFloors": [15, 20],
+  "kindTraits": {
+    "normal": [],
+    "elite": [],
+    "boss": ["last_stand"]
+  },
+  "normalFloors": {
+    "1": {
+      "formation": "solo",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "2": {
+      "formation": "pair",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "3": {
+      "formation": "solo",
+      "archetype": "mage",
+      "behavior": "spell"
+    },
+    "6": {
+      "formation": "pair",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "7": {
+      "formation": "healer",
+      "archetype": "mage",
+      "behavior": "spell"
+    },
+    "8": {
+      "formation": "escort",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "11": {
+      "formation": "solo",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "12": {
+      "formation": "pair",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "13": {
+      "formation": "solo",
+      "archetype": "mage",
+      "behavior": "spell"
+    },
+    "16": {
+      "formation": "pair",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "17": {
+      "formation": "healer",
+      "archetype": "mage",
+      "behavior": "spell"
+    },
+    "18": {
+      "formation": "escort",
+      "archetype": "warrior",
+      "behavior": "basic"
+    }
+  },
+  "leadIns": {
+    "4": {
+      "source": 5,
+      "mode": "formation"
+    },
+    "9": {
+      "source": 10,
+      "mode": "formation"
+    },
+    "14": {
+      "source": 15,
+      "mode": "leader"
+    },
+    "19": {
+      "source": 20,
+      "mode": "formation"
+    }
+  },
+  "preludes": {
+    "solo": {
+      "formation": "solo",
+      "behavior": "source"
+    },
+    "healer": {
+      "formation": "healer",
+      "archetype": "warrior",
+      "behavior": "basic"
+    },
+    "guarded": {
+      "formation": "escort",
+      "archetype": "warrior",
+      "behavior": "basic"
+    }
+  },
+  "behaviorTraits": {
+    "charge": ["charge"],
+    "charge_late": ["charge"]
+  },
+  "formationRules": [
+    {
+      "match": {
+        "style": "seal"
+      },
+      "elite": ["solo"],
+      "boss": ["solo"]
+    },
+    {
+      "match": {
+        "survival": "armor"
+      },
+      "elite": ["solo", "healer"],
+      "boss": ["solo", "healer"]
+    },
+    {
+      "match": {},
+      "elite": ["solo", "healer"],
+      "boss": ["solo", "healer", "guarded"]
+    }
+  ]
+}

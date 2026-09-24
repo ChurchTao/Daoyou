@@ -1,3 +1,4 @@
+import { BEAST_CULTIVATION_BASE_BY_QUALITY } from '@shared/config/beastCultivation';
 import { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '@shared/config/alchemyEffectConfig';
 import { buildBreakthroughFocusOperation } from '@shared/lib/pillEffectScaling';
 import type { ConditionOperation, PillFamily, SpiritFruitSpec } from '@shared/types/consumable';
@@ -16,6 +17,7 @@ export function buildSpiritFruitOperations(family: PillFamily, quality: Quality)
     case 'marrow_wash': return [{ type: 'advance_track', track: 'marrow_wash', value: lower(base.bodyTrack) }];
     case 'tempering': return [{ type: 'advance_track', track: 'body.qi_blood', value: lower(base.bodyTrack) }];
     case 'breakthrough': return [buildBreakthroughFocusOperation(quality, 0.8)];
+    case 'beast_cultivation': return [{ type: 'gain_beast_cultivation', value: lower(BEAST_CULTIVATION_BASE_BY_QUALITY[quality]) }];
     case 'cultivation': return [{ type: 'gain_progress', target: 'cultivation_exp', value: lower(base.insight * 8) }];
     case 'hybrid': return [
       { type: 'restore_resource', resource: 'hp', mode: 'percent', value: Number((base.restorePercent * 0.4).toFixed(4)) },

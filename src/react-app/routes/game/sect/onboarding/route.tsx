@@ -1,6 +1,7 @@
 import { NarrativePerformanceLoading } from '@app/components/feature/narrative/NarrativePerformanceLoading';
 import { NarrativePerformanceStage } from '@app/components/feature/narrative/NarrativePerformanceStage';
 import { InkButton } from '@app/components/ui';
+import { GameImage } from '@app/components/ui/GameImage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorIdentity,
@@ -8,6 +9,10 @@ import {
 } from '@app/lib/resources/player';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import type { SectCatalogEntry } from '@shared/contracts/sect';
+import {
+  COMBAT_V6_SECT_DEFINITIONS,
+  type CombatV6SectId,
+} from '@shared/engine/combat-v6/content';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import { getSectLandmarkBySectId } from '@shared/lib/game/mapSystem';
 import { useMemo, useRef, useState } from 'react';
@@ -20,7 +25,7 @@ import {
 import { resolveSectOnboardingFinish } from './sectOnboardingFlow';
 
 interface OnboardingSectEntry extends SectCatalogEntry {
-  foundationPassive: {
+  paths: {
     name: string;
     description: string;
   };
@@ -49,19 +54,15 @@ export default function SectOnboardingPage() {
           }).allowed,
       )
       .map((definition): OnboardingSectEntry => {
-        const foundationPassive = definition.abilities.find(
-          (ability) => ability.id === definition.foundationPassiveId,
-        );
-        if (!foundationPassive) {
-          throw new Error(`宗门 ${definition.id} 缺少根基被动定义`);
-        }
+        const combat =
+          COMBAT_V6_SECT_DEFINITIONS[definition.id as CombatV6SectId];
         return {
           id: definition.id,
           name: definition.name,
           description: definition.description,
-          foundationPassive: {
-            name: foundationPassive.baseName,
-            description: foundationPassive.description,
+          paths: {
+            name: combat.paths.map((path) => path.name).join(' · '),
+            description: '入宗后可修习六心法，选择流派并参悟经脉。',
           },
         };
       });
@@ -125,7 +126,7 @@ export default function SectOnboardingPage() {
                   key={sect.id}
                   className="group relative isolate flex min-h-[28rem] overflow-hidden border border-[#2c241d]/15 bg-[#1d211d] p-6 text-[#f4eddd] shadow-[0_18px_55px_rgba(41,31,22,0.18)] sm:p-8"
                 >
-                  <img
+                  <GameImage
                     src={presentation.script.backdrop.src}
                     alt=""
                     className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"
@@ -146,10 +147,10 @@ export default function SectOnboardingPage() {
                         宗门根基
                       </p>
                       <p className="mt-1 text-sm font-semibold text-[#f2d69c]">
-                        {sect.foundationPassive.name}
+                        {sect.paths.name}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[#ded2ba]">
-                        {sect.foundationPassive.description}
+                        {sect.paths.description}
                       </p>
                     </div>
                     <InkButton
@@ -184,8 +185,8 @@ export default function SectOnboardingPage() {
   const finish = resolveSectOnboardingFinish(activeSectId, selected.id);
   const landmark = getSectLandmarkBySectId(selected.id);
   const worldMapHref = landmark
-    ? `/game/map?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
-    : '/game/map?intent=sect';
+    ? `/game/map-v2?intent=sect&nodeId=${encodeURIComponent(landmark.id)}`
+    : '/game/map-v2?intent=sect';
 
   const join = async () => {
     if (joinAttemptSectIdRef.current !== selected.id) {

@@ -170,6 +170,7 @@ function selectEffectiveProperties(
 export function determineAlchemyFamily(
   propertyVector: WeightedAlchemyProperty[],
 ): PillFamily {
+  if (propertyVector[0]?.key === 'beast_cultivation') return 'beast_cultivation';
   const restoreHp = propertyVector.find(
     (property) => property.key === 'restore_hp',
   );
