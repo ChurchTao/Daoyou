@@ -15,6 +15,7 @@ import systemMailsRouter from '@server/routes/api/admin/system-mails.router';
 import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.router';
 import { Hono } from 'hono';
 import rewardItemsRouter from './reward-items.router';
+import sectMigrationRouter from './sect-migration';
 
 const router = new Hono<AppEnv>();
 
@@ -36,6 +37,7 @@ router.route('/reward-items', rewardItemsRouter);
 router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/sect-shop', sectShopRouter);
+router.route('/sect-migration', sectMigrationRouter);
 router.route('/sponsorship', sponsorshipRouter);
 router.route('/community-group', communityGroupRouter);
 router.route('/llm-metrics', llmMetricsRouter);

@@ -1,3 +1,35 @@
+-- Preserve V5 sect migration inputs before any destructive cutover statement.
+-- Drizzle runs preservation and schema changes in the same transaction.
+-- Compensation remains an explicit action in the temporary admin tool.
+DO $$
+BEGIN
+  PERFORM pg_advisory_xact_lock(74612001);
+  LOCK TABLE "wanjiedaoyou_sect_memberships", "wanjiedaoyou_sect_method_progress",
+    "wanjiedaoyou_sect_path_progress", "wanjiedaoyou_sect_meridian_loadouts" IN SHARE MODE;
+  IF EXISTS (
+    SELECT 1 FROM "wanjiedaoyou_app_settings" WHERE "key" LIKE 'sect-migration:v1:%'
+  ) THEN
+    RAISE EXCEPTION 'Sect migration records already exist; inspect them before cutover. Existing sources must not be overwritten.';
+  END IF;
+
+  INSERT INTO "wanjiedaoyou_app_settings" ("key", "value")
+  SELECT 'sect-migration:v1:pending:' || m.id, jsonb_build_object(
+    'membershipId', m.id, 'cultivatorId', m.cultivator_id, 'sectId', m.sect_id,
+    'activePathId', m.active_path_id,
+    'methods', COALESCE((SELECT jsonb_agg(jsonb_build_object('methodId', p.method_id, 'level', p.level) ORDER BY p.method_id)
+      FROM wanjiedaoyou_sect_method_progress p WHERE p.membership_id = m.id), '[]'::jsonb),
+    'paths', COALESCE((SELECT jsonb_agg(jsonb_build_object('pathId', p.path_id, 'unlockedLayerIds', p.unlocked_layer_ids) ORDER BY p.path_id)
+      FROM wanjiedaoyou_sect_path_progress p WHERE p.membership_id = m.id), '[]'::jsonb),
+    'meridianLoadouts', COALESCE((SELECT jsonb_agg(jsonb_build_object('pathId', p.path_id, 'slot', p.slot, 'nodeIds', p.node_ids) ORDER BY p.path_id, p.slot)
+      FROM wanjiedaoyou_sect_meridian_loadouts p WHERE p.membership_id = m.id), '[]'::jsonb)
+  )::text FROM wanjiedaoyou_sect_memberships m WHERE m.status = 'active';
+
+  INSERT INTO "wanjiedaoyou_app_settings" ("key", "value")
+  SELECT 'sect-migration:v1:manifest', jsonb_build_object(
+    'stagedAt', now(), 'membershipIds', COALESCE(jsonb_agg(id ORDER BY id), '[]'::jsonb)
+  )::text FROM wanjiedaoyou_sect_memberships WHERE status = 'active';
+END $$;
+--> statement-breakpoint
 CREATE TABLE "wanjiedaoyou_combat_replay_archives" (
 	"battle_id" uuid PRIMARY KEY NOT NULL,
 	"metadata_version" integer NOT NULL,
@@ -75,7 +107,7 @@ CREATE TABLE "wanjiedaoyou_sect_meridian_nodes" (
 	"layer" integer NOT NULL
 );
 --> statement-breakpoint
--- Unreleased V6 hard cutover: discard replaced state, without migrating old payloads.
+-- Unreleased V6 hard cutover: V5 sect inputs are preserved above for admin migration.
 DROP TABLE "wanjiedaoyou_combat_v6_manual_slots";--> statement-breakpoint
 DROP TABLE "wanjiedaoyou_combat_v6_manual_states";--> statement-breakpoint
 DROP TABLE "wanjiedaoyou_combat_v6_equipment_loadouts";--> statement-breakpoint
