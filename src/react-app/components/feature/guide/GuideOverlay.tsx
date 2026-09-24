@@ -1,4 +1,6 @@
 import { InkButton } from '@app/components/ui';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import { useStory } from '@app/lib/story/useStory';
 import { getGuideLesson } from '@shared/guide/catalog';
 import {
   advanceGuide,
@@ -6,7 +8,10 @@ import {
   currentGuideStep,
   type GuideState,
 } from '@shared/guide/interpreter';
+import type { GuideStep } from '@shared/guide/schema';
 import { useEffect, useRef, useState } from 'react';
+
+type ShownStep = Extract<GuideStep, { type: 'look' | 'press' }>;
 import { useSearchParams } from 'react-router';
 
 interface Hole {
@@ -81,9 +86,28 @@ function useAnchorHole(anchor: string | null) {
 }
 
 export function GuideOverlay() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const lessonId = searchParams.get('guide');
-  if (!lessonId || !getGuideLesson(lessonId)) return null;
+  const story = useStory(Boolean(lessonId));
+  const lesson = lessonId ? getGuideLesson(lessonId) : null;
+  const allowed = Boolean(
+    lesson && !story.loading && story.story?.guideLesson === lessonId,
+  );
+
+  useEffect(() => {
+    if (!lessonId || story.loading || allowed) return;
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (next.get('guide') !== lessonId) return current;
+        next.delete('guide');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [allowed, lessonId, setSearchParams, story.loading]);
+
+  if (!allowed || !lessonId) return null;
   return <GuideSession key={lessonId} lessonId={lessonId} />;
 }
 
@@ -91,6 +115,9 @@ function GuideSession({ lessonId }: { lessonId: string }) {
   const [, setSearchParams] = useSearchParams();
   const lesson = getGuideLesson(lessonId);
   const [state, setState] = useState<GuideState>(createGuideState);
+  const [noting, setNoting] = useState(false);
+  const [noteError, setNoteError] = useState<string>();
+  const [remembered, setRemembered] = useState<ShownStep | null>(null);
   const step = lesson ? currentGuideStep(lesson, state) : null;
   const anchor = step && step.type !== 'end' ? step.anchor : null;
   const hole = useAnchorHole(anchor);
@@ -107,38 +134,71 @@ function GuideSession({ lessonId }: { lessonId: string }) {
   };
 
   const closeRef = useRef(close);
+  const notingRef = useRef(false);
   useEffect(() => {
     closeRef.current = close;
   });
 
+  const finishLesson = () => {
+    if (notingRef.current) return;
+    notingRef.current = true;
+    setNoting(true);
+    setNoteError(undefined);
+    void fetch(`/api/story/guides/${encodeURIComponent(lessonId)}/complete`, {
+      method: 'POST',
+    })
+      .then((response) => consumeResourceMutation(response))
+      .then(() => closeRef.current())
+      .catch((reason: unknown) => {
+        notingRef.current = false;
+        setNoting(false);
+        setNoteError(
+          reason instanceof Error ? reason.message : '这课没能记下，再试一次。',
+        );
+      });
+  };
+
+  const finishRef = useRef(finishLesson);
+  useEffect(() => {
+    finishRef.current = finishLesson;
+  });
+
   const advance = () => {
-    if (!lesson) return;
+    if (!lesson || notingRef.current) return;
+    let finished = false;
     setState((current) => {
       const next = advanceGuide(lesson, current);
-      if (next.finished) closeRef.current();
+      finished = next.finished && !current.finished;
       return next;
     });
+    if (finished && step && step.type !== 'end') setRemembered(step);
+    if (finished) finishRef.current();
   };
 
   useEffect(() => {
     if (!lesson || step?.type !== 'press') return;
     const onClick = (event: MouseEvent) => {
+      if (notingRef.current) return;
       const node = document.querySelector(
         `[data-guide="${step.anchor}"]`,
       );
       if (!(node instanceof HTMLElement)) return;
       if (!(event.target instanceof Node) || !node.contains(event.target)) return;
+      let finished = false;
       setState((current) => {
         const next = advanceGuide(lesson, current);
-        if (next.finished) closeRef.current();
+        finished = next.finished && !current.finished;
         return next;
       });
+      if (finished && step.type === 'press') setRemembered(step);
+      if (finished) finishRef.current();
     };
     document.addEventListener('click', onClick);
     return () => document.removeEventListener('click', onClick);
   }, [lesson, step]);
 
-  if (!lesson || !step || step.type === 'end') return null;
+  const visible = step && step.type !== 'end' ? step : remembered;
+  if (!lesson || !visible || (!step && !state.finished)) return null;
 
   const calloutWidth = Math.min(288, window.innerWidth - 32);
   const calloutHeight = 150;
@@ -194,7 +254,7 @@ function GuideSession({ lessonId }: { lessonId: string }) {
               height: hole.height,
             }}
           />
-          {step.type === 'look' ? (
+          {step?.type === 'look' || state.finished ? (
             <div
               className="pointer-events-auto absolute"
               style={{
@@ -219,24 +279,35 @@ function GuideSession({ lessonId }: { lessonId: string }) {
       >
         <p className="text-xs tracking-[0.22em] text-teal">教学</p>
         <p className="mt-2 text-base leading-7">
-          {hole ? step.text : '这一处还没出现。'}
+          {state.finished
+            ? noteError ?? (noting ? '正在记下。' : visible.text)
+            : hole
+              ? visible.text
+              : '这一处还没出现。'}
         </p>
         <div className="mt-3 flex items-center gap-4">
-          {step.type === 'look' && hole ? (
+          {state.finished && noteError ? (
+            <InkButton variant="primary" onClick={finishLesson}>
+              再记一次
+            </InkButton>
+          ) : null}
+          {step?.type === 'look' && hole && !state.finished ? (
             <InkButton variant="primary" onClick={advance}>
               知道了
             </InkButton>
           ) : null}
-          {step.type === 'press' && hole ? (
+          {step?.type === 'press' && hole && !state.finished ? (
             <p className="text-sm text-ink-secondary">点亮着的这一处。</p>
           ) : null}
-          <button
-            type="button"
-            onClick={close}
-            className="cursor-pointer text-sm text-ink-secondary hover:text-ink"
-          >
-            先不看
-          </button>
+          {noting ? null : (
+            <button
+              type="button"
+              onClick={close}
+              className="cursor-pointer text-sm text-ink-secondary hover:text-ink"
+            >
+              先不看
+            </button>
+          )}
         </div>
       </div>
     </div>

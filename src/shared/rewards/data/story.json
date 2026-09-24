@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "materials": {
+    "story.herb.cuibucao": {
+      "name": "翠芽草",
+      "type": "herb",
+      "rank": "凡品",
+      "element": "木",
+      "description": "生于山间溪畔的常见药草，可以入炉。"
+    }
+  },
+  "payouts": [
+    {
+      "id": "first-herbs",
+      "poolVersion": 1,
+      "groups": [
+        {
+          "id": "herbs",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "story.herb.cuibucao",
+              "weight": 1,
+              "quantity": { "min": 3, "max": 3 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

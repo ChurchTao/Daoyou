@@ -12,6 +12,10 @@ import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDom
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
+import {
+  observeCombatStory,
+  projectStoryDomainEvent,
+} from '@server/lib/services/StoryDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import {
   generateYieldRewardAttachments,
@@ -76,8 +80,10 @@ export async function registerMessageInfrastructure(): Promise<void> {
           const data = (
             event as DomainEventEnvelope<'combat.v6.battle.finished'>
           ).data;
-          if (data.sourceType !== 'arena-sparring')
+          if (data.sourceType !== 'arena-sparring') {
             await projectCombatV6Condition(data.battleId);
+            await observeCombatStory(data.battleId);
+          }
         }
       },
     }),
@@ -155,7 +161,14 @@ async function handleTaskEvent(event: DomainEventEnvelope) {
     consumerName: DOMAIN_EVENT_CONSUMERS.taskProjector.name,
     source: 'task_domain_event',
     event,
-    handle: projectTaskDomainEvent,
+    handle: async (event, tx) => {
+      const task = await projectTaskDomainEvent(event, tx);
+      const story = await projectStoryDomainEvent(event, tx);
+      return {
+        result: task.result,
+        resourceChanges: [...task.resourceChanges, ...story.resourceChanges],
+      };
+    },
   });
 }
 

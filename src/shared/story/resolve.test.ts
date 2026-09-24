@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { getStoryChapter, openingStoryProgress } from './catalog';
 import {
+  acknowledgeGuide,
   acknowledgePerformance,
+  noteStoryFact,
   presentStory,
   resolveStory,
   rewindToUnwatchedPerformance,
 } from './resolve';
 import {
   emptyStoryFacts,
+  StoryChapterSchema,
   type StoryChapter,
   type StoryProgress,
 } from './schema';
@@ -29,11 +32,12 @@ const chapter: StoryChapter = {
     {
       id: 'craft',
       kind: 'practice',
-      fact: 'alchemy_crafted',
+      accept: [{ type: 'fact', fact: 'alchemy_crafted' }],
       scene: 'alchemy',
       prompt: '去开炉。',
       href: '/game/craft/alchemy',
       grant: 'herbs',
+      reward: 'thanks',
     },
     {
       id: 'stay',
@@ -73,6 +77,7 @@ describe('story resolver', () => {
     expect(view.kind).toBe('performance');
     expect(view.scriptId).toBe('arrival-fall');
     expect(view.href).toBe('/game/story');
+    expect(view.guideLesson).toBeNull();
   });
 
   it('advances a performance into a practice and grants once', () => {
@@ -85,10 +90,163 @@ describe('story resolver', () => {
       'go',
     );
     expect(first.progress.beatId).toBe('stay');
-    expect(first.grants).toEqual(['herbs']);
+    expect(first.grants).toEqual(['herbs', 'thanks']);
     const again = resolveStory(chapter, first.progress, facts);
     expect(again.grants).toEqual([]);
     expect(again.progress.beatId).toBe('stay');
+  });
+
+  it('gives the opening bundle when the practice starts, and the reward when it is done', () => {
+    const facts = emptyStoryFacts();
+    const opened = acknowledgePerformance(
+      chapter,
+      progress('watch'),
+      facts,
+      'sample-play',
+      'go',
+    );
+    expect(opened.progress.beatId).toBe('craft');
+    expect(opened.grants).toEqual(['herbs']);
+    expect(presentStory(chapter, opened.progress, facts).guideLesson).toBeNull();
+    const finished = noteStoryFact(
+      chapter,
+      opened.progress,
+      facts,
+      'alchemy_crafted',
+    );
+    expect(finished.progress.beatId).toBe('stay');
+    expect(finished.grants).toEqual(['thanks']);
+    expect(finished.progress.marks).toEqual(['alchemy_crafted']);
+  });
+
+  it('accepts either a watched lesson or the world fact, and can require both', () => {
+    const guided: StoryChapter = {
+      ...chapter,
+      beats: [
+        chapter.beats[0]!,
+        {
+          id: 'craft',
+          kind: 'practice',
+          accept: [
+            { type: 'guide', lesson: 'alchemy-first-furnace' },
+            { type: 'fact', fact: 'alchemy_crafted' },
+          ],
+          scene: 'alchemy',
+          prompt: '去开炉。',
+          href: '/game/craft/alchemy?guide=alchemy-first-furnace',
+        },
+        chapter.beats[2]!,
+      ],
+    };
+    const opened = acknowledgePerformance(
+      guided,
+      progress('watch'),
+      emptyStoryFacts(),
+      'sample-play',
+      'go',
+    );
+    expect(presentStory(guided, opened.progress, emptyStoryFacts()).guideLesson).toBe(
+      'alchemy-first-furnace',
+    );
+    const watched = acknowledgeGuide(
+      guided,
+      opened.progress,
+      emptyStoryFacts(),
+      'alchemy-first-furnace',
+    );
+    expect(watched.progress.beatId).toBe('stay');
+    expect(watched.progress.marks).toEqual(['guide:alchemy-first-furnace']);
+
+    const both: StoryChapter = {
+      ...guided,
+      beats: [
+        guided.beats[0]!,
+        { ...guided.beats[1]!, mode: 'all' as const },
+        guided.beats[2]!,
+      ],
+    };
+    const waiting = acknowledgeGuide(
+      both,
+      opened.progress,
+      emptyStoryFacts(),
+      'alchemy-first-furnace',
+    );
+    expect(waiting.progress.beatId).toBe('craft');
+    expect(presentStory(both, waiting.progress, emptyStoryFacts()).guideLesson).toBeNull();
+    const crafted = noteStoryFact(
+      both,
+      waiting.progress,
+      emptyStoryFacts(),
+      'alchemy_crafted',
+    );
+    expect(crafted.progress.beatId).toBe('stay');
+  });
+
+  it('lets a beat wait on a fight without a lesson', () => {
+    const parsed = StoryChapterSchema.parse({
+      id: 'sample',
+      track: 'main',
+      title: '试章',
+      beats: [
+        {
+          id: 'fight',
+          kind: 'practice',
+          accept: [{ type: 'fact', fact: 'training_victory' }],
+          scene: 'training',
+          prompt: '出去挡一挡。',
+          href: '/game/training',
+        },
+        {
+          id: 'stay',
+          kind: 'life',
+          scene: 'cave',
+          prompt: '',
+          href: '/game',
+        },
+      ],
+    });
+    expect(presentStory(parsed, progress('fight'), emptyStoryFacts()).guideLesson).toBe(
+      null,
+    );
+    const won = noteStoryFact(parsed, progress('fight'), emptyStoryFacts(), 'training_victory');
+    expect(won.progress.beatId).toBe('stay');
+  });
+
+  it('requires a configured lesson to be a real one, and the link to carry it', () => {
+    const fight = {
+      id: 'sample',
+      track: 'main',
+      title: '试章',
+      beats: [
+        {
+          id: 'learn',
+          kind: 'practice',
+          accept: [{ type: 'guide', lesson: 'missing-lesson' }],
+          scene: 'alchemy',
+          prompt: '去看看。',
+          href: '/game/craft/alchemy?guide=missing-lesson',
+        },
+      ],
+    };
+    expect(StoryChapterSchema.safeParse(fight).success).toBe(false);
+    expect(
+      StoryChapterSchema.safeParse({
+        ...fight,
+        beats: [
+          {
+            ...fight.beats[0],
+            accept: [{ type: 'guide', lesson: 'alchemy-first-furnace' }],
+            href: '/game/craft/alchemy',
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a lesson the current beat did not ask for', () => {
+    expect(() =>
+      acknowledgeGuide(chapter, progress('craft'), emptyStoryFacts(), 'alchemy-first-furnace'),
+    ).toThrow('当前没有这场教学');
   });
 
   it('keeps a life beat in place and only changes its prompt', () => {

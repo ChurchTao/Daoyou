@@ -10,6 +10,10 @@ import {
 
 const markFacts = new Set<StoryFactId>(STORY_MARK_FACT_IDS);
 
+export function guideMark(lesson: string): string {
+  return `guide:${lesson}`;
+}
+
 export interface StoryResolution {
   progress: StoryProgress;
   grants: string[];
@@ -30,6 +34,15 @@ function factReady(
   return facts[fact];
 }
 
+function acceptanceReady(
+  acceptance: Extract<StoryBeat, { kind: 'practice' }>['accept'][number],
+  progress: StoryProgress,
+  facts: StoryFacts,
+): boolean {
+  if (acceptance.type === 'fact') return factReady(acceptance.fact, progress, facts);
+  return progress.marks.includes(guideMark(acceptance.lesson));
+}
+
 function satisfied(
   beat: StoryBeat,
   progress: StoryProgress,
@@ -38,8 +51,19 @@ function satisfied(
   if (beat.kind === 'performance') {
     return progress.acks.includes(`${beat.script}:${beat.outcome}`);
   }
-  if (beat.kind === 'practice') return factReady(beat.fact, progress, facts);
+  if (beat.kind === 'practice') {
+    const ready = beat.accept.map((acceptance) =>
+      acceptanceReady(acceptance, progress, facts),
+    );
+    return (beat.mode ?? 'any') === 'all' ? ready.every(Boolean) : ready.some(Boolean);
+  }
   return false;
+}
+
+function issuePayout(grants: string[], issued: string[], payout: string | undefined) {
+  if (!payout || grants.includes(payout)) return;
+  grants.push(payout);
+  issued.push(payout);
 }
 
 export function resolveStory(
@@ -60,13 +84,11 @@ export function resolveStory(
     seen.add(beatId);
     const beat = beatAt(chapter, beatId);
     if (!satisfied(beat, progress, facts)) break;
+    if (beat.kind === 'practice') issuePayout(grants, issued, beat.reward);
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
     const next = chapter.beats[index + 1];
     if (!next) break;
-    if (next.kind === 'practice' && next.grant && !grants.includes(next.grant)) {
-      grants.push(next.grant);
-      issued.push(next.grant);
-    }
+    if (next.kind === 'practice') issuePayout(grants, issued, next.grant);
     beatId = next.id;
   }
 
@@ -95,6 +117,43 @@ export function acknowledgePerformance(
   return resolveStory(
     chapter,
     { ...progress, acks: [...progress.acks, key] },
+    facts,
+  );
+}
+
+export function noteStoryFact(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts: StoryFacts,
+  fact: (typeof STORY_MARK_FACT_IDS)[number],
+): StoryResolution {
+  if (progress.track !== chapter.track || progress.storyId !== chapter.id) {
+    throw new Error(`剧情进度不属于这一章：${progress.track}/${progress.storyId}`);
+  }
+  if (progress.marks.includes(fact)) return resolveStory(chapter, progress, facts);
+  return resolveStory(
+    chapter,
+    { ...progress, marks: [...progress.marks, fact] },
+    facts,
+  );
+}
+
+export function acknowledgeGuide(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts: StoryFacts,
+  lesson: string,
+): StoryResolution {
+  const beat = beatAt(chapter, progress.beatId);
+  const wanted =
+    beat.kind === 'practice' &&
+    beat.accept.some((entry) => entry.type === 'guide' && entry.lesson === lesson);
+  if (!wanted) throw new Error('当前没有这场教学');
+  const key = guideMark(lesson);
+  if (progress.marks.includes(key)) return resolveStory(chapter, progress, facts);
+  return resolveStory(
+    chapter,
+    { ...progress, marks: [...progress.marks, key] },
     facts,
   );
 }
@@ -135,5 +194,15 @@ export function presentStory(
     prompt: shifted.prompt,
     href: shifted.href,
     scriptId: beat.kind === 'performance' ? beat.script : null,
+    guideLesson: pendingGuide(beat, progress),
   };
+}
+
+function pendingGuide(beat: StoryBeat, progress: StoryProgress): string | null {
+  if (beat.kind !== 'practice') return null;
+  for (const acceptance of beat.accept) {
+    if (acceptance.type !== 'guide') continue;
+    if (!progress.marks.includes(guideMark(acceptance.lesson))) return acceptance.lesson;
+  }
+  return null;
 }
