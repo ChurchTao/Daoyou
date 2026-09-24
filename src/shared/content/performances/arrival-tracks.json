@@ -22,7 +22,7 @@
     {
       "type": "line",
       "speaker": "slip",
-      "text": "今天可以走到坡上。看见兽迹就够了。"
+      "text": "打一场，或捉一只，都行。"
     },
     { "type": "end", "outcome": "tracks" }
   ]

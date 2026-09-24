@@ -7,7 +7,26 @@ import type {
 import { ManualMigrationConfigSchema } from '../contracts/manualMigration';
 import { CHARACTER_MANUALS_V1 } from '../engine/combat-v6/manuals/content';
 import { BASE_PRICES } from '../engine/material/creation/config';
+import type { ItemGrant } from '../inventory';
+import { ConsumableFactsSchema } from '../items/definitions/consumables';
 import { QUALITY_VALUES, type Quality } from '../types/constants';
+
+export const manualMigrationInsightFacts = ConsumableFactsSchema.parse({
+  name: '感悟果',
+  type: '灵果',
+  quality: '玄品',
+  description:
+    '旧神品功法的传承补偿。每颗增加 50 点道心感悟。建议感悟不高于 50 时服用，超过 100 上限的部分不保留；感悟已满时无法服用。',
+  spec: {
+    kind: 'spirit_fruit',
+    family: 'insight',
+    operations: [
+      { type: 'gain_progress', target: 'comprehension_insight', value: 50 },
+    ],
+    consumeRules: { scene: 'out_of_battle_only', quotaCategory: 'none' },
+    source: { kind: 'spirit_field', version: 1 },
+  },
+});
 
 export const MANUAL_MIGRATION_CONFIG: ManualMigrationConfig = {
   s2: 3000,
@@ -68,7 +87,17 @@ export function manualMigrationPlan(
       : source.score >= policy.config.s2
         ? 1
         : 0;
-  return { ...rule, choices };
+  const bonusGrants: ItemGrant[] =
+    source.quality === '神品'
+      ? [
+          {
+            definitionId: 'consumable.v1',
+            quantity: 1,
+            instanceData: manualMigrationInsightFacts,
+          },
+        ]
+      : [];
+  return { ...rule, choices, bonusGrants };
 }
 export function drawLegacyManual(
   source: ManualMigrationSource,

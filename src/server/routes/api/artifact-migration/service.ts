@@ -2,6 +2,7 @@ import { db, type DbExecutor } from '@server/lib/drizzle/db';
 import { creationProducts, cultivators } from '@server/lib/drizzle/schema';
 import type { ActiveCultivatorRef } from '@server/lib/hono/types';
 import { playerCommandExecutor } from '@server/lib/services/CommandExecutors';
+import { updateSpiritStones } from '@server/lib/services/cultivator/CultivatorStateRepository';
 import {
   assertInventoryIdle,
   grantInventory,
@@ -23,7 +24,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 
 async function requireOwner(actor: ActiveCultivatorRef, tx: DbExecutor) {
   const [owner] = await tx
-    .select({ id: cultivators.id })
+    .select({ id: cultivators.id, spiritStones: cultivators.spirit_stones })
     .from(cultivators)
     .where(
       and(
@@ -33,6 +34,7 @@ async function requireOwner(actor: ActiveCultivatorRef, tx: DbExecutor) {
       ),
     );
   if (!owner) throw new InventoryError('角色不可用');
+  return owner;
 }
 function ownedArtifact(ownerId: string) {
   return and(
@@ -88,7 +90,7 @@ export async function readArtifactMigration(
           try {
             return {
               ...source,
-              ...artifactMigrationPlan({ score: source.score, productModel }),
+              ...artifactMigrationPlan({ ...source, productModel }),
               problem: null,
             };
           } catch (error) {
@@ -96,6 +98,8 @@ export async function readArtifactMigration(
               ...source,
               ...artifactMigrationRealm(productModel),
               blueprints: 0,
+              bonusGrants: [],
+              spiritStones: 0,
               problem: error instanceof Error ? error.message : '来源异常',
             };
           }
@@ -115,7 +119,7 @@ export async function exchangeArtifactMigration(
       cultivatorId: actor.cultivatorId,
       source: 'legacy_artifact_migration',
       command: async (tx) => {
-        await requireOwner(actor, tx);
+        const owner = await requireOwner(actor, tx);
         await assertInventoryIdle(actor.cultivatorId, undefined, tx);
         const [source] = await tx
           .select(sourceColumns)
@@ -154,6 +158,18 @@ export async function exchangeArtifactMigration(
           plan,
           () => randomInt(0x100000000) / 0x100000000,
         );
+        if (plan.spiritStones > 0) {
+          const balance = await updateSpiritStones(
+            actor.userId,
+            actor.cultivatorId,
+            plan.spiritStones,
+            tx,
+          );
+          if (balance - owner.spiritStones !== plan.spiritStones)
+            throw new InventoryError(
+              '灵石余额空间不足，无法完整领取 50 万灵石，请先使用部分灵石再兑换',
+            );
+        }
         await grantInventory(
           actor.cultivatorId,
           [
@@ -163,6 +179,7 @@ export async function exchangeArtifactMigration(
               instanceData: generated.instance,
             },
             ...blueprints,
+            ...plan.bonusGrants,
           ],
           tx,
         );
@@ -175,8 +192,22 @@ export async function exchangeArtifactMigration(
             ),
           );
         return {
-          result: { equipment: generated.instance, blueprints },
+          result: {
+            equipment: generated.instance,
+            blueprints,
+            bonusGrants: plan.bonusGrants,
+            spiritStones: plan.spiritStones,
+          },
           resourceChanges: [
+            ...(plan.spiritStones > 0
+              ? [
+                  {
+                    resourceTopic: 'player.currency' as const,
+                    operation: 'invalidate' as const,
+                    eventType: 'legacy_artifact_migration.granted',
+                  },
+                ]
+              : []),
             {
               resourceTopic: 'inventory.bag' as const,
               operation: 'invalidate' as const,

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { ExchangeArtifactSchema } from '../contracts/artifactMigration';
 import { generateForgedEquipment } from '../engine/combat-v6/equipment/forging';
 import { DAO_EQUIPMENT_SLOTS } from '../engine/combat-v6/equipment/types';
+import { ItemGrantSchema } from '../inventory';
 import { BLUEPRINTS } from '../items/definitions/equipment-blueprints';
-import { REALM_VALUES } from '../types/constants';
+import { divinationRewardFacts } from '../lib/divination';
+import { QUALITY_VALUES, REALM_VALUES } from '../types/constants';
 import {
   artifactBlueprintCount,
   artifactMigrationPlan,
@@ -12,6 +14,33 @@ import {
 } from './rules';
 
 describe('旧法宝兑换', () => {
+  it('仅神品获得50万灵石和一张标准小聚灵符，不改变境界或评分图纸', () => {
+    for (const quality of [...QUALITY_VALUES, null, '无效']) {
+      for (const score of [1, 2000, 3000, 3500, 4000]) {
+        const plan = artifactMigrationPlan({
+          quality,
+          score,
+          productModel: null,
+        });
+        expect(plan.realm).toBe('金丹');
+        expect(plan.blueprints).toBe(artifactBlueprintCount(score));
+        expect(plan.spiritStones).toBe(quality === '神品' ? 500_000 : 0);
+        if (quality !== '神品') {
+          expect(plan.bonusGrants).toEqual([]);
+          continue;
+        }
+        expect(plan.bonusGrants).toHaveLength(1);
+        expect(ItemGrantSchema.parse(plan.bonusGrants[0])).toEqual({
+          definitionId: 'consumable.v1',
+          quantity: 1,
+          instanceData: divinationRewardFacts([1, 1, 1]),
+        });
+      }
+    }
+    expect(() =>
+      artifactMigrationPlan({ quality: '神品', score: 0, productModel: null }),
+    ).toThrow();
+  });
   it('保留大境界且最高化神，不继承小阶段', () => {
     expect(
       REALM_VALUES.map(
@@ -53,6 +82,7 @@ describe('旧法宝兑换', () => {
   });
   it('逐张均匀抽取六部位，允许重复并合并数量', () => {
     const plan = artifactMigrationPlan({
+      quality: '神品',
       score: 4200,
       productModel: { metadata: { anchorRealm: '合体' } },
     });
@@ -76,6 +106,7 @@ describe('旧法宝兑换', () => {
     for (const anchorRealm of REALM_VALUES)
       for (const slot of DAO_EQUIPMENT_SLOTS) {
         const plan = artifactMigrationPlan({
+          quality: '神品',
           score: 3500,
           productModel: { metadata: { anchorRealm } },
         });

@@ -180,7 +180,10 @@ export default function BeastsPage() {
         </div>
       ) : (
         <>
-          <div className="text-ink-secondary flex items-center justify-between gap-3 text-xs">
+          <div
+            data-guide="beast.bag"
+            className="text-ink-secondary flex items-center justify-between gap-3 text-xs"
+          >
             <span>
               灵兽{' '}
               <span className="font-mono">
@@ -210,7 +213,10 @@ export default function BeastsPage() {
             </div>
           ) : null}
           <div className="grid min-w-0 gap-5 md:grid-cols-[180px_minmax(0,1fr)] lg:grid-cols-[200px_minmax(0,1fr)]">
-            <aside className="border-ink/15 min-w-0 border-b pb-4 md:relative md:min-h-60 md:border-r md:border-b-0 md:pb-0">
+            <aside
+              data-guide="beast.roster"
+              className="border-ink/15 min-w-0 border-b pb-4 md:relative md:min-h-60 md:border-r md:border-b-0 md:pb-0"
+            >
               <div className="md:absolute md:inset-0 md:flex md:min-h-0 md:flex-col md:pr-4">
                 <GameSceneTabs
                   className="mb-3 shrink-0"
@@ -310,6 +316,7 @@ export default function BeastsPage() {
               </div>
             </aside>
             {detail ? (
+              <div data-guide="beast.detail" className="min-w-0">
               <BeastPanel
                 key={`${detail.id}:${detail.revision}:${view.ownerLevel}`}
                 beast={detail}
@@ -337,8 +344,12 @@ export default function BeastsPage() {
                   })
                 }
               />
+              </div>
             ) : (
-              <p className="text-ink-secondary py-8 text-center text-sm">
+              <p
+                data-guide="beast.detail"
+                className="text-ink-secondary py-8 text-center text-sm"
+              >
                 {filter === 'team'
                   ? '尚未携带灵兽，选择空位添加出战伙伴。'
                   : '灵兽袋尚空，可在野外捕捉灵兽。'}

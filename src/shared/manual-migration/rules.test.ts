@@ -3,6 +3,7 @@ import {
   ExchangeManualSchema,
   ManualMigrationConfigSchema,
 } from '../contracts/manualMigration';
+import { ItemGrantSchema } from '../inventory';
 import { QUALITY_VALUES } from '../types/constants';
 import {
   buildManualMigrationPolicy,
@@ -18,6 +19,43 @@ const policy = buildManualMigrationPolicy({
 });
 const source = { id: 'x', name: '旧功法', quality: '神品', score: 1000 };
 describe('旧功法补偿', () => {
+  it('仅神品额外赠送一颗可用的50点感悟果，与评分自选奖励独立', () => {
+    for (const quality of QUALITY_VALUES) {
+      for (const score of [1, 2999, 3000, 3200, 9000]) {
+        const plan = manualMigrationPlan({ ...source, quality, score }, policy);
+        if (quality !== '神品') {
+          expect(plan.bonusGrants).toEqual([]);
+          continue;
+        }
+        expect(plan.bonusGrants).toHaveLength(1);
+        const grant = ItemGrantSchema.parse(plan.bonusGrants[0]);
+        expect(grant).toMatchObject({
+          definitionId: 'consumable.v1',
+          quantity: 1,
+          instanceData: {
+            name: '感悟果',
+            type: '灵果',
+            quality: '玄品',
+            spec: {
+              kind: 'spirit_fruit',
+              family: 'insight',
+              operations: [
+                {
+                  type: 'gain_progress',
+                  target: 'comprehension_insight',
+                  value: 50,
+                },
+              ],
+              consumeRules: {
+                scene: 'out_of_battle_only',
+                quotaCategory: 'none',
+              },
+            },
+          },
+        });
+      }
+    }
+  });
   it('采用已确认的 3000 / 3200 评分线与参悟权重', () => {
     expect(MANUAL_MIGRATION_CONFIG).toEqual({
       s2: 3000,

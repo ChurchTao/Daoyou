@@ -22,6 +22,7 @@ import {
   DAO_WEAPON_TYPES,
   type DaoWeaponType,
 } from '@shared/engine/combat-v6/equipment/weapons';
+import type { ItemGrant } from '@shared/inventory';
 import {
   BLUEPRINTS,
   EQUIPMENT_SLOT_NAMES,
@@ -238,6 +239,15 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                   <span className="font-mono">{confirm.blueprints}</span> 张
                   {confirm.realm}图纸。
                 </p>
+                {confirm.spiritStones > 0 && (
+                  <p>
+                    神品额外赠送灵石{' '}
+                    <span className="font-mono">
+                      {confirm.spiritStones.toLocaleString()}
+                    </span>{' '}
+                    和小聚灵符 <span className="font-mono">×1</span>。
+                  </p>
+                )}
                 <p className="text-ink-secondary">
                   {confirm.fallback
                     ? '旧境界缺失或无效，按金丹兑换。'
@@ -313,7 +323,9 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                       }}
                     />
                   </div>
-                  {result.blueprints.map((g) => (
+                  {(
+                    [...result.blueprints, ...result.bonusGrants] as ItemGrant[]
+                  ).map((g) => (
                     <div key={g.definitionId} className="w-24">
                       <ItemSlot
                         className="w-full"
@@ -321,14 +333,25 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                         item={{
                           ...g,
                           name:
+                            g.instanceData?.name ??
                             BLUEPRINTS.find((b) => b.id === g.definitionId)
-                              ?.name ?? g.definitionId,
-                          instanceData: null,
+                              ?.name ??
+                            g.definitionId,
+                          instanceData: g.instanceData ?? null,
                         }}
                       />
                     </div>
                   ))}
                 </div>
+                {result.spiritStones > 0 && (
+                  <p className="text-sm">
+                    额外获得灵石{' '}
+                    <span className="font-mono">
+                      {result.spiritStones.toLocaleString()}
+                    </span>
+                    。
+                  </p>
+                )}
                 <p className="text-sm">
                   奖励已发放，背包不足的部分已存入仓库。
                 </p>

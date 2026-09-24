@@ -1,7 +1,5 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
-import { LegacyArtifactMigrationLink } from '../artifact-migration/LegacyArtifactMigrationLink';
-import { LegacyManualMigrationLink } from '../manual-migration/LegacyManualMigrationLink';
 
 type CaveQuickArea = {
   label: string;
@@ -28,7 +26,14 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '储藏室', icon: '📦', href: '/game/cave/storage/new?location=storage' },
       { label: '灵田', icon: '🌱', href: '/game/spirit-field' },
       { label: '育兽室', icon: '🐯', href: '/game/beast-room' },
+    ],
+  },
+  {
+    title: '旧入口',
+    areas: [
       { label: '旧藏宝库', icon: '📦', href: '/game/cave/storage' },
+      { label: '旧功法传承', icon: '📜', href: '/game/manual-migration' },
+      { label: '旧法宝焕新', icon: '⚒️', href: '/game/artifact-migration' },
     ],
   },
   {
@@ -46,22 +51,32 @@ export function CaveQuickGrid() {
   return (
     <div className="space-y-3">
       {CAVE_AREA_GROUPS.map((group) => (
-        <section key={group.title} className="space-y-1.5">
+        <section
+          key={group.title}
+          data-guide={
+            group.title === '洞府内'
+              ? 'cave.inside'
+              : group.title === '出洞府'
+                ? 'cave.out'
+                : undefined
+          }
+          className="space-y-1.5"
+        >
           <div className="text-battle-muted text-[0.68rem] tracking-[0.18em]">
             {group.title}
           </div>
           <div className="flex flex-wrap gap-x-1 gap-y-0.5">
-            {group.title === '洞府内' && (
-              <>
-                <LegacyManualMigrationLink />
-                <LegacyArtifactMigrationLink />
-              </>
-            )}
             {group.areas.map((area) => (
-              <InkButton key={area.href} href={area.href}>
-                {area.icon && <GameIcon value={area.icon} className="mr-1" />}
-                {area.label}
-              </InkButton>
+              <span
+                key={area.href}
+                data-guide={area.href === '/game/inn' ? 'cave.spring' : undefined}
+                className="inline-flex"
+              >
+                <InkButton href={area.href}>
+                  {area.icon && <GameIcon value={area.icon} className="mr-1" />}
+                  {area.label}
+                </InkButton>
+              </span>
             ))}
           </div>
         </section>

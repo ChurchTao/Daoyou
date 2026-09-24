@@ -1,0 +1,22 @@
+{
+  "id": "arrival-steady",
+  "title": "气息",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "泉雾散了，石室还是原来的样子。"
+    },
+    { "type": "title", "kicker": "洞府 · 泉边", "text": "气息" },
+    {
+      "type": "narration",
+      "text": "气血稳住了。洞府里的路，{name}也认得了。"
+    },
+    {
+      "type": "narration",
+      "text": "石室还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "steady" }
+  ]
+}

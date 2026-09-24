@@ -1,0 +1,22 @@
+{
+  "id": "cave-layout",
+  "title": "洞府",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "cave.inside",
+      "text": "这些是洞府里面的地方。修炼、炼丹、炼器、悟道、阵纹、练功、储藏、灵田、育兽，都从这里走进去。"
+    },
+    {
+      "type": "look",
+      "anchor": "cave.spring",
+      "text": "灵眼之泉在这里。气血和法力乱了，就来这眼泉里养。"
+    },
+    {
+      "type": "look",
+      "anchor": "cave.out",
+      "text": "出了洞府，可以外出云游、去坊市、进蜃楼幻境，或到拍卖行。"
+    },
+    { "type": "end" }
+  ]
+}

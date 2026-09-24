@@ -432,7 +432,7 @@ describe('story resolver', () => {
       arrival,
       tracks.progress,
       facts,
-      'qingxi_sought',
+      'qingxi_met',
     );
     expect(sought.progress.beatId).toBe('prints');
 
@@ -443,9 +443,77 @@ describe('story resolver', () => {
       'arrival-prints',
       'seen',
     );
-    expect(seen.progress.beatId).toBe('entered');
-    expect(presentStory(arrival, seen.progress, facts).prompt).toBe('');
-    expect(rewindToUnwatchedPerformance(arrival, seen.progress).beatId).toBe(
+    expect(seen.progress.beatId).toBe('pouch');
+    expect(presentStory(arrival, seen.progress, facts).prompt).toBe(
+      '玉简上好像多了一行字。',
+    );
+
+    const pouch = acknowledgePerformance(
+      arrival,
+      seen.progress,
+      facts,
+      'arrival-pouch',
+      'pouch',
+    );
+    const bag = presentStory(arrival, pouch.progress, facts);
+    expect(bag.beatId).toBe('bag');
+    expect(bag.guideLesson).toBe('beast-pouch');
+    expect(bag.href).toBe('/game/beasts?guide=beast-pouch');
+    expect(bag.prompt).toBe('玉简上多了灵兽袋的一行字。');
+
+    const learned = acknowledgeGuide(
+      arrival,
+      pouch.progress,
+      facts,
+      'beast-pouch',
+    );
+    expect(learned.progress.beatId).toBe('satchel');
+    expect(learned.grants).toEqual([]);
+
+    const read = acknowledgePerformance(
+      arrival,
+      learned.progress,
+      facts,
+      'arrival-satchel',
+      'read',
+    );
+    expect(read.progress.beatId).toBe('wound');
+    expect(presentStory(arrival, read.progress, facts).prompt).toBe(
+      '臂上的热还没退。',
+    );
+
+    const wound = acknowledgePerformance(
+      arrival,
+      read.progress,
+      facts,
+      'arrival-spring',
+      'spring',
+    );
+    const spring = presentStory(arrival, wound.progress, facts);
+    expect(spring.beatId).toBe('spring');
+    expect(spring.guideLesson).toBe('cave-layout');
+    expect(spring.href).toBe('/game?guide=cave-layout');
+    expect(spring.prompt).toBe('伤还在，洞府里的泉还热着。');
+
+    const tended = acknowledgeGuide(
+      arrival,
+      wound.progress,
+      facts,
+      'cave-layout',
+    );
+    expect(tended.progress.beatId).toBe('steady');
+    expect(tended.grants).toEqual([]);
+
+    const steady = acknowledgePerformance(
+      arrival,
+      tended.progress,
+      facts,
+      'arrival-steady',
+      'steady',
+    );
+    expect(steady.progress.beatId).toBe('entered');
+    expect(presentStory(arrival, steady.progress, facts).prompt).toBe('');
+    expect(rewindToUnwatchedPerformance(arrival, steady.progress).beatId).toBe(
       'entered',
     );
     const waitingAtMouth = rewindToUnwatchedPerformance(arrival, {

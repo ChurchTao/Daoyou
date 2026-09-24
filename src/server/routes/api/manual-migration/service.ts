@@ -34,6 +34,7 @@ function preview(source: ManualMigrationSource, policy: ManualMigrationPolicy) {
       ...source,
       count: plan.count,
       choices: plan.choices,
+      bonusGrants: plan.bonusGrants,
       problem: null,
     };
   } catch (error) {
@@ -41,6 +42,7 @@ function preview(source: ManualMigrationSource, policy: ManualMigrationPolicy) {
       ...source,
       count: 0,
       choices: 0,
+      bonusGrants: [],
       problem: error instanceof Error ? error.message : '来源异常',
     };
   }
@@ -145,8 +147,9 @@ export async function exchangeManualMigration(
           throw new InventoryError(
             '这本旧功法已兑换、不存在或不属于你，请刷新列表并核对背包',
           );
+        let plan;
         try {
-          const plan = manualMigrationPlan(source, policy);
+          plan = manualMigrationPlan(source, policy);
           validateManualSelection(input.selections, plan.choices, policy);
         } catch (error) {
           throw new InventoryError(
@@ -161,7 +164,7 @@ export async function exchangeManualMigration(
         );
         await grantInventory(
           actor.cultivatorId,
-          [...randomGrants, ...input.selections],
+          [...randomGrants, ...input.selections, ...plan.bonusGrants],
           tx,
         );
         await tx
@@ -173,7 +176,11 @@ export async function exchangeManualMigration(
             ),
           );
         return {
-          result: { randomGrants, selectedGrants: input.selections },
+          result: {
+            randomGrants,
+            selectedGrants: input.selections,
+            bonusGrants: plan.bonusGrants,
+          },
           resourceChanges: [
             {
               resourceTopic: 'inventory.bag' as const,

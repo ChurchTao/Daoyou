@@ -54,7 +54,7 @@ import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
 import { WILD_EXPLORATION_COOLDOWN_MS } from '@shared/engine/combat-v6/wild/rules';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { WILD_DROP_POOLS, wildItemRewards } from '@shared/rewards/wild';
-import { storyMarkForSignal } from '@shared/story/signals';
+
 import { REALM_ORDER } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
@@ -62,7 +62,7 @@ import { playerCommandExecutor } from '../CommandExecutors';
 import { ConditionService } from '../ConditionService';
 import { qiCurrencyChange } from '../QiResourceChanges';
 import { QiService } from '../QiService';
-import { StoryService } from '../StoryService';
+
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
@@ -275,16 +275,9 @@ export class CombatV6WildSessionService {
         });
         await saveWildSearch(actor.cultivatorId, encounter, tx);
         await QiService.commitReservation({ actionInstanceId, tx });
-        const sought = storyMarkForSignal({ type: 'wild.searched', nodeId });
-        const story = sought
-          ? await StoryService.noteFact(actor.cultivatorId, sought, tx)
-          : null;
         return {
           result: wildEncounterView(encounter),
-          resourceChanges: [
-            qiCurrencyChange('wild.searched', qi),
-            ...(story?.changes ?? []),
-          ],
+          resourceChanges: [qiCurrencyChange('wild.searched', qi)],
         };
       },
     });

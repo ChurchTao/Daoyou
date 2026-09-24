@@ -10,13 +10,13 @@ describe('story signals', () => {
       storyMarkForSignal({ type: 'dungeon.run.settled', outcome: 'completed' }),
     ).toBe('dungeon_settled');
     expect(
-      storyMarkForSignal({ type: 'wild.searched', nodeId: 'SAT_TN_08' }),
-    ).toBe('qingxi_sought');
+      storyMarkForSignal({ type: 'wild.met', nodeId: 'SAT_TN_08' }),
+    ).toBe('qingxi_met');
   });
 
-  it('ignores a search on another slope', () => {
+  it('ignores a meeting on another slope', () => {
     expect(
-      storyMarkForSignal({ type: 'wild.searched', nodeId: 'SAT_TN_03' }),
+      storyMarkForSignal({ type: 'wild.met', nodeId: 'SAT_TN_03' }),
     ).toBeNull();
   });
 

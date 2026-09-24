@@ -7,6 +7,7 @@ export const STORY_FACT_IDS = [
   'alchemy_crafted',
   'dungeon_settled',
   'qingxi_sought',
+  'qingxi_met',
   'sect_joined',
   'breakthrough_available',
 ] as const;
@@ -17,6 +18,7 @@ export const STORY_MARK_FACT_IDS = [
   'alchemy_crafted',
   'dungeon_settled',
   'qingxi_sought',
+  'qingxi_met',
 ] as const satisfies readonly StoryFactId[];
 
 export const STORY_TRACKS = ['main', 'encounter'] as const;
@@ -220,6 +222,7 @@ export function emptyStoryFacts(): StoryFacts {
     alchemy_crafted: false,
     dungeon_settled: false,
     qingxi_sought: false,
+    qingxi_met: false,
     sect_joined: false,
     breakthrough_available: false,
   };

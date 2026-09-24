@@ -3,7 +3,7 @@ import { STORY_MARK_FACT_IDS, type StoryFactId } from './schema';
 export type StorySignal =
   | { type: 'alchemy.craft.completed' }
   | { type: 'dungeon.run.settled'; outcome: string }
-  | { type: 'wild.searched'; nodeId: string };
+  | { type: 'wild.met'; nodeId: string };
 
 type StorySignalRule = {
   type: StorySignal['type'];
@@ -12,7 +12,7 @@ type StorySignalRule = {
   nodeId?: string;
 };
 
-// 练功房不进入剧情。青溪坡的一次寻觅记成事实，打赢与否不另算。
+// 练功房不进入剧情。青溪坡上打完、捉住或自己退开记成事实，刚打开就放弃不算。
 const rules: readonly StorySignalRule[] = [
   { type: 'alchemy.craft.completed', fact: 'alchemy_crafted' },
   {
@@ -21,9 +21,9 @@ const rules: readonly StorySignalRule[] = [
     fact: 'dungeon_settled',
   },
   {
-    type: 'wild.searched',
+    type: 'wild.met',
     nodeId: 'SAT_TN_08',
-    fact: 'qingxi_sought',
+    fact: 'qingxi_met',
   },
 ];
 

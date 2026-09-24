@@ -7,6 +7,7 @@ import {
   DAO_WEAPON_TYPES,
   equipmentWeaponTypeProblem,
 } from '../engine/combat-v6/equipment/weapons';
+import type { ItemGrant } from '../inventory';
 import type { RealmType } from '../types/constants';
 
 export const ExchangeArtifactSchema = z
@@ -31,6 +32,8 @@ export type ArtifactMigrationPlan = {
   equipmentLevel: number;
   fallback: boolean;
   blueprints: number;
+  bonusGrants: ItemGrant[];
+  spiritStones: number;
 };
 export type ArtifactMigrationSource = ArtifactMigrationPlan & {
   id: string;
@@ -47,4 +50,6 @@ export type ArtifactMigrationView = {
 export type ArtifactMigrationResult = {
   equipment: DaoEquipmentInstanceV1;
   blueprints: { definitionId: string; quantity: number }[];
+  bonusGrants: ItemGrant[];
+  spiritStones: number;
 };

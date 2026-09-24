@@ -9,20 +9,20 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
-  ManualMigrationGrant,
   ManualMigrationResult,
   ManualMigrationView,
 } from '@shared/contracts/manualMigration';
+import type { ItemGrant } from '@shared/inventory';
 import type { Quality } from '@shared/types/constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const endpoint = '/api/manual-migration';
 type Pending = ManualMigrationView['pending'][number];
-function JadeList({
+function RewardList({
   grants,
   view,
 }: {
-  grants: ManualMigrationGrant[];
+  grants: ItemGrant[];
   view: ManualMigrationView;
 }) {
   return (
@@ -35,10 +35,12 @@ function JadeList({
             item={{
               ...g,
               name:
+                g.instanceData?.name ??
                 view.policy?.catalog.find(
                   (m) => m.definitionId === g.definitionId,
-                )?.name ?? g.definitionId,
-              instanceData: null,
+                )?.name ??
+                g.definitionId,
+              instanceData: g.instanceData ?? null,
             }}
           />
         </div>
@@ -276,6 +278,16 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                   )}
                   。
                 </p>
+                {confirm.bonusGrants.length > 0 && (
+                  <div className="space-y-2">
+                    <p>
+                      神品额外赠送感悟果 <span className="font-mono">×1</span>
+                      ，服用后增加 <span className="font-mono">50</span>{' '}
+                      点道心感悟。
+                    </p>
+                    <RewardList grants={confirm.bonusGrants} view={view} />
+                  </div>
+                )}
                 {view.policy?.rules[confirm.quality as Quality]?.realms.map(
                   (r, i) => (
                     <p key={r} className="flex justify-between">
@@ -413,15 +425,21 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
             {result && (
               <div className="space-y-3">
                 <p className="text-sm">随机所得</p>
-                <JadeList grants={result.randomGrants} view={view} />
+                <RewardList grants={result.randomGrants} view={view} />
                 {result.selectedGrants.length > 0 && (
                   <>
                     <p className="text-sm">自选所得</p>
-                    <JadeList grants={result.selectedGrants} view={view} />
+                    <RewardList grants={result.selectedGrants} view={view} />
+                  </>
+                )}
+                {result.bonusGrants.length > 0 && (
+                  <>
+                    <p className="text-sm">神品额外赠送</p>
+                    <RewardList grants={result.bonusGrants} view={view} />
                   </>
                 )}
                 <p className="text-sm">
-                  玉简已发放，背包不足的部分已存入仓库。
+                  奖励已发放，背包不足的部分已存入仓库。
                 </p>
               </div>
             )}

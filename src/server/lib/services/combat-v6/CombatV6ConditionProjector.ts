@@ -11,9 +11,11 @@ import {
 } from '@server/lib/repositories/messageConsumptionRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { settleWildResources } from '@shared/engine/combat-v6/wild/rules';
+import { storyMarkForSignal } from '@shared/story/signals';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { and, eq } from 'drizzle-orm';
 import { ConditionService } from '../ConditionService';
+import { StoryService } from '../StoryService';
 import { grantInventory } from '../InventoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { publishResourceEvents } from '../playerStateBroadcaster';
@@ -73,6 +75,17 @@ export async function projectCombatV6Condition(
           tx,
         );
         if (!claimed) return;
+        const met =
+          (record.reason === 'battle-ended' || record.reason === 'fled') &&
+          s.metadata.payload.nodeId
+            ? storyMarkForSignal({
+                type: 'wild.met',
+                nodeId: s.metadata.payload.nodeId,
+              })
+            : null;
+        const story = met
+          ? await StoryService.noteFact(s.cultivatorId, met, tx)
+          : null;
         if (record.reason === 'battle-ended' || record.reason === 'fled') {
           await settleBeastDeaths(
             s.cultivatorId,
@@ -121,6 +134,7 @@ export async function projectCombatV6Condition(
               operation: 'invalidate',
               eventType: 'combat_v6.condition.settled',
             },
+            ...(story?.changes ?? []),
           ],
         });
         lease.assertHeld();

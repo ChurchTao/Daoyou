@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ItemGrant } from '../inventory';
 import type { Quality } from '../types/constants';
 
 export const ManualMigrationConfigSchema = z
@@ -53,6 +54,7 @@ export type ManualMigrationPolicy = {
 export type ManualMigrationResult = {
   randomGrants: ManualMigrationGrant[];
   selectedGrants: ManualMigrationGrant[];
+  bonusGrants: ItemGrant[];
 };
 export type ManualMigrationView = {
   ownerId: string;
@@ -62,6 +64,7 @@ export type ManualMigrationView = {
   pending: (ManualMigrationSource & {
     count: number;
     choices: number;
+    bonusGrants: ItemGrant[];
     problem: string | null;
   })[];
   learned: { manualId: string; level: number }[];

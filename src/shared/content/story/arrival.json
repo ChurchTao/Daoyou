@@ -98,7 +98,7 @@
     {
       "id": "seek",
       "kind": "practice",
-      "accept": [{ "type": "fact", "fact": "qingxi_sought" }],
+      "accept": [{ "type": "fact", "fact": "qingxi_met" }],
       "scene": "wild",
       "prompt": "青溪坡上有新爪印。",
       "href": "/game/wild?nodeId=SAT_TN_08"
@@ -110,6 +110,58 @@
       "outcome": "seen",
       "scene": "story",
       "prompt": "爪印还留在坡上。",
+      "href": "/game/story"
+    },
+    {
+      "id": "pouch",
+      "kind": "performance",
+      "script": "arrival-pouch",
+      "outcome": "pouch",
+      "scene": "story",
+      "prompt": "玉简上好像多了一行字。",
+      "href": "/game/story"
+    },
+    {
+      "id": "bag",
+      "kind": "practice",
+      "accept": [{ "type": "guide", "lesson": "beast-pouch" }],
+      "scene": "beasts",
+      "prompt": "玉简上多了灵兽袋的一行字。",
+      "href": "/game/beasts?guide=beast-pouch"
+    },
+    {
+      "id": "satchel",
+      "kind": "performance",
+      "script": "arrival-satchel",
+      "outcome": "read",
+      "scene": "story",
+      "prompt": "袋口还记着那一行。",
+      "href": "/game/story"
+    },
+    {
+      "id": "wound",
+      "kind": "performance",
+      "script": "arrival-spring",
+      "outcome": "spring",
+      "scene": "story",
+      "prompt": "臂上的热还没退。",
+      "href": "/game/story"
+    },
+    {
+      "id": "spring",
+      "kind": "practice",
+      "accept": [{ "type": "guide", "lesson": "cave-layout" }],
+      "scene": "cave",
+      "prompt": "伤还在，洞府里的泉还热着。",
+      "href": "/game?guide=cave-layout"
+    },
+    {
+      "id": "steady",
+      "kind": "performance",
+      "script": "arrival-steady",
+      "outcome": "steady",
+      "scene": "story",
+      "prompt": "泉雾还没散尽。",
       "href": "/game/story"
     },
     {
