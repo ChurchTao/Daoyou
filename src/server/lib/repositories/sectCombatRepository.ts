@@ -7,6 +7,7 @@ import {
   sectMeridianNodes,
   sectMethodProgress,
 } from '@server/lib/drizzle/schema';
+import { createFreshCombatV6MethodLevels } from '@shared/engine/combat-v6/build-state';
 import {
   COMBAT_V6_SECT_DEFINITIONS,
   type CombatV6SectId,
@@ -81,9 +82,32 @@ export async function readSectCombatProgress(
   if (!membership || !(membership.sectId in COMBAT_V6_SECT_DEFINITIONS))
     return null;
   const state = await findSectCombatState(membership.membershipId, q);
-  if (!state?.activePathId) return null;
   const sectId = membership.sectId as CombatV6SectId;
-  const methods = await readSectMethodLevels(membership.membershipId, q);
+  const methods = {
+    ...createFreshCombatV6MethodLevels(sectId),
+    ...(await readSectMethodLevels(membership.membershipId, q)),
+  };
+  const definition = COMBAT_V6_SECT_DEFINITIONS[sectId];
+  const [firstPath, secondPath] = definition.paths;
+  const emptyLoadouts = [
+    { pathId: firstPath.id, nodeIds: [] as string[], revision: 0 },
+    { pathId: secondPath.id, nodeIds: [] as string[], revision: 0 },
+  ] as SectCombatProgressV6['meridianLoadouts'];
+  if (!state?.activePathId) {
+    return {
+      membershipId: membership.membershipId,
+      revision: state?.revision ?? 0,
+      sect: {
+        version: 1,
+        sectId,
+        methods,
+        meridianDepth: (state?.meridianDepth ??
+          0) as SectCombatProgressV6['meridianDepth'],
+        activePathId: '',
+        meridianLoadouts: emptyLoadouts,
+      },
+    };
+  }
   const loadouts = await q
     .select({
       id: sectMeridianLoadouts.id,

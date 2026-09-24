@@ -734,6 +734,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="artifact-migration"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/artifact-migration/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'artifact-migration',
+                  presentation: 'workflow',
+                  summary: '旧器续新缘，择一器形，再赴仙途。',
+                },
+                '旧法宝焕新',
+              )}
+            />
+            <Route
               path="manual-migration"
               lazy={lazyRoute(
                 () => import('@app/routes/game/manual-migration/route'),
@@ -867,9 +881,9 @@ export const router = createBrowserRouter(
                 {
                   id: 'tianjiao-vault',
                   presentation: 'service',
-                  summary: '凭声望换取宝阁珍藏。',
+                  summary: '凭声望换取万界商行珍藏。',
                 },
-                '天骄宝阁',
+                '万界商行',
               )}
             />
             <Route

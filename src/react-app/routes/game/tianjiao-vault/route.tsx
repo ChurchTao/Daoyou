@@ -19,7 +19,7 @@ const REPUTATION_INFO = getGameConceptInfo('reputation');
 async function fetchVaultItems(): Promise<ReputationShopListResponse> {
   const response = await fetch('/api/reputation-shop', { cache: 'no-store' });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error ?? '天骄宝阁暂不可入');
+  if (!response.ok) throw new Error(data.error ?? '万界商行暂不可入');
   return data as ReputationShopListResponse;
 }
 
@@ -41,7 +41,7 @@ export default function TianjiaoVaultPage() {
       setItems(data.items);
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '天骄宝阁暂不可入',
+        message: error instanceof Error ? error.message : '万界商行暂不可入',
         tone: 'danger',
       });
     } finally {
@@ -97,7 +97,7 @@ export default function TianjiaoVaultPage() {
 
   return (
     <GameSceneFrame
-      title="天骄宝阁"
+      title="万界商行"
       description="榜上扬名、幻境破关所得声望，皆可在此换取珍藏。"
       aside={
         <>
@@ -126,8 +126,8 @@ export default function TianjiaoVaultPage() {
         buyingId={buyingId}
         onBuy={(item) => void handleBuy(item)}
         loading={loading}
-        loadingText="宝阁执事正在核验名册……"
-        emptyText="宝阁今日暂未陈列可兑换之物。"
+        loadingText="万界商行执事正在核验名册……"
+        emptyText="万界商行今日暂未陈列可兑换之物。"
       />
     </GameSceneFrame>
   );

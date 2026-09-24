@@ -409,9 +409,43 @@ describe('story resolver', () => {
       'arrival-grass',
       'known',
     );
-    expect(known.progress.beatId).toBe('entered');
-    expect(presentStory(arrival, known.progress, facts).prompt).toBe('');
-    expect(rewindToUnwatchedPerformance(arrival, known.progress).beatId).toBe(
+    expect(known.progress.beatId).toBe('tracks');
+    expect(presentStory(arrival, known.progress, facts).prompt).toBe(
+      '青溪坡的风里有爪印。',
+    );
+
+    const tracks = acknowledgePerformance(
+      arrival,
+      known.progress,
+      facts,
+      'arrival-tracks',
+      'tracks',
+    );
+    expect(tracks.grants).toEqual([]);
+    const seek = presentStory(arrival, tracks.progress, facts);
+    expect(seek.beatId).toBe('seek');
+    expect(seek.guideLesson).toBeNull();
+    expect(seek.href).toBe('/game/wild?nodeId=SAT_TN_08');
+    expect(seek.prompt).toBe('青溪坡上有新爪印。');
+
+    const sought = noteStoryFact(
+      arrival,
+      tracks.progress,
+      facts,
+      'qingxi_sought',
+    );
+    expect(sought.progress.beatId).toBe('prints');
+
+    const seen = acknowledgePerformance(
+      arrival,
+      sought.progress,
+      facts,
+      'arrival-prints',
+      'seen',
+    );
+    expect(seen.progress.beatId).toBe('entered');
+    expect(presentStory(arrival, seen.progress, facts).prompt).toBe('');
+    expect(rewindToUnwatchedPerformance(arrival, seen.progress).beatId).toBe(
       'entered',
     );
     const waitingAtMouth = rewindToUnwatchedPerformance(arrival, {

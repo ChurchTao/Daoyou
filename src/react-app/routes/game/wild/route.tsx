@@ -247,15 +247,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           <GameLoadingState variant="scene" message="正在踏入山野……" />
         ) : region ? (
           <>
-            {build.data?.status !== 'active' && !build.loading && (
-              <p className="text-ink-secondary px-6 py-2 text-center text-sm">
-                请先在
-                <Link className="underline" to="/game/training-room">
-                  练功房
-                </Link>
-                完成宗门流派初始化。
-              </p>
-            )}
             {region.settlingBattleId && (
               <p
                 className="text-ink-secondary text-center text-sm"
@@ -288,7 +279,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
               unavailable={
                 !cultivator ||
                 realmLocked ||
-                build.data?.status !== 'active' ||
                 !!region.trainingSessionId ||
                 !!region.settlingBattleId
               }

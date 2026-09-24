@@ -47,7 +47,7 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     title: '声望商店管理',
-    description: '配置天骄宝阁兑换商品',
+    description: '配置万界商行兑换商品',
     href: '/admin/reputation-shop',
   },
   {

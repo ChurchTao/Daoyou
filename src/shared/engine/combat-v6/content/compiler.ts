@@ -197,7 +197,10 @@ function validateProgress(
     }
   }
 
-  const path = definition.paths.find((entry) => entry.id === progress.activePathId)
+  const path = progress.activePathId
+    ? definition.paths.find((entry) => entry.id === progress.activePathId)
+    : undefined
+  if (!progress.activePathId) return []
   if (!path) {
     diagnostics.push(diagnostic("error", "INVALID_ACTIVE_PATH", "当前流派不存在", "progress.activePathId"))
     return []
@@ -479,16 +482,18 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
   if (hasErrors(diagnostics)) return { ok: false, diagnostics }
 
   const methodLevels = input.progress.methods
-  const activePath = input.definition.paths.find((path) => path.id === input.progress.activePathId)!
+  const activePath = input.progress.activePathId
+    ? input.definition.paths.find((path) => path.id === input.progress.activePathId)
+    : undefined
   const grantedSkills = [
     ...input.definition.skills,
-    ...(activePath.foundationPassives ?? []),
-    ...(activePath.grantSkills ?? []),
+    ...(activePath?.foundationPassives ?? []),
+    ...(activePath?.grantSkills ?? []),
     ...selectedNodes.flatMap((node) => [...(node.passives ?? []), ...(node.grantSkills ?? [])]),
   ].filter((skill) => (methodLevels[skill.sourceMethodId] ?? 0) >= skill.unlockMethodLevel)
   const definedSkillIds = new Set(allSkillDefs(input).map((skill) => skill.definition.id))
   const revokedIds = new Set([
-    ...(activePath.revokeSkillIds ?? []),
+    ...(activePath?.revokeSkillIds ?? []),
     ...selectedNodes.flatMap((node) => node.revokeSkillIds ?? []),
   ])
   for (const id of revokedIds) {
@@ -504,7 +509,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
   const conflicts = new Set<string>()
   const seenSetPatches = new Set<string>()
   const activePatches = [
-    ...(activePath.patches ?? []),
+    ...(activePath?.patches ?? []),
     ...selectedNodes.flatMap((node) => node.patches ?? []),
   ]
   for (const patch of activePatches) {
@@ -545,17 +550,17 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
       passiveSkillIds: [...new Set(passiveSkillIds)],
       skillLevels,
       skillOverrides: [...patchedIds].filter((id) => byId.has(id)).map((id) => cloneSkill(byId.get(id)!)),
-      resources: (activePath.resources ?? []).map((resource) => ({ ...resource })),
+      resources: (activePath?.resources ?? []).map((resource) => ({ ...resource })),
       panel: [
         ...input.definition.methods.flatMap((method) => {
           if (!method.panel) return []
           const level = methodLevels[method.id] ?? 0
           return [{ ...method.panel, value: Math.floor(method.panel.value * level) }]
         }),
-        ...(activePath.panel ?? []).map((entry) => ({ ...entry })),
+        ...(activePath?.panel ?? []).map((entry) => ({ ...entry })),
         ...selectedNodes.flatMap((node) => node.panel ?? []).map((entry) => ({ ...entry })),
       ],
-      unitTags: [`sect.${input.definition.id}`, ...(activePath.unitTags ?? [])],
+      unitTags: [`sect.${input.definition.id}`, ...(activePath?.unitTags ?? [])],
       diagnostics,
     },
   }

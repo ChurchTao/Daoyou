@@ -184,7 +184,7 @@ export async function sendPlayerMail(input: {
       if (error instanceof TalismanScenarioError) {
         throw new PlayerMailServiceError(
           400,
-          '缺少空白传音符，可前往天骄宝阁购买后再发送传音',
+          '缺少空白传音符，可前往万界商行购买后再发送传音',
         );
       }
       throw error;

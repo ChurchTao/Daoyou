@@ -275,7 +275,7 @@ export async function buyReputationShopItem(params: {
 }> {
   const loaded = await loadShopItem(params.id, params.tx);
   if (!loaded) {
-    throw new ReputationShopError(404, '天骄宝阁商品不存在');
+    throw new ReputationShopError(404, '万界商行商品不存在');
   }
   assertStoredShopItem(loaded.row);
 

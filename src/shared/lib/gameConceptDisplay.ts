@@ -57,7 +57,7 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
   reputation: {
     label: '声望',
     icon: '🏵️',
-    description: '天骄宝阁兑换所需的声望',
+    description: '万界商行兑换所需的声望',
   },
   contribution: {
     label: '宗门贡献',

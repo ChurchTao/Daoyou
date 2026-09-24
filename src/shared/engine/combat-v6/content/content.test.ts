@@ -77,6 +77,24 @@ describe("红尘剑宗 v6 内容与编译", () => {
     }
   })
 
+  it("没有流派时仍发出心法技能，不算流派节点", () => {
+    const bare = progress("", [], 180)
+    bare.meridianDepth = 0
+    bare.meridianLoadouts = [
+      { pathId: LINGXIAO_PATH_ID.Zhanchen, nodeIds: [], revision: 0 },
+      { pathId: LINGXIAO_PATH_ID.Guiyi, nodeIds: [], revision: 0 },
+    ]
+    const result = compile(bare)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.projection.activeSkillIds).toContain(LINGXIAO_SKILL_ID.ShadowStrike)
+    expect(result.projection.skills.map((skill) => skill.id)).not.toContain(
+      "lingxiao.skill.zhanchen_long_drive",
+    )
+    expect(result.projection.resources).toEqual([])
+    expect(result.projection.unitTags).toEqual(["sect.lingxiao"])
+  })
+
   it("由所属心法生成技能等级并编译六心法面板", () => {
     const result = compile(progress())
     expect(result.ok).toBe(true)

@@ -232,19 +232,6 @@ export async function assembleCombatV6TrainingPlayer(
       422,
     );
   }
-  const sectState = await findSectCombatState(membership.membershipId, q);
-  if (!sectState) {
-    throw new CombatV6BuildError(
-      COMBAT_V6_BUILD_ERROR_CODE.NotInitialized,
-      '请先前往宗门或练功房选择修行流派',
-    );
-  }
-  if (!sectState.activePathId) {
-    throw new CombatV6BuildError(
-      COMBAT_V6_BUILD_ERROR_CODE.Pending,
-      '请先前往宗门或练功房选择修行流派',
-    );
-  }
   const [cultivator, build] = await runDbTasks(q, [
     () => characterIdentityRow(cultivatorId, q),
     () => readActiveSectCombatProgress(cultivatorId, q),
@@ -302,5 +289,82 @@ export async function assembleCombatV6TrainingPlayer(
   return {
     player: structuredClone(player),
     membershipId: build.membershipId,
+  };
+}
+
+async function assemblePersonalWildPlayer(
+  cultivatorId: string,
+  q: DbExecutor,
+): Promise<CombatV6TrainingPlayerInput> {
+  const cultivator = await characterIdentityRow(cultivatorId, q);
+  if (!cultivator) {
+    throw new CombatV6BuildError(
+      COMBAT_V6_BUILD_ERROR_CODE.NotInitialized,
+      '找不到当前角色',
+      404,
+    );
+  }
+  const [equipment, manuals, beasts] = await runDbTasks(q, [
+    () => readCharacterEquipment(cultivatorId, q),
+    () => readCharacterManuals(cultivatorId, q),
+    () => readBeastRoster(cultivatorId, q),
+  ]);
+  const player: CombatV6TrainingPlayerInput = {
+    portrait:
+      cultivator.gender === '女'
+        ? 'icon:cultivator-female-avatar'
+        : 'icon:cultivator-male-avatar',
+    cultivator: {
+      id: cultivator.id,
+      name: cultivator.name,
+      realm: cultivator.realm as RealmType,
+      realm_stage: cultivator.realm_stage as RealmStage,
+      attributes: {
+        vitality: cultivator.vitality,
+        strength: cultivator.strength,
+        spirit: cultivator.spirit,
+        endurance: cultivator.endurance,
+        speed: cultivator.speed,
+        willpower: cultivator.willpower,
+      },
+      condition:
+        (cultivator.condition as CultivatorCondition | null) ?? undefined,
+    },
+    equipment,
+    manuals,
+    beasts,
+  };
+  const projected = projectCharacterToCombatV6({
+    ...player,
+    side: 0,
+    slot: 0,
+    resourcePolicy: 'full',
+  });
+  if (!projected.ok) {
+    throw new CombatV6BuildError(
+      COMBAT_V6_BUILD_ERROR_CODE.ProjectionFailed,
+      projected.diagnostics
+        .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`)
+        .join('; '),
+      422,
+    );
+  }
+  return structuredClone(player);
+}
+
+export async function assembleCombatV6WildPlayer(
+  cultivatorId: string,
+  q: DbExecutor,
+): Promise<{
+  player: CombatV6TrainingPlayerInput;
+  membershipId: string | null;
+}> {
+  const membership = await findActiveSectMembership(cultivatorId, q);
+  if (membership && membership.sectId in COMBAT_V6_SECT_DEFINITIONS) {
+    return assembleCombatV6TrainingPlayer(cultivatorId, q);
+  }
+  return {
+    player: await assemblePersonalWildPlayer(cultivatorId, q),
+    membershipId: membership?.membershipId ?? null,
   };
 }

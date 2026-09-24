@@ -10,7 +10,7 @@ export function sectSkillCatalog(
   characterLevel: number,
 ) {
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
-  const path = definition.paths.find((p) => p.id === progress.activePathId)!;
+  const path = definition.paths.find((p) => p.id === progress.activePathId);
   const compiled = compileCurrentSectCombatV6({ progress, characterLevel });
   if (!compiled.ok)
     throw new Error(compiled.diagnostics.map((d) => d.message).join('；'));
@@ -22,23 +22,26 @@ export function sectSkillCatalog(
     ]),
   );
   const selected = new Set(
-    progress.meridianLoadouts.find((l) => l.pathId === path.id)!.nodeIds,
+    path
+      ? progress.meridianLoadouts.find((l) => l.pathId === path.id)?.nodeIds ??
+        []
+      : [],
   );
   const authored = [
     ...definition.skills.map((skill) => ({ skill, requirement: '' })),
-    ...(path.grantSkills ?? []).map((skill) => ({ skill, requirement: '' })),
-    ...(path.foundationPassives ?? []).map((skill) => ({
+    ...(path?.grantSkills ?? []).map((skill) => ({ skill, requirement: '' })),
+    ...(path?.foundationPassives ?? []).map((skill) => ({
       skill,
       requirement: '',
     })),
-    ...path.nodes.flatMap((node) =>
+    ...(path?.nodes.flatMap((node) =>
       [...(node.grantSkills ?? []), ...(node.passives ?? [])].map((skill) => ({
         skill,
         requirement: selected.has(node.id)
           ? ''
           : `需选择第${node.layer}层「${node.name}」`,
       })),
-    ),
+    ) ?? []),
   ];
   return authored
     .filter(({ skill }) => skill.kind !== 'internal')

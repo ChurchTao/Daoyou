@@ -65,7 +65,11 @@ export const WildResourcesSchema = z
     maxMp: z.number().finite().nonnegative(),
   })
   .strict();
-export type WildRuntime = Omit<CombatV6RedisRuntimeV1, 'metadata' | 'host'> & {
+export type WildRuntime = Omit<
+  CombatV6RedisRuntimeV1,
+  'metadata' | 'host' | 'membershipId'
+> & {
+  membershipId: string | null;
   metadata: Extract<
     z.infer<typeof CombatV6BattleMetadataV1Schema>,
     { sourceType: 'wild-encounter' }
@@ -81,7 +85,7 @@ export const WildRuntimeSchema = z
     battleId: z.uuid(),
     userId: z.uuid(),
     cultivatorId: z.uuid(),
-    membershipId: z.uuid(),
+    membershipId: z.uuid().nullable(),
     metadata: CombatV6BattleMetadataV1Schema,
     revision: z.number().int().nonnegative(),
     createdAt: z.iso.datetime(),
@@ -156,7 +160,7 @@ export interface WildSettlement {
   battleId: string;
   userId: string;
   cultivatorId: string;
-  membershipId: string;
+  membershipId: string | null;
   metadata: WildRuntime['metadata'];
   combatVersions: WildRuntimeSnapshot['state']['versions'];
   createdAt: string;
@@ -182,7 +186,7 @@ export const WildSettlementSchema = z
     battleId: z.uuid(),
     userId: z.uuid(),
     cultivatorId: z.uuid(),
-    membershipId: z.uuid(),
+    membershipId: z.uuid().nullable(),
     metadata: CombatV6BattleMetadataV1Schema,
     combatVersions: z
       .object({

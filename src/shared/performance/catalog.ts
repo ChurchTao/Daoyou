@@ -1,4 +1,6 @@
 import arrivalCreek from '../content/performances/arrival-creek.json';
+import arrivalPrints from '../content/performances/arrival-prints.json';
+import arrivalTracks from '../content/performances/arrival-tracks.json';
 import arrivalEmber from '../content/performances/arrival-ember.json';
 import arrivalFall from '../content/performances/arrival-fall.json';
 import arrivalGrass from '../content/performances/arrival-grass.json';
@@ -15,6 +17,8 @@ const scripts = new Map<string, PerformanceScript>([
   ['arrival-lodge', parsePerformanceScript(arrivalLodge)],
   ['arrival-creek', parsePerformanceScript(arrivalCreek)],
   ['arrival-grass', parsePerformanceScript(arrivalGrass)],
+  ['arrival-tracks', parsePerformanceScript(arrivalTracks)],
+  ['arrival-prints', parsePerformanceScript(arrivalPrints)],
 ]);
 
 export function listPerformanceScripts(): PerformanceScript[] {

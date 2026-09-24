@@ -54,6 +54,7 @@ import { createWildHost, WildHost } from '@shared/engine/combat-v6/wild/host';
 import { WILD_EXPLORATION_COOLDOWN_MS } from '@shared/engine/combat-v6/wild/rules';
 import { evaluateFateContext } from '@shared/lib/fates';
 import { WILD_DROP_POOLS, wildItemRewards } from '@shared/rewards/wild';
+import { storyMarkForSignal } from '@shared/story/signals';
 import { REALM_ORDER } from '@shared/types/constants';
 import { eq } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
@@ -61,11 +62,12 @@ import { playerCommandExecutor } from '../CommandExecutors';
 import { ConditionService } from '../ConditionService';
 import { qiCurrencyChange } from '../QiResourceChanges';
 import { QiService } from '../QiService';
+import { StoryService } from '../StoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
 import { arenaOccupancyKey } from './CombatV6ArenaStore';
 import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
-import { assembleCombatV6TrainingPlayer } from './CombatV6BuildService';
+import { assembleCombatV6WildPlayer } from './CombatV6BuildService';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
 import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -225,7 +227,7 @@ export class CombatV6WildSessionService {
       idempotency: { key: requestId, fingerprint: nodeId },
       command: async (tx) => {
         await this.assertAvailable(actor);
-        const assembled = await assembleCombatV6TrainingPlayer(
+        const assembled = await assembleCombatV6WildPlayer(
           actor.cultivatorId,
           tx,
         );
@@ -273,9 +275,16 @@ export class CombatV6WildSessionService {
         });
         await saveWildSearch(actor.cultivatorId, encounter, tx);
         await QiService.commitReservation({ actionInstanceId, tx });
+        const sought = storyMarkForSignal({ type: 'wild.searched', nodeId });
+        const story = sought
+          ? await StoryService.noteFact(actor.cultivatorId, sought, tx)
+          : null;
         return {
           result: wildEncounterView(encounter),
-          resourceChanges: [qiCurrencyChange('wild.searched', qi)],
+          resourceChanges: [
+            qiCurrencyChange('wild.searched', qi),
+            ...(story?.changes ?? []),
+          ],
         };
       },
     });
@@ -309,7 +318,7 @@ export class CombatV6WildSessionService {
               '此处尚未开放灵兽寻觅',
               404,
             );
-          const assembled = await assembleCombatV6TrainingPlayer(
+          const assembled = await assembleCombatV6WildPlayer(
             actor.cultivatorId,
             tx,
           );
@@ -504,7 +513,7 @@ export class CombatV6WildSessionService {
       throw new WildError('WILD_SESSION_NOT_FOUND', '战斗已过期', 404);
     }
     const membership = await findActiveSectMembership(actor.cultivatorId, db);
-    if (membership?.membershipId !== r.membershipId) {
+    if ((membership?.membershipId ?? null) !== r.membershipId) {
       if (s) await store.finish(s, wildTerminal(s, 'membership-changed'));
       else if (r.host.state.result) await store.clearFinished(r, r.revision);
       throw new WildError(

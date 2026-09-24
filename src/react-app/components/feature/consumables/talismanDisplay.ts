@@ -65,9 +65,9 @@ const TALISMAN_USAGE_HINTS: Record<string, string> = {
   draw_gongfa: '【旧版抽取已停用，符箓暂存，后续玩法另行设计】',
   draw_skill: '【旧版抽取已停用，符箓暂存，后续玩法另行设计】',
   [FRIEND_MAIL_TALISMAN_SCENARIO]:
-    '【前往传音玉简，给好友发送传音时消耗；不足时可去天骄宝阁购买】',
+    '【前往传音玉简，给好友发送传音时消耗；不足时可去万界商行购买】',
   [AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO]:
-    '【前往拍卖行，上架专属交易时消耗；不足时可去天骄宝阁购买】',
+    '【前往拍卖行，上架专属交易时消耗；不足时可去万界商行购买】',
 };
 
 function getQiRestoreEffectText(scenario: string): string | null {

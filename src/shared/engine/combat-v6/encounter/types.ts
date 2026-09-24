@@ -12,7 +12,7 @@ import type {
   StatusDef,
   UnitKind,
 } from '../core/index.ts';
-import type { ProjectCultivatorMultiSectToCombatV6Input } from '../projection/index.ts';
+import type { CharacterCombatInput } from '../projection/index.ts';
 
 export type CombatV6TrainingTierV1 = 60 | 120 | 180;
 
@@ -73,7 +73,7 @@ export type CombatV6EncounterDiagnostic = {
 };
 
 export type CombatV6TrainingPlayerInput = Omit<
-  ProjectCultivatorMultiSectToCombatV6Input,
+  CharacterCombatInput,
   'side' | 'slot' | 'resourcePolicy'
 > & {
   beasts?: import('../beasts').BeastRoster;

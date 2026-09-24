@@ -103,6 +103,11 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🔶 阵纹室',
       },
       {
+        id: 'artifact-migration',
+        sceneLabel: '旧法宝焕新',
+        href: '/game/artifact-migration',
+      },
+      {
         id: 'manual-migration',
         sceneLabel: '旧功法传承',
         href: '/game/manual-migration',
@@ -268,9 +273,9 @@ export const gameDockGroups: GameNavGroup[] = [
       },
       {
         id: 'tianjiao-vault',
-        sceneLabel: '天骄宝阁',
+        sceneLabel: '万界商行',
         href: '/game/tianjiao-vault',
-        expandedDockLabel: '🏵️ 天骄宝阁',
+        expandedDockLabel: '🏵️ 万界商行',
       },
       {
         id: 'auction',

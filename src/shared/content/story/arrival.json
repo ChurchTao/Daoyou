@@ -87,6 +87,32 @@
       "href": "/game/story"
     },
     {
+      "id": "tracks",
+      "kind": "performance",
+      "script": "arrival-tracks",
+      "outcome": "tracks",
+      "scene": "story",
+      "prompt": "青溪坡的风里有爪印。",
+      "href": "/game/story"
+    },
+    {
+      "id": "seek",
+      "kind": "practice",
+      "accept": [{ "type": "fact", "fact": "qingxi_sought" }],
+      "scene": "wild",
+      "prompt": "青溪坡上有新爪印。",
+      "href": "/game/wild?nodeId=SAT_TN_08"
+    },
+    {
+      "id": "prints",
+      "kind": "performance",
+      "script": "arrival-prints",
+      "outcome": "seen",
+      "scene": "story",
+      "prompt": "爪印还留在坡上。",
+      "href": "/game/story"
+    },
+    {
       "id": "entered",
       "kind": "life",
       "scene": "cave",

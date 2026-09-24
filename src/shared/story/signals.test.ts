@@ -9,6 +9,15 @@ describe('story signals', () => {
     expect(
       storyMarkForSignal({ type: 'dungeon.run.settled', outcome: 'completed' }),
     ).toBe('dungeon_settled');
+    expect(
+      storyMarkForSignal({ type: 'wild.searched', nodeId: 'SAT_TN_08' }),
+    ).toBe('qingxi_sought');
+  });
+
+  it('ignores a search on another slope', () => {
+    expect(
+      storyMarkForSignal({ type: 'wild.searched', nodeId: 'SAT_TN_03' }),
+    ).toBeNull();
   });
 
   it('ignores a dungeon left before the end', () => {
