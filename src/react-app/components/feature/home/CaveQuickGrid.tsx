@@ -1,5 +1,6 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
+import { LegacyManualMigrationLink } from '../manual-migration/LegacyManualMigrationLink';
 
 type CaveQuickArea = {
   label: string;
@@ -49,6 +50,7 @@ export function CaveQuickGrid() {
             {group.title}
           </div>
           <div className="flex flex-wrap gap-x-1 gap-y-0.5">
+            {group.title === '洞府内' && <LegacyManualMigrationLink />}
             {group.areas.map((area) => (
               <InkButton key={area.href} href={area.href}>
                 {area.icon && <GameIcon value={area.icon} className="mr-1" />}

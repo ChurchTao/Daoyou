@@ -1,3 +1,5 @@
+import arrivalFall from '../content/performances/arrival-fall.json';
+import arrivalMouth from '../content/performances/arrival-mouth.json';
 import { describe, expect, it } from 'vitest';
 import {
   createPerformanceState,
@@ -47,7 +49,90 @@ function playToChoice(filled: PerformanceScript) {
   return state;
 }
 
+function playArrival(choice: 0 | 1) {
+  const context = { name: '顾清舟', background: '山里长大，没有师门。' };
+  const script = fillPerformanceScript(parsePerformanceScript(arrivalFall), context);
+  let state = createPerformanceState(script, context);
+  const seen: string[] = [];
+  for (let step = 0; step < 12; step += 1) {
+    const cue = currentPerformanceCue(script, state);
+    if (cue?.type === 'choice') {
+      state = reducePerformance(script, context, state, { type: 'choose', index: choice });
+      continue;
+    }
+    if (cue?.type === 'end') {
+      state = reducePerformance(script, context, state, { type: 'finish' });
+      break;
+    }
+    if (cue && (cue.type === 'narration' || cue.type === 'line')) {
+      if (!state.revealed) {
+        state = reducePerformance(script, context, state, { type: 'advance' });
+      }
+      seen.push(cue.text);
+    }
+    state = reducePerformance(script, context, state, { type: 'advance' });
+  }
+  return { script, state, seen };
+}
+
 describe('performance interpreter', () => {
+  it('lets both arrival attitudes enter the same cave', () => {
+    const held = playArrival(0);
+    const looked = playArrival(1);
+    expect(held.script.cues.find((cue) => cue.type === 'scene')).toMatchObject({
+      alt: '石室空着，洞口有一点天光。',
+    });
+    expect(held.seen).toContain('山里长大，没有师门。');
+    expect(held.seen).toContain('玉简凉回掌心，洞里终于安静。');
+    expect(held.seen).not.toContain('门外有风，路还认不得。这间石室倒是能挡风。');
+    expect(looked.seen).toContain('门外有风，路还认不得。这间石室倒是能挡风。');
+    expect(looked.seen).not.toContain('玉简凉回掌心，洞里终于安静。');
+    expect(held.seen[held.seen.length - 1]).toBe('这里可以先住下。');
+    expect(looked.seen[looked.seen.length - 1]).toBe('这里可以先住下。');
+    expect(held.state.outcome).toBe('entered');
+    expect(looked.state.outcome).toBe('entered');
+  });
+
+  it('lets both cave-mouth attitudes return inside', () => {
+    const context = { name: '顾清舟' };
+    const script = fillPerformanceScript(parsePerformanceScript(arrivalMouth), context);
+    const play = (choice: 0 | 1) => {
+      let state = createPerformanceState(script, context);
+      const seen: string[] = [];
+      for (let step = 0; step < 12; step += 1) {
+        const cue = currentPerformanceCue(script, state);
+        if (cue?.type === 'choice') {
+          state = reducePerformance(script, context, state, {
+            type: 'choose',
+            index: choice,
+          });
+          continue;
+        }
+        if (cue?.type === 'end') {
+          state = reducePerformance(script, context, state, { type: 'finish' });
+          break;
+        }
+        if (cue && (cue.type === 'narration' || cue.type === 'line')) {
+          if (!state.revealed) {
+            state = reducePerformance(script, context, state, { type: 'advance' });
+          }
+          seen.push(cue.text);
+        }
+        state = reducePerformance(script, context, state, { type: 'advance' });
+      }
+      return { state, seen };
+    };
+    const stayed = play(0);
+    const backed = play(1);
+    expect(stayed.seen).toContain('外面的路，还不是今天的。');
+    expect(stayed.seen).toContain('顾清舟在门口站了一会儿。风停在洞口，没有跟进来。');
+    expect(stayed.seen).not.toContain('顾清舟退回石室。风停在洞口，没有跟进来。');
+    expect(backed.seen).toContain('顾清舟退回石室。风停在洞口，没有跟进来。');
+    expect(backed.seen[backed.seen.length - 1]).toBe('石室仍在身后。');
+    expect(stayed.state.outcome).toBe('returned');
+    expect(backed.state.outcome).toBe('returned');
+  });
+
   it('allows a scene that has words and no picture', () => {
     expect(() =>
       parsePerformanceScript({

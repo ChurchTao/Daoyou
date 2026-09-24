@@ -14,6 +14,7 @@ import sponsorshipRouter from '@server/routes/api/admin/sponsorship.router';
 import systemMailsRouter from '@server/routes/api/admin/system-mails.router';
 import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.router';
 import { Hono } from 'hono';
+import { manualMigrationAdminRouter } from '../manual-migration';
 import rewardItemsRouter from './reward-items.router';
 import sectMigrationRouter from './sect-migration';
 
@@ -38,6 +39,7 @@ router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/sect-shop', sectShopRouter);
 router.route('/sect-migration', sectMigrationRouter);
+router.route('/manual-migration', manualMigrationAdminRouter);
 router.route('/sponsorship', sponsorshipRouter);
 router.route('/community-group', communityGroupRouter);
 router.route('/llm-metrics', llmMetricsRouter);

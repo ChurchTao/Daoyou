@@ -1,0 +1,33 @@
+{
+  "id": "arrival-ember",
+  "title": "残火",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "案上的玉简凉了，石室里却有一点干枯的药气。"
+    },
+    { "type": "title", "kicker": "洞府 · 次日", "text": "残火" },
+    {
+      "type": "narration",
+      "text": "夜过去了。石室里留着一点干枯的药气。"
+    },
+    {
+      "type": "narration",
+      "text": "玉简凉透了。简下压着三株翠芽草，叶子已经干了。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "炉里的火灭了。"
+    },
+    {
+      "type": "narration",
+      "text": "{name}没有听见别人的声音。那口炉还在原处。"
+    },
+    { "type": "end", "outcome": "hearth" }
+  ]
+}

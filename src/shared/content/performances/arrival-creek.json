@@ -1,0 +1,33 @@
+{
+  "id": "arrival-creek",
+  "title": "青溪",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "天光落在洞口的石痕上，痕指向溪水和草坡。"
+    },
+    { "type": "title", "kicker": "洞府 · 晨", "text": "青溪" },
+    {
+      "type": "narration",
+      "text": "一夜过去。石上的新痕在天亮以后清楚了。"
+    },
+    {
+      "type": "narration",
+      "text": "那不是名字，是朝溪水和草坡的一指。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "今天，只走到能看见溪水的地方。"
+    },
+    {
+      "type": "narration",
+      "text": "{name}认出那是太岳山的青溪坡。溪坡还远。"
+    },
+    { "type": "end", "outcome": "slope" }
+  ]
+}

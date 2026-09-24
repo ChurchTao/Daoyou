@@ -4,7 +4,6 @@ import { hasStoryReward } from './grants';
 
 export const STORY_FACT_IDS = [
   'starter_beast',
-  'training_victory',
   'alchemy_crafted',
   'dungeon_settled',
   'sect_joined',
@@ -14,7 +13,6 @@ export const STORY_FACT_IDS = [
 export type StoryFactId = (typeof STORY_FACT_IDS)[number];
 
 export const STORY_MARK_FACT_IDS = [
-  'training_victory',
   'alchemy_crafted',
   'dungeon_settled',
 ] as const satisfies readonly StoryFactId[];
@@ -217,7 +215,6 @@ export type StoryFacts = Record<StoryFactId, boolean>;
 export function emptyStoryFacts(): StoryFacts {
   return {
     starter_beast: false,
-    training_victory: false,
     alchemy_crafted: false,
     dungeon_settled: false,
     sect_joined: false,

@@ -1,0 +1,55 @@
+{
+  "id": "arrival-lodge",
+  "title": "初宿",
+  "requires": ["name"],
+  "cast": {
+    "slip": { "name": "玉简" }
+  },
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "石榻是凉的，洞口的风已经停了。"
+    },
+    { "type": "title", "kicker": "洞府 · 夜", "text": "初宿" },
+    {
+      "type": "narration",
+      "text": "路还留在门外。{name}没有再出去。"
+    },
+    {
+      "type": "narration",
+      "text": "石室里只有自己的呼吸。上一任留下的药气已经散尽。"
+    },
+    {
+      "type": "line",
+      "speaker": "slip",
+      "text": "今夜，就睡这里。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        { "label": "靠石壁睡下", "jump": "wall" },
+        { "label": "把玉简握在手里", "jump": "hold" }
+      ]
+    },
+    { "type": "mark", "id": "wall" },
+    {
+      "type": "narration",
+      "text": "{name}靠着石壁睡下。天光再来的时候，石榻是温的。"
+    },
+    {
+      "type": "narration",
+      "text": "这里算是住下了。"
+    },
+    { "type": "end", "outcome": "slept" },
+    { "type": "mark", "id": "hold" },
+    {
+      "type": "narration",
+      "text": "{name}把玉简握在手里。天光再来的时候，石榻是温的。"
+    },
+    {
+      "type": "narration",
+      "text": "这里算是住下了。"
+    },
+    { "type": "end", "outcome": "slept" }
+  ]
+}

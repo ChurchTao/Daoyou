@@ -165,13 +165,17 @@ export function rewindToUnwatchedPerformance(
   if (progress.track !== chapter.track || progress.storyId !== chapter.id) {
     return progress;
   }
-  const opening = chapter.beats.find((beat) => beat.kind === 'performance');
-  if (!opening || opening.kind !== 'performance') return progress;
-  const key = `${opening.script}:${opening.outcome}`;
-  if (progress.acks.includes(key) || progress.beatId === opening.id) {
-    return progress;
+  const currentIndex = chapter.beats.findIndex((beat) => beat.id === progress.beatId);
+  if (currentIndex < 0) return progress;
+  for (let index = 0; index < currentIndex; index += 1) {
+    const beat = chapter.beats[index];
+    if (!beat || beat.kind !== 'performance') continue;
+    const key = `${beat.script}:${beat.outcome}`;
+    if (!progress.acks.includes(key)) {
+      return { ...progress, beatId: beat.id, status: 'active' };
+    }
   }
-  return { ...progress, beatId: opening.id, status: 'active' };
+  return progress;
 }
 
 export function presentStory(

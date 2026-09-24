@@ -1,3 +1,4 @@
+import { manualMigrationRouter } from './manual-migration';
 import divinationRouter from './divination.router';
 import type { AppEnv } from '@server/lib/hono/types';
 import { getMessageInfrastructureHealthStatus } from '@server/lib/mq/domainEventRegistry';
@@ -101,6 +102,7 @@ apiRouter.route('/combat-v6/forging', forgingRouter);
 apiRouter.route('/combat-v6/enlightenment', enlightenmentRouter);
 apiRouter.route('/combat-v6/inscriptions', inscriptionsRouter);
 apiRouter.route('/combat-v6/manuals', manualsRouter);
+apiRouter.route('/manual-migration', manualMigrationRouter);
 apiRouter.route('/combat-v6/sect', sectV6Router);
 apiRouter.route('/combat-v6/sect-tasks', sectTasksV6Router);
 apiRouter.route('/combat-v6/breakthrough', breakthroughV6Router);

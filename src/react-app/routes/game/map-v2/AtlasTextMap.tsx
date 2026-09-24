@@ -40,6 +40,7 @@ export function AtlasTextMap({
     <div className="absolute inset-x-0 top-[var(--atlas-toolbar-bottom)] bottom-0 flex min-h-0 gap-3 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:gap-5">
       <nav
         aria-label="选择区域"
+        data-guide="map.world"
         className={`${regionId ? 'hidden md:block' : ''} bg-paper/90 w-full overflow-y-auto rounded-sm p-2 md:w-52 md:shrink-0`}
       >
         <p className="text-ink-secondary px-3 py-2 text-xs">人界 · 选择区域</p>
@@ -47,6 +48,7 @@ export function AtlasTextMap({
           <button
             key={region.id}
             type="button"
+            data-guide={region.id === 'tiannan' ? 'map.tiannan' : undefined}
             disabled={!hasAtlasMap(region.id)}
             aria-current={regionId === region.id ? 'location' : undefined}
             onClick={() => onRegion(region.id)}
@@ -107,6 +109,9 @@ export function AtlasTextMap({
                       <li key={location.id}>
                         <button
                           type="button"
+                          data-guide={
+                            location.id === 'SAT_TN_08' ? 'map.qingxi' : undefined
+                          }
                           ref={active ? selectedButton : undefined}
                           aria-expanded={active}
                           aria-controls={

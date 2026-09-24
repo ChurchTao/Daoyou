@@ -12,10 +12,7 @@ import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDom
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
 import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
-import {
-  observeCombatStory,
-  projectStoryDomainEvent,
-} from '@server/lib/services/StoryDomainEventProjector';
+import { projectStoryDomainEvent } from '@server/lib/services/StoryDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import {
   generateYieldRewardAttachments,
@@ -82,7 +79,6 @@ export async function registerMessageInfrastructure(): Promise<void> {
           ).data;
           if (data.sourceType !== 'arena-sparring') {
             await projectCombatV6Condition(data.battleId);
-            await observeCombatStory(data.battleId);
           }
         }
       },

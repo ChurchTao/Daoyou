@@ -734,6 +734,20 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="manual-migration"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/manual-migration/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'manual-migration',
+                  presentation: 'workflow',
+                  summary: '旧卷换新篇，将往昔所藏续作今日传承。',
+                },
+                '旧功法传承',
+              )}
+            />
+            <Route
               path="techniques"
               lazy={lazyRoute(
                 () => import('@app/routes/game/techniques/route'),
@@ -1254,6 +1268,13 @@ export const router = createBrowserRouter(
           path="feedback"
           lazy={lazyRoute(() => import('@app/routes/admin/feedback/route'))}
           handle={title('用户反馈')}
+        />
+        <Route
+          path="manual-migration"
+          lazy={lazyRoute(
+            () => import('@app/routes/admin/manual-migration/route'),
+          )}
+          handle={title('旧功法迁移')}
         />
         <Route
           path="sect-migration"

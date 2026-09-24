@@ -103,6 +103,11 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🔶 阵纹室',
       },
       {
+        id: 'manual-migration',
+        sceneLabel: '旧功法传承',
+        href: '/game/manual-migration',
+      },
+      {
         id: 'techniques',
         sceneLabel: '所修功法',
       },

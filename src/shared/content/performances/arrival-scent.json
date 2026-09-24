@@ -1,0 +1,22 @@
+{
+  "id": "arrival-scent",
+  "title": "药气",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "炉边还留着一点药气，石室比初醒时暖一点。"
+    },
+    { "type": "title", "kicker": "洞府 · 炉边", "text": "药气" },
+    {
+      "type": "narration",
+      "text": "炉边还留着一点药气。"
+    },
+    {
+      "type": "narration",
+      "text": "石室不像初醒时那么空。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "stayed" }
+  ]
+}

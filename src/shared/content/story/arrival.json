@@ -13,6 +13,80 @@
       "href": "/game/story"
     },
     {
+      "id": "ember",
+      "kind": "performance",
+      "script": "arrival-ember",
+      "outcome": "hearth",
+      "scene": "story",
+      "prompt": "玉简底下像是压着什么。",
+      "href": "/game/story"
+    },
+    {
+      "id": "hearth",
+      "kind": "practice",
+      "accept": [
+        { "type": "guide", "lesson": "alchemy-first-furnace" },
+        { "type": "fact", "fact": "alchemy_crafted" }
+      ],
+      "scene": "alchemy",
+      "prompt": "玉简还温着，丹房里那口炉也还没灭干净。",
+      "href": "/game/craft/alchemy?guide=alchemy-first-furnace",
+      "grant": "first-herbs"
+    },
+    {
+      "id": "scent",
+      "kind": "performance",
+      "script": "arrival-scent",
+      "outcome": "stayed",
+      "scene": "story",
+      "prompt": "炉边的药气还没散。",
+      "href": "/game/story"
+    },
+    {
+      "id": "mouth",
+      "kind": "performance",
+      "script": "arrival-mouth",
+      "outcome": "returned",
+      "scene": "story",
+      "prompt": "洞口的风还没停。",
+      "href": "/game/story"
+    },
+    {
+      "id": "lodge",
+      "kind": "performance",
+      "script": "arrival-lodge",
+      "outcome": "slept",
+      "scene": "story",
+      "prompt": "洞里该有人睡下了。",
+      "href": "/game/story"
+    },
+    {
+      "id": "creek",
+      "kind": "performance",
+      "script": "arrival-creek",
+      "outcome": "slope",
+      "scene": "story",
+      "prompt": "天亮了，洞口的石痕还在。",
+      "href": "/game/story"
+    },
+    {
+      "id": "slope",
+      "kind": "practice",
+      "accept": [{ "type": "guide", "lesson": "map-qingxi" }],
+      "scene": "map",
+      "prompt": "石痕在天亮以后，指向门外。",
+      "href": "/game/map-v2?guide=map-qingxi"
+    },
+    {
+      "id": "grass",
+      "kind": "performance",
+      "script": "arrival-grass",
+      "outcome": "known",
+      "scene": "story",
+      "prompt": "风里的草气还没散。",
+      "href": "/game/story"
+    },
+    {
       "id": "entered",
       "kind": "life",
       "scene": "cave",

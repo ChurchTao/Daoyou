@@ -38,7 +38,6 @@ const locations = getAtlasLocations();
 
 export default function AtlasPage() {
   const { mapMode } = useGameSettings();
-  const isAtlas = mapMode === 'atlas';
   const root = useRef<HTMLDivElement>(null);
   const toolbar = useRef<HTMLElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -46,6 +45,8 @@ export default function AtlasPage() {
   const controller = useRef<AtlasController | null>(null);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const teachingMap = params.get('guide') === 'map-qingxi';
+  const isAtlas = mapMode === 'atlas' && !teachingMap;
   const player = usePlayerSession();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

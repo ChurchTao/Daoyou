@@ -182,7 +182,7 @@ describe('story resolver', () => {
     expect(crafted.progress.beatId).toBe('stay');
   });
 
-  it('lets a beat wait on a fight without a lesson', () => {
+  it('lets a beat wait on a world fact without a lesson', () => {
     const parsed = StoryChapterSchema.parse({
       id: 'sample',
       track: 'main',
@@ -191,10 +191,10 @@ describe('story resolver', () => {
         {
           id: 'fight',
           kind: 'practice',
-          accept: [{ type: 'fact', fact: 'training_victory' }],
-          scene: 'training',
-          prompt: '出去挡一挡。',
-          href: '/game/training',
+          accept: [{ type: 'fact', fact: 'dungeon_settled' }],
+          scene: 'wild',
+          prompt: '外面还有一段路。',
+          href: '/game/map-v2',
         },
         {
           id: 'stay',
@@ -208,7 +208,7 @@ describe('story resolver', () => {
     expect(presentStory(parsed, progress('fight'), emptyStoryFacts()).guideLesson).toBe(
       null,
     );
-    const won = noteStoryFact(parsed, progress('fight'), emptyStoryFacts(), 'training_victory');
+    const won = noteStoryFact(parsed, progress('fight'), emptyStoryFacts(), 'dungeon_settled');
     expect(won.progress.beatId).toBe('stay');
   });
 
@@ -287,9 +287,139 @@ describe('story resolver', () => {
       'arrival-fall',
       'entered',
     );
-    expect(
-      rewindToUnwatchedPerformance(arrival, watched.progress).beatId,
-    ).toBe('entered');
+    expect(rewindToUnwatchedPerformance(arrival, watched.progress).beatId).toBe(
+      'ember',
+    );
+    const parked = rewindToUnwatchedPerformance(arrival, {
+      ...skipped,
+      acks: ['arrival-fall:entered'],
+    });
+    expect(parked.beatId).toBe('ember');
+    expect(presentStory(arrival, parked, emptyStoryFacts()).scriptId).toBe(
+      'arrival-ember',
+    );
+  });
+
+  it('walks arrival from the cold furnace back to a quiet cave', () => {
+    const arrival = getStoryChapter();
+    const facts = emptyStoryFacts();
+    const opened = acknowledgePerformance(
+      arrival,
+      openingStoryProgress(),
+      facts,
+      'arrival-fall',
+      'entered',
+    );
+    expect(opened.progress.beatId).toBe('ember');
+    expect(opened.grants).toEqual([]);
+    expect(presentStory(arrival, opened.progress, facts).prompt).toBe(
+      '玉简底下像是压着什么。',
+    );
+
+    const ember = acknowledgePerformance(
+      arrival,
+      opened.progress,
+      facts,
+      'arrival-ember',
+      'hearth',
+    );
+    expect(ember.grants).toEqual(['first-herbs']);
+    const hearth = presentStory(arrival, ember.progress, facts);
+    expect(hearth.beatId).toBe('hearth');
+    expect(hearth.guideLesson).toBe('alchemy-first-furnace');
+    expect(hearth.href).toBe('/game/craft/alchemy?guide=alchemy-first-furnace');
+    expect(hearth.prompt).toBe('玉简还温着，丹房里那口炉也还没灭干净。');
+
+    const watched = acknowledgeGuide(
+      arrival,
+      ember.progress,
+      facts,
+      'alchemy-first-furnace',
+    );
+    const crafted = noteStoryFact(
+      arrival,
+      ember.progress,
+      facts,
+      'alchemy_crafted',
+    );
+    expect(watched.progress.beatId).toBe('scent');
+    expect(crafted.progress.beatId).toBe('scent');
+    expect(watched.grants).toEqual([]);
+
+    const stayed = acknowledgePerformance(
+      arrival,
+      watched.progress,
+      facts,
+      'arrival-scent',
+      'stayed',
+    );
+    expect(stayed.progress.beatId).toBe('mouth');
+    expect(stayed.grants).toEqual([]);
+    expect(presentStory(arrival, stayed.progress, facts).prompt).toBe(
+      '洞口的风还没停。',
+    );
+
+    const returned = acknowledgePerformance(
+      arrival,
+      stayed.progress,
+      facts,
+      'arrival-mouth',
+      'returned',
+    );
+    expect(returned.progress.beatId).toBe('lodge');
+    expect(returned.grants).toEqual([]);
+    expect(presentStory(arrival, returned.progress, facts).prompt).toBe(
+      '洞里该有人睡下了。',
+    );
+
+    const slept = acknowledgePerformance(
+      arrival,
+      returned.progress,
+      facts,
+      'arrival-lodge',
+      'slept',
+    );
+    expect(slept.progress.beatId).toBe('creek');
+    expect(presentStory(arrival, slept.progress, facts).prompt).toBe(
+      '天亮了，洞口的石痕还在。',
+    );
+
+    const creek = acknowledgePerformance(
+      arrival,
+      slept.progress,
+      facts,
+      'arrival-creek',
+      'slope',
+    );
+    expect(creek.grants).toEqual([]);
+    const slope = presentStory(arrival, creek.progress, facts);
+    expect(slope.beatId).toBe('slope');
+    expect(slope.guideLesson).toBe('map-qingxi');
+    expect(slope.href).toBe('/game/map-v2?guide=map-qingxi');
+    expect(slope.prompt).toBe('石痕在天亮以后，指向门外。');
+
+    const named = acknowledgeGuide(arrival, creek.progress, facts, 'map-qingxi');
+    expect(named.progress.beatId).toBe('grass');
+    expect(named.grants).toEqual([]);
+
+    const known = acknowledgePerformance(
+      arrival,
+      named.progress,
+      facts,
+      'arrival-grass',
+      'known',
+    );
+    expect(known.progress.beatId).toBe('entered');
+    expect(presentStory(arrival, known.progress, facts).prompt).toBe('');
+    expect(rewindToUnwatchedPerformance(arrival, known.progress).beatId).toBe(
+      'entered',
+    );
+    const waitingAtMouth = rewindToUnwatchedPerformance(arrival, {
+      ...returned.progress,
+      beatId: 'entered',
+      acks: returned.progress.acks.filter((ack) => ack !== 'arrival-mouth:returned'),
+    });
+    expect(waitingAtMouth.beatId).toBe('mouth');
   });
 
   it('rejects an outcome that does not belong to the current beat', () => {

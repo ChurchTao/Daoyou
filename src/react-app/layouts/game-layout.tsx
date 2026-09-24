@@ -362,6 +362,7 @@ function GameMapLayoutBody() {
         <main className="h-full overflow-hidden">
           <Outlet />
         </main>
+        <GuideOverlay />
       </div>
     </div>
   );

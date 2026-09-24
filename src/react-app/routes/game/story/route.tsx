@@ -60,13 +60,12 @@ export default function StoryRoute() {
       onFinish={(outcome) => {
         setBusy(true);
         setError(undefined);
-        void consumeResourceMutation(
-          fetch(`/api/story/performances/${encodeURIComponent(scriptId)}/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ outcome }),
-          }),
-        )
+        void fetch(`/api/story/performances/${encodeURIComponent(scriptId)}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ outcome }),
+        })
+          .then((response) => consumeResourceMutation(response))
           .then(() => navigate('/game', { replace: true }))
           .catch((reason: unknown) => {
             setError(reason instanceof Error ? reason.message : '这页没能记住，再试一次。');
