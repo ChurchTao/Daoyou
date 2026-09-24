@@ -46,6 +46,7 @@ export function FurnacePreparationStage() {
               : '投入灵材后确定本次消耗'}
           </p>
         </div>
+        <span data-guide="alchemy.fire" className="inline-flex">
         <InkButton
           variant="primary"
           pending={session.readiness.loading || session.analysis.loading}
@@ -68,6 +69,7 @@ export function FurnacePreparationStage() {
               ? `${session.analysis.cooldownRemaining} 秒后可预览`
               : '预览丹方'}
         </InkButton>
+        </span>
       </footer>
     </div>
   );

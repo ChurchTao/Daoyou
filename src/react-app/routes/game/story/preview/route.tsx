@@ -27,6 +27,8 @@ function watchContext(
     if (!context[key]?.trim()) {
       throw new Error(`这场演出还要填上「${key}」`);
     }
+  }
+  return context;
 }
 
 function PreviewShelf({

@@ -1,3 +1,4 @@
+import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -296,6 +297,7 @@ export function GameViewportLayout() {
           </main>
         </div>
         <RealtimeConnectionToasts />
+        <GuideOverlay />
         <div ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
           <WorldChatPreviewBar />
           <GameBottomDock

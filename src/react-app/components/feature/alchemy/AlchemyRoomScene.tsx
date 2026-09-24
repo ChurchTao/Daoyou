@@ -116,6 +116,7 @@ function AlchemyRoomContent() {
   const actors: RoomActorView[] = [
     {
       ...ALCHEMY_FACILITIES.furnace,
+      guideAnchor: 'alchemy.furnace',
       status: {
         label: furnaceStatus(session),
         tone:

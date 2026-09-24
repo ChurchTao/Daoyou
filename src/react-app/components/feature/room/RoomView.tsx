@@ -15,6 +15,7 @@ export interface RoomActorView {
     label: string;
     tone?: RoomActorStatusTone;
   };
+  guideAnchor?: string;
   disabled?: boolean;
 }
 
@@ -97,6 +98,7 @@ export function RoomView({
                   key={actor.id}
                   type="button"
                   disabled={actor.disabled}
+                  data-guide={actor.guideAnchor}
                   onClick={() => onSelect(actor.id)}
                   className={cn(
                     'border-ink/20 hover:border-crimson/35 focus-visible:outline-crimson group flex min-h-40 w-full min-w-0 flex-col items-center justify-center border border-dashed px-3 py-4 text-center transition-[color,border-color,background-color,transform] focus-visible:outline-2 focus-visible:outline-offset-4 md:min-h-48 md:px-4 md:py-5',
