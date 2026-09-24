@@ -8,6 +8,7 @@ export const STORY_FACT_IDS = [
   'dungeon_settled',
   'qingxi_sought',
   'qingxi_met',
+  'weapon_forged',
   'sect_joined',
   'breakthrough_available',
 ] as const;
@@ -19,6 +20,7 @@ export const STORY_MARK_FACT_IDS = [
   'dungeon_settled',
   'qingxi_sought',
   'qingxi_met',
+  'weapon_forged',
 ] as const satisfies readonly StoryFactId[];
 
 export const STORY_TRACKS = ['main', 'encounter'] as const;
@@ -74,6 +76,7 @@ const practiceBeatSchema = z
     scene: z.string().trim().min(1).max(40),
     prompt: z.string().trim().min(1).max(80),
     href: z.string().trim().min(1).max(120),
+    lesson: lessonIdSchema.optional(),
     grant: z.string().trim().min(1).max(40).optional(),
     reward: z.string().trim().min(1).max(40).optional(),
   })
@@ -123,8 +126,11 @@ export const StoryChapterSchema = z
       }
       ids.add(beat.id);
       if (beat.kind !== 'practice') continue;
-      const guides = beat.accept.filter((entry) => entry.type === 'guide');
-      if (guides.length > 1) {
+      const guides = [
+        ...beat.accept.filter((entry) => entry.type === 'guide'),
+        ...(beat.lesson ? [{ lesson: beat.lesson }] : []),
+      ];
+      if (new Set(guides.map((entry) => entry.lesson)).size > 1) {
         context.addIssue({
           code: 'custom',
           message: `一幕只带一场教学：${beat.id}`,
@@ -223,6 +229,7 @@ export function emptyStoryFacts(): StoryFacts {
     dungeon_settled: false,
     qingxi_sought: false,
     qingxi_met: false,
+    weapon_forged: false,
     sect_joined: false,
     breakthrough_available: false,
   };

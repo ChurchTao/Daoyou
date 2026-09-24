@@ -33,6 +33,7 @@ const facilities: RoomActorView[] = [
     id: 'furnace',
     sigil: '🔥',
     name: '地火器炉',
+    guideAnchor: 'forge.furnace',
     identity: '铸造设施',
     responsibility: '依图定形，借地火锻成道装',
     appearance: 'facility',
@@ -41,6 +42,7 @@ const facilities: RoomActorView[] = [
     id: 'archive',
     sigil: '📜',
     name: '道装图录',
+    guideAnchor: 'forge.archive',
     identity: '图纸设施',
     responsibility: '翻阅随身图纸，择一卷开炉',
     appearance: 'facility',
@@ -287,19 +289,21 @@ export function ForgingRoom() {
                             </InkTooltip>
                           </div>
                         </div>
-                        <InkButton
-                          variant="primary"
-                          pending={session.pending}
-                          pendingLabel="铸造中……"
-                          disabled={
-                            session.locked ||
-                            !!session.problem ||
-                            session.intentTooLong
-                          }
-                          onClick={() => setDrawer('confirm')}
-                        >
-                          开炉铸造
-                        </InkButton>
+                        <span data-guide="forge.fire" className="inline-flex">
+                          <InkButton
+                            variant="primary"
+                            pending={session.pending}
+                            pendingLabel="铸造中……"
+                            disabled={
+                              session.locked ||
+                              !!session.problem ||
+                              session.intentTooLong
+                            }
+                            onClick={() => setDrawer('confirm')}
+                          >
+                            开炉铸造
+                          </InkButton>
+                        </span>
                       </footer>
                     </>
                   )}
@@ -335,15 +339,24 @@ export function ForgingRoom() {
                           {session.itemProblem(item)}
                         </p>
                       </div>
-                      <InkButton
-                        disabled={session.locked || !!session.itemProblem(item)}
-                        onClick={() => {
-                          choose(item);
-                          setFacility('furnace');
-                        }}
+                      <span
+                        data-guide={
+                          item.definitionId === 'blueprint.weapon.10'
+                            ? 'forge.blueprint'
+                            : undefined
+                        }
+                        className="inline-flex"
                       >
-                        带入器炉
-                      </InkButton>
+                        <InkButton
+                          disabled={session.locked || !!session.itemProblem(item)}
+                          onClick={() => {
+                            choose(item);
+                            setFacility('furnace');
+                          }}
+                        >
+                          带入器炉
+                        </InkButton>
+                      </span>
                     </div>
                   ))
                 )}

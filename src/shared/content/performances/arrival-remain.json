@@ -1,0 +1,22 @@
+{
+  "id": "arrival-remain",
+  "title": "石室",
+  "requires": ["name"],
+  "cast": {},
+  "cues": [
+    {
+      "type": "scene",
+      "alt": "山门在那里，石室也还在。"
+    },
+    { "type": "title", "kicker": "洞府 · 归来", "text": "石室" },
+    {
+      "type": "narration",
+      "text": "山门在那里。"
+    },
+    {
+      "type": "narration",
+      "text": "石室也还在。{name}仍住在这里。"
+    },
+    { "type": "end", "outcome": "remained" }
+  ]
+}

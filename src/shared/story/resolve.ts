@@ -147,7 +147,8 @@ export function acknowledgeGuide(
   const beat = beatAt(chapter, progress.beatId);
   const wanted =
     beat.kind === 'practice' &&
-    beat.accept.some((entry) => entry.type === 'guide' && entry.lesson === lesson);
+    (beat.lesson === lesson ||
+      beat.accept.some((entry) => entry.type === 'guide' && entry.lesson === lesson));
   if (!wanted) throw new Error('当前没有这场教学');
   const key = guideMark(lesson);
   if (progress.marks.includes(key)) return resolveStory(chapter, progress, facts);
@@ -204,9 +205,9 @@ export function presentStory(
 
 function pendingGuide(beat: StoryBeat, progress: StoryProgress): string | null {
   if (beat.kind !== 'practice') return null;
-  for (const acceptance of beat.accept) {
-    if (acceptance.type !== 'guide') continue;
-    if (!progress.marks.includes(guideMark(acceptance.lesson))) return acceptance.lesson;
-  }
-  return null;
+  const lesson =
+    beat.lesson ??
+    beat.accept.find((acceptance) => acceptance.type === 'guide')?.lesson;
+  if (!lesson || progress.marks.includes(guideMark(lesson))) return null;
+  return lesson;
 }

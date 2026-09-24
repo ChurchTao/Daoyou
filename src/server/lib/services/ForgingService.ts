@@ -19,6 +19,7 @@ import {
 import { generateForgedEquipment } from '@shared/engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@shared/engine/spirit-field/seedMaterial';
 import { forgingCost, forgingInputs, validateForgeWeaponType } from '@shared/forging/rules';
+import { storyMarkForSignal } from '@shared/story/signals';
 import {
   addItems,
   itemDefinition,
@@ -68,6 +69,7 @@ import {
 import { MailService } from './MailService';
 import { publishResourceEvents } from './playerStateBroadcaster';
 import { QiService } from './QiService';
+import { StoryService } from './StoryService';
 import { ResourceEventCommitter } from './ResourceEventCommitter';
 
 async function mutate<T>(
@@ -321,10 +323,18 @@ export async function forgeEquipment(
             actionInstanceId: equipment.id,
             tx,
           });
+          const forged = storyMarkForSignal({
+            type: 'equipment.forged',
+            slot,
+          });
+          const story = forged
+            ? await StoryService.noteFact(owner, forged, tx)
+            : null;
           lease.assertHeld();
           return {
             result: { equipment },
             resourceChanges: [
+              ...(story?.changes ?? []),
               {
                 resourceTopic: 'player.currency',
                 operation: 'invalidate',

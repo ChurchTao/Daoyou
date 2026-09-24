@@ -7,6 +7,10 @@ import arrivalSteady from '../content/performances/arrival-steady.json';
 import arrivalTracks from '../content/performances/arrival-tracks.json';
 import arrivalEmber from '../content/performances/arrival-ember.json';
 import arrivalFall from '../content/performances/arrival-fall.json';
+import arrivalGate from '../content/performances/arrival-gate.json';
+import arrivalGrip from '../content/performances/arrival-grip.json';
+import arrivalRemain from '../content/performances/arrival-remain.json';
+import arrivalHandy from '../content/performances/arrival-handy.json';
 import arrivalGrass from '../content/performances/arrival-grass.json';
 import arrivalLodge from '../content/performances/arrival-lodge.json';
 import arrivalMouth from '../content/performances/arrival-mouth.json';
@@ -27,6 +31,10 @@ const scripts = new Map<string, PerformanceScript>([
   ['arrival-satchel', parsePerformanceScript(arrivalSatchel)],
   ['arrival-spring', parsePerformanceScript(arrivalSpring)],
   ['arrival-steady', parsePerformanceScript(arrivalSteady)],
+  ['arrival-handy', parsePerformanceScript(arrivalHandy)],
+  ['arrival-grip', parsePerformanceScript(arrivalGrip)],
+  ['arrival-gate', parsePerformanceScript(arrivalGate)],
+  ['arrival-remain', parsePerformanceScript(arrivalRemain)],
 ]);
 
 export function listPerformanceScripts(): PerformanceScript[] {

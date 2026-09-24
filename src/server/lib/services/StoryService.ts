@@ -22,6 +22,7 @@ import {
   acknowledgePerformance,
   noteStoryFact,
   presentStory,
+  resolveStory,
   rewindToUnwatchedPerformance,
   type StoryResolution,
 } from '@shared/story/resolve';
@@ -255,6 +256,24 @@ export const StoryService = {
     await lockCultivatorForStateMutation(tx, cultivatorId);
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
       noteStoryFact(chapter, progress, facts, fact),
+    );
+    if (!settled.dirty && settled.rewardIds.length === 0) return null;
+    return {
+      view: settled.view,
+      changes: storyChanges(cultivatorId, settled.view, settled.effect),
+    };
+  },
+
+  async reconcile(
+    cultivatorId: string,
+    tx: DbTransaction,
+  ): Promise<{
+    view: StoryView;
+    changes: ResourceChangeDescriptor[];
+  } | null> {
+    await lockCultivatorForStateMutation(tx, cultivatorId);
+    const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
+      resolveStory(chapter, progress, facts),
     );
     if (!settled.dirty && settled.rewardIds.length === 0) return null;
     return {

@@ -37,12 +37,14 @@ export default function SectPage() {
           summary: '你还没有拜入山门，仍以散修身份行走。',
         }}
       >
-        <p className="text-ink-secondary text-sm leading-7">
+        <p data-guide="sect.self" className="text-ink-secondary text-sm leading-7">
           山门没有拦你。想认一认诸宗，可以自己进去看看；眼下洞府里的路也走得通。
         </p>
-        <InkButton href="/game/sect/onboarding" variant="primary" className="mt-4">
-          去看看山门
-        </InkButton>
+        <span data-guide="sect.door" className="mt-4 inline-flex">
+          <InkButton href="/game/sect/onboarding" variant="primary">
+            去看看山门
+          </InkButton>
+        </span>
       </GameSceneFrame>
     );
   }

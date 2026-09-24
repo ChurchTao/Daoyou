@@ -165,11 +165,74 @@
       "href": "/game/story"
     },
     {
+      "id": "empty-hand",
+      "kind": "performance",
+      "script": "arrival-handy",
+      "outcome": "forge",
+      "scene": "story",
+      "prompt": "器炉那边还热着。",
+      "href": "/game/story"
+    },
+    {
+      "id": "forge",
+      "kind": "practice",
+      "accept": [
+        { "type": "guide", "lesson": "forge-first-weapon" },
+        { "type": "fact", "fact": "weapon_forged" }
+      ],
+      "mode": "all",
+      "grant": "first-weapon",
+      "scene": "refine",
+      "prompt": "手里还是空的。",
+      "href": "/game/craft/refine?guide=forge-first-weapon"
+    },
+    {
+      "id": "grip",
+      "kind": "performance",
+      "script": "arrival-grip",
+      "outcome": "held",
+      "scene": "story",
+      "prompt": "新打的兵器还温着。",
+      "href": "/game/story"
+    },
+    {
+      "id": "gate",
+      "kind": "performance",
+      "script": "arrival-gate",
+      "outcome": "gate",
+      "scene": "story",
+      "prompt": "玉简上多了山门两个字。",
+      "href": "/game/story"
+    },
+    {
+      "id": "door",
+      "kind": "practice",
+      "accept": [{ "type": "fact", "fact": "sect_joined" }],
+      "lesson": "sect-door",
+      "scene": "sect",
+      "prompt": "玉简提到了山门。",
+      "href": "/game/sect?guide=sect-door"
+    },
+    {
+      "id": "remain",
+      "kind": "performance",
+      "script": "arrival-remain",
+      "outcome": "remained",
+      "scene": "story",
+      "prompt": "山门那边的风还在。",
+      "href": "/game/story"
+    },
+    {
       "id": "entered",
       "kind": "life",
       "scene": "cave",
       "prompt": "",
-      "href": "/game"
+      "href": "/game",
+      "when": {
+        "fact": "sect_joined",
+        "prompt": "山门已经认了你。",
+        "href": "/game/sect"
+      }
     }
   ]
 }

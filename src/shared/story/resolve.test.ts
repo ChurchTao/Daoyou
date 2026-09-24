@@ -511,11 +511,96 @@ describe('story resolver', () => {
       'arrival-steady',
       'steady',
     );
-    expect(steady.progress.beatId).toBe('entered');
-    expect(presentStory(arrival, steady.progress, facts).prompt).toBe('');
-    expect(rewindToUnwatchedPerformance(arrival, steady.progress).beatId).toBe(
-      'entered',
+    expect(steady.progress.beatId).toBe('empty-hand');
+    expect(presentStory(arrival, steady.progress, facts).prompt).toBe(
+      '器炉那边还热着。',
     );
+
+    const handy = acknowledgePerformance(
+      arrival,
+      steady.progress,
+      facts,
+      'arrival-handy',
+      'forge',
+    );
+    expect(handy.grants).toEqual(['first-weapon']);
+    const forge = presentStory(arrival, handy.progress, facts);
+    expect(forge.beatId).toBe('forge');
+    expect(forge.guideLesson).toBe('forge-first-weapon');
+    expect(forge.href).toBe('/game/craft/refine?guide=forge-first-weapon');
+    expect(forge.prompt).toBe('手里还是空的。');
+
+    const shown = acknowledgeGuide(
+      arrival,
+      handy.progress,
+      facts,
+      'forge-first-weapon',
+    );
+    expect(shown.progress.beatId).toBe('forge');
+    const armed = noteStoryFact(
+      arrival,
+      shown.progress,
+      facts,
+      'weapon_forged',
+    );
+    expect(armed.progress.beatId).toBe('grip');
+    expect(armed.grants).toEqual([]);
+
+    const held = acknowledgePerformance(
+      arrival,
+      armed.progress,
+      facts,
+      'arrival-grip',
+      'held',
+    );
+    expect(held.progress.beatId).toBe('gate');
+    expect(presentStory(arrival, held.progress, facts).prompt).toBe(
+      '玉简上多了山门两个字。',
+    );
+
+    const gate = acknowledgePerformance(
+      arrival,
+      held.progress,
+      facts,
+      'arrival-gate',
+      'gate',
+    );
+    const door = presentStory(arrival, gate.progress, facts);
+    expect(door.beatId).toBe('door');
+    expect(door.guideLesson).toBe('sect-door');
+    expect(door.href).toBe('/game/sect?guide=sect-door');
+    expect(door.prompt).toBe('玉简提到了山门。');
+
+    const looked = acknowledgeGuide(arrival, gate.progress, facts, 'sect-door');
+    expect(looked.progress.beatId).toBe('door');
+    expect(presentStory(arrival, looked.progress, facts).prompt).toBe(
+      '玉简提到了山门。',
+    );
+    expect(presentStory(arrival, looked.progress, facts).guideLesson).toBeNull();
+    const alreadyJoined = resolveStory(arrival, looked.progress, {
+      ...facts,
+      sect_joined: true,
+    });
+    expect(alreadyJoined.progress.beatId).toBe('remain');
+
+    const remained = acknowledgePerformance(
+      arrival,
+      alreadyJoined.progress,
+      facts,
+      'arrival-remain',
+      'remained',
+    );
+    expect(remained.progress.beatId).toBe('entered');
+    expect(presentStory(arrival, remained.progress, facts).prompt).toBe('');
+    expect(
+      presentStory(arrival, remained.progress, {
+        ...facts,
+        sect_joined: true,
+      }).prompt,
+    ).toBe('山门已经认了你。');
+    expect(
+      rewindToUnwatchedPerformance(arrival, remained.progress).beatId,
+    ).toBe('entered');
     const waitingAtMouth = rewindToUnwatchedPerformance(arrival, {
       ...returned.progress,
       beatId: 'entered',

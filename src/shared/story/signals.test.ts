@@ -12,6 +12,15 @@ describe('story signals', () => {
     expect(
       storyMarkForSignal({ type: 'wild.met', nodeId: 'SAT_TN_08' }),
     ).toBe('qingxi_met');
+    expect(
+      storyMarkForSignal({ type: 'equipment.forged', slot: 'weapon' }),
+    ).toBe('weapon_forged');
+  });
+
+  it('ignores forging anything but a weapon', () => {
+    expect(
+      storyMarkForSignal({ type: 'equipment.forged', slot: 'armor' }),
+    ).toBeNull();
   });
 
   it('ignores a meeting on another slope', () => {
