@@ -80,7 +80,7 @@ export default function MarketRecyclePage() {
   const [selection, setSelection] = useState<RecycleSelection[]>([]);
   const [quote, setQuote] = useState<{ key: string; value: RecycleQuote }>();
   const [message, setMessage] = useState(
-    '把要出手的材料、丹药和灵果挑出来，我给你报个实价。',
+    '把要出手的材料、灵种、道装、图纸、功法玉简、丹药和灵果挑出来，我给你报个实价。',
   );
   const [receipts, setReceipts] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
