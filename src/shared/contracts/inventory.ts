@@ -44,6 +44,20 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
     .strict(),
   z
     .object({
+      action: z.literal('transfer_many'),
+      items: z
+        .array(z.object(ref).strict())
+        .min(1)
+        .max(BAG_CAPACITY)
+        .refine(
+          (items) =>
+            new Set(items.map((item) => item.id)).size === items.length,
+        ),
+      location: z.enum(['bag', 'storage']),
+    })
+    .strict(),
+  z
+    .object({
       action: z.literal('move'),
       ...ref,
       slot: z
