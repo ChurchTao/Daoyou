@@ -1,9 +1,13 @@
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
-import { groupAlchemyBagMaterials } from '@shared/inventory/alchemy';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
+import {
+  groupAlchemyBagMaterials,
+  groupAlchemyStorageMaterials,
+} from '@shared/inventory/alchemy';
 import type { Material } from '@shared/types/cultivator';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { InventoryItems } from '../items/InventoryItems';
 import {
   ALCHEMY_MAX_DOSE,
@@ -18,45 +22,98 @@ export function AlchemyBag({
 }) {
   const session = useAlchemyCraftSession();
   const bagQuery = useInventoryBag();
-  const view = bagQuery.data;
-  const error = bagQuery.error;
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const storage = useCraftStorage('material', source === 'storage');
+  const reloadStorage = storage.reload;
+  const view = source === 'bag' ? bagQuery.data : storage.view;
+  const error = source === 'bag' ? bagQuery.error : storage.error;
   const [search, setSearch] = useState('');
+  useEffect(() => {
+    if (session.phase === 'result') reloadStorage();
+  }, [session.phase, reloadStorage]);
   const locked =
     session.phase === 'firing' ||
     session.phase === 'result' ||
     !view ||
-    bagQuery.isRefreshing ||
+    (source === 'bag' ? bagQuery.isRefreshing : storage.loading) ||
     !!error;
-  const groups = groupAlchemyBagMaterials(view?.items ?? []);
+  const groups =
+    source === 'bag'
+      ? groupAlchemyBagMaterials(view?.items ?? [])
+      : groupAlchemyStorageMaterials(view?.items ?? []);
   return (
     <div className="space-y-3 text-sm">
       <InventoryHeader
-        capacity={<>{view?.used ?? '—'} / 40</>}
+        title={source === 'bag' ? '储物袋' : '储藏室'}
+        capacity={
+          source === 'bag' ? (
+            <>{view?.used ?? '—'} / 40</>
+          ) : (
+            <>{view?.total ?? '—'} 格</>
+          )
+        }
         actions={
           <InkButton
-            disabled={bagQuery.isRefreshing}
-            onClick={() => void bagQuery.reload()}
+            disabled={
+              source === 'bag' ? bagQuery.isRefreshing : storage.loading
+            }
+            onClick={() =>
+              source === 'bag' ? void bagQuery.reload() : storage.reload()
+            }
           >
             刷新
           </InkButton>
         }
       />
+      <div className="flex gap-4" aria-label="材料位置">
+        {(
+          [
+            ['bag', '储物袋'],
+            ['storage', '储藏室'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={source === value}
+            onClick={() => {
+              if (value === 'storage') storage.reload();
+              setSource(value);
+            }}
+            className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="flex gap-3">
         <input
           aria-label="搜索物品"
           placeholder="搜索物品"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={source === 'bag' ? search : storage.search}
+          onChange={(e) =>
+            source === 'bag'
+              ? setSearch(e.target.value)
+              : storage.setSearch(e.target.value)
+          }
           className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
         />
       </div>
       {error ? (
         <p role="alert">{error}</p>
       ) : !view ? (
-        <p role="status">正在读取储物袋……</p>
+        <p role="status">正在读取{source === 'bag' ? '储物袋' : '储藏室'}……</p>
       ) : null}
       <InventoryItems
-        items={view?.items ?? []}
+        items={
+          source === 'bag' && search
+            ? (view?.items ?? []).filter((item) =>
+                item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+              )
+            : (view?.items ?? [])
+        }
+        location={source}
+        compact={source === 'bag' && !!search}
         slotProps={(item) => {
           const material = groups.find((g) =>
             g.members.some((m) => m.id === item?.id),
@@ -64,7 +121,6 @@ export function AlchemyBag({
           const dose = material
             ? session.materials.doses[material.id]
             : undefined;
-          const matching = !item || item.name.includes(search);
           const full =
             session.materials.ids.length >= ALCHEMY_MAX_MATERIALS && !dose;
           const choose = (amount: number) => {
@@ -75,8 +131,7 @@ export function AlchemyBag({
               );
           };
           return {
-            disabled: locked || (!!material && full) || !matching,
-            className: !matching ? 'opacity-25' : undefined,
+            disabled: locked || (!!material && full),
             badge: dose
               ? `已投${dose}`
               : material && !full
@@ -130,6 +185,25 @@ export function AlchemyBag({
           };
         }}
       />
+      {source === 'storage' && view && view.total > 40 ? (
+        <div className="flex items-center justify-between">
+          <InkButton
+            disabled={locked || view.page === 0}
+            onClick={() => storage.setPage(view.page - 1)}
+          >
+            上一页
+          </InkButton>
+          <span className="font-mono">
+            {view.page + 1} / {Math.ceil(view.total / 40)}
+          </span>
+          <InkButton
+            disabled={locked || (view.page + 1) * 40 >= view.total}
+            onClick={() => storage.setPage(view.page + 1)}
+          >
+            下一页
+          </InkButton>
+        </div>
+      ) : null}
     </div>
   );
 }

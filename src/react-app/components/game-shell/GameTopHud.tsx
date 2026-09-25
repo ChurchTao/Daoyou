@@ -14,6 +14,7 @@ import { GameImage } from '@app/components/ui/GameImage';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
+  COMPREHENSION_INSIGHT_CAP,
   NORMAL_BREAKTHROUGH_THRESHOLD,
   PERFECT_BREAKTHROUGH_INSIGHT,
 } from '@shared/config/cultivationTuning';
@@ -31,6 +32,7 @@ import type { SponsorshipTierId } from '@shared/lib/sponsorship';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useCombatActivityNotice } from './useCombatActivityNotice';
 import type { GameHudSnapshot } from './useGameHudModel';
 
 type MeritProfileResponse = {
@@ -338,6 +340,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     cultivatorId: snapshot?.cultivatorId ?? '',
   });
   const meritTier = usePlayerMeritTier(snapshot?.cultivatorId);
+  const combatNotice = useCombatActivityNotice(!!snapshot?.cultivatorId);
 
   if (!snapshot) return <GameTopHudPlaceholder />;
 
@@ -500,7 +503,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 : []),
               {
                 label: insightInfo.label,
-                value: `${progress.insight} / 100`,
+                value: `${progress.insight} / ${COMPREHENSION_INSIGHT_CAP}`,
               },
               {
                 label: '强行突破',
@@ -781,6 +784,15 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   return (
     <header className="border-ink/10 sticky top-0 z-30 border-b border-dashed backdrop-blur-sm">
       <div className="mx-auto block w-full max-w-5xl pt-[calc(env(safe-area-inset-top)+0.5rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-2 pl-[max(env(safe-area-inset-left),0.625rem)] text-left sm:pr-[max(env(safe-area-inset-right),0.75rem)] sm:pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+        {combatNotice ? (
+          <Link
+            href={combatNotice.href}
+            className="border-crimson/35 bg-crimson/5 text-crimson hover:border-crimson/60 mx-auto mb-2 flex w-fit max-w-full items-center justify-center gap-2 border border-dashed px-3 py-1 text-center text-xs leading-5 transition-colors md:text-sm"
+          >
+            <span className="min-w-0 truncate">{combatNotice.title}</span>
+            <span className="shrink-0">{combatNotice.action}</span>
+          </Link>
+        ) : null}
         <div className="grid min-w-0 grid-cols-[auto_minmax(3.75rem,0.55fr)_minmax(0,1fr)] items-center gap-2 md:grid-cols-[auto_minmax(8rem,0.44fr)_minmax(0,1fr)] md:gap-4">
           <Link
             href="/game/cultivator"

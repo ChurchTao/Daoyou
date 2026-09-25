@@ -1,5 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import {
   settleBeastDeaths,
@@ -10,14 +11,16 @@ import {
   COMBAT_V6_CONDITION_CONSUMER,
 } from '@server/lib/repositories/messageConsumptionRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { beastTradePreview } from '@shared/contracts/beastTrade';
 import { settleWildResources } from '@shared/engine/combat-v6/wild/rules';
 import { storyMarkForSignal } from '@shared/story/signals';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { and, eq } from 'drizzle-orm';
 import { ConditionService } from '../ConditionService';
-import { StoryService } from '../StoryService';
 import { grantInventory } from '../InventoryService';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
+import { StoryService } from '../StoryService';
+import { readCultivatorPublicIdentity } from '../cultivator/CultivatorFactsReader';
 import { publishResourceEvents } from '../playerStateBroadcaster';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -93,6 +96,31 @@ export async function projectCombatV6Condition(
             tx,
           );
           await settleBeastProgress(s, tx);
+          const mutants = (s.capturedBeasts ?? []).filter(
+            (beast) => beast.isMutant,
+          );
+          if (mutants.length) {
+            const identity = await readCultivatorPublicIdentity(
+              s.cultivatorId,
+              tx,
+            );
+            for (const beast of mutants)
+              await createDomainEvent(
+                {
+                  type: 'beast.exceptional.acquired',
+                  aggregate: { type: 'beast', id: beast.id },
+                  deduplicationKey: `beast-capture-rumor:${s.battleId}:${beast.id}`,
+                  data: {
+                    userId: s.userId,
+                    cultivatorId: s.cultivatorId,
+                    cultivatorName: identity.name,
+                    source: 'capture',
+                    beast: beastTradePreview(beast),
+                  },
+                },
+                tx,
+              );
+          }
           if (record.reason === 'battle-ended')
             await grantInventory(s.cultivatorId, s.itemRewards ?? [], tx);
         }

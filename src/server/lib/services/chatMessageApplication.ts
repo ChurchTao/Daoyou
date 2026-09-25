@@ -1,4 +1,7 @@
+import { db } from '@server/lib/drizzle/db';
+import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
 import { readCultivatorPublicIdentity } from '@server/lib/services/cultivator/CultivatorFactsReader';
+import { beastTradePreview } from '@shared/contracts/beastTrade';
 import type { WorldChatCreateMessageRequest } from '@shared/contracts/world-chat';
 import { inventoryShowcaseSnapshot } from '@shared/items/showcase';
 import type {
@@ -43,9 +46,11 @@ async function buildItemShowcasePayload(params: {
     search: '',
     kind: 'all',
   });
-  const item = bag.items.find((item) => item.id === params.itemId);
+  const item = [...bag.items, ...bag.equippedItems].find(
+    (item) => item.id === params.itemId,
+  );
   if (!item)
-    throw new ChatMessageApplicationError('道具不在当前角色背包中', 404);
+    throw new ChatMessageApplicationError('道具不在当前角色背包或装备栏中', 404);
   if (item.revision !== params.revision)
     throw new ChatMessageApplicationError('物品已变化，请刷新后重新选择', 409);
   return {
@@ -113,6 +118,33 @@ export async function createCultivatorChatMessage(params: {
       messageType: 'text',
       textContent: filteredText,
       payload: { text: filteredText },
+    });
+  }
+
+  if (params.request.messageType === 'beast_showcase') {
+    const request = params.request;
+    const text = (request.textContent ?? '').trim();
+    if (countChars(text) > 100)
+      throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
+    const roster = await readBeastRoster(params.cultivatorId, db);
+    const beast = roster.beasts.find((entry) => entry.id === request.beastId);
+    if (!beast)
+      throw new ChatMessageApplicationError('灵兽不属于当前角色', 404);
+    if (beast.revision !== request.revision)
+      throw new ChatMessageApplicationError(
+        '灵兽已变化，请刷新后重新选择',
+        409,
+      );
+    const payload = {
+      version: 1 as const,
+      beast: beastTradePreview(beast),
+      text: textFilter.mask(text).text || undefined,
+    };
+    return params.persist({
+      ...senderBase,
+      messageType: 'beast_showcase',
+      textContent: payload.text,
+      payload,
     });
   }
 

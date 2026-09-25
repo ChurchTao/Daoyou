@@ -112,7 +112,7 @@ export async function runRankingChallenge(
           throw new RankingV6Error(
             '该挑战已归档，短期恢复状态已失效；请从战绩查看，重新挑战需返回榜单发起',
           );
-        await assertInventoryIdle(actor.cultivatorId, undefined, db, 'run');
+        await assertInventoryIdle(actor.cultivatorId);
         const now = Date.now();
         const frozen = await db.transaction(
           async (tx) => {

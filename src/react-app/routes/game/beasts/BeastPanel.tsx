@@ -133,9 +133,9 @@ export function BeastPanel({
             ) : (
               <InkTag className="shrink-0 text-xs">
                 {beast.originKind === 'wild'
-                  ? '成年'
+                  ? '野生'
                   : beast.originKind === 'pseudo_baby'
-                    ? '假幼崽'
+                    ? '野生'
                     : '幼崽'}
               </InkTag>
             )}

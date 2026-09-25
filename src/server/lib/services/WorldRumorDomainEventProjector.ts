@@ -43,12 +43,7 @@ export async function projectWorldRumorDomainEvent(
     const flourish =
       event.data.itemType === 'consumable' ? '药香化霞' : '灵韵自生';
     const text = `由${event.data.cultivatorName}炼成，${noun}已入${event.data.quality}，${flourish}，足令诸修侧目。`;
-    return createRumor(event, event.data.userId, 'item_showcase', text, {
-      itemType: event.data.itemType,
-      itemId: event.data.itemId,
-      snapshot: event.data.snapshot,
-      text,
-    } as WorldChatPayload);
+    return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
   if (isDomainEventType(event, 'market.material.revealed')) {
@@ -56,12 +51,7 @@ export async function projectWorldRumorDomainEvent(
       return ignored();
     }
     const text = `鉴宝司金光冲霄，${event.data.cultivatorName}鉴出${event.data.quality}「${event.data.materialName}」，天降异象，诸界皆闻。`;
-    return createRumor(event, event.data.userId, 'item_showcase', text, {
-      itemType: 'material',
-      itemId: event.data.materialId,
-      snapshot: event.data.snapshot,
-      text,
-    } as WorldChatPayload);
+    return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
   if (isDomainEventType(event, 'ranking.position.changed')) {
@@ -74,6 +64,19 @@ export async function projectWorldRumorDomainEvent(
     return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
+  if (isDomainEventType(event, 'beast.exceptional.acquired')) {
+    const { beast, cultivatorName, source } = event.data;
+    const text =
+      source === 'fusion'
+        ? `${cultivatorName}融合出身怀${beast.skills.length}项技能的灵兽，奇缘传遍诸界。`
+        : `${cultivatorName}捕获变异灵兽，异相惊动诸界。`;
+    return createRumor(event, event.data.userId, 'beast_showcase', text, {
+      version: 1,
+      beast,
+      text,
+    });
+  }
+
   throw new Error(`世界传闻投影不支持领域事件: ${event.type}`);
 }
 
@@ -84,7 +87,7 @@ function ignored(): RumorProjectionResult {
 async function createRumor(
   event: DomainEventEnvelope,
   senderUserId: string,
-  messageType: 'text' | 'item_showcase',
+  messageType: 'text' | 'beast_showcase',
   text: string,
   payload: WorldChatPayload,
 ): Promise<RumorProjectionResult> {

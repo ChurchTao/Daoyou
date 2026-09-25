@@ -167,7 +167,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 }
 ```
 
-`cultivation` 的 experience 为 0–1000000000000 整数修为绝对值，insight 为 0–100 整数感悟；修为上限仍按调整后的境界实时计算，不写入 exp_cap。两个准备对象均不能为空，省略字段不变。清心／护脉 true 添加带 devTools 标记的系统状态，false 只移除本接口添加的对应状态，保留正常玩法已有状态。
+`cultivation` 的 experience 为 0–1000000000000 整数修为绝对值，insight 为 0–200 整数感悟；修为上限仍按调整后的境界实时计算，不写入 exp_cap。两个准备对象均不能为空，省略字段不变。清心／护脉 true 添加带 devTools 标记的系统状态，false 只移除本接口添加的对应状态，保留正常玩法已有状态。
 
 调整 realm、realmStage 或 breakthroughPreparation 时会同步当前破境任务，确保准备目标有对应任务。通过外部 dev 请求准备后应刷新浏览器再开始验收，避免页面沿用先前角色缓存。10F 实际运行记录及准备数据去向见 [阶段验收记录](./combat-v6-phase-10f-breakthrough-plan.md#73-解锁后的真实运行验收2026-09-08-至-09)。
 

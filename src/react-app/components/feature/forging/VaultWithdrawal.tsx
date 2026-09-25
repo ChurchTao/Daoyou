@@ -41,8 +41,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [selected, setSelected] = useState<string>();
-  const [quantity, setQuantity] = useState(1);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const busy = useRef(false);
@@ -72,28 +70,41 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
       });
     return () => controller.abort();
   }, [page, search, kind, refresh]);
-  async function withdraw(item: VaultView['items'][number]) {
-    if (busy.current || item.unavailableReason) return;
+  async function withdraw(items: VaultView['items']) {
+    if (busy.current || items.length === 0) return;
     busy.current = true;
     setPending(true);
     try {
-      await consumeResourceMutation(
+      const result = await consumeResourceMutation<{ stored: boolean }>(
         await fetch(
-          '/api/combat-v6/forging/vault/withdraw',
-          mutationBody({
-            id: item.id,
-            kind: item.kind,
-            quantity,
-            expectedQuantity: item.quantity,
-          }),
+          items.length === 1
+            ? '/api/combat-v6/forging/vault/withdraw'
+            : '/api/combat-v6/forging/vault/withdraw-page',
+          mutationBody(
+            items.length === 1
+              ? {
+                  id: items[0].id,
+                  kind: items[0].kind,
+                  expectedQuantity: items[0].quantity,
+                }
+              : {
+                  items: items.map((item) => ({
+                    id: item.id,
+                    kind: item.kind,
+                    expectedQuantity: item.quantity,
+                  })),
+                },
+          ),
         ),
       );
       if (!alive.current) return;
       pushToast({
-        message: `已取出 ${item.name} ×${quantity}`,
+        message:
+          items.length === 1
+            ? `已取出 ${items[0].name} ×${items[0].quantity}${result.stored ? '，背包放不下的部分已存入储藏室' : ''}`
+            : `已取出本页 ${items.length} 种物品${result.stored ? '，背包放不下的部分已存入储藏室' : ''}`,
         tone: 'success',
       });
-      setSelected(undefined);
       onChanged?.();
     } catch (e) {
       if (alive.current)
@@ -120,7 +131,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
           onChange={(e) => {
             setKind(e.target.value as typeof kind);
             setPage(0);
-            setSelected(undefined);
             setView(undefined);
           }}
         >
@@ -136,7 +146,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(0);
-            setSelected(undefined);
             setView(undefined);
           }}
         />
@@ -159,6 +168,17 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
       {view?.total === 0 ? (
         <p className="text-ink-secondary">暂无物品。</p>
       ) : null}
+      {view && view.items.some((item) => !item.unavailableReason) ? (
+        <InkButton
+          disabled={pending}
+          pending={pending}
+          onClick={() =>
+            void withdraw(view.items.filter((item) => !item.unavailableReason))
+          }
+        >
+          取出本页
+        </InkButton>
+      ) : null}
       <div className="divide-ink/10 divide-y">
         {view?.items.map((item) => (
           <div key={item.id} className="space-y-2 py-3">
@@ -179,12 +199,9 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
               </div>
               <InkButton
                 disabled={pending || !!item.unavailableReason}
-                onClick={() => {
-                  setSelected(selected === item.id ? undefined : item.id);
-                  setQuantity(1);
-                }}
+                onClick={() => void withdraw([item])}
               >
-                取出
+                全部取出
               </InkButton>
             </div>
             {item.description ? (
@@ -194,41 +211,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
             ) : null}
             {item.unavailableReason ? (
               <p className="text-ink-secondary">{item.unavailableReason}</p>
-            ) : null}
-            {selected === item.id && !item.unavailableReason ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <label>
-                  取出数量{' '}
-                  <input
-                    aria-label="取出数量"
-                    type="number"
-                    min={1}
-                    max={Math.min(item.quantity, 3960)}
-                    value={quantity}
-                    disabled={pending}
-                    className="border-ink/20 w-20 border bg-transparent p-2 font-mono"
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                  />
-                </label>
-                <InkButton
-                  pending={pending}
-                  disabled={
-                    pending ||
-                    !Number.isInteger(quantity) ||
-                    quantity < 1 ||
-                    quantity > Math.min(item.quantity, 3960)
-                  }
-                  onClick={() => void withdraw(item)}
-                >
-                  确认取出
-                </InkButton>
-                <InkButton
-                  disabled={pending}
-                  onClick={() => setSelected(undefined)}
-                >
-                  取消
-                </InkButton>
-              </div>
             ) : null}
           </div>
         ))}
@@ -240,7 +222,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
             onClick={() => {
               setPage(view.page - 1);
               setView(undefined);
-              setSelected(undefined);
             }}
           >
             上一页
@@ -253,7 +234,6 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
             onClick={() => {
               setPage(view.page + 1);
               setView(undefined);
-              setSelected(undefined);
             }}
           >
             下一页

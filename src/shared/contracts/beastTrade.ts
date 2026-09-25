@@ -52,6 +52,24 @@ export type BeastTradePreview = Pick<
   | 'maxLifespan'
 >;
 
+export const BeastTradePreviewSchema = z.strictObject({
+  name: BeastSchema.shape.name,
+  speciesId: BeastSchema.shape.speciesId,
+  isMutant: BeastSchema.shape.isMutant,
+  originKind: BeastSchema.shape.originKind,
+  initialLevel: BeastSchema.shape.initialLevel,
+  level: BeastSchema.shape.level,
+  exp: BeastSchema.shape.exp,
+  growth: BeastSchema.shape.growth,
+  aptitudes: BeastSchema.shape.aptitudes,
+  allocatedAttributes: BeastSchema.shape.allocatedAttributes,
+  unallocatedPoints: BeastSchema.shape.unallocatedPoints,
+  skillSlotCapacity: BeastSchema.shape.skillSlotCapacity,
+  skills: BeastSchema.shape.skills,
+  currentLifespan: BeastSchema.shape.currentLifespan,
+  maxLifespan: BeastSchema.shape.maxLifespan,
+});
+
 export function beastTradePreview(beast: BeastTradePreview): BeastTradePreview {
   return {
     name: beast.name,

@@ -81,6 +81,7 @@ export function beastPanel(input: SummonedBeast) {
   }
   return {
     ...DEFAULT_ATTRS,
+    hit: 80 + a.agility,
     dodge: training.dodge,
     hp,
     maxHp: hp,

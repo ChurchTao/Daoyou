@@ -114,8 +114,7 @@ export default function SectMigrationPage() {
           <p>
             旧数据保留时间：{report.stagedAt ?? '未保留'}
             。感悟补偿发放为宗门感悟果，每颗增加 {MIGRATION_INSIGHT_PER_FRUIT}
-            点，可分次服用。建议感悟不高于 50 时服用，超出 100
-            上限的部分不保留；感悟已满时不消耗。
+            点，可分次服用。超出 200 上限的部分不保留；感悟已满时不消耗。
           </p>
           {report.phase === 'legacy' ? (
             <p>

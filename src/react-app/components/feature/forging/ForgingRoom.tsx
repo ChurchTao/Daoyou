@@ -17,7 +17,6 @@ import {
   DAO_WEAPON_TYPES,
 } from '@shared/engine/combat-v6/equipment/weapons';
 import { FORGE_INTENT_MAX_LENGTH } from '@shared/forging/narrative';
-import { itemDefinition } from '@shared/inventory';
 import { EQUIPMENT_ATTRIBUTE_NAMES } from '@shared/inventory/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
@@ -44,7 +43,7 @@ const facilities: RoomActorView[] = [
     name: '道装图录',
     guideAnchor: 'forge.archive',
     identity: '图纸设施',
-    responsibility: '翻阅随身图纸，择一卷开炉',
+    responsibility: '翻阅图纸，择一卷开炉',
     appearance: 'facility',
   },
   {
@@ -110,10 +109,6 @@ export function ForgingRoom() {
       onChoose={choose}
     />
   );
-  const blueprints =
-    session.inventory?.items.filter(
-      (item) => itemDefinition(item.definitionId).kind === 'blueprint',
-    ) ?? [];
   const { result } = session;
   const weapon = DAO_WEAPONS[session.weaponType];
   return (
@@ -166,7 +161,7 @@ export function ForgingRoom() {
                         disabled={session.locked}
                         onClick={() => openBag('all')}
                       >
-                        储物袋
+                        选择图纸与灵材
                       </InkButton>
                     </div>
                   ) : null}
@@ -177,7 +172,7 @@ export function ForgingRoom() {
                     onReveal={() => {
                       setRevealed(true);
                       pushToast({
-                        message: '打造成功，道装已收入储物袋。',
+                        message: `打造成功，道装已收入${session.result?.destination === 'storage' ? '储藏室' : '储物袋'}。`,
                         tone: 'success',
                       });
                     }}
@@ -193,7 +188,10 @@ export function ForgingRoom() {
                             getLevelRealmStage(result.equipment.equipmentLevel)
                               .realm
                           }{' '}
-                          · 已收入储物袋
+                          · 已收入
+                          {result.destination === 'storage'
+                            ? '储藏室'
+                            : '储物袋'}
                         </p>
                         <div className="flex justify-center gap-4">
                           <InkButton
@@ -320,47 +318,16 @@ export function ForgingRoom() {
                 ) : null}
               </div>
             ) : facility === 'archive' ? (
-              <div className="space-y-3">
-                {!session.view ? (
-                  <p>正在翻阅图纸……</p>
-                ) : !blueprints.length ? (
-                  <p className="text-ink-secondary">储物袋中暂无道装图纸。</p>
-                ) : (
-                  blueprints.map((item) => (
-                    <div
-                      key={item.id}
-                      className="border-ink/10 flex items-center justify-between gap-3 border-b py-3"
-                    >
-                      <div>
-                        <p>
-                          {item.name} ×{item.quantity}
-                        </p>
-                        <p className="text-ink-secondary text-xs">
-                          {session.itemProblem(item)}
-                        </p>
-                      </div>
-                      <span
-                        data-guide={
-                          item.definitionId === 'blueprint.weapon.10'
-                            ? 'forge.blueprint'
-                            : undefined
-                        }
-                        className="inline-flex"
-                      >
-                        <InkButton
-                          disabled={session.locked || !!session.itemProblem(item)}
-                          onClick={() => {
-                            choose(item);
-                            setFacility('furnace');
-                          }}
-                        >
-                          带入器炉
-                        </InkButton>
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
+              <ForgingInventory
+                session={session}
+                filter="blueprint"
+                onFilter={setFilter}
+                fixedFilter
+                onChoose={(item) => {
+                  choose(item);
+                  setFacility('furnace');
+                }}
+              />
             ) : (
               <div className="max-w-2xl space-y-6 py-3 text-sm leading-7">
                 <section>
@@ -379,7 +346,7 @@ export function ForgingRoom() {
                 <section>
                   <h3 className="mb-2 font-medium">开炉成器</h3>
                   <p className="text-ink-secondary">
-                    铸造只使用储物袋中的图纸与灵材，旧材料需先从洞府宝库取出。确认开炉时消耗图纸、材料、灵石与天地灵气，成品自动入包。炉前放入、移出不扣除物品。
+                    铸造可直接使用储物袋或储藏室中的图纸与灵材，旧材料需先从洞府宝库取出。确认开炉时消耗图纸、材料、灵石与天地灵气，成品优先入包，满时存入储藏室。炉前放入、移出不扣除物品。
                   </p>
                 </section>
               </div>

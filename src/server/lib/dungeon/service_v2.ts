@@ -58,7 +58,6 @@ import { ConditionService } from '../services/ConditionService';
 import { QiService } from '../services/QiService';
 import {
   beginDungeonBattle,
-  dungeonLevel,
   dungeonPlayer,
   getDungeonBattle,
   grantDungeonBeastExperience,
@@ -69,6 +68,7 @@ import {
 import { applyDungeonCosts, validateDungeonCosts } from './costs';
 import { buildDungeonRoundLlmContext } from './llmContext';
 import type { RewardBlueprint } from './reward';
+import { RewardFactory } from './reward';
 import { resolveDungeonReward } from './rewards';
 
 import {
@@ -213,13 +213,10 @@ function toDungeonPersistenceSettlement(
 async function appendRoundRewards(
   state: DungeonState,
 ): Promise<RewardBlueprint[]> {
-  if (state.rewardSeed === undefined) throw new Error('旧秘境会话需维护处理');
   const reward = await resolveDungeonReward(
-    state.rewardSeed,
+    state,
     `exploration:${state.currentRound}`,
     'exploration',
-    dungeonLevel(state.mapNodeId),
-    state.v6Rewards,
   );
   const previous = state.v6Rewards ?? [];
   state.v6Rewards = appendDungeonReward(previous, reward);
@@ -1515,13 +1512,7 @@ export class DungeonService {
     if (endDisposition === 'completed')
       state.v6Rewards = appendDungeonReward(
         state.v6Rewards ?? [],
-        await resolveDungeonReward(
-          state.rewardSeed,
-          'completion',
-          'completion',
-          dungeonLevel(state.mapNodeId),
-          state.v6Rewards,
-        ),
+        await resolveDungeonReward(state, 'completion', 'completion'),
       );
     const endingPrompt = renderPrompt('dungeon-settlement', {
       userContextJson: stableCompactStringify({
@@ -1612,23 +1603,43 @@ export class DungeonService {
     const committedSettlementGain = state.gainLedger?.find(
       (entry) => entry.source === 'settlement',
     );
-    const realGains = state.realGains ??
-      committedSettlementGain?.gains ?? [
-        {
-          type: 'cultivation_exp' as const,
-          value: (state.v6Rewards ?? []).reduce(
-            (sum, r) => sum + r.experience,
-            0,
-          ),
-        },
-        {
-          type: 'spirit_stones' as const,
-          value: (state.v6Rewards ?? []).reduce(
-            (sum, r) => sum + r.spiritStones,
-            0,
-          ),
-        },
-      ];
+    const realGains =
+      state.realGains ??
+      committedSettlementGain?.gains ??
+      (() => {
+        const gains: ResourceOperation[] = [
+          {
+            type: 'cultivation_exp',
+            value: (state.v6Rewards ?? []).reduce(
+              (sum, r) => sum + r.experience,
+              0,
+            ),
+          },
+          {
+            type: 'spirit_stones',
+            value: (state.v6Rewards ?? []).reduce(
+              (sum, r) => sum + r.spiritStones,
+              0,
+            ),
+          },
+        ];
+        if (endDisposition !== 'completed') return gains;
+        const mapNode = getMapNode(state.mapNodeId);
+        if (!mapNode || !('realm_requirement' in mapNode))
+          throw new Error('秘境地图无效');
+        for (const reward of RewardFactory.generateBaseRewards(
+          mapNode.realm_requirement as RealmType,
+          settlement.settlement.reward_tier,
+          state.dangerScore,
+          state.playerInfo,
+          resolveDungeonMapConfig(mapNode).difficultyTier,
+        )) {
+          const existing = gains.find((gain) => gain.type === reward.type);
+          if (existing) existing.value += reward.value;
+          else gains.push(reward);
+        }
+        return gains;
+      })();
     state.realGains = realGains;
     if (!deferPersistence) {
       await this.saveState(state.cultivatorId, state);

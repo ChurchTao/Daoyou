@@ -15,7 +15,7 @@ import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 export const SECT_BATTLE_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v9' as const,
+  rulesetVersion: 'daoyou_rules_v10' as const,
   contentVersion: 'combat-v6-sect-task-v1' as const,
 };
 export type SectBattleResourcePolicy = 'full' | 'persistent';

@@ -1,12 +1,12 @@
 {
   "$schema": "./dungeon.schema.json",
   "formatVersion": 2,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "sources": {
     "exploration": {
       "chance": 0.3,
-      "experience": 2,
-      "stones": 1,
+      "dailyExpFraction": 0.03,
+      "stoneHours": 0.65,
       "quantity": 1,
       "weights": {
         "material": 85,
@@ -22,8 +22,8 @@
     },
     "battle": {
       "chance": 0.6,
-      "experience": 5,
-      "stones": 2,
+      "dailyExpFraction": 0.075,
+      "stoneHours": 1.3,
       "quantity": 1,
       "weights": {
         "material": 70,
@@ -39,8 +39,8 @@
     },
     "completion": {
       "chance": 1,
-      "experience": 10,
-      "stones": 5,
+      "dailyExpFraction": 0,
+      "stoneHours": 0,
       "quantity": 1,
       "weights": {
         "material": 50,

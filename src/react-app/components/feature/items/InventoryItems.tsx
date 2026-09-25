@@ -8,11 +8,13 @@ type Item = InventoryView['items'][number];
 export function InventoryItems({
   items,
   location = 'bag',
+  compact = false,
   className,
   slotProps,
 }: {
   items: Item[];
   location?: 'bag' | 'storage';
+  compact?: boolean;
   className?: string;
   slotProps: (
     item: Item | undefined,
@@ -21,7 +23,7 @@ export function InventoryItems({
 }) {
   const slots = new Map(items.map((item) => [item.slotIndex, item]));
   const entries =
-    location === 'bag'
+    location === 'bag' && !compact
       ? Array.from({ length: BAG_CAPACITY }, (_, slot) => ({
           item: slots.get(slot),
           slot,
@@ -34,7 +36,7 @@ export function InventoryItems({
       >
         {entries.map(({ item, slot }) => (
           <ItemSlot
-            key={location === 'bag' ? slot : item!.id}
+            key={location === 'bag' && !compact ? slot : item!.id}
             item={item}
             emptyLabel=""
             {...slotProps(item, slot)}

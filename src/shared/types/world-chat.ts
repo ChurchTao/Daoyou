@@ -1,3 +1,4 @@
+import type { BeastTradePreview } from '../contracts/beastTrade';
 import type { InventoryShowcaseSnapshot } from '../items/showcase';
 import type { BattleRecordUnitSummary } from './battle';
 
@@ -5,7 +6,8 @@ export type WorldChatMessageChannel = 'system' | 'world' | 'sect';
 
 export type WorldChatChannel = WorldChatMessageChannel;
 
-export type WorldChatMessageType = 'text' | 'item_showcase' | 'battle_showcase';
+export type WorldChatMessageType =
+  'text' | 'item_showcase' | 'beast_showcase' | 'battle_showcase';
 
 export interface WorldChatTextPayload {
   text: string;
@@ -14,6 +16,12 @@ export interface WorldChatTextPayload {
 export interface WorldChatItemShowcasePayload {
   version: 1;
   snapshot: InventoryShowcaseSnapshot;
+  text?: string;
+}
+
+export interface WorldChatBeastShowcasePayload {
+  version: 1;
+  beast: BeastTradePreview;
   text?: string;
 }
 
@@ -29,6 +37,7 @@ export interface WorldChatBattleShowcasePayload {
 export interface WorldChatPayloadMap {
   text: WorldChatTextPayload;
   item_showcase: WorldChatItemShowcasePayload;
+  beast_showcase: WorldChatBeastShowcasePayload;
   battle_showcase: WorldChatBattleShowcasePayload;
 }
 

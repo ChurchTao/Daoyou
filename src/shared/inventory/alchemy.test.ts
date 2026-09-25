@@ -8,7 +8,10 @@ import {
   MaterialFactsSchema,
 } from '../items/definitions/materials';
 import { calculateAlchemyCost } from '../lib/alchemyCost';
-import { groupAlchemyBagMaterials } from './alchemy';
+import {
+  groupAlchemyBagMaterials,
+  groupAlchemyStorageMaterials,
+} from './alchemy';
 import { BAG_CAPACITY, sortBag, type InventoryItem } from './index';
 import { inventoryStackIdentity } from './stack-key';
 import { addItems } from './test-helpers';
@@ -93,6 +96,29 @@ describe('alchemy inventory migration', () => {
     ).toHaveLength(2);
     expect(grouped[0]).toMatchObject(herb);
   });
+  it('keeps storage rows selectable by their own IDs', () => {
+    const storage = [
+      {
+        ...material('stored-a', 0, 3),
+        location: 'storage' as const,
+        slotIndex: null,
+      },
+      {
+        ...material('stored-b', 1, 4),
+        location: 'storage' as const,
+        slotIndex: null,
+      },
+    ];
+    expect(
+      groupAlchemyStorageMaterials(storage).map((group) => [
+        group.id,
+        group.quantity,
+      ]),
+    ).toEqual([
+      ['stored-a', 3],
+      ['stored-b', 4],
+    ]);
+  });
   it('preserves complete pill facts through stacking and sorting', () => {
     let id = 0;
     const grant = {
@@ -106,6 +132,17 @@ describe('alchemy inventory migration', () => {
     expect(sorted.reduce((total, item) => total + item.quantity, 0)).toBe(120);
     for (const item of sorted) expect(item.instanceData).toEqual(pill);
     expect(ConsumableFactsSchema.parse(pill).spec).toEqual(pill.spec);
+    expect(inventoryStackIdentity('consumable.v1', pill)).toBe(
+      inventoryStackIdentity('consumable.v1', {
+        ...pill,
+        description: '另一段描述',
+        prompt: '另一段提示词',
+        score: pill.score + 1,
+      }),
+    );
+    expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
+      inventoryStackIdentity('consumable.v1', { ...pill, name: '另一种丹药' }),
+    );
     expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
       inventoryStackIdentity('consumable.v1', {
         ...pill,

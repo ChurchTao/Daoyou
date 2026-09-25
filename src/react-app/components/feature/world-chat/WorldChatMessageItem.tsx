@@ -1,9 +1,11 @@
-import { ItemPreview } from '@app/components/feature/items/ItemPreview';
+import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
+import { ItemPreview } from '@app/components/feature/items/ItemPreview';
 import { InkModal } from '@app/components/layout';
 import type { Tier } from '@app/components/ui/InkBadge';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { BeastTradePreviewSchema } from '@shared/contracts/beastTrade';
 import { isInventoryShowcase } from '@shared/items/showcase';
 import { cn } from '@shared/lib/cn';
 import type {
@@ -118,18 +120,32 @@ export function WorldChatMessageItem({
   const showcaseData = useMemo(() => {
     if (message.messageType !== 'item_showcase') return null;
     if (!isInventoryShowcase(message.payload)) return null;
-    const presentation = itemPresentation(message.payload.snapshot);
-    if (!presentation) return null;
-    return {
-      ...message.payload.snapshot,
-      presentation,
-      text: message.payload.text,
-    };
+    try {
+      const presentation = itemPresentation(message.payload.snapshot);
+      return {
+        ...message.payload.snapshot,
+        presentation,
+        text: message.payload.text,
+      };
+    } catch {
+      return null;
+    }
   }, [message]);
   const battleShowcase =
     message.messageType === 'battle_showcase' &&
     isBattleShowcasePayload(message.payload)
       ? message.payload
+      : null;
+  const beastShowcase =
+    message.messageType === 'beast_showcase' &&
+    'version' in message.payload &&
+    message.payload.version === 1 &&
+    'beast' in message.payload &&
+    BeastTradePreviewSchema.safeParse(message.payload.beast).success
+      ? (message.payload as Extract<
+          WorldChatMessageDTO['payload'],
+          { beast: unknown }
+        >)
       : null;
 
   return (
@@ -172,6 +188,17 @@ export function WorldChatMessageItem({
             <BattleShowcaseCard payload={battleShowcase} />
           ) : message.messageType === 'battle_showcase' ? (
             '旧版战报已停用'
+          ) : beastShowcase ? (
+            <span>
+              <button
+                type="button"
+                className="text-teal cursor-pointer font-semibold hover:underline"
+                onClick={() => setDetailOpen(true)}
+              >
+                ［{beastShowcase.beast.name}］
+              </button>
+              {beastShowcase.text ? ` ${beastShowcase.text}` : ''}
+            </span>
           ) : message.messageType === 'item_showcase' && showcaseData ? (
             <span>
               <button
@@ -189,7 +216,7 @@ export function WorldChatMessageItem({
               {showcaseData.text ? ` ${showcaseData.text}` : ''}
             </span>
           ) : message.messageType === 'item_showcase' ? (
-            `旧版道具展示已停用 ${renderTextMessage(message)}`
+            renderTextMessage(message) || '道具详情暂不可查看'
           ) : (
             renderTextMessage(message)
           )}
@@ -202,6 +229,15 @@ export function WorldChatMessageItem({
             close={() => setDetailOpen(false)}
             context="发送时的物品状态"
           />
+        </InkModal>
+      ) : null}
+      {beastShowcase ? (
+        <InkModal
+          isOpen={detailOpen}
+          title={beastShowcase.beast.name}
+          onClose={() => setDetailOpen(false)}
+        >
+          <BeastTradeDetails beast={beastShowcase.beast} tradeNotice={false} />
         </InkModal>
       ) : null}
     </>

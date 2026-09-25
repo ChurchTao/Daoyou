@@ -37,13 +37,16 @@ export type ForgeView = {
   spiritStones: number;
   qi: number;
 };
-export const WithdrawMaterialSchema = z
+const VaultWithdrawalItemSchema = z
   .object({
     kind: z.enum(['material', 'consumable']).default('material'),
     id: z.uuid(),
-    quantity: z.number().int().min(1).max(3960),
     expectedQuantity: z.number().int().positive(),
   })
+  .strict();
+export const WithdrawMaterialSchema = VaultWithdrawalItemSchema;
+export const WithdrawVaultPageSchema = z
+  .object({ items: z.array(VaultWithdrawalItemSchema).min(1).max(40) })
   .strict();
 export const VaultQuerySchema = z
   .object({

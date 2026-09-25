@@ -1,11 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { RecycleRequestSchema } from '../contracts/recycle';
+import {
+  MAX_RECYCLE_SELECTION,
+  RecycleRequestSchema,
+} from '../contracts/recycle';
+import { generateForgedEquipment } from '../engine/combat-v6/equipment/forging';
+import { buildSpiritFieldSeedDetails } from '../engine/spirit-field/seedMaterial';
+import type { SpiritFieldPlantSnapshot } from '../engine/spirit-field/types';
 import { consumableFactsOf } from '../items/definitions/consumables';
+import { seedFactsOf } from '../items/definitions/seeds';
 import type { Consumable } from '../types/cultivator';
 import { recycleBlockingReason } from './recycle';
+import {
+  blueprintRecycleUnitPrice,
+  equipmentRecycleUnitPrice,
+  manualJadeRecycleUnitPrice,
+  seedRecycleUnitPrice,
+} from './recyclePrice';
 
 describe('回收边界', () => {
-  it('允许灵果回收，但仓库灵果仍需先取入随身背包', () => {
+  it('允许随身和储藏室的灵果回收', () => {
     const fruit: Consumable = {
       name: '青露灵果',
       type: '灵果',
@@ -30,14 +43,13 @@ describe('回收边界', () => {
       },
     };
     const item = {
+      id: 'fruit',
       definitionId: 'consumable.v1',
       instanceData: consumableFactsOf(fruit),
       location: 'bag' as const,
     };
     expect(recycleBlockingReason(item)).toBeNull();
-    expect(
-      recycleBlockingReason({ ...item, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...item, location: 'storage' })).toBeNull();
   });
 
   it('同一选择不能通过重复行超过单格数量', () => {
@@ -68,25 +80,143 @@ describe('回收边界', () => {
         .success,
     ).toBe(false);
   });
-  it('实例材料仅允许随身背包回收', () => {
+  it('批量回收允许 200 格，拒绝超过上限的选择', () => {
+    const items = Array.from(
+      { length: MAX_RECYCLE_SELECTION + 1 },
+      (_, index) => ({
+        id: `item-${index}`,
+        revision: 0,
+        quantity: 1,
+      }),
+    );
+    expect(
+      RecycleRequestSchema.safeParse({
+        phase: 'preview',
+        items: items.slice(0, -1),
+      }).success,
+    ).toBe(true);
+    expect(
+      RecycleRequestSchema.safeParse({ phase: 'preview', items }).success,
+    ).toBe(false);
+  });
+  it('实例材料允许随身和储藏室回收', () => {
     const item = {
+      id: 'material',
       definitionId: 'material.v1',
       instanceData: { name: '玄铁', type: 'ore', rank: '凡品' },
     };
     expect(recycleBlockingReason({ ...item, location: 'bag' })).toBeNull();
-    expect(
-      recycleBlockingReason({ ...item, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...item, location: 'storage' })).toBeNull();
   });
-  it('不把道装、未知定义或损坏的消耗品误当可出售丹药', () => {
+  it('合法灵种与功法玉简可以回收，损坏事实仍被拒绝', () => {
+    const plant: SpiritFieldPlantSnapshot = {
+      id: 'recycle-seed',
+      seedName: '青露种',
+      seedDescription: '可培育灵果。',
+      clueTexts: [],
+      quality: '玄品',
+      element: '木',
+      minRealm: '炼气',
+      growthForm: 'shrub',
+      harvestPart: 'fruit',
+      preferredMethods: [],
+      avoidedMethods: [],
+      preferredHabitats: [],
+      avoidedHabitats: [],
+      growthTraits: [],
+      useTags: [],
+      outcomeBiases: [],
+      creationTags: [],
+      stageDurationMs: {
+        germination: 60_000,
+        nourishing: 60_000,
+        forming: 60_000,
+      },
+      baseYieldMin: 1,
+      baseYieldMax: 2,
+    };
+    const seed = {
+      id: 'seed',
+      definitionId: 'seed.v1',
+      location: 'bag' as const,
+      instanceData: seedFactsOf({
+        type: 'seed',
+        rank: '玄品',
+        details: buildSpiritFieldSeedDetails(plant),
+      }),
+    };
+    expect(recycleBlockingReason(seed)).toBeNull();
+    expect(seedRecycleUnitPrice('玄品')).toBe(300);
+    expect(recycleBlockingReason({ ...seed, instanceData: {} })).not.toBeNull();
+    const jade = {
+      id: 'jade',
+      definitionId: 'jade.character_manual.changchun',
+      location: 'bag' as const,
+      instanceData: null,
+    };
+    expect(recycleBlockingReason(jade)).toBeNull();
+    expect(manualJadeRecycleUnitPrice('character_manual.changchun')).toBe(45);
+    expect(recycleBlockingReason({ ...jade, location: 'storage' })).toBeNull();
+    expect(recycleBlockingReason({ ...jade, instanceData: {} })).not.toBeNull();
+  });
+  it('背包图纸与有效未穿戴道装可以回收，报价按铸造成本计算', () => {
+    const blueprint = {
+      id: 'blueprint',
+      definitionId: 'blueprint.weapon.10',
+      location: 'bag' as const,
+      instanceData: null,
+    };
+    expect(recycleBlockingReason(blueprint)).toBeNull();
+    expect(blueprintRecycleUnitPrice(10)).toBe(20);
+    expect(
+      recycleBlockingReason({ ...blueprint, location: 'storage' }),
+    ).toBeNull();
+    const generated = generateForgedEquipment({
+      id: 'equipment',
+      createdAt: '2026-09-25T00:00:00Z',
+      seed: 42,
+      templateId: 'dao_equipment.standard.weapon.v1',
+      equipmentLevel: 10,
+      boosts: { ore: 1, essence: 0, attributes: 0 },
+    });
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) return;
+    const equipment = {
+      id: 'equipment',
+      definitionId: 'equipment.v6',
+      location: 'bag' as const,
+      instanceData: generated.instance,
+    };
+    expect(recycleBlockingReason(equipment)).toBeNull();
+    expect(
+      equipmentRecycleUnitPrice({ equipmentLevel: 10, baseQuality: 0 }),
+    ).toBe(50);
+    expect(
+      equipmentRecycleUnitPrice({ equipmentLevel: 10, baseQuality: 1 }),
+    ).toBe(75);
+    expect(
+      recycleBlockingReason({ ...equipment, location: 'equipped' }),
+    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...equipment, id: 'other' })).not.toBeNull();
+  });
+  it('不把未知定义或损坏的道装、消耗品当作可回收物品', () => {
     for (const definitionId of ['equipment.v6', 'unknown', 'consumable.v1']) {
       expect(
         recycleBlockingReason({
+          id: 'invalid',
           definitionId,
           location: 'bag',
           instanceData: {},
         }),
       ).not.toBeNull();
     }
+    expect(
+      recycleBlockingReason({
+        id: 'blueprint',
+        definitionId: 'blueprint.weapon.10',
+        location: 'bag',
+        instanceData: {},
+      }),
+    ).not.toBeNull();
   });
 });

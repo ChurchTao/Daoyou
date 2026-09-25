@@ -328,11 +328,9 @@ export async function changeDungeonBattle(
           };
           if (host.trace().outcome === 'victory') {
             const reward = await resolveDungeonReward(
-              state.rewardSeed!,
+              state,
               `battle:${id}`,
               'battle',
-              dungeonLevel(state.mapNodeId),
-              state.v6Rewards,
               tx,
             );
             reward.beastExperience = beastVictoryExperience(

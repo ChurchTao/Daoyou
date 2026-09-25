@@ -92,7 +92,9 @@ function DungeonContent() {
         </div>
       ) : null}
       <fieldset
-        className="min-w-0"
+        className={
+          viewState.type === 'in_battle' ? 'h-full min-w-0' : 'min-w-0'
+        }
         disabled={!!readError || refreshing}
         inert={!!readError || refreshing}
       >

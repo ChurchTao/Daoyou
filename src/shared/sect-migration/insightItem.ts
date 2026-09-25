@@ -10,7 +10,7 @@ export const migrationInsightFacts = ConsumableFactsSchema.parse({
   type: '灵果',
   quality: '玄品',
   description:
-    '宗门传承改版的经脉投入补偿。每颗增加 50 点道心感悟，可按需分次服用。建议感悟不高于 50 时服用，超过 100 上限的部分不保留；感悟已满时无法服用。',
+    '宗门传承改版的经脉投入补偿。每颗增加 50 点道心感悟，可按需分次服用。超过 200 上限的部分不保留；感悟已满时无法服用。',
   spec: {
     kind: 'spirit_fruit',
     family: 'insight',

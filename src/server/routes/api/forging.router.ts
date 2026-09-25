@@ -13,6 +13,7 @@ import {
   readForge,
   readVault,
   withdrawMaterial,
+  withdrawVaultPage,
 } from '@server/lib/services/ForgingService';
 import { InventoryError } from '@server/lib/services/InventoryService';
 import { QiServiceError } from '@server/lib/services/QiService';
@@ -20,6 +21,7 @@ import {
   ForgeRequestSchema,
   VaultQuerySchema,
   WithdrawMaterialSchema,
+  WithdrawVaultPageSchema,
 } from '@shared/contracts/forging';
 import { InventoryRuleError } from '@shared/inventory';
 import { Hono } from 'hono';
@@ -81,6 +83,18 @@ router.post(
     c.json({
       success: true,
       ...(await withdrawMaterial(
+        c.get('activeCultivatorRef')!.cultivatorId,
+        getValidatedJson(c),
+      )),
+    }),
+);
+router.post(
+  '/vault/withdraw-page',
+  validateJson(WithdrawVaultPageSchema),
+  async (c) =>
+    c.json({
+      success: true,
+      ...(await withdrawVaultPage(
         c.get('activeCultivatorRef')!.cultivatorId,
         getValidatedJson(c),
       )),

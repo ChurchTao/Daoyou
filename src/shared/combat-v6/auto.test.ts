@@ -3,9 +3,10 @@ import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '../engine/combat-v6/content';
 import { createBattle, type SkillDef } from '../engine/combat-v6/core';
 import type { CombatV6TrainingPlayerInput } from '../engine/combat-v6/encounter';
 import { CombatV6PveHostSession } from '../engine/combat-v6/encounter/host';
-import { compileRankingBattle } from '../engine/combat-v6/ranking/battle';
+import { compileRankingBattle, simulateRankingBattle } from '../engine/combat-v6/ranking/battle';
 import { daoyouRulesetV6 } from '../engine/combat-v6/rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../engine/combat-v6/version';
+import { towerReferenceBuild } from '../engine/combat-v6/tower/reference-fixtures';
 import { automaticCommands, CombatAutoRequestSchema } from './auto';
 import { observeAutoBattle } from './auto-observation';
 import { AUTO_POLICY_VERSION } from './auto-policy';
@@ -125,6 +126,37 @@ function choose(battle: ReturnType<typeof fixture>) {
   );
 }
 describe('当前场次托管', () => {
+  it('大乘红尘正常构筑会进攻，而不是反复施放剑意增益', () => {
+    const lingxiao = towerReferenceBuild('lingxiao', '大乘');
+    const youdu = towerReferenceBuild('youdu', '大乘');
+    youdu.cultivator.id = '00000000-0000-4000-8000-000000000003';
+    youdu.beasts = undefined;
+    const input = compileRankingBattle([lingxiao, youdu], 42);
+    const battle = createBattle({ ...input, ruleset: daoyouRulesetV6 });
+    const ownerId = lingxiao.cultivator.id;
+    const commands = automaticCommands(
+      battle.snapshot(), ownerId, input.skills ?? [],
+      (id) => battle.queryCommands(id), { statusDefs: input.statusDefs },
+    );
+    const playerCommand = commands.find(({ unitId }) => unitId === ownerId)?.command;
+    expect(playerCommand).toMatchObject({ type: 'skill', skillId: 'lingxiao.skill.shadow_strike' });
+    const ranked = rankAutoActions(
+      observeAutoBattle(battle.snapshot(), ownerId, input.statusDefs ?? []),
+      ownerId, input.skills ?? [], input.statusDefs ?? [], battle.queryCommands(ownerId),
+    );
+    expect(ranked[0].benefits.offense).toBeGreaterThan(0);
+    for (const skillId of ['lingxiao.skill.sword_aura', 'lingxiao.skill.clarity']) {
+      expect(ranked.find(({ command }) => command.type === 'skill' && command.skillId === skillId)?.score)
+        .toBeLessThan(ranked[0].score);
+    }
+    const trace = simulateRankingBattle(input);
+    const playerActions = trace.rounds.flatMap(({ commands }) =>
+      commands.filter(({ unitId }) => unitId === ownerId).map(({ command }) => command),
+    );
+    const buffCount = playerActions.filter((command) => command.type === 'skill' &&
+      ['lingxiao.skill.sword_aura', 'lingxiao.skill.clarity'].includes(command.skillId)).length;
+    expect(playerActions.length - buffCount).toBeGreaterThan(buffCount);
+  });
   it('AUTO 是带回合和版本号的一次性请求，不接受旧开关协议', () => {
     expect(
       CombatAutoRequestSchema.safeParse({
@@ -201,8 +233,49 @@ describe('当前场次托管', () => {
       { id: 'guard', name: '护体', kind: 'guard', category: 'buff', attrMods: { physicalAtk: 1 } },
     ], battle.queryCommands('player'));
     expect(candidates[0].command).toMatchObject({ type: 'skill', skillId: 'strike' });
-    expect(candidates.find(c => c.command.type === 'skill' && c.command.skillId === 'ward')!.benefits.control).toBeCloseTo(1.2);
+    expect(candidates.find(c => c.command.type === 'skill' && c.command.skillId === 'ward')!.benefits.control).toBeCloseTo(0.12);
     expect(observation).toEqual(before);
+  });
+  it('普通增益排在有效攻击和必要治疗之后', () => {
+    const attack: SkillDef = {
+      id: 'small-attack', name: '攻击', tags: ['physical'], targeting: { side: 'enemy' },
+      effects: [{ type: 'fixedHit', power: 50 }],
+    };
+    const buff: SkillDef = {
+      id: 'buff', name: '增益', tags: ['support'], targeting: { side: 'self' },
+      effects: [{ type: 'applyStatus', statusId: 'aura', duration: 5, self: true }],
+    };
+    const definitions = [
+      { id: 'aura', name: '增益', kind: 'aura', category: 'buff' as const, physicalDefenseIgnore: 0.1 },
+    ];
+    const battle = fixture([attack.id, buff.id, 'heal'], [attack, buff, skills[0]]);
+    const rank = () => rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', definitions),
+      'player', [attack, buff, skills[0]], definitions, battle.queryCommands('player'),
+    );
+    expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: attack.id });
+    battle.unit('ally').attrs.hp = 800;
+    expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: 'heal' });
+  });
+  it('下回合休息与自身行动封锁状态只计算一次代价', () => {
+    const attack: SkillDef = {
+      id: 'resting-attack', name: '蓄力攻击', tags: ['physical'], targeting: { side: 'enemy' },
+      effects: [
+        { type: 'physicalHit', coeff: 2 },
+        { type: 'skipNextAction' },
+        { type: 'applyStatus', statusId: 'rest', duration: 1, self: true },
+      ],
+    };
+    const definitions = [
+      { id: 'rest', name: '休息', kind: 'rest', category: 'control' as const, blocksAction: true },
+    ];
+    const battle = fixture([attack.id], [attack]);
+    const candidate = rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', definitions),
+      'player', [attack], definitions, battle.queryCommands('player'),
+    ).find((entry) => entry.command.type === 'skill')!;
+    expect(candidate.benefits.survival).toBe(-15);
+    expect(candidate.benefits.control).toBe(0);
   });
   it('无蓝时不普攻隐身目标，有感知后可以攻击', () => {
     const battle = fixture([]);

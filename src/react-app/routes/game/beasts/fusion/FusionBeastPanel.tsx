@@ -12,7 +12,7 @@ export function FusionIdentityTag({ beast }: { beast: SummonedBeast }) {
         : beast.originKind === 'wild'
           ? '成年'
           : beast.originKind === 'pseudo_baby'
-            ? '假幼崽'
+            ? '成年'
             : '幼崽'}
     </InkTag>
   );
