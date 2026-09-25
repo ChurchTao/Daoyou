@@ -338,20 +338,38 @@ describe('秘境分环节资源奖励', () => {
       difficultyTier: 'boss' as const,
     };
     const first = planDungeonStepResources(9, 'battle:1', 'battle', high);
+    const lowDanger = planDungeonStepResources(9, 'battle:1', 'battle', {
+      ...high,
+      dangerScore: 0,
+      difficultyTier: 'easy',
+    });
+    const highDanger = planDungeonStepResources(9, 'battle:1', 'battle', {
+      ...high,
+      difficultyTier: 'easy',
+    });
     expect(first).toEqual(
       planDungeonStepResources(9, 'battle:1', 'battle', high),
     );
     expect(first.experience).toBe(5197);
-    expect(first.spiritStones).toBeGreaterThan(
-      planDungeonStepResources(9, 'battle:1', 'battle', context).spiritStones,
+    expect(lowDanger.experience).toBeGreaterThan(
+      planDungeonStepResources(9, 'battle:1', 'battle', context).experience,
     );
+    expect(highDanger.experience).toBeGreaterThan(lowDanger.experience);
+    expect(first.experience).toBeGreaterThan(highDanger.experience);
+    expect(highDanger.spiritStones).toBeGreaterThan(lowDanger.spiritStones);
+    expect(first.spiritStones).toBeGreaterThan(highDanger.spiritStones);
   });
 
   it('所有境界的探索和胜战收益均高于原等级固定值', () => {
     for (const realm of REALM_VALUES) {
       const level = getRealmStageLevel(realm, '初期');
       const current = { ...context, mapRealm: realm, playerRealm: realm };
-      const exploration = planDungeonStepResources(1, 'exploration:1', 'exploration', current);
+      const exploration = planDungeonStepResources(
+        1,
+        'exploration:1',
+        'exploration',
+        current,
+      );
       const battle = planDungeonStepResources(1, 'battle:1', 'battle', current);
       expect(exploration.experience).toBeGreaterThan(level * 2);
       expect(battle.experience).toBeGreaterThan(level * 5);
