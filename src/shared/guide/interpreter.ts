@@ -9,6 +9,19 @@ export function createGuideState(): GuideState {
   return { cursor: 0, finished: false };
 }
 
+export function restoreGuideState(
+  lesson: GuideLesson,
+  cursor: number,
+): GuideState {
+  if (!Number.isInteger(cursor) || cursor < 0) return createGuideState();
+  const safeCursor = Math.min(cursor, lesson.steps.length - 1);
+  const step = lesson.steps[safeCursor];
+  return {
+    cursor: safeCursor,
+    finished: !step || step.type === 'end',
+  };
+}
+
 export function currentGuideStep(
   lesson: GuideLesson,
   state: GuideState,
