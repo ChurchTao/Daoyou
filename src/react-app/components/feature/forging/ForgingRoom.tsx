@@ -1,3 +1,4 @@
+import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
@@ -24,8 +25,12 @@ import { ForgingFurnace } from './ForgingFurnace';
 import { ForgingInventory, type ForgeFilter } from './ForgingInventory';
 import { useForgingSession, type ForgeItem } from './useForgingSession';
 
-const boostPercent = Number((DAO_EQUIPMENT_FORGING.boostPerMaterial * 100).toFixed(6));
-const maxBoostPercent = Number((DAO_EQUIPMENT_FORGING.boostPerMaterial * 5 * 100).toFixed(6));
+const boostPercent = Number(
+  (DAO_EQUIPMENT_FORGING.boostPerMaterial * 100).toFixed(6),
+);
+const maxBoostPercent = Number(
+  (DAO_EQUIPMENT_FORGING.boostPerMaterial * 5 * 100).toFixed(6),
+);
 
 const facilities: RoomActorView[] = [
   {
@@ -65,9 +70,11 @@ const readCompact = () => window.matchMedia(compactQuery).matches;
 const readServerCompact = () => false;
 
 export function ForgingRoom() {
-  const session = useForgingSession();
   const [facility, setFacility] = useState('');
-  const [filter, setFilter] = useState<ForgeFilter>('all');
+  const [filter, setFilter] = useState<InventoryKind>('all');
+  const session = useForgingSession(
+    facility === 'archive' ? 'blueprint' : filter,
+  );
   const [selected, setSelected] = useState<string>();
   const { pushToast } = useInkUI();
   const [revealed, setRevealed] = useState(false);
@@ -225,10 +232,7 @@ export function ForgingRoom() {
                           <legend className="font-medium">法兵器形</legend>
                           <div className="flex flex-wrap gap-1">
                             {DAO_WEAPON_TYPES.map((type) => (
-                              <label
-                                key={type}
-                                className="cursor-pointer"
-                              >
+                              <label key={type} className="cursor-pointer">
                                 <input
                                   type="radio"
                                   name="weaponType"
@@ -237,7 +241,7 @@ export function ForgingRoom() {
                                   onChange={() => session.setWeaponType(type)}
                                   className="peer sr-only"
                                 />
-                                <span className="peer-checked:bg-crimson/5 peer-checked:text-crimson peer-checked:font-semibold peer-focus-visible:ring-crimson/50 flex h-8 min-w-8 items-center justify-center rounded-sm px-2 peer-focus-visible:ring-1">
+                                <span className="peer-checked:bg-crimson/5 peer-checked:text-crimson peer-focus-visible:ring-crimson/50 flex h-8 min-w-8 items-center justify-center rounded-sm px-2 peer-checked:font-semibold peer-focus-visible:ring-1">
                                   {DAO_WEAPONS[type].name}
                                 </span>
                               </label>
@@ -283,7 +287,8 @@ export function ForgingRoom() {
                               : '一卷图纸，最多五份灵材'}
                             <InkTooltip label="材料增益规则">
                               每份材料增加 {boostPercent}%，同类最多
-                              {maxBoostPercent}%。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。材料平均品阶越高，白字上下限越高；平均超出门槛两阶封顶。器诀独立随机。
+                              {maxBoostPercent}
+                              %。矿石增益白字择优；天材地宝增益器蕴数量择优；辅助与妖兽材料增益已有附灵数值择优。材料平均品阶越高，白字上下限越高；平均超出门槛两阶封顶。器诀独立随机。
                             </InkTooltip>
                           </div>
                         </div>
@@ -391,21 +396,24 @@ export function ForgingRoom() {
             {session.definition?.slot === 'weapon' ? (
               <div className="space-y-1">
                 <p>器形：{weapon.name}</p>
-                {daoEquipmentTemplateOf('dao_equipment.standard.weapon.v1')!
-                  .baseStats.map((stat) => {
-                    const range = daoEquipmentBaseRange(
-                      stat,
-                      session.definition!.level!,
-                      session.forging?.baseQuality ?? 0,
-                      session.weaponType,
-                    );
-                    return (
-                      <p key={stat.attr} className="text-ink-secondary">
-                        {EQUIPMENT_ATTRIBUTE_NAMES[stat.attr]}{' '}
-                        <span className="font-mono">{range.min}–{range.max}</span>
-                      </p>
-                    );
-                  })}
+                {daoEquipmentTemplateOf(
+                  'dao_equipment.standard.weapon.v1',
+                )!.baseStats.map((stat) => {
+                  const range = daoEquipmentBaseRange(
+                    stat,
+                    session.definition!.level!,
+                    session.forging?.baseQuality ?? 0,
+                    session.weaponType,
+                  );
+                  return (
+                    <p key={stat.attr} className="text-ink-secondary">
+                      {EQUIPMENT_ATTRIBUTE_NAMES[stat.attr]}{' '}
+                      <span className="font-mono">
+                        {range.min}–{range.max}
+                      </span>
+                    </p>
+                  );
+                })}
               </div>
             ) : null}
             {session.intent.trim() ? (

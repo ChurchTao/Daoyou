@@ -1,3 +1,4 @@
+import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
@@ -22,10 +23,10 @@ export type ForgeItem = InventoryView['items'][number];
 const endpoint = '/api/combat-v6/forging';
 const emptyMaterials = (): (string | null)[] => Array(5).fill(null);
 
-export function useForgingSession() {
+export function useForgingSession(kind: InventoryKind) {
   const bagQuery = useInventoryBag();
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
-  const storage = useCraftStorage('all', source === 'storage');
+  const storage = useCraftStorage(kind, source === 'storage');
   const inventory = source === 'bag' ? bagQuery.data : storage.view;
   const [chosenItems, setChosenItems] = useState<Map<string, ForgeItem>>(
     new Map(),
@@ -130,12 +131,17 @@ export function useForgingSession() {
 
   const intentTooLong =
     Array.from(intent.trim()).length > FORGE_INTENT_MAX_LENGTH;
-  const forging = !problem && definition?.level && view
-    ? forgingInputs(definition.level, view.ownerLevel, Array.from(quantities, ([id, quantity]) => {
-        const item = byId.get(id)!;
-        return { facts: materialFactsOf(item.instanceData), quantity };
-      }))
-    : undefined;
+  const forging =
+    !problem && definition?.level && view
+      ? forgingInputs(
+          definition.level,
+          view.ownerLevel,
+          Array.from(quantities, ([id, quantity]) => {
+            const item = byId.get(id)!;
+            return { facts: materialFactsOf(item.instanceData), quantity };
+          }),
+        )
+      : undefined;
 
   function choose(item: ForgeItem): string {
     if (locked) return '当前不能调整炉中材料';

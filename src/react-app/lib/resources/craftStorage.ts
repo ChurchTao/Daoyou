@@ -1,9 +1,10 @@
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
+import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { useCallback, useEffect, useState } from 'react';
 
-export function useCraftStorage(kind: 'all' | 'material', enabled: boolean) {
+export function useCraftStorage(kind: InventoryKind, enabled: boolean) {
   const owner = usePlayerSession().data?.activeCultivator?.id;
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
@@ -12,6 +13,8 @@ export function useCraftStorage(kind: 'all' | 'material', enabled: boolean) {
   const [error, setError] = useState('');
   useEffect(() => {
     if (!enabled || !owner) return;
+    setView(undefined);
+    setError('');
     const controller = new AbortController();
     const query = new URLSearchParams({
       location: 'storage',

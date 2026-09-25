@@ -1,10 +1,15 @@
+import {
+  InventoryFilters,
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/InventoryFilters';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
-import { itemDefinition } from '@shared/inventory';
+import { useState } from 'react';
 import { InventoryItems } from '../items/InventoryItems';
 import type { ForgeItem, ForgingSession } from './useForgingSession';
 
-export type ForgeFilter = 'all' | 'blueprint' | 'material';
+export type ForgeFilter = InventoryKind;
 export function ForgingInventory({
   session,
   filter,
@@ -20,6 +25,8 @@ export function ForgingInventory({
   onChoose: (item: ForgeItem) => void;
   fixedFilter?: boolean;
 }) {
+  const [bagSearch, setBagSearch] = useState('');
+  const search = session.source === 'bag' ? bagSearch : session.storage.search;
   return (
     <div className="space-y-3 text-sm">
       <InventoryHeader
@@ -50,42 +57,35 @@ export function ForgingInventory({
           </button>
         ))}
       </div>
-      {session.source === 'storage' ? (
-        <input
-          aria-label="搜索储藏室物品"
-          placeholder="搜索图纸或灵材"
-          value={session.storage.search}
-          onChange={(event) => session.storage.setSearch(event.target.value)}
-          className="border-ink/20 w-full border-b bg-transparent p-2"
+      {!fixedFilter ? (
+        <InventoryFilters
+          search={search}
+          kind={filter}
+          onSearch={
+            session.source === 'bag' ? setBagSearch : session.storage.setSearch
+          }
+          onKind={(value) => {
+            onFilter(value);
+            session.storage.setPage(0);
+          }}
         />
-      ) : null}
+      ) : (
+        <InventoryFilters
+          search={search}
+          kind="blueprint"
+          kindDisabled
+          onSearch={
+            session.source === 'bag' ? setBagSearch : session.storage.setSearch
+          }
+          onKind={() => {}}
+        />
+      )}
       <p className="text-ink-secondary text-xs">
         已备{' '}
         <span className="font-mono">
           {session.total} / {session.cost?.quantity ?? 0}
         </span>
       </p>
-      {!fixedFilter ? (
-        <div className="flex gap-4" aria-label="物品类别">
-          {(
-            [
-              ['all', '全部'],
-              ['blueprint', '图纸'],
-              ['material', '灵材'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={filter === value}
-              onClick={() => onFilter(value)}
-              className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : null}
       {!session.inventory && !session.error ? (
         <p role="status">
           正在读取{session.source === 'bag' ? '储物袋' : '储藏室'}……
@@ -96,14 +96,22 @@ export function ForgingInventory({
       ) : null}
       <InventoryItems
         items={
-          filter === 'all'
+          session.source === 'storage' ||
+          (!fixedFilter && filter === 'all' && !search)
             ? (session.inventory?.items ?? [])
-            : (session.inventory?.items ?? []).filter(
-                (item) => itemDefinition(item.definitionId).kind === filter,
+            : (session.inventory?.items ?? []).filter((item) =>
+                matchesInventoryFilters(
+                  item,
+                  search,
+                  fixedFilter ? 'blueprint' : filter,
+                ),
               )
         }
         location={session.source}
-        compact={session.source === 'bag' && filter !== 'all'}
+        compact={
+          session.source === 'bag' &&
+          (filter !== 'all' || !!search || fixedFilter)
+        }
         slotProps={(item) => {
           const used =
             item && !session.result

@@ -9,13 +9,18 @@ import {
   isQiRestoreTalisman,
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
+import {
+  InventoryFilters,
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/InventoryFilters';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   InventoryAction,
@@ -55,7 +60,7 @@ export default function InventoryV6() {
         : 'bag';
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const [kind, setKind] = useState('all');
+  const [kind, setKind] = useState<InventoryKind>('all');
   const [storage, setData] = useState<InventoryView>();
   const bagQuery = useInventoryBag();
   const bag = bagQuery.data;
@@ -126,7 +131,10 @@ export default function InventoryV6() {
             }),
           ),
         );
-      } else await consumeResourceMutation(await fetch(endpoint, mutationBody(action)));
+      } else
+        await consumeResourceMutation(
+          await fetch(endpoint, mutationBody(action)),
+        );
       if (!mounted.current) return;
       pushToast({
         message:
@@ -155,12 +163,12 @@ export default function InventoryV6() {
   }
   const filtered = !!search || kind !== 'all' || !!slotFilter;
   const equipped = bag?.equippedItems ?? [];
-  const unavailable = pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
+  const unavailable =
+    pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
   const visibleData = data ?? (location === 'bag' ? bag : undefined);
   function matches(item: Item) {
     return (
-      item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) &&
-      (kind === 'all' || itemDefinition(item.definitionId).kind === kind) &&
+      matchesInventoryFilters(item, search, kind) &&
       (!slotFilter ||
         (itemDefinition(item.definitionId).kind === 'equipment' &&
           (item.instanceData as DaoEquipmentInstanceV1).slot === slotFilter))
@@ -237,40 +245,22 @@ export default function InventoryV6() {
               </InkButton>
             }
           />
-          <div className="flex flex-wrap gap-2">
-            <input
-              aria-label="搜索物品"
-              placeholder="搜索物品"
-              value={search}
-              className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
-              onChange={(e) => {
-                setSearch(e.target.value);
+          <div className="flex flex-wrap items-center gap-2">
+            <InventoryFilters
+              search={search}
+              kind={kind}
+              onSearch={(value) => {
+                setSearch(value);
                 setPage(0);
                 if (location === 'storage') setData(undefined);
               }}
-            />
-            <select
-              aria-label="物品分类"
-              value={kind}
-              className="bg-transparent text-sm"
-              onChange={(e) => {
-                setKind(e.target.value);
+              onKind={(value) => {
+                setKind(value);
                 setPage(0);
                 if (location === 'storage') setData(undefined);
                 setSlotFilter(undefined);
               }}
-            >
-              <option value="all">全部</option>
-              <option value="beast_book">传承灵印</option>
-              <option value="beast_refinement">归元灵露</option>
-              <option value="manual_jade">功法玉简</option>
-              <option value="inscription">阵纹</option>
-              <option value="equipment">道装</option>
-              <option value="blueprint">图纸</option>
-              <option value="material">材料</option>
-              <option value="seed">灵种</option>
-              <option value="consumable">丹药与消耗品</option>
-            </select>
+            />
             {slotFilter ? (
               <InkButton
                 onClick={() => {
@@ -282,7 +272,11 @@ export default function InventoryV6() {
               </InkButton>
             ) : null}
           </div>
-          {bagQuery.error ? <p role="alert" className="text-crimson text-sm">{bagQuery.error}</p> : null}
+          {bagQuery.error ? (
+            <p role="alert" className="text-crimson text-sm">
+              {bagQuery.error}
+            </p>
+          ) : null}
           {!visibleData ? (
             readFailed ? null : (
               <p className="text-ink-secondary text-sm">正在查看物品……</p>
@@ -404,10 +398,18 @@ function ItemActions({
           quantity: item.quantity,
         }
       : undefined;
-  const beastFood = consumable && consumable.spec.kind !== 'talisman' && consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation');
-  const actionHref = beastFood ? '/game/beasts' : consumable && getTalismanActionHref(consumable);
+  const beastFood =
+    consumable &&
+    consumable.spec.kind !== 'talisman' &&
+    consumable.spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    );
+  const actionHref = beastFood
+    ? '/game/beasts'
+    : consumable && getTalismanActionHref(consumable);
   const directUse =
-    !beastFood && consumable &&
+    !beastFood &&
+    consumable &&
     (consumable.spec.kind !== 'talisman' ||
       isQiRestoreTalisman(consumable) ||
       isAttributeResetTalisman(consumable) ||
@@ -425,7 +427,9 @@ function ItemActions({
         ) : null}
         {item.location === 'bag' && consumable && actionHref && !directUse ? (
           <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
-            {beastFood ? '前往喂养灵兽' : getTalismanActionLabel(consumable) ?? '前往使用'}
+            {beastFood
+              ? '前往喂养灵兽'
+              : (getTalismanActionLabel(consumable) ?? '前往使用')}
           </InkButton>
         ) : null}
         {item.location === 'bag' && definition.kind === 'equipment' ? (

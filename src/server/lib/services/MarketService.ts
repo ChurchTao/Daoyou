@@ -22,6 +22,7 @@ import {
   getSpiritFieldMarketSeedSlotCount,
   SpiritSeedGenerator,
 } from '@shared/engine/spirit-field';
+import { readSpiritFieldSeedSpec } from '@shared/engine/spirit-field/seedMaterial';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import {
   evaluateFateContext,
@@ -455,6 +456,8 @@ function applyMysteryLayer(
 // ─── 列表清理 ───
 
 function sanitizeListing(listing: InternalMarketListing): MarketListing {
+  const seedSpec =
+    listing.type === 'seed' ? readSpiritFieldSeedSpec(listing.details) : null;
   return {
     id: listing.id,
     nodeId: listing.nodeId,
@@ -464,7 +467,17 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
     rank: listing.rank,
     element: listing.element,
     description: listing.description,
-    details: sanitizeMaterialDetails(listing.details) ?? {},
+    details: seedSpec
+      ? {
+          seedPreview: {
+            quality: seedSpec.plant.quality,
+            element: seedSpec.plant.element,
+            minRealm: seedSpec.plant.minRealm,
+            seedDescription: seedSpec.plant.seedDescription,
+            clueTexts: seedSpec.plant.clueTexts,
+          },
+        }
+      : (sanitizeMaterialDetails(listing.details) ?? {}),
     quantity: listing.quantity,
     price: listing.price,
     basePrice: listing.basePrice,
@@ -881,10 +894,10 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   // Preserve current listing IDs and purchase quotas; retired stock stays off sale.
   return {
     ...asData,
-    listings: asData.listings.filter(
-      (item) =>
-        item.type === 'seed' ||
-        MaterialFactsSchema.shape.type.safeParse(item.type).success,
+    listings: asData.listings.filter((item) =>
+      item.type === 'seed'
+        ? readSpiritFieldSeedSpec(item.details) !== null
+        : MaterialFactsSchema.shape.type.safeParse(item.type).success,
     ),
   };
 }

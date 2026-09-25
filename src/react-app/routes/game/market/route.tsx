@@ -18,7 +18,6 @@ import type {
   MarketBuyInput,
   MarketPurchaseResult,
 } from '@shared/contracts/market';
-import { seedFactsOf } from '@shared/items/definitions/seeds';
 import {
   getMarketNodeSwitchOptions,
   resolveMarketSwitchLayer,
@@ -368,7 +367,7 @@ function MarketWorkspace({
                     quantity: item.quantity,
                     instanceData:
                       item.type === 'seed'
-                        ? seedFactsOf(item)
+                        ? { seedPreview: item.details?.seedPreview }
                         : {
                             name: item.name,
                             type: item.type,
