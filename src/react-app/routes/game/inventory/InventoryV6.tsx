@@ -9,13 +9,17 @@ import {
   isQiRestoreTalisman,
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
-import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
+import {
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/inventoryFilterModel';
+import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type {
   InventoryAction,
@@ -55,7 +59,9 @@ export default function InventoryV6() {
         : 'bag';
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
-  const [kind, setKind] = useState('all');
+  const [kind, setKind] = useState<InventoryKind>('all');
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [storage, setData] = useState<InventoryView>();
   const bagQuery = useInventoryBag();
   const bag = bagQuery.data;
@@ -126,17 +132,23 @@ export default function InventoryV6() {
             }),
           ),
         );
-      } else await consumeResourceMutation(await fetch(endpoint, mutationBody(action)));
+      } else
+        await consumeResourceMutation(
+          await fetch(endpoint, mutationBody(action)),
+        );
       if (!mounted.current) return;
       pushToast({
         message:
-          action.action === 'equip'
-            ? action.equipped
-              ? '已穿戴道装'
-              : '已卸下道装'
-            : '已完成',
+          action.action === 'transfer_many'
+            ? `已转移 ${action.items.length} 件物品`
+            : action.action === 'equip'
+              ? action.equipped
+                ? '已穿戴道装'
+                : '已卸下道装'
+              : '已完成',
         tone: 'success',
       });
+      setSelectedIds(new Set());
     } catch (e) {
       bagQuery.invalidate();
       if (mounted.current)
@@ -155,16 +167,33 @@ export default function InventoryV6() {
   }
   const filtered = !!search || kind !== 'all' || !!slotFilter;
   const equipped = bag?.equippedItems ?? [];
-  const unavailable = pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
+  const unavailable =
+    pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
   const visibleData = data ?? (location === 'bag' ? bag : undefined);
   function matches(item: Item) {
     return (
-      item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) &&
-      (kind === 'all' || itemDefinition(item.definitionId).kind === kind) &&
+      matchesInventoryFilters(item, search, kind) &&
       (!slotFilter ||
         (itemDefinition(item.definitionId).kind === 'equipment' &&
           (item.instanceData as DaoEquipmentInstanceV1).slot === slotFilter))
     );
+  }
+  const visibleItems = visibleData
+    ? location === 'bag' && filtered
+      ? visibleData.items.filter(matches)
+      : visibleData.items
+    : [];
+  const selectedItems = visibleItems.filter((item) => selectedIds.has(item.id));
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+  function toggleSelection(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
   return (
     <GameSceneFrame variant="workflow">
@@ -191,114 +220,197 @@ export default function InventoryV6() {
             setSearch('');
             setKind('equipment');
             setSlotFilter(slot);
+            clearSelection();
           }}
         />
-        <div className="space-y-4">
-          <InventoryHeader
-            title={
-              <div className="flex flex-wrap gap-3">
-                {(['bag', 'storage'] as const).map((value) => (
-                  <button
-                    key={value}
-                    disabled={pending}
-                    aria-pressed={location === value}
-                    className={
-                      location === value
-                        ? 'text-ink font-semibold underline underline-offset-4'
-                        : 'text-ink-secondary'
-                    }
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex min-w-0 items-center gap-4 whitespace-nowrap">
+              {(['bag', 'storage'] as const).map((value) => (
+                <button
+                  key={value}
+                  disabled={pending}
+                  aria-pressed={location === value}
+                  className={
+                    location === value
+                      ? 'text-ink font-semibold underline underline-offset-4'
+                      : 'text-ink-secondary'
+                  }
+                  onClick={() => {
+                    clearSelection();
+                    setParams({ location: value });
+                    setPage(0);
+                    setData(undefined);
+                    setSlotFilter(undefined);
+                  }}
+                >
+                  {value === 'bag' ? '随身物品' : '洞府储藏室'}
+                </button>
+              ))}
+            </div>
+            {selecting ? (
+              <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+                <span
+                  className="text-ink-secondary font-mono text-xs"
+                  aria-live="polite"
+                >
+                  已选 {selectedItems.length}
+                </span>
+                <InkButton
+                  onClick={() => {
+                    clearSelection();
+                    setSelecting(false);
+                  }}
+                >
+                  完成
+                </InkButton>
+              </div>
+            ) : (
+              <span
+                className="text-ink-secondary shrink-0 font-mono text-xs whitespace-nowrap"
+                aria-live="polite"
+              >
+                {location === 'bag'
+                  ? `${visibleData?.used ?? '—'} / ${BAG_CAPACITY} 格`
+                  : `${data?.total ?? '—'} 件`}
+              </span>
+            )}
+          </div>
+          <div className="@container">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <InventoryFilters
+                  search={search}
+                  kind={kind}
+                  onSearch={(value) => {
+                    clearSelection();
+                    setSearch(value);
+                    setPage(0);
+                    if (location === 'storage') setData(undefined);
+                  }}
+                  onKind={(value) => {
+                    clearSelection();
+                    setKind(value);
+                    setPage(0);
+                    if (location === 'storage') setData(undefined);
+                    setSlotFilter(undefined);
+                  }}
+                />
+                {slotFilter ? (
+                  <InkButton
                     onClick={() => {
-                      setParams({ location: value });
-                      setPage(0);
-                      setData(undefined);
+                      clearSelection();
                       setSlotFilter(undefined);
+                      setKind('all');
                     }}
                   >
-                    {value === 'bag' ? '随身物品' : '洞府储藏室'}
-                  </button>
-                ))}
+                    {EQUIPMENT_SLOT_NAMES[slotFilter]} ×
+                  </InkButton>
+                ) : null}
               </div>
-            }
-            capacity={
-              location === 'bag'
-                ? `${visibleData?.used ?? '—'} / ${BAG_CAPACITY}`
-                : `${data?.total ?? '—'} 件`
-            }
-            actions={
-              <InkButton
-                disabled={pending}
-                onClick={() => {
-                  void bagQuery.reload();
-                  setData(undefined);
-                  setRefresh((value) => value + 1);
-                }}
-              >
-                刷新
-              </InkButton>
-            }
-          />
-          <div className="flex flex-wrap gap-2">
-            <input
-              aria-label="搜索物品"
-              placeholder="搜索物品"
-              value={search}
-              className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-                if (location === 'storage') setData(undefined);
-              }}
-            />
-            <select
-              aria-label="物品分类"
-              value={kind}
-              className="bg-transparent text-sm"
-              onChange={(e) => {
-                setKind(e.target.value);
-                setPage(0);
-                if (location === 'storage') setData(undefined);
-                setSlotFilter(undefined);
-              }}
-            >
-              <option value="all">全部</option>
-              <option value="beast_book">传承灵印</option>
-              <option value="beast_refinement">归元灵露</option>
-              <option value="manual_jade">功法玉简</option>
-              <option value="inscription">阵纹</option>
-              <option value="equipment">道装</option>
-              <option value="blueprint">图纸</option>
-              <option value="material">材料</option>
-              <option value="seed">灵种</option>
-              <option value="consumable">丹药与消耗品</option>
-            </select>
-            {slotFilter ? (
-              <InkButton
-                onClick={() => {
-                  setSlotFilter(undefined);
-                  setKind('all');
-                }}
-              >
-                {EQUIPMENT_SLOT_NAMES[slotFilter]} ×
-              </InkButton>
-            ) : null}
+              <div className="flex shrink-0 items-center justify-end gap-1">
+                {selecting ? (
+                  <>
+                    <InkButton
+                      disabled={unavailable || !visibleItems.length}
+                      onClick={() =>
+                        setSelectedIds(
+                          selectedItems.length === visibleItems.length
+                            ? new Set()
+                            : new Set(visibleItems.map((item) => item.id)),
+                        )
+                      }
+                    >
+                      <span className="@min-[30rem]:hidden">
+                        {selectedItems.length === visibleItems.length &&
+                        visibleItems.length
+                          ? '清空'
+                          : '全选'}
+                      </span>
+                      <span className="hidden @min-[30rem]:inline">
+                        {selectedItems.length === visibleItems.length &&
+                        visibleItems.length
+                          ? '取消全选'
+                          : '全选本页'}
+                      </span>
+                    </InkButton>
+                    <InkButton
+                      disabled={unavailable || !selectedItems.length}
+                      onClick={() =>
+                        void act({
+                          action: 'transfer_many',
+                          items: selectedItems.map(({ id, revision }) => ({
+                            id,
+                            revision,
+                          })),
+                          location: location === 'bag' ? 'storage' : 'bag',
+                        })
+                      }
+                    >
+                      <span className="@min-[30rem]:hidden">
+                        {location === 'bag' ? '存入' : '取出'}
+                      </span>
+                      <span className="hidden @min-[30rem]:inline">
+                        {location === 'bag' ? '存入储藏室' : '取入背包'}
+                      </span>
+                    </InkButton>
+                  </>
+                ) : (
+                  <>
+                    <InkButton
+                      disabled={unavailable}
+                      onClick={() => {
+                        clearSelection();
+                        setSelecting(true);
+                      }}
+                    >
+                      多选
+                    </InkButton>
+                    <InkButton
+                      disabled={pending}
+                      onClick={() => {
+                        clearSelection();
+                        void bagQuery.reload();
+                        setData(undefined);
+                        setRefresh((value) => value + 1);
+                      }}
+                    >
+                      刷新
+                    </InkButton>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          {bagQuery.error ? <p role="alert" className="text-crimson text-sm">{bagQuery.error}</p> : null}
+          {bagQuery.error ? (
+            <p role="alert" className="text-crimson text-sm">
+              {bagQuery.error}
+            </p>
+          ) : null}
           {!visibleData ? (
             readFailed ? null : (
               <p className="text-ink-secondary text-sm">正在查看物品……</p>
             )
           ) : (
             <InventoryItems
-              items={
-                location === 'bag' && filtered
-                  ? visibleData.items.filter(matches)
-                  : visibleData.items
-              }
+              items={visibleItems}
               location={location}
               compact={location === 'bag' && filtered}
+              quickTouchHint={selecting}
               slotProps={(entry) => ({
                 disabled: unavailable || (filtered && !entry),
-                badge: entry?.equipped ? '穿' : undefined,
+                selected: !!entry && selectedIds.has(entry.id),
+                badge:
+                  entry && selectedIds.has(entry.id)
+                    ? '已选'
+                    : entry?.equipped
+                      ? '穿'
+                      : undefined,
+                onQuickAction:
+                  selecting && entry
+                    ? () => toggleSelection(entry.id)
+                    : undefined,
+                quickOnTouch: selecting,
                 comparisonItem:
                   entry &&
                   !entry.equipped &&
@@ -309,26 +421,27 @@ export default function InventoryV6() {
                           (entry.instanceData as DaoEquipmentInstanceV1).slot,
                       )
                     : undefined,
-                children: entry
-                  ? (close) => (
-                      <ItemActions
-                        key={`${entry.id}:${entry.revision}`}
-                        item={entry}
-                        pending={unavailable}
-                        equipped={equipped}
-                        level={level}
-                        act={async (action) => {
-                          await act(action);
-                          close();
-                        }}
-                      />
-                    )
-                  : undefined,
+                children:
+                  entry && !selecting
+                    ? (close) => (
+                        <ItemActions
+                          key={`${entry.id}:${entry.revision}`}
+                          item={entry}
+                          pending={unavailable}
+                          equipped={equipped}
+                          level={level}
+                          act={async (action) => {
+                            await act(action);
+                            close();
+                          }}
+                        />
+                      )
+                    : undefined,
               })}
             />
           )}
           <div className="flex justify-end gap-3">
-            {location === 'bag' ? (
+            {location === 'bag' && !selecting ? (
               <InkButton
                 disabled={unavailable || filtered}
                 onClick={() =>
@@ -353,6 +466,7 @@ export default function InventoryV6() {
               <InkButton
                 disabled={!data.page || pending}
                 onClick={() => {
+                  clearSelection();
                   setPage(data.page - 1);
                   setData(undefined);
                 }}
@@ -365,6 +479,7 @@ export default function InventoryV6() {
               <InkButton
                 disabled={(data.page + 1) * 40 >= data.total || pending}
                 onClick={() => {
+                  clearSelection();
                   setPage(data.page + 1);
                   setData(undefined);
                 }}
@@ -404,10 +519,18 @@ function ItemActions({
           quantity: item.quantity,
         }
       : undefined;
-  const beastFood = consumable && consumable.spec.kind !== 'talisman' && consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation');
-  const actionHref = beastFood ? '/game/beasts' : consumable && getTalismanActionHref(consumable);
+  const beastFood =
+    consumable &&
+    consumable.spec.kind !== 'talisman' &&
+    consumable.spec.operations.some(
+      (operation) => operation.type === 'gain_beast_cultivation',
+    );
+  const actionHref = beastFood
+    ? '/game/beasts'
+    : consumable && getTalismanActionHref(consumable);
   const directUse =
-    !beastFood && consumable &&
+    !beastFood &&
+    consumable &&
     (consumable.spec.kind !== 'talisman' ||
       isQiRestoreTalisman(consumable) ||
       isAttributeResetTalisman(consumable) ||
@@ -425,7 +548,9 @@ function ItemActions({
         ) : null}
         {item.location === 'bag' && consumable && actionHref && !directUse ? (
           <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
-            {beastFood ? '前往喂养灵兽' : getTalismanActionLabel(consumable) ?? '前往使用'}
+            {beastFood
+              ? '前往喂养灵兽'
+              : (getTalismanActionLabel(consumable) ?? '前往使用')}
           </InkButton>
         ) : null}
         {item.location === 'bag' && definition.kind === 'equipment' ? (

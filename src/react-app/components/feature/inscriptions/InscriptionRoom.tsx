@@ -323,6 +323,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   item={item}
                   disabled={session.locked}
                   onQuickAction={() => choose(item)}
+                  quickOnTouch
                 >
                   {(close) => (
                     <InkButton
@@ -342,10 +343,12 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
         )}
       <InventoryItems
         items={inventory?.items ?? []}
+        quickTouchHint
         slotProps={(item) => {
           const reason = item ? itemProblem(item) : null;
           return {
             disabled: session.locked || !!reason,
+            quickOnTouch: true,
             badge: item && !reason ? '可选' : undefined,
             onQuickAction: item ? () => choose(item) : undefined,
             children: item
@@ -595,6 +598,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                         badge={slot.badge}
                         disabled={session.locked || slot.disabled}
                         onQuickAction={slot.choose}
+                        quickOnTouch
                       >
                         {slot.item
                           ? (close) => (

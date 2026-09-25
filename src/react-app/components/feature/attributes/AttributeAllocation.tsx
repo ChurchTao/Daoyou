@@ -7,14 +7,16 @@ import {
   type SetStateAction,
 } from 'react';
 
-function AddPoint({
+export function AddPoint({
   label,
   disabled,
   add,
+  className = 'border-teal/25 text-teal hover:border-teal/60 hover:bg-teal/10 focus-visible:outline-teal relative inline-flex size-6 shrink-0 items-center justify-center rounded-xs border font-mono text-base leading-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 pointer-coarse:after:absolute pointer-coarse:after:-inset-2.5',
 }: {
   label: string;
   disabled: boolean;
   add: () => void;
+  className?: string;
 }) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const repeated = useRef(false);
@@ -38,9 +40,11 @@ function AddPoint({
       type="button"
       aria-label={`增加${label}`}
       disabled={disabled}
-      className="border-teal/25 text-teal hover:border-teal/60 hover:bg-teal/10 focus-visible:outline-teal relative inline-flex size-6 shrink-0 touch-none items-center justify-center rounded-xs border font-mono text-base leading-none transition-colors select-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-30 pointer-coarse:after:absolute pointer-coarse:after:-inset-2.5"
+      className={`${className} touch-none select-none disabled:opacity-30`}
+      style={{ WebkitTouchCallout: 'none' }}
       onPointerDown={(event) => {
         if (event.button !== 0 || disabled) return;
+        if (event.pointerType === 'touch') event.preventDefault();
         stop();
         repeated.current = false;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -51,7 +55,11 @@ function AddPoint({
         };
         timer.current = setTimeout(repeat, 350);
       }}
-      onPointerUp={stop}
+      onPointerUp={() => {
+        stop();
+        if (!repeated.current) callback.current();
+        repeated.current = false;
+      }}
       onPointerCancel={() => {
         repeated.current = true;
         stop();
@@ -60,8 +68,7 @@ function AddPoint({
       onBlur={stop}
       onContextMenu={(event) => event.preventDefault()}
       onClick={(event) => {
-        if (event.detail === 0 || !repeated.current) add();
-        repeated.current = false;
+        if (event.detail === 0) add();
       }}
     >
       +

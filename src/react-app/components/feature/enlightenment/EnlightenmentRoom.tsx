@@ -71,12 +71,14 @@ function MaterialPicker({ session }: { session: EnlightenmentSession }) {
       </p>
       <InventoryItems
         items={session.inventory?.items ?? []}
+        quickTouchHint
         slotProps={(item) => {
           const reason = item ? session.itemProblem(item) : null;
           const used = item ? (session.quantities.get(item.id) ?? 0) : 0;
           const unavailable = !!reason || (!!item && used >= item.quantity);
           return {
             disabled: session.locked || unavailable,
+            quickOnTouch: true,
             badge: used ? `已选${used}` : item && !reason ? '可选' : undefined,
             onQuickAction: item ? () => session.choose(item) : undefined,
             children: item
@@ -185,6 +187,7 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
                       onQuickAction={() =>
                         item ? session.remove(index) : openBag()
                       }
+                      quickOnTouch
                     >
                       {item
                         ? (close) => (

@@ -10,7 +10,10 @@ import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { manualEffectLines } from '@shared/engine/combat-v6/manuals/presentation';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { MATERIAL_TYPE_NAMES } from '@shared/items/definitions/materials';
-import { SeedFactsSchema } from '@shared/items/definitions/seeds';
+import {
+  SeedFactsSchema,
+  SeedPreviewFactsSchema,
+} from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { REALM_VALUES } from '@shared/types/constants';
 import { field, lines, quantity } from './helpers';
@@ -72,7 +75,10 @@ export const materialAdapter: ItemAdapter = (item) => {
   };
 };
 export const seedAdapter: ItemAdapter = (item) => {
-  const { plant } = SeedFactsSchema.parse(item.instanceData).seedSpec;
+  const fullFacts = SeedFactsSchema.safeParse(item.instanceData);
+  const plant = fullFacts.success
+    ? fullFacts.data.seedSpec.plant
+    : SeedPreviewFactsSchema.parse(item.instanceData).seedPreview;
   return {
     summary: {
       icon: '🌱',
