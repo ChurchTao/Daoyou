@@ -74,11 +74,6 @@ export function ForgingFurnace({
             )}
           >
             <ItemSlot
-              guideAnchor={
-                index === 1 && session.blueprint && !unused
-                  ? 'forge.material-slot'
-                  : undefined
-              }
               item={item ? { ...item, quantity: 1 } : undefined}
               emptyLabel={
                 index === 0

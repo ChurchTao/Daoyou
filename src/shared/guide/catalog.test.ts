@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getGuideLesson } from './catalog';
 
 describe('guide catalog production chains', () => {
-  it('keeps the first weapon lesson on the actual forging path', () => {
+  it('keeps the first weapon lesson independent from inventory contents', () => {
     const lesson = getGuideLesson('forge-first-weapon');
     expect(lesson).not.toBeNull();
     expect(
@@ -11,12 +11,9 @@ describe('guide catalog production chains', () => {
         .map((step) => [step.type, step.anchor]),
     ).toEqual([
       ['look', 'forge.furnace'],
-      ['press', 'forge.archive'],
-      ['press', 'forge.blueprint'],
-      ['press', 'forge.material-slot'],
-      ['press', 'forge.qingshi'],
-      ['press', 'forge.fire'],
-      ['press', 'forge.confirm'],
+      ['look', 'forge.archive'],
+      ['press', 'forge.furnace'],
+      ['look', 'forge.fire'],
     ]);
   });
 

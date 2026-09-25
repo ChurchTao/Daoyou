@@ -111,17 +111,13 @@ export function ForgingInventory({
                 Number(session.blueprint?.id === item.id)
               : 0;
           const problem = item ? session.itemProblem(item) : null;
-          const guideAnchor =
-            fixedFilter && item?.definitionId === 'blueprint.weapon.10'
-              ? 'forge.blueprint'
-              : !fixedFilter &&
-                  item?.definitionId === 'material.v1' &&
-                  item.name === '青石'
-                ? 'forge.qingshi'
-                : undefined;
           return {
-            guideAnchor,
-            quickOnTouch: !!guideAnchor,
+            guideAnchor:
+              fixedFilter &&
+              session.source === 'bag' &&
+              item?.definitionId === 'blueprint.weapon.10'
+                ? 'forge.blueprint'
+                : undefined,
             selected: !!item && selected === item.id,
             disabled: session.locked || !!problem,
             badge: used ? `已投${used}` : item && !problem ? '可选' : undefined,
