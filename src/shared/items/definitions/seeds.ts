@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { readSpiritFieldSeedSpec } from '../../engine/spirit-field/seedMaterial';
+import {
+  ELEMENT_VALUES,
+  QUALITY_VALUES,
+  REALM_VALUES,
+} from '../../types/constants';
 
 export const SEED_ITEM = {
   id: 'seed.v1',
@@ -24,6 +29,22 @@ export const SeedFactsSchema = z
   })
   .strict()
   .transform((facts) => ({ ...facts, name: facts.seedSpec.plant.seedName }));
+
+/** Public shelf facts omit the seed's hidden cultivation rules. */
+export const SeedPreviewFactsSchema = z
+  .object({
+    seedPreview: z
+      .object({
+        quality: z.enum(QUALITY_VALUES),
+        element: z.enum(ELEMENT_VALUES),
+        minRealm: z.enum(REALM_VALUES),
+        seedDescription: z.string(),
+        clueTexts: z.array(z.string()),
+      })
+      .strict(),
+  })
+  .strict();
+
 export function seedFactsOf(material: {
   type: unknown;
   rank: unknown;

@@ -1,3 +1,8 @@
+import {
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/inventoryFilterModel';
+import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
@@ -23,11 +28,12 @@ export function AlchemyBag({
   const session = useAlchemyCraftSession();
   const bagQuery = useInventoryBag();
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
-  const storage = useCraftStorage('material', source === 'storage');
+  const [kind, setKind] = useState<InventoryKind>('all');
+  const storage = useCraftStorage(kind, source === 'storage');
   const reloadStorage = storage.reload;
   const view = source === 'bag' ? bagQuery.data : storage.view;
   const error = source === 'bag' ? bagQuery.error : storage.error;
-  const [search, setSearch] = useState('');
+  const search = storage.search;
   useEffect(() => {
     if (session.phase === 'result') reloadStorage();
   }, [session.phase, reloadStorage]);
@@ -86,19 +92,15 @@ export function AlchemyBag({
           </button>
         ))}
       </div>
-      <div className="flex gap-3">
-        <input
-          aria-label="搜索物品"
-          placeholder="搜索物品"
-          value={source === 'bag' ? search : storage.search}
-          onChange={(e) =>
-            source === 'bag'
-              ? setSearch(e.target.value)
-              : storage.setSearch(e.target.value)
-          }
-          className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-sm"
-        />
-      </div>
+      <InventoryFilters
+        search={search}
+        kind={kind}
+        onSearch={storage.setSearch}
+        onKind={(value) => {
+          setKind(value);
+          storage.setPage(0);
+        }}
+      />
       {error ? (
         <p role="alert">{error}</p>
       ) : !view ? (
@@ -106,14 +108,15 @@ export function AlchemyBag({
       ) : null}
       <InventoryItems
         items={
-          source === 'bag' && search
+          source === 'bag' && (search || kind !== 'all')
             ? (view?.items ?? []).filter((item) =>
-                item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+                matchesInventoryFilters(item, search, kind),
               )
             : (view?.items ?? [])
         }
         location={source}
-        compact={source === 'bag' && !!search}
+        compact={source === 'bag' && (!!search || kind !== 'all')}
+        quickTouchHint
         slotProps={(item) => {
           const material = groups.find((g) =>
             g.members.some((m) => m.id === item?.id),
@@ -132,6 +135,7 @@ export function AlchemyBag({
           };
           return {
             disabled: locked || (!!material && full),
+            quickOnTouch: true,
             badge: dose
               ? `已投${dose}`
               : material && !full

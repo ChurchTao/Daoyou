@@ -288,6 +288,43 @@ export async function grantInventory(
         (before.find((previous) => previous.id === item.id)?.quantity ?? 0),
   );
 }
+function transferInventoryItem(
+  items: InventoryItem[],
+  item: InventoryItem,
+  location: 'bag' | 'storage',
+) {
+  if (item.location === location) throw new InventoryError('物品已在该位置');
+  const next = items.filter((entry) => entry.id !== item.id);
+  if (itemDefinition(item.definitionId).stackLimit > 1)
+    return addItems(
+      next,
+      {
+        definitionId: item.definitionId,
+        quantity: item.quantity,
+        ...(item.definitionId === 'seed.v1'
+          ? { instanceData: SeedFactsSchema.parse(item.instanceData) }
+          : item.definitionId === 'material.v1'
+            ? { instanceData: MaterialFactsSchema.parse(item.instanceData) }
+            : item.definitionId === 'consumable.v1'
+              ? { instanceData: ConsumableFactsSchema.parse(item.instanceData) }
+              : {}),
+      },
+      location,
+      false,
+      () => item.id,
+      item.stackKey,
+    ).map((entry) =>
+      entry.id === item.id ? { ...entry, revision: item.revision + 1 } : entry,
+    );
+  const slotIndex = location === 'bag' ? emptySlot(next) : null;
+  if (location === 'bag' && slotIndex === null)
+    throw new InventoryError('背包格子不足');
+  return [
+    ...next,
+    { ...item, location, slotIndex, revision: item.revision + 1 },
+  ];
+}
+
 export async function mutateInventory(owner: string, input: InventoryAction) {
   const committed = await withRedisLock(
     {
@@ -299,7 +336,93 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
     async (lease) =>
       db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, owner);
-        await assertInventoryIdle(owner);
+        await assertInventoryIdle(owner, tx);
+        if (input.action === 'transfer_many') {
+          const ids = input.items.map((item) => item.id);
+          const sourceLocation = input.location === 'bag' ? 'storage' : 'bag';
+          const rows = await tx
+            .select()
+            .from(inventoryItems)
+            .where(
+              and(
+                eq(inventoryItems.cultivatorId, owner),
+                or(
+                  eq(inventoryItems.location, 'bag'),
+                  inArray(inventoryItems.id, ids),
+                ),
+              ),
+            );
+          const sources = input.items.map((ref) => {
+            const row = rows.find((item) => item.id === ref.id);
+            if (
+              !row ||
+              row.revision !== ref.revision ||
+              row.location !== sourceLocation
+            )
+              throw new InventoryError('物品已变化，请刷新后重试');
+            return inventoryItemOf(row);
+          });
+          const equipped = await tx
+            .select({ id: cultivatorEquipmentSlots.equipmentInstanceId })
+            .from(cultivatorEquipmentSlots)
+            .where(
+              and(
+                eq(cultivatorEquipmentSlots.cultivatorId, owner),
+                inArray(cultivatorEquipmentSlots.equipmentInstanceId, ids),
+              ),
+            );
+          if (equipped.length) throw new InventoryError('请先卸下装备');
+          const stackFilters = sources.flatMap((item) =>
+            item.stackKey
+              ? [and(
+                  eq(inventoryItems.definitionId, item.definitionId),
+                  eq(inventoryItems.stackKey, item.stackKey),
+                  sql`${inventoryItems.quantity} < ${itemDefinition(item.definitionId).stackLimit}`,
+                )]
+              : [],
+          );
+          const targets =
+            input.location === 'storage' && stackFilters.length
+              ? await tx
+                  .select()
+                  .from(inventoryItems)
+                  .where(
+                    and(
+                      eq(inventoryItems.cultivatorId, owner),
+                      eq(inventoryItems.location, 'storage'),
+                      or(...stackFilters),
+                    ),
+                  )
+              : [];
+          const before = [
+            ...new Map(
+              [...rows, ...targets].map((row) => [
+                row.id,
+                inventoryItemOf(row),
+              ]),
+            ).values(),
+          ];
+          let next = before.map((item) => ({ ...item }));
+          for (const source of sources) {
+            const item = next.find((entry) => entry.id === source.id)!;
+            next = transferInventoryItem(next, item, input.location);
+          }
+          await saveInventoryPlan(owner, before, next, tx);
+          const state = await new ResourceEventCommitter().commit(tx, {
+            actor: { cultivatorId: owner },
+            source: 'inventory-transfer-many',
+            scopeDefaults: { cultivatorId: owner },
+            changes: [
+              {
+                resourceTopic: 'inventory.bag',
+                operation: 'invalidate',
+                eventType: 'inventory.bag.changed',
+              },
+            ],
+          });
+          lease.assertHeld();
+          return { data: { transferred: ids.length }, state };
+        }
         const before = (
           await tx
             .select()
@@ -379,52 +502,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             .where(eq(cultivatorEquipmentSlots.equipmentInstanceId, item.id));
           if (input.action === 'transfer') {
             if (equipped.length) throw new InventoryError('请先卸下装备');
-            if (item.location === input.location)
-              throw new InventoryError('物品已在该位置');
-            next = next.filter((i) => i.id !== item.id);
-            if (itemDefinition(item.definitionId).stackLimit > 1)
-              next = addItems(
-                next,
-                {
-                  definitionId: item.definitionId,
-                  quantity: item.quantity,
-                  ...(item.definitionId === 'seed.v1'
-                    ? { instanceData: SeedFactsSchema.parse(item.instanceData) }
-                    : item.definitionId === 'material.v1'
-                      ? {
-                          instanceData: MaterialFactsSchema.parse(
-                            item.instanceData,
-                          ),
-                        }
-                      : item.definitionId === 'consumable.v1'
-                        ? {
-                            instanceData: ConsumableFactsSchema.parse(
-                              item.instanceData,
-                            ),
-                          }
-                        : {}),
-                },
-                input.location,
-                false,
-                () => item.id,
-                item.stackKey,
-              ).map((entry) =>
-                entry.id === item.id
-                  ? { ...entry, revision: item.revision + 1 }
-                  : entry,
-              );
-            else {
-              const slotIndex =
-                input.location === 'bag' ? emptySlot(next) : null;
-              if (input.location === 'bag' && slotIndex === null)
-                throw new InventoryError('背包格子不足');
-              next.push({
-                ...item,
-                location: input.location,
-                slotIndex,
-                revision: item.revision + 1,
-              });
-            }
+            next = transferInventoryItem(next, item, input.location);
           } else if (input.action === 'move') {
             if (item.location !== 'bag')
               throw new InventoryError('请先取出物品');

@@ -8,19 +8,19 @@
       "text": "地火器炉在这里。兵器从这口炉里出来。"
     },
     {
-      "type": "press",
+      "type": "look",
       "anchor": "forge.archive",
-      "text": "图纸在图录里。把炼气期法兵带出来。"
+      "text": "道装图录在这里。图纸决定这一炉要铸成什么。"
     },
     {
       "type": "press",
-      "anchor": "forge.blueprint",
-      "text": "带进器炉。"
+      "anchor": "forge.furnace",
+      "text": "走近地火器炉。"
     },
     {
       "type": "look",
       "anchor": "forge.fire",
-      "text": "青石和灵石都齐了。点开炉铸造，兵器才会落进袋子。"
+      "text": "图纸和任意合用灵材备齐后，从这里开炉。真正铸成一件法兵，这一课才算落到手上。"
     },
     { "type": "end" }
   ]

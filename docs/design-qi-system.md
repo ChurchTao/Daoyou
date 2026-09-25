@@ -314,7 +314,7 @@ class QiService {
 ### 6.2 使用限制
 
 - 符箓补充可使灵气超过 200，但最高不超过 300。
-- 每日最多使用 3 张恢复灵气符箓。
+- 每日最多使用 10 张恢复灵气符箓。
 - 当当前灵气已达到 300 时不可使用。
 - 使用符箓必须写入 `restore_committed` 日志。
 
@@ -439,7 +439,7 @@ class QiService {
 export const QI_MAX = 200;
 export const QI_DAILY_REFRESH = 200;
 export const QI_OVERFLOW_MAX = 300;
-export const QI_DAILY_RESTORE_ITEM_LIMIT = 3;
+export const QI_DAILY_RESTORE_ITEM_LIMIT = 10;
 export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
 
 export const QI_ACTION_COSTS = {

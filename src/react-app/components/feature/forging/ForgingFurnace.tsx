@@ -93,6 +93,7 @@ export function ForgingFurnace({
                   : !session.locked && 'border-crimson/50 hover:bg-crimson/5',
               )}
               onQuickAction={action}
+              quickOnTouch
             >
               {item
                 ? (close) => (

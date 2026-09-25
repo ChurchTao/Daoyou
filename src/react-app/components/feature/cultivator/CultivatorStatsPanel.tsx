@@ -1,3 +1,4 @@
+import { AddPoint } from '@app/components/feature/attributes/AttributeAllocation';
 import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkDetailDrawer, InkNotice } from '@app/components/ui';
@@ -308,14 +309,13 @@ export function CultivatorStatsPanel({
                       >
                         −
                       </button>
-                      <button
-                        type="button"
-                        aria-label={`增加${CHARACTER_ATTRIBUTE_LABELS[key]}`}
+                      <AddPoint
+                        label={CHARACTER_ATTRIBUTE_LABELS[key]}
                         disabled={
                           disabled || spent >= unallocatedAttributePoints
                         }
                         className="border-teal/30 text-teal size-11 rounded-sm border disabled:opacity-30 md:size-8"
-                        onClick={() =>
+                        add={() =>
                           setAttributeDraft((previous) =>
                             Object.values(previous).reduce(
                               (sum, value) => sum + value,
@@ -325,9 +325,7 @@ export function CultivatorStatsPanel({
                               : { ...previous, [key]: previous[key] + 1 },
                           )
                         }
-                      >
-                        +
-                      </button>
+                      />
                     </>
                   ) : null}
                 </div>
