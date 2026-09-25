@@ -11,7 +11,7 @@ export function recycleBlockingReason(
     'id' | 'location' | 'definitionId' | 'instanceData'
   >,
 ): string | null {
-  if (item.location !== 'bag') return '请先取入随身物品栏。';
+  if (item.location === 'equipped') return '请先卸下道装。';
   const definition = findItemDefinition(item.definitionId);
   if (definition?.kind === 'material') return null;
   if (

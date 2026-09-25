@@ -78,7 +78,7 @@ export async function readArtifactMigration(
         .orderBy(creationProducts.id);
       let blockedReason: string | null = null;
       try {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
       } catch (error) {
         if (!(error instanceof InventoryError)) throw error;
         blockedReason = error.message;
@@ -120,7 +120,7 @@ export async function exchangeArtifactMigration(
       source: 'legacy_artifact_migration',
       command: async (tx) => {
         const owner = await requireOwner(actor, tx);
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
         const [source] = await tx
           .select(sourceColumns)
           .from(creationProducts)

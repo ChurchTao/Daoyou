@@ -287,8 +287,9 @@ export interface Cultivator {
   unallocated_attribute_points?: number;
   spiritual_roots: SpiritualRoot[];
   pre_heaven_fates: PreHeavenFate[];
-  cultivations: CultivationTechnique[];
-  skills: Skill[];
+  /** 旧版角色数据；新建角色不再生成。 */
+  cultivations?: CultivationTechnique[];
+  skills?: Skill[];
 
   inventory: Inventory;
   equipped: EquippedItems;

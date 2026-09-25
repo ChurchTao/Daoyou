@@ -24,6 +24,7 @@ import {
 } from '@server/lib/services/InventoryService';
 import { toPlayerStateMutationResponse } from '@server/lib/services/ResourceMutationResponse';
 import { readResourceWithMeta } from '@server/lib/services/ResourceReadService';
+import { readCombatActivityNotice } from '@server/lib/services/combat-v6/CombatActivityNotice';
 import { CombatV6ArenaStore } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
 import {
   BeastError,
@@ -88,6 +89,14 @@ import { z } from 'zod';
 const router = new Hono<AppEnv>();
 const arenaReplayStore = new CombatV6ArenaStore();
 router.use('*', requireActiveCultivatorRef());
+router.get('/activity', async (c) =>
+  c.json({
+    success: true,
+    data: await readCombatActivityNotice(
+      c.get('activeCultivatorRef')!.cultivatorId,
+    ),
+  }),
+);
 router.post('/wild/sessions/:id/auto', async (c) => {
   const input = CombatAutoRequestSchema.parse(await c.req.json());
   const id = z.uuid().parse(c.req.param('id'));

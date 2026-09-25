@@ -8,7 +8,10 @@ import {
   MaterialFactsSchema,
 } from '../items/definitions/materials';
 import { calculateAlchemyCost } from '../lib/alchemyCost';
-import { groupAlchemyBagMaterials } from './alchemy';
+import {
+  groupAlchemyBagMaterials,
+  groupAlchemyStorageMaterials,
+} from './alchemy';
 import { BAG_CAPACITY, sortBag, type InventoryItem } from './index';
 import { inventoryStackIdentity } from './stack-key';
 import { addItems } from './test-helpers';
@@ -92,6 +95,29 @@ describe('alchemy inventory migration', () => {
       ]),
     ).toHaveLength(2);
     expect(grouped[0]).toMatchObject(herb);
+  });
+  it('keeps storage rows selectable by their own IDs', () => {
+    const storage = [
+      {
+        ...material('stored-a', 0, 3),
+        location: 'storage' as const,
+        slotIndex: null,
+      },
+      {
+        ...material('stored-b', 1, 4),
+        location: 'storage' as const,
+        slotIndex: null,
+      },
+    ];
+    expect(
+      groupAlchemyStorageMaterials(storage).map((group) => [
+        group.id,
+        group.quantity,
+      ]),
+    ).toEqual([
+      ['stored-a', 3],
+      ['stored-b', 4],
+    ]);
   });
   it('preserves complete pill facts through stacking and sorting', () => {
     let id = 0;

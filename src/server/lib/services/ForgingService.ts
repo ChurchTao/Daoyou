@@ -35,7 +35,7 @@ import { seedFactsOf } from '@shared/items/definitions/seeds';
 import { legacyMaterialUnavailableReason } from '@shared/items/legacy-material';
 import { materialFactsOf } from '@shared/items/material';
 import { parseMailAttachments } from '@shared/lib/itemLibrary';
-import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
@@ -154,7 +154,16 @@ async function readForgeInputs(
       .where(
         and(
           eq(inventoryItems.cultivatorId, owner),
-          eq(inventoryItems.location, 'bag'),
+          or(
+            eq(inventoryItems.location, 'bag'),
+            and(
+              eq(inventoryItems.location, 'storage'),
+              inArray(inventoryItems.id, [
+                input.blueprint.id,
+                ...input.materials.map((item) => item.id),
+              ]),
+            ),
+          ),
         ),
       )
   ).map(inventoryItemOf);
@@ -300,7 +309,7 @@ export async function forgeEquipment(
               instanceData: equipment,
             },
             'bag',
-            false,
+            true,
             randomUUID,
             null,
           );
@@ -338,7 +347,11 @@ export async function forgeEquipment(
             : null;
           lease.assertHeld();
           return {
-            result: { equipment },
+            result: {
+              equipment,
+              destination: next.find((item) => item.id === equipment.id)
+                ?.location,
+            },
             resourceChanges: [
               ...(story?.changes ?? []),
               {

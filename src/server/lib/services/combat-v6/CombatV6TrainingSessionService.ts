@@ -1,12 +1,7 @@
 import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
-import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { db } from '@server/lib/drizzle/db';
-import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
-import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
@@ -43,13 +38,13 @@ import {
   type TrainingEncounterOutcome,
 } from '@shared/engine/combat-v6/encounter';
 import { randomInt, randomUUID } from 'node:crypto';
-import { arenaOccupancyKey } from './CombatV6ArenaStore';
+import { hasActiveCombat } from './CombatOccupancy';
 import {
   assembleCombatV6TrainingPlayer,
   CombatV6BuildError,
 } from './CombatV6BuildService';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
-import { CombatV6WildStore } from './CombatV6WildStore';
+
 
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 type Actor = { userId: string; cultivatorId: string };
@@ -93,17 +88,6 @@ export class CombatV6TrainingSessionService {
     encounterId: string,
     tier: CombatV6TrainingTierV1,
   ) {
-    if (
-      (await hasActiveTower(actor.cultivatorId)) ||
-      (await hasActiveRanking(actor.cultivatorId)) ||
-      (await hasActiveDungeon(actor.cultivatorId)) ||
-      ((await hasActiveSectTaskBattle(actor.cultivatorId)) || (await hasActiveBreakthroughBattle(actor.cultivatorId)))
-    )
-      throw this.error('AlreadyActive', '请先结束秘境探索与结算');
-    if (await redis.get(arenaOccupancyKey(actor.cultivatorId)))
-      throw this.error('AlreadyActive', '请先结束擂台战斗');
-    if (await new CombatV6WildStore().lock(actor.cultivatorId))
-      throw this.error('AlreadyActive', '野外战斗或资源结算尚未结束');
     const currentId = await this.store.currentId(actor.cultivatorId);
     if (currentId) {
       const current = await this.store.get(currentId);
@@ -120,6 +104,8 @@ export class CombatV6TrainingSessionService {
       }
       if (current) await this.expire(current);
     }
+    if (await hasActiveCombat(actor.cultivatorId))
+      throw this.error('AlreadyActive', '请先结束当前战斗与结算');
     const assembled = await assembleCombatV6TrainingPlayer(
       actor.cultivatorId,
       db,
@@ -489,4 +475,3 @@ export const COMBAT_V6_TRAINING_CONTENT_VIEW = Object.freeze({
     name,
   })),
 });
-import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';

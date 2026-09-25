@@ -1,3 +1,5 @@
+import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
@@ -5,8 +7,10 @@ import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
 import type { InventoryView } from '@shared/contracts/inventory';
-import { useRef, useState } from 'react';
+import type { SummonedBeast } from '@shared/engine/combat-v6/beasts';
+import { useEffect, useRef, useState } from 'react';
 import type { SendWorldChatShowcaseInput } from './worldChatFeedContext';
 
 export function WorldChatShowcaseDialog({
@@ -24,7 +28,29 @@ export function WorldChatShowcaseDialog({
   const bag = bagQuery.data;
   const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
   const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
-  const selected = bag?.items.find(
+  const [selectedBeast, setSelectedBeast] = useState<SummonedBeast>();
+  const [beasts, setBeasts] = useState<SummonedBeast[]>([]);
+  const [beastError, setBeastError] = useState('');
+  const [source, setSource] = useState<'items' | 'beasts'>('items');
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch('/api/combat-v6/beasts', { signal: controller.signal })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok || !result.success)
+          throw new Error(result.error || '灵兽读取失败');
+        if (!controller.signal.aborted)
+          setBeasts((result.data as BeastManagementView).beasts);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setBeastError(
+            error instanceof Error ? error.message : '灵兽读取失败',
+          );
+      });
+    return () => controller.abort();
+  }, []);
+  const selected = [...(bag?.items ?? []), ...(bag?.equippedItems ?? [])].find(
     (item) =>
       item.id === selectedRef?.id && item.revision === selectedRef.revision,
   );
@@ -44,14 +70,26 @@ export function WorldChatShowcaseDialog({
     setBagOpen(false);
   }
   async function submit() {
-    if (!selected || busy || pending.current) return;
+    if (
+      (!selected && !selectedBeast) ||
+      posting ||
+      pending.current ||
+      (source === 'items' && busy)
+    )
+      return;
     pending.current = true;
     try {
-      const sent = await send({
-        itemId: selected.id,
-        revision: selected.revision,
-        textContent: text.trim() || undefined,
-      });
+      const sent = selectedBeast
+        ? await send({
+            beastId: selectedBeast.id,
+            revision: selectedBeast.revision,
+            textContent: text.trim() || undefined,
+          })
+        : await send({
+            itemId: selected!.id,
+            revision: selected!.revision,
+            textContent: text.trim() || undefined,
+          });
       if (sent) onClose();
     } finally {
       pending.current = false;
@@ -91,12 +129,40 @@ export function WorldChatShowcaseDialog({
             : undefined,
         })}
       />
+      {bag?.equippedItems.length ? (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">已穿戴装备</p>
+          <div className="grid grid-cols-5 gap-1.5">
+            {bag.equippedItems.map((item) => (
+              <ItemSlot
+                key={item.id}
+                item={item}
+                disabled={busy}
+                selected={selected?.id === item.id}
+                onQuickAction={() => choose(item)}
+              >
+                {(close) => (
+                  <InkButton
+                    disabled={busy}
+                    onClick={() => {
+                      close();
+                      choose(item);
+                    }}
+                  >
+                    选择展示
+                  </InkButton>
+                )}
+              </ItemSlot>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
   return (
     <InkModal
       isOpen
-      title={`展示道具 · ${channelName}`}
+      title={`展示物品 · ${channelName}`}
       className="max-w-5xl"
       onClose={() => {
         if (posting || pending.current) return;
@@ -108,23 +174,58 @@ export function WorldChatShowcaseDialog({
         <div className="min-w-0 space-y-4 lg:sticky lg:top-0 lg:self-start">
           {loading ? <p className="text-sm">正在读取背包…</p> : null}
           {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
-          <div className="lg:hidden">
-            <InkButton disabled={posting} onClick={() => setBagOpen(true)}>
-              选择随身物品
+          <div className="flex gap-2">
+            <InkButton
+              onClick={() => {
+                setSource('items');
+                setSelectedBeast(undefined);
+              }}
+            >
+              背包道具
+            </InkButton>
+            <InkButton
+              onClick={() => {
+                setSource('beasts');
+                setSelected(undefined);
+              }}
+            >
+              灵兽
             </InkButton>
           </div>
+          {source === 'items' && (
+            <div className="lg:hidden">
+              <InkButton disabled={posting} onClick={() => setBagOpen(true)}>
+                选择随身物品
+              </InkButton>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-20 shrink-0">
-              <ItemSlot
-                item={selected}
-                emptyLabel="待展示"
-                className="w-full"
-              />
+              {source === 'items' ? (
+                <ItemSlot
+                  item={selected}
+                  emptyLabel="待展示"
+                  className="w-full"
+                />
+              ) : selectedBeast ? (
+                <BeastIcon
+                  speciesId={selectedBeast.speciesId}
+                  isMutant={selectedBeast.isMutant}
+                  className="text-5xl"
+                />
+              ) : null}
             </div>
             <p className="text-sm">
-              {selected?.name ?? '选择一件随身物品供道友鉴赏'}
+              {selectedBeast?.name ??
+                selected?.name ??
+                '选择一件物品供道友鉴赏'}
             </p>
           </div>
+          {source === 'beasts' && selectedBeast ? (
+            <div className="max-h-64 overflow-y-auto">
+              <BeastTradeDetails beast={selectedBeast} tradeNotice={false} />
+            </div>
+          ) : null}
           <InkInput
             label="附言（可选）"
             value={text}
@@ -146,15 +247,37 @@ export function WorldChatShowcaseDialog({
             <InkButton
               variant="primary"
               pending={posting}
-              disabled={busy || !selected}
+              disabled={
+                posting ||
+                (source === 'items' ? busy || !selected : !selectedBeast)
+              }
               onClick={() => void submit()}
             >
               发送展示
             </InkButton>
           </div>
         </div>
-        <section className="hidden min-w-0 lg:block" aria-label="随身物品">
-          {inventory}
+        <section className="min-w-0" aria-label="选择展示物品">
+          {source === 'items' ? (
+            <div className="hidden lg:block">{inventory}</div>
+          ) : (
+            <div className="max-h-[65vh] space-y-2 overflow-y-auto">
+              {beastError ? (
+                <InkNotice tone="warning">{beastError}</InkNotice>
+              ) : null}
+              {beasts.map((beast) => (
+                <button
+                  key={beast.id}
+                  type="button"
+                  className={`hover:border-ink/50 w-full border p-2 text-left ${selectedBeast?.id === beast.id ? 'border-teal' : 'border-ink/20'}`}
+                  onClick={() => setSelectedBeast(beast)}
+                >
+                  <span className="font-semibold">{beast.name}</span> ·{' '}
+                  {beast.skills.length}技能{beast.isMutant ? ' · 变异' : ''}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       </div>
       <InkDetailDrawer

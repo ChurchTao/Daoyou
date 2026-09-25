@@ -178,7 +178,7 @@ export function WorldChatChannel() {
                 onClick={() => setShowcaseOpen(true)}
                 disabled={posting}
               >
-                展示道具
+                展示物品
               </InkButton>
               <InkButton
                 variant="primary"

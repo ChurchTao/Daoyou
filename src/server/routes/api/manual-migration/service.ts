@@ -104,7 +104,7 @@ export async function readManualMigration(
         .learned;
       let blockedReason: string | null = null;
       try {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
       } catch (error) {
         if (!(error instanceof InventoryError)) throw error;
         blockedReason = error.message;
@@ -132,7 +132,7 @@ export async function exchangeManualMigration(
       source: 'legacy_manual_migration',
       command: async (tx) => {
         await requireOwner(actor, tx);
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
         const [source] = await tx
           .select(sourceColumns)
           .from(creationProducts)

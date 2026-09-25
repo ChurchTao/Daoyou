@@ -11,51 +11,100 @@ export function ForgingInventory({
   onFilter,
   selected,
   onChoose,
+  fixedFilter = false,
 }: {
   session: ForgingSession;
   filter: ForgeFilter;
   onFilter: (filter: ForgeFilter) => void;
   selected?: string;
   onChoose: (item: ForgeItem) => void;
+  fixedFilter?: boolean;
 }) {
   return (
     <div className="space-y-3 text-sm">
-      <InventoryHeader capacity={<>{session.inventory?.used ?? '—'} / 40</>} />
-      <p className="text-ink-secondary text-xs">
-        已备{' '}
-        <span className="font-mono">
-          {session.total} / {session.cost?.quantity ?? 0}
-        </span>
-      </p>
-      <div className="flex gap-4" aria-label="物品类别">
+      <InventoryHeader
+        title={session.source === 'bag' ? '储物袋' : '储藏室'}
+        capacity={
+          session.source === 'bag' ? (
+            <>{session.inventory?.used ?? '—'} / 40</>
+          ) : (
+            <>{session.inventory?.total ?? '—'} 格</>
+          )
+        }
+      />
+      <div className="flex gap-4" aria-label="物品位置">
         {(
           [
-            ['all', '全部'],
-            ['blueprint', '图纸'],
-            ['material', '灵材'],
+            ['bag', '储物袋'],
+            ['storage', '储藏室'],
           ] as const
         ).map(([value, label]) => (
           <button
             key={value}
             type="button"
-            aria-pressed={filter === value}
-            onClick={() => onFilter(value)}
+            aria-pressed={session.source === value}
+            onClick={() => session.setSource(value)}
             className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
           >
             {label}
           </button>
         ))}
       </div>
-      {!session.view && !session.error ? (
-        <p role="status">正在读取储物袋……</p>
+      {session.source === 'storage' ? (
+        <input
+          aria-label="搜索储藏室物品"
+          placeholder="搜索图纸或灵材"
+          value={session.storage.search}
+          onChange={(event) => session.storage.setSearch(event.target.value)}
+          className="border-ink/20 w-full border-b bg-transparent p-2"
+        />
+      ) : null}
+      <p className="text-ink-secondary text-xs">
+        已备{' '}
+        <span className="font-mono">
+          {session.total} / {session.cost?.quantity ?? 0}
+        </span>
+      </p>
+      {!fixedFilter ? (
+        <div className="flex gap-4" aria-label="物品类别">
+          {(
+            [
+              ['all', '全部'],
+              ['blueprint', '图纸'],
+              ['material', '灵材'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={filter === value}
+              onClick={() => onFilter(value)}
+              className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {!session.inventory && !session.error ? (
+        <p role="status">
+          正在读取{session.source === 'bag' ? '储物袋' : '储藏室'}……
+        </p>
+      ) : null}
+      {session.source === 'storage' && session.storage.error ? (
+        <p role="alert">{session.storage.error}</p>
       ) : null}
       <InventoryItems
-        items={session.inventory?.items ?? []}
+        items={
+          filter === 'all'
+            ? (session.inventory?.items ?? [])
+            : (session.inventory?.items ?? []).filter(
+                (item) => itemDefinition(item.definitionId).kind === filter,
+              )
+        }
+        location={session.source}
+        compact={session.source === 'bag' && filter !== 'all'}
         slotProps={(item) => {
-          const matching =
-            !item ||
-            filter === 'all' ||
-            itemDefinition(item.definitionId).kind === filter;
           const used =
             item && !session.result
               ? (session.quantities.get(item.id) ?? 0) +
@@ -63,9 +112,14 @@ export function ForgingInventory({
               : 0;
           const problem = item ? session.itemProblem(item) : null;
           return {
+            guideAnchor:
+              fixedFilter &&
+              session.source === 'bag' &&
+              item?.definitionId === 'blueprint.weapon.10'
+                ? 'forge.blueprint'
+                : undefined,
             selected: !!item && selected === item.id,
-            disabled: !matching || session.locked || !!problem,
-            className: !matching ? 'opacity-25' : undefined,
+            disabled: session.locked || !!problem,
             badge: used ? `已投${used}` : item && !problem ? '可选' : undefined,
             onQuickAction: item ? () => onChoose(item) : undefined,
             children: item
@@ -75,7 +129,7 @@ export function ForgingInventory({
                       <p className="text-ink-secondary">{problem}</p>
                     ) : null}
                     <InkButton
-                      disabled={session.locked || !matching || !!problem}
+                      disabled={session.locked || !!problem}
                       onClick={() => {
                         onChoose(item);
                         close();
@@ -89,6 +143,31 @@ export function ForgingInventory({
           };
         }}
       />
+      {session.source === 'storage' &&
+      session.inventory &&
+      session.inventory.total > 40 ? (
+        <div className="flex items-center justify-between">
+          <InkButton
+            disabled={session.locked || session.inventory.page === 0}
+            onClick={() => session.storage.setPage(session.inventory!.page - 1)}
+          >
+            上一页
+          </InkButton>
+          <span className="font-mono">
+            {session.inventory.page + 1} /{' '}
+            {Math.ceil(session.inventory.total / 40)}
+          </span>
+          <InkButton
+            disabled={
+              session.locked ||
+              (session.inventory.page + 1) * 40 >= session.inventory.total
+            }
+            onClick={() => session.storage.setPage(session.inventory!.page + 1)}
+          >
+            下一页
+          </InkButton>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,9 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators } from '@server/lib/drizzle/schema';
-import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
-import { redis } from '@server/lib/redis';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
-import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
 import {
   prepareWildBattle,
   readWildSearch,
@@ -11,7 +8,7 @@ import {
 } from '@server/lib/repositories/combatV6WildSearchRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
 import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository';
-import { hasActiveTower } from '@server/lib/tower/occupancy';
+
 import { automaticCommands } from '@shared/combat-v6/auto';
 import {
   combatV6Display,
@@ -65,11 +62,9 @@ import { QiService } from '../QiService';
 
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
-import { arenaOccupancyKey } from './CombatV6ArenaStore';
-import { hasActiveBreakthroughBattle } from './CombatV6BreakthroughOccupancy';
 import { assembleCombatV6WildPlayer } from './CombatV6BuildService';
+import { hasActiveCombat } from './CombatOccupancy';
 import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
-import { hasActiveSectTaskBattle } from './CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from './CombatV6WildStore';
 
 type Actor = { userId: string; cultivatorId: string };
@@ -200,19 +195,10 @@ export class CombatV6WildSessionService {
     };
   }
   private async assertAvailable(actor: Actor) {
-    if (
-      (await hasActiveTower(actor.cultivatorId)) ||
-      (await hasActiveRanking(actor.cultivatorId)) ||
-      (await hasActiveDungeon(actor.cultivatorId)) ||
-      (await hasActiveSectTaskBattle(actor.cultivatorId)) ||
-      (await hasActiveBreakthroughBattle(actor.cultivatorId)) ||
-      (await redis.get(arenaOccupancyKey(actor.cultivatorId))) ||
-      (await common.currentId(actor.cultivatorId)) ||
-      (await store.lock(actor.cultivatorId))
-    ) {
+    if (await hasActiveCombat(actor.cultivatorId)) {
       throw new WildError(
         'WILD_BATTLE_ALREADY_ACTIVE',
-        '请先结束当前战斗、历练与结算',
+        '请先结束当前战斗与结算',
       );
     }
   }

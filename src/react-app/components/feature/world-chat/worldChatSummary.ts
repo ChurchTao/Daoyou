@@ -36,6 +36,10 @@ function isBattleShowcasePayload(
 }
 
 export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
+  if (message.messageType === 'beast_showcase' && 'beast' in message.payload) {
+    const beast = message.payload.beast;
+    return `${beast.isMutant ? '变异灵兽' : '灵兽'}「${beast.name}」${message.payload.text ? ` ${message.payload.text}` : ''}`;
+  }
   if (
     message.messageType === 'battle_showcase' &&
     isBattleShowcasePayload(message.payload)
@@ -72,7 +76,7 @@ export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
     const text =
       message.textContent ||
       (isTextPayload(message.payload) ? message.payload.text : '');
-    return `旧版道具展示已停用${text ? ' ' + text : ''}`;
+    return text || '道具详情暂不可查看';
   }
 
   if (isTextPayload(message.payload)) {

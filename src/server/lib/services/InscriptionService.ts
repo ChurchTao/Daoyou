@@ -55,7 +55,7 @@ export async function readInscriptions(
       const character = await characterOf(actor, tx);
       let blockedReason: string | null = null;
       try {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
       } catch (error) {
         if (!(error instanceof InventoryError)) throw error;
         blockedReason = error.message;
@@ -86,7 +86,7 @@ export async function mutateInscriptions(
       source: 'inscription',
       idempotency: { key: input.requestId, fingerprint: JSON.stringify(input) },
       command: async (tx) => {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
         const character = await characterOf(actor, tx);
         const before = (
           await tx

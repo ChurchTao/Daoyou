@@ -447,7 +447,7 @@ async function migrateMember(
         ) !== JSON.stringify(source)
       )
         throw new Error('旧宗门待处理记录已变化');
-      await assertInventoryIdle(source.cultivatorId, undefined, tx);
+      await assertInventoryIdle(source.cultivatorId, tx);
       const [membership] = await tx
         .select()
         .from(sectMemberships)

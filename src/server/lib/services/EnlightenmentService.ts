@@ -67,7 +67,7 @@ export async function readEnlightenment(
       );
       let blockedReason: string | null = null;
       try {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
       } catch (error) {
         if (!(error instanceof InventoryError)) throw error;
         blockedReason = error.message;
@@ -109,7 +109,7 @@ export async function enlightenManual(
         }),
       },
       command: async (tx) => {
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
         const { realm, progress, insightMultiplier } = await readFacts(
           actor,
           tx,

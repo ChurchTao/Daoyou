@@ -8,6 +8,7 @@ import {
   cultivatorBeastLineups,
   cultivatorBeasts,
 } from '@server/lib/drizzle/schema';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock';
 import {
   beastIndividualData,
@@ -15,6 +16,7 @@ import {
   readBeastRoster,
 } from '@server/lib/repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository';
+import { beastTradePreview } from '@shared/contracts/beastTrade';
 import {
   BeastNameSchema,
   type BeastFusionRequest,
@@ -40,6 +42,7 @@ import {
 import { and, eq, inArray } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
+import { readCultivatorPublicIdentity } from '../cultivator/CultivatorFactsReader';
 import { updateSpiritStones } from '../cultivator/CultivatorStateRepository';
 import { ResourceEventCommitter } from '../ResourceEventCommitter';
 import { textFilter } from '../textFilter';
@@ -115,23 +118,38 @@ export async function fuseOwnedBeasts(
       )
       .returning({ id: cultivatorBeasts.id });
     if (removed.length !== 2) throw new BeastError('融合材料已变化');
-    await tx
-      .insert(cultivatorBeasts)
-      .values({
-        id: result.id,
-        cultivatorId,
-        individual: beastIndividualData(result),
-      });
-    await tx
-      .insert(cultivatorBeastFusions)
-      .values({
-        id: randomUUID(),
-        cultivatorId,
-        requestId: input.requestId,
-        fingerprint,
-        parents: [a, b],
-        result,
-      });
+    await tx.insert(cultivatorBeasts).values({
+      id: result.id,
+      cultivatorId,
+      individual: beastIndividualData(result),
+    });
+    await tx.insert(cultivatorBeastFusions).values({
+      id: randomUUID(),
+      cultivatorId,
+      requestId: input.requestId,
+      fingerprint,
+      parents: [a, b],
+      result,
+    });
+    if (result.skills.length > 5) {
+      const owner = await readBeastOwner(cultivatorId, tx);
+      const identity = await readCultivatorPublicIdentity(cultivatorId, tx);
+      await createDomainEvent(
+        {
+          type: 'beast.exceptional.acquired',
+          aggregate: { type: 'beast', id: result.id },
+          deduplicationKey: `beast-fusion-rumor:${input.requestId}`,
+          data: {
+            userId: owner.userId,
+            cultivatorId,
+            cultivatorName: identity.name,
+            source: 'fusion',
+            beast: beastTradePreview(result),
+          },
+        },
+        tx,
+      );
+    }
     return { view: await readBeastRoster(cultivatorId, tx), result };
   });
 }

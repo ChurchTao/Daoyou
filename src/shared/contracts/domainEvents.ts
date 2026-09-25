@@ -7,6 +7,7 @@ import {
 import { ALCHEMY_MODE_VALUES } from '@shared/types/consumable';
 import { z } from 'zod';
 import { ItemGrantSchema } from '../inventory';
+import { BeastTradePreviewSchema } from './beastTrade';
 import { CombatV6BattleFinishedDataV1Schema } from './combatV6Runtime';
 import { SystemMailAudienceSnapshotSchema } from './systemMail';
 
@@ -29,6 +30,7 @@ export const DOMAIN_EVENT_TYPES = [
   'craft.item.created',
   'market.material.revealed',
   'ranking.position.changed',
+  'beast.exceptional.acquired',
   'sponsorship.order.received',
   'combat.v6.battle.finished',
 ] as const;
@@ -209,6 +211,13 @@ export const DomainEventDataSchemas = {
       changeType: z.enum(['direct_entry', 'challenge_win', 'vacancy_entry']),
     })
     .strict(),
+  'beast.exceptional.acquired': z.strictObject({
+    userId: z.uuid(),
+    cultivatorId: z.uuid(),
+    cultivatorName: z.string().min(1).max(100),
+    source: z.enum(['fusion', 'capture']),
+    beast: BeastTradePreviewSchema,
+  }),
   'sponsorship.order.received': z
     .object({
       orderId: z.uuid(),
@@ -283,6 +292,10 @@ export const DOMAIN_EVENT_DEFINITIONS = {
   'ranking.position.changed': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.ranking-position-changed.v1`,
+  },
+  'beast.exceptional.acquired': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.beast-exceptional-acquired.v1`,
   },
   'sponsorship.order.received': {
     version: 1,

@@ -15,7 +15,7 @@ import {
 } from './recyclePrice';
 
 describe('回收边界', () => {
-  it('允许灵果回收，但仓库灵果仍需先取入随身背包', () => {
+  it('允许随身和储藏室的灵果回收', () => {
     const fruit: Consumable = {
       name: '青露灵果',
       type: '灵果',
@@ -46,9 +46,7 @@ describe('回收边界', () => {
       location: 'bag' as const,
     };
     expect(recycleBlockingReason(item)).toBeNull();
-    expect(
-      recycleBlockingReason({ ...item, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...item, location: 'storage' })).toBeNull();
   });
 
   it('同一选择不能通过重复行超过单格数量', () => {
@@ -79,16 +77,14 @@ describe('回收边界', () => {
         .success,
     ).toBe(false);
   });
-  it('实例材料仅允许随身背包回收', () => {
+  it('实例材料允许随身和储藏室回收', () => {
     const item = {
       id: 'material',
       definitionId: 'material.v1',
       instanceData: { name: '玄铁', type: 'ore', rank: '凡品' },
     };
     expect(recycleBlockingReason({ ...item, location: 'bag' })).toBeNull();
-    expect(
-      recycleBlockingReason({ ...item, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...item, location: 'storage' })).toBeNull();
   });
   it('合法灵种与功法玉简可以回收，损坏事实仍被拒绝', () => {
     const plant: SpiritFieldPlantSnapshot = {
@@ -138,9 +134,7 @@ describe('回收边界', () => {
     };
     expect(recycleBlockingReason(jade)).toBeNull();
     expect(manualJadeRecycleUnitPrice('character_manual.changchun')).toBe(45);
-    expect(
-      recycleBlockingReason({ ...jade, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...jade, location: 'storage' })).toBeNull();
     expect(recycleBlockingReason({ ...jade, instanceData: {} })).not.toBeNull();
   });
   it('背包图纸与有效未穿戴道装可以回收，报价按铸造成本计算', () => {
@@ -152,9 +146,7 @@ describe('回收边界', () => {
     };
     expect(recycleBlockingReason(blueprint)).toBeNull();
     expect(blueprintRecycleUnitPrice(10)).toBe(20);
-    expect(
-      recycleBlockingReason({ ...blueprint, location: 'storage' }),
-    ).not.toBeNull();
+    expect(recycleBlockingReason({ ...blueprint, location: 'storage' })).toBeNull();
     const generated = generateForgedEquipment({
       id: 'equipment',
       createdAt: '2026-09-25T00:00:00Z',

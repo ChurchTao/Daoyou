@@ -1,10 +1,6 @@
 import { getRealmStageUnallocatedAttributeBudget } from '@shared/config/realmProgression';
 import { generateAiObject } from '@server/utils/aiClient';
-import type {
-  CultivationTechnique,
-  Cultivator,
-  Skill,
-} from '@shared/types/cultivator';
+import type { Cultivator } from '@shared/types/cultivator';
 import {
   getCharacterGenerationPrompt,
   getCharacterGenerationUserPrompt,
@@ -41,10 +37,6 @@ export class CharacterGenerator {
       data.element_preferences,
     );
 
-    // V6 构筑独立初始化，不再生产旧功法或神通。
-    const cultivations: CultivationTechnique[] = [];
-    const skills: Skill[] = [];
-
     // 4. 其他基础数值
     const age = 14 + Math.floor(Math.random() * 6); // 14-20岁
     // 寿元：炼气期基础100，分数高加成
@@ -72,8 +64,6 @@ export class CharacterGenerator {
         '炼气', '初期',
       ),
       spiritual_roots,
-      cultivations,
-      skills,
       status: 'active',
       spirit_stones: 0,
       pre_heaven_fates: [], // 后续流程生成

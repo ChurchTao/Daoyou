@@ -64,9 +64,9 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   const [activeChannel, setActiveChannel] =
     useState<WorldChatChannel>('system');
   const [feeds, setFeeds] = useState(createFeeds);
-  const [previewMessages, setPreviewMessages] = useState<
-    WorldChatMessageDTO[]
-  >([]);
+  const [previewMessages, setPreviewMessages] = useState<WorldChatMessageDTO[]>(
+    [],
+  );
   const [lastSeenPreviewMessageId, setLastSeenPreviewMessageId] = useState<
     string | null
   >(null);
@@ -128,10 +128,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
           ...current,
           [channel]: {
             messages: append
-              ? mergeWorldChatMessages(
-                  current[channel].messages,
-                  nextMessages,
-                )
+              ? mergeWorldChatMessages(current[channel].messages, nextMessages)
               : nextMessages,
             page: targetPage,
             hasMore: Boolean(payload.pagination?.hasMore),
@@ -362,10 +359,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   const activeFeed = feeds[activeChannel];
   const unreadCounts = useMemo(
     () => ({
-      world: countNewWorldChatMessages(
-        feeds.world.messages,
-        lastSeenIds.world,
-      ),
+      world: countNewWorldChatMessages(feeds.world.messages, lastSeenIds.world),
       sect: countNewWorldChatMessages(feeds.sect.messages, lastSeenIds.sect),
       system: countNewWorldChatMessages(
         feeds.system.messages,
@@ -376,10 +370,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   );
   const newMessageCount = isWorldChatRoute
     ? 0
-    : countNewWorldChatMessages(
-        previewMessages,
-        lastSeenPreviewMessageId,
-      );
+    : countNewWorldChatMessages(previewMessages, lastSeenPreviewMessageId);
 
   const loadMore = useCallback(async () => {
     if (!activeFeed.hasMore || activeFeed.loadingMore) return;
@@ -398,6 +389,12 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
             messageType: 'item_showcase';
             revision: SendWorldChatShowcaseInput['revision'];
             itemId: string;
+            textContent?: string;
+          }
+        | {
+            messageType: 'beast_showcase';
+            revision: number;
+            beastId: string;
             textContent?: string;
           },
     ) => {
@@ -440,8 +437,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
           [created.channel]: created.id,
         }));
         pushToast({
-          message:
-            body.messageType === 'item_showcase' ? '已展示道具' : '已发出传音',
+          message: body.messageType === 'text' ? '已发出传音' : '已发送展示',
           tone: 'success',
         });
         return true;
@@ -480,12 +476,19 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
           payload: { text },
         }),
       sendShowcaseMessage: (input) =>
-        send({
-          messageType: 'item_showcase',
-          revision: input.revision,
-          itemId: input.itemId,
-          textContent: input.textContent || undefined,
-        }),
+        'beastId' in input
+          ? send({
+              messageType: 'beast_showcase',
+              beastId: input.beastId,
+              revision: input.revision,
+              textContent: input.textContent,
+            })
+          : send({
+              messageType: 'item_showcase',
+              itemId: input.itemId,
+              revision: input.revision,
+              textContent: input.textContent,
+            }),
     }),
     [
       activeChannel,

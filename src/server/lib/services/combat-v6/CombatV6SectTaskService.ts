@@ -1,4 +1,3 @@
-import { hasActiveTower } from '@server/lib/tower/occupancy';
 import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { isNotNull } from 'drizzle-orm';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
@@ -63,7 +62,7 @@ import {
   assembleCombatV6TrainingPlayer,
   CombatV6BuildError,
 } from './CombatV6BuildService';
-import { CombatV6RuntimeStore } from './CombatV6RuntimeStore';
+import { hasActiveCombat } from './CombatOccupancy';
 import { activeSectTaskBattle } from './CombatV6SectTaskOccupancy';
 
 type Actor = { userId: string; cultivatorId: string };
@@ -180,7 +179,8 @@ export async function startSectTaskBattle(
   context: SectTaskExecutionContext,
   tx: DbTransaction,
 ) {
-  if (await hasActiveTower(context.cultivatorId)) invalidSectTask('请先结束幻境挑战');
+  if (await hasActiveCombat(context.cultivatorId))
+    invalidSectTask('请先结束当前战斗与结算');
   const target = SectV6TargetSchema.safeParse(
     context.record.payload.executorData.battleTarget,
   );
@@ -190,12 +190,6 @@ export async function startSectTaskBattle(
     sectTaskPeriodKey(context.definition, context.ports)
   )
     invalidSectTask('任务已过期，不能开启新的挑战');
-  if (await activeSectTaskBattle(context.cultivatorId, tx))
-    invalidSectTask('请先结束当前宗门战斗及结算');
-  const active = await new CombatV6RuntimeStore().currentId(
-    context.cultivatorId,
-  );
-  if (active) invalidSectTask('请先结束当前战斗');
   const { player } = await dungeonPlayer(context.cultivatorId, tx);
   const host = createSectBattleHost(
     player,

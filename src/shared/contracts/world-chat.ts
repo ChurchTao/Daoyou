@@ -19,10 +19,21 @@ export const WorldChatItemShowcaseMessageSchema = z
   })
   .strict();
 
+export const WorldChatBeastShowcaseMessageSchema = z.strictObject({
+  messageType: z.literal('beast_showcase'),
+  beastId: z.uuid(),
+  revision: z.number().int().nonnegative(),
+  textContent: z.string().trim().max(100).optional(),
+});
+
 export const WorldChatCreateMessageSchema = z.discriminatedUnion(
   'messageType',
-  [WorldChatTextMessageSchema, WorldChatItemShowcaseMessageSchema],
-  { error: '仅支持文字与道具消息，旧版战报分享已停用' },
+  [
+    WorldChatTextMessageSchema,
+    WorldChatItemShowcaseMessageSchema,
+    WorldChatBeastShowcaseMessageSchema,
+  ],
+  { error: '仅支持文字、道具与灵兽消息，旧版战报分享已停用' },
 );
 
 export const WorldChatListQuerySchema = z.object({

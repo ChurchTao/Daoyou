@@ -1,6 +1,7 @@
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
+import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { inventoryBagResource, useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
@@ -13,9 +14,48 @@ import type {
   RecycleSelection,
 } from '@shared/contracts/recycle';
 import { recycleBlockingReason } from '@shared/inventory/recycle';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { SeedFactsSchema } from '@shared/items/definitions/seeds';
+import { materialFactsOf } from '@shared/items/material';
+import { findItemDefinition } from '@shared/items/registry';
+import { QUALITY_ORDER, QUALITY_VALUES, type Quality } from '@shared/types/constants';
 import { useEffect, useRef, useState } from 'react';
 
 type Item = InventoryView['items'][number];
+type RecycleCategory = 'all' | 'material' | 'seed' | 'equipment' | 'blueprint' | 'manual_jade' | 'pill' | 'fruit';
+const categories: { value: RecycleCategory; label: string }[] = [
+  { value: 'all', label: '全部可回收' },
+  { value: 'material', label: '材料' },
+  { value: 'seed', label: '灵种' },
+  { value: 'equipment', label: '道装' },
+  { value: 'blueprint', label: '道装图纸' },
+  { value: 'manual_jade', label: '功法玉简' },
+  { value: 'pill', label: '丹药' },
+  { value: 'fruit', label: '灵果' },
+];
+function itemCategory(item: Item): RecycleCategory | undefined {
+  const kind = findItemDefinition(item.definitionId)?.kind;
+  if (kind === 'consumable') {
+    const facts = ConsumableFactsSchema.safeParse(item.instanceData);
+    return facts.success ? facts.data.spec.kind === 'pill' ? 'pill' : facts.data.spec.kind === 'spirit_fruit' ? 'fruit' : undefined : undefined;
+  }
+  return categories.some((entry) => entry.value === kind) ? kind as RecycleCategory : undefined;
+}
+function itemQuality(item: Item): Quality | undefined {
+  if (item.definitionId === 'material.v1') return materialFactsOf(item.instanceData).rank;
+  if (item.definitionId === 'seed.v1') return SeedFactsSchema.parse(item.instanceData).seedSpec.plant.quality;
+  if (item.definitionId === 'consumable.v1') return ConsumableFactsSchema.parse(item.instanceData).quality;
+  return undefined;
+}
+async function readStorage(signal: AbortSignal): Promise<Item[]> {
+  const first = await readJson<InventoryView>('/api/combat-v6/inventory?location=storage&page=0', { signal });
+  const items = [...first.items];
+  for (let page = 1; page < Math.ceil(first.total / 40); page++) {
+    const view = await readJson<InventoryView>(`/api/combat-v6/inventory?location=storage&page=${page}`, { signal });
+    items.push(...view.items);
+  }
+  return items;
+}
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const body = await response.json();
