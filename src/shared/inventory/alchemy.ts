@@ -42,3 +42,35 @@ export function groupAlchemyBagMaterials(
   }
   return [...groups.values()];
 }
+
+/** Storage rows remain separate so paged selection keeps each row's stable ID. */
+export function groupAlchemyStorageMaterials(
+  items: InventoryItem[],
+): AlchemyBagMaterial[] {
+  return items
+    .filter(
+      (item) =>
+        item.location === 'storage' &&
+        findItemDefinition(item.definitionId)?.kind === 'material',
+    )
+    .flatMap((item) => {
+      const facts = materialFactsOf(item.instanceData);
+      return facts.type === 'gongfa_manual' || facts.type === 'skill_manual'
+        ? []
+        : [
+            {
+              ...facts,
+              id: item.id,
+              quantity: item.quantity,
+              members: [
+                {
+                  id: item.id,
+                  revision: item.revision,
+                  quantity: item.quantity,
+                  slotIndex: item.slotIndex,
+                },
+              ],
+            },
+          ];
+    });
+}

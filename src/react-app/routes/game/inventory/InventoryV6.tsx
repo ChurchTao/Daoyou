@@ -289,14 +289,15 @@ export default function InventoryV6() {
             )
           ) : (
             <InventoryItems
-              items={visibleData.items}
+              items={
+                location === 'bag' && filtered
+                  ? visibleData.items.filter(matches)
+                  : visibleData.items
+              }
               location={location}
+              compact={location === 'bag' && filtered}
               slotProps={(entry) => ({
                 disabled: unavailable || (filtered && !entry),
-                className:
-                  entry && location === 'bag' && !matches(entry)
-                    ? 'opacity-30'
-                    : undefined,
                 badge: entry?.equipped ? '穿' : undefined,
                 comparisonItem:
                   entry &&

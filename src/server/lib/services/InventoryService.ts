@@ -1,5 +1,3 @@
-import { hasActiveRanking } from '@server/lib/redis/rankingChallenge';
-import { hasActiveTower, hasTowerBattle } from '@server/lib/tower/occupancy';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -29,9 +27,7 @@ import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
-import { canUseDungeonRecoveryPill } from '@shared/lib/dungeon/rest';
-import type { Consumable } from '@shared/types/cultivator';
-import { and, asc, count, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import {
@@ -43,10 +39,8 @@ import {
 import {
   cultivatorBeasts,
   cultivatorEquipmentSlots,
-  dungeonRuns,
   inventoryItems,
 } from '../drizzle/schema';
-import { redis } from '../redis';
 import { redisLockKeys, withRedisLock } from '../redis/lock';
 import {
   beastIndividualData,
@@ -54,11 +48,7 @@ import {
   readBeastRoster,
 } from '../repositories/combatV6BeastRepository';
 import { lockCultivatorForStateMutation } from '../repositories/playerStateRepository';
-import { arenaOccupancyKey } from './combat-v6/CombatV6ArenaStore';
-import { hasActiveBreakthroughBattle } from './combat-v6/CombatV6BreakthroughOccupancy';
-import { CombatV6RuntimeStore } from './combat-v6/CombatV6RuntimeStore';
-import { hasActiveSectTaskBattle } from './combat-v6/CombatV6SectTaskOccupancy';
-import { CombatV6WildStore } from './combat-v6/CombatV6WildStore';
+import { hasActiveCombat } from './combat-v6/CombatOccupancy';
 import { inventoryStackKey } from './inventoryStackKey';
 import { publishResourceEvents } from './playerStateBroadcaster';
 import {
@@ -88,35 +78,8 @@ export function inventoryItemOf(
     item.instanceData = ConsumableFactsSchema.parse(item.instanceData);
   return item;
 }
-export async function assertInventoryIdle(
-  owner: string,
-  recoveryItem?: Pick<Consumable, 'spec'>,
-  tx: DbExecutor = db,
-  towerPolicy: 'battle' | 'run' = 'battle',
-) {
-  const [run] = await tx
-    .select({
-      status: dungeonRuns.status,
-      activeBattleId: dungeonRuns.activeBattleId,
-    })
-    .from(dungeonRuns)
-    .where(
-      and(
-        eq(dungeonRuns.cultivatorId, owner),
-        ne(dungeonRuns.status, 'FINISHED'),
-      ),
-    )
-    .limit(1);
-  if (
-    (await (towerPolicy === 'run' ? hasActiveTower(owner) : hasTowerBattle(owner))) ||
-    (await hasActiveRanking(owner)) ||
-    (run && (!recoveryItem || !canUseDungeonRecoveryPill(run, recoveryItem))) ||
-    (await hasActiveSectTaskBattle(owner)) ||
-    (await hasActiveBreakthroughBattle(owner)) ||
-    (await new CombatV6WildStore().lock(owner)) ||
-    (await new CombatV6RuntimeStore().currentId(owner)) ||
-    (await redis.get(arenaOccupancyKey(owner)))
-  )
+export async function assertInventoryIdle(owner: string, tx: DbExecutor = db) {
+  if (await hasActiveCombat(owner, { executor: tx }))
     throw new InventoryError('请先结束战斗与结算，再调整物品');
 }
 export async function readInventory(

@@ -140,6 +140,8 @@ describe('秘境遭遇与收益', () => {
   it('重复来源只累计一次，不同灵兽经验不合并错归属', () => {
     const reward = {
       ...planDungeonReward(5, 'battle:a', 'battle', 10),
+      experience: 20,
+      spiritStones: 10,
       beastExperience: { beastId: 'a', amount: 20 },
     };
     const entries = appendDungeonReward([], reward);

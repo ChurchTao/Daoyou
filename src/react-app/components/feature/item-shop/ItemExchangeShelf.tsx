@@ -72,6 +72,7 @@ export function ItemExchangeShelf({
           <div key={shop.id} className="min-w-0">
             <ItemSlot
               item={shop.item!}
+              className="w-full"
               quantityLabel="奖励"
               badge={shop.remainingPurchases === 0 ? '已罄' : undefined}
             >

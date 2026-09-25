@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const MAX_RECYCLE_SELECTION = 200;
+
 export const RecycleSelectionSchema = z
   .object({
     id: z.string().min(1).max(160),
@@ -14,7 +16,7 @@ export const RecycleRequestSchema = z.discriminatedUnion('phase', [
       items: z
         .array(RecycleSelectionSchema)
         .min(1)
-        .max(40)
+        .max(MAX_RECYCLE_SELECTION)
         .refine(
           (items) =>
             new Set(items.map((item) => item.id)).size === items.length,

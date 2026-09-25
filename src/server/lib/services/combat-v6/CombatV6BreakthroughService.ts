@@ -143,7 +143,7 @@ export async function startBreakthroughBattle(actor: Actor, taskId: string) {
     async (lease) => {
       const existing = await ownedRuntime(actor.cultivatorId, taskId);
       if (existing && !existing.settled) return view(existing.runtime, false);
-      await assertInventoryIdle(actor.cultivatorId, undefined, db, 'run');
+      await assertInventoryIdle(actor.cultivatorId);
       const runtime = await db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, actor.cultivatorId);
         const prepared = await TaskService.prepareTaskChallenge(

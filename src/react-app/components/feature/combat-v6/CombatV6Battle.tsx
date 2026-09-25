@@ -30,6 +30,7 @@ type Props = {
   onResolve: () => Promise<void>;
   onAuto: () => Promise<void>;
   onClose: () => void;
+  onBack?: () => void;
   back: string;
   backLabel: string;
 };
@@ -56,6 +57,7 @@ export function CombatV6Battle({
   onResolve,
   onAuto,
   onClose,
+  onBack,
   back,
   backLabel,
 }: Props) {
@@ -236,6 +238,15 @@ export function CombatV6Battle({
           <button disabled={pending} onClick={onClose}>
             退出观战
           </button>
+        ) : onBack ? (
+          ended ? (
+            <button
+              disabled={pending || session.settlement === 'pending'}
+              onClick={onBack}
+            >
+              {backLabel}
+            </button>
+          ) : null
         ) : (
           <Link to={back}>{backLabel}</Link>
         )}

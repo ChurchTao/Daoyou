@@ -1,4 +1,5 @@
 import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import {
   CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
   getMinimumPillQualityByRealm,
@@ -518,7 +519,7 @@ function applyGainProgressOperation(
           comprehension_insight: Math.max(
             0,
             Math.min(
-              100,
+              COMPREHENSION_INSIGHT_CAP,
               progress.comprehension_insight +
                 Math.max(0, Math.floor(operation.value)),
             ),

@@ -16,7 +16,7 @@ export const manualMigrationInsightFacts = ConsumableFactsSchema.parse({
   type: '灵果',
   quality: '玄品',
   description:
-    '旧神品功法的传承补偿。每颗增加 50 点道心感悟。建议感悟不高于 50 时服用，超过 100 上限的部分不保留；感悟已满时无法服用。',
+    '旧神品功法的传承补偿。每颗增加 50 点道心感悟。超过 200 上限的部分不保留；感悟已满时无法服用。',
   spec: {
     kind: 'spirit_fruit',
     family: 'insight',

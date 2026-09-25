@@ -64,7 +64,9 @@ function SectTaskBattleBody() {
   const error =
     combat.error ||
     startError ||
-    (!taskId || !attemptId ? '缺少宗门挑战标识' : '');
+    (!session && !loading && (!taskId || !attemptId)
+      ? '缺少宗门挑战标识'
+      : '');
   return (
     <CombatV6Page title="宗门挑战" active>
       {error ? (

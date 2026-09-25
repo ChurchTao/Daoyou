@@ -11,7 +11,7 @@ describe('副本奖励数据包', () => {
     expect(z.toJSONSchema(DungeonRewardPackShape, { reused: 'ref' })).toEqual(
       schema,
     ));
-  it('三类来源、四档等级、128种子保持原有掉落件数及资源收益', () => {
+  it('三类来源、四档等级、128种子保持原有掉落件数', () => {
     const pack = loadDungeonRewardPack(raw);
     for (const source of Object.values(pack.sources))
       source.bonusChances = {
@@ -37,8 +37,6 @@ describe('副本奖励数据包', () => {
                 quantity:
                   reward.materialCount +
                   reward.items.reduce((sum, item) => sum + item.quantity, 0),
-                experience: reward.experience,
-                spiritStones: reward.spiritStones,
               };
             })(),
           ),
@@ -46,9 +44,9 @@ describe('副本奖励数据包', () => {
     );
     expect(
       createHash('sha256').update(JSON.stringify(rows)).digest('hex'),
-    ).toBe('6869efb6cffd2342208083d9ab3a99520f3fd819155b66ddffb4cb7fd17b682e');
+    ).toBe('83dd6a2ab498a603a3516716e2df8a42307847e8caadfa5690f17d5e38de3c0f');
   });
-  it('材料、数量及经济配置进入最终奖励', () => {
+  it('材料、数量及掉落配置进入最终奖励', () => {
     const data = structuredClone(raw);
     data.sources.battle = {
       bonusChances: {
@@ -59,8 +57,8 @@ describe('副本奖励数据包', () => {
       },
       chance: 1,
       quantity: 3,
-      experience: 7,
-      stones: 4,
+      dailyExpFraction: 0.075,
+      stoneHours: 1.3,
       weights: { material: 1, blueprint: 0, book: 0 },
     };
     expect(
@@ -71,8 +69,6 @@ describe('副本奖励数据包', () => {
       materialCount: 3,
       materialRealm: '金丹',
       materialSeed: `1:fight:dungeon.battle:${data.poolVersion}:material`,
-      experience: 420,
-      spiritStones: 240,
     });
   });
   it('拒绝旧固定材料池、未知来源和非法概率', () => {
@@ -91,5 +87,10 @@ describe('副本奖励数据包', () => {
     ).toThrow('extra');
     data.sources.battle.chance = 2;
     expect(() => loadDungeonRewardPack(data)).toThrow('chance');
+  });
+  it('通关节点不能再配置固定修为或灵石', () => {
+    const data = structuredClone(raw);
+    data.sources.completion.dailyExpFraction = 0.01;
+    expect(() => loadDungeonRewardPack(data)).toThrow('评级奖励单独结算');
   });
 });

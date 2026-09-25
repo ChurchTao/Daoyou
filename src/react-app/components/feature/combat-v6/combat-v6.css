@@ -35,6 +35,7 @@
 }
 .cv6-page-header a,
 .cv6-header a,
+.cv6-header button,
 .cv6-header > span {
   font-size: 0.75rem;
   color: var(--color-battle-muted);

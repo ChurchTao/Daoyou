@@ -38,6 +38,7 @@ export function ItemSlot({
   children,
   comparisonItem,
   quantityLabel = '持有',
+  guideAnchor,
 }: {
   item?: DisplayItem;
   selected?: boolean;
@@ -51,6 +52,7 @@ export function ItemSlot({
   children?: (close: () => void) => ReactNode;
   comparisonItem?: DisplayItem;
   quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
+  guideAnchor?: string;
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -116,6 +118,7 @@ export function ItemSlot({
     <>
       <button
         ref={trigger}
+        data-guide={guideAnchor}
         type="button"
         aria-label={
           item ? `${item.name}，${item.quantity}件` : emptyLabel || '空格'

@@ -6,9 +6,18 @@ import type {
   RecycleResult,
   RecycleSelection,
 } from '@shared/contracts/recycle';
+import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
 import { recycleBlockingReason } from '@shared/inventory/recycle';
+import {
+  blueprintRecycleUnitPrice,
+  equipmentRecycleUnitPrice,
+  manualJadeRecycleUnitPrice,
+  seedRecycleUnitPrice,
+} from '@shared/inventory/recyclePrice';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
+import { findItemDefinition } from '@shared/items/registry';
 import { calculateSpiritFruitRecycleUnitPrice } from '@shared/lib/pillRecyclePrice';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -60,6 +69,37 @@ export async function previewBagRecycle(
   const snapshots = await selectedItems(owner, selection);
   const items = snapshots.map((item, index) => {
     const ref = selection[index];
+    const definition = findItemDefinition(item.definitionId);
+    if (definition?.kind === 'seed') {
+      const facts = SeedFactsSchema.parse(item.instanceData);
+      return {
+        ...ref,
+        name: facts.name,
+        unitPrice: seedRecycleUnitPrice(facts.seedSpec.plant.quality),
+      };
+    }
+    if (definition?.kind === 'manual_jade' && definition.manualId) {
+      return {
+        ...ref,
+        name: definition.name,
+        unitPrice: manualJadeRecycleUnitPrice(definition.manualId),
+      };
+    }
+    if (definition?.kind === 'blueprint' && definition.level) {
+      return {
+        ...ref,
+        name: definition.name,
+        unitPrice: blueprintRecycleUnitPrice(definition.level),
+      };
+    }
+    if (definition?.kind === 'equipment') {
+      const equipment = InventoryEquipmentSchema.parse(item.instanceData);
+      return {
+        ...ref,
+        name: equipment.name,
+        unitPrice: equipmentRecycleUnitPrice(equipment),
+      };
+    }
     if (item.definitionId === 'consumable.v1') {
       const facts = ConsumableFactsSchema.parse(item.instanceData);
       return {

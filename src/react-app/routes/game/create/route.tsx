@@ -1,11 +1,6 @@
 import { FateDetailModal } from '@app/components/feature/fates/FateDetailModal';
 import { toFateDisplayModel } from '@app/components/feature/fates/FateDisplayAdapter';
 import { FateEffectInlineList } from '@app/components/feature/fates/FateEffectInlineList';
-import {
-  AffixInlineList,
-  toProductDisplayModel,
-  type ProductRecordLike,
-} from '@app/components/feature/products';
 import { LingGen } from '@app/components/func/LingGen';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkSection } from '@app/components/layout';
@@ -706,76 +701,6 @@ export default function CreatePage() {
                   </p>
                 </InkSection>
               </section>
-
-              <section className={genesisPanelClassName}>
-                <InkSection title="【功法】">
-                  {(player.cultivations || []).length === 0 ? (
-                    <InkNotice>尚无功法</InkNotice>
-                  ) : (
-                    <InkList>
-                      {player.cultivations.map((technique) => {
-                        const product = toProductDisplayModel(
-                          technique as ProductRecordLike,
-                        );
-                        return (
-                          <ItemCard
-                            key={technique.id ?? technique.name}
-                            icon="📘"
-                            name={technique.name}
-                            quality={technique.quality}
-                            badgeExtra={
-                              technique.element ? (
-                                <InkBadge tone="default">
-                                  {technique.element}
-                                </InkBadge>
-                              ) : undefined
-                            }
-                            meta={<AffixInlineList affixes={product.affixes} />}
-                            description={technique.description}
-                            layout="col"
-                          />
-                        );
-                      })}
-                    </InkList>
-                  )}
-                </InkSection>
-              </section>
-
-              <section className={genesisPanelClassName}>
-                <InkSection title="【神通】">
-                  {(player.skills || []).length === 0 ? (
-                    <InkNotice>尚无神通</InkNotice>
-                  ) : (
-                    <InkList>
-                      {player.skills.map((skill) => {
-                        const product = toProductDisplayModel(
-                          skill as ProductRecordLike,
-                        );
-                        return (
-                          <ItemCard
-                            key={skill.id ?? skill.name}
-                            icon="📜"
-                            name={skill.name}
-                            quality={skill.quality}
-                            badgeExtra={
-                              <InkBadge tone="default">
-                                {skill.element}
-                              </InkBadge>
-                            }
-                            meta={
-                              <div className="space-y-1">
-                                <AffixInlineList affixes={product.affixes} />
-                              </div>
-                            }
-                            description={skill.description}
-                            layout="col"
-                          />
-                        );
-                      })}
-                    </InkList>
-                  )}
-                </InkSection>
-              </section>
             </>
           ) : (
             <section className={genesisPanelClassName}>
@@ -785,7 +710,7 @@ export default function CreatePage() {
               <div className="text-ink mt-3 space-y-3 text-sm leading-7">
                 <p>先以一句心念描出真身，再从天机推演出的命格中择三而取。</p>
                 <p>
-                  生成结果会展示根基属性、灵根、功法与神通预览，确认无误后再正式入世。
+                  生成结果会展示根基属性与灵根，确认无误后再正式入世。
                 </p>
               </div>
             </section>

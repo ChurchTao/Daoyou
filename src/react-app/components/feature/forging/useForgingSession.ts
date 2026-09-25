@@ -1,4 +1,5 @@
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type { ForgeRequest, ForgeView } from '@shared/contracts/forging';
 import type { InventoryView } from '@shared/contracts/inventory';
@@ -23,7 +24,12 @@ const emptyMaterials = (): (string | null)[] => Array(5).fill(null);
 
 export function useForgingSession() {
   const bagQuery = useInventoryBag();
-  const inventory = bagQuery.data;
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const storage = useCraftStorage('all', source === 'storage');
+  const inventory = source === 'bag' ? bagQuery.data : storage.view;
+  const [chosenItems, setChosenItems] = useState<Map<string, ForgeItem>>(
+    new Map(),
+  );
   const [view, setView] = useState<ForgeView>();
   const [refresh, setRefresh] = useState(0);
   const [blueprintId, setBlueprintId] = useState('');
@@ -35,6 +41,7 @@ export function useForgingSession() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<{
     equipment: DaoEquipmentInstanceV1;
+    destination: 'bag' | 'storage';
   }>();
   const busy = useRef(false);
   const alive = useRef(true);
@@ -62,7 +69,11 @@ export function useForgingSession() {
     return () => controller.abort();
   }, [refresh]);
 
-  const byId = new Map(inventory?.items.map((item) => [item.id, item]));
+  const byId = new Map([
+    ...chosenItems,
+    ...(bagQuery.data?.items.map((item) => [item.id, item] as const) ?? []),
+    ...(storage.view?.items.map((item) => [item.id, item] as const) ?? []),
+  ]);
   const blueprint = byId.get(blueprintId);
   const definition = blueprint
     ? itemDefinition(blueprint.definitionId)
@@ -79,8 +90,8 @@ export function useForgingSession() {
     !view ||
     !!result ||
     !inventory ||
-    bagQuery.isRefreshing ||
-    !!bagQuery.error;
+    (source === 'bag' ? bagQuery.isRefreshing : storage.loading) ||
+    !!(source === 'bag' ? bagQuery.error : storage.error);
   function itemProblem(item: ForgeItem, targetCost = cost): string | null {
     const def = itemDefinition(item.definitionId);
     if (def.kind === 'blueprint' && !isOpenEquipmentLevel(def.level!))
@@ -100,8 +111,8 @@ export function useForgingSession() {
   }
   const problem = !view
     ? error
-      ? '请重新核对储物袋后备料'
-      : '正在读取储物袋……'
+      ? '请重新核对图纸和材料后备料'
+      : '正在读取图纸和材料……'
     : !blueprint
       ? '请先选择道装图纸'
       : (itemProblem(blueprint) ??
@@ -131,6 +142,7 @@ export function useForgingSession() {
     const reason = itemProblem(item);
     if (reason) return reason;
     const def = itemDefinition(item.definitionId);
+    setChosenItems((current) => new Map(current).set(item.id, item));
     if (def.kind === 'blueprint') {
       const nextCost = forgingCost(def.level!);
       const kept = materialIds
@@ -165,6 +177,8 @@ export function useForgingSession() {
     setError('');
     setRetryInput(undefined);
     void bagQuery.reload();
+    storage.reload();
+    setChosenItems(new Map());
     setView(undefined);
     setMaterialIds(emptyMaterials());
     setRefresh((n) => n + 1);
@@ -206,6 +220,7 @@ export function useForgingSession() {
       const [response] = await Promise.all([
         consumeResourceMutation<{
           equipment: DaoEquipmentInstanceV1;
+          destination: 'bag' | 'storage';
         }>(
           await fetch(endpoint, {
             ...mutationBody(input),
@@ -235,6 +250,8 @@ export function useForgingSession() {
       if (alive.current) {
         setPending(false);
         setMaterialIds(emptyMaterials());
+        storage.reload();
+        setChosenItems(new Map());
         setView(undefined);
         setRefresh((n) => n + 1);
       }
@@ -243,6 +260,12 @@ export function useForgingSession() {
   return {
     view,
     inventory,
+    source,
+    setSource(next: 'bag' | 'storage') {
+      if (next === 'storage') storage.reload();
+      setSource(next);
+    },
+    storage,
     blueprint,
     cost,
     byId,
@@ -260,7 +283,7 @@ export function useForgingSession() {
       if (retryInput) void submit(retryInput);
     },
     locked,
-    error: error || bagQuery.error,
+    error: error || (source === 'bag' ? bagQuery.error : storage.error),
     result,
     problem,
     forging,

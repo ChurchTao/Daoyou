@@ -22,11 +22,12 @@ describe('输出预算定标的战斗节奏', () => {
   for (const realm of TOWER_ELIGIBLE_REALMS) {
     it(`${realm} 普通、精英与首领有不同的行动窗口`, () => {
       for (const [floor, min, max] of [
-        [1, 2, 3],
-        [5, 4, 6],
-        [10, 6, 8],
-        [15, 4, 6],
-        [20, 6, 8],
+        // Updated for the physical hit curve: fewer attacks miss at high level.
+        [1, 1.5, 2],
+        [5, 3, 4],
+        [10, 4.5, 6],
+        [15, 3, 4.5],
+        [20, 5.5, 7],
       ]) {
         const samples: Array<{ sect: string; seed: number; rounds: number }> =
           [];

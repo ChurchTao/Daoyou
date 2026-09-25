@@ -108,10 +108,16 @@ export const daoyouFormulas: FormulaSet = {
   baseDamage,
   physicalHitChance(source, target) {
     const delta = source.attrs.hit - target.attrs.dodge
+    const scale = Math.max(
+      DaoyouRule.hitChanceScale,
+      Math.max(source.level, target.level) * DaoyouRule.physicalHitScalePerLevel,
+    )
     return clamp(
       DaoyouRule.hitChanceFloor,
       DaoyouRule.hitChanceCeil,
-      DaoyouRule.hitChanceBase + delta / DaoyouRule.hitChanceScale,
+      DaoyouRule.hitChanceBase +
+        DaoyouRule.physicalHitBaselineGap / DaoyouRule.hitChanceScale +
+        (delta - DaoyouRule.physicalHitBaselineGap) / scale,
     )
   },
   spellHitChance() {

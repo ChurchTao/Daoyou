@@ -75,7 +75,7 @@ import {
 import { publishResourceEvents } from '../services/playerStateBroadcaster';
 import { ResourceEventCommitter } from '../services/ResourceEventCommitter';
 import { updateTowerWeeklyRecord } from './leaderboard';
-import { towerRunKey } from './occupancy';
+import { hasActiveTower, towerRunKey } from './occupancy';
 
 export class TowerV6Error extends Error {}
 
@@ -278,7 +278,9 @@ async function admitBattle(actor: Actor, run: Run, lease: RedisLeaseContext) {
 }
 export async function startTower(owner: string) {
   return locked(owner, async (lease) => {
-    await assertInventoryIdle(owner, undefined, db, 'run');
+    if (await hasActiveTower(owner))
+      throw new TowerV6Error('本周蜃楼尚未结束');
+    await assertInventoryIdle(owner);
     const { player } = await assembleCombatV6TrainingPlayer(owner, db);
     if (!isTowerRealmEligible(player.cultivator.realm))
       throw new TowerV6Error(`蜃楼幻境仅向${TOWER_MIN_REALM}及以上境界开放`);

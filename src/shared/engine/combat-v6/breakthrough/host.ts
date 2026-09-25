@@ -48,7 +48,7 @@ export type BreakthroughChallengeId = keyof typeof BREAKTHROUGH_CHALLENGES;
 export const BREAKTHROUGH_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v9',
+  rulesetVersion: 'daoyou_rules_v10',
   contentVersion: 'combat-v6-breakthrough-v1',
 } as const;
 

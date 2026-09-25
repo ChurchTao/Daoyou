@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import type { Cultivator, FateEffectEntry } from '@shared/types/cultivator';
 import { resolveLiveExpCap } from '@server/utils/cultivationUtils';
 import { attemptBreakthrough, performCultivation } from './CultivationEngine';
@@ -174,6 +175,33 @@ function withBodyCultivation(
     },
   } satisfies Cultivator;
 }
+
+describe('CultivationEngine insight cap', () => {
+  it('keeps retreat insight up to the 200 point holding cap', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress!.comprehension_insight = 195;
+
+    const result = performCultivation(cultivator, 100, () => 0.9);
+
+    expect(result.summary.insight_gained).toBeGreaterThan(5);
+    expect(result.cultivator.cultivation_progress?.comprehension_insight).toBe(
+      COMPREHENSION_INSIGHT_CAP,
+    );
+  });
+
+  it('keeps breakthrough insight up to the 200 point holding cap', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress!.cultivation_exp = 100_000;
+    cultivator.cultivation_progress!.comprehension_insight = 198;
+
+    const result = attemptBreakthrough(cultivator, () => 0);
+
+    expect(result.summary.success).toBe(true);
+    expect(result.cultivator.cultivation_progress?.comprehension_insight).toBe(
+      COMPREHENSION_INSIGHT_CAP,
+    );
+  });
+});
 
 describe('CultivationEngine cultivation boost', () => {
   it('applies an external retreat multiplier exactly once', () => {

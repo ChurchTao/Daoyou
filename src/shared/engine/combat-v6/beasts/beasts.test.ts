@@ -103,6 +103,14 @@ describe('召唤兽正式个体', () => {
     ).toBe(0);
     expect(beast).toEqual(before);
   });
+  it('灵兽命中随等级与身法属性点成长', () => {
+    const beast = starter();
+    const baseline = beastPanel(beast).hit;
+    expect(baseline).toBe(80 + beastAttributes(beast).agility);
+    const faster = { ...beast, allocatedAttributes: { ...beast.allocatedAttributes, agility: beast.allocatedAttributes.agility + 10 } };
+    expect(beastPanel(faster).hit).toBe(baseline + 10);
+    expect(beastPanel({ ...beast, level: beast.level + 10 }).hit).toBe(baseline + 10);
+  });
   it.each(['岩角犀', '我的旧伙伴'])(
     '物种替换后保留存量个体 %s 的名称、数值、技能与加点',
     (name) => {

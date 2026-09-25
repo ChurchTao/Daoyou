@@ -6,12 +6,13 @@ import {
 import { inventoryItems } from '@server/lib/drizzle/schema';
 import {
   groupAlchemyBagMaterials,
+  groupAlchemyStorageMaterials,
   type AlchemyBagMaterial,
 } from '@shared/inventory/alchemy';
 import { inventoryStackIdentity } from '@shared/inventory/stack-key';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import type { Consumable } from '@shared/types/cultivator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { AlchemyServiceError } from '../AlchemyServiceError';
 import {
   grantInventory,
@@ -29,10 +30,15 @@ export async function readAlchemyMaterials(
     .where(
       and(
         eq(inventoryItems.cultivatorId, owner),
-        eq(inventoryItems.location, 'bag'),
+        inArray(inventoryItems.location, ['bag', 'storage']),
+        eq(inventoryItems.definitionId, 'material.v1'),
       ),
     );
-  return groupAlchemyBagMaterials(rows.map(inventoryItemOf));
+  const items = rows.map(inventoryItemOf);
+  return [
+    ...groupAlchemyBagMaterials(items),
+    ...groupAlchemyStorageMaterials(items),
+  ];
 }
 export async function loadAlchemyMaterials(
   owner: string,
@@ -45,7 +51,7 @@ export async function loadAlchemyMaterials(
   return ids.map((id) => {
     const item = groups.find((g) => g.id === id);
     if (!item)
-      throw new AlchemyServiceError('部分随身材料已变化，请重新备料。', 409);
+      throw new AlchemyServiceError('部分材料已变化，请重新备料。', 409);
     return item;
   });
 }
@@ -57,7 +63,7 @@ export async function assertAlchemyMaterialVersions(
 ) {
   const items = await loadAlchemyMaterials(owner, ids, q);
   if (items.some((item) => versions[item.id] !== JSON.stringify(item.members)))
-    throw new AlchemyServiceError('随身材料已变化，请刷新并重新投入。', 409);
+    throw new AlchemyServiceError('材料已变化，请刷新并重新投入。', 409);
 }
 export async function consumeAlchemyMaterials(
   owner: string,
@@ -72,11 +78,15 @@ export async function consumeAlchemyMaterials(
       .where(
         and(
           eq(inventoryItems.cultivatorId, owner),
-          eq(inventoryItems.location, 'bag'),
+          inArray(inventoryItems.location, ['bag', 'storage']),
+          eq(inventoryItems.definitionId, 'material.v1'),
         ),
       )
   ).map(inventoryItemOf);
-  const current = groupAlchemyBagMaterials(before);
+  const current = [
+    ...groupAlchemyBagMaterials(before),
+    ...groupAlchemyStorageMaterials(before),
+  ];
   const consumed = new Map<string, number>();
   for (const group of expected) {
     if (

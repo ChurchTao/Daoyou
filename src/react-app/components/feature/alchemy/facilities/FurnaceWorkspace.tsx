@@ -50,7 +50,7 @@ export function FurnaceWorkspace({
               disabled={session.phase === 'firing'}
               onClick={() => setBagOpen(true)}
             >
-              储物袋
+              选择炼丹材料
             </InkButton>
           </div>
           <div className="flex items-center justify-center gap-3 text-xs">
@@ -113,7 +113,7 @@ export function FurnaceWorkspace({
       </div>
       <InkDetailDrawer
         isOpen={bagOpen}
-        title="储物袋"
+        title="炼丹材料"
         size="md"
         onClose={() => setBagOpen(false)}
       >

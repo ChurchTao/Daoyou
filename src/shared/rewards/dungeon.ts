@@ -1,3 +1,7 @@
+import {
+  DUNGEON_EXP_BUDGET,
+  REALM_DAILY_EXP_BUDGET,
+} from '../config/cultivationExpGain';
 import { getLevelRealmStage } from '../config/realmProgression';
 import { rollDrops, type DropPool } from '../drops';
 import { SeededRng } from '../engine/combat-v6/core';
@@ -9,7 +13,13 @@ import type { ItemGrant } from '../inventory';
 import { itemDefinition } from '../inventory';
 import { BLUEPRINTS } from '../items/definitions/equipment-blueprints';
 import { materialFactsOf } from '../items/material';
+import { calculateCultivationExpByDailyBudget } from '../lib/cultivationExpGain';
+import {
+  getDungeonRewardBonus,
+  type DungeonDifficultyTier,
+} from '../lib/game/mapSystem';
 import type { RealmType } from '../types/constants';
+import { REALM_YIELD_RATES } from '../types/constants';
 import { DUNGEON_REWARD_PACK } from './dungeon-pack';
 
 export type DungeonRewardSource = 'exploration' | 'battle' | 'completion';
@@ -22,10 +32,54 @@ export interface DungeonRewardEntry {
 }
 export const DUNGEON_REWARD_CONFIG = DUNGEON_REWARD_PACK.sources;
 
-export interface DungeonRewardPlan extends DungeonRewardEntry {
+export interface DungeonRewardPlan {
+  key: string;
+  items: ItemGrant[];
   materialCount: number;
   materialRealm: RealmType;
   materialSeed: string;
+}
+
+export interface DungeonRewardResourceContext {
+  mapRealm: RealmType;
+  playerRealm: RealmType;
+  dangerScore: number;
+  difficultyTier: DungeonDifficultyTier;
+}
+
+/** Each step uses the old settlement economy; completion currency comes from the rating settlement. */
+export function planDungeonStepResources(
+  seed: number,
+  key: string,
+  source: DungeonRewardSource,
+  context: DungeonRewardResourceContext,
+  pack = DUNGEON_REWARD_PACK,
+): Pick<DungeonRewardEntry, 'experience' | 'spiritStones'> {
+  const config = pack.sources[source];
+  if (source === 'completion') return { experience: 0, spiritStones: 0 };
+  const dangerBonus = Math.min(Math.max(context.dangerScore, 0), 100) / 200;
+  const rewardBonus = getDungeonRewardBonus(context.difficultyTier);
+  const experience = Math.floor(
+    calculateCultivationExpByDailyBudget({
+      dailyBudget: REALM_DAILY_EXP_BUDGET[context.playerRealm],
+      sourceDailyFraction: config.dailyExpFraction,
+      sourceMultiplier: 1 + dangerBonus * DUNGEON_EXP_BUDGET.dangerBonusScale,
+      minBaseExp: DUNGEON_EXP_BUDGET.minBaseExp,
+    }).baseExp * rewardBonus,
+  );
+  let stream = seed >>> 0;
+  for (const character of `${key}:dungeon.${source}.resources:1`)
+    stream = Math.imul(stream ^ character.charCodeAt(0), 16777619) >>> 0;
+  const rng = new SeededRng(stream);
+  const baseStones = Math.floor(
+    REALM_YIELD_RATES[context.mapRealm] *
+      config.stoneHours *
+      (0.8 + rng.next() * 1.2),
+  );
+  const spiritStones = Math.floor(
+    baseStones * (1 + dangerBonus * 0.35) * rewardBonus,
+  );
+  return { experience, spiritStones };
 }
 
 export function dungeonRewardItemName(item: ItemGrant): string {
@@ -182,8 +236,6 @@ export function planDungeonReward(
     materialCount,
     materialRealm: getLevelRealmStage(level).realm,
     materialSeed: `${seed}:${key}:dungeon.${source}:${pack.poolVersion}:material`,
-    experience: level * config.experience,
-    spiritStones: level * config.stones,
   };
 }
 export function appendDungeonReward(

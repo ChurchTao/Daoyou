@@ -12,7 +12,13 @@ import { BeastIcon } from './BeastIcon';
 import { BeastMutationTag } from './BeastMutationTag';
 import { BeastSkillTile } from './BeastSkillTile';
 
-export function BeastTradeDetails({ beast }: { beast: Preview }) {
+export function BeastTradeDetails({
+  beast,
+  tradeNotice = true,
+}: {
+  beast: Preview;
+  tradeNotice?: boolean;
+}) {
   const species = BEAST_SPECIES.find((s) => s.id === beast.speciesId);
   const attributes = beastAttributes(beast);
   return (
@@ -51,7 +57,7 @@ export function BeastTradeDetails({ beast }: { beast: Preview }) {
       </p>
       {beast.currentLifespan < BEAST_PROGRESSION.lifespan.deployMinimum && (
         <p className="text-crimson">
-          寿命不足，领取后须先休养才能出战。交易不恢复寿命。
+          寿命不足，须先休养才能出战。{tradeNotice ? '交易不恢复寿命。' : ''}
         </p>
       )}
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">

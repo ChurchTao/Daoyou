@@ -1,4 +1,3 @@
-import { projectSystemMailAudience } from '@server/lib/services/SystemMailService';
 import { db } from '@server/lib/drizzle/db';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
@@ -11,8 +10,9 @@ import {
 import { projectRealmChangedRanking } from '@server/lib/services/RealmChangedDomainEventProjector';
 import { projectSectConstructionDonation } from '@server/lib/services/sect-organization/SectConstructionSettlementService';
 import { processSponsorshipOrder } from '@server/lib/services/SponsorshipApplicationService';
-import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectStoryDomainEvent } from '@server/lib/services/StoryDomainEventProjector';
+import { projectSystemMailAudience } from '@server/lib/services/SystemMailService';
+import { projectTaskDomainEvent } from '@server/lib/services/TaskDomainEventProjector';
 import { projectWorldRumorDomainEvent } from '@server/lib/services/WorldRumorDomainEventProjector';
 import {
   generateYieldRewardAttachments,
@@ -57,8 +57,9 @@ export async function registerMessageInfrastructure(): Promise<void> {
       consumerName: DOMAIN_EVENT_CONSUMERS.systemMailProjector.name,
       concurrency: DOMAIN_EVENT_CONSUMERS.systemMailProjector.concurrency,
       acceptedTypes: ['cultivator.mail-audience.observed'],
-      handle: async event => {
-        if (!isDomainEventType(event, 'cultivator.mail-audience.observed')) throw new Error('系统邮件事件类型错误');
+      handle: async (event) => {
+        if (!isDomainEventType(event, 'cultivator.mail-audience.observed'))
+          throw new Error('系统邮件事件类型错误');
         await executeDomainEvent({
           consumerName: DOMAIN_EVENT_CONSUMERS.systemMailProjector.name,
           source: 'system_mail_audience',
@@ -114,6 +115,7 @@ export async function registerMessageInfrastructure(): Promise<void> {
         'craft.item.created',
         'market.material.revealed',
         'ranking.position.changed',
+        'beast.exceptional.acquired',
       ],
       handle: handleWorldRumorEvent,
     }),

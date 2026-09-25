@@ -170,7 +170,7 @@ async function grantReward(
             state: { changes: [], baselines: [] },
           };
         if (!current.interpretation) throw new DivinationError('请先完成解签');
-        await assertInventoryIdle(actor.cultivatorId, undefined, tx);
+        await assertInventoryIdle(actor.cultivatorId, tx);
         await grantInventory(
           actor.cultivatorId,
           [

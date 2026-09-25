@@ -400,6 +400,13 @@
       "when": 1790175589827,
       "tag": "0056_cultivator_stories",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790318696206,
+      "tag": "0057_consumable_stack_identity",
+      "breakpoints": true
     }
   ]
 }

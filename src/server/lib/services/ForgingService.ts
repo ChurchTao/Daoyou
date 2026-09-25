@@ -5,6 +5,7 @@ import type {
   VaultQuerySchema,
   VaultView,
   WithdrawMaterialSchema,
+  WithdrawVaultPageSchema,
 } from '@shared/contracts/forging';
 import {
   BEAST_SPECIES,
@@ -34,7 +35,7 @@ import { seedFactsOf } from '@shared/items/definitions/seeds';
 import { legacyMaterialUnavailableReason } from '@shared/items/legacy-material';
 import { materialFactsOf } from '@shared/items/material';
 import { parseMailAttachments } from '@shared/lib/itemLibrary';
-import { and, asc, count, eq, gte, ilike, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
@@ -105,6 +106,11 @@ async function mutate<T>(
               eventType: 'forging.profile.changed',
             },
             {
+              resourceTopic: 'inventory.bag',
+              operation: 'invalidate',
+              eventType: 'inventory.bag.changed',
+            },
+            {
               resourceTopic: 'inventory.consumables',
               operation: 'invalidate',
               eventType: 'vault.consumables.changed',
@@ -148,7 +154,16 @@ async function readForgeInputs(
       .where(
         and(
           eq(inventoryItems.cultivatorId, owner),
-          eq(inventoryItems.location, 'bag'),
+          or(
+            eq(inventoryItems.location, 'bag'),
+            and(
+              eq(inventoryItems.location, 'storage'),
+              inArray(inventoryItems.id, [
+                input.blueprint.id,
+                ...input.materials.map((item) => item.id),
+              ]),
+            ),
+          ),
         ),
       )
   ).map(inventoryItemOf);
@@ -294,7 +309,7 @@ export async function forgeEquipment(
               instanceData: equipment,
             },
             'bag',
-            false,
+            true,
             randomUUID,
             null,
           );
@@ -332,7 +347,11 @@ export async function forgeEquipment(
             : null;
           lease.assertHeld();
           return {
-            result: { equipment },
+            result: {
+              equipment,
+              destination: next.find((item) => item.id === equipment.id)
+                ?.location,
+            },
             resourceChanges: [
               ...(story?.changes ?? []),
               {
@@ -412,68 +431,81 @@ export async function withdrawMaterial(
   owner: string,
   input: z.infer<typeof WithdrawMaterialSchema>,
 ) {
+  return mutate(owner, (tx) => withdrawVaultItem(owner, input, tx));
+}
+
+export async function withdrawVaultPage(
+  owner: string,
+  input: z.infer<typeof WithdrawVaultPageSchema>,
+) {
   return mutate(owner, async (tx) => {
-    const table = input.kind === 'consumable' ? consumables : materials;
-    const [row] = await tx
-      .select()
-      .from(table)
-      .where(and(eq(table.id, input.id), eq(table.cultivatorId, owner)))
-      .for('update');
-    if (
-      !row ||
-      row.quantity !== input.expectedQuantity ||
-      input.quantity > row.quantity
-    )
-      throw new InventoryError('物品已变化，请刷新宝库');
-    if ('rank' in row) {
-      const blocked = legacyMaterialUnavailableReason(row);
-      if (blocked) throw new InventoryError(blocked);
-      const facts =
-        row.type === 'seed'
-          ? seedFactsOf(row)
-          : MaterialFactsSchema.parse({
-              name: row.name,
-              type: row.type,
-              rank: row.rank,
-              element: row.element,
-              description: row.description ?? '',
-            });
-      await grantInventory(
-        owner,
-        [
-          {
-            definitionId: row.type === 'seed' ? 'seed.v1' : 'material.v1',
-            quantity: input.quantity,
-            instanceData: facts,
-          },
-        ],
-        tx,
-        false,
-      );
-    } else {
-      const facts = consumableFactsOf(mapConsumableRow(row));
-      await grantInventory(
-        owner,
-        [
-          {
-            definitionId: 'consumable.v1',
-            quantity: input.quantity,
-            instanceData: facts,
-          },
-        ],
-        tx,
-        false,
-      );
+    let withdrawn = 0;
+    let stored = false;
+    for (const item of input.items) {
+      const result = await withdrawVaultItem(owner, item, tx);
+      withdrawn += result.withdrawn;
+      stored ||= result.stored;
     }
-    if (row.quantity === input.quantity)
-      await tx.delete(table).where(eq(table.id, row.id));
-    else
-      await tx
-        .update(table)
-        .set({ quantity: row.quantity - input.quantity })
-        .where(eq(table.id, row.id));
-    return { withdrawn: input.quantity };
+    return { withdrawn, count: input.items.length, stored };
   });
+}
+
+async function withdrawVaultItem(
+  owner: string,
+  input: z.infer<typeof WithdrawMaterialSchema>,
+  tx: DbTransaction,
+) {
+  const table = input.kind === 'consumable' ? consumables : materials;
+  const [row] = await tx
+    .select()
+    .from(table)
+    .where(and(eq(table.id, input.id), eq(table.cultivatorId, owner)))
+    .for('update');
+  if (!row || row.quantity !== input.expectedQuantity || row.quantity <= 0)
+    throw new InventoryError('物品已变化，请刷新宝库');
+  let stored: boolean;
+  if ('rank' in row) {
+    const blocked = legacyMaterialUnavailableReason(row);
+    if (blocked) throw new InventoryError(blocked);
+    const facts =
+      row.type === 'seed'
+        ? seedFactsOf(row)
+        : MaterialFactsSchema.parse({
+            name: row.name,
+            type: row.type,
+            rank: row.rank,
+            element: row.element,
+            description: row.description ?? '',
+          });
+    const granted = await grantInventory(
+      owner,
+      [
+        {
+          definitionId: row.type === 'seed' ? 'seed.v1' : 'material.v1',
+          quantity: row.quantity,
+          instanceData: facts,
+        },
+      ],
+      tx,
+    );
+    stored = granted.some((item) => item.location === 'storage');
+  } else {
+    const facts = consumableFactsOf(mapConsumableRow(row));
+    const granted = await grantInventory(
+      owner,
+      [
+        {
+          definitionId: 'consumable.v1',
+          quantity: row.quantity,
+          instanceData: facts,
+        },
+      ],
+      tx,
+    );
+    stored = granted.some((item) => item.location === 'storage');
+  }
+  await tx.delete(table).where(eq(table.id, row.id));
+  return { withdrawn: row.quantity, stored };
 }
 
 export async function grantDevResources(input: z.infer<typeof DevGrantSchema>) {
