@@ -12,15 +12,15 @@ import {
 const baseline = [
   {
     speciesId: 'combat.wild.species.spirit-fox',
-    hash: 'b32f2d959a2d0ce86ba563f195f4ce1c5c3c58a565c1d8d51a282ee7faf242d5',
+    hash: '708da768df81991fe458cabe97181d0ca301103e9df814048ff3738157340f8e',
   },
   {
     speciesId: 'combat.wild.species.rock-boar',
-    hash: 'df6cc835d00a35e89563d0800d8b83a6538f85394de5f3c21529b66087c08ac1',
+    hash: '6c0e5891a6aa6e61ad35827bbd1e10baafeae82053bfb7b5c48e4533a5ae8d00',
   },
   {
     speciesId: 'combat.wild.species.wind-wolf',
-    hash: 'a88d3b3862e151a8642c49471f8fb655453560c687203d013f015d7e2aa16e78',
+    hash: '539bc9457d7a573d5b3592506d2f40ed78bc79c57978062d137fe3a53fa3cf7b',
   },
 ];
 function digest(speciesId: string) {

@@ -7,6 +7,7 @@ stripExpCapForStorage,
 syncBottleneckState,
 } from '@server/utils/cultivationUtils';
 import type { CultivatorCondition } from '@shared/types/condition';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import {
 RealmStage,
 RealmType
@@ -424,8 +425,11 @@ export async function updateCultivationExp(
   if (comprehensionInsightDelta !== undefined) {
     newComprehensionInsight = Math.max(
       0,
-      Math.min(100, progress.comprehension_insight + comprehensionInsightDelta),
-    ); // 限制在 0-100 范围内
+      Math.min(
+        COMPREHENSION_INSIGHT_CAP,
+        progress.comprehension_insight + comprehensionInsightDelta,
+      ),
+    ); // 限制在 0-200 范围内
   }
 
   const updatedProgress: CultivationProgress = {

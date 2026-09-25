@@ -14,7 +14,7 @@ export const DaoyouRule = {
   cultivateFlat: 5,
   damageCultivateDiffMin: -20,
   damageCultivateDiffMax: 20,
-  hitChanceFloor: 0.6,
+  hitChanceFloor: 0.45,
   hitChanceCeil: 1,
   hitChanceBase: 0.5,
   hitChanceScale: 200,

@@ -14,6 +14,7 @@ import { GameImage } from '@app/components/ui/GameImage';
 import {
   BOTTLENECK_THRESHOLD,
   BREAKTHROUGH_MIN_PROGRESS,
+  COMPREHENSION_INSIGHT_CAP,
   NORMAL_BREAKTHROUGH_THRESHOLD,
   PERFECT_BREAKTHROUGH_INSIGHT,
 } from '@shared/config/cultivationTuning';
@@ -502,7 +503,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
                 : []),
               {
                 label: insightInfo.label,
-                value: `${progress.insight} / 100`,
+                value: `${progress.insight} / ${COMPREHENSION_INSIGHT_CAP}`,
               },
               {
                 label: '强行突破',

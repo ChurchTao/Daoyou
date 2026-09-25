@@ -97,11 +97,15 @@
           "minimum": 0,
           "maximum": 1
         },
-        "experience": {
-          "$ref": "#/$defs/__schema0"
+        "dailyExpFraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         },
-        "stones": {
-          "$ref": "#/$defs/__schema0"
+        "stoneHours": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24
         },
         "quantity": {
           "type": "integer",
@@ -160,8 +164,8 @@
       },
       "required": [
         "chance",
-        "experience",
-        "stones",
+        "dailyExpFraction",
+        "stoneHours",
         "quantity",
         "bonusChances",
         "weights"

@@ -13,7 +13,10 @@ import {
   type CultivatorDisplaySnapshot,
 } from '@shared/lib/cultivatorDisplay';
 import type { Cultivator } from '@shared/types/cultivator';
-import { BOTTLENECK_THRESHOLD } from '@shared/config/cultivationTuning';
+import {
+  BOTTLENECK_THRESHOLD,
+  COMPREHENSION_INSIGHT_CAP,
+} from '@shared/config/cultivationTuning';
 import {
   getBodyCultivationSummary,
   type BodyCultivationSummary,
@@ -190,7 +193,11 @@ export function buildGameHudSnapshot(input: {
     Math.max(0, (cultivationExp / cultivationCap) * 100),
   );
   const insight = Math.round(
-    clamp(cultivator.cultivation_progress?.comprehension_insight ?? 0, 0, 100),
+    clamp(
+      cultivator.cultivation_progress?.comprehension_insight ?? 0,
+      0,
+      COMPREHENSION_INSIGHT_CAP,
+    ),
   );
 
   const activeStatuses = (cultivator.condition?.statuses ?? [])
@@ -297,8 +304,8 @@ export function buildGameHudSnapshot(input: {
       {
         key: 'insight',
         label: getGameConceptLabel('comprehension_insight'),
-        display: `${insight}/100`,
-        percent: insight,
+        display: `${insight}/${COMPREHENSION_INSIGHT_CAP}`,
+        percent: (insight / COMPREHENSION_INSIGHT_CAP) * 100,
         tone: 'insight',
       },
     ],

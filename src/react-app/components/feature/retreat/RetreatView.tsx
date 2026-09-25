@@ -6,6 +6,7 @@ import {
   GameSceneTabs,
 } from '@app/components/game-shell';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import { QI_ACTION_COSTS } from '@shared/config/qiSystem';
 import { getGameConceptLabel } from '@shared/lib/gameConceptDisplay';
 import type { TaskInstance } from '@shared/types/task';
@@ -656,7 +657,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
             />
             <RetreatSummaryEntry
               label={COMPREHENSION_LABEL}
-              value={`${cultivationProgress?.comprehension_insight ?? 0}/100`}
+              value={`${cultivationProgress?.comprehension_insight ?? 0}/${COMPREHENSION_INSIGHT_CAP}`}
               note="感悟越稳，临门一脚越不容易乱。"
             />
             <RetreatSummaryEntry

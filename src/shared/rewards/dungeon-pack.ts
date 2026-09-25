@@ -6,8 +6,8 @@ import raw from './data/dungeon.json';
 const integer = z.number().int().min(0).max(1000000);
 const source = z.strictObject({
   chance: z.number().min(0).max(1),
-  experience: integer,
-  stones: integer,
+  dailyExpFraction: z.number().min(0).max(1),
+  stoneHours: z.number().min(0).max(24),
   quantity: integer.min(1).max(99),
   bonusChances: z.strictObject({
     originDew: z.number().min(0).max(1),
@@ -42,6 +42,15 @@ export const DungeonRewardPackShape = z.strictObject({
 });
 export function loadDungeonRewardPack(data: unknown) {
   const result = DungeonRewardPackShape.superRefine((pack, ctx) => {
+    if (
+      pack.sources.completion.dailyExpFraction !== 0 ||
+      pack.sources.completion.stoneHours !== 0
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sources', 'completion'],
+        message: '通关节点资源必须为零，评级奖励单独结算',
+      });
     const superiorBooks = new Set<string>();
     pack.superiorBooks.forEach((id, i) => {
       if (

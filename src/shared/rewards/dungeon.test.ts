@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { getRealmStageLevel } from '../config/realmProgression';
 import { findItemDefinition } from '../items/registry';
+import { REALM_VALUES } from '../types/constants';
 import {
   appendDungeonReward,
   dungeonRewardItemName,
   planDungeonReward,
+  planDungeonStepResources,
 } from './dungeon';
 import { DUNGEON_REWARD_PACK, loadDungeonRewardPack } from './dungeon-pack';
 
@@ -294,5 +297,66 @@ describe('秘境额外养成奖励', () => {
       expect(() =>
         loadDungeonRewardPack({ ...DUNGEON_REWARD_PACK, superiorBooks }),
       ).toThrow('上品灵印');
+  });
+});
+
+describe('秘境分环节资源奖励', () => {
+  const context = {
+    mapRealm: '炼气' as const,
+    playerRealm: '炼气' as const,
+    dangerScore: 0,
+    difficultyTier: 'easy' as const,
+  };
+
+  it('探索和胜战按同一境界预算计算，通关节点不重复发放评级资源', () => {
+    const exploration = planDungeonStepResources(
+      1,
+      'exploration:1',
+      'exploration',
+      context,
+    );
+    const battle = planDungeonStepResources(1, 'battle:1', 'battle', context);
+    expect(exploration.experience).toBe(30);
+    expect(battle.experience).toBe(75);
+    expect(exploration.spiritStones).toBeGreaterThanOrEqual(52);
+    expect(exploration.spiritStones).toBeLessThanOrEqual(130);
+    expect(battle.spiritStones).toBeGreaterThanOrEqual(104);
+    expect(battle.spiritStones).toBeLessThanOrEqual(260);
+    expect(
+      planDungeonStepResources(1, 'completion', 'completion', context),
+    ).toEqual({
+      experience: 0,
+      spiritStones: 0,
+    });
+  });
+
+  it('高境界、危险度和地图难度提高收益，同一种子与来源保持确定', () => {
+    const high = {
+      mapRealm: '渡劫' as const,
+      playerRealm: '渡劫' as const,
+      dangerScore: 100,
+      difficultyTier: 'boss' as const,
+    };
+    const first = planDungeonStepResources(9, 'battle:1', 'battle', high);
+    expect(first).toEqual(
+      planDungeonStepResources(9, 'battle:1', 'battle', high),
+    );
+    expect(first.experience).toBe(5197);
+    expect(first.spiritStones).toBeGreaterThan(
+      planDungeonStepResources(9, 'battle:1', 'battle', context).spiritStones,
+    );
+  });
+
+  it('所有境界的探索和胜战收益均高于原等级固定值', () => {
+    for (const realm of REALM_VALUES) {
+      const level = getRealmStageLevel(realm, '初期');
+      const current = { ...context, mapRealm: realm, playerRealm: realm };
+      const exploration = planDungeonStepResources(1, 'exploration:1', 'exploration', current);
+      const battle = planDungeonStepResources(1, 'battle:1', 'battle', current);
+      expect(exploration.experience).toBeGreaterThan(level * 2);
+      expect(battle.experience).toBeGreaterThan(level * 5);
+      expect(exploration.spiritStones).toBeGreaterThan(level);
+      expect(battle.spiritStones).toBeGreaterThan(level * 2);
+    }
   });
 });

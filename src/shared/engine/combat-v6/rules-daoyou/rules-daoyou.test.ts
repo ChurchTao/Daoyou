@@ -176,7 +176,7 @@ describe("Daoyou formulas", () => {
     expect(daoyouFormulas.spellHitChance(source, target)).toBe(1)
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBe(0.75)
     source.attrs.hit = -1000
-    expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.6)
+    expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.45)
     source.attrs.hit = 1000
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(1)
     source.attrs.spellCultivate = 0

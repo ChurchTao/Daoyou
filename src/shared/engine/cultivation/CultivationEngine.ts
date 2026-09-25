@@ -1,3 +1,4 @@
+import { COMPREHENSION_INSIGHT_CAP } from '@shared/config/cultivationTuning';
 import { getBreakthroughAttributeGrowthReward } from '@shared/config/realmProgression';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import {
@@ -211,7 +212,7 @@ export function performCultivation(
   // 更新感悟值（每次闭关都可能获得，非顿悟时0~20，顿悟时20~50）
   if (finalInsightGain > 0) {
     progress.comprehension_insight = Math.min(
-      100,
+      COMPREHENSION_INSIGHT_CAP,
       progress.comprehension_insight + finalInsightGain,
     );
   }
@@ -369,7 +370,10 @@ export function attemptBreakthrough(
     }
     progress.comprehension_insight = Math.max(
       0,
-      Math.min(100, progress.comprehension_insight + insight_change),
+      Math.min(
+        COMPREHENSION_INSIGHT_CAP,
+        progress.comprehension_insight + insight_change,
+      ),
     );
 
     // 重置闭关年限

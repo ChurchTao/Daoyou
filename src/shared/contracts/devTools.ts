@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COMPREHENSION_INSIGHT_CAP } from '../config/cultivationTuning';
 import { SECT_DISCIPLE_RANKS } from '../engine/sect/core/domain/organization';
 import { SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP } from '../lib/marrowWash';
 import {
@@ -97,7 +98,7 @@ export const DevCultivatorPatchSchema = z
     cultivation: z
       .object({
         experience: z.number().int().min(0).max(1000000000000).optional(),
-        insight: z.number().int().min(0).max(100).optional(),
+        insight: z.number().int().min(0).max(COMPREHENSION_INSIGHT_CAP).optional(),
       })
       .strict()
       .refine((v) => Object.keys(v).length > 0, '修炼调整不能为空')

@@ -248,7 +248,7 @@ export interface EquippedItems {
 export interface CultivationProgress {
   cultivation_exp: number; // 当前修为值
   exp_cap: number; // 当前境界修为上限
-  comprehension_insight: number; // 当前感悟值（0-100）
+  comprehension_insight: number; // 当前感悟值（0-200）
   breakthrough_failures: number; // 连续突破失败次数
   bottleneck_state: boolean; // 是否处于瓶颈期
   inner_demon: boolean; // 是否有心魔debuff
