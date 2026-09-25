@@ -81,17 +81,17 @@ export function AlchemyFurnace({
           data-guide="alchemy.hearth"
           className="pointer-events-none absolute top-[16%] left-[19%] h-[70%] w-[62%]"
         >
-        <GameIcon
-          purpose="artwork"
-          value="icon:xuanfire-furnace"
-          label="青绿水墨丹炉，温火轻烟凝聚药蕴"
-          className={cn(
-            'size-full',
-            primary && 'drop-shadow-[0_0_12px_rgba(178,80,30,0.25)]',
-            session.phase === 'firing' &&
-              'drop-shadow-[0_0_18px_rgba(178,80,30,0.45)] motion-safe:animate-pulse',
-          )}
-        />
+          <GameIcon
+            purpose="artwork"
+            value="icon:xuanfire-furnace"
+            label="青绿水墨丹炉，温火轻烟凝聚药蕴"
+            className={cn(
+              'size-full',
+              primary && 'drop-shadow-[0_0_12px_rgba(178,80,30,0.25)]',
+              session.phase === 'firing' &&
+                'drop-shadow-[0_0_18px_rgba(178,80,30,0.45)] motion-safe:animate-pulse',
+            )}
+          />
         </div>
         {materialPositions.map(([x, y], index) => {
           const id = session.materials.ids[index];
@@ -126,7 +126,10 @@ export function AlchemyFurnace({
                       }
                     : undefined
                 }
-                onQuickAction={material ? undefined : onOpenBag}
+                onQuickAction={
+                  material ? () => session.removeMaterial(id) : onOpenBag
+                }
+                quickOnTouch
               >
                 {material
                   ? (close) => (

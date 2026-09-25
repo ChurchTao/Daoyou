@@ -58,10 +58,17 @@ export function ItemSlot({
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const touchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const touchStart = useRef({ x: 0, y: 0 });
+  const longPressed = useRef(false);
+  const touchMoved = useRef(false);
   const pointer = useRef('');
   const presentation = item ? itemPresentation(item) : undefined;
   function cancel() {
     clearTimeout(timer.current);
+  }
+  function cancelTouch() {
+    clearTimeout(touchTimer.current);
   }
   function close() {
     cancel();
@@ -75,7 +82,13 @@ export function ItemSlot({
     cancel();
     timer.current = setTimeout(close, 220);
   }
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearTimeout(touchTimer.current);
+    },
+    [],
+  );
   useLayoutEffect(() => {
     if (!open) {
       panel.current?.hidePopover();
@@ -135,6 +148,31 @@ export function ItemSlot({
         )}
         onPointerDown={(e) => {
           pointer.current = e.pointerType;
+          longPressed.current = false;
+          touchMoved.current = false;
+          if (e.pointerType === 'touch' && quickOnTouch && item) {
+            touchStart.current = { x: e.clientX, y: e.clientY };
+            cancelTouch();
+            touchTimer.current = setTimeout(() => {
+              longPressed.current = true;
+              show();
+            }, 500);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (
+            e.pointerType === 'touch' &&
+            (Math.abs(e.clientX - touchStart.current.x) > 10 ||
+              Math.abs(e.clientY - touchStart.current.y) > 10)
+          ) {
+            touchMoved.current = true;
+            cancelTouch();
+          }
+        }}
+        onPointerUp={cancelTouch}
+        onPointerCancel={() => {
+          touchMoved.current = true;
+          cancelTouch();
         }}
         onPointerEnter={(e) => {
           if (e.pointerType === 'mouse' && item) {
@@ -144,12 +182,21 @@ export function ItemSlot({
         }}
         onPointerLeave={(e) => {
           if (e.pointerType === 'mouse') leave();
+          else if (e.pointerType === 'touch') {
+            touchMoved.current = true;
+            cancelTouch();
+          }
+        }}
+        onContextMenu={(e) => {
+          if (quickOnTouch && pointer.current === 'touch') e.preventDefault();
         }}
         onFocus={(e) => {
           if (e.currentTarget.matches(':focus-visible')) show();
         }}
         onKeyDown={(event) => {
           pointer.current = '';
+          longPressed.current = false;
+          touchMoved.current = false;
           if (event.key === 'Escape' && open) {
             event.preventDefault();
             event.stopPropagation();
@@ -157,6 +204,11 @@ export function ItemSlot({
           }
         }}
         onClick={() => {
+          if (longPressed.current || touchMoved.current) {
+            longPressed.current = false;
+            touchMoved.current = false;
+            return;
+          }
           if (
             onQuickAction &&
             (pointer.current !== 'touch' || !item || quickOnTouch) &&

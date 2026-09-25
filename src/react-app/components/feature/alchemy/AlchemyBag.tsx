@@ -1,5 +1,8 @@
+import {
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
-import { matchesInventoryFilters, type InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
@@ -113,6 +116,7 @@ export function AlchemyBag({
         }
         location={source}
         compact={source === 'bag' && (!!search || kind !== 'all')}
+        quickTouchHint
         slotProps={(item) => {
           const material = groups.find((g) =>
             g.members.some((m) => m.id === item?.id),
@@ -131,6 +135,7 @@ export function AlchemyBag({
           };
           return {
             disabled: locked || (!!material && full),
+            quickOnTouch: true,
             badge: dose
               ? `已投${dose}`
               : material && !full

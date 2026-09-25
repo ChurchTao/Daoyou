@@ -1,5 +1,8 @@
+import {
+  matchesInventoryFilters,
+  type InventoryKind,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
-import { matchesInventoryFilters, type InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InventoryItems } from '../items/InventoryItems';
@@ -99,6 +102,7 @@ export function ForgingInventory({
               )
         }
         location={session.source}
+        quickTouchHint
         compact={
           session.source === 'bag' &&
           (filter !== 'all' || !!search || fixedFilter)
@@ -119,6 +123,7 @@ export function ForgingInventory({
                 : undefined,
             selected: !!item && selected === item.id,
             disabled: session.locked || !!problem,
+            quickOnTouch: true,
             badge: used ? `已投${used}` : item && !problem ? '可选' : undefined,
             onQuickAction: item ? () => onChoose(item) : undefined,
             children: item

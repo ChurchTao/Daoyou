@@ -9,12 +9,14 @@ export function InventoryItems({
   items,
   location = 'bag',
   compact = false,
+  quickTouchHint = false,
   className,
   slotProps,
 }: {
   items: Item[];
   location?: 'bag' | 'storage';
   compact?: boolean;
+  quickTouchHint?: boolean;
   className?: string;
   slotProps: (
     item: Item | undefined,
@@ -31,6 +33,11 @@ export function InventoryItems({
       : items.map((item, slot) => ({ item, slot }));
   return (
     <div className="@container">
+      {quickTouchHint ? (
+        <p className="text-ink-secondary mb-2 text-xs sm:hidden">
+          轻点操作，长按查看详情
+        </p>
+      ) : null}
       <InventoryGrid
         className={className ?? 'w-full grid-cols-5 gap-1.5 sm:grid-cols-5'}
       >
