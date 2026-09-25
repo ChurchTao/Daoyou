@@ -1,4 +1,4 @@
-import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
+import type { InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';

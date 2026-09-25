@@ -1,4 +1,4 @@
-import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
+import type { InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';

@@ -1,8 +1,5 @@
-import {
-  InventoryFilters,
-  matchesInventoryFilters,
-  type InventoryKind,
-} from '@app/components/feature/items/InventoryFilters';
+import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
+import { matchesInventoryFilters, type InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
@@ -33,7 +30,7 @@ export function AlchemyBag({
   const reloadStorage = storage.reload;
   const view = source === 'bag' ? bagQuery.data : storage.view;
   const error = source === 'bag' ? bagQuery.error : storage.error;
-  const [search, setSearch] = useState('');
+  const search = storage.search;
   useEffect(() => {
     if (session.phase === 'result') reloadStorage();
   }, [session.phase, reloadStorage]);
@@ -93,9 +90,9 @@ export function AlchemyBag({
         ))}
       </div>
       <InventoryFilters
-        search={source === 'bag' ? search : storage.search}
+        search={search}
         kind={kind}
-        onSearch={source === 'bag' ? setSearch : storage.setSearch}
+        onSearch={storage.setSearch}
         onKind={(value) => {
           setKind(value);
           storage.setPage(0);

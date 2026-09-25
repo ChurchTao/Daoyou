@@ -1,11 +1,7 @@
-import {
-  InventoryFilters,
-  matchesInventoryFilters,
-  type InventoryKind,
-} from '@app/components/feature/items/InventoryFilters';
+import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
+import { matchesInventoryFilters, type InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
-import { useState } from 'react';
 import { InventoryItems } from '../items/InventoryItems';
 import type { ForgeItem, ForgingSession } from './useForgingSession';
 
@@ -25,8 +21,7 @@ export function ForgingInventory({
   onChoose: (item: ForgeItem) => void;
   fixedFilter?: boolean;
 }) {
-  const [bagSearch, setBagSearch] = useState('');
-  const search = session.source === 'bag' ? bagSearch : session.storage.search;
+  const search = session.storage.search;
   return (
     <div className="space-y-3 text-sm">
       <InventoryHeader
@@ -61,9 +56,7 @@ export function ForgingInventory({
         <InventoryFilters
           search={search}
           kind={filter}
-          onSearch={
-            session.source === 'bag' ? setBagSearch : session.storage.setSearch
-          }
+          onSearch={session.storage.setSearch}
           onKind={(value) => {
             onFilter(value);
             session.storage.setPage(0);
@@ -74,9 +67,7 @@ export function ForgingInventory({
           search={search}
           kind="blueprint"
           kindDisabled
-          onSearch={
-            session.source === 'bag' ? setBagSearch : session.storage.setSearch
-          }
+          onSearch={session.storage.setSearch}
           onKind={() => {}}
         />
       )}

@@ -1,5 +1,5 @@
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
-import type { InventoryKind } from '@app/components/feature/items/InventoryFilters';
+import type { InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { useCallback, useEffect, useState } from 'react';
@@ -9,12 +9,13 @@ export function useCraftStorage(kind: InventoryKind, enabled: boolean) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [view, setView] = useState<InventoryView>();
-  const [error, setError] = useState('');
+  const [result, setResult] = useState<{ key: string; view: InventoryView }>();
+  const [failure, setFailure] = useState<{ key: string; message: string }>();
+  const key = `${owner}:${kind}:${page}:${search}`;
+  const view = result?.key === key ? result.view : undefined;
+  const error = failure?.key === key ? failure.message : '';
   useEffect(() => {
     if (!enabled || !owner) return;
-    setView(undefined);
-    setError('');
     const controller = new AbortController();
     const query = new URLSearchParams({
       location: 'storage',
@@ -27,20 +28,23 @@ export function useCraftStorage(kind: InventoryKind, enabled: boolean) {
     })
       .then((data) => {
         if (controller.signal.aborted) return;
-        setView(data);
+        setResult({ key, view: data });
         setPage(data.page);
-        setError('');
+        setFailure(undefined);
       })
       .catch((cause) => {
         if (!controller.signal.aborted) {
-          setError(cause instanceof Error ? cause.message : '读取储藏室失败');
+          setFailure({
+            key,
+            message: cause instanceof Error ? cause.message : '读取储藏室失败',
+          });
         }
       });
     return () => controller.abort();
-  }, [enabled, kind, owner, page, refresh, search]);
+  }, [enabled, kind, owner, page, refresh, search, key]);
   const reload = useCallback(() => {
-    setView(undefined);
-    setError('');
+    setResult(undefined);
+    setFailure(undefined);
     setRefresh((value) => value + 1);
   }, []);
   return {
@@ -50,13 +54,13 @@ export function useCraftStorage(kind: InventoryKind, enabled: boolean) {
     page,
     search,
     setPage(value: number) {
-      setView(undefined);
-      setError('');
+      setResult(undefined);
+      setFailure(undefined);
       setPage(value);
     },
     setSearch(value: string) {
-      setView(undefined);
-      setError('');
+      setResult(undefined);
+      setFailure(undefined);
       setSearch(value);
       setPage(0);
     },

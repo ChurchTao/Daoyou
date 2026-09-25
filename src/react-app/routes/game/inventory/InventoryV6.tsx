@@ -9,11 +9,8 @@ import {
   isQiRestoreTalisman,
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
-import {
-  InventoryFilters,
-  matchesInventoryFilters,
-  type InventoryKind,
-} from '@app/components/feature/items/InventoryFilters';
+import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
+import { matchesInventoryFilters, type InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
