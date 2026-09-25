@@ -371,18 +371,20 @@ export function ForgingRoom() {
           footer={
             <div className="flex justify-end gap-3">
               <InkButton onClick={() => setDrawer(undefined)}>取消</InkButton>
-              <InkButton
-                disabled={
-                  session.locked || !!session.problem || session.intentTooLong
-                }
-                onClick={() => {
-                  setDrawer(undefined);
-                  setSelected(undefined);
-                  void session.submit();
-                }}
-              >
-                确认开炉
-              </InkButton>
+              <span data-guide="forge.confirm" className="inline-flex">
+                <InkButton
+                  disabled={
+                    session.locked || !!session.problem || session.intentTooLong
+                  }
+                  onClick={() => {
+                    setDrawer(undefined);
+                    setSelected(undefined);
+                    void session.submit();
+                  }}
+                >
+                  确认开炉
+                </InkButton>
+              </span>
             </div>
           }
         >

@@ -1,15 +1,17 @@
 import { InkButton } from '@app/components/ui';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
 import { getGuideLesson } from '@shared/guide/catalog';
 import {
   advanceGuide,
   createGuideState,
   currentGuideStep,
+  restoreGuideState,
   type GuideState,
 } from '@shared/guide/interpreter';
 import type { GuideStep } from '@shared/guide/schema';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ShownStep = Extract<GuideStep, { type: 'look' | 'press' }>;
 import { useSearchParams } from 'react-router';
@@ -85,61 +87,140 @@ function useAnchorHole(anchor: string | null) {
   return measured?.anchor === anchor ? measured.hole : null;
 }
 
+const GUIDE_RUNTIME_ID = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+function guideStorageKey(cultivatorId: string, lessonId: string): string {
+  return `daoyou:guide:v2:${cultivatorId}:${lessonId}`;
+}
+
+function readStoredGuideCursor(key: string): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as {
+      runtimeId?: unknown;
+      cursor?: unknown;
+    };
+    return parsed.runtimeId === GUIDE_RUNTIME_ID &&
+      Number.isInteger(parsed.cursor) &&
+      Number(parsed.cursor) >= 0
+      ? Number(parsed.cursor)
+      : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeStoredGuideCursor(key: string, cursor: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({ runtimeId: GUIDE_RUNTIME_ID, cursor }),
+    );
+  } catch {
+    // Current-run guide recovery is optional when storage is unavailable.
+  }
+}
+
+function clearStoredGuideCursor(key: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage denial.
+  }
+}
+
 export function GuideOverlay() {
   const [searchParams, setSearchParams] = useSearchParams();
   const lessonId = searchParams.get('guide');
   const story = useStory(Boolean(lessonId));
+  const player = usePlayerSession(Boolean(lessonId));
+  const cultivatorId = player.data?.activeCultivator?.id ?? null;
   const lesson = lessonId ? getGuideLesson(lessonId) : null;
   const allowed = Boolean(
-    lesson && !story.loading && story.story?.guideLesson === lessonId,
+    lesson &&
+      cultivatorId &&
+      !story.loading &&
+      !player.loading &&
+      story.story?.guideLesson === lessonId,
   );
+  const storageKey =
+    lessonId && cultivatorId ? guideStorageKey(cultivatorId, lessonId) : null;
 
   useEffect(() => {
-    if (!lessonId || story.loading || allowed) return;
+    if (!lessonId || story.loading || player.loading || allowed) return;
+    if (storageKey) clearStoredGuideCursor(storageKey);
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
         if (next.get('guide') !== lessonId) return current;
         next.delete('guide');
+        next.delete('guideStep');
         return next;
       },
       { replace: true },
     );
-  }, [allowed, lessonId, setSearchParams, story.loading]);
+  }, [
+    allowed,
+    lessonId,
+    player.loading,
+    setSearchParams,
+    storageKey,
+    story.loading,
+  ]);
 
-  if (!allowed || !lessonId) return null;
-  return <GuideSession key={lessonId} lessonId={lessonId} />;
+  if (!allowed || !lessonId || !storageKey) return null;
+  return (
+    <GuideSession
+      key={`${cultivatorId}:${lessonId}`}
+      lessonId={lessonId}
+      storageKey={storageKey}
+    />
+  );
 }
 
-function GuideSession({ lessonId }: { lessonId: string }) {
+function GuideSession({
+  lessonId,
+  storageKey,
+}: {
+  lessonId: string;
+  storageKey: string;
+}) {
   const [, setSearchParams] = useSearchParams();
   const lesson = getGuideLesson(lessonId);
-  const [state, setState] = useState<GuideState>(createGuideState);
+  const [state, setState] = useState<GuideState>(() =>
+    lesson
+      ? restoreGuideState(lesson, readStoredGuideCursor(storageKey))
+      : createGuideState(),
+  );
   const [noting, setNoting] = useState(false);
   const [noteError, setNoteError] = useState<string>();
   const [remembered, setRemembered] = useState<ShownStep | null>(null);
+  const notingRef = useRef(false);
   const step = lesson ? currentGuideStep(lesson, state) : null;
   const anchor = step && step.type !== 'end' ? step.anchor : null;
   const hole = useAnchorHole(anchor);
+  const totalSteps =
+    lesson?.steps.filter((entry) => entry.type !== 'end').length ?? 0;
+  const currentStepNumber = Math.min(state.cursor + 1, totalSteps);
 
-  const close = () => {
+  const close = useCallback(() => {
+    clearStoredGuideCursor(storageKey);
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
         next.delete('guide');
+        next.delete('guideStep');
         return next;
       },
       { replace: true },
     );
-  };
+  }, [setSearchParams, storageKey]);
 
-  const closeRef = useRef(close);
-  const notingRef = useRef(false);
-  useEffect(() => {
-    closeRef.current = close;
-  });
-
-  const finishLesson = () => {
+  const finishLesson = useCallback(() => {
     if (notingRef.current) return;
     notingRef.current = true;
     setNoting(true);
@@ -148,7 +229,10 @@ function GuideSession({ lessonId }: { lessonId: string }) {
       method: 'POST',
     })
       .then((response) => consumeResourceMutation(response))
-      .then(() => closeRef.current())
+      .then(() => {
+        clearStoredGuideCursor(storageKey);
+        close();
+      })
       .catch((reason: unknown) => {
         notingRef.current = false;
         setNoting(false);
@@ -156,57 +240,51 @@ function GuideSession({ lessonId }: { lessonId: string }) {
           reason instanceof Error ? reason.message : '这课没能记下，再试一次。',
         );
       });
-  };
+  }, [close, lessonId, storageKey]);
 
-  const finishRef = useRef(finishLesson);
   useEffect(() => {
-    finishRef.current = finishLesson;
-  });
+    if (state.finished) finishLesson();
+  }, [finishLesson, state.finished]);
 
-  const advance = () => {
-    if (!lesson || notingRef.current) return;
-    let finished = false;
-    setState((current) => {
-      const next = advanceGuide(lesson, current);
-      finished = next.finished && !current.finished;
-      return next;
-    });
-    if (finished && step && step.type !== 'end') setRemembered(step);
-    if (finished) finishRef.current();
-  };
+  const advance = useCallback(() => {
+    if (!lesson || notingRef.current || state.finished) return;
+    const active = currentGuideStep(lesson, state);
+    if (!active || active.type === 'end') return;
+    const next = advanceGuide(lesson, state);
+    writeStoredGuideCursor(storageKey, next.cursor);
+    if (next.finished) setRemembered(active);
+    setState(next);
+  }, [lesson, state, storageKey]);
 
   useEffect(() => {
     if (!lesson || step?.type !== 'press') return;
+    const expectedAnchor = step.anchor;
     const onClick = (event: MouseEvent) => {
       if (notingRef.current) return;
-      const node = document.querySelector(
-        `[data-guide="${step.anchor}"]`,
-      );
-      if (!(node instanceof HTMLElement)) return;
-      if (!(event.target instanceof Node) || !node.contains(event.target)) return;
-      let finished = false;
-      setState((current) => {
-        const next = advanceGuide(lesson, current);
-        finished = next.finished && !current.finished;
-        return next;
-      });
-      if (finished && step.type === 'press') setRemembered(step);
-      if (finished) finishRef.current();
+      const hit = event
+        .composedPath()
+        .some(
+          (entry) =>
+            entry instanceof HTMLElement &&
+            entry.dataset.guide === expectedAnchor,
+        );
+      if (!hit) return;
+      advance();
     };
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, [lesson, step]);
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [advance, lesson, step]);
 
   const visible = step && step.type !== 'end' ? step : remembered;
   if (!lesson || !visible || (!step && !state.finished)) return null;
 
   const calloutWidth = Math.min(288, window.innerWidth - 32);
-  const calloutHeight = 150;
+  const calloutHeight = 168;
   const bottomReserve = 120;
   const below = hole ? hole.top + hole.height + 12 : 0;
   const above = hole ? hole.top - 12 - calloutHeight : 0;
   const calloutTop = !hole
-    ? Math.max(96, window.innerHeight / 2 - 72)
+    ? Math.max(96, window.innerHeight / 2 - 84)
     : below + calloutHeight < window.innerHeight - bottomReserve
       ? below
       : above > 72
@@ -254,9 +332,12 @@ function GuideSession({ lessonId }: { lessonId: string }) {
               height: hole.height,
             }}
           />
-          {step?.type === 'look' || state.finished ? (
-            <div
-              className="pointer-events-auto absolute"
+          {step?.type === 'look' && !state.finished ? (
+            <button
+              type="button"
+              aria-label="继续教学"
+              onClick={advance}
+              className="pointer-events-auto absolute cursor-pointer bg-transparent"
               style={{
                 top: hole.top,
                 left: hole.left,
@@ -267,23 +348,30 @@ function GuideSession({ lessonId }: { lessonId: string }) {
           ) : null}
         </>
       ) : (
-        <div className="pointer-events-auto absolute inset-0 bg-[#1c1712]/72" />
+        <div className="pointer-events-none absolute inset-0 bg-[#1c1712]/55" />
       )}
 
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal={Boolean(hole)}
         aria-label={lesson.title}
         className="pointer-events-auto absolute bg-paper px-4 py-4 text-ink shadow-[0_12px_40px_rgba(28,23,18,0.28)]"
         style={{ top: calloutTop, left: calloutLeft, width: calloutWidth }}
       >
-        <p className="text-xs tracking-[0.22em] text-teal">教学</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs tracking-[0.22em] text-teal">教学</p>
+          {totalSteps > 0 ? (
+            <p className="text-ink-secondary text-xs font-mono">
+              {state.finished ? totalSteps : currentStepNumber}/{totalSteps}
+            </p>
+          ) : null}
+        </div>
         <p className="mt-2 text-base leading-7">
           {state.finished
             ? noteError ?? (noting ? '正在记下。' : visible.text)
             : hole
               ? visible.text
-              : '这一处还没出现。'}
+              : '这一处还没出现。可先完成当前页面操作，教学会自动跟上。'}
         </p>
         <div className="mt-3 flex items-center gap-4">
           {state.finished && noteError ? (

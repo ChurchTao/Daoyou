@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { advanceGuide, createGuideState, currentGuideStep } from './interpreter';
+import {
+  advanceGuide,
+  createGuideState,
+  currentGuideStep,
+  restoreGuideState,
+} from './interpreter';
 import { parseGuideLesson } from './schema';
 
 const lesson = parseGuideLesson({
@@ -24,6 +29,22 @@ describe('guide interpreter', () => {
     const done = advanceGuide(lesson, pressing);
     expect(done.finished).toBe(true);
     expect(currentGuideStep(lesson, done)).toBeNull();
+  });
+
+  it('restores a valid cursor and recognizes an end cursor', () => {
+    expect(restoreGuideState(lesson, 1)).toEqual({
+      cursor: 1,
+      finished: false,
+    });
+    expect(restoreGuideState(lesson, 2)).toEqual({
+      cursor: 2,
+      finished: true,
+    });
+    expect(restoreGuideState(lesson, -1)).toEqual(createGuideState());
+    expect(restoreGuideState(lesson, 999)).toEqual({
+      cursor: 2,
+      finished: true,
+    });
   });
 
   it('rejects a lesson that does not close', () => {

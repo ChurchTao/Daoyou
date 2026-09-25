@@ -10,17 +10,32 @@
     {
       "type": "press",
       "anchor": "forge.archive",
-      "text": "图纸在图录里。把炼气期法兵带出来。"
+      "text": "先去道装图录，找炼气期法兵图纸。"
     },
     {
       "type": "press",
       "anchor": "forge.blueprint",
-      "text": "带进器炉。"
+      "text": "把炼气期法兵带进器炉。若储物袋里没有，就切到储藏室。"
     },
     {
-      "type": "look",
+      "type": "press",
+      "anchor": "forge.material-slot",
+      "text": "图纸已经入炉。点第一格灵材位，准备这一炉的材料。"
+    },
+    {
+      "type": "press",
+      "anchor": "forge.qingshi",
+      "text": "把青石投入器炉。若当前页没有，可切到储藏室并搜索“青石”。"
+    },
+    {
+      "type": "press",
       "anchor": "forge.fire",
-      "text": "青石和灵石都齐了。点开炉铸造，兵器才会落进袋子。"
+      "text": "图纸、青石和灵石都齐了。点开炉铸造。"
+    },
+    {
+      "type": "press",
+      "anchor": "forge.confirm",
+      "text": "最后确认开炉。真正成器后，法兵才会收入储物袋或储藏室。"
     },
     { "type": "end" }
   ]
