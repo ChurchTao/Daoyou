@@ -201,8 +201,49 @@ describe('当前场次托管', () => {
       { id: 'guard', name: '护体', kind: 'guard', category: 'buff', attrMods: { physicalAtk: 1 } },
     ], battle.queryCommands('player'));
     expect(candidates[0].command).toMatchObject({ type: 'skill', skillId: 'strike' });
-    expect(candidates.find(c => c.command.type === 'skill' && c.command.skillId === 'ward')!.benefits.control).toBeCloseTo(1.2);
+    expect(candidates.find(c => c.command.type === 'skill' && c.command.skillId === 'ward')!.benefits.control).toBeCloseTo(0.12);
     expect(observation).toEqual(before);
+  });
+  it('普通增益排在有效攻击和必要治疗之后', () => {
+    const attack: SkillDef = {
+      id: 'small-attack', name: '攻击', tags: ['physical'], targeting: { side: 'enemy' },
+      effects: [{ type: 'fixedHit', power: 50 }],
+    };
+    const buff: SkillDef = {
+      id: 'buff', name: '增益', tags: ['support'], targeting: { side: 'self' },
+      effects: [{ type: 'applyStatus', statusId: 'aura', duration: 5, self: true }],
+    };
+    const definitions = [
+      { id: 'aura', name: '增益', kind: 'aura', category: 'buff' as const, physicalDefenseIgnore: 0.1 },
+    ];
+    const battle = fixture([attack.id, buff.id, 'heal'], [attack, buff, skills[0]]);
+    const rank = () => rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', definitions),
+      'player', [attack, buff, skills[0]], definitions, battle.queryCommands('player'),
+    );
+    expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: attack.id });
+    battle.unit('ally').attrs.hp = 800;
+    expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: 'heal' });
+  });
+  it('下回合休息与自身行动封锁状态只计算一次代价', () => {
+    const attack: SkillDef = {
+      id: 'resting-attack', name: '蓄力攻击', tags: ['physical'], targeting: { side: 'enemy' },
+      effects: [
+        { type: 'physicalHit', coeff: 2 },
+        { type: 'skipNextAction' },
+        { type: 'applyStatus', statusId: 'rest', duration: 1, self: true },
+      ],
+    };
+    const definitions = [
+      { id: 'rest', name: '休息', kind: 'rest', category: 'control' as const, blocksAction: true },
+    ];
+    const battle = fixture([attack.id], [attack]);
+    const candidate = rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', definitions),
+      'player', [attack], definitions, battle.queryCommands('player'),
+    ).find((entry) => entry.command.type === 'skill')!;
+    expect(candidate.benefits.survival).toBe(-15);
+    expect(candidate.benefits.control).toBe(0);
   });
   it('无蓝时不普攻隐身目标，有感知后可以攻击', () => {
     const battle = fixture([]);

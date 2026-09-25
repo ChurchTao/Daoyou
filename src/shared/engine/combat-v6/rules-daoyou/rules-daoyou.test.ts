@@ -176,7 +176,7 @@ describe("Daoyou formulas", () => {
     expect(daoyouFormulas.spellHitChance(source, target)).toBe(1)
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBe(0.75)
     source.attrs.hit = -1000
-    expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.2)
+    expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.6)
     source.attrs.hit = 1000
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(1)
     source.attrs.spellCultivate = 0
@@ -184,6 +184,15 @@ describe("Daoyou formulas", () => {
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(0.35)
     source.attrs.sealHit = 1000
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBe(0.9)
+  })
+
+  it("keeps normal high-level physical matchups below the dodge cap", () => {
+    const attacker = unit({ hp: 100, speed: 1, physicalAtk: 1, physicalDef: 0, hit: 405 }, 150)
+    const defender = unit({ hp: 100, speed: 1, physicalAtk: 1, physicalDef: 0, dodge: 460 }, 150)
+    expect(daoyouFormulas.physicalHitChance(attacker, defender)).toBeCloseTo(0.675)
+    attacker.attrs.hit = 330
+    defender.attrs.dodge = 250
+    expect(daoyouFormulas.physicalHitChance(attacker, defender)).toBeCloseTo(0.9)
   })
 })
 

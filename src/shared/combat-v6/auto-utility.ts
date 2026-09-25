@@ -100,6 +100,9 @@ export function rankAutoActions(
     const benefits = empty();
     const intentions: AutoIntent[] = [];
     const notes = new Set<string>(['未知属性按观察者基线估算；不推演被动连锁']);
+    const skipsNextAction = skill.effects.some(
+      (effect) => effect.type === 'skipNextAction' && !effect.when,
+    );
     function effects(
       values: readonly SkillEffect[],
       initial: Unit[],
@@ -390,12 +393,19 @@ export function rankAutoActions(
                 ? Math.min(8, Object.entries(def.attrMods).reduce((sum, [attr, amount]) =>
                     sum + Math.abs(value(amount)) / Math.max(1, Math.abs(target.attrs[attr as keyof typeof target.attrs])) * 20, 0))
                 : 8;
+              const controlDuration =
+                def?.blocksAction && target.id === source.id && skipsNextAction
+                  ? Math.max(0, duration - 1)
+                  : duration;
               control =
                 sign *
-                duration *
+                controlDuration *
                 (def?.protectsTarget ? Math.max(0, 1 - ratio(target)) * 8 : def?.blocksAction ? 14 : def?.blocksArts ? 2 : def?.blockedCommands?.length === 1 ? 4 : attributeValue) *
                 chance *
                 coordination;
+              // A buff's future benefit is less certain than damage or healing now.
+              if (def?.category === 'buff' && friendly && !harmful)
+                control *= 0.1;
               if (probability * chance >= 0.5)
                 intent.statuses.push(effect.statusId);
               if (!def)

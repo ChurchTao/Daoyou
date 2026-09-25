@@ -542,10 +542,7 @@ function GameDungeonLayoutBody() {
   }, [descriptor, updateScrollState]);
 
   return (
-    <div
-      className="bg-paper h-screen overflow-hidden"
-      style={dungeonLayoutStyle}
-    >
+    <div className="bg-paper h-dvh overflow-hidden" style={dungeonLayoutStyle}>
       <div className="relative h-full overflow-hidden">
         {!isImmersiveBattleScene && (
           <DungeonSceneChrome chromeRef={chromeRef} isScrolled={isScrolled} />

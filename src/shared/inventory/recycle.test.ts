@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { RecycleRequestSchema } from '../contracts/recycle';
+import {
+  MAX_RECYCLE_SELECTION,
+  RecycleRequestSchema,
+} from '../contracts/recycle';
 import { generateForgedEquipment } from '../engine/combat-v6/equipment/forging';
 import { buildSpiritFieldSeedDetails } from '../engine/spirit-field/seedMaterial';
 import type { SpiritFieldPlantSnapshot } from '../engine/spirit-field/types';
@@ -77,6 +80,25 @@ describe('回收边界', () => {
         .success,
     ).toBe(false);
   });
+  it('批量回收允许 200 格，拒绝超过上限的选择', () => {
+    const items = Array.from(
+      { length: MAX_RECYCLE_SELECTION + 1 },
+      (_, index) => ({
+        id: `item-${index}`,
+        revision: 0,
+        quantity: 1,
+      }),
+    );
+    expect(
+      RecycleRequestSchema.safeParse({
+        phase: 'preview',
+        items: items.slice(0, -1),
+      }).success,
+    ).toBe(true);
+    expect(
+      RecycleRequestSchema.safeParse({ phase: 'preview', items }).success,
+    ).toBe(false);
+  });
   it('实例材料允许随身和储藏室回收', () => {
     const item = {
       id: 'material',
@@ -146,7 +168,9 @@ describe('回收边界', () => {
     };
     expect(recycleBlockingReason(blueprint)).toBeNull();
     expect(blueprintRecycleUnitPrice(10)).toBe(20);
-    expect(recycleBlockingReason({ ...blueprint, location: 'storage' })).toBeNull();
+    expect(
+      recycleBlockingReason({ ...blueprint, location: 'storage' }),
+    ).toBeNull();
     const generated = generateForgedEquipment({
       id: 'equipment',
       createdAt: '2026-09-25T00:00:00Z',
