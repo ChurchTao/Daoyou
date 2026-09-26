@@ -305,21 +305,27 @@ function MarketWorkspace({
             role="group"
             aria-label="货架层级"
           >
-            {layers.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                aria-pressed={layer === item.value}
-                disabled={pending}
-                onClick={() => {
-                  if (!busy.current && layer !== item.value)
-                    onNavigate(nodeId, item.value);
-                }}
-                className={`focus-visible:outline-crimson min-h-9 px-3 text-sm transition-colors disabled:opacity-50 ${layer === item.value ? 'bg-crimson/8 text-crimson' : 'text-ink-secondary hover:bg-ink/5 hover:text-ink'}`}
-              >
-                {item.label}
-              </button>
-            ))}
+            {layers
+              .filter((item) =>
+                currentNode?.allowedLayers.includes(
+                  item.value as MarketBuyInput['layer'],
+                ),
+              )
+              .map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  aria-pressed={layer === item.value}
+                  disabled={pending}
+                  onClick={() => {
+                    if (!busy.current && layer !== item.value)
+                      onNavigate(nodeId, item.value);
+                  }}
+                  className={`focus-visible:outline-crimson min-h-9 px-3 text-sm transition-colors disabled:opacity-50 ${layer === item.value ? 'bg-crimson/8 text-crimson' : 'text-ink-secondary hover:bg-ink/5 hover:text-ink'}`}
+                >
+                  {item.label}
+                </button>
+              ))}
           </div>
           <div className="text-ink-secondary flex items-center justify-between gap-2 text-xs">
             <span>
@@ -362,19 +368,25 @@ function MarketWorkspace({
                 <ItemSlot
                   item={{
                     definitionId:
-                      item.type === 'seed' ? 'seed.v1' : 'material.v1',
+                      'definitionId' in item
+                        ? item.definitionId
+                        : item.type === 'seed'
+                          ? 'seed.v1'
+                          : 'material.v1',
                     name: item.name,
                     quantity: item.quantity,
                     instanceData:
-                      item.type === 'seed'
-                        ? { seedPreview: item.details?.seedPreview }
-                        : {
-                            name: item.name,
-                            type: item.type,
-                            rank: item.rank,
-                            element: item.element ?? null,
-                            description: item.description ?? '',
-                          },
+                      'definitionId' in item
+                        ? undefined
+                        : item.type === 'seed'
+                          ? { seedPreview: item.details?.seedPreview }
+                          : {
+                              name: item.name,
+                              type: item.type,
+                              rank: item.rank,
+                              element: item.element ?? null,
+                              description: item.description ?? '',
+                            },
                   }}
                   className="w-full"
                   quantityLabel="库存"
@@ -391,7 +403,7 @@ function MarketWorkspace({
                 >
                   {(close) => (
                     <div className="space-y-2">
-                      {item.type === 'seed' ? (
+                      {!('definitionId' in item) && item.type === 'seed' ? (
                         <p className="text-ink-secondary">
                           购入后放入物品栏，供灵田播种。
                         </p>

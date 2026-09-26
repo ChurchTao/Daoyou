@@ -62,6 +62,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   TN_YW_01: [0.69, 0.43],
   TN_XI_01: [0.32, 0.19],
   TN_BAICAO_01: [0.43, 0.405],
+  TN_YULING_01: [0.53, 0.32],
   TN_ZMG_01: [0.845, 0.17],
   TN_BORDER_01: [0.155, 0.385],
   SAT_TN_01: [0.345, 0.525],

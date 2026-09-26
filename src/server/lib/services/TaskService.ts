@@ -5,7 +5,6 @@ import {
 } from '@server/lib/drizzle/db';
 import {
   findActiveCultivatorTaskProgressById,
-  findHighestCultivatorTechniqueQuality,
   getCultivatorBreakthroughPillQuantities,
   type CultivatorBreakthroughPillRecord,
 } from '@server/lib/repositories/cultivatorRepository';
@@ -22,12 +21,7 @@ import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import { getBreakthroughPillLabel } from '@shared/lib/breakthroughPill';
 import { isConditionStatusActive } from '@shared/lib/condition';
 import type { ConditionStatusKey } from '@shared/types/condition';
-import {
-  QUALITY_ORDER,
-  REALM_ORDER,
-  type Quality,
-  type RealmType,
-} from '@shared/types/constants';
+import { REALM_ORDER, type RealmType } from '@shared/types/constants';
 import type { CultivationProgress, Cultivator } from '@shared/types/cultivator';
 import type { MailAttachment } from '@shared/types/mail';
 import type {
@@ -78,7 +72,6 @@ interface TaskProgressContext {
   realmStage: Cultivator['realm_stage'];
   cultivationProgress: Cultivator['cultivation_progress'];
   condition: Cultivator['condition'];
-  highestTechniqueQuality: Quality | null;
   breakthroughPillQuantities: Partial<Record<RealmType, number>>;
   genericBreakthroughPillQuantity: number;
 }
@@ -157,10 +150,6 @@ function toIsoString(value: Date | string | null | undefined): string | null {
   return value.toISOString();
 }
 
-function isKnownQuality(value: string | null | undefined): value is Quality {
-  return Boolean(value && value in QUALITY_ORDER);
-}
-
 function hasActiveStatus(
   context: TaskProgressContext,
   statusKey: Extract<
@@ -219,10 +208,9 @@ async function loadTaskProgressContextOrThrow(
   options: TaskServiceWriteOptions = {},
 ): Promise<TaskProgressContext> {
   const q = options.tx ?? getExecutor();
-  const [record, highestTechniqueQuality, breakthroughPills] =
+  const [record, breakthroughPills] =
     await runDbTasks(q, [
       () => findActiveCultivatorTaskProgressById(cultivatorId, q),
-      () => findHighestCultivatorTechniqueQuality(cultivatorId, q),
       () => getCultivatorBreakthroughPillQuantities(cultivatorId, q),
     ]);
 
@@ -242,9 +230,6 @@ async function loadTaskProgressContextOrThrow(
     condition:
       (record.condition as Cultivator['condition'] | null | undefined) ??
       undefined,
-    highestTechniqueQuality: isKnownQuality(highestTechniqueQuality)
-      ? highestTechniqueQuality
-      : null,
     ...buildBreakthroughPillInventory(breakthroughPills),
   };
 }
@@ -416,42 +401,6 @@ function resolveObjectiveProgress(
           description: definition.description,
           completed,
           progressText: `${currentInsight}/${definition.threshold}`,
-        },
-      };
-    }
-    case 'technique_quality_at_least': {
-      const currentQuality = context.highestTechniqueQuality;
-      const completed =
-        currentQuality !== null &&
-        QUALITY_ORDER[currentQuality] >= QUALITY_ORDER[definition.threshold];
-      const nextState = completed
-        ? completeObjectiveState(
-            {
-              ...createDefaultObjectiveState(definition.id),
-              ...state,
-              objectiveId: definition.id,
-            },
-            QUALITY_ORDER[currentQuality!],
-            nowIso,
-          )
-        : {
-            ...createDefaultObjectiveState(definition.id),
-            ...state,
-            objectiveId: definition.id,
-            progressValue:
-              currentQuality !== null ? QUALITY_ORDER[currentQuality] : 0,
-            updatedAt: nowIso,
-          };
-
-      return {
-        objectiveState: nextState,
-        progress: {
-          id: definition.id,
-          kind: definition.kind,
-          title: definition.title,
-          description: definition.description,
-          completed,
-          progressText: `${currentQuality ?? '未得'} / 至少 ${definition.threshold}`,
         },
       };
     }

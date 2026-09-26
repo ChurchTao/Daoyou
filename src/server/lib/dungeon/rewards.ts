@@ -2,6 +2,7 @@ import type { DbExecutor } from '@server/lib/drizzle/db';
 import { generateRealmMaterials } from '@server/lib/services/MaterialRewardService';
 import { getRealmStageLevel } from '@shared/config/realmProgression';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@shared/rewards/dungeon-material-quality';
 import {
   getMapNode,
   resolveDungeonMapConfig,
@@ -43,6 +44,7 @@ export async function resolveDungeonReward(
     plan.materialSeed,
     true,
     executor,
+    DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM[plan.materialRealm],
   );
   return {
     key,

@@ -83,21 +83,21 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
     id: 'major_breakthrough_筑基_金丹',
     category: 'breakthrough_major',
     title: '凝丹之机',
-    summary: '丹药只是外力，先让功法与丹意都够得上，再去试炼阵中凝气成丹。',
+    summary: '先借丹药稳住冲关之势，再去试炼阵中凝气成丹。',
     fromRealm: '筑基',
     toRealm: '金丹',
     taskTheme: 'core',
     stages: [
       {
         id: 'core-prep',
-        title: '丹法并备',
+        title: '凝破境意',
         description:
-          '结丹前需借降尘丹压住丹田火候，再以玄品功法稳住成丹根基。降尘丹可在炼丹房以“结丹、凝丹、冲关蓄势”之类丹意炼制，也可去修仙坊市寻访。',
-        completionText: '破境凝神与功法已备，凝丹条件已成。',
+          '结丹前需借降尘丹压住丹田火候，获得「破境凝神」状态。降尘丹可在炼丹房以“结丹、凝丹、冲关蓄势”之类丹意炼制，也可去修仙坊市寻访。',
+        completionText: '破境凝神已成，可以前往试炼阵。',
         links: [
           { label: '去炼丹房', kind: 'alchemy' },
           { label: '去修仙坊市', kind: 'market' },
-          { label: '看所修功法', kind: 'tasks' },
+          { label: '看任务中心', kind: 'tasks' },
         ],
         objectives: [
           {
@@ -106,13 +106,6 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
             title: '具备「破境凝神」',
             description: '服用降尘丹或（任何含有「破境凝神」效果的丹药）获得',
             statusKey: 'breakthrough_focus',
-          },
-          {
-            id: 'quality-threshold',
-            kind: 'technique_quality_at_least',
-            title: '功法至少达玄品',
-            description: '结丹更看道基深浅，所修最高功法需达到玄品。',
-            threshold: '玄品',
           },
         ],
       },
@@ -130,7 +123,7 @@ const breakthroughDefinitions: BreakthroughTaskDefinition[] = [
             id: 'clear-trial',
             kind: 'complete_dungeon',
             title: '通过黄枫谷后山禁地',
-            description: '完成一次结丹前试炼，验证功法与丹意能否并行。',
+            description: '完成一次结丹前试炼，验证丹田能否承受凝丹之势。',
             mapNodeId: 'SAT_TN_04',
             mapNodeName: '越国·黄枫谷后山禁地',
           },

@@ -19,6 +19,7 @@ import {
   createDaoyouRuleset,
   daoyouDeterministicRuleset,
   daoyouFormulas,
+  daoyouFormulasV3,
   physicalBase,
   splashFactor,
 } from "./index.ts"
@@ -118,6 +119,42 @@ describe("Daoyou formulas", () => {
         targetCount: 5,
       }),
     ).toBe(91)
+  })
+
+  it("scales player spell attack to the physical single-hit band and keeps a defense floor", () => {
+    const spellStrike = (
+      magicAtk: number,
+      magicDef: number,
+      power: number,
+      kind: LineupUnit["kind"] = UnitKind.Player,
+    ) =>
+      daoyouFormulasV3.baseDamage({
+        family: FormulaFamily.Spell,
+        kind: "spell",
+        source: unit({ hp: 100, speed: 1, physicalAtk: 1, physicalDef: 0, magicAtk }, 100, kind),
+        target: unit({ hp: 100, speed: 1, physicalAtk: 1, physicalDef: 0, magicDef }, 100),
+        coeff: 1,
+        power,
+        fury: false,
+      })
+
+    // 化神圆满、强化装与对应阵纹：全力量打全灵力，全灵力打全力量。
+    const physical = baseDamage({
+      family: FormulaFamily.Physical,
+      kind: "physical",
+      source: unit({ hp: 100, speed: 1, physicalAtk: 1514, physicalDef: 0 }, 100, UnitKind.Player),
+      target: unit({ hp: 100, speed: 1, physicalAtk: 1, physicalDef: 615 }),
+      coeff: 1,
+      power: 0,
+      fury: false,
+    })
+    const spell = spellStrike(1128, 902, 120)
+    expect(spell / physical).toBeGreaterThan(0.9)
+    expect(spell / physical).toBeLessThan(1.05)
+    expect(spellStrike(1128, 1534, 120)).toBeGreaterThan(400)
+    expect(spellStrike(100, 1000, 0)).toBe(17)
+    expect(spellStrike(100, 20, 0, UnitKind.Npc)).toBe(80)
+    expect(spellStrike(100, 1000, 0, UnitKind.Pet)).toBe(1)
   })
 
   it("keeps fixed and judge damage independent from panels and cultivation", () => {

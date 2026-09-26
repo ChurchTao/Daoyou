@@ -381,7 +381,6 @@ const taskObjectiveProgressSchema = z
       'auto_complete',
       'craft_breakthrough_pill',
       'insight_at_least',
-      'technique_quality_at_least',
       'status_active',
       'complete_dungeon',
       'win_task_challenge',

@@ -138,6 +138,13 @@ export const REGION_PROFILES: Record<RegionProfileKey, RegionProfile> = {
     signatureTags: ['灵种', '苗圃', '灵植商盟', '百草集'],
     signatureRatio: 0.65,
   },
+  beast: {
+    typeWeights: {},
+    priceModifier: { min: 1, max: 1 },
+    layerOverrides: {},
+    signatureTags: ['传承灵印', '归元灵露', '灵兽商盟'],
+    signatureRatio: 0,
+  },
   default: {
     typeWeights: {},
     priceModifier: { min: 0.85, max: 1.25 },
@@ -166,6 +173,10 @@ const REGION_MARKET_FLAVOR: Record<
   baicao: {
     title: '百草灵种集',
     description: '山谷苗圃绵延成片，各地灵种按品相与灵性分区流通。',
+  },
+  beast: {
+    title: '御灵集',
+    description: '驭兽师与灵印匠汇聚于此，传承灵印和归元灵露按批流通。',
   },
   default: {
     title: '云游坊市',

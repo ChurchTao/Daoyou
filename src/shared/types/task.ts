@@ -1,5 +1,5 @@
 import type { ConditionStatusKey } from './condition';
-import type { Quality, RealmType } from './constants';
+import type { RealmType } from './constants';
 import type { MailAttachment } from './mail';
 import type { DailyTaskDifficulty } from '@shared/engine/cultivation/exp-gain-strategies/types';
 
@@ -25,7 +25,6 @@ export type TaskObjectiveKind =
   | 'auto_complete'
   | 'craft_breakthrough_pill'
   | 'insight_at_least'
-  | 'technique_quality_at_least'
   | 'status_active'
   | 'complete_dungeon'
   | 'win_task_challenge'
@@ -58,12 +57,6 @@ export interface InsightAtLeastObjectiveDefinition
   extends TaskObjectiveDefinitionBase {
   kind: 'insight_at_least';
   threshold: number;
-}
-
-export interface TechniqueQualityAtLeastObjectiveDefinition
-  extends TaskObjectiveDefinitionBase {
-  kind: 'technique_quality_at_least';
-  threshold: Quality;
 }
 
 export interface StatusActiveObjectiveDefinition
@@ -99,7 +92,6 @@ export type TaskObjectiveDefinition =
   | AutoCompleteObjectiveDefinition
   | CraftBreakthroughPillObjectiveDefinition
   | InsightAtLeastObjectiveDefinition
-  | TechniqueQualityAtLeastObjectiveDefinition
   | StatusActiveObjectiveDefinition
   | CompleteDungeonObjectiveDefinition
   | WinTaskChallengeObjectiveDefinition

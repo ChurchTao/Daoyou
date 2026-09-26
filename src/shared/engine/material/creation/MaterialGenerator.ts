@@ -196,8 +196,10 @@ export class MaterialGenerator {
     const rand = rng();
     let accumulated = 0;
     for (const quality of QUALITY_VALUES) {
-      accumulated += qualityChanceMap[quality] || 0;
-      if (rand <= accumulated) return quality;
+      const chance = qualityChanceMap[quality] || 0;
+      if (chance <= 0) continue;
+      accumulated += chance;
+      if (rand < accumulated) return quality;
     }
     return '凡品';
   }

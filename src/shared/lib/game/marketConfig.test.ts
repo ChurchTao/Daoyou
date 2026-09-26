@@ -35,6 +35,7 @@ describe('marketConfig display helpers', () => {
     expect(ids).toContain('LX_INNER_01');
     expect(ids).toContain('DJ_CENTRAL_01');
     expect(ids).toContain('TN_BAICAO_01');
+    expect(ids).toContain('TN_YULING_01');
     expect(ids).not.toContain('TN_YUE_02');
     expect(options.find((option) => option.id === 'DJ_CENTRAL_01')).toMatchObject({
       name: '大晋·晋京',
@@ -46,6 +47,12 @@ describe('marketConfig display helpers', () => {
       region: '天南',
       allowedLayers: ['common', 'treasure', 'heaven'],
       dominantMaterialTypes: ['seed', 'herb', 'aux'],
+    });
+    expect(
+      options.find((option) => option.id === 'TN_YULING_01'),
+    ).toMatchObject({
+      name: '天南·御灵集',
+      allowedLayers: ['common'],
     });
   });
 

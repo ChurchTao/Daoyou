@@ -50,11 +50,14 @@ export async function generateRealmMaterials(
   seed: string,
   unitQuantity = false,
   executor?: DbExecutor,
+  qualityChanceMap?: Record<Quality, number>,
 ): Promise<Material[]> {
+  const chanceMap =
+    qualityChanceMap ?? YieldCalculator.getMaterialQualityChanceMap(realm);
   const skeletons = MaterialGenerator.generateRandomSkeletons(
     count,
     {
-      qualityChanceMap: YieldCalculator.getMaterialQualityChanceMap(realm),
+      qualityChanceMap: chanceMap,
     },
     createDeterministicRng(`${seed}-plan`),
   );
@@ -65,7 +68,9 @@ export async function generateRealmMaterials(
     const materialSeed = `${seed}:${index}`;
     const request = {
       materialTypes: buildMaterialTypePreferences(skeleton.type, materialSeed),
-      qualities: buildQualityPreferences(skeleton.rank),
+      qualities: buildQualityPreferences(skeleton.rank).filter(
+        (quality) => !qualityChanceMap || qualityChanceMap[quality] > 0,
+      ),
       seed: materialSeed,
     };
     let entry = await sampleMaterialLibraryEntryByPreferences(

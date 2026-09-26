@@ -40,7 +40,7 @@ describe('atlas single-purpose locations', () => {
     ).toHaveLength(31);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'market'),
-    ).toHaveLength(7);
+    ).toHaveLength(8);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'sect'),
     ).toHaveLength(5);
@@ -72,6 +72,7 @@ describe('atlas single-purpose locations', () => {
       'DJ_CENTRAL_01',
       'LX_INNER_01',
       'TN_BAICAO_01',
+      'TN_YULING_01',
     ]) {
       expect(getAtlasCategory(location(id))).toBe('market');
     }

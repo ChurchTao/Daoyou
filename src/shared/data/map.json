@@ -67,6 +67,19 @@
       "description": "天南诸家灵植夫与采药人共同经营的山谷集市，苗圃连绵，四方灵种在此分级封存、交换流通。"
     },
     {
+      "id": "TN_YULING_01",
+      "name": "天南·御灵集",
+      "region": "天南",
+      "realm_requirement": "炼气",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common"],
+        "region_profile": "beast"
+      },
+      "tags": ["灵兽商盟", "传承灵印", "归元灵露"],
+      "description": "天南驭兽师汇集的坊市，灵印匠与灵药师在此售卖灵兽传承和洗炼灵露。"
+    },
+    {
       "id": "TN_ZMG_01",
       "name": "坠魔谷",
       "region": "天南",

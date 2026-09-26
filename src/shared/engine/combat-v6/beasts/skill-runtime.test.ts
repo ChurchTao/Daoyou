@@ -27,7 +27,7 @@ it.each([
         id: 'source',
         name: '施法者',
         side: 0,
-        kind: 'player',
+        kind: 'pet',
         skills: [skill.id],
         skillLevels: { [skill.id]: level },
         attrs: {

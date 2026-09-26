@@ -52,38 +52,6 @@ export async function hasCultivatorRecoveryPill(
   return Number(result?.count ?? 0) > 0;
 }
 
-export async function findHighestCultivatorTechniqueQuality(
-  cultivatorId: string,
-  q: DbExecutor = getExecutor(),
-): Promise<string | null> {
-  const [row] = await q
-    .select({
-      quality: schema.creationProducts.quality,
-    })
-    .from(schema.creationProducts)
-    .where(
-      and(
-        eq(schema.creationProducts.cultivatorId, cultivatorId),
-        eq(schema.creationProducts.productType, 'gongfa'),
-      ),
-    )
-    .orderBy(
-      sql`case ${schema.creationProducts.quality}
-        when '神品' then 7
-        when '仙品' then 6
-        when '天品' then 5
-        when '地品' then 4
-        when '真品' then 3
-        when '玄品' then 2
-        when '灵品' then 1
-        when '凡品' then 0
-        else -1
-      end desc`,
-    )
-    .limit(1);
-  return row?.quality ?? null;
-}
-
 export async function findActiveCultivatorIdByUserId(
   userId: string,
   q: DbExecutor = getExecutor(),

@@ -433,7 +433,7 @@ describe('天衍节点组合收益回归', () => {
       expect(Math.abs(values[1] - values[0] * 1.25)).toBeLessThan(2);
     }
   });
-  it('余火以延迟两跳换取高气血目标的完整周期收益，仍受气血比例限制', () => {
+  it('余火用两段固定伤害替换燎原的额外目标，高气血下额外法术目标更高', () => {
     const totals: number[] = [];
     for (const nodes of [['1.1'], ['1.1', '2.1']]) {
       const { b } = setup('hetu', nodes);
@@ -443,7 +443,7 @@ describe('天衍节点组合收益回归', () => {
       round(b);
       totals.push(b.log().filter(e => e.type === 'damage' && e.sourceId === 's').reduce((n, e) => n + (e.type === 'damage' ? e.amount : 0), 0));
     }
-    expect(totals).toEqual([4056, 4418]);
+    expect(totals).toEqual([7220, 6791]);
     const { b } = setup('hetu', ['2.1']);
     seal(b, 'wood');
     round(b, { s: cmd('fire') });

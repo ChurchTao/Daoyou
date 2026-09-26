@@ -3,7 +3,7 @@ import type { Material } from './cultivator';
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 export type RegionProfileKey =
-  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'default';
+  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'beast' | 'default';
 
 /** 材料库不足时允许使用内存预设兜底的低层市场 */
 export const MARKET_PRESET_FALLBACK_LAYERS: MarketLayer[] = [
@@ -97,7 +97,7 @@ export interface MysteryDetails {
   };
 }
 
-export type MarketListing = MarketListingBase &
+export type MarketMaterialListing = MarketListingBase &
   Omit<Material, 'id' | 'price' | 'quantity'> & {
     quantity: number;
     isMystery?: boolean;
@@ -106,6 +106,14 @@ export type MarketListing = MarketListingBase &
       disguisedName: string;
     };
   };
+
+export type MarketItemListing = MarketListingBase & {
+  definitionId: string;
+  name: string;
+  quantity: number;
+};
+
+export type MarketListing = MarketMaterialListing | MarketItemListing;
 
 export interface MysteryRevealContext {
   type: MaterialType;

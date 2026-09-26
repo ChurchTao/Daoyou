@@ -1,6 +1,7 @@
 import {
   DamageKind,
   FormulaFamily,
+  UnitKind,
   type FormulaSet,
   type SchoolTerm,
   type SplashSpec,
@@ -50,11 +51,21 @@ export function spellBase(magicAtk: number, magicDef: number, power: number): nu
   return Math.max(DaoyouRule.minDamage, magicAtk - magicDef + power)
 }
 
+/** 人物法攻放大后再减法防；法防达到放大后法攻的九成时，保底一成法攻。其他单位仍用法攻减法防。 */
+function spellMargin(source: Unit, magicDef: number): number {
+  const magicAtk = source.attrs.magicAtk
+  if (source.kind !== UnitKind.Player) return magicAtk - magicDef
+  const attack = Math.max(0, magicAtk) * DaoyouRule.playerSpellAttackScale
+  if (attack <= 0) return 0
+  if (magicDef >= attack * DaoyouRule.unbrokenDefRatio) return attack * DaoyouRule.unbrokenAtkRatio
+  return Math.max(0, attack - magicDef)
+}
+
 function magicStrike(input: StrikeFormulaInput): number {
   const src = input.source.attrs
   const dst = input.target.attrs
   const term = schoolTermValue(input.schoolTerm, input.skillLevel ?? 0) + input.power
-  const raw = src.magicAtk - dst.magicDef + term
+  const raw = spellMargin(input.source, dst.magicDef) + term
   const splashed = raw * splashFactor(input.splash, input.targetCount ?? 1)
   return finish(applyCultivate(splashed, src.spellCultivate - dst.resistSpellCultivate))
 }
@@ -63,7 +74,7 @@ function magicStrikeV3(input: StrikeFormulaInput): number {
   const src = input.source.attrs
   const dst = input.target.attrs
   const schoolPower = schoolTermValue(input.schoolTerm, input.skillLevel ?? 0) + input.power
-  const raw = (src.magicAtk - dst.magicDef + schoolPower) * input.coeff
+  const raw = (spellMargin(input.source, dst.magicDef) + schoolPower) * input.coeff
   return finish(applyCultivate(raw * splashFactor(input.splash, input.targetCount ?? 1), src.spellCultivate - dst.resistSpellCultivate))
 }
 

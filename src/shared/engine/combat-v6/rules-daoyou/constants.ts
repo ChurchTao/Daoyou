@@ -8,6 +8,9 @@ export const DaoyouRule = {
   physicalFuryAtkMultiplier: 1.5,
   defendPhysicalFactor: 0.5,
   physicalCoefficient: 1.3,
+  // 人物法攻先乘此系数再减法防。武器白字物攻远高于法攻，物理结算另有上面的 1.3；
+  // 1.7 使同境界、全力量对全灵力的单体系数伤害接近。灵兽和敌人的法攻已按自身曲线标定，不乘。
+  playerSpellAttackScale: 1.7,
   unbrokenDefRatio: 0.9,
   unbrokenAtkRatio: 0.1,
   cultivateRate: 0.02,

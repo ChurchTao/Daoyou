@@ -24,11 +24,13 @@ import {
 } from '@shared/engine/spirit-field';
 import { readSpiritFieldSeedSpec } from '@shared/engine/spirit-field/seedMaterial';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import { findItemDefinition } from '@shared/items/registry';
 import {
   evaluateFateContext,
   getMarketPurchasePriceMultiplier,
   scaleFateAdjustedCost,
 } from '@shared/lib/fates';
+import { sampleBeastMarketStock } from '@shared/lib/game/beastMarket';
 import {
   BLACK_MARKET_HIGH_TIER_MIN,
   getCurrentCycle,
@@ -49,8 +51,10 @@ import { QUALITY_ORDER, QUALITY_VALUES } from '@shared/types/constants';
 import type { PreHeavenFate } from '@shared/types/cultivator';
 import type {
   MarketAccessState,
+  MarketItemListing,
   MarketLayer,
   MarketListing,
+  MarketMaterialListing,
   MysteryRevealContext,
   RegionProfile,
   ResolvedLayerConfig,
@@ -58,6 +62,7 @@ import type {
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@shared/types/market';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
+import { grantInventory } from './InventoryService';
 import { deliverMarketMaterial } from './MarketInventoryDelivery';
 import {
   sanitizeMaterialDetails,
@@ -87,10 +92,11 @@ type CachedMarketData = {
   generatedAt: number;
 };
 
-type InternalMarketListing = MarketListing & {
+type InternalMarketMaterialListing = MarketMaterialListing & {
   mysteryContext?: MysteryRevealContext;
   mysteryReveal?: HiddenMysteryReveal;
 };
+type InternalMarketListing = InternalMarketMaterialListing | MarketItemListing;
 
 export type BatchBuyInput = {
   nodeId: string;
@@ -398,10 +404,10 @@ function buildMysteryMask(type: MaterialType) {
 }
 
 function applyMysteryLayer(
-  listings: InternalMarketListing[],
+  listings: InternalMarketMaterialListing[],
   mysteryChance: number,
   layerConfig: ResolvedLayerConfig,
-): InternalMarketListing[] {
+): InternalMarketMaterialListing[] {
   return listings.map((item) => {
     if (Math.random() > mysteryChance) return item;
 
@@ -456,6 +462,7 @@ function applyMysteryLayer(
 // ─── 列表清理 ───
 
 function sanitizeListing(listing: InternalMarketListing): MarketListing {
+  if ('definitionId' in listing) return listing;
   const seedSpec =
     listing.type === 'seed' ? readSpiritFieldSeedSpec(listing.details) : null;
   return {
@@ -526,8 +533,8 @@ function generateFromPresets(
   layer: MarketLayer,
   profile: RegionProfile,
   layerConfig: ResolvedLayerConfig,
-): InternalMarketListing[] {
-  const listings: InternalMarketListing[] = [];
+): InternalMarketMaterialListing[] {
+  const listings: InternalMarketMaterialListing[] = [];
 
   for (let i = 0; i < layerConfig.count; i++) {
     const type = weightedPickType(profile);
@@ -643,7 +650,7 @@ function buildListingFromLibraryMaterial(args: {
   layer: MarketLayer;
   material: ReturnType<typeof materialLibraryEntryToMaterial>;
   priceModifier: RegionProfile['priceModifier'];
-}): InternalMarketListing {
+}): InternalMarketMaterialListing {
   return {
     id: crypto.randomUUID(),
     nodeId: args.nodeId,
@@ -670,11 +677,11 @@ async function generateFromMaterialLibrary(
   profile: RegionProfile,
   layerConfig: ResolvedLayerConfig,
   options: { warnShortage: boolean },
-): Promise<InternalMarketListing[]> {
+): Promise<InternalMarketMaterialListing[]> {
   const requests = buildMarketSampleRequests(layer, profile, layerConfig);
 
   const sampled = await sampleMaterialLibraryEntries(requests);
-  const listings: InternalMarketListing[] = [];
+  const listings: InternalMarketMaterialListing[] = [];
   const shortages: Array<{
     type: MaterialType;
     quality: Quality;
@@ -719,12 +726,12 @@ async function generateFromMaterialLibrary(
 
 /** 按节点配置注入动态灵种；普通坊市不再固定占位，黑市始终不注入。 */
 async function injectSpiritFieldSeedListings(
-  listings: InternalMarketListing[],
+  listings: InternalMarketMaterialListing[],
   nodeId: string,
   layer: MarketLayer,
   profile: RegionProfile,
   layerConfig: ResolvedLayerConfig,
-): Promise<InternalMarketListing[]> {
+): Promise<InternalMarketMaterialListing[]> {
   const slots = getSpiritFieldMarketSeedSlotCount(
     layer,
     layerConfig.count,
@@ -736,24 +743,26 @@ async function injectSpiritFieldSeedListings(
     rankRange: layerConfig.rankRange,
     regionTags: getNodeRegionTags(nodeId),
   });
-  const seedListings: InternalMarketListing[] = seeds.map((material) => ({
-    id: crypto.randomUUID(),
-    nodeId,
-    layer,
-    name: material.name,
-    type: material.type,
-    rank: material.rank,
-    element: material.element,
-    description: material.description ?? '',
-    details: material.details,
-    quantity: 1,
-    price: computePrice(
+  const seedListings: InternalMarketMaterialListing[] = seeds.map(
+    (material) => ({
+      id: crypto.randomUUID(),
+      nodeId,
       layer,
-      material.rank,
-      material.type,
-      profile.priceModifier,
-    ),
-  }));
+      name: material.name,
+      type: material.type,
+      rank: material.rank,
+      element: material.element,
+      description: material.description ?? '',
+      details: material.details,
+      quantity: 1,
+      price: computePrice(
+        layer,
+        material.rank,
+        material.type,
+        profile.priceModifier,
+      ),
+    }),
+  );
 
   const keepCount = Math.max(0, layerConfig.count - seedListings.length);
   return [...listings.slice(0, keepCount), ...seedListings].slice(
@@ -763,17 +772,34 @@ async function injectSpiritFieldSeedListings(
 }
 
 /**
- * 统一生成入口：所有市场先走持久材料库；common / treasure 不足时使用预设兜底。
+ * 普通坊市先走持久材料库；御灵集从固定道具配置抽取货品。
+ * common / treasure 材料不足时使用预设兜底。
  */
 async function generateListings(
   nodeId: string,
   layer: MarketLayer,
 ): Promise<InternalMarketListing[]> {
+  if (getMarketConfigByNodeId(nodeId)?.region_profile === 'beast') {
+    const stock = sampleBeastMarketStock();
+    for (let i = stock.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [stock[i], stock[j]] = [stock[j], stock[i]];
+    }
+    return stock.map(({ definitionId, price }) => ({
+      id: crypto.randomUUID(),
+      nodeId,
+      layer,
+      definitionId,
+      name: findItemDefinition(definitionId)!.name,
+      quantity: 1,
+      price,
+    }));
+  }
   const profile = getRegionProfile(nodeId);
   const layerConfig = resolveLayerConfig(layer, profile);
   const allowPresetFallback = canUsePresetFallback(layer);
 
-  let listings: InternalMarketListing[];
+  let listings: InternalMarketMaterialListing[];
 
   listings = await generateFromMaterialLibrary(
     nodeId,
@@ -895,9 +921,13 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   return {
     ...asData,
     listings: asData.listings.filter((item) =>
-      item.type === 'seed'
-        ? readSpiritFieldSeedSpec(item.details) !== null
-        : MaterialFactsSchema.shape.type.safeParse(item.type).success,
+      'definitionId' in item
+        ? getMarketConfigByNodeId(item.nodeId)?.region_profile === 'beast' &&
+          (findItemDefinition(item.definitionId)?.kind === 'beast_book' ||
+            findItemDefinition(item.definitionId)?.kind === 'beast_refinement')
+        : item.type === 'seed'
+          ? readSpiritFieldSeedSpec(item.details) !== null
+          : MaterialFactsSchema.shape.type.safeParse(item.type).success,
     ),
   };
 }
@@ -1013,7 +1043,7 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
   const bought = new Set(await redis.smembers(boughtKey));
   const selected = items.map((ref) => {
     const item = cached.listings.find((row) => row.id === ref.listingId);
-    if (!item || item.isMystery)
+    if (!item || ('isMystery' in item && item.isMystery))
       throw new MarketServiceError(409, '商品已下架，请刷新货架');
     return item;
   });
@@ -1060,14 +1090,22 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
       if (!paid) throw new MarketServiceError(400, '囊中羞涩，灵石不足');
       const deliveries: MarketPurchaseResult['deliveries'] = [];
       for (const item of selected) {
-        {
-          const delivered = await deliverMarketMaterial(cultivatorId, item, tx);
-          deliveries.push({
-            listingId: item.id,
-            name: item.name,
-            location: delivered.location,
-          });
-        }
+        const delivered =
+          'definitionId' in item
+            ? (
+                await grantInventory(
+                  cultivatorId,
+                  [{ definitionId: item.definitionId, quantity: 1 }],
+                  tx,
+                )
+              )[0]
+            : await deliverMarketMaterial(cultivatorId, item, tx);
+        if (!delivered) throw new Error('坊市物品入库失败');
+        deliveries.push({
+          listingId: item.id,
+          name: item.name,
+          location: delivered.location,
+        });
       }
       await tx.insert(playerMutationRequests).values(
         keys.map((key) => ({
