@@ -130,7 +130,7 @@ export function createBreakthroughHost(
     opponent.id = `breakthrough.enemy.${challengeId}`;
     opponent.name = spec.name;
     const factor =
-      challengeId === 'heart_demon_nascent' && !clearMind ? 1.5 : 1.3;
+      challengeId === 'heart_demon_nascent' && !clearMind ? 1.1 : spec.attack;
     for (const key of ['maxHp', 'physicalAtk', 'magicAtk'] as const)
       opponent.attrs![key] = Math.round(opponent.attrs![key]! * factor);
     opponent.attrs!.hp = opponent.attrs!.maxHp!;

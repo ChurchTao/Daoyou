@@ -289,8 +289,18 @@ export function CultivatorStatsPanel({
                 <div className="flex flex-wrap items-center justify-end gap-2 font-mono">
                   <span>
                     {cultivator.attributes[key]}
+                    {display.effectiveAttributes[key] !== cultivator.attributes[key] ? (
+                      <>
+                        <span className="text-teal">
+                          {' '}{display.effectiveAttributes[key] > cultivator.attributes[key] ? '+' : ''}
+                          {display.effectiveAttributes[key] - cultivator.attributes[key]}
+                        </span>
+                        <span className="text-ink-secondary"> = </span>
+                        {display.effectiveAttributes[key]}
+                      </>
+                    ) : null}
                     {editing && attributeDraft[key] > 0 ? (
-                      <span className="text-teal"> +{attributeDraft[key]}</span>
+                      <span className="text-teal">（待分配 +{attributeDraft[key]}）</span>
                     ) : null}
                   </span>
                   {editing ? (

@@ -13,6 +13,7 @@ export function composeCharacterManuals(
   input: CharacterCombatInput,
   versions: CombatV6VersionStamp,
   projectBase: (input: CharacterCombatInput) => CombatV6ProjectionResult,
+  includeEffectiveAttributes = false,
 ): CombatV6ProjectionResult {
   const manuals = compileCharacterManualsV1({ state: input.manuals, realm: input.cultivator.realm })
   if (!manuals.ok) return { ok: false, diagnostics: manuals.diagnostics, versions }
@@ -38,6 +39,7 @@ export function composeCharacterManuals(
   const passiveIds = new Set(capabilities.passiveIds)
   return {
     ok: true,
+    ...(includeEffectiveAttributes ? { effectiveAttributes: base.effectiveAttributes } : {}),
     unit: {
       ...base.unit,
       attrs,

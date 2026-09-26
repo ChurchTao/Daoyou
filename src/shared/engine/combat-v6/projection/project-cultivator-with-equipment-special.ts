@@ -130,6 +130,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   input: Omit<CharacterCombatInput, "manuals">,
   versions: CombatV6VersionStamp,
   stage: "single-sect" | "two-sects" | "three-sects" | "four-sects" | "current",
+  includeEffectiveAttributes = false,
 ): CombatV6ProjectionResult {
   const allowMultiSect = stage !== "single-sect"
   const allowWuxiang = stage === "three-sects" || stage === "four-sects" || stage === "current"
@@ -188,6 +189,7 @@ export function projectCultivatorWithEquipmentSpecialInternal(
   const artSkillLevels = Object.fromEntries(artSkillIds.map((id) => [id, 0]))
   return {
     ok: true,
+    ...(includeEffectiveAttributes ? { effectiveAttributes } : {}),
     unit: {
       ...base.unit,
       attrs,

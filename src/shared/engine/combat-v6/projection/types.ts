@@ -230,6 +230,7 @@ export type CombatV6ProjectionResult =
   | (ProjectionCommon & {
       ok: true
       unit: LineupUnit
+      effectiveAttributes?: Attributes
       skills: SkillDef[]
       statusDefs: StatusDef[]
     })
