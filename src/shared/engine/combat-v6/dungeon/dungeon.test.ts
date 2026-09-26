@@ -85,6 +85,16 @@ function player(sectId: CombatV6SectId) {
 }
 
 describe('秘境遭遇与收益', () => {
+  it('同境界同轮次的地图危险档位提高敌方气血与输出', () => {
+    const input = player('youdu');
+    const easy = createDungeonHost(input, 45, 'normal', 1, 'easy').state.units[1].attrs;
+    const normal = createDungeonHost(input, 45, 'normal', 1, 'normal').state.units[1].attrs;
+    const boss = createDungeonHost(input, 45, 'normal', 1, 'boss').state.units[1].attrs;
+    expect(easy.maxHp).toBeLessThan(normal.maxHp);
+    expect(normal.maxHp).toBeLessThan(boss.maxHp);
+    expect(easy.physicalAtk).toBeLessThan(normal.physicalAtk);
+    expect(normal.physicalAtk).toBeLessThan(boss.physicalAtk);
+  });
   it('连续遭遇保留灵兽损耗，死亡灵兽不能重新入场，零法力不回满', () => {
     const units = [
       { id: 'player' },

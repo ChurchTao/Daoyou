@@ -154,10 +154,7 @@ export const EquipmentSpecialPackShape = z.strictObject({
     maximum: positive.int(),
   }),
   rageGain: z.strictObject({
-    minPerHit: z.number().int().nonnegative(),
-    maxPerHit: positive.int(),
     damagePercentScale: positive,
-    maxPerAction: positive.int(),
   }),
 });
 
@@ -221,12 +218,6 @@ export const EquipmentSpecialPackSchema = EquipmentSpecialPackShape.superRefine(
         code: 'custom',
         path: ['rageResource', 'initial'],
         message: '初始战意不得超过上限',
-      });
-    if (pack.rageGain.minPerHit > pack.rageGain.maxPerHit)
-      ctx.addIssue({
-        code: 'custom',
-        path: ['rageGain', 'minPerHit'],
-        message: '单次下限不得超过上限',
       });
   },
 );

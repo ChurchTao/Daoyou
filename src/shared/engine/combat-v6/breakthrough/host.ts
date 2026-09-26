@@ -10,6 +10,7 @@ import {
 import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
+import { presetEnemyAttrs } from '../encounter/preset-enemy';
 
 export const BREAKTHROUGH_CHALLENGES = {
   heart_demon_nascent: { title: '心魔劫', name: '心魔化身', hp: 1, attack: 1 },
@@ -129,13 +130,15 @@ export function createBreakthroughHost(
     opponent.id = `breakthrough.enemy.${challengeId}`;
     opponent.name = spec.name;
     const factor =
-      challengeId === 'heart_demon_nascent' && !clearMind ? 1.1 : spec.attack;
+      challengeId === 'heart_demon_nascent' && !clearMind ? 1.5 : 1.3;
     for (const key of ['maxHp', 'physicalAtk', 'magicAtk'] as const)
       opponent.attrs![key] = Math.round(opponent.attrs![key]! * factor);
     opponent.attrs!.hp = opponent.attrs!.maxHp!;
   } else {
-    const hp = Math.round((100 + level * 20) * spec.hp);
-    const attack = Math.round((15 + level * 5) * spec.attack);
+    const attrs = presetEnemyAttrs(level, 'boss');
+    attrs.hp = attrs.maxHp = Math.round(attrs.maxHp * spec.hp / 2.5);
+    attrs.physicalAtk = Math.round(attrs.physicalAtk * spec.attack / 1.3);
+    attrs.magicAtk = Math.round(attrs.magicAtk * spec.attack / 1.3);
     opponent = {
       id: `breakthrough.enemy.${challengeId}`,
       name: spec.name,
@@ -143,17 +146,7 @@ export function createBreakthroughHost(
       side: 1,
       slot: 0,
       level,
-      attrs: {
-        hp,
-        maxHp: hp,
-        mp: level * 10 + 100,
-        maxMp: level * 10 + 100,
-        physicalAtk: attack,
-        magicAtk: attack,
-        physicalDef: 10 + level * 3,
-        magicDef: 10 + level * 3,
-        speed: 10 + level * 3,
-      },
+      attrs,
       skills: ['beast.spirit-flame'],
       skillLevels: { 'beast.spirit-flame': level },
     };

@@ -1,5 +1,6 @@
 import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import type { CombatV6UnitAppearance } from '@shared/contracts/combatV6';
+import { DAO_RAGE_RESOURCE_ID } from '@shared/engine/combat-v6/equipment/special-ids';
 import { memo, useMemo, type CSSProperties } from 'react';
 import type { frameFeedback } from './presentation';
 import type { CombatV6Unit } from './session';
@@ -44,6 +45,10 @@ const UnitRow = memo(function UnitRow({
         ? '离场'
         : importantStatus?.name;
   const shield = u.barriers.reduce((sum, b) => sum + b.current, 0);
+  const rage =
+    u.kind === 'player'
+      ? u.resources.find((resource) => resource.id === DAO_RAGE_RESOURCE_ID)
+      : undefined;
   return (
     <div
       className={`cv6-unit ${u.ownerId ? 'is-pet' : ''} ${controlled ? 'is-controlled' : ''} ${u.dead || u.escaped || u.downed ? 'is-ended' : ''} ${selected ? 'is-selected' : ''} ${targetable ? 'is-target' : ''}`}
@@ -81,7 +86,7 @@ const UnitRow = memo(function UnitRow({
           <span className="cv6-unit-name" title={label}>
             {u.name}
           </span>
-          <span className="cv6-unit-bars">
+          <span className={`cv6-unit-bars ${rage ? 'has-rage' : ''}`}>
             <span
               className="cv6-hp"
               role="img"
@@ -109,6 +114,17 @@ const UnitRow = memo(function UnitRow({
             >
               <span style={{ width: `${ratio(u.mp, u.maxMp)}%` }} />
             </span>
+            {rage ? (
+              <span
+                className="cv6-rage"
+                role="img"
+                aria-label={`战意 ${rage.current}/${rage.max ?? 0}`}
+              >
+                <span
+                  style={{ width: `${ratio(rage.current, rage.max ?? 0)}%` }}
+                />
+              </span>
+            ) : null}
           </span>
         </span>
         {state ? (

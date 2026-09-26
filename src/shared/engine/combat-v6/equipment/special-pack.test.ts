@@ -111,13 +111,6 @@ describe('equipment special configuration', () => {
       'allowedSlots',
     ],
     [
-      'reversed rage bounds',
-      (p) => {
-        p.rageGain.minPerHit = 21;
-      },
-      'minPerHit',
-    ],
-    [
       'invalid resource initial',
       (p) => {
         p.rageResource.initial = 151;
@@ -138,7 +131,7 @@ describe('equipment special configuration', () => {
     copy.arts[0].rageCost = 35;
     copy.arts[0].effect.ratio = 0.3;
     copy.essences[5].effect.factor = 1.5;
-    copy.rageGain.maxPerHit = 25;
+    copy.rageGain.damagePercentScale = 80;
     const pack = loadEquipmentSpecialPack(copy);
     const art = compileEquipmentArt(pack.arts[0]);
     expect(art.rageCost).toBe(35);
@@ -151,7 +144,7 @@ describe('equipment special configuration', () => {
       compileRageGainPassive(1.5, pack.rageGain).hooks?.[0].effects[0],
     ).toMatchObject({
       amount:
-        'floor(min(25, max(1, floor(hpDamage / target.maxHp * 100))) * 1.5)',
+        'min(100, floor(floor(hpDamage / target.maxHp * 80) * 1.5))',
     });
   });
 });

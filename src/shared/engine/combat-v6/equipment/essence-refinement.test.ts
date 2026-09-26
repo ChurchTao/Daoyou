@@ -298,7 +298,7 @@ describe('器蕴精修', () => {
     source.attrs.sealHit = 10000;
     expect(formula(source, target, 45)).toBe(0.9);
   });
-  it('激昂在基础单次战意封顶后提高25%，由受击者获得', () => {
+  it('激昂按失血比例提高受击战意，单次获得最多100', () => {
     const p = createDaoRageGainPassive(1.25);
     const battle = battleWith([p], [p.id]);
     battle
@@ -312,15 +312,27 @@ describe('器蕴精修', () => {
     battle.hooks.emit(HookName.OnBeHit, {
       source: battle.unit('foe'),
       target: battle.unit('self'),
+      hpDamage: 5,
+    });
+    expect(battle.unit('self').resources[0].current).toBe(0);
+    battle.hooks.emit(HookName.OnBeHit, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
       hpDamage: 300,
     });
-    expect(battle.unit('self').resources[0].current).toBe(25);
+    expect(battle.unit('self').resources[0].current).toBe(37);
     battle.hooks.emit(HookName.OnBeHit, {
       source: battle.unit('self'),
       target: battle.unit('foe'),
       hpDamage: 300,
     });
-    expect(battle.unit('self').resources[0].current).toBe(25);
+    expect(battle.unit('self').resources[0].current).toBe(37);
+    battle.hooks.emit(HookName.OnBeHit, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      hpDamage: 1000,
+    });
+    expect(battle.unit('self').resources[0].current).toBe(137);
   });
   it('澄念整次施法仅判定一次，法力不足仍无法施法', () => {
     const attack: SkillDef = {

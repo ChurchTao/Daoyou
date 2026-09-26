@@ -754,9 +754,6 @@
     "maximum": 150
   },
   "rageGain": {
-    "minPerHit": 1,
-    "maxPerHit": 20,
-    "damagePercentScale": 100,
-    "maxPerAction": 30
+    "damagePercentScale": 100
   }
 }

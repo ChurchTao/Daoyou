@@ -126,7 +126,11 @@ describe('突破试炼普通 V6 战斗', () => {
         revision: 0,
       },
     };
-    const host = createBreakthroughHost(input, 'tribulation_deity', true, 1);
+    const snapshot = createBreakthroughHost(input, 'tribulation_deity', true, 1).runtimeSnapshot();
+    // This test covers summoning, independent of the newly calibrated enemy damage.
+    snapshot.input.units.find((unit) => unit.side === 1)!.attrs.physicalAtk = 1;
+    snapshot.input.units.find((unit) => unit.side === 1)!.attrs.magicAtk = 1;
+    const host = new BreakthroughHost(snapshot);
     expect(host.controlledCommandOptions()).toHaveLength(2);
     expect(host.state.units.filter((u) => u.kind === 'pet')).toHaveLength(2);
     host.submitGroup([
