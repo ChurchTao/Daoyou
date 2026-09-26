@@ -26,6 +26,7 @@ import { z } from 'zod';
 const ConsumeSchema = z.object({
   consumableId: z.string().uuid(),
   revision: z.number().int().nonnegative().optional(),
+  quantity: z.number().int().min(1).max(99).default(1),
 });
 const BodyCultivationBreakthroughSchema = z.object({}).strict();
 
@@ -68,6 +69,7 @@ conditionRouter.post('/consume', requireActiveCultivatorRef(), async (c) => {
       },
       consumableId: parsed.data.consumableId,
       revision: parsed.data.revision,
+      quantity: parsed.data.quantity,
     });
     return c.json(toPlayerStateMutationResponse(committed));
   } catch (error) {

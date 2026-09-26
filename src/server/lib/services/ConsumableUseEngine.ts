@@ -75,7 +75,11 @@ export const ConsumableUseEngine = {
     userId: string,
     cultivatorId: string,
     consumableId: string,
-    options: { tx?: DbTransaction; lease?: RedisLeaseContext } = {},
+    options: {
+      tx?: DbTransaction;
+      lease?: RedisLeaseContext;
+      quantity?: number;
+    } = {},
   ): Promise<{
     message: string;
     consumable: Consumable;
@@ -95,6 +99,12 @@ export const ConsumableUseEngine = {
     if (!consumable) {
       throw new Error('该消耗品不存在或已耗尽。');
     }
+    const quantity = options.quantity ?? 1;
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 99)
+      throw new Error('使用数量无效');
+    if (quantity > consumable.quantity) throw new Error('随身消耗品数量不足');
+    if (quantity > 1 && !isPillConsumable(consumable))
+      throw new Error('仅丹药支持批量服用');
     if (await hasActiveDungeon(cultivatorId)) {
       const [run] = await getExecutor(options.tx)
         .select({
@@ -230,8 +240,20 @@ export const ConsumableUseEngine = {
       throw new Error('角色不存在或无权限操作。');
     }
 
-    const execution = PillOperationExecutor.execute(cultivator, consumable);
-    const nextCultivator = execution.cultivator;
+    let nextCultivator: PillCultivatorFacts = cultivator;
+    const trackLevelUps: ReturnType<
+      typeof PillOperationExecutor.execute
+    >['trackLevelUps'] = [];
+    const appliedEffects: string[] = [];
+    for (let index = 0; index < quantity; index++) {
+      const execution = PillOperationExecutor.execute(
+        nextCultivator,
+        consumable,
+      );
+      nextCultivator = execution.cultivator;
+      trackLevelUps.push(...execution.trackLevelUps);
+      appliedEffects.push(...execution.appliedEffects);
+    }
     const lifespanGain = Math.max(
       0,
       Math.floor(nextCultivator.lifespan) - Math.floor(cultivator.lifespan),
@@ -265,7 +287,13 @@ export const ConsumableUseEngine = {
         tx,
       );
 
-      await consumeConsumableById(userId, cultivatorId, consumableId, 1, tx);
+      await consumeConsumableById(
+        userId,
+        cultivatorId,
+        consumableId,
+        quantity,
+        tx,
+      );
     };
 
     if (options.tx) {
@@ -275,8 +303,8 @@ export const ConsumableUseEngine = {
     }
 
     const trackMessage =
-      execution.trackLevelUps.length > 0
-        ? ` ${execution.trackLevelUps.map(describeTrackLevelUp).join('，')}。`
+      trackLevelUps.length > 0
+        ? ` ${trackLevelUps.map(describeTrackLevelUp).join('，')}。`
         : '';
     const lifespanMessage =
       lifespanGain > 0 ? ` 寿元 +${lifespanGain} 年。` : '';
@@ -284,8 +312,8 @@ export const ConsumableUseEngine = {
 
     return {
       message: isSpiritFruit
-        ? `${consumable.name}已服下：${execution.appliedEffects.join('，')}。`
-        : `${consumable.name}已服下，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
+        ? `${consumable.name}已服下：${appliedEffects.join('，')}。`
+        : `${consumable.name}已服下${quantity > 1 ? ` ${quantity} 颗` : ''}，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
       consumable,
       profilePatch: {
         lifespan: nextCultivator.lifespan,

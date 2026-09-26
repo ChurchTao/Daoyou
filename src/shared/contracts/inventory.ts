@@ -71,13 +71,6 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
     .strict(),
   z
     .object({
-      action: z.literal('split'),
-      ...ref,
-      quantity: z.number().int().positive().max(98),
-    })
-    .strict(),
-  z
-    .object({
       action: z.literal('sort'),
       items: z.array(z.object(ref).strict()).max(BAG_CAPACITY),
     })

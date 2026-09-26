@@ -41,7 +41,7 @@ const endpoint = '/api/combat-v6/inventory';
 type Item = InventoryView['items'][number];
 type BagAction =
   | Exclude<InventoryAction, { action: 'learn' }>
-  | { action: 'use'; id: string; revision: number };
+  | { action: 'use'; id: string; revision: number; quantity?: number };
 export default function InventoryV6() {
   const identity = useCultivatorIdentity();
   const character = identity.data?.cultivator;
@@ -129,6 +129,7 @@ export default function InventoryV6() {
             mutationBody({
               consumableId: action.id,
               revision: action.revision,
+              quantity: action.quantity,
             }),
           ),
         );
@@ -508,7 +509,7 @@ function ItemActions({
   level?: number;
 }) {
   const definition = itemDefinition(item.definitionId);
-  const [quantity, setQuantity] = useState(1);
+  const [useQuantity, setUseQuantity] = useState(1);
   const ref = { id: item.id, revision: item.revision };
   const navigate = useNavigate();
   const consumable =
@@ -540,10 +541,22 @@ function ItemActions({
       <div className="flex flex-wrap gap-3">
         {item.location === 'bag' && directUse ? (
           <InkButton
-            disabled={pending}
-            onClick={() => void act({ action: 'use', ...ref })}
+            disabled={
+              pending ||
+              (consumable.spec.kind === 'pill' &&
+                (!Number.isInteger(useQuantity) ||
+                  useQuantity < 1 ||
+                  useQuantity > Math.min(item.quantity, 99)))
+            }
+            onClick={() =>
+              void act({
+                action: 'use',
+                ...ref,
+                quantity: consumable.spec.kind === 'pill' ? useQuantity : 1,
+              })
+            }
           >
-            使用
+            {consumable.spec.kind === 'pill' ? '服用' : '使用'}
           </InkButton>
         ) : null}
         {item.location === 'bag' && consumable && actionHref && !directUse ? (
@@ -581,28 +594,24 @@ function ItemActions({
           {item.location === 'bag' ? '存入储藏室' : '取入背包'}
         </InkButton>
       </div>
-      {item.location === 'bag' && item.quantity > 1 ? (
+      {item.location === 'bag' &&
+      directUse &&
+      consumable.spec.kind === 'pill' &&
+      item.quantity > 1 ? (
         <div className="flex items-center gap-3">
+          <label htmlFor={`use-quantity-${item.id}`}>服用数量</label>
           <input
-            aria-label="拆分数量"
+            id={`use-quantity-${item.id}`}
             type="number"
             min={1}
-            max={item.quantity - 1}
-            value={quantity}
-            className="border-ink/20 w-20 border bg-transparent p-2"
-            onChange={(e) => setQuantity(Number(e.target.value))}
+            max={Math.min(item.quantity, 99)}
+            value={useQuantity}
+            className="border-ink/20 w-20 border bg-transparent p-2 font-mono"
+            onChange={(e) => setUseQuantity(Number(e.target.value))}
           />
-          <InkButton
-            disabled={
-              pending ||
-              !Number.isInteger(quantity) ||
-              quantity < 1 ||
-              quantity >= item.quantity
-            }
-            onClick={() => void act({ action: 'split', ...ref, quantity })}
-          >
-            拆分到空格
-          </InkButton>
+          <span className="text-ink-secondary">
+            最多 {Math.min(item.quantity, 99)} 颗
+          </span>
         </div>
       ) : null}
     </div>
