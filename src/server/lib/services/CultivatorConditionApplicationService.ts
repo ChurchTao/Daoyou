@@ -36,6 +36,7 @@ export function consumeCultivatorConsumable(args: {
   actor: Actor;
   consumableId: string;
   revision?: number;
+  quantity: number;
 }) {
   return withRedisLock(
     {
@@ -69,7 +70,7 @@ export function consumeCultivatorConsumable(args: {
             args.actor.userId,
             args.actor.cultivatorId,
             args.consumableId,
-            { tx, lease },
+            { tx, lease, quantity: args.quantity },
           );
           const [state] = await tx
             .select({

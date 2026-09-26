@@ -536,24 +536,6 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               item.slotIndex = input.slot;
             }
             item.revision++;
-          } else if (input.action === 'split') {
-            if (
-              item.location !== 'bag' ||
-              itemDefinition(item.definitionId).stackLimit === 1 ||
-              input.quantity >= item.quantity
-            )
-              throw new InventoryError('拆分数量无效');
-            const slotIndex = emptySlot(next);
-            if (slotIndex === null) throw new InventoryError('背包格子不足');
-            item.quantity -= input.quantity;
-            item.revision++;
-            next.push({
-              ...item,
-              id: randomUUID(),
-              quantity: input.quantity,
-              slotIndex,
-              revision: 0,
-            });
           } else if (input.action === 'learn') {
             if (item.location !== 'bag')
               throw new InventoryError('请先从储藏室取出传承灵印');

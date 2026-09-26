@@ -10,6 +10,7 @@ import {
   type CombatV6ReplayV1,
 } from '../contracts/combatV6Runtime';
 import { EffectType, SkillTag, TargetSide } from '../engine/combat-v6/core';
+import { DAO_RAGE_RESOURCE_ID } from '../engine/combat-v6/equipment/special-ids';
 import {
   arenaBattle,
   arenaDefaultCommand,
@@ -81,6 +82,31 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('公开人物战意，不公开其他资源或灵兽战意', () => {
+    const runtime = fixture(2);
+    runtime.units.push({
+      id: 'pet',
+      name: '灵兽',
+      kind: 'pet',
+      ownerId: 'u0',
+      side: 0,
+      slot: 2,
+      attrs: { hp: 100, speed: 1 },
+      resources: [
+        { id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 5, max: 150 },
+      ],
+    });
+    runtime.state = arenaBattle({ ...runtime, state: undefined }).snapshot();
+    runtime.state.units[0].resources.push(
+      { id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 40, max: 150 },
+      { id: 'private', name: '私有资源', current: 7, max: 10 },
+    );
+    const view = arenaView(runtime, ARENA_PUBLIC_VIEW, 0);
+    expect(view.units.find((unit) => unit.id === 'u0')?.resources).toEqual([
+      { id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 40, max: 150 },
+    ]);
+    expect(view.units.find((unit) => unit.id === 'pet')?.resources).toEqual([]);
+  });
   it('技能详情使用当前角色补丁，不泄露其他角色补丁', () => {
     const runtime = fixture(2);
     runtime.state.units[0].skillOverrides.s0 = {

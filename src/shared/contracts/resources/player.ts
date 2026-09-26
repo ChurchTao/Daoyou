@@ -289,6 +289,10 @@ const conditionSchema = z
         maxHp: z.number().positive(),
         maxMp: z.number().nonnegative(),
         recoveryPaused: z.boolean(),
+        effectiveAttributes: z.object({
+          vitality: z.number(), strength: z.number(), spirit: z.number(),
+          endurance: z.number(), speed: z.number(), willpower: z.number(),
+        }).strict(),
         attrs: z.object({
           physicalAtk: z.number(), physicalDef: z.number(), magicAtk: z.number(), magicDef: z.number(),
           maxHp: z.number().positive(), maxMp: z.number().nonnegative(), healPower: z.number(),

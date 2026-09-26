@@ -3,7 +3,7 @@ import { DAO_EQUIPMENT_GENERATOR_VERSION, DAO_EQUIPMENT_TEMPLATE_ID, generateDao
 import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS_V4 } from '@shared/engine/combat-v6/content';
 import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
-import { characterResourceMaxima, normalizeCharacterResource, projectCharacterDisplay, type CharacterDisplayBuild, type CultivatorDisplayInput } from './cultivatorDisplay';
+import { characterResourceMaxima, normalizeCharacterResource, projectCharacterDisplay, projectCharacterDisplaySnapshot, type CharacterDisplayBuild, type CultivatorDisplayInput } from './cultivatorDisplay';
 
 const player: CultivatorDisplayInput = {
   id: 'panel-player', name: '面板验收', realm: '炼气', realm_stage: '后期',
@@ -71,6 +71,18 @@ describe('角色个人构筑独立于宗门', () => {
     };
     const baseline = projectCharacterDisplay(player, null);
     const panel = projectCharacterDisplay(player, personal);
+    const snapshot = projectCharacterDisplaySnapshot(player, personal);
+    const equipmentBonuses = generated.instance.attributeBonuses;
+    for (const key of Object.keys(player.attributes) as (keyof typeof player.attributes)[]) {
+      const manualBonus = manual.effects
+        .filter(effect => effect.attribute === key)
+        .reduce((sum, effect) => sum + effect.valueAt1, 0);
+      const equipmentBonus = equipmentBonuses
+        .filter(bonus => bonus.attr === key)
+        .reduce((sum, bonus) => sum + bonus.value, 0);
+      expect(snapshot.effectiveAttributes[key]).toBe(player.attributes[key] + manualBonus + equipmentBonus);
+    }
+    expect(snapshot.attrs).toEqual(panel);
     expect(panel.maxHp).toBeGreaterThan(baseline.maxHp);
     expect(panel.physicalAtk).toBeGreaterThan(baseline.physicalAtk);
     const battle = projectCharacterToCombatV6({...personal, cultivator: {...player, id: player.id!}, side: 0, slot: 0, resourcePolicy: 'full'});

@@ -1,6 +1,7 @@
 import { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
 export { CHARACTER_ATTRIBUTE_LABELS } from './characterAttributeLabels';
 import type { Cultivator } from '@shared/types/cultivator';
+import type { Attributes } from '@shared/types/cultivator';
 import type { CultivatorCondition } from '@shared/types/condition';
 import { projectNaturalRecoveryResources } from './condition';
 import {
@@ -23,10 +24,12 @@ export interface CombatV6ResourceAuthority {
   maxMp: number;
   recoveryPaused: boolean;
   attrs: CharacterPanelV1;
+  effectiveAttributes: Attributes;
 }
 
 export interface CultivatorDisplaySnapshot {
   attrs: CharacterPanelV1;
+  effectiveAttributes: Attributes;
   resources: Record<'hp' | 'mp', { current: number; max: number; percent: number }>;
 }
 
@@ -56,6 +59,13 @@ export function projectCharacterDisplay(
   cultivator: Pick<CultivatorDisplayInput, 'id' | 'name' | 'realm' | 'realm_stage' | 'attributes' | 'condition'>,
   build: CharacterDisplayBuild | null,
 ): CharacterPanelV1 {
+  return projectCharacterDisplaySnapshot(cultivator, build).attrs;
+}
+
+export function projectCharacterDisplaySnapshot(
+  cultivator: Pick<CultivatorDisplayInput, 'id' | 'name' | 'realm' | 'realm_stage' | 'attributes' | 'condition'>,
+  build: CharacterDisplayBuild | null,
+): Pick<CultivatorDisplaySnapshot, 'attrs' | 'effectiveAttributes'> {
   const input = {
     cultivator: { ...cultivator, id: cultivator.id || 'character-preview' },
     side: 0 as const, slot: 0, resourcePolicy: 'full' as const,
@@ -66,15 +76,16 @@ export function projectCharacterDisplay(
       equipment: {},
       manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
     }),
-  });
+  }, true);
   if (!result.ok) throw new Error(result.diagnostics.map((item) => item.message).join('；'));
+  if (!result.effectiveAttributes) throw new Error('V6 六维投影缺失');
   const panel = {} as CharacterPanelV1;
   for (const key of Object.keys(CHARACTER_PANEL_LABELS) as (keyof CharacterPanelV1)[]) {
     const value = result.unit.attrs[key];
     if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error(`V6 属性缺失：${key}`);
     panel[key] = value;
   }
-  return panel;
+  return { attrs: panel, effectiveAttributes: result.effectiveAttributes };
 }
 
 /** Changing maxima never heals an existing character, including a previously full one. */

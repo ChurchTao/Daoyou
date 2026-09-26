@@ -213,8 +213,12 @@
   gap: 3px;
   width: 100%;
 }
+.cv6-unit-bars.has-rage {
+  grid-template-rows: 5px 3px 3px;
+}
 .cv6-hp,
-.cv6-mp {
+.cv6-mp,
+.cv6-rage {
   display: block;
   position: relative;
   overflow: hidden;
@@ -236,6 +240,11 @@
   display: block;
   height: 100%;
   background: var(--color-resource-mp);
+}
+.cv6-rage > span {
+  display: block;
+  height: 100%;
+  background: #a66621;
 }
 .cv6-status {
   position: absolute;
@@ -521,6 +530,9 @@
   .cv6-roster.is-dense .cv6-unit-bars {
     grid-template-rows: 4px 2px;
     gap: 2px;
+  }
+  .cv6-roster.is-dense .cv6-unit-bars.has-rage {
+    grid-template-rows: 4px 2px 2px;
   }
   .cv6-roster.is-dense .cv6-status {
     bottom: auto;

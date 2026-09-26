@@ -17,6 +17,7 @@ import {
   type Command,
 } from '@shared/engine/combat-v6/core';
 import { canCollectCommand } from '@shared/engine/combat-v6/core/units';
+import { DAO_RAGE_RESOURCE_ID } from '@shared/engine/combat-v6/equipment/special-ids';
 import { daoyouRulesetV6 } from '@shared/engine/combat-v6/rules-daoyou';
 import { COMBAT_V6_PHASE_9B_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
 import { controlledUnits, validatePetCommand } from './controlled-commands';
@@ -141,7 +142,12 @@ export function projectReplayUnits(
       maxMp: 10000,
       attributes: undefined,
       wound: 0,
-      resources: [],
+      resources:
+        unit.kind === 'player'
+          ? unit.resources.filter(
+              (resource) => resource.id === DAO_RAGE_RESOURCE_ID,
+            )
+          : [],
       barriers: unit.barriers.map((b) => ({
         ...b,
         current: Math.floor((b.current / Math.max(1, unit.maxHp)) * 10000),

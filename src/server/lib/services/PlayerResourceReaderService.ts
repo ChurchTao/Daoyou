@@ -129,8 +129,8 @@ const readers: {
     const row = requireRequestedCultivatorState(cultivatorState, 'condition');
     const condition = row.condition as PlayerResourceMap['condition'];
     if (!condition) return condition;
-    const { attrs, maxHp, maxMp, recoveryPaused } = await readCombatV6ConditionAuthority(cultivatorId, q);
-    return { ...condition, combatV6: { attrs, maxHp, maxMp, recoveryPaused } };
+    const { attrs, effectiveAttributes, maxHp, maxMp, recoveryPaused } = await readCombatV6ConditionAuthority(cultivatorId, q);
+    return { ...condition, combatV6: { attrs, effectiveAttributes, maxHp, maxMp, recoveryPaused } };
   },
   progress: async ({ cultivatorState }) => {
     const row = requireRequestedCultivatorState(cultivatorState, 'progress');

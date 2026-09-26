@@ -11,6 +11,7 @@ import {
 import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
+import { presetEnemyAttrs } from '../encounter/preset-enemy';
 
 export const SECT_BATTLE_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
@@ -30,8 +31,8 @@ export interface SectBattleOpponent {
 }
 
 export const SECT_NPC_TEMPLATES = {
-  mine_patrol: { name: '岩牙矿兽', hp: 0.75, attack: 0.75 },
-  elder_trial: { name: '长老试炼化身', hp: 2.5, attack: 1.3 },
+  mine_patrol: { name: '岩牙矿兽', kind: 'normal' },
+  elder_trial: { name: '长老试炼化身', kind: 'boss' },
 } as const;
 
 export function freezeSectNpcOpponent(
@@ -41,8 +42,7 @@ export function freezeSectNpcOpponent(
   if (!Number.isInteger(level) || level < 1 || level > 180)
     throw new Error('宗门试炼等级无效');
   const spec = SECT_NPC_TEMPLATES[template];
-  const hp = Math.round((100 + level * 20) * spec.hp);
-  const attack = Math.round((15 + level * 5) * spec.attack);
+  const attrs = presetEnemyAttrs(level, spec.kind);
   const skills = BEAST_SKILLS.filter((skill) =>
     template !== 'mine_patrol' && skill.id === 'beast.spirit-flame',
   );
@@ -56,17 +56,7 @@ export function freezeSectNpcOpponent(
         side: 1,
         slot: 0,
         level,
-        attrs: {
-          hp,
-          maxHp: hp,
-          mp: 100,
-          maxMp: 100,
-          physicalAtk: attack,
-          magicAtk: attack,
-          physicalDef: 10 + level * 3,
-          magicDef: 10 + level * 3,
-          speed: 10 + level * 3,
-        },
+        attrs,
         skills: skills.map((skill) => skill.id),
         skillLevels: Object.fromEntries(
           skills.map((skill) => [skill.id, level]),

@@ -114,7 +114,7 @@ it.each(DAO_EQUIPMENT_ARTS_V1)(
   },
 );
 
-it('grants rage to the damaged target and preserves the per-action cap', () => {
+it('grants rage to the damaged target across multiple hits without an action cap', () => {
   function resolve(passive: SkillDef) {
     const attack: SkillDef = {
       id: 'test.multi',
@@ -168,7 +168,7 @@ it('grants rage to the damaged target and preserves the per-action cap', () => {
   }
   const state = resolve(createDaoRageGainPassive(1.2));
   expect(state.units[0].resources[0].current).toBe(0);
-  expect(state.units[1].resources[0].current).toBe(30);
+  expect(state.units[1].resources[0].current).toBeGreaterThan(30);
 });
 
 function equipment(

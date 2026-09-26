@@ -397,8 +397,7 @@ export function compileRageGainPassive(
           {
             type: EffectType.ModifyResource,
             resourceId: DAO_RAGE_RESOURCE_ID,
-            amount: `floor(min(${rule.maxPerHit}, max(${rule.minPerHit}, floor(hpDamage / target.maxHp * ${rule.damagePercentScale}))) * ${factor})`,
-            maxGainPerAction: rule.maxPerAction,
+            amount: `min(100, floor(floor(hpDamage / target.maxHp * ${rule.damagePercentScale}) * ${factor}))`,
           },
         ],
       },

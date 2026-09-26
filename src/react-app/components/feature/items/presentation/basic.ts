@@ -111,7 +111,7 @@ export const manualAdapter: ItemAdapter = (item, def) => {
   return {
     summary: {
       icon: '📗',
-      color: tierColorMap.凡品,
+      color: tierColorMap[manual.realm],
       tier: '',
       type: '功法玉简',
     },
@@ -147,7 +147,7 @@ export const beastBookAdapter: ItemAdapter = (item, def) => {
   return {
     summary: {
       icon: advanced ? '📕' : '📘',
-      color: tierColorMap[advanced ? '玄品' : '凡品'],
+      color: tierColorMap[advanced ? '神品' : '地品'],
       tier,
       type: '传承灵印',
     },

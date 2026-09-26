@@ -88,7 +88,7 @@ export function useCultivatorDisplayProjection(enabled = true) {
       condition: { ...condition.data, combatV6: condition.data.combatV6 },
       sect,
     };
-    const display = { attrs: condition.data.combatV6.attrs };
+    const display = { attrs: condition.data.combatV6.attrs, effectiveAttributes: condition.data.combatV6.effectiveAttributes };
     const fateContext = evaluateFateContext(
       cultivator.pre_heaven_fates ?? [],
     );

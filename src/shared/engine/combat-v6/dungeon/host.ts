@@ -1,5 +1,6 @@
 import { playerAppearances, type PresentedBattleInput } from '../../../combat-v6/unit-appearance';
 import { AUTO_POLICY_VERSION } from '../../../combat-v6/auto-policy';
+import type { DungeonDifficultyTier } from '../../../lib/game/mapSystem';
 import { BEAST_STATUS_DEFS, BEAST_SKILLS, projectBeastRoster } from '../beasts';
 import { UnitKind, type CreateBattleInput } from '../core';
 import type { CombatV6TrainingPlayerInput } from '../encounter';
@@ -10,6 +11,7 @@ import {
 import { projectCharacterToCombatV6 } from '../projection';
 import { daoyouRulesetV6 } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
+import { presetEnemyAttrs } from '../encounter/preset-enemy';
 
 export const DUNGEON_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
@@ -18,11 +20,18 @@ export const DUNGEON_VERSIONS = {
   contentVersion: 'combat-v6-dungeon-v1' as const,
 };
 export const DUNGEON_TEMPLATES = {
-  normal: { name: '秘境守卫', count: 1, hp: 1, attack: 1 },
-  elite: { name: '秘境精锐', count: 2, hp: 1.2, attack: 1.1 },
-  boss: { name: '秘境镇守', count: 1, hp: 2.5, attack: 1.3 },
+  normal: { name: '秘境守卫', count: 1 },
+  elite: { name: '秘境精锐', count: 2 },
+  boss: { name: '秘境镇守', count: 1 },
 } as const;
 export type DungeonTemplate = keyof typeof DUNGEON_TEMPLATES;
+const MAP_DIFFICULTY_SCALE: Record<DungeonDifficultyTier, number> = {
+  easy: 0.8,
+  normal: 1,
+  hard: 1.15,
+  elite: 1.3,
+  boss: 1.5,
+};
 export function carryDungeonBeastResources(
   units: CreateBattleInput['units'],
   ownerId: string,
@@ -95,6 +104,7 @@ export function createDungeonHost(
   level: number,
   template: DungeonTemplate,
   seed: number,
+  mapDifficulty: DungeonDifficultyTier = 'normal',
 ) {
   if (!Number.isInteger(level) || level < 1 || level > 180)
     throw new Error('秘境等级无效');
@@ -106,8 +116,11 @@ export function createDungeonHost(
   });
   if (!projected.ok) throw new Error('请先完成新版宗门构筑');
   const spec = DUNGEON_TEMPLATES[template];
-  const maxHp = Math.round((100 + level * 20) * spec.hp);
-  const attack = Math.round((15 + level * 5) * spec.attack);
+  const enemyAttrs = presetEnemyAttrs(level, template, spec.count);
+  const difficultyScale = MAP_DIFFICULTY_SCALE[mapDifficulty];
+  enemyAttrs.hp = enemyAttrs.maxHp = Math.round(enemyAttrs.maxHp * difficultyScale);
+  enemyAttrs.physicalAtk = Math.round(enemyAttrs.physicalAtk * difficultyScale);
+  enemyAttrs.magicAtk = Math.round(enemyAttrs.magicAtk * difficultyScale);
   return new DungeonHost({
     version: 'dungeon-v6-v1',
     playerId: projected.unit.id!,
@@ -132,18 +145,8 @@ export function createDungeonHost(
           kind: UnitKind.Npc,
           level,
           attrs: {
-            hp: maxHp,
-            maxHp,
-            mp: 100,
-            maxMp: 100,
-            physicalAtk: attack,
-            magicAtk: attack,
-            physicalDef: 10 + level * 3,
-            magicDef: 10 + level * 3,
-            speed: 10 + level * 3,
+            ...enemyAttrs,
             healPower: 0,
-            hit: 100,
-            dodge: 10,
             critRate: 0,
             spellCritRate: 0,
             physicalFuryRate: 0,

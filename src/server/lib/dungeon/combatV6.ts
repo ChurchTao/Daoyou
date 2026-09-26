@@ -46,7 +46,7 @@ import {
 import { projectCharacterToCombatV6 } from '@shared/engine/combat-v6/projection';
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { evaluateFateContext } from '@shared/lib/fates';
-import { getMapNode } from '@shared/lib/game/mapSystem';
+import { getMapNode, resolveDungeonMapConfig } from '@shared/lib/game/mapSystem';
 import { appendDungeonReward } from '@shared/rewards/dungeon';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmType } from '@shared/types/constants';
@@ -114,11 +114,13 @@ export async function prepareDungeonEncounter(
         ? 'elite'
         : 'normal';
   const level = dungeonLevel(state.mapNodeId);
+  const map = getMapNode(state.mapNodeId)!;
   const host = createDungeonHost(
     player,
     level,
     template,
     randomInt(0, 0x7fffffff),
+    resolveDungeonMapConfig(map).difficultyTier,
   );
   // Carry resources across encounters within this run without changing the persistent beast schema.
   const snapshot = host.runtimeSnapshot();

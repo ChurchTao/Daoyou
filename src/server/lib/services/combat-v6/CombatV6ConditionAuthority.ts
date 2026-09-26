@@ -5,7 +5,7 @@ import { hasActiveDungeon } from '@server/lib/dungeon/occupancy';
 import {
   characterIdentityRow,
 } from '@server/lib/repositories/sectCombatRepository';
-import { projectCharacterDisplay } from '@shared/lib/cultivatorDisplay';
+import { projectCharacterDisplaySnapshot } from '@shared/lib/cultivatorDisplay';
 import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import { CombatV6WildStore } from './CombatV6WildStore';
@@ -22,7 +22,7 @@ export async function readCombatV6ConditionAuthority(
   const build = await readCharacterCombatBuild(id, q);
   const row = await characterIdentityRow(id, q);
   if (!row) throw new Error('角色不存在');
-  const attrs = projectCharacterDisplay({
+  const { attrs, effectiveAttributes } = projectCharacterDisplaySnapshot({
     id: row.id, name: row.name, realm: row.realm as RealmType, realm_stage: row.realm_stage as RealmStage,
     attributes: { vitality: row.vitality, strength: row.strength, spirit: row.spirit, endurance: row.endurance, speed: row.speed, willpower: row.willpower },
     condition: (row.condition as CultivatorCondition | null) ?? undefined,
@@ -34,6 +34,7 @@ export async function readCombatV6ConditionAuthority(
     if (!summary) throw new Error('WILD_SETTLEMENT_MISSING');
     return {
       attrs,
+      effectiveAttributes,
       build,
       maxHp: summary.entry.maxHp,
       maxMp: summary.entry.maxMp,
@@ -46,6 +47,7 @@ export async function readCombatV6ConditionAuthority(
   ) : undefined;
   return {
     attrs,
+    effectiveAttributes,
     build,
     maxHp: attrs.maxHp,
     maxMp: attrs.maxMp,
