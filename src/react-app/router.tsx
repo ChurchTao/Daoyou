@@ -931,7 +931,7 @@ export const router = createBrowserRouter(
                 {
                   id: 'beast-room',
                   presentation: 'hub',
-                  summary: '照料灵兽，或引两灵相合、孕育新生。',
+                  summary: '照料灵兽，翻阅图录，或引两灵相合、孕育新生。',
                 },
                 '育兽室',
               )}
@@ -946,6 +946,20 @@ export const router = createBrowserRouter(
                   summary: '与灵兽结缘，携带出战或安心休养。',
                 },
                 '灵兽袋',
+              )}
+            />
+            <Route
+              path="beasts/codex"
+              lazy={lazyRoute(
+                () => import('@app/routes/game/beasts/codex/route'),
+              )}
+              handle={scene(
+                {
+                  id: 'beast-codex',
+                  presentation: 'workflow',
+                  summary: '查阅满资质、满成长与天生技能，并前往出没之地。',
+                },
+                '灵兽图鉴',
               )}
             />
             <Route

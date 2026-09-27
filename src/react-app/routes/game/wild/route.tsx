@@ -16,6 +16,7 @@ import {
   usePlayerSession,
   useSectCombatState,
 } from '@app/lib/resources/player';
+import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import type {
   WildEncounterView,
   WildRegionView,
@@ -27,7 +28,6 @@ import { InventoryEquipmentSchema } from '@shared/inventory/equipment';
 import { REALM_ORDER } from '@shared/types/constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import { WildSeekingScene } from './WildSeekingScene';
 
 async function api<T>(
@@ -45,12 +45,26 @@ export default function WildPage() {
   const nodeId = params.get('nodeId') ?? 'SAT_TN_08';
   return <WildRegion key={nodeId} nodeId={nodeId} />;
 }
+function codexReturnHref(state: unknown) {
+  if (!state || typeof state !== 'object' || !('codexReturnTo' in state))
+    return null;
+  const target = state.codexReturnTo;
+  if (
+    typeof target !== 'string' ||
+    !/^\/game\/beasts\/codex(?:\?species=combat\.wild\.species\.[a-z][a-z0-9-]*)?$/.test(
+      target,
+    )
+  )
+    return null;
+  return target;
+}
 function WildRegion({ nodeId }: { nodeId: string }) {
   const { state } = useLocation();
   const mapHref = resolveMapReturnHref(
     `/game/map-v2?nodeId=${encodeURIComponent(nodeId)}`,
     state,
   );
+  const codexHref = codexReturnHref(state);
   const { openDialog } = useInkUI();
   const build = useSectCombatState();
   const identity = useCultivatorIdentity();
@@ -223,11 +237,8 @@ function WildRegion({ nodeId }: { nodeId: string }) {
           className="mx-auto flex max-w-[1120px] justify-end px-4 pt-2 sm:px-8"
           aria-label="野外导航"
         >
-          <InkButton
-            href={mapHref}
-            variant="secondary"
-          >
-            返回地图
+          <InkButton href={codexHref ?? mapHref} variant="secondary">
+            {codexHref ? '返回图鉴' : '返回地图'}
           </InkButton>
         </nav>
         {(error || build.error || qi.error || identity.error) && (

@@ -1,4 +1,5 @@
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
@@ -19,6 +20,7 @@ import {
 } from '@shared/manuals/enlightenment';
 import { useEffect, useRef, useState } from 'react';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
+import type { InventoryFilter } from '../items/inventoryFilterModel';
 
 const endpoint = '/api/combat-v6/enlightenment';
 export type EnlightenmentItem = InventoryView['items'][number];
@@ -26,6 +28,15 @@ const emptySlots = (): (string | null)[] => Array(4).fill(null);
 
 export function useEnlightenmentSession(ownerId: string) {
   const bag = useInventoryBag();
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const [filter, setFilter] = useState<InventoryFilter>({
+    kind: 'material',
+    materialType: 'gongfa_manual',
+  });
+  const storage = useCraftStorage(filter, source === 'storage');
+  const [chosenItems, setChosenItems] = useState<
+    Map<string, EnlightenmentItem>
+  >(new Map());
   const profile = useCultivatorIdentity();
   const currency = useCultivatorCurrency();
   const progress = useCultivatorProgress();
@@ -73,7 +84,17 @@ export function useEnlightenmentSession(ownerId: string) {
     return () => controller.abort();
   }, [version, ownerId]);
   const view = read?.version === version ? read.view : undefined;
-  const byId = new Map(bag.data?.items.map((item) => [item.id, item]));
+  const inventory = source === 'bag' ? bag.data : storage.view;
+  const inventoryError = source === 'bag' ? bag.error : storage.error;
+  const inventoryLoading =
+    source === 'bag' ? bag.isRefreshing : storage.loading;
+  const byId = new Map(
+    [
+      ...chosenItems.values(),
+      ...(bag.data?.items ?? []),
+      ...(storage.view?.items ?? []),
+    ].map((item) => [item.id, item]),
+  );
   const quantities = new Map<string, number>();
   for (const id of slots)
     if (id) quantities.set(id, (quantities.get(id) ?? 0) + 1);
@@ -87,7 +108,13 @@ export function useEnlightenmentSession(ownerId: string) {
   if (view && bag.data && refs.length) {
     try {
       preview = prepareEnlightenment(
-        bag.data.items,
+        [
+          ...bag.data.items,
+          ...[...quantities.keys()].flatMap((id) => {
+            const item = byId.get(id);
+            return item?.location === 'storage' ? [item] : [];
+          }),
+        ],
         refs,
         view.realm,
         view.insightMultiplier,
@@ -109,13 +136,15 @@ export function useEnlightenmentSession(ownerId: string) {
     !bag.data ||
     bag.isRefreshing ||
     !!bag.error;
+  const pickerLocked =
+    locked || !inventory || inventoryLoading || !!inventoryError;
   function itemProblem(item: EnlightenmentItem) {
     return view
       ? enlightenmentMaterialProblem(item, view.realm)
       : '正在核对境界……';
   }
   function choose(item: EnlightenmentItem) {
-    if (locked) return;
+    if (pickerLocked) return;
     const reason = itemProblem(item);
     if (reason) {
       setError(reason);
@@ -131,6 +160,8 @@ export function useEnlightenmentSession(ownerId: string) {
       return;
     }
     setError('');
+    if (item.location === 'storage')
+      setChosenItems((current) => new Map(current).set(item.id, item));
     setSlots((old) => old.map((id, i) => (i === index ? item.id : id)));
   }
   function reload() {
@@ -138,6 +169,7 @@ export function useEnlightenmentSession(ownerId: string) {
     setError('');
     setRefresh((n) => n + 1);
     void bag.reload();
+    storage.reload();
   }
   async function submit() {
     if (busy.current) return;
@@ -183,6 +215,7 @@ export function useEnlightenmentSession(ownerId: string) {
         setUnresolved(null);
         setResult(data);
         setSlots(emptySlots());
+        setChosenItems(new Map());
       }
     } catch (e) {
       if (alive.current)
@@ -193,19 +226,38 @@ export function useEnlightenmentSession(ownerId: string) {
         setPending(false);
         setRefresh((n) => n + 1);
         void bag.reload();
+        storage.reload();
       }
     }
   }
   return {
     ownerId,
     view,
-    inventory: bag.data,
+    inventory,
+    inventoryError,
+    inventoryLoading,
+    source,
+    setSource(value: 'bag' | 'storage') {
+      if (value === 'storage') storage.reload();
+      setSource(value);
+    },
+    filter,
+    setFilter(value: InventoryFilter) {
+      setFilter(value);
+      storage.setPage(0);
+    },
+    storage,
+    reloadInventory() {
+      if (source === 'bag') void bag.reload();
+      else storage.reload();
+    },
     slots,
     byId,
     quantities,
     preview,
     problem,
     locked,
+    pickerLocked,
     pending,
     unresolved,
     result,

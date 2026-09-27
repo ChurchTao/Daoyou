@@ -12,6 +12,7 @@ export const SectV6ActionSchema = z.discriminatedUnion('action', [
       ...reference,
       action: z.literal('train'),
       methodId: z.string().min(1).max(160),
+      targetLevel: z.number().int().min(1).max(180).optional(),
     })
     .strict(),
   z.object({ ...reference, action: z.literal('unlock') }).strict(),

@@ -28,6 +28,20 @@ export const InventoryQuerySchema = z
     minRank: z.enum(QUALITY_VALUES).optional(),
     maxRank: z.enum(QUALITY_VALUES).optional(),
     materialType: z.enum(INVENTORY_MATERIAL_TYPES).optional(),
+    recycleCategory: z
+      .enum([
+        'all',
+        'material',
+        'seed',
+        'equipment',
+        'blueprint',
+        'manual_jade',
+        'pill',
+        'fruit',
+      ])
+      .optional(),
+    recycleMinQuality: z.enum(QUALITY_VALUES).optional(),
+    recycleMaxQuality: z.enum(QUALITY_VALUES).optional(),
   })
   .strict()
   .refine(
@@ -37,6 +51,14 @@ export const InventoryQuerySchema = z
       QUALITY_VALUES.indexOf(query.minRank) <=
         QUALITY_VALUES.indexOf(query.maxRank),
     { message: '品质范围无效' },
+  )
+  .refine(
+    (query) =>
+      !query.recycleMinQuality ||
+      !query.recycleMaxQuality ||
+      QUALITY_VALUES.indexOf(query.recycleMinQuality) <=
+        QUALITY_VALUES.indexOf(query.recycleMaxQuality),
+    { message: '回收品质范围无效' },
   );
 export const InventoryActionSchema = z.discriminatedUnion('action', [
   z

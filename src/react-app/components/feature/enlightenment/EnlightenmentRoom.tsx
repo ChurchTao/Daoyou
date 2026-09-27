@@ -1,3 +1,7 @@
+import {
+  inventoryFilterActive,
+  matchesInventoryFilters,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
 import { GameIcon } from '@app/components/ui/GameIcon';
@@ -12,7 +16,7 @@ import {
 } from '@shared/manuals/enlightenment';
 import { REALM_VALUES } from '@shared/types/constants';
 import { useState } from 'react';
-import { InventoryHeader } from '../items/InventoryHeader';
+import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
 import {
@@ -62,22 +66,42 @@ function Probabilities({ session }: { session: EnlightenmentSession }) {
 }
 function MaterialPicker({ session }: { session: EnlightenmentSession }) {
   return (
-    <div className="space-y-3 text-sm">
-      <InventoryHeader capacity={<>{session.inventory?.used ?? '—'} / 40</>} />
+    <CraftInventoryPanel
+      source={session.source}
+      onSource={session.setSource}
+      view={session.inventory}
+      loading={session.inventoryLoading}
+      error={session.inventoryError}
+      filter={session.filter}
+      onFilter={session.setFilter}
+      kindDisabled
+      onPage={session.storage.setPage}
+      onReload={session.reloadInventory}
+    >
       <p className="text-ink-secondary text-xs">
         {session.view
           ? `可参悟${enlightenmentQualityCap(session.view.realm)}及以下功法典籍`
           : '正在核对境界……'}
       </p>
       <InventoryItems
-        items={session.inventory?.items ?? []}
+        items={
+          session.source === 'bag' && inventoryFilterActive(session.filter)
+            ? (session.inventory?.items ?? []).filter((item) =>
+                matchesInventoryFilters(item, session.filter),
+              )
+            : (session.inventory?.items ?? [])
+        }
+        location={session.source}
+        compact={
+          session.source === 'bag' && inventoryFilterActive(session.filter)
+        }
         quickTouchHint
         slotProps={(item) => {
           const reason = item ? session.itemProblem(item) : null;
           const used = item ? (session.quantities.get(item.id) ?? 0) : 0;
           const unavailable = !!reason || (!!item && used >= item.quantity);
           return {
-            disabled: session.locked || unavailable,
+            disabled: session.pickerLocked || unavailable,
             quickOnTouch: true,
             badge: used ? `已选${used}` : item && !reason ? '可选' : undefined,
             onQuickAction: item ? () => session.choose(item) : undefined,
@@ -88,7 +112,7 @@ function MaterialPicker({ session }: { session: EnlightenmentSession }) {
                       <p className="text-ink-secondary">{reason}</p>
                     ) : null}
                     <InkButton
-                      disabled={session.locked || unavailable}
+                      disabled={session.pickerLocked || unavailable}
                       onClick={() => {
                         session.choose(item);
                         close();
@@ -102,7 +126,7 @@ function MaterialPicker({ session }: { session: EnlightenmentSession }) {
           };
         }}
       />
-    </div>
+    </CraftInventoryPanel>
   );
 }
 

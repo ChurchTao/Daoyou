@@ -1,10 +1,16 @@
-import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
+import { CraftInventoryPanel } from '@app/components/feature/items/CraftInventoryPanel';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import {
+  inventoryFilterActive,
+  matchesInventoryFilters,
+  type InventoryFilter,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { fetchSectSubmissionCandidates } from '@app/lib/sect/sectClient';
 import type { InventoryView } from '@shared/contracts/inventory';
 import type {
@@ -38,6 +44,18 @@ function OpenSubmission({
   const bagQuery = useInventoryBag();
   const bag = bagQuery.data;
   const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const [filter, setFilter] = useState<InventoryFilter>({
+    kind:
+      task.requirement?.kind === 'pill'
+        ? 'consumable'
+        : (task.requirement?.kind ?? 'all'),
+  });
+  const storage = useCraftStorage(filter, source === 'storage');
+  const inventoryView = source === 'bag' ? bag : storage.view;
+  const inventoryError = source === 'bag' ? bagQuery.error : storage.error;
+  const inventoryLoading =
+    source === 'bag' ? bagQuery.isRefreshing : storage.loading;
   const [data, setData] = useState<SectSubmissionCandidatesData>();
   const [selections, setSelections] = useState<
     Array<{ item: BagItem; quantity: string }>
@@ -76,7 +94,14 @@ function OpenSubmission({
           '此物不符合委托类型');
   }
   function choose(item: BagItem) {
-    if (pending.current || busy || loading || bagUnavailable) return;
+    if (
+      pending.current ||
+      busy ||
+      loading ||
+      inventoryLoading ||
+      !!inventoryError
+    )
+      return;
     const reason = reasonFor(item);
     if (reason) {
       setError(reason);
@@ -93,15 +118,18 @@ function OpenSubmission({
     });
   }
   const valid =
-    !bagUnavailable &&
+    (selections.every((s) => s.item.location === 'storage') ||
+      !bagUnavailable) &&
     !loading &&
     total === requirement.quantity &&
     selections.length > 0 &&
     selections.every(
       (s) =>
-        bag!.items.some(
-          (item) => item.id === s.item.id && item.revision === s.item.revision,
-        ) &&
+        (s.item.location === 'storage' ||
+          bag!.items.some(
+            (item) =>
+              item.id === s.item.id && item.revision === s.item.revision,
+          )) &&
         Number.isInteger(Number(s.quantity)) &&
         Number(s.quantity) > 0 &&
         Number(s.quantity) <= s.item.quantity,
@@ -128,6 +156,7 @@ function OpenSubmission({
       if (result) onClose();
       else {
         bagQuery.invalidate();
+        storage.reload();
         await refresh();
       }
     } finally {
@@ -135,25 +164,37 @@ function OpenSubmission({
     }
   }
   const inventory = (
-    <div className="space-y-3">
-      <InventoryHeader
-        capacity={<> {bag?.used ?? '—'} / 40</>}
-        actions={
-          <InkButton
-            disabled={busy || loading}
-            onClick={() => {
-              void bagQuery.reload();
-              void refresh();
-            }}
-          >
-            刷新选物
-          </InkButton>
-        }
-      />
+    <CraftInventoryPanel
+      source={source}
+      onSource={setSource}
+      view={inventoryView}
+      loading={inventoryLoading}
+      error={inventoryError}
+      filter={filter}
+      onFilter={(value) => {
+        setFilter(value);
+        storage.setPage(0);
+      }}
+      onPage={storage.setPage}
+      onReload={() => {
+        if (source === 'bag') void bagQuery.reload();
+        else storage.reload();
+        void refresh();
+      }}
+    >
       <InventoryItems
-        items={bag?.items ?? []}
+        location={source}
+        compact={source === 'bag' && inventoryFilterActive(filter)}
+        items={
+          source === 'bag' && inventoryFilterActive(filter)
+            ? (inventoryView?.items ?? []).filter((item) =>
+                matchesInventoryFilters(item, filter),
+              )
+            : (inventoryView?.items ?? [])
+        }
         slotProps={(item) => ({
-          disabled: !item || busy || loading || bagUnavailable,
+          disabled:
+            !item || busy || loading || inventoryLoading || !!inventoryError,
           badge: item && !reasonFor(item) ? '可选' : undefined,
           selected: !!item && selections.some((s) => s.item.id === item.id),
           onQuickAction:
@@ -166,7 +207,11 @@ function OpenSubmission({
                   ) : null}
                   <InkButton
                     disabled={
-                      busy || loading || bagUnavailable || !!reasonFor(item)
+                      busy ||
+                      loading ||
+                      inventoryLoading ||
+                      !!inventoryError ||
+                      !!reasonFor(item)
                     }
                     onClick={() => {
                       choose(item);
@@ -180,7 +225,7 @@ function OpenSubmission({
             : undefined,
         })}
       />
-    </div>
+    </CraftInventoryPanel>
   );
   return (
     <InkModal
@@ -199,7 +244,7 @@ function OpenSubmission({
           <p className="text-sm leading-7">
             {describeSectDeliveryRequirement(requirement)}
           </p>
-          {loading ? <p className="text-sm">正在查验随身物品…</p> : null}
+          {loading ? <p className="text-sm">正在查验物品…</p> : null}
           {error || bagQuery.error ? (
             <InkNotice tone="warning">{error || bagQuery.error}</InkNotice>
           ) : null}
@@ -208,7 +253,7 @@ function OpenSubmission({
               disabled={busy || loading}
               onClick={() => setBagOpen(true)}
             >
-              选择随身物品
+              选择物品
             </InkButton>
           </div>
           {selections.map(({ item, quantity }) => (
@@ -260,14 +305,14 @@ function OpenSubmission({
             </InkButton>
           </div>
         </div>
-        <section className="hidden min-w-0 lg:block" aria-label="随身物品">
+        <section className="hidden min-w-0 lg:block" aria-label="选择物品">
           {inventory}
         </section>
       </div>
       <InkDetailDrawer
         isOpen={bagOpen}
         onClose={() => setBagOpen(false)}
-        title="随身物品"
+        title="选择物品"
         size="sm"
       >
         {inventory}

@@ -1,5 +1,5 @@
-import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
+import type { MaterialType } from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
@@ -16,6 +16,10 @@ import type {
 } from '@shared/contracts/recycle';
 import { recycleBlockingReason } from '@shared/inventory/recycle';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import {
+  INVENTORY_MATERIAL_TYPES,
+  MATERIAL_TYPE_NAMES,
+} from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { findItemDefinition } from '@shared/items/registry';
@@ -71,11 +75,28 @@ function itemQuality(item: Item): Quality | undefined {
     return ConsumableFactsSchema.parse(item.instanceData).quality;
   return undefined;
 }
-async function readStorage(page: number, signal: AbortSignal) {
-  return readJson<InventoryView>(
-    `/api/combat-v6/inventory?location=storage&page=${page}`,
-    { signal },
-  );
+async function readStorage(
+  page: number,
+  category: RecycleCategory,
+  minQuality: number,
+  maxQuality: number,
+  materialType: MaterialType | undefined,
+  signal: AbortSignal,
+) {
+  const query = new URLSearchParams({
+    location: 'storage',
+    page: String(page),
+    recycleCategory: category,
+  });
+  if (minQuality > 0)
+    query.set('recycleMinQuality', QUALITY_VALUES[minQuality]);
+  if (maxQuality < QUALITY_VALUES.length - 1)
+    query.set('recycleMaxQuality', QUALITY_VALUES[maxQuality]);
+  if (category === 'material' && materialType)
+    query.set('materialType', materialType);
+  return readJson<InventoryView>(`/api/combat-v6/inventory?${query}`, {
+    signal,
+  });
 }
 async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -141,23 +162,29 @@ export default function MarketRecyclePage() {
   const [storageRefresh, setStorageRefresh] = useState(0);
   const [location, setLocation] = useState<'bag' | 'storage'>('bag');
   const [storagePage, setStoragePage] = useState(0);
-  const storageKey = `${owner ?? ''}:${storageRefresh}:${storagePage}`;
   const [storageSnapshot, setStorageSnapshot] = useState<{
     key: string;
     items: Item[];
     total: number;
     error?: string;
   }>();
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<RecycleCategory>('all');
+  const [minQuality, setMinQuality] = useState(0);
+  const [maxQuality, setMaxQuality] = useState(QUALITY_VALUES.length - 1);
+  const [materialType, setMaterialType] = useState<MaterialType>();
+  const [draftCategory, setDraftCategory] = useState<RecycleCategory>('all');
+  const [draftMinQuality, setDraftMinQuality] = useState(0);
+  const [draftMaxQuality, setDraftMaxQuality] = useState(
+    QUALITY_VALUES.length - 1,
+  );
+  const [draftMaterialType, setDraftMaterialType] = useState<MaterialType>();
+  const storageKey = `${owner ?? ''}:${storageRefresh}:${storagePage}:${filterCategory}:${minQuality}:${maxQuality}:${materialType ?? ''}`;
   const storageLoading = !!owner && storageSnapshot?.key !== storageKey;
   const storageItems =
     storageSnapshot?.key === storageKey ? storageSnapshot.items : [];
   const storageError =
     storageSnapshot?.key === storageKey ? (storageSnapshot.error ?? '') : '';
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [filterCategory, setFilterCategory] = useState<RecycleCategory>('all');
-  const [minQuality, setMinQuality] = useState(0);
-  const [maxQuality, setMaxQuality] = useState(QUALITY_VALUES.length - 1);
-  const [filterName, setFilterName] = useState('');
   const [onePerStack, setOnePerStack] = useState(false);
   const [selection, setSelection] = useState<RecycleSelection[]>([]);
   const [quote, setQuote] = useState<{ key: string; value: RecycleQuote }>();
@@ -185,6 +212,12 @@ export default function MarketRecyclePage() {
     if (recycleBlockingReason(item)) return false;
     if (filterCategory !== 'all' && itemCategory(item) !== filterCategory)
       return false;
+    if (
+      filterCategory === 'material' &&
+      materialType &&
+      materialFactsOf(item.instanceData).type !== materialType
+    )
+      return false;
     if (qualityLimited) {
       const quality = itemQuality(item);
       if (
@@ -194,9 +227,7 @@ export default function MarketRecyclePage() {
       )
         return false;
     }
-    return item.name
-      .toLocaleLowerCase()
-      .includes(filterName.trim().toLocaleLowerCase());
+    return true;
   });
   const selectionKey = JSON.stringify({ owner, selection });
   const selectionCurrent = selection.every((ref) =>
@@ -218,7 +249,14 @@ export default function MarketRecyclePage() {
     if (!owner) return;
     const controller = new AbortController();
     storageReader.current = controller;
-    void readStorage(storagePage, controller.signal)
+    void readStorage(
+      storagePage,
+      filterCategory,
+      minQuality,
+      maxQuality,
+      materialType,
+      controller.signal,
+    )
       .then((result) => {
         if (!controller.signal.aborted) {
           setStorageSnapshot({
@@ -239,7 +277,15 @@ export default function MarketRecyclePage() {
           });
       });
     return () => controller.abort();
-  }, [owner, storageKey, storagePage]);
+  }, [
+    owner,
+    storageKey,
+    storagePage,
+    filterCategory,
+    minQuality,
+    maxQuality,
+    materialType,
+  ]);
   useEffect(() => {
     const controller = new AbortController();
     quoteReader.current = controller;
@@ -338,7 +384,6 @@ export default function MarketRecyclePage() {
     );
     setQuote(undefined);
     setQuoteError('');
-    setFilterOpen(false);
     setMessage(`本页已选中 ${selected.length} 格，请核对报价后出售。`);
   }
   function reload() {
@@ -365,7 +410,14 @@ export default function MarketRecyclePage() {
       storageReader.current = controller;
       const [, updatedStorage] = await Promise.all([
         resourceStore.reload(key),
-        readStorage(storagePage, controller.signal),
+        readStorage(
+          storagePage,
+          filterCategory,
+          minQuality,
+          maxQuality,
+          materialType,
+          controller.signal,
+        ),
       ]);
       const snapshot = resourceStore.getSnapshot<InventoryView>(key);
       if (snapshot.error || !snapshot.data)
@@ -557,47 +609,49 @@ export default function MarketRecyclePage() {
           ) : null}
         </section>
         <section className="min-w-0 space-y-3" aria-label="待售物品栏">
-          <div
-            className="flex gap-3 text-sm"
-            role="group"
-            aria-label="物品位置"
-          >
-            <InkButton
-              variant={location === 'bag' ? 'primary' : 'default'}
-              onClick={() => changeLocation('bag')}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div
+              className="flex gap-3 text-sm"
+              role="group"
+              aria-label="物品位置"
             >
-              随身物品
-            </InkButton>
-            <InkButton
-              variant={location === 'storage' ? 'primary' : 'default'}
-              onClick={() => changeLocation('storage')}
-            >
-              储藏室
-            </InkButton>
+              <InkButton
+                variant={location === 'bag' ? 'primary' : 'default'}
+                onClick={() => changeLocation('bag')}
+              >
+                储物袋
+              </InkButton>
+              <InkButton
+                variant={location === 'storage' ? 'primary' : 'default'}
+                onClick={() => changeLocation('storage')}
+              >
+                储藏室
+              </InkButton>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <InkButton
+                disabled={pending}
+                onClick={() => {
+                  setDraftCategory(filterCategory);
+                  setDraftMinQuality(minQuality);
+                  setDraftMaxQuality(maxQuality);
+                  setDraftMaterialType(materialType);
+                  setFilterOpen(true);
+                }}
+              >
+                筛选
+              </InkButton>
+              <InkButton
+                disabled={frozen || !filteredItems.length}
+                onClick={selectFiltered}
+              >
+                批量选本页
+              </InkButton>
+              <InkButton disabled={pending} onClick={reload}>
+                刷新
+              </InkButton>
+            </div>
           </div>
-          <InventoryHeader
-            title={location === 'bag' ? '随身物品' : '储藏室'}
-            capacity={
-              location === 'bag' ? (
-                <> {view?.used ?? '—'} / 40</>
-              ) : (
-                <>{storageTotal} 格</>
-              )
-            }
-            actions={
-              <div className="flex gap-2">
-                <InkButton
-                  disabled={pending}
-                  onClick={() => setFilterOpen(true)}
-                >
-                  筛选批量出售
-                </InkButton>
-                <InkButton disabled={pending} onClick={reload}>
-                  刷新
-                </InkButton>
-              </div>
-            }
-          />
           {location === 'bag' && readError ? (
             <p role="alert" className="text-crimson text-sm">
               {readError}
@@ -615,7 +669,10 @@ export default function MarketRecyclePage() {
           ) : null}
           <InventoryItems
             location={location}
-            items={visibleItems}
+            compact={
+              location === 'bag' && (filterCategory !== 'all' || qualityLimited)
+            }
+            items={filteredItems}
             slotProps={(item) => {
               const chosen =
                 item && selection.find((entry) => entry.id === item.id);
@@ -673,7 +730,7 @@ export default function MarketRecyclePage() {
             </div>
           ) : null}
           <p className="text-ink-secondary text-xs">
-            点击物品询价，详情中可调整份数；筛选仅选中当前页。
+            点击物品询价，详情中可调整份数；批量选择仅选中当前页。
           </p>
         </section>
       </div>
@@ -706,21 +763,27 @@ export default function MarketRecyclePage() {
           className="space-y-4 text-sm"
           onSubmit={(event) => {
             event.preventDefault();
-            selectFiltered();
+            setFilterCategory(draftCategory);
+            setMinQuality(draftMinQuality);
+            setMaxQuality(draftMaxQuality);
+            setMaterialType(
+              draftCategory === 'material' ? draftMaterialType : undefined,
+            );
+            setStoragePage(0);
+            setSelection([]);
+            setQuote(undefined);
+            setQuoteError('');
+            setFilterOpen(false);
           }}
         >
-          <p>
-            位置：
-            {location === 'bag' ? '随身物品' : `储藏室第 ${storagePage + 1} 页`}
-          </p>
           <label className="block space-y-1">
             <span>种类</span>
             <select
               className="border-ink/20 w-full border bg-transparent p-2"
-              value={filterCategory}
-              onChange={(event) =>
-                setFilterCategory(event.target.value as RecycleCategory)
-              }
+              value={draftCategory}
+              onChange={(event) => {
+                setDraftCategory(event.target.value as RecycleCategory);
+              }}
             >
               {categories.map((entry) => (
                 <option key={entry.value} value={entry.value}>
@@ -729,62 +792,62 @@ export default function MarketRecyclePage() {
               ))}
             </select>
           </label>
+          {draftCategory === 'material' ? (
+            <label className="block space-y-1">
+              <span>材料类型</span>
+              <select
+                className="border-ink/20 w-full border bg-transparent p-2"
+                value={draftMaterialType ?? ''}
+                onChange={(event) =>
+                  setDraftMaterialType(
+                    (event.target.value || undefined) as
+                      MaterialType | undefined,
+                  )
+                }
+              >
+                <option value="">全部材料</option>
+                {INVENTORY_MATERIAL_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {MATERIAL_TYPE_NAMES[type]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="space-y-2">
             <p>
               品质范围：
-              {qualityLimited ? '已限定' : '不限'}
+              {draftMinQuality > 0 ||
+              draftMaxQuality < QUALITY_VALUES.length - 1
+                ? '已限定'
+                : '不限'}
             </p>
             <InkDiscreteRange
               label="品质"
               options={QUALITY_VALUES}
-              min={minQuality}
-              max={maxQuality}
+              min={draftMinQuality}
+              max={draftMaxQuality}
               onChange={(min, max) => {
-                setMinQuality(min);
-                setMaxQuality(max);
+                setDraftMinQuality(min);
+                setDraftMaxQuality(max);
               }}
             />
             <p className="text-ink-secondary text-xs">
-              缩小范围后，仅选中有品质的材料、灵种、丹药和灵果。
+              缩小范围后，仅显示有品质的材料、灵种、丹药和灵果。
             </p>
           </div>
-          <label className="block space-y-1">
-            <span>名称包含</span>
-            <input
-              className="border-ink/20 w-full border bg-transparent p-2"
-              value={filterName}
-              onChange={(event) => setFilterName(event.target.value)}
-              placeholder="可留空"
-            />
-          </label>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={onePerStack}
               onChange={(event) => setOnePerStack(event.target.checked)}
             />
-            每格只出售 1 份
+            批量选择时每格只出售 1 份
           </label>
-          <p className="text-ink-secondary" aria-live="polite">
-            {location === 'storage' && storageLoading
-              ? '正在读取储藏室……'
-              : location === 'storage' && storageError
-                ? `储藏室读取失败：${storageError}`
-                : `本页符合条件 ${filteredItems.length} 格。`}
-          </p>
           <div className="flex justify-end gap-2">
             <InkButton onClick={() => setFilterOpen(false)}>取消</InkButton>
-            <InkButton
-              type="submit"
-              disabled={
-                pending ||
-                !filteredItems.length ||
-                (location === 'bag'
-                  ? !view || bagQuery.isRefreshing || !!readError
-                  : storageLoading || !!storageError)
-              }
-            >
-              选中并询价
+            <InkButton type="submit" disabled={pending}>
+              应用筛选
             </InkButton>
           </div>
         </form>

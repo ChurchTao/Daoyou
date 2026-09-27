@@ -175,6 +175,7 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🐯 灵兽袋',
       },
       { id: 'beast-fusion', sceneLabel: '灵兽融合', href: '/game/beasts/fusion' },
+      { id: 'beast-codex', sceneLabel: '灵兽图鉴', href: '/game/beasts/codex' },
       {
         id: 'inventory',
         sceneLabel: '储物袋',

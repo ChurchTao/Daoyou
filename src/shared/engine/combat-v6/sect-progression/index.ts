@@ -36,13 +36,21 @@ export function sectV6Change(
   if (action.action === 'train') {
     const method = definition.methods.find((m) => m.id === action.methodId);
     if (!method) throw new SectV6RuleError('心法不属于当前宗门');
-    const target = progress.methods[method.id] + 1;
+    const current = progress.methods[method.id];
+    const target = action.targetLevel ?? current + 1;
     const primary = definition.methods.find((m) => m.isPrimary)!;
+    if (!Number.isInteger(target) || target <= current)
+      throw new SectV6RuleError('目标等级必须高于当前等级');
     if (target > methodLevelCap(characterLevel))
       throw new SectV6RuleError('已达当前人物境界允许的心法上限');
     if (!method.isPrimary && target > progress.methods[primary.id])
       throw new SectV6RuleError(`分支不可超过${primary.name}`);
-    cost = methodTrainingCost(target);
+    for (let level = current + 1; level <= target; level++) {
+      const step = methodTrainingCost(level);
+      cost.cultivationExp += step.cultivationExp;
+      cost.spiritStones += step.spiritStones;
+      cost.comprehensionInsight += step.comprehensionInsight;
+    }
     next.methods[method.id] = target;
   } else if (action.action === 'unlock') {
     const layer = progress.meridianDepth + 1;

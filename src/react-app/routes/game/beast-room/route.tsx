@@ -12,6 +12,14 @@ const facilities = [
     appearance: 'facility',
   },
   {
+    id: '/game/beasts/codex',
+    sigil: '📖',
+    name: '灵兽图鉴',
+    identity: '物种图录',
+    responsibility: '查阅满资质、满技能与出没之地',
+    appearance: 'facility',
+  },
+  {
     id: '/game/beasts/fusion',
     sigil: '🧬',
     name: '灵兽融合',
@@ -26,7 +34,7 @@ export default function BeastRoomPage() {
   return (
     <GameSceneFrame variant="workflow">
       <RoomView
-        description="室内灵息温润，灵兽袋旁阵纹流转。可在此照料同行灵兽，也可引两灵相合，孕育新的伙伴。"
+        description="室内灵息温润，灵兽袋旁阵纹流转。可在此照料同行灵兽，翻阅山野图录，也可引两灵相合，孕育新的伙伴。"
         actors={facilities}
         onSelect={(href) => navigate(href)}
         prompt="选择一处设施进行交互"

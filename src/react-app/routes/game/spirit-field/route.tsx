@@ -1,14 +1,26 @@
 import { VaultWithdrawal } from '@app/components/feature/forging/VaultWithdrawal';
-import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
+import { CraftInventoryPanel } from '@app/components/feature/items/CraftInventoryPanel';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import {
+  inventoryFilterActive,
+  matchesInventoryFilters,
+  type InventoryFilter,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import type { InventoryView } from '@shared/contracts/inventory';
+import { canPlantSpiritFieldSeed } from '@shared/engine/spirit-field/rules';
+import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
+import { SeedFactsSchema } from '@shared/items/definitions/seeds';
+import { materialFactsOf } from '@shared/items/material';
+import { findItemDefinition } from '@shared/items/registry';
+import type { RealmType } from '@shared/types/constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Resource = {
@@ -111,12 +123,16 @@ export default function SpiritFieldPage() {
   const bagQuery = useInventoryBag();
   const bag = bagQuery.data;
   const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const [filter, setFilter] = useState<InventoryFilter>({ kind: 'seed' });
+  const storage = useCraftStorage(filter, source === 'storage');
+  const inventoryView = source === 'bag' ? bag : storage.view;
+  const inventoryError = source === 'bag' ? bagQuery.error : storage.error;
+  const inventoryLoading =
+    source === 'bag' ? bagQuery.isRefreshing : storage.loading;
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [methodId, setMethodId] = useState('');
-  const [chosenRef, setChosenRef] = useState<{
-    id: string;
-    revision: number;
-  }>();
+  const [chosen, setChosen] = useState<InventoryView['items'][number]>();
   const [bagOpen, setBagOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -150,22 +166,20 @@ export default function SpiritFieldPage() {
   }, []);
   const selected = snapshot?.plots[selectedIndex];
   const method = selected?.methods.find((m) => m.id === methodId);
-  const chosen = bag?.items.find(
-    (i) => i.id === chosenRef?.id && i.revision === chosenRef.revision,
-  );
-  const seed = snapshot?.seeds.find(
-    (i) => i.materialId === chosen?.id && i.revision === chosen.revision,
-  );
-  const resource = snapshot?.resources.find(
-    (i) => i.id === chosen?.id && i.revision === chosen.revision,
-  );
   const needsItem =
     !!method &&
     ['herb', 'ore', 'monster', 'tcdb', 'aux', 'pill'].includes(
       method.resourceKind,
     );
   async function act(url: string, body: Record<string, unknown>) {
-    if (pending.current || (chosenRef && bagUnavailable)) return;
+    if (
+      pending.current ||
+      (chosen &&
+        (chosen.location === 'bag'
+          ? bagUnavailable
+          : storage.loading || !!storage.error))
+    )
+      return;
     pending.current = true;
     setBusy(true);
     const key = JSON.stringify([url, body]);
@@ -191,7 +205,8 @@ export default function SpiritFieldPage() {
         }),
       );
       attempt.current = undefined;
-      setChosenRef(undefined);
+      setChosen(undefined);
+      storage.reload();
       await refresh();
       const destination = result.locations
         ?.map((v) => (v === 'bag' ? '随身物品' : '储藏室'))
@@ -245,38 +260,49 @@ export default function SpiritFieldPage() {
       setBusy(false);
     }
   }
+  function itemKind(item: InventoryView['items'][number]) {
+    const kind = findItemDefinition(item.definitionId)?.kind;
+    if (kind === 'seed') return 'seed';
+    if (kind === 'material') return materialFactsOf(item.instanceData).type;
+    if (kind === 'consumable') {
+      const facts = ConsumableFactsSchema.safeParse(item.instanceData);
+      return facts.success && facts.data.spec.kind === 'pill' ? 'pill' : '';
+    }
+    return '';
+  }
   function canChoose(item: InventoryView['items'][number]) {
     if (!selected) return false;
     return !selected.plant
-      ? snapshot?.seeds.some(
-          (s) =>
-            s.materialId === item.id &&
-            s.revision === item.revision &&
-            s.canPlant,
-        )
+      ? (() => {
+          const facts = SeedFactsSchema.safeParse(item.instanceData);
+          return (
+            itemKind(item) === 'seed' &&
+            facts.success &&
+            canPlantSpiritFieldSeed(
+              snapshot!.player.realm as RealmType,
+              facts.data.seedSpec.plant,
+            )
+          );
+        })()
       : selected.status === 'awaiting_cultivation' &&
           needsItem &&
-          snapshot?.resources.some(
-            (r) =>
-              r.id === item.id &&
-              r.revision === item.revision &&
-              r.kind === method?.resourceKind &&
-              r.quantity >= method.cost.amount,
-          );
+          itemKind(item) === method?.resourceKind &&
+          item.quantity >= method.cost.amount;
   }
   function choose(item: InventoryView['items'][number]) {
-    if (pending.current || bagUnavailable || !selected) return;
+    if (pending.current || inventoryLoading || !!inventoryError || !selected)
+      return;
     const allowed = canChoose(item);
     if (!allowed) {
       pushToast({
         message: !selected.plant
-          ? '请选择境界允许的随身灵种'
+          ? '请选择境界允许的灵种'
           : '先选择培育方式，再选择足量的对应道具',
         tone: 'warning',
       });
       return;
     }
-    setChosenRef({ id: item.id, revision: item.revision });
+    setChosen(item);
     setBagOpen(false);
   }
   if (!snapshot && !error)
@@ -296,29 +322,37 @@ export default function SpiritFieldPage() {
       </GameSceneFrame>
     );
   const inventory = (
-    <div className="space-y-3">
-      <InventoryHeader
-        capacity={<> {bag?.used ?? '—'} / 40</>}
-        actions={
-          <InkButton
-            disabled={busy}
-            onClick={() => {
-              void bagQuery.reload();
-              void refresh();
-            }}
-          >
-            刷新
-          </InkButton>
-        }
-      />
-      {bagQuery.error ? (
-        <InkNotice tone="warning">{bagQuery.error}</InkNotice>
-      ) : null}
+    <CraftInventoryPanel
+      source={source}
+      onSource={setSource}
+      view={inventoryView}
+      loading={inventoryLoading}
+      error={inventoryError}
+      filter={filter}
+      onFilter={(value) => {
+        setFilter(value);
+        storage.setPage(0);
+      }}
+      onPage={storage.setPage}
+      onReload={() => {
+        if (source === 'bag') void bagQuery.reload();
+        else storage.reload();
+        void refresh();
+      }}
+    >
       <InventoryItems
-        items={bag?.items ?? []}
+        location={source}
+        compact={source === 'bag' && inventoryFilterActive(filter)}
+        items={
+          source === 'bag' && inventoryFilterActive(filter)
+            ? (inventoryView?.items ?? []).filter((item) =>
+                matchesInventoryFilters(item, filter),
+              )
+            : (inventoryView?.items ?? [])
+        }
         quickTouchHint
         slotProps={(item) => ({
-          disabled: !item || busy || bagUnavailable,
+          disabled: !item || busy || inventoryLoading || !!inventoryError,
           quickOnTouch: true,
           selected: !!item && item.id === chosen?.id,
           badge: item && canChoose(item) ? '可选' : undefined,
@@ -333,7 +367,12 @@ export default function SpiritFieldPage() {
                     </p>
                   ) : null}
                   <InkButton
-                    disabled={busy || bagUnavailable || !canChoose(item)}
+                    disabled={
+                      busy ||
+                      inventoryLoading ||
+                      !!inventoryError ||
+                      !canChoose(item)
+                    }
                     onClick={() => {
                       choose(item);
                       close();
@@ -347,7 +386,7 @@ export default function SpiritFieldPage() {
         })}
       />
       <VaultWithdrawal onChanged={() => void refresh()} />
-    </div>
+    </CraftInventoryPanel>
   );
   return (
     <GameSceneFrame variant="workflow">
@@ -370,7 +409,7 @@ export default function SpiritFieldPage() {
             </InkButton>
           ) : null}
           <InkButton className="lg:hidden" onClick={() => setBagOpen(true)}>
-            随身物品
+            选择物品
           </InkButton>
         </div>
       </div>
@@ -388,7 +427,7 @@ export default function SpiritFieldPage() {
                   if (pending.current) return;
                   setSelectedIndex(plot.index);
                   setMethodId('');
-                  setChosenRef(undefined);
+                  setChosen(undefined);
                 }}
               >
                 <span className="block">第 {plot.index + 1} 畦</span>
@@ -434,7 +473,7 @@ export default function SpiritFieldPage() {
                       className={`px-3 py-2 text-sm ${methodId === entry.id ? 'bg-crimson/8 text-crimson' : 'bg-ink/4'}`}
                       onClick={() => {
                         setMethodId(entry.id);
-                        setChosenRef(undefined);
+                        setChosen(undefined);
                       }}
                     >
                       {entry.name}
@@ -461,7 +500,7 @@ export default function SpiritFieldPage() {
                       {(close) => (
                         <InkButton
                           onClick={() => {
-                            setChosenRef(undefined);
+                            setChosen(undefined);
                             close();
                           }}
                         >
@@ -473,19 +512,19 @@ export default function SpiritFieldPage() {
                   <span className="text-ink-secondary text-sm">
                     {chosen
                       ? `投入 ${!selected.plant ? 1 : method?.cost.amount} 份`
-                      : '从随身物品中选择'}
+                      : '从储物袋或储藏室选择'}
                   </span>
                 </div>
               ) : null}
               {!selected.plant ? (
                 <InkButton
                   variant="primary"
-                  disabled={busy || !seed?.canPlant}
+                  disabled={busy || !chosen || !canChoose(chosen)}
                   onClick={() =>
                     void act('/api/spirit-field/sow', {
                       plotIndex: selected.index,
-                      seedMaterialId: seed?.materialId,
-                      revision: seed?.revision,
+                      seedMaterialId: chosen?.id,
+                      revision: chosen?.revision,
                     })
                   }
                 >
@@ -507,11 +546,7 @@ export default function SpiritFieldPage() {
                   <InkButton
                     variant="primary"
                     disabled={
-                      busy ||
-                      (needsItem &&
-                        (!resource ||
-                          resource.kind !== method.resourceKind ||
-                          resource.quantity < method.cost.amount))
+                      busy || (needsItem && (!chosen || !canChoose(chosen)))
                     }
                     onClick={() =>
                       void act('/api/spirit-field/cultivate', {
@@ -582,7 +617,7 @@ export default function SpiritFieldPage() {
       <InkDetailDrawer
         isOpen={bagOpen}
         onClose={() => setBagOpen(false)}
-        title="随身物品"
+        title="选择物品"
         size="sm"
       >
         {inventory}

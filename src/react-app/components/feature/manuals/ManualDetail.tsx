@@ -4,6 +4,7 @@ import type {
   ManualAction,
   ManualView,
 } from '@shared/contracts/combatV6Manuals';
+import type { InventoryView } from '@shared/contracts/inventory';
 import { manualAttributeValue } from '@shared/engine/combat-v6/manuals/attributes';
 import { manualSlot } from '@shared/engine/combat-v6/manuals/compiler';
 import {
@@ -28,7 +29,7 @@ export function ManualDetail({
   manual: CharacterManualDefV1;
   view: ManualView;
   pending: boolean;
-  itemChoice?: { id: string; revision: number };
+  itemChoice?: InventoryView['items'][number];
   onSubmit: (action: ManualAction) => void;
 }) {
   const bag = useInventoryBag();
@@ -61,7 +62,11 @@ export function ManualDetail({
     (i) => itemDefinition(i.definitionId).manualId === manual.id,
   );
   const jade = itemChoice
-    ? jades.find((i) => i.id === itemChoice.id)
+    ? itemChoice.location === 'storage'
+      ? itemChoice
+      : jades.find(
+          (i) => i.id === itemChoice.id && i.revision === itemChoice.revision,
+        )
     : jades.find((i) => i.quantity >= jadeCost);
   const target = state
     ? {
@@ -77,7 +82,7 @@ export function ManualDetail({
         ? {
             ...target,
             action: kind,
-            item: itemChoice ?? { id: jade.id, revision: jade.revision },
+            item: { id: jade.id, revision: jade.revision },
           }
         : undefined
     : undefined;
@@ -92,6 +97,7 @@ export function ManualDetail({
   const needsJade = kind !== 'train';
   const bagReady =
     !!bag.data && !bag.isRefreshing && !bag.loading && !bag.error;
+  const jadeReady = jade?.location === 'storage' || bagReady;
   const blocked = pending || !!view.blockedReason || !state;
   const nextCap = rule.bottlenecks.find((n) => n > level) ?? rule.maxLevel;
   return (
@@ -370,7 +376,7 @@ export function ManualDetail({
             <InkButton
               variant="primary"
               pending={pending}
-              disabled={blocked || !preview?.ok || (needsJade && !bagReady)}
+              disabled={blocked || !preview?.ok || (needsJade && !jadeReady)}
               className="min-h-11"
               onClick={() => {
                 if (action) onSubmit(action);

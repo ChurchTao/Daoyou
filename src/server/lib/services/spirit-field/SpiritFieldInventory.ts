@@ -3,7 +3,7 @@ import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { materialFactsOf } from '@shared/items/material';
 import { findItemDefinition } from '@shared/items/registry';
 import { isPillConsumable } from '@shared/lib/consumables';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import {
   getExecutor,
   type DbExecutor,
@@ -20,6 +20,7 @@ import { SpiritFieldServiceError } from './SpiritFieldService';
 export async function readFieldBag(
   owner: string,
   q: DbExecutor | DbTransaction = getExecutor(),
+  selectedId?: string,
 ) {
   return (
     await q
@@ -28,7 +29,15 @@ export async function readFieldBag(
       .where(
         and(
           eq(inventoryItems.cultivatorId, owner),
-          eq(inventoryItems.location, 'bag'),
+          or(
+            eq(inventoryItems.location, 'bag'),
+            selectedId
+              ? and(
+                  eq(inventoryItems.location, 'storage'),
+                  eq(inventoryItems.id, selectedId),
+                )
+              : undefined,
+          ),
         ),
       )
   ).map(inventoryItemOf);
@@ -82,7 +91,7 @@ export async function consumeFieldItem(
   tx: DbTransaction,
 ) {
   await assertInventoryIdle(owner);
-  const before = await readFieldBag(owner, tx);
+  const before = await readFieldBag(owner, tx, id);
   const item = before.find((row) => row.id === id);
   if (
     !item ||
@@ -92,7 +101,7 @@ export async function consumeFieldItem(
     amount < 1
   )
     throw new SpiritFieldServiceError(
-      '随身物品已变化或数量不足，请重新选择',
+      '所选物品已变化或数量不足，请重新选择',
       409,
     );
   await saveInventoryPlan(

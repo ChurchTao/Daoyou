@@ -251,6 +251,8 @@ function facilityCommandAdapter(
 function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
   async function list(
     cultivatorId: string,
+    kind: SectSubmissionItemKind,
+    itemId?: string,
   ): Promise<SectSubmissionItemFacts[]> {
     const rows = await q
       .select()
@@ -258,7 +260,16 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
       .where(
         and(
           eq(inventoryItems.cultivatorId, cultivatorId),
-          eq(inventoryItems.location, 'bag'),
+          inArray(inventoryItems.location, ['bag', 'storage']),
+          eq(
+            inventoryItems.definitionId,
+            kind === 'material'
+              ? 'material.v1'
+              : kind === 'pill'
+                ? 'consumable.v1'
+                : 'equipment.v6',
+          ),
+          itemId ? eq(inventoryItems.id, itemId) : undefined,
         ),
       );
     const loadouts = rows.length
@@ -324,7 +335,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
       cultivatorId: string;
       kind: SectSubmissionItemKind;
     }) {
-      return (await list(input.cultivatorId)).filter(
+      return (await list(input.cultivatorId, input.kind)).filter(
         (item) => item.kind === input.kind,
       );
     },
@@ -334,7 +345,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
       itemId: string,
     ) {
       return (
-        (await list(cultivatorId)).find(
+        (await list(cultivatorId, kind, itemId)).find(
           (item) => item.id === itemId && item.kind === kind,
         ) ?? null
       );
@@ -354,7 +365,7 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
         .where(
           and(
             eq(inventoryItems.cultivatorId, input.cultivatorId),
-            eq(inventoryItems.location, 'bag'),
+            inArray(inventoryItems.location, ['bag', 'storage']),
             eq(inventoryItems.id, input.itemId),
           ),
         );
@@ -370,9 +381,9 @@ function submissionInventoryAdapter(q: DbExecutor | DbTransaction) {
           '物品已变化，请重新选择',
           409,
         );
-      const facts = (await list(input.cultivatorId)).find(
-        (i) => i.id === input.itemId && i.kind === input.kind,
-      );
+      const facts = (
+        await list(input.cultivatorId, input.kind, input.itemId)
+      ).find((i) => i.id === input.itemId && i.kind === input.kind);
       if (!facts || (facts.kind === 'equipment' && facts.isEquipped))
         throw new SectError('SECT_ORGANIZATION_INVALID', '物品不可交付', 409);
       const remainingQuantity = item.quantity - input.quantity;

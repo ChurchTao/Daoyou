@@ -68,6 +68,12 @@ describe('悟道室', () => {
   });
   it('材料上限不裁剪高阶产出', () => {
     expect(enlightenmentMaterialProblem(item(), '炼气')).toBeNull();
+    expect(
+      enlightenmentMaterialProblem(
+        { ...item(), location: 'storage', slotIndex: null },
+        '炼气',
+      ),
+    ).toBeNull();
     expect(enlightenmentDistribution('玄品')[2]).toBeGreaterThan(0);
     const higher = {
       ...item(),
@@ -172,5 +178,25 @@ describe('悟道室', () => {
     expect(
       prepareEnlightenment(bag, [ref], '炼气', 1).afterMaterials,
     ).toHaveLength(39);
+  });
+  it('允许混合消耗储物袋与储藏室典籍，产出仍须预留储物袋空位', () => {
+    const storageBook: InventoryItem = {
+      ...item(1),
+      id: 'stored-book',
+      location: 'storage',
+      slotIndex: null,
+    };
+    const before = [item(1), storageBook];
+    const prepared = prepareEnlightenment(
+      before,
+      [
+        { id: 'book', revision: 0, quantity: 1 },
+        { id: 'stored-book', revision: 0, quantity: 1 },
+      ],
+      '炼气',
+      1,
+    );
+    expect(prepared.afterMaterials).toEqual([]);
+    expect(prepared.preview.successChance).toBe(0.5);
   });
 });

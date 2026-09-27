@@ -182,7 +182,7 @@ export default function BeastsPage() {
         <>
           <div
             data-guide="beast.bag"
-            className="text-ink-secondary flex items-center justify-between gap-3 text-xs"
+            className="text-ink-secondary flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs"
           >
             <span>
               灵兽{' '}
@@ -190,9 +190,14 @@ export default function BeastsPage() {
                 {view.beasts.length} / {BEAST_CAPACITY}
               </span>
             </span>
-            <InkButton disabled={pending} href="/game/beasts/fusion">
-              灵兽融合
-            </InkButton>
+            <span className="flex flex-wrap items-center justify-end gap-1">
+              <InkButton disabled={pending} href="/game/beasts/codex">
+                灵兽图鉴
+              </InkButton>
+              <InkButton disabled={pending} href="/game/beasts/fusion">
+                灵兽融合
+              </InkButton>
+            </span>
           </div>
           {!view.starterClaimed ? (
             <div className="border-ink/15 space-y-3 border-b pb-4">

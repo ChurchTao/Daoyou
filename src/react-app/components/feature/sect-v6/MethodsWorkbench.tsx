@@ -1,6 +1,9 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@shared/engine/combat-v6/content';
-import { methodTrainingCost, methodLevelCap } from '@shared/engine/combat-v6/sect-progression';
+import {
+  methodLevelCap,
+  methodTrainingCost,
+} from '@shared/engine/combat-v6/sect-progression';
 import {
   SECT_PANEL_LABELS,
   sectSkillCatalog,
@@ -30,14 +33,42 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
         definition.skills.some((skill) => skill.definition.id === entry.id)),
   );
   const skill = skills.find((entry) => entry.id === skillId) ?? skills[0];
-  const action = {
+  const singleAction = {
     ...actionReference(view),
     action: 'train' as const,
     methodId,
   };
-  const problem = actionProblem(view, action);
+  const problem = actionProblem(view, singleAction);
   const cap = methodLevelCap(view.characterLevel);
-  const cost = level < cap ? methodTrainingCost(level + 1) : undefined;
+  const allowedCap = method.isPrimary
+    ? cap
+    : Math.min(
+        cap,
+        progress.methods[
+          definition.methods.find((entry) => entry.isPrimary)!.id
+        ],
+      );
+  const singleCost =
+    level < allowedCap ? methodTrainingCost(level + 1) : undefined;
+  let fastSteps = 0;
+  let spentExp = 0;
+  let spentStones = 0;
+  let spentInsight = 0;
+  for (let next = level + 1; next <= Math.min(level + 10, allowedCap); next++) {
+    const step = methodTrainingCost(next);
+    if (
+      spentExp + step.cultivationExp > view.resources.cultivationExp ||
+      spentStones + step.spiritStones > view.resources.spiritStones ||
+      spentInsight + step.comprehensionInsight >
+        view.resources.comprehensionInsight
+    )
+      break;
+    spentExp += step.cultivationExp;
+    spentStones += step.spiritStones;
+    spentInsight += step.comprehensionInsight;
+    fastSteps++;
+  }
+  const fastAction = { ...singleAction, targetLevel: level + fastSteps };
   const panel = method.panel;
   return (
     <div className="mt-4 grid gap-5 md:grid-cols-[11rem_minmax(0,1fr)] md:gap-6">
@@ -91,7 +122,7 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
               </span>
               <strong>+{Math.floor(panel.value * level)}</strong>
             </div>
-            {level < cap ? (
+            {level < allowedCap ? (
               <>
                 <span className="text-ink-secondary" aria-hidden="true">
                   →
@@ -155,10 +186,16 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
         </div>
         <footer className="border-ink/10 mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <div className="space-y-1 text-xs leading-relaxed">
-            {cost ? (
+            {singleCost ? (
               <p>
-                {cost.cultivationExp.toLocaleString()} 修为 ·{' '}
-                {cost.spiritStones.toLocaleString()} 灵石
+                研习1级：{singleCost.cultivationExp.toLocaleString()} 修为 ·{' '}
+                {singleCost.spiritStones.toLocaleString()} 灵石
+              </p>
+            ) : null}
+            {fastSteps > 1 ? (
+              <p>
+                研习{fastSteps}级：{spentExp.toLocaleString()} 修为 ·{' '}
+                {spentStones.toLocaleString()} 灵石
               </p>
             ) : null}
             <span
@@ -168,20 +205,35 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
                   : 'text-ink-secondary text-xs leading-relaxed'
               }
             >
-              {problem ?? `当前${level}级 · 上限${cap}级`}
+              {problem ?? `当前${level}级 · 上限${allowedCap}级`}
             </span>
           </div>
-          <InkButton
-            type="button"
-            variant="primary"
-            className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
-            disabled={pending || !!problem}
-            pending={pending}
-            pendingLabel="研习中……"
-            onClick={() => void act(action)}
-          >
-            研习一级
-          </InkButton>
+          <div className="flex flex-wrap gap-3">
+            <InkButton
+              type="button"
+              variant="primary"
+              className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
+              disabled={pending || !!problem}
+              pending={pending}
+              pendingLabel="研习中……"
+              onClick={() => void act(singleAction)}
+            >
+              研习1级
+            </InkButton>
+            {fastSteps > 1 ? (
+              <InkButton
+                type="button"
+                variant="primary"
+                className="focus-visible:outline-crimson/60 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none"
+                disabled={pending || !!problem}
+                pending={pending}
+                pendingLabel="研习中……"
+                onClick={() => void act(fastAction)}
+              >
+                研习{fastSteps}级
+              </InkButton>
+            ) : null}
+          </div>
         </footer>
       </section>
     </div>

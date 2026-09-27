@@ -87,6 +87,30 @@ describe('v6 sect progression', () => {
       ).toThrow('上限');
     }
   });
+  it('trains to a target level with the sum of each level cost', () => {
+    const p = fresh();
+    const primary = definitions[0].methods.find((m) => m.isPrimary)!;
+    const result = sectV6Change(p, 30, {
+      ...reference,
+      action: 'train',
+      methodId: primary.id,
+      targetLevel: 4,
+    });
+    expect(result.progress.methods[primary.id]).toBe(4);
+    expect(p.methods[primary.id]).toBe(1);
+    expect(result.cost).toEqual(
+      [2, 3, 4].map(methodTrainingCost).reduce(
+        (total, step) => ({
+          cultivationExp: total.cultivationExp + step.cultivationExp,
+          spiritStones: total.spiritStones + step.spiritStones,
+          comprehensionInsight: total.comprehensionInsight + step.comprehensionInsight,
+        }),
+        { cultivationExp: 0, spiritStones: 0, comprehensionInsight: 0 },
+      ),
+    );
+    expect(() => sectV6Change(p, 30, { ...reference, action: 'train', methodId: primary.id, targetLevel: 1 })).toThrow('高于');
+    expect(() => sectV6Change(p, 30, { ...reference, action: 'train', methodId: primary.id, targetLevel: 41 })).toThrow('上限');
+  });
   it('unlocks sequentially at every character gate without a method gate', () => {
     let p = fresh();
     for (let i = 0; i < 7; i++) {

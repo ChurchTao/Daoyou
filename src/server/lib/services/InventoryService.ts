@@ -106,6 +106,34 @@ export async function readInventory(
     query.minRank ? QUALITY_VALUES.indexOf(query.minRank) : 0,
     query.maxRank ? QUALITY_VALUES.indexOf(query.maxRank) + 1 : undefined,
   );
+  const recycleKinds =
+    query.recycleCategory === 'all'
+      ? [
+          'material',
+          'seed',
+          'equipment',
+          'blueprint',
+          'manual_jade',
+          'consumable',
+        ]
+      : query.recycleCategory === 'pill' || query.recycleCategory === 'fruit'
+        ? ['consumable']
+        : query.recycleCategory
+          ? [query.recycleCategory]
+          : [];
+  const recycleRanks = QUALITY_VALUES.slice(
+    query.recycleMinQuality
+      ? QUALITY_VALUES.indexOf(query.recycleMinQuality)
+      : 0,
+    query.recycleMaxQuality
+      ? QUALITY_VALUES.indexOf(query.recycleMaxQuality) + 1
+      : undefined,
+  );
+  const recycleQuality = sql<string>`case
+    when ${inventoryItems.definitionId} = 'material.v1' then ${inventoryItems.instanceData}->>'rank'
+    when ${inventoryItems.definitionId} = 'seed.v1' then ${inventoryItems.instanceData}->'seedSpec'->'plant'->>'quality'
+    when ${inventoryItems.definitionId} = 'consumable.v1' then ${inventoryItems.instanceData}->>'quality'
+    else null end`;
   const filter = and(
     ownerFilter,
     eq(inventoryItems.location, query.location),
@@ -132,11 +160,38 @@ export async function readInventory(
           materialRanks,
         )
       : undefined,
-    query.kind === 'material' && query.materialType
+    (query.kind === 'material' || query.recycleCategory === 'material') &&
+      query.materialType
       ? eq(
           sql<string>`${inventoryItems.instanceData}->>'type'`,
           query.materialType,
         )
+      : undefined,
+    query.recycleCategory
+      ? inArray(
+          inventoryItems.definitionId,
+          ITEM_DEFINITIONS.filter((item) =>
+            recycleKinds.includes(item.kind),
+          ).map((item) => item.id),
+        )
+      : undefined,
+    query.recycleCategory === 'pill' || query.recycleCategory === 'fruit'
+      ? eq(
+          sql<string>`${inventoryItems.instanceData}->'spec'->>'kind'`,
+          query.recycleCategory === 'pill' ? 'pill' : 'spirit_fruit',
+        )
+      : query.recycleCategory
+        ? or(
+            sql`${inventoryItems.definitionId} <> 'consumable.v1'`,
+            inArray(
+              sql<string>`${inventoryItems.instanceData}->'spec'->>'kind'`,
+              ['pill', 'spirit_fruit'],
+            ),
+          )
+        : undefined,
+    query.recycleCategory &&
+      (query.recycleMinQuality || query.recycleMaxQuality)
+      ? inArray(recycleQuality, recycleRanks)
       : undefined,
   );
   const order =
@@ -568,8 +623,8 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             }
             item.revision++;
           } else if (input.action === 'learn') {
-            if (item.location !== 'bag')
-              throw new InventoryError('请先从储藏室取出传承灵印');
+            if (item.location !== 'bag' && item.location !== 'storage')
+              throw new InventoryError('请选择储物袋或储藏室中的传承灵印');
             const roster = await readBeastRoster(owner, tx);
             const beast = roster.beasts.find(
               (b) =>
@@ -604,10 +659,12 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
           } else if (input.action === 'feed') {
             if (
               item.definitionId !== 'consumable.v1' ||
-              item.location !== 'bag' ||
+              (item.location !== 'bag' && item.location !== 'storage') ||
               item.quantity < input.quantity
             )
-              throw new InventoryError('请先将足量丹药或灵果取入储物袋');
+              throw new InventoryError(
+                '请选择储物袋或储藏室中足量的丹药或灵果',
+              );
             const facts = ConsumableFactsSchema.parse(item.instanceData);
             const roster = await readBeastRoster(owner, tx);
             const beast = roster.beasts.find(
@@ -651,10 +708,10 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
             );
             if (
               !dew ||
-              item.location !== 'bag' ||
+              (item.location !== 'bag' && item.location !== 'storage') ||
               item.quantity < dew.consumeQuantity
             )
-              throw new InventoryError('请先将足量归元灵露取入储物袋');
+              throw new InventoryError('请选择储物袋或储藏室中足量的归元灵露');
             const roster = await readBeastRoster(owner, tx);
             const beast = roster.beasts.find(
               (b) =>

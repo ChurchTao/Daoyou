@@ -17,7 +17,7 @@ import {
 } from '@shared/manuals/enlightenment';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { db, type DbExecutor } from '../drizzle/db';
 import { cultivators, inventoryItems } from '../drizzle/schema';
@@ -121,7 +121,16 @@ export async function enlightenManual(
             .where(
               and(
                 eq(inventoryItems.cultivatorId, actor.cultivatorId),
-                eq(inventoryItems.location, 'bag'),
+                or(
+                  eq(inventoryItems.location, 'bag'),
+                  and(
+                    eq(inventoryItems.location, 'storage'),
+                    inArray(
+                      inventoryItems.id,
+                      input.materials.map((item) => item.id),
+                    ),
+                  ),
+                ),
               ),
             )
         ).map(inventoryItemOf);

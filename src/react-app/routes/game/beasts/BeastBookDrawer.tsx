@@ -2,12 +2,19 @@ import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
+import { CraftInventoryPanel } from '@app/components/feature/items/CraftInventoryPanel';
+import {
+  inventoryFilterActive,
+  matchesInventoryFilters,
+  type InventoryFilter,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentation';
 import type { BeastManagementView } from '@shared/contracts/combatV6Beasts';
@@ -41,10 +48,17 @@ export function BeastBookDrawer({
       : 'beast_book';
   const { pushToast } = useInkUI();
   const bagQuery = useInventoryBag();
-  const inventory = bagQuery.data;
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const [filter, setFilter] = useState<InventoryFilter>({ kind: itemKind });
+  const storage = useCraftStorage(filter, source === 'storage');
+  const inventory = source === 'bag' ? bagQuery.data : storage.view;
+  const inventoryError = source === 'bag' ? bagQuery.error : storage.error;
+  const inventoryLoading =
+    source === 'bag' ? bagQuery.isRefreshing : storage.loading;
   const [roster, setData] = useState<BeastManagementView>();
-  const unavailable = !inventory || bagQuery.isRefreshing || !!bagQuery.error;
-  const [selectedId, setSelectedId] = useState<string>();
+  const unavailable = !inventory || inventoryLoading || !!inventoryError;
+  const [selectedItem, setSelectedItem] =
+    useState<InventoryView['items'][number]>();
   const [refinementBefore, setRefinementBefore] =
     useState<BeastManagementView['beasts'][number]>();
   const [quantity, setQuantity] = useState(1);
@@ -113,13 +127,14 @@ export function BeastBookDrawer({
   }
   const candidates =
     roster && inventory
-      ? inventory.items.filter(
-          (item) =>
-            itemDefinition(item.definitionId).kind === itemKind &&
-            !bookReason(item),
+      ? inventory.items.filter((item) =>
+          source === 'storage' || !inventoryFilterActive(filter)
+            ? true
+            : matchesInventoryFilters(item, filter),
         )
       : [];
-  const selected = candidates.find((item) => item.id === selectedId);
+  const selected =
+    candidates.find((item) => item.id === selectedItem?.id) ?? selectedItem;
   const selectedSkillId = selected
     ? itemDefinition(selected.definitionId).skillId
     : undefined;
@@ -195,6 +210,8 @@ export function BeastBookDrawer({
         setData(roster);
         onUpdate(roster);
         bagQuery.invalidate();
+        storage.reload();
+        setSelectedItem(undefined);
         pushToast({
           message: feeding
             ? `灵兽修为 +${result.gained}，当前${result.level}级。`
@@ -208,6 +225,7 @@ export function BeastBookDrawer({
       }
     } catch (e) {
       bagQuery.invalidate();
+      storage.reload();
       if (!signal.aborted) {
         pushToast({
           message: committed
@@ -336,60 +354,77 @@ export function BeastBookDrawer({
               </p>
             </section>
           ) : null}
-          <div className="flex items-center justify-between gap-3">
-            <p>选择可用的{itemName}</p>
-            <InkButton
-              disabled={pending}
-              onClick={() => {
-                void bagQuery.reload();
-                setRefresh((value) => value + 1);
-              }}
-            >
-              刷新
-            </InkButton>
-          </div>
-          {bagQuery.error ? <p role="alert">{bagQuery.error}</p> : null}
-          {roster && inventory ? (
-            <>
-              <InventoryItems
-                items={candidates}
-                compact
-                quickTouchHint={candidates.length > 0}
-                slotProps={(item) => {
-                  return {
-                    selected: !!item && selectedId === item.id,
-                    disabled: pending || unavailable,
-                    quickOnTouch: true,
-                    onQuickAction: item
-                      ? () => {
-                          setSelectedId(item.id);
-                          setQuantity(1);
-                        }
-                      : undefined,
-                    children: item
-                      ? (hide) => (
-                          <InkButton
-                            disabled={pending || unavailable}
-                            onClick={() => {
-                              setSelectedId(item.id);
+          <CraftInventoryPanel
+            source={source}
+            onSource={(value) => {
+              if (value === 'storage') storage.reload();
+              setSource(value);
+            }}
+            view={inventory}
+            loading={inventoryLoading}
+            error={inventoryError}
+            filter={filter}
+            onFilter={(value) => {
+              setFilter(value);
+              storage.setPage(0);
+            }}
+            onPage={storage.setPage}
+            onReload={() => {
+              if (source === 'bag') void bagQuery.reload();
+              else storage.reload();
+              setRefresh((value) => value + 1);
+            }}
+          >
+            {roster && inventory ? (
+              <>
+                <InventoryItems
+                  items={candidates}
+                  location={source}
+                  compact={source === 'bag' && inventoryFilterActive(filter)}
+                  quickTouchHint={candidates.length > 0}
+                  slotProps={(item) => {
+                    const reason = item ? bookReason(item) : '';
+                    return {
+                      selected: !!item && selected?.id === item.id,
+                      disabled: pending || unavailable,
+                      quickOnTouch: true,
+                      onQuickAction:
+                        item && !reason
+                          ? () => {
+                              setSelectedItem(item);
                               setQuantity(1);
-                              hide();
-                            }}
-                          >
-                            选择此{itemName}
-                          </InkButton>
-                        )
-                      : undefined,
-                  };
-                }}
-              />
-              {candidates.length === 0 ? (
-                <p className="text-ink-secondary">暂无可用的{itemName}。</p>
-              ) : null}
-            </>
-          ) : (
-            <p>正在读取{itemName}……</p>
-          )}
+                            }
+                          : undefined,
+                      children: item
+                        ? (hide) =>
+                            reason ? (
+                              <p className="text-ink-secondary">{reason}</p>
+                            ) : (
+                              <InkButton
+                                disabled={pending || unavailable}
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setQuantity(1);
+                                  hide();
+                                }}
+                              >
+                                选择此{itemName}
+                              </InkButton>
+                            )
+                        : undefined,
+                    };
+                  }}
+                />
+                {!candidates.some((item) => !bookReason(item)) ? (
+                  <p className="text-ink-secondary">
+                    当前没有可用的{itemName}。
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p>正在读取{itemName}……</p>
+            )}
+          </CraftInventoryPanel>
         </div>
       </InkDetailDrawer>
       <InkModal

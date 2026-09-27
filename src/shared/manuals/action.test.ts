@@ -83,10 +83,17 @@ it.each([
     );
   },
 );
-it('学习仅接受储物袋中版本一致的同名玉简', () => {
+it('学习接受储物袋或储藏室中版本一致的同名玉简', () => {
   expect(previewManualAction(state, '炼气', action, resources, item).ok).toBe(
     true,
   );
+  expect(
+    previewManualAction(state, '炼气', action, resources, {
+      ...item,
+      location: 'storage',
+      slotIndex: null,
+    }).ok,
+  ).toBe(true);
   for (const bad of [
     undefined,
     { ...item, revision: 1 },

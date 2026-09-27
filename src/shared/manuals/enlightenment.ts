@@ -36,7 +36,8 @@ export function enlightenmentMaterialProblem(
   item: Pick<InventoryItem, 'definitionId' | 'instanceData' | 'location'>,
   realm: RealmType,
 ): string | null {
-  if (item.location !== 'bag') return '请先将典籍取入储物袋';
+  if (item.location !== 'bag' && item.location !== 'storage')
+    return '请选择储物袋或储藏室中的典籍';
   const parsed = MaterialFactsSchema.safeParse(item.instanceData);
   if (
     item.definitionId !== 'material.v1' ||

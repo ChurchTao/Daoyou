@@ -151,12 +151,15 @@ async function resolveResource(
   }
   if (!resourceId)
     throw new SpiritFieldServiceError('请选择本次培育要消耗的物品');
-  const item = (await readFieldBag(actor.cultivatorId, q)).find(
+  const item = (await readFieldBag(actor.cultivatorId, q, resourceId)).find(
     (row) => row.id === resourceId,
   );
   const resource = item ? fieldResource(item) : null;
   if (!resource || resource.kind !== kind)
-    throw new SpiritFieldServiceError('请选择对应类型的随身物品', 409);
+    throw new SpiritFieldServiceError(
+      '请选择对应类型的储物袋或储藏室物品',
+      409,
+    );
   return { name: resource.name, revision: resource.revision };
 }
 
@@ -310,13 +313,13 @@ export async function sowSpiritField(
       if (!plot) throw new SpiritFieldServiceError('田块不存在', 404);
       if (plot.plant)
         throw new SpiritFieldServiceError('这块灵田已经种有灵植', 409);
-      const seed = (await readFieldBag(actor.cultivatorId, tx)).find(
-        (item) => item.id === input.seedMaterialId,
-      );
+      const seed = (
+        await readFieldBag(actor.cultivatorId, tx, input.seedMaterialId)
+      ).find((item) => item.id === input.seedMaterialId);
       const resource = seed ? fieldResource(seed) : null;
       const spec = resource && 'spec' in resource ? resource.spec : null;
       if (!seed || !spec)
-        throw new SpiritFieldServiceError('没有找到可播种的随身灵种', 404);
+        throw new SpiritFieldServiceError('没有找到可播种的灵种', 404);
       if (!canPlantSpiritFieldSeed(row.realm as RealmType, spec.plant))
         throw new SpiritFieldServiceError('当前境界还不足以驾驭这枚灵种', 409);
       await consumeFieldItem(
@@ -417,7 +420,7 @@ async function consumeCultivationCost(
     );
   if (itemResourceKind(method)) {
     if (revision === undefined)
-      throw new SpiritFieldServiceError('请重新选择随身物品', 409);
+      throw new SpiritFieldServiceError('请重新选择物品', 409);
     await consumeFieldItem(
       actor.cultivatorId,
       resourceId!,

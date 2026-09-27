@@ -8,6 +8,7 @@ import type {
   ManualAction,
   ManualView,
 } from '@shared/contracts/combatV6Manuals';
+import type { InventoryView } from '@shared/contracts/inventory';
 import { manualAttributeValue } from '@shared/engine/combat-v6/manuals/attributes';
 import {
   getManualSlotCount,
@@ -51,7 +52,7 @@ export function ManualRoom() {
   const [selection, setSelection] = useState<{
     realm: Realm;
     manualId?: string;
-    item?: { id: string; revision: number };
+    item?: InventoryView['items'][number];
   }>();
   const [drawer, setDrawer] = useState<'detail' | 'picker' | null>(() =>
     params.get('itemId') ? 'detail' : null,
@@ -176,11 +177,7 @@ export function ManualRoom() {
         currentManual?.id ??
         learnedManuals[0]?.id),
   );
-  const itemChoice =
-    selection?.item ??
-    (!selection && hintedItem
-      ? { id: hintedItem.id, revision: hintedItem.revision }
-      : undefined);
+  const itemChoice = selection?.item ?? (!selection ? hintedItem : undefined);
   const choose = (m: CharacterManualDefV1) => {
     setSelection({ realm: m.realm, manualId: m.id });
     setFeedback(undefined);
@@ -390,7 +387,7 @@ export function ManualRoom() {
       <InkDetailDrawer
         isOpen={drawer === 'picker' || (!desktop && drawer === 'detail')}
         onClose={() => setDrawer(null)}
-        title={drawer === 'picker' ? '储物袋 · 功法玉简' : '参悟功法'}
+        title={drawer === 'picker' ? '选择功法玉简' : '参悟功法'}
         size="md"
       >
         {notices}
@@ -399,14 +396,14 @@ export function ManualRoom() {
             view={view}
             realm={realm}
             disabled={pending || !!view.blockedReason}
-            onChoose={(action) => {
+            onChoose={(action, item) => {
               const chosen = CHARACTER_MANUALS_V1.find(
                 (m) => m.id === action.manualId,
               )!;
               setSelection({
                 realm: chosen.realm,
                 manualId: chosen.id,
-                item: 'item' in action ? action.item : undefined,
+                item,
               });
               setFeedback(undefined);
               setDrawer(desktop ? null : 'detail');

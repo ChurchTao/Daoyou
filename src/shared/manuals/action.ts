@@ -40,7 +40,7 @@ export function previewManualAction(
     (!item ||
       item.id !== action.item.id ||
       item.revision !== action.item.revision ||
-      item.location !== 'bag' ||
+      (item.location !== 'bag' && item.location !== 'storage') ||
       item.quantity < jadeCost ||
       findItemDefinition(item.definitionId)?.manualId !== action.manualId)
   ) {
@@ -50,7 +50,7 @@ export function previewManualAction(
         {
           severity: 'error',
           code: 'INVALID_MANUAL_STATE',
-          message: `需要储物袋中数量足够的同名功法玉简（本次 ${jadeCost} 本），请刷新核对`,
+          message: `需要储物袋或储藏室中数量足够的同名功法玉简（本次 ${jadeCost} 本），请刷新核对`,
         },
       ],
     };

@@ -2,7 +2,6 @@ import type { InventoryView } from '@shared/contracts/inventory';
 import type { ReactNode } from 'react';
 import { InkButton } from '../../ui/InkButton';
 import { InventoryFilters } from './InventoryFilters';
-import { InventoryHeader } from './InventoryHeader';
 import type { InventoryFilter } from './inventoryFilterModel';
 
 export function CraftInventoryPanel({
@@ -32,38 +31,35 @@ export function CraftInventoryPanel({
 }) {
   return (
     <div className="space-y-3 text-sm">
-      <InventoryHeader
-        title={source === 'bag' ? '储物袋' : '储藏室'}
-        capacity={
-          source === 'bag' ? (
-            <>{view?.used ?? '—'} / 40</>
-          ) : (
-            <>{view?.total ?? '—'} 格</>
-          )
-        }
-        actions={
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex gap-4" aria-label="物品位置">
+          {(
+            [
+              ['bag', '储物袋'],
+              ['storage', '储藏室'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={source === value}
+              onClick={() => onSource(value)}
+              className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="text-ink-secondary flex items-center gap-3 text-xs">
+          <span className="font-mono whitespace-nowrap">
+            {source === 'bag'
+              ? `${view?.used ?? '—'} / 40`
+              : `${view?.total ?? '—'} 格`}
+          </span>
           <InkButton disabled={loading} onClick={onReload}>
             刷新
           </InkButton>
-        }
-      />
-      <div className="flex gap-4" aria-label="物品位置">
-        {(
-          [
-            ['bag', '储物袋'],
-            ['storage', '储藏室'],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={source === value}
-            onClick={() => onSource(value)}
-            className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
-          >
-            {label}
-          </button>
-        ))}
+        </div>
       </div>
       <InventoryFilters
         value={filter}
