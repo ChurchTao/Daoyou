@@ -1,15 +1,12 @@
 import { DAO_FORMATION_INSCRIPTIONS_V1 } from '../engine/combat-v6/equipment/content';
 import { daoFormationMaxLevel } from '../engine/combat-v6/equipment/inscriptions';
 import {
-  BAG_CAPACITY,
-  emptySlot,
   InventoryRuleError,
   itemDefinition,
   type InventoryItem,
   type ItemGrant,
 } from '../inventory';
 import { InventoryEquipmentSchema } from '../inventory/equipment';
-import { inventoryStackIdentity } from '../inventory/stack-key';
 import {
   INSCRIPTION_MAX_LEVEL,
   inscriptionItemId,
@@ -46,7 +43,8 @@ export function inscriptionMaterialTenths(facts: MaterialFacts): number {
 }
 
 export function inscriptionMaterialProblem(item: InventoryItem): string | null {
-  if (item.location !== 'bag') return '请先将材料取入储物袋';
+  if (item.location !== 'bag' && item.location !== 'storage')
+    return '请选择储物袋或储藏室中的材料';
   if (item.definitionId !== 'material.v1') return '请选择绘阵材料';
   const parsed = MaterialFactsSchema.safeParse(item.instanceData);
   if (!parsed.success) return '材料事实无效';
@@ -103,12 +101,12 @@ function consume(items: InventoryItem[], refs: InscriptionMaterialRef[]) {
     refs.map((ref) => {
       const item = resolve(items, ref);
       if (
-        item.location !== 'bag' ||
+        (item.location !== 'bag' && item.location !== 'storage') ||
         !Number.isInteger(ref.quantity) ||
         ref.quantity < 1 ||
         item.quantity < ref.quantity
       )
-        throw new InventoryRuleError('储物袋中的物品数量不足');
+        throw new InventoryRuleError('所选位置的物品数量不足');
       return [ref.id, ref.quantity];
     }),
   );
@@ -124,42 +122,6 @@ function consume(items: InventoryItem[], refs: InscriptionMaterialRef[]) {
           },
         ];
   });
-}
-
-/** 在抽取类型前，预检所有可能分配的最大占格，避免满包选择性开奖。 */
-export function requiredDrawSlots(
-  items: InventoryItem[],
-  outputs: InscriptionDrawPreview['outputs'],
-) {
-  return outputs.reduce((total, output) => {
-    const activationCosts = DAO_FORMATION_INSCRIPTIONS_V1.map((pattern) => {
-      const id = inscriptionItemId(pattern.id, output.level);
-      const free = items
-        .filter(
-          (i) =>
-            i.location === 'bag' &&
-            i.definitionId === id &&
-            i.stackKey === inventoryStackIdentity(id, null),
-        )
-        .reduce(
-          (sum, i) => sum + itemDefinition(id).stackLimit - i.quantity,
-          0,
-        );
-      return free + 1;
-    }).sort((a, b) => a - b);
-    let spent = 0;
-    let maxSlots = 0;
-    // 首个新格需填满该类型的已有堆叠；之后每99枚再占一个格。
-    for (let k = 1; k <= activationCosts.length; k++) {
-      spent += activationCosts[k - 1];
-      if (spent <= output.quantity)
-        maxSlots = Math.max(
-          maxSlots,
-          k + Math.floor((output.quantity - spent) / 99),
-        );
-    }
-    return total + maxSlots;
-  }, 0);
 }
 
 export function prepareInscriptionDraw(
@@ -180,13 +142,6 @@ export function prepareInscriptionDraw(
     );
   }, 0);
   const preview = previewInscriptionDraw(totalTenths);
-  const needed = requiredDrawSlots(afterMaterials, preview.outputs);
-  const free =
-    BAG_CAPACITY - afterMaterials.filter((i) => i.location === 'bag').length;
-  if (needed > free)
-    throw new InventoryRuleError(
-      `消耗材料后需预留${needed}个空格，以容纳所有可能的阵纹产出`,
-    );
   return { preview, afterMaterials };
 }
 
@@ -246,17 +201,6 @@ export function prepareInscriptionStrengthen(
   const level = first.level + 1;
   const cost = inscriptionStrengthenCost(level);
   const definitionId = inscriptionItemId(first.patternId, level);
-  if (
-    emptySlot(afterMaterials) === null &&
-    !afterMaterials.some(
-      (i) =>
-        i.location === 'bag' &&
-        i.definitionId === definitionId &&
-        i.quantity < 99 &&
-        i.stackKey === inventoryStackIdentity(definitionId, null),
-    )
-  )
-    throw new InventoryRuleError('请腾出一个储物袋空位，以容纳合成后的阵纹');
   return { afterMaterials, cost, grant: { definitionId, quantity: 1 } };
 }
 
@@ -273,7 +217,7 @@ export function prepareInscriptionEquipment(
   const equipmentItem = resolve(items, equipmentRef);
   if (
     equipmentItem.definitionId !== 'equipment.v6' ||
-    !['bag', 'equipped'].includes(equipmentItem.location)
+    !['bag', 'storage', 'equipped'].includes(equipmentItem.location)
   )
     throw new InventoryRuleError('请选择随身或已穿戴道装');
   const equipment = InventoryEquipmentSchema.parse(equipmentItem.instanceData);

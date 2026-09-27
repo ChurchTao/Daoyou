@@ -18,7 +18,7 @@ import {
 } from '@shared/inventory';
 import { inventoryStackIdentity } from '@shared/inventory/stack-key';
 import { projectNaturalQiState } from '@shared/lib/qi';
-import { and, eq, gte, inArray, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import { db, type DbExecutor } from '../drizzle/db';
 import { cultivators, inventoryItems } from '../drizzle/schema';
@@ -88,6 +88,12 @@ export async function mutateInscriptions(
       command: async (tx) => {
         await assertInventoryIdle(actor.cultivatorId, tx);
         const character = await characterOf(actor, tx);
+        const selectedIds =
+          input.action === 'draw'
+            ? input.materials.map((item) => item.id)
+            : input.action === 'strengthen'
+              ? input.inscriptions.map((item) => item.id)
+              : [input.equipment.id, input.inscription.id];
         const before = (
           await tx
             .select()
@@ -95,7 +101,13 @@ export async function mutateInscriptions(
             .where(
               and(
                 eq(inventoryItems.cultivatorId, actor.cultivatorId),
-                inArray(inventoryItems.location, ['bag', 'equipped']),
+                or(
+                  inArray(inventoryItems.location, ['bag', 'equipped']),
+                  and(
+                    eq(inventoryItems.location, 'storage'),
+                    inArray(inventoryItems.id, selectedIds),
+                  ),
+                ),
               ),
             )
         ).map(inventoryItemOf);
@@ -169,7 +181,7 @@ export async function mutateInscriptions(
             after,
             grant,
             'bag',
-            false,
+            true,
             randomUUID,
             inventoryStackIdentity(grant.definitionId, null),
           );

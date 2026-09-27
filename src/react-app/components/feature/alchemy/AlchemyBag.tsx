@@ -1,9 +1,9 @@
 import {
+  defaultInventoryFilter,
+  inventoryFilterActive,
   matchesInventoryFilters,
-  type InventoryKind,
+  type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
-import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
-import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
@@ -13,6 +13,7 @@ import {
 } from '@shared/inventory/alchemy';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
+import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import {
   ALCHEMY_MAX_DOSE,
@@ -28,12 +29,11 @@ export function AlchemyBag({
   const session = useAlchemyCraftSession();
   const bagQuery = useInventoryBag();
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
-  const [kind, setKind] = useState<InventoryKind>('all');
-  const storage = useCraftStorage(kind, source === 'storage');
+  const [filter, setFilter] = useState<InventoryFilter>(defaultInventoryFilter);
+  const storage = useCraftStorage(filter, source === 'storage');
   const reloadStorage = storage.reload;
   const view = source === 'bag' ? bagQuery.data : storage.view;
   const error = source === 'bag' ? bagQuery.error : storage.error;
-  const search = storage.search;
   useEffect(() => {
     if (session.phase === 'result') reloadStorage();
   }, [session.phase, reloadStorage]);
@@ -48,74 +48,35 @@ export function AlchemyBag({
       ? groupAlchemyBagMaterials(view?.items ?? [])
       : groupAlchemyStorageMaterials(view?.items ?? []);
   return (
-    <div className="space-y-3 text-sm">
-      <InventoryHeader
-        title={source === 'bag' ? '储物袋' : '储藏室'}
-        capacity={
-          source === 'bag' ? (
-            <>{view?.used ?? '—'} / 40</>
-          ) : (
-            <>{view?.total ?? '—'} 格</>
-          )
-        }
-        actions={
-          <InkButton
-            disabled={
-              source === 'bag' ? bagQuery.isRefreshing : storage.loading
-            }
-            onClick={() =>
-              source === 'bag' ? void bagQuery.reload() : storage.reload()
-            }
-          >
-            刷新
-          </InkButton>
-        }
-      />
-      <div className="flex gap-4" aria-label="材料位置">
-        {(
-          [
-            ['bag', '储物袋'],
-            ['storage', '储藏室'],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={source === value}
-            onClick={() => {
-              if (value === 'storage') storage.reload();
-              setSource(value);
-            }}
-            className="text-ink-secondary hover:text-crimson aria-pressed:text-crimson aria-pressed:border-crimson/60 min-h-10 cursor-pointer border-b border-transparent px-1"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <InventoryFilters
-        search={search}
-        kind={kind}
-        onSearch={storage.setSearch}
-        onKind={(value) => {
-          setKind(value);
-          storage.setPage(0);
-        }}
-      />
-      {error ? (
-        <p role="alert">{error}</p>
-      ) : !view ? (
-        <p role="status">正在读取{source === 'bag' ? '储物袋' : '储藏室'}……</p>
-      ) : null}
+    <CraftInventoryPanel
+      source={source}
+      onSource={(value) => {
+        if (value === 'storage') storage.reload();
+        setSource(value);
+      }}
+      view={view}
+      loading={source === 'bag' ? bagQuery.isRefreshing : storage.loading}
+      error={error}
+      filter={filter}
+      onFilter={(value) => {
+        setFilter(value);
+        storage.setPage(0);
+      }}
+      onPage={storage.setPage}
+      onReload={() =>
+        source === 'bag' ? void bagQuery.reload() : storage.reload()
+      }
+    >
       <InventoryItems
         items={
-          source === 'bag' && (search || kind !== 'all')
+          source === 'bag' && inventoryFilterActive(filter)
             ? (view?.items ?? []).filter((item) =>
-                matchesInventoryFilters(item, search, kind),
+                matchesInventoryFilters(item, filter),
               )
             : (view?.items ?? [])
         }
         location={source}
-        compact={source === 'bag' && (!!search || kind !== 'all')}
+        compact={source === 'bag' && inventoryFilterActive(filter)}
         quickTouchHint
         slotProps={(item) => {
           const material = groups.find((g) =>
@@ -189,25 +150,6 @@ export function AlchemyBag({
           };
         }}
       />
-      {source === 'storage' && view && view.total > 40 ? (
-        <div className="flex items-center justify-between">
-          <InkButton
-            disabled={locked || view.page === 0}
-            onClick={() => storage.setPage(view.page - 1)}
-          >
-            上一页
-          </InkButton>
-          <span className="font-mono">
-            {view.page + 1} / {Math.ceil(view.total / 40)}
-          </span>
-          <InkButton
-            disabled={locked || (view.page + 1) * 40 >= view.total}
-            onClick={() => storage.setPage(view.page + 1)}
-          >
-            下一页
-          </InkButton>
-        </div>
-      ) : null}
-    </div>
+    </CraftInventoryPanel>
   );
 }

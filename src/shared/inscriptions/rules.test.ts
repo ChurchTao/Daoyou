@@ -21,7 +21,6 @@ import {
   prepareInscriptionEquipment,
   prepareInscriptionStrengthen,
   previewInscriptionDraw,
-  requiredDrawSlots,
   rollInscriptionDraw,
 } from './rules';
 
@@ -244,12 +243,10 @@ describe('阵纹物品与绘制', () => {
     expect(() =>
       prepareInscriptionDraw([item], [{ ...ref(item, 4), revision: 1 }]),
     ).toThrow('已变化');
-    expect(() =>
-      prepareInscriptionDraw(
-        [{ ...item, location: 'storage', slotIndex: null }],
-        [ref(item, 4)],
-      ),
-    ).toThrow();
+    const stored = { ...item, location: 'storage' as const, slotIndex: null };
+    expect(
+      prepareInscriptionDraw([stored], [ref(stored, 4)]).afterMaterials,
+    ).toEqual([]);
     expect(() =>
       prepareInscriptionDraw([item], [ref(item, 2), ref(item, 2)]),
     ).toThrow('重复');
@@ -268,29 +265,20 @@ describe('阵纹物品与绘制', () => {
       { definitionId: inscriptionItemId(xuanfeng, 11), quantity: 9 },
     ]);
   });
-  it('抽取前校验最坏容量，不允许仅一种同名堆叠时选择性开奖', () => {
+  it('满包时仍可绘制，产物允许转入储藏室', () => {
     const mat = material('ore', 99, '玄品');
     const full = [
       mat,
       ...Array.from({ length: 39 }, (_, i) => glyph(1, 99, xuanfeng, i + 1)),
     ];
-    expect(() => prepareInscriptionDraw(full, [ref(mat, 1)])).toThrow('空格');
+    const plan = prepareInscriptionDraw(full, [ref(mat, 1)]);
+    expect(plan.preview.outputs.length).toBeGreaterThan(0);
     // 消耗完整材料堆叠释放一格，四份只产出一枚时足够。
     const small = material();
     expect(
       prepareInscriptionDraw([small, ...full.slice(1)], [ref(small, 4)]).preview
         .outputs,
     ).toEqual([{ level: 1, quantity: 1 }]);
-  });
-  it('最坏占格包含九种类型与99枚边界，已有部分堆叠可减少预留', () => {
-    expect(requiredDrawSlots([], [{ level: 1, quantity: 9 }])).toBe(9);
-    expect(requiredDrawSlots([], [{ level: 1, quantity: 107 }])).toBe(9);
-    expect(requiredDrawSlots([], [{ level: 1, quantity: 108 }])).toBe(10);
-    const stacks = DAO_FORMATION_INSCRIPTIONS_V1.map((p, i) =>
-      glyph(1, 98, p.id, i),
-    );
-    expect(requiredDrawSlots(stacks, [{ level: 1, quantity: 3 }])).toBe(1);
-    expect(requiredDrawSlots(stacks, [{ level: 1, quantity: 18 }])).toBe(9);
   });
   it('随机产出可按固定定义正常入袋和堆叠', () => {
     const preview = previewInscriptionDraw(40960 * 100);
@@ -310,10 +298,49 @@ describe('阵纹物品与绘制', () => {
     next.forEach((i) =>
       expect(InventoryItemSchema.safeParse(i).success).toBe(true),
     );
+    const full = Array.from({ length: 40 }, (_, slot) =>
+      glyph(1, 99, xuanfeng, slot),
+    );
+    const overflow = addItems(
+      full,
+      {
+        definitionId: inscriptionItemId('dao_inscription.lingyao', 2),
+        quantity: 1,
+      },
+      'bag',
+      true,
+      () => 'stored-result',
+      inventoryStackIdentity(
+        inscriptionItemId('dao_inscription.lingyao', 2),
+        null,
+      ),
+    );
+    expect(overflow.find((item) => item.id === 'stored-result')?.location).toBe(
+      'storage',
+    );
   });
 });
 
 describe('合成与烙印', () => {
+  it('可给储藏室道装烙印，并消耗储藏室阵纹', () => {
+    const eq = { ...equipment(), location: 'storage' as const };
+    const incoming = {
+      ...glyph(),
+      location: 'storage' as const,
+      slotIndex: null,
+    };
+    const plan = prepareInscriptionEquipment(
+      [eq, incoming],
+      ref(eq),
+      0,
+      ref(incoming),
+      'engrave',
+      false,
+    );
+    expect(plan.after).toHaveLength(1);
+    expect(plan.after[0].location).toBe('storage');
+    expect(plan.equipped).toBe(false);
+  });
   it('同堆叠或跨堆叠两两合成，只收灵石，不改变类型', () => {
     const a = glyph(3, 2);
     const plan = prepareInscriptionStrengthen([a], [ref(a, 2)]);
@@ -341,13 +368,23 @@ describe('合成与烙印', () => {
     ).toThrow();
     expect(inscriptionStrengthenCost(11).spiritStones).toBe(5120);
   });
-  it('合成产物容量先校验，不能借合成溢出仓库', () => {
+  it('合成可混用两处阵纹，满包时产物可入储藏室', () => {
     const full = Array.from({ length: 40 }, (_, i) =>
       glyph(1, 99, xuanfeng, i),
     );
-    expect(() => prepareInscriptionStrengthen(full, [ref(full[0], 2)])).toThrow(
-      '空位',
+    const stored = {
+      ...glyph(1, 1, xuanfeng, 40),
+      location: 'storage' as const,
+      slotIndex: null,
+    };
+    const plan = prepareInscriptionStrengthen(
+      [stored, ...full],
+      [ref(stored), ref(full[0])],
     );
+    expect(plan.grant.quantity).toBe(1);
+    expect(
+      plan.afterMaterials.find((item) => item.id === stored.id),
+    ).toBeUndefined();
   });
   it('双孔可同种；覆盖须确认且旧阵纹不返还，输入保持不变', () => {
     const eq = equipment();

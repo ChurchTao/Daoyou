@@ -10,8 +10,10 @@ import {
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
 import {
+  defaultInventoryFilter,
+  inventoryFilterActive,
   matchesInventoryFilters,
-  type InventoryKind,
+  type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
@@ -58,8 +60,7 @@ export default function InventoryV6() {
         ? 'storage'
         : 'bag';
   const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [kind, setKind] = useState<InventoryKind>('all');
+  const [filter, setFilter] = useState<InventoryFilter>(defaultInventoryFilter);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [storage, setData] = useState<InventoryView>();
@@ -74,8 +75,6 @@ export default function InventoryV6() {
   const busy = useRef(false);
   const reader = useRef<AbortController | null>(null);
   const mounted = useRef(true);
-  const remoteSearch = location === 'storage' ? search : '';
-  const remoteKind = location === 'storage' ? kind : 'all';
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -90,9 +89,13 @@ export default function InventoryV6() {
     const query = new URLSearchParams({
       location,
       page: String(page),
-      search: remoteSearch,
-      kind: remoteKind,
+      kind: filter.kind,
     });
+    if (filter.kind === 'material') {
+      if (filter.minRank) query.set('minRank', filter.minRank);
+      if (filter.maxRank) query.set('maxRank', filter.maxRank);
+      if (filter.materialType) query.set('materialType', filter.materialType);
+    }
     void combatV6Request<InventoryView>(`${endpoint}?${query}`, {
       signal: controller.signal,
     })
@@ -115,7 +118,7 @@ export default function InventoryV6() {
         }
       });
     return () => controller.abort();
-  }, [location, page, remoteSearch, remoteKind, refresh, pushToast]);
+  }, [location, page, filter, refresh, pushToast]);
   async function act(action: BagAction) {
     if (busy.current) return;
     busy.current = true;
@@ -166,14 +169,14 @@ export default function InventoryV6() {
       }
     }
   }
-  const filtered = !!search || kind !== 'all' || !!slotFilter;
+  const filtered = inventoryFilterActive(filter) || !!slotFilter;
   const equipped = bag?.equippedItems ?? [];
   const unavailable =
     pending || !data || bagQuery.isRefreshing || !!bagQuery.error;
   const visibleData = data ?? (location === 'bag' ? bag : undefined);
   function matches(item: Item) {
     return (
-      matchesInventoryFilters(item, search, kind) &&
+      matchesInventoryFilters(item, filter) &&
       (!slotFilter ||
         (itemDefinition(item.definitionId).kind === 'equipment' &&
           (item.instanceData as DaoEquipmentInstanceV1).slot === slotFilter))
@@ -218,8 +221,7 @@ export default function InventoryV6() {
               setData(undefined);
             }
             setPage(0);
-            setSearch('');
-            setKind('equipment');
+            setFilter({ kind: 'equipment' });
             setSlotFilter(slot);
             clearSelection();
           }}
@@ -281,17 +283,10 @@ export default function InventoryV6() {
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 <InventoryFilters
-                  search={search}
-                  kind={kind}
-                  onSearch={(value) => {
+                  value={filter}
+                  onChange={(value) => {
                     clearSelection();
-                    setSearch(value);
-                    setPage(0);
-                    if (location === 'storage') setData(undefined);
-                  }}
-                  onKind={(value) => {
-                    clearSelection();
-                    setKind(value);
+                    setFilter(value);
                     setPage(0);
                     if (location === 'storage') setData(undefined);
                     setSlotFilter(undefined);
@@ -302,7 +297,7 @@ export default function InventoryV6() {
                     onClick={() => {
                       clearSelection();
                       setSlotFilter(undefined);
-                      setKind('all');
+                      setFilter(defaultInventoryFilter);
                     }}
                   >
                     {EQUIPMENT_SLOT_NAMES[slotFilter]} ×
@@ -459,8 +454,12 @@ export default function InventoryV6() {
               </InkButton>
             ) : null}
           </div>
-          {location === 'storage' && data?.total === 0 ? (
-            <p className="text-ink-secondary text-sm">暂无物品</p>
+          {visibleData &&
+          visibleItems.length === 0 &&
+          (location === 'storage' || filtered) ? (
+            <p className="text-ink-secondary text-sm">
+              {filtered ? '暂无符合筛选条件的物品' : '暂无物品'}
+            </p>
           ) : null}
           {location === 'storage' && data ? (
             <div className="flex items-center justify-between text-sm">

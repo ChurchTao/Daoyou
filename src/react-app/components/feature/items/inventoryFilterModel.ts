@@ -1,5 +1,10 @@
 import type { InventoryView } from '@shared/contracts/inventory';
 import { itemDefinition } from '@shared/inventory';
+import {
+  INVENTORY_MATERIAL_TYPES,
+  MaterialFactsSchema,
+} from '@shared/items/definitions/materials';
+import { QUALITY_VALUES, type Quality } from '@shared/types/constants';
 
 type Item = InventoryView['items'][number];
 
@@ -17,8 +22,35 @@ export const inventoryKinds = [
 ] as const;
 
 export type InventoryKind = (typeof inventoryKinds)[number][0];
+export type MaterialType = (typeof INVENTORY_MATERIAL_TYPES)[number];
+export type InventoryFilter = {
+  kind: InventoryKind;
+  minRank?: Quality;
+  maxRank?: Quality;
+  materialType?: MaterialType;
+};
 
-export function matchesInventoryFilters(item: Item, search: string, kind: InventoryKind) {
-  return item.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()) &&
-    (kind === 'all' || itemDefinition(item.definitionId).kind === kind);
+export const defaultInventoryFilter: InventoryFilter = { kind: 'all' };
+
+export function inventoryFilterActive(filter: InventoryFilter) {
+  return (
+    filter.kind !== 'all' ||
+    !!filter.minRank ||
+    !!filter.maxRank ||
+    !!filter.materialType
+  );
+}
+
+export function matchesInventoryFilters(item: Item, filter: InventoryFilter) {
+  const kind = itemDefinition(item.definitionId).kind;
+  if (filter.kind !== 'all' && kind !== filter.kind) return false;
+  if (filter.kind !== 'material') return true;
+  const facts = MaterialFactsSchema.safeParse(item.instanceData);
+  if (!facts.success) return false;
+  const rank = QUALITY_VALUES.indexOf(facts.data.rank);
+  return (
+    (!filter.minRank || rank >= QUALITY_VALUES.indexOf(filter.minRank)) &&
+    (!filter.maxRank || rank <= QUALITY_VALUES.indexOf(filter.maxRank)) &&
+    (!filter.materialType || facts.data.type === filter.materialType)
+  );
 }

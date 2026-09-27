@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { BAG_CAPACITY, type InventoryItem } from '../inventory';
+import { INVENTORY_MATERIAL_TYPES } from '../items/definitions/materials';
+import { QUALITY_VALUES } from '../types/constants';
 const ref = {
   id: z.string().min(1).max(160),
   revision: z.number().int().nonnegative(),
@@ -23,8 +25,19 @@ export const InventoryQuerySchema = z
         'consumable',
       ])
       .default('all'),
+    minRank: z.enum(QUALITY_VALUES).optional(),
+    maxRank: z.enum(QUALITY_VALUES).optional(),
+    materialType: z.enum(INVENTORY_MATERIAL_TYPES).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (query) =>
+      !query.minRank ||
+      !query.maxRank ||
+      QUALITY_VALUES.indexOf(query.minRank) <=
+        QUALITY_VALUES.indexOf(query.maxRank),
+    { message: '品质范围无效' },
+  );
 export const InventoryActionSchema = z.discriminatedUnion('action', [
   z
     .object({

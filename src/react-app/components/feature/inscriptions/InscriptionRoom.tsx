@@ -1,8 +1,14 @@
+import {
+  inventoryFilterActive,
+  matchesInventoryFilters,
+  type InventoryFilter,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
 import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import type { InscriptionRequest } from '@shared/contracts/inscriptions';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { daoFormationInscriptionOf } from '@shared/engine/combat-v6/equipment/content';
@@ -25,7 +31,7 @@ import {
 import { inscriptionItemId } from '@shared/items/definitions/inscriptions';
 import { cn } from '@shared/lib/cn';
 import { useState } from 'react';
-import { InventoryHeader } from '../items/InventoryHeader';
+import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
 import type { DisplayItem } from '../items/itemPresentation';
@@ -93,6 +99,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     'equipment',
   );
   const [bagOpen, setBagOpen] = useState(false);
+  const [source, setSource] = useState<'bag' | 'storage'>('bag');
+  const [filter, setFilter] = useState<InventoryFilter>({ kind: 'material' });
+  const storage = useCraftStorage(filter, source === 'storage');
+  const [chosenItems, setChosenItems] = useState<Map<string, Item>>(new Map());
   const [selectionError, setSelectionError] = useState('');
   const [confirmation, setConfirmation] = useState<{
     input: InscriptionRequest;
@@ -100,9 +110,18 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     warning?: string;
   }>();
   const inventory = session.bag.data;
+  const pickerView = source === 'bag' ? inventory : storage.view;
+  const pickerError = source === 'bag' ? session.bag.error : storage.error;
+  const pickerLocked =
+    session.locked ||
+    !pickerView ||
+    (source === 'storage' && storage.loading) ||
+    !!pickerError;
   const items = [
+    ...chosenItems.values(),
     ...(inventory?.items ?? []),
     ...(inventory?.equippedItems ?? []),
+    ...(storage.view?.items ?? []),
   ];
   const byId = new Map(items.map((item) => [item.id, item]));
   const equipmentItem = equipmentRef ? byId.get(equipmentRef.id) : undefined;
@@ -180,7 +199,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       problem ??= '灵石不足';
   }
   function openBag(target?: 'equipment' | 'inscription') {
-    if (target) setPicker(target);
+    if (target) {
+      setPicker(target);
+      setFilter({ kind: target });
+    }
     if (window.matchMedia('(max-width: 767px)').matches) setBagOpen(true);
     else document.getElementById('inscription-materials')?.focus();
   }
@@ -217,7 +239,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     return null;
   }
   function choose(item: Item) {
-    if (session.locked) return;
+    if (pickerLocked) return;
     const reason = itemProblem(item);
     if (reason) {
       setSelectionError(reason);
@@ -257,32 +279,33 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       setSocket(0);
       setSocketAction('engrave');
       setPicker('inscription');
+      setFilter({ kind: 'inscription' });
     } else setInscriptionRef(refOf(item));
+    setChosenItems((current) => new Map(current).set(item.id, item));
     setBagOpen(false);
   }
   function confirm() {
     if (!input || problem || session.locked) return;
     const lines: string[] = [];
     let warning: string | undefined;
+    const describe = (ref: InscriptionRef, quantity: number) => {
+      const item = byId.get(ref.id);
+      const location = item?.location === 'storage' ? '储藏室' : '储物袋';
+      return `${location} · ${item?.name} ×${quantity}`;
+    };
     if (input.action === 'draw') {
-      lines.push(
-        ...input.materials.map(
-          (ref) => `${byId.get(ref.id)?.name} ×${ref.quantity}`,
-        ),
-      );
+      lines.push(...input.materials.map((ref) => describe(ref, ref.quantity)));
       if (draw!.remainderTenths)
         warning = '本次投入含有无法成纹的余料，将一并消耗。';
     } else if (input.action === 'strengthen') {
       lines.push(
-        ...input.inscriptions.map(
-          (ref) => `${byId.get(ref.id)?.name} ×${ref.quantity}`,
-        ),
+        ...input.inscriptions.map((ref) => describe(ref, ref.quantity)),
       );
     } else {
       lines.push(
-        `${equipmentItem!.name} · 第${socket + 1}孔`,
+        `${equipmentItem!.location === 'storage' ? '储藏室' : equipmentItem!.location === 'equipped' ? '已穿戴' : '储物袋'} · ${equipmentItem!.name} · 第${socket + 1}孔`,
         `原阵纹：${formationText(equipment!.formationInscriptions[socket])}`,
-        `消耗：${selectedInscription!.name} ×1`,
+        `消耗：${describe(input.inscription, 1)}`,
       );
       if (input.action === 'engrave' && input.replace)
         warning = '覆盖后旧阵纹消失，不会返还。';
@@ -300,12 +323,32 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     setEquipmentRef(undefined);
     setInscriptionRef(undefined);
     setPicker('equipment');
+    setChosenItems(new Map());
+    storage.reload();
     setSelectionError('');
     session.continueWork();
   }
   const materialPicker = (
-    <div className="space-y-3 text-sm">
-      <InventoryHeader capacity={<>{inventory?.used ?? '—'} / 40</>} />
+    <CraftInventoryPanel
+      source={source}
+      onSource={(value) => {
+        if (value === 'storage') storage.reload();
+        setSource(value);
+      }}
+      view={pickerView}
+      loading={source === 'bag' ? session.bag.isRefreshing : storage.loading}
+      error={pickerError}
+      filter={filter}
+      onFilter={(value) => {
+        setFilter(value);
+        storage.setPage(0);
+      }}
+      onPage={storage.setPage}
+      onReload={() => {
+        if (source === 'bag') session.reload();
+        else storage.reload();
+      }}
+    >
       {tab === 'engrave' && (
         <p className="text-ink-secondary text-xs">
           {picker === 'equipment' ? '选择道装' : `选择第${socket + 1}孔的阵纹`}
@@ -321,13 +364,13 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                 <ItemSlot
                   key={item.id}
                   item={item}
-                  disabled={session.locked}
+                  disabled={pickerLocked}
                   onQuickAction={() => choose(item)}
                   quickOnTouch
                 >
                   {(close) => (
                     <InkButton
-                      disabled={session.locked}
+                      disabled={pickerLocked}
                       onClick={() => {
                         choose(item);
                         close();
@@ -342,12 +385,20 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           </div>
         )}
       <InventoryItems
-        items={inventory?.items ?? []}
+        items={
+          source === 'bag' && inventoryFilterActive(filter)
+            ? (pickerView?.items ?? []).filter((item) =>
+                matchesInventoryFilters(item, filter),
+              )
+            : (pickerView?.items ?? [])
+        }
+        location={source}
+        compact={source === 'bag' && inventoryFilterActive(filter)}
         quickTouchHint
         slotProps={(item) => {
           const reason = item ? itemProblem(item) : null;
           return {
-            disabled: session.locked || !!reason,
+            disabled: pickerLocked || !!reason,
             quickOnTouch: true,
             badge: item && !reason ? '可选' : undefined,
             onQuickAction: item ? () => choose(item) : undefined,
@@ -356,7 +407,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   <>
                     {reason && <p className="text-ink-secondary">{reason}</p>}
                     <InkButton
-                      disabled={session.locked || !!reason}
+                      disabled={pickerLocked || !!reason}
                       onClick={() => {
                         choose(item);
                         close();
@@ -370,7 +421,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           };
         }}
       />
-    </div>
+    </CraftInventoryPanel>
   );
   const operationLabel =
     tab === 'draw'
@@ -517,10 +568,12 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
               <div className="space-y-4" aria-live="polite">
                 <p className="text-teal">
                   {session.result.action === 'draw'
-                    ? '阵纹已成，收入储物袋。'
-                    : session.result.action === 'engrave'
-                      ? '烙印完成。'
-                      : '合成完成。'}
+                    ? '阵纹已成，优先收入储物袋，满时存入储藏室。'
+                    : session.result.action === 'strengthen'
+                      ? '合成完成，产物优先入袋，满时存入储藏室。'
+                      : session.result.action === 'engrave'
+                        ? '烙印完成。'
+                        : '合成完成。'}
                 </p>
                 {!!session.result.grants.length && (
                   <GrantItems grants={session.result.grants} />
@@ -556,6 +609,14 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                         disabled={session.locked}
                         onChange={() => {
                           setTab(mode.value as Tab);
+                          setFilter({
+                            kind:
+                              mode.value === 'draw'
+                                ? 'material'
+                                : mode.value === 'strengthen'
+                                  ? 'inscription'
+                                  : 'equipment',
+                          });
                           setActiveSlot(0);
                           setSelectionError('');
                         }}
@@ -734,7 +795,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
               九种阵纹等概率独立生成。同种同级可两两合成，绘制与合成均必定成功。阵纹适用部位及等级须符合道装要求。
             </p>
             <p>
-              已烙印阵纹可消耗背包中同种同级阵纹进行孔内合成。阵纹不能拆卸，覆盖时旧阵纹不返还。
+              已烙印阵纹可消耗储物袋或储藏室中同种同级阵纹进行孔内合成。阵纹不能拆卸，覆盖时旧阵纹不返还。产出优先入袋，满时存入储藏室。
             </p>
           </div>
         </details>

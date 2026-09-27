@@ -1,4 +1,7 @@
-import type { InventoryKind } from '@app/components/feature/items/inventoryFilterModel';
+import {
+  defaultInventoryFilter,
+  type InventoryFilter,
+} from '@app/components/feature/items/inventoryFilterModel';
 import { RoomView, type RoomActorView } from '@app/components/feature/room';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
@@ -71,9 +74,9 @@ const readServerCompact = () => false;
 
 export function ForgingRoom() {
   const [facility, setFacility] = useState('');
-  const [filter, setFilter] = useState<InventoryKind>('all');
+  const [filter, setFilter] = useState<InventoryFilter>(defaultInventoryFilter);
   const session = useForgingSession(
-    facility === 'archive' ? 'blueprint' : filter,
+    facility === 'archive' ? { kind: 'blueprint' } : filter,
   );
   const [selected, setSelected] = useState<string>();
   const { pushToast } = useInkUI();
@@ -98,7 +101,7 @@ export function ForgingRoom() {
     }
   });
   function openBag(next: ForgeFilter) {
-    setFilter(next);
+    setFilter({ kind: next });
     if (compact) setDrawer('bag');
     else bagRef.current?.focus();
   }
@@ -325,7 +328,7 @@ export function ForgingRoom() {
             ) : facility === 'archive' ? (
               <ForgingInventory
                 session={session}
-                filter="blueprint"
+                filter={{ kind: 'blueprint' }}
                 onFilter={setFilter}
                 fixedFilter
                 onChoose={(item) => {

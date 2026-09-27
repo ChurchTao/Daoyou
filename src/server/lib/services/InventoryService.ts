@@ -27,7 +27,18 @@ import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { ITEM_DEFINITIONS } from '@shared/items/registry';
-import { and, asc, count, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { QUALITY_VALUES } from '@shared/types/constants';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import {
@@ -91,6 +102,10 @@ export async function readInventory(
   const matches = ITEM_DEFINITIONS.filter((i) =>
     i.name.includes(query.search),
   ).map((i) => i.id);
+  const materialRanks = QUALITY_VALUES.slice(
+    query.minRank ? QUALITY_VALUES.indexOf(query.minRank) : 0,
+    query.maxRank ? QUALITY_VALUES.indexOf(query.maxRank) + 1 : undefined,
+  );
   const filter = and(
     ownerFilter,
     eq(inventoryItems.location, query.location),
@@ -111,14 +126,30 @@ export async function readInventory(
           ),
         )
       : undefined,
+    query.kind === 'material' && (query.minRank || query.maxRank)
+      ? inArray(
+          sql<string>`${inventoryItems.instanceData}->>'rank'`,
+          materialRanks,
+        )
+      : undefined,
+    query.kind === 'material' && query.materialType
+      ? eq(
+          sql<string>`${inventoryItems.instanceData}->>'type'`,
+          query.materialType,
+        )
+      : undefined,
   );
+  const order =
+    query.location === 'bag'
+      ? [asc(inventoryItems.slotIndex), asc(inventoryItems.id)]
+      : [desc(inventoryItems.updatedAt), desc(inventoryItems.id)];
   const [requestedRows, totals, usage] = await runDbTasks(executor, [
     () =>
       executor
         .select()
         .from(inventoryItems)
         .where(filter)
-        .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
+        .orderBy(...order)
         .limit(query.location === 'bag' ? BAG_CAPACITY : 40)
         .offset(query.location === 'bag' ? 0 : query.page * 40),
     () =>
@@ -140,7 +171,7 @@ export async function readInventory(
           .select()
           .from(inventoryItems)
           .where(filter)
-          .orderBy(asc(inventoryItems.slotIndex), asc(inventoryItems.id))
+          .orderBy(...order)
           .limit(40)
           .offset(page * 40);
   const equipped =

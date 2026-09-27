@@ -155,7 +155,9 @@ describe('回收边界', () => {
       instanceData: null,
     };
     expect(recycleBlockingReason(jade)).toBeNull();
-    expect(manualJadeRecycleUnitPrice('character_manual.changchun')).toBe(45);
+    expect(manualJadeRecycleUnitPrice('character_manual.changchun')).toBe(
+      5_000,
+    );
     expect(recycleBlockingReason({ ...jade, location: 'storage' })).toBeNull();
     expect(recycleBlockingReason({ ...jade, instanceData: {} })).not.toBeNull();
   });
@@ -167,7 +169,7 @@ describe('回收边界', () => {
       instanceData: null,
     };
     expect(recycleBlockingReason(blueprint)).toBeNull();
-    expect(blueprintRecycleUnitPrice(10)).toBe(20);
+    expect(blueprintRecycleUnitPrice(10)).toBe(5_000);
     expect(
       recycleBlockingReason({ ...blueprint, location: 'storage' }),
     ).toBeNull();
@@ -188,16 +190,29 @@ describe('回收边界', () => {
       instanceData: generated.instance,
     };
     expect(recycleBlockingReason(equipment)).toBeNull();
-    expect(
-      equipmentRecycleUnitPrice({ equipmentLevel: 10, baseQuality: 0 }),
-    ).toBe(50);
-    expect(
-      equipmentRecycleUnitPrice({ equipmentLevel: 10, baseQuality: 1 }),
-    ).toBe(75);
+    expect(equipmentRecycleUnitPrice({ equipmentLevel: 10 })).toBe(3_570);
+    expect(equipmentRecycleUnitPrice(generated.instance)).toBe(3_570);
     expect(
       recycleBlockingReason({ ...equipment, location: 'equipped' }),
     ).not.toBeNull();
     expect(recycleBlockingReason({ ...equipment, id: 'other' })).not.toBeNull();
+  });
+  it('玉简和图纸按境界定价，未开放图纸以化神档封顶', () => {
+    expect(
+      [
+        'character_manual.changchun',
+        'character_manual.guiyuan',
+        'character_manual.taibai',
+        'character_manual.tuotian',
+      ].map(manualJadeRecycleUnitPrice),
+    ).toEqual([5_000, 15_000, 50_000, 150_000]);
+    expect(
+      [10, 30, 50, 70, 90, 110, 130, 150, 170].map(blueprintRecycleUnitPrice),
+    ).toEqual([
+      5_000, 15_000, 50_000, 150_000, 300_000, 300_000, 300_000, 300_000,
+      300_000,
+    ]);
+    expect(equipmentRecycleUnitPrice({ equipmentLevel: 90 })).toBe(215_670);
   });
   it('不把未知定义或损坏的道装、消耗品当作可回收物品', () => {
     for (const definitionId of ['equipment.v6', 'unknown', 'consumable.v1']) {

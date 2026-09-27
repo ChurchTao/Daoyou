@@ -83,9 +83,13 @@ export function publicMailAttachment(item: MailAttachment): MailAttachment {
       inventory: {
         ...item.inventory,
         instanceData: {
-          name: plant.seedName,
-          rank: plant.quality,
-          description: `${plant.seedDescription}\n${plant.clueTexts.join('；')}`,
+          seedPreview: {
+            quality: plant.quality,
+            element: plant.element,
+            minRealm: plant.minRealm,
+            seedDescription: plant.seedDescription,
+            clueTexts: plant.clueTexts,
+          },
         } as unknown as NonNullable<
           MailAttachment['inventory']
         >['instanceData'],
