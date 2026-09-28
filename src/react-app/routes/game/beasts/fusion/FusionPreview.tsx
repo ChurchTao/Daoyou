@@ -6,7 +6,6 @@ import {
   type SummonedBeast,
 } from '@shared/engine/combat-v6/beasts';
 import { fusionPreview } from '@shared/engine/combat-v6/beasts/fusion';
-import { BEAST_FUSION } from '@shared/engine/combat-v6/beasts/fusion-config';
 
 export function FusionPreview({
   first,
@@ -24,7 +23,6 @@ export function FusionPreview({
   onConfirm: () => void;
 }) {
   const outcomes = fusionPreview(first, second);
-  const percent = (chance: number) => `${Math.round(chance * 100)}%`;
   return (
     <InkDetailDrawer
       isOpen
@@ -91,11 +89,7 @@ export function FusionPreview({
         <section className="border-ink/10 space-y-2 border-t pt-4 leading-7">
           <h3 className="font-semibold">技能和资质会怎么变？</h3>
           <p>
-            新灵兽会拥有自身的天生必带技能。两只灵兽的其他技能，每个都有{' '}
-            <span className="font-mono">
-              {percent(BEAST_FUSION.skillChance)}
-            </span>{' '}
-            的机会留下；两只都会的技能，也只有一次机会。
+            新灵兽必定带有自己的必带技能。两只灵兽的其他技能有机会留下；两只都会的技能，只留一次。
           </p>
           <p className="text-ink-secondary">
             资质和成长会参考两只灵兽重新生成，可能变好，也可能变差，不保证比原来更强。

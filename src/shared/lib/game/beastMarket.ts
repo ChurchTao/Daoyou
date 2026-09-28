@@ -1,10 +1,17 @@
 import { BEAST_SKILL_FAMILIES } from '@shared/engine/combat-v6/beasts/content';
 import { BOOKS } from '@shared/items/definitions/beast-books';
+import type { MarketLayer } from '@shared/types/market';
 import { z } from 'zod';
 import data from './data/beast-market.json';
 
 const rarity = z.enum(['common', 'uncommon', 'rare']);
-const priceTier = z.enum(['low', 'medium', 'high']);
+const priceTier = z.number().int().min(1).max(10);
+const stockShape = z.strictObject({
+  normalBooks: z.number().int().nonnegative().max(8),
+  advancedBooks: z.number().int().nonnegative().max(8),
+  originDew: z.number().int().nonnegative().max(8),
+  superiorOriginDew: z.number().int().nonnegative().max(8),
+});
 const priceRange = z
   .strictObject({
     min: z.number().int().positive(),
@@ -12,17 +19,31 @@ const priceRange = z
   })
   .refine((value) => value.min <= value.max);
 const packShape = z.strictObject({
-  formatVersion: z.literal(1),
+  formatVersion: z.literal(2),
   contentRevision: z.number().int().positive(),
   stock: z.strictObject({
-    normalBooks: z.number().int().nonnegative().max(8),
-    advancedBooks: z.number().int().nonnegative().max(8),
-    originDew: z.number().int().nonnegative().max(8),
-    superiorOriginDew: z.number().int().nonnegative().max(8),
+    common: stockShape,
+    treasure: stockShape,
+    heaven: stockShape,
   }),
   prices: z.strictObject({
     normalBook: priceRange,
-    advancedBook: z.record(priceTier, priceRange),
+    advancedBook: z.strictObject({
+      baseByTier: z
+        .array(z.number().int().min(500000).max(5000000))
+        .length(10)
+        .refine((prices) =>
+          prices.every(
+            (price, index) => index === 0 || price > prices[index - 1],
+          ),
+        ),
+      fluctuation: z
+        .strictObject({
+          min: z.number().positive(),
+          max: z.number().positive(),
+        })
+        .refine((value) => value.min < value.max),
+    }),
     originDew: z.number().int().positive(),
     superiorOriginDew: z.number().int().positive(),
   }),
@@ -56,29 +77,31 @@ export function loadBeastMarketPack(input: unknown) {
       seen.add(entry.definitionId);
     }
   }
-  if (
-    pack.stock.normalBooks > pack.books.normal.length ||
-    pack.stock.advancedBooks > pack.books.advanced.length ||
-    Object.values(pack.stock).reduce((sum, count) => sum + count, 0) !== 8
-  )
-    throw new Error('御灵集货架配置无效');
+  for (const stock of Object.values(pack.stock)) {
+    if (
+      stock.normalBooks > pack.books.normal.length ||
+      stock.advancedBooks > pack.books.advanced.length ||
+      Object.values(stock).reduce((sum, count) => sum + count, 0) !== 8
+    )
+      throw new Error('御灵集货架配置无效');
+  }
   return pack;
 }
 
 export const BEAST_MARKET_PACK = loadBeastMarketPack(data);
 
 export function sampleBeastMarketStock(
+  layer: Exclude<MarketLayer, 'black'>,
   random: () => number = Math.random,
   pack = BEAST_MARKET_PACK,
 ) {
-  const { books, prices, rarityWeights, stock } = pack;
+  const { books, prices, rarityWeights } = pack;
+  const stock = pack.stock[layer];
+  const rollPrice = (range: { min: number; max: number }) =>
+    range.min + Math.floor(random() * (range.max - range.min + 1));
   function pickBooks<
     T extends { definitionId: string; rarity: z.infer<typeof rarity> },
-  >(
-    entries: T[],
-    count: number,
-    priceRangeFor: (entry: T) => { min: number; max: number },
-  ) {
+  >(entries: T[], count: number, priceFor: (entry: T) => number) {
     const remaining = [...entries];
     return Array.from({ length: count }, () => {
       const total = remaining.reduce(
@@ -91,20 +114,25 @@ export function sampleBeastMarketStock(
       );
       if (index < 0) index = remaining.length - 1;
       const [entry] = remaining.splice(index, 1);
-      const range = priceRangeFor(entry);
       return {
         definitionId: entry.definitionId,
-        price: range.min + Math.floor(random() * (range.max - range.min + 1)),
+        price: priceFor(entry),
       };
     });
   }
   return [
-    ...pickBooks(books.normal, stock.normalBooks, () => prices.normalBook),
-    ...pickBooks(
-      books.advanced,
-      stock.advancedBooks,
-      (entry) => prices.advancedBook[entry.priceTier],
+    ...pickBooks(books.normal, stock.normalBooks, () =>
+      rollPrice(prices.normalBook),
     ),
+    ...pickBooks(books.advanced, stock.advancedBooks, (entry) => {
+      const { baseByTier, fluctuation } = prices.advancedBook;
+      const factor =
+        fluctuation.min + random() * (fluctuation.max - fluctuation.min);
+      return Math.min(
+        5000000,
+        Math.max(500000, Math.round(baseByTier[entry.priceTier - 1] * factor)),
+      );
+    }),
     ...Array.from({ length: stock.originDew }, () => ({
       definitionId: 'beast.refinement.origin-dew',
       price: prices.originDew,

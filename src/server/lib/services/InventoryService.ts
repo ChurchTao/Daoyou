@@ -630,7 +630,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               (b) =>
                 b.id === input.beastId && b.revision === input.beastRevision,
             );
-            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            if (!beast) throw new InventoryError('灵兽已有变化，请重新查看');
             const slot = beast.skillSlotCapacity
               ? randomInt(beast.skillSlotCapacity)
               : 0;
@@ -671,7 +671,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               (b) =>
                 b.id === input.beastId && b.revision === input.beastRevision,
             );
-            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            if (!beast) throw new InventoryError('灵兽已有变化，请重新查看');
             let fed;
             try {
               fed = previewBeastFeeding(
@@ -717,7 +717,7 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               (b) =>
                 b.id === input.beastId && b.revision === input.beastRevision,
             );
-            if (!beast) throw new InventoryError('灵兽已变化，请刷新后重试');
+            if (!beast) throw new InventoryError('灵兽已有变化，请重新查看');
             const refined = refineBeast(
               beast,
               item.definitionId,

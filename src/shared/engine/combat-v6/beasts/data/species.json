@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 2,
-  "contentRevision": 10,
+  "contentRevision": 11,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -38,27 +38,8 @@
         "max": 1030
       },
       "birthSkills": {
-        "core": [
-          "beast.spirit-flame"
-        ],
-        "candidates": [
-          "beast.wisdom",
-          "beast.meditation"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 20
-          },
-          {
-            "count": 2,
-            "weight": 5
-          }
-        ]
+        "core": ["beast.spirit-flame"],
+        "candidates": ["beast.wisdom", "beast.meditation"]
       }
     },
     {
@@ -96,32 +77,8 @@
         "max": 1060
       },
       "birthSkills": {
-        "core": [
-          "beast.defense"
-        ],
-        "candidates": [
-          "beast.counter",
-          "beast.sluggish",
-          "beast.strength"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 17
-          },
-          {
-            "count": 2,
-            "weight": 4
-          },
-          {
-            "count": 3,
-            "weight": 4
-          }
-        ]
+        "core": ["beast.defense"],
+        "candidates": ["beast.counter", "beast.sluggish", "beast.strength"]
       }
     },
     {
@@ -159,27 +116,8 @@
         "max": 1000
       },
       "birthSkills": {
-        "core": [
-          "beast.stealth"
-        ],
-        "candidates": [
-          "beast.sneak-attack",
-          "beast.agility"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 20
-          },
-          {
-            "count": 2,
-            "weight": 5
-          }
-        ]
+        "core": ["beast.stealth"],
+        "candidates": ["beast.sneak-attack", "beast.agility"]
       }
     },
     {
@@ -218,29 +156,7 @@
       },
       "birthSkills": {
         "core": [],
-        "candidates": [
-          "beast.perception",
-          "beast.parry",
-          "beast.regeneration"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 20
-          },
-          {
-            "count": 1,
-            "weight": 53
-          },
-          {
-            "count": 2,
-            "weight": 22
-          },
-          {
-            "count": 3,
-            "weight": 5
-          }
-        ]
+        "candidates": ["beast.perception", "beast.parry", "beast.regeneration"]
       }
     },
     {
@@ -278,27 +194,8 @@
         "max": 1090
       },
       "birthSkills": {
-        "core": [
-          "beast.wildfire"
-        ],
-        "candidates": [
-          "beast.meditation",
-          "beast.spell-fluctuation"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 20
-          },
-          {
-            "count": 2,
-            "weight": 5
-          }
-        ]
+        "core": ["beast.wildfire"],
+        "candidates": ["beast.meditation", "beast.spell-fluctuation"]
       }
     },
     {
@@ -336,27 +233,8 @@
         "max": 1080
       },
       "birthSkills": {
-        "core": [
-          "beast.poison"
-        ],
-        "candidates": [
-          "beast.sneak-attack",
-          "beast.defense"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 20
-          },
-          {
-            "count": 2,
-            "weight": 5
-          }
-        ]
+        "core": ["beast.poison"],
+        "candidates": ["beast.sneak-attack", "beast.defense"]
       }
     },
     {
@@ -400,28 +278,6 @@
           "beast.regeneration",
           "beast.strength",
           "beast.sluggish"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 20
-          },
-          {
-            "count": 1,
-            "weight": 52
-          },
-          {
-            "count": 2,
-            "weight": 20
-          },
-          {
-            "count": 3,
-            "weight": 4
-          },
-          {
-            "count": 4,
-            "weight": 4
-          }
         ]
       }
     },
@@ -466,28 +322,6 @@
           "beast.water-attack",
           "beast.wisdom",
           "beast.agility"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 20
-          },
-          {
-            "count": 1,
-            "weight": 52
-          },
-          {
-            "count": 2,
-            "weight": 20
-          },
-          {
-            "count": 3,
-            "weight": 4
-          },
-          {
-            "count": 4,
-            "weight": 4
-          }
         ]
       }
     },
@@ -526,31 +360,11 @@
         "max": 1130
       },
       "birthSkills": {
-        "core": [
-          "beast.stealth"
-        ],
+        "core": ["beast.stealth"],
         "candidates": [
           "beast.sneak-attack",
           "beast.agility",
           "beast.perception"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 17
-          },
-          {
-            "count": 2,
-            "weight": 4
-          },
-          {
-            "count": 3,
-            "weight": 4
-          }
         ]
       }
     },
@@ -589,31 +403,11 @@
         "max": 1160
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-defense"
-        ],
+        "core": ["beast.advanced-defense"],
         "candidates": [
           "beast.sluggish",
           "beast.water-attack",
           "beast.regeneration"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 17
-          },
-          {
-            "count": 2,
-            "weight": 4
-          },
-          {
-            "count": 3,
-            "weight": 4
-          }
         ]
       }
     },
@@ -652,32 +446,11 @@
         "max": 1200
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-poison",
-          "beast.flood"
-        ],
+        "core": ["beast.advanced-poison", "beast.flood"],
         "candidates": [
           "beast.strength",
           "beast.meditation",
           "beast.spell-resistance"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 85
-          },
-          {
-            "count": 1,
-            "weight": 10
-          },
-          {
-            "count": 2,
-            "weight": 2
-          },
-          {
-            "count": 3,
-            "weight": 3
-          }
         ]
       }
     },
@@ -716,32 +489,8 @@
         "max": 1185
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-combo"
-        ],
-        "candidates": [
-          "beast.agility",
-          "beast.parry",
-          "beast.critical"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 17
-          },
-          {
-            "count": 2,
-            "weight": 4
-          },
-          {
-            "count": 3,
-            "weight": 4
-          }
-        ]
+        "core": ["beast.advanced-combo"],
+        "candidates": ["beast.agility", "beast.parry", "beast.critical"]
       }
     },
     {
@@ -779,32 +528,8 @@
         "max": 1205
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-counter"
-        ],
-        "candidates": [
-          "beast.parry",
-          "beast.strength",
-          "beast.perception"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 17
-          },
-          {
-            "count": 2,
-            "weight": 4
-          },
-          {
-            "count": 3,
-            "weight": 4
-          }
-        ]
+        "core": ["beast.advanced-counter"],
+        "candidates": ["beast.parry", "beast.strength", "beast.perception"]
       }
     },
     {
@@ -842,36 +567,12 @@
         "max": 1205
       },
       "birthSkills": {
-        "core": [
-          "beast.wildfire"
-        ],
+        "core": ["beast.wildfire"],
         "candidates": [
           "beast.wisdom",
           "beast.meditation",
           "beast.spell-critical",
           "beast.sluggish"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 16
-          },
-          {
-            "count": 2,
-            "weight": 5
-          },
-          {
-            "count": 3,
-            "weight": 1
-          },
-          {
-            "count": 4,
-            "weight": 3
-          }
         ]
       }
     },
@@ -910,28 +611,8 @@
         "max": 1250
       },
       "birthSkills": {
-        "core": [
-          "beast.thunderstorm",
-          "beast.advanced-spell-fluctuation"
-        ],
-        "candidates": [
-          "beast.agility",
-          "beast.meditation"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 85
-          },
-          {
-            "count": 1,
-            "weight": 11
-          },
-          {
-            "count": 2,
-            "weight": 4
-          }
-        ]
+        "core": ["beast.thunderstorm", "beast.advanced-spell-fluctuation"],
+        "candidates": ["beast.agility", "beast.meditation"]
       }
     },
     {
@@ -969,36 +650,12 @@
         "max": 1260
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-perception"
-        ],
+        "core": ["beast.advanced-perception"],
         "candidates": [
           "beast.counter",
           "beast.strength",
           "beast.parry",
           "beast.agility"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 16
-          },
-          {
-            "count": 2,
-            "weight": 5
-          },
-          {
-            "count": 3,
-            "weight": 1
-          },
-          {
-            "count": 4,
-            "weight": 3
-          }
         ]
       }
     },
@@ -1037,41 +694,13 @@
         "max": 1280
       },
       "birthSkills": {
-        "core": [
-          "beast.ghost"
-        ],
+        "core": ["beast.ghost"],
         "candidates": [
           "beast.meditation",
           "beast.spell-fluctuation",
           "beast.perception",
           "beast.agility",
           "beast.water-attack"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 75
-          },
-          {
-            "count": 1,
-            "weight": 15
-          },
-          {
-            "count": 2,
-            "weight": 5
-          },
-          {
-            "count": 3,
-            "weight": 1
-          },
-          {
-            "count": 4,
-            "weight": 1
-          },
-          {
-            "count": 5,
-            "weight": 3
-          }
         ]
       }
     },
@@ -1110,28 +739,8 @@
         "max": 1245
       },
       "birthSkills": {
-        "core": [
-          "beast.advanced-exorcism",
-          "beast.spirit-flame"
-        ],
-        "candidates": [
-          "beast.strength",
-          "beast.perception"
-        ],
-        "extraCountWeights": [
-          {
-            "count": 0,
-            "weight": 85
-          },
-          {
-            "count": 1,
-            "weight": 11
-          },
-          {
-            "count": 2,
-            "weight": 4
-          }
-        ]
+        "core": ["beast.advanced-exorcism", "beast.spirit-flame"],
+        "candidates": ["beast.strength", "beast.perception"]
       }
     }
   ],

@@ -91,7 +91,7 @@ export async function fuseOwnedBeasts(
     const previous = await fusionRecord(cultivatorId, input.requestId, tx);
     if (previous) {
       if (previous.fingerprint !== fingerprint)
-        throw new BeastError('此融合请求已用于其他材料');
+        throw new BeastError('这场融合已经完成');
       return {
         view: await readBeastRoster(cultivatorId, tx),
         result: previous.result,
@@ -101,7 +101,7 @@ export async function fuseOwnedBeasts(
     const materials = parents.map((parent) => {
       const beast = roster.beasts.find((b) => b.id === parent.beastId);
       if (!beast || beast.revision !== parent.expectedRevision)
-        throw new BeastError('融合材料已变化，请刷新后重新选择');
+        throw new BeastError('所选灵兽已有变化，请重新选择');
       return beast;
     });
     const [a, b] = materials;
@@ -229,7 +229,7 @@ export async function updateBeastLineup(
     const roster = await readBeastRoster(cultivatorId, tx);
     const lineup = BeastLineupSchema.parse(input);
     if (lineup.revision !== roster.lineup.revision)
-      throw new BeastError('编组已变化，请刷新后重试');
+      throw new BeastError('携带已变化，请重新安排');
     if (
       lineup.carriedBeastIds.some(
         (id) => !roster.beasts.some((b) => b.id === id),
@@ -265,7 +265,7 @@ export async function restBeast(
     const roster = await readBeastRoster(cultivatorId, tx);
     const beast = roster.beasts.find((b) => b.id === id);
     if (!beast || beast.revision !== revision)
-      throw new BeastError('灵兽状态已变化，请刷新后重试');
+      throw new BeastError('灵兽已有变化，请重新查看');
     if (beast.currentLifespan < beast.maxLifespan) {
       const cost = beastRestCost(beast);
       if (roster.spiritStones < cost)
@@ -315,7 +315,7 @@ export async function allocateBeastPoints(
     const roster = await readBeastRoster(cultivatorId, tx);
     const beast = roster.beasts.find((b) => b.id === id);
     if (!beast || beast.revision !== revision)
-      throw new BeastError('灵兽状态已变化，请刷新后重试');
+      throw new BeastError('灵兽已有变化，请重新查看');
     let next;
     try {
       next = allocateBeast(beast, points, roster.ownerLevel);
@@ -341,7 +341,7 @@ export async function renameBeast(
     const roster = await readBeastRoster(cultivatorId, tx);
     const beast = roster.beasts.find((entry) => entry.id === id);
     if (!beast || beast.revision !== revision)
-      throw new BeastError('灵兽状态已变化，请刷新后重试');
+      throw new BeastError('灵兽已有变化，请重新查看');
     if (beast.name === filteredName) return roster;
     await tx
       .update(cultivatorBeasts)
@@ -371,7 +371,7 @@ export async function releaseBeast(
     const roster = await readBeastRoster(cultivatorId, tx);
     const beast = roster.beasts.find((b) => b.id === id);
     if (!beast || beast.revision !== revision)
-      throw new BeastError('灵兽状态已变化，请刷新后重试');
+      throw new BeastError('灵兽已有变化，请重新查看');
     if (roster.lineup.leadBeastId === id) throw new BeastError('请先取消首发');
     await tx
       .update(cultivatorBeastLineups)

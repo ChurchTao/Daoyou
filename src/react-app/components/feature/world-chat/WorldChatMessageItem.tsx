@@ -13,6 +13,7 @@ import type {
   WorldChatMessageDTO,
 } from '@shared/types/world-chat';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 
 const relativeTimeFormatter = new Intl.RelativeTimeFormat('zh-CN', {
   numeric: 'auto',
@@ -184,7 +185,13 @@ export function WorldChatMessageItem({
           </span>
         </div>
         <div className="text-sm leading-6 break-all">
-          {message.messageType === 'battle_showcase' && battleShowcase ? (
+          {message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'shareCode' in message.payload && typeof message.payload.shareCode === 'string' && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1]) ? (
+            <Link className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2" to={`/combat-replay/${message.payload.shareCode}`}>
+              <span className="text-teal font-semibold">战斗回放 · {message.payload.sides[0].join('、')} 对阵 {message.payload.sides[1].join('、')}</span>
+              <span className="text-ink-secondary ml-2 text-xs">{message.payload.roundCount} 回合 · 点击查看</span>
+              {message.payload.text ? <p className="mt-1">{message.payload.text}</p> : null}
+            </Link>
+          ) : message.messageType === 'battle_showcase' && battleShowcase ? (
             <BattleShowcaseCard payload={battleShowcase} />
           ) : message.messageType === 'battle_showcase' ? (
             '旧版战报已停用'

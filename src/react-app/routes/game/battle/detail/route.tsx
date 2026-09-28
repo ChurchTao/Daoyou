@@ -15,6 +15,34 @@ function ReplayLoader({ id }: { id: string }) {
   const [record, setRecord] = useState<CombatV6ReplayView>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  async function share(kind: 'link' | 'world') {
+    setSharing(true);
+    setShareMessage('');
+    try {
+      if (kind === 'link') {
+        const result = await combatV6Request<{ shareCode: string }>(
+          `/api/combat-v6/replays/${encodeURIComponent(id)}/share`,
+          { method: 'POST' },
+        );
+        await navigator.clipboard.writeText(
+          `${window.location.origin}/combat-replay/${result.shareCode}`,
+        );
+        setShareMessage('公开回放链接已复制，可发给其他道友查看。');
+      } else {
+        await combatV6Request(
+          '/api/world-chat/messages',
+          { method: 'POST', body: JSON.stringify({ messageType: 'combat_v6_replay', battleId: id }) },
+        );
+        setShareMessage('战绩已分享到世界聊天。');
+      }
+    } catch (error) {
+      setShareMessage(error instanceof Error ? error.message : '分享失败');
+    } finally {
+      setSharing(false);
+    }
+  }
   useEffect(() => {
     const abort = new AbortController();
     void combatV6Request<CombatV6ReplayView>(
@@ -42,7 +70,16 @@ function ReplayLoader({ id }: { id: string }) {
         setAttempt((n) => n + 1);
       }}
     >
-      {record ? <CombatV6ReplayPlayer record={record} /> : null}
+      {record ? (
+        <>
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-2 text-sm">
+            <button type="button" disabled={sharing} className="text-teal underline disabled:opacity-50" onClick={() => void share('world')}>分享到世界聊天</button>
+            <button type="button" disabled={sharing} className="text-teal underline disabled:opacity-50" onClick={() => void share('link')}>复制公开链接</button>
+            {shareMessage ? <span role="status" className="text-ink-secondary">{shareMessage}</span> : null}
+          </div>
+          <CombatV6ReplayPlayer record={record} />
+        </>
+      ) : null}
     </CombatV6Page>
   );
 }

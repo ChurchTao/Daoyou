@@ -9,7 +9,8 @@ import {
   type CombatV6HistoryQuery,
 } from '@shared/contracts/combatV6Replay';
 import type { CombatV6ReplayV1 } from '@shared/contracts/combatV6Runtime';
-import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
 
 async function archive(
   values: typeof combatReplayArchives.$inferInsert,
@@ -125,6 +126,37 @@ export async function findOwnedCombatV6Replay(
     )
     .limit(1);
   return row?.archive;
+}
+
+export async function createCombatV6ReplayShare(
+  battleId: string,
+  cultivatorId: string,
+  userId: string,
+  executor: DbExecutor = db,
+) {
+  const archive = await findOwnedCombatV6Replay(battleId, cultivatorId, executor);
+  if (!archive?.replay?.participants.some(
+    (participant) => participant.cultivatorId === cultivatorId && participant.userId === userId,
+  )) return null;
+  if (archive.shareCode) return archive.shareCode;
+  const [created] = await executor.update(combatReplayArchives)
+    .set({ shareCode: randomUUID(), shareViewerCultivatorId: cultivatorId })
+    .where(and(eq(combatReplayArchives.battleId, battleId), isNull(combatReplayArchives.shareCode)))
+    .returning({ shareCode: combatReplayArchives.shareCode });
+  if (created?.shareCode) return created.shareCode;
+  const [existing] = await executor.select({ shareCode: combatReplayArchives.shareCode })
+    .from(combatReplayArchives).where(eq(combatReplayArchives.battleId, battleId)).limit(1);
+  return existing?.shareCode ?? null;
+}
+
+export async function findSharedCombatV6Replay(
+  shareCode: string,
+  executor: DbExecutor = db,
+) {
+  const [archive] = await executor.select().from(combatReplayArchives)
+    .where(and(eq(combatReplayArchives.shareCode, shareCode), isNotNull(combatReplayArchives.replay)))
+    .limit(1);
+  return archive;
 }
 
 /** Explicit metadata-only SELECT: do not fetch/decode replay JSONB on this path. */

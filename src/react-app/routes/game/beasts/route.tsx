@@ -439,7 +439,7 @@ export default function BeastsPage() {
             每位角色可免费选择一次。伙伴初始为
             {BEAST_GENERATION.starterLevel}级、
             {BEAST_GENERATION.lifespan}
-            寿命，资质、成长与出生技能随机生成，属性点由你分配。有空位时自动携带，满足出战境界且没有首发时设为首发。
+            寿命，资质、成长与技能随机生成，属性点由你分配。有空位时自动携带，满足出战境界且没有首发时设为首发。
           </p>
         </InkDetailDrawer>
       ) : null}

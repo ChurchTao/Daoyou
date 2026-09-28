@@ -232,7 +232,7 @@ export function learnBeastSkill(
     throw new InventoryRuleError('灵兽已拥有该技能');
   const skillSlotCapacity = Math.max(1, beast.skillSlotCapacity);
   if (!Number.isInteger(slot) || slot < 0 || slot >= skillSlotCapacity)
-    throw new InventoryRuleError('没有可学习的技能格');
+    throw new InventoryRuleError('没有可替换的技能');
   const skills = [...beast.skills];
   skills[slot] = skillId;
   return BeastSchema.parse({

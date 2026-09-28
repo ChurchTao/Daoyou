@@ -136,6 +136,24 @@ describe('宗门任务原生 V6 Host', () => {
     expect(input).toEqual(before);
   });
 
+  it('同门同 ID 技能定义不同时，各自保留冻结的技能', () => {
+    const opponent = freezeSectBattleOpponent(player('enemy'));
+    const skill = opponent.skills[0]!;
+    const changed = { ...skill, name: `${skill.name}·对手` };
+    opponent.skills[0] = changed;
+    opponent.units[0]!.skillOverrides = [changed];
+
+    const host = createSectBattleHost(player('player'), opponent, 'full', 1);
+    const units = host.runtimeSnapshot().input.units;
+    const enemy = units.find((unit) => unit.side === 1)!;
+    expect(
+      units[0]!.skillOverrides?.find((item) => item.id === skill.id)?.name,
+    ).toBe(skill.name);
+    expect(
+      enemy.skillOverrides?.find((item) => item.id === skill.id)?.name,
+    ).toBe(changed.name);
+  });
+
   it('领取后目标构筑和首发灵兽冻结，排除后备宠', () => {
     const owner = '10000000-0000-4000-8000-000000000001';
     const target = player(owner);

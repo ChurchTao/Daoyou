@@ -206,7 +206,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
           />
           <p className="text-sm">还有一场融合等待揭晓</p>
           <p className="text-ink-secondary max-w-sm text-sm leading-7">
-            恢复时会查询原记录；若尚未完成，将继续同一次融合。
+            若上次融合尚未揭晓，会接着完成同一次。
           </p>
           <InkButton variant="primary" onClick={() => void submit()}>
             恢复本次融合结果
@@ -387,7 +387,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
               打开预览，看看可能获得哪只灵兽。融合后技能可能变少，资质和成长也可能变差。
             </li>
             <li>
-              确认后消耗双方，获得一只新灵兽。双方地位相同，交换左右不会改变概率，不额外收取灵石。
+              确认后消耗双方，获得一只新灵兽。左右互换，结果相同，不额外收取灵石。
             </li>
           </ol>
         </InkDetailDrawer>

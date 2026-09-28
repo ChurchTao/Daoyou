@@ -61,7 +61,7 @@ export function BeastActionDrawer({
             <span className="font-mono">{beast.level}</span> 级 · 成长{' '}
             <span className="font-mono">{beast.growth.toFixed(3)}</span> ·{' '}
             <span className="font-mono">{beast.skillSlotCapacity}</span>{' '}
-            个技能格
+            项技能
           </p>
           <p>放生没有收益，无法找回。该灵兽会同时取消携带。</p>
         </div>

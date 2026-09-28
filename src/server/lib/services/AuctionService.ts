@@ -482,7 +482,7 @@ export async function listBeast(
       ),
     )
     .returning({ id: schema.cultivatorBeasts.id });
-  if (deleted.length !== 1) throw new BeastError('灵兽已变化，请刷新后重试');
+  if (deleted.length !== 1) throw new BeastError('灵兽已有变化，请重新查看');
   const listing = await auctionRepository.createListing({
     sellerId: owner,
     sellerName: input.cultivatorName,

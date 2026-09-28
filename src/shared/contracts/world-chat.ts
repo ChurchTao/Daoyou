@@ -26,14 +26,21 @@ export const WorldChatBeastShowcaseMessageSchema = z.strictObject({
   textContent: z.string().trim().max(100).optional(),
 });
 
+export const WorldChatCombatV6ReplayMessageSchema = z.strictObject({
+  messageType: z.literal('combat_v6_replay'),
+  battleId: z.uuid(),
+  textContent: z.string().trim().max(100).optional(),
+});
+
 export const WorldChatCreateMessageSchema = z.discriminatedUnion(
   'messageType',
   [
     WorldChatTextMessageSchema,
     WorldChatItemShowcaseMessageSchema,
     WorldChatBeastShowcaseMessageSchema,
+    WorldChatCombatV6ReplayMessageSchema,
   ],
-  { error: '仅支持文字、道具与灵兽消息，旧版战报分享已停用' },
+  { error: '仅支持文字、道具、灵兽与新版战绩消息，旧版战报分享已停用' },
 );
 
 export const WorldChatListQuerySchema = z.object({

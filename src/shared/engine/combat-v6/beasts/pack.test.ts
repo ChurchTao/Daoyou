@@ -231,9 +231,6 @@ it('uses edited generation ranges without invalidating existing individual rolls
     speed: { min: 1300, max: 1300 },
   };
   copy.species[0].growthMilli = { min: 1200, max: 1200 };
-  copy.species[0].birthSkills.extraCountWeights = [
-    { count: copy.species[0].birthSkills.candidates.length, weight: 100 },
-  ];
   vi.resetModules();
   vi.doMock('./data/species.json', () => ({ default: copy }));
   const { generateStarterBeast: generate, generateCapturedBeast } =
@@ -247,9 +244,7 @@ it('uses edited generation ranges without invalidating existing individual rolls
     generateStarterBeast(id, id, species.species[1].id, 42),
   );
   const captured = generateCapturedBeast(id, id, species.species[0].id, 10, 42);
-  expect(captured.skills).toHaveLength(3);
-  expect(captured.skills[0]).toBe(born.skills[0]);
-  expect(new Set(captured.skills).size).toBe(3);
+  expect(captured.skills).toEqual(born.skills);
   expect(
     captured.skills.every((id) =>
       [
@@ -263,7 +258,12 @@ it('uses edited generation ranges without invalidating existing individual rolls
 it('uses edited points, experience, lifespan and panel parameters consistently', async () => {
   const copy = structuredClone(progression);
   copy.pointsPerLevel = 6;
-  copy.experience = { base: 50, perLevel: 10, perLevelSquared: 0, victoryPerEnemyLevel: 10 };
+  copy.experience = {
+    base: 50,
+    perLevel: 10,
+    perLevelSquared: 0,
+    victoryPerEnemyLevel: 10,
+  };
   copy.lifespan = {
     deathLoss: 20,
     deployMinimum: 30,
@@ -303,14 +303,6 @@ it('derives book availability from the skill pack', async () => {
 
 it.each([
   [
-    'full native set unreachable',
-    (p: ReturnType<typeof input>) => {
-      p.species.species[0].birthSkills.extraCountWeights = [
-        { count: 0, weight: 100 },
-      ];
-    },
-  ],
-  [
     'too small native pool',
     (p: ReturnType<typeof input>) => {
       p.species.species[0].birthSkills.candidates = [];
@@ -336,26 +328,6 @@ it.each([
         'beast.spirit-flame',
         'beast.wisdom',
         'beast.agility',
-      ];
-    },
-  ],
-  [
-    'weight total',
-    (p: ReturnType<typeof input>) => {
-      p.species.species[0].birthSkills.extraCountWeights[0].weight = 50;
-    },
-  ],
-  [
-    'duplicate count',
-    (p: ReturnType<typeof input>) => {
-      p.species.species[0].birthSkills.extraCountWeights[1].count = 0;
-    },
-  ],
-  [
-    'too many extras',
-    (p: ReturnType<typeof input>) => {
-      p.species.species[0].birthSkills.extraCountWeights = [
-        { count: 4, weight: 100 },
       ];
     },
   ],
@@ -387,7 +359,7 @@ it.each([
   [
     'high level starter',
     (p: ReturnType<typeof input>) => {
-        p.species.species.find((s) => s.realm === '筑基')!.starter = true;
+      p.species.species.find((s) => s.realm === '筑基')!.starter = true;
     },
   ],
 ] as const)('rejects invalid generation config: %s', (_, edit) => {

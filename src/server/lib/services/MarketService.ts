@@ -780,7 +780,9 @@ async function generateListings(
   layer: MarketLayer,
 ): Promise<InternalMarketListing[]> {
   if (getMarketConfigByNodeId(nodeId)?.region_profile === 'beast') {
-    const stock = sampleBeastMarketStock();
+    if (layer === 'black')
+      throw new MarketServiceError(403, '御灵集未开放黑市');
+    const stock = sampleBeastMarketStock(layer);
     for (let i = stock.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [stock[i], stock[j]] = [stock[j], stock[i]];
@@ -851,16 +853,14 @@ async function generateAndCache(
         retries: 0,
       },
       async (lease) => {
+        const cacheKey = getCacheKey(nodeId, layer, cycle);
+        const existing = parseCachedData(await redis.get(cacheKey));
+        if (existing) return existing;
         const listings = await generateListings(nodeId, layer);
         lease.assertHeld();
         const data: CachedMarketData = { listings, generatedAt: Date.now() };
         const ttlSec = Math.ceil(getRefreshInterval(layer) / 1000) + 3600;
-        await redis.set(
-          getCacheKey(nodeId, layer, cycle),
-          JSON.stringify(data),
-          'EX',
-          ttlSec,
-        );
+        await redis.set(cacheKey, JSON.stringify(data), 'EX', ttlSec);
         return data;
       },
     );

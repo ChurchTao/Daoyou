@@ -203,7 +203,7 @@ describe('beast books', () => {
     expect(() => learnBeastSkill(beast, BOOKS[2].id, 9, 0)).toThrow('不能培养');
     expect(() =>
       learnBeastSkill(beast, BOOKS[2].id, 10, beast.skillSlotCapacity),
-    ).toThrow('技能格');
+    ).toThrow('可替换');
   });
   it('opens exactly one slot for a zero-skill beast, then only replaces it', () => {
     const empty = { ...beast, skills: [], skillSlotCapacity: 0 };
@@ -224,9 +224,9 @@ describe('beast books', () => {
     expect(() => learnBeastSkill(empty, BOOKS[0].id, 9, 0)).toThrow('不能培养');
     for (const slot of [-1, 0.5, 1])
       expect(() => learnBeastSkill(empty, BOOKS[0].id, 10, slot)).toThrow(
-        '技能格',
+        '可替换',
       );
-    expect(() => learnBeastSkill(first, BOOKS[2].id, 10, 1)).toThrow('技能格');
+    expect(() => learnBeastSkill(first, BOOKS[2].id, 10, 1)).toThrow('可替换');
   });
   it('retains suppressed normal skill in its original slot', () => {
     const two = {

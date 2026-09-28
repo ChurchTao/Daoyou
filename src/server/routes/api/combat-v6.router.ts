@@ -15,6 +15,7 @@ import type { AppEnv } from '@server/lib/hono/types';
 import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
 import {
   findOwnedCombatV6Replay,
+  createCombatV6ReplayShare,
   listOwnedCombatV6Replays,
 } from '@server/lib/repositories/combatV6ReplayRepository';
 import {
@@ -471,6 +472,14 @@ router.get('/replays/:battleId', async (c) => {
   } catch (error) {
     return errorResponse(c, error);
   }
+});
+
+router.post('/replays/:battleId/share', async (c) => {
+  const params = CombatV6ReplayParamsSchema.parse(c.req.param());
+  const current = actor(c);
+  const shareCode = await createCombatV6ReplayShare(params.battleId, current.cultivatorId, current.userId);
+  if (!shareCode) return c.json({ success: false, error: '战斗回放不存在' }, 404);
+  return c.json({ success: true, data: { shareCode } });
 });
 
 router.get('/replays', async (c) => {

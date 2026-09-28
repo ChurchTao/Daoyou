@@ -6,33 +6,51 @@ import {
 } from './beastMarket';
 
 describe('御灵集货架', () => {
-  it('每批只生成注册灵印和灵露，上品价格落在所选技能档位', () => {
-    const stock = sampleBeastMarketStock(() => 0);
-    expect(stock).toHaveLength(8);
-    expect(
-      stock.filter((item) => item.definitionId.startsWith('book.')),
-    ).toHaveLength(5);
-    expect(
-      new Set(
-        stock
-          .filter((item) => item.definitionId.startsWith('book.'))
-          .map((item) => item.definitionId),
-      ).size,
-    ).toBe(5);
-    expect(stock.filter((item) => item.price === 300000)).toHaveLength(4);
-    expect(stock.filter((item) => item.price === 3500000)).toHaveLength(1);
-    expect(stock.filter((item) => item.price === 60000)).toHaveLength(2);
-    expect(stock.filter((item) => item.price === 360000)).toHaveLength(1);
-  });
+  it.each([
+    ['common', 4, 1, 2, 1],
+    ['treasure', 3, 1, 3, 1],
+    ['heaven', 2, 2, 2, 2],
+  ] as const)(
+    '%s 每批按层级生成八件货品',
+    (layer, normal, advanced, dew, superiorDew) => {
+      const stock = sampleBeastMarketStock(layer, () => 0);
+      const books = stock.filter((item) =>
+        item.definitionId.startsWith('book.'),
+      );
+      expect(stock).toHaveLength(8);
+      expect(new Set(books.map((item) => item.definitionId)).size).toBe(
+        normal + advanced,
+      );
+      expect(stock.filter((item) => item.price === 300000)).toHaveLength(
+        normal,
+      );
+      expect(
+        stock.filter((item) =>
+          item.definitionId.startsWith('book.beast.advanced-'),
+        ),
+      ).toHaveLength(advanced);
+      expect(
+        stock.filter(
+          (item) => item.definitionId === 'beast.refinement.origin-dew',
+        ),
+      ).toHaveLength(dew);
+      expect(
+        stock.filter(
+          (item) =>
+            item.definitionId === 'beast.refinement.superior-origin-dew',
+        ),
+      ).toHaveLength(superiorDew);
+    },
+  );
 
-  it('高级偷袭比高级定神贵，价格与两者相同的稀有度无关', () => {
+  it('上品灵印有十档实用性定价，刷新波动不超出 50–500 万', () => {
     const priceOf = (definitionId: string, random: () => number) => {
       const pack = structuredClone(BEAST_MARKET_PACK);
       const entry = pack.books.advanced.find(
         (book) => book.definitionId === definitionId,
       )!;
       pack.books.advanced = [entry];
-      return sampleBeastMarketStock(random, pack).find(
+      return sampleBeastMarketStock('common', random, pack).find(
         (item) => item.definitionId === definitionId,
       )!.price;
     };
@@ -47,10 +65,13 @@ describe('御灵集货架', () => {
         (book) => book.definitionId === concentration,
       )?.rarity,
     );
-    expect(priceOf(sneak, () => 0)).toBe(3500000);
-    expect(priceOf(concentration, () => 0)).toBe(1000000);
-    expect(priceOf(sneak, () => 0.999999)).toBeGreaterThan(3500000);
-    expect(priceOf(concentration, () => 0.999999)).toBeLessThanOrEqual(2000000);
+    expect(
+      new Set(BEAST_MARKET_PACK.books.advanced.map((book) => book.priceTier)),
+    ).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+    expect(priceOf(sneak, () => 0)).toBe(4750000);
+    expect(priceOf(sneak, () => 0.999999)).toBe(5000000);
+    expect(priceOf(concentration, () => 0)).toBe(500000);
+    expect(priceOf(concentration, () => 0.999999)).toBe(525000);
   });
 
   it('拒绝把普通灵印配置到上品货池', () => {
@@ -58,5 +79,15 @@ describe('御灵集货架', () => {
     invalid.books.advanced[0].definitionId =
       invalid.books.normal[0].definitionId;
     expect(() => loadBeastMarketPack(invalid)).toThrow('灵印配置无效');
+  });
+
+  it('拒绝超出十档的售价和失衡的分层货位', () => {
+    const invalidPrice = structuredClone(BEAST_MARKET_PACK);
+    invalidPrice.books.advanced[0].priceTier = 11;
+    expect(() => loadBeastMarketPack(invalidPrice)).toThrow();
+
+    const invalidStock = structuredClone(BEAST_MARKET_PACK);
+    invalidStock.stock.heaven.advancedBooks = 3;
+    expect(() => loadBeastMarketPack(invalidStock)).toThrow('货架配置无效');
   });
 });

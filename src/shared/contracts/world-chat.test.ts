@@ -34,6 +34,15 @@ describe('chat message creation after legacy battle sharing retirement', () => {
       }).success,
     ).toBe(true);
   });
+  it('accepts a V6 battle reference but rejects client supplied replay facts', () => {
+    const input = {
+      messageType: 'combat_v6_replay',
+      battleId: '00000000-0000-4000-8000-000000000001',
+    };
+    expect(WorldChatCreateMessageSchema.safeParse(input).success).toBe(true);
+    expect(WorldChatCreateMessageSchema.safeParse({ ...input, shareCode: 'forged' }).success).toBe(false);
+    expect(WorldChatCreateMessageSchema.safeParse({ ...input, battleId: 'invalid' }).success).toBe(false);
+  });
   it('requires an owned beast reference rather than client supplied beast facts', () => {
     const input = {
       messageType: 'beast_showcase',

@@ -41,7 +41,7 @@ export async function deliverMailBeasts(
   if (!transfers.length) return [];
   await assertBeastIdle(owner);
   if (transfers.length > (await freeSlots(owner, tx)))
-    throw new BeastError('灵兽仓已满，请腾出位置后领取；附件将保留');
+    throw new BeastError('灵兽袋已满，请腾出位置后再领取；附件仍会保留');
   for (const transfer of transfers) {
     const beast = receiveTradedBeast(transfer, owner);
     await tx.insert(cultivatorBeasts).values({

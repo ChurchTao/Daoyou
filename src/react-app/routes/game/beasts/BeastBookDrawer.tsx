@@ -139,7 +139,7 @@ export function BeastBookDrawer({
     ? itemDefinition(selected.definitionId).skillId
     : undefined;
   const learningEffect =
-    beast?.skills.length === 0 ? '开启第一个技能格' : '随机覆盖一个已有技能';
+    beast?.skills.length === 0 ? '学会第一项技能' : '随机换掉一项已有技能';
   const selectedSkillName = selectedSkillId
     ? beastSkillPresentation(selectedSkillId).name
     : undefined;
@@ -216,7 +216,7 @@ export function BeastBookDrawer({
           message: feeding
             ? `灵兽修为 +${result.gained}，当前${result.level}级。`
             : refining
-              ? `已重归初生，技能格 ${result.oldSkillCount} → ${result.newSkillCount}，寿命已恢复。`
+              ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项，寿命已恢复。`
               : result.oldSkill
                 ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
                 : `已领悟${beastSkillPresentation(result.newSkill!).name}`,
@@ -265,7 +265,7 @@ export function BeastBookDrawer({
                 {feeding
                   ? '。'
                   : refining
-                    ? '，重归0级，重新孕育资质、成长与天生技能。'
+                    ? '，重归0级，重新孕育资质、成长与技能。'
                     : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
               {feeding ? (
@@ -349,8 +349,8 @@ export function BeastBookDrawer({
                 ))}
               </dl>
               <p className="mt-2 text-xs">
-                技能格 {refinementBefore.skillSlotCapacity} →{' '}
-                {beast.skillSlotCapacity}
+                技能 {refinementBefore.skillSlotCapacity} → {beast.skillSlotCapacity}{' '}
+                项
               </p>
             </section>
           ) : null}
@@ -470,11 +470,9 @@ export function BeastBookDrawer({
                 ? itemDefinition(selected.definitionId).name
                 : '归元灵露'}
               将消耗{consumeQuantity}瓶。
-              洗炼后成为0级宝宝，普通每项基础属性10点、变异每项20点，另有50点自由属性。修为与原加点归零，资质、成长及全部技能重新生成，融合获得的额外技能也会清除，技能格可能减少。
-              原传承灵印不返还，当前寿命恢复至原上限，结果不可撤销。
-              {beast?.isMutant
-                ? '变异身份保留，资质与成长仍按变异范围生成。'
-                : ''}
+              洗炼后成为0级幼崽。普通灵兽每项基础属性10点、变异灵兽每项20点，另有50点可分配。修为与已加的点清零，资质、成长和技能都会重来，原先融合或领悟的技能不会留下，技能也可能变少。
+              用掉的传承灵印不退还，寿命恢复到上限，不能反悔。
+              {beast?.isMutant ? '变异仍在。' : ''}
             </>
           ) : (
             <>

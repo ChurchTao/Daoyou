@@ -16,7 +16,7 @@ const facilities = [
     sigil: '📖',
     name: '灵兽图鉴',
     identity: '物种图录',
-    responsibility: '查阅满资质、满技能与出没之地',
+    responsibility: '查阅资质、技能与出没之地',
     appearance: 'facility',
   },
   {

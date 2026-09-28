@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { BEAST_SPECIES } from './content';
 import { generateCapturedBeast, generateStarterBeast } from './generator';
 import { canDeployBeast, projectBeastRoster } from './projection';
-import { rollBeastTraits } from './trait-generator';
+import { CANDIDATE_SKILL_CHANCE, rollBeastTraits } from './trait-generator';
 const id = '00000000-0000-4000-8000-000000000001';
 
 it.each([
@@ -26,8 +26,6 @@ it.each([
     if (speciesId === 'combat.wild.species.nether-tiger') {
       expect(unit.skills).toContain('beast.spirit-flame');
       expect(unit.passives).toContain('beast.advanced-exorcism');
-    } else {
-      expect(unit.skills).toEqual([]);
     }
   },
 );
@@ -80,48 +78,43 @@ it.each(BEAST_SPECIES)(
     expect([...seen].sort()).toEqual(
       [...species.birthSkills.core, ...species.birthSkills.candidates].sort(),
     );
-    expect([...counts].sort()).toEqual(
-      species.birthSkills.extraCountWeights
-        .map((row) => row.count + species.birthSkills.core.length)
-        .sort(),
+    expect([...counts].sort((a, b) => a - b)).toEqual(
+      Array.from(
+        { length: species.birthSkills.candidates.length + 1 },
+        (_, count) => count + species.birthSkills.core.length,
+      ),
     );
   },
 );
 
-it.each(BEAST_SPECIES)(
-  '$name 固定种子样本符合配置概率且候选等权',
-  (species) => {
-    const countHits = new Map<number, number>();
-    const skillHits = new Map<string, number>();
-    const samples = 10000;
-    let extras = 0;
-    for (let seed = 0; seed < samples; seed++) {
-      const skills = rollBeastTraits(species, seed).skills.slice(
-        species.birthSkills.core.length,
-      );
-      countHits.set(skills.length, (countHits.get(skills.length) ?? 0) + 1);
-      extras += skills.length;
-      for (const skill of skills)
-        skillHits.set(skill, (skillHits.get(skill) ?? 0) + 1);
-    }
-    for (const row of species.birthSkills.extraCountWeights)
-      expect(
-        Math.abs((countHits.get(row.count) ?? 0) / samples - row.weight / 100),
-      ).toBeLessThan(0.02);
-    for (const skill of species.birthSkills.candidates)
-      expect(
-        Math.abs(
-          (skillHits.get(skill) ?? 0) / extras -
-            1 / species.birthSkills.candidates.length,
-        ),
-      ).toBeLessThan(0.02);
-  },
-);
+it.each(BEAST_SPECIES)('$name 每个候选技能独立接近一半概率', (species) => {
+  const skillHits = new Map<string, number>();
+  let full = 0;
+  let none = 0;
+  const samples = 10000;
+  const candidates = species.birthSkills.candidates;
+  for (let seed = 0; seed < samples; seed++) {
+    const skills = rollBeastTraits(species, seed).skills.slice(
+      species.birthSkills.core.length,
+    );
+    if (skills.length === candidates.length) full += 1;
+    if (skills.length === 0) none += 1;
+    for (const skill of skills)
+      skillHits.set(skill, (skillHits.get(skill) ?? 0) + 1);
+  }
+  const extreme = CANDIDATE_SKILL_CHANCE ** candidates.length;
+  expect(Math.abs(full / samples - extreme)).toBeLessThan(0.02);
+  expect(Math.abs(none / samples - extreme)).toBeLessThan(0.02);
+  for (const skill of candidates)
+    expect(
+      Math.abs((skillHits.get(skill) ?? 0) / samples - CANDIDATE_SKILL_CHANCE),
+    ).toBeLessThan(0.02);
+});
 
 it('改变技能抽取配置不改变资质与成长，数值配置不改变出生技能', () => {
   const original = BEAST_SPECIES[0];
   const skillsChanged = structuredClone(original);
-  skillsChanged.birthSkills.extraCountWeights = [{ count: 1, weight: 100 }];
+  skillsChanged.birthSkills.candidates = [];
   const statsChanged = structuredClone(original);
   statsChanged.aptitudes.attack = { min: 1000, max: 1000 };
   statsChanged.growthMilli = { min: 1200, max: 1200 };

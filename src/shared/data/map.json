@@ -73,7 +73,7 @@
       "realm_requirement": "炼气",
       "market_config": {
         "enabled": true,
-        "allowed_layers": ["common"],
+        "allowed_layers": ["common", "treasure", "heaven"],
         "region_profile": "beast"
       },
       "tags": ["灵兽商盟", "传承灵印", "归元灵露"],

@@ -79,38 +79,9 @@
                   "type": "string",
                   "pattern": "^beast\\.[a-z][a-z0-9-]*$"
                 }
-              },
-              "extraCountWeights": {
-                "minItems": 1,
-                "maxItems": 9,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "count": {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 8
-                    },
-                    "weight": {
-                      "type": "integer",
-                      "exclusiveMinimum": 0,
-                      "maximum": 100
-                    }
-                  },
-                  "required": [
-                    "count",
-                    "weight"
-                  ],
-                  "additionalProperties": false
-                }
               }
             },
-            "required": [
-              "core",
-              "candidates",
-              "extraCountWeights"
-            ],
+            "required": ["core", "candidates"],
             "additionalProperties": false
           },
           "aptitudes": {
@@ -130,10 +101,7 @@
                     "maximum": 100000
                   }
                 },
-                "required": [
-                  "min",
-                  "max"
-                ],
+                "required": ["min", "max"],
                 "additionalProperties": false
               },
               "defense": {
@@ -150,10 +118,7 @@
                     "maximum": 100000
                   }
                 },
-                "required": [
-                  "min",
-                  "max"
-                ],
+                "required": ["min", "max"],
                 "additionalProperties": false
               },
               "health": {
@@ -170,10 +135,7 @@
                     "maximum": 100000
                   }
                 },
-                "required": [
-                  "min",
-                  "max"
-                ],
+                "required": ["min", "max"],
                 "additionalProperties": false
               },
               "mana": {
@@ -190,10 +152,7 @@
                     "maximum": 100000
                   }
                 },
-                "required": [
-                  "min",
-                  "max"
-                ],
+                "required": ["min", "max"],
                 "additionalProperties": false
               },
               "speed": {
@@ -210,20 +169,11 @@
                     "maximum": 100000
                   }
                 },
-                "required": [
-                  "min",
-                  "max"
-                ],
+                "required": ["min", "max"],
                 "additionalProperties": false
               }
             },
-            "required": [
-              "attack",
-              "defense",
-              "health",
-              "mana",
-              "speed"
-            ],
+            "required": ["attack", "defense", "health", "mana", "speed"],
             "additionalProperties": false
           },
           "growthMilli": {
@@ -240,10 +190,7 @@
                 "maximum": 3000
               }
             },
-            "required": [
-              "min",
-              "max"
-            ],
+            "required": ["min", "max"],
             "additionalProperties": false
           }
         },
@@ -295,11 +242,6 @@
       "additionalProperties": false
     }
   },
-  "required": [
-    "formatVersion",
-    "contentRevision",
-    "species",
-    "generation"
-  ],
+  "required": ["formatVersion", "contentRevision", "species", "generation"],
   "additionalProperties": false
 }

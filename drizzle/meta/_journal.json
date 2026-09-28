@@ -407,6 +407,13 @@
       "when": 1790318696206,
       "tag": "0057_consumable_stack_identity",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790563497713,
+      "tag": "0058_shocking_zaladane",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import {
   inventoryFilterActive,
   matchesInventoryFilters,
   type InventoryFilter,
+  type MaterialType,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -39,6 +40,12 @@ type Method = {
   baseCost: number;
   cost: { amount: number; spiritStones: number };
 };
+function filterForResource(kind: string): InventoryFilter {
+  if (kind === 'pill') return { kind: 'consumable' };
+  if (['herb', 'ore', 'monster', 'tcdb', 'aux'].includes(kind))
+    return { kind: 'material', materialType: kind as MaterialType };
+  return { kind: 'all' };
+}
 type Plot = {
   index: number;
   plant: null | {
@@ -206,6 +213,13 @@ export default function SpiritFieldPage() {
       );
       attempt.current = undefined;
       setChosen(undefined);
+      if (
+        url === '/api/spirit-field/sow' ||
+        url === '/api/spirit-field/harvest'
+      ) {
+        setFilter({ kind: url.endsWith('/harvest') ? 'seed' : 'all' });
+        storage.setPage(0);
+      }
       storage.reload();
       await refresh();
       const destination = result.locations
@@ -428,6 +442,8 @@ export default function SpiritFieldPage() {
                   setSelectedIndex(plot.index);
                   setMethodId('');
                   setChosen(undefined);
+                  setFilter({ kind: plot.plant ? 'all' : 'seed' });
+                  storage.setPage(0);
                 }}
               >
                 <span className="block">第 {plot.index + 1} 畦</span>
@@ -474,6 +490,8 @@ export default function SpiritFieldPage() {
                       onClick={() => {
                         setMethodId(entry.id);
                         setChosen(undefined);
+                        setFilter(filterForResource(entry.resourceKind));
+                        storage.setPage(0);
                       }}
                     >
                       {entry.name}

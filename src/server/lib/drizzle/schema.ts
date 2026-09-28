@@ -1072,6 +1072,8 @@ export const combatReplayArchives = pgTable(
     outcome: varchar('outcome', { length: 24 }).notNull(),
     // Non-competitive battles retain settlement receipts without replay payloads.
     replay: jsonb('replay').$type<CombatV6ReplayV1>(),
+    shareCode: uuid('share_code'),
+    shareViewerCultivatorId: uuid('share_viewer_cultivator_id'),
     roundCount: integer('round_count').notNull().default(0),
     sides: jsonb('sides')
       .$type<[string[], string[]]>()
@@ -1085,6 +1087,7 @@ export const combatReplayArchives = pgTable(
       table.idempotencyKey,
     ),
     index('combat_replay_finished_idx').on(table.finishedAt),
+    uniqueIndex('combat_replay_share_code_uidx').on(table.shareCode),
   ],
 );
 

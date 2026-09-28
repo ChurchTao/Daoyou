@@ -52,7 +52,7 @@ describe('marketConfig display helpers', () => {
       options.find((option) => option.id === 'TN_YULING_01'),
     ).toMatchObject({
       name: '天南·御灵集',
-      allowedLayers: ['common'],
+      allowedLayers: ['common', 'treasure', 'heaven'],
     });
   });
 

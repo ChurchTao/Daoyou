@@ -9,23 +9,13 @@ import { BEAST_REFINEMENT } from './refinement-config';
 
 const id = '00000000-0000-4000-8000-000000000001';
 it.each(BEAST_SPECIES)(
-  '$name 捕捉、初领与洗炼均可满天生技能，且通常不超过两格',
+  '$name 捕捉、初领与洗炼均可得到全部或零个候选技能',
   (species) => {
-    const { core, candidates, extraCountWeights } = species.birthSkills;
+    const { core, candidates } = species.birthSkills;
     const pool = [...core, ...candidates];
     expect(core.length).toBeLessThanOrEqual(2);
     expect(pool.length).toBeGreaterThanOrEqual(3);
     expect(pool.length).toBeLessThanOrEqual(6);
-    const fullWeight = extraCountWeights.find(
-      (r) => r.count === candidates.length,
-    )!.weight;
-    expect(fullWeight).toBeGreaterThanOrEqual(3);
-    expect(fullWeight).toBeLessThanOrEqual(5);
-    expect(
-      extraCountWeights
-        .filter((r) => r.count + core.length <= 2)
-        .reduce((n, r) => n + r.weight, 0),
-    ).toBeGreaterThanOrEqual(75);
     const before = generateCapturedBeast(id, id, species.id, 60, 0);
     const fullSeed = Array.from({ length: 2000 }, (_, seed) => seed).find(
       (seed) =>

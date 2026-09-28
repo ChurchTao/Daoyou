@@ -15,6 +15,7 @@ import blackMarketRouter from '@server/routes/api/black-market.router';
 import captchaRouter from '@server/routes/api/captcha.router';
 import combatV6ArenaRouter from '@server/routes/api/combat-v6-arena.router';
 import combatV6Router from '@server/routes/api/combat-v6.router';
+import combatV6SharesRouter from '@server/routes/api/combat-v6-shares.router';
 import communityRouter from '@server/routes/api/community.router';
 import craftRouter from '@server/routes/api/craft.router';
 import cultivatorRouter from '@server/routes/api/cultivator.router';
@@ -111,6 +112,7 @@ apiRouter.route('/combat-v6/breakthrough', breakthroughV6Router);
 if (allowsLocalDevTools(process.env.APP_ENV, process.env.NODE_ENV))
   apiRouter.route('/dev', devResourcesRouter);
 apiRouter.route('/combat-v6', combatV6Router);
+apiRouter.route('/combat-v6-shares', combatV6SharesRouter);
 apiRouter.route('/craft', craftRouter);
 apiRouter.route('/cultivator', cultivatorRouter);
 apiRouter.route('/cultivators', cultivatorsRouter);

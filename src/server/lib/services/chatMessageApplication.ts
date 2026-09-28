@@ -1,5 +1,6 @@
 import { db } from '@server/lib/drizzle/db';
 import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
+import { createCombatV6ReplayShare, findOwnedCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository';
 import { readCultivatorPublicIdentity } from '@server/lib/services/cultivator/CultivatorFactsReader';
 import { beastTradePreview } from '@shared/contracts/beastTrade';
 import type { WorldChatCreateMessageRequest } from '@shared/contracts/world-chat';
@@ -132,7 +133,7 @@ export async function createCultivatorChatMessage(params: {
       throw new ChatMessageApplicationError('灵兽不属于当前角色', 404);
     if (beast.revision !== request.revision)
       throw new ChatMessageApplicationError(
-        '灵兽已变化，请刷新后重新选择',
+        '灵兽已有变化，请重新选择',
         409,
       );
     const payload = {
@@ -143,6 +144,33 @@ export async function createCultivatorChatMessage(params: {
     return params.persist({
       ...senderBase,
       messageType: 'beast_showcase',
+      textContent: payload.text,
+      payload,
+    });
+  }
+
+  if (params.request.messageType === 'combat_v6_replay') {
+    if (params.channel !== 'world')
+      throw new ChatMessageApplicationError('战绩只能分享到世界聊天', 400);
+    const archive = await findOwnedCombatV6Replay(params.request.battleId, params.cultivatorId);
+    const participant = archive?.replay?.participants.find(
+      (entry) => entry.cultivatorId === params.cultivatorId && entry.userId === params.userId,
+    );
+    if (!archive || !participant)
+      throw new ChatMessageApplicationError('战斗回放不存在', 404);
+    const shareCode = await createCombatV6ReplayShare(params.request.battleId, params.cultivatorId, params.userId);
+    if (!shareCode) throw new ChatMessageApplicationError('战斗回放不存在', 404);
+    const text = textFilter.mask(params.request.textContent?.trim() ?? '').text;
+    const payload = {
+      version: 1 as const,
+      shareCode,
+      sides: archive.sides,
+      roundCount: archive.roundCount,
+      text: text || undefined,
+    };
+    return params.persist({
+      ...senderBase,
+      messageType: 'combat_v6_replay',
       textContent: payload.text,
       payload,
     });

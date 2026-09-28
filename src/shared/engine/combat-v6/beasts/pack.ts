@@ -30,15 +30,6 @@ export const BeastSpeciesPackShape = z.strictObject({
         birthSkills: z.strictObject({
           core: z.array(skillId).max(2),
           candidates: z.array(skillId).max(6),
-          extraCountWeights: z
-            .array(
-              z.strictObject({
-                count: z.number().int().min(0).max(8),
-                weight: z.number().int().positive().max(100),
-              }),
-            )
-            .min(1)
-            .max(9),
         }),
         aptitudes: z.strictObject({
           attack: range,
@@ -357,15 +348,18 @@ export function loadBeastPacks(
         `[${s.id}].carryLevel`,
         '携带等级须对应开放境界初期',
       );
-    const { core, candidates, extraCountWeights } = s.birthSkills;
+    const { core, candidates } = s.birthSkills;
     const pool = [...core, ...candidates];
     if (pool.length < 3 || pool.length > 6)
       issue('species.json', `[${s.id}].birthSkills`, '天生技能全集须为3至6项');
-    if (!extraCountWeights.some((row) => row.count === candidates.length))
+    if (
+      core.length < species.generation.minBirthSkills ||
+      pool.length > species.generation.maxBirthSkills
+    )
       issue(
         'species.json',
-        `[${s.id}].birthSkills.extraCountWeights`,
-        '必须允许全部天生技能同时出现',
+        `[${s.id}].birthSkills`,
+        '技能数量超出出生格数范围',
       );
     if (new Set(pool).size !== pool.length)
       issue('species.json', `[${s.id}].birthSkills`, '技能池重复');
@@ -378,32 +372,6 @@ export function loadBeastPacks(
           'species.json',
           `[${s.id}].birthSkills`,
           '技能池不得同时包含同族普通与高级技能',
-        );
-    if (extraCountWeights.reduce((sum, row) => sum + row.weight, 0) !== 100)
-      issue(
-        'species.json',
-        `[${s.id}].birthSkills.extraCountWeights`,
-        '权重合计必须为100',
-      );
-    if (
-      new Set(extraCountWeights.map((row) => row.count)).size !==
-      extraCountWeights.length
-    )
-      issue(
-        'species.json',
-        `[${s.id}].birthSkills.extraCountWeights`,
-        '额外数量重复',
-      );
-    for (const row of extraCountWeights)
-      if (
-        row.count > candidates.length ||
-        core.length + row.count < species.generation.minBirthSkills ||
-        core.length + row.count > species.generation.maxBirthSkills
-      )
-        issue(
-          'species.json',
-          `[${s.id}].birthSkills.extraCountWeights`,
-          '技能数量超出候选池或出生格数范围',
         );
     if (s.starter && s.carryLevel > species.generation.starterLevel)
       issue(

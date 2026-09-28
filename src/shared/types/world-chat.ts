@@ -7,7 +7,15 @@ export type WorldChatMessageChannel = 'system' | 'world' | 'sect';
 export type WorldChatChannel = WorldChatMessageChannel;
 
 export type WorldChatMessageType =
-  'text' | 'item_showcase' | 'beast_showcase' | 'battle_showcase';
+  'text' | 'item_showcase' | 'beast_showcase' | 'battle_showcase' | 'combat_v6_replay';
+
+export interface WorldChatCombatV6ReplayPayload {
+  version: 1;
+  shareCode: string;
+  sides: [string[], string[]];
+  roundCount: number;
+  text?: string;
+}
 
 export interface WorldChatTextPayload {
   text: string;
@@ -39,6 +47,7 @@ export interface WorldChatPayloadMap {
   item_showcase: WorldChatItemShowcasePayload;
   beast_showcase: WorldChatBeastShowcasePayload;
   battle_showcase: WorldChatBattleShowcasePayload;
+  combat_v6_replay: WorldChatCombatV6ReplayPayload;
 }
 
 export type WorldChatPayload = WorldChatPayloadMap[WorldChatMessageType];

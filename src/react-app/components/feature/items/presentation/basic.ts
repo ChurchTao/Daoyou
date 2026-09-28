@@ -190,13 +190,13 @@ export const refinementAdapter: ItemAdapter = (item, def) => {
         {
           title: '洗炼效果',
           entries: lines(
-            '重置等级，重新孕育资质、成长与天生技能，寿命恢复至原上限。',
+            '重置等级，重新孕育资质、成长与技能，寿命恢复至原上限。',
           ),
         },
       ],
       description:
         dew.color === 'gold'
-          ? '元婴及以上物种须用此露；不额外提高资质、成长或多技能概率。'
+          ? '元婴及以上灵兽须用此露。洗炼所得与普通归元灵露相同。'
           : '涤去后天积累。',
     }),
   };
