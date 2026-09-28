@@ -506,7 +506,7 @@ export async function changeTowerBattle(
         host.playerId,
         battle.snapshot.input.skills ?? [],
         (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
-        { statusDefs: battle.snapshot.input.statusDefs },
+        { statusDefs: battle.snapshot.input.statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
       );
       if (commands.length) host.submitGroup(commands);
     }

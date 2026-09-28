@@ -353,6 +353,7 @@ export function compileCombatV6TrainingEncounterV1(
       npcStrategies,
       sourceProjectionVersions: { ...COMBAT_V6_PHASE_6D_VERSIONS },
       sourcePlayerInput: clone(input.player),
+      playerAutoStrategy: input.player.autoStrategy,
       battleInput: {
         seed: input.seed,
         versions,

@@ -10,7 +10,6 @@ import { evalExpr, skillLevelOf } from '../engine/combat-v6/core/expr';
 import { matchesWhen, targetStatusStacks } from '../engine/combat-v6/core/when';
 import { daoyouRulesetV6 } from '../engine/combat-v6/rules-daoyou';
 import type { AutoObservation } from './auto-observation';
-import { AUTO_POLICIES, type AutoPolicy } from './auto-policy';
 
 type Benefits = {
   offense: number;
@@ -51,12 +50,11 @@ export function rankAutoActions(
   skills: readonly SkillDef[],
   statusDefs: readonly StatusDef[],
   options: CombatV6CommandOptions,
-  policy: AutoPolicy = 'balanced',
   intents: readonly AutoIntent[] = [],
 ): AutoCandidate[] {
   const source = observation.units.find((unit) => unit.id === sourceId)!;
   const definitions = new Map(statusDefs.map((status) => [status.id, status]));
-  const weights = AUTO_POLICIES[policy];
+  const weights = { offense: 1, survival: 1.2, control: 1, economy: 0.5 };
   const candidates: AutoCandidate[] = [];
   const formulas = daoyouRulesetV6.formulas;
   // matchesWhen only reads the round, visible units and definitions; never a live context.

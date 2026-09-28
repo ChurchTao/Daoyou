@@ -1310,11 +1310,6 @@ export const router = createBrowserRouter(
           handle={title('旧功法迁移')}
         />
         <Route
-          path="sect-migration"
-          lazy={lazyRoute(() => import('@app/routes/admin/sect-migration/route'))}
-          handle={title('宗门迁移')}
-        />
-        <Route
           path="accounts"
           lazy={lazyRoute(() => import('@app/routes/admin/accounts/route'))}
           handle={title('账号管理')}

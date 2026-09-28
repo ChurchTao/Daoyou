@@ -1,4 +1,5 @@
 import type { CombatV6UnitAppearance } from '../contracts/combatV6';
+import type { AutoStrategy } from './auto-strategy';
 import { BEAST_SPECIES } from '../engine/combat-v6/beasts/content';
 import type { CreateBattleInput } from '../engine/combat-v6/core';
 import type { CombatV6TrainingPlayerInput } from '../engine/combat-v6/encounter/types';
@@ -6,6 +7,7 @@ import type { CombatV6TrainingPlayerInput } from '../engine/combat-v6/encounter/
 /** Frozen presentation facts belong to the host, never to combat calculations. */
 export type PresentedBattleInput = Omit<CreateBattleInput, 'ruleset'> & {
   unitAppearances?: Record<string, CombatV6UnitAppearance>;
+  autoStrategy?: AutoStrategy;
 };
 
 export function beastAppearance(

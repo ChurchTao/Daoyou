@@ -131,6 +131,7 @@ export class SectBattleHost extends CombatV6PveHostSession {
             .map((unit) => [unit.id!, { type: 'automatic' as const }]),
         ),
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        playerAutoStrategy: source.input.autoStrategy,
       },
       restored,
       source.input.unitAppearances,
@@ -201,6 +202,7 @@ export function createSectBattleHost(
     playerId: projected.unit.id!,
     resourcePolicy,
     input: structuredClone({
+      autoStrategy: player.autoStrategy,
       unitAppearances: { ...playerAppearances(player), ...opponent.unitAppearances },
       seed,
       versions: SECT_BATTLE_VERSIONS,

@@ -16,7 +16,6 @@ import towerEnemySetsRouter from '@server/routes/api/admin/tower-enemy-sets.rout
 import { Hono } from 'hono';
 import { manualMigrationAdminRouter } from '../manual-migration';
 import rewardItemsRouter from './reward-items.router';
-import sectMigrationRouter from './sect-migration';
 
 const router = new Hono<AppEnv>();
 
@@ -38,7 +37,6 @@ router.route('/reward-items', rewardItemsRouter);
 router.route('/redeem-codes', redeemCodesRouter);
 router.route('/reputation-shop', reputationShopRouter);
 router.route('/sect-shop', sectShopRouter);
-router.route('/sect-migration', sectMigrationRouter);
 router.route('/manual-migration', manualMigrationAdminRouter);
 router.route('/sponsorship', sponsorshipRouter);
 router.route('/community-group', communityGroupRouter);

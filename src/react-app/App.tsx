@@ -110,6 +110,13 @@ export function RootRouteErrorView({ error }: { error: unknown }) {
             </>
           ) : (
             <>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="border-crimson/40 text-crimson hover:bg-crimson/5 cursor-pointer border px-3 py-2"
+              >
+                刷新重试
+              </button>
               <Link
                 href="/"
                 className="border-ink/20 text-ink hover:border-crimson/40 hover:text-crimson border border-dashed px-3 py-2 no-underline"

@@ -276,7 +276,7 @@ export async function changeDungeonBattle(
             payload.snapshot.input.skills ?? [],
             (id) =>
               host.controlledCommandOptions().find((o) => o.unitId === id)!,
-            { statusDefs: payload.snapshot.input.statusDefs },
+            { statusDefs: payload.snapshot.input.statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
           );
           if (commands.length) host.submitGroup(commands);
         }

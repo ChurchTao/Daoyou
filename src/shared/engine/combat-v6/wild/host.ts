@@ -56,6 +56,7 @@ export class WildHost extends CombatV6PveHostSession {
         },
         npcStrategies: compiled.npcStrategies,
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        playerAutoStrategy: compiled.input.autoStrategy,
       },
       restored,
       compiled.input.unitAppearances,
@@ -150,6 +151,7 @@ export function createWildHost(
     combatants,
     npcStrategies: strategies,
     input: {
+      autoStrategy: player.autoStrategy,
       unitAppearances: {
         ...playerAppearances(player),
         ...Object.fromEntries(

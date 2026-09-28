@@ -86,6 +86,7 @@ export class DungeonHost extends CombatV6PveHostSession {
             .map((u) => [u.id!, { type: 'attack' as const }]),
         ),
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        playerAutoStrategy: source.input.autoStrategy,
       },
       restored,
       source.input.unitAppearances,
@@ -125,6 +126,7 @@ export function createDungeonHost(
     version: 'dungeon-v6-v1',
     playerId: projected.unit.id!,
     input: {
+      autoStrategy: player.autoStrategy,
       unitAppearances: playerAppearances(player),
       seed,
       versions: DUNGEON_VERSIONS,

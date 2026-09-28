@@ -7,7 +7,8 @@ import type {
   StatusDef,
 } from '../engine/combat-v6/core';
 import { observeAutoBattle } from './auto-observation';
-import { AUTO_POLICY_VERSION, type AutoPolicy } from './auto-policy';
+import { AUTO_POLICY_VERSION } from './auto-policy';
+import { chooseStrategyCandidate, type AutoStrategy } from './auto-strategy';
 import {
   rankAutoActions,
   type AutoCandidate,
@@ -15,7 +16,7 @@ import {
 } from './auto-utility';
 import { controlledUnits } from './controlled-commands';
 
-export { AUTO_POLICIES, AUTO_POLICY_VERSION } from './auto-policy';
+export { AUTO_POLICY_VERSION } from './auto-policy';
 export const AUTO_DELAY_MS = 3000;
 export const CombatAutoRequestSchema = z
   .object({
@@ -27,7 +28,7 @@ export const CombatAutoRequestSchema = z
 
 export type AutoOptions = {
   statusDefs?: readonly StatusDef[];
-  policy?: AutoPolicy;
+  strategies?: Readonly<Record<string, AutoStrategy | undefined>>;
   /** Internal opt-in diagnostics, never persisted or sent to players by default. */
   explain?: (decision: {
     unitId: string;
@@ -63,7 +64,6 @@ export function automaticCommands(
       skills,
       options.statusDefs ?? [],
       query(unit.id),
-      options.policy,
       intents,
     );
     options.explain?.({
@@ -71,7 +71,9 @@ export function automaticCommands(
       version: AUTO_POLICY_VERSION,
       candidates,
     });
-    const selected = candidates[0];
+    const selected = unit.kind === 'pet'
+      ? chooseBeastCandidate(candidates, skills, unit.skillOverrides)
+      : chooseStrategyCandidate(observation, unit.id, candidates, options.strategies?.[unit.id]);
     if (selected) intents.push(...selected.intents);
     return {
       unitId: unit.id,
@@ -80,4 +82,21 @@ export function automaticCommands(
       }) as CombatV6CommandGroup[number]['command'],
     };
   });
+}
+
+function chooseBeastCandidate(
+  candidates: AutoCandidate[],
+  skills: readonly SkillDef[],
+  overrides: Record<string, SkillDef>,
+): AutoCandidate | undefined {
+  const attack = candidates.find((entry) => entry.command.type === 'attack');
+  const spell = candidates.find((entry) => {
+    if (entry.command.type !== 'skill') return false;
+    const skillId = entry.command.skillId;
+    const skill = overrides[skillId] ?? skills.find((item) => item.id === skillId);
+    return skill?.effects.some((effect) => effect.type === 'spellHit');
+  });
+  // A pet's active offensive spell must outperform its physical attack after
+  // target, hit chance and resource cost; defensive arts do not mark it a caster.
+  return spell && (!attack || spell.score > attack.score) ? spell : attack ?? candidates[0];
 }

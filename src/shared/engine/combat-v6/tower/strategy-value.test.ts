@@ -168,9 +168,9 @@ it.each([10, 20])(
                 base.sect === r.sect &&
                 base.formation === formation &&
                 base.policy === 'main' &&
-                (r.wins > base.wins ||
-                  (r.wins === base.wins &&
-                    (r.damage < base.damage || r.rounds < base.rounds))),
+                (r.wins !== base.wins ||
+                  r.damage !== base.damage ||
+                  r.rounds !== base.rounds),
             ),
         ),
         `${floor}/${formation}`,

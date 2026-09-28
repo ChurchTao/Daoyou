@@ -11,11 +11,6 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/manual-migration',
   },
   {
-    title: '宗门迁移',
-    description: '旧心法、经脉继承与退款核对',
-    href: '/admin/sect-migration',
-  },
-  {
     title: '总览',
     description: '后台入口与能力地图',
     href: '/admin',

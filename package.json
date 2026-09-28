@@ -21,7 +21,7 @@
     "prd:web": "NODE_ENV=development bun --env-file=env/staging.env run vite",
     "services": "docker compose --env-file env/local.env -f scripts/docker-compose.local.yml",
     "sponsors:check": "bun run scripts/render-sponsors.ts --check",
-    "sponsors:fetch": "node ./node_modules/sponsorkit/dist/cli.mjs --force",
+    "sponsors:fetch": "node --env-file-if-exists=env/staging.env ./node_modules/sponsorkit/dist/cli.mjs --force",
     "sponsors:render": "bun run scripts/render-sponsors.ts",
     "sponsors:sync": "bun run sponsors:fetch && bun run sponsors:render && bun run sponsors:check",
     "test": "vitest run"

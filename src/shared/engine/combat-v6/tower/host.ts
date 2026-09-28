@@ -94,6 +94,7 @@ export class TowerHost extends CombatV6PveHostSession {
         },
         npcStrategies: {},
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        playerAutoStrategy: source.input.autoStrategy,
       },
       restored,
       source.input.unitAppearances,
@@ -162,6 +163,7 @@ export function createTowerHost(
     playerId: unit.id!,
     npcPlans: enemies.plans,
     input: {
+      autoStrategy: player.autoStrategy,
       unitAppearances: playerAppearances(player),
       seed,
       versions: {

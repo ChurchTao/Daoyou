@@ -44,9 +44,14 @@ async function resolveSessionData(
       },
     });
 
+    if (result.error) {
+      throw result.error;
+    }
+
     return result.data ?? null;
-  } catch {
-    return null;
+  } catch (error) {
+    if (request.signal.aborted) throw error;
+    throw new Error('会话校验暂时失败，请刷新页面重试。', { cause: error });
   }
 }
 

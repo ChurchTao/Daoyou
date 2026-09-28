@@ -6,6 +6,8 @@ import {
   sectMethodProgress,
 } from '@server/lib/drizzle/schema';
 import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository';
+import { readCustomAutoStrategy } from '@server/lib/repositories/combatV6AutoStrategyRepository';
+import { defaultAutoStrategy } from '@shared/combat-v6/auto-strategy';
 import {
   characterIdentityRow,
   findActiveSectMembership,
@@ -249,6 +251,8 @@ export async function assembleCombatV6TrainingPlayer(
       422,
     );
   const player: CombatV6TrainingPlayerInput = {
+    autoStrategy: (await readCustomAutoStrategy(cultivatorId, build.sect.activePathId, q))
+      ?? defaultAutoStrategy(build.sect.activePathId),
     portrait: cultivator.gender === '女' ? 'icon:cultivator-female-avatar' : 'icon:cultivator-male-avatar',
     cultivator: {
       id: cultivator.id,

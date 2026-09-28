@@ -18,10 +18,12 @@ import type { CombatV6TrainingPlayerInput } from '../encounter';
 import { projectCharacterToCombatV6 } from '../projection';
 import { characterBattleSkills } from '../projection/character-battle-skills';
 import { daoyouRulesetV6 } from '../rules-daoyou';
+import type { AutoStrategy } from '../../../combat-v6/auto-strategy';
 import { COMBAT_V6_PHASE_6D_VERSIONS } from '../version';
 
 export type RankingBattleInput = PresentedBattleInput & {
   seed: number;
+  autoStrategies?: Record<string, AutoStrategy>;
 };
 
 export function compileRankingBattle(
@@ -33,6 +35,7 @@ export function compileRankingBattle(
   const units: CreateBattleInput['units'] = [];
   const skills = new Map<string, SkillDef>(BEAST_SKILLS.map((s) => [s.id, s]));
   const statuses = new Map<string, StatusDef>(BEAST_STATUS_DEFS.map(s => [s.id, s]));
+  const autoStrategies: Record<string, AutoStrategy> = {};
   function merge<T extends { id: string }>(map: Map<string, T>, values: T[]) {
     for (const value of values) {
       if (
@@ -52,6 +55,7 @@ export function compileRankingBattle(
       resourcePolicy: 'full',
     });
     if (!p.ok) throw new Error('天骄榜构筑无法编译');
+    if (player.autoStrategy) autoStrategies[p.unit.id!] = player.autoStrategy;
     units.push(
       characterBattleSkills(p.unit, p.skills, skills),
       ...projectBeastRoster(
@@ -70,6 +74,7 @@ export function compileRankingBattle(
     units,
     skills: [...skills.values()],
     statusDefs: [...statuses.values()],
+    autoStrategies,
     versions: {
       ...COMBAT_V6_PHASE_6D_VERSIONS,
       autoPolicyVersion: AUTO_POLICY_VERSION,
@@ -105,7 +110,7 @@ export function simulateRankingBattle(input: RankingBattleInput) {
           unit.id,
           input.skills ?? [],
           (id) => battle.queryCommands(id),
-          { statusDefs: statuses },
+          { statusDefs: statuses, strategies: input.autoStrategies },
         ),
       );
     for (const entry of commands) battle.submit(entry.unitId, entry.command);

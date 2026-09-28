@@ -98,7 +98,7 @@ export function restoreCombatV6TrainingHostV1(
 
 export type CompiledPveEncounter = Pick<
   CompiledCombatV6TrainingEncounterV1,
-  'playerId' | 'battleInput' | 'npcStrategies' | 'sourceProjectionVersions'
+  'playerId' | 'battleInput' | 'npcStrategies' | 'sourceProjectionVersions' | 'playerAutoStrategy'
 >;
 export type PveRestoredState = Pick<
   CombatV6TrainingRuntimeSnapshotV1,
@@ -109,6 +109,7 @@ export type PveRestoredState = Pick<
 export class CombatV6PveHostSession {
   protected readonly timeline: CombatV6ReplayTimeline;
   readonly playerId: string;
+  readonly playerAutoStrategy: CompiledPveEncounter['playerAutoStrategy'];
   protected readonly battle: BattleSession;
   protected readonly initialUnits: CompiledCombatV6TrainingEncounterV1['battleInput']['units'];
   protected readonly skills: SkillDef[];
@@ -129,6 +130,7 @@ export class CombatV6PveHostSession {
     )
       throw new Error('自动策略版本不匹配，请先结束旧版本战局再切换');
     this.playerId = compiled.playerId;
+    this.playerAutoStrategy = compiled.playerAutoStrategy;
     this.initialUnits = clone(compiled.battleInput.units);
     this.skills = clone(compiled.battleInput.skills ?? []);
     this.statusDefs = clone(compiled.battleInput.statusDefs ?? []);

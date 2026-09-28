@@ -221,7 +221,7 @@ export class CombatV6TrainingSessionService {
         host.playerId,
         host.trace().skills,
         (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
-        { statusDefs: host.trace().statusDefs },
+        { statusDefs: host.trace().statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
       );
       if (commands.length) host.submitGroup(commands);
     }

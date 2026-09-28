@@ -86,6 +86,7 @@ export class BreakthroughHost extends CombatV6PveHostSession {
             .map((unit) => [unit.id!, { type: 'automatic' as const }]),
         ),
         sourceProjectionVersions: COMBAT_V6_PHASE_6D_VERSIONS,
+        playerAutoStrategy: source.input.autoStrategy,
       },
       restored,
       source.input.unitAppearances,
@@ -155,6 +156,7 @@ export function createBreakthroughHost(
     version: 'breakthrough-v6-battle-v1',
     playerId: projected.unit.id!,
     input: structuredClone({
+      autoStrategy: player.autoStrategy,
       unitAppearances: playerAppearances(player),
       seed,
       versions: BREAKTHROUGH_VERSIONS,

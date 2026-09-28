@@ -331,7 +331,7 @@ export async function changeBreakthroughBattle(
               host
                 .controlledCommandOptions()
                 .find((option) => option.unitId === unitId)!,
-            { statusDefs: runtime.snapshot.input.statusDefs },
+            { statusDefs: runtime.snapshot.input.statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
           );
           if (commands.length) host.submitGroup(commands);
         }

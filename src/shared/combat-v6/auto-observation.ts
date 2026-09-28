@@ -75,7 +75,7 @@ export function observeAutoBattle(
             kind: definitions.get(status.id)?.kind ?? '',
             remainingRounds: status.remainingRounds,
             stacks: status.stacks,
-            sourceId: '',
+            sourceId: status.sourceId === ownerId ? ownerId : '',
             appliedRound: 0,
             speedMod: 0,
             attrMods: {},

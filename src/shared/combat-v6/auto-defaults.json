@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "paths": {
+    "lingxiao.path.zhanchen": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 20 }],
+          "action": { "type": "skill", "skillId": "lingxiao.skill.triple" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [
+            { "type": "enemyCountAtLeast", "count": 2 },
+            { "type": "enemyHpBelow", "percent": 35 }
+          ],
+          "action": { "type": "skill", "skillId": "lingxiao.skill.triple" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "lingxiao.path.guiyi": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 2 }],
+          "action": { "type": "skill", "skillId": "lingxiao.skill.triple" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 40 }],
+          "action": { "type": "attack" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "youdu.path.soul_judge": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 20 },
+            {
+              "type": "targetStatus",
+              "kind": "youdu.siphon",
+              "present": false,
+              "ownedBySelf": false
+            }
+          ],
+          "action": { "type": "skill", "skillId": "youdu.skill.siphon" },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 20 }],
+          "action": { "type": "attack" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "youdu.path.poison_master": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 3 }],
+          "action": { "type": "skill", "skillId": "youdu.skill.ghost_swarm" },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 10 }],
+          "action": { "type": "skill", "skillId": "youdu.skill.blood_shadow" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [{ "type": "selfHpBelow", "percent": 35 }],
+          "action": { "type": "attack" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "wuxiang.path.compassion": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "allyHpBelow", "percent": 50 }],
+          "action": { "type": "skill", "skillId": "wuxiang.skill.nectar" },
+          "target": "lowestHpAlly"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "action": { "type": "skill", "skillId": "wuxiang.skill.pierce" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 2 }],
+          "action": { "type": "skill", "skillId": "wuxiang.skill.pierce" },
+          "target": "best"
+        }
+      ]
+    },
+    "wuxiang.path.wrath": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 2 }],
+          "action": { "type": "skill", "skillId": "wuxiang.skill.pierce" },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "action": { "type": "skill", "skillId": "wuxiang.skill.pierce" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "tianyan.path.hetu": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "selfHpBelow", "percent": 40 }],
+          "action": { "type": "skill", "skillId": "tianyan.skill.water" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.fire",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.water" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.water",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.wood" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.wood",
+              "present": true
+            },
+            { "type": "enemyCountAtLeast", "count": 2 }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.fire" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "present": false
+            },
+            { "type": "enemyCountAtLeast", "count": 2 }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.fire" },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "tianyan.path.luoshu": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "selfHpBelow", "percent": 40 }],
+          "action": { "type": "skill", "skillId": "tianyan.skill.wood" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.metal",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.water" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.water",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.earth" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.earth",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.wood" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "present": false
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "jiujie.path.law": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 3 }],
+          "action": {
+            "type": "skill",
+            "skillId": "jiujie.skill.thunder_slash"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 5 }],
+          "action": { "type": "attack" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "jiujie.path.thunder": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "enemyHpBelow", "percent": 10 }],
+          "action": {
+            "type": "skill",
+            "skillId": "jiujie.skill.thunder_slash"
+          },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [{ "type": "enemyCountAtLeast", "count": 3 }],
+          "action": {
+            "type": "skill",
+            "skillId": "jiujie.skill.thunder_slash"
+          },
+          "target": "best"
+        }
+      ]
+    }
+  }
+}

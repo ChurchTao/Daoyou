@@ -1,4 +1,5 @@
 import type { CombatV6ReplayTimeline } from '../../../contracts/combatV6Replay';
+import type { AutoStrategy } from '../../../combat-v6/auto-strategy';
 import type {
   Attrs,
   BattleEvent,
@@ -78,6 +79,7 @@ export type CombatV6TrainingPlayerInput = Omit<
 > & {
   beasts?: import('../beasts').BeastRoster;
   portrait?: 'icon:cultivator-male-avatar' | 'icon:cultivator-female-avatar';
+  autoStrategy?: AutoStrategy;
 };
 
 export type CompileCombatV6TrainingEncounterV1Input = {
@@ -96,6 +98,7 @@ export type CompiledCombatV6TrainingEncounterV1 = {
   battleInput: CreateBattleInput;
   sourceProjectionVersions: CombatV6VersionStamp;
   sourcePlayerInput: CombatV6TrainingPlayerInput;
+  playerAutoStrategy?: AutoStrategy;
 };
 
 export type CompileCombatV6TrainingEncounterV1Result =
@@ -148,6 +151,7 @@ export interface CombatV6TrainingRuntimeSnapshotV1 {
 
 export interface CombatV6TrainingHostV1 {
   readonly playerId: string;
+  readonly playerAutoStrategy?: AutoStrategy;
   readonly finished: boolean;
   readonly state: BattleState;
   queryCommands(unitId?: string): CombatV6CommandOptions;

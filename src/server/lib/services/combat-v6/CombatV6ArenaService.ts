@@ -103,6 +103,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const units: ArenaRuntime['units'] = [];
         const unitAppearances: Record<string, CombatV6UnitAppearance> = {};
         const participants: ArenaRuntime['participants'] = [];
+        const autoStrategies: NonNullable<ArenaRuntime['autoStrategies']> = {};
         for (const seat of seats) {
           if (await hasActiveCombat(seat.cultivatorId))
             throw new ArenaV6Error('参战角色尚在战斗或结算中');
@@ -126,6 +127,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             resourcePolicy: 'full',
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
+          if (player.autoStrategy) autoStrategies[projection.unit.id!] = player.autoStrategy;
           Object.assign(unitAppearances, playerAppearances(player));
           units.push(characterBattleSkills(projection.unit, projection.skills, skills));
           units.push(
@@ -156,6 +158,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           units,
           skills: [...skills.values()],
           statusDefs: [...statuses.values()],
+          autoStrategies,
         };
         const battle = arenaBattle(input);
         const runtime: ArenaRuntime = {
@@ -254,7 +257,7 @@ export async function submitArenaV6(
             participant.unitId,
             runtime.skills,
             (unitId) => arenaBattle(runtime).queryCommands(unitId),
-            { statusDefs: runtime.statusDefs },
+            { statusDefs: runtime.statusDefs, strategies: runtime.autoStrategies },
           )
         : input.commands;
     try {
