@@ -19,7 +19,7 @@ import {
 import { canCollectCommand } from '@shared/engine/combat-v6/core/units';
 import { DAO_RAGE_RESOURCE_ID } from '@shared/engine/combat-v6/equipment/special-ids';
 import { daoyouRulesetV6 } from '@shared/engine/combat-v6/rules-daoyou';
-import { COMBAT_V6_PHASE_9B_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
+import { COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
 import { controlledUnits, validatePetCommand } from './controlled-commands';
 import { diffUnits } from './playback';
 import {
@@ -38,13 +38,13 @@ export function arenaBattle(
     units: runtime.units,
     skills: runtime.skills,
     statusDefs: runtime.statusDefs,
-    versions: COMBAT_V6_PHASE_9B_ARENA_VERSIONS,
+    versions: COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS,
     ruleset: daoyouRulesetV6,
   };
   if (runtime.state) {
     if (
       JSON.stringify(runtime.state.versions) !==
-      JSON.stringify(COMBAT_V6_PHASE_9B_ARENA_VERSIONS)
+      JSON.stringify(COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS)
     )
       throw new Error('ARENA_VERSION_MISMATCH');
     return restoreBattle(input, runtime.state, runtime.events ?? []);

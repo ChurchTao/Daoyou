@@ -335,7 +335,11 @@ function handleApplyStatus(
     const hit = effect.hit ?? StatusHit.Always
     if (hit === StatusHit.Seal) {
       const targetModifiers = combatModifiers(ctx, t, { target: source, skill, skillId: skill.id })
-      const chance = Math.min(1, Math.max(0, ctx.rules.formulas.sealHitChance({ ...source, attrs: effectiveAttrs(source) }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase) + modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx))) * modifiers.reduce((factor, m) => factor * evalExpr(m.sealChanceFactor ?? 1, env), 1) * sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
+      const additiveChance = modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx)
+      const baseChance = ctx.rules.formulas.sealHitChance({ ...source, attrs: effectiveAttrs(source) }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase, additiveChance)
+      const sourceFactor = modifiers.reduce((factor, m) => factor * evalExpr(m.sealChanceFactor ?? 1, env), 1)
+      const targetFactor = sealHitTakenFactor(ctx, t, modifiers.flatMap(m => m.ignoreSealStatusKinds ?? []))
+      const chance = Math.min(ctx.rules.formulas.sealChanceCeil ?? 1, Math.max(0, baseChance * sourceFactor * targetFactor))
       if (t.statuses.some(status => ctx.statusDefs.get(status.id)?.immuneToSeal) || !ctx.rng.chance(chance)) {
         ctx.emit({ type: EventType.Miss, sourceId: source.id, targetId: t.id, kind: StatusHit.Seal })
         continue

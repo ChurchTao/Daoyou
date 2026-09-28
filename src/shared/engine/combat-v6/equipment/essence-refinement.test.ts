@@ -295,8 +295,9 @@ describe('器蕴精修', () => {
     )!;
     source.attrs.sealHit += entry.panel![0].value;
     expect(formula(source, target, 45) - baseline).toBeCloseTo(0.01);
-    source.attrs.sealHit = 10000;
-    expect(formula(source, target, 45)).toBe(0.9);
+    source.attrs.sealHit = 1000;
+    expect(formula(source, target, 45)).toBeGreaterThan(0.94);
+    expect(formula(source, target, 45)).toBeLessThanOrEqual(0.95);
   });
   it('激昂按失血比例提高受击战意，单次获得最多100', () => {
     const p = createDaoRageGainPassive(1.25);

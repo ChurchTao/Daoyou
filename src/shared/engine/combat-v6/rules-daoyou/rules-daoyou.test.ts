@@ -189,7 +189,7 @@ describe("Daoyou formulas", () => {
     }
   })
 
-  it("uses point-based hit, guaranteed spell hit, and capped seal cultivation", () => {
+  it("uses point-based hit, guaranteed spell hit, and a smooth seal cultivation curve", () => {
     const source = unit({
       hp: 100,
       speed: 10,
@@ -211,16 +211,51 @@ describe("Daoyou formulas", () => {
 
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.9)
     expect(daoyouFormulas.spellHitChance(source, target)).toBe(1)
-    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBe(0.75)
+    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(
+      (55 + 18 * Math.tanh(60 / 15)) / 100,
+    )
     source.attrs.hit = -1000
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.45)
     source.attrs.hit = 1000
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(1)
     source.attrs.spellCultivate = 0
     target.attrs.resistSpellCultivate = 60
-    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(0.35)
+    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(
+      (55 - 18 * Math.tanh(60 / 15)) / 100,
+    )
     source.attrs.sealHit = 1000
-    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBe(0.9)
+    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeGreaterThan(0.94)
+    expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeLessThan(0.95)
+  })
+
+  it("keeps seal chance continuous at 30 and 75 percent and puts additive modifiers before the soft ceiling", () => {
+    const source = unit({ hp: 100, speed: 10 }, 90)
+    const target = unit({ hp: 100, speed: 10 }, 90)
+    for (const boundary of [30, 75]) {
+      expect(daoyouFormulas.sealHitChance(source, target, 90, boundary)).toBeCloseTo(boundary / 100)
+      const below = daoyouFormulas.sealHitChance(source, target, 90, boundary - 0.001)
+      const above = daoyouFormulas.sealHitChance(source, target, 90, boundary + 0.001)
+      expect((boundary / 100) - below).toBeCloseTo(0.00001, 7)
+      expect(above - (boundary / 100)).toBeCloseTo(0.00001, 7)
+    }
+    expect(daoyouFormulas.sealHitChance(source, target, 90, 75, 0.2)).toBeCloseTo(
+      (75 + 20 * (1 - Math.exp(-1))) / 100,
+    )
+  })
+
+  it("scales seal point differences with battle level and preserves gains beyond cultivation difference ten", () => {
+    const source = unit({ hp: 100, speed: 10, sealHit: 114, spellCultivate: 10 }, 90)
+    const target = unit({ hp: 100, speed: 10, sealResist: 0 }, 90)
+    const atTen = daoyouFormulas.sealHitChance(source, target, 90)
+    source.attrs.spellCultivate = 11
+    expect(daoyouFormulas.sealHitChance(source, target, 90)).toBeGreaterThan(atTen)
+    source.attrs.spellCultivate = 0
+    const atNinety = daoyouFormulas.sealHitChance(source, target, 90)
+    source.level = target.level = 170
+    source.attrs.sealHit = 114 * 680 / 360
+    expect(daoyouFormulas.sealHitChance(source, target, 170)).toBeCloseTo(atNinety)
+    source.attrs.sealHit += 10
+    expect(daoyouFormulas.sealHitChance(source, target, 170)).toBeGreaterThan(atNinety)
   })
 
   it("keeps normal high-level physical matchups below the dodge cap", () => {

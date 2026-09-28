@@ -114,6 +114,7 @@ export const daoyouFormulas: FormulaSet = {
   critMultiplier: DaoyouRule.critMultiplier,
   furyAtkMultiplier: DaoyouRule.physicalFuryAtkMultiplier,
   defendPhysicalFactor: DaoyouRule.defendPhysicalFactor,
+  sealChanceCeil: DaoyouRule.sealChanceCeil,
   physicalBase,
   spellBase,
   baseDamage,
@@ -134,20 +135,33 @@ export const daoyouFormulas: FormulaSet = {
   spellHitChance() {
     return 1
   },
-  sealHitChance(source, target, skillLevel, sealBase) {
+  sealHitChance(source, target, skillLevel, sealBase, additiveChance = 0) {
     const level = skillLevel ?? source.level
     const basePercent = (sealBase ?? DaoyouRule.sealChanceBase * 100)
-    const cultivateDiff = clamp(
-      DaoyouRule.sealCultivateDiffMin,
-      DaoyouRule.sealCultivateDiffMax,
-      source.attrs.spellCultivate - target.attrs.resistSpellCultivate,
+    const combatLevel = Math.max(source.level, target.level)
+    const pointScale = Math.max(
+      DaoyouRule.hitChanceScale,
+      combatLevel * DaoyouRule.sealPointScalePerLevel,
     )
     const percent =
       basePercent +
       (level - target.level) * DaoyouRule.sealLevelWeight +
-      cultivateDiff * DaoyouRule.sealCultivateWeight +
-      ((source.attrs.sealHit - target.attrs.sealResist) / DaoyouRule.hitChanceScale) * 100
-    return clamp(DaoyouRule.sealChanceFloor, DaoyouRule.sealChanceCeil, percent / 100)
+      DaoyouRule.sealCultivateWeight * Math.tanh(
+        (source.attrs.spellCultivate - target.attrs.resistSpellCultivate) / DaoyouRule.sealCultivateScale,
+      ) +
+      ((source.attrs.sealHit - target.attrs.sealResist) / pointScale) * 100 +
+      additiveChance * 100
+    const floor = DaoyouRule.sealChanceFloor * 100
+    const ceil = DaoyouRule.sealChanceCeil * 100
+    if (percent < DaoyouRule.sealSoftFloorStart) {
+      const span = DaoyouRule.sealSoftFloorStart - floor
+      return (floor + span * Math.exp((percent - DaoyouRule.sealSoftFloorStart) / span)) / 100
+    }
+    if (percent > DaoyouRule.sealSoftCeilStart) {
+      const span = ceil - DaoyouRule.sealSoftCeilStart
+      return (DaoyouRule.sealSoftCeilStart + span * (1 - Math.exp(-(percent - DaoyouRule.sealSoftCeilStart) / span))) / 100
+    }
+    return percent / 100
   },
   fleeChance(unit, enemies) {
     const averageEnemySpeed =

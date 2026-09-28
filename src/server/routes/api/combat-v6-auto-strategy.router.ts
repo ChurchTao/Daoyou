@@ -11,14 +11,14 @@ import {
   saveCombatAutoStrategy,
 } from '@server/lib/services/combat-v6/CombatV6AutoStrategyService';
 import { CombatV6BuildError } from '@server/lib/services/combat-v6/CombatV6BuildService';
-import { AutoStrategySchema } from '@shared/combat-v6/auto-strategy';
+import { SaveAutoStrategySchema } from '@shared/combat-v6/auto-strategy';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
 const router = new Hono<AppEnv>();
 const mutation = z.strictObject({
   pathId: z.string().min(1).max(160),
-  strategy: AutoStrategySchema,
+  strategy: SaveAutoStrategySchema,
 });
 const reset = z.strictObject({ pathId: z.string().min(1).max(160) });
 router.use('*', requireActiveCultivatorRef());

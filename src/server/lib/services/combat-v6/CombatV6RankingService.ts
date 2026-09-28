@@ -25,7 +25,11 @@ import {
   archiveCombatV6Replay,
   combatV6ReplayExists,
 } from '@server/lib/repositories/combatV6ReplayRepository';
-import { rankingDay, rankingOrderAfterBattle } from '@shared/combat-v6/ranking';
+import {
+  MAX_DAILY_RANKING_CHALLENGES,
+  rankingDay,
+  rankingOrderAfterBattle,
+} from '@shared/combat-v6/ranking';
 import { createCombatV6Replay } from '@shared/combat-v6/replay';
 import type {
   RankingChallengeRequest,
@@ -225,7 +229,7 @@ return 1`,
         if (reserved !== 1)
           throw new RankingV6Error(
             reserved === -2
-              ? '今日挑战次数已用完（每日限10次）'
+              ? `今日挑战次数已用完（每日限${MAX_DAILY_RANKING_CHALLENGES}次）`
               : '已有挑战，请恢复后再试',
           );
       }

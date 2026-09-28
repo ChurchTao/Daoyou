@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBattle, effectiveAttrs, restoreBattle, SeededRng, type Command, type SkillDef } from '../core';
-import { createDaoyouRuleset } from '../rules-daoyou';
+import { createDaoyouRuleset, daoyouFormulas } from '../rules-daoyou';
 import { COMBAT_V6_PHASE_6D_VERSIONS as versions } from '../version';
 import { createEmptySectCombatProgressV6 } from '../build-state';
 import { compileSectDefinitionV6 } from './compiler';
@@ -284,13 +284,15 @@ describe('幽都经脉触发与边界', () => {
   });
 
   it('索魂逐回合增加至12个百分点；乘虚区分普通毒20点与魂毒24点', () => {
+    const sealAtFifty: typeof daoyouFormulas.sealHitChance = (source, target, level, _base, additiveChance) =>
+      daoyouFormulas.sealHitChance(source, target, level, 50, additiveChance);
     for (const [r, expected] of [[1, 0.505], [24, 0.62], [40, 0.62]]) {
-      const { b, input } = setup(['索魂']); input.ruleset.formulas.sealHitChance = () => 0.5; b.state.round = r;
+      const { b, input } = setup(['索魂']); input.ruleset.formulas.sealHitChance = sealAtFifty; b.state.round = r;
       const rolls = vi.spyOn(SeededRng.prototype, 'chance'); round(b, { s: skill('soul_seal') });
       expect(rolls.mock.calls.some(([p]) => Math.abs(p - expected) < 1e-10)).toBe(true); rolls.mockRestore();
     }
     for (const [kind, expected] of [['beast.poison', 0.7], ['youdu.poison', 0.74]] as const) {
-      const { input } = setup(['乘虚']); input.ruleset.formulas.sealHitChance = () => 0.5;
+      const { input } = setup(['乘虚']); input.ruleset.formulas.sealHitChance = sealAtFifty;
       const b = createBattle({ ...input, statusDefs: [...input.statusDefs, ...BEAST_STATUS_DEFS] });
       const def = [...input.statusDefs, ...BEAST_STATUS_DEFS].find(s => s.kind === kind)!; b.applyStatus('t', def.id, 3, 'a');
       const rolls = vi.spyOn(SeededRng.prototype, 'chance'); round(b, { s: skill('soul_seal') });

@@ -19,12 +19,12 @@ import { projectCharacterToCombatV6 } from '../projection/index.ts';
 import { daoyouRulesetV6 } from '../rules-daoyou/index.ts';
 import {
   COMBAT_V6_PHASE_6D_VERSIONS,
-  COMBAT_V6_WILD_SEEKING_VERSIONS,
+  COMBAT_V6_SEAL_CURVE_WILD_VERSIONS,
 } from '../version.ts';
 import { WildIndividualSchema, type WildIndividual } from './generator';
 export { generateWildEncounter, type WildCombatant } from './generator';
 
-export const WILD_VERSIONS = COMBAT_V6_WILD_SEEKING_VERSIONS;
+export const WILD_VERSIONS = COMBAT_V6_SEAL_CURVE_WILD_VERSIONS;
 export interface WildRuntimeSnapshot extends PveRestoredState {
   schemaVersion: 1;
   hostVersion: 'combat_v6_wild_runtime_v1';

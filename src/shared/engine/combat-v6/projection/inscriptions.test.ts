@@ -69,7 +69,12 @@ describe('双孔阵纹完整人物投影', () => {
     expect(sealed.attrs.hit).toBe(source.attrs.hit);
     expect(resisted.attrs.dodge).toBe(target.attrs.dodge);
     const base = daoyouFormulas.sealHitChance(source, target);
-    expect(daoyouFormulas.sealHitChance(sealed, target) - base).toBeCloseTo(0.11);
-    expect(daoyouFormulas.sealHitChance(source, resisted) - base).toBeCloseTo(-0.22);
+    const pointScale = Math.max(200, 4 * Math.max(source.level, target.level));
+    expect(daoyouFormulas.sealHitChance(sealed, target) - base).toBeCloseTo(
+      (sealed.attrs.sealHit - source.attrs.sealHit) / pointScale,
+    );
+    expect(base - daoyouFormulas.sealHitChance(source, resisted)).toBeCloseTo(
+      (resisted.attrs.sealResist - target.attrs.sealResist) / pointScale,
+    );
   });
 });

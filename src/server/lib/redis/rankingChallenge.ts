@@ -1,3 +1,4 @@
+import { MAX_DAILY_RANKING_CHALLENGES } from '@shared/combat-v6/ranking';
 import type {
   RankingChallengeRequest,
   RankingChallengeResult,
@@ -52,7 +53,7 @@ export async function reserveRanking(run: RankingRun) {
       `
 if redis.call('EXISTS',KEYS[1])==1 then return 0 end
 if redis.call('EXISTS',KEYS[3])==1 then return -1 end
-if redis.call('HLEN',KEYS[2])>=10 then return -2 end
+if redis.call('HLEN',KEYS[2])>=${MAX_DAILY_RANKING_CHALLENGES} then return -2 end
 redis.call('HSET',KEYS[2],ARGV[1],'reserved')
 redis.call('PEXPIREAT',KEYS[2],ARGV[3])
 redis.call('SET',KEYS[1],ARGV[2],'PXAT',ARGV[3])

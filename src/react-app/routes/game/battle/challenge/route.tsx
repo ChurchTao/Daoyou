@@ -5,6 +5,7 @@ import {
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { MAX_DAILY_RANKING_CHALLENGES } from '@shared/combat-v6/ranking';
 import type { CombatV6ReplayView } from '@shared/combat-v6/replay';
 import {
   RankingChallengeSchema,
@@ -99,7 +100,10 @@ function Challenge({
             : '本次未上榜'
           : '越境切磋，不改变榜单名次'}
       </p>
-      <p>挑战当日剩余次数：{data.result.remainingChallenges}/10</p>
+      <p>
+        挑战当日剩余次数：{data.result.remainingChallenges}/
+        {MAX_DAILY_RANKING_CHALLENGES}
+      </p>
       {data.replay ? <Link to={back}>返回天骄榜</Link> : null}
     </div>
   ) : null;

@@ -41,6 +41,28 @@ describe('当回合状态到期时序', () => {
   });
 });
 describe('封印概率乘区', () => {
+  it('道友规则在所有乘数之后仍保留95%上限', () => {
+    const b = battle(1);
+    const rolls = vi.spyOn(SeededRng.prototype, 'chance');
+    b.submit('s', { type: 'skill', skillId: 'seal', targets: ['t'] }); b.submit('t', { type: 'defend' }); b.lockAndResolve();
+    expect(rolls.mock.calls.some(([chance]) => chance === 0.95)).toBe(true);
+  });
+
+  it('先把封印加减值交给规则曲线，再应用神魂自守倍率', () => {
+    const bonus: SkillDef = { id: 'bonus', name: '封印加值', tags: ['passive'], targeting: { side: 'self' }, effects: [], modifiers: [{ sealChanceAdd: 0.2 }] };
+    const guard: SkillDef = { id: 'guard', name: '神魂自守', tags: ['passive'], targeting: { side: 'self' }, effects: [], modifiers: [{ sealResistanceAdd: 0.1 }], innate: { sealHitTakenFactor: 0.7 } };
+    const formula = vi.fn((_source, _target, _level, _base, additiveChance = 0) => 0.75 + additiveChance * 0.1);
+    const b = createBattle({ seed: 1, versions, ruleset: createDaoyouRuleset({ formulas: { sealHitChance: formula } }),
+      skills: [seal, bonus, guard], statusDefs: [{ id: 'control', name: '封印', kind: 'control', blocksSpell: true }],
+      units: [{ id: 's', name: '施法者', kind: 'player', side: 0, attrs: { hp: 1000, speed: 100 }, skills: ['seal'], passives: ['bonus'] },
+        { id: 't', name: '目标', kind: 'player', side: 1, attrs: { hp: 1000, speed: 1 }, passives: ['guard'] }],
+    });
+    const rolls = vi.spyOn(SeededRng.prototype, 'chance');
+    b.submit('s', { type: 'skill', skillId: 'seal', targets: ['t'] }); b.submit('t', { type: 'defend' }); b.lockAndResolve();
+    expect(formula.mock.calls[0][4]).toBeCloseTo(0.1);
+    expect(rolls.mock.calls.some(([chance]) => Math.abs(chance - 0.532) < 1e-10)).toBe(true);
+  });
+
   it.each([[.5, .7, undefined, .35], [.2, .7, undefined, .14], [.9, .7, .9, .567], [.5, undefined, undefined, .5]])(
     '正常概率 %s、被动倍率 %s、状态倍率 %s，实际按 %s 掷骰', (chance, factor, statusFactor, expected) => {
       const b = battle(chance, factor, statusFactor);

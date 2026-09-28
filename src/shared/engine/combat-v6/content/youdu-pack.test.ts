@@ -25,6 +25,11 @@ function cast(data: unknown, index = 0) {
 }
 describe('幽都技能与状态样板', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(YouduCombatPackShape, { reused: 'ref' })).toEqual(schema));
+  it('拘灵术底率为55，神魂自守仍按70%受封', () => {
+    const pack = compileYouduCombatPack(loadYouduCombatPack(raw));
+    expect(pack.baseSkills.find(({ definition }) => definition.id === 'youdu.skill.soul_seal')?.definition.sealBase).toBe(55);
+    expect(raw.skills.find((skill) => skill.id === 'youdu.passive.soul_guard')?.innate?.sealHitTakenFactor).toBe(0.7);
+  });
   it('拒绝未知字段、机制、状态引用、表达式变量与语法', () => {
     const cases = [
       { ...raw, script: 'unsafe' },

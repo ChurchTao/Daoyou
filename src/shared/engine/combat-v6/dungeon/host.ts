@@ -16,7 +16,7 @@ import { presetEnemyAttrs } from '../encounter/preset-enemy';
 export const DUNGEON_VERSIONS = {
   ...COMBAT_V6_PHASE_6D_VERSIONS,
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v10' as const,
+  rulesetVersion: 'daoyou_rules_v11' as const,
   contentVersion: 'combat-v6-dungeon-v1' as const,
 };
 export const DUNGEON_TEMPLATES = {

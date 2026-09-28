@@ -15,6 +15,11 @@ describe('game number formatting', () => {
     expect(formatCompactGameNumber(123_456_789)).toBe('1.23亿');
   });
 
+  it('keeps significant zeros in integer compact values', () => {
+    expect(formatCompactGameNumber(5_000_000)).toBe('500万');
+    expect(formatCompactGameNumber(10_000_000_000)).toBe('100亿');
+  });
+
   it('formats negative and non-finite numbers predictably', () => {
     expect(formatCompactGameNumber(-12_345)).toBe('-1.23万');
     expect(formatCompactGameNumber(Number.NaN)).toBe('0');

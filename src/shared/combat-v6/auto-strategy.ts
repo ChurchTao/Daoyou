@@ -3,28 +3,37 @@ import defaults from './auto-defaults.json';
 import type { AutoObservation } from './auto-observation';
 import type { AutoCandidate } from './auto-utility';
 
+export const MAX_AUTO_STRATEGY_RULES = 10;
+const comparison = z.enum(['lt', 'lte', 'gt', 'gte']);
+export type AutoComparison = z.infer<typeof comparison>;
+
 const condition = z.discriminatedUnion('type', [
   z.strictObject({
     type: z.literal('selfHpBelow'),
     percent: z.number().int().min(1).max(100),
+    comparison: comparison.optional(),
   }),
   z.strictObject({
     type: z.literal('allyHpBelow'),
     percent: z.number().int().min(1).max(100),
+    comparison: comparison.optional(),
   }),
   z.strictObject({
     type: z.literal('enemyHpBelow'),
     percent: z.number().int().min(1).max(100),
+    comparison: comparison.optional(),
   }),
   z.strictObject({ type: z.literal('allyDowned') }),
   z.strictObject({
     type: z.literal('enemyCountAtLeast'),
-    count: z.number().int().min(2).max(6),
+    count: z.number().int().min(1).max(6),
+    comparison: comparison.optional(),
   }),
   z.strictObject({
     type: z.literal('selfResourceAtLeast'),
     resourceId: z.string().min(1).max(120),
-    amount: z.number().int().min(1).max(10000),
+    amount: z.number().int().min(0).max(10000),
+    comparison: comparison.optional(),
   }),
   z.strictObject({
     type: z.literal('selfStatus'),
@@ -41,26 +50,26 @@ const condition = z.discriminatedUnion('type', [
   }),
 ]);
 
+const rule = z.strictObject({
+  conditions: z.array(condition).max(3),
+  action: z.discriminatedUnion('type', [
+    z.strictObject({
+      type: z.literal('skill'),
+      skillId: z.string().min(1).max(160),
+    }),
+    z.strictObject({ type: z.literal('attack') }),
+    z.strictObject({ type: z.literal('defend') }),
+  ]),
+  target: z.enum(['best', 'lowestHpEnemy', 'lowestHpAlly']).default('best'),
+});
+// Existing saved and in-progress battles may still contain 11–12 rules.
 export const AutoStrategySchema = z.strictObject({
   version: z.literal(1),
-  rules: z
-    .array(
-      z.strictObject({
-        conditions: z.array(condition).max(3),
-        action: z.discriminatedUnion('type', [
-          z.strictObject({
-            type: z.literal('skill'),
-            skillId: z.string().min(1).max(160),
-          }),
-          z.strictObject({ type: z.literal('attack') }),
-          z.strictObject({ type: z.literal('defend') }),
-        ]),
-        target: z
-          .enum(['best', 'lowestHpEnemy', 'lowestHpAlly'])
-          .default('best'),
-      }),
-    )
-    .max(12),
+  rules: z.array(rule).max(12),
+});
+export const SaveAutoStrategySchema = z.strictObject({
+  version: z.literal(1),
+  rules: z.array(rule).max(MAX_AUTO_STRATEGY_RULES),
 });
 export type AutoStrategy = z.infer<typeof AutoStrategySchema>;
 const DefaultStrategiesSchema = z.strictObject({
@@ -74,6 +83,31 @@ export function defaultAutoStrategy(
   pathId: string | undefined,
 ): AutoStrategy | undefined {
   return pathId ? DEFAULT_AUTO_STRATEGIES[pathId] : undefined;
+}
+
+export function autoComparison(
+  condition: AutoStrategy['rules'][number]['conditions'][number],
+): AutoComparison {
+  if ('comparison' in condition && condition.comparison)
+    return condition.comparison;
+  return condition.type === 'selfHpBelow' ||
+    condition.type === 'allyHpBelow' ||
+    condition.type === 'enemyHpBelow'
+    ? 'lt'
+    : 'gte';
+}
+
+function compareNumber(value: number, threshold: number, by: AutoComparison) {
+  switch (by) {
+    case 'lt':
+      return value < threshold;
+    case 'lte':
+      return value <= threshold;
+    case 'gt':
+      return value > threshold;
+    case 'gte':
+      return value >= threshold;
+  }
 }
 
 function standing(unit: AutoObservation['units'][number]) {
@@ -100,24 +134,46 @@ export function chooseStrategyCandidate(
     const matches = rule.conditions.every((condition) => {
       switch (condition.type) {
         case 'selfHpBelow':
-          return hpPercent(source) < condition.percent;
+          return compareNumber(
+            hpPercent(source),
+            condition.percent,
+            autoComparison(condition),
+          );
         case 'allyHpBelow':
           return allies.some(
-            (unit) => standing(unit) && hpPercent(unit) < condition.percent,
+            (unit) =>
+              standing(unit) &&
+              compareNumber(
+                hpPercent(unit),
+                condition.percent,
+                autoComparison(condition),
+              ),
           );
         case 'enemyHpBelow':
           return enemies.some(
-            (unit) => standing(unit) && hpPercent(unit) < condition.percent,
+            (unit) =>
+              standing(unit) &&
+              compareNumber(
+                hpPercent(unit),
+                condition.percent,
+                autoComparison(condition),
+              ),
           );
         case 'allyDowned':
           return allies.some((unit) => unit.flags.downed);
         case 'enemyCountAtLeast':
-          return enemies.filter(standing).length >= condition.count;
+          return compareNumber(
+            enemies.filter(standing).length,
+            condition.count,
+            autoComparison(condition),
+          );
         case 'selfResourceAtLeast':
-          return (
-            (source.resources.find(
+          return compareNumber(
+            source.resources.find(
               (resource) => resource.id === condition.resourceId,
-            )?.current ?? 0) >= condition.amount
+            )?.current ?? 0,
+            condition.amount,
+            autoComparison(condition),
           );
         case 'selfStatus':
           return (

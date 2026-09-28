@@ -118,7 +118,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v7'
     | 'daoyou_rules_v8'
     | 'daoyou_rules_v9'
-    | 'daoyou_rules_v10';
+    | 'daoyou_rules_v10'
+    | 'daoyou_rules_v11';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'
@@ -794,11 +795,14 @@ export type FormulaSet = {
   baseDamage(input: StrikeFormulaInput): number;
   physicalHitChance(source: Unit, target: Unit): number;
   spellHitChance(source: Unit, target: Unit): number;
+  /** Final seal chance ceiling after skill and target multipliers; defaults to 1. */
+  sealChanceCeil?: number;
   sealHitChance(
     source: Unit,
     target: Unit,
     skillLevel?: number,
     sealBase?: number,
+    additiveChance?: number,
   ): number;
   fleeChance(unit: Unit, enemies: Unit[]): number;
 };

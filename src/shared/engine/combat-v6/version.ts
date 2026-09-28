@@ -168,3 +168,16 @@ export const COMBAT_V6_WILD_SEEKING_VERSIONS: CombatV6VersionStamp = Object.free
   contentVersion: 'daoyou_wild_seeking_content_v2',
   projectionVersion: 'wild_individual_v3',
 });
+
+export const COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  ...COMBAT_V6_PHASE_9B_ARENA_VERSIONS,
+  rulesetVersion: 'daoyou_rules_v11',
+});
+export const COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  ...COMBAT_V6_PHASE_9B_TRAINING_VERSIONS,
+  rulesetVersion: 'daoyou_rules_v11',
+});
+export const COMBAT_V6_SEAL_CURVE_WILD_VERSIONS: CombatV6VersionStamp = Object.freeze({
+  ...COMBAT_V6_WILD_SEEKING_VERSIONS,
+  rulesetVersion: 'daoyou_rules_v11',
+});

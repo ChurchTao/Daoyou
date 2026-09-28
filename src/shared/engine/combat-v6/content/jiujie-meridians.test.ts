@@ -182,8 +182,8 @@ describe('九劫还原修正回归', () => {
     const beforeResist = daoyouFormulas.sealHitChance(target, source, level);
     round(b, { s: cmd('insight', ['s']) });
     const enhanced = { ...source, attrs: effectiveAttrs(source) };
-    expect(daoyouFormulas.sealHitChance(enhanced, target, level) - beforeHit).toBeCloseTo(level / 2000);
-    expect(beforeResist - daoyouFormulas.sealHitChance(target, enhanced, level)).toBeCloseTo(level / 2000);
+    expect(daoyouFormulas.sealHitChance(enhanced, target, level) - beforeHit).toBeCloseTo(0.025);
+    expect(beforeResist - daoyouFormulas.sealHitChance(target, enhanced, level)).toBeCloseTo(0.025);
   });
 });
 

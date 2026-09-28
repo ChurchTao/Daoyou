@@ -25,6 +25,7 @@ import {
   useCultivatorIdentity,
   usePlayerSession,
 } from '@app/lib/resources/player';
+import { MAX_DAILY_RANKING_CHALLENGES } from '@shared/combat-v6/ranking';
 import type { RankingChallengeRequest } from '@shared/contracts/combatV6Ranking';
 import type { CultivatorInspectionData } from '@shared/contracts/player';
 import { cn } from '@shared/lib/cn';
@@ -84,7 +85,7 @@ function MyChallengeLedger({
   const rankLabel = myRank ? `第 ${myRank} 名` : '未留名';
   const challengeLabel = isLoadingChallenges
     ? '推演中'
-    : `${remainingChallenges ?? 0} / 10`;
+    : `${remainingChallenges ?? 0} / ${MAX_DAILY_RANKING_CHALLENGES}`;
   const expectedReputation = getExpectedRankingReputation(myRank);
 
   return (
@@ -488,7 +489,7 @@ export default function RankingsPage() {
                     今日挑战次数：
                     {isLoadingChallenges
                       ? '推演中…'
-                      : `${remainingChallenges ?? 0} / 10`}
+                      : `${remainingChallenges ?? 0} / ${MAX_DAILY_RANKING_CHALLENGES}`}
                   </p>
                 ) : null}
               </div>
@@ -583,7 +584,8 @@ export default function RankingsPage() {
               !isLoadingChallenges &&
               remainingChallenges === 0 && (
                 <InkNotice tone="warning">
-                  今日挑战次数已用完（每日限10次），请明日再来。
+                  今日挑战次数已用完（每日限{MAX_DAILY_RANKING_CHALLENGES}
+                  次），请明日再来。
                 </InkNotice>
               )}
             {activeTab === 'battle' ? (

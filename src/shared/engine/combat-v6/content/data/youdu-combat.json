@@ -1,7 +1,7 @@
 {
   "$schema": "./youdu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "baseSkillIds": [
     "youdu.skill.edict",
     "youdu.skill.wither",
@@ -123,7 +123,7 @@
         "spell",
         "seal"
       ],
-      "sealBase": 50,
+      "sealBase": 55,
       "targeting": {
         "side": "enemy",
         "count": 1,

@@ -1,6 +1,9 @@
 import { db } from '@server/lib/drizzle/db';
 import { cultivators, sectMemberships } from '@server/lib/drizzle/schema';
-import { rankingDay } from '@shared/combat-v6/ranking';
+import {
+  MAX_DAILY_RANKING_CHALLENGES,
+  rankingDay,
+} from '@shared/combat-v6/ranking';
 import { SECT_DISCIPLE_RANKS, SECT_RANK_LABELS } from '@shared/engine/sect';
 import { productionSectRuntime } from '@shared/engine/sect/content';
 import { getBodyCultivationRankingTag } from '@shared/lib/bodyCultivation/ranking';
@@ -16,7 +19,6 @@ const LEGACY_RANKING_LIST_KEY = 'golden_rank:list';
 const LEGACY_CULTIVATOR_INFO_PREFIX = 'golden_rank:cultivator:'; // 兼容老数据清理
 
 const MAX_RANKING_SIZE = 100;
-const MAX_DAILY_CHALLENGES = 10;
 
 export type RankingItem = BattleRankingItem;
 
@@ -194,7 +196,7 @@ export async function getRemainingChallenges(
 ): Promise<number> {
   return Math.max(
     0,
-    MAX_DAILY_CHALLENGES -
+    MAX_DAILY_RANKING_CHALLENGES -
       (await redis.hlen(rankingQuotaKey(cultivatorId, day))),
   );
 }

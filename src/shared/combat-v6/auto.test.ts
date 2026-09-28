@@ -22,6 +22,9 @@ import { autoStatusChoices } from './auto-status-options';
 import {
   AutoStrategySchema,
   DEFAULT_AUTO_STRATEGIES,
+  MAX_AUTO_STRATEGY_RULES,
+  SaveAutoStrategySchema,
+  type AutoComparison,
   type AutoStrategy,
 } from './auto-strategy';
 import { rankAutoActions } from './auto-utility';
@@ -286,6 +289,113 @@ describe('当前场次托管', () => {
       expect(chooseWithStrategy(battle, strategy).type).toBe('defend');
     },
   );
+  it.each([
+    {
+      name: '自身气血',
+      make: (comparison: AutoComparison) => ({
+        type: 'selfHpBelow' as const,
+        percent: 50,
+        comparison,
+      }),
+      set: (battle: ReturnType<typeof fixture>, value: number) => {
+        battle.unit('player').attrs.hp = value * 10;
+      },
+    },
+    {
+      name: '己方气血',
+      make: (comparison: AutoComparison) => ({
+        type: 'allyHpBelow' as const,
+        percent: 50,
+        comparison,
+      }),
+      set: (battle: ReturnType<typeof fixture>, value: number) => {
+        battle.unit('ally').attrs.hp = value * 10;
+        battle.unit('player').attrs.hp = value * 10;
+        battle.unit('pet').attrs.hp = value * 10;
+      },
+    },
+    {
+      name: '敌方气血',
+      make: (comparison: AutoComparison) => ({
+        type: 'enemyHpBelow' as const,
+        percent: 50,
+        comparison,
+      }),
+      set: (battle: ReturnType<typeof fixture>, value: number) => {
+        battle.unit('enemy').attrs.hp = value * 10;
+      },
+    },
+    {
+      name: '自身资源',
+      make: (comparison: AutoComparison) => ({
+        type: 'selfResourceAtLeast' as const,
+        resourceId: 'focus',
+        amount: 50,
+        comparison,
+      }),
+      set: (battle: ReturnType<typeof fixture>, value: number) => {
+        battle.unit('player').resources = [
+          { id: 'focus', name: '专注', current: value, max: 100 },
+        ];
+      },
+    },
+  ])('$name 的四种比较关系在阈值两侧与相等时生效', ({ make, set }) => {
+    const battle = fixture();
+    const cases: [AutoComparison, boolean[]][] = [
+      ['lt', [true, false, false]],
+      ['lte', [true, true, false]],
+      ['gt', [false, false, true]],
+      ['gte', [false, true, true]],
+    ];
+    for (const [comparison, expected] of cases) {
+      const strategy = conditionedDefend([make(comparison)]);
+      for (const [index, value] of [49, 50, 51].entries()) {
+        set(battle, value);
+        expect(chooseWithStrategy(battle, strategy).type).toBe(
+          expected[index] ? 'defend' : 'attack',
+        );
+      }
+    }
+  });
+  it('存活敌人数的至多、大于与旧版至少规则在边界生效', () => {
+    const battle = fixture(undefined, skills, true);
+    const enemy2 = battle.unit('enemy2');
+    const chooseCount = (count: number, comparison?: AutoComparison) =>
+      chooseWithStrategy(
+        battle,
+        conditionedDefend([{ type: 'enemyCountAtLeast', count, comparison }]),
+      ).type;
+    enemy2.flags.dead = true;
+    enemy2.attrs.hp = 0;
+    expect(chooseCount(1, 'lte')).toBe('defend');
+    expect(chooseCount(1, 'gt')).toBe('attack');
+    expect(chooseCount(2, 'lt')).toBe('defend');
+    expect(chooseCount(2)).toBe('attack');
+    enemy2.flags.dead = false;
+    enemy2.attrs.hp = 1000;
+    expect(chooseCount(1, 'lte')).toBe('attack');
+    expect(chooseCount(1, 'gt')).toBe('defend');
+    expect(chooseCount(2, 'lt')).toBe('attack');
+    expect(chooseCount(2)).toBe('defend');
+  });
+  it('自身资源至多 0 可用于耗尽时的战术', () => {
+    const battle = fixture();
+    battle.unit('player').resources = [
+      { id: 'focus', name: '专注', current: 0, max: 100 },
+    ];
+    const strategy = conditionedDefend([
+      {
+        type: 'selfResourceAtLeast',
+        resourceId: 'focus',
+        amount: 0,
+        comparison: 'lte',
+      },
+    ]);
+    expect(SaveAutoStrategySchema.safeParse(strategy).success).toBe(true);
+    expect(chooseWithStrategy(battle, strategy).type).toBe('defend');
+    battle.unit('player').resources[0].current = 1;
+    expect(chooseWithStrategy(battle, strategy).type).toBe('attack');
+  });
   it('自身状态按种类和状态 ID 判断有无，多个条件必须同时成立', () => {
     const battle = fixture(['strike'], skills, true);
     const statusDefs = [
@@ -362,6 +472,34 @@ describe('当前场次托管', () => {
       { ...base, rules: Array(13).fill(base.rules[0]) },
     ])
       expect(AutoStrategySchema.safeParse(invalid).success).toBe(false);
+  });
+  it('新策略最多 10 条，旧版 11～12 条仍可读取', () => {
+    const rule = conditionedDefend([]).rules[0];
+    const strategy = (count: number) => ({
+      version: 1,
+      rules: Array(count).fill(rule),
+    });
+    expect(SaveAutoStrategySchema.safeParse(strategy(10)).success).toBe(true);
+    expect(SaveAutoStrategySchema.safeParse(strategy(11)).success).toBe(false);
+    expect(AutoStrategySchema.safeParse(strategy(12)).success).toBe(true);
+    expect(AutoStrategySchema.safeParse(strategy(13)).success).toBe(false);
+  });
+  it('存活敌人至少 1 名是合法条件，并与至少 2 名区分', () => {
+    const oneEnemy = conditionedDefend([
+      { type: 'enemyCountAtLeast', count: 1 },
+    ]);
+    const twoEnemies = conditionedDefend([
+      { type: 'enemyCountAtLeast', count: 2 },
+    ]);
+    expect(AutoStrategySchema.safeParse(oneEnemy).success).toBe(true);
+    expect(
+      AutoStrategySchema.safeParse(
+        conditionedDefend([{ type: 'enemyCountAtLeast', count: 0 }]),
+      ).success,
+    ).toBe(false);
+    const battle = fixture();
+    expect(chooseWithStrategy(battle, oneEnemy).type).toBe('defend');
+    expect(chooseWithStrategy(battle, twoEnemies).type).toBe('attack');
   });
   it('天衍默认规则按自身火印接水术', () => {
     const player = towerReferenceBuild('tianyan', '金丹', '中期', 0);
@@ -607,6 +745,9 @@ describe('当前场次托管', () => {
         );
         const strategy = DEFAULT_AUTO_STRATEGIES[path.id];
         expect(strategy.rules.length).toBeGreaterThanOrEqual(2);
+        expect(strategy.rules.length).toBeLessThanOrEqual(
+          MAX_AUTO_STRATEGY_RULES,
+        );
         for (const rule of strategy.rules)
           if (rule.action.type === 'skill')
             expect(skillIds.has(rule.action.skillId), rule.action.skillId).toBe(

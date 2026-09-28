@@ -1,3 +1,5 @@
+export const MAX_DAILY_RANKING_CHALLENGES = 30;
+
 /** Day ownership is fixed at acceptance, independent of the server timezone. */
 export function rankingDay(now: number) {
   return new Date(now + 8 * 3600000).toISOString().slice(0, 10);

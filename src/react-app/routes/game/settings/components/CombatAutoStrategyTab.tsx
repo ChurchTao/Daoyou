@@ -1,7 +1,10 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { autoStatusChoices } from '@shared/combat-v6/auto-status-options';
 import {
-  AutoStrategySchema,
+  autoComparison,
+  MAX_AUTO_STRATEGY_RULES,
+  SaveAutoStrategySchema,
+  type AutoComparison,
   type AutoStrategy,
 } from '@shared/combat-v6/auto-strategy';
 import { useEffect, useState } from 'react';
@@ -20,15 +23,25 @@ type View = {
 };
 
 const conditionChoices: { value: Condition['type']; label: string }[] = [
-  { value: 'selfHpBelow', label: '自身气血低于' },
-  { value: 'allyHpBelow', label: '己方气血低于' },
-  { value: 'enemyHpBelow', label: '敌方气血低于' },
+  { value: 'selfHpBelow', label: '自身气血' },
+  { value: 'allyHpBelow', label: '己方气血' },
+  { value: 'enemyHpBelow', label: '敌方气血' },
   { value: 'allyDowned', label: '有队友倒地' },
-  { value: 'enemyCountAtLeast', label: '存活敌人至少' },
-  { value: 'selfResourceAtLeast', label: '自身资源至少' },
+  { value: 'enemyCountAtLeast', label: '存活敌人' },
+  { value: 'selfResourceAtLeast', label: '自身资源' },
   { value: 'selfStatus', label: '自身状态' },
   { value: 'targetStatus', label: '出招目标状态' },
 ];
+const comparisonChoices: { value: AutoComparison; label: string }[] = [
+  { value: 'lt', label: '低于' },
+  { value: 'lte', label: '至多' },
+  { value: 'gt', label: '大于' },
+  { value: 'gte', label: '至少' },
+];
+const comparisonLabel = (condition: Condition) =>
+  comparisonChoices.find(
+    (choice) => choice.value === autoComparison(condition),
+  )!.label;
 const targetChoices: { value: Rule['target']; label: string }[] = [
   { value: 'best', label: '收益最高' },
   { value: 'lowestHpEnemy', label: '最低血敌人' },
@@ -80,17 +93,17 @@ function actionName(view: View, action: Rule['action']) {
 function conditionName(view: View, condition: Condition) {
   switch (condition.type) {
     case 'selfHpBelow':
-      return `自身气血低于 ${condition.percent}%`;
+      return `自身气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyHpBelow':
-      return `己方气血低于 ${condition.percent}%`;
+      return `己方气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'enemyHpBelow':
-      return `敌方气血低于 ${condition.percent}%`;
+      return `敌方气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyDowned':
       return '有队友倒地';
     case 'enemyCountAtLeast':
-      return `存活敌人至少 ${condition.count} 名`;
+      return `存活敌人${comparisonLabel(condition)} ${condition.count} 名`;
     case 'selfResourceAtLeast':
-      return `${view.availableResources.find((item) => item.id === condition.resourceId)?.name ?? '战斗资源'}至少 ${condition.amount}`;
+      return `${view.availableResources.find((item) => item.id === condition.resourceId)?.name ?? '战斗资源'}${comparisonLabel(condition)} ${condition.amount}`;
     case 'selfStatus': {
       const choice = autoStatusChoices(view.pathId).self.find(
         (item) =>
@@ -179,7 +192,11 @@ export function CombatAutoStrategyTab() {
   };
   const save = async () => {
     if (!view || !draft) return;
-    const parsed = AutoStrategySchema.safeParse(draft);
+    if (draft.rules.length > MAX_AUTO_STRATEGY_RULES) {
+      setMessage(`最多保留 ${MAX_AUTO_STRATEGY_RULES} 条战术，请删减后保存`);
+      return;
+    }
+    const parsed = SaveAutoStrategySchema.safeParse(draft);
     if (!parsed.success) {
       setMessage('请检查战术条件中的数值和资源');
       return;
@@ -345,6 +362,35 @@ export function CombatAutoStrategyTab() {
                                 </option>
                               ))}
                           </select>
+                          {'percent' in condition ||
+                          'count' in condition ||
+                          'amount' in condition ? (
+                            <select
+                              aria-label="比较关系"
+                              className={fieldClass}
+                              value={autoComparison(condition)}
+                              onChange={(event) =>
+                                replaceRule(index, {
+                                  ...rule,
+                                  conditions: rule.conditions.map((item, i) =>
+                                    i === at
+                                      ? {
+                                          ...condition,
+                                          comparison: event.target
+                                            .value as AutoComparison,
+                                        }
+                                      : item,
+                                  ),
+                                })
+                              }
+                            >
+                              {comparisonChoices.map((choice) => (
+                                <option key={choice.value} value={choice.value}>
+                                  {choice.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : null}
                           {'percent' in condition ? (
                             <>
                               <input
@@ -382,7 +428,7 @@ export function CombatAutoStrategyTab() {
                                 aria-label="敌人数量"
                                 className={`${fieldClass} w-16 text-center font-mono`}
                                 type="number"
-                                min={2}
+                                min={1}
                                 max={6}
                                 value={condition.count}
                                 onChange={(event) =>
@@ -436,7 +482,7 @@ export function CombatAutoStrategyTab() {
                                 aria-label="资源数量"
                                 className={`${fieldClass} w-20 text-center font-mono`}
                                 type="number"
-                                min={1}
+                                min={0}
                                 value={condition.amount}
                                 onChange={(event) =>
                                   replaceRule(index, {
@@ -767,7 +813,7 @@ export function CombatAutoStrategyTab() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <InkButton
           variant="outline"
-          disabled={busy || draft.rules.length >= 12}
+          disabled={busy || draft.rules.length >= MAX_AUTO_STRATEGY_RULES}
           onClick={() => {
             setDraft({
               ...draft,
@@ -812,6 +858,11 @@ export function CombatAutoStrategyTab() {
           </InkButton>
         ) : null}
       </div>
+      {draft.rules.length > MAX_AUTO_STRATEGY_RULES ? (
+        <p className="text-crimson text-xs">
+          旧战术超过 {MAX_AUTO_STRATEGY_RULES} 条，请删减后保存。
+        </p>
+      ) : null}
       <p className="text-ink-secondary text-xs leading-5">
         未习得的招式会自动略过；改动从下一场战斗生效。灵兽自行选择法术或普攻。
       </p>

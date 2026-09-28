@@ -1,6 +1,7 @@
 const zhNumberFormatter = new Intl.NumberFormat('zh-CN');
 
 function trimTrailingZeros(value: string): string {
+  if (!value.includes('.')) return value;
   return value.replace(/\.?0+$/, '');
 }
 
