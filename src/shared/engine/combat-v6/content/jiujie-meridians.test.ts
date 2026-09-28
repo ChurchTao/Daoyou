@@ -283,6 +283,15 @@ describe('九劫灌注与霹雳经脉',()=>{
     grant(b,'dao_equipment.skill.diefeng');round(b,{s:{type:'skill',skillId:'dao_equipment.skill.diefeng',targets:['t']}});
     res(b).current=1;round(b,{s:cmd('strike_1')});expect(b.unit('s').combatFacts!.jiujie_rank).toBe(3);expect(b.unit('s').combatFacts!.jiujie_echo).toBe(0);expect(res(b).current).toBe(0);
   });
+  it('三重震岳消耗灌注后按四重结算伤害',()=>{
+    noProc();
+    const plain=setup().b;round(plain,{s:cmd('strike_3')});
+    const charged=setup().b;res(charged).current=1;round(charged,{s:cmd('strike_3')});
+    expect(plain.unit('s').combatFacts!.jiujie_rank).toBe(3);
+    expect(charged.unit('s').combatFacts!.jiujie_rank).toBe(4);
+    expect(res(charged).current).toBe(0);
+    expect(hits(charged)[0]).toBeGreaterThan(hits(plain)[0]);
+  });
   it('疾雷连续两次免休后生效，真正休息才清除',()=>{
     noProc();const {b}=setup('law',['1.2']);round(b,{s:cmd('strike_2')});round(b,{s:cmd('strike_2')});expect(b.unit('s').combatFacts!.jiujie_streak).toBe(2);
     round(b,{s:cmd('strike_2')});expect(hits(b)[2]).toBeGreaterThan(hits(b)[1]);
@@ -303,6 +312,16 @@ describe('九劫灌注与霹雳经脉',()=>{
     noProc();const {b}=setup('law',['7.2']);expect(b.queryCommands('s').skills.find(s=>s.skillId===S('tribulation'))?.ready).toBe(false);
     b.unit('s').cooldowns![S('tribulation')]=0;b.unit('s').attrs.hp=1;
     round(b,{s:cmd('tribulation')});expect(b.unit('s').flags.downed).toBe(true);expect(hits(b)).toHaveLength(0);
+  });
+  it.each([7,9])('满血承受%d次九劫归一劫雷后仍存活',count=>{
+    noProc();vi.spyOn(SeededRng.prototype,'next').mockReturnValue((count-1.9)/8);
+    const {b}=setup('law',['7.2']);b.unit('s').cooldowns![S('tribulation')]=0;
+    round(b,{s:cmd('tribulation')});
+    const selfHits=b.log().filter(e=>e.type==='damage'&&e.sourceId==='s'&&e.targetId==='s');
+    expect(selfHits).toHaveLength(count);
+    expect(selfHits.every(e=>e.type==='damage'&&e.amount===8000)).toBe(true);
+    expect(b.unit('s').attrs.hp).toBe(100000-count*8000);
+    expect(b.unit('s').flags.downed).toBe(false);
   });
   it('九劫归一分别形成震岳与掠霆重数，并保留分段伤害',()=>{
     noProc();const {b}=setup('law',['7.2']);b.unit('s').cooldowns![S('tribulation')]=0;

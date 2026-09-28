@@ -20,9 +20,11 @@ export default function BattleSharePage() {
     return () => abort.abort();
   }, [shareCode]);
   if (record) return (
-    <CombatV6Page title="公开战谱" active>
-      <CombatV6ReplayPlayer record={record} title="公开战谱" back="/" backLabel="返回首页" />
-    </CombatV6Page>
+    <main className="bg-paper h-dvh overflow-hidden">
+      <CombatV6Page title="公开战谱" active>
+        <CombatV6ReplayPlayer record={record} title="公开战谱" back="/" backLabel="返回首页" />
+      </CombatV6Page>
+    </main>
   );
   return (
     <main className="bg-paper text-ink flex min-h-svh flex-col items-center justify-center gap-4 px-4 text-sm">
