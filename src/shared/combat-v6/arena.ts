@@ -42,9 +42,14 @@ export function arenaBattle(
     ruleset: daoyouRulesetV6,
   };
   if (runtime.state) {
+    // AUTO policy changes do not change the battle engine or frozen content.
+    const actual = runtime.state.versions;
+    const expected = COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS;
     if (
-      JSON.stringify(runtime.state.versions) !==
-      JSON.stringify(COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS)
+      actual.engineVersion !== expected.engineVersion ||
+      actual.rulesetVersion !== expected.rulesetVersion ||
+      actual.contentVersion !== expected.contentVersion ||
+      actual.projectionVersion !== expected.projectionVersion
     )
       throw new Error('ARENA_VERSION_MISMATCH');
     return restoreBattle(input, runtime.state, runtime.events ?? []);

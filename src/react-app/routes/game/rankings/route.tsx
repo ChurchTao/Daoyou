@@ -194,10 +194,10 @@ function RankingEmptyState({
   return (
     <InkNotice>
       {activeTab === 'battle'
-        ? `${activeRealm}天骄榜暂无记录。越境榜单不可直接上榜，需等待本境修士留名后方可切磋。`
+        ? `${activeRealm}天骄榜暂无记录。需有本境修士留名后才能切磋，越境挑战不能直接上榜。`
         : activeTab === 'wealth'
-          ? '财富榜暂无记录，静待灵石入库。'
-          : '此榜单暂无记录，静待宝物出世。'}
+          ? '财富榜暂无记录。'
+          : '此榜单暂无记录。'}
     </InkNotice>
   );
 }
@@ -396,7 +396,7 @@ export default function RankingsPage() {
   };
 
   if (isLoading && !cultivator) {
-    return <GameSceneLoading message="万界金榜刷新中……" />;
+    return <GameSceneLoading message="正在加载榜单……" />;
   }
 
   const myRank = myRankInfo?.rank;
@@ -440,10 +440,10 @@ export default function RankingsPage() {
         title="【万界金榜】"
         description={
           activeTab === 'battle'
-            ? '择敌、查探、挑战，一切夺位都从榜前决断。'
+            ? '查看同境界修士的名次，选择对手发起挑战。'
             : activeTab === 'wealth'
-              ? '灵石聚散自有痕迹，榜上只看当前身家。'
-              : '诸般名器留影于榜，观其品阶、评分与持有者。'
+              ? '按当前持有的灵石排名。'
+              : '查看上榜丹药的品阶、评分和持有者。'
         }
         headerMeta={
           activeTab === 'battle' || note || error ? (

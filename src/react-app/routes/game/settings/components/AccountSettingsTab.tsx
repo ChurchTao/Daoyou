@@ -419,7 +419,7 @@ export function AccountSettingsTab() {
       </SettingsSection>
 
       <SettingsSection
-        title="登录会话"
+        title="登录状态"
         description="退出当前浏览器的登录状态，不会删除账号或角色数据。"
       >
         <div className="flex flex-wrap items-center gap-3">

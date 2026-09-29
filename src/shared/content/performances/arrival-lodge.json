@@ -1,55 +1,70 @@
 {
   "id": "arrival-lodge",
-  "title": "初宿",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "title": "夜里的石室",
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "石榻是凉的，洞口的风已经停了。"
+      "alt": "石榻靠着内壁，风偶尔碰响洞门。"
     },
-    { "type": "title", "kicker": "洞府 · 夜", "text": "初宿" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 夜",
+      "text": "夜里的石室"
+    },
     {
       "type": "narration",
-      "text": "路还留在门外。{name}没有再出去。"
+      "text": "炉火早已熄了。你把那卷旧毯铺在石榻上，布面粗硬，盖到肩头却能挡住一点寒意。"
     },
     {
       "type": "narration",
-      "text": "石室里只有自己的呼吸。上一任留下的药气已经散尽。"
-    },
-    {
-      "type": "line",
-      "speaker": "slip",
-      "text": "今夜，就睡这里。"
+      "text": "白天摸过的石牌、林中的响动，在黑下来后又浮到眼前。隔着一道洞门，山里的夜比石室里深得多。"
     },
     {
       "type": "choice",
       "options": [
-        { "label": "靠石壁睡下", "jump": "wall" },
-        { "label": "把玉简握在手里", "jump": "hold" }
+        {
+          "label": "靠着石壁睡下",
+          "jump": "wall"
+        },
+        {
+          "label": "把玉简放在枕边",
+          "jump": "hold"
+        }
       ]
     },
-    { "type": "mark", "id": "wall" },
     {
-      "type": "narration",
-      "text": "{name}靠着石壁睡下。天光再来的时候，石榻是温的。"
+      "type": "mark",
+      "id": "wall"
     },
     {
       "type": "narration",
-      "text": "这里算是住下了。"
-    },
-    { "type": "end", "outcome": "slept" },
-    { "type": "mark", "id": "hold" },
-    {
-      "type": "narration",
-      "text": "{name}把玉简握在手里。天光再来的时候，石榻是温的。"
+      "text": "背后贴着石壁，你睡得并不沉。夜里醒过一次，听见风从门缝掠过，木闩还稳稳卡在原处。"
     },
     {
       "type": "narration",
-      "text": "这里算是住下了。"
+      "text": "再睁眼，薄光已经落到榻脚。外面的林子也有了鸟声。"
     },
-    { "type": "end", "outcome": "slept" }
+    {
+      "type": "end",
+      "outcome": "slept"
+    },
+    {
+      "type": "mark",
+      "id": "hold"
+    },
+    {
+      "type": "narration",
+      "text": "玉简放在伸手就能摸到的地方。夜里风大时，你指尖碰到它冰凉的边角，过了一会儿才重新睡着。"
+    },
+    {
+      "type": "narration",
+      "text": "晨光照进来时，简上的旧字也一点点显出了笔画。"
+    },
+    {
+      "type": "end",
+      "outcome": "slept"
+    }
   ]
 }

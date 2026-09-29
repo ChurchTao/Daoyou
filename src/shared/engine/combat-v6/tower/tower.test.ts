@@ -149,6 +149,27 @@ describe('满状态幻境与可恢复机制', () => {
     const next = createTowerHost(p, '金丹', 2, {}, week, 42);
     expect(next.state.units[0].attrs.hp).toBe(next.state.units[0].attrs.maxHp);
   });
+  it.each(['combat_auto_rules_v3', undefined])('旧自动策略版本（%s）的进行中战局仍可恢复和结算回合', (version) => {
+    const host = createTowerHost(
+      {
+        ...durablePlayer(),
+        autoStrategy: {
+          version: 1,
+          rules: [
+            { conditions: [], action: { type: 'defend' }, target: 'best' },
+          ],
+        },
+      },
+      '金丹', 1, {}, week, 42,
+    );
+    const snapshot = host.runtimeSnapshot();
+    snapshot.state.versions.autoPolicyVersion = version;
+    const restored = new TowerHost(snapshot, snapshot);
+    expect(restored.state.versions.autoPolicyVersion).toBe(version);
+    expect(restored.playerAutoStrategy).toBeUndefined();
+    defendRound(restored);
+    expect(restored.trace().rounds).toHaveLength(1);
+  });
   for (const combo of TOWER_COMBINATIONS) {
     it(`${combo.id} 精英与首领保存恢复保持技能周期和 RNG`, () => {
       for (const floor of [5, 10]) {

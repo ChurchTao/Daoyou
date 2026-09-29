@@ -313,7 +313,7 @@ describe('story resolver', () => {
     expect(opened.progress.beatId).toBe('ember');
     expect(opened.grants).toEqual([]);
     expect(presentStory(arrival, opened.progress, facts).prompt).toBe(
-      '玉简底下像是压着什么。',
+      '晨光照着玉简下露出的一截草茎。',
     );
 
     const ember = acknowledgePerformance(
@@ -328,7 +328,7 @@ describe('story resolver', () => {
     expect(hearth.beatId).toBe('hearth');
     expect(hearth.guideLesson).toBe('alchemy-first-furnace');
     expect(hearth.href).toBe('/game/craft/alchemy?guide=alchemy-first-furnace');
-    expect(hearth.prompt).toBe('玉简还温着，丹房里那口炉也还没灭干净。');
+    expect(hearth.prompt).toBe('丹房就在石室另一侧，翠芽草已经带在身边。');
 
     const watched = acknowledgeGuide(
       arrival,
@@ -356,7 +356,7 @@ describe('story resolver', () => {
     expect(stayed.progress.beatId).toBe('mouth');
     expect(stayed.grants).toEqual([]);
     expect(presentStory(arrival, stayed.progress, facts).prompt).toBe(
-      '洞口的风还没停。',
+      '门外的山路渐暗，石牌只露出两个字。',
     );
 
     const returned = acknowledgePerformance(
@@ -369,7 +369,7 @@ describe('story resolver', () => {
     expect(returned.progress.beatId).toBe('lodge');
     expect(returned.grants).toEqual([]);
     expect(presentStory(arrival, returned.progress, facts).prompt).toBe(
-      '洞里该有人睡下了。',
+      '夜风碰着洞门，石榻上的旧毯已经铺好。',
     );
 
     const slept = acknowledgePerformance(
@@ -381,7 +381,7 @@ describe('story resolver', () => {
     );
     expect(slept.progress.beatId).toBe('creek');
     expect(presentStory(arrival, slept.progress, facts).prompt).toBe(
-      '天亮了，洞口的石痕还在。',
+      '晨光落在石牌上，昨晚没看清的字显出来了。',
     );
 
     const creek = acknowledgePerformance(
@@ -396,7 +396,7 @@ describe('story resolver', () => {
     expect(slope.beatId).toBe('slope');
     expect(slope.guideLesson).toBe('map-qingxi');
     expect(slope.href).toBe('/game/map-v2?guide=map-qingxi');
-    expect(slope.prompt).toBe('石痕在天亮以后，指向门外。');
+    expect(slope.prompt).toBe('玉简画出的溪坡，在舆图上也许找得到。');
 
     const named = acknowledgeGuide(arrival, creek.progress, facts, 'map-qingxi');
     expect(named.progress.beatId).toBe('grass');
@@ -411,7 +411,7 @@ describe('story resolver', () => {
     );
     expect(known.progress.beatId).toBe('tracks');
     expect(presentStory(arrival, known.progress, facts).prompt).toBe(
-      '青溪坡的风里有爪印。',
+      '路记的边缘，还有几枚匆忙画上的爪印。',
     );
 
     const tracks = acknowledgePerformance(
@@ -426,7 +426,7 @@ describe('story resolver', () => {
     expect(seek.beatId).toBe('seek');
     expect(seek.guideLesson).toBeNull();
     expect(seek.href).toBe('/game/wild?nodeId=SAT_TN_08');
-    expect(seek.prompt).toBe('青溪坡上有新爪印。');
+    expect(seek.prompt).toBe('青溪坡就在前方，草里有生灵走动的痕迹。');
 
     const sought = noteStoryFact(
       arrival,
@@ -445,7 +445,7 @@ describe('story resolver', () => {
     );
     expect(seen.progress.beatId).toBe('pouch');
     expect(presentStory(arrival, seen.progress, facts).prompt).toBe(
-      '玉简上好像多了一行字。',
+      '木钉上的旧袋，袋口打着不寻常的绳结。',
     );
 
     const pouch = acknowledgePerformance(
@@ -459,7 +459,7 @@ describe('story resolver', () => {
     expect(bag.beatId).toBe('bag');
     expect(bag.guideLesson).toBe('beast-pouch');
     expect(bag.href).toBe('/game/beasts?guide=beast-pouch');
-    expect(bag.prompt).toBe('玉简上多了灵兽袋的一行字。');
+    expect(bag.prompt).toBe('木钉上的小袋，与玉简里的图正好相同。');
 
     const learned = acknowledgeGuide(
       arrival,
@@ -479,7 +479,7 @@ describe('story resolver', () => {
     );
     expect(read.progress.beatId).toBe('wound');
     expect(presentStory(arrival, read.progress, facts).prompt).toBe(
-      '臂上的热还没退。',
+      '鞋底带回的泥还在，内室的水声却越来越近。',
     );
 
     const wound = acknowledgePerformance(
@@ -493,7 +493,7 @@ describe('story resolver', () => {
     expect(spring.beatId).toBe('spring');
     expect(spring.guideLesson).toBe('cave-layout');
     expect(spring.href).toBe('/game?guide=cave-layout');
-    expect(spring.prompt).toBe('伤还在，洞府里的泉还热着。');
+    expect(spring.prompt).toBe('转过内室的石壁，泉水正落进一口浅池。');
 
     const tended = acknowledgeGuide(
       arrival,
@@ -513,7 +513,7 @@ describe('story resolver', () => {
     );
     expect(steady.progress.beatId).toBe('empty-hand');
     expect(presentStory(arrival, steady.progress, facts).prompt).toBe(
-      '器炉那边还热着。',
+      '丹房旁的石门虚掩着，里面有一口旧器炉。',
     );
 
     const handy = acknowledgePerformance(
@@ -528,7 +528,7 @@ describe('story resolver', () => {
     expect(forge.beatId).toBe('forge');
     expect(forge.guideLesson).toBe('forge-first-weapon');
     expect(forge.href).toBe('/game/craft/refine?guide=forge-first-weapon');
-    expect(forge.prompt).toBe('手里还是空的。');
+    expect(forge.prompt).toBe('图纸摊在器炉旁，青石屑沾了一手。');
 
     const shown = acknowledgeGuide(
       arrival,
@@ -555,7 +555,7 @@ describe('story resolver', () => {
     );
     expect(held.progress.beatId).toBe('gate');
     expect(presentStory(arrival, held.progress, facts).prompt).toBe(
-      '玉简上多了山门两个字。',
+      '玉简末段的山门名字，沿着山脊排向远处。',
     );
 
     const gate = acknowledgePerformance(
@@ -569,12 +569,12 @@ describe('story resolver', () => {
     expect(door.beatId).toBe('door');
     expect(door.guideLesson).toBe('sect-door');
     expect(door.href).toBe('/game/sect?guide=sect-door');
-    expect(door.prompt).toBe('玉简提到了山门。');
+    expect(door.prompt).toBe('山门就在前面，是否走进去由你决定。');
 
     const looked = acknowledgeGuide(arrival, gate.progress, facts, 'sect-door');
     expect(looked.progress.beatId).toBe('door');
     expect(presentStory(arrival, looked.progress, facts).prompt).toBe(
-      '玉简提到了山门。',
+      '山门就在前面，是否走进去由你决定。',
     );
     expect(presentStory(arrival, looked.progress, facts).guideLesson).toBeNull();
     const alreadyJoined = resolveStory(arrival, looked.progress, {
@@ -597,7 +597,7 @@ describe('story resolver', () => {
         ...facts,
         sect_joined: true,
       }).prompt,
-    ).toBe('山门已经认了你。');
+    ).toBe('山门里还有接下来要走的路。');
     expect(
       rewindToUnwatchedPerformance(arrival, remained.progress).beatId,
     ).toBe('entered');

@@ -23,15 +23,13 @@ export function TitleEditorModal({
     <InkModal isOpen={isOpen} onClose={onClose} title="定制名号">
       <div className="mt-4 space-y-4">
         <div className="text-sm opacity-80">
-          行走江湖，岂能无号？
-          <br />
-          请为自己起一个响亮的名号（如：乱星海虫魔）。
+          给自己起个名号。
         </div>
         <InkInput
           value={editingTitle}
           onChange={setEditingTitle}
-          placeholder="在此输入名号..."
-          hint="限2-8字"
+          placeholder="输入名号"
+          hint="限 2-8 字"
         />
         <div className="mt-4 flex justify-end gap-2">
           <InkButton onClick={onClose}>取消</InkButton>

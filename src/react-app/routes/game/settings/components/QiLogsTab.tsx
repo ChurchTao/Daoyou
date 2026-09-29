@@ -109,7 +109,7 @@ export function QiLogsTab() {
 
   return (
     <SettingsSection
-      title="天地灵气审计"
+      title="天地灵气记录"
       description="查看当前角色的灵气扣减、恢复与退还记录。"
       aside={
         <span className="text-battle-muted text-sm">
@@ -120,10 +120,10 @@ export function QiLogsTab() {
       <div className="grid gap-4">
         {error ? <SettingsMessage type="error">{error}</SettingsMessage> : null}
         {isLoading && logs.length === 0 ? (
-          <GameLoadingState message="正在读取灵气审计……" variant="inline" />
+          <GameLoadingState message="正在读取天地灵气记录……" variant="inline" />
         ) : null}
         {!isLoading && !error && logs.length === 0 ? (
-          <SettingsMessage>暂无天地灵气审计日志</SettingsMessage>
+          <SettingsMessage>暂无天地灵气记录。</SettingsMessage>
         ) : null}
 
         {logs.length > 0 ? (

@@ -24,13 +24,15 @@ type View = {
 
 const conditionChoices: { value: Condition['type']; label: string }[] = [
   { value: 'selfHpBelow', label: '自身气血' },
-  { value: 'allyHpBelow', label: '己方气血' },
+  { value: 'allyHpBelow', label: '任一己方气血' },
+  { value: 'targetHpBelow', label: '出招目标气血' },
   { value: 'enemyHpBelow', label: '敌方气血' },
   { value: 'allyDowned', label: '有队友倒地' },
   { value: 'enemyCountAtLeast', label: '存活敌人' },
   { value: 'selfResourceAtLeast', label: '自身资源' },
   { value: 'selfStatus', label: '自身状态' },
   { value: 'targetStatus', label: '出招目标状态' },
+  { value: 'allyStatus', label: '己方状态' },
 ];
 const comparisonChoices: { value: AutoComparison; label: string }[] = [
   { value: 'lt', label: '低于' },
@@ -47,6 +49,15 @@ const targetChoices: { value: Rule['target']; label: string }[] = [
   { value: 'lowestHpEnemy', label: '最低血敌人' },
   { value: 'lowestHpAlly', label: '最低血己方' },
 ];
+const targetScopeChoices: {
+  value: NonNullable<Rule['targetScope']>;
+  label: string;
+}[] = [
+  { value: 'any', label: '不限制' },
+  { value: 'allyPet', label: '己方灵兽' },
+  { value: 'ownPet', label: '自己的灵兽' },
+  { value: 'teammatePlayer', label: '其他队友人物' },
+];
 const fieldClass =
   'border-ink/20 bg-paper/70 text-ink focus:border-crimson min-h-9 min-w-0 border px-2 py-1.5 text-sm outline-none';
 
@@ -60,8 +71,11 @@ function newCondition(
   if (type === 'selfResourceAtLeast') return { type, resourceId, amount: 1 };
   if (type === 'selfStatus')
     return { type, kind: statuses.self[0]?.kind ?? '', present: false };
-  if (type === 'targetStatus') {
-    const first = statuses.target[0];
+  if (type === 'targetStatus' || type === 'allyStatus') {
+    const first =
+      type === 'allyStatus'
+        ? statuses.target.find((choice) => choice.side === 'ally')
+        : statuses.target[0];
     return {
       type,
       kind: first?.kind ?? '',
@@ -95,7 +109,9 @@ function conditionName(view: View, condition: Condition) {
     case 'selfHpBelow':
       return `自身气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyHpBelow':
-      return `己方气血${comparisonLabel(condition)} ${condition.percent}%`;
+      return `任一己方气血${comparisonLabel(condition)} ${condition.percent}%`;
+    case 'targetHpBelow':
+      return `目标气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'enemyHpBelow':
       return `敌方气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyDowned':
@@ -120,6 +136,16 @@ function conditionName(view: View, condition: Condition) {
       );
       return `目标${condition.present ? '有' : '无'}${choice?.label ?? '指定状态'}`;
     }
+    case 'allyStatus': {
+      const choice = autoStatusChoices(view.pathId).target.find(
+        (item) =>
+          item.side === 'ally' &&
+          item.kind === condition.kind &&
+          item.statusId === condition.statusId &&
+          item.ownedBySelf === condition.ownedBySelf,
+      );
+      return `己方${condition.present ? '已有' : '无人持有'}${choice?.label ?? '指定状态'}`;
+    }
   }
 }
 
@@ -142,7 +168,7 @@ async function request(
     data?: View;
   };
   if (!response.ok || !payload.success || !payload.data)
-    throw new Error(payload.error ?? '自动战术请求失败');
+    throw new Error(payload.error ?? `暂时无法${method === 'GET' ? '读取' : '保存'}自动战术，请稍后重试。`);
   return payload.data;
 }
 
@@ -269,6 +295,9 @@ export function CombatAutoStrategyTab() {
                     (choice) => choice.side === 'enemy',
                   )
                 : statusChoices.target;
+          const allyStatusChoices = statusChoices.target.filter(
+            (choice) => choice.side === 'ally',
+          );
           const unavailable =
             rule.action.type === 'skill' && !learned.has(rule.action.skillId);
           return (
@@ -301,6 +330,9 @@ export function CombatAutoStrategyTab() {
                       {targetChoices.find(
                         (target) => target.value === rule.target,
                       )?.label ?? '收益最高'}
+                      {rule.targetScope && rule.targetScope !== 'any'
+                        ? ` · ${targetScopeChoices.find((scope) => scope.value === rule.targetScope)?.label}`
+                        : ''}
                     </span>
                   </span>
                 </span>
@@ -338,7 +370,10 @@ export function CombatAutoStrategyTab() {
                                         view.availableResources[0]?.id,
                                         {
                                           ...statusChoices,
-                                          target: targetStatusChoices,
+                                          target:
+                                            event.target.value === 'allyStatus'
+                                              ? allyStatusChoices
+                                              : targetStatusChoices,
                                         },
                                       )
                                     : item,
@@ -354,7 +389,11 @@ export function CombatAutoStrategyTab() {
                                   (choice.value !== 'selfStatus' ||
                                     statusChoices.self.length > 0) &&
                                   (choice.value !== 'targetStatus' ||
-                                    targetStatusChoices.length > 0),
+                                    targetStatusChoices.length > 0) &&
+                                  (choice.value !== 'allyStatus' ||
+                                    allyStatusChoices.length > 0) &&
+                                  (choice.value !== 'targetHpBelow' ||
+                                    rule.action.type !== 'defend'),
                               )
                               .map((choice) => (
                                 <option key={choice.value} value={choice.value}>
@@ -574,17 +613,26 @@ export function CombatAutoStrategyTab() {
                               </select>
                             </>
                           ) : null}
-                          {condition.type === 'targetStatus' ? (
+                          {condition.type === 'targetStatus' ||
+                          condition.type === 'allyStatus' ? (
                             <>
                               <select
-                                aria-label="目标状态"
+                                aria-label={
+                                  condition.type === 'allyStatus'
+                                    ? '己方状态'
+                                    : '目标状态'
+                                }
                                 className={fieldClass}
                                 value={statusKey(
                                   condition.kind,
                                   condition.statusId,
                                 )}
                                 onChange={(event) => {
-                                  const choice = targetStatusChoices.find(
+                                  const choices =
+                                    condition.type === 'allyStatus'
+                                      ? allyStatusChoices
+                                      : targetStatusChoices;
+                                  const choice = choices.find(
                                     (item) =>
                                       statusKey(item.kind, item.statusId) ===
                                       event.target.value,
@@ -606,7 +654,10 @@ export function CombatAutoStrategyTab() {
                                     });
                                 }}
                               >
-                                {targetStatusChoices.map((choice) => (
+                                {(condition.type === 'allyStatus'
+                                  ? allyStatusChoices
+                                  : targetStatusChoices
+                                ).map((choice) => (
                                   <option
                                     key={statusKey(
                                       choice.kind,
@@ -623,7 +674,11 @@ export function CombatAutoStrategyTab() {
                                 ))}
                               </select>
                               <select
-                                aria-label="目标状态关系"
+                                aria-label={
+                                  condition.type === 'allyStatus'
+                                    ? '己方状态关系'
+                                    : '目标状态关系'
+                                }
                                 className={fieldClass}
                                 value={condition.present ? 'has' : 'lacks'}
                                 onChange={(event) =>
@@ -707,25 +762,29 @@ export function CombatAutoStrategyTab() {
                           replaceRule(index, {
                             ...rule,
                             action,
-                            conditions: rule.conditions.filter(
-                              (condition) =>
-                                condition.type !== 'targetStatus' ||
-                                (action.type !== 'defend' &&
-                                  (action.type !== 'attack' ||
-                                    statusChoices.target.some(
-                                      (choice) =>
-                                        choice.kind === condition.kind &&
-                                        choice.statusId ===
-                                          condition.statusId &&
-                                        choice.side === 'enemy',
-                                    ))),
-                            ),
+                            conditions: rule.conditions.filter((condition) => {
+                              if (condition.type === 'targetHpBelow')
+                                return action.type !== 'defend';
+                              if (condition.type !== 'targetStatus') return true;
+                              return action.type !== 'defend' &&
+                                (action.type !== 'attack' ||
+                                  statusChoices.target.some(
+                                    (choice) =>
+                                      choice.kind === condition.kind &&
+                                      choice.statusId === condition.statusId &&
+                                      choice.side === 'enemy',
+                                  ));
+                            }),
                             target:
                               value === 'defend' ||
                               (value === 'attack' &&
                                 rule.target === 'lowestHpAlly')
                                 ? 'best'
                                 : rule.target,
+                            targetScope:
+                              action.type === 'skill'
+                                ? rule.targetScope
+                                : undefined,
                           });
                         }}
                       >
@@ -741,6 +800,28 @@ export function CombatAutoStrategyTab() {
                             {skillName(view, rule.action.skillId)} · 未习得
                           </option>
                         ) : null}
+                      </select>
+                    </label>
+                    <label className="text-ink-secondary flex flex-col gap-1 text-xs">
+                      目标范围
+                      <select
+                        className={fieldClass}
+                        value={rule.targetScope ?? 'any'}
+                        disabled={rule.action.type !== 'skill'}
+                        onChange={(event) =>
+                          replaceRule(index, {
+                            ...rule,
+                            targetScope: event.target.value as NonNullable<
+                              Rule['targetScope']
+                            >,
+                          })
+                        }
+                      >
+                        {targetScopeChoices.map((scope) => (
+                          <option key={scope.value} value={scope.value}>
+                            {scope.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label className="text-ink-secondary flex flex-col gap-1 text-xs">

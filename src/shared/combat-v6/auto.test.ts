@@ -86,7 +86,7 @@ function fixture(
   };
   return createBattle({
     seed: 42,
-    versions: COMBAT_V6_PHASE_6D_VERSIONS,
+    versions: { ...COMBAT_V6_PHASE_6D_VERSIONS, autoPolicyVersion: AUTO_POLICY_VERSION },
     ruleset: daoyouRulesetV6,
     skills: definitions,
     statusDefs: [
@@ -423,6 +423,109 @@ describe('当前场次托管', () => {
     expect(chooseWithStrategy(battle, strategy, statusDefs).type).toBe(
       'attack',
     );
+  });
+  it('己方状态只计自己的有效印记，队友施加的同名印记不拦截', () => {
+    const battle = fixture();
+    const condition = {
+      type: 'allyStatus' as const,
+      kind: 'guard',
+      present: true,
+      ownedBySelf: true,
+    };
+    const strategy = conditionedDefend([condition]);
+    const statusDefs = [{ id: 'guard', name: '护体', kind: 'guard' }];
+    battle.applyStatus('ally', 'guard', 3, 'ally');
+    expect(chooseWithStrategy(battle, strategy, statusDefs).type).toBe('attack');
+    battle.applyStatus('pet', 'guard', 3, 'player');
+    expect(chooseWithStrategy(battle, strategy, statusDefs).type).toBe('defend');
+    battle.unit('pet').flags.downed = true;
+    expect(chooseWithStrategy(battle, strategy, statusDefs).type).toBe('attack');
+  });
+  it('观察保留本人及所控灵兽的状态来源，不泄露其他来源', () => {
+    const battle = fixture();
+    battle.applyStatus('ally', 'guard', 3, 'pet');
+    battle.applyStatus('player', 'fire-mark', 3, 'enemy');
+    const observed = observeAutoBattle(battle.snapshot(), 'player', [
+      { id: 'guard', name: '护体', kind: 'guard' },
+      { id: 'fire-mark', name: '火印', kind: 'element-mark' },
+    ]);
+    expect(observed.units.find((unit) => unit.id === 'ally')?.statuses[0].sourceId).toBe('pet');
+    expect(observed.units.find((unit) => unit.id === 'player')?.statuses[0].sourceId).toBe('');
+  });
+  it('目标血线只约束选中目标，严格灵兽范围无人可选时顺延', () => {
+    const battle = fixture(['heal', 'strike']);
+    const strategy: AutoStrategy = {
+      version: 1,
+      rules: [
+        {
+          conditions: [{ type: 'targetHpBelow', percent: 50 }],
+          action: { type: 'skill', skillId: 'heal' },
+          target: 'best',
+          targetScope: 'ownPet',
+        },
+        { conditions: [], action: { type: 'attack' }, target: 'best' },
+      ],
+    };
+    battle.unit('player').attrs.hp = 100;
+    expect(chooseWithStrategy(battle, strategy).type).toBe('attack');
+    expect(chooseWithStrategy(battle, {
+      version: 1,
+      rules: [strategy.rules[0]],
+    })).toMatchObject({ type: 'skill', skillId: 'strike', targets: ['enemy'] });
+    battle.unit('reserve').flags.benched = false;
+    battle.unit('reserve').ownerId = 'ally';
+    battle.unit('reserve').attrs.hp = 400;
+    expect(chooseWithStrategy(battle, strategy).type).toBe('attack');
+    expect(chooseWithStrategy(battle, {
+      ...strategy,
+      rules: [{ ...strategy.rules[0], targetScope: 'allyPet' }, strategy.rules[1]],
+    })).toMatchObject({ type: 'skill', skillId: 'heal', targets: ['reserve'] });
+    battle.unit('pet').attrs.hp = 400;
+    expect(chooseWithStrategy(battle, strategy)).toMatchObject({
+      type: 'skill', skillId: 'heal', targets: ['pet'],
+    });
+    battle.unit('pet').flags.downed = true;
+    expect(chooseWithStrategy(battle, strategy).type).toBe('attack');
+  });
+  it('转移型印记已有有效持有者时不会自动反复转印', () => {
+    const battle = fixture(['transfer', 'strike']);
+    const transfer: SkillDef = {
+      id: 'transfer', name: '转印', tags: ['support'],
+      targeting: { side: 'ally' },
+      effects: [
+        { type: 'removeStatus', kinds: ['guard'], ownedOnly: true,
+          targeting: { side: 'ally', mode: 'all', includeDowned: true } },
+        { type: 'applyStatus', statusId: 'guard', duration: 3 },
+      ],
+    };
+    battle.unit('player').skillOverrides.transfer = transfer;
+    const strategy: AutoStrategy = {
+      version: 1,
+      rules: [
+        { conditions: [{ type: 'targetStatus', kind: 'guard', present: false, ownedBySelf: true }],
+          action: { type: 'skill', skillId: 'transfer' }, target: 'best' },
+        { conditions: [], action: { type: 'attack' }, target: 'best' },
+      ],
+    };
+    const defs = [{ id: 'guard', name: '护体', kind: 'guard' }];
+    expect(chooseWithStrategy(battle, strategy, defs).type).toBe('skill');
+    battle.applyStatus('ally', 'guard', 3, 'ally');
+    expect(chooseWithStrategy(battle, strategy, defs).type).toBe('skill');
+    battle.applyStatus('pet', 'guard', 3, 'player');
+    expect(chooseWithStrategy(battle, strategy, defs).type).toBe('attack');
+    battle.unit('pet').flags.downed = true;
+    expect(chooseWithStrategy(battle, strategy, defs).type).toBe('skill');
+  });
+  it.each(['combat_auto_rules_v3', undefined])('旧自动策略版本（%s）忽略冻结战术，改用临场应变', (version) => {
+    const battle = fixture(['strike']);
+    const strategy: AutoStrategy = {
+      version: 1,
+      rules: [{ conditions: [], action: { type: 'defend' }, target: 'best' }],
+    };
+    expect(chooseWithStrategy(battle, strategy).type).toBe('defend');
+    battle.state.versions.autoPolicyVersion = version;
+    expect(chooseWithStrategy(battle, strategy)).toEqual(chooseWithStrategy(battle, { version: 1, rules: [] }));
+    expect(chooseWithStrategy(battle, strategy).type).not.toBe('defend');
   });
   it('策略格式拒绝超出边界及多余字段', () => {
     const base = conditionedDefend([{ type: 'selfHpBelow', percent: 50 }]);

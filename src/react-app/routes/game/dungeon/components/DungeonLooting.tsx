@@ -41,10 +41,7 @@ export function DungeonLooting({
           战斗胜利
         </h3>
         <p className="text-ink-secondary mb-6 text-center leading-relaxed">
-          你击退了强敌，有惊无险地度过了此轮。
-          <br />
-          目前位于副本第 {state.currentRound}{' '}
-          轮。前方气息变幻，你可以选择继续深入，或就此离去。
+          已完成第 {state.currentRound} 轮战斗。可以继续深入，或带着当前收获离开。
         </p>
       </InkCard>
 
@@ -57,7 +54,7 @@ export function DungeonLooting({
             <p className="text-ink-secondary mb-4 text-xs">
               {finalRound
                 ? '领取通关奖励，并结算本次探索收获。'
-                : '向秘境更深处进发，寻找更大的机缘。'}
+                : '进入下一轮探索。'}
             </p>
             <InkButton
               variant="primary"

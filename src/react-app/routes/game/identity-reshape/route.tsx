@@ -99,7 +99,7 @@ export default function IdentityReshapePage() {
       .then(async (response) => {
         const result = (await response.json()) as ApiResult<SessionPayload>;
         if (!response.ok || !result.success || !result.data) {
-          throw new Error(result.error ?? '读取改天换地会话失败');
+          throw new Error(result.error ?? '暂时无法读取改命进度，请稍后重试。');
         }
         if (!cancelled) {
           applySession(result.data.session);
@@ -117,7 +117,7 @@ export default function IdentityReshapePage() {
       .catch((error) => {
         if (!cancelled) {
           pushToast({
-            message: error instanceof Error ? error.message : '读取会话失败',
+            message: error instanceof Error ? error.message : '暂时无法读取改命进度，请稍后重试。',
             tone: 'danger',
           });
         }
@@ -263,12 +263,12 @@ export default function IdentityReshapePage() {
       });
       const result = (await response.json()) as ApiResult<never>;
       if (!response.ok || !result.success) {
-        throw new Error(result.error ?? '放弃会话失败');
+        throw new Error(result.error ?? '暂时无法放弃本次改命，请稍后重试。');
       }
       navigate('/game/cave/storage', { replace: true });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : '放弃会话失败',
+        message: error instanceof Error ? error.message : '暂时无法放弃本次改命，请稍后重试。',
         tone: 'danger',
       });
     } finally {
@@ -310,7 +310,7 @@ export default function IdentityReshapePage() {
             持有 {IDENTITY_RESHAPE_TALISMAN_NAME}：{talismanCount} 张
           </p>
           <p className="text-sm leading-7 text-[#d9b69b]">
-            启封将立即消耗一张；中途放弃或会话过期均不会返还。
+            启封时消耗 1 张；中途放弃或过期均不返还。
           </p>
           <div className="flex flex-wrap justify-center gap-5">
             <InkButton
@@ -324,7 +324,7 @@ export default function IdentityReshapePage() {
               启封问命
             </InkButton>
             <InkButton href="/game/cave/storage" className="text-[#d9cfba]">
-              返回储物袋
+              返回洞府宝库
             </InkButton>
           </div>
         </div>
@@ -410,7 +410,7 @@ export default function IdentityReshapePage() {
                   确认放弃
                 </InkButton>
                 <InkButton onClick={() => setConfirmingAbandon(false)}>
-                  保留会话
+                  继续改命
                 </InkButton>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function IdentityReshapePage() {
           <InkButton onClick={() => void temporarilyLeave()}>暂离</InkButton>
         </div>
         <p className="mt-5 text-xs leading-6 text-[#aa9e89]">
-          本次会话将在 {expiresLabel(session.expiresAt)} 前保留。
+          本次改命将保留至 {expiresLabel(session.expiresAt)}。
         </p>
       </div>
     </StageShell>

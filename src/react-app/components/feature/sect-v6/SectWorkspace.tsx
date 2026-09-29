@@ -66,7 +66,7 @@ export function SectWorkspace({
     } catch (e) {
       if (alive.current)
         setError(
-          `${e instanceof Error ? e.message : '请求失败'}；草稿仍保留。重新读取将放弃草稿并核对最新传承与资源。`,
+          `${e instanceof Error ? e.message : '保存失败'}；草稿仍保留。重新读取会放弃草稿，并更新传承与资源状态。`,
         );
       return false;
     } finally {

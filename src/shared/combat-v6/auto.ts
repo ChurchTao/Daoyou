@@ -50,6 +50,12 @@ export function automaticCommands(
     ownerId,
     options.statusDefs ?? [],
   );
+  // Frozen rules from an older policy cannot be replayed under this selector.
+  // Keep the battle playable with the ordinary utility fallback.
+  const strategies =
+    state.versions.autoPolicyVersion !== AUTO_POLICY_VERSION
+      ? undefined
+      : options.strategies;
   const intents: AutoIntent[] = [];
   return controlledUnits(state, ownerId).map((unit) => {
     // Only the controlled group's own already-submitted commands are inspected.
@@ -65,7 +71,46 @@ export function automaticCommands(
       options.statusDefs ?? [],
       query(unit.id),
       intents,
-    );
+    ).filter((candidate) => {
+      if (candidate.command.type !== 'skill') return true;
+      const skillId = candidate.command.skillId;
+      const skill =
+        unit.skillOverrides[skillId] ??
+        skills.find((item) => item.id === skillId);
+      if (!skill) return true;
+      // A transfer skill removes this caster's old status before applying it
+      // elsewhere. An absent-status target alone must not trigger recasting.
+      const transferredKinds = skill.effects.flatMap((effect) =>
+        effect.type === 'removeStatus' &&
+        effect.ownedOnly &&
+        effect.targeting?.side === 'ally' &&
+        effect.targeting.mode === 'all'
+          ? effect.kinds ?? []
+          : [],
+      );
+      if (!transferredKinds.length) return true;
+      const statusIds = skill.effects.flatMap((effect) =>
+        effect.type === 'applyStatus' &&
+        options.statusDefs?.some(
+          (status) =>
+            status.id === effect.statusId &&
+            transferredKinds.includes(status.kind),
+        )
+          ? [effect.statusId]
+          : [],
+      );
+      if (!statusIds.length) return true;
+      return !observation.units.some((target) =>
+        target.side === unit.side &&
+        !target.flags.dead &&
+        !target.flags.downed &&
+        !target.flags.escaped &&
+        target.statuses.some(
+          (status) =>
+            statusIds.includes(status.id) && status.sourceId === unit.id,
+        ),
+      );
+    });
     options.explain?.({
       unitId: unit.id,
       version: AUTO_POLICY_VERSION,
@@ -73,7 +118,7 @@ export function automaticCommands(
     });
     const selected = unit.kind === 'pet'
       ? chooseBeastCandidate(candidates, skills, unit.skillOverrides)
-      : chooseStrategyCandidate(observation, unit.id, candidates, options.strategies?.[unit.id]);
+      : chooseStrategyCandidate(observation, unit.id, candidates, strategies?.[unit.id]);
     if (selected) intents.push(...selected.intents);
     return {
       unitId: unit.id,

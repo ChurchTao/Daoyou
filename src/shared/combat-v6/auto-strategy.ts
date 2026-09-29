@@ -25,6 +25,11 @@ const condition = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('allyDowned') }),
   z.strictObject({
+    type: z.literal('targetHpBelow'),
+    percent: z.number().int().min(1).max(100),
+    comparison: comparison.optional(),
+  }),
+  z.strictObject({
     type: z.literal('enemyCountAtLeast'),
     count: z.number().int().min(1).max(6),
     comparison: comparison.optional(),
@@ -48,6 +53,13 @@ const condition = z.discriminatedUnion('type', [
     present: z.boolean(),
     ownedBySelf: z.boolean(),
   }),
+  z.strictObject({
+    type: z.literal('allyStatus'),
+    kind: z.string().min(1).max(120),
+    statusId: z.string().min(1).max(160).optional(),
+    present: z.boolean(),
+    ownedBySelf: z.boolean(),
+  }),
 ]);
 
 const rule = z.strictObject({
@@ -61,6 +73,7 @@ const rule = z.strictObject({
     z.strictObject({ type: z.literal('defend') }),
   ]),
   target: z.enum(['best', 'lowestHpEnemy', 'lowestHpAlly']).default('best'),
+  targetScope: z.enum(['any', 'allyPet', 'ownPet', 'teammatePlayer']).optional(),
 });
 // Existing saved and in-progress battles may still contain 11–12 rules.
 export const AutoStrategySchema = z.strictObject({
@@ -92,6 +105,7 @@ export function autoComparison(
     return condition.comparison;
   return condition.type === 'selfHpBelow' ||
     condition.type === 'allyHpBelow' ||
+    condition.type === 'targetHpBelow' ||
     condition.type === 'enemyHpBelow'
     ? 'lt'
     : 'gte';
@@ -127,9 +141,23 @@ export function chooseStrategyCandidate(
   const enemies = observation.units.filter((unit) => unit.side !== source.side);
   const hpPercent = (unit: typeof source) =>
     (100 * unit.attrs.hp) / Math.max(1, unit.attrs.maxHp);
+  const matchesStatus = (
+    unit: typeof source,
+    condition: Extract<
+      AutoStrategy['rules'][number]['conditions'][number],
+      { type: 'targetStatus' | 'allyStatus' }
+    >,
+  ) =>
+    unit.statuses.some(
+      (status) =>
+        status.kind === condition.kind &&
+        (!condition.statusId || status.id === condition.statusId) &&
+        (!condition.ownedBySelf || status.sourceId === sourceId),
+    );
   for (const rule of strategy.rules) {
     const targetConditions = rule.conditions.filter(
-      (condition) => condition.type === 'targetStatus',
+      (condition) =>
+        condition.type === 'targetStatus' || condition.type === 'targetHpBelow',
     );
     const matches = rule.conditions.every((condition) => {
       switch (condition.type) {
@@ -161,6 +189,12 @@ export function chooseStrategyCandidate(
           );
         case 'allyDowned':
           return allies.some((unit) => unit.flags.downed);
+        case 'allyStatus':
+          return (
+            allies.some(
+              (unit) => standing(unit) && matchesStatus(unit, condition),
+            ) === condition.present
+          );
         case 'enemyCountAtLeast':
           return compareNumber(
             enemies.filter(standing).length,
@@ -184,6 +218,7 @@ export function chooseStrategyCandidate(
             ) === condition.present
           );
         case 'targetStatus':
+        case 'targetHpBelow':
           return true;
       }
     });
@@ -203,20 +238,33 @@ export function chooseStrategyCandidate(
           : command.type === 'skill'
             ? command.targets
             : [];
+      if (
+        rule.targetScope &&
+        rule.targetScope !== 'any' &&
+        (!targetIds.length ||
+          targetIds.some((id) => {
+            const target = observation.units.find((unit) => unit.id === id);
+            if (!target || target.side !== source.side) return true;
+            if (rule.targetScope === 'allyPet') return target.kind !== 'pet';
+            if (rule.targetScope === 'ownPet')
+              return target.kind !== 'pet' || target.ownerId !== sourceId;
+            return target.kind !== 'player' || target.id === sourceId;
+          }))
+      )
+        return [];
       const matchingTargets = targetConditions.length
         ? targetIds.filter((id) => {
             const target = observation.units.find((unit) => unit.id === id);
             return (
               target &&
-              targetConditions.every(
-                (condition) =>
-                  target.statuses.some(
-                    (status) =>
-                      status.kind === condition.kind &&
-                      (!condition.statusId ||
-                        status.id === condition.statusId) &&
-                      (!condition.ownedBySelf || status.sourceId === sourceId),
-                  ) === condition.present,
+              targetConditions.every((condition) =>
+                condition.type === 'targetHpBelow'
+                  ? compareNumber(
+                      hpPercent(target),
+                      condition.percent,
+                      autoComparison(condition),
+                    )
+                  : matchesStatus(target, condition) === condition.present,
               )
             );
           })
@@ -245,5 +293,16 @@ export function chooseStrategyCandidate(
     );
     if (targeted) return targeted.candidate;
   }
-  return candidates[0];
+  const scopedSkillIds = new Set(
+    strategy.rules.flatMap((rule) =>
+      rule.action.type === 'skill' && rule.targetScope && rule.targetScope !== 'any'
+        ? [rule.action.skillId]
+        : [],
+    ),
+  );
+  return candidates.find(
+    (candidate) =>
+      candidate.command.type !== 'skill' ||
+      !scopedSkillIds.has(candidate.command.skillId),
+  );
 }

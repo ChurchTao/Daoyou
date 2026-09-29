@@ -102,8 +102,8 @@ export function ManualJadePicker({
       {inventory && !error && choices.length === 0 ? (
         <p role="status">
           {manualId
-            ? `当前${source === 'bag' ? '储物袋' : '储藏室页面'}暂无数量足够的同名玉简，本次需要 ${jadeCost} 本。`
-            : `当前${source === 'bag' ? '储物袋' : '储藏室页面'}暂无可学习的${realm}功法玉简。`}
+            ? `${source === 'bag' ? '储物袋' : '洞府储藏室'}中没有足够的同名玉简，本次需要 ${jadeCost} 本。`
+            : `${source === 'bag' ? '储物袋' : '洞府储藏室'}中没有可学习的${realm}功法玉简。`}
         </p>
       ) : null}
       <InventoryItems

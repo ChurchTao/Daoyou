@@ -177,8 +177,8 @@ function MarketWorkspace({
         }),
       );
       const labels = {
-        bag: '随身物品栏',
-        storage: '储藏室',
+        bag: '储物袋',
+        storage: '洞府储藏室',
         vault: '洞府宝库（种子）',
       };
       setNotice(
@@ -219,7 +219,7 @@ function MarketWorkspace({
     if (total > 100000) {
       setDialog({
         id: 'market-purchase',
-        title: '高额交易确认',
+        title: '确认购买',
         content: (
           <p>
             确认购买所选 {picked.length} 件商品？

@@ -115,7 +115,7 @@ function renderPreparationNotice(
         title: '秘境探索说明',
         content: (
           <div className="space-y-3 text-sm leading-7">
-            <p>秘境推进以当前轮次、选项代价、危险度和结算结果为准。</p>
+            <p>每轮选择前可查看代价与危险度，离开秘境时结算收获。</p>
             <p>
               气血、法力、异常状态用于出行前判断，不作为探索选项的通过条件。
             </p>
@@ -340,7 +340,7 @@ export function DungeonViewRenderer({
             </h2>
             <p className="text-ink-secondary leading-7">
               {viewState.state.statusReason ||
-                '当前副本状态可恢复，请选择后续处理方式。'}
+                '本次探索尚可处理，请选择下方操作。'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -394,7 +394,7 @@ export function DungeonViewRenderer({
       cultivator &&
       selectedNodeRealm &&
       !canChallengeDungeonRealm(cultivator.realm, selectedNodeRealm)
-        ? `当前境界${cultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界。`
+        ? `当前为${cultivator.realm}，尚不能挑战要求${selectedNodeRealm}的秘境。`
         : null;
     const readiness =
       cultivator && displayResources

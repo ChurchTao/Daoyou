@@ -121,7 +121,7 @@ export function HomeView() {
   const storyCue = story.story?.prompt ? story.story : null;
 
   if (isLoading || tasksLoading || !tasks) {
-    return <GameSceneLoading message="正在推演天机……" />;
+    return <GameSceneLoading message="正在进入洞府……" />;
   }
 
   if (!cultivator) {
@@ -196,7 +196,7 @@ export function HomeView() {
     const summary =
       currentMajorTask.status === 'completed'
         ? '准备充分，可冲关'
-        : '需准备充分，方可冲关';
+        : '完成破境任务后可冲关';
     urgentItems.push(
       <HomeUrgentRow
         key="major-breakthrough-task"
@@ -211,7 +211,7 @@ export function HomeView() {
             }
             variant="primary"
           >
-            {currentMajorTask.status === 'completed' ? '冲关' : '准备'}
+            {currentMajorTask.status === 'completed' ? '前往静室' : '查看任务'}
           </InkButton>
         }
       />,
@@ -230,7 +230,7 @@ export function HomeView() {
         summary={`修为进度已达 ${Math.min(100, caveStatus?.cultivationPercent ?? 0)}%`}
         action={
           <InkButton href="/game/retreat" variant="primary">
-            突破
+            前往静室
           </InkButton>
         }
       />,

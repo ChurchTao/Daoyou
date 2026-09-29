@@ -83,9 +83,6 @@ export function BreakthroughConfirmModal({
           </div>
         )}
 
-        <p className="text-ink-secondary text-center text-xs opacity-80">
-          修行之路，本就充满坎坷。机缘造化，在此一举。
-        </p>
       </div>
     </InkModal>
   );

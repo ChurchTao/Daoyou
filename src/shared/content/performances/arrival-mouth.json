@@ -1,55 +1,70 @@
 {
   "id": "arrival-mouth",
   "title": "洞口",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "洞口外的风把药气吹薄了，路还看不远。"
+      "alt": "洞口外，山路沿着湿石向林中弯去。"
     },
-    { "type": "title", "kicker": "洞府 · 门外", "text": "洞口" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 傍晚",
+      "text": "洞口"
+    },
     {
       "type": "narration",
-      "text": "炉边的药气淡了以后，风从洞口倒灌进来。"
+      "text": "傍晚的光斜斜落在路上。近处的石阶还算平整，再往下，草已长进石缝，鞋底踩上去有些打滑。"
     },
     {
       "type": "narration",
-      "text": "{name}走到门口。石上有一道新痕，像是有人用指节磕过，又没有留下名字。"
+      "text": "门旁立着一块矮石牌，苔下露出“青溪”两个字。下面的笔画磨平了，只剩一道浅浅的凹痕。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "外面的路，还不是今天的。"
+      "type": "narration",
+      "text": "林里传来一声鸟叫，随后又安静下来。天色退得很快，山路的尽头已看不分明。"
     },
     {
       "type": "choice",
       "options": [
-        { "label": "在门口站一会儿", "jump": "stay" },
-        { "label": "退回石室", "jump": "back" }
+        {
+          "label": "往前走几步",
+          "jump": "stay"
+        },
+        {
+          "label": "回到石室",
+          "jump": "back"
+        }
       ]
     },
-    { "type": "mark", "id": "stay" },
     {
-      "type": "narration",
-      "text": "{name}在门口站了一会儿。风停在洞口，没有跟进来。"
+      "type": "mark",
+      "id": "stay"
     },
     {
       "type": "narration",
-      "text": "石室仍在身后。"
-    },
-    { "type": "end", "outcome": "returned" },
-    { "type": "mark", "id": "back" },
-    {
-      "type": "narration",
-      "text": "{name}退回石室。风停在洞口，没有跟进来。"
+      "text": "你踩过最前面的两级石阶。树后忽然有碎叶轻响，等你停下来听，那里又只剩风声。"
     },
     {
       "type": "narration",
-      "text": "石室仍在身后。"
+      "text": "回头还能看见洞门。你没有再往下走，趁最后一点亮光回了石室。"
     },
-    { "type": "end", "outcome": "returned" }
+    {
+      "type": "end",
+      "outcome": "returned"
+    },
+    {
+      "type": "mark",
+      "id": "back"
+    },
+    {
+      "type": "narration",
+      "text": "你看了眼林中渐暗的路，把手从石牌上收回来。木闩合上时，外面的鸟声也被关在了门外。"
+    },
+    {
+      "type": "end",
+      "outcome": "returned"
+    }
   ]
 }

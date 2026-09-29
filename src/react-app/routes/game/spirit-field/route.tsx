@@ -223,7 +223,7 @@ export default function SpiritFieldPage() {
       storage.reload();
       await refresh();
       const destination = result.locations
-        ?.map((v) => (v === 'bag' ? '随身物品' : '储藏室'))
+        ?.map((v) => (v === 'bag' ? '储物袋' : '洞府储藏室'))
         .join('、');
       if (result.feedback)
         openDialog({
@@ -259,7 +259,13 @@ export default function SpiritFieldPage() {
       else
         pushToast({
           message:
-            (result.message ?? '已完成') +
+            (result.message ?? (url.endsWith('/starter')
+              ? '已领取初始灵种'
+              : url.endsWith('/sow')
+                ? '已播种'
+                : url.endsWith('/harvest')
+                  ? '已收获'
+                  : '已完成培育')) +
             (destination ? ' · ' + destination : ''),
           tone: 'success',
         });
@@ -320,7 +326,7 @@ export default function SpiritFieldPage() {
     setBagOpen(false);
   }
   if (!snapshot && !error)
-    return <GameSceneLoading message="正推开洞府药圃的竹门……" />;
+    return <GameSceneLoading message="正在查看洞府灵田……" />;
   if (!snapshot)
     return (
       <GameSceneFrame variant="workflow">

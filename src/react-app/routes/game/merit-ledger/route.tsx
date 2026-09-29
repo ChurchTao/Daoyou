@@ -53,7 +53,7 @@ function formatMonth(value: string): string {
 
 async function readJson<T>(response: Response): Promise<T> {
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error ?? '请求失败');
+  if (!response.ok) throw new Error(data.error ?? '暂时无法读取功德簿，请稍后重试。');
   return data as T;
 }
 

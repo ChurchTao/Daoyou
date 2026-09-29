@@ -182,7 +182,7 @@ export function ForgingRoom() {
                     onReveal={() => {
                       setRevealed(true);
                       pushToast({
-                        message: `打造成功，道装已收入${session.result?.destination === 'storage' ? '储藏室' : '储物袋'}。`,
+                        message: `道装已打造，存入${session.result?.destination === 'storage' ? '洞府储藏室' : '储物袋'}。`,
                         tone: 'success',
                       });
                     }}
@@ -200,7 +200,7 @@ export function ForgingRoom() {
                           }{' '}
                           · 已收入
                           {result.destination === 'storage'
-                            ? '储藏室'
+                            ? '洞府储藏室'
                             : '储物袋'}
                         </p>
                         <div className="flex justify-center gap-4">

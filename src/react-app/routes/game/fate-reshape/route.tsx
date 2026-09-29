@@ -183,7 +183,7 @@ export default function FateReshapePage() {
       setTalismanCount(result.talismanCount ?? talismanCount);
       setSelectedIndices([]);
       pushToast({
-        message: '天机已启，本次命格重塑正式开始。',
+        message: '命格重塑已开启。',
         tone: 'success',
       });
     } catch (error) {
@@ -244,7 +244,7 @@ export default function FateReshapePage() {
       setSelectedIndices([]);
       await loadSession(false);
       pushToast({
-        message: '新命格已落定，道身气数已全量重塑。',
+        message: '已用选中的 3 个命格替换原命格。',
         tone: 'success',
       });
     } catch (error) {
@@ -272,7 +272,7 @@ export default function FateReshapePage() {
       setSession(null);
       setSelectedIndices([]);
       pushToast({
-        message: '本次命格重塑已作罢，原命格保持不变。',
+        message: '已放弃本次重塑，原命格保持不变。',
         tone: 'success',
       });
       await loadSession(false);
@@ -306,7 +306,7 @@ export default function FateReshapePage() {
     <GameSceneFrame
       variant="workflow"
       title="【命格重塑】"
-      description="遮蔽天机，逆转先天之数。命格会话、候选池与确认替换流程都被统一安放到常规工作流场景里。"
+      description="用天机逆命符重抽命格，再从候选中选出 3 个替换当前命格。"
       headerMeta={
         note ? (
           <GameSceneNote>
@@ -320,7 +320,7 @@ export default function FateReshapePage() {
             <GameSceneAsideSection title="重塑资源">
               <div className="space-y-2 text-sm leading-7">
                 <p>天机逆命符：{talismanCount} 张</p>
-                <p>当前会话：未开启</p>
+                <p>重塑状态：未开启</p>
               </div>
             </GameSceneAsideSection>
             <GameSceneAsideSection
@@ -330,8 +330,8 @@ export default function FateReshapePage() {
                 title: '命格重塑操作规则',
                 content: (
                   <div className="space-y-2 text-sm leading-7">
-                    <p>开启后会消耗 1 张逆命符，并给出 8 个候选命格。</p>
-                    <p>需从中选 3 个，直接全量替换当前命格。</p>
+                    <p>开启后消耗 1 张天机逆命符，并给出 8 个候选命格。</p>
+                    <p>从中选 3 个，替换当前的 3 个命格。</p>
                   </div>
                 ),
               }}
@@ -339,10 +339,10 @@ export default function FateReshapePage() {
           </>
         ) : (
           <>
-            <GameSceneAsideSection title="会话摘要">
+            <GameSceneAsideSection title="本次重塑">
               <div className="space-y-2 text-sm leading-7">
                 <p>已选候选：{selectedIndices.length} / 3</p>
-                <p>还能重塑：{session.canReroll ? '1 次' : '0 次'}</p>
+                <p>剩余重抽：{session.canReroll ? '1 次' : '0 次'}</p>
                 <p>失效时间：{formatExpireTime(session.expiresAt)}</p>
               </div>
             </GameSceneAsideSection>
@@ -353,8 +353,8 @@ export default function FateReshapePage() {
                 title: '命格重塑确认条件',
                 content: (
                   <div className="space-y-2 text-sm leading-7">
-                    <p>先选满 3 个命格，才可确认全量替换。</p>
-                    <p>放弃或超时都会结束本次会话，消耗不返还。</p>
+                    <p>选满 3 个命格后，才能确认替换。</p>
+                    <p>放弃或超时会结束本次重塑，符箓不返还。</p>
                   </div>
                 ),
               }}
@@ -397,7 +397,7 @@ export default function FateReshapePage() {
 
       {isBooting && !session ? (
         <GameSceneSection title="开始重塑">
-          <InkNotice>正在校验未完成的命格重塑会话……</InkNotice>
+          <InkNotice>正在恢复上次的命格重塑……</InkNotice>
         </GameSceneSection>
       ) : !session ? (
         <GameSceneSection title="开始重塑">
@@ -411,12 +411,8 @@ export default function FateReshapePage() {
               </div>
             </div>
             <div className="space-y-2 text-sm leading-6">
-              <p>点击下方按钮后，会立刻消耗 1 张天机逆命符。</p>
-              <p>天道会为你重塑 8 个新命格，你要从里面选 3 个</p>
-              <p>
-                确认后，你现在的 3 个命格会被这 3
-                个新命格直接替换，也可以直接放弃，消耗不会返还。
-              </p>
+              <p>开启时消耗 1 张天机逆命符，获得 8 个候选命格。</p>
+              <p>选出 3 个替换当前命格。中途放弃，符箓不返还。</p>
             </div>
             {talismanCount <= 0 && (
               <InkNotice tone="warning">
@@ -445,7 +441,7 @@ export default function FateReshapePage() {
             <InkCard variant="elevated" padding="lg" className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="border-ink/10 border border-dashed px-3 py-2">
-                  <div className="text-ink-secondary text-xs">还能重塑</div>
+                  <div className="text-ink-secondary text-xs">剩余重抽</div>
                   <div className="text-ink text-lg font-semibold">
                     {session.canReroll ? '1 次' : '0 次'}
                   </div>
@@ -460,8 +456,7 @@ export default function FateReshapePage() {
                 </div>
               </div>
               <p className="text-ink-secondary text-sm leading-6">
-                你已经开始本次重塑。离开页面后，下次回来还能继续重塑，
-                直到你确认、放弃，或者天机失效。
+                离开后仍可继续，直到确认、放弃或本次重塑过期。
               </p>
             </InkCard>
           </GameSceneSection>
@@ -480,7 +475,7 @@ export default function FateReshapePage() {
                   pending={pendingAction === 'reroll'}
                   pendingLabel="重塑中……"
                 >
-                  再次重塑
+                  重抽候选
                 </InkButton>
                 <InkButton
                   variant="secondary"
@@ -497,7 +492,7 @@ export default function FateReshapePage() {
             </div>
 
             <p className="text-ink-secondary mb-4 text-sm leading-6">
-              下面是这次重塑的 8 个新命格。先选满 3 个，再确认替换当前命格。
+              选出 3 个命格，确认后替换当前命格。
             </p>
 
             {isBooting ? (
@@ -575,7 +570,7 @@ export default function FateReshapePage() {
               pending={pendingAction === 'confirm'}
               pendingLabel="替换中……"
             >
-              确认全量替换 3 个命格
+              确认替换 3 个命格
             </InkButton>
           </InkActionGroup>
         </>

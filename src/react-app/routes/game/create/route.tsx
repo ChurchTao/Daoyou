@@ -156,7 +156,7 @@ export default function CreatePage() {
       setAvailableFates(result.data.fates);
       setRemainingRerolls(result.data.remainingRerolls);
       if (result.data.remainingRerolls < 5) {
-        pushToast({ message: '天机变幻，气运已更易。', tone: 'success' });
+        pushToast({ message: '新的先天气运已生成。', tone: 'success' });
       }
     } catch (error) {
       const errorMessage =
@@ -239,7 +239,7 @@ export default function CreatePage() {
       setGenerationQuota(aiResult.data.quota);
 
       pushToast({
-        message: '灵气汇聚，真形初现。正在推演气运……',
+        message: '道身已生成，正在推演先天气运……',
         tone: 'success',
       });
 
@@ -247,7 +247,7 @@ export default function CreatePage() {
       await handleGenerateFates(aiResult.data.tempCultivatorId);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : '生成角色失败，请检查控制台';
+        error instanceof Error ? error.message : '道身生成失败，请重试。';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsGenerating(false);
@@ -273,7 +273,7 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
+      pushToast({ message: '请选择 3 个先天气运。', tone: 'warning' });
       return;
     }
 
@@ -295,13 +295,13 @@ export default function CreatePage() {
       await consumeResourceMutation(saveResponse);
 
       pushToast({
-        message: '道友真形已落地，玉简正在案上显字。',
+        message: '角色已创建，正在打开入世玉简。',
         tone: 'success',
       });
       navigate('/game/story', { replace: true });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : '保存角色失败，请检查控制台';
+        error instanceof Error ? error.message : '角色创建失败，请重试。';
       pushToast({ message: errorMessage, tone: 'danger' });
     } finally {
       setIsSaving(false);
@@ -314,7 +314,7 @@ export default function CreatePage() {
     }
 
     if (selectedFateIndices.length !== 3) {
-      pushToast({ message: '请选择3个先天气运', tone: 'warning' });
+      pushToast({ message: '请选择 3 个先天气运。', tone: 'warning' });
       return;
     }
 
@@ -459,7 +459,7 @@ export default function CreatePage() {
                 </div>
 
                 {isGeneratingFates ? (
-                  <GameLoadingState message="正在推演天机……" variant="inline" />
+                  <GameLoadingState message="正在生成先天气运……" variant="inline" />
                 ) : availableFates.length > 0 ? (
                   <InkList>
                     {availableFates.map((fate, idx) => {

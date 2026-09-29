@@ -86,8 +86,10 @@ export function compileRankingBattle(
 
 /** Both sides plan from the same observation boundary; timeout filling stays separate. */
 export function simulateRankingBattle(input: RankingBattleInput) {
-  if (input.versions.autoPolicyVersion !== AUTO_POLICY_VERSION)
-    throw new Error('天骄榜自动策略版本不匹配，请先结束旧版本挑战再切换');
+  const strategies =
+    input.versions.autoPolicyVersion === AUTO_POLICY_VERSION
+      ? input.autoStrategies
+      : undefined;
   const battle = createBattle({
     ...structuredClone(input),
     ruleset: daoyouRulesetV6,
@@ -110,7 +112,7 @@ export function simulateRankingBattle(input: RankingBattleInput) {
           unit.id,
           input.skills ?? [],
           (id) => battle.queryCommands(id),
-          { statusDefs: statuses, strategies: input.autoStrategies },
+          { statusDefs: statuses, strategies },
         ),
       );
     for (const entry of commands) battle.submit(entry.unitId, entry.command);

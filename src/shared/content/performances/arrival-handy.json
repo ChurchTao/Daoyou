@@ -1,25 +1,33 @@
 {
   "id": "arrival-handy",
-  "title": "趁手",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "title": "炉火",
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "器炉还留着一点热，手里却是空的。"
+      "alt": "器炉边的石台散着青石碎屑，一张旧图纸压在镇纸下。"
     },
-    { "type": "title", "kicker": "洞府 · 器炉", "text": "趁手" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 器炉",
+      "text": "炉火"
+    },
     {
       "type": "narration",
-      "text": "伤养好了。青溪坡上那一回，{name}还是觉得手里空。"
+      "text": "推开石门，器炉冷着，炉沿却留着旧日的火痕。石台上散着青石碎屑，墙上几处熏黑的印子高低不一。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "丹炉旁边还有一口器炉。先打一件能握住的。"
+      "type": "narration",
+      "text": "你拿起图纸，纸角已卷，却还能看出一件兵器的轮廓。它不华美，握处与器身的尺寸都写得实在，像是留给每天要走山路的人。"
     },
-    { "type": "end", "outcome": "forge" }
+    {
+      "type": "narration",
+      "text": "青溪坡的草声忽然又在耳边响起。你把图纸压平，伸手拣起一块青石，石粉沾了满指。"
+    },
+    {
+      "type": "end",
+      "outcome": "forge"
+    }
   ]
 }

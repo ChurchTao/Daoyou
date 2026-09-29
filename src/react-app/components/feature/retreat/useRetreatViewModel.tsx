@@ -334,7 +334,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     const parsedYears = Number(retreatYears || '0');
     if (!Number.isFinite(parsedYears) || parsedYears <= 0) {
       pushToast({
-        message: '闭关年限似乎不对哦，道友请三思而行',
+        message: '请输入大于 0 的闭关年限。',
         tone: 'warning',
       });
       return;

@@ -432,7 +432,7 @@ export default function SectSpiritVeinMiningPage() {
             {settlement.kind === 'practice'
               ? '自由练习不会产生奖励。'
               : settlement.qualified
-                ? '采掘回执已成，请回事务堂领取赏赐。'
+                ? '采掘任务已完成，请到宗门事务领取奖励。'
                 : '委托仍在名下，可以重新开启采掘场。'}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">

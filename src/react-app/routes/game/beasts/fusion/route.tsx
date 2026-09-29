@@ -37,7 +37,7 @@ export default function BeastFusionPage() {
       {ownerId ? (
         <FusionWorkspace key={ownerId} ownerId={ownerId} />
       ) : (
-        <GameLoadingState variant="inline" message="正在寻访灵兽……" />
+        <GameLoadingState variant="inline" message="正在查看灵兽袋……" />
       )}
     </GameSceneFrame>
   );
@@ -221,7 +221,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
             </InkButton>
           </div>
         ) : (
-          <GameLoadingState variant="inline" message="正在寻访灵兽……" />
+          <GameLoadingState variant="inline" message="正在查看灵兽袋……" />
         )
       ) : (
         <>

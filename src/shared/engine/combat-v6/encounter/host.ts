@@ -124,13 +124,12 @@ export class CombatV6PveHostSession {
     unitAppearances?: CombatV6ReplayTimeline['unitAppearances'],
   ) {
     const compiled = encounter;
-    if (
+    this.playerId = compiled.playerId;
+    this.playerAutoStrategy =
       restored &&
       restored.state.versions.autoPolicyVersion !== AUTO_POLICY_VERSION
-    )
-      throw new Error('自动策略版本不匹配，请先结束旧版本战局再切换');
-    this.playerId = compiled.playerId;
-    this.playerAutoStrategy = compiled.playerAutoStrategy;
+        ? undefined
+        : compiled.playerAutoStrategy;
     this.initialUnits = clone(compiled.battleInput.units);
     this.skills = clone(compiled.battleInput.skills ?? []);
     this.statusDefs = clone(compiled.battleInput.statusDefs ?? []);

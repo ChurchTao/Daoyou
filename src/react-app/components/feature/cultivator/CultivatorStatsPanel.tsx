@@ -286,8 +286,8 @@ export function CultivatorStatsPanel({
                 label={CHARACTER_ATTRIBUTE_LABELS[key]}
                 className="grid-cols-[auto_minmax(0,1fr)] py-1.5"
               >
-                <div className="flex flex-wrap items-center justify-end gap-2 font-mono">
-                  <span>
+                <div className="flex items-start justify-end gap-2 font-mono">
+                  <span className="min-w-0 text-right">
                     {cultivator.attributes[key]}
                     {display.effectiveAttributes[key] !== cultivator.attributes[key] ? (
                       <>
@@ -304,7 +304,7 @@ export function CultivatorStatsPanel({
                     ) : null}
                   </span>
                   {editing ? (
-                    <>
+                    <div className="flex shrink-0 gap-2">
                       <button
                         type="button"
                         aria-label={`减少${CHARACTER_ATTRIBUTE_LABELS[key]}`}
@@ -336,7 +336,7 @@ export function CultivatorStatsPanel({
                           )
                         }
                       />
-                    </>
+                    </div>
                   ) : null}
                 </div>
               </CharacterSheetRow>
@@ -391,7 +391,6 @@ export function CultivatorStatsPanel({
                   disabled={
                     disabled ||
                     spent === 0 ||
-                    !preview?.data ||
                     spent > unallocatedAttributePoints
                   }
                   onClick={() => setConfirming(true)}

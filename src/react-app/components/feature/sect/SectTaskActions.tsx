@@ -137,7 +137,7 @@ export function AbandonAction({
           title: '放弃宗门任务',
           content: (
             <p className="text-ink-secondary text-sm leading-7">
-              {`放弃「${task.presentation.title}」后，当前进度与已锁定目标都会作废；你可以立即重新领取，并生成一份新的任务内容。`}
+              {`放弃「${task.presentation.title}」后，当前进度与已锁定目标都会作废。可以立即重新领取，任务内容会重新生成。`}
             </p>
           ),
           confirmLabel: '确认放弃',

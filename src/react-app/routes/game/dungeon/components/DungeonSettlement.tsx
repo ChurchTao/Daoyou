@@ -95,7 +95,7 @@ export function DungeonSettlement({
       </div>
 
       <p className="text-ink/80 leading-relaxed">
-        {settlement?.ending_narrative || '此行尘埃落定，且看所得机缘。'}
+        {settlement?.ending_narrative || '探索已结束。'}
       </p>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -135,7 +135,7 @@ export function DungeonSettlement({
           </div>
         ) : (
           <div className="text-ink-secondary bg-ink/5 border-ink/15 border border-dashed px-3 py-4 text-sm">
-            此行机缘浅薄，未得可携物品
+            本次没有获得物品
           </div>
         )}
       </div>

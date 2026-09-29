@@ -1,33 +1,33 @@
 {
   "id": "arrival-creek",
   "title": "青溪",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "天光落在洞口的石痕上，痕指向溪水和草坡。"
-    },
-    { "type": "title", "kicker": "洞府 · 晨", "text": "青溪" },
-    {
-      "type": "narration",
-      "text": "一夜过去。石上的新痕在天亮以后清楚了。"
+      "alt": "雨后的苔色更深，石牌上两枚旧字露在晨光里。"
     },
     {
-      "type": "narration",
-      "text": "那不是名字，是朝溪水和草坡的一指。"
-    },
-    {
-      "type": "line",
-      "speaker": "slip",
-      "text": "今天，只走到能看见溪水的地方。"
+      "type": "title",
+      "kicker": "洞府 · 清晨",
+      "text": "青溪"
     },
     {
       "type": "narration",
-      "text": "{name}认出那是太岳山的青溪坡。溪坡还远。"
+      "text": "昨晚没有看清的石牌，此刻挂着几滴露水。“青溪”两字刻得很深，显然曾有人从这里往那个方向走。"
     },
-    { "type": "end", "outcome": "slope" }
+    {
+      "type": "narration",
+      "text": "回到案前，你握住玉简，简面浮出一段旧路记。细线沿山势弯下去，在溪水旁收住；旁边另有三个小字：青溪坡。"
+    },
+    {
+      "type": "narration",
+      "text": "洞口能望见群山，却望不见那条溪。你把舆图铺开，顺着天南的山脉寻找玉简画出的那段路。"
+    },
+    {
+      "type": "end",
+      "outcome": "slope"
+    }
   ]
 }

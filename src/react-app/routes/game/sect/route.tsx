@@ -38,7 +38,7 @@ export default function SectPage() {
         }}
       >
         <p data-guide="sect.self" className="text-ink-secondary text-sm leading-7">
-          山门没有拦你。想认一认诸宗，可以自己进去看看；眼下洞府里的路也走得通。
+          可以先看看各宗门，再决定是否拜入。
         </p>
         <span data-guide="sect.door" className="mt-4 inline-flex">
           <InkButton href="/game/sect/onboarding" variant="primary">

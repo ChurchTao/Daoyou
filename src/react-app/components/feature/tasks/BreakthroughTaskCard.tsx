@@ -49,16 +49,12 @@ export function BreakthroughTaskCard({
       >
         <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-3">
           <p className="text-ink-secondary min-w-0 truncate text-xs">{contextText}</p>
-          <StatusPill text="前置已成" tone="ready" />
+          <StatusPill text="任务已完成" tone="ready" />
         </div>
 
         <div className="space-y-2">
           <p className="text-ink text-base font-semibold tracking-[0.04em]">
-            可回静室冲关
-          </p>
-          <p className="text-ink-secondary text-sm leading-7">
-            这一份破境卷宗已经办妥，现在可以回静室正式冲击
-            {toRealm ?? '下一重境界'}。
+            可冲击{toRealm ?? '下一重境界'}
           </p>
         </div>
 
@@ -113,11 +109,13 @@ export function BreakthroughTaskCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {currentStage.links.map((link) => (
-          <InkButton key={`${task.id}:${link.href}:${link.label}`} href={link.href}>
-            {link.label}
-          </InkButton>
-        ))}
+        {currentStage.links
+          .filter((link) => link.href !== '/game/tasks')
+          .map((link) => (
+            <InkButton key={`${task.id}:${link.href}:${link.label}`} href={link.href}>
+              {link.label}
+            </InkButton>
+          ))}
       </div>
     </div>
   );

@@ -36,10 +36,6 @@ export default function RedeemCodePage() {
       setSuccess(true);
       setCelebrationTick((prev) => prev + 1);
       setCode('');
-      pushToast({
-        message: '兑换成功，奖励已通过传音玉简发放',
-        tone: 'success',
-      });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '兑换失败',
@@ -54,7 +50,7 @@ export default function RedeemCodePage() {
     <GameSceneFrame
       variant="lite"
       title="兑换码"
-      description="天机有契，凭码领缘。奖励不直接落袋，而是经由玉简投递，适合作为轻量服务页嵌回主游戏壳。"
+      description="输入兑换码，奖励会通过传音玉简送达。"
       aside={
         <GameSceneAsideSection
           title="使用说明"
@@ -93,7 +89,7 @@ export default function RedeemCodePage() {
 
         {success && (
           <p className="text-sm text-emerald-700">
-            兑换成功，奖励已通过传音玉简发放，请及时查收。
+            兑换成功，奖励已送达传音玉简。
           </p>
         )}
       </div>

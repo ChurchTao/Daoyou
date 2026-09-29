@@ -13,6 +13,11 @@ export function observeAutoBattle(
   statusDefs: readonly StatusDef[],
 ): AutoObservation {
   const owner = state.units.find((unit) => unit.id === ownerId)!;
+  const controlledIds = new Set(
+    state.units
+      .filter((unit) => unit.id === ownerId || unit.ownerId === ownerId)
+      .map((unit) => unit.id),
+  );
   const definitions = new Map(statusDefs.map((status) => [status.id, status]));
   const baseline = effectiveAttrs(owner);
   return {
@@ -75,7 +80,7 @@ export function observeAutoBattle(
             kind: definitions.get(status.id)?.kind ?? '',
             remainingRounds: status.remainingRounds,
             stacks: status.stacks,
-            sourceId: status.sourceId === ownerId ? ownerId : '',
+            sourceId: controlledIds.has(status.sourceId) ? status.sourceId : '',
             appliedRound: 0,
             speedMod: 0,
             attrMods: {},

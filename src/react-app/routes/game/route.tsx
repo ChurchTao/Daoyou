@@ -8,7 +8,7 @@ import { HomeView } from './components/HomeView';
  */
 export default function HomePage() {
   return (
-    <Suspense fallback={<GameSceneLoading message="正在推演天机……" />}>
+    <Suspense fallback={<GameSceneLoading message="正在进入洞府……" />}>
       <HomeView />
     </Suspense>
   );

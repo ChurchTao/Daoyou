@@ -1,22 +1,33 @@
 {
   "id": "arrival-grip",
-  "title": "握住",
-  "requires": ["name"],
+  "title": "落在掌心",
+  "requires": [],
   "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "手里终于有一件能握住的。"
-    },
-    { "type": "title", "kicker": "洞府 · 归来", "text": "握住" },
-    {
-      "type": "narration",
-      "text": "手里终于有一件能握住的。"
+      "alt": "新铸的兵器靠在石台旁，握柄仍有余温。"
     },
     {
-      "type": "narration",
-      "text": "石室还在。{name}仍住在这里。"
+      "type": "title",
+      "kicker": "洞府 · 器炉",
+      "text": "落在掌心"
     },
-    { "type": "end", "outcome": "held" }
+    {
+      "type": "narration",
+      "text": "兵器从炉里取出时，你等了好一会儿才敢握住。柄上仍热，掌心换了几次位置，终于找到了顺手的握法。"
+    },
+    {
+      "type": "narration",
+      "text": "你试着挥了一下，器房里的空气被带起，墙角挂着的蛛丝轻轻一晃。声音很快散了，只余掌心真切的重量。"
+    },
+    {
+      "type": "narration",
+      "text": "回到案前，玉简上的旧文还剩最后一段。那上面不再是洞府里的去处，而是山门的名字。"
+    },
+    {
+      "type": "end",
+      "outcome": "held"
+    }
   ]
 }

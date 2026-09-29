@@ -1,25 +1,37 @@
 {
   "id": "arrival-gate",
   "title": "山门",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "兵器还温着，玉简上多了一行山门的字。"
+      "alt": "玉简末段列着几处山门，刻线沿山脊向远处延伸。"
     },
-    { "type": "title", "kicker": "洞府 · 门外", "text": "山门" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 案前",
+      "text": "山门"
+    },
     {
       "type": "narration",
-      "text": "手里的兵器还温着。{name}在石室里坐了一坐。"
+      "text": "简上的名字你一个也不熟。青溪坡以外，山路还接着山路；单凭这一张旧舆图，许多地方仍是一片空白。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "世上有山门。可以去看看，也可以就住在这里。"
+      "type": "narration",
+      "text": "山门里有人，也许能问路，能学些在石室里摸索不出的本事。可一旦走进去，往后的日子便不再只是你与这间洞府。"
     },
-    { "type": "end", "outcome": "gate" }
+    {
+      "type": "narration",
+      "text": "你想起刚醒来时，连洞门外的石阶都不敢多走。如今同一条路通向别人的屋檐和灯火，脚步却仍得由自己迈出去。"
+    },
+    {
+      "type": "narration",
+      "text": "你把玉简搁在案上，望向敞开的洞门。风从山里进来，吹得灯火偏了一下，简上的字却静静留在原处。"
+    },
+    {
+      "type": "end",
+      "outcome": "gate"
+    }
   ]
 }

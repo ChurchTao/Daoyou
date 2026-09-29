@@ -378,7 +378,7 @@ export default function SectGateSweepPage() {
           </p>
           <p className="mt-3 text-sm leading-7 text-stone-300">
             {settlement.kind === 'reward'
-              ? '勤务回执已成，请回事务堂领取赏赐。'
+              ? '任务已完成，请到宗门事务领取奖励。'
               : '这是一局自由练习，没有产生任务奖励。'}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">

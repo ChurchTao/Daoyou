@@ -59,7 +59,7 @@ export default function CommunityPage() {
     <GameSceneFrame
       variant="lite"
       title="玩家交流群"
-      description="与道友同修，共论仙途。这里收束了当前 QQ 社群入口与加群提醒，方便离开洞府后继续论道。"
+      description="复制群号后，可在 QQ 搜索并申请入群。"
       aside={
         <GameSceneAsideSection
           title="入群提醒"

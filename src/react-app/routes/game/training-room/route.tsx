@@ -97,7 +97,7 @@ function EncounterSelection({
     <InkCard variant="elevated" padding="lg">
       <h2 className="font-heading text-xl">选择演武场景</h2>
       <p className="text-ink-secondary mt-2 text-sm">
-        训练不产生奖励、消耗回写或失败成本。
+        训练没有奖励，战斗中的资源损耗不会保留到角色身上。
       </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <label className="space-y-1 text-sm">
@@ -193,7 +193,7 @@ export default function TrainingRoomPage() {
         <InkCard variant="highlighted" padding="lg">
           <h2 className="font-heading text-xl">尚无有效宗门</h2>
           <p className="text-ink-secondary mt-2 text-sm">
-            加入已接入 combat-v6 的宗门后方可演武。
+            加入可演武的宗门后，才能使用练功房。
           </p>
           <div className="mt-3">
             <InkButton href="/game/sect" variant="primary">
@@ -204,7 +204,7 @@ export default function TrainingRoomPage() {
       ) : null}
       {!loading && build?.membershipId && !build.sectId ? (
         <InkCard variant="highlighted" padding="lg">
-          当前宗门尚未接入 combat-v6。
+          当前宗门暂时无法使用练功房。
         </InkCard>
       ) : null}
       {!loading && build?.sectId && build.status !== 'active' ? (
@@ -282,7 +282,7 @@ export default function TrainingRoomPage() {
             }
             openDialog({
               title: '放弃训练',
-              content: '确认放弃本次训练？训练不产生奖励、消耗回写或失败成本。',
+              content: '结束后将离开当前战斗。训练没有奖励，战斗中的资源损耗不会保留到角色身上。',
               confirmLabel: '确认放弃',
               cancelLabel: '继续训练',
               loadingLabel: '正在结束训练……',

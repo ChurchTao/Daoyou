@@ -89,7 +89,7 @@ export default function InnRecoveryPage() {
     : null;
 
   if (isLoading && !cultivator) {
-    return <GameSceneLoading message="灵眼之泉雾气未散……" />;
+    return <GameSceneLoading message="正在查看灵眼之泉……" />;
   }
 
   if (!cultivator || !state) {
@@ -126,8 +126,8 @@ export default function InnRecoveryPage() {
 
       const recoveryMessage =
         result.cultivationLossAmount > 0
-          ? `你在灵眼之泉中静养片刻，气息已稳。修为折损 ${result.cultivationLossAmount} 点。`
-          : '你在灵眼之泉中静养片刻，气息已稳。';
+          ? `已在灵眼之泉疗伤，修为折损 ${result.cultivationLossAmount} 点。`
+          : '已在灵眼之泉疗伤。';
 
       pushToast({
         message: recoveryMessage,

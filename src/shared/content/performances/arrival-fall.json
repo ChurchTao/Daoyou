@@ -1,55 +1,74 @@
 {
   "id": "arrival-fall",
-  "title": "入世",
-  "requires": ["name", "background"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "title": "陌生洞府",
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "石室空着，洞口有一点天光。"
+      "alt": "山壁围成一间低矮石室，裂缝里漏进一线天光。"
     },
-    { "type": "title", "kicker": "洞府 · 初醒", "text": "入世" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 初醒",
+      "text": "陌生洞府"
+    },
     {
       "type": "narration",
-      "text": "{name}在一处没有别人的洞府里醒来。石壁是凉的，案上压着一块玉简。"
+      "text": "醒来时，石榻硌得肩背发麻。滴水声从暗处传来，隔很久才落下一声；你屏住呼吸，也没听见第二个人。"
     },
     {
       "type": "narration",
-      "text": "玉简自己热了一热，上面的字是熟悉的。"
+      "text": "门外有光，屋里却冷得像久未生火。案上压着一块磨损的玉简，边角被人摸得温润，旁边还放着一盏油灯。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "{background}"
+      "type": "narration",
+      "text": "指腹贴上简面，几行旧字才慢慢浮出：雨天关好洞门，丹房的火别离人。写字的人曾在这里过日子，如今不知去了哪里。"
     },
     {
       "type": "choice",
       "options": [
-        { "label": "握住玉简", "jump": "hold" },
-        { "label": "先看洞口", "jump": "mouth" }
+        {
+          "label": "先看看石室",
+          "jump": "hold"
+        },
+        {
+          "label": "去洞口看看",
+          "jump": "mouth"
+        }
       ]
     },
-    { "type": "mark", "id": "hold" },
     {
-      "type": "narration",
-      "text": "玉简凉回掌心，洞里终于安静。"
+      "type": "mark",
+      "id": "hold"
     },
     {
       "type": "narration",
-      "text": "这里可以先住下。"
-    },
-    { "type": "end", "outcome": "entered" },
-    { "type": "mark", "id": "mouth" },
-    {
-      "type": "narration",
-      "text": "门外有风，路还认不得。这间石室倒是能挡风。"
+      "text": "石壁上留着挂衣的木钉，榻下塞着一卷落灰的毯子。你抖开它，灰尘在光里浮了一阵，屋里仍旧静悄悄的。"
     },
     {
       "type": "narration",
-      "text": "这里可以先住下。"
+      "text": "门外的天色渐暗。你把毯子搭在榻边，今晚不必睡在山路上。"
     },
-    { "type": "end", "outcome": "entered" }
+    {
+      "type": "end",
+      "outcome": "entered"
+    },
+    {
+      "type": "mark",
+      "id": "mouth"
+    },
+    {
+      "type": "narration",
+      "text": "走到门边，潮湿的山风扑在脸上。路贴着崖壁转过去，尽头被树影遮住，看不见人家。"
+    },
+    {
+      "type": "narration",
+      "text": "你把洞门推回去，木闩落进石槽。外面的路可以等到天亮，这一夜先留在石室里。"
+    },
+    {
+      "type": "end",
+      "outcome": "entered"
+    }
   ]
 }

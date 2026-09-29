@@ -52,7 +52,7 @@ export default function StoryRoute() {
         name: cultivator.name,
         background: cultivator.background?.trim() || '尚无来处',
       }}
-      finalLabel="进入洞府"
+      finalLabel="继续"
       exitLabel="稍后再看"
       busy={busy}
       error={error}

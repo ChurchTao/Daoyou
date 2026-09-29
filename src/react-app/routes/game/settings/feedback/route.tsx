@@ -64,7 +64,7 @@ export default function FeedbackPage() {
     <GameSceneFrame
       variant="lite"
       title="意见反馈"
-      description="广纳良言，共筑仙途。这里保留表单本体，把反馈类型、内容与外链提交整合进统一服务场景。"
+      description="遇到问题或有改进建议，可以在这里告诉我们。"
       aside={
         <>
           <GameSceneAsideSection
@@ -116,7 +116,7 @@ export default function FeedbackPage() {
         {/* 反馈内容 */}
         <InkInput
           label="反馈内容"
-          placeholder="请详细描述您遇到的问题或建议..."
+          placeholder="写下遇到的问题或你的建议"
           value={content}
           onChange={setContent}
           multiline

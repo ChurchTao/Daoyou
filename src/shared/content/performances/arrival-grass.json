@@ -1,22 +1,37 @@
 {
   "id": "arrival-grass",
-  "title": "草气",
-  "requires": ["name"],
+  "title": "草叶",
+  "requires": [],
   "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "风里有草气，和洞里那三株翠芽草是同一种。"
-    },
-    { "type": "title", "kicker": "洞府 · 归来", "text": "草气" },
-    {
-      "type": "narration",
-      "text": "溪坡还远。风里的草气，却和简下那三株一样。"
+      "alt": "舆图的天南一隅，山道止在一道弯弯的溪水旁。"
     },
     {
-      "type": "narration",
-      "text": "石室还在。{name}仍住在这里。"
+      "type": "title",
+      "kicker": "洞府 · 案前",
+      "text": "草叶"
     },
-    { "type": "end", "outcome": "known" }
+    {
+      "type": "narration",
+      "text": "舆图上的青溪坡挨着水，坡后是大片没有标出小路的林地。你想到玉简下那三株干草；在被人摘下之前，它们也曾长在这样的溪边。"
+    },
+    {
+      "type": "narration",
+      "text": "路记的边角画着一片细长草叶，叶尖微卷，和昨天见过的那几株很像。干草总会用完，活草却还长在溪边。"
+    },
+    {
+      "type": "narration",
+      "text": "指尖顺着舆图上的水线滑过去，纸面在木案上发出轻轻的沙沙声。窗外树叶也在响，远处的溪坡忽然有了形状。"
+    },
+    {
+      "type": "narration",
+      "text": "你把舆图放平，窗外的风吹得纸角轻轻抬起。那道溪水离石室有多远，坐在案前终究看不出来。"
+    },
+    {
+      "type": "end",
+      "outcome": "known"
+    }
   ]
 }

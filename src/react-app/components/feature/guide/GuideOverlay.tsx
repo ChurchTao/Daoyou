@@ -385,7 +385,7 @@ function GuideSession({
             </InkButton>
           ) : null}
           {step?.type === 'press' && hole && !state.finished ? (
-            <p className="text-sm text-ink-secondary">点亮着的这一处。</p>
+            <p className="text-sm text-ink-secondary">点击高亮位置继续。</p>
           ) : null}
           {noting ? null : (
             <button

@@ -24,7 +24,7 @@ export async function combatV6Request<T>(
   };
   if (!response.ok || body.success !== true)
     throw new CombatV6RequestError(
-      body.error ?? `请求失败（${response.status}）`,
+      body.error ?? '操作未完成，请稍后重试。',
       body.code,
       response.status,
     );

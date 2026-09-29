@@ -1,29 +1,37 @@
 {
   "id": "arrival-spring",
-  "title": "灵泉",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "title": "水声",
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "石室里泉声很轻，衣上还有坡上的土。"
+      "alt": "洞府深处的石缝湿润，水声顺着暗处传出来。"
     },
-    { "type": "title", "kicker": "洞府 · 归来", "text": "灵泉" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 内室",
+      "text": "水声"
+    },
     {
       "type": "narration",
-      "text": "{name}从青溪坡回来，臂上和肋下都在发热。"
+      "text": "青溪坡的泥还留在鞋底。你沿着内室的水声往里走，石壁渐渐潮了，空气也比外间凉。"
     },
     {
       "type": "narration",
-      "text": "玉简凉了一凉，又热起来。"
+      "text": "拐过一道窄弯，一眼泉水从石隙里涌出，落进浅浅的石池。水面没有尘灰，靠近时能闻到湿石和苔的气味。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "伤了就回洞府。泉在深处。"
+      "type": "narration",
+      "text": "石池边缘磨出一圈浅痕，不知有多少人曾蹲在这里捧水。水一直流着，连你从坡上带回的泥也很快被冲散。"
     },
-    { "type": "end", "outcome": "spring" }
+    {
+      "type": "narration",
+      "text": "你蹲下洗去指尖的泥，水从手腕滑进袖口，凉得肩头一缩。回身时，湿石的气味仍跟着你。"
+    },
+    {
+      "type": "end",
+      "outcome": "spring"
+    }
   ]
 }

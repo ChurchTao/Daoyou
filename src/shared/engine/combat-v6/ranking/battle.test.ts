@@ -103,10 +103,15 @@ it('回合上限按平局结束', () => {
   expect(trace.finalState.round).toBe(100);
 });
 
-it('旧策略输入拒绝重新模拟，不静默改变未完成挑战结果', () => {
+it.each(['combat_auto_rules_v3', undefined])('旧策略挑战（%s）按临场应变完成，忽略冻结的自定战术', (version) => {
   const input = compileRankingBattle([player('a'), player('b')], 5);
-  delete input.versions.autoPolicyVersion;
-  expect(() => simulateRankingBattle(input)).toThrow('策略版本不匹配');
+  input.versions.autoPolicyVersion = version;
+  input.autoStrategies = {
+    a: { version: 1, rules: [{ conditions: [], action: { type: 'defend' }, target: 'best' }] },
+  };
+  const withoutStrategies = structuredClone(input);
+  withoutStrategies.autoStrategies = undefined;
+  expect(simulateRankingBattle(input)).toEqual(simulateRankingBattle(withoutStrategies));
 });
 
 it('同宗不同道途的技能按角色隔离，保留补丁与原始构筑', () => {

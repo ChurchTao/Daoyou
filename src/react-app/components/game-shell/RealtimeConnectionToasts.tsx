@@ -49,8 +49,8 @@ export function RealtimeConnectionToasts() {
           disconnectToastActive.current = true;
           pushToast({
             message: hasBlockedChannel
-              ? '实时服务器连接受限'
-              : '实时服务器断开，正在重连',
+              ? '实时功能暂不可用'
+              : '实时功能连接中断，正在重连',
             tone: hasBlockedChannel ? 'danger' : 'warning',
             duration: 3600,
           });
@@ -63,7 +63,7 @@ export function RealtimeConnectionToasts() {
         if (!restoreToastActive.current) {
           restoreToastActive.current = true;
           pushToast({
-            message: '实时服务器连接已恢复',
+            message: '实时功能连接已恢复',
             tone: 'success',
             duration: 2600,
           });

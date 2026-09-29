@@ -18,7 +18,7 @@ import {
   resolveArena,
   validateArenaCommand,
 } from '@shared/combat-v6/arena';
-import { automaticCommands } from '@shared/combat-v6/auto';
+import { AUTO_POLICY_VERSION, automaticCommands } from '@shared/combat-v6/auto';
 import { validateCommandGroup } from '@shared/combat-v6/controlled-commands';
 import {
   combatV6ReplayView,
@@ -257,7 +257,13 @@ export async function submitArenaV6(
             participant.unitId,
             runtime.skills,
             (unitId) => arenaBattle(runtime).queryCommands(unitId),
-            { statusDefs: runtime.statusDefs, strategies: runtime.autoStrategies },
+            {
+              statusDefs: runtime.statusDefs,
+              strategies:
+                runtime.state.versions.autoPolicyVersion === AUTO_POLICY_VERSION
+                  ? runtime.autoStrategies
+                  : undefined,
+            },
           )
         : input.commands;
     try {

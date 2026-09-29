@@ -26,7 +26,7 @@ describe('guide catalog production chains', () => {
     });
     expect(
       steps.at(-1)?.type === 'look' ? steps.at(-1)?.text : '',
-    ).toContain('先认到这里');
+    ).toContain('随时可以试一炉');
   });
 
   it('keeps every production lesson closed by end', () => {

@@ -1,22 +1,37 @@
 {
   "id": "arrival-remain",
-  "title": "石室",
-  "requires": ["name"],
+  "title": "回到石室",
+  "requires": [],
   "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "山门在那里，石室也还在。"
-    },
-    { "type": "title", "kicker": "洞府 · 归来", "text": "石室" },
-    {
-      "type": "narration",
-      "text": "山门在那里。"
+      "alt": "石室的案上仍有那块玉简，门外是通往山门的路。"
     },
     {
-      "type": "narration",
-      "text": "石室也还在。{name}仍住在这里。"
+      "type": "title",
+      "kicker": "洞府 · 归来",
+      "text": "回到石室"
     },
-    { "type": "end", "outcome": "remained" }
+    {
+      "type": "narration",
+      "text": "从山门回来，石室比记忆里窄了一些。旧毯还搭在榻边，案上的油灯也没有挪过地方。"
+    },
+    {
+      "type": "narration",
+      "text": "你把兵器倚在石壁旁，指尖掠过玉简磨亮的边角。先前读不懂的最后几行，如今有一条路已经被你走过。"
+    },
+    {
+      "type": "narration",
+      "text": "暗处又传来水滴落下的一声。初醒时它让这屋子显得格外空，如今混着门外的风，听来倒很熟悉。"
+    },
+    {
+      "type": "narration",
+      "text": "门外又起了风。木闩就在手边，但这一次，你没有急着把门关上。"
+    },
+    {
+      "type": "end",
+      "outcome": "remained"
+    }
   ]
 }

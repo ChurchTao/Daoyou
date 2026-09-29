@@ -1,29 +1,33 @@
 {
   "id": "arrival-tracks",
-  "title": "兽迹",
-  "requires": ["name"],
-  "cast": {
-    "slip": { "name": "玉简" }
-  },
+  "title": "爪印",
+  "requires": [],
+  "cast": {},
   "cues": [
     {
       "type": "scene",
-      "alt": "青溪坡的风里，有一串新爪印。"
+      "alt": "玉简的路记旁，几枚小小的爪印从草图边缘穿过。"
     },
-    { "type": "title", "kicker": "青溪 · 坡上", "text": "兽迹" },
+    {
+      "type": "title",
+      "kicker": "洞府 · 案前",
+      "text": "爪印"
+    },
     {
       "type": "narration",
-      "text": "草气又来了。这一次，风里带着细碎的土腥。"
+      "text": "路记的边缘还有几枚歪斜的爪印，先前被你的手指挡住了。线条并不工整，倒像有人在匆忙间补上去的。"
     },
     {
       "type": "narration",
-      "text": "{name}顺着石痕望去。青溪坡上有一串新爪印，朝向和洞口那道痕一样。"
+      "text": "窗外忽然掠过一阵急风，树叶擦着洞口响。你把玉简放回案上，手指在那几枚爪印上停了停。"
     },
     {
-      "type": "line",
-      "speaker": "slip",
-      "text": "打一场，或捉一只，都行。"
+      "type": "narration",
+      "text": "青溪坡有草，也有在草里走动的东西。门外的山路依旧静着，等你亲自走过去。"
     },
-    { "type": "end", "outcome": "tracks" }
+    {
+      "type": "end",
+      "outcome": "tracks"
+    }
   ]
 }

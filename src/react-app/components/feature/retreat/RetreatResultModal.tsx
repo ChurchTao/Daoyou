@@ -250,8 +250,8 @@ function getStoryText(
   }
 
   if (isStreaming) {
-    return '天机推演中……';
+    return '正在生成闭关故事……';
   }
 
-  return '天机推演中断，此番结果已然落定。';
+  return '本次闭关已结算，故事暂未生成。';
 }

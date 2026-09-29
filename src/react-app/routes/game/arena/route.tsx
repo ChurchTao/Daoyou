@@ -653,6 +653,6 @@ async function requestArena<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   const body = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(body.error ?? '擂台请求失败');
+  if (!response.ok) throw new Error(body.error ?? '擂台暂时无法使用，请稍后重试。');
   return body;
 }

@@ -67,7 +67,7 @@ export default function BeastsPage() {
         if (!read.signal.aborted) {
           setFailed(true);
           pushToast({
-            message: e instanceof Error ? e.message : '读取失败',
+            message: e instanceof Error ? e.message : '灵兽袋读取失败',
             tone: 'danger',
           });
         }
@@ -111,7 +111,7 @@ export default function BeastsPage() {
     } catch (e) {
       if (!read.signal.aborted)
         pushToast({
-          message: e instanceof Error ? e.message : '操作失败',
+          message: e instanceof Error ? e.message : '灵兽操作失败',
           tone: 'danger',
         });
     } finally {
@@ -170,7 +170,7 @@ export default function BeastsPage() {
       {!view ? (
         <div className="flex items-center justify-between gap-3">
           <p className="text-ink-secondary text-sm">
-            {failed ? '灵兽袋读取失败' : '正在寻访灵兽……'}
+            {failed ? '灵兽袋读取失败' : '正在查看灵兽袋……'}
           </p>
           {failed ? (
             <InkButton onClick={() => window.location.reload()}>

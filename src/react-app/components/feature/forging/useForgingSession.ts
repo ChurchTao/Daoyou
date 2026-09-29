@@ -244,7 +244,7 @@ export function useForgingSession(filter: InventoryFilter) {
       bagQuery.invalidate();
       if (alive.current) {
         setError(
-          `${e instanceof Error ? e.message : '请求失败'}。可重试本次开炉以核对结果，或核对储物袋后重新备料。`,
+          `${e instanceof Error ? e.message : '开炉结果暂时无法确认'}。可重试本次开炉以核对结果，或核对储物袋后重新备料。`,
         );
         setRetryInput(input);
         setBlueprintId('');

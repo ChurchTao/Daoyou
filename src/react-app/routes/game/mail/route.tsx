@@ -507,8 +507,8 @@ export default function MailPage() {
                 title: '收件玉简操作说明',
                 content: (
                   <div className="space-y-2 text-sm leading-7">
-                    <p>点击玉简可展开全文，未读会即时回写。</p>
-                    <p>奖励类来函支持就地领取，不必离开当前场景。</p>
+                    <p>打开玉简可查看全文，未读玉简会标记为已读。</p>
+                    <p>有附件的玉简可在此领取。</p>
                   </div>
                 ),
               }}

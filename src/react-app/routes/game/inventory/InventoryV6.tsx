@@ -144,12 +144,20 @@ export default function InventoryV6() {
       pushToast({
         message:
           action.action === 'transfer_many'
-            ? `已转移 ${action.items.length} 件物品`
+            ? `已将 ${action.items.length} 件物品${action.location === 'bag' ? '取入储物袋' : '存入洞府储藏室'}。`
             : action.action === 'equip'
               ? action.equipped
-                ? '已穿戴道装'
-                : '已卸下道装'
-              : '已完成',
+                ? '已穿戴道装。'
+                : '已卸下道装。'
+              : action.action === 'transfer'
+                ? action.location === 'bag'
+                  ? '物品已取入储物袋。'
+                  : '物品已存入洞府储藏室。'
+                : action.action === 'sort'
+                  ? '已整理随身物品。'
+                  : action.action === 'use'
+                    ? '物品已使用。'
+                    : '物品已更新。',
         tone: 'success',
       });
       setSelectedIds(new Set());
@@ -157,7 +165,7 @@ export default function InventoryV6() {
       bagQuery.invalidate();
       if (mounted.current)
         pushToast({
-          message: `${e instanceof Error ? e.message : '请求失败'}；请重新核对物品状态后操作。`,
+          message: `${e instanceof Error ? e.message : '操作未完成'}；请重新核对物品状态后操作。`,
           tone: 'danger',
         });
     } finally {
@@ -347,7 +355,7 @@ export default function InventoryV6() {
                         {location === 'bag' ? '存入' : '取出'}
                       </span>
                       <span className="hidden @min-[30rem]:inline">
-                        {location === 'bag' ? '存入储藏室' : '取入背包'}
+                        {location === 'bag' ? '存入洞府储藏室' : '取入储物袋'}
                       </span>
                     </InkButton>
                   </>
@@ -590,7 +598,7 @@ function ItemActions({
             })
           }
         >
-          {item.location === 'bag' ? '存入储藏室' : '取入背包'}
+          {item.location === 'bag' ? '存入洞府储藏室' : '取入储物袋'}
         </InkButton>
       </div>
       {item.location === 'bag' &&
