@@ -1,5 +1,6 @@
 import { BEAST_REFINEMENT } from '../engine/combat-v6/beasts/refinement-config';
 import { BOOKS } from './definitions/beast-books';
+import { BEAST_REJUVENATION } from './definitions/beast-rejuvenation';
 import { CONSUMABLE_ITEM } from './definitions/consumables';
 import { EQUIPMENT_ITEM } from './definitions/equipment';
 import { BLUEPRINTS } from './definitions/equipment-blueprints';
@@ -14,6 +15,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     ...item,
     kind: 'beast_refinement' as const,
   })),
+  BEAST_REJUVENATION,
   ...BLUEPRINTS,
   EQUIPMENT_ITEM,
   MATERIAL_ITEM,

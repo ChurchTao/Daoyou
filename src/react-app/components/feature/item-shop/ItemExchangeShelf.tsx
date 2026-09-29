@@ -17,6 +17,7 @@ const kinds = {
   seed: '灵种',
   beast_book: '传承灵印',
   beast_refinement: '归元灵露',
+  beast_rejuvenation: '化生果',
   manual_jade: '功法玉简',
   blueprint: '图纸',
   inscription: '阵纹',

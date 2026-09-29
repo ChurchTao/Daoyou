@@ -9,6 +9,7 @@ import {
 } from '../core';
 import { isStanding } from '../core/units';
 import { BEAST_PROGRESSION, BEAST_SPECIES } from './content';
+import { beastPointBudget } from './identity';
 import { BeastSchema, type SummonedBeast } from './schema';
 export { generateCapturedBeast } from './generator';
 
@@ -96,7 +97,7 @@ export function gainBeastExp(
     exp: level === cap ? 0 : exp,
     unallocatedPoints:
       beast.unallocatedPoints +
-      (level - beast.level) * BEAST_PROGRESSION.pointsPerLevel,
+      beastPointBudget({ ...beast, level }) - beastPointBudget(beast),
     revision: beast.revision + 1,
   });
 }

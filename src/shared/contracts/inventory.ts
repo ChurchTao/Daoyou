@@ -17,6 +17,7 @@ export const InventoryQuerySchema = z
         'seed',
         'beast_book',
         'beast_refinement',
+        'beast_rejuvenation',
         'equipment',
         'blueprint',
         'material',
@@ -121,6 +122,14 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
   z
     .object({
       action: z.literal('refine'),
+      ...ref,
+      beastId: z.uuid(),
+      beastRevision: z.number().int().nonnegative(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('rejuvenate'),
       ...ref,
       beastId: z.uuid(),
       beastRevision: z.number().int().nonnegative(),

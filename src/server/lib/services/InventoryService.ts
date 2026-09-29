@@ -6,6 +6,7 @@ import type {
 import { previewBeastFeeding } from '@shared/engine/combat-v6/beasts/feeding';
 import { refineBeast } from '@shared/engine/combat-v6/beasts/refinement';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
+import { rejuvenateBeast } from '@shared/engine/combat-v6/beasts/rejuvenation';
 import {
   compileDaoEquipmentSpecialLoadoutV1,
   type DaoEquipmentInstanceV1,
@@ -23,6 +24,7 @@ import {
   type ItemGrant,
 } from '@shared/inventory';
 import { changeEquipmentLocation } from '@shared/inventory/equipment-location';
+import { BEAST_REJUVENATION } from '@shared/items/definitions/beast-rejuvenation';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
 import { SeedFactsSchema } from '@shared/items/definitions/seeds';
@@ -738,6 +740,41 @@ export async function mutateInventory(owner: string, input: InventoryAction) {
               newSkillCount: refined.skills.length,
             };
             item.quantity -= dew.consumeQuantity;
+            item.revision++;
+            if (!item.quantity) next = next.filter((i) => i.id !== item.id);
+          } else if (input.action === 'rejuvenate') {
+            if (
+              item.definitionId !== BEAST_REJUVENATION.id ||
+              (item.location !== 'bag' && item.location !== 'storage') ||
+              item.quantity < 1
+            )
+              throw new InventoryError('请选择储物袋或储藏室中的化生果');
+            const roster = await readBeastRoster(owner, tx);
+            const beast = roster.beasts.find(
+              (b) =>
+                b.id === input.beastId && b.revision === input.beastRevision,
+            );
+            if (!beast) throw new InventoryError('灵兽已有变化，请重新查看');
+            if (
+              !beast.level &&
+              !beast.exp &&
+              Object.values(beast.allocatedAttributes).every(
+                (point) => point === 0,
+              )
+            )
+              throw new InventoryError('灵兽已是初生状态');
+            const rejuvenated = rejuvenateBeast(beast);
+            await tx
+              .update(cultivatorBeasts)
+              .set({ individual: beastIndividualData(rejuvenated) })
+              .where(
+                and(
+                  eq(cultivatorBeasts.id, beast.id),
+                  eq(cultivatorBeasts.cultivatorId, owner),
+                ),
+              );
+            result = { level: rejuvenated.level };
+            item.quantity--;
             item.revision++;
             if (!item.quantity) next = next.filter((i) => i.id !== item.id);
           } else if (input.action === 'equip') {

@@ -10,6 +10,7 @@ const stockShape = z.strictObject({
   normalBooks: z.number().int().nonnegative().max(8),
   advancedBooks: z.number().int().nonnegative().max(8),
   originDew: z.number().int().nonnegative().max(8),
+  rejuvenationFruit: z.number().int().nonnegative().max(8),
   superiorOriginDew: z.number().int().nonnegative().max(8),
 });
 const priceRange = z
@@ -45,6 +46,7 @@ const packShape = z.strictObject({
         .refine((value) => value.min < value.max),
     }),
     originDew: z.number().int().positive(),
+    rejuvenationFruit: priceRange,
     superiorOriginDew: z.number().int().positive(),
   }),
   rarityWeights: z.record(rarity, z.number().positive()),
@@ -136,6 +138,10 @@ export function sampleBeastMarketStock(
     ...Array.from({ length: stock.originDew }, () => ({
       definitionId: 'beast.refinement.origin-dew',
       price: prices.originDew,
+    })),
+    ...Array.from({ length: stock.rejuvenationFruit }, () => ({
+      definitionId: 'beast.rejuvenation.huasheng-fruit',
+      price: rollPrice(prices.rejuvenationFruit),
     })),
     ...Array.from({ length: stock.superiorOriginDew }, () => ({
       definitionId: 'beast.refinement.superior-origin-dew',

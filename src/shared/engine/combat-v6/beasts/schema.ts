@@ -52,7 +52,6 @@ export const BeastSchema = z
       new Set(beast.skills).size !== beast.skills.length ||
       beast.skills.some((id) => !BEAST_SKILLS.some((s) => s.id === id)) ||
       beast.currentLifespan > beast.maxLifespan ||
-      beast.level < beast.initialLevel ||
       (beast.originKind === 'wild' && beast.initialLevel < 1) ||
       (!!beast.isMutant && beast.originKind !== 'baby')
     )

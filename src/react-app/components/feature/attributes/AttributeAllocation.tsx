@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
 } from 'react';
 
@@ -84,6 +85,7 @@ export function AttributeAllocation<K extends string>({
   onChange,
   disabled = false,
   onConfirm,
+  headerAction,
 }: {
   attributes: readonly { id: K; label: string; value: number }[];
   available: number;
@@ -91,6 +93,7 @@ export function AttributeAllocation<K extends string>({
   onChange: Dispatch<SetStateAction<Record<K, number>>>;
   disabled?: boolean;
   onConfirm: () => void;
+  headerAction?: ReactNode;
 }) {
   const total = attributes.reduce(
     (sum, attribute) => sum + draft[attribute.id],
@@ -100,15 +103,18 @@ export function AttributeAllocation<K extends string>({
     <section className="border-ink/15 border-t pt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-teal text-sm">属性加点</h3>
-        <span className="text-ink-secondary text-xs" aria-live="polite">
-          待分配 <span className="font-mono">{available - total}</span>
-          {total > 0 ? (
-            <>
-              {' '}
-              · 已预分配 <span className="font-mono">{total}</span>
-            </>
-          ) : null}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-ink-secondary text-xs" aria-live="polite">
+            待分配 <span className="font-mono">{available - total}</span>
+            {total > 0 ? (
+              <>
+                {' '}
+                · 已预分配 <span className="font-mono">{total}</span>
+              </>
+            ) : null}
+          </span>
+          {headerAction}
+        </div>
       </div>
       <div
         className={`grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 ${attributes.length === 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}

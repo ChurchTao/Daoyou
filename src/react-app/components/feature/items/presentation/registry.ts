@@ -6,6 +6,7 @@ import {
   manualAdapter,
   materialAdapter,
   refinementAdapter,
+  rejuvenationAdapter,
   seedAdapter,
 } from './basic';
 import { consumableAdapter } from './consumable';
@@ -23,6 +24,7 @@ const adapters = {
   inscription: inscriptionAdapter,
   beast_book: beastBookAdapter,
   beast_refinement: refinementAdapter,
+  beast_rejuvenation: rejuvenationAdapter,
 } satisfies Record<ItemDefinition['kind'], ItemAdapter>;
 
 export function resolveItemPresentation(item: DisplayItem) {

@@ -1,23 +1,26 @@
 {
   "formatVersion": 2,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "stock": {
     "common": {
       "normalBooks": 4,
       "advancedBooks": 1,
       "originDew": 2,
+      "rejuvenationFruit": 0,
       "superiorOriginDew": 1
     },
     "treasure": {
       "normalBooks": 3,
       "advancedBooks": 1,
       "originDew": 3,
+      "rejuvenationFruit": 0,
       "superiorOriginDew": 1
     },
     "heaven": {
       "normalBooks": 2,
       "advancedBooks": 2,
-      "originDew": 2,
+      "originDew": 1,
+      "rejuvenationFruit": 1,
       "superiorOriginDew": 2
     }
   },
@@ -37,6 +40,10 @@
       }
     },
     "originDew": 60000,
+    "rejuvenationFruit": {
+      "min": 1700000,
+      "max": 1900000
+    },
     "superiorOriginDew": 360000
   },
   "rarityWeights": {

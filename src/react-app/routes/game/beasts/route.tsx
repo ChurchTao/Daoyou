@@ -40,6 +40,7 @@ export default function BeastsPage() {
   const [claimId, setClaimId] = useState<string>();
   const [learningId, setLearningId] = useState<string>();
   const [refiningId, setRefiningId] = useState<string>();
+  const [rejuvenatingId, setRejuvenatingId] = useState<string>();
   const [feedingId, setFeedingId] = useState<string>();
   const [renamingId, setRenamingId] = useState<string>();
   const [action, setAction] = useState<{
@@ -339,6 +340,7 @@ export default function BeastsPage() {
                 act={(type) => setAction({ beastId: detail.id, type })}
                 learn={() => setLearningId(detail.id)}
                 refine={() => setRefiningId(detail.id)}
+                rejuvenate={() => setRejuvenatingId(detail.id)}
                 feed={() => setFeedingId(detail.id)}
                 rename={() => setRenamingId(detail.id)}
                 allocate={(points) =>
@@ -391,6 +393,14 @@ export default function BeastsPage() {
           beastId={refiningId}
           mode="refine"
           close={() => setRefiningId(undefined)}
+          onUpdate={setView}
+        />
+      ) : null}
+      {rejuvenatingId ? (
+        <BeastBookDrawer
+          beastId={rejuvenatingId}
+          mode="rejuvenate"
+          close={() => setRejuvenatingId(undefined)}
           onUpdate={setView}
         />
       ) : null}

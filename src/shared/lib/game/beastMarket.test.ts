@@ -7,17 +7,22 @@ import {
 
 describe('御灵集货架', () => {
   it.each([
-    ['common', 4, 1, 2, 1],
-    ['treasure', 3, 1, 3, 1],
-    ['heaven', 2, 2, 2, 2],
+    ['common', 4, 1, 2, 0, 1],
+    ['treasure', 3, 1, 3, 0, 1],
+    ['heaven', 2, 2, 1, 1, 2],
   ] as const)(
     '%s 每批按层级生成八件货品',
-    (layer, normal, advanced, dew, superiorDew) => {
+    (layer, normal, advanced, dew, fruit, superiorDew) => {
       const stock = sampleBeastMarketStock(layer, () => 0);
       const books = stock.filter((item) =>
         item.definitionId.startsWith('book.'),
       );
       expect(stock).toHaveLength(8);
+      expect(
+        stock.filter(
+          (item) => item.definitionId === 'beast.rejuvenation.huasheng-fruit',
+        ),
+      ).toHaveLength(fruit);
       expect(new Set(books.map((item) => item.definitionId)).size).toBe(
         normal + advanced,
       );
@@ -40,6 +45,10 @@ describe('御灵集货架', () => {
             item.definitionId === 'beast.refinement.superior-origin-dew',
         ),
       ).toHaveLength(superiorDew);
+      for (const item of stock.filter(
+        (item) => item.definitionId === 'beast.rejuvenation.huasheng-fruit',
+      ))
+        expect(item.price).toBeGreaterThanOrEqual(1700000);
     },
   );
 

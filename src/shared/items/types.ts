@@ -6,6 +6,7 @@ export interface ItemDefinition {
   kind:
     | 'beast_book'
     | 'beast_refinement'
+    | 'beast_rejuvenation'
     | 'equipment'
     | 'blueprint'
     | 'material'

@@ -6,6 +6,7 @@ import {
   BEAST_SKILL_FAMILIES,
 } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
+import { BEAST_REJUVENATION } from '@shared/items/definitions/beast-rejuvenation';
 import { CHARACTER_MANUALS_V1 } from '@shared/engine/combat-v6/manuals/content';
 import { manualEffectLines } from '@shared/engine/combat-v6/manuals/presentation';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
@@ -201,3 +202,27 @@ export const refinementAdapter: ItemAdapter = (item, def) => {
     }),
   };
 };
+export const rejuvenationAdapter: ItemAdapter = (item) => ({
+  summary: {
+    icon: '🍑',
+    color: tierColorMap['天品'],
+    tier: '',
+    type: '灵果',
+  },
+  preview: (options) => ({
+    header: [
+      field('类型', '灵果'),
+      field('功能', '灵兽洗点'),
+      quantity(item, options),
+    ],
+    sections: [
+      {
+        title: '洗点效果',
+        entries: lines(
+          '等级与修为归零，属性点重新养成。野生灵兽原有的点数亏损保留。',
+        ),
+      },
+    ],
+    description: BEAST_REJUVENATION.description,
+  }),
+});

@@ -68,6 +68,7 @@ export function BeastPanel({
   act,
   learn,
   refine,
+  rejuvenate,
   feed,
   rename,
   allocate,
@@ -83,6 +84,7 @@ export function BeastPanel({
   act: (action: BeastAction) => void;
   learn: () => void;
   refine: () => void;
+  rejuvenate: () => void;
   feed: () => void;
   rename: () => void;
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
@@ -156,7 +158,7 @@ export function BeastPanel({
           {beast.originKind === 'wild' && (
             <p className="text-ink-secondary text-xs">
               初始{beast.initialLevel}级，较同级幼崽少
-              {50 + 2 * beast.initialLevel}属性点
+              {50 + 2 * Math.min(beast.level, beast.initialLevel)}属性点
             </p>
           )}
           <div className="text-ink-secondary flex flex-wrap items-center gap-x-3 text-xs">
@@ -309,6 +311,11 @@ export function BeastPanel({
         onChange={setDraft}
         disabled={pending || !canAllocate || confirming}
         onConfirm={() => setConfirming(true)}
+        headerAction={
+          <InkButton disabled={pending} onClick={rejuvenate}>
+            洗点
+          </InkButton>
+        }
       />
       <InkModal
         isOpen={confirming}
@@ -357,7 +364,7 @@ export function BeastPanel({
       <section className="border-ink/15 border-t pt-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-teal text-sm">技能</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <InkButton disabled={pending} onClick={learn}>
               领悟传承
             </InkButton>

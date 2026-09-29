@@ -24,6 +24,7 @@ export const AUCTION_ITEM_TYPES = [
   'inscription',
   'beast_book',
   'beast_refinement',
+  'beast_rejuvenation',
   'beast',
 ] as const;
 export type AuctionItemType = (typeof AUCTION_ITEM_TYPES)[number];
@@ -38,6 +39,7 @@ export const AUCTION_TYPE_NAMES: Record<AuctionItemType, string> = {
   inscription: '阵纹',
   beast_book: '传承灵印',
   beast_refinement: '灵露',
+  beast_rejuvenation: '灵果',
   beast: '灵兽',
 };
 export const AuctionListSchema = z

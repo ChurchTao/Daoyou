@@ -45,8 +45,8 @@ export function BeastTradeDetails({
       </div>
       {beast.originKind === 'wild' && (
         <p className="text-ink-secondary">
-          初始{beast.initialLevel}级，较同级幼崽少{50 + 2 * beast.initialLevel}
-          属性点
+          初始{beast.initialLevel}级，较同级幼崽少
+          {50 + 2 * Math.min(beast.level, beast.initialLevel)}属性点
         </p>
       )}
       <p>

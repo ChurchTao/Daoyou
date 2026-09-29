@@ -924,7 +924,8 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
       'definitionId' in item
         ? getMarketConfigByNodeId(item.nodeId)?.region_profile === 'beast' &&
           (findItemDefinition(item.definitionId)?.kind === 'beast_book' ||
-            findItemDefinition(item.definitionId)?.kind === 'beast_refinement')
+            findItemDefinition(item.definitionId)?.kind === 'beast_refinement' ||
+            findItemDefinition(item.definitionId)?.kind === 'beast_rejuvenation')
         : item.type === 'seed'
           ? readSpiritFieldSeedSpec(item.details) !== null
           : MaterialFactsSchema.shape.type.safeParse(item.type).success,

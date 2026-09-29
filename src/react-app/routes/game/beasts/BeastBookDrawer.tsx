@@ -23,6 +23,7 @@ import { previewBeastFeeding } from '@shared/engine/combat-v6/beasts/feeding';
 import { beastRefinementReason } from '@shared/engine/combat-v6/beasts/refinement';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { itemDefinition } from '@shared/inventory';
+import { BEAST_REJUVENATION } from '@shared/items/definitions/beast-rejuvenation';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { useEffect, useRef, useState } from 'react';
 
@@ -33,19 +34,34 @@ export function BeastBookDrawer({
   onUpdate,
 }: {
   beastId: string;
-  mode?: 'learn' | 'refine' | 'feed';
+  mode?: 'learn' | 'refine' | 'rejuvenate' | 'feed';
   close: () => void;
   onUpdate: (view: BeastManagementView) => void;
 }) {
   const feeding = mode === 'feed';
   const refining = mode === 'refine';
-  const actionName = feeding ? '喂养' : refining ? '洗炼' : '领悟传承';
-  const itemName = feeding ? '丹药或灵果' : refining ? '灵露' : '传承灵印';
+  const rejuvenating = mode === 'rejuvenate';
+  const actionName = feeding
+    ? '喂养'
+    : refining
+      ? '洗炼'
+      : rejuvenating
+        ? '洗点'
+        : '领悟传承';
+  const itemName = feeding
+    ? '丹药或灵果'
+    : refining
+      ? '灵露'
+      : rejuvenating
+        ? '化生果'
+        : '传承灵印';
   const itemKind = feeding
     ? 'consumable'
     : refining
       ? 'beast_refinement'
-      : 'beast_book';
+      : rejuvenating
+        ? 'beast_rejuvenation'
+        : 'beast_book';
   const { pushToast } = useInkUI();
   const bagQuery = useInventoryBag();
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
@@ -116,6 +132,21 @@ export function BeastBookDrawer({
       );
       if (reason) return reason;
       if (dew && item.quantity < dew.consumeQuantity) return '灵露数量不足。';
+      return '';
+    }
+    if (rejuvenating) {
+      if (
+        definition.kind !== 'beast_rejuvenation' ||
+        item.definitionId !== BEAST_REJUVENATION.id
+      )
+        return '此物品不是化生果。';
+      if (!beast) return '正在核对灵兽状态。';
+      if (
+        !beast.level &&
+        !beast.exp &&
+        Object.values(beast.allocatedAttributes).every((point) => point === 0)
+      )
+        return '灵兽已是初生状态。';
       return '';
     }
     if (definition.kind !== 'beast_book') return '此物品不是传承灵印。';
@@ -217,9 +248,11 @@ export function BeastBookDrawer({
             ? `灵兽修为 +${result.gained}，当前${result.level}级。`
             : refining
               ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项，寿命已恢复。`
-              : result.oldSkill
-                ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
-                : `已领悟${beastSkillPresentation(result.newSkill!).name}`,
+              : rejuvenating
+                ? '洗点完成，灵兽已回到0级。'
+                : result.oldSkill
+                  ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
+                  : `已领悟${beastSkillPresentation(result.newSkill!).name}`,
           tone: 'success',
         });
       }
@@ -260,13 +293,17 @@ export function BeastBookDrawer({
                   ? `消耗${quantity}颗`
                   : refining
                     ? `消耗${consumeQuantity}瓶`
-                    : '消耗1枚'}
+                    : rejuvenating
+                      ? '消耗1颗'
+                      : '消耗1枚'}
                 {selected.name}
                 {feeding
                   ? '。'
                   : refining
                     ? '，重归0级，重新孕育资质、成长与技能。'
-                    : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
+                    : rejuvenating
+                      ? '，回到0级，属性点重新养成。'
+                      : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
               {feeding ? (
                 <label className="flex items-center gap-3">
@@ -473,6 +510,12 @@ export function BeastBookDrawer({
               洗炼后成为0级幼崽。普通灵兽每项基础属性10点、变异灵兽每项20点，另有50点可分配。修为与已加的点清零，资质、成长和技能都会重来，原先融合或领悟的技能不会留下，技能也可能变少。
               用掉的传承灵印不退还，寿命恢复到上限，不能反悔。
               {beast?.isMutant ? '变异仍在。' : ''}
+            </>
+          ) : rejuvenating ? (
+            <>
+              为{beast?.name}使用{BEAST_REJUVENATION.name}将消耗1颗。
+              等级与修为归零，已分配属性点清零。宝宝恢复50点待分配属性，假宝宝与纯野生为0点；野生灵兽原有的点数亏损保留。
+              资质、成长、技能、身份、寿命和编组不变。确定洗点吗？
             </>
           ) : (
             <>

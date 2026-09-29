@@ -24,6 +24,8 @@ export function beastPointBudget(beast: BeastIdentity) {
   return (
     beast.level * BEAST_PROGRESSION.pointsPerLevel +
     (beast.originKind === 'baby' ? 50 : 0) -
-    (beast.originKind === 'wild' ? 2 * beast.initialLevel : 0)
+    (beast.originKind === 'wild'
+      ? 2 * Math.min(beast.level, beast.initialLevel)
+      : 0)
   );
 }
