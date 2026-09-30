@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "stock": {
     "common": {
       "normalBooks": 4,
@@ -31,8 +31,16 @@
     },
     "advancedBook": {
       "baseByTier": [
-        500000, 1000000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000,
-        4500000, 5000000
+        500000,
+        1000000,
+        1500000,
+        2000000,
+        2500000,
+        3000000,
+        3500000,
+        4000000,
+        4500000,
+        5000000
       ],
       "fluctuation": {
         "min": 0.95,
@@ -143,22 +151,6 @@
       },
       {
         "definitionId": "book.beast.strength",
-        "rarity": "common"
-      },
-      {
-        "definitionId": "book.beast.thunderstorm",
-        "rarity": "common"
-      },
-      {
-        "definitionId": "book.beast.mountain-crush",
-        "rarity": "common"
-      },
-      {
-        "definitionId": "book.beast.flood",
-        "rarity": "common"
-      },
-      {
-        "definitionId": "book.beast.wildfire",
         "rarity": "common"
       },
       {
@@ -298,6 +290,26 @@
         "priceTier": 8
       },
       {
+        "definitionId": "book.beast.thunderstorm",
+        "rarity": "rare",
+        "priceTier": 3
+      },
+      {
+        "definitionId": "book.beast.mountain-crush",
+        "rarity": "rare",
+        "priceTier": 3
+      },
+      {
+        "definitionId": "book.beast.flood",
+        "rarity": "rare",
+        "priceTier": 3
+      },
+      {
+        "definitionId": "book.beast.wildfire",
+        "rarity": "rare",
+        "priceTier": 3
+      },
+      {
         "definitionId": "book.beast.advanced-spell-combo",
         "rarity": "rare",
         "priceTier": 8
@@ -305,7 +317,7 @@
       {
         "definitionId": "book.beast.advanced-spell-fluctuation",
         "rarity": "rare",
-        "priceTier": 2
+        "priceTier": 6
       },
       {
         "definitionId": "book.beast.advanced-stealth",

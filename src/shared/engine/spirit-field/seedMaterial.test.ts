@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addItems } from '../../inventory';
+import { addItems, InventoryItemSchema } from '../../inventory';
 import { inventoryStackIdentity } from '../../inventory/stack-key';
 import { seedFactsOf, SeedFactsSchema } from '../../items/definitions/seeds';
 import {
@@ -82,6 +82,23 @@ describe('spirit seed material', () => {
     const material = buildSpiritFieldSeedMaterialFromPlant(plant);
     expect(() => seedFactsOf({ ...material, rank: '凡品' })).toThrow();
     expect(() => seedFactsOf({ ...material, details: {} })).toThrow();
+  });
+  it('stacks identical seeds up to 999 per slot', () => {
+    const facts = seedFactsOf(buildSpiritFieldSeedMaterialFromPlant(plant));
+    let id = 0;
+    const items = addItems(
+      [],
+      { definitionId: 'seed.v1', quantity: 1000, instanceData: facts },
+      'bag',
+      false,
+      () => `seed-${++id}`,
+      inventoryStackIdentity('seed.v1', facts),
+    );
+    expect(items.map((item) => item.quantity)).toEqual([999, 1]);
+    expect(InventoryItemSchema.safeParse(items[0]).success).toBe(true);
+    expect(
+      InventoryItemSchema.safeParse({ ...items[0], quantity: 1000 }).success,
+    ).toBe(false);
   });
   it('uses the global seed type and round-trips a stable fingerprint', () => {
     const material = buildSpiritFieldSeedMaterialFromPlant(plant, 2);

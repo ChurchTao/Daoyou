@@ -1,4 +1,4 @@
-import { BEAST_SKILL_FAMILIES } from '@shared/engine/combat-v6/beasts/content';
+import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@shared/engine/combat-v6/beasts/content';
 import { BOOKS } from '@shared/items/definitions/beast-books';
 import type { MarketLayer } from '@shared/types/market';
 import { z } from 'zod';
@@ -61,7 +61,7 @@ const packShape = z.strictObject({
 export function loadBeastMarketPack(input: unknown) {
   const pack = packShape.parse(input);
   const advanced = new Set(
-    BEAST_SKILL_FAMILIES.map((family) => `book.${family.advanced}`),
+    [...BEAST_SUPERIOR_BOOK_SKILL_IDS].map((id) => `book.${id}`),
   );
   const registered = new Set(BOOKS.map((book) => book.id));
   const seen = new Set<string>();

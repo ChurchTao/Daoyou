@@ -108,6 +108,9 @@ describe('阵纹物品与绘制', () => {
       expect(
         DAO_FORMATION_INSCRIPTIONS_V1.some((p) => p.id === def.patternId),
       ).toBe(true);
+      expect(def.name).toBe(
+        DAO_FORMATION_INSCRIPTIONS_V1.find((p) => p.id === def.patternId)!.name,
+      );
     }
     expect(
       InventoryItemSchema.safeParse({ ...glyph(), instanceData: { level: 11 } })
@@ -136,6 +139,16 @@ describe('阵纹物品与绘制', () => {
       prepareInscriptionDraw([a, b], [ref(a, 5), ref(b, 5)]).preview
         .totalTenths,
     ).toBe(120);
+  });
+  it('每个绘制材料格最多投入30份，格子之间独立计数', () => {
+    const a = material('ore', 999);
+    const b = material('ore', 999, '凡品', 1);
+    expect(prepareInscriptionDraw([a], [ref(a, 30)]).preview.totalTenths).toBe(300);
+    expect(() => prepareInscriptionDraw([a], [ref(a, 31)])).toThrow('30');
+    expect(
+      prepareInscriptionDraw([a, b], [ref(a, 20), ref(b, 20)]).preview
+        .totalTenths,
+    ).toBe(400);
   });
   it('按材料总份数贪心分配，保留尾数并按总投入收取灵气', () => {
     expect(previewInscriptionDraw(1120)).toEqual({
@@ -525,7 +538,7 @@ describe('合成与烙印', () => {
     expect(
       InscriptionRequestSchema.safeParse({
         ...base,
-        materials: [ref(material(), 100)],
+        materials: [ref(material(), 31)],
       }).success,
     ).toBe(false);
     expect(

@@ -6,6 +6,7 @@ import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type {
@@ -352,33 +353,28 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                                   ? `已学 · ${learned.level} 层`
                                   : '尚未学习'}
                               </p>
-                              <label className="flex items-center gap-2 text-sm">
+                              <div className="flex flex-wrap items-center gap-2 text-sm">
                                 数量
-                                <input
-                                  aria-label={`${m.name}自选数量`}
-                                  type="number"
+                                <InkQuantityInput
+                                  label={`${m.name}自选数量`}
                                   min={0}
                                   max={confirm.choices}
-                                  step={1}
                                   value={selected[m.definitionId] ?? 0}
                                   disabled={busy || !!view.blockedReason}
-                                  onChange={(e) =>
+                                  onChange={(value) =>
                                     setSelected((old) => ({
                                       ...old,
                                       [m.definitionId]: Math.max(
                                         0,
                                         Math.min(
                                           confirm.choices,
-                                          Math.trunc(
-                                            Number(e.target.value) || 0,
-                                          ),
+                                          Math.trunc(Number(value) || 0),
                                         ),
                                       ),
                                     }))
                                   }
-                                  className="border-ink/20 w-16 min-w-0 border bg-transparent p-1 font-mono"
                                 />
-                              </label>
+                              </div>
                             </div>
                           );
                         })}

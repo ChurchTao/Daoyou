@@ -14,13 +14,16 @@ export function InkTooltip({
   children,
   triggerContent,
   triggerClassName,
+  expandedContent,
 }: {
   label: string;
   children: ReactNode;
   triggerContent?: ReactNode;
   triggerClassName?: string;
+  expandedContent?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -29,9 +32,13 @@ export function InkTooltip({
   );
   const pointerType = useRef('');
   const cancelLeave = () => clearTimeout(leaveTimer.current);
+  const close = () => {
+    setOpen(false);
+    setExpanded(false);
+  };
   const leave = () => {
     cancelLeave();
-    leaveTimer.current = setTimeout(() => setOpen(false), 120);
+    leaveTimer.current = setTimeout(close, 120);
   };
 
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
@@ -87,13 +94,13 @@ export function InkTooltip({
         !trigger.current?.contains(event.target) &&
         !panel.current?.contains(event.target)
       )
-        setOpen(false);
+        close();
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setOpen(false);
+      close();
     };
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', escape, true);
@@ -134,10 +141,14 @@ export function InkTooltip({
         }}
         onBlur={() => {
           cancelLeave();
-          setOpen(false);
+          close();
         }}
         onClick={() => {
           cancelLeave();
+          if (expandedContent && open) {
+            setExpanded((value) => !value);
+            return;
+          }
           setOpen((value) => (pointerType.current === 'touch' ? !value : true));
         }}
       >
@@ -171,7 +182,7 @@ export function InkTooltip({
                 if (event.pointerType === 'mouse') leave();
               }}
             >
-              {children}
+              {expanded ? expandedContent : children}
             </div>,
             document.body,
           )

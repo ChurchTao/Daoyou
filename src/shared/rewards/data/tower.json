@@ -1,7 +1,7 @@
 {
   "$schema": "./tower.schema.json",
   "formatVersion": 3,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "pools": {
     "books": {
       "label": "随机普通传承灵印",
@@ -30,10 +30,6 @@
         "book.beast.parry",
         "book.beast.defense",
         "book.beast.strength",
-        "book.beast.thunderstorm",
-        "book.beast.mountain-crush",
-        "book.beast.flood",
-        "book.beast.wildfire",
         "book.beast.spell-combo",
         "book.beast.spell-fluctuation",
         "book.beast.stealth",
@@ -51,6 +47,10 @@
       "label": "随机上品传承灵印",
       "kind": "beast_book",
       "entries": [
+        "book.beast.thunderstorm",
+        "book.beast.mountain-crush",
+        "book.beast.flood",
+        "book.beast.wildfire",
         "book.beast.advanced-combo",
         "book.beast.advanced-counter",
         "book.beast.advanced-critical",

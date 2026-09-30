@@ -13,18 +13,15 @@ export function ItemPreview({
   item,
   options,
   quantityLabel = '持有',
-  comparisonItem,
   ...chrome
 }: {
   item: DisplayItem;
   options?: PreviewOptions;
   quantityLabel?: string;
-  comparisonItem?: DisplayItem;
 } & PreviewChrome) {
   const model = itemPreviewModel(item, {
     ...options,
     quantityLabel,
-    comparisonItem,
   });
   return (
     <div data-item-preview={item.definitionId}>

@@ -31,6 +31,7 @@ export function CombatV6Commands({
   onAuto,
   autoEnabled,
   onClose,
+  endAction,
   steps,
   commandError,
   blockedReason,
@@ -53,6 +54,7 @@ export function CombatV6Commands({
   onAuto: () => void;
   autoEnabled: boolean;
   onClose: () => void;
+  endAction?: ReactNode;
   steps?: ReactNode;
   commandError?: string;
   blockedReason?: string;
@@ -93,13 +95,15 @@ export function CombatV6Commands({
                 ? '资源已结算'
                 : ''}
           </span>
-          <InkButton
-            pending={pending}
-            disabled={session.settlement === 'pending'}
-            onClick={onClose}
-          >
-            结束本次战斗
-          </InkButton>
+          {endAction ?? (
+            <InkButton
+              pending={pending}
+              disabled={session.settlement === 'pending'}
+              onClick={onClose}
+            >
+              结束本次战斗
+            </InkButton>
+          )}
         </div>
       ) : (
         <>

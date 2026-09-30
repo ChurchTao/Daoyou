@@ -13,7 +13,16 @@ export function BeastSkillTile({ skillId }: { skillId: string }) {
   const unavailable = skill.style === 'unavailable';
   return (
     <InkTooltip
-      label={`查看${skill.name}${unavailable ? '（已失效）' : ''}说明`}
+      label={`查看${skill.name}${unavailable ? '（已失效）' : ''}说明${skill.details ? '，点击切换具体效果' : ''}`}
+      expandedContent={
+        skill.details ? (
+          <>
+            <p className="font-medium">{skill.name}</p>
+            <p className="text-ink whitespace-pre-line">{skill.details}</p>
+            <p className="text-teal mt-2 text-xs">点击技能格返回简述</p>
+          </>
+        ) : undefined
+      }
       triggerClassName={`flex aspect-square w-full min-w-0 [container-type:inline-size] flex-col items-center justify-center gap-1 rounded-xs border px-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${styles[skill.style]}`}
       triggerContent={
         <>
@@ -43,7 +52,12 @@ export function BeastSkillTile({ skillId }: { skillId: string }) {
         {skill.name}
         {unavailable ? '（已失效）' : ''}
       </p>
-      <p>{skill.description}</p>
+      <p className="text-ink-secondary whitespace-pre-line">
+        {skill.summary}
+      </p>
+      {skill.details ? (
+        <p className="text-teal mt-2 text-xs">点击技能格查看具体效果</p>
+      ) : null}
     </InkTooltip>
   );
 }

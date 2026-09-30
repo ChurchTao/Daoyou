@@ -23,6 +23,7 @@ export const inscriptionAdapter: ItemAdapter = (item, def) => {
     },
     preview: (options) => ({
       header: [
+        field('等级', `${def.level}级`),
         quantity(item, options),
         field(
           '适用部位',

@@ -32,6 +32,9 @@
           "book": {
             "type": "boolean"
           },
+          "advanced": {
+            "type": "boolean"
+          },
           "flavorText": {
             "type": "string",
             "minLength": 1,
@@ -889,6 +892,7 @@
           "id",
           "name",
           "book",
+          "advanced",
           "flavorText",
           "icon",
           "effect"

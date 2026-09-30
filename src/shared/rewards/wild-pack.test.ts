@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BOOKS } from '../items/definitions/beast-books';
+import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '../engine/combat-v6/beasts/content';
 import raw from './data/wild.json';
 import schema from './data/wild.schema.json';
 import { WILD_INHERITANCE_POOL, wildItemRewards } from './wild';
@@ -21,15 +22,12 @@ describe('野外传承灵印奖励包', () => {
     expect(group.entries.map((e) => e.rewardId)).toEqual(
       BOOKS.map((b) => b.id),
     );
-    expect(
-      group.entries
-        .filter((e) =>
-          ['book.beast.combo', 'book.beast.advanced-combo'].includes(
-            e.rewardId,
-          ),
-        )
-        .map((e) => e.weight),
-    ).toEqual([24, 4]);
+    for (const entry of group.entries)
+      expect(entry.weight).toBe(
+        BEAST_SUPERIOR_BOOK_SKILL_IDS.has(entry.rewardId.replace(/^book\./, ''))
+          ? 4
+          : 24,
+      );
     const total = group.entries.reduce((sum, e) => sum + e.weight, 0);
     let offset = 0;
     for (const entry of group.entries) {

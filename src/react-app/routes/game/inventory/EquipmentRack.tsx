@@ -54,8 +54,10 @@ export function EquipmentAction({
       ? result.diagnostics.find((d) => d.severity === 'error')?.message
       : undefined;
   return (
-    <div className="space-y-2">
-      {reason ? <p className="text-ink-secondary text-xs">{reason}</p> : null}
+    <>
+      {reason ? (
+        <p className="text-ink-secondary basis-full text-xs">{reason}</p>
+      ) : null}
       <InkButton disabled={pending || !result || !result.ok} onClick={onEquip}>
         {item.equipped
           ? '卸下'
@@ -64,10 +66,10 @@ export function EquipmentAction({
                   (entry.instanceData as DaoEquipmentInstanceV1).slot ===
                   equipment.slot,
               )
-            ? '替换当前道装'
+            ? '替换'
             : '装备'}
       </InkButton>
-    </div>
+    </>
   );
 }
 
@@ -97,20 +99,20 @@ export function EquipmentRack({
       aria-label="已穿戴道装"
       className="border-ink/15 min-w-0 border-b pb-4 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0"
     >
-      <div className="relative mx-auto grid h-64 max-w-80 grid-cols-[4rem_minmax(0,1fr)_4rem] items-center gap-2 lg:h-[30rem] lg:max-w-none lg:grid-cols-[6rem_minmax(0,1fr)_6rem]">
+      <div className="relative mx-auto h-64 max-w-80 lg:h-full lg:min-h-[21rem] lg:max-w-none">
         {gender ? (
           <GameImage
             src={`/assets/inventory/cultivator-${gender === '女' ? 'female' : 'male'}-ink.webp`}
             alt=""
             width={640}
             height={960}
-            className="pointer-events-none absolute inset-y-0 left-18 h-full w-[calc(100%-9rem)] object-cover lg:left-26 lg:w-[calc(100%-13rem)]"
+            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
           />
         ) : null}
         {columns.map((slots, column) => (
           <div
             key={column}
-            className={`relative z-10 grid gap-3 lg:gap-10 ${column === 1 ? 'col-start-3' : ''}`}
+            className={`absolute inset-y-0 z-10 flex w-16 flex-col justify-between lg:w-[4.5rem] ${column === 1 ? 'right-0' : 'left-0'}`}
           >
             {slots.map((slot) => {
               const item = bySlot.get(slot);

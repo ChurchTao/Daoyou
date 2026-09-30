@@ -13,7 +13,6 @@ export type PreviewLine = {
   label?: string;
   value: string | number;
   numeric?: boolean;
-  delta?: number;
   tone?: PreviewTone;
 };
 /** 展开内容只能包含普通行，不允许继续嵌套详情。 */
@@ -38,9 +37,8 @@ export type HeaderEntry =
   | { kind: 'quantity'; label: string; value: number }
   | { kind: 'status'; value: string };
 export type PreviewOptions = {
-  previous?: DisplayItem;
-  comparisonItem?: DisplayItem;
   quantityLabel?: string;
+  hideQuantity?: boolean;
   realm?: RealmType;
   condition?: CultivatorCondition;
 };
@@ -54,7 +52,6 @@ export type PreviewContent = {
   header: HeaderEntry[];
   sections: PreviewSection[];
   description?: string;
-  comparison?: { title: string; sections: PreviewSection[] };
 };
 export type ItemPreviewModel = PreviewContent & {
   title: string;

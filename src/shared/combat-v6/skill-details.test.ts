@@ -8,8 +8,8 @@ import { LINGXIAO_COMBAT } from '@shared/engine/combat-v6/content/lingxiao-pack'
 describe('combat skill previews', () => {
   it('shows combo chances from the authoritative hooks', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);
-    expect(details['beast.combo'].description).toContain('25%');
-    expect(details['beast.advanced-combo'].description).toContain('55%');
+    expect(details['beast.combo'].description).toContain('45% 概率');
+    expect(details['beast.advanced-combo'].description).toContain('55% 概率');
     const combo = BEAST_SKILLS.find((skill) => skill.id === 'beast.combo')!;
     const adjusted = {
       ...combo,

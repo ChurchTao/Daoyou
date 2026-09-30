@@ -13,6 +13,7 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
@@ -306,21 +307,16 @@ export function BeastBookDrawer({
                       : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
               {feeding ? (
-                <label className="flex items-center gap-3">
-                  数量
-                  <input
-                    aria-label="喂养数量"
-                    type="number"
-                    min={1}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>数量</span>
+                  <InkQuantityInput
+                    label="喂养数量"
                     max={Math.min(99, selected.quantity)}
                     value={quantity}
                     disabled={pending || confirming}
-                    className="border-ink/20 w-24 border px-2 py-1 font-mono"
-                    onChange={(event) =>
-                      setQuantity(Number(event.target.value))
-                    }
+                    onChange={(value) => setQuantity(Number(value))}
                   />
-                </label>
+                </div>
               ) : null}
               {feedingPreview ? (
                 <p className="font-mono">
@@ -386,8 +382,8 @@ export function BeastBookDrawer({
                 ))}
               </dl>
               <p className="mt-2 text-xs">
-                技能 {refinementBefore.skillSlotCapacity} → {beast.skillSlotCapacity}{' '}
-                项
+                技能 {refinementBefore.skillSlotCapacity} →{' '}
+                {beast.skillSlotCapacity} 项
               </p>
             </section>
           ) : null}

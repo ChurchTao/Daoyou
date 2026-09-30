@@ -2,7 +2,7 @@ import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
-import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { InkButton, InkNotice, InkQuantityInput } from '@app/components/ui';
 import {
   formatDungeonCostName,
   formatDungeonCostValue,
@@ -133,10 +133,8 @@ export function DungeonMaterialSubmission({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm">{item.name}</p>
-                        <InkInput
+                        <InkQuantityInput
                           label={`${item.name}提交数量`}
-                          type="number"
-                          min={1}
                           max={Math.min(item.quantity, cost.value)}
                           value={choice.quantity}
                           disabled={busy}

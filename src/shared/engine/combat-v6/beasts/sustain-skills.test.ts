@@ -319,7 +319,7 @@ describe('第二批经典传承灵印的真实内核交互', () => {
   it('新技能说明明确迁移后的交互限制', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);
     expect(details['beast.lifesteal'].description).toContain(
-      '追加攻击与反扑不触发',
+      '追加攻击与反击不触发',
     );
     expect(details['beast.reflection'].description).toContain('阻止敌方连击');
     expect(details['beast.divine-revival'].description).toContain(

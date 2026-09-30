@@ -61,6 +61,7 @@ export const BeastSkillsPackShape = z.strictObject({
         id: skillId,
         name,
         book: z.boolean(),
+        advanced: z.boolean(),
         flavorText: z.string().trim().min(1).max(200),
         icon: z.string().trim().min(1).max(32),
         effect: z.discriminatedUnion('type', [
@@ -397,6 +398,9 @@ export function loadBeastPacks(
     for (const key of ['normal', 'advanced'] as const) {
       if (!ids.has(f[key]))
         issue('skills.json', `families.${i}.${key}`, `技能不存在：${f[key]}`);
+      const skill = skills.skills.find((entry) => entry.id === f[key]);
+      if (skill && skill.advanced !== (key === 'advanced'))
+        issue('skills.json', `families.${i}.${key}`, `技能品级与配对不符：${f[key]}`);
       if (familyIds.has(f[key]))
         issue(
           'skills.json',

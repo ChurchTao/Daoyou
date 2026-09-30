@@ -1,7 +1,7 @@
 {
   "$schema": "./dungeon.schema.json",
   "formatVersion": 2,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "sources": {
     "exploration": {
       "chance": 0.3,
@@ -55,7 +55,7 @@
       }
     }
   },
-  "poolVersion": 3,
+  "poolVersion": 4,
   "books": [
     {
       "rewardId": "book.beast.spirit-flame",
@@ -223,19 +223,19 @@
     },
     {
       "rewardId": "book.beast.thunderstorm",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.mountain-crush",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.flood",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.wildfire",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.spell-combo",
@@ -326,8 +326,12 @@
       "weight": 4
     }
   ],
-  "bonusPoolVersion": 1,
+  "bonusPoolVersion": 2,
   "superiorBooks": [
+    "book.beast.thunderstorm",
+    "book.beast.mountain-crush",
+    "book.beast.flood",
+    "book.beast.wildfire",
     "book.beast.advanced-combo",
     "book.beast.advanced-counter",
     "book.beast.advanced-critical",

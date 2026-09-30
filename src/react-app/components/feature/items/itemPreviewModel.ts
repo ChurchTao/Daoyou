@@ -11,10 +11,14 @@ export function itemPreviewModel(
   options: PreviewOptions = {},
 ): ItemPreviewModel {
   const resolved = resolveItemPresentation(item);
+  const content = resolved.preview(options);
   return {
     title: item.name,
     icon: resolved.summary.icon,
     titleColor: resolved.summary.color,
-    ...resolved.preview(options),
+    ...content,
+    header: options.hideQuantity
+      ? content.header.filter((entry) => entry.kind !== 'quantity')
+      : content.header,
   };
 }

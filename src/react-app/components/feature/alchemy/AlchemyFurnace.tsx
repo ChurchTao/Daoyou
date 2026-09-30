@@ -1,5 +1,6 @@
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
 import { cn } from '@shared/lib/cn';
 import { FurnaceGatherEffect } from '../craft/FurnaceGatherEffect';
@@ -134,28 +135,22 @@ export function AlchemyFurnace({
                 {material
                   ? (close) => (
                       <div className="space-y-3">
-                        <label className="flex items-center gap-3">
-                          入炉份量
-                          <input
-                            aria-label={`${material.name}入炉份量`}
-                            type="number"
-                            min={1}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>入炉份量</span>
+                          <InkQuantityInput
+                            label={`${material.name}入炉份量`}
                             max={Math.min(
                               material.quantity ?? 1,
                               ALCHEMY_MAX_DOSE,
                             )}
                             value={session.materials.doses[id] ?? 1}
                             disabled={locked}
-                            onChange={(e) => {
-                              if (e.target.value)
-                                session.setMaterialDose(
-                                  id,
-                                  Number(e.target.value),
-                                );
+                            onChange={(value) => {
+                              if (value)
+                                session.setMaterialDose(id, Number(value));
                             }}
-                            className="border-ink/20 w-20 border bg-transparent p-2 font-mono"
                           />
-                        </label>
+                        </div>
                         {session.analysis.value?.materialJudgments
                           .filter((j) => j.materialId === id)
                           .map((j) => (

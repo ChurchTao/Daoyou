@@ -7,7 +7,7 @@ import {
   type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { InkModal } from '@app/components/layout';
-import { InkButton, InkInput, InkNotice } from '@app/components/ui';
+import { InkButton, InkNotice, InkQuantityInput } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
@@ -263,10 +263,8 @@ function OpenSubmission({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm">{item.name}</p>
-                <InkInput
+                <InkQuantityInput
                   label="交付数量"
-                  type="number"
-                  min={1}
                   max={Math.min(item.quantity, requirement.quantity)}
                   value={quantity}
                   disabled={busy}

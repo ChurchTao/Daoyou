@@ -270,7 +270,7 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'market-recycle',
         sceneLabel: '鉴宝回收',
         href: '/game/market/recycle',
-        expandedDockLabel: '⚖️ 鉴宝回收',
+        expandedDockLabel: '♻️ 鉴宝回收',
       },
       {
         id: 'tianjiao-vault',

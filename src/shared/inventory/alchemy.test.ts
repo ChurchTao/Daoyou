@@ -12,7 +12,7 @@ import {
   groupAlchemyBagMaterials,
   groupAlchemyStorageMaterials,
 } from './alchemy';
-import { BAG_CAPACITY, sortBag, type InventoryItem } from './index';
+import { BAG_CAPACITY, InventoryItemSchema, sortBag, type InventoryItem } from './index';
 import { inventoryStackIdentity } from './stack-key';
 import { addItems } from './test-helpers';
 
@@ -119,17 +119,36 @@ describe('alchemy inventory migration', () => {
       ['stored-b', 4],
     ]);
   });
+  it('stacks matching materials up to 999 per slot', () => {
+    let id = 0;
+    const items = addItems(
+      [],
+      { definitionId: 'material.v1', quantity: 1000, instanceData: herb },
+      'bag',
+      false,
+      () => `material-${id++}`,
+    );
+    expect(items.map((item) => item.quantity)).toEqual([999, 1]);
+    expect(InventoryItemSchema.safeParse(items[0]).success).toBe(true);
+    expect(
+      InventoryItemSchema.safeParse({ ...items[0], quantity: 1000 }).success,
+    ).toBe(false);
+  });
   it('preserves complete pill facts through stacking and sorting', () => {
     let id = 0;
     const grant = {
       definitionId: 'consumable.v1',
-      quantity: 120,
+      quantity: 1020,
       instanceData: pill,
     };
     const items = addItems([], grant, 'bag', true, () => `pill-${id++}`);
-    expect(items.map((item) => item.quantity)).toEqual([99, 21]);
+    expect(items.map((item) => item.quantity)).toEqual([999, 21]);
     const sorted = sortBag(items);
-    expect(sorted.reduce((total, item) => total + item.quantity, 0)).toBe(120);
+    expect(sorted.reduce((total, item) => total + item.quantity, 0)).toBe(1020);
+    expect(InventoryItemSchema.safeParse(items[0]).success).toBe(true);
+    expect(
+      InventoryItemSchema.safeParse({ ...items[0], quantity: 1000 }).success,
+    ).toBe(false);
     for (const item of sorted) expect(item.instanceData).toEqual(pill);
     expect(ConsumableFactsSchema.parse(pill).spec).toEqual(pill.spec);
     expect(inventoryStackIdentity('consumable.v1', pill)).toBe(

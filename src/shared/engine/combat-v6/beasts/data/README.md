@@ -33,7 +33,7 @@
 
 ## 2. 技能与传承灵印：skills.json
 
-每条技能配置 ID、名称、图标、天赋文案 `flavorText`、是否注册传承灵印物品 `book` 和一个 `effect`。天赋文案与从效果参数生成的数值、代价及冲突说明共同展示；传承灵印预览中的技能名称读取同一配置。当前文案定稿见[灵兽技能天赋文案](../../../../../../docs/combat-v6-beast-skill-copy.md)。
+每条技能配置 ID、名称、图标、天赋文案 `flavorText`、是否注册传承灵印物品 `book`、是否为高级技能 `advanced` 和一个 `effect`。天赋文案与从效果参数生成的数值、代价及冲突说明共同展示；传承灵印预览中的技能名称读取同一配置。当前文案定稿见[灵兽技能天赋文案](../../../../../../docs/combat-v6-beast-skill-copy.md)。
 
 效果参数：
 
@@ -42,7 +42,7 @@
 | `spellHit` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel` | 单体法术攻击，附加威力为基础值加技能等级乘每级值 |
 | `physicalHit` | `costMp`、`coefficient` | 单体物理攻击 |
 | `barrier` | `costMp`、`barrierId`、`kind`、`name`、`powerBase`、`powerPerLevel`、`duration` | 自身护盾，护盾值为基础值加技能等级乘每级值 |
-| `counter` | `chance`、`coefficient` | 受到物理伤害后概率反扑，复用钩子抑制规则 |
+| `counter` | `chance`、`coefficient` | 受到物理伤害后概率反击，复用钩子抑制规则 |
 | `critical` | `kind`、`chance` | 提高物理或法术暴击概率 |
 | `regeneration` | `resource`、`levelDivisor` | 回合末恢复等级除以指定整数的气血或法力，向下取整 |
 | `spellBoost` | `factor` | 法术伤害倍率 |
@@ -50,19 +50,19 @@
 | `miracle` | `immune` | 回合末净化或异常免疫 |
 | `concentration` | `physicalFactor`、`dodgeBonus` | 控制免疫、物伤代价与躲避 |
 | `ghost` | `delay` | 延迟复起、拒绝气血恢复和常规异常免疫 |
-| `exorcism` | `factor` | 对魂生物法增伤并阻止其复起 |
-| `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、魂生伤害及法抗倍率 |
+| `exorcism` | `factor` | 对灵魂体物法增伤并阻止其复起 |
+| `denial` | `ghostDamageFactor`、`spellFactor` | 拒绝增益、异常免疫、灵魂体伤害及法抗倍率 |
 | `eternity` | `factor`、`maxExtra` | 合格增益延长倍率与额外回合上限 |
 | `stealth` | `minDuration`、`maxDuration`、`physicalFactor` | 首次出战隐身状态、禁法与物伤代价 |
 | `perception` | `dodgeBonus` | 看破隐身，可增加面板躲避 |
 | `spellRepeat` | `chance`、`factor` | 直接伤害法术整次追加，原目标、无额外费用、不递归 |
-| `spellFluctuation` | `min`、`max`、`suppressReflection` | 替换法术波动区间，可免灵息反震 |
+| `spellFluctuation` | `min`、`max`、`suppressReflection` | 替换法术波动区间，可免灵法反震 |
 | `groupSpell` | `costMp`、`coefficient`、`powerBase`、`powerPerLevel`、`levelsPerTarget`、`maxTargets` | 按技能等级增加目标数的群法 |
 | `parry` | `factor` | 每回合首次物理命中减伤 |
 | `defenseTraining` | `perLevel`、`spellFactor` | 加物防并降低自身法伤 |
-| `strengthTraining` | `perLevel`、`versusDefenseFactor` | 加物攻、忽略避锋，对坚韧技能目标承担伤害代价 |
+| `strengthTraining` | `perLevel`、`versusDefenseFactor` | 加物攻、忽略招架，对铁骨技能目标承担伤害代价 |
 | `wisdom` | `factor` | 仅法术法力消耗倍率 |
-| `sneakAttack` | `factor` | 物理增伤且不触发物理反扑／反震 |
+| `sneakAttack` | `factor` | 物理增伤且不触发物理反击／反震 |
 | `spellResistance` | `takenFactor`、`physicalFactor` | 所受法伤倍率与自身物伤代价 |
 | `lifesteal` | `ratio` | 直接物理命中后按实际扣血精确恢复 |
 | `reflection` | `kind`、`chance`、`ratio` | 对应类型受击后按实际扣血概率反震固定伤害 |
@@ -74,9 +74,9 @@
 
 数值 0.25 表示 25% 概率，1.1 表示 1.1 倍系数。参与表达式的参数最多六位小数；不接受自由公式或脚本。新机制仍须扩展编译器。
 
-`families` 的每一项用 `normal`／`advanced` 指定普通与高级技能。两者同时占有格位时，仅高级效果激活，个体的两个格位事实不变。当前支持互不交叉的二级配对，不支持循环、三级链或一个技能归属多个配对。
+`families` 的每一项用 `normal`／`advanced` 指定同系技能的覆盖关系。两者同时占有格位时，仅高级版效果激活，个体的两个格位事实不变。配对中的技能品级须与各自的 `advanced` 标记一致；单档高级技能无需加入 `families`。当前支持互不交叉的二级配对，不支持循环、三级链或一个技能归属多个配对。
 
-`book: true` 自动产生 `book.<技能ID>`、按技能族品级命名的`传承灵印`或`上品传承灵印`，保持原物品 ID、堆叠上限及列表顺序；不再另写可用技能 ID 清单。连击说明根据配置中的机制类型识别，并读取编译后的概率。打书耗材、随机替换格位与事务仍沿用原实现。
+`book: true` 自动产生 `book.<技能ID>`；`advanced: true` 的技能使用高级技能格，对应灵印为上品，其余为普通。灵印品级与技能族覆盖关系分别判定，保持原物品 ID、堆叠上限及列表顺序；不再另写可用技能 ID 清单。连击说明根据配置中的机制类型识别，并读取编译后的概率。打书耗材、随机替换格位与事务仍沿用原实现。
 
 ## 3. 培养与面板：progression.json
 
@@ -147,7 +147,7 @@ bun run build
 
 当前仍为本地测试阶段，删除技能时同步删除技能、技能族、物种池和掉落引用，以及本地库中的相应技能项／传承灵印数据。不保留停用目录、旧ID读取白名单或物品注册回退。个体技能和物品校验继续严格拒绝未知ID。
 
-玩家技能格仅分普通、高级、失效三类，不显示等级角标或技能冲突；技能详情与传承灵印描述保留冲突规则。展示入口为 `shared/combat-v6/beast-skill-presentation.ts`，技能格为 `BeastSkillTile`；各调用方不再按具体技能ID或advanced-拼图标、等级、兼容文案。
+玩家技能格仅分普通、高级、失效三类，直接读取技能的 `advanced` 标记；灵印品级读取同一标记。不显示等级角标或技能冲突；技能详情与传承灵印描述保留冲突规则。展示入口为 `shared/combat-v6/beast-skill-presentation.ts`，技能格为 `BeastSkillTile`；各调用方不再按具体技能ID或advanced-拼图标、等级、兼容文案。
 
 ## 洗炼：refinement.json
 

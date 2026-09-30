@@ -86,19 +86,19 @@ function TaskChallenge({ taskId }: { taskId?: string }) {
             if (session.settlement === 'settled' && !combat.playing)
               navigate('/game/tasks', { replace: true });
           }}
+          endAction={
+            session.settlement === 'settled' && session.outcome !== 'victory' ? (
+              <InkButton pending={combat.pending} onClick={() => void start()}>
+                重新挑战
+              </InkButton>
+            ) : undefined
+          }
           back="/game/tasks"
           backLabel="返回任务中心"
         />
       ) : taskId && !combat.error ? (
         <InkButton pending={combat.pending} onClick={() => void start()}>
           开始试炼
-        </InkButton>
-      ) : null}
-      {session?.settlement === 'settled' &&
-      session.outcome !== 'victory' &&
-      !combat.playing ? (
-        <InkButton pending={combat.pending} onClick={() => void start()}>
-          重新挑战
         </InkButton>
       ) : null}
     </CombatV6Page>

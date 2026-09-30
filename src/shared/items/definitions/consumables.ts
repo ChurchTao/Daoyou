@@ -7,7 +7,7 @@ export const CONSUMABLE_ITEM = {
   id: 'consumable.v1',
   name: '消耗品',
   kind: 'consumable' as const,
-  stackLimit: 99,
+  stackLimit: 999,
 };
 
 /** The same spec is used for new alchemy output and explicit vault withdrawals. */

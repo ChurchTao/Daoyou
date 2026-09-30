@@ -1,12 +1,13 @@
 {
   "$schema": "./skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 13,
+  "contentRevision": 16,
   "skills": [
     {
       "id": "beast.spirit-flame",
       "name": "灵火",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellHit",
         "costMp": 10,
@@ -15,12 +16,13 @@
         "powerPerLevel": 1
       },
       "icon": "🔥",
-      "flavorText": "将体内灵息化作火焰，灼伤一个敌人。"
+      "flavorText": "以灵火攻击一个目标，造成法术伤害。"
     },
     {
       "id": "beast.combo",
       "name": "连击",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "combo",
         "chance": 0.45,
@@ -28,12 +30,13 @@
         "physicalFactor": 0.75
       },
       "icon": "⚔️",
-      "flavorText": "攻势迅疾，一击之后往往紧随另一击，只是接连出手也会分散力道。"
+      "flavorText": "普通攻击命中后有机会追加一击，但自身造成的物理伤害会降低。"
     },
     {
       "id": "beast.advanced-combo",
       "name": "高级连击",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "combo",
         "chance": 0.55,
@@ -41,187 +44,203 @@
         "physicalFactor": 0.8
       },
       "icon": "⚔️",
-      "flavorText": "攻势迅疾，一击之后往往紧随另一击，只是接连出手也会分散力道。"
+      "flavorText": "普通攻击命中后有机会追加一击，但自身造成的物理伤害会降低。"
     },
     {
       "id": "beast.counter",
-      "name": "反扑",
+      "name": "反击",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "counter",
         "chance": 0.3,
         "coefficient": 0.5
       },
       "icon": "↩️",
-      "flavorText": "受创时凶性骤起，抓住敌人近身的机会骤然反扑。"
+      "flavorText": "受到物理攻击并损失气血时，有机会反击攻击者。"
     },
     {
       "id": "beast.advanced-counter",
-      "name": "高级反扑",
+      "name": "高级反击",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "counter",
         "chance": 0.3,
         "coefficient": 1
       },
       "icon": "↩️",
-      "flavorText": "受创时凶性骤起，抓住敌人近身的机会骤然反扑。"
+      "flavorText": "受到物理攻击并损失气血时，有机会反击攻击者。"
     },
     {
       "id": "beast.critical",
-      "name": "凶猛",
+      "name": "必杀",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "critical",
         "kind": "physical",
         "chance": 0.1
       },
       "icon": "💥",
-      "flavorText": "出手凶猛，搏杀时更易打出威力惊人的重击。"
+      "flavorText": "物理攻击更容易打出暴击。"
     },
     {
       "id": "beast.advanced-critical",
-      "name": "高级凶猛",
+      "name": "高级必杀",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "critical",
         "kind": "physical",
         "chance": 0.2
       },
       "icon": "💥",
-      "flavorText": "出手凶猛，搏杀时更易打出威力惊人的重击。"
+      "flavorText": "物理攻击更容易打出暴击。"
     },
     {
       "id": "beast.spell-critical",
-      "name": "灵涌",
+      "name": "灵法会心",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "critical",
         "kind": "spell",
         "chance": 0.1
       },
       "icon": "✨",
-      "flavorText": "施法时体内灵力偶有奔涌，迸发出远超平常的威能。"
+      "flavorText": "法术攻击更容易打出暴击。"
     },
     {
       "id": "beast.advanced-spell-critical",
-      "name": "高级灵涌",
+      "name": "高级灵法会心",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "critical",
         "kind": "spell",
         "chance": 0.15
       },
       "icon": "✨",
-      "flavorText": "施法时体内灵力偶有奔涌，迸发出远超平常的威能。"
+      "flavorText": "法术攻击更容易打出暴击。"
     },
     {
       "id": "beast.regeneration",
       "name": "自愈",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "regeneration",
         "resource": "hp",
         "levelDivisor": 2
       },
       "icon": "🌱",
-      "flavorText": "生机旺盛，战斗中也能缓缓弥合伤口。"
+      "flavorText": "每回合结束时恢复自身气血。"
     },
     {
       "id": "beast.advanced-regeneration",
       "name": "高级自愈",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "regeneration",
         "resource": "hp",
         "levelDivisor": 1
       },
       "icon": "🌱",
-      "flavorText": "生机旺盛，战斗中也能缓缓弥合伤口。"
+      "flavorText": "每回合结束时恢复自身气血。"
     },
     {
       "id": "beast.meditation",
-      "name": "聚灵",
+      "name": "回灵",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "regeneration",
         "resource": "mp",
         "levelDivisor": 4
       },
       "icon": "🧘",
-      "flavorText": "周身灵气自然汇入体内，在交战中缓缓补充法力。"
+      "flavorText": "每回合结束时恢复自身法力。"
     },
     {
       "id": "beast.advanced-meditation",
-      "name": "高级聚灵",
+      "name": "高级回灵",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "regeneration",
         "resource": "mp",
         "levelDivisor": 3
       },
       "icon": "🧘",
-      "flavorText": "周身灵气自然汇入体内，在交战中缓缓补充法力。"
+      "flavorText": "每回合结束时恢复自身法力。"
     },
     {
       "id": "beast.agility",
       "name": "迅捷",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "speed",
         "factor": 1.1
       },
       "icon": "💨",
-      "flavorText": "行动迅捷，进退之间往往先敌一步。"
+      "flavorText": "提高自身速度。"
     },
     {
       "id": "beast.advanced-agility",
       "name": "高级迅捷",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "speed",
         "factor": 1.2
       },
       "icon": "💨",
-      "flavorText": "行动迅捷，进退之间往往先敌一步。"
+      "flavorText": "提高自身速度。"
     },
     {
       "id": "beast.spell-mastery",
-      "name": "灵性",
+      "name": "灵法精通",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellBoost",
         "factor": 1.1
       },
       "icon": "🔮",
-      "flavorText": "天生亲近灵气，同样的法术经其施展，也能生出更强威力。"
+      "flavorText": "提高自身造成的法术伤害。"
     },
     {
       "id": "beast.advanced-spell-mastery",
-      "name": "高级灵性",
+      "name": "高级灵法精通",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "spellBoost",
         "factor": 1.2
       },
       "icon": "🔮",
-      "flavorText": "天生亲近灵气，同样的法术经其施展，也能生出更强威力。"
+      "flavorText": "提高自身造成的法术伤害。"
     },
     {
       "id": "beast.sluggish",
       "name": "迟钝",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "speed",
         "factor": 0.8
       },
       "icon": "🐢",
-      "flavorText": "行动迟缓，交锋时往往比对手慢上一步。"
+      "flavorText": "降低自身速度。"
     },
     {
       "id": "beast.thunder",
       "name": "雷击",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellHit",
         "costMp": 10,
@@ -230,12 +249,13 @@
         "powerPerLevel": 1
       },
       "icon": "⚡",
-      "flavorText": "引动雷光，轰击一个敌人。"
+      "flavorText": "以雷光攻击一个目标，造成法术伤害。"
     },
     {
       "id": "beast.falling-rock",
       "name": "落岩",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellHit",
         "costMp": 10,
@@ -244,12 +264,13 @@
         "powerPerLevel": 1
       },
       "icon": "🪨",
-      "flavorText": "聚起岩石，砸向一个敌人。"
+      "flavorText": "以落岩攻击一个目标，造成法术伤害。"
     },
     {
       "id": "beast.water-attack",
-      "name": "激流",
+      "name": "水击",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellHit",
         "costMp": 10,
@@ -258,34 +279,37 @@
         "powerPerLevel": 1
       },
       "icon": "💧",
-      "flavorText": "催起一道激流，冲击一个敌人。"
+      "flavorText": "以水流攻击一个目标，造成法术伤害。"
     },
     {
       "id": "beast.lifesteal",
       "name": "噬血",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "lifesteal",
         "ratio": 0.25
       },
       "icon": "🩸",
-      "flavorText": "伤敌时汲取对方流失的气血，补益自身生机。"
+      "flavorText": "物理攻击使目标损失气血时，按伤害量恢复自身气血。"
     },
     {
       "id": "beast.advanced-lifesteal",
       "name": "高级噬血",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "lifesteal",
         "ratio": 0.3
       },
       "icon": "🩸",
-      "flavorText": "伤敌时汲取对方流失的气血，补益自身生机。"
+      "flavorText": "物理攻击使目标损失气血时，按伤害量恢复自身气血。"
     },
     {
       "id": "beast.reflection",
       "name": "反震",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "reflection",
         "kind": "physical",
@@ -293,12 +317,13 @@
         "ratio": 0.25
       },
       "icon": "🪞",
-      "flavorText": "受创时体内劲力激荡，可能将部分伤害震还来敌。"
+      "flavorText": "受到物理攻击并损失气血时，有机会将部分伤害反震给攻击者。"
     },
     {
       "id": "beast.advanced-reflection",
       "name": "高级反震",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "reflection",
         "kind": "physical",
@@ -306,36 +331,39 @@
         "ratio": 0.5
       },
       "icon": "🪞",
-      "flavorText": "受创时体内劲力激荡，可能将部分伤害震还来敌。"
+      "flavorText": "受到物理攻击并损失气血时，有机会将部分伤害反震给攻击者。"
     },
     {
       "id": "beast.divine-revival",
       "name": "涅槃重生",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "divineRevival",
         "chance": 0.2,
         "hpRatio": 0.6
       },
       "icon": "🪷",
-      "flavorText": "濒死之际，体内灵息可能护住一线生机，使自身免于身死并恢复气血。"
+      "flavorText": "受到致命伤害时，有机会复生并恢复气血。"
     },
     {
       "id": "beast.advanced-divine-revival",
       "name": "高级涅槃重生",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "divineRevival",
         "chance": 0.3,
         "hpRatio": 1
       },
       "icon": "🪷",
-      "flavorText": "濒死之际，体内灵息可能护住一线生机，使自身免于身死并恢复气血。"
+      "flavorText": "受到致命伤害时，有机会复生并恢复气血。"
     },
     {
       "id": "beast.spell-reflection",
-      "name": "灵息反震",
+      "name": "灵法反震",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "reflection",
         "kind": "spell",
@@ -343,12 +371,13 @@
         "ratio": 0.25
       },
       "icon": "🔷",
-      "flavorText": "外来法术伤及自身时，可能激起体内灵息，将部分伤害震还施术者。"
+      "flavorText": "受到法术攻击并损失气血时，有机会将部分伤害反震给施术者。"
     },
     {
       "id": "beast.advanced-spell-reflection",
-      "name": "高级灵息反震",
+      "name": "高级灵法反震",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "reflection",
         "kind": "spell",
@@ -356,150 +385,163 @@
         "ratio": 0.5
       },
       "icon": "🔷",
-      "flavorText": "外来法术伤及自身时，可能激起体内灵息，将部分伤害震还施术者。"
+      "flavorText": "受到法术攻击并损失气血时，有机会将部分伤害反震给施术者。"
     },
     {
       "id": "beast.wisdom",
       "name": "慧根",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "wisdom",
         "factor": 0.75
       },
       "icon": "💡",
-      "flavorText": "天生颖悟，驱使灵力时少有逸散，施展法术更为省力。"
+      "flavorText": "施展法术消耗的法力减少。"
     },
     {
       "id": "beast.advanced-wisdom",
       "name": "高级慧根",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "wisdom",
         "factor": 0.5
       },
       "icon": "💡",
-      "flavorText": "天生颖悟，驱使灵力时少有逸散，施展法术更为省力。"
+      "flavorText": "施展法术消耗的法力减少。"
     },
     {
       "id": "beast.sneak-attack",
       "name": "偷袭",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "sneakAttack",
         "factor": 1.05
       },
       "icon": "🥷",
-      "flavorText": "深谙猎食之道，善于趁隙出手，让敌人来不及反扑或震伤自身。"
+      "flavorText": "提高自身物理伤害，物理攻击不会触发目标的反击或反震。"
     },
     {
       "id": "beast.advanced-sneak-attack",
       "name": "高级偷袭",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "sneakAttack",
         "factor": 1.1
       },
       "icon": "🥷",
-      "flavorText": "深谙猎食之道，善于趁隙出手，让敌人来不及反扑或震伤自身。"
+      "flavorText": "提高自身物理伤害，物理攻击不会触发目标的反击或反震。"
     },
     {
       "id": "beast.spell-resistance",
-      "name": "耐法",
+      "name": "御法",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellResistance",
         "takenFactor": 0.95,
         "physicalFactor": 0.9
       },
       "icon": "🔰",
-      "flavorText": "肉身与灵息能抵御部分法术侵袭，但搏击时的力道也有所减弱。"
+      "flavorText": "降低所受法术伤害，但自身造成的物理伤害也会降低。"
     },
     {
       "id": "beast.advanced-spell-resistance",
-      "name": "高级耐法",
+      "name": "高级御法",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "spellResistance",
         "takenFactor": 0.9,
         "physicalFactor": 0.9
       },
       "icon": "🔰",
-      "flavorText": "肉身与灵息能抵御部分法术侵袭，但搏击时的力道也有所减弱。"
+      "flavorText": "降低所受法术伤害，但自身造成的物理伤害也会降低。"
     },
     {
       "id": "beast.parry",
-      "name": "避锋",
+      "name": "招架",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "parry",
         "factor": 0.9
       },
       "icon": "🤺",
-      "flavorText": "对扑面而来的攻势十分敏锐，能够卸去每回合第一道命中物理攻击的部分力道。"
+      "flavorText": "每回合首次被物理攻击命中时，减轻该次伤害。"
     },
     {
       "id": "beast.advanced-parry",
-      "name": "高级避锋",
+      "name": "高级招架",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "parry",
         "factor": 0.8
       },
       "icon": "🤺",
-      "flavorText": "对扑面而来的攻势十分敏锐，能够卸去每回合第一道命中物理攻击的部分力道。"
+      "flavorText": "每回合首次被物理攻击命中时，减轻该次伤害。"
     },
     {
       "id": "beast.defense",
-      "name": "坚韧",
+      "name": "铁骨",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "defenseTraining",
         "perLevel": 0.6,
         "spellFactor": 0.9
       },
       "icon": "🛡️",
-      "flavorText": "肉身坚韧，随成长愈发耐受击打，却也使灵息少了几分灵动。"
+      "flavorText": "物理防御随等级提高，但自身造成的法术伤害降低。"
     },
     {
       "id": "beast.advanced-defense",
-      "name": "高级坚韧",
+      "name": "高级铁骨",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "defenseTraining",
         "perLevel": 0.8,
         "spellFactor": 0.95
       },
       "icon": "🛡️",
-      "flavorText": "肉身坚韧，随成长愈发耐受击打，却也使灵息少了几分灵动。"
+      "flavorText": "物理防御随等级提高，但自身造成的法术伤害降低。"
     },
     {
       "id": "beast.strength",
       "name": "蛮力",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "strengthTraining",
         "perLevel": 0.4,
         "versusDefenseFactor": 0.8
       },
       "icon": "💪",
-      "flavorText": "血肉中蕴藏蛮力，随自身成长愈发强健，寻常招架难以卸去其力。"
+      "flavorText": "物理攻击随等级提高，能够破开招架。"
     },
     {
       "id": "beast.advanced-strength",
       "name": "高级蛮力",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "strengthTraining",
         "perLevel": 0.55,
         "versusDefenseFactor": 0.8
       },
       "icon": "💪",
-      "flavorText": "血肉中蕴藏蛮力，随自身成长愈发强健，寻常招架难以卸去其力。"
+      "flavorText": "物理攻击随等级提高，能够破开招架。"
     },
     {
       "id": "beast.thunderstorm",
-      "name": "奔雷",
+      "name": "九霄神雷",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "groupSpell",
         "costMp": 20,
@@ -510,12 +552,13 @@
         "maxTargets": 3
       },
       "icon": "🌩️",
-      "flavorText": "雷光随灵息奔涌，接连轰向多个敌人。"
+      "flavorText": "雷光扫过敌方，造成法术伤害；等级越高，可攻击的目标越多。"
     },
     {
       "id": "beast.mountain-crush",
-      "name": "崩山",
+      "name": "山崩地裂",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "groupSpell",
         "costMp": 20,
@@ -526,12 +569,13 @@
         "maxTargets": 3
       },
       "icon": "⛰️",
-      "flavorText": "催动山石崩落，压向多个敌人。"
+      "flavorText": "山石砸向敌方，造成法术伤害；等级越高，可攻击的目标越多。"
     },
     {
       "id": "beast.flood",
-      "name": "洪流",
+      "name": "翻江倒海",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "groupSpell",
         "costMp": 20,
@@ -542,12 +586,13 @@
         "maxTargets": 3
       },
       "icon": "🌊",
-      "flavorText": "掀起汹涌洪流，冲击多个敌人。"
+      "flavorText": "巨浪冲向敌方，造成法术伤害；等级越高，可攻击的目标越多。"
     },
     {
       "id": "beast.wildfire",
-      "name": "焚野",
+      "name": "红莲业火",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "groupSpell",
         "costMp": 20,
@@ -558,36 +603,39 @@
         "maxTargets": 3
       },
       "icon": "🌋",
-      "flavorText": "释放大片烈焰，席卷多个敌人。"
+      "flavorText": "烈焰席卷敌方，造成法术伤害；等级越高，可攻击的目标越多。"
     },
     {
       "id": "beast.spell-combo",
-      "name": "灵力相续",
+      "name": "灵法连击",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellRepeat",
         "chance": 0.2,
         "factor": 0.5
       },
       "icon": "🌀",
-      "flavorText": "施法之后，体内灵力可能接续而发，再次释放同一道法术。"
+      "flavorText": "施放伤害法术后，有机会对原目标再施放一次同一法术。"
     },
     {
       "id": "beast.advanced-spell-combo",
-      "name": "高级灵力相续",
+      "name": "高级灵法连击",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "spellRepeat",
         "chance": 0.3,
         "factor": 0.5
       },
       "icon": "🌀",
-      "flavorText": "施法之后，体内灵力可能接续而发，再次释放同一道法术。"
+      "flavorText": "施放伤害法术后，有机会对原目标再施放一次同一法术。"
     },
     {
       "id": "beast.spell-fluctuation",
-      "name": "灵息不定",
+      "name": "法威无常",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "spellFluctuation",
         "min": 0.8,
@@ -595,12 +643,13 @@
         "suppressReflection": false
       },
       "icon": "🎲",
-      "flavorText": "体内灵息时盛时衰，施法威力也随之起伏，既可能衰弱，也可能骤然大增。"
+      "flavorText": "法术伤害忽高忽低。"
     },
     {
       "id": "beast.advanced-spell-fluctuation",
-      "name": "高级灵息不定",
+      "name": "高级法威无常",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "spellFluctuation",
         "min": 0.5,
@@ -608,12 +657,13 @@
         "suppressReflection": true
       },
       "icon": "🎲",
-      "flavorText": "体内灵息时盛时衰，施法威力也随之起伏，既可能衰弱，也可能骤然大增。"
+      "flavorText": "法术伤害起伏更大，法术攻击也不会触发灵法反震。"
     },
     {
       "id": "beast.stealth",
       "name": "隐身",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "stealth",
         "minDuration": 2,
@@ -621,12 +671,13 @@
         "physicalFactor": 0.8
       },
       "icon": "🌫️",
-      "flavorText": "初入战场时隐去身形，伺机而动；隐匿期间难以施法，出手力道也有所减弱。"
+      "flavorText": "首次出战时隐身数回合，期间不能施法，造成的物理伤害降低。"
     },
     {
       "id": "beast.advanced-stealth",
       "name": "高级隐身",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "stealth",
         "minDuration": 3,
@@ -634,34 +685,37 @@
         "physicalFactor": 0.85
       },
       "icon": "🌫️",
-      "flavorText": "初入战场时隐去身形，伺机而动；隐匿期间难以施法，出手力道也有所减弱。"
+      "flavorText": "首次出战时隐身数回合，期间不能施法，造成的物理伤害降低。"
     },
     {
       "id": "beast.perception",
       "name": "灵觉",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "perception",
         "dodgeBonus": 0
       },
       "icon": "👁️",
-      "flavorText": "感官之外另有灵觉，敌人纵然隐去身形，也难以藏住踪迹。"
+      "flavorText": "能看破隐身，攻击隐身目标。"
     },
     {
       "id": "beast.advanced-perception",
       "name": "高级灵觉",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "perception",
         "dodgeBonus": 10
       },
       "icon": "👁️",
-      "flavorText": "感官之外另有灵觉，敌人纵然隐去身形，也难以藏住踪迹。"
+      "flavorText": "能看破隐身并攻击隐身目标，自身躲避也会提高。"
     },
     {
       "id": "beast.poison",
       "name": "毒性",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "poison",
         "chance": 0.15,
@@ -671,12 +725,13 @@
         "immune": false
       },
       "icon": "☠️",
-      "flavorText": "体内蕴有毒性，普通攻击伤敌时，可能使毒素侵入对方体内，持续损耗气血与法力。"
+      "flavorText": "普攻伤到目标后，有机会使其中毒，持续损失气血和法力。"
     },
     {
       "id": "beast.advanced-poison",
       "name": "高级毒性",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "poison",
         "chance": 0.2,
@@ -686,145 +741,157 @@
         "immune": true
       },
       "icon": "☠️",
-      "flavorText": "体内蕴有毒性，普通攻击伤敌时，可能使毒素侵入对方体内，持续损耗气血与法力。"
+      "flavorText": "普攻伤到目标后，有机会使其中毒，持续损失气血和法力；自身免疫此毒。"
     },
     {
       "id": "beast.miracle",
-      "name": "清灵",
+      "name": "解厄",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "miracle",
         "immune": false
       },
       "icon": "🌟",
-      "flavorText": "灵息清澈，能够自行涤去附着于身的常规异常。"
+      "flavorText": "每回合结束时解除自身可驱散的控制、减益和持续伤害。"
     },
     {
       "id": "beast.advanced-miracle",
-      "name": "高级清灵",
+      "name": "高级避厄",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "miracle",
         "immune": true
       },
       "icon": "🌟",
-      "flavorText": "灵息澄澈，常规异常难以附身。"
+      "flavorText": "免疫可驱散的控制、减益和持续伤害。"
     },
     {
       "id": "beast.concentration",
       "name": "定神",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "concentration",
         "physicalFactor": 0.8,
         "dodgeBonus": 0
       },
       "icon": "🧠",
-      "flavorText": "心神稳固，不易受外力扰乱，但搏杀时少了几分凶劲。"
+      "flavorText": "免疫可驱散的控制，但自身造成的物理伤害降低。"
     },
     {
       "id": "beast.advanced-concentration",
       "name": "高级定神",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "concentration",
         "physicalFactor": 0.8,
         "dodgeBonus": 10
       },
       "icon": "🧠",
-      "flavorText": "心神稳固，不易受外力扰乱，但搏杀时少了几分凶劲。"
+      "flavorText": "免疫可驱散的控制，提高自身躲避，但造成的物理伤害降低。"
     },
     {
       "id": "beast.eternity",
-      "name": "灵息绵长",
+      "name": "灵效绵长",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "eternity",
         "factor": 1.5,
         "maxExtra": 3
       },
       "icon": "⏳",
-      "flavorText": "体内灵息绵长，承受的部分增益能够维持更久。"
+      "flavorText": "自身获得的部分增益持续更久。"
     },
     {
       "id": "beast.advanced-eternity",
-      "name": "高级灵息绵长",
+      "name": "高级灵效绵长",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "eternity",
         "factor": 2,
         "maxExtra": 6
       },
       "icon": "⏳",
-      "flavorText": "体内灵息绵长，承受的部分增益能够维持更久。"
+      "flavorText": "自身获得的部分增益持续更久。"
     },
     {
       "id": "beast.ghost",
-      "name": "魂生",
+      "name": "灵魂体",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "ghost",
         "delay": 5
       },
       "icon": "👻",
-      "flavorText": "生机寄于魂魄，身死之后仍可等待复起，却无法像寻常生灵一样接受气血恢复。"
+      "flavorText": "死亡后等待数回合复起，但无法接受普通气血恢复。"
     },
     {
       "id": "beast.advanced-ghost",
-      "name": "高级魂生",
+      "name": "高级灵魂体",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "ghost",
         "delay": 5
       },
       "icon": "👻",
-      "flavorText": "生机寄于魂魄，身死之后仍可等待复起，却无法像寻常生灵一样接受气血恢复。"
+      "flavorText": "死亡后等待数回合复起，但无法接受普通气血恢复。"
     },
     {
       "id": "beast.exorcism",
-      "name": "慑魂",
+      "name": "镇魂",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "exorcism",
         "factor": 1.5
       },
       "icon": "🧿",
-      "flavorText": "攻击中自有震慑阴魂之力，对魂生之体伤害更重，击杀后可阻其复起。"
+      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复起。"
     },
     {
       "id": "beast.advanced-exorcism",
-      "name": "高级慑魂",
+      "name": "高级镇魂",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "exorcism",
         "factor": 2
       },
       "icon": "🧿",
-      "flavorText": "攻击中自有震慑阴魂之力，对魂生之体伤害更重，击杀后可阻其复起。"
+      "flavorText": "攻击灵魂体目标时伤害提高，击杀后阻止其复起。"
     },
     {
       "id": "beast.denial",
-      "name": "闭灵",
+      "name": "绝灵",
       "book": true,
+      "advanced": false,
       "effect": {
         "type": "denial",
         "ghostDamageFactor": 1.2,
         "spellFactor": 1
       },
       "icon": "🚫",
-      "flavorText": "灵息自闭，不受增益，也不易沾染常规异常，却更易受到魂生之物的伤害。"
+      "flavorText": "免疫控制、减益和持续伤害，无法获得增益；更怕灵魂体攻击。"
     },
     {
       "id": "beast.advanced-denial",
-      "name": "高级闭灵",
+      "name": "高级绝灵",
       "book": true,
+      "advanced": true,
       "effect": {
         "type": "denial",
         "ghostDamageFactor": 1.2,
         "spellFactor": 0.8
       },
       "icon": "🚫",
-      "flavorText": "灵息自闭，不受增益，也不易沾染常规异常，却更易受到魂生之物的伤害。"
+      "flavorText": "免疫控制、减益和持续伤害，无法获得增益；减轻法术伤害，却更怕灵魂体攻击。"
     }
   ],
   "families": [

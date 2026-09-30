@@ -1,5 +1,6 @@
 import { formatContentPackErrors } from '@shared/lib/content-pack-errors';
 import { z } from 'zod';
+import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '../engine/combat-v6/beasts/content';
 import { findItemDefinition } from '../items/registry';
 import raw from './data/dungeon.json';
 
@@ -55,7 +56,7 @@ export function loadDungeonRewardPack(data: unknown) {
     pack.superiorBooks.forEach((id, i) => {
       if (
         findItemDefinition(id)?.kind !== 'beast_book' ||
-        !id.startsWith('book.beast.advanced-') ||
+        !BEAST_SUPERIOR_BOOK_SKILL_IDS.has(id.replace(/^book\./, '')) ||
         superiorBooks.has(id)
       )
         ctx.addIssue({

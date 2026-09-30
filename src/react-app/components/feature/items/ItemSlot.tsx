@@ -36,7 +36,6 @@ export function ItemSlot({
   onQuickAction,
   quickOnTouch,
   children,
-  comparisonItem,
   quantityLabel = '持有',
   guideAnchor,
 }: {
@@ -50,7 +49,6 @@ export function ItemSlot({
   onQuickAction?: () => void;
   quickOnTouch?: boolean;
   children?: (close: () => void) => ReactNode;
-  comparisonItem?: DisplayItem;
   quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
   guideAnchor?: string;
 }) {
@@ -64,6 +62,7 @@ export function ItemSlot({
   const touchMoved = useRef(false);
   const pointer = useRef('');
   const presentation = item ? itemPresentation(item) : undefined;
+  const slotName = item?.name ?? emptyLabel;
   function cancel() {
     clearTimeout(timer.current);
   }
@@ -180,7 +179,7 @@ export function ItemSlot({
         onPointerEnter={(e) => {
           if (e.pointerType === 'mouse' && item) {
             cancel();
-            timer.current = setTimeout(show, 200);
+            timer.current = setTimeout(show, 350);
           }
         }}
         onPointerLeave={(e) => {
@@ -223,11 +222,9 @@ export function ItemSlot({
           aria-hidden="true"
           className={cn(
             'pointer-events-none absolute grid place-items-center leading-none',
-            item
-              ? 'inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
-              : emptyLabel && emptyIcon !== '·'
-                ? 'inset-x-0 top-[10%] bottom-[24%] text-[clamp(1.5rem,48cqw,2.75rem)]'
-                : 'text-ink/25 inset-0 text-xl',
+            item || (emptyLabel && emptyIcon !== '·')
+              ? 'inset-x-1 top-[18%] h-[44%] text-[clamp(1.25rem,44cqw,2.5rem)]'
+              : 'text-ink/25 inset-0 text-xl',
             !item &&
               emptyLabel &&
               emptyIcon !== '·' &&
@@ -240,14 +237,19 @@ export function ItemSlot({
             emptyIcon
           )}
         </span>
-        {item || emptyLabel ? (
+        {slotName ? (
           <span
             className={cn(
-              'absolute inset-x-1 bottom-[8%] truncate text-center text-[clamp(0.625rem,17cqw,0.75rem)] leading-tight',
+              'pointer-events-none absolute inset-x-1 top-[60%] flex h-[34%] items-center justify-center text-center wrap-anywhere',
+              slotName.length > 5
+                ? 'text-[clamp(0.5rem,16cqw,0.625rem)] leading-[1.05]'
+                : slotName.length === 5
+                  ? 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1] @max-[4rem]:text-[8px] @max-[4rem]:leading-[1.05]'
+                  : 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1]',
               presentation?.color,
             )}
           >
-            {item?.name ?? emptyLabel}
+            <span className="line-clamp-2 w-full">{slotName}</span>
           </span>
         ) : null}
         {item && item.quantity > 1 ? (
@@ -289,12 +291,12 @@ export function ItemSlot({
             close();
           }
         }}
-        className="bg-bgpaper text-ink border-ink/30 fixed inset-auto m-0 w-80 overflow-y-auto overscroll-contain border p-4 text-sm leading-6 [overflow-wrap:anywhere] shadow-xl"
+        className="bg-bgpaper text-ink border-ink/30 fixed inset-auto m-0 w-80 overflow-y-auto overscroll-contain border p-3 text-sm leading-6 [overflow-wrap:anywhere] shadow-xl"
       >
         {open && item && presentation ? (
           <ItemPreview
             item={item}
-            comparisonItem={comparisonItem}
+            options={{ hideQuantity: true }}
             quantityLabel={quantityLabel}
             close={close}
             actions={children?.(() => setOpen(false))}

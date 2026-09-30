@@ -9,6 +9,7 @@ import {
 } from '@server/lib/services/AlchemyRecipeRules';
 import { getCultivatorPreHeavenFates } from '@server/lib/services/cultivator/CultivatorProfileRepository';
 import { ELEMENT_PREFIX_MAP } from '@shared/config/alchemyConfig';
+import { ALCHEMY_MAX_DOSE } from '@shared/config/alchemyInput';
 import type { ResourceOperationSettlement } from '@shared/engine/resource/types';
 import type { AlchemyBagMaterial } from '@shared/inventory/alchemy';
 import {
@@ -126,6 +127,8 @@ function normalizeDose(
   materialQuantities?: Record<string, number>,
 ): number {
   const requested = materialQuantities?.[material.id] ?? 1;
+  if (requested > ALCHEMY_MAX_DOSE)
+    throw new AlchemyServiceError(`每个材料格最多投入 ${ALCHEMY_MAX_DOSE} 份。`, 400);
   if (
     !Number.isInteger(requested) ||
     requested < 1 ||

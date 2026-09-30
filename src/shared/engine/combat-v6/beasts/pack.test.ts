@@ -46,6 +46,17 @@ describe('beast content packs', () => {
     );
   });
 
+  it('allows a skill without a family to set its grade independently of its effect', () => {
+    const p = input();
+    const groupSpell = p.skills.skills.find(
+      (skill) => skill.id === 'beast.wildfire',
+    )!;
+    groupSpell.advanced = false;
+    expect(
+      load(p).skills.skills.find((skill) => skill.id === groupSpell.id)?.advanced,
+    ).toBe(false);
+  });
+
   it.each<[string, (p: ReturnType<typeof input>) => void, string]>([
     [
       'duplicate species',
@@ -131,6 +142,20 @@ describe('beast content packs', () => {
         p.skills.families[0].normal = 'beast.missing';
       },
       '技能不存在',
+    ],
+    [
+      'normal family skill marked advanced',
+      (p) => {
+        p.skills.skills[1].advanced = true;
+      },
+      '技能品级与配对不符',
+    ],
+    [
+      'advanced family skill marked normal',
+      (p) => {
+        p.skills.skills[2].advanced = false;
+      },
+      '技能品级与配对不符',
     ],
     [
       'cyclic family',

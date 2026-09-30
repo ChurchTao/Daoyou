@@ -8,7 +8,9 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
+import { MAX_CRAFT_MATERIAL_QUANTITY } from '@shared/config/itemQuantity';
 import type { InscriptionRequest } from '@shared/contracts/inscriptions';
 import type { InventoryView } from '@shared/contracts/inventory';
 import { daoFormationInscriptionOf } from '@shared/engine/combat-v6/equipment/content';
@@ -259,8 +261,8 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
         return;
       }
       const quantity = (materials[index]?.quantity ?? 0) + 1;
-      if (quantity > item.quantity) {
-        setSelectionError('该材料数量不足');
+      if (quantity > Math.min(item.quantity, MAX_CRAFT_MATERIAL_QUANTITY)) {
+        setSelectionError(`每个材料格最多投入 ${MAX_CRAFT_MATERIAL_QUANTITY} 份`);
         return;
       }
       setMaterials((old) =>
@@ -291,7 +293,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     const describe = (ref: InscriptionRef, quantity: number) => {
       const item = byId.get(ref.id);
       const location = item?.location === 'storage' ? '储藏室' : '储物袋';
-      return `${location} · ${item?.name} ×${quantity}`;
+      const definition = item && itemDefinition(item.definitionId);
+      const level =
+        definition?.kind === 'inscription' ? ` · ${definition.level}级` : '';
+      return `${location} · ${item?.name}${level} ×${quantity}`;
     };
     if (input.action === 'draw') {
       lines.push(...input.materials.map((ref) => describe(ref, ref.quantity)));
@@ -665,22 +670,18 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                           ? (close) => (
                               <div className="flex flex-wrap gap-3">
                                 {tab === 'draw' && (
-                                  <label className="flex w-full items-center gap-2 text-sm">
+                                  <div className="flex w-full flex-wrap items-center gap-2 text-sm">
                                     <span>投入数量</span>
-                                    <input
-                                      aria-label={`第${index + 1}格投入数量`}
-                                      className="min-w-0 flex-1 py-1 font-mono"
-                                      type="number"
-                                      min={1}
-                                      max={
-                                        byId.get(materials[index]!.id)!.quantity
-                                      }
+                                    <InkQuantityInput
+                                      label={`第${index + 1}格投入数量`}
+                                      max={Math.min(
+                                        byId.get(materials[index]!.id)!.quantity,
+                                        MAX_CRAFT_MATERIAL_QUANTITY,
+                                      )}
                                       value={materials[index]!.quantity}
                                       disabled={session.locked}
-                                      onChange={(event) => {
-                                        const quantity = Number(
-                                          event.target.value,
-                                        );
+                                      onChange={(value) => {
+                                        const quantity = Number(value);
                                         setMaterials((old) =>
                                           old.map((ref, i) =>
                                             i === index && ref
@@ -690,7 +691,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                                         );
                                       }}
                                     />
-                                  </label>
+                                  </div>
                                 )}
                                 <InkButton
                                   disabled={session.locked || slot.disabled}

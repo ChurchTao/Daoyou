@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { BEAST_SKILL_FAMILIES } from '../engine/combat-v6/beasts/content';
+import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '../engine/combat-v6/beasts/content';
 import {
   equipmentRealm,
   isOpenEquipmentLevel,
@@ -77,13 +77,14 @@ describe('幻境逐层奖励', () => {
     }
   });
   it('普通和上品灵印池对应真实技能品级', () => {
-    const advanced = new Set(
-      BEAST_SKILL_FAMILIES.map((row) => `book.${row.advanced}`),
+    const superior = new Set(
+      [...BEAST_SUPERIOR_BOOK_SKILL_IDS].map((id) => `book.${id}`),
     );
-    expect(raw.pools.books.entries.every((id) => !advanced.has(id))).toBe(true);
+    expect(raw.pools.books.entries.every((id) => !superior.has(id))).toBe(true);
     expect(
-      raw.pools.superiorBooks.entries.every((id) => advanced.has(id)),
+      raw.pools.superiorBooks.entries.every((id) => superior.has(id)),
     ).toBe(true);
+    expect(new Set(raw.pools.superiorBooks.entries)).toEqual(superior);
   });
   it('相同种子可重放，追加奖励分布符合15%、8%、50%', () => {
     for (const [floor, chance] of [

@@ -14,6 +14,12 @@ export const BEAST_GENERATION = packs.species.generation;
 export const BEAST_SKILLS = packs.skills.skills.map(compileBeastSkill);
 export const BEAST_SKILL_FAMILIES = packs.skills.families;
 export const BEAST_BOOK_SKILLS = packs.skills.skills.filter((s) => s.book);
+export const BEAST_ADVANCED_SKILL_IDS = new Set(
+  BEAST_SKILL_CONTENT.filter((skill) => skill.advanced).map((skill) => skill.id),
+);
+export const BEAST_SUPERIOR_BOOK_SKILL_IDS = new Set(
+  BEAST_BOOK_SKILLS.filter((skill) => skill.advanced).map((skill) => skill.id),
+);
 export const BEAST_COMBO_SKILL_IDS = packs.skills.skills
   .filter((s) => s.effect.type === 'combo')
   .map((s) => s.id);

@@ -2,7 +2,7 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { AUTO_DELAY_MS } from '@shared/combat-v6/auto';
 import type { CombatV6TrainingCommandV1 } from '@shared/contracts/combatV6';
 import type { ArenaSessionView } from '@shared/contracts/combatV6Arena';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { CombatV6Commands, type Choice } from './CombatV6Commands';
 import { CombatV6Details } from './CombatV6Details';
@@ -30,6 +30,7 @@ type Props = {
   onResolve: () => Promise<void>;
   onAuto: () => Promise<void>;
   onClose: () => void;
+  endAction?: ReactNode;
   onBack?: () => void;
   back: string;
   backLabel: string;
@@ -57,6 +58,7 @@ export function CombatV6Battle({
   onResolve,
   onAuto,
   onClose,
+  endAction,
   onBack,
   back,
   backLabel,
@@ -305,6 +307,7 @@ export function CombatV6Battle({
             cancel();
           }}
           onClose={onClose}
+          endAction={endAction}
           commandError={
             commandError?.id === roundId ? commandError.text : undefined
           }

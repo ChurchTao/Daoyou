@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CRAFT_MATERIAL_QUANTITY } from '../config/itemQuantity';
 import type { InscriptionCost } from '../inscriptions/rules';
 import type { ItemGrant } from '../inventory';
 
@@ -6,7 +7,9 @@ const ref = z.strictObject({
   id: z.string().min(1).max(160),
   revision: z.number().int().nonnegative(),
 });
-const material = ref.extend({ quantity: z.number().int().min(1).max(99) });
+const material = ref.extend({
+  quantity: z.number().int().min(1).max(MAX_CRAFT_MATERIAL_QUANTITY),
+});
 const common = {
   requestId: z.uuid(),
   expectedCost: z.strictObject({

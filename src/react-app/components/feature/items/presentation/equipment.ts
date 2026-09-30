@@ -2,7 +2,7 @@ import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import { daoEquipmentRequiredLevel } from '@shared/engine/combat-v6/equipment/compiler';
 import { daoFormationInscriptionOf } from '@shared/engine/combat-v6/equipment/content';
-import { daoFormationMaxLevel, daoFormationPanel } from '@shared/engine/combat-v6/equipment/inscriptions';
+import { daoFormationMaxLevel } from '@shared/engine/combat-v6/equipment/inscriptions';
 import {
   DAO_EQUIPMENT_ARTS_V1,
   DAO_EQUIPMENT_ESSENCES_V1,
@@ -27,8 +27,6 @@ const icons = {
 const signed = (value: number) => `${value >= 0 ? '+' : ''}${value}`;
 function equipmentSections(
   equipment: ReturnType<typeof InventoryEquipmentSchema.parse>,
-  old?: ReturnType<typeof InventoryEquipmentSchema.parse>,
-  previousName?: string,
 ): PreviewSection[] {
   const sections: PreviewSection[] = [];
   for (const key of ['baseStats', 'attributeBonuses'] as const) {
@@ -42,24 +40,7 @@ function equipmentSections(
       value: signed(roll.value),
       numeric: true,
       tone: key === 'attributeBonuses' ? 'positive' : 'normal',
-      delta: old
-        ? roll.value - (old[key].find((r) => r.attr === roll.attr)?.value ?? 0)
-        : undefined,
     }));
-    for (const roll of old?.[key] ?? []) {
-      if (!equipment[key].some((r) => r.attr === roll.attr))
-        rows.push({
-          label:
-            key === 'attributeBonuses'
-              ? CHARACTER_ATTRIBUTE_LABELS[
-                  roll.attr as keyof typeof CHARACTER_ATTRIBUTE_LABELS
-                ]
-              : EQUIPMENT_ATTRIBUTE_NAMES[roll.attr],
-          value: 0,
-          numeric: true,
-          delta: -roll.value,
-        });
-    }
     if (rows.length)
       sections.push({
         title: key === 'baseStats' ? '器胚属性' : '附灵属性',
@@ -87,22 +68,6 @@ function equipmentSections(
         ...formationRows.map(row => ({ kind: 'line' as const, ...row })),
       ],
     });
-  if (old) {
-    const currentPanel = daoFormationPanel(equipment);
-    const previousPanel = daoFormationPanel(old);
-    const attributes = new Set([...currentPanel, ...previousPanel].map(roll => roll.attr));
-    if (attributes.size)
-      sections.push({
-        title: '阵纹属性比较',
-        entries: [...attributes].map(attr => {
-          const value = currentPanel.find(roll => roll.attr === attr)?.value ?? 0;
-          return {
-            kind: 'line', label: EQUIPMENT_ATTRIBUTE_NAMES[attr], value: signed(value), numeric: true,
-            delta: value - (previousPanel.find(roll => roll.attr === attr)?.value ?? 0),
-          };
-        }),
-      });
-  }
   const essences = equipment.essenceIds
     .map((id) => DAO_EQUIPMENT_ESSENCES_V1.find((e) => e.id === id))
     .filter((e) => e !== undefined);
@@ -133,33 +98,6 @@ function equipmentSections(
       ],
     });
   }
-  if (old)
-    sections.push({
-      title: '比较说明',
-      tone: 'muted',
-      entries: [
-        {
-          value: `对比「${previousName}」，箭头表示本件相对已穿戴道装的增减。`,
-        },
-        {
-          label: '已穿戴器蕴',
-          value:
-            old.essenceIds
-              .map(
-                (id) =>
-                  DAO_EQUIPMENT_ESSENCES_V1.find((e) => e.id === id)?.name ??
-                  id,
-              )
-              .join('、') || '无',
-        },
-        {
-          label: '已穿戴器诀',
-          value:
-            DAO_EQUIPMENT_ARTS_V1.find((e) => e.id === old.artId)?.name ?? '无',
-        },
-        { value: '以上为道装属性比较，非人物最终面板。' },
-      ].map((row) => ({ kind: 'line', ...row })),
-    });
   return sections;
 }
 export const equipmentAdapter: ItemAdapter = (item) => {
@@ -176,7 +114,7 @@ export const equipmentAdapter: ItemAdapter = (item) => {
       type: `${equipmentType} · 御使境界`,
       tier,
     },
-    preview: (options) => ({
+    preview: () => ({
       header: [
         field('类型', equipmentType),
         field(
@@ -191,26 +129,8 @@ export const equipmentAdapter: ItemAdapter = (item) => {
           ? [{ kind: 'status' as const, value: '已穿戴' }]
           : []),
       ],
-      sections: equipmentSections(
-        equipment,
-        options.previous
-          ? InventoryEquipmentSchema.parse(options.previous.instanceData)
-          : undefined,
-        options.previous?.name,
-      ),
+      sections: equipmentSections(equipment),
       description: equipment.desc,
-      comparison: options.comparisonItem
-        ? {
-            title: `与已穿戴的${options.comparisonItem.name}比较`,
-            sections: equipmentSections(
-              equipment,
-              InventoryEquipmentSchema.parse(
-                options.comparisonItem.instanceData,
-              ),
-              options.comparisonItem.name,
-            ),
-          }
-        : undefined,
     }),
   };
 };

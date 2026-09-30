@@ -37,7 +37,7 @@ describe('inventory capacity and immutable facts', () => {
     ];
     expect(
       definitions.map((id) => BOOKS.find((book) => book.id === id)!.name),
-    ).toEqual(['连击', '反扑', '高级连击']);
+    ).toEqual(['连击', '反击', '高级连击']);
     const entries = definitions.flatMap((definitionId, i) =>
       [0, 1].map((offset) => ({
         ...item(i * 2 + offset, 2),

@@ -3,7 +3,13 @@ import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
+import {
+  InkButton,
+  InkInput,
+  InkNotice,
+  InkQuantityInput,
+  InkSelect,
+} from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
@@ -204,10 +210,8 @@ export function MailComposer({
               </ItemSlot>
             </div>
             {selected ? (
-              <InkInput
+              <InkQuantityInput
                 label="数量"
-                type="number"
-                min={1}
                 max={selected.quantity}
                 value={quantity}
                 onChange={setQuantity}

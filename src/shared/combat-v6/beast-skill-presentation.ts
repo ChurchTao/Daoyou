@@ -1,6 +1,6 @@
 import {
+  BEAST_ADVANCED_SKILL_IDS,
   BEAST_SKILL_CONTENT,
-  BEAST_SKILL_FAMILIES,
   BEAST_SKILLS,
 } from '../engine/combat-v6/beasts/content';
 import { combatV6SkillDetails } from './skill-details';
@@ -9,10 +9,14 @@ export type BeastSkillPresentation = {
   name: string;
   icon: string;
   style: 'normal' | 'advanced' | 'unavailable';
+  summary: string;
+  details: string;
   description: string;
 };
 const descriptions = combatV6SkillDetails(BEAST_SKILLS, []);
-const advanced = new Set(BEAST_SKILL_FAMILIES.map((f) => f.advanced));
+const effectDescriptions = combatV6SkillDetails(BEAST_SKILLS, [], {
+  includeBeastFlavor: false,
+});
 const presentations = new Map<string, BeastSkillPresentation>([
   ...BEAST_SKILL_CONTENT.map(
     (s) =>
@@ -21,7 +25,14 @@ const presentations = new Map<string, BeastSkillPresentation>([
         {
           name: s.name,
           icon: s.icon,
-          style: advanced.has(s.id) ? 'advanced' : 'normal',
+          style: BEAST_ADVANCED_SKILL_IDS.has(s.id)
+            ? 'advanced'
+            : 'normal',
+          summary: s.flavorText,
+          details:
+            effectDescriptions[s.id]?.description === s.flavorText
+              ? ''
+              : (effectDescriptions[s.id]?.description ?? '暂无技能效果。'),
           description: descriptions[s.id]?.description ?? '暂无技能说明。',
         },
       ] as [string, BeastSkillPresentation],
@@ -37,6 +48,8 @@ export function beastSkillPresentation(id: string): BeastSkillPresentation {
       name: '未知技能',
       icon: '❔',
       style: 'unavailable',
+      summary: '技能信息暂不可用。',
+      details: '',
       description: '技能信息暂不可用。',
     }
   );

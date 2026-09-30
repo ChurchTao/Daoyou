@@ -31,14 +31,18 @@ export {
 export { InkLoadingBar, type InkLoadingBarProps } from './InkLoadingBar';
 export { InkNav, type InkNavProps } from './InkNav';
 export { InkNotice, type InkNoticeProps } from './InkNotice';
+export {
+  InkQuantityInput,
+  type InkQuantityInputProps,
+} from './InkQuantityInput';
 export { InkSelect, type InkSelectProps } from './InkSelect';
 export { InkStatRow, type InkStatRowProps } from './InkStatRow';
-export { InkSwitch, type InkSwitchProps } from './InkSwitch';
 export {
   InkStatusBar,
   type InkStatusBarProps,
   type InkStatusDatum,
 } from './InkStatusBar';
+export { InkSwitch, type InkSwitchProps } from './InkSwitch';
 export { InkTabs, type InkTabItem, type InkTabsProps } from './InkTabs';
 export { InkTag, type InkTagProps } from './InkTag';
 export {

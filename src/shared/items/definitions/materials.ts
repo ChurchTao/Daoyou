@@ -25,7 +25,7 @@ export const MATERIAL_ITEM = {
   id: 'material.v1',
   name: '材料',
   kind: 'material' as const,
-  stackLimit: 99,
+  stackLimit: 999,
 };
 /** Explicit immutable facts. Legacy arbitrary details are deliberately not executable rules. */
 export const MaterialFactsSchema = z

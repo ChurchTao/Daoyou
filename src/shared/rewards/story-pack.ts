@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DropPoolSchema, type DropPool } from '../drops';
 import { findItemDefinition } from '../items/registry';
-import { MaterialFactsSchema } from '../items/definitions/materials';
+import { MATERIAL_ITEM, MaterialFactsSchema } from '../items/definitions/materials';
 import { formatContentPackErrors } from '../lib/content-pack-errors';
 import raw from './data/story.json';
 
@@ -102,7 +102,7 @@ export function loadStoryRewardPack(data: unknown): StoryRewardPack {
           }
           const material = pack.materials[entry.rewardId];
           if (material) {
-            if (entry.quantity.max > 99) {
+            if (entry.quantity.max > MATERIAL_ITEM.stackLimit) {
               context.addIssue({
                 code: 'custom',
                 path,

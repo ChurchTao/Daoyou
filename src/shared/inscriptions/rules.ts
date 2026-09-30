@@ -1,3 +1,4 @@
+import { MAX_CRAFT_MATERIAL_QUANTITY } from '../config/itemQuantity';
 import { DAO_FORMATION_INSCRIPTIONS_V1 } from '../engine/combat-v6/equipment/content';
 import { daoFormationMaxLevel } from '../engine/combat-v6/equipment/inscriptions';
 import {
@@ -135,11 +136,16 @@ export function prepareInscriptionDraw(
     const item = resolve(items, ref);
     const problem = inscriptionMaterialProblem(item);
     if (problem) throw new InventoryRuleError(problem);
-    return (
-      sum +
-      inscriptionMaterialTenths(MaterialFactsSchema.parse(item.instanceData)) *
-        ref.quantity
-    );
+    const facts = MaterialFactsSchema.parse(item.instanceData);
+    if (
+      !Number.isInteger(ref.quantity) ||
+      ref.quantity < 1 ||
+      ref.quantity > MAX_CRAFT_MATERIAL_QUANTITY
+    )
+      throw new InventoryRuleError(
+        `每个材料格最多投入 ${MAX_CRAFT_MATERIAL_QUANTITY} 份`,
+      );
+    return sum + inscriptionMaterialTenths(facts) * ref.quantity;
   }, 0);
   const preview = previewInscriptionDraw(totalTenths);
   return { preview, afterMaterials };

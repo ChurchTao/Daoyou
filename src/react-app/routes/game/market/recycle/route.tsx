@@ -4,6 +4,7 @@ import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDiscreteRange } from '@app/components/ui/InkDiscreteRange';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { inventoryBagResource, useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
@@ -128,19 +129,16 @@ function QuantityChoice({
         if (valid && !disabled) choose(amount);
       }}
     >
-      <label className="flex items-center justify-between gap-3">
-        出售份数
-        <input
-          aria-label={`${item.name}出售份数`}
-          className="border-ink/20 w-20 border p-2 font-mono"
-          type="number"
-          min={1}
-          max={item.quantity}
+      <div className="flex flex-wrap items-center gap-2">
+        <span>出售份数</span>
+        <InkQuantityInput
+          label={`${item.name}出售份数`}
           value={quantity}
+          onChange={setQuantity}
+          max={item.quantity}
           disabled={disabled}
-          onChange={(event) => setQuantity(event.target.value)}
         />
-      </label>
+      </div>
       <div className="flex gap-2">
         <InkButton type="submit" disabled={disabled || !valid}>
           {selected ? '更新份数' : '加入报价'}

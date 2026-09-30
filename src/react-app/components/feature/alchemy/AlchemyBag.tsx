@@ -5,11 +5,13 @@ import {
   type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import {
   groupAlchemyBagMaterials,
   groupAlchemyStorageMaterials,
+  type AlchemyBagMaterial,
 } from '@shared/inventory/alchemy';
 import type { Material } from '@shared/types/cultivator';
 import { useEffect, useState } from 'react';
@@ -114,33 +116,15 @@ export function AlchemyBag({
               : undefined,
             children: material
               ? (close) => (
-                  <form
-                    className="space-y-3"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      choose(Number(new FormData(e.currentTarget).get('dose')));
-                      close();
-                    }}
-                  >
-                    <label className="flex items-center gap-3">
-                      投入份量
-                      <input
-                        key={dose}
-                        aria-label={`${material.name}投入份量`}
-                        name="dose"
-                        type="number"
-                        min={1}
-                        max={Math.min(material.quantity, ALCHEMY_MAX_DOSE)}
-                        defaultValue={dose ?? 1}
-                        required
-                        disabled={locked || full}
-                        className="border-ink/20 w-20 border bg-transparent p-2 font-mono"
-                      />
-                    </label>
-                    <InkButton type="submit" disabled={locked || full}>
-                      {full ? '材料格已满' : dose ? '调整份量' : '投入丹炉'}
-                    </InkButton>
-                  </form>
+                  <AlchemyDoseChoice
+                    key={dose}
+                    material={material}
+                    dose={dose}
+                    disabled={locked || full}
+                    full={full}
+                    choose={choose}
+                    close={close}
+                  />
                 )
               : item
                 ? () => (
@@ -151,5 +135,52 @@ export function AlchemyBag({
         }}
       />
     </CraftInventoryPanel>
+  );
+}
+
+function AlchemyDoseChoice({
+  material,
+  dose,
+  disabled,
+  full,
+  choose,
+  close,
+}: {
+  material: AlchemyBagMaterial;
+  dose?: number;
+  disabled: boolean;
+  full: boolean;
+  choose(amount: number): void;
+  close(): void;
+}) {
+  const [quantity, setQuantity] = useState(String(dose ?? 1));
+  const max = Math.min(material.quantity, ALCHEMY_MAX_DOSE);
+  const amount = Number(quantity);
+  const valid =
+    quantity !== '' && Number.isInteger(amount) && amount >= 1 && amount <= max;
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!valid || disabled) return;
+        choose(amount);
+        close();
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span>投入份量</span>
+        <InkQuantityInput
+          label={`${material.name}投入份量`}
+          value={quantity}
+          onChange={setQuantity}
+          max={max}
+          disabled={disabled}
+        />
+      </div>
+      <InkButton type="submit" disabled={disabled || !valid}>
+        {full ? '材料格已满' : dose ? '调整份量' : '投入丹炉'}
+      </InkButton>
+    </form>
   );
 }

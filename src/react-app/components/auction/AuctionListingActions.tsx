@@ -1,4 +1,4 @@
-import { InkButton, InkInput } from '@app/components/ui';
+import { InkButton, InkQuantityInput } from '@app/components/ui';
 import {
   AUCTION_MAX_PURCHASE_QUANTITY,
   AUCTION_MAX_TRANSACTION_TOTAL,
@@ -73,22 +73,14 @@ export function AuctionListingActions({
         灵石／{isBeast ? '只' : '件'}
       </p>
       {!isOwner && !isBeast && maxQuantity > 1 && (
-        <div className="flex items-end gap-2">
-          <InkInput
+        <div>
+          <InkQuantityInput
             label="购买数量"
-            type="number"
-            min={1}
             max={maxQuantity}
             value={quantity}
             onChange={setQuantity}
             disabled={!!pendingId}
           />
-          <InkButton
-            disabled={!!pendingId}
-            onClick={() => setQuantity(String(maxQuantity))}
-          >
-            最多
-          </InkButton>
         </div>
       )}
       {!isOwner && (

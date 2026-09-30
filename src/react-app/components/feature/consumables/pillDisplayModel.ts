@@ -484,7 +484,7 @@ function buildCostAndRuleLines(
       (operation) => operation.type === 'gain_beast_cultivation',
     )
   )
-    return ['用于喂养灵兽，等级不能超过主人'];
+    return lines;
   const quotaCategory = getEffectiveQuotaCategory(spec);
   const usageRuleText =
     getPillUsageProgressText(quotaCategory, options)?.rule ??
@@ -645,7 +645,6 @@ function buildAlchemyInfoLines(
     alchemyMeta.source === 'formula' ? formulaFitBandText : undefined;
 
   return [
-    `丹药类别：${getPillFamilyLabel(consumable.spec.family)}`,
     breakthroughLabel ? `破境用途：${breakthroughLabel}` : undefined,
     alchemyMeta.breakthroughTargetRealm
       ? `目标大境界：${alchemyMeta.breakthroughTargetRealm}`
@@ -718,7 +717,7 @@ function getSpiritFruitRealmRuleLines(
       (operation) => operation.type === 'gain_beast_cultivation',
     )
   )
-    return ['用于喂养灵兽，等级不能超过主人'];
+    return [];
   if (!realm) return [];
   const quality = consumable.quality ?? '凡品';
   const minQuality = getMinimumPillQualityByRealm(realm);

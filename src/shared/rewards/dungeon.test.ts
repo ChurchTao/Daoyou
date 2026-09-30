@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getRealmStageLevel } from '../config/realmProgression';
 import { findItemDefinition } from '../items/registry';
 import { REALM_VALUES } from '../types/constants';
+import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '../engine/combat-v6/beasts/content';
 import {
   appendDungeonReward,
   dungeonRewardItemName,
@@ -181,6 +182,11 @@ describe('秘境额外养成奖励', () => {
       blueprint: 0,
     };
     const upper = new Set(DUNGEON_REWARD_PACK.superiorBooks);
+    expect(upper).toEqual(
+      new Set([...BEAST_SUPERIOR_BOOK_SKILL_IDS].map((id) => `book.${id}`)),
+    );
+    for (const book of DUNGEON_REWARD_PACK.books)
+      expect(book.weight).toBe(upper.has(book.rewardId) ? 4 : 24);
     const bookWeight = DUNGEON_REWARD_PACK.books.reduce(
       (sum, item) => sum + item.weight,
       0,
@@ -204,7 +210,7 @@ describe('秘境额外养成奖励', () => {
     expect(totals.originDew).toBeCloseTo(0.5, 10);
     expect(totals.superiorOriginDew).toBeCloseTo(0.2, 10);
     expect(totals.blueprint).toBeCloseTo(0.75, 10);
-    expect(totals.superiorBook).toBeCloseTo(0.09, 3);
+    expect(totals.superiorBook).toBeCloseTo(0.1005, 4);
   });
 
   it.each(['exploration', 'battle', 'completion'] as const)(

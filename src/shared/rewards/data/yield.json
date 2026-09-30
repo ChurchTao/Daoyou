@@ -1,6 +1,6 @@
 {
   "poolId": "yield",
-  "poolVersion": 1,
+  "poolVersion": 2,
   "weights": {
     "material": 75,
     "blueprint": 20,
@@ -173,19 +173,19 @@
     },
     {
       "rewardId": "book.beast.thunderstorm",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.mountain-crush",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.flood",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.wildfire",
-      "weight": 24
+      "weight": 4
     },
     {
       "rewardId": "book.beast.spell-combo",

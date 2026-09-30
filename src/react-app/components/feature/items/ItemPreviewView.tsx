@@ -41,17 +41,6 @@ function PreviewLineView({
         )}
       >
         {row.value}
-        {row.delta !== undefined && row.delta !== 0 ? (
-          <span
-            className={cn(
-              'ml-2 font-mono',
-              row.delta > 0 ? tones.positive : tones.warning,
-            )}
-            aria-label={`较已穿戴${row.delta > 0 ? '增加' : '减少'}${Math.abs(row.delta)}`}
-          >
-            {row.delta > 0 ? '↑' : '↓'} {Math.abs(row.delta)}
-          </span>
-        ) : null}
       </span>
     </div>
   );
@@ -93,10 +82,10 @@ function ItemPreviewSections({ sections }: { sections: PreviewSection[] }) {
   const visible = sections.filter((section) => section.entries.length);
   if (!visible.length) return null;
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {visible.map((section, index) =>
         section.collapsible ? (
-          <details key={`${section.title}-${index}`} className="space-y-1.5">
+          <details key={`${section.title}-${index}`} className="space-y-1">
             <summary className="cursor-pointer font-medium text-amber-800">
               {section.title}
             </summary>
@@ -105,7 +94,7 @@ function ItemPreviewSections({ sections }: { sections: PreviewSection[] }) {
             </div>
           </details>
         ) : (
-          <section key={`${section.title}-${index}`} className="space-y-1.5">
+          <section key={`${section.title}-${index}`} className="space-y-1">
             <h3 className="font-medium text-amber-800">{section.title}</h3>
             <div className="pl-3">
               <PreviewEntries entries={section.entries} tone={section.tone} />
@@ -141,7 +130,7 @@ type PreviewChrome = {
   actions?: ReactNode;
   context?: string;
 };
-/** 纯渲染层：不读取物品定义，不决定类型特有的字段和比较规则。 */
+/** 纯渲染层：不读取物品定义，不决定类型特有的字段。 */
 export function ItemPreviewView({
   model,
   close,
@@ -149,10 +138,10 @@ export function ItemPreviewView({
   context,
 }: { model: ItemPreviewModel } & PreviewChrome) {
   return (
-    <div className="text-ink space-y-4 text-sm leading-6 [overflow-wrap:anywhere]">
-      <header className="border-ink/15 flex items-start gap-3 border-b pb-3">
+    <div className="text-ink space-y-3 text-sm leading-6 [overflow-wrap:anywhere]">
+      <header className="border-ink/15 flex items-start gap-2.5 border-b pb-2">
         <div
-          className="border-ink/20 bg-paper flex size-14 shrink-0 items-center justify-center rounded-sm border text-4xl"
+          className="border-ink/20 bg-paper flex size-12 shrink-0 items-center justify-center rounded-sm border text-3xl"
           aria-hidden="true"
         >
           <GameIcon value={model.icon} purpose="artwork" />
@@ -185,32 +174,21 @@ export function ItemPreviewView({
       </header>
       {context ? <p className="text-ink-secondary">{context}</p> : null}
       <ItemPreviewSections sections={model.sections} />
-      {model.comparison ? (
-        <details className="border-ink/15 border-t pt-3">
-          <summary className="text-tier-xuan cursor-pointer">
-            {model.comparison.title}
-          </summary>
-          <div className="mt-3">
-            <ItemPreviewSections sections={model.comparison.sections} />
-          </div>
-        </details>
-      ) : null}
       {model.description ? (
         <section
           aria-label="道具描述"
           className={cn(
             'text-ink-secondary',
             (model.sections.some((section) => section.entries.length) ||
-              context ||
-              model.comparison) &&
-              'border-ink/15 border-t pt-3',
+              context) &&
+              'border-ink/15 border-t pt-2',
           )}
         >
           <p className="whitespace-pre-line">{model.description}</p>
         </section>
       ) : null}
       {actions ? (
-        <footer className="border-ink/15 space-y-3 border-t pt-3">
+        <footer className="border-ink/15 space-y-2 border-t pt-2">
           {actions}
         </footer>
       ) : null}

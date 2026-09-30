@@ -3,7 +3,7 @@ import { beastSkillPresentation } from '@shared/combat-v6/beast-skill-presentati
 import { getLevelRealmStage } from '@shared/config/realmProgression';
 import {
   BEAST_SKILL_CONTENT,
-  BEAST_SKILL_FAMILIES,
+  BEAST_SUPERIOR_BOOK_SKILL_IDS,
 } from '@shared/engine/combat-v6/beasts/content';
 import { BEAST_REFINEMENT } from '@shared/engine/combat-v6/beasts/refinement-config';
 import { BEAST_REJUVENATION } from '@shared/items/definitions/beast-rejuvenation';
@@ -32,7 +32,6 @@ export const blueprintAdapter: ItemAdapter = (item, def) => {
     preview: (options) => ({
       header: [
         field('类型', '道装图纸'),
-        field('产物境界', `${realm}期`),
         quantity(item, options),
       ],
       sections: [],
@@ -128,7 +127,6 @@ export const manualAdapter: ItemAdapter = (item, def) => {
           entries: lines(
             [
               ...manualEffectLines(manual, 1),
-              '九层：' + manualEffectLines(manual, 9).join('；'),
               manual.description,
             ].join('\n'),
           ),
@@ -138,17 +136,17 @@ export const manualAdapter: ItemAdapter = (item, def) => {
     }),
   };
 };
-const advancedSkills = new Set(BEAST_SKILL_FAMILIES.map((f) => f.advanced));
 export const beastBookAdapter: ItemAdapter = (item, def) => {
   const available = BEAST_SKILL_CONTENT.some(
     (skill) => skill.id === def.skillId,
   );
-  const advanced = advancedSkills.has(def.skillId!);
-  const tier = !available ? '已失效' : advanced ? '上品' : '普通';
+  const superior = BEAST_SUPERIOR_BOOK_SKILL_IDS.has(def.skillId!);
+  const tier = !available ? '已失效' : superior ? '上品' : '普通';
+  const skill = beastSkillPresentation(def.skillId!);
   return {
     summary: {
-      icon: advanced ? '📕' : '📘',
-      color: tierColorMap[advanced ? '神品' : '地品'],
+      icon: superior ? '📕' : '📘',
+      color: tierColorMap[superior ? '神品' : '地品'],
       tier,
       type: '传承灵印',
     },
@@ -157,10 +155,20 @@ export const beastBookAdapter: ItemAdapter = (item, def) => {
       sections: [
         {
           title: '所载传承',
-          entries: lines(beastSkillPresentation(def.skillId!).description),
+          entries: [
+            ...lines(skill.summary).map((line) => ({ ...line, tone: 'muted' as const })),
+            ...(skill.details
+              ? [{
+                  kind: 'disclosure' as const,
+                  title: '具体效果',
+                  tone: 'positive' as const,
+                  rows: lines(skill.details),
+                }]
+              : []),
+          ],
         },
       ],
-      description: advanced
+      description: superior
         ? '封存着更为精深的妖灵传承，可助灵兽领悟其中的本领。'
         : '封存着妖灵传承的灵念，可助灵兽领悟其中的本领。',
     }),
@@ -219,7 +227,7 @@ export const rejuvenationAdapter: ItemAdapter = (item) => ({
       {
         title: '洗点效果',
         entries: lines(
-          '等级与修为归零，属性点重新养成。野生灵兽原有的点数亏损保留。',
+          '修为归零，野生灵兽原有的点数亏损保留。',
         ),
       },
     ],
