@@ -2,7 +2,9 @@ import { getRealmStageLevel } from '../config/realmProgression';
 import { getWorldMapLocation } from '../lib/game/mapSystem';
 import { REALM_VALUES } from '../types/constants';
 
-export const HUNT_CYCLE_MS = 2 * 60 * 60 * 1000;
+export const HUNT_CYCLE_MS = 6 * 60 * 60 * 1000;
+const LEGACY_HUNT_CYCLE_MS = 2 * 60 * 60 * 1000;
+const HUNT_TIMEZONE_OFFSET_MS = 8 * 60 * 60 * 1000;
 export const HUNT_REALMS = REALM_VALUES.slice(2);
 export const HUNT_BOSSES = {
   heretic: {
@@ -69,11 +71,14 @@ export type HuntEvent = {
   spiritStones?: number;
 };
 export function huntEventsAt(now: number): HuntEvent[] {
-  const cycle = Math.floor(now / HUNT_CYCLE_MS);
-  return eventsForCycle(cycle, 2);
+  const cycle = Math.floor((now + HUNT_TIMEZONE_OFFSET_MS) / HUNT_CYCLE_MS);
+  return eventsForCycle(cycle, 3);
 }
-// Keep old rumor links and frozen teams bound to their original three bosses.
-function eventsForCycle(cycle: number, version: 1 | 2): HuntEvent[] {
+// Published links retain their original duration and boss rotation.
+function eventsForCycle(cycle: number, version: 1 | 2 | 3): HuntEvent[] {
+  const duration = version === 3 ? HUNT_CYCLE_MS : LEGACY_HUNT_CYCLE_MS;
+  const startsAt =
+    cycle * duration - (version === 3 ? HUNT_TIMEZONE_OFFSET_MS : 0);
   const bosses: HuntBossId[] =
     version === 1
       ? ['heretic', 'demon', 'beast']
@@ -85,14 +90,14 @@ function eventsForCycle(cycle: number, version: 1 | 2): HuntEvent[] {
     level: getRealmStageLevel(realm, '中期'),
     nodeId: NODES[index],
     locationName: getWorldMapLocation(NODES[index])!.name,
-    startsAt: cycle * HUNT_CYCLE_MS,
-    expiresAt: (cycle + 1) * HUNT_CYCLE_MS,
+    startsAt,
+    expiresAt: startsAt + duration,
   }));
 }
 export function huntEventById(id: string): HuntEvent | undefined {
-  const match = /^hunt-v([12])-(\d{1,10})-([0-6])$/.exec(id);
+  const match = /^hunt-v([123])-(\d{1,10})-([0-6])$/.exec(id);
   return match
-    ? eventsForCycle(Number(match[2]), Number(match[1]) as 1 | 2)[
+    ? eventsForCycle(Number(match[2]), Number(match[1]) as 1 | 2 | 3)[
         Number(match[3])
       ]
     : undefined;

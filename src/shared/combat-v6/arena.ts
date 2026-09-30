@@ -20,6 +20,7 @@ import { canCollectCommand } from '@shared/engine/combat-v6/core/units';
 import { DAO_RAGE_RESOURCE_ID } from '@shared/engine/combat-v6/equipment/special-ids';
 import { daoyouRulesetV6 } from '@shared/engine/combat-v6/rules-daoyou';
 import { COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS } from '@shared/engine/combat-v6/version';
+import { huntParticipantSucceeded } from '../hunts/settlement';
 import { controlledUnits, validatePetCommand } from './controlled-commands';
 import { diffUnits } from './playback';
 import {
@@ -230,7 +231,11 @@ export function arenaView(
         : result.winner === 'draw'
           ? 'draw'
           : result.winner === (viewer?.side ?? 0)
-            ? 'victory'
+            ? runtime.hunt &&
+              viewer &&
+              !huntParticipantSucceeded(state, viewer.unitId)
+              ? 'defeat'
+              : 'victory'
             : 'defeat';
   return {
     apiVersion: COMBAT_V6_TRAINING_API_VERSION,

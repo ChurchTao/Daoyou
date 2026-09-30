@@ -1,3 +1,4 @@
+import type { AutoStrategy } from '@shared/combat-v6/auto-strategy';
 import type {
   BattleEvent,
   BattleState,
@@ -12,7 +13,6 @@ import type { HuntRewardSnapshot } from '../rewards/hunt';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
 import { CombatV6CommandGroupSchema } from './combatV6';
 import type { CombatV6ReplayTimeline } from './combatV6Replay';
-import type { AutoStrategy } from '@shared/combat-v6/auto-strategy';
 
 export const ARENA_V6_PROTOCOL = 'combat_v6_arena_v1' as const;
 export const ARENA_PUBLIC_VIEW = '__spectator__';
@@ -33,6 +33,8 @@ export type ArenaParticipant = {
 };
 export type ArenaRuntime = {
   hunt?: HuntEvent;
+  /** Absent on legacy, isolated full-resource hunts. */
+  huntResourcePolicy?: 'persistent';
   huntRewards?: Record<string, HuntRewardSnapshot>;
   timeline: CombatV6ReplayTimeline;
   protocol: typeof ARENA_V6_PROTOCOL;

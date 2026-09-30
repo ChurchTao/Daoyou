@@ -1,3 +1,4 @@
+import { resolveApiWebSocketUrl } from '@app/lib/api/url';
 import type {
   ArenaSessionView,
   ArenaSocketMessage,
@@ -41,6 +42,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
     let ready = false;
+    let socketReady = false;
     let reading = false;
     let accessEnded = false;
     let serial = 0;
@@ -69,6 +71,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
             dispatch({ type: 'receive', session });
         buffered = [];
         ready = true;
+        setConnected(socketReady);
         setError(undefined);
       } catch (cause) {
         if (!disposed && request === serial) {
@@ -80,6 +83,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
             clearTimeout(retryTimer);
           }
           setError(cause instanceof Error ? cause.message : '恢复失败');
+          setConnected(false);
           socket?.close();
         }
       } finally {
@@ -92,10 +96,9 @@ export function useArenaV6Session(battleId: string, spectator = false) {
     const connect = () => {
       if (disposed || accessEnded || !navigator.onLine) return;
       ready = false;
+      socketReady = false;
       buffered = [];
-      const url = new URL(`${base}/socket`, window.location.href);
-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocket(url);
+      socket = new WebSocket(resolveApiWebSocketUrl(`${base}/socket`));
       socket.onmessage = (event) => {
         if (disposed) return;
         let message: ArenaSocketMessage;
@@ -111,7 +114,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
         }
         if (message.type === 'ready') {
           setClockOffset(message.serverNow - Date.now());
-          setConnected(true);
+          socketReady = true;
           void read();
           return;
         }
@@ -132,6 +135,7 @@ export function useArenaV6Session(battleId: string, spectator = false) {
       socket.onclose = (event) => {
         if (disposed) return;
         setConnected(false);
+        socketReady = false;
         ready = false;
         if (latest.current?.stage === 'finished') return;
         if (event.code === 1008) {

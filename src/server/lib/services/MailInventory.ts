@@ -4,7 +4,10 @@ import {
 } from '@shared/contracts/beastTrade';
 import { MailInventoryGrantSchema } from '@shared/contracts/mail';
 import { consumableFactsOf } from '@shared/items/definitions/consumables';
-import { MaterialFactsSchema } from '@shared/items/definitions/materials';
+import {
+  INVENTORY_MATERIAL_TYPES,
+  MaterialFactsSchema,
+} from '@shared/items/definitions/materials';
 import { seedFactsOf, SeedFactsSchema } from '@shared/items/definitions/seeds';
 import { assertCurrentRewardItem } from '@shared/lib/retiredDraw';
 import type { Consumable, Material } from '@shared/types/cultivator';
@@ -32,7 +35,7 @@ export function newRewardAttachment(item: MailAttachment): MailAttachment {
   if (item.type === 'material' && item.data) {
     const material = item.data as Material;
     if (
-      !['seed', 'herb', 'ore', 'tcdb', 'aux', 'monster'].includes(material.type)
+      !['seed', ...INVENTORY_MATERIAL_TYPES].includes(material.type)
     )
       return item;
     const facts =

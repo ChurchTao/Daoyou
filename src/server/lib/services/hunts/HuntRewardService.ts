@@ -1,8 +1,8 @@
 import type { DbExecutor } from '@server/lib/drizzle/db';
 import type { HuntEvent } from '@shared/hunts/config';
 import { MaterialFactsSchema } from '@shared/items/definitions/materials';
-import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@shared/rewards/dungeon-material-quality';
 import { HuntRewardSnapshotSchema, planHuntReward } from '@shared/rewards/hunt';
+import { HUNT_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@shared/rewards/hunt-material-quality';
 import { generateRealmMaterials } from '../MaterialRewardService';
 import { computeItemLibrarySampleKey } from '../itemLibrarySampleKey';
 
@@ -23,7 +23,8 @@ export async function prepareHuntReward(
     `${seed}:${plan.poolId}:${plan.poolVersion}:materials`,
     true,
     tx,
-    DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM[event.realm],
+    HUNT_MATERIAL_QUALITY_CHANCE_BY_REALM[event.realm],
+    true,
   );
   return HuntRewardSnapshotSchema.parse({
     poolId: plan.poolId,

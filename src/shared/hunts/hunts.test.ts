@@ -54,8 +54,48 @@ describe('世界讨伐准入与刷新', () => {
     }
     for (const pool of seen)
       expect(pool).toEqual(new Set(Object.keys(HUNT_BOSSES)));
-    expect(huntEventById('hunt-v3-100-0')).toBeUndefined();
-    expect(HuntEventIdSchema.safeParse('hunt-v3-100-0').success).toBe(false);
+    expect(huntEventById('hunt-v4-100-0')).toBeUndefined();
+    expect(HuntEventIdSchema.safeParse('hunt-v4-100-0').success).toBe(false);
+  });
+  it('北京时间每六小时刷新，同轮奖励身份保持不变，到点全部替换', () => {
+    expect(HUNT_CYCLE_MS).toBe(6 * 60 * 60 * 1000);
+    for (const hour of ['00', '06', '12', '18']) {
+      const start = Date.parse(`2026-09-30T${hour}:00:00+08:00`);
+      const events = huntEventsAt(start);
+      expect(huntEventsAt(start + HUNT_CYCLE_MS - 1)).toEqual(events);
+      const previous = huntEventsAt(start - 1);
+      const next = huntEventsAt(start + HUNT_CYCLE_MS);
+      for (const [index, event] of events.entries()) {
+        expect(event.id).toMatch(/^hunt-v3-/);
+        expect(HuntEventIdSchema.safeParse(event.id).success).toBe(true);
+        expect(huntEventById(event.id)).toEqual(event);
+        expect(event.startsAt).toBe(start);
+        expect(event.expiresAt).toBe(start + HUNT_CYCLE_MS);
+        expect(huntIsOpen(event, event.expiresAt)).toBe(false);
+        expect(previous[index].expiresAt).toBe(start);
+        expect(previous[index].id).not.toBe(event.id);
+        expect(next[index].id).not.toBe(event.id);
+      }
+    }
+  });
+  it('已发布的 v1/v2 事件仍使用两小时周期和原目标，不延长旧领奖窗口', () => {
+    const cycle = 248718;
+    const start = cycle * 2 * 60 * 60 * 1000;
+    for (const version of [1, 2]) {
+      const bosses =
+        version === 1
+          ? ['heretic', 'demon', 'beast']
+          : Object.keys(HUNT_BOSSES);
+      for (let index = 0; index < 7; index++) {
+        const id = `hunt-v${version}-${cycle}-${index}`;
+        expect(HuntEventIdSchema.safeParse(id).success).toBe(true);
+        const event = huntEventById(id)!;
+        expect(event.startsAt).toBe(start);
+        expect(event.expiresAt).toBe(start + 2 * 60 * 60 * 1000);
+        expect(event.bossId).toBe(bosses[(cycle + index) % bosses.length]);
+        expect(huntIsOpen(event, event.expiresAt)).toBe(false);
+      }
+    }
   });
   it('各实例对同一时间生成相同出现事件，刷新后换领奖身份', () => {
     expect(huntEventsAt(now)).toEqual(huntEventsAt(now + 1));

@@ -171,8 +171,7 @@ export async function listSectTaskRecords(
         eq(sectTaskRecords.membershipId, membershipId),
         sql`(${inArray(sectTaskRecords.periodKey, [...new Set(periodKeys)])}
           OR ${sectTaskRecords.payload}->'executorData'->>'battleSettled' = 'false'
-          OR (${sectTaskRecords.status} = 'completed' AND ${sectTaskRecords.claimedAt} IS NULL
-            AND ${sectTaskRecords.payload}->'executorData'->'battleTarget'->>'schemaVersion' = '2'))`,
+          OR (${sectTaskRecords.status} = 'completed' AND ${sectTaskRecords.claimedAt} IS NULL))`,
       ),
     )
     .orderBy(desc(sectTaskRecords.createdAt));

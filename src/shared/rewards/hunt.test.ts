@@ -5,6 +5,22 @@ import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from './dungeon-material-qua
 import { HUNT_DROP_POOL, HuntDropPoolSchema, planHuntReward } from './hunt';
 
 describe('讨伐奖励', () => {
+  it('奖励档位跟随目标境界；渡劫目标不会降为金丹档奖励', () => {
+    const events = huntEventsAt(Date.parse('2026-09-30T12:00:00+08:00'));
+    const gold = planHuntReward(
+      events.find((e) => e.realm === '金丹')!,
+      () => () => 0.5,
+    );
+    const tribulation = planHuntReward(
+      events.find((e) => e.realm === '渡劫')!,
+      () => () => 0.5,
+    );
+    expect(tribulation.experience).toBeGreaterThan(gold.experience);
+    expect(tribulation.spiritStones).toBeGreaterThan(gold.spiritStones);
+    // Insight and the common item pool do not scale with realm.
+    expect(tribulation.insight).toBe(gold.insight);
+    expect(tribulation.items).toEqual(gold.items);
+  });
   it.each(HUNT_REALMS)('%s 的三项基础资源与六小时挂机算法一致', (realm) => {
     for (const roll of [0, 0.49, 0.999999]) {
       const actual = planHuntReward({ realm }, () => () => roll);

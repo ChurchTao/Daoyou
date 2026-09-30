@@ -2,16 +2,32 @@ import type { ArenaRuntime } from '../../../contracts/combatV6Arena';
 import type { HuntBossId, HuntEvent } from '../../../hunts/config';
 import { HUNT_BOSSES } from '../../../hunts/config';
 import type { Command, LineupUnit, SkillDef, StatusDef } from '../core';
-import { presetEnemyAttrs } from '../encounter/preset-enemy';
+import { huntEnemyAttrs } from './balance';
 const mark = 'hunt.demon.mark';
 const ward = 'hunt.beast.ward';
 export const HUNT_SKILLS: SkillDef[] = [
+  {
+    id: 'hunt.minion.strike',
+    name: '凶爪',
+    tags: ['physical'],
+    targeting: { side: 'enemy' },
+    effects: [{ type: 'physicalHit', coeff: 0.6, defenseIgnore: 0.2 }],
+  },
+  {
+    id: 'hunt.minion.bolt',
+    name: '妖火',
+    tags: ['spell'],
+    targeting: { side: 'enemy' },
+    effects: [
+      { type: 'spellHit', power: 'level * 1.5', resultFactors: [0.65] },
+    ],
+  },
   {
     id: 'hunt.bolt',
     name: '妖焰',
     tags: ['spell'],
     targeting: { side: 'enemy' },
-    effects: [{ type: 'spellHit', coeff: 1 }],
+    effects: [{ type: 'spellHit', coeff: 1, power: 'level * 1.5' }],
   },
   {
     id: 'hunt.heal',
@@ -43,6 +59,13 @@ export const HUNT_SKILLS: SkillDef[] = [
     tags: ['support'],
     targeting: { side: 'ally' },
     effects: [{ type: 'applyStatus', statusId: ward, duration: 2 }],
+  },
+  {
+    id: 'hunt.strike',
+    name: '破甲凶袭',
+    tags: ['physical'],
+    targeting: { side: 'enemy' },
+    effects: [{ type: 'physicalHit', coeff: 0.9, defenseIgnore: 0.2 }],
   },
 ];
 export const HUNT_STATUSES: StatusDef[] = [
@@ -81,30 +104,13 @@ export function huntEnemies(event: HuntEvent, players: number): LineupUnit[] {
   if (!Number.isInteger(players) || players < 2 || players > 4)
     throw new Error('讨伐需要2～4人');
   const formation = formations[event.bossId];
-  const scale = 1.8 + (players - 2) * 0.65;
   return Array.from({ length: HUNT_ENEMY_COUNT }, (_, slot) => {
     const role = slot === 0 ? 'boss' : slot === 1 ? 'elite' : 'normal';
-    // Split the encounter budget by role, rather than multiplying a boss by eight.
-    const base = presetEnemyAttrs(
-      event.level,
-      role,
-      role === 'boss' ? 2 : role === 'elite' ? 4 : 12,
-    );
-    const attrs = {
-      ...base,
-      hp: Math.round(base.hp * scale),
-      maxHp: Math.round(base.maxHp * scale),
-      mp: 99999,
-      maxMp: 99999,
-      physicalDef: Math.round(
-        base.physicalDef * (role === 'normal' ? 0.65 : 1),
-      ),
-      magicDef: Math.round(base.magicDef * (role === 'normal' ? 0.65 : 1)),
-    };
+    const attrs = huntEnemyAttrs(event.level, role, players);
     if (role === 'boss') {
       switch (event.bossId) {
         case 'bloodPython':
-          attrs.maxHp = Math.round(attrs.maxHp * 3.5);
+          attrs.maxHp = Math.round(attrs.maxHp * 2.8);
           break;
         case 'ironTurtle':
           attrs.physicalDef *= 6;
@@ -115,24 +121,26 @@ export function huntEnemies(event: HuntEvent, players: number): LineupUnit[] {
           attrs.physicalDef = Math.round(attrs.physicalDef * 0.6);
           break;
         case 'gildedCorpse':
-          attrs.maxHp = Math.round(attrs.maxHp * 0.25);
+          attrs.maxHp = Math.round(attrs.maxHp * 0.45);
           attrs.physicalDef *= 6;
           attrs.magicDef *= 6;
           break;
         case 'shadowMarten':
-          attrs.dodge = base.hit + event.level * 6;
-          attrs.speed = Math.round(base.speed * 1.3);
+          attrs.dodge = attrs.hit + event.level * 6;
+          attrs.speed = Math.round(attrs.speed * 1.3);
           break;
       }
       attrs.hp = attrs.maxHp;
     }
-    let skills: string[] = [];
+    let skills: string[] = ['hunt.strike'];
     if (slot === 0 && event.bossId === 'demon')
       skills = ['hunt.mark', 'hunt.slam'];
     else if (slot === 1 && event.bossId === 'heretic') skills = ['hunt.heal'];
     else if (slot < 2 && event.bossId === 'beast') skills = ['hunt.ward'];
     else if ((slot < 2 && event.bossId === 'mistToad') || slot >= 6)
       skills = ['hunt.bolt'];
+    if (slot >= 2)
+      skills = [slot >= 6 ? 'hunt.minion.bolt' : 'hunt.minion.strike'];
     return {
       id: `hunt.enemy.${slot}`,
       name:
@@ -165,10 +173,13 @@ export function huntNpcCommand(
   );
   const enemies = standing.filter((u) => u.side === 0);
   const players = enemies.filter((u) => u.kind === 'player');
-  const target = (players.length ? players : enemies)[
-    (state.round - 1 + unit.slot) %
-      Math.max(1, players.length || enemies.length)
-  ];
+  const targets = unit.skills.some((id) => id.startsWith('hunt.minion.'))
+    ? enemies
+    : players.length
+      ? players
+      : enemies;
+  const target =
+    targets[(state.round - 1 + unit.slot) % Math.max(1, targets.length)];
   if (!target) return { type: 'defend' };
   if (unit.skills.includes('hunt.heal')) {
     const boss = standing.find((u) => u.id === 'hunt.enemy.0');
@@ -189,7 +200,12 @@ export function huntNpcCommand(
     if (ally)
       return { type: 'skill', skillId: 'hunt.ward', targets: [ally.id] };
   }
+  for (const skillId of ['hunt.minion.strike', 'hunt.minion.bolt'])
+    if (unit.skills.includes(skillId))
+      return { type: 'skill', skillId, targets: [target.id] };
   if (unit.skills.includes('hunt.bolt'))
     return { type: 'skill', skillId: 'hunt.bolt', targets: [target.id] };
+  if (unit.skills.includes('hunt.strike'))
+    return { type: 'skill', skillId: 'hunt.strike', targets: [target.id] };
   return { type: 'attack', target: target.id };
 }

@@ -14,14 +14,20 @@ import { getOrInitCultivationProgress } from '@server/utils/cultivationUtils';
 import type { HuntBattleReward } from '@shared/contracts/hunts';
 import type { JournalChange } from '@shared/contracts/playerJournal';
 import { HUNT_BOSSES } from '@shared/hunts/config';
+import {
+  huntParticipantSucceeded,
+  settleHuntResources,
+} from '@shared/hunts/settlement';
 import { dungeonRewardItemName } from '@shared/rewards/dungeon';
 import { HuntRewardSnapshotSchema } from '@shared/rewards/hunt';
+import type { CultivatorCondition } from '@shared/types/condition';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { ArenaV6Error, ownedArenaV6 } from '../combat-v6/CombatV6ArenaService';
 import { CombatV6ArenaStore } from '../combat-v6/CombatV6ArenaStore';
+import { ConditionService } from '../ConditionService';
 import {
   updateCultivationExp,
   updateSpiritStones,
@@ -86,11 +92,51 @@ export async function projectHuntReward(battleId: string) {
           return { changes: [], mailEvents: [] };
         const changes = [];
         const mailEvents: string[] = [];
+        // Resources and rewards share the transport receipt and transaction, including defeat/assist.
+        if (runtime.huntResourcePolicy === 'persistent') {
+          for (const p of participants) {
+            const row = await tx.query.cultivators.findFirst({
+              where: and(
+                eq(cultivators.id, p.cultivatorId),
+                eq(cultivators.userId, p.userId),
+              ),
+            });
+            if (!row?.condition) throw new Error('讨伐角色状态不存在');
+            const resources = settleHuntResources(
+              runtime.units.find((u) => u.id === p.unitId)?.attrs,
+              runtime.state.units.find((u) => u.id === p.unitId),
+              runtime.terminalReason === 'technical-abort',
+            );
+            await tx
+              .update(cultivators)
+              .set({
+                condition: ConditionService.applyCombatV6Resources(
+                  row.condition as CultivatorCondition,
+                  resources,
+                ),
+              })
+              .where(eq(cultivators.id, p.cultivatorId));
+            const committed = await new ResourceEventCommitter().commit(tx, {
+              actor: p,
+              source: 'hunt-condition',
+              scopeDefaults: { cultivatorId: p.cultivatorId },
+              changes: [
+                {
+                  resourceTopic: 'player.condition',
+                  operation: 'invalidate',
+                  eventType: 'combat_v6.condition.settled',
+                },
+              ],
+            });
+            changes.push(...committed.changes);
+          }
+        }
         if (
           runtime.terminalReason === 'battle-ended' &&
           runtime.state.result?.winner === 0
         ) {
           for (const p of participants) {
+            if (!huntParticipantSucceeded(runtime.state, p.unitId)) continue;
             // Legacy active battles retain their original stone-only reward.
             const frozen =
               runtime.huntRewards?.[p.cultivatorId] ??
@@ -218,7 +264,7 @@ export async function huntBattleReward(
   battleId: string,
   actor: HuntActor,
 ): Promise<HuntBattleReward> {
-  const { runtime } = await ownedArenaV6(battleId, actor);
+  const { runtime, participant } = await ownedArenaV6(battleId, actor);
   if (!runtime.hunt) throw new ArenaV6Error('不是讨伐战斗', 400);
   const [receipt] = await db
     .select({ id: messageConsumptions.messageId })
@@ -241,12 +287,22 @@ export async function huntBattleReward(
     journalOperationKey('hunt_reward', runtime.hunt.id),
     null,
   );
-  if (!claim) throw new Error('讨伐领奖凭据不存在');
-  const result = HuntJournalResultSchema.parse(claim.event.result);
-  if (result.battleId !== battleId) return { status: 'assisting' };
-  return {
-    status: 'rewarded',
-    reward: result.reward,
-    mailId: result.mailId,
-  };
+  const result = claim
+    ? HuntJournalResultSchema.parse(claim.event.result)
+    : undefined;
+  // Already committed historical rewards stay authoritative across rule changes.
+  if (result?.battleId === battleId)
+    return { status: 'rewarded', reward: result.reward, mailId: result.mailId };
+  if (!huntParticipantSucceeded(runtime.state, participant.unitId)) {
+    const unit = runtime.state.units.find((u) => u.id === participant.unitId);
+    return {
+      status: 'no-reward',
+      reason:
+        unit && (unit.attrs.hp <= 0 || unit.flags.dead || unit.flags.downed)
+          ? 'fallen'
+          : undefined,
+    };
+  }
+  if (!result) throw new Error('讨伐领奖凭据不存在');
+  return { status: 'assisting' };
 }

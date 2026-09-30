@@ -11,6 +11,7 @@ import {
 } from '../contracts/combatV6Runtime';
 import { EffectType, SkillTag, TargetSide } from '../engine/combat-v6/core';
 import { DAO_RAGE_RESOURCE_ID } from '../engine/combat-v6/equipment/special-ids';
+import { huntEventsAt } from '../hunts/config';
 import {
   arenaBattle,
   arenaDefaultCommand,
@@ -82,6 +83,25 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('讨伐胜方倒地者显示个人失败，存活队友仍为胜利；擂台保留队伍胜负', () => {
+    const runtime = fixture(4);
+    runtime.hunt = huntEventsAt(100000)[0];
+    runtime.stage = 'finished';
+    runtime.terminalReason = 'battle-ended';
+    runtime.state.result = { winner: 0, reason: 'wipe' };
+    const fallen = runtime.state.units.find((u) => u.id === 'u0')!;
+    fallen.flags.downed = true;
+    fallen.attrs.hp = 0;
+    expect(arenaView(runtime, 'u0', 0).outcome).toBe('defeat');
+    expect(arenaView(runtime, 'u2', 0).outcome).toBe('victory');
+    expect(arenaView(runtime, ARENA_PUBLIC_VIEW, 0).outcome).toBe('victory');
+    fallen.flags.downed = false;
+    fallen.attrs.hp = 10;
+    expect(arenaView(runtime, 'u0', 0).outcome).toBe('victory');
+    fallen.flags.downed = true;
+    delete runtime.hunt;
+    expect(arenaView(runtime, 'u0', 0).outcome).toBe('victory');
+  });
   it('公开人物战意，不公开其他资源或灵兽战意', () => {
     const runtime = fixture(2);
     runtime.units.push({

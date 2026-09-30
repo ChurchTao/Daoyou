@@ -1,3 +1,6 @@
+import { ConditionService } from '../ConditionService';
+import { evaluateFateContext } from '@shared/lib/fates';
+import { getCultivatorPreHeavenFates } from '../cultivator/CultivatorProfileRepository';
 import type { HuntTeam } from '@shared/contracts/hunts';
 import { prepareHuntReward } from '../hunts/HuntRewardService';
 import { HUNT_BOSSES, huntIsOpen } from '@shared/hunts/config';
@@ -150,13 +153,27 @@ export async function createArenaV6(
             tx,
           );
           const side = seat.teamId === 'alpha' ? 0 : 1;
-          const projection = projectCharacterToCombatV6({
+          let projection = projectCharacterToCombatV6({
             ...player,
             side,
             slot: seat.slot,
             resourcePolicy: 'full',
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
+          if (hunt) {
+            if (!player.cultivator.condition) throw new ArenaV6Error('角色状态尚未就绪');
+            player.cultivator.condition = ConditionService.recoverCombatV6Resources(
+              player.cultivator.condition,
+              { maxHp: projection.unit.attrs.maxHp!, maxMp: projection.unit.attrs.maxMp! },
+              new Date(),
+              evaluateFateContext(await getCultivatorPreHeavenFates(seat.cultivatorId, tx)),
+            );
+            projection = projectCharacterToCombatV6({ ...player, side, slot: seat.slot, resourcePolicy: 'persistent' });
+            if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
+            if (projection.unit.attrs.hp! <= 0) throw new ArenaV6Error(`${identity.name}气血耗尽，请先疗伤`);
+            await tx.update(cultivators).set({ condition: player.cultivator.condition })
+              .where(eq(cultivators.id, seat.cultivatorId));
+          }
           if (player.autoStrategy) autoStrategies[projection.unit.id!] = player.autoStrategy;
           Object.assign(unitAppearances, playerAppearances(player));
           units.push(characterBattleSkills(projection.unit, projection.skills, skills));
@@ -203,6 +220,7 @@ export async function createArenaV6(
         const runtime: ArenaRuntime = {
           ...input,
           hunt: hunt?.event,
+          huntResourcePolicy: hunt ? 'persistent' : undefined,
           huntRewards: hunt ? huntRewards : undefined,
           protocol: ARENA_V6_PROTOCOL,
           battleId,

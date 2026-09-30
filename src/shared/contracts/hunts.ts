@@ -5,7 +5,7 @@ import { REALM_VALUES, type RealmType } from '../types/constants';
 
 export const HuntEventIdSchema = z
   .string()
-  .regex(/^hunt-v[12]-\d{1,10}-[0-6]$/);
+  .regex(/^hunt-v[123]-\d{1,10}-[0-6]$/);
 export const HuntCreateTeamSchema = z
   .object({
     eventId: HuntEventIdSchema,
@@ -70,6 +70,7 @@ export type HuntLobby = {
 };
 export type HuntBattleReward = {
   status: 'pending' | 'no-reward' | 'rewarded' | 'assisting';
+  reason?: 'fallen';
   reward?: HuntRewardSnapshot;
   mailId?: string;
 };

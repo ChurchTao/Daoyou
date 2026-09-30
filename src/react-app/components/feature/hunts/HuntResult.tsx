@@ -27,7 +27,9 @@ export function HuntResult({
             : data.status === 'assisting'
               ? '助战得胜。你已领过此次报酬，不再另赠。'
               : data.status === 'no-reward'
-                ? '此战未能得胜，行踪消失前还可再战。'
+                ? data.reason === 'fallen'
+                  ? '你在此战中倒下，未能完成讨伐，也未领取报酬。养好伤后仍可再战。'
+                  : '此战未能得胜，行踪消失前还可再战。'
                 : '此次所得已收妥'}
       </p>
       {data?.status === 'rewarded' && data.reward ? (

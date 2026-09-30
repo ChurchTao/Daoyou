@@ -130,6 +130,35 @@ describe('讨伐遭遇机制', () => {
     mate.attrs.hp = 0;
     expect(huntNpcCommand({ state }, 'hunt.enemy.0').type).toBe('attack');
   });
+  it('旧战局冻结的普通攻击和妖焰仍可执行，不引用新增技能', () => {
+    const { input } = fixture('heretic');
+    const isNew = (id: string) =>
+      id === 'hunt.strike' || id.startsWith('hunt.minion.');
+    const legacy = {
+      ...input,
+      skills: input.skills.filter((s) => !isNew(s.id)),
+      units: input.units.map((u) => ({
+        ...u,
+        skills:
+          u.slot >= 6 && u.side === 1
+            ? ['hunt.bolt']
+            : u.skills?.filter((id) => !isNew(id)),
+      })),
+    };
+    const battle = createBattle(legacy);
+    for (let turn = 0; turn < 4; turn++) {
+      const state = battle.snapshot();
+      expect(huntNpcCommand({ state }, 'hunt.enemy.2')).toMatchObject({
+        type: 'attack',
+      });
+      expect(huntNpcCommand({ state }, 'hunt.enemy.6')).toMatchObject({
+        type: 'skill',
+        skillId: 'hunt.bolt',
+      });
+      round(battle);
+    }
+    expect(battle.snapshot().round).toBe(5);
+  });
   it('人数缩放不足等比例，增加队友仍有收益；拒绝单人装配', () => {
     const event = huntEventsAt(100000)[0];
     const two = huntEnemies(event, 2)[0].attrs!.maxHp!;
@@ -231,7 +260,7 @@ describe('八人讨伐敌阵', () => {
         toad = unit('mistToad'),
         corpse = unit('gildedCorpse');
       expect(unit('bloodPython').attrs.maxHp).toBeGreaterThan(
-        ordinary.attrs.maxHp * 3,
+        ordinary.attrs.maxHp * 2.5,
       );
       expect(damage(turtle, 'physical')).toBeLessThan(
         damage(ordinary, 'physical') * 0.3,
@@ -245,7 +274,7 @@ describe('八人讨伐敌阵', () => {
       expect(damage(toad, 'physical')).toBeGreaterThan(
         damage(ordinary, 'physical'),
       );
-      expect(corpse.attrs.maxHp).toBeLessThan(ordinary.attrs.maxHp * 0.3);
+      expect(corpse.attrs.maxHp).toBeLessThan(ordinary.attrs.maxHp * 0.5);
       expect(damage(corpse, 'physical')).toBeLessThan(
         damage(ordinary, 'physical') * 0.3,
       );

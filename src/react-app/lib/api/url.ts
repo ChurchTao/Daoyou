@@ -18,19 +18,17 @@ export function resolveRealtimeUrl(channels?: RealtimeChannel[]) {
     ? `?channels=${encodeURIComponent(channels.join(','))}`
     : '';
 
-  if (clientEnv.apiBaseUrl) {
-    const apiUrl = new URL(clientEnv.apiBaseUrl);
-    apiUrl.protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-    apiUrl.pathname = '/api/realtime';
-    apiUrl.search = channelQuery;
-    apiUrl.hash = '';
-    return apiUrl.toString();
-  }
+  return resolveApiWebSocketUrl(`/api/realtime${channelQuery}`);
+}
 
-  if (typeof window === 'undefined') {
-    return `/api/realtime${channelQuery}`;
-  }
+export function resolveApiWebSocketUrl(path: string) {
+  const resolved = resolveApiUrl(path);
+  if (!clientEnv.apiBaseUrl && typeof window === 'undefined') return resolved;
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/api/realtime${channelQuery}`;
+  const url = new URL(
+    resolved,
+    typeof window === 'undefined' ? undefined : window.location.href,
+  );
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.toString();
 }

@@ -4,8 +4,8 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@shared/engine/combat-v6/beasts/content';
 import { itemDefinition } from '@shared/inventory';
 import { getGameConceptInfo } from '@shared/lib/gameConceptDisplay';
-import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@shared/rewards/dungeon-material-quality';
 import { HUNT_DROP_POOL } from '@shared/rewards/hunt';
+import { HUNT_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@shared/rewards/hunt-material-quality';
 import type { RealmType } from '@shared/types/constants';
 import { useState } from 'react';
 
@@ -116,7 +116,7 @@ export function HuntRewardPreview({ realm }: { realm: RealmType }) {
             </button>
           </div>
           <p className="text-ink-secondary">
-            {Object.entries(DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM[realm])
+            {Object.entries(HUNT_MATERIAL_QUALITY_CHANCE_BY_REALM[realm])
               .filter(([, chance]) => chance > 0)
               .map(([quality]) => quality)
               .join('、')}

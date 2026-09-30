@@ -1,3 +1,5 @@
+import { redis } from '@server/lib/redis';
+import { arenaOccupancyKey, CombatV6ArenaStore } from './CombatV6ArenaStore';
 import { hasTowerBattle } from '@server/lib/tower/occupancy';
 import { readCharacterCombatBuild } from '@server/lib/repositories/characterLoadoutRepository';
 import type { DbExecutor } from '@server/lib/drizzle/db';
@@ -40,6 +42,17 @@ export async function readCombatV6ConditionAuthority(
       maxMp: summary.entry.maxMp,
       recoveryPaused: true,
     };
+  }
+  const arenaId = await redis.get(arenaOccupancyKey(id));
+  if (arenaId) {
+    const runtime = await new CombatV6ArenaStore().get(arenaId);
+    if (!runtime) throw new Error('ARENA_RESOURCE_AUTHORITY_MISSING');
+    if (runtime.huntResourcePolicy === 'persistent') {
+      const participant = runtime.participants.find((p) => p.cultivatorId === id);
+      const entry = runtime.units.find((u) => u.id === participant?.unitId)?.attrs;
+      if (!entry?.maxHp || entry.maxMp === undefined) throw new Error('HUNT_RESOURCES_MISSING');
+      return { attrs, effectiveAttributes, build, maxHp: entry.maxHp, maxMp: entry.maxMp, recoveryPaused: true };
+    }
   }
   const taskBattle = await activeSectTaskBattle(id, q);
   const taskTarget = taskBattle ? SectV6TargetSchema.parse(

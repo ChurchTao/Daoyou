@@ -44,7 +44,7 @@ export const HuntRewardSnapshotSchema = z
   .strict();
 export type HuntRewardSnapshot = z.infer<typeof HuntRewardSnapshotSchema>;
 
-/** Same random ranges and rounding as six hours of offline cultivation. */
+/** Six hours at the BOSS realm's middle stage, independent of the recipient's realm. */
 export function planHuntReward(
   event: Pick<HuntEvent, 'realm'>,
   random: (stream: string) => () => number,
