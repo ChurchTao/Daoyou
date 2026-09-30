@@ -1,3 +1,5 @@
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
+import { describeJournal } from './JournalSettlement';
 import { cultivators } from '@server/lib/drizzle/schema';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
@@ -14,7 +16,6 @@ import { planYieldRewards } from '@shared/rewards/yield';
 import type { RealmStage, RealmType } from '@shared/types/constants';
 import type { CultivationProgress } from '@shared/types/cultivator';
 import { and, eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 import { getExecutor } from '../drizzle/db';
 import { playerCommandExecutor } from './CommandExecutors';
 import { newRewardAttachment } from './MailInventory';
@@ -78,11 +79,25 @@ async function loadYieldFacts(
   };
 }
 
+interface YieldResult {
+  cultivatorName: string;
+  cultivatorRealm: RealmType;
+  amount: number;
+  expGain: number;
+  insightGain: number;
+  materials: GeneratedMaterial[];
+  hours: number;
+  materialCount: number;
+  rewardCount: number;
+}
+
 export async function executeYieldCommand(args: {
   userId: string;
   cultivatorId: string;
+  requestId: string;
 }) {
-  const actionInstanceId = randomUUID();
+  const actionInstanceId = args.requestId;
+  const idempotency = { key: args.requestId, fingerprint: 'yield' };
   let domainEventId: string | undefined;
   const prepared = await withRedisLock(
     {
@@ -93,6 +108,15 @@ export async function executeYieldCommand(args: {
       delayMs: 50,
     },
     async (lease) => {
+      if (await findPlayerMutationRequest(args.cultivatorId, 'yield_claim', args.requestId)) {
+        const committed = await playerCommandExecutor.execute<YieldResult>({
+          coordination: { mode: 'redis', lease },
+          userId: args.userId, cultivatorId: args.cultivatorId,
+          source: 'yield_claim', idempotency,
+          command: async () => { throw new Error('历练执行凭据已失效'); },
+        });
+        return { committed, result: committed.result };
+      }
       const facts = await loadYieldFacts(args.userId, args.cultivatorId);
       if (!facts) {
         throw new YieldCommandError('未找到角色信息', 404);
@@ -140,7 +164,7 @@ export async function executeYieldCommand(args: {
         ),
         ...rewardPlan.items,
       ];
-      const result = {
+      const result: YieldResult = {
         cultivatorName: facts.name,
         cultivatorRealm: facts.realm,
         amount:
@@ -163,7 +187,10 @@ export async function executeYieldCommand(args: {
         userId: args.userId,
         cultivatorId: args.cultivatorId,
         source: 'yield_claim',
+        requestId: actionInstanceId,
+        idempotency,
         command: async (tx) => {
+          describeJournal(tx, args.cultivatorId, `${Number(hoursElapsed.toFixed(1))}小时`);
           let spiritStones = facts.spiritStones;
           let progress = facts.progress;
           const claimedAt = new Date();

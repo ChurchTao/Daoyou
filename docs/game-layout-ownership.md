@@ -1,5 +1,7 @@
 # Game Layout Ownership
 
+`/game/journal` 为 `GameViewportLayout` 下的 archive 场景，展开导航提供「修仙日志」入口。正文仅包含分类和历史列表；日志事件与执行凭据见 [修仙日志](player-journal.md)。
+
 ## `/game` 路由归属
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`

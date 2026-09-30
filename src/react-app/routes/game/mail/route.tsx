@@ -1,3 +1,4 @@
+import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { FriendTargetModal } from '@app/components/feature/friends';
 import {
   GameLoadingState,
@@ -275,6 +276,8 @@ export default function MailPage() {
   };
 
   const handleClaimAll = async () => {
+    if (!cultivator) return;
+    const pending = pendingCommandRequest(cultivator.id, 'mail-claim-all');
     try {
       setBatchClaiming(true);
       const data = await mutate<{
@@ -286,9 +289,12 @@ export default function MailPage() {
       }>(
         fetch('/api/cultivator/mail/claim-all', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: pending.requestId }),
         }),
       );
 
+      pending.complete();
       const claimedMailIds = data.claimedMailIds || [];
       if (claimedMailIds.length > 0) {
         setMails((prev) =>

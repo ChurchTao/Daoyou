@@ -39,6 +39,8 @@ import { and, asc, count, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import { db, type DbExecutor, type DbTransaction } from '../drizzle/db';
+import { createDomainEvent } from '../mq/domainEventWriter';
+import { publishTransactionalMessageBestEffort } from '../mq/transactionalMessagePublisher';
 import {
   consumables,
   cultivatorBeasts,
@@ -251,6 +253,7 @@ export async function forgeEquipment(
       const seed = randomInt(0x100000000);
       const equipmentId = randomUUID();
       const createdAt = new Date().toISOString();
+      let rumorEventId: string | undefined;
       const committed = await playerCommandExecutor.executeWithLock({
         userId,
         cultivatorId: owner,
@@ -345,6 +348,22 @@ export async function forgeEquipment(
           const story = forged
             ? await StoryService.noteFact(owner, forged, tx)
             : null;
+          rumorEventId = (
+            await createDomainEvent(
+              {
+                type: 'equipment.forged',
+                aggregate: { type: 'equipment', id: equipment.id },
+                deduplicationKey: `${owner}:equipment-forged:${input.requestId}`,
+                data: {
+                  userId,
+                  cultivatorId: owner,
+                  cultivatorName: crafterName,
+                  equipment,
+                },
+              },
+              tx,
+            )
+          ).id;
           lease.assertHeld();
           return {
             result: {
@@ -377,6 +396,10 @@ export async function forgeEquipment(
             ],
           };
         },
+      });
+      publishTransactionalMessageBestEffort(rumorEventId, {
+        source: 'forging',
+        cultivatorId: owner,
       });
       return { data: committed.result, state: committed.state };
     },

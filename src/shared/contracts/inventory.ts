@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { BAG_CAPACITY, type InventoryItem } from '../inventory';
+import { INVENTORY_SORT_VALUES } from '../inventory/sorting';
 import { INVENTORY_MATERIAL_TYPES } from '../items/definitions/materials';
-import { QUALITY_VALUES } from '../types/constants';
+import { ELEMENT_VALUES, QUALITY_VALUES } from '../types/constants';
 const ref = {
   id: z.string().min(1).max(160),
   revision: z.number().int().nonnegative(),
@@ -10,6 +11,7 @@ export const InventoryQuerySchema = z
   .object({
     location: z.enum(['bag', 'storage']).default('bag'),
     page: z.coerce.number().int().min(0).max(1000000).default(0),
+    sort: z.enum(INVENTORY_SORT_VALUES).optional(),
     search: z.string().max(80).default(''),
     kind: z
       .enum([
@@ -29,6 +31,7 @@ export const InventoryQuerySchema = z
     minRank: z.enum(QUALITY_VALUES).optional(),
     maxRank: z.enum(QUALITY_VALUES).optional(),
     materialType: z.enum(INVENTORY_MATERIAL_TYPES).optional(),
+    element: z.enum(ELEMENT_VALUES).optional(),
     recycleCategory: z
       .enum([
         'all',
@@ -141,8 +144,16 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
 ]);
 export type InventoryAction = z.infer<typeof InventoryActionSchema>;
 export type InventoryView = {
-  items: (InventoryItem & { name: string; equipped: boolean })[];
-  equippedItems: (InventoryItem & { name: string; equipped: boolean })[];
+  items: (InventoryItem & {
+    name: string;
+    equipped: boolean;
+    updatedAt: string;
+  })[];
+  equippedItems: (InventoryItem & {
+    name: string;
+    equipped: boolean;
+    updatedAt: string;
+  })[];
   used: number;
   total: number;
   page: number;

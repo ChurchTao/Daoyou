@@ -183,7 +183,8 @@ describe('CultivationEngine insight cap', () => {
 
     const result = performCultivation(cultivator, 100, () => 0.9);
 
-    expect(result.summary.insight_gained).toBeGreaterThan(5);
+    expect(result.summary.insight_gained).toBe(5);
+    expect(result.record.insight_gained).toBe(5);
     expect(result.cultivator.cultivation_progress?.comprehension_insight).toBe(
       COMPREHENSION_INSIGHT_CAP,
     );
@@ -197,9 +198,19 @@ describe('CultivationEngine insight cap', () => {
     const result = attemptBreakthrough(cultivator, () => 0);
 
     expect(result.summary.success).toBe(true);
+    expect(result.summary.insight_change).toBe(2);
     expect(result.cultivator.cultivation_progress?.comprehension_insight).toBe(
       COMPREHENSION_INSIGHT_CAP,
     );
+  });
+
+  it('reports only the insight actually lost on a failed breakthrough', () => {
+    const cultivator = createCultivator();
+    cultivator.cultivation_progress!.cultivation_exp = 100_000;
+    cultivator.cultivation_progress!.comprehension_insight = 3;
+    const result = attemptBreakthrough(cultivator, () => 0.99);
+    expect(result.summary.success).toBe(false);
+    expect(result.summary.insight_change).toBe(-3);
   });
 });
 

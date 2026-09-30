@@ -5,6 +5,7 @@ import {
 } from '@app/components/feature/cultivator/useQiActionConfirm';
 import {
   useCultivatorCondition,
+  useCultivatorCurrency,
   useCultivatorIdentity,
   useCultivatorProgress,
   usePlayerSession,
@@ -23,7 +24,7 @@ import type {
 } from '@shared/contracts/retreat';
 import type { TaskInstance } from '@shared/types/task';
 import { getRetreatQiCost } from '@shared/config/qiSystem';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   type ReincarnateContextData,
@@ -112,6 +113,7 @@ type RetreatRequestOutcome =
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const profile = useCultivatorIdentity();
   const condition = useCultivatorCondition();
+  const currency = useCultivatorCurrency();
   const progress = useCultivatorProgress();
   const playerSession = usePlayerSession();
   const identity = profile.data?.cultivator;
@@ -148,6 +150,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     error: taskError,
   } = useTaskList(cultivator?.id);
   const [retreatYears, setRetreatYears] = useState('10');
+  const requestInFlight = useRef(false);
   const [retreatResult, setRetreatResult] = useState<RetreatResultData | null>(
     null,
   );
@@ -262,6 +265,10 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       action: RetreatAction;
       years?: number;
     }): Promise<RetreatRequestOutcome> => {
+      if (!cultivator || requestInFlight.current) return { ok: true };
+      requestInFlight.current = true;
+      // Keep the key after a lost response, including across page reloads.
+      const storageKey = `retreat-request:${cultivator.id}:${body.action}:${body.years ?? 0}`;
       const cultivatorSnapshot = cultivator
         ? {
             name: cultivator.name,
@@ -277,10 +284,12 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       setReincarnateContext(null);
 
       try {
+        const requestId = window.sessionStorage.getItem(storageKey) ?? crypto.randomUUID();
+        window.sessionStorage.setItem(storageKey, requestId);
         const response = await fetch('/api/cultivator/retreat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ ...body, requestId }),
         });
 
         if (!response.ok) {
@@ -296,6 +305,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         await consumeRetreatStream(response, {
           cultivatorSnapshot,
           onResult: (result) => {
+            window.sessionStorage.removeItem(storageKey);
             setRetreatResult(result);
             setRetreatResultOpen(true);
             setRetreatResultStreaming(Boolean(result.storyType));
@@ -307,6 +317,13 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
           onStoryUpdate: setRetreatResult,
           onReincarnateContext: setReincarnateContext,
           onState: (state) => {
+            if (state.replayed) {
+              profile.invalidate();
+              condition.invalidate();
+              progress.invalidate();
+              currency.invalidate();
+              playerSession.invalidate();
+            }
             if (state.changes.length === 0) return;
             consumeChanges(state);
           },
@@ -321,11 +338,12 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
 
         return { ok: true };
       } finally {
+        requestInFlight.current = false;
         setRetreatResultStreaming(false);
         setRetreatLoading(false);
       }
     },
-    [consumeChanges, cultivator, pushToast],
+    [consumeChanges, cultivator, pushToast, profile, condition, progress, currency, playerSession],
   );
 
   const handleRetreat = useCallback(async () => {

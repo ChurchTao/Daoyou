@@ -1,3 +1,5 @@
+import type { HuntEvent } from '@shared/hunts/config';
+import type { HuntMapPoint } from '@app/components/feature/hunts/HuntMapMarkers';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import {
   ATLAS_ANCHORS,
@@ -15,6 +17,7 @@ import * as Phaser from 'phaser';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
 
 export interface AtlasView {
+  hunts?: HuntEvent[];
   region: 'world' | keyof typeof ATLAS_ANCHORS;
   selectedId: string | null;
   blocked: boolean;
@@ -32,6 +35,7 @@ export interface AtlasController {
 interface AtlasArguments {
   root: HTMLElement;
   view: AtlasView;
+  onHuntPositions?: (points: HuntMapPoint[]) => void;
   onRegion: (id: string) => void;
   onNode: (id: string) => void;
   onClear: () => void;
@@ -645,6 +649,23 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
     private layoutMarkers() {
       const camera = this.cameras.main;
       camera.preRender();
+      const huntPoints: HuntMapPoint[] = [];
+      if (view.region !== 'world') {
+        for (const event of view.hunts ?? []) {
+          const anchor = ATLAS_ANCHORS[view.region][event.nodeId];
+          if (!anchor) continue;
+          const x =
+            ((anchor[0] * WIDTH - camera.midPoint.x) * camera.zoom + camera.width / 2) / pixelRatio;
+          const y =
+            ((anchor[1] * HEIGHT - camera.midPoint.y) * camera.zoom + camera.height / 2) / pixelRatio - 36;
+          if (
+            x > 40 && x < camera.width / pixelRatio - 40 &&
+            y > 100 && y < camera.height / pixelRatio
+          )
+            huntPoints.push({ id: event.id, x: Math.round(x), y: Math.round(y) });
+        }
+      }
+      args.onHuntPositions?.(huntPoints);
       const obstacles = view.occlusions.map(
         (rect) =>
           new Phaser.Geom.Rectangle(rect.x, rect.y, rect.width, rect.height),

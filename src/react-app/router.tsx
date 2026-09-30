@@ -917,6 +917,18 @@ export const router = createBrowserRouter(
               )}
             />
             <Route
+              path="journal"
+              lazy={lazyRoute(() => import('@app/routes/game/journal/route'))}
+              handle={scene(
+                {
+                  id: 'journal',
+                  presentation: 'archive',
+                  summary: '翻阅道具、修为、感悟与各类货币的得失。',
+                },
+                '修仙日志',
+              )}
+            />
+            <Route
               path="rankings"
               lazy={lazyRoute(() => import('@app/routes/game/rankings/route'))}
               handle={scene(
@@ -1118,6 +1130,7 @@ export const router = createBrowserRouter(
           </Route>
 
           <Route element={<CombatV6Layout />}>
+            <Route path="combat-v6/hunt/:battleId" lazy={lazyRoute(() => import('@app/routes/game/combat-v6/arena/route'))} handle={scene({ id: 'hunt', chrome: 'immersive', dock: 'hidden' }, '结伴讨伐')} />
             <Route
               path="combat-v6/arena/:battleId"
               lazy={lazyRoute(

@@ -7,7 +7,7 @@ export type WorldChatMessageChannel = 'system' | 'world' | 'sect';
 export type WorldChatChannel = WorldChatMessageChannel;
 
 export type WorldChatMessageType =
-  'text' | 'item_showcase' | 'beast_showcase' | 'battle_showcase' | 'combat_v6_replay';
+  'hunt_rumor' | 'text' | 'item_showcase' | 'beast_showcase' | 'battle_showcase' | 'combat_v6_replay';
 
 export interface WorldChatCombatV6ReplayPayload {
   version: 1;
@@ -43,6 +43,7 @@ export interface WorldChatBattleShowcasePayload {
 }
 
 export interface WorldChatPayloadMap {
+  hunt_rumor: { text: string; eventId: string; nodeId: string };
   text: WorldChatTextPayload;
   item_showcase: WorldChatItemShowcasePayload;
   beast_showcase: WorldChatBeastShowcasePayload;

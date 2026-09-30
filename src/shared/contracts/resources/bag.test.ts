@@ -19,6 +19,7 @@ describe('完整背包资源契约', () => {
         instanceData: null,
         stackKey: null,
         name: '长春功玉简',
+        updatedAt: '2026-09-30T00:00:00.000Z',
         equipped: false,
       },
     ],

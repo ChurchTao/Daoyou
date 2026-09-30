@@ -1,6 +1,8 @@
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { useArenaV6Session } from '@app/components/feature/combat-v6/useArenaV6Session';
+import { HuntResult } from '@app/components/feature/hunts/HuntResult';
+import { HUNT_BOSSES, huntMapHref } from '@shared/hunts/config';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 
@@ -45,7 +47,9 @@ function ArenaBattle({
         if (!response.ok && response.status !== 404)
           throw new Error('退出观战失败，请重试');
       }
-      navigate('/game/arena');
+      navigate(
+        state.session?.hunt ? huntMapHref(state.session.hunt) : '/game/arena',
+      );
     } catch (cause) {
       setLeaveError(cause instanceof Error ? cause.message : '退出观战失败');
     } finally {
@@ -54,20 +58,27 @@ function ArenaBattle({
   };
   const session = state.session;
   const playing = state.queue.length > 0;
+  const title = session?.hunt
+    ? `结伴讨伐 · ${HUNT_BOSSES[session.hunt.bossId].name}`
+    : spectator
+      ? '擂台观战'
+      : '擂台切磋';
+  const back = session?.hunt ? huntMapHref(session.hunt) : '/game/arena';
+  const backLabel = session?.hunt ? '返回讨伐队伍' : '返回擂台';
   return (
     <CombatV6Page
-      title={spectator ? '擂台观战' : '擂台切磋'}
+      title={title}
       active={!!session}
       loading={!session && !error}
       error={leaveError ?? error}
       onRetry={controller.refresh}
-      back="/game/arena"
-      backLabel="返回擂台"
+      back={back}
+      backLabel={backLabel}
     >
       {session ? (
         <>
           <CombatV6Battle
-            title={spectator ? '擂台观战' : '擂台切磋'}
+            title={title}
             session={session}
             online={session}
             connected={connected}
@@ -83,8 +94,13 @@ function ArenaBattle({
             onResolve={noResolve}
             onAuto={controller.submitAuto}
             onClose={() => void leave()}
-            back="/game/arena"
-            backLabel="返回擂台"
+            endAction={
+              session.hunt && session.outcome ? (
+                <HuntResult battleId={battleId} onClose={() => void leave()} />
+              ) : undefined
+            }
+            back={back}
+            backLabel={backLabel}
           />
         </>
       ) : null}

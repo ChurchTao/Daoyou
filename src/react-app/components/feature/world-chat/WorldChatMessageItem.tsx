@@ -1,3 +1,4 @@
+import { huntEventById, huntMapHref } from '@shared/hunts/config';
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import { ItemPreview } from '@app/components/feature/items/ItemPreview';
@@ -132,6 +133,12 @@ export function WorldChatMessageItem({
       return null;
     }
   }, [message]);
+  const hunt =
+    message.channel === 'system' &&
+    message.messageType === 'hunt_rumor' &&
+    'eventId' in message.payload
+      ? huntEventById(message.payload.eventId)
+      : undefined;
   const battleShowcase =
     message.messageType === 'battle_showcase' &&
     isBattleShowcasePayload(message.payload)
@@ -185,7 +192,14 @@ export function WorldChatMessageItem({
           </span>
         </div>
         <div className="text-sm leading-6 break-all">
-          {message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'shareCode' in message.payload && typeof message.payload.shareCode === 'string' && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1]) ? (
+          {hunt ? (
+            <span>
+              {renderTextMessage(message)}{' '}
+              <Link className="text-teal font-semibold underline" to={huntMapHref(hunt)}>
+                前往查看
+              </Link>
+            </span>
+          ) : message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'shareCode' in message.payload && typeof message.payload.shareCode === 'string' && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1]) ? (
             <Link className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2" to={`/combat-replay/${message.payload.shareCode}`}>
               <span className="text-teal font-semibold">战斗回放 · {message.payload.sides[0].join('、')} 对阵 {message.payload.sides[1].join('、')}</span>
               <span className="text-ink-secondary ml-2 text-xs">{message.payload.roundCount} 回合 · 点击查看</span>

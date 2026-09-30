@@ -1,3 +1,10 @@
+import { HuntLobbyDrawer } from '@app/components/feature/hunts/HuntLobbyDrawer';
+import {
+  HuntMapMarkers,
+  type HuntMapPoint,
+} from '@app/components/feature/hunts/HuntMapMarkers';
+import { useHunts } from '@app/components/feature/hunts/useHunts';
+import { huntMapHref, type HuntEvent } from '@shared/hunts/config';
 import {
   buildNodeActions,
   buildSectLandmarkActions,
@@ -45,6 +52,14 @@ export default function AtlasPage() {
   const controller = useRef<AtlasController | null>(null);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const huntFeed = useHunts<{ events: HuntEvent[]; serverNow: number }>(
+    '/api/hunts',
+    15000,
+  );
+  const huntEvents = huntFeed.data?.events ?? [];
+  const huntEventId = params.get('hunt');
+  const [huntPoints, setHuntPoints] = useState<HuntMapPoint[]>([]);
+  const huntKey = huntEvents.map((e) => e.id).join(',');
   const teachingMap = params.get('guide') === 'map-qingxi';
   const isAtlas = mapMode === 'atlas' && !teachingMap;
   const player = usePlayerSession();
@@ -93,6 +108,7 @@ export default function AtlasPage() {
   const mapParams = new URLSearchParams(params);
   if (revealingFilteredNode) mapParams.set('types', 'all');
   const view: AtlasView = {
+    hunts: huntEvents,
     region: availableRegion ?? 'world',
     selectedId: selected?.id ?? null,
     blocked: !!unavailable || !!error || overlapIds.length > 0,
@@ -109,6 +125,7 @@ export default function AtlasPage() {
     )
       return;
     const next = new URLSearchParams(mapParams);
+    next.delete('hunt');
     next.delete('nodeId');
     if (id) next.set('region', id);
     else next.delete('region');
@@ -125,6 +142,7 @@ export default function AtlasPage() {
     if (!targetRegion || !hasAtlasMap(targetRegion.id)) return;
     const next = new URLSearchParams(mapParams);
     if (!matchesAtlasCategories(location, categories)) next.set('types', 'all');
+    next.delete('hunt');
     next.set('nodeId', id);
     next.set('region', targetRegion.id);
     setParams(next);
@@ -136,6 +154,7 @@ export default function AtlasPage() {
   };
   const closeNode = () => {
     const next = new URLSearchParams(mapParams);
+    next.delete('hunt');
     next.delete('nodeId');
     setFocusId(null);
     setFilterOpen(false);
@@ -150,6 +169,7 @@ export default function AtlasPage() {
     const next = new URLSearchParams(mapParams);
     next.set('types', nextCategories.join(',') || 'all');
     if (selected && !matchesAtlasCategories(selected, nextCategories)) {
+      next.delete('hunt');
       next.delete('nodeId');
       if (region) next.set('region', region.id);
       setFocusId(null);
@@ -189,6 +209,12 @@ export default function AtlasPage() {
         instance = runtime.attachAtlasPhaser({
           root: root.current,
           view: getView(),
+          onHuntPositions: (points) =>
+            setHuntPoints((previous) =>
+              JSON.stringify(previous) === JSON.stringify(points)
+                ? previous
+                : points,
+            ),
           onRegion: (id) => onRegion(id),
           onNode: (id) => onNode(id),
           onClear: () => onClear(),
@@ -226,6 +252,7 @@ export default function AtlasPage() {
     controller.current?.setView(getView());
   }, [
     view.region,
+    huntKey,
     view.selectedId,
     view.blocked,
     categoryKey,
@@ -322,6 +349,37 @@ export default function AtlasPage() {
     >
       <div ref={root} className="absolute inset-0 overflow-hidden" />
 
+      {!teachingMap && !error && (!isAtlas || !loading) ? (
+        <HuntMapMarkers
+          events={huntEvents}
+          points={huntPoints}
+          showList={!isAtlas || !availableRegion}
+          onSelect={(event) => {
+            setFocusId(event.nodeId);
+            setFocusRequest((n) => n + 1);
+            setSearchOpen(false);
+            setFilterOpen(false);
+            navigate(huntMapHref(event));
+          }}
+        />
+      ) : null}
+      {huntEventId ? (
+        <HuntLobbyDrawer
+          key={huntEventId}
+          eventId={huntEventId}
+          onClose={() => {
+            const next = new URLSearchParams(params);
+            next.delete('hunt');
+            setParams(next, { replace: true });
+          }}
+        />
+      ) : null}
+      {huntFeed.error ? (
+        <p role="status" className="bg-paper/95 absolute bottom-3 left-3 z-20 p-2 text-xs">
+          讨伐消息暂不可用{' '}
+          <button onClick={huntFeed.refresh} className="underline">重试</button>
+        </p>
+      ) : null}
       {isAtlas && loading && !error ? (
         <div className="bg-paper/90 absolute inset-0 z-10">
           <GameLoadingState variant="scene" message="正在展开山河画卷……" />

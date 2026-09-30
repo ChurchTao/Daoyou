@@ -3,6 +3,8 @@ import {
   isDomainEventType,
   type DomainEventEnvelope,
 } from '@shared/contracts/domainEvents';
+import { alchemyShowcaseSnapshot } from '@shared/items/alchemyShowcase';
+import { forgingShowcaseSnapshot } from '@shared/items/forgingShowcase';
 import { QUALITY_ORDER } from '@shared/types/constants';
 import type { WorldChatPayload } from '@shared/types/world-chat';
 import type { FeatureCommandResult } from './CommandExecutors';
@@ -36,14 +38,40 @@ export async function projectWorldRumorDomainEvent(
   }
 
   if (isDomainEventType(event, 'craft.item.created')) {
+    if (event.data.itemType === 'consumable') {
+      const snapshot = alchemyShowcaseSnapshot(
+        event.data.outputs ?? [event.data.snapshot],
+      );
+      if (!snapshot) return ignored();
+      const text = `由${event.data.cultivatorName}炼成，品相完美，药香化霞，足令诸修侧目。`;
+      return createRumor(event, event.data.userId, 'item_showcase', text, {
+        version: 1,
+        snapshot,
+        text,
+      });
+    }
     if (QUALITY_ORDER[event.data.quality] < QUALITY_ORDER['天品']) {
       return ignored();
     }
-    const noun = event.data.itemType === 'consumable' ? '丹品' : '品阶';
-    const flourish =
-      event.data.itemType === 'consumable' ? '药香化霞' : '灵韵自生';
-    const text = `由${event.data.cultivatorName}炼成，${noun}已入${event.data.quality}，${flourish}，足令诸修侧目。`;
+    const text = `由${event.data.cultivatorName}炼成，品阶已入${event.data.quality}，灵韵自生，足令诸修侧目。`;
     return createRumor(event, event.data.userId, 'text', text, { text });
+  }
+
+  if (isDomainEventType(event, 'equipment.forged')) {
+    const snapshot = forgingShowcaseSnapshot(event.data.equipment);
+    if (!snapshot) return ignored();
+    const special = [
+      event.data.equipment.artId ? '器诀' : null,
+      event.data.equipment.essenceIds.length ? '器蕴' : null,
+    ]
+      .filter(Boolean)
+      .join('与');
+    const text = `由${event.data.cultivatorName}炼成，天生${special}，灵韵自生，足令诸修侧目。`;
+    return createRumor(event, event.data.userId, 'item_showcase', text, {
+      version: 1,
+      snapshot,
+      text,
+    });
   }
 
   if (isDomainEventType(event, 'market.material.revealed')) {
@@ -87,7 +115,7 @@ function ignored(): RumorProjectionResult {
 async function createRumor(
   event: DomainEventEnvelope,
   senderUserId: string,
-  messageType: 'text' | 'beast_showcase',
+  messageType: 'text' | 'item_showcase' | 'beast_showcase',
   text: string,
   payload: WorldChatPayload,
 ): Promise<RumorProjectionResult> {

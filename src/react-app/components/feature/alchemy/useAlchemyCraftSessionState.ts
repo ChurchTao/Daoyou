@@ -1,3 +1,4 @@
+import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { useResourceMutation } from '@app/lib/resources/mutations';
@@ -631,13 +632,15 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
             1500,
           );
           try {
+            const pending = pendingCommandRequest(cultivator.id, 'alchemy', submitPayload);
             const body = await mutate<CraftResult>(
               fetch('/api/craft', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(submitPayload),
+                body: JSON.stringify({ ...submitPayload, requestId: pending.requestId }),
               }),
             );
+            pending.complete();
             if (!body.consumable) throw new Error('炉中未能凝丹');
             if (
               !window.matchMedia('(prefers-reduced-motion: reduce)').matches

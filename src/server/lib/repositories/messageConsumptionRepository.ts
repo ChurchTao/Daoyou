@@ -33,6 +33,7 @@ export async function pruneMessageConsumptions(
       and(
         lt(messageConsumptions.processedAt, cutoff),
         ne(messageConsumptions.consumerName, COMBAT_V6_CONDITION_CONSUMER),
+        ne(messageConsumptions.consumerName, 'hunt-reward-v1'),
       ),
     )
     .returning({ messageId: messageConsumptions.messageId });

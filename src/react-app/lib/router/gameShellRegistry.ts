@@ -30,6 +30,7 @@ export function resolveGameShellKind(pathname: string): GameShellKind | null {
   }
 
   if (
+    /^\/game\/combat-v6\/hunt\/[^/]+$/.test(pathname) ||
     pathname === '/game/battle/challenge' ||
     /^\/game\/battle\/live\/[^/]+$/.test(pathname) ||
     /^\/game\/battle\/[^/]+$/.test(pathname) ||

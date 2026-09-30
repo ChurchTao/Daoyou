@@ -11,6 +11,7 @@ import {
 } from '../engine/combat-v6/equipment';
 import {
   BOOKS,
+  compactStorage,
   InventoryItemSchema,
   learnBeastSkill,
   sameStack,
@@ -29,6 +30,17 @@ const item = (slotIndex = 0, quantity = 1): InventoryItem => ({
   revision: 0,
 });
 describe('inventory capacity and immutable facts', () => {
+  it('compacts storage stacks up to their limit without changing the source array', () => {
+    const before = [
+      { ...item(0, 80), location: 'storage' as const, slotIndex: null },
+      { ...item(1, 30), location: 'storage' as const, slotIndex: null },
+    ];
+    const after = compactStorage(before);
+    expect(after.map((entry) => entry.quantity)).toEqual([99, 11]);
+    expect(after[0].revision).toBe(1);
+    expect(after[1].revision).toBe(1);
+    expect(before.map((entry) => entry.quantity)).toEqual([80, 30]);
+  });
   it('灵印以技能命名并按传承分别堆叠，普通与上品不会合并', () => {
     const definitions = [
       'book.beast.combo',

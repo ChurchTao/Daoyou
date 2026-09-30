@@ -235,6 +235,7 @@ export function arenaView(
   return {
     apiVersion: COMBAT_V6_TRAINING_API_VERSION,
     protocol: ARENA_V6_PROTOCOL,
+    hunt: runtime.hunt,
     sessionId: runtime.battleId,
     revision: runtime.revision,
     expiresAt: new Date(runtime.expiresAt).toISOString(),

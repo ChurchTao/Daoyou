@@ -16,6 +16,9 @@ import { publishResourceEvents } from '@server/lib/services/playerStateBroadcast
 import type { PlayerResourceMutationMeta } from '@shared/contracts/player';
 import type { ResourceChangeDescriptor } from '@shared/contracts/resources';
 import { createHash } from 'node:crypto';
+import { captureJournalSettlement } from './JournalSettlement';
+import { claimJournalOperation, completeJournalOperation, isJournalActivity, journalOperationKey } from '@server/lib/repositories/playerJournalRepository';
+import type { PlayerJournalEvent } from '@shared/contracts/playerJournal';
 import {
   baselinesFromResourceChanges,
   resourceEventCommitter,
@@ -28,6 +31,13 @@ const SLOW_TRANSACTION_THRESHOLD_MS = 500;
 export type FeatureCommandResult<TResult> = {
   result: TResult;
   resourceChanges: ResourceChangeDescriptor[];
+  journalEvent?: PlayerJournalEvent;
+};
+
+type JournalExecution<TResult> = {
+  operationKey: string;
+  fingerprint: string;
+  replay(event: PlayerJournalEvent): TResult;
 };
 
 export type CommittedCommand<TResult> = {
@@ -82,6 +92,7 @@ export class PlayerCommandExecutor {
     source: string;
     requestId?: string | null;
     idempotency?: { key: string; fingerprint: string };
+    journal?: JournalExecution<TResult>;
     allowEmpty?: boolean;
     lock?: {
       context?: string;
@@ -111,11 +122,15 @@ export class PlayerCommandExecutor {
       source: string;
       requestId?: string | null;
       idempotency?: { key: string; fingerprint: string };
+      journal?: JournalExecution<TResult>;
       allowEmpty?: boolean;
       command(tx: DbTransaction): Promise<FeatureCommandResult<TResult>>;
       coordination: PlayerCommandCoordination;
     },
   ): Promise<CommittedCommand<TResult>> {
+    if (input.journal && input.idempotency) {
+      throw new Error('日志执行凭据与旧请求幂等记录不能同时启用');
+    }
     const lease =
       input.coordination.mode === 'redis'
         ? input.coordination.lease
@@ -124,6 +139,11 @@ export class PlayerCommandExecutor {
     const idempotency = input.idempotency
       ? normalizeIdempotency(input.idempotency)
       : undefined;
+    const activity = !input.journal && isJournalActivity(input.source) ? input.source : null;
+    if (activity && !idempotency) throw new Error('日志结算缺少稳定的幂等键');
+    const automaticJournalKey = activity
+      ? journalOperationKey(activity, idempotency!.key)
+      : null;
     const eventRequestId = normalizeNullableField(
       input.requestId ?? idempotency?.key ?? null,
     );
@@ -132,7 +152,21 @@ export class PlayerCommandExecutor {
       try {
         const result = await db.transaction(async (tx) => {
           await lockCultivatorForStateMutation(tx, input.cultivatorId);
-          await assertCombatV6MutationAllowed(input.cultivatorId, input.source);
+          const journal = input.journal
+            ? await claimJournalOperation(tx, {
+                cultivatorId: input.cultivatorId,
+                operationKey: input.journal.operationKey,
+                fingerprint: input.journal.fingerprint,
+              })
+            : null;
+          if (journal?.previous && input.journal) {
+            lease?.assertHeld();
+            return {
+              result: input.journal.replay(journal.previous),
+              state: { changes: [], baselines: [], replayed: true },
+            };
+          }
+          if (!activity) await assertCombatV6MutationAllowed(input.cultivatorId, input.source);
           if (idempotency) {
             const existing = await findPlayerMutationRequest(
               input.cultivatorId,
@@ -164,7 +198,34 @@ export class PlayerCommandExecutor {
             }
           }
 
-          const command = await input.command(tx);
+          const automaticJournal = automaticJournalKey
+            ? await claimJournalOperation(tx, {
+                cultivatorId: input.cultivatorId,
+                operationKey: automaticJournalKey,
+                fingerprint: idempotency?.fingerprint ?? null,
+              })
+            : null;
+          if (automaticJournal?.previous) {
+            lease?.assertHeld();
+            return {
+              result: automaticJournal.previous.result as TResult,
+              state: { changes: [], baselines: [], replayed: true },
+            };
+          }
+          if (activity) await assertCombatV6MutationAllowed(input.cultivatorId, input.source);
+          const captured = activity
+            ? await captureJournalSettlement(tx, input.cultivatorId, activity, () => input.command(tx))
+            : null;
+          const command = captured ? captured.value : await input.command(tx);
+          if (automaticJournal && captured) {
+            await completeJournalOperation(tx, automaticJournal.id, {
+              ...captured.event, result: command.result,
+            });
+          }
+          if (journal) {
+            if (!command.journalEvent) throw new Error('执行结果缺少修仙日志');
+            await completeJournalOperation(tx, journal.id, command.journalEvent);
+          }
           if (command.resourceChanges.length === 0 && !input.allowEmpty) {
             throw new Error('玩家写操作缺少资源变更描述');
           }
@@ -201,7 +262,7 @@ export class PlayerCommandExecutor {
                     cultivatorId: input.cultivatorId,
                   },
                 });
-          if (idempotency) {
+          if (idempotency && !activity) {
             await insertPlayerMutationRequest(
               {
                 cultivatorId: input.cultivatorId,

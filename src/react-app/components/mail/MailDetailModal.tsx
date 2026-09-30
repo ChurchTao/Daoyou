@@ -1,15 +1,11 @@
-import { BeastTradeSlot } from '@app/components/feature/beasts/BeastTradePreview';
-import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { mailLocationText } from '@shared/contracts/mail';
-import { getGameConceptIcon } from '@shared/lib/gameConceptDisplay';
-import { Artifact, Consumable, Material } from '@shared/types/cultivator';
 import { useState } from 'react';
+import { MailAttachmentSlot } from './MailAttachmentSlot';
 import { Mail } from './MailList';
 
 interface MailDetailModalProps {
@@ -81,84 +77,10 @@ export function MailDetailModal({
             <h4 className="text-ink-secondary text-sm font-bold">
               🎁 附赠物品
             </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {mail.attachments?.map((item, idx) =>
-                item.type === 'beast_v1' && item.beastPreview ? (
-                  <div key={idx}>
-                    <div className="w-20">
-                      <BeastTradeSlot beast={item.beastPreview} />
-                    </div>
-                    <p>{item.name} · 灵兽</p>
-                  </div>
-                ) : item.type === 'inventory_v1' && item.inventory ? (
-                  <div key={idx} className="w-20">
-                    <ItemSlot
-                      className="w-full"
-                      item={{
-                        name: item.name,
-                        definitionId: item.inventory.definitionId,
-                        instanceData: item.inventory.instanceData ?? null,
-                        quantity: item.quantity,
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    key={idx}
-                    className="bg-paper-2 border-ink/10 flex items-center justify-between border border-dashed p-2 text-sm"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span aria-hidden="true">
-                        {getGameConceptIcon(item.type) || '🎁'}
-                      </span>
-                      {item.type === 'spirit_stones' && (
-                        <span className="text-ink">{item.name}</span>
-                      )}
-                      {item.type === 'reputation' && (
-                        <span className="text-ink">{item.name}</span>
-                      )}
-                      {item.type === 'cultivation_exp' && (
-                        <span className="text-ink">{item.name}</span>
-                      )}
-                      {item.type === 'comprehension_insight' && (
-                        <span className="text-ink">{item.name}</span>
-                      )}
-                      {item.type === 'material' && (
-                        <InkBadge
-                          tier={(item.data as Material)?.rank}
-                          hideTierText
-                        >
-                          {item.name}
-                        </InkBadge>
-                      )}
-                      {item.type === 'consumable' && (
-                        <InkBadge
-                          tier={(item.data as Consumable)?.quality}
-                          hideTierText
-                        >
-                          {item.name}
-                        </InkBadge>
-                      )}
-                      {item.type === 'artifact' && (
-                        <InkBadge
-                          tier={(item.data as Artifact)?.quality}
-                          hideTierText
-                        >
-                          {item.name}
-                        </InkBadge>
-                      )}
-                    </div>
-                    <span className="opacity-70">
-                      <span className="font-mono">×{item.quantity}</span>
-                      {['material', 'consumable', 'artifact'].includes(
-                        item.type,
-                      ) ? (
-                        <span className="block text-xs">洞府宝库</span>
-                      ) : null}
-                    </span>
-                  </div>
-                ),
-              )}
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+              {mail.attachments?.map((item, idx) => (
+                <MailAttachmentSlot key={idx} attachment={item} />
+              ))}
             </div>
           </div>
         )}

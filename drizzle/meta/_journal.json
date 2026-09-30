@@ -421,6 +421,13 @@
       "when": 1790578141727,
       "tag": "0059_cloudy_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1790763373538,
+      "tag": "0060_player_journal",
+      "breakpoints": true
     }
   ]
 }

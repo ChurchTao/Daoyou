@@ -118,7 +118,7 @@ function sortJsonValue(value: unknown): unknown {
   return value;
 }
 
-export function stableSerializeConsumableSpec(spec: ConsumableSpec): string {
+export function stableSerializeConsumableSpec<T>(spec: T): string {
   return JSON.stringify(sortJsonValue(spec));
 }
 

@@ -24,8 +24,57 @@ export function InventoryGrid({
   );
 }
 
-/** Native auto popovers share one top-layer preview, including inside bag drawers. */
+type SlotItem = {
+  name: string;
+  quantity: number;
+  icon: string;
+  color: string;
+  equipped?: boolean;
+};
+
+type SlotProps = {
+  selected?: boolean;
+  disabled?: boolean;
+  badge?: string;
+  emptyLabel?: string;
+  emptyIcon?: ReactNode;
+  className?: string;
+  onQuickAction?: () => void;
+  quickOnTouch?: boolean;
+  guideAnchor?: string;
+};
+
 export function ItemSlot({
+  item,
+  children,
+  quantityLabel = '持有',
+  ...props
+}: SlotProps & {
+  item?: DisplayItem;
+  children?: (close: () => void) => ReactNode;
+  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
+}) {
+  return (
+    <PreviewSlot
+      {...props}
+      item={item ? { ...item, ...itemPresentation(item) } : undefined}
+      renderPreview={(close) =>
+        item && (
+          <ItemPreview
+            item={item}
+            options={{ hideQuantity: true }}
+            quantityLabel={quantityLabel}
+            close={close}
+            actions={children?.(close)}
+          />
+        )
+      }
+    />
+  );
+}
+
+/** Shared slot and native popover for items and non-inventory rewards. */
+export function PreviewSlot({
   item,
   selected,
   disabled,
@@ -35,22 +84,11 @@ export function ItemSlot({
   className,
   onQuickAction,
   quickOnTouch,
-  children,
-  quantityLabel = '持有',
+  renderPreview,
   guideAnchor,
-}: {
-  item?: DisplayItem;
-  selected?: boolean;
-  disabled?: boolean;
-  badge?: string;
-  emptyLabel?: string;
-  emptyIcon?: ReactNode;
-  className?: string;
-  onQuickAction?: () => void;
-  quickOnTouch?: boolean;
-  children?: (close: () => void) => ReactNode;
-  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
-  guideAnchor?: string;
+}: SlotProps & {
+  item?: SlotItem;
+  renderPreview: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -61,8 +99,12 @@ export function ItemSlot({
   const longPressed = useRef(false);
   const touchMoved = useRef(false);
   const pointer = useRef('');
-  const presentation = item ? itemPresentation(item) : undefined;
   const slotName = item?.name ?? emptyLabel;
+  const quantityText = item
+    ? item.quantity > 9999
+      ? `${(item.quantity / 10000).toFixed(2)}万`
+      : String(item.quantity)
+    : '';
   function cancel() {
     clearTimeout(timer.current);
   }
@@ -231,11 +273,7 @@ export function ItemSlot({
               (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
           )}
         >
-          {presentation ? (
-            <GameIcon value={presentation.icon} purpose="artwork" />
-          ) : (
-            emptyIcon
-          )}
+          {item ? <GameIcon value={item.icon} purpose="artwork" /> : emptyIcon}
         </span>
         {slotName ? (
           <span
@@ -246,18 +284,26 @@ export function ItemSlot({
                 : slotName.length === 5
                   ? 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1] @max-[4rem]:text-[8px] @max-[4rem]:leading-[1.05]'
                   : 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1]',
-              presentation?.color,
+              item?.color,
             )}
           >
             <span className="line-clamp-2 w-full">{slotName}</span>
           </span>
         ) : null}
         {item && item.quantity > 1 ? (
-          <span className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight [text-shadow:0_1px_2px_var(--color-paper)]">
+          <span
+            className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
+            style={
+              item.quantity > 9999
+                ? {
+                    // Leave room for the multiplier and 万 in narrow slots.
+                    fontSize: `min(1rem, 20cqw, calc((100cqw - 0.5rem) / ${quantityText.length * 0.65 + 1}))`,
+                  }
+                : undefined
+            }
+          >
             <span className="text-[0.75em]">×</span>
-            {item.quantity >= 10000
-              ? `${Math.floor(item.quantity / 1000)}k`
-              : item.quantity}
+            {quantityText}
           </span>
         ) : null}
         {badge || item?.equipped ? (
@@ -293,15 +339,7 @@ export function ItemSlot({
         }}
         className="bg-bgpaper text-ink border-ink/30 fixed inset-auto m-0 w-80 overflow-y-auto overscroll-contain border p-3 text-sm leading-6 [overflow-wrap:anywhere] shadow-xl"
       >
-        {open && item && presentation ? (
-          <ItemPreview
-            item={item}
-            options={{ hideQuantity: true }}
-            quantityLabel={quantityLabel}
-            close={close}
-            actions={children?.(() => setOpen(false))}
-          />
-        ) : null}
+        {open && item ? renderPreview(() => setOpen(false)) : null}
       </div>
     </>
   );

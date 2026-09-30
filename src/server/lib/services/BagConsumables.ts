@@ -1,3 +1,4 @@
+import { recordJournalChange } from './JournalSettlement';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import type { Consumable } from '@shared/types/cultivator';
 import { and, asc, eq } from 'drizzle-orm';
@@ -93,6 +94,9 @@ export async function consumeBagConsumable(
       .update(inventoryItems)
       .set({ quantity: remainingQuantity, revision: row.revision + 1 })
       .where(filter);
+  if ('rollback' in q) recordJournalChange(q, owner, {
+    kind: 'item', id: row.id, name: bagConsumableOf(row).name, amount: -quantity,
+  });
   return {
     remainingQuantity,
     removed: !remainingQuantity,

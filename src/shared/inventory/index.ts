@@ -134,6 +134,28 @@ export function sortBag(items: InventoryItem[]) {
     })),
   ];
 }
+export function compactStorage(items: InventoryItem[]) {
+  const merged: InventoryItem[] = [];
+  for (const source of items) {
+    const item = { ...source };
+    for (const target of merged) {
+      if (!sameStack(item, target)) continue;
+      const amount = Math.min(
+        item.quantity,
+        itemDefinition(target.definitionId).stackLimit - target.quantity,
+      );
+      if (!amount) continue;
+      item.quantity -= amount;
+      target.quantity += amount;
+      target.revision++;
+    }
+    if (item.quantity) {
+      if (item.quantity !== source.quantity) item.revision++;
+      merged.push(item);
+    }
+  }
+  return merged;
+}
 /** Caller supplies fresh identities; no random or persistence effects in planning. */
 export function addItems(
   items: InventoryItem[],

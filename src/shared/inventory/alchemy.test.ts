@@ -134,7 +134,7 @@ describe('alchemy inventory migration', () => {
       InventoryItemSchema.safeParse({ ...items[0], quantity: 1000 }).success,
     ).toBe(false);
   });
-  it('preserves complete pill facts through stacking and sorting', () => {
+  it('preserves visible pill facts through stacking and sorting', () => {
     let id = 0;
     const grant = {
       definitionId: 'consumable.v1',
@@ -156,6 +156,11 @@ describe('alchemy inventory migration', () => {
         ...pill,
         description: '另一段描述',
         prompt: '另一段提示词',
+      }),
+    );
+    expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
+      inventoryStackIdentity('consumable.v1', {
+        ...pill,
         score: pill.score + 1,
       }),
     );

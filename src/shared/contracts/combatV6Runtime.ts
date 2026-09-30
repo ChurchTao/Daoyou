@@ -169,7 +169,7 @@ export type CombatV6BattleFinishedRecordV1 = z.infer<
 export const CombatV6BattleFinishedDataV1Schema = z
   .object({
     battleId: z.uuid(),
-    sourceType: z.literal('arena-sparring').optional(),
+    sourceType: z.enum(['arena-sparring', 'hunt']).optional(),
   })
   .strict();
 export type CombatV6BattleFinishedDataV1 = z.infer<
@@ -244,6 +244,13 @@ export const CombatV6RedisRuntimeV1Schema = z
   .strict();
 
 export const CombatV6ReplayMetadataSchema = z.union([
+  z.object({
+    schemaVersion: z.literal(1),
+    sourceType: z.literal('hunt'),
+    battleType: z.literal('pve'),
+    idempotencyKey: z.uuid(),
+    payload: z.object({ eventId: z.string(), roomId: z.uuid() }).strict(),
+  }).strict(),
   CombatV6BattleMetadataV1Schema,
   z
     .object({

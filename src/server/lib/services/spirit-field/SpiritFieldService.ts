@@ -267,6 +267,7 @@ export async function claimSpiritFieldStarterSeeds(actor: SpiritFieldActor) {
     userId: actor.userId,
     cultivatorId: actor.cultivatorId,
     source: 'spirit_field_starter',
+    idempotency: { key: 'starter', fingerprint: 'starter' },
     command: async (tx) => {
       await loadCultivator(actor, tx);
       const field = await getOrCreateSpiritField(actor.cultivatorId, tx);

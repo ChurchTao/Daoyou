@@ -3,7 +3,7 @@ import { dungeonRuns } from '@server/lib/drizzle/schema';
 import { redis } from '@server/lib/redis';
 import { parseRedisJson } from '@server/lib/redis/json';
 import { activeBreakthroughBattle } from '@server/lib/services/combat-v6/CombatV6BreakthroughOccupancy';
-import { arenaOccupancyKey } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
+import { arenaOccupancyKey, CombatV6ArenaStore } from '@server/lib/services/combat-v6/CombatV6ArenaStore';
 import { CombatV6RuntimeStore } from '@server/lib/services/combat-v6/CombatV6RuntimeStore';
 import { activeSectTaskBattle } from '@server/lib/services/combat-v6/CombatV6SectTaskOccupancy';
 import { CombatV6WildStore } from '@server/lib/services/combat-v6/CombatV6WildStore';
@@ -159,11 +159,12 @@ async function arenaNotice(
 ): Promise<CombatActivityNotice | null> {
   const battleId = await redis.get(arenaOccupancyKey(owner));
   if (!battleId) return null;
+  const battle = await new CombatV6ArenaStore().get(battleId);
   return notice(
     'arena',
-    '擂台切磋',
-    false,
-    `/game/combat-v6/arena/${encodeURIComponent(battleId)}`,
+    battle?.hunt ? '结伴讨伐' : '擂台切磋',
+    battle?.stage === 'finished',
+    `/game/combat-v6/${battle?.hunt ? 'hunt' : 'arena'}/${encodeURIComponent(battleId)}`,
   );
 }
 

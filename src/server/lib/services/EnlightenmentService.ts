@@ -1,3 +1,4 @@
+import { describeJournal } from './JournalSettlement';
 import {
   getOrInitCultivationProgress,
   stripExpCapForStorage,
@@ -178,6 +179,7 @@ export async function enlightenManual(
           .where(eq(cultivators.id, actor.cultivatorId));
         await saveInventoryPlan(actor.cultivatorId, before, after, tx);
         await QiService.commitReservation({ actionInstanceId, tx });
+        describeJournal(tx, actor.cultivatorId, jadeDefinitionId ? '成功' : '未悟得功法');
         return {
           result: {
             requestId: input.requestId,

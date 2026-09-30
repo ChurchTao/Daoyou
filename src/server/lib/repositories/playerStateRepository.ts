@@ -1,3 +1,4 @@
+import { findJournalMutationRequest } from './playerJournalRepository';
 import {
   getExecutor,
   runDbTasks,
@@ -280,7 +281,7 @@ export async function findPlayerMutationRequest(
       ),
     )
     .limit(1);
-  return row ?? null;
+  return row ?? findJournalMutationRequest(cultivatorId, source, requestId, q);
 }
 
 export async function listPlayerMutationRequestsByPrefix(

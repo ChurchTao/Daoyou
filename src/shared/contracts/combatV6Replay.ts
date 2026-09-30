@@ -117,8 +117,8 @@ export const CombatV6ReplayTimelineSchema = z
       seq = frame.afterEventSeq;
     }
   });
-/** Only competitive battles have durable player-facing replays. */
-export const COMBAT_V6_REPLAY_SOURCES = ['ranking', 'arena-sparring'] as const;
+/** Competitive battles and cooperative hunts have durable player-facing replays. */
+export const COMBAT_V6_REPLAY_SOURCES = ['ranking', 'arena-sparring', 'hunt'] as const;
 export const CombatV6HistoryQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(10000).default(1),
   source: z.enum(COMBAT_V6_REPLAY_SOURCES).optional(),

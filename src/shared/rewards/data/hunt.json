@@ -1,0 +1,374 @@
+{
+  "id": "hunt.v1.items",
+  "version": 2,
+  "groups": [
+    {
+      "id": "materials",
+      "chance": 1,
+      "entries": [
+        {
+          "rewardId": "hunt.material",
+          "weight": 1,
+          "quantity": { "min": 2, "max": 2 }
+        }
+      ]
+    },
+    {
+      "id": "book",
+      "chance": 0.2,
+      "entries": [
+        {
+          "rewardId": "book.beast.combo",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.counter",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.critical",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-critical",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-combo",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-counter",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spirit-flame",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-critical",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-critical",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.regeneration",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-regeneration",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.meditation",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-meditation",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.agility",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-agility",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-mastery",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-mastery",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.sluggish",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.thunder",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.falling-rock",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.water-attack",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.lifesteal",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-lifesteal",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.reflection",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-reflection",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.divine-revival",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-divine-revival",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-reflection",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-reflection",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.wisdom",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-wisdom",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.sneak-attack",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-sneak-attack",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-resistance",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-resistance",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.parry",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-parry",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.defense",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-defense",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.strength",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-strength",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.thunderstorm",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.mountain-crush",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.flood",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.wildfire",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-combo",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-combo",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.spell-fluctuation",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-spell-fluctuation",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.stealth",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-stealth",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.perception",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-perception",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.poison",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-poison",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.miracle",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-miracle",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.concentration",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-concentration",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.eternity",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-eternity",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.ghost",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-ghost",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.exorcism",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-exorcism",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.denial",
+          "weight": 4,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "book.beast.advanced-denial",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        }
+      ]
+    },
+    {
+      "id": "dew",
+      "chance": 0.2,
+      "entries": [
+        {
+          "rewardId": "beast.refinement.origin-dew",
+          "weight": 3,
+          "quantity": { "min": 1, "max": 1 }
+        },
+        {
+          "rewardId": "beast.refinement.superior-origin-dew",
+          "weight": 1,
+          "quantity": { "min": 1, "max": 1 }
+        }
+      ]
+    }
+  ]
+}

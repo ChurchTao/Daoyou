@@ -1,3 +1,4 @@
+import { runJournalSettlement, describeJournal } from '../JournalSettlement';
 import { publicUnitAppearances } from '@shared/combat-v6/unit-appearance';
 import { isNotNull } from 'drizzle-orm';
 import { db, type DbTransaction } from '@server/lib/drizzle/db';
@@ -366,6 +367,7 @@ export async function changeSectTaskBattle(
             .from(combatReplayArchives)
             .where(eq(combatReplayArchives.battleId, id));
           if (receipt) return;
+          await runJournalSettlement(tx, actor.cultivatorId, 'sect_battle_settlement', id, async () => {
           const [row] = await tx
             .select()
             .from(sectTaskRecords)
@@ -389,6 +391,7 @@ export async function changeSectTaskBattle(
             .require(membership.sectId)
             .tasks.get(row.taskId);
           if (!definition) invalidSectTask('任务定义缺失');
+          describeJournal(tx, actor.cultivatorId, definition.presentation.title);
           let changes: import('@shared/contracts/resources').ResourceChangeDescriptor[] =
             [];
           if (host.trace().outcome === 'victory') {
@@ -488,6 +491,7 @@ export async function changeSectTaskBattle(
             ],
           });
           lease.assertHeld();
+          });
         });
         await redis.expire(key(id), 86400);
       }

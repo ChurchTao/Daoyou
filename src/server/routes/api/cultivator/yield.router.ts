@@ -1,6 +1,9 @@
+import { JournalRequestSchema } from '@shared/contracts/playerJournal';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
+  validateJson,
+  getValidatedJson,
 } from '@server/lib/hono/middleware';
 import { streamSseEvents } from '@server/lib/hono/streaming';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -15,7 +18,7 @@ import { Hono } from 'hono';
 
 const yieldRouter = new Hono<AppEnv>();
 
-yieldRouter.post('/', requireActiveCultivatorRef(), async (c) => {
+yieldRouter.post('/', requireActiveCultivatorRef(), validateJson(JournalRequestSchema), async (c) => {
   const user = c.get('user');
   const activeCultivator = c.get('activeCultivatorRef');
   if (!user || !activeCultivator) {
@@ -26,17 +29,19 @@ yieldRouter.post('/', requireActiveCultivatorRef(), async (c) => {
     const { committed, result } = await executeYieldCommand({
       userId: user.id,
       cultivatorId: activeCultivator.cultivatorId,
+      requestId: getValidatedJson<{ requestId: string }>(c).requestId,
     });
     return streamSseEvents(c, async (stream, _isAborted, signal) => {
       await stream.writeSSE({
         data: JSON.stringify({ type: 'result', data: committed.result }),
       });
-      if (committed.state.changes.length > 0) {
+      if (committed.state.changes.length > 0 || committed.state.replayed) {
         await stream.writeSSE({
           data: JSON.stringify({ type: 'state', state: committed.state }),
         });
       }
 
+      if (committed.state.replayed) return;
       const { system, user: prompt } = renderPrompt('yield-story', {
         cultivatorRealm: result.cultivatorRealm,
         cultivatorName: result.cultivatorName,

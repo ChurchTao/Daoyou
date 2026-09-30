@@ -38,6 +38,7 @@
 | `cultivator.mail-audience.observed` | `daoyou.domain.system-mail.audience-observed.v1` | `system-mail-projector-v1` |
 | `mail.created` | `daoyou.domain.communication.mail-created.v1` | `mail-notification-projector-v1` |
 | `craft.item.created` | `daoyou.domain.gameplay.craft-item-created.v1` | `world-rumor-projector-v1` |
+| `equipment.forged` | `daoyou.domain.gameplay.equipment-forged.v1` | `world-rumor-projector-v1`（带器诀或器蕴时推送装备预览） |
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
 

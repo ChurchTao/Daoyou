@@ -1,3 +1,4 @@
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository';
 import type { DbTransaction } from '@server/lib/drizzle/db';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher';
@@ -7,7 +8,6 @@ import type { ResourceOperationSettlement } from '@shared/engine/resource/types'
 import { QUALITY_ORDER, type Quality } from '@shared/types/constants';
 import type { AlchemyMode } from '@shared/types/consumable';
 import type { Consumable } from '@shared/types/cultivator';
-import { randomUUID } from 'node:crypto';
 import { assertAlchemyMaterialVersions } from './alchemy/AlchemyInventory';
 import { prepareFormulaCraft } from './AlchemyFormulaService';
 import { prepareAlchemyCraft } from './alchemyServiceV2';
@@ -24,6 +24,7 @@ import {
 import { QiService } from './QiService';
 
 export type CraftCommandInput = {
+  requestId: string;
   materialIds: string[];
   materialVersions: Record<string, string>;
   craftType: 'alchemy';
@@ -40,6 +41,14 @@ export async function executeCraftCommand(args: {
   input: CraftCommandInput;
 }): Promise<CommittedCommand<unknown>> {
   const { input } = args;
+  const source = `alchemy_${input.alchemyMode ?? 'improvised'}`;
+  const idempotency = { key: input.requestId, fingerprint: JSON.stringify(input) };
+  if (await findPlayerMutationRequest(args.cultivatorId, source, input.requestId)) {
+    return playerCommandExecutor.executeWithLock({
+      userId: args.userId, cultivatorId: args.cultivatorId, source, idempotency,
+      command: async () => { throw new Error('炼丹执行凭据已失效'); },
+    });
+  }
   await assertInventoryIdle(args.cultivatorId);
   const { name: cultivatorName } = await readCultivatorName(args.cultivatorId);
   if (input.materialIds.length === 0) {
@@ -74,11 +83,13 @@ export async function executeCraftCommand(args: {
           );
     let afterCommit: (() => Promise<void>) | undefined;
     const domainEventIds: string[] = [];
-    const actionInstanceId = randomUUID();
+    const actionInstanceId = input.requestId;
     const committed = await playerCommandExecutor.executeWithLock({
       userId: args.userId,
       cultivatorId: args.cultivatorId,
       source: `alchemy_${mode}`,
+      requestId: actionInstanceId,
+      idempotency,
       lock: {
         context: `alchemy-${mode}`,
         timeoutMs: 60_000,

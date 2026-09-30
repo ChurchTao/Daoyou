@@ -1,3 +1,4 @@
+import { projectHuntReward } from '../services/hunts/HuntRewardProjector';
 import { db } from '@server/lib/drizzle/db';
 import { closeNatsConnection, getNatsConnection } from '@server/lib/nats';
 import { claimMessageForConsumer } from '@server/lib/repositories/messageConsumptionRepository';
@@ -78,7 +79,9 @@ export async function registerMessageInfrastructure(): Promise<void> {
           const data = (
             event as DomainEventEnvelope<'combat.v6.battle.finished'>
           ).data;
-          if (data.sourceType !== 'arena-sparring') {
+          if (data.sourceType === 'hunt') {
+            await projectHuntReward(data.battleId);
+          } else if (data.sourceType !== 'arena-sparring') {
             await projectCombatV6Condition(data.battleId);
           }
         }
@@ -113,6 +116,7 @@ export async function registerMessageInfrastructure(): Promise<void> {
       acceptedTypes: [
         'cultivator.realm.changed',
         'craft.item.created',
+        'equipment.forged',
         'market.material.revealed',
         'ranking.position.changed',
         'beast.exceptional.acquired',

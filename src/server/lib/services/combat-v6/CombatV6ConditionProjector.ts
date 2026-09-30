@@ -1,3 +1,4 @@
+import { runJournalSettlement, describeJournal } from '../JournalSettlement';
 import { db } from '@server/lib/drizzle/db';
 import { cultivators, messageConsumptions } from '@server/lib/drizzle/schema';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter';
@@ -67,8 +68,7 @@ export async function projectCombatV6Condition(
       const now = new Date();
       const committed = await db.transaction(async (tx) => {
         await lockCultivatorForStateMutation(tx, s.cultivatorId);
-        // A battle has one settlement. Use its UUID as the logical message key
-        // for both MQ delivery and coordinator retries (which have no envelope).
+        // Transport receipt still resolves redelivery after Redis terminal data expires.
         const claimed = await claimMessageForConsumer(
           {
             consumerName: COMBAT_V6_CONDITION_CONSUMER,
@@ -78,6 +78,8 @@ export async function projectCombatV6Condition(
           tx,
         );
         if (!claimed) return;
+        return runJournalSettlement(tx, s.cultivatorId, 'wild_settlement', battleId, async () => {
+        describeJournal(tx, s.cultivatorId, record.reason === 'fled' ? '逃离' : record.reason === 'technical-abort' ? '中止' : '结算');
         const met =
           (record.reason === 'battle-ended' || record.reason === 'fled') &&
           s.metadata.payload.nodeId
@@ -167,6 +169,7 @@ export async function projectCombatV6Condition(
         });
         lease.assertHeld();
         return state;
+        });
       });
       if (committed) publishResourceEvents(committed.changes);
       await store.complete(s, now.getTime());

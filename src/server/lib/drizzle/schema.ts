@@ -1,3 +1,4 @@
+import type { PlayerJournalEvent } from '@shared/contracts/playerJournal';
 import type { StoryStatus, StoryTrack } from '@shared/story/schema';
 import type { SystemMailConditions } from '@shared/contracts/systemMail';
 import type { RewardSelection } from '@shared/contracts/adminRewards';
@@ -712,6 +713,25 @@ export const resourceEvents = pgTable(
       table.mutationOrdinal,
     ),
     index('resource_events_created_idx').on(table.createdAt),
+  ],
+);
+
+// Journal rows are also execution receipts; do not age them out with replay events.
+export const playerJournal = pgTable(
+  'wanjiedaoyou_player_journal',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id').notNull()
+      .references(() => cultivators.id, { onDelete: 'cascade' }),
+    operationKey: varchar('operation_key', { length: 160 }).notNull(),
+    requestFingerprint: varchar('request_fingerprint', { length: 128 }),
+    // Null only while the owning transaction is executing; never committed empty.
+    event: jsonb('event').$type<PlayerJournalEvent>(),
+    createdAt: timestamp('created_at', { precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('player_journal_operation_unique').on(table.cultivatorId, table.operationKey),
+    index('player_journal_timeline_idx').on(table.cultivatorId, table.createdAt, table.id),
   ],
 );
 

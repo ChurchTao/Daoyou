@@ -34,6 +34,10 @@ import type {
 } from '@shared/engine/combat-v6/equipment/types';
 import { combatCharacterLevel } from '@shared/engine/combat-v6/projection/character-level';
 import { BAG_CAPACITY, itemDefinition } from '@shared/inventory';
+import {
+  sortInventoryItems,
+  type InventorySort,
+} from '@shared/inventory/sorting';
 import { ConsumableFactsSchema } from '@shared/items/definitions/consumables';
 import { EQUIPMENT_SLOT_NAMES } from '@shared/items/definitions/equipment-blueprints';
 import { useEffect, useRef, useState } from 'react';
@@ -62,6 +66,7 @@ export default function InventoryV6() {
         : 'bag';
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState<InventoryFilter>(defaultInventoryFilter);
+  const [sort, setSort] = useState<InventorySort>();
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [storage, setData] = useState<InventoryView>();
@@ -92,10 +97,12 @@ export default function InventoryV6() {
       page: String(page),
       kind: filter.kind,
     });
+    if (sort) query.set('sort', sort);
     if (filter.kind === 'material') {
       if (filter.minRank) query.set('minRank', filter.minRank);
       if (filter.maxRank) query.set('maxRank', filter.maxRank);
       if (filter.materialType) query.set('materialType', filter.materialType);
+      if (filter.element) query.set('element', filter.element);
     }
     void combatV6Request<InventoryView>(`${endpoint}?${query}`, {
       signal: controller.signal,
@@ -119,7 +126,7 @@ export default function InventoryV6() {
         }
       });
     return () => controller.abort();
-  }, [location, page, filter, refresh, pushToast]);
+  }, [location, page, filter, sort, refresh, pushToast]);
   async function act(action: BagAction) {
     if (busy.current) return;
     busy.current = true;
@@ -191,11 +198,15 @@ export default function InventoryV6() {
           (item.instanceData as DaoEquipmentInstanceV1).slot === slotFilter))
     );
   }
-  const visibleItems = visibleData
+  const filteredItems = visibleData
     ? location === 'bag' && filtered
       ? visibleData.items.filter(matches)
       : visibleData.items
     : [];
+  const visibleItems =
+    location === 'bag' && sort
+      ? sortInventoryItems(filteredItems, sort)
+      : filteredItems;
   const selectedItems = visibleItems.filter((item) => selectedIds.has(item.id));
   function clearSelection() {
     setSelectedIds(new Set());
@@ -294,6 +305,8 @@ export default function InventoryV6() {
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                   <InventoryFilters
                     value={filter}
+                    sort={sort}
+                    onSortChange={setSort}
                     onChange={(value) => {
                       clearSelection();
                       setFilter(value);
@@ -385,7 +398,7 @@ export default function InventoryV6() {
                       </InkButton>
                       {location === 'bag' ? (
                         <InkButton
-                          disabled={unavailable || filtered}
+                          disabled={unavailable || filtered || !!sort}
                           onClick={() =>
                             void act({
                               action: 'sort',
@@ -418,7 +431,7 @@ export default function InventoryV6() {
             <InventoryItems
               items={visibleItems}
               location={location}
-              compact={location === 'bag' && filtered}
+              compact={location === 'bag' && (filtered || !!sort)}
               className="w-full grid-cols-5 gap-1.5 md:grid-cols-8 md:gap-1"
               quickTouchHint={selecting}
               slotProps={(entry) => ({
@@ -456,7 +469,7 @@ export default function InventoryV6() {
           )}
           {visibleData &&
           visibleItems.length === 0 &&
-          (location === 'storage' || filtered) ? (
+          (location === 'storage' || filtered || !!sort) ? (
             <p className="text-ink-secondary text-sm">
               {filtered ? '暂无符合筛选条件的物品' : '暂无物品'}
             </p>

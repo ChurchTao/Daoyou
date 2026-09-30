@@ -21,6 +21,7 @@ export const inventoryBagSchema = z
               .min(0)
               .max(BAG_CAPACITY - 1),
             name: z.string(),
+            updatedAt: z.iso.datetime(),
             equipped: z.boolean(),
           })
           .strict(),
@@ -35,6 +36,7 @@ export const inventoryBagSchema = z
             slotIndex: z.null(),
             definitionId: z.literal('equipment.v6'),
             name: z.string(),
+            updatedAt: z.iso.datetime(),
             equipped: z.literal(true),
           })
           .strict(),

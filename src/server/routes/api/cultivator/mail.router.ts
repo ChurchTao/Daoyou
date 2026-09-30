@@ -1,3 +1,4 @@
+import { JournalRequestSchema } from '@shared/contracts/playerJournal';
 import { scheduleSystemMailObservation } from '@server/lib/services/SystemMailService';
 import {
   getExecutor,
@@ -8,6 +9,8 @@ import { mails } from '@server/lib/drizzle/schema';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
+  validateJson,
+  getValidatedJson,
 } from '@server/lib/hono/middleware';
 import { jsonWithStatus } from '@server/lib/hono/response';
 import type { AppEnv } from '@server/lib/hono/types';
@@ -139,12 +142,13 @@ mailRouter.post('/claim', requireActiveCultivatorRef(), async (c) => {
   }
 });
 
-mailRouter.post('/claim-all', requireActiveCultivatorRef(), async (c) => {
+mailRouter.post('/claim-all', requireActiveCultivatorRef(), validateJson(JournalRequestSchema), async (c) => {
   const user = c.get('user');
   const cultivator = c.get('activeCultivatorRef');
   if (!user || !cultivator) return c.json({ error: '未授权访问' }, 401);
   try {
     const committed = await claimAllCultivatorMail({
+      requestId: getValidatedJson<{ requestId: string }>(c).requestId,
       actor: {
         userId: user.id,
         cultivatorId: cultivator.cultivatorId,

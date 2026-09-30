@@ -1,3 +1,5 @@
+import { JournalRequestSchema } from '@shared/contracts/playerJournal';
+import { PlayerCommandIdempotencyError } from '@server/lib/services/CommandExecutors';
 import {
   redisLockErrorResponse,
   requireActiveCultivatorRef,
@@ -54,6 +56,7 @@ router.onError((error, c) => {
   if (
     error instanceof AlchemyServiceError ||
     error instanceof CraftCommandError ||
+    error instanceof PlayerCommandIdempotencyError ||
     error instanceof QiServiceError
   )
     return jsonWithStatus(
@@ -115,12 +118,7 @@ router.post('/', async (c) => {
   const body = await c.req.json();
   if (body && retired.has(body.craftType))
     return c.json({ error: retiredMessage }, 410);
-  const input = CraftSchema.parse(body);
-  await assertAlchemyMaterialVersions(
-    c.get('activeCultivatorRef')!.cultivatorId,
-    input.materialIds,
-    input.materialVersions,
-  );
+  const input = CraftSchema.extend(JournalRequestSchema.shape).parse(body);
   return c.json(
     toPlayerStateMutationResponse(
       await executeCraftCommand({

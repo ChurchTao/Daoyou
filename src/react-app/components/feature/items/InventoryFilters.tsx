@@ -1,11 +1,16 @@
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDiscreteRange } from '@app/components/ui/InkDiscreteRange';
+import type { InventorySort } from '@shared/inventory/sorting';
 import {
   INVENTORY_MATERIAL_TYPES,
   MATERIAL_TYPE_NAMES,
 } from '@shared/items/definitions/materials';
-import { QUALITY_VALUES } from '@shared/types/constants';
+import {
+  ELEMENT_VALUES,
+  QUALITY_VALUES,
+  type ElementType,
+} from '@shared/types/constants';
 import { useState } from 'react';
 import {
   defaultInventoryFilter,
@@ -20,13 +25,18 @@ export function InventoryFilters({
   value,
   onChange,
   kindDisabled = false,
+  sort,
+  onSortChange,
 }: {
   value: InventoryFilter;
   onChange: (value: InventoryFilter) => void;
   kindDisabled?: boolean;
+  sort?: InventorySort;
+  onSortChange?: (sort: InventorySort | undefined) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<InventoryFilter>(value);
+  const [draftSort, setDraftSort] = useState(sort);
   const min = draft.minRank ? QUALITY_VALUES.indexOf(draft.minRank) : 0;
   const max = draft.maxRank
     ? QUALITY_VALUES.indexOf(draft.maxRank)
@@ -37,6 +47,7 @@ export function InventoryFilters({
         ? draft
         : { kind: kindDisabled ? value.kind : draft.kind },
     );
+    onSortChange?.(draftSort);
     setOpen(false);
   }
   return (
@@ -44,10 +55,11 @@ export function InventoryFilters({
       <InkButton
         onClick={() => {
           setDraft(value);
+          setDraftSort(sort);
           setOpen(true);
         }}
       >
-        筛选{inventoryFilterActive(value) ? ' · 已启用' : ''}
+        筛选{inventoryFilterActive(value) || sort ? ' · 已启用' : ''}
       </InkButton>
       <InkModal
         isOpen={open}
@@ -56,11 +68,12 @@ export function InventoryFilters({
         footer={
           <div className="flex justify-between gap-3">
             <InkButton
-              onClick={() =>
+              onClick={() => {
                 setDraft(
                   kindDisabled ? { kind: value.kind } : defaultInventoryFilter,
-                )
-              }
+                );
+                setDraftSort(undefined);
+              }}
             >
               重置
             </InkButton>
@@ -98,6 +111,27 @@ export function InventoryFilters({
               ))}
             </select>
           </label>
+          {onSortChange ? (
+            <label className="block space-y-2">
+              <span>排序方式</span>
+              <select
+                aria-label="排序方式"
+                value={draftSort ?? ''}
+                onChange={(event) =>
+                  setDraftSort(
+                    (event.target.value || undefined) as
+                      InventorySort | undefined,
+                  )
+                }
+                className="border-ink/20 w-full border bg-transparent p-2"
+              >
+                <option value="">默认顺序</option>
+                <option value="updatedAt">获得时间 · 最新优先</option>
+                <option value="quantity">堆叠数量 · 最多优先</option>
+                <option value="kind">物品类型</option>
+              </select>
+            </label>
+          ) : null}
           {draft.kind === 'material' ? (
             <>
               <fieldset className="space-y-2">
@@ -137,6 +171,28 @@ export function InventoryFilters({
                   {INVENTORY_MATERIAL_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {MATERIAL_TYPE_NAMES[type]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-2">
+                <span>五行属性</span>
+                <select
+                  aria-label="五行属性"
+                  value={draft.element ?? ''}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      element: (event.target.value || undefined) as
+                        ElementType | undefined,
+                    }))
+                  }
+                  className="border-ink/20 w-full border bg-transparent p-2"
+                >
+                  <option value="">全部属性</option>
+                  {ELEMENT_VALUES.map((element) => (
+                    <option key={element} value={element}>
+                      {element}
                     </option>
                   ))}
                 </select>

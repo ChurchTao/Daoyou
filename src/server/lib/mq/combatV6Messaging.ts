@@ -1,3 +1,4 @@
+import { startHuntWorld, stopHuntWorld } from '../services/hunts/HuntWorldService';
 import { getJetStreamClient } from '@server/lib/nats';
 import {
   archiveCombatV6Replay,
@@ -114,6 +115,7 @@ async function processReplay(message: JsMsg): Promise<void> {
 
 export async function startCombatV6Messaging(): Promise<void> {
   startArenaV6Coordinator();
+  startHuntWorld();
   if (consumerTask) return;
   stopping = false;
   const jetStream = await getJetStreamClient();
@@ -160,6 +162,7 @@ export async function startCombatV6Messaging(): Promise<void> {
 }
 
 export async function stopCombatV6Messaging(): Promise<void> {
+  await stopHuntWorld();
   await stopArenaV6Coordinator();
   stopping = true;
   if (timer) clearInterval(timer);

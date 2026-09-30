@@ -25,6 +25,8 @@ import {
 } from '@shared/engine/cultivation/CultivationEngine';
 import type { BreakthroughHistoryEntry } from '@shared/types/cultivator';
 import { randomUUID } from 'crypto';
+import { findJournalOperation } from '@server/lib/repositories/playerJournalRepository';
+import { retreatResultFromJournal } from '@shared/contracts/playerJournal';
 import { playerCommandExecutor } from './CommandExecutors';
 import { PillOperationExecutor } from './PillOperationExecutor';
 import { QiService } from './QiService';
@@ -67,6 +69,7 @@ export function executeRetreatCommand(args: {
   cultivatorId: string;
   action: 'cultivate' | 'breakthrough';
   years: number;
+  requestId: string;
 }) {
   return withRedisLock(
     {
@@ -76,6 +79,23 @@ export function executeRetreatCommand(args: {
       retries: 0,
     },
     async (lease) => {
+      const journal = {
+        operationKey: `retreat.${args.action}:${args.requestId}`,
+        fingerprint: JSON.stringify({ action: args.action, years: args.years }),
+        replay: retreatResultFromJournal,
+      };
+      // Retry before checking current progress: the original action may have changed it.
+      const previous = await findJournalOperation(args.cultivatorId, journal.operationKey, journal.fingerprint);
+      if (previous) {
+        return {
+          committed: {
+            result: retreatResultFromJournal(previous.event),
+            state: { changes: [], baselines: [], replayed: true },
+          },
+          storySource: null,
+          onStoryComplete: undefined,
+        };
+      }
       await assertCombatV6MutationAllowed(args.cultivatorId, `retreat_${args.action}`);
       const cultivator = await loadPlayerRetreatFacts(
         args.userId,
@@ -109,6 +129,7 @@ export function executeRetreatCommand(args: {
             years: args.years,
             result,
             lease,
+            journal,
           });
         return {
           committed,
@@ -180,6 +201,8 @@ export function executeRetreatCommand(args: {
         result,
         retreatResult,
         lease,
+        journal,
+        expSpent: cultivator.cultivation_progress.cultivation_exp - result.cultivator.cultivation_progress!.cultivation_exp,
       });
       publishTransactionalMessageBestEffort(domainEventId, {
         source: 'retreat_breakthrough',
@@ -210,6 +233,7 @@ export async function commitCultivationRetreat(args: {
   years: number;
   result: ReturnType<typeof performCultivation>;
   lease: RedisLeaseContext;
+  journal: { operationKey: string; fingerprint: string; replay: typeof retreatResultFromJournal };
 }) {
   const actionInstanceId = randomUUID();
   let streamResult: RetreatResultData = {
@@ -223,6 +247,7 @@ export async function commitCultivationRetreat(args: {
     userId: args.userId,
     cultivatorId: args.cultivatorId,
     source: 'retreat_cultivate',
+    journal: args.journal,
     command: async (tx) => {
       const reservation = await QiService.reserveQi({
         cultivatorId: args.cultivatorId,
@@ -282,6 +307,13 @@ export async function commitCultivationRetreat(args: {
       }
       return {
         result: streamResult,
+        journalEvent: {
+          type: 'retreat.completed',
+          years: args.years,
+          qiSpent: reservation.consumed,
+          summary: args.result.summary,
+          depleted: Boolean(streamResult.depleted),
+        },
         resourceChanges: retreatChanges({
           profile: {
             age: next.age,
@@ -315,6 +347,8 @@ export async function commitBreakthroughRetreat(args: {
   result: ReturnType<typeof attemptBreakthrough>;
   retreatResult: RetreatResultData;
   lease: RedisLeaseContext;
+  journal: { operationKey: string; fingerprint: string; replay: typeof retreatResultFromJournal };
+  expSpent: number;
 }) {
   const actionInstanceId = randomUUID();
   let domainEventId: string | undefined;
@@ -323,6 +357,7 @@ export async function commitBreakthroughRetreat(args: {
     userId: args.userId,
     cultivatorId: args.cultivatorId,
     source: 'retreat_breakthrough',
+    journal: args.journal,
     command: async (tx) => {
       const reservation = await QiService.reserveQi({
         cultivatorId: args.cultivatorId,
@@ -396,6 +431,12 @@ export async function commitBreakthroughRetreat(args: {
       }
       return {
         result: args.retreatResult,
+        journalEvent: {
+          type: 'breakthrough.completed',
+          qiSpent: reservation.consumed,
+          expSpent: args.expSpent,
+          summary: args.result.summary,
+        },
         resourceChanges: breakthroughChanges({
           profile: {
             realm: next.realm,

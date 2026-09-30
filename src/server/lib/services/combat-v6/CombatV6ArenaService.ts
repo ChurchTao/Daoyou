@@ -1,3 +1,14 @@
+import type { HuntTeam } from '@shared/contracts/hunts';
+import { prepareHuntReward } from '../hunts/HuntRewardService';
+import { HUNT_BOSSES, huntIsOpen } from '@shared/hunts/config';
+import { huntRealmAllowed } from '@shared/hunts/rules';
+import type { RealmType } from '@shared/types/constants';
+import {
+  huntEnemies,
+  HUNT_SKILLS,
+  HUNT_STATUSES,
+  huntNpcCommand,
+} from '@shared/engine/combat-v6/hunts/content';
 import { playerAppearances } from '@shared/combat-v6/unit-appearance';
 import type { CombatV6UnitAppearance } from '@shared/contracts/combatV6';
 import { db } from '@server/lib/drizzle/db';
@@ -77,11 +88,23 @@ function mergeDefinitions<T extends SkillDef | StatusDef>(
   }
 }
 
-export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
+export async function createArenaV6(
+  room: ArenaRoomV1,
+  hunt?: Pick<HuntTeam, 'event' | 'minRealm' | 'maxRealm'>,
+): Promise<string> {
   const frozen = room.frozenRoster;
   if (!frozen || !room.startRequestId) throw new ArenaV6Error('缺少冻结阵容');
   const existing = await store.source(room.roomId, room.startRequestId);
   if (existing) return existing;
+  if (
+    hunt &&
+    (!huntIsOpen(hunt.event, Date.now()) ||
+      frozen.seats.length < 2 ||
+      frozen.seats.length > 4 ||
+      new Set(frozen.seats.map((s) => s.userId)).size !== frozen.seats.length ||
+      frozen.seats.some((s) => s.teamId !== 'alpha'))
+  )
+    throw new ArenaV6Error('讨伐已到期或阵容无效');
   const seats = [...frozen.seats].sort((a, b) =>
     a.cultivatorId.localeCompare(b.cultivatorId),
   );
@@ -103,6 +126,7 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const units: ArenaRuntime['units'] = [];
         const unitAppearances: Record<string, CombatV6UnitAppearance> = {};
         const participants: ArenaRuntime['participants'] = [];
+        const huntRewards: NonNullable<ArenaRuntime['huntRewards']> = {};
         const autoStrategies: NonNullable<ArenaRuntime['autoStrategies']> = {};
         for (const seat of seats) {
           if (await hasActiveCombat(seat.cultivatorId))
@@ -115,6 +139,12 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
             ),
           });
           if (!identity) throw new ArenaV6Error('参战角色归属已变化');
+          if (hunt && !huntRealmAllowed(hunt, identity.realm as RealmType))
+            throw new ArenaV6Error('参战境界已变化，请重新准备');
+          if (hunt)
+            huntRewards[seat.cultivatorId] = await prepareHuntReward(
+              hunt.event, seat.cultivatorId, tx,
+            );
           const { player } = await assembleCombatV6TrainingPlayer(
             seat.cultivatorId,
             tx,
@@ -150,6 +180,15 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           });
           mergeDefinitions(statuses, projection.statusDefs);
         }
+        if (hunt) {
+          units.push(...huntEnemies(hunt.event, seats.length));
+          mergeDefinitions(skills, HUNT_SKILLS);
+          mergeDefinitions(statuses, HUNT_STATUSES);
+          for (const unit of units.filter((u) => u.side === 1))
+            unitAppearances[unit.id!] = {
+              icon: HUNT_BOSSES[hunt.event.bossId].icon,
+            };
+        }
         units.sort((a, b) => a.side - b.side || (a.slot ?? 0) - (b.slot ?? 0));
         const now = Date.now();
         const battleId = crypto.randomUUID();
@@ -163,6 +202,8 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
         const battle = arenaBattle(input);
         const runtime: ArenaRuntime = {
           ...input,
+          hunt: hunt?.event,
+          huntRewards: hunt ? huntRewards : undefined,
           protocol: ARENA_V6_PROTOCOL,
           battleId,
           roomId: room.roomId,
@@ -187,8 +228,10 @@ export async function createArenaV6(room: ArenaRoomV1): Promise<string> {
           receipts: {},
           lastResults: {},
         };
+        if (runtime.hunt) fillHuntCommands(runtime);
         lease.assertHeld();
         const id = await store.create(runtime);
+        if (id === 'EXPIRED') throw new ArenaV6Error('此处异动已平息');
         if (id === 'BUSY')
           throw new ArenaV6Error('有参战角色正在战斗或等待结算');
         return id;
@@ -309,7 +352,7 @@ export async function advanceArenaV6(id: string) {
     await finalizeArenaV6(runtime);
     return;
   }
-  const room = await rooms.getRoom(runtime.roomId);
+  const room = runtime.hunt ? null : await rooms.getRoom(runtime.roomId);
   if (
     room?.status === 'starting' &&
     room.startRequestId === runtime.startRequestId
@@ -352,7 +395,9 @@ export async function advanceArenaV6(id: string) {
       revision: runtime.revision + 1,
       deadlineAt: runtime.playbackEndsAt + 30000,
     };
+    if (next.hunt) fillHuntCommands(next);
     for (const unit of arenaWaitingUnits(next)) {
+      if (next.commands[unit.id]) continue;
       if (
         !(await store.online(
           `${runtime.battleId}:${unit.ownerId ?? unit.id}`,
@@ -416,6 +461,10 @@ export async function advanceArenaV6(id: string) {
 }
 
 async function finalizeArenaV6(runtime: ArenaRuntime) {
+  if (runtime.hunt) {
+    await publishHuntTerminal(runtime);
+    return;
+  }
   // Cleanup precedes archival so PostgreSQL outages cannot retain player locks.
   await store.release(runtime);
   const released = await rooms.forceReleaseTerminalBattle({
@@ -528,4 +577,60 @@ export async function stopArenaV6Coordinator() {
   stopped = true;
   clearTimeout(timer);
   await task;
+}
+
+function fillHuntCommands(runtime: ArenaRuntime) {
+  for (const unit of arenaWaitingUnits(runtime).filter((u) => u.side === 1)) {
+    runtime.commands[unit.id] = {
+      requestId: `npc:${runtime.state.round}:${unit.id}`,
+      command: huntNpcCommand(runtime, unit.id),
+      automatic: true,
+    };
+  }
+}
+async function publishHuntTerminal(runtime: ArenaRuntime) {
+  await archiveCombatV6Replay(
+    createCombatV6Replay({
+      battleId: runtime.battleId,
+      participants: runtime.participants,
+      metadata: {
+        schemaVersion: 1,
+        sourceType: 'hunt',
+        battleType: 'pve',
+        idempotencyKey: runtime.startRequestId,
+        payload: { eventId: runtime.hunt!.id, roomId: runtime.roomId },
+      },
+      startedAt: new Date(runtime.createdAt).toISOString(),
+      finishedAt: new Date(runtime.deadlineAt).toISOString(),
+      reason: runtime.terminalReason!,
+      trace: {
+        seed: runtime.seed,
+        initialUnits: runtime.units,
+        skills: runtime.skills,
+        statusDefs: runtime.statusDefs,
+        rounds: runtime.rounds,
+        events: runtime.events,
+        finalState: runtime.state,
+        timeline: runtime.timeline,
+      },
+    }),
+  );
+  const definition = DOMAIN_EVENT_DEFINITIONS['combat.v6.battle.finished'];
+  const event = parseDomainEventEnvelope({
+    id: runtime.battleId,
+    type: 'combat.v6.battle.finished',
+    version: definition.version,
+    subject: definition.subject,
+    occurredAt: new Date(runtime.deadlineAt).toISOString(),
+    aggregate: { type: 'combat-v6-battle', id: runtime.battleId },
+    correlationId: runtime.startRequestId,
+    data: { battleId: runtime.battleId, sourceType: 'hunt' },
+  });
+  await (await getJetStreamClient()).publish(
+    event.subject,
+    JSONCodec().encode(event),
+    { msgID: event.id, expect: { streamName: DOMAIN_EVENT_STREAM }, timeout: 5000 },
+  );
+  // Keep runtime and occupancy until the reward projector commits and acknowledges.
+  await redis.zadd(arenaDueKey, 'XX', Date.now() + 10000, runtime.battleId);
 }

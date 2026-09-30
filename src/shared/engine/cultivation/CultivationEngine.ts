@@ -186,6 +186,7 @@ export function performCultivation(
 
   // 记录闭关前修为
   const exp_before = progress.cultivation_exp;
+  const insightBefore = progress.comprehension_insight;
   const wasBottleneckActive = isBottleneckReached(progress);
   const fateContext = evaluateFateContext(cultivator.pre_heaven_fates ?? []);
 
@@ -247,7 +248,7 @@ export function performCultivation(
     exp_gained: finalExpGain,
     exp_before,
     exp_after: progress.cultivation_exp,
-    insight_gained: finalInsightGain,
+    insight_gained: progress.comprehension_insight - insightBefore,
     epiphany_triggered: expResult.epiphany_triggered,
   };
 
@@ -257,7 +258,7 @@ export function performCultivation(
       exp_gained: finalExpGain,
       exp_before,
       exp_after: progress.cultivation_exp,
-      insight_gained: finalInsightGain,
+      insight_gained: progress.comprehension_insight - insightBefore,
       epiphany_triggered: expResult.epiphany_triggered,
       bottleneck_entered,
       can_breakthrough: canAttemptBreakthrough(progress),
@@ -409,7 +410,6 @@ export function attemptBreakthrough(
       isMajorBreakthrough && clearMindStatus
         ? Math.max(4, Math.floor(insightLoss * 0.7))
         : insightLoss;
-    insight_change = -finalInsightLoss;
     progress.comprehension_insight = Math.max(
       0,
       progress.comprehension_insight - finalInsightLoss,
@@ -464,7 +464,7 @@ export function attemptBreakthrough(
       insight_value,
       exp_lost: success ? undefined : exp_lost,
       breakthrough_type,
-      insight_change,
+      insight_change: progress.comprehension_insight - insight_value,
       inner_demon_triggered: progress.inner_demon,
       modifiers,
     },

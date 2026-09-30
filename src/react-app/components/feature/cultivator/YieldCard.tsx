@@ -1,3 +1,5 @@
+import { hasPendingCommandRequest, pendingCommandRequest } from '@app/lib/pendingCommandRequest';
+import { usePlayerSession } from '@app/lib/resources/player';
 import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -22,6 +24,7 @@ export function YieldCard({
   variant = 'card',
 }: YieldCardProps) {
   const { pushToast } = useInkUI();
+  const owner = usePlayerSession().data?.activeCultivator?.id;
   const [timeSinceYield, setTimeSinceYield] = useState(0);
   const [yieldResult, setYieldResult] = useState<{
     amount: number;
@@ -37,7 +40,8 @@ export function YieldCard({
 
   // 历练相关
   const handleClaimYield = async () => {
-    if (!cultivator) return;
+    if (!cultivator || !owner) return;
+    const pending = pendingCommandRequest(owner, 'yield');
     setClaiming(true);
     onInteractionActiveChange?.(true);
 
@@ -45,7 +49,7 @@ export function YieldCard({
       const response = await fetch('/api/cultivator/yield', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ requestId: pending.requestId }),
       });
 
       if (!response.ok) {
@@ -74,6 +78,7 @@ export function YieldCard({
         try {
           const data = JSON.parse(dataStr);
           if (data.type === 'result') {
+            pending.complete();
             // Initial calculation result
             setYieldResult(() => ({
               amount: data.data.amount,
@@ -154,16 +159,17 @@ export function YieldCard({
     }
   }, [cultivator?.last_yield_at]);
 
+  const pendingYield = owner ? hasPendingCommandRequest(owner, 'yield') : false;
   const actionButton = (
     <InkButton
       variant={timeSinceYield >= 1 ? 'primary' : 'secondary'}
-      disabled={timeSinceYield < 1}
+      disabled={timeSinceYield < 1 && !pendingYield}
       pending={claiming}
       pendingLabel="结算中……"
       onClick={handleClaimYield}
       className={variant === 'card' ? 'min-w-20' : undefined}
     >
-      {timeSinceYield < 1 ? '历练中' : '领取'}
+      {pendingYield ? '重试领取' : timeSinceYield < 1 ? '历练中' : '领取'}
     </InkButton>
   );
   const spiritStonesInfo = getGameConceptInfo('spirit_stones');

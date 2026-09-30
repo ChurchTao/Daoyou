@@ -628,36 +628,10 @@ function buildAlchemyInfoLines(
 ): string[] {
   const { alchemyMeta } = consumable.spec;
   const breakthroughLabel = getBreakthroughPurposeLabel(consumable.spec);
-  const formulaFitBandText =
-    alchemyMeta.source === 'formula'
-      ? alchemyMeta.fitBand === 'aligned'
-        ? '契合成丹'
-        : alchemyMeta.fitBand === 'degraded'
-          ? '勉强成丹'
-          : '偏路成丹'
-      : undefined;
-  const formulaFitMultiplierText =
-    alchemyMeta.source === 'formula' &&
-    Number.isFinite(alchemyMeta.fitMultiplier)
-      ? `丹方倍率：${Math.round(alchemyMeta.fitMultiplier * 100)}%`
-      : undefined;
-  const fitBandText =
-    alchemyMeta.source === 'formula' ? formulaFitBandText : undefined;
-
   return [
     breakthroughLabel ? `破境用途：${breakthroughLabel}` : undefined,
     alchemyMeta.breakthroughTargetRealm
       ? `目标大境界：${alchemyMeta.breakthroughTargetRealm}`
-      : undefined,
-    `炼制来源：${alchemyMeta.source === 'formula' ? '丹方炼制' : '即兴炼制'}`,
-    fitBandText ? `成丹层级：${fitBandText}` : undefined,
-    formulaFitMultiplierText,
-    `稳度：${alchemyMeta.stability}`,
-    alchemyMeta.dominantElement
-      ? `主元素：${alchemyMeta.dominantElement}`
-      : undefined,
-    alchemyMeta.sourceMaterials.length > 0
-      ? `炼制材料：${alchemyMeta.sourceMaterials.join('、')}`
       : undefined,
   ].filter((line): line is string => Boolean(line));
 }
@@ -667,6 +641,7 @@ export function toPillDisplayModel(
   options?: PillDisplayOptions,
 ): PillDisplayModel {
   const trackPreviewLines = buildTrackPreviewLines(consumable.spec, options);
+  const alchemyInfoLines = buildAlchemyInfoLines(consumable);
   return {
     familyLabel: getPillFamilyLabel(consumable.spec.family),
     appearance: getAppearanceDisplay(consumable.spec),
@@ -696,15 +671,19 @@ export function toPillDisplayModel(
         title: '代价',
         lines: buildCostAndRuleLines(consumable.spec, options),
       },
-      {
-        key: 'alchemy-info',
-        role: 'source' as const,
-        collapsible: true,
-        title: '炼制信息',
-        lines: buildAlchemyInfoLines(consumable),
-      },
+      ...(alchemyInfoLines.length
+        ? [
+            {
+              key: 'alchemy-info',
+              role: 'source' as const,
+              collapsible: true,
+              title: '破境信息',
+              lines: alchemyInfoLines,
+            },
+          ]
+        : []),
     ],
-    flavorText: consumable.description,
+    flavorText: undefined,
   };
 }
 

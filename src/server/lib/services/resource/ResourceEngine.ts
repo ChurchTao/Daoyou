@@ -1,3 +1,4 @@
+import { recordJournalChange } from '../JournalSettlement';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db';
 import * as schema from '@server/lib/drizzle/schema';
 import {
@@ -272,6 +273,9 @@ export class ResourceEngine {
               operation.value,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: `material:${operation.name}`, name: operation.name, amount: -operation.value,
+            });
             settlement.inventoryChanges.push(
               ...changes.map((change) =>
                 change.operation === 'upsert'
@@ -351,6 +355,9 @@ export class ResourceEngine {
               material,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
+            });
             settlement.inventoryChanges.push({
               kind: 'materials',
               operation: 'upsert',
@@ -372,6 +379,9 @@ export class ResourceEngine {
               artifact,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: 1,
+            });
             settlement.inventoryChanges.push({
               kind: 'artifacts',
               operation: 'upsert',
@@ -395,6 +405,9 @@ export class ResourceEngine {
               consumable,
               args.tx,
             );
+            recordJournalChange(args.tx, args.cultivatorId, {
+              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
+            });
             settlement.inventoryChanges.push({
               kind: 'consumables',
               operation: 'upsert',

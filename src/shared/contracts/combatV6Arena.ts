@@ -7,6 +7,8 @@ import type {
   StatusDef,
 } from '@shared/engine/combat-v6/core';
 import { z } from 'zod';
+import type { HuntEvent } from '../hunts/config';
+import type { HuntRewardSnapshot } from '../rewards/hunt';
 import type { CombatV6TrainingSessionViewV1 } from './combatV6';
 import { CombatV6CommandGroupSchema } from './combatV6';
 import type { CombatV6ReplayTimeline } from './combatV6Replay';
@@ -30,6 +32,8 @@ export type ArenaParticipant = {
   slot: number;
 };
 export type ArenaRuntime = {
+  hunt?: HuntEvent;
+  huntRewards?: Record<string, HuntRewardSnapshot>;
   timeline: CombatV6ReplayTimeline;
   protocol: typeof ARENA_V6_PROTOCOL;
   battleId: string;
@@ -73,6 +77,7 @@ export type ArenaSessionView = Omit<
   'tier' | 'encounterId'
 > & {
   protocol: typeof ARENA_V6_PROTOCOL;
+  hunt?: HuntEvent;
   roomId: string;
   controlledUnitId: string;
   spectator?: boolean;

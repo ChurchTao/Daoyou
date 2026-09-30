@@ -76,7 +76,7 @@ export const consumableAdapter: ItemAdapter = (item) => {
             tone: groupTones[group.role],
             ...(group.collapsible ? { collapsible: true as const } : {}),
           })),
-        description: facts.description,
+        description: facts.spec.kind === 'pill' ? undefined : facts.description,
       };
     },
   };
