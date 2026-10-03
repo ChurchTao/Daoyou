@@ -16,8 +16,8 @@
 
 | 模块 | 职责 |
 | --- | --- |
-| `src/shared/drops` | 独立配置校验、概率／权重／数量抽取，输出不透明奖励 ID |
-| `src/shared/rewards/wild.ts` | 野外池与物品奖励解析，固定物品引用及随机装备生成适配 |
+| `packages/shared/src/drops` | 独立配置校验、概率／权重／数量抽取，输出不透明奖励 ID |
+| `packages/shared/src/rewards/wild.ts` | 野外池与物品奖励解析，固定物品引用及随机装备生成适配 |
 | `CombatV6WildSessionService` | 每场胜利触发、开战冻结池、原生哈希创建独立随机流、冻结终局物品事实 |
 | `CombatV6ConditionProjector` / `InventoryService` | 沿用既有结算幂等、事务和容量规则发放 |
 

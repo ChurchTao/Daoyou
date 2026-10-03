@@ -1,0 +1,324 @@
+import { getJetStreamManager } from '@server/lib/nats/index.js';
+import {
+  BACKGROUND_COMMAND_STREAM,
+  BACKGROUND_COMMAND_SUBJECT_PREFIX,
+} from '@daoyou/shared/contracts/backgroundCommands';
+import {
+  DOMAIN_EVENT_STREAM,
+  DOMAIN_EVENT_SUBJECT_PREFIX,
+} from '@daoyou/shared/contracts/domainEvents';
+import { COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_SUBJECT } from '@daoyou/shared/contracts/combatV6Runtime';
+import {
+  AckPolicy,
+  DeliverPolicy,
+  DiscardPolicy,
+  nanos,
+  ReplayPolicy,
+  RetentionPolicy,
+  StorageType,
+  type ConsumerConfig,
+  type ConsumerUpdateConfig,
+  type StreamConfig,
+} from 'nats';
+
+export const DEAD_LETTER_STREAM = 'DAOYOU_DOMAIN_EVENT_DLQ';
+export const DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.dead-letter';
+export const COMMAND_DEAD_LETTER_STREAM = 'DAOYOU_BACKGROUND_COMMAND_DLQ';
+export const COMMAND_DEAD_LETTER_SUBJECT_PREFIX = 'daoyou.command-dead-letter';
+
+export const COMBAT_V6_REPLAY_ARCHIVE_CONSUMER = {
+  stream: COMBAT_V6_REPLAY_STREAM,
+  name: 'combat-v6-replay-postgres-archiver-v1',
+  filterSubject: COMBAT_V6_REPLAY_SUBJECT,
+  concurrency: 2,
+} as const;
+
+export const BACKGROUND_COMMAND_CONSUMER = {
+  stream: BACKGROUND_COMMAND_STREAM,
+  name: 'background-command-worker-v1',
+  filterSubject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.>`,
+  concurrency: 4,
+} as const;
+
+export const DOMAIN_EVENT_CONSUMERS = {
+  systemMailProjector: {
+    name: 'system-mail-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.system-mail.audience-observed.v1`,
+    concurrency: 4,
+  },
+  combatV6Condition: {
+    name: 'combat-v6-condition-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.battle.combat-v6-battle-finished.v1`,
+    concurrency: 4,
+  },
+  sectFacilityProjector: {
+    name: 'sect-facility-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sect.construction-donated.v1`,
+    concurrency: 4,
+  },
+  taskProjector: {
+    name: 'task-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.*.v1`,
+    concurrency: 8,
+  },
+  yieldRewardProjector: {
+    name: 'yield-reward-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.activity.yield-claimed.v1`,
+    concurrency: 2,
+  },
+  worldRumorProjector: {
+    name: 'world-rumor-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.*.v1`,
+    concurrency: 4,
+  },
+  rankingRealmProjector: {
+    name: 'ranking-realm-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.cultivator-realm-changed.v1`,
+    concurrency: 4,
+  },
+  mailNotificationProjector: {
+    name: 'mail-notification-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.communication.mail-created.v1`,
+    concurrency: 8,
+  },
+  sponsorshipOrderProjector: {
+    name: 'sponsorship-order-projector-v1',
+    filterSubject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,
+    concurrency: 4,
+  },
+} as const;
+
+const DOMAIN_EVENT_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: DOMAIN_EVENT_STREAM,
+  description: 'Daoyou versioned domain integration events',
+  subjects: [`${DOMAIN_EVENT_SUBJECT_PREFIX}.>`],
+  retention: RetentionPolicy.Limits,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(14 * 24 * 60 * 60 * 1_000),
+  max_bytes: 2_560 * 1_024 * 1_024,
+  max_msg_size: 256 * 1_024,
+  duplicate_window: nanos(2 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+const DEAD_LETTER_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: DEAD_LETTER_STREAM,
+  description: 'Daoyou terminal domain event processing failures',
+  subjects: [`${DEAD_LETTER_SUBJECT_PREFIX}.>`],
+  retention: RetentionPolicy.Limits,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
+  max_bytes: 768 * 1_024 * 1_024,
+  max_msg_size: 512 * 1_024,
+  duplicate_window: nanos(2 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+const BACKGROUND_COMMAND_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: BACKGROUND_COMMAND_STREAM,
+  description: 'Daoyou durable one-to-one background commands',
+  subjects: [`${BACKGROUND_COMMAND_SUBJECT_PREFIX}.>`],
+  retention: RetentionPolicy.Workqueue,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(7 * 24 * 60 * 60 * 1_000),
+  max_bytes: 384 * 1_024 * 1_024,
+  max_msg_size: 256 * 1_024,
+  duplicate_window: nanos(10 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+const COMMAND_DEAD_LETTER_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: COMMAND_DEAD_LETTER_STREAM,
+  description: 'Daoyou terminal background command failures',
+  subjects: [`${COMMAND_DEAD_LETTER_SUBJECT_PREFIX}.>`],
+  retention: RetentionPolicy.Limits,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
+  max_bytes: 128 * 1_024 * 1_024,
+  max_msg_size: 512 * 1_024,
+  duplicate_window: nanos(10 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+const COMBAT_V6_REPLAY_STREAM_CONFIG: Partial<StreamConfig> = {
+  name: COMBAT_V6_REPLAY_STREAM,
+  description: 'Small Redis pointers for combat-v6 replay archival',
+  subjects: [COMBAT_V6_REPLAY_SUBJECT],
+  retention: RetentionPolicy.Workqueue,
+  storage: StorageType.File,
+  discard: DiscardPolicy.Old,
+  max_age: nanos(30 * 24 * 60 * 60 * 1_000),
+  max_bytes: 64 * 1_024 * 1_024,
+  max_msg_size: 4 * 1_024,
+  duplicate_window: nanos(24 * 60 * 60 * 1_000),
+  num_replicas: 1,
+  allow_direct: true,
+};
+
+export const CONSUMER_RETRY_DELAYS_MS = [
+  1_000,
+  5_000,
+  15_000,
+  60_000,
+  5 * 60_000,
+  15 * 60_000,
+] as const;
+
+export function consumerRetryDelayMs(deliveryCount: number): number {
+  const index = Math.min(
+    Math.max(0, deliveryCount - 1),
+    CONSUMER_RETRY_DELAYS_MS.length - 1,
+  );
+  return CONSUMER_RETRY_DELAYS_MS[index]!;
+}
+
+function isNotFoundError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    String(error.code) === '404'
+  );
+}
+
+async function ensureStream(config: Partial<StreamConfig> & { name: string }) {
+  const manager = await getJetStreamManager();
+  try {
+    const current = await manager.streams.info(config.name);
+    await manager.streams.update(config.name, {
+      ...current.config,
+      ...config,
+    });
+  } catch (error) {
+    if (!isNotFoundError(error)) throw error;
+    await manager.streams.add(config);
+  }
+}
+
+async function ensureConsumer(input: {
+  name: string;
+  filterSubject: string;
+  concurrency: number;
+}) {
+  const manager = await getJetStreamManager();
+  const mutableConfig: Partial<ConsumerUpdateConfig> = {
+    description: `Daoyou domain event consumer ${input.name}`,
+    ack_wait: nanos(2 * 60 * 1_000),
+    max_deliver: -1,
+    max_ack_pending: input.concurrency,
+    max_batch: input.concurrency,
+    // Keep ACK timeout independent from business retry delays. JetStream uses
+    // the first backoff value as ack_wait, so an empty list is required here
+    // to clear older consumer configs that accidentally reduced it to 1s.
+    backoff: [],
+    filter_subject: input.filterSubject,
+  };
+  try {
+    await manager.consumers.info(DOMAIN_EVENT_STREAM, input.name);
+    await manager.consumers.update(
+      DOMAIN_EVENT_STREAM,
+      input.name,
+      mutableConfig,
+    );
+  } catch (error) {
+    if (!isNotFoundError(error)) throw error;
+    await manager.consumers.add(DOMAIN_EVENT_STREAM, {
+      ...mutableConfig,
+      durable_name: input.name,
+      ack_policy: AckPolicy.Explicit,
+      deliver_policy: DeliverPolicy.All,
+      replay_policy: ReplayPolicy.Instant,
+    } satisfies Partial<ConsumerConfig>);
+  }
+}
+
+async function ensureBackgroundCommandConsumer() {
+  const manager = await getJetStreamManager();
+  const mutableConfig: Partial<ConsumerUpdateConfig> = {
+    description: `Daoyou command consumer ${BACKGROUND_COMMAND_CONSUMER.name}`,
+    ack_wait: nanos(15 * 60 * 1_000),
+    max_deliver: -1,
+    max_ack_pending: BACKGROUND_COMMAND_CONSUMER.concurrency,
+    max_batch: BACKGROUND_COMMAND_CONSUMER.concurrency,
+    backoff: [],
+    filter_subject: BACKGROUND_COMMAND_CONSUMER.filterSubject,
+  };
+  try {
+    await manager.consumers.info(
+      BACKGROUND_COMMAND_STREAM,
+      BACKGROUND_COMMAND_CONSUMER.name,
+    );
+    await manager.consumers.update(
+      BACKGROUND_COMMAND_STREAM,
+      BACKGROUND_COMMAND_CONSUMER.name,
+      mutableConfig,
+    );
+  } catch (error) {
+    if (!isNotFoundError(error)) throw error;
+    await manager.consumers.add(BACKGROUND_COMMAND_STREAM, {
+      ...mutableConfig,
+      durable_name: BACKGROUND_COMMAND_CONSUMER.name,
+      ack_policy: AckPolicy.Explicit,
+      deliver_policy: DeliverPolicy.All,
+      replay_policy: ReplayPolicy.Instant,
+    } satisfies Partial<ConsumerConfig>);
+  }
+}
+
+async function ensureCombatV6ReplayConsumer() {
+  const manager = await getJetStreamManager();
+  const mutableConfig: Partial<ConsumerUpdateConfig> = {
+    description: 'Archive combat-v6 replays to PostgreSQL', ack_wait: nanos(2 * 60 * 1_000), max_deliver: -1,
+    max_ack_pending: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.concurrency, max_batch: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.concurrency,
+    backoff: [], filter_subject: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.filterSubject,
+  };
+  try {
+    await manager.consumers.info(COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name);
+    await manager.consumers.update(COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name, mutableConfig);
+  } catch (error) {
+    if (!isNotFoundError(error)) throw error;
+    await manager.consumers.add(COMBAT_V6_REPLAY_STREAM, { ...mutableConfig, durable_name: COMBAT_V6_REPLAY_ARCHIVE_CONSUMER.name, ack_policy: AckPolicy.Explicit, deliver_policy: DeliverPolicy.All, replay_policy: ReplayPolicy.Instant } satisfies Partial<ConsumerConfig>);
+  }
+}
+
+export async function ensureMessageTopology(): Promise<void> {
+  await ensureStream(
+    DOMAIN_EVENT_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
+  );
+  await ensureStream(
+    DEAD_LETTER_STREAM_CONFIG as Partial<StreamConfig> & { name: string },
+  );
+  await ensureStream(
+    BACKGROUND_COMMAND_STREAM_CONFIG as Partial<StreamConfig> & {
+      name: string;
+    },
+  );
+  await ensureStream(
+    COMMAND_DEAD_LETTER_STREAM_CONFIG as Partial<StreamConfig> & {
+      name: string;
+    },
+  );
+  await ensureStream(COMBAT_V6_REPLAY_STREAM_CONFIG as Partial<StreamConfig> & { name: string });
+  await Promise.all([
+    ...Object.values(DOMAIN_EVENT_CONSUMERS).map(ensureConsumer),
+    ensureBackgroundCommandConsumer(),
+    ensureCombatV6ReplayConsumer(),
+  ]);
+  console.info('[nats] JetStream topology ready', {
+    stream: DOMAIN_EVENT_STREAM,
+    consumers: Object.values(DOMAIN_EVENT_CONSUMERS).map(
+      (consumer) => consumer.name,
+    ),
+    commandStream: BACKGROUND_COMMAND_STREAM,
+    commandConsumer: BACKGROUND_COMMAND_CONSUMER.name,
+    combatV6ReplayStream: COMBAT_V6_REPLAY_STREAM,
+  });
+}

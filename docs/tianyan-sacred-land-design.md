@@ -1301,7 +1301,7 @@ Status.Sect.tianyan.ElementSeal.Water
 - alt：`雨后中宫演法台上，一名新弟子沿石阶走向等候在五行汇流地刻前的执教，五峰殿宇隐于云雾`
 - 源文件：`docs/assets/tianyan/tianyan-onboarding-master.png`
 
-![天衍圣地入门主视觉](../public/assets/sect/onboarding/tianyan.webp)
+![天衍圣地入门主视觉](../apps/web/public/assets/sect/onboarding/tianyan.webp)
 
 ### 17.2 五幕脚本
 
@@ -1406,7 +1406,7 @@ Status.Sect.tianyan.ElementSeal.Water
 
 源文件：`docs/assets/tianyan/tianyan-map-master.png`
 
-![天衍圣地舆图](../public/assets/sect/tianyan-map.webp)
+![天衍圣地舆图](../apps/web/public/assets/sect/tianyan-map.webp)
 
 地图视觉已经确立以下事实：
 
@@ -1650,7 +1650,7 @@ V1 仅通过敌方状态标签、通用衍数点阵与结构化战斗日志表�
 ### 22.1 内容目录
 
 ```text
-src/shared/engine/sect/content/tianyan/
+packages/shared/src/engine/sect/content/tianyan/
   TianyanSectModule.ts
   definition.ts
   ids.ts
@@ -1791,7 +1791,7 @@ interface MechanicTriggerBasisRef {
 
 ### 22.6 生产注册
 
-实现完成后只在 `src/shared/engine/sect/content/productionRuntime.ts` 增加：
+实现完成后只在 `packages/shared/src/engine/sect/content/productionRuntime.ts` 增加：
 
 ```ts
 { module: TIANYAN_MODULE, presentation: TIANYAN_PRESENTATION }
@@ -1801,8 +1801,8 @@ interface MechanicTriggerBasisRef {
 
 现有资产：
 
-- `public/assets/sect/onboarding/tianyan.webp`
-- `public/assets/sect/tianyan-map.webp`
+- `apps/web/public/assets/sect/onboarding/tianyan.webp`
+- `apps/web/public/assets/sect/tianyan-map.webp`
 
 ---
 
@@ -1949,9 +1949,9 @@ interface MechanicTriggerBasisRef {
 ### 23.11 建议验证命令
 
 ```bash
-bunx vitest run src/shared/engine/sect/content/tianyan
-bunx vitest run src/shared/engine/sect
-bunx vitest run src/shared/engine/battle-v5/tests
+bunx vitest run packages/shared/src/engine/sect/content/tianyan
+bunx vitest run packages/shared/src/engine/sect
+bunx vitest run packages/shared/src/engine/battle-v5/tests
 bun run lint
 bun run test
 bun run build

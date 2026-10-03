@@ -12,13 +12,13 @@
 
 ## 配置与编译
 
-仓库内容位于 `src/shared/engine/combat-v6/tower/data/`：
+仓库内容位于 `packages/shared/src/engine/combat-v6/tower/data/`：
 
 - `enemies.json`：原型修正、独立词条、兼容规则、行动周期、备用动作、说明。
 - `mechanics.json` / `skills.ts`：既有 V6 技能和状态及其参数。
 - `generation.json`：组合池、辅助配置、普通层、铺垫映射、15/20 层变体、阵容限制。
 
-境界基准及楼层增长继续复用 `src/shared/lib/tower/data/encounters.json`；祝福节点保存在同目录 `blessings.json`；整组份额保存在 `formations.ts`。
+境界基准及楼层增长继续复用 `packages/shared/src/lib/tower/data/encounters.json`；祝福节点保存在同目录 `blessings.json`；整组份额保存在 `formations.ts`。
 
 `strategy-templates.ts` 只负责发布时展开。先选关键层，再生成 4/9/14/19 层铺垫，最终保存全部策略。`weekly.ts` 保留有限枚举、周序套路轮转、同周不重复、至少一个多敌关键层及近三周软避重。
 

@@ -3,6 +3,7 @@ name: ${COMPOSE_PROJECT_NAME:-daoyou}
 x-app-common: &app-common
   image: ${APP_IMAGE:-swkzymlyy/daoyou-app:latest}
   restart: unless-stopped
+  stop_grace_period: 75s
   env_file:
     - ${ENV_FILE:-/root/daoyou/.env.production}
   environment:
@@ -15,7 +16,7 @@ x-app-common: &app-common
     test:
       [
         "CMD",
-        "bun",
+        "node",
         "-e",
         "fetch('http://127.0.0.1:3000/api/health-check').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
       ]

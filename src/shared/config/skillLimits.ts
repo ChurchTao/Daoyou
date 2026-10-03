@@ -1,1 +1,0 @@
-export const DEFAULT_MAX_ACTIVE_SKILLS = 4;

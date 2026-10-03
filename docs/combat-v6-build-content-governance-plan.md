@@ -21,17 +21,17 @@
 
 | 编号 | 领域 | 当前主要入口 | 需要治理的内容 |
 | --- | --- | --- | --- |
-| G1 | 道装基础与阵纹 | `src/shared/engine/combat-v6/equipment/content.ts`、`generator.ts` | 六部位模板、基础属性系数、偏好属性、九种阵纹、基础附加属性生成参数 |
-| G2 | 器蕴、器诀与打造 | 同目录 `special-content.ts`、`generator.ts`、`forging.ts`；`src/shared/forging/rules.ts` | 特殊被动、器诀技能、战意消耗、数量概率、抽取池、打造材料增益和成本 |
-| G3 | 召唤兽与兽诀 | `src/shared/engine/combat-v6/beasts/index.ts`、`progression.ts`；`src/shared/items/definitions/beast-books.ts` | 物种、资质成长、初始技能、兽诀效果及普通／高级关系、培养参数；拆开 Schema、生成和投影职责 |
-| G4 | 宗门构筑 | `src/shared/engine/combat-v6/content/`、`sect-progression/` | 心法、技能、状态、流派、资源、经脉节点、技能修改项、特殊反应和养成费用 |
-| G5 | 炼体与修炼 | `src/shared/lib/bodyCultivation/config.ts`；`src/shared/engine/combat-v6/projection/body-cultivation-v6.ts` | 五轨成长、肉身位阶要求、上限和战斗收益参数，统一成长与投影的参数来源 |
-| G6 | 局内祝福与遭遇 | `src/shared/lib/tower/`；`src/shared/engine/combat-v6/tower/host.ts`、`wild/content.ts`、`encounter/content.ts`；`src/shared/rewards/` | 临时 build 的祝福效果，以及配套敌人、编组和奖励表；内容从 Host 中分离 |
-| A1 | 构筑装配收敛 | `src/shared/engine/combat-v6/projection/`、`content/index.ts`、`version.ts` | 当前人物入口、历史阶段入口、宗门注册表和版本职责；独立于配置搬迁 |
+| G1 | 道装基础与阵纹 | `packages/shared/src/engine/combat-v6/equipment/content.ts`、`generator.ts` | 六部位模板、基础属性系数、偏好属性、九种阵纹、基础附加属性生成参数 |
+| G2 | 器蕴、器诀与打造 | 同目录 `special-content.ts`、`generator.ts`、`forging.ts`；`packages/shared/src/forging/rules.ts` | 特殊被动、器诀技能、战意消耗、数量概率、抽取池、打造材料增益和成本 |
+| G3 | 召唤兽与兽诀 | `packages/shared/src/engine/combat-v6/beasts/index.ts`、`progression.ts`；`packages/shared/src/items/definitions/beast-books.ts` | 物种、资质成长、初始技能、兽诀效果及普通／高级关系、培养参数；拆开 Schema、生成和投影职责 |
+| G4 | 宗门构筑 | `packages/shared/src/engine/combat-v6/content/`、`sect-progression/` | 心法、技能、状态、流派、资源、经脉节点、技能修改项、特殊反应和养成费用 |
+| G5 | 炼体与修炼 | `packages/shared/src/lib/bodyCultivation/config.ts`；`packages/shared/src/engine/combat-v6/projection/body-cultivation-v6.ts` | 五轨成长、肉身位阶要求、上限和战斗收益参数，统一成长与投影的参数来源 |
+| G6 | 局内祝福与遭遇 | `packages/shared/src/lib/tower/`；`packages/shared/src/engine/combat-v6/tower/host.ts`、`wild/content.ts`、`encounter/content.ts`；`packages/shared/src/rewards/` | 临时 build 的祝福效果，以及配套敌人、编组和奖励表；内容从 Host 中分离 |
+| A1 | 构筑装配收敛 | `packages/shared/src/engine/combat-v6/projection/`、`content/index.ts`、`version.ts` | 当前人物入口、历史阶段入口、宗门注册表和版本职责；独立于配置搬迁 |
 
 宗门五个定义文件当前合计约 2,077 行，已有类型与编译器，但技能、状态、节点、生成辅助函数和专属校验交织。不是全部重写，也不能简单把函数展开成巨型 JSON 就视为完成。
 
-`src/shared/engine/sect` 仍承担宗门组织与外围玩法，不视为整套废弃实现。治理宗门时，需要核定其与 combat-v6 对名称、ID、心法与解锁信息的权威归属。
+`packages/shared/src/engine/sect` 仍承担宗门组织与外围玩法，不视为整套废弃实现。治理宗门时，需要核定其与 combat-v6 对名称、ID、心法与解锁信息的权威归属。
 
 ## 3. 推荐推进顺序
 
@@ -152,7 +152,7 @@ pack.ts                    # 加载与严格校验
 
 ## 7. G1 实施与验证记录
 
-配置与策划说明：[道装基础数据包](../src/shared/engine/combat-v6/equipment/data/README.md)。
+配置与策划说明：[道装基础数据包](../packages/shared/src/engine/combat-v6/equipment/data/README.md)。
 
 - 六模板、九阵纹与基础生成参数移至 `equipment/data/equipment-base.json`；`pack.ts` 严格校验结构、唯一性、部位身份、数值范围和概率总和。错误不会静默回退。
 - `content.ts` 保留稳定导出和查询入口；`generator.ts`、`forging.ts`、`compiler.ts` 共享附灵数值范围，器胚继续共享模板定义。未改数值、ID、随机调用顺序、版本或数据库。
@@ -172,7 +172,7 @@ pack.ts                    # 加载与严格校验
 
 ## 8. G2 实施与验证记录
 
-用户确认按 G2-A → G2-B 推进，并保留打造命名库；两批代码已完成。[策划编辑说明](../src/shared/engine/combat-v6/equipment/data/README-special-forging.md)。
+用户确认按 G2-A → G2-B 推进，并保留打造命名库；两批代码已完成。[策划编辑说明](../packages/shared/src/engine/combat-v6/equipment/data/README-special-forging.md)。
 
 ### G2-A 特殊内容
 
@@ -189,7 +189,7 @@ pack.ts                    # 加载与严格校验
 
 ### 验证结果（2026-09-11）
 
-- 聚焦 `bun run test src/shared/engine/combat-v6/equipment src/shared/forging/forging.test.ts`：7 文件、99 项通过。
+- 聚焦 `bun run test packages/shared/src/engine/combat-v6/equipment packages/shared/src/forging/forging.test.ts`：7 文件、99 项通过。
 - G1 18 组固定摘要全部保持一致，继续覆盖六部位、三器阶、各 256 种子及 V1／V2／三组 V3 生成流。
 - 两份 Schema 与结构定义一致；非法 ID／机制／部位／引用／概率／成本及溢出输入拒绝测试通过；修改配置后生成池、成本、技能消耗和效果参数采用新值。
 - 最终 `bun run test`：120 文件、849 项通过；`bun run lint`、`bun run build`（含前后端类型检查）通过，构建仍有前端大包提示。
@@ -203,7 +203,7 @@ pack.ts                    # 加载与严格校验
 
 ## 9. G3 实施与验证记录
 
-用户确认按 G3-A → G3-B → G3-C 推进，并包含培养和面板参数。[策划编辑说明](../src/shared/engine/combat-v6/beasts/data/README.md)。
+用户确认按 G3-A → G3-B → G3-C 推进，并包含培养和面板参数。[策划编辑说明](../packages/shared/src/engine/combat-v6/beasts/data/README.md)。
 
 - G3-A：三种物种、携带要求、初始技能、偏好资质／加点、资质与成长生成范围、出生等级／寿命及捕捉附带技能概率迁至 `beasts/data/species.json`。通过 ID 校验野外身份引用，保留野外敌人的独立数值。
 - G3-B：五种技能的效果、耗蓝、普通／高级关系与兽诀注册标记迁至 `skills.json`。`skill-compiler.ts` 只实现现有四种机制；兽诀物品和连击说明识别从配置派生，删除另一份手工 ID 清单。
@@ -216,7 +216,7 @@ pack.ts                    # 加载与严格校验
 - 迁移前采集三物种各 128 种子基线，对照免费出生、0／10／90／180 级捕捉、面板、升级、休养费用和阵容投影；迁移后全部一致。
 - 五技能定义与旧 fixture 完全相同；各 32 种子真实内核状态与事件一致，并验证耗蓝、护盾、伤害及连击最多追加一次。普通／高级互斥沿用已有测试。
 - 三份 JSON Schema 与结构定义一致；非法字段、引用、配对循环／交叉、概率、区间、经验和面板溢出测试通过。修改配置后的个体生成、点数、经验、面板、寿命、门槛与兽诀注册联动测试通过。
-- `bun run test src/shared/engine/combat-v6/beasts`：4 文件、39 项通过。
+- `bun run test packages/shared/src/engine/combat-v6/beasts`：4 文件、39 项通过。
 - `bun run test`：123 文件、883 项通过；`bun run lint` 通过。
 - `bun run build` 初次发现目标库不支持 `Array.at`，已替换为普通索引；重跑前后端类型检查及构建通过，并重跑灵兽聚焦测试与该文件 ESLint。保留原前端大包提示。
 - `git diff --check` 通过；数值检索中留下的 1000 是成长／资质的单位换算，100000 是实例合法上限，均非另一份产出参数。
@@ -246,7 +246,7 @@ pack.ts                    # 加载与严格校验
 - 加载时遍历全部可修炼等级与经脉层数，拒绝非整数、溢出与过大费用，防止结构合法的参数在高等级产生无效资源数。
 - 迁移前记录全部 180 级心法与七层经脉费用摘要，迁移后逐表摘要一致。A1 五阶段装配摘要仍通过；新增配置变更实际影响心法面板与养成费用、非法配置和 Schema 同步检查。
 - `bun run test`：126 文件、896 项通过；`bun run lint`、`bun run build`、`git diff --check` 通过。构建保留原前端大包提示。未新增本轮浏览器操作，因此修炼／经脉实际扣费与显示闭环待验。
-- 后续仍需迁移技能归属与解锁关系，核定 `src/shared/engine/sect/content/*/definition.ts` 中外围心法列表的真实消费者和权威归属，再继续技能／状态样板及流派节点迁移。第一批与 G4 整体均未标记完成。
+- 后续仍需迁移技能归属与解锁关系，核定 `packages/shared/src/engine/sect/content/*/definition.ts` 中外围心法列表的真实消费者和权威归属，再继续技能／状态样板及流派节点迁移。第一批与 G4 整体均未标记完成。
 
 ### 技能学习关系迁移
 

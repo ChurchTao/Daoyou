@@ -18,8 +18,8 @@ Phaser 4 地图现作为统一地图入口；原 DOM 实现及专属组件已删
 
 - `package.json`、本地 `node_modules/phaser/package.json` 均已有 Phaser 4.2.1；本次查询 npm latest 也为 4.2.1，无需为地图先升级引擎。
 - 宗门清扫与采掘已有 Phaser runtime，可参考 React 挂载、回调、销毁及错误反馈的接入方式。地图应独立实现相机与输入，不直接复制小游戏固定画幅、横屏或摇杆方案。
-- 改造前的旧地图位于 `src/react-app/routes/game/map/route.tsx`（现已删除），使用 `react-zoom-pan-pinch`、DOM 节点和 SVG 连线，地图尺寸 3056×2143，初始视角含固定偏移，边界限制关闭。
-- 地图数据来自 `src/shared/data/map.json`，经 `src/shared/lib/game/mapSystem.ts` 读取。共有 20 个主节点、41 个附属节点、5 个宗门地标，共 66 个可定位对象。
+- 改造前的旧地图位于 `apps/web/src/routes/game/map/route.tsx`（现已删除），使用 `react-zoom-pan-pinch`、DOM 节点和 SVG 连线，地图尺寸 3056×2143，初始视角含固定偏移，边界限制关闭。
+- 地图数据来自 `packages/shared/src/data/map.json`，经 `packages/shared/src/lib/game/mapSystem.ts` 读取。共有 20 个主节点、41 个附属节点、5 个宗门地标，共 66 个可定位对象。
 - `/game/map` 使用沉浸式 `GameMapLayout`，不属于普通 `GameViewportLayout` 正文；应保留地图沉浸壳，不套入主流程卡片页。
 - `nodeId` 支持节点直达，`intent=market|dungeon|sect` 保留不同选址语义。野外、历练、坊市和宗门依赖稳定 ID，需要继续共用现有动作规则。
 - 当前地图连接的可见消费者主要是地图连线，不能把示意连线直接升级成服务端旅行规则。部分跨区连接是单向配置，不应自动补反向连接。
@@ -110,7 +110,7 @@ React 负责沉浸壳、URL、玩家资源、搜索、详情抽屉与玩法跳�
 
 | 数据 | 首期处理 |
 | --- | --- |
-| `src/shared/data/map.json` | 继续作为节点玩法事实来源，保留旧 x/y，原版外观不受影响 |
+| `packages/shared/src/data/map.json` | 继续作为节点玩法事实来源，保留旧 x/y，原版外观不受影响 |
 | 新的区域展示配置 | 保存 region ID、显示名、总览锚点/轮廓、资源键、区域画幅及默认镜头 |
 | 新的节点展示配置 | 以现有地点 ID 为键，保存区域内归一化坐标、标签偏移和显示优先级 |
 | 图像与标记资源 | 按世界/区域组织底图；可复用 UI 图标继续走集中图标注册 |
@@ -173,7 +173,7 @@ Canvas 内可用程序几何绘制简单交互标记；需要复用现有图标�
 
 ## 9. 验证安排与原始方案编写范围
 
-后续按用户要求不再进行浏览器验收。仅美术交付检查画面、缩小效果、解码、尺寸与压缩质量；代码接入时通过代码检查核对区域归属、直达、版本切换及玩法入口，并运行 `bun run lint`、相关 `bun run test`、`bun run build`。纯共享区域归属、ID 覆盖、坐标范围等确定性逻辑允许在 `src/shared` 添加测试；不在 React、服务端或 scripts 下增加测试框架。下文浏览器结果是历史样板验证记录，不表示后续素材已做页面验收。
+后续按用户要求不再进行浏览器验收。仅美术交付检查画面、缩小效果、解码、尺寸与压缩质量；代码接入时通过代码检查核对区域归属、直达、版本切换及玩法入口，并运行 `bun run lint`、相关 `bun run test`、`bun run build`。纯共享区域归属、ID 覆盖、坐标范围等确定性逻辑允许在 `packages/shared/src` 添加测试；不在 React、服务端或 scripts 下增加测试框架。下文浏览器结果是历史样板验证记录，不表示后续素材已做页面验收。
 
 本次仅新增本方案文档。已执行 `git status --short`、`rg` 定位与代码读取、Python 只读地图统计，以及 npm registry 版本查询；没有安装依赖、修改业务代码、生成正式美术、启动应用或修改数据库。文档检查采用 `git diff --check` 与内容审阅。未运行 lint、单元测试、构建或浏览器性能测试，因为本次没有运行时代码变更；本文不构成性能通过或兼容性通过报告。
 
@@ -192,7 +192,7 @@ Canvas 内可用程序几何绘制简单交互标记；需要复用现有图标�
 - 显式节点归属优先于冲突 region；无效参数显示可用地图和提示。新版“关闭地图”固定回洞府，避免把内部区域浏览历史当成外部关闭目标。
 - 引擎按路由动态加载，背景按访问层级加载，两个纹理最多约 12 MiB 原始 RGBA 数据（不含解码副本、标签和帧缓冲）。退出销毁 Game 与监听，仅保留当前页会话中的两个镜头快照；刷新不保证保留镜头。
 
-验证使用专用本地环境 `127.0.0.1:5174`，复用本地测试账号，未启动战斗、购买物品或调整角色数据。通过代码检查、`bun run lint`、`bun run build`，以及 `bun run test src/shared/lib/game/mapAtlas.test.ts src/shared/lib/game/mapSystem.test.ts`（15 项通过）。构建保留现有大包体及不生效动态导入的提示，无构建错误。
+验证使用专用本地环境 `127.0.0.1:5174`，复用本地测试账号，未启动战斗、购买物品或调整角色数据。通过代码检查、`bun run lint`、`bun run build`，以及 `bun run test packages/shared/src/lib/game/mapAtlas.test.ts packages/shared/src/lib/game/mapSystem.test.ts`（15 项通过）。构建保留现有大包体及不生效动态导入的提示，无构建错误。
 
 浏览器已核对 1366×900 桌面和 360×800 窄屏、画布区域点击、拖动不误选、节点搜索、四种 intent、冲突/无效参数、新旧版保留节点切换、其他区域回退、坊市/野外/历练/访宗入口与直接回程、前进后退层级恢复。检查时画布在新版为一个、退出旧版后为零，控制台未见地图错误。
 
@@ -222,7 +222,7 @@ Canvas 内可用程序几何绘制简单交互标记；需要复用现有图标�
 - 地点数据仅移除旧画布坐标 `x/y` 和连线 `connections`，同时收敛类型、测试样例及秘境服务兜底对象。地点 ID、归属和玩法配置保持不变，Phaser 锚点仍由 `mapAtlas.ts` 管理。
 - 保留 `mapSystem.ts`、`map.json`、`WildNodePreview`、正式地图与全部正式美术资源。宗门内部 `SectMap` 仍使用 `react-zoom-pan-pinch`，因此保留依赖及锁文件。
 
-验证：`bun run lint`、`bun run build`（客户端与服务端）通过；`bun run test src/shared/lib/game/mapAtlas.test.ts src/shared/lib/game/mapAtlasCategories.test.ts src/shared/lib/game/mapSystem.test.ts src/shared/engine/combat-v6/wild/pack.test.ts` 共 40 项通过。结构化比对确认全部 66 个地点的玩法数据未改变，仅删除旧坐标和连线；源码扫描确认旧组件和旧底图引用已清除，任务服务生成的链接也已迁移。按用户此前约定，本轮未执行浏览器或真机验收；构建仍有既有大包体及无效动态导入提示。
+验证：`bun run lint`、`bun run build`（客户端与服务端）通过；`bun run test packages/shared/src/lib/game/mapAtlas.test.ts packages/shared/src/lib/game/mapAtlasCategories.test.ts packages/shared/src/lib/game/mapSystem.test.ts packages/shared/src/engine/combat-v6/wild/pack.test.ts` 共 40 项通过。结构化比对确认全部 66 个地点的玩法数据未改变，仅删除旧坐标和连线；源码扫描确认旧组件和旧底图引用已清除，任务服务生成的链接也已迁移。按用户此前约定，本轮未执行浏览器或真机验收；构建仍有既有大包体及无效动态导入提示。
 
 ## 13. 文字级联地图（2026-09-20）
 
@@ -230,7 +230,7 @@ Canvas 内可用程序几何绘制简单交互标记；需要复用现有图标�
 - 文字模式按「区域 → 地点类型 → 地点」浏览，桌面分栏、移动端逐级进入；类型默认展开，可折叠，未开放区域只展示名称。
 - 两种模式共享区域/节点数据、类型筛选、搜索、URL 选择状态和 `AtlasNodePanel` 操作入口。切换模式不修改区域、节点和类型参数；玩法返回继续沿用 `mapReturnTo`。
 - 文字模式不初始化 Phaser；切离画卷会销毁引擎实例。地图工具栏和系统设置的「游戏设置」均可切换显示模式。
-- 浏览器普通展示偏好统一从 `src/react-app/lib/game-setting.ts` 读取及更新，localStorage key 为 `game-setting`。当前结构：`{"version":1,"mapMode":"atlas"}`，`mapMode` 可为 `atlas` 或 `text`，默认画卷。
+- 浏览器普通展示偏好统一从 `apps/web/src/lib/game-setting.ts` 读取及更新，localStorage key 为 `game-setting`。当前结构：`{"version":1,"mapMode":"atlas"}`，`mapMode` 可为 `atlas` 或 `text`，默认画卷。
 - 配置属于当前浏览器，同浏览器账号共用；支持同页面订阅与跨标签页同步。损坏/不支持的配置使用默认值；存储不可用时保留本次会话中的选择。
 - 后续普通本地偏好扩展 `GameSettings`、默认值、解析与变更比较，禁止业务组件直接读写该 key。凭据（如模型 API Key）、服务器角色设置及临时玩法状态不并入展示偏好。
 

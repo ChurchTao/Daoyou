@@ -1,14 +1,14 @@
 # 万界道友
 
 <p align="center">
-  <img src="public/assets/daoyou_logo.webp" alt="万界道友 Logo" width="200" />
+  <img src="apps/web/public/assets/daoyou_logo.webp" alt="万界道友 Logo" width="200" />
 </p>
 
 <p align="center">
   <strong>一款 AIGC 驱动、高自由度文字体验、修仙世界观的开源游戏项目。</strong>
 </p>
 
-> 本仓库当前实现为 `Hono + React SPA`。这里的说明以现有代码为准，已不再适用于旧版 Next.js 架构。
+> 本仓库默认入口已迁至 `NestJS + React SPA`，迁移收口进度见 [迁移记录](docs/nestjs-migration.md)。这里的说明以现有代码为准，已不再适用于旧版 Next.js 架构。
 
 ---
 
@@ -65,7 +65,7 @@
 
 ## 技术概览
 
-- 服务端：`Hono 4` + `Bun`
+- 服务端：`NestJS 12` + `Node.js 24`，pnpm workspace管理依赖，Turborepo编排任务
 - 前端：`React 19` + `React Router 7` + `Vite 8`
 - 样式：`Tailwind CSS 4`
 - 数据库：`PostgreSQL` + `Drizzle ORM`
@@ -78,22 +78,24 @@
 
 ```text
 .
-├── src/index.ts                 # Bun 后端入口，导出 Hono API 与 WebSocket 配置
-├── src/server/                  # Hono API、认证、服务层、数据库访问
-├── src/react-app/               # React SPA
-├── src/shared/                  # 共享引擎、配置、类型、契约
-├── drizzle/                     # 业务表 Drizzle migrations
-├── drizzle-auth/                # Better Auth Drizzle migrations
-├── scripts/                     # 部署脚本与生产/NATS Compose
-├── docker/Dockerfile.app        # Bun 主服务镜像
-└── vite.config.ts
+├── apps/api/                    # NestJS API（nest build → dist/main.js）
+│   ├── src/                     # 按功能划分的 Nest 模块及服务端基础设施
+│   └── scripts/                 # 数据维护工具
+├── apps/web/                    # React SPA（Vite → dist/）
+│   ├── src/
+│   └── public/
+├── packages/shared/src/         # 共享契约、类型及纯游戏规则
+├── drizzle/                     # 业务表迁移
+├── drizzle-auth/                # Better Auth 独立迁移
+├── scripts/                     # 部署、Compose 与 SponsorKit 工具
+└── docker/Dockerfile.app         # 仅包含 API 生产依赖和构建产物
 ```
 
 ## 本地开发与部署
 
 环境要求、环境变量、数据库初始化、本地开发、构建、Docker、生产 cron 与部署脚本说明已整理到 [docs/development.md](docs/development.md)。
 
-纯本地配置 `env/local.env` 随仓库提供，直接执行 `bun run services up -d --wait` → `bun run db:migrate` → `bun run dev`，访问 `http://127.0.0.1:5174`。预发布调试使用 `bun run prd`，读取被 Git 忽略的 `env/staging.env`；两组均可独立启动 `:api`／`:web`。详见 [本地开发指南](docs/local-development.md) 与 [测试规范](docs/testing.md)。
+首次将 `env/local.example.env` 复制为 `env/local.env`（已有文件保留），安装依赖后执行 `pnpm run services up -d --wait` → `pnpm run db:migrate` → `pnpm run dev`，访问 `http://127.0.0.1:5174`。预发布调试使用 `pnpm run prd`，读取被 Git 忽略的 `env/staging.env`；两组均可独立启动 `:api`／`:web`。详见 [本地开发指南](docs/local-development.md) 与 [测试规范](docs/testing.md)。
 
 ## 贡献指南
 

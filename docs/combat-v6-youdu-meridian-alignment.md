@@ -139,7 +139,7 @@
 ## 验证记录
 
 - `bun run test --testTimeout=30000`：204个文件、1893项通过。初次默认5秒时限有三项试炼塔矩阵超时，未更改测试断言或项目超时配置。
-- 最后补充生杀保护分摊及倒地冷却边界后，`bun run test src/shared/engine/combat-v6/content src/shared/engine/combat-v6/projection/assembly-baseline.test.ts`：20个文件、160项通过，其中幽都经脉行为测试27项。
+- 最后补充生杀保护分摊及倒地冷却边界后，`bun run test packages/shared/src/engine/combat-v6/content packages/shared/src/engine/combat-v6/projection/assembly-baseline.test.ts`：20个文件、160项通过，其中幽都经脉行为测试27项。
 - `bun run lint`、`bun run build`（客户端及服务端）：通过。
 - `git diff --check`：通过。
 - 页面未修改组件，已检查 `MeridianEditor` 使用通用连线与自动奖励字段；本次未做浏览器游戏页面手动验收，也未写入角色数据。

@@ -307,7 +307,7 @@
 
 ## 第二批验证记录
 
-- 定向：`bun run test src/shared/engine/combat-v6/beasts src/shared/rewards src/shared/combat-v6/skill-details.test.ts`，115 项通过。
+- 定向：`bun run test packages/shared/src/engine/combat-v6/beasts packages/shared/src/rewards packages/shared/src/combat-v6/skill-details.test.ts`，115 项通过。
 - 全量：`bun run test`，152 个文件、1073 项通过。
 - `bun run build`：客户端、服务端类型检查与构建通过；保留现有大体积 chunk 提示。
 - `bun run lint`、`git diff --check`：通过。

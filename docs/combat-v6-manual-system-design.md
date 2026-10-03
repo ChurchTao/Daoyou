@@ -19,7 +19,7 @@
 
 ## 策划数据包
 
-入口：`src/shared/engine/combat-v6/manuals/data/manual-pack.json`。
+入口：`packages/shared/src/engine/combat-v6/manuals/data/manual-pack.json`。
 
 同目录 JSON Schema 提供编辑器提示；`pack.ts` 使用 Zod 严格校验结构和跨字段规则。构建加载即校验，不做在线热更新、不支持任意公式或脚本。
 
@@ -75,7 +75,7 @@
 - 只读数据库确认永久体魄仍为 50；长春功九层激活时页面气血上限由 1552 增至 1732，切换松鹤后为 1572，法力上限 900 增至 910，符合派生公式。
 - 桌面及 360×800 页面和详情抽屉已检查，无横向溢出；当前新测试页面控制台无 error。未开展本轮真实 PvP、概率掉落采样、拍卖成交及并发故障注入；对应确定性边界由共享测试与事务检查覆盖。
 - 准备性修为／感悟恢复原值 235／0；保留真实学成的两本功法记录，已发四本玉简全部正常消费，没有删除既有角色或旧测试数据。迁移仅应用本地，不涉及预发布、生产或部署。
-- 检查命令：聚焦 Vitest、全量 `bun run test`、`bun run lint`、`bunx tsc -b tsconfig.app.json tsconfig.node.json`、`bun run build`、`git diff --check`。数据迁移由 Drizzle Kit generate 生成并检查，使用显式 local.env 执行 migrate。
+- 检查命令：聚焦 Vitest、全量 `bun run test`、`bun run lint`、`bunx tsc -b apps/web/tsconfig.json tsconfig.node.json`、`bun run build`、`git diff --check`。数据迁移由 Drizzle Kit generate 生成并检查，使用显式 local.env 执行 migrate。
 
 ### 页面重构验收（2026-09-11）
 
@@ -84,7 +84,7 @@
 - local2 只读检查女修立绘与无可学习玉简提示，未修改其功法或资源；完成后恢复浏览器原 local5 会话。
 - 两个页面先后操作真实激活接口，过期 expectedRevision 被拒绝，页面显示版本变化提示并读取服务端当前激活项。正常切换请求与状态读取均为 200，无额外重复提交。
 - 桌面 1280×800、窄屏 360×800 及物品栏／确认抽屉完成检查，立绘保持完整轮廓与真实透明底。正常功法流程未见控制台 error。内置浏览器不支持原生触摸事件注入，横向拖动通过真实指针事件验证；未做手机真机验收、战斗占用流程或本轮高境界实号学习，相关边界由共享规则测试与现有服务端守卫检查覆盖。
-- 新增学习上限测试先复现旧规则允许第四种，再验证修复。`bun run test src/shared/engine/combat-v6/manuals src/shared/manuals`：21 项通过；全量 `bun run test`：148 文件／1017 项通过；`bun run lint`、`bunx tsc -b tsconfig.app.json tsconfig.node.json`、最终 `bun run build`、`git diff --check` 通过。构建仍有既有包体大小提醒。本轮不涉及迁移或部署。
+- 新增学习上限测试先复现旧规则允许第四种，再验证修复。`bun run test packages/shared/src/engine/combat-v6/manuals packages/shared/src/manuals`：21 项通过；全量 `bun run test`：148 文件／1017 项通过；`bun run lint`、`bunx tsc -b apps/web/tsconfig.json tsconfig.node.json`、最终 `bun run build`、`git diff --check` 通过。构建仍有既有包体大小提醒。本轮不涉及迁移或部署。
 
 
 ### 功法交互重设计验收（2026-09-21）

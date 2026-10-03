@@ -1,0 +1,149 @@
+import { InkCard } from '@app/components/ui/InkCard';
+import {
+  formatDungeonCostBodyCultivationFeedback,
+  formatDungeonCostName,
+  formatDungeonCostValue,
+} from '@app/lib/dungeon/formatDungeonCost';
+import type { DungeonOptionCost } from '@daoyou/shared/lib/dungeon/types';
+import {
+  getResourceDisplayName,
+  getResourceIcon,
+} from '@daoyou/shared/lib/gameConceptDisplay';
+import { format } from 'd3-format';
+
+interface ResourceCostCardProps {
+  costs: DungeonOptionCost[];
+  hpLossPercent: number;
+  mpLossPercent: number;
+  pendingCosts?: DungeonOptionCost[];
+  compact?: boolean;
+}
+
+/**
+ * 资源损耗统计卡片
+ * 显示副本中累积的资源消耗，包括HP/MP损失和各类资源
+ */
+export function ResourceCostCard({
+  costs,
+  hpLossPercent,
+  mpLossPercent,
+  pendingCosts = [],
+  compact = false,
+}: ResourceCostCardProps) {
+  // 按类型分组资源消耗（排除虚拟损耗类型）
+  const resourceCosts = costs.filter((c) =>
+    [
+      'spirit_stones',
+      'reputation',
+      'lifespan',
+      'cultivation_exp',
+      'comprehension_insight',
+      'material',
+      'battle',
+    ].includes(c.type),
+  );
+
+  const hasAnyLoss =
+    hpLossPercent > 0 ||
+    mpLossPercent > 0 ||
+    resourceCosts.length > 0 ||
+    pendingCosts.length > 0;
+  const bodyFeedbacks = [...costs, ...pendingCosts]
+    .map(formatDungeonCostBodyCultivationFeedback)
+    .filter((text): text is string => Boolean(text));
+
+  return (
+    <InkCard className={compact ? 'p-3' : 'p-4'}>
+      {!compact && <h3 className="mb-3 font-bold">资源损耗</h3>}
+      <div className="space-y-2 text-sm">
+        {/* 气血/法力损失 */}
+        {(hpLossPercent > 0 || mpLossPercent > 0) && (
+          <div className="space-y-1">
+            {hpLossPercent > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-crimson flex items-center gap-1">
+                  <span>{getResourceIcon('hp_loss')}</span>
+                  <span>{getResourceDisplayName('hp_loss')}</span>
+                </span>
+                <span className="text-crimson font-bold">
+                  {format('.0%')(hpLossPercent)}
+                </span>
+              </div>
+            )}
+            {mpLossPercent > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-wood flex items-center gap-1">
+                  <span>{getResourceIcon('mp_loss')}</span>
+                  <span>{getResourceDisplayName('mp_loss')}</span>
+                </span>
+                <span className="text-crimson font-bold">
+                  {format('.0%')(mpLossPercent)}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 资源消耗 */}
+        {resourceCosts.length > 0 && (
+          <div
+            className={`space-y-1 ${hpLossPercent > 0 || mpLossPercent > 0 ? 'border-ink/10 border-t pt-2' : ''}`}
+          >
+            {resourceCosts.map((cost, idx) => (
+              <div key={idx} className="flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <span>{getResourceIcon(cost.type)}</span>
+                  <span>{formatDungeonCostName(cost)}</span>
+                </span>
+                <span className="text-crimson font-bold">
+                  {formatDungeonCostValue(cost)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pendingCosts.length > 0 && (
+          <div className="border-ink/10 border-t pt-2">
+            <div className="text-ink-secondary mb-1 text-xs font-bold">
+              本轮待确认
+            </div>
+            <div className="space-y-1">
+              {pendingCosts.map((cost, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <span>{getResourceIcon(cost.type)}</span>
+                    <span>{formatDungeonCostName(cost)}</span>
+                  </span>
+                  <span className="text-crimson font-bold">
+                    {formatDungeonCostValue(cost)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {bodyFeedbacks.length > 0 && (
+          <div className="border-ink/10 border-t pt-2">
+            <div className="space-y-1">
+              {bodyFeedbacks.map((text, idx) => (
+                <div
+                  key={`${text}-${idx}`}
+                  className="text-wood text-xs leading-5"
+                >
+                  {text}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 空状态 */}
+        {!hasAnyLoss && (
+          <p className="text-ink-secondary py-2 text-center">暂无损耗</p>
+        )}
+      </div>
+    </InkCard>
+  );
+}

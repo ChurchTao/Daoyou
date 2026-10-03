@@ -1,0 +1,407 @@
+import type { DungeonExpectedState } from '@daoyou/shared/contracts/combatV6Dungeon';
+import {
+  RESOURCE_DATA_SCHEMAS,
+  type ResourceChangeDescriptor,
+} from '@daoyou/shared/contracts/resources';
+import { dungeonReadiness } from '@daoyou/shared/lib/dungeon/readiness';
+import {
+  canChallengeDungeonRealm,
+  getMapNode,
+  isSatelliteNode,
+} from '@daoyou/shared/lib/game/mapSystem';
+import { dungeonPlayer } from '@server/dungeon/application/flow/combatV6.js';
+import {
+  type DungeonFlowService,
+  type DungeonPersistenceSettlement,
+} from '@server/dungeon/application/flow/DungeonFlowService.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { redis } from '@server/lib/redis/index.js';
+import {
+  redisLockKeys,
+  withRedisLock,
+  type RedisLeaseContext,
+} from '@server/lib/redis/lock.js';
+
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
+
+import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
+
+type DungeonCommand =
+  | { kind: 'start'; mapNodeId: string }
+  | {
+      kind: 'action';
+      choiceId: number;
+      actionId: string;
+      runId: string;
+      round: number;
+      materialSelections: import('@daoyou/shared/contracts/combatV6Dungeon').DungeonMaterialSelection[];
+    }
+  | { kind: 'battle-begin'; encounterId: string }
+  | {
+      kind: 'recover';
+      expected: DungeonExpectedState;
+      action:
+        | 'retry'
+        | 'retry_continue'
+        | 'retry_settle'
+        | 'safe_retreat'
+        | 'force_quit';
+    }
+  | { kind: 'quit'; expected: DungeonExpectedState }
+  | { kind: 'looting-continue'; expected: DungeonExpectedState }
+  | { kind: 'looting-escape'; expected: DungeonExpectedState }
+  | { kind: 'battle-abandon'; battleId: string }
+  | { kind: 'battle-execute'; battleId: string; requestId?: string };
+
+export class DungeonStartError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 404 | 409,
+    readonly readiness?: ReturnType<typeof dungeonReadiness>,
+  ) {
+    super(message);
+    this.name = 'DungeonStartError';
+  }
+}
+
+/** A synchronized read cannot report an old round while a command is still generating. */
+export function readDungeonState(
+  flow: DungeonFlowService,
+  cultivatorId: string,
+  runId?: string,
+) {
+  return withRedisLock(
+    {
+      key: redisLockKeys.cultivatorMutation(cultivatorId),
+      context: 'dungeon-read',
+      timeoutMs: 30000,
+      retries: 0,
+    },
+    async () => flow.getState(cultivatorId, runId),
+  );
+}
+
+type DungeonDeferredResult = Record<string, unknown> & {
+  persist?: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
+  afterCommit?: () => Promise<void>;
+};
+
+export async function executeDungeonCommand(
+  flow: DungeonFlowService,
+  args: {
+    userId: string;
+    cultivatorId: string;
+    command: DungeonCommand;
+  },
+) {
+  const source = dungeonCommandSource(args.command);
+  const requestId =
+    args.command.kind === 'battle-execute'
+      ? (args.command.requestId ?? null)
+      : null;
+  const cacheKey =
+    args.command.kind === 'battle-execute' && args.command.requestId
+      ? dungeonBattleResultCacheKey({
+          cultivatorId: args.cultivatorId,
+          battleId: args.command.battleId,
+          requestId: args.command.requestId,
+        })
+      : null;
+  if (cacheKey) {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached) as unknown;
+  }
+  const response = await withRedisLock(
+    {
+      key: redisLockKeys.cultivatorMutation(args.cultivatorId),
+      context: source,
+      timeoutMs: 240_000,
+      retries: 0,
+    },
+    async (lease) => {
+      if (args.command.kind === 'start') {
+        await assertDungeonStartReady({
+          userId: args.userId,
+          cultivatorId: args.cultivatorId,
+          mapNodeId: args.command.mapNodeId,
+        });
+      }
+      const prepared = await prepareDungeonCommand(
+        flow,
+        args.cultivatorId,
+        args.command,
+        lease,
+      );
+      lease.assertHeld();
+      const hooks = asDeferredResult(prepared);
+      const persist = hooks?.persist;
+      const afterCommit = hooks?.afterCommit;
+      const result = hooks ? stripDungeonHooks(hooks) : prepared;
+      const committed = await playerCommandExecutor.execute({
+        coordination: { mode: 'redis', lease },
+        userId: args.userId,
+        cultivatorId: args.cultivatorId,
+        source,
+        requestId,
+        allowEmpty: true,
+        command: (tx) =>
+          executeDungeonPersistenceCommand({
+            cultivatorId: args.cultivatorId,
+            result,
+            persist,
+            tx,
+          }),
+      });
+      if (afterCommit) await afterCommit();
+      return toPlayerStateMutationResponse(committed);
+    },
+  );
+  if (cacheKey) {
+    await redis.set(cacheKey, JSON.stringify(response), 'EX', 3600);
+  }
+  return response;
+}
+
+async function assertDungeonStartReady(args: {
+  userId: string;
+  cultivatorId: string;
+  mapNodeId: string;
+}): Promise<void> {
+  if (
+    !isSatelliteNode(args.mapNodeId) ||
+    !getMapNode(args.mapNodeId)?.dungeon_config
+  ) {
+    throw new DungeonStartError('只有秘境节点可以进行副本挑战', 400);
+  }
+
+  const { player, caps } = await dungeonPlayer(args.cultivatorId);
+  const cultivator = player.cultivator;
+  const selectedNode = getMapNode(args.mapNodeId);
+  const selectedNodeRealm =
+    selectedNode && 'realm_requirement' in selectedNode
+      ? selectedNode.realm_requirement
+      : null;
+  if (
+    selectedNodeRealm &&
+    !canChallengeDungeonRealm(cultivator.realm, selectedNodeRealm)
+  ) {
+    throw new DungeonStartError(
+      `当前境界${cultivator.realm}不可挑战${selectedNodeRealm}副本，请先提升大境界`,
+      409,
+    );
+  }
+  const entryState = {
+    hp: {
+      current: player.cultivator.condition!.resources.hp.current,
+      max: caps.maxHp,
+    },
+    mp: {
+      current: player.cultivator.condition!.resources.mp.current,
+      max: caps.maxMp,
+    },
+  };
+  const readiness = dungeonReadiness({
+    realm: cultivator.realm,
+    selectedNodeRealm,
+    hp: entryState.hp,
+    mp: entryState.mp,
+    firstVisit: false,
+  });
+  if (readiness.shouldBlock) {
+    throw new DungeonStartError(readiness.reasons.join('；'), 409, readiness);
+  }
+}
+
+export async function executeDungeonPersistenceCommand<T>(args: {
+  cultivatorId: string;
+  result: T;
+  persist?: (tx: DbTransaction) => Promise<DungeonPersistenceSettlement | void>;
+  tx: DbTransaction;
+}): Promise<{ result: T; resourceChanges: ResourceChangeDescriptor[] }> {
+  const settlement = await args.persist?.(args.tx);
+  const resourceChanges: ResourceChangeDescriptor[] = [];
+  if (args.persist) {
+    resourceChanges.push({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.dungeon.changed',
+      operation: 'invalidate',
+    });
+  }
+
+  if (settlement?.condition !== undefined) {
+    resourceChanges.push({
+      resourceTopic: 'player.condition',
+      eventType: 'condition.changed',
+      operation: 'replace',
+      payload: RESOURCE_DATA_SCHEMAS['player.condition'].parse(
+        settlement.condition,
+      ),
+    });
+  }
+  if (settlement?.currency && Object.keys(settlement.currency).length > 0) {
+    resourceChanges.push({
+      resourceTopic: 'player.currency',
+      eventType: 'currency.changed',
+      operation: 'merge',
+      payload: settlement.currency,
+    });
+  }
+  if (settlement?.progress !== undefined) {
+    resourceChanges.push({
+      resourceTopic: 'player.progress',
+      eventType: 'progress.changed',
+      operation: 'replace',
+      payload: RESOURCE_DATA_SCHEMAS['player.progress'].parse(
+        settlement.progress,
+      ),
+    });
+  }
+  if (settlement?.profile && Object.keys(settlement.profile).length > 0) {
+    resourceChanges.push({
+      resourceTopic: 'player.profile',
+      eventType: 'profile.changed',
+      operation: 'merge',
+      payload: { cultivator: settlement.profile },
+    });
+  }
+  for (const inventoryChange of settlement?.inventoryChanges ?? []) {
+    resourceChanges.push(
+      inventoryChange.operation === 'upsert'
+        ? ({
+            resourceTopic: `inventory.${inventoryChange.kind}`,
+            eventType: 'inventory.dungeon.changed',
+            operation: 'upsert-items',
+            payload: { idKey: 'id', items: [inventoryChange.item] },
+          } as ResourceChangeDescriptor)
+        : ({
+            resourceTopic: `inventory.${inventoryChange.kind}`,
+            eventType: 'inventory.dungeon.changed',
+            operation: 'remove-items',
+            payload: { idKey: 'id', ids: [inventoryChange.id] },
+          } as ResourceChangeDescriptor),
+    );
+  }
+  return { result: args.result, resourceChanges };
+}
+
+function dungeonCommandSource(command: DungeonCommand): string {
+  switch (command.kind) {
+    case 'start':
+      return 'dungeon_start';
+    case 'action':
+      return 'dungeon_action';
+    case 'battle-begin':
+      return 'dungeon_battle_begin';
+    case 'recover':
+      return `dungeon_recover_${command.action}`;
+    case 'quit':
+      return 'dungeon_quit';
+    case 'looting-continue':
+      return 'dungeon_looting_continue';
+    case 'looting-escape':
+      return 'dungeon_looting_escape';
+    case 'battle-abandon':
+      return 'dungeon_battle_abandon';
+    case 'battle-execute':
+      return 'dungeon_battle_execute';
+  }
+}
+
+async function prepareDungeonCommand(
+  flow: DungeonFlowService,
+  cultivatorId: string,
+  command: DungeonCommand,
+  lease: RedisLeaseContext,
+): Promise<unknown> {
+  const options = { deferPersistence: true as const, lease };
+  if ('expected' in command) {
+    const state = await flow.getState(cultivatorId);
+    const expected = command.expected;
+    if (
+      !state ||
+      state.runId !== expected.runId ||
+      state.currentRound !== expected.round ||
+      state.status !== expected.status ||
+      (state.pendingAction?.actionId ?? null) !== expected.pendingActionId
+    ) {
+      throw new DungeonStartError('探索状态已变化，请重新读取', 409);
+    }
+  }
+  switch (command.kind) {
+    case 'start':
+      return flow.startDungeon(cultivatorId, command.mapNodeId, options);
+    case 'action': {
+      const state = await flow.getState(cultivatorId);
+      if (
+        !state ||
+        state.runId !== command.runId ||
+        (state.currentRound !== command.round &&
+          !state.costLedger?.some(
+            (entry) => entry.actionId === command.actionId,
+          ))
+      ) {
+        throw new DungeonStartError('探索轮次已变化，请刷新后重新选择', 409);
+      }
+      return flow.handleAction(
+        cultivatorId,
+        command.choiceId,
+        command.actionId,
+        { ...options, materialSelections: command.materialSelections },
+      );
+    }
+    case 'battle-begin':
+      return flow.beginBattle(cultivatorId, command.encounterId, options);
+    case 'recover':
+      return flow.recoverDungeon(cultivatorId, command.action, options);
+    case 'quit':
+      return flow.quitDungeon(cultivatorId, options);
+    case 'looting-continue':
+      return flow.continueFromLooting(cultivatorId, options);
+    case 'looting-escape':
+      return flow.escapeFromLooting(cultivatorId, options);
+    case 'battle-abandon':
+      throw new Error('请在战斗中使用逃跑指令');
+    case 'battle-execute': {
+      const result = await flow.executeBattle(
+        cultivatorId,
+        command.battleId,
+        options,
+      );
+      const hooks = result as DungeonDeferredResult;
+      return {
+        callbackData: {
+          dungeonState: result.state,
+
+          isFinished: result.isFinished,
+          settlement: result.settlement,
+          realGains: result.realGains,
+        },
+        persist: hooks.persist,
+        afterCommit: hooks.afterCommit,
+      };
+    }
+  }
+}
+
+function asDeferredResult(value: unknown): DungeonDeferredResult | null {
+  return value && typeof value === 'object'
+    ? (value as DungeonDeferredResult)
+    : null;
+}
+
+function stripDungeonHooks(
+  value: DungeonDeferredResult,
+): Record<string, unknown> {
+  const result = { ...value };
+  delete result.persist;
+  delete result.afterCommit;
+  return result;
+}
+
+function dungeonBattleResultCacheKey(args: {
+  cultivatorId: string;
+  battleId: string;
+  requestId: string;
+}): string {
+  return `dungeon:battle-result:${args.cultivatorId}:${args.battleId}:${args.requestId}`;
+}

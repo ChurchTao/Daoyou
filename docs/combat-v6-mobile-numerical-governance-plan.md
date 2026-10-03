@@ -35,7 +35,7 @@ G2 与 G3 同属属性层，均须先于技能平衡完成。各阶段可独立�
 
 ### 2.1 伤害结算
 
-实际规则为 `daoyouRulesetV6 → V5 → V4 → V3`，法术使用包含 `coeff` 的 `magicStrikeV3`。不能把文件中保留的旧 `magicStrike` 或历史导出 `baseDamage` 当作当前全部规则。见 [规则入口](../src/shared/engine/combat-v6/rules-daoyou/index.ts)、[公式](../src/shared/engine/combat-v6/rules-daoyou/formulas.ts)。
+实际规则为 `daoyouRulesetV6 → V5 → V4 → V3`，法术使用包含 `coeff` 的 `magicStrikeV3`。不能把文件中保留的旧 `magicStrike` 或历史导出 `baseDamage` 当作当前全部规则。见 [规则入口](../packages/shared/src/engine/combat-v6/rules-daoyou/index.ts)、[公式](../packages/shared/src/engine/combat-v6/rules-daoyou/formulas.ts)。
 
 | 领域 | 当前实际行为 | 治理要求 |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ G2 与 G3 同属属性层，均须先于技能平衡完成。各阶段可独立�
 
 ### 2.2 人物：六维与点数预算都不是手游基线
 
-当前 [人物裸身面板](../src/shared/engine/combat-v6/projection/character-panel-v1.ts)：
+当前 [人物裸身面板](../packages/shared/src/engine/combat-v6/projection/character-panel-v1.ts)：
 
 ```text
 物攻 = floor(40 + 力道×3.5)
@@ -72,33 +72,33 @@ G2 与 G3 同属属性层，均须先于技能平衡完成。各阶段可独立�
 
 存储键为 `vitality/strength/spirit/endurance/speed/willpower`，人物仍有六维；召唤灵已经是五维，但使用另一套公式。当前增加 10 点力量产生 35 物攻，增加 10 点气血属性产生 200 最大气血。这与已找到的手游历史资料所述 10 物攻、80 气血明显不同，但资料尚不能代替目标版本的正式验收。[^1][^4]
 
-更根本的是**每级可用点数也不同**：[境界成长](../src/shared/config/realmProgression.ts) 每维初始 10，小阶段每维自然 +2、自由点 +10，跨大境界每维自然 +4、自由点 +20；[人物战斗等级](../src/shared/engine/combat-v6/projection/character-level.ts) 却按 `(境界阶段序号+1)×5` 映射。仅把 3.5 改成 1 会降低面板，却没有复刻手游同等级的属性预算。
+更根本的是**每级可用点数也不同**：[境界成长](../packages/shared/src/config/realmProgression.ts) 每维初始 10，小阶段每维自然 +2、自由点 +10，跨大境界每维自然 +4、自由点 +20；[人物战斗等级](../packages/shared/src/engine/combat-v6/projection/character-level.ts) 却按 `(境界阶段序号+1)×5` 映射。仅把 3.5 改成 1 会降低面板，却没有复刻手游同等级的属性预算。
 
 必须一起核对：出生属性、自然成长、自由点、额外永久点、重置规则、境界奖励、等级映射。禁止用装备或技能去补偿点数预算的错误。
 
 ### 2.3 召唤灵：现有资质和成长的作用方式需重建
 
-[宠物投影](../src/shared/engine/combat-v6/beasts/projection.ts) 对五维先生成 `10 + 等级 + 已分配点`，再使用统一函数：
+[宠物投影](../packages/shared/src/engine/combat-v6/beasts/projection.ts) 对五维先生成 `10 + 等级 + 已分配点`，再使用统一函数：
 
 ```text
 贡献 = floor(属性值 × 成长 × 对应资质 / 1000 × 系数)
 ```
 
-当前气血系数 8、法力 3、物攻/法攻 2、物防 1.5、速度 1.5；法防把耐力与半数魔力相加后乘防御资质和成长。见 [成长配置](../src/shared/engine/combat-v6/beasts/data/progression.json)。
+当前气血系数 8、法力 3、物攻/法攻 2、物防 1.5、速度 1.5；法防把耐力与半数魔力相加后乘防御资质和成长。见 [成长配置](../packages/shared/src/engine/combat-v6/beasts/data/progression.json)。
 
 这意味着现有系统中每增加一点力量的物攻收益同时依赖攻资和成长。手游历史资料候选式则把“等级×资质项”和“加点×成长项”分开，结构上就不同。[^2] 不能只替换系数 2。
 
 其他影响项：
 
 - 自由点总数校验为 `level×5`，五维自然底数均为 10；没有独立出生五维分布事实。
-- 五种资质当前共用 900～1100 的生成范围，偏好资质另加 100；成长 0.95～1.05。物种只选择偏好和职业，并非每物种、每资质独立范围。[物种生成配置](../src/shared/engine/combat-v6/beasts/data/species.json)
-- `BeastSchema` 对成长、资质的通用数值边界较宽；需补充与物种、来源、目标版本一致的有效范围。[个体模型](../src/shared/engine/combat-v6/beasts/schema.ts)
+- 五种资质当前共用 900～1100 的生成范围，偏好资质另加 100；成长 0.95～1.05。物种只选择偏好和职业，并非每物种、每资质独立范围。[物种生成配置](../packages/shared/src/engine/combat-v6/beasts/data/species.json)
+- `BeastSchema` 对成长、资质的通用数值边界较宽；需补充与物种、来源、目标版本一致的有效范围。[个体模型](../packages/shared/src/engine/combat-v6/beasts/schema.ts)
 - 投影从 `DEFAULT_ATTRS` 开始，没有从主人修炼映射宠物修炼；手游宠修/人物修炼关系须独立核验，不能静默套用主人修炼。
 - 可携带、可出战等级受角色等级约束。新的等级坐标必须同步检查捕获、升级、首发、替换和野外投影。
 
 ### 2.4 装备：部位语义、区间和生成分布均需对齐
 
-当前 [器胚配置](../src/shared/engine/combat-v6/equipment/data/equipment-base.json) 为“等级×系数”并均匀抽整数；六部位都可抽 0～2 条六维附加值，概率 50%/40%/10%，单条范围为等级×0.08～0.14，偏好属性权重 2。它们均是现有自定义规则，不是已验证的手游概率。
+当前 [器胚配置](../packages/shared/src/engine/combat-v6/equipment/data/equipment-base.json) 为“等级×系数”并均匀抽整数；六部位都可抽 0～2 条六维附加值，概率 50%/40%/10%，单条范围为等级×0.08～0.14，偏好属性权重 2。它们均是现有自定义规则，不是已验证的手游概率。
 
 | 60 级部位 | 当前器胚范围 | 可访问的手游历史表例（普通打造） | 状态 |
 | --- | --- | --- | --- |
@@ -112,13 +112,13 @@ G2 与 G3 同属属性层，均须先于技能平衡完成。各阶段可独立�
 
 还有三个联动点：
 
-1. [现有强化铸造](../src/shared/engine/combat-v6/equipment/forging.ts) 是概率二次抽样取较高值，仍在原区间内；这不等于手游“普通打造/强化打造不同区间”。不能只改名称。
-2. 阵纹已于 2026-09-23 按确认方案硬切双孔 `formationInscriptions`，炼气至化神每孔上限为 3／5／7／9／11。现行类型、数值与部位见 [双孔阵纹规则](../src/shared/engine/combat-v6/equipment/data/README.md#双孔阵纹)；产出和操作经济尚未接入。
-3. [装备校验](../src/shared/engine/combat-v6/equipment/compiler.ts) 使用当前模板计算合法范围；直接改模板会使已存旧装备在读取时变成非法。生成器版本本身不等于完整的旧区间解释能力。
+1. [现有强化铸造](../packages/shared/src/engine/combat-v6/equipment/forging.ts) 是概率二次抽样取较高值，仍在原区间内；这不等于手游“普通打造/强化打造不同区间”。不能只改名称。
+2. 阵纹已于 2026-09-23 按确认方案硬切双孔 `formationInscriptions`，炼气至化神每孔上限为 3／5／7／9／11。现行类型、数值与部位见 [双孔阵纹规则](../packages/shared/src/engine/combat-v6/equipment/data/README.md#双孔阵纹)；产出和操作经济尚未接入。
+3. [装备校验](../packages/shared/src/engine/combat-v6/equipment/compiler.ts) 使用当前模板计算合法范围；直接改模板会使已存旧装备在读取时变成非法。生成器版本本身不等于完整的旧区间解释能力。
 
 ### 2.5 隐藏在其他层的数值来源
 
-当前完整入口 [projectCharacterToCombatV6](../src/shared/engine/combat-v6/projection/project-character.ts) 经个人功法装配、道装、炼体、可选宗门共同形成面板。个人功法既可加基础属性，也可追加面板；门派心法和经脉也有面板与事件钩子。只核对裸身与装备会漏算它们。
+当前完整入口 [projectCharacterToCombatV6](../packages/shared/src/engine/combat-v6/projection/project-character.ts) 经个人功法装配、道装、炼体、可选宗门共同形成面板。个人功法既可加基础属性，也可追加面板；门派心法和经脉也有面板与事件钩子。只核对裸身与装备会漏算它们。
 
 | 必审来源 | 当前入口 | 必须交付的核对结果 |
 | --- | --- | --- |
@@ -338,7 +338,7 @@ G0/G2 必须输出“道友境界阶段 → 基线战斗等级 → 人物点数 
 2. **外部参考样本：** 官方明确数值或可复核的游戏实测；包含完整输入、输出、版本和来源，用于决定期望值。
 3. **道友特色样本：** 基线加一个可识别的特色因素，记录增量与代价，用于平衡与防止漂移。
 
-所有纯确定性样本与测试留在 `src/shared`，沿用 Vitest；不新增独立 smoke/e2e/seed/benchmark 脚本，不把数据库或第三方服务写进单测。新测试路径只按已实现域建立，不预先搭建空框架。
+所有纯确定性样本与测试留在 `packages/shared/src`，沿用 Vitest；不新增独立 smoke/e2e/seed/benchmark 脚本，不把数据库或第三方服务写进单测。新测试路径只按已实现域建立，不预先搭建空框架。
 
 ### 6.2 最小验证矩阵
 
@@ -445,6 +445,6 @@ CI 后续增加与本治理直接相关的 lint、构建和共享测试质量门
 
 [^6]: [“梦幻西游手游 物理伤害 法术伤害 公式 修炼 实测”检索结果](https://www.baidu.com/s?wd=梦幻西游手游%20物理伤害%20法术伤害%20公式%20修炼%20实测)。检索发现网易新闻《梦幻西游手游物理伤害与法术伤害的计算公示》及官网《手游弱点击破大改，重“伤”破敌大技》（搜索标注 2017-04-19）存在不同普攻系数线索。前者原文 URL 为 https://www.163.com/game/article/B444PTC800314U1Q_mobile.html，访问被阻止；后者未读取原文。只登记冲突，不引用搜索 AI 汇总作为证据。
 
-- **[C1]** 当前工作区 [combat-v6 规则](../src/shared/engine/combat-v6/rules-daoyou/)、[人物投影](../src/shared/engine/combat-v6/projection/)、[宠物](../src/shared/engine/combat-v6/beasts/)、[装备](../src/shared/engine/combat-v6/equipment/)。D 级：项目现状的代码依据。
+- **[C1]** 当前工作区 [combat-v6 规则](../packages/shared/src/engine/combat-v6/rules-daoyou/)、[人物投影](../packages/shared/src/engine/combat-v6/projection/)、[宠物](../packages/shared/src/engine/combat-v6/beasts/)、[装备](../packages/shared/src/engine/combat-v6/equipment/)。D 级：项目现状的代码依据。
 - **[C2]** [现有战斗路线](combat-v6-mhxy-redesign-roadmap.md)、[人物面板设计](combat-v6-character-panel-design.md)、[装备设计](combat-v6-equipment-system-design.md)、[召唤兽设计](combat-v6-summoned-beast-system-design.md)。D 级历史设计，冲突时以当前实现和本轮目标说明区分，不当作外部真值。
 - **[C3]** [领域归属](combat-domain-ownership.md)、[测试规范](testing.md)、[AGENTS](../AGENTS.md)。用于实施边界和验证方式；五维迁移实施时同步更新其相关约束。

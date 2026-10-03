@@ -9,7 +9,7 @@ if (!databaseUrl) {
 export default defineConfig({
   out: './drizzle-auth',
   dialect: 'postgresql',
-  schema: './src/server/lib/auth/schema.ts',
+  schema: './apps/api/src/lib/auth/schema.ts',
   schemaFilter: ['better_auth'],
   migrations: {
     schema: 'drizzle',

@@ -10,10 +10,10 @@
 
 ## 2. 改造前代码事实
 
-- `src/server/lib/tower/service.ts` 使用 `simulateBattleV5`、旧人物投影、旧秘境 `RewardFactory` 和邮件附件奖励；挑战状态及领取标记目前存于 Redis。
-- `src/server/lib/tower/battleInit.ts` 负责旧属性祝福、恢复和伤势处理；本阶段替换其幻境职责，不将旧伤势引入 v6。
-- `src/react-app/routes/game/tower/route.tsx` 直接使用 v5 入场投影；改为读取服务端 v6 展示契约。
-- `src/shared/lib/tower` 已有周期、楼层、榜单与 11 种祝福定义，保留适用的纯逻辑。
+- `apps/api/src/lib/tower/service.ts` 使用 `simulateBattleV5`、旧人物投影、旧秘境 `RewardFactory` 和邮件附件奖励；挑战状态及领取标记目前存于 Redis。
+- `apps/api/src/lib/tower/battleInit.ts` 负责旧属性祝福、恢复和伤势处理；本阶段替换其幻境职责，不将旧伤势引入 v6。
+- `apps/web/src/routes/game/tower/route.tsx` 直接使用 v5 入场投影；改为读取服务端 v6 展示契约。
+- `packages/shared/src/lib/tower` 已有周期、楼层、榜单与 11 种祝福定义，保留适用的纯逻辑。
 - 现有 `tower_enemy_floors` 保存旧敌人结构，并有后台和生成任务调用链；硬切时需要同步处理，不能只替换玩家页面。
 
 ## 3. 玩法约定
@@ -103,7 +103,7 @@ React 遵循指定最佳实践及仓库格式，避免 Effect 同步派生状态
 - 周周期：按项目允许的本地测试方式核对边界；如缺少真实跨周或故障条件，明确记录未验收，不伪造权威状态冒充通过。
 - 页面：桌面和 360px、血条对齐、逐行动同步、祝福详情、奖励去向及战绩列表不解包。
 - 静态检查：触及幻境的服务端、共享展示契约和页面不依赖 battle-v5；后台/任务无遗留旧敌人写入调用。全仓仍有旧依赖不等于本阶段失败，但必须列出后续范围。
-- 按仓库规则运行 `bun run lint`、`bun run build`、相关 `src/shared` 测试、触及文件 Prettier 和 `git diff --check`；共享影响扩大时运行完整共享测试。
+- 按仓库规则运行 `bun run lint`、`bun run build`、相关 `packages/shared/src` 测试、触及文件 Prettier 和 `git diff --check`；共享影响扩大时运行完整共享测试。
 - 测试只用纯本地环境与既有账号，遵循 `docs/testing.md`；不新增前端/服务端/数据库单元测试或一次性故障脚本。
 
 Phase 10A 尚未通过的服务进程中断、事务失败恢复等，在复用相关机制时补验并分别记录；其他既存未验证项保留原状态。本阶段完成不代表可删除整个 v5，也不代表完成生产维护验收。
@@ -112,8 +112,8 @@ Phase 10A 尚未通过的服务进程中断、事务失败恢复等，在复用�
 
 ### 已实现
 
-- `src/shared/engine/combat-v6/tower/host.ts` 提供独立 Host、可恢复快照、冻结构筑祝福投影、局内资源、死亡灵兽排除及集中敌人配置。普通层单敌、精英双敌、首领单敌双气血，NPC 首轮普攻；尚未做真实高等级难度调优。
-- `src/server/lib/tower/combatV6.ts` 提供挑战、祝福、结束、指令、回合结算和恢复。先保存终局快照，再事务写入奖励与统一回放，最后更新 Redis 领取标记及进度。事务失败后可从终局完成入口重试；跨存储故障窗口接受重复发奖。
+- `packages/shared/src/engine/combat-v6/tower/host.ts` 提供独立 Host、可恢复快照、冻结构筑祝福投影、局内资源、死亡灵兽排除及集中敌人配置。普通层单敌、精英双敌、首领单敌双气血，NPC 首轮普攻；尚未做真实高等级难度调优。
+- `apps/api/src/lib/tower/combatV6.ts` 提供挑战、祝福、结束、指令、回合结算和恢复。先保存终局快照，再事务写入奖励与统一回放，最后更新 Redis 领取标记及进度。事务失败后可从终局完成入口重试；跨存储故障窗口接受重复发奖。
 - Redis 使用 `tower:v6:run:<角色>`、`tower:v6:week:<角色>:<周期>`、`tower:v6:leaderboard:<周期>:<境界>`，与旧挑战和成绩隔离；过期时间为周期结束后 24 小时。领取标记在正常重开时保留，不新增任何数据表或迁移。
 - 构筑、库存、灵兽、练功房、野外、擂台及命令执行器接入幻境占用；现实自然恢复不暂停，也不在离场时回写旧资源。
 - `/game/tower` 展示挑战、祝福和周榜；`/game/tower/battle` 使用已有沉浸壳与 v6 公共战斗组件。终局播放结束后返回幻境，刷新从 HTTP 会话恢复。
@@ -132,7 +132,7 @@ Phase 10A 尚未通过的服务进程中断、事务失败恢复等，在复用�
 | 人物修为、灵兽经验 | 首轮不发放 |
 | 发放位置 | 物品入统一储物袋，满包入储藏室；灵石与声望直接更新角色资源 |
 
-掉落池在 `src/shared/rewards/tower.ts`，敌人参数在 `TOWER_ENEMY_CONFIG`。目前复用既有凡品材料验证统一物品链路，没有新增高境界专属材料或扩张经济内容；这些首轮数值尚未经过真实金丹以上角色的收益与难度验收。
+掉落池在 `packages/shared/src/rewards/tower.ts`，敌人参数在 `TOWER_ENEMY_CONFIG`。目前复用既有凡品材料验证统一物品链路，没有新增高境界专属材料或扩张经济内容；这些首轮数值尚未经过真实金丹以上角色的收益与难度验收。
 
 ### 首轮已验证（补验前）
 
@@ -156,7 +156,7 @@ Phase 10A 尚未通过的服务进程中断、事务失败恢复等，在复用�
 - 此故障发现原错误响应泄露 SQL 和回放数据，已改为仅已知业务错误返回具体信息，意外错误返回安全的 500 提示；再次制造锁超时复验通过。
 - dev 接口非法境界、未知字段返回 400，活动战斗及不存在角色返回 409。修复已结束挑战保留时境界变化未重新判断进入资格的问题。
 - dev 资源调整实测发现底层 Condition 写入方法不主动裁剪，已在 dev 服务按新构筑上限显式裁剪；输入 HP/MP 各 10000000 后数据库核对为 1552/900，恢复到原资源值（资源更新时间随调整刷新）。故障恢复战绩从列表进入详情并完整播放至胜利通过；列表响应只含元数据。
-- 补验修改后重新执行 `bun run lint`、`bun run build`、`bun run test src/shared/engine/combat-v6/tower src/shared/lib/tower`（22 项）、触及文件 Prettier 及 `git diff --check`，全部通过。全量 2020 项共享测试结果来自首轮，本次未重复全量运行。
+- 补验修改后重新执行 `bun run lint`、`bun run build`、`bun run test packages/shared/src/engine/combat-v6/tower packages/shared/src/lib/tower`（22 项）、触及文件 Prettier 及 `git diff --check`，全部通过。全量 2020 项共享测试结果来自首轮，本次未重复全量运行。
 - 测试后恢复炼气后期、六项属性 50、原首发阵容，放生临时备用灵兽，精确移除 40 件容量填充物。保留真实奖励（最终 3073 灵石、55 声望）与战绩；原灵兽经验 50、寿命 950 不变。数据库测试锁均释放，API 保持运行。
 
 ### 待验收与发布边界

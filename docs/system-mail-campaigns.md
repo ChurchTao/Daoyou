@@ -70,7 +70,7 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 - 列表／详情实际投递数一致；四个本地样本最终均停用，已投递记录分别为 1、0、1、1，保留已领取物品和邮件历史。
 - 桌面与 360px 条件表单已检查：无横向溢出、正文独立滚动、底部操作栏可见；物品选择复用原有格子与预览。
 
-检查：`bun run lint`、`bun run build`、`bun run test src/shared/contracts/systemMail.test.ts src/shared/contracts/domainEvents.test.ts src/shared/contracts/adminRewards.test.ts`（27 项）、`git diff --check`。
+检查：`bun run lint`、`bun run build`、`bun run test packages/shared/src/contracts/systemMail.test.ts packages/shared/src/contracts/domainEvents.test.ts packages/shared/src/contracts/adminRewards.test.ts`（27 项）、`git diff --check`。
 
 未执行全仓战斗测试、MQ 故障注入／死信重放或停用竞争压力测试；结束时间延迟消费的边界由共享规则测试与事务／SQL 审查覆盖。没有新增前端、服务端或数据库单元测试。
 

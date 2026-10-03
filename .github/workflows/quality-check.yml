@@ -1,0 +1,28 @@
+name: Quality Check
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - run: pnpm run build
+      - name: Record frontend build identity
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const { buildId } = JSON.parse(readFileSync('apps/web/dist/version.json', 'utf8'));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            `Revision: \`${process.env.GITHUB_SHA}\`\n\nSPA build ID: \`${buildId}\`\n`);
+          NODE

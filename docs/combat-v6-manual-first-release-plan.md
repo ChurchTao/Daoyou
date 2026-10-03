@@ -143,7 +143,7 @@
 | `CombatV6ManualService.ts`、`characterLoadoutRepository.ts` | learned JSONB、槽位表、版本校验与事务 | 默认不改持久结构；保留角色锁、归属、revision、占用和提交后事件 |
 | 功法页面与物品 preview | 效果偏六维，页面仍显示常见/珍稀 | 共用效果描述器，展示本层/下层六维与机制；去掉功法稀有度文案 |
 
-完整模块路径以 `src/shared/engine/combat-v6` 为基准；服务/仓储位于 `src/server/lib/services/combat-v6`、`src/server/lib/repositories`。
+完整模块路径以 `packages/shared/src/engine/combat-v6` 为基准；服务/仓储位于 `apps/api/src/lib/services/combat-v6`、`apps/api/src/lib/repositories`。
 
 ### 4.1 功法内容格式
 
@@ -248,13 +248,13 @@
 
 按 [测试规范](testing.md) 复用本地测试账号，完成真实学习、升层、瓶颈、切换、刷新、查探与一场战斗。仅在 local 环境准备测试资源。核对当前资源不因面板变化免费补满，失败请求不扣资源，浏览器多页使用旧版本提交时正确刷新。
 
-不在 `src/react-app`、`src/server` 新增 test/spec；不 mock 数据库、API、Redis、SMTP 或其他第三方服务。
+不在 `apps/web/src`、`apps/api/src` 新增 test/spec；不 mock 数据库、API、Redis、SMTP 或其他第三方服务。
 
 建议实施检查命令：
 
 ```bash
-bun run test src/shared/engine/combat-v6/manuals src/shared/manuals
-bun run test src/shared/engine/combat-v6/core src/shared/engine/combat-v6/projection src/shared/engine/combat-v6/rules-daoyou
+bun run test packages/shared/src/engine/combat-v6/manuals packages/shared/src/manuals
+bun run test packages/shared/src/engine/combat-v6/core packages/shared/src/engine/combat-v6/projection packages/shared/src/engine/combat-v6/rules-daoyou
 bun run lint
 bun run test
 bun run build
@@ -286,7 +286,7 @@ git diff --check
 
 - 运行配置为 manual pack v3，野外 contentRevision／poolVersion 同步递增。没有改动原始 Excel。
 - 本地迁移后、发放新验收玉简前：槽位 0；两个状态 learned 均为空；库存、拍卖、邮件、兑换码中的旧玉简引用均为 0。
-- 已执行聚焦功法／奖励／公开构筑测试、全量 shared 测试、lint、TypeScript 及客户端／服务端构建。全量结果：168 个文件通过，1390 项通过；仅原有炼体标签快照失败（src/shared/lib/bodyCultivation/pack.test.ts:20），该目录本次无修改。聚焦机制测试 20 项通过。lint、build、tsc 与 git diff --check 均通过。
+- 已执行聚焦功法／奖励／公开构筑测试、全量 shared 测试、lint、TypeScript 及客户端／服务端构建。全量结果：168 个文件通过，1390 项通过；仅原有炼体标签快照失败（packages/shared/src/lib/bodyCultivation/pack.test.ts:20），该目录本次无修改。聚焦机制测试 20 项通过。lint、build、tsc 与 git diff --check 均通过。
 - 本地已有账号“本地道友1”真实页面验收：新玉简学习、首本自动激活、后续收藏不覆盖、六本上限隐藏学习入口、免费切换、刷新保留、长春一升二／二升三、三层玉简解锁、感悟不足禁用修炼。当前气血未因属性增长补满。
 - 学习详情与升级确认同时展示六维、当前／下一层／圆满机制。首屏保持简洁，完整机制放在参悟与物品预览层。
 - 九层成长、六层瓶颈、条件边界、来源／主目标过滤、比例固伤排除、状态分类、回合恢复和封印小数精度由纯共享测试覆盖。

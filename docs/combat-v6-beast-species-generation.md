@@ -8,7 +8,7 @@
 
 ## 数据权威与版本
 
-- `src/shared/engine/combat-v6/beasts/data/species.json` 是物种权威：格式2、内容修订5。
+- `packages/shared/src/engine/combat-v6/beasts/data/species.json` 是物种权威：格式2、内容修订5。
 - `species.schema.json` 由 `BeastSpeciesPackShape` 生成，提供编辑提示；`loadBeastPacks` 负责结构与跨技能引用校验。
 - 图标、名称、描述、开放境界、携带等级、初始伙伴资格、五项资质、成长及出生技能概率都在JSON中。没有固定定位或物种加点偏好。
 - 讨论中的“结丹”对应游戏已有“金丹”键；炼气／筑基／金丹／元婴／化神初期分别为5／25／45／65／85级。
@@ -103,8 +103,8 @@
 
 - `species.json` 内容修订7与设计基准逐项核对：十六种名称、五项资质、成长、核心、候选及概率一致，保留全部十五个旧ID，仅新增三足金蟾ID。生成参数、技能效果与投影公式未改。
 - `wild.json` 内容修订5仍使用十个节点，狰沿用长风石海，三足金蟾加入黑水潭；地图描述同步爪痕、尾迹和地火泉眼。均使用现有等权遭遇与成年65—75级配置。
-- `bun run test src/shared/engine/combat-v6/beasts src/shared/engine/combat-v6/wild`：16个文件、258项通过。包括全物种确定性抽取、技能数量与概率、野外覆盖，以及旧犀牛在新物种目录下保留名称／资质／成长／技能／加点的解析和投影。初始物种生成摘要已按确认的名称、内容修订及出生规则更新。
+- `bun run test packages/shared/src/engine/combat-v6/beasts packages/shared/src/engine/combat-v6/wild`：16个文件、258项通过。包括全物种确定性抽取、技能数量与概率、野外覆盖，以及旧犀牛在新物种目录下保留名称／资质／成长／技能／加点的解析和投影。初始物种生成摘要已按确认的名称、内容修订及出生规则更新。
 - `bun run lint`、`bun run build`（前后端类型检查与构建）、`git diff --check`通过。构建仍提示现有模块动态／静态导入重叠和大包体积。
-- 全量`bun run test`：1511项通过、1项失败；失败为`src/shared/lib/bodyCultivation/pack.test.ts`的炼体文案与`before-g5.json`旧基线不一致。相关配置、基线、加载代码及测试均与HEAD相同，未修改该无关问题。
+- 全量`bun run test`：1511项通过、1项失败；失败为`packages/shared/src/lib/bodyCultivation/pack.test.ts`的炼体文案与`before-g5.json`旧基线不一致。相关配置、基线、加载代码及测试均与HEAD相同，未修改该无关问题。
 - 本地`127.0.0.1:5174`以已登录的本地道友1进行只读页面检查：旧个体“疾风狼2”显示物种“精灵狼”；旧“岩角犀”显示物种“狰”，保留成长1.208、速度资质644和原蛮力／避锋／耐法；黑水潭地图列出三足金蟾65—75级，进入野外后显示元婴门槛并禁用寻觅。控制台无error／warn。
 - 未操作实际领取、捕捉、洗炼或数据库迁移；新个体生成与捕捉池由共享领域测试验证，不将只读页面检查记为端到端捕获验收。已有个体名作为可改名字段保留，物种名称由配置读取；专用头像未制作，狰、三足金蟾暂用豹、蛙emoji。

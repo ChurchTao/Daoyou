@@ -117,8 +117,13 @@ fi
 
 echo "Active service: ${active_service:-none}"
 echo "Target service: ${target_service} (${target_container}, 127.0.0.1:${target_port})"
+echo "Requested image: ${APP_IMAGE}"
+if [ -n "${active_container}" ]; then
+  docker inspect --format 'Previous image: {{.Config.Image}} / {{.Image}}' "${active_container}"
+fi
 
 compose --profile "${target_profile}" pull "${target_service}"
+docker image inspect --format 'Target image: {{.Id}} / {{json .RepoDigests}} / revision={{with index .Config "Labels"}}{{index . "org.opencontainers.image.revision"}}{{else}}unknown{{end}}' "${APP_IMAGE}"
 stop_and_remove_service "${target_service}"
 compose --profile "${target_profile}" up -d --no-deps --force-recreate "${target_service}"
 

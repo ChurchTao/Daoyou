@@ -1,0 +1,23 @@
+import { getLevelRealmStage } from '@daoyou/shared/config/realmProgression';
+import { EQUIPMENT_LEVELS } from '../../engine/combat-v6/equipment/realm.js';
+import { DAO_EQUIPMENT_SLOTS } from '../../engine/combat-v6/equipment/types.js';
+export const EQUIPMENT_SLOT_NAMES = {
+  weapon: '法兵',
+  head: '法冠',
+  armor: '法衣',
+  necklace: '灵佩',
+  belt: '腰封',
+  footwear: '云履',
+};
+export const BLUEPRINTS = DAO_EQUIPMENT_SLOTS.flatMap((slot) =>
+  EQUIPMENT_LEVELS.map((level) => {
+    return {
+      id: `blueprint.${slot}.${level}`,
+      name: `${getLevelRealmStage(level).realm}期${EQUIPMENT_SLOT_NAMES[slot]}`,
+      kind: 'blueprint' as const,
+      stackLimit: 99,
+      slot,
+      level,
+    };
+  }),
+);

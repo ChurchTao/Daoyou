@@ -1,3 +1,0 @@
-export const MAX_OWNED_CREATION_PRODUCTS_PER_TYPE = 10;
-
-export const MAX_EQUIPPED_GONGFA = 5;

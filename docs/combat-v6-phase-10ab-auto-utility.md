@@ -12,7 +12,7 @@
 
 ## 2. 实现职责
 
-共享应用层 `src/shared/combat-v6`：
+共享应用层 `packages/shared/src/combat-v6`：
 
 | 模块 | 职责 |
 | --- | --- |
@@ -52,9 +52,9 @@
 
 检查命令：
 
-- `bun run test src/shared/combat-v6 src/shared/engine/combat-v6`：中途375项通过；追加资源蓄积边界后由全量测试覆盖。
+- `bun run test packages/shared/src/combat-v6 packages/shared/src/engine/combat-v6`：中途375项通过；追加资源蓄积边界后由全量测试覆盖。
 - `bun run test`：最终147个文件、997项通过。
-- `bunx tsc -b tsconfig.app.json tsconfig.node.json --pretty false`：通过；最终由build再次覆盖两端类型检查。
+- `bunx tsc -b apps/web/tsconfig.json tsconfig.node.json --pretty false`：通过；最终由build再次覆盖两端类型检查。
 - `bun run lint`、`bun run build`、`git diff --check`：最终均通过。构建既有大chunk提示不在本阶段调整范围。
 - 对新增模块及实际改动块检查格式；代码全部通过内置apply_patch修改，未使用Python改写或格式工具写回。
 

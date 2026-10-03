@@ -2,7 +2,7 @@
 
 感谢每一位帮助《万界道友》持续维护与成长的道友。新的赞助统一通过爱发电进行，既有历史记录继续保留。
 
-> 本页自动生成，请勿直接编辑。同步爱发电运行 `bun run sponsors:sync`；仅更新历史名单时运行 `bun run sponsors:render`。
+> 本页自动生成，请勿直接编辑。同步爱发电运行 `pnpm run sponsors:sync`；仅更新历史名单时运行 `pnpm run sponsors:render`。
 
 最后更新：2026-08-07
 

@@ -4,15 +4,15 @@
 
 ## 1. 纯单元测试
 
-- 仅放在 `src/shared`，验证确定性、可复用的引擎和领域逻辑。
-- 使用 Vitest；先运行受影响的测试，再根据影响范围运行 `bun run test`。
-- 不引入数据库、Redis、HTTP、认证或第三方服务模拟；不在 `src/server`、`src/react-app` 或 `scripts` 添加单元测试。
+- 仅放在 `packages/shared/src`，验证确定性、可复用的引擎和领域逻辑。
+- 使用 Vitest；先运行受影响的测试，再根据影响范围运行 `pnpm run test`。
+- 不引入数据库、Redis、HTTP、认证或第三方服务模拟；不在 `apps/api/src`、`apps/web/src` 或 `scripts` 添加单元测试。
 
 ## 2. Codex 浏览器／Playwright 模拟
 
 由 Codex 在当次开发任务中操作真实本地页面，不将操作固化为一次性仓库脚本。
 
-1. 准备 `env/local.env`，执行 `bun run services up -d --wait` 和 `bun run db:migrate`。普通验证使用 `bun run dev`；长流程需关闭 watch 时，在两个终端执行 `APP_ENV=local NODE_ENV=development bun --env-file=env/local.env src/index.ts` 和 `bun run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。
+1. 从 `env/local.example.env` 准备 `env/local.env`（已有文件保留），执行 `pnpm run services up -d --wait` 和 `pnpm run db:migrate`。普通验证使用 `pnpm run dev`；长流程需关闭watch时，先执行`pnpm run build:server`，再在两个终端执行`APP_ENV=local NODE_ENV=development node --env-file=env/local.env apps/api/dist/main.js`和`pnpm run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。
 2. 列出本次改动需要验证的用户行为、预期结果和准备条件。通过页面注册／登录，邮件验证使用 Mailpit；优先复用已有测试角色。缺少 LLM 或角色构筑等条件时如实说明，不通过假成功继续。
 3. 使用可用的 Codex 浏览器能力或 Playwright，按可访问名称和实际页面定位控件。操作后等待具体界面／网络状态，不依赖固定长时间 sleep。多人测试使用独立浏览器上下文或配置文件，每个角色有独立会话。
 4. 同时观察界面、控制台和网络：检查请求次数、错误、权限边界、提交结果及恢复过程。涉及布局时检查桌面和 360px；涉及性能时使用网络面板／Profiler，不维护一次性基准脚本。
@@ -56,7 +56,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 }
 ```
 
-新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。传承灵印使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`，法兵默认生成剑，可加 `weaponType` 指定 `axe/blade/spear/staff/sword/fan/bell/brush/banner`，非武器不得指定。全部定义在 `src/shared/items/definitions`，参数边界见 `src/shared/contracts/forging.ts`。
+新库存材料使用 `type: item`、`definitionId: material.v1`、`instanceData: { name, type, rank, element?, description? }`。传承灵印使用注册的定义 ID；随机道装使用 `{ "type": "equipment", "slot": "weapon", "level": 10 }`，法兵默认生成剑，可加 `weaponType` 指定 `axe/blade/spear/staff/sword/fan/bell/brush/banner`，非武器不得指定。全部定义在 `packages/shared/src/items/definitions`，参数边界见 `packages/shared/src/contracts/forging.ts`。
 
 旧丹药／消耗品验收可提交 `{ "type": "vault-consumable", "facts": { name, type, quality, description, prompt, score, spec }, "quantity": 2 }`，facts 须符合 `ConsumableFactsSchema`，quantity 为 1–3960；沿用历史消耗品发放入口写入洞府宝库，再通过正式取出操作转换。新版消耗品直接发放使用 `type: item`、`definitionId: consumable.v1` 及同一完整 facts 作为 instanceData。该能力仍只在纯本地开放。
 
@@ -116,7 +116,7 @@ Lint、TypeScript／构建、Prettier 是静态质量检查，不是额外一层
 
 - 灵根最多 8 条，元素须有效且不重复；`baseStrength` 为 0–100 的整数，`marrowWashBonus` 默认 0，两者之和不超过 120。品级由现有仓储规则根据元素及灵根数量推导；不接受客户端传入品级或当前强度。
 - 命格最多 3 条；名称 1–100 字、品质须为现有品质，说明可省略（最多 2000 字）。每条指定 1–2 个不重复的效果 ID。
-- 效果 ID 来自 `src/server/lib/services/FateFragmentRegistry.ts`，例如 `retreat-exp-gain`、`retreat-insight-gain`、`natural-recovery`、`toxicity-mitigation`、`system-spirit-stone-surcharge`。数值、标签、说明及 rollMeta 由既有构造器按品质和固定 0.5 分位生成；测试接口允许自由组合现有效果，不模拟创角抽签概率，也不接受自定义效果数值。
+- 效果 ID 来自 `apps/api/src/lib/services/FateFragmentRegistry.ts`，例如 `retreat-exp-gain`、`retreat-insight-gain`、`natural-recovery`、`toxicity-mitigation`、`system-spirit-stone-surcharge`。数值、标签、说明及 rollMeta 由既有构造器按品质和固定 0.5 分位生成；测试接口允许自由组合现有效果，不模拟创角抽签概率，也不接受自定义效果数值。
 - 非法结构、越界、重复元素或重复效果返回 400；未知效果 ID 返回 409，整笔事务回滚。响应在 `data.spiritualRoots` / `data.preHeavenFates` 返回本次调整后的运行时结构，便于核对先天与后天展示。
 - 后天增益仅作为本地测试数据注入，不推进洗髓等级或执行破限；先天设定页显示 `baseStrength`，肉身修炼页显示后天增益与当前总强度。命格使用真实效果，会影响相应玩法。
 - 临时验收前记录原值并恢复；用户明确要求补齐并保留的本地测试角色配置可以保留。外部调用后刷新页面读取新版本。
@@ -194,3 +194,22 @@ curl -X DELETE http://127.0.0.1:3001/api/dev/cultivators/角色UUID/divination
 成功返回 `{ "success": true, "data": { "removed": 1 } }`。清除该角色唯一的占卜记录（含骰子、卦象、解读和发奖标记），包括尚未完成的旧签；没有记录时幂等返回 `removed: 0`。已领取的符箓保留，天地灵气与其他角色记录不变；再次完成占卜会再次正常发奖。刷新占卜页面或切回窗口后即可重新选择方向、掷骰。
 
 重置与正式掷骰、解签共用角色占卜 Redis 锁，并在事务内锁定角色行；正在解签或领取时返回锁冲突，应等待完成后重试，不强制中断 SSE。非法 UUID 返回 400，不存在或非活跃角色返回 404。不要对预发布或生产执行此接口。
+
+## 架构边界回归验收
+
+涉及 workspace、Nest Provider、shared 包入口、请求或布局加载边界时，复用本地账号与正式界面。以下为可重复步骤，实际结果需在每次任务重新记录，不把本文当作通过证据。
+
+| 范围 | 步骤 | 预期 |
+| --- | --- | --- |
+| 未登录入口 | 打开登录页，再直接访问受保护游戏路由 | 登录页可显示；受保护路由转登录，API 无 Cookie 请求被拒绝 |
+| 游戏布局 | 登录后从洞府进入角色、储物袋、宗门、灵田和战绩；刷新当前路由 | 正确布局/标题/HUD/底部导航，资源正常加载，无错误页 |
+| 懒加载详情 | 从 HUD 打开炼体详情与洗髓详情，再关闭 | 正确内容、滚动及关闭行为，无静态/动态导入冲突 |
+| 移动端 | 在 360px 宽度检查背包和详情，横向查看 HUD 状态 | 正文无水平溢出；底部导航和传闻条不遮挡主要操作；验收后恢复视口 |
+| 请求入口 | 浏览器开发调试中使用 apiFetch 的字符串、URL、Request 形式读取相同 API | 认证一致，均取得合法响应；不输出 Cookie 或真实密钥 |
+| Request 请求体 | 用 JSON Request 向本地背包正式入口提交不存在的 action；再验证取消信号 | 返回输入校验 400且无资产变动；取消返回 AbortError |
+| API 地址/BYOK | 临时使用本地 API 显式地址和非真实 BYOK 测试值；查看网络请求 | API 地址正确、请求头合并、Cookie 正常；非 API 请求不带 BYOK；finally 恢复原设置 |
+| 实时恢复 | 打开资源/聊天页面，重连或刷新后检查当前内容 | 无重复消息/资源，版本和快照恢复；发送测试聊天仅限明确授权的本地测试场景 |
+| 运行依赖 | 读取 /api/health-check；以缺少 Redis 的生产配置尝试启动本地构建 | 正常设施全 up；缺少生产 Redis 明确拒绝启动，不接触生产服务 |
+| 交付 | frozen install、lint、typecheck、shared tests、API/Web build；必要时构建本地 Docker 镜像 | 包边界有效，两个应用独立产物可构建；不发布镜像、不执行额外迁移 |
+
+旧 SPA 与新 API、旧消息与新消费者的兼容发布顺序见 [架构审查与规范](monorepo-architecture.md)。跨应用协议变化时，在发布记录中写明前后端版本、迁移状态和回滚条件。

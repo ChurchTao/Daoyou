@@ -4,7 +4,7 @@
 
 ## 编辑词库
 
-文件：`src/server/config/text-filter.dictionary.json`。
+文件：`apps/api/src/config/text-filter.dictionary.json`。
 
 - `blockedWords`：要屏蔽的词，增加或删除一项即可调整。
 - `allowedPhrases`：允许包含屏蔽词的完整短语，用于修复误伤；只豁免完全位于短语内的命中，不放行整句话。
@@ -31,8 +31,8 @@
 编辑后执行：
 
 ```bash
-bun -e 'import { textFilter } from "./src/server/lib/services/textFilter.ts"; console.log(textFilter.mask("这里填写需要检查的文本"));'
-bun run test src/shared/text-filter/index.test.ts
+bun -e 'import { textFilter } from "./apps/api/src/lib/services/textFilter.ts"; console.log(textFilter.mask("这里填写需要检查的文本"));'
+bun run test packages/shared/src/text-filter/index.test.ts
 bun run build
 ```
 
@@ -73,4 +73,4 @@ const { text, changed } = textFilter.mask(input);
 
 角色昵称、公告、社区正文、道具快照中的名称等尚未接入，需要在各自写入入口接入。历史记录不自动重刷；不额外保存玩家原文，删掉屏蔽词也不会恢复已打码内容。
 
-算法位于 `src/shared/text-filter`，不访问数据库和网络；词库与单例位于服务端，前端不导入词库。以后需要动态维护时替换服务端加载方式，保留业务接口。
+算法位于 `packages/shared/src/text-filter`，不访问数据库和网络；词库与单例位于服务端，前端不导入词库。以后需要动态维护时替换服务端加载方式，保留业务接口。

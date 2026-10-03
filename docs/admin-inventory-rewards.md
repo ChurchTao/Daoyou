@@ -44,7 +44,7 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 - 桌面及 360px 物品预览可用，器诀展开保持浮层，Esc 关闭正常；浏览器控制台无错误。
 - 验收商品已下架，兑换码已停用；实际玩法资产和领取历史保留。
 
-静态及共享逻辑检查：`bun run lint`、`bun run build`、`bun run test src/shared/contracts src/shared/inventory src/shared/items src/shared/lib`、`git diff --check`。
+静态及共享逻辑检查：`bun run lint`、`bun run build`、`bun run test packages/shared/src/contracts packages/shared/src/inventory packages/shared/src/items packages/shared/src/lib`、`git diff --check`。
 
 未执行全仓战斗单测、LLM 材料／灵种批量生成的实际调用或预发布／生产部署。本轮浏览器验收覆盖上述代表性道具；全部固定物品定义的奖励校验由共享单测覆盖。
 

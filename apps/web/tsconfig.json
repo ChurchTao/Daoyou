@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tmp/web.tsbuildinfo",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@app/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "../../packages/shared/src"],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "../../packages/shared/src/**/*.test.ts",
+    "../../packages/shared/src/**/*.test.tsx",
+    "../../packages/shared/src/**/*.spec.ts"
+  ]
+}

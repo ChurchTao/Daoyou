@@ -7,10 +7,13 @@ on:
 
 env:
   APP_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/daoyou-app
-  IMAGE_TAG: latest
 
 jobs:
+  quality:
+    uses: ./.github/workflows/quality-check.yml
+
   build-and-push:
+    needs: quality
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -20,6 +23,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Image tags and revision
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.APP_IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=sha,format=long
+            type=raw,value=latest
+
       # 登录 Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -28,9 +41,23 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push app image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/Dockerfile.app
           push: true
-          tags: ${{ env.APP_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+      - name: Record release identity
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_TAGS: ${{ steps.metadata.outputs.tags }}
+        run: |
+          {
+            printf 'Revision: `%s`\n\n' "$GITHUB_SHA"
+            printf 'Release tag: `%s`\n\n' "$GITHUB_REF_NAME"
+            printf 'Image digest: `%s`\n\n' "$IMAGE_DIGEST"
+            printf 'Image tags:\n```text\n%s\n```\n' "$IMAGE_TAGS"
+          } >> "$GITHUB_STEP_SUMMARY"

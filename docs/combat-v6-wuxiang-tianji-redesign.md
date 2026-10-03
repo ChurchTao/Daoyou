@@ -275,7 +275,7 @@ C所载「琢磨」基础治疗+12%尚不能确认当前是否仍在。和旧厉
 ### 本轮验证结果
 
 - `bun run test --testTimeout=30000`：205个文件、1,930项通过。
-- 最终补充封抗进入实际公式的修正后，运行 `bun run test src/shared/engine/combat-v6/core src/shared/engine/combat-v6/content src/shared/engine/combat-v6/rules-daoyou src/shared/engine/combat-v6/projection`：27个文件、253项通过。
+- 最终补充封抗进入实际公式的修正后，运行 `bun run test packages/shared/src/engine/combat-v6/core packages/shared/src/engine/combat-v6/content packages/shared/src/engine/combat-v6/rules-daoyou packages/shared/src/engine/combat-v6/projection`：27个文件、253项通过。
 - `bun run lint`、`bun run build`、`git diff --check`通过。构建保留大体积chunk提示，无构建错误。
 - 本轮没有修改页面结构，未进行浏览器实测。技能、资源、流派名称由现有内容驱动展示。
 

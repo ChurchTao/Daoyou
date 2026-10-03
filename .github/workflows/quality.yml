@@ -1,0 +1,10 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    uses: ./.github/workflows/quality-check.yml

@@ -54,7 +54,7 @@
 
 ## 实现及验证
 
-内容入口：`src/shared/engine/combat-v6/content/data/youdu-combat.json`、`youdu-paths.json`、`skill-learning.json`。引擎增加通用的受封乘法因子、宗门状态来源过滤、状态维持费和持续伤害上限，不在 core 内写幽都 ID 分支。
+内容入口：`packages/shared/src/engine/combat-v6/content/data/youdu-combat.json`、`youdu-paths.json`、`skill-learning.json`。引擎增加通用的受封乘法因子、宗门状态来源过滤、状态维持费和持续伤害上限，不在 core 内写幽都 ID 分支。
 
 已验证抗封概率乘法、5/6 回合锢魂、隐身/看破与禁施法、维持费、复活及增攻降防、宗门增益驱散、毒上限与战局快照恢复。投影输入夹具不变，更新内容改动造成的哈希期望。
 

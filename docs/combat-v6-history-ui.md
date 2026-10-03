@@ -30,7 +30,7 @@
 ## 验证（2026-09-15）
 
 - `bun run lint`、`bun run build` 通过；构建保留已有大包提示。
-- `bun run test src/shared/contracts/combatV6.test.ts src/shared/combat-v6/replay.test.ts`：23 项通过，未运行全量引擎测试。
+- `bun run test packages/shared/src/contracts/combatV6.test.ts packages/shared/src/combat-v6/replay.test.ts`：23 项通过，未运行全量引擎测试。
 - 生成并检查 `0048` SQL、快照和 journal，确认唯一结构变化为 `replay` 允许 NULL；迁移已应用本地数据库，未触及其他环境。
 - 本地已有角色页面：列表只显示天骄榜／擂台，天骄榜回放可访问，原野外回放 URL 返回不存在。
 - 练功房完成一次逃离终局，当场播放和结束操作正常，不出现回放入口；只读数据库确认没有新增训练归档。

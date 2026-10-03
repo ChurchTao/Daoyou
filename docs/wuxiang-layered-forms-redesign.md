@@ -1200,7 +1200,7 @@ export interface AbilityModeRuntime {
 旧版千行宗门编译器应拆成“公共原语、道途技能、道途节点”三层。无相宗尚未上线，本次直接替换旧目录；但不为了形式上的一技能一文件制造三十余个薄包装。当前六门技能在单一道途内高度共享构筑参数，保留为每道途一个内聚编译器更容易同时审阅 A/B/C 顺序与数值。
 
 ```text
-src/shared/engine/sect/content/wuxiang/
+packages/shared/src/engine/sect/content/wuxiang/
   WuxiangSectModule.ts
   definition.ts
   ids.ts
@@ -1484,12 +1484,12 @@ demon.formless.setOneFurnaceUpgrade('three-knocks', 0.85);
 每阶段先跑聚焦测试，再扩大范围：
 
 ```bash
-bunx vitest run src/shared/engine/battle-v5/tests/core/AbilityCosts.test.ts
-bunx vitest run src/shared/engine/battle-v5/tests/core/AbilityEffectPlans.test.ts
-bunx vitest run src/shared/engine/sect/content/wuxiang/tests/combatProjection.test.ts
-bunx vitest run src/shared/engine/sect/content/wuxiang/tests/formCycle.test.ts
-bunx vitest run src/shared/engine/sect/content/wuxiang/tests/abilityBehaviorMatrix.test.ts
-bunx vitest run src/shared/engine/sect/testing/architecture/architectureGuard.test.ts
+bunx vitest run packages/shared/src/engine/battle-v5/tests/core/AbilityCosts.test.ts
+bunx vitest run packages/shared/src/engine/battle-v5/tests/core/AbilityEffectPlans.test.ts
+bunx vitest run packages/shared/src/engine/sect/content/wuxiang/tests/combatProjection.test.ts
+bunx vitest run packages/shared/src/engine/sect/content/wuxiang/tests/formCycle.test.ts
+bunx vitest run packages/shared/src/engine/sect/content/wuxiang/tests/abilityBehaviorMatrix.test.ts
+bunx vitest run packages/shared/src/engine/sect/testing/architecture/architectureGuard.test.ts
 ```
 
 阶段收尾：

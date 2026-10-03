@@ -1,4 +1,4 @@
 interface:
   display_name: "Daoyou Backend API Security"
-  short_description: "Daoyou Hono API、认证、权限与 LLM 安全"
+  short_description: "Daoyou NestJS API、认证、权限与 LLM 安全"
   default_prompt: "Use $daoyou-backend-api-security to add or review Daoyou API routes, auth, admin, cron, or LLM security changes."

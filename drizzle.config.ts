@@ -9,7 +9,7 @@ if (!databaseUrl) {
 export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
-  schema: './src/server/lib/drizzle/schema.ts',
+  schema: './apps/api/src/lib/drizzle/schema.ts',
   tablesFilter: ['wanjiedaoyou_*'],
   dbCredentials: {
     url: databaseUrl,

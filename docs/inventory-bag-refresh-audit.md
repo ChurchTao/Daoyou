@@ -38,7 +38,7 @@
 - 首次成交的网络记录显示成交 POST 200，随后一次 `/api/combat-v6/inventory?location=bag` GET 200；浏览器控制台无 error。
 - 同一页面通过导航进入储物袋后立即显示剩余两份。另开储物袋标签页，再在鉴宝页面出售，另一个标签页自动从两份更新为一份、最后移除，验证实时广播。
 - 三份准备物品已全部通过正式回收流程消耗；保留实际成交所得 39 灵石。
-- `bun run lint`、`bun run build`（包含前后端 TypeScript）通过；`bunx vitest run src/shared/lib/bagResourceChanges.test.ts` 的两项已有纯函数测试通过；`git diff --check` 通过。
+- `bun run lint`、`bun run build`（包含前后端 TypeScript）通过；`bunx vitest run packages/shared/src/lib/bagResourceChanges.test.ts` 的两项已有纯函数测试通过；`git diff --check` 通过。
 - `bun run db:migrate` 的认证迁移成功，但业务段的 `bun ... x` 未传入 DATABASE_URL；改用 `bun --env-file=env/local.env run bunx drizzle-kit migrate` 后业务迁移成功。本次没有修改迁移、环境配置或启动脚本。
 - 本地 API 已有 watch 进程占用 3001，本次组合启动的重复 API 实例未启动，复用了已有本地 API。
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": ["tsconfig.base.json"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["NODE_ENV", "VITE_*", "CF_PAGES_COMMIT_SHA", "GITHUB_SHA"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "^typecheck"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"],
+      "interruptible": true
+    },
+    "prd": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^build"],
+      "interruptible": true
+    }
+  }
+}

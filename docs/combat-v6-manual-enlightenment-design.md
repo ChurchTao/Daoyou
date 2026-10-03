@@ -40,7 +40,7 @@
 
 ### 锚定价值与候选境界
 
-品质基础价格与功法典籍类型倍率来自 `src/shared/engine/material/creation/config.ts`：品质基础价 × 3。合成不使用购买折扣、随机估价、回收价或拍卖成交价。
+品质基础价格与功法典籍类型倍率来自 `packages/shared/src/engine/material/creation/config.ts`：品质基础价 × 3。合成不使用购买折扣、随机估价、回收价或拍卖成交价。
 
 | 品质 | 单本锚定价值 | 完整候选境界 |
 | --- | ---: | --- |
@@ -130,7 +130,7 @@
 
 ## 实现边界
 
-- 纯规则放入 `src/shared/manuals`：资格、单格分布、组合概率、费用与可注入随机源的结果选择。
+- 纯规则放入 `packages/shared/src/manuals`：资格、单格分布、组合概率、费用与可注入随机源的结果选择。
 - 沿用既有功法内容和玉简定义，不给功法重新引入品质、稀有度或额外能力字段；产出概率属于悟道室供应规则。
 - 服务端使用现有身份、中间件、库存、角色资源与天地灵气服务，校验归属、修订号、数量和既有活动占用规则。
 - 用同一事务和幂等请求记录完成扣材、扣两项资源、结果入包及资源事件；失败结果也保存，重复请求不能重新抽取或重复收费。
@@ -160,10 +160,10 @@
 - 本地 `127.0.0.1:5174`／`3001`，本地道友1（筑基中期）：四凡必成得到庚金诀，扣 4 灵气＋4 感悟；单凡随机失败，扣 1＋1；两灵两玄显示 72.38%／24.13%／3.49%，临时天品参悟命格倍率 0.82 时实扣 10 灵气＋9 感悟，得到清泉诀。三次结果均已保存幂等请求记录。
 - 验证同堆叠连续投入、地/天品在筑基人物下禁用、高阶玉简概率保留、感悟为 0 时禁用提交、洞府入口、360px 抽屉与概率展示、返回桌面。360px 下文档 scrollWidth 为 345，不超出视口；页面未记录 error/warn。
 - 临时典籍和两枚产出玉简通过库存计划精确清理，未清空背包。只读复核原 32 格物品 ID、定义、数量、实例事实全部一致，原命格名称/品质/描述/效果全部恢复，天地灵气恢复 290、感悟恢复 8；未改变已学功法。
-- `bun run test src/shared/manuals src/shared/lib/fates.test.ts src/shared/lib/qi.test.ts`：4 文件、38 项通过，含本次新增 8 项测试与全部 209 种材料组合。
+- `bun run test packages/shared/src/manuals packages/shared/src/lib/fates.test.ts packages/shared/src/lib/qi.test.ts`：4 文件、38 项通过，含本次新增 8 项测试与全部 209 种材料组合。
 - `bun run lint`、`bun run build`、修改文件 Prettier 和 `git diff --check` 通过；构建仍提示既有 chunk 大小提醒。
-- `bun run test`：1760 项通过、2 项失败。未修改的 `src/shared/lib/bodyCultivation/pack.test.ts` 文案与旧 fixture 不同；未修改的 `src/shared/engine/combat-v6/tower/tower.test.ts` 仍断言第 1 层不发奖励，而当前逻辑发灵石。两者不在本次功能改动范围。
-- 尝试 `bun --env-file=env/local.env x hono request src/server/app.ts -P /api/combat-v6/enlightenment`，当前 hono 包无可执行 CLI；改用真实本地 HTTP 核对未登录 GET/POST 均返回 401。正常写入通过上述真实浏览器流程验收。
+- `bun run test`：1760 项通过、2 项失败。未修改的 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 文案与旧 fixture 不同；未修改的 `packages/shared/src/engine/combat-v6/tower/tower.test.ts` 仍断言第 1 层不发奖励，而当前逻辑发灵石。两者不在本次功能改动范围。
+- 尝试 `bun --env-file=env/local.env x hono request apps/api/src/app.ts -P /api/combat-v6/enlightenment`，当前 hono 包无可执行 CLI；改用真实本地 HTTP 核对未登录 GET/POST 均返回 401。正常写入通过上述真实浏览器流程验收。
 - 未做手机真机触摸、多标签并发和断网后重试实测；幂等与恢复路径完成代码检查，并核对成功/失败持久记录。请求遇锁冲突或超时保留原标识；仅确定未提交的参数/领域错误释放待核对状态。
 
 ### 交互打磨（2026-09-21）

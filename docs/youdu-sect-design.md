@@ -618,7 +618,7 @@ V1 不增加幽都专属战斗 HUD 计数器：能力详情说明“每场一次
 ### 23.1 内容目录
 
 ```text
-src/shared/engine/sect/content/youdu/
+packages/shared/src/engine/sect/content/youdu/
   YouduSectModule.ts
   definition.ts
   ids.ts
@@ -720,9 +720,9 @@ src/shared/engine/sect/content/youdu/
 ### 24.7 建议验证命令
 
 ```bash
-bunx vitest run src/shared/engine/sect/content/youdu
-bunx vitest run src/shared/engine/sect
-bunx vitest run src/shared/engine/battle-v5/tests
+bunx vitest run packages/shared/src/engine/sect/content/youdu
+bunx vitest run packages/shared/src/engine/sect
+bunx vitest run packages/shared/src/engine/battle-v5/tests
 bun run lint
 bun run test
 bun run build

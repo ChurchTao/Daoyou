@@ -24,7 +24,7 @@
 
 - 每六小时一轮，北京时间每日 0、6、12、18 点刷新，到下一轮统一消失。各境界同时出现一个目标，共七个；八个 BOSS 类型随轮次轮换，每个境界八轮内遍历全部类型，地点目前固定。
 - 每个目标采用对应境界中期等级。首次胜利的修为、灵石、感悟复用 BOSS 境界中期挂机历练 6 小时的计算器，保留随机浮动，每位角色独立抽取；不消费实际挂机时长。奖励档位不读取领取者境界，低境界角色挑战高境界目标不会降档，高境界角色挑战低境界目标不会升档。感悟沿用挂机的固定范围，灵印、灵露沿用通用概率池。
-- 通用掉落配置在 `src/shared/rewards/data/hunt.json`：保底 2 件 `material.v1`，品质按 BOSS 境界使用 `hunt-material-quality.ts` 的讨伐分布，范围与副本一致；独立 20% 概率掉落 1 枚传承灵印、20% 概率掉落 1 瓶归元灵露。灵印池 version 2 显式配置当前开放的 67 种技能（普通 34 种、上品 33 种），每种普通权重 4、上品权重 1；有奖励资格的单次胜利掉落上品灵印的概率约 3.91%。灵露池普通／上品权重为 3:1。这些数量和概率为本次初始默认值。
+- 通用掉落配置在 `packages/shared/src/rewards/data/hunt.json`：保底 2 件 `material.v1`，品质按 BOSS 境界使用 `hunt-material-quality.ts` 的讨伐分布，范围与副本一致；独立 20% 概率掉落 1 枚传承灵印、20% 概率掉落 1 瓶归元灵露。灵印池 version 2 显式配置当前开放的 67 种技能（普通 34 种、上品 33 种），每种普通权重 4、上品权重 1；有奖励资格的单次胜利掉落上品灵印的概率约 3.91%。灵露池普通／上品权重为 3:1。这些数量和概率为本次初始默认值。
 - 基础资源直接入账，遵循现有上限，结算页显示实际增量；道具通过奖励邮件送达，领取进入统一库存，背包满不阻塞战斗结算。
 - 角色以当前持久气血、法力参战，入场前补算正常的自然恢复；战斗期间暂停场外恢复，战后保存剩余气血、法力。倒地沿用其他持久战斗的战后 1 气血规则。灵兽寿元仍不受影响。
 - 队伍胜利时，只有终局仍存活且未离场的角色算个人挑战成功并领取奖励；终局倒地者不领取资源或道具，也不占用本次出现的领奖机会，养伤后可再战。战中倒地但终局前被救起者可正常获奖。
@@ -49,7 +49,7 @@
 
 讨伐服务和材料预览共用 `hunt-material-quality.ts`。只有讨伐启用严格品质选材；云游和挂机原来的选材逻辑不变。旧战局沿用已生成的奖励事实。
 
-验证：`bun run test src/shared/rewards/hunt-material-quality.test.ts src/shared/rewards/hunt.test.ts src/shared/rewards/dungeon-material-quality.test.ts` 共 22 项通过，覆盖归一化、品质范围、七个境界的累计概率、两件材料前提和高品质不倒挂。`bun run lint`、`bun run build`、修改代码的 Prettier 检查和 `git diff --check` 通过。本地材料库只读查询确认所有品质均有已发布材料；未新增服务／数据库单测，未执行本轮浏览器胜利发奖、生产材料库检查或全量单测，尚未部署。
+验证：`bun run test packages/shared/src/rewards/hunt-material-quality.test.ts packages/shared/src/rewards/hunt.test.ts packages/shared/src/rewards/dungeon-material-quality.test.ts` 共 22 项通过，覆盖归一化、品质范围、七个境界的累计概率、两件材料前提和高品质不倒挂。`bun run lint`、`bun run build`、修改代码的 Prettier 检查和 `git diff --check` 通过。本地材料库只读查询确认所有品质均有已发布材料；未新增服务／数据库单测，未执行本轮浏览器胜利发奖、生产材料库检查或全量单测，尚未部署。
 
 ## 八类目标
 
@@ -87,19 +87,19 @@
 - 高防不等于免伤。按合法同境界输出构筑核对，高物抗或高法抗承受的对应基础伤害不足普通首领的四分之一，另一伤害类型则更有效；固定伤害保留优势。妖貂可将参考物理构筑命中压到现有公式下限 45%，法术不受该闪避影响。
 - 已开始的战斗沿用冻结的属性和技能；新增的凶袭、妖火只用于新战局，旧战局仍能使用原有普攻和妖焰。没有改动其他玩法的预设怪物或通用伤害公式。
 
-内容位于 `src/shared/engine/combat-v6/hunts/content.ts`，不修改 V6 核心。出现与招募规则位于 `src/shared/hunts`。
+内容位于 `packages/shared/src/engine/combat-v6/hunts/content.ts`，不修改 V6 核心。出现与招募规则位于 `packages/shared/src/hunts`。
 
 ### 本轮平衡验证（2026-09-30）
 
 - 参考角色复用合法的六维加点、当前可获得的普通道装、同境界宗门修行与炼体、普通灵兽；无额外幻境祝福、稀有装备或经脉加成。运行时怪物不会读取这些参考构筑。
 - 覆盖七个境界、八类首领、三种人数与三个随机种子的 504 场完整战斗。队伍包含治疗，物抗怪与闪避怪选用法术主攻；采用先清随从、及时疗伤、古魔标记时防御的策略。503 场胜利；金丹双人队挑战血河妖蟒的一个种子在第 45 回合败北。三、四人样本全部胜利，双人每种目标至少 2/3 样本胜利；测试限制双人战斗不超过 50 回合、三／四人不超过 30 回合。此结果不是生产玩家胜率，也不保证任意阵容挂机通过。
 - 672 组首轮爆发检查覆盖各首领、境界、人数、首领／精英目标和物理／法术输出。参考角色设为全暴击、物理全命中、1.1 倍伤害浮动；目标不防御，首领与精英均能存活。普通小怪允许被集中输出击杀。
-- `bun run test src/shared/engine/combat-v6/hunts src/shared/engine/combat-v6/rules-daoyou src/shared/engine/combat-v6/projection src/shared/combat-v6 src/shared/hunts`：18 个文件、237 项测试通过，包括真实角色属性下的特色强弱项、伤害下限、168 种八人敌阵、旧战局指令兼容和确定性恢复。
+- `bun run test packages/shared/src/engine/combat-v6/hunts packages/shared/src/engine/combat-v6/rules-daoyou packages/shared/src/engine/combat-v6/projection packages/shared/src/combat-v6 packages/shared/src/hunts`：18 个文件、237 项测试通过，包括真实角色属性下的特色强弱项、伤害下限、168 种八人敌阵、旧战局指令兼容和确定性恢复。
 - `bun run lint`、`bun run build`（前后端类型检查及构建）、修改代码的 Prettier 检查与 `git diff --check` 通过。未运行仓库全量测试，未改通用战斗公式；本轮未做真人联机、浏览器战斗或生产验收，未部署。
 
 ### 八类目标与八人敌阵验证（2026-09-30）
 
-- 聚焦命令 `bun run test src/shared/hunts src/shared/engine/combat-v6/hunts src/shared/rewards/hunt.test.ts src/shared/combat-v6/arena.test.ts src/shared/engine/combat-v6/rules-daoyou`：70 项通过。覆盖八类目标 × 七个境界 × 三种人数的 168 种阵容、V6 指令提交和首轮结算、五类属性弱点、全部类型的快照恢复、双虎同伴阵亡后不护小怪、新旧出现 ID 及全境界轮换。
+- 聚焦命令 `bun run test packages/shared/src/hunts packages/shared/src/engine/combat-v6/hunts packages/shared/src/rewards/hunt.test.ts packages/shared/src/combat-v6/arena.test.ts packages/shared/src/engine/combat-v6/rules-daoyou`：70 项通过。覆盖八类目标 × 七个境界 × 三种人数的 168 种阵容、V6 指令提交和首轮结算、五类属性弱点、全部类型的快照恢复、双虎同伴阵亡后不护小怪、新旧出现 ID 及全境界轮换。
 - `bun run lint`、`bun run build`（含前后端 TypeScript 检查）、`git diff --check` 通过。构建仍提示分块大小及静态／动态导入混用，未扩展处理无关打包配置。
 - 本地 local1、local2 通过页面创建队伍、快速匹配、准备并开战，战局 `3b2f3af4-d839-4d14-b2f0-41a0a11bc632`，金丹期吞霞灵蟾。桌面和 360px 均完整显示八个敌人，首轮战报确认 BOSS、精英、四个近战小怪和两个术士均出招，目标分散到两位玩家。
 - 使用原有炼气／筑基测试角色，未临时提高属性；第二回合落败并正常结算，双方随后退出队伍。无遗留测试战斗或队伍，检查的浏览器错误日志为空。内置浏览器一度点击无响应，换新标签后完成验证。
@@ -107,7 +107,7 @@
 
 ## 状态与结算边界
 
-六小时刷新验证（2026-09-30）：`bun run test src/shared/hunts src/shared/rewards/hunt.test.ts src/shared/engine/combat-v6/hunts src/shared/combat-v6/arena.test.ts` 共 59 项通过，覆盖北京时间四个刷新点、窗口末毫秒、事件身份换轮、v1/v2 原时间和目标，以及七个 BOSS 境界的六小时资源收益。奖励生成、材料选取、预览和结算调用链经检查均按目标境界确定奖励；领取者境界只用于自身修行进度初始化，不用于重算奖励。`bun run lint`、`bun run build`、修改代码的 Prettier 检查和 `git diff --check` 通过。浏览器验证 `hunt-v3-82907-0` 的 00:00 到期提示、创建与退出队伍，控制台无错误；未重跑胜利发奖、全量单测或生产验证。测试队伍已退出，截图为 `/tmp/daoyou-hunt-connection/six-hour-cycle.png`。
+六小时刷新验证（2026-09-30）：`bun run test packages/shared/src/hunts packages/shared/src/rewards/hunt.test.ts packages/shared/src/engine/combat-v6/hunts packages/shared/src/combat-v6/arena.test.ts` 共 59 项通过，覆盖北京时间四个刷新点、窗口末毫秒、事件身份换轮、v1/v2 原时间和目标，以及七个 BOSS 境界的六小时资源收益。奖励生成、材料选取、预览和结算调用链经检查均按目标境界确定奖励；领取者境界只用于自身修行进度初始化，不用于重算奖励。`bun run lint`、`bun run build`、修改代码的 Prettier 检查和 `git diff --check` 通过。浏览器验证 `hunt-v3-82907-0` 的 00:00 到期提示、创建与退出队伍，控制台无错误；未重跑胜利发奖、全量单测或生产验证。测试队伍已退出，截图为 `/tmp/daoyou-hunt-connection/six-hour-cycle.png`。
 
 - 出现 ID 由版本、轮次与境界确定，所有实例生成相同 ID。六小时刷新使用 `hunt-v3`；`hunt-v1` 保留原三类映射，`hunt-v2` 保留八类映射，两者都按原两小时周期解析，避免旧传闻和已建队伍的目标、到期时间被重新解释。切换版本的当轮，新旧出现各自保持独立领奖资格；已经创建的战局沿用冻结阵容，新开战使用八人敌阵。传闻使用确定性消息 ID 与 Redis 去重标记。
 - Redis 保存队伍、账号归属、事件索引，短期互斥锁配合 Lua revision 检查原子更新。当前实现的队伍互斥锁是全局锁，尚未做高并发容量验收。
@@ -144,9 +144,9 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 - 重复助战战局：`6859680a-1366-4303-a807-6d7334f59f27`。双方均显示「助战完成，本次不重复获得奖励」，余额及两条领奖记录数量不变。
 - 已检查桌面、360px 组队布局及过期事件链接；检查的浏览器控制台没有错误。内置浏览器旧标签曾出现点击无响应，使用新标签后完成流程；Chrome 流程正常。
 - 为快速验证胜利结算，曾通过正式本地 dev 接口临时提高 local1 三项属性；结束后均恢复为 61。保留实际玩法奖励，测试队伍已退出，没有遗留测试战斗。
-- 聚焦测试命令 `bun run test src/shared/hunts src/shared/engine/combat-v6/hunts src/shared/combat-v6/arena.test.ts`：27 项通过，覆盖准入、到期边界、匹配、三类机制和快照恢复。
+- 聚焦测试命令 `bun run test packages/shared/src/hunts packages/shared/src/engine/combat-v6/hunts packages/shared/src/combat-v6/arena.test.ts`：27 项通过，覆盖准入、到期边界、匹配、三类机制和快照恢复。
 - `bun run lint`、`bun run build`（含前后端 TypeScript 检查）、`git diff --check` 通过。
-- 完整 `bun run test`：2288 项通过，2 项失败，分别为未修改文件 `src/shared/forging/forging.test.ts` 的材料堆叠预期、`src/shared/engine/combat-v6/content/skill-learning.test.ts` 的内容哈希预期。未在独立基线检出中复现，因此不把它们标为已确认的基线失败。
+- 完整 `bun run test`：2288 项通过，2 项失败，分别为未修改文件 `packages/shared/src/forging/forging.test.ts` 的材料堆叠预期、`packages/shared/src/engine/combat-v6/content/skill-learning.test.ts` 的内容哈希预期。未在独立基线检出中复现，因此不把它们标为已确认的基线失败。
 - 未做真人三／四人、已领奖与未领奖者混合队、跨到期仍在战斗、服务中断恢复或高并发的浏览器验收；相关分支已做代码检查，人数和到期纯规则由单测覆盖。未验证全境界数值平衡。
 
 浏览器证据保存在本次任务产物 `/tmp/daoyou-hunt-proof/`，不作为仓库测试脚本或长期资源提交。
@@ -159,7 +159,7 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 - 重复助战战局 `d0b32d78-6b6b-459f-b918-3c803f00c06c` 胜利后显示不重复获得奖励；两位角色的资源、奖励快照、邮件 ID 均与首次胜利后相同，仍为两条领奖记录、两封奖励邮件。
 - 结算详情使用弹窗，避免战斗指令栏溢出；桌面与 360px 手机视口均已检查，浏览器错误日志为空。证据为 `rewards-desktop.png`、`rewards-mobile.png`。
 - 测试队伍已全部退出，战斗已结束。local1 临时提高的气血、力量、速度属性均恢复为 61，保留正常玩法所得资源与道具。
-- 聚焦命令 `bun run test src/shared/rewards/hunt.test.ts src/shared/hunts src/shared/engine/combat-v6/hunts src/shared/rewards/yield.test.ts src/shared/rewards/dungeon-material-quality.test.ts`：35 项通过，覆盖七个境界的六小时收益、材料品质范围、保底与概率组独立性、非法配置以及讨伐机制。
+- 聚焦命令 `bun run test packages/shared/src/rewards/hunt.test.ts packages/shared/src/hunts packages/shared/src/engine/combat-v6/hunts packages/shared/src/rewards/yield.test.ts packages/shared/src/rewards/dungeon-material-quality.test.ts`：35 项通过，覆盖七个境界的六小时收益、材料品质范围、保底与概率组独立性、非法配置以及讨伐机制。
 - `bun run lint`、`bun run build` 和 `git diff --check` 通过。此次未重跑完整测试集，上一轮完整测试结果见上节。
 - 未进行混合领奖资格队伍、资源上限、满背包、消息故障重试的运行验收；对应事务、去重、邮件发放和上限路径已做代码检查。概率和数量仍为待平衡的初始配置。
 
@@ -177,7 +177,7 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 - 事件 `hunt-v1-248717-0` 首胜战局 `c003a0ec-930f-4a37-b318-958dbcfa6727`：两位角色各生成一条日志凭据和一封邮件。local1 实际灵石 +3364、修为 +159、感悟 +12；local2 实际灵石 +3839、修为 +182、感悟 +12。战果接口从日志返回完整奖励及邮件 ID，公开日志不返回私有 result。
 - 同事件助战战局 `98fa29ca-69e3-4d47-9377-9cd741208e7e`：双方均返回 assisting，首胜日志和私有奖励快照完全未变，仍只有两封奖励邮件，余额与首胜实际增量一致。队伍列表也显示已获酬／助战资格。
 - local1 领取讨伐邮件后另有一条道具日志（碧鳞蛇蜕 +1、紫晶矿 +1），胜利结算不提前记录邮件道具。双方已退出测试队伍，临时境界与属性通过本地 dev 接口恢复，保留正常奖励。
-- `bun run lint`、`bun run build`、`git diff --check` 通过；`bun run test src/shared/playerJournal.test.ts src/shared/rewards/hunt.test.ts src/shared/hunts src/shared/engine/combat-v6/hunts` 共 28 项通过。未重复跑全量测试，未实测消息故障重投、资源全部封顶及混合领奖资格队伍；这些分支完成事务和唯一键检查。
+- `bun run lint`、`bun run build`、`git diff --check` 通过；`bun run test packages/shared/src/playerJournal.test.ts packages/shared/src/rewards/hunt.test.ts packages/shared/src/hunts packages/shared/src/engine/combat-v6/hunts` 共 28 项通过。未重复跑全量测试，未实测消息故障重投、资源全部封顶及混合领奖资格队伍；这些分支完成事务和唯一键检查。
 
 ## 讨伐持久状态与个人奖励（2026-09-30）
 
@@ -188,7 +188,7 @@ bun --env-file=env/local.env node_modules/drizzle-kit/bin.cjs migrate
 
 本轮验证：
 
-- `bun run test src/shared/hunts src/shared/combat-v6/arena.test.ts src/shared/engine/combat-v6/projection src/shared/engine/combat-v6/wild`：11 个文件、93 项测试通过。`bun run lint`、`bun run build`（含 TypeScript）、`git diff --check` 通过。
+- `bun run test packages/shared/src/hunts packages/shared/src/combat-v6/arena.test.ts packages/shared/src/engine/combat-v6/projection packages/shared/src/engine/combat-v6/wild`：11 个文件、93 项测试通过。`bun run lint`、`bun run build`（含 TypeScript）、`git diff --check` 通过。
 - 本地 API `127.0.0.1:3001`、Vite `127.0.0.1:5174`，local1／local2 使用独立浏览器会话。通过正式本地准备接口临时调整属性与资源，仅为验收结算，不用此战绩评估平衡。
 - 第一场 `81c4e72c-3294-408d-a529-eeb2ca8b96ac`：入场分别为气血 10049/24753、6/955，法力 638/50525、8/850。local2 首回合倒地，队伍第 10 回合获胜。local1 正常领奖，local2 显示落败与未领取报酬，数据库仅有 local1 的领奖凭据。最终持久资源分别为 8498/638、1/8，与战内终局及战后濒死规则一致。验收期间本地开发服务中断，恢复服务并刷新后继续完成战斗。
 - 第二场 `d62b8524-66cc-460f-bfdc-5f76acf07143`：同一次出现，local2 经本地准备接口恢复资源后再次参战，两人存活获胜。local2 首次领奖成功；local1 显示助战，不新增领奖凭据。数据库两条凭据分别指向各自首次成功的战斗。终局资源 8805/722、14692/353 均正确保存，覆盖助战和施法消耗。

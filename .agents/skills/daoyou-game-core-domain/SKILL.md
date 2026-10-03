@@ -7,19 +7,19 @@ description: Daoyou combat-v6 战斗内核、规则、人物投影、宗门、�
 
 ## Locate the Owning Layer
 
-Current combat is `src/shared/engine/combat-v6`. Read the affected module and its callers first; phase plans and the engine README contain historical milestones, not a reliable inventory of current runtime behavior.
+Current combat is `packages/shared/src/engine/combat-v6`. Read the affected module and its callers first; phase plans and the engine README contain historical milestones, not a reliable inventory of current runtime behavior.
 
 | Task | Code entrypoints |
 | --- | --- |
-| Turn pipeline, commands, effects, RNG, sessions | `src/shared/engine/combat-v6/core` |
-| Daoyou combat formulas | `src/shared/engine/combat-v6/rules-daoyou` |
-| Character panel and assembly | `src/shared/engine/combat-v6/projection`, `src/shared/lib/cultivatorDisplay.ts` |
-| Sect methods, skills, meridians | `src/shared/engine/combat-v6/content`, `src/shared/engine/combat-v6/sect-progression` |
-| Equipment compilation and generation | `src/shared/engine/combat-v6/equipment`, `src/shared/forging` |
-| Manual definitions and progression | `src/shared/engine/combat-v6/manuals`, `src/shared/manuals` |
-| Beasts, encounter orchestration, wild encounters | `src/shared/engine/combat-v6/beasts`, `src/shared/engine/combat-v6/encounter`, `src/shared/engine/combat-v6/wild` |
-| Inventory, item definitions, drops, rewards | `src/shared/inventory`, `src/shared/items`, `src/shared/drops`, `src/shared/rewards` |
-| Battle presentation, auto commands and replay contracts | `src/shared/combat-v6`, `src/shared/contracts/combatV6Runtime.ts` |
+| Turn pipeline, commands, effects, RNG, sessions | `packages/shared/src/engine/combat-v6/core` |
+| Daoyou combat formulas | `packages/shared/src/engine/combat-v6/rules-daoyou` |
+| Character panel and assembly | `packages/shared/src/engine/combat-v6/projection`, `packages/shared/src/lib/cultivatorDisplay.ts` |
+| Sect methods, skills, meridians | `packages/shared/src/engine/combat-v6/content`, `packages/shared/src/engine/combat-v6/sect-progression` |
+| Equipment compilation and generation | `packages/shared/src/engine/combat-v6/equipment`, `packages/shared/src/forging` |
+| Manual definitions and progression | `packages/shared/src/engine/combat-v6/manuals`, `packages/shared/src/manuals` |
+| Beasts, encounter orchestration, wild encounters | `packages/shared/src/engine/combat-v6/beasts`, `packages/shared/src/engine/combat-v6/encounter`, `packages/shared/src/engine/combat-v6/wild` |
+| Inventory, item definitions, drops, rewards | `packages/shared/src/inventory`, `packages/shared/src/items`, `packages/shared/src/drops`, `packages/shared/src/rewards` |
+| Battle presentation, auto commands and replay contracts | `packages/shared/src/combat-v6`, `packages/shared/src/contracts/combatV6Runtime.ts` |
 
 ## Engine Boundary
 
@@ -32,9 +32,9 @@ Current combat is `src/shared/engine/combat-v6`. Read the affected module and it
 
 ## Character and Build Boundary
 
-- Current `Cultivator.attributes` still stores six permanent attributes: vitality, strength, spirit, endurance, speed, willpower. Read `src/shared/types/cultivator.ts` and `projection/character-panel-v1.ts` before changing formulas. Future numerical design does not establish an implemented five-attribute model.
-- Current complete projection is `projectCharacterToCombatV6(CharacterCombatInput)`. Historical `projectCultivator*` phase entrypoints are adapters, not the default for new business code.
-- `CharacterCombatInput.sect` is optional. Personal display applies equipment and manuals without sect membership. Reuse `projectCharacterDisplay` and resource helpers in `src/shared/lib/cultivatorDisplay.ts`.
+- Current `Cultivator.attributes` still stores six permanent attributes: vitality, strength, spirit, endurance, speed, willpower. Read `packages/shared/src/types/cultivator.ts` and `projection/character-panel-v1.ts` before changing formulas. Future numerical design does not establish an implemented five-attribute model.
+- Current complete projection is `projectCharacterToCombatV6(CharacterCombatInput)`. Historical `projectCultivator*` phase adapters have been removed; use the current entrypoint.
+- `CharacterCombatInput.sect` is optional. Personal display applies equipment and manuals without sect membership. Reuse `projectCharacterDisplay` and resource helpers in `packages/shared/src/lib/cultivatorDisplay.ts`.
 - Battle admission is a separate server rule: `CombatV6BuildService.ts` assembles authoritative inputs and checks membership / selected path. Do not remove admission checks merely because pure projection permits a sectless character.
 - Personal manuals, equipment and beasts belong to the character; sect methods and meridians belong to membership. Keep their revisions separate, and derive readiness from current membership/path. See `docs/combat-domain-ownership.md`.
 - Respect projection diagnostics and `full` / `persistent` resource policies. Changing maximum HP/MP must not implicitly heal existing characters; recovery and rebasing use the shared display/condition helpers and server V6 condition authority.
@@ -44,13 +44,13 @@ Current combat is `src/shared/engine/combat-v6`. Read the affected module and it
 
 - For beast species design or content changes involving aptitudes, growth or birth skills, also read [daoyou-beast-design](../daoyou-beast-design/SKILL.md). Its confirmed design baseline is distinct from current runtime behavior; do not restore fixed species roles or complete four-skill templates from older content.
 - New equipment uses V6 equipment instances; equipped slots are separate from inventory. Manual progression and active slots are separate from consumable manual jades.
-- Use `src/shared/items/registry.ts` and definition schemas for item facts, and `src/shared/inventory` for stack/capacity/action rules. Do not translate new items into legacy creation product models.
+- Use `packages/shared/src/items/registry.ts` and definition schemas for item facts, and `packages/shared/src/inventory` for stack/capacity/action rules. Do not translate new items into legacy creation product models.
 - Forge, manual, beast and reward rules have dedicated shared modules; reuse them instead of reproducing costs, eligibility or generation logic in routes/UI.
 - Existing condition, alchemy and spirit-field code remains outside the battle core. Follow its live callers; removal of the old combat engine does not imply removal of all noncombat systems.
 
 ## Verify
 
 - For pure deterministic shared logic, add or update a focused reproducing/contract test beside the affected module.
-- Examples: `bun run test src/shared/engine/combat-v6/projection`, `bun run test src/shared/engine/combat-v6/rules-daoyou`, or `bun run test src/shared/inventory` depending on scope.
-- Broaden to `bun run test` for changes spanning core, content and projection; run lint/build when imports or shared contracts change.
+- Examples: `pnpm run test packages/shared/src/engine/combat-v6/projection`, `pnpm run test packages/shared/src/engine/combat-v6/rules-daoyou`, or `pnpm run test packages/shared/src/inventory` depending on scope.
+- Broaden to `pnpm run test` for changes spanning core, content and projection; run lint/build when imports or shared contracts change.
 - Server persistence and browser behavior use code inspection and focused runtime checks per `docs/testing.md`; do not add server, database or UI unit tests.

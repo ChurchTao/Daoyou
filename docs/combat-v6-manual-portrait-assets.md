@@ -4,8 +4,8 @@
 
 ## 生产素材
 
-- `public/assets/manuals/cultivator-male-meditation.webp`
-- `public/assets/manuals/cultivator-female-meditation.webp`
+- `apps/web/public/assets/manuals/cultivator-male-meditation.webp`
+- `apps/web/public/assets/manuals/cultivator-female-meditation.webp`
 
 两张均为 960×960 WebP，保留透明度，使用质量 90、alphaQuality 100；轮廓框内留边。像素 alpha 覆盖 0–255。按白底反合成得到墨迹透明度，清除接近白色的背景微纹，保留衣内留白与飞白。页面正常 opacity 显示，不使用 CSS 混合模式。纸色并排检查：盘坐轮廓完整，暖灰墨色一致，发髻与衣侧有浓墨支点，边缘无棋盘或白色矩形；脸部仍有简化眉眼，非纯减笔肖像。
 

@@ -1,37 +1,18 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "ES2022",
-    "lib": ["ES2023"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
+    "tsBuildInfoFile": "./node_modules/.tmp/tools.tsbuildinfo",
     "noEmit": true,
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
-    "types": ["bun", "node", "vite/client", "vitest/globals"],
+    "types": ["node"],
     "paths": {
-      "@app/*": ["./src/react-app/*"],
-      "@server/*": ["./src/server/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@server/*": ["./apps/api/src/*"]
     }
   },
   "include": [
-    "vite*.ts",
+    "apps/web/vite.config.ts",
     "vitest.config.ts",
-    "drizzle.auth.config.ts",
-    "./src/index.ts",
-    "./src/server",
-    "./scripts"
-  ],
-  "files": ["./src/server/types/markdown.d.ts"]
+    "drizzle*.config.ts",
+    "scripts/**/*.ts",
+    "apps/api/scripts/**/*.ts"
+  ]
 }

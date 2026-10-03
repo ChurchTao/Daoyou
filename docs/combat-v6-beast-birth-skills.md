@@ -62,7 +62,7 @@
 
 - 先添加失败测试复现：18种均无法满天生技能、没有无必带物种，共19项失败；改动后全部通过。
 - 灵兽、野外、背包相关311项全部通过（包含在最终全量运行中）。覆盖0格、完整天生集合、初领／捕捉／洗炼共用结果、传承不扩格、全部物种概率与候选等权、非法池／必带数／满技能不可达拒绝。
-- `bun run test`：1542通过、1失败。唯一失败为未改动的 `src/shared/lib/bodyCultivation/pack.test.ts` 描述文案旧基线，与上轮一致。
+- `bun run test`：1542通过、1失败。唯一失败为未改动的 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 描述文案旧基线，与上轮一致。
 - `bun run lint`、`bun run build`通过；构建仍有既有的动态／静态混合导入及较大chunk提示。
 - 18种各1000个固定种子，与本轮改动前数据比较：18,000组资质及成长完全一致；除出生技能配置外，18种所有字段保持不变。旧个体解析测试保留，生成摘要因本次有意变更技能而更新为修订9。
 - 18种等权理论平均格数从2.786降为1.421；只是配置期望，不是按地图或玩家行为加权的实测。
@@ -76,7 +76,7 @@
 
 - 18种物种只调整数量概率，技能池、必带、资质、成长、携带要求均保持修订9配置；内容修订升至10。
 - 平均格数（物种等权）从1.421小幅上升至1.471，每种物种仍至少75%个体不超过两格。
-- `bun run test src/shared/engine/combat-v6/beasts src/shared/engine/combat-v6/wild src/shared/inventory`：22文件、311项通过。新增逐物种满技能概率3%—5%边界断言，既有1万种子抽样覆盖新概率；生成摘要同步为修订10。
+- `bun run test packages/shared/src/engine/combat-v6/beasts packages/shared/src/engine/combat-v6/wild packages/shared/src/inventory`：22文件、311项通过。新增逐物种满技能概率3%—5%边界断言，既有1万种子抽样覆盖新概率；生成摘要同步为修订10。
 - `bun run lint`、`git diff --check`通过。
 - 仅概率配置及测试／文档调整，本轮未重复全量测试、构建或浏览器验收。
 
@@ -92,7 +92,7 @@
 
 验收结果：
 
-- `bun run test src/shared/inventory src/shared/engine/combat-v6/beasts src/shared/engine/combat-v6/wild`：22文件、312项通过。新增测试先复现旧拦截，随后验证0→1、第二次仅覆盖、旧对象不变、重复技能／越界格位／等级限制。
+- `bun run test packages/shared/src/inventory packages/shared/src/engine/combat-v6/beasts packages/shared/src/engine/combat-v6/wild`：22文件、312项通过。新增测试先复现旧拦截，随后验证0→1、第二次仅覆盖、旧对象不变、重复技能／越界格位／等级限制。
 - `bun run lint`、`bun run build`、skill-creator校验、`git diff --check`通过。本轮未重复全量测试。
 - 本地浏览器真实流程：临时样本经两次正常洗炼成为0技能；首次消耗1枚连击灵印，显示“开启第一个技能格”并获得连击；第二次消耗1枚噬血灵印，显示“随机覆盖一个已有技能”，结果为连击→噬血。
 - 只读数据库确认样本保存为1格、仅噬血、修订4（两次洗炼＋两次传承）。两种灵印各从测试补充后的6枚回到5枚。页面控制台无错误／警告。

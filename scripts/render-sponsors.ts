@@ -1,3 +1,4 @@
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 type SponsorTier = {
@@ -30,7 +31,7 @@ type SponsorData = {
   };
 };
 
-const repositoryRoot = resolve(import.meta.dir, '..');
+const repositoryRoot = resolve(import.meta.dirname, '..');
 const dataPath = resolve(repositoryRoot, 'docs/sponsors.json');
 const outputPath = resolve(repositoryRoot, 'SPONSORS.md');
 const checkOnly = process.argv.includes('--check');
@@ -256,7 +257,7 @@ function renderSponsors(data: SponsorData): string {
     '',
     '感谢每一位帮助《万界道友》持续维护与成长的道友。新的赞助统一通过爱发电进行，既有历史记录继续保留。',
     '',
-    '> 本页自动生成，请勿直接编辑。同步爱发电运行 `bun run sponsors:sync`；仅更新历史名单时运行 `bun run sponsors:render`。',
+    '> 本页自动生成，请勿直接编辑。同步爱发电运行 `pnpm run sponsors:sync`；仅更新历史名单时运行 `pnpm run sponsors:render`。',
     '',
     `最后更新：${data.updatedAt}`,
     '',
@@ -308,18 +309,18 @@ function renderSponsors(data: SponsorData): string {
   return lines.join('\n');
 }
 
-const rawData = await Bun.file(dataPath).json();
+const rawData = JSON.parse(await readFile(dataPath, 'utf8'));
 const rendered = renderSponsors(parseSponsorData(rawData));
 
 if (checkOnly) {
-  const current = await Bun.file(outputPath).text();
+  const current = await readFile(outputPath, 'utf8');
   if (current !== rendered) {
     fail(
-      'SPONSORS.md 与 docs/sponsors.json 不同步，请运行 bun run sponsors:render',
+      'SPONSORS.md 与 docs/sponsors.json 不同步，请运行 pnpm run sponsors:render',
     );
   }
   console.log('赞助人数据和 SPONSORS.md 已同步。');
 } else {
-  await Bun.write(outputPath, rendered);
+  await writeFile(outputPath, rendered, 'utf8');
   console.log('已更新 SPONSORS.md。');
 }

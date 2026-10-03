@@ -42,7 +42,7 @@
 
 ## 写入与界面
 
-规则位于 `src/shared/inscriptions/rules.ts`，协议位于 `src/shared/contracts/inscriptions.ts`。服务端经活动角色认证、角色锁与 `playerCommandExecutor` 事务；材料／阵纹／装备均按所属角色、位置、数量和版本校验，费用重新计算。随机结果、库存、资源扣减及幂等结果在同一事务中提交。客户端持久化未确认请求，刷新或网络失败复用原请求ID核对结果。
+规则位于 `packages/shared/src/inscriptions/rules.ts`，协议位于 `packages/shared/src/contracts/inscriptions.ts`。服务端经活动角色认证、角色锁与 `playerCommandExecutor` 事务；材料／阵纹／装备均按所属角色、位置、数量和版本校验，费用重新计算。随机结果、库存、资源扣减及幂等结果在同一事务中提交。客户端持久化未确认请求，刷新或网络失败复用原请求ID核对结果。
 
 已穿戴装备变更发布 `player.profile`，由已有资源提交器刷新投影、气血法力上限与关联缓存，不自动补满气血。
 
@@ -50,7 +50,7 @@
 
 ## 美术素材
 
-生产文件：`public/assets/inscriptions/drawing-board.webp`，960×960，保留真实alpha。生成依据为 `.agents/skills/daoyou-ink-portraits` 的男女冻结参考，只沿用暖灰宽笔、飞白和留白语言。
+生产文件：`apps/web/public/assets/inscriptions/drawing-board.webp`，960×960，保留真实alpha。生成依据为 `.agents/skills/daoyou-ink-portraits` 的男女冻结参考，只沿用暖灰宽笔、飞白和留白语言。
 
 采用提示词：略俯视的古朴圆形绘阵盘，疏朗断续的同心墨线与少量抽象阵纹，中间留白，斜置符笔与小砚收在右下；四角留给材料格。宽笔暖灰墨面，少量浓墨强调笔砚，中淡墨、飞白与透明留白构形。独立透明底，不画文字、印章、室内建筑、人物、光环、发光符文、粒子或写实材质。
 
@@ -60,10 +60,10 @@
 
 2026-09-23，使用 `local4` 完成桌面及360px移动端验收：绘制及尾数确认、背包合成、空孔烙印、覆盖不返还、孔内合成、装备等级限制、刷新持久化与已穿戴装备属性同步。增加气血上限不会即时补满气血。四种材料合计130份的预览为6级一枚、尾数2份、消耗2点灵气；该组合未提交。
 
-- `bun run test src/shared/inscriptions src/shared/inventory src/shared/contracts/auction.test.ts`：8文件、45项通过。
+- `bun run test packages/shared/src/inscriptions packages/shared/src/inventory packages/shared/src/contracts/auction.test.ts`：8文件、45项通过。
 - `bun run test --testTimeout 30000`：208文件、1971项通过。
-- `bunx tsc -b tsconfig.app.json tsconfig.node.json`、首轮 `bun run build` 通过；最终 `bun run lint` 与 `git diff --check` 通过。
-- 最终构建被并行战斗改动阻断：`src/shared/combat-v6/skill-details.ts:85` 的效果名称映射缺少新增的 `repeat`。同时九劫天宫内容包与新解析结构暂不匹配，导致页面加载失败；未修改这些并行文件。
+- `bunx tsc -b apps/web/tsconfig.json tsconfig.node.json`、首轮 `bun run build` 通过；最终 `bun run lint` 与 `git diff --check` 通过。
+- 最终构建被并行战斗改动阻断：`packages/shared/src/combat-v6/skill-details.ts:85` 的效果名称映射缺少新增的 `repeat`。同时九劫天宫内容包与新解析结构暂不匹配，导致页面加载失败；未修改这些并行文件。
 
 验收收尾时本地3001 API已不可连接，测试样本尚未清理。角色 `a7b1252b-63ed-4c4e-a8c1-d0bc06772ba7` 验收前统一库存为空；现有样本为青石剑、已穿戴青石袍、玄锋4级／玄锋2级／长生3级各一枚及四种验收材料。服务恢复后应先通过正式操作卸下青石袍，再核对库存仅含本次样本后使用本地清包接口；保留真实消耗与历史记录，不直接改库。未执行断网恢复模拟。
 
