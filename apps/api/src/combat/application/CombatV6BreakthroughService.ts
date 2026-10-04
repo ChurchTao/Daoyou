@@ -158,7 +158,8 @@ export async function startBreakthroughBattle(actor: Actor, taskId: string) {
         const runtime: BreakthroughRuntime = {
           version: 'breakthrough-session-v1',
           battleId: randomUUID(),
-          ...actor,
+          userId: actor.userId,
+          cultivatorId: actor.cultivatorId,
           taskId,
           objectiveId: prepared.objectiveId,
           challengeId,

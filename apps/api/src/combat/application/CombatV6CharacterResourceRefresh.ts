@@ -3,14 +3,15 @@ import { cultivators } from '@server/lib/drizzle/schema.js';
 import { rebaseCharacterResources } from '@daoyou/game-rules/character/display';
 import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { readCombatV6ConditionAuthority } from '@server/combat/application/CombatV6ConditionAuthority.js';
 
 /** Runs in the build/profile mutation transaction, before its condition invalidation is published. */
 export async function refreshCombatV6CharacterResources(id: string, tx: DbTransaction) {
+  // Lifecycle mutations may have already marked the character dead in this transaction.
   const [row] = await tx.select({ condition: cultivators.condition })
-    .from(cultivators).where(eq(cultivators.id, id)).for('update');
+    .from(cultivators).where(and(eq(cultivators.id, id), eq(cultivators.status, 'active'))).for('update');
   if (!row?.condition) return;
   const condition = row.condition as CultivatorCondition;
   const authority = await readCombatV6ConditionAuthority(id, tx);

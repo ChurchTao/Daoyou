@@ -372,7 +372,8 @@ export class CombatV6WildSessionService {
             dropPool: structuredClone(dropPool),
             runtimeVersion: 'combat_v6_redis_runtime_v1',
             battleId: encounter.id,
-            ...actor,
+            userId: actor.userId,
+            cultivatorId: actor.cultivatorId,
             membershipId: assembled.membershipId,
             metadata: {
               schemaVersion: 1,

@@ -71,7 +71,8 @@ async function member(actor: HuntActor, event: HuntEvent): Promise<HuntMember> {
   if (!row || !REALM_VALUES.includes(row.realm as RealmType))
     throw new ArenaV6Error('这位道友暂时无法出战');
   return {
-    ...actor,
+    userId: actor.userId,
+    cultivatorId: actor.cultivatorId,
     name: row.name,
     realm: row.realm as RealmType,
     ready: false,

@@ -58,7 +58,8 @@ async function publishPosition(actor: Actor, result: RankingChallengeResult) {
           type: 'ranking.position.changed',
           aggregate: { type: 'cultivator', id: actor.cultivatorId },
           data: {
-            ...actor,
+            userId: actor.userId,
+            cultivatorId: actor.cultivatorId,
             challengerName: row.name,
             realm: result.realm,
             rank: result.challengerRank!,
@@ -214,7 +215,13 @@ return 1`,
           affectsRanking: frozen.identity.realm === request.realm,
           input: frozen.input!,
           participants: [
-            { ...actor, unitId: actor.cultivatorId, side: 0, slot: 0 },
+            {
+              userId: actor.userId,
+              cultivatorId: actor.cultivatorId,
+              unitId: actor.cultivatorId,
+              side: 0,
+              slot: 0,
+            },
             {
               userId: frozen.target!.userId,
               cultivatorId: request.targetId,
