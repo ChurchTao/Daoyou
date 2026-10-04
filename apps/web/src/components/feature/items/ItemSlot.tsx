@@ -1,0 +1,347 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
+import { cn } from '@app/lib/cn';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { itemPresentation } from './itemPresentation';
+import { type DisplayItem } from './presentation/types.js';
+import { ItemPreview } from './ItemPreview';
+
+export function InventoryGrid({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('grid grid-cols-4 gap-2 sm:grid-cols-8', className)}>
+      {children}
+    </div>
+  );
+}
+
+type SlotItem = {
+  name: string;
+  quantity: number;
+  icon: string;
+  color: string;
+  equipped?: boolean;
+};
+
+type SlotProps = {
+  selected?: boolean;
+  disabled?: boolean;
+  badge?: string;
+  emptyLabel?: string;
+  emptyIcon?: ReactNode;
+  className?: string;
+  onQuickAction?: () => void;
+  quickOnTouch?: boolean;
+  guideAnchor?: string;
+};
+
+export function ItemSlot({
+  item,
+  children,
+  quantityLabel = '持有',
+  ...props
+}: SlotProps & {
+  item?: DisplayItem;
+  children?: (close: () => void) => ReactNode;
+  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
+}) {
+  return (
+    <PreviewSlot
+      {...props}
+      item={item ? { ...item, ...itemPresentation(item) } : undefined}
+      renderPreview={(close) =>
+        item && (
+          <ItemPreview
+            item={item}
+            options={{ hideQuantity: true }}
+            quantityLabel={quantityLabel}
+            close={close}
+            actions={children?.(close)}
+          />
+        )
+      }
+    />
+  );
+}
+
+/** Shared slot and native popover for items and non-inventory rewards. */
+export function PreviewSlot({
+  item,
+  selected,
+  disabled,
+  badge,
+  emptyLabel = '空格',
+  emptyIcon = '·',
+  className,
+  onQuickAction,
+  quickOnTouch,
+  renderPreview,
+  guideAnchor,
+}: SlotProps & {
+  item?: SlotItem;
+  renderPreview: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const touchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const touchStart = useRef({ x: 0, y: 0 });
+  const longPressed = useRef(false);
+  const touchMoved = useRef(false);
+  const pointer = useRef('');
+  const slotName = item?.name ?? emptyLabel;
+  const quantityText = item
+    ? item.quantity > 9999
+      ? `${(item.quantity / 10000).toFixed(2)}万`
+      : String(item.quantity)
+    : '';
+  function cancel() {
+    clearTimeout(timer.current);
+  }
+  function cancelTouch() {
+    clearTimeout(touchTimer.current);
+  }
+  function close() {
+    cancel();
+    panel.current?.hidePopover();
+  }
+  function show() {
+    cancel();
+    if (item) panel.current?.showPopover();
+  }
+  function leave() {
+    cancel();
+    timer.current = setTimeout(close, 220);
+  }
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearTimeout(touchTimer.current);
+    },
+    [],
+  );
+  useLayoutEffect(() => {
+    if (!open) {
+      panel.current?.hidePopover();
+      return;
+    }
+    const position = () => {
+      const element = panel.current;
+      const anchor = trigger.current;
+      if (!element || !anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const x = (viewport?.offsetLeft ?? 0) + 8;
+      const y = (viewport?.offsetTop ?? 0) + 8;
+      const width = (viewport?.width ?? window.innerWidth) - 16;
+      const height = (viewport?.height ?? window.innerHeight) - 16;
+      element.style.maxWidth = `${width}px`;
+      element.style.maxHeight = `${height}px`;
+      const size = element.getBoundingClientRect();
+      const left =
+        rect.right + 8 + size.width <= x + width
+          ? rect.right + 8
+          : rect.left - size.width - 8;
+      element.style.left = `${Math.max(x, Math.min(left, x + width - size.width))}px`;
+      element.style.top = `${Math.max(y, Math.min(rect.top, y + height - size.height))}px`;
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    if (panel.current) observer.observe(panel.current);
+    window.addEventListener('scroll', position, true);
+    window.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('resize', position);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', position, true);
+      window.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('resize', position);
+    };
+  }, [open]);
+  return (
+    <>
+      <button
+        ref={trigger}
+        data-guide={guideAnchor}
+        type="button"
+        aria-label={
+          item ? `${item.name}，${item.quantity}件` : emptyLabel || '空格'
+        }
+        aria-expanded={item ? open : undefined}
+        aria-disabled={disabled || (!item && !onQuickAction)}
+        tabIndex={!item && !onQuickAction ? -1 : undefined}
+        aria-haspopup={item ? 'dialog' : undefined}
+        className={cn(
+          'bg-paper border-ink/20 hover:border-crimson/50 @container relative aspect-square min-h-0 min-w-0 cursor-pointer overflow-hidden border text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+          quickOnTouch &&
+            'touch-manipulation select-none [-webkit-touch-callout:none]',
+          selected && 'outline-crimson/50 outline outline-offset-1',
+          disabled && 'cursor-default opacity-60',
+          className,
+        )}
+        onPointerDown={(e) => {
+          pointer.current = e.pointerType;
+          longPressed.current = false;
+          touchMoved.current = false;
+          if (e.pointerType === 'touch' && quickOnTouch && item) {
+            touchStart.current = { x: e.clientX, y: e.clientY };
+            cancelTouch();
+            touchTimer.current = setTimeout(() => {
+              longPressed.current = true;
+              show();
+            }, 500);
+          }
+        }}
+        onPointerMove={(e) => {
+          if (
+            e.pointerType === 'touch' &&
+            quickOnTouch &&
+            (Math.abs(e.clientX - touchStart.current.x) > 10 ||
+              Math.abs(e.clientY - touchStart.current.y) > 10)
+          ) {
+            touchMoved.current = true;
+            cancelTouch();
+          }
+        }}
+        onPointerUp={cancelTouch}
+        onPointerCancel={() => {
+          if (quickOnTouch) touchMoved.current = true;
+          cancelTouch();
+        }}
+        onPointerEnter={(e) => {
+          if (e.pointerType === 'mouse' && item) {
+            cancel();
+            timer.current = setTimeout(show, 350);
+          }
+        }}
+        onPointerLeave={(e) => {
+          if (e.pointerType === 'mouse') leave();
+          else if (e.pointerType === 'touch') cancelTouch();
+        }}
+        onContextMenu={(e) => {
+          if (quickOnTouch) e.preventDefault();
+        }}
+        onFocus={(e) => {
+          if (e.currentTarget.matches(':focus-visible')) show();
+        }}
+        onKeyDown={(event) => {
+          pointer.current = '';
+          longPressed.current = false;
+          touchMoved.current = false;
+          if (event.key === 'Escape' && open) {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+          }
+        }}
+        onClick={() => {
+          if (longPressed.current || touchMoved.current) {
+            longPressed.current = false;
+            touchMoved.current = false;
+            return;
+          }
+          if (
+            onQuickAction &&
+            (pointer.current !== 'touch' || !item || quickOnTouch) &&
+            !disabled
+          ) {
+            close();
+            onQuickAction();
+          } else show();
+        }}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute grid place-items-center leading-none',
+            item || (emptyLabel && emptyIcon !== '·')
+              ? 'inset-x-1 top-[18%] h-[44%] text-[clamp(1.25rem,44cqw,2.5rem)]'
+              : 'text-ink/25 inset-0 text-xl',
+            !item &&
+              emptyLabel &&
+              emptyIcon !== '·' &&
+              (onQuickAction ? 'text-ink-secondary' : 'text-ink/25'),
+          )}
+        >
+          {item ? <GameIcon value={item.icon} purpose="artwork" /> : emptyIcon}
+        </span>
+        {slotName ? (
+          <span
+            className={cn(
+              'pointer-events-none absolute inset-x-1 top-[60%] flex h-[34%] items-center justify-center text-center wrap-anywhere',
+              slotName.length > 5
+                ? 'text-[clamp(0.5rem,16cqw,0.625rem)] leading-[1.05]'
+                : slotName.length === 5
+                  ? 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1] @max-[4rem]:text-[8px] @max-[4rem]:leading-[1.05]'
+                  : 'text-[clamp(0.625rem,16cqw,0.75rem)] leading-[1.1]',
+              item?.color,
+            )}
+          >
+            <span className="line-clamp-2 w-full">{slotName}</span>
+          </span>
+        ) : null}
+        {item && item.quantity > 1 ? (
+          <span
+            className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
+            style={
+              item.quantity > 9999
+                ? {
+                    // Leave room for the multiplier and 万 in narrow slots.
+                    fontSize: `min(1rem, 20cqw, calc((100cqw - 0.5rem) / ${quantityText.length * 0.65 + 1}))`,
+                  }
+                : undefined
+            }
+          >
+            <span className="text-[0.75em]">×</span>
+            {quantityText}
+          </span>
+        ) : null}
+        {badge || item?.equipped ? (
+          <span className="text-crimson bg-paper/90 absolute top-0 right-1 text-[10px]">
+            {badge ?? '已装备'}
+          </span>
+        ) : null}
+      </button>
+      <div
+        ref={panel}
+        popover="auto"
+        role="dialog"
+        aria-label={item?.name ?? '物品预览'}
+        onToggle={(e) => {
+          if (e.target === e.currentTarget) setOpen(e.newState === 'open');
+        }}
+        onPointerEnter={cancel}
+        onPointerLeave={(e) => {
+          if (
+            e.pointerType === 'mouse' &&
+            !panel.current?.contains(document.activeElement)
+          )
+            leave();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Tab') e.stopPropagation();
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            trigger.current?.focus();
+            close();
+          }
+        }}
+        className="bg-bgpaper text-ink border-ink/30 fixed inset-auto m-0 w-80 overflow-y-auto overscroll-contain border p-3 text-sm leading-6 [overflow-wrap:anywhere] shadow-xl"
+      >
+        {open && item ? renderPreview(() => setOpen(false)) : null}
+      </div>
+    </>
+  );
+}

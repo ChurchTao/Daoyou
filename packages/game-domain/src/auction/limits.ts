@@ -1,0 +1,7 @@
+import { MAX_PLAYER_ITEM_QUANTITY } from '../items/quantity.js';
+
+export const AUCTION_MAX_UNIT_PRICE = 9_999_999;
+
+export const AUCTION_MAX_PURCHASE_QUANTITY = MAX_PLAYER_ITEM_QUANTITY;
+
+export const AUCTION_MAX_TRANSACTION_TOTAL = 1_000_000_000;

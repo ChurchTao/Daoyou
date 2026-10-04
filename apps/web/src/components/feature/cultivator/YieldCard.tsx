@@ -1,0 +1,297 @@
+import { apiFetch } from '@app/lib/api/fetch';
+import { hasPendingCommandRequest, pendingCommandRequest } from '@app/lib/pendingCommandRequest';
+import { usePlayerSession } from '@app/lib/resources/player';
+import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
+import { InkModal } from '@app/components/layout';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkBadge } from '@app/components/ui/InkBadge';
+import { InkButton } from '@app/components/ui/InkButton';
+import { consumeResourceChanges } from '@app/lib/resources/mutations';
+import { GeneratedMaterial } from '@daoyou/game-domain/materials/generation';
+import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
+import { useEffect, useState } from 'react';
+
+interface YieldCardProps {
+  cultivator: { last_yield_at?: string };
+  onOk?: () => void;
+  onInteractionActiveChange?: (active: boolean) => void;
+  variant?: 'card' | 'compact';
+}
+
+export function YieldCard({
+  cultivator,
+  onOk,
+  onInteractionActiveChange,
+  variant = 'card',
+}: YieldCardProps) {
+  const { pushToast } = useInkUI();
+  const owner = usePlayerSession().data?.activeCultivator?.id;
+  const [timeSinceYield, setTimeSinceYield] = useState(0);
+  const [yieldResult, setYieldResult] = useState<{
+    amount: number;
+    hours: number;
+    story: string;
+    materials?: GeneratedMaterial[];
+    expGain?: number;
+    insightGain?: number;
+    rewardCount?: number; // 物品总数（邮件异步送达）
+  } | null>(null);
+
+  const [claiming, setClaiming] = useState(false);
+
+  // 历练相关
+  const handleClaimYield = async () => {
+    if (!cultivator || !owner) return;
+    const pending = pendingCommandRequest(owner, 'yield');
+    setClaiming(true);
+    onInteractionActiveChange?.(true);
+
+    try {
+      const response = await apiFetch('/api/cultivator/yield', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: pending.requestId }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || '领取失败');
+      }
+
+      if (!response.body) throw new Error('No response body');
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      // Initialize empty result to show modal immediately
+      setYieldResult({
+        amount: 0,
+        hours: 0,
+        story: '天机推演中……',
+      });
+
+      let currentStory = '';
+      let streamBuffer = '';
+      const processSseData = (dataStr: string) => {
+        if (!dataStr || dataStr === '[DONE]') return;
+
+        try {
+          const data = JSON.parse(dataStr);
+          if (data.type === 'result') {
+            pending.complete();
+            // Initial calculation result
+            setYieldResult(() => ({
+              amount: data.data.amount,
+              hours: data.data.hours,
+              materials: data.data.materials,
+              expGain: data.data.expGain,
+              insightGain: data.data.insightGain,
+              rewardCount: data.data.rewardCount,
+              story: currentStory || '',
+            }));
+          } else if (data.type === 'chunk') {
+            // Story text chunk
+            currentStory += data.text;
+            setYieldResult((prev) =>
+              prev ? { ...prev, story: currentStory } : null,
+            );
+          } else if (data.type === 'state' && data.state) {
+            consumeResourceChanges(data.state);
+          } else if (data.type === 'error') {
+            pushToast({ message: data.error, tone: 'danger' });
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data', e);
+        }
+      };
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: !doneReading });
+        streamBuffer += chunkValue;
+
+        // Process SSE chunks
+        const frames = streamBuffer.split('\n\n');
+        streamBuffer = frames.pop() ?? '';
+        for (const frame of frames) {
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('data: ')) {
+              processSseData(line.slice(6));
+            }
+          }
+        }
+      }
+
+      if (streamBuffer.trim()) {
+        for (const line of streamBuffer.split('\n')) {
+          if (line.startsWith('data: ')) {
+            processSseData(line.slice(6));
+          }
+        }
+      }
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '领取失败',
+        tone: 'danger',
+      });
+      setYieldResult(null); // Close modal on error
+      onInteractionActiveChange?.(false);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleCloseYieldModal = () => {
+    setYieldResult(null);
+    onInteractionActiveChange?.(false);
+    onOk?.();
+  };
+
+  useEffect(() => {
+    if (cultivator?.last_yield_at) {
+      const update = () => {
+        const diff = Date.now() - new Date(cultivator.last_yield_at!).getTime();
+        setTimeSinceYield(Math.floor(diff / (1000 * 60 * 60)));
+      };
+      update();
+      // Optional: interval if we want auto-update, but not strictly requested
+    }
+  }, [cultivator?.last_yield_at]);
+
+  const pendingYield = owner ? hasPendingCommandRequest(owner, 'yield') : false;
+  const actionButton = (
+    <InkButton
+      variant={timeSinceYield >= 1 ? 'primary' : 'secondary'}
+      disabled={timeSinceYield < 1 && !pendingYield}
+      pending={claiming}
+      pendingLabel="结算中……"
+      onClick={handleClaimYield}
+      className={variant === 'card' ? 'min-w-20' : undefined}
+    >
+      {pendingYield ? '重试领取' : timeSinceYield < 1 ? '历练中' : '领取'}
+    </InkButton>
+  );
+  const spiritStonesInfo = getGameConceptInfo('spirit_stones');
+  const cultivationInfo = getGameConceptInfo('cultivation_exp');
+  const insightInfo = getGameConceptInfo('comprehension_insight');
+
+  return (
+    <>
+      {variant === 'compact' ? (
+        <HomeUrgentRow
+          title={
+            <>
+              <span>🗺️ 外出历练</span>
+              {timeSinceYield >= 24 ? (
+                <InkBadge tone="danger" compact>
+                  已满
+                </InkBadge>
+              ) : null}
+            </>
+          }
+          summary={`已历练 ${timeSinceYield}/24小时`}
+          action={actionButton}
+        />
+      ) : (
+        <div className="border-ink/20 relative mb-6 overflow-hidden border bg-white/70 p-4">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <div className="text-ink-primary flex items-center gap-1 text-lg font-bold">
+                <span>🗺️ 历练收益</span>
+                {timeSinceYield >= 24 && (
+                  <InkBadge tone="danger">已满</InkBadge>
+                )}
+              </div>
+              <div className="text-ink-secondary text-sm">
+                已历练{' '}
+                <span className="text-ink-primary font-bold">
+                  {timeSinceYield}
+                </span>{' '}
+                小时
+                <span className="opacity-60"> (上限24h)</span>
+              </div>
+            </div>
+            {actionButton}
+          </div>
+        </div>
+      )}
+
+      <InkModal
+        isOpen={!!yieldResult}
+        onClose={handleCloseYieldModal}
+        title="历练归来"
+        footer={
+          <InkButton
+            variant="primary"
+            className="w-full"
+            onClick={handleCloseYieldModal}
+          >
+            收入囊中
+          </InkButton>
+        }
+      >
+        <div className="text-ink bg-ink/5 border-ink/10 mb-6 max-w-none border border-dashed p-4 text-sm leading-relaxed whitespace-pre-line">
+          {yieldResult?.story}
+        </div>
+
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <span className="text-ink-secondary">
+            获得{spiritStonesInfo.label}：
+          </span>
+          <span className="text-gold flex items-center gap-1 text-2xl font-bold">
+            {spiritStonesInfo.icon} {yieldResult?.amount}
+          </span>
+        </div>
+
+        {yieldResult?.expGain && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <span className="text-ink-secondary">修为精进：</span>
+            <span className="text-teal text-2xl font-bold">
+              {cultivationInfo.icon} {yieldResult.expGain}
+            </span>
+          </div>
+        )}
+
+        {yieldResult?.insightGain && (
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <span className="text-ink-secondary">{insightInfo.label}：</span>
+            <span className="text-wood text-2xl font-bold">
+              {insightInfo.icon} {yieldResult.insightGain}
+            </span>
+          </div>
+        )}
+
+        {yieldResult?.materials && yieldResult.materials.length > 0 && (
+          <div className="mb-6">
+            <p className="text-ink mb-2 text-sm font-bold">天材地宝：</p>
+            <div className="flex flex-wrap gap-2">
+              {yieldResult.materials.map(
+                (m: GeneratedMaterial, idx: number) => (
+                  <InkBadge key={idx} tier={m.rank}>
+                    {`${m.name} x ${m.quantity}`}
+                  </InkBadge>
+                ),
+              )}
+            </div>
+          </div>
+        )}
+
+        {yieldResult?.rewardCount &&
+          yieldResult.rewardCount > 0 &&
+          (!yieldResult.materials || yieldResult.materials.length === 0) && (
+            <div className="border-crimson/30 bg-bgpaper mb-6 border border-dashed p-3 text-center">
+              <p className="text-ink-secondary text-sm">
+                另有{' '}
+                <span className="text-crimson font-bold">
+                  {yieldResult.rewardCount}
+                </span>{' '}
+                件历练所得正在运送中，稍后将通过传音玉简（邮件）送达。
+              </p>
+            </div>
+          )}
+      </InkModal>
+    </>
+  );
+}

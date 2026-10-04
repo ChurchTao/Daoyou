@@ -240,4 +240,4 @@
 - 本轮不改变页面结构，未重复浏览器界面验收；不将机制回归测试视为完整PvP平衡验证。
 - `bun run lint`、`bun run build`、`git diff --check`：通过。
 - `bun run test`：209个文件中208个通过，2016项中2015项通过；唯一失败为原有幽都无宠试炼塔多种子用例超出默认5000ms（实际6384ms），没有机制断言失败。
-- 对九劫、通用伤害原语、自动战斗及试炼塔执行 `bun run test src/shared/combat-v6/auto.test.ts src/shared/engine/combat-v6/core/phase-3-primitives.test.ts src/shared/engine/combat-v6/content/jiujie src/shared/engine/combat-v6/tower/phase-two.test.ts --testTimeout=20000`：6个文件94项全部通过，包含追加的自动战斗准备阶段不变性测试。未修改项目超时设置或试炼塔断言。
+- 对九劫、通用伤害原语、自动战斗及试炼塔执行 `bun run test packages/shared/src/combat-v6/auto.test.ts packages/shared/src/engine/combat-v6/core/phase-3-primitives.test.ts packages/shared/src/engine/combat-v6/content/jiujie packages/shared/src/engine/combat-v6/tower/phase-two.test.ts --testTimeout=20000`：6个文件94项全部通过，包含追加的自动战斗准备阶段不变性测试。未修改项目超时设置或试炼塔断言。

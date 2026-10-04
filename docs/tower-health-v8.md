@@ -63,7 +63,7 @@
 
 ## 本次验收记录
 
-- `bun run test src/shared/engine/combat-v6/tower src/shared/lib/tower --testTimeout=30000`：152 项全部通过。
+- `bun run test packages/shared/src/engine/combat-v6/tower packages/shared/src/lib/tower --testTimeout=30000`：152 项全部通过。
 - `bun run lint`、`bun run build`：通过。
 - 本地后台重新生成本周 v8，境界切换与末层属性展示：通过。
 - 未进行全项目测试与逐场浏览器通关计时；已有纯引擎回归覆盖连续推进，不能替代实机播放体验。

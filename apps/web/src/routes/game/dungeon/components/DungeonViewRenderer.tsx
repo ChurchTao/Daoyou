@@ -1,0 +1,451 @@
+import { GameSceneLoading, GameSceneSection } from '@app/components/game-shell';
+import { InkSection } from '@app/components/layout';
+import { InkButton } from '@app/components/ui/InkButton';
+import { InkCard } from '@app/components/ui/InkCard';
+import { InkNotice } from '@app/components/ui/InkNotice';
+import type { BattleCallbackData } from '@app/lib/hooks/dungeon/types';
+import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
+import { getMapNode } from '@daoyou/game-content/world/map';
+import type { Cultivator } from '@daoyou/game-domain/character';
+import type {
+  DungeonMaterialSelection,
+  DungeonOption,
+  DungeonRecoverAction,
+  DungeonState,
+} from '@daoyou/game-domain/dungeon';
+import type { TaskInstance } from '@daoyou/game-domain/tasks';
+import {
+  isConditionStatusActive,
+  getConditionStatusTemplate,
+} from '@daoyou/game-rules/condition';
+import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
+import { canChallengeDungeonRealm } from '@daoyou/game-rules/world/dungeon';
+import { DungeonSceneScreen } from '../dungeonScene';
+import {
+  resolveDungeonSceneDescriptor,
+  type DungeonSceneState,
+} from '../dungeonSceneRegistry';
+import { BattlePreparation } from './BattlePreparation';
+import { DungeonBattle } from './DungeonBattle';
+import { DungeonExploring } from './DungeonExploring';
+import { DungeonLooting } from './DungeonLooting';
+import { DungeonMapSelector } from './DungeonMapSelector';
+import type { DungeonDisplayResources } from './DungeonRunPanel';
+import { DungeonSettlement } from './DungeonSettlement';
+
+interface DungeonViewRendererProps {
+  viewState: DungeonViewState;
+  cultivator: Pick<
+    Cultivator,
+    'id' | 'realm' | 'attributes' | 'condition'
+  > | null;
+  displayResources?: DungeonDisplayResources;
+  tasks: TaskInstance[];
+  processing: boolean;
+  actions: {
+    beginBattle: () => Promise<void>;
+    startDungeon: (nodeId: string) => Promise<void>;
+    performAction: (
+      option: DungeonOption,
+      selections?: DungeonMaterialSelection[],
+    ) => Promise<void>;
+    quitDungeon: () => Promise<boolean>;
+    continueLooting: () => Promise<void>;
+    escapeLooting: () => Promise<void>;
+    recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
+    completeBattle: (data: BattleCallbackData | null) => void;
+  };
+  onSettlementConfirm?: () => void;
+}
+
+function resolveDungeonRunSceneDescriptor(
+  sceneState: DungeonSceneState,
+  state: DungeonState,
+) {
+  const descriptor = resolveDungeonSceneDescriptor(sceneState);
+  const mapNode = getMapNode(state.mapNodeId);
+
+  if (!mapNode?.name) return descriptor;
+
+  return {
+    ...descriptor,
+    sceneLabel: mapNode.name,
+  };
+}
+
+function renderPreparationNotice(
+  cultivator: Pick<Cultivator, 'realm' | 'condition'> | null,
+  displayResources: DungeonDisplayResources | undefined,
+  selectedNode: ReturnType<typeof getMapNode> | null,
+  readiness: ReturnType<typeof dungeonReadiness> | null,
+) {
+  if (!cultivator) return null;
+
+  const activeStatuses = (cultivator.condition?.statuses ?? []).filter(
+    (status) => isConditionStatusActive(status),
+  );
+  const statusNames = activeStatuses
+    .slice(0, 2)
+    .map((status) => getConditionStatusTemplate(status.key)?.name ?? status.key)
+    .join('、');
+  const hp = displayResources?.hp;
+  const mp = displayResources?.mp;
+  const hpPercent = Math.max(0, Math.min(100, Math.round(hp?.percent ?? 0)));
+  const mpPercent = Math.max(0, Math.min(100, Math.round(mp?.percent ?? 0)));
+  const nodeRealm = selectedNode?.realm_requirement;
+  const realmRisk =
+    nodeRealm && !canChallengeDungeonRealm(cultivator.realm, nodeRealm)
+      ? 'danger'
+      : nodeRealm === cultivator.realm
+        ? 'warning'
+        : 'info';
+  const reminder = readiness?.shouldBlock
+    ? readiness.reasons[0]
+    : realmRisk === 'danger'
+      ? `秘境要求${nodeRealm}，高于当前${cultivator.realm}境界。`
+      : statusNames
+        ? `当前有${statusNames}状态，出行前可先调息。`
+        : hpPercent < 60 || mpPercent < 60
+          ? '气血或法力偏低，出行前可先补足。'
+          : '状态平稳，可以出行；战后可休整，或带着已有收获离开。';
+
+  return (
+    <GameSceneSection
+      title="出行准备"
+      help={{
+        title: '秘境探索说明',
+        content: (
+          <div className="space-y-3 text-sm leading-7">
+            <p>每轮选择前可查看代价与危险度，离开秘境时结算收获。</p>
+            <p>
+              气血、法力、异常状态用于出行前判断，不作为探索选项的通过条件。
+            </p>
+            <p>
+              遭遇战逐行动播报；胜利后可继续深入或离开，失败或成功逃跑则结算此前收获。
+            </p>
+            <p>
+              探索休整时可使用恢复丹药；战斗中不能用药，场次之间不会自动恢复气血与法力。
+            </p>
+          </div>
+        ),
+      }}
+    >
+      <div className="border-ink/20 bg-paper/80 space-y-4 border border-dashed p-4 text-sm leading-7">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+              <span className="text-ink-secondary">气血</span>
+              <span className="text-ink font-mono">
+                {Math.floor(hp?.current ?? 0)}/{Math.floor(hp?.max ?? 0)}
+              </span>
+            </div>
+            <div className="bg-ink/10 h-1.5 overflow-hidden">
+              <div
+                className="bg-crimson h-full"
+                style={{ width: `${hpPercent}%` }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+              <span className="text-ink-secondary">法力</span>
+              <span className="text-ink font-mono">
+                {Math.floor(mp?.current ?? 0)}/{Math.floor(mp?.max ?? 0)}
+              </span>
+            </div>
+            <div className="bg-ink/10 h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-[var(--color-tier-xuan)]"
+                style={{ width: `${mpPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-2">
+          <p>异常：{statusNames || '无'}</p>
+          <p>
+            秘境：
+            {realmRisk === 'danger'
+              ? '越阶'
+              : realmRisk === 'warning'
+                ? '同阶'
+                : selectedNode
+                  ? '稳妥'
+                  : '待选'}
+          </p>
+        </div>
+
+        <p
+          className={
+            realmRisk === 'danger' || readiness?.shouldBlock
+              ? 'text-crimson'
+              : 'text-ink-secondary'
+          }
+        >
+          {reminder}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          <InkButton href="/game/map-v2" variant="secondary">
+            {selectedNode ? '重选秘境' : '前往地图'}
+          </InkButton>
+          <InkButton href="/game/inn" variant="secondary">
+            去灵眼之泉
+          </InkButton>
+          <InkButton href="/game/craft/alchemy" variant="secondary">
+            去炼丹房
+          </InkButton>
+        </div>
+      </div>
+    </GameSceneSection>
+  );
+}
+
+/**
+ * 副本视图渲染器
+ */
+export function DungeonViewRenderer({
+  viewState,
+  cultivator,
+  displayResources,
+  processing,
+  actions,
+  onSettlementConfirm,
+}: DungeonViewRendererProps) {
+  if (viewState.type === 'loading') {
+    const descriptor = resolveDungeonSceneDescriptor('loading');
+
+    return (
+      <DungeonSceneScreen descriptor={descriptor}>
+        <GameSceneLoading message={descriptor.loadingMessage} />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'not_authenticated') {
+    const descriptor = resolveDungeonSceneDescriptor('not_authenticated');
+
+    return (
+      <DungeonSceneScreen descriptor={descriptor}>
+        <div className="mx-auto w-full max-w-xl">
+          <InkNotice tone="warning">请先登录或创建角色</InkNotice>
+        </div>
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'battle_preparation' && viewState.state.encounter) {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'battle_preparation',
+          viewState.state,
+        )}
+      >
+        <BattlePreparation
+          encounter={viewState.state.encounter}
+          processing={processing}
+          onBegin={actions.beginBattle}
+          onQuit={actions.quitDungeon}
+        />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'in_battle' && cultivator) {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'in_battle',
+          viewState.state,
+        )}
+        className="h-full"
+      >
+        <DungeonBattle
+          battleId={viewState.battleId}
+          player={cultivator}
+          onBattleComplete={actions.completeBattle}
+        />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'settlement') {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonSceneDescriptor('settlement')}
+      >
+        <DungeonSettlement
+          settlement={viewState.settlement}
+          realGains={viewState.realGains}
+          onConfirm={onSettlementConfirm}
+        />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'looting') {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'looting',
+          viewState.state,
+        )}
+      >
+        <DungeonLooting
+          state={viewState.state}
+          cultivator={cultivator}
+          displayResources={displayResources}
+          onContinue={actions.continueLooting}
+          onEscape={actions.escapeLooting}
+          onQuit={actions.quitDungeon}
+          processing={processing}
+        />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'recoverable_error') {
+    const actionsAvailable =
+      viewState.state.recoverableActions ??
+      (['safe_retreat', 'force_quit'] satisfies DungeonRecoverAction[]);
+    const recoverActionLabels: Record<DungeonRecoverAction, string> = {
+      retry: '重新推演',
+      retry_continue: '重试推进',
+      retry_settle: '重试结算',
+      safe_retreat: '安全撤退',
+      force_quit: '放弃副本',
+    };
+    const recoverActionVariants: Record<
+      DungeonRecoverAction,
+      'primary' | 'secondary' | 'ghost'
+    > = {
+      retry: 'primary',
+      retry_continue: 'primary',
+      retry_settle: 'primary',
+      safe_retreat: 'secondary',
+      force_quit: 'ghost',
+    };
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'exploring',
+          viewState.state,
+        )}
+      >
+        <InkCard className="space-y-4 p-6">
+          <div>
+            <h2 className="text-crimson mb-2 text-xl font-bold">
+              秘境推演中断
+            </h2>
+            <p className="text-ink-secondary leading-7">
+              {viewState.state.statusReason ||
+                '本次探索尚可处理，请选择下方操作。'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {actionsAvailable.map((action) => (
+              <InkButton
+                key={action}
+                variant={recoverActionVariants[action]}
+                disabled={processing}
+                onClick={() => actions.recoverDungeon(action)}
+              >
+                {recoverActionLabels[action]}
+              </InkButton>
+            ))}
+          </div>
+        </InkCard>
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'exploring') {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'exploring',
+          viewState.state,
+        )}
+      >
+        <DungeonExploring
+          key={`${viewState.state.runId}:${viewState.state.currentRound}`}
+          state={viewState.state}
+          lastRound={viewState.lastRound}
+          cultivator={cultivator}
+          displayResources={displayResources}
+          onAction={actions.performAction}
+          onQuit={actions.quitDungeon}
+          processing={processing}
+        />
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'map_selection') {
+    const selectedNode = viewState.preSelectedNodeId
+      ? getMapNode(viewState.preSelectedNodeId)
+      : null;
+    const selectedNodeRealm =
+      selectedNode && 'realm_requirement' in selectedNode
+        ? selectedNode.realm_requirement
+        : null;
+    const realmBlockReason =
+      cultivator &&
+      selectedNodeRealm &&
+      !canChallengeDungeonRealm(cultivator.realm, selectedNodeRealm)
+        ? `当前为${cultivator.realm}，尚不能挑战要求${selectedNodeRealm}的秘境。`
+        : null;
+    const readiness =
+      cultivator && displayResources
+        ? dungeonReadiness({
+            realm: cultivator.realm,
+            selectedNodeRealm,
+            hp: displayResources.hp,
+            mp: displayResources.mp,
+            firstVisit: false,
+          })
+        : null;
+
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonSceneDescriptor('map_selection')}
+      >
+        <InkCard className="mb-6 p-6">
+          <div className="space-y-4 text-center">
+            <div className="my-4 text-6xl">🏔️</div>
+            <p>
+              修仙界广袤无垠，机缘与危机并存。
+              <br />
+              道友可愿前往，体悟一段未知的旅程？
+            </p>
+          </div>
+        </InkCard>
+        <InkSection title="选择秘境">
+          <DungeonMapSelector
+            selectedNode={selectedNode ?? null}
+            onStart={actions.startDungeon}
+            isStarting={processing}
+            readiness={readiness}
+            realmBlockReason={realmBlockReason}
+            playerRealm={cultivator?.realm}
+          />
+        </InkSection>
+        {renderPreparationNotice(
+          cultivator,
+          displayResources,
+          selectedNode ?? null,
+          readiness,
+        )}
+        <div className="mt-4 text-center">
+          <InkButton href="/game/dungeon/history" variant="ghost">
+            📖 查看历史记录
+          </InkButton>
+        </div>
+      </DungeonSceneScreen>
+    );
+  }
+
+  return null;
+}

@@ -1,23 +1,15 @@
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-const alias = {
-  '@app': fileURLToPath(new URL('./src/react-app', import.meta.url)),
-  '@server': fileURLToPath(new URL('./src/server', import.meta.url)),
-  '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
-};
-
 export default defineConfig({
-  resolve: { alias },
   test: {
     environment: 'node',
-    exclude: ['dist/**', 'node_modules/**'],
+    exclude: ['**/dist/**', 'node_modules/**'],
     globals: true,
     include: [
-      'src/shared/**/*.test.ts',
-      'src/shared/**/*.spec.ts',
-      'src/shared/**/*.test.tsx',
-      'src/shared/**/*.spec.tsx',
+      'packages/*/src/**/*.test.ts',
+      'packages/*/src/**/*.spec.ts',
+      'packages/*/src/**/*.test.tsx',
+      'packages/*/src/**/*.spec.tsx',
     ],
     restoreMocks: true,
   },

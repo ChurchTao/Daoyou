@@ -8,7 +8,7 @@
 - 当前开放 10 个栖息地，覆盖已有 18 个物种。每次随机组成 1–3 只编组，物种可重复。分布优先遵循生活习性，再兼顾携带境界。
 - 每只灵兽暂定 5% 概率为 0 级幼崽；移除旧每日 20 次上限，以灵气消耗约束寻觅。两项属于本次实施默认值，可继续调优。
 - 成年五维额外点数先均衡分配，再在均值 ±30% 的整数边界内转移，总量不变。幼崽无额外加点。资质、成长、出生技能沿用灵兽内容包。
-- 区域配置：`src/shared/engine/combat-v6/wild/data/wild.json`；统一费用：`src/shared/config/qiSystem.ts`；掉落：`src/shared/rewards/data/wild.json`。
+- 区域配置：`packages/game-content/src/combat/wild/data/wild.json`；统一费用：`packages/game-content/src/qi/config.ts`；掉落：`packages/game-content/src/rewards/data/wild.json`。
 
 ## 栖息地分布
 
@@ -60,7 +60,7 @@
 - 本地页面完成连续两次寻觅：天地灵气 200 → 198 → 196，编组由三只变为一只；刷新保留原结果且不再扣费。
 - 开战沿用 7 级岩甲猪，在战斗中捕获成功并结算；只读比对入库个体和寻觅记录，全部字段一致。结束战斗后回到可再次寻觅状态。
 - 已检查桌面和 360px 布局、常用地图入口。灵气不足与并发事务保护经代码审查；未做故障注入或并发压力验证。
-- `bun run lint`、`bun run build`、野外及野外掉落的聚焦测试通过。全量测试 1504 项通过、1 项失败：既有 `src/shared/lib/bodyCultivation/pack.test.ts` 的描述文案基线与当前配置不一致，本次未修改该领域。
+- `bun run lint`、`bun run build`、野外及野外掉落的聚焦测试通过。全量测试 1504 项通过、1 项失败：既有 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 的描述文案基线与当前配置不一致，本次未修改该领域。
 
 ## 栖息地扩展验证（2026-09-17）
 

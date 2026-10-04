@@ -1,5 +1,5 @@
-node_modules
-dist
+**/node_modules
+**/dist
 .git
 .vscode
 .wrangler
@@ -10,3 +10,5 @@ yarn-debug.log*
 
 .env*
 /env/
+
+**/.turbo

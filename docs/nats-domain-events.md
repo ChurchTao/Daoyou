@@ -6,9 +6,8 @@
 - `DAOYOU_DOMAIN_EVENT_DLQ` 保存终止失败消息 30 天，最大占用 768 MiB。
 - `DAOYOU_BACKGROUND_COMMANDS` 使用 WorkQueue retention 保存 `daoyou.command.cron.>`，最大占用 384 MiB；一个 command 只由一个 Worker 实例成功处理。
 - `DAOYOU_BACKGROUND_COMMAND_DLQ` 保存后台 command 的终止失败消息，最大占用 128 MiB。
-- `DAOYOU_BATTLE_REPLAY_ARCHIVES` 使用 WorkQueue retention 保存结束对局的完整 `BattleReplayV1`，最大占用 512 MiB；`battle-replay-postgres-archiver-v1` 成功写入 PostgreSQL 后才 ACK。
-- `DAOYOU_BATTLE_REPLAY_ARCHIVE_DLQ` 只接收契约非法的回放消息，最大占用 128 MiB。PostgreSQL 暂不可用属于可恢复错误，原消息持续 NAK 重试，不进入 DLQ。
-- 六个 Stream 的上限合计约 4.4 GiB；生产 NATS 应配置至少 `max_file_store: 5GB`，并允许不小于 8 MiB 的 `max_payload`。
+- `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 使用 WorkQueue retention 保存回放指针（battle ID），最大占用 64 MiB、单条上限 4 KiB；`combat-v6-replay-postgres-archiver-v1` 从 Redis 读取完整回放并归档后 ACK。
+- 五个 Stream 的上限合计约 3.8 GiB；生产 NATS 配置应能容纳这些持久化数据。
 - `daoyou.realtime.>` 使用 NATS Core，不进入 JetStream；用于资源变更、世界聊天和宗门聊天的跨实例实时广播。
 - 应用启动时以幂等方式校验并创建 Stream 和 durable consumer。
 - 业务事务将待发布消息写入通用 PostgreSQL 事务消息表 `wanjiedaoyou_transactional_messages`；领域事件只是当前消息类型之一。
@@ -19,11 +18,9 @@
 
 ## 实时战斗回放归档
 
-在线战斗过程中 Redis 是唯一权威状态，PostgreSQL 不参与玩家指令、锁定、超时或结算路径。最终状态和回放素材先原子写入 Redis Hash，并把 match id 加入普通 Redis pending Set（不是 Redis Stream）。Bun 主服务内的归档发布器从 pending Set 读取完整 `BattleReplayV1`，以 `matchId` 作为 `Nats-Msg-Id` 发布到 `daoyou.battle.replay.archive.v1`；收到 JetStream PubAck 后移除 pending 标记并给在线对局设置 30 分钟 TTL。
+Redis 是当前 V6 战斗运行态和回放 outbox 的权威。`CombatV6RuntimeStore` 保存终局与回放，`combatV6Messaging` 向 `daoyou.combat-v6.replay.archive.v1` 发布 battle ID 指针，以 `${battleId}:combat-v6-replay` 作为 `Nats-Msg-Id`。消费者读取 Redis outbox，写入 `combat_replay_archives` / `combat_replay_participants`，确认 Redis replay ACK 后才 ACK JetStream。
 
-应用侧 consumer 以 `matchId` 为 PostgreSQL 主键执行 `ON CONFLICT DO NOTHING`，因此 PostgreSQL 提交成功但 NATS ACK 丢失时的合法重复投递不会产生重复归档。归档表只保留稳定回放、参与者、引擎/规则版本和最终结果，不保存连接票据、draft intents、deadline 或内部命令收据。
-
-`wanjiedaoyou_local_transaction_messages` 是 BullMQ 时代“本地执行消息”的旧模型，已确认由迁移删除。新代码只使用通用事务消息表 `wanjiedaoyou_transactional_messages`。
+合法重复归档由来源和幂等唯一约束保护；幂等冲突属于永久错误，暂时失败按现有重试流程处理。运行细节以 `apps/api/src/runtime/messaging/combatV6Messaging.ts` 和 `apps/api/src/lib/mq/natsTopology.ts` 为准。旧完整 V5 回放 Stream、consumer 和 DLQ 不属于当前运行拓扑，不恢复其消费链。
 
 ## 当前事件
 
@@ -83,7 +80,7 @@ NATS_PASSWORD=replace-with-production-secret
 1. 停止旧应用，确保不会再产生 BullMQ 消息。
 2. 确认旧 BullMQ 队列已经处理完需要保留的作业。
 3. 在生产 env 文件中配置全部 `NATS_*` 变量。
-4. 执行 `bunx drizzle-kit migrate`。迁移会新增通用事务消息表和消费幂等表，并删除已确认废弃的 `wanjiedaoyou_local_transaction_messages`。注意现有 `0025` 还会删除 `wanjiedaoyou_sect_contribution_ledger` 与 `wanjiedaoyou_sect_daily_commissions`，上线前应单独确认这两张宗门旧表的数据无需保留。
+4. 使用选定目标环境分别执行业务和认证迁移，核对实际账本；命令形式见 [本地开发](local-development.md)。迁移会新增通用事务消息表和消费幂等表，并删除已确认废弃的 `wanjiedaoyou_local_transaction_messages`。注意现有 `0025` 还会删除 `wanjiedaoyou_sect_contribution_ledger` 与 `wanjiedaoyou_sect_daily_commissions`，上线前应单独确认这两张宗门旧表的数据无需保留。
 5. 启动新应用；启动成功意味着 NATS 连接、领域事件 Stream、Command WorkQueue 和全部 consumer 初始化成功。
 6. 检查 `/api/health-check` 返回 `redis: up`、`nats: up` 和 `messaging: up`；`messaging` 同时覆盖 JetStream consumer 与当前活跃的 NATS Core subscription。
 7. 检查 NATS `8222` 监控端点与应用日志，确认无 Outbox/consumer 错误。
@@ -91,11 +88,11 @@ NATS_PASSWORD=replace-with-production-secret
 ## 本地 NATS
 
 ```bash
-docker compose -f docker-compose.nats.yml up -d
-docker compose -f docker-compose.nats.yml ps
+pnpm run services up -d --wait
+pnpm run services ps
 ```
 
-开发容器凭据在 `env/example.env` 中。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
+开发配置使用 `env/local.env`，模板见 `env/local.example.env`。停止容器不会删除 JetStream volume；需要重置本地事件时应显式删除 `nats-data` volume。
 
 ## 故障检查
 
@@ -103,7 +100,7 @@ docker compose -f docker-compose.nats.yml ps
 - Consumer 积压：查看 JetStream consumer 的 `num_pending`、 `num_ack_pending` 和 `num_redelivered`。
 - 毒消息：查看 `DAOYOU_DOMAIN_EVENT_DLQ`，subject 为 `daoyou.dead-letter.<consumer-name>`。
 - 后台命令失败：查看 `DAOYOU_BACKGROUND_COMMAND_DLQ`，subject 为 `daoyou.command-dead-letter.background-command-worker-v1`。
-- 回放归档积压：查看 `DAOYOU_BATTLE_REPLAY_ARCHIVES` 的 `battle-replay-postgres-archiver-v1` consumer；契约毒消息查看 `DAOYOU_BATTLE_REPLAY_ARCHIVE_DLQ`。
+- 回放归档积压：查看 `DAOYOU_COMBAT_V6_REPLAY_ARCHIVES` 的 `combat-v6-replay-postgres-archiver-v1` consumer，并核对 Redis replay outbox 与归档日志。
 - 手工重放前必须确认 `wanjiedaoyou_message_consumptions` 中对应消费记录是否仍存在；消费记录保留 30 天，长于主 Stream 的 14 天保留期。
 
 ## 事件演进规则

@@ -10,7 +10,7 @@
 
 ### 狰
 
-采用原稿 `exec-7845df59-a75b-43cd-8443-699ba3506b45.png`，有效图幅 250×256，素材 `public/assets/icons/beast-zheng.webp`，注册 `icon:beast-zheng`。
+采用原稿 `exec-7845df59-a75b-43cd-8443-699ba3506b45.png`，有效图幅 250×256，素材 `apps/web/public/assets/icons/beast-zheng.webp`，注册 `icon:beast-zheng`。
 
 首稿仅有四条可辨尾巴，未采用；经局部修正补足五条独立尾巴后导出。
 
@@ -31,7 +31,7 @@ Use case: stylized-concept. 为中国修仙游戏万界道友生成一张全新�
 
 ### 蛇颈玄龟
 
-采用原稿 `exec-718b80ba-2725-4127-8ea4-de5527cfed6a.png`，有效图幅 256×241，素材 `public/assets/icons/beast-snake-neck-turtle.webp`，注册 `icon:beast-snake-neck-turtle`。
+采用原稿 `exec-718b80ba-2725-4127-8ea4-de5527cfed6a.png`，有效图幅 256×241，素材 `apps/web/public/assets/icons/beast-snake-neck-turtle.webp`，注册 `icon:beast-snake-neck-turtle`。
 
 生成提示词：
 
@@ -44,7 +44,7 @@ Use case: stylized-concept. 为万界道友生成全新「蛇颈玄龟」写意�
 
 ### 三足金蟾
 
-采用原稿 `exec-289fb494-6962-43ca-ab31-eea694f01819.png`，有效图幅 256×198，素材 `public/assets/icons/beast-three-legged-golden-toad.webp`，注册 `icon:beast-golden-toad`。
+采用原稿 `exec-289fb494-6962-43ca-ab31-eea694f01819.png`，有效图幅 256×198，素材 `apps/web/public/assets/icons/beast-three-legged-golden-toad.webp`，注册 `icon:beast-golden-toad`。
 
 生成提示词：
 
@@ -84,13 +84,13 @@ Use case: stylized-concept. 为万界道友绘制全新「三足金蟾」写意�
 墨迹本身构成形体，几块暖灰宽笔墨面与少量长线概括躯体，少量浓墨作结构支点，中淡墨、飞白与留白补全形体；不逐片勾鳞，不用写实体积光。盘身蓄势、低首侧顾，闭口警觉，头与前颈为主视觉；以角、狭长吻部、颈须和尾鳍表现暗河蛟类。仅在颈侧和尾鳍融入少量低饱和灰青彩墨。独立真实透明底，无背景、光效、文字、印章。人物基准只作笔墨参考，不复制人物造型。
 ```
 
-原图 1254×1254，经统一占幅处理后导出 256×256 透明 WebP。素材为 `public/assets/icons/beast-ink-jiao.webp`，沿用 `icon:beast-ink-jiao` 注册，不修改 UI、物种或个体数据。
+原图 1254×1254，经统一占幅处理后导出 256×256 透明 WebP。素材为 `apps/web/public/assets/icons/beast-ink-jiao.webp`，沿用 `icon:beast-ink-jiao` 注册，不修改 UI、物种或个体数据。
 
 ## 火鸦（2026-09-18）
 
 依据当前物种设定“黑羽赤喉、翼下暗红火羽”，以头胸半身和微张的近侧翼表现机敏回望。暖灰墨面概括黑羽，喉部和翼下局部暗朱砂、赭红彩墨。使用内置 imagegen 生成，固定男修、女修墨像仅作笔墨参考，未输入旧头像。
 
-采用 `exec-a9304db7-ece4-4029-abd1-b6c7e640fcb9.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-fire-crow.webp`，沿用 `icon:beast-fire-crow` 注册。
+采用 `exec-a9304db7-ece4-4029-abd1-b6c7e640fcb9.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-fire-crow.webp`，沿用 `icon:beast-fire-crow` 注册。
 
 生成提示词：
 
@@ -113,7 +113,7 @@ Use case: stylized-concept. 为万界道友绘制全新「三足金蟾」写意�
 
 依据当前物种设定重新设计：长颈轻曲、俯首、单翼舒展，暖灰淡墨与留白表现近白羽毛，翼面局部青碧与淡金彩墨提示玉质通透感。使用内置 imagegen，固定男修、女修墨像只作笔墨参考。保留活体羽毛的柔软结构，不使用玻璃折射或发光效果。
 
-采用 `exec-2e3ac479-008b-40aa-8f62-6451aaca25fc.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-snow-crane.webp`。沿用 `icon:beast-snow-crane` 注册，不改物种 ID 和玩法。
+采用 `exec-2e3ac479-008b-40aa-8f62-6451aaca25fc.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-snow-crane.webp`。沿用 `icon:beast-snow-crane` 注册，不改物种 ID 和玩法。
 
 生成提示词：
 
@@ -142,7 +142,7 @@ Use case: stylized-concept.
 
 依据当前物种设定重新设计：深灰细毛、银白腹部、蓬松长尾，以转身回首和轻探前爪表现警觉，尾端淡墨断笔融入透明留白，提示从尾端开始隐身的特点。仅使用暖灰、墨黑与留白。内置 imagegen 生成，固定男修、女修墨像只作笔墨参考，未查看或输入旧头像。
 
-采用 `exec-e340b0cc-0c76-40ec-81ad-d157bafee87b.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-moon-marten.webp`，沿用 `icon:beast-moon-marten` 注册。
+采用 `exec-e340b0cc-0c76-40ec-81ad-d157bafee87b.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-moon-marten.webp`，沿用 `icon:beast-moon-marten` 注册。
 
 生成提示词：
 
@@ -167,7 +167,7 @@ Use case: stylized-concept.
 
 依据当前设定的银灰甲壳、弯刃前肢和近透明薄翅，采用前半身近景，以三角头、细长前胸和成对捕捉足表现静伏警觉。暖灰宽笔和浓墨支点概括甲壳，薄翅融入极淡青灰；通过留白表现银灰质感。使用内置 imagegen，固定男修、女修墨像仅作笔墨参考，未输入旧头像。
 
-采用 `exec-203c6ca3-1849-45e3-8e58-289aa7a1f9e4.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-silverwing-mantis.webp`，沿用 `icon:beast-silverwing-mantis` 注册。
+采用 `exec-203c6ca3-1849-45e3-8e58-289aa7a1f9e4.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-silverwing-mantis.webp`，沿用 `icon:beast-silverwing-mantis` 注册。
 
 生成提示词：
 
@@ -196,7 +196,7 @@ Use case: stylized-concept.
 
 依据当前灰白长毛和眉侧各两枚灵目的设定，采用近正面略低首的头肩像，双主眼较大、左右眉侧各两枚小灵目，合计六目。以暖灰宽笔与留白概括长毛，眼鼻和肩背浓墨形成支点。使用内置 imagegen，固定男修、女修墨像仅作笔墨参考，未输入旧头像。
 
-采用 `exec-a66d9ec0-d5c1-45f4-954c-75f19a17a7ad.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-six-eyed-ape.webp`，沿用 `icon:beast-six-eyed-ape` 注册。
+采用 `exec-a66d9ec0-d5c1-45f4-954c-75f19a17a7ad.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-six-eyed-ape.webp`，沿用 `icon:beast-six-eyed-ape` 注册。
 
 生成提示词：
 
@@ -227,7 +227,7 @@ Use case: stylized-concept.
 
 依据当前墨蓝双翼、幽绿翅脉与缓慢游飞的设定，采用轻侧转、四瓣蝶翼错落展开的完整姿态。暖灰墨、墨黑与局部靛蓝宽笔组织翅面，少量灰玉绿彩墨翅脉提示微光，不添加背景光效。使用内置 imagegen，固定男修、女修墨像仅作笔墨参考，未输入旧头像。
 
-采用 `exec-f4bde284-a2d1-4cd9-816e-8f69fb909a6e.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-ghost-lantern-butterfly.webp`，沿用 `icon:beast-lantern-butterfly` 注册。
+采用 `exec-f4bde284-a2d1-4cd9-816e-8f69fb909a6e.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-ghost-lantern-butterfly.webp`，沿用 `icon:beast-lantern-butterfly` 注册。
 
 生成提示词：
 
@@ -252,7 +252,7 @@ Use case: stylized-concept.
 
 依据当前苍青巨翼、银色颈羽、深紫翼尖与积蓄雷息的设定，采用敛翼、侧首俯察的头胸近景。宽笔组织肩背和折翼，银羽以暖灰淡墨与留白表现，苍青与深紫局部融入灰墨，以形与笔势体现雷禽威势。使用内置 imagegen，固定男修、女修墨像仅作笔墨参考，未输入旧头像。
 
-采用 `exec-43de3161-38e0-4ea4-b9ec-ad61ff376664.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `public/assets/icons/beast-thunder-peng.webp`，沿用 `icon:beast-thunder-peng` 注册。
+采用 `exec-43de3161-38e0-4ea4-b9ec-ad61ff376664.png`，导出 256×256 透明 WebP（Lanczos、质量 90），替换 `apps/web/public/assets/icons/beast-thunder-peng.webp`，沿用 `icon:beast-thunder-peng` 注册。
 
 生成提示词：
 
@@ -282,7 +282,7 @@ Use case: stylized-concept.
 
 咪咪保留低伏抬头、圆眼短足、虎斑白袜，减少写实毛发并修正尾巴从后躯绕向前方的连接。幽冥虎保留压头迈步的动作，依用户要求在背脊与尾部增加幽蓝鬼火；这是本物种局部例外，不修改通用笔墨规范。
 
-从1254×1254原稿以alpha≥4确定边界、保留原始半透明笔触，等比贴合256方形，WebP质量90。素材位于public/assets/icons，由统一registry注册。原稿、提示词及纸色／深底64px与256px检查图保存在工作区output/imagegen/mimi-nether-tiger；完整玩法与页面验收见[扩展记录](combat-v6-mimi-nether-tiger.md)。
+从1254×1254原稿以alpha≥4确定边界、保留原始半透明笔触，等比贴合256方形，WebP质量90。素材位于apps/web/public/assets/icons，由统一registry注册。原稿、提示词及纸色／深底64px与256px检查图保存在工作区output/imagegen/mimi-nether-tiger；完整玩法与页面验收见[扩展记录](combat-v6-mimi-nether-tiger.md)。
 
 ### 咪咪定稿编辑提示词
 

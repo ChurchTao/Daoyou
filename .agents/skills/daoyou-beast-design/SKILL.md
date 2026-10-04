@@ -14,7 +14,7 @@ description: 万界道友灵兽物种设计与审查规范。用于新增或调�
 - 设计、扩充或审查物种时，读取 [设计确认基准](references/first-release.md)，对照完整名单检查形态重复、数值跨度和天赋组合；具体名单、境界分布、区间、出生概率及 ID 以基准为准。
 - 后续用户明确修改设计时，以新要求为准，同步更新相应基准并说明改动；不要把本技能变成额外审批流程。未被要求改变的已确认规则继续沿用。
 - 仅要求设计或整理规范时，交付设计或文档，不顺带修改游戏逻辑。配置实施同时使用 [daoyou-game-core-domain](../daoyou-game-core-domain/SKILL.md)，持久化改动使用项目数据层技能。
-- 实施前核对 `src/shared/engine/combat-v6/beasts/` 的内容、生成、投影与培养调用，以及 `wild/` 的野外身份和捕捉入口。旧代码中的定位、四技能模板或捕捉加技能规则不能反过来覆盖已确认设计；列明差异后在任务范围内实现。
+- 实施前核对 `packages/game-content/src/beasts/` 与 `packages/game-rules/src/beasts/` 的内容、生成、投影与培养调用，以及 `wild/` 的野外身份和捕捉入口。旧代码中的定位、四技能模板或捕捉加技能规则不能反过来覆盖已确认设计；列明差异后在任务范围内实现。
 - 可用技能与真实效果以 `beasts/data/skills.json`、`beasts/skill-compiler.ts` 和运行时为准，适配差异参照 `docs/combat-v6-beast-classic-skills.md`。不要仅凭梦幻西游原技能名称推断本游戏机制。
 
 ## 妖灵传承与技能文案

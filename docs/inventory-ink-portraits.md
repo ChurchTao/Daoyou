@@ -1,6 +1,6 @@
 # 储物袋写意墨像
 
-2026-09-10 使用内置 image_gen 生成男女新稿，替换 public/assets/inventory 下同名 WebP，保留真实透明通道。中间生成的棋盘底稿已排除，不进入项目。生产图高 960px。
+2026-09-10 使用内置 image_gen 生成男女新稿，替换 apps/web/public/assets/inventory 下同名 WebP，保留真实透明通道。中间生成的棋盘底稿已排除，不进入项目。生产图高 960px。
 
 页面按角色性别加载一张，保持素材原始透明度；限制在装备栏中央范围，袖摆不延伸至槽位背后。只承担静态装饰，无操作、评分或动效。
 
@@ -16,7 +16,7 @@
 
 ## 人物属性头像（2026-09-15）
 
-人物属性页改用独立生成的头肩头像，装备页继续使用全身墨像。新素材为 `public/assets/icons/cultivator-{male,female}-avatar.png`，通过 GameIcon 注册表接入，384px，真实 alpha，不使用混合模式。男女分别参考技能中的 `male-baseline.webp`、`female-baseline.webp`。男版首稿含棋盘格，已排除。
+人物属性页改用独立生成的头肩头像，装备页继续使用全身墨像。新素材为 `apps/web/public/assets/icons/cultivator-{male,female}-avatar.png`，通过 GameIcon 注册表接入，384px，真实 alpha，不使用混合模式。男女分别参考技能中的 `male-baseline.webp`、`female-baseline.webp`。男版首稿含棋盘格，已排除。
 
 生成提示：以参考墨像重新创作方形头肩头像，发髻与肩部完整，衣领下以干笔收尾；暖灰宽笔墨面、少量深墨、飞白和断续边缘，沉静的简笔眉眼，朴素束发；真实透明背景，不画棋盘格、纸张、背景、印章或文字。男版与女版分别生成，保持相同笔墨语言。成稿保留较清楚的五官，与原有可用墨像一致；经页面浅纸底缩小检查。
 

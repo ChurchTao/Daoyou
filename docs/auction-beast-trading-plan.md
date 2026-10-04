@@ -124,7 +124,7 @@
 
 | 阶段 | 主要修改位置 | 完成标准 |
 | --- | --- | --- |
-| 1. 纯协议与规则 | `src/shared/contracts/auction.ts`、`src/shared/contracts/mail.ts`、`src/shared/types/mail.ts`、附件校验所在 `src/shared/lib/itemLibrary.ts`、必要的灵兽交易纯规则模块 | 两种货单快照可区分；客户端不能提交个体事实；合法个体、数量与公共预览规则有纯函数测试 |
+| 1. 纯协议与规则 | `packages/shared/src/contracts/auction.ts`、`packages/shared/src/contracts/mail.ts`、`packages/shared/src/types/mail.ts`、附件校验所在 `packages/shared/src/lib/itemLibrary.ts`、必要的灵兽交易纯规则模块 | 两种货单快照可区分；客户端不能提交个体事实；合法个体、数量与公共预览规则有纯函数测试 |
 | 2. 领取能力 | `MailInventory.ts` 或聚焦的 `MailBeastDelivery.ts`、`PlayerMailApplicationService.ts`、`combatV6BeastRepository.ts` | 单封、批量、满仓、占用及重复领取闭环；培养事实与原 ID 保留；领取不自动入队 |
 | 3. 寄售链路 | `auction.router.ts`、`AuctionApplicationService.ts`、`AuctionService.ts`、`auctionRepository.ts`、必要的共享灵兽占用检查 | 上架、购买、下架、到期、公私交易与幂等完整；普通物品链路继续可用 |
 | 4. 界面 | 拍卖上架／列表、共享灵兽只读详情、邮件详情／批量领取反馈、灵兽页必要刷新 | 桌面与窄屏均可选兽、验明事实、购入、领回；失败提示可理解且可重试 |
@@ -178,10 +178,10 @@
 
 ### 命令结果
 
-- `bun run test src/shared/contracts/beastTrade.test.ts src/shared/contracts/auction.test.ts src/shared/config/auctionConfig.test.ts src/shared/contracts/mail.test.ts`：4 文件、21 项通过。
+- `bun run test packages/shared/src/contracts/beastTrade.test.ts packages/shared/src/contracts/auction.test.ts packages/shared/src/config/auctionConfig.test.ts packages/shared/src/contracts/mail.test.ts`：4 文件、21 项通过。
 - `bun run lint`、`bun run build`、`bun run build:server` 通过；构建保留既有 chunk 大小与动态／静态导入提示。
-- 最后一次重跑完整构建曾与其他任务共用 `dist/assets`，清理目录时报 `ENOTEMPTY`。随后 `bunx tsc -b tsconfig.app.json tsconfig.node.json --pretty false` 通过，客户端以 `bunx vite build --outDir /tmp/daoyou-auction-beast-client-20260919` 独立输出并构建成功，服务端 Vite 构建再次通过；最终 lint 也通过。
-- 全量 `bun run test`：179 文件通过、1 文件失败；1595 项通过、1 项失败。失败为未修改的 `src/shared/lib/bodyCultivation/pack.test.ts`，断言仍期待旧说明文案；不是灵兽交易失败。
+- 最后一次重跑完整构建曾与其他任务共用 `dist/assets`，清理目录时报 `ENOTEMPTY`。随后 `bunx tsc -b apps/web/tsconfig.json tsconfig.node.json --pretty false` 通过，客户端以 `bunx vite build --outDir /tmp/daoyou-auction-beast-client-20260919` 独立输出并构建成功，服务端 Vite 构建再次通过；最终 lint 也通过。
+- 全量 `bun run test`：179 文件通过、1 文件失败；1595 项通过、1 项失败。失败为未修改的 `packages/shared/src/lib/bodyCultivation/pack.test.ts`，断言仍期待旧说明文案；不是灵兽交易失败。
 - 本轮文件定向 ESLint、服务端 TypeScript 检查及 `git diff --check` 通过。未增加服务端／数据库／React 单元测试或一次性验收脚本。
 
 ### 验证边界
@@ -206,8 +206,8 @@
 
 ### 本轮验证
 
-- `bunx tsc -b tsconfig.app.json tsconfig.node.json --pretty false`、最终 `bun run lint`、`bun run build`、`git diff --check` 通过。
-- 聚焦运行 `bun run test src/shared/contracts/beastTrade.test.ts src/shared/contracts/auction.test.ts src/shared/config/auctionConfig.test.ts src/shared/contracts/mail.test.ts`，4 文件21项通过。本轮未重跑全量共享测试；未增加 React、服务端测试或一次性验收脚本。
+- `bunx tsc -b apps/web/tsconfig.json tsconfig.node.json --pretty false`、最终 `bun run lint`、`bun run build`、`git diff --check` 通过。
+- 聚焦运行 `bun run test packages/shared/src/contracts/beastTrade.test.ts packages/shared/src/contracts/auction.test.ts packages/shared/src/config/auctionConfig.test.ts packages/shared/src/contracts/mail.test.ts`，4 文件21项通过。本轮未重跑全量共享测试；未增加 React、服务端测试或一次性验收脚本。
 - Chrome local1 与独立应用内浏览器 local2 验证：上架3件材料和1只灵兽，栏目各显示正确货单数；上架后进入对应我的寄售；买方购买2件材料后库存从3变1；灵兽详情→精简确认→购入后货单移除；卖方通过同一物品预览下架余下1件。
 - 检查桌面与360×800布局、物品格键盘聚焦预览、窄屏点击预览、详情与确认层、筛选切换、返回时恢复材料品级，以及携带中灵兽可查看但提交禁用、Esc关闭。修复小屏页签被操作区挤压；临时视口已恢复。最终卖方页面控制台无错误。
 - 卖方两封成交款邮件（194、97灵石）和退回1件材料领取成功；买方灵兽邮件领取成功。买方2件材料的领取因 local2 旧背包存在未知物品定义返回500；该账号背包读取同样失败，邮件保持未领取。此既有数据问题未在 UI 重构中修复，不能将普通道具买方领取记为通过。

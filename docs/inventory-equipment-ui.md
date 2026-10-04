@@ -30,7 +30,7 @@
 
 跨标签页存取复测：保持邮件附件选择打开，将 `10Q新版草药` 两份存入储藏室，主背包立即从 12/40 变为 11/40，邮件旧附件同时失效并禁用发送；取回后恢复原格位、数量和储藏室空置状态。未发送邮件或聊天、未上架商品，保留正常增加的物品修订号与资源事件。
 
-执行 `bun run lint`、`bun run build`（包含前后端类型检查）、`bun run test src/shared/contracts/resources/bag.test.ts src/shared/lib/bagResourceChanges.test.ts src/shared/inventory/inventory.test.ts`（10 项通过）以及 `git diff --check`。未新增前后端单元测试，未跑全量共享引擎测试；本轮不改引擎规则。当前角色没有宗门交付任务或进行中的秘境，三处对应业务流程未实测；兽诀／炼丹／铸造实际消耗、断网恢复和角色切换也未计为已验收。
+执行 `bun run lint`、`bun run build`（包含前后端类型检查）、`bun run test packages/shared/src/contracts/resources/bag.test.ts packages/shared/src/lib/bagResourceChanges.test.ts packages/shared/src/inventory/inventory.test.ts`（10 项通过）以及 `git diff --check`。未新增前后端单元测试，未跑全量共享引擎测试；本轮不改引擎规则。当前角色没有宗门交付任务或进行中的秘境，三处对应业务流程未实测；兽诀／炼丹／铸造实际消耗、断网恢复和角色切换也未计为已验收。
 
 ## 穿戴道装独立存放（2026-09-15）
 

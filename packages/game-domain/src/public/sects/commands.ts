@@ -1,0 +1,41 @@
+/** Public sects/commands capabilities. Keep implementation files private. */
+export { SectV6ActionSchema } from '../../sects/actions.js';
+export type { SectV6Action, SectV6Cost } from '../../sects/actions.js';
+export {
+  SECT_CRAFT_CONTEXTS,
+  resolveSectTaskExecutionLocationParameters,
+} from '../../sects/organization-contracts.js';
+export type {
+  SectBattleTargetAcquisition,
+  SectBenefitMetric,
+  SectBenefitPolicy,
+  SectBenefitSnapshot,
+  SectCapabilityKey,
+  SectCapabilityPolicy,
+  SectConstructionPolicy,
+  SectCraftContextKey,
+  SectEconomyPolicy,
+  SectFacilityEffectSnapshot,
+  SectOrganizationModule,
+  SectOrganizationTaskId,
+  SectPermissionState,
+  SectRankPolicy,
+  SectTaskAvailabilityContext,
+  SectTaskAvailabilityDecision,
+  SectTaskAvailabilityPolicy,
+  SectTaskCatalog,
+  SectTaskDefinition,
+  SectTaskDialogueDefinition,
+  SectTaskDialogueEmphasis,
+  SectTaskDialogueInstructionDefinition,
+  SectTaskDialoguePresentation,
+  SectTaskDialogueSegment,
+  SectTaskExecutionLocationDefinition,
+  SectTaskExecutionLocationParameters,
+  SectTaskExecutorKey,
+  SectTaskFulfillmentRule,
+  SectTaskOfferPolicyDefinition,
+  SectTaskPresentationDefinition,
+  SectTaskProgressDefinition,
+  SectTaskRewardPolicyDefinition,
+} from '../../sects/organization-contracts.js';

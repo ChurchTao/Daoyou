@@ -1,0 +1,82 @@
+import { apiFetch } from '@app/lib/api/fetch';
+import { consumeResourceMutation } from '@app/lib/resources/mutations';
+import type {
+  TaskChallengeResponse,
+  TaskRewardClaimResponse,
+} from '@daoyou/contracts/task';
+import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
+import type { Cultivator } from '@daoyou/game-domain/character';
+import type { TaskInstance } from '@daoyou/game-domain/tasks';
+
+async function readJsonOrThrow<T>(response: Response): Promise<T> {
+  const payload = await response.json();
+  if (!response.ok || !payload?.success) {
+    throw new Error(
+      typeof payload?.error === 'string'
+        ? payload.error
+        : `HTTP ${response.status}`,
+    );
+  }
+  return payload as T;
+}
+
+export async function startTaskChallenge(taskId: string) {
+  const response = await apiFetch(`/api/tasks/${taskId}/challenge`, {
+    method: 'POST',
+  });
+  const payload = await readJsonOrThrow<TaskChallengeResponse>(response);
+  return payload;
+}
+
+const taskChallengeRequests = new Map<string, Promise<TaskChallengeResponse>>();
+
+export async function startTaskChallengeOnce(taskId: string) {
+  const key = taskId.trim();
+  const inFlight = taskChallengeRequests.get(key);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const request = startTaskChallenge(taskId).finally(() => {
+    taskChallengeRequests.delete(key);
+  });
+
+  taskChallengeRequests.set(key, request);
+  return request;
+}
+
+export async function claimTaskReward(taskId: string) {
+  const response = await apiFetch(`/api/tasks/${taskId}/claim-reward`, {
+    method: 'POST',
+  });
+  const payload = await readJsonOrThrow<TaskRewardClaimResponse>(response);
+  await consumeResourceMutation(payload);
+  return payload;
+}
+
+export function findCurrentMajorBreakthroughTask(
+  cultivator:
+    | Pick<Cultivator, 'realm' | 'realm_stage'>
+    | null
+    | undefined,
+  tasks: TaskInstance[],
+): TaskInstance | null {
+  if (!cultivator || cultivator.realm_stage !== '圆满') {
+    return null;
+  }
+
+  const toRealm = getNextMajorRealm(cultivator.realm);
+  if (!toRealm) {
+    return null;
+  }
+
+  return (
+    tasks.find(
+      (task) =>
+        task.category === 'breakthrough_major' &&
+        task.metadata.fromRealm === cultivator.realm &&
+        task.metadata.toRealm === toRealm,
+    ) ?? null
+  );
+}
+

@@ -1,11 +1,11 @@
 # 宗门内容接入指南
 
-普通宗门共享入门文戏、任务、晋升、设施、经济、建设、收益和准入流程，只定义身份、六本心法、神通、流派、参悟节点与玩家可见的入门演出。完整参考实现位于 `src/shared/engine/sect/testing/fixtures/FixtureSectModule.ts`，且不会进入生产目录。
+普通宗门共享入门文戏、任务、晋升、设施、经济、建设、收益和准入流程，只定义身份、六本心法、神通、流派、参悟节点与玩家可见的入门演出。完整参考实现位于 `packages/shared/src/engine/sect/testing/fixtures/FixtureSectModule.ts`，且不会进入生产目录。
 
 ## 目录模板
 
 ```text
-src/shared/engine/sect/content/<sect-id>/
+packages/shared/src/engine/sect/content/<sect-id>/
   <SectName>SectModule.ts
   definition.ts
   ids.ts
@@ -227,7 +227,7 @@ export const EMBER_PRESENTATION: SectPresentationTheme = {
 
 对象字段按键覆盖默认值，热点数组整体替换。空字符串、主题宗门 ID 不一致、重复热点和缺少替代文本或热点的自定义地图会在启动时失败。
 
-最后只在 `src/shared/engine/sect/content/productionRuntime.ts` 的 `PRODUCTION_SECTS` 中加入一个条目：
+最后只在 `packages/shared/src/engine/sect/content/productionRuntime.ts` 的 `PRODUCTION_SECTS` 中加入一个条目：
 
 ```ts
 export const PRODUCTION_SECTS = createProductionSectCatalog([
@@ -273,8 +273,8 @@ battle-v5 只理解伤害、治疗、Buff、层数、资源、命中、行动、
 ## 验证
 
 ```bash
-bunx vitest run src/shared/engine/sect
-bunx vitest run src/shared/engine/battle-v5/tests
+bunx vitest run packages/shared/src/engine/sect
+bunx vitest run packages/shared/src/engine/battle-v5/tests
 bun run lint
 bun run test
 bun run build

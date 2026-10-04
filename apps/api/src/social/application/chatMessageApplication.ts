@@ -1,0 +1,220 @@
+import { beastTradePreview } from '@daoyou/game-domain/beasts';
+import type {
+  WorldChatCreateMessageRequest,
+  WorldChatItemShowcasePayload,
+  WorldChatMessageChannel,
+  WorldChatMessageDTO,
+  WorldChatMessageType,
+  WorldChatPayload,
+} from '@daoyou/contracts/world-chat';
+import { inventoryShowcaseSnapshot } from '@daoyou/game-domain/items/catalog';
+import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
+import { readInventory } from '@server/inventory/operations.js';
+import { type DbClient } from '@server/lib/drizzle/db.js';
+import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository.js';
+import {
+  createCombatV6ReplayShare,
+  findOwnedCombatV6Replay,
+} from '@server/lib/repositories/combatV6ReplayRepository.js';
+import { textFilter } from '@server/social/application/textFilter.js';
+
+export class ChatMessageApplicationError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 404 | 409 | 429,
+    readonly remainingSeconds?: number,
+  ) {
+    super(message);
+  }
+}
+
+function countChars(input: string): number {
+  return Array.from(input).length;
+}
+
+function normalizeText(
+  payload: Extract<WorldChatCreateMessageRequest, { messageType: 'text' }>,
+): string {
+  return (payload.textContent ?? payload.payload?.text ?? '').trim();
+}
+
+async function buildItemShowcasePayload(params: {
+  cultivatorId: string;
+  itemId: string;
+  revision: number;
+  text?: string;
+  database: DbClient;
+}): Promise<WorldChatItemShowcasePayload> {
+  const bag = await readInventory(
+    params.cultivatorId,
+    {
+      location: 'bag',
+      page: 0,
+      search: '',
+      kind: 'all',
+    },
+    params.database,
+  );
+  const item = [...bag.items, ...bag.equippedItems].find(
+    (item) => item.id === params.itemId,
+  );
+  if (!item)
+    throw new ChatMessageApplicationError(
+      '道具不在当前角色背包或装备栏中',
+      404,
+    );
+  if (item.revision !== params.revision)
+    throw new ChatMessageApplicationError('物品已变化，请刷新后重新选择', 409);
+  return {
+    version: 1,
+    snapshot: inventoryShowcaseSnapshot(item),
+    text: params.text?.trim() || undefined,
+  };
+}
+
+export async function createCultivatorChatMessage(params: {
+  request: WorldChatCreateMessageRequest;
+  userId: string;
+  cultivatorId: string;
+  channel: Extract<WorldChatMessageChannel, 'world' | 'sect'>;
+  sectId: string | null;
+  database: DbClient;
+  acquireCooldown(
+    cultivatorId: string,
+    realm: string,
+  ): Promise<{ allowed: boolean; remainingSeconds: number }>;
+  persist(input: {
+    senderUserId: string;
+    senderCultivatorId: string;
+    senderName: string;
+    senderRealm: string;
+    senderRealmStage: string;
+    channel: Extract<WorldChatMessageChannel, 'world' | 'sect'>;
+    sectId: string | null;
+    messageType: WorldChatMessageType;
+    textContent?: string;
+    payload: WorldChatPayload;
+  }): Promise<WorldChatMessageDTO>;
+}): Promise<WorldChatMessageDTO> {
+  const identity = await readCultivatorPublicIdentity(
+    params.cultivatorId,
+    params.database,
+  );
+  const cooldown = await params.acquireCooldown(
+    params.cultivatorId,
+    identity.realm,
+  );
+  if (!cooldown.allowed) {
+    throw new ChatMessageApplicationError(
+      `请 ${cooldown.remainingSeconds} 秒后再发言`,
+      429,
+      cooldown.remainingSeconds,
+    );
+  }
+
+  const senderBase = {
+    senderUserId: params.userId,
+    senderCultivatorId: params.cultivatorId,
+    senderName: identity.name,
+    senderRealm: identity.realm,
+    senderRealmStage: identity.realmStage,
+    channel: params.channel,
+    sectId: params.sectId,
+  };
+
+  if (params.request.messageType === 'text') {
+    const text = normalizeText(params.request);
+    const textLength = countChars(text);
+    if (textLength < 1 || textLength > 100) {
+      throw new ChatMessageApplicationError('消息长度需在 1-100 字之间', 400);
+    }
+    const filteredText = textFilter.mask(text).text;
+    return params.persist({
+      ...senderBase,
+      messageType: 'text',
+      textContent: filteredText,
+      payload: { text: filteredText },
+    });
+  }
+
+  if (params.request.messageType === 'beast_showcase') {
+    const request = params.request;
+    const text = (request.textContent ?? '').trim();
+    if (countChars(text) > 100)
+      throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
+    const roster = await readBeastRoster(params.cultivatorId, params.database);
+    const beast = roster.beasts.find((entry) => entry.id === request.beastId);
+    if (!beast)
+      throw new ChatMessageApplicationError('灵兽不属于当前角色', 404);
+    if (beast.revision !== request.revision)
+      throw new ChatMessageApplicationError('灵兽已有变化，请重新选择', 409);
+    const payload = {
+      version: 1 as const,
+      beast: beastTradePreview(beast),
+      text: textFilter.mask(text).text || undefined,
+    };
+    return params.persist({
+      ...senderBase,
+      messageType: 'beast_showcase',
+      textContent: payload.text,
+      payload,
+    });
+  }
+
+  if (params.request.messageType === 'combat_v6_replay') {
+    if (params.channel !== 'world')
+      throw new ChatMessageApplicationError('战绩只能分享到世界聊天', 400);
+    const archive = await findOwnedCombatV6Replay(
+      params.request.battleId,
+      params.cultivatorId,
+      params.database,
+    );
+    const participant = archive?.replay?.participants.find(
+      (entry) =>
+        entry.cultivatorId === params.cultivatorId &&
+        entry.userId === params.userId,
+    );
+    if (!archive || !participant)
+      throw new ChatMessageApplicationError('战斗回放不存在', 404);
+    const shareCode = await createCombatV6ReplayShare(
+      params.request.battleId,
+      params.cultivatorId,
+      params.userId,
+      params.database,
+    );
+    if (!shareCode)
+      throw new ChatMessageApplicationError('战斗回放不存在', 404);
+    const text = textFilter.mask(params.request.textContent?.trim() ?? '').text;
+    const payload = {
+      version: 1 as const,
+      shareCode,
+      sides: archive.sides,
+      roundCount: archive.roundCount,
+      text: text || undefined,
+    };
+    return params.persist({
+      ...senderBase,
+      messageType: 'combat_v6_replay',
+      textContent: payload.text,
+      payload,
+    });
+  }
+
+  const showcaseText = (params.request.textContent ?? '').trim();
+  if (countChars(showcaseText) > 100) {
+    throw new ChatMessageApplicationError('附言长度需在 100 字以内', 400);
+  }
+  const payload = await buildItemShowcasePayload({
+    database: params.database,
+    cultivatorId: params.cultivatorId,
+    revision: params.request.revision,
+    itemId: params.request.itemId,
+    text: textFilter.mask(showcaseText).text,
+  });
+  return params.persist({
+    ...senderBase,
+    messageType: 'item_showcase',
+    textContent: payload.text,
+    payload,
+  });
+}

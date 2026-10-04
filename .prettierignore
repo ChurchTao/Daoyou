@@ -3,7 +3,7 @@
 **/*.svg
 .umi
 .umi-production
-/dist
+**/dist
 .dockerignore
 .DS_Store
 .eslintignore
@@ -21,6 +21,6 @@ yarn-error.log
 .history
 CNAME
 /build
-/public
+/apps/web/public
 /drizzle
 .qoder

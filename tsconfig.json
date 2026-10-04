@@ -1,14 +1,20 @@
 {
   "compilerOptions": {
     "paths": {
-      "@app/*": ["./src/react-app/*"],
-      "@server/*": ["./src/server/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@app/*": ["./apps/web/src/*"],
+      "@server/*": ["./apps/api/src/*"]
     }
   },
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    {
+      "path": "./apps/web/tsconfig.json"
+    },
+    {
+      "path": "./apps/api/tsconfig.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
   ]
 }

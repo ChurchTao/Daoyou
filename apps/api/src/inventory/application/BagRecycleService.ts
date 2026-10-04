@@ -1,0 +1,237 @@
+import type {
+  RecycleQuote,
+  RecycleResult,
+  RecycleSelection,
+} from '@daoyou/contracts/recycle';
+import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
+import {
+  recycleBlockingReason,
+  blueprintRecycleUnitPrice,
+  equipmentRecycleUnitPrice,
+  manualJadeRecycleUnitPrice,
+  seedRecycleUnitPrice,
+} from '@daoyou/game-rules/inventory/recycle';
+import {
+  ConsumableFactsSchema,
+  SeedFactsSchema,
+  materialFactsOf,
+} from '@daoyou/game-domain/inventory';
+import { findItemDefinition } from '@daoyou/game-content/items';
+import { calculateSpiritFruitRecycleUnitPrice } from '@daoyou/game-rules/alchemy';
+import { QUALITY_ORDER } from '@daoyou/constants/qualities';
+import {
+  inventoryItemOf,
+  saveInventoryPlan,
+} from '@server/inventory/application/InventoryService.js';
+import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db.js';
+import { cultivators, inventoryItems } from '@server/lib/drizzle/schema.js';
+import { redis } from '@server/lib/redis/index.js';
+import {
+  playerCommandExecutor,
+  type PlayerCommandExecutor,
+} from '@server/player/application/state/CommandExecutors.js';
+import {
+  MarketRecycleError,
+  buildMaterialHighTierAppraisal,
+  calculateHighTierUnitPrice,
+  calculateLowTierUnitPrice,
+  calculatePillRecycleUnitPrice,
+} from './RecycleAppraisal.js';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
+
+const key = (owner: string, id: string) => `market:bag-recycle:${owner}:${id}`;
+async function selectedItems(
+  owner: string,
+  selection: RecycleSelection[],
+  q: DbExecutor = getExecutor(),
+) {
+  const rows = (
+    await q
+      .select()
+      .from(inventoryItems)
+      .where(
+        and(
+          eq(inventoryItems.cultivatorId, owner),
+          inArray(
+            inventoryItems.id,
+            selection.map((item) => item.id),
+          ),
+        ),
+      )
+  ).map(inventoryItemOf);
+  return selection.map((ref) => {
+    const item = rows.find((row) => row.id === ref.id);
+    if (!item || item.revision !== ref.revision || item.quantity < ref.quantity)
+      throw new MarketRecycleError(409, '物品已变化，请重新选择并报价。');
+    const reason = recycleBlockingReason(item);
+    if (reason) throw new MarketRecycleError(409, reason);
+    return item;
+  });
+}
+
+export async function previewBagRecycle(
+  owner: string,
+  selection: RecycleSelection[],
+  database: DbExecutor = getExecutor(),
+) {
+  const snapshots = await selectedItems(owner, selection, database);
+  const items = snapshots.map((item, index) => {
+    const ref = selection[index];
+    const definition = findItemDefinition(item.definitionId);
+    if (definition?.kind === 'seed') {
+      const facts = SeedFactsSchema.parse(item.instanceData);
+      return {
+        ...ref,
+        name: facts.name,
+        unitPrice: seedRecycleUnitPrice(facts.seedSpec.plant.quality),
+      };
+    }
+    if (definition?.kind === 'manual_jade' && definition.manualId) {
+      return {
+        ...ref,
+        name: definition.name,
+        unitPrice: manualJadeRecycleUnitPrice(definition.manualId),
+      };
+    }
+    if (definition?.kind === 'blueprint' && definition.level) {
+      return {
+        ...ref,
+        name: definition.name,
+        unitPrice: blueprintRecycleUnitPrice(definition.level),
+      };
+    }
+    if (definition?.kind === 'equipment') {
+      const equipment = InventoryEquipmentSchema.parse(item.instanceData);
+      return {
+        ...ref,
+        name: equipment.name,
+        unitPrice: equipmentRecycleUnitPrice(equipment),
+      };
+    }
+    if (item.definitionId === 'consumable.v1') {
+      const facts = ConsumableFactsSchema.parse(item.instanceData);
+      return {
+        ...ref,
+        name: facts.name,
+        unitPrice:
+          facts.spec.kind === 'spirit_fruit'
+            ? calculateSpiritFruitRecycleUnitPrice(facts.quality)
+            : calculatePillRecycleUnitPrice(facts),
+      };
+    }
+    const material = materialFactsOf(item.instanceData);
+    const appraisal =
+      QUALITY_ORDER[material.rank] >= QUALITY_ORDER.真品
+        ? buildMaterialHighTierAppraisal({
+            ...material,
+            element: material.element ?? undefined,
+          })
+        : undefined;
+    return {
+      ...ref,
+      name: material.name,
+      unitPrice: appraisal
+        ? calculateHighTierUnitPrice(material, appraisal)
+        : calculateLowTierUnitPrice(material),
+      ...(appraisal ? { comment: appraisal.comment } : {}),
+    };
+  });
+  const total = items.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0,
+  );
+  if (!Number.isSafeInteger(total) || total < 1 || total > 2147483647)
+    throw new MarketRecycleError(400, '这批物品暂时无法估价。');
+  const quote: RecycleQuote = {
+    id: randomUUID(),
+    expiresAt: Date.now() + 600_000,
+    items,
+    total,
+  };
+  await redis.set(
+    key(owner, quote.id),
+    JSON.stringify({ quote, snapshots }),
+    'EX',
+    600,
+  );
+  return quote;
+}
+
+export function confirmBagRecycle(
+  actor: { userId: string; cultivatorId: string },
+  quoteId: string,
+  commands: PlayerCommandExecutor = playerCommandExecutor,
+) {
+  return commands.executeWithLock<RecycleResult>({
+    ...actor,
+    source: 'bag_recycle',
+    idempotency: { key: `bag-recycle:${quoteId}`, fingerprint: quoteId },
+    command: async (tx) => {
+      const raw = await redis.get(key(actor.cultivatorId, quoteId));
+      if (!raw)
+        throw new MarketRecycleError(410, '这份报价已过期，请重新询价。');
+      const stored = JSON.parse(raw) as {
+        quote: RecycleQuote;
+        snapshots: Awaited<ReturnType<typeof selectedItems>>;
+      };
+      if (stored.quote.expiresAt < Date.now())
+        throw new MarketRecycleError(410, '这份报价已过期，请重新询价。');
+      const before = await selectedItems(
+        actor.cultivatorId,
+        stored.quote.items,
+        tx,
+      );
+      if (JSON.stringify(before) !== JSON.stringify(stored.snapshots))
+        throw new MarketRecycleError(409, '物品已变化，请重新询价。');
+      const after = before.flatMap((item, index) => {
+        const quantity = item.quantity - stored.quote.items[index].quantity;
+        return quantity
+          ? [{ ...item, quantity, revision: item.revision + 1 }]
+          : [];
+      });
+      await saveInventoryPlan(actor.cultivatorId, before, after, tx);
+      const [currency] = await tx
+        .update(cultivators)
+        .set({
+          spirit_stones: sql`${cultivators.spirit_stones} + ${stored.quote.total}`,
+        })
+        .where(
+          and(
+            eq(cultivators.id, actor.cultivatorId),
+            eq(cultivators.userId, actor.userId),
+            sql`${cultivators.spirit_stones}::bigint + ${stored.quote.total} <= 2147483647`,
+          ),
+        )
+        .returning({ spiritStones: cultivators.spirit_stones });
+      if (!currency)
+        throw new MarketRecycleError(
+          409,
+          '灵石已达存储上限，请减少本次出售数量。',
+        );
+      return {
+        result: {
+          total: stored.quote.total,
+          quantity: stored.quote.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          ),
+          remainingSpiritStones: currency.spiritStones,
+        },
+        resourceChanges: [
+          {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.recycle.sold',
+            operation: 'invalidate',
+          },
+          {
+            resourceTopic: 'player.currency',
+            eventType: 'currency.market.gained',
+            operation: 'merge',
+            payload: currency,
+          },
+        ],
+      };
+    },
+  });
+}

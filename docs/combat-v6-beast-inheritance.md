@@ -11,7 +11,7 @@
 
 ## 验证
 
-`bun run build`、`bun run lint`、相关23个测试文件270项通过；新增同名不同传承／品级堆叠回归后，`bun run test src/shared/inventory/inventory.test.ts`的7项通过（含新增1项）。`src`及`.agents`中旧兽诀／兽决名称检索无匹配，历史文档保留追溯记录。
+`bun run build`、`bun run lint`、相关23个测试文件270项通过；新增同名不同传承／品级堆叠回归后，`bun run test packages/shared/src/inventory/inventory.test.ts`的7项通过（含新增1项）。`src`及`.agents`中旧兽诀／兽决名称检索无匹配，历史文档保留追溯记录。
 
 本地道友1实测已有灵火灵印：列表只显示传承灵印，预览显示所载传承灵火；领悟入口、选中提示、桌面与390×844确认框均明确技能与消耗。取消确认，未消耗物品、未替换技能。上品名称及不同传承的堆叠由共享测试验证，当前背包无上品样本，未宣称上品页面实测。未运行全量测试或发布部署。
 

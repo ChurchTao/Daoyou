@@ -29,10 +29,10 @@ description: 为本项目的主流程游戏 UI 提供抽象规范与审查方法
 
 ## 当前接入边界
 
-- 先看 `src/react-app/router.tsx` 的真实布局。V6 战斗使用 `src/react-app/layouts/combat-v6-layout.tsx` 和 `src/react-app/components/feature/combat-v6`，不套主流程身份／任务／导航三层审查。
+- 先看 `apps/web/src/router.tsx` 的组装与 `apps/web/src/route-definitions/**` 的真实布局。V6 战斗使用 `apps/web/src/layouts/combat-v6-layout.tsx` 和 `apps/web/src/components/feature/combat-v6`，不套主流程身份／任务／导航三层审查。
 - 战斗展示与回放核对 `docs/combat-v6-battle-ui.md` 和现有 session/presentation 代码；客户端消费权威状态，不为展示重新计算战斗结果。
-- 角色和物品状态优先复用 `src/react-app/lib/resources` 的 hooks/store/mutations。旧 `useCultivatorBundle` 已不在当前代码中。
-- 角色面板使用 `src/shared/lib/cultivatorDisplay.ts` 的 V6 展示契约；物品预览与道具接入遵循 [daoyou-item-preview](../daoyou-item-preview/SKILL.md) 的固定规范，`docs/item-presentation-ui.md`、`docs/inventory-equipment-ui.md` 用于查实现脉络，不要从旧 creation product 推导新道装属性。
+- 角色和物品状态优先复用 `apps/web/src/lib/resources` 的 hooks/store/mutations。旧 `useCultivatorBundle` 已不在当前代码中。
+- 角色面板使用 `packages/game-rules/src/character/display.ts` 的 V6 展示契约；物品预览与道具接入遵循 [daoyou-item-preview](../daoyou-item-preview/SKILL.md) 的固定规范，`docs/item-presentation-ui.md`、`docs/inventory-equipment-ui.md` 用于查实现脉络，不要从旧 creation product 推导新道装属性。
 
 ## Mental Model
 
@@ -163,22 +163,21 @@ description: 为本项目的主流程游戏 UI 提供抽象规范与审查方法
 
 在这个仓库里，先检查当前主流程壳组件与共享原语，再决定改动位置。优先关注：
 
-- `src/react-app/components/game-shell`
-- `src/react-app/components/feature/world-chat`
-- `src/react-app/routes/game`
-- `src/react-app/router.tsx`
-- `src/react-app/components/game-shell/gameNavigation.ts`
-- `src/react-app/lib/router/gameShellRegistry.ts`
+- `apps/web/src/components/game-shell`
+- `apps/web/src/components/feature/world-chat`
+- `apps/web/src/routes/game`
+- `apps/web/src/router.tsx` 与 `apps/web/src/route-definitions/**`
+- `apps/web/src/components/game-shell/gameNavigation.ts`
 - `docs/game-layout-ownership.md`
 
 优先复用现有主流程原语，而不是重新发明一套页面局部样式约定。只有当现有原语无法表达当前规则时，才新增一个职责单一的组件。
 
 新增或迁移主流程场景时，不要只添加 route 文件。同步核对：
 
-- `src/react-app/router.tsx` 中的 route、`handle={scene(...)}` 和 document title
-- `src/react-app/components/game-shell/gameNavigation.ts` 中对应 scene metadata、dock label、href
+- `apps/web/src/route-definitions/**` 中的 route、`handle={scene(...)}` 和 document title
+- `apps/web/src/components/game-shell/gameNavigation.ts` 中对应 scene metadata、dock label、href
 - 需要 immersive chrome 时的特殊返回 descriptor
-- `src/react-app/lib/router/gameShellRegistry.ts`、`src/react-app/lib/router/routeTitle.ts` 的注册与标题行为
+- `apps/web/src/route-definitions/**` 的实际布局嵌套与 `apps/web/src/lib/router/routeTitle.ts` 的标题行为
 - `docs/game-layout-ownership.md` 是否仍准确
 
 ## Review Questions

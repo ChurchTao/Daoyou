@@ -198,13 +198,13 @@
 
 主要改动预计在：
 
-- `src/shared/lib/tower/weekly.ts`、`formations.ts`：完整遭遇清单与编排。
-- `src/shared/engine/combat-v6/tower/content.ts`、`host.ts`：编译冻结敌人包、读取发布内容。
-- `src/shared/contracts/combatV6Tower.ts`：当前周与旧挑战归属。
-- `src/server/lib/drizzle/schema.ts`、主业务迁移：两张表。
+- `packages/shared/src/lib/tower/weekly.ts`、`formations.ts`：完整遭遇清单与编排。
+- `packages/shared/src/engine/combat-v6/tower/content.ts`、`host.ts`：编译冻结敌人包、读取发布内容。
+- `packages/shared/src/contracts/combatV6Tower.ts`：当前周与旧挑战归属。
+- `apps/api/src/lib/drizzle/schema.ts`、主业务迁移：两张表。
 - 一个小型塔持久化仓库：读写周记录和领奖状态，透传事务，不建立泛化仓库框架。
-- `src/server/lib/tower/combatV6.ts`：周发布、领奖事务、换周与兼容。
-- `src/react-app/routes/game/tower/route.tsx`：仅同步周归属与奖励展示。
+- `apps/api/src/lib/tower/combatV6.ts`：周发布、领奖事务、换周与兼容。
+- `apps/web/src/routes/game/tower/route.tsx`：仅同步周归属与奖励展示。
 
 纯共享测试：完整遭遇引用合法；禁配；同周及跨周约束；缺历史；多周分布；冻结包与预览一致；更新源配置不改变已有包；领奖状态纯转换的同周保持、向前切换及拒绝回退。
 
@@ -222,7 +222,7 @@
 - 实现：`combat-v6-tower-v4`。发布配置一周一条、SQL领奖一角色一条，完整遭遇编排、冻结敌人、直接硬切旧挑战/榜单与旧资格导入已落地。首次本地发布JSON为130836字符，约128 KiB。
 - 迁移：生成并检查 `0052_tower_week_publication.sql`、snapshot和journal，仅创建两张业务表及角色外键；使用 `bun --env-file=env/local.env ./node_modules/drizzle-kit/bin.cjs migrate` 在确认的 `127.0.0.1:15432/daoyou_local` 成功应用。未执行线上迁移或部署。最初通过 `bun x` 调用Drizzle未传递到所需环境，已改为Bun直接运行CLI。
 - 静态检查：`bun run lint`、`bun run build`（客户端＋服务端）、最后事务参数调整后的服务端TypeScript与文件lint、`git diff --check`通过。
-- 专项：`bun run test src/shared/lib/tower src/shared/engine/combat-v6/tower`，45项通过。覆盖合法候选数量、110周轮转、历史输入顺序确定性、所有候选曝光、冻结包与实际Host、缺层/错误引用拒绝、领奖周前进和回退拒绝，并保留原机制测试。
+- 专项：`bun run test packages/shared/src/lib/tower packages/shared/src/engine/combat-v6/tower`，45项通过。覆盖合法候选数量、110周轮转、历史输入顺序确定性、所有候选曝光、冻结包与实际Host、缺层/错误引用拒绝、领奖周前进和回退拒绝，并保留原机制测试。
 - 全量：`bun run test`，1637通过、1失败；失败为既有 `bodyCultivation/pack.test.ts` 的旧文案断言。之后新增的发布校验测试由专项运行覆盖，未为此重复全量。
 - 浏览器：复用本地道友2，临时调整到金丹中期及高属性，仅用于流程验证；由真实UI两次从第1层打到第5层，公共战斗、普通双敌、治疗阵容、祝福、结算和重开正常。第一次第5层奖励225灵石、5声望、一份材料，第二次同档没有重复发放。SQL只读核对领奖一行、claims内容及原battleId保持不变、余额保持15651/20，本周配置始终一行。
 - 页面：检查周阵容预览、当前周奖励、桌面与360×800奖励弹层。开发服务热重启期间曾出现临时不可用状态，恢复后第二层进度仍在；未将此视为SQL故障注入测试。

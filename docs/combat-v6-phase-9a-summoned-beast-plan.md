@@ -76,7 +76,7 @@
 
 ## 验证与发布边界
 
-- 仅在 `src/shared` 添加纯确定性测试，不新增前端、服务端、数据库或第三方模拟单元测试，不新增一次性 seed／smoke／E2E 脚本。
+- 仅在 `packages/shared/src` 添加纯确定性测试，不新增前端、服务端、数据库或第三方模拟单元测试，不新增一次性 seed／smoke／E2E 脚本。
 - 浏览器验证遵循 `docs/testing.md`，使用纯本地环境和项目测试账号规范。
 - 代码修改使用内置编辑工具；React 遵循指定最佳实践，格式使用仓库配置；不引入全局状态库或全站整改。
 - 执行适用的共享测试、`bun run lint`、`bun run build`、触及文件 Prettier 检查与 `git diff --check`，记录真实结果和未验证项。
@@ -85,7 +85,7 @@
 
 ## 实施记录（2026-09-06）
 
-- `src/shared/engine/combat-v6/beasts` 保存正式个体模型、确定性生成、独立面板与技能投影；同系普通／高级连击只启用高级效果。
+- `packages/shared/src/engine/combat-v6/beasts` 保存正式个体模型、确定性生成、独立面板与技能投影；同系普通／高级连击只启用高级效果。
 - 迁移 `0038_v6_summoned_beasts.sql` 新增个体表及编组表；领取、编组、休养通过人物锁和事务保护。战斗开始冻结携带个体，战中禁止修改。
 - `/game/beasts` 提供一次性领取、详情、携带、首发和休养；复用场景壳、抽屉和 tooltip。
 - 野外、练功房、擂台统一人物／宠物整组指令；召回和换宠按权威行动顺序更新差量帧。己方宠物可查看具体属性，其他玩家及观众只获得公开比例，不公开未出场备用宠物。
@@ -99,7 +99,7 @@
 
 - PvE 提交改为 `{ expectedRevision, commands: [{ unitId, command }] }`；擂台为 `{ round, requestId, commands }`。服务端一次验证并保存完整控制组，不保留旧单指令协议。
 - `command` 增加 `summon`／`recall`；会话通过 `controlledCommandOptions` 返回人物与当前宠物的选择。先选人物只是客户端草稿，宠物选择完成才发送一次 HTTP 请求。
-- 本阶段版本戳使用 `COMBAT_V6_PHASE_9A_*_VERSIONS`，包含 `daoyou_rules_v7` 及各玩法的召唤兽内容／编译器版本。归档保留冻结的单位与技能展示资料。
+- 本阶段历史归档使用 `daoyou_rules_v7` 及各玩法的召唤兽内容／编译器版本；阶段版本常量已退役。当前入口使用 `version.ts` 中的 `COMBAT_V6_SEAL_CURVE_*_VERSIONS`，保留既有持久化版本值。归档保留冻结的单位与技能展示资料。
 - 发布需停机、完成迁移并硬切前后端，旧页面必须刷新；旧活动会话不作为兼容目标。迁移仅已在纯本地 PostgreSQL 应用，未执行远程迁移或部署。
 
 ### 验证记录

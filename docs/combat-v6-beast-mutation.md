@@ -29,8 +29,8 @@
 
 - 新增纯共享领域测试覆盖全部 18 物种的数值提升、技能独立、普通兼容、面板只强化一次、重复洗炼、传承保留身份、概率边界、幼崽／成年变异、预览边界、身份一致性、战局恢复及回放归档。
 - 普通个体的既有生成摘要测试保持原值。
-- `bun run lint`、`bun run build` 通过。全量 `bun run test`：1,584 通过，1 项既有失败为 `src/shared/lib/bodyCultivation/pack.test.ts` 的 `shortDesc` 文案基准，与本机制无关。
-- 最终聚焦测试 `bun run test src/shared/engine/combat-v6/beasts src/shared/engine/combat-v6/wild src/shared/combat-v6`：28 个文件、408 项通过。
+- `bun run lint`、`bun run build` 通过。全量 `bun run test`：1,584 通过，1 项既有失败为 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 的 `shortDesc` 文案基准，与本机制无关。
+- 最终聚焦测试 `bun run test packages/shared/src/engine/combat-v6/beasts packages/shared/src/engine/combat-v6/wild packages/shared/src/combat-v6`：28 个文件、408 项通过。
 
 ### 首版的本地浏览器验收（0.1%）
 
@@ -50,4 +50,4 @@
 
 按用户要求，出现率从 0.1% 提高到 0.8%（每只独立，内容修订 8）；移除所有战斗展示组件及其无障碍名称中的“变异”标识，保留异色。原始外观事实继续随战局和回放保存，数值、技能及洗炼规则不变。野外发现、灵兽袋列表和详情仍保留标签。
 
-本次调整验收：`bun run test src/shared/engine/combat-v6/wild src/shared/combat-v6` 的 12 个文件、92 项通过；`bun run lint`、`bun run build` 和 `git diff --check` 通过。代码检查确认三个战斗展示组件仅将变异身份传给头像，没有变异标签或变异无障碍名称。当前浏览器处于登录页，本次未重新开战手测，也未重跑全量测试；未操作用户保留的两只灵兽。
+本次调整验收：`bun run test packages/shared/src/engine/combat-v6/wild packages/shared/src/combat-v6` 的 12 个文件、92 项通过；`bun run lint`、`bun run build` 和 `git diff --check` 通过。代码检查确认三个战斗展示组件仅将变异身份传给头像，没有变异标签或变异无障碍名称。当前浏览器处于登录页，本次未重新开战手测，也未重跑全量测试；未操作用户保留的两只灵兽。

@@ -7,11 +7,12 @@ description: Daoyou Drizzle/PostgreSQL、事务、V6 角色与宗门归属、统
 
 ## Locate the Current Write Path
 
-Read `drizzle.config.ts`, `drizzle.auth.config.ts`, `src/server/lib/drizzle/db.ts` and the relevant definitions in `src/server/lib/drizzle/schema.ts`. Follow the route → service → repository/SQL path before treating a table or DTO as authoritative. Historical migration/design files describe intent; they do not prove a deployed database has applied it.
+Read `drizzle.config.ts`, `drizzle.auth.config.ts`, `apps/api/src/lib/drizzle/db.ts` and the relevant definitions in `apps/api/src/lib/drizzle/schema.ts`. Follow the route → service → repository/SQL path before treating a table or DTO as authoritative. Historical migration/design files describe intent; they do not prove a deployed database has applied it.
 
 ## Database and Transactions
 
-- Business tables use the main `wanjiedaoyou_*` migration stream in `drizzle/`. Better Auth uses `src/server/lib/auth/schema.ts`, `drizzle.auth.config.ts` and `drizzle-auth/`, with fixed `better_auth` schema and independent history.
+- Business tables use the main `wanjiedaoyou_*` migration stream in `drizzle/`. Better Auth uses `apps/api/src/lib/auth/schema.ts`, `drizzle.auth.config.ts` and `drizzle-auth/`, with fixed `better_auth` schema and independent history.
+- Nest `apps/api/src/database/database.module.ts` exports the same client via `DRIZZLE_DATABASE` and `DatabaseService`. Runtime drains requests/messages before closing it. Connection settings come from validated `getRuntimeEnvironment()`; do not create feature-local pools.
 - Runtime uses a module-level `pg.Pool` and `drizzle-orm/node-postgres`, not Bun SQL. `DATABASE_URL` supplies the connection; `DB_MAX_CONNECTIONS` controls pool size. Session settings live in `db.ts`.
 - Reuse `db`, `getExecutor(tx?)`, `DbExecutor` and `DbTransaction`; do not create parallel DB layers or feature-local pools.
 - Pass the executor through every nested write. `runDbTasks(executor, tasks)` serializes work on a transaction's single connection and permits parallel pool reads; do not replace it with unconditional `Promise.all`.
@@ -24,15 +25,15 @@ Table names below omit the `wanjiedaoyou_` prefix. The exact names and constrain
 
 | Domain | Storage | Runtime entrypoints |
 | --- | --- | --- |
-| Character identity, permanent six attributes, condition | `cultivators` | `cultivatorRepository.ts`, `services/cultivator`, V6 condition services |
+| Character identity, permanent six attributes, condition | `cultivators` | `cultivatorRepository.ts`, `cultivator/application/readers`, V6 condition services |
 | Personal manuals and active slots | `cultivator_manual_states`, `cultivator_manual_slots` | `characterLoadoutRepository.ts`, `CombatV6ManualService.ts` |
-| Bag/storage item instances | `inventory_items` | `InventoryService.ts`, `src/shared/inventory`, `src/shared/items` |
+| Bag/storage item instances | `inventory_items` | `InventoryService.ts`, `packages/game-rules/src/inventory`, `packages/game-domain/src/items` |
 | Equipped V6 equipment | `cultivator_equipment_slots` | `characterLoadoutRepository.ts`, `InventoryService.ts` |
 | Beasts and lineups | `cultivator_beasts`, `cultivator_beast_lineups` | `combatV6BeastRepository.ts`, `CombatV6BeastService.ts` |
 | Sect progression | `sect_combat_states`, `sect_method_progress`, `sect_meridian_loadouts`, `sect_meridian_nodes` | `sectCombatRepository.ts` |
 | V6 history/replays | `combat_replay_archives`, `combat_replay_participants` | `combatV6ReplayRepository.ts` |
 
-Repository names resolve under `src/server/lib/repositories`; V6 service names resolve under `src/server/lib/services/combat-v6`.
+Repository names resolve under `apps/api/src/lib/repositories`; V6 service names resolve under `apps/api/src/combat/application`.
 
 ### Ownership and JSON
 
@@ -47,16 +48,16 @@ Repository names resolve under `src/server/lib/repositories`; V6 service names r
 ### Redis, Messages and Replays
 
 - Redis is authoritative for active V6 battle state, commands and RNG. Inspect `CombatV6RuntimeStore.ts` and the mode-specific stores for CAS revisions, occupancy, expiry and outboxes; do not substitute process-local sessions.
-- Access Redis through `src/server/lib/redis`; NATS through `src/server/lib/nats`. `src/server/lib/mq/combatV6Messaging.ts` coordinates terminal/replay publication and archival.
+- Access Redis through `apps/api/src/lib/redis`; NATS through `apps/api/src/lib/nats`. `apps/api/src/runtime/messaging/combatV6Messaging.ts` coordinates terminal/replay publication and archival.
 - PostgreSQL V6 archives enforce source/idempotency uniqueness. Replay participants intentionally do not cascade from character deletion; the battle archive owns their lifecycle.
 - Keep settlement, resource events and replay delivery idempotent across retries. Read `docs/nats-domain-events.md` together with the relevant consumer before changing message boundaries.
 
 ## Legacy Boundary
 
 - `creation_products`, `materials` and `consumables` still have residual code paths. Inspect their actual callers before modifying or deleting them; they are not fallback sources for V6 equipment/manuals or the unified bag.
-- Legacy product views use `src/shared/legacy/products.ts`. Do not restore creation-v2 rehydration / `battleProjection` or treat `creation_products.is_equipped` as current V6 equipment state.
-- `/api/battle-records/*` returns 410. V6 history uses the combat replay repository, not `battle_records_v2`.
-- `battle_records_v3`, `battle_replay_archives` and `bet_battles` are deprecated historical schema, with deletion deferred by release policy. Read `docs/combat-v6-legacy-table-retirement.md` for that policy, but verify exact table names against schema. Do not generate DROP migrations simply while cleaning up skills or legacy references.
+- Legacy product views use `packages/game-domain/src/legacy/products.ts`. Do not restore creation-v2 rehydration / `battleProjection` or treat `creation_products.is_equipped` as current V6 equipment state.
+- `/api/battle-records/*` has been removed. V6 history uses the combat replay repository, not `battle_records_v2`.
+- `battle_records_v3`, `battle_replay_archives` and `bet_battles` are deprecated historical schema, with physical deletion deferred to a separate future migration. Read `docs/combat-v6-legacy-table-retirement.md` for that policy, but verify exact table names against schema. Do not generate DROP migrations simply while cleaning up skills or legacy references.
 - Do not infer that every older table is still present, or already physically deleted, from a DTO, directory or migration file alone.
 
 ## Verify

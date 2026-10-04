@@ -140,7 +140,7 @@
 
 ## 首批30种实施验收（2026-09-13，历史记录）
 
-- 30种器诀、8%产出率、全部六部位、单件一条已接入；8种待补证内容未加入定义及产出池。策划入口为 `src/shared/engine/combat-v6/equipment/data/equipment-special.json` 与 `equipment-forging.json`。
+- 30种器诀、8%产出率、全部六部位、单件一条已接入；8种待补证内容未加入定义及产出池。策划入口为 `packages/shared/src/engine/combat-v6/equipment/data/equipment-special.json` 与 `equipment-forging.json`。
 - 机制测试覆盖30种基础施展与消耗，以及百分比治疗、群体逐目标基数、减疗、伤势上限、禁复活、在场灵兽复活、封法／封物理／禁行动、强弱覆盖、有限与整场期限、结果增减伤、固定伤害排除、多段比例与倒地停止、产出池隔离。既有器蕴用例继续通过。
 - `bun run lint`、`bun run build`、`bun run test`通过：165文件、1320测试。`git diff --check`通过。构建仅有既有chunk大小提示。
 - 本地浏览器：已登录的本地道友8，准备三叠灵音（现名三叠仙音）武器样本，核对60战意／归元后48、30%／50%／100%说明。桌面及360×800视口截图检查通过，说明与卸下按钮完整可见。实际穿戴与卸下成功，样本经库存计划、角色锁、事务及资源事件清理，储物袋回到0/40；临时视口已恢复。
@@ -193,7 +193,7 @@
 
 ### 命名调整验收
 
-- `bun run test src/shared/engine/combat-v6/equipment src/shared/forging/forging.test.ts`：11文件、216测试通过，覆盖配置加载、编译、器诀机制及生成基线。
+- `bun run test packages/shared/src/engine/combat-v6/equipment packages/shared/src/forging/forging.test.ts`：11文件、216测试通过，覆盖配置加载、编译、器诀机制及生成基线。
 - `git diff --check`：通过。逐项对比确认除20个名称、1处描述名称引用及内容修订号外，配置事实全部保持不变；38个器诀名称无重复。
 - 本轮仅数据文案与文档调整，未运行全量测试、lint、build或浏览器验收；未部署。
 

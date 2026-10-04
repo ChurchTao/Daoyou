@@ -22,7 +22,7 @@
 
 品质限价：玄品 100,000；真品 200,000；地品 400,000；天品 800,000；仙品 1,600,000；神品使用默认上限 9,999,999。凡品、灵品虽有价格配置，但在准入阶段就被拒绝。
 
-核心依据：`src/shared/contracts/auction.ts`、`src/shared/config/auctionConfig.ts`、`src/shared/items/registry.ts`、`src/server/lib/services/AuctionService.ts`。
+核心依据：`packages/shared/src/contracts/auction.ts`、`packages/shared/src/config/auctionConfig.ts`、`packages/shared/src/items/registry.ts`、`apps/api/src/lib/services/AuctionService.ts`。
 
 ## 2. 明确不在交易范围内的资产
 
@@ -94,7 +94,7 @@
 
 - 已沿注册表／纯规则 → 前端寄售与浏览 → API → 应用服务 → 交易服务／货单仓储 → 邮件附件检查当前链路。
 - 已只读执行注册表与准入函数，确认定义数量和两种灵露可售；初次梳理时四种固定材料因凡品被拒绝，现已退役。
-- `bun run test src/shared/contracts/auction.test.ts src/shared/config/auctionConfig.test.ts`：2 个文件、10 项测试通过。现有无品质准入枚举测试未包含 `beast_refinement`，本次对两种灵露的结论另以实际规则调用核验。
+- `bun run test packages/shared/src/contracts/auction.test.ts packages/shared/src/config/auctionConfig.test.ts`：2 个文件、10 项测试通过。现有无品质准入枚举测试未包含 `beast_refinement`，本次对两种灵露的结论另以实际规则调用核验。
 - 本次仅新增文档，检查文档差异与格式；未执行全量 lint、build、全量测试、浏览器交易、数据库查询或生产库存核对。
 - 历史 Phase 10R 验收见 `docs/combat-v6-phase-10r-auction-inventory.md`。其未覆盖项仍是历史记录，本次静态梳理不将其升级为已验收；旧货单清理和生产部署状态也未重新确认。
 
@@ -106,9 +106,9 @@
 - 幻境奖励包升级为 formatVersion 2，移除固定材料池；按挑战境界调用现有材料库产出，每件保存完整 `material.v1` 实例。四档数量、灵石、声望和每周领取规则保持不变。
 - 在结算前将具体奖励保存到现有 Redis 战斗快照，重试复用相同物品；库存、货币与回放归档仍走原事务。幻境摘要显示实际材料名称。
 - 不执行数据库迁移、旧库存转换、历史奖励改写或部署。存量固定材料不提供兼容读取。
-- 相关测试：`bun run test src/shared/rewards src/shared/inventory src/shared/items src/shared/forging src/shared/lib/dungeon/materialCosts.test.ts src/shared/contracts/auction.test.ts`，17 文件／100 项通过。
+- 相关测试：`bun run test packages/shared/src/rewards packages/shared/src/inventory packages/shared/src/items packages/shared/src/forging packages/shared/src/lib/dungeon/materialCosts.test.ts packages/shared/src/contracts/auction.test.ts`，17 文件／100 项通过。
 - `bun run lint`、`bun run build`、`git diff --check` 通过。构建保留 chunk 大小及既有动态／静态导入提示。
-- `bun run test`：177 文件通过，1 文件失败；1586 项通过、1 项失败。失败位于本次未修改的 `src/shared/lib/bodyCultivation/pack.test.ts:20`，当前炼体说明文案与旧基线文案不同；幻境测试通过。
+- `bun run test`：177 文件通过，1 文件失败；1586 项通过、1 项失败。失败位于本次未修改的 `packages/shared/src/lib/bodyCultivation/pack.test.ts:20`，当前炼体说明文案与旧基线文案不同；幻境测试通过。
 - 浏览器打开本地幻境入口，页面正常且无 error／warn 日志；只读查询确认 local1—local8 均为炼气后期，低于金丹准入门槛。未修改账号境界、库存或活动状态；未进行实际里程碑结算、断线重试、库为空或移动端验收。
 
 ## 7. 灵兽本体接入（2026-09-19）

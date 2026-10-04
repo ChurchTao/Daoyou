@@ -1,0 +1,735 @@
+import { apiFetch } from '@app/lib/api/fetch';
+import { combatV6Request } from '@app/components/feature/combat-v6/request';
+import { CultivatorInspectionModal } from '@app/components/feature/cultivator-inspection';
+import {
+  ItemDetailModal,
+  type ItemDetailPayload,
+} from '@app/components/feature/items';
+import {
+  BattleRankingCard,
+  ItemRankingCard,
+  WealthRankingCard,
+} from '@app/components/feature/ranking/RankingListItem';
+import {
+  GameLoadingState,
+  GameSceneAsideSection,
+  GameSceneFrame,
+  GameSceneLoading,
+  GameSceneNote,
+  GameSceneSection,
+  GameSceneTabs,
+} from '@app/components/game-shell';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { InkButton, InkList, InkListItem, InkNotice } from '@app/components/ui';
+import {
+  useCultivatorCurrency,
+  useCultivatorIdentity,
+  usePlayerSession,
+} from '@app/lib/resources/player';
+import { MAX_DAILY_RANKING_CHALLENGES } from '@daoyou/game-rules/rankings/ranking';
+import type { RankingChallengeRequest } from '@daoyou/contracts/combat/ranking';
+import type { CultivatorInspectionData } from '@daoyou/contracts/player';
+import { cn } from '@app/lib/cn';
+import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
+import { RANKING_REWARDS } from '@daoyou/game-content/economy';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
+import type {
+  BattleRankingItem,
+  ItemRankingEntry,
+  RankingsDisplayItem,
+  WealthRankingEntry,
+} from '@daoyou/contracts/rankings';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { toRankingDetailItem } from './rankingDetailItem';
+
+type MyRankInfo = {
+  rank: number | null;
+  remainingChallenges: number;
+};
+
+type LoadingState = 'idle' | 'loading' | 'loaded';
+
+type RankingTab = 'battle' | 'elixir' | 'wealth';
+const REPUTATION_INFO = getGameConceptInfo('reputation');
+const REPUTATION_LABEL = `${REPUTATION_INFO.icon} ${REPUTATION_INFO.label}`;
+
+function resolveRealm(value?: string | null): RealmType {
+  return REALM_VALUES.includes(value as RealmType)
+    ? (value as RealmType)
+    : '炼气';
+}
+
+function getExpectedRankingReputation(rank: number | null | undefined) {
+  if (!rank) return null;
+  if (rank === 1) return RANKING_REWARDS[1];
+  if (rank <= 10) return RANKING_REWARDS['2-10'];
+  if (rank <= 50) return RANKING_REWARDS['11-50'];
+  if (rank <= 100) return RANKING_REWARDS['51-100'];
+  return null;
+}
+
+function MyChallengeLedger({
+  activeRealm,
+  myRank,
+  remainingChallenges,
+  isLoadingChallenges,
+}: {
+  activeRealm: RealmType;
+  myRank: number | null | undefined;
+  remainingChallenges: number | undefined;
+  isLoadingChallenges: boolean;
+}) {
+  const rankLabel = myRank ? `第 ${myRank} 名` : '未留名';
+  const challengeLabel = isLoadingChallenges
+    ? '推演中'
+    : `${remainingChallenges ?? 0} / ${MAX_DAILY_RANKING_CHALLENGES}`;
+  const expectedReputation = getExpectedRankingReputation(myRank);
+
+  return (
+    <div className="scrollbar-ink border-crimson/20 overflow-x-auto border border-dashed">
+      <div className="flex min-w-max items-center text-sm leading-6 whitespace-nowrap">
+        <div className="px-3 py-2">
+          <span className="text-battle-muted text-xs">分榜</span>
+          <span className="text-ink ml-2 font-semibold">{activeRealm}</span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-battle-muted text-xs">排名</span>
+          <span className="text-ink ml-2 font-semibold">{rankLabel}</span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-battle-muted text-xs">挑战次数</span>
+          <span className="text-ink ml-2 font-semibold">{challengeLabel}</span>
+        </div>
+        <div className="px-3 py-2">
+          <span className="text-battle-muted text-xs">
+            {REPUTATION_INFO.icon} 预计声望
+          </span>
+          <span className="text-ink ml-2 font-semibold">
+            {expectedReputation ?? '--'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RealmTokenBar({
+  activeRealm,
+  ownRealm,
+  onChange,
+}: {
+  activeRealm: RealmType;
+  ownRealm?: RealmType;
+  onChange: (realm: RealmType) => void;
+}) {
+  return (
+    <div className="scrollbar-ink -mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-1">
+      {REALM_VALUES.map((realm) => {
+        const isActive = activeRealm === realm;
+        const isOwnRealm = ownRealm === realm;
+
+        return (
+          <button
+            key={realm}
+            type="button"
+            onClick={() => onChange(realm)}
+            aria-pressed={isActive}
+            className={cn(
+              'shrink-0 border px-3 py-2 text-sm leading-5 transition-colors',
+              isActive
+                ? 'border-crimson/45 bg-crimson/8 text-crimson'
+                : 'border-ink/15 bg-paper/60 text-ink-secondary hover:border-crimson/30 hover:text-ink',
+            )}
+          >
+            <span className="font-semibold">{realm}</span>
+            {isOwnRealm ? (
+              <span className="text-battle-muted ml-2 text-xs">本境</span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RankingEmptyState({
+  activeTab,
+  activeRealm,
+  canDirectEntry,
+  challenging,
+  onDirectEntry,
+}: {
+  activeTab: RankingTab;
+  activeRealm: RealmType;
+  canDirectEntry: boolean;
+  challenging: boolean;
+  onDirectEntry: () => void;
+}) {
+  if (canDirectEntry) {
+    return (
+      <div className="border-crimson/20 bg-crimson/6 border px-4 py-5 text-center">
+        <p className="text-ink text-base font-semibold">
+          {activeRealm}天骄榜尚无席位
+        </p>
+        <p className="text-ink-secondary mt-2 text-sm leading-6">
+          此境金榜初开，可直接登榜留名。
+        </p>
+        <div className="mt-4">
+          <InkButton
+            onClick={onDirectEntry}
+            variant="primary"
+            pending={challenging}
+            pendingLabel="登榜中……"
+          >
+            登榜留名
+          </InkButton>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <InkNotice>
+      {activeTab === 'battle'
+        ? `${activeRealm}天骄榜暂无记录。需有本境修士留名后才能切磋，越境挑战不能直接上榜。`
+        : activeTab === 'wealth'
+          ? '财富榜暂无记录。'
+          : '此榜单暂无记录。'}
+    </InkNotice>
+  );
+}
+
+export default function RankingsPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { pushToast } = useInkUI();
+  const profile = useCultivatorIdentity();
+  const currency = useCultivatorCurrency();
+  const session = usePlayerSession();
+  const identity = profile.data?.cultivator;
+  const cultivator =
+    identity?.id && currency.data
+      ? {
+          id: identity.id,
+          realm: identity.realm,
+          reputation: currency.data.reputation,
+        }
+      : null;
+  const isLoading = profile.loading || currency.loading || session.loading;
+  const note = session.data?.note;
+  const [activeTab, setActiveTab] = useState<RankingTab>('battle');
+  const [rankings, setRankings] = useState<RankingsDisplayItem[]>([]); // Use strict type
+  const [myRankInfo, setMyRankInfo] = useState<MyRankInfo | null>(null);
+  const [myRankInfoLoadingState, setMyRankInfoLoadingState] =
+    useState<LoadingState>('idle');
+  const [loadingRankings, setLoadingRankings] = useState(true);
+  const [challenging, setChallenging] = useState<string | null>(null);
+  const [pending, setPending] = useState<RankingChallengeRequest | null>(null);
+  const [error, setError] = useState<string>('');
+  const [probing, setProbing] = useState<string | null>(null);
+  const [inspectedCultivator, setInspectedCultivator] =
+    useState<CultivatorInspectionData | null>(null);
+  const [selectedItemDetail, setSelectedItemDetail] =
+    useState<ItemDetailPayload | null>(null);
+  const activeRealm = resolveRealm(
+    searchParams.get('realm') ?? cultivator?.realm,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadInitialRankings = async () => {
+      try {
+        let url = `/api/rankings?realm=${encodeURIComponent(activeRealm)}`;
+        if (activeTab === 'wealth') {
+          url = '/api/rankings/wealth';
+        } else if (activeTab !== 'battle') {
+          url = `/api/rankings/items?type=${activeTab}`;
+        }
+
+        const response = await apiFetch(url);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || '榜单暂不可用');
+        }
+
+        if (cancelled) return;
+
+        setRankings(result.data || []);
+        setError('');
+      } catch (err) {
+        if (cancelled) return;
+        console.error('获取排行榜失败:', err);
+        const errorMessage = '获取排行榜失败，请稍后重试';
+        setError(errorMessage);
+        pushToast({ message: errorMessage, tone: 'danger' });
+        setRankings([]);
+      } finally {
+        if (!cancelled) {
+          setLoadingRankings(false);
+        }
+      }
+    };
+
+    void loadInitialRankings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRealm, activeTab, pushToast]);
+
+  useEffect(() => {
+    if (!cultivator?.id || activeTab !== 'battle') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadInitialMyRank = async () => {
+      try {
+        const [response, recovery] = await Promise.all([
+          apiFetch(
+            `/api/rankings/my-rank?realm=${encodeURIComponent(activeRealm)}`,
+          ),
+          combatV6Request<RankingChallengeRequest | null>(
+            '/api/rankings/challenge/current',
+            { cache: 'no-store' },
+          ),
+        ]);
+        const result = await response.json();
+        if (cancelled) return;
+        setPending(recovery);
+
+        if (response.ok && result.success) {
+          setMyRankInfo({
+            rank: result.data.rank,
+            remainingChallenges: result.data.remainingChallenges,
+          });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error('获取我的排名失败:', err);
+        pushToast({ message: '获取排名信息失败', tone: 'danger' });
+      } finally {
+        if (!cancelled) {
+          setMyRankInfoLoadingState('loaded');
+        }
+      }
+    };
+
+    void loadInitialMyRank();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRealm, activeTab, cultivator?.id, pushToast]);
+
+  const handleTabChange = (val: string) => {
+    setRankings([]);
+    setLoadingRankings(true);
+    setActiveTab(val as RankingTab);
+  };
+
+  const handleProbe = async (targetId: string) => {
+    if (!cultivator?.id) return;
+    setProbing(targetId);
+    try {
+      const response = await apiFetch('/api/rankings/probe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetId,
+          realm: activeRealm,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || '神识查探失败');
+      }
+
+      setInspectedCultivator(result.data.cultivator);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : '神识查探失败，请稍后重试';
+      pushToast({ message: errorMessage, tone: 'danger' });
+    } finally {
+      setProbing(null);
+    }
+  };
+
+  const handleChallenge = async (targetId: string | null) => {
+    if (!cultivator?.id || challenging) return;
+    setChallenging(targetId ?? 'direct');
+    try {
+      const pending = await combatV6Request<RankingChallengeRequest | null>(
+        '/api/rankings/challenge/current',
+        { cache: 'no-store' },
+      );
+      const request = pending ?? {
+        requestId: crypto.randomUUID(),
+        targetId,
+        realm: activeRealm,
+      };
+      const params = new URLSearchParams({
+        requestId: request.requestId,
+        realm: request.realm,
+      });
+      if (request.targetId) params.set('targetId', request.targetId);
+      navigate('/game/battle/challenge?' + params.toString());
+    } catch (e) {
+      pushToast({
+        message: e instanceof Error ? e.message : '无法发起挑战',
+        tone: 'danger',
+      });
+    } finally {
+      setChallenging(null);
+    }
+  };
+  const handleDirectEntry = () => {
+    void handleChallenge(null);
+  };
+
+  if (isLoading && !cultivator) {
+    return <GameSceneLoading message="正在加载榜单……" />;
+  }
+
+  const myRank = myRankInfo?.rank;
+  const remainingChallenges = myRankInfo?.remainingChallenges;
+  const isEmpty = rankings.length === 0;
+  const isLoadingChallenges = myRankInfoLoadingState !== 'loaded';
+  const isOwnRealmRanking = activeRealm === resolveRealm(cultivator?.realm);
+  const ownRealm = cultivator?.realm
+    ? resolveRealm(cultivator.realm)
+    : undefined;
+  const rankingTabs = [
+    { label: '天骄榜', value: 'battle' },
+    { label: '财富榜', value: 'wealth' },
+    { label: '丹药榜', value: 'elixir' },
+  ];
+  const activeTabLabel =
+    rankingTabs.find((tab) => tab.value === activeTab)?.label ?? '天骄榜';
+  const podiumEntries = rankings.slice(0, 3);
+  const listEntries = rankings.slice(3);
+  const canDirectEntry =
+    isEmpty && myRank === null && activeTab === 'battle' && isOwnRealmRanking;
+
+  const resolveChallengeReason = (isSelf: boolean) => {
+    if (isSelf) return undefined;
+    if (isLoadingChallenges) return '挑战次数载入中';
+    if (remainingChallenges === 0) return '今日挑战次数已尽';
+    return undefined;
+  };
+
+  const canChallengeItem = (isSelf: boolean) =>
+    activeTab === 'battle' &&
+    !isSelf &&
+    !isLoadingChallenges &&
+    remainingChallenges !== undefined &&
+    remainingChallenges > 0;
+
+  return (
+    <>
+      <GameSceneFrame
+        variant="workflow"
+        title="【万界金榜】"
+        description={
+          activeTab === 'battle'
+            ? '查看同境界修士的名次，选择对手发起挑战。'
+            : activeTab === 'wealth'
+              ? '按当前持有的灵石排名。'
+              : '查看上榜丹药的品阶、评分和持有者。'
+        }
+        headerMeta={
+          activeTab === 'battle' || note || error ? (
+            <div className="space-y-2">
+              {activeTab === 'battle' ? (
+                <MyChallengeLedger
+                  activeRealm={activeRealm}
+                  myRank={myRank}
+                  remainingChallenges={remainingChallenges}
+                  isLoadingChallenges={isLoadingChallenges}
+                />
+              ) : null}
+              {note || error ? (
+                <GameSceneNote tone={error ? 'danger' : 'default'}>
+                  <p className="text-sm leading-7">{note || error}</p>
+                </GameSceneNote>
+              ) : null}
+            </div>
+          ) : null
+        }
+        aside={
+          <>
+            <GameSceneAsideSection
+              title={activeTab === 'battle' ? '我的挑战' : '榜单摘要'}
+            >
+              <div className="space-y-2 text-sm leading-7">
+                <p>榜种：{activeTabLabel}</p>
+                {activeTab === 'battle' ? <p>当前分榜：{activeRealm}</p> : null}
+                <p>
+                  {REPUTATION_LABEL}：
+                  {cultivator ? cultivator.reputation : '读取失败'}
+                </p>
+                <p>
+                  当前收录：{rankings.length}{' '}
+                  {activeTab === 'battle'
+                    ? '条'
+                    : activeTab === 'wealth'
+                      ? '人'
+                      : '件'}
+                </p>
+                {activeTab === 'battle' ? (
+                  <p>
+                    今日挑战次数：
+                    {isLoadingChallenges
+                      ? '推演中…'
+                      : `${remainingChallenges ?? 0} / ${MAX_DAILY_RANKING_CHALLENGES}`}
+                  </p>
+                ) : null}
+              </div>
+            </GameSceneAsideSection>
+            <GameSceneAsideSection
+              title="结算奖励"
+              className="text-sm leading-7"
+              help={{
+                title: '万界金榜奖励规则',
+                content: (
+                  <div className="space-y-3">
+                    <InkNotice tone="info" className="text-sm">
+                      每周一凌晨分别结算各大境界分榜；同境界胜者夺位，越境切磋不改名次。
+                    </InkNotice>
+                    <InkList dense>
+                      <InkListItem
+                        title="第一名"
+                        meta={`${RANKING_REWARDS[1]} ${REPUTATION_LABEL}`}
+                      />
+                      <InkListItem
+                        title="第 2-10 名"
+                        meta={`${RANKING_REWARDS['2-10']} ${REPUTATION_LABEL}`}
+                      />
+                      <InkListItem
+                        title="第 11-50 名"
+                        meta={`${RANKING_REWARDS['11-50']} ${REPUTATION_LABEL}`}
+                      />
+                      <InkListItem
+                        title="第 51-100 名"
+                        meta={`${RANKING_REWARDS['51-100']} ${REPUTATION_LABEL}`}
+                      />
+                    </InkList>
+                  </div>
+                ),
+              }}
+            >
+              <p>
+                {activeTab === 'battle' && myRank
+                  ? `当前排名预计结算 ${getExpectedRankingReputation(myRank) ?? '--'} ${REPUTATION_LABEL}`
+                  : `天骄榜留名后可参与每周${REPUTATION_LABEL}结算。`}
+              </p>
+            </GameSceneAsideSection>
+          </>
+        }
+      >
+        <GameSceneTabs
+          activeValue={activeTab}
+          onChange={handleTabChange}
+          items={rankingTabs}
+        />
+        {activeTab === 'battle' ? (
+          <RealmTokenBar
+            activeRealm={activeRealm}
+            ownRealm={ownRealm}
+            onChange={(nextRealm) => {
+              setRankings([]);
+              setMyRankInfo(null);
+              setMyRankInfoLoadingState('idle');
+              setLoadingRankings(true);
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev);
+                next.set('realm', nextRealm);
+                return next;
+              });
+            }}
+          />
+        ) : null}
+
+        {activeTab === 'battle' && pending ? (
+          <InkButton
+            onClick={() => void handleChallenge(pending.targetId)}
+            pending={!!challenging}
+          >
+            恢复未完成挑战
+          </InkButton>
+        ) : null}
+        {!cultivator ? (
+          <InkNotice>请先觉醒角色再来挑战万界金榜。</InkNotice>
+        ) : loadingRankings ? (
+          <GameLoadingState message="正在推演金榜天机……" variant="inline" />
+        ) : isEmpty ? (
+          <RankingEmptyState
+            activeTab={activeTab}
+            activeRealm={activeRealm}
+            canDirectEntry={canDirectEntry}
+            challenging={challenging === 'direct'}
+            onDirectEntry={handleDirectEntry}
+          />
+        ) : (
+          <>
+            {activeTab === 'battle' &&
+              !isLoadingChallenges &&
+              remainingChallenges === 0 && (
+                <InkNotice tone="warning">
+                  今日挑战次数已用完（每日限{MAX_DAILY_RANKING_CHALLENGES}
+                  次），请明日再来。
+                </InkNotice>
+              )}
+            {activeTab === 'battle' ? (
+              <>
+                {podiumEntries.length > 0 ? (
+                  <GameSceneSection title="榜首三席">
+                    <div className="grid gap-3">
+                      {(podiumEntries as BattleRankingItem[]).map((item) => {
+                        const isSelf = item.id === cultivator.id;
+                        const canChallenge = canChallengeItem(isSelf);
+                        return (
+                          <BattleRankingCard
+                            key={item.id}
+                            item={item}
+                            isSelf={isSelf}
+                            canChallenge={canChallenge}
+                            challengeUnavailableReason={resolveChallengeReason(
+                              isSelf,
+                            )}
+                            isChallenging={challenging === item.id}
+                            isProbing={probing === item.id}
+                            onChallenge={handleChallenge}
+                            onProbe={handleProbe}
+                            variant="podium"
+                          />
+                        );
+                      })}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+
+                {listEntries.length > 0 ? (
+                  <GameSceneSection title="榜单名录">
+                    <div className="grid gap-3">
+                      {(listEntries as BattleRankingItem[]).map((item) => {
+                        const isSelf = item.id === cultivator.id;
+                        const canChallenge = canChallengeItem(isSelf);
+                        return (
+                          <BattleRankingCard
+                            key={item.id}
+                            item={item}
+                            isSelf={isSelf}
+                            canChallenge={canChallenge}
+                            challengeUnavailableReason={resolveChallengeReason(
+                              isSelf,
+                            )}
+                            isChallenging={challenging === item.id}
+                            isProbing={probing === item.id}
+                            onChallenge={handleChallenge}
+                            onProbe={handleProbe}
+                          />
+                        );
+                      })}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+              </>
+            ) : activeTab === 'wealth' ? (
+              <>
+                {podiumEntries.length > 0 ? (
+                  <GameSceneSection title="富甲三席">
+                    <div className="grid gap-3">
+                      {(podiumEntries as WealthRankingEntry[]).map((item) => (
+                        <WealthRankingCard
+                          key={item.id}
+                          item={item}
+                          isSelf={item.id === cultivator.id}
+                          variant="podium"
+                        />
+                      ))}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+
+                {listEntries.length > 0 ? (
+                  <GameSceneSection title="财富名录">
+                    <div className="grid gap-3">
+                      {(listEntries as WealthRankingEntry[]).map((item) => (
+                        <WealthRankingCard
+                          key={item.id}
+                          item={item}
+                          isSelf={item.id === cultivator.id}
+                        />
+                      ))}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {podiumEntries.length > 0 ? (
+                  <GameSceneSection title="镇榜之物">
+                    <div className="grid gap-3">
+                      {(podiumEntries as ItemRankingEntry[]).map((item) => (
+                        <ItemRankingCard
+                          key={item.id}
+                          item={item}
+                          viewerRealm={cultivator?.realm}
+                          onViewDetails={(selectedItem) =>
+                            setSelectedItemDetail(
+                              toRankingDetailItem(selectedItem),
+                            )
+                          }
+                          variant="podium"
+                        />
+                      ))}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+
+                {listEntries.length > 0 ? (
+                  <GameSceneSection title="珍宝名录">
+                    <div className="grid gap-3">
+                      {(listEntries as ItemRankingEntry[]).map((item) => (
+                        <ItemRankingCard
+                          key={item.id}
+                          item={item}
+                          viewerRealm={cultivator?.realm}
+                          onViewDetails={(selectedItem) =>
+                            setSelectedItemDetail(
+                              toRankingDetailItem(selectedItem),
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </GameSceneSection>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+      </GameSceneFrame>
+
+      <CultivatorInspectionModal
+        cultivator={inspectedCultivator}
+        isOpen={Boolean(inspectedCultivator)}
+        onClose={() => setInspectedCultivator(null)}
+        mode="cultivator"
+      />
+      <ItemDetailModal
+        item={selectedItemDetail}
+        isOpen={Boolean(selectedItemDetail)}
+        onClose={() => setSelectedItemDetail(null)}
+        viewerRealm={cultivator?.realm}
+      />
+    </>
+  );
+}

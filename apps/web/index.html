@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link
+      rel="preload"
+      href="/assets/paper.webp"
+      as="image"
+      type="image/webp"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      href="/assets/app-boot/boot-logo.webp"
+      as="image"
+      type="image/webp"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      href="/assets/app-boot/boot-title.svg"
+      as="image"
+      type="image/svg+xml"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      href="/assets/app-boot/boot-seal.webp"
+      as="image"
+      type="image/webp"
+      fetchpriority="high"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#141918" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="万界道友" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <style>
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background-color: #f8f3e6;
+      }
+
+      .app-boot-screen {
+        box-sizing: border-box;
+        position: relative;
+        display: grid;
+        min-height: 100vh;
+        min-height: 100dvh;
+        place-items: center;
+        overflow: hidden;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+        padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+        padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
+        color: #2c1810;
+        background:
+          radial-gradient(
+            circle at 49% 42%,
+            rgba(255, 253, 247, 0.94) 0,
+            rgba(248, 243, 230, 0.52) 58%,
+            rgba(233, 222, 200, 0.6) 100%
+          ),
+          url('/assets/paper.webp') center / 250px repeat,
+          #f8f3e6;
+        text-align: center;
+      }
+
+      .app-boot-content {
+        display: flex;
+        width: min(21.25rem, 88vw);
+        transform: translateY(-0.65rem);
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .app-boot-logo {
+        display: block;
+        width: clamp(9rem, 46vw, 11.25rem);
+        height: auto;
+        user-select: none;
+        filter: drop-shadow(0 7px 5px rgba(44, 24, 16, 0.12));
+      }
+
+      .app-boot-title-lockup {
+        display: flex;
+        width: min(13.75rem, 70vw);
+        margin-top: 2.5rem;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .app-boot-title-image {
+        display: block;
+        width: 100%;
+        height: auto;
+        user-select: none;
+      }
+
+      .app-boot-seal-image {
+        display: block;
+        width: 2.25rem;
+        height: 2.25rem;
+        margin-top: 0.5rem;
+        margin-right: 0.4rem;
+        user-select: none;
+      }
+
+      .ink-loading-bar {
+        --ink-loading-track: rgba(44, 24, 16, 0.14);
+        --ink-loading-segment: rgba(44, 24, 16, 0.82);
+
+        position: relative;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--ink-loading-track);
+      }
+
+      .ink-loading-bar[data-tone='inverse'] {
+        --ink-loading-track: rgba(231, 220, 198, 0.18);
+        --ink-loading-segment: rgba(231, 220, 198, 0.88);
+      }
+
+      .ink-loading-bar[data-tone='accent'] {
+        --ink-loading-track: rgba(193, 18, 31, 0.1);
+        --ink-loading-segment: rgba(193, 18, 31, 0.92);
+      }
+
+      .ink-loading-bar[data-size='boot'] {
+        width: min(13.5rem, 68vw);
+        margin-top: 2rem;
+      }
+
+      .ink-loading-bar[data-size='scene'] {
+        width: min(10rem, 48vw);
+      }
+
+      .ink-loading-bar[data-size='inline'] {
+        width: min(6rem, 36vw);
+        height: 1.5px;
+      }
+
+      .ink-loading-bar[data-size='navigation'] {
+        width: 100%;
+        height: 2px;
+        border-radius: 0;
+      }
+
+      .ink-loading-bar__segment {
+        position: absolute;
+        inset-block: 0;
+        left: 0;
+        width: 34%;
+        border-radius: inherit;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--ink-loading-segment),
+          transparent
+        );
+        transform: translateX(-110%);
+        animation: ink-loading-bar-cycle 1.6s ease-in-out infinite;
+      }
+
+      .ink-loading-bar[data-size='navigation'] .ink-loading-bar__segment {
+        width: 24%;
+        animation-duration: 1.25s;
+      }
+
+      .ink-loading-delay {
+        visibility: hidden;
+        animation: ink-loading-reveal 1ms linear 180ms forwards;
+      }
+
+      @keyframes ink-loading-bar-cycle {
+        to {
+          transform: translateX(405%);
+        }
+      }
+
+      @keyframes ink-loading-reveal {
+        to {
+          visibility: visible;
+        }
+      }
+
+      .app-boot-message-image {
+        display: block;
+        width: min(13.125rem, 70vw);
+        height: auto;
+        margin-top: 0.55rem;
+        user-select: none;
+      }
+
+      .app-boot-motto {
+        position: absolute;
+        right: calc(env(safe-area-inset-right, 0px) + 1.5rem);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 3rem);
+        left: calc(env(safe-area-inset-left, 0px) + 1.5rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        opacity: 0.48;
+      }
+
+      .app-boot-motto span {
+        width: min(2.75rem, 12vw);
+        border-top: 1px solid rgba(44, 24, 16, 0.72);
+      }
+
+      .app-boot-motto img {
+        display: block;
+        width: min(8.125rem, 42vw);
+        height: auto;
+        user-select: none;
+      }
+
+      @media (max-height: 620px) {
+        .app-boot-content {
+          transform: translateY(-0.35rem);
+        }
+
+        .app-boot-logo {
+          width: clamp(6.5rem, 31vh, 8rem);
+        }
+
+        .app-boot-title-lockup {
+          width: min(10.75rem, 58vw);
+          margin-top: 0.75rem;
+        }
+
+        .app-boot-seal-image {
+          width: 1.8rem;
+          height: 1.8rem;
+          margin-top: 0.3rem;
+          margin-right: 0.3rem;
+        }
+
+        .ink-loading-bar[data-size='boot'] {
+          width: min(11.5rem, 58vw);
+          margin-top: 0.9rem;
+        }
+
+        .app-boot-message-image {
+          width: min(11.5rem, 58vw);
+          margin-top: 0.2rem;
+        }
+
+        .app-boot-motto {
+          bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ink-loading-bar__segment,
+        .ink-loading-bar[data-size='navigation'] .ink-loading-bar__segment {
+          width: 42%;
+          transform: translateX(70%);
+          animation: none;
+        }
+      }
+    </style>
+    <title>加载中…… | 万界道友</title>
+  </head>
+
+  <body>
+    <div id="root">
+      <div
+        class="app-boot-screen"
+        role="status"
+        aria-live="polite"
+        aria-label="万界道友正在加载"
+      >
+        <div class="app-boot-content">
+          <img
+            aria-hidden="true"
+            alt=""
+            class="app-boot-logo"
+            src="/assets/app-boot/boot-logo.webp"
+            draggable="false"
+            fetchpriority="high"
+          />
+          <div class="app-boot-title-lockup" aria-hidden="true">
+            <img
+              alt=""
+              class="app-boot-title-image"
+              src="/assets/app-boot/boot-title.svg"
+              draggable="false"
+              fetchpriority="high"
+            />
+            <img
+              alt=""
+              class="app-boot-seal-image"
+              src="/assets/app-boot/boot-seal.webp"
+              draggable="false"
+              fetchpriority="high"
+            />
+          </div>
+          <div
+            class="ink-loading-bar"
+            data-tone="ink"
+            data-size="boot"
+            aria-hidden="true"
+          >
+            <span class="ink-loading-bar__segment"></span>
+          </div>
+          <img
+            aria-hidden="true"
+            alt=""
+            class="app-boot-message-image"
+            src="/assets/app-boot/boot-message.svg"
+            draggable="false"
+          />
+        </div>
+        <div class="app-boot-motto" aria-hidden="true">
+          <span></span>
+          <img alt="" src="/assets/app-boot/boot-motto.svg" draggable="false" />
+          <span></span>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -239,7 +239,7 @@ CREATE INDEX idx_qi_logs_status_created_at
 
 ### 5.3 `QiService` 职责
 
-新增 `src/server/lib/services/QiService.ts`。
+新增 `apps/api/src/lib/services/QiService.ts`。
 
 核心方法：
 
@@ -433,7 +433,7 @@ class QiService {
 
 ## 九、配置设计
 
-新增 `src/shared/config/qiSystem.ts`，集中维护首版数值：
+新增 `packages/shared/src/config/qiSystem.ts`，集中维护首版数值：
 
 ```typescript
 export const QI_MAX = 200;
@@ -593,17 +593,17 @@ export interface QiRestoreResult {
 | 文件 | 操作 | 说明 |
 |------|------|------|
 | `drizzle/00xx_qi_system.sql` | 新增 | 灵气字段与日志表 |
-| `src/server/lib/drizzle/schema.ts` | 修改 | 增加 Drizzle schema |
-| `src/shared/config/qiSystem.ts` | 新增 | 灵气数值配置 |
-| `src/shared/contracts/qi.ts` | 新增 | API contract |
-| `src/shared/types/qi.ts` | 新增 | 服务与日志类型 |
-| `src/server/lib/services/QiService.ts` | 新增 | 灵气核心服务 |
-| `src/server/routes/api/cultivator.router.ts` | 修改 | 灵气查询、日志、恢复接口；闭关接入 |
-| `src/server/lib/dungeon/service_v2.ts` | 修改 | 副本开始接入灵气 |
-| `src/server/lib/dungeon/dungeonLimiter.ts` | 废弃 | 首版不再使用 |
-| `src/server/lib/redis/retreatLock.ts` | 保留 | 仅用于闭关/突破并发锁，不再承载每日寿元限制 |
+| `apps/api/src/lib/drizzle/schema.ts` | 修改 | 增加 Drizzle schema |
+| `packages/shared/src/config/qiSystem.ts` | 新增 | 灵气数值配置 |
+| `packages/shared/src/contracts/qi.ts` | 新增 | API contract |
+| `packages/shared/src/types/qi.ts` | 新增 | 服务与日志类型 |
+| `apps/api/src/lib/services/QiService.ts` | 新增 | 灵气核心服务 |
+| `apps/api/src/routes/api/cultivator.router.ts` | 修改 | 灵气查询、日志、恢复接口；闭关接入 |
+| `apps/api/src/lib/dungeon/service_v2.ts` | 修改 | 副本开始接入灵气 |
+| `apps/api/src/lib/dungeon/dungeonLimiter.ts` | 废弃 | 首版不再使用 |
+| `apps/api/src/lib/redis/retreatLock.ts` | 保留 | 仅用于闭关/突破并发锁，不再承载每日寿元限制 |
 | 造物/炼丹相关服务 | 修改 | 接入预扣、提交、退款 |
-| `src/react-app` 相关游戏 UI | 修改 | 灵气展示、消耗预览、恢复入口 |
+| `apps/web/src` 相关游戏 UI | 修改 | 灵气展示、消耗预览、恢复入口 |
 
 ---
 

@@ -49,7 +49,7 @@
 
 - `species.json`：完整物种定义、出生规则与咪咪starter资格；两者独立ID。
 - `wild.json`：青溪坡／不见天物种池、成年等级、描述与寻觅文案；`map.json`同步地图说明，保留青溪坡副本能力。
-- `public/assets/icons/beast-mimi.webp`、`beast-nether-tiger.webp`：第二版256×256透明头像；统一图标registry注册。详情、名册、野外、战斗及回放的物种图标复用既有GameIcon链路。
+- `apps/web/public/assets/icons/beast-mimi.webp`、`beast-nether-tiger.webp`：第二版256×256透明头像；统一图标registry注册。详情、名册、野外、战斗及回放的物种图标复用既有GameIcon链路。
 - 初始领取、野外生成、捕获结算、洗炼、加点、喂养、传承与战斗投影沿用共享物种配置；无需增加服务端物种分支或数据库迁移。
 - 设计基准记录新增行；通用SKILL正文不加入具体物种案例。
 
@@ -75,10 +75,10 @@
 
 命令结果：
 
-- `bun run test src/shared/engine/combat-v6/beasts src/shared/engine/combat-v6/wild`：16文件、266项通过。
+- `bun run test packages/shared/src/engine/combat-v6/beasts packages/shared/src/engine/combat-v6/wild`：16文件、266项通过。
 - `bun run lint`：通过。
 - `bun run build`：客户端／服务端类型检查和构建通过；仍有既有BodyCultivationPanels动态／静态导入重叠和大包警告。
-- `bun run test`：1519项通过、1项失败。唯一失败为既有 `src/shared/lib/bodyCultivation/pack.test.ts` 的「标签、位阶、进度和投影保持迁移前基线」，当前shortDesc与旧fixture不同；本轮未修改炼体领域。
+- `bun run test`：1519项通过、1项失败。唯一失败为既有 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 的「标签、位阶、进度和投影保持迁移前基线」，当前shortDesc与旧fixture不同；本轮未修改炼体领域。
 - `git diff --check`：通过。
 
 验收边界：已有本地测试角色均领取过初始伙伴，未重置领取资格或创建新角色，因此咪咪首次免费领取由共享名单／生成测试与前后端调用审查覆盖，未完成首次领取的浏览器提交。幽冥虎完整捕获未重复实测；洗炼、喂养、传承的完整付费页面操作未逐物种重复执行，沿用现有公共链路及领域测试。未做生产部署、长周期实战平衡或并发故障注入。

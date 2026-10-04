@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "main",
+  "compilerOptions": {
+    "tsConfigPath": "tsconfig.build.json",
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "prompts/*.md",
+        "watchAssets": true
+      }
+    ]
+  }
+}

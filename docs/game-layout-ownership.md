@@ -4,6 +4,8 @@
 
 ## `/game` 路由归属
 
+路由由 `apps/web/src/router.tsx` 统一组装；具体 wrapper 和场景 metadata 在 `apps/web/src/route-definitions/game.tsx` 及其布局分支。移动定义时保留原 children 顺序和自动 route ID。
+
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/story`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的沉浸页。`/game/story` 用剧情播放器读当前演出；本地开发另有 `/game/story/preview`：按演出编号读取同一套配置来看，不写进度。
 - `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
@@ -26,12 +28,12 @@
 - `/game/tower` 使用主流程壳展示挑战、祝福和周榜；活动战斗跳转 `/game/tower/battle` 的既有沉浸壳，复用 v6 公共战斗组件。结算播放结束后返回幻境，不在入口正文嵌入旧战斗播放器。
 - `/game/rankings` 保留榜单主流程壳；`/game/battle/challenge` 使用 v6 公共回放播放器自动逐行动播放服务端已结算的挑战，播放完成后展示名次摘要。挑战请求 UUID 保留在 URL，刷新及失败后恢复同一结果，观看不占用角色。
 
-- v6 战斗页面、阵容、指令和逐行动播报放在 `src/react-app/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
-- 造化/参悟共享材料选择器放在 `src/react-app/components/feature/creation/MaterialSelector.tsx`
+- v6 战斗页面、阵容、指令和逐行动播报放在 `apps/web/src/components/feature/combat-v6/`；仅复用通用 UI 和全局配色，不依赖旧 `feature/battle` 组件。协议与恢复规则见 [v6 战斗 UI](combat-v6-battle-ui.md)
+- 造化/参悟共享材料选择器放在 `apps/web/src/components/feature/creation/MaterialSelector.tsx`
 - `/game/cultivator` 使用「人物属性 / 先天设定 / 所修功法 / 肉身修炼」四页签，桌面左侧纵向排列，移动端顶部横向排列，URL 的 `tab=innate|manuals|body` 支持直达。人物属性独占左侧墨像与右侧姓名、名号、境界、宗门和寿元，随后显示气血法力、状态、战斗属性与六维加点、修为。先天设定合并先天灵根（仅原始强度）、命格与人物志，转世重修置于该页末尾；后天灵根增益仅在肉身修炼的洗髓区域展示。所修功法复用 `ManualRoom`；肉身修炼按肉身阶位、五轨修炼、洗髓、灵根后天增益排序，以浅底色分组突出阶位与等级，五轨直接展示实际战斗收益的简短说明与进度，不设展开详情，升阶条件按需展开；洗髓保留破限操作，后天灵根突出增益并辅以先天与当前强度。各页签不重复身份资料或场景壳，以留白分组。旧功法、炼体、洗髓地址继续重定向并透传参数，旧加点地址进入人物属性加点状态。加点预览仍走只读 V6 投影接口。
-- 道身长期状态与称号编辑放在 `src/react-app/components/feature/cultivator/`
-- 剧情演出播放器在 `src/react-app/components/feature/performance/PerformancePlayer.tsx`。配图铺满自己的那一块，不加边框和边距；手机上它只是一截辅助，字占主要位置。没有配图时不留画框，场景说明改写在简上。眼前、旁白和人物说的话三种样子分开。点简文继续，第一下只把当前句看完；选项写在简上，看完才离开这一幕。回看翻开前面的字，离开不推进剧情。本地开发的 `/game/story/preview` 用同一播放器按演出编号观看，不写进度。页面教学播放器在 `src/react-app/components/feature/guide/GuideOverlay.tsx`，挂在主流程壳和山河舆图壳上。只有当前这一幕的配置要求这场教学时才挖孔；看完才记下，先不看不记。没有教学的幕不会因为地址上带着 `guide` 而罩住页面。丹房第一课是 `guide=alchemy-first-furnace`。青溪一课是 `guide=map-qingxi`，只在文字舆图上指出天南和青溪坡。灵兽袋一课是 `guide=beast-pouch`，指出袋子、名册和详情。洞府一课是 `guide=cave-layout`，指出洞府内、灵眼之泉和出洞府。炼器一课是 `guide=forge-first-weapon`，指出器炉、图录和开炉；看完还要真的铸成法兵。山门一课是 `guide=sect-door`，只给散修指出身份和自愿的门；看完不结束这一幕，拜入任一宗才过。宗门入门仍用 `src/react-app/components/feature/narrative/` 的旧舞台，两者不共用画面和操作。
-- 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `src/react-app/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `src/react-app/components/feature/game-activity/`
+- 道身长期状态与称号编辑放在 `apps/web/src/components/feature/cultivator/`
+- 剧情演出播放器在 `apps/web/src/components/feature/performance/PerformancePlayer.tsx`。配图铺满自己的那一块，不加边框和边距；手机上它只是一截辅助，字占主要位置。没有配图时不留画框，场景说明改写在简上。眼前、旁白和人物说的话三种样子分开。点简文继续，第一下只把当前句看完；选项写在简上，看完才离开这一幕。回看翻开前面的字，离开不推进剧情。本地开发的 `/game/story/preview` 用同一播放器按演出编号观看，不写进度。页面教学播放器在 `apps/web/src/components/feature/guide/GuideOverlay.tsx`，挂在主流程壳和山河舆图壳上。只有当前这一幕的配置要求这场教学时才挖孔；看完才记下，先不看不记。没有教学的幕不会因为地址上带着 `guide` 而罩住页面。丹房第一课是 `guide=alchemy-first-furnace`。青溪一课是 `guide=map-qingxi`，只在文字舆图上指出天南和青溪坡。灵兽袋一课是 `guide=beast-pouch`，指出袋子、名册和详情。洞府一课是 `guide=cave-layout`，指出洞府内、灵眼之泉和出洞府。炼器一课是 `guide=forge-first-weapon`，指出器炉、图录和开炉；看完还要真的铸成法兵。山门一课是 `guide=sect-door`，只给散修指出身份和自愿的门；看完不结束这一幕，拜入任一宗才过。宗门入门仍用 `apps/web/src/components/feature/narrative/` 的旧舞台，两者不共用画面和操作。
+- 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `apps/web/src/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `apps/web/src/components/feature/game-activity/`
 - 清扫摇杆使用 `phaser4-rex-plugins` 的 Virtual Joystick，并由清扫 Phaser runtime 持有、渲染和销毁；采掘放索按钮仍是玩法私有 DOM 控件。各玩法 runtime 与服务端重放规则保持独立
 - PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口
 - PWA 安全区由顶层布局和共享固定层分别负责：背景与画布可以铺满系统区域，HUD、导航、正文和模态交互必须避让 `safe-area-inset-*`；不得给 `body` 统一增加 padding
@@ -51,7 +53,7 @@
 ## 禁止项
 
 - 游戏页面不得新增 `InkPageShell` 依赖
-- `InkPageShell` 当前只允许 auth 流程通过 `AuthPageShell` 间接使用，不再属于游戏主流程布局组件
+- 失联的 `InkPageShell` 已删除；认证页面使用独立的 `components/auth/AuthPageShell.tsx`，游戏布局以 `route-definitions/**` 的真实嵌套为准，不保留路径匹配式的第二套壳注册表
 - `quickActionGroups`、`QuickActionsGrid`、`useHomeViewModel` 不再作为导航或首页编排来源
 - `components/game-shell/immersiveSceneDescriptor.ts` 已废弃；副本或专属页需要私有 scene descriptor 时，放在对应路由族内部
 

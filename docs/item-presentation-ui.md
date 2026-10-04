@@ -58,7 +58,7 @@ PC 悬停延迟 200ms 展示，允许移入预览操作；触屏点击展示同�
 - 修复窄屏炉中格子由固定内容高度撑成约 58×82px 的问题，复测六格均约 57.76×57.76px；名称仍最多两行，最小字号 10px。
 - 三次真实铸造成功：两次普通动态效果，一次减少动态效果；共消耗 3 张图纸、3 份材料、300 灵石、21 灵气，生成 3 件成品。普通模式捕获两个已投入位置的 `forge-gather`、`forge-fire`、`forge-reveal`，聚光约 800ms、成器约 1100ms。成器结束自动打开详情，关闭后保留炉心成品，继续铸造清除成品。
 - 单次成功开炉网络记录为一次 POST、一次后续 GET。离线提交没有生成成品或扣费，恢复网络后「重新核对」可恢复备料，随后成功铸造；修复后续库存读取错误覆盖开炉恢复说明的问题。
-- `bun run lint`、`bun run build`、触及文件 Prettier、`git diff --check` 通过；`bun run test src/shared/inventory src/shared/forging` 共 15 项通过。没有新增前端／服务端测试文件，未运行全仓共享测试。
+- `bun run lint`、`bun run build`、触及文件 Prettier、`git diff --check` 通过；`bun run test packages/shared/src/inventory packages/shared/src/forging` 共 15 项通过。没有新增前端／服务端测试文件，未运行全仓共享测试。
 
 测试剩余的七条临时库存已精确删除；拆分临时条目已合并、图纸已消耗完。灵石、灵气及灵气刷新时间恢复至测试前基准，保留四条原有储藏室材料和其他角色进度。网络、动态效果、触屏与视口模拟已恢复。
 

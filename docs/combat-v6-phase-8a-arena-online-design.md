@@ -22,7 +22,7 @@
 
 | 位置 | 已有事实 | 本阶段处理 |
 | --- | --- | --- |
-| `src/shared/contracts/arena.ts` | 每方四席、房间规则、冻结阵容 | 保留房间领域，不另起模型 |
+| `packages/shared/src/contracts/arena.ts` | 每方四席、房间规则、冻结阵容 | 保留房间领域，不另起模型 |
 | `ArenaBattleStartOrchestrator.ts` | 从冻结阵容调用旧 MatchFactory/Matchmaker | 替换为 v6 开战编排与幂等关联 |
 | `routes/game/arena/route.tsx` | 开战后跳转 `/game/battle/live/:id` | 跳转独立 v6 擂台战斗路由 |
 | `BattleArenaRoomFinalizer.ts` | 依赖旧终局 manifest 清理房间 | 新增 v6 终局适配，复用房间操作，不导入旧战斗契约 |
@@ -84,7 +84,7 @@
 | 首次进入、重连、缺口 | HTTP 读取完整基准或匹配游标后的增量 |
 | 逐行动文字与血条 | React/播放控制器，不按画面帧率发送网络消息 |
 
-新增擂台 v6 HTTP 契约放在 `src/shared/contracts`，接入现有认证中间件。建议独立战斗路由 `/game/combat-v6/arena/:battleId` 与 `/api/combat-v6/arena/...`，最终名称在实现时与路由注册统一；不复用 v5 live 路由组件。玩家没有直接触发权威 resolve 的在线接口。
+新增擂台 v6 HTTP 契约放在 `packages/shared/src/contracts`，接入现有认证中间件。建议独立战斗路由 `/game/combat-v6/arena/:battleId` 与 `/api/combat-v6/arena/...`，最终名称在实现时与路由注册统一；不复用 v5 live 路由组件。玩家没有直接触发权威 resolve 的在线接口。
 
 推送信封至少包含协议版本、battle ID、round ID、revision、可见事件游标及消息种类。业务事件区分指令已接受/提交状态、阶段变化、回合结果与终局；消息中携带服务端时间。NATS Core 复用跨实例分发，WebSocket 订阅必须经认证和参与者归属校验。Redis 为权威，消息丢失不等于战斗丢失；不新增外部状态库或消息中间件。
 
@@ -128,7 +128,7 @@ HTTP 补增量必须校验基准和可见游标；服务端不再保留所需区
 
 ## 9. 验收矩阵
 
-纯单元测试仅位于 `src/shared`，不新增前端、服务端或基础设施 mock 测试。
+纯单元测试仅位于 `packages/shared/src`，不新增前端、服务端或基础设施 mock 测试。
 
 - 倒地人物成功提交；快治疗拉起慢人物后本轮执行；慢治疗拉起已错过顺序的人物不补行动；二次倒地、保护、状态解除和资源恢复后的执行裁定。
 - 1v1、现有规则允许的不等人数及 4v4；全部参与者的指令归属、同速顺序、超时与离线普攻、逃跑后剩余队友继续战斗。

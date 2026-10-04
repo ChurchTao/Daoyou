@@ -77,14 +77,14 @@ v6 原有 `combatV6EquipmentInstances` 与 `combatV6EquipmentLoadouts`；本轮�
 - 本地实际验证掉落入包、满包溢出储藏室、取出、学习、下一场生效、旧回放不变；以及越权、过期 revision、连续点击、响应不明后的刷新和战中管理限制。
 - 检查桌面及 360px 格子布局、详情和二级选择，避免弹窗层叠；新背包不读取旧物品作为可消费副本。
 - 完成 v6 装备引用、持有归属与迁移核对；不留下平行所有权或失效引用。
-- 按项目规范只在 `src/shared` 新增纯测试，不新增前端／服务端／数据库测试或一次性脚本。业务实现后执行 lint、build、适用共享测试、触及文件 Prettier 及差异检查。
+- 按项目规范只在 `packages/shared/src` 新增纯测试，不新增前端／服务端／数据库测试或一次性脚本。业务实现后执行 lint、build、适用共享测试、触及文件 Prettier 及差异检查。
 - 9B 付费休养、结算故障重试和多人矩阵的未验收项继续单独记录，不能因 9C 完成自动标记通过。
 
 ## 8. 实施、发布与验证记录
 
 ### 代码落点
 
-- `src/shared/inventory`：固定定义、实例 schema、获得／堆叠／溢出／整理、学习和掉落纯规则；具体效果仍由 v6 领域负责。
+- `packages/shared/src/inventory`：固定定义、实例 schema、获得／堆叠／溢出／整理、学习和掉落纯规则；具体效果仍由 v6 领域负责。
 - `InventoryService.ts`：统一查询、转移、移动／交换／合并、拆分、整理、学习与装卸。角色锁与 SQL 行锁保护事务，数量和 revision 校验防止旧请求重复消费。没有新增消费凭据表。
 - `/api/combat-v6/inventory`：GET 分页查询与 POST 操作，复用活跃角色认证；储藏室每页 40 条，不一次下载无限库存。
 - `/game/inventory`：新版格子背包；`/game/cave/storage/new?location=storage`：新储藏室；`/game/cave/storage`：原物品页面保留为洞府旧藏。旧消费玩法返回入口指向旧藏，不会把旧库存当成新背包可消费记录。

@@ -1,0 +1,43 @@
+/** Public spirit-field capabilities. Keep implementation files private. */
+export {
+  buildSpiritFieldSeedDetails,
+  buildSpiritFieldSeedFingerprint,
+  buildSpiritFieldSeedMaterialFromPlant,
+  isSpiritFieldSeedMaterial,
+  readSpiritFieldSeedSpec,
+} from '../spirit-field/seedMaterial.js';
+export {
+  SPIRIT_FIELD_CARE_ACTIONS,
+  SPIRIT_FIELD_CULTIVATION_METHODS,
+  SPIRIT_FIELD_OUTCOME_KINDS,
+  SPIRIT_FIELD_STAGES,
+  SPIRIT_SEED_GROWTH_FORMS,
+  SPIRIT_SEED_GROWTH_TRAITS,
+  SPIRIT_SEED_HABITAT_TAGS,
+  SPIRIT_SEED_HARVEST_PARTS,
+  SPIRIT_SEED_USE_TAGS,
+} from '../spirit-field/types.js';
+export type {
+  SpiritFieldCareAction,
+  SpiritFieldCultivationMethod,
+  SpiritFieldHarvestSettlement,
+  SpiritFieldMethodDefinition,
+  SpiritFieldOutcomeKind,
+  SpiritFieldPlantSnapshot,
+  SpiritFieldPlotRuntimeStatus,
+  SpiritFieldPlotState,
+  SpiritFieldResourceKind,
+  SpiritFieldSeedSpec,
+  SpiritFieldStage,
+  SpiritFieldStageAffinity,
+  SpiritFieldStageHistory,
+  SpiritFieldStageJudgment,
+  SpiritSeedGrowthForm,
+  SpiritSeedGrowthTrait,
+  SpiritSeedHabitatTag,
+  SpiritSeedHarvestPart,
+  SpiritSeedIdentity,
+  SpiritSeedRandomOptions,
+  SpiritSeedSkeleton,
+  SpiritSeedUseTag,
+} from '../spirit-field/types.js';

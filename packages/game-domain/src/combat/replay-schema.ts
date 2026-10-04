@@ -1,0 +1,103 @@
+import { z } from 'zod';
+
+
+const unitSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    side: z.union([z.literal(0), z.literal(1)]),
+    slot: z.number().int(),
+    kind: z.enum(['player', 'pet', 'npc']).optional(),
+    ownerId: z.string().optional(),
+    publicBars: z.boolean().optional(),
+    attributes: z.record(z.string(), z.number()).optional(),
+    hp: z.number(),
+    maxHp: z.number(),
+    mp: z.number(),
+    maxMp: z.number(),
+    wound: z.number(),
+    downed: z.boolean(),
+    dead: z.boolean(),
+    escaped: z.boolean(),
+    statuses: z.array(
+      z
+        .object({
+          id: z.string(),
+          name: z.string().optional(),
+          remainingRounds: z.number(),
+          untilBattleEnd: z.boolean().optional(),
+          importance: z.enum(['control', 'harmful']).optional(),
+          stacks: z.number(),
+        })
+        .strict(),
+    ),
+    barriers: z.array(
+      z.object({
+        untilBattleEnd: z.boolean().optional(),
+        id: z.string(),
+        name: z.string(),
+        current: z.number(),
+        remainingRounds: z.number(),
+      }),
+    ),
+    resources: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        current: z.number(),
+        max: z.number().nullable(),
+      }),
+    ),
+  })
+  .strict();
+
+
+export const CombatV6ReplayTimelineSchema = z
+  .object({
+    format: z.literal('delta-v1'),
+    unitAppearances: z
+      .record(
+        z.string(),
+        z
+          .object({
+            icon: z.string(),
+            speciesName: z.string().optional(),
+            isMutant: z.boolean().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
+    initialUnits: z.array(unitSchema),
+    finalUnits: z.array(unitSchema).optional(),
+    initialRound: z.number().int().positive(),
+    fromEventSeq: z.number().int().min(-1),
+    frames: z.array(
+      z.object({
+        afterEventSeq: z.number().int().min(-1),
+        round: z.number().int().positive(),
+        updates: z.array(
+          z.object({
+            id: z.string(),
+            set: unitSchema.omit({ id: true }).partial(),
+            unset: z
+              .array(z.enum(['kind', 'ownerId', 'attributes', 'publicBars']))
+              .optional(),
+          }),
+        ),
+        added: z.array(unitSchema).optional(),
+        removed: z.array(z.string()).optional(),
+        order: z.array(z.string()).optional(),
+      }),
+    ),
+  })
+  .superRefine((value, ctx) => {
+    let seq = value.fromEventSeq;
+    for (const frame of value.frames) {
+      if (frame.afterEventSeq < seq)
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Replay cursor must not move backwards',
+        });
+      seq = frame.afterEventSeq;
+    }
+  });

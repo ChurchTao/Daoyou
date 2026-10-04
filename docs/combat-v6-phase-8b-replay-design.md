@@ -6,12 +6,12 @@
 
 - `/game/battle/history` 仅显示当前角色关联的 v6 练功房、野怪和擂台归档，按来源筛选，每页 10 条。
 - `/game/battle/:id` 使用独立 v6 播放器。战斗结束页提供单场回放入口，详情单独加载。
-- 旧 `/api/battle-records/*`（包括列表、单场、分享创建和公开读取）统一返回 410；旧公开分享页只提示已停止查看。数据库旧记录保留，不清表，不读取旧记录作为 fallback。
+- 旧 `/api/battle-records/*`（包括列表、单场、分享创建和公开读取）及旧公开分享页已删除（2026-10-04）。数据库旧记录保留，不清表，不读取旧记录作为 fallback。
 - 首版仅本人视角，不开放观战、分享、切换他人视角、视频导出、统计分析或召唤兽养成。
 
 ## 列表绝不读取完整回放
 
-继续使用统一 `wanjiedaoyou_combat_v6_replay_archives` 与 `wanjiedaoyou_combat_v6_replay_participants`，不按玩法拆表。
+继续使用统一 `wanjiedaoyou_combat_replay_archives` 与 `wanjiedaoyou_combat_replay_participants`，不按玩法拆表。
 
 归档时在主表写入 `round_count`、`sides`（冻结的双方名称数组）、`playable`；关联表保存 `side`。胜负以归档胜方和当前角色阵营转换为本人结果。
 

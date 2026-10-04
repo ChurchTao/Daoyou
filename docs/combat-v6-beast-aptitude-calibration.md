@@ -83,7 +83,7 @@
 
 ## 6. 验证
 
-更新三物种新生／捕获／投影的 128 种子基线，显式检查五资质与成长落在采纳区间；保留旧范围个体在新配置下合法的测试。使用 `bun run test src/shared/engine/combat-v6/beasts`，再检查完整共享测试、lint 与构建。基线只随本次已授权的出生范围变化更新。
+更新三物种新生／捕获／投影的 128 种子基线，显式检查五资质与成长落在采纳区间；保留旧范围个体在新配置下合法的测试。使用 `bun run test packages/shared/src/engine/combat-v6/beasts`，再检查完整共享测试、lint 与构建。基线只随本次已授权的出生范围变化更新。
 
 [boar]: https://news.4399.com/gonglue/mhxyou/chongwu/55/m/476195.html
 [tiger]: https://news.4399.com/gonglue/mhxyou/chongwu/55/m/476203.html

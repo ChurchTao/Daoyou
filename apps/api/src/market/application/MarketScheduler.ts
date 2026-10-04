@@ -1,0 +1,54 @@
+import { preGenerateMarket } from '@server/market/application/MarketService.js';
+import {
+  getEnabledMarketNodeIds,
+  getMarketConfigByNodeId,
+} from '@daoyou/game-rules/world/market';
+import type { MarketLayer } from '@daoyou/game-domain/market';
+
+const MARKET_LAYERS: MarketLayer[] = ['common', 'treasure', 'heaven'];
+
+/**
+ * 坊市定时预生成任务
+ *
+ * 遍历所有已启用的坊市节点及普通坊市层级，
+ * 检查当前周期的缓存是否存在，不存在则生成。
+ *
+ * 由 Nest CronService 每 5 分钟发布调度命令。
+ */
+export async function runMarketRefreshJob(): Promise<{
+  success: true;
+  processed: number;
+  skipped: boolean;
+  generated: string[];
+}> {
+  const nodeIds = getEnabledMarketNodeIds();
+  const generated: string[] = [];
+
+  for (const nodeId of nodeIds) {
+    const nodeConfig = getMarketConfigByNodeId(nodeId);
+    if (!nodeConfig?.enabled) continue;
+
+    const allowedLayers = nodeConfig.allowed_layers;
+
+    for (const layer of MARKET_LAYERS) {
+      if (!allowedLayers.includes(layer)) continue;
+
+      try {
+        await preGenerateMarket(nodeId, layer);
+        generated.push(`${nodeId}:${layer}`);
+      } catch (error) {
+        console.error(
+          `[market-scheduler] failed to pre-generate ${nodeId}:${layer}`,
+          error,
+        );
+      }
+    }
+  }
+
+  return {
+    success: true,
+    processed: generated.length,
+    skipped: false,
+    generated,
+  };
+}

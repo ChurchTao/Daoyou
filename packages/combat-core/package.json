@@ -1,0 +1,25 @@
+{
+  "name": "@daoyou/combat-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./enums": "./dist/enums.js",
+    "./expr": "./dist/expr.js",
+    ".": "./dist/index.js",
+    "./rng": "./dist/rng.js",
+    "./session": "./dist/session.js",
+    "./types": "./dist/types.js",
+    "./units": "./dist/units.js",
+    "./when": "./dist/when.js",
+    "./constants": "./dist/constants.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --root ../.. packages/combat-core/src"
+  }
+}

@@ -168,14 +168,14 @@
 
 ## 10. 代码依据
 
-- `src/shared/lib/tower/weekly.ts`：六套组合、三周主套路、周预览。
-- `src/shared/lib/tower/formations.ts`：角色份额、护卫/治疗和禁配。
-- `src/shared/engine/combat-v6/tower/content.ts`：数值、技能、状态与NPC周期编译。
-- `src/shared/engine/combat-v6/tower/host.ts`：满状态投影、NPC命令、快照兼容。
-- `src/shared/lib/tower/helpers.ts`：祝福候选、层数与榜单排序。
-- `src/shared/lib/tower/season.ts`：上海时区周界。
-- `src/shared/lib/tower/data/encounters.json`：境界基准、楼层曲线。
-- `src/server/lib/tower/combatV6.ts`：周发布、挑战推进、恢复与结算。
-- `src/server/lib/tower/leaderboard.ts`：榜单写入与保留期。
-- `src/shared/engine/combat-v6/tower/balance.test.ts`：目前平衡证据的实际覆盖。
+- `packages/shared/src/lib/tower/weekly.ts`：六套组合、三周主套路、周预览。
+- `packages/shared/src/lib/tower/formations.ts`：角色份额、护卫/治疗和禁配。
+- `packages/shared/src/engine/combat-v6/tower/content.ts`：数值、技能、状态与NPC周期编译。
+- `packages/shared/src/engine/combat-v6/tower/host.ts`：满状态投影、NPC命令、快照兼容。
+- `packages/shared/src/lib/tower/helpers.ts`：祝福候选、层数与榜单排序。
+- `packages/shared/src/lib/tower/season.ts`：上海时区周界。
+- `packages/shared/src/lib/tower/data/encounters.json`：境界基准、楼层曲线。
+- `apps/api/src/lib/tower/combatV6.ts`：周发布、挑战推进、恢复与结算。
+- `apps/api/src/lib/tower/leaderboard.ts`：榜单写入与保留期。
+- `packages/shared/src/engine/combat-v6/tower/balance.test.ts`：目前平衡证据的实际覆盖。
 - `docs/tower-redesign-spec.md`、`docs/tower-scaling-design.md`：已确认边界与此前验收记录。

@@ -22,13 +22,13 @@
 
 | 当前事实 | 入口 | 改造方向 |
 | --- | --- | --- |
-| 敌人技能、被动均为空；精英增加人数，首领增加血量 | `src/shared/engine/combat-v6/tower/content.ts` | 配置具体敌人原型、技能、被动及阵容 |
-| 十一种祝福以六维、上限、恢复为主 | `src/shared/lib/tower/data/blessings.json` | 收敛为简单战斗属性增益，删除恢复需求 |
-| 入场保存 `run.player`，跨层维护 `run.resources` 与血蓝条 | `src/server/lib/tower/combatV6.ts`、`combat-v6/tower/host.ts` | 每场重新装配当前构筑，移除幻境独立资源继承 |
-| 物品、灵兽和构筑修改受整局幻境占用限制 | `src/server/lib/tower/occupancy.ts` 及调用方 | 区分挑战存在与战斗/结算占用，允许安全的层间调整 |
-| 页面常驻显示挑战、祝福、奖励和榜单 | `src/react-app/routes/game/tower/route.tsx` | 按状态呈现一个主任务，辅助内容按需打开 |
-| 战斗页已复用 `CombatV6Page`、`CombatV6Battle` | `src/react-app/routes/game/tower/battle/route.tsx` | 保留，只同步必要的数据契约与返回状态 |
-| 公共 PvE Host 通过 `automaticCommands` 为 NPC 选招 | `src/shared/engine/combat-v6/encounter/host.ts` | 固定机制必须验证实际选招行为 |
+| 敌人技能、被动均为空；精英增加人数，首领增加血量 | `packages/shared/src/engine/combat-v6/tower/content.ts` | 配置具体敌人原型、技能、被动及阵容 |
+| 十一种祝福以六维、上限、恢复为主 | `packages/shared/src/lib/tower/data/blessings.json` | 收敛为简单战斗属性增益，删除恢复需求 |
+| 入场保存 `run.player`，跨层维护 `run.resources` 与血蓝条 | `apps/api/src/lib/tower/combatV6.ts`、`combat-v6/tower/host.ts` | 每场重新装配当前构筑，移除幻境独立资源继承 |
+| 物品、灵兽和构筑修改受整局幻境占用限制 | `apps/api/src/lib/tower/occupancy.ts` 及调用方 | 区分挑战存在与战斗/结算占用，允许安全的层间调整 |
+| 页面常驻显示挑战、祝福、奖励和榜单 | `apps/web/src/routes/game/tower/route.tsx` | 按状态呈现一个主任务，辅助内容按需打开 |
+| 战斗页已复用 `CombatV6Page`、`CombatV6Battle` | `apps/web/src/routes/game/tower/battle/route.tsx` | 保留，只同步必要的数据契约与返回状态 |
+| 公共 PvE Host 通过 `automaticCommands` 为 NPC 选招 | `packages/shared/src/engine/combat-v6/encounter/host.ts` | 固定机制必须验证实际选招行为 |
 
 注意：`PveCommandStrategyV1` 中仍有 `skill-rotation` 等历史字段，但类型注释明确当前 Host 统一走公共 AUTO。不能把填写该字段当作已经实现技能轮转。
 
@@ -303,7 +303,7 @@
 - 聚焦共享测试覆盖周表、祝福、七境界二十层编译、敌人周期、封印行动空档、首领阶段、快照 RNG 恢复及金丹参考对打。
 - 金丹三条路线各验证 1/5/10 层，关键层遍历六个组合；固定种子 42 共 39 场样本，回合数普通 2–4、精英 4–6、首领 5–8。样本定义见 `combat-v6/tower/balance.test.ts`，不能解释成统计胜率。
 - 本地浏览器验证入口／选择／普通层战斗／返回、周表详情、层间改属性后下场生效，战内修改被拒绝；确认残血低蓝开战补满、正常资源同步、运行中无整局 player/resources 副本；战中刷新保留第 2 回合及已消耗气血，桌面与 360px 页面检查，320px 榜单弹层无溢出。普通层败北后资源结算并返回结果页，本地测试角色已恢复原境界、属性与准备性资源。
-- lint、客户端／服务端 build 通过；全量测试 1600 项通过、1 项失败，失败为本轮未修改的 `src/shared/lib/bodyCultivation/pack.test.ts` 旧文案断言。
+- lint、客户端／服务端 build 通过；全量测试 1600 项通过、1 项失败，失败为本轮未修改的 `packages/shared/src/lib/bodyCultivation/pack.test.ts` 旧文案断言。
 
 剩余验收包括多种随机种子、无宠及养成上下沿、15/20 层实战与高境界定标；Redis/SQL 故障重试目前仅完成边界代码审查，未做故障注入验收。
 
@@ -321,7 +321,7 @@
 
 本轮浏览器验收：使用本地道友2从正常入口创建 v3 挑战，周表显示单体精英／首领双镜侍／主攻治疗的不同阵容；成员图标能打开说明；通过公共战斗页完成双敌和治疗阵容的目标选择、先杀辅助、剩余敌人继续战斗与终局返回。桌面与 360px 战前布局检查通过。护卫 15%/30% 实际伤害和阵亡时点由共享引擎测试验证，本轮未在浏览器完整推进至第 10 层。
 
-检查命令：`bun run lint`、`bun run build`、`bun run test src/shared/lib/tower src/shared/engine/combat-v6/tower`（37 项通过）、`bun run test`（本次改动相关检查通过，仍有未修改的炼体 pack 旧文案断言失败）、`git diff --check`。未做高境界／无宠／多种子的平衡验收。
+检查命令：`bun run lint`、`bun run build`、`bun run test packages/shared/src/lib/tower packages/shared/src/engine/combat-v6/tower`（37 项通过）、`bun run test`（本次改动相关检查通过，仍有未修改的炼体 pack 旧文案断言失败）、`git diff --check`。未做高境界／无宠／多种子的平衡验收。
 
 本轮测试挑战已正常结束；准备时修改的角色境界、六维、气血与法力已恢复，实际通过层数与战绩保留。浏览器临时视口和测试页已清理。复用了已运行的本地开发服务，未停止其他任务的服务。
 

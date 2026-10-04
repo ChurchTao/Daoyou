@@ -1,0 +1,43 @@
+/** Public resources capabilities. Keep implementation files private. */
+export {
+  RESOURCE_SCOPE_KINDS,
+  RESOURCE_TOPICS,
+  RESOURCE_TOPIC_SCOPE_KIND,
+  advanceContiguousResourceCursor,
+  applyResourceChange,
+  createResourceCacheKey,
+  createResourceSchemas,
+  getResourceScopeTransitionKinds,
+  orderResourceChanges,
+  reduceInventoryResourcePage,
+  reduceTaskResourceList,
+  requiresResourceEventReload,
+} from '../resources/index.js';
+export type {
+  InventoryPageReduction,
+  InventoryResourceDataMap,
+  InventoryResourceTopic,
+  InventoryResourceViewParams,
+  PlayerProfilePatch,
+  PlayerResourceDataMap,
+  PlayerResourceTopic,
+  ResourceAddress,
+  ResourceCacheKey,
+  ResourceChange,
+  ResourceChangeDescriptor,
+  ResourceChangeOperation,
+  ResourceDataMap,
+  ResourcePageData,
+  ResourceReadMeta,
+  ResourceReadResponse,
+  ResourceSchemaDependencies,
+  ResourceScope,
+  ResourceScopeKind,
+  ResourceTopic,
+  SectResourceDataMap,
+  SectResourceTopic,
+  TaskListReduction,
+  TaskResourceViewParams,
+} from '../resources/index.js';
+export { withCharacterPanelInvalidations } from '../resources/characterResourceChanges.js';
+export { withBagInvalidations } from '../resources/bagResourceChanges.js';

@@ -1,0 +1,484 @@
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
+import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
+import { attachmentsToResourceOperations } from '@daoyou/game-rules/mail';
+import type { CultivatorQueriesService } from '@server/cultivator/cultivator-queries.service.js';
+import { sanitizeMaterialForClient } from '@server/inventory/presentation.js';
+import type { DbClient } from '@server/lib/drizzle/db.js';
+import { mails } from '@server/lib/drizzle/schema.js';
+import { redisLockKeys, type withRedisLock } from '@server/lib/redis/lock.js';
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
+import {
+  deliverMailBeasts,
+  selectClaimableBeastMails,
+} from '@server/mail/application/MailBeastDelivery.js';
+import { deliverMailInventory } from '@server/mail/application/MailInventory.js';
+import type { MailAttachment } from '@server/mail/application/MailService.js';
+import { sendPlayerMail } from '@server/mail/application/PlayerMailService.js';
+import { describeJournal } from '@server/player/application/JournalSettlement.js';
+import { readPlayerMailSummary } from '@server/player/application/PlayerResourceReaderService.js';
+import type { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
+import type { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
+import { and, eq, inArray } from 'drizzle-orm';
+import type { MailDeliveryService } from '../mail-delivery.service.js';
+
+type MailActor = {
+  userId: string;
+  cultivatorId: string;
+};
+
+export class PlayerMailCommandError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 404,
+  ) {
+    super(message);
+  }
+}
+
+function mailClaimChanges(args: {
+  eventType: string;
+  unreadCount: number;
+  settlement: ResourceOperationSettlement;
+  attachments: MailAttachment[];
+}): ResourceChangeDescriptor[] {
+  const changes: ResourceChangeDescriptor[] = [
+    {
+      resourceTopic: 'player.mail-summary',
+      eventType: args.eventType,
+      operation: 'replace',
+      payload: { unreadCount: args.unreadCount },
+    },
+  ];
+  if (args.attachments.some((attachment) => attachment.type !== 'beast_v1')) {
+    changes.unshift({
+      resourceTopic: 'inventory.bag',
+      eventType: 'inventory.mail.claimed',
+      operation: 'invalidate',
+    });
+  }
+  for (const inventoryChange of args.settlement.inventoryChanges) {
+    changes.push(
+      inventoryChange.operation === 'upsert'
+        ? ({
+            resourceTopic: `inventory.${inventoryChange.kind}`,
+            eventType: 'inventory.mail.claimed',
+            operation: 'upsert-items',
+            payload: {
+              idKey: 'id',
+              items: [
+                inventoryChange.kind === 'materials'
+                  ? sanitizeMaterialForClient(inventoryChange.item)
+                  : inventoryChange.item,
+              ],
+            },
+          } as ResourceChangeDescriptor)
+        : ({
+            resourceTopic: `inventory.${inventoryChange.kind}`,
+            eventType: 'inventory.mail.claimed',
+            operation: 'remove-items',
+            payload: { idKey: 'id', ids: [inventoryChange.id] },
+          } as ResourceChangeDescriptor),
+    );
+  }
+  if (
+    args.settlement.spiritStones !== undefined ||
+    args.settlement.reputation !== undefined
+  ) {
+    changes.push({
+      resourceTopic: 'player.currency',
+      eventType: 'currency.mail.changed',
+      operation: 'merge',
+      payload: {
+        ...(args.settlement.spiritStones !== undefined
+          ? { spiritStones: args.settlement.spiritStones }
+          : {}),
+        ...(args.settlement.reputation !== undefined
+          ? { reputation: args.settlement.reputation }
+          : {}),
+      },
+    });
+  }
+  if (args.settlement.cultivationProgress) {
+    changes.push({
+      resourceTopic: 'player.progress',
+      eventType: 'progress.mail.changed',
+      operation: 'replace',
+      payload: args.settlement.cultivationProgress,
+    });
+  }
+  return changes;
+}
+
+export class PlayerMailApplicationService {
+  constructor(
+    private readonly database: DbClient,
+    private readonly commands: PlayerCommandExecutor,
+    private readonly resources: ResourceEngine,
+    private readonly facts: CultivatorQueriesService,
+    private readonly delivery: MailDeliveryService,
+    private readonly withLock: typeof withRedisLock,
+  ) {}
+
+  sendCultivatorMail(args: {
+    actor: MailActor;
+    recipientCultivatorId: string;
+    content: string;
+    requestId: string;
+    attachment?: Parameters<typeof sendPlayerMail>[1]['attachment'];
+  }) {
+    return this.commands.executeWithLock({
+      userId: args.actor.userId,
+      cultivatorId: args.actor.cultivatorId,
+      source: 'player_mail_send',
+      requestId: args.requestId,
+      idempotency: {
+        key: args.requestId,
+        fingerprint: JSON.stringify([
+          args.recipientCultivatorId,
+          args.content,
+          args.attachment,
+        ]),
+      },
+      allowEmpty: true,
+      command: async (tx) => {
+        const { name: senderName } = await this.facts.name(
+          args.actor.cultivatorId,
+          tx,
+        );
+        const result = await sendPlayerMail(this.delivery, {
+          senderCultivatorId: args.actor.cultivatorId,
+          senderName,
+          recipientCultivatorId: args.recipientCultivatorId,
+          content: args.content,
+          attachment: args.attachment,
+          tx,
+        });
+        describeJournal(
+          tx,
+          args.actor.cultivatorId,
+          `寄给${result.recipientName}`,
+        );
+        const resourceChanges: ResourceChangeDescriptor[] = [
+          {
+            resourceTopic: 'inventory.bag',
+            eventType: 'inventory.mail.sent',
+            operation: 'invalidate',
+          },
+        ];
+        return {
+          result: {
+            message: `已向${result.recipientName}发出传音`,
+            attachmentCount: result.attachmentCount,
+          },
+          resourceChanges,
+        };
+      },
+    });
+  }
+
+  claimCultivatorMail(args: { actor: MailActor; mailId: string }) {
+    return this.withLock(
+      {
+        key: redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
+        context: 'mail-claim',
+        timeoutMs: 10_000,
+        retries: 0,
+      },
+      async (lease) => {
+        const mail = await this.mailsQuery(
+          args.actor.cultivatorId,
+          args.mailId,
+        );
+        if (!mail) throw new PlayerMailCommandError('Mail not found', 404);
+        if (
+          mail.isClaimed &&
+          !(await findPlayerMutationRequest(
+            args.actor.cultivatorId,
+            'mail_claim',
+            `mail-claim:${args.mailId}`,
+            this.database,
+          ))
+        ) {
+          throw new PlayerMailCommandError('Already claimed', 400);
+        }
+        const attachments = (mail.attachments as MailAttachment[]) || [];
+        return this.commands.execute<
+          | { message: string }
+          | {
+              claimedMailId: string;
+              unreadMailCount: number;
+              locations: string[];
+            }
+        >({
+          coordination: { mode: 'redis', lease },
+          userId: args.actor.userId,
+          cultivatorId: args.actor.cultivatorId,
+          source: 'mail_claim',
+          idempotency: {
+            key: `mail-claim:${args.mailId}`,
+            fingerprint: `${args.actor.cultivatorId}:${args.mailId}`,
+          },
+          allowEmpty: attachments.length === 0,
+          command: async (tx) => {
+            const current = await tx.query.mails.findFirst({
+              where: and(
+                eq(mails.id, args.mailId),
+                eq(mails.cultivatorId, args.actor.cultivatorId),
+                eq(mails.isClaimed, false),
+              ),
+            });
+            if (!current)
+              throw new PlayerMailCommandError('邮件已领取或不存在', 400);
+            describeJournal(tx, args.actor.cultivatorId, current.title);
+            const attachments = (current.attachments as MailAttachment[]) || [];
+            const gains = attachmentsToResourceOperations(attachments);
+            if (attachments.length === 0) {
+              return {
+                result: { message: 'No attachments' },
+                resourceChanges: [],
+              };
+            }
+            const locations = [
+              ...(await deliverMailBeasts(
+                args.actor.cultivatorId,
+                attachments,
+                tx,
+              )),
+              ...(await deliverMailInventory(
+                args.actor.cultivatorId,
+                attachments,
+                tx,
+              )),
+            ];
+            const result = await this.resources.applyInTransaction({
+              userId: args.actor.userId,
+              cultivatorId: args.actor.cultivatorId,
+              gain: gains,
+              tx,
+            });
+            if (!result.success) {
+              throw new Error(result.errors?.[0] || '领取失败');
+            }
+            const [updated] = await tx
+              .update(mails)
+              .set({ isClaimed: true, isRead: true })
+              .where(and(eq(mails.id, args.mailId), eq(mails.isClaimed, false)))
+              .returning({ id: mails.id });
+            if (!updated) throw new Error('邮件已被领取（并发冲突）');
+            const mailSummary = await readPlayerMailSummary(
+              args.actor.cultivatorId,
+              tx,
+            );
+            return {
+              result: {
+                claimedMailId: args.mailId,
+                unreadMailCount: mailSummary.unreadCount,
+                locations,
+              },
+              resourceChanges: mailClaimChanges({
+                eventType: 'mail.claimed',
+                unreadCount: mailSummary.unreadCount,
+                settlement: result.settlement!,
+                attachments,
+              }),
+            };
+          },
+        });
+      },
+    );
+  }
+
+  claimAllCultivatorMail(args: { actor: MailActor; requestId: string }) {
+    return this.withLock(
+      {
+        key: redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
+        context: 'mail-claim-all',
+        timeoutMs: 15_000,
+        retries: 0,
+      },
+      async (lease) => {
+        return this.commands.execute<{
+          skipped: { id: string; reason: 'capacity' | 'occupied' }[];
+          claimedCount: number;
+          claimedMailIds: string[];
+          unreadMailCount?: number;
+          locations?: string[];
+        }>({
+          coordination: { mode: 'redis', lease },
+          userId: args.actor.userId,
+          cultivatorId: args.actor.cultivatorId,
+          source: 'mail_claim_all',
+          idempotency: { key: args.requestId, fingerprint: 'mail-claim-all' },
+          allowEmpty: true,
+          command: async (tx) => {
+            const pendingMails = await tx.query.mails.findMany({
+              where: and(
+                eq(mails.type, 'reward'),
+                eq(mails.cultivatorId, args.actor.cultivatorId),
+                eq(mails.isClaimed, false),
+              ),
+            });
+            const { claimable, skipped } = await selectClaimableBeastMails(
+              args.actor.cultivatorId,
+              pendingMails.filter(
+                (mail) =>
+                  ((mail.attachments as MailAttachment[]) || []).length > 0,
+              ),
+              tx,
+            );
+            const mailIds = claimable.map((mail) => mail.id);
+            describeJournal(tx, args.actor.cultivatorId, `${mailIds.length}封`);
+            const attachments = claimable.flatMap(
+              (mail) => (mail.attachments as MailAttachment[]) || [],
+            );
+            const gains = attachmentsToResourceOperations(attachments);
+            if (mailIds.length === 0) {
+              return {
+                result: {
+                  claimedCount: 0,
+                  claimedMailIds: [] as string[],
+                  skipped,
+                },
+                resourceChanges: [],
+              };
+            }
+            const locations = [
+              ...(await deliverMailBeasts(
+                args.actor.cultivatorId,
+                attachments,
+                tx,
+              )),
+              ...(await deliverMailInventory(
+                args.actor.cultivatorId,
+                attachments,
+                tx,
+              )),
+            ];
+            const result = await this.resources.applyInTransaction({
+              userId: args.actor.userId,
+              cultivatorId: args.actor.cultivatorId,
+              gain: gains,
+              tx,
+            });
+            if (!result.success) {
+              throw new Error(result.errors?.[0] || '一键领取失败');
+            }
+            const updated = await tx
+              .update(mails)
+              .set({ isClaimed: true, isRead: true })
+              .where(
+                and(inArray(mails.id, mailIds), eq(mails.isClaimed, false)),
+              )
+              .returning({ id: mails.id });
+            if (updated.length !== mailIds.length) {
+              throw new Error('部分邮件已被领取（并发冲突）');
+            }
+            const mailSummary = await readPlayerMailSummary(
+              args.actor.cultivatorId,
+              tx,
+            );
+            return {
+              result: {
+                skipped,
+                claimedCount: mailIds.length,
+                claimedMailIds: mailIds,
+                unreadMailCount: mailSummary.unreadCount,
+                locations,
+              },
+              resourceChanges: mailClaimChanges({
+                eventType: 'mail.claimed_all',
+                unreadCount: mailSummary.unreadCount,
+                settlement: result.settlement!,
+                attachments,
+              }),
+            };
+          },
+        });
+      },
+    );
+  }
+
+  markCultivatorMailRead(args: { actor: MailActor; mailId: string }) {
+    return this.commands.execute({
+      coordination: { mode: 'database-only' },
+      userId: args.actor.userId,
+      cultivatorId: args.actor.cultivatorId,
+      source: 'mail_read',
+      command: async (tx) => {
+        const updated = await tx
+          .update(mails)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(mails.id, args.mailId),
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+            ),
+          )
+          .returning({ id: mails.id });
+        if (updated.length === 0) {
+          throw new PlayerMailCommandError('Mail not found', 404);
+        }
+        const summary = await readPlayerMailSummary(
+          args.actor.cultivatorId,
+          tx,
+        );
+        return {
+          result: { mailId: args.mailId, unreadMailCount: summary.unreadCount },
+          resourceChanges: [
+            {
+              resourceTopic: 'player.mail-summary',
+              eventType: 'mail.read',
+              operation: 'replace',
+              payload: summary,
+            },
+          ],
+        };
+      },
+    });
+  }
+
+  markAllCultivatorMailRead(args: { actor: MailActor }) {
+    return this.commands.execute({
+      coordination: { mode: 'database-only' },
+      userId: args.actor.userId,
+      cultivatorId: args.actor.cultivatorId,
+      source: 'mail_read_all',
+      command: async (tx) => {
+        const updated = await tx
+          .update(mails)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(mails.cultivatorId, args.actor.cultivatorId),
+              eq(mails.isRead, false),
+            ),
+          )
+          .returning({ id: mails.id });
+        const summary = await readPlayerMailSummary(
+          args.actor.cultivatorId,
+          tx,
+        );
+        return {
+          result: {
+            updatedCount: updated.length,
+            unreadMailCount: summary.unreadCount,
+          },
+          resourceChanges: [
+            {
+              resourceTopic: 'player.mail-summary',
+              eventType: 'mail.read_all',
+              operation: 'replace',
+              payload: summary,
+            },
+          ],
+        };
+      },
+    });
+  }
+
+  private async mailsQuery(cultivatorId: string, mailId: string) {
+    return this.database.query.mails.findFirst({
+      where: and(eq(mails.id, mailId), eq(mails.cultivatorId, cultivatorId)),
+    });
+  }
+}

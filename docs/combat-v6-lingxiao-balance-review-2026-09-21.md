@@ -19,12 +19,12 @@
 
 当前事实入口：
 
-- [技能与状态配置](../src/shared/engine/combat-v6/content/data/lingxiao-combat.json)
-- [双流派配置](../src/shared/engine/combat-v6/content/data/lingxiao-paths.json)
-- [宗门编译器](../src/shared/engine/combat-v6/content/compiler.ts)
-- [物理与命中公式](../src/shared/engine/combat-v6/rules-daoyou/formulas.ts)
+- [技能与状态配置](../packages/shared/src/engine/combat-v6/content/data/lingxiao-combat.json)
+- [双流派配置](../packages/shared/src/engine/combat-v6/content/data/lingxiao-paths.json)
+- [宗门编译器](../packages/shared/src/engine/combat-v6/content/compiler.ts)
+- [物理与命中公式](../packages/shared/src/engine/combat-v6/rules-daoyou/formulas.ts)
 
-旧社会内容目录中的《此剑平生》、照影游尘、守拙藏锋不是本轮 V6 的技能和流派事实。该目录的 [DESIGN.md](../src/shared/engine/sect/content/lingxiao/DESIGN.md) 仅用于参考宗门主题，不能据此认定 V6 已有剑痕、承势等机制。
+旧社会内容目录中的《此剑平生》、照影游尘、守拙藏锋不是本轮 V6 的技能和流派事实。该目录的 [DESIGN.md](../packages/shared/src/engine/sect/content/lingxiao/DESIGN.md) 仅用于参考宗门主题，不能据此认定 V6 已有剑痕、承势等机制。
 
 ## 2. 优先修复的机制与配置问题
 
@@ -236,7 +236,7 @@
 执行：
 
 ```bash
-bun run test src/shared/engine/combat-v6/content/content.test.ts src/shared/engine/combat-v6/content/lingxiao-pack.test.ts src/shared/engine/combat-v6/content/lingxiao-path-pack.test.ts src/shared/engine/combat-v6/core/phase-3-primitives.test.ts src/shared/engine/combat-v6/rules-daoyou/rules-daoyou.test.ts
+bun run test packages/shared/src/engine/combat-v6/content/content.test.ts packages/shared/src/engine/combat-v6/content/lingxiao-pack.test.ts packages/shared/src/engine/combat-v6/content/lingxiao-path-pack.test.ts packages/shared/src/engine/combat-v6/core/phase-3-primitives.test.ts packages/shared/src/engine/combat-v6/rules-daoyou/rules-daoyou.test.ts
 ```
 
 结果：5 个文件、35 项测试全部通过。其中包含双流派各 `3^7` 种组合的编译检查，但这不验证组合在战斗中的收益是否兑现。

@@ -1,0 +1,43 @@
+import type {
+  QiAction,
+  QiRestoreTalismanScenario,
+} from '@daoyou/game-domain/qi';
+
+export const QI_MAX = 240;
+
+export const QI_NATURAL_RESTORE_PER_INTERVAL = 1;
+
+export const QI_NATURAL_RESTORE_INTERVAL_MS = 6 * 60 * 1000;
+
+export const QI_OVERFLOW_MAX = 2400;
+
+export const QI_DAILY_RESTORE_ITEM_LIMIT = 10;
+
+export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
+
+export const QI_ACTION_COSTS = {
+  dungeon_start: 50,
+  wild_search: 2,
+  retreat_10_years: 4,
+  breakthrough_attempt: 20,
+  // 炼丹会按本炉原始药蕴动态计费；这里仅保留最低消耗作为通用兜底。
+  alchemy_improvised: 1,
+  alchemy_formula: 1,
+  equipment_forge: 7,
+  manual_enlightenment: 1,
+  inscription_draw: 1,
+  marrow_wash_breakthrough: 20,
+  market_identify: 1,
+  black_market_entry: 5,
+  spirit_field_care: 5,
+} as const satisfies Record<QiAction, number>;
+
+export const QI_RESTORE_TALISMAN_SCENARIOS = {
+  qi_restore_small: { amount: 50, label: '小聚灵符' },
+  qi_restore_medium: { amount: 100, label: '中聚灵符' },
+  qi_restore_large: { amount: 200, label: '大聚灵符' },
+  qi_restore_fill_to_max: { amount: 'fill_to_max', label: '天地引气符' },
+} as const satisfies Record<
+  QiRestoreTalismanScenario,
+  { amount: number | 'fill_to_max'; label: string }
+>;

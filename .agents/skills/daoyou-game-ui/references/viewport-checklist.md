@@ -5,10 +5,10 @@
 先做静态搜索，确认没有明显回退：
 
 ```bash
-rg -n "font-heading|font-ma-shan-zheng" src/react-app/routes/game src/react-app/components/game-shell src/react-app/components/func
-rg -n "InkSection" src/react-app/routes/game src/react-app/components
-rg -n "actionBar|sceneSurfaceClassName|sceneBodyClassName|scene[A-Z][A-Za-z]*ClassName" src/react-app
-rg -n "variant=\\\"drawer\\\"|onOpenCultivator|WorldChatHost|CultivatorOverviewOverlay" src/react-app
+rg -n "font-heading|font-ma-shan-zheng" apps/web/src/routes/game apps/web/src/components/game-shell apps/web/src/components/func
+rg -n "InkSection" apps/web/src/routes/game apps/web/src/components
+rg -n "actionBar|sceneSurfaceClassName|sceneBodyClassName|scene[A-Z][A-Za-z]*ClassName" apps/web/src
+rg -n "variant=\\\"drawer\\\"|onOpenCultivator|WorldChatHost|CultivatorOverviewOverlay" apps/web/src
 ```
 
 如果当前任务只改了某个 feature，也要顺着引用检查它进入主流程正文时依赖的共享组件。

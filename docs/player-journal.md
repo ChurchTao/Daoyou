@@ -6,7 +6,7 @@
 
 数据库迁移为 `drizzle/0060_player_journal.sql`，已合并本轮未上线的讨伐与日志迁移，仅创建最终使用的日志表。
 
-`wanjiedaoyou_player_journal` 同时保存业务执行凭据和玩家可见的结构化结果，不另建收支明细表。`event` 使用 `src/shared/contracts/playerJournal.ts` 的可辨识联合契约，前端按类型渲染、按资源统一颜色与数字格式。
+`wanjiedaoyou_player_journal` 同时保存业务执行凭据和玩家可见的结构化结果，不另建收支明细表。`event` 使用 `packages/shared/src/contracts/playerJournal.ts` 的可辨识联合契约，前端按类型渲染、按资源统一颜色与数字格式。
 
 - 闭关：年数、实际修为与感悟收益、实际灵气消耗、寿元耗尽结果。
 - 突破：成功／失败、前后境界、实际修为与感悟变化、灵气消耗、寿元上限和属性奖励。

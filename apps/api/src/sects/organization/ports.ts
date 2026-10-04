@@ -1,0 +1,411 @@
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
+import type { DomainEventWriter } from '@server/lib/mq/domainEventWriter.js';
+import type { ResourceDataMap } from '@daoyou/contracts/resources';
+import type { SectTaskSettlementData } from '@daoyou/contracts/sect';
+import type {
+  CultivatorSectState,
+  SectDefinition,
+  SectDiscipleRank,
+  SectOffice,
+  SectOrganizationModule,
+  SectSubmissionItemFacts,
+  SectSubmissionItemKind,
+  SectTaskRecordPayload,
+} from '@daoyou/game-rules/sect-organization';
+import type { Quality } from '@daoyou/constants/qualities';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import type { Material } from '@daoyou/game-domain/character';
+import type { SectCommandEffects } from '@server/sects/organization/SectCommandEffects.js';
+
+export interface Clock {
+  now(): Date;
+  dateKey(now?: Date): string;
+  weekKey(now?: Date): string;
+}
+
+export interface IdGenerator {
+  next(): string;
+}
+
+export interface SectAdmissionMembershipRecord {
+  id: string;
+  sectId: string;
+  status: string;
+}
+
+export interface SectStateRepository {
+  load(cultivatorId: string): Promise<CultivatorSectState | undefined>;
+  loadForSect(
+    cultivatorId: string,
+    sectId: string,
+  ): Promise<CultivatorSectState | undefined>;
+  listMemberships(
+    cultivatorId: string,
+  ): Promise<readonly SectAdmissionMembershipRecord[]>;
+}
+
+export interface SectAdmissionRepository extends SectStateRepository {
+  findActiveMembership(
+    cultivatorId: string,
+  ): Promise<SectAdmissionMembershipRecord | null>;
+  findMembershipForSect(
+    cultivatorId: string,
+    sectId: string,
+  ): Promise<SectAdmissionMembershipRecord | null>;
+  ensureMembershipCandidate(
+    cultivatorId: string,
+    sectId: string,
+    configVersion: number,
+  ): Promise<SectAdmissionMembershipRecord>;
+  activateMembership(
+    membershipId: string,
+    definition: SectDefinition,
+  ): Promise<void>;
+  ensureFacilities(
+    sectId: string,
+    facilities: readonly { key: string; initialLevel: number }[],
+  ): Promise<void>;
+}
+
+export interface SectTrainingResourceSnapshot {
+  realm: RealmType;
+  stage: RealmStage;
+  stones: number;
+  cultivationExp: number;
+  comprehensionInsight: number;
+  resourceProgress: ResourceDataMap['player.progress'];
+  playerRace: 'human';
+}
+
+export interface SectAdmissionResourceReader {
+  load(cultivatorId: string): Promise<SectTrainingResourceSnapshot | null>;
+}
+
+export interface SectMembershipRecord {
+  id: string;
+  sectId: string;
+  cultivatorId: string;
+  discipleRank: SectDiscipleRank;
+  contribution: number;
+  lifetimeContribution: number;
+}
+
+export interface SectTaskRecord {
+  id: string;
+  membershipId: string;
+  taskId: string;
+  kind: 'daily' | 'weekly' | 'promotion';
+  periodKey: string;
+  status: 'active' | 'completed' | 'abandoned';
+  attempt: number;
+  progress: number;
+  payload: SectTaskRecordPayload;
+  createdAt: Date;
+  completedAt?: Date;
+  claimedAt?: Date;
+}
+
+export interface SectMembershipReadRepository {
+  findByCultivator(cultivatorId: string): Promise<SectMembershipRecord | null>;
+  countCompletedDailyTasks(membershipId: string): Promise<number>;
+  hasCompletedTask(membershipId: string, taskId: string): Promise<boolean>;
+}
+
+export interface SectMembershipQueryRepository extends SectMembershipReadRepository {
+  loadState(cultivatorId: string): Promise<CultivatorSectState | undefined>;
+  listMembers(
+    sectId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{
+    rows: SectMemberRecord[];
+    total: number;
+  }>;
+}
+
+export interface SectMembershipRepository extends SectMembershipQueryRepository {
+  promote(membershipId: string, rank: SectDiscipleRank): Promise<boolean>;
+}
+
+export interface SectMemberRecord {
+  cultivatorId: string;
+  name: string;
+  realm: string;
+  realmStage: string;
+  discipleRank: SectDiscipleRank;
+  office: SectOffice;
+  joinedAt: Date | null;
+  lastActiveAt?: Date | null;
+}
+
+export interface SectTaskReadRepository {
+  list(
+    membershipId: string,
+    periodKeys: readonly string[],
+  ): Promise<SectTaskRecord[]>;
+  find(
+    membershipId: string,
+    periodKey: string,
+    taskId: string,
+  ): Promise<SectTaskRecord | null>;
+  countCompletedDailySince(
+    membershipId: string,
+    periodKey: string,
+  ): Promise<number>;
+}
+
+export interface SectTaskRepository extends SectTaskReadRepository {
+  nextAttempt(
+    membershipId: string,
+    periodKey: string,
+    taskId: string,
+  ): Promise<number>;
+  create(input: {
+    membershipId: string;
+    taskId: string;
+    kind: 'daily' | 'weekly' | 'promotion';
+    periodKey: string;
+    attempt?: number;
+    progress?: number;
+    payload: SectTaskRecordPayload;
+  }): Promise<SectTaskRecord>;
+  complete(id: string, progress: number): Promise<SectTaskRecord | null>;
+  abandon(id: string, acceptedBefore: Date): Promise<boolean>;
+  claim(id: string, claimedAt: Date): Promise<SectTaskRecord | null>;
+  updatePayload(
+    id: string,
+    payload: SectTaskRecordPayload,
+  ): Promise<SectTaskRecord | null>;
+  upsertProgress(input: {
+    membershipId: string;
+    taskId: string;
+    kind: 'weekly' | 'promotion';
+    periodKey: string;
+    progress: number;
+    target: number;
+    completed: boolean;
+    payload: SectTaskRecordPayload;
+  }): Promise<SectTaskRecord>;
+}
+
+export interface SectInventorySettlementResult {
+  consumed: boolean;
+  settlement?: SectTaskSettlementData['inventory'][number];
+}
+
+export interface SectSubmissionInventoryReadGateway {
+  listSubmissionItems(input: {
+    cultivatorId: string;
+    kind: SectSubmissionItemKind;
+  }): Promise<SectSubmissionItemFacts[]>;
+  findSubmissionItem(
+    cultivatorId: string,
+    kind: SectSubmissionItemKind,
+    itemId: string,
+  ): Promise<SectSubmissionItemFacts | null>;
+}
+
+export interface SectSubmissionInventoryGateway extends SectSubmissionInventoryReadGateway {
+  consumeSubmissionItem(input: {
+    cultivatorId: string;
+    kind: SectSubmissionItemKind;
+    itemId: string;
+    revision: number;
+    quantity: number;
+  }): Promise<SectInventorySettlementResult>;
+}
+
+export interface SectCultivatorGateway {
+  loadProgress(cultivatorId: string): Promise<{
+    realm: RealmType;
+    stage: RealmStage;
+  } | null>;
+}
+
+export interface SectRewardMaterialCandidate {
+  libraryItemId: string;
+  name: string;
+  quality: Quality;
+  type: 'ore';
+  element?: string;
+  description: string;
+}
+
+export interface SectRewardMaterialCatalogGateway {
+  sampleOre(
+    preferredQualities: readonly Quality[],
+    seed: string,
+  ): Promise<SectRewardMaterialCandidate | null>;
+}
+
+export interface SectBattleGateway {
+  freeze(
+    context: import('@server/sects/organization/task-executors/SectTaskExecutor.js').SectTaskEnrollmentContext,
+  ): Promise<import('@daoyou/game-domain/combat/challenges').SectV6Target>;
+  start(
+    context: import('@server/sects/organization/task-executors/SectTaskExecutor.js').SectTaskExecutionContext,
+  ): Promise<{ battleId: string }>;
+}
+
+export interface SectRewardGateway {
+  grantContribution(
+    membershipId: string,
+    amount: number,
+    reason: string,
+    referenceId: string,
+  ): Promise<{
+    value: number;
+    lifetimeContribution: number;
+    effects: SectCommandEffects;
+  }>;
+  grantSpiritStones(
+    cultivatorId: string,
+    amount: number,
+    source?: 'sect_task' | 'sect_stipend',
+  ): Promise<{ value: number; effects: SectCommandEffects }>;
+  grantCultivationExp(
+    userId: string,
+    cultivatorId: string,
+    amount: number,
+  ): Promise<{
+    value: ResourceDataMap['player.progress'];
+    effects: SectCommandEffects;
+  }>;
+  grantMaterial(
+    cultivatorId: string,
+    input: Pick<
+      Material,
+      | 'name'
+      | 'type'
+      | 'rank'
+      | 'element'
+      | 'description'
+      | 'details'
+      | 'quantity'
+    >,
+  ): Promise<SectCommandEffects>;
+}
+
+export interface SectFacilityRecord {
+  sectId: string;
+  facilityKey: string;
+  level: number;
+  progress: number;
+  updatedAt: Date;
+}
+
+export interface SectFacilityReadRepository {
+  list(sectId: string): Promise<SectFacilityRecord[]>;
+}
+
+export interface SectFacilityRepository extends SectFacilityReadRepository {
+  ensure(sectId: string): Promise<void>;
+}
+
+export interface SectEconomyReadRepository {
+  hasClaimedStipend(membershipId: string, weekKey: string): Promise<boolean>;
+}
+
+export interface SectEconomyRepository extends SectEconomyReadRepository {
+  spendContribution(
+    membershipId: string,
+    amount: number,
+    reason: string,
+    referenceId: string,
+  ): Promise<{
+    contribution: number;
+    lifetimeContribution: number;
+  } | null>;
+  recordStipendClaim(input: {
+    membershipId: string;
+    weekKey: string;
+    spiritStones: number;
+  }): Promise<boolean>;
+  spendSpiritStones(
+    cultivatorId: string,
+    amount: number,
+  ): Promise<{ spent: boolean; balance?: number }>;
+}
+
+export interface SectConstructionRepository {
+  grantContribution(
+    membershipId: string,
+    amount: number,
+    reason: string,
+    referenceId: string,
+  ): Promise<{ contribution: number; lifetimeContribution: number }>;
+}
+
+export interface SectModuleResolver {
+  require(sectId: string): SectOrganizationModule;
+}
+
+export interface SectCommandContext {
+  memberships: SectMembershipReadRepository;
+  tasks: SectTaskRepository;
+  submissionInventory: SectSubmissionInventoryGateway;
+  cultivators: SectCultivatorGateway;
+  battle: SectBattleGateway;
+  rewards: SectRewardGateway;
+  rewardMaterials: SectRewardMaterialCatalogGateway;
+  modules: SectModuleResolver;
+  clock: Clock;
+  ids: IdGenerator;
+}
+
+export interface SectQueryContext {
+  memberships: SectMembershipReadRepository;
+  tasks: SectTaskReadRepository;
+  submissionInventory: SectSubmissionInventoryReadGateway;
+  modules: SectModuleResolver;
+  clock: Clock;
+}
+
+export interface SectMembershipQueryContext {
+  memberships: SectMembershipQueryRepository;
+  facilities: SectFacilityReadRepository;
+  economy: Pick<SectEconomyReadRepository, 'hasClaimedStipend'>;
+  modules: SectModuleResolver;
+  clock: Clock;
+}
+
+export interface SectMembershipCommandContext extends SectMembershipQueryContext {
+  memberships: SectMembershipRepository;
+}
+
+export interface SectEconomyQueryContext {
+  q: DbExecutor | DbTransaction;
+  memberships: SectMembershipReadRepository;
+  economy: SectEconomyReadRepository;
+  facilities: SectFacilityReadRepository;
+  modules: SectModuleResolver;
+  clock: Clock;
+}
+
+export interface SectEconomyCommandContext extends SectEconomyQueryContext {
+  q: DbTransaction;
+  economy: SectEconomyRepository;
+  facilities: SectFacilityRepository;
+  rewards: SectRewardGateway;
+}
+
+export interface SectConstructionQueryContext {
+  memberships: SectMembershipReadRepository;
+  facilities: SectFacilityReadRepository;
+  modules: SectModuleResolver;
+  clock: Clock;
+}
+
+export interface SectConstructionCommandContext extends SectConstructionQueryContext {
+  facilities: SectFacilityReadRepository &
+    Pick<SectFacilityRepository, 'ensure'>;
+  construction: SectConstructionRepository;
+  events: DomainEventWriter;
+  economy: Pick<SectEconomyRepository, 'spendSpiritStones'>;
+}
+
+export interface SectBenefitQueryContext {
+  memberships: Pick<SectMembershipReadRepository, 'findByCultivator'>;
+  facilities: SectFacilityReadRepository;
+  modules: SectModuleResolver;
+}

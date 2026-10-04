@@ -5,23 +5,39 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['**/dist/**', 'apps/api/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-    },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-    },
+    languageOptions: { ecmaVersion: 'latest' },
+  },
+  {
+    files: ['apps/web/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
+    extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     rules: {
-      ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true, allowExportNames: ['loader'] },
+      ],
+    },
+  },
+  {
+    files: ['scripts/**/*.ts', '*.ts'],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['packages/combat-core/src/**/*.ts'],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        { object: 'Math', property: 'random', message: 'Use the battle RNG.' },
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Pass time from the host.',
+        },
       ],
     },
   },
