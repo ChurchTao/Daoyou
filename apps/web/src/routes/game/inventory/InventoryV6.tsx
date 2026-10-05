@@ -250,8 +250,11 @@ export default function InventoryV6() {
             clearSelection();
           }}
         />
-        <div className="space-y-2">
-          <div className="space-y-2 lg:flex lg:items-center lg:gap-3 lg:space-y-0">
+        <div data-guide="inventory.items" className="space-y-2">
+          <div
+            data-guide="inventory.bag"
+            className="space-y-2 lg:flex lg:items-center lg:gap-3 lg:space-y-0"
+          >
             <div className="flex items-center justify-between gap-3 text-sm lg:shrink-0">
               <div className="flex min-w-0 items-center gap-4 whitespace-nowrap">
                 {(['bag', 'storage'] as const).map((value) => (

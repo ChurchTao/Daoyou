@@ -1,33 +1,60 @@
 {
   "id": "arrival-remain",
-  "title": "回到石室",
-  "requires": [],
-  "cast": {},
+  "title": "回来交差",
+  "requires": [
+    "name",
+    "instructor"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "石室的案上仍有那块玉简，门外是通往山门的路。"
+      "alt": "教习听着青溪坡的见闻，在纸上记下需要留意的地方。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 归来",
-      "text": "回到石室"
+      "kicker": "宗门 · 归来",
+      "text": "回来交差"
     },
     {
       "type": "narration",
-      "text": "从山门回来，石室比记忆里窄了一些。旧毯还搭在榻边，案上的油灯也没有挪过地方。"
+      "text": "你把青溪坡的见闻告诉教习：路上留意了哪些地方，溪边遇到了什么，自己又是怎样应对的。教习边听边把要紧的地方记下来。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "这些地方我记下了，回头提醒要下山的同门。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我想再练练，下回走远些。还有差事可以做吗？"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "有，去事务堂问问，挑你能做的。身上要是有伤，先养好再去。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "想练功，就回静室或去宗门修炼室。闭关会耗寿元，算好要闭关多久。记得修习心法、打通经脉，等修为练足了，再准备破境。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我先去事务堂看看，有什么活是我能做的。"
     },
     {
       "type": "narration",
-      "text": "你把兵器倚在石壁旁，指尖掠过玉简磨亮的边角。先前读不懂的最后几行，如今有一条路已经被你走过。"
-    },
-    {
-      "type": "narration",
-      "text": "暗处又传来水滴落下的一声。初醒时它让这屋子显得格外空，如今混着门外的风，听来倒很熟悉。"
-    },
-    {
-      "type": "narration",
-      "text": "门外又起了风。木闩就在手边，但这一次，你没有急着把门关上。"
+      "text": "你收好行装，向教习告辞。穿过前面的院子，就到事务堂了。"
     },
     {
       "type": "end",

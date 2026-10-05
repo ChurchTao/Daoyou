@@ -18,6 +18,34 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
   if (!effect) return;
   const percent = (value: number) => Math.round(value * 100);
   switch (effect.type) {
+    case 'allSeeing':
+      return `依随机顺序施展自身已学会的主动攻击技能，不包含观照万象本身。观照万象本身不另耗法力，所调用技能各自按原规则选择目标、消耗法力并结算；法力不足时停止后续施展。冷却 ${effect.cooldownRounds} 回合，无物种或战斗回合门槛。`;
+    case 'mountainBreaker':
+      return `消耗自身等级 + ${effect.costMpBase} 法力，攻击 1 个目标。本次命中临时增加自身等级 × 2 + 10；伤害按双方物理攻击之差计算，正差增益上限为自身等级 × 8。`;
+    case 'karmicRetribution':
+      return `消耗自身等级 + ${effect.costMpBase} 法力，攻击 1 个目标。${percent(effect.evilChance)}% 概率触发恶报，造成普通物理伤害的 ${percent(effect.evilFactor)}%；恶报暴击为普通物理伤害的 ${percent(effect.evilFactor * 1.5)}%。其余概率触发善报，为目标恢复普通物理伤害的 ${percent(effect.goodFactor)}%；善报暴击恢复 ${percent(effect.goodFactor * 2)}%。`;
+    case 'radiantBarrier':
+      return `受到伤害并损失气血时，有 ${percent(effect.chance)}% 概率获得相当于本次损失气血 ${percent(effect.ratio)}% 的护盾；可叠加，最多为自身最大气血的 ${percent(effect.maxHpRatio)}%。护盾每回合末衰减 ${percent(effect.decayRatio)}%，不额外恢复气血。`;
+    case 'constitutionGrowthHp':
+      return `气血上限额外增加体质 × 成长 × ${effect.multiplier}，向下取整；不改变其他属性，也不提供气血恢复。`;
+    case 'bloodthirstyPursuit':
+      return `普通攻击（含连击）使目标气血降为 0 后，向另一个存活敌人追加一次物理攻击；即使目标随后涅槃重生，也可触发。追击造成正常物理伤害的 ${percent(effect.factor)}%，可以暴击，每回合最多触发一次，不继续追击。`;
+    case 'surpriseSpell':
+      return `第 2 回合或以后入场时，本次入场后首次主动法术伤害提高 ${percent(effect.factor - 1)}%；初始出战不触发，同一次群法与灵法连击均获得加成，后续法术不再加成。`;
+    case 'magicAttributeBoost':
+      return `法术攻击额外增加完整魔力属性 × ${effect.multiplier}，向下取整；不按法力上限或当前法力计算。`;
+    case 'strengthGrowthTradeoff':
+      return `物理攻击额外增加完整力量属性 × 成长 × ${effect.attackMultiplier}，物理防御降低完整力量属性 × ${effect.defenseMultiplier}；两项分别向下取整，不改变永久属性。`;
+    case 'spellDefense':
+      return `消耗向下取整的自身等级 ÷ ${effect.costMpLevelDivisor} + ${effect.costMpBase} 法力，施加自身护体灵罡，持续 ${effect.duration} 回合。所受法术伤害降低 ${percent(1 - effect.takenFactor)}%，与御法等减伤倍率相乘；不减免物理或固定伤害。`;
+    case 'swiftStrike':
+      return `消耗向下取整的自身等级 ÷ ${effect.costMpLevelDivisor} + ${effect.costMpBase} 法力，必中攻击 1 个目标。固定伤害为完整力量属性 × ${effect.strengthMultiplier} + 当前有效速度 ÷ ${effect.speedDivisor}，人物单位受到的伤害为 ${percent(effect.playerFactor)}%；不暴击。`;
+    case 'barrierBreaker':
+      return `消耗自身等级 + ${effect.costMpBase} 法力，必中攻击 1 个目标。忽略铁骨或高级铁骨增加的物理防御，仍计算目标基础防御；目标执行防御指令时，基础物理伤害提高至 ${percent(effect.defendFactor)}%，随后附加自身等级 × ${effect.powerPerLevel} 威力。`;
+    case 'mindShatter':
+      return `消耗向下取整的自身等级 ÷ ${effect.costMpLevelDivisor} + ${effect.costMpBase} 法力，必中攻击 1 个目标，造成普通物理伤害的 ${percent(effect.physicalFactor)}%。目标同时损失（本次实际气血损失 ÷ ${effect.mpDamageDivisor} + 自身等级 ÷ ${effect.mpLevelDivisor}）× ${effect.mpDamageFactor} 法力，向下取整；下一回合再损失完整力量属性 ÷ ${effect.periodicStrengthDivisor} + ${effect.periodicBase} 法力，向下取整。持续损耗不叠加，保留较高值。`;
+    case 'unanticipated':
+      return `使用本回合己方灵兽尚未施展过的技能时，伤害结果提高 ${percent(effect.factor - 1)}%；同一次群体攻击与灵法连击均获得加成，每回合重新判定。不限物种，不限入场回合。`;
     case 'ghost':
       return `死亡后第 ${effect.delay} 个回合开始复起，气血恢复至可恢复上限。无法接受普通气血恢复，免疫控制、减益和持续伤害；涅槃重生失效。被镇魂击杀后无法复起，等待期间不计存活。`;
     case 'exorcism':
@@ -33,7 +61,7 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
     case 'eternity':
       return `获得可延长增益时持续时间增加 ${percent(effect.factor - 1)}%，向下取整，最多额外 ${effect.maxExtra} 回合；不延长隐身、控制与特殊入场效果。`;
     case 'stealth':
-      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），不能施法，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%。灵觉可看破，群法仍可命中；召回后不重新触发。`;
+      return `每场首次出战时隐身 ${effect.minDuration}～${effect.maxDuration} 回合（含入场回合），使没有灵觉或看破效果的敌人无法攻击自身。期间不能施法，自身造成的物理伤害降低 ${percent(1 - effect.physicalFactor)}%；召回后不重新触发。`;
     case 'perception':
       return `能看破隐身，攻击隐身目标。${effect.dodgeBonus ? `躲避增加 ${effect.dodgeBonus} 点。` : ''}`;
     case 'spellRepeat':
@@ -85,6 +113,7 @@ function beastComboDescription(skill: SkillDef): string | undefined {
   return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。`;
 }
 const effectLabels: Record<SkillEffect['type'], string> = {
+  invokeAttackSkills: '依次施展已学主动攻击技能',
   repeat: "连续触发效果",
   modifyFact: "心念流转",
   modifyStatusDuration: "调整状态持续",

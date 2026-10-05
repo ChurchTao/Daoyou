@@ -97,6 +97,7 @@ export function cloneUnit(unit: Unit): Unit {
     combatFacts: { ...unit.combatFacts },
     ...(unit.hpDamageThisRound ? { hpDamageThisRound: { ...unit.hpDamageThisRound } } : {}),
     skillUses: { ...unit.skillUses },
+    ...(unit.skillsUsedThisRound ? { skillsUsedThisRound: { ...unit.skillsUsedThisRound, skillIds: [...unit.skillsUsedThisRound.skillIds] } } : {}),
     cooldowns: { ...unit.cooldowns },
     skills: [...unit.skills],
     passives: [...unit.passives],

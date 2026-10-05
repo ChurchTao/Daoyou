@@ -1,7 +1,7 @@
 {
   "$schema": "./tower.schema.json",
   "formatVersion": 3,
-  "contentRevision": 5,
+  "contentRevision": 7,
   "pools": {
     "books": {
       "label": "随机普通传承灵印",

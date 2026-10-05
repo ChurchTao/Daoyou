@@ -56,7 +56,11 @@ export function createSectCombatView(input: {
       ? {
           sectId: definition.id,
           sectName: definition.name,
-          paths: definition.paths.map((path) => ({ id: path.id, name: path.name })),
+          paths: definition.paths.map((path) => ({
+            id: path.id,
+            name: path.name,
+            description: path.description,
+          })),
           methods: definition.methods
             .slice()
             .sort((left, right) => left.slot - right.slot)

@@ -720,6 +720,7 @@
     {
       "id": "wuxiang.path.compassion",
       "name": "佛心济世",
+      "description": "侧重治疗与保护同伴。结下本愿印照应队友，积累念头显化法相后加强治疗与护持，适合喜欢支援团队的修士。",
       "requiresConnectedNodes": true,
       "unitTags": [
         "role.healer"
@@ -976,6 +977,7 @@
     {
       "id": "wuxiang.path.wrath",
       "name": "魔心修罗",
+      "description": "侧重物理攻击。制造并击破敌人的破绽，积累念头显化法相后加强攻势，适合喜欢主动进攻的修士。",
       "requiresConnectedNodes": true,
       "unitTags": [],
       "foundationPassives": [

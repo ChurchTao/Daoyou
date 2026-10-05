@@ -18,6 +18,7 @@ import {
 } from '@server/lib/repositories/sectCombatRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 import type { SectCombatView } from '@daoyou/game-domain/sects';
 import type { SectPathSelectionRequest } from '@daoyou/contracts/combat';
 import { COMBAT_V6_BUILD_ERROR_CODE } from '@daoyou/contracts/combat';
@@ -189,6 +190,7 @@ export async function selectInitialSectPath(
         revision: 0,
       })),
     );
+    const story = await StoryService.reconcile(actor.cultivatorId, tx);
     const state = await new ResourceEventCommitter().commit(tx, {
       actor,
       source: 'sect-combat',
@@ -199,6 +201,7 @@ export async function selectInitialSectPath(
           operation: 'invalidate',
           eventType: 'combat_v6.build.initialized',
         },
+        ...(story?.changes ?? []),
       ],
     });
     return {

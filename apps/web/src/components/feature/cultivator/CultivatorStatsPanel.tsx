@@ -244,7 +244,7 @@ export function CultivatorStatsPanel({
   return (
     <div className="space-y-5">
       <div className="border-ink/15 grid gap-5 border-t pt-4 md:grid-cols-2 md:gap-8">
-        <section className="min-w-0">
+        <section data-guide="cultivator.stats" className="min-w-0">
           <div className="mb-2 flex min-h-8 items-center justify-between">
             <h3 className="text-sm font-semibold">战斗属性</h3>
             <InkButton className="text-sm" onClick={() => setDrawer('stats')}>
@@ -270,7 +270,7 @@ export function CultivatorStatsPanel({
             </div>
           ) : null}
         </section>
-        <section className="min-w-0">
+        <section data-guide="cultivator.attributes" className="min-w-0">
           <div className="mb-2 flex min-h-8 items-center justify-between">
             <h3 className="text-sm font-semibold">六维根基</h3>
             <InkButton className="text-sm" onClick={() => setDrawer('help')}>
@@ -366,7 +366,10 @@ export function CultivatorStatsPanel({
               )}
             </div>
           ) : null}
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 pt-3 text-sm">
+          <div
+            data-guide="cultivator.allocation"
+            className="mt-2 flex flex-wrap items-center justify-between gap-3 pt-3 text-sm"
+          >
             <span className="text-ink-secondary" aria-live="polite">
               {editing ? '剩余' : '可分配'}{' '}
               <span className="font-mono">

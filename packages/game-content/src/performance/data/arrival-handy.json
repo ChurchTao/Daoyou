@@ -1,29 +1,56 @@
 {
   "id": "arrival-handy",
-  "title": "炉火",
-  "requires": [],
-  "cast": {},
+  "title": "自己铸件兵器",
+  "requires": [
+    "name",
+    "forge_teacher"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "teacher": {
+      "name": "{forge_teacher}"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "器炉边的石台散着青石碎屑，一张旧图纸压在镇纸下。"
+      "alt": "宗门器坊里，前辈把入门图纸铺在器炉旁。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 器炉",
-      "text": "炉火"
+      "kicker": "宗门 · 器坊",
+      "text": "自己铸件兵器"
     },
     {
       "type": "narration",
-      "text": "推开石门，器炉冷着，炉沿却留着旧日的火痕。石台上散着青石碎屑，墙上几处熏黑的印子高低不一。"
+      "text": "离开丹房，你转到器坊。这里比丹房热闹，炉前的前辈放下手里的工具，问你带过兵器没有。"
     },
     {
-      "type": "narration",
-      "text": "你拿起图纸，纸角已卷，却还能看出一件兵器的轮廓。它不华美，握处与器身的尺寸都写得实在，像是留给每天要走山路的人。"
+      "type": "line",
+      "speaker": "player",
+      "text": "我正想备一件。可我连器炉怎么开都不知道。"
     },
     {
-      "type": "narration",
-      "text": "青溪坡的草声忽然又在耳边响起。你把图纸压平，伸手拣起一块青石，石粉沾了满指。"
+      "type": "line",
+      "speaker": "teacher",
+      "text": "那就从入门图纸学起。图纸、青石和这次开炉用的灵石都备好了，先看看能做成什么，再选一个适合自己的器形。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "好，我自己试。用料和尺寸还得劳你帮我看一眼。"
+    },
+    {
+      "type": "line",
+      "speaker": "teacher",
+      "text": "开炉前一起核对。先把第一件做稳当，花样以后再学。"
+    },
+    {
+      "type": "line",
+      "speaker": "teacher",
+      "text": "铸成后记得去储物袋穿戴。放在袋里和带在身上，是两回事。"
     },
     {
       "type": "end",

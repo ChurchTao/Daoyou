@@ -45,6 +45,8 @@ import type { z } from 'zod';
 import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
 import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 import { textFilter } from '@server/social/application/textFilter.js';
 
 import { assertBeastIdle, BeastError } from '@server/combat/application/BeastMutationGuard.js';
@@ -182,9 +184,9 @@ export async function claimStarterBeast(
 ) {
   if (!BEAST_STARTER_SPECIES.some((s) => s.id === speciesId))
     throw new BeastError('该物种不可作为初始伙伴领取');
-  return mutate(cultivatorId, async (tx) => {
+  const claimed = await mutate(cultivatorId, async (tx) => {
     const roster = await readBeastRoster(cultivatorId, tx);
-    if (roster.starterClaimed) return roster;
+    if (roster.starterClaimed) return { roster, state: null };
     if (roster.beasts.length >= BEAST_CAPACITY)
       throw new BeastError('灵兽持有已满');
     const beast = generateStarterBeast(
@@ -217,8 +219,19 @@ export async function claimStarterBeast(
         target: cultivatorBeastLineups.cultivatorId,
         set: { lineup, starterClaimedAt: new Date() },
       });
-    return readBeastRoster(cultivatorId, tx);
+    const story = await StoryService.reconcile(cultivatorId, tx);
+    const state = story
+      ? await new ResourceEventCommitter().commit(tx, {
+          actor: { cultivatorId },
+          source: 'story-starter-beast',
+          scopeDefaults: { cultivatorId },
+          changes: story.changes,
+        })
+      : null;
+    return { roster: await readBeastRoster(cultivatorId, tx), state };
   });
+  if (claimed.state) publishResourceEvents(claimed.state.changes);
+  return claimed.roster;
 }
 
 export async function updateBeastLineup(

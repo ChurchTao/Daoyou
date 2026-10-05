@@ -18,11 +18,8 @@ import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectBenefitMetric } from '@app/lib/sect/sectPresentation';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useNavigate, useSearchParams } from 'react-router';
-import {
-  SectPageLoading,
-  SectPermissionBoundary,
-  SectScene,
-} from '../components/SectScene';
+import { SectCraftBoundary } from '../components/SectCraftBoundary';
+import { SectPageLoading, SectScene } from '../components/SectScene';
 
 const registry = new SectNpcConversationRegistry([
   { key: 'sect.alchemy.craft', renderer: SectFacilityWorkspaceConversation },
@@ -30,16 +27,13 @@ const registry = new SectNpcConversationRegistry([
 
 export default function SectAlchemyPage() {
   return (
-    <SectPermissionBoundary
-      permission="sect.facility.alchemy.use"
-      sceneKey="alchemy"
-    >
-      <SectAlchemyBody />
-    </SectPermissionBoundary>
+    <SectCraftBoundary sceneKey="alchemy">
+      {(classroom) => <SectAlchemyBody classroom={classroom} />}
+    </SectCraftBoundary>
   );
 }
 
-function SectAlchemyBody() {
+function SectAlchemyBody({ classroom }: { classroom: boolean }) {
   const context = useSectContextQuery();
   const infrastructure = useSectInfrastructureQuery();
   const presentation = getSectPresentationForContext(context.data);
@@ -49,10 +43,12 @@ function SectAlchemyBody() {
     return <SectPageLoading sceneKey="alchemy" />;
   const effect = resolveSectBenefits(context.data, infrastructure.data)
     .facilityEffects.alchemy;
-  const level = getSectBenefitMetric(effect, 'level', 1);
-  const discountPercent = getSectBenefitMetric(effect, 'discount') * 100;
+  const level = classroom ? 1 : getSectBenefitMetric(effect, 'level', 1);
+  const discountPercent = classroom
+    ? 0
+    : getSectBenefitMetric(effect, 'discount') * 100;
   const scene = presentation.scenes.alchemy;
-  if (searchParams.get('workspace') === 'craft')
+  if (classroom || searchParams.get('workspace') === 'craft')
     return (
       <>
         <title>{formatDocumentTitle(scene.title)}</title>
@@ -70,12 +66,16 @@ function SectAlchemyBody() {
             <FurnaceWorkspace
               onBack={() =>
                 navigate(
-                  createSectRoomNpcHref('/game/sect/alchemy', 'furnace'),
+                  classroom
+                    ? '/game/story'
+                    : createSectRoomNpcHref('/game/sect/alchemy', 'furnace'),
                   { replace: true },
                 )
               }
               onReturn={() =>
-                navigate('/game/sect/alchemy', { replace: true })
+                navigate(classroom ? '/game/story' : '/game/sect/alchemy', {
+                  replace: true,
+                })
               }
             />
           </AlchemyCraftSessionProvider>

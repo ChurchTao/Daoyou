@@ -10,6 +10,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useStory } from '@app/lib/story/useStory';
 import type { BeastManagementView } from '@daoyou/contracts/beasts';
 import {
   BEAST_STARTER_SPECIES,
@@ -28,6 +29,7 @@ const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
   const [searchParams] = useSearchParams();
   const [view, setView] = useState<BeastManagementView>();
+  const story = useStory();
   const { pushToast } = useInkUI();
   const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<'all' | 'team'>('all');
@@ -109,6 +111,7 @@ export default function BeastsPage() {
                       : '灵兽已放生',
           tone: 'success',
         });
+        if (path === 'claim') void story.reload();
         return true;
       }
     } catch (e) {
@@ -184,7 +187,7 @@ export default function BeastsPage() {
       ) : (
         <>
           <div
-            data-guide="beast.bag"
+            data-guide={view.starterClaimed ? 'beast.starter' : 'beast.bag'}
             className="text-ink-secondary flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs"
           >
             <span>
@@ -203,7 +206,10 @@ export default function BeastsPage() {
             </span>
           </div>
           {!view.starterClaimed ? (
-            <div className="border-ink/15 space-y-3 border-b pb-4">
+            <div
+              data-guide="beast.starter"
+              className="border-ink/15 space-y-3 border-b pb-4"
+            >
               <p className="text-ink-secondary text-sm">
                 选一位灵兽伙伴，与它一同踏上修行路。
               </p>

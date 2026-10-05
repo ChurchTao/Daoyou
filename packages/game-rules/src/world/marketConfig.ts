@@ -169,6 +169,16 @@ export const REGION_PROFILES: Record<RegionProfileKey, RegionProfile> = {
     signatureTags: ['传承灵印', '归元灵露', '灵兽商盟'],
     signatureRatio: 0,
   },
+  equipment: {
+    typeWeights: {},
+    priceModifier: { min: 1, max: 1 },
+    layerOverrides: {
+      common: { count: 14 },
+      treasure: { count: 14 },
+    },
+    signatureTags: ['基础道装', '炼气', '筑基'],
+    signatureRatio: 0,
+  },
   default: {
     typeWeights: {},
     priceModifier: { min: 0.85, max: 1.25 },
@@ -201,6 +211,10 @@ const REGION_MARKET_FLAVOR: Record<
   beast: {
     title: '御灵集',
     description: '驭兽师与灵印匠汇聚于此，传承灵印和归元灵露按批流通。',
+  },
+  equipment: {
+    title: '百器集',
+    description: '炼器师摆出炼气境界的成品道装，无需备料，可直接选购。',
   },
   default: {
     title: '云游坊市',
@@ -350,9 +364,11 @@ export function getMarketNodeSwitchOptions(): MarketNodeSwitchOption[] {
       signatureTags,
       dominantMaterialTypes: getDominantMarketMaterialTypes(node.id),
       summary:
-        signatureTags.length > 0
-          ? `${node.region}商路，${signatureTags.slice(0, 2).join('、')}走俏。`
-          : `${node.region}商路，货源混杂。`,
+        node.market_config?.region_profile === 'equipment'
+          ? '专售炼气与筑基成装，无需图纸与铸造材料。'
+          : signatureTags.length > 0
+            ? `${node.region}商路，${signatureTags.slice(0, 2).join('、')}走俏。`
+            : `${node.region}商路，货源混杂。`,
     };
   });
 }
@@ -444,6 +460,9 @@ export function getRegionFlavor(nodeId: string, layer: MarketLayer) {
   };
   return {
     title: `${baseFlavor.title}·${layerSuffix[layer]}`,
-    description: baseFlavor.description,
+    description:
+      profile === 'equipment' && layer === 'treasure'
+        ? '珍宝阁专售筑基境界的成品道装，可查看属性后挑选合用之物。'
+        : baseFlavor.description,
   };
 }

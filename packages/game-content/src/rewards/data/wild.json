@@ -1,9 +1,9 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 2,
-  "contentRevision": 14,
+  "contentRevision": 16,
   "poolId": "wild-inheritance",
-  "poolVersion": 15,
+  "poolVersion": 17,
   "groups": [
     {
       "id": "books",

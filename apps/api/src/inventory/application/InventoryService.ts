@@ -1,4 +1,5 @@
 import { recordJournalItems } from '@server/player/application/JournalSettlement.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 import type {
   InventoryAction,
   InventoryQuerySchema,
@@ -906,6 +907,7 @@ export async function mutateInventory(owner: string, input: InventoryAction, dat
                   ?.message ?? '装配无效',
               );
             await saveInventoryPlan(owner, before, next, tx);
+            const story = await StoryService.reconcile(owner, tx);
             state = await new ResourceEventCommitter().commit(tx, {
               actor: { userId: character.userId, cultivatorId: owner },
               source: 'inventory-equipment',
@@ -916,6 +918,7 @@ export async function mutateInventory(owner: string, input: InventoryAction, dat
                   operation: 'invalidate',
                   eventType: 'combat_v6.equipment.changed',
                 },
+                ...(story?.changes ?? []),
               ],
             });
           }

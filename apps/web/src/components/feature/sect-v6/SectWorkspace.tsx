@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
 import { MeridianEditor } from './MeridianEditor';
 import { MethodsWorkbench } from './MethodsWorkbench';
+import { SectPathChoice } from './SectPathChoice';
 
 const endpoint = '/api/combat-v6/sect';
 export type SectWorkspaceMode = 'methods' | 'paths' | 'skills';
@@ -101,21 +102,6 @@ export function SectWorkspace({
       ) : !view.progress ? (
         <>
           <p>{view.blockedReason}</p>
-          {view.build.paths.map((path) => (
-            <InkButton
-              key={path.id}
-              pending={pending}
-              disabled={view.blockedReason !== '请先选择流派，启用宗门传承'}
-              onClick={() =>
-                void request('/api/combat-v6/sect/path', {
-                  activePathId: path.id,
-                  expectedRevision: view.build.revision,
-                })
-              }
-            >
-              启用{path.name}
-            </InkButton>
-          ))}
           <InkButton disabled={pending} onClick={onExit}>
             返回
           </InkButton>
@@ -125,7 +111,7 @@ export function SectWorkspace({
           {view.blockedReason ? (
             <p role="status">{view.blockedReason}</p>
           ) : null}
-          {mode === 'paths' ? (
+          {mode === 'paths' && view.progress.activePathId ? (
             <MeridianEditor
               key={`${view.build.membershipId}:${refresh}`}
               view={view}
@@ -140,13 +126,32 @@ export function SectWorkspace({
                   返回
                 </InkButton>
               </div>
-              {mode === 'methods' ? (
-                <MethodsWorkbench
-                  key={view.build.membershipId}
-                  view={view}
+              {mode === 'paths' ? (
+                <SectPathChoice
+                  paths={view.build.paths}
                   pending={pending}
-                  act={act}
+                  disabled={!!view.blockedReason}
+                  onChoose={(activePathId) =>
+                    void request('/api/combat-v6/sect/path', {
+                      activePathId,
+                      expectedRevision: view.build.revision,
+                    })
+                  }
                 />
+              ) : mode === 'methods' ? (
+                <>
+                  {!view.progress.activePathId ? (
+                    <p className="text-ink-secondary mt-3 text-sm leading-7">
+                      心法可先研习，流派决定后续经脉与战斗特点。
+                    </p>
+                  ) : null}
+                  <MethodsWorkbench
+                    key={view.build.membershipId}
+                    view={view}
+                    pending={pending}
+                    act={act}
+                  />
+                </>
               ) : (
                 <Skills view={view} />
               )}

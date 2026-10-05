@@ -18,6 +18,7 @@ import {
   useSectCombatState,
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
+import { useStory } from '@app/lib/story/useStory';
 import type { WildEncounterView } from '@daoyou/game-domain/wild';
 import type { WildRegionView, WildSessionView } from '@daoyou/contracts/combat/wild';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
@@ -67,6 +68,7 @@ function WildRegion({ nodeId }: { nodeId: string }) {
   const build = useSectCombatState();
   const identity = useCultivatorIdentity();
   const player = usePlayerSession();
+  const story = useStory(nodeId === 'SAT_TN_08');
   const qi = useQiState({
     cultivatorId: player.data?.activeCultivator?.id ?? '',
   });
@@ -325,6 +327,11 @@ function WildRegion({ nodeId }: { nodeId: string }) {
         <CombatV6Battle
           key={session.sessionId}
           title={region?.name ?? '野外探索'}
+          tutorial={
+            nodeId === 'SAT_TN_08' &&
+            story.story?.chapterId === 'arrival' &&
+            story.story.beatId === 'seek'
+          }
           session={session}
           pending={pending}
           shown={combat.shown}

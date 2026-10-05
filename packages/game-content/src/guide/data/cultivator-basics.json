@@ -1,0 +1,24 @@
+{
+  "id": "cultivator-basics",
+  "title": "认识道身",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "cultivator.identity",
+      "text": "这里记着你的名字、境界和宗门归属。未入宗时显示散修，拜入山门后会显示所属宗门与弟子身份。"
+    },
+    {
+      "type": "look",
+      "anchor": "cultivator.vitals",
+      "text": "出门前先看气血、法力和当前状态。受伤或法力不足时，回洞府休养，也可以按丹药的实际用途服用。"
+    },
+    {
+      "type": "look",
+      "anchor": "cultivator.stats",
+      "text": "这里能查看攻防和六维根基。先认识自己的本事，入宗后再按所学流派分配属性点。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

@@ -1,9 +1,65 @@
-import { expect, it } from 'vitest';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import { expect, it } from 'vitest';
 import { generateCapturedBeast, generateStarterBeast } from './generator.js';
 import { canDeployBeast, projectBeastRoster } from './projection.js';
 import { CANDIDATE_SKILL_CHANCE, rollBeastTraits } from './trait-generator.js';
 const id = '00000000-0000-4000-8000-000000000001';
+
+it.each([
+  ['化神', 1240, 1780],
+  ['炼虚', 1275, 1810],
+  ['合体', 1310, 1840],
+  ['大乘', 1345, 1870],
+  ['渡劫', 1380, 1900],
+] as const)(
+  '%s 普通出生范围遵守收紧后的成长与攻资上沿',
+  (realm, growth, attack) => {
+    const species = BEAST_SPECIES.filter((s) => s.realm === realm);
+    expect(Math.max(...species.map((s) => s.growthMilli.max))).toBe(growth);
+    expect(Math.max(...species.map((s) => s.aptitudes.attack.max))).toBe(
+      attack,
+    );
+  },
+);
+
+it('减少必带物种，同时保留六目灵猿和幽冥虎的完整出生表', () => {
+  const find = (name: string) => BEAST_SPECIES.find((s) => s.name === name)!;
+  expect(find('六目灵猿').birthSkills).toEqual({
+    core: ['beast.advanced-perception'],
+    candidates: [
+      'beast.counter',
+      'beast.strength',
+      'beast.parry',
+      'beast.agility',
+    ],
+  });
+  expect(find('幽冥虎').birthSkills).toEqual({
+    core: ['beast.advanced-exorcism', 'beast.spirit-flame'],
+    candidates: ['beast.strength', 'beast.perception'],
+  });
+  expect(BEAST_SPECIES.filter((s) => !s.birthSkills.core.length)).toHaveLength(
+    16,
+  );
+  expect(find('青鸾').birthSkills.core).toEqual([]);
+  expect(find('麒麟').birthSkills.core).toEqual([]);
+});
+
+it('变异沿用普通抽取值加成，不受普通出生上沿截断', () => {
+  for (const [name, key, expected] of [
+    ['麒麟', 'growth', 1.449],
+    ['谛听', 'attack', 1995],
+  ] as const) {
+    const species = structuredClone(
+      BEAST_SPECIES.find((s) => s.name === name)!,
+    );
+    species.growthMilli.min = species.growthMilli.max;
+    for (const range of Object.values(species.aptitudes)) range.min = range.max;
+    const traits = rollBeastTraits(species, 42, true);
+    expect(key === 'growth' ? traits.growth : traits.aptitudes.attack).toBe(
+      expected,
+    );
+  }
+});
 
 it.each([
   ['combat.wild.species.mimi', 5],

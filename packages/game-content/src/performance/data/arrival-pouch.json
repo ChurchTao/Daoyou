@@ -1,29 +1,61 @@
 {
   "id": "arrival-pouch",
-  "title": "袋口",
-  "requires": [],
-  "cast": {},
+  "title": "下山前的准备",
+  "requires": [
+    "name",
+    "instructor"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "石室的木钉上挂着一只小袋，绳结磨得发亮。"
+      "alt": "演武场边，教习留意着新弟子的兵器和随身行装。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 归来",
-      "text": "袋口"
+      "kicker": "宗门 · 演武场",
+      "text": "下山前的准备"
     },
     {
       "type": "narration",
-      "text": "脱下沾泥的外衣时，你碰到木钉上的小袋。它一直挂在那里，昨夜只当是装药草的东西，此刻再看，袋口的绳结比寻常布袋复杂。"
+      "text": "你带上兵器来到演武场。教习看了看你的行装，招手让你过来。"
     },
     {
-      "type": "narration",
-      "text": "玉简里还留着一幅细图：袋中画着灵兽，袋外画着并肩行走的人。字迹很小，仍看得出前人曾认真写过“灵兽袋”三个字。"
+      "type": "line",
+      "speaker": "player",
+      "text": "药和兵器都备过了。我是不是可以出去试试了？"
     },
     {
-      "type": "narration",
-      "text": "坡上那些生灵未必都肯靠近人。但若有一天真能带一只同行，这袋子大约不是白白留在这里的。"
+      "type": "line",
+      "speaker": "instructor",
+      "text": "先把怎么练定下来。本宗有两条修行流派，到悟道处看看各自的本事，选一条先学。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "根基要照着所学功法练。还拿不准的，练过几回再定。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我看师兄们都带着灵兽。我也能找一个伙伴吗？"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "能。门里给新弟子准备了伙伴，你去挑一只投缘的。先摸清它的脾气和本事，准备好了再带它下山。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "遇事互相照应，别只顾自己往前冲。"
     },
     {
       "type": "end",

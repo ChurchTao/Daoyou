@@ -2,7 +2,7 @@ import type { BattleContext } from './context.js';
 import { FailReason, SkillTag, StatusFlag, failDetail } from './enums.js';
 import { evalExpr } from './expr.js';
 import { atLeast } from './math.js';
-import { skillOf } from './skills.js';
+import { invokesAttackSkills, isActiveAttackSkill, skillOf } from './skills.js';
 import { commandBlockReason, hasBlock } from './status.js';
 import type { SkillDef, Unit } from './types.js';
 import { combatModifiers } from './modifiers.js';
@@ -44,6 +44,10 @@ export function checkSkillRequirements(
   const restriction = commandBlockReason(ctx, unit, { type: "skill", skillId: skill.id, targets: targets.map(t => t.id) });
   if (restriction) reasons.push(restriction);
   if (skill.requirement !== undefined && !evalExpr(skill.requirement, env)) reasons.push('skill-condition');
+  if (invokesAttackSkills(skill) && !unit.skills.some(id => {
+    const known = skillOf(ctx.skills, unit, id);
+    return known && isActiveAttackSkill(known);
+  })) reasons.push('skill-condition');
 
   if (hasBlock(ctx, unit, StatusFlag.BlocksAction))
     reasons.push('blocks-action');

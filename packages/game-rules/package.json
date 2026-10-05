@@ -66,6 +66,7 @@
     "./manuals/presentation": "./dist/manuals/presentation.js",
     "./manuals/projection": "./dist/public/manuals/projection.js",
     "./market/beast-stock": "./dist/market/beast-stock.js",
+    "./market/equipment-stock": "./dist/market/equipment-stock.js",
     "./materials/generator": "./dist/materials/generator.js",
     "./performance/interpreter": "./dist/performance/interpreter.js",
     "./presentation/numbers": "./dist/presentation/numbers.js",

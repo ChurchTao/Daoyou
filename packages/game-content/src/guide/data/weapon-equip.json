@@ -1,0 +1,19 @@
+{
+  "id": "weapon-equip",
+  "title": "装备兵器",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "inventory.equipment",
+      "text": "兵器穿戴后会出现在法兵槽位，战斗才能用上它的属性。"
+    },
+    {
+      "type": "look",
+      "anchor": "inventory.items",
+      "text": "教学结束后，点开刚铸成的兵器，选择“装备”。成品若放进了洞府储藏室，先取回随身物品。装备好后才能继续准备出门。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

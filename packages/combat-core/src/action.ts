@@ -35,10 +35,10 @@ import { evalExpr } from './expr.js';
 import { atLeast } from './math.js';
 import { standingUnits } from './unit-query.js';
 import { checkSkillRequirements } from './requirements.js';
-import { skillOf } from './skills.js';
+import { invokesAttackSkills, isActiveAttackSkill, skillOf } from './skills.js';
 import { commandBlockReason, commandPolicyOf, hasBlock, hasStatusFlag } from './status.js';
 import { removeStatus } from './status-removal.js';
-import { resolveSkillTargets } from './targeting.js';
+import { poolFor, resolveSkillTargets } from './targeting.js';
 import type { Command, SkillDef, Unit } from './types.js';
 import {
   canCollectCommand,
@@ -390,6 +390,8 @@ function resolveSummon(ctx: BattleContext, unit: Unit, petId: string): void {
     }
   }
   pet.flags.benched = false;
+  pet.entryRound = ctx.state.round;
+  pet.spellActionsSinceEntry = 0;
   applyEntryStatuses(ctx, pet);
   ctx.emit({ type: EventType.PetSummoned, unitId: unit.id, petId: pet.id });
 }
@@ -509,12 +511,79 @@ function resolveSkillCommand(
   );
 }
 
+type ResolvedSkillTargets = { targets: Unit[]; normalTargetIds: string[] };
+
 function resolveSkill(
   ctx: BattleContext,
   unit: Unit,
   skill: SkillDef,
   targetIds: string[],
   forcedPrimaryId?: string,
+  resolved?: ResolvedSkillTargets,
+): void {
+  const previousAction = ctx.currentAction;
+  ctx.currentAction = undefined;
+  try {
+    resolveSkillAction(ctx, unit, skill, targetIds, forcedPrimaryId, resolved);
+  } finally {
+    ctx.currentAction = previousAction;
+  }
+}
+
+/** Each invoked skill keeps the ordinary resolution pipeline and an independent action scope. */
+export function invokeAttackSkills(ctx: BattleContext, unit: Unit, parent: SkillDef, targets: Unit[]): void {
+  if (ctx.invokingAttackSkills) return;
+  const skills = [...new Set(unit.skills)].flatMap(id => {
+    const skill = skillOf(ctx.skills, unit, id);
+    return skill && skill.id !== parent.id && isActiveAttackSkill(skill) ? [skill] : [];
+  });
+  for (let i = skills.length - 1; i > 0; i--) {
+    const j = Math.floor(ctx.rng.next() * (i + 1));
+    [skills[i], skills[j]] = [skills[j]!, skills[i]!];
+  }
+  let primaryId = targets[0]?.id;
+  ctx.invokingAttackSkills = true;
+  try {
+    for (const skill of skills) {
+      if (!isStanding(unit) || ctx.state.result) break;
+      const pool = poolFor(ctx, unit, skill);
+      const primary = pool.find(target => target.id === primaryId) ?? pool[0];
+      if (!primary) break;
+      if (primaryId && primary.id !== primaryId)
+        ctx.emit({ type: EventType.Retarget, unitId: unit.id, from: primaryId, to: primary.id });
+      primaryId = primary.id;
+      const normalTargetIds: string[] = [];
+      const preview = { ...ctx, currentAction: undefined };
+      const resolved = resolveSkillTargets(preview, unit, skill, [primary.id], undefined, normalTargetIds);
+      const check = checkSkillRequirements(preview, unit, skill, resolved);
+      if (check.reasons.length) {
+        if (check.reasons.every(reason => reason === 'cooldown' || reason === 'skill-condition')) continue;
+        // Failed child eligibility stops the sequence without converting it to a normal attack.
+        const previousAction = ctx.currentAction;
+        ctx.currentAction = undefined;
+        try {
+          ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: check.reasons[0]! });
+        } finally {
+          ctx.currentAction = previousAction;
+        }
+        break;
+      }
+      const uses = unit.skillUses?.[skill.id] ?? 0;
+      resolveSkill(ctx, unit, skill, [primary.id], undefined, { targets: resolved, normalTargetIds });
+      if ((unit.skillUses?.[skill.id] ?? 0) === uses) break;
+    }
+  } finally {
+    ctx.invokingAttackSkills = false;
+  }
+}
+
+function resolveSkillAction(
+  ctx: BattleContext,
+  unit: Unit,
+  skill: SkillDef,
+  targetIds: string[],
+  forcedPrimaryId?: string,
+  resolved?: ResolvedSkillTargets,
 ): void {
   if (!unit.skills.includes(skill.id) && !unit.passives.includes(skill.id)) {
     ctx.emit({
@@ -525,8 +594,8 @@ function resolveSkill(
     return;
   }
 
-  const normalTargetIds: string[] = [];
-  const targets = resolveSkillTargets(
+  const normalTargetIds: string[] = resolved?.normalTargetIds ?? [];
+  const targets = resolved?.targets ?? resolveSkillTargets(
     ctx,
     unit,
     skill,
@@ -694,6 +763,20 @@ function resolveSkill(
     });
   }
 
+  // Lock before the effects: one group spell/repeat shares the same decision,
+  // while invoked child skills each enter their own paid action scope.
+  if (unit.kind === UnitKind.Pet || unit.combatFacts?.isBeast === 1) {
+    ctx.currentAction.allyPetSkillUnused = !ctx.state.units.some(ally =>
+      ally.side === unit.side && (ally.kind === UnitKind.Pet || ally.combatFacts?.isBeast === 1) &&
+      ally.skillsUsedThisRound?.round === ctx.state.round &&
+      ally.skillsUsedThisRound.skillIds.includes(skill.id));
+    if (unit.skillsUsedThisRound?.round !== ctx.state.round)
+      unit.skillsUsedThisRound = { round: ctx.state.round, skillIds: [] };
+    if (!unit.skillsUsedThisRound.skillIds.includes(skill.id))
+      unit.skillsUsedThisRound.skillIds.push(skill.id);
+    env.allyPetSkillUnused = ctx.currentAction.allyPetSkillUnused;
+  }
+
   if (skill.capture) {
     const target = targets[0]!;
     const chance = Math.max(
@@ -800,6 +883,8 @@ function resolveSkill(
     }
   }
   consumeDamagingActionStatuses(ctx, unit);
+  if (!ctx.currentAction.failed && skill.tags.includes(SkillTag.Spell) && !invokesAttackSkills(skill))
+    unit.spellActionsSinceEntry = (unit.spellActionsSinceEntry ?? 0) + 1;
   ctx.hooks.emit(HookName.AfterAction, {
     source: unit,
     target: targets[0],

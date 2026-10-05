@@ -3,6 +3,7 @@
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 
 import type { BattleState, CombatV6CommandOptions, SkillDef, StatusDef } from '@daoyou/combat-core/types';
+import { isActiveAttackSkill } from '@daoyou/combat-core';
 
 import { observeAutoBattle } from './auto-observation.js';
 
@@ -120,7 +121,7 @@ export function automaticCommands(
       candidates,
     });
     const selected = unit.kind === 'pet'
-      ? chooseBeastCandidate(candidates, skills, unit.skillOverrides)
+      ? chooseBeastCandidate(candidates, skills, unit.skillOverrides, options.statusDefs ?? [])
       : chooseStrategyCandidate(observation, unit.id, candidates, strategies?.[unit.id]);
     if (selected) intents.push(...selected.intents);
     return {
@@ -137,15 +138,22 @@ function chooseBeastCandidate(
   candidates: AutoCandidate[],
   skills: readonly SkillDef[],
   overrides: Record<string, SkillDef>,
+  statusDefs: readonly StatusDef[],
 ): AutoCandidate | undefined {
   const attack = candidates.find((entry) => entry.command.type === 'attack');
-  const spell = candidates.find((entry) => {
+  const skillAction = candidates.find((entry) => {
     if (entry.command.type !== 'skill') return false;
     const skillId = entry.command.skillId;
     const skill = overrides[skillId] ?? skills.find((item) => item.id === skillId);
-    return skill?.effects.some((effect) => effect.type === 'spellHit');
+    return skill && (isActiveAttackSkill(skill) || skill.effects.some(effect =>
+      effect.type === 'invokeAttackSkills' ||
+      (effect.type === 'applyStatus' && statusDefs.some(status =>
+        status.id === effect.statusId &&
+        ((status.damageTakenSpell ?? 1) < 1 || (status.damageTakenPhysical ?? 1) < 1),
+      )),
+    ));
   });
-  // A pet's active offensive spell must outperform its physical attack after
-  // target, hit chance and resource cost; defensive arts do not mark it a caster.
-  return spell && (!attack || spell.score > attack.score) ? spell : attack ?? candidates[0];
+  // Offense and protective arts compete with ordinary attacks after target,
+  // current protection, health and resource cost have been valued.
+  return skillAction && (!attack || skillAction.score > attack.score) ? skillAction : attack ?? candidates[0];
 }

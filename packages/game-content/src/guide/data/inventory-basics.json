@@ -1,0 +1,24 @@
+{
+  "id": "inventory-basics",
+  "title": "清点行囊",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "inventory.bag",
+      "text": "随身物品放在储物袋里，洞府储藏室用于存放暂时不用的东西。可以在这里切换查看。"
+    },
+    {
+      "type": "look",
+      "anchor": "inventory.items",
+      "text": "点击物品查看用途与数量。材料和图纸留待炼丹、炼器使用；灵石用于支付花费，天地灵气也是修行与生产所需的资源，消耗会在操作前列明。"
+    },
+    {
+      "type": "look",
+      "anchor": "inventory.equipment",
+      "text": "这里展示已经穿戴的道装。兵器放在袋里还不算装备，等铸好第一件兵器，再回来把它穿戴上。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

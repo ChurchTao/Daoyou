@@ -56,6 +56,8 @@ Nest 使用 `nest start --no-shell --env-file ...` 和默认 tsc 编译器。根
 
 当前HTTP入口已迁入Nest，特殊数据与生产验收仍有未完成项。长流程验证需要关闭watch时，先执行`pnpm run build:server`，再执行`APP_ENV=local NODE_ENV=development node --env-file=env/local.env apps/api/dist/main.js`。详情见 [迁移进度](nestjs-migration.md)。
 
+workspace 使用 pnpm 原生的 `resolvePeersFromWorkspaceRoot: false` 和 `dedupePeerDependents: false`，禁止应用借用根开发依赖或合并不同 peer 环境下的包实例，避免 Better Auth 的可选 peer 将 `vitest`、`drizzle-kit` 带入 `deploy --prod`。API／Web 各自声明插件必需的运行 peer，根开发工具仍供测试和迁移使用；不修改第三方包元数据。调整 peer 配置时，使用 `pnpm install --lockfile-only --no-prefer-frozen-lockfile` 重新解析并核对锁文件版本，再执行 frozen install、完整构建及部署目录检查。运行镜像保留 Node 24／Debian bookworm 文件系统及非 root 用户，清理 npm、Corepack、Yarn 后重新复制基础层；部署目录仅删除本项目 API 与六个库的 source map、声明文件，保留运行 JavaScript、JSON 和提示词。宿主构建产物仍保留调试与类型文件。
+
 Nest收到SIGTERM／SIGINT后拒绝新请求，停止定时发布并排空HTTP；30秒后关闭剩余HTTP连接，触发流式请求取消，继续等待处理器结束。随后停止消息消费者／发布任务、关闭数据库与Redis。启动期间收到信号会先等待初始化结束，再统一清理。整个停机过程超过60秒则以失败状态强制退出；生产Compose设置75秒停机宽限期。请求取消不能撤销已经提交的事务，恢复仍依赖现有幂等与outbox机制。
 
 ## 选择环境

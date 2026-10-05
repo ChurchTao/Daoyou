@@ -84,6 +84,7 @@ export type SectPathDefV6 = {
   unitTags?: string[]
   id: string
   name: string
+  description: string
   requiresConnectedNodes?: boolean
   panel?: CombatV6PanelContribution[]
   foundationPassives?: SectSkillDefV6[]

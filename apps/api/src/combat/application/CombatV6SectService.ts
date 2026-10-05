@@ -32,12 +32,16 @@ export async function readSectV6(owner: string): Promise<SectV6View> {
       const character = await loadSectCultivatorProgress(owner, tx);
       if (!character) throw new InventoryError('角色不存在');
       const build = await getSectCombatView(owner, tx);
-      const active =
-        build.status === 'active'
+      const progress =
+        build.membershipId && build.sectId
           ? await readActiveSectCombatProgress(owner, tx)
           : null;
       let blockedReason: string | null =
-        build.status === 'active' ? null : '请先选择流派，启用宗门传承';
+        progress
+          ? null
+          : build.membershipId
+            ? '当前宗门尚未开放心法研习'
+            : '请先加入宗门';
       try {
         await assertInventoryIdle(owner);
       } catch (error) {
@@ -46,7 +50,7 @@ export async function readSectV6(owner: string): Promise<SectV6View> {
       }
       return {
         build,
-        progress: active?.sect ?? null,
+        progress: progress?.sect ?? null,
         characterLevel: combatCharacterLevel(character.realm, character.stage),
         resources: {
           spiritStones: character.stones,
@@ -89,6 +93,24 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
           ),
           action,
         );
+        if (action.action === 'train') {
+          await tx
+            .insert(sectCombatStates)
+            .values({ membershipId: build.membershipId })
+            .onConflictDoNothing();
+          await tx
+            .insert(sectMethodProgress)
+            .values(
+              COMBAT_V6_SECT_DEFINITIONS[build.sect.sectId].methods.map(
+                (method) => ({
+                  membershipId: build.membershipId,
+                  methodId: method.id,
+                  level: build.sect.methods[method.id],
+                }),
+              ),
+            )
+            .onConflictDoNothing();
+        }
         if (
           Object.values(change.cost).some((value) => value > 0) &&
           !(await spendTrainingResources(owner, change.cost, tx))
@@ -99,7 +121,7 @@ export async function mutateSectV6(owner: string, action: SectV6Action) {
           .set({
             revision: build.revision + 1,
             meridianDepth: change.progress.meridianDepth,
-            activePathId: change.progress.activePathId,
+            activePathId: change.progress.activePathId || null,
           })
           .where(
             and(

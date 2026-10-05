@@ -1,13 +1,13 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 2,
-  "contentRevision": 11,
+  "contentRevision": 15,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
       "name": "烛尾狐",
       "realm": "炼气",
-      "icon": "🦊",
+      "icon": "icon:beast-spirit-fox",
       "description": "灰白小狐，尾端长毛聚起灵火时宛如烛芯；夜间常蹲在灵泉旁，将蓬尾绕至身前，以尾尖火光映脸。",
       "carryLevel": 5,
       "starter": true,
@@ -38,15 +38,20 @@
         "max": 1030
       },
       "birthSkills": {
-        "core": ["beast.spirit-flame"],
-        "candidates": ["beast.wisdom", "beast.meditation"]
+        "core": [
+          "beast.spirit-flame"
+        ],
+        "candidates": [
+          "beast.wisdom",
+          "beast.meditation"
+        ]
       }
     },
     {
       "id": "combat.wild.species.rock-boar",
       "name": "钢背猪",
       "realm": "炼气",
-      "icon": "🐗",
+      "icon": "icon:beast-rock-boar",
       "description": "身躯矮壮，肩背高耸，钢灰硬皮自颈后连至臀部；性情暴躁，稍受惊扰便喷鼻冲撞，受击时立即转身顶向来敌。",
       "carryLevel": 5,
       "starter": true,
@@ -77,15 +82,20 @@
         "max": 1060
       },
       "birthSkills": {
-        "core": ["beast.defense"],
-        "candidates": ["beast.counter", "beast.sluggish", "beast.strength"]
+        "core": [],
+        "candidates": [
+          "beast.defense",
+          "beast.counter",
+          "beast.sluggish",
+          "beast.strength"
+        ]
       }
     },
     {
       "id": "combat.wild.species.wind-wolf",
       "name": "精灵狼",
       "realm": "炼气",
-      "icon": "🐺",
+      "icon": "icon:beast-wind-wolf",
       "description": "身形轻瘦，灰银细毛，耳尖与尾缘泛着淡青光泽；警觉时隐去身形，潜伏于幽林，待猎物走近才突然扑出。",
       "carryLevel": 5,
       "starter": true,
@@ -116,8 +126,12 @@
         "max": 1000
       },
       "birthSkills": {
-        "core": ["beast.stealth"],
-        "candidates": ["beast.sneak-attack", "beast.agility"]
+        "core": [],
+        "candidates": [
+          "beast.stealth",
+          "beast.sneak-attack",
+          "beast.agility"
+        ]
       }
     },
     {
@@ -156,7 +170,11 @@
       },
       "birthSkills": {
         "core": [],
-        "candidates": ["beast.perception", "beast.parry", "beast.regeneration"]
+        "candidates": [
+          "beast.perception",
+          "beast.parry",
+          "beast.regeneration"
+        ]
       }
     },
     {
@@ -194,15 +212,20 @@
         "max": 1090
       },
       "birthSkills": {
-        "core": ["beast.wildfire"],
-        "candidates": ["beast.meditation", "beast.spell-fluctuation"]
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.meditation",
+          "beast.spell-fluctuation"
+        ]
       }
     },
     {
       "id": "combat.wild.species.red-tail-scorpion",
       "name": "双尾蝎",
       "realm": "筑基",
-      "icon": "🦂",
+      "icon": "icon:beast-red-tail-scorpion",
       "description": "沙褐甲壳，腹后生着两条暗红毒尾，静伏时交叠于背，受惊后分别扬起；白日藏石缝，夜间循震动捕猎。",
       "carryLevel": 25,
       "starter": false,
@@ -233,15 +256,20 @@
         "max": 1080
       },
       "birthSkills": {
-        "core": ["beast.poison"],
-        "candidates": ["beast.sneak-attack", "beast.defense"]
+        "core": [
+          "beast.poison"
+        ],
+        "candidates": [
+          "beast.sneak-attack",
+          "beast.defense"
+        ]
       }
     },
     {
       "id": "combat.wild.species.stoneback-bear",
       "name": "抱月熊",
       "realm": "筑基",
-      "icon": "🐻",
+      "icon": "icon:beast-stoneback-bear",
       "description": "深褐长毛，胸腹有浅金圆斑，常坐倚老树，前掌拢腹如抱满月；受伤后蜷身长眠，受逼近时骤起反扑。",
       "carryLevel": 25,
       "starter": false,
@@ -360,7 +388,9 @@
         "max": 1130
       },
       "birthSkills": {
-        "core": ["beast.stealth"],
+        "core": [
+          "beast.stealth"
+        ],
         "candidates": [
           "beast.sneak-attack",
           "beast.agility",
@@ -403,7 +433,9 @@
         "max": 1160
       },
       "birthSkills": {
-        "core": ["beast.advanced-defense"],
+        "core": [
+          "beast.advanced-defense"
+        ],
         "candidates": [
           "beast.sluggish",
           "beast.water-attack",
@@ -446,8 +478,11 @@
         "max": 1200
       },
       "birthSkills": {
-        "core": ["beast.advanced-poison", "beast.flood"],
+        "core": [
+          "beast.flood"
+        ],
         "candidates": [
+          "beast.advanced-poison",
           "beast.strength",
           "beast.meditation",
           "beast.spell-resistance"
@@ -489,8 +524,13 @@
         "max": 1185
       },
       "birthSkills": {
-        "core": ["beast.advanced-combo"],
-        "candidates": ["beast.agility", "beast.parry", "beast.critical"]
+        "core": [],
+        "candidates": [
+          "beast.advanced-combo",
+          "beast.agility",
+          "beast.parry",
+          "beast.critical"
+        ]
       }
     },
     {
@@ -528,8 +568,14 @@
         "max": 1205
       },
       "birthSkills": {
-        "core": ["beast.advanced-counter"],
-        "candidates": ["beast.parry", "beast.strength", "beast.perception"]
+        "core": [],
+        "candidates": [
+          "beast.advanced-counter",
+          "beast.parry",
+          "beast.strength",
+          "beast.perception",
+          "beast.barrier-breaker"
+        ]
       }
     },
     {
@@ -567,7 +613,9 @@
         "max": 1205
       },
       "birthSkills": {
-        "core": ["beast.wildfire"],
+        "core": [
+          "beast.wildfire"
+        ],
         "candidates": [
           "beast.wisdom",
           "beast.meditation",
@@ -586,33 +634,39 @@
       "starter": false,
       "aptitudes": {
         "attack": {
-          "min": 1250,
-          "max": 1600
+          "min": 1180,
+          "max": 1510
         },
         "defense": {
-          "min": 1080,
-          "max": 1390
+          "min": 1000,
+          "max": 1300
         },
         "health": {
-          "min": 3900,
-          "max": 5100
+          "min": 3650,
+          "max": 4900
         },
         "mana": {
-          "min": 2700,
-          "max": 3400
+          "min": 2620,
+          "max": 3250
         },
         "speed": {
-          "min": 1490,
-          "max": 1800
+          "min": 1430,
+          "max": 1760
         }
       },
       "growthMilli": {
-        "min": 1175,
-        "max": 1250
+        "min": 1155,
+        "max": 1225
       },
       "birthSkills": {
-        "core": ["beast.thunderstorm", "beast.advanced-spell-fluctuation"],
-        "candidates": ["beast.agility", "beast.meditation"]
+        "core": [
+          "beast.thunderstorm"
+        ],
+        "candidates": [
+          "beast.advanced-spell-fluctuation",
+          "beast.agility",
+          "beast.meditation"
+        ]
       }
     },
     {
@@ -625,32 +679,34 @@
       "starter": false,
       "aptitudes": {
         "attack": {
-          "min": 1430,
-          "max": 1770
+          "min": 1370,
+          "max": 1720
         },
         "defense": {
-          "min": 1320,
+          "min": 1300,
           "max": 1640
         },
         "health": {
-          "min": 4500,
-          "max": 5900
+          "min": 4350,
+          "max": 5700
         },
         "mana": {
-          "min": 1800,
-          "max": 2500
+          "min": 1680,
+          "max": 2300
         },
         "speed": {
-          "min": 1120,
-          "max": 1510
+          "min": 1080,
+          "max": 1450
         }
       },
       "growthMilli": {
-        "min": 1185,
-        "max": 1260
+        "min": 1170,
+        "max": 1235
       },
       "birthSkills": {
-        "core": ["beast.advanced-perception"],
+        "core": [
+          "beast.advanced-perception"
+        ],
         "candidates": [
           "beast.counter",
           "beast.strength",
@@ -669,32 +725,34 @@
       "starter": false,
       "aptitudes": {
         "attack": {
-          "min": 650,
-          "max": 950
+          "min": 620,
+          "max": 900
         },
         "defense": {
-          "min": 820,
-          "max": 1120
+          "min": 780,
+          "max": 1050
         },
         "health": {
-          "min": 2600,
-          "max": 3600
+          "min": 2500,
+          "max": 3400
         },
         "mana": {
-          "min": 2850,
-          "max": 3600
+          "min": 2720,
+          "max": 3350
         },
         "speed": {
-          "min": 1050,
-          "max": 1620
+          "min": 1020,
+          "max": 1530
         }
       },
       "growthMilli": {
-        "min": 1200,
-        "max": 1280
+        "min": 1180,
+        "max": 1240
       },
       "birthSkills": {
-        "core": ["beast.ghost"],
+        "core": [
+          "beast.ghost"
+        ],
         "candidates": [
           "beast.meditation",
           "beast.spell-fluctuation",
@@ -714,33 +772,757 @@
       "starter": false,
       "aptitudes": {
         "attack": {
-          "min": 1500,
-          "max": 1810
+          "min": 1470,
+          "max": 1780
         },
         "defense": {
-          "min": 1080,
-          "max": 1400
+          "min": 1050,
+          "max": 1360
         },
         "health": {
-          "min": 4800,
-          "max": 6200
+          "min": 4550,
+          "max": 6000
         },
         "mana": {
-          "min": 2250,
-          "max": 2950
+          "min": 2080,
+          "max": 2770
         },
         "speed": {
-          "min": 900,
-          "max": 1250
+          "min": 880,
+          "max": 1210
         }
       },
       "growthMilli": {
-        "min": 1165,
+        "min": 1150,
+        "max": 1220
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-exorcism",
+          "beast.spirit-flame"
+        ],
+        "candidates": [
+          "beast.strength",
+          "beast.perception"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.mingshe",
+      "name": "鸣蛇",
+      "realm": "炼虚",
+      "icon": "icon:beast-mingshe",
+      "description": "细长蛇躯覆暗赭细鳞，背侧生两对宽薄翼膜；伏在裂渊石壁辨察风流，振翼时发出金石相击般的鸣声。",
+      "carryLevel": 105,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1370,
+          "max": 1740
+        },
+        "defense": {
+          "min": 1100,
+          "max": 1420
+        },
+        "health": {
+          "min": 3480,
+          "max": 4700
+        },
+        "mana": {
+          "min": 1550,
+          "max": 2110
+        },
+        "speed": {
+          "min": 1490,
+          "max": 1800
+        }
+      },
+      "growthMilli": {
+        "min": 1175,
         "max": 1245
       },
       "birthSkills": {
-        "core": ["beast.advanced-exorcism", "beast.spirit-flame"],
-        "candidates": ["beast.strength", "beast.perception"]
+        "core": [],
+        "candidates": [
+          "beast.advanced-agility",
+          "beast.sneak-attack",
+          "beast.perception",
+          "beast.critical",
+          "beast.wind-strike"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.shen-clam",
+      "name": "蜃蚌",
+      "realm": "炼虚",
+      "icon": "icon:beast-shen-clam",
+      "description": "灰白双壳层叠宽展，内侧泛青紫珠光；伏居灵液暗河，缓吐湿雾，受扰收壳后吐出凝练水流。",
+      "carryLevel": 105,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 700,
+          "max": 990
+        },
+        "defense": {
+          "min": 1450,
+          "max": 1720
+        },
+        "health": {
+          "min": 4210,
+          "max": 5630
+        },
+        "mana": {
+          "min": 2790,
+          "max": 3500
+        },
+        "speed": {
+          "min": 420,
+          "max": 630
+        }
+      },
+      "growthMilli": {
+        "min": 1205,
+        "max": 1260
+      },
+      "birthSkills": {
+        "core": [
+          "beast.water-attack"
+        ],
+        "candidates": [
+          "beast.advanced-spell-resistance",
+          "beast.radiant-barrier",
+          "beast.meditation"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.qingluan",
+      "name": "青鸾",
+      "realm": "炼虚",
+      "icon": "icon:beast-qingluan",
+      "description": "青灰羽冠后拢，细颈回弯，长尾垂落的凤鸟旁支；栖居古木山涧，沿林冠往返泉瀑，饮灵泉、啄灵果，部分个体能在重伤中重聚生息。",
+      "carryLevel": 105,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 840,
+          "max": 1120
+        },
+        "defense": {
+          "min": 1000,
+          "max": 1300
+        },
+        "health": {
+          "min": 3300,
+          "max": 4500
+        },
+        "mana": {
+          "min": 2700,
+          "max": 3370
+        },
+        "speed": {
+          "min": 1350,
+          "max": 1720
+        }
+      },
+      "growthMilli": {
+        "min": 1205,
+        "max": 1275
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-divine-revival",
+          "beast.water-attack",
+          "beast.regeneration",
+          "beast.agility"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.xiezhi",
+      "name": "獬豸",
+      "realm": "炼虚",
+      "icon": "icon:beast-xiezhi",
+      "description": "厚毛独角，肩颈披鬃，蹄足坚实；行走裂渊高地，以角根和蹄足辨察岩层震动，遇敌沉肩迎击。",
+      "carryLevel": 105,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1440,
+          "max": 1810
+        },
+        "defense": {
+          "min": 1320,
+          "max": 1640
+        },
+        "health": {
+          "min": 4780,
+          "max": 6250
+        },
+        "mana": {
+          "min": 1600,
+          "max": 2200
+        },
+        "speed": {
+          "min": 850,
+          "max": 1170
+        }
+      },
+      "growthMilli": {
+        "min": 1190,
+        "max": 1255
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-parry",
+          "beast.karmic-retribution",
+          "beast.perception",
+          "beast.reflection",
+          "beast.miracle"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.nine-tailed-fox",
+      "name": "九尾狐",
+      "realm": "合体",
+      "icon": "icon:beast-nine-tailed-fox",
+      "description": "修长白狐，九条长尾自然铺展，细微灵息在尾间流转；夜行古林雾谷，静坐时尾尖仍轻轻游动。",
+      "carryLevel": 125,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 950,
+          "max": 1280
+        },
+        "defense": {
+          "min": 1140,
+          "max": 1470
+        },
+        "health": {
+          "min": 3650,
+          "max": 4900
+        },
+        "mana": {
+          "min": 3020,
+          "max": 3650
+        },
+        "speed": {
+          "min": 1530,
+          "max": 1840
+        }
+      },
+      "growthMilli": {
+        "min": 1230,
+        "max": 1300
+      },
+      "birthSkills": {
+        "core": [
+          "beast.water-attack"
+        ],
+        "candidates": [
+          "beast.advanced-spell-combo",
+          "beast.surprise-spell",
+          "beast.regeneration",
+          "beast.unanticipated"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.huodou",
+      "name": "祸斗",
+      "realm": "合体",
+      "icon": "icon:beast-huodou",
+      "description": "黑色短毛大犬，胸深腰收，颈背隐有焦红细纹；伏在余烬中，以地火灵息滋养自身，吐息带出火星。",
+      "carryLevel": 125,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1400,
+          "max": 1760
+        },
+        "defense": {
+          "min": 1140,
+          "max": 1450
+        },
+        "health": {
+          "min": 4380,
+          "max": 5830
+        },
+        "mana": {
+          "min": 2790,
+          "max": 3500
+        },
+        "speed": {
+          "min": 1120,
+          "max": 1480
+        }
+      },
+      "growthMilli": {
+        "min": 1220,
+        "max": 1285
+      },
+      "birthSkills": {
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.spell-resistance",
+          "beast.meditation",
+          "beast.wisdom",
+          "beast.mind-shatter"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.xuangui",
+      "name": "旋龟",
+      "realm": "合体",
+      "icon": "icon:beast-xuangui",
+      "description": "鸟首龟身，尖喙前探，宽甲后拖长蛇尾；栖居沉礁与古河道，受扰时以喙迎敌，长尾在水中舒展。",
+      "carryLevel": 125,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1020,
+          "max": 1400
+        },
+        "defense": {
+          "min": 1490,
+          "max": 1800
+        },
+        "health": {
+          "min": 5000,
+          "max": 6500
+        },
+        "mana": {
+          "min": 2180,
+          "max": 2880
+        },
+        "speed": {
+          "min": 500,
+          "max": 720
+        }
+      },
+      "growthMilli": {
+        "min": 1255,
+        "max": 1310
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-reflection",
+          "beast.water-attack",
+          "beast.regeneration",
+          "beast.sluggish",
+          "beast.spirit-guard"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.zhuyan",
+      "name": "朱厌",
+      "realm": "合体",
+      "icon": "icon:beast-zhuyan",
+      "description": "白首赤足，肩背高耸，前臂粗壮；好斗而警觉，出没古战场石林，以拳击石、以足踏地宣示领地。",
+      "carryLevel": 125,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1510,
+          "max": 1840
+        },
+        "defense": {
+          "min": 1320,
+          "max": 1640
+        },
+        "health": {
+          "min": 4800,
+          "max": 6250
+        },
+        "mana": {
+          "min": 1370,
+          "max": 1950
+        },
+        "speed": {
+          "min": 1010,
+          "max": 1350
+        }
+      },
+      "growthMilli": {
+        "min": 1225,
+        "max": 1295
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-critical",
+          "beast.parry",
+          "beast.mountain-breaker",
+          "beast.counter",
+          "beast.perception"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.bifang",
+      "name": "毕方",
+      "realm": "大乘",
+      "icon": "icon:beast-bifang",
+      "description": "独足长喙，青羽间布赤纹；静立收翼如挺直长羽，振翅时翼下浮起火光，栖居天关古木与炽热断壁。",
+      "carryLevel": 145,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1050,
+          "max": 1390
+        },
+        "defense": {
+          "min": 1190,
+          "max": 1510
+        },
+        "health": {
+          "min": 3810,
+          "max": 5160
+        },
+        "mana": {
+          "min": 3120,
+          "max": 3800
+        },
+        "speed": {
+          "min": 1530,
+          "max": 1880
+        }
+      },
+      "growthMilli": {
+        "min": 1270,
+        "max": 1335
+      },
+      "birthSkills": {
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.advanced-spell-mastery",
+          "beast.agility"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.baize",
+      "name": "白泽",
+      "realm": "大乘",
+      "icon": "icon:beast-baize",
+      "description": "白毛厚鬃，宽额短吻，双角向后舒展；神态沉静，常驻足辨察陌生灵息，栖居古老灵泉与遗迹周边。",
+      "carryLevel": 145,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1090,
+          "max": 1460
+        },
+        "defense": {
+          "min": 1450,
+          "max": 1780
+        },
+        "health": {
+          "min": 4620,
+          "max": 6040
+        },
+        "mana": {
+          "min": 3010,
+          "max": 3710
+        },
+        "speed": {
+          "min": 980,
+          "max": 1380
+        }
+      },
+      "growthMilli": {
+        "min": 1285,
+        "max": 1345
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-miracle",
+          "beast.water-attack",
+          "beast.wisdom",
+          "beast.parry",
+          "beast.innate-wisdom"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.qiongqi",
+      "name": "穷奇",
+      "realm": "大乘",
+      "icon": "icon:beast-qiongqi",
+      "description": "虎形兽躯，胸肩强壮，背生宽大双翼；伏身折翼，高处扑猎，盘踞天关外侧孤峰与绝壁。",
+      "carryLevel": 145,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1560,
+          "max": 1860
+        },
+        "defense": {
+          "min": 1190,
+          "max": 1540
+        },
+        "health": {
+          "min": 4420,
+          "max": 5790
+        },
+        "mana": {
+          "min": 1660,
+          "max": 2250
+        },
+        "speed": {
+          "min": 1460,
+          "max": 1820
+        }
+      },
+      "growthMilli": {
+        "min": 1250,
+        "max": 1320
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-lifesteal",
+          "beast.critical",
+          "beast.agility",
+          "beast.bloodthirsty-pursuit"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.taotie",
+      "name": "饕餮",
+      "realm": "大乘",
+      "icon": "icon:beast-taotie",
+      "description": "宽首巨口，卷角短颈，四肢粗壮；沉重肉身伏于古战场深处，循残存灵脉不断寻食，张口时颌部轮廓狰狞。",
+      "carryLevel": 145,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1570,
+          "max": 1870
+        },
+        "defense": {
+          "min": 1460,
+          "max": 1850
+        },
+        "health": {
+          "min": 5520,
+          "max": 6750
+        },
+        "mana": {
+          "min": 1300,
+          "max": 1880
+        },
+        "speed": {
+          "min": 510,
+          "max": 780
+        }
+      },
+      "growthMilli": {
+        "min": 1270,
+        "max": 1330
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-lifesteal",
+          "beast.overwhelming-might",
+          "beast.sluggish",
+          "beast.regeneration",
+          "beast.defense"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.yinglong",
+      "name": "应龙",
+      "realm": "渡劫",
+      "icon": "icon:beast-yinglong",
+      "description": "角须四足，长身盘曲，背生完整双翼；盘踞雷云与高空水气汇聚处，俯身时云水随翼流动。",
+      "carryLevel": 165,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1510,
+          "max": 1870
+        },
+        "defense": {
+          "min": 1430,
+          "max": 1780
+        },
+        "health": {
+          "min": 5260,
+          "max": 6610
+        },
+        "mana": {
+          "min": 3230,
+          "max": 3890
+        },
+        "speed": {
+          "min": 1180,
+          "max": 1550
+        }
+      },
+      "growthMilli": {
+        "min": 1295,
+        "max": 1365
+      },
+      "birthSkills": {
+        "core": [
+          "beast.flood"
+        ],
+        "candidates": [
+          "beast.advanced-spell-critical",
+          "beast.spell-resistance",
+          "beast.regeneration"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.golden-crow",
+      "name": "金乌",
+      "realm": "渡劫",
+      "icon": "icon:beast-golden-crow",
+      "description": "三足乌身，黑羽透金，肩颈与尾羽边缘浮起火光；收翼紧凑，展翼如火羽放射，栖于飞升台上方炽热石峰。",
+      "carryLevel": 165,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1150,
+          "max": 1500
+        },
+        "defense": {
+          "min": 1060,
+          "max": 1430
+        },
+        "health": {
+          "min": 3560,
+          "max": 4900
+        },
+        "mana": {
+          "min": 3320,
+          "max": 3950
+        },
+        "speed": {
+          "min": 1580,
+          "max": 1920
+        }
+      },
+      "growthMilli": {
+        "min": 1285,
+        "max": 1355
+      },
+      "birthSkills": {
+        "core": [
+          "beast.wildfire"
+        ],
+        "candidates": [
+          "beast.advanced-divine-revival",
+          "beast.perception",
+          "beast.agility"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.qilin",
+      "name": "麒麟",
+      "realm": "渡劫",
+      "icon": "icon:beast-qilin",
+      "description": "鹿形长躯，鳞甲细密，分枝长角与牛尾舒展；步态稳健，行走在劫地边缘仍有生机的山岭，鳞间灵光温润。",
+      "carryLevel": 165,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1400,
+          "max": 1720
+        },
+        "defense": {
+          "min": 1560,
+          "max": 1900
+        },
+        "health": {
+          "min": 5720,
+          "max": 7000
+        },
+        "mana": {
+          "min": 2890,
+          "max": 3650
+        },
+        "speed": {
+          "min": 880,
+          "max": 1190
+        }
+      },
+      "growthMilli": {
+        "min": 1320,
+        "max": 1380
+      },
+      "birthSkills": {
+        "core": [],
+        "candidates": [
+          "beast.advanced-miracle",
+          "beast.advanced-regeneration",
+          "beast.falling-rock",
+          "beast.auspicious-vitality"
+        ]
+      }
+    },
+    {
+      "id": "combat.wild.species.diting",
+      "name": "谛听",
+      "realm": "渡劫",
+      "icon": "icon:beast-diting",
+      "description": "独角长耳，兽躯厚实，颈鬃柔长；伏居古雷碑与飞升台基下，闭目侧耳，辨听隐匿生灵与阴灵之息。",
+      "carryLevel": 165,
+      "starter": false,
+      "aptitudes": {
+        "attack": {
+          "min": 1550,
+          "max": 1900
+        },
+        "defense": {
+          "min": 1510,
+          "max": 1830
+        },
+        "health": {
+          "min": 4900,
+          "max": 6300
+        },
+        "mana": {
+          "min": 2320,
+          "max": 3070
+        },
+        "speed": {
+          "min": 1040,
+          "max": 1440
+        }
+      },
+      "growthMilli": {
+        "min": 1305,
+        "max": 1370
+      },
+      "birthSkills": {
+        "core": [
+          "beast.advanced-perception"
+        ],
+        "candidates": [
+          "beast.advanced-exorcism",
+          "beast.all-seeing",
+          "beast.water-attack"
+        ]
       }
     }
   ],

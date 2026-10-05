@@ -103,6 +103,7 @@
                   "onHitCalc",
                   "onDefenseIgnoreCalc",
                   "onBeHit",
+                  "afterDamage",
                   "afterHit",
                   "afterStrike",
                   "onFatal",
@@ -981,6 +982,7 @@
         "ticks": {
           "type": "string",
           "enum": [
+            "roundStart",
             "roundEnd"
           ]
         },

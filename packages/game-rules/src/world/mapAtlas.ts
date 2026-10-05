@@ -1,10 +1,10 @@
-import { type WorldMapLocation } from '@daoyou/game-domain/world/map';
 import {
   getAllMapNodes,
   getAllSatelliteNodes,
   getAllSectLandmarks,
   getWorldMapLocation,
 } from '@daoyou/game-content/world/map';
+import { type WorldMapLocation } from '@daoyou/game-domain/world/map';
 
 export const ATLAS_REGIONS = [
   { id: 'tiannan', name: '天南', x: 0.855, y: 0.79 },
@@ -63,6 +63,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   TN_XI_01: [0.32, 0.19],
   TN_BAICAO_01: [0.43, 0.405],
   TN_YULING_01: [0.53, 0.32],
+  TN_BAIQI_01: [0.57, 0.565],
   TN_ZMG_01: [0.845, 0.17],
   TN_BORDER_01: [0.155, 0.385],
   SAT_TN_01: [0.345, 0.525],
@@ -122,6 +123,22 @@ export const DAJIN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   SAT_DJ_07: [0.446, 0.552],
   SAT_DJ_08: [0.866, 0.106],
   WILD_KW_THUNDER: [0.107, 0.079],
+  WILD_RIFT_WALLS: [0.245, 0.305],
+  WILD_PEARL_BEND: [0.185, 0.37],
+  WILD_RESIN_GROVE: [0.34, 0.335],
+  WILD_BROKEN_UPLAND: [0.35, 0.425],
+  WILD_MIST_LANTERN_WOOD: [0.065, 0.725],
+  WILD_MOLTEN_TIDE_SHORE: [0.075, 0.89],
+  WILD_SUNKEN_STAR_REEF: [0.175, 0.88],
+  WILD_BROKEN_ARMS_FOREST: [0.275, 0.875],
+  WILD_CINNABAR_NESTS: [0.68, 0.07],
+  WILD_JADE_SPRING_GARDEN: [0.71, 0.17],
+  WILD_WINDBREAK_CLIFF: [0.79, 0.225],
+  WILD_BURIED_BONE_TERRACE: [0.605, 0.18],
+  WILD_SKYFALL_CASCADE: [0.95, 0.205],
+  WILD_ASHEN_SUN_PEAK: [0.94, 0.115],
+  WILD_RENEWED_GREEN: [0.81, 0.35],
+  WILD_SILENT_THUNDER_STELES: [0.96, 0.43],
   SECT_TIANYAN: [0.197, 0.19],
   SECT_YOUDU: [0.1, 0.655],
   SECT_JIUJIE: [0.902, 0.373],

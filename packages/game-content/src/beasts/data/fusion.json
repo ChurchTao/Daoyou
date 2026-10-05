@@ -1,19 +1,19 @@
 {
   "$schema": "./fusion.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "minimumLevel": 30,
   "babyChance": 0.95,
   "pseudoBabyChance": 0.25,
   "skillChance": 0.5,
   "aptitudeCaps": {
-    "attack": 1991,
-    "defense": 1848,
-    "health": 6820,
-    "mana": 3960,
-    "speed": 1980
+    "attack": 100000,
+    "defense": 100000,
+    "health": 100000,
+    "mana": 100000,
+    "speed": 100000
   },
-  "growthMilliCap": 1300,
+  "growthMilliCap": 1500,
   "aptitudeWeights": [
     {
       "value": 70,

@@ -1,0 +1,19 @@
+{
+  "id": "first-attributes",
+  "title": "分配根基",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "cultivator.attributes",
+      "text": "六维根基会影响战斗表现。力道偏向物理攻击，灵力偏向法术攻击；体魄、根骨、身法和神识各有作用，可从“属性说明”查看。"
+    },
+    {
+      "type": "look",
+      "anchor": "cultivator.allocation",
+      "text": "用“＋”预分配属性点，点“确认分配”并确认保存成功后才会生效。可以按流派加点，也可以先留着，熟悉战斗后再决定。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

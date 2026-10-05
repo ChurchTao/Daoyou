@@ -35,12 +35,12 @@ export function rollBeastTraits(
     if (skillRng.next() < CANDIDATE_SKILL_CHANCE) skills.push(id);
   if (isMutant) {
     for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[])
-      aptitudes[key] = Math.round((aptitudes[key] * 11) / 10);
+      aptitudes[key] = Math.round((aptitudes[key] * 105) / 100);
   }
   return {
     aptitudes,
     growth: isMutant
-      ? Math.round((Math.round(growth * 1000) * 11) / 10) / 1000
+      ? Math.round((Math.round(growth * 1000) * 105) / 100) / 1000
       : growth,
     skills,
   };

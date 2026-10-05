@@ -9,6 +9,19 @@ import {
 } from '@daoyou/game-domain/story';
 
 const markFacts = new Set<StoryFactId>(STORY_MARK_FACT_IDS);
+const arrivalRevisionMark = 'arrival-v2';
+const legacyArrivalBeats = new Set([
+  'scent',
+  'mouth',
+  'lodge',
+  'grass',
+  'prints',
+  'satchel',
+  'wound',
+  'spring',
+  'steady',
+  'grip',
+]);
 
 export function guideMark(lesson: string): string {
   return `guide:${lesson}`;
@@ -63,6 +76,37 @@ function satisfied(
   return false;
 }
 
+function normalizeArrivalProgress(
+  chapter: StoryChapter,
+  progress: StoryProgress,
+  facts?: StoryFacts,
+): StoryProgress {
+  if (chapter.id !== 'arrival' || progress.storyId !== chapter.id) {
+    return progress;
+  }
+  if (
+    !chapter.beats.some((beat) => beat.id === progress.beatId) &&
+    !legacyArrivalBeats.has(progress.beatId)
+  ) {
+    throw new Error(`剧情幕不存在：${progress.beatId}`);
+  }
+  // 旧教程只补一次缺项，之后不因卸下装备或退出宗门而回退。
+  if (progress.marks.includes(arrivalRevisionMark) || !facts) return progress;
+  const finished =
+    progress.status === 'completed' ||
+    (progress.beatId === 'entered' &&
+      progress.acks.includes('arrival-remain:remained'));
+  const beat = finished
+    ? chapter.beats.find((entry) => entry.id === 'entered')
+    : chapter.beats.find((entry) => !satisfied(entry, progress, facts));
+  if (!beat) throw new Error('入世章节没有可停留的幕');
+  return {
+    ...progress,
+    beatId: beat.id,
+    marks: [...progress.marks, arrivalRevisionMark],
+  };
+}
+
 function issuePayout(
   grants: string[],
   issued: string[],
@@ -84,6 +128,8 @@ export function resolveStory(
     );
   }
 
+  progress = normalizeArrivalProgress(chapter, progress, facts);
+
   let beatId = progress.beatId;
   const grants = [...progress.grants];
   const issued: string[] = [];
@@ -92,6 +138,9 @@ export function resolveStory(
   while (!seen.has(beatId)) {
     seen.add(beatId);
     const beat = beatAt(chapter, beatId);
+    if (chapter.id === 'arrival' && beat.kind === 'practice') {
+      issuePayout(grants, issued, beat.grant);
+    }
     if (!satisfied(beat, progress, facts)) break;
     if (beat.kind === 'practice') issuePayout(grants, issued, beat.reward);
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
@@ -114,6 +163,7 @@ export function acknowledgePerformance(
   scriptId: string,
   outcome: string,
 ): StoryResolution {
+  progress = normalizeArrivalProgress(chapter, progress, facts);
   const key = `${scriptId}:${outcome}`;
   if (progress.acks.includes(key)) {
     return resolveStory(chapter, progress, facts);
@@ -156,6 +206,7 @@ export function acknowledgeGuide(
   facts: StoryFacts,
   lesson: string,
 ): StoryResolution {
+  progress = normalizeArrivalProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
   const wanted =
     beat.kind === 'practice' &&
@@ -177,8 +228,18 @@ export function acknowledgeGuide(
 export function rewindToUnwatchedPerformance(
   chapter: StoryChapter,
   progress: StoryProgress,
+  facts?: StoryFacts,
 ): StoryProgress {
   if (progress.track !== chapter.track || progress.storyId !== chapter.id) {
+    return progress;
+  }
+  progress = normalizeArrivalProgress(chapter, progress, facts);
+  if (
+    chapter.id === 'arrival' &&
+    progress.beatId === 'entered' &&
+    (progress.status === 'completed' ||
+      progress.acks.includes('arrival-remain:remained'))
+  ) {
     return progress;
   }
   const currentIndex = chapter.beats.findIndex(
@@ -201,6 +262,7 @@ export function presentStory(
   progress: StoryProgress,
   facts: StoryFacts,
 ): StoryView {
+  progress = normalizeArrivalProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
   const shifted =
     beat.kind === 'life' &&

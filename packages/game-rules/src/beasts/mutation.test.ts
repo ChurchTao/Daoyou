@@ -11,7 +11,7 @@ import { rollBeastTraits } from './trait-generator.js';
 const id = '00000000-0000-4000-8000-000000000001';
 
 it.each(BEAST_SPECIES)(
-  '$name 变异只提升五项资质与成长，技能抽签不变',
+  '$name 变异只提升五项资质与成长5%，技能抽签不变',
   (species) => {
     for (let seed = 0; seed < 100; seed++) {
       const normal = rollBeastTraits(species, seed);
@@ -20,10 +20,10 @@ it.each(BEAST_SPECIES)(
         normal.aptitudes,
       ) as (keyof typeof normal.aptitudes)[])
         expect(mutant.aptitudes[key]).toBe(
-          Math.round((normal.aptitudes[key] * 11) / 10),
+          Math.round((normal.aptitudes[key] * 105) / 100),
         );
       expect(mutant.growth).toBe(
-        Math.round((Math.round(normal.growth * 1000) * 11) / 10) / 1000,
+        Math.round((Math.round(normal.growth * 1000) * 105) / 100) / 1000,
       );
       expect(mutant.skills).toEqual(normal.skills);
       expect(rollBeastTraits(species, seed, false)).toEqual(normal);
@@ -72,10 +72,21 @@ it.each(BEAST_SPECIES)(
   },
 );
 
-it('变异多次洗炼保留身份且不累乘；传承不改变变异和数值', () => {
+it('历史变异数值保留，洗炼使用新加成且不累乘；传承不改变数值', () => {
   const species = BEAST_SPECIES.find((s) => s.name === '咪咪')!;
   const base = generateCapturedBeast(id, id, species.id, 10, 42, true);
+  const normal = rollBeastTraits(species, 42);
+  for (const key of Object.keys(
+    base.aptitudes,
+  ) as (keyof typeof base.aptitudes)[])
+    base.aptitudes[key] = Math.round((normal.aptitudes[key] * 11) / 10);
+  base.growth = Math.round((Math.round(normal.growth * 1000) * 11) / 10) / 1000;
   const before = structuredClone(base);
+  expect(BeastSchema.parse(base)).toEqual(before);
+  expect(learnBeastSkill(base, BOOKS[0].id, 180, 0)).toMatchObject({
+    aptitudes: before.aptitudes,
+    growth: before.growth,
+  });
   const item = BEAST_REFINEMENT.items[0].id;
   const first = refineBeast(base, item, 180, 9);
   const second = refineBeast(first, item, 180, 9);

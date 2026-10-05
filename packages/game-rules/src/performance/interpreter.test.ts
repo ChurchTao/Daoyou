@@ -1,7 +1,5 @@
-import {
-  PERFORMANCE_ARRIVAL_FALL_DATA as arrivalFall,
-  PERFORMANCE_ARRIVAL_MOUTH_DATA as arrivalMouth,
-} from '@daoyou/game-content/authoring/performance';
+import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
+import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import { describe, expect, it } from 'vitest';
 import {
   createPerformanceState,
@@ -59,104 +57,63 @@ function playToChoice(filled: PerformanceScript) {
   return state;
 }
 
-function playArrival(choice: 0 | 1) {
-  const context = { name: '顾清舟', background: '山里长大，没有师门。' };
-  const script = fillPerformanceScript(
-    parsePerformanceScript(arrivalFall),
-    context,
-  );
+function playArrival(scriptId: string, choice: 0 | 1) {
+  const context = {
+    name: '顾清舟',
+    background: '山里长大，没有师门。',
+    receptionist: '接引师兄',
+    alchemy_teacher: '程晚照',
+    forge_teacher: '谭折柳',
+    instructor: '赵照川',
+  };
+  const script = fillPerformanceScript(getPerformanceScript(scriptId), context);
   let state = createPerformanceState(script, context);
-  const seen: string[] = [];
-  for (let step = 0; step < 20; step += 1) {
+  for (let step = 0; step < 80 && !state.finished; step += 1) {
     const cue = currentPerformanceCue(script, state);
-    if (cue?.type === 'choice') {
-      state = reducePerformance(script, context, state, {
-        type: 'choose',
-        index: choice,
-      });
-      continue;
-    }
-    if (cue?.type === 'end') {
-      state = reducePerformance(script, context, state, { type: 'finish' });
-      break;
-    }
-    if (cue && (cue.type === 'narration' || cue.type === 'line')) {
-      if (!state.revealed) {
-        state = reducePerformance(script, context, state, { type: 'advance' });
-      }
-      seen.push(cue.text);
-    }
-    state = reducePerformance(script, context, state, { type: 'advance' });
+    state = reducePerformance(script, context, state,
+      cue?.type === 'choice' ? { type: 'choose', index: choice }
+        : cue?.type === 'end' ? { type: 'finish' } : { type: 'advance' },
+    );
   }
-  return { script, state, seen };
+  return { script, state };
 }
 
 describe('performance interpreter', () => {
-  it('lets both arrival attitudes enter the same cave', () => {
-    const held = playArrival(0);
-    const looked = playArrival(1);
-    expect(held.script.cues.find((cue) => cue.type === 'scene')).toMatchObject({
-      alt: '山壁围成一间低矮石室，裂缝里漏进一线天光。',
-    });
-    expect(
-      held.seen.some((text) => text.includes('榻下塞着一卷落灰的毯子')),
-    ).toBe(true);
-    expect(held.seen.some((text) => text.includes('潮湿的山风扑在脸上'))).toBe(
-      false,
+  it('plays every arrival chapter performance and inquiry to its configured outcome', () => {
+    const performances = getStoryChapter('arrival').beats.filter(
+      (beat) => beat.kind === 'performance',
     );
-    expect(
-      looked.seen.some((text) => text.includes('潮湿的山风扑在脸上')),
-    ).toBe(true);
-    expect(
-      looked.seen.some((text) => text.includes('榻下塞着一卷落灰的毯子')),
-    ).toBe(false);
-    expect(held.state.outcome).toBe('entered');
-    expect(looked.state.outcome).toBe('entered');
+    for (const beat of performances) {
+      for (const choice of [0, 1] as const) {
+        const played = playArrival(beat.script, choice);
+        expect(played.state.finished, `${beat.script}, choice ${choice}`).toBe(true);
+        expect(played.state.outcome).toBe(beat.outcome);
+        expect(JSON.stringify(played.script)).not.toMatch(/\{(?:name|alchemy_teacher|forge_teacher|instructor)\}/);
+      }
+    }
+    expect(playArrival('arrival-ember', 0).state.log).toContainEqual(
+      expect.objectContaining({ kind: 'line', speaker: '程晚照' }),
+    );
+    expect(playArrival('arrival-handy', 0).state.log).toContainEqual(
+      expect.objectContaining({ kind: 'line', speaker: '谭折柳' }),
+    );
   });
 
-  it('lets both cave-mouth attitudes return inside', () => {
-    const context = { name: '顾清舟' };
-    const script = fillPerformanceScript(
-      parsePerformanceScript(arrivalMouth),
-      context,
-    );
-    const play = (choice: 0 | 1) => {
-      let state = createPerformanceState(script, context);
-      const seen: string[] = [];
-      for (let step = 0; step < 20; step += 1) {
-        const cue = currentPerformanceCue(script, state);
-        if (cue?.type === 'choice') {
-          state = reducePerformance(script, context, state, {
-            type: 'choose',
-            index: choice,
-          });
-          continue;
-        }
-        if (cue?.type === 'end') {
-          state = reducePerformance(script, context, state, { type: 'finish' });
-          break;
-        }
-        if (cue && (cue.type === 'narration' || cue.type === 'line')) {
-          if (!state.revealed) {
-            state = reducePerformance(script, context, state, {
-              type: 'advance',
-            });
-          }
-          seen.push(cue.text);
-        }
-        state = reducePerformance(script, context, state, { type: 'advance' });
-      }
-      return { state, seen };
+  it('fills declared actor names and rejects undeclared actor tokens', () => {
+    const input = {
+      id: 'teacher', title: '丹房', requires: ['teacher'],
+      cast: { teacher: { name: '{teacher}' } },
+      cues: [
+        { type: 'scene', alt: '丹房' },
+        { type: 'line', speaker: 'teacher', text: '开炉前先看清药材。' },
+        { type: 'end', outcome: 'ready' },
+      ],
     };
-    const stayed = play(0);
-    const backed = play(1);
-    expect(stayed.seen.some((text) => text.includes('最前面的两级石阶'))).toBe(
-      true,
-    );
-    expect(stayed.seen.some((text) => text.includes('木闩合上时'))).toBe(false);
-    expect(backed.seen.some((text) => text.includes('木闩合上时'))).toBe(true);
-    expect(stayed.state.outcome).toBe('returned');
-    expect(backed.state.outcome).toBe('returned');
+    const script = parsePerformanceScript(input);
+    expect(fillPerformanceScript(script, { teacher: '程晚照' }).cast.teacher?.name).toBe('程晚照');
+    expect(script.cast.teacher?.name).toBe('{teacher}');
+    expect(() => fillPerformanceScript(script, {})).toThrow('演出缺少填词：teacher');
+    expect(() => parsePerformanceScript({ ...input, requires: [] })).toThrow('演出填词未声明：teacher');
   });
 
   it('allows a scene that has words and no picture', () => {

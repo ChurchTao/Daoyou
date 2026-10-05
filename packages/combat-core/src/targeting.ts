@@ -9,16 +9,13 @@ import type { SkillDef, Unit } from './types.js';
 import { isStanding, resourceOf } from './units.js';
 
 /**
- * 选目标。隐身对单体不可选，群体（fill/all/random 且人数>1）仍能打到。
- * 感知/幽冥鬼眼可看破隐身。
+ * 隐身目标不可被单体或群体选取；攻击方的灵觉或看破状态可解除此限制。
  */
 export function isUntargetableBy(
   ctx: BattleContext,
   source: Unit,
   target: Unit,
-  aoe: boolean,
 ): boolean {
-  if (aoe) return false;
   if (sourceRevealsStealth(ctx, source)) return false;
   return target.statuses.some((s) => ctx.statusDefs.get(s.id)?.untargetable);
 }
@@ -40,7 +37,6 @@ export function canSelect(
   source: Unit,
   target: Unit,
   skill: SkillDef,
-  aoe: boolean,
 ): boolean {
   if (skill.targeting.excludeSelf && source.id === target.id) return false;
   if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
@@ -71,7 +67,7 @@ export function canSelect(
   if (side === TargetSide.Self) return target.id === source.id;
   if (side === TargetSide.Enemy && target.side === source.side) return false;
   if (side === TargetSide.Ally && target.side !== source.side) return false;
-  if (isUntargetableBy(ctx, source, target, aoe)) return false;
+  if (isUntargetableBy(ctx, source, target)) return false;
   if (
     skill.targeting.requireStatusIds?.length &&
     !skill.targeting.requireStatusIds.some((id) =>
@@ -112,10 +108,8 @@ export function poolFor(
     pool = [...pool, ...extra.filter((u) => !pool.includes(u))];
   }
 
-  const count = targetCount(source, skill, 1, ctx);
-  const aoe = isAoe(skill, count);
   return pool
-    .filter((u) => canSelect(ctx, source, u, skill, aoe))
+    .filter((u) => canSelect(ctx, source, u, skill))
     .sort((a, b) => a.slot - b.slot);
 }
 
@@ -144,21 +138,6 @@ export function targetCount(
   return Math.max(1, Math.floor(raw + bonus));
 }
 
-/** 群体才忽略隐身；explicit 单目标不算 AOE。 */
-export function isAoe(skill: SkillDef, count: number): boolean {
-  const mode = skill.targeting.mode ?? TargetMode.Explicit;
-  if (
-    mode === TargetMode.All ||
-    mode === TargetMode.Random ||
-    mode === TargetMode.Fill ||
-    mode === TargetMode.LowestHp ||
-    mode === TargetMode.LowestDef
-  ) {
-    return count > 1 || mode === TargetMode.All;
-  }
-  return count > 1;
-}
-
 /**
  * fill：指令目标优先，再按站位补满人数（破釜、龙卷）。
  * lowestHp：按气血比例从低到高取（推气过宫）。
@@ -176,7 +155,6 @@ export function resolveSkillTargets(
 
   const count = targetCount(source, skill, targetIds.length || 1, ctx);
   const pool = poolFor(ctx, source, skill);
-  const aoe = isAoe(skill, count);
 
   if (mode === TargetMode.All) {
     const picked =
@@ -233,7 +211,7 @@ export function resolveSkillTargets(
     if (picked.length >= count) break;
     const unit = ctx.state.units.find((u) => u.id === id);
     if (!unit || seen.has(unit.id)) continue;
-    if (!canSelect(ctx, source, unit, skill, aoe)) continue;
+    if (!canSelect(ctx, source, unit, skill)) continue;
     picked.push(unit);
     seen.add(unit.id);
     if (picked.length >= count) break;

@@ -102,6 +102,8 @@ export const HookName = {
   /** 物理伤害公式前计算忽防比例。 */
   OnDefenseIgnoreCalc: 'onDefenseIgnoreCalc',
   OnBeHit: 'onBeHit',
+  /** 所有来源的掉血结算后；用于承伤护盾等非攻击响应。 */
+  AfterDamage: 'afterDamage',
   AfterHit: 'afterHit',
   /** 成功命中后，包括被护盾完全吸收的攻击；不含派生伤害。 */
   AfterStrike: 'afterStrike',
@@ -196,15 +198,18 @@ export type StatusHit = (typeof StatusHit)[keyof typeof StatusHit];
 
 /** 伤害公式族。具体算法在 rules-daoyou，引擎只把名字传过去。 */
 export const FormulaFamily = {
+  GuardBreak: 'guardBreak',
   Physical: 'physical',
   Spell: 'spell',
   Dragon: 'dragon',
+  AttackDifference: 'attackDifference',
   Judge: 'judge',
   Fixed: 'fixed',
 } as const;
 export type FormulaFamily = (typeof FormulaFamily)[keyof typeof FormulaFamily];
 
 export const EffectType = {
+  InvokeAttackSkills: 'invokeAttackSkills',
   Repeat: 'repeat',
   ModifyFact: 'modifyFact',
   ModifyStatusDuration: 'modifyStatusDuration',
@@ -280,6 +285,7 @@ export const EventType = {
 export type EventType = (typeof EventType)[keyof typeof EventType];
 
 export const StatusTick = {
+  RoundStart: 'roundStart',
   RoundEnd: 'roundEnd',
 } as const;
 export type StatusTick = (typeof StatusTick)[keyof typeof StatusTick];

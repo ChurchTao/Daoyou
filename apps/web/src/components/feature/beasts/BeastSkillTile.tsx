@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 
@@ -23,22 +24,20 @@ export function BeastSkillTile({ skillId }: { skillId: string }) {
           </>
         ) : undefined
       }
-      triggerClassName={`flex aspect-square w-full min-w-0 [container-type:inline-size] flex-col items-center justify-center gap-1 rounded-xs border px-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${styles[skill.style]}`}
+      triggerClassName={`flex aspect-square w-full min-w-0 [container-type:inline-size] flex-col items-center justify-center rounded-xs border px-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal ${styles[skill.style]}`}
       triggerContent={
         <>
+          <GameIcon
+            value={skill.icon}
+            className={`text-[min(38px,60cqw)] leading-none ${unavailable ? 'opacity-50 grayscale' : ''}`}
+          />
           <span
-            aria-hidden
-            className={`text-[min(24px,40cqw)] leading-none ${unavailable ? 'opacity-50 grayscale' : ''}`}
-          >
-            {skill.icon}
-          </span>
-          <span
-            className={`flex h-[22px] items-center justify-center text-center ${skill.style === 'advanced' ? 'font-medium' : ''}`}
+            className={`flex h-[min(24px,48cqw)] shrink-0 items-center justify-center text-center ${skill.style === 'advanced' ? 'font-medium' : ''}`}
           >
             <span
               className={
                 skill.name.length > 5
-                  ? 'max-w-[5em] text-[min(10px,20cqw)] leading-[11px] text-balance'
+                  ? 'max-w-[5em] text-[min(10px,20cqw)] leading-[1.2] text-balance'
                   : 'text-[min(12px,20cqw)] leading-4'
               }
             >

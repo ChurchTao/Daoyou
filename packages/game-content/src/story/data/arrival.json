@@ -1,7 +1,7 @@
 {
   "id": "arrival",
   "track": "main",
-  "title": "入世",
+  "title": "青溪初行",
   "beats": [
     {
       "id": "fall",
@@ -9,8 +9,92 @@
       "script": "arrival-fall",
       "outcome": "entered",
       "scene": "story",
-      "prompt": "洞府里静得只剩滴水声，案上的玉简边角映着天光。",
+      "prompt": "新邻居许伯来认门，顺便问起你出门前的准备。",
       "href": "/game/story"
+    },
+    {
+      "id": "home",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cave-layout"
+        }
+      ],
+      "scene": "cave",
+      "prompt": "先认清洞府里的房间、灵眼之泉和出门的路。",
+      "href": "/game?guide=cave-layout"
+    },
+    {
+      "id": "identity",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "cultivator-basics"
+        }
+      ],
+      "scene": "cultivator",
+      "prompt": "看看道身状态，认清气血、法力和修行进度。",
+      "href": "/game/cultivator?guide=cultivator-basics"
+    },
+    {
+      "id": "pack",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "inventory-basics"
+        }
+      ],
+      "scene": "inventory",
+      "prompt": "打开储物袋，看看随身物品和已穿戴道装分别在哪里。",
+      "href": "/game/inventory?guide=inventory-basics"
+    },
+    {
+      "id": "creek",
+      "kind": "performance",
+      "script": "arrival-creek",
+      "outcome": "slope",
+      "scene": "story",
+      "prompt": "许伯在洞口等你，准备指一指青溪坡和诸宗山门的方向。",
+      "href": "/game/story"
+    },
+    {
+      "id": "slope",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "map-qingxi"
+        }
+      ],
+      "scene": "map",
+      "prompt": "在舆图上找到天南、太岳山与青溪坡，记住下山的方向。",
+      "href": "/game/map-v2?guide=map-qingxi"
+    },
+    {
+      "id": "gate",
+      "kind": "performance",
+      "script": "arrival-gate",
+      "outcome": "gate",
+      "scene": "story",
+      "prompt": "山门接引处摆着诸宗名册，有人可以回答你的入门疑问。",
+      "href": "/game/story"
+    },
+    {
+      "id": "door",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "fact",
+          "fact": "sect_joined"
+        }
+      ],
+      "scene": "sect",
+      "prompt": "查看诸宗与入门条件，选择合适的宗门并完成拜入。",
+      "href": "/game/sect?guide=sect-door",
+      "lesson": "sect-door"
     },
     {
       "id": "ember",
@@ -18,7 +102,7 @@
       "script": "arrival-ember",
       "outcome": "hearth",
       "scene": "story",
-      "prompt": "晨光照着玉简下露出的一截草茎。",
+      "prompt": "入宗后，丹房的前辈留了一份药材，等着教你炼第一炉。",
       "href": "/game/story"
     },
     {
@@ -34,161 +118,11 @@
           "fact": "alchemy_crafted"
         }
       ],
-      "scene": "alchemy",
-      "prompt": "丹房就在石室另一侧，翠芽草已经带在身边。",
-      "href": "/game/craft/alchemy?guide=alchemy-first-furnace",
-      "grant": "first-herbs"
-    },
-    {
-      "id": "scent",
-      "kind": "performance",
-      "script": "arrival-scent",
-      "outcome": "stayed",
-      "scene": "story",
-      "prompt": "炉边的风吹动草叶，洞门在远处轻响。",
-      "href": "/game/story"
-    },
-    {
-      "id": "mouth",
-      "kind": "performance",
-      "script": "arrival-mouth",
-      "outcome": "returned",
-      "scene": "story",
-      "prompt": "门外的山路渐暗，石牌只露出两个字。",
-      "href": "/game/story"
-    },
-    {
-      "id": "lodge",
-      "kind": "performance",
-      "script": "arrival-lodge",
-      "outcome": "slept",
-      "scene": "story",
-      "prompt": "夜风碰着洞门，石榻上的旧毯已经铺好。",
-      "href": "/game/story"
-    },
-    {
-      "id": "creek",
-      "kind": "performance",
-      "script": "arrival-creek",
-      "outcome": "slope",
-      "scene": "story",
-      "prompt": "晨光落在石牌上，昨晚没看清的字显出来了。",
-      "href": "/game/story"
-    },
-    {
-      "id": "slope",
-      "kind": "practice",
-      "accept": [
-        {
-          "type": "guide",
-          "lesson": "map-qingxi"
-        }
-      ],
-      "scene": "map",
-      "prompt": "玉简画出的溪坡，在舆图上也许找得到。",
-      "href": "/game/map-v2?guide=map-qingxi"
-    },
-    {
-      "id": "grass",
-      "kind": "performance",
-      "script": "arrival-grass",
-      "outcome": "known",
-      "scene": "story",
-      "prompt": "舆图上的溪水弯进山间，玉简里还有一幅草叶图。",
-      "href": "/game/story"
-    },
-    {
-      "id": "tracks",
-      "kind": "performance",
-      "script": "arrival-tracks",
-      "outcome": "tracks",
-      "scene": "story",
-      "prompt": "路记的边缘，还有几枚匆忙画上的爪印。",
-      "href": "/game/story"
-    },
-    {
-      "id": "seek",
-      "kind": "practice",
-      "accept": [
-        {
-          "type": "fact",
-          "fact": "qingxi_met"
-        }
-      ],
-      "scene": "wild",
-      "prompt": "青溪坡就在前方，草里有生灵走动的痕迹。",
-      "href": "/game/wild?nodeId=SAT_TN_08"
-    },
-    {
-      "id": "prints",
-      "kind": "performance",
-      "script": "arrival-prints",
-      "outcome": "seen",
-      "scene": "story",
-      "prompt": "鞋底的泥还湿着，山坡上的草声仍在耳边。",
-      "href": "/game/story"
-    },
-    {
-      "id": "pouch",
-      "kind": "performance",
-      "script": "arrival-pouch",
-      "outcome": "pouch",
-      "scene": "story",
-      "prompt": "木钉上的旧袋，袋口打着不寻常的绳结。",
-      "href": "/game/story"
-    },
-    {
-      "id": "bag",
-      "kind": "practice",
-      "accept": [
-        {
-          "type": "guide",
-          "lesson": "beast-pouch"
-        }
-      ],
-      "scene": "beasts",
-      "prompt": "木钉上的小袋，与玉简里的图正好相同。",
-      "href": "/game/beasts?guide=beast-pouch"
-    },
-    {
-      "id": "satchel",
-      "kind": "performance",
-      "script": "arrival-satchel",
-      "outcome": "read",
-      "scene": "story",
-      "prompt": "小袋轻碰衣角，内室深处有细细水声。",
-      "href": "/game/story"
-    },
-    {
-      "id": "wound",
-      "kind": "performance",
-      "script": "arrival-spring",
-      "outcome": "spring",
-      "scene": "story",
-      "prompt": "鞋底带回的泥还在，内室的水声却越来越近。",
-      "href": "/game/story"
-    },
-    {
-      "id": "spring",
-      "kind": "practice",
-      "accept": [
-        {
-          "type": "guide",
-          "lesson": "cave-layout"
-        }
-      ],
-      "scene": "cave",
-      "prompt": "转过内室的石壁，泉水正落进一口浅池。",
-      "href": "/game?guide=cave-layout"
-    },
-    {
-      "id": "steady",
-      "kind": "performance",
-      "script": "arrival-steady",
-      "outcome": "steady",
-      "scene": "story",
-      "prompt": "泉边的湿气未散，隔壁有一扇半掩的石门。",
-      "href": "/game/story"
+      "scene": "sect-alchemy",
+      "prompt": "将备好的4份翠芽草一起入炉，完成炼丹后查看药性与用法。",
+      "href": "/game/sect/alchemy?workspace=craft&guide=alchemy-first-furnace",
+      "mode": "all",
+      "grant": "first-furnace-lesson"
     },
     {
       "id": "empty-hand",
@@ -196,7 +130,7 @@
       "script": "arrival-handy",
       "outcome": "forge",
       "scene": "story",
-      "prompt": "丹房旁的石门虚掩着，里面有一口旧器炉。",
+      "prompt": "器坊前辈准备好了入门图纸，教你亲手铸一件兵器。",
       "href": "/game/story"
     },
     {
@@ -212,43 +146,109 @@
           "fact": "weapon_forged"
         }
       ],
+      "scene": "sect-refinery",
+      "prompt": "选好图纸和青石，核对消耗，再开炉铸出第一件兵器。",
+      "href": "/game/sect/refinery?workspace=craft&guide=forge-first-weapon",
       "mode": "all",
-      "grant": "first-weapon",
-      "scene": "refine",
-      "prompt": "图纸摊在器炉旁，青石屑沾了一手。",
-      "href": "/game/craft/refine?guide=forge-first-weapon"
+      "grant": "first-weapon"
     },
     {
-      "id": "grip",
+      "id": "equip",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "weapon-equip"
+        },
+        {
+          "type": "fact",
+          "fact": "weapon_equipped"
+        }
+      ],
+      "scene": "inventory",
+      "prompt": "去储物袋穿戴一件兵器，确认它出现在已穿戴道装中。",
+      "href": "/game/inventory?guide=weapon-equip",
+      "mode": "all"
+    },
+    {
+      "id": "pouch",
       "kind": "performance",
-      "script": "arrival-grip",
-      "outcome": "held",
+      "script": "arrival-pouch",
+      "outcome": "pouch",
       "scene": "story",
-      "prompt": "新铸的兵器还热，握柄贴进掌心。",
+      "prompt": "演武教习要你先定好流派、了解根基，再找一位灵兽伙伴。",
       "href": "/game/story"
     },
     {
-      "id": "gate",
+      "id": "path",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "sect-first-path"
+        },
+        {
+          "type": "fact",
+          "fact": "sect_ready"
+        }
+      ],
+      "scene": "sect-enlightenment-cliff",
+      "prompt": "在悟道处选择宗门流派，开启传承后再准备下山。",
+      "href": "/game/sect/enlightenment-cliff?workspace=paths&guide=sect-first-path",
+      "mode": "all"
+    },
+    {
+      "id": "attributes",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "first-attributes"
+        }
+      ],
+      "scene": "cultivator",
+      "prompt": "看看根基怎么分配，按所学流派来加点；拿不准可以先留着，熟悉战斗后再决定。",
+      "href": "/game/cultivator?allocate=1&guide=first-attributes"
+    },
+    {
+      "id": "bag",
+      "kind": "practice",
+      "accept": [
+        {
+          "type": "guide",
+          "lesson": "beast-pouch"
+        },
+        {
+          "type": "fact",
+          "fact": "starter_beast"
+        }
+      ],
+      "scene": "beasts",
+      "prompt": "选择一位初始灵兽伙伴，确认携带出战与首发，看看它的本领。",
+      "href": "/game/beasts?guide=beast-pouch",
+      "mode": "all"
+    },
+    {
+      "id": "tracks",
       "kind": "performance",
-      "script": "arrival-gate",
-      "outcome": "gate",
+      "script": "arrival-tracks",
+      "outcome": "tracks",
       "scene": "story",
-      "prompt": "玉简末段的山门名字，沿着山脊排向远处。",
+      "prompt": "教习请你去青溪坡查看雨后路况与生灵，回来报个平安。",
       "href": "/game/story"
     },
     {
-      "id": "door",
+      "id": "seek",
       "kind": "practice",
       "accept": [
         {
           "type": "fact",
-          "fact": "sect_joined"
+          "fact": "qingxi_met"
         }
       ],
-      "lesson": "sect-door",
-      "scene": "sect",
-      "prompt": "山门就在前面，是否走进去由你决定。",
-      "href": "/game/sect?guide=sect-door"
+      "scene": "wild",
+      "prompt": "到青溪坡寻觅，留意遭遇的生灵；战斗、捕捉或退开后回来复命。",
+      "href": "/game/wild?nodeId=SAT_TN_08"
     },
     {
       "id": "remain",
@@ -256,19 +256,19 @@
       "script": "arrival-remain",
       "outcome": "remained",
       "scene": "story",
-      "prompt": "旧毯还搭在榻边，洞门外的风仍从山里吹来。",
+      "prompt": "把青溪坡的见闻告诉教习，再决定下一步怎样修行。",
       "href": "/game/story"
     },
     {
       "id": "entered",
       "kind": "life",
-      "scene": "cave",
+      "scene": "sect-affairs",
       "prompt": "",
-      "href": "/game",
+      "href": "/game/sect/affairs",
       "when": {
-        "fact": "sect_joined",
-        "prompt": "山门里还有接下来要走的路。",
-        "href": "/game/sect"
+        "fact": "breakthrough_available",
+        "prompt": "境界已至圆满，可以去任务中心查看破境卷宗。",
+        "href": "/game/tasks"
       }
     }
   ]

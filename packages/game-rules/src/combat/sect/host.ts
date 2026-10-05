@@ -58,6 +58,7 @@ export function freezeSectNpcOpponent(
         slot: 0,
         level,
         attrs,
+        combatFacts: { isCharacter: template === 'elder_trial' ? 1 : 0 },
         skills: skills.map((skill) => skill.id),
         skillLevels: Object.fromEntries(
           skills.map((skill) => [skill.id, level]),

@@ -20,11 +20,22 @@ COPY packages/game-rules/package.json ./packages/game-rules/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run build:server && pnpm --filter @daoyou/api deploy --prod /out
+RUN pnpm run build:server \
+    && pnpm --filter @daoyou/api deploy --prod /out \
+    && find /out/dist /out/node_modules/@daoyou/*/dist -type f \
+        \( -name '*.map' -o -name '*.d.ts' \) -delete
 
-FROM node:24.18.0-bookworm-slim AS runtime
+FROM node:24.18.0-bookworm-slim AS runtime-files
+RUN rm -rf /usr/local/lib/node_modules /opt/yarn-* \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
+# Copy the cleaned filesystem so removed tools do not remain in lower image layers.
+FROM scratch AS runtime
+COPY --from=runtime-files / /
 WORKDIR /app
 
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV NODE_ENV=production
 ENV PORT=3000
 
@@ -33,4 +44,5 @@ COPY --from=builder /out ./
 USER node
 EXPOSE 3000
 STOPSIGNAL SIGTERM
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]

@@ -35,6 +35,7 @@ export function CombatV6Commands({
   endAction,
   steps,
   commandError,
+  tutorialHint,
   blockedReason,
   onRetryCommand,
   clockOffset,
@@ -58,6 +59,7 @@ export function CombatV6Commands({
   endAction?: ReactNode;
   steps?: ReactNode;
   commandError?: string;
+  tutorialHint?: string;
   blockedReason?: string;
   onRetryCommand?: () => void;
 }) {
@@ -296,6 +298,11 @@ export function CombatV6Commands({
           </div>
         </>
       )}
+      {tutorialHint ? (
+        <p className="cv6-command-hint" role="status">
+          {tutorialHint}
+        </p>
+      ) : null}
       {category && !disabled && !ended ? (
         <CombatV6SkillChoice
           timing={timing}

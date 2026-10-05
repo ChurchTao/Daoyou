@@ -922,6 +922,7 @@
     {
       "id": "lingxiao.path.zhanchen",
       "name": "斩尘证道",
+      "description": "侧重物理爆发。经脉强化破防、暴击与击倒后的追击，适合喜欢抓住机会集中出手的修士。",
       "nodes": [
         {
           "id": "lingxiao.node.zhanchen.1.1",
@@ -1176,6 +1177,7 @@
     {
       "id": "lingxiao.path.guiyi",
       "name": "万剑归一",
+      "description": "侧重持续物理输出。通过断尘积累剑意、逐步提高伤害，适合喜欢在持久战中累积优势的修士。",
       "nodes": [
         {
           "id": "lingxiao.node.guiyi.1.1",

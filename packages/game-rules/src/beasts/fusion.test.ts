@@ -1,13 +1,13 @@
+import { BEASTS_FUSION_SCHEMA as fusionSchema } from '@daoyou/game-content/authoring/beasts';
+import {
+  BEAST_FUSION,
+  BEAST_SKILLS,
+  BEAST_SPECIES,
+  BeastFusionConfigSchema,
+} from '@daoyou/game-content/beasts';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { generateWildIndividual } from '../combat/wild/generator.js';
-import {
-  BEAST_SKILLS,
-  BEAST_SPECIES,
-  BEAST_FUSION,
-  BeastFusionConfigSchema,
-} from '@daoyou/game-content/beasts';
-import { BEASTS_FUSION_SCHEMA as fusionSchema } from '@daoyou/game-content/authoring/beasts';
 import { beastFusionReason, fuseBeasts, fusionPreview } from './fusion.js';
 import { generateStarterBeast } from './generator.js';
 import { beastPointBudget } from './identity.js';
@@ -54,7 +54,7 @@ describe('融合与宝宝身份', () => {
       const best = candidates.sort(
         (x, y) => y.aptitudes.attack - x.aptitudes.attack,
       )[0];
-      expect(best.growth).toBeLessThanOrEqual(1.3);
+      expect(best.growth).toBeLessThanOrEqual(1.5);
       for (const key of Object.keys(
         best.aptitudes,
       ) as (keyof typeof best.aptitudes)[]) {
@@ -82,6 +82,12 @@ describe('融合与宝宝身份', () => {
     expect(
       BeastFusionConfigSchema.safeParse({
         ...BEAST_FUSION,
+        aptitudeCaps: { ...BEAST_FUSION.aptitudeCaps, attack: 100001 },
+      }).success,
+    ).toBe(false);
+    expect(
+      BeastFusionConfigSchema.safeParse({
+        ...BEAST_FUSION,
         aptitudeWeights: [{ value: 100, weight: 99 }],
       }).success,
     ).toBe(false);
@@ -97,6 +103,48 @@ describe('融合与宝宝身份', () => {
         0,
       ),
     ).toBeCloseTo(99.4);
+  });
+  it('融合与存量材料可超过新版普通出生的1.380成长和1900攻资', () => {
+    const qilin = BEAST_SPECIES.find((s) => s.name === '麒麟')!;
+    const [a, b] = pair().map((beast) => ({
+      ...beast,
+      speciesId: qilin.id,
+      growth: 1.43,
+      aptitudes: {
+        attack: 3000,
+        defense: 3000,
+        health: 9000,
+        mana: 5000,
+        speed: 3000,
+      },
+    }));
+    const results = Array.from({ length: 100 }, (_, seed) =>
+      fuseBeasts(a, b, ids[2], seed),
+    );
+    expect(results.every((c) => c.growth > 1.3 && c.growth < 1.5)).toBe(true);
+    expect(results.some((c) => c.growth > 1.43)).toBe(true);
+    expect(results.some((c) => c.aptitudes.attack > 3000)).toBe(true);
+    expect(results.every((c) => c.aptitudes.attack > 1991)).toBe(true);
+  });
+  it('候选化不再凭空补技能，保留必带的两个物种仍自动获得原核心', () => {
+    for (const [name, expected] of [
+      ['麒麟', []],
+      ['六目灵猿', ['beast.advanced-perception']],
+      ['幽冥虎', ['beast.advanced-exorcism', 'beast.spirit-flame']],
+    ] as const) {
+      const speciesId = BEAST_SPECIES.find((s) => s.name === name)!.id;
+      const [a, b] = pair().map((beast) => ({
+        ...beast,
+        speciesId,
+        skills: [],
+        skillSlotCapacity: 0,
+      }));
+      for (let seed = 0; seed < 32; seed++) {
+        const result = fuseBeasts(a, b, ids[2], seed);
+        expect(result.skills).toEqual(expected);
+        expect(result.skillSlotCapacity).toBe(expected.length);
+      }
+    }
   });
   it('30级野生总点数290，出生亏损固定，后续升级恢复正常增量', () => {
     const wild = generateWildIndividual(
@@ -259,8 +307,11 @@ describe('融合与宝宝身份', () => {
     for (let seed = 0; seed < 30; seed++) {
       const next = fuseBeasts(a, b, ids[2], seed);
       expect(next.skills).toEqual([]);
-      expect(next.growth).toBe(1.3);
-      expect(next.aptitudes).toEqual(BEAST_FUSION.aptitudeCaps);
+      expect(next.growth).toBe(1.5);
+      for (const value of Object.values(next.aptitudes)) {
+        expect(value).toBeGreaterThanOrEqual(Math.round(99999 * 0.7));
+        expect(value).toBeLessThanOrEqual(100000);
+      }
     }
   });
 });

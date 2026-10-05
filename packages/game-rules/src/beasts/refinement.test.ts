@@ -120,5 +120,5 @@ it('洗炼技能格可以增加或减少，始终等于新出生技能数', () =
   const counts = new Set<number>();
   for (let seed = 0; seed < 1000; seed++)
     counts.add(refineBeast(base, advanced.id, 180, seed).skillSlotCapacity);
-  expect([...counts].sort()).toEqual([1, 2, 3, 4]);
+  expect([...counts].sort()).toEqual([0, 1, 2, 3, 4]);
 });

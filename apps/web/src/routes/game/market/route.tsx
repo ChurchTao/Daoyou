@@ -378,7 +378,7 @@ function MarketWorkspace({
                     quantity: item.quantity,
                     instanceData:
                       'definitionId' in item
-                        ? undefined
+                        ? item.instanceData
                         : item.type === 'seed'
                           ? { seedPreview: item.details?.seedPreview }
                           : {

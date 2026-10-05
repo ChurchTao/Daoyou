@@ -54,7 +54,7 @@ export function beastPanel(input: SummonedBeast) {
       b.level * b.aptitudes[aptitude] * term.aptitudeCoefficient +
         value * b.growth * term.attributeCoefficient,
     );
-  const hp = contribution(a.constitution, 'health', rule.health);
+  let hp = contribution(a.constitution, 'health', rule.health);
   const mp = contribution(a.magic, 'mana', rule.mana);
   const magicDefAttributes = Object.entries(
     rule.magicDef.attributeCoefficients,
@@ -66,7 +66,7 @@ export function beastPanel(input: SummonedBeast) {
     const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
     return effect.type === 'speed' ? factor * effect.factor : factor;
   }, 1);
-  const training = { physicalAtk: 0, physicalDef: 0, dodge: 0 };
+  const training = { physicalAtk: 0, physicalDef: 0, magicAtk: 0, dodge: 0 };
   for (const id of activeBeastSkills(b)) {
     const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
     if (effect.type === 'perception' || effect.type === 'concentration')
@@ -75,6 +75,14 @@ export function beastPanel(input: SummonedBeast) {
       training.physicalAtk += Math.floor(b.level * effect.perLevel);
     if (effect.type === 'defenseTraining')
       training.physicalDef += Math.floor(b.level * effect.perLevel);
+    if (effect.type === 'constitutionGrowthHp')
+      hp += Math.floor(a.constitution * b.growth * effect.multiplier);
+    if (effect.type === 'magicAttributeBoost')
+      training.magicAtk += Math.floor(a.magic * effect.multiplier);
+    if (effect.type === 'strengthGrowthTradeoff') {
+      training.physicalAtk += Math.floor(a.strength * b.growth * effect.attackMultiplier);
+      training.physicalDef -= Math.floor(a.strength * effect.defenseMultiplier);
+    }
   }
   return {
     ...DEFAULT_ATTRS,
@@ -87,10 +95,10 @@ export function beastPanel(input: SummonedBeast) {
     physicalAtk:
       contribution(a.strength, 'attack', rule.physicalAtk) +
       training.physicalAtk,
-    physicalDef:
+    physicalDef: Math.max(0,
       contribution(a.endurance, 'defense', rule.physicalDef) +
-      training.physicalDef,
-    magicAtk: contribution(a.magic, 'mana', rule.magicAtk),
+      training.physicalDef),
+    magicAtk: contribution(a.magic, 'mana', rule.magicAtk) + training.magicAtk,
     magicDef: Math.floor(
       b.level * b.aptitudes.mana * rule.magicDef.aptitudeCoefficient +
         magicDefAttributes * b.growth,
@@ -99,6 +107,17 @@ export function beastPanel(input: SummonedBeast) {
       contribution(a.agility, 'speed', rule.speed) * speedFactor,
     ),
   };
+}
+
+/** Complete beast attributes and the removable contribution from defense skills. */
+export function beastCombatFacts(beast: SummonedBeast) {
+  const defenseTraining = activeBeastSkills(beast).reduce((sum, id) => {
+    const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
+    return effect.type === 'defenseTraining'
+      ? sum + Math.floor(beast.level * effect.perLevel)
+      : sum;
+  }, 0);
+  return { isBeast: 1, strength: beastAttributes(beast).strength, defenseTraining };
 }
 
 export function projectBeastRoster(
@@ -129,6 +148,7 @@ export function projectBeastRoster(
               benched: id !== lineup.leadBeastId,
               level: beast.level,
               attrs: beastPanel(beast),
+              combatFacts: beastCombatFacts(beast),
               skills: activeBeastSkills(beast).filter(
                 (id) =>
                   !BEAST_SKILLS.find((s) => s.id === id)!.tags.includes(

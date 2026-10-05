@@ -165,10 +165,13 @@ export async function allocateCultivatorAttributes(args: {
   actor: Actor;
   delta: AttributeDelta;
 }) {
-  const spent = Object.values(args.delta).reduce(
-    (total, value) => total + value,
-    0,
-  );
+  const spent =
+    args.delta.vitality +
+    args.delta.strength +
+    args.delta.spirit +
+    args.delta.endurance +
+    args.delta.speed +
+    args.delta.willpower;
   if (spent <= 0) throw new Error('请选择要分配的属性点');
   return withRedisLock(
     {

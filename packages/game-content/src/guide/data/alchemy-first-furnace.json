@@ -1,26 +1,21 @@
 {
   "id": "alchemy-first-furnace",
-  "title": "丹炉",
+  "title": "备一炉药",
   "steps": [
     {
       "type": "look",
-      "anchor": "alchemy.furnace",
-      "text": "丹炉就在房中央。"
-    },
-    {
-      "type": "press",
-      "anchor": "alchemy.furnace",
-      "text": "点丹炉，走近些。"
+      "anchor": "alchemy.hearth",
+      "text": "点击炉旁空位，选入教学用的翠芽草。每次选取增加一份，连续选取四次或把用量调到4份，确认炉中显示4份。一株药量太少，难以凝丹，这一炉要将四株一起使用。"
     },
     {
       "type": "look",
-      "anchor": "alchemy.hearth",
-      "text": "翠芽草放在炉位。若要开炉，还需填写炼制目标。"
+      "anchor": "alchemy.intent",
+      "text": "填写这炉药的用途，例如“炼制出门备用、恢复气血的丹药”。材料和目标共同影响成品，实际效果要在出炉后查看。"
     },
     {
       "type": "look",
       "anchor": "alchemy.fire",
-      "text": "从这里开炉。材料和目标备齐后，随时可以试一炉。"
+      "text": "教学结束后，确认翠芽草共4份、目标已填写，再核对消耗并开炉。真正炼出一炉丹药、查看成品，这次备药才算完成。"
     },
     {
       "type": "end"

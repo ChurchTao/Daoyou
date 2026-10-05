@@ -296,7 +296,7 @@ export default function CreatePage() {
       await consumeResourceMutation(saveResponse);
 
       pushToast({
-        message: '角色已创建，正在打开入世玉简。',
+        message: '角色已创建，准备开始初行。',
         tone: 'success',
       });
       navigate('/game/story', { replace: true });

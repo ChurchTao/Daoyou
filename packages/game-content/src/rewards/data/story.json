@@ -1,13 +1,13 @@
 {
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "materials": {
     "story.ore.qingshi": {
       "name": "青石",
       "type": "ore",
       "rank": "凡品",
       "element": "土",
-      "description": "洞壁上敲下来的青石，可以入器炉。"
+      "description": "供新弟子学习炼器的青石，可以入器炉。"
     },
     "story.herb.cuibucao": {
       "name": "翠芽草",
@@ -30,6 +30,34 @@
               "rewardId": "story.herb.cuibucao",
               "weight": 1,
               "quantity": { "min": 3, "max": 3 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "first-furnace-lesson",
+      "poolVersion": 1,
+      "groups": [
+        {
+          "id": "herbs",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "story.herb.cuibucao",
+              "weight": 1,
+              "quantity": { "min": 4, "max": 4 }
+            }
+          ]
+        },
+        {
+          "id": "stones",
+          "chance": 1,
+          "entries": [
+            {
+              "rewardId": "currency.spirit-stones",
+              "weight": 1,
+              "quantity": { "min": 2400, "max": 2400 }
             }
           ]
         }

@@ -12,10 +12,11 @@ import {
   type GuideState,
 } from '@daoyou/game-rules/guide/interpreter';
 import type { GuideStep } from '@daoyou/game-domain/guide';
+import type { StoryView } from '@daoyou/game-domain/story';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type ShownStep = Extract<GuideStep, { type: 'look' | 'press' }>;
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 interface Hole {
   top: number;
@@ -179,6 +180,7 @@ export function GuideOverlay() {
       key={`${cultivatorId}:${lessonId}`}
       lessonId={lessonId}
       storageKey={storageKey}
+      beatId={story.story!.beatId}
     />
   );
 }
@@ -186,11 +188,15 @@ export function GuideOverlay() {
 function GuideSession({
   lessonId,
   storageKey,
+  beatId,
 }: {
   lessonId: string;
   storageKey: string;
+  beatId: string;
 }) {
   const [, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const startingBeatId = useRef(beatId);
   const lesson = getGuideLesson(lessonId);
   const [state, setState] = useState<GuideState>(() =>
     lesson
@@ -213,13 +219,14 @@ function GuideSession({
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
+        if (next.get('guide') !== lessonId) return current;
         next.delete('guide');
         next.delete('guideStep');
         return next;
       },
       { replace: true },
     );
-  }, [setSearchParams, storageKey]);
+  }, [lessonId, setSearchParams, storageKey]);
 
   const finishLesson = useCallback(() => {
     if (notingRef.current) return;
@@ -229,10 +236,12 @@ function GuideSession({
     void apiFetch(`/api/story/guides/${encodeURIComponent(lessonId)}/complete`, {
       method: 'POST',
     })
-      .then((response) => consumeResourceMutation(response))
-      .then(() => {
+      .then((response) => consumeResourceMutation<StoryView>(response))
+      .then((view) => {
         clearStoredGuideCursor(storageKey);
-        close();
+        if (view.beatId !== startingBeatId.current)
+          navigate(view.href, { replace: true });
+        else close();
       })
       .catch((reason: unknown) => {
         notingRef.current = false;
@@ -241,7 +250,7 @@ function GuideSession({
           reason instanceof Error ? reason.message : '这课没能记下，再试一次。',
         );
       });
-  }, [close, lessonId, storageKey]);
+  }, [close, lessonId, navigate, storageKey]);
 
   useEffect(() => {
     if (state.finished) finishLesson();

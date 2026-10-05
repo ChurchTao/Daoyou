@@ -27,6 +27,7 @@ export const WuxiangPathsPackShape = z.strictObject({
       z.strictObject({
         id: wxId,
         name: z.string().min(1),
+        description: z.string().min(1),
         requiresConnectedNodes: z.literal(true),
         unitTags: z.array(z.string()).optional(),
         foundationPassives: z.array(wxId),

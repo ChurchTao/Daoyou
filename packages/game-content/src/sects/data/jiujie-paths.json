@@ -899,6 +899,7 @@
     {
       "id": "jiujie.path.law",
       "name": "霹雳真君",
+      "description": "侧重物理重击与群攻。可选择震岳、掠霆的攻击重数，重数越高越需留意下回合休息，适合喜欢权衡爆发与行动节奏的修士。",
       "requiresConnectedNodes": true,
       "unitTags": [
         "sect.jiujie"
@@ -1148,6 +1149,7 @@
     {
       "id": "jiujie.path.thunder",
       "name": "踏雷天尊",
+      "description": "侧重群体法术输出。群雷留下雷印、加强后续法术，引劫入体还能扩大打击范围，适合喜欢同时压制多个敌人的修士。",
       "requiresConnectedNodes": true,
       "unitTags": [
         "sect.jiujie"

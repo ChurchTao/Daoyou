@@ -63,7 +63,7 @@ export const BeastSkillsPackShape = z.strictObject({
         book: z.boolean(),
         advanced: z.boolean(),
         flavorText: z.string().trim().min(1).max(200),
-        icon: z.string().trim().min(1).max(32),
+        icon: z.string().trim().min(1).max(64),
         effect: z.discriminatedUnion('type', [
           z.strictObject({
             type: z.literal('groupSpell'),
@@ -95,6 +95,85 @@ export const BeastSkillsPackShape = z.strictObject({
             type: z.literal('physicalHit'),
             costMp: integer,
             coefficient: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('allSeeing'),
+            cooldownRounds: integer.min(1),
+          }),
+          z.strictObject({
+            type: z.literal('mountainBreaker'),
+            costMpBase: integer,
+          }),
+          z.strictObject({
+            type: z.literal('karmicRetribution'),
+            costMpBase: integer,
+            evilChance: probability,
+            evilFactor: number.positive(),
+            goodFactor: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('radiantBarrier'),
+            chance: probability,
+            ratio: probability.positive(),
+            maxHpRatio: probability.positive(),
+            decayRatio: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('constitutionGrowthHp'),
+            multiplier: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('bloodthirstyPursuit'),
+            factor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('surpriseSpell'),
+            factor: number.min(1),
+          }),
+          z.strictObject({
+            type: z.literal('magicAttributeBoost'),
+            multiplier: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('strengthGrowthTradeoff'),
+            attackMultiplier: number.positive(),
+            defenseMultiplier: number.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('spellDefense'),
+            costMpBase: integer,
+            costMpLevelDivisor: integer.min(1),
+            takenFactor: probability.positive(),
+            duration: integer.min(1).max(99),
+          }),
+          z.strictObject({
+            type: z.literal('swiftStrike'),
+            costMpBase: integer,
+            costMpLevelDivisor: integer.min(1),
+            strengthMultiplier: number.positive(),
+            speedDivisor: number.positive(),
+            playerFactor: probability.positive(),
+          }),
+          z.strictObject({
+            type: z.literal('barrierBreaker'),
+            costMpBase: integer,
+            defendFactor: number.min(1),
+            powerPerLevel: number,
+          }),
+          z.strictObject({
+            type: z.literal('mindShatter'),
+            costMpBase: integer,
+            costMpLevelDivisor: integer.min(1),
+            physicalFactor: probability.positive(),
+            mpDamageFactor: number.positive(),
+            mpDamageDivisor: number.positive(),
+            mpLevelDivisor: number.positive(),
+            periodicStrengthDivisor: number.positive(),
+            periodicBase: integer,
+          }),
+          z.strictObject({
+            type: z.literal('unanticipated'),
+            factor: number.min(1),
           }),
           z.strictObject({
             type: z.literal('combo'),

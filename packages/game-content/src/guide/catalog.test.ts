@@ -17,26 +17,33 @@ describe('guide catalog production chains', () => {
     ]);
   });
 
-  it('keeps the alchemy lesson observational at the final fire control', () => {
+  it('starts alchemy at the sect preparation workspace and leaves firing to the player', () => {
     const lesson = getGuideLesson('alchemy-first-furnace');
     const steps = lesson!.steps.filter((step) => step.type !== 'end');
+    expect(steps.map((step) => step.anchor)).toEqual([
+      'alchemy.hearth',
+      'alchemy.intent',
+      'alchemy.fire',
+    ]);
     expect(steps.at(-1)).toMatchObject({
       type: 'look',
       anchor: 'alchemy.fire',
     });
-    expect(steps.at(-1)?.type === 'look' ? steps.at(-1)?.text : '').toContain(
-      '随时可以试一炉',
-    );
   });
 
-  it('keeps every production lesson closed by end', () => {
+  it('registers the complete onboarding chain and closes each lesson by end', () => {
     for (const id of [
       'alchemy-first-furnace',
       'map-qingxi',
       'beast-pouch',
       'cave-layout',
+      'cultivator-basics',
+      'inventory-basics',
       'forge-first-weapon',
+      'weapon-equip',
       'sect-door',
+      'sect-first-path',
+      'first-attributes',
     ]) {
       const lesson = getGuideLesson(id);
       expect(lesson, id).not.toBeNull();

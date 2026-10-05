@@ -25,7 +25,7 @@ export const YouduPathsPackShape = z.strictObject({
   contentRevision: z.number().int().positive(),
   passives: z.array(z.strictObject({ id, name: text, description: text.optional(), hooks: z.array(hook).optional(), modifiers: z.array(ydModifier).optional() })).min(1),
   paths: z.array(z.strictObject({
-    id, name: text, requiresConnectedNodes: z.boolean(), revokeSkillIds: ids.optional(), foundationPassives: ids, grantSkills: ids.optional(),
+    id, name: text, description: text, requiresConnectedNodes: z.boolean(), revokeSkillIds: ids.optional(), foundationPassives: ids, grantSkills: ids.optional(),
     nodes: z.array(z.strictObject({
       id, name: text, layer: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
       slot: z.union([z.literal(1), z.literal(2), z.literal(3)]), description: text,

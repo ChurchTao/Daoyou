@@ -73,6 +73,9 @@ export function towerReferenceBuild(
     100000000,
     level,
   );
+  // 固定参考个体的原有技能，避免出生候选顺序改变后重掷塔层定标样本。
+  beast.skills = ['beast.defense', 'beast.strength'];
+  beast.skillSlotCapacity = beast.skills.length;
   const pet = allocateBeast(
     beast,
     {

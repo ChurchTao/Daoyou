@@ -44,6 +44,7 @@
                     "onHitCalc",
                     "onDefenseIgnoreCalc",
                     "onBeHit",
+                    "afterDamage",
                     "afterHit",
                     "afterStrike",
                     "onFatal",
@@ -1795,6 +1796,11 @@
             "minLength": 1,
             "maxLength": 200
           },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
           "requiresConnectedNodes": {
             "type": "boolean"
           },
@@ -3453,6 +3459,7 @@
         "required": [
           "id",
           "name",
+          "description",
           "nodes"
         ],
         "additionalProperties": false

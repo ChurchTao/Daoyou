@@ -132,7 +132,11 @@ export function MeridianEditor({
   return (
     <div>
       <header className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-        <div className="flex flex-wrap gap-4" aria-label="流派">
+        <div
+          data-guide="sect.path-choice"
+          className="flex flex-wrap gap-4"
+          aria-label="流派"
+        >
           {definition.paths.map((entry) => (
             <button
               type="button"
@@ -164,6 +168,9 @@ export function MeridianEditor({
           返回
         </InkButton>
       </header>
+      <p className="text-ink-secondary mt-3 text-sm leading-7">
+        {path.description}
+      </p>
       <div className="grid gap-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:gap-6">
         <div>
           <div className="relative mx-auto my-4 w-full max-w-90">

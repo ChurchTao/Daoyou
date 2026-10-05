@@ -25,6 +25,8 @@ export function sectV6Change(
   action: SectV6Action,
 ) {
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
+  if (!progress.activePathId && action.action !== 'train')
+    throw new SectV6RuleError('请先选择流派，再调整经脉或切换流派');
   const next = structuredClone(progress);
   let cost: SectV6Cost = {
     cultivationExp: 0,

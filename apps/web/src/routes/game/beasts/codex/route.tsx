@@ -4,6 +4,8 @@ import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { GameSceneTabs } from '@app/components/game-shell/GameSceneTabs';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { BEAST_RARE_SPECIES_IDS } from '@daoyou/game-content/beasts';
+import { getMapNode } from '@daoyou/game-content/world/map';
 import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import {
   listBeastCodex,
@@ -11,7 +13,6 @@ import {
   type BeastCodexHabitat,
 } from '@daoyou/game-rules/beasts/presentation';
 import { getAtlasRegion } from '@daoyou/game-rules/world/atlas';
-import { getMapNode } from '@daoyou/game-content/world/map';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { BeastRosterScroll } from '../BeastRosterScroll';
@@ -146,22 +147,24 @@ function CodexDetail({
   onTravel: (habitat: BeastCodexHabitat) => void;
 }) {
   return (
-    <div className="min-w-0 space-y-5">
-      <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-6">
-        <div className="from-teal/10 before:border-teal/15 relative flex aspect-square items-center justify-center bg-radial to-transparent before:absolute before:inset-1 before:rounded-full before:border sm:before:inset-3">
-          <span aria-hidden className="font-sans text-5xl sm:text-6xl">
-            <BeastIcon speciesId={entry.id} />
-          </span>
+    <div className="@container min-w-0 space-y-5">
+      <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 @min-[30rem]:grid-cols-[128px_minmax(0,1fr)] @min-[30rem]:items-start @min-[30rem]:gap-x-5 @min-[38rem]:grid-cols-[160px_minmax(0,1fr)]">
+        <div className="row-span-2 flex items-center justify-center @min-[30rem]:row-span-1">
+          <BeastIcon
+            speciesId={entry.id}
+            className="text-[96px] @min-[30rem]:text-[128px] @min-[38rem]:text-[160px]"
+          />
         </div>
-        <div className="min-w-0">
-          <h2 className="truncate text-xl" title={entry.name}>
+        <div className="contents min-w-0 @min-[30rem]:block">
+          <h2 className="self-end truncate text-xl" title={entry.name}>
             {entry.name}
           </h2>
-          <p className="text-ink-secondary mt-1 text-xs leading-6">
+          <p className="text-ink-secondary mt-1 self-start text-xs leading-6">
+            {BEAST_RARE_SPECIES_IDS.has(entry.id) ? '稀有异兽 · ' : ''}
             {entry.realm} · 携带要求{' '}
             {getLevelRealmStage(entry.carryLevel).label}
           </p>
-          <p className="text-ink-secondary mt-2 text-sm leading-6">
+          <p className="text-ink-secondary col-span-2 text-sm leading-6 @min-[30rem]:mt-2">
             {entry.description}
           </p>
         </div>

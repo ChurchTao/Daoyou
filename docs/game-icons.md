@@ -2,6 +2,8 @@
 
 灵兽头像的美术方向、固定参考、生成与视觉验收见 [写意墨像技能](../.agents/skills/daoyou-ink-portraits/SKILL.md)。本文负责渲染和资源管理约定。
 
+技能图标的美术设计与风格验收遵循 [水墨技能图腾](../.agents/skills/daoyou-skill-totems/SKILL.md)，以已验收的三枚固定参考保持构形与笔墨一致。两批共 41 枚技能图腾已验收并接入，覆盖 65 条技能配置；生产素材使用 `-totem-v2.webp` 版本路径，业务图标名称保持不变。
+
 React 图标入口为 `apps/web/src/components/ui/GameIcon.tsx`。普通字符串直接显示（主要用于 emoji）；`icon:名称` 只查询集中注册的 SVG／WebP／PNG 图片，不拼接路径、不加载远程地址、不注入 SVG 字符串。未知名称和空值显示 `❔`。
 
 ```tsx
@@ -20,6 +22,12 @@ React 图标入口为 `apps/web/src/components/ui/GameIcon.tsx`。普通字符�
 4. 业务适配组件只负责从领域 ID 取图标值，例如共享的 `feature/beasts/BeastIcon.tsx`，渲染始终交给 `GameIcon`。
 
 初始灵兽选择、灵兽名册与详情头像统一通过 `BeastIcon` 渲染。新增或改动图标使用同一入口；灵兽头像的当前写意墨像素材见 [生成记录](beast-avatar-generation.md)。
+
+灵兽技能两批采用 41 枚水墨图腾，导出为 256×256 RGBA 无损 WebP，保留验收稿的透明安全边距。注册名称统一为 `beast-skill-技能标识`，技能配置在 `packages/game-content/src/beasts/data/skills.json` 中填写 `icon:beast-skill-技能标识`；首批 25 枚覆盖 37 条配置，第二批 16 枚覆盖 28 条配置，全部 14 个特殊技能均已接入。普通与高级的同家族技能共用主体，仍由名称和分级样式区分。
+
+第二批选稿记录见 `output/imagegen/beast-skill-totems-round2-2026-10-05/manifest.json`；摧山、必杀、水击采用 `revisions/` 中的修订 v2 稿，其余 13 枚采用该记录中的选稿。生产文件统一为 `beast-skill-技能标识-totem-v2.webp`。此次仅替换图标，技能内容修订保持 19；剩余 11 个题材、16 条 emoji 技能配置见 [盘点清单](art/skill-icon-emoji-audit.md)。
+
+共享 `BeastSkillTile` 使用 `GameIcon`，覆盖灵兽详情、图鉴、合成和交易详情；战斗技能选择也沿用同一入口。技能图标按界面图标正常显示，不受人物墨像的图片透明度设置影响。
 
 静态文件随 Vite 构建复制到 `dist/assets/icons/`。新增或替换后检查注册路径与部署产物；同名图标更新素材时可给文件名添加版本号并更新注册路径，业务图标名称不变，避免旧缓存。
 

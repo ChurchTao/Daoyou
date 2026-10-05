@@ -19,6 +19,7 @@ type Props = {
   onRetryCommand?: () => void;
   clockOffset?: number;
   title: string;
+  tutorial?: boolean;
   session: CombatV6Session;
   shown: SessionState<CombatV6Session>['shown'];
   log: SessionState<CombatV6Session>['log'];
@@ -49,6 +50,7 @@ export function CombatV6Battle({
   onRetryCommand,
   clockOffset,
   title,
+  tutorial = false,
   session,
   shown,
   log,
@@ -208,6 +210,21 @@ export function CombatV6Battle({
     setSelection({ id: selectionId, choice: next, targets: [] });
   };
   const ended = !playing && session.outcome;
+  const tutorialHint = tutorial
+    ? ended
+      ? '核对战报与结算后结束战斗，回山说说见闻。胜负和是否捕获，都不影响这次交差。'
+      : playing
+        ? '双方正在行动，战报会逐条显示。留意气血和法力变化，播完后再为下一回合下令。'
+        : pending
+          ? '正在提交本回合，稍候就能从战报中看到双方的行动。'
+          : autoEnabled
+            ? '当前由系统自动下令。点“取消自动”可以自己选择行动，战报会记录每回合结果。'
+            : commandOptions.length > 1
+              ? activeIndex === 0
+                ? '先给自己选择攻击、神通或防御，需要目标时再点选高亮目标。接着给伙伴下令，才会提交本回合。'
+                : '人物指令已记入草稿，现在给伙伴下令。选定它的行动与目标后，会一起提交本回合；可点“人物”返回调整。'
+              : '选择攻击、神通或防御，需要目标时再点选高亮目标。指令会自动提交，战报记录本回合结果；遇险也可以逃跑。'
+    : undefined;
   return (
     <section
       className={`cv6-battle ${shown.units.filter((u) => !u.ownerId).length <= 2 ? 'is-small' : ''}`}
@@ -311,6 +328,7 @@ export function CombatV6Battle({
           commandError={
             commandError?.id === roundId ? commandError.text : undefined
           }
+          tutorialHint={tutorialHint}
           steps={
             !playing && commandOptions.length > 1 ? (
               <div className="cv6-draft-steps" aria-label="本回合指令草稿">

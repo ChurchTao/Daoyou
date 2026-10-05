@@ -141,6 +141,16 @@ export function parsePerformanceScript(input: unknown): PerformanceScript {
   let sceneOpened = false;
   let ending = false;
 
+  const validateTokens = (text: string) => {
+    for (const match of text.matchAll(tokenPattern)) {
+      const token = match[1];
+      if (!token || !script.requires.includes(token)) {
+        throw new Error(`演出填词未声明：${token ?? ''}`);
+      }
+    }
+  };
+  for (const actor of Object.values(script.cast)) validateTokens(actor.name);
+
   for (const cue of script.cues) {
     if (cue.type === 'mark') {
       if (marks.has(cue.id)) {
@@ -163,14 +173,7 @@ export function parsePerformanceScript(input: unknown): PerformanceScript {
       throw new Error('演出在场景之前就有正文');
     }
     const text = textOf(cue);
-    if (text) {
-      for (const match of text.matchAll(tokenPattern)) {
-        const token = match[1];
-        if (!token || !script.requires.includes(token)) {
-          throw new Error(`演出填词未声明：${token ?? ''}`);
-        }
-      }
-    }
+    if (text) validateTokens(text);
     if (cue.type === 'end') ending = true;
   }
 
@@ -206,6 +209,12 @@ export function fillPerformanceScript(
 
   return {
     ...script,
+    cast: Object.fromEntries(
+      Object.entries(script.cast).map(([key, actor]) => [
+        key,
+        { ...actor, name: fill(actor.name) },
+      ]),
+    ),
     cues: script.cues.map((cue) => {
       if (cue.type === 'narration' || cue.type === 'title') {
         return { ...cue, text: fill(cue.text) };

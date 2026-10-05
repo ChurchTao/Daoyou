@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { combatV6Request as request } from '@app/components/feature/combat-v6/request';
@@ -7,9 +6,7 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
-import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useSectCombatState } from '@app/lib/resources/player';
-import type { SectCombatView } from '@daoyou/game-domain/sects';
 import type { CombatV6TrainingSessionViewV1 } from '@daoyou/contracts/combat';
 import { useEffect, useState } from 'react';
 
@@ -17,66 +14,6 @@ type ContentView = {
   tiers: readonly (60 | 120 | 180)[];
   encounters: Array<{ id: string; name: string }>;
 };
-
-function BuildInitialization({
-  build,
-  pending,
-  onInitialize,
-}: {
-  build: SectCombatView;
-  pending: boolean;
-  onInitialize: (pathId: string) => void;
-}) {
-  const [pathId, setPathId] = useState(build.paths[0]?.id ?? '');
-  return (
-    <div className="space-y-4">
-      <InkCard variant="highlighted" padding="lg">
-        <h2 className="font-heading text-xl">选择宗门修行流派</h2>
-        <p className="text-ink-secondary mt-2 text-sm leading-7">
-          当前宗门：{build.sectName}
-          。选择后可前往宗门修炼心法、参悟经脉或切换流派。
-        </p>
-      </InkCard>
-      <div className="grid gap-3 md:grid-cols-2">
-        {build.paths.map((path) => (
-          <button
-            key={path.id}
-            type="button"
-            onClick={() => setPathId(path.id)}
-            className={`border p-4 text-left ${pathId === path.id ? 'border-crimson bg-crimson/5' : 'border-ink/15'}`}
-          >
-            <strong>{path.name}</strong>
-          </button>
-        ))}
-      </div>
-      <InkCard padding="lg">
-        <h3 className="font-semibold">六心法</h3>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {build.methods.map((method) => (
-            <div
-              key={method.id}
-              className="border-ink/10 flex justify-between border-b py-1 text-sm"
-            >
-              <span>
-                {method.name}
-                {method.isPrimary ? '（主）' : ''}
-              </span>
-              <span>{method.level} 级</span>
-            </div>
-          ))}
-        </div>
-      </InkCard>
-      <InkButton
-        variant="primary"
-        pending={pending}
-        disabled={!pathId}
-        onClick={() => onInitialize(pathId)}
-      >
-        确认流派并开启练功房
-      </InkButton>
-    </div>
-  );
-}
 
 function EncounterSelection({
   content,
@@ -148,16 +85,17 @@ export default function TrainingRoomPage() {
   const { openDialog } = useInkUI();
   const buildQuery = useSectCombatState();
   const build = buildQuery.data;
+  const trainingAvailable = !!build?.membershipId && !!build.sectId;
   const [content, setContent] = useState<ContentView>();
   const combat = useCombatV6Session<CombatV6TrainingSessionViewV1>(
     '/api/combat-v6/training',
-    build?.status === 'active',
+    trainingAvailable,
   );
   const { session, pending, error, run, acceptSession, submit, resolve } =
     combat;
   const [contentError, setContentError] = useState('');
   useEffect(() => {
-    if (build?.status !== 'active') return;
+    if (!trainingAvailable) return;
     const controller = new AbortController();
     request<ContentView>('/api/combat-v6/training/content', {
       signal: controller.signal,
@@ -172,11 +110,11 @@ export default function TrainingRoomPage() {
           );
       });
     return () => controller.abort();
-  }, [build?.status]);
+  }, [trainingAvailable]);
 
   const loading =
     buildQuery.loading ||
-    (build?.status === 'active' &&
+    (trainingAvailable &&
       (combat.loading || (!content && !contentError)));
   const shownError = error || contentError || buildQuery.error || '';
 
@@ -206,28 +144,7 @@ export default function TrainingRoomPage() {
           当前宗门暂时无法使用练功房。
         </InkCard>
       ) : null}
-      {!loading && build?.sectId && build.status !== 'active' ? (
-        <BuildInitialization
-          build={build}
-          pending={pending}
-          onInitialize={(activePathId) =>
-            void run(async () => {
-              const response = await apiFetch('/api/combat-v6/sect/path', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  activePathId,
-                  expectedRevision: build.revision,
-                }),
-              });
-              const next =
-                await consumeResourceMutation<SectCombatView>(response);
-              buildQuery.setData(next);
-            })
-          }
-        />
-      ) : null}
-      {!loading && build?.status === 'active' && content && session === null ? (
+      {!loading && trainingAvailable && content && session === null ? (
         <EncounterSelection
           content={content}
           pending={pending}

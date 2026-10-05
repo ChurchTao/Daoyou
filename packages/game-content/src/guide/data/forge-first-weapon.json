@@ -1,26 +1,26 @@
 {
   "id": "forge-first-weapon",
-  "title": "趁手",
+  "title": "铸一件兵器",
   "steps": [
     {
       "type": "look",
       "anchor": "forge.furnace",
-      "text": "器炉在这里，兵器从这口炉里铸出来。"
+      "text": "宗门前辈让你使用这口器炉，亲手铸一件出门防身的兵器。"
     },
     {
       "type": "look",
       "anchor": "forge.archive",
-      "text": "图录里有兵器图纸，先选出要铸的那一张。"
+      "text": "图录可以查看已有图纸。入门兵器按炼气图纸铸造，所需材料会在炉前列明。"
     },
     {
       "type": "press",
       "anchor": "forge.furnace",
-      "text": "点器炉走近，准备图纸和青石。"
+      "text": "点器炉走近，准备教学图纸和青石。"
     },
     {
       "type": "look",
       "anchor": "forge.fire",
-      "text": "材料备齐后从这里开炉；兵器铸成，这段路才继续。"
+      "text": "教学结束后，选好图纸、青石和器形，核对消耗再确认开炉。真正铸成兵器才能继续，随后还要去储物袋装备它。"
     },
     {
       "type": "end"

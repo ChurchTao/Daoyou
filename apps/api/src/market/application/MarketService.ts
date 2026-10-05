@@ -32,6 +32,11 @@ import {
 } from '@daoyou/game-rules/character/fates';
 import { sampleBeastMarketStock } from '@daoyou/game-rules/market/beast-stock';
 import {
+  equipmentMarketPurchasePrice,
+  sampleEquipmentMarketStock,
+} from '@daoyou/game-rules/market/equipment-stock';
+import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
+import {
   BLACK_MARKET_HIGH_TIER_MIN,
   getCurrentCycle,
   getCycleEndTime,
@@ -54,7 +59,7 @@ import type { PreHeavenFate } from '@daoyou/game-domain/character';
 import type { MarketAccessState, MarketItemListing, MarketLayer, MarketListing, MarketMaterialListing, MysteryRevealContext, RegionProfile, ResolvedLayerConfig } from '@daoyou/game-domain/market';
 import { MARKET_PRESET_FALLBACK_LAYERS } from '@daoyou/game-content/market';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { createHash } from 'node:crypto';
+import { createHash, randomInt } from 'node:crypto';
 import { grantInventory } from '@server/inventory/operations.js';
 import { deliverMarketMaterial } from '@server/market/application/MarketInventoryDelivery.js';
 import {
@@ -490,21 +495,34 @@ function getMarketPriceMultiplier(fates: PreHeavenFate[] = []): number {
   return getMarketPurchasePriceMultiplier(evaluateFateContext(fates));
 }
 
-function getDiscountedMarketPrice(
-  basePrice: number,
+function getListingPurchasePrice(
+  listing: MarketListing,
   fates: PreHeavenFate[] = [],
 ): number {
-  return scaleFateAdjustedCost(basePrice, getMarketPriceMultiplier(fates));
+  const multiplier = getMarketPriceMultiplier(fates);
+  if (
+    'definitionId' in listing &&
+    listing.definitionId === 'equipment.v6' &&
+    listing.instanceData
+  ) {
+    return equipmentMarketPurchasePrice(
+      listing.price,
+      listing.instanceData.equipmentLevel,
+      multiplier,
+    );
+  }
+  return scaleFateAdjustedCost(listing.price, multiplier);
 }
 
 function applyMarketPurchaseDiscount(
   listing: MarketListing,
   fates: PreHeavenFate[] = [],
 ): MarketListing {
-  const discountedPrice = getDiscountedMarketPrice(listing.price, fates);
+  const discountedPrice = getListingPurchasePrice(listing, fates);
   if (discountedPrice >= listing.price) {
     return {
       ...listing,
+      price: discountedPrice,
       basePrice: undefined,
     };
   }
@@ -765,14 +783,15 @@ async function injectSpiritFieldSeedListings(
 }
 
 /**
- * 普通坊市先走持久材料库；御灵集从固定道具配置抽取货品。
+ * 普通坊市先走持久材料库；御灵集抽取固定道具，道装坊生成随机装备。
  * common / treasure 材料不足时使用预设兜底。
  */
 async function generateListings(
   nodeId: string,
   layer: MarketLayer,
 ): Promise<InternalMarketListing[]> {
-  if (getMarketConfigByNodeId(nodeId)?.region_profile === 'beast') {
+  const regionProfile = getMarketConfigByNodeId(nodeId)?.region_profile;
+  if (regionProfile === 'beast') {
     if (layer === 'black')
       throw new MarketServiceError(403, '御灵集未开放黑市');
     const stock = sampleBeastMarketStock(layer);
@@ -789,6 +808,27 @@ async function generateListings(
       quantity: 1,
       price,
     }));
+  }
+  if (regionProfile === 'equipment') {
+    if (layer !== 'common' && layer !== 'treasure')
+      throw new MarketServiceError(403, '道装坊未开放此层');
+    return sampleEquipmentMarketStock({
+      equipmentLevel: layer === 'common' ? 10 : 30,
+      seed: randomInt(0x100000000),
+      createdAt: new Date().toISOString(),
+    }).map(({ instanceData, price }) => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        nodeId,
+        layer,
+        definitionId: 'equipment.v6',
+        name: instanceData.name,
+        instanceData: { ...instanceData, id },
+        quantity: 1,
+        price,
+      };
+    });
   }
   const profile = getRegionProfile(nodeId);
   const layerConfig = resolveLayerConfig(layer, profile);
@@ -913,16 +953,32 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   // Preserve current listing IDs and purchase quotas; retired stock stays off sale.
   return {
     ...asData,
-    listings: asData.listings.filter((item) =>
-      'definitionId' in item
-        ? getMarketConfigByNodeId(item.nodeId)?.region_profile === 'beast' &&
-          (findItemDefinition(item.definitionId)?.kind === 'beast_book' ||
-            findItemDefinition(item.definitionId)?.kind === 'beast_refinement' ||
-            findItemDefinition(item.definitionId)?.kind === 'beast_rejuvenation')
+    listings: asData.listings.filter((item) => {
+      const profile = getMarketConfigByNodeId(item.nodeId)?.region_profile;
+      if (profile === 'equipment') {
+        if (!('definitionId' in item) || item.definitionId !== 'equipment.v6')
+          return false;
+        const equipment = InventoryEquipmentSchema.safeParse(item.instanceData);
+        const equipmentLevel =
+          item.layer === 'common' ? 10 : item.layer === 'treasure' ? 30 : null;
+        return (
+          equipment.success &&
+          equipment.data.equipmentLevel === equipmentLevel &&
+          equipment.data.generatorVersion === 'dao_equipment_generator_v5' &&
+          equipment.data.baseQuality === 0 &&
+          Number.isSafeInteger(item.price) &&
+          item.price > 0
+        );
+      }
+      return 'definitionId' in item
+        ? profile === 'beast' &&
+            (findItemDefinition(item.definitionId)?.kind === 'beast_book' ||
+              findItemDefinition(item.definitionId)?.kind === 'beast_refinement' ||
+              findItemDefinition(item.definitionId)?.kind === 'beast_rejuvenation')
         : item.type === 'seed'
           ? readSpiritFieldSeedSpec(item.details) !== null
-          : MaterialFactsSchema.shape.type.safeParse(item.type).success,
-    ),
+          : MaterialFactsSchema.shape.type.safeParse(item.type).success;
+    }),
   };
 }
 
@@ -1042,7 +1098,7 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
     return item;
   });
   const totalCost = selected.reduce(
-    (total, item) => total + getDiscountedMarketPrice(item.price, input.fates),
+    (total, item) => total + getListingPurchasePrice(item, input.fates),
     0,
   );
   if (
@@ -1089,7 +1145,16 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
             ? (
                 await grantInventory(
                   cultivatorId,
-                  [{ definitionId: item.definitionId, quantity: 1 }],
+                  [
+                    {
+                      definitionId: item.definitionId,
+                      quantity: 1,
+                      instanceData:
+                        item.definitionId === 'equipment.v6' && item.instanceData
+                          ? { ...item.instanceData, id: crypto.randomUUID() }
+                          : undefined,
+                    },
+                  ],
                   tx,
                 )
               )[0]

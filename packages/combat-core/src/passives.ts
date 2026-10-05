@@ -9,7 +9,7 @@ import { evalExpr } from "./expr.js"
 import type { HookContext } from "./hooks.js"
 import { skillOf } from "./skills.js"
 import { enemiesOf } from './unit-query.js';
-import { resolveSkillTargets } from "./targeting.js"
+import { isUntargetableBy, resolveSkillTargets } from "./targeting.js"
 import type { HookAim as HookAimType } from './enums.js';
 import type { SkillDef, SkillEffect, SkillHook, Unit } from './types.js';
 import { consumeWhen, matchesWhen, targetStatusStacks, type WhenScope } from "./when.js"
@@ -76,6 +76,7 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.limitConsumption === "onAttempt") consumeWhen(ctx, hook.when, scope)
 
           const env = {
+            allyPetSkillUnused: ctx.currentAction?.sourceId === unit.id ? ctx.currentAction.allyPetSkillUnused : false,
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             state: ctx.state,
             normalTargetIds: ctx.currentAction?.normalTargetIds,
@@ -206,7 +207,7 @@ function resolveHookTargets(
   if (aim === HookAim.HookTarget) return hctx.target ? [hctx.target] : []
   if (aim === HookAim.Others) {
     const exclude = new Set<string>([unit.id, hctx.target?.id].filter((id): id is string => Boolean(id)))
-    const pool = enemiesOf(ctx.state, unit).filter((u) => isStanding(u) && !exclude.has(u.id))
+    const pool = enemiesOf(ctx.state, unit).filter((u) => isStanding(u) && !exclude.has(u.id) && !isUntargetableBy(ctx, unit, u))
     const count = Math.max(1, Math.floor(evalExpr(hook.aimCount ?? 1, { skillLevel: 0, targets: pool.length, source: unit })))
     return pickByMode(ctx, pool, hook.aimMode ?? TargetMode.Random, count)
   }

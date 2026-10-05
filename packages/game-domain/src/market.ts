@@ -2,12 +2,13 @@ import type { MaterialType } from './inventory.js';
 import type { Quality } from '@daoyou/constants/qualities';
 import type { RealmType } from '@daoyou/constants/realms';
 import type { Material } from './cultivator.js';
+import type { InventoryEquipment } from './equipment/inventory.js';
 
 
 export type MarketLayer = 'common' | 'treasure' | 'heaven' | 'black';
 
 export type RegionProfileKey =
-  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'beast' | 'default';
+  'tiannan' | 'luanxinghai' | 'dajin' | 'baicao' | 'beast' | 'equipment' | 'default';
 
 
 // ─── 地域差异化 ───
@@ -103,6 +104,7 @@ export type MarketItemListing = MarketListingBase & {
   definitionId: string;
   name: string;
   quantity: number;
+  instanceData?: InventoryEquipment;
 };
 
 

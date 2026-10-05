@@ -8,7 +8,7 @@ import { projectBeastRoster } from '../../beasts/projection.js';
 
 import { captureSkill } from '../../beasts/progression.js';
 
-import { activeBeastSkills, beastPanel } from '../../beasts/projection.js';
+import { activeBeastSkills, beastCombatFacts, beastPanel } from '../../beasts/projection.js';
 
 import { SkillTag, UnitKind } from '@daoyou/combat-core/enums';
 
@@ -130,6 +130,7 @@ export function createWildHost(
       kind: UnitKind.Npc,
       level: c.level,
       attrs: beastPanel(c.beast),
+      combatFacts: beastCombatFacts(c.beast),
       skills,
       skillLevels: Object.fromEntries(
         c.beast.skills.map((id) => [id, c.level]),

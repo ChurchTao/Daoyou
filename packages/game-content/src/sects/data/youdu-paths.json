@@ -815,6 +815,7 @@
     {
       "id": "youdu.path.soul_judge",
       "name": "拘魂锁命",
+      "description": "侧重控制与支援，以魂术造成固定伤害。通过减速、阻止敌人复活和救起同伴影响战局，适合喜欢牵制敌人、照应队友的修士。",
       "requiresConnectedNodes": true,
       "foundationPassives": [],
       "nodes": [
@@ -1082,6 +1083,7 @@
     {
       "id": "youdu.path.poison_master",
       "name": "蚀魂摧形",
+      "description": "侧重魂毒与物理输出。先让敌人中毒，再追击带毒目标扩大伤害收益，适合喜欢持续压制的修士。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "youdu.passive.poison_cycle"

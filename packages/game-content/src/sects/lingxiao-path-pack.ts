@@ -30,7 +30,7 @@ export const LingxiaoPathsPackShape = z.strictObject({
   contentRevision: z.number().int().positive(),
   passives: z.array(z.strictObject({ id, name: text, description: z.string().optional(), hooks: z.array(hook).optional(), modifiers: z.array(lxModifier).optional() })).min(1),
   paths: z.array(z.strictObject({
-    id, name: text, requiresConnectedNodes: z.boolean().optional(), foundationPassives: ids.optional(), grantSkills: ids.optional(), resources: ids.optional(),
+    id, name: text, description: text, requiresConnectedNodes: z.boolean().optional(), foundationPassives: ids.optional(), grantSkills: ids.optional(), resources: ids.optional(),
     nodes: z.array(z.strictObject({
       id, name: text, layer: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6), z.literal(7)]),
       slot: z.union([z.literal(1), z.literal(2), z.literal(3)]), description: text,

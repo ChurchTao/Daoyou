@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
+import { BEAST_SKILLS } from '@daoyou/game-content/beasts';
 import { createBattle } from '@daoyou/combat-core/session';
 import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
@@ -938,7 +939,7 @@ describe('当前场次托管', () => {
       }
     }
   });
-  it('法术灵兽选有效攻击法术，缺蓝降级；物理灵兽普通攻击', () => {
+  it('灵兽选择优于普攻的主动物法技能，缺蓝或技能伤害不足时普攻', () => {
     const physical: SkillDef = {
       id: 'pet-physical',
       name: '物理技',
@@ -962,7 +963,55 @@ describe('当前场次托管', () => {
     expect(petCommand().type).toBe('attack');
     pet.attrs.mp = 100;
     pet.skills = ['pet-physical'];
+    expect(petCommand()).toMatchObject({ type: 'skill', skillId: 'pet-physical' });
+    pet.skillOverrides['pet-physical'] = { ...physical, effects: [{ type: 'physicalHit', coeff: 0.1 }] };
     expect(petCommand().type).toBe('attack');
+  });
+  it('灵兽在护体收益高于普攻时施法，已有灵罡或法力不足时继续攻击', () => {
+    const guard: SkillDef = {
+      ...skills[4],
+      costMp: 'floor(level / 2) + 50',
+      effects: [{ type: 'applyStatus', statusId: 'guard', duration: 6 }],
+    };
+    const statusDefs: StatusDef[] = [{
+      id: 'guard', name: '灵罡', kind: 'guard', category: 'buff', damageTakenSpell: 0.35,
+    }];
+    const battle = fixture([], [guard]);
+    battle.unit('player').attrs.magicAtk = 500;
+    const pet = battle.unit('pet');
+    pet.skills = [guard.id];
+    pet.attrs.hp = 200;
+    const petCommand = () => automaticCommands(
+      battle.snapshot(), 'player', [guard], id => battle.queryCommands(id), { statusDefs },
+    ).find(entry => entry.unitId === 'pet')!.command;
+    expect(battle.queryCommands('pet').skills[0].costs.mp).toBe(80);
+    expect(petCommand()).toMatchObject({ type: 'skill', skillId: guard.id });
+    pet.attrs.mp = 79;
+    expect(petCommand().type).toBe('attack');
+    pet.attrs.mp = 100;
+    battle.applyStatus('pet', 'guard', 6);
+    expect(petCommand().type).toBe('attack');
+  });
+  it('凌风掠影按力量和速度估值，识别人物 NPC 半伤并沿用动态费用预检', () => {
+    const wind = BEAST_SKILLS.find(skill => skill.id === 'beast.wind-strike')!;
+    const battle = fixture([], [wind]);
+    const pet = battle.unit('pet');
+    pet.skills = [wind.id];
+    pet.combatFacts = { strength: 300 };
+    pet.attrs.speed = 150;
+    const choosePet = () => automaticCommands(
+      battle.snapshot(), 'player', [wind], id => battle.queryCommands(id),
+    ).find(entry => entry.unitId === 'pet')!.command;
+    const value = () => rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', []), 'pet', [wind], [], battle.queryCommands('pet'),
+    ).find(candidate => candidate.command.type === 'skill')!.benefits.offense;
+    expect(choosePet()).toMatchObject({ type: 'skill', skillId: wind.id });
+    const beastDamage = value();
+    battle.unit('enemy').combatFacts = { isCharacter: 1 };
+    expect(value()).toBe(beastDamage / 2);
+    expect(battle.queryCommands('pet').skills[0].costs.mp).toBe(80);
+    pet.attrs.mp = 79;
+    expect(choosePet().type).toBe('attack');
   });
   it('大乘红尘正常构筑会进攻，而不是反复施放剑意增益', () => {
     const lingxiao = towerReferenceBuild('lingxiao', '大乘');
@@ -1395,6 +1444,16 @@ describe('通用效用策略与观察边界', () => {
     );
     enemy.attrs.hp /= 2;
     expect(observeAutoBattle(changed, 'player', [])).not.toEqual(observation);
+  });
+  it('只公开 NPC 的人物与生灵类别，不公开其属性事实', () => {
+    const battle = fixture();
+    const enemy = battle.unit('enemy');
+    enemy.combatFacts = { isCharacter: 1, strength: 999, defenseTraining: 300 };
+    const character = observeAutoBattle(battle.snapshot(), 'player', []).units.find(unit => unit.id === 'enemy')!;
+    expect(character.combatFacts).toEqual({ isCharacter: 1, isBeast: 0 });
+    enemy.combatFacts = { isBeast: 1, strength: 999, defenseTraining: 300 };
+    const beast = observeAutoBattle(battle.snapshot(), 'player', []).units.find(unit => unit.id === 'enemy')!;
+    expect(beast.combatFacts).toEqual({ isCharacter: 0, isBeast: 1 });
   });
 
   it('角色规则可覆盖通用评分，但只选择合法候选', () => {

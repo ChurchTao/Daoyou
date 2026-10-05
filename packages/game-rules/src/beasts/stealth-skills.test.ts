@@ -1,9 +1,11 @@
-import { expect, it } from 'vitest';
-import { CommandType, EventType } from '@daoyou/combat-core/enums';
+import { CommandType, EventType, TargetMode } from '@daoyou/combat-core/enums';
 import { createBattle, restoreBattle } from '@daoyou/combat-core/session';
-import { createDaoyouRuleset } from '../combat/daoyou/index.js';
-import { COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS } from '@daoyou/game-domain/combat';
+import type { Command } from '@daoyou/combat-core/types';
 import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
+import { YOUDU_V6_DEFINITION } from '@daoyou/game-content/sects/youdu';
+import { COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS } from '@daoyou/game-domain/combat';
+import { expect, it } from 'vitest';
+import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 const ruleset = createDaoyouRuleset({
   formulas: {
     physicalHitChance: () => 1,
@@ -27,7 +29,7 @@ function input(
     versions: COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS,
     ruleset,
     skills: BEAST_SKILLS,
-    statusDefs: BEAST_STATUS_DEFS,
+    statusDefs: [...BEAST_STATUS_DEFS, ...YOUDU_V6_DEFINITION.statuses],
     units: [
       {
         id: 'pet',
@@ -87,27 +89,103 @@ it.each([
     expect(b.queryCommands('pet').skills[0].ready).toBe(true);
   },
 );
-it('无灵觉单法不可选隐身，灵觉可选，群法仍可选', () => {
-  const hidden = createBattle(input());
-  const options = hidden.queryCommands('enemy');
-  expect(options.attackTargetIds).not.toContain('pet');
-  expect(
-    options.skills.find((s) => s.skillId === 'beast.spirit-flame')!
-      .selectableTargetIds,
-  ).not.toContain('pet');
-  expect(
-    options.skills.find((s) => s.skillId === 'beast.thunderstorm')!
-      .selectableTargetIds,
-  ).toContain('pet');
-  for (const id of ['beast.perception', 'beast.advanced-perception']) {
-    const b = createBattle(input('beast.stealth', [id]));
-    expect(b.queryCommands('enemy').attackTargetIds).toContain('pet');
-    b.submit('enemy', { type: CommandType.Attack, target: 'pet' });
-    b.submit('pet', { type: CommandType.Defend });
-    b.submit('owner', { type: CommandType.Defend });
-    b.lockAndResolve();
-    expect(b.unit('pet').attrs.hp).toBe(900);
+for (const stealth of [
+  'beast.stealth',
+  'beast.advanced-stealth',
+  'youdu.status.stealth',
+]) {
+  for (const reveal of [
+    undefined,
+    'beast.perception',
+    'beast.advanced-perception',
+    'youdu.status.insight',
+    'youdu.status.insight_strong',
+  ]) {
+    it.each(['attack', 'beast.spirit-flame', 'beast.thunderstorm'])(
+      `${stealth} / ${reveal ?? '无看破'}：%s 的选敌和实际伤害遵循看破能力`,
+      (attack) => {
+        const data = input(
+          stealth,
+          reveal?.startsWith('beast.') ? [reveal] : [],
+        );
+        if (stealth.startsWith('youdu.')) data.units[0].passives = [];
+        const b = createBattle(data);
+        if (stealth.startsWith('youdu.'))
+          b.applyStatus('pet', stealth, 3, 'owner');
+        if (reveal?.startsWith('youdu.')) b.applyStatus('enemy', reveal, 3);
+        const options = b.queryCommands('enemy');
+        const targets =
+          attack === 'attack'
+            ? options.attackTargetIds
+            : options.skills.find((s) => s.skillId === attack)!
+                .selectableTargetIds;
+        expect(targets.includes('pet')).toBe(Boolean(reveal));
+        expect(targets).toContain('owner');
+        const command: Command =
+          attack === 'attack'
+            ? { type: CommandType.Attack, target: 'pet' }
+            : {
+                type: CommandType.Skill,
+                skillId: attack,
+                targets: ['pet', 'owner'],
+              };
+        b.submit('enemy', command);
+        b.submit('pet', { type: CommandType.Defend });
+        b.submit('owner', { type: CommandType.Defend });
+        b.lockAndResolve();
+        expect(b.unit('pet').attrs.hp).toBe(reveal ? 900 : 1000);
+        if (!reveal || attack === 'beast.thunderstorm') {
+          expect(b.unit('owner').attrs.hp).toBe(900);
+        }
+      },
+    );
   }
+}
+
+it.each(Object.values(TargetMode))('群法 %s 选敌模式不能绕过隐身', (mode) => {
+  const data = input();
+  data.skills = data.skills.map((skill) =>
+    skill.id === 'beast.thunderstorm'
+      ? { ...skill, targeting: { ...skill.targeting, mode, count: 2 } }
+      : skill,
+  );
+  const b = createBattle(data);
+  expect(
+    b
+      .queryCommands('enemy')
+      .skills.find((s) => s.skillId === 'beast.thunderstorm')!
+      .selectableTargetIds,
+  ).toEqual(['owner']);
+  b.submit('enemy', {
+    type: CommandType.Skill,
+    skillId: 'beast.thunderstorm',
+    targets: ['pet', 'owner'],
+  });
+  b.submit('pet', { type: CommandType.Defend });
+  b.submit('owner', { type: CommandType.Defend });
+  b.lockAndResolve();
+  expect(b.unit('pet').attrs.hp).toBe(1000);
+  expect(b.unit('owner').attrs.hp).toBe(900);
+});
+
+it('看破状态到期后，群法重新无法命中仍在隐身的灵兽', () => {
+  const b = createBattle(input('beast.advanced-stealth'));
+  b.applyStatus('enemy', 'youdu.status.insight', 1);
+  expect(b.queryCommands('enemy').attackTargetIds).toContain('pet');
+  defend(b);
+  defend(b);
+  expect(b.unit('pet').statuses).toHaveLength(1);
+  expect(b.queryCommands('enemy').attackTargetIds).not.toContain('pet');
+  b.submit('enemy', {
+    type: CommandType.Skill,
+    skillId: 'beast.thunderstorm',
+    targets: ['owner'],
+  });
+  b.submit('pet', { type: CommandType.Defend });
+  b.submit('owner', { type: CommandType.Defend });
+  b.lockAndResolve();
+  expect(b.unit('pet').attrs.hp).toBe(1000);
+  expect(b.unit('owner').attrs.hp).toBe(900);
 });
 it('后备首次召出才隐身，召回再出战不重复触发，恢复快照不重抽', () => {
   const data = input('beast.stealth', [], true);

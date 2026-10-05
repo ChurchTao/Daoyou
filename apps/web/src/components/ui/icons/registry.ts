@@ -9,8 +9,153 @@ export const iconRegistry: ReadonlyMap<string, string> = new Map([
   ['map-sect', '/assets/icons/map-sect.webp'],
   ['map-landmark', '/assets/icons/map-landmark.webp'],
 
+  [
+    'beast-skill-all-seeing',
+    '/assets/icons/beast-skill-all-seeing-totem-v2.webp',
+  ],
+  [
+    'beast-skill-bloodthirsty-pursuit',
+    '/assets/icons/beast-skill-bloodthirsty-pursuit-totem-v2.webp',
+  ],
+  [
+    'beast-skill-surprise-spell',
+    '/assets/icons/beast-skill-surprise-spell-totem-v2.webp',
+  ],
+  [
+    'beast-skill-innate-wisdom',
+    '/assets/icons/beast-skill-innate-wisdom-totem-v2.webp',
+  ],
+  [
+    'beast-skill-unanticipated',
+    '/assets/icons/beast-skill-unanticipated-totem-v2.webp',
+  ],
+  [
+    'beast-skill-overwhelming-might',
+    '/assets/icons/beast-skill-overwhelming-might-totem-v2.webp',
+  ],
+  [
+    'beast-skill-spirit-guard',
+    '/assets/icons/beast-skill-spirit-guard-totem-v2.webp',
+  ],
+  [
+    'beast-skill-wind-strike',
+    '/assets/icons/beast-skill-wind-strike-totem-v2.webp',
+  ],
+  [
+    'beast-skill-barrier-breaker',
+    '/assets/icons/beast-skill-barrier-breaker-totem-v2.webp',
+  ],
+  [
+    'beast-skill-mind-shatter',
+    '/assets/icons/beast-skill-mind-shatter-totem-v2.webp',
+  ],
+  [
+    'beast-skill-radiant-barrier',
+    '/assets/icons/beast-skill-radiant-barrier-totem-v2.webp',
+  ],
+  [
+    'beast-skill-auspicious-vitality',
+    '/assets/icons/beast-skill-auspicious-vitality-totem-v2.webp',
+  ],
+  [
+    'beast-skill-spell-reflection',
+    '/assets/icons/beast-skill-spell-reflection-totem-v2.webp',
+  ],
+  [
+    'beast-skill-spell-resistance',
+    '/assets/icons/beast-skill-spell-resistance-totem-v2.webp',
+  ],
+  ['beast-skill-miracle', '/assets/icons/beast-skill-miracle-totem-v2.webp'],
+  [
+    'beast-skill-spell-combo',
+    '/assets/icons/beast-skill-spell-combo-totem-v2.webp',
+  ],
+  ['beast-skill-exorcism', '/assets/icons/beast-skill-exorcism-totem-v2.webp'],
+  ['beast-skill-wisdom', '/assets/icons/beast-skill-wisdom-totem-v2.webp'],
+  [
+    'beast-skill-spell-mastery',
+    '/assets/icons/beast-skill-spell-mastery-totem-v2.webp',
+  ],
+  [
+    'beast-skill-concentration',
+    '/assets/icons/beast-skill-concentration-totem-v2.webp',
+  ],
+  ['beast-skill-denial', '/assets/icons/beast-skill-denial-totem-v2.webp'],
+  ['beast-skill-wildfire', '/assets/icons/beast-skill-wildfire-totem-v2.webp'],
+  [
+    'beast-skill-meditation',
+    '/assets/icons/beast-skill-meditation-totem-v2.webp',
+  ],
+  [
+    'beast-skill-sneak-attack',
+    '/assets/icons/beast-skill-sneak-attack-totem-v2.webp',
+  ],
+  ['beast-skill-parry', '/assets/icons/beast-skill-parry-totem-v2.webp'],
+
+  [
+    'beast-skill-mountain-breaker',
+    '/assets/icons/beast-skill-mountain-breaker-totem-v2.webp',
+  ],
+  [
+    'beast-skill-karmic-retribution',
+    '/assets/icons/beast-skill-karmic-retribution-totem-v2.webp',
+  ],
+  ['beast-skill-combo', '/assets/icons/beast-skill-combo-totem-v2.webp'],
+  ['beast-skill-counter', '/assets/icons/beast-skill-counter-totem-v2.webp'],
+  ['beast-skill-critical', '/assets/icons/beast-skill-critical-totem-v2.webp'],
+  [
+    'beast-skill-lifesteal',
+    '/assets/icons/beast-skill-lifesteal-totem-v2.webp',
+  ],
+  [
+    'beast-skill-reflection',
+    '/assets/icons/beast-skill-reflection-totem-v2.webp',
+  ],
+  ['beast-skill-defense', '/assets/icons/beast-skill-defense-totem-v2.webp'],
+  ['beast-skill-agility', '/assets/icons/beast-skill-agility-totem-v2.webp'],
+  ['beast-skill-sluggish', '/assets/icons/beast-skill-sluggish-totem-v2.webp'],
+  [
+    'beast-skill-regeneration',
+    '/assets/icons/beast-skill-regeneration-totem-v2.webp',
+  ],
+  ['beast-skill-ghost', '/assets/icons/beast-skill-ghost-totem-v2.webp'],
+  ['beast-skill-eternity', '/assets/icons/beast-skill-eternity-totem-v2.webp'],
+  [
+    'beast-skill-water-attack',
+    '/assets/icons/beast-skill-water-attack-totem-v2.webp',
+  ],
+  [
+    'beast-skill-spell-critical',
+    '/assets/icons/beast-skill-spell-critical-totem-v2.webp',
+  ],
+  [
+    'beast-skill-spell-fluctuation',
+    '/assets/icons/beast-skill-spell-fluctuation-totem-v2.webp',
+  ],
+
   ['cultivator-male-avatar', '/assets/icons/cultivator-male-avatar.png'],
   ['cultivator-female-avatar', '/assets/icons/cultivator-female-avatar.png'],
+  ['beast-spirit-fox', '/assets/icons/beast-spirit-fox.webp'],
+  ['beast-rock-boar', '/assets/icons/beast-rock-boar.webp'],
+  ['beast-wind-wolf', '/assets/icons/beast-wind-wolf.webp'],
+  ['beast-red-tail-scorpion', '/assets/icons/beast-red-tail-scorpion.webp'],
+  ['beast-stoneback-bear', '/assets/icons/beast-stoneback-bear.webp'],
+  ['beast-mingshe', '/assets/icons/beast-mingshe.webp'],
+  ['beast-shen-clam', '/assets/icons/beast-shen-clam.webp'],
+  ['beast-qingluan', '/assets/icons/beast-qingluan.webp'],
+  ['beast-xiezhi', '/assets/icons/beast-xiezhi.webp'],
+  ['beast-nine-tailed-fox', '/assets/icons/beast-nine-tailed-fox.webp'],
+  ['beast-huodou', '/assets/icons/beast-huodou.webp'],
+  ['beast-xuangui', '/assets/icons/beast-xuangui.webp'],
+  ['beast-zhuyan', '/assets/icons/beast-zhuyan.webp'],
+  ['beast-bifang', '/assets/icons/beast-bifang.webp'],
+  ['beast-baize', '/assets/icons/beast-baize.webp'],
+  ['beast-qiongqi', '/assets/icons/beast-qiongqi.webp'],
+  ['beast-taotie', '/assets/icons/beast-taotie.webp'],
+  ['beast-yinglong', '/assets/icons/beast-yinglong.webp'],
+  ['beast-golden-crow', '/assets/icons/beast-golden-crow.webp'],
+  ['beast-qilin', '/assets/icons/beast-qilin.webp'],
+  ['beast-diting', '/assets/icons/beast-diting.webp'],
   ['beast-fire-crow', '/assets/icons/beast-fire-crow.webp'],
   ['beast-mimi', '/assets/icons/beast-mimi.webp'],
   ['beast-nether-tiger', '/assets/icons/beast-nether-tiger.webp'],
@@ -26,8 +171,5 @@ export const iconRegistry: ReadonlyMap<string, string> = new Map([
   ['beast-thunder-peng', '/assets/icons/beast-thunder-peng.webp'],
   ['beast-zheng', '/assets/icons/beast-zheng.webp'],
   ['beast-snake-neck-turtle', '/assets/icons/beast-snake-neck-turtle.webp'],
-  [
-    'beast-golden-toad',
-    '/assets/icons/beast-three-legged-golden-toad.webp',
-  ],
+  ['beast-golden-toad', '/assets/icons/beast-three-legged-golden-toad.webp'],
 ]);

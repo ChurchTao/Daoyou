@@ -1,3 +1,4 @@
+import { getWorldMapLocation } from '@daoyou/game-content/world/map';
 import { describe, expect, it } from 'vitest';
 import { getAtlasLocations } from './mapAtlas.js';
 import {
@@ -7,7 +8,6 @@ import {
   matchesAtlasCategories,
   parseAtlasCategories,
 } from './mapAtlasCategories.js';
-import { getWorldMapLocation } from '@daoyou/game-content/world/map';
 
 const location = (id: string) => getWorldMapLocation(id)!;
 
@@ -34,13 +34,13 @@ describe('atlas single-purpose locations', () => {
     }
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'wild'),
-    ).toHaveLength(10);
+    ).toHaveLength(26);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'dungeon'),
     ).toHaveLength(31);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'market'),
-    ).toHaveLength(8);
+    ).toHaveLength(9);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'sect'),
     ).toHaveLength(5);
@@ -56,7 +56,7 @@ describe('atlas single-purpose locations', () => {
       getAtlasLocations().filter((node) =>
         matchesAtlasCategories(node, ['wild', 'dungeon']),
       ),
-    ).toHaveLength(41);
+    ).toHaveLength(57);
   });
 
   it('uses actual dungeon entrances rather than lore tags or dangerous names', () => {
@@ -73,6 +73,7 @@ describe('atlas single-purpose locations', () => {
       'LX_INNER_01',
       'TN_BAICAO_01',
       'TN_YULING_01',
+      'TN_BAIQI_01',
     ]) {
       expect(getAtlasCategory(location(id))).toBe('market');
     }

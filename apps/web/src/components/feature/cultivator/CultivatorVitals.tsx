@@ -22,7 +22,7 @@ export function CultivatorVitals({
   const statuses = cultivator.condition.statuses;
   return (
     <>
-      <div className="space-y-3">
+      <div data-guide="cultivator.vitals" className="space-y-3">
         {(['hp', 'mp'] as const).map((key) => {
           const resource = display.resources[key];
           const label = key === 'hp' ? '气血' : '法力';

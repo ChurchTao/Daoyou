@@ -299,6 +299,7 @@ export function appendBattleEntries(
 
 const damageKinds = { physical: '物理', spell: '法术', fixed: '固定' };
 const barrierReasons = {
+  decayed: '护盾衰减',
   applied: '获得护盾',
   refreshed: '刷新护盾',
   absorbed: '护盾吸收伤害',

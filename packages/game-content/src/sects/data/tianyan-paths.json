@@ -806,6 +806,7 @@
     {
       "id": "tianyan.path.hetu",
       "name": "衍法天师",
+      "description": "侧重五行法术输出，也能兼顾恢复与护盾。按相生相克顺序施法可获得更多收益，适合喜欢安排出招顺序、兼顾攻守的修士。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "tianyan.passive.yan_root"
@@ -1055,6 +1056,7 @@
     {
       "id": "tianyan.path.luoshu",
       "name": "执衡真君",
+      "description": "侧重法术削弱与控制。运用减速、破盾、驱散和压低敌人伤害来化解攻势，适合喜欢针对敌情选择法术的修士。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "tianyan.passive.heng_root"

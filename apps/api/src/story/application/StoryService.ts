@@ -1,7 +1,9 @@
 import { runDbTasks, type DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
+  cultivatorEquipmentSlots,
   cultivators,
+  sectCombatStates,
   sectMemberships,
 } from '@server/lib/drizzle/schema.js';
 import {
@@ -101,7 +103,7 @@ async function readStoryFacts(
   tx: DbTransaction,
 ): Promise<StoryFacts> {
   const facts = emptyStoryFacts();
-  const [beasts, memberships, rows] = await runDbTasks(tx, [
+  const [beasts, memberships, rows, weapons] = await runDbTasks(tx, [
     () =>
       tx
         .select({ id: cultivatorBeasts.id })
@@ -110,8 +112,12 @@ async function readStoryFacts(
         .limit(1),
     () =>
       tx
-        .select({ id: sectMemberships.id })
+        .select({ id: sectMemberships.id, pathId: sectCombatStates.activePathId })
         .from(sectMemberships)
+        .leftJoin(
+          sectCombatStates,
+          eq(sectCombatStates.membershipId, sectMemberships.id),
+        )
         .where(
           and(
             eq(sectMemberships.cultivatorId, cultivatorId),
@@ -125,9 +131,22 @@ async function readStoryFacts(
         .from(cultivators)
         .where(eq(cultivators.id, cultivatorId))
         .limit(1),
+    () =>
+      tx
+        .select({ id: cultivatorEquipmentSlots.equipmentInstanceId })
+        .from(cultivatorEquipmentSlots)
+        .where(
+          and(
+            eq(cultivatorEquipmentSlots.cultivatorId, cultivatorId),
+            eq(cultivatorEquipmentSlots.slot, 'weapon'),
+          ),
+        )
+        .limit(1),
   ]);
   facts.starter_beast = beasts.length > 0;
   facts.sect_joined = memberships.length > 0;
+  facts.sect_ready = Boolean(memberships[0]?.pathId);
+  facts.weapon_equipped = weapons.length > 0;
   facts.breakthrough_available = rows[0]?.stage === '圆满';
   return facts;
 }
@@ -180,8 +199,8 @@ async function settle(
   );
   const base = stored ?? restingStoryProgress();
   const chapter = getStoryChapter(base.storyId);
-  const progress = rewindToUnwatchedPerformance(chapter, base);
   const facts = await readStoryFacts(cultivatorId, tx);
+  const progress = rewindToUnwatchedPerformance(chapter, base, facts);
   const resolved = mutate(chapter, progress, facts);
   const effect =
     resolved.grants.length > 0
@@ -206,8 +225,9 @@ export const StoryService = {
       (await findCultivatorStory(cultivatorId, 'main', MAIN_STORY_ID, tx)) ??
       restingStoryProgress();
     const chapter = getStoryChapter(stored.storyId);
-    const progress = rewindToUnwatchedPerformance(chapter, stored);
-    return presentStory(chapter, progress, await readStoryFacts(cultivatorId, tx));
+    const facts = await readStoryFacts(cultivatorId, tx);
+    const progress = rewindToUnwatchedPerformance(chapter, stored, facts);
+    return presentStory(chapter, progress, facts);
   },
 
   async completePerformance(

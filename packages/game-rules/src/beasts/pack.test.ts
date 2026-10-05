@@ -1,22 +1,22 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
-import { BOOKS } from '@daoyou/game-content/items/beasts';
-import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
-import progression from '@daoyou/game-content/authoring/beasts/progression' with { type: 'json' };
 import {
   BEASTS_PROGRESSION_SCHEMA as progressionSchema,
   BEASTS_SKILLS_SCHEMA as skillsSchema,
   BEASTS_SPECIES_SCHEMA as speciesSchema,
 } from '@daoyou/game-content/authoring/beasts';
+import progression from '@daoyou/game-content/authoring/beasts/progression' with { type: 'json' };
 import skills from '@daoyou/game-content/authoring/beasts/skills' with { type: 'json' };
 import species from '@daoyou/game-content/authoring/beasts/species' with { type: 'json' };
-import { generateStarterBeast } from './generator.js';
+import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import { BOOKS } from '@daoyou/game-content/items/beasts';
 import {
   BeastProgressionPackShape,
   BeastSkillsPackShape,
   BeastSpeciesPackShape,
   loadBeastPacks,
 } from '@daoyou/game-domain/beasts/authoring';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { generateStarterBeast } from './generator.js';
 
 function input() {
   return structuredClone({ species, skills, progression });
@@ -26,11 +26,21 @@ function load(p: ReturnType<typeof input>) {
 }
 
 describe('beast content packs', () => {
-  it('registers the initial species, books and matching schemas', () => {
-    expect(BEAST_SPECIES).toHaveLength(18);
-    for (const realm of ['炼气', '筑基', '金丹', '元婴', '化神'])
+  it('registers all realms, books and matching schemas', () => {
+    expect(BEAST_SPECIES).toHaveLength(34);
+    for (const realm of [
+      '炼气',
+      '筑基',
+      '金丹',
+      '元婴',
+      '化神',
+      '炼虚',
+      '合体',
+      '大乘',
+      '渡劫',
+    ])
       expect(BEAST_SPECIES.filter((s) => s.realm === realm)).toHaveLength(
-        ['炼气', '元婴', '化神'].includes(realm) ? 4 : 3,
+        ['筑基', '金丹'].includes(realm) ? 3 : 4,
       );
     expect(BEAST_SPECIES.filter((s) => s.starter).map((s) => s.name)).toEqual([
       '烛尾狐',
@@ -55,7 +65,8 @@ describe('beast content packs', () => {
     )!;
     groupSpell.advanced = false;
     expect(
-      load(p).skills.skills.find((skill) => skill.id === groupSpell.id)?.advanced,
+      load(p).skills.skills.find((skill) => skill.id === groupSpell.id)
+        ?.advanced,
     ).toBe(false);
   });
 
@@ -259,7 +270,9 @@ it('uses edited generation ranges without invalidating existing individual rolls
   };
   copy.species[0].growthMilli = { min: 1200, max: 1200 };
   vi.resetModules();
-  vi.doMock('@daoyou/game-content/authoring/beasts/species', () => ({ default: copy }));
+  vi.doMock('@daoyou/game-content/authoring/beasts/species', () => ({
+    default: copy,
+  }));
   const { generateStarterBeast: generate, generateCapturedBeast } =
     await import('./generator.js');
   const { BeastSchema } = await import('./schema.js');
@@ -298,7 +311,9 @@ it('uses edited points, experience, lifespan and panel parameters consistently',
   };
   copy.panel.health = { aptitudeCoefficient: 0, attributeCoefficient: 7 };
   vi.resetModules();
-  vi.doMock('@daoyou/game-content/authoring/beasts/progression', () => ({ default: copy }));
+  vi.doMock('@daoyou/game-content/authoring/beasts/progression', () => ({
+    default: copy,
+  }));
   const { generateStarterBeast: generate } = await import('./generator.js');
   const { beastPanel, canDeployBeast } = await import('./projection.js');
   const { gainBeastExp, nextBeastExp, beastRestCost, loseBeastLifespan } =
@@ -320,9 +335,10 @@ it('derives book availability from the skill pack', async () => {
   const copy = structuredClone(skills);
   copy.skills[0].book = false;
   vi.resetModules();
-  vi.doMock('@daoyou/game-content/authoring/beasts/skills', () => ({ default: copy }));
-  const { BOOKS: books } =
-    await import('@daoyou/game-content/items/beasts');
+  vi.doMock('@daoyou/game-content/authoring/beasts/skills', () => ({
+    default: copy,
+  }));
+  const { BOOKS: books } = await import('@daoyou/game-content/items/beasts');
   expect(books.map((b) => b.skillId)).toEqual(
     copy.skills.filter((s) => s.book).map((s) => s.id),
   );

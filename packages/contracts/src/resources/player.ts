@@ -537,7 +537,13 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
           isPrimary: z.boolean(),
         }),
       ),
-      paths: z.array(z.object({ id: z.string(), name: z.string() })),
+      paths: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          description: z.string().min(1),
+        }),
+      ),
     })
     .strict(),
   'player.mail-summary': z

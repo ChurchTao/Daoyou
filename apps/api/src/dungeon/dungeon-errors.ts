@@ -1,4 +1,5 @@
 import { DungeonFlowError } from '@server/dungeon/application/flow/DungeonFlowService.js';
+import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { DungeonStartError } from '@server/dungeon/application/DungeonApplicationService.js';
 import {
@@ -12,7 +13,7 @@ import { JsonBodyParseError } from '../http/json-body.js';
 function flowError(error: unknown): Response | undefined {
   return (
     redisLockErrorResponse(error) ??
-    (error instanceof DungeonFlowError
+    (error instanceof DungeonFlowError || error instanceof CombatV6BuildError
       ? Response.json(
           { error: error.message, code: error.code },
           { status: error.status },

@@ -4,6 +4,8 @@ packages:
 
 injectWorkspacePackages: true
 autoInstallPeers: false
+resolvePeersFromWorkspaceRoot: false
+dedupePeerDependents: false
 onlyBuiltDependencies:
   - esbuild
 

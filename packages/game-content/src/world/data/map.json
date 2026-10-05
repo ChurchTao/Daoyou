@@ -80,6 +80,19 @@
       "description": "天南驭兽师汇集的坊市，灵印匠与灵药师在此售卖灵兽传承和洗炼灵露。"
     },
     {
+      "id": "TN_BAIQI_01",
+      "name": "天南·百器集",
+      "region": "天南",
+      "realm_requirement": "炼气",
+      "market_config": {
+        "enabled": true,
+        "allowed_layers": ["common", "treasure"],
+        "region_profile": "equipment"
+      },
+      "tags": ["基础道装", "炼气", "筑基"],
+      "description": "天南炼器师经营的成装集市，专售炼气与筑基境界的基础道装。购入后按境界要求穿戴，无需图纸与铸造材料。"
+    },
+    {
       "id": "TN_ZMG_01",
       "name": "坠魔谷",
       "region": "天南",
@@ -713,6 +726,242 @@
       "environmental_status": null,
       "tags": ["野外寻觅", "灵兽栖息"],
       "description": "高崖伸入云海，积雷在峰间低鸣，宽阔岩台上散着苍青羽翎。"
+    },
+    {
+      "id": "WILD_RIFT_WALLS",
+      "wild_encounter_id": "combat.wild.region.rift-walls",
+      "name": "玄黄裂渊·悬风石壁",
+      "parent_id": "DJ_RIFT_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "炼虚",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息"
+      ],
+      "description": "裂渊石壁间的罡风时急时缓，薄翼与巨羽掠过断岩，石缝中留着长躯攀行的细痕。"
+    },
+    {
+      "id": "WILD_PEARL_BEND",
+      "wild_encounter_id": "combat.wild.region.pearl-bend",
+      "name": "玄黄裂渊·珠露暗湾",
+      "parent_id": "DJ_RIFT_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "炼虚",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息"
+      ],
+      "description": "灵液沿岩壁凝珠滴落，暗湾水色幽青，沉水石边时见双壳微张，老龟伏在苔痕深处。"
+    },
+    {
+      "id": "WILD_RESIN_GROVE",
+      "wild_encounter_id": "combat.wild.region.resin-grove",
+      "name": "玄黄裂渊·听泉古林",
+      "parent_id": "DJ_RIFT_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "炼虚",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息"
+      ],
+      "description": "古木根系攀住涧壁，泉声穿林，青鸾沿树冠掠过，银翅螳螂静伏枝叶间。"
+    },
+    {
+      "id": "WILD_BROKEN_UPLAND",
+      "wild_encounter_id": "combat.wild.region.broken-upland",
+      "name": "玄黄裂渊·断岩高甸",
+      "parent_id": "DJ_RIFT_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "炼虚",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息"
+      ],
+      "description": "碎裂石岭上生着低矮灵草，独角兽的蹄印绕开松动岩层，远处偶有赤褐尾影横过。"
+    },
+    {
+      "id": "WILD_MIST_LANTERN_WOOD",
+      "wild_encounter_id": "combat.wild.region.mist-lantern-wood",
+      "name": "九幽冥海·雾灯林",
+      "parent_id": "DJ_VOID_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "合体",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "海雾漫过古林，狐貂踪迹在灵泉边交错；浓雾深处偶有九尾舒展，转瞬隐入树影。"
+    },
+    {
+      "id": "WILD_MOLTEN_TIDE_SHORE",
+      "wild_encounter_id": "combat.wild.region.molten-tide-shore",
+      "name": "九幽冥海·熔潮岸",
+      "parent_id": "DJ_VOID_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "合体",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "黑潮拍打地火裂隙，赤喉鸦与金蟾盘踞热岩，灰烬间偶尔留下深长犬足印。"
+    },
+    {
+      "id": "WILD_SUNKEN_STAR_REEF",
+      "wild_encounter_id": "combat.wild.region.sunken-star-reef",
+      "name": "九幽冥海·沉星礁",
+      "parent_id": "DJ_VOID_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "合体",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "幽深礁池中蛟影游走，老龟与巨蚌伏在水底；罕见的鸟首长尾从礁缝间探出。"
+    },
+    {
+      "id": "WILD_BROKEN_ARMS_FOREST",
+      "wild_encounter_id": "combat.wild.region.broken-arms-forest",
+      "name": "九幽冥海·断兵石林",
+      "parent_id": "DJ_VOID_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "合体",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "古战场的断石如林，灵猿与凶虫循石隙而行，深处偶传赤足踏石的沉响。"
+    },
+    {
+      "id": "WILD_CINNABAR_NESTS",
+      "wild_encounter_id": "combat.wild.region.cinnabar-nests",
+      "name": "太虚天关·丹霞危巢",
+      "parent_id": "DJ_SKY_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "大乘",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "炽热断壁高悬云上，灵禽在危巢间穿行；赤纹独足的长羽身影偶尔停在最高枯枝。"
+    },
+    {
+      "id": "WILD_JADE_SPRING_GARDEN",
+      "wild_encounter_id": "combat.wild.region.jade-spring-garden",
+      "name": "太虚天关·玉泉旧苑",
+      "parent_id": "DJ_SKY_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "大乘",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "荒废古苑仍有灵泉涌流，鹤与独角兽循水歇息，泉雾中偶现白毛长鬃的静立异兽。"
+    },
+    {
+      "id": "WILD_WINDBREAK_CLIFF",
+      "wild_encounter_id": "combat.wild.region.windbreak-cliff",
+      "name": "太虚天关·折翼崖",
+      "parent_id": "DJ_SKY_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "大乘",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "罡风在折断山崖间回旋，狼虎伏于背风石隙；偶有带翼虎形自高处掠落。"
+    },
+    {
+      "id": "WILD_BURIED_BONE_TERRACE",
+      "wild_encounter_id": "combat.wild.region.buried-bone-terrace",
+      "name": "太虚天关·埋骨荒台",
+      "parent_id": "DJ_SKY_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "大乘",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "古战台上碎骨与残石深埋，猪熊循地脉翻寻灵物，偶有卷角巨口在尘灰后缓缓张开。"
+    },
+    {
+      "id": "WILD_SKYFALL_CASCADE",
+      "wild_encounter_id": "combat.wild.region.skyfall-cascade",
+      "name": "飞升台·万劫雷狱·垂天水瀑",
+      "parent_id": "DJ_TRIB_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "渡劫",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "天水悬落于雷云之间，蛟蛇逐流，巨蚌闭壳纳息；双翼龙影极偶尔穿过瀑顶。"
+    },
+    {
+      "id": "WILD_ASHEN_SUN_PEAK",
+      "wild_encounter_id": "combat.wild.region.ashen-sun-peak",
+      "name": "飞升台·万劫雷狱·烬日峰",
+      "parent_id": "DJ_TRIB_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "渡劫",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "劫火余温烧灼峰顶，鸦鹏与金蟾各占热岩；偶有三足乌影展翼，羽缘泛起暗金火色。"
+    },
+    {
+      "id": "WILD_RENEWED_GREEN",
+      "wild_encounter_id": "combat.wild.region.renewed-green",
+      "name": "飞升台·万劫雷狱·劫后青原",
+      "parent_id": "DJ_TRIB_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "渡劫",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "焦土间新草成片，熊鹤饮露，独角兽沿山岭行走；罕见的鳞甲长角身影踏过青原。"
+    },
+    {
+      "id": "WILD_SILENT_THUNDER_STELES",
+      "wild_encounter_id": "combat.wild.region.silent-thunder-steles",
+      "name": "飞升台·万劫雷狱·寂雷碑谷",
+      "parent_id": "DJ_TRIB_01",
+      "type": "灵兽栖息地",
+      "realm_requirement": "渡劫",
+      "environmental_status": null,
+      "tags": [
+        "野外寻觅",
+        "灵兽栖息",
+        "稀有异兽"
+      ],
+      "description": "古雷碑沉寂无声，虎蝶与灵狼出没幽隙；碑基深处偶有独角长耳异兽伏地听息。"
     }
   ]
 }

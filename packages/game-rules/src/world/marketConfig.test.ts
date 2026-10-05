@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   getDominantMarketMaterialTypes,
   getLayerConfig,
+  getMarketConfigByNodeId,
   getMarketNodeSwitchOptions,
   getMarketProfileHint,
   resolveMarketSwitchLayer,
+  validateLayerAccess,
 } from './marketConfig.js';
 
 describe('marketConfig display helpers', () => {
@@ -63,6 +65,16 @@ describe('marketConfig display helpers', () => {
   it('falls back to an available layer when switching market nodes', () => {
     expect(resolveMarketSwitchLayer('TN_YUE_01', 'black')).toBe('black');
     expect(resolveMarketSwitchLayer('TN_YUE_02', 'black')).toBe('common');
+    expect(resolveMarketSwitchLayer('TN_BAIQI_01', 'heaven')).toBe('common');
+  });
+
+  it('keeps early equipment stock accessible only through its intended layers', () => {
+    const config = getMarketConfigByNodeId('TN_BAIQI_01');
+    expect(validateLayerAccess('炼气', 'common', config).allowed).toBe(true);
+    expect(validateLayerAccess('炼气', 'treasure', config).allowed).toBe(false);
+    expect(validateLayerAccess('筑基', 'treasure', config).allowed).toBe(true);
+    expect(validateLayerAccess('元婴', 'heaven', config).allowed).toBe(false);
+    expect(validateLayerAccess('筑基', 'black', config).allowed).toBe(false);
   });
 
   it('configures black market as high-risk high-tier stock', () => {

@@ -352,6 +352,7 @@
                     "onHitCalc",
                     "onDefenseIgnoreCalc",
                     "onBeHit",
+                    "afterDamage",
                     "afterHit",
                     "afterStrike",
                     "onFatal",

@@ -1,24 +1,22 @@
-import { getMapNode } from '@daoyou/game-content/world/map';
-import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
-import {
-  BEAST_PROGRESSION,
-  BEAST_SPECIES,
-} from '@daoyou/game-content/beasts';
-import { BeastSchema } from '../../beasts/schema.js';
 import {
   COMBAT_WILD_WILD_DATA as raw,
   COMBAT_WILD_WILD_SCHEMA as schema,
 } from '@daoyou/game-content/authoring/combat';
 import {
+  BEAST_PROGRESSION,
+  BEAST_RARE_SPECIES_IDS,
+  BEAST_SPECIES,
+} from '@daoyou/game-content/beasts';
+import { WildPackShape, loadWildPack } from '@daoyou/game-content/combat/wild';
+import { getMapNode } from '@daoyou/game-content/world/map';
+import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
+import { BeastSchema } from '../../beasts/schema.js';
+import {
   generateWildEncounter,
   generateWildIndividual,
   wildAllocation,
 } from './generator.js';
-import {
-  WildPackShape,
-  loadWildPack,
-} from '@daoyou/game-content/combat/wild';
 
 const nodeId = raw.regions[0].nodeId;
 describe('野外寻觅配置与个体生成', () => {
@@ -118,8 +116,8 @@ describe('野外寻觅配置与个体生成', () => {
   });
 });
 
-it('十个节点覆盖全部物种，地图名称、境界与关联配置一致', () => {
-  expect(raw.regions).toHaveLength(10);
+it('二十六个节点覆盖全部物种，地图名称、境界与关联配置一致', () => {
+  expect(raw.regions).toHaveLength(26);
   expect(
     new Set(raw.regions.flatMap((r) => r.species.map((s) => s.speciesId))),
   ).toEqual(new Set(BEAST_SPECIES.map((s) => s.id)));
@@ -136,18 +134,99 @@ it('混居节点对每种成年个体应用独立等级范围，幼崽始终0级
   const pack = loadWildPack(raw);
   for (const r of pack.regions) {
     const seen = new Set<string>();
-    for (let seed = 0; seed < 256; seed++)
-      for (const c of generateWildEncounter(r.nodeId, seed, pack)) {
-        const entry = r.species.find((s) => s.speciesId === c.speciesId)!;
-        expect(entry).toBeDefined();
-        seen.add(c.speciesId);
-        if (c.level !== 0) {
-          expect(c.level).toBeGreaterThanOrEqual(entry.minLevel);
-          expect(c.level).toBeLessThanOrEqual(entry.maxLevel);
+    for (const chance of [0, 1]) {
+      const sample = structuredClone(pack);
+      sample.regions.find((region) => region.id === r.id)!.rareChance = chance;
+      for (let seed = 0; seed < 256; seed++)
+        for (const c of generateWildEncounter(r.nodeId, seed, sample)) {
+          const entry = r.species.find((s) => s.speciesId === c.speciesId)!;
+          expect(entry).toBeDefined();
+          seen.add(c.speciesId);
+          if (c.level !== 0) {
+            expect(c.level).toBeGreaterThanOrEqual(entry.minLevel);
+            expect(c.level).toBeLessThanOrEqual(entry.maxLevel);
+          }
         }
-      }
+    }
     expect(seen).toEqual(new Set(r.species.map((s) => s.speciesId)));
   }
+});
+
+it('稀有池必须配置概率、保留普通池，概率不得越界或引用空池', () => {
+  const source = loadWildPack(raw);
+  const index = source.regions.findIndex((r) => r.rareChance !== undefined);
+  const missing = structuredClone(source);
+  delete missing.regions[index].rareChance;
+  expect(() => loadWildPack(missing)).toThrow('稀有概率');
+  const emptyCommon = structuredClone(source);
+  emptyCommon.regions[index].species = emptyCommon.regions[
+    index
+  ].species.filter((s) => BEAST_RARE_SPECIES_IDS.has(s.speciesId));
+  expect(() => loadWildPack(emptyCommon)).toThrow('普通物种');
+  const noRare = structuredClone(source);
+  noRare.regions[0].rareChance = 0.008;
+  expect(() => loadWildPack(noRare)).toThrow('稀有物种');
+  for (const value of [-0.01, 1.01]) {
+    const invalid = structuredClone(source);
+    invalid.regions[index].rareChance = value;
+    expect(() => loadWildPack(invalid)).toThrow('rareChance');
+  }
+});
+
+it('稀有概率逐位置独立控制，普通低阶物种使用栖息地等级', () => {
+  const pack = loadWildPack(raw);
+  const region = pack.regions.find((r) => r.realmRequirement === '合体')!;
+  pack.encounter.minCount = pack.encounter.maxCount = 3;
+  pack.encounter.cubChance = pack.encounter.mutantChance = 0;
+  for (const chance of [0, 1]) {
+    region.rareChance = chance;
+    for (let seed = 0; seed < 100; seed++) {
+      for (const c of generateWildEncounter(region.nodeId, seed, pack)) {
+        expect(BEAST_RARE_SPECIES_IDS.has(c.speciesId)).toBe(chance === 1);
+        expect(c.level).toBeGreaterThanOrEqual(125);
+        expect(c.level).toBeLessThanOrEqual(135);
+      }
+    }
+  }
+  region.rareChance = 0.008;
+  pack.encounter.mutantChance = 0.008;
+  const rareBySlot = [0, 0, 0];
+  let both = 0;
+  let mixed = false;
+  for (let seed = 0; seed < 50000; seed++) {
+    const group = generateWildEncounter(region.nodeId, seed, pack);
+    group.forEach((c, slot) => {
+      if (BEAST_RARE_SPECIES_IDS.has(c.speciesId)) {
+        rareBySlot[slot]++;
+        if (c.isMutant) {
+          both++;
+          expect(c.level).toBe(0);
+        }
+      }
+    });
+    const count = group.filter((c) =>
+      BEAST_RARE_SPECIES_IDS.has(c.speciesId),
+    ).length;
+    mixed ||= count > 0 && count < 3;
+  }
+  rareBySlot.forEach((count) => {
+    expect(count / 50000).toBeGreaterThan(0.0065);
+    expect(count / 50000).toBeLessThan(0.0095);
+  });
+  expect(both).toBeGreaterThan(0);
+  expect(both).toBeLessThan(25);
+  expect(mixed).toBe(true);
+  const seed = 74;
+  expect(generateWildEncounter(region.nodeId, seed, pack)).toEqual(
+    generateWildEncounter(region.nodeId, seed, pack),
+  );
+  const mutations = (chance: number) => {
+    region.rareChance = chance;
+    return Array.from({ length: 1000 }, (_, seed) =>
+      generateWildEncounter(region.nodeId, seed, pack).map((c) => !!c.isMutant),
+    );
+  };
+  expect(mutations(0)).toEqual(mutations(1));
 });
 it('拒绝低于携带等级的成年体与尚未开放物种的区域', () => {
   const level = structuredClone(raw);

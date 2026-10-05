@@ -31,6 +31,7 @@ export interface SectCombatMethodView {
 export interface SectCombatPathView {
   id: string;
   name: string;
+  description: string;
 }
 
 

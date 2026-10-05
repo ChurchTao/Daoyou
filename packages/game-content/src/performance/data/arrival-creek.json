@@ -1,29 +1,75 @@
 {
   "id": "arrival-creek",
-  "title": "青溪",
-  "requires": [],
-  "cast": {},
+  "title": "许伯指路",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "neighbor": {
+      "name": "许伯"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "雨后的苔色更深，石牌上两枚旧字露在晨光里。"
+      "alt": "许伯站在洞口，指着溪水与远处通向山门的道路。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 清晨",
-      "text": "青溪"
+      "kicker": "洞口 · 山路",
+      "text": "许伯指路"
     },
     {
       "type": "narration",
-      "text": "昨晚没有看清的石牌，此刻挂着几滴露水。“青溪”两字刻得很深，显然曾有人从这里往那个方向走。"
+      "text": "回到洞口，许伯正蹲着系鞋带。他站起身，指向山下那道溪水。"
+    },
+    {
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "沿溪往下是青溪坡，再往远处走，就能找到诸宗山门。先在舆图上认好位置，别到了岔路才想起问路。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "我想找个地方学些本事，可我是新人，宗门愿意收吗？"
+    },
+    {
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "各家有各家的入门条件。看清楚，再选一家愿意接纳你、也合你心意的。到了山门，有不懂的就问接引人。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "宗门能教我些什么？",
+          "jump": "ask"
+        },
+        {
+          "label": "先看看舆图",
+          "jump": "map"
+        }
+      ]
+    },
+    {
+      "type": "mark",
+      "id": "ask"
+    },
+    {
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "心法、神通，还有炼丹炼器。门里有人带你练，也有差事可接。不懂的，找前辈问就是了。"
+    },
+    {
+      "type": "mark",
+      "id": "map"
     },
     {
       "type": "narration",
-      "text": "回到案前，你握住玉简，简面浮出一段旧路记。细线沿山势弯下去，在溪水旁收住；旁边另有三个小字：青溪坡。"
-    },
-    {
-      "type": "narration",
-      "text": "洞口能望见群山，却望不见那条溪。你把舆图铺开，顺着天南的山脉寻找玉简画出的那段路。"
+      "text": "你摊开舆图，先找天南与太岳山，再沿着溪水辨认青溪坡和山门的位置。"
     },
     {
       "type": "end",

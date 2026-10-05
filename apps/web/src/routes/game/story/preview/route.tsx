@@ -1,7 +1,8 @@
 import { PerformancePlayer } from '@app/components/feature/performance/PerformancePlayer';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton, InkInput } from '@app/components/ui';
-import { useCultivatorIdentity } from '@app/lib/resources/player';
+import { useCultivatorIdentity, usePlayerSession } from '@app/lib/resources/player';
+import { storyPerformanceContext } from '@app/lib/story/performanceContext';
 import { listPerformanceScripts, getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { fillPerformanceScript, type PerformanceContext } from '@daoyou/game-domain/performance';
 import { useState } from 'react';
@@ -18,11 +19,9 @@ function readScript(scriptId: string) {
 function watchContext(
   requires: string[],
   cultivator: { name: string; background?: string | null },
+  sectId?: string | null,
 ): PerformanceContext {
-  const context: PerformanceContext = {
-    name: cultivator.name,
-    background: cultivator.background?.trim() || '尚无来处',
-  };
+  const context = storyPerformanceContext(cultivator, sectId);
   for (const key of requires) {
     if (!context[key]?.trim()) {
       throw new Error(`这场演出还要填上「${key}」`);
@@ -97,6 +96,7 @@ export default function StoryPreviewRoute() {
   const navigate = useNavigate();
   const scriptId = useParams().scriptId ?? '';
   const profile = useCultivatorIdentity();
+  const player = usePlayerSession();
   const [replay, setReplay] = useState(0);
   const script = scriptId ? readScript(scriptId) : null;
 
@@ -109,21 +109,21 @@ export default function StoryPreviewRoute() {
     );
   }
 
-  if (profile.loading) {
-    return <GameLoadingState variant="fullscreen" message="玉简还在显字……" />;
+  if (profile.loading || player.loading) {
+    return <GameLoadingState variant="fullscreen" message="正在准备演出……" />;
   }
 
   const cultivator = profile.data?.cultivator;
-  if (profile.error || !cultivator) {
+  if (profile.error || player.error || !cultivator) {
     return (
-      <PreviewShelf scriptId={scriptId} note="玉简暂时读不清。" />
+      <PreviewShelf scriptId={scriptId} note="演出暂时没能加载。" />
     );
   }
 
   let filled: ReturnType<typeof fillPerformanceScript>;
   let context: PerformanceContext;
   try {
-    context = watchContext(script.requires, cultivator);
+    context = watchContext(script.requires, cultivator, player.data?.activeCultivator?.sectId);
     filled = fillPerformanceScript(script, context);
   } catch (reason) {
     return (

@@ -97,13 +97,6 @@ export function applyStatus(
   }
 
   if (isStatusImmune(ctx, unit, def, options.env?.source ?? ctx.state.units.find(u => u.id === sourceId))) return
-  if (def.priority !== undefined) {
-    const existing = unit.statuses.find(s => s.kind === def.kind)
-    const previous = existing && statusDef(ctx, existing.id)
-    if (existing && previous?.priority !== undefined &&
-      (previous.priority > def.priority || (previous.priority === def.priority &&
-        (previous.untilBattleEnd || (!def.untilBattleEnd && existing.remainingRounds >= duration))))) return
-  }
   // Only ordinary classified buffs may be extended; entry and special effects opt out.
   if (def.category === StatusCategory.Buff && def.extendable !== false && !def.untargetable &&
       !def.blocksRevive && !def.ticks && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.actFirst) {
@@ -128,6 +121,21 @@ export function applyStatus(
     target: baseEnv.target?.id === unit.id ? snapshotTarget : baseEnv.target,
     source: baseEnv.source.id === unit.id ? snapshotTarget : baseEnv.source,
   }
+  const priority = def.priority === undefined ? undefined : evalExpr(def.priority, env)
+  if (priority !== undefined) {
+    const existing = unit.statuses.find(s => s.kind === def.kind)
+    const previous = existing && statusDef(ctx, existing.id)
+    const previousPriority = existing?.priority ?? (typeof previous?.priority === 'number' ? previous.priority : undefined)
+    // The last round-start tick has already fired. Its remaining visual lifetime
+    // must not prevent a new effect from being queued for the following round.
+    const hasPendingTick = previous?.ticks !== StatusTick.RoundStart ||
+      (existing?.remainingRounds ?? 0) > 1 || existing?.appliedRound === ctx.state.round
+    if (existing && hasPendingTick && previousPriority !== undefined &&
+      (previousPriority > priority || (previousPriority === priority &&
+        (previous?.untilBattleEnd || (!def.untilBattleEnd && existing.remainingRounds >= duration))))) return
+  }
+  const tickMpPower = def.onTick?.snapshot && def.onTick.mpPower !== undefined
+    ? evalExpr(def.onTick.mpPower, env) : undefined
 
   const attrMods: Partial<Attrs> = {}
   for (const [key, expr] of Object.entries(def.attrMods ?? {}) as Array<[keyof Attrs, string | number]>) {
@@ -142,7 +150,9 @@ export function applyStatus(
     existing.remainingRounds = duration
     existing.sourceId = sourceId
     existing.appliedRound = ctx.state.round
-    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined) existing.tickSkillLevel = env.skillLevel
+    existing.priority = priority
+    existing.tickMpPower = tickMpPower
+    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined) existing.tickSkillLevel = env.skillLevel
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
@@ -158,6 +168,8 @@ export function applyStatus(
     removeStatus(ctx, unit, inst.id, StatusRemoveReason.Replaced, def.sourceBound ? sourceId : undefined)
   }
   unit.statuses.push({
+    ...(priority === undefined ? {} : { priority }),
+    ...(tickMpPower === undefined ? {} : { tickMpPower }),
     ...(def.snapshotModifiers ? { snapshotModifiers: def.modifiers?.map(m => Object.fromEntries(Object.entries(m).map(([key, value]) => [key, (typeof value === 'string' && key !== 'teamAura') || typeof value === 'number' ? evalExpr(value, { ...env, state: ctx.state }) : structuredClone(value)]))) } : {}),
     id: def.id,
     kind: def.kind,
@@ -168,7 +180,7 @@ export function applyStatus(
     attrMods,
     storedTargetId: options.storedTargetId,
     ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
-    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
+    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -218,15 +230,7 @@ export function tickStatuses(ctx: BattleContext): void {
         }
         applyMpDamage(ctx, caster, caster, cost)
       }
-      if (def?.ticks === StatusTick.RoundEnd && def.onTick?.type === TickKind.Dot && !unit.flags.downed && !unit.flags.dead) {
-        const source = ctx.state.units.find((candidate) => candidate.id === inst.sourceId) ?? unit
-        const env = { source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }
-        const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
-          def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
-        applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
-        if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(Math.min(unit.attrs.maxMp * def.onTick.ratioOfMaxMp,
-          def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
-      }
+      if (def?.ticks === StatusTick.RoundEnd) applyStatusTick(ctx, unit, inst, def)
 
       if (def?.ticks === StatusTick.RoundEnd && def.healingPerRound !== undefined && isStanding(unit)) {
         const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
@@ -236,11 +240,37 @@ export function tickStatuses(ctx: BattleContext): void {
       // 当回合结束过期的状态保留到所有跳伤和回合末钩子结算完成。
       if (def?.expireSameRound) continue
       // Dot 当回合就跳并扣持续；普通状态当回合不扣。
-      if (inst.appliedRound === ctx.state.round && !def?.ticks) continue
+      if (inst.appliedRound === ctx.state.round && (!def?.ticks || def.ticks === StatusTick.RoundStart)) continue
       if (def?.untilBattleEnd) continue
       tickStatusDuration(ctx, unit, inst, def)
     }
   }
+}
+
+/** Round-start ticks wait until the next round; their duration still expires at round end. */
+export function tickRoundStartStatuses(ctx: BattleContext): void {
+  for (const unit of standingUnits(ctx.state)) {
+    for (const inst of [...unit.statuses]) {
+      const def = statusDef(ctx, inst.id)
+      if (def?.ticks === StatusTick.RoundStart && inst.appliedRound < ctx.state.round)
+        applyStatusTick(ctx, unit, inst, def)
+    }
+  }
+}
+
+function applyStatusTick(ctx: BattleContext, unit: Unit, inst: StatusInstance, def: StatusDef): void {
+  if (def.onTick?.type !== TickKind.Dot || !isStanding(unit)) return
+  const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
+  const env: ExprEnv = { state: ctx.state, source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }
+  if (def.onTick.ratioOfMaxHp !== undefined) {
+    const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
+      def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
+    applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
+  }
+  if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(Math.min(unit.attrs.maxMp * def.onTick.ratioOfMaxMp,
+    def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
+  if (def.onTick.mpPower !== undefined)
+    applyMpDamage(ctx, source, unit, inst.tickMpPower ?? evalExpr(def.onTick.mpPower, env))
 }
 
 export function expireRoundEndStatuses(ctx: BattleContext): void {

@@ -1,29 +1,76 @@
 {
   "id": "arrival-tracks",
-  "title": "爪印",
-  "requires": [],
-  "cast": {},
+  "title": "第一次独自下山",
+  "requires": [
+    "name",
+    "instructor"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "instructor": {
+      "name": "{instructor}"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "玉简的路记旁，几枚小小的爪印从草图边缘穿过。"
+      "alt": "雨后的山路通向青溪坡，教习在舆图上点出这次要查看的地方。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 案前",
-      "text": "爪印"
+      "kicker": "宗门 · 出发前",
+      "text": "第一次独自下山"
     },
     {
       "type": "narration",
-      "text": "路记的边缘还有几枚歪斜的爪印，先前被你的手指挡住了。线条并不工整，倒像有人在匆忙间补上去的。"
+      "text": "一场雨后，教习把舆图摊在桌上，点了点你已经认过的青溪坡。你和灵兽伙伴站在桌边，等着听这次要办的事。"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "去看看青溪坡的雨后路况，再留意溪边的生灵。发现危险就记住位置，回来告诉我，往后同门下山也好有个照应。"
+    },
+    {
+      "type": "line",
+      "speaker": "player",
+      "text": "真遇见灵兽，该怎么判断能不能靠近？"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "先看生灵有几只、在做什么，别贸然靠近。真要交手，先想清楚自己和伙伴能做什么，别各打各的。"
+    },
+    {
+      "type": "choice",
+      "options": [
+        {
+          "label": "遇上危险怎么办？",
+          "jump": "ask"
+        },
+        {
+          "label": "我这就去",
+          "jump": "leave"
+        }
+      ]
+    },
+    {
+      "type": "mark",
+      "id": "ask"
+    },
+    {
+      "type": "line",
+      "speaker": "instructor",
+      "text": "应付不来就退开，别硬撑。受了伤，回来先养好。"
+    },
+    {
+      "type": "mark",
+      "id": "leave"
     },
     {
       "type": "narration",
-      "text": "窗外忽然掠过一阵急风，树叶擦着洞口响。你把玉简放回案上，手指在那几枚爪印上停了停。"
-    },
-    {
-      "type": "narration",
-      "text": "青溪坡有草，也有在草里走动的东西。门外的山路依旧静着，等你亲自走过去。"
+      "text": "你带好行装，和伙伴走上通往青溪坡的山道。"
     },
     {
       "type": "end",

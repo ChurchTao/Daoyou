@@ -1,70 +1,55 @@
 {
   "id": "arrival-fall",
-  "title": "陌生洞府",
-  "requires": [],
-  "cast": {},
+  "title": "出门之前",
+  "requires": [
+    "name"
+  ],
+  "cast": {
+    "player": {
+      "name": "{name}"
+    },
+    "neighbor": {
+      "name": "许伯"
+    }
+  },
   "cues": [
     {
       "type": "scene",
-      "alt": "山壁围成一间低矮石室，裂缝里漏进一线天光。"
+      "alt": "洞门外的石阶还湿着，一个背着药篓的老人停在门边。"
     },
     {
       "type": "title",
-      "kicker": "洞府 · 初醒",
-      "text": "陌生洞府"
+      "kicker": "洞府 · 清晨",
+      "text": "出门之前"
     },
     {
       "type": "narration",
-      "text": "醒来时，石榻硌得肩背发麻。滴水声从暗处传来，隔很久才落下一声；你屏住呼吸，也没听见第二个人。"
+      "text": "你正准备出门，门外响起两声轻敲。一个老人背着药篓，鞋边沾着湿泥，见你出来便笑了笑。"
     },
     {
-      "type": "narration",
-      "text": "门外有光，屋里却冷得像久未生火。案上压着一块磨损的玉简，边角被人摸得温润，旁边还放着一盏油灯。"
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "我住在下边那道山弯，叫我许伯就行。听说这儿有了新邻居，过来认个门。"
     },
     {
-      "type": "narration",
-      "text": "指腹贴上简面，几行旧字才慢慢浮出：雨天关好洞门，丹房的火别离人。写字的人曾在这里过日子，如今不知去了哪里。"
+      "type": "line",
+      "speaker": "player",
+      "text": "许伯，我正想去附近看看。不过，连该往哪条路走都还没弄明白。"
     },
     {
-      "type": "choice",
-      "options": [
-        {
-          "label": "先看看石室",
-          "jump": "hold"
-        },
-        {
-          "label": "去洞口看看",
-          "jump": "mouth"
-        }
-      ]
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "先别急着下山。在洞里转一圈，歇脚、存东西的地方都认一认，回来就不用四处找了。"
     },
     {
-      "type": "mark",
-      "id": "hold"
+      "type": "line",
+      "speaker": "neighbor",
+      "text": "身上有伤就先养好，储物袋也理一理，别走到山下才发现少带了东西。我在洞口等你，待会儿给你指路。"
     },
     {
-      "type": "narration",
-      "text": "石壁上留着挂衣的木钉，榻下塞着一卷落灰的毯子。你抖开它，灰尘在光里浮了一阵，屋里仍旧静悄悄的。"
-    },
-    {
-      "type": "narration",
-      "text": "门外的天色渐暗。你把毯子搭在榻边，今晚不必睡在山路上。"
-    },
-    {
-      "type": "end",
-      "outcome": "entered"
-    },
-    {
-      "type": "mark",
-      "id": "mouth"
-    },
-    {
-      "type": "narration",
-      "text": "走到门边，潮湿的山风扑在脸上。路贴着崖壁转过去，尽头被树影遮住，看不见人家。"
-    },
-    {
-      "type": "narration",
-      "text": "你把洞门推回去，木闩落进石槽。外面的路可以等到天亮，这一夜先留在石室里。"
+      "type": "line",
+      "speaker": "player",
+      "text": "好，那我先把这些弄清楚。让你等一会儿。"
     },
     {
       "type": "end",

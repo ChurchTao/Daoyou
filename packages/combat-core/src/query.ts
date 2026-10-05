@@ -84,7 +84,7 @@ export function commandOptions(
     canSubmit,
     reasons,
     attackTargetIds: (commandBlockReason(ctx, unit, { type: "attack", target: "" }) ? [] : enemies)
-      .filter((target) => !isUntargetableBy(ctx, unit, target, false))
+      .filter((target) => !isUntargetableBy(ctx, unit, target))
       .map((target) => target.id),
     protectTargetIds: (commandBlockReason(ctx, unit, { type: "protect", target: "" }) ? [] : allies).map((target) => target.id),
     canDefend: canSubmit && !commandBlockReason(ctx, unit, { type: "defend" }),

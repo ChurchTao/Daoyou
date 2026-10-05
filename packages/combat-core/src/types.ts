@@ -72,6 +72,7 @@ export type CombatResourceState = {
 
 export type BarrierState = {
   untilBattleEnd?: boolean;
+  decayPerRound?: number;
   id: string;
   kind: string;
   name: string;
@@ -177,6 +178,9 @@ export type CombatV6VersionStamp = {
 /** 场上一条状态。kind 是覆盖键（失心和定身 kind 不同，可并存）。 */
 export type StatusInstance = {
   snapshotModifiers?: CombatModifier[];
+  /** Applied strength and periodic MP loss remain stable after snapshot restoration. */
+  priority?: number;
+  tickMpPower?: number;
   id: StatusId;
   kind: string;
   remainingRounds: number;
@@ -235,9 +239,14 @@ export type Unit = {
   /** 单位标签（鬼魂系等），给 when.foeTags 用，不是门派 id。 */
   tags: string[];
   combatFacts?: Record<string, number>;
+  /** 最近一次实际入场及该次入场后已完成的主动法术数。 */
+  entryRound?: number;
+  spellActionsSinceEntry?: number;
   /** 所有伤害路径的实际掉血累计；不含护盾、过量伤害和技能气血成本。 */
   hpDamageThisRound?: { round: number; amount: number };
   skillUses?: Record<string, number>;
+  /** Paid active-skill uses by this unit; all allied pets contribute to novelty. */
+  skillsUsedThisRound?: { round: number; skillIds: SkillId[] };
   cooldowns?: Record<string, number>;
   resources: CombatResourceState[];
   barriers: BarrierState[];
@@ -363,6 +372,8 @@ export type EffectWhen = {
   targetHasStandingPet?: boolean;
   actionSucceeded?: boolean;
   actionKilledTarget?: boolean;
+  /** 包括被致命恢复救回的目标。 */
+  actionReducedTargetToZero?: boolean;
   sourceInitialHpRatioMin?: number;
   excludeSkillTags?: SkillTag[];
   excludePercentageDamage?: boolean;
@@ -417,6 +428,7 @@ export type EffectWhen = {
 };
 
 type EffectCore =
+  | { type: typeof EffectType.InvokeAttackSkills }
   | { type: typeof EffectType.Repeat; min: number; max: number; effects: SkillEffect[] }
   | { type: typeof EffectType.ModifyFact; key: string; value: Expr }
   | { type: typeof EffectType.ModifyStatusDuration; kinds?: string[]; categories?: StatusCategory[]; maxCount?: number; random?: boolean; amount: Expr; ownedOnly?: boolean }
@@ -433,10 +445,17 @@ type EffectCore =
       coeff?: number | number[];
       /** Multiplies the resolved damage, rather than the attack formula. */
       resultFactors?: number[];
+      critMultiplier?: number;
+      /** 按物理打击的基础数值恢复目标气血，不产生伤害响应。 */
+      healInstead?: boolean;
       power?: Expr;
       trueDamage?: boolean;
       formula?: FormulaFamily;
       defenseIgnore?: Expr;
+      /** Subtract only the explicitly supplied defense contribution before percentage ignore. */
+      defenseSubtract?: Expr;
+      /** Override the ordinary physical defending multiplier. */
+      defendFactor?: number;
       mpDamageRatio?: number;
       cannotMiss?: boolean;
       cannotKill?: boolean;
@@ -525,6 +544,9 @@ type EffectCore =
   | {
       type: typeof EffectType.ApplyBarrier;
       untilBattleEnd?: boolean;
+      stack?: boolean;
+      maxPower?: Expr;
+      decayPerRound?: number;
       id: string;
       kind: string;
       name: string;
@@ -734,7 +756,7 @@ export type StatusDef = {
   healingPerRound?: Expr;
   /** Consumed after physical/spell action damage, including barriers; fixed damage is excluded. */
   consumeAfterDamagingAction?: boolean;
-  onTick?: { type: TickKind; ratioOfMaxHp: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr };
+  onTick?: { type: TickKind; ratioOfMaxHp?: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr; mpPower?: Expr; snapshot?: boolean };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;
   /** 承伤分流：目标留下 keep，其余 toCaster 打到状态来源 */
@@ -750,7 +772,7 @@ export type StatusDef = {
   dispelClass?: string;
   extendable?: boolean;
   /** Same-kind statuses retain the strongest priority; equal strength retains the longer duration. */
-  priority?: number;
+  priority?: Expr;
   untilBattleEnd?: boolean;
   damageDealtPhysical?: number;
   damageDealtSpell?: number;
@@ -925,7 +947,7 @@ export type BattleEvent =
       barrierId: string;
       before: number;
       after: number;
-      reason: 'applied' | 'refreshed' | 'absorbed' | 'expired' | 'downed';
+      reason: 'applied' | 'refreshed' | 'absorbed' | 'expired' | 'downed' | 'decayed';
     }
   | {
       type: typeof EventType.StatusApplied;
@@ -998,6 +1020,7 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  allyPetSkillUnused?: boolean;
   normalTargetIds?: string[];
   killedTargetIds?: string[];
   state?: Pick<BattleState, "round" | "units">;

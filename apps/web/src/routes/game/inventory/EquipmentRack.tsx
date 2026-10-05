@@ -96,6 +96,7 @@ export function EquipmentRack({
   );
   return (
     <section
+      data-guide="inventory.equipment"
       aria-label="已穿戴道装"
       className="border-ink/15 min-w-0 border-b pb-4 lg:border-r lg:border-b-0 lg:pr-6 lg:pb-0"
     >

@@ -1,21 +1,21 @@
 {
   "id": "map-qingxi",
-  "title": "青溪坡",
+  "title": "认路",
   "steps": [
     {
       "type": "look",
       "anchor": "map.world",
-      "text": "展开舆图，天南在这里。"
+      "text": "这是世界舆图，可以逐层找到地区和地点。我们先看看天南。"
     },
     {
       "type": "press",
       "anchor": "map.tiannan",
-      "text": "点进天南，看看太岳山一带。"
+      "text": "点进天南，看看太岳山附近有哪些去处。"
     },
     {
       "type": "look",
       "anchor": "map.qingxi",
-      "text": "青溪坡就在这道溪水旁。先停在舆图上，出门后再过去。"
+      "text": "青溪坡是以后近郊练手的地方，先记住位置。现在先去山门学本事，备好药和兵器再来。"
     },
     {
       "type": "end"

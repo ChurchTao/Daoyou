@@ -4,9 +4,9 @@
 
 ## 1. 物种与个体生成：species.json
 
-变异规则见 [变异灵兽](../../../../../docs/combat-v6-beast-mutation.md)：野外独立抽取身份，五项资质和成长统一提高 10%，技能规则不变。`rollBeastTraits` 的可选第三参数为 `isMutant`；洗炼保留身份并从物种范围重抽，新个体必须包含培养身份和初始等级，变异统一生成0级宝宝；不做旧身份推断。
+变异规则见 [变异灵兽](../../../../../docs/combat-v6-beast-mutation.md)：野外独立抽取身份，五项资质和成长统一提高 5%，技能规则不变。`rollBeastTraits` 的可选第三参数为 `isMutant`；洗炼保留身份并从物种范围重抽，新个体必须包含培养身份和初始等级，变异统一生成0级宝宝；不做旧身份推断，已生成个体数值不回填。
 
-当前物种包 `formatVersion: 2`、`contentRevision: 11`，包含炼气至化神十八种物种，炼气、元婴、化神各四种，筑基、金丹各三种。讨论中的“结丹”对应游戏实际境界键“金丹”。每条配置包含名称、图标、习性描述、开放境界、携带等级、是否可领取为初始伙伴、五项资质范围、成长范围及出生技能规则。不再提供固定定位或物种加点偏好。
+当前物种包 `formatVersion: 2`、`contentRevision: 15`，包含炼气至渡劫三十四种物种，筑基、金丹各三种，其余境界各四种。讨论中的“结丹”对应游戏实际境界键“金丹”。每条配置包含名称、图标、习性描述、开放境界、携带等级、是否可领取为初始伙伴、五项资质范围、成长范围及出生技能规则。不再提供固定定位或物种加点偏好。
 
 | 字段 | 策划含义 |
 | --- | --- |
@@ -15,11 +15,11 @@
 | `aptitudes.*.{min,max}` | 五项资质的独立整数闭区间 |
 | `growthMilli.{min,max}` | 成长千分整数闭区间，生成后除以1000 |
 | `birthSkills.core` | 0至2项出生／洗炼必带技能，可被传承灵印覆盖 |
-| `birthSkills.candidates` | 普通候选池，与必带合计3至6项；每个候选独立以1/2获得 |
+| `birthSkills.candidates` | 候选池，按逐物种已确认设计包含普通或高级技能；与必带合计3至6项；每个候选独立以1/2获得 |
 | `generation.minBirthSkills` / `maxBirthSkills` | 全包出生技能数量边界，当前0至6；各物种上限为自己的天生全集 |
 | `generation.starterLevel` / `lifespan` | 初始伙伴等级10、初始及最大寿命1000 |
 
-物种目录不依赖野外怪物目录。野外编排通过稳定ID引用物种并调用同一个抽取函数；十八种均已加入对应开放境界的捕捉池，野外个体与捕获后的灵兽共用个体事实。狰沿用原犀牛ID，三足金蟾使用独立新ID并进入黑水潭。咪咪加入初始伙伴和青溪坡，幽冥虎进入化神栖地不见天。完整名称、资质、出生技能和ID映射见[设计确认基准](../../../../../.agents/skills/daoyou-beast-design/references/first-release.md)。
+物种目录不依赖野外怪物目录。野外编排通过稳定ID引用物种并调用同一个抽取函数；三十四种均已加入捕捉池，合体及以上十二种为稀有异兽，区域概率独立配置，野外个体与捕获后的灵兽共用个体事实。狰沿用原犀牛ID，三足金蟾使用独立新ID并进入黑水潭。咪咪加入初始伙伴和青溪坡，幽冥虎进入化神栖地不见天。后续十六种见[扩展基准](../../../../../.agents/skills/daoyou-beast-design/references/later-realms.md)。首批名称、资质、出生技能和ID映射见[设计确认基准](../../../../../.agents/skills/daoyou-beast-design/references/first-release.md)。
 
 `rollBeastTraits(species, seed)`位于`packages/game-rules/src/beasts/trait-generator.ts`，接受经过`loadBeastPacks`校验的物种配置，返回`aptitudes`、`growth`、`skills`。不创建身份、等级、主人、库存或加点，不读取数据库、时间或全局随机数。资质按攻击、防御、体力、法力、速度抽取，随后抽成长；候选技能使用另一条种子流，按候选表顺序各自独立判定。变更技能池不会扰动数值抽签，变更数值范围不会扰动技能抽签。
 
@@ -69,8 +69,22 @@
 | `divineRevival` | `chance`、`hpRatio` | 致命时概率复生，服从禁复活与可恢复上限 |
 | `speed` | `factor` | 灵兽共用面板中的速度倍率 |
 | `combo` | `chance`、`coefficient`、`physicalFactor` | 仅普攻触发，物理伤害有全局代价，物理反震阻止追加 |
+| `allSeeing` | `cooldownRounds` | 随机依次施展已学主动攻击技能，子技能正常付费，无物种或入场回合门槛 |
+| `mountainBreaker` | `costMpBase` | 等级加基础耗蓝，按攻击差计算物伤，临时命中只作用于本技能 |
+| `karmicRetribution` | `costMpBase`、`evilChance`、`evilFactor`、`goodFactor` | 必中，随机恶报物伤或善报治疗，必杀各有独立倍率 |
+| `radiantBarrier` | `chance`、`ratio`、`maxHpRatio`、`decayRatio` | 按实际掉血概率生成护盾，限额叠加，每回合末衰减 |
+| `constitutionGrowthHp` | `multiplier` | 完整体质乘成长与倍率增加气血上限，共用面板投影 |
+| `bloodthirstyPursuit` | `factor` | 普攻击倒后追另一可选目标一次，神佑前致零仍计入，不递归 |
+| `surpriseSpell` | `factor` | 灵兽后续回合入场的首个整法加成，群法与法连共享，无物种门槛 |
+| `magicAttributeBoost` | `multiplier` | 完整魔力属性增加法术攻击 |
+| `strengthGrowthTradeoff` | `attackMultiplier`、`defenseMultiplier` | 完整力量乘成长增加物攻，完整力量降低物防 |
+| `spellDefense` | `costMpBase`、`costMpLevelDivisor`、`takenFactor`、`duration` | 自身法术减伤状态，包含施放回合，与其他减伤相乘 |
+| `swiftStrike` | `costMpBase`、`costMpLevelDivisor`、`strengthMultiplier`、`speedDivisor`、`playerFactor` | 完整力量与有效速度构成单体固定伤害，人物减半 |
+| `barrierBreaker` | `costMpBase`、`defendFactor`、`powerPerLevel` | 必中，只忽略铁骨贡献；防御指令时放大基础伤害后附加等级 |
+| `mindShatter` | 费用、物伤、即时扣蓝及周期力量参数 | 必中物理伤害、即时扣蓝；下一回合开始继续扣蓝一次，快照取高不叠 |
+| `unanticipated` | `factor` | 队伍本回合未用过技能的伤害加成，整次群法／法连共享，观照子技能独立判定 |
 
-经典技能第一批新增 18 个、第二批新增 8 个，第三阶段新增 6 个，第四阶段新增 6 个，第六阶段新增 4 个，第七阶段新增 4 个，第八阶段新增 4 个，第九阶段新增 8 个，第十阶段新增 6 个，曾累计69个，本轮移除2个demo技能后共67个可用技能及传承灵印，详见 [累计迁移记录与后续队列](../../../../../docs/combat-v6-beast-classic-skills.md)。新书已加入清溪野外掉落池；物种修订4将三个初始物种改为独立技能池，具体清单见迁移记录。
+经典技能第一批新增 18 个、第二批新增 8 个，第三阶段新增 6 个，第四阶段新增 6 个，第六阶段新增 4 个，第七阶段新增 4 个，第八阶段新增 4 个，第九阶段新增 8 个，第十阶段新增 6 个，曾累计69个，此前移除2个demo技能后共67个，详见 [累计迁移记录与后续队列](../../../../../docs/combat-v6-beast-classic-skills.md)。两轮新增14个特殊技能，合计81个可用技能；技能修订19关闭全部特殊技能的传承灵印，仍有67种普通／上品灵印。物种修订15在第二轮为六种灵兽追加候选，饕餮以凶威滔天替换蛮力，特殊技能可通过融合继承，获得后不绑定物种；详见[特殊技能接入](../../../../../docs/combat-v6-beast-special-skills.md)。物种修订4将三个初始物种改为独立技能池，具体清单见迁移记录。
 
 数值 0.25 表示 25% 概率，1.1 表示 1.1 倍系数。参与表达式的参数最多六位小数；不接受自由公式或脚本。新机制仍须扩展编译器。
 
@@ -143,7 +157,7 @@ pnpm run build
 
 ## 6. 技能图标与内容删除
 
-`skills.json` 的每项必须填写 `icon`（emoji）。普通／高级身份沿用 `families`，不要依靠名称或ID推断。同族可使用相同emoji，也支持分别配置。更新展示配置不改变战斗数值，不需迁移已有个体。
+`skills.json` 的每项必须填写 `icon`（emoji 或 `icon:注册名称`，最长64字符），注册与素材规范见 [统一图标规范](../../../../../docs/game-icons.md)。普通／高级身份沿用 `families`，不要依靠名称或ID推断。同族可使用相同图标，也支持分别配置。更新展示配置不改变战斗数值，不需迁移已有个体。
 
 当前仍为本地测试阶段，删除技能时同步删除技能、技能族、物种池和掉落引用，以及本地库中的相应技能项／传承灵印数据。不保留停用目录、旧ID读取白名单或物品注册回退。个体技能和物品校验继续严格拒绝未知ID。
 
@@ -160,4 +174,8 @@ pnpm run build
 
 ## 融合：fusion.json
 
-`fusion-config.ts`与`fusion.schema.json`共同校验配置；档位唯一且权重合计100。双宝宝宝宝率`babyChance=0.95`，其他组合假宝宝率`pseudoBabyChance=0.25`，非必带不同技能各按`skillChance=0.5`继承。资质和成长档位、融合上限集中在此文件，出生及变异不受融合上限裁剪。规则与点数预算见[宝宝体系与融合](../../../../../docs/combat-v6-beast-fusion.md)。融合个体使用独立版本`summoned_beast_fusion_v1`，不受出生技能数上限限制。
+`fusion-config.ts`与`fusion.schema.json`共同校验配置；档位唯一且权重合计100。双宝宝宝宝率`babyChance=0.95`，其他组合假宝宝率`pseudoBabyChance=0.25`，非必带不同技能各按`skillChance=0.5`继承。资质和成长档位、兜底上限集中在此文件：成长1.500，五项资质各100000（结构安全边界），已取消首批物种定标的低上限，出生及变异不受融合上限裁剪。规则与点数预算见[宝宝体系与融合](../../../../../docs/combat-v6-beast-fusion.md)。融合个体使用独立版本`summoned_beast_fusion_v1`，不受出生技能数上限限制。
+
+## 2026-10-05 后期再平衡
+
+物种修订13：青鸾替换琥珀蝉，化神至渡劫收紧出生区间；普通出生／洗炼成长最高1.380、攻资最高1900，融合及存量事实不受该出生范围裁剪。34种为16种无必带、17种单必带、幽冥虎1种双必带；六目灵猿与幽冥虎的完整出生表保持不变。详见[再设计与验收](../../../../../docs/combat-v6-beast-rebalance-design.md)。

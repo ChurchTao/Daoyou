@@ -1,0 +1,4 @@
+interface:
+  display_name: "道友 · 水墨技能图腾"
+  short_description: "为万界道友技能图标统一图腾构形、水墨彩墨语言、固定参考与小尺寸验收"
+  default_prompt: "使用 $daoyou-skill-totems，参照验收通过的固定基准，为指定技能设计可辨认的水墨图腾并检查风格漂移。"

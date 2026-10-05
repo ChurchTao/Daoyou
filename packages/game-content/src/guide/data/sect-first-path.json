@@ -1,0 +1,19 @@
+{
+  "id": "sect-first-path",
+  "title": "选择流派",
+  "steps": [
+    {
+      "type": "look",
+      "anchor": "sect.path-choice",
+      "text": "同一宗门也有不同流派。选一条你愿意修习的路，启用后才能使用对应的宗门传承。"
+    },
+    {
+      "type": "look",
+      "anchor": "sect.path-choice",
+      "text": "教学结束后，点击想学的流派并启用。以后仍能回来查看和调整。"
+    },
+    {
+      "type": "end"
+    }
+  ]
+}

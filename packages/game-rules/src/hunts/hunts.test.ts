@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { type HuntTeam, HuntEventIdSchema } from '@daoyou/game-domain/hunts';
-import { getAtlasRegion, hasAtlasMap } from '../world/mapAtlas.js';
-import { getWorldMapLocation } from '@daoyou/game-content/world/map';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
+import { getWorldMapLocation } from '@daoyou/game-content/world/map';
+import { type HuntTeam, HuntEventIdSchema } from '@daoyou/game-domain/hunts';
+import { describe, expect, it } from 'vitest';
+import { getAtlasRegion, hasAtlasMap } from '../world/mapAtlas.js';
 import {
   HUNT_CYCLE_MS,
   huntEventById,
@@ -50,19 +50,27 @@ describe('世界讨伐准入与刷新', () => {
     }
     for (const pool of seen)
       expect(pool).toEqual(new Set(Object.keys(HUNT_BOSSES)));
-    expect(huntEventById('hunt-v4-100-0')).toBeUndefined();
-    expect(HuntEventIdSchema.safeParse('hunt-v4-100-0').success).toBe(false);
+    expect(huntEventById('hunt-v5-100-0')).toBeUndefined();
+    expect(HuntEventIdSchema.safeParse('hunt-v5-100-0').success).toBe(false);
   });
-  it('北京时间每六小时刷新，同轮奖励身份保持不变，到点全部替换', () => {
-    expect(HUNT_CYCLE_MS).toBe(6 * 60 * 60 * 1000);
-    for (const hour of ['00', '06', '12', '18']) {
-      const start = Date.parse(`2026-09-30T${hour}:00:00+08:00`);
+  it('北京时间每天10点刷新，同轮奖励身份保持不变，到点全部替换', () => {
+    expect(HUNT_CYCLE_MS).toBe(24 * 60 * 60 * 1000);
+    for (const day of [
+      '2026-09-30',
+      '2026-10-01',
+      '2026-12-31',
+      '2027-01-01',
+    ]) {
+      const start = Date.parse(`${day}T10:00:00+08:00`);
       const events = huntEventsAt(start);
       expect(huntEventsAt(start + HUNT_CYCLE_MS - 1)).toEqual(events);
+      for (const hours of [2, 8, 14, 20]) {
+        expect(huntEventsAt(start + hours * 60 * 60 * 1000)).toEqual(events);
+      }
       const previous = huntEventsAt(start - 1);
       const next = huntEventsAt(start + HUNT_CYCLE_MS);
       for (const [index, event] of events.entries()) {
-        expect(event.id).toMatch(/^hunt-v3-/);
+        expect(event.id).toMatch(/^hunt-v4-/);
         expect(HuntEventIdSchema.safeParse(event.id).success).toBe(true);
         expect(huntEventById(event.id)).toEqual(event);
         expect(event.startsAt).toBe(start);
@@ -88,6 +96,25 @@ describe('世界讨伐准入与刷新', () => {
         const event = huntEventById(id)!;
         expect(event.startsAt).toBe(start);
         expect(event.expiresAt).toBe(start + 2 * 60 * 60 * 1000);
+        expect(event.bossId).toBe(bosses[(cycle + index) % bosses.length]);
+        expect(huntIsOpen(event, event.expiresAt)).toBe(false);
+      }
+    }
+  });
+  it('已发布的 v3 事件保留六小时周期、原目标和领奖身份', () => {
+    const duration = 6 * 60 * 60 * 1000;
+    const offset = 8 * 60 * 60 * 1000;
+    const bosses = Object.keys(HUNT_BOSSES);
+    for (const hour of ['00', '06', '12', '18']) {
+      const start = Date.parse(`2026-09-30T${hour}:00:00+08:00`);
+      const cycle = (start + offset) / duration;
+      for (let index = 0; index < 7; index++) {
+        const id = `hunt-v3-${cycle}-${index}`;
+        expect(HuntEventIdSchema.safeParse(id).success).toBe(true);
+        const event = huntEventById(id)!;
+        expect(event.id).toBe(id);
+        expect(event.startsAt).toBe(start);
+        expect(event.expiresAt).toBe(start + duration);
         expect(event.bossId).toBe(bosses[(cycle + index) % bosses.length]);
         expect(huntIsOpen(event, event.expiresAt)).toBe(false);
       }

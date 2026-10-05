@@ -171,10 +171,11 @@ describe('秘境遭遇与收益', () => {
       planDungeonReward(27, 'completion', 'completion', 10),
     );
     const reward = planDungeonReward(27, 'completion', 'completion', 10);
-    expect(
-      reward.materialCount +
-        reward.items.reduce((sum, item) => sum + item.quantity, 0),
-    ).toBe(1);
+    const rewardCount = reward.materialCount +
+      reward.items.reduce((sum, item) => sum + item.quantity, 0);
+    // 通关必得一件基础奖励，独立额外奖励流至多再给一件。
+    expect(rewardCount).toBeGreaterThanOrEqual(1);
+    expect(rewardCount).toBeLessThanOrEqual(2);
     expect(() => planDungeonReward(1, 'x', 'battle', 0)).toThrow();
     expect(() => planDungeonReward(1, 'x', 'battle', 181)).toThrow();
   });

@@ -13,7 +13,7 @@ import {
 } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
-import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
+import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
@@ -63,7 +63,7 @@ export interface DungeonEncounterPayload {
   preview: DungeonEncounterView;
 }
 export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
-  const assembled = await assembleCombatV6TrainingPlayer(owner, tx);
+  const assembled = await assembleCombatV6WildPlayer(owner, tx);
   const projection = projectCharacterToCombatV6({
     ...assembled.player,
     side: 0,
@@ -71,7 +71,7 @@ export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
     resourcePolicy: 'full',
   });
   if (!projection.ok || !assembled.player.cultivator.condition)
-    throw new Error('请先完成新版宗门构筑和资源初始化');
+    throw new Error('角色战斗数据或资源尚未初始化');
   if (!(await hasActiveDungeon(owner))) {
     assembled.player.cultivator.condition =
       ConditionService.recoverCombatV6Resources(

@@ -6,14 +6,14 @@ import type { BattleContext } from "./context.js"
 import { BattlePhase, CommandType, EventType, HookName, HpZeroOutcome, MatchWinner, ResultReason, Team } from "./enums.js"
 import { BattleError, ErrorCode } from "./errors.js"
 import { HookBus } from "./hooks.js"
-import { clearRoundFlags, lockCommands } from './action.js';
+import { clearRoundFlags, invokeAttackSkills, lockCommands } from './action.js';
 import { resolveRoundActions } from './pipeline.js';
 import { commandOptions } from './query.js';
 import { teamFled, teamWiped, unitById } from './unit-query.js';
 import { SeededRng } from "./rng.js"
 import { bindDataHooks } from "./passives.js"
 import { clearBarriers, tickBarriers } from "./barriers.js"
-import { applyStatus, expireRoundEndStatuses, tickStatuses } from './status.js';
+import { applyStatus, expireRoundEndStatuses, tickRoundStartStatuses, tickStatuses } from './status.js';
 import { clearCombatStatuses } from './status-removal.js';
 import type {
   BattleEvent,
@@ -75,6 +75,7 @@ export class BattleSession {
       applyHpZero: (unit, source, skillId, kind, origin) => this.applyHpZero(unit, source, skillId, kind, origin),
       checkEnd: (reason) => this.finishIfNeeded(reason),
       suppressHooks: 0,
+      invokeAttackSkills: (source, skill, targets) => invokeAttackSkills(ctx, source, skill, targets),
     }
     this.ctx = ctx
     if (restored) rng.state = restored.state.rngState
@@ -88,6 +89,10 @@ export class BattleSession {
         versions: { ...input.versions },
       })
       for (const unit of units) {
+        if (!unit.flags.benched) {
+          unit.entryRound = this.ctx.state.round
+          unit.spellActionsSinceEntry = 0
+        }
         for (const id of unit.skills) {
           const initial = (unit.skillOverrides[id] ?? skills.get(id))?.initialCooldownRounds
           if (initial) (unit.cooldowns ??= {})[id] = this.ctx.state.round + initial
@@ -206,6 +211,8 @@ export class BattleSession {
       }
     }
     this.ctx.hooks.emit(HookName.OnRoundStart)
+    tickRoundStartStatuses(this.ctx)
+    this.finishIfNeeded()
     this.syncRng()
   }
 
@@ -228,6 +235,8 @@ export class BattleSession {
    */
   private applyHpZero(unit: Unit, source?: Unit, skillId?: string, kind?: import("./enums.js").DamageKind, origin?: import("./enums.js").DamageOrigin): void {
     if (unit.flags.dead || unit.flags.downed) return
+    if (source && this.ctx.currentAction && source.id === this.ctx.currentAction.sourceId)
+      (this.ctx.currentAction.hpZeroTargetIds ??= []).push(unit.id)
     this.ctx.hooks.emit(HookName.OnFatal, { source, target: unit, skillId, kind, origin })
     if (unit.attrs.hp > 0) return
     const delay = passiveSkills(this.ctx.skills, unit).find(s => s.innate?.delayedRevivalRounds)?.innate?.delayedRevivalRounds

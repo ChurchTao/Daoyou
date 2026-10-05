@@ -15,10 +15,14 @@ export function applyBarrier(
     amount: number;
     duration: number;
     untilBattleEnd?: boolean;
+    stack?: boolean;
+    maxAmount?: number;
+    decayPerRound?: number;
   },
 ): void {
   if (!isStanding(target)) return;
-  const amount = atLeast(0, Math.floor(spec.amount));
+  const limit = spec.maxAmount === undefined ? Infinity : atLeast(0, Math.floor(spec.maxAmount));
+  const amount = Math.min(limit, atLeast(0, Math.floor(spec.amount)));
   const duration = floorAtLeast(1, spec.duration);
   if (amount <= 0) return;
   const existing = target.barriers.find(
@@ -26,9 +30,10 @@ export function applyBarrier(
   );
   if (existing) {
     const before = existing.current;
-    existing.current = Math.max(existing.current, amount);
+    existing.current = Math.min(limit, spec.stack ? existing.current + amount : Math.max(existing.current, amount));
     existing.remainingRounds = duration;
     existing.untilBattleEnd = spec.untilBattleEnd;
+    existing.decayPerRound = spec.decayPerRound;
     existing.sourceId = source.id;
     existing.appliedRound = ctx.state.round;
     ctx.emit({
@@ -49,6 +54,7 @@ export function applyBarrier(
     current: amount,
     remainingRounds: duration,
     ...(spec.untilBattleEnd ? { untilBattleEnd: true } : {}),
+    ...(spec.decayPerRound !== undefined ? { decayPerRound: spec.decayPerRound } : {}),
     sourceId: source.id,
     appliedRound: ctx.state.round,
   });
@@ -100,6 +106,12 @@ export function tickBarriers(ctx: BattleContext): void {
   for (const unit of ctx.state.units) {
     if (unit.flags.benched) continue;
     for (const barrier of [...unit.barriers]) {
+      if (barrier.decayPerRound) {
+        const before = barrier.current;
+        barrier.current = Math.max(0, Math.floor(before * (1 - barrier.decayPerRound)));
+        ctx.emit({ type: EventType.BarrierChanged, sourceId: barrier.sourceId, unitId: unit.id, barrierId: barrier.id, before, after: barrier.current, reason: 'decayed' });
+        if (barrier.current <= 0) unit.barriers = unit.barriers.filter(candidate => candidate !== barrier);
+      }
       if (barrier.untilBattleEnd || barrier.appliedRound === ctx.state.round) continue;
       barrier.remainingRounds -= 1;
       if (barrier.remainingRounds > 0) continue;

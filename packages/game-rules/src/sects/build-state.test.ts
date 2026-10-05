@@ -36,4 +36,23 @@ describe('combat-v6 Phase 7B build state', () => {
     levels[Object.keys(levels)[0]] = 99;
     expect(view.methods.every((method) => method.level === 1)).toBe(true);
   });
+
+  test('projects both authored path descriptions before a path is selected', () => {
+    for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+      const view = createSectCombatView({
+        status: 'pending',
+        sectId: definition.id,
+      });
+      expect(view.paths).toEqual(
+        definition.paths.map((path) => ({
+          id: path.id,
+          name: path.name,
+          description: path.description,
+        })),
+      );
+      expect(view.activePathId).toBeUndefined();
+      view.paths[0].description = '';
+      expect(definition.paths[0].description).not.toBe('');
+    }
+  });
 });

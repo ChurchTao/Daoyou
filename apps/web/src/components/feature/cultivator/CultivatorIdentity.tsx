@@ -52,6 +52,7 @@ export function CultivatorIdentity({
   return (
     <>
       <section
+        data-guide="cultivator.identity"
         aria-label="人物身份"
         className="grid grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[7.5rem_minmax(0,1fr)] md:gap-5"
       >

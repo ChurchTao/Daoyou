@@ -5,7 +5,10 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { WildRegionView } from '@daoyou/contracts/combat/wild';
-import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import {
+  BEAST_RARE_SPECIES_IDS,
+  BEAST_SPECIES,
+} from '@daoyou/game-content/beasts';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import './wild-seeking.css';
 
@@ -95,8 +98,13 @@ export function WildSeekingScene({
                         '灵兽'}
                     </span>
                     <span className="text-ink-secondary mt-1 flex flex-wrap items-center justify-center gap-1 text-xs">
-                      <span className="font-mono whitespace-nowrap">{c.level}级</span>
+                      <span className="font-mono whitespace-nowrap">
+                        {c.level}级
+                      </span>
                       <BeastMutationTag isMutant={c.isMutant} />
+                      {BEAST_RARE_SPECIES_IDS.has(c.speciesId) && (
+                        <InkTag tone="info">稀有异兽</InkTag>
+                      )}
                       {c.level === 0 ? (
                         <InkTag tone="info">幼崽</InkTag>
                       ) : (

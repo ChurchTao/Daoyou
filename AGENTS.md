@@ -51,6 +51,7 @@ pnpm run db:migrate
 - `daoyou-game-ui`: `GameViewportLayout` main-flow scene UI structure and review rules.
 - `daoyou-item-preview`: 新增道具或调整物品预览字段、文案、层级、交互与适配器时，遵循 [.agents/skills/daoyou-item-preview/SKILL.md](.agents/skills/daoyou-item-preview/SKILL.md) 的固定展示规范和分类基线，避免恢复已删除的冗余信息。
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 与灵兽写意墨像立绘的固定笔墨基准、物种设计方法、彩墨与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
+- `daoyou-skill-totems`: 技能图标的水墨图腾构形、机制辨识、固定验收参考与小尺寸防漂移；见 [.agents/skills/daoyou-skill-totems/SKILL.md](.agents/skills/daoyou-skill-totems/SKILL.md)。
 - `daoyou-map-art`: 世界总览与独立区域地图的国画水墨、彩墨、地域辨识、空间尺度及素材交付；见 [.agents/skills/daoyou-map-art/SKILL.md](.agents/skills/daoyou-map-art/SKILL.md)。
 - `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
 - `daoyou-beast-design`: 灵兽物种、生灵层次、命名、资质成长及出生技能池设计与审查；扩充或调整物种前读取 `.agents/skills/daoyou-beast-design/SKILL.md`，实施同时遵守领域技能。
@@ -63,6 +64,7 @@ pnpm run db:migrate
 - `/api/auth/*` is Better Auth through `apps/api/src/lib/auth/handler.ts`.
 - `/internal/cron/*` uses Bearer `CRON_SECRET` when configured; production requires it, while non-production without `CRON_SECRET` currently allows the request.
 - Request/response contracts live in `packages/contracts/src`; domain models live in `packages/game-domain/src`. Use the owning package exports and do not recreate moved definitions.
+- At request/identity-to-domain boundaries, explicitly select business fields when constructing numeric deltas, strict runtime objects or event payloads. TypeScript structural typing does not remove extra runtime fields: `attribute_model_version` must not enter point totals, and `ActiveCultivatorRef.status` must not enter strict actor/event objects. Do not sum all values of a request object.
 - Resource protocol types and reducers use `@daoyou/contracts/resources`; complete runtime validators are bound in each app's `src/lib/resources/schemas.ts`. Keep the authoritative inventory and sect-delivery checks when changing resource parsing.
 - Domain-event transport metadata uses `@daoyou/contracts/events`; the API binds its parser to the game-rules payload validators in `src/lib/mq/domainEventSchema.ts`. Domain event data models live in `game-domain/events`.
 - Dev-tool request constructors live in contracts; `apps/api/src/dev-tools/dev-tools-input.ts` binds the current cultivation/root limits and complete reward/mail validators. Keep the local-only access policy in `contracts/dev-tools-access` and enforce it on the server.
@@ -120,6 +122,7 @@ pnpm run db:migrate
 - New unit tests are allowed only for pure, deterministic, reusable engine/domain logic under `packages/*/src`. Integration between pure rules and the engine belongs to the higher-level rules package; bottom-level packages must not depend on higher layers for tests.
 - Do not write tests that exercise or mock databases, repositories, HTTP controllers, auth, Redis, LLM/SMTP providers, network APIs, or other third-party services.
 - Frontend and backend changes must be verified with lint, typecheck/build, code inspection, and focused manual/runtime checks instead of unit tests.
+- For request adapter or mutation changes, verify a valid request with the complete client payload through the real local endpoint; inspect committed values and subsequent resource reads. Include the relevant budget/revision boundary and invalid input. Passing invalid-input checks or testing a manually stripped domain object alone does not verify the adapter. Restore temporary local preparation data following `docs/testing.md`. Migration review evidence and remaining gaps are recorded in `docs/nestjs-monorepo-review.md`.
 - For eligible shared engine changes, pick focused tests first, then broader shared-engine checks if the blast radius is large.
 - Run `pnpm run lint`, `pnpm run test`, or `pnpm run build` when code/config changes justify it.
 - For route/layout changes, run lint/build and inspect the affected navigation and layout behavior manually.
@@ -136,3 +139,14 @@ pnpm run db:migrate
 - Match existing patterns even if you would design them differently.
 - Remove only unused imports/variables/functions created by your own change.
 - For bugs in eligible pure shared engine logic, prefer a reproducing test first. For frontend, backend, database, or third-party behavior, use non-test verification.
+
+<!-- BEGIN:turborepo-agent-rules -->
+
+# This is NOT the Turborepo you know
+
+Turborepo configuration, task behavior, and CLI commands can vary between installed versions and may differ from your training data. Resolve the `turbo` package from this file's directory or relevant workspace; in monorepos, it may not be visible from the repository root. For example, run `node -p "require.resolve('turbo/package.json')"` from a workspace that depends on `turbo`.
+
+Read `docs/README.md` inside that installed package first, then read the relevant pages from its `docs/` directory before changing Turborepo configuration or commands. Heed deprecation notices. These bundled docs match the installed package version and are available without network access.
+
+This block is written and re-added by `turbo` before repository-scoped commands when an AI agent is detected. In the Turborepo source repository, its template is defined in `crates/turborepo-cli/src/cli/agent_guidance.rs`. Removing the managed block while updates are enabled means a later qualifying invocation will add it again. Set `"agentGuidance": false` in the root `turbo.json` or `turbo.jsonc` to opt out; this does not remove an existing block. Keep the block committed with your work to avoid an uncommitted change on the next agent invocation.
+<!-- END:turborepo-agent-rules -->

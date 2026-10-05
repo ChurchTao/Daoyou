@@ -1,11 +1,11 @@
-import { WildRegionSchema } from '@daoyou/game-domain/wild';
 import { formatContentPackErrors } from '@daoyou/game-domain/content-pack-errors';
+import { WildRegionSchema } from '@daoyou/game-domain/wild';
 
 import { REALM_ORDER } from '@daoyou/constants/realms';
 
 import { z } from 'zod';
 
-import { BEAST_SPECIES } from '../../beasts/content.js';
+import { BEAST_RARE_SPECIES_IDS, BEAST_SPECIES } from '../../beasts/content.js';
 
 import raw from './data/wild.json' with { type: 'json' };
 
@@ -39,6 +39,18 @@ export function loadWildPack(data: unknown) {
         issue(['regions', i], '区域重复');
       nodes.add(region.nodeId);
       ids.add(region.id);
+      const rareCount = region.species.filter((s) =>
+        BEAST_RARE_SPECIES_IDS.has(s.speciesId),
+      ).length;
+      if (rareCount === region.species.length)
+        issue(['regions', i, 'species'], '栖息地必须保留普通物种');
+      if (rareCount > 0 && region.rareChance === undefined)
+        issue(
+          ['regions', i, 'rareChance'],
+          '含稀有物种的栖息地必须配置稀有概率',
+        );
+      if (rareCount === 0 && (region.rareChance ?? 0) > 0)
+        issue(['regions', i, 'rareChance'], '未配置稀有物种，不能启用稀有概率');
       if (
         new Set(region.species.map((s) => s.speciesId)).size !==
         region.species.length

@@ -62,6 +62,7 @@
                   "onHitCalc",
                   "onDefenseIgnoreCalc",
                   "onBeHit",
+                  "afterDamage",
                   "afterHit",
                   "afterStrike",
                   "onFatal",
@@ -858,6 +859,9 @@
         "name": {
           "$ref": "#/$defs/__schema2"
         },
+        "description": {
+          "$ref": "#/$defs/__schema2"
+        },
         "requiresConnectedNodes": {
           "type": "boolean"
         },
@@ -882,6 +886,7 @@
       "required": [
         "id",
         "name",
+        "description",
         "requiresConnectedNodes",
         "foundationPassives",
         "nodes"

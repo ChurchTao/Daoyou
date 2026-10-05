@@ -15,7 +15,10 @@ export function FurnacePreparationStage() {
   return (
     <div className="space-y-3">
       <div className={session.mode === 'formula' ? 'invisible' : undefined}>
-        <label className="flex items-center gap-3 text-sm">
+        <label
+          data-guide="alchemy.intent"
+          className="flex items-center gap-3 text-sm"
+        >
           <span className="shrink-0">炼制目标</span>
           <input
             aria-label="炼制目标"

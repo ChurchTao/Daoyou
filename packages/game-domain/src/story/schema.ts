@@ -7,7 +7,9 @@ export const STORY_FACT_IDS = [
   'qingxi_sought',
   'qingxi_met',
   'weapon_forged',
+  'weapon_equipped',
   'sect_joined',
+  'sect_ready',
   'breakthrough_available',
 ] as const;
 
@@ -26,6 +28,8 @@ export const STORY_TRACKS = ['main', 'encounter'] as const;
 export type StoryTrack = (typeof STORY_TRACKS)[number];
 
 export const STORY_STATUSES = ['active', 'completed'] as const;
+
+const progressMarkIds = ['arrival-v2'] as const;
 
 export type StoryStatus = (typeof STORY_STATUSES)[number];
 
@@ -200,6 +204,7 @@ export const StoryProgressSchema = z
         .refine(
           (value) =>
             (STORY_MARK_FACT_IDS as readonly string[]).includes(value) ||
+            (progressMarkIds as readonly string[]).includes(value) ||
             /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
           '剧情标记无法识别',
         ),
@@ -242,7 +247,9 @@ export function emptyStoryFacts(): StoryFacts {
     qingxi_sought: false,
     qingxi_met: false,
     weapon_forged: false,
+    weapon_equipped: false,
     sect_joined: false,
+    sect_ready: false,
     breakthrough_available: false,
   };
 }

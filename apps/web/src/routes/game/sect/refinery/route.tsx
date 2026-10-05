@@ -12,11 +12,8 @@ import {
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useSearchParams } from 'react-router';
-import {
-  SectPageLoading,
-  SectPermissionBoundary,
-  SectScene,
-} from '../components/SectScene';
+import { SectCraftBoundary } from '../components/SectCraftBoundary';
+import { SectPageLoading, SectScene } from '../components/SectScene';
 
 const registry = new SectNpcConversationRegistry([
   { key: 'sect.refinery.craft', renderer: SectFacilityWorkspaceConversation },
@@ -24,16 +21,13 @@ const registry = new SectNpcConversationRegistry([
 
 export default function SectRefineryPage() {
   return (
-    <SectPermissionBoundary
-      permission="sect.facility.refinery.use"
-      sceneKey="refinery"
-    >
-      <SectRefineryBody />
-    </SectPermissionBoundary>
+    <SectCraftBoundary sceneKey="refinery">
+      {(classroom) => <SectRefineryBody classroom={classroom} />}
+    </SectCraftBoundary>
   );
 }
 
-function SectRefineryBody() {
+function SectRefineryBody({ classroom }: { classroom: boolean }) {
   const context = useSectContextQuery();
   const infrastructure = useSectInfrastructureQuery();
   const presentation = getSectPresentationForContext(context.data);
@@ -41,7 +35,7 @@ function SectRefineryBody() {
   if (!context.data || !infrastructure.data)
     return <SectPageLoading sceneKey="refinery" />;
   const scene = presentation.scenes.refinery;
-  if (searchParams.get('workspace') === 'craft')
+  if (classroom || searchParams.get('workspace') === 'craft')
     return (
       <>
         <title>{formatDocumentTitle(scene.title)}</title>

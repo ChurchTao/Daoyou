@@ -7,6 +7,7 @@ import {
 } from '@app/components/feature/sect/room';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 const registry = new SectNpcConversationRegistry([
@@ -14,13 +15,22 @@ const registry = new SectNpcConversationRegistry([
 ]).assertRoom(STANDARD_SECT_PRESENTATION.rooms.paths);
 
 export default function Page() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   return (
     <SectPermissionBoundary
       permission="sect.enlightenment.use"
       sceneKey="paths"
     >
       <SectScene sceneKey="paths" mood="cliff">
-        <SectRoutedRoom roomKey="paths" registry={registry} />
+        {searchParams.get('workspace') === 'paths' ? (
+          <SectWorkspace
+            mode="paths"
+            onExit={() => navigate('/game/sect/enlightenment-cliff')}
+          />
+        ) : (
+          <SectRoutedRoom roomKey="paths" registry={registry} />
+        )}
       </SectScene>
     </SectPermissionBoundary>
   );

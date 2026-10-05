@@ -1,6 +1,6 @@
 {
   "id": "hunt.v1.items",
-  "version": 2,
+  "version": 3,
   "groups": [
     {
       "id": "materials",

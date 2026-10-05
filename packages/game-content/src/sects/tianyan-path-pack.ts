@@ -28,6 +28,7 @@ export const TianyanPathsShape = z.strictObject({
       z.strictObject({
         id: tyId,
         name: z.string().min(1),
+        description: z.string().min(1),
         requiresConnectedNodes: z.literal(true),
         foundationPassives: z.array(tyId),
         nodes: z

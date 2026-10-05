@@ -85,6 +85,68 @@ describe('v6 sect progression', () => {
       ).toThrow('上限');
     }
   });
+  it('trains shared methods before selecting a path without assigning one', () => {
+    for (const definition of definitions) {
+      const p = createEmptySectCombatProgressV6(
+        definition.id,
+        definition.paths[0].id,
+        createFreshCombatV6MethodLevels(definition.id),
+      );
+      p.activePathId = '';
+      const primary = definition.methods.find((method) => method.isPrimary)!;
+      const branch = definition.methods.find((method) => !method.isPrimary)!;
+      const trained = sectV6Change(p, 10, {
+        ...reference,
+        action: 'train',
+        methodId: primary.id,
+        targetLevel: 2,
+      });
+      expect(trained.progress.activePathId).toBe('');
+      expect(trained.progress.methods[primary.id]).toBe(2);
+      expect(trained.cost).toEqual(methodTrainingCost(2));
+      expect(p.methods[primary.id]).toBe(1);
+      expect(trained.progress.meridianLoadouts).toEqual(p.meridianLoadouts);
+      expect(
+        sectV6Change(trained.progress, 10, {
+          ...reference,
+          action: 'train',
+          methodId: branch.id,
+        }).progress.methods[branch.id],
+      ).toBe(2);
+      expect(() =>
+        sectV6Change(p, 10, {
+          ...reference,
+          action: 'train',
+          methodId: branch.id,
+        }),
+      ).toThrow('分支');
+      expect(
+        compileCurrentSectCombatV6({
+          progress: trained.progress,
+          characterLevel: 10,
+        }).ok,
+      ).toBe(true);
+    }
+  });
+  it('requires initial path selection before editing meridians or switching paths', () => {
+    const p = fresh();
+    p.activePathId = '';
+    const pathId = definitions[0].paths[0].id;
+    expect(() =>
+      sectV6Change(p, 180, { ...reference, action: 'unlock' }),
+    ).toThrow('先选择流派');
+    expect(() =>
+      sectV6Change(p, 180, { ...reference, action: 'activate', pathId }),
+    ).toThrow('先选择流派');
+    expect(() =>
+      sectV6Change(p, 180, {
+        ...reference,
+        action: 'save',
+        pathId,
+        nodeIds: [],
+      }),
+    ).toThrow('先选择流派');
+  });
   it('trains to a target level with the sum of each level cost', () => {
     const p = fresh();
     const primary = definitions[0].methods.find((m) => m.isPrimary)!;

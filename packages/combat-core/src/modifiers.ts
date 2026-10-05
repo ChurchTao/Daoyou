@@ -31,7 +31,7 @@ export function modifierValue(modifiers: CombatModifier[], key: keyof CombatModi
   return modifiers.reduce((sum, modifier) => {
     const value = modifier[key];
     return sum + (typeof value === 'number' || typeof value === 'string'
-      ? evalExpr(value, { state: ctx?.state, source, target, skillLevel: skill ? source.skillLevels[skill.id] ?? source.level : source.level, targets: 1 }) : 0);
+      ? evalExpr(value, { allyPetSkillUnused: ctx?.currentAction?.sourceId === source.id ? ctx.currentAction.allyPetSkillUnused : false, state: ctx?.state, source, target, skillLevel: skill ? source.skillLevels[skill.id] ?? source.level : source.level, targets: 1 }) : 0);
   }, 0);
 }
 

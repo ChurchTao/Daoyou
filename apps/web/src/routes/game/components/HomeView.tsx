@@ -155,11 +155,11 @@ export function HomeView() {
     urgentItems.push(
       <HomeUrgentRow
         key="story-cue"
-        title={<span className="text-wood">玉简</span>}
+        title={<span className="text-wood">{storyCue.chapterTitle}</span>}
         summary={storyCue.prompt}
         action={
           <InkButton href={storyCue.href} variant="primary">
-            展开
+            继续
           </InkButton>
         }
       />,

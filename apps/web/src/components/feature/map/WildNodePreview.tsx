@@ -1,4 +1,7 @@
-import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import {
+  BEAST_RARE_SPECIES_IDS,
+  BEAST_SPECIES,
+} from '@daoyou/game-content/beasts';
 import { getWildRegion } from '@daoyou/game-content/combat/wild';
 
 export function WildNodePreview({ nodeId }: { nodeId: string }) {
@@ -12,6 +15,7 @@ export function WildNodePreview({ nodeId }: { nodeId: string }) {
           <li key={entry.speciesId} className="flex justify-between gap-3">
             <span>
               {BEAST_SPECIES.find((s) => s.id === entry.speciesId)?.name}
+              {BEAST_RARE_SPECIES_IDS.has(entry.speciesId) ? ' · 稀有' : ''}
             </span>
             <span className="font-mono text-xs">
               {entry.minLevel}～{entry.maxLevel}级

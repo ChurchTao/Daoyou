@@ -101,6 +101,11 @@
         "searchText": {
           "$ref": "#/$defs/__schema1"
         },
+        "rareChance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
         "realmRequirement": {
           "type": "string",
           "enum": [

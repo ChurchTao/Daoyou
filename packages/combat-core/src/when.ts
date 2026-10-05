@@ -67,7 +67,7 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
 
 export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
-  if (when.expression !== undefined && !evalExpr(when.expression, { source: scope.source, target: scope.target, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
+  if (when.expression !== undefined && !evalExpr(when.expression, { allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
   if (when.statusRemoveReason && scope.statusRemoveReason !== when.statusRemoveReason) return false
@@ -84,6 +84,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetHasStandingPet !== undefined && (!scope.target || units.some(u => u.kind === 'pet' && u.ownerId === scope.target!.id && isStanding(u)) !== when.targetHasStandingPet)) return false
   if (when.actionSucceeded && (!ctx.currentAction || ctx.currentAction.failed)) return false
   if (when.actionKilledTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.killedTargetIds?.includes(scope.target.id)) !== when.actionKilledTarget)) return false
+  if (when.actionReducedTargetToZero !== undefined && (Boolean(scope.target && ctx.currentAction?.hpZeroTargetIds?.includes(scope.target.id)) !== when.actionReducedTargetToZero)) return false
   if (when.sourceInitialHpRatioMin !== undefined && (ctx.currentAction?.initialHpRatio ?? hpRatio(scope.source)) < when.sourceInitialHpRatioMin) return false
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill
