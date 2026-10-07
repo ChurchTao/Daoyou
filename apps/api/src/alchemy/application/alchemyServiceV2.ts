@@ -55,6 +55,7 @@ import {
   type AlchemyRecipePlanner,
 } from '@server/alchemy/application/AlchemyRecipePlanner.js';
 import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
+import { QiService } from '@server/cultivator/application/QiService.js';
 import { sectOrganizationFacade } from '@server/sects/organization/index.js';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from '@server/alchemy/application/AlchemyRecipeRules.js';
@@ -377,6 +378,11 @@ export function createAlchemyService(
       options.materialQuantities,
     );
     const qiCost = calculateAlchemyQiCost(preparedMaterials);
+    await QiService.assertAffordable({
+      cultivatorId,
+      action: 'alchemy_improvised',
+      cost: qiCost,
+    });
 
     let recipePlan: AlchemyRecipePlan;
     try {

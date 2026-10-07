@@ -1,7 +1,7 @@
 import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { ConfigurationModule } from './config/configuration.module.js';
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER } from '@nestjs/core';
 import { allowsLocalDevTools } from '@daoyou/contracts/dev-tools-access';
 import { AccountModule } from './account/account.module.js';
 import { AdminModule } from './admin/admin.module.js';
@@ -24,8 +24,8 @@ import { ForgingModule } from './forging/forging.module.js';
 import { GenesisModule } from './genesis/genesis.module.js';
 import { HealthModule } from './health/health.module.js';
 import { ApiExceptionFilter } from './http/api-exception.filter.js';
+import { HttpContextModule } from './http/http-context.module.js';
 import { NotFoundModule } from './http/not-found.module.js';
-import { RequestContextInterceptor } from './http/request-context.interceptor.js';
 import { HuntsModule } from './hunts/hunts.module.js';
 import { InscriptionsModule } from './inscriptions/inscriptions.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
@@ -50,6 +50,7 @@ import { TowerModule } from './tower/tower.module.js';
 @Module({
   imports: [
     ConfigurationModule,
+    HttpContextModule,
     ...(allowsLocalDevTools(getRuntimeEnvironment().APP_ENV, getRuntimeEnvironment().NODE_ENV)
       ? [DevToolsModule]
       : []),
@@ -95,9 +96,6 @@ import { TowerModule } from './tower/tower.module.js';
     // Namespace authorization fallbacks must follow every concrete route.
     NotFoundModule,
   ],
-  providers: [
-    { provide: APP_FILTER, useClass: ApiExceptionFilter },
-    { provide: APP_INTERCEPTOR, useClass: RequestContextInterceptor },
-  ],
+  providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
 })
 export class AppModule {}

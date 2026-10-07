@@ -1,10 +1,12 @@
 import { cn } from '@app/lib/cn';
+import type { CSSProperties } from 'react';
 import { GameArtwork, GameImage, type GameImagePurpose } from './GameImage';
 import { iconRegistry } from './icons/registry';
 
 export interface GameIconProps {
   value: string;
   className?: string;
+  style?: CSSProperties;
   /** Omit when adjacent text already names the icon. */
   label?: string;
   purpose?: GameImagePurpose;
@@ -14,6 +16,7 @@ export interface GameIconProps {
 export function GameIcon({
   value,
   className,
+  style,
   label,
   purpose = 'interface',
 }: GameIconProps) {
@@ -40,6 +43,7 @@ export function GameIcon({
         className,
       )}
       role={label ? 'img' : undefined}
+      style={style}
       aria-label={label || undefined}
       aria-hidden={label ? undefined : true}
     >

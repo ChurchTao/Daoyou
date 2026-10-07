@@ -1,4 +1,5 @@
 import { apiFetch } from '@app/lib/api/fetch';
+import { postEvents } from '@app/lib/api/postEvents';
 import type {
   BlackMarketInteractCommand,
   BlackMarketInteractionResult,
@@ -51,56 +52,23 @@ export async function interactWithBlackMarket(
   } = {},
   signal?: AbortSignal,
 ): Promise<BlackMarketInteractionResult> {
-  const response = await apiFetch(
-    `/api/black-market/${encodeURIComponent(nodeId)}/sessions/${sessionId}/interact`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-      signal,
-    },
-  );
-  if (!response.ok) return readJson(response);
-  if (!response.body) throw new Error('摊主的回应没有传回来');
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
   let result: BlackMarketInteractionResult | undefined;
-
-  const flush = () => {
-    const segments = buffer.split('\n\n');
-    buffer = segments.pop() ?? '';
-    for (const segment of segments) {
-      const data = segment
-        .split('\n')
-        .filter((line) => line.startsWith('data: '))
-        .map((line) => line.slice(6))
-        .join('\n')
-        .trim();
-      if (!data) continue;
-      const event = JSON.parse(data) as BlackMarketInteractStreamEvent;
-      if (event.type === 'resolved') {
-        result = event.result;
-        handlers.onResolved?.(event);
-      } else if (event.type === 'reply-chunk') {
-        handlers.onReplyChunk?.(event.messageId, event.text);
-      } else if (event.type === 'reply-complete') {
-        handlers.onReplyComplete?.(event.messageId, event.body);
-      } else {
-        handlers.onReplyError?.(event.messageId, event.fallbackBody);
-      }
+  for await (const event of postEvents<BlackMarketInteractStreamEvent>(
+    `/api/black-market/${encodeURIComponent(nodeId)}/sessions/${sessionId}/interact`,
+    input,
+    signal,
+  )) {
+    if (event.type === 'resolved') {
+      result = event.result;
+      handlers.onResolved?.(event);
+    } else if (event.type === 'reply-chunk') {
+      handlers.onReplyChunk?.(event.messageId, event.text);
+    } else if (event.type === 'reply-complete') {
+      handlers.onReplyComplete?.(event.messageId, event.body);
+    } else {
+      handlers.onReplyError?.(event.messageId, event.fallbackBody);
     }
-  };
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    flush();
   }
-  buffer += decoder.decode();
-  flush();
   if (!result) throw new Error('摊前情形没有落定');
   return result;
 }

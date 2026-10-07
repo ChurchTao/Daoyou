@@ -21,6 +21,17 @@ export function configureHttp(app: NestExpressApplication): void {
   app.use((request: GameRequest, response: Response, next: NextFunction) => {
     request.gameContext = {};
     const startedAt = performance.now();
+    // One token per response. SSE handlers hold a second token until story
+    // persistence and rewards finish, including after the client disconnects.
+    const releaseWork = work.begin();
+    let workReleased = false;
+    const finishWork = () => {
+      if (workReleased) return;
+      workReleased = true;
+      releaseWork();
+    };
+    response.once('finish', finishWork);
+    response.once('close', finishWork);
     response.once('finish', () => {
       if (
         !/^\/(api|internal)\//.test(request.path) ||

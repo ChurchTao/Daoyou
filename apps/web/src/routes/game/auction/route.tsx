@@ -33,6 +33,10 @@ import {
   type AuctionItemType,
 } from '@daoyou/game-domain/auction';
 import { calculateAuctionSettlement } from '@daoyou/game-rules/auction';
+import {
+  hasReachedLateQiRefining,
+  LATE_QI_AUCTION_DENIED,
+} from '@daoyou/game-rules/progression/realm-access';
 import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { type AuctionListingView } from '@daoyou/contracts/auction';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
@@ -112,6 +116,9 @@ export default function AuctionPage() {
   const ownerLevel = identity
     ? getRealmStageLevel(identity.realm, identity.realm_stage)
     : 0;
+  const auctionOpen = identity
+    ? hasReachedLateQiRefining(identity.realm, identity.realm_stage)
+    : false;
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
   const [refresh, setRefresh] = useState(0);
@@ -166,6 +173,7 @@ export default function AuctionPage() {
   const data = currentResult?.data;
 
   useEffect(() => {
+    if (!auctionOpen) return;
     const controller = new AbortController();
     void apiFetch(listUrl, { signal: controller.signal })
       .then(async (response) => {
@@ -182,7 +190,7 @@ export default function AuctionPage() {
           });
       });
     return () => controller.abort();
-  }, [listUrl, requestKey]);
+  }, [auctionOpen, listUrl, requestKey]);
 
   // A sale or cancellation may empty the last page; keep the current filters.
   useEffect(() => {
@@ -384,6 +392,28 @@ export default function AuctionPage() {
       setRefresh((value) => value + 1);
     },
   };
+
+  if (!identity) {
+    return (
+      <GameSceneFrame variant="workflow">
+        {profile.loading ? (
+          <GameLoadingState message="正在确认境界……" variant="inline" />
+        ) : (
+          <InkNotice tone="warning">
+            {profile.error || '角色信息读取失败'}
+          </InkNotice>
+        )}
+      </GameSceneFrame>
+    );
+  }
+
+  if (!auctionOpen) {
+    return (
+      <GameSceneFrame variant="workflow">
+        <InkNotice>{LATE_QI_AUCTION_DENIED}</InkNotice>
+      </GameSceneFrame>
+    );
+  }
 
   return (
     <GameSceneFrame variant="workflow">

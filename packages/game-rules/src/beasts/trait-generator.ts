@@ -10,6 +10,11 @@ export type BeastTraits = {
 /** 必带之外，每个候选技能独立获得的概率。不按物种配置。 */
 export const CANDIDATE_SKILL_CHANCE = 0.5;
 
+/** 变异把已抽出的整数资质或成长千分值提高 5%，四舍五入。 */
+export function beastMutationBonus(value: number): number {
+  return Math.round((value * 105) / 100);
+}
+
 /** 接受已通过内容包校验的物种。只抽取生物事实，不创建身份、等级、加点或库存。 */
 export function rollBeastTraits(
   species: BeastSpeciesDefinition,
@@ -35,12 +40,12 @@ export function rollBeastTraits(
     if (skillRng.next() < CANDIDATE_SKILL_CHANCE) skills.push(id);
   if (isMutant) {
     for (const key of Object.keys(aptitudes) as (keyof typeof aptitudes)[])
-      aptitudes[key] = Math.round((aptitudes[key] * 105) / 100);
+      aptitudes[key] = beastMutationBonus(aptitudes[key]);
   }
   return {
     aptitudes,
     growth: isMutant
-      ? Math.round((Math.round(growth * 1000) * 105) / 100) / 1000
+      ? beastMutationBonus(Math.round(growth * 1000)) / 1000
       : growth,
     skills,
   };

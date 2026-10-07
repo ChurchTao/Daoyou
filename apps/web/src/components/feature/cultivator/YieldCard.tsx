@@ -1,4 +1,4 @@
-import { apiFetch } from '@app/lib/api/fetch';
+import { postEvents } from '@app/lib/api/postEvents';
 import { hasPendingCommandRequest, pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { HomeUrgentRow } from '@app/components/feature/home/HomeUrgentRow';
@@ -47,88 +47,41 @@ export function YieldCard({
     onInteractionActiveChange?.(true);
 
     try {
-      const response = await apiFetch('/api/cultivator/yield', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: pending.requestId }),
-      });
-
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || '领取失败');
-      }
-
-      if (!response.body) throw new Error('No response body');
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-
-      // Initialize empty result to show modal immediately
-      setYieldResult({
-        amount: 0,
-        hours: 0,
-        story: '天机推演中……',
-      });
-
       let currentStory = '';
-      let streamBuffer = '';
-      const processSseData = (dataStr: string) => {
-        if (!dataStr || dataStr === '[DONE]') return;
-
-        try {
-          const data = JSON.parse(dataStr);
-          if (data.type === 'result') {
-            pending.complete();
-            // Initial calculation result
-            setYieldResult(() => ({
-              amount: data.data.amount,
-              hours: data.data.hours,
-              materials: data.data.materials,
-              expGain: data.data.expGain,
-              insightGain: data.data.insightGain,
-              rewardCount: data.data.rewardCount,
-              story: currentStory || '',
-            }));
-          } else if (data.type === 'chunk') {
-            // Story text chunk
-            currentStory += data.text;
-            setYieldResult((prev) =>
-              prev ? { ...prev, story: currentStory } : null,
-            );
-          } else if (data.type === 'state' && data.state) {
-            consumeResourceChanges(data.state);
-          } else if (data.type === 'error') {
-            pushToast({ message: data.error, tone: 'danger' });
-          }
-        } catch (e) {
-          console.error('Error parsing SSE data', e);
-        }
-      };
-
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        done = doneReading;
-        const chunkValue = decoder.decode(value, { stream: !doneReading });
-        streamBuffer += chunkValue;
-
-        // Process SSE chunks
-        const frames = streamBuffer.split('\n\n');
-        streamBuffer = frames.pop() ?? '';
-        for (const frame of frames) {
-          for (const line of frame.split('\n')) {
-            if (line.startsWith('data: ')) {
-              processSseData(line.slice(6));
-            }
-          }
-        }
-      }
-
-      if (streamBuffer.trim()) {
-        for (const line of streamBuffer.split('\n')) {
-          if (line.startsWith('data: ')) {
-            processSseData(line.slice(6));
-          }
+      for await (const data of postEvents<{
+        type: 'result' | 'chunk' | 'state' | 'error';
+        data?: {
+          amount: number;
+          hours: number;
+          materials?: GeneratedMaterial[];
+          expGain?: number;
+          insightGain?: number;
+          rewardCount?: number;
+        };
+        text?: string;
+        state?: Parameters<typeof consumeResourceChanges>[0];
+        error?: string;
+      }>('/api/cultivator/yield', { requestId: pending.requestId })) {
+        if (data.type === 'result' && data.data) {
+          pending.complete();
+          setYieldResult(() => ({
+            amount: data.data?.amount ?? 0,
+            hours: data.data?.hours ?? 0,
+            materials: data.data?.materials,
+            expGain: data.data?.expGain,
+            insightGain: data.data?.insightGain,
+            rewardCount: data.data?.rewardCount,
+            story: currentStory || '',
+          }));
+        } else if (data.type === 'chunk' && data.text) {
+          currentStory += data.text;
+          setYieldResult((prev) =>
+            prev ? { ...prev, story: currentStory } : null,
+          );
+        } else if (data.type === 'state' && data.state) {
+          consumeResourceChanges(data.state);
+        } else if (data.type === 'error') {
+          pushToast({ message: data.error ?? '领取失败', tone: 'danger' });
         }
       }
     } catch (error) {

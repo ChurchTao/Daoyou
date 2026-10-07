@@ -1,4 +1,4 @@
-import { apiFetch } from '@app/lib/api/fetch';
+import { ApiFailure, postEvents } from '@app/lib/api/postEvents';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   getQiErrorMessage,
@@ -22,6 +22,7 @@ import {
 import type {
   RetreatAction,
   RetreatResultData,
+  RetreatStreamEvent,
 } from '@daoyou/contracts/retreat';
 import type { TaskInstance } from '@daoyou/game-domain/tasks';
 import { getRetreatQiCost } from '@daoyou/game-rules/qi';
@@ -29,7 +30,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   type ReincarnateContextData,
-  consumeRetreatStream,
+  consumeRetreatEvents,
   isSuccessfulBreakthrough,
 } from './retreatStream';
 import {
@@ -287,23 +288,13 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       try {
         const requestId = window.sessionStorage.getItem(storageKey) ?? crypto.randomUUID();
         window.sessionStorage.setItem(storageKey, requestId);
-        const response = await apiFetch('/api/cultivator/retreat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, requestId }),
-        });
-
-        if (!response.ok) {
-          const payload = (await response
-            .json()
-            .catch(() => null)) as RetreatFailurePayload | null;
-          return {
-            ok: false,
-            payload,
-          };
-        }
-
-        await consumeRetreatStream(response, {
+        try {
+          await consumeRetreatEvents(
+            postEvents<RetreatStreamEvent>('/api/cultivator/retreat', {
+              ...body,
+              requestId,
+            }),
+            {
           cultivatorSnapshot,
           onResult: (result) => {
             window.sessionStorage.removeItem(storageKey);
@@ -335,9 +326,18 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
               tone: 'warning',
             });
           },
-        });
-
+        },
+        );
         return { ok: true };
+        } catch (error) {
+          if (error instanceof ApiFailure) {
+            return {
+              ok: false,
+              payload: (error.payload ?? null) as RetreatFailurePayload | null,
+            };
+          }
+          throw error;
+        }
       } finally {
         requestInFlight.current = false;
         setRetreatResultStreaming(false);

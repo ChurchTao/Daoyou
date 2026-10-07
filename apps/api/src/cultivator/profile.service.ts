@@ -4,6 +4,7 @@ import type {
 } from '@daoyou/contracts/character/attributes';
 import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
 import { projectCharacterDisplay } from '@daoyou/game-rules/character/display';
+import { LATE_QI_REDEEM_DENIED } from '@daoyou/game-rules/progression/realm-access';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
@@ -21,6 +22,7 @@ import {
 } from '@server/cultivator/application/CultivatorProfileApplicationService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { claimRedeemCode } from '@server/admin/application/RedeemCodeApplicationService.js';
+import { assertLateQiRefining } from '@server/cultivator/application/lateQiAccess.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -107,6 +109,11 @@ export class ProfileService {
         { error: '兑换码格式错误，仅支持 6-64 位大写字母数字' },
         400,
       );
+    await assertLateQiRefining(
+      actor.cultivatorId,
+      LATE_QI_REDEEM_DENIED,
+      this.database,
+    );
     return toPlayerStateMutationResponse(
       await claimRedeemCode({ ...actor, code: normalizedCode }),
     );

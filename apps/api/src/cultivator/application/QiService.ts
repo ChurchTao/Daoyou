@@ -133,6 +133,24 @@ export class QiService {
     return QI_ACTION_COSTS[action];
   }
 
+  /** Read-only gate for work that spends a model call before the reservation transaction. */
+  static async assertAffordable(input: {
+    cultivatorId: string;
+    action: QiAction;
+    cost?: number;
+  }): Promise<void> {
+    if (!isQiEnabled()) return;
+    const cost = input.cost ?? this.getCost(input.action);
+    const current = (await this.getQiState(input.cultivatorId)).current;
+    if (current < cost) {
+      throw new QiInsufficientError({
+        action: input.action,
+        required: cost,
+        current,
+      });
+    }
+  }
+
   static async getQiState(cultivatorId: string): Promise<QiState> {
     const [row] = await getExecutor()
       .select({

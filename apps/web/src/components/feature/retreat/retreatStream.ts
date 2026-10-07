@@ -17,13 +17,6 @@ export interface ReincarnateContextData {
   realm_stage: string;
 }
 
-interface RetreatStreamHandlers {
-  onResult: (result: RetreatResultData) => void;
-  onState?: (state: PlayerResourceMutationMeta) => void;
-  onChunk?: (text: string) => void;
-  onError?: (message: string) => void;
-}
-
 interface ConsumeRetreatStreamHandlers {
   cultivatorSnapshot?: RetreatCultivatorSnapshot | null;
   onResult: (result: RetreatResultData) => void;
@@ -69,8 +62,8 @@ export function isSuccessfulBreakthrough(
   );
 }
 
-export async function consumeRetreatStream(
-  response: Response,
+export async function consumeRetreatEvents(
+  events: AsyncIterable<RetreatStreamEvent>,
   handlers: ConsumeRetreatStreamHandlers,
 ): Promise<{
   latestResult: RetreatResultData | null;
@@ -78,6 +71,7 @@ export async function consumeRetreatStream(
 }> {
   let latestResult: RetreatResultData | null = null;
   let reincarnateContext: ReincarnateContextData | null = null;
+  let receivedResult = false;
 
   const syncReincarnateContext = () => {
     reincarnateContext = buildReincarnateContext(
@@ -87,98 +81,32 @@ export async function consumeRetreatStream(
     handlers.onReincarnateContext?.(reincarnateContext);
   };
 
-  await readRetreatStream(response, {
-    onResult: (result) => {
-      latestResult = result;
+  for await (const event of events) {
+    if (event.type === 'result') {
+      receivedResult = true;
+      latestResult = event.data;
       syncReincarnateContext();
-      handlers.onResult(result);
-    },
-    onState: handlers.onState,
-    onChunk: (chunk) => {
-      if (!latestResult) {
-        return;
-      }
-
-      latestResult = appendRetreatStory(latestResult, chunk);
+      handlers.onResult(event.data);
+      continue;
+    }
+    if (event.type === 'state') {
+      handlers.onState?.(event.state);
+      continue;
+    }
+    if (event.type === 'chunk') {
+      if (!latestResult) continue;
+      latestResult = appendRetreatStory(latestResult, event.text);
       syncReincarnateContext();
       handlers.onStoryUpdate?.(latestResult);
-    },
-    onError: handlers.onError,
-  });
+      continue;
+    }
+    handlers.onError?.(event.error);
+  }
+
+  if (!receivedResult) throw new Error('闭关结果解析失败');
 
   return {
     latestResult,
     reincarnateContext,
   };
-}
-
-export async function readRetreatStream(
-  response: Response,
-  handlers: RetreatStreamHandlers,
-): Promise<void> {
-  if (!response.body) {
-    throw new Error('No response body');
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let receivedResult = false;
-
-  const flushBuffer = () => {
-    const segments = buffer.split('\n\n');
-    buffer = segments.pop() ?? '';
-
-    for (const segment of segments) {
-      const event = parseRetreatStreamEvent(segment);
-      if (!event) continue;
-
-      if (event.type === 'result') {
-        receivedResult = true;
-        handlers.onResult(event.data);
-        continue;
-      }
-
-      if (event.type === 'state') {
-        handlers.onState?.(event.state);
-        continue;
-      }
-
-      if (event.type === 'chunk') {
-        handlers.onChunk?.(event.text);
-        continue;
-      }
-
-      handlers.onError?.(event.error);
-    }
-  };
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    flushBuffer();
-  }
-
-  buffer += decoder.decode();
-  flushBuffer();
-
-  if (!receivedResult) {
-    throw new Error('闭关结果解析失败');
-  }
-}
-
-function parseRetreatStreamEvent(chunk: string): RetreatStreamEvent | null {
-  const data = chunk
-    .split('\n')
-    .filter((line) => line.startsWith('data: '))
-    .map((line) => line.slice(6))
-    .join('\n')
-    .trim();
-
-  if (!data || data === '[DONE]') {
-    return null;
-  }
-
-  return JSON.parse(data) as RetreatStreamEvent;
 }

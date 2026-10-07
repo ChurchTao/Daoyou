@@ -455,6 +455,73 @@ async function consumeCultivationCost(
   return { cost, qiChange, spiritStones, condition };
 }
 
+async function assertCultivationAffordable(
+  actor: SpiritFieldActor,
+  plot: SpiritFieldPlotState,
+  method: SpiritFieldCultivationMethod,
+  resourceId: string | undefined,
+  revision: number | undefined,
+) {
+  const plant = plot.plant;
+  if (!plant)
+    throw new SpiritFieldServiceError('当前阶段不能使用这种培育方式', 409);
+  const definition = getSpiritFieldMethod(method);
+  const cost = getCultivationResourceCost(method, plant.quality);
+  if (definition.resourceKind === 'qi') {
+    await QiService.assertAffordable({
+      cultivatorId: actor.cultivatorId,
+      action: 'spirit_field_care',
+      cost: cost.amount,
+    });
+  }
+  const spiritStoneCost =
+    (definition.resourceKind === 'spirit_stones' ? cost.amount : 0) +
+    cost.spiritStones;
+  if (spiritStoneCost > 0) {
+    const row = await loadCultivator(actor);
+    if (row.spiritStones < spiritStoneCost) {
+      throw new Error(
+        `灵石不足，需要 ${spiritStoneCost}，当前拥有 ${row.spiritStones}`,
+      );
+    }
+  }
+  const itemKind = itemResourceKind(method);
+  if (itemKind) {
+    if (revision === undefined)
+      throw new SpiritFieldServiceError('请重新选择物品', 409);
+    const item = (
+      await readFieldBag(actor.cultivatorId, getExecutor(), resourceId)
+    ).find((row) => row.id === resourceId);
+    if (
+      !item ||
+      item.revision !== revision ||
+      item.quantity < cost.amount
+    ) {
+      throw new SpiritFieldServiceError(
+        '所选物品已变化或数量不足，请重新选择',
+        409,
+      );
+    }
+  }
+  if (definition.resourceKind === 'mp') {
+    const facts = await loadPlayerConsumableOperationFacts(
+      actor.userId,
+      actor.cultivatorId,
+    );
+    if (!facts) throw new SpiritFieldServiceError('角色状态不存在', 404);
+    const current = ConditionService.tickNaturalRecovery(
+      facts,
+      facts.condition,
+    );
+    if (current.resources.mp.current < cost.amount) {
+      throw new SpiritFieldServiceError(
+        `法力不足，需要 ${cost.amount} 点`,
+        409,
+      );
+    }
+  }
+}
+
 export async function cultivateSpiritField(
   actor: SpiritFieldActor,
   input: SpiritFieldCultivateRequest,
@@ -491,6 +558,13 @@ export async function cultivateSpiritField(
               '随身物品已变化，请重新选择',
               409,
             );
+          await assertCultivationAffordable(
+            actor,
+            initialPlot,
+            input.method,
+            input.resourceId,
+            input.resourceRevision,
+          );
           const judgment = await judgeSpiritFieldStage({
             plant: initialPlot.plant!,
             method: input.method,

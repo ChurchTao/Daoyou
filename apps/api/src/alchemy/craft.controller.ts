@@ -11,7 +11,10 @@ import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
 import { PlayerCommandIdempotencyError } from '@server/player/application/state/CommandExecutors.js';
 import { CraftCommandError } from '@server/forging/application/CraftApplicationService.js';
-import { QiServiceError } from '@server/cultivator/application/QiService.js';
+import {
+  QiInsufficientError,
+  QiServiceError,
+} from '@server/cultivator/application/QiService.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
@@ -27,6 +30,18 @@ const CraftErrors = apiErrorFilter((error) => {
     return Response.json(
       { success: false, error: '请求参数无效' },
       { status: 400 },
+    );
+  if (error instanceof QiInsufficientError)
+    return Response.json(
+      {
+        success: false,
+        error: error.message,
+        code: error.code,
+        required: error.required,
+        current: error.current,
+        action: error.action,
+      },
+      { status: 409 },
     );
   if (
     error instanceof AlchemyServiceError ||

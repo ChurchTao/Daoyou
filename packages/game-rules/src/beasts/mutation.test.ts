@@ -1,14 +1,20 @@
+import { BEAST_REFINEMENT, BEAST_SPECIES } from '@daoyou/game-content/beasts';
+import { BOOKS } from '@daoyou/game-content/items/beasts';
 import { expect, it } from 'vitest';
 import { learnBeastSkill } from '../inventory/index.js';
-import { BOOKS } from '@daoyou/game-content/items/beasts';
-import { BEAST_SPECIES, BEAST_REFINEMENT } from '@daoyou/game-content/beasts';
 import { generateCapturedBeast, generateStarterBeast } from './generator.js';
 import { beastAttributes, beastPanel } from './projection.js';
 import { refineBeast } from './refinement.js';
 import { BeastSchema } from './schema.js';
-import { rollBeastTraits } from './trait-generator.js';
+import { beastMutationBonus, rollBeastTraits } from './trait-generator.js';
 
 const id = '00000000-0000-4000-8000-000000000001';
+
+it('变异资质与成长千分值使用同一 5% 舍入', () => {
+  expect(beastMutationBonus(840)).toBe(882);
+  expect(beastMutationBonus(1030)).toBe(1082);
+  expect(beastMutationBonus(0)).toBe(0);
+});
 
 it.each(BEAST_SPECIES)(
   '$name 变异只提升五项资质与成长5%，技能抽签不变',

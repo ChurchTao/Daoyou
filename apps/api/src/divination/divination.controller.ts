@@ -4,19 +4,24 @@ import {
   HttpCode,
   Inject,
   Post,
-  Res,
+  Req,
+  RequestMethod,
+  Sse,
+  SseSignal,
   UseFilters,
+  type MessageEvent,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import {
   DivinationDrawSchema,
   DivinationInterpretSchema,
 } from '@daoyou/contracts/divination';
-import type { Response } from 'express';
+import type { Observable } from 'rxjs';
 import type { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { JsonBody } from '../http/json-body.js';
-import { streamSseEvents } from '../http/sse.js';
+import type { GameRequest } from '../http/request.js';
+import { SseResponseService } from '../http/sse-response.service.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { DivinationExceptionFilter } from './divination-exception.filter.js';
 import { DivinationService } from './divination.service.js';
@@ -27,6 +32,7 @@ import { DivinationService } from './divination.service.js';
 export class DivinationController {
   constructor(
     @Inject(DivinationService) private readonly divination: DivinationService,
+    @Inject(SseResponseService) private readonly sse: SseResponseService,
   ) {}
 
   @Get()
@@ -44,23 +50,17 @@ export class DivinationController {
     return this.divination.draw(actor, body.direction);
   }
 
-  @Post('interpret')
+  @Sse('interpret', { method: RequestMethod.POST })
   @HttpCode(200)
   interpret(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody(new ZodPipe(DivinationInterpretSchema))
     body: z.infer<typeof DivinationInterpretSchema>,
-    @Res() response: Response,
-  ) {
-    return streamSseEvents(response, (stream, isAborted, signal) =>
-      this.divination.interpret(actor, body.drawId, signal, async (event) => {
-        if (isAborted()) return;
-        try {
-          await stream.writeSSE({ data: JSON.stringify(event) });
-        } catch {
-          // Settlement is independent of delivery of the final event.
-        }
-      }),
+    @SseSignal() signal: AbortSignal,
+    @Req() request: GameRequest,
+  ): Promise<Observable<MessageEvent>> {
+    return this.sse.stream(request, signal, async () => (emit, streamSignal) =>
+      this.divination.interpret(actor, body.drawId, streamSignal, emit),
     );
   }
 }

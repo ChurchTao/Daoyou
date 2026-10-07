@@ -5,8 +5,12 @@ import {
   Inject,
   Param,
   Post,
-  Res,
+  Req,
+  RequestMethod,
+  Sse,
+  SseSignal,
   UseFilters,
+  type MessageEvent,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
@@ -15,13 +19,13 @@ import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/cultivator/application/QiService.js';
-import type { Response as ExpressResponse } from 'express';
+import type { Observable } from 'rxjs';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
-import { withRequestAbort } from '../http/request-abort.js';
-import { streamSseEvents } from '../http/sse.js';
+import type { GameRequest } from '../http/request.js';
+import { SseResponseService } from '../http/sse-response.service.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import {
   CommitSchema,
@@ -64,6 +68,7 @@ const BlackMarketErrors = apiErrorFilter((error) => {
 export class BlackMarketController {
   constructor(
     @Inject(BlackMarketService) private readonly market: BlackMarketService,
+    @Inject(SseResponseService) private readonly sse: SseResponseService,
   ) {}
 
   @Get(':nodeId')
@@ -85,7 +90,7 @@ export class BlackMarketController {
     return this.market.open(actor, nodeId, input);
   }
 
-  @Post(':nodeId/sessions/:sessionId/interact')
+  @Sse(':nodeId/sessions/:sessionId/interact', { method: RequestMethod.POST })
   @HttpCode(200)
   interact(
     @CurrentCultivator() actor: ActiveCultivatorRef,
@@ -93,22 +98,20 @@ export class BlackMarketController {
     @Param('sessionId') sessionId: string,
     @JsonBody(new ZodPipe(InteractSchema))
     input: z.infer<typeof InteractSchema>,
-    @Res() response: ExpressResponse,
-  ) {
-    return withRequestAbort(response, async (signal) => {
+    @SseSignal() signal: AbortSignal,
+    @Req() request: GameRequest,
+  ): Promise<Observable<MessageEvent>> {
+    return this.sse.stream(request, signal, async (streamSignal) => {
       const prepared = await this.market.prepare(
         actor,
         nodeId,
         sessionId,
         input,
-        signal,
+        streamSignal,
       );
-      signal.throwIfAborted();
-      await streamSseEvents(response, (stream, _isAborted, replySignal) =>
-        this.market.reply(prepared, replySignal, (event) =>
-          stream.writeSSE({ data: JSON.stringify(event) }),
-        ),
-      );
+      if (streamSignal.aborted) return async () => undefined;
+      return (emit, replySignal) =>
+        this.market.reply(prepared, replySignal, emit);
     });
   }
 

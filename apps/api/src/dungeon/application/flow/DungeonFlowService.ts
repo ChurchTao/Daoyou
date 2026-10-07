@@ -691,6 +691,13 @@ export class DungeonFlowService {
         accumulatedMpLoss: 0, // 累积法力损失百分比 (0-1)
       };
 
+      // Qi is reserved in the deferred commit. Refuse before the first scene
+      // so a shortfall does not spend a model call.
+      await QiService.assertAffordable({
+        cultivatorId,
+        action: 'dungeon_start',
+      });
+
       // 3. 首次 AI 调用
       const roundData = await this.previewRoundResourceLoss(
         this.normalizeRoundOptions(await this.callAI(state), state),

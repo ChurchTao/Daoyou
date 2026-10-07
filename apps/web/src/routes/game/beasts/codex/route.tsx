@@ -3,11 +3,13 @@ import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { GameSceneTabs } from '@app/components/game-shell/GameSceneTabs';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { BEAST_RARE_SPECIES_IDS } from '@daoyou/game-content/beasts';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import {
+  beastMutationBonus,
   listBeastCodex,
   type BeastCodexEntry,
   type BeastCodexHabitat,
@@ -51,10 +53,18 @@ export default function BeastCodexPage() {
   );
   const selected =
     visible.find((entry) => entry.id === params.get('species')) ?? visible[0];
+  const mutant = params.get('form') === 'mutant';
 
   function choose(id: string) {
     const next = new URLSearchParams(params);
     next.set('species', id);
+    setParams(next, { replace: true });
+  }
+
+  function setMutant(nextMutant: boolean) {
+    const next = new URLSearchParams(params);
+    if (nextMutant) next.set('form', 'mutant');
+    else next.delete('form');
     setParams(next, { replace: true });
   }
 
@@ -93,7 +103,7 @@ export default function BeastCodexPage() {
                     aria-hidden
                     className="shrink-0 font-sans text-2xl md:text-3xl"
                   >
-                    <BeastIcon speciesId={entry.id} />
+                    <BeastIcon speciesId={entry.id} isMutant={mutant} />
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm" title={entry.name}>
@@ -111,12 +121,14 @@ export default function BeastCodexPage() {
         {selected ? (
           <CodexDetail
             entry={selected}
+            mutant={mutant}
+            onMutantChange={setMutant}
             onTravel={(habitat) =>
               navigate(
                 `/game/wild?nodeId=${encodeURIComponent(habitat.nodeId)}`,
                 {
                   state: {
-                    codexReturnTo: `/game/beasts/codex?species=${encodeURIComponent(selected.id)}`,
+                    codexReturnTo: `/game/beasts/codex?species=${encodeURIComponent(selected.id)}${mutant ? '&form=mutant' : ''}`,
                   },
                 },
               )
@@ -141,36 +153,54 @@ function CoreSkillMark() {
 
 function CodexDetail({
   entry,
+  mutant,
+  onMutantChange,
   onTravel,
 }: {
   entry: BeastCodexEntry;
+  mutant: boolean;
+  onMutantChange: (mutant: boolean) => void;
   onTravel: (habitat: BeastCodexHabitat) => void;
 }) {
+  const bound = (value: number) => (mutant ? beastMutationBonus(value) : value);
   return (
     <div className="@container min-w-0 space-y-5">
-      <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 @min-[30rem]:grid-cols-[128px_minmax(0,1fr)] @min-[30rem]:items-start @min-[30rem]:gap-x-5 @min-[38rem]:grid-cols-[160px_minmax(0,1fr)]">
-        <div className="row-span-2 flex items-center justify-center @min-[30rem]:row-span-1">
-          <BeastIcon
-            speciesId={entry.id}
-            className="text-[96px] @min-[30rem]:text-[128px] @min-[38rem]:text-[160px]"
+      <div className="relative">
+        <div className="absolute top-0 right-0 flex items-center gap-2">
+          <span className="text-ink-secondary text-xs">变异</span>
+          <InkSwitch
+            checked={mutant}
+            onCheckedChange={onMutantChange}
+            aria-label="变异形态"
           />
         </div>
-        <div className="contents min-w-0 @min-[30rem]:block">
-          <h2 className="self-end truncate text-xl" title={entry.name}>
-            {entry.name}
-          </h2>
-          <p className="text-ink-secondary mt-1 self-start text-xs leading-6">
-            {BEAST_RARE_SPECIES_IDS.has(entry.id) ? '稀有异兽 · ' : ''}
-            {entry.realm} · 携带要求{' '}
-            {getLevelRealmStage(entry.carryLevel).label}
-          </p>
-          <p className="text-ink-secondary col-span-2 text-sm leading-6 @min-[30rem]:mt-2">
-            {entry.description}
-          </p>
+        <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-3 gap-y-2 @min-[30rem]:grid-cols-[128px_minmax(0,1fr)] @min-[30rem]:items-start @min-[30rem]:gap-x-5 @min-[38rem]:grid-cols-[160px_minmax(0,1fr)]">
+          <div className="row-span-2 flex items-center justify-center @min-[30rem]:row-span-1">
+            <BeastIcon
+              speciesId={entry.id}
+              isMutant={mutant}
+              className="text-[96px] @min-[30rem]:text-[128px] @min-[38rem]:text-[160px]"
+            />
+          </div>
+          <div className="contents min-w-0 @min-[30rem]:block">
+            <h2 className="self-end truncate pr-16 text-xl" title={entry.name}>
+              {entry.name}
+            </h2>
+            <p className="text-ink-secondary mt-1 self-start pr-16 text-xs leading-6">
+              {BEAST_RARE_SPECIES_IDS.has(entry.id) ? '稀有异兽 · ' : ''}
+              {entry.realm} · 携带要求{' '}
+              {getLevelRealmStage(entry.carryLevel).label}
+            </p>
+            <p className="text-ink-secondary col-span-2 text-sm leading-6 @min-[30rem]:mt-2">
+              {entry.description}
+            </p>
+          </div>
         </div>
       </div>
       <section className="border-ink/15 border-t pt-4">
-        <h3 className="text-teal mb-2 text-sm">资质范围</h3>
+        <h3 className="text-teal mb-2 text-sm">
+          {mutant ? '变异资质范围' : '资质范围'}
+        </h3>
         <dl className="grid grid-cols-2 gap-x-5 lg:grid-cols-3">
           {aptitudeRows.map(([key, label]) => (
             <div
@@ -179,15 +209,16 @@ function CodexDetail({
             >
               <dt className="text-ink-secondary text-xs">{label}</dt>
               <dd className="ml-auto font-mono text-sm">
-                {entry.aptitudes[key].min}～{entry.aptitudes[key].max}
+                {bound(entry.aptitudes[key].min)}～
+                {bound(entry.aptitudes[key].max)}
               </dd>
             </div>
           ))}
           <div className="border-ink/8 flex flex-wrap items-baseline justify-between gap-x-3 border-b py-1.5">
             <dt className="text-ink-secondary text-xs">成长</dt>
             <dd className="ml-auto font-mono text-sm">
-              {growthText(entry.growthMilli.min)}～
-              {growthText(entry.growthMilli.max)}
+              {growthText(bound(entry.growthMilli.min))}～
+              {growthText(bound(entry.growthMilli.max))}
             </dd>
           </div>
         </dl>

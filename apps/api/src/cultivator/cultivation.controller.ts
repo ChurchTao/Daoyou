@@ -2,9 +2,12 @@ import {
   Controller,
   HttpCode,
   Inject,
-  Post,
-  Res,
+  Req,
+  RequestMethod,
+  Sse,
+  SseSignal,
   UseFilters,
+  type MessageEvent,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
@@ -20,13 +23,13 @@ import {
   RetreatRequestSchema,
   type RetreatRequest,
 } from '@daoyou/contracts/retreat';
-import type { Response as ExpressResponse } from 'express';
+import type { Observable } from 'rxjs';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
-import { withRequestAbort } from '../http/request-abort.js';
-import { streamSseEvents } from '../http/sse.js';
+import type { GameRequest } from '../http/request.js';
+import { SseResponseService } from '../http/sse-response.service.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { RetreatService } from './retreat.service.js';
 import { YieldService } from './yield.service.js';
@@ -81,29 +84,28 @@ export class CultivationController {
   constructor(
     @Inject(RetreatService) private readonly retreat: RetreatService,
     @Inject(YieldService) private readonly yields: YieldService,
+    @Inject(SseResponseService) private readonly sse: SseResponseService,
   ) {}
 
-  @Post('retreat')
+  @Sse('retreat', { method: RequestMethod.POST })
   @HttpCode(200)
   @UseFilters(RetreatErrors)
   cultivate(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @JsonBody({ fallback: undefined }, new ZodPipe(RetreatRequestSchema))
     input: RetreatRequest,
-    @Res() response: ExpressResponse,
-  ) {
-    return withRequestAbort(response, async (signal) => {
+    @SseSignal() signal: AbortSignal,
+    @Req() request: GameRequest,
+  ): Promise<Observable<MessageEvent>> {
+    return this.sse.stream(request, signal, async (streamSignal) => {
       const execution = await this.retreat.execute(actor, input);
-      if (signal.aborted) return;
-      return streamSseEvents(response, (stream, _isAborted, streamSignal) =>
-        this.retreat.stream(execution, streamSignal, (event) =>
-          stream.writeSSE({ data: JSON.stringify(event) }),
-        ),
-      );
+      if (streamSignal.aborted) return async () => undefined;
+      return (emit, nextSignal) =>
+        this.retreat.stream(execution, nextSignal, emit);
     });
   }
 
-  @Post('yield')
+  @Sse('yield', { method: RequestMethod.POST })
   @HttpCode(200)
   @UseFilters(YieldErrors)
   claimYield(
@@ -113,16 +115,14 @@ export class CultivationController {
       new ZodPipe(JournalRequestSchema, 'legacy-unhandled'),
     )
     input: z.infer<typeof JournalRequestSchema>,
-    @Res() response: ExpressResponse,
-  ) {
-    return withRequestAbort(response, async (signal) => {
+    @SseSignal() signal: AbortSignal,
+    @Req() request: GameRequest,
+  ): Promise<Observable<MessageEvent>> {
+    return this.sse.stream(request, signal, async (streamSignal) => {
       const execution = await this.yields.execute(actor, input.requestId);
-      if (signal.aborted) return;
-      return streamSseEvents(response, (stream, _isAborted, streamSignal) =>
-        this.yields.stream(execution, streamSignal, (event) =>
-          stream.writeSSE({ data: JSON.stringify(event) }),
-        ),
-      );
+      if (streamSignal.aborted) return async () => undefined;
+      return (emit, nextSignal) =>
+        this.yields.stream(execution, nextSignal, emit);
     });
   }
 }
