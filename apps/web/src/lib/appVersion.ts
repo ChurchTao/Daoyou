@@ -1,3 +1,5 @@
+import { reloadForApplicationUpdate } from './serviceWorker';
+
 export interface AppVersionManifest {
   buildId: string;
 }
@@ -84,7 +86,7 @@ export function isDynamicImportError(error: unknown): boolean {
 }
 
 export function reloadIntoLatestVersion() {
-  window.location.reload();
+  reloadForApplicationUpdate();
 }
 
 export function recoverFromPreloadError(

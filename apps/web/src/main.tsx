@@ -4,10 +4,12 @@ import { RouterProvider } from 'react-router';
 import './index.css';
 import { registerPreloadErrorRecovery } from './lib/appVersion';
 import { initializePwaInstallCapture } from './lib/pwaInstall';
+import { registerProductionServiceWorker } from './lib/serviceWorker';
 import { router } from './router';
 
 if (import.meta.env.PROD) {
   registerPreloadErrorRecovery();
+  registerProductionServiceWorker();
 }
 initializePwaInstallCapture();
 
