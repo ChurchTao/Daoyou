@@ -54,7 +54,7 @@ export default function SignupRoute() {
         <AuthChoiceCard
           href="/signup/password"
           title="密码注册"
-          description="使用邮箱、昵称和密码创建账号，并通过验证邮件激活。"
+          description="使用邮箱和密码创建账号，并通过验证邮件激活。"
         />
         <AuthChoiceCard
           onClick={handleGitHubSignIn}

@@ -19,7 +19,6 @@ export interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   signUpWithPassword: (
-    name: string,
     email: string,
     password: string,
     captchaPayload?: string,
@@ -36,7 +35,6 @@ export interface AuthContextType {
   verifyEmailOtp: (
     email: string,
     otp: string,
-    name?: string,
   ) => Promise<{ error: AuthActionError | null }>;
   signInWithGitHub: (
     callbackURL?: string,

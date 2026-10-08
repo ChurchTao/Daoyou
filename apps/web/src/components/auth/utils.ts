@@ -2,8 +2,6 @@ import type { AuthActionError } from '@app/lib/auth/authContext';
 
 export type EmailOtpSource = 'login' | 'signup';
 
-const EMAIL_OTP_NAME_REQUIRED_MESSAGE = '首次注册请填写昵称';
-
 export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
@@ -66,24 +64,17 @@ export function buildEmailOtpTarget(
   pathname: string,
   {
     email,
-    displayName,
     source,
   }: {
     email?: string;
-    displayName?: string;
     source?: EmailOtpSource;
   } = {},
 ) {
   const searchParams = new URLSearchParams();
   const trimmedEmail = email?.trim();
-  const trimmedDisplayName = displayName?.trim();
 
   if (trimmedEmail) {
     searchParams.set('email', trimmedEmail);
-  }
-
-  if (trimmedDisplayName) {
-    searchParams.set('name', trimmedDisplayName);
   }
 
   if (source === 'signup') {
@@ -92,30 +83,4 @@ export function buildEmailOtpTarget(
 
   const query = searchParams.toString();
   return query ? `${pathname}?${query}` : pathname;
-}
-
-export function isEmailOtpNameRequiredError(
-  error: AuthActionError | null | undefined,
-) {
-  return (
-    error?.message === EMAIL_OTP_NAME_REQUIRED_MESSAGE ||
-    error?.originalMessage === EMAIL_OTP_NAME_REQUIRED_MESSAGE
-  );
-}
-
-export function getEmailOtpVerifyFieldErrors({
-  otp,
-  displayName,
-  displayNameRequired,
-}: {
-  otp: string;
-  displayName: string;
-  displayNameRequired: boolean;
-}) {
-  return {
-    otp: validateRequiredField(otp, '请输入验证码'),
-    displayName: displayNameRequired
-      ? validateRequiredField(displayName, '请输入昵称')
-      : undefined,
-  };
 }

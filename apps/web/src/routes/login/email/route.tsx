@@ -1,6 +1,6 @@
 import {
-  AuthPageShell,
   AuthCaptchaField,
+  AuthPageShell,
   buildEmailOtpTarget,
   toErrorMessage,
   useAuthFeedback,
@@ -27,9 +27,6 @@ export default function LoginEmailRoute() {
     setCaptchaPayload,
   } = useCaptchaField();
 
-  const [displayName, setDisplayName] = useState(
-    searchParams.get('name') ?? '',
-  );
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string }>({});
@@ -62,7 +59,6 @@ export default function LoginEmailRoute() {
       navigate(
         buildEmailOtpTarget('/login/verify', {
           email,
-          displayName,
           source,
         }),
       );
@@ -80,7 +76,7 @@ export default function LoginEmailRoute() {
   return (
     <AuthPageShell
       title="【邮箱验证码】"
-      lead="输入邮箱获取验证码。首次使用该邮箱时，可同时填写昵称并自动注册。"
+      lead="输入邮箱获取验证码。首次使用该邮箱时，验证后会自动注册账号。"
       backHref={source === 'signup' ? '/signup' : '/login'}
       footer={
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -89,7 +85,6 @@ export default function LoginEmailRoute() {
               source === 'signup'
                 ? buildEmailOtpTarget('/signup/password', {
                     email,
-                    displayName,
                   })
                 : buildEmailOtpTarget('/login/password', { email })
             }
@@ -113,16 +108,6 @@ export default function LoginEmailRoute() {
           void handleSubmit();
         }}
       >
-        <InkInput
-          label="昵称（可选）"
-          value={displayName}
-          onChange={(value) => {
-            setDisplayName(value);
-          }}
-          placeholder="例：青岚"
-          hint="仅在首次注册时使用，已有账号可留空。"
-          disabled={loading}
-        />
         <InkInput
           label="邮箱"
           type="email"

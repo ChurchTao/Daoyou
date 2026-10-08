@@ -4,9 +4,6 @@ import {
   type AltchaAction,
 } from '@server/lib/auth/altcha.js';
 import { auth } from '@server/lib/auth/auth.js';
-import { authUsers } from '@server/lib/auth/schema.js';
-import { db } from '@server/lib/drizzle/db.js';
-import { eq } from 'drizzle-orm';
 
 const CAPTCHA_ACTION_BY_PATH = new Map<string, AltchaAction>([
   ['/api/auth/sign-in/email', 'sign-in'],
@@ -85,35 +82,6 @@ async function validateCaptcha(request: Request): Promise<Response | null> {
   return null;
 }
 
-async function validateOtpSignUpName(
-  request: Request,
-): Promise<Response | null> {
-  if (new URL(request.url).pathname !== '/api/auth/sign-in/email-otp') {
-    return null;
-  }
-
-  const body = await readRequestBody(request);
-  const email =
-    typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-
-  if (!email) {
-    return authError('缺少邮箱地址');
-  }
-
-  const existingUser = await db
-    .select({ id: authUsers.id })
-    .from(authUsers)
-    .where(eq(authUsers.email, email))
-    .limit(1);
-
-  if (existingUser.length === 0 && !name) {
-    return authError('首次注册请填写昵称');
-  }
-
-  return null;
-}
-
 export async function handleAuthRequest(request: Request): Promise<Response> {
   if (
     new URL(request.url).pathname === ADMIN_AUTH_PATH ||
@@ -126,11 +94,6 @@ export async function handleAuthRequest(request: Request): Promise<Response> {
     const captchaError = await validateCaptcha(request);
     if (captchaError) {
       return captchaError;
-    }
-
-    const otpNameError = await validateOtpSignUpName(request);
-    if (otpNameError) {
-      return otpNameError;
     }
   }
 
