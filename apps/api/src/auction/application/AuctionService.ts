@@ -5,6 +5,7 @@ import {
   auctionItemCategory,
   auctionItemPriceCap,
   auctionItemQuality,
+  auctionListingStackLimit,
   AuctionSnapshotSchema,
 } from '@daoyou/game-rules/auction';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@daoyou/game-content/social/config';
@@ -14,7 +15,7 @@ import {
   beastAuctionBlockReason,
   BeastTransferSchema,
 } from '@daoyou/game-rules/beasts/trade';
-import { itemDefinition, ItemGrantSchema } from '@daoyou/game-rules/inventory';
+import { itemDefinition } from '@daoyou/game-rules/inventory';
 import type { MailAttachment } from '@daoyou/game-domain/mail';
 import {
   assertBeastIdle,
@@ -220,19 +221,24 @@ export class AuctionOperations {
         equipped: equipped.length > 0,
       });
       if (reason) throw new InventoryError(reason);
+      if (quantity > auctionListingStackLimit(item.definitionId))
+        throw new AuctionServiceError(
+          'INVALID_QUANTITY',
+          '上架数量不能超过该物品的堆叠上限',
+        );
       const cap = auctionItemPriceCap(item);
       if (price > cap)
         throw new AuctionServiceError(
           'INVALID_PRICE',
           '该物品单价不得超过 ' + cap.toLocaleString() + ' 灵石',
         );
-      const grant = ItemGrantSchema.parse({
+      const grant = {
         definitionId: item.definitionId,
         quantity,
         ...(item.instanceData === null
           ? {}
           : { instanceData: item.instanceData }),
-      });
+      };
       await saveInventoryPlan(
         owner,
         before,

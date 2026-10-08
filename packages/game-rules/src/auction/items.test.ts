@@ -6,6 +6,7 @@ import {
   auctionBlockReason,
   auctionItemPriceCap,
   auctionItemQuality,
+  auctionListingStackLimit,
   AuctionSnapshotSchema,
 } from './items.js';
 
@@ -144,4 +145,45 @@ it('货单拒绝旧快照', () => {
   expect(AuctionSnapshotSchema.safeParse({ name: '旧法宝' }).success).toBe(
     false,
   );
+});
+
+it('上架件数跟随背包堆叠上限', () => {
+  const material = {
+    version: 'inventory_v1' as const,
+    item: {
+      definitionId: 'material.v1',
+      quantity: 999,
+      instanceData: {
+        name: '玄铁',
+        type: 'ore',
+        rank: '玄品',
+        element: null,
+        description: '',
+      },
+    },
+  };
+  expect(auctionListingStackLimit('material.v1')).toBe(999);
+  expect(AuctionSnapshotSchema.safeParse(material).success).toBe(true);
+  expect(
+    AuctionSnapshotSchema.safeParse({
+      ...material,
+      item: { ...material.item, quantity: 1000 },
+    }).success,
+  ).toBe(false);
+  const book = ITEM_DEFINITIONS.find((item) => item.kind === 'beast_book');
+  expect(book?.stackLimit).toBe(99);
+  expect(auctionListingStackLimit(book!.id)).toBe(99);
+  expect(
+    AuctionSnapshotSchema.safeParse({
+      version: 'inventory_v1',
+      item: { definitionId: book!.id, quantity: 99 },
+    }).success,
+  ).toBe(true);
+  expect(
+    AuctionSnapshotSchema.safeParse({
+      version: 'inventory_v1',
+      item: { definitionId: book!.id, quantity: 100 },
+    }).success,
+  ).toBe(false);
+  expect(auctionListingStackLimit('equipment.v6')).toBe(1);
 });

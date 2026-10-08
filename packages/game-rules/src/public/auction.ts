@@ -5,5 +5,6 @@ export {
   auctionItemCategory,
   auctionItemPriceCap,
   auctionItemQuality,
+  auctionListingStackLimit,
 } from '../auction/items.js';
 export { calculateAuctionSettlement } from '../auction/settlement.js';

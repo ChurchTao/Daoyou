@@ -18,6 +18,7 @@ import {
   calculateAuctionSettlement,
   auctionBlockReason,
   auctionItemPriceCap,
+  auctionListingStackLimit,
 } from '@daoyou/game-rules/auction';
 import { AuctionListSchema } from '@daoyou/contracts/auction';
 import type { FriendCultivatorSummary } from '@daoyou/contracts/friends';
@@ -42,6 +43,12 @@ export function ListItemModal({
       item.id === selectedRef?.id && item.revision === selectedRef.revision,
   );
   const [quantity, setQuantity] = useState('1');
+  const maxQuantity = selected
+    ? Math.min(
+        selected.quantity,
+        auctionListingStackLimit(selected.definitionId),
+      )
+    : 1;
   const [price, setPrice] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [target, setTarget] = useState('');
@@ -98,7 +105,7 @@ export function ListItemModal({
     });
     if (
       !parsed.success ||
-      Number(quantity) > selected.quantity ||
+      Number(quantity) > maxQuantity ||
       Number(price) > auctionItemPriceCap(selected)
     ) {
       pushToast({ message: '请检查数量、单价与专属道友', tone: 'warning' });
@@ -218,7 +225,7 @@ export function ListItemModal({
             {selected ? (
               <InkQuantityInput
                 label="数量"
-                max={selected.quantity}
+                max={maxQuantity}
                 value={quantity}
                 onChange={setQuantity}
                 disabled={busy || bagUnavailable}

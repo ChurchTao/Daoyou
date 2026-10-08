@@ -11,13 +11,16 @@ it('上架仅接收版本引用，公开和专属对象不得混用', () => {
     visibility: 'public',
   };
   expect(AuctionListSchema.safeParse(body).success).toBe(true);
+  expect(AuctionListSchema.safeParse({ ...body, quantity: 999 }).success).toBe(
+    true,
+  );
   for (const patch of [
     { instanceData: {} },
     { revision: undefined },
     { requestId: undefined },
-    { quantity: 100 },
     { quantity: 0 },
     { quantity: 1.5 },
+    { quantity: 2_147_483_648 },
     { price: AUCTION_MAX_UNIT_PRICE + 1 },
     { visibility: 'private' },
     { targetCultivatorId: body.itemId },
