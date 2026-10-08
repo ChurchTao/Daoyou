@@ -68,7 +68,6 @@ const BlackMarketErrors = apiErrorFilter((error) => {
 export class BlackMarketController {
   constructor(
     @Inject(BlackMarketService) private readonly market: BlackMarketService,
-    @Inject(SseResponseService) private readonly sse: SseResponseService,
   ) {}
 
   @Get(':nodeId')
@@ -89,6 +88,39 @@ export class BlackMarketController {
   ) {
     return this.market.open(actor, nodeId, input);
   }
+
+  @Post(':nodeId/sessions/:sessionId/commit')
+  @HttpCode(200)
+  commit(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('nodeId') nodeId: string,
+    @Param('sessionId') sessionId: string,
+    @JsonBody(new ZodPipe(CommitSchema)) input: z.infer<typeof CommitSchema>,
+  ) {
+    return this.market.commit(actor, nodeId, sessionId, input);
+  }
+
+  @Post(':nodeId/sessions/:sessionId/leave')
+  @HttpCode(200)
+  leave(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('nodeId') nodeId: string,
+    @Param('sessionId') sessionId: string,
+    @JsonBody(new ZodPipe(LeaveSchema)) input: z.infer<typeof LeaveSchema>,
+  ) {
+    return this.market.leave(actor, nodeId, sessionId, input);
+  }
+}
+
+// The unprefixed interact route stays until the Pages build that calls `/api/stream` is deployed.
+@Controller(['api/black-market', 'api/stream/black-market'])
+@Access('active')
+@UseFilters(BlackMarketErrors)
+export class BlackMarketStreamController {
+  constructor(
+    @Inject(BlackMarketService) private readonly market: BlackMarketService,
+    @Inject(SseResponseService) private readonly sse: SseResponseService,
+  ) {}
 
   @Sse(':nodeId/sessions/:sessionId/interact', { method: RequestMethod.POST })
   @HttpCode(200)
@@ -113,27 +145,5 @@ export class BlackMarketController {
       return (emit, replySignal) =>
         this.market.reply(prepared, replySignal, emit);
     });
-  }
-
-  @Post(':nodeId/sessions/:sessionId/commit')
-  @HttpCode(200)
-  commit(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @Param('nodeId') nodeId: string,
-    @Param('sessionId') sessionId: string,
-    @JsonBody(new ZodPipe(CommitSchema)) input: z.infer<typeof CommitSchema>,
-  ) {
-    return this.market.commit(actor, nodeId, sessionId, input);
-  }
-
-  @Post(':nodeId/sessions/:sessionId/leave')
-  @HttpCode(200)
-  leave(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @Param('nodeId') nodeId: string,
-    @Param('sessionId') sessionId: string,
-    @JsonBody(new ZodPipe(LeaveSchema)) input: z.infer<typeof LeaveSchema>,
-  ) {
-    return this.market.leave(actor, nodeId, sessionId, input);
   }
 }

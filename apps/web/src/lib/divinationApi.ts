@@ -38,7 +38,7 @@ export async function interpretDivination(
 ) {
   let completed = false;
   for await (const event of postEvents<DivinationStreamEvent>(
-    '/api/divination/interpret',
+    '/api/stream/divination/interpret',
     { drawId },
     signal,
   )) {

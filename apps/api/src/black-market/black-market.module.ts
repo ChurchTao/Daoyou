@@ -3,11 +3,14 @@ import {
   BlackMarketConversationService,
   blackMarketConversationService,
 } from '@server/black-market/application/BlackMarketConversationService.js';
-import { BlackMarketController } from './black-market.controller.js';
+import {
+  BlackMarketController,
+  BlackMarketStreamController,
+} from './black-market.controller.js';
 import { BlackMarketService } from './black-market.service.js';
 
 @Module({
-  controllers: [BlackMarketController],
+  controllers: [BlackMarketController, BlackMarketStreamController],
   providers: [
     {
       provide: BlackMarketConversationService,

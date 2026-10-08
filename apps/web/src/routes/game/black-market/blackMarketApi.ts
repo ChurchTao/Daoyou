@@ -54,7 +54,7 @@ export async function interactWithBlackMarket(
 ): Promise<BlackMarketInteractionResult> {
   let result: BlackMarketInteractionResult | undefined;
   for await (const event of postEvents<BlackMarketInteractStreamEvent>(
-    `/api/black-market/${encodeURIComponent(nodeId)}/sessions/${sessionId}/interact`,
+    `/api/stream/black-market/${encodeURIComponent(nodeId)}/sessions/${sessionId}/interact`,
     input,
     signal,
   )) {
