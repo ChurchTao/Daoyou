@@ -8,7 +8,6 @@ import {
 import { registerRoute } from 'workbox-routing';
 import {
   CacheFirst,
-  NetworkFirst,
   NetworkOnly,
   StaleWhileRevalidate,
 } from 'workbox-strategies';
@@ -22,12 +21,10 @@ declare global {
 const scope = self as unknown as ServiceWorkerGlobalScope;
 
 const SHELL_CACHE = 'daoyou-shell';
-const DOCUMENT_CACHE = 'daoyou-documents';
 const BUILD_ASSET_CACHE = 'daoyou-build-assets';
 const MEDIA_CACHE = 'daoyou-media';
 const SHELL_URL = '/index.html';
-const NAVIGATION_TIMEOUT_SECONDS = 4;
-const SHELL_REFRESH_TIMEOUT_MS = 4_000;
+const NAVIGATION_TIMEOUT_MS = 4_000;
 const HASHED_BUILD_ASSET =
   /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css)$/;
 
@@ -87,7 +84,7 @@ async function refreshShellFromNetwork() {
   const controller = new AbortController();
   const timeoutId = setTimeout(
     () => controller.abort(),
-    SHELL_REFRESH_TIMEOUT_MS,
+    NAVIGATION_TIMEOUT_MS,
   );
   try {
     const response = await fetch(SHELL_URL, {
@@ -125,6 +122,7 @@ scope.addEventListener('message', (event) => {
 scope.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      await caches.delete('daoyou-documents');
       await scope.clients.claim();
       await refreshShellFromNetwork();
     })(),
@@ -164,34 +162,49 @@ registerRoute(
   }),
 );
 
-const navigationStrategy = new NetworkFirst({
-  cacheName: DOCUMENT_CACHE,
-  networkTimeoutSeconds: NAVIGATION_TIMEOUT_SECONDS,
-  plugins: [
-    new CacheableResponsePlugin({ statuses: [200] }),
-    new ExpirationPlugin({
-      maxEntries: 8,
-      purgeOnQuotaError: true,
-    }),
-  ],
-});
+// Every app route is the same SPA document. A slow or failed navigation can
+// use the saved shell; an HTTP error from the network is returned as-is.
+async function handleNavigation(
+  request: Request,
+  event: ExtendableEvent,
+): Promise<Response> {
+  const responsePromise = fetch(request);
+  const completed = responsePromise.then(async (response) => {
+    await storeShell(response.clone());
+  });
+  event.waitUntil(completed.catch(() => undefined));
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<'timeout'>((resolve) => {
+    timeoutId = setTimeout(() => resolve('timeout'), NAVIGATION_TIMEOUT_MS);
+  });
+
+  try {
+    const winner = await Promise.race([
+      responsePromise.then((response) => ({ response })),
+      timeout,
+    ]);
+
+    if (winner !== 'timeout') {
+      return winner.response;
+    }
+
+    const shell = await readShell();
+    if (shell) return shell;
+    return await responsePromise;
+  } catch {
+    const shell = await readShell();
+    if (shell) return shell;
+    return Response.error();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 registerRoute(
   ({ request, url }) =>
     request.mode === 'navigate' &&
     isSameOrigin(url) &&
     !isNetworkOnlyPath(url),
-  async (options) => {
-    try {
-      const response = await navigationStrategy.handle(options);
-      if (response.ok) {
-        options.event.waitUntil(storeShell(response.clone()));
-      }
-      return response;
-    } catch {
-      const shell = await readShell();
-      if (shell) return shell;
-      return Response.error();
-    }
-  },
+  ({ event, request }) => handleNavigation(request, event),
 );
