@@ -14,8 +14,8 @@ import {
   createInquiryProgress,
   finishInquiryBattle,
   inquiryActions,
+  inquiryCanonicalProse,
   inquiryNarrativeFacts,
-  inquiryToolActionId,
   inquiryVerdictReady,
   judgeInquiryVerdict,
 } from './progress.js';
@@ -185,12 +185,47 @@ describe('inquiry plays', () => {
         facts.lines,
       ),
     ).toBe(true);
-    expect(inquiryToolActionId('inspect', { targetId: 'seal_marks' })).toBe(
+  });
+
+  it('offers the next hint and a justified question only after the player has seen enough', () => {
+    const play = getInquiryPlay('cave_inheritance');
+    if (!play) throw new Error('缺少洞府玩法');
+    const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+    if (!compiled.ok) throw new Error(compiled.reason);
+    const start = inquiryActions(createInquiryProgress(play), play, compiled.caseFile);
+    expect(start.some((action) => action.id.startsWith('hint:') || action.id.startsWith('talk:'))).toBe(
+      false,
+    );
+    const looked = applyInquiryAction(
+      createInquiryProgress(play),
+      play,
+      compiled.caseFile,
       'examine:seal_marks',
     );
-    expect(inquiryToolActionId('pay', { objectId: 'stone_seam', costId: 'steady' })).toBe(
-      'cost:stone_seam:steady',
+    const atMouth = inquiryActions(looked.progress, play, compiled.caseFile).map(
+      (action) => action.id,
     );
-    expect(inquiryToolActionId('inspect', {})).toBeNull();
+    expect(atMouth).toContain('hint:look');
+    expect(atMouth.some((id) => id.startsWith('talk:'))).toBe(false);
+    const hinted = applyInquiryAction(looked.progress, play, compiled.caseFile, 'hint:look');
+    expect(hinted.effect).toEqual({ kind: 'note', narrationKey: 'hint:look' });
+    expect(inquiryCanonicalProse(play, compiled.caseFile, 'hint:look')).not.toContain('正本');
+    const repeated = applyInquiryAction(hinted.progress, play, compiled.caseFile, 'hint:look');
+    expect(repeated.effect.kind).toBe('rejected');
+    const hall = applyInquiryAction(looked.progress, play, compiled.caseFile, 'move:hall');
+    const there = inquiryActions(hall.progress, play, compiled.caseFile).map((action) => action.id);
+    expect(there).toContain('talk:shen:who_sealed');
+    expect(there).not.toContain('talk:shen:casket_light');
+    const asked = applyInquiryAction(hall.progress, play, compiled.caseFile, 'talk:shen:who_sealed');
+    expect(asked.progress.heardTopicIds).toEqual(['who_sealed']);
+    const facts = inquiryNarrativeFacts(play, compiled.caseFile, asked.progress, 'talk:shen:who_sealed');
+    expect(facts.lines.join('\n')).toContain('从洞外补上');
+    expect(facts.lines.join('\n')).not.toContain(compiled.caseFile.truthText);
+    expect(() =>
+      assertInquiryPlay({
+        ...play,
+        hints: [...play.hints, { id: 'leak', text: '正本就在遗骸齿间。' }],
+      }),
+    ).toThrow('提示 leak 提前说出了答案');
   });
 });

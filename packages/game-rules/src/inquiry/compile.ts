@@ -71,4 +71,28 @@ export function assertInquiryPlay(play: InquiryPlay) {
   if (!play.objects.some((object) => object.container)) {
     throw new Error(`${play.id} 缺少容器`);
   }
+  const topicIds = new Set<string>();
+  for (const npc of play.npcs) {
+    if (!locationIds.has(npc.locationId)) throw new Error(`${play.id} 人物地点不存在`);
+    for (const topic of npc.topics) {
+      if (topicIds.has(topic.id)) throw new Error(`${play.id} 问话 ${topic.id} 重复`);
+      topicIds.add(topic.id);
+      if (topic.label.trim().length < 2 || topic.line.trim().length < 8) {
+        throw new Error(`${play.id} 问话 ${topic.id} 写得太短`);
+      }
+      if (spoils(play, topic.label) || spoils(play, topic.line)) {
+        throw new Error(`${play.id} 问话 ${topic.id} 提前说出了答案`);
+      }
+      for (const clueId of topic.needs) {
+        if (!clueIds.has(clueId)) throw new Error(`${play.id} 问话线索 ${clueId} 未登记`);
+      }
+    }
+  }
+  const hintIds = new Set<string>();
+  for (const hint of play.hints) {
+    if (hintIds.has(hint.id)) throw new Error(`${play.id} 提示 ${hint.id} 重复`);
+    hintIds.add(hint.id);
+    if (hint.text.trim().length < 8) throw new Error(`${play.id} 提示 ${hint.id} 写得太短`);
+    if (spoils(play, hint.text)) throw new Error(`${play.id} 提示 ${hint.id} 提前说出了答案`);
+  }
 }

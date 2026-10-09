@@ -45,6 +45,32 @@ export const INQUIRY_PLAYS = [
       { id: 'mouth', name: '洞口' },
       { id: 'hall', name: '内室' },
     ],
+    npcs: [
+      {
+        id: 'shen',
+        locationId: 'hall',
+        name: '沈无咎残识',
+        topics: [
+          {
+            id: 'who_sealed',
+            needs: ['outward_seal'],
+            label: '向沈无咎残识打听洞口禁制是谁补的',
+            line: '残识承认禁制是自己从洞外补上的，那时洞主已经坐化。',
+          },
+          {
+            id: 'casket_light',
+            needs: ['seam_note', 'corpse_cache'],
+            label: '向沈无咎残识打听匣缝里的光',
+            line: '残识说那光是守剑傀，功法放在别处。',
+          },
+        ],
+      },
+    ],
+    hints: [
+      { id: 'look', text: '洞口的新刻痕和石缝，说的不是同一件事。' },
+      { id: 'scripts', text: '内室的题字和祭坛上的物件，笔迹要对一下。' },
+      { id: 'casket', text: '匣缝里醒着的东西，会在你打开它时动手。' },
+    ],
     objects: [
       { id: 'seal_marks', locationId: 'mouth', clueId: 'outward_seal' },
       { id: 'stone_seam', locationId: 'mouth', blocked: { ...obstacleCosts('石缝')!, clueId: 'seam_note', itemId: 'seam_letter' } },
@@ -91,6 +117,32 @@ export const INQUIRY_PLAYS = [
       { id: 'gate', name: '雾门' },
       { id: 'yard', name: '试炼坪' },
     ],
+    npcs: [
+      {
+        id: 'liu',
+        locationId: 'yard',
+        name: '柳青残识',
+        topics: [
+          {
+            id: 'who_sealed',
+            needs: ['outer_array'],
+            label: '向柳青残识打听雾门是谁补的',
+            line: '她说雾门是自己从门外补上的，守阵人那时已经不在。',
+          },
+          {
+            id: 'box_light',
+            needs: ['lock_note'],
+            label: '向柳青残识打听匣缝里的光',
+            line: '她说匣里是阵灵，盖子一开就会醒。',
+          },
+        ],
+      },
+    ],
+    hints: [
+      { id: 'look', text: '雾门上的新刻和石锁，要分开看。' },
+      { id: 'scripts', text: '坪上的石和木纹，不是同一个人留下的。' },
+      { id: 'box', text: '匣缝里的光会放出阵灵。' },
+    ],
     objects: [
       { id: 'mist_mark', locationId: 'gate', clueId: 'outer_array' },
       { id: 'stone_lock', locationId: 'gate', blocked: { ...obstacleCosts('石锁')!, clueId: 'lock_note' } },
@@ -135,6 +187,32 @@ export const INQUIRY_PLAYS = [
     locations: [
       { id: 'stair', name: '梯口' },
       { id: 'cellar', name: '地窖' },
+    ],
+    npcs: [
+      {
+        id: 'song',
+        locationId: 'cellar',
+        name: '宋纬残识',
+        topics: [
+          {
+            id: 'who_sealed',
+            needs: ['stair_mark'],
+            label: '向宋纬残识打听梯口禁制是谁补的',
+            line: '他说梯口禁制是自己从楼梯外补上的。',
+          },
+          {
+            id: 'box_light',
+            needs: ['shelf_note'],
+            label: '向宋纬残识打听书匣缝里的光',
+            line: '他说匣里是守阁傀，盖子一开就会醒。',
+          },
+        ],
+      },
+    ],
+    hints: [
+      { id: 'look', text: '梯口的禁制和书架缝，要分开看。' },
+      { id: 'scripts', text: '地窖里的两卷，笔迹不一样。' },
+      { id: 'box', text: '书匣缝里的光会放出守阁傀。' },
     ],
     objects: [
       { id: 'stair_seal', locationId: 'stair', clueId: 'stair_mark' },
@@ -220,7 +298,7 @@ export const INQUIRY_FALLBACKS: Record<string, InquiryDirectorDraft> = {
     '功法封在周敛齿间。祭坛玉简是沈无咎留下的残抄，敛骨匣会放出守剑傀。',
     {
       mouth: '瀑布把洞口遮住了一半。禁制上的新刻痕从外面补进来，水帘边的石缝却还闭着。',
-      hall: '内室比洞口干。正中坐着一具遗骸，石壁上刻着字，祭坛上放着一枚玉简，旁边一只匣子的缝里漏着光。',
+      hall: '内室比洞口干。角落里停着沈无咎的残识。正中坐着一具遗骸，石壁上刻着字，祭坛上放着一枚玉简，旁边一只匣子的缝里漏着光。',
     },
     {
       outward_seal: clue('外补的禁制', '洞口禁制是从洞外向内补刻的，不像洞主自己封洞。'),
@@ -248,7 +326,7 @@ export const INQUIRY_FALLBACKS: Record<string, InquiryDirectorDraft> = {
     '真眼在试炼石里。木灵纹是后来补上的，试炼匣会放出阵灵。',
     {
       gate: '雾门只剩半扇。石锁闭着，门楣上的刻痕像是从外面补进去的。',
-      yard: '试炼坪中央立着一块石，旁边木纹沿地砖爬向一只匣子，匣缝里有光。',
+      yard: '试炼坪中央立着一块石，柳青的残识停在石旁。木纹沿地砖爬向一只匣子，匣缝里有光。',
     },
     {
       outer_array: clue('外补的雾门', '雾门禁制是从门外向内补刻的。'),
@@ -274,7 +352,7 @@ export const INQUIRY_FALLBACKS: Record<string, InquiryDirectorDraft> = {
     '真卷是甲卷。乙卷是后来放上的残抄，书匣会放出守阁傀。',
     {
       stair: '梯口很窄。禁制从楼梯外补进来，书架缝闭着。',
-      cellar: '地窖里并排两卷书，靠墙一只书匣的缝里漏着光。',
+      cellar: '地窖里并排两卷书，宋纬的残识停在架前。靠墙一只书匣的缝里漏着光。',
     },
     {
       stair_mark: clue('外补的梯口', '梯口禁制是从外面补进来的。'),

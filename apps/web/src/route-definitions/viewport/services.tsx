@@ -4,19 +4,6 @@ import { scene } from '../handles';
 
 export const servicesRoutes = [
   <Route
-    path="inquiry"
-    lazy={lazyRoute(() => import('@app/routes/game/inquiry/route'))}
-    handle={scene(
-      {
-        id: 'inquiry',
-        chrome: 'immersive',
-        dock: 'hidden',
-        summary: '在洞府里查看、对照，再决定正本在哪。',
-      },
-      '秘境探查',
-    )}
-  />,
-  <Route
     path="market/recycle"
     lazy={lazyRoute(() => import('@app/routes/game/market/recycle/route'))}
     handle={scene(

@@ -22,14 +22,6 @@ export const InquiryVerdictRequestSchema = z
   })
   .strict();
 
-export const InquiryTurnRequestSchema = z
-  .object({
-    runId: z.uuid(),
-    expectedRevision: z.number().int().nonnegative(),
-    utterance: z.string().trim().min(1).max(200),
-  })
-  .strict();
-
 export const InquiryLeaveRequestSchema = z
   .object({
     runId: z.uuid(),

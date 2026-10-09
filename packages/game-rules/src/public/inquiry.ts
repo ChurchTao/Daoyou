@@ -13,7 +13,6 @@ export {
   acceptInquiryNarration,
   inquiryCanonicalProse,
   inquiryNarrativeFacts,
-  inquiryToolActionId,
   inquiryVerdictReady,
   inquiryVisitKey,
   judgeInquiryVerdict,

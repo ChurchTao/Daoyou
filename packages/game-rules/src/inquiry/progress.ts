@@ -37,32 +37,12 @@ export function createInquiryProgress(play: InquiryPlay): InquiryProgress {
     inspectedObjectIds: [],
     unlockedObjectIds: [],
     openedObjectIds: [],
+    heardTopicIds: [],
+    heardHintIds: [],
     paidLifespan: false,
     foughtContainer: false,
     pendingBattle: false,
   };
-}
-
-/** Map a model tool call onto one rule action. Unknown shapes do not run. */
-export function inquiryToolActionId(
-  toolName: string,
-  input: {
-    targetId?: string;
-    destinationId?: string;
-    objectId?: string;
-    costId?: string;
-    compareId?: string;
-  },
-): string | null {
-  if (toolName === 'inspect' && input.targetId) return `examine:${input.targetId}`;
-  if (toolName === 'move' && input.destinationId) return `move:${input.destinationId}`;
-  if (toolName === 'pay' && input.objectId && input.costId) {
-    return `cost:${input.objectId}:${input.costId}`;
-  }
-  if (toolName === 'compare' && input.compareId) return `compare:${input.compareId}`;
-  if (toolName === 'open' && input.targetId) return `open:${input.targetId}`;
-  if (toolName === 'take' && input.targetId) return `take:${input.targetId}`;
-  return null;
 }
 
 export function inquiryVisitKey(locationId: string) {
@@ -181,6 +161,21 @@ export function inquiryActions(
       actions.push({ id: `compare:${compare.id}`, label: compare.label, repeat: false });
     }
   }
+  for (const npc of play.npcs) {
+    if (npc.locationId !== progress.locationId) continue;
+    for (const topic of npc.topics) {
+      if (has(progress.heardTopicIds, topic.id)) continue;
+      if (!topic.needs.every((clueId) => has(progress.knownClueIds, clueId))) continue;
+      actions.push({ id: `talk:${npc.id}:${topic.id}`, label: topic.label, repeat: false });
+    }
+  }
+  const hint =
+    progress.inspectedObjectIds.length > 0 && !inquiryVerdictReady(play, progress)
+      ? play.hints.find((item) => !has(progress.heardHintIds, item.id))
+      : undefined;
+  if (hint) {
+    actions.push({ id: `hint:${hint.id}`, label: '求一句提示', repeat: false });
+  }
   return actions;
 }
 
@@ -297,6 +292,26 @@ export function applyInquiryAction(
       effect: { kind: 'note', narrationKey: actionId },
     };
   }
+  if (actionId.startsWith('talk:')) {
+    const [, npcId, topicId] = actionId.split(':');
+    const topic = play.npcs
+      .find((npc) => npc.id === npcId)
+      ?.topics.find((item) => item.id === topicId);
+    if (!topic) return rejected(progress, '这里做不到');
+    return {
+      progress: { ...progress, heardTopicIds: add(progress.heardTopicIds, topic.id) },
+      effect: { kind: 'note', narrationKey: actionId },
+    };
+  }
+  if (actionId.startsWith('hint:')) {
+    const hintId = actionId.slice('hint:'.length);
+    const hint = play.hints.find((item) => item.id === hintId);
+    if (!hint) return rejected(progress, '这里做不到');
+    return {
+      progress: { ...progress, heardHintIds: add(progress.heardHintIds, hint.id) },
+      effect: { kind: 'note', narrationKey: actionId },
+    };
+  }
   return rejected(progress, '这里做不到');
 }
 
@@ -375,6 +390,16 @@ export function inquiryCanonicalProse(
   if (focus.startsWith('take:')) {
     const objectId = focus.slice('take:'.length);
     return `你取下了${caseFile.objects[objectId]?.name ?? ''}。`;
+  }
+  if (focus.startsWith('talk:')) {
+    const [, npcId, topicId] = focus.split(':');
+    const topic = play.npcs
+      .find((npc) => npc.id === npcId)
+      ?.topics.find((item) => item.id === topicId);
+    return topic?.line || '';
+  }
+  if (focus.startsWith('hint:')) {
+    return play.hints.find((hint) => hint.id === focus.slice('hint:'.length))?.text || '';
   }
   return caseFile.locations[play.startLocationId] || '';
 }

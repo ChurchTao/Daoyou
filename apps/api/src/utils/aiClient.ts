@@ -18,7 +18,6 @@ import type {
 import { stableCompactStringify, truncateText } from '@server/utils/llmPayload.js';
 import {
   generateText,
-  isStepCount,
   JSONParseError,
   NoObjectGeneratedError,
   Output,
@@ -27,7 +26,6 @@ import {
   type LanguageModel,
   type LanguageModelCallOptions,
   type LanguageModelUsage,
-  type ToolSet,
 } from 'ai';
 import { z } from 'zod';
 
@@ -569,38 +567,6 @@ async function generateAiTextInternal(options: AiTextOptions) {
   } catch (error) {
     recordMetrics(metrics, { status: 'failure' });
     throw error;
-  }
-}
-
-/** One model turn that may call server-registered tools. Tools perform the work. */
-export async function generateAiToolTurn(options: AiTextOptions & {
-  tools: ToolSet;
-  maxSteps?: number;
-}) {
-  const request = startAiRequest(options);
-  const { model, modelName, provider } = resolveModel(options.sceneId);
-  const metrics = createMetricContext(options, provider, modelName);
-  try {
-    const result = await generateText({
-      model,
-      system: options.system,
-      prompt: options.prompt,
-      tools: options.tools,
-      stopWhen: isStepCount(options.maxSteps ?? 3),
-      abortSignal: request.signal,
-      maxOutputTokens: options.maxOutputTokens ?? 400,
-      reasoning: options.reasoning ?? 'none',
-    });
-    recordMetrics(metrics, {
-      status: 'success',
-      usage: summarizeUsage(result.usage),
-    });
-    return result;
-  } catch (error) {
-    recordMetrics(metrics, { status: 'failure' });
-    throw error;
-  } finally {
-    request.release();
   }
 }
 

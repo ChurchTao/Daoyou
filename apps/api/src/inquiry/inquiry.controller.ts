@@ -13,7 +13,6 @@ import {
   InquiryActionRequestSchema,
   InquiryLeaveRequestSchema,
   InquiryOpenRequestSchema,
-  InquiryTurnRequestSchema,
   InquiryVerdictRequestSchema,
 } from '@daoyou/contracts/inquiry';
 import type { Request, Response } from 'express';
@@ -97,36 +96,6 @@ export class InquiryController {
       sendEvent(response, 'error', { error: errorMessage(error) });
     } finally {
       response.end();
-    }
-  }
-
-  @Post('turn')
-  @HttpCode(200)
-  async turn(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @Res() response: Response,
-    @JsonBody(new ZodPipe(InquiryTurnRequestSchema))
-    input: z.infer<typeof InquiryTurnRequestSchema>,
-  ) {
-    beginStream(response);
-    try {
-      await this.inquiry.turnWithEvents(
-        actor.userId,
-        actor.cultivatorId,
-        input,
-        (event, data) => sendEvent(response, event, data),
-      );
-    } catch (error) {
-      if (!response.headersSent) {
-        response.status(error instanceof HttpException ? error.getStatus() : 500).json({
-          success: false,
-          error: errorMessage(error),
-        });
-        return;
-      }
-      sendEvent(response, 'error', { error: errorMessage(error) });
-    } finally {
-      if (!response.writableEnded) response.end();
     }
   }
 

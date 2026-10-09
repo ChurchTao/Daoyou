@@ -39,12 +39,36 @@ export interface InquiryCostSpec {
   resultText: string;
 }
 
+export interface InquiryNpcTopic {
+  id: string;
+  /** 这些线索都记下之后，这句问话才出现。 */
+  needs: string[];
+  label: string;
+  /** 问出口之后允许玩家看见的原句。不得提前写出答案。 */
+  line: string;
+}
+
+export interface InquiryNpc {
+  id: string;
+  locationId: string;
+  name: string;
+  topics: InquiryNpcTopic[];
+}
+
+export interface InquiryHint {
+  id: string;
+  /** 固定提示。不得写出答案词。 */
+  text: string;
+}
+
 export interface InquiryPlay {
   id: string;
   startLocationId: string;
-  /** 地点和物件的第一眼正文里不得出现这些词。 */
+  /** 地点、物件、问话和提示的第一眼正文里不得出现这些词。 */
   spoilerTerms: string[];
   locations: Array<{ id: string; name: string }>;
+  npcs: InquiryNpc[];
+  hints: InquiryHint[];
   objects: Array<{
     id: string;
     locationId: string;
@@ -123,6 +147,8 @@ export interface InquiryProgress {
   inspectedObjectIds: string[];
   unlockedObjectIds: string[];
   openedObjectIds: string[];
+  heardTopicIds: string[];
+  heardHintIds: string[];
   paidLifespan: boolean;
   foughtContainer: boolean;
   pendingBattle: boolean;

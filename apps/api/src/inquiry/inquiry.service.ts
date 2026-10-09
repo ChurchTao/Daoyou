@@ -54,7 +54,6 @@ import { toPlayerStateMutationResponse } from '@server/player/application/state/
 import { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
 import { hasOpenInquiry } from './occupancy.js';
 import { fightInquiryCasket } from './fight.js';
-import { runInquiryToolTurn } from './agent.js';
 import { streamInquiryNarration } from './narration.js';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
@@ -68,6 +67,7 @@ export interface InquiryView {
   prose: string;
   actions: InquiryActionView[];
   clues: Array<{ id: string; title: string; body: string }>;
+  notes: Array<{ id: string; title: string; body: string }>;
   heldItemIds: string[];
   verdictReady: boolean;
   verdict: {
@@ -193,56 +193,6 @@ export class InquiryService {
       if (error instanceof QiInsufficientError) fail('QI_INSUFFICIENT', 409);
       throw error;
     }
-  }
-
-  async turnWithEvents(
-    userId: string,
-    cultivatorId: string,
-    input: { runId: string; expectedRevision: number; utterance: string },
-    emit: InquiryEvent,
-  ) {
-    const row = await this.openRow(cultivatorId);
-    if (!row || row.id !== input.runId || row.endedAt) fail('这场探查已经结束', 404);
-    if (row.revision !== input.expectedRevision) fail('洞府里的情况已经变了，请刷新', 409);
-    const view = this.present(row);
-    emit('action_status', { message: '正在领会你的意图' });
-    const last = await runInquiryToolTurn({
-      utterance: input.utterance,
-      view,
-      emit,
-      commit: (actionId, expectedRevision) =>
-        this.actDetailed(userId, cultivatorId, {
-          runId: input.runId,
-          actionId,
-          expectedRevision,
-        }),
-    });
-    if (last?.stream) {
-      const text = await streamInquiryNarration(
-        {
-          play: last.stream.play,
-          fallback: last.stream.fallback,
-          lines: last.stream.lines,
-        },
-        (token) => emit('token', { text: token }),
-      );
-      await this.rememberNarration(
-        last.stream.cultivatorId,
-        last.stream.runId,
-        last.stream.revision,
-        last.stream.key,
-        text,
-      );
-      emit('prose', { text });
-      emit('ready', last.response);
-      return;
-    }
-    emit('prose', {
-      text: last
-        ? last.response.data.prose
-        : '说得再具体些。可以查看眼前的东西，或走到已经开放的地方。',
-    });
-    emit('ready', last?.response ?? { success: true, data: view });
   }
 
   async act(
@@ -886,6 +836,8 @@ export class InquiryService {
       inspectedObjectIds: raw.inspectedObjectIds ?? [],
       unlockedObjectIds: raw.unlockedObjectIds ?? [],
       openedObjectIds: raw.openedObjectIds ?? [],
+      heardTopicIds: raw.heardTopicIds ?? [],
+      heardHintIds: raw.heardHintIds ?? [],
       paidLifespan: raw.paidLifespan ?? false,
       foughtContainer: raw.foughtContainer ?? false,
       pendingBattle: raw.pendingBattle ?? false,
@@ -1004,6 +956,7 @@ export class InquiryService {
         prose: '这场探查的案卷已经过期，可以离开。',
         actions: [],
         clues: [],
+        notes: [],
         heldItemIds: [],
         verdictReady: false,
         verdict: null,
@@ -1046,6 +999,19 @@ export class InquiryService {
         title: caseFile.clues[id]?.title ?? id,
         body: caseFile.clues[id]?.body ?? '',
       })),
+      notes: [
+        ...progress.heardTopicIds.flatMap((topicId) => {
+          const npc = play.npcs.find((item) => item.topics.some((topic) => topic.id === topicId));
+          const topic = npc?.topics.find((item) => item.id === topicId);
+          if (!npc || !topic) return [];
+          return [{ id: topic.id, title: npc.name, body: topic.line }];
+        }),
+        ...progress.heardHintIds.flatMap((hintId) => {
+          const hint = play.hints.find((item) => item.id === hintId);
+          if (!hint) return [];
+          return [{ id: hint.id, title: '提示', body: hint.text }];
+        }),
+      ],
       heldItemIds: progress.heldItemIds,
       feedback: row.narrations?.feedback,
       settlement: row.status === 'FINISHED' ? settlement : null,
