@@ -21,7 +21,7 @@ export function SettingsField({
       <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
         <span
           className={cn(
-            'text-ink min-w-0 break-all text-[0.95rem]',
+            'text-ink min-w-0 text-[0.95rem] break-all',
             mono && 'font-mono text-[0.88rem]',
           )}
         >
@@ -110,54 +110,5 @@ export function SettingsMessage({
     >
       {children}
     </span>
-  );
-}
-
-export function SettingsToggle({
-  checked,
-  onChange,
-  disabled,
-  label,
-  description,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  disabled?: boolean;
-  label: ReactNode;
-  description?: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      disabled={disabled}
-      aria-pressed={checked}
-      className={cn(
-        'flex w-full items-center justify-between gap-3 text-left',
-        disabled && 'cursor-not-allowed opacity-50',
-      )}
-    >
-      <span className="min-w-0">
-        <span className="text-ink block text-sm leading-6">{label}</span>
-        {description ? (
-          <span className="text-ink-secondary block text-xs leading-5">
-            {description}
-          </span>
-        ) : null}
-      </span>
-      <span
-        className={cn(
-          'border-ink/20 relative h-6 w-11 shrink-0 border border-dashed bg-ink/5 transition-colors',
-          checked && 'border-crimson/45 bg-crimson/8',
-        )}
-      >
-        <span
-          className={cn(
-            'bg-ink/45 absolute top-1 left-1 h-3.5 w-3.5 transition-transform',
-            checked && 'bg-crimson translate-x-[1.25rem]',
-          )}
-        />
-      </span>
-    </button>
   );
 }
