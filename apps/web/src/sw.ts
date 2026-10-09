@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import {
@@ -18,7 +19,9 @@ declare global {
   }
 }
 
-const scope = self as unknown as ServiceWorkerGlobalScope;
+const scope = self as unknown as ServiceWorkerGlobalScope & {
+  __WB_MANIFEST: Array<PrecacheEntry | string>;
+};
 
 const SHELL_CACHE = 'daoyou-shell';
 const BUILD_ASSET_CACHE = 'daoyou-build-assets';
@@ -104,7 +107,7 @@ async function readShell() {
   return cache.match(SHELL_URL);
 }
 
-precacheAndRoute(self.__WB_MANIFEST);
+precacheAndRoute(scope.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 scope.addEventListener('message', (event) => {
@@ -148,17 +151,14 @@ registerRoute(
   }),
 );
 
+// Public images, fonts, and icons are stable paths and are replaced in place.
+// A small entry cap evicts them before the set is cached; the hashed chunk
+// cache above is what has to shed old build URLs.
 registerRoute(
   ({ request, url }) => isRuntimeMedia(request, url),
   new StaleWhileRevalidate({
     cacheName: MEDIA_CACHE,
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [200] }),
-      new ExpirationPlugin({
-        maxEntries: 100,
-        purgeOnQuotaError: true,
-      }),
-    ],
+    plugins: [new CacheableResponsePlugin({ statuses: [200] })],
   }),
 );
 
