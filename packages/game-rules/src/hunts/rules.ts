@@ -1,5 +1,5 @@
-import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
+import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { huntIsOpen } from './config.js';
 export function huntRealmAllowed(
   team: Pick<HuntTeam, 'minRealm' | 'maxRealm'>,
@@ -16,6 +16,7 @@ export function huntStartError(
   actorId: string,
   now: number,
 ): string | null {
+  if (!team.event) return '请先选定讨伐目标';
   if (!huntIsOpen(team.event, now)) return '此处异动已平息';
   if (team.leaderId !== actorId) return '只有队长可以开战';
   if (team.status !== 'assembling') return '队伍已经开始挑战';
@@ -38,6 +39,7 @@ export function selectHuntTeam(
       (team) =>
         team.status === 'assembling' &&
         team.members.length < 4 &&
+        !!team.event &&
         huntIsOpen(team.event, now) &&
         huntRealmAllowed(team, realm),
     )

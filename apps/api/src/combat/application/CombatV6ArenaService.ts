@@ -1,24 +1,68 @@
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import type { HuntTeam } from '@daoyou/game-domain/hunts';
-import { prepareHuntReward } from '@server/hunts/application/HuntRewardService.js';
+import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
+import type { RealmType } from '@daoyou/constants/realms';
+import type { ArenaRoomV1 } from '@daoyou/contracts/arena';
+import {
+  ARENA_V6_PROTOCOL,
+  type ArenaRuntime,
+  type ArenaV6Submit,
+} from '@daoyou/contracts/combat/arena';
+import {
+  DOMAIN_EVENT_DEFINITIONS,
+  DOMAIN_EVENT_STREAM,
+} from '@daoyou/contracts/events';
+import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
 import {
   HUNT_BOSSES,
   HUNT_SKILLS,
   HUNT_STATUSES,
 } from '@daoyou/game-content/hunts';
-import {
-  huntIsOpen,
-  huntRealmAllowed,
-  huntEnemies,
-  huntNpcCommand,
-} from '@daoyou/game-rules/hunts';
-import type { RealmType } from '@daoyou/constants/realms';
-import { playerAppearances } from '@daoyou/game-rules/combat/appearance';
 import type { CombatV6UnitAppearance } from '@daoyou/game-domain/combat';
+import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
+import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
+import type { HuntTeam } from '@daoyou/game-domain/hunts';
+import { projectBeastRoster } from '@daoyou/game-rules/beasts/projection';
+import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
+import { playerAppearances } from '@daoyou/game-rules/combat/appearance';
+import {
+  arenaBattle,
+  arenaDefaultCommand,
+  arenaWaitingUnits,
+  validateArenaCommand,
+} from '@daoyou/game-rules/combat/arena';
+import {
+  automaticCommands,
+  validateCommandGroup,
+} from '@daoyou/game-rules/combat/auto';
+import { startReplayTimeline } from '@daoyou/game-rules/combat/playback';
+import {
+  characterBattleSkills,
+  projectCharacterToCombatV6,
+} from '@daoyou/game-rules/combat/projection';
+import {
+  combatV6ReplayView,
+  createCombatV6Replay,
+} from '@daoyou/game-rules/combat/replay';
+import {
+  huntEnemies,
+  huntIsOpen,
+  huntNpcCommand,
+  huntRealmAllowed,
+} from '@daoyou/game-rules/hunts';
+import { ArenaRoomService } from '@server/arena/application/ArenaRoomService.js';
+import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
+import { broadcastArenaV6 } from '@server/combat/application/CombatV6ArenaBroadcast.js';
+import {
+  arenaDueKey,
+  CombatV6ArenaStore,
+} from '@server/combat/application/CombatV6ArenaStore.js';
+import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
+import { resolveArena } from '@server/combat/arena-view.js';
+import { ConditionService } from '@server/cultivator/application/ConditionService.js';
+import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { prepareHuntReward } from '@server/hunts/application/HuntRewardService.js';
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
+import { parseDomainEventEnvelope } from '@server/lib/mq/domainEventSchema.js';
 import { getJetStreamClient } from '@server/lib/nats/index.js';
 import { redis } from '@server/lib/redis/index.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
@@ -27,38 +71,9 @@ import {
   findOwnedCombatV6Replay,
 } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
-import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
-import { resolveArena } from '@server/combat/arena-view.js';
-import { arenaBattle, arenaDefaultCommand, arenaWaitingUnits, validateArenaCommand } from '@daoyou/game-rules/combat/arena';
-import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
-import {
-  automaticCommands,
-  validateCommandGroup,
-} from '@daoyou/game-rules/combat/auto';
-import {
-  combatV6ReplayView,
-  createCombatV6Replay,
-} from '@daoyou/game-rules/combat/replay';
-import { startReplayTimeline } from '@daoyou/game-rules/combat/playback';
-import type { ArenaRoomV1 } from '@daoyou/contracts/arena';
-import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
-import { ARENA_V6_PROTOCOL, type ArenaRuntime, type ArenaV6Submit } from '@daoyou/contracts/combat/arena';
-import { parseDomainEventEnvelope } from '@server/lib/mq/domainEventSchema.js';
-import { DOMAIN_EVENT_DEFINITIONS, DOMAIN_EVENT_STREAM } from '@daoyou/contracts/events';
-import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
-import { projectBeastRoster } from '@daoyou/game-rules/beasts/projection';
-import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
-import {
-  projectCharacterToCombatV6,
-  characterBattleSkills,
-} from '@daoyou/game-rules/combat/projection';
+import { publishArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
 import { and, eq } from 'drizzle-orm';
 import { JSONCodec } from 'nats';
-import { ArenaRoomService } from '@server/arena/application/ArenaRoomService.js';
-import { publishArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
-import { broadcastArenaV6 } from '@server/combat/application/CombatV6ArenaBroadcast.js';
-import { arenaDueKey, CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
-import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
 
 export class ArenaV6Error extends Error {
   constructor(
@@ -92,15 +107,17 @@ export async function createArenaV6(
   if (!frozen || !room.startRequestId) throw new ArenaV6Error('缺少冻结阵容');
   const existing = await store.source(room.roomId, room.startRequestId);
   if (existing) return existing;
+  const huntEvent = hunt?.event ?? undefined;
   if (
-    hunt &&
-    (!huntIsOpen(hunt.event, Date.now()) ||
+    huntEvent &&
+    (!huntIsOpen(huntEvent, Date.now()) ||
       frozen.seats.length < 2 ||
       frozen.seats.length > 4 ||
       new Set(frozen.seats.map((s) => s.userId)).size !== frozen.seats.length ||
       frozen.seats.some((s) => s.teamId !== 'alpha'))
   )
     throw new ArenaV6Error('讨伐已到期或阵容无效');
+  if (hunt && !huntEvent) throw new ArenaV6Error('讨伐已到期或阵容无效');
   const seats = [...frozen.seats].sort((a, b) =>
     a.cultivatorId.localeCompare(b.cultivatorId),
   );
@@ -137,9 +154,11 @@ export async function createArenaV6(
           if (!identity) throw new ArenaV6Error('参战角色归属已变化');
           if (hunt && !huntRealmAllowed(hunt, identity.realm as RealmType))
             throw new ArenaV6Error('参战境界已变化，请重新准备');
-          if (hunt)
+          if (huntEvent)
             huntRewards[seat.cultivatorId] = await prepareHuntReward(
-              hunt.event, seat.cultivatorId, tx,
+              huntEvent,
+              seat.cultivatorId,
+              tx,
             );
           const { player } = await assembleCombatV6TrainingPlayer(
             seat.cultivatorId,
@@ -153,23 +172,41 @@ export async function createArenaV6(
             resourcePolicy: 'full',
           });
           if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
-          if (hunt) {
-            if (!player.cultivator.condition) throw new ArenaV6Error('角色状态尚未就绪');
-            player.cultivator.condition = ConditionService.recoverCombatV6Resources(
-              player.cultivator.condition,
-              { maxHp: projection.unit.attrs.maxHp!, maxMp: projection.unit.attrs.maxMp! },
-              new Date(),
-              evaluateFateContext(await getCultivatorPreHeavenFates(seat.cultivatorId, tx)),
-            );
-            projection = projectCharacterToCombatV6({ ...player, side, slot: seat.slot, resourcePolicy: 'persistent' });
+          if (huntEvent) {
+            if (!player.cultivator.condition)
+              throw new ArenaV6Error('角色状态尚未就绪');
+            player.cultivator.condition =
+              ConditionService.recoverCombatV6Resources(
+                player.cultivator.condition,
+                {
+                  maxHp: projection.unit.attrs.maxHp!,
+                  maxMp: projection.unit.attrs.maxMp!,
+                },
+                new Date(),
+                evaluateFateContext(
+                  await getCultivatorPreHeavenFates(seat.cultivatorId, tx),
+                ),
+              );
+            projection = projectCharacterToCombatV6({
+              ...player,
+              side,
+              slot: seat.slot,
+              resourcePolicy: 'persistent',
+            });
             if (!projection.ok) throw new ArenaV6Error('参战构筑无法编译');
-            if (projection.unit.attrs.hp! <= 0) throw new ArenaV6Error(`${identity.name}气血耗尽，请先疗伤`);
-            await tx.update(cultivators).set({ condition: player.cultivator.condition })
+            if (projection.unit.attrs.hp! <= 0)
+              throw new ArenaV6Error(`${identity.name}气血耗尽，请先疗伤`);
+            await tx
+              .update(cultivators)
+              .set({ condition: player.cultivator.condition })
               .where(eq(cultivators.id, seat.cultivatorId));
           }
-          if (player.autoStrategy) autoStrategies[projection.unit.id!] = player.autoStrategy;
+          if (player.autoStrategy)
+            autoStrategies[projection.unit.id!] = player.autoStrategy;
           Object.assign(unitAppearances, playerAppearances(player));
-          units.push(characterBattleSkills(projection.unit, projection.skills, skills));
+          units.push(
+            characterBattleSkills(projection.unit, projection.skills, skills),
+          );
           units.push(
             ...projectBeastRoster(
               player.beasts,
@@ -190,13 +227,13 @@ export async function createArenaV6(
           });
           mergeDefinitions(statuses, projection.statusDefs);
         }
-        if (hunt) {
-          units.push(...huntEnemies(hunt.event, seats.length));
+        if (huntEvent) {
+          units.push(...huntEnemies(huntEvent, seats.length));
           mergeDefinitions(skills, HUNT_SKILLS);
           mergeDefinitions(statuses, HUNT_STATUSES);
           for (const unit of units.filter((u) => u.side === 1))
             unitAppearances[unit.id!] = {
-              icon: HUNT_BOSSES[hunt.event.bossId].icon,
+              icon: HUNT_BOSSES[huntEvent.bossId].icon,
             };
         }
         units.sort((a, b) => a.side - b.side || (a.slot ?? 0) - (b.slot ?? 0));
@@ -212,9 +249,9 @@ export async function createArenaV6(
         const battle = arenaBattle(input);
         const runtime: ArenaRuntime = {
           ...input,
-          hunt: hunt?.event,
-          huntResourcePolicy: hunt ? 'persistent' : undefined,
-          huntRewards: hunt ? huntRewards : undefined,
+          hunt: huntEvent,
+          huntResourcePolicy: huntEvent ? 'persistent' : undefined,
+          huntRewards: huntEvent ? huntRewards : undefined,
           protocol: ARENA_V6_PROTOCOL,
           battleId,
           roomId: room.roomId,
@@ -637,11 +674,13 @@ async function publishHuntTerminal(runtime: ArenaRuntime) {
     correlationId: runtime.startRequestId,
     data: { battleId: runtime.battleId, sourceType: 'hunt' },
   });
-  await (await getJetStreamClient()).publish(
-    event.subject,
-    JSONCodec().encode(event),
-    { msgID: event.id, expect: { streamName: DOMAIN_EVENT_STREAM }, timeout: 5000 },
-  );
+  await (
+    await getJetStreamClient()
+  ).publish(event.subject, JSONCodec().encode(event), {
+    msgID: event.id,
+    expect: { streamName: DOMAIN_EVENT_STREAM },
+    timeout: 5000,
+  });
   // Keep runtime and occupancy until the reward projector commits and acknowledges.
   await redis.zadd(arenaDueKey, 'XX', Date.now() + 10000, runtime.battleId);
 }

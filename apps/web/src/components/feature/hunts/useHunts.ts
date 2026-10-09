@@ -1,6 +1,6 @@
 import { fetchJsonCached } from '@app/lib/client/requestCache';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 export async function huntRequest<T>(
   url: string,
   actorId: string,
@@ -78,6 +78,6 @@ export function useHunts<T>(url: string, interval = 5000) {
         ? result.error
         : undefined,
     actorId,
-    refresh: () => setRevision((n) => n + 1),
+    refresh: useCallback(() => setRevision((n) => n + 1), []),
   };
 }

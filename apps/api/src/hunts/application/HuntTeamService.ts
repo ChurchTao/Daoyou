@@ -1,14 +1,11 @@
-import { db } from '@server/lib/drizzle/db.js';
-import { cultivators, playerJournal } from '@server/lib/drizzle/schema.js';
-import { redis } from '@server/lib/redis/index.js';
-import { withRedisLock, type RedisLeaseContext } from '@server/lib/redis/lock.js';
-import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import {
   ARENA_SPARRING_RULES_V1,
   type ArenaRoomV1,
 } from '@daoyou/contracts/arena';
-import type { HuntMember, HuntTeam } from '@daoyou/game-domain/hunts';
 import type { HuntLobby, HuntTeamCommand } from '@daoyou/contracts/hunts';
+import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
+import type { HuntMember, HuntTeam } from '@daoyou/game-domain/hunts';
 import { type HuntEvent } from '@daoyou/game-domain/hunts';
 import {
   huntEventById,
@@ -17,11 +14,24 @@ import {
   huntStartError,
   selectHuntTeam,
 } from '@daoyou/game-rules/hunts';
-import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
-import { and, eq } from 'drizzle-orm';
 import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
-import { ArenaV6Error, createArenaV6 } from '@server/combat/application/CombatV6ArenaService.js';
+import {
+  ArenaV6Error,
+  createArenaV6,
+} from '@server/combat/application/CombatV6ArenaService.js';
 import { CombatV6ArenaStore } from '@server/combat/application/CombatV6ArenaStore.js';
+import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
+import { db } from '@server/lib/drizzle/db.js';
+import { cultivators, playerJournal } from '@server/lib/drizzle/schema.js';
+import { redis } from '@server/lib/redis/index.js';
+import {
+  withRedisLock,
+  type RedisLeaseContext,
+} from '@server/lib/redis/lock.js';
+import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
+import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
+import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
+import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
 const teamKey = (id: string) => `hunt:v1:team:${id}`;
 const memberKey = (id: string) => `hunt:v1:member:${id}`;
@@ -59,7 +69,10 @@ export async function huntClaimed(eventId: string, cultivatorId: string) {
       .limit(1)
   )[0];
 }
-async function member(actor: HuntActor, event: HuntEvent): Promise<HuntMember> {
+async function member(
+  actor: HuntActor,
+  event: HuntEvent | null,
+): Promise<HuntMember> {
   const row = await db.query.cultivators.findFirst({
     columns: { name: true, realm: true },
     where: and(
@@ -76,7 +89,22 @@ async function member(actor: HuntActor, event: HuntEvent): Promise<HuntMember> {
     name: row.name,
     realm: row.realm as RealmType,
     ready: false,
-    assisting: await huntClaimed(event.id, actor.cultivatorId),
+    assisting: event ? await huntClaimed(event.id, actor.cultivatorId) : false,
+  };
+}
+function withoutTarget(team: HuntTeam): HuntTeam {
+  return {
+    ...team,
+    event: null,
+    status: 'assembling',
+    members: team.members.map((m) => ({
+      ...m,
+      ready: false,
+      assisting: false,
+    })),
+    battleId: undefined,
+    startRequestId: undefined,
+    revision: team.revision + 1,
   };
 }
 // One atomic write maintains roster, membership ownership and the event index.
@@ -104,21 +132,29 @@ for _,m in ipairs(cjson.decode(ARGV[3])) do
  local key = 'hunt:v1:member:' .. m.userId
  if redis.call('GET', key) == next.id then redis.call('DEL', key) end
 end
+local prevEvent = ARGV[4]
+local nextEvent = ARGV[5]
+if prevEvent ~= '' then redis.call('SREM', 'hunt:v1:teams:' .. prevEvent, next.id) end
+if nextEvent ~= '' and nextEvent ~= prevEvent then redis.call('SREM', 'hunt:v1:teams:' .. nextEvent, next.id) end
 if #next.members == 0 then
- redis.call('DEL', KEYS[1]); redis.call('SREM', KEYS[2], next.id)
+ redis.call('DEL', KEYS[1])
 else
- redis.call('SET', KEYS[1], ARGV[2]); redis.call('SADD', KEYS[2], next.id)
- redis.call('ZADD', KEYS[3], next.event.expiresAt, next.event.id)
+ redis.call('SET', KEYS[1], ARGV[2])
+ if nextEvent ~= '' then
+  redis.call('SADD', 'hunt:v1:teams:' .. nextEvent, next.id)
+  redis.call('ZADD', 'hunt:v1:team-events', tonumber(ARGV[6]), nextEvent)
+ end
  for _,m in ipairs(next.members) do redis.call('SET', 'hunt:v1:member:' .. m.userId, next.id) end
 end
 return 1`,
-    3,
+    1,
     teamKey(team.id),
-    eventTeamsKey(team.event.id),
-    'hunt:v1:team-events',
     previous?.revision ?? -1,
     JSON.stringify(team),
     JSON.stringify(removed),
+    previous?.event?.id ?? '',
+    team.event?.id ?? '',
+    String(team.event?.expiresAt ?? 0),
   );
   if (Number(result) !== 1) throw new ArenaV6Error('队伍有变，请重新查看');
 }
@@ -149,13 +185,14 @@ async function currentTeam(actor: HuntActor, lease: RedisLeaseContext) {
     }
     // A crashed starter has no active battle; retry with the same frozen request.
   }
-  if (!huntIsOpen(team.event, Date.now()) && team.status !== 'in_battle') {
-    await saveTeam(
-      { ...team, members: [], revision: team.revision + 1 },
-      team,
-      lease,
-    );
-    return null;
+  if (
+    team.event &&
+    !huntIsOpen(team.event, Date.now()) &&
+    team.status !== 'in_battle'
+  ) {
+    const next = withoutTarget(team);
+    await saveTeam(next, team, lease);
+    return next;
   }
   return team;
 }
@@ -168,7 +205,9 @@ function requireEvent(id: string, open = true) {
 async function eventTeams(id: string) {
   const ids = await redis.smembers(eventTeamsKey(id));
   const teams = await Promise.all(ids.map(readTeam));
-  return teams.filter((t): t is HuntTeam => !!t && t.members.length > 0);
+  return teams.filter(
+    (t): t is HuntTeam => !!t && t.members.length > 0 && t.event?.id === id,
+  );
 }
 export async function huntLobby(
   id: string,
@@ -190,12 +229,21 @@ export async function huntLobby(
     serverNow: Date.now(),
   };
 }
+export async function readMyHuntTeam(
+  actor: HuntActor,
+): Promise<HuntTeam | null> {
+  const id = await redis.get(memberKey(actor.userId));
+  if (!id) return null;
+  const team = await readTeam(id);
+  if (!team?.members.some((m) => m.userId === actor.userId)) return null;
+  return team;
+}
 export async function createHuntTeam(
   actor: HuntActor,
-  input: { eventId: string; minRealm: RealmType; maxRealm: RealmType },
+  input: { eventId?: string; minRealm: RealmType; maxRealm: RealmType },
 ) {
   return lock(async (lease) => {
-    const event = requireEvent(input.eventId);
+    const event = input.eventId ? requireEvent(input.eventId) : null;
     if (await currentTeam(actor, lease))
       throw new ArenaV6Error('请先离开当前讨伐队伍');
     if (await hasActiveCombat(actor.cultivatorId))
@@ -241,7 +289,7 @@ export async function joinHuntTeam(
       : selectHuntTeam(await eventTeams(eventId), self.realm, Date.now());
     if (!team) throw new ArenaV6Error('还没有合适的队伍，可先创建队伍招募道友');
     if (
-      team.event.id !== eventId ||
+      team.event?.id !== eventId ||
       team.status !== 'assembling' ||
       team.members.length >= 4 ||
       !huntRealmAllowed(team, self.realm)
@@ -256,7 +304,40 @@ export async function joinHuntTeam(
     return next;
   });
 }
+export async function joinHuntTeamById(actor: HuntActor, teamId: string) {
+  return lock(async (lease) => {
+    const current = await currentTeam(actor, lease);
+    if (current) {
+      if (
+        current.id === teamId &&
+        current.members.some((m) => m.cultivatorId === actor.cultivatorId)
+      )
+        return current;
+      throw new ArenaV6Error('请先离开当前讨伐队伍');
+    }
+    if (await hasActiveCombat(actor.cultivatorId))
+      throw new ArenaV6Error('上一场战斗尚未结束，请稍候');
+    const team = await readTeam(teamId);
+    if (!team) throw new ArenaV6Error('这支队伍已经散了');
+    if (team.status !== 'assembling' || team.members.length >= 4)
+      throw new ArenaV6Error('这支队伍已满或已出战');
+    if (team.event && !huntIsOpen(team.event, Date.now()))
+      throw new ArenaV6Error('这支队伍的目标已经隐去');
+    const self = await member(actor, team.event);
+    if (!huntRealmAllowed(team, self.realm))
+      throw new ArenaV6Error('你的境界不在这支队伍的招募范围内');
+    const next = {
+      ...team,
+      members: [...team.members.map((m) => ({ ...m, ready: false })), self],
+      revision: team.revision + 1,
+    };
+    await saveTeam(next, team, lease);
+    return next;
+  });
+}
 function arenaRoom(team: HuntTeam): ArenaRoomV1 {
+  const event = team.event;
+  if (!event) throw new ArenaV6Error('请先选定讨伐目标');
   const seats = team.members.map((m, slot) => ({
     userId: m.userId,
     cultivatorId: m.cultivatorId,
@@ -264,7 +345,7 @@ function arenaRoom(team: HuntTeam): ArenaRoomV1 {
     realm: m.realm,
     slot,
     ready: true,
-    joinedAt: team.event.startsAt,
+    joinedAt: event.startsAt,
     lastSeenAt: Date.now(),
   }));
   return {
@@ -276,9 +357,9 @@ function arenaRoom(team: HuntTeam): ArenaRoomV1 {
     hostUserId: team.members.find((m) => m.cultivatorId === team.leaderId)!
       .userId,
     revision: team.revision,
-    createdAt: team.event.startsAt,
+    createdAt: event.startsAt,
     updatedAt: Date.now(),
-    expiresAt: team.event.expiresAt,
+    expiresAt: event.expiresAt,
     status: 'starting',
     startRequestId: team.startRequestId,
     teams: { alpha: seats, beta: [] },
@@ -312,10 +393,10 @@ export async function commandHuntTeam(
       team.leaderId === actor.cultivatorId
     )
       return team;
-    if (team.revision !== command.revision)
+    if (command.type !== 'recruit' && team.revision !== command.revision)
       throw new ArenaV6Error('队员有变，请确认名单后再试');
     if (team.status === 'in_battle')
-      throw new ArenaV6Error('战斗中不能更换成员');
+      throw new ArenaV6Error('战斗中不能调整队伍');
     if (command.type === 'leave') {
       if (team.status === 'starting')
         throw new ArenaV6Error('队伍正在出战，请稍候');
@@ -349,6 +430,68 @@ export async function commandHuntTeam(
       };
       await saveTeam(next, team, lease);
       return next;
+    }
+    if (command.type === 'target') {
+      if (team.leaderId !== actor.cultivatorId)
+        throw new ArenaV6Error('只有队长可以更换目标', 403);
+      if (team.status !== 'assembling')
+        throw new ArenaV6Error('出战中不能更换目标');
+      const event = command.eventId ? requireEvent(command.eventId) : null;
+      if ((team.event?.id ?? null) === (event?.id ?? null)) return team;
+      const members: HuntMember[] = [];
+      for (const current of team.members)
+        members.push({ ...(await member(current, event)), ready: false });
+      const next = {
+        ...team,
+        event,
+        members,
+        revision: team.revision + 1,
+      };
+      await saveTeam(next, team, lease);
+      return next;
+    }
+    if (command.type === 'recruit') {
+      if (team.leaderId !== actor.cultivatorId)
+        throw new ArenaV6Error('只有队长可以召集', 403);
+      if (team.status !== 'assembling')
+        throw new ArenaV6Error('出战中无法召集');
+      if (team.members.length >= 4) throw new ArenaV6Error('队伍已满');
+      const identity = await readCultivatorPublicIdentity(actor.cultivatorId);
+      const cooldown = await checkAndAcquireCooldown(
+        actor.cultivatorId,
+        identity.realm,
+      );
+      if (!cooldown.allowed)
+        throw new ArenaV6Error(`请 ${cooldown.remainingSeconds} 秒后再召集`);
+      const target = team.event
+        ? `目标${team.event.realm}期·${HUNT_BOSSES[team.event.bossId].name}（${team.event.locationName}）`
+        : '尚未选定讨伐目标';
+      const text = `${identity.name}召集道友结伴。${team.minRealm}至${team.maxRealm}。${target}。现有${team.members.length}/4人。`;
+      await createAndPublishWorldChatMessage({
+        senderUserId: actor.userId,
+        senderCultivatorId: actor.cultivatorId,
+        senderName: identity.name,
+        senderRealm: identity.realm,
+        senderRealmStage: identity.realmStage,
+        channel: 'world',
+        messageType: 'hunt_recruit',
+        textContent: text,
+        payload: {
+          version: 1,
+          teamId: team.id,
+          text,
+          minRealm: team.minRealm,
+          maxRealm: team.maxRealm,
+          memberCount: team.members.length,
+          ...(team.event
+            ? {
+                eventId: team.event.id,
+                targetLabel: `${team.event.realm}期·${HUNT_BOSSES[team.event.bossId].name}`,
+              }
+            : {}),
+        },
+      });
+      return team;
     }
     if (team.leaderId !== actor.cultivatorId)
       throw new ArenaV6Error('只有队长可以开战', 403);
@@ -413,17 +556,21 @@ export async function finishHuntTeam(
       team.status === 'assembling'
     )
       return;
+    const open = !!team.event && huntIsOpen(team.event, Date.now());
     const members: HuntMember[] = [];
-    if (huntIsOpen(team.event, Date.now()))
-      for (const m of team.members)
-        members.push({
-          ...m,
-          ready: false,
-          assisting: await huntClaimed(team.event.id, m.cultivatorId),
-        });
+    for (const m of team.members)
+      members.push({
+        ...m,
+        ready: false,
+        assisting:
+          open && team.event
+            ? await huntClaimed(team.event.id, m.cultivatorId)
+            : false,
+      });
     await saveTeam(
       {
         ...team,
+        event: open ? team.event : null,
         status: 'assembling',
         members,
         battleId: undefined,
@@ -455,11 +602,7 @@ export async function cleanupHuntTeams() {
           (await battleStore.source(team.id, team.startRequestId))
         )
           continue;
-        await saveTeam(
-          { ...team, members: [], revision: team.revision + 1 },
-          team,
-          lease,
-        );
+        await saveTeam(withoutTarget(team), team, lease);
       }
       if (!(await redis.scard(eventTeamsKey(id)))) {
         await redis.del(eventTeamsKey(id));

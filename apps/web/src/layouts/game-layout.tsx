@@ -1,4 +1,5 @@
 import { GuideOverlay } from '@app/components/feature/guide/GuideOverlay';
+import { HuntTeamBar } from '@app/components/feature/hunts/HuntTeamBar';
 import { WorldChatPreviewBar } from '@app/components/feature/world-chat/WorldChatPreviewBar';
 import { WorldChatFeedProvider } from '@app/components/feature/world-chat/useWorldChatFeedModel';
 import { GameBottomDock } from '@app/components/game-shell/GameBottomDock';
@@ -151,7 +152,11 @@ function resolveSpecialSceneDescriptor(
     };
   }
 
-  if (pathname === '/game/wild') return {sceneLabel:scene.label,backAction:{type:'path',label:'返回地图',href:'/game/map-v2'}};
+  if (pathname === '/game/wild')
+    return {
+      sceneLabel: scene.label,
+      backAction: { type: 'path', label: '返回地图', href: '/game/map-v2' },
+    };
 
   return null;
 }
@@ -281,7 +286,10 @@ export function GameViewportLayout() {
     <div className="bg-paper min-h-[100svh]" style={viewportStyle}>
       <WorldChatFeedProvider>
         <div className="flex min-h-[100svh] flex-col">
-          <GameTopHud snapshot={hud} />
+          <div className="sticky top-0 z-30">
+            <GameTopHud snapshot={hud} />
+            <HuntTeamBar />
+          </div>
           <main
             className="min-h-0 flex-1"
             style={{

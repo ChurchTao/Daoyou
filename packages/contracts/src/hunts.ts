@@ -1,19 +1,17 @@
-import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
 import type {
-  HuntTeam,
   HuntEvent,
   HuntRewardSnapshot,
+  HuntTeam,
 } from '@daoyou/game-domain/hunts';
+import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
 
 import { z } from 'zod';
-
-
 
 import { REALM_VALUES } from '@daoyou/constants/realms';
 
 export const HuntCreateTeamSchema = z
   .object({
-    eventId: HuntEventIdSchema,
+    eventId: HuntEventIdSchema.optional(),
     minRealm: z.enum(REALM_VALUES),
     maxRealm: z.enum(REALM_VALUES),
   })
@@ -43,6 +41,14 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
       revision: z.number().int().nonnegative(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal('target'),
+      eventId: HuntEventIdSchema.nullable(),
+      revision: z.number().int().nonnegative(),
+    })
+    .strict(),
+  z.object({ type: z.literal('recruit') }).strict(),
 ]);
 
 export type HuntTeamCommand = z.infer<typeof HuntTeamCommandSchema>;
@@ -54,6 +60,10 @@ export type HuntLobby = {
   teams: HuntTeam[];
   myTeam: HuntTeam | null;
   serverNow: number;
+};
+
+export type HuntMine = {
+  team: HuntTeam | null;
 };
 
 export type HuntBattleReward = {

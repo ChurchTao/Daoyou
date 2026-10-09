@@ -12,7 +12,8 @@ export type HuntMember = {
 
 export type HuntTeam = {
   id: string;
-  event: HuntEvent;
+  /** 当前讨伐目标。未选定时队伍仍然存在，选定野外目标后才进入该目标的名单。 */
+  event: HuntEvent | null;
   leaderId: string;
   minRealm: RealmType;
   maxRealm: RealmType;

@@ -23,7 +23,11 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '阵纹室', icon: '🔶', href: '/game/inscriptions' },
       { label: '👊 练功房', href: '/game/training-room' },
       { label: '💧 灵眼之泉', href: '/game/inn' },
-      { label: '储藏室', icon: '📦', href: '/game/cave/storage/new?location=storage' },
+      {
+        label: '储藏室',
+        icon: '📦',
+        href: '/game/cave/storage/new?location=storage',
+      },
       { label: '灵田', icon: '🌱', href: '/game/spirit-field' },
       { label: '育兽室', icon: '🐯', href: '/game/beast-room' },
     ],
@@ -43,6 +47,7 @@ const CAVE_AREA_GROUPS: CaveQuickGroup[] = [
       { label: '🛖 坊市', href: '/game/map-v2?intent=market' },
       { label: '🪞 蜃楼幻境', href: '/game/tower' },
       { label: '🔨 拍卖行', href: '/game/auction' },
+      { label: '⚔️ 组队讨伐', href: '/game/hunt-team' },
     ],
   },
 ];
@@ -69,7 +74,9 @@ export function CaveQuickGrid() {
             {group.areas.map((area) => (
               <span
                 key={area.href}
-                data-guide={area.href === '/game/inn' ? 'cave.spring' : undefined}
+                data-guide={
+                  area.href === '/game/inn' ? 'cave.spring' : undefined
+                }
                 className="inline-flex"
               >
                 <InkButton href={area.href}>

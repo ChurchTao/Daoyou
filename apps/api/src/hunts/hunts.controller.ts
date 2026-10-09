@@ -1,4 +1,10 @@
 import {
+  HuntCreateTeamSchema,
+  HuntTeamCommandSchema,
+  type HuntTeamCommand,
+} from '@daoyou/contracts/hunts';
+import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
+import {
   Controller,
   Get,
   Header,
@@ -8,11 +14,9 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
+import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { isRedisLockContention } from '@server/lib/redis/lock.js';
-import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
-import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
-import { HuntCreateTeamSchema, HuntTeamCommandSchema, type HuntTeamCommand } from '@daoyou/contracts/hunts';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
@@ -57,6 +61,12 @@ export class HuntsController {
     return this.hunts.events();
   }
 
+  @Get('me')
+  @Header('Cache-Control', 'private, no-store')
+  mine(@CurrentCultivator() actor: ActiveCultivatorRef) {
+    return this.hunts.mine(actor);
+  }
+
   @Get('battles/:battleId/reward')
   @Header('Cache-Control', 'private, no-store')
   reward(
@@ -98,6 +108,16 @@ export class HuntsController {
     input: z.infer<typeof JoinSchema>,
   ) {
     return this.hunts.join(actor, eventId, input.teamId);
+  }
+
+  @Post('teams/:teamId/join')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  joinTeam(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('teamId', new ZodPipe(z.uuid())) teamId: string,
+  ) {
+    return this.hunts.joinTeam(actor, teamId);
   }
 
   @Post('teams/:teamId')

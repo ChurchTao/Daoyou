@@ -1,17 +1,17 @@
-import { huntEventById, huntMapHref } from '@daoyou/game-rules/hunts';
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
+import { notifyHuntTeamChanged } from '@app/components/feature/hunts/huntTeamView';
+import { huntRequest } from '@app/components/feature/hunts/useHunts';
 import { itemPresentation } from '@app/components/feature/items/itemPresentation';
 import { ItemPreview } from '@app/components/feature/items/ItemPreview';
 import { InkModal } from '@app/components/layout';
 import type { Tier } from '@app/components/ui/InkBadge';
 import { InkBadge } from '@app/components/ui/InkBadge';
-import { useCultivatorIdentity } from '@app/lib/resources/player';
-import { BeastTradePreviewSchema } from '@daoyou/game-rules/beasts/trade';
-import { isInventoryShowcase } from '@daoyou/game-domain/items/catalog';
 import { cn } from '@app/lib/cn';
-import type {
-  WorldChatMessageDTO,
-} from '@daoyou/contracts/world-chat';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
+import type { WorldChatMessageDTO } from '@daoyou/contracts/world-chat';
+import { isInventoryShowcase } from '@daoyou/game-domain/items/catalog';
+import { BeastTradePreviewSchema } from '@daoyou/game-rules/beasts/trade';
+import { huntEventById, huntMapHref } from '@daoyou/game-rules/hunts';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 
@@ -63,6 +63,9 @@ export function WorldChatMessageItem({
 }: WorldChatMessageItemProps) {
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const [detailOpen, setDetailOpen] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
+  const [joined, setJoined] = useState(false);
   const isSystemRumor =
     message.channel === 'system' ||
     (message.senderCultivatorId === null &&
@@ -82,12 +85,26 @@ export function WorldChatMessageItem({
       return null;
     }
   }, [message]);
-  const hunt =
-    message.channel === 'system' &&
+  const huntEventId =
     message.messageType === 'hunt_rumor' &&
-    'eventId' in message.payload
-      ? huntEventById(message.payload.eventId)
+    'eventId' in message.payload &&
+    typeof message.payload.eventId === 'string'
+      ? message.payload.eventId
       : undefined;
+  const hunt =
+    message.channel === 'system' && huntEventId
+      ? huntEventById(huntEventId)
+      : undefined;
+  const recruit =
+    message.messageType === 'hunt_recruit' &&
+    'version' in message.payload &&
+    message.payload.version === 1 &&
+    'teamId' in message.payload &&
+    typeof message.payload.teamId === 'string' &&
+    'text' in message.payload &&
+    typeof message.payload.text === 'string'
+      ? { teamId: message.payload.teamId, text: message.payload.text }
+      : null;
   const beastShowcase =
     message.messageType === 'beast_showcase' &&
     'version' in message.payload &&
@@ -136,18 +153,86 @@ export function WorldChatMessageItem({
           </span>
         </div>
         <div className="text-sm leading-6 break-all">
-          {hunt ? (
+          {recruit ? (
+            <span>
+              {recruit.text}{' '}
+              {message.senderCultivatorId &&
+              message.senderCultivatorId === cultivator?.id ? (
+                <Link
+                  className="text-teal font-semibold underline"
+                  to="/game/hunt-team"
+                >
+                  加入队伍
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="text-teal font-semibold underline disabled:opacity-50"
+                  disabled={joining || joined || !cultivator}
+                  onClick={() => {
+                    const actorId = cultivator?.id;
+                    if (!actorId || joining) return;
+                    setJoining(true);
+                    setJoinError('');
+                    void huntRequest(
+                      `/api/hunts/teams/${recruit.teamId}/join`,
+                      actorId,
+                      {},
+                    )
+                      .then(() => {
+                        setJoined(true);
+                        notifyHuntTeamChanged();
+                      })
+                      .catch((cause: unknown) => {
+                        setJoinError(
+                          cause instanceof Error
+                            ? cause.message
+                            : '暂时未能加入',
+                        );
+                      })
+                      .finally(() => setJoining(false));
+                  }}
+                >
+                  {joined ? '已加入' : joining ? '加入中' : '加入队伍'}
+                </button>
+              )}
+              {joinError ? (
+                <span className="text-crimson ml-2">{joinError}</span>
+              ) : null}
+            </span>
+          ) : hunt ? (
             <span>
               {renderTextMessage(message)}{' '}
-              <Link className="text-teal font-semibold underline" to={huntMapHref(hunt)}>
+              <Link
+                className="text-teal font-semibold underline"
+                to={huntMapHref(hunt)}
+              >
                 前往查看
               </Link>
             </span>
-          ) : message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'shareCode' in message.payload && typeof message.payload.shareCode === 'string' && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1]) ? (
-            <Link className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2" to={`/combat-replay/${message.payload.shareCode}`}>
-              <span className="text-teal font-semibold">战斗回放 · {message.payload.sides[0].join('、')} 对阵 {message.payload.sides[1].join('、')}</span>
-              <span className="text-ink-secondary ml-2 text-xs">{message.payload.roundCount} 回合 · 点击查看</span>
-              {message.payload.text ? <p className="mt-1">{message.payload.text}</p> : null}
+          ) : message.messageType === 'combat_v6_replay' &&
+            'version' in message.payload &&
+            message.payload.version === 1 &&
+            'shareCode' in message.payload &&
+            typeof message.payload.shareCode === 'string' &&
+            'sides' in message.payload &&
+            Array.isArray(message.payload.sides) &&
+            Array.isArray(message.payload.sides[0]) &&
+            Array.isArray(message.payload.sides[1]) ? (
+            <Link
+              className="border-ink/15 hover:border-teal block border border-dashed bg-white/55 px-3 py-2"
+              to={`/combat-replay/${message.payload.shareCode}`}
+            >
+              <span className="text-teal font-semibold">
+                战斗回放 · {message.payload.sides[0].join('、')} 对阵{' '}
+                {message.payload.sides[1].join('、')}
+              </span>
+              <span className="text-ink-secondary ml-2 text-xs">
+                {message.payload.roundCount} 回合 · 点击查看
+              </span>
+              {message.payload.text ? (
+                <p className="mt-1">{message.payload.text}</p>
+              ) : null}
             </Link>
           ) : beastShowcase ? (
             <span>

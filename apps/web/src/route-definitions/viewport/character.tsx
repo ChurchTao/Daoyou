@@ -16,6 +16,18 @@ export const characterRoutes = [
     )}
   />,
   <Route
+    path="hunt-team"
+    lazy={lazyRoute(() => import('@app/routes/game/hunt-team/route'))}
+    handle={scene(
+      {
+        id: 'hunt-team',
+        presentation: 'workflow',
+        summary: '结成队伍，再选定要讨伐的目标。',
+      },
+      '组队讨伐',
+    )}
+  />,
+  <Route
     path="cultivator"
     lazy={lazyRoute(() => import('@app/routes/game/cultivator/route'))}
     handle={scene(

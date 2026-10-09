@@ -1,7 +1,5 @@
+import type { WorldChatMessageDTO } from '@daoyou/contracts/world-chat';
 import { isInventoryShowcase } from '@daoyou/game-domain/items/catalog';
-import type {
-  WorldChatMessageDTO,
-} from '@daoyou/contracts/world-chat';
 
 function isTextPayload(
   payload: WorldChatMessageDTO['payload'],
@@ -15,7 +13,15 @@ function isTextPayload(
 }
 
 export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
-  if (message.messageType === 'combat_v6_replay' && 'version' in message.payload && message.payload.version === 1 && 'sides' in message.payload && Array.isArray(message.payload.sides) && Array.isArray(message.payload.sides[0]) && Array.isArray(message.payload.sides[1])) {
+  if (
+    message.messageType === 'combat_v6_replay' &&
+    'version' in message.payload &&
+    message.payload.version === 1 &&
+    'sides' in message.payload &&
+    Array.isArray(message.payload.sides) &&
+    Array.isArray(message.payload.sides[0]) &&
+    Array.isArray(message.payload.sides[1])
+  ) {
     return `分享战绩：${message.payload.sides[0].join('、')} 对阵 ${message.payload.sides[1].join('、')}（${message.payload.roundCount} 回）`;
   }
   if (message.messageType === 'beast_showcase' && 'beast' in message.payload) {
@@ -42,6 +48,14 @@ export function getWorldChatMessageBody(message: WorldChatMessageDTO) {
     }
 
     return message.textContent || '【道具展示】';
+  }
+
+  if (
+    message.messageType === 'hunt_recruit' &&
+    'text' in message.payload &&
+    typeof message.payload.text === 'string'
+  ) {
+    return message.payload.text;
   }
 
   if (message.messageType === 'item_showcase') {

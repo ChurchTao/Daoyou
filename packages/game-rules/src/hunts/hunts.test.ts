@@ -159,9 +159,12 @@ describe('世界讨伐准入与刷新', () => {
     t.members[1].ready = true;
     t.members[1].userId = 'u0';
     expect(huntStartError(t, 'c0', now)).toMatch('同一账号');
-    expect(huntStartError(team(2), 'c0', team(2).event.expiresAt)).toMatch(
+    expect(huntStartError(team(2), 'c0', team(2).event!.expiresAt)).toMatch(
       '平息',
     );
+    const loose = team(2);
+    loose.event = null;
+    expect(huntStartError(loose, 'c0', now)).toMatch('选定');
   });
   it('快速匹配优先补齐符合境界的队伍，排除已开战与满队', () => {
     const a = team(1),
@@ -171,5 +174,8 @@ describe('世界讨伐准入与刷新', () => {
     expect(selectHuntTeam([a, b], '渡劫', now)).toBeUndefined();
     b.status = 'starting';
     expect(selectHuntTeam([b, a], '金丹', now)?.id).toBe('a');
+    const loose = { ...team(3), id: 'loose', event: null };
+    expect(selectHuntTeam([loose], '金丹', now)).toBeUndefined();
+    expect(selectHuntTeam([loose, a], '金丹', now)?.id).toBe('a');
   });
 });

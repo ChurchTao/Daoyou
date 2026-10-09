@@ -1,15 +1,20 @@
+import type {
+  HuntCreateTeamSchema,
+  HuntTeamCommand,
+} from '@daoyou/contracts/hunts';
+import type { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
+import { huntEventsAt } from '@daoyou/game-rules/hunts';
 import { Injectable } from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { huntBattleReward } from '@server/hunts/application/HuntRewardProjector.js';
 import {
   commandHuntTeam,
   createHuntTeam,
   huntLobby,
   joinHuntTeam,
+  joinHuntTeamById,
+  readMyHuntTeam,
 } from '@server/hunts/application/HuntTeamService.js';
-import type { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
-import type { HuntCreateTeamSchema, HuntTeamCommand } from '@daoyou/contracts/hunts';
-import { huntEventsAt } from '@daoyou/game-rules/hunts';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { z } from 'zod';
 
 @Injectable()
@@ -23,6 +28,10 @@ export class HuntsService {
 
   async reward(actor: ActiveCultivatorRef, battleId: string) {
     return { success: true, data: await huntBattleReward(battleId, actor) };
+  }
+
+  async mine(actor: ActiveCultivatorRef) {
+    return { success: true, data: { team: await readMyHuntTeam(actor) } };
   }
 
   async lobby(
@@ -45,6 +54,10 @@ export class HuntsService {
     teamId?: string,
   ) {
     return { success: true, data: await joinHuntTeam(actor, eventId, teamId) };
+  }
+
+  async joinTeam(actor: ActiveCultivatorRef, teamId: string) {
+    return { success: true, data: await joinHuntTeamById(actor, teamId) };
   }
 
   async command(
