@@ -50,6 +50,7 @@
     "./guide/interpreter": "./dist/guide/interpreter.js",
     "./hunts": "./dist/public/hunts.js",
     "./identity-reshape": "./dist/identity-reshape.js",
+    "./inquiry": "./dist/public/inquiry.js",
     "./inscriptions/rules": "./dist/inscriptions/rules.js",
     "./inventory": "./dist/public/inventory.js",
     "./inventory/alchemy": "./dist/inventory/alchemy.js",

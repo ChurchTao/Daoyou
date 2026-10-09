@@ -1,4 +1,5 @@
 import { hasDungeonBattle } from '@server/dungeon/occupancy.js';
+import { hasInquiryBattle } from '@server/inquiry/occupancy.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
 import { redis } from '@server/lib/redis/index.js';
 import { hasActiveRanking } from '@server/lib/redis/rankingChallenge.js';
@@ -15,12 +16,18 @@ import { CombatV6WildStore } from '@server/combat/application/CombatV6WildStore.
  */
 export async function hasActiveCombat(
   owner: string,
-  options: { executor?: DbExecutor; includeDungeon?: boolean } = {},
+  options: {
+    executor?: DbExecutor;
+    includeDungeon?: boolean;
+    includeInquiry?: boolean;
+  } = {},
 ) {
   const includeDungeon = options.includeDungeon !== false;
+  const includeInquiry = options.includeInquiry !== false;
   const [
     towerBattle,
     dungeonBattle,
+    inquiryBattle,
     ranking,
     sectBattle,
     breakthroughBattle,
@@ -32,6 +39,9 @@ export async function hasActiveCombat(
     includeDungeon
       ? hasDungeonBattle(owner, options.executor ?? db)
       : Promise.resolve(false),
+    includeInquiry
+      ? hasInquiryBattle(owner, options.executor ?? db)
+      : Promise.resolve(false),
     hasActiveRanking(owner),
     hasActiveSectTaskBattle(owner),
     hasActiveBreakthroughBattle(owner),
@@ -42,6 +52,7 @@ export async function hasActiveCombat(
   return !!(
     towerBattle ||
     dungeonBattle ||
+    inquiryBattle ||
     ranking ||
     sectBattle ||
     breakthroughBattle ||

@@ -17,6 +17,7 @@ export const QI_REFRESH_TIMEZONE = 'Asia/Shanghai';
 
 export const QI_ACTION_COSTS = {
   dungeon_start: 50,
+  inquiry_start: 50,
   wild_search: 2,
   retreat_10_years: 4,
   breakthrough_attempt: 20,

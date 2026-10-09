@@ -14,6 +14,8 @@ export type LlmSceneId =
   | 'daily-divination'
   | 'dungeon-round'
   | 'dungeon-settlement'
+  | 'inquiry-director'
+  | 'inquiry-narration'
   | 'fate-naming'
   | 'equipment-forge-naming'
   | 'identity-reshape'

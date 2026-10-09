@@ -1,4 +1,5 @@
 import type { InkButton } from '@app/components/ui/InkButton';
+import { isInquiryNode } from '@daoyou/game-content/inquiry';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import type { ComponentProps } from 'react';
 
@@ -44,6 +45,14 @@ export function buildNodeActions(
       variant: 'secondary',
       onClick: () => navigate(`/game/dungeon?nodeId=${ctx.selectedNodeId}`),
     });
+    if (isInquiryNode(ctx.selectedNodeId)) {
+      actions.push({
+        key: 'enter-inquiry',
+        label: '入内探查',
+        variant: 'primary',
+        onClick: () => navigate(`/game/inquiry?nodeId=${ctx.selectedNodeId}`),
+      });
+    }
   }
   if (ctx.isMainNode && ctx.marketEnabled) {
     actions.unshift({

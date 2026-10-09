@@ -16,6 +16,7 @@ import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import { REALM_STAGE_VALUES, REALM_VALUES, RealmType, type RealmStage } from '@daoyou/constants/realms';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import { assertCombatV6MutationAllowed } from '@server/combat/mutation-policy.js';
+import { hasOpenInquiry } from '@server/inquiry/occupancy.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { getPlayerIdentityCultivatorById } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
@@ -646,6 +647,9 @@ export class DungeonFlowService {
       const existingSession = await this.runs.loadActiveRun(cultivatorId);
       if (existingSession) {
         throw new Error('当前已有正在进行的副本，请先完成或放弃');
+      }
+      if (await hasOpenInquiry(cultivatorId)) {
+        throw new Error('当前正在秘境探查中，请先离开');
       }
 
       // 只有卫星地图节点可以进行副本挑战

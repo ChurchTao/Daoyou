@@ -40,6 +40,7 @@
     "./friends": "./dist/friends.js",
     "./http": "./dist/http.js",
     "./hunts": "./dist/hunts.js",
+    "./inquiry": "./dist/inquiry.js",
     "./inscriptions": "./dist/inscriptions.js",
     "./inventory": "./dist/inventory.js",
     "./items/library": "./dist/itemLibrary.js",

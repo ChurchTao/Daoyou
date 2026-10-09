@@ -1,3 +1,9 @@
+import type {
+  InquiryCaseFile,
+  InquiryProgress,
+  InquiryStatus,
+} from '@daoyou/game-domain/inquiry';
+import type { DungeonRewardEntry } from '@daoyou/game-domain/dungeon';
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
 import type { StoryStatus, StoryTrack } from '@daoyou/game-domain/story';
 import type {
@@ -1736,6 +1742,72 @@ export const dungeonHistories = pgTable(
   },
   (table) => [
     index('dungeon_histories_cultivator_created_idx').on(
+      table.cultivatorId,
+      table.createdAt,
+    ),
+  ],
+);
+
+/** 新版秘境探查。与旧版 dungeon_runs 分开存放。 */
+export const inquiryRuns = pgTable(
+  'wanjiedaoyou_inquiry_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    status: varchar('status', { length: 30 })
+      .$type<InquiryStatus>()
+      .notNull()
+      .default('PREPARING'),
+    templateId: varchar('template_id', { length: 40 }).notNull(),
+    rewardSeed: integer('reward_seed').notNull(),
+    truthId: varchar('truth_id', { length: 40 }),
+    caseFile: jsonb('case_file').$type<InquiryCaseFile | null>(),
+    progress: jsonb('progress').$type<InquiryProgress>().notNull(),
+    narrations: jsonb('narrations').$type<Record<string, string>>().notNull().default({}),
+    v6Rewards: jsonb('v6_rewards').$type<DungeonRewardEntry[]>().notNull().default([]),
+    revision: integer('revision').notNull().default(0),
+    battlePayload: jsonb('battle_payload'),
+    activeBattleId: uuid('active_battle_id'),
+    settlement: jsonb('settlement'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    endedAt: timestamp('ended_at'),
+  },
+  (table) => [
+    uniqueIndex('inquiry_runs_one_open_idx')
+      .on(table.cultivatorId)
+      .where(sql`${table.endedAt} is null`),
+    index('inquiry_runs_cultivator_updated_idx').on(
+      table.cultivatorId,
+      table.updatedAt,
+    ),
+  ],
+);
+
+export const inquiryHistories = pgTable(
+  'wanjiedaoyou_inquiry_histories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    runId: uuid('run_id').notNull(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    theme: varchar('theme', { length: 100 }).notNull(),
+    correct: boolean('correct').notNull(),
+    rating: varchar('rating', { length: 8 }),
+    narrative: text('narrative').notNull(),
+    realGains: jsonb('real_gains'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('inquiry_histories_cultivator_created_idx').on(
       table.cultivatorId,
       table.createdAt,
     ),

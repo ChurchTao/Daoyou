@@ -216,6 +216,11 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏔️ 云游探秘',
       },
       {
+        id: 'inquiry',
+        sceneLabel: '秘境探查',
+        href: '/game/inquiry',
+      },
+      {
         id: 'tower',
         sceneLabel: '蜃楼幻境',
         href: '/game/tower',

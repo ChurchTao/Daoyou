@@ -1,6 +1,7 @@
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
+import { hasOpenInquiry } from '@server/inquiry/occupancy.js';
 import { redis } from '@server/lib/redis/index.js';
 import { parseRedisJson } from '@server/lib/redis/json.js';
 import type { RedisLeaseContext } from '@server/lib/redis/lock.js';
@@ -22,11 +23,12 @@ import {
   isTalismanConsumable,
 } from '@daoyou/game-domain/consumables';
 import { canUseDungeonRecoveryPill } from '@daoyou/game-rules/dungeon';
+import { canUseInquiryRecoveryPill } from '@daoyou/game-rules/inquiry';
 import { getAttributeLabel } from '@daoyou/game-content/presentation/concepts';
 import { getTrackConfig } from '@daoyou/game-rules/condition';
 import type { Consumable } from '@daoyou/game-domain/character';
 import { randomUUID } from 'crypto';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import {
   AttributeResetService,
   withAttributeResetLock,
@@ -118,6 +120,27 @@ export const ConsumableUseEngine = {
       if (!run || !canUseDungeonRecoveryPill(run, consumable)) {
         throw new Error(
           '秘境休整期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
+        );
+      }
+    }
+
+    if (await hasOpenInquiry(cultivatorId)) {
+      const [run] = await getExecutor(options.tx)
+        .select({
+          activeBattleId: schema.inquiryRuns.activeBattleId,
+          status: schema.inquiryRuns.status,
+        })
+        .from(schema.inquiryRuns)
+        .where(
+          and(
+            eq(schema.inquiryRuns.cultivatorId, cultivatorId),
+            isNull(schema.inquiryRuns.endedAt),
+          ),
+        )
+        .limit(1);
+      if (!run || !canUseInquiryRecoveryPill(run, consumable)) {
+        throw new Error(
+          '秘境探查期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
         );
       }
     }

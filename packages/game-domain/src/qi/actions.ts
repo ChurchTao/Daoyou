@@ -1,5 +1,6 @@
 export type QiAction =
   | 'dungeon_start'
+  | 'inquiry_start'
   | 'wild_search'
   | 'retreat_10_years'
   | 'breakthrough_attempt'

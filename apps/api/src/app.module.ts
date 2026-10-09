@@ -17,6 +17,7 @@ import { CultivatorModule } from './cultivator/cultivator.module.js';
 import { DevToolsModule } from './dev-tools/dev-tools.module.js';
 import { DivinationModule } from './divination/divination.module.js';
 import { DungeonModule } from './dungeon/dungeon.module.js';
+import { InquiryModule } from './inquiry/inquiry.module.js';
 import { EnemiesModule } from './enemies/enemies.module.js';
 import { EnlightenmentModule } from './enlightenment/enlightenment.module.js';
 import { FeedbackModule } from './feedback/feedback.module.js';
@@ -92,6 +93,7 @@ import { TowerModule } from './tower/tower.module.js';
     ManualsModule,
     HuntsModule,
     DungeonModule,
+    InquiryModule,
     TowerModule,
     // Namespace authorization fallbacks must follow every concrete route.
     NotFoundModule,

@@ -31,6 +31,8 @@ const promptSources = [
   'divine-fortune.md',
   'dungeon-round.md',
   'dungeon-settlement.md',
+  'inquiry-director.md',
+  'inquiry-narration.md',
   'fate-naming.md',
   'equipment-forge-naming.md',
   'identity-reshape.md',

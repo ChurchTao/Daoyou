@@ -56,12 +56,12 @@ export function AtlasNodePanel({
         </div>
       </div>
       {actions.length ? (
-        <div className="border-ink/10 mt-3 shrink-0 border-t pt-2">
+        <div className="border-ink/10 mt-3 flex shrink-0 flex-wrap gap-2 border-t pt-2">
           {actions.map((action) => (
             <InkButton
               key={action.key}
-              className="min-h-11"
-              variant="primary"
+              className="min-h-11 flex-1"
+              variant={action.variant ?? 'primary'}
               onClick={action.onClick}
             >
               {action.label}

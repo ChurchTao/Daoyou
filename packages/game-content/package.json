@@ -44,6 +44,7 @@
     "./guide/catalog": "./dist/guide/catalog.js",
     "./hunts": "./dist/public/hunts.js",
     "./identity-reshape": "./dist/identity-reshape.js",
+    "./inquiry": "./dist/public/inquiry.js",
     "./inscriptions/config": "./dist/inscriptions/config.js",
     "./items": "./dist/items/registry.js",
     "./items/beasts": "./dist/public/items/beasts.js",
