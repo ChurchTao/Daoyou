@@ -19,9 +19,7 @@ declare global {
   }
 }
 
-const scope = self as unknown as ServiceWorkerGlobalScope & {
-  __WB_MANIFEST: Array<PrecacheEntry | string>;
-};
+const scope = self as unknown as ServiceWorkerGlobalScope;
 
 const SHELL_CACHE = 'daoyou-shell';
 const BUILD_ASSET_CACHE = 'daoyou-build-assets';
@@ -107,7 +105,8 @@ async function readShell() {
   return cache.match(SHELL_URL);
 }
 
-precacheAndRoute(scope.__WB_MANIFEST);
+// workbox-build replaces this exact token after bundling. A local alias is minified away.
+precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 scope.addEventListener('message', (event) => {
