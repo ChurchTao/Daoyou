@@ -3,7 +3,7 @@
 FROM node:24.18.0-bookworm-slim AS node-base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN npm install --global pnpm@10.34.6
+RUN npm install --global pnpm@12.10.1
 
 FROM node-base AS builder
 WORKDIR /app

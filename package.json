@@ -52,9 +52,9 @@
     "@daoyou/game-content": "workspace:*",
     "@daoyou/contracts": "workspace:*"
   },
-  "packageManager": "pnpm@10.34.6",
+  "packageManager": "pnpm@12.10.1",
   "engines": {
     "node": ">=24.18.0",
-    "pnpm": ">=10.34.6 <11"
+    "pnpm": ">=12.10.1 <13"
   }
 }
