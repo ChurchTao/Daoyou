@@ -12,6 +12,8 @@ export interface NodeMarketConfig {
 
 export interface DungeonMapConfig {
   difficulty: DungeonDifficultyTier;
+  /** 新版探查使用的玩法配置。没有这项的秘境仍走旧版。 */
+  inquiry_play?: string;
 }
 
 export interface ResolvedDungeonMapConfig {

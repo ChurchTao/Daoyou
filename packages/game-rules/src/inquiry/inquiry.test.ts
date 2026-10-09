@@ -1,205 +1,196 @@
-import { CAVE_FALLBACK_DRAFT } from '@daoyou/game-content/inquiry';
-import type { InquiryDirectorDraft } from '@daoyou/game-domain/inquiry';
-import { describe, expect, it } from 'vitest';
-import { compileInquiryCase } from './compile.js';
-import { assertInquiryCostType, quoteInquiryActionCost } from './costs.js';
 import {
+  INQUIRY_FALLBACKS,
+  getInquiryPlay,
+  inquiryPlayForNode,
+  listInquiryPlays,
+} from '@daoyou/game-content/inquiry';
+import type { InquiryPlay, InquiryProgress } from '@daoyou/game-domain/inquiry';
+import { describe, expect, it } from 'vitest';
+import { assertInquiryPlay, compileInquiryCase } from './compile.js';
+import { assertInquiryCostType, quoteInquiryCost } from './costs.js';
+import {
+  acceptInquiryNarration,
   applyInquiryAction,
   createInquiryProgress,
   finishInquiryBattle,
+  inquiryActions,
+  inquiryNarrativeFacts,
+  inquiryToolActionId,
+  inquiryVerdictReady,
   judgeInquiryVerdict,
 } from './progress.js';
 
-function play(actionIds: string[], draft: InquiryDirectorDraft = CAVE_FALLBACK_DRAFT) {
-  const compiled = compileInquiryCase(draft);
-  if (!compiled.ok) throw new Error(compiled.reason);
-  let progress = createInquiryProgress();
-  const results = [];
-  for (const actionId of actionIds) {
-    const result = applyInquiryAction(progress, compiled.caseFile, actionId);
+function solve(play: InquiryPlay) {
+  assertInquiryPlay(play);
+  const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+  if (!compiled.ok) throw new Error(`${play.id}: ${compiled.reason}`);
+  const truth = play.truths.find((item) => item.id === compiled.caseFile.truthId);
+  if (!truth) throw new Error(`${play.id} 备用真相不存在`);
+  let progress = createInquiryProgress(play);
+  for (let step = 0; step < 40 && !inquiryVerdictReady(play, progress); step += 1) {
+    const actions = inquiryActions(progress, play, compiled.caseFile);
+    const next =
+      actions.find((action) => action.id.startsWith('examine:') && !action.repeat) ??
+      actions.find((action) => action.id.startsWith('compare:')) ??
+      actions.find((action) => action.cost && !action.cost.revealsClue) ??
+      actions.find(
+        (action) =>
+          action.id.startsWith('move:') &&
+          !progress.visitedLocationIds.includes(action.id.slice('move:'.length)),
+      ) ??
+      actions.find(
+        (action) =>
+          action.id.startsWith('open:') && truth.containerJudgement === 'open',
+      );
+    if (!next) break;
+    const result = applyInquiryAction(progress, play, compiled.caseFile, next.id);
+    if (result.effect.kind === 'rejected') break;
     progress = result.progress;
-    results.push(result);
+    if (result.effect.kind === 'battle') {
+      progress = finishInquiryBattle(progress, 'victory', next.id.slice('open:'.length));
+    }
   }
-  return { progress, results, caseFile: compiled.caseFile };
-}
-
-function altarDraft(): InquiryDirectorDraft {
   return {
-    ...CAVE_FALLBACK_DRAFT,
-    truthId: 'altar_cache',
-    truthText: '正本就是祭坛上的玉简，打开敛骨匣才会解开压在玉简上的封印。齿间温玉是诱饵。',
-    clues: {
-      ...CAVE_FALLBACK_DRAFT.clues,
-      corpse_cache: {
-        title: '齿间诱饵',
-        body: '齿间的温玉只是一枚诱饵，里面没有功法。',
-        assertsCache: null,
-      },
-      altar_script: {
-        title: '祭坛正本',
-        body: '祭坛玉简才是封着功法正本的那一件，封印还压在匣上。',
-        assertsCache: 'altar_item',
-      },
-      seam_note: {
-        title: '石缝残笺',
-        body: '残笺只说匣子连着祭坛，没有把温玉说成正本。',
-        assertsCache: null,
-      },
-    },
+    progress,
+    caseFile: compiled.caseFile,
+    judgement: judgeInquiryVerdict(progress, play, compiled.caseFile, {
+      answerId: truth.answerId,
+      container: truth.containerJudgement,
+    }),
   };
 }
 
-describe('cave inheritance inquiry', () => {
-  it('reaches the mouth-cache truth by looking and comparing', () => {
-    const { progress, caseFile } = play([
-      'examine:seal_marks',
-      'move:hall',
-      'examine:corpse',
-      'examine:altar_item',
-      'examine:wall_inscription',
-      'compare:handwriting',
+describe('inquiry plays', () => {
+  it('binds three map nodes to three plays and solves each from its fallback', () => {
+    expect(listInquiryPlays().map((play) => play.id)).toEqual([
+      'cave_inheritance',
+      'forbidden_trial',
+      'scripture_cellar',
     ]);
-    expect(progress.knownClueIds).toEqual([
-      'outward_seal',
-      'corpse_cache',
-      'altar_script',
-      'wall_script',
-      'handwriting_diff',
-    ]);
-    expect(progress.heldItemIds).toEqual(['mouth_jade']);
-    expect(
-      judgeInquiryVerdict(progress, caseFile, {
-        cache: 'mouth_jade',
-        casket: 'leave_shut',
-      }),
-    ).toEqual({ correct: true, rating: 'A' });
+    expect(inquiryPlayForNode('SAT_TN_01')?.id).toBe('cave_inheritance');
+    expect(inquiryPlayForNode('SAT_TN_04')?.id).toBe('forbidden_trial');
+    expect(inquiryPlayForNode('SAT_TN_07')?.id).toBe('scripture_cellar');
+    expect(inquiryPlayForNode('SAT_TN_02')).toBeNull();
+
+    for (const play of listInquiryPlays()) {
+      const solved = solve(play);
+      expect(solved.judgement, play.id).toEqual({ correct: true, rating: 'A' });
+      expect(solved.progress.foughtContainer, play.id).toBe(false);
+      expect(solved.progress.paidLifespan, play.id).toBe(false);
+    }
   });
 
-  it('keeps clues when the casket starts a battle', () => {
-    const seen = play([
-      'examine:seal_marks',
-      'move:hall',
-      'examine:corpse',
-    ]);
-    const opened = applyInquiryAction(
-      seen.progress,
-      seen.caseFile,
-      'open:casket',
+  it('hides costs until the obstacle has been seen, and keeps that text stable', () => {
+    const play = getInquiryPlay('cave_inheritance');
+    if (!play) throw new Error('缺少洞府玩法');
+    const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+    if (!compiled.ok) throw new Error(compiled.reason);
+    const start = inquiryActions(createInquiryProgress(play), play, compiled.caseFile).map(
+      (action) => action.id,
     );
-    expect(opened.effect.kind).toBe('battle');
-    expect(opened.progress.knownClueIds).toEqual(seen.progress.knownClueIds);
-    expect(opened.progress.pendingBattle).toBe(true);
-    const after = finishInquiryBattle(opened.progress, 'victory');
-    expect(after.knownClueIds).toEqual(seen.progress.knownClueIds);
-    expect(after.foughtCasket).toBe(true);
-    expect(after.pendingBattle).toBe(false);
-  });
-
-  it('leaves the room unchanged when the verdict is wrong', () => {
-    const { progress, caseFile } = play([
-      'examine:seal_marks',
-      'move:hall',
-      'examine:corpse',
-      'examine:altar_item',
-      'examine:wall_inscription',
-      'compare:handwriting',
-    ]);
-    const before = structuredClone(progress);
-    expect(
-      judgeInquiryVerdict(progress, caseFile, {
-        cache: 'altar_item',
-        casket: 'open',
-      }),
-    ).toEqual({ correct: false, message: '这些证据对不上这个判断' });
-    expect(progress).toEqual(before);
-  });
-
-  it('opens the altar cache without a battle and rates a lifespan cost as B', () => {
-    const { progress, caseFile } = play(
-      [
-        'force_seam_life',
-        'examine:seal_marks',
-        'move:hall',
-        'examine:corpse',
-        'examine:altar_item',
-        'examine:wall_inscription',
-        'compare:handwriting',
-        'open:casket',
-        'take:altar_item',
-      ],
-      altarDraft(),
+    expect(start).toEqual(['examine:seal_marks', 'examine:stone_seam']);
+    const looked = applyInquiryAction(
+      createInquiryProgress(play),
+      play,
+      compiled.caseFile,
+      'examine:stone_seam',
     );
-    expect(progress.pendingBattle).toBe(false);
-    expect(progress.casketOpened).toBe(true);
-    expect(progress.heldItemIds).toContain('altar_relic');
-    expect(
-      judgeInquiryVerdict(progress, caseFile, {
-        cache: 'altar_item',
-        casket: 'open',
-      }),
-    ).toEqual({ correct: true, rating: 'B' });
-  });
-
-  it('does not bank a second reward for seeing the same clue or room', () => {
-    const first = play(['examine:seal_marks', 'move:hall']);
-    const back = applyInquiryAction(first.progress, first.caseFile, 'move:mouth');
-    expect(back.rewardKey).toBeUndefined();
+    const unlocked = inquiryActions(looked.progress, play, compiled.caseFile).map(
+      (action) => action.id,
+    );
+    expect(unlocked).toContain('cost:stone_seam:steady');
+    expect(unlocked).not.toContain('open:casket');
     const again = applyInquiryAction(
-      back.progress,
-      first.caseFile,
-      'examine:seal_marks',
+      looked.progress,
+      play,
+      compiled.caseFile,
+      'examine:stone_seam',
     );
-    expect(again.effect).toEqual({ kind: 'known', clueId: 'outward_seal' });
-    expect(again.rewardKey).toBeUndefined();
-    expect(first.results[1]?.rewardKey).toBe('inquiry:visit:hall');
+    expect(again.effect.narrationKey).toBe('blocked:stone_seam');
+    expect(again.progress.knownClueIds).toEqual(looked.progress.knownClueIds);
   });
 
-  it('rejects a cost outside the five inquiry types', () => {
+  it('rejects a cost outside the five inquiry types and quotes a configured cost', () => {
     expect(assertInquiryCostType('hp_loss')).toBe('hp_loss');
-    expect(() => assertInquiryCostType('cultivation_exp')).toThrow(
-      '秘境探查不接受代价',
-    );
-  });
-
-  it('quotes the shared cave costs from the map realm', () => {
-    expect(quoteInquiryActionCost('steady_array', '筑基', 'normal')).toEqual({
+    expect(() => assertInquiryCostType('cultivation_exp')).toThrow('秘境探查不接受代价');
+    const play = getInquiryPlay('forbidden_trial');
+    const cost = play?.objects.find((object) => object.blocked)?.blocked?.costs[0];
+    if (!cost) throw new Error('缺少代价');
+    expect(quoteInquiryCost(cost, '筑基', 'normal')).toEqual({
       type: 'spirit_stones',
       value: 250,
     });
-    expect(quoteInquiryActionCost('force_seam', '筑基', 'normal')).toEqual({
-      type: 'hp_loss',
-      value: 0.02,
-    });
-    expect(quoteInquiryActionCost('force_seam_life', '筑基', 'normal')).toEqual({
-      type: 'lifespan',
-      value: 1,
-    });
   });
 
-  it('accepts the fallback case and rejects a draft that names the other cache', () => {
-    const fallback = compileInquiryCase(CAVE_FALLBACK_DRAFT);
-    expect(fallback.ok).toBe(true);
-    if (!fallback.ok) return;
-    expect(fallback.caseFile.truthId).toBe('mouth_cache');
-
-    const broken = compileInquiryCase({
-      ...CAVE_FALLBACK_DRAFT,
+  it('rejects a draft that names the other answer or spoils the first glance', () => {
+    const play = getInquiryPlay('scripture_cellar');
+    if (!play) throw new Error('缺少地窖玩法');
+    const fallback = INQUIRY_FALLBACKS[play.id]!;
+    const broken = compileInquiryCase(play, {
+      ...fallback,
       clues: {
-        ...CAVE_FALLBACK_DRAFT.clues,
-        altar_script: {
-          ...CAVE_FALLBACK_DRAFT.clues.altar_script,
-          assertsCache: 'altar_item',
-        },
+        ...fallback.clues,
+        scroll_b_text: { ...fallback.clues.scroll_b_text, assertsAnswer: 'scroll_b' },
       },
     });
-    expect(broken).toEqual({
-      ok: false,
-      reason: '线索把另一套真相说成了钥匙',
+    expect(broken.ok).toBe(false);
+    const spoiled = compileInquiryCase(play, {
+      ...fallback,
+      locations: { ...fallback.locations, stair: '你刚到梯口，就看见真卷放在甲卷上。' },
     });
-    const spoiled = compileInquiryCase({
-      ...CAVE_FALLBACK_DRAFT,
-      opening: '你刚到洞口，就知道正本在齿间温玉里。',
-    });
-    expect(spoiled).toEqual({ ok: false, reason: '开场白提前说出了正本' });
+    expect(spoiled).toEqual({ ok: false, reason: '第一眼正文提前说出了答案' });
+  });
+
+  it('does not grant a second visit reward for returning to a room', () => {
+    const play = getInquiryPlay('cave_inheritance');
+    if (!play) throw new Error('缺少洞府玩法');
+    const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+    if (!compiled.ok) throw new Error(compiled.reason);
+    let progress: InquiryProgress = createInquiryProgress(play);
+    progress = applyInquiryAction(progress, play, compiled.caseFile, 'examine:seal_marks').progress;
+    const entered = applyInquiryAction(progress, play, compiled.caseFile, 'move:hall');
+    const back = applyInquiryAction(entered.progress, play, compiled.caseFile, 'move:mouth');
+    expect(entered.rewardKey).toBe('inquiry:visit:hall');
+    expect(back.rewardKey).toBeUndefined();
+    expect(back.effect).toEqual({ kind: 'note', narrationKey: 'move:mouth' });
+  });
+
+  it('gives the narrator only the facts this action revealed', () => {
+    const play = getInquiryPlay('cave_inheritance');
+    if (!play) throw new Error('缺少洞府玩法');
+    const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+    if (!compiled.ok) throw new Error(compiled.reason);
+    const looked = applyInquiryAction(
+      createInquiryProgress(play),
+      play,
+      compiled.caseFile,
+      'examine:seal_marks',
+    );
+    const facts = inquiryNarrativeFacts(
+      play,
+      compiled.caseFile,
+      looked.progress,
+      'examine:seal_marks',
+    );
+    expect(facts.lines.join('\n')).toContain('外补的禁制');
+    expect(facts.lines.join('\n')).not.toContain('齿间');
+    expect(facts.lines.join('\n')).not.toContain(compiled.caseFile.truthText);
+    expect(acceptInquiryNarration(play, '并未看见任何人，未进行交互。', facts.lines)).toBe(
+      false,
+    );
+    expect(
+      acceptInquiryNarration(
+        play,
+        '刻痕从洞外压进来，不像洞主自己封上的。',
+        facts.lines,
+      ),
+    ).toBe(true);
+    expect(inquiryToolActionId('inspect', { targetId: 'seal_marks' })).toBe(
+      'examine:seal_marks',
+    );
+    expect(inquiryToolActionId('pay', { objectId: 'stone_seam', costId: 'steady' })).toBe(
+      'cost:stone_seam:steady',
+    );
+    expect(inquiryToolActionId('inspect', {})).toBeNull();
   });
 });

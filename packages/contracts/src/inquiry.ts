@@ -1,8 +1,5 @@
 import { z } from 'zod';
-import {
-  INQUIRY_CACHE_IDS,
-  INQUIRY_CASKET_JUDGEMENTS,
-} from '@daoyou/game-domain/inquiry';
+import { INQUIRY_CONTAINER_JUDGEMENTS } from '@daoyou/game-domain/inquiry';
 
 export const InquiryOpenRequestSchema = z
   .object({ mapNodeId: z.string().min(1) })
@@ -20,8 +17,16 @@ export const InquiryVerdictRequestSchema = z
   .object({
     runId: z.uuid(),
     expectedRevision: z.number().int().nonnegative(),
-    cache: z.enum(INQUIRY_CACHE_IDS),
-    casket: z.enum(INQUIRY_CASKET_JUDGEMENTS),
+    answerId: z.string().min(1).max(40),
+    container: z.enum(INQUIRY_CONTAINER_JUDGEMENTS),
+  })
+  .strict();
+
+export const InquiryTurnRequestSchema = z
+  .object({
+    runId: z.uuid(),
+    expectedRevision: z.number().int().nonnegative(),
+    utterance: z.string().trim().min(1).max(200),
   })
   .strict();
 

@@ -1,4 +1,4 @@
-import { isInquiryNode } from '@daoyou/game-content/inquiry';
+import { getInquiryPlay, INQUIRY_FALLBACKS, inquiryPlayForNode } from '@daoyou/game-content/inquiry';
 import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@daoyou/game-content/rewards/dungeon';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import type { RealmType } from '@daoyou/constants/realms';
@@ -7,6 +7,7 @@ import type { DungeonRewardEntry } from '@daoyou/game-domain/dungeon';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
 import type {
   InquiryCaseFile,
+  InquiryPlay,
   InquiryProgress,
   InquiryStatus,
 } from '@daoyou/game-domain/inquiry';
@@ -19,6 +20,10 @@ import {
   createInquiryProgress,
   finishInquiryBattle,
   inquiryActions,
+  compileInquiryCase,
+  inquiryCanonicalProse,
+  inquiryNarrativeFacts,
+  inquiryVerdictReady,
   type InquiryActionView,
   inquiryBattleKey,
   inquiryVisitKey,
@@ -26,7 +31,7 @@ import {
   planInquiryBattleReward,
   planInquiryCompletionReward,
   planInquiryVisitReward,
-  quoteInquiryActionCost,
+  quoteInquiryCost,
 } from '@daoyou/game-rules/inquiry';
 import { appendDungeonReward } from '@daoyou/game-rules/rewards/dungeon';
 import {
@@ -47,9 +52,10 @@ import { cultivators, inquiryHistories, inquiryRuns } from '@server/lib/drizzle/
 import { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
-import { authorInquiryCase } from './director.js';
 import { hasOpenInquiry } from './occupancy.js';
 import { fightInquiryCasket } from './fight.js';
+import { runInquiryToolTurn } from './agent.js';
+import { streamInquiryNarration } from './narration.js';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 
@@ -63,6 +69,13 @@ export interface InquiryView {
   actions: InquiryActionView[];
   clues: Array<{ id: string; title: string; body: string }>;
   heldItemIds: string[];
+  verdictReady: boolean;
+  verdict: {
+    answerLabel: string;
+    answers: Array<{ id: string; label: string }>;
+    containerLabel: string;
+    containerOptions: Array<{ id: 'leave_shut' | 'open'; label: string }>;
+  } | null;
   feedback?: string;
   settlement?: {
     correct: boolean;
@@ -80,7 +93,7 @@ export interface InquiryNarrationJob {
   key: string;
   fallback: string;
   lines: string[];
-  caseFile: InquiryCaseFile;
+  play: InquiryPlay;
 }
 
 export type InquiryEvent = (event: string, data: unknown) => void;
@@ -103,7 +116,7 @@ export class InquiryService {
   }
 
   async assertCanOpen(cultivatorId: string, mapNodeId: string) {
-    if (!isInquiryNode(mapNodeId)) fail('这处秘境还没有开放探查', 400);
+    if (!inquiryPlayForNode(mapNodeId)) fail('这处秘境还没有开放探查', 400);
     if (await hasOpenInquiry(cultivatorId)) fail('已经在一处秘境里', 409);
     if (await hasActiveDungeon(cultivatorId)) fail('旧版秘境还没结束', 409);
     const map = getMapNode(mapNodeId);
@@ -126,20 +139,40 @@ export class InquiryService {
     emit: InquiryEvent,
   ) {
     await this.assertCanOpen(cultivatorId, mapNodeId);
-    emit('phase', { id: 'layout', label: '推演格局' });
-    emit('phase', { id: 'authoring', label: '写定此案' });
-    const caseFile = await authorInquiryCase(mapNodeId);
-    emit('phase', { id: 'checking', label: '核对线索' });
-    emit('ready', await this.open(userId, cultivatorId, mapNodeId, caseFile));
+    emit('action_status', { message: '正在进入秘境' });
+    const detailed = await this.openDetailed(userId, cultivatorId, mapNodeId);
+    emit('state', detailed.response);
+    if (detailed.stream) {
+      const text = await streamInquiryNarration(
+        {
+          play: detailed.stream.play,
+          fallback: detailed.stream.fallback,
+          lines: detailed.stream.lines,
+        },
+        (token) => emit('token', { text: token }),
+      );
+      await this.rememberNarration(
+        detailed.stream.cultivatorId,
+        detailed.stream.runId,
+        detailed.stream.revision,
+        detailed.stream.key,
+        text,
+      );
+      emit('prose', { text });
+    }
+    emit('ready', detailed.response);
   }
 
-  async open(
-    userId: string,
-    cultivatorId: string,
-    mapNodeId: string,
-    caseFile?: InquiryCaseFile,
-  ) {
-    const authored = caseFile ?? (await authorInquiryCase(mapNodeId));
+  async open(userId: string, cultivatorId: string, mapNodeId: string) {
+    const detailed = await this.openDetailed(userId, cultivatorId, mapNodeId);
+    return detailed.response;
+  }
+
+  async openDetailed(userId: string, cultivatorId: string, mapNodeId: string) {
+    const play = inquiryPlayForNode(mapNodeId);
+    if (!play) fail('这处秘境还没有开放探查', 400);
+    const compiled = compileInquiryCase(play, INQUIRY_FALLBACKS[play.id]);
+    if (!compiled.ok) fail(compiled.reason, 500);
     try {
       const committed = await this.commands.executeWithLock({
         userId,
@@ -147,13 +180,69 @@ export class InquiryService {
         source: 'inquiry_start',
         lock: { context: 'inquiry-start', timeoutMs: 30_000 },
         command: (tx) =>
-          this.openInTransaction(userId, cultivatorId, mapNodeId, authored, tx),
+          this.openInTransaction(userId, cultivatorId, mapNodeId, compiled.caseFile, tx),
       });
-      return toPlayerStateMutationResponse(committed);
+      return {
+        response: toPlayerStateMutationResponse({
+          result: committed.result.view,
+          state: committed.state,
+        }),
+        stream: committed.result.stream,
+      };
     } catch (error) {
       if (error instanceof QiInsufficientError) fail('QI_INSUFFICIENT', 409);
       throw error;
     }
+  }
+
+  async turnWithEvents(
+    userId: string,
+    cultivatorId: string,
+    input: { runId: string; expectedRevision: number; utterance: string },
+    emit: InquiryEvent,
+  ) {
+    const row = await this.openRow(cultivatorId);
+    if (!row || row.id !== input.runId || row.endedAt) fail('这场探查已经结束', 404);
+    if (row.revision !== input.expectedRevision) fail('洞府里的情况已经变了，请刷新', 409);
+    const view = this.present(row);
+    emit('action_status', { message: '正在领会你的意图' });
+    const last = await runInquiryToolTurn({
+      utterance: input.utterance,
+      view,
+      emit,
+      commit: (actionId, expectedRevision) =>
+        this.actDetailed(userId, cultivatorId, {
+          runId: input.runId,
+          actionId,
+          expectedRevision,
+        }),
+    });
+    if (last?.stream) {
+      const text = await streamInquiryNarration(
+        {
+          play: last.stream.play,
+          fallback: last.stream.fallback,
+          lines: last.stream.lines,
+        },
+        (token) => emit('token', { text: token }),
+      );
+      await this.rememberNarration(
+        last.stream.cultivatorId,
+        last.stream.runId,
+        last.stream.revision,
+        last.stream.key,
+        text,
+      );
+      emit('prose', { text });
+      emit('ready', last.response);
+      return;
+    }
+    emit('prose', {
+      text: last
+        ? last.response.data.prose
+        : '说得再具体些。可以查看眼前的东西，或走到已经开放的地方。',
+    });
+    emit('ready', last?.response ?? { success: true, data: view });
   }
 
   async act(
@@ -214,8 +303,8 @@ export class InquiryService {
     input: {
       runId: string;
       expectedRevision: number;
-      cache: 'mouth_jade' | 'altar_item';
-      casket: 'leave_shut' | 'open';
+      answerId: string;
+      container: 'leave_shut' | 'open';
     },
   ) {
     const committed = await this.commands.executeWithLock({
@@ -253,7 +342,7 @@ export class InquiryService {
     caseFile: InquiryCaseFile,
     tx: DbTransaction,
   ) {
-    if (!isInquiryNode(mapNodeId)) fail('这处秘境还没有开放探查', 400);
+    if (!inquiryPlayForNode(mapNodeId)) fail('这处秘境还没有开放探查', 400);
     if (await hasOpenInquiry(cultivatorId, tx)) fail('已经在一处秘境里', 409);
     if (await hasActiveDungeon(cultivatorId)) fail('旧版秘境还没结束', 409);
     const map = getMapNode(mapNodeId);
@@ -267,12 +356,14 @@ export class InquiryService {
     if (!canChallengeDungeonRealm(cultivator.realm as RealmType, map.realm_requirement)) {
       fail(`当前境界${cultivator.realm}不可探查${map.realm_requirement}秘境`, 409);
     }
-    const progress = createInquiryProgress();
+    const play = inquiryPlayForNode(mapNodeId);
+    if (!play) fail('这处秘境还没有开放探查', 400);
+    const progress = createInquiryProgress(play);
     const rewardSeed = randomInt(0, 0x7fffffff);
     const rewards = [
       await this.materializeReward(
         rewardSeed,
-        'mouth',
+        play.startLocationId,
         map.realm_requirement,
         cultivator.realm as RealmType,
         resolveDungeonMapConfig(map).difficultyTier,
@@ -293,12 +384,12 @@ export class InquiryService {
         cultivatorId,
         mapNodeId,
         status: 'INVESTIGATING',
-        templateId: caseFile.templateId,
+        templateId: caseFile.playId,
         rewardSeed,
         truthId: caseFile.truthId,
         caseFile,
         progress,
-        narrations: { latest: caseFile.opening },
+        narrations: { focus: `move:${play.startLocationId}` },
         v6Rewards: rewards,
       })
       .returning();
@@ -308,8 +399,12 @@ export class InquiryService {
       metadata: { runId: inserted.id },
       tx,
     });
+    const openingKey = `move:${play.startLocationId}`;
     return {
-      result: this.present(inserted),
+      result: {
+        view: this.present(inserted),
+        stream: this.narrationJob(inserted, play, progress, openingKey),
+      },
       resourceChanges: [
         {
           resourceTopic: 'player.currency',
@@ -335,14 +430,18 @@ export class InquiryService {
   }> {
     const row = await this.lockRow(cultivatorId, input.runId, input.expectedRevision, tx);
     if (row.status !== 'INVESTIGATING' || !row.caseFile) fail('现在不能探查', 409);
-    const applied = applyInquiryAction(row.progress, row.caseFile, input.actionId);
+    const play = this.playFor(row.caseFile);
+    const progressNow = this.progressFor(play, row.progress);
+    const applied = applyInquiryAction(progressNow, play, row.caseFile, input.actionId);
     if (applied.effect.kind === 'rejected') fail(applied.effect.message, 409);
     if (applied.effect.kind === 'known') {
-      const stored = row.narrations?.[input.actionId];
       const view = this.present(row);
       return {
         result: {
-          view: stored ? { ...view, prose: stored } : view,
+          view: {
+            ...view,
+            prose: inquiryCanonicalProse(play, row.caseFile, input.actionId),
+          },
           stream: null,
         },
         resourceChanges: [],
@@ -356,9 +455,9 @@ export class InquiryService {
       .limit(1);
     if (!cultivator?.condition) fail('角色状态缺失', 409);
     const changes: ResourceChangeDescriptor[] = [];
-    if (applied.costActionId) {
-      const priced = quoteInquiryActionCost(
-        applied.costActionId,
+    if (applied.cost) {
+      const priced = quoteInquiryCost(
+        applied.cost,
         map.realm_requirement,
         resolveDungeonMapConfig(map).difficultyTier,
       );
@@ -392,9 +491,12 @@ export class InquiryService {
 
     let progress = applied.progress;
     let rewards = row.v6Rewards ?? [];
-    let latest = this.narrationFor(row.caseFile, applied.effect.kind === 'clue' || applied.effect.kind === 'note' || applied.effect.kind === 'battle'
-      ? applied.effect.narrationKey
-      : input.actionId);
+    let focus =
+      applied.effect.kind === 'clue' ||
+      applied.effect.kind === 'note' ||
+      applied.effect.kind === 'battle'
+        ? applied.effect.narrationKey
+        : input.actionId;
     if (applied.rewardKey) {
       rewards = appendDungeonReward(
         rewards,
@@ -425,7 +527,8 @@ export class InquiryService {
         operation: 'replace',
         payload: beaten,
       });
-      progress = finishInquiryBattle(progress, fight.victory ? 'victory' : 'retreat');
+      const containerId = focus.startsWith('open:') ? focus.slice('open:'.length) : '';
+      progress = finishInquiryBattle(progress, fight.victory ? 'victory' : 'retreat', containerId);
       if (!fight.victory) {
         const finished = await this.finish(
           userId,
@@ -454,19 +557,12 @@ export class InquiryService {
       );
       if (fight.beastExperience) battleReward.beastExperience = fight.beastExperience;
       rewards = appendDungeonReward(rewards, battleReward);
-      latest = '守剑傀倒下了，匣子里的光也灭了。';
+      focus = `battle_won:${focus.startsWith('open:') ? focus.slice('open:'.length) : ''}`;
     }
 
-    const narrationKey =
-      applied.effect.kind === 'clue' ||
-      applied.effect.kind === 'note' ||
-      applied.effect.kind === 'battle'
-        ? applied.effect.narrationKey
-        : input.actionId;
     const narrations = {
       ...(row.narrations ?? {}),
-      latest,
-      [narrationKey]: latest,
+      focus,
       feedback: '',
     };
     const [saved] = await tx
@@ -481,18 +577,13 @@ export class InquiryService {
       .where(eq(inquiryRuns.id, row.id))
       .returning();
     if (!saved?.caseFile) fail('探查状态没能保存', 500);
+    const savedPlay = this.playFor(saved.caseFile);
     return {
       result: {
         view: this.present(saved),
-        stream: {
-          cultivatorId,
-          runId: saved.id,
-          revision: saved.revision,
-          key: narrationKey,
-          fallback: latest,
-          lines: this.narrationLines(saved.caseFile, narrationKey, latest),
-          caseFile: saved.caseFile,
-        },
+        stream: row.narrations?.[focus]
+          ? null
+          : this.narrationJob(saved, savedPlay, progress, focus),
       },
       resourceChanges: changes,
     };
@@ -504,16 +595,17 @@ export class InquiryService {
     input: {
       runId: string;
       expectedRevision: number;
-      cache: 'mouth_jade' | 'altar_item';
-      casket: 'leave_shut' | 'open';
+      answerId: string;
+      container: 'leave_shut' | 'open';
     },
     tx: DbTransaction,
   ) {
     const row = await this.lockRow(cultivatorId, input.runId, input.expectedRevision, tx);
     if (row.status !== 'INVESTIGATING' || !row.caseFile) fail('现在不能下定论', 409);
-    const judged = judgeInquiryVerdict(row.progress, row.caseFile, {
-      cache: input.cache,
-      casket: input.casket,
+    const play = this.playFor(row.caseFile);
+    const judged = judgeInquiryVerdict(this.progressFor(play, row.progress), play, row.caseFile, {
+      answerId: input.answerId,
+      container: input.container,
     });
     if (!judged.correct) {
       const [saved] = await tx
@@ -727,7 +819,7 @@ export class InquiryService {
           ? planInquiryCompletionReward(seed, level, context)
           : planInquiryVisitReward(
               seed,
-              (key.endsWith('hall') ? 'hall' : 'mouth') as InquiryProgress['locationId'],
+              key.startsWith('inquiry:visit:') ? key.slice('inquiry:visit:'.length) : key,
               level,
               context,
             );
@@ -760,46 +852,44 @@ export class InquiryService {
     };
   }
 
-  private narrationLines(caseFile: InquiryCaseFile, narrationKey: string, fallback: string) {
-    const lines = [fallback];
-    if (narrationKey.startsWith('examine:')) {
-      const objectId = narrationKey.slice('examine:'.length);
-      const clueId = {
-        seal_marks: 'outward_seal',
-        corpse: 'corpse_cache',
-        altar_item: 'altar_script',
-        wall_inscription: 'wall_script',
-        stone_seam: 'seam_note',
-      }[objectId];
-      if (clueId && clueId in caseFile.clues) {
-        const clue = caseFile.clues[clueId as keyof InquiryCaseFile['clues']];
-        lines.push(clue.title, clue.body);
-      }
-    }
-    if (narrationKey === 'compare:handwriting') {
-      lines.push(caseFile.clues.handwriting_diff.title, caseFile.clues.handwriting_diff.body);
-    }
-    return lines;
+  private narrationJob(
+    row: InquiryRow,
+    play: InquiryPlay,
+    progress: InquiryProgress,
+    key: string,
+  ): InquiryNarrationJob | null {
+    if (!row.caseFile || row.narrations?.[key]) return null;
+    const facts = inquiryNarrativeFacts(play, row.caseFile, progress, key);
+    return {
+      cultivatorId: row.cultivatorId,
+      runId: row.id,
+      revision: row.revision,
+      key,
+      fallback: facts.fallback,
+      lines: facts.lines,
+      play,
+    };
   }
 
-  private narrationFor(caseFile: InquiryCaseFile, narrationKey: string) {
-    const objectId = narrationKey.startsWith('examine:')
-      ? narrationKey.slice('examine:'.length)
-      : '';
-    if (objectId in caseFile.objects) {
-      return caseFile.objects[objectId as keyof InquiryCaseFile['objects']].examineText;
-    }
-    if (narrationKey === 'move:hall') return '你走进内室，光线比洞口更稳。';
-    if (narrationKey === 'move:mouth') return caseFile.opening;
-    if (narrationKey === 'steady_array') return '灵石嵌进残阵，石缝松了一寸。';
-    if (narrationKey === 'force_seam' || narrationKey === 'force_seam_life') {
-      return caseFile.objects.stone_seam.examineText;
-    }
-    if (narrationKey === 'seam_shut') return '石缝还闭着，手指抠不进去。';
-    if (narrationKey === 'compare:handwriting') return caseFile.clues.handwriting_diff.body;
-    if (narrationKey === 'open:casket') return '匣盖弹开一条缝。';
-    if (narrationKey === 'take:altar_item') return '你取下了祭坛上的玉简。';
-    return caseFile.opening;
+  private playFor(caseFile: InquiryCaseFile) {
+    const play = getInquiryPlay(caseFile.playId);
+    if (!play) fail('这场探查的玩法配置已经不在', 409);
+    return play;
+  }
+
+  private progressFor(play: InquiryPlay, raw: InquiryProgress): InquiryProgress {
+    return {
+      locationId: raw.locationId || play.startLocationId,
+      knownClueIds: raw.knownClueIds ?? [],
+      heldItemIds: raw.heldItemIds ?? [],
+      visitedLocationIds: raw.visitedLocationIds ?? [play.startLocationId],
+      inspectedObjectIds: raw.inspectedObjectIds ?? [],
+      unlockedObjectIds: raw.unlockedObjectIds ?? [],
+      openedObjectIds: raw.openedObjectIds ?? [],
+      paidLifespan: raw.paidLifespan ?? false,
+      foughtContainer: raw.foughtContainer ?? false,
+      pendingBattle: raw.pendingBattle ?? false,
+    };
   }
 
   private applyBodyLoss(
@@ -904,8 +994,26 @@ export class InquiryService {
 
   private present(row: InquiryRow): InquiryView {
     const caseFile = row.caseFile;
-    const progress = row.progress;
-    if (!caseFile) fail('案卷还没写好', 409);
+    if (!caseFile?.playId || !getInquiryPlay(caseFile.playId)) {
+      return {
+        runId: row.id,
+        status: row.status,
+        revision: row.revision,
+        mapNodeId: row.mapNodeId,
+        locationId: row.progress?.locationId || '',
+        prose: '这场探查的案卷已经过期，可以离开。',
+        actions: [],
+        clues: [],
+        heldItemIds: [],
+        verdictReady: false,
+        verdict: null,
+        feedback: row.narrations?.feedback,
+        settlement: row.status === 'FINISHED' ? (row.settlement as InquiryView['settlement']) : null,
+      };
+    }
+    const play = this.playFor(caseFile);
+    const progress = this.progressFor(play, row.progress);
+    const verdictReady = inquiryVerdictReady(play, progress);
     const settlement = row.settlement as InquiryView['settlement'];
     return {
       runId: row.id,
@@ -913,13 +1021,30 @@ export class InquiryService {
       revision: row.revision,
       mapNodeId: row.mapNodeId,
       locationId: progress.locationId,
-      prose: row.narrations?.latest || caseFile.opening,
-      actions:
-        row.status === 'INVESTIGATING' ? inquiryActions(progress, caseFile) : [],
+      prose:
+        (row.narrations?.focus && row.narrations[row.narrations.focus]) ||
+        inquiryCanonicalProse(
+          play,
+          caseFile,
+          row.narrations?.focus || `move:${progress.locationId}`,
+        ),
+      actions: row.status === 'INVESTIGATING' ? inquiryActions(progress, play, caseFile) : [],
+      verdictReady,
+      verdict: verdictReady
+        ? {
+            answerLabel: play.verdict.answerLabel,
+            answers: play.verdict.answers.map((answer) => ({
+              id: answer.id,
+              label: caseFile.objects[answer.id]?.name || answer.label,
+            })),
+            containerLabel: play.verdict.containerLabel,
+            containerOptions: play.verdict.containerOptions,
+          }
+        : null,
       clues: progress.knownClueIds.map((id) => ({
         id,
-        title: caseFile.clues[id].title,
-        body: caseFile.clues[id].body,
+        title: caseFile.clues[id]?.title ?? id,
+        body: caseFile.clues[id]?.body ?? '',
       })),
       heldItemIds: progress.heldItemIds,
       feedback: row.narrations?.feedback,

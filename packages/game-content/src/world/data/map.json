@@ -285,7 +285,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "阵法破解", "坐化遗骸", "古宝", "功法玉简"],
       "description": "掩映在瀑布后的隐秘洞穴，洞口禁制已然残破，透着一股岁月腐朽的气息。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": { "difficulty": "normal", "inquiry_play": "cave_inheritance" }
     },
     {
       "id": "SAT_TN_02",
@@ -461,7 +461,7 @@
       "environmental_status": null,
       "tags": ["单人副本", "试炼阵", "木灵脉", "宗门秘库", "藏经残卷"],
       "description": "黄枫谷后山深处封存多年的试炼禁地，灵雾常年不散，偶有古阵自鸣。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": { "difficulty": "normal", "inquiry_play": "forbidden_trial" }
     },
     {
       "id": "SAT_TN_05",
@@ -593,7 +593,7 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "藏经阁", "功法残卷", "禁制书架"],
       "description": "黄枫谷旧藏经阁下方的封闭地窖，书架与玉简多有残缺，仍可寻到可修炼的基础功法。",
-      "dungeon_config": { "difficulty": "easy" }
+      "dungeon_config": { "difficulty": "easy", "inquiry_play": "scripture_cellar" }
     },
     {
       "id": "SAT_LX_06",

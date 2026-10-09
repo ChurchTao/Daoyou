@@ -1,25 +1,27 @@
-import type { InquiryCaseFile } from '@daoyou/game-domain/inquiry';
+import type { InquiryPlay } from '@daoyou/game-domain/inquiry';
+import { acceptInquiryNarration } from '@daoyou/game-rules/inquiry';
 import { renderPrompt } from '@server/lib/prompts/index.js';
 import { streamAiText } from '@server/utils/aiClient.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 
 export interface InquiryNarrationRequest {
-  caseFile: InquiryCaseFile;
+  play: InquiryPlay;
   fallback: string;
   lines: string[];
 }
 
-/** Stream a retelling of facts the case already recorded. */
+/**
+ * Narrate one committed result. The model never receives the hidden truth.
+ * A failed or leaking paragraph is discarded for the blueprint sentence.
+ */
 export async function streamInquiryNarration(
   request: InquiryNarrationRequest,
   onToken: (token: string) => void,
 ): Promise<string> {
   const prompt = renderPrompt('inquiry-narration', {
-    userContextJson: stableCompactStringify({
-      names: request.caseFile.cast.map((person) => person.name),
-      facts: request.lines,
-    }),
+    userContextJson: stableCompactStringify({ facts: request.lines }),
   });
+  let full = '';
   try {
     const result = streamAiText({
       system: prompt.system,
@@ -27,19 +29,22 @@ export async function streamInquiryNarration(
       sceneId: 'inquiry-narration',
       maxOutputTokens: 400,
     });
-    let full = '';
     for await (const token of result.textStream) {
       full += token;
       onToken(token);
     }
-    const text = full.trim().slice(0, 400);
-    return text.length >= 8 ? text : request.fallback;
   } catch (error) {
     console.warn(
-      `[inquiry-narration] 改用案卷短句: ${
+      `[inquiry-narration] 改用蓝图短句: ${
         error instanceof Error ? error.message : '未知错误'
       }`,
     );
     return request.fallback;
   }
+  const text = full.trim().slice(0, 400);
+  if (!acceptInquiryNarration(request.play, text, request.lines)) {
+    console.warn('[inquiry-narration] 叙述越出事实，改用蓝图短句');
+    return request.fallback;
+  }
+  return text;
 }

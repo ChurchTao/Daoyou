@@ -8,7 +8,7 @@ import {
   inquiryBattleKey,
   inquiryVisitKey,
 } from './progress.js';
-import type { InquiryLocationId } from '@daoyou/game-domain/inquiry';
+
 
 function planStep(
   seed: number,
@@ -26,7 +26,7 @@ function planStep(
 
 export function planInquiryVisitReward(
   seed: number,
-  locationId: InquiryLocationId,
+  locationId: string,
   level: number,
   context: DungeonRewardResourceContext,
 ) {

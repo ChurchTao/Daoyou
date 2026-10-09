@@ -16,6 +16,7 @@ export type LlmSceneId =
   | 'dungeon-settlement'
   | 'inquiry-director'
   | 'inquiry-narration'
+  | 'inquiry-agent'
   | 'fate-naming'
   | 'equipment-forge-naming'
   | 'identity-reshape'

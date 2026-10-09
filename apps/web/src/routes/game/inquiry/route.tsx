@@ -16,7 +16,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 interface InquiryAction {
   id: string;
   label: string;
-  costActionId?: 'steady_array' | 'force_seam' | 'force_seam_life';
+  cost?: { type: string };
   repeat: boolean;
 }
 
@@ -25,11 +25,18 @@ interface InquiryView {
   status: string;
   revision: number;
   mapNodeId: string;
-  locationId: 'mouth' | 'hall';
+  locationId: string;
   prose: string;
   actions: InquiryAction[];
   clues: Array<{ id: string; title: string; body: string }>;
   heldItemIds: string[];
+  verdictReady?: boolean;
+  verdict?: {
+    answerLabel: string;
+    answers: Array<{ id: string; label: string }>;
+    containerLabel: string;
+    containerOptions: Array<{ id: 'leave_shut' | 'open'; label: string }>;
+  } | null;
   feedback?: string;
   settlement?: {
     correct: boolean;
@@ -37,12 +44,6 @@ interface InquiryView {
     narrative: string;
   } | null;
 }
-
-const COST_LABEL = {
-  steady_array: '灵石',
-  force_seam: '气血',
-  force_seam_life: '寿元',
-} as const;
 
 async function readError(response: Response) {
   const body = (await response.json().catch(() => null)) as {
@@ -61,8 +62,9 @@ export default function InquiryPage() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [cache, setCache] = useState<'mouth_jade' | 'altar_item'>('mouth_jade');
-  const [casket, setCasket] = useState<'leave_shut' | 'open'>('leave_shut');
+  const [utterance, setUtterance] = useState('');
+  const [answerId, setAnswerId] = useState('');
+  const [container, setContainer] = useState<'leave_shut' | 'open'>('leave_shut');
   const [journalOpen, setJournalOpen] = useState(false);
   const [phase, setPhase] = useState('');
 
@@ -156,18 +158,30 @@ export default function InquiryPage() {
             throw new Error(getQiErrorMessage({ error: message }, message));
           }
           let ready: unknown = null;
+          let streamed = '';
           await readEvents(response, async (event, data) => {
-            if (event === 'phase') {
-              const label = (data as { label?: string }).label;
-              if (label) setPhase(label);
-            } else if (event === 'ready') ready = data;
-            else if (event === 'error') {
+            if (event === 'action_status') {
+              const message = (data as { message?: string }).message;
+              if (message) setPhase(message);
+            } else if (event === 'state' || event === 'ready') {
+              const next = await consumeResourceMutation<InquiryView>(data as never);
+              ready = data;
+              setView(streamed ? { ...next, prose: streamed } : next);
+            } else if (event === 'token') {
+              streamed += (data as { text?: string }).text ?? '';
+              setView((current) => (current ? { ...current, prose: streamed } : current));
+            } else if (event === 'prose') {
+              const text = (data as { text?: string }).text;
+              if (text) {
+                streamed = text;
+                setView((current) => (current ? { ...current, prose: text } : current));
+              }
+            } else if (event === 'error') {
               const message = (data as { error?: string }).error ?? '探查没有开始';
               throw new Error(getQiErrorMessage({ error: message }, message));
             }
           });
-          if (!ready) throw new Error('案卷没有写完');
-          setView(await consumeResourceMutation(ready as never));
+          if (!ready) throw new Error('秘境没有打开');
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : '探查没有开始');
         } finally {
@@ -176,6 +190,57 @@ export default function InquiryPage() {
         }
       },
     });
+  };
+
+  const speak = async () => {
+    if (!view || !utterance.trim()) return;
+    setPending(true);
+    setError('');
+    setPhase('正在领会你的意图');
+    try {
+      const response = await apiFetch('/api/inquiry/turn', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+        },
+        body: JSON.stringify({
+          runId: view.runId,
+          expectedRevision: view.revision,
+          utterance: utterance.trim(),
+        }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      let streamed = '';
+      await readEvents(response, async (event, data) => {
+        if (event === 'action_status') {
+          const message = (data as { message?: string }).message;
+          if (message) setPhase(message);
+        } else if (event === 'state' || event === 'ready') {
+          if (data && typeof data === 'object' && 'data' in data) {
+            const next = await consumeResourceMutation<InquiryView>(data as never);
+            setView(streamed ? { ...next, prose: streamed } : next);
+          }
+        } else if (event === 'token') {
+          streamed += (data as { text?: string }).text ?? '';
+          setView((current) => (current ? { ...current, prose: streamed } : current));
+        } else if (event === 'prose') {
+          const text = (data as { text?: string }).text;
+          if (text) {
+            streamed = text;
+            setView((current) => (current ? { ...current, prose: text } : current));
+          }
+        } else if (event === 'error') {
+          throw new Error((data as { error?: string }).error ?? '没有听清');
+        }
+      });
+      setUtterance('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '没有听清');
+    } finally {
+      setPending(false);
+      setPhase('');
+    }
   };
 
   const perform = async (actionId: string) => {
@@ -257,77 +322,100 @@ export default function InquiryPage() {
         ) : (
           <InkCard className="space-y-4 p-6">
             <p className="leading-7">{view.prose}</p>
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void speak();
+              }}
+            >
+              <input
+                className="border-ink/20 bg-paper min-h-11 flex-1 border px-3"
+                value={utterance}
+                placeholder="说说你要做什么"
+                maxLength={200}
+                onChange={(event) => setUtterance(event.target.value)}
+              />
+              <InkButton type="submit" variant="primary" pending={pending} disabled={!utterance.trim()}>
+                去做
+              </InkButton>
+            </form>
             <div className="flex flex-col gap-2">
               {view.actions.map((action) => (
                 <InkButton
                   key={action.id}
-                  variant={action.costActionId ? 'outline' : 'primary'}
+                  variant={action.cost ? 'outline' : 'primary'}
                   pending={pending}
                   onClick={() => void perform(action.id)}
                 >
                   {action.label}
-                  {action.costActionId ? ` · 付${COST_LABEL[action.costActionId]}` : ''}
                 </InkButton>
               ))}
             </div>
-            <form
-              className="border-ink/15 space-y-3 border-t pt-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void postJson('/api/inquiry/verdict', {
-                  runId: view.runId,
-                  expectedRevision: view.revision,
-                  cache,
-                  casket,
-                });
-              }}
-            >
-              <p className="text-sm">定论</p>
-              <label className="flex items-center gap-2 text-sm">
-                正本在
-                <select
-                  className="border-ink/20 bg-paper border px-2 py-1"
-                  value={cache}
-                  onChange={(event) =>
-                    setCache(event.target.value as 'mouth_jade' | 'altar_item')
-                  }
-                >
-                  <option value="mouth_jade">遗骸所携之物</option>
-                  <option value="altar_item">祭坛上的物件</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                匣子
-                <select
-                  className="border-ink/20 bg-paper border px-2 py-1"
-                  value={casket}
-                  onChange={(event) =>
-                    setCasket(event.target.value as 'leave_shut' | 'open')
-                  }
-                >
-                  <option value="leave_shut">不该打开</option>
-                  <option value="open">该打开</option>
-                </select>
-              </label>
-              <div className="flex gap-2">
+            {view.verdictReady && view.verdict ? (
+              <form
+                className="border-ink/15 space-y-3 border-t pt-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void postJson('/api/inquiry/verdict', {
+                    runId: view.runId,
+                    expectedRevision: view.revision,
+                    answerId: answerId || view.verdict?.answers[0]?.id,
+                    container,
+                  });
+                }}
+              >
+                <p className="text-sm">线索已经对得上，可以下定论。</p>
+                <label className="flex items-center gap-2 text-sm">
+                  {view.verdict.answerLabel}
+                  <select
+                    className="border-ink/20 bg-paper border px-2 py-1"
+                    value={answerId || view.verdict.answers[0]?.id}
+                    onChange={(event) => setAnswerId(event.target.value)}
+                  >
+                    {view.verdict.answers.map((answer) => (
+                      <option key={answer.id} value={answer.id}>
+                        {answer.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  {view.verdict.containerLabel}
+                  <select
+                    className="border-ink/20 bg-paper border px-2 py-1"
+                    value={container}
+                    onChange={(event) =>
+                      setContainer(event.target.value as 'leave_shut' | 'open')
+                    }
+                  >
+                    {view.verdict.containerOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <InkButton type="submit" variant="primary" pending={pending}>
                   提交定论
                 </InkButton>
-                <InkButton
-                  type="button"
-                  variant="outline"
-                  pending={pending}
-                  onClick={() =>
-                    void postJson('/api/inquiry/leave', {
-                      runId: view.runId,
-                      expectedRevision: view.revision,
-                    })
-                  }
-                >
-                  带着现有收获离开
-                </InkButton>
-              </div>
-            </form>
+              </form>
+            ) : null}
+            <div className="border-ink/15 border-t pt-4">
+              <InkButton
+                type="button"
+                variant="outline"
+                pending={pending}
+                onClick={() =>
+                  void postJson('/api/inquiry/leave', {
+                    runId: view.runId,
+                    expectedRevision: view.revision,
+                  })
+                }
+              >
+                带着现有收获离开
+              </InkButton>
+            </div>
           </InkCard>
         )}
       </section>
