@@ -43,7 +43,7 @@
 已实现：
 
 - Express adapter、原生 WsAdapter 与 ESM 服务端构建，显式 `@Inject` 不依赖编译器隐式生成设计类型元数据。
-- Better Auth 原始请求处理器独立于框架，保留 ALTCHA、OTP 首次注册昵称检查和原认证管理路径屏蔽。
+- Better Auth 原始请求处理器独立于框架，保留 ALTCHA 和原认证管理路径屏蔽。注册不再收集昵称；账号 `name` 在创建时按邮箱前缀补齐。
 - 默认要求登录的 AccessGuard，可声明 public、active、admin、account-admin；透传会话续期 Cookie。
 - Zod Pipe、异常 Filter、请求日志、CORS、Origin 校验、BYOK 校验及现有 Redis IP 限流。
 - AsyncLocalStorage保存框架无关的身份和LLM配置，由Nest请求层填充；后台任务无请求上下文时维持服务端路由选择。

@@ -1,5 +1,6 @@
 import { usePwaInstall } from '@app/components/providers/PwaInstallProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import {
 import { formatDateTime } from './utils';
 
 export function GameSettingsTab() {
-  const { mapMode, imageOpacity } = useGameSettings();
+  const { mapMode, imageOpacity, keepCombatAuto } = useGameSettings();
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const pwa = usePwaInstall();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -56,6 +57,23 @@ export function GameSettingsTab() {
 
   return (
     <div className="space-y-6">
+      <SettingsSection>
+        <label className="flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <span className="text-ink block text-sm leading-6">保持自动</span>
+            <span className="text-ink-secondary block text-xs leading-5">
+              战斗中打开自动后，接下来的战斗会接着自动。
+            </span>
+          </span>
+          <InkSwitch
+            checked={keepCombatAuto}
+            onCheckedChange={(checked) =>
+              updateGameSettings({ keepCombatAuto: checked })
+            }
+            aria-label="保持自动"
+          />
+        </label>
+      </SettingsSection>
       <SettingsSection>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <label htmlFor="game-image-opacity" className={settingsLabelClass}>

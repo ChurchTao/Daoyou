@@ -11,6 +11,7 @@ export const WORLD_CHAT_MESSAGE_TYPES = [
   'item_showcase',
   'beast_showcase',
   'combat_v6_replay',
+  'hunt_recruit',
 ] as const;
 export type WorldChatMessageType = (typeof WORLD_CHAT_MESSAGE_TYPES)[number];
 
@@ -34,12 +35,24 @@ export interface WorldChatBeastShowcasePayload {
   text?: string;
 }
 
+export interface WorldChatHuntRecruitPayload {
+  version: 1;
+  teamId: string;
+  text: string;
+  minRealm: string;
+  maxRealm: string;
+  memberCount: number;
+  eventId?: string;
+  targetLabel?: string;
+}
+
 export interface WorldChatPayloadMap {
   hunt_rumor: { text: string; eventId: string; nodeId: string };
   text: WorldChatTextPayload;
   item_showcase: WorldChatItemShowcasePayload;
   beast_showcase: WorldChatBeastShowcasePayload;
   combat_v6_replay: WorldChatCombatV6ReplayPayload;
+  hunt_recruit: WorldChatHuntRecruitPayload;
 }
 
 export type WorldChatPayload = WorldChatPayloadMap[WorldChatMessageType];

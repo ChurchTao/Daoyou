@@ -61,7 +61,7 @@ export function YieldCard({
         text?: string;
         state?: Parameters<typeof consumeResourceChanges>[0];
         error?: string;
-      }>('/api/cultivator/yield', { requestId: pending.requestId })) {
+      }>('/api/stream/cultivator/yield', { requestId: pending.requestId })) {
         if (data.type === 'result' && data.data) {
           pending.complete();
           setYieldResult(() => ({

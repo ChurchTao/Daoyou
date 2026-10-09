@@ -2,14 +2,15 @@ import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
-import type { HuntTeam } from '@daoyou/game-domain/hunts';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import type { HuntLobby } from '@daoyou/contracts/hunts';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
-import { huntMapHref, huntRealmAllowed } from '@daoyou/game-rules/hunts';
-import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
+import type { HuntTeam } from '@daoyou/game-domain/hunts';
+import { huntRealmAllowed } from '@daoyou/game-rules/hunts';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { HuntRewardPreview } from './HuntRewardPreview';
+import { huntTargetLabel, notifyHuntTeamChanged } from './huntTeamView';
 import { huntRequest, useHunts } from './useHunts';
 export function HuntLobbyDrawer({
   eventId,
@@ -25,6 +26,7 @@ export function HuntLobbyDrawer({
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [note, setNote] = useState('');
   const [minRealm, setMinRealm] = useState<RealmType>('炼气');
   const [maxRealm, setMaxRealm] = useState<RealmType>('渡劫');
   const navigate = useNavigate();
@@ -35,17 +37,21 @@ export function HuntLobbyDrawer({
     if (pending) return;
     setPending(true);
     setActionError('');
+    setNote('');
     try {
       const next = await huntRequest<HuntTeam | null>(url, actorId, body);
       setCreating(false);
+      notifyHuntTeamChanged();
       refresh();
       if (enter && next?.battleId)
         navigate(`/game/combat-v6/hunt/${next.battleId}`);
+      return true;
     } catch (cause) {
       setActionError(
         cause instanceof Error ? cause.message : '暂时未能办妥，请稍后再试',
       );
       refresh();
+      return false;
     } finally {
       setPending(false);
     }
@@ -103,17 +109,8 @@ export function HuntLobbyDrawer({
               你已领过此次讨伐的报酬，仍可助道友一战，助战不再获酬。
             </p>
           ) : null}
-          {team && team.event.id !== eventId ? (
-            <p>
-              你已有一支讨伐队伍。
-              <Link
-                className="text-teal underline"
-                to={huntMapHref(team.event)}
-              >
-                查看我的队伍
-              </Link>
-            </p>
-          ) : team ? (
+          {note ? <p className="text-ink-secondary">{note}</p> : null}
+          {team && team.event?.id === eventId ? (
             <>
               <div className="flex items-center justify-between">
                 <span>
@@ -165,17 +162,35 @@ export function HuntLobbyDrawer({
                     {self?.ready ? '取消准备' : '准备'}
                   </InkButton>
                   {team.leaderId === actorId ? (
-                    <InkButton
-                      disabled={
-                        pending ||
-                        !data.open ||
-                        team.members.length < 2 ||
-                        team.members.some((m) => !m.ready)
-                      }
-                      onClick={() => command('start')}
-                    >
-                      {team.status === 'starting' ? '继续出战' : '开始讨伐'}
-                    </InkButton>
+                    <>
+                      <InkButton
+                        disabled={
+                          pending ||
+                          !data.open ||
+                          team.members.length < 2 ||
+                          team.members.some((m) => !m.ready)
+                        }
+                        onClick={() => command('start')}
+                      >
+                        {team.status === 'starting' ? '继续出战' : '开始讨伐'}
+                      </InkButton>
+                      <InkButton
+                        disabled={
+                          pending ||
+                          team.status !== 'assembling' ||
+                          team.members.length >= 4
+                        }
+                        onClick={() =>
+                          void act(`/api/hunts/teams/${team.id}`, {
+                            type: 'recruit',
+                          }).then((ok) => {
+                            if (ok) setNote('已发到世界频道');
+                          })
+                        }
+                      >
+                        召集道友
+                      </InkButton>
+                    </>
                   ) : null}
                   <InkButton
                     disabled={pending || team.status === 'starting'}
@@ -193,7 +208,38 @@ export function HuntLobbyDrawer({
             </>
           ) : data.open ? (
             <>
-              {creating ? (
+              {team ? (
+                <div className="space-y-2">
+                  <p className="leading-7">
+                    你已在队伍中
+                    {team.event
+                      ? `，当前目标是${huntTargetLabel(team.event)}`
+                      : '，尚未选定目标'}
+                    。把目标改到此处后，队伍会出现在下面的名单里。
+                  </p>
+                  {team.leaderId === actorId && team.status === 'assembling' ? (
+                    <InkButton
+                      disabled={pending}
+                      onClick={() =>
+                        void act(`/api/hunts/teams/${team.id}`, {
+                          type: 'target',
+                          eventId,
+                          revision: team.revision,
+                        })
+                      }
+                    >
+                      改为讨伐此处
+                    </InkButton>
+                  ) : (
+                    <p className="text-ink-secondary">
+                      {team.status === 'assembling'
+                        ? '目标由队长更换。'
+                        : '出战中不能更换目标。'}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+              {!team && creating ? (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -248,7 +294,7 @@ export function HuntLobbyDrawer({
                   </InkButton>{' '}
                   <InkButton onClick={() => setCreating(false)}>取消</InkButton>
                 </form>
-              ) : (
+              ) : !team ? (
                 <div className="flex gap-3">
                   <InkButton
                     disabled={pending}
@@ -263,7 +309,7 @@ export function HuntLobbyDrawer({
                     快速匹配
                   </InkButton>
                 </div>
-              )}
+              ) : null}
               <div className="divide-ink/10 divide-y">
                 {data.teams.length ? (
                   data.teams.map((t) => (
@@ -293,21 +339,23 @@ export function HuntLobbyDrawer({
                             .join('、')}
                         </p>
                       </div>
-                      <InkButton
-                        disabled={
-                          pending ||
-                          t.members.length >= 4 ||
-                          !identity ||
-                          !huntRealmAllowed(t, identity.realm)
-                        }
-                        onClick={() =>
-                          void act(`/api/hunts/${eventId}/join`, {
-                            teamId: t.id,
-                          })
-                        }
-                      >
-                        加入
-                      </InkButton>
+                      {team ? null : (
+                        <InkButton
+                          disabled={
+                            pending ||
+                            t.members.length >= 4 ||
+                            !identity ||
+                            !huntRealmAllowed(t, identity.realm)
+                          }
+                          onClick={() =>
+                            void act(`/api/hunts/${eventId}/join`, {
+                              teamId: t.id,
+                            })
+                          }
+                        >
+                          加入
+                        </InkButton>
+                      )}
                     </div>
                   ))
                 ) : (

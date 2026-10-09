@@ -10,6 +10,11 @@ import {
 } from './authState';
 import { authClient } from './client';
 
+function accountNameFromEmail(email: string) {
+  const [prefix] = email.split('@');
+  return prefix?.trim() || '玩家';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const sessionState = authClient.useSession();
   const session = sessionState.data?.session ?? null;
@@ -20,14 +25,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUpWithPassword: AuthContextType['signUpWithPassword'] = async (
-    name,
     email,
     password,
     captchaPayload,
   ) => {
+    const normalizedEmail = normalizeEmail(email);
     const { error } = await authClient.signUp.email({
-      name: name.trim(),
-      email: normalizeEmail(email),
+      name: accountNameFromEmail(normalizedEmail),
+      email: normalizedEmail,
       password,
       callbackURL: getDefaultGameRedirectUrl(),
       fetchOptions: getCaptchaFetchOptions(captchaPayload),
@@ -81,12 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyEmailOtp: AuthContextType['verifyEmailOtp'] = async (
     email,
     otp,
-    name,
   ) => {
     const { error } = await authClient.signIn.emailOtp({
       email: normalizeEmail(email),
       otp: otp.trim(),
-      name: name?.trim() || undefined,
     });
 
     if (!error) {

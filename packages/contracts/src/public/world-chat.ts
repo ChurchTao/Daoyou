@@ -13,6 +13,7 @@ export { WORLD_CHAT_MESSAGE_TYPES } from '../world-chat-messages.js';
 export type {
   WorldChatBeastShowcasePayload,
   WorldChatChannel,
+  WorldChatHuntRecruitPayload,
   WorldChatCombatV6ReplayPayload,
   WorldChatItemShowcasePayload,
   WorldChatMessageChannel,

@@ -13,13 +13,36 @@ import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { BeastTransferSchema } from '../beasts/trade.js';
 
 
-export const AuctionSnapshotSchema = z.discriminatedUnion('version', [
-  z.strictObject({ version: z.literal('inventory_v1'), item: ItemGrantSchema }),
-  z.strictObject({
-    version: z.literal('beast_v1'),
-    beast: BeastTransferSchema,
-  }),
-]);
+/** 单次上架件数以该物品的背包堆叠上限为准，不另设固定件数。 */
+export function auctionListingStackLimit(definitionId: string): number {
+  return itemDefinition(definitionId).stackLimit;
+}
+
+const AuctionInventoryGrantSchema = ItemGrantSchema.extend({
+  quantity: z.number().int().positive().max(2_147_483_647),
+});
+
+export const AuctionSnapshotSchema = z
+  .discriminatedUnion('version', [
+    z.strictObject({
+      version: z.literal('inventory_v1'),
+      item: AuctionInventoryGrantSchema,
+    }),
+    z.strictObject({
+      version: z.literal('beast_v1'),
+      beast: BeastTransferSchema,
+    }),
+  ])
+  .superRefine((snapshot, ctx) => {
+    if (snapshot.version !== 'inventory_v1') return;
+    const definition = findItemDefinition(snapshot.item.definitionId);
+    if (!definition) {
+      ctx.addIssue({ code: 'custom', message: '未知物品定义' });
+      return;
+    }
+    if (snapshot.item.quantity > definition.stackLimit)
+      ctx.addIssue({ code: 'custom', message: '超过堆叠上限' });
+  });
 
 
 

@@ -28,15 +28,11 @@ export default function SignupPasswordRoute() {
     setCaptchaPayload,
   } = useCaptchaField();
 
-  const [displayName, setDisplayName] = useState(
-    searchParams.get('name') ?? '',
-  );
   const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
-    displayName?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -44,19 +40,13 @@ export default function SignupPasswordRoute() {
 
   const handleSubmit = async () => {
     const nextErrors = {
-      displayName: validateRequiredField(displayName, '请输入昵称'),
       email: validateEmailField(email),
       password: validateRequiredField(password, '请输入密码'),
       confirmPassword: validatePasswordConfirmation(password, confirmPassword),
     };
     setErrors(nextErrors);
 
-    if (
-      nextErrors.displayName ||
-      nextErrors.email ||
-      nextErrors.password ||
-      nextErrors.confirmPassword
-    ) {
+    if (nextErrors.email || nextErrors.password || nextErrors.confirmPassword) {
       return;
     }
 
@@ -69,7 +59,6 @@ export default function SignupPasswordRoute() {
 
     try {
       const { error } = await signUpWithPassword(
-        displayName,
         email,
         password,
         verifiedCaptchaToken || undefined,
@@ -98,14 +87,13 @@ export default function SignupPasswordRoute() {
   return (
     <AuthPageShell
       title="【密码注册】"
-      lead="使用邮箱、昵称和密码创建账号，注册后需验证邮箱。"
+      lead="使用邮箱和密码创建账号，注册后需验证邮箱。"
       backHref="/signup"
       footer={
         <div className="flex flex-wrap items-center justify-center gap-2">
           <InkButton
             href={buildEmailOtpTarget('/login/email', {
               email,
-              displayName,
               source: 'signup',
             })}
             variant="ghost"
@@ -125,17 +113,6 @@ export default function SignupPasswordRoute() {
           void handleSubmit();
         }}
       >
-        <InkInput
-          label="昵称"
-          value={displayName}
-          onChange={(value) => {
-            setDisplayName(value);
-            setErrors((current) => ({ ...current, displayName: undefined }));
-          }}
-          placeholder="例：青岚"
-          error={errors.displayName}
-          disabled={loading}
-        />
         <InkInput
           label="邮箱"
           type="email"

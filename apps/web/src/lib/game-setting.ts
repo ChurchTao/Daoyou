@@ -1,13 +1,22 @@
 import { useSyncExternalStore } from 'react';
 
-/** Browser-wide presentation preferences. Never store credentials or game state here. */
+/** Browser-local preferences. Never store credentials or battle progress here. */
 export interface GameSettings {
   mapMode: 'atlas' | 'text';
   imageOpacity: number;
+  /** Remember the in-battle auto toggle for later battles in this browser. */
+  keepCombatAuto: boolean;
+  /** Last in-battle auto choice. Honored only while `keepCombatAuto` is on. */
+  combatAutoHeld: boolean;
 }
 
 export const GAME_SETTING_STORAGE_KEY = 'game-setting';
-const defaults: Readonly<GameSettings> = { mapMode: 'atlas', imageOpacity: 1 };
+const defaults: Readonly<GameSettings> = {
+  mapMode: 'atlas',
+  imageOpacity: 1,
+  keepCombatAuto: false,
+  combatAutoHeld: false,
+};
 let snapshot = defaults;
 let initialized = false;
 let memoryOnly = false;
@@ -25,11 +34,14 @@ function readSettings(): GameSettings {
       localStorage.getItem(GAME_SETTING_STORAGE_KEY) ?? 'null',
     );
     if (stored?.version === 1) {
+      const keepCombatAuto = stored.keepCombatAuto === true;
       return {
         mapMode: ['atlas', 'text'].includes(stored.mapMode)
           ? stored.mapMode
           : defaults.mapMode,
         imageOpacity: normalizeImageOpacity(stored.imageOpacity),
+        keepCombatAuto,
+        combatAutoHeld: keepCombatAuto && stored.combatAutoHeld === true,
       };
     }
   } catch {
@@ -38,12 +50,17 @@ function readSettings(): GameSettings {
   return defaults;
 }
 
+function sameSettings(left: GameSettings, right: GameSettings) {
+  return (
+    left.mapMode === right.mapMode &&
+    left.imageOpacity === right.imageOpacity &&
+    left.keepCombatAuto === right.keepCombatAuto &&
+    left.combatAutoHeld === right.combatAutoHeld
+  );
+}
+
 function publish(next: GameSettings) {
-  if (
-    snapshot.mapMode === next.mapMode &&
-    snapshot.imageOpacity === next.imageOpacity
-  )
-    return;
+  if (sameSettings(snapshot, next)) return;
   snapshot = next;
   listeners.forEach((listener) => listener());
 }
@@ -78,6 +95,10 @@ function subscribe(listener: () => void) {
 export function updateGameSettings(patch: Partial<GameSettings>) {
   const next = { ...getSnapshot(), ...patch };
   next.imageOpacity = normalizeImageOpacity(next.imageOpacity);
+  next.keepCombatAuto = next.keepCombatAuto === true;
+  // The held choice is meaningless until the player asks to keep it.
+  next.combatAutoHeld = next.keepCombatAuto && next.combatAutoHeld === true;
+  if (sameSettings(snapshot, next)) return;
   try {
     localStorage.setItem(
       GAME_SETTING_STORAGE_KEY,

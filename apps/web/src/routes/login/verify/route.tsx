@@ -1,10 +1,9 @@
 import {
   AuthPageShell,
   buildEmailOtpTarget,
-  getEmailOtpVerifyFieldErrors,
-  isEmailOtpNameRequiredError,
   toErrorMessage,
   useAuthFeedback,
+  validateRequiredField,
 } from '@app/components/auth';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
@@ -22,10 +21,6 @@ export default function LoginVerifyRoute() {
   const location = useLocation();
   const email = searchParams.get('email');
   const source = searchParams.get('source') === 'signup' ? 'signup' : 'login';
-  const presetName =
-    (location.state as { displayName?: string } | null)?.displayName ??
-    searchParams.get('name') ??
-    '';
 
   if (!email) {
     return (
@@ -37,53 +32,40 @@ export default function LoginVerifyRoute() {
     );
   }
 
-  return (
-    <LoginVerifyPage email={email} presetName={presetName} source={source} />
-  );
+  return <LoginVerifyPage email={email} source={source} />;
 }
 
 function LoginVerifyPage({
   email,
-  presetName,
   source,
 }: {
   email: string;
-  presetName: string;
   source: 'login' | 'signup';
 }) {
   const navigate = useNavigate();
   const { verifyEmailOtp } = useAuth();
   const { showErrorDialog } = useAuthFeedback();
-  const [displayName, setDisplayName] = useState(presetName);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [displayNameRequired, setDisplayNameRequired] = useState(false);
-  const [errors, setErrors] = useState<{ displayName?: string; otp?: string }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{ otp?: string }>({});
 
   const editAddressHref = buildEmailOtpTarget('/login/email', {
     email,
-    displayName,
     source,
   });
 
   const handleSubmit = async () => {
-    const nextErrors = getEmailOtpVerifyFieldErrors({
-      otp,
-      displayName,
-      displayNameRequired,
-    });
-    setErrors(nextErrors);
+    const otpError = validateRequiredField(otp, '请输入验证码');
+    setErrors({ otp: otpError });
 
-    if (nextErrors.otp || nextErrors.displayName) {
+    if (otpError) {
       return;
     }
 
     setLoading(true);
 
     try {
-      const { error } = await verifyEmailOtp(email, otp, displayName);
+      const { error } = await verifyEmailOtp(email, otp);
 
       if (error) {
         throw error;
@@ -91,19 +73,8 @@ function LoginVerifyPage({
 
       navigate('/game', { replace: true });
     } catch (error) {
-      const authError = error as AuthActionError;
-
-      if (isEmailOtpNameRequiredError(authError)) {
-        setDisplayNameRequired(true);
-        setErrors((current) => ({
-          ...current,
-          displayName: '请输入昵称',
-        }));
-        return;
-      }
-
       showErrorDialog(
-        toErrorMessage(authError, '验证码错误或已失效'),
+        toErrorMessage(error as AuthActionError, '验证码错误或已失效'),
         '验证失败',
       );
     } finally {
@@ -127,7 +98,6 @@ function LoginVerifyPage({
               source === 'signup'
                 ? buildEmailOtpTarget('/signup/password', {
                     email,
-                    displayName,
                   })
                 : buildEmailOtpTarget('/login/password', { email })
             }
@@ -154,22 +124,6 @@ function LoginVerifyPage({
           }}
           placeholder="请输入 6 位验证码"
           error={errors.otp}
-          disabled={loading}
-        />
-        <InkInput
-          label={displayNameRequired ? '昵称' : '昵称（可选）'}
-          value={displayName}
-          onChange={(value) => {
-            setDisplayName(value);
-            setErrors((current) => ({ ...current, displayName: undefined }));
-          }}
-          placeholder="例：青岚"
-          hint={
-            displayNameRequired
-              ? '首次注册需要填写昵称，补全后可直接重试。'
-              : '已有账号可留空，首次注册时再填写。'
-          }
-          error={errors.displayName}
           disabled={loading}
         />
         <InkButton

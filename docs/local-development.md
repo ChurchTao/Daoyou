@@ -1,6 +1,6 @@
 # 本地开发
 
-需要 pnpm 10.34.6、Node.js 24.18+ 和 Docker。独立运行维护命令前先执行 `pnpm exec turbo run build --filter="./packages/*"`；根 dev、build、typecheck、test 会自动按依赖图安排库构建。pnpm管理workspace依赖，Turborepo编排任务，Node运行Nest API与Vite。先执行 `pnpm install --frozen-lockfile`。首次将 `env/local.example.env` 复制为 `env/local.env`；已有本地配置保留。模板只含专用本地容器凭据，实际文件被Git忽略。
+需要 pnpm 12.10.1、Node.js 24.18+ 和 Docker。独立运行维护命令前先执行 `pnpm exec turbo run build --filter="./packages/*"`；根 dev、build、typecheck、test 会自动按依赖图安排库构建。pnpm管理workspace依赖，Turborepo编排任务，Node运行Nest API与Vite。先执行 `pnpm install --frozen-lockfile`。首次将 `env/local.example.env` 复制为 `env/local.env`；已有本地配置保留。模板只含专用本地容器凭据，实际文件被Git忽略。
 
 启动本地服务：
 

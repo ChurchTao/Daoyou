@@ -33,7 +33,7 @@ export const AuctionListSchema = z
     itemId: z.uuid(),
     revision: z.number().int().nonnegative(),
     price: z.number().int().min(1).max(AUCTION_MAX_UNIT_PRICE),
-    quantity: z.number().int().min(1).max(99),
+    quantity: z.number().int().min(1).max(2_147_483_647),
     visibility: z.enum(['public', 'private']).default('public'),
     targetCultivatorId: z.uuid().optional(),
   })

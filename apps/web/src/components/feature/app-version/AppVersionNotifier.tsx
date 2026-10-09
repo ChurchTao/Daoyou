@@ -5,6 +5,7 @@ import {
   isNewBuildAvailable,
   reloadIntoLatestVersion,
 } from '@app/lib/appVersion';
+import { checkForServiceWorkerUpdate } from '@app/lib/serviceWorker';
 import { useEffect, useRef } from 'react';
 
 const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -29,6 +30,7 @@ export function AppVersionNotifier() {
 
       checkInFlightRef.current = true;
       try {
+        checkForServiceWorkerUpdate();
         const latestBuildId = await fetchLatestBuildId();
         if (
           !active ||

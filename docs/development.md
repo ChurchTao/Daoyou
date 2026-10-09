@@ -37,7 +37,7 @@
 
 ## 环境要求
 
-- `pnpm 10.34.6`（workspace依赖管理；Turborepo编排任务）
+- `pnpm 12.10.1`（workspace依赖管理；Turborepo编排任务）
 - `Node.js 24.18+`（Nest运行时）
 - `PostgreSQL`
 - `Redis`：在线对局、邀请、截止时间、恢复索引和 API 部分能力的权威存储

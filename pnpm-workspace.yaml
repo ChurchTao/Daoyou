@@ -6,8 +6,14 @@ injectWorkspacePackages: true
 autoInstallPeers: false
 resolvePeersFromWorkspaceRoot: false
 dedupePeerDependents: false
-onlyBuiltDependencies:
-  - esbuild
+allowBuilds:
+  esbuild: true
+# pnpm 11+ fails installation when a dependency build is not listed. Keep the
+# previous behavior: only esbuild runs its scripts.
+strictDepBuilds: false
+# A version mismatch must fail immediately. The default download-and-switch
+# path leaves a directory lock behind if that process is interrupted.
+pmOnFail: error
 
 syncInjectedDepsAfterScripts:
   - build

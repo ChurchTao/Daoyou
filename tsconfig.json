@@ -11,6 +11,9 @@
       "path": "./apps/web/tsconfig.json"
     },
     {
+      "path": "./apps/web/tsconfig.sw.json"
+    },
+    {
       "path": "./apps/api/tsconfig.json"
     },
     {

@@ -16,7 +16,7 @@ import {
 } from '@daoyou/game-rules/beasts/presentation';
 import { getAtlasRegion } from '@daoyou/game-rules/world/atlas';
 import { useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { BeastRosterScroll } from '../BeastRosterScroll';
 
 const entries = listBeastCodex();
@@ -42,8 +42,9 @@ function habitatPlace(habitat: BeastCodexHabitat) {
 
 export default function BeastCodexPage() {
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
   const [realm, setRealm] = useState('all');
+  const [speciesId, setSpeciesId] = useState<string | null>(null);
+  const [mutant, setMutant] = useState(false);
   const visible = useMemo(
     () =>
       realm === 'all'
@@ -52,20 +53,10 @@ export default function BeastCodexPage() {
     [realm],
   );
   const selected =
-    visible.find((entry) => entry.id === params.get('species')) ?? visible[0];
-  const mutant = params.get('form') === 'mutant';
+    visible.find((entry) => entry.id === speciesId) ?? visible[0];
 
   function choose(id: string) {
-    const next = new URLSearchParams(params);
-    next.set('species', id);
-    setParams(next, { replace: true });
-  }
-
-  function setMutant(nextMutant: boolean) {
-    const next = new URLSearchParams(params);
-    if (nextMutant) next.set('form', 'mutant');
-    else next.delete('form');
-    setParams(next, { replace: true });
+    setSpeciesId(id);
   }
 
   return (
@@ -78,8 +69,7 @@ export default function BeastCodexPage() {
             value === 'all'
               ? entries
               : entries.filter((entry) => entry.realm === value);
-          const current = params.get('species');
-          if (!next.some((entry) => entry.id === current) && next[0])
+          if (!next.some((entry) => entry.id === speciesId) && next[0])
             choose(next[0].id);
         }}
         items={[
@@ -128,7 +118,7 @@ export default function BeastCodexPage() {
                 `/game/wild?nodeId=${encodeURIComponent(habitat.nodeId)}`,
                 {
                   state: {
-                    codexReturnTo: `/game/beasts/codex?species=${encodeURIComponent(selected.id)}${mutant ? '&form=mutant' : ''}`,
+                    codexReturnTo: '/game/beasts/codex',
                   },
                 },
               )

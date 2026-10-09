@@ -1,4 +1,4 @@
-import { InkButton, InkDetailDrawer } from '@app/components/ui';
+import { InkButton, InkDetailDrawer, InkSwitch } from '@app/components/ui';
 import type { AlchemyMode } from '@daoyou/game-domain/consumables';
 import { useRef, useState } from 'react';
 import { AlchemyBag } from '../AlchemyBag';
@@ -63,24 +63,16 @@ export function FurnaceWorkspace({
             >
               随心炼制
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-label="丹方炼制"
-              aria-checked={session.mode === 'formula'}
+            <InkSwitch
+              checked={session.mode === 'formula'}
               disabled={locked}
-              onClick={() => {
-                const mode =
-                  session.mode === 'formula' ? 'improvised' : 'formula';
+              aria-label="丹方炼制"
+              onCheckedChange={(checked) => {
+                const mode = checked ? 'formula' : 'improvised';
                 if (onModeChange) onModeChange(mode);
                 else session.setMode(mode);
               }}
-              className="border-ink/20 bg-ink/5 aria-checked:bg-crimson/10 relative h-6 w-11 rounded-full border disabled:opacity-50"
-            >
-              <span
-                className={`bg-ink-secondary absolute top-1 h-3.5 w-3.5 rounded-full transition-[left] ${session.mode === 'formula' ? 'left-6' : 'left-1'}`}
-              />
-            </button>
+            />
             <span
               className={
                 session.mode === 'formula' ? 'text-ink' : 'text-ink-secondary'

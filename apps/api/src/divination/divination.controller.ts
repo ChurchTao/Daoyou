@@ -32,7 +32,6 @@ import { DivinationService } from './divination.service.js';
 export class DivinationController {
   constructor(
     @Inject(DivinationService) private readonly divination: DivinationService,
-    @Inject(SseResponseService) private readonly sse: SseResponseService,
   ) {}
 
   @Get()
@@ -49,6 +48,17 @@ export class DivinationController {
   ) {
     return this.divination.draw(actor, body.direction);
   }
+}
+
+// `/api/divination/interpret` stays until the Pages build that calls `/api/stream` is deployed.
+@Controller(['api/divination', 'api/stream/divination'])
+@Access('active')
+@UseFilters(DivinationExceptionFilter)
+export class DivinationStreamController {
+  constructor(
+    @Inject(DivinationService) private readonly divination: DivinationService,
+    @Inject(SseResponseService) private readonly sse: SseResponseService,
+  ) {}
 
   @Sse('interpret', { method: RequestMethod.POST })
   @HttpCode(200)

@@ -78,7 +78,8 @@ const YieldErrors = apiErrorFilter((error) => {
   );
 });
 
-@Controller('api/cultivator')
+// `/api/cultivator/*` stays until the Pages build that calls `/api/stream` is deployed.
+@Controller(['api/cultivator', 'api/stream/cultivator'])
 @Access('active')
 export class CultivationController {
   constructor(

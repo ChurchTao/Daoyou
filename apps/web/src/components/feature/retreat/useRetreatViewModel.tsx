@@ -290,7 +290,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         window.sessionStorage.setItem(storageKey, requestId);
         try {
           await consumeRetreatEvents(
-            postEvents<RetreatStreamEvent>('/api/cultivator/retreat', {
+            postEvents<RetreatStreamEvent>('/api/stream/cultivator/retreat', {
               ...body,
               requestId,
             }),
