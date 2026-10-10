@@ -195,7 +195,7 @@ export default function SponsorshipAdminPage() {
                   {SPONSORSHIP_TIER_META[tier].name}
                 </span>
                 <input
-                  className="mt-2 w-full border p-2"
+                  className="mt-2 w-full border p-2 text-base"
                   value={config.tiers[tier].planId}
                   placeholder="爱发电 plan_id"
                   onChange={(event) =>
@@ -215,7 +215,7 @@ export default function SponsorshipAdminPage() {
                   最低金额（分）
                 </span>
                 <input
-                  className="mt-1 w-full border p-2"
+                  className="mt-1 w-full border p-2 text-base"
                   type="number"
                   min={1}
                   value={config.tiers[tier].minimumAmountFen}
@@ -317,7 +317,7 @@ export default function SponsorshipAdminPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-xl">订单</h3>
           <select
-            className="border p-2 text-sm"
+            className="border p-2 text-base"
             value={orderFilter}
             onChange={(event) => {
               setOrderFilter(event.target.value as OrderFilter);

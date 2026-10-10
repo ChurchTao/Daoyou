@@ -129,6 +129,7 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
           aria-label="宝库物品类型"
           value={kind}
           disabled={pending}
+          className="border-ink/20 shrink-0 border-b bg-transparent p-2 text-base"
           onChange={(e) => {
             setKind(e.target.value as typeof kind);
             setPage(0);
@@ -143,7 +144,7 @@ function VaultList({ onChanged }: { onChanged?: () => void }) {
           placeholder="搜索宝库物品"
           value={search}
           disabled={pending}
-          className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2"
+          className="border-ink/20 min-w-0 flex-1 border-b bg-transparent p-2 text-base"
           onChange={(e) => {
             setSearch(e.target.value);
             setPage(0);
