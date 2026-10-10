@@ -6,10 +6,21 @@ import {
 import { usePwaInstall } from '@app/components/providers/PwaInstallProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
+import { cn } from '@app/lib/cn';
 import type { PwaInstallOutcome, PwaInstallStatus } from '@app/lib/pwaInstall';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { InstallGuideStage } from './InstallGuideStage';
 
 type InstallPlatform = 'ios' | 'android' | 'desktop';
+
+const FRAME_MS = 2600;
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
 
 const PLATFORMS: { id: InstallPlatform; label: string }[] = [
   { id: 'ios', label: '苹果手机' },
@@ -117,9 +128,19 @@ export default function DownloadGamePage() {
   );
   const [embeddedBrowser] = useState(isEmbeddedBrowser);
   const [installMessage, setInstallMessage] = useState<string | null>(null);
+  const [frame, setFrame] = useState(0);
+  const [playing, setPlaying] = useState(() => !prefersReducedMotion());
   const steps = STEPS[platform];
   const platformLabel =
     PLATFORMS.find((item) => item.id === platform)?.label ?? '当前设备';
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    const timer = window.setInterval(() => {
+      setFrame((current) => (current + 1) % steps.length);
+    }, FRAME_MS);
+    return () => window.clearInterval(timer);
+  }, [playing, steps.length]);
 
   const handleInstall = async () => {
     const outcome = await pwa.install();
@@ -128,7 +149,7 @@ export default function DownloadGamePage() {
 
   return (
     <GameSceneFrame
-      variant="lite"
+      variant="workflow"
       title="下载游戏"
       aside={
         <GameSceneAsideSection title="进入之后" className="text-sm leading-7">
@@ -167,7 +188,11 @@ export default function DownloadGamePage() {
             <InkChoiceButton
               key={item.id}
               selected={platform === item.id}
-              onClick={() => setPlatform(item.id)}
+              onClick={() => {
+                setPlatform(item.id);
+                setFrame(0);
+                setPlaying(!prefersReducedMotion());
+              }}
               className="py-1.5"
             >
               {item.label}
@@ -175,14 +200,55 @@ export default function DownloadGamePage() {
           ))}
         </div>
 
-        <ol
-          aria-label={`${platformLabel}安装步骤`}
-          className="text-ink list-decimal space-y-3 pl-5 text-sm leading-7"
-        >
-          {steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
+        <div className="space-y-4">
+          <div className="mx-auto w-full max-w-xs">
+            <InstallGuideStage
+              platform={platform}
+              frame={frame}
+              playing={playing}
+            />
+            <div className="mt-2 flex items-center justify-center gap-3">
+              <div className="flex items-center gap-1.5" aria-hidden="true">
+                {steps.map((step, index) => (
+                  <span
+                    key={step}
+                    className={cn(
+                      'h-1.5 rounded-full',
+                      frame === index ? 'bg-crimson w-4' : 'bg-ink/20 w-1.5',
+                    )}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className="text-ink-secondary hover:text-crimson text-sm leading-6"
+                onClick={() => setPlaying((current) => !current)}
+              >
+                {playing ? '暂停' : '播放'}
+              </button>
+            </div>
+          </div>
+          <ol
+            aria-label={`${platformLabel}安装步骤`}
+            className="text-ink list-decimal space-y-3 pl-5 text-sm leading-7"
+          >
+            {steps.map((step, index) => (
+              <li key={step} className={frame === index ? 'text-crimson' : ''}>
+                <button
+                  type="button"
+                  className="block w-full cursor-pointer text-left text-inherit"
+                  aria-current={frame === index ? 'step' : undefined}
+                  onClick={() => {
+                    setFrame(index);
+                    setPlaying(false);
+                  }}
+                >
+                  {step}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
 
         {platform === 'desktop' ? (
           <p className="text-ink-secondary text-sm leading-7">
