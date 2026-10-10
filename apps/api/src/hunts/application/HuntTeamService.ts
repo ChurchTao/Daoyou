@@ -297,7 +297,7 @@ export async function joinHuntTeam(
       throw new ArenaV6Error('这支队伍已满、已出战，或你的境界不在招募范围内');
     const next = {
       ...team,
-      members: [...team.members.map((m) => ({ ...m, ready: false })), self],
+      members: [...team.members, self],
       revision: team.revision + 1,
     };
     await saveTeam(next, team, lease);
@@ -328,7 +328,7 @@ export async function joinHuntTeamById(actor: HuntActor, teamId: string) {
       throw new ArenaV6Error('你的境界不在这支队伍的招募范围内');
     const next = {
       ...team,
-      members: [...team.members.map((m) => ({ ...m, ready: false })), self],
+      members: [...team.members, self],
       revision: team.revision + 1,
     };
     await saveTeam(next, team, lease);
