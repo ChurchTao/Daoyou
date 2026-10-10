@@ -33,8 +33,11 @@ import { journalOperationKey } from '@server/lib/repositories/playerJournalRepos
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
-const teamKey = (id: string) => `hunt:v1:team:${id}`;
-const memberKey = (id: string) => `hunt:v1:member:${id}`;
+export const huntTeamKey = (id: string) => `hunt:v1:team:${id}`;
+export const huntMemberKey = (id: string) => `hunt:v1:member:${id}`;
+export const huntTeamChatKey = (id: string) => `hunt:v1:chat:${id}`;
+const teamKey = huntTeamKey;
+const memberKey = huntMemberKey;
 const eventTeamsKey = (id: string) => `hunt:v1:teams:${id}`;
 const battleStore = new CombatV6ArenaStore();
 const lock = <T>(task: (lease: RedisLeaseContext) => Promise<T>) =>
@@ -138,6 +141,7 @@ if prevEvent ~= '' then redis.call('SREM', 'hunt:v1:teams:' .. prevEvent, next.i
 if nextEvent ~= '' and nextEvent ~= prevEvent then redis.call('SREM', 'hunt:v1:teams:' .. nextEvent, next.id) end
 if #next.members == 0 then
  redis.call('DEL', KEYS[1])
+ redis.call('DEL', ARGV[7])
 else
  redis.call('SET', KEYS[1], ARGV[2])
  if nextEvent ~= '' then
@@ -155,6 +159,7 @@ return 1`,
     previous?.event?.id ?? '',
     team.event?.id ?? '',
     String(team.event?.expiresAt ?? 0),
+    huntTeamChatKey(team.id),
   );
   if (Number(result) !== 1) throw new ArenaV6Error('队伍有变，请重新查看');
 }

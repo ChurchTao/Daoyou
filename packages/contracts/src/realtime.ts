@@ -1,6 +1,6 @@
-import type { ResourceChange } from './resources/index.js';
-import type { ResourceScope } from './resources/index.js';
 import type { ArenaRoomStatusV1, ArenaRoomV1 } from './arena.js';
+import type { HuntTeamChatMessage } from './hunts.js';
+import type { ResourceChange, ResourceScope } from './resources/index.js';
 import type { WorldChatMessageDTO } from './world-chat-messages.js';
 
 export const REALTIME_CHANNELS = [
@@ -43,6 +43,10 @@ export type RealtimeServerEvent =
   | {
       type: 'arena-room.changed';
       payload: ArenaRoomChangedPayloadV1;
+    }
+  | {
+      type: 'hunt-team.chat';
+      payload: HuntTeamChatMessage;
     }
   | {
       type: 'ping';
