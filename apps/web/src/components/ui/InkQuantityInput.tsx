@@ -27,14 +27,14 @@ export function InkQuantityInput({
     <div
       role="group"
       aria-label={`${label}，最多${max}`}
-      className="border-ink/20 inline-flex h-8 max-w-full items-center border text-sm"
+      className="border-ink/20 inline-flex h-9 max-w-full items-center border text-base"
     >
       <button
         type="button"
         aria-label={`减少${label}`}
         disabled={unavailable || (valid && quantity <= min)}
         onClick={() => step(-1)}
-        className="disabled:text-ink-secondary/50 h-full w-8 shrink-0 cursor-pointer disabled:cursor-default"
+        className="disabled:text-ink-secondary/50 h-full w-9 shrink-0 cursor-pointer disabled:cursor-default"
       >
         −
       </button>
@@ -56,7 +56,7 @@ export function InkQuantityInput({
         aria-label={`增加${label}`}
         disabled={unavailable || (valid && quantity >= max)}
         onClick={() => step(1)}
-        className="disabled:text-ink-secondary/50 h-full w-8 shrink-0 cursor-pointer disabled:cursor-default"
+        className="disabled:text-ink-secondary/50 h-full w-9 shrink-0 cursor-pointer disabled:cursor-default"
       >
         +
       </button>

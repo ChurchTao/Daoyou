@@ -774,7 +774,7 @@ export default function MailPage() {
             readOnly
             value={manualShareLink ?? ''}
             onFocus={(event) => event.currentTarget.select()}
-            className="border-ink/20 bg-paper-2 text-ink w-full border border-dashed px-3 py-2 font-mono text-sm"
+            className="border-ink/20 bg-paper-2 text-ink w-full border border-dashed px-3 py-2.5 font-mono text-base"
             aria-label="好友邀请链接"
           />
           <div className="flex justify-end">
