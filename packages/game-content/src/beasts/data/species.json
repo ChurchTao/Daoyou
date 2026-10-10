@@ -43,6 +43,7 @@
         ],
         "candidates": [
           "beast.wisdom",
+          "beast.spell-mastery",
           "beast.meditation"
         ]
       }
@@ -128,6 +129,7 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-combo",
           "beast.stealth",
           "beast.sneak-attack",
           "beast.agility"
@@ -171,6 +173,8 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.agility",
+          "beast.critical",
           "beast.perception",
           "beast.parry",
           "beast.regeneration"
@@ -257,10 +261,11 @@
       },
       "birthSkills": {
         "core": [
-          "beast.poison"
+          "beast.advanced-poison"
         ],
         "candidates": [
           "beast.sneak-attack",
+          "beast.counter",
           "beast.defense"
         ]
       }
@@ -302,6 +307,7 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-critical",
           "beast.counter",
           "beast.regeneration",
           "beast.strength",
@@ -346,6 +352,7 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-spell-mastery",
           "beast.miracle",
           "beast.water-attack",
           "beast.wisdom",
@@ -393,7 +400,7 @@
         ],
         "candidates": [
           "beast.sneak-attack",
-          "beast.agility",
+          "beast.advanced-agility",
           "beast.perception"
         ]
       }
