@@ -151,6 +151,11 @@
                       "minimum": 0,
                       "maximum": 1
                     },
+                    "sourceInitialHpRatioBelow": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
                     "sourceStanding": {
                       "type": "boolean"
                     },
@@ -331,6 +336,11 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "sourceInitialHpRatioBelow": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
                               "sourceStanding": {
                                 "type": "boolean"
                               },
@@ -491,6 +501,11 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "sourceInitialHpRatioBelow": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
                               "sourceStanding": {
                                 "type": "boolean"
                               },
@@ -646,6 +661,11 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "sourceInitialHpRatioBelow": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
                               "sourceStanding": {
                                 "type": "boolean"
                               },
@@ -774,6 +794,11 @@
                                 "type": "boolean"
                               },
                               "sourceInitialHpRatioMin": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "sourceInitialHpRatioBelow": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1
@@ -916,6 +941,11 @@
                                 "type": "boolean"
                               },
                               "sourceInitialHpRatioMin": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "sourceInitialHpRatioBelow": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1
@@ -1090,6 +1120,11 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "sourceInitialHpRatioBelow": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
                               "sourceStanding": {
                                 "type": "boolean"
                               },
@@ -1228,6 +1263,11 @@
                                 "type": "boolean"
                               },
                               "sourceInitialHpRatioMin": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "sourceInitialHpRatioBelow": {
                                 "type": "number",
                                 "minimum": 0,
                                 "maximum": 1
@@ -1390,6 +1430,11 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "sourceInitialHpRatioBelow": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
                               "sourceStanding": {
                                 "type": "boolean"
                               },
@@ -1526,6 +1571,11 @@
                       "type": "boolean"
                     },
                     "sourceInitialHpRatioMin": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "sourceInitialHpRatioBelow": {
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
@@ -2286,6 +2336,11 @@
                                         "minimum": 0,
                                         "maximum": 1
                                       },
+                                      "sourceInitialHpRatioBelow": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
                                       "sourceStanding": {
                                         "type": "boolean"
                                       },
@@ -2446,6 +2501,11 @@
                                         "minimum": 0,
                                         "maximum": 1
                                       },
+                                      "sourceInitialHpRatioBelow": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
                                       "sourceStanding": {
                                         "type": "boolean"
                                       },
@@ -2601,6 +2661,11 @@
                                         "minimum": 0,
                                         "maximum": 1
                                       },
+                                      "sourceInitialHpRatioBelow": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
                                       "sourceStanding": {
                                         "type": "boolean"
                                       },
@@ -2729,6 +2794,11 @@
                                         "type": "boolean"
                                       },
                                       "sourceInitialHpRatioMin": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "sourceInitialHpRatioBelow": {
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1
@@ -2871,6 +2941,11 @@
                                         "type": "boolean"
                                       },
                                       "sourceInitialHpRatioMin": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "sourceInitialHpRatioBelow": {
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1
@@ -3045,6 +3120,11 @@
                                         "minimum": 0,
                                         "maximum": 1
                                       },
+                                      "sourceInitialHpRatioBelow": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
                                       "sourceStanding": {
                                         "type": "boolean"
                                       },
@@ -3183,6 +3263,11 @@
                                         "type": "boolean"
                                       },
                                       "sourceInitialHpRatioMin": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "sourceInitialHpRatioBelow": {
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1
@@ -3341,6 +3426,11 @@
                                         "type": "boolean"
                                       },
                                       "sourceInitialHpRatioMin": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "sourceInitialHpRatioBelow": {
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1

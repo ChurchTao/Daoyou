@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "passives": [
     {
       "id": "lingxiao.passive.zhanchen.n1_1",
@@ -381,18 +381,16 @@
     {
       "id": "lingxiao.passive.zhanchen.n6_2",
       "name": "历战",
-      "description": "与玩家战斗时，临渊气血条件改为不低于10%；仍消耗气血且复起当回合不可用。",
+      "description": "施展时当前气血低于50%时，临渊伤害提高10%；仍消耗气血且复起当回合不可用。",
       "modifiers": [
         {
           "when": {
             "skillIds": [
               "lingxiao.skill.formation"
             ],
-            "pvp": true
+            "sourceInitialHpRatioBelow": 0.5
           },
-          "hpRequirement": {
-            "min": 0.1
-          }
+          "damageBonus": 0.1
         }
       ],
       "hooks": []
@@ -1104,7 +1102,7 @@
           "name": "历战",
           "layer": 6,
           "slot": 2,
-          "description": "与玩家战斗时，临渊气血条件改为不低于10%；仍消耗气血且复起当回合不可用。",
+          "description": "施展时当前气血低于50%时，临渊伤害提高10%；仍消耗气血且复起当回合不可用。",
           "passives": [
             "lingxiao.passive.zhanchen.n6_2"
           ]

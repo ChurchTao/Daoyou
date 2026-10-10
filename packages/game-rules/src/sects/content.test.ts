@@ -135,7 +135,7 @@ describe("红尘剑宗 v6 内容与编译", () => {
     })
     expect(byId.get(LINGXIAO_SKILL_ID.Formation)).toMatchObject({
       costHp: "maxHp * 0.1",
-      requireHpBelowRatio: 0.5,
+      requireHpAboveRatio: 0.1,
       forbidRevivedRound: true,
       targeting: { count: 3 },
       effects: [{ type: EffectType.PhysicalHit, coeff: 0.85, power: "floor(skillLevel * 0.4)" },
@@ -149,7 +149,7 @@ describe("红尘剑宗 v6 内容与编译", () => {
     })
   })
 
-  it("临渊在心法120级解锁，降低血线和扩展人数的节点保留效果", () => {
+  it("临渊在心法120级解锁，历战残血增伤和执剑扩目标保留效果", () => {
     for (const level of [119, 120]) {
       const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, [], level))
       expect(result.ok && result.projection.activeSkillIds.includes(LINGXIAO_SKILL_ID.Formation)).toBe(level === 120)
@@ -158,7 +158,7 @@ describe("红尘剑宗 v6 内容与编译", () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.projection.skills.flatMap(s => s.modifiers ?? [])).toEqual(expect.arrayContaining([
-        expect.objectContaining({ hpRequirement: { min: 0.1 }, when: { skillIds: [LINGXIAO_SKILL_ID.Formation], pvp: true } }),
+        expect.objectContaining({ damageBonus: 0.1, when: { skillIds: [LINGXIAO_SKILL_ID.Formation], sourceInitialHpRatioBelow: 0.5 } }),
         expect.objectContaining({ targetCountAdd: 'if(uses.lingxiao.skill.formation == 0, 3, 0)' }),
       ]))
     }

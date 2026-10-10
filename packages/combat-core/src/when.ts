@@ -85,7 +85,9 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.actionSucceeded && (!ctx.currentAction || ctx.currentAction.failed)) return false
   if (when.actionKilledTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.killedTargetIds?.includes(scope.target.id)) !== when.actionKilledTarget)) return false
   if (when.actionReducedTargetToZero !== undefined && (Boolean(scope.target && ctx.currentAction?.hpZeroTargetIds?.includes(scope.target.id)) !== when.actionReducedTargetToZero)) return false
-  if (when.sourceInitialHpRatioMin !== undefined && (ctx.currentAction?.initialHpRatio ?? hpRatio(scope.source)) < when.sourceInitialHpRatioMin) return false
+  const initialHpRatio = ctx.currentAction?.initialHpRatio ?? hpRatio(scope.source)
+  if (when.sourceInitialHpRatioMin !== undefined && initialHpRatio < when.sourceInitialHpRatioMin) return false
+  if (when.sourceInitialHpRatioBelow !== undefined && initialHpRatio >= when.sourceInitialHpRatioBelow) return false
   const skillId = scope.skillId ?? scope.skill?.id ?? ctx.currentAction?.skillId
   const skill = scope.skill
   if (when.excludeSkillTags?.some(tag => skill?.tags.includes(tag))) return false

@@ -12,6 +12,7 @@ export const lxWhen = z.strictObject({
   teamUniqueTag: ref.optional(), targetEnemy: z.boolean().optional(),
   targetHasStandingPet: z.boolean().optional(), actionSucceeded: z.boolean().optional(),
   actionKilledTarget: z.boolean().optional(), sourceInitialHpRatioMin: n.max(1).optional(),
+  sourceInitialHpRatioBelow: n.max(1).optional(),
   sourceStanding: z.boolean().optional(), sourceTags: z.array(ref).optional(),
   sourceHasBarrier: z.boolean().optional(), requireStatusIds: z.array(lxId).optional(),
   requireAbsentStatusIds: z.array(lxId).optional(), foeKind: z.enum(UnitKind).optional(),

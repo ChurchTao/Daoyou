@@ -201,9 +201,8 @@ describe('装备、队伍与保护联动', () => {
     expect(b.unit('s').barriers[0]).toMatchObject({ current: 180, untilBattleEnd: true });
     const appliedRound = b.unit('s').barriers[0].appliedRound;
     round(b); expect(b.unit('s').barriers[0].appliedRound).toBe(appliedRound);
-    b.unit('s').attrs.hp = 4000;
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('formation'))!.targetCount).toBe(6);
-    round(b, cast('formation')); ready(b); b.unit('s').attrs.hp = 4000;
+    round(b, cast('formation')); ready(b);
     expect(b.queryCommands('s').skills.find(s => s.skillId === S('formation'))!.targetCount).toBe(3);
   });
   it('突刺用施放前90%血线，突进逐段积累；破血只加强已有双剑合璧', () => {
@@ -240,11 +239,17 @@ describe('装备、队伍与保护联动', () => {
     round(b, { type: 'skill', skillId: 'art', targets: ['s'] }); expect(resource(b, 'art_momentum').current).toBe(80);
     round(b, cast('triple')); expect(b.log().filter(e => e.type === 'chanceResolved').at(-1)).toMatchObject({ chance: .25 }); expect(resource(b, 'art_momentum').current).toBe(0);
   });
-  it('历战PVP血线为≥10%，PVE仍必须低于50%', () => {
-    for (const [kind, hp, ready] of [['player', 1000, true], ['player', 999, false], ['player', 9000, true], ['npc', 9000, false]] as const) {
-      const { b } = setup('zhanchen', ['6.2'], [], kind); b.unit('s').attrs.hp = hp;
-      expect(b.queryCommands('s').skills.find(s => s.skillId === S('formation'))!.reasons.includes('hp-requirement')).toBe(!ready);
-    }
+  it('历战按施展前气血低于50%提高临渊伤害10%，扣血本身不触发', () => {
+    const amount = (hp: number, nodes: string[] = ['6.2'], kind: 'player' | 'npc' = 'npc') => {
+      const { b } = setup('zhanchen', nodes, [], kind); b.unit('s').attrs.hp = hp;
+      round(b, cast('formation')); return damage(b);
+    };
+    expect(amount(4999)).toEqual([920]);
+    expect(amount(4999, ['6.2'], 'player')).toEqual([920]);
+    expect(amount(5000)).toEqual([837]);
+    expect(amount(5999)).toEqual([837]);
+    expect(amount(10000)).toEqual([837]);
+    expect(amount(4999, [])).toEqual([837]);
   });
   it('第七层旧左右选择映射中央，独立奖励不互斥', () => {
     for (const path of ['guiyi', 'zhanchen'] as const) {
@@ -290,9 +295,9 @@ describe('经脉附加效果不要求穿透护盾', () => {
     const b = setup('zhanchen', ['5.1']).b;
     const chances: number[] = [];
     b.hooks.on('onCritRoll', h => { if (h.source?.id === 's') chances.push(h.chance ?? 0); });
-    b.unit('s').attrs.hp = 4000; round(b, cast('formation'));
+    round(b, cast('formation'));
     expect(chances).toEqual(Array(6).fill(.1));
-    chances.length = 0; ready(b); b.unit('s').attrs.hp = 4000; round(b, cast('formation'));
+    chances.length = 0; ready(b); round(b, cast('formation'));
     expect(chances).toEqual([0, 0, 0]);
   });
 });
