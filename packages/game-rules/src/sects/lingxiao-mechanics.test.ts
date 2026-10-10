@@ -29,7 +29,7 @@ function round(b: ReturnType<typeof setup>, name?: string, targets = ['t0']) {
 const hits = (b: ReturnType<typeof setup>) => b.log().filter(e => e.type === EventType.Damage && e.sourceId === 's');
 
 describe('红尘剑宗经典基础模组', () => {
-  it.each([['triple', 500, 0], ['triple', 501, 3], ['formation', 500, 0], ['formation', 499, 3]] as const)(
+  it.each([['triple', 500, 0], ['triple', 501, 3], ['formation', 100, 0], ['formation', 101, 3], ['formation', 1000, 3]] as const)(
     '%s 在气血 %i 时产生 %i 次伤害', (name, hp, count) => {
       const b = setup(hp);
       const option = b.queryCommands('s').skills.find(s => s.skillId === skillId(name))!;

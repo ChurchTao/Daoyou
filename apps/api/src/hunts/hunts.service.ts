@@ -7,6 +7,10 @@ import { huntEventsAt } from '@daoyou/game-rules/hunts';
 import { Injectable } from '@nestjs/common';
 import { huntBattleReward } from '@server/hunts/application/HuntRewardProjector.js';
 import {
+  listHuntTeamChat,
+  sendHuntTeamChat,
+} from '@server/hunts/application/HuntTeamChat.js';
+import {
   commandHuntTeam,
   createHuntTeam,
   huntLobby,
@@ -66,5 +70,19 @@ export class HuntsService {
     input: HuntTeamCommand,
   ) {
     return { success: true, data: await commandHuntTeam(actor, teamId, input) };
+  }
+
+  async chat(actor: ActiveCultivatorRef, teamId: string) {
+    return {
+      success: true,
+      data: { messages: await listHuntTeamChat(actor, teamId) },
+    };
+  }
+
+  async speak(actor: ActiveCultivatorRef, teamId: string, text: string) {
+    return {
+      success: true,
+      data: await sendHuntTeamChat(actor, teamId, text),
+    };
   }
 }

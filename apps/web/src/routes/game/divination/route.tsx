@@ -197,7 +197,7 @@ function DivinationTable() {
                     </span>
                   )}
                 </button>
-                <label className="bg-bgpaper/95 text-ink absolute top-3 left-3 flex min-h-11 items-center gap-2 px-3 text-sm shadow-sm">
+                <label className="bg-bgpaper/95 text-ink absolute top-3 left-3 flex min-h-11 items-center gap-2 px-3 text-base shadow-sm">
                   <span className="text-ink-secondary">问</span>
                   <select
                     aria-label="占卜方向"

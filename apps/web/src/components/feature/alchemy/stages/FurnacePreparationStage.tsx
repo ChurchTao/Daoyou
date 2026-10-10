@@ -194,7 +194,7 @@ function AlchemyIntentField() {
           maxLength={300}
           placeholder="如：炼一炉能补充气血、并护住经脉的丹"
           onChange={(event) => session.setIntent(event.target.value)}
-          className="border-ink/20 w-full border-b bg-transparent py-1 text-sm"
+          className="border-ink/20 h-8 w-full border-b bg-transparent text-base leading-8 outline-none"
         />
       ) : (
         <div

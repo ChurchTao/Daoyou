@@ -55,7 +55,7 @@ const targetScopeChoices: {
   { value: 'teammatePlayer', label: '其他队友人物' },
 ];
 const fieldClass =
-  'border-ink/20 bg-paper/70 text-ink focus:border-crimson min-h-9 min-w-0 border px-2 py-1.5 text-sm outline-none';
+  'border-ink/20 bg-paper/70 text-ink focus:border-crimson min-h-10 min-w-0 border px-2 py-2 text-base outline-none';
 
 function newCondition(
   type: Condition['type'],

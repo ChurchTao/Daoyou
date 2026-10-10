@@ -186,7 +186,7 @@ export function AtlasToolbar(props: AtlasToolbarProps) {
                     ?.focus();
                 }
               }}
-              className="text-ink placeholder:text-ink-secondary min-h-10 w-24 min-w-0 bg-transparent px-2 text-sm outline-none sm:w-36"
+              className="text-ink placeholder:text-ink-secondary min-h-10 w-32 min-w-0 bg-transparent px-2 text-base outline-none sm:w-44"
             />
           </div>
           {canFilter ? (

@@ -774,7 +774,7 @@ export default function MarketRecyclePage() {
           <label className="block space-y-1">
             <span>种类</span>
             <select
-              className="border-ink/20 w-full border bg-transparent p-2"
+              className="border-ink/20 w-full border bg-transparent p-2 text-base"
               value={draftCategory}
               onChange={(event) => {
                 setDraftCategory(event.target.value as RecycleCategory);
@@ -791,7 +791,7 @@ export default function MarketRecyclePage() {
             <label className="block space-y-1">
               <span>材料类型</span>
               <select
-                className="border-ink/20 w-full border bg-transparent p-2"
+                className="border-ink/20 w-full border bg-transparent p-2 text-base"
                 value={draftMaterialType ?? ''}
                 onChange={(event) =>
                   setDraftMaterialType(

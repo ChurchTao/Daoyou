@@ -53,6 +53,25 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
 
 export type HuntTeamCommand = z.infer<typeof HuntTeamCommandSchema>;
 
+export const HUNT_TEAM_CHAT_MAX_CHARS = 100;
+
+export const HuntTeamChatSendSchema = z
+  .object({
+    text: z.string().max(400),
+  })
+  .strict();
+
+export type HuntTeamChatSend = z.infer<typeof HuntTeamChatSendSchema>;
+
+export type HuntTeamChatMessage = {
+  id: string;
+  teamId: string;
+  senderCultivatorId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+};
+
 export type HuntLobby = {
   event: HuntEvent;
   open: boolean;

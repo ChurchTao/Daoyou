@@ -6,7 +6,7 @@ import {
   shouldShowGameDockBadge,
   type GameDockBadge,
 } from './gameBottomDockBadge';
-import { getCoreDockItems, getExpandedDockGroups } from './gameNavigation';
+import { getCoreDockItems, getExpandedDockColumns } from './gameNavigation';
 
 function DockLink({
   href,
@@ -57,7 +57,7 @@ export function GameBottomDock({
 }) {
   const drawerOpen = dockMode === 'expanded' || isExpanded;
   const coreDockItems = getCoreDockItems();
-  const expandedDockGroups = getExpandedDockGroups();
+  const expandedDockColumns = getExpandedDockColumns();
 
   if (dockMode === 'hidden') {
     return null;
@@ -96,38 +96,45 @@ export function GameBottomDock({
         isOpen={drawerOpen}
         onClose={onToggleExpanded}
         title="万界行止"
-        description="前往修行、历练、造物与交易等次级场景。"
+        description="前往修行、宗门、历练、争锋与交易等次级场景。"
         size="md"
         closeOnEscape={dockMode !== 'expanded'}
         closeOnOverlayClick={dockMode !== 'expanded'}
       >
         <nav
           aria-label="全部游戏场景"
-          className="grid grid-cols-2 gap-x-4 gap-y-5 text-sm"
+          className="grid grid-cols-2 items-start gap-x-4 text-sm"
         >
-          {expandedDockGroups.map((group) => (
-            <section key={group.key} className="min-w-0">
-              <h3 className="text-battle-muted border-ink/15 mb-2 border-b border-dashed pb-1 text-xs tracking-[0.18em]">
-                {group.title}
-              </h3>
-              <div className="grid gap-1 leading-7">
-                {group.actions.map((action) => (
-                  <Link
-                    key={action.id}
-                    href={action.href}
-                    onClick={
-                      dockMode === 'expanded' ? undefined : onToggleExpanded
-                    }
-                    className={cn(
-                      'hover:text-crimson min-w-0 leading-6 transition',
-                      sceneId === action.id ? 'text-crimson' : '',
-                    )}
-                  >
-                    [{action.label}]
-                  </Link>
-                ))}
-              </div>
-            </section>
+          {expandedDockColumns.map((column) => (
+            <div
+              key={column.map((group) => group.key).join('-')}
+              className="grid min-w-0 content-start gap-y-5"
+            >
+              {column.map((group) => (
+                <section key={group.key} className="min-w-0">
+                  <h3 className="text-battle-muted border-ink/15 mb-2 border-b border-dashed pb-1 text-xs tracking-[0.18em]">
+                    {group.title}
+                  </h3>
+                  <div className="grid gap-1 leading-7">
+                    {group.actions.map((action) => (
+                      <Link
+                        key={action.id}
+                        href={action.href}
+                        onClick={
+                          dockMode === 'expanded' ? undefined : onToggleExpanded
+                        }
+                        className={cn(
+                          'hover:text-crimson min-w-0 leading-6 transition',
+                          sceneId === action.id ? 'text-crimson' : '',
+                        )}
+                      >
+                        [{action.label}]
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           ))}
         </nav>
       </InkDetailDrawer>

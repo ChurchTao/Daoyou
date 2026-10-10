@@ -99,7 +99,7 @@ export function InventoryFilters({
               onChange={(event) =>
                 setDraft({ kind: event.target.value as InventoryKind })
               }
-              className="border-ink/20 w-full border bg-transparent p-2"
+              className="border-ink/20 w-full border bg-transparent p-2 text-base"
             >
               {inventoryKinds.map(([kind, label]) => (
                 <option key={kind} value={kind}>
@@ -120,7 +120,7 @@ export function InventoryFilters({
                       InventorySort | undefined,
                   )
                 }
-                className="border-ink/20 w-full border bg-transparent p-2"
+                className="border-ink/20 w-full border bg-transparent p-2 text-base"
               >
                 <option value="">默认顺序</option>
                 <option value="updatedAt">获得时间 · 最新优先</option>
@@ -162,7 +162,7 @@ export function InventoryFilters({
                         MaterialType | undefined,
                     }))
                   }
-                  className="border-ink/20 w-full border bg-transparent p-2"
+                  className="border-ink/20 w-full border bg-transparent p-2 text-base"
                 >
                   <option value="">全部材料</option>
                   {INVENTORY_MATERIAL_TYPES.map((type) => (
@@ -184,7 +184,7 @@ export function InventoryFilters({
                         ElementType | undefined,
                     }))
                   }
-                  className="border-ink/20 w-full border bg-transparent p-2"
+                  className="border-ink/20 w-full border bg-transparent p-2 text-base"
                 >
                   <option value="">全部属性</option>
                   {ELEMENT_VALUES.map((element) => (

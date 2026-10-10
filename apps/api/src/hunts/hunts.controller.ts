@@ -1,6 +1,8 @@
 import {
   HuntCreateTeamSchema,
+  HuntTeamChatSendSchema,
   HuntTeamCommandSchema,
+  type HuntTeamChatSend,
   type HuntTeamCommand,
 } from '@daoyou/contracts/hunts';
 import { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
@@ -118,6 +120,27 @@ export class HuntsController {
     @Param('teamId', new ZodPipe(z.uuid())) teamId: string,
   ) {
     return this.hunts.joinTeam(actor, teamId);
+  }
+
+  @Get('teams/:teamId/chat')
+  @Header('Cache-Control', 'private, no-store')
+  chat(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('teamId', new ZodPipe(z.uuid())) teamId: string,
+  ) {
+    return this.hunts.chat(actor, teamId);
+  }
+
+  @Post('teams/:teamId/chat')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  speak(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('teamId', new ZodPipe(z.uuid())) teamId: string,
+    @JsonBody({ fallback: undefined }, new ZodPipe(HuntTeamChatSendSchema))
+    input: HuntTeamChatSend,
+  ) {
+    return this.hunts.speak(actor, teamId, input.text);
   }
 
   @Post('teams/:teamId')

@@ -8,6 +8,7 @@ export {
 export {
   gameDockGroups,
   getCoreDockItems,
+  getExpandedDockColumns,
   getExpandedDockGroups,
   getGameSceneGroupTitle,
   getGameSceneMeta,

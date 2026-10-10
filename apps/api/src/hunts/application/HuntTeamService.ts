@@ -33,8 +33,11 @@ import { journalOperationKey } from '@server/lib/repositories/playerJournalRepos
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
-const teamKey = (id: string) => `hunt:v1:team:${id}`;
-const memberKey = (id: string) => `hunt:v1:member:${id}`;
+export const huntTeamKey = (id: string) => `hunt:v1:team:${id}`;
+export const huntMemberKey = (id: string) => `hunt:v1:member:${id}`;
+export const huntTeamChatKey = (id: string) => `hunt:v1:chat:${id}`;
+const teamKey = huntTeamKey;
+const memberKey = huntMemberKey;
 const eventTeamsKey = (id: string) => `hunt:v1:teams:${id}`;
 const battleStore = new CombatV6ArenaStore();
 const lock = <T>(task: (lease: RedisLeaseContext) => Promise<T>) =>
@@ -138,6 +141,7 @@ if prevEvent ~= '' then redis.call('SREM', 'hunt:v1:teams:' .. prevEvent, next.i
 if nextEvent ~= '' and nextEvent ~= prevEvent then redis.call('SREM', 'hunt:v1:teams:' .. nextEvent, next.id) end
 if #next.members == 0 then
  redis.call('DEL', KEYS[1])
+ redis.call('DEL', ARGV[7])
 else
  redis.call('SET', KEYS[1], ARGV[2])
  if nextEvent ~= '' then
@@ -155,6 +159,7 @@ return 1`,
     previous?.event?.id ?? '',
     team.event?.id ?? '',
     String(team.event?.expiresAt ?? 0),
+    huntTeamChatKey(team.id),
   );
   if (Number(result) !== 1) throw new ArenaV6Error('队伍有变，请重新查看');
 }
@@ -297,7 +302,7 @@ export async function joinHuntTeam(
       throw new ArenaV6Error('这支队伍已满、已出战，或你的境界不在招募范围内');
     const next = {
       ...team,
-      members: [...team.members.map((m) => ({ ...m, ready: false })), self],
+      members: [...team.members, self],
       revision: team.revision + 1,
     };
     await saveTeam(next, team, lease);
@@ -328,7 +333,7 @@ export async function joinHuntTeamById(actor: HuntActor, teamId: string) {
       throw new ArenaV6Error('你的境界不在这支队伍的招募范围内');
     const next = {
       ...team,
-      members: [...team.members.map((m) => ({ ...m, ready: false })), self],
+      members: [...team.members, self],
       revision: team.revision + 1,
     };
     await saveTeam(next, team, lease);
