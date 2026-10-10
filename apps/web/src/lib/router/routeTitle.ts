@@ -10,7 +10,14 @@ const SECT_VISIT_TITLES: Readonly<Record<string, string>> = {
 };
 
 export type GameSceneGroup =
-  'cultivation' | 'craft' | 'trade' | 'message' | 'combat' | 'service';
+  | 'cultivation'
+  | 'sect'
+  | 'adventure'
+  | 'craft'
+  | 'combat'
+  | 'trade'
+  | 'message'
+  | 'service';
 
 export type GameSceneChrome = 'standard' | 'immersive';
 

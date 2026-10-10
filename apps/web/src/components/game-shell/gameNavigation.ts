@@ -34,6 +34,11 @@ export interface GameDockGroupLinks {
 
 const coreDockSceneOrder = ['cultivator', 'inventory', 'cave', 'mail'] as const;
 
+const expandedMenuColumns = [
+  ['cultivation', 'sect', 'adventure', 'combat'],
+  ['trade', 'message', 'service'],
+] as const satisfies readonly (readonly GameSceneGroup[])[];
+
 export const gameDockGroups: GameNavGroup[] = [
   {
     key: 'cultivation',
@@ -117,23 +122,71 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '旧功法传承',
         href: '/game/manual-migration',
       },
+      { id: 'story', sceneLabel: '入世' },
+      { id: 'story-preview', sceneLabel: '看演出' },
+      { id: 'identity-reshape', sceneLabel: '改天换地' },
       {
-        id: 'sect-abilities',
-        sceneLabel: '宗门演武',
-        href: '/game/sect/arena?workspace=loadout&npc=instructor',
-        expandedDockLabel: '📜 宗门神通',
+        id: 'training-room',
+        sceneLabel: '练功房',
+        href: '/game/training-room',
       },
+      {
+        id: 'task-challenge',
+        sceneLabel: '破境试炼',
+      },
+      {
+        id: 'beast-room',
+        sceneLabel: '育兽室',
+        href: '/game/beast-room',
+      },
+      {
+        id: 'beasts',
+        sceneLabel: '灵兽袋',
+        href: '/game/beasts',
+        expandedDockLabel: '🐯 灵兽袋',
+      },
+      {
+        id: 'fate-reshape',
+        sceneLabel: '重塑命格',
+        href: '/game/fate-reshape',
+        expandedDockLabel: '🔮 重塑命格',
+      },
+      {
+        id: 'beast-fusion',
+        sceneLabel: '灵兽融合',
+        href: '/game/beasts/fusion',
+      },
+      { id: 'beast-codex', sceneLabel: '灵兽图鉴', href: '/game/beasts/codex' },
+      {
+        id: 'inventory',
+        sceneLabel: '储物袋',
+        href: '/game/inventory',
+        coreDockLabel: '储物袋',
+      },
+      {
+        id: 'gongfa-enlightenment',
+        sceneLabel: '功法参悟',
+      },
+    ],
+  },
+  {
+    key: 'sect',
+    title: '宗门',
+    scenes: [
       {
         id: 'sect',
         sceneLabel: '宗门',
         href: '/game/sect',
         expandedDockLabel: '⛰️ 宗门',
       },
+      {
+        id: 'sect-abilities',
+        sceneLabel: '宗门演武',
+        href: '/game/sect/arena?workspace=loadout&npc=instructor',
+        expandedDockLabel: '📜 宗门神通',
+      },
       { id: 'sect-onboarding', sceneLabel: '诸宗山门' },
-      { id: 'story', sceneLabel: '入世' },
-      { id: 'story-preview', sceneLabel: '看演出' },
       { id: 'sect-transfer', sceneLabel: '欺天台 · 转宗' },
-      { id: 'identity-reshape', sceneLabel: '改天换地' },
       { id: 'sect-visit', sceneLabel: '访宗舆图' },
       { id: 'sect-foreign-gate', sceneLabel: '外宗山门' },
       { id: 'sect-hall', sceneLabel: '宗门大殿' },
@@ -152,73 +205,23 @@ export const gameDockGroups: GameNavGroup[] = [
       { id: 'sect-gate-sweep', sceneLabel: '清扫山门' },
       { id: 'sect-spirit-vein-mining', sceneLabel: '灵矿采掘' },
       { id: 'sect-task-battle', sceneLabel: '宗门战局' },
-      {
-        id: 'training-room',
-        sceneLabel: '练功房',
-        href: '/game/training-room',
-      },
-      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
-      {
-        id: 'beast-room',
-        sceneLabel: '育兽室',
-        href: '/game/beast-room',
-      },
-      {
-        id: 'beasts',
-        sceneLabel: '灵兽袋',
-        href: '/game/beasts',
-        expandedDockLabel: '🐯 灵兽袋',
-      },
-      {
-        id: 'beast-fusion',
-        sceneLabel: '灵兽融合',
-        href: '/game/beasts/fusion',
-      },
-      { id: 'beast-codex', sceneLabel: '灵兽图鉴', href: '/game/beasts/codex' },
-      {
-        id: 'inventory',
-        sceneLabel: '储物袋',
-        href: '/game/inventory',
-        coreDockLabel: '储物袋',
-      },
-      {
-        id: 'battle-history',
-        sceneLabel: '全部战绩',
-        href: '/game/battle/history',
-        expandedDockLabel: '⚔️ 全部战绩',
-      },
-      {
-        id: 'journal',
-        sceneLabel: '修仙日志',
-        href: '/game/journal',
-        expandedDockLabel: '📜 修仙日志',
-      },
-      {
-        id: 'dungeon-history',
-        sceneLabel: '探险札记',
-        href: '/game/dungeon/history',
-        expandedDockLabel: '🗂️ 探险札记',
-      },
-      {
-        id: 'gongfa-enlightenment',
-        sceneLabel: '功法参悟',
-      },
     ],
   },
   {
-    key: 'craft',
-    title: '造化',
+    key: 'adventure',
+    title: '历练',
     scenes: [
+      {
+        id: 'map',
+        sceneLabel: '山河舆图',
+        href: '/game/map-v2',
+        expandedDockLabel: '🗺️ 修仙界地图',
+      },
       {
         id: 'dungeon',
         sceneLabel: '云游探秘',
         href: '/game/dungeon',
         expandedDockLabel: '🏔️ 云游探秘',
-      },
-      {
-        id: 'inquiry',
-        sceneLabel: '秘境探查',
-        href: '/game/inquiry',
       },
       {
         id: 'tower',
@@ -227,17 +230,36 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🪞 蜃楼幻境',
       },
       {
-        id: 'fate-reshape',
-        sceneLabel: '重塑命格',
-        href: '/game/fate-reshape',
-        expandedDockLabel: '🔮 重塑命格',
-      },
-      {
         id: 'tasks',
         sceneLabel: '任务中心',
         href: '/game/tasks',
         expandedDockLabel: '📜 任务中心',
       },
+      {
+        id: 'inquiry',
+        sceneLabel: '秘境探查',
+        href: '/game/inquiry',
+      },
+      { id: 'wild', sceneLabel: '野外寻觅', href: '/game/map-v2' },
+      {
+        id: 'hunt',
+        sceneLabel: '结伴讨伐',
+      },
+      {
+        id: 'hunt-team',
+        sceneLabel: '组队讨伐',
+        href: '/game/hunt-team',
+      },
+      {
+        id: 'tower-battle',
+        sceneLabel: '蜃楼战局',
+      },
+    ],
+  },
+  {
+    key: 'craft',
+    title: '造化',
+    scenes: [
       {
         id: 'alchemy',
         sceneLabel: '炼丹房',
@@ -245,12 +267,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'refine',
         sceneLabel: '炼器室',
-      },
-      {
-        id: 'map',
-        sceneLabel: '山河舆图',
-        href: '/game/map-v2',
-        expandedDockLabel: '🗺️ 修仙界地图',
       },
     ],
   },
@@ -304,6 +320,18 @@ export const gameDockGroups: GameNavGroup[] = [
         href: '/game/world-chat',
         expandedDockLabel: '💬 世界传音',
       },
+      {
+        id: 'journal',
+        sceneLabel: '修仙日志',
+        href: '/game/journal',
+        expandedDockLabel: '📜 修仙日志',
+      },
+      {
+        id: 'dungeon-history',
+        sceneLabel: '探险札记',
+        href: '/game/dungeon/history',
+        expandedDockLabel: '🗂️ 探险札记',
+      },
     ],
   },
   {
@@ -317,19 +345,16 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🏆 天骄榜',
       },
       {
-        id: 'hunt',
-        sceneLabel: '结伴讨伐',
-      },
-      {
-        id: 'hunt-team',
-        sceneLabel: '组队讨伐',
-        href: '/game/hunt-team',
-      },
-      {
         id: 'arena-sparring',
         sceneLabel: '擂台切磋',
         href: '/game/arena',
         expandedDockLabel: '🥁 擂台切磋',
+      },
+      {
+        id: 'battle-history',
+        sceneLabel: '全部战绩',
+        href: '/game/battle/history',
+        expandedDockLabel: '⚔️ 全部战绩',
       },
       {
         id: 'battle-challenge',
@@ -338,14 +363,6 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'battle-replay',
         sceneLabel: '战斗回放',
-      },
-      {
-        id: 'tower-battle',
-        sceneLabel: '蜃楼战局',
-      },
-      {
-        id: 'task-challenge',
-        sceneLabel: '破境试炼',
       },
     ],
   },
@@ -474,4 +491,29 @@ export function getExpandedDockGroups(): GameDockGroupLinks[] {
       }),
     }))
     .filter((group) => group.actions.length > 0);
+}
+
+export function getExpandedDockColumns(): GameDockGroupLinks[][] {
+  const groups = getExpandedDockGroups();
+  const byKey = new Map(groups.map((group) => [group.key, group]));
+  const used = new Set<GameSceneGroup>();
+  const columns = expandedMenuColumns.map((keys) =>
+    keys.flatMap((key) => {
+      const group = byKey.get(key);
+
+      if (!group) {
+        return [];
+      }
+
+      used.add(key);
+      return [group];
+    }),
+  );
+  const rest = groups.filter((group) => !used.has(group.key));
+
+  if (rest.length > 0) {
+    columns[0]?.push(...rest);
+  }
+
+  return columns;
 }
