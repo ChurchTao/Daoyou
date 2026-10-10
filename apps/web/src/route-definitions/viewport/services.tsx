@@ -159,6 +159,18 @@ export const servicesRoutes = [
     )}
   />,
   <Route
+    path="download"
+    lazy={lazyRoute(() => import('@app/routes/game/download/route'))}
+    handle={scene(
+      {
+        id: 'download',
+        presentation: 'service',
+        summary: '放到主屏幕后，点图标就能进入。',
+      },
+      '下载游戏',
+    )}
+  />,
+  <Route
     path="community"
     lazy={lazyRoute(() => import('@app/routes/game/community/route'))}
     handle={scene(

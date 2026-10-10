@@ -349,6 +349,12 @@ export const gameDockGroups: GameNavGroup[] = [
     title: '玩家服务',
     scenes: [
       {
+        id: 'download',
+        sceneLabel: '下载游戏',
+        href: '/game/download',
+        expandedDockLabel: '📲 下载游戏',
+      },
+      {
         id: 'redeem',
         sceneLabel: '兑换码',
         href: '/game/redeem',

@@ -4,8 +4,8 @@ import {
   subscribePwaInstall,
 } from '@app/lib/pwaInstall';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { useInkUI } from './useInkUI.js';
 import { PwaInstallContext } from './pwaInstallContext';
+import { useInkUI } from './useInkUI.js';
 
 function ManualInstallInstructions({ ios }: { ios: boolean }) {
   return ios ? (
@@ -51,9 +51,15 @@ export function PwaInstallProvider({
     () => ({
       status: installSnapshot.status,
       standalone: installSnapshot.standalone,
+      ios: installSnapshot.ios,
       install,
     }),
-    [install, installSnapshot.standalone, installSnapshot.status],
+    [
+      install,
+      installSnapshot.ios,
+      installSnapshot.standalone,
+      installSnapshot.status,
+    ],
   );
 
   return (
