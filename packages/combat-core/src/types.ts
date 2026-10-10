@@ -375,6 +375,8 @@ export type EffectWhen = {
   /** 包括被致命恢复救回的目标。 */
   actionReducedTargetToZero?: boolean;
   sourceInitialHpRatioMin?: number;
+  /** 行动开始、支付气血代价前的比例须严格低于该值。 */
+  sourceInitialHpRatioBelow?: number;
   excludeSkillTags?: SkillTag[];
   excludePercentageDamage?: boolean;
   sourceMpRatioBelow?: number;

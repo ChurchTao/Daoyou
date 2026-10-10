@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 6,
+  "contentRevision": 7,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -102,7 +102,7 @@
           "self": true
         }
       ],
-      "requireHpBelowRatio": 0.5,
+      "requireHpAboveRatio": 0.1,
       "forbidRevivedRound": true,
       "description": "临渊决剑，以气血为代价攻击多个敌人。剑息期间免疫封印，复起当回合不可施展。"
     },
