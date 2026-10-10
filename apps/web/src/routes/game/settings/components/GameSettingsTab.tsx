@@ -150,15 +150,18 @@ export function GameSettingsTab() {
           label="应用安装"
           value={installValue}
           action={
-            pwa.status === 'installed' ||
-            pwa.status === 'unavailable' ? null : (
+            pwa.status === 'promptable' ? (
               <InkButton
                 variant="secondary"
                 onClick={() => void handleInstall()}
               >
-                {pwa.status === 'promptable' ? '安装到设备' : '查看方法'}
+                安装到设备
               </InkButton>
-            )
+            ) : pwa.status === 'manual' ? (
+              <InkButton variant="secondary" href="/game/download">
+                查看方法
+              </InkButton>
+            ) : null
           }
         />
       </SettingsSection>

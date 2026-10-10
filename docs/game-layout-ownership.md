@@ -8,7 +8,7 @@
 
 - `GameGenesisLayout`：`/game/create`、`/game/reincarnate`
 - `GameNarrativeLayout`：`/game/story`、`/game/inquiry`、`/game/sect/onboarding`、`/game/identity-reshape` 等无 HUD、无全局导航的沉浸页。`/game/story` 用剧情播放器读当前演出；`/game/inquiry` 进入后用同一套简文：先读这一幕，读完再点抉择。本地开发另有 `/game/story/preview`：按演出编号读取同一套配置来看，不写进度。
-- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/hunt-team`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
+- `GameViewportLayout`：常规主流程页，包括 `/game`、`/game/inventory`、`/game/retreat`、`/game/cultivator`、`/game/skills`、`/game/techniques`、`/game/artifacts`、`/game/craft/alchemy`、`/game/craft/refine`、`/game/beast-room`、`/game/enlightenment*`、`/game/fate-reshape`、`/game/market*`、`/game/black-market`、`/game/auction`、`/game/hunt-team`、`/game/mail`、`/game/world-chat`、`/game/community`、`/game/download`、`/game/redeem`、`/game/settings/feedback`、`/game/rankings`、`/game/battle/history`、`/game/dungeon/history`
 - `GameActivityLayout`：`/game/sect/gate/sweep`、`/game/sect/spirit-vein/mining` 等无 HUD、无全局导航的全屏互动玩法
 - `GameCombatLayout`：`/game/battle`、`/game/battle/challenge`、`/game/battle/live/:matchId`、`/game/battle/:id`、宗门任务战斗
 - `CombatV6Layout`：`/game/training-room`、`/game/wild`，独立于 v5 战斗布局及状态容器
@@ -35,7 +35,7 @@
 - 剧情演出播放器在 `apps/web/src/components/feature/performance/PerformancePlayer.tsx`。配图铺满自己的那一块，不加边框和边距；手机上它只是一截辅助，字占主要位置。没有配图时不留画框，场景说明改写在简上。眼前、旁白和人物说的话三种样子分开。点简文继续，第一下只把当前句看完；选项写在简上，看完才离开这一幕。回看翻开前面的字，离开不推进剧情。本地开发的 `/game/story/preview` 用同一播放器按演出编号观看，不写进度。页面教学播放器在 `apps/web/src/components/feature/guide/GuideOverlay.tsx`，挂在主流程壳和山河舆图壳上。只有当前这一幕的配置要求这场教学时才挖孔；看完才记下，先不看不记。没有教学的幕不会因为地址上带着 `guide` 而罩住页面。新手主线「青溪初行」合并为八段演出：入宗前认识洞府、道身、储物袋与舆图；拜入宗门后由本宗丹房、器坊前辈指导备药与铸兵，再穿戴兵器、选择流派、了解加点、结缘灵兽，最后去青溪坡查看路况并回报见闻。丹房、器坊课堂使用宗门页面的基础炼制工作区，未取得常规设施权限的新弟子只在对应剧情阶段进入课堂，不获得高级设施折扣。炼丹、炼器、穿戴、流派和灵兽教学需同时完成对应实际操作；加点先教方法，由玩家决定何时投入。教学完成后根据返回的剧情进度直接前往下一步，实际操作尚未完成时留在当前页面。青溪坡首次战斗在现有指令区解释人物与伙伴下令、回合自动提交和战报，不要求胜利或捕获。旧教程保存的确认与奖励记录继续有效，已结束的教程不重播。宗门入门仍用 `apps/web/src/components/feature/narrative/` 的旧舞台，两者不共用画面和操作。
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `apps/web/src/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `apps/web/src/components/feature/game-activity/`
 - 清扫摇杆使用 `phaser4-rex-plugins` 的 Virtual Joystick，并由清扫 Phaser runtime 持有、渲染和销毁；采掘放索按钮仍是玩法私有 DOM 控件。各玩法 runtime 与服务端重放规则保持独立
-- PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口
+- PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口。展开菜单「下载游戏」进入 `/game/download`，按苹果手机、安卓手机和电脑说明如何添加到主屏幕；浏览器可以直接安装时，该页提供安装按钮
 - PWA 安全区由顶层布局和共享固定层分别负责：背景与画布可以铺满系统区域，HUD、导航、正文和模态交互必须避让 `safe-area-inset-*`；不得给 `body` 统一增加 padding
 - 冷启动壳由 `index.html` 提供首字节后的静态反馈，React Router 根路由使用同构的 `AppBootScreen` 承接懒加载与初始 loader 阶段
 - `routes/game/components/` 只保留真正属于某个页面的私有组件；跨两个以上路由族复用的组件不得继续放在 `routes/**`
