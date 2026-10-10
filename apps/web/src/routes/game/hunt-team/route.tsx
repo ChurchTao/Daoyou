@@ -1,3 +1,4 @@
+import { HuntTeamChat } from '@app/components/feature/hunts/HuntTeamChat';
 import {
   huntTargetLabel,
   huntTeamStatusLabel,
@@ -261,6 +262,9 @@ export default function HuntTeamPage() {
             <p className="text-ink-secondary leading-7">
               再邀一位道友，准备妥当便可出战。
             </p>
+          ) : null}
+          {actorId ? (
+            <HuntTeamChat key={team.id} team={team} actorId={actorId} />
           ) : null}
         </div>
       )}

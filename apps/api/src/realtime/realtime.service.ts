@@ -11,6 +11,7 @@ import { cultivators, sectMemberships } from '@server/lib/drizzle/schema.js';
 import { isAllowedRealtimeOrigin } from '@server/lib/http/realtimeOrigin.js';
 import { getRequestIp } from '@server/lib/http/requestIp.js';
 import { subscribeArenaRoomChanges } from '@server/realtime/infrastructure/arenaRoomBroadcaster.js';
+import { subscribeHuntTeamChat } from '@server/realtime/infrastructure/huntTeamChatBroadcaster.js';
 import {
   recordRealtimeConnectionClose,
   recordRealtimeConnectionHeartbeat,
@@ -202,6 +203,11 @@ export class RealtimeService {
     });
     if (cultivatorId) recordRealtimeConnectionOpen(cultivatorId);
     try {
+      unsubscribers.push(
+        subscribeHuntTeamChat(reservation.userId, (message) =>
+          send({ type: 'hunt-team.chat', payload: message }),
+        ),
+      );
       if (channels.includes('player-state')) {
         unsubscribers.push(
           subscribeResourceEvents(resourceScopes, (changes) =>
