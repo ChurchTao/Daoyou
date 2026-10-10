@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   buildEmailOtpTarget,
   toErrorMessage,
@@ -8,6 +7,8 @@ import { InkModal } from '@app/components/layout/InkModal';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkInput } from '@app/components/ui/InkInput';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
+import { apiFetch } from '@app/lib/api/fetch';
 import {
   ACCOUNT_DELETION_CONFIRMATION,
   clearAccountDeletionBrowserData,
@@ -24,7 +25,6 @@ import {
   SettingsField,
   SettingsMessage,
   SettingsSection,
-  SettingsToggle,
   settingsLabelClass,
 } from './SettingsFields';
 import { formatDateTime } from './utils';
@@ -348,12 +348,19 @@ export function AccountSettingsTab() {
           />
 
           {passwordMode === 'change' ? (
-            <SettingsToggle
-              checked={revokeOtherSessions}
-              onChange={setRevokeOtherSessions}
-              disabled={passwordSubmitting}
-              label="更新后退出其他设备"
-            />
+            <label
+              className={`flex items-center justify-between gap-3 ${passwordSubmitting ? 'cursor-not-allowed opacity-50' : ''}`}
+            >
+              <span className="text-ink min-w-0 text-sm leading-6">
+                更新后退出其他设备
+              </span>
+              <InkSwitch
+                checked={revokeOtherSessions}
+                onCheckedChange={setRevokeOtherSessions}
+                disabled={passwordSubmitting}
+                aria-label="更新后退出其他设备"
+              />
+            </label>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">

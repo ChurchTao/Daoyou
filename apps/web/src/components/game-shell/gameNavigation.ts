@@ -321,6 +321,11 @@ export const gameDockGroups: GameNavGroup[] = [
         sceneLabel: '结伴讨伐',
       },
       {
+        id: 'hunt-team',
+        sceneLabel: '组队讨伐',
+        href: '/game/hunt-team',
+      },
+      {
         id: 'arena-sparring',
         sceneLabel: '擂台切磋',
         href: '/game/arena',

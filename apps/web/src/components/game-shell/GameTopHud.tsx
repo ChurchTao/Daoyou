@@ -121,7 +121,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   ];
 
   return (
-    <header className="border-ink/10 sticky top-0 z-30 border-b border-dashed backdrop-blur-sm">
+    <header className="border-ink/10 border-b border-dashed backdrop-blur-sm">
       <div className="mx-auto block w-full max-w-5xl pt-[calc(env(safe-area-inset-top)+0.5rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-2 pl-[max(env(safe-area-inset-left),0.625rem)] text-left sm:pr-[max(env(safe-area-inset-right),0.75rem)] sm:pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
         {combatNotice ? (
           <Link
