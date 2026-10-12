@@ -72,7 +72,8 @@ export function MailComposer({
     setBagOpen(false);
   }
   async function send() {
-    if (pending.current || bagUnavailable || (selectedRef && !selected)) return;
+    if (pending.current || bagUnavailable || (giftOpen && selectedRef && !selected))
+      return;
     if (selected && !giftOpen) {
       pushToast({ message: LATE_QI_FRIEND_GIFT_DENIED, tone: 'warning' });
       return;
@@ -282,7 +283,7 @@ export function MailComposer({
                 !friends.length ||
                 busy ||
                 bagUnavailable ||
-                (!!selectedRef && !selected)
+                (giftOpen && !!selectedRef && !selected)
               }
               onClick={() => void send()}
             >
