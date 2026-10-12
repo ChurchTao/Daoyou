@@ -46,6 +46,23 @@ type Item = InventoryView['items'][number];
 type BagAction =
   | Exclude<InventoryAction, { action: 'learn' }>
   | { action: 'use'; id: string; revision: number; quantity?: number };
+
+function inventoryActionMessage(action: BagAction) {
+  if (action.action === 'discard_many')
+    return `已丢弃 ${action.items.length} 件物品。`;
+  if (action.action === 'discard') return '物品已丢弃。';
+  if (action.action === 'transfer_many')
+    return `已将 ${action.items.length} 件物品${action.location === 'bag' ? '取入储物袋' : '存入洞府储藏室'}。`;
+  if (action.action === 'equip')
+    return action.equipped ? '已穿戴道装。' : '已卸下道装。';
+  if (action.action === 'transfer')
+    return action.location === 'bag'
+      ? '物品已取入储物袋。'
+      : '物品已存入洞府储藏室。';
+  if (action.action === 'sort') return '已整理随身物品。';
+  if (action.action === 'use') return '物品已使用。';
+  return '物品已更新。';
+}
 export default function InventoryV6() {
   const identity = useCultivatorIdentity();
   const character = identity.data?.cultivator;
@@ -72,7 +89,7 @@ export default function InventoryV6() {
   const data = location === 'bag' ? bag : storage;
   const [readFailed, setReadFailed] = useState(false);
   const [slotFilter, setSlotFilter] = useState<DaoEquipmentSlot>();
-  const { pushToast } = useInkUI();
+  const { pushToast, openDialog } = useInkUI();
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const busy = useRef(false);
@@ -138,22 +155,7 @@ export default function InventoryV6() {
         );
       if (!mounted.current) return;
       pushToast({
-        message:
-          action.action === 'transfer_many'
-            ? `已将 ${action.items.length} 件物品${action.location === 'bag' ? '取入储物袋' : '存入洞府储藏室'}。`
-            : action.action === 'equip'
-              ? action.equipped
-                ? '已穿戴道装。'
-                : '已卸下道装。'
-              : action.action === 'transfer'
-                ? action.location === 'bag'
-                  ? '物品已取入储物袋。'
-                  : '物品已存入洞府储藏室。'
-                : action.action === 'sort'
-                  ? '已整理随身物品。'
-                  : action.action === 'use'
-                    ? '物品已使用。'
-                    : '物品已更新。',
+        message: inventoryActionMessage(action),
         tone: 'success',
       });
       setSelectedIds(new Set());
@@ -205,6 +207,44 @@ export default function InventoryV6() {
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+  }
+  function confirmDiscard(items: Item[]) {
+    if (!items.length || pending) return;
+    const only = items.length === 1 ? items[0] : undefined;
+    openDialog({
+      title: '丢弃物品',
+      content: only ? (
+        <p>
+          丢弃「{only.name}」
+          {only.quantity > 1 ? (
+            <>
+              {' '}
+              <span className="font-mono font-semibold tracking-tight">
+                ×{only.quantity}
+              </span>
+            </>
+          ) : null}
+          ？丢弃后无法找回。
+        </p>
+      ) : (
+        <p>
+          丢弃已选的{' '}
+          <span className="font-mono font-semibold tracking-tight">
+            {items.length}
+          </span>{' '}
+          件物品？丢弃后无法找回。
+        </p>
+      ),
+      confirmLabel: '丢弃',
+      cancelLabel: '留下',
+      onConfirm: () =>
+        only
+          ? act({ action: 'discard', id: only.id, revision: only.revision })
+          : act({
+              action: 'discard_many',
+              items: items.map(({ id, revision }) => ({ id, revision })),
+            }),
     });
   }
   return (
@@ -364,6 +404,12 @@ export default function InventoryV6() {
                           {location === 'bag' ? '存入洞府储藏室' : '取入储物袋'}
                         </span>
                       </InkButton>
+                      <InkButton
+                        disabled={unavailable || !selectedItems.length}
+                        onClick={() => confirmDiscard(selectedItems)}
+                      >
+                        丢弃
+                      </InkButton>
                     </>
                   ) : (
                     <>
@@ -451,6 +497,10 @@ export default function InventoryV6() {
                             await act(action);
                             close();
                           }}
+                          onDiscard={() => {
+                            close();
+                            confirmDiscard([entry]);
+                          }}
                         />
                       )
                     : undefined,
@@ -501,12 +551,14 @@ function ItemActions({
   item,
   pending,
   act,
+  onDiscard,
   equipped,
   level,
 }: {
   item: Item;
   pending: boolean;
   act: (action: BagAction) => Promise<void>;
+  onDiscard: () => void;
   equipped: Item[];
   level?: number;
 }) {
@@ -545,6 +597,9 @@ function ItemActions({
         }
       >
         {item.location === 'bag' ? '存入' : '取出'}
+      </InkButton>
+      <InkButton disabled={pending || item.equipped} onClick={onDiscard}>
+        丢弃
       </InkButton>
     </div>
   );
