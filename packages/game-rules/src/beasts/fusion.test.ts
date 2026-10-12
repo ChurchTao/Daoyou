@@ -228,7 +228,7 @@ describe('融合与宝宝身份', () => {
     );
     expect(
       beastFusionReason(a, b, 180, { ...lineage, carriedBeastIds: [a.id] }),
-    ).toContain('编组');
+    ).toContain('仓库');
     expect(beastFusionReason(a, b, 10, lineage)).toBeTruthy();
   });
   it('物种只来自双方，身份概率遵循95/5和25/75，交换材料结果不变', () => {

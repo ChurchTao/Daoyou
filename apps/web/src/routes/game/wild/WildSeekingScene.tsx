@@ -185,11 +185,16 @@ export function WildSeekingScene({
               天地灵气不足，待自然恢复或补充后再寻觅。
             </p>
           )}
-          {encounter && !searching && (
+          {encounter && !searching && region.beastBagFull ? (
+            <p className="text-ink-secondary mt-1 text-xs" role="status">
+              灵兽袋已满，请先空出空间，再继续捕捉。
+            </p>
+          ) : null}
+          {encounter && !searching && !region.beastBagFull ? (
             <p className="text-ink-secondary mt-1 text-xs">
               继续寻觅将离开当前这组灵兽。
             </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

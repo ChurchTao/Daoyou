@@ -1,10 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import { BEAST_STARTER_SPECIES } from '@daoyou/game-content/beasts';
-import { generateStarterBeast } from './generator.js';
-import { generateCapturedBeast } from './generator.js';
-import { MailAttachmentSchema } from '../mail/attachments.js';
-import { AuctionSnapshotSchema } from '../auction/items.js';
 import { beastTradePreview } from '@daoyou/game-domain/beasts';
+import { describe, expect, it } from 'vitest';
+import { AuctionSnapshotSchema } from '../auction/items.js';
+import { MailAttachmentSchema } from '../mail/attachments.js';
+import { generateCapturedBeast, generateStarterBeast } from './generator.js';
 import {
   BeastTransferSchema,
   beastAuctionBlockReason,
@@ -70,7 +69,7 @@ describe('灵兽交易资产规则', () => {
         ...lineup,
         carriedBeastIds: [id],
       }),
-    ).toContain('携带');
+    ).toContain('仓库');
     expect(
       beastAuctionBlockReason(starter, owner, 0, {
         ...lineup,

@@ -16,12 +16,13 @@ import {
   type BeastFusionResponse,
   type BeastManagementView,
 } from '@daoyou/contracts/beasts';
+import { BEAST_FUSION } from '@daoyou/game-content/beasts';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import {
   beastFusionMaterialReason,
   beastFusionReason,
 } from '@daoyou/game-rules/beasts/fusion';
-import { BEAST_FUSION } from '@daoyou/game-content/beasts';
+import { carriedBeastIds } from '@daoyou/game-rules/beasts/growth';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { FusionBeastPanel, FusionIdentityTag } from './FusionBeastPanel';
@@ -152,7 +153,12 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
   function acknowledge(openBeast: boolean) {
     if (!result || busy.current) return;
     sessionStorage.removeItem(storageKey);
-    if (openBeast) navigate(`/game/beasts?beast=${result.id}`);
+    if (openBeast)
+      navigate(
+        view && !carriedBeastIds(view.beasts, view.lineup).includes(result.id)
+          ? '/game/beasts/warehouse'
+          : `/game/beasts?beast=${result.id}`,
+      );
     else {
       setRequest(undefined);
       setResult(undefined);
@@ -188,7 +194,10 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
           </p>
           <FusionBeastPanel beast={result} />
           <p className="text-ink-secondary mt-5 text-center text-xs">
-            新灵兽已收入灵兽袋，可继续培养与分配属性。
+            {view &&
+            !carriedBeastIds(view.beasts, view.lineup).includes(result.id)
+              ? '灵兽袋已满，新灵兽已寄入仓库。'
+              : '新灵兽已收入灵兽袋，可继续培养与分配属性。'}
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <InkButton onClick={() => acknowledge(false)}>继续融合</InkButton>
@@ -378,7 +387,7 @@ function FusionWorkspace({ ownerId }: { ownerId: string }) {
             <li>
               将两只普通灵兽分别选入左右两侧。双方须达到{' '}
               <span className="font-mono">{BEAST_FUSION.minimumLevel}</span>{' '}
-              级，符合主人等级与携带要求，并移出携带编组。
+              级，符合主人等级与携带要求，并已存入灵兽仓库。
             </li>
             <li>
               对照资质、成长与技能，点击技能可查看效果。变异灵兽不能参与融合。

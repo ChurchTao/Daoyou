@@ -1,4 +1,34 @@
 import {
+  BeastNameSchema,
+  type BeastFusionRequest,
+  type BeastFusionResponse,
+} from '@daoyou/contracts/beasts';
+import { BEAST_STARTER_SPECIES } from '@daoyou/game-content/beasts';
+import {
+  BeastLineupSchema,
+  beastTradePreview,
+  type BeastLineup,
+  type BeastLocation,
+} from '@daoyou/game-domain/beasts';
+import {
+  beastFusionReason,
+  fuseBeasts,
+} from '@daoyou/game-rules/beasts/fusion';
+import { generateStarterBeast } from '@daoyou/game-rules/beasts/generation';
+import {
+  allocateBeast,
+  BEAST_BAG_CAPACITY,
+  BEAST_WAREHOUSE_CAPACITY,
+  beastRestCost,
+  carriedBeastIds,
+  receivedBeastPlacement,
+  warehouseBeastCount,
+  type BeastAllocationSchema,
+} from '@daoyou/game-rules/beasts/growth';
+import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
+import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
+import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
+import {
   db,
   type DbExecutor,
   type DbTransaction,
@@ -14,42 +44,21 @@ import {
   beastIndividualData,
   readBeastOwner,
   readBeastRoster,
+  saveBeastLineup,
 } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
-import {
-  beastTradePreview,
-  BeastLineupSchema,
-  type BeastLineup,
-} from '@daoyou/game-domain/beasts';
-import {
-  BeastNameSchema,
-  type BeastFusionRequest,
-  type BeastFusionResponse,
-} from '@daoyou/contracts/beasts';
-import { BEAST_STARTER_SPECIES } from '@daoyou/game-content/beasts';
-import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
-import { generateStarterBeast } from '@daoyou/game-rules/beasts/generation';
-import {
-  beastFusionReason,
-  fuseBeasts,
-} from '@daoyou/game-rules/beasts/fusion';
-import {
-  allocateBeast,
-  BEAST_CAPACITY,
-  beastRestCost,
-  type BeastAllocationSchema,
-} from '@daoyou/game-rules/beasts/growth';
+import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
+import { textFilter } from '@server/social/application/textFilter.js';
+import { StoryService } from '@server/story/application/StoryService.js';
 import { and, eq, inArray } from 'drizzle-orm';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
-import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
-import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
-import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
-import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
-import { StoryService } from '@server/story/application/StoryService.js';
-import { textFilter } from '@server/social/application/textFilter.js';
 
-import { assertBeastIdle, BeastError } from '@server/combat/application/BeastMutationGuard.js';
+import {
+  assertBeastIdle,
+  BeastError,
+} from '@server/combat/application/BeastMutationGuard.js';
 export { BeastError } from '@server/combat/application/BeastMutationGuard.js';
 
 async function fusionRecord(
@@ -120,11 +129,34 @@ export async function fuseOwnedBeasts(
       )
       .returning({ id: cultivatorBeasts.id });
     if (removed.length !== 2) throw new BeastError('融合材料已变化');
+    const placement = receivedBeastPlacement(roster.beasts, roster.lineup, [
+      a.id,
+      b.id,
+    ]);
+    if (!placement) throw new BeastError('灵兽袋与仓库都已满');
     await tx.insert(cultivatorBeasts).values({
       id: result.id,
       cultivatorId,
       individual: beastIndividualData(result),
     });
+    if (placement === 'bag') {
+      const carried = carriedBeastIds(roster.beasts, roster.lineup).filter(
+        (id) => id !== a.id && id !== b.id,
+      );
+      await saveBeastLineup(
+        cultivatorId,
+        {
+          carriedBeastIds: [...carried, result.id],
+          leadBeastId:
+            roster.lineup.leadBeastId === a.id ||
+            roster.lineup.leadBeastId === b.id
+              ? undefined
+              : roster.lineup.leadBeastId,
+          revision: roster.lineup.revision + 1,
+        },
+        tx,
+      );
+    }
     await tx.insert(cultivatorBeastFusions).values({
       id: randomUUID(),
       cultivatorId,
@@ -187,8 +219,10 @@ export async function claimStarterBeast(
   const claimed = await mutate(cultivatorId, async (tx) => {
     const roster = await readBeastRoster(cultivatorId, tx);
     if (roster.starterClaimed) return { roster, state: null };
-    if (roster.beasts.length >= BEAST_CAPACITY)
-      throw new BeastError('灵兽持有已满');
+    if (
+      carriedBeastIds(roster.beasts, roster.lineup).length >= BEAST_BAG_CAPACITY
+    )
+      throw new BeastError('灵兽袋已满，请先空出空间');
     const beast = generateStarterBeast(
       randomUUID(),
       cultivatorId,
@@ -200,16 +234,12 @@ export async function claimStarterBeast(
       cultivatorId,
       individual: beastIndividualData(beast),
     });
-    const canCarry = roster.lineup.carriedBeastIds.length < 6;
+    const carried = carriedBeastIds(roster.beasts, roster.lineup);
     const lineup = {
-      carriedBeastIds: canCarry
-        ? [...roster.lineup.carriedBeastIds, beast.id]
-        : roster.lineup.carriedBeastIds,
+      carriedBeastIds: [...carried, beast.id],
       leadBeastId:
         roster.lineup.leadBeastId ??
-        (canCarry && canDeployBeast(beast, roster.ownerLevel)
-          ? beast.id
-          : undefined),
+        (canDeployBeast(beast, roster.ownerLevel) ? beast.id : undefined),
       revision: roster.lineup.revision + 1,
     };
     await tx
@@ -249,6 +279,8 @@ export async function updateBeastLineup(
       )
     )
       throw new BeastError('只能携带自己的灵兽');
+    if (warehouseBeastCount(roster.beasts, lineup) > BEAST_WAREHOUSE_CAPACITY)
+      throw new BeastError('灵兽仓库已满');
     if (
       lineup.leadBeastId &&
       !roster.beasts.some(
@@ -399,6 +431,47 @@ export async function releaseBeast(
       })
       .where(eq(cultivatorBeastLineups.cultivatorId, cultivatorId));
     await tx.delete(cultivatorBeasts).where(eq(cultivatorBeasts.id, id));
+    return readBeastRoster(cultivatorId, tx);
+  });
+}
+
+export async function placeBeast(
+  cultivatorId: string,
+  id: string,
+  revision: number,
+  location: BeastLocation,
+) {
+  return mutate(cultivatorId, async (tx) => {
+    const roster = await readBeastRoster(cultivatorId, tx);
+    const beast = roster.beasts.find((entry) => entry.id === id);
+    if (!beast || beast.revision !== revision)
+      throw new BeastError('灵兽已有变化，请重新查看');
+    const carried = carriedBeastIds(roster.beasts, roster.lineup);
+    const inBag = carried.includes(id);
+    if ((location === 'bag') === inBag) return roster;
+    if (location === 'bag' && carried.length >= BEAST_BAG_CAPACITY)
+      throw new BeastError('灵兽袋已满，请先空出空间');
+    if (
+      location === 'warehouse' &&
+      warehouseBeastCount(roster.beasts, roster.lineup) >=
+        BEAST_WAREHOUSE_CAPACITY
+    )
+      throw new BeastError('灵兽仓库已满');
+    await saveBeastLineup(
+      cultivatorId,
+      {
+        carriedBeastIds:
+          location === 'bag'
+            ? [...carried, id]
+            : carried.filter((value) => value !== id),
+        leadBeastId:
+          location === 'warehouse' && roster.lineup.leadBeastId === id
+            ? undefined
+            : roster.lineup.leadBeastId,
+        revision: roster.lineup.revision + 1,
+      },
+      tx,
+    );
     return readBeastRoster(cultivatorId, tx);
   });
 }

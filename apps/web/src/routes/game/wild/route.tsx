@@ -1,7 +1,7 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import {
+  CombatV6RequestError,
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
@@ -10,6 +10,7 @@ import { useQiState } from '@app/components/feature/cultivator/useQiState';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCondition,
@@ -19,14 +20,18 @@ import {
 } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import { useStory } from '@app/lib/story/useStory';
-import type { WildEncounterView } from '@daoyou/game-domain/wild';
-import type { WildRegionView, WildSessionView } from '@daoyou/contracts/combat/wild';
+import { REALM_ORDER } from '@daoyou/constants/realms';
+import type {
+  WildRegionView,
+  WildSessionView,
+} from '@daoyou/contracts/combat/wild';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import type { WildEncounterView } from '@daoyou/game-domain/wild';
+import { BEAST_BAG_FULL_CAPTURE_MESSAGE } from '@daoyou/game-rules/beasts/growth';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
-import { REALM_ORDER } from '@daoyou/constants/realms';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { WildSeekingScene } from './WildSeekingScene';
 
 async function api<T>(
@@ -58,6 +63,7 @@ function codexReturnHref(state: unknown) {
   return target;
 }
 function WildRegion({ nodeId }: { nodeId: string }) {
+  const navigate = useNavigate();
   const { state } = useLocation();
   const mapHref = resolveMapReturnHref(
     `/game/map-v2?nodeId=${encodeURIComponent(nodeId)}`,
@@ -188,8 +194,20 @@ function WildRegion({ nodeId }: { nodeId: string }) {
         }
       }
     });
-  const start = () =>
-    run(async () => {
+  const bagFullPrompt = () =>
+    openDialog({
+      title: '灵兽袋已满',
+      content: BEAST_BAG_FULL_CAPTURE_MESSAGE,
+      confirmLabel: '前往灵兽袋',
+      cancelLabel: '留下',
+      onConfirm: () => navigate('/game/beasts'),
+    });
+  const start = () => {
+    if (region?.beastBagFull) {
+      bagFullPrompt();
+      return;
+    }
+    return run(async () => {
       const encounter = region?.encounter;
       if (!encounter) return;
       regionRead.current?.abort();
@@ -199,10 +217,20 @@ function WildRegion({ nodeId }: { nodeId: string }) {
             encounterId: encounter.id,
           }),
         );
+      } catch (error) {
+        if (
+          error instanceof CombatV6RequestError &&
+          error.code === 'WILD_BEAST_BAG_FULL'
+        ) {
+          bagFullPrompt();
+          return;
+        }
+        throw error;
       } finally {
         if (alive.current) await reloadRegion();
       }
     });
+  };
   const abandon = () => {
     if (!session) return;
     const closeBattle = () =>

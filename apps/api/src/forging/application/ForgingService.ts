@@ -8,59 +8,38 @@ import type {
   WithdrawVaultPageSchema,
 } from '@daoyou/contracts/forging';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
-import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
+import {
+  consumableFactsOf,
+  INVENTORY_MATERIAL_TYPES,
+  materialFactsOf,
+  MaterialFactsSchema,
+  seedFactsOf,
+  type InventoryItem,
+} from '@daoyou/game-domain/inventory';
+import { buildSpiritFieldSeedMaterialFromPlant } from '@daoyou/game-domain/spirit-field';
 import { generateStarterBeast } from '@daoyou/game-rules/beasts/generation';
 import {
-  BEAST_CAPACITY,
+  BEAST_BAG_CAPACITY,
+  carriedBeastIds,
   gainBeastExp,
   nextBeastExp,
 } from '@daoyou/game-rules/beasts/growth';
+import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
 import {
-  generateForgedEquipment,
   forgingCost,
   forgingInputs,
+  generateForgedEquipment,
   validateForgeWeaponType,
 } from '@daoyou/game-rules/equipment/forging';
-import { buildSpiritFieldSeedMaterialFromPlant } from '@daoyou/game-domain/spirit-field';
-import { storyMarkForSignal } from '@daoyou/game-rules/story';
-import {
-  type InventoryItem,
-  consumableFactsOf,
-  INVENTORY_MATERIAL_TYPES,
-  MaterialFactsSchema,
-  seedFactsOf,
-  materialFactsOf,
-} from '@daoyou/game-domain/inventory';
 import { addItems, itemDefinition } from '@daoyou/game-rules/inventory';
 import { legacyMaterialUnavailableReason } from '@daoyou/game-rules/items/legacy-material';
 import { parseMailAttachments } from '@daoyou/game-rules/mail';
-import { and, asc, count, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
-import { randomInt, randomUUID } from 'node:crypto';
-import type { z } from 'zod';
-import { db, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
-import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
-import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
-import {
-  consumables,
-  cultivatorBeasts,
-  cultivators,
-  inventoryItems,
-  materials,
-} from '@server/lib/drizzle/schema.js';
-import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
-import {
-  beastIndividualData,
-  readBeastOwner,
-} from '@server/lib/repositories/combatV6BeastRepository.js';
-import {
-  findPlayerMutationRequest,
-  lockCultivatorForStateMutation,
-} from '@server/lib/repositories/playerStateRepository.js';
-import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { mapConsumableRow } from '@server/inventory/application/consumablePersistence.js';
-import { readCultivatorName } from '@server/cultivator/facts.js';
+import { storyMarkForSignal } from '@daoyou/game-rules/story';
+import { QiService } from '@server/cultivator/application/QiService.js';
 import { addConsumableToInventoryInTransaction } from '@server/cultivator/application/readers/CultivatorInventoryRepository.js';
+import { readCultivatorName } from '@server/cultivator/facts.js';
 import { generateForgingNarrative } from '@server/forging/application/ForgingNarrativeService.js';
+import { mapConsumableRow } from '@server/inventory/application/consumablePersistence.js';
 import {
   assertInventoryIdle,
   grantInventory,
@@ -68,11 +47,39 @@ import {
   inventoryItemOf,
   saveInventoryPlan,
 } from '@server/inventory/operations.js';
+import {
+  db,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
+import {
+  consumables,
+  cultivatorBeasts,
+  cultivators,
+  inventoryItems,
+  materials,
+} from '@server/lib/drizzle/schema.js';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
+import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
+import {
+  beastIndividualData,
+  readBeastOwner,
+  readBeastRoster,
+  saveBeastLineup,
+} from '@server/lib/repositories/combatV6BeastRepository.js';
+import {
+  findPlayerMutationRequest,
+  lockCultivatorForStateMutation,
+} from '@server/lib/repositories/playerStateRepository.js';
 import { MailService } from '@server/mail/application/MailService.js';
-import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
-import { QiService } from '@server/cultivator/application/QiService.js';
-import { StoryService } from '@server/story/application/StoryService.js';
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
+import { StoryService } from '@server/story/application/StoryService.js';
+import { and, asc, count, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm';
+import { randomInt, randomUUID } from 'node:crypto';
+import type { z } from 'zod';
 
 async function mutate<T>(
   owner: string,
@@ -560,12 +567,10 @@ export async function grantDevResources(input: DevGrant) {
       } else if (grant.type === 'beast') {
         if (!BEAST_SPECIES.some((species) => species.id === grant.speciesId))
           throw new InventoryError('灵兽物种无效');
-        const [held] = await tx
-          .select({ total: count() })
-          .from(cultivatorBeasts)
-          .where(eq(cultivatorBeasts.cultivatorId, input.cultivatorId));
-        if (held.total >= BEAST_CAPACITY)
-          throw new InventoryError('灵兽持有数量已达上限');
+        const roster = await readBeastRoster(input.cultivatorId, tx);
+        const carried = carriedBeastIds(roster.beasts, roster.lineup);
+        if (carried.length >= BEAST_BAG_CAPACITY)
+          throw new InventoryError('灵兽袋已满，请先空出空间');
         const id = randomUUID();
         let starter = generateStarterBeast(
           id,
@@ -590,13 +595,20 @@ export async function grantDevResources(input: DevGrant) {
               skillSlotCapacity: grant.skills.length,
             })
           : starter;
-        await tx
-          .insert(cultivatorBeasts)
-          .values({
-            id,
-            cultivatorId: input.cultivatorId,
-            individual: beastIndividualData(individual),
-          });
+        await tx.insert(cultivatorBeasts).values({
+          id,
+          cultivatorId: input.cultivatorId,
+          individual: beastIndividualData(individual),
+        });
+        await saveBeastLineup(
+          input.cultivatorId,
+          {
+            carriedBeastIds: [...carried, id],
+            leadBeastId: roster.lineup.leadBeastId,
+            revision: roster.lineup.revision + 1,
+          },
+          tx,
+        );
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
         const [row] = await tx

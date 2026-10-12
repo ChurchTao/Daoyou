@@ -1,6 +1,7 @@
 import { db } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
+import { countBagBeasts } from '@server/lib/repositories/combatV6BeastRepository.js';
 import {
   prepareWildBattle,
   readWildSearch,
@@ -9,7 +10,38 @@ import {
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRepository.js';
 
+import { SeededRng } from '@daoyou/combat-core/rng';
+import type { CombatV6TerminalOutboxV1 } from '@daoyou/contracts/combat/runtime';
+import type {
+  WildRuntime,
+  WildSessionView,
+} from '@daoyou/contracts/combat/wild';
+import { type WildRegionView } from '@daoyou/contracts/combat/wild';
+import { DOMAIN_EVENT_DEFINITIONS } from '@daoyou/contracts/events';
+import {
+  getWildRegion,
+  WILD_CONTENT_VERSION,
+} from '@daoyou/game-content/combat/wild';
+import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
+import type {
+  CombatV6TerminalReason,
+  CombatV6TrainingCommandV1,
+} from '@daoyou/game-domain/combat';
+import type { WildSettlement } from '@daoyou/game-domain/wild';
+import {
+  wildEncounterView,
+  type WildEncounter,
+} from '@daoyou/game-domain/wild';
+import {
+  BEAST_BAG_CAPACITY,
+  BEAST_BAG_FULL_CAPTURE_MESSAGE,
+  beastDeathIds,
+  carriedBeastIds,
+} from '@daoyou/game-rules/beasts/growth';
+import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
+import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
 import { automaticCommands } from '@daoyou/game-rules/combat/auto';
+import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
 import {
   combatV6Display,
   combatV6DisplayEvent,
@@ -17,52 +49,35 @@ import {
   combatV6Units,
   visibleUnitNames,
 } from '@daoyou/game-rules/combat/presentation';
-import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
-import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
-import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
-import type {
-  CombatV6TrainingCommandV1,
-  CombatV6TerminalReason,
-} from '@daoyou/game-domain/combat';
-import type { CombatV6TerminalOutboxV1 } from '@daoyou/contracts/combat/runtime';
-import type { WildSettlement } from '@daoyou/game-domain/wild';
-import type { WildRuntime, WildSessionView } from '@daoyou/contracts/combat/wild';
-import { wildEncounterView, type WildEncounter } from '@daoyou/game-domain/wild';
-import { type WildRegionView } from '@daoyou/contracts/combat/wild';
-import { DOMAIN_EVENT_DEFINITIONS } from '@daoyou/contracts/events';
-import { beastDeathIds } from '@daoyou/game-rules/beasts/growth';
-import { SeededRng } from '@daoyou/combat-core/rng';
 import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
 import {
-  getWildRegion,
-  WILD_CONTENT_VERSION,
-} from '@daoyou/game-content/combat/wild';
+  createWildHost,
+  WILD_EXPLORATION_COOLDOWN_MS,
+  WildHost,
+} from '@daoyou/game-rules/combat/wild';
 import {
   generateWildEncounter,
   generateWildIndividual,
 } from '@daoyou/game-rules/combat/wild/generator';
 import {
-  createWildHost,
-  WildHost,
-  WILD_EXPLORATION_COOLDOWN_MS,
-} from '@daoyou/game-rules/combat/wild';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
-import { WILD_DROP_POOLS, wildItemRewards } from '@daoyou/game-rules/rewards/wild';
+  WILD_DROP_POOLS,
+  wildItemRewards,
+} from '@daoyou/game-rules/rewards/wild';
 
 import { REALM_ORDER } from '@daoyou/constants/realms';
-import { eq } from 'drizzle-orm';
-import { createHash, randomInt, randomUUID } from 'node:crypto';
-import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
+import { eq } from 'drizzle-orm';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 
-import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
 import { hasActiveCombat } from '@server/combat/application/CombatOccupancy.js';
+import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
 import { CombatV6RuntimeStore } from '@server/combat/application/CombatV6RuntimeStore.js';
 import { CombatV6WildStore } from '@server/combat/application/CombatV6WildStore.js';
+import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
 
 type Actor = { userId: string; cultivatorId: string };
 export class WildError extends Error {
@@ -189,6 +204,8 @@ export class CombatV6WildSessionService {
           : null,
       settlingBattleId: await store.lock(actor.cultivatorId),
       trainingSessionId: activeTraining?.battleId ?? null,
+      beastBagFull:
+        (await countBagBeasts(actor.cultivatorId, db)) >= BEAST_BAG_CAPACITY,
     };
   }
   private async assertAvailable(actor: Actor) {
@@ -298,6 +315,18 @@ export class CombatV6WildSessionService {
             actor.cultivatorId,
             tx,
           );
+          if (
+            (assembled.player.beasts
+              ? carriedBeastIds(
+                  assembled.player.beasts.beasts,
+                  assembled.player.beasts.lineup,
+                ).length
+              : 0) >= BEAST_BAG_CAPACITY
+          )
+            throw new WildError(
+              'WILD_BEAST_BAG_FULL',
+              BEAST_BAG_FULL_CAPTURE_MESSAGE,
+            );
           if (
             REALM_ORDER[assembled.player.cultivator.realm] <
             REALM_ORDER[region.realmRequirement]
@@ -565,7 +594,10 @@ export class CombatV6WildSessionService {
         host.playerId,
         r.host.input.skills ?? [],
         (id) => host.controlledCommandOptions().find((o) => o.unitId === id)!,
-        { statusDefs: r.host.input.statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
+        {
+          statusDefs: r.host.input.statusDefs,
+          strategies: { [host.playerId]: host.playerAutoStrategy },
+        },
       );
       if (commands.length) host.submitGroup(commands);
     }

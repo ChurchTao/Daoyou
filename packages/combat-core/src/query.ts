@@ -1,18 +1,14 @@
 /**
  * 战场查询。standing = 可出手/可被单体选中；板凳宠不算存活，挡不住灭队。
  */
-import { alliesOf, enemiesOf, unitById } from './unit-query.js';
 import type { BattleContext } from './context.js';
 import { BattlePhase, TargetMode } from './enums.js';
-import { commandBlockReason } from './status.js';
 import { checkSkillRequirements } from './requirements.js';
 import { skillOf } from './skills.js';
+import { commandBlockReason } from './status.js';
 import { isUntargetableBy, poolFor, targetCount } from './targeting.js';
-import type {
-  CombatV6CommandOptions,
-  Unit,
-  UnitId,
-} from './types.js';
+import type { CombatV6CommandOptions, Unit, UnitId } from './types.js';
+import { alliesOf, enemiesOf, unitById } from './unit-query.js';
 import { canCollectCommand, isStanding } from './units.js';
 
 /** UI/Host 只读提示。执行期仍由 action 重新裁定并产生正式失败事件。 */
@@ -59,10 +55,20 @@ export function commandOptions(
     const skillReasons = canSubmit
       ? check.reasons
       : [...reasons, ...check.reasons];
+    const captureFull =
+      !!skill.capture &&
+      ctx.state.units.filter(
+        (candidate) => candidate.flags.capturedBy === unit.id,
+      ).length >= skill.capture.capacity;
+    const commandReasons = captureFull
+      ? [...skillReasons, 'capture-capacity']
+      : skillReasons;
     return [
       {
         skillId,
-        ...((unit.cooldowns?.[skillId] ?? 0) > ctx.state.round ? { cooldownRemaining: unit.cooldowns![skillId] - ctx.state.round } : {}),
+        ...((unit.cooldowns?.[skillId] ?? 0) > ctx.state.round
+          ? { cooldownRemaining: unit.cooldowns![skillId] - ctx.state.round }
+          : {}),
         name: skill.name,
         costs: {
           mp: check.mpCost,
@@ -70,9 +76,12 @@ export function commandOptions(
           resources: check.resourceCosts,
         },
         ready: ctx.rules.deferredPlayerCommands
-          ? canSubmit && targets.length > 0 && !check.reasons.includes('cooldown') && !check.reasons.includes('command-restricted')
-          : skillReasons.length === 0,
-        reasons: [...new Set(skillReasons)],
+          ? canSubmit &&
+            targets.length > 0 &&
+            !check.reasons.includes('cooldown') &&
+            !check.reasons.includes('command-restricted')
+          : commandReasons.length === 0,
+        reasons: [...new Set(commandReasons)],
         selectableTargetIds: targets.map((target) => target.id),
         targetMode: skill.targeting.mode ?? TargetMode.Explicit,
         targetCount: targetCount(unit, skill, 1, ctx),
@@ -83,14 +92,32 @@ export function commandOptions(
     unitId,
     canSubmit,
     reasons,
-    attackTargetIds: (commandBlockReason(ctx, unit, { type: "attack", target: "" }) ? [] : enemies)
+    attackTargetIds: (commandBlockReason(ctx, unit, {
+      type: 'attack',
+      target: '',
+    })
+      ? []
+      : enemies
+    )
       .filter((target) => !isUntargetableBy(ctx, unit, target))
       .map((target) => target.id),
-    protectTargetIds: (commandBlockReason(ctx, unit, { type: "protect", target: "" }) ? [] : allies).map((target) => target.id),
-    canDefend: canSubmit && !commandBlockReason(ctx, unit, { type: "defend" }),
-    canFlee: canSubmit && enemies.length > 0 && !commandBlockReason(ctx, unit, { type: "flee" }),
+    protectTargetIds: (commandBlockReason(ctx, unit, {
+      type: 'protect',
+      target: '',
+    })
+      ? []
+      : allies
+    ).map((target) => target.id),
+    canDefend: canSubmit && !commandBlockReason(ctx, unit, { type: 'defend' }),
+    canFlee:
+      canSubmit &&
+      enemies.length > 0 &&
+      !commandBlockReason(ctx, unit, { type: 'flee' }),
     summonablePets:
-      canSubmit && !commandBlockReason(ctx, unit, { type: 'summon', petId: '' }) && isStanding(unit) && unit.kind === 'player'
+      canSubmit &&
+      !commandBlockReason(ctx, unit, { type: 'summon', petId: '' }) &&
+      isStanding(unit) &&
+      unit.kind === 'player'
         ? ctx.state.units
             .filter(
               (pet) =>
@@ -110,7 +137,8 @@ export function commandOptions(
             }))
         : [],
     canRecall:
-      canSubmit && !commandBlockReason(ctx, unit, { type: "recall" }) &&
+      canSubmit &&
+      !commandBlockReason(ctx, unit, { type: 'recall' }) &&
       isStanding(unit) &&
       unit.kind === 'player' &&
       ctx.state.units.some(
@@ -127,5 +155,12 @@ function stableUnitOrder(a: Unit, b: Unit): number {
 
 /** 场上没有可站立单位即为灭队（倒地、死亡、逃跑、未召唤的板凳宠都不算）。 */
 export {
-  unitById, tryUnit, standingUnits, enemiesOf, alliesOf, firstEnemy, teamWiped, teamFled,
+  alliesOf,
+  enemiesOf,
+  firstEnemy,
+  standingUnits,
+  teamFled,
+  teamWiped,
+  tryUnit,
+  unitById,
 } from './unit-query.js';
