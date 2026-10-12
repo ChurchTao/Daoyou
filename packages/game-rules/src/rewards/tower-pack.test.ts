@@ -82,6 +82,11 @@ describe('幻境逐层奖励', () => {
     expect(
       raw.pools.superiorBooks.entries.every((id) => superior.has(id)),
     ).toBe(true);
+    for (const name of ['flight', 'fortune', 'coordination']) {
+      // This release opens these books in wild drops and the market only.
+      expect(raw.pools.superiorBooks.entries).not.toContain(`book.beast.advanced-${name}`);
+      superior.delete(`book.beast.advanced-${name}`);
+    }
     expect(new Set(raw.pools.superiorBooks.entries)).toEqual(superior);
   });
   it('相同种子可重放，追加奖励分布符合15%、8%、50%', () => {

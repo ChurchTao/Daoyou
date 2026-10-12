@@ -1,8 +1,8 @@
 import type {
+  CombatV6DisplayCatalog,
   CombatV6DisplayEvent,
   CombatV6TrainingUnitViewV1,
   SequencedCombatV6Event,
-  CombatV6DisplayCatalog,
 } from '@daoyou/game-domain/combat';
 type CombatV6Unit = CombatV6TrainingUnitViewV1;
 type SequencedEvent = SequencedCombatV6Event;
@@ -40,7 +40,7 @@ export function reasonText(reason: string) {
     'no-target': '没有合法目标',
     'revived-this-round': '复起当回合无法施展',
     'skill-condition': '当前状态不满足施放条件',
-    'cooldown': '神通尚在冷却中',
+    cooldown: '神通尚在冷却中',
     'hp-requirement': '气血未达到施展要求',
     'insufficient-mp': '法力不足',
     'resource-requirement': '战斗资源不足',
@@ -48,6 +48,7 @@ export function reasonText(reason: string) {
     'not-standing': '当前无法行动',
     'flee-failed': '逃离失败',
     'capture-failed': '捕捉失败',
+    'capture-capacity': '灵兽袋已满，请先空出空间，再继续捕捉。',
     'revive-blocked': '当前无法复起',
     'skill-not-known': '尚未掌握此技能',
     'passive-not-castable': '被动技能无法主动施展',
@@ -204,7 +205,10 @@ export function appendBattleEntries(
           targetName: name(e.targetId),
           amount: e.amount,
           sourceId: e.sourceId,
-          sourceLabel: entry?.actorId && entry.actorId !== e.sourceId ? name(e.sourceId) : undefined,
+          sourceLabel:
+            entry?.actorId && entry.actorId !== e.sourceId
+              ? name(e.sourceId)
+              : undefined,
           damageKind: e.kind,
         };
       case 'heal':

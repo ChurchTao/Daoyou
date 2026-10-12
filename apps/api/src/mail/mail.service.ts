@@ -1,5 +1,7 @@
 import type { SendMailRequest } from '@daoyou/contracts/mail';
+import { LATE_QI_FRIEND_GIFT_DENIED } from '@daoyou/game-rules/progression/realm-access';
 import { Inject, Injectable } from '@nestjs/common';
+import { assertLateQiRefining } from '@server/cultivator/application/lateQiAccess.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
@@ -57,6 +59,13 @@ export class MailService {
   }
 
   async send(actor: ActiveCultivatorRef, input: SendMailRequest) {
+    if (input.attachment) {
+      await assertLateQiRefining(
+        actor.cultivatorId,
+        LATE_QI_FRIEND_GIFT_DENIED,
+        this.database,
+      );
+    }
     return toPlayerStateMutationResponse(
       await this.application.sendCultivatorMail({ actor, ...input }),
     );

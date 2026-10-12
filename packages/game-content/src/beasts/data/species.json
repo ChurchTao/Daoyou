@@ -1,7 +1,7 @@
 {
   "$schema": "./species.schema.json",
   "formatVersion": 2,
-  "contentRevision": 15,
+  "contentRevision": 17,
   "species": [
     {
       "id": "combat.wild.species.spirit-fox",
@@ -43,9 +43,11 @@
         ],
         "candidates": [
           "beast.wisdom",
+          "beast.spell-mastery",
           "beast.meditation"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.rock-boar",
@@ -89,7 +91,8 @@
           "beast.sluggish",
           "beast.strength"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.wind-wolf",
@@ -128,11 +131,13 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-combo",
           "beast.stealth",
           "beast.sneak-attack",
           "beast.agility"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.mimi",
@@ -141,7 +146,7 @@
       "icon": "icon:beast-mimi",
       "description": "银灰虎斑的小灵猫，圆脸短足，胸腹雪白，四爪如穿白袜。常将前爪拢在胸前伏成一团，长尾绕身；灵息稍有异动，便竖耳抬头，以黄绿圆眼凝望来处。",
       "carryLevel": 5,
-      "starter": true,
+      "starter": false,
       "aptitudes": {
         "attack": {
           "min": 780,
@@ -171,11 +176,14 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.agility",
+          "beast.golden-strike",
           "beast.perception",
           "beast.parry",
           "beast.regeneration"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.fire-crow",
@@ -219,7 +227,8 @@
           "beast.meditation",
           "beast.spell-fluctuation"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.red-tail-scorpion",
@@ -257,13 +266,15 @@
       },
       "birthSkills": {
         "core": [
-          "beast.poison"
+          "beast.advanced-poison"
         ],
         "candidates": [
           "beast.sneak-attack",
+          "beast.counter",
           "beast.defense"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.stoneback-bear",
@@ -302,12 +313,14 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-critical",
           "beast.counter",
           "beast.regeneration",
           "beast.strength",
           "beast.sluggish"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.snow-crane",
@@ -346,12 +359,14 @@
       "birthSkills": {
         "core": [],
         "candidates": [
+          "beast.advanced-spell-mastery",
           "beast.miracle",
           "beast.water-attack",
           "beast.wisdom",
           "beast.agility"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.moon-marten",
@@ -393,10 +408,11 @@
         ],
         "candidates": [
           "beast.sneak-attack",
-          "beast.agility",
+          "beast.advanced-agility",
           "beast.perception"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.dark-shell-turtle",
@@ -441,7 +457,8 @@
           "beast.water-attack",
           "beast.regeneration"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.ink-jiao",
@@ -487,7 +504,8 @@
           "beast.meditation",
           "beast.spell-resistance"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.silverwing-mantis",
@@ -531,7 +549,8 @@
           "beast.parry",
           "beast.critical"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.rock-horn-rhino",
@@ -576,7 +595,8 @@
           "beast.perception",
           "beast.barrier-breaker"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.three-legged-golden-toad",
@@ -622,7 +642,8 @@
           "beast.spell-critical",
           "beast.sluggish"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.thunder-peng",
@@ -667,7 +688,8 @@
           "beast.agility",
           "beast.meditation"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.six-eyed-ape",
@@ -708,12 +730,13 @@
           "beast.advanced-perception"
         ],
         "candidates": [
-          "beast.counter",
+          "beast.sweeping-strike",
           "beast.strength",
           "beast.parry",
           "beast.agility"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.ghost-lantern-butterfly",
@@ -760,7 +783,8 @@
           "beast.agility",
           "beast.water-attack"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.nether-tiger",
@@ -805,7 +829,8 @@
           "beast.strength",
           "beast.perception"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.mingshe",
@@ -850,7 +875,8 @@
           "beast.critical",
           "beast.wind-strike"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.shen-clam",
@@ -895,7 +921,8 @@
           "beast.radiant-barrier",
           "beast.meditation"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.qingluan",
@@ -939,7 +966,8 @@
           "beast.regeneration",
           "beast.agility"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.xiezhi",
@@ -984,7 +1012,8 @@
           "beast.reflection",
           "beast.miracle"
         ]
-      }
+      },
+      "rare": false
     },
     {
       "id": "combat.wild.species.nine-tailed-fox",
@@ -1030,7 +1059,8 @@
           "beast.regeneration",
           "beast.unanticipated"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.huodou",
@@ -1076,7 +1106,8 @@
           "beast.wisdom",
           "beast.mind-shatter"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.xuangui",
@@ -1121,7 +1152,8 @@
           "beast.sluggish",
           "beast.spirit-guard"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.zhuyan",
@@ -1166,7 +1198,8 @@
           "beast.counter",
           "beast.perception"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.bifang",
@@ -1208,9 +1241,11 @@
         ],
         "candidates": [
           "beast.advanced-spell-mastery",
-          "beast.agility"
+          "beast.agility",
+          "beast.spirit-surge"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.baize",
@@ -1255,7 +1290,8 @@
           "beast.parry",
           "beast.innate-wisdom"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.qiongqi",
@@ -1299,7 +1335,8 @@
           "beast.agility",
           "beast.bloodthirsty-pursuit"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.taotie",
@@ -1344,7 +1381,8 @@
           "beast.regeneration",
           "beast.defense"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.yinglong",
@@ -1387,9 +1425,11 @@
         "candidates": [
           "beast.advanced-spell-critical",
           "beast.spell-resistance",
-          "beast.regeneration"
+          "beast.regeneration",
+          "beast.wind-pursuit"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.golden-crow",
@@ -1432,9 +1472,11 @@
         "candidates": [
           "beast.advanced-divine-revival",
           "beast.perception",
-          "beast.agility"
+          "beast.agility",
+          "beast.eightfold-flame"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.qilin",
@@ -1478,7 +1520,8 @@
           "beast.falling-rock",
           "beast.auspicious-vitality"
         ]
-      }
+      },
+      "rare": true
     },
     {
       "id": "combat.wild.species.diting",
@@ -1523,7 +1566,8 @@
           "beast.all-seeing",
           "beast.water-attack"
         ]
-      }
+      },
+      "rare": true
     }
   ],
   "generation": {

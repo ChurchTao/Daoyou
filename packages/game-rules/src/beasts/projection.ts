@@ -43,6 +43,8 @@ export function beastPanel(input: SummonedBeast) {
   const b = BeastSchema.parse(input);
   const rule = BEAST_PROGRESSION.panel;
   const a = beastAttributes(b);
+  const activeEffects = activeBeastSkills(b).map(id => BEAST_SKILL_CONTENT.find(skill => skill.id === id)!.effect);
+  const conversion = activeEffects.find(effect => effect.type === 'spiritConversion');
   // Aptitude contributes with level; growth multiplies attributes only.
   // Sum both terms before flooring so fractional contributions are retained.
   const contribution = (
@@ -55,7 +57,7 @@ export function beastPanel(input: SummonedBeast) {
         value * b.growth * term.attributeCoefficient,
     );
   let hp = contribution(a.constitution, 'health', rule.health);
-  const mp = contribution(a.magic, 'mana', rule.mana);
+  const mp = contribution(a.magic * (conversion?.manaContributionFactor ?? 1), 'mana', rule.mana);
   const magicDefAttributes = Object.entries(
     rule.magicDef.attributeCoefficients,
   ).reduce(
@@ -67,6 +69,7 @@ export function beastPanel(input: SummonedBeast) {
     return effect.type === 'speed' ? factor * effect.factor : factor;
   }, 1);
   const training = { physicalAtk: 0, physicalDef: 0, magicAtk: 0, dodge: 0 };
+  const flight = activeEffects.find(effect => effect.type === 'flight');
   for (const id of activeBeastSkills(b)) {
     const effect = BEAST_SKILL_CONTENT.find((skill) => skill.id === id)!.effect;
     if (effect.type === 'perception' || effect.type === 'concentration')
@@ -86,8 +89,8 @@ export function beastPanel(input: SummonedBeast) {
   }
   return {
     ...DEFAULT_ATTRS,
-    hit: 80 + a.agility,
-    dodge: training.dodge,
+    hit: Math.floor((80 + a.agility) * (flight?.hitFactor ?? 1)),
+    dodge: Math.floor(training.dodge * (flight?.dodgeFactor ?? 1)),
     hp,
     maxHp: hp,
     mp,
@@ -98,10 +101,10 @@ export function beastPanel(input: SummonedBeast) {
     physicalDef: Math.max(0,
       contribution(a.endurance, 'defense', rule.physicalDef) +
       training.physicalDef),
-    magicAtk: contribution(a.magic, 'mana', rule.magicAtk) + training.magicAtk,
+    magicAtk: contribution(conversion ? 0 : a.magic, 'mana', rule.magicAtk) + training.magicAtk,
     magicDef: Math.floor(
       b.level * b.aptitudes.mana * rule.magicDef.aptitudeCoefficient +
-        magicDefAttributes * b.growth,
+        magicDefAttributes * b.growth + (conversion ? a.magic * Math.max(0, b.growth - conversion.growthSubtract) : 0),
     ),
     speed: Math.floor(
       contribution(a.agility, 'speed', rule.speed) * speedFactor,
@@ -117,7 +120,8 @@ export function beastCombatFacts(beast: SummonedBeast) {
       ? sum + Math.floor(beast.level * effect.perLevel)
       : sum;
   }, 0);
-  return { isBeast: 1, strength: beastAttributes(beast).strength, defenseTraining };
+  const attributes = beastAttributes(beast);
+  return { isBeast: 1, strength: attributes.strength, magic: attributes.magic, defenseTraining };
 }
 
 export function projectBeastRoster(
@@ -149,6 +153,7 @@ export function projectBeastRoster(
               level: beast.level,
               attrs: beastPanel(beast),
               combatFacts: beastCombatFacts(beast),
+              tags: [`beastSpecies.${beast.speciesId}`],
               skills: activeBeastSkills(beast).filter(
                 (id) =>
                   !BEAST_SKILLS.find((s) => s.id === id)!.tags.includes(

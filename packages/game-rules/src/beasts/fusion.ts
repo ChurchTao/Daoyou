@@ -1,13 +1,16 @@
 import { SeededRng } from '@daoyou/combat-core/rng';
-import { distributeBeastPoints } from './allocation.js';
 import {
-  BEAST_GENERATION,
-  BEAST_SPECIES,
   BEAST_FUSION,
   BEAST_FUSION_VERSION,
+  BEAST_GENERATION,
+  BEAST_SPECIES,
 } from '@daoyou/game-content/beasts';
+import {
+  type BeastLineup,
+  type SummonedBeast,
+} from '@daoyou/game-domain/beasts';
+import { distributeBeastPoints } from './allocation.js';
 import { beastPointBudget } from './identity.js';
-import { type BeastLineup, type SummonedBeast } from '@daoyou/game-domain/beasts';
 import { BeastSchema, GeneratedBeastSchema } from './schema.js';
 
 export function beastFusionMaterialReason(
@@ -29,7 +32,7 @@ export function beastFusionMaterialReason(
     lineup.leadBeastId === beast.id ||
     lineup.carriedBeastIds.includes(beast.id)
   )
-    return '请先移出携带编组并取消首发';
+    return '请先存入灵兽仓库';
   return '';
 }
 export function beastFusionReason(

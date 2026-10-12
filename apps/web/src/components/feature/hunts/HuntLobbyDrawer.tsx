@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { HuntRewardPreview } from './HuntRewardPreview';
 import { huntTargetLabel, notifyHuntTeamChanged } from './huntTeamView';
+import { useHuntBattleNavigation } from './useHuntBattleNavigation';
 import { huntRequest, useHunts } from './useHunts';
 export function HuntLobbyDrawer({
   eventId,
@@ -31,6 +32,7 @@ export function HuntLobbyDrawer({
   const [maxRealm, setMaxRealm] = useState<RealmType>('渡劫');
   const navigate = useNavigate();
   const team = data?.myTeam;
+  useHuntBattleNavigation(team, actorId, refresh);
   const self = team?.members.find((m) => m.cultivatorId === actorId);
   const boss = data && HUNT_BOSSES[data.event.bossId];
   const act = async (url: string, body: unknown, enter = false) => {

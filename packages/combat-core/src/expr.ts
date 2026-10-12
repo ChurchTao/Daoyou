@@ -5,7 +5,7 @@
 import { ATTR_NAMES } from "./constants.js"
 import { ExprFn, ExprVar } from "./enums.js"
 import type { Expr, ExprEnv, Unit } from "./types.js"
-import { effectiveAttrs } from './units.js'
+import { effectiveAttrs, isStanding } from './units.js'
 
 export function evalExpr(expr: Expr | undefined, env: ExprEnv): number {
   if (expr === undefined) return 0
@@ -176,6 +176,12 @@ class Parser {
 
   private lookup(name: string): number {
     if (name.startsWith('hasStatus.')) return this.env.source.statuses.some(s => s.id === name.slice(10)) ? 1 : 0
+    if (name.startsWith('allyDistinctOtherTagCount.')) {
+      const prefix = `${name.slice(26)}.`
+      const own = new Set(this.env.source.tags.filter(tag => tag.startsWith(prefix)))
+      return new Set(this.env.state?.units.filter(unit => unit.side === this.env.source.side && isStanding(unit))
+        .flatMap(unit => unit.tags.filter(tag => tag.startsWith(prefix) && !own.has(tag))) ?? []).size
+    }
     if (name === 'enemyCount') return this.env.state?.units.filter(u => u.side !== this.env.source.side && !u.flags.dead && !u.flags.downed && !u.flags.escaped && !u.flags.benched).length ?? 0
     if (name === 'actionKillsTarget') return this.env.target && this.env.killedTargetIds?.includes(this.env.target.id) ? 1 : 0
     if (name === 'normalTarget') return this.env.target && this.env.normalTargetIds?.includes(this.env.target.id) ? 1 : 0

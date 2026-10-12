@@ -55,6 +55,7 @@ type RetreatCultivatorView = Pick<
   Cultivator,
   | 'id'
   | 'name'
+  | 'gender'
   | 'realm'
   | 'realm_stage'
   | 'age'
@@ -125,6 +126,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         ? {
             id: identity.id,
             name: identity.name,
+            gender: identity.gender,
             realm: identity.realm,
             realm_stage: identity.realm_stage,
             age: identity.age,
@@ -363,6 +365,12 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       actionName: '闭关修炼',
       qiCost: getRetreatQiCost(parsedYears),
       confirmLabel: '入定闭关',
+      details: (
+        <p className={parsedYears >= remainingLifespan ? 'text-crimson' : undefined}>
+          闭关 {parsedYears} 年，消耗等量寿元。当前余寿 {remainingLifespan} 年。
+          {parsedYears >= remainingLifespan ? '此次闭关将耗尽寿元，出关后踏入轮回。' : ''}
+        </p>
+      ),
       onConfirm: async () => {
         try {
           const outcome = await streamRetreatAction({
@@ -388,6 +396,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     pushToast,
     streamRetreatAction,
     retreatYears,
+    remainingLifespan,
   ]);
 
   const handleBreakthroughClick = useCallback(() => {

@@ -46,7 +46,6 @@ describe('beast content packs', () => {
       '烛尾狐',
       '钢背猪',
       '精灵狼',
-      '咪咪',
     ]);
     expect(BOOKS.map((b) => b.skillId)).toEqual(
       skills.skills.filter((s) => s.book).map((s) => s.id),

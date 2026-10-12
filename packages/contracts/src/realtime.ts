@@ -49,6 +49,10 @@ export type RealtimeServerEvent =
       payload: HuntTeamChatMessage;
     }
   | {
+      type: 'hunt-team.started';
+      payload: { teamId: string };
+    }
+  | {
       type: 'ping';
       payload: {
         serverTime: string;

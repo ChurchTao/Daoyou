@@ -93,9 +93,21 @@ export const servicesRoutes = [
       {
         id: 'beasts',
         presentation: 'workflow',
-        summary: '与灵兽结缘，携带出战或安心休养。',
+        summary: '查看随身灵兽，安排首发或安心休养。',
       },
       '灵兽袋',
+    )}
+  />,
+  <Route
+    path="beasts/warehouse"
+    lazy={lazyRoute(() => import('@app/routes/game/beasts/warehouse/route'))}
+    handle={scene(
+      {
+        id: 'beast-warehouse',
+        presentation: 'workflow',
+        summary: '存放暂不出行的灵兽，需要时再取出。',
+      },
+      '灵兽仓库',
     )}
   />,
   <Route

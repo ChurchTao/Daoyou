@@ -146,6 +146,11 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '🐯 灵兽袋',
       },
       {
+        id: 'beast-warehouse',
+        sceneLabel: '灵兽仓库',
+        href: '/game/beasts/warehouse',
+      },
+      {
         id: 'fate-reshape',
         sceneLabel: '重塑命格',
         href: '/game/fate-reshape',

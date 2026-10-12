@@ -14,9 +14,14 @@ import {
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useResourceMutation } from '@app/lib/resources/mutations';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type { FriendCultivatorSummary } from '@daoyou/contracts/friends';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { mailGiftBlockReason } from '@daoyou/game-rules/mail';
+import {
+  hasReachedLateQiRefining,
+  LATE_QI_FRIEND_GIFT_DENIED,
+} from '@daoyou/game-rules/progression/realm-access';
 import { SendMailSchema } from '@daoyou/contracts/mail';
 import { useRef, useState } from 'react';
 
@@ -31,9 +36,15 @@ export function MailComposer({
   onRecipientChange: (id: string) => void;
   onClose: () => void;
 }) {
-  const bagQuery = useInventoryBag();
+  const profile = useCultivatorIdentity();
+  const identity = profile.data?.cultivator;
+  const giftOpen = identity
+    ? hasReachedLateQiRefining(identity.realm, identity.realm_stage)
+    : false;
+  const bagQuery = useInventoryBag(giftOpen);
   const bag = bagQuery.data;
-  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const bagUnavailable =
+    giftOpen && (!bag || bagQuery.isRefreshing || !!bagQuery.error);
   const error = bagQuery.error;
   const [content, setContent] = useState('');
   const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
@@ -61,17 +72,23 @@ export function MailComposer({
     setBagOpen(false);
   }
   async function send() {
-    if (pending.current || bagUnavailable || (selectedRef && !selected)) return;
+    if (pending.current || bagUnavailable || (giftOpen && selectedRef && !selected))
+      return;
+    if (selected && !giftOpen) {
+      pushToast({ message: LATE_QI_FRIEND_GIFT_DENIED, tone: 'warning' });
+      return;
+    }
     const body = {
       recipientCultivatorId: recipientId,
       content: content.trim(),
-      attachment: selected
-        ? {
-            itemId: selected.id,
-            revision: selected.revision,
-            quantity: Number(quantity),
-          }
-        : undefined,
+      attachment:
+        giftOpen && selected
+          ? {
+              itemId: selected.id,
+              revision: selected.revision,
+              quantity: Number(quantity),
+            }
+          : undefined,
     };
     const key = JSON.stringify(body);
     if (attempt.current?.key !== key)
@@ -163,9 +180,11 @@ export function MailComposer({
         }
       }}
       title="发送传音"
-      className="max-w-5xl"
+      className={giftOpen ? 'max-w-5xl' : 'max-w-xl'}
     >
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+      <div
+        className={giftOpen ? 'grid min-w-0 gap-6 lg:grid-cols-2' : 'min-w-0'}
+      >
         <div className="min-w-0 space-y-4 lg:sticky lg:top-0 lg:self-start">
           <InkSelect
             label="收信道友"
@@ -189,53 +208,69 @@ export function MailComposer({
             rows={5}
             disabled={busy}
           />
-          <div className="flex items-center gap-4">
-            <div className="w-20 shrink-0">
-              <ItemSlot
-                className="w-full"
-                item={selected}
-                emptyLabel="选择附件"
-                disabled={busy}
-                onQuickAction={() => setBagOpen(true)}
-              >
-                {(close) => (
-                  <InkButton
-                    disabled={busy || bagUnavailable}
-                    onClick={() => {
-                      setSelected(undefined);
-                      close();
-                    }}
-                  >
-                    移出
-                  </InkButton>
-                )}
-              </ItemSlot>
-            </div>
-            {selected ? (
-              <InkQuantityInput
-                label="数量"
-                max={selected.quantity}
-                value={quantity}
-                onChange={setQuantity}
-                disabled={busy || bagUnavailable}
-              />
+          {!identity ? (
+            profile.loading ? (
+              <p className="text-ink-secondary text-sm">正在确认境界……</p>
             ) : (
-              <span className="text-ink-secondary text-sm">
-                可附带一叠随身物品
-              </span>
-            )}
-          </div>
-          {selectedRef && (
-            <InkButton
-              disabled={busy || bagUnavailable}
-              onClick={() => setSelected(undefined)}
-            >
-              移出附件
-            </InkButton>
+              <InkNotice tone="warning">
+                {profile.error || '角色信息读取失败，暂不能附带物品'}
+              </InkNotice>
+            )
+          ) : giftOpen ? (
+            <>
+              <div className="flex items-center gap-4">
+                <div className="w-20 shrink-0">
+                  <ItemSlot
+                    className="w-full"
+                    item={selected}
+                    emptyLabel="选择附件"
+                    disabled={busy}
+                    onQuickAction={() => setBagOpen(true)}
+                  >
+                    {(close) => (
+                      <InkButton
+                        disabled={busy || bagUnavailable}
+                        onClick={() => {
+                          setSelected(undefined);
+                          close();
+                        }}
+                      >
+                        移出
+                      </InkButton>
+                    )}
+                  </ItemSlot>
+                </div>
+                {selected ? (
+                  <InkQuantityInput
+                    label="数量"
+                    max={selected.quantity}
+                    value={quantity}
+                    onChange={setQuantity}
+                    disabled={busy || bagUnavailable}
+                  />
+                ) : (
+                  <span className="text-ink-secondary text-sm">
+                    可附带一叠随身物品
+                  </span>
+                )}
+              </div>
+              {selectedRef && (
+                <InkButton
+                  disabled={busy || bagUnavailable}
+                  onClick={() => setSelected(undefined)}
+                >
+                  移出附件
+                </InkButton>
+              )}
+              {selectedRef && !selected ? (
+                <p role="alert">附件已变化，请重新选择或移出附件。</p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-ink-secondary text-sm">
+              {LATE_QI_FRIEND_GIFT_DENIED}
+            </p>
           )}
-          {selectedRef && !selected ? (
-            <p role="alert">附件已变化，请重新选择或移出附件。</p>
-          ) : null}
           <p className="text-ink-secondary text-xs">发送消耗一张空白传音符</p>
           <div className="flex justify-end gap-3">
             <InkButton disabled={busy} onClick={onClose}>
@@ -248,7 +283,7 @@ export function MailComposer({
                 !friends.length ||
                 busy ||
                 bagUnavailable ||
-                (!!selectedRef && !selected)
+                (giftOpen && !!selectedRef && !selected)
               }
               onClick={() => void send()}
             >
@@ -256,18 +291,22 @@ export function MailComposer({
             </InkButton>
           </div>
         </div>
-        <section className="hidden min-w-0 lg:block" aria-label="角色物品">
-          {inventory}
-        </section>
+        {giftOpen ? (
+          <section className="hidden min-w-0 lg:block" aria-label="角色物品">
+            {inventory}
+          </section>
+        ) : null}
       </div>
-      <InkDetailDrawer
-        isOpen={bagOpen}
-        onClose={() => setBagOpen(false)}
-        title="随身物品"
-        size="sm"
-      >
-        {inventory}
-      </InkDetailDrawer>
+      {giftOpen ? (
+        <InkDetailDrawer
+          isOpen={bagOpen}
+          onClose={() => setBagOpen(false)}
+          title="随身物品"
+          size="sm"
+        >
+          {inventory}
+        </InkDetailDrawer>
+      ) : null}
     </InkModal>
   );
 }

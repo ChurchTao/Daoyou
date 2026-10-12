@@ -1,85 +1,36 @@
 import type {
   WildEncounterView,
-  WildRuntimeSnapshot,
   WildRegion,
+  WildRuntimeSnapshot,
 } from '@daoyou/game-domain/wild';
-
-
-
-
-
-
-
-
-
-
-
 
 import { z } from 'zod';
 
-
-
 import { type DropPool } from '@daoyou/game-domain/rewards';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 import { type ItemGrant } from '@daoyou/game-domain/inventory';
 
-
-
-
-
-
 import type { CombatV6TrainingSessionViewV1 } from './combatV6.js';
-
-
-
-
-
 
 import type { CombatV6RedisRuntimeV1 } from './combatV6Runtime.js';
 
-
-
 import { CombatV6BattleMetadataV1Schema } from '@daoyou/game-domain/combat/replay';
-
-
 
 export const WildExploreRequestSchema = z
   .object({ nodeId: z.string().min(1).max(100), requestId: z.uuid() })
   .strict();
 
-
-
 export const WildStartRequestSchema = z
   .object({ encounterId: z.uuid() })
   .strict();
-
-
 
 export type WildRegionView = WildRegion & {
   qiCost: number;
   encounter: WildEncounterView | null;
   settlingBattleId: string | null;
   trainingSessionId: string | null;
+  beastBagFull: boolean;
 };
-
-
 
 export type WildRuntime = Omit<
   CombatV6RedisRuntimeV1,
@@ -95,8 +46,6 @@ export type WildRuntime = Omit<
   /** Frozen terminal display; settlement facts may be removed after delivery. */
   itemRewards?: ItemGrant[];
 };
-
-
 
 export type WildSessionView = Omit<
   CombatV6TrainingSessionViewV1,

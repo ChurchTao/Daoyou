@@ -7,19 +7,18 @@ import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTag } from '@app/components/ui/InkTag';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
-import { getLevelRealmStage } from '@daoyou/game-domain/progression';
-import { BEAST_SPECIES, BEAST_PROGRESSION } from '@daoyou/game-content/beasts';
-import {
-  beastPanel,
-  canDeployBeast,
-  beastAttributes,
-} from '@daoyou/game-rules/beasts/projection';
+import { BEAST_PROGRESSION, BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { type SummonedBeast } from '@daoyou/game-domain/beasts';
+import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import {
   allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
   nextBeastExp,
 } from '@daoyou/game-rules/beasts/growth';
+import {
+  beastAttributes,
+  beastPanel,
+} from '@daoyou/game-rules/beasts/projection';
 import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
@@ -59,11 +58,11 @@ export function BeastPanel({
   beast,
   ownerLevel,
   isLead,
-  carried,
-  full,
   pending,
   pendingLineup,
   lineup,
+  withdraw,
+  bagFull,
   act,
   learn,
   refine,
@@ -71,15 +70,17 @@ export function BeastPanel({
   feed,
   rename,
   allocate,
+  store,
+  warehouseFull,
 }: {
   beast: SummonedBeast;
   ownerLevel: number;
   isLead: boolean;
-  carried: boolean;
-  full: boolean;
   pending: boolean;
-  pendingLineup?: 'carry' | 'lead' | 'unlead';
-  lineup: (action: 'carry' | 'lead' | 'unlead') => void;
+  pendingLineup?: 'lead' | 'unlead';
+  lineup: (action: 'lead' | 'unlead') => void;
+  withdraw?: () => void;
+  bagFull?: boolean;
   act: (action: BeastAction) => void;
   learn: () => void;
   refine: () => void;
@@ -87,6 +88,8 @@ export function BeastPanel({
   feed: () => void;
   rename: () => void;
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
+  store?: () => void;
+  warehouseFull?: boolean;
 }) {
   const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
     constitution: 0,
@@ -194,43 +197,50 @@ export function BeastPanel({
             </div>
           </div>
           <div className="col-span-2 grid grid-cols-2 gap-x-2 gap-y-1 @min-[30rem]:mt-2 @min-[44rem]:flex @min-[44rem]:flex-wrap">
-            <div className="flex items-center">
-              <InkButton
-                variant={isLead ? 'secondary' : 'primary'}
-                pending={
-                  pending &&
-                  (pendingLineup === 'lead' || pendingLineup === 'unlead')
-                }
-                disabled={
-                  pending ||
-                  (!isLead &&
-                    (!canDeployBeast(beast, ownerLevel) || (!carried && full)))
-                }
-                onClick={() => lineup(isLead ? 'unlead' : 'lead')}
-              >
-                {isLead ? '取消首发' : '设为首发'}
-              </InkButton>
-              {!isLead && (reason || (!carried && full)) ? (
-                <InkTooltip label="设为首发条件">
-                  {reason ?? '携带灵兽已满（最多6只）'}
-                </InkTooltip>
-              ) : null}
-            </div>
-            <div className="flex items-center">
-              <InkButton
-                variant={carried ? 'secondary' : 'default'}
-                pending={pending && pendingLineup === 'carry'}
-                disabled={pending || (!carried && full)}
-                onClick={() => lineup('carry')}
-              >
-                {carried ? '取消携带' : '携带出战'}
-              </InkButton>
-              {!carried && full ? (
-                <InkTooltip label="携带出战条件">
-                  携带灵兽已满（最多6只）。
-                </InkTooltip>
-              ) : null}
-            </div>
+            {withdraw ? null : (
+              <div className="flex items-center">
+                <InkButton
+                  variant={isLead ? 'secondary' : 'primary'}
+                  pending={
+                    pending &&
+                    (pendingLineup === 'lead' || pendingLineup === 'unlead')
+                  }
+                  disabled={pending || (!isLead && !!reason)}
+                  onClick={() => lineup(isLead ? 'unlead' : 'lead')}
+                >
+                  {isLead ? '取消首发' : '设为首发'}
+                </InkButton>
+                {!isLead && reason ? (
+                  <InkTooltip label="设为首发条件">{reason}</InkTooltip>
+                ) : null}
+              </div>
+            )}
+            {withdraw ? (
+              <div className="flex items-center">
+                <InkButton
+                  variant="primary"
+                  disabled={pending || bagFull}
+                  onClick={withdraw}
+                >
+                  取出到灵兽袋
+                </InkButton>
+                {bagFull ? (
+                  <InkTooltip label="取出条件">
+                    灵兽袋已满，请先空出空间。
+                  </InkTooltip>
+                ) : null}
+              </div>
+            ) : null}
+            {store ? (
+              <div className="flex items-center">
+                <InkButton disabled={pending || warehouseFull} onClick={store}>
+                  存入仓库
+                </InkButton>
+                {warehouseFull ? (
+                  <InkTooltip label="存入仓库条件">灵兽仓库已满。</InkTooltip>
+                ) : null}
+              </div>
+            ) : null}
             <div className="flex items-center">
               <InkButton disabled={pending || capped} onClick={feed}>
                 喂养
@@ -398,7 +408,7 @@ export function BeastPanel({
             reason ? 'text-crimson text-xs' : 'text-ink-secondary text-xs'
           }
         >
-          {reason ?? (full && !carried ? '携带灵兽已满（最多6只）' : '可出战')}
+          {reason ?? (withdraw ? '寄养中' : '可出战')}
         </span>
         <div className="flex items-center gap-1">
           <InkButton

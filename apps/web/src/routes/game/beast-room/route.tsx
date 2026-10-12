@@ -12,6 +12,14 @@ const facilities = [
     appearance: 'facility',
   },
   {
+    id: '/game/beasts/warehouse',
+    sigil: '🛖',
+    name: '灵兽仓库',
+    identity: '寄养之所',
+    responsibility: '存取暂不出行的灵兽',
+    appearance: 'facility',
+  },
+  {
     id: '/game/beasts/codex',
     sigil: '📖',
     name: '灵兽图鉴',
@@ -34,7 +42,7 @@ export default function BeastRoomPage() {
   return (
     <GameSceneFrame variant="workflow">
       <RoomView
-        description="室内灵息温润，灵兽袋旁阵纹流转。可在此照料同行灵兽，翻阅山野图录，也可引两灵相合，孕育新的伙伴。"
+        description="室内灵息温润。可照料随身灵兽，把暂不出行的伙伴寄入仓库，也可翻阅图录、引两灵相合。"
         actors={facilities}
         onSelect={(href) => navigate(href)}
         prompt="选择一处设施进行交互"

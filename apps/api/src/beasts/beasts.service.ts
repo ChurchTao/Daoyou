@@ -2,23 +2,25 @@ import type {
   BeastAllocateRequest,
   BeastFusionRequest,
   BeastLineupRequestSchema,
+  BeastPlaceSchema,
   BeastRenameSchema,
   BeastRestSchema,
 } from '@daoyou/contracts/beasts';
 import { Inject, Injectable } from '@nestjs/common';
-import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
-import type { DbClient } from '@server/lib/drizzle/db.js';
-import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository.js';
 import {
   allocateBeastPoints,
   claimStarterBeast,
   fuseOwnedBeasts,
+  placeBeast,
   readBeastFusion,
   releaseBeast,
   renameBeast,
   restBeast,
   updateBeastLineup,
 } from '@server/combat/application/CombatV6BeastService.js';
+import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
+import type { DbClient } from '@server/lib/drizzle/db.js';
+import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository.js';
 import type { z } from 'zod';
 
 @Injectable()
@@ -72,6 +74,17 @@ export class BeastsService {
     return {
       success: true,
       data: await releaseBeast(owner, input.beastId, input.expectedRevision),
+    };
+  }
+  async place(owner: string, input: z.infer<typeof BeastPlaceSchema>) {
+    return {
+      success: true,
+      data: await placeBeast(
+        owner,
+        input.beastId,
+        input.expectedRevision,
+        input.location,
+      ),
     };
   }
 }

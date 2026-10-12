@@ -4,7 +4,6 @@ import {
   TickKind,
 } from '@daoyou/combat-core/enums';
 import { type StatusDef } from '@daoyou/combat-core/types';
-import { REALM_ORDER } from '@daoyou/constants/realms';
 import { loadBeastPacks } from '@daoyou/game-domain/beasts/authoring';
 import progressionData from './data/progression.json' with { type: 'json' };
 import skillsData from './data/skills.json' with { type: 'json' };
@@ -15,7 +14,7 @@ const packs = loadBeastPacks(speciesData, skillsData, progressionData);
 export const BEAST_SPECIES_REVISION = packs.species.contentRevision;
 export const BEAST_SPECIES = packs.species.species;
 export const BEAST_RARE_SPECIES_IDS: ReadonlySet<string> = new Set(
-  BEAST_SPECIES.filter((s) => REALM_ORDER[s.realm] >= REALM_ORDER['合体']).map(
+  BEAST_SPECIES.filter((s) => s.rare).map(
     (s) => s.id,
   ),
 );
@@ -39,8 +38,22 @@ export const BEAST_COMBO_SKILL_IDS = packs.skills.skills
 export const BEAST_PROGRESSION = packs.progression;
 
 export const BEAST_STATUS_DEFS: StatusDef[] =
-  packs.skills.skills.flatMap<StatusDef>((skill) =>
-    skill.effect.type === 'stealth'
+  packs.skills.skills.flatMap<StatusDef>((skill) => {
+    const effect = skill.effect;
+    if (effect.type === 'spiritSurge') return [{
+      id: `${skill.id}.status`, name: skill.name, kind: 'beast.spirit-surge',
+      category: StatusCategory.Buff, expireSameRound: true,
+      attrMods: { magicAtk: `floor(fact.magic * 10 / ${effect.magicDivisor * 10})` },
+    }];
+    if (effect.type === 'eightfoldFlame') return ['physicalAtk', 'physicalDef', 'speed', 'spirit'].map(attribute => ({
+      id: `${skill.id}.${attribute}`,
+      name: `${skill.name}·${{ physicalAtk: '削攻', physicalDef: '削防', speed: '迟滞', spirit: '扰灵' }[attribute]}`,
+      kind: 'beast.eightfold-weakness', category: StatusCategory.Debuff,
+      attrMods: attribute === 'spirit'
+        ? { magicAtk: `target.magicAtk * -${effect.weakenRatio}`, magicDef: `target.magicDef * -${effect.weakenRatio}` }
+        : { [attribute]: `target.${attribute} * -${effect.weakenRatio}` },
+    }));
+    return skill.effect.type === 'stealth'
       ? [
           {
             id: `${skill.id}.status`,
@@ -90,5 +103,5 @@ export const BEAST_STATUS_DEFS: StatusDef[] =
                   snapshot: true,
                 },
               }]
-            : [],
-  );
+            : [];
+  });

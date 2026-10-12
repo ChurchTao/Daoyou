@@ -1,19 +1,25 @@
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import {
+  BeastLineupSchema,
+  type BeastLineup,
+  type BeastRoster,
+  type SummonedBeast,
+} from '@daoyou/game-domain/beasts';
+import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import type { WildSettlement } from '@daoyou/game-domain/wild';
+import {
+  carriedBeastIds,
+  gainBeastExp,
+  loseBeastLifespan,
+  splitCapturedBeasts,
+} from '@daoyou/game-rules/beasts/growth';
+import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
 import type { DbExecutor } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeastLineups,
   cultivatorBeasts,
   cultivators,
 } from '@server/lib/drizzle/schema.js';
-import type { WildSettlement } from '@daoyou/game-domain/wild';
-import { BeastLineupSchema, type BeastRoster, type SummonedBeast } from '@daoyou/game-domain/beasts';
-import { BeastSchema } from '@daoyou/game-rules/beasts/validation';
-import {
-  loseBeastLifespan,
-  BEAST_CAPACITY,
-  gainBeastExp,
-} from '@daoyou/game-rules/beasts/growth';
-import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
-import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { and, eq, inArray } from 'drizzle-orm';
 
 /** Identity and ownership have a single authority in relational columns. */
@@ -84,25 +90,58 @@ export async function readBeastRoster(
   };
 }
 
+export async function countBagBeasts(cultivatorId: string, tx: DbExecutor) {
+  const roster = await readBeastRoster(cultivatorId, tx);
+  return carriedBeastIds(roster.beasts, roster.lineup).length;
+}
+
+export async function saveBeastLineup(
+  cultivatorId: string,
+  lineup: BeastLineup,
+  tx: DbExecutor,
+) {
+  await tx
+    .insert(cultivatorBeastLineups)
+    .values({ cultivatorId, lineup })
+    .onConflictDoUpdate({
+      target: cultivatorBeastLineups.cultivatorId,
+      set: { lineup },
+    });
+}
+
 /** Caller claims the battle settlement and holds the character lock in this transaction. */
 export async function settleBeastProgress(
   summary: WildSettlement,
   tx: DbExecutor,
 ) {
   const roster = await readBeastRoster(summary.cultivatorId, tx);
-  const captured = summary.capturedBeasts ?? [];
-  if (roster.beasts.length + captured.length > BEAST_CAPACITY)
-    throw new Error('灵兽持有数量超限');
-  for (const individual of captured) {
+  const captured = (summary.capturedBeasts ?? []).map((individual) => {
     const beast = BeastSchema.parse(individual);
     if (beast.ownerCultivatorId !== summary.cultivatorId)
       throw new Error('捕获灵兽归属不符');
+    return beast;
+  });
+  const carried = carriedBeastIds(roster.beasts, roster.lineup);
+  const { bagIds } = splitCapturedBeasts(
+    carried.length,
+    captured.map((beast) => beast.id),
+  );
+  for (const beast of captured)
     await tx.insert(cultivatorBeasts).values({
       id: beast.id,
       cultivatorId: summary.cultivatorId,
       individual: beastIndividualData(beast),
     });
-  }
+  if (bagIds.length)
+    await saveBeastLineup(
+      summary.cultivatorId,
+      {
+        carriedBeastIds: [...carried, ...bagIds],
+        leadBeastId: roster.lineup.leadBeastId,
+        revision: roster.lineup.revision + 1,
+      },
+      tx,
+    );
   if (summary.beastExperience) {
     const reward = summary.beastExperience;
     const beast = roster.beasts.find((b) => b.id === reward.beastId);

@@ -1,4 +1,11 @@
-import { BeastAllocateSchema } from './beasts-input.js';
+import {
+  BeastClaimSchema,
+  BeastFusionRequestSchema,
+  BeastLineupRequestSchema,
+  BeastPlaceSchema,
+  BeastRenameSchema,
+  BeastRestSchema,
+} from '@daoyou/contracts/beasts';
 import {
   Controller,
   Get,
@@ -10,21 +17,15 @@ import {
   Put,
   UseFilters,
 } from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { BeastError } from '@server/combat/application/CombatV6BeastService.js';
-import {
-  BeastClaimSchema,
-  BeastFusionRequestSchema,
-  BeastLineupRequestSchema,
-  BeastRenameSchema,
-  BeastRestSchema,
-} from '@daoyou/contracts/beasts';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { CombatErrors, combatErrorResponse } from '../combat/combat-errors.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { BeastAllocateSchema } from './beasts-input.js';
 import { BeastsService } from './beasts.service.js';
 
 const FusionErrors = apiErrorFilter((error) => {
@@ -121,6 +122,16 @@ export class BeastsController {
     input: z.infer<typeof BeastRenameSchema>,
   ) {
     return this.beasts.rename(actor.cultivatorId, input);
+  }
+
+  @Post('place')
+  @HttpCode(200)
+  place(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(BeastPlaceSchema))
+    input: z.infer<typeof BeastPlaceSchema>,
+  ) {
+    return this.beasts.place(actor.cultivatorId, input);
   }
 
   @Post('release')

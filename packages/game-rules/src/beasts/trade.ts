@@ -1,17 +1,13 @@
 import {
   createBeastTradeSchemas,
-  type BeastTransfer,
   type BeastLineup,
+  type BeastTransfer,
   type SummonedBeast,
 } from '@daoyou/game-domain/beasts';
-export const { BeastTransferSchema, BeastTradePreviewSchema } = createBeastTradeSchemas(BeastSchema);
-
-
-
-
+export const { BeastTransferSchema, BeastTradePreviewSchema } =
+  createBeastTradeSchemas(BeastSchema);
 
 import { BeastSchema } from './schema.js';
-
 
 export function beastAuctionBlockReason(
   beast: SummonedBeast,
@@ -22,13 +18,11 @@ export function beastAuctionBlockReason(
   if (beast.ownerCultivatorId !== owner) return '只能寄售自己的灵兽';
   if (beast.revision !== revision) return '灵兽已有变化，请重新查看';
   if (lineup.leadBeastId === beast.id) return '请先取消灵兽首发';
-  if (lineup.carriedBeastIds.includes(beast.id))
-    return '请先将灵兽移出携带编组';
+  if (lineup.carriedBeastIds.includes(beast.id)) return '请先将灵兽存入仓库';
   if (!BeastSchema.safeParse(beast).success || beast.revision >= 99999)
     return '灵兽个体事实或版本无效';
   return null;
 }
-
 
 export function receiveTradedBeast(
   transfer: BeastTransfer,
@@ -42,7 +36,6 @@ export function receiveTradedBeast(
     revision: valid.individual.revision + 1,
   });
 }
-
 
 /** Whole-mail capacity planning; callers validate attachments before planning. */
 export function planBeastMailClaims<

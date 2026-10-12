@@ -18,6 +18,24 @@ function beastPassiveDescription(skill: SkillDef): string | undefined {
   if (!effect) return;
   const percent = (value: number) => Math.round(value * 100);
   switch (effect.type) {
+    case 'flight':
+      return `命中数值提高 ${percent(effect.hitFactor - 1)}%，躲避数值提高 ${percent(effect.dodgeFactor - 1)}%；受到物理攻击时，对方最终命中概率再降低 ${percent(effect.evasionChance)}%。不影响法术、固定伤害或显式必中攻击，不增加速度。`;
+    case 'fortune':
+      return `受到物理或法术暴击时，暴击的额外伤害降低 ${percent(1 - effect.criticalExtraFactor)}%；基础2倍暴击变为 ${1 + effect.criticalExtraFactor} 倍。不降低暴击概率，不影响招财进宝的专属爆发。`;
+    case 'coordination':
+      return `本方每有一种与自身不同的在场存活灵兽，增加自身等级 ÷ ${effect.levelDivisor} 的物理伤害结果，按异种数合计后向下取整；同种、后备、倒地及离场不计。同时所受封印命中概率提高 ${percent(effect.sealTakenFactor - 1)}%，无异种同伴时也有此代价。`;
+    case 'sweepingStrike':
+      return `消耗当前气血 ${percent(effect.hpRatio)}%（向下取整，至少保留1点气血），必中攻击指定目标及另两名随机敌人。主目标造成普通物理伤害的 ${percent(effect.primaryFactor)}%，次目标各 ${percent(effect.secondaryFactor)}%；不触发普攻连击、毒性或嗜血追击。`;
+    case 'spiritSurge':
+      return `消耗向下取整的自身等级 ÷ ${effect.costMpLevelDivisor} + ${effect.costMpBase} 法力，用一次行动激发灵息；法攻增加完整魔力属性 ÷ ${effect.magicDivisor}，向下取整，持续 ${effect.duration} 回合，施放回合计入。不叠层，重施刷新，可被驱散并受灵效绵长影响；不纳入观照万象攻击组合。`;
+    case 'spiritConversion':
+      return `法防额外增加完整魔力属性 × max(0, 成长 − ${effect.growthSubtract})；魔力不再提供基础法攻，对法力上限的贡献降为 ${percent(effect.manaContributionFactor)}%。保留等级、资质及其他技能的独立贡献，不改变永久属性。`;
+    case 'windPursuit':
+      return `当前有效速度高于目标时，物理、法术与主动固定伤害提高 ${percent(effect.factor - 1)}%，群攻逐目标判断；速度相同不触发，无物种限制。连击、反击等派生打击适用，反震与周期伤害不再次增幅。`;
+    case 'goldenStrike':
+      return `普攻或直接主动物理命中时，有 ${percent(effect.chance)}% 概率造成普通非暴击伤害的 ${effect.factor} 倍，并跳过必杀判定；未触发则正常判定必杀。普攻连击追加可独立触发，反击、追击、反震和善报治疗不触发，不使用元宝特效。`;
+    case 'eightfoldFlame':
+      return `消耗 ${effect.costMp} 法力，法术系数 ${effect.coefficient}，附加威力 ${effect.powerBase} + 技能等级 × ${effect.powerPerLevel}，0级即可攻击至多 ${effect.maxTargets} 名敌人。每个直接命中后有 ${percent(effect.weakenChance)}% 概率随机降低一种属性 ${percent(effect.weakenRatio)}%：物攻、物防、速度或法攻与法防，持续 ${effect.duration} 回合。再次削弱替换类型并刷新，不叠层；可驱散，法术连击追加不再次削弱。`;
     case 'allSeeing':
       return `依随机顺序施展自身已学会的主动攻击技能，不包含观照万象本身。观照万象本身不另耗法力，所调用技能各自按原规则选择目标、消耗法力并结算；法力不足时停止后续施展。冷却 ${effect.cooldownRounds} 回合，无物种或战斗回合门槛。`;
     case 'mountainBreaker':

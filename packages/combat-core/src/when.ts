@@ -67,6 +67,7 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
 
 export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
+  if (when.excludeSpellRepeat && ctx.currentAction?.spellRepeatFactor !== undefined) return false
   if (when.expression !== undefined && !evalExpr(when.expression, { allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false

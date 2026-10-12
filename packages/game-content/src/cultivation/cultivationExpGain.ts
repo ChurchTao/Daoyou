@@ -161,7 +161,12 @@ export const BATTLE_VICTORY_EXP_BUDGET = {
  *   easy 1.0 / normal 1.1 / hard 1.2 / elite 1.3 / boss 1.5
  *
  * 兼容旧 helper 时使用 resultDailyFraction：
- *   perfect -> S, good -> A, normal -> B, failed -> 2% 日预算
+ *   perfect -> S, good -> A, normal -> B, failed -> 5% 日预算
+ *
+ * 环节修为在副本奖励包里另计：探索每轮 8% 日预算，胜战 18% 日预算，
+ * 通关节点本身为 0，结算时再加本表的评级修为。
+ * 五轮、两场胜战、B 级、无危险加成时合计约 111% 日预算，
+ * 与一次 200 年闭关的基础修为同量级。
  *
  * 调参建议：
  * - 想调整 S/A/B/C/D 评级收益，改 tierDailyFraction。
@@ -171,19 +176,32 @@ export const BATTLE_VICTORY_EXP_BUDGET = {
 export const DUNGEON_EXP_BUDGET = {
   minBaseExp: 1,
   tierDailyFraction: {
-    S: 0.32,
-    A: 0.22,
-    B: 0.14,
-    C: 0.08,
-    D: 0.04,
+    S: 0.8,
+    A: 0.55,
+    B: 0.35,
+    C: 0.2,
+    D: 0.1,
   },
   resultDailyFraction: {
-    perfect: 0.32,
-    good: 0.22,
-    normal: 0.14,
-    failed: 0.02,
+    perfect: 0.8,
+    good: 0.55,
+    normal: 0.35,
+    failed: 0.05,
   },
   dangerBonusScale: 0.2,
+} as const;
+
+/**
+ * 组队讨伐首次胜利的修为预算。
+ *
+ * 修为 = BOSS 境界日预算 × dailyFraction × 离线历练同款 0.8~1.2 波动。
+ * 不读取领取者境界。灵石和感悟仍走六小时挂机，不使用这条比例。
+ *
+ * 0.5 使同境界首胜在波动前等于半日预算，约为一整次百余年闭关的基础修为。
+ */
+export const HUNT_EXP_BUDGET = {
+  dailyFraction: 0.5,
+  minBaseExp: 1,
 } as const;
 
 /**

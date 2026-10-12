@@ -1,6 +1,11 @@
-import { z } from 'zod';
-import { BeastLineupSchema, type BeastRoster, type SummonedBeast } from '@daoyou/game-domain/beasts';
 import type { createBeastAllocationSchema } from '@daoyou/game-domain/beasts';
+import {
+  BeastLineupSchema,
+  BeastLocationSchema,
+  type BeastRoster,
+  type SummonedBeast,
+} from '@daoyou/game-domain/beasts';
+import { z } from 'zod';
 export const BeastClaimSchema = z
   .object({ speciesId: z.string().min(1).max(160) })
   .strict();
@@ -11,10 +16,14 @@ export const BeastRestSchema = z
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
-export function createBeastAllocateSchema(BeastAllocationSchema: ReturnType<typeof createBeastAllocationSchema>) {
+export function createBeastAllocateSchema(
+  BeastAllocationSchema: ReturnType<typeof createBeastAllocationSchema>,
+) {
   return BeastRestSchema.extend({ points: BeastAllocationSchema });
 }
-export type BeastAllocateRequest = z.infer<ReturnType<typeof createBeastAllocateSchema>>;
+export type BeastAllocateRequest = z.infer<
+  ReturnType<typeof createBeastAllocateSchema>
+>;
 export const BeastFusionRequestSchema = z
   .strictObject({
     requestId: z.uuid(),
@@ -50,4 +59,7 @@ export const BeastNameSchema = z
   });
 export const BeastRenameSchema = BeastRestSchema.extend({
   name: BeastNameSchema,
+});
+export const BeastPlaceSchema = BeastRestSchema.extend({
+  location: BeastLocationSchema,
 });

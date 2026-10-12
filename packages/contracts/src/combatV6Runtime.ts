@@ -26,7 +26,7 @@ export const COMBAT_V6_REPLAY_SUBJECT = 'daoyou.combat-v6.replay.archive.v1';
 
 export const CombatV6BattleFinishedRecordV1Schema = z
   .object({
-    deadBeastIds: z.array(z.uuid()).max(6).optional(),
+    deadBeastIds: z.array(z.uuid()).max(8).optional(),
     battleId: z.uuid(),
     cultivatorId: z.uuid(),
     metadata: CombatV6BattleMetadataV1Schema,

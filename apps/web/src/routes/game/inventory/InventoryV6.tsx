@@ -1,15 +1,9 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import {
-  getTalismanActionHref,
-  getTalismanActionLabel,
-  isAttributeResetTalisman,
-  isQiRestoreTalisman,
-  isSectMeridianResetTalisman,
-} from '@app/components/feature/consumables';
+import { ConsumableUseActions } from '@app/components/feature/items/ConsumableUseActions';
+import { consumeInventoryItem } from '@app/components/feature/items/consumeInventoryItem';
 import {
   defaultInventoryFilter,
   inventoryFilterActive,
@@ -17,11 +11,11 @@ import {
   type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
-import { InventoryItems } from '@app/components/feature/items/InventoryItems';
+import { BagInventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
@@ -33,19 +27,18 @@ import type {
   DaoEquipmentInstanceV1,
   DaoEquipmentSlot,
 } from '@daoyou/game-domain/equipment';
-import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
 import {
   BAG_CAPACITY,
   type InventorySort,
-  ConsumableFactsSchema,
 } from '@daoyou/game-domain/inventory';
+import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import {
   itemDefinition,
   sortInventoryItems,
 } from '@daoyou/game-rules/inventory';
-import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { EquipmentAction, EquipmentRack } from './EquipmentRack';
 
 const endpoint = '/api/combat-v6/inventory';
@@ -53,6 +46,23 @@ type Item = InventoryView['items'][number];
 type BagAction =
   | Exclude<InventoryAction, { action: 'learn' }>
   | { action: 'use'; id: string; revision: number; quantity?: number };
+
+function inventoryActionMessage(action: BagAction) {
+  if (action.action === 'discard_many')
+    return `已丢弃 ${action.items.length} 件物品。`;
+  if (action.action === 'discard') return '物品已丢弃。';
+  if (action.action === 'transfer_many')
+    return `已将 ${action.items.length} 件物品${action.location === 'bag' ? '取入储物袋' : '存入洞府储藏室'}。`;
+  if (action.action === 'equip')
+    return action.equipped ? '已穿戴道装。' : '已卸下道装。';
+  if (action.action === 'transfer')
+    return action.location === 'bag'
+      ? '物品已取入储物袋。'
+      : '物品已存入洞府储藏室。';
+  if (action.action === 'sort') return '已整理随身物品。';
+  if (action.action === 'use') return '物品已使用。';
+  return '物品已更新。';
+}
 export default function InventoryV6() {
   const identity = useCultivatorIdentity();
   const character = identity.data?.cultivator;
@@ -79,7 +89,7 @@ export default function InventoryV6() {
   const data = location === 'bag' ? bag : storage;
   const [readFailed, setReadFailed] = useState(false);
   const [slotFilter, setSlotFilter] = useState<DaoEquipmentSlot>();
-  const { pushToast } = useInkUI();
+  const { pushToast, openDialog } = useInkUI();
   const [pending, setPending] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const busy = useRef(false);
@@ -138,38 +148,14 @@ export default function InventoryV6() {
     reader.current?.abort();
     try {
       if (action.action === 'use') {
-        await consumeResourceMutation(
-          await apiFetch(
-            '/api/cultivator/consume',
-            mutationBody({
-              consumableId: action.id,
-              revision: action.revision,
-              quantity: action.quantity,
-            }),
-          ),
-        );
+        await consumeInventoryItem(action, action.quantity);
       } else
         await consumeResourceMutation(
           await apiFetch(endpoint, mutationBody(action)),
         );
       if (!mounted.current) return;
       pushToast({
-        message:
-          action.action === 'transfer_many'
-            ? `已将 ${action.items.length} 件物品${action.location === 'bag' ? '取入储物袋' : '存入洞府储藏室'}。`
-            : action.action === 'equip'
-              ? action.equipped
-                ? '已穿戴道装。'
-                : '已卸下道装。'
-              : action.action === 'transfer'
-                ? action.location === 'bag'
-                  ? '物品已取入储物袋。'
-                  : '物品已存入洞府储藏室。'
-                : action.action === 'sort'
-                  ? '已整理随身物品。'
-                  : action.action === 'use'
-                    ? '物品已使用。'
-                    : '物品已更新。',
+        message: inventoryActionMessage(action),
         tone: 'success',
       });
       setSelectedIds(new Set());
@@ -221,6 +207,44 @@ export default function InventoryV6() {
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
+    });
+  }
+  function confirmDiscard(items: Item[]) {
+    if (!items.length || pending) return;
+    const only = items.length === 1 ? items[0] : undefined;
+    openDialog({
+      title: '丢弃物品',
+      content: only ? (
+        <p>
+          丢弃「{only.name}」
+          {only.quantity > 1 ? (
+            <>
+              {' '}
+              <span className="font-mono font-semibold tracking-tight">
+                ×{only.quantity}
+              </span>
+            </>
+          ) : null}
+          ？丢弃后无法找回。
+        </p>
+      ) : (
+        <p>
+          丢弃已选的{' '}
+          <span className="font-mono font-semibold tracking-tight">
+            {items.length}
+          </span>{' '}
+          件物品？丢弃后无法找回。
+        </p>
+      ),
+      confirmLabel: '丢弃',
+      cancelLabel: '留下',
+      onConfirm: () =>
+        only
+          ? act({ action: 'discard', id: only.id, revision: only.revision })
+          : act({
+              action: 'discard_many',
+              items: items.map(({ id, revision }) => ({ id, revision })),
+            }),
     });
   }
   return (
@@ -380,6 +404,12 @@ export default function InventoryV6() {
                           {location === 'bag' ? '存入洞府储藏室' : '取入储物袋'}
                         </span>
                       </InkButton>
+                      <InkButton
+                        disabled={unavailable || !selectedItems.length}
+                        onClick={() => confirmDiscard(selectedItems)}
+                      >
+                        丢弃
+                      </InkButton>
                     </>
                   ) : (
                     <>
@@ -435,11 +465,10 @@ export default function InventoryV6() {
               <p className="text-ink-secondary text-sm">正在查看物品……</p>
             )
           ) : (
-            <InventoryItems
+            <BagInventoryItems
               items={visibleItems}
               location={location}
               compact={location === 'bag' && (filtered || !!sort)}
-              className="w-full grid-cols-5 gap-1.5 md:grid-cols-8 md:gap-1"
               quickTouchHint={selecting}
               slotProps={(entry) => ({
                 disabled: unavailable || (filtered && !entry),
@@ -467,6 +496,10 @@ export default function InventoryV6() {
                           act={async (action) => {
                             await act(action);
                             close();
+                          }}
+                          onDiscard={() => {
+                            close();
+                            confirmDiscard([entry]);
                           }}
                         />
                       )
@@ -518,86 +551,26 @@ function ItemActions({
   item,
   pending,
   act,
+  onDiscard,
   equipped,
   level,
 }: {
   item: Item;
   pending: boolean;
   act: (action: BagAction) => Promise<void>;
+  onDiscard: () => void;
   equipped: Item[];
   level?: number;
 }) {
   const definition = itemDefinition(item.definitionId);
-  const [useQuantity, setUseQuantity] = useState('1');
   const ref = { id: item.id, revision: item.revision };
-  const navigate = useNavigate();
-  const consumable =
-    definition.kind === 'consumable'
-      ? {
-          ...ConsumableFactsSchema.parse(item.instanceData),
-          id: item.id,
-          quantity: item.quantity,
-        }
-      : undefined;
-  const beastFood =
-    consumable &&
-    consumable.spec.kind !== 'talisman' &&
-    consumable.spec.operations.some(
-      (operation) => operation.type === 'gain_beast_cultivation',
-    );
-  const actionHref = beastFood
-    ? '/game/beasts'
-    : consumable && getTalismanActionHref(consumable);
-  const directUse =
-    !beastFood &&
-    consumable &&
-    (consumable.spec.kind !== 'talisman' ||
-      isQiRestoreTalisman(consumable) ||
-      isAttributeResetTalisman(consumable) ||
-      isSectMeridianResetTalisman(consumable));
-  const maxUseQuantity = Math.min(item.quantity, 99);
   return (
     <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-      {item.location === 'bag' &&
-      directUse &&
-      consumable.spec.kind === 'pill' &&
-      item.quantity > 1 ? (
-        <InkQuantityInput
-          label="服用数量"
-          value={useQuantity}
-          onChange={setUseQuantity}
-          max={maxUseQuantity}
-          disabled={pending}
-        />
-      ) : null}
-      {item.location === 'bag' && directUse ? (
-        <InkButton
-          disabled={
-            pending ||
-            (consumable.spec.kind === 'pill' &&
-              (!Number.isInteger(Number(useQuantity)) ||
-                Number(useQuantity) < 1 ||
-                Number(useQuantity) > maxUseQuantity))
-          }
-          onClick={() =>
-            void act({
-              action: 'use',
-              ...ref,
-              quantity:
-                consumable.spec.kind === 'pill' ? Number(useQuantity) : 1,
-            })
-          }
-        >
-          {consumable.spec.kind === 'pill' ? '服用' : '使用'}
-        </InkButton>
-      ) : null}
-      {item.location === 'bag' && consumable && actionHref && !directUse ? (
-        <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
-          {beastFood
-            ? '前往喂养灵兽'
-            : (getTalismanActionLabel(consumable) ?? '前往使用')}
-        </InkButton>
-      ) : null}
+      <ConsumableUseActions
+        item={item}
+        pending={pending}
+        onUse={(quantity) => void act({ action: 'use', ...ref, quantity })}
+      />
       {item.location === 'bag' && definition.kind === 'equipment' ? (
         <EquipmentAction
           item={item}
@@ -624,6 +597,9 @@ function ItemActions({
         }
       >
         {item.location === 'bag' ? '存入' : '取出'}
+      </InkButton>
+      <InkButton disabled={pending || item.equipped} onClick={onDiscard}>
+        丢弃
       </InkButton>
     </div>
   );

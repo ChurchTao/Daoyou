@@ -1,6 +1,6 @@
 {
   "formatVersion": 2,
-  "contentRevision": 5,
+  "contentRevision": 6,
   "stock": {
     "common": {
       "normalBooks": 4,
@@ -196,6 +196,18 @@
       {
         "definitionId": "book.beast.denial",
         "rarity": "common"
+      },
+      {
+        "definitionId": "book.beast.flight",
+        "rarity": "common"
+      },
+      {
+        "definitionId": "book.beast.fortune",
+        "rarity": "common"
+      },
+      {
+        "definitionId": "book.beast.coordination",
+        "rarity": "common"
       }
     ],
     "advanced": [
@@ -363,6 +375,21 @@
         "definitionId": "book.beast.advanced-denial",
         "rarity": "rare",
         "priceTier": 1
+      },
+      {
+        "definitionId": "book.beast.advanced-flight",
+        "rarity": "uncommon",
+        "priceTier": 3
+      },
+      {
+        "definitionId": "book.beast.advanced-fortune",
+        "rarity": "uncommon",
+        "priceTier": 5
+      },
+      {
+        "definitionId": "book.beast.advanced-coordination",
+        "rarity": "uncommon",
+        "priceTier": 3
       }
     ]
   }

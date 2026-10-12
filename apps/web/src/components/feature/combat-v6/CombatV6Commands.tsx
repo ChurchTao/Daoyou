@@ -1,12 +1,16 @@
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import type { CombatV6TrainingCommandV1 } from '@daoyou/game-domain/combat';
 import type { ArenaSessionView } from '@daoyou/contracts/combat/arena';
-import { CAPTURE_SKILL_ID } from '@daoyou/game-rules/beasts/growth';
+import type { CombatV6TrainingCommandV1 } from '@daoyou/game-domain/combat';
+import {
+  BEAST_BAG_FULL_CAPTURE_MESSAGE,
+  CAPTURE_SKILL_ID,
+} from '@daoyou/game-rules/beasts/growth';
+import { reasonText } from '@daoyou/game-rules/combat/log';
 import { useState, type ReactNode } from 'react';
 import { CombatV6PetChoice } from './CombatV6PetChoice';
 import { CombatV6SkillChoice } from './CombatV6SkillChoice';
 import { CombatV6Status } from './CombatV6Status';
-import { reasonText } from '@daoyou/game-rules/combat/log';
 import { skillNeedsTarget } from './presentation';
 import type { CombatV6Session } from './session';
 export type Choice = {
@@ -63,10 +67,12 @@ export function CombatV6Commands({
   blockedReason?: string;
   onRetryCommand?: () => void;
 }) {
+  const { openDialog } = useInkUI();
   const options = session.commandOptions;
   const capture = options?.skills.find(
     (skill) => skill.skillId === CAPTURE_SKILL_ID,
   );
+  const bagFull = capture?.reasons.includes('capture-capacity') ?? false;
   const [category, setCategory] = useState<'spell' | 'art'>();
   const [petsOpen, setPetsOpen] = useState(false);
   const skills =
@@ -219,9 +225,22 @@ export function CombatV6Commands({
             </button>
             {capture ? (
               <button
-                disabled={disabled || !options?.canSubmit || !capture.ready}
+                disabled={
+                  disabled ||
+                  !options?.canSubmit ||
+                  (!capture.ready && !bagFull)
+                }
                 aria-pressed={choice?.skillId === CAPTURE_SKILL_ID}
                 onClick={() => {
+                  if (bagFull) {
+                    openDialog({
+                      title: '灵兽袋已满',
+                      content: BEAST_BAG_FULL_CAPTURE_MESSAGE,
+                      confirmLabel: '知道了',
+                      cancelLabel: null,
+                    });
+                    return;
+                  }
                   if (choice?.skillId === CAPTURE_SKILL_ID) {
                     onCancel();
                     return;

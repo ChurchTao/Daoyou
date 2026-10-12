@@ -1,10 +1,19 @@
-import { expect, it } from 'vitest';
 import { CommandType, DamageKind, EventType } from '@daoyou/combat-core/enums';
 import { createBattle } from '@daoyou/combat-core/session';
-import { createDaoyouRuleset } from '../combat/daoyou/index.js';
-import { COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS } from '@daoyou/game-domain/combat';
 import { BEAST_SKILLS } from '@daoyou/game-content/beasts';
-import { captureMp, captureSkill, nextBeastExp } from './progression.js';
+import { COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS } from '@daoyou/game-domain/combat';
+import { expect, it } from 'vitest';
+import { createDaoyouRuleset } from '../combat/daoyou/index.js';
+import {
+  BEAST_BAG_CAPACITY,
+  captureMp,
+  captureSkill,
+  carriedBeastIds,
+  nextBeastExp,
+  receivedBeastPlacement,
+  splitCapturedBeasts,
+  warehouseBeastCount,
+} from './progression.js';
 
 it.each([
   [10, 110],
@@ -96,9 +105,93 @@ it('preserves capture identity, MP costs, formula and progression boundaries', (
     captureSkill(
       [{ unitId: 'fox', speciesId: 'combat.wild.species.spirit-fox' }],
       4,
-      24,
+      BEAST_BAG_CAPACITY,
     ).capture,
   ).toMatchObject({ capacity: 0, targetMpCosts: {} });
+  expect(
+    captureSkill(
+      [{ unitId: 'fox', speciesId: 'combat.wild.species.spirit-fox' }],
+      5,
+      BEAST_BAG_CAPACITY - 1,
+    ).capture?.capacity,
+  ).toBe(1);
+  expect(
+    carriedBeastIds([{ id: 'carried' }, { id: 'stored' }], {
+      carriedBeastIds: ['carried', 'missing'],
+    }),
+  ).toEqual(['carried']);
+  expect(
+    warehouseBeastCount([{ id: 'carried' }, { id: 'stored' }], {
+      carriedBeastIds: ['carried'],
+    }),
+  ).toBe(1);
+  expect(
+    splitCapturedBeasts(BEAST_BAG_CAPACITY - 1, ['fit', 'overflow', 'rest']),
+  ).toEqual({ bagIds: ['fit'], warehouseIds: ['overflow', 'rest'] });
+  expect(splitCapturedBeasts(BEAST_BAG_CAPACITY, ['kept'])).toEqual({
+    bagIds: [],
+    warehouseIds: ['kept'],
+  });
+  expect(
+    receivedBeastPlacement(
+      [{ id: 'a' }, { id: 'b' }],
+      { carriedBeastIds: [] },
+      ['a', 'b'],
+    ),
+  ).toBe('bag');
+  expect(
+    receivedBeastPlacement(
+      [
+        ...Array.from({ length: BEAST_BAG_CAPACITY }, (_, index) => ({
+          id: `bag-${index}`,
+        })),
+        { id: 'stored' },
+      ],
+      {
+        carriedBeastIds: Array.from(
+          { length: BEAST_BAG_CAPACITY },
+          (_, index) => `bag-${index}`,
+        ),
+      },
+      ['stored'],
+    ),
+  ).toBe('warehouse');
   expect(captureMp(5)).toBe(15);
   expect([0, 10, 179, 180].map(nextBeastExp)).toEqual([100, 350, 19700, 19900]);
+});
+
+it('tells the command query when the beast bag has no capture room', () => {
+  const capture = captureSkill(
+    [{ unitId: 'fox', speciesId: 'combat.wild.species.spirit-fox' }],
+    30,
+    BEAST_BAG_CAPACITY,
+  );
+  const battle = createBattle({
+    seed: 1,
+    versions: COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS,
+    ruleset: createDaoyouRuleset(),
+    skills: [capture],
+    units: [
+      {
+        id: 'player',
+        name: '修士',
+        side: 0,
+        kind: 'player',
+        skills: [capture.id],
+        attrs: { hp: 100, mp: 100, maxMp: 100, speed: 10 },
+      },
+      {
+        id: 'fox',
+        name: '狐',
+        side: 1,
+        kind: 'npc',
+        attrs: { hp: 100, maxHp: 100, speed: 1 },
+      },
+    ],
+  });
+  const option = battle
+    .queryCommands('player')
+    .skills.find((skill) => skill.skillId === capture.id);
+  expect(option?.ready).toBe(false);
+  expect(option?.reasons).toContain('capture-capacity');
 });

@@ -4,6 +4,19 @@ import type { ComponentProps } from 'react';
 import { InventoryGrid, ItemSlot } from './ItemSlot';
 
 type Item = InventoryView['items'][number];
+
+/** Shared bag geometry for management and filtered in-scene consumption. */
+export function BagInventoryItems(
+  props: Omit<ComponentProps<typeof InventoryItems>, 'className'>,
+) {
+  return (
+    <InventoryItems
+      {...props}
+      className="w-full grid-cols-5 gap-1.5 md:grid-cols-8 md:gap-1"
+    />
+  );
+}
+
 /** Bag positions and item previews have one owner across management and selection flows. */
 export function InventoryItems({
   items,

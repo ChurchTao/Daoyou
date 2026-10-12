@@ -13,8 +13,17 @@ import { findItemDefinition } from '@daoyou/game-content/items';
 
 import { REWARDS_HUNT_DATA as raw } from '@daoyou/game-content/rewards/hunt';
 
+import {
+  HUNT_EXP_BUDGET,
+  OFFLINE_YIELD_EXP_BUDGET,
+  REALM_DAILY_EXP_BUDGET,
+} from '@daoyou/game-content/cultivation';
+
+import { calculateCultivationExpByDailyBudget } from '../cultivation/exp-gain.js';
+
 export const HuntRewardSnapshotSchema =
   createHuntRewardSnapshotSchema(ItemGrantSchema);
+/** Spirit stones and insight stay on this offline curve. Cultivation exp uses HUNT_EXP_BUDGET. */
 export const HUNT_REWARD_HOURS = 6;
 
 export const HuntDropPoolSchema = DropPoolSchema.superRefine((pool, ctx) => {
@@ -43,7 +52,11 @@ export const HuntDropPoolSchema = DropPoolSchema.superRefine((pool, ctx) => {
 
 export const HUNT_DROP_POOL = HuntDropPoolSchema.parse(raw);
 
-/** Six hours at the BOSS realm's middle stage, independent of the recipient's realm. */
+/**
+ * Stones and insight: six hours at the BOSS realm's middle stage.
+ * Cultivation exp: half of that realm's daily budget, with the offline 0.8–1.2 roll.
+ * Neither uses the recipient's realm.
+ */
 export function planHuntReward(
   event: Pick<HuntEvent, 'realm'>,
   random: (stream: string) => () => number,
@@ -53,13 +66,22 @@ export function planHuntReward(
     { realm: event.realm, realmStage: '中期', hoursElapsed: HUNT_REWARD_HOURS },
     random('hunt.resources:1'),
   );
+  const expRoll = random('hunt.exp:1')();
+  const experience = calculateCultivationExpByDailyBudget({
+    dailyBudget: REALM_DAILY_EXP_BUDGET[event.realm],
+    sourceDailyFraction: HUNT_EXP_BUDGET.dailyFraction,
+    sourceMultiplier:
+      OFFLINE_YIELD_EXP_BUDGET.randomFactor.min +
+      expRoll * OFFLINE_YIELD_EXP_BUDGET.randomFactor.range,
+    minBaseExp: HUNT_EXP_BUDGET.minBaseExp,
+  }).baseExp;
   const drops = rollDrops(pool, (group) =>
     random(`${pool.id}:${pool.version}:${group}`),
   );
   return {
     poolId: drops.poolId,
     poolVersion: drops.version,
-    experience: resources.find((r) => r.type === 'cultivation_exp')?.value ?? 0,
+    experience,
     spiritStones: resources.find((r) => r.type === 'spirit_stones')?.value ?? 0,
     insight:
       resources.find((r) => r.type === 'comprehension_insight')?.value ?? 0,

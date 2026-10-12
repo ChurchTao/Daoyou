@@ -1,19 +1,25 @@
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
-import { cultivatorBeasts } from '@server/lib/drizzle/schema.js';
-import { beastIndividualData } from '@server/lib/repositories/combatV6BeastRepository.js';
+import type { MailAttachment } from '@daoyou/game-domain/mail';
+import {
+  BEAST_BAG_CAPACITY,
+  carriedBeastIds,
+} from '@daoyou/game-rules/beasts/growth';
 import {
   BeastTransferSchema,
   planBeastMailClaims,
   receiveTradedBeast,
 } from '@daoyou/game-rules/beasts/trade';
-import { BEAST_CAPACITY } from '@daoyou/game-rules/beasts/growth';
-import type { MailAttachment } from '@daoyou/game-domain/mail';
-import { count, eq } from 'drizzle-orm';
 import {
   assertBeastIdle,
   BeastError,
   beastMutationOccupied,
 } from '@server/combat/application/BeastMutationGuard.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { cultivatorBeasts } from '@server/lib/drizzle/schema.js';
+import {
+  beastIndividualData,
+  readBeastRoster,
+  saveBeastLineup,
+} from '@server/lib/repositories/combatV6BeastRepository.js';
 
 function beastTransfers(attachments: MailAttachment[]) {
   return attachments
@@ -24,11 +30,11 @@ function beastTransfers(attachments: MailAttachment[]) {
     });
 }
 async function freeSlots(owner: string, tx: DbTransaction) {
-  const [row] = await tx
-    .select({ count: count() })
-    .from(cultivatorBeasts)
-    .where(eq(cultivatorBeasts.cultivatorId, owner));
-  return Math.max(0, BEAST_CAPACITY - row.count);
+  const roster = await readBeastRoster(owner, tx);
+  return Math.max(
+    0,
+    BEAST_BAG_CAPACITY - carriedBeastIds(roster.beasts, roster.lineup).length,
+  );
 }
 
 /** Called while the owning player command holds the character lock and transaction. */
@@ -42,6 +48,8 @@ export async function deliverMailBeasts(
   await assertBeastIdle(owner);
   if (transfers.length > (await freeSlots(owner, tx)))
     throw new BeastError('灵兽袋已满，请腾出位置后再领取；附件仍会保留');
+  const roster = await readBeastRoster(owner, tx);
+  const carried = carriedBeastIds(roster.beasts, roster.lineup);
   for (const transfer of transfers) {
     const beast = receiveTradedBeast(transfer, owner);
     await tx.insert(cultivatorBeasts).values({
@@ -50,7 +58,17 @@ export async function deliverMailBeasts(
       individual: beastIndividualData(beast),
       createdAt: new Date(transfer.createdAt),
     });
+    carried.push(beast.id);
   }
+  await saveBeastLineup(
+    owner,
+    {
+      carriedBeastIds: carried,
+      leadBeastId: roster.lineup.leadBeastId,
+      revision: roster.lineup.revision + 1,
+    },
+    tx,
+  );
   return ['beasts'];
 }
 

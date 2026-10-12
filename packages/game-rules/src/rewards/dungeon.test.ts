@@ -185,9 +185,12 @@ describe('秘境额外养成奖励', () => {
       blueprint: 0,
     };
     const upper = new Set(DUNGEON_REWARD_PACK.superiorBooks);
-    expect(upper).toEqual(
-      new Set([...BEAST_SUPERIOR_BOOK_SKILL_IDS].map((id) => `book.${id}`)),
-    );
+    const eligible = new Set([...BEAST_SUPERIOR_BOOK_SKILL_IDS].map(id => `book.${id}`));
+    for (const name of ['flight', 'fortune', 'coordination']) {
+      expect(upper.has(`book.beast.advanced-${name}`)).toBe(false);
+      eligible.delete(`book.beast.advanced-${name}`);
+    }
+    expect(upper).toEqual(eligible);
     for (const book of DUNGEON_REWARD_PACK.books)
       expect(book.weight).toBe(upper.has(book.rewardId) ? 4 : 24);
     const bookWeight = DUNGEON_REWARD_PACK.books.reduce(
@@ -325,8 +328,8 @@ describe('秘境分环节资源奖励', () => {
       context,
     );
     const battle = planDungeonStepResources(1, 'battle:1', 'battle', context);
-    expect(exploration.experience).toBe(30);
-    expect(battle.experience).toBe(75);
+    expect(exploration.experience).toBe(80);
+    expect(battle.experience).toBe(180);
     expect(exploration.spiritStones).toBeGreaterThanOrEqual(52);
     expect(exploration.spiritStones).toBeLessThanOrEqual(130);
     expect(battle.spiritStones).toBeGreaterThanOrEqual(104);
@@ -359,7 +362,7 @@ describe('秘境分环节资源奖励', () => {
     expect(first).toEqual(
       planDungeonStepResources(9, 'battle:1', 'battle', high),
     );
-    expect(first.experience).toBe(5197);
+    expect(first.experience).toBe(12474);
     expect(lowDanger.experience).toBeGreaterThan(
       planDungeonStepResources(9, 'battle:1', 'battle', context).experience,
     );

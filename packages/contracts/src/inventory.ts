@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import {
-  BAG_CAPACITY,
-  type InventoryItem,
-  INVENTORY_SORT_VALUES,
-  INVENTORY_MATERIAL_TYPES,
-} from '@daoyou/game-domain/inventory';
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import {
+  BAG_CAPACITY,
+  INVENTORY_MATERIAL_TYPES,
+  INVENTORY_SORT_VALUES,
+  type InventoryItem,
+} from '@daoyou/game-domain/inventory';
+import { z } from 'zod';
 const ref = {
   id: z.string().min(1).max(160),
   revision: z.number().int().nonnegative(),
@@ -97,6 +97,20 @@ export const InventoryActionSchema = z.discriminatedUnion('action', [
             new Set(items.map((item) => item.id)).size === items.length,
         ),
       location: z.enum(['bag', 'storage']),
+    })
+    .strict(),
+  z.object({ action: z.literal('discard'), ...ref }).strict(),
+  z
+    .object({
+      action: z.literal('discard_many'),
+      items: z
+        .array(z.object(ref).strict())
+        .min(1)
+        .max(BAG_CAPACITY)
+        .refine(
+          (items) =>
+            new Set(items.map((item) => item.id)).size === items.length,
+        ),
     })
     .strict(),
   z

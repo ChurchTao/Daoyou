@@ -1,6 +1,6 @@
 import { BUILTIN_SKILL_ID } from '@daoyou/combat-core/constants';
 import { DamageKind, DamageOrigin, EffectType, FormulaFamily, HookAim, HookName, SkillTag, StatusCategory, StatusFlag, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
-import { type SkillDef } from '@daoyou/combat-core/types';
+import { type SkillDef, type SkillEffect } from '@daoyou/combat-core/types';
 import type { BeastSkillContent } from '@daoyou/game-domain/beasts/authoring';
 
 export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
@@ -24,6 +24,49 @@ export function compileBeastSkill(entry: BeastSkillContent): SkillDef {
     effects: [],
   };
   switch (e.type) {
+    case 'flight':
+      return { ...passive, hooks: [{ on: HookName.OnHitRoll, targetIsSelf: true, requireKind: DamageKind.Physical, effects: [{ type: EffectType.ModifyChance, factor: 1 - e.evasionChance }] }] };
+    case 'fortune':
+      return { ...passive, innate: { criticalExtraTakenFactor: e.criticalExtraFactor } };
+    case 'coordination':
+      return {
+        ...passive, innate: { sealHitTakenFactor: e.sealTakenFactor },
+        modifiers: [{ damageAdd: `floor(level * allyDistinctOtherTagCount.beastSpecies / ${e.levelDivisor})`, when: { requireKind: DamageKind.Physical } }],
+      };
+    case 'sweepingStrike':
+      return {
+        ...identity, costHp: `hp * ${e.hpRatio}`, tags: [SkillTag.Physical], formula: FormulaFamily.Physical,
+        targeting: { side: TargetSide.Enemy, mode: TargetMode.Fill, count: 3, maxSelected: 1, randomFill: true },
+        effects: [
+          { type: EffectType.PhysicalHit, resultFactors: [e.primaryFactor], cannotMiss: true, when: { targetSlot: 'primary' } },
+          { type: EffectType.PhysicalHit, resultFactors: [e.secondaryFactor], cannotMiss: true, when: { targetSlot: 'secondary' } },
+        ],
+      };
+    case 'spiritSurge':
+      return {
+        ...identity, costMp: `floor(level / ${e.costMpLevelDivisor}) + ${e.costMpBase}`, tags: [SkillTag.Spell],
+        targeting: { side: TargetSide.Self },
+        effects: [{ type: EffectType.ApplyStatus, statusId: `${entry.id}.status`, duration: e.duration }],
+      };
+    case 'spiritConversion':
+      return passive;
+    case 'windPursuit':
+      return { ...passive, modifiers: [DamageKind.Physical, DamageKind.Spell, DamageKind.Fixed].map(kind => ({ damageResultFactor: e.factor, when: { requireKind: kind, expression: 'effective.speed > targetEffective.speed', ...(kind === DamageKind.Fixed ? { damageOrigins: [DamageOrigin.ActionDirect] } : {}) } })) };
+    case 'goldenStrike':
+      return { ...passive, innate: { physicalBurst: { chance: e.chance, factor: e.factor, derivedSkillIds: ['beast.combo', 'beast.advanced-combo'] } } };
+    case 'eightfoldFlame': {
+      const statuses = ['physicalAtk', 'physicalDef', 'speed', 'spirit'];
+      let choice: SkillEffect[] = [{ type: EffectType.ApplyStatus, statusId: `${entry.id}.${statuses[3]}`, duration: e.duration }];
+      for (let index = 2; index >= 0; index--) {
+        choice = [{ type: EffectType.RandomBranch, branchId: `${entry.id}.weakness.${index}`, chance: 1 / (statuses.length - index), successEffects: [{ type: EffectType.ApplyStatus, statusId: `${entry.id}.${statuses[index]}`, duration: e.duration }], failureEffects: choice }];
+      }
+      return {
+        ...identity, costMp: e.costMp, tags: [SkillTag.Spell], formula: FormulaFamily.Spell,
+        targeting: { side: TargetSide.Enemy, mode: TargetMode.Fill, count: e.maxTargets },
+        effects: [{ type: EffectType.SpellHit, coeff: e.coefficient, power: `${e.powerBase} + skillLevel * ${e.powerPerLevel}` }],
+        hooks: [{ on: HookName.AfterStrike, sourceIsSelf: true, requireKind: DamageKind.Spell, chance: e.weakenChance, when: { excludeSpellRepeat: true, skillIds: [entry.id], targetHpRatioAbove: 0 }, aim: HookAim.HookTarget, effects: choice }],
+      };
+    }
     case 'allSeeing':
       return {
         ...identity,

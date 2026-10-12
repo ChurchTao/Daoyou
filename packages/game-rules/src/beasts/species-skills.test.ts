@@ -22,12 +22,12 @@ it.each([
   },
 );
 
-it('减少必带物种，同时保留六目灵猿和幽冥虎的完整出生表', () => {
+it('减少必带物种，六目灵猿以横扫替换反击候选，保留幽冥虎出生表', () => {
   const find = (name: string) => BEAST_SPECIES.find((s) => s.name === name)!;
   expect(find('六目灵猿').birthSkills).toEqual({
     core: ['beast.advanced-perception'],
     candidates: [
-      'beast.counter',
+      'beast.sweeping-strike',
       'beast.strength',
       'beast.parry',
       'beast.agility',

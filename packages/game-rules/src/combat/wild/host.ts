@@ -6,9 +6,13 @@ import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
 
 import { projectBeastRoster } from '../../beasts/projection.js';
 
-import { captureSkill } from '../../beasts/progression.js';
+import { captureSkill, carriedBeastIds } from '../../beasts/progression.js';
 
-import { activeBeastSkills, beastCombatFacts, beastPanel } from '../../beasts/projection.js';
+import {
+  activeBeastSkills,
+  beastCombatFacts,
+  beastPanel,
+} from '../../beasts/projection.js';
 
 import { SkillTag, UnitKind } from '@daoyou/combat-core/enums';
 
@@ -31,7 +35,6 @@ import { projectCharacterToCombatV6 } from '../projection/project-character.js';
 
 import { daoyouRulesetV6 } from '../daoyou/index.js';
 
-
 import { type WildIndividual } from '@daoyou/game-domain/wild';
 
 import { WildIndividualSchema } from './generator.js';
@@ -40,9 +43,7 @@ export { type WildCombatant } from '@daoyou/game-domain/wild';
 
 export { generateWildEncounter } from './generator.js';
 
-
 export const WILD_VERSIONS = COMBAT_V6_SEAL_CURVE_WILD_VERSIONS;
-
 
 export class WildHost extends CombatV6PveHostSession {
   constructor(
@@ -83,7 +84,6 @@ export class WildHost extends CombatV6PveHostSession {
     };
   }
 }
-
 
 export function createWildHost(
   nodeId: string,
@@ -136,7 +136,7 @@ export function createWildHost(
         c.beast.skills.map((id) => [id, c.level]),
       ),
       passives: active.filter(isPassive),
-      tags: [],
+      tags: [`beastSpecies.${c.beast.speciesId}`],
     });
     strategies[c.unitId] = skills.length
       ? { type: 'skill-rotation', skillIds: skills }
@@ -151,7 +151,9 @@ export function createWildHost(
   const capture = captureSkill(
     combatants,
     projected.unit.level!,
-    player.beasts?.beasts.length ?? 0,
+    player.beasts
+      ? carriedBeastIds(player.beasts.beasts, player.beasts.lineup).length
+      : 0,
   );
   projected.unit.skills = [...(projected.unit.skills ?? []), capture.id];
   return new WildHost({

@@ -27,6 +27,7 @@ export const BeastSpeciesPackShape = z.strictObject({
         icon: z.string().min(1).max(32),
         description: z.string().min(1).max(300),
         starter: z.boolean(),
+        rare: z.boolean(),
         birthSkills: z.strictObject({
           core: z.array(skillId).max(2),
           candidates: z.array(skillId).max(6),
@@ -65,6 +66,15 @@ export const BeastSkillsPackShape = z.strictObject({
         flavorText: z.string().trim().min(1).max(200),
         icon: z.string().trim().min(1).max(64),
         effect: z.discriminatedUnion('type', [
+          z.strictObject({ type: z.literal('flight'), hitFactor: number.positive(), dodgeFactor: number.positive(), evasionChance: probability }),
+          z.strictObject({ type: z.literal('fortune'), criticalExtraFactor: probability }),
+          z.strictObject({ type: z.literal('coordination'), levelDivisor: number.positive(), sealTakenFactor: number.positive() }),
+          z.strictObject({ type: z.literal('sweepingStrike'), hpRatio: probability, primaryFactor: number.positive(), secondaryFactor: number.positive() }),
+          z.strictObject({ type: z.literal('spiritSurge'), magicDivisor: number.positive(), costMpBase: integer, costMpLevelDivisor: integer.min(1), duration: integer.min(1).max(99) }),
+          z.strictObject({ type: z.literal('spiritConversion'), growthSubtract: number, manaContributionFactor: probability }),
+          z.strictObject({ type: z.literal('windPursuit'), factor: number.positive() }),
+          z.strictObject({ type: z.literal('goldenStrike'), chance: probability, factor: number.positive() }),
+          z.strictObject({ type: z.literal('eightfoldFlame'), costMp: integer, coefficient: number.positive(), powerBase: integer, powerPerLevel: number, maxTargets: integer.min(1).max(10), weakenChance: probability, weakenRatio: probability, duration: integer.min(1).max(99) }),
           z.strictObject({
             type: z.literal('groupSpell'),
             costMp: integer,

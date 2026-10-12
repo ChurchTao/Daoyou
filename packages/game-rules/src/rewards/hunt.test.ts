@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { YieldCalculator } from '../yield/YieldCalculator.js';
+import { calculateCultivationExpByDailyBudget } from '../cultivation/exp-gain.js';
 import { HUNT_REALMS, huntEventsAt } from '../hunts/config.js';
 import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@daoyou/game-content/rewards/dungeon';
-import { HUNT_DROP_POOL, HuntDropPoolSchema, planHuntReward } from './hunt.js';
+import {
+  HUNT_EXP_BUDGET,
+  OFFLINE_YIELD_EXP_BUDGET,
+  REALM_DAILY_EXP_BUDGET,
+} from '@daoyou/game-content/cultivation';
+import {
+  HUNT_DROP_POOL,
+  HUNT_REWARD_HOURS,
+  HuntDropPoolSchema,
+  planHuntReward,
+} from './hunt.js';
 
 describe('讨伐奖励', () => {
   it('奖励档位跟随目标境界；渡劫目标不会降为金丹档奖励', () => {
@@ -21,25 +32,39 @@ describe('讨伐奖励', () => {
     expect(tribulation.insight).toBe(gold.insight);
     expect(tribulation.items).toEqual(gold.items);
   });
-  it.each(HUNT_REALMS)('%s 的三项基础资源与六小时挂机算法一致', (realm) => {
-    for (const roll of [0, 0.49, 0.999999]) {
-      const actual = planHuntReward({ realm }, () => () => roll);
-      const expected = YieldCalculator.calculateCultivatorYield(
-        { realm, realmStage: '中期', hoursElapsed: 6 },
-        () => roll,
-      );
-      expect(actual.experience).toBe(
-        expected.find((r) => r.type === 'cultivation_exp')?.value ?? 0,
-      );
-      expect(actual.spiritStones).toBe(
-        expected.find((r) => r.type === 'spirit_stones')?.value ?? 0,
-      );
-      expect(actual.insight).toBe(
-        expected.find((r) => r.type === 'comprehension_insight')?.value ?? 0,
-      );
-      expect(actual.materialCount).toBe(2);
-    }
-  });
+  it.each(HUNT_REALMS)(
+    '%s 的灵石感悟仍按六小时挂机，修为按讨伐日预算',
+    (realm) => {
+      for (const roll of [0, 0.49, 0.999999]) {
+        const actual = planHuntReward({ realm }, () => () => roll);
+        const expected = YieldCalculator.calculateCultivatorYield(
+          { realm, realmStage: '中期', hoursElapsed: HUNT_REWARD_HOURS },
+          () => roll,
+        );
+        const randomFactor =
+          OFFLINE_YIELD_EXP_BUDGET.randomFactor.min +
+          roll * OFFLINE_YIELD_EXP_BUDGET.randomFactor.range;
+        expect(actual.experience).toBe(
+          calculateCultivationExpByDailyBudget({
+            dailyBudget: REALM_DAILY_EXP_BUDGET[realm],
+            sourceDailyFraction: HUNT_EXP_BUDGET.dailyFraction,
+            sourceMultiplier: randomFactor,
+            minBaseExp: HUNT_EXP_BUDGET.minBaseExp,
+          }).baseExp,
+        );
+        expect(actual.experience).toBeGreaterThan(
+          expected.find((r) => r.type === 'cultivation_exp')?.value ?? 0,
+        );
+        expect(actual.spiritStones).toBe(
+          expected.find((r) => r.type === 'spirit_stones')?.value ?? 0,
+        );
+        expect(actual.insight).toBe(
+          expected.find((r) => r.type === 'comprehension_insight')?.value ?? 0,
+        );
+        expect(actual.materialCount).toBe(2);
+      }
+    },
+  );
   it('概率道具为空时仍有保底；灵印、灵露可同时命中', () => {
     const event = huntEventsAt(100000)[0];
     const empty = planHuntReward(event, () => () => 0.99);
