@@ -103,7 +103,7 @@ export const dailyRoutes = [
     handle={scene(
       {
         id: 'retreat',
-        summary: '在静室闭关修炼，准备好后可尝试冲关。',
+        summary: '收拢心神，在此静修或冲关。',
       },
       '静室修行',
     )}

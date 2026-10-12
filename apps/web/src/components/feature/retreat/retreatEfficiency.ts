@@ -30,6 +30,7 @@ export interface RetreatEfficiencyModel {
   isValidYears: boolean;
   retreatTags: RetreatBuffTag[];
   breakthroughTags: RetreatBuffTag[];
+  bottleneckActive: boolean;
   hasCultivationBoost: boolean;
   lifespanCost: number;
   qiCost: number;
@@ -134,21 +135,13 @@ export function buildRetreatEfficiencyModel(input: {
     Boolean(progress?.exp_cap) &&
     ((progress?.cultivation_exp ?? 0) / (progress?.exp_cap ?? 1)) * 100 >=
       BOTTLENECK_THRESHOLD;
-  if (bottleneckActive) {
-    retreatTags.push({
-      key: 'bottleneck',
-      icon: '⛰️',
-      label: '瓶颈',
-      value: '闭关放缓',
-      tone: 'warning',
-    });
-  }
 
   return {
     years,
     isValidYears,
     retreatTags,
     breakthroughTags,
+    bottleneckActive,
     hasCultivationBoost: Boolean(boostStatus),
     lifespanCost: safeYears,
     qiCost: safeYears > 0 ? getRetreatQiCost(safeYears) : 0,

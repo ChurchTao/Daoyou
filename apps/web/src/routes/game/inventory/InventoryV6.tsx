@@ -1,15 +1,9 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
-import {
-  getTalismanActionHref,
-  getTalismanActionLabel,
-  isAttributeResetTalisman,
-  isQiRestoreTalisman,
-  isSectMeridianResetTalisman,
-} from '@app/components/feature/consumables';
+import { ConsumableUseActions } from '@app/components/feature/items/ConsumableUseActions';
+import { consumeInventoryItem } from '@app/components/feature/items/consumeInventoryItem';
 import {
   defaultInventoryFilter,
   inventoryFilterActive,
@@ -17,11 +11,11 @@ import {
   type InventoryFilter,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { InventoryFilters } from '@app/components/feature/items/InventoryFilters';
-import { InventoryItems } from '@app/components/feature/items/InventoryItems';
+import { BagInventoryItems } from '@app/components/feature/items/InventoryItems';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
@@ -33,19 +27,18 @@ import type {
   DaoEquipmentInstanceV1,
   DaoEquipmentSlot,
 } from '@daoyou/game-domain/equipment';
-import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
 import {
   BAG_CAPACITY,
   type InventorySort,
-  ConsumableFactsSchema,
 } from '@daoyou/game-domain/inventory';
+import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import {
   itemDefinition,
   sortInventoryItems,
 } from '@daoyou/game-rules/inventory';
-import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { EquipmentAction, EquipmentRack } from './EquipmentRack';
 
 const endpoint = '/api/combat-v6/inventory';
@@ -138,16 +131,7 @@ export default function InventoryV6() {
     reader.current?.abort();
     try {
       if (action.action === 'use') {
-        await consumeResourceMutation(
-          await apiFetch(
-            '/api/cultivator/consume',
-            mutationBody({
-              consumableId: action.id,
-              revision: action.revision,
-              quantity: action.quantity,
-            }),
-          ),
-        );
+        await consumeInventoryItem(action, action.quantity);
       } else
         await consumeResourceMutation(
           await apiFetch(endpoint, mutationBody(action)),
@@ -435,11 +419,10 @@ export default function InventoryV6() {
               <p className="text-ink-secondary text-sm">正在查看物品……</p>
             )
           ) : (
-            <InventoryItems
+            <BagInventoryItems
               items={visibleItems}
               location={location}
               compact={location === 'bag' && (filtered || !!sort)}
-              className="w-full grid-cols-5 gap-1.5 md:grid-cols-8 md:gap-1"
               quickTouchHint={selecting}
               slotProps={(entry) => ({
                 disabled: unavailable || (filtered && !entry),
@@ -528,76 +511,14 @@ function ItemActions({
   level?: number;
 }) {
   const definition = itemDefinition(item.definitionId);
-  const [useQuantity, setUseQuantity] = useState('1');
   const ref = { id: item.id, revision: item.revision };
-  const navigate = useNavigate();
-  const consumable =
-    definition.kind === 'consumable'
-      ? {
-          ...ConsumableFactsSchema.parse(item.instanceData),
-          id: item.id,
-          quantity: item.quantity,
-        }
-      : undefined;
-  const beastFood =
-    consumable &&
-    consumable.spec.kind !== 'talisman' &&
-    consumable.spec.operations.some(
-      (operation) => operation.type === 'gain_beast_cultivation',
-    );
-  const actionHref = beastFood
-    ? '/game/beasts'
-    : consumable && getTalismanActionHref(consumable);
-  const directUse =
-    !beastFood &&
-    consumable &&
-    (consumable.spec.kind !== 'talisman' ||
-      isQiRestoreTalisman(consumable) ||
-      isAttributeResetTalisman(consumable) ||
-      isSectMeridianResetTalisman(consumable));
-  const maxUseQuantity = Math.min(item.quantity, 99);
   return (
     <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-      {item.location === 'bag' &&
-      directUse &&
-      consumable.spec.kind === 'pill' &&
-      item.quantity > 1 ? (
-        <InkQuantityInput
-          label="服用数量"
-          value={useQuantity}
-          onChange={setUseQuantity}
-          max={maxUseQuantity}
-          disabled={pending}
-        />
-      ) : null}
-      {item.location === 'bag' && directUse ? (
-        <InkButton
-          disabled={
-            pending ||
-            (consumable.spec.kind === 'pill' &&
-              (!Number.isInteger(Number(useQuantity)) ||
-                Number(useQuantity) < 1 ||
-                Number(useQuantity) > maxUseQuantity))
-          }
-          onClick={() =>
-            void act({
-              action: 'use',
-              ...ref,
-              quantity:
-                consumable.spec.kind === 'pill' ? Number(useQuantity) : 1,
-            })
-          }
-        >
-          {consumable.spec.kind === 'pill' ? '服用' : '使用'}
-        </InkButton>
-      ) : null}
-      {item.location === 'bag' && consumable && actionHref && !directUse ? (
-        <InkButton disabled={pending} onClick={() => navigate(actionHref)}>
-          {beastFood
-            ? '前往喂养灵兽'
-            : (getTalismanActionLabel(consumable) ?? '前往使用')}
-        </InkButton>
-      ) : null}
+      <ConsumableUseActions
+        item={item}
+        pending={pending}
+        onUse={(quantity) => void act({ action: 'use', ...ref, quantity })}
+      />
       {item.location === 'bag' && definition.kind === 'equipment' ? (
         <EquipmentAction
           item={item}

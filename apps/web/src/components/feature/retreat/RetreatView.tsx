@@ -1,3 +1,4 @@
+import { PillQuickbar } from '@app/components/feature/items/PillQuickbar';
 import {
   GameSceneFrame,
   GameSceneLoading,
@@ -5,21 +6,24 @@ import {
   GameSceneSection,
   GameSceneTabs,
 } from '@app/components/game-shell';
-import { InkButton, InkInput, InkNotice } from '@app/components/ui';
-import { COMPREHENSION_INSIGHT_CAP } from '@daoyou/game-content/cultivation';
-import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
+import { GameSceneHelpButton } from '@app/components/game-shell/GameSceneSection';
+import { InkButton, InkNotice } from '@app/components/ui';
+import { GameIcon } from '@app/components/ui/GameIcon';
+import { InkNodeSlider } from '@app/components/ui/InkNodeSlider';
+import {
+  BOTTLENECK_EXP_PENALTY,
+  BOTTLENECK_THRESHOLD,
+  BREAKTHROUGH_MIN_PROGRESS,
+  NORMAL_BREAKTHROUGH_THRESHOLD,
+  PERFECT_BREAKTHROUGH_INSIGHT,
+} from '@daoyou/game-content/cultivation';
 import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
-import type { TaskInstance } from '@daoyou/game-domain/tasks';
-
-import { cn } from '@app/lib/cn';
+import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
+import { getNextStage } from '@daoyou/game-rules/cultivation';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
-import type {
-  RetreatBuffTag,
-  RetreatEfficiencyModel,
-} from './retreatEfficiency';
+import type { RetreatBuffTag } from './retreatEfficiency';
 import { RetreatResultModal } from './RetreatResultModal';
 import {
   useRetreatViewModel,
@@ -28,31 +32,160 @@ import {
 } from './useRetreatViewModel';
 
 const COMPREHENSION_LABEL = getGameConceptLabel('comprehension_insight');
+const RETREAT_YEARS = [10, 20, 50, 100, 200] as const;
+const BREAKTHROUGH_TYPES = {
+  forced: { label: '强行突破', color: 'text-crimson' },
+  normal: { label: '常规突破', color: 'text-teal' },
+  perfect: { label: '圆满突破', color: 'text-amber-700' },
+};
+const BOTTLENECK_REDUCTION = (1 - BOTTLENECK_EXP_PENALTY) * 100;
 
-function BreakthroughLabel({
-  type,
-}: {
-  type: 'forced' | 'normal' | 'perfect' | null;
-}) {
-  if (!type) return null;
+function getBreakthroughTypeText(type: 'forced' | 'normal' | 'perfect' | null) {
+  return type ? BREAKTHROUGH_TYPES[type].label : null;
+}
+
+function BottleneckHelpContent() {
   return (
-    <span
-      className={cn([
-        type === 'perfect' && 'text-red-500',
-        type === 'normal' && 'text-blue-500',
-        type === 'forced' && 'text-green-500',
-      ])}
-    >
-      {getBreakthroughTypeText(type)}
-    </span>
+    <div className="space-y-2 text-sm leading-7">
+      <p>
+        修为达到当前阶段上限的{' '}
+        <span className="font-mono">{BOTTLENECK_THRESHOLD}%</span>{' '}
+        时，道基渐满，进入瓶颈。
+      </p>
+      <p>
+        瓶颈期间，闭关获得的修为降低{' '}
+        <span className="font-mono">{BOTTLENECK_REDUCTION}%</span>
+        ，感悟收益不受这项衰减影响。继续闭关仍可积累，也可通过历练积累修为与感悟，准备突破。
+      </p>
+      <p>
+        瓶颈随当前修为判断；突破进入下一阶段，或修为降至门槛以下后，便不再受这项衰减影响。
+      </p>
+    </div>
   );
 }
 
-function getBreakthroughTypeText(type: 'forced' | 'normal' | 'perfect' | null) {
-  if (type === 'perfect') return '圆满突破';
-  if (type === 'normal') return '常规突破';
-  if (type === 'forced') return '强行突破';
-  return null;
+function RetreatProgress({
+  progress,
+  bottleneckActive,
+}: {
+  progress: CultivationProgressData | null;
+  bottleneckActive: boolean;
+}) {
+  if (!progress) return null;
+  return (
+    <div className="space-y-2 text-sm" aria-live="polite">
+      <div className="flex items-baseline justify-between gap-2">
+        <span>修为</span>
+        <span className="text-ink-secondary font-mono text-xs">
+          {progress.cultivation_exp.toLocaleString('zh-CN')} /{' '}
+          {progress.exp_cap.toLocaleString('zh-CN')}
+        </span>
+        <span className="font-mono">{progress.percent}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="修为进度"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.min(100, progress.percent)}
+        className="bg-ink/10 h-0.5"
+      >
+        <div
+          className="bg-teal h-full"
+          style={{ width: `${Math.min(100, progress.percent)}%` }}
+        />
+      </div>
+      {bottleneckActive ? (
+        <div className="text-wood flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-6">
+          <span className="inline-flex items-center gap-1.5">
+            <GameIcon value="⛰️" />
+            <span>
+              瓶颈 · 闭关修为收益降低{' '}
+              <span className="font-mono">{BOTTLENECK_REDUCTION}%</span>
+            </span>
+          </span>
+          <GameSceneHelpButton
+            help={{
+              title: '什么是瓶颈',
+              label: '为何',
+              content: <BottleneckHelpContent />,
+            }}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RetreatHelpContent() {
+  return (
+    <div className="space-y-4 text-sm leading-7">
+      <p>
+        闭关积累修为与感悟。选择年限后入定，将消耗所选年限的寿元，并耗费天地灵气，具体消耗在确认时核对。
+      </p>
+      <BottleneckHelpContent />
+      <p>
+        养元药力可提高闭关修为收益；已生效的助益显示在修为进度下方，可从随身丹药栏查看药效并服用。
+      </p>
+    </div>
+  );
+}
+
+function BreakthroughReadiness({
+  progress,
+}: {
+  progress: CultivationProgressData | null;
+}) {
+  if (!progress) return null;
+  const type =
+    progress.breakthroughType && BREAKTHROUGH_TYPES[progress.breakthroughType];
+  return (
+    <div className="space-y-2" aria-live="polite">
+      <p
+        className={`text-lg font-medium ${type ? type.color : 'text-ink-secondary'}`}
+      >
+        {type ? type.label : '火候未至'}
+      </p>
+      <p className="text-ink-secondary flex flex-wrap gap-x-4 gap-y-1 text-xs leading-6">
+        <span>
+          修为 <span className="font-mono">{progress.percent}%</span>
+        </span>
+        <span>
+          {COMPREHENSION_LABEL}{' '}
+          <span className="font-mono">{progress.comprehension_insight}</span>
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function BreakthroughWarnings({
+  preview,
+}: {
+  preview: BreakthroughChancePreviewData | null;
+}) {
+  const risks =
+    preview?.factors.filter(
+      (factor) => factor.key === 'inner-demon' || factor.key === 'toxicity',
+    ) ?? [];
+  if (!risks.length) return null;
+  return (
+    <div
+      aria-label="冲关隐患"
+      className="text-crimson space-y-1 text-xs leading-6"
+    >
+      {risks.map((risk) => (
+        <p key={risk.key} className="flex items-center gap-1.5">
+          <GameIcon value={risk.key === 'inner-demon' ? '👁️' : '☠️'} />
+          <span>
+            {risk.key === 'inner-demon'
+              ? '心魔扰动，突破成功率降低。'
+              : '丹毒未散，突破成功率降低。'}
+          </span>
+        </p>
+      ))}
+    </div>
+  );
 }
 
 export function BreakthroughHelpContent({
@@ -76,31 +209,32 @@ export function BreakthroughHelpContent({
           : isMajorBreakthrough && majorBreakthroughBlocked
             ? `你当前的火候已摸到「${currentTypeText ?? '突破'}」，但这是跨大境界冲关，仍需先补齐破境前置。`
             : currentTypeText
-              ? `你当前的眼下火候是「${currentTypeText}」。若决定冲关，确认时再看那一刻的成败推演。`
+              ? `当前火候为「${currentTypeText}」。确认冲关时可查看成功率与风险。`
               : '突破火候会随着修为与感悟变化，决定你此刻适合怎样起手。'}
       </p>
 
       <div className="space-y-3">
         <div>
-          <p className="text-ink font-medium">强行突破</p>
+          <p className="text-crimson font-medium">强行突破</p>
           <p className="text-ink-secondary">
-            修为达到 60%
+            修为达到 {BREAKTHROUGH_MIN_PROGRESS}%
             后即可尝试。此时只是勉强摸到门槛，适合在寿元紧迫或不得不赌一把时起手，风险最高。
           </p>
         </div>
 
         <div>
-          <p className="text-ink font-medium">常规突破</p>
+          <p className="text-teal font-medium">常规突破</p>
           <p className="text-ink-secondary">
-            修为达到 80%
+            修为达到 {NORMAL_BREAKTHROUGH_THRESHOLD}%
             后即可尝试。根基比强行突破更稳，通常是大多数修士会考虑出手的火候。
           </p>
         </div>
 
         <div>
-          <p className="text-ink font-medium">圆满突破</p>
+          <p className="font-medium text-amber-700">圆满突破</p>
           <p className="text-ink-secondary">
-            修为达到 100%，且{COMPREHENSION_LABEL}至少达到 50
+            修为达到 100%，且{COMPREHENSION_LABEL}至少达到{' '}
+            {PERFECT_BREAKTHROUGH_INSIGHT}
             时方可成形。此时火候最足，往往是最稳妥的破关时机。
           </p>
         </div>
@@ -116,322 +250,24 @@ export function BreakthroughHelpContent({
   );
 }
 
-function RetreatSummaryEntry({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
+function ActiveMedicine({ tags }: { tags: RetreatBuffTag[] }) {
+  if (!tags.length) return null;
   return (
-    <div className="min-w-0">
-      <dt className="text-battle-muted text-[0.72rem] tracking-[0.18em]">
-        {label}
-      </dt>
-      <dd className="text-ink mt-1 text-base leading-7">{value}</dd>
-      <div className="text-ink-secondary mt-1 text-xs leading-6">{note}</div>
-    </div>
-  );
-}
-
-function RetreatBuffTags({
-  tags,
-  emptyHint,
-  showShortcuts = true,
-}: {
-  tags: RetreatBuffTag[];
-  emptyHint?: string | null;
-  showShortcuts?: boolean;
-}) {
-  if (tags.length === 0 && !emptyHint) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+    <div
+      aria-label="当前修行助益"
+      aria-live="polite"
+      className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-6"
+    >
       {tags.map((tag) => (
         <span
           key={tag.key}
-          className={cn(
-            'border-ink/15 bg-bgpaper/70 inline-flex max-w-full items-center gap-1.5 border border-dashed px-2 py-1 text-xs leading-5',
-            tag.tone === 'positive' && 'border-emerald-700/25 text-emerald-800',
-            tag.tone === 'warning' && 'border-wood/35 text-wood',
-          )}
+          className={`inline-flex items-center gap-1.5 ${tag.tone === 'warning' ? 'text-wood' : 'text-teal'}`}
         >
-          <span aria-hidden="true">{tag.icon}</span>
-          <span className="truncate">{tag.label}</span>
-          {tag.value ? <span className="font-mono">{tag.value}</span> : null}
+          <GameIcon value={tag.icon} />
+          <span>{tag.label}</span>
+          <span className="font-mono">{tag.value}</span>
         </span>
       ))}
-      {emptyHint ? (
-        <span className="text-ink-secondary inline-flex items-center gap-1.5 text-xs leading-5">
-          <span aria-hidden="true">🌿</span>
-          <span>{emptyHint}</span>
-          {showShortcuts ? (
-            <>
-              <InkButton href="/game/cave/storage" variant="ghost">
-                背包
-              </InkButton>
-              <InkButton href="/game/craft/alchemy" variant="ghost">
-                炼丹
-              </InkButton>
-            </>
-          ) : null}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-type RetreatSceneTab = 'retreat' | 'breakthrough';
-
-function getRetreatLeadText({
-  isMajorBreakthrough,
-  majorBreakthroughBlocked,
-}: {
-  isMajorBreakthrough: boolean;
-  majorBreakthroughBlocked: boolean;
-}) {
-  if (isMajorBreakthrough && majorBreakthroughBlocked) {
-    return '石门一合，静室里只余炉火与回声。破境前置尚未补齐时，闭关更像是收拢气息，静待下一次起手。';
-  }
-
-  if (isMajorBreakthrough) {
-    return '炉火已稳，卷宗也已齐备。若暂不冲关，也可先把这一段静坐坐实。';
-  }
-
-  return '蒲团、丹炉与静香都已备好。定下这次要坐多少年，便可入定温养道基。';
-}
-
-function getBreakthroughLeadText({
-  canBreakthrough,
-  isMajorBreakthrough,
-  majorBreakthroughBlocked,
-}: {
-  canBreakthrough: boolean;
-  isMajorBreakthrough: boolean;
-  majorBreakthroughBlocked: boolean;
-}) {
-  if (isMajorBreakthrough && majorBreakthroughBlocked) {
-    return '这一关已临大境界门前，但破境卷宗还没补齐。先看缺什么，再决定何时冲关。';
-  }
-  if (!canBreakthrough) {
-    return '火候尚浅，静室暂不适合冲关。';
-  }
-  return '火候已至，若要推门破关，先看眼前药力与心境是否齐备。';
-}
-
-function getRetreatGuidanceText({
-  canBreakthrough,
-  isMajorBreakthrough,
-  majorBreakthroughBlocked,
-  tasksLoading,
-  currentMajorTaskTitle,
-  breakthroughRecommendation,
-}: {
-  canBreakthrough: boolean;
-  isMajorBreakthrough: boolean;
-  majorBreakthroughBlocked: boolean;
-  tasksLoading: boolean;
-  currentMajorTaskTitle?: string;
-  breakthroughRecommendation?: string;
-}) {
-  if (isMajorBreakthrough && majorBreakthroughBlocked) {
-    if (tasksLoading) {
-      return '破境卷宗仍在整理，静室暂且只适合继续闭关。';
-    }
-
-    if (currentMajorTaskTitle) {
-      return `${currentMajorTaskTitle} 尚未办妥，正式冲关还得再等等。`;
-    }
-
-    return '大境界门槛已至，但卷宗尚未归档完成。';
-  }
-
-  if (!canBreakthrough) {
-    return '修为未到门槛，先把这回闭关坐实。';
-  }
-
-  return breakthroughRecommendation ?? '火候已到，是否冲关，只看你此刻心意。';
-}
-
-function RetreatCultivationPanel({
-  isMajorBreakthrough,
-  majorBreakthroughBlocked,
-  retreatYears,
-  parsedRetreatYears,
-  retreatEfficiency,
-  retreatLoading,
-  onRetreatYearsChange,
-  onRetreat,
-  showShortcuts,
-}: {
-  isMajorBreakthrough: boolean;
-  majorBreakthroughBlocked: boolean;
-  retreatYears: string;
-  parsedRetreatYears: number;
-  retreatEfficiency: RetreatEfficiencyModel | null;
-  retreatLoading: boolean;
-  onRetreatYearsChange: (value: string) => void;
-  onRetreat: () => Promise<void>;
-  showShortcuts: boolean;
-}) {
-  return (
-    <div className="border-ink/10 bg-bgpaper/70 space-y-5 border border-dashed px-4 py-4 md:px-5">
-      <p className="text-sm leading-7">
-        {getRetreatLeadText({
-          isMajorBreakthrough,
-          majorBreakthroughBlocked,
-        })}
-      </p>
-
-      <div className="space-y-3">
-        <InkInput
-          label="闭关年限"
-          value={retreatYears}
-          placeholder="输入 1~200 之间的整数"
-          onChange={onRetreatYearsChange}
-          hint={
-            parsedRetreatYears > 0
-              ? `本次将消耗寿元 ${parsedRetreatYears} 年。`
-              : '定下年限后即可入定。'
-          }
-        />
-        <RetreatBuffTags
-          tags={retreatEfficiency?.retreatTags ?? []}
-          emptyHint={retreatEfficiency?.emptyHint}
-          showShortcuts={showShortcuts}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <InkButton
-          onClick={onRetreat}
-          pending={retreatLoading}
-          pendingLabel="修炼中……"
-          variant="primary"
-        >
-          闭关修炼
-        </InkButton>
-      </div>
-    </div>
-  );
-}
-
-function BreakthroughPanel({
-  cultivationProgress,
-  canAttemptBreakthrough,
-  guidanceText,
-  breakthroughPreview,
-  retreatEfficiency,
-  isMajorBreakthrough,
-  majorBreakthroughBlocked,
-  tasksLoading,
-  taskError,
-  currentMajorTask,
-  missingRequirements,
-  retreatLoading,
-  onBreakthroughClick,
-}: {
-  cultivationProgress: CultivationProgressData | null;
-  canAttemptBreakthrough: boolean;
-  guidanceText: string;
-  breakthroughPreview: BreakthroughChancePreviewData | null;
-  retreatEfficiency: RetreatEfficiencyModel | null;
-  isMajorBreakthrough: boolean;
-  majorBreakthroughBlocked: boolean;
-  tasksLoading: boolean;
-  taskError: string | undefined;
-  currentMajorTask: TaskInstance | null;
-  missingRequirements: string[];
-  retreatLoading: boolean;
-  onBreakthroughClick: () => void;
-}) {
-  return (
-    <div className="border-ink/10 bg-bgpaper/70 space-y-5 border border-dashed px-4 py-4 md:px-5">
-      <div className="space-y-3 text-sm leading-7">
-        <p>
-          {getBreakthroughLeadText({
-            canBreakthrough: Boolean(cultivationProgress?.canBreakthrough),
-            isMajorBreakthrough,
-            majorBreakthroughBlocked,
-          })}
-        </p>
-        <div className="flex flex-wrap items-center gap-2 text-sm leading-7">
-          <span className="text-ink-secondary">眼下火候：</span>
-          {cultivationProgress?.canBreakthrough ? (
-            <BreakthroughLabel
-              type={cultivationProgress.breakthroughType ?? null}
-            />
-          ) : null}
-          <span className="text-ink-secondary">{guidanceText}</span>
-        </div>
-        {breakthroughPreview ? (
-          <div className="border-teal/25 bg-bgpaper/60 space-y-3 border border-dashed px-3 py-3">
-            <p className="text-teal text-sm font-medium">成功率推演</p>
-            <BreakthroughChanceDetails presentation={breakthroughPreview} />
-          </div>
-        ) : null}
-
-        {(retreatEfficiency?.breakthroughTags.length ?? 0) > 0 ? (
-          <div className="space-y-2">
-            <p className="text-ink-secondary text-xs leading-5">破境准备</p>
-            <RetreatBuffTags tags={retreatEfficiency?.breakthroughTags ?? []} />
-          </div>
-        ) : null}
-      </div>
-
-      {isMajorBreakthrough ? (
-        tasksLoading ? (
-          <p className="text-ink-secondary text-sm leading-7">
-            破境卷宗整理中……稍后便会显出这一关还缺什么。
-          </p>
-        ) : taskError ? (
-          <InkNotice>{taskError}</InkNotice>
-        ) : majorBreakthroughBlocked && currentMajorTask ? (
-          <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.74)] px-4 py-3">
-            <div className="space-y-1">
-              <p className="text-ink text-sm font-medium">
-                {currentMajorTask.snapshot.title}
-              </p>
-              <p className="text-ink-secondary text-sm leading-7">
-                {currentMajorTask.snapshot.summary}
-              </p>
-            </div>
-
-            {missingRequirements.length > 0 ? (
-              <ul className="text-ink-secondary space-y-1 text-sm leading-7">
-                {missingRequirements.map((requirement) => (
-                  <li key={requirement}>• {requirement}</li>
-                ))}
-              </ul>
-            ) : null}
-
-            {currentMajorTask.snapshot.missingRequirements.length >
-            missingRequirements.length ? (
-              <p className="text-ink-secondary text-xs leading-6">
-                其余细项已归回卷宗，不在静室逐条摊开。
-              </p>
-            ) : null}
-          </div>
-        ) : majorBreakthroughBlocked ? (
-          <p className="text-ink-secondary text-sm leading-7">
-            当前已临大境界门槛，但卷宗尚未归档完成。稍后刷新即可继续。
-          </p>
-        ) : null
-      ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        {canAttemptBreakthrough ? (
-          <InkButton
-            onClick={onBreakthroughClick}
-            pending={retreatLoading}
-            pendingLabel="冲关中……"
-          >
-            尝试突破
-          </InkButton>
-        ) : null}
-      </div>
     </div>
   );
 }
@@ -447,7 +283,10 @@ export type RetreatViewProps = {
 };
 
 export function RetreatView({ sectContext }: RetreatViewProps) {
-  const [activeTab, setActiveTab] = useState<RetreatSceneTab>('retreat');
+  const [activeTab, setActiveTab] = useState<'retreat' | 'breakthrough'>(
+    'retreat',
+  );
+  const [pillPending, setPillPending] = useState(false);
   const navigate = useNavigate();
   const {
     cultivator,
@@ -550,26 +389,29 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
     );
   }
 
+  const nextStage = getNextStage(cultivator.realm, cultivator.realm_stage);
   const canAttemptBreakthrough =
+    Boolean(nextStage) &&
     Boolean(cultivationProgress?.canBreakthrough) &&
     (!isMajorBreakthrough || !majorBreakthroughBlocked);
-  const guidanceText = getRetreatGuidanceText({
-    canBreakthrough: Boolean(cultivationProgress?.canBreakthrough),
-    isMajorBreakthrough,
-    majorBreakthroughBlocked,
-    tasksLoading,
-    currentMajorTaskTitle: currentMajorTask?.snapshot.title,
-    breakthroughRecommendation: breakthroughPreview?.recommendation,
-  });
-  const missingRequirements =
-    currentMajorTask?.snapshot.missingRequirements.slice(0, 2) ?? [];
-  const parsedRetreatYears = Number(retreatYears || '0');
-  const breakthroughQiCost = QI_ACTION_COSTS.breakthrough_attempt;
+  const years = Number(retreatYears);
+  const unavailable = retreatLoading || pillPending;
+  const guidance =
+    tasksLoading && isMajorBreakthrough
+      ? '正在核对破境准备……'
+      : majorBreakthroughBlocked
+        ? `${currentMajorTask?.snapshot.title ?? '破境任务'}尚未完成。`
+        : !nextStage
+          ? '道途已至此境之巅。'
+          : !cultivationProgress?.canBreakthrough
+            ? '火候尚浅，先静修积累。'
+            : breakthroughPreview && breakthroughPreview.finalChance < 0.5
+              ? '此刻冲关把握尚低，可先静修或借丹药调息。'
+              : '气息渐稳，可凝神尝试冲关。';
 
   return (
     <GameSceneFrame
-      title={sectContext ? sectContext.scene.title : '静室修行'}
-      description={sectContext ? sectContext.scene.description : undefined}
+      title={sectContext?.scene.title}
       identityOverride={
         sectContext
           ? {
@@ -579,95 +421,144 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
           : undefined
       }
       headerMeta={headerMeta}
-      aside={undefined}
-      contentClassName={
-        sectContext
-          ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(64,148,135,0.16)_0_10%,transparent_11%_25%,rgba(64,148,135,0.08)_26%_27%,transparent_28%),linear-gradient(180deg,rgba(205,228,215,0.22),transparent_55%)] px-3 py-4 sm:px-5'
-          : undefined
-      }
     >
-      <GameSceneSection
-        title="静室所行"
-        help={{
-          title: '突破火候说明',
-          content: (
-            <BreakthroughHelpContent
-              breakthroughType={cultivationProgress?.breakthroughType ?? null}
-              canBreakthrough={Boolean(cultivationProgress?.canBreakthrough)}
-              isMajorBreakthrough={isMajorBreakthrough}
-              majorBreakthroughBlocked={majorBreakthroughBlocked}
-            />
-          ),
-        }}
-      >
-        <div className="space-y-4">
-          <GameSceneTabs
-            items={[
-              { label: '闭关', value: 'retreat' },
-              { label: '突破', value: 'breakthrough' },
-            ]}
-            activeValue={activeTab}
-            onChange={(value) => setActiveTab(value as RetreatSceneTab)}
-          />
+      <div className="flex items-start justify-between gap-4">
+        <GameSceneTabs
+          items={[
+            { label: '闭关', value: 'retreat' },
+            { label: '突破', value: 'breakthrough' },
+          ]}
+          activeValue={activeTab}
+          onChange={(value) =>
+            setActiveTab(value as 'retreat' | 'breakthrough')
+          }
+        />
+        <GameSceneHelpButton
+          help={{
+            label: activeTab === 'retreat' ? '闭关须知' : '突破须知',
+            title: activeTab === 'retreat' ? '闭关修炼说明' : '突破火候说明',
+            content:
+              activeTab === 'retreat' ? (
+                <RetreatHelpContent />
+              ) : (
+                <BreakthroughHelpContent
+                  breakthroughType={
+                    cultivationProgress?.breakthroughType ?? null
+                  }
+                  canBreakthrough={Boolean(
+                    cultivationProgress?.canBreakthrough,
+                  )}
+                  isMajorBreakthrough={isMajorBreakthrough}
+                  majorBreakthroughBlocked={majorBreakthroughBlocked}
+                />
+              ),
+          }}
+        />
+      </div>
 
+      <div className="grid min-w-0 items-center gap-3 py-2 sm:min-h-[22rem] sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:gap-8 sm:py-5">
+        <div className="flex justify-center" aria-hidden="true">
+          <img
+            src={`/assets/manuals/cultivator-${cultivator.gender === '女' ? 'female' : 'male'}-meditation.webp`}
+            alt=""
+            className="h-20 w-auto max-w-full object-contain sm:h-64 lg:h-72"
+          />
+        </div>
+        <div className="min-w-0 space-y-2 sm:space-y-5 sm:pr-4 lg:pr-8">
           {activeTab === 'retreat' ? (
-            <RetreatCultivationPanel
-              isMajorBreakthrough={isMajorBreakthrough}
-              majorBreakthroughBlocked={majorBreakthroughBlocked}
-              retreatYears={retreatYears}
-              parsedRetreatYears={parsedRetreatYears}
-              retreatEfficiency={retreatEfficiency}
-              retreatLoading={retreatLoading}
-              onRetreatYearsChange={handleRetreatYearsChange}
-              onRetreat={handleRetreat}
-              showShortcuts={!sectContext}
-            />
+            <>
+              <RetreatProgress
+                progress={cultivationProgress}
+                bottleneckActive={Boolean(retreatEfficiency?.bottleneckActive)}
+              />
+              <ActiveMedicine tags={retreatEfficiency?.retreatTags ?? []} />
+              <InkNodeSlider
+                label="闭关年限"
+                values={RETREAT_YEARS}
+                value={years}
+                unit="年"
+                disabled={unavailable}
+                onChange={(value) => handleRetreatYearsChange(String(value))}
+              />
+              <p
+                className="text-ink-secondary text-xs leading-6"
+                aria-live="polite"
+              >
+                余寿 <span className="font-mono">{remainingLifespan}</span> 年
+                {years >= remainingLifespan ? (
+                  <span className="text-crimson"> · 此次闭关将耗尽寿元</span>
+                ) : null}
+              </p>
+              <InkButton
+                onClick={handleRetreat}
+                pending={retreatLoading}
+                pendingLabel="入定中……"
+                disabled={pillPending}
+                variant="primary"
+              >
+                入定闭关
+              </InkButton>
+            </>
           ) : (
-            <BreakthroughPanel
-              cultivationProgress={cultivationProgress}
-              canAttemptBreakthrough={canAttemptBreakthrough}
-              guidanceText={guidanceText}
-              breakthroughPreview={breakthroughPreview}
-              retreatEfficiency={retreatEfficiency}
-              isMajorBreakthrough={isMajorBreakthrough}
-              majorBreakthroughBlocked={majorBreakthroughBlocked}
-              tasksLoading={tasksLoading}
-              taskError={taskError}
-              currentMajorTask={currentMajorTask}
-              missingRequirements={missingRequirements}
-              retreatLoading={retreatLoading}
-              onBreakthroughClick={handleBreakthroughClick}
-            />
+            <>
+              <div className="space-y-2">
+                {nextStage ? (
+                  <p className="text-base leading-7">
+                    {cultivator.realm}
+                    {cultivator.realm_stage}
+                    <span className="text-ink-secondary mx-3">至</span>
+                    <span className="text-teal">
+                      {nextStage.realm}
+                      {nextStage.stage}
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+              <BreakthroughReadiness progress={cultivationProgress} />
+              <p
+                className="text-ink-secondary text-sm leading-7"
+                aria-live="polite"
+              >
+                {guidance}
+              </p>
+              <ActiveMedicine
+                tags={retreatEfficiency?.breakthroughTags ?? []}
+              />
+              <BreakthroughWarnings preview={breakthroughPreview} />
+              {isMajorBreakthrough && majorBreakthroughBlocked ? (
+                taskError ? (
+                  <InkNotice>{taskError}</InkNotice>
+                ) : currentMajorTask?.snapshot.missingRequirements.length ? (
+                  <details className="text-ink-secondary text-sm leading-7">
+                    <summary className="cursor-pointer">查看未完成准备</summary>
+                    <ul className="mt-2 list-disc space-y-1 pl-4">
+                      {currentMajorTask.snapshot.missingRequirements.map(
+                        (requirement) => (
+                          <li key={requirement}>{requirement}</li>
+                        ),
+                      )}
+                    </ul>
+                  </details>
+                ) : null
+              ) : null}
+              <InkButton
+                onClick={handleBreakthroughClick}
+                disabled={!canAttemptBreakthrough || pillPending}
+                pending={retreatLoading}
+                pendingLabel="冲关中……"
+                variant="primary"
+              >
+                尝试突破
+              </InkButton>
+            </>
           )}
         </div>
-      </GameSceneSection>
+      </div>
 
-      <GameSceneSection title="当前筹算">
-        <div className="border-ink/10 bg-bgpaper/60 border border-dashed px-4 py-4">
-          <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            <RetreatSummaryEntry
-              label="当前境界"
-              value={`${cultivator.realm}${cultivator.realm_stage}`}
-              note="静室里的一切筹算，都从这一层火候起算。"
-            />
-            <RetreatSummaryEntry
-              label="修为进度"
-              value={`${cultivationProgress?.percent ?? 0}%`}
-              note="修为达到 60% 后，才算摸到冲关门槛。"
-            />
-            <RetreatSummaryEntry
-              label={COMPREHENSION_LABEL}
-              value={`${cultivationProgress?.comprehension_insight ?? 0}/${COMPREHENSION_INSIGHT_CAP}`}
-              note="感悟越稳，临门一脚越不容易乱。"
-            />
-            <RetreatSummaryEntry
-              label="剩余寿元"
-              value={`${remainingLifespan} 年`}
-              note="这次要坐多久、还能承受几次尝试，都看它。"
-            />
-          </dl>
-        </div>
-      </GameSceneSection>
+      <PillQuickbar
+        disabled={unavailable || showBreakthroughConfirm || retreatResultOpen}
+        onPendingChange={setPillPending}
+      />
 
       <BreakthroughConfirmModal
         isOpen={showBreakthroughConfirm}
@@ -675,9 +566,8 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
         onConfirm={handleBreakthrough}
         chancePreview={breakthroughPreview}
         isMajorBreakthrough={isMajorBreakthrough}
-        qiCost={breakthroughQiCost}
+        qiCost={QI_ACTION_COSTS.breakthrough_attempt}
       />
-
       <RetreatResultModal
         isOpen={retreatResultOpen}
         retreatResult={retreatResult}
