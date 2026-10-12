@@ -35,7 +35,8 @@
 | 界名 | 特色 | 网站入口 | 源代码 | 维护者 |
 | --- | --- | --- | --- | --- |
 | 万界道友 | 官方维护，提供原版玩法与最新功能体验 | [进入此界](https://client.daoyou.org) | [ChurchTao/Daoyou](https://github.com/ChurchTao/Daoyou) | [ChurchTao](https://github.com/ChurchTao) |
-| 云梦界 | 扩展暗巷黑市、拍卖行与灵田等玩法，侧重玩家交互、经济系统和长期养成 | [进入此界](https://yzdoc.cn/game) | [sclzboywow/daoyou](https://github.com/sclzboywow/daoyou) | [sclzboywow](https://github.com/sclzboywow) |
+| 云梦界 | 扩展暗巷黑市、拍卖行与灵田等玩法，侧重玩家交互、经济系统和长期养成；另有微信小游戏端，与网站共用同一服务器 | [进入此界](https://yzdoc.cn/game) | [sclzboywow/daoyou](https://github.com/sclzboywow/daoyou) | [sclzboywow](https://github.com/sclzboywow) |
+| 衍极界 | 保留文字修仙与 V6 战斗，加入天灵秘境、可配置秘境奖励、移动端后台及跨服切磋；正式站版本待同步源码中已移除的后台人机与战力模板，详见 [Issue #82](https://github.com/ChurchTao/Daoyou/issues/82) | [进入此界](https://daoyou.yanji.sbs) | [Daoyou-Yanji](https://github.com/1249534823-debug/Daoyou-Yanji) | [1249534823-debug](https://github.com/1249534823-debug) |
 
 ### 加入万界
 
