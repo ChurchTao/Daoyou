@@ -52,6 +52,298 @@
                 "properties": {
                   "type": {
                     "type": "string",
+                    "const": "flight"
+                  },
+                  "hitFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "dodgeFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "evasionChance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "hitFactor",
+                  "dodgeFactor",
+                  "evasionChance"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "fortune"
+                  },
+                  "criticalExtraFactor": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "criticalExtraFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "coordination"
+                  },
+                  "levelDivisor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "sealTakenFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "levelDivisor",
+                  "sealTakenFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "sweepingStrike"
+                  },
+                  "hpRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "primaryFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "secondaryFactor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "hpRatio",
+                  "primaryFactor",
+                  "secondaryFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spiritSurge"
+                  },
+                  "magicDivisor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "costMpBase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "costMpLevelDivisor": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "type",
+                  "magicDivisor",
+                  "costMpBase",
+                  "costMpLevelDivisor",
+                  "duration"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "spiritConversion"
+                  },
+                  "growthSubtract": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "manaContributionFactor": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "growthSubtract",
+                  "manaContributionFactor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "windPursuit"
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "goldenStrike"
+                  },
+                  "chance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "factor": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  }
+                },
+                "required": [
+                  "type",
+                  "chance",
+                  "factor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "eightfoldFlame"
+                  },
+                  "costMp": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "coefficient": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "powerBase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  },
+                  "powerPerLevel": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "multipleOf": 0.000001
+                  },
+                  "maxTargets": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "weakenChance": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "weakenRatio": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "multipleOf": 0.000001
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 99
+                  }
+                },
+                "required": [
+                  "type",
+                  "costMp",
+                  "coefficient",
+                  "powerBase",
+                  "powerPerLevel",
+                  "maxTargets",
+                  "weakenChance",
+                  "weakenRatio",
+                  "duration"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
                     "const": "groupSpell"
                   },
                   "costMp": {

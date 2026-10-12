@@ -133,6 +133,31 @@ export const iconRegistry: ReadonlyMap<string, string> = new Map([
     '/assets/icons/beast-skill-spell-fluctuation-totem-v2.webp',
   ],
 
+  [
+    'beast-skill-sweeping-strike',
+    '/assets/icons/beast-skill-sweeping-strike-totem-v1.webp',
+  ],
+  [
+    'beast-skill-spirit-surge',
+    '/assets/icons/beast-skill-spirit-surge-totem-v1.webp',
+  ],
+  [
+    'beast-skill-spirit-conversion',
+    '/assets/icons/beast-skill-spirit-conversion-totem-v1.webp',
+  ],
+  [
+    'beast-skill-wind-pursuit',
+    '/assets/icons/beast-skill-wind-pursuit-totem-v1.webp',
+  ],
+  [
+    'beast-skill-golden-strike',
+    '/assets/icons/beast-skill-golden-strike-totem-v1.webp',
+  ],
+  [
+    'beast-skill-eightfold-flame',
+    '/assets/icons/beast-skill-eightfold-flame-totem-v1.webp',
+  ],
+
   ['cultivator-male-avatar', '/assets/icons/cultivator-male-avatar.png'],
   ['cultivator-female-avatar', '/assets/icons/cultivator-female-avatar.png'],
   ['beast-spirit-fox', '/assets/icons/beast-spirit-fox.webp'],

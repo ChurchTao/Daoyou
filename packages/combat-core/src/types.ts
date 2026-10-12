@@ -339,6 +339,8 @@ export type SkillTargeting = {
   requireKind?: UnitKind;
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
   mode?: TargetMode;
+  /** Keep selected targets, then choose the remaining fill targets randomly. */
+  randomFill?: boolean;
   count?: Expr;
   /** 满足资源门槛时替换作用人数；后定义的已满足规则优先。 */
   countByResource?: Array<{ resourceId: string; min: number; count: Expr }>;
@@ -356,6 +358,8 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  /** A spell repeat may deal damage without repeating this attached effect. */
+  excludeSpellRepeat?: boolean;
   expression?: Expr;
   targetDowned?: boolean;
   targetDead?: boolean;
@@ -642,6 +646,8 @@ export type CombatModifier = {
   sealResistanceAdd?: Expr;
   damageBonus?: Expr;
   damageAdd?: Expr;
+  /** Multiplies the complete strike result, including flat result additions. */
+  damageResultFactor?: Expr;
   physicalAttackAdd?: Expr;
   critChanceAdd?: Expr;
   critMultiplierAdd?: Expr;
@@ -709,7 +715,7 @@ export type SkillDef = {
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[];
   /** 开战即生效的能力，不占状态栏（感知看破隐身、简易耗蓝） */
-  innate?: { negativeSpellResistance?: number; sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
+  innate?: { criticalExtraTakenFactor?: number; physicalBurst?: { chance: number; factor: number; derivedSkillIds?: string[] }; negativeSpellResistance?: number; sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
 };
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */

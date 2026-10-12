@@ -74,4 +74,21 @@
 | `beast.denial` | 闭灵 | 绝灵 | 免疫常规异常且无法接受增益，但受到灵魂体的伤害增加。 |
 | `beast.advanced-denial` | 高级闭灵 | 高级绝灵 | 免疫常规异常且无法接受增益，所受法术伤害降低，但更易受到灵魂体的伤害。 |
 
-当前数值与限制由 `packages/shared/src/combat-v6/skill-details.ts` 读取技能参数生成；调整文案不能凭名称添加元素克制、持续伤害、物种条件或高级灵魂体的额外收益。
+当前数值与限制由 `packages/game-rules/src/combat/skill-details.ts` 读取技能参数生成；调整文案不能凭名称添加元素克制、持续伤害、物种条件或高级灵魂体的额外收益。
+
+## 第三轮新增文案（技能修订20）
+
+| 技能ID | 定稿名 | 天赋文案 |
+| --- | --- | --- |
+| `beast.flight` | 飞行 | 身形腾起，借空中之势扑击，也更易避开袭来的锋芒。 |
+| `beast.advanced-flight` | 高级飞行 | 身形腾起，扑击更稳，也更易避开袭来的锋芒。 |
+| `beast.fortune` | 幸运 | 福气护身，遭逢凶猛一击时，所受重创有所减轻。 |
+| `beast.advanced-fortune` | 高级幸运 | 福气护身，遭逢凶猛一击时，所受重创大为减轻。 |
+| `beast.coordination` | 号令 | 号令异种同伴，灵息相应，攻势更盛，却也更易被封住灵息。 |
+| `beast.advanced-coordination` | 高级号令 | 号令异种同伴，灵息齐鸣，攻势更盛，却也更易被封住灵息。 |
+| `beast.sweeping-strike` | 横扫四方 | 耗去一分气血，横扫眼前敌人，余势再袭另两名对手。 |
+| `beast.spirit-surge` | 灵息激发 | 激发体内积蓄的灵息，暂时增强施展术法的威力。 |
+| `beast.spirit-conversion` | 宝相庄严 | 灵息内蕴，宝相自成；魔力化入护身之相，增强法防，但不再增加基础法攻，对法力上限的贡献减半。 |
+| `beast.wind-pursuit` | 风起龙游 | 借疾行之势追击较慢的敌人，伤害更盛。 |
+| `beast.golden-strike` | 招财进宝 | 福运临身，物理攻击时偶有威力骤盛的一击。 |
+| `beast.eightfold-flame` | 十日横空 | 灼日之辉横空，烈阳涤荡浊息，压制数名敌人的攻守与灵息。 |

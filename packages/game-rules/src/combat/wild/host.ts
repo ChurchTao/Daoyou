@@ -136,7 +136,7 @@ export function createWildHost(
         c.beast.skills.map((id) => [id, c.level]),
       ),
       passives: active.filter(isPassive),
-      tags: [],
+      tags: [`beastSpecies.${c.beast.speciesId}`],
     });
     strategies[c.unitId] = skills.length
       ? { type: 'skill-rotation', skillIds: skills }

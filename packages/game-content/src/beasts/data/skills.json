@@ -1,7 +1,7 @@
 {
   "$schema": "./skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 19,
+  "contentRevision": 20,
   "skills": [
     {
       "id": "beast.spirit-flame",
@@ -1083,6 +1083,170 @@
       },
       "icon": "icon:beast-skill-unanticipated",
       "flavorText": "灵息倏变，攻势难料，以同伴尚未施展的本领突袭敌人。"
+    },
+    {
+      "id": "beast.flight",
+      "name": "飞行",
+      "book": true,
+      "advanced": false,
+      "effect": {
+        "type": "flight",
+        "hitFactor": 1.2,
+        "dodgeFactor": 1.2,
+        "evasionChance": 0.05
+      },
+      "icon": "🪽",
+      "flavorText": "身形腾起，借空中之势扑击，也更易避开袭来的锋芒。"
+    },
+    {
+      "id": "beast.advanced-flight",
+      "name": "高级飞行",
+      "book": true,
+      "advanced": true,
+      "effect": {
+        "type": "flight",
+        "hitFactor": 1.2,
+        "dodgeFactor": 1.3,
+        "evasionChance": 0.1
+      },
+      "icon": "🪽",
+      "flavorText": "身形腾起，扑击更稳，也更易避开袭来的锋芒。"
+    },
+    {
+      "id": "beast.fortune",
+      "name": "幸运",
+      "book": true,
+      "advanced": false,
+      "effect": {
+        "type": "fortune",
+        "criticalExtraFactor": 0.75
+      },
+      "icon": "🌟",
+      "flavorText": "福气护身，遭逢凶猛一击时，所受重创有所减轻。"
+    },
+    {
+      "id": "beast.advanced-fortune",
+      "name": "高级幸运",
+      "book": true,
+      "advanced": true,
+      "effect": {
+        "type": "fortune",
+        "criticalExtraFactor": 0.5
+      },
+      "icon": "🌟",
+      "flavorText": "福气护身，遭逢凶猛一击时，所受重创大为减轻。"
+    },
+    {
+      "id": "beast.coordination",
+      "name": "号令",
+      "book": true,
+      "advanced": false,
+      "effect": {
+        "type": "coordination",
+        "levelDivisor": 5.5,
+        "sealTakenFactor": 1.1
+      },
+      "icon": "🚩",
+      "flavorText": "号令异种同伴，灵息相应，攻势更盛，却也更易被封住灵息。"
+    },
+    {
+      "id": "beast.advanced-coordination",
+      "name": "高级号令",
+      "book": true,
+      "advanced": true,
+      "effect": {
+        "type": "coordination",
+        "levelDivisor": 4,
+        "sealTakenFactor": 1.1
+      },
+      "icon": "🚩",
+      "flavorText": "号令异种同伴，灵息齐鸣，攻势更盛，却也更易被封住灵息。"
+    },
+    {
+      "id": "beast.sweeping-strike",
+      "name": "横扫四方",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "sweepingStrike",
+        "hpRatio": 0.1,
+        "primaryFactor": 0.65,
+        "secondaryFactor": 0.35
+      },
+      "icon": "icon:beast-skill-sweeping-strike",
+      "flavorText": "耗去一分气血，横扫眼前敌人，余势再袭另两名对手。"
+    },
+    {
+      "id": "beast.spirit-surge",
+      "name": "灵息激发",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "spiritSurge",
+        "magicDivisor": 2.2,
+        "costMpBase": 50,
+        "costMpLevelDivisor": 2,
+        "duration": 5
+      },
+      "icon": "icon:beast-skill-spirit-surge",
+      "flavorText": "激发体内积蓄的灵息，暂时增强施展术法的威力。"
+    },
+    {
+      "id": "beast.spirit-conversion",
+      "name": "宝相庄严",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "spiritConversion",
+        "growthSubtract": 0.3,
+        "manaContributionFactor": 0.5
+      },
+      "icon": "icon:beast-skill-spirit-conversion",
+      "flavorText": "灵息内蕴，宝相自成；魔力化入护身之相，增强法防，但不再增加基础法攻，对法力上限的贡献减半。"
+    },
+    {
+      "id": "beast.wind-pursuit",
+      "name": "风起龙游",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "windPursuit",
+        "factor": 1.1
+      },
+      "icon": "icon:beast-skill-wind-pursuit",
+      "flavorText": "借疾行之势追击较慢的敌人，伤害更盛。"
+    },
+    {
+      "id": "beast.golden-strike",
+      "name": "招财进宝",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "goldenStrike",
+        "chance": 0.08,
+        "factor": 4
+      },
+      "icon": "icon:beast-skill-golden-strike",
+      "flavorText": "福运临身，物理攻击时偶有威力骤盛的一击。"
+    },
+    {
+      "id": "beast.eightfold-flame",
+      "name": "十日横空",
+      "book": false,
+      "advanced": true,
+      "effect": {
+        "type": "eightfoldFlame",
+        "costMp": 30,
+        "coefficient": 1,
+        "powerBase": 10,
+        "powerPerLevel": 1,
+        "maxTargets": 3,
+        "weakenChance": 0.4,
+        "weakenRatio": 0.1,
+        "duration": 3
+      },
+      "icon": "icon:beast-skill-eightfold-flame",
+      "flavorText": "灼日之辉横空，烈阳涤荡浊息，压制数名敌人的攻守与灵息。"
     }
   ],
   "families": [
@@ -1201,6 +1365,18 @@
     {
       "normal": "beast.denial",
       "advanced": "beast.advanced-denial"
+    },
+    {
+      "normal": "beast.flight",
+      "advanced": "beast.advanced-flight"
+    },
+    {
+      "normal": "beast.fortune",
+      "advanced": "beast.advanced-fortune"
+    },
+    {
+      "normal": "beast.coordination",
+      "advanced": "beast.advanced-coordination"
     }
   ]
 }

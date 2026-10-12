@@ -185,9 +185,12 @@ describe('秘境额外养成奖励', () => {
       blueprint: 0,
     };
     const upper = new Set(DUNGEON_REWARD_PACK.superiorBooks);
-    expect(upper).toEqual(
-      new Set([...BEAST_SUPERIOR_BOOK_SKILL_IDS].map((id) => `book.${id}`)),
-    );
+    const eligible = new Set([...BEAST_SUPERIOR_BOOK_SKILL_IDS].map(id => `book.${id}`));
+    for (const name of ['flight', 'fortune', 'coordination']) {
+      expect(upper.has(`book.beast.advanced-${name}`)).toBe(false);
+      eligible.delete(`book.beast.advanced-${name}`);
+    }
+    expect(upper).toEqual(eligible);
     for (const book of DUNGEON_REWARD_PACK.books)
       expect(book.weight).toBe(upper.has(book.rewardId) ? 4 : 24);
     const bookWeight = DUNGEON_REWARD_PACK.books.reduce(

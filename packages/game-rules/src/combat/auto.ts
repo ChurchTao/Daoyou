@@ -2,7 +2,7 @@
 
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 
-import type { BattleState, CombatV6CommandOptions, SkillDef, StatusDef } from '@daoyou/combat-core/types';
+import type { BattleState, CombatV6CommandOptions, SkillDef, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { isActiveAttackSkill } from '@daoyou/combat-core';
 
 import { observeAutoBattle } from './auto-observation.js';
@@ -68,12 +68,13 @@ export function automaticCommands(
         unitId: unit.id,
         command: unit.command as CombatV6CommandGroup[number]['command'],
       };
+    const commandOptions = query(unit.id);
     const candidates = rankAutoActions(
       observation,
       unit.id,
       skills,
       options.statusDefs ?? [],
-      query(unit.id),
+      commandOptions,
       intents,
     ).filter((candidate) => {
       if (candidate.command.type !== 'skill') return true;
@@ -121,7 +122,7 @@ export function automaticCommands(
       candidates,
     });
     const selected = unit.kind === 'pet'
-      ? chooseBeastCandidate(candidates, skills, unit.skillOverrides, options.statusDefs ?? [])
+      ? chooseBeastCandidate(candidates, skills, unit.skillOverrides, options.statusDefs ?? [], unit, commandOptions)
       : chooseStrategyCandidate(observation, unit.id, candidates, strategies?.[unit.id]);
     if (selected) intents.push(...selected.intents);
     return {
@@ -139,7 +140,27 @@ function chooseBeastCandidate(
   skills: readonly SkillDef[],
   overrides: Record<string, SkillDef>,
   statusDefs: readonly StatusDef[],
+  unit: Unit,
+  options: CombatV6CommandOptions,
 ): AutoCandidate | undefined {
+  // A self spell-power buff needs a usable spell and enough MP left to cast it.
+  const surge = candidates.find(entry => {
+    if (entry.command.type !== 'skill') return false;
+    const skillId = entry.command.skillId;
+    const skill = overrides[skillId] ?? skills.find(item => item.id === skillId);
+    const cost = options.skills.find(option => option.skillId === skillId);
+    if (!skill || skill.targeting.side !== 'self' || !cost?.ready) return false;
+    const buffs = skill.effects.flatMap(effect => effect.type === 'applyStatus'
+      ? statusDefs.filter(status => status.id === effect.statusId && status.category === 'buff' && status.attrMods?.magicAtk !== undefined)
+      : []);
+    if (!buffs.length || unit.statuses.some(status => buffs.some(buff => status.kind === buff.kind))) return false;
+    return options.skills.some(option => {
+      const attackSkill = overrides[option.skillId] ?? skills.find(item => item.id === option.skillId);
+      return option.ready && attackSkill?.tags.includes('spell') && isActiveAttackSkill(attackSkill) &&
+        cost.costs.mp + option.costs.mp <= unit.attrs.mp;
+    });
+  });
+  if (surge) return surge;
   const attack = candidates.find((entry) => entry.command.type === 'attack');
   const skillAction = candidates.find((entry) => {
     if (entry.command.type !== 'skill') return false;

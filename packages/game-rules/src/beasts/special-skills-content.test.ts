@@ -127,6 +127,7 @@ it('战斗事实保留完整力量，只记录实际生效铁骨的防御贡献'
   expect(beastCombatFacts(input)).toEqual({
     isBeast: 1,
     strength: beastAttributes(input).strength,
+    magic: beastAttributes(input).magic,
     defenseTraining: 48,
   });
   expect(project(input).combatFacts).toEqual(beastCombatFacts(input));
@@ -208,8 +209,8 @@ it('第二轮出生池为六种新增、饕餮替换蛮力，原必带与其余�
     expect(species.birthSkills).toEqual(birthSkills);
     expect(birthSkills.core.length + birthSkills.candidates.length).toBe(5);
   }
-  expect(BEAST_SKILL_CONTENT).toHaveLength(81);
-  expect(BEAST_SKILL_CONTENT.filter((skill) => skill.book)).toHaveLength(67);
+  expect(BEAST_SKILL_CONTENT).toHaveLength(93);
+  expect(BEAST_SKILL_CONTENT.filter((skill) => skill.book)).toHaveLength(73);
 });
 
 it.each([

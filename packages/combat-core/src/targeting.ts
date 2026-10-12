@@ -220,7 +220,9 @@ export function resolveSkillTargets(
   if (mode === TargetMode.Explicit)
     return addExtra(ctx, source, skill, picked, pool, normalTargetIds);
 
-  for (const unit of pool) {
+  const remaining = pool.filter(unit => !seen.has(unit.id));
+  const fill = skill.targeting.randomFill ? shuffleTake(ctx, remaining, Math.max(0, count - picked.length)) : remaining;
+  for (const unit of fill) {
     if (picked.length >= count) break;
     if (seen.has(unit.id)) continue;
     picked.push(unit);

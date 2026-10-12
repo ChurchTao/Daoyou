@@ -60,6 +60,7 @@ describe('野外寻觅配置与个体生成', () => {
     data.regions[0].species[0].minLevel =
       data.regions[0].species[0].maxLevel = 30;
     data.regions[0].species = [data.regions[0].species[0]];
+    data.regions[0].rareChance = 0;
     data.encounter.minCount = data.encounter.maxCount = 3;
     data.encounter.cubChance = 0;
     const adult = generateWildEncounter('other-node', 23, loadWildPack(data));
@@ -164,6 +165,7 @@ it('稀有池必须配置概率、保留普通池，概率不得越界或引用�
   ].species.filter((s) => BEAST_RARE_SPECIES_IDS.has(s.speciesId));
   expect(() => loadWildPack(emptyCommon)).toThrow('普通物种');
   const noRare = structuredClone(source);
+  noRare.regions[0].species = noRare.regions[0].species.filter(s => !BEAST_RARE_SPECIES_IDS.has(s.speciesId));
   noRare.regions[0].rareChance = 0.008;
   expect(() => loadWildPack(noRare)).toThrow('稀有物种');
   for (const value of [-0.01, 1.01]) {

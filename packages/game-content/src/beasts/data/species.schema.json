@@ -61,6 +61,9 @@
           "starter": {
             "type": "boolean"
           },
+          "rare": {
+            "type": "boolean"
+          },
           "birthSkills": {
             "type": "object",
             "properties": {
@@ -202,6 +205,7 @@
           "icon",
           "description",
           "starter",
+          "rare",
           "birthSkills",
           "aptitudes",
           "growthMilli"

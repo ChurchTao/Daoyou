@@ -1,7 +1,7 @@
 {
   "$schema": "./wild.schema.json",
   "formatVersion": 4,
-  "contentRevision": 10,
+  "contentRevision": 11,
   "regions": [
     {
       "nodeId": "SAT_TN_08",
@@ -32,7 +32,8 @@
           "minLevel": 5,
           "maxLevel": 15
         }
-      ]
+      ],
+      "rareChance": 0.008
     },
     {
       "nodeId": "WILD_TN_MINE",

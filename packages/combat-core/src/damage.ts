@@ -67,7 +67,17 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const isPrimary =
     input.isPrimary ?? (ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId)
   const critChance = input.kind === DamageKind.Fixed ? 0 : input.kind === DamageKind.Physical ? src.critRate : src.spellCritRate
-  const critRoll = ctx.hooks.emit(HookName.OnCritRoll, {
+  let burstFactor = 1
+  if (input.kind === DamageKind.Physical && !input.healInstead) {
+    for (const passive of passiveSkills(ctx.skills, source)) {
+      const burst = passive.innate?.physicalBurst
+      if (!burst || (origin !== DamageOrigin.ActionDirect && !burst.derivedSkillIds?.includes(skillId ?? ''))) continue
+      const success = ctx.rng.chance(burst.chance)
+      ctx.emit({ type: EventType.ChanceResolved, branchId: `${passive.id}.burst`, sourceId: source.id, targetId: target.id, chance: burst.chance, success })
+      if (success) { burstFactor = burst.factor; break }
+    }
+  }
+  const critRoll = burstFactor !== 1 ? undefined : ctx.hooks.emit(HookName.OnCritRoll, {
     source,
     target,
     kind: input.kind,
@@ -76,7 +86,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     chance: critChance + modifierValue(modifiers, 'critChanceAdd', source, target, skill, ctx),
     origin,
   })
-  const crit = input.kind === DamageKind.Fixed ? false : critRoll.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll.chance ?? critChance)))
+  const crit = input.kind === DamageKind.Fixed || burstFactor !== 1 ? false : critRoll?.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll?.chance ?? critChance)))
 
   const defenseIgnoreHook = ctx.hooks.emit(HookName.OnDefenseIgnoreCalc, {
     source,
@@ -92,10 +102,12 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
   let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
   const critAdd = modifierValue(modifiers, 'critMultiplierAdd', source, target, skill, ctx)
+  const extraTakenFactor = input.healInstead ? 1 : passiveSkills(ctx.skills, target).reduce((factor, passive) => factor * (passive.innate?.criticalExtraTakenFactor ?? 1), 1)
+  const criticalMultiplier = 1 + ((input.critMultiplier ?? ctx.rules.formulas.critMultiplier) + critAdd - 1) * extraTakenFactor
   // An explicit critical multiplier belongs with the final result factor, avoiding
   // intermediate rounding (e.g. a 2x strike becoming exactly 3x on a critical).
-  const resultCritFactor = crit && input.critMultiplier !== undefined ? input.critMultiplier + critAdd : 1
-  raw = crit && input.critMultiplier === undefined ? Math.floor(raw * (ctx.rules.formulas.critMultiplier + critAdd)) : raw
+  const resultCritFactor = crit && input.critMultiplier !== undefined ? criticalMultiplier : 1
+  raw = crit && input.critMultiplier === undefined ? Math.floor(raw * criticalMultiplier) : raw
   if (input.kind !== DamageKind.Fixed) raw = applyFluctuation(ctx, raw, input.kind, source)
   if (input.healInstead) {
     ctx.emit({ type: EventType.Hit, sourceId: source.id, targetId: target.id, kind: input.kind, crit, fury })
@@ -137,7 +149,8 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const defenseModifiers = combatModifiers(ctx, target, { target: source, skill, skillId, kind: input.kind, origin })
   const incomingFactor = Math.max(0, 1 + modifierValue(defenseModifiers, 'damageTakenBonus', target, source, skill, ctx))
   const incomingAdd = modifierValue(defenseModifiers, 'damageTakenAdd', target, source, skill, ctx)
-  const amount = floorAtLeast(MIN_DAMAGE, ((hooked.damage ?? raw) * (1 + modifierValue(modifiers, 'damageBonus', source, target, skill, ctx)) + modifierValue(modifiers, 'damageAdd', source, target, skill, ctx)) * repeatFactor * relationFactor * dealtFactor * sourceBoundFactor * (input.resultFactor ?? 1) * resultCritFactor * incomingFactor + incomingAdd)
+  const damageResultFactor = modifiers.reduce((factor, modifier) => factor * evalExpr(modifier.damageResultFactor ?? 1, { source, target, state: ctx.state, skillLevel: input.skillLevel ?? source.level, targets: input.targetCount ?? 1 }), 1)
+  const amount = floorAtLeast(MIN_DAMAGE, ((hooked.damage ?? raw) * (1 + modifierValue(modifiers, 'damageBonus', source, target, skill, ctx)) + modifierValue(modifiers, 'damageAdd', source, target, skill, ctx)) * repeatFactor * relationFactor * dealtFactor * sourceBoundFactor * (input.resultFactor ?? 1) * resultCritFactor * burstFactor * damageResultFactor * incomingFactor + incomingAdd)
 
   ctx.emit({
     type: EventType.Hit,
