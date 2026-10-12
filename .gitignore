@@ -213,6 +213,7 @@ sponsorkit/sponsors.json
 
 # Turborepo task cache
 .turbo/
+/.playwright-mcp/
 
 # Keep the shared TypeScript config despite the case-insensitive *.BASE.* rule.
 !/tsconfig.base.json
