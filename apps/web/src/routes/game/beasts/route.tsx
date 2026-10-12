@@ -198,10 +198,10 @@ export default function BeastsPage() {
                 灵兽图鉴
               </InkButton>
               <InkButton disabled={pending} href="/game/beasts/fusion">
-                灵兽融合
+                融合
               </InkButton>
               <InkButton disabled={pending} href="/game/beasts/warehouse">
-                灵兽仓库
+                仓库
               </InkButton>
             </span>
           </div>
