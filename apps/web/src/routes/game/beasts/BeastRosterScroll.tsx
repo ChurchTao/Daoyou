@@ -4,7 +4,6 @@ export function BeastRosterScroll({ children }: { children: ReactNode }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ above: false, below: false });
-
   useEffect(() => {
     const viewport = viewportRef.current;
     const content = contentRef.current;
@@ -34,6 +33,17 @@ export function BeastRosterScroll({ children }: { children: ReactNode }) {
     <div className="relative md:min-h-0 md:flex-1">
       <div
         ref={viewportRef}
+        onMouseDownCapture={(event) => {
+          // iOS standalone focuses the tapped row and scrolls the page to it.
+          if (event.button !== 0) return;
+          const control =
+            event.target instanceof Element
+              ? event.target.closest('button')
+              : null;
+          if (control instanceof HTMLButtonElement && !control.disabled) {
+            event.preventDefault();
+          }
+        }}
         className="focus-visible:outline-teal [&::-webkit-scrollbar-thumb]:bg-ink/20 max-h-60 [scrollbar-width:thin] [scrollbar-color:var(--color-ink-border)_transparent] overflow-y-auto overscroll-y-contain focus-visible:outline-2 focus-visible:outline-offset-2 md:h-full md:max-h-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-button]:hidden [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
         role="group"
         aria-label="灵兽名册"
