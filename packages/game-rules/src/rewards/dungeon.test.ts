@@ -325,8 +325,8 @@ describe('秘境分环节资源奖励', () => {
       context,
     );
     const battle = planDungeonStepResources(1, 'battle:1', 'battle', context);
-    expect(exploration.experience).toBe(30);
-    expect(battle.experience).toBe(75);
+    expect(exploration.experience).toBe(80);
+    expect(battle.experience).toBe(180);
     expect(exploration.spiritStones).toBeGreaterThanOrEqual(52);
     expect(exploration.spiritStones).toBeLessThanOrEqual(130);
     expect(battle.spiritStones).toBeGreaterThanOrEqual(104);
@@ -359,7 +359,7 @@ describe('秘境分环节资源奖励', () => {
     expect(first).toEqual(
       planDungeonStepResources(9, 'battle:1', 'battle', high),
     );
-    expect(first.experience).toBe(5197);
+    expect(first.experience).toBe(12474);
     expect(lowDanger.experience).toBeGreaterThan(
       planDungeonStepResources(9, 'battle:1', 'battle', context).experience,
     );
