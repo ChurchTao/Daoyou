@@ -1,17 +1,13 @@
 import Link from '@app/components/router/AppLink';
 import type { HuntMine } from '@daoyou/contracts/hunts';
-import { useEffect } from 'react';
-import { HUNT_TEAM_CHANGED, huntTeamSummary } from './huntTeamView';
+import { huntTeamSummary } from './huntTeamView';
+import { useHuntBattleNavigation } from './useHuntBattleNavigation';
 import { useHunts } from './useHunts';
 
 export function HuntTeamBar() {
-  const { data, refresh } = useHunts<HuntMine>('/api/hunts/me', 5000);
-  useEffect(() => {
-    const onChange = () => refresh();
-    window.addEventListener(HUNT_TEAM_CHANGED, onChange);
-    return () => window.removeEventListener(HUNT_TEAM_CHANGED, onChange);
-  }, [refresh]);
+  const { data, actorId, refresh } = useHunts<HuntMine>('/api/hunts/me', 5000);
   const team = data?.team;
+  useHuntBattleNavigation(team, actorId, refresh);
   if (!team) return null;
   return (
     <Link

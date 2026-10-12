@@ -31,6 +31,7 @@ import {
 import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
 import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
+import { publishHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
 import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
 export const huntTeamKey = (id: string) => `hunt:v1:team:${id}`;
@@ -162,6 +163,16 @@ return 1`,
     huntTeamChatKey(team.id),
   );
   if (Number(result) !== 1) throw new ArenaV6Error('队伍有变，请重新查看');
+  if (
+    team.status === 'in_battle' &&
+    team.battleId &&
+    previous?.status !== 'in_battle'
+  ) {
+    publishHuntTeamStart(
+      team.members.map((member) => member.userId),
+      { teamId: team.id },
+    );
+  }
 }
 async function currentTeam(actor: HuntActor, lease: RedisLeaseContext) {
   const id = await redis.get(memberKey(actor.userId));
