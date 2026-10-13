@@ -478,7 +478,7 @@ describe('灵兽特殊技能首轮战斗', () => {
     },
   );
 
-  it('灵兽自动战斗能选择观照与物理特殊技，法力不足时仍可普攻', () => {
+  it('灵兽自动战斗能选择观照；摧山攻差不可见时不优于普攻，法力不足时仍可普攻', () => {
     const source = actor('source', 0, {
       skills: ['beast.all-seeing', 'beast.spirit-flame', 'beast.water-attack'],
       ownerId: 'owner',
@@ -507,8 +507,8 @@ describe('灵兽特殊技能首轮战斗', () => {
     expect(
       automaticCommands(physical.snapshot(), 'owner', BEAST_SKILLS, (id) =>
         physical.queryCommands(id),
-      ).find((group) => group.unitId === 'source')?.command,
-    ).toMatchObject({ type: 'skill', skillId: 'beast.mountain-breaker' });
+      ).find((group) => group.unitId === 'source')?.command.type,
+    ).toBe('attack');
     physical.unit('source').attrs.mp = 0;
     expect(
       automaticCommands(physical.snapshot(), 'owner', BEAST_SKILLS, (id) =>
