@@ -86,6 +86,7 @@ export const JOURNAL_ACTIVITIES = {
   sect_shop_purchase: '宗门兑换',
   sect_construction_donate: '宗门建设',
   sect_stipend_claim: '领取俸禄',
+  sponsorship_reputation: '功德声望',
 } as const;
 
 export type JournalActivity = keyof typeof JOURNAL_ACTIVITIES;

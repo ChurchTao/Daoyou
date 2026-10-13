@@ -25,6 +25,7 @@ const TierConfigSchema = z
   .object({
     planId: z.string().trim().max(80),
     minimumAmountFen: z.number().int().min(1).max(100000000),
+    reputationPerMonth: z.number().int().min(0).max(1_000_000),
   })
   .strict();
 const SubscriptionPlanUpdateSchema = z

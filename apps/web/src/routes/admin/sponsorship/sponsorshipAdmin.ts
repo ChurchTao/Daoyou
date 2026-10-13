@@ -2,7 +2,11 @@ import { apiFetch } from '@app/lib/api/fetch';
 import type { RewardSelection } from '@daoyou/game-domain/rewards';
 import type { SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
 
-export type TierConfig = { planId: string; minimumAmountFen: number };
+export type TierConfig = {
+  planId: string;
+  minimumAmountFen: number;
+  reputationPerMonth: number;
+};
 
 export type SponsorshipConfig = {
   ordersAcceptedAfter: string | null;

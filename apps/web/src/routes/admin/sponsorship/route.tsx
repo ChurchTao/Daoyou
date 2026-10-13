@@ -20,7 +20,7 @@ export default function SponsorshipAdminPage() {
     <div className="space-y-5">
       <AdminPageHeader
         title="功德簿管理"
-        description="处理爱发电订单，并分别维护功德档位、月卡物资和历史补记。"
+        description="处理爱发电订单，并分别维护功德档位、订阅物资和历史补记。"
       />
       <div className="border-ink/10 flex flex-wrap gap-5 border-b pb-3 text-sm">
         {TABS.map(([id, label]) => (

@@ -5,6 +5,7 @@ import {
   extendSubscriptionEnd,
   selectActiveSubscriptionPlan,
   sponsorshipCalendarDate,
+  sponsorshipTierSupply,
   withSeededSubscriptionPlans,
   type SubscriptionPlanFact,
   type SubscriptionTermFact,
@@ -80,6 +81,37 @@ describe('subscription pass rules', () => {
     ]);
     expect(seeded.subscriptionPlans.map((plan) => plan.level)).toEqual([1, 3]);
     expect(withSeededSubscriptionPlans(seeded)).toBe(seeded);
+  });
+
+  it('discloses daily supply only for an enabled plan on that tier', () => {
+    const config = structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
+    config.tiers.faint_light.planId = 'light';
+    config.tiers.fellow_traveler.planId = 'road';
+    config.subscriptionPlans = [
+      {
+        id: 'faint_light',
+        level: 1,
+        name: '微光月札',
+        afdianPlanId: 'light',
+        enabled: true,
+        dailyRewards: [{ type: 'spirit_stones', quantity: 20 }],
+      },
+      {
+        id: 'fellow_traveler',
+        level: 2,
+        name: '同程月札',
+        afdianPlanId: 'road',
+        enabled: false,
+        dailyRewards: [{ type: 'reputation', quantity: 5 }],
+      },
+    ];
+    expect(sponsorshipTierSupply(config, 'faint_light')).toEqual({
+      name: '微光月札',
+      level: 1,
+      dailyRewards: [{ type: 'spirit_stones', quantity: 20 }],
+    });
+    expect(sponsorshipTierSupply(config, 'fellow_traveler')).toBeNull();
+    expect(sponsorshipTierSupply(config, 'night_guardian')).toBeNull();
   });
 
   it('extends by Shanghai calendar months and clamps short months', () => {

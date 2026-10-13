@@ -23,11 +23,27 @@ export const SPONSORSHIP_TIER_META: Record<
   immortality_witness: { name: '共证长生', rank: 3, theme: '长生玉牒' },
 };
 
+export const SPONSORSHIP_TIER_REPUTATION_PER_MONTH: Record<
+  SponsorshipTierId,
+  number
+> = {
+  faint_light: 50,
+  fellow_traveler: 200,
+  night_guardian: 400,
+  immortality_witness: 900,
+};
 
-const SponsorshipTierConfigSchema = z.object({
-  planId: z.string().trim().max(80).default(''),
-  minimumAmountFen: z.number().int().min(1).max(100_000_000),
-});
+const SponsorshipTierConfigSchema = (tier: SponsorshipTierId) =>
+  z.object({
+    planId: z.string().trim().max(80).default(''),
+    minimumAmountFen: z.number().int().min(1).max(100_000_000),
+    reputationPerMonth: z
+      .number()
+      .int()
+      .min(0)
+      .max(1_000_000)
+      .default(SPONSORSHIP_TIER_REPUTATION_PER_MONTH[tier]),
+  });
 
 export const SubscriptionPlanSchema = z.object({
   id: z
@@ -61,10 +77,10 @@ export const AfdianSponsorshipConfigSchema = z
       .nullable()
       .default(null),
     tiers: z.object({
-      faint_light: SponsorshipTierConfigSchema,
-      fellow_traveler: SponsorshipTierConfigSchema,
-      night_guardian: SponsorshipTierConfigSchema,
-      immortality_witness: SponsorshipTierConfigSchema,
+      faint_light: SponsorshipTierConfigSchema('faint_light'),
+      fellow_traveler: SponsorshipTierConfigSchema('fellow_traveler'),
+      night_guardian: SponsorshipTierConfigSchema('night_guardian'),
+      immortality_witness: SponsorshipTierConfigSchema('immortality_witness'),
     }),
     subscriptionPlans: z.array(SubscriptionPlanSchema).max(40).default([]),
   })
@@ -99,21 +115,21 @@ export const AfdianSponsorshipConfigSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['subscriptionPlans', index, 'id'],
-          message: '月卡方案 ID 重复',
+          message: '订阅方案 ID 重复',
         });
       }
       if (levels.has(plan.level)) {
         ctx.addIssue({
           code: 'custom',
           path: ['subscriptionPlans', index, 'level'],
-          message: '月卡等级不能重复',
+          message: '订阅等级不能重复',
         });
       }
       if (afdianPlanIds.has(plan.afdianPlanId)) {
         ctx.addIssue({
           code: 'custom',
           path: ['subscriptionPlans', index, 'afdianPlanId'],
-          message: '不同月卡不能使用相同的爱发电方案',
+          message: '不同订阅不能使用相同的爱发电方案',
         });
       }
       subscriptionIds.add(plan.id);

@@ -29,7 +29,7 @@ export function ManualPanel({
         skipped: number;
       }>('/api/admin/sponsorship/subscription-sync', { method: 'POST' });
       onNotice(
-        `月卡期限已同步：更新 ${result.updated}，跳过 ${result.skipped}`,
+        `订阅期限已同步：更新 ${result.updated}，跳过 ${result.skipped}`,
       );
     } catch (error) {
       onNotice(error instanceof Error ? error.message : '同步失败');
@@ -89,9 +89,9 @@ export function ManualPanel({
   return (
     <div className="divide-ink/10 divide-y">
       <section className="pb-6">
-        <h3 className="text-lg">同步月卡期限</h3>
+        <h3 className="text-lg">同步订阅期限</h3>
         <p className="text-ink-secondary mt-1 max-w-xl text-sm">
-          按已履约、且不早于自动处理起点的订阅订单，向爱发电核对到期时间。不会补发缺席的日子。
+          按已履约、且不早于自动处理起点的订阅订单，向爱发电核对到期时间。
         </p>
         <InkButton className="mt-3" variant="primary" disabled={busy} onClick={() => void sync()}>
           开始同步
@@ -133,7 +133,7 @@ export function ManualPanel({
       <section className="pt-6">
         <h3 className="text-lg">补记历史功德</h3>
         <p className="text-ink-secondary mt-1 max-w-xl text-sm">
-          用于自动处理起点之前的订单。只写功德簿，不由此开通月卡。
+          用于自动处理起点之前的订单。只写功德簿。
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="text-sm">

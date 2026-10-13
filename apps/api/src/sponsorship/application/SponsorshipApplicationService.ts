@@ -28,7 +28,16 @@ import { hashSponsorshipClaimCode } from '@server/lib/sponsorship/claimCode.js';
 import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
 import type { ProviderOrder } from '@server/lib/sponsorship/types.js';
 import { SPONSORSHIP_TIER_META, type SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
-import { findSubscriptionPlan, formatSponsorshipMonth, highestSponsorshipTier, isSponsorshipOrderAccepted, resolveSponsorshipTier } from '@daoyou/game-rules/sponsorship';
+import type { ResourceChange } from '@daoyou/contracts/resources';
+import { findSubscriptionPlan, formatSponsorshipMonth, highestSponsorshipTier, isSponsorshipOrderAccepted, resolveSponsorshipTier, sponsorshipReputationGain, sponsorshipTierSupply } from '@daoyou/game-rules/sponsorship';
+import { addReputation } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
+import { MailService } from '@server/mail/application/MailService.js';
+import {
+  describeJournal,
+  runJournalSettlement,
+} from '@server/player/application/JournalSettlement.js';
+import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
+import { publishResourceEvents } from '@server/realtime/infrastructure/playerStateBroadcaster.js';
 import {
   and,
   asc,
@@ -43,7 +52,6 @@ import {
 } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { MailService } from '@server/mail/application/MailService.js';
 import {
   ensureSponsorshipProviderLink,
   findLinkedCultivator,
@@ -483,7 +491,7 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
               verificationStatus: 'needs_attention',
               fulfillmentStatus: 'needs_attention',
               lastErrorCode: 'UNMAPPED_ORDER',
-              lastErrorMessage: '订单未命中功德档位或月卡方案',
+              lastErrorMessage: '订单未命中功德档位或订阅方案',
             })
             .where(eq(sponsorshipOrders.id, orderId));
           return;
@@ -581,6 +589,8 @@ function buildMeritMail(args: {
   cultivatorName: string;
   kind: 'first' | 'repeat' | 'upgrade';
   supportedAt: Date;
+  reputation: number;
+  months: number | null;
 }): { title: string; content: string } {
   const tierName = SPONSORSHIP_TIER_META[args.tier].name;
   const opening =
@@ -590,16 +600,63 @@ function buildMeritMail(args: {
         ? '旧功未泯，新愿又添，功德簿上的印记更进一步。'
         : '旧缘未断，道友再度为此间添上一笔温暖。';
   const month = formatSponsorshipMonth(args.supportedAt);
+  const lines = [
+    `${args.cultivatorName}道友：`,
+    '',
+    opening,
+    `本次功德已按「${tierName}」于 ${month} 留存。`,
+  ];
+  if (args.reputation > 0 && args.months && args.months > 0) {
+    lines.push(
+      `声望 ${args.reputation.toLocaleString('zh-CN')} 已计入角色，按每月 ${Math.round(args.reputation / args.months).toLocaleString('zh-CN')}、订阅 ${args.months} 个月结算。`,
+    );
+  }
   return {
     title: `【功德簿】${tierName}`,
-    content: [
-      `${args.cultivatorName}道友：`,
-      '',
-      opening,
-      `本次功德已按「${tierName}」于 ${month} 留存。`,
-      '此信不含数值奖励，唯记同行之谊。',
-    ].join('\n'),
+    content: lines.join('\n'),
   };
+}
+
+async function grantSponsorshipReputation(
+  tx: DbTransaction,
+  args: {
+    orderId: string;
+    cultivatorId: string;
+    userId: string;
+    tier: SponsorshipTierId;
+    months: number;
+    amount: number;
+  },
+): Promise<ResourceChange[]> {
+  const balance = await runJournalSettlement(
+    tx,
+    args.cultivatorId,
+    'sponsorship_reputation',
+    args.orderId,
+    async () => {
+      describeJournal(
+        tx,
+        args.cultivatorId,
+        `${SPONSORSHIP_TIER_META[args.tier].name} · ${args.months}个月`,
+      );
+      return addReputation(args.userId, args.cultivatorId, args.amount, tx);
+    },
+  );
+  const committed = await new ResourceEventCommitter().commit(tx, {
+    actor: { userId: args.userId, cultivatorId: args.cultivatorId },
+    source: 'sponsorship-reputation',
+    requestId: args.orderId,
+    scopeDefaults: { cultivatorId: args.cultivatorId },
+    changes: [
+      {
+        resourceTopic: 'player.currency',
+        eventType: 'currency.sponsorship.granted',
+        operation: 'merge',
+        payload: { reputation: balance },
+      },
+    ],
+  });
+  return committed.changes;
 }
 
 async function fulfillOrderToCultivator(
@@ -621,7 +678,8 @@ async function fulfillOrderToCultivator(
         const order = await tx.query.sponsorshipOrders.findFirst({
           where: eq(sponsorshipOrders.id, orderId),
         });
-        if (!order || order.fulfillmentStatus === 'fulfilled') return 'skipped';
+        if (!order || order.fulfillmentStatus === 'fulfilled')
+          return { status: 'skipped' as const, changes: [] };
         if (order.fulfillmentStatus === 'revoked') {
           throw new SponsorshipApplicationError(
             '已撤销订单不能再履约',
@@ -629,11 +687,10 @@ async function fulfillOrderToCultivator(
             409,
           );
         }
-        const subscriptionPlan = findSubscriptionPlan(
-          await getAfdianSponsorshipConfig(),
-          order.planId,
-        );
-        if (!order.resolvedTier && !subscriptionPlan) return 'skipped';
+        const config = await getAfdianSponsorshipConfig();
+        const subscriptionPlan = findSubscriptionPlan(config, order.planId);
+        if (!order.resolvedTier && !subscriptionPlan)
+          return { status: 'skipped' as const, changes: [] };
         if (order.providerUserId) {
           const link = await ensureSponsorshipProviderLink(tx, {
             provider: order.provider,
@@ -651,7 +708,7 @@ async function fulfillOrderToCultivator(
                 updatedAt: new Date(),
               })
               .where(eq(sponsorshipOrders.id, orderId));
-            return 'conflict';
+            return { status: 'conflict' as const, changes: [] };
           }
         }
         const existingRecord = await tx.query.sponsorshipMeritRecords.findFirst(
@@ -666,7 +723,7 @@ async function fulfillOrderToCultivator(
             .set({ fulfillmentStatus: 'fulfilled', fulfilledAt: new Date() })
             .where(eq(sponsorshipOrders.id, orderId));
           lease.assertHeld();
-          return 'fulfilled';
+          return { status: 'fulfilled' as const, changes: [] };
         }
         if (!order.resolvedTier) {
           await tx
@@ -686,11 +743,11 @@ async function fulfillOrderToCultivator(
               .where(eq(sponsorshipCheckoutIntents.id, order.checkoutIntentId));
           }
           lease.assertHeld();
-          return 'fulfilled';
+          return { status: 'fulfilled' as const, changes: [] };
         }
         const resolvedTier = order.resolvedTier;
         const cultivator = await tx.query.cultivators.findFirst({
-          columns: { id: true, name: true },
+          columns: { id: true, userId: true, name: true },
           where: eq(cultivators.id, cultivatorId),
         });
         if (!cultivator) throw new Error('功德目标角色不存在');
@@ -707,11 +764,17 @@ async function fulfillOrderToCultivator(
             ? 'upgrade'
             : 'repeat';
         const supportedAt = order.providerCreatedAt ?? order.createdAt;
+        const reputation = sponsorshipReputationGain(
+          config.tiers[resolvedTier].reputationPerMonth,
+          order.month,
+        );
         const mailCopy = buildMeritMail({
           tier: resolvedTier,
           cultivatorName: cultivator.name,
           kind,
           supportedAt,
+          reputation,
+          months: order.month,
         });
         const mail = await MailService.sendSystemMail(
           cultivatorId,
@@ -719,6 +782,17 @@ async function fulfillOrderToCultivator(
           mailCopy.content,
           tx,
         );
+        const changes =
+          reputation > 0 && order.month
+            ? await grantSponsorshipReputation(tx, {
+                orderId,
+                cultivatorId,
+                userId: cultivator.userId,
+                tier: resolvedTier,
+                months: order.month,
+                amount: reputation,
+              })
+            : [];
         await tx.insert(sponsorshipMeritRecords).values({
           orderId,
           cultivatorId,
@@ -765,10 +839,20 @@ async function fulfillOrderToCultivator(
             .where(eq(sponsorshipCheckoutIntents.id, order.checkoutIntentId));
         }
         lease.assertHeld();
-        return 'fulfilled';
+        return { status: 'fulfilled' as const, changes };
       }),
   );
-  if (outcome === 'fulfilled') {
+  if (outcome.status === 'fulfilled') {
+    if (outcome.changes.length) {
+      try {
+        publishResourceEvents(outcome.changes);
+      } catch (error) {
+        console.error('[sponsorship] reputation broadcast failed', {
+          orderId,
+          error,
+        });
+      }
+    }
     try {
       await syncSubscriptionTermForOrder(orderId);
     } catch (error) {
@@ -836,7 +920,7 @@ async function ensureClaimAndSendMessage(orderId: string): Promise<void> {
     return;
   const tierName = order.resolvedTier
     ? SPONSORSHIP_TIER_META[order.resolvedTier].name
-    : subscriptionPlan?.name ?? '月卡';
+    : subscriptionPlan?.name ?? '订阅';
   try {
     await provider.sendMessage(
       order.providerUserId,
@@ -1202,6 +1286,8 @@ export async function getSponsorshipClientConfig() {
           ...SPONSORSHIP_TIER_META[id as SponsorshipTierId],
           configured: Boolean(tier.planId),
           minimumAmountFen: tier.minimumAmountFen,
+          reputationPerMonth: tier.reputationPerMonth,
+          supply: sponsorshipTierSupply(config, id as SponsorshipTierId),
         },
       ]),
     ),
@@ -1804,6 +1890,8 @@ export async function grantManualSponsorshipMerit(args: {
             cultivatorName: cultivator.name,
             kind,
             supportedAt: args.supportedAt,
+            reputation: 0,
+            months: null,
           });
           mailId = (
             await MailService.sendSystemMail(

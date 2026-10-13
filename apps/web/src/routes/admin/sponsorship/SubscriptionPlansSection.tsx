@@ -138,7 +138,7 @@ export function SubscriptionPlansSection({
         );
       })}
       {plans.length === 0 && (
-        <p className="text-ink-secondary text-sm">尚未配置月卡方案。</p>
+        <p className="text-ink-secondary text-sm">尚未配置订阅方案。</p>
       )}
     </div>
   );

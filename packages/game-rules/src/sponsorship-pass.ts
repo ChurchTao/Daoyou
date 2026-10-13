@@ -73,6 +73,25 @@ export function readSubscriptionRewards(value: unknown) {
   return parsed.success ? parsed.data : null;
 }
 
+export type SponsorshipTierSupply = {
+  name: string;
+  level: number;
+  dailyRewards: NonNullable<ReturnType<typeof readSubscriptionRewards>>;
+};
+
+export function sponsorshipTierSupply(
+  config: AfdianSponsorshipConfig,
+  tierId: (typeof SPONSORSHIP_TIER_IDS)[number],
+): SponsorshipTierSupply | null {
+  const plan = findSubscriptionPlan(config, config.tiers[tierId].planId);
+  if (!plan?.enabled) return null;
+  return {
+    name: plan.name,
+    level: plan.level,
+    dailyRewards: readSubscriptionRewards(plan.dailyRewards) ?? [],
+  };
+}
+
 export function findSubscriptionPlan(
   config: AfdianSponsorshipConfig,
   afdianPlanId: string | null | undefined,

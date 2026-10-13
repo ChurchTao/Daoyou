@@ -178,7 +178,7 @@ export async function syncSubscriptionTermForOrder(orderId: string): Promise<voi
     planId: order.planId,
   });
   if (productType === null) {
-    await markTermUnresolved(orderId, '无法确认爱发电方案类型，月卡期限未写入');
+    await markTermUnresolved(orderId, '无法确认爱发电方案类型，订阅期限未写入');
     return;
   }
   if (productType !== 0) return;
@@ -290,6 +290,11 @@ export async function grantSubscriptionDailySupply(args: {
   const plan = config.subscriptionPlans.find((item) => item.id === active.planId);
   const rewards = plan ? readSubscriptionRewards(plan.dailyRewards) : null;
   if (!plan || !rewards?.length) return;
+  const [cultivator] = await args.tx
+    .select({ name: cultivators.name })
+    .from(cultivators)
+    .where(eq(cultivators.id, args.cultivatorId))
+    .limit(1);
   const grantDate = sponsorshipCalendarDate(args.checkedAt);
   const [reserved] = await args.tx
     .insert(sponsorshipDailyGrants)
@@ -309,10 +314,12 @@ export async function grantSubscriptionDailySupply(args: {
   if (!reserved) return;
   const mail = await MailService.sendMail(
     args.cultivatorId,
-    `【月卡】${plan.name} · ${grantDate}`,
+    `【订阅】${plan.name} · ${grantDate}`,
     [
-      `今日「${plan.name}」补给已备好，请在传音中领取。`,
-      '未上线的日子不会补发，也不会并入后一日。',
+      `${cultivator?.name ?? '道友'}道友：`,
+      '',
+      '感谢你对《万界道友》开发与服务器建设的支持。',
+      `今日「${plan.name}」的心意已备好，请在传音中收下。`,
     ].join('\n'),
     materializeRewardAttachments(rewardAttachments(rewards), randomUUID),
     'reward',
@@ -339,6 +346,7 @@ export async function readCultivatorSubscriptionPass(cultivatorId: string) {
       eq(sponsorshipDailyGrants.grantDate, sponsorshipCalendarDate(now)),
     ),
   });
+  const plan = config.subscriptionPlans.find((item) => item.id === active.planId);
   return {
     name: active.name,
     level: active.level,
@@ -346,6 +354,7 @@ export async function readCultivatorSubscriptionPass(cultivatorId: string) {
     permanent: active.endsAt === null,
     deliveredToday: Boolean(grant),
     rewardsConfigured: active.hasRewards,
+    dailyRewards: plan ? (readSubscriptionRewards(plan.dailyRewards) ?? []) : [],
   };
 }
 
@@ -653,7 +662,7 @@ export async function rebindSponsorshipProviderUser(args: {
     const message = error instanceof Error ? error.message : '';
     if (message.includes('sponsorship_terms_cultivator_plan_uidx')) {
       throw new SubscriptionPassError(
-        '目标角色已有同一爱发电方案的月卡期限',
+        '目标角色已有同一爱发电方案的订阅期限',
         409,
       );
     }

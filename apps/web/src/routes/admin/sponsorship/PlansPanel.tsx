@@ -82,7 +82,7 @@ export function PlansPanel({
           <div>
             <h3 className="text-lg">功德档位</h3>
             <p className="text-ink-secondary mt-1 max-w-xl text-sm">
-              名称和主题固定。方案 ID 对应爱发电订阅，最低金额只用于没有方案 ID 的自选订单。
+              名称和主题固定。方案 ID 对应爱发电订阅，最低金额只用于没有方案 ID 的自选订单。每月声望在订单履约时乘以订阅月数，直接计入角色。
             </p>
           </div>
           {config?.ordersAcceptedAfter && (
@@ -94,12 +94,13 @@ export function PlansPanel({
           )}
         </div>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-ink-secondary">
               <tr>
                 <th className="py-2 font-normal">档位</th>
                 <th className="font-normal">爱发电 plan_id</th>
                 <th className="w-36 font-normal">最低金额（分）</th>
+                <th className="w-32 font-normal">每月声望</th>
               </tr>
             </thead>
             <tbody>
@@ -132,6 +133,20 @@ export function PlansPanel({
                         }
                       />
                     </td>
+                    <td className="pl-3">
+                      <input
+                        className="w-full border p-2 font-mono text-sm font-semibold"
+                        type="number"
+                        min={0}
+                        value={config.tiers[tier].reputationPerMonth}
+                        disabled={busy}
+                        onChange={(event) =>
+                          updateTier(tier, {
+                            reputationPerMonth: Number(event.target.value),
+                          })
+                        }
+                      />
+                    </td>
                   </tr>
                 ))}
             </tbody>
@@ -139,7 +154,7 @@ export function PlansPanel({
         </div>
       </section>
       <section className="border-ink/10 border-t pt-6">
-        <h3 className="text-lg">月卡每日物资</h3>
+        <h3 className="text-lg">订阅每日物资</h3>
         <div className="mt-3">
           <SubscriptionPlansSection
             plans={plans}
