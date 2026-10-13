@@ -67,6 +67,19 @@ export class AdminSponsorshipController {
   reveal(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.reveal(user.id, id);
   }
+  @Post('subscription-sync')
+  @HttpCode(200)
+  syncSubscriptions(@CurrentUser() user: AuthUser) {
+    return this.service.syncSubscriptions(user.id);
+  }
+  @Post('provider-links/rebind')
+  @HttpCode(200)
+  rebind(
+    @CurrentUser() user: AuthUser,
+    @JsonBody({ fallback: null }) body: unknown,
+  ) {
+    return this.service.rebind(user.id, body);
+  }
   @Post('manual-grants')
   @HttpCode(201)
   grant(

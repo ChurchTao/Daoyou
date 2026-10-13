@@ -550,7 +550,7 @@ describe('天衍自动战斗估值', () => {
     seal(b, 'fire');
     expect(score(rank(), 'water')).toBeGreaterThan(score(initial, 'water'));
     seal(b, 'earth');
-    expect(score(rank(), 'metal')).toBeGreaterThan(score(initial, 'metal'));
+    expect(score(rank(), 'metal')).toBe(score(initial, 'metal'));
     const before = JSON.stringify(b.snapshot());
     const observation = observeAutoBattle(b.state, 's', p.statusDefs);
     const seen = JSON.stringify(observation);

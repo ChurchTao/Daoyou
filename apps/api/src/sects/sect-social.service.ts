@@ -6,12 +6,18 @@ import type {
   SectChatListQuery,
   WorldChatCreateMessageRequest,
 } from '@daoyou/contracts/world-chat';
-import type { SectDiscipleRank, SectOffice } from '@daoyou/game-rules/sect-organization';
+import type {
+  SectDiscipleRank,
+  SectOffice,
+} from '@daoyou/game-rules/sect-organization';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
-import { checkAndAcquireSectChatCooldown } from '@server/lib/redis/worldChatLimiter.js';
+import {
+  checkAndAcquireSectChatCooldown,
+  getChatCooldownRemaining,
+} from '@server/lib/redis/worldChatLimiter.js';
 import { listSectChatMessages } from '@server/lib/repositories/sectChatRepository.js';
 import {
   countSectMembersAboveLifetimeContribution,
@@ -21,14 +27,16 @@ import {
 import { findMembership } from '@server/lib/repositories/sectRepository.js';
 import { readResourceWithResolvedScope } from '@server/player/application/state/ResourceReadService.js';
 import { createAndPublishSectChatMessage } from '@server/social/application/chatDelivery.js';
-import {
-  ChatMessageApplicationError,
-  createCultivatorChatMessage,
-} from '@server/social/application/chatMessageApplication.js';
+import { ChatError } from '@server/social/application/chatError.js';
+import { createCultivatorChatMessage } from '@server/social/application/chatMessageApplication.js';
+import { RedPacketService } from '@server/social/application/RedPacketService.js';
 
 @Injectable()
 export class SectSocialService {
-  constructor(@Inject(DRIZZLE_DATABASE) private readonly database: DbClient) {}
+  private readonly packets: RedPacketService;
+  constructor(@Inject(DRIZZLE_DATABASE) private readonly database: DbClient) {
+    this.packets = new RedPacketService(database);
+  }
 
   async list(actor: ActiveCultivatorRef, query: SectChatListQuery) {
     const membership = await this.membership(actor);
@@ -36,15 +44,18 @@ export class SectSocialService {
       sectId: membership.sectId,
       page: query.page,
       pageSize: query.pageSize,
+      beforeCursor: query.beforeCursor,
+      afterCursor: query.afterCursor,
+      aroundMessageId: query.aroundMessageId,
     });
     return {
       success: true,
       data: result.messages,
-      pagination: {
-        page: query.page,
-        pageSize: query.pageSize,
-        hasMore: result.hasMore,
-      },
+      pagination: result.pagination,
+      cooldownRemainingSeconds: await getChatCooldownRemaining(
+        actor.cultivatorId,
+        'sect',
+      ),
     };
   }
 
@@ -55,6 +66,11 @@ export class SectSocialService {
     // Membership lookup failures retain the global error contract, as before.
     const membership = await this.membership(actor);
     try {
+      if (request.messageType === 'red_packet')
+        return await this.packets.create(actor, request, {
+          channel: 'sect',
+          sectId: membership.sectId,
+        });
       const message = await createCultivatorChatMessage({
         request,
         database: this.database,
@@ -63,17 +79,32 @@ export class SectSocialService {
         channel: 'sect',
         sectId: membership.sectId,
         acquireCooldown: checkAndAcquireSectChatCooldown,
-        persist: createAndPublishSectChatMessage,
+        persist: (input) =>
+          createAndPublishSectChatMessage({
+            ...input,
+            channel: 'sect',
+            sectId: membership.sectId,
+          }),
       });
-      return { success: true, data: message };
+      return {
+        success: true,
+        data: message,
+        cooldownSeconds: await getChatCooldownRemaining(
+          actor.cultivatorId,
+          'sect',
+        ),
+      };
     } catch (error) {
-      if (error instanceof ChatMessageApplicationError)
+      if (error instanceof ChatError)
         throw new HttpException(
           {
             success: false,
             error: error.message,
             ...(error.remainingSeconds
-              ? { remainingSeconds: error.remainingSeconds }
+              ? {
+                  remainingSeconds: error.remainingSeconds,
+                  retryAfterSeconds: error.remainingSeconds,
+                }
               : {}),
           },
           error.status,

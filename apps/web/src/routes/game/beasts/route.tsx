@@ -8,6 +8,7 @@ import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
 import type { BeastManagementView } from '@daoyou/contracts/beasts';
 import {
@@ -21,16 +22,19 @@ import {
   warehouseBeastCount,
 } from '@daoyou/game-rules/beasts/growth';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
 import { BeastLeadSeal, BeastPanel } from './BeastPanel';
 import { BeastRenameModal } from './BeastRenameModal';
 import { BeastRosterScroll } from './BeastRosterScroll';
+import { FusionWorkspace } from './fusion/FusionWorkspace';
 
 const base = '/api/combat-v6/beasts';
 export default function BeastsPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const ownerId = useCultivatorIdentity().data?.cultivator?.id;
   const [view, setView] = useState<BeastManagementView>();
   const story = useStory();
   const { openDialog, pushToast } = useInkUI();
@@ -56,6 +60,17 @@ export default function BeastsPage() {
   const busy = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [fusion, setFusion] = useState<{
+    nonce: number;
+    beastId?: string;
+  } | null>(null);
+  function openFusion(beastId?: string) {
+    if (!ownerId) return;
+    setFusion((current) => ({
+      nonce: (current?.nonce ?? 0) + 1,
+      beastId,
+    }));
+  }
   useEffect(() => {
     const reload = () => {
       if (!busy.current) setRefresh((value) => value + 1);
@@ -181,6 +196,24 @@ export default function BeastsPage() {
             </InkButton>
           ) : null}
         </div>
+      ) : fusion && ownerId ? (
+        <FusionWorkspace
+          key={fusion.nonce}
+          ownerId={ownerId}
+          ownerLevel={view.ownerLevel}
+          lineup={view.lineup}
+          initialBeast={view.beasts.find(
+            (beast) => beast.id === fusion.beastId,
+          )}
+          closeLabel="返回"
+          onClose={() => setFusion(null)}
+          onRoster={setView}
+          onViewResult={(beast, inBag) => {
+            setFusion(null);
+            if (inBag) setDetailId(beast.id);
+            else navigate(`/game/beasts/warehouse?beast=${beast.id}`);
+          }}
+        />
       ) : (
         <>
           <div
@@ -197,7 +230,10 @@ export default function BeastsPage() {
               <InkButton disabled={pending} href="/game/beasts/codex">
                 灵兽图鉴
               </InkButton>
-              <InkButton disabled={pending} href="/game/beasts/fusion">
+              <InkButton
+                disabled={pending || !ownerId}
+                onClick={() => openFusion(detail?.id)}
+              >
                 融合
               </InkButton>
               <InkButton disabled={pending} href="/game/beasts/warehouse">
@@ -323,6 +359,7 @@ export default function BeastsPage() {
                     })
                   }
                   warehouseFull={warehouseCount >= BEAST_WAREHOUSE_CAPACITY}
+                  fuse={() => openFusion(detail.id)}
                   store={() => {
                     const save = () =>
                       mutate(
@@ -386,7 +423,18 @@ export default function BeastsPage() {
           beastId={feedingId}
           mode="feed"
           close={() => setFeedingId(undefined)}
-          onUpdate={setView}
+          onUpdate={(beast) =>
+            setView((current) =>
+              current
+                ? {
+                    ...current,
+                    beasts: current.beasts.map((entry) =>
+                      entry.id === beast.id ? beast : entry,
+                    ),
+                  }
+                : current,
+            )
+          }
         />
       ) : null}
       {refiningId ? (
@@ -394,7 +442,18 @@ export default function BeastsPage() {
           beastId={refiningId}
           mode="refine"
           close={() => setRefiningId(undefined)}
-          onUpdate={setView}
+          onUpdate={(beast) =>
+            setView((current) =>
+              current
+                ? {
+                    ...current,
+                    beasts: current.beasts.map((entry) =>
+                      entry.id === beast.id ? beast : entry,
+                    ),
+                  }
+                : current,
+            )
+          }
         />
       ) : null}
       {rejuvenatingId ? (
@@ -402,14 +461,36 @@ export default function BeastsPage() {
           beastId={rejuvenatingId}
           mode="rejuvenate"
           close={() => setRejuvenatingId(undefined)}
-          onUpdate={setView}
+          onUpdate={(beast) =>
+            setView((current) =>
+              current
+                ? {
+                    ...current,
+                    beasts: current.beasts.map((entry) =>
+                      entry.id === beast.id ? beast : entry,
+                    ),
+                  }
+                : current,
+            )
+          }
         />
       ) : null}
       {learningId ? (
         <BeastBookDrawer
           beastId={learningId}
           close={() => setLearningId(undefined)}
-          onUpdate={setView}
+          onUpdate={(beast) =>
+            setView((current) =>
+              current
+                ? {
+                    ...current,
+                    beasts: current.beasts.map((entry) =>
+                      entry.id === beast.id ? beast : entry,
+                    ),
+                  }
+                : current,
+            )
+          }
         />
       ) : null}
       {actionBeast && action ? (

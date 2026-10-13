@@ -8,6 +8,7 @@ import { GameTopHud } from '@app/components/game-shell/GameTopHud';
 import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
+import { AuthProvider } from '@app/lib/auth/authContext';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
@@ -283,7 +284,8 @@ export function GameViewportLayout() {
   );
 
   return (
-    <div className="bg-paper min-h-[100svh]" style={viewportStyle}>
+    <div data-game-viewport className="bg-paper min-h-[100svh]" style={viewportStyle}>
+      <AuthProvider>
       <WorldChatFeedProvider>
         <div className="flex min-h-[100svh] flex-col">
           <div className="sticky top-0 z-30">
@@ -304,7 +306,7 @@ export function GameViewportLayout() {
         </div>
         <RealtimeConnectionToasts />
         <GuideOverlay />
-        <div ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
+        <div data-game-bottom-chrome ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
           <WorldChatPreviewBar />
           <GameBottomDock
             sceneId={scene?.id ?? null}
@@ -318,6 +320,7 @@ export function GameViewportLayout() {
           />
         </div>
       </WorldChatFeedProvider>
+      </AuthProvider>
     </div>
   );
 }

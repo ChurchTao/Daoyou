@@ -10,27 +10,35 @@ import {
   HttpCode,
   Inject,
   Post,
+  Req,
+  Res,
   UseFilters,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import { ChatMessageApplicationError } from '@server/social/application/chatMessageApplication.js';
+import { fromNodeHeaders } from 'better-auth/node';
+import type { Response as ExpressResponse, Request } from 'express';
 import { ZodError } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
+import { SessionService } from '../auth/session.service.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { ChatError } from './application/chatError.js';
 import { WorldChatService } from './world-chat.service.js';
 
-const SendErrors = apiErrorFilter((error) => {
+export const SendErrors = apiErrorFilter((error) => {
   if (error instanceof ZodError) return undefined;
-  if (error instanceof ChatMessageApplicationError) {
+  if (error instanceof ChatError) {
     return Response.json(
       {
         success: false,
         error: error.message,
         ...(error.remainingSeconds
-          ? { remainingSeconds: error.remainingSeconds }
+          ? {
+              remainingSeconds: error.remainingSeconds,
+              retryAfterSeconds: error.remainingSeconds,
+            }
           : {}),
       },
       { status: error.status },
@@ -47,15 +55,32 @@ const SendErrors = apiErrorFilter((error) => {
 export class WorldChatController {
   constructor(
     @Inject(WorldChatService) private readonly chat: WorldChatService,
+    @Inject(SessionService) private readonly sessions: SessionService,
   ) {}
 
   @Get('messages')
   @Access('public')
-  list(
+  @UseFilters(SendErrors)
+  async list(
     @FirstQuery(new ZodPipe(WorldChatListQuerySchema))
     query: WorldChatListQuery,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: ExpressResponse,
   ) {
-    return this.chat.list(query);
+    let actor: ActiveCultivatorRef | null = null;
+    if (request.headers.cookie) {
+      const session = await this.sessions.getSession(
+        fromNodeHeaders(request.headers),
+      );
+      session.headers?.forEach((value, key) => {
+        if (key.toLowerCase() !== 'set-cookie') response.setHeader(key, value);
+      });
+      for (const cookie of session.headers?.getSetCookie() ?? [])
+        response.append('Set-Cookie', cookie);
+      if (session.response?.user)
+        actor = await this.sessions.getActiveCultivator(session.response.user);
+    }
+    return this.chat.list(query, actor);
   }
 
   @Post('messages')

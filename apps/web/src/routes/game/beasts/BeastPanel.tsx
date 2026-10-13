@@ -72,6 +72,7 @@ export function BeastPanel({
   allocate,
   store,
   warehouseFull,
+  fuse,
 }: {
   beast: SummonedBeast;
   ownerLevel: number;
@@ -90,6 +91,7 @@ export function BeastPanel({
   allocate: (points: SummonedBeast['allocatedAttributes']) => Promise<boolean>;
   store?: () => void;
   warehouseFull?: boolean;
+  fuse?: () => void;
 }) {
   const [draft, setDraft] = useState<SummonedBeast['allocatedAttributes']>({
     constitution: 0,
@@ -240,6 +242,11 @@ export function BeastPanel({
                   <InkTooltip label="存入仓库条件">灵兽仓库已满。</InkTooltip>
                 ) : null}
               </div>
+            ) : null}
+            {fuse ? (
+              <InkButton disabled={pending} onClick={fuse}>
+                融合
+              </InkButton>
             ) : null}
             <div className="flex items-center">
               <InkButton disabled={pending || capped} onClick={feed}>

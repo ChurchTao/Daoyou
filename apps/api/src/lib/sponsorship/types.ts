@@ -16,6 +16,24 @@ export type ProviderOrder = {
   raw: unknown;
 };
 
+export type ProviderSponsorPlan = {
+  planId: string;
+  productType: number | null;
+  permanent: boolean;
+  expireTime: Date | null;
+};
+
+export type ProviderSponsor = {
+  userId: string;
+  plans: ProviderSponsorPlan[];
+};
+
+export type ProviderPlan = {
+  planId: string;
+  productType: number;
+  permanent: boolean;
+};
+
 export type VerifiedWebhook = {
   order: ProviderOrder;
   raw: unknown;
@@ -34,6 +52,8 @@ export interface SponsorshipProvider {
   verifyWebhook(payload: unknown): VerifiedWebhook;
   queryOrder(providerOrderId: string): Promise<ProviderOrder | null>;
   listOrders(page: number, perPage: number): Promise<ProviderOrder[]>;
+  querySponsors(userIds: string[]): Promise<ProviderSponsor[]>;
+  queryPlan(planId: string): Promise<ProviderPlan | null>;
   sendMessage(recipient: string, content: string): Promise<void>;
   ping(): Promise<void>;
   buildCheckoutUrl(input: SponsorshipCheckoutRequest): URL;

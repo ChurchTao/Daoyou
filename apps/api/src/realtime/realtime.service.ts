@@ -26,6 +26,7 @@ import { and, eq } from 'drizzle-orm';
 import type { IncomingMessage } from 'node:http';
 import { WebSocket } from 'ws';
 import { SessionService } from '../auth/session.service.js';
+import { subscribeRedPacketUpdates } from './infrastructure/redPacketBroadcaster.js';
 
 type Reservation = {
   userId: string;
@@ -193,6 +194,32 @@ export class RealtimeService {
         }
       });
     };
+    const sendSectEvent = (event: RealtimeServerEvent) => {
+      void (async () => {
+        if (!cultivatorId || !reservation.sectId || closed) return;
+        const membership = await this.database.query.sectMemberships.findFirst({
+          columns: { id: true },
+          where: and(
+            eq(sectMemberships.cultivatorId, cultivatorId),
+            eq(sectMemberships.sectId, reservation.sectId),
+            eq(sectMemberships.status, 'active'),
+          ),
+        });
+        const active = await this.database.query.cultivators.findFirst({
+          columns: { id: true },
+          where: and(
+            eq(cultivators.id, cultivatorId),
+            eq(cultivators.userId, reservation.userId),
+            eq(cultivators.status, 'active'),
+          ),
+        });
+        if (!membership || !active) {
+          close(4001, 'sect membership changed');
+          return;
+        }
+        send(event);
+      })().catch(() => close(1011, 'sect identity check failed'));
+    };
     socket.once('close', cleanup);
     socket.once('error', cleanup);
     socket.on('message', (data, binary) => {
@@ -228,10 +255,18 @@ export class RealtimeService {
         if (reservation.sectId) {
           unsubscribers.push(
             subscribeSectChatMessages(reservation.sectId, (message) =>
-              send({ type: 'world-chat.message', payload: message }),
+              sendSectEvent({ type: 'world-chat.message', payload: message }),
             ),
           );
         }
+        unsubscribers.push(
+          subscribeRedPacketUpdates((payload) => {
+            if (payload.channel === 'world')
+              send({ type: 'world-chat.red-packet', payload });
+            else if (payload.sectId === reservation.sectId)
+              sendSectEvent({ type: 'world-chat.red-packet', payload });
+          }),
+        );
       }
       if (channels.includes('arena-room')) {
         unsubscribers.push(

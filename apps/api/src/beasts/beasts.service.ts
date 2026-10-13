@@ -2,6 +2,7 @@ import type {
   BeastAllocateRequest,
   BeastFusionRequest,
   BeastLineupRequestSchema,
+  BeastPickerQuerySchema,
   BeastPlaceSchema,
   BeastRenameSchema,
   BeastRestSchema,
@@ -20,7 +21,10 @@ import {
 } from '@server/combat/application/CombatV6BeastService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
-import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository.js';
+import {
+  readBeastPickerPage,
+  readBeastRoster,
+} from '@server/lib/repositories/combatV6BeastRepository.js';
 import type { z } from 'zod';
 
 @Injectable()
@@ -29,6 +33,12 @@ export class BeastsService {
 
   async read(owner: string) {
     return { success: true, data: await readBeastRoster(owner, this.database) };
+  }
+  async picker(owner: string, query: z.infer<typeof BeastPickerQuerySchema>) {
+    return {
+      success: true,
+      data: await readBeastPickerPage(owner, query, this.database),
+    };
   }
   async fusion(owner: string, requestId: string) {
     return { success: true, data: await readBeastFusion(owner, requestId) };

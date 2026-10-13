@@ -1,5 +1,6 @@
 import { REALM_ORDER, type RealmType } from '@daoyou/constants/realms';
 import { acquireRedisCooldown } from './cooldownLimiter.js';
+import { redis } from './index.js';
 
 const MAX_CHAT_COOLDOWN_SECONDS = 60;
 const MIN_CHAT_COOLDOWN_SECONDS = 15;
@@ -47,8 +48,17 @@ export function checkAndAcquireSectChatCooldown(
   cultivatorId: string,
   realm: RealmType | string,
 ): Promise<{ allowed: boolean; remainingSeconds: number }> {
-  return checkAndAcquireCooldownForKey(
-    getSectCooldownKey(cultivatorId),
-    realm,
+  return checkAndAcquireCooldownForKey(getSectCooldownKey(cultivatorId), realm);
+}
+
+export async function getChatCooldownRemaining(
+  cultivatorId: string,
+  channel: 'world' | 'sect',
+): Promise<number> {
+  const milliseconds = await redis.pttl(
+    channel === 'sect'
+      ? getSectCooldownKey(cultivatorId)
+      : getCooldownKey(cultivatorId),
   );
+  return Math.max(0, Math.ceil(milliseconds / 1000));
 }

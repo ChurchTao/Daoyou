@@ -13,12 +13,29 @@ import {
 } from '@server/sponsorship/application/SponsorshipApplicationService.js';
 import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
 import { AfdianSponsorshipConfigSchema, SPONSORSHIP_TIER_IDS } from '@daoyou/game-domain/sponsorship';
+import { RewardSelectionsSchema } from '@daoyou/game-rules/rewards/materials';
+import {
+  rebindSponsorshipProviderUser,
+  SubscriptionPassError,
+  syncHistoricalSubscriptionTerms,
+} from '@server/sponsorship/application/SubscriptionPassService.js';
 import { z } from 'zod';
 
 const TierConfigSchema = z
   .object({
     planId: z.string().trim().max(80),
     minimumAmountFen: z.number().int().min(1).max(100000000),
+    reputationPerMonth: z.number().int().min(0).max(1_000_000),
+  })
+  .strict();
+const SubscriptionPlanUpdateSchema = z
+  .object({
+    id: z.string().trim().min(1).max(64),
+    level: z.number().int().min(1).max(10_000),
+    name: z.string().trim().min(1).max(40),
+    afdianPlanId: z.string().trim().min(1).max(80),
+    enabled: z.boolean(),
+    dailyRewards: RewardSelectionsSchema,
   })
   .strict();
 const ConfigUpdateSchema = z
@@ -29,6 +46,13 @@ const ConfigUpdateSchema = z
       night_guardian: TierConfigSchema,
       immortality_witness: TierConfigSchema,
     }),
+    subscriptionPlans: z.array(SubscriptionPlanUpdateSchema).max(40).optional(),
+  })
+  .strict();
+const RebindSchema = z
+  .object({
+    providerUserId: z.string().trim().min(1).max(80),
+    cultivatorId: z.uuid(),
   })
   .strict();
 const ManualGrantSchema = z
@@ -75,6 +99,8 @@ export class AdminSponsorshipService {
       acceptingCheckout,
       ordersAcceptedAfter,
       tiers: parsed.data.tiers,
+      subscriptionPlans:
+        parsed.data.subscriptionPlans ?? current.subscriptionPlans,
     });
     if (!nextConfig.success) {
       throw new HttpException(
@@ -166,6 +192,33 @@ export class AdminSponsorshipService {
     if (snapshot === null)
       throw new HttpException({ error: '快照不存在' }, 404);
     return { snapshot };
+  }
+  async syncSubscriptions(userId: string) {
+    try {
+      return await syncHistoricalSubscriptionTerms(userId);
+    } catch (error) {
+      return sponsorshipErrorResponse(error);
+    }
+  }
+  async rebind(userId: string, inputBody: unknown) {
+    const parsed = RebindSchema.safeParse(inputBody);
+    if (!parsed.success)
+      throw new HttpException(
+        { error: '参数错误', details: parsed.error.flatten() },
+        400,
+      );
+    try {
+      await rebindSponsorshipProviderUser({
+        adminUserId: userId,
+        ...parsed.data,
+      });
+      return { success: true };
+    } catch (error) {
+      if (error instanceof SubscriptionPassError) {
+        throw new HttpException({ error: error.message }, error.status);
+      }
+      return sponsorshipErrorResponse(error);
+    }
   }
   async grant(userId: string, inputBody: unknown) {
     const parsed = ManualGrantSchema.safeParse(inputBody);

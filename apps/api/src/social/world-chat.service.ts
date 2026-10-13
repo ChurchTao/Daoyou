@@ -6,35 +6,33 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
-import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
 import {
-  listLatestMessages,
-  listMessages,
-} from '@server/lib/repositories/worldChatRepository.js';
+  checkAndAcquireCooldown,
+  getChatCooldownRemaining,
+} from '@server/lib/redis/worldChatLimiter.js';
+import { listMessages } from '@server/lib/repositories/worldChatRepository.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { createCultivatorChatMessage } from '@server/social/application/chatMessageApplication.js';
+import { RedPacketService } from './application/RedPacketService.js';
 
 @Injectable()
 export class WorldChatService {
-  constructor(@Inject(DRIZZLE_DATABASE) private readonly database: DbClient) {}
-  async list({ channel, limit, page, pageSize }: WorldChatListQuery) {
-    if (limit)
-      return { success: true, data: await listLatestMessages(limit, channel) };
-    const currentPage = page || 1;
-    const currentPageSize = pageSize || 20;
+  private readonly packets: RedPacketService;
+  constructor(@Inject(DRIZZLE_DATABASE) private readonly database: DbClient) {
+    this.packets = new RedPacketService(database);
+  }
+  async list(query: WorldChatListQuery, actor?: ActiveCultivatorRef | null) {
     const result = await listMessages({
-      channel,
-      page: currentPage,
-      pageSize: currentPageSize,
+      ...query,
+      pageSize: query.limit ?? query.pageSize,
     });
     return {
       success: true,
       data: result.messages,
-      pagination: {
-        page: currentPage,
-        pageSize: currentPageSize,
-        hasMore: result.hasMore,
-      },
+      pagination: result.pagination,
+      cooldownRemainingSeconds: actor
+        ? await getChatCooldownRemaining(actor.cultivatorId, 'world')
+        : 0,
     };
   }
 
@@ -42,6 +40,11 @@ export class WorldChatService {
     actor: ActiveCultivatorRef,
     request: WorldChatCreateMessageRequest,
   ) {
+    if (request.messageType === 'red_packet')
+      return this.packets.create(actor, request, {
+        channel: 'world',
+        sectId: null,
+      });
     const message = await createCultivatorChatMessage({
       request,
       database: this.database,
@@ -53,6 +56,13 @@ export class WorldChatService {
       persist: (input) =>
         createAndPublishWorldChatMessage({ ...input, channel: 'world' }),
     });
-    return { success: true, data: message };
+    return {
+      success: true,
+      data: message,
+      cooldownSeconds: await getChatCooldownRemaining(
+        actor.cultivatorId,
+        'world',
+      ),
+    };
   }
 }

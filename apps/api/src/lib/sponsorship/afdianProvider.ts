@@ -9,6 +9,9 @@ import { createHash, createPublicKey, verify as verifySignature } from 'node:cry
 import { z } from 'zod';
 import type {
   ProviderOrder,
+  ProviderPlan,
+  ProviderSponsor,
+  ProviderSponsorPlan,
   SponsorshipCheckoutRequest,
   SponsorshipProvider,
   VerifiedWebhook,
@@ -58,6 +61,61 @@ const AfdianApiResponseSchema = z.object({
   em: z.string().optional(),
   data: z.unknown().optional(),
 });
+
+const AfdianSponsorPlanSchema = z
+  .object({
+    plan_id: z.string().max(80).optional().default(''),
+    product_type: z.coerce.number().int().optional(),
+    permanent: z.coerce.number().int().optional(),
+    expire_time: z.coerce.number().int().nonnegative().optional(),
+  })
+  .passthrough();
+
+const AfdianSponsorSchema = z
+  .object({
+    sponsor_plans: z.array(AfdianSponsorPlanSchema).optional().default([]),
+    current_plan: AfdianSponsorPlanSchema.optional(),
+    user: z
+      .object({ user_id: z.string().max(80).optional().default('') })
+      .optional(),
+  })
+  .passthrough();
+
+function mapSponsorPlan(
+  input: z.infer<typeof AfdianSponsorPlanSchema>,
+): ProviderSponsorPlan | null {
+  const planId = input.plan_id.trim();
+  if (!planId) return null;
+  const expireSeconds = input.expire_time;
+  return {
+    planId,
+    productType: input.product_type ?? null,
+    permanent: input.permanent === 1,
+    expireTime:
+      expireSeconds && expireSeconds > 0
+        ? new Date(expireSeconds * 1_000)
+        : null,
+  };
+}
+
+function mapSponsor(
+  input: z.infer<typeof AfdianSponsorSchema>,
+): ProviderSponsor | null {
+  const userId = input.user?.user_id.trim() ?? '';
+  if (!userId) return null;
+  const plans = new Map<string, ProviderSponsorPlan>();
+  for (const row of [...input.sponsor_plans, input.current_plan].filter(
+    (row) => row !== undefined,
+  )) {
+    const plan = mapSponsorPlan(row);
+    if (!plan) continue;
+    const current = plans.get(plan.planId);
+    if (!current || (plan.expireTime && !current.expireTime)) {
+      plans.set(plan.planId, plan);
+    }
+  }
+  return { userId, plans: [...plans.values()] };
+}
 
 function mapOrder(
   input: z.infer<typeof AfdianOrderSchema>,
@@ -133,6 +191,46 @@ export class AfdianSponsorshipProvider implements SponsorshipProvider {
       .object({ list: z.array(AfdianOrderSchema) })
       .parse(data)
       .list.map((row) => mapOrder(row, row));
+  }
+
+  async querySponsors(userIds: string[]): Promise<ProviderSponsor[]> {
+    const ids = [...new Set(userIds.map((id) => id.trim()).filter(Boolean))];
+    if (ids.length === 0) return [];
+    const data = await this.request('/api/open/query-sponsor', {
+      page: 1,
+      per_page: Math.min(100, Math.max(ids.length, 1)),
+      user_id: ids.join(','),
+    });
+    const wanted = new Set(ids);
+    return z
+      .object({ list: z.array(AfdianSponsorSchema).optional().default([]) })
+      .parse(data)
+      .list.flatMap((row) => {
+        const sponsor = mapSponsor(row);
+        return sponsor && wanted.has(sponsor.userId) ? [sponsor] : [];
+      });
+  }
+
+  async queryPlan(planId: string): Promise<ProviderPlan | null> {
+    const data = await this.request('/api/open/query-plan', { plan_id: planId });
+    const parsed = z
+      .object({
+        plan: z
+          .object({
+            plan_id: z.string().min(1).max(80),
+            product_type: z.coerce.number().int(),
+            permanent: z.coerce.number().int().optional(),
+          })
+          .passthrough()
+          .optional(),
+      })
+      .parse(data).plan;
+    if (!parsed) return null;
+    return {
+      planId: parsed.plan_id,
+      productType: parsed.product_type,
+      permanent: parsed.permanent === 1,
+    };
   }
 
   async sendMessage(recipient: string, content: string): Promise<void> {

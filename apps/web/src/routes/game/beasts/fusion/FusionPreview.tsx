@@ -10,6 +10,7 @@ export function FusionPreview({
   second,
   reason,
   pending,
+  note,
   onClose,
   onConfirm,
 }: {
@@ -17,6 +18,7 @@ export function FusionPreview({
   second: SummonedBeast;
   reason: string;
   pending: boolean;
+  note: string;
   onClose: () => void;
   onConfirm: () => void;
 }) {
@@ -31,6 +33,7 @@ export function FusionPreview({
       closeOnOverlayClick={!pending}
       footer={
         <div className="space-y-3">
+          <p className="text-ink-secondary text-sm leading-6">{note}</p>
           <p className="text-crimson text-sm leading-6">
             {first.name}与{second.name}
             将永久消耗，获得一只新灵兽。不额外收取灵石。

@@ -1,18 +1,19 @@
-import { apiFetch } from '@app/lib/api/fetch';
+import { BeastPickerPager } from '@app/components/feature/beasts/beastPicker';
+import { useBeastPicker } from '@app/components/feature/beasts/useBeastPicker';
 import { BeastTradeCard } from '@app/components/feature/beasts/BeastTradeCard';
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
-import { calculateAuctionSettlement } from '@daoyou/game-rules/auction';
 import { AuctionBeastListSchema } from '@daoyou/contracts/auction';
-import { beastAuctionBlockReason } from '@daoyou/game-rules/beasts/trade';
-import type { BeastManagementView } from '@daoyou/contracts/beasts';
 import type { FriendCultivatorSummary } from '@daoyou/contracts/friends';
+import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
+import type { SummonedBeast } from '@daoyou/game-domain/beasts';
+import { calculateAuctionSettlement } from '@daoyou/game-rules/auction';
+import { beastAuctionBlockReason } from '@daoyou/game-rules/beasts/trade';
 import { useEffect, useRef, useState } from 'react';
-import { combatV6Request } from '../feature/combat-v6/request';
 
 export function ListBeastModal({
   onClose,
@@ -21,34 +22,18 @@ export function ListBeastModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [view, setView] = useState<BeastManagementView>();
-  const [selected, setSelected] = useState('');
+  const picker = useBeastPicker();
+  const [selected, setSelected] = useState<SummonedBeast>();
   const [price, setPrice] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [target, setTarget] = useState('');
   const [friends, setFriends] = useState<FriendCultivatorSummary[]>([]);
   const [error, setError] = useState('');
-  const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const attempt = useRef<{ key: string; id: string }>(undefined);
   const { mutate } = useResourceMutation();
   const { pushToast } = useInkUI();
-  useEffect(() => {
-    const controller = new AbortController();
-    void combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
-      signal: controller.signal,
-    })
-      .then((data) => {
-        if (!controller.signal.aborted) {
-          setView(data);
-        }
-      })
-      .catch((e) => {
-        if (!controller.signal.aborted) setError(e.message);
-      });
-    return () => controller.abort();
-  }, [refresh]);
   useEffect(() => {
     if (visibility !== 'private') return;
     const controller = new AbortController();
@@ -63,24 +48,24 @@ export function ListBeastModal({
       });
     return () => controller.abort();
   }, [visibility]);
-  const beast = view?.beasts.find((b) => b.id === selected);
+  const beast = selected;
   const blockReason =
-    beast && view
+    beast && picker.data
       ? beastAuctionBlockReason(
           beast,
           beast.ownerCultivatorId,
           beast.revision,
-          view.lineup,
+          picker.data.lineup,
         )
       : null;
   const quote = calculateAuctionSettlement(Number(price) || 0, 1);
   async function submit() {
-    if (pending.current || !beast || !view) return;
+    if (pending.current || !beast || !picker.data) return;
     const reason = beastAuctionBlockReason(
       beast,
       beast.ownerCultivatorId,
       beast.revision,
-      view.lineup,
+      picker.data.lineup,
     );
     if (reason) {
       setError(reason);
@@ -119,8 +104,8 @@ export function ListBeastModal({
       onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : '上架失败');
-      setView(undefined);
-      setRefresh((v) => v + 1);
+      setSelected(undefined);
+      picker.reload();
     } finally {
       pending.current = false;
       setBusy(false);
@@ -144,32 +129,42 @@ export function ListBeastModal({
         {!beast ? (
           <>
             <div className="flex items-center justify-between gap-3 text-sm">
-              <p>{view ? '选择灵兽查看详情' : '正在读取灵兽……'}</p>
+              <p>
+                {picker.data
+                  ? '选择灵兽查看详情'
+                  : picker.loading
+                    ? '正在读取灵兽……'
+                    : '灵兽读取失败'}
+              </p>
               <InkButton
                 disabled={busy}
                 onClick={() => {
                   setError('');
-                  setView(undefined);
-                  setRefresh((value) => value + 1);
+                  picker.reload();
                 }}
               >
                 刷新
               </InkButton>
             </div>
+            {picker.error ? (
+              <InkNotice tone="warning">{picker.error}</InkNotice>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-2">
-              {view?.beasts.map((entry) => {
-                const reason = beastAuctionBlockReason(
-                  entry,
-                  entry.ownerCultivatorId,
-                  entry.revision,
-                  view.lineup,
-                );
+              {(picker.data?.beasts ?? []).map((entry) => {
+                const reason = picker.data
+                  ? beastAuctionBlockReason(
+                      entry,
+                      entry.ownerCultivatorId,
+                      entry.revision,
+                      picker.data.lineup,
+                    )
+                  : null;
                 return (
                   <div key={entry.id}>
                     <BeastTradeCard
                       beast={entry}
                       disabled={busy}
-                      onClick={() => setSelected(entry.id)}
+                      onClick={() => setSelected(entry)}
                     />
                     {reason && (
                       <p className="text-crimson mt-1 text-xs">{reason}</p>
@@ -178,11 +173,21 @@ export function ListBeastModal({
                 );
               })}
             </div>
-            {view && !view.beasts.length && <InkNotice>当前没有灵兽</InkNotice>}
+            {picker.data && !picker.data.total ? (
+              <InkNotice>当前没有灵兽</InkNotice>
+            ) : null}
+            {picker.data ? (
+              <BeastPickerPager
+                page={picker.data.page}
+                total={picker.data.total}
+                loading={picker.loading}
+                onPage={picker.setPage}
+              />
+            ) : null}
           </>
         ) : (
           <>
-            <InkButton disabled={busy} onClick={() => setSelected('')}>
+            <InkButton disabled={busy} onClick={() => setSelected(undefined)}>
               重选灵兽
             </InkButton>
             <BeastTradeDetails beast={beast} />

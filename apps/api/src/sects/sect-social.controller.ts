@@ -1,4 +1,10 @@
 import {
+  SectChatListQuerySchema,
+  WorldChatCreateMessageSchema,
+  type SectChatListQuery,
+  type WorldChatCreateMessageRequest,
+} from '@daoyou/contracts/world-chat';
+import {
   Controller,
   Get,
   HttpCode,
@@ -7,17 +13,12 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import {
-  SectChatListQuerySchema,
-  WorldChatCreateMessageSchema,
-  type SectChatListQuery,
-  type WorldChatCreateMessageRequest,
-} from '@daoyou/contracts/world-chat';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
+import { SendErrors } from '../social/world-chat.controller.js';
 import { SectSocialService } from './sect-social.service.js';
 
 const ContributionErrors = apiErrorFilter((error) => {
@@ -41,6 +42,7 @@ export class SectSocialController {
   ) {}
 
   @Get('chat/messages')
+  @UseFilters(SendErrors)
   list(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @FirstQuery(new ZodPipe(SectChatListQuerySchema, 'legacy-unhandled'))

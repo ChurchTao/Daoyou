@@ -318,6 +318,26 @@ export async function updateReputation(
   throw new Error('声望更新失败');
 }
 
+/** 按单次声望变动上限拆开入账。 */
+export async function addReputation(
+  userId: string,
+  cultivatorId: string,
+  amount: number,
+  tx?: DbTransaction,
+): Promise<number> {
+  if (!Number.isInteger(amount) || amount < 1) {
+    throw new Error(`非法的声望发放: ${amount}`);
+  }
+  let remaining = amount;
+  let latest = 0;
+  while (remaining > 0) {
+    const delta = Math.min(remaining, RESOURCE_SAFETY.reputation.maxDelta);
+    latest = await updateReputation(userId, cultivatorId, delta, tx);
+    remaining -= delta;
+  }
+  return latest;
+}
+
 /**
  * 更新角色寿元
  */

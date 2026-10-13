@@ -19,7 +19,8 @@ import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
-import type { BeastManagementView } from '@daoyou/contracts/beasts';
+import type { BeastPickerPage } from '@daoyou/contracts/beasts';
+import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { previewBeastFeeding } from '@daoyou/game-rules/beasts/growth';
 import { beastRefinementReason } from '@daoyou/game-rules/beasts/refinement';
@@ -38,7 +39,7 @@ export function BeastBookDrawer({
   beastId: string;
   mode?: 'learn' | 'refine' | 'rejuvenate' | 'feed';
   close: () => void;
-  onUpdate: (view: BeastManagementView) => void;
+  onUpdate: (beast: SummonedBeast) => void;
 }) {
   const feeding = mode === 'feed';
   const refining = mode === 'refine';
@@ -73,12 +74,14 @@ export function BeastBookDrawer({
   const inventoryError = source === 'bag' ? bagQuery.error : storage.error;
   const inventoryLoading =
     source === 'bag' ? bagQuery.isRefreshing : storage.loading;
-  const [roster, setData] = useState<BeastManagementView>();
+  const [record, setRecord] = useState<{
+    beast: SummonedBeast;
+    ownerLevel: number;
+  }>();
   const unavailable = !inventory || inventoryLoading || !!inventoryError;
   const [selectedItem, setSelectedItem] =
     useState<InventoryView['items'][number]>();
-  const [refinementBefore, setRefinementBefore] =
-    useState<BeastManagementView['beasts'][number]>();
+  const [refinementBefore, setRefinementBefore] = useState<SummonedBeast>();
   const [quantity, setQuantity] = useState(1);
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -88,11 +91,14 @@ export function BeastBookDrawer({
   useEffect(() => {
     const controller = new AbortController();
     lifetime.current = controller;
-    void combatV6Request<BeastManagementView>('/api/combat-v6/beasts', {
-      signal: controller.signal,
-    })
-      .then((roster) => {
-        if (!controller.signal.aborted) setData(roster);
+    void combatV6Request<BeastPickerPage>(
+      `/api/combat-v6/beasts/picker?beast=${encodeURIComponent(beastId)}`,
+      { signal: controller.signal },
+    )
+      .then((page) => {
+        const beast = page.beasts.find((entry) => entry.id === beastId);
+        if (!controller.signal.aborted && beast)
+          setRecord({ beast, ownerLevel: page.ownerLevel });
       })
       .catch((e) => {
         if (!controller.signal.aborted)
@@ -102,20 +108,21 @@ export function BeastBookDrawer({
           });
       });
     return () => controller.abort();
-  }, [refresh, pushToast]);
-  const beast = roster?.beasts.find((entry) => entry.id === beastId);
+  }, [beastId, refresh, pushToast]);
+  const beast = record?.beast;
+  const ownerLevel = record?.ownerLevel;
   function bookReason(item: InventoryView['items'][number]) {
     const definition = itemDefinition(item.definitionId);
     if (feeding) {
       if (definition.kind !== 'consumable')
         return '此物品不能用于增加灵兽修为。';
-      if (!beast || !roster) return '正在核对灵兽状态。';
+      if (!beast || ownerLevel === undefined) return '正在核对灵兽状态。';
       try {
         previewBeastFeeding(
           beast,
           ConsumableFactsSchema.parse(item.instanceData).spec,
           1,
-          roster.ownerLevel,
+          ownerLevel,
         );
         return '';
       } catch (e) {
@@ -123,14 +130,14 @@ export function BeastBookDrawer({
       }
     }
     if (refining) {
-      if (!beast || !roster) return '正在核对灵兽状态。';
+      if (!beast || ownerLevel === undefined) return '正在核对灵兽状态。';
       const dew = BEAST_REFINEMENT.items.find(
         (entry) => entry.id === item.definitionId,
       );
       const reason = beastRefinementReason(
         beast,
         item.definitionId,
-        roster.ownerLevel,
+        ownerLevel,
       );
       if (reason) return reason;
       if (dew && item.quantity < dew.consumeQuantity) return '灵露数量不足。';
@@ -153,13 +160,13 @@ export function BeastBookDrawer({
     }
     if (definition.kind !== 'beast_book') return '此物品不是传承灵印。';
     if (!definition.skillId) return '此灵印已无法用于领悟传承。';
-    if (!beast || !roster) return '正在核对灵兽状态。';
-    if (beast.level > roster.ownerLevel) return '灵兽等级超过人物等级上限。';
+    if (!beast || ownerLevel === undefined) return '正在核对灵兽状态。';
+    if (beast.level > ownerLevel) return '灵兽等级超过人物等级上限。';
     if (beast.skills.includes(definition.skillId!)) return '灵兽已拥有此技能。';
     return '';
   }
   const candidates =
-    roster && inventory
+    record && inventory
       ? inventory.items.filter((item) =>
           source === 'storage' || !inventoryFilterActive(filter)
             ? true
@@ -181,14 +188,14 @@ export function BeastBookDrawer({
       ?.consumeQuantity ?? 1;
   let feedingPreview: ReturnType<typeof previewBeastFeeding> | undefined;
   let feedingError = '';
-  if (feeding && selected && beast && roster) {
+  if (feeding && selected && beast && ownerLevel !== undefined) {
     try {
       if (quantity > selected.quantity) throw new Error('物品数量不足');
       feedingPreview = previewBeastFeeding(
         beast,
         ConsumableFactsSchema.parse(selected.instanceData).spec,
         quantity,
-        roster.ownerLevel,
+        ownerLevel,
       );
     } catch (e) {
       feedingError = e instanceof Error ? e.message : '不可喂养';
@@ -235,13 +242,14 @@ export function BeastBookDrawer({
       committed = true;
       if (signal.aborted) return;
       if (refining) setRefinementBefore(beast);
-      const roster = await combatV6Request<BeastManagementView>(
-        '/api/combat-v6/beasts',
+      const page = await combatV6Request<BeastPickerPage>(
+        `/api/combat-v6/beasts/picker?beast=${encodeURIComponent(beastId)}`,
         { signal },
       );
-      if (!signal.aborted) {
-        setData(roster);
-        onUpdate(roster);
+      const next = page.beasts.find((entry) => entry.id === beastId);
+      if (!signal.aborted && next) {
+        setRecord({ beast: next, ownerLevel: page.ownerLevel });
+        onUpdate(next);
         bagQuery.invalidate();
         storage.reload();
         setSelectedItem(undefined);
@@ -270,7 +278,7 @@ export function BeastBookDrawer({
               : '操作失败',
           tone: 'danger',
         });
-        setData(undefined);
+        setRecord(undefined);
         setRefresh((value) => value + 1);
       }
     } finally {
@@ -409,7 +417,7 @@ export function BeastBookDrawer({
               setRefresh((value) => value + 1);
             }}
           >
-            {roster && inventory ? (
+            {record && inventory ? (
               <>
                 <InventoryItems
                   items={candidates}

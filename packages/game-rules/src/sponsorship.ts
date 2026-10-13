@@ -55,6 +55,21 @@ export function isSponsorshipOrderAccepted(
 
 
 
+const SPONSORSHIP_REPUTATION_GRANT_LIMIT = 1_000_000;
+
+export function sponsorshipReputationGain(
+  reputationPerMonth: number,
+  months: number | null,
+): number {
+  if (!Number.isInteger(reputationPerMonth) || reputationPerMonth < 1) return 0;
+  if (months === null || !Number.isInteger(months) || months < 1) return 0;
+  const gain = reputationPerMonth * months;
+  if (!Number.isSafeInteger(gain) || gain > SPONSORSHIP_REPUTATION_GRANT_LIMIT) {
+    return SPONSORSHIP_REPUTATION_GRANT_LIMIT;
+  }
+  return gain;
+}
+
 export function highestSponsorshipTier(
   tiers: SponsorshipTierId[],
 ): SponsorshipTierId | null {
@@ -71,6 +86,22 @@ export function highestSponsorshipTier(
 }
 
 
+
+export {
+  extendSubscriptionEnd,
+  findSubscriptionPlan,
+  readSubscriptionRewards,
+  sponsorshipTierSupply,
+  selectActiveSubscriptionPlan,
+  sponsorshipCalendarDate,
+  withSeededSubscriptionPlans,
+} from './sponsorship-pass.js';
+export type {
+  ActiveSubscription,
+  SponsorshipTierSupply,
+  SubscriptionPlanFact,
+  SubscriptionTermFact,
+} from './sponsorship-pass.js';
 
 export function formatSponsorshipMonth(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {

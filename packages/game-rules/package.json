@@ -88,6 +88,7 @@
     "./sects/presentation": "./dist/sects/presentation.js",
     "./shops/exchange": "./dist/shops/exchange.js",
     "./shops/purchase": "./dist/shops/purchase.js",
+    "./social/red-packets": "./dist/public/social/red-packets.js",
     "./spirit-field": "./dist/public/spirit-field.js",
     "./spirit-field/generation": "./dist/spirit-field/SpiritSeedGenerator.js",
     "./sponsorship": "./dist/sponsorship.js",

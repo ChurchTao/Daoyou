@@ -967,7 +967,7 @@ describe('当前场次托管', () => {
     pet.skillOverrides['pet-physical'] = { ...physical, effects: [{ type: 'physicalHit', coeff: 0.1 }] };
     expect(petCommand().type).toBe('attack');
   });
-  it('灵兽在护体收益高于普攻时施法，已有灵罡或法力不足时继续攻击', () => {
+  it('灵兽减伤不按敌人攻击估分，因此不压过普攻', () => {
     const guard: SkillDef = {
       ...skills[4],
       costMp: 'floor(level / 2) + 50',
@@ -985,7 +985,10 @@ describe('当前场次托管', () => {
       battle.snapshot(), 'player', [guard], id => battle.queryCommands(id), { statusDefs },
     ).find(entry => entry.unitId === 'pet')!.command;
     expect(battle.queryCommands('pet').skills[0].costs.mp).toBe(80);
-    expect(petCommand()).toMatchObject({ type: 'skill', skillId: guard.id });
+    const guarded = petCommand();
+    battle.unit('player').attrs.physicalAtk = 5000;
+    expect(petCommand()).toEqual(guarded);
+    expect(guarded.type).toBe('attack');
     pet.attrs.mp = 79;
     expect(petCommand().type).toBe('attack');
     pet.attrs.mp = 100;
@@ -1033,7 +1036,7 @@ describe('当前场次托管', () => {
     )?.command;
     expect(playerCommand).toMatchObject({
       type: 'skill',
-      skillId: 'lingxiao.skill.shadow_strike',
+      skillId: 'lingxiao.skill.triple',
     });
     const ranked = rankAutoActions(
       observeAutoBattle(battle.snapshot(), ownerId, input.statusDefs ?? []),
@@ -1158,7 +1161,7 @@ describe('当前场次托管', () => {
       name: '攻击',
       tags: ['physical'],
       targeting: { side: 'enemy' },
-      effects: [{ type: 'fixedHit', power: 50 }],
+      effects: [{ type: 'fixedHit', power: 200 }],
     };
     const buff: SkillDef = {
       id: 'buff',
@@ -1194,7 +1197,7 @@ describe('当前场次托管', () => {
       type: 'skill',
       skillId: attack.id,
     });
-    battle.unit('ally').attrs.hp = 800;
+    battle.unit('ally').attrs.hp = 200;
     expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: 'heal' });
   });
   it('下回合休息与自身行动封锁状态只计算一次代价', () => {
@@ -1444,6 +1447,62 @@ describe('通用效用策略与观察边界', () => {
     );
     enemy.attrs.hp /= 2;
     expect(observeAutoBattle(changed, 'player', [])).not.toEqual(observation);
+  });
+  it('灵兽法术估分不使用主人或敌人的防御', () => {
+    const battle = fixture(['strike']);
+    const pet = battle.unit('pet');
+    pet.skills = ['strike'];
+    pet.attrs.magicAtk = 500;
+    pet.attrs.physicalAtk = 30;
+    battle.unit('player').attrs.magicDef = 99999;
+    battle.unit('player').attrs.physicalAtk = 99999;
+    battle.unit('enemy').attrs.magicDef = 99999;
+    battle.unit('enemy').attrs.physicalDef = 99999;
+    battle.unit('enemy').attrs.dodge = 99999;
+    const ranked = () =>
+      rankAutoActions(
+        observeAutoBattle(battle.snapshot(), 'player', []),
+        'pet',
+        skills,
+        [],
+        battle.queryCommands('pet'),
+      );
+    const before = ranked().find(
+      (candidate) =>
+        candidate.command.type === 'skill' &&
+        candidate.command.skillId === 'strike',
+    )!;
+    battle.unit('enemy').attrs.magicDef = 0;
+    battle.unit('player').attrs.magicDef = 0;
+    const after = ranked().find(
+      (candidate) =>
+        candidate.command.type === 'skill' &&
+        candidate.command.skillId === 'strike',
+    )!;
+    expect(before.score).toBe(after.score);
+    expect(before.score).toBeGreaterThan(
+      ranked().find((candidate) => candidate.command.type === 'attack')!.score,
+    );
+  });
+  it('敌方气血比例低于两成时收尾加分，防御高低不改变普攻分差', () => {
+    const battle = fixture([], skills, true);
+    battle.unit('enemy2').attrs.hp = 100;
+    const score = (id: string) =>
+      rankAutoActions(
+        observeAutoBattle(battle.snapshot(), 'player', []),
+        'player',
+        skills,
+        [],
+        battle.queryCommands('player'),
+      ).find(
+        (candidate) =>
+          candidate.command.type === 'attack' && candidate.command.target === id,
+      )!.score;
+    const gap = score('enemy2') - score('enemy');
+    battle.unit('enemy').attrs.physicalDef = 1;
+    battle.unit('enemy2').attrs.physicalDef = 99999;
+    expect(score('enemy2') - score('enemy')).toBe(gap);
+    expect(gap).toBeGreaterThan(0);
   });
   it('只公开 NPC 的人物与生灵类别，不公开其属性事实', () => {
     const battle = fixture();

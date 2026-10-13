@@ -5,6 +5,14 @@ import { FailReason } from '@daoyou/combat-core/enums';
 import { matchesWhen, targetStatusStacks } from '@daoyou/combat-core/when';
 import { daoyouRulesetV6 } from './daoyou/index.js';
 import type { AutoObservation } from './auto-observation.js';
+import {
+  ENEMY_EXECUTE_BONUS,
+  ENEMY_EXECUTE_HP_RATIO,
+  expressionReadsHiddenTarget,
+  visibleOutgoingDamage,
+  visiblePhysicalHitChance,
+  visibleSealHitChance,
+} from './auto-scoring.js';
 
 type Benefits = {
   offense: number;
@@ -69,15 +77,20 @@ export function rankAutoActions(
     );
   function damageValue(target: Unit, amount: number, cannotKill = false) {
     if (!alive(target)) return 0;
+    const dealt = Math.max(0, amount);
+    if (target.side !== source.side) {
+      const ratio = target.attrs.hp / Math.max(1, target.attrs.maxHp);
+      return (
+        (dealt / Math.max(1, source.attrs.maxHp)) * 100 +
+        (!cannotKill && ratio < ENEMY_EXECUTE_HP_RATIO ? ENEMY_EXECUTE_BONUS : 0)
+      );
+    }
     const hp = Math.max(
       1,
       target.attrs.hp - planned(target).reduce((n, i) => n + i.damage * 0.5, 0),
     );
-    const effective = Math.min(hp, Math.max(0, amount));
-    return (
-      (effective / Math.max(1, target.attrs.maxHp)) * 100 +
-      (!cannotKill && amount >= hp ? 25 : 0)
-    );
+    const effective = Math.min(hp, dealt);
+    return (effective / Math.max(1, target.attrs.maxHp)) * 100;
   }
   function evaluate(
     skill: SkillDef,
@@ -88,11 +101,14 @@ export function rankAutoActions(
     const source = { ...actor, combatFacts: { ...actor.combatFacts } };
     // Value the current spell's declared modifiers; passive hook chains remain outside this estimate.
     function modifiers(target: Unit, kind: 'physical' | 'spell' | 'fixed') {
-      return (skill.modifiers ?? []).filter(m => matchesWhen(context, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === selected[0]?.id }));
+      return (skill.modifiers ?? []).filter(m => {
+        if (target.side !== source.side && typeof m.when?.expression === 'string' && expressionReadsHiddenTarget(m.when.expression)) return false;
+        return matchesWhen(context, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === selected[0]?.id });
+      });
     }
     const benefits = empty();
     const intentions: AutoIntent[] = [];
-    const notes = new Set<string>(['未知属性按观察者基线估算；不推演被动连锁']);
+    const notes = new Set<string>(['不可见的对方面板不进入估分；不推演被动连锁']);
     const skipsNextAction = skill.effects.some(
       (effect) => effect.type === 'skipNextAction' && !effect.when,
     );
@@ -272,8 +288,20 @@ export function rankAutoActions(
             const hits = Math.max(1, Math.min(20, value(effect.hits ?? 1)));
             const declared = modifiers(target, kind);
             const modifier = (key: 'damageBonus' | 'defenseIgnoreAdd' | 'barrierDamageBonus') => declared.reduce((sum, m) => sum + value(m[key]), 0);
-            const ignore = Math.max(0, Math.min(1, value('defenseIgnore' in effect ? effect.defenseIgnore : undefined) + modifier('defenseIgnoreAdd')));
-            const defenseSubtract = effect.type === 'physicalHit' ? Math.max(0, value(effect.defenseSubtract)) : 0;
+            const family =
+              effect.formula ??
+              skill.formula ??
+              ('trueDamage' in effect && effect.trueDamage ? 'fixed' : kind);
+            const power =
+              typeof effect.power === 'string' &&
+              !friendly &&
+              expressionReadsHiddenTarget(effect.power)
+                ? 0
+                : value(effect.power);
+            const ignore = friendly
+              ? Math.max(0, Math.min(1, value('defenseIgnore' in effect ? effect.defenseIgnore : undefined) + modifier('defenseIgnoreAdd')))
+              : 0;
+            const defenseSubtract = friendly && effect.type === 'physicalHit' ? Math.max(0, value(effect.defenseSubtract)) : 0;
             const defender = { ...target, attrs: { ...target.attrs,
               physicalDef: kind === 'physical' ? Math.max(0, target.attrs.physicalDef - defenseSubtract) * (1 - ignore) : target.attrs.physicalDef,
               magicDef: kind === 'spell' ? target.attrs.magicDef * (1 - ignore) : target.attrs.magicDef,
@@ -284,38 +312,49 @@ export function rankAutoActions(
                 ? (effect.coeff[Math.min(hit, effect.coeff.length - 1)] ?? 1)
                 : (effect.coeff ?? 1);
               const resultFactor = effect.resultFactors?.[Math.min(hit, effect.resultFactors.length - 1)] ?? 1;
-              damage += formulas.baseDamage({
-                source,
-                target: defender,
-                kind,
-                family:
-                  effect.formula ??
-                  skill.formula ??
-                  ('trueDamage' in effect && effect.trueDamage
-                    ? 'fixed'
-                    : kind),
-                coeff,
-                power: value(effect.power),
-                fury: false,
-                skillLevel: env.skillLevel,
-                schoolTerm: skill.schoolTerm,
-                splash: skill.splash,
-                targetCount: selected.length,
-              }) * resultFactor;
+              damage += (friendly
+                ? formulas.baseDamage({
+                    source,
+                    target: defender,
+                    kind,
+                    family,
+                    coeff,
+                    power,
+                    fury: false,
+                    skillLevel: env.skillLevel,
+                    schoolTerm: skill.schoolTerm,
+                    splash: skill.splash,
+                    targetCount: selected.length,
+                  })
+                : visibleOutgoingDamage({
+                    source,
+                    family,
+                    coeff,
+                    power,
+                    skillLevel: env.skillLevel,
+                    schoolTerm: skill.schoolTerm,
+                    splash: skill.splash,
+                    targetCount: selected.length,
+                  })) * resultFactor;
             }
             const chance = 'cannotMiss' in effect && effect.cannotMiss ? 1 :
               kind === 'physical'
-                ? formulas.physicalHitChance(source, target)
+                ? friendly
+                  ? formulas.physicalHitChance(source, target)
+                  : visiblePhysicalHitChance(source, target.level)
                 : kind === 'spell'
                   ? formulas.spellHitChance(source, target)
                   : 1;
             if (effect.type === 'physicalHit' && effect.healInstead) {
-              const healing = Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * chance);
-              benefits.survival += probability * (friendly ? 1 : -1) * healing / Math.max(1, target.attrs.maxHp) * 100;
+              const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
+              const healing = friendly
+                ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), damage * chance)
+                : damage * chance;
+              benefits.survival += probability * (friendly ? 1 : -1) * healing / Math.max(1, pool) * 100;
               intentions.push({ ...intent, healing: healing * probability });
               continue;
             }
-            if (effect.type === 'physicalHit' && target.flags.defending)
+            if (friendly && effect.type === 'physicalHit' && target.flags.defending)
               damage *= effect.defendFactor ?? formulas.defendPhysicalFactor;
             damage *=
               kind === 'physical'
@@ -328,7 +367,8 @@ export function rankAutoActions(
             const barrierFactor = Math.max(1, 1 + modifier('barrierDamageBonus'));
             const removedBarrier = Math.min(barrier, damage * barrierFactor);
             const hpDamage = Math.max(0, damage - removedBarrier / barrierFactor);
-            offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage * chance, effect.cannotKill) + removedBarrier / Math.max(1, target.attrs.maxHp) * 60 * chance);
+            const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
+            offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage * chance, effect.cannotKill) + removedBarrier / Math.max(1, pool) * 60 * chance);
             intent.damage = hpDamage * chance * probability;
           } else if (
             effect.type === 'revive' ||
@@ -370,12 +410,14 @@ export function rankAutoActions(
                     taken(target, 'healTaken') *
                     taken(source, 'healDealt')
                   : power;
-              const healing = Math.min(available, Math.max(0, adjustedPower));
-              survival =
-                (((friendly ? 1 : -1) * healing) /
-                  Math.max(1, target.attrs.maxHp)) *
-                100 *
-                (1 + 3 * (1 - ratio(target)));
+              const healing = friendly
+                ? Math.min(available, Math.max(0, adjustedPower))
+                : Math.max(0, adjustedPower);
+              survival = friendly
+                ? (healing / Math.max(1, target.attrs.maxHp)) *
+                  100 *
+                  (1 + 3 * (1 - ratio(target)))
+                : (-healing / Math.max(1, source.attrs.maxHp)) * 100;
               intent.healing = healing * probability;
             }
           } else if (effect.type === 'removeWound') {
@@ -393,12 +435,19 @@ export function rankAutoActions(
               const duration = Math.max(0, Math.min(3, value(effect.duration)));
               const chance =
                 effect.hit === 'seal'
-                  ? formulas.sealHitChance(
-                      source,
-                      target,
-                      env.skillLevel,
-                      skill.sealBase,
-                    )
+                  ? friendly
+                    ? formulas.sealHitChance(
+                        source,
+                        target,
+                        env.skillLevel,
+                        skill.sealBase,
+                      )
+                    : visibleSealHitChance(
+                        source,
+                        target.level,
+                        env.skillLevel,
+                        skill.sealBase,
+                      )
                   : 1;
               const harmful =
                 def?.category === 'control' ||
@@ -416,29 +465,21 @@ export function rankAutoActions(
               // A small panel buff is not worth the same as a full control turn.
               // Estimate its relative contribution using the recipient's panel.
               if (def?.healingPerRound !== undefined) {
-                const healing = Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), value(def.healingPerRound) * duration * taken(source, 'healDealt') * taken(target, 'healTaken'));
-                survival += (friendly ? 1 : -1) * healing / Math.max(1, target.attrs.maxHp) * 100;
+                const amount = value(def.healingPerRound) * duration * taken(source, 'healDealt') * taken(target, 'healTaken');
+                const healing = friendly
+                  ? Math.min(Math.max(0, target.attrs.maxHp - target.wound - target.attrs.hp), amount)
+                  : amount;
+                const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
+                survival += (friendly ? 1 : -1) * healing / Math.max(1, pool) * 100;
                 intent.healing = healing * probability;
               }
-              if (friendly && def) {
-                let prevented = 0;
-                for (const enemy of observation.units.filter(unit => alive(unit) && unit.side !== target.side)) {
-                  for (const kind of ['physical', 'spell'] as const) {
-                    const key = kind === 'physical' ? 'damageTakenPhysical' : 'damageTakenSpell';
-                    const reduction = Math.max(0, 1 - (def[key] ?? 1));
-                    if (!reduction) continue;
-                    prevented += formulas.baseDamage({ source: enemy, target, kind, family: kind, coeff: 1, power: 0, fury: false }) * taken(target, key) * reduction * duration;
-                  }
-                }
-                // Predict only from the public attribute baseline, never from
-                // an enemy's hidden skills or queued command.
-                survival += Math.min(target.attrs.hp, prevented) / Math.max(1, target.attrs.maxHp) * 100 * (1 + 3 * (1 - ratio(target)));
-              }
               const inert = def?.category === 'buff' && def.untilBattleEnd && def.dispellable === false && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.attrMods && !def.speedMod && !def.modifiers?.length && !def.onTick && !def.damageDealtPhysical && !def.damageDealtSpell && !def.damageTakenPhysical && !def.damageTakenSpell && !def.protectsTarget && !def.blockedCommands?.length && !def.blocksArts;
-              const attributeValue = inert ? 0 : def?.attrMods
-                ? Math.min(8, Object.entries(def.attrMods).reduce((sum, [attr, amount]) =>
-                    sum + Math.abs(value(amount)) / Math.max(1, Math.abs(target.attrs[attr as keyof typeof target.attrs])) * 20, 0))
-                : 8;
+              const attributeValue = inert
+                ? 0
+                : def?.attrMods && friendly
+                  ? Math.min(8, Object.entries(def.attrMods).reduce((sum, [attr, amount]) =>
+                      sum + Math.abs(value(amount)) / Math.max(1, Math.abs(target.attrs[attr as keyof typeof target.attrs])) * 20, 0))
+                  : 8;
               const controlDuration =
                 def?.blocksAction && target.id === source.id && skipsNextAction
                   ? Math.max(0, duration - 1)
@@ -495,37 +536,38 @@ export function rankAutoActions(
             const existing =
               target.barriers.find((barrier) => barrier.id === effect.id)
                 ?.current ?? 0;
+            const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
             survival =
               (friendly ? 1 : -1) *
               Math.min(
                 0.4,
                 Math.max(0, value(effect.power) - existing) /
-                  Math.max(1, target.attrs.maxHp),
+                  Math.max(1, pool),
               ) *
               60;
           } else if (effect.type === 'restoreMp') {
-            survival =
-              (((friendly ? 1 : -1) *
-                Math.min(
+            if (friendly)
+              survival =
+                (Math.min(
                   target.attrs.maxMp - target.attrs.mp,
                   Math.max(0, value(effect.power)),
-                )) /
-                Math.max(1, target.attrs.maxMp)) *
-              30;
+                ) /
+                  Math.max(1, target.attrs.maxMp)) *
+                30;
           } else if (effect.type === 'damageMp' || effect.type === 'wound') {
-            offense =
-              (friendly ? -1 : 1) *
-              Math.min(
-                1,
-                Math.max(0, value(effect.power)) /
-                  Math.max(
-                    1,
-                    effect.type === 'damageMp'
-                      ? target.attrs.maxMp
-                      : target.attrs.maxHp,
-                  ),
-              ) *
-              30;
+            if (friendly)
+              offense =
+                -Math.min(
+                  1,
+                  Math.max(0, value(effect.power)) /
+                    Math.max(
+                      1,
+                      effect.type === 'damageMp'
+                        ? target.attrs.maxMp
+                        : target.attrs.maxHp,
+                    ),
+                ) *
+                30;
           } else if (effect.type === 'loseHp') {
             survival = -(Math.min(1, value(effect.power) / Math.max(1, source.attrs.hp)) * 100);
           } else if (effect.type === 'skipNextAction') {
@@ -559,7 +601,11 @@ export function rankAutoActions(
           if (hook.requireKind && hook.requireKind !== kind) continue;
           if (!matchesWhen(context, hook.when, { source, target, skill, skillId: skill.id, kind, isPrimary: target.id === selected[0]?.id })) continue;
           const chance = Math.min(1, Math.max(0, evalExpr(hook.chance ?? 1, { state: context.state, source, target, skillLevel: skillLevelOf(source, skill.id), targets: selected.length })));
-          const hitChance = kind === 'physical' ? formulas.physicalHitChance(source, target) : formulas.spellHitChance(source, target);
+          const hitChance = kind === 'physical'
+            ? target.side === source.side
+              ? formulas.physicalHitChance(source, target)
+              : visiblePhysicalHitChance(source, target.level)
+            : formulas.spellHitChance(source, target);
           effects(hook.effects.filter(e => ['applyStatus', 'removeStatus', 'randomBranch'].includes(e.type)), [target], chance * hitChance);
         }
       }
@@ -583,16 +629,27 @@ export function rankAutoActions(
     const target = observation.units.find((u) => u.id === id);
     if (!target) continue;
     const damage =
-      formulas.baseDamage({
-        source,
-        target,
-        kind: 'physical',
-        family: 'physical',
-        coeff: 1,
-        power: 0,
-        fury: false,
-      }) *
-      formulas.physicalHitChance(source, target) *
+      (target.side === source.side
+        ? formulas.baseDamage({
+            source,
+            target,
+            kind: 'physical',
+            family: 'physical',
+            coeff: 1,
+            power: 0,
+            fury: false,
+          })
+        : visibleOutgoingDamage({
+            source,
+            family: 'physical',
+            coeff: 1,
+            power: 0,
+            skillLevel: source.level,
+            targetCount: 1,
+          })) *
+      (target.side === source.side
+        ? formulas.physicalHitChance(source, target)
+        : visiblePhysicalHitChance(source, target.level)) *
       taken(target, 'damageTakenPhysical');
     add(
       { type: 'attack', target: id },

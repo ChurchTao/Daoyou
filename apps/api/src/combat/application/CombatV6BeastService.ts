@@ -116,7 +116,7 @@ export async function fuseOwnedBeasts(
       return beast;
     });
     const [a, b] = materials;
-    const reason = beastFusionReason(a, b, roster.ownerLevel, roster.lineup);
+    const reason = beastFusionReason(a, b, roster.ownerLevel);
     if (reason) throw new BeastError(reason);
     const result = fuseBeasts(a, b, randomUUID(), randomInt(0, 0x7fffffff));
     const removed = await tx
@@ -139,19 +139,23 @@ export async function fuseOwnedBeasts(
       cultivatorId,
       individual: beastIndividualData(result),
     });
-    if (placement === 'bag') {
-      const carried = carriedBeastIds(roster.beasts, roster.lineup).filter(
-        (id) => id !== a.id && id !== b.id,
-      );
+    const before = carriedBeastIds(roster.beasts, roster.lineup);
+    const carried = before.filter((id) => id !== a.id && id !== b.id);
+    const leadBeastId =
+      roster.lineup.leadBeastId === a.id || roster.lineup.leadBeastId === b.id
+        ? undefined
+        : roster.lineup.leadBeastId;
+    if (
+      placement === 'bag' ||
+      carried.length !== before.length ||
+      leadBeastId !== roster.lineup.leadBeastId
+    ) {
       await saveBeastLineup(
         cultivatorId,
         {
-          carriedBeastIds: [...carried, result.id],
-          leadBeastId:
-            roster.lineup.leadBeastId === a.id ||
-            roster.lineup.leadBeastId === b.id
-              ? undefined
-              : roster.lineup.leadBeastId,
+          carriedBeastIds:
+            placement === 'bag' ? [...carried, result.id] : carried,
+          leadBeastId,
           revision: roster.lineup.revision + 1,
         },
         tx,

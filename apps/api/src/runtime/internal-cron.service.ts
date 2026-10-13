@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AuctionOperations } from '@server/auction/application/AuctionService.js';
+import { pruneChatHistory } from '@server/lib/repositories/chatRepository.js';
 import {
   runAuctionExpireJob,
   runExpiredDataCleanupJob,
@@ -11,6 +12,7 @@ import {
   runSponsorshipCleanupJob,
   runSponsorshipReconcileJob,
 } from '@server/runtime/jobs/internalCron.js';
+import { redPacketService } from '@server/social/application/RedPacketService.js';
 @Injectable()
 export class InternalCronService {
   constructor(
@@ -19,6 +21,11 @@ export class InternalCronService {
 
   auctionExpire() {
     return runAuctionExpireJob(this.auction);
+  }
+  async chatMaintenance() {
+    const packets = await redPacketService.expireDue();
+    const messages = await pruneChatHistory();
+    return { success: true, processed: packets + messages, skipped: false };
   }
   rankRewards(scheduledAt?: Date) {
     return runRankRewardsJob(scheduledAt);

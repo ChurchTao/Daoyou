@@ -1,5 +1,10 @@
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import {
+  BEAST_PICKER_PAGE_SIZE,
+  type BeastPickerLocation,
+  type BeastPickerPage,
+} from '@daoyou/contracts/beasts';
+import {
   BeastLineupSchema,
   type BeastLineup,
   type BeastRoster,
@@ -20,7 +25,7 @@ import {
   cultivatorBeasts,
   cultivators,
 } from '@server/lib/drizzle/schema.js';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, count, eq, inArray, notInArray, type SQL } from 'drizzle-orm';
 
 /** Identity and ownership have a single authority in relational columns. */
 export function beastIndividualData(beast: SummonedBeast) {
@@ -87,6 +92,88 @@ export async function readBeastRoster(
       state?.lineup ?? { carriedBeastIds: [], revision: 0 },
     ),
     starterClaimed: !!state?.starterClaimedAt,
+  };
+}
+
+async function countBeasts(where: SQL | undefined, tx: DbExecutor) {
+  const [row] = await tx
+    .select({ total: count() })
+    .from(cultivatorBeasts)
+    .where(where);
+  return Number(row?.total ?? 0);
+}
+
+export async function readBeastPickerPage(
+  cultivatorId: string,
+  query: { page: number; location: BeastPickerLocation; beast?: string },
+  tx: DbExecutor,
+): Promise<BeastPickerPage> {
+  const [state] = await tx
+    .select()
+    .from(cultivatorBeastLineups)
+    .where(eq(cultivatorBeastLineups.cultivatorId, cultivatorId));
+  const lineup = BeastLineupSchema.parse(
+    state?.lineup ?? { carriedBeastIds: [], revision: 0 },
+  );
+  const carried = lineup.carriedBeastIds;
+  const owned = eq(cultivatorBeasts.cultivatorId, cultivatorId);
+  const bagWhere = carried.length
+    ? and(owned, inArray(cultivatorBeasts.id, carried))
+    : undefined;
+  const warehouseWhere = carried.length
+    ? and(owned, notInArray(cultivatorBeasts.id, carried))
+    : owned;
+  const where =
+    query.location === 'bag'
+      ? bagWhere
+      : query.location === 'warehouse'
+        ? warehouseWhere
+        : owned;
+  const [bagCount, warehouseCount] = await Promise.all([
+    bagWhere ? countBeasts(bagWhere, tx) : Promise.resolve(0),
+    countBeasts(warehouseWhere, tx),
+  ]);
+  const idRows = where
+    ? await tx
+        .select({ id: cultivatorBeasts.id })
+        .from(cultivatorBeasts)
+        .where(where)
+        .orderBy(cultivatorBeasts.createdAt, cultivatorBeasts.id)
+    : [];
+  const total = idRows.length;
+  const pageCount = Math.max(1, Math.ceil(total / BEAST_PICKER_PAGE_SIZE));
+  let current = Math.min(query.page, pageCount);
+  if (query.beast) {
+    const index = idRows.findIndex((row) => row.id === query.beast);
+    if (index >= 0) current = Math.floor(index / BEAST_PICKER_PAGE_SIZE) + 1;
+  }
+  const slice = idRows
+    .slice(
+      (current - 1) * BEAST_PICKER_PAGE_SIZE,
+      current * BEAST_PICKER_PAGE_SIZE,
+    )
+    .map((row) => row.id);
+  const rows = slice.length
+    ? await tx
+        .select()
+        .from(cultivatorBeasts)
+        .where(inArray(cultivatorBeasts.id, slice))
+    : [];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const { ownerLevel, spiritStones } = await readBeastOwner(cultivatorId, tx);
+  return {
+    beasts: slice.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [beastFromRow(row)] : [];
+    }),
+    page: current,
+    pageSize: BEAST_PICKER_PAGE_SIZE,
+    total,
+    ownerLevel,
+    spiritStones,
+    lineup,
+    bagCount,
+    warehouseCount,
   };
 }
 

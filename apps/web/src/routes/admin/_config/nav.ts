@@ -52,7 +52,7 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     title: '功德簿管理',
-    description: '爱发电映射、订单与认领处理',
+    description: '订单处理、方案配置与人工补记',
     href: '/admin/sponsorship',
   },
   {
