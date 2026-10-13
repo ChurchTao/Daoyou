@@ -5,10 +5,7 @@ import {
   BEAST_GENERATION,
   BEAST_SPECIES,
 } from '@daoyou/game-content/beasts';
-import {
-  type BeastLineup,
-  type SummonedBeast,
-} from '@daoyou/game-domain/beasts';
+import { type SummonedBeast } from '@daoyou/game-domain/beasts';
 import { distributeBeastPoints } from './allocation.js';
 import { beastPointBudget } from './identity.js';
 import { BeastSchema, GeneratedBeastSchema } from './schema.js';
@@ -16,7 +13,6 @@ import { BeastSchema, GeneratedBeastSchema } from './schema.js';
 export function beastFusionMaterialReason(
   beast: SummonedBeast,
   ownerLevel: number,
-  lineup: BeastLineup,
 ): string {
   if (beast.isMutant) return '变异灵兽不能参与融合';
   if (beast.level < BEAST_FUSION.minimumLevel)
@@ -28,24 +24,18 @@ export function beastFusionMaterialReason(
     )
   )
     return '主人等级或携带境界不足';
-  if (
-    lineup.leadBeastId === beast.id ||
-    lineup.carriedBeastIds.includes(beast.id)
-  )
-    return '请先存入灵兽仓库';
   return '';
 }
 export function beastFusionReason(
   a: SummonedBeast,
   b: SummonedBeast,
   ownerLevel: number,
-  lineup: BeastLineup,
 ): string {
   if (a.id === b.id) return '请选择两只不同的灵兽';
   if (a.ownerCultivatorId !== b.ownerCultivatorId) return '只能融合自己的灵兽';
   return (
-    beastFusionMaterialReason(a, ownerLevel, lineup) ||
-    beastFusionMaterialReason(b, ownerLevel, lineup)
+    beastFusionMaterialReason(a, ownerLevel) ||
+    beastFusionMaterialReason(b, ownerLevel)
   );
 }
 export function fusionPreview(a: SummonedBeast, b: SummonedBeast) {
@@ -80,10 +70,7 @@ export function fuseBeasts(
   const [a, b] = [BeastSchema.parse(first), BeastSchema.parse(second)].sort(
     (x, y) => x.id.localeCompare(y.id),
   );
-  const reason = beastFusionReason(a, b, 180, {
-    carriedBeastIds: [],
-    revision: 0,
-  });
+  const reason = beastFusionReason(a, b, 180);
   if (reason) throw new Error(reason);
   if (id === a.id || id === b.id) throw new Error('融合结果必须使用新个体ID');
   const speciesId =

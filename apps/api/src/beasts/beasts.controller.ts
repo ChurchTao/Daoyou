@@ -2,6 +2,7 @@ import {
   BeastClaimSchema,
   BeastFusionRequestSchema,
   BeastLineupRequestSchema,
+  BeastPickerQuerySchema,
   BeastPlaceSchema,
   BeastRenameSchema,
   BeastRestSchema,
@@ -23,6 +24,7 @@ import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { CombatErrors, combatErrorResponse } from '../combat/combat-errors.js';
 import { apiErrorFilter } from '../http/error-filter.js';
+import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import { BeastAllocateSchema } from './beasts-input.js';
@@ -47,6 +49,16 @@ export class BeastsController {
   @Header('Cache-Control', 'no-store')
   read(@CurrentCultivator() actor: ActiveCultivatorRef) {
     return this.beasts.read(actor.cultivatorId);
+  }
+
+  @Get('picker')
+  @Header('Cache-Control', 'no-store')
+  picker(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @FirstQuery(new ZodPipe(BeastPickerQuerySchema))
+    query: z.infer<typeof BeastPickerQuerySchema>,
+  ) {
+    return this.beasts.picker(actor.cultivatorId, query);
   }
 
   @Get('fusions/:requestId')

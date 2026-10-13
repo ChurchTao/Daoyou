@@ -31,8 +31,6 @@ const pair = () =>
         30,
       ),
     );
-const lineage = { carriedBeastIds: [], revision: 0 };
-
 describe('融合与宝宝身份', () => {
   it('历史材料点数不足不阻断融合，结果按新身份重建并校验点数', () => {
     const [a, b] = pair().map((beast) => ({
@@ -217,19 +215,15 @@ describe('融合与宝宝身份', () => {
         .success,
     ).toBe(false);
   });
-  it('禁止重复材料、变异、低等级、编组占用和主人门槛', () => {
+  it('禁止重复材料、变异、低等级和主人门槛，携带中的灵兽仍可融合', () => {
     const [a, b] = pair();
-    expect(beastFusionReason(a, a, 180, lineage)).toContain('两只');
-    expect(
-      beastFusionReason({ ...a, isMutant: true }, b, 180, lineage),
-    ).toContain('变异');
-    expect(beastFusionReason({ ...a, level: 29 }, b, 180, lineage)).toContain(
-      '30',
+    expect(beastFusionReason(a, a, 180)).toContain('两只');
+    expect(beastFusionReason({ ...a, isMutant: true }, b, 180)).toContain(
+      '变异',
     );
-    expect(
-      beastFusionReason(a, b, 180, { ...lineage, carriedBeastIds: [a.id] }),
-    ).toContain('仓库');
-    expect(beastFusionReason(a, b, 10, lineage)).toBeTruthy();
+    expect(beastFusionReason({ ...a, level: 29 }, b, 180)).toContain('30');
+    expect(beastFusionReason(a, b, 180)).toBe('');
+    expect(beastFusionReason(a, b, 10)).toBeTruthy();
   });
   it('物种只来自双方，身份概率遵循95/5和25/75，交换材料结果不变', () => {
     const [a, b] = pair();

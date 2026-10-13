@@ -2,6 +2,7 @@ import type { createBeastAllocationSchema } from '@daoyou/game-domain/beasts';
 import {
   BeastLineupSchema,
   BeastLocationSchema,
+  type BeastLineup,
   type BeastRoster,
   type SummonedBeast,
 } from '@daoyou/game-domain/beasts';
@@ -37,6 +38,25 @@ export type BeastFusionRequest = z.infer<typeof BeastFusionRequestSchema>;
 export type BeastFusionResponse = {
   view: BeastManagementView;
   result: SummonedBeast;
+};
+export const BEAST_PICKER_PAGE_SIZE = 15;
+export const BeastPickerLocationSchema = z.enum(['all', 'bag', 'warehouse']);
+export const BeastPickerQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(10000).default(1),
+  location: BeastPickerLocationSchema.default('all'),
+  beast: z.uuid().optional(),
+});
+export type BeastPickerLocation = z.infer<typeof BeastPickerLocationSchema>;
+export type BeastPickerPage = {
+  beasts: SummonedBeast[];
+  page: number;
+  pageSize: number;
+  total: number;
+  ownerLevel: number;
+  spiritStones: number;
+  lineup: BeastLineup;
+  bagCount: number;
+  warehouseCount: number;
 };
 export type BeastManagementView = BeastRoster & {
   starterClaimed: boolean;

@@ -1,5 +1,6 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastPickerPager } from '@app/components/feature/beasts/beastPicker';
+import { useBeastPicker } from '@app/components/feature/beasts/useBeastPicker';
 import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePreview';
 import { InventoryHeader } from '@app/components/feature/items/InventoryHeader';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
@@ -8,10 +9,9 @@ import { InkModal } from '@app/components/layout';
 import { InkButton, InkInput, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { useInventoryBag } from '@app/lib/resources/bag';
-import type { BeastManagementView } from '@daoyou/contracts/beasts';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { SendWorldChatShowcaseInput } from './worldChatFeedContext';
 
 export function WorldChatShowcaseDialog({
@@ -30,27 +30,8 @@ export function WorldChatShowcaseDialog({
   const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
   const [selectedRef, setSelected] = useState<InventoryView['items'][number]>();
   const [selectedBeast, setSelectedBeast] = useState<SummonedBeast>();
-  const [beasts, setBeasts] = useState<SummonedBeast[]>([]);
-  const [beastError, setBeastError] = useState('');
   const [source, setSource] = useState<'items' | 'beasts'>('items');
-  useEffect(() => {
-    const controller = new AbortController();
-    void apiFetch('/api/combat-v6/beasts', { signal: controller.signal })
-      .then(async (response) => {
-        const result = await response.json();
-        if (!response.ok || !result.success)
-          throw new Error(result.error || '灵兽读取失败');
-        if (!controller.signal.aborted)
-          setBeasts((result.data as BeastManagementView).beasts);
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted)
-          setBeastError(
-            error instanceof Error ? error.message : '灵兽读取失败',
-          );
-      });
-    return () => controller.abort();
-  }, []);
+  const beastPicker = useBeastPicker({ active: source === 'beasts' });
   const selected = [...(bag?.items ?? []), ...(bag?.equippedItems ?? [])].find(
     (item) =>
       item.id === selectedRef?.id && item.revision === selectedRef.revision,
@@ -263,10 +244,13 @@ export function WorldChatShowcaseDialog({
             <div className="hidden lg:block">{inventory}</div>
           ) : (
             <div className="max-h-[65vh] space-y-2 overflow-y-auto">
-              {beastError ? (
-                <InkNotice tone="warning">{beastError}</InkNotice>
+              {beastPicker.error ? (
+                <InkNotice tone="warning">{beastPicker.error}</InkNotice>
               ) : null}
-              {beasts.map((beast) => (
+              {!beastPicker.data && beastPicker.loading ? (
+                <p className="text-ink-secondary text-sm">正在读取灵兽……</p>
+              ) : null}
+              {beastPicker.data?.beasts.map((beast) => (
                 <button
                   key={beast.id}
                   type="button"
@@ -277,6 +261,17 @@ export function WorldChatShowcaseDialog({
                   {beast.skills.length}技能{beast.isMutant ? ' · 变异' : ''}
                 </button>
               ))}
+              {beastPicker.data && !beastPicker.data.total ? (
+                <p className="text-ink-secondary text-sm">尚未拥有灵兽</p>
+              ) : null}
+              {beastPicker.data ? (
+                <BeastPickerPager
+                  page={beastPicker.data.page}
+                  total={beastPicker.data.total}
+                  loading={beastPicker.loading}
+                  onPage={beastPicker.setPage}
+                />
+              ) : null}
             </div>
           )}
         </section>

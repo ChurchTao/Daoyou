@@ -93,7 +93,7 @@ export const servicesRoutes = [
       {
         id: 'beasts',
         presentation: 'workflow',
-        summary: '查看随身灵兽，安排首发或安心休养。',
+        summary: '查看随身灵兽，安排首发、培养或融合。',
       },
       '灵兽袋',
     )}
@@ -105,7 +105,7 @@ export const servicesRoutes = [
       {
         id: 'beast-warehouse',
         presentation: 'workflow',
-        summary: '存放暂不出行的灵兽，需要时再取出。',
+        summary: '存放暂不出行的灵兽。培养与融合可在此完成。',
       },
       '灵兽仓库',
     )}
