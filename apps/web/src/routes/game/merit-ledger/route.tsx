@@ -40,6 +40,14 @@ type MeritState = {
     expiresAt: string;
     createdAt: string;
   }[];
+  pass: {
+    name: string;
+    level: number;
+    endsAt: string | null;
+    permanent: boolean;
+    deliveredToday: boolean;
+    rewardsConfigured: boolean;
+  } | null;
 };
 function formatMonth(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -218,7 +226,7 @@ export default function MeritLedgerPage() {
     <GameSceneFrame
       variant="default"
       title="功德簿"
-      description="不记灵石多寡，只录同行之缘。每笔支持留下一页功德与一封无附件谢信。"
+      description="不记灵石多寡，只录同行之缘。每笔支持留下一页功德与一封无附件谢信。月卡物资按上海日另寄，未上线的日子不补。"
       contentClassName="!mt-4"
     >
       <nav
@@ -245,6 +253,33 @@ export default function MeritLedgerPage() {
 
       {tab === 'mine' && (
         <div className="space-y-6">
+          <section className="border-ink/20 border-l-2 px-5 py-4">
+            <p className="text-xs tracking-[0.16em]">月卡补给</p>
+            {mine?.pass ? (
+              <>
+                <p className="mt-2 text-lg">{mine.pass.name}</p>
+                <p className="text-ink-secondary mt-1 text-sm">
+                  等级{' '}
+                  <span className="font-mono font-semibold tracking-tight">
+                    {mine.pass.level}
+                  </span>
+                  {' · '}
+                  {mine.pass.permanent
+                    ? '永久有效'
+                    : `至 ${new Date(mine.pass.endsAt ?? '').toLocaleDateString('zh-CN')}`}
+                </p>
+                <p className="mt-2 text-sm">
+                  {mine.pass.deliveredToday
+                    ? '今日补给已送入传音。'
+                    : mine.pass.rewardsConfigured
+                      ? '今日补给尚未送出。保持上线后会写入传音。'
+                      : '当前方案还没有配置每日物资。'}
+                </p>
+              </>
+            ) : (
+              <p className="text-ink-secondary mt-2 text-sm">月卡未生效。</p>
+            )}
+          </section>
           {mine?.profile ? (
             <MeritTierCard
               tier={mine.profile.highestTier}

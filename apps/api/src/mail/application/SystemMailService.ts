@@ -18,6 +18,7 @@ import { isSystemMailInWindow, matchesSystemMailConditions } from '@daoyou/game-
 import { and, asc, eq, gt, lte, notExists, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { MailService } from '@server/mail/application/MailService.js';
+import { grantSubscriptionDailySupply } from '@server/sponsorship/application/SubscriptionPassService.js';
 
 // A short lease suppresses concurrent connections; only committed observations
 // advance the cooldown. Failure leaves the next heartbeat free to retry.
@@ -206,5 +207,10 @@ export async function projectSystemMailAudience(
     if (campaigns.length < 100) break;
     cursor = campaigns.at(-1)!.id;
   }
+  await grantSubscriptionDailySupply({
+    cultivatorId: facts.cultivatorId,
+    checkedAt: new Date(facts.checkedAt),
+    tx,
+  });
   return { result: { delivered }, resourceChanges: [] };
 }

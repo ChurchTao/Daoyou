@@ -1,3 +1,4 @@
+import type { RewardSelection } from './rewards/selection.js';
 import { z } from 'zod';
 
 
@@ -28,6 +29,24 @@ const SponsorshipTierConfigSchema = z.object({
   minimumAmountFen: z.number().int().min(1).max(100_000_000),
 });
 
+export const SubscriptionPlanSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9_]+$/, '方案 ID 只能使用小写字母、数字和下划线'),
+  level: z.number().int().min(1).max(10_000),
+  name: z.string().trim().min(1).max(40),
+  afdianPlanId: z.string().trim().min(1).max(80),
+  enabled: z.boolean(),
+  dailyRewards: z.custom<RewardSelection[]>(
+    (value) => Array.isArray(value) && value.length <= 30,
+    '每日物资最多 30 项',
+  ),
+});
+
+export type SubscriptionPlan = z.infer<typeof SubscriptionPlanSchema>;
 
 export const AfdianSponsorshipConfigSchema = z
   .object({
@@ -47,6 +66,7 @@ export const AfdianSponsorshipConfigSchema = z
       night_guardian: SponsorshipTierConfigSchema,
       immortality_witness: SponsorshipTierConfigSchema,
     }),
+    subscriptionPlans: z.array(SubscriptionPlanSchema).max(40).default([]),
   })
   .superRefine((value, ctx) => {
     const thresholds = SPONSORSHIP_TIER_IDS.map(
@@ -70,6 +90,35 @@ export const AfdianSponsorshipConfigSchema = z
         path: ['tiers'],
         message: '不同档位不能使用相同的方案 ID',
       });
+    }
+    const subscriptionIds = new Set<string>();
+    const levels = new Set<number>();
+    const afdianPlanIds = new Set<string>();
+    for (const [index, plan] of value.subscriptionPlans.entries()) {
+      if (subscriptionIds.has(plan.id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['subscriptionPlans', index, 'id'],
+          message: '月卡方案 ID 重复',
+        });
+      }
+      if (levels.has(plan.level)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['subscriptionPlans', index, 'level'],
+          message: '月卡等级不能重复',
+        });
+      }
+      if (afdianPlanIds.has(plan.afdianPlanId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['subscriptionPlans', index, 'afdianPlanId'],
+          message: '不同月卡不能使用相同的爱发电方案',
+        });
+      }
+      subscriptionIds.add(plan.id);
+      levels.add(plan.level);
+      afdianPlanIds.add(plan.afdianPlanId);
     }
   });
 

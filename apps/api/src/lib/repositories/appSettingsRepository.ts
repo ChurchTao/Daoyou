@@ -3,6 +3,7 @@ import { appSettings } from '@server/lib/drizzle/schema.js';
 import { DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS, ItemLibraryDailyMaterialGenerationSettingsSchema, type ItemLibraryDailyMaterialGenerationSettings } from '@daoyou/contracts/application-settings';
 import { APP_SETTING_KEYS, DEFAULT_COMMUNITY_QQ_GROUP_NUMBER } from '@server/lib/repositories/app-settings-config.js';
 import { AfdianSponsorshipConfigSchema, type AfdianSponsorshipConfig } from '@daoyou/game-domain/sponsorship';
+import { withSeededSubscriptionPlans } from '@daoyou/game-rules/sponsorship';
 import { DEFAULT_AFDIAN_SPONSORSHIP_CONFIG } from '@daoyou/game-content/sponsorship/defaults';
 import { eq } from 'drizzle-orm';
 
@@ -88,7 +89,9 @@ export async function getAfdianSponsorshipConfig(): Promise<AfdianSponsorshipCon
   const raw = await getAppSetting(APP_SETTING_KEYS.afdianSponsorship);
   if (!raw) return structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
   try {
-    return AfdianSponsorshipConfigSchema.parse(JSON.parse(raw));
+    return withSeededSubscriptionPlans(
+      AfdianSponsorshipConfigSchema.parse(JSON.parse(raw)),
+    );
   } catch {
     return structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
   }

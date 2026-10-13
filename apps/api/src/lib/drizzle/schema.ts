@@ -36,6 +36,7 @@ import {
   bigint,
   boolean,
   check,
+  date,
   doublePrecision,
   foreignKey,
   index,
@@ -1551,6 +1552,83 @@ export const sponsorshipAdminActions = pgTable(
     index('sponsorship_admin_actions_order_created_idx').on(
       table.orderId,
       table.createdAt,
+    ),
+  ],
+);
+
+export const sponsorshipProviderLinks = pgTable(
+  'wanjiedaoyou_sponsorship_provider_links',
+  {
+    provider: varchar('provider', { length: 32 }).notNull(),
+    providerUserId: varchar('provider_user_id', { length: 80 }).notNull(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    boundAt: timestamp('bound_at').notNull().defaultNow(),
+    reboundBy: uuid('rebound_by'),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.provider, table.providerUserId] }),
+    index('sponsorship_provider_links_cultivator_idx').on(table.cultivatorId),
+  ],
+);
+
+export const sponsorshipSubscriptionTerms = pgTable(
+  'wanjiedaoyou_sponsorship_subscription_terms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    provider: varchar('provider', { length: 32 }).notNull(),
+    providerUserId: varchar('provider_user_id', { length: 80 }).notNull(),
+    planKey: varchar('plan_key', { length: 64 }).notNull(),
+    level: integer('level').notNull(),
+    afdianPlanId: varchar('afdian_plan_id', { length: 80 }).notNull(),
+    startsAt: timestamp('starts_at').notNull(),
+    endsAt: timestamp('ends_at'),
+    provisional: boolean('provisional').notNull().default(false),
+    lastSyncedAt: timestamp('last_synced_at'),
+    sourceOrderId: uuid('source_order_id').references(() => sponsorshipOrders.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_terms_cultivator_plan_uidx').on(
+      table.cultivatorId,
+      table.afdianPlanId,
+    ),
+    index('sponsorship_terms_provider_user_idx').on(
+      table.provider,
+      table.providerUserId,
+    ),
+    index('sponsorship_terms_provisional_end_idx').on(
+      table.provisional,
+      table.endsAt,
+    ),
+  ],
+);
+
+export const sponsorshipDailyGrants = pgTable(
+  'wanjiedaoyou_sponsorship_daily_grants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    grantDate: date('grant_date', { mode: 'string' }).notNull(),
+    planKey: varchar('plan_key', { length: 64 }).notNull(),
+    level: integer('level').notNull(),
+    mailId: uuid('mail_id').references(() => mails.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('sponsorship_daily_grants_cultivator_date_uidx').on(
+      table.cultivatorId,
+      table.grantDate,
     ),
   ],
 );

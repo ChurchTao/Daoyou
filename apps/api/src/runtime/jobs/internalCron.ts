@@ -35,6 +35,7 @@ import {
   retryPendingSponsorshipWork,
   sendSponsorshipAdminDigest,
 } from '@server/sponsorship/application/SponsorshipApplicationService.js';
+import { reconcileSubscriptionTerms } from '@server/sponsorship/application/SubscriptionPassService.js';
 import { eq } from 'drizzle-orm';
 
 const RANK_REWARD_SETTLED_PREFIX = 'golden_rank:weekly_rewards:settled:';
@@ -77,9 +78,10 @@ export async function runSponsorshipReconcileJob(
       }
       const result = await reconcileAfdianOrders({ pages: deep ? 50 : 2 });
       const retried = await retryPendingSponsorshipWork();
+      const terms = await reconcileSubscriptionTerms();
       return {
         success: true,
-        processed: result.scanned + retried,
+        processed: result.scanned + retried + terms.scanned,
         skipped: false,
       };
     },

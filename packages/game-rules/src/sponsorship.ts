@@ -72,6 +72,20 @@ export function highestSponsorshipTier(
 
 
 
+export {
+  extendSubscriptionEnd,
+  findSubscriptionPlan,
+  readSubscriptionRewards,
+  selectActiveSubscriptionPlan,
+  sponsorshipCalendarDate,
+  withSeededSubscriptionPlans,
+} from './sponsorship-pass.js';
+export type {
+  ActiveSubscription,
+  SubscriptionPlanFact,
+  SubscriptionTermFact,
+} from './sponsorship-pass.js';
+
 export function formatSponsorshipMonth(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',

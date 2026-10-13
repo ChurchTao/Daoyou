@@ -8,6 +8,7 @@ export const DEFAULT_AFDIAN_SPONSORSHIP_CONFIG: AfdianSponsorshipConfig = {
   acceptingCheckout: false,
   acceptingCustomAmount: true,
   ordersAcceptedAfter: null,
+  subscriptionPlans: [],
   tiers: {
     faint_light: { planId: '', minimumAmountFen: 1 },
     fellow_traveler: { planId: '', minimumAmountFen: 3_800 },
