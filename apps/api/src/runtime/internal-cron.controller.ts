@@ -17,6 +17,10 @@ export class InternalCronController {
   constructor(
     @Inject(InternalCronService) private readonly jobs: InternalCronService,
   ) {}
+  @Get('chat-maintenance')
+  chatMaintenance() {
+    return this.jobs.chatMaintenance();
+  }
   @Get('auction-expire')
   auctionExpire() {
     return this.jobs.auctionExpire();

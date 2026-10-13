@@ -3,20 +3,33 @@ import type {
   WorldChatMessageDTO,
 } from '@daoyou/contracts/world-chat';
 
-export const PAGE_SIZE = 20;
+export const PAGE_SIZE = 30;
+export const MAX_CHAT_WINDOW = 150;
 
 export function mergeWorldChatMessages(
   base: WorldChatMessageDTO[],
   incoming: WorldChatMessageDTO[],
 ) {
-  const seen = new Set<string>();
-  const merged = [...incoming, ...base].filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
+  const merged = new Map(base.map((message) => [message.id, message]));
+  for (const message of incoming) {
+    const previous = merged.get(message.id);
+    if (
+      previous?.messageType === 'red_packet' &&
+      message.messageType === 'red_packet' &&
+      'packet' in previous.payload &&
+      'packet' in message.payload &&
+      previous.payload.packet.revision > message.payload.packet.revision
+    ) {
+      merged.set(message.id, { ...message, payload: previous.payload });
+    } else merged.set(message.id, message);
+  }
 
-  return merged.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  return [...merged.values()].sort(
+    (a, b) =>
+      b.sequence - a.sequence ||
+      +new Date(b.createdAt) - +new Date(a.createdAt) ||
+      b.id.localeCompare(a.id),
+  );
 }
 
 export function countNewWorldChatMessages(

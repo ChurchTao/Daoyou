@@ -14,11 +14,17 @@ export const BACKGROUND_COMMAND_TYPES = [
   'sponsorship.deep-reconcile',
   'sponsorship.cleanup',
   'sponsorship.admin-digest',
+  'chat.maintenance',
 ] as const;
 
 export type BackgroundCommandType = (typeof BACKGROUND_COMMAND_TYPES)[number];
 
 export const BACKGROUND_COMMAND_DEFINITIONS = {
+  'chat.maintenance': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.chat-maintenance.v1`,
+    scheduleBucketMs: 60_000,
+  },
   'auction.expire': {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.auction-expire.v1`,

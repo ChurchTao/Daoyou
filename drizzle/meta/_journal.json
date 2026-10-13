@@ -435,6 +435,13 @@
       "when": 1791879602110,
       "tag": "0061_sponsorship_subscription_pass",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1791884582274,
+      "tag": "0062_channel_chat",
+      "breakpoints": true
     }
   ]
 }

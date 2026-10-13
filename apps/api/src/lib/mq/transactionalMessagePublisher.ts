@@ -1,4 +1,7 @@
-import { getJetStreamClient } from '@server/lib/nats/index.js';
+import {
+  getJetStreamClient,
+  getNatsConnection,
+} from '@server/lib/nats/index.js';
 import {
   findPendingTransactionalMessage,
   markTransactionalMessagePublished,
@@ -17,6 +20,13 @@ export async function publishTransactionalMessage(
 
   await recordTransactionalMessagePublishAttempt(row.id);
   try {
+    if (row.messageKey === 'chat.notification') {
+      const connection = await getNatsConnection();
+      connection.publish(row.destination, codec.encode(row.payload));
+      await connection.flush();
+      await markTransactionalMessagePublished(row.id);
+      return;
+    }
     const jetStream = await getJetStreamClient();
     await jetStream.publish(row.destination, codec.encode(row.payload), {
       msgID: row.id,

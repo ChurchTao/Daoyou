@@ -1,4 +1,3 @@
-import { beastTradePreview } from '@daoyou/game-domain/beasts';
 import type {
   WorldChatCreateMessageRequest,
   WorldChatItemShowcasePayload,
@@ -7,26 +6,21 @@ import type {
   WorldChatMessageType,
   WorldChatPayload,
 } from '@daoyou/contracts/world-chat';
+import { beastTradePreview } from '@daoyou/game-domain/beasts';
 import { inventoryShowcaseSnapshot } from '@daoyou/game-domain/items/catalog';
 import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
 import { readInventory } from '@server/inventory/operations.js';
 import { type DbClient } from '@server/lib/drizzle/db.js';
+import { findChatMessageRequest } from '@server/lib/repositories/chatRepository.js';
 import { readBeastRoster } from '@server/lib/repositories/combatV6BeastRepository.js';
 import {
   createCombatV6ReplayShare,
   findOwnedCombatV6Replay,
 } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { textFilter } from '@server/social/application/textFilter.js';
+import { ChatError, chatRequestFingerprint } from './chatError.js';
 
-export class ChatMessageApplicationError extends Error {
-  constructor(
-    message: string,
-    readonly status: 400 | 404 | 409 | 429,
-    readonly remainingSeconds?: number,
-  ) {
-    super(message);
-  }
-}
+export class ChatMessageApplicationError extends ChatError {}
 
 function countChars(input: string): number {
   return Array.from(input).length;
@@ -73,7 +67,10 @@ async function buildItemShowcasePayload(params: {
 }
 
 export async function createCultivatorChatMessage(params: {
-  request: WorldChatCreateMessageRequest;
+  request: Exclude<
+    WorldChatCreateMessageRequest,
+    { messageType: 'red_packet' }
+  >;
   userId: string;
   cultivatorId: string;
   channel: Extract<WorldChatMessageChannel, 'world' | 'sect'>;
@@ -94,23 +91,40 @@ export async function createCultivatorChatMessage(params: {
     messageType: WorldChatMessageType;
     textContent?: string;
     payload: WorldChatPayload;
+    clientMessageId?: string;
+    requestFingerprint?: string;
+    replyToMessageId?: string;
   }): Promise<WorldChatMessageDTO>;
 }): Promise<WorldChatMessageDTO> {
+  const fingerprint = chatRequestFingerprint({
+    channel: params.channel,
+    sectId: params.sectId,
+    request: params.request,
+  });
+  const existing = await findChatMessageRequest(
+    params.userId,
+    params.request.clientMessageId,
+    fingerprint,
+    params.database,
+  );
+  if (existing) return existing;
   const identity = await readCultivatorPublicIdentity(
     params.cultivatorId,
     params.database,
   );
-  const cooldown = await params.acquireCooldown(
-    params.cultivatorId,
-    identity.realm,
-  );
-  if (!cooldown.allowed) {
-    throw new ChatMessageApplicationError(
-      `请 ${cooldown.remainingSeconds} 秒后再发言`,
-      429,
-      cooldown.remainingSeconds,
+  const persist: typeof params.persist = async (input) => {
+    const cooldown = await params.acquireCooldown(
+      params.cultivatorId,
+      identity.realm,
     );
-  }
+    if (!cooldown.allowed)
+      throw new ChatMessageApplicationError(
+        `请 ${cooldown.remainingSeconds} 秒后再发言`,
+        429,
+        cooldown.remainingSeconds,
+      );
+    return params.persist(input);
+  };
 
   const senderBase = {
     senderUserId: params.userId,
@@ -120,6 +134,9 @@ export async function createCultivatorChatMessage(params: {
     senderRealmStage: identity.realmStage,
     channel: params.channel,
     sectId: params.sectId,
+    clientMessageId: params.request.clientMessageId,
+    requestFingerprint: fingerprint,
+    replyToMessageId: params.request.replyToMessageId,
   };
 
   if (params.request.messageType === 'text') {
@@ -129,7 +146,7 @@ export async function createCultivatorChatMessage(params: {
       throw new ChatMessageApplicationError('消息长度需在 1-100 字之间', 400);
     }
     const filteredText = textFilter.mask(text).text;
-    return params.persist({
+    return persist({
       ...senderBase,
       messageType: 'text',
       textContent: filteredText,
@@ -153,7 +170,7 @@ export async function createCultivatorChatMessage(params: {
       beast: beastTradePreview(beast),
       text: textFilter.mask(text).text || undefined,
     };
-    return params.persist({
+    return persist({
       ...senderBase,
       messageType: 'beast_showcase',
       textContent: payload.text,
@@ -192,7 +209,7 @@ export async function createCultivatorChatMessage(params: {
       roundCount: archive.roundCount,
       text: text || undefined,
     };
-    return params.persist({
+    return persist({
       ...senderBase,
       messageType: 'combat_v6_replay',
       textContent: payload.text,
@@ -211,7 +228,7 @@ export async function createCultivatorChatMessage(params: {
     itemId: params.request.itemId,
     text: textFilter.mask(showcaseText).text,
   });
-  return params.persist({
+  return persist({
     ...senderBase,
     messageType: 'item_showcase',
     textContent: payload.text,

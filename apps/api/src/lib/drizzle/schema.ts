@@ -25,6 +25,7 @@ import type {
   ItemLibraryPayload,
 } from '@daoyou/game-domain/items/catalog';
 import type { SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
+import type { WorldChatMessageChannel, WorldChatMessageType, WorldChatPayload, WorldChatReply, WorldChatMessageDTO } from '@daoyou/contracts/world-chat';
 import type {
   AlchemyFormulaBlueprint,
   AlchemyFormulaMastery,
@@ -352,6 +353,83 @@ export const transactionalMessages = pgTable(
       .where(sql`${table.publishedAt} is null`),
   ],
 );
+
+// The single counter row is locked until commit, so its sequence is a safe replay watermark.
+export const chatSequence = pgTable('wanjiedaoyou_chat_sequence', {
+  key: varchar('key', { length: 16 }).primaryKey(),
+  value: bigint('value', { mode: 'number' }).notNull().default(0),
+});
+
+export const chatMessages = pgTable('wanjiedaoyou_chat_messages', {
+  id: varchar('id', { length: 160 }).primaryKey(),
+  sequence: bigint('sequence', { mode: 'number' }).notNull(),
+  channel: varchar('channel', { length: 16 }).$type<WorldChatMessageChannel>().notNull(),
+  sectId: uuid('sect_id'),
+  senderUserId: varchar('sender_user_id', { length: 128 }).notNull(),
+  senderCultivatorId: uuid('sender_cultivator_id'),
+  senderName: varchar('sender_name', { length: 100 }).notNull(),
+  senderRealm: varchar('sender_realm', { length: 32 }).notNull(),
+  senderRealmStage: varchar('sender_realm_stage', { length: 16 }).notNull(),
+  messageType: varchar('message_type', { length: 32 }).$type<WorldChatMessageType>().notNull(),
+  textContent: text('text_content'),
+  payload: jsonb('payload').$type<WorldChatPayload>().notNull(),
+  reply: jsonb('reply').$type<WorldChatReply>(),
+  clientMessageId: uuid('client_message_id'),
+  requestFingerprint: varchar('request_fingerprint', { length: 64 }),
+  status: varchar('status', { length: 16 }).$type<'active' | 'hidden' | 'deleted'>().notNull().default('active'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('chat_messages_sequence_unique').on(table.sequence),
+  uniqueIndex('chat_messages_client_unique').on(table.senderUserId, table.clientMessageId).where(sql`${table.clientMessageId} is not null`),
+  index('chat_messages_channel_sequence_idx').on(table.channel, table.sectId, table.sequence),
+  index('chat_messages_created_idx').on(table.createdAt),
+]);
+
+// Account-owned financial receipts deliberately have no cascading character/message FK.
+export const chatRedPackets = pgTable('wanjiedaoyou_chat_red_packets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  messageId: uuid('message_id').notNull(),
+  messageSnapshot: jsonb('message_snapshot').$type<WorldChatMessageDTO>(),
+  senderUserId: uuid('sender_user_id').notNull(),
+  senderCultivatorId: uuid('sender_cultivator_id').notNull(),
+  clientMessageId: uuid('client_message_id').notNull(),
+  requestFingerprint: varchar('request_fingerprint', { length: 64 }).notNull(),
+  channel: varchar('channel', { length: 16 }).$type<'world' | 'sect'>().notNull(),
+  sectId: uuid('sect_id'),
+  amount: integer('amount').notNull(),
+  count: integer('count').notNull(),
+  amounts: jsonb('amounts').$type<number[]>().notNull(),
+  mode: varchar('mode', { length: 16 }).$type<'random' | 'equal'>().notNull(),
+  greeting: varchar('greeting', { length: 100 }).notNull(),
+  remainingAmount: integer('remaining_amount').notNull(),
+  remainingCount: integer('remaining_count').notNull(),
+  status: varchar('status', { length: 16 }).$type<'open' | 'exhausted' | 'expired'>().notNull().default('open'),
+  revision: integer('revision').notNull().default(0),
+  refundStatus: varchar('refund_status', { length: 16 }).$type<'none' | 'pending' | 'refunded'>().notNull().default('none'),
+  refundAmount: integer('refund_amount').notNull().default(0),
+  refundCultivatorId: uuid('refund_cultivator_id'),
+  refundedAt: timestamp('refunded_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  expiresAt: timestamp('expires_at').notNull(),
+}, (table) => [
+  uniqueIndex('chat_red_packets_request_unique').on(table.senderUserId, table.clientMessageId),
+  index('chat_red_packets_expiry_idx').on(table.status, table.expiresAt),
+  index('chat_red_packets_refunds_idx').on(table.senderUserId, table.refundStatus),
+  check('chat_red_packets_amounts_check', sql`${table.amount} >= 50000 and ${table.amount} <= 10000000 and ${table.count} >= 1 and ${table.count} <= 100 and ${table.remainingAmount} >= 0 and ${table.remainingCount} >= 0 and ${table.remainingCount} <= ${table.count} and ${table.refundAmount} >= 0`),
+]);
+
+export const chatRedPacketClaims = pgTable('wanjiedaoyou_chat_red_packet_claims', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  packetId: uuid('packet_id').notNull().references(() => chatRedPackets.id, { onDelete: 'restrict' }),
+  claimerUserId: uuid('claimer_user_id').notNull(),
+  cultivatorId: uuid('cultivator_id').notNull(),
+  senderName: varchar('sender_name', { length: 100 }).notNull(),
+  amount: integer('amount').notNull(),
+  claimedAt: timestamp('claimed_at').notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('chat_red_packet_claims_account_unique').on(table.packetId, table.claimerUserId),
+  check('chat_red_packet_claims_amount_check', sql`${table.amount} > 0`),
+]);
 
 export const messageConsumptions = pgTable(
   'wanjiedaoyou_message_consumptions',

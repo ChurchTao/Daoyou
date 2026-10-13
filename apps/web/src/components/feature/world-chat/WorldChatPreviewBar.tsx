@@ -1,4 +1,5 @@
 import Link from '@app/components/router/AppLink';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 import { getWorldChatMessageBody } from './worldChatSummary';
 
@@ -20,12 +21,10 @@ export function WorldChatPreviewBar() {
     <div className="battle-dock border-battle-rule-strong border-t border-dashed">
       <div className="mx-auto max-w-5xl py-1.5 pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
         <Link
-          href="/game/world-chat"
+          href={`/game/world-chat${latestMessage ? `?channel=${latestMessage.channel}` : ''}`}
           className="hover:text-crimson flex w-full items-center gap-2 px-0 py-1.5 text-left transition"
         >
-          <span aria-hidden="true" className="shrink-0 text-sm leading-none">
-            🔔
-          </span>
+          <GameIcon value="🔔" className="text-sm" />
           <div className="min-w-0 flex-1 truncate text-sm leading-6">
             {latestMessage ? (
               <span className="text-battle-muted">{`[${channelLabel}] `}</span>

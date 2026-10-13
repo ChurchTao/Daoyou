@@ -15,6 +15,7 @@ const SPONSORSHIP_CLEANUP_SCHEDULE = '30 19 * * *';
 const SPONSORSHIP_ADMIN_DIGEST_SCHEDULE = '0 1 * * *';
 
 export const BACKGROUND_SCHEDULES = [
+  { type: 'chat.maintenance', expression: '* * * * *' },
   { type: 'auction.expire', expression: AUCTION_EXPIRE_SCHEDULE },
   { type: 'ranking.rewards.distribute', expression: RANK_REWARDS_SCHEDULE },
   { type: 'market.refresh', expression: MARKET_REFRESH_SCHEDULE },

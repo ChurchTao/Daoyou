@@ -1,0 +1,22 @@
+.world-chat-workspace {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.world-chat-timeline {
+  overflow-anchor: none;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+[data-game-viewport][data-chat-keyboard] [data-game-bottom-chrome] {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .world-chat-workspace {
+    flex-direction: row;
+  }
+}

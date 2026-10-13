@@ -35,6 +35,7 @@ export function createBackgroundCommandHandlers(
   jobs: InternalCronService,
 ): BackgroundCommandHandlers {
   return {
+    'chat.maintenance': () => jobs.chatMaintenance(),
     'auction.expire': () => jobs.auctionExpire(),
     'ranking.rewards.distribute': (command) =>
       jobs.rankRewards(new Date(command.requestedAt)),
