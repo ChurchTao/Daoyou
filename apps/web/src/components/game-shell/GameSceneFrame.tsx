@@ -49,18 +49,15 @@ function SceneSurface({
 
 function SceneBody({
   children,
-  compact = false,
   className,
 }: {
   children: ReactNode;
-  compact?: boolean;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        compact ? 'mt-4' : 'mt-5',
-        'min-w-0 [&>*+*]:mt-4',
+        'mt-2 min-w-0 [&>*+*]:mt-4',
         className,
       )}
     >
@@ -240,7 +237,6 @@ export function GameSceneFrame({
             {headerMeta ? <div className="mt-4">{headerMeta}</div> : null}
 
             <SceneBody
-              compact={variant !== 'default'}
               className={contentClassName}
             >
               {storyCue ? (
