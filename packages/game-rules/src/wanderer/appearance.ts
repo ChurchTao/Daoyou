@@ -8,7 +8,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 // 12:00 Asia/Shanghai is 04:00 UTC. This shift puts the cycle boundary there.
 const WINDOW_OFFSET_MS = SHANGHAI_OFFSET_MS + DAY_MS - 12 * 60 * 60 * 1000;
-const SPIRIT_STONE_LIMIT = 2_147_483_647;
+// 与 updateSpiritStones 的单次变动上限一致。再高的标价会被夹成少扣。
+const SPIRIT_STONE_LIMIT = 99_990_000;
 const PLACE_MARGIN = 120;
 const PLACE_SPAN = 761;
 const PLACE_CLEARANCE = 0.07;

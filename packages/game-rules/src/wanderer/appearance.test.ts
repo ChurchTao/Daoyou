@@ -81,7 +81,7 @@ describe('云游商人刷新', () => {
     expect(text.includes(appearance.regionId)).toBe(false);
   });
 
-  it('上品灵印从 20 万起按 8% 四舍五入，超出灵石整数上限后停售', () => {
+  it('上品灵印从 20 万起按 8% 四舍五入，超出单次灵石变动上限后停售', () => {
     expect(WANDERER_DEW_PRICE).toBe(320_000);
     expect(wandererBookPrice(0)).toBe(WANDERER_BOOK_START_PRICE);
     expect([1, 2, 3, 4].map((sales) => wandererBookPrice(sales))).toEqual([
@@ -95,7 +95,7 @@ describe('云游商人刷新', () => {
       price = wandererBookPrice(sales);
     }
     expect(sales).toBeLessThan(300);
-    expect(wandererBookPrice(sales - 1)).toBeLessThanOrEqual(2_147_483_647);
+    expect(wandererBookPrice(sales - 1)).toBeLessThanOrEqual(99_990_000);
     expect(wandererSuperiorBookIds().length).toBeGreaterThan(0);
     expect(new Set(wandererSuperiorBookIds()).size).toBe(
       wandererSuperiorBookIds().length,

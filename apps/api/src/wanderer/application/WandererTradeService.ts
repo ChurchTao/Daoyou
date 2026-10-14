@@ -18,6 +18,7 @@ import {
   wandererSuperiorBookIds,
 } from '@daoyou/game-rules/wanderer';
 import { assertBeastIdle } from '@server/combat/application/BeastMutationGuard.js';
+import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import {
   InventoryError,
   assertInventoryIdle,
@@ -28,7 +29,6 @@ import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import { db } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
-  cultivators,
   wandererBookSales,
 } from '@server/lib/drizzle/schema.js';
 import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
@@ -338,21 +338,13 @@ async function spendSpiritStones(
 ) {
   if (!Number.isSafeInteger(price) || price <= 0)
     throw new WandererError(400, '标价无效');
-  const [updated] = await tx
-    .update(cultivators)
-    .set({
-      spirit_stones: sql`${cultivators.spirit_stones} - ${price}`,
-    })
-    .where(
-      and(
-        eq(cultivators.id, cultivatorId),
-        eq(cultivators.userId, userId),
-        sql`${cultivators.spirit_stones} >= ${price}`,
-      ),
-    )
-    .returning({ spiritStones: cultivators.spirit_stones });
-  if (!updated) throw new WandererError(400, '灵石不足');
-  return updated.spiritStones;
+  try {
+    return await updateSpiritStones(userId, cultivatorId, -price, tx);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('灵石不足'))
+      throw new WandererError(400, '灵石不足');
+    throw error;
+  }
 }
 
 async function giveItems(
