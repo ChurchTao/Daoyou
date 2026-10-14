@@ -11,6 +11,12 @@ export const ITEM_EXCHANGE_SHOP_MAX_PRICE = 9999;
 
 export const ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY = 30;
 
+/** One checkout can name this many different listings. */
+export const ITEM_EXCHANGE_CART_MAX_LINES = 40;
+
+/** One listing can be exchanged this many times in one checkout. */
+export const ITEM_EXCHANGE_CART_MAX_COUNT = 99;
+
 
 export function createItemExchangeShopSchema(RewardItemSchema: ReturnType<typeof createRewardSchemas>['RewardItemSchema']) {
 const ItemExchangeShopItemMutationSchema = z

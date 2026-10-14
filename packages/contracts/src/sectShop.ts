@@ -1,5 +1,6 @@
 import { ITEM_EXCHANGE_SHOP_MAX_PRICE, ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY, ItemExchangeShopItemStatusSchema, type ItemExchangeShopItemMutation, type ItemExchangeShopItemStatus, type ItemExchangeShopItemView } from '@daoyou/game-domain/shops/exchange';
 import { z } from 'zod';
+import { ItemExchangeCartBodySchema } from './itemExchangeCart.js';
 
 export const SectShopItemStatusSchema = ItemExchangeShopItemStatusSchema;
 export const SectShopListQuerySchema = z.object({
@@ -8,6 +9,8 @@ export const SectShopListQuerySchema = z.object({
 export const SectShopBuyParamsSchema = z.object({
   id: z.string().uuid(),
 });
+
+export const SectShopCartBuyBodySchema = ItemExchangeCartBodySchema;
 
 export const SECT_SHOP_MAX_PRICE = ITEM_EXCHANGE_SHOP_MAX_PRICE;
 export const SECT_SHOP_MAX_STACK_QUANTITY =
@@ -26,5 +29,11 @@ export interface SectShopData {
 export interface SectShopBuyResponse {
   destinations: Array<'bag' | 'storage'>;
   purchasedItem: SectShopItemData;
+  contribution: number;
+}
+
+export interface SectShopCartBuyResponse {
+  destinations: Array<'bag' | 'storage'>;
+  purchasedItems: SectShopItemData[];
   contribution: number;
 }

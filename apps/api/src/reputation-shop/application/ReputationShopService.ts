@@ -20,7 +20,10 @@ import {
   type ReputationShopItemStatus,
   type ReputationShopItemView,
 } from '@daoyou/contracts/shops/reputation';
-import { getItemExchangePurchaseWeek } from '@daoyou/game-rules/shops/purchase';
+import {
+  getItemExchangePurchaseWeek,
+  quoteExchangeCart,
+} from '@daoyou/game-rules/shops/purchase';
 import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { grantInventory } from '@server/inventory/operations.js';
@@ -273,37 +276,72 @@ export async function buyReputationShopItem(params: {
   reputation: number;
   destinations: Array<'bag' | 'storage'>;
 }> {
-  const loaded = await loadShopItem(params.id, params.tx);
-  if (!loaded) {
-    throw new ReputationShopError(404, '万界商行商品不存在');
-  }
-  assertStoredShopItem(loaded.row);
+  const purchase = await buyReputationShopCart({
+    lines: [{ id: params.id, count: 1 }],
+    expectedTotal: null,
+    userId: params.userId,
+    cultivatorId: params.cultivatorId,
+    tx: params.tx,
+  });
+  const item = purchase.items[0];
+  if (!item) throw new ReputationShopError(500, '兑换结果缺失');
+  return {
+    item,
+    reputation: purchase.reputation,
+    destinations: purchase.destinations,
+  };
+}
+
+export async function buyReputationShopCart(params: {
+  lines: Array<{ id: string; count: number }>;
+  expectedTotal: number | null;
+  userId: string;
+  cultivatorId: string;
+  tx: DbTransaction;
+}): Promise<{
+  items: ReputationShopItemView[];
+  reputation: number;
+  destinations: Array<'bag' | 'storage'>;
+}> {
+  if (new Set(params.lines.map((line) => line.id)).size !== params.lines.length)
+    throw new ReputationShopError(400, '兑换列表中存在重复商品');
 
   const purchaseWeek = getReputationShopPurchaseWeek();
-  const purchasedCount = await countPurchases(
-    params.cultivatorId,
-    loaded.row.id,
-    purchaseWeek,
-    params.tx,
-  );
-  if (
-    typeof loaded.row.perUserLimit === 'number' &&
-    purchasedCount >= loaded.row.perUserLimit
-  ) {
-    throw new ReputationShopError(400, '此物已达兑换上限');
+  const prepared = [];
+  for (const line of params.lines) {
+    const loaded = await loadShopItem(line.id, params.tx);
+    if (!loaded) throw new ReputationShopError(404, '万界商行商品不存在');
+    assertStoredShopItem(loaded.row);
+    const purchasedCount = await countPurchases(
+      params.cultivatorId,
+      loaded.row.id,
+      purchaseWeek,
+      params.tx,
+    );
+    if (
+      typeof loaded.row.perUserLimit === 'number' &&
+      purchasedCount + line.count > loaded.row.perUserLimit
+    ) {
+      throw new ReputationShopError(400, '兑换次数超过本周剩余');
+    }
+    prepared.push({ row: loaded.row, count: line.count });
   }
 
-  const grant = materializeRewardItem(
-    RewardItemSchema.parse({
-      ...loaded.row.itemSnapshot,
-      quantity: loaded.row.quantity,
-    }),
-    randomUUID,
+  const quote = quoteExchangeCart(
+    prepared.map((line) => ({ price: line.row.price, count: line.count })),
+    params.expectedTotal,
   );
+  if (!quote.ok) {
+    throw new ReputationShopError(
+      400,
+      quote.reason === 'repriced' ? '标价已变化，请重新确认' : '兑换数量无效',
+    );
+  }
+
   const resourceResult = await resourceEngine.applyInTransaction({
     userId: params.userId,
     cultivatorId: params.cultivatorId,
-    consume: [{ type: 'reputation', value: loaded.row.price }],
+    consume: [{ type: 'reputation', value: quote.total }],
     tx: params.tx,
   });
   if (!resourceResult.success) {
@@ -316,27 +354,41 @@ export async function buyReputationShopItem(params: {
     throw new ReputationShopError(500, '兑换结算结果缺失');
   }
 
-  const delivered = await grantInventory(
-    params.cultivatorId,
-    [grant],
-    params.tx,
+  const grants = prepared.flatMap((line) => {
+    const template = RewardItemSchema.parse({
+      ...line.row.itemSnapshot,
+      quantity: line.row.quantity,
+    });
+    return Array.from({ length: line.count }, () =>
+      materializeRewardItem(template, randomUUID),
+    );
+  });
+  const delivered = await grantInventory(params.cultivatorId, grants, params.tx);
+  await params.tx.insert(reputationShopPurchases).values(
+    prepared.flatMap((line) =>
+      Array.from({ length: line.count }, () => ({
+        shopItemId: line.row.id,
+        cultivatorId: params.cultivatorId,
+        itemLibraryItemId: null, // Legacy-only audit field; current rewards use the shop snapshot.
+        quantity: line.row.quantity,
+        reputationCost: line.row.price,
+        purchaseWeek,
+      })),
+    ),
   );
 
-  await params.tx.insert(reputationShopPurchases).values({
-    shopItemId: loaded.row.id,
-    cultivatorId: params.cultivatorId,
-    itemLibraryItemId: null, // Legacy-only audit field; current rewards use the shop snapshot.
-    quantity: loaded.row.quantity,
-    reputationCost: loaded.row.price,
-    purchaseWeek,
-  });
-
   return {
-    item: await buildView({
-      row: loaded.row,
-      cultivatorId: params.cultivatorId,
-      q: params.tx,
-    }),
+    items: await runDbTasks(
+      params.tx,
+      prepared.map(
+        (line) => () =>
+          buildView({
+            row: line.row,
+            cultivatorId: params.cultivatorId,
+            q: params.tx,
+          }),
+      ),
+    ),
     reputation: resourceResult.settlement.reputation ?? 0,
     destinations: [...new Set(delivered.map((item) => item.location))],
   };
