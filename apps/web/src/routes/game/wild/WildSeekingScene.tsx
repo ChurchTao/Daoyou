@@ -32,7 +32,9 @@ export function WildSeekingScene({
   ownerLevel: number | null;
 }) {
   const encounter = region.encounter;
-  const cubs = encounter?.combatants.filter((c) => c.level === 0).length ?? 0;
+  const babies =
+    encounter?.combatants.filter((c) => c.level === 0 && !c.isMutant).length ??
+    0;
   const location = getMapNode(region.nodeId);
   const parent =
     location && 'parent_id' in location ? getMapNode(location.parent_id) : null;
@@ -105,10 +107,10 @@ export function WildSeekingScene({
                       {BEAST_RARE_SPECIES_IDS.has(c.speciesId) && (
                         <InkTag tone="info">稀有异兽</InkTag>
                       )}
-                      {c.level === 0 ? (
-                        <InkTag tone="info">幼崽</InkTag>
+                      {c.isMutant ? null : c.level === 0 ? (
+                        <InkTag tone="info">宝宝</InkTag>
                       ) : (
-                        <span className="whitespace-nowrap">成年</span>
+                        <span className="whitespace-nowrap">野生</span>
                       )}
                     </span>
                     <span className="text-ink-secondary mt-1 min-h-4 text-xs">
@@ -123,8 +125,8 @@ export function WildSeekingScene({
                 className="text-ink-secondary mx-auto mt-8 max-w-md text-center text-sm leading-6"
                 role="status"
               >
-                {cubs
-                  ? '那道小小的身影，是尚未长成的幼崽。'
+                {babies
+                  ? '那道小小的身影，是尚未长成的宝宝。'
                   : '灵兽的身影渐渐清晰，你已看清眼前的动静。'}
               </p>
             </div>

@@ -32,7 +32,7 @@ describe('化生果', () => {
     expect(result.aptitudes).toEqual(before.aptitudes);
   });
 
-  it('纯野生重养到捕获等级后，原有点数亏损不增加', () => {
+  it('捕获野生重养到捕获等级后，原有点数亏损不增加', () => {
     const wild = generateCapturedBeast(id, owner, species, 30, 42);
     const reset = rejuvenateBeast(wild);
     expect(reset).toMatchObject({
@@ -47,7 +47,7 @@ describe('化生果', () => {
     expect(rejuvenateBeast(reset).unallocatedPoints).toBe(0);
   });
 
-  it('变异宝宝保留变异，假宝宝不会得到初始50点', () => {
+  it('变异保留变异，无捕获等级的野生不会得到初始50点', () => {
     const mutant = generateCapturedBeast(id, owner, species, 0, 42, true);
     const raisedMutant = gainBeastExp(mutant, 1000, 180);
     expect(rejuvenateBeast(raisedMutant)).toMatchObject({

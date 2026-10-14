@@ -13,6 +13,7 @@ import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import {
   allocateBeast,
   BEAST_ATTRIBUTE_NAMES,
+  beastOriginName,
   nextBeastExp,
 } from '@daoyou/game-rules/beasts/growth';
 import {
@@ -144,11 +145,7 @@ export function BeastPanel({
                 <BeastMutationTag isMutant />
               ) : (
                 <InkTag className="shrink-0 text-xs">
-                  {beast.originKind === 'wild'
-                    ? '野生'
-                    : beast.originKind === 'pseudo_baby'
-                      ? '野生'
-                      : '幼崽'}
+                  {beastOriginName(beast)}
                 </InkTag>
               )}
               <InkButton

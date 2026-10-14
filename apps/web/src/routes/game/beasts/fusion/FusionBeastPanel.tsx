@@ -3,17 +3,12 @@ import { BeastSkillTile } from '@app/components/feature/beasts/BeastSkillTile';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTag } from '@app/components/ui/InkTag';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
+import { beastOriginName } from '@daoyou/game-rules/beasts/growth';
 
 export function FusionIdentityTag({ beast }: { beast: SummonedBeast }) {
   return (
     <InkTag className={`text-xs ${beast.isMutant ? 'text-violet-600' : ''}`}>
-      {beast.isMutant
-        ? '变异'
-        : beast.originKind === 'wild'
-          ? '成年'
-          : beast.originKind === 'pseudo_baby'
-            ? '成年'
-            : '幼崽'}
+      {beastOriginName(beast)}
     </InkTag>
   );
 }

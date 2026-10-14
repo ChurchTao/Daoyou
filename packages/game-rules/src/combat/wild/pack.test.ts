@@ -33,7 +33,7 @@ describe('野外寻觅配置与个体生成', () => {
     invalid.regions[0].species[0].minLevel = 30;
     expect(() => loadWildPack(invalid)).toThrow('等级上下界颠倒');
   });
-  it('同种子一致，不同种子有数量、组合和等级变化，成年与0级幼崽同时存在', () => {
+  it('同种子一致，不同种子有数量、组合和等级变化，野生与0级宝宝同时存在', () => {
     expect(generateWildEncounter(nodeId, 72)).toEqual(
       generateWildEncounter(nodeId, 72),
     );
@@ -54,7 +54,7 @@ describe('野外寻觅配置与个体生成', () => {
       'UNKNOWN_WILD_REGION',
     );
   });
-  it('节点配置独立决定物种与成年等级，幼崽概率边界准确', () => {
+  it('节点配置独立决定物种与野生等级，宝宝概率边界准确', () => {
     const data = structuredClone(raw);
     data.regions[0].nodeId = 'other-node';
     data.regions[0].species[0].minLevel =
@@ -79,7 +79,7 @@ describe('野外寻觅配置与个体生成', () => {
       ),
     ).toBe(true);
   });
-  it('成年均衡加点有波动，所有等级点数守恒，幼崽保留50点自由属性', () => {
+  it('野生均衡加点有波动，所有等级点数守恒，宝宝保留50点自由属性', () => {
     for (const level of [0, 5, 9, 15, 30, 180]) {
       for (let seed = 0; seed < 100; seed++) {
         const values = Object.values(wildAllocation(level, seed));
@@ -131,7 +131,7 @@ it('二十六个节点覆盖全部物种，地图名称、境界与关联配置�
     expect(node.dungeon_config).toBeUndefined();
   }
 });
-it('混居节点对每种成年个体应用独立等级范围，幼崽始终0级', () => {
+it('混居节点对每种野生个体应用独立等级范围，宝宝始终0级', () => {
   const pack = loadWildPack(raw);
   for (const r of pack.regions) {
     const seen = new Set<string>();
@@ -230,7 +230,7 @@ it('稀有概率逐位置独立控制，普通低阶物种使用栖息地等级'
   };
   expect(mutations(0)).toEqual(mutations(1));
 });
-it('拒绝低于携带等级的成年体与尚未开放物种的区域', () => {
+it('拒绝低于携带等级的野生与尚未开放物种的区域', () => {
   const level = structuredClone(raw);
   level.regions[1].species[0].minLevel = 1;
   expect(() => loadWildPack(level)).toThrow('携带等级');

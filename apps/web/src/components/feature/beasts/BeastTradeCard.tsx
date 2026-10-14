@@ -37,7 +37,11 @@ export function BeastTradeCard({
           <BeastMutationTag isMutant={beast.isMutant} />
         </span>
         <span className="text-ink-secondary block">
-          {beastOriginName(beast)} ·{' '}
+          {beast.isMutant ? null : (
+            <>
+              {beastOriginName(beast)} ·{' '}
+            </>
+          )}
           <span className="font-mono">{beast.level}</span>级 ·{' '}
           <span className="font-mono">{beast.skills.length}</span>技能
         </span>

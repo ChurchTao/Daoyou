@@ -62,7 +62,7 @@ export function loadWildPack(data: unknown) {
         if (!species) issue(path, '引用未知物种');
         if (entry.minLevel > entry.maxLevel) issue(path, '等级上下界颠倒');
         if (species && entry.minLevel < species.carryLevel)
-          issue(path, '成年等级不得低于物种携带等级');
+          issue(path, '野生等级不得低于物种携带等级');
         if (
           species &&
           REALM_ORDER[region.realmRequirement] < REALM_ORDER[species.realm]

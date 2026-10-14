@@ -227,7 +227,7 @@ export const rejuvenationAdapter: ItemAdapter = (item) => ({
       {
         title: '洗点效果',
         entries: lines(
-          '修为归零，野生灵兽原有的点数亏损保留。',
+          '修为归零。捕获时已有等级的野生，原有点数亏损保留。',
         ),
       },
     ],

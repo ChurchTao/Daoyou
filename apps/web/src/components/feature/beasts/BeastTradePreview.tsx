@@ -36,7 +36,8 @@ export function BeastTradeDetails({
             {beast.name} <BeastMutationTag isMutant={beast.isMutant} />
           </p>
           <p className="text-ink-secondary">
-            {species?.name} · {beastOriginName(beast)} ·{' '}
+            {species?.name}
+            {beast.isMutant ? '' : ` · ${beastOriginName(beast)}`} ·{' '}
             <span className="font-mono">{beast.level}</span>级
           </p>
           <p>
@@ -47,7 +48,7 @@ export function BeastTradeDetails({
       </div>
       {beast.originKind === 'wild' && (
         <p className="text-ink-secondary">
-          初始{beast.initialLevel}级，较同级幼崽少
+          初始{beast.initialLevel}级，较同级宝宝少
           {50 + 2 * Math.min(beast.level, beast.initialLevel)}属性点
         </p>
       )}
