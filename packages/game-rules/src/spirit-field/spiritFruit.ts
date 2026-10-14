@@ -1,6 +1,7 @@
 import { BEAST_CULTIVATION_BASE_BY_QUALITY } from '@daoyou/game-content/beasts';
 import { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '@daoyou/game-content/alchemy';
 import { buildBreakthroughFocusOperation } from '../alchemy/pillEffectScaling.js';
+import { buildCultivationBoostOperation } from '../consumables/cultivation-boost.js';
 import type {
   ConditionOperation,
   PillFamily,
@@ -78,13 +79,7 @@ export function buildSpiritFruitOperations(
         },
       ];
     case 'cultivation':
-      return [
-        {
-          type: 'gain_progress',
-          target: 'cultivation_exp',
-          value: lower(base.insight * 8),
-        },
-      ];
+      return [buildCultivationBoostOperation(quality, 0.8)];
     case 'hybrid':
       return [
         {

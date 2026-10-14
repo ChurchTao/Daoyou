@@ -1,5 +1,9 @@
 import { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '@daoyou/game-content/alchemy';
 import { describe, expect, it } from 'vitest';
+import {
+  buildCultivationBoostOperation,
+  getCultivationBoostDisplayText,
+} from '../consumables/cultivation-boost.js';
 import { buildSpiritFruitSpec } from './spiritFruit.js';
 
 describe('spirit fruit effect protocol', () => {
@@ -75,5 +79,24 @@ describe('spirit fruit effect protocol', () => {
         ALCHEMY_EFFECT_BASE_BY_QUALITY.玄品.insight,
       );
     }
+  });
+
+  it('buffs the next retreat instead of granting flat cultivation', () => {
+    const fruit = buildSpiritFruitSpec({
+      family: 'cultivation',
+      quality: '神品',
+    });
+    const operation = buildCultivationBoostOperation('神品', 0.8);
+
+    expect(fruit.operations).toEqual([operation]);
+    expect(getCultivationBoostDisplayText(operation)).toBe(
+      '下次闭关修为 +640%',
+    );
+    expect(
+      fruit.operations.some(
+        (entry) =>
+          entry.type === 'gain_progress' && entry.target === 'cultivation_exp',
+      ),
+    ).toBe(false);
   });
 });

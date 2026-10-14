@@ -449,6 +449,13 @@
       "when": 1791942407861,
       "tag": "0063_chat_sect_identifier",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1791959725140,
+      "tag": "0064_spirit_fruit_cultivation_boost",
+      "breakpoints": true
     }
   ]
 }
