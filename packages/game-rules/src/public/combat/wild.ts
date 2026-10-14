@@ -10,3 +10,11 @@ export {
   WildRuntimeSchema,
   WildSettlementSchema,
 } from '../../combat/wild/state-schema.js';
+export {
+  BEAST_LURE_RATE_MULTIPLIER,
+  BEAST_LURE_SEARCHES,
+  BEAST_LURE_STATUS_KEY,
+  beastLureCharges,
+  igniteBeastLure,
+  spendBeastLureCharge,
+} from '../../combat/wild/lure.js';

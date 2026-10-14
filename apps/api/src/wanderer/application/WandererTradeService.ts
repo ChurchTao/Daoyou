@@ -5,13 +5,19 @@ import type {
   WandererBeastSaleResult,
   WandererBookPurchaseResult,
   WandererDewPurchaseResult,
+  WandererIncensePurchaseResult,
   WandererPurchase,
   WandererState,
 } from '@daoyou/contracts/wanderer';
+import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
-import { InventoryRuleError } from '@daoyou/game-domain/inventory';
+import {
+  InventoryRuleError,
+  type ItemGrant,
+} from '@daoyou/game-domain/inventory';
 import {
   WANDERER_DEW_PRICE,
+  WANDERER_INCENSE_PRICE,
   WANDERER_SUPERIOR_DEW_ID,
   wandererAppearance,
   wandererBookPrice,
@@ -67,6 +73,7 @@ export async function readWandererState(
     wantedSpeciesName: appearance.wantedSpeciesName,
     bookPrice: wandererBookPrice(sales),
     dewPrice: WANDERER_DEW_PRICE,
+    incensePrice: WANDERER_INCENSE_PRICE,
   };
 }
 
@@ -149,6 +156,26 @@ export async function buyWandererBook(
         command: (tx) => buyBook(actor, input, tx),
       }),
   );
+  return committed.result;
+}
+
+export async function buyWandererIncense(
+  actor: ActiveCultivatorRef,
+  input: WandererPurchase,
+): Promise<WandererIncensePurchaseResult> {
+  await assertInventoryIdle(actor.cultivatorId);
+  const committed = await playerCommandExecutor.executeWithLock({
+    userId: actor.userId,
+    cultivatorId: actor.cultivatorId,
+    source: 'wanderer-incense-purchase',
+    requestId: input.requestId,
+    idempotency: {
+      key: input.requestId,
+      fingerprint: `incense:${input.expectedPrice}`,
+    },
+    lock: { context: 'wanderer-incense', timeoutMs: 30_000 },
+    command: (tx) => buyIncense(actor, input, tx),
+  });
   return committed.result;
 }
 
@@ -275,6 +302,39 @@ async function buyBook(
   };
 }
 
+async function buyIncense(
+  actor: ActiveCultivatorRef,
+  input: WandererPurchase,
+  tx: DbTransaction,
+) {
+  await assertInventoryIdle(actor.cultivatorId, tx);
+  if (input.expectedPrice !== WANDERER_INCENSE_PRICE)
+    throw new WandererError(409, '标价已变化，请按现价重新确认');
+  const definition = findItemDefinition(BEAST_LURE.id);
+  if (!definition || definition.kind !== 'beast_lure')
+    throw new WandererError(500, '引妖香暂时无货');
+  const spiritStones = await spendSpiritStones(
+    tx,
+    actor.userId,
+    actor.cultivatorId,
+    WANDERER_INCENSE_PRICE,
+  );
+  await giveItems(actor.cultivatorId, BEAST_LURE.id, 1, tx);
+  const result: WandererIncensePurchaseResult = {
+    itemName: definition.name,
+    quantity: 1,
+    price: WANDERER_INCENSE_PRICE,
+    spiritStones,
+  };
+  return {
+    result,
+    resourceChanges: [
+      ...bagChange(),
+      currencyChange('currency.wanderer.incense', spiritStones),
+    ],
+  };
+}
+
 async function buyDew(
   actor: ActiveCultivatorRef,
   input: WandererPurchase,
@@ -352,9 +412,15 @@ async function giveItems(
   definitionId: string,
   quantity: number,
   tx: DbTransaction,
+  instanceData?: ItemGrant['instanceData'],
 ) {
   try {
-    await grantInventory(cultivatorId, [{ definitionId, quantity }], tx, false);
+    await grantInventory(
+      cultivatorId,
+      [{ definitionId, quantity, ...(instanceData ? { instanceData } : {}) }],
+      tx,
+      false,
+    );
   } catch (error) {
     if (error instanceof InventoryRuleError || error instanceof InventoryError)
       throw new WandererError(400, '背包放不下，这笔交易没有成交');

@@ -14,6 +14,7 @@ export const WandererStateSchema = z
     wantedSpeciesName: z.string().min(1).max(40),
     bookPrice: z.number().int().positive().nullable(),
     dewPrice: z.number().int().positive(),
+    incensePrice: z.number().int().positive(),
   })
   .strict();
 export type WandererState = z.infer<typeof WandererStateSchema>;
@@ -65,6 +66,13 @@ export type WandererBookPurchaseResult = {
 };
 
 export type WandererDewPurchaseResult = {
+  itemName: string;
+  quantity: number;
+  price: number;
+  spiritStones: number;
+};
+
+export type WandererIncensePurchaseResult = {
   itemName: string;
   quantity: number;
   price: number;

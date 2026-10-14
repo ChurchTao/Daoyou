@@ -12,6 +12,7 @@ import { findActiveSectMembership } from '@server/lib/repositories/sectCombatRep
 
 import { SeededRng } from '@daoyou/combat-core/rng';
 import type { CombatV6TerminalOutboxV1 } from '@daoyou/contracts/combat/runtime';
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type {
   WildRuntime,
   WildSessionView,
@@ -49,7 +50,9 @@ import {
 } from '@daoyou/game-rules/combat/presentation';
 import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
 import {
+  beastLureCharges,
   createWildHost,
+  spendBeastLureCharge,
   WILD_EXPLORATION_COOLDOWN_MS,
   WildHost,
 } from '@daoyou/game-rules/combat/wild';
@@ -64,6 +67,7 @@ import {
 
 import { REALM_ORDER } from '@daoyou/constants/realms';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
+import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
@@ -171,6 +175,15 @@ function summaryOf(
     },
   };
 }
+async function readBeastLureSearches(cultivatorId: string) {
+  const [row] = await db
+    .select({ condition: cultivators.condition })
+    .from(cultivators)
+    .where(eq(cultivators.id, cultivatorId))
+    .limit(1);
+  return beastLureCharges(row?.condition);
+}
+
 function checked(result: string) {
   if (result !== 'OK')
     throw new WildError(
@@ -204,6 +217,7 @@ export class CombatV6WildSessionService {
       trainingSessionId: activeTraining?.battleId ?? null,
       beastBagFull:
         (await countBagBeasts(actor.cultivatorId, db)) >= BEAST_BAG_CAPACITY,
+      beastLureSearches: await readBeastLureSearches(actor.cultivatorId),
     };
   }
   private async assertAvailable(actor: Actor) {
@@ -248,13 +262,25 @@ export class CombatV6WildSessionService {
         ) {
           throw new WildError('WILD_COOLDOWN', '请稍候再寻觅');
         }
+        const [stored] = await tx
+          .select({ condition: cultivators.condition })
+          .from(cultivators)
+          .where(eq(cultivators.id, actor.cultivatorId))
+          .for('update')
+          .limit(1);
+        const lure = spendBeastLureCharge(stored?.condition);
         const seed = randomInt(0, 0x7fffffff);
         const encounter: WildEncounter = {
           id: randomUUID(),
           nodeId,
           seed,
           createdAt: new Date(now).toISOString(),
-          combatants: generateWildEncounter(nodeId, seed).map((c, i) =>
+          combatants: generateWildEncounter(
+            nodeId,
+            seed,
+            undefined,
+            lure.multiplier,
+          ).map((c, i) =>
             generateWildIndividual(
               c,
               randomUUID(),
@@ -273,9 +299,27 @@ export class CombatV6WildSessionService {
         });
         await saveWildSearch(actor.cultivatorId, encounter, tx);
         await QiService.commitReservation({ actionInstanceId, tx });
+        const resourceChanges: ResourceChangeDescriptor[] = [
+          qiCurrencyChange('wild.searched', qi),
+        ];
+        if (lure.spent) {
+          const condition = RESOURCE_DATA_SCHEMAS['player.condition'].parse(
+            lure.condition,
+          );
+          await tx
+            .update(cultivators)
+            .set({ condition })
+            .where(eq(cultivators.id, actor.cultivatorId));
+          resourceChanges.push({
+            resourceTopic: 'player.condition',
+            eventType: 'condition.beast_lure.spent',
+            operation: 'replace',
+            payload: condition,
+          });
+        }
         return {
           result: wildEncounterView(encounter),
-          resourceChanges: [qiCurrencyChange('wild.searched', qi)],
+          resourceChanges,
         };
       },
     });

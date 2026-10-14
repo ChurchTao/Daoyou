@@ -21,9 +21,11 @@ import type {
   WandererBeastSaleResult,
   WandererBookPurchaseResult,
   WandererDewPurchaseResult,
+  WandererIncensePurchaseResult,
   WandererState,
 } from '@daoyou/contracts/wanderer';
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
+import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
 import { WANDERER_SUPERIOR_DEW_ID } from '@daoyou/game-rules/wanderer';
@@ -32,7 +34,8 @@ import { useState, type ReactNode } from 'react';
 type View = 'meet' | 'beasts' | 'stall';
 type Received =
   | { kind: 'dew'; quantity: number; line: string }
-  | { kind: 'book'; definitionId: string; line: string };
+  | { kind: 'book'; definitionId: string; line: string }
+  | { kind: 'incense'; line: string };
 
 const stones = getGameConceptInfo('spirit_stones');
 
@@ -112,7 +115,9 @@ function Receipt({ received }: { received: Received }) {
   const item =
     received.kind === 'book'
       ? shelfItem(received.definitionId, 1)
-      : shelfItem(WANDERER_SUPERIOR_DEW_ID, received.quantity);
+      : received.kind === 'incense'
+        ? shelfItem(BEAST_LURE.id, 1)
+        : shelfItem(WANDERER_SUPERIOR_DEW_ID, received.quantity);
   return (
     <div role="status" className="space-y-3">
       <Quote>{received.line}</Quote>
@@ -224,6 +229,33 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             definitionId: result.definitionId,
             line: '你自己揭开看。',
           };
+        }),
+    });
+  };
+
+  const askIncense = () => {
+    if (pending || !state) return;
+    const expectedPrice = state.incensePrice;
+    openDialog({
+      title: '买下引妖香',
+      content: (
+        <p className="text-sm leading-7">
+          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')} 灵石，买 1
+          份引妖香。
+        </p>
+      ),
+      confirmLabel: '买下',
+      cancelLabel: '再想想',
+      onConfirm: () =>
+        trade(async () => {
+          await combatV6Request<WandererIncensePurchaseResult>(
+            '/api/wanderer/incense',
+            mutationBody({
+              requestId: crypto.randomUUID(),
+              expectedPrice,
+            }),
+          );
+          return { kind: 'incense', line: '拿好，进山前点燃。' };
         }),
     });
   };
@@ -394,6 +426,27 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
           ) : null}
           {state ? (
             <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
+              <div className="w-28">
+                <ItemSlot
+                  item={shelfItem(BEAST_LURE.id, 1)}
+                  className="w-full"
+                  quantityLabel="奖励"
+                  disabled={pending}
+                >
+                  {(close) => (
+                    <InkButton
+                      disabled={pending}
+                      onClick={() => {
+                        close();
+                        askIncense();
+                      }}
+                    >
+                      买下
+                    </InkButton>
+                  )}
+                </ItemSlot>
+                <StonePrice amount={state.incensePrice} />
+              </div>
               <div className="w-28">
                 <ItemSlot
                   item={shelfItem(WANDERER_SUPERIOR_DEW_ID, 1)}

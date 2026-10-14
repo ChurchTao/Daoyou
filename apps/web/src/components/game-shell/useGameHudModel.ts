@@ -124,7 +124,7 @@ function formatHudResourcePair(current: number, max: number): string {
 function getStatusCategory(
   key: ConditionStatusKey,
 ): GameHudStatusTag['category'] {
-  if (key === 'cultivation_boost') return 'pill';
+  if (key === 'cultivation_boost' || key === 'beast_lure') return 'pill';
   if (
     key === 'breakthrough_focus' ||
     key === 'protect_meridians' ||

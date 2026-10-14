@@ -12,6 +12,7 @@ import {
   BEAST_SPECIES,
 } from '@daoyou/game-content/beasts';
 import { getMapNode } from '@daoyou/game-content/world/map';
+import { WildLureStatus } from './WildLureStatus';
 import './wild-seeking.css';
 
 export function WildSeekingScene({
@@ -150,17 +151,20 @@ export function WildSeekingScene({
         </div>
       </section>
       <div className="wild-seeking-actions text-center">
-        <label className="mb-4 inline-flex items-center gap-2">
-          <span className="text-ink text-sm leading-6">自动战斗：</span>
-          <InkSwitch
-            checked={combatAutoHeld}
-            disabled={!keepCombatAuto}
-            onCheckedChange={(checked) =>
-              updateGameSettings({ combatAutoHeld: checked })
-            }
-            aria-label="自动战斗"
-          />
-        </label>
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+          <label className="inline-flex items-center gap-2">
+            <span className="text-ink text-sm leading-6">自动战斗：</span>
+            <InkSwitch
+              checked={combatAutoHeld}
+              disabled={!keepCombatAuto}
+              onCheckedChange={(checked) =>
+                updateGameSettings({ combatAutoHeld: checked })
+              }
+              aria-label="自动战斗"
+            />
+          </label>
+          <WildLureStatus fallbackSearches={region.beastLureSearches} />
+        </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           <InkButton
             variant={encounter ? 'secondary' : 'primary'}

@@ -25,6 +25,7 @@ const REGIONS: { id: keyof typeof ATLAS_ANCHORS; name: string }[] = (
 
 export const WANDERER_BOOK_START_PRICE = 200_000;
 export const WANDERER_DEW_PRICE = 320_000;
+export const WANDERER_INCENSE_PRICE = 1_080_000;
 export const WANDERER_SUPERIOR_DEW_ID = 'beast.refinement.superior-origin-dew';
 export const WANDERER_WANTED_BOTTLES = 12;
 

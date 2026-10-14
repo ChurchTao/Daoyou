@@ -269,6 +269,7 @@ export const conditionStatusSchema = z
       'protect_meridians',
       'clear_mind',
       'cultivation_boost',
+      'beast_lure',
     ]),
     stacks: z.number(),
     source: z.enum(['battle', 'pill', 'event', 'system']),

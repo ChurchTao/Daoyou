@@ -148,6 +148,22 @@ registry.register({
   hooks: {},
 });
 
+registry.register({
+  key: 'beast_lure',
+  name: getGameConceptInfo('status_beast_lure').label,
+  description: getGameConceptInfo('status_beast_lure').description ?? '',
+  effectDetails: [
+    '剩余次数内，稀有与变异概率各为原来的4倍。',
+    '没有稀有异兽的地区只提高变异。',
+    '成功寻觅减少一次，开战与刷新不减少。',
+  ],
+  display: {
+    icon: getGameConceptInfo('status_beast_lure').icon,
+    shortDesc: '寻觅更容易遇见稀有与变异',
+  },
+  hooks: {},
+});
+
 export function getConditionStatusTemplate(key: ConditionStatusKey) {
   return registry.get(key);
 }

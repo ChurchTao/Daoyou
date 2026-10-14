@@ -36,6 +36,7 @@ export const STATUS_EFFECT_VALUES = [
   'protect_meridians',
   'clear_mind',
   'cultivation_boost',
+  'beast_lure',
   'artifact_damaged',
   'mana_depleted',
   'hp_deficit',

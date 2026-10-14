@@ -72,7 +72,8 @@ export type ConditionStatusKey =
   | 'breakthrough_focus'
   | 'protect_meridians'
   | 'clear_mind'
-  | 'cultivation_boost';
+  | 'cultivation_boost'
+  | 'beast_lure';
 
 export type ConditionStatusSource = 'battle' | 'pill' | 'event' | 'system';
 

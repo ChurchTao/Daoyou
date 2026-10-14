@@ -4,6 +4,7 @@ import { ATLAS_ANCHORS } from '../world/mapAtlas.js';
 import {
   WANDERER_BOOK_START_PRICE,
   WANDERER_DEW_PRICE,
+  WANDERER_INCENSE_PRICE,
   WANDERER_WANTED_BOTTLES,
   wandererAppearance,
   wandererBookPrice,
@@ -83,6 +84,7 @@ describe('云游商人刷新', () => {
 
   it('上品灵印从 20 万起按 8% 四舍五入，超出单次灵石变动上限后停售', () => {
     expect(WANDERER_DEW_PRICE).toBe(320_000);
+    expect(WANDERER_INCENSE_PRICE).toBe(1_080_000);
     expect(wandererBookPrice(0)).toBe(WANDERER_BOOK_START_PRICE);
     expect([1, 2, 3, 4].map((sales) => wandererBookPrice(sales))).toEqual([
       216_000, 233_280, 251_942, 272_097,

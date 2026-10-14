@@ -106,4 +106,13 @@ export class WandererController {
   ) {
     return this.wanderer.buyDew(actor, input);
   }
+
+  @Post('incense')
+  @HttpCode(200)
+  buyIncense(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(WandererPurchaseSchema)) input: WandererPurchase,
+  ) {
+    return this.wanderer.buyIncense(actor, input);
+  }
 }

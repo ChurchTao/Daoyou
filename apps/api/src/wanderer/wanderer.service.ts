@@ -7,6 +7,7 @@ import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import {
   buyWandererBook,
   buyWandererDew,
+  buyWandererIncense,
   readWandererBeasts,
   readWandererState,
   sellWandererBeast,
@@ -44,5 +45,12 @@ export class WandererService {
 
   async buyDew(actor: ActiveCultivatorRef, input: WandererPurchase) {
     return { success: true as const, data: await buyWandererDew(actor, input) };
+  }
+
+  async buyIncense(actor: ActiveCultivatorRef, input: WandererPurchase) {
+    return {
+      success: true as const,
+      data: await buyWandererIncense(actor, input),
+    };
   }
 }

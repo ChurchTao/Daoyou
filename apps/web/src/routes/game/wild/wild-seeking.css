@@ -75,8 +75,26 @@
     transform: translateY(0);
   }
 }
+.wild-lure-flame {
+  display: inline-flex;
+  animation: wild-lure-flame 1.4s ease-in-out infinite alternate;
+}
+@keyframes wild-lure-flame {
+  from {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  to {
+    transform: translateY(-1px) scale(1.08);
+    filter: drop-shadow(0 0 6px rgba(176, 92, 32, 0.7));
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .wild-seeking-result {
+  .wild-seeking-result,
+  .wild-lure-flame {
     animation: none;
+  }
+  .wild-lure-flame {
+    filter: drop-shadow(0 0 4px rgba(176, 92, 32, 0.45));
   }
 }
