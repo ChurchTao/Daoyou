@@ -128,6 +128,16 @@ export class SectsController {
     return this.organization.promote(actor, commandRequest(request));
   }
 
+  @Post('current/shop/buy')
+  @HttpCode(200)
+  buyCart(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Req() request: Request,
+    @JsonBody() body: unknown,
+  ) {
+    return this.organization.buyCart(actor, commandRequest(request), body);
+  }
+
   @Post('current/shop/:id/buy')
   @HttpCode(200)
   buy(

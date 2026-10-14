@@ -4,7 +4,10 @@ import type {
   SectTransferPreviewQuerySchema,
   SectTransferRequestSchema,
 } from '@daoyou/contracts/sect';
-import { SectShopBuyParamsSchema } from '@daoyou/contracts/shops/sect';
+import {
+  SectShopBuyParamsSchema,
+  SectShopCartBuyBodySchema,
+} from '@daoyou/contracts/shops/sect';
 import { productionSectRuntime as runtime } from '@daoyou/game-rules/sect-organization/production';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
@@ -28,6 +31,7 @@ import {
 } from '@server/sects/organization/PostgresSectOrganizationAdapters.js';
 import { executeSectConstructionDonationCommand } from '@server/sects/organization/SectConstructionCommand.js';
 import {
+  executeSectShopCartPurchaseCommand,
   executeSectShopPurchaseCommand,
   executeSectStipendClaimCommand,
 } from '@server/sects/organization/SectEconomyCommand.js';
@@ -251,6 +255,28 @@ export class SectOrganizationService {
       parsed.data,
       (args) =>
         executeSectShopPurchaseCommand({ ...args, itemId: parsed.data.id }),
+    );
+  }
+
+  buyCart(
+    actor: ActiveCultivatorRef,
+    request: SectCommandRequest,
+    body: unknown,
+  ) {
+    const parsed = SectShopCartBuyBodySchema.safeParse(body);
+    if (!parsed.success)
+      throw new HttpException({ success: false, error: '兑换清单无效' }, 400);
+    return this.mutate(
+      actor,
+      request,
+      'sect_shop_purchase',
+      parsed.data,
+      (args) =>
+        executeSectShopCartPurchaseCommand({
+          ...args,
+          lines: parsed.data.items,
+          expectedTotal: parsed.data.expectedTotal,
+        }),
     );
   }
 

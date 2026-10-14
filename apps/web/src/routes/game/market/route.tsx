@@ -393,6 +393,7 @@ function MarketWorkspace({
                   quantityLabel="库存"
                   disabled={locked || item.quantity <= 0}
                   selected={selected.includes(item.id) && item.quantity > 0}
+                  quickOnTouch
                   badge={
                     item.quantity <= 0
                       ? '已购'

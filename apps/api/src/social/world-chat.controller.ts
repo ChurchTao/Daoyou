@@ -51,6 +51,20 @@ export const SendErrors = apiErrorFilter((error) => {
   );
 });
 
+export const ReadErrors = apiErrorFilter((error) => {
+  if (error instanceof ZodError) return undefined;
+  if (error instanceof ChatError)
+    return Response.json(
+      { success: false, error: error.message },
+      { status: error.status },
+    );
+  console.error('Read chat messages error:', error);
+  return Response.json(
+    { success: false, error: '获取传音失败，请稍后重试' },
+    { status: 500 },
+  );
+});
+
 @Controller('api/world-chat')
 export class WorldChatController {
   constructor(
@@ -60,7 +74,7 @@ export class WorldChatController {
 
   @Get('messages')
   @Access('public')
-  @UseFilters(SendErrors)
+  @UseFilters(ReadErrors)
   async list(
     @FirstQuery(new ZodPipe(WorldChatListQuerySchema))
     query: WorldChatListQuery,

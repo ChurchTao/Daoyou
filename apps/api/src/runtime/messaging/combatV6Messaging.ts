@@ -1,7 +1,14 @@
-import { parseCombatV6Replay, type CombatV6ReplayV1 } from '@daoyou/game-domain/combat/replay';
-import { COMBAT_V6_REPLAY_STREAM, COMBAT_V6_REPLAY_SUBJECT, CombatV6ReplayArchiveMessageV1Schema, type CombatV6ReplayArchiveMessageV1 } from '@daoyou/contracts/combat/runtime';
-import { parseDomainEventEnvelope } from '@server/lib/mq/domainEventSchema.js';
+import {
+  COMBAT_V6_REPLAY_STREAM,
+  COMBAT_V6_REPLAY_SUBJECT,
+  CombatV6ReplayArchiveMessageV1Schema,
+  type CombatV6ReplayArchiveMessageV1,
+} from '@daoyou/contracts/combat/runtime';
 import { DOMAIN_EVENT_STREAM } from '@daoyou/contracts/events';
+import {
+  parseCombatV6Replay,
+  type CombatV6ReplayV1,
+} from '@daoyou/game-domain/combat/replay';
 import {
   startArenaV6Coordinator,
   stopArenaV6Coordinator,
@@ -14,6 +21,7 @@ import {
   startHuntWorld,
   stopHuntWorld,
 } from '@server/hunts/application/HuntWorldService.js';
+import { parseDomainEventEnvelope } from '@server/lib/mq/domainEventSchema.js';
 import {
   COMBAT_V6_REPLAY_ARCHIVE_CONSUMER,
   consumerRetryDelayMs,
@@ -23,6 +31,10 @@ import {
   archiveCombatV6Replay,
   CombatV6ReplayConflictError,
 } from '@server/lib/repositories/combatV6ReplayRepository.js';
+import {
+  startWandererWorld,
+  stopWandererWorld,
+} from '@server/wanderer/application/WandererWorldService.js';
 import { JSONCodec, type ConsumerMessages, type JsMsg } from 'nats';
 
 const store = new CombatV6RuntimeStore();
@@ -127,6 +139,7 @@ export async function startCombatV6Messaging(
 ): Promise<void> {
   startArenaV6Coordinator();
   startHuntWorld();
+  startWandererWorld();
   if (consumerTask) return;
   stopping = false;
   const jetStream = await getJetStreamClient();
@@ -168,6 +181,7 @@ export async function stopCombatV6Messaging(): Promise<void> {
   if (timer) clearInterval(timer);
   timer = undefined;
   await stopHuntWorld();
+  await stopWandererWorld();
   await stopArenaV6Coordinator();
   await Promise.all([...publications]);
   stopping = true;

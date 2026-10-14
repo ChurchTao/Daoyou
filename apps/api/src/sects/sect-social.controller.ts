@@ -18,7 +18,7 @@ import { apiErrorFilter } from '../http/error-filter.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
-import { SendErrors } from '../social/world-chat.controller.js';
+import { ReadErrors } from '../social/world-chat.controller.js';
 import { SectSocialService } from './sect-social.service.js';
 
 const ContributionErrors = apiErrorFilter((error) => {
@@ -42,7 +42,7 @@ export class SectSocialController {
   ) {}
 
   @Get('chat/messages')
-  @UseFilters(SendErrors)
+  @UseFilters(ReadErrors)
   list(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @FirstQuery(new ZodPipe(SectChatListQuerySchema, 'legacy-unhandled'))

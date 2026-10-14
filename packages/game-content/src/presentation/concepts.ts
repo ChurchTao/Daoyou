@@ -493,6 +493,11 @@ export const GAME_CONCEPT_DISPLAY_MAP = {
     icon: '🌿',
     description: '药力温养丹田，下一次闭关修为提升',
   },
+  status_beast_lure: {
+    label: '引妖香',
+    icon: '🪔',
+    description: '接下来的寻觅更容易遇见稀有异兽与变异灵兽',
+  },
   status_artifact_damaged: {
     label: '法宝受损',
     icon: '💔',
@@ -768,6 +773,7 @@ export const STATUS_EFFECT_DISPLAY_MAP: Record<
   protect_meridians: getStatusConceptInfo('status_protect_meridians'),
   clear_mind: getStatusConceptInfo('status_clear_mind'),
   cultivation_boost: getStatusConceptInfo('status_cultivation_boost'),
+  beast_lure: getStatusConceptInfo('status_beast_lure'),
   artifact_damaged: getStatusConceptInfo('status_artifact_damaged'),
   mana_depleted: getStatusConceptInfo('status_mana_depleted'),
   hp_deficit: getStatusConceptInfo('status_hp_deficit'),

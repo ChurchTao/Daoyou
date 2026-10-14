@@ -30,6 +30,7 @@ export type WildRegionView = WildRegion & {
   settlingBattleId: string | null;
   trainingSessionId: string | null;
   beastBagFull: boolean;
+  beastLureSearches: number;
 };
 
 export type WildRuntime = Omit<

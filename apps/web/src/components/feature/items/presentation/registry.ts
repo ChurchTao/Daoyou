@@ -6,6 +6,7 @@ import {
   manualAdapter,
   materialAdapter,
   refinementAdapter,
+  beastLureAdapter,
   rejuvenationAdapter,
   seedAdapter,
 } from './basic';
@@ -25,6 +26,7 @@ const adapters = {
   beast_book: beastBookAdapter,
   beast_refinement: refinementAdapter,
   beast_rejuvenation: rejuvenationAdapter,
+  beast_lure: beastLureAdapter,
 } satisfies Record<ItemDefinition['kind'], ItemAdapter>;
 
 export function resolveItemPresentation(item: DisplayItem) {

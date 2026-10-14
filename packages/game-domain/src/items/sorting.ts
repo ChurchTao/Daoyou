@@ -5,6 +5,7 @@ export const INVENTORY_KINDS = [
   ['beast_book', '传承灵印'],
   ['beast_refinement', '归元灵露'],
   ['beast_rejuvenation', '化生果'],
+  ['beast_lure', '引妖香'],
   ['manual_jade', '功法玉简'],
   ['inscription', '阵纹'],
   ['equipment', '道装'],

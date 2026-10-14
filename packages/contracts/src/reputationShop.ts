@@ -1,6 +1,10 @@
 import type { ItemExchangeShopItemMutation } from '@daoyou/game-domain/shops/exchange';
 import { ITEM_EXCHANGE_SHOP_MAX_PRICE, ITEM_EXCHANGE_SHOP_MAX_STACK_QUANTITY, ItemExchangeShopItemStatusSchema, type ItemExchangeShopItemView } from '@daoyou/game-domain/shops/exchange';
 import { z } from 'zod';
+import {
+  ItemExchangeCartItemsSchema,
+  ItemExchangeExpectedTotalSchema,
+} from './itemExchangeCart.js';
 
 export const ReputationShopItemStatusSchema = ItemExchangeShopItemStatusSchema;
 
@@ -21,6 +25,14 @@ export const ReputationShopBuyBodySchema = z
   .object({ requestId: z.string().uuid() })
   .strict();
 
+export const ReputationShopCartBuyBodySchema = z
+  .object({
+    requestId: z.string().uuid(),
+    expectedTotal: ItemExchangeExpectedTotalSchema,
+    items: ItemExchangeCartItemsSchema,
+  })
+  .strict();
+
 export type ReputationShopItemStatus = z.infer<
   typeof ReputationShopItemStatusSchema
 >;
@@ -35,6 +47,12 @@ export interface ReputationShopListResponse {
 
 export interface ReputationShopBuyResponse {
   purchasedItem: ReputationShopItemView;
+  destinations: Array<'bag' | 'storage'>;
+  reputation: number;
+}
+
+export interface ReputationShopCartBuyResponse {
+  purchasedItems: ReputationShopItemView[];
   destinations: Array<'bag' | 'storage'>;
   reputation: number;
 }

@@ -13,6 +13,8 @@ import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { SkillTag } from '@daoyou/combat-core/enums';
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
 import { WILD_REGIONS } from '@daoyou/game-content/combat/wild';
+import { BEAST_CARRIED_CAPACITY } from '@daoyou/game-domain/beasts';
+import { generateCapturedBeast } from '../../beasts/generator.js';
 import { generateWildEncounter, generateWildIndividual } from './generator.js';
 import { createWildHost, WildHost } from './host.js';
 
@@ -224,6 +226,83 @@ describe('野外所见即所得', () => {
       delete oldSettlement.capturedBeasts[0][field];
       expect(WildSettlementSchema.safeParse(oldSettlement).success).toBe(false);
     }
+  });
+
+  it('满袋并遭遇整组灵兽时，战局单位仍能通过存储契约', () => {
+    const carried = Array.from({ length: BEAST_CARRIED_CAPACITY }, (_, index) =>
+      generateCapturedBeast(
+        `40000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+        owner,
+        'combat.wild.species.spirit-fox',
+        1,
+        120 + index,
+      ),
+    );
+    const combatants = [1, 2, 3].map((level, index) =>
+      generateWildIndividual(
+        {
+          unitId: `combat.wild.enemy.${index}`,
+          speciesId: 'combat.wild.species.spirit-fox',
+          level,
+        },
+        `50000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+        owner,
+        140 + index,
+      ),
+    );
+    const host = createWildHost(
+      nodeId,
+      15,
+      {
+        ...player(owner),
+        beasts: {
+          beasts: carried,
+          lineup: {
+            carriedBeastIds: carried.map((beast) => beast.id),
+            leadBeastId: carried[0]!.id,
+            revision: 0,
+          },
+        },
+      },
+      combatants,
+    );
+    const snapshot = host.runtimeSnapshot();
+    const unitCount = 1 + BEAST_CARRIED_CAPACITY + combatants.length;
+    expect(snapshot.input.units).toHaveLength(unitCount);
+    expect(snapshot.state.units).toHaveLength(unitCount);
+    const runtime = {
+      runtimeVersion: 'combat_v6_redis_runtime_v1',
+      battleId: encounterId,
+      userId: owner,
+      cultivatorId: owner,
+      membershipId: owner,
+      metadata: {
+        schemaVersion: 1,
+        sourceType: 'wild-encounter',
+        battleType: 'pve',
+        idempotencyKey: encounterId,
+        payload: {
+          nodeId,
+          encounterContentVersion: 'daoyou_wild_seeking_content_v2',
+          combatants: snapshot.combatants.map(
+            ({ unitId, speciesId, level }) => ({
+              unitId,
+              speciesId,
+              level,
+            }),
+          ),
+        },
+      },
+      revision: 0,
+      createdAt: '2026-09-17T00:00:00.000Z',
+      expiresAt: '2026-09-17T02:00:00.000Z',
+      latestEventSeq: snapshot.events.length - 1,
+      host: snapshot,
+      dropPool: WILD_DROP_POOLS[nodeId],
+    };
+    expect(WildRuntimeSchema.parse(runtime).host.input.units).toHaveLength(
+      unitCount,
+    );
   });
 });
 

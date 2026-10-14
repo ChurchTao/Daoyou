@@ -58,6 +58,7 @@ export interface WorldChatFeedModel {
   locateMessage: (id: string) => Promise<boolean>;
   returnToLatest: () => Promise<void>;
   markVisible: (id: string) => void;
+  setFollowingLatest: (following: boolean) => void;
   retryMessage: (clientMessageId: string) => Promise<boolean>;
   sendTextMessage: (
     text: string,

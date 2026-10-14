@@ -3,11 +3,12 @@ import { AutoStrategySchema } from '../combat/auto-strategy.js';
 import { DropPoolSchema } from '../drops/pool.js';
 import { CombatV6ReplayTimelineSchema } from '../combat/replay-schema.js';
 import { CombatV6BattleMetadataV1Schema } from '../combat/metadata.js';
+import { type createBeastSchema } from '../beasts/schema.js';
 import { WildResourcesSchema } from './resources.js';
-import type { createBeastSchema } from '../beasts/schema.js';
 import type { createInventorySchemas } from '../items/inventory.js';
 import type { createWildIndividualSchema } from './individual.js';
 
+const WILD_ENCOUNTER_LIMIT = 3;
 
 export function createWildStateSchemas({ ItemGrantSchema, BeastSchema, WildIndividualSchema }: { ItemGrantSchema: ReturnType<typeof createInventorySchemas>['ItemGrantSchema']; BeastSchema: ReturnType<typeof createBeastSchema>; WildIndividualSchema: ReturnType<typeof createWildIndividualSchema>; }) {
 const WildRuntimeSchema = z
@@ -44,7 +45,7 @@ const WildRuntimeSchema = z
                 autoPolicyVersion: z.string().min(1).optional(),
               })
               .strict(),
-            units: z.array(z.record(z.string(), z.unknown())).min(2).max(10),
+            units: z.array(z.record(z.string(), z.unknown())).min(2),
             skills: z.array(z.record(z.string(), z.unknown())),
             statusDefs: z.array(z.record(z.string(), z.unknown())),
           })
@@ -62,12 +63,12 @@ const WildRuntimeSchema = z
               .strict(),
           ]),
         ),
-        combatants: z.array(WildIndividualSchema).min(1).max(3),
+        combatants: z.array(WildIndividualSchema).min(1).max(WILD_ENCOUNTER_LIMIT),
         state: z
           .object({
             round: z.number().int().positive(),
             rngState: z.number().int(),
-            units: z.array(z.record(z.string(), z.unknown())).min(2).max(10),
+            units: z.array(z.record(z.string(), z.unknown())).min(2),
           })
           .passthrough(),
         rounds: z.array(z.unknown()),

@@ -1,5 +1,5 @@
 import {
-  buySectShopItem,
+  buySectShopCart,
   listSectShopItems,
 } from '@server/sects/application/SectShopService.js';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
@@ -56,6 +56,33 @@ export class SectEconomyApplicationService {
     itemId: string,
     context: SectEconomyCommandContext,
   ) {
+    const settled = await this.purchaseShopCart(
+      userId,
+      cultivatorId,
+      { lines: [{ id: itemId, count: 1 }], expectedTotal: null },
+      context,
+    );
+    const purchasedItem = settled.result.purchasedItems[0];
+    if (!purchasedItem) throw new Error('兑换结果缺失');
+    return {
+      result: {
+        purchasedItem,
+        destinations: settled.result.destinations,
+        contribution: settled.result.contribution,
+      },
+      resourceChanges: settled.resourceChanges,
+    };
+  }
+
+  async purchaseShopCart(
+    userId: string,
+    cultivatorId: string,
+    input: {
+      lines: Array<{ id: string; count: number }>;
+      expectedTotal: number | null;
+    },
+    context: SectEconomyCommandContext,
+  ) {
     const membership = await requireMembership(
       cultivatorId,
       context.memberships,
@@ -67,8 +94,9 @@ export class SectEconomyApplicationService {
     );
     const weekKey = context.clock.weekKey();
     let spentEffects = emptySectCommandEffects();
-    const purchase = await buySectShopItem({
-      id: itemId,
+    const purchase = await buySectShopCart({
+      lines: input.lines,
+      expectedTotal: input.expectedTotal,
       userId,
       cultivatorId,
       membershipId: membership.id,
@@ -78,7 +106,7 @@ export class SectEconomyApplicationService {
         spentEffects = await this.spendContribution(
           membership,
           cost,
-          `${weekKey}:${itemId}`,
+          `${weekKey}:cart`,
           context,
         );
       },
@@ -100,7 +128,7 @@ export class SectEconomyApplicationService {
     ];
     return {
       result: {
-        purchasedItem: purchase.item,
+        purchasedItems: purchase.items,
         destinations: purchase.destinations,
         contribution: result.contribution,
       },

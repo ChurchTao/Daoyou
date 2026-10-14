@@ -9,7 +9,7 @@ export function WildNodePreview({ nodeId }: { nodeId: string }) {
   if (!region) return null;
   return (
     <div className="my-3 text-sm">
-      <p>灵兽栖息地 · 偶有幼崽</p>
+      <p>灵兽栖息地 · 偶有宝宝</p>
       <ul className="text-ink-secondary mt-2 space-y-1">
         {region.species.map((entry) => (
           <li key={entry.speciesId} className="flex justify-between gap-3">

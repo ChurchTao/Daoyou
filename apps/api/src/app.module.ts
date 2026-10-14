@@ -1,8 +1,7 @@
-import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
-import { ConfigurationModule } from './config/configuration.module.js';
+import { allowsLocalDevTools } from '@daoyou/contracts/dev-tools-access';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
-import { allowsLocalDevTools } from '@daoyou/contracts/dev-tools-access';
+import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { AccountModule } from './account/account.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AlchemyModule } from './alchemy/alchemy.module.js';
@@ -13,6 +12,7 @@ import { BeastsModule } from './beasts/beasts.module.js';
 import { BlackMarketModule } from './black-market/black-market.module.js';
 import { CombatModule } from './combat/combat.module.js';
 import { CommunityModule } from './community/community.module.js';
+import { ConfigurationModule } from './config/configuration.module.js';
 import { CultivatorModule } from './cultivator/cultivator.module.js';
 import { DevToolsModule } from './dev-tools/dev-tools.module.js';
 import { DivinationModule } from './divination/divination.module.js';
@@ -46,12 +46,16 @@ import { SponsorshipModule } from './sponsorship/sponsorship.module.js';
 import { StoryModule } from './story/story.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { TowerModule } from './tower/tower.module.js';
+import { WandererModule } from './wanderer/wanderer.module.js';
 
 @Module({
   imports: [
     ConfigurationModule,
     HttpContextModule,
-    ...(allowsLocalDevTools(getRuntimeEnvironment().APP_ENV, getRuntimeEnvironment().NODE_ENV)
+    ...(allowsLocalDevTools(
+      getRuntimeEnvironment().APP_ENV,
+      getRuntimeEnvironment().NODE_ENV,
+    )
       ? [DevToolsModule]
       : []),
     AuthModule,
@@ -91,6 +95,7 @@ import { TowerModule } from './tower/tower.module.js';
     LegacyItemsModule,
     ManualsModule,
     HuntsModule,
+    WandererModule,
     DungeonModule,
     TowerModule,
     // Namespace authorization fallbacks must follow every concrete route.

@@ -1,5 +1,6 @@
 import { BEAST_REFINEMENT } from '../beasts/refinement-config.js';
 import { BOOKS } from './beast-books.js';
+import { BEAST_LURE } from './beast-lure.js';
 import { BEAST_REJUVENATION } from './beast-rejuvenation.js';
 import { CONSUMABLE_ITEM } from './consumables.js';
 import { EQUIPMENT_ITEM } from './equipment.js';
@@ -16,6 +17,7 @@ export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
     kind: 'beast_refinement' as const,
   })),
   BEAST_REJUVENATION,
+  BEAST_LURE,
   ...BLUEPRINTS,
   EQUIPMENT_ITEM,
   MATERIAL_ITEM,

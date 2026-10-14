@@ -19,11 +19,13 @@ import { BeastSchema, GeneratedBeastSchema } from '../../beasts/schema.js';
 import { SeededRng } from '@daoyou/combat-core/rng';
 
 import { WILD_PACK } from '@daoyou/game-content/combat/wild';
+import { wildEncounterRateMultiplier } from './lure.js';
 
 export function generateWildEncounter(
   nodeId: string,
   seed: number,
   pack = WILD_PACK,
+  rateMultiplier = 1,
 ): WildCombatant[] {
   const region = pack.regions.find((r) => r.nodeId === nodeId);
   if (!region) throw new Error('UNKNOWN_WILD_REGION');
@@ -41,13 +43,14 @@ export function generateWildEncounter(
     Math.floor(
       rng.next() * (pack.encounter.maxCount - pack.encounter.minCount + 1),
     );
+  const factor = wildEncounterRateMultiplier(rateMultiplier);
+  const rareChance = Math.min(1, (region.rareChance ?? 0) * factor);
+  const mutantChance = Math.min(1, pack.encounter.mutantChance * factor);
   return Array.from({ length: count }, (_, slot) => {
     const pool =
-      rare.length && rarityRng.next() < (region.rareChance ?? 0)
-        ? rare
-        : common;
+      rare.length && rarityRng.next() < rareChance ? rare : common;
     const species = pool[Math.floor(rng.next() * pool.length)]!;
-    const isMutant = mutationRng.next() < pack.encounter.mutantChance;
+    const isMutant = mutationRng.next() < mutantChance;
     const ordinaryLevel =
       rng.next() < pack.encounter.cubChance
         ? 0

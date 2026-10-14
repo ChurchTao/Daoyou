@@ -630,18 +630,6 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       const feed = feedsRef.current[activeChannel];
       const message = feed.messages.find((m) => m.id === id);
       if (!message) return;
-      setFeeds((current) =>
-        current[activeChannel].following ===
-        (current[activeChannel].recent[0]?.id === id)
-          ? current
-          : {
-              ...current,
-              [activeChannel]: {
-                ...current[activeChannel],
-                following: current[activeChannel].recent[0]?.id === id,
-              },
-            },
-      );
       setSeen((current) => {
         if (current[activeChannel] >= message.sequence) return current;
         const next = { ...current, [activeChannel]: message.sequence };
@@ -665,6 +653,20 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       });
     },
     [activeChannel, isWorldChatRoute, sectId, user?.id],
+  );
+
+  const setFollowingLatest = useCallback(
+    (following: boolean) => {
+      setFeeds((current) =>
+        current[activeChannel].following === following
+          ? current
+          : {
+              ...current,
+              [activeChannel]: { ...current[activeChannel], following },
+            },
+      );
+    },
+    [activeChannel],
   );
 
   const sendBody = useCallback(
@@ -848,6 +850,13 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
   );
 
   const activeFeed = feeds[activeChannel];
+  const pendingMessages = useMemo(
+    () =>
+      pending.filter(
+        (item) => item.channel === activeChannel && item.identity === identity,
+      ),
+    [pending, activeChannel, identity],
+  );
   const unreadCounts = useMemo(
     () =>
       Object.fromEntries(
@@ -876,9 +885,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
         0,
         Math.ceil((deadlines[activeChannel] - now) / 1000),
       ),
-      pendingMessages: pending.filter(
-        (item) => item.channel === activeChannel && item.identity === identity,
-      ),
+      pendingMessages,
       posting,
       hasSect: Boolean(sectId),
       isWorldChatRoute,
@@ -889,6 +896,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       locateMessage,
       returnToLatest,
       markVisible,
+      setFollowingLatest,
       sendTextMessage,
       retryMessage,
       refreshRedPacket,
@@ -910,14 +918,13 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       activeChannel,
       activeFeed,
       deadlines,
-      identity,
       isWorldChatRoute,
       loadMore,
       loadNewer,
       locateMessage,
       markVisible,
       now,
-      pending,
+      pendingMessages,
       pendingPackets,
       posting,
       previewMessages,
@@ -929,6 +936,7 @@ export function WorldChatFeedProvider({ children }: { children: ReactNode }) {
       sendTextMessage,
       sendRedPacket,
       setActiveChannel,
+      setFollowingLatest,
       unreadCounts,
     ],
   );

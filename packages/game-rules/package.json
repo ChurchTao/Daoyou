@@ -95,6 +95,7 @@
     "./story": "./dist/public/story.js",
     "./tower": "./dist/public/tower.js",
     "./tower/host": "./dist/tower/host.js",
+    "./wanderer": "./dist/public/wanderer.js",
     "./world/atlas": "./dist/public/world/atlas.js",
     "./world/dungeon": "./dist/world/dungeon.js",
     "./world/market": "./dist/world/marketConfig.js",
@@ -108,11 +109,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@daoyou/game-domain": "workspace:*",
-    "@daoyou/game-content": "workspace:*",
-    "@daoyou/constants": "workspace:*",
-    "zod": "^4.6.4",
     "@daoyou/combat-core": "workspace:*",
-    "d3-format": "^3.1.2"
+    "@daoyou/constants": "workspace:*",
+    "@daoyou/game-content": "workspace:*",
+    "@daoyou/game-domain": "workspace:*",
+    "d3-format": "^3.1.2",
+    "zod": "^4.6.4"
   }
 }

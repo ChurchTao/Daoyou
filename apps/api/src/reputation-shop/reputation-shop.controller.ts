@@ -14,6 +14,7 @@ import { ReputationShopError } from '@server/reputation-shop/application/Reputat
 import {
   ReputationShopBuyBodySchema,
   ReputationShopBuyParamsSchema,
+  ReputationShopCartBuyBodySchema,
 } from '@daoyou/contracts/shops/reputation';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
@@ -49,6 +50,17 @@ export class ReputationShopController {
   @Get()
   list(@CurrentCultivator() actor: ActiveCultivatorRef) {
     return this.shop.list(actor.cultivatorId);
+  }
+
+  @Post('buy')
+  @HttpCode(200)
+  @UseFilters(ReputationBuyErrors)
+  buyCart(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(ReputationShopCartBuyBodySchema))
+    input: z.infer<typeof ReputationShopCartBuyBodySchema>,
+  ) {
+    return this.shop.buyCart(actor, input);
   }
 
   @Post(':id/buy')

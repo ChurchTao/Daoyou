@@ -5,10 +5,16 @@ import {
   isQiRestoreTalisman,
   isSectMeridianResetTalisman,
 } from '@app/components/feature/consumables';
+import { useInkUI } from '@app/components/providers/useInkUI';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
+import { useCultivatorCondition } from '@app/lib/resources/player';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
+import {
+  BEAST_LURE_SEARCHES,
+  beastLureCharges,
+} from '@daoyou/game-rules/combat/wild';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -25,11 +31,33 @@ export function ConsumableUseActions({
 }) {
   const [quantity, setQuantity] = useState('1');
   const navigate = useNavigate();
-  if (
-    item.location !== 'bag' ||
-    itemDefinition(item.definitionId).kind !== 'consumable'
-  )
-    return null;
+  const { openDialog } = useInkUI();
+  const lureCharges = beastLureCharges(useCultivatorCondition().data);
+  const definition = itemDefinition(item.definitionId);
+  if (item.location !== 'bag') return null;
+  if (definition.kind === 'beast_lure') {
+    return (
+      <InkButton
+        disabled={pending}
+        onClick={() => {
+          if (lureCharges > 0) {
+            openDialog({
+              title: '引妖香尚有余效',
+              content: `还剩 ${lureCharges} 次。再次点燃会把次数回到 ${BEAST_LURE_SEARCHES}。`,
+              confirmLabel: '点燃',
+              cancelLabel: '留下',
+              onConfirm: () => onUse(1),
+            });
+            return;
+          }
+          onUse(1);
+        }}
+      >
+        使用
+      </InkButton>
+    );
+  }
+  if (definition.kind !== 'consumable') return null;
   const consumable = {
     ...ConsumableFactsSchema.parse(item.instanceData),
     id: item.id,

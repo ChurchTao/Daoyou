@@ -1,5 +1,11 @@
 import { apiFetch } from '@app/lib/api/fetch';
 import { ItemExchangeShelf } from '@app/components/feature/item-shop/ItemExchangeShelf';
+import {
+  canonicalExchangeLines,
+  exchangeSummary,
+  HIGH_VALUE_EXCHANGE_CONFIRM_THRESHOLD,
+  useExchangeCart,
+} from '@app/components/feature/item-shop/useExchangeCart';
 import { NpcConversation } from '@app/components/feature/room';
 import {
   SectNpcConversationRegistry,
@@ -10,10 +16,7 @@ import { useSectShopQuery } from '@app/components/feature/sect/sectResources';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui';
 import { useResourceMutation } from '@app/lib/resources/mutations';
-import type {
-  SectShopBuyResponse,
-  SectShopItemData,
-} from '@daoyou/contracts/shops/sect';
+import type { SectShopCartBuyResponse } from '@daoyou/contracts/shops/sect';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
 import { useRef, useState } from 'react';
 import {
@@ -21,8 +24,6 @@ import {
   SectPermissionBoundary,
   SectScene,
 } from '../components/SectScene';
-
-const HIGH_VALUE_EXCHANGE_CONFIRM_THRESHOLD = 100;
 
 const registry = new SectNpcConversationRegistry([
   { key: 'sect.treasury.shop', renderer: TreasuryConversation },
@@ -47,82 +48,93 @@ function TreasuryConversation({
   onExit,
 }: SectNpcConversationRendererProps) {
   const shop = useSectShopQuery();
+  const items = shop.data?.items ?? [];
+  const contribution = shop.data?.contribution;
   const { mutate } = useResourceMutation();
   const { openDialog, pushToast } = useInkUI();
   const [catalogOpen, setCatalogOpen] = useState(false);
-  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const busy = useRef(false);
+  const attempt = useRef<{ key: string; requestId: string } | null>(null);
+  const cart = useExchangeCart(items);
 
-  const pending = useRef(false);
-  const attempts = useRef(new Map<string, string>());
-  const executeBuy = async (item: SectShopItemData) => {
-    if (pending.current) return;
-    pending.current = true;
-    const requestId = attempts.current.get(item.id) ?? crypto.randomUUID();
-    attempts.current.set(item.id, requestId);
-    setBuyingId(item.id);
+  const executeCheckout = async () => {
+    const lines = cart.lines;
+    const total = cart.total;
+    if (busy.current || !lines.length) return;
+    if (contribution === undefined || contribution < total) {
+      pushToast({ message: '宗门贡献不足。', tone: 'warning' });
+      return;
+    }
+    const itemsToBuy = canonicalExchangeLines(lines);
+    const key = JSON.stringify({ expectedTotal: total, items: itemsToBuy });
+    if (attempt.current?.key !== key)
+      attempt.current = { key, requestId: crypto.randomUUID() };
+    busy.current = true;
+    setPending(true);
     try {
-      const result = await mutate<SectShopBuyResponse>(
-        apiFetch(`/api/sects/current/shop/${item.id}/buy`, postJson(undefined, requestId)),
+      const result = await mutate<SectShopCartBuyResponse>(
+        apiFetch(
+          '/api/sects/current/shop/buy',
+          postJson(
+            { expectedTotal: total, items: itemsToBuy },
+            attempt.current.requestId,
+          ),
+        ),
       );
-      attempts.current.delete(item.id);
+      attempt.current = null;
+      cart.clear(lines.map((line) => line.id));
       pushToast({
-        message: `已兑换${result.purchasedItem.item?.name ?? '道具'}，存入${result.destinations.map(location => location === 'bag' ? '储物袋' : '洞府储藏室').join('／')}。`,
+        message: `${exchangeSummary(lines)}，存入${result.destinations.map((location) => (location === 'bag' ? '储物袋' : '洞府储藏室')).join('／')}。`,
         tone: 'success',
       });
-      await shop.reload();
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : '支取失败',
         tone: 'danger',
       });
     } finally {
-      pending.current = false;
-      setBuyingId(null);
+      busy.current = false;
+      setPending(false);
     }
   };
 
-  const handleBuy = async (item: SectShopItemData) => {
-    const contribution = shop.data?.contribution;
-    if (item.remainingPurchases === 0) {
-      pushToast({ message: '这件物品已达到兑换上限。', tone: 'warning' });
-      return;
-    }
-    if (contribution === undefined || contribution < item.price) {
-      pushToast({ message: '宗门贡献不足。', tone: 'warning' });
-      return;
-    }
-    if (item.price > HIGH_VALUE_EXCHANGE_CONFIRM_THRESHOLD) {
+  const requestCheckout = () => {
+    if (busy.current || !cart.lines.length) return;
+    if (cart.total > HIGH_VALUE_EXCHANGE_CONFIRM_THRESHOLD) {
       openDialog({
         title: '确认兑换',
         content: (
           <div className="space-y-2 text-sm leading-7">
-            <p>确定兑换「{(item.item?.name ?? '道具')}」吗？</p>
+            <p>
+              确认兑换所选 <span className="font-mono">{cart.lines.length}</span>{' '}
+              种，共 <span className="font-mono">{cart.pieces}</span> 次？
+            </p>
             <p className="text-crimson font-bold">
-              将消耗：{item.price} 宗门贡献
+              将消耗：<span className="font-mono">{cart.total}</span> 宗门贡献
             </p>
           </div>
         ),
         confirmLabel: '确认兑换',
         cancelLabel: '再看看',
-        onConfirm: async () => {
-          await executeBuy(item);
-        },
+        onConfirm: executeCheckout,
       });
       return;
     }
-
-    await executeBuy(item);
+    void executeCheckout();
   };
 
   if (catalogOpen)
     return (
       <TreasuryShelfWorkspace
-        items={shop.data?.items ?? []}
-        contribution={shop.data?.contribution}
-        buyingId={buyingId}
+        items={items}
+        contribution={contribution}
+        pending={pending}
+        cart={cart}
         loading={shop.loading}
         error={shop.error}
-        onBuy={handleBuy}
+        onCheckout={requestCheckout}
+        onUnavailable={(message) => pushToast({ message, tone: 'warning' })}
         onBack={() => setCatalogOpen(false)}
       />
     );
@@ -147,18 +159,22 @@ function TreasuryConversation({
 function TreasuryShelfWorkspace({
   items,
   contribution,
-  buyingId,
+  pending,
+  cart,
   loading,
   error,
-  onBuy,
+  onCheckout,
+  onUnavailable,
   onBack,
 }: {
-  items: SectShopItemData[];
+  items: SectShopCartBuyResponse['purchasedItems'];
   contribution: number | undefined;
-  buyingId: string | null;
+  pending: boolean;
+  cart: ReturnType<typeof useExchangeCart>;
   loading: boolean;
   error?: string;
-  onBuy(item: SectShopItemData): Promise<void>;
+  onCheckout(): void;
+  onUnavailable(message: string): void;
   onBack(): void;
 }) {
   return (
@@ -182,8 +198,10 @@ function TreasuryShelfWorkspace({
           items={items}
           balance={contribution}
           currencyConcept="contribution"
-          buyingId={buyingId}
-          onBuy={(item) => void onBuy(item)}
+          pending={pending}
+          cart={cart}
+          onCheckout={onCheckout}
+          onUnavailable={onUnavailable}
           loading={loading}
           loadingText="宝库执事正在核验封签……"
           emptyText="宝库暂未陈列可兑换之物。"

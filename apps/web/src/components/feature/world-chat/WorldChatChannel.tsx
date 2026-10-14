@@ -96,7 +96,14 @@ function WorldChatChannelBody({
   sectId: string | null;
 }) {
   const feed = useWorldChatFeedModel();
-  const { markVisible, activeChannel, loading, messages, locateMessage } = feed;
+  const {
+    markVisible,
+    setFollowingLatest,
+    activeChannel,
+    loading,
+    messages,
+    locateMessage,
+  } = feed;
   const { pushToast } = useInkUI();
   const [views, setViews] = useState(() => {
     const saved = viewCache.get(actorId);
@@ -241,12 +248,20 @@ function WorldChatChannelBody({
     const row = Array.from(
       list?.querySelectorAll<HTMLElement>('[data-message-id]') ?? [],
     ).find((node) => node.dataset.messageId === anchor.id);
-    if (list && row)
-      list.scrollTop +=
+    if (list && row) {
+      const delta =
         row.getBoundingClientRect().top -
         list.getBoundingClientRect().top -
         anchor.offset;
+      if (Math.abs(delta) > 1) list.scrollTop += delta;
+    }
     return !!row;
+  }, []);
+  const stickToBottom = useCallback(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const bottom = Math.max(0, list.scrollHeight - list.clientHeight);
+    if (Math.abs(bottom - list.scrollTop) > 1) list.scrollTop = bottom;
   }, []);
 
   const reportVisible = useCallback(() => {
@@ -297,7 +312,7 @@ function WorldChatChannelBody({
       pending?.latest ||
       (!pending && current.following && !feed.hasNewer)
     ) {
-      list.scrollTop = list.scrollHeight;
+      stickToBottom();
       pendingPosition.current = null;
     } else if (pending?.anchor ?? current.anchor) {
       if (restoreAnchor((pending?.anchor ?? current.anchor)!))
@@ -325,6 +340,7 @@ function WorldChatChannelBody({
     reportVisible,
     restoreAnchor,
     captureAnchor,
+    stickToBottom,
   ]);
 
   useEffect(() => {
@@ -333,8 +349,7 @@ function WorldChatChannelBody({
     if (!content || !list) return;
     const observer = new ResizeObserver(() => {
       const current = viewsRef.current[feed.activeChannel];
-      if (current.following && !feed.hasNewer)
-        list.scrollTop = list.scrollHeight;
+      if (current.following && !feed.hasNewer) stickToBottom();
       else if (current.anchor) restoreAnchor(current.anchor);
       reportVisible();
     });
@@ -345,7 +360,13 @@ function WorldChatChannelBody({
       observer.disconnect();
       document.removeEventListener('visibilitychange', visible);
     };
-  }, [feed.activeChannel, feed.hasNewer, reportVisible, restoreAnchor]);
+  }, [
+    feed.activeChannel,
+    feed.hasNewer,
+    reportVisible,
+    restoreAnchor,
+    stickToBottom,
+  ]);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -361,13 +382,16 @@ function WorldChatChannelBody({
       [feed.activeChannel]: { ...current[feed.activeChannel], draft },
     }));
   }
-  const selectReply = useCallback((message: WorldChatMessageDTO) => {
-    setViews((current) => ({
-      ...current,
-      [activeChannel]: { ...current[activeChannel], reply: message },
-    }));
-    inputRef.current?.focus();
-  }, [activeChannel]);
+  const selectReply = useCallback(
+    (message: WorldChatMessageDTO) => {
+      setViews((current) => ({
+        ...current,
+        [activeChannel]: { ...current[activeChannel], reply: message },
+      }));
+      inputRef.current?.focus();
+    },
+    [activeChannel],
+  );
   function switchChannel(channel: Channel) {
     if (channel === feed.activeChannel) return;
     operationGeneration.current += 1;
@@ -409,6 +433,7 @@ function WorldChatChannelBody({
       following: isFollowing,
     };
     setFollowing(isFollowing);
+    setFollowingLatest(isFollowing);
     reportVisible();
     if (list.scrollTop < 200 && !feed.loadError) void older();
     if (
@@ -438,26 +463,29 @@ function WorldChatChannelBody({
     setFollowing(true);
     setScrollRevision((value) => value + 1);
   }
-  const locate = useCallback(async (id: string) => {
-    const channel = activeChannel;
-    const generation = ++operationGeneration.current;
-    const previous = captureAnchor();
-    if (previous) setReturnAnchor(previous);
-    const found = await locateMessage(id);
-    if (
-      !mounted.current ||
-      activeChannelRef.current !== channel ||
-      operationGeneration.current !== generation
-    )
-      return;
-    if (found) {
-      viewsRef.current[channel].following = false;
-      setFollowing(false);
-      setHighlight(id);
-      pendingPosition.current = { locateId: id };
-      setScrollRevision((value) => value + 1);
-    } else pushToast({ message: '原消息已过期或不可见', tone: 'warning' });
-  }, [activeChannel, captureAnchor, locateMessage, pushToast]);
+  const locate = useCallback(
+    async (id: string) => {
+      const channel = activeChannel;
+      const generation = ++operationGeneration.current;
+      const previous = captureAnchor();
+      if (previous) setReturnAnchor(previous);
+      const found = await locateMessage(id);
+      if (
+        !mounted.current ||
+        activeChannelRef.current !== channel ||
+        operationGeneration.current !== generation
+      )
+        return;
+      if (found) {
+        viewsRef.current[channel].following = false;
+        setFollowing(false);
+        setHighlight(id);
+        pendingPosition.current = { locateId: id };
+        setScrollRevision((value) => value + 1);
+      } else pushToast({ message: '原消息已过期或不可见', tone: 'warning' });
+    },
+    [activeChannel, captureAnchor, locateMessage, pushToast],
+  );
   async function returnToReading() {
     if (!returnAnchor) return;
     const channel = feed.activeChannel;
@@ -619,17 +647,24 @@ function WorldChatChannelBody({
                 const date = dateLabel(message.createdAt);
                 const differentDate =
                   !previous || date !== dateLabel(previous.createdAt);
+                const elapsed = previous
+                  ? new Date(message.createdAt).getTime() -
+                    new Date(previous.createdAt).getTime()
+                  : Infinity;
                 const grouped =
                   !differentDate &&
                   message.id !== unreadStart &&
+                  !!message.senderCultivatorId &&
                   previous.senderCultivatorId === message.senderCultivatorId &&
+                  previous.senderName === message.senderName &&
+                  previous.senderRealm === message.senderRealm &&
+                  previous.senderRealmStage === message.senderRealmStage &&
                   previous.messageType === 'text' &&
                   message.messageType === 'text' &&
                   !message.reply &&
                   !previous.reply &&
-                  new Date(message.createdAt).getTime() -
-                    new Date(previous.createdAt).getTime() <
-                    120_000;
+                  elapsed >= 0 &&
+                  elapsed < 120_000;
                 const packet =
                   message.messageType === 'red_packet' &&
                   'packet' in message.payload
@@ -670,7 +705,7 @@ function WorldChatChannelBody({
               {feed.pendingMessages.map((message) => (
                 <div
                   key={message.clientMessageId}
-                  className="bg-teal/5 my-2 ml-10 px-3 py-2"
+                  className="bg-teal/5 my-1.5 ml-9 px-2.5 py-1.5 text-sm leading-6"
                 >
                   <p className="break-words whitespace-pre-wrap">
                     {message.text}
@@ -842,11 +877,7 @@ function WorldChatChannelBody({
                 </div>
               </div>
             </div>
-          ) : (
-            <p className="border-ink/15 text-ink-secondary shrink-0 border-t border-dashed py-3 text-sm">
-              系统频道仅展示见闻
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
       <FriendTargetModal

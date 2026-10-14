@@ -57,19 +57,41 @@
         background-color: #f8f3e6;
       }
 
+      /* Only while the boot screen is mounted. iOS standalone leaves a
+         canvas strip below 100dvh; this paints that strip and drops away
+         with the boot screen so later scenes keep their own backgrounds. */
+      html:has(.app-boot-screen) {
+        overflow: hidden;
+        background-color: #f8f3e6;
+        background-image: url('/assets/paper.webp');
+        background-repeat: repeat;
+        background-size: 250px;
+      }
+
       .app-boot-screen {
         box-sizing: border-box;
-        position: relative;
+        position: fixed;
+        isolation: isolate;
+        inset: 0;
         display: grid;
-        min-height: 100vh;
-        min-height: 100dvh;
         place-items: center;
-        overflow: hidden;
+        overflow: visible;
         padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
         padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
         padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
         color: #2c1810;
+        text-align: center;
+      }
+
+      .app-boot-screen::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        right: 0;
+        left: 0;
+        top: 0;
+        bottom: calc(env(safe-area-inset-top, 0px) * -1);
         background:
           radial-gradient(
             circle at 49% 42%,
@@ -77,9 +99,8 @@
             rgba(248, 243, 230, 0.52) 58%,
             rgba(233, 222, 200, 0.6) 100%
           ),
-          url('/assets/paper.webp') center / 250px repeat,
+          url('/assets/paper.webp') center top / 250px repeat,
           #f8f3e6;
-        text-align: center;
       }
 
       .app-boot-content {

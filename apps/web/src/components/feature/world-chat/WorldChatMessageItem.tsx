@@ -120,15 +120,21 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
     <>
       <article
         data-message-id={message.id}
-        className={cn('group min-w-0 py-2.5', highlighted && 'bg-teal/8')}
+        aria-label={grouped ? `${message.senderName} 连续发言` : undefined}
+        className={cn(
+          'group min-w-0',
+          grouped ? 'py-1' : 'py-1.5',
+          highlighted && 'bg-teal/8',
+        )}
       >
-        <div className={cn('flex min-w-0 gap-2.5', isSystemRumor && 'pl-1')}>
-          {!isSystemRumor ? (
+        <div className={cn('flex min-w-0 gap-2', isSystemRumor && 'pl-1')}>
+          {grouped ? (
+            <div className="relative w-7 shrink-0" aria-hidden="true">
+              <span className="border-ink/20 absolute -top-2 left-3.5 h-5 w-2 border-b border-l" />
+            </div>
+          ) : !isSystemRumor ? (
             <div
-              className={cn(
-                'bg-ink/5 text-ink-secondary mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-sm',
-                grouped && 'invisible',
-              )}
+              className="bg-ink/5 text-ink-secondary mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-sm"
               aria-hidden="true"
             >
               {Array.from(message.senderName)[0]}
@@ -136,55 +142,80 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
           ) : null}
           <div className="min-w-0 flex-1">
             {!grouped ? (
-              <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                {isSystemRumor ? (
-                  <>
-                    <span className="text-wood font-semibold">
-                      {message.senderName}
-                    </span>
-                    <InkBadge tone="warning">「天道」</InkBadge>
-                  </>
-                ) : (
-                  <>
-                    {message.senderCultivatorId &&
-                    message.senderCultivatorId !== cultivator?.id ? (
-                      <button
-                        type="button"
-                        className="hover:text-crimson cursor-pointer font-semibold underline-offset-2 hover:underline"
-                        onClick={() =>
-                          onSelectFriend?.(message.senderCultivatorId!)
-                        }
-                        aria-label={`查看并收录道友 ${message.senderName}`}
-                      >
-                        {message.senderName}
-                      </button>
-                    ) : (
-                      <span className="font-semibold">
+              <div
+                className={cn(
+                  'relative mb-0.5 flex min-h-6 items-center text-sm',
+                  !isSystemRumor && onReply ? 'pr-28' : 'pr-12',
+                )}
+              >
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {isSystemRumor ? (
+                    <>
+                      <span className="text-wood font-semibold">
                         {message.senderName}
                       </span>
-                    )}
-                    <InkBadge tier={message.senderRealm as Tier}>
-                      {message.senderRealmStage}
-                    </InkBadge>
-                    {isOwn ? (
-                      <span className="text-teal text-xs">你</span>
-                    ) : null}
-                  </>
-                )}
-                <time
-                  className="text-ink-secondary ml-auto font-mono text-xs"
-                  dateTime={message.createdAt}
-                  title={new Date(message.createdAt).toLocaleString('zh-CN')}
-                >
-                  {timeFormatter.format(new Date(message.createdAt))}
-                </time>
+                      <InkBadge tone="warning">「天道」</InkBadge>
+                    </>
+                  ) : (
+                    <>
+                      {message.senderCultivatorId &&
+                      message.senderCultivatorId !== cultivator?.id ? (
+                        <button
+                          type="button"
+                          className="hover:text-crimson min-w-0 cursor-pointer truncate font-semibold underline-offset-2 hover:underline"
+                          onClick={() =>
+                            onSelectFriend?.(message.senderCultivatorId!)
+                          }
+                          aria-label={`查看并收录道友 ${message.senderName}`}
+                          title={`${message.senderName} · ${message.senderRealm}${message.senderRealmStage}`}
+                        >
+                          {message.senderName}
+                        </button>
+                      ) : (
+                        <span
+                          className="min-w-0 truncate font-semibold"
+                          title={`${message.senderName} · ${message.senderRealm}${message.senderRealmStage}`}
+                        >
+                          {message.senderName}
+                        </span>
+                      )}
+                      <InkBadge
+                        className="hidden shrink-0 whitespace-nowrap md:inline-flex"
+                        tier={message.senderRealm as Tier}
+                      >
+                        {message.senderRealmStage}
+                      </InkBadge>
+                      {isOwn ? (
+                        <span className="text-teal text-xs">你</span>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+                <div className="absolute top-1/2 right-0 flex -translate-y-1/2 items-center gap-2">
+                  {!isSystemRumor && onReply ? (
+                    <InkButton
+                      className="min-h-11 px-1 text-sm md:min-h-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                      variant="secondary"
+                      onClick={() => onReply(message)}
+                    >
+                      回复
+                    </InkButton>
+                  ) : null}
+                  <time
+                    className="text-ink-secondary shrink-0 font-mono text-xs"
+                    dateTime={message.createdAt}
+                    title={new Date(message.createdAt).toLocaleString('zh-CN')}
+                  >
+                    {timeFormatter.format(new Date(message.createdAt))}
+                  </time>
+                </div>
               </div>
             ) : null}
             {message.reply ? (
               <button
                 type="button"
                 disabled={message.reply.availability !== 'available'}
-                className="border-teal bg-ink/4 text-ink-secondary mb-2 block w-full min-w-0 border-l-2 px-3 py-2 text-left text-sm disabled:cursor-default"
+                className="border-teal bg-ink/4 text-ink-secondary mb-1.5 block w-full min-w-0 border-l-2 px-2.5 py-1.5 text-left text-sm disabled:cursor-default"
                 onClick={() => onLocateReply?.(message.reply!.messageId)}
               >
                 <span className="text-teal mr-2">
@@ -201,13 +232,15 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
             ) : null}
             <div
               className={cn(
-                'text-base leading-7 break-words whitespace-pre-wrap md:text-[0.95rem]',
-                isOwn && !packet && 'bg-teal/5 px-3 py-2',
+                'text-sm leading-6 break-words whitespace-pre-wrap',
+                isOwn && !packet && 'bg-teal/5 px-2.5',
+                isOwn && !packet && (grouped ? 'py-1' : 'py-1.5'),
               )}
               onClick={(event) => {
                 if (
                   message.messageType === 'text' &&
                   !isSystemRumor &&
+                  !grouped &&
                   !(
                     event.target instanceof Element &&
                     event.target.closest('a,button')
@@ -367,17 +400,6 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                 renderTextMessage(message)
               )}
             </div>
-            {!isSystemRumor && onReply ? (
-              <div className="mt-1 flex justify-end">
-                <InkButton
-                  className="min-h-11 text-sm md:min-h-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
-                  variant="secondary"
-                  onClick={() => onReply(message)}
-                >
-                  回复
-                </InkButton>
-              </div>
-            ) : null}
           </div>
         </div>
       </article>

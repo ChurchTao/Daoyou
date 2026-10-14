@@ -3,13 +3,16 @@ import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTa
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { InkTag } from '@app/components/ui/InkTag';
+import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import type { WildRegionView } from '@daoyou/contracts/combat/wild';
 import {
   BEAST_RARE_SPECIES_IDS,
   BEAST_SPECIES,
 } from '@daoyou/game-content/beasts';
 import { getMapNode } from '@daoyou/game-content/world/map';
+import { WildLureStatus } from './WildLureStatus';
 import './wild-seeking.css';
 
 export function WildSeekingScene({
@@ -32,11 +35,14 @@ export function WildSeekingScene({
   ownerLevel: number | null;
 }) {
   const encounter = region.encounter;
-  const cubs = encounter?.combatants.filter((c) => c.level === 0).length ?? 0;
+  const babies =
+    encounter?.combatants.filter((c) => c.level === 0 && !c.isMutant).length ??
+    0;
   const location = getMapNode(region.nodeId);
   const parent =
     location && 'parent_id' in location ? getMapNode(location.parent_id) : null;
   const insufficient = qi !== null && qi < region.qiCost;
+  const { keepCombatAuto, combatAutoHeld } = useGameSettings();
   return (
     <div className="wild-seeking-scene mx-auto w-full px-4 sm:px-8">
       <header className="wild-seeking-header px-2 text-center">
@@ -105,10 +111,10 @@ export function WildSeekingScene({
                       {BEAST_RARE_SPECIES_IDS.has(c.speciesId) && (
                         <InkTag tone="info">稀有异兽</InkTag>
                       )}
-                      {c.level === 0 ? (
-                        <InkTag tone="info">幼崽</InkTag>
+                      {c.isMutant ? null : c.level === 0 ? (
+                        <InkTag tone="info">宝宝</InkTag>
                       ) : (
-                        <span className="whitespace-nowrap">成年</span>
+                        <span className="whitespace-nowrap">野生</span>
                       )}
                     </span>
                     <span className="text-ink-secondary mt-1 min-h-4 text-xs">
@@ -123,8 +129,8 @@ export function WildSeekingScene({
                 className="text-ink-secondary mx-auto mt-8 max-w-md text-center text-sm leading-6"
                 role="status"
               >
-                {cubs
-                  ? '那道小小的身影，是尚未长成的幼崽。'
+                {babies
+                  ? '那道小小的身影，是尚未长成的宝宝。'
                   : '灵兽的身影渐渐清晰，你已看清眼前的动静。'}
               </p>
             </div>
@@ -145,6 +151,20 @@ export function WildSeekingScene({
         </div>
       </section>
       <div className="wild-seeking-actions text-center">
+        <div className="mb-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+          <label className="inline-flex items-center gap-2">
+            <span className="text-ink text-sm leading-6">自动战斗：</span>
+            <InkSwitch
+              checked={combatAutoHeld}
+              disabled={!keepCombatAuto}
+              onCheckedChange={(checked) =>
+                updateGameSettings({ combatAutoHeld: checked })
+              }
+              aria-label="自动战斗"
+            />
+          </label>
+          <WildLureStatus fallbackSearches={region.beastLureSearches} />
+        </div>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           <InkButton
             variant={encounter ? 'secondary' : 'primary'}

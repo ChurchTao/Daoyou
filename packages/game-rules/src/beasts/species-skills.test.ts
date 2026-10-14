@@ -65,7 +65,7 @@ it.each([
   ['combat.wild.species.mimi', 5],
   ['combat.wild.species.nether-tiger', 85],
 ] as const)(
-  '%s 幼崽也受物种携带门槛约束，达标后投影完整天赋',
+  '%s 宝宝也受物种携带门槛约束，达标后投影完整天赋',
   (speciesId, threshold) => {
     const beast = generateCapturedBeast(id, id, speciesId, 0, 42);
     expect(canDeployBeast(beast, threshold - 1)).toBe(false);

@@ -24,6 +24,26 @@ export function executeSectShopPurchaseCommand(
   );
 }
 
+export function executeSectShopCartPurchaseCommand(
+  args: SectCommandArgs & {
+    lines: Array<{ id: string; count: number }>;
+    expectedTotal: number;
+  },
+) {
+  return executeSectPlayerCommand(args, (tx) =>
+    sectOrganizationFacade.economy.purchaseShopCart(
+      args.userId,
+      args.cultivatorId,
+      { lines: args.lines, expectedTotal: args.expectedTotal },
+      createPostgresSectEconomyContext({
+        q: tx,
+        runtime: args.runtime,
+        userId: args.userId,
+      }),
+    ),
+  );
+}
+
 export function executeSectStipendClaimCommand(args: SectCommandArgs) {
   return executeSectPlayerCommand(args, async (tx) => {
     const cultivator = await loadSectCultivatorProgress(args.cultivatorId, tx);

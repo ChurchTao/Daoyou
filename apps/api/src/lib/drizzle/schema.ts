@@ -364,7 +364,7 @@ export const chatMessages = pgTable('wanjiedaoyou_chat_messages', {
   id: varchar('id', { length: 160 }).primaryKey(),
   sequence: bigint('sequence', { mode: 'number' }).notNull(),
   channel: varchar('channel', { length: 16 }).$type<WorldChatMessageChannel>().notNull(),
-  sectId: uuid('sect_id'),
+  sectId: varchar('sect_id', { length: 64 }),
   senderUserId: varchar('sender_user_id', { length: 128 }).notNull(),
   senderCultivatorId: uuid('sender_cultivator_id'),
   senderName: varchar('sender_name', { length: 100 }).notNull(),
@@ -395,7 +395,7 @@ export const chatRedPackets = pgTable('wanjiedaoyou_chat_red_packets', {
   clientMessageId: uuid('client_message_id').notNull(),
   requestFingerprint: varchar('request_fingerprint', { length: 64 }).notNull(),
   channel: varchar('channel', { length: 16 }).$type<'world' | 'sect'>().notNull(),
-  sectId: uuid('sect_id'),
+  sectId: varchar('sect_id', { length: 64 }),
   amount: integer('amount').notNull(),
   count: integer('count').notNull(),
   amounts: jsonb('amounts').$type<number[]>().notNull(),
@@ -2245,3 +2245,16 @@ export const towerWeeks = pgTable('wanjiedaoyou_tower_weeks', {
   config: jsonb('config').$type<StoredTowerWeek>().notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// 每个刷新窗口一行。已售数量决定上品传承灵印的当前价，下次刷新从起步价重算。
+export const wandererBookSales = pgTable(
+  'wanjiedaoyou_wanderer_book_sales',
+  {
+    windowId: varchar('window_id', { length: 40 }).primaryKey(),
+    sales: integer('sales').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    check('wanderer_book_sales_count_check', sql`${table.sales} >= 0`),
+  ],
+);

@@ -65,6 +65,7 @@
     "./spirit-field": "./dist/spiritField.js",
     "./sponsorship": "./dist/sponsorship.js",
     "./task": "./dist/task.js",
+    "./wanderer": "./dist/wanderer.js",
     "./world-chat": "./dist/public/world-chat.js"
   },
   "files": [
@@ -72,13 +73,13 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --root ../.. packages/contracts/src"
+    "test": "vitest run --root ../.. packages/contracts/src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@daoyou/combat-core": "workspace:*",
     "@daoyou/constants": "workspace:*",
     "@daoyou/game-domain": "workspace:*",
-    "zod": "^4.6.4",
-    "@daoyou/combat-core": "workspace:*"
+    "zod": "^4.6.4"
   }
 }

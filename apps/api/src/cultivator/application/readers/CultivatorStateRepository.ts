@@ -178,7 +178,7 @@ export async function deleteCultivator(
 
 const RESOURCE_SAFETY = {
   spirit_stones: {
-    maxDelta: 10_000_000, // 单次最多变动 1000 万灵石
+    maxDelta: 99_990_000, // 单次最多变动 9999 万灵石
     ceiling: 1_000_000_000, // 灵石绝对上限 10 亿
   },
   reputation: {
