@@ -3,7 +3,9 @@ import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTa
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { InkTag } from '@app/components/ui/InkTag';
+import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import type { WildRegionView } from '@daoyou/contracts/combat/wild';
 import {
   BEAST_RARE_SPECIES_IDS,
@@ -39,6 +41,7 @@ export function WildSeekingScene({
   const parent =
     location && 'parent_id' in location ? getMapNode(location.parent_id) : null;
   const insufficient = qi !== null && qi < region.qiCost;
+  const { keepCombatAuto, combatAutoHeld } = useGameSettings();
   return (
     <div className="wild-seeking-scene mx-auto w-full px-4 sm:px-8">
       <header className="wild-seeking-header px-2 text-center">
@@ -147,6 +150,17 @@ export function WildSeekingScene({
         </div>
       </section>
       <div className="wild-seeking-actions text-center">
+        <label className="mb-4 inline-flex items-center gap-2">
+          <span className="text-ink text-sm leading-6">自动战斗：</span>
+          <InkSwitch
+            checked={combatAutoHeld}
+            disabled={!keepCombatAuto}
+            onCheckedChange={(checked) =>
+              updateGameSettings({ combatAutoHeld: checked })
+            }
+            aria-label="自动战斗"
+          />
+        </label>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           <InkButton
             variant={encounter ? 'secondary' : 'primary'}
