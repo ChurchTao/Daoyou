@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
-/** Measure the actual space below the scene identity and above the game's dock. */
+/** Size from independent chrome and document coordinates, never the chat's own height. */
 export function useWorldChatViewport(
   ref: RefObject<HTMLDivElement | null>,
   editing: boolean,
@@ -27,9 +27,9 @@ export function useWorldChatViewport(
         : main
           ? parseFloat(getComputedStyle(main).paddingBottom) || 0
           : 0;
-      const visibleBottom = viewport
-        ? viewport.height + viewport.offsetTop
-        : window.innerHeight;
+      const visibleHeight = viewport?.height ?? window.innerHeight;
+      // clientTop changes when the document scrolls; this offset must not.
+      const documentTop = node.getBoundingClientRect().top + window.scrollY;
       let trailingSpace = 0;
       for (
         let ancestor = node.parentElement;
@@ -41,38 +41,50 @@ export function useWorldChatViewport(
           (parseFloat(style.paddingBottom) || 0) +
           (parseFloat(style.borderBottomWidth) || 0);
       }
-      setHeight(
-        Math.max(
-          160,
-          Math.floor(
-            visibleBottom -
-              node.getBoundingClientRect().top -
-              bottom -
-              trailingSpace,
-          ),
-        ),
+      const next = Math.max(
+        160,
+        Math.floor(visibleHeight - documentTop - bottom - trailingSpace),
       );
+      setHeight((current) => (Math.abs(current - next) <= 1 ? current : next));
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(measure);
     };
+    const settleEntrance = (event: AnimationEvent) => {
+      if (event.target instanceof Element && event.target.contains(node))
+        schedule();
+    };
     schedule();
     const observer = new ResizeObserver(schedule);
-    if (main) observer.observe(main);
     const dock = shell?.querySelector('[data-game-bottom-chrome]');
     if (dock) observer.observe(dock);
+    if (main?.previousElementSibling)
+      observer.observe(main.previousElementSibling);
+    // Only preceding content can move the workspace. Observing main would observe
+    // the height we write, feeding every adjustment back into the measurement.
+    for (
+      let ancestor: Element | null = node;
+      ancestor && ancestor !== main;
+      ancestor = ancestor.parentElement
+    ) {
+      for (
+        let preceding = ancestor.previousElementSibling;
+        preceding;
+        preceding = preceding.previousElementSibling
+      ) {
+        observer.observe(preceding);
+      }
+    }
     window.addEventListener('resize', schedule);
-    window.addEventListener('scroll', schedule, { passive: true });
     viewport?.addEventListener('resize', schedule);
-    viewport?.addEventListener('scroll', schedule);
+    main?.addEventListener('animationend', settleEntrance);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener('resize', schedule);
-      window.removeEventListener('scroll', schedule);
       viewport?.removeEventListener('resize', schedule);
-      viewport?.removeEventListener('scroll', schedule);
+      main?.removeEventListener('animationend', settleEntrance);
       shell?.removeAttribute('data-chat-keyboard');
     };
   }, [editing, ref]);

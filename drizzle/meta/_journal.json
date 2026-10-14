@@ -442,6 +442,13 @@
       "when": 1791884582274,
       "tag": "0062_channel_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1791942407861,
+      "tag": "0063_chat_sect_identifier",
+      "breakpoints": true
     }
   ]
 }
