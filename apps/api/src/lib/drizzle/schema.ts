@@ -2245,3 +2245,16 @@ export const towerWeeks = pgTable('wanjiedaoyou_tower_weeks', {
   config: jsonb('config').$type<StoredTowerWeek>().notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// 每个刷新窗口一行。已售数量决定上品传承灵印的当前价，下次刷新从起步价重算。
+export const wandererBookSales = pgTable(
+  'wanjiedaoyou_wanderer_book_sales',
+  {
+    windowId: varchar('window_id', { length: 40 }).primaryKey(),
+    sales: integer('sales').notNull().default(0),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    check('wanderer_book_sales_count_check', sql`${table.sales} >= 0`),
+  ],
+);

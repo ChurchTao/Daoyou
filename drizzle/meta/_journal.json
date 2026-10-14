@@ -456,6 +456,13 @@
       "when": 1791959725140,
       "tag": "0064_spirit_fruit_cultivation_boost",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1791960132857,
+      "tag": "0065_wanderer_book_sales",
+      "breakpoints": true
     }
   ]
 }

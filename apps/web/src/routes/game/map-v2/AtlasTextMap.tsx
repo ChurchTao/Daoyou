@@ -1,12 +1,13 @@
 import type { MapNodeAction } from '@app/components/feature/map/mapActions';
+import { WandererSigil } from '@app/components/feature/wanderer/WandererMarker';
 import { GameIcon } from '@app/components/ui/GameIcon';
-import {
-  ATLAS_REGIONS,
-  hasAtlasMap,
-  ATLAS_CATEGORY_IDS,
-  getAtlasCategory,
-} from '@daoyou/game-rules/world/atlas';
 import type { WorldMapLocation } from '@daoyou/game-domain/world/map';
+import {
+  ATLAS_CATEGORY_IDS,
+  ATLAS_REGIONS,
+  getAtlasCategory,
+  hasAtlasMap,
+} from '@daoyou/game-rules/world/atlas';
 import { useEffect, useRef } from 'react';
 import { AtlasNodePanel } from './AtlasNodePanel';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
@@ -22,6 +23,7 @@ export function AtlasTextMap({
   onRegion,
   onSelect,
   onClose,
+  onMerchant,
 }: {
   regionId?: string;
   locations: WorldMapLocation[];
@@ -30,6 +32,7 @@ export function AtlasTextMap({
   onRegion: (id: string) => void;
   onSelect: (id: string) => void;
   onClose: () => void;
+  onMerchant?: () => void;
 }) {
   const selectedButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -72,6 +75,13 @@ export function AtlasTextMap({
           <p className="text-ink-secondary px-3 py-2 text-xs">
             选择类型下的地点，展开详情与操作
           </p>
+          {onMerchant ? (
+            <button type="button" onClick={onMerchant} className={row}>
+              <WandererSigil className="size-[1em] shrink-0 text-3xl" />
+              <span className="flex-1">云游商人</span>
+              <span className="text-ink-secondary text-xs">交谈</span>
+            </button>
+          ) : null}
           {!locations.length ? (
             <p role="status" className="px-3 py-4 text-sm">
               当前区域没有符合类型的地点，可在右上角调整筛选。
@@ -111,7 +121,9 @@ export function AtlasTextMap({
                         <button
                           type="button"
                           data-guide={
-                            location.id === 'SAT_TN_08' ? 'map.qingxi' : undefined
+                            location.id === 'SAT_TN_08'
+                              ? 'map.qingxi'
+                              : undefined
                           }
                           ref={active ? selectedButton : undefined}
                           aria-expanded={active}

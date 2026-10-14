@@ -1,21 +1,22 @@
-import type { HuntEvent } from '@daoyou/game-domain/hunts';
 import type { HuntMapPoint } from '@app/components/feature/hunts/HuntMapMarkers';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import type { HuntEvent } from '@daoyou/game-domain/hunts';
 import {
   ATLAS_ANCHORS,
   ATLAS_REGIONS,
-  getAtlasLocations,
-  hasAtlasMap,
-  type AtlasPoint,
   getAtlasCategory,
+  getAtlasLocations,
   getAtlasShortName,
+  hasAtlasMap,
   type AtlasCategory,
+  type AtlasPoint,
 } from '@daoyou/game-rules/world/atlas';
 import * as Phaser from 'phaser';
 import { ATLAS_CATEGORY_STYLE } from './atlasMarkerStyle';
 
 export interface AtlasView {
   hunts?: HuntEvent[];
+  wanderer?: { id: string; regionId: string; x: number; y: number } | null;
   region: 'world' | keyof typeof ATLAS_ANCHORS;
   selectedId: string | null;
   blocked: boolean;
@@ -34,6 +35,9 @@ interface AtlasArguments {
   root: HTMLElement;
   view: AtlasView;
   onHuntPositions?: (points: HuntMapPoint[]) => void;
+  onWandererPosition?: (
+    point: { id: string; x: number; y: number } | null,
+  ) => void;
   onRegion: (id: string) => void;
   onNode: (id: string) => void;
   onClear: () => void;
@@ -653,17 +657,57 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
           const anchor = ATLAS_ANCHORS[view.region][event.nodeId];
           if (!anchor) continue;
           const x =
-            ((anchor[0] * WIDTH - camera.midPoint.x) * camera.zoom + camera.width / 2) / pixelRatio;
+            ((anchor[0] * WIDTH - camera.midPoint.x) * camera.zoom +
+              camera.width / 2) /
+            pixelRatio;
           const y =
-            ((anchor[1] * HEIGHT - camera.midPoint.y) * camera.zoom + camera.height / 2) / pixelRatio - 36;
+            ((anchor[1] * HEIGHT - camera.midPoint.y) * camera.zoom +
+              camera.height / 2) /
+              pixelRatio -
+            36;
           if (
-            x > 40 && x < camera.width / pixelRatio - 40 &&
-            y > 100 && y < camera.height / pixelRatio
+            x > 40 &&
+            x < camera.width / pixelRatio - 40 &&
+            y > 100 &&
+            y < camera.height / pixelRatio
           )
-            huntPoints.push({ id: event.id, x: Math.round(x), y: Math.round(y) });
+            huntPoints.push({
+              id: event.id,
+              x: Math.round(x),
+              y: Math.round(y),
+            });
         }
       }
       args.onHuntPositions?.(huntPoints);
+      const merchant = view.wanderer;
+      let wandererPoint: { id: string; x: number; y: number } | null = null;
+      if (
+        view.region !== 'world' &&
+        merchant &&
+        merchant.regionId === view.region
+      ) {
+        const x =
+          ((merchant.x * WIDTH - camera.midPoint.x) * camera.zoom +
+            camera.width / 2) /
+          pixelRatio;
+        const y =
+          ((merchant.y * HEIGHT - camera.midPoint.y) * camera.zoom +
+            camera.height / 2) /
+            pixelRatio -
+          36;
+        if (
+          x > 40 &&
+          x < camera.width / pixelRatio - 40 &&
+          y > 100 &&
+          y < camera.height / pixelRatio
+        )
+          wandererPoint = {
+            id: merchant.id,
+            x: Math.round(x),
+            y: Math.round(y),
+          };
+      }
+      args.onWandererPosition?.(wandererPoint);
       const obstacles = view.occlusions.map(
         (rect) =>
           new Phaser.Geom.Rectangle(rect.x, rect.y, rect.width, rect.height),

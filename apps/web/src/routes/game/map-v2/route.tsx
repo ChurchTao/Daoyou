@@ -4,18 +4,25 @@ import {
   type HuntMapPoint,
 } from '@app/components/feature/hunts/HuntMapMarkers';
 import { useHunts } from '@app/components/feature/hunts/useHunts';
-import { type HuntEvent } from '@daoyou/game-domain/hunts';
-import { huntMapHref } from '@daoyou/game-rules/hunts';
 import {
   buildNodeActions,
   buildSectLandmarkActions,
   resolveMapIntent,
 } from '@app/components/feature/map/mapActions';
+import { WandererDrawer } from '@app/components/feature/wanderer/WandererDrawer';
+import {
+  WandererMarker,
+  type WandererMapPoint,
+} from '@app/components/feature/wanderer/WandererMarker';
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
+import { type WandererState } from '@daoyou/contracts/wanderer';
+import { getWorldMapLocation } from '@daoyou/game-content/world/map';
+import { type HuntEvent } from '@daoyou/game-domain/hunts';
+import { huntMapHref } from '@daoyou/game-rules/hunts';
 import {
   ATLAS_REGIONS,
   getAtlasLocations,
@@ -25,7 +32,6 @@ import {
   parseAtlasCategories,
   type AtlasCategory,
 } from '@daoyou/game-rules/world/atlas';
-import { getWorldMapLocation } from '@daoyou/game-content/world/map';
 import {
   useEffect,
   useEffectEvent,
@@ -59,6 +65,14 @@ export default function AtlasPage() {
   const huntEventId = params.get('hunt');
   const [huntPoints, setHuntPoints] = useState<HuntMapPoint[]>([]);
   const huntKey = huntEvents.map((e) => e.id).join(',');
+  const wandererFeed = useHunts<WandererState>('/api/wanderer', 15000);
+  const wanderer = wandererFeed.data ?? null;
+  const wandererKey = wanderer
+    ? `${wanderer.id}:${wanderer.x}:${wanderer.y}:${wanderer.regionId}`
+    : '';
+  const [wandererPoint, setWandererPoint] = useState<WandererMapPoint | null>(
+    null,
+  );
   const teachingMap = params.get('guide') === 'map-qingxi';
   const isAtlas = mapMode === 'atlas' && !teachingMap;
   const player = usePlayerSession();
@@ -108,6 +122,14 @@ export default function AtlasPage() {
   if (revealingFilteredNode) mapParams.set('types', 'all');
   const view: AtlasView = {
     hunts: huntEvents,
+    wanderer: wanderer
+      ? {
+          id: wanderer.id,
+          regionId: wanderer.regionId,
+          x: wanderer.x,
+          y: wanderer.y,
+        }
+      : null,
     region: availableRegion ?? 'world',
     selectedId: selected?.id ?? null,
     blocked: !!unavailable || !!error || overlapIds.length > 0,
@@ -125,6 +147,7 @@ export default function AtlasPage() {
       return;
     const next = new URLSearchParams(mapParams);
     next.delete('hunt');
+    next.delete('wanderer');
     next.delete('nodeId');
     if (id) next.set('region', id);
     else next.delete('region');
@@ -142,6 +165,7 @@ export default function AtlasPage() {
     const next = new URLSearchParams(mapParams);
     if (!matchesAtlasCategories(location, categories)) next.set('types', 'all');
     next.delete('hunt');
+    next.delete('wanderer');
     next.set('nodeId', id);
     next.set('region', targetRegion.id);
     setParams(next);
@@ -154,6 +178,7 @@ export default function AtlasPage() {
   const closeNode = () => {
     const next = new URLSearchParams(mapParams);
     next.delete('hunt');
+    next.delete('wanderer');
     next.delete('nodeId');
     setFocusId(null);
     setFilterOpen(false);
@@ -164,11 +189,30 @@ export default function AtlasPage() {
     navigate(path, {
       state: { mapReturnTo: `/game/map-v2?${mapParams}` },
     });
+  const openWanderer = () => {
+    if (!wanderer) return;
+    const next = new URLSearchParams(mapParams);
+    next.set('region', wanderer.regionId);
+    next.set('wanderer', wanderer.id);
+    next.delete('nodeId');
+    next.delete('hunt');
+    setParams(next);
+    setSearchOpen(false);
+    setOverlapIds([]);
+    setFilterOpen(false);
+    setFocusId(null);
+  };
+  const closeWanderer = () => {
+    const next = new URLSearchParams(mapParams);
+    next.delete('wanderer');
+    setParams(next, { replace: true });
+  };
   const updateCategories = (nextCategories: AtlasCategory[]) => {
     const next = new URLSearchParams(mapParams);
     next.set('types', nextCategories.join(',') || 'all');
     if (selected && !matchesAtlasCategories(selected, nextCategories)) {
       next.delete('hunt');
+      next.delete('wanderer');
       next.delete('nodeId');
       if (region) next.set('region', region.id);
       setFocusId(null);
@@ -214,6 +258,12 @@ export default function AtlasPage() {
                 ? previous
                 : points,
             ),
+          onWandererPosition: (point) =>
+            setWandererPoint((previous) =>
+              JSON.stringify(previous) === JSON.stringify(point)
+                ? previous
+                : point,
+            ),
           onRegion: (id) => onRegion(id),
           onNode: (id) => onNode(id),
           onClear: () => onClear(),
@@ -252,6 +302,7 @@ export default function AtlasPage() {
   }, [
     view.region,
     huntKey,
+    wandererKey,
     view.selectedId,
     view.blocked,
     categoryKey,
@@ -362,6 +413,13 @@ export default function AtlasPage() {
           }}
         />
       ) : null}
+      {isAtlas && !teachingMap && !error && !loading ? (
+        <WandererMarker point={wandererPoint} onSelect={openWanderer} />
+      ) : null}
+      {params.get('wanderer') === wanderer?.id &&
+      availableRegion === wanderer?.regionId ? (
+        <WandererDrawer onClose={closeWanderer} />
+      ) : null}
       {huntEventId ? (
         <HuntLobbyDrawer
           key={huntEventId}
@@ -374,9 +432,14 @@ export default function AtlasPage() {
         />
       ) : null}
       {huntFeed.error ? (
-        <p role="status" className="bg-paper/95 absolute bottom-3 left-3 z-20 p-2 text-xs">
+        <p
+          role="status"
+          className="bg-paper/95 absolute bottom-3 left-3 z-20 p-2 text-xs"
+        >
           讨伐消息暂不可用{' '}
-          <button onClick={huntFeed.refresh} className="underline">重试</button>
+          <button onClick={huntFeed.refresh} className="underline">
+            重试
+          </button>
         </p>
       ) : null}
       {isAtlas && loading && !error ? (
@@ -435,6 +498,11 @@ export default function AtlasPage() {
           onRegion={changeRegion}
           onSelect={selectNode}
           onClose={closeNode}
+          onMerchant={
+            wanderer && availableRegion === wanderer.regionId
+              ? openWanderer
+              : undefined
+          }
         />
       ) : null}
 
