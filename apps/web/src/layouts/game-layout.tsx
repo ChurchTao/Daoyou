@@ -483,7 +483,7 @@ function DungeonSceneChrome({
       <div
         className={
           isScrolled
-            ? 'border-ink/10 pointer-events-auto border-b border-dashed backdrop-blur-sm'
+            ? 'border-ink/10 bg-paper pointer-events-auto border-b border-dashed'
             : 'pointer-events-auto'
         }
       >

@@ -91,7 +91,7 @@ export function InkHorizontalScroll({
           )}
           aria-hidden="true"
         >
-          <span className="bg-bgpaper/80 text-ink-secondary/55 grid h-6 w-3.5 place-items-center backdrop-blur-sm">
+          <span className="bg-bgpaper/80 text-ink-secondary/55 grid h-6 w-3.5 place-items-center">
             <svg
               viewBox="0 0 8 12"
               aria-hidden="true"
@@ -119,7 +119,7 @@ export function InkHorizontalScroll({
         )}
         aria-hidden="true"
       >
-        <span className="bg-bgpaper/35 text-ink-secondary/55 grid h-6 w-3.5 place-items-center backdrop-blur-sm">
+        <span className="bg-bgpaper/80 text-ink-secondary/55 grid h-6 w-3.5 place-items-center">
           <svg
             viewBox="0 0 8 12"
             aria-hidden="true"
