@@ -34,9 +34,7 @@ import {
 } from '@daoyou/game-domain/wild';
 import {
   BEAST_BAG_CAPACITY,
-  BEAST_BAG_FULL_CAPTURE_MESSAGE,
   beastDeathIds,
-  carriedBeastIds,
 } from '@daoyou/game-rules/beasts/growth';
 import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
@@ -315,18 +313,6 @@ export class CombatV6WildSessionService {
             actor.cultivatorId,
             tx,
           );
-          if (
-            (assembled.player.beasts
-              ? carriedBeastIds(
-                  assembled.player.beasts.beasts,
-                  assembled.player.beasts.lineup,
-                ).length
-              : 0) >= BEAST_BAG_CAPACITY
-          )
-            throw new WildError(
-              'WILD_BEAST_BAG_FULL',
-              BEAST_BAG_FULL_CAPTURE_MESSAGE,
-            );
           if (
             REALM_ORDER[assembled.player.cultivator.realm] <
             REALM_ORDER[region.realmRequirement]

@@ -1,7 +1,6 @@
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import {
-  CombatV6RequestError,
   combatV6Request,
   mutationBody,
 } from '@app/components/feature/combat-v6/request';
@@ -217,15 +216,6 @@ function WildRegion({ nodeId }: { nodeId: string }) {
             encounterId: encounter.id,
           }),
         );
-      } catch (error) {
-        if (
-          error instanceof CombatV6RequestError &&
-          error.code === 'WILD_BEAST_BAG_FULL'
-        ) {
-          bagFullPrompt();
-          return;
-        }
-        throw error;
       } finally {
         if (alive.current) await reloadRegion();
       }
