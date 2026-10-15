@@ -1,5 +1,6 @@
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import { beastRestCost } from '@daoyou/game-rules/beasts/growth';
 
@@ -49,10 +50,10 @@ export function BeastActionDrawer({
             <span className="font-mono">
               {beast.maxLifespan - beast.currentLifespan}
             </span>{' '}
-            点寿命，消耗 <span className="font-mono">{cost}</span> 灵石。
+            点寿命，消耗 <SpiritStones amount={cost} /> 灵石。
           </p>
           <p>
-            现有灵石 <span className="font-mono">{spiritStones}</span>
+            现有灵石 <SpiritStones amount={spiritStones} mode="compact" />
           </p>
         </div>
       ) : (

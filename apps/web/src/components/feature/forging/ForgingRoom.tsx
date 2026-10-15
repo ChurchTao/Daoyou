@@ -10,6 +10,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import { daoEquipmentBaseRange } from '@daoyou/game-rules/equipment/forging';
 import { daoEquipmentTemplateOf } from '@daoyou/game-content/equipment/base';
@@ -278,9 +279,9 @@ export function ForgingRoom() {
                       <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
                         <div className="space-y-1 text-xs">
                           <p>
-                            {session.cost
-                              ? `${session.cost.spiritStones.toLocaleString()} 灵石 · ${session.cost.qi} 天地灵气`
-                              : '选择图纸后确定本次消耗'}
+                            {session.cost ? (
+                              <><SpiritStones amount={session.cost.spiritStones} /> 灵石 · {session.cost.qi} 天地灵气</>
+                            ) : '选择图纸后确定本次消耗'}
                           </p>
                           <div className="text-ink-secondary flex items-center gap-2">
                             {session.cost
@@ -428,7 +429,7 @@ export function ForgingRoom() {
               </p>
             ))}
             <p>
-              {session.cost?.spiritStones.toLocaleString()} 灵石 ·{' '}
+              {session.cost && <SpiritStones amount={session.cost.spiritStones} />} 灵石 ·{' '}
               {session.cost?.qi} 天地灵气
             </p>
           </div>

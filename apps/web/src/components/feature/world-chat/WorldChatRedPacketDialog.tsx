@@ -3,6 +3,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorCurrency } from '@app/lib/resources/player';
@@ -13,7 +14,6 @@ import type {
 import { useEffect, useRef, useState } from 'react';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 
-const amountFormat = new Intl.NumberFormat('zh-CN');
 const packetPath = '/api/world-chat/red-packets';
 
 async function readPacketData<T>(
@@ -128,7 +128,11 @@ export function WorldChatGiveRedPacketDialog({
             ? '确认之前的红包'
             : feed.cooldownRemaining > 0
               ? `${feed.cooldownRemaining} 秒后可发送`
-              : `确认发出 ${amountFormat.format(amountValue || 0)} 灵石`}
+              : (
+                  <>
+                    确认发出 <SpiritStones amount={amountValue || 0} /> 灵石
+                  </>
+                )}
         </InkButton>
       }
     >
@@ -141,9 +145,11 @@ export function WorldChatGiveRedPacketDialog({
         <p className="text-ink-secondary text-sm">
           发送到{feed.activeChannel === 'sect' ? '宗门频道' : '世界频道'} ·
           可用灵石{' '}
-          <span className="font-mono">
-            {balance === undefined ? '读取中' : amountFormat.format(balance)}
-          </span>
+          {balance === undefined ? (
+            '读取中'
+          ) : (
+            <SpiritStones amount={balance} mode="compact" />
+          )}
         </p>
         <InkInput
           label="总金额 · 灵石"
@@ -152,7 +158,11 @@ export function WorldChatGiveRedPacketDialog({
           max={10_000_000}
           value={amount}
           onChange={setAmount}
-          hint="单个红包总额至少 50,000 灵石"
+          hint={
+            <>
+              单个红包总额至少 <SpiritStones amount={50_000} /> 灵石
+            </>
+          }
           disabled={pending || !!resumed}
         />
         <div className="flex gap-3">
@@ -214,17 +224,13 @@ export function WorldChatGiveRedPacketDialog({
             {mode === 'equal' ? (
               <>
                 每份{' '}
-                <span className="font-mono">
-                  {amountFormat.format(amountValue / countValue)}
-                </span>{' '}
+                <SpiritStones amount={amountValue / countValue} />{' '}
                 灵石
               </>
             ) : (
               <>
                 共{' '}
-                <span className="font-mono">
-                  {amountFormat.format(amountValue)}
-                </span>{' '}
+                <SpiritStones amount={amountValue} />{' '}
                 灵石，随机分为 <span className="font-mono">{countValue}</span>{' '}
                 份
               </>
@@ -368,8 +374,8 @@ export function WorldChatRedPacketDialog({
             </p>
             {detail.myClaim ? (
               <div className="py-3">
-                <p className="text-crimson font-mono text-3xl">
-                  {amountFormat.format(detail.myClaim.amount)}
+                <p className="text-3xl">
+                  <SpiritStones amount={detail.myClaim.amount} />
                 </p>
                 <p className="text-ink-secondary text-sm">灵石已到账</p>
               </div>
@@ -389,9 +395,7 @@ export function WorldChatRedPacketDialog({
             {canRefund ? (
               <p className="text-sm">
                 待退款{' '}
-                <span className="font-mono">
-                  {amountFormat.format(detail.packet.refundAmount)}
-                </span>{' '}
+                <SpiritStones amount={detail.packet.refundAmount} />{' '}
                 灵石，将退回当前活跃角色。
               </p>
             ) : null}
@@ -403,9 +407,7 @@ export function WorldChatRedPacketDialog({
               {detail.packet.count}
             </span>{' '}
             份 · 共{' '}
-            <span className="font-mono">
-              {amountFormat.format(detail.packet.amount)}
-            </span>{' '}
+            <SpiritStones amount={detail.packet.amount} />{' '}
             灵石
           </p>
           <div className="divide-ink/10 divide-y">
@@ -420,9 +422,7 @@ export function WorldChatRedPacketDialog({
                     {new Date(claim.claimedAt).toLocaleString('zh-CN')}
                   </p>
                 </div>
-                <span className="shrink-0 font-mono">
-                  {amountFormat.format(claim.amount)}
-                </span>
+                <SpiritStones amount={claim.amount} className="shrink-0" />
               </div>
             ))}
             {!detail.claims.length ? (
@@ -498,8 +498,8 @@ export function WorldChatRefundsDialog({ onClose }: { onClose(): void }) {
             <div key={packet.id} className="py-4">
               <p>{packet.greeting}</p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="font-mono">
-                  {amountFormat.format(packet.refundAmount)} 灵石
+                <span>
+                  <SpiritStones amount={packet.refundAmount} /> 灵石
                 </span>
                 <InkButton
                   variant="primary"

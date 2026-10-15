@@ -4,6 +4,7 @@ import {
   type DisplayItem,
 } from '@app/components/feature/items/itemPresentation';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { TowerRewardPreview } from '@daoyou/game-domain/tower';
 import type { TowerView } from '@daoyou/contracts/combat/tower';
 import type { ItemGrant } from '@daoyou/game-domain/inventory';
@@ -194,8 +195,7 @@ export function TowerRewards({ view }: { view: TowerView }) {
           <div className="space-y-3 text-sm leading-6">
             {preview.spiritStones > 0 ? (
               <p>
-                <GameIcon value="💰" />{' '}
-                <span className="font-mono">{preview.spiritStones}</span> 灵石
+                <SpiritStones amount={preview.spiritStones} /> 灵石
               </p>
             ) : null}
             {preview.reputation > 0 ? (
@@ -216,7 +216,7 @@ export function TowerRewards({ view }: { view: TowerView }) {
               <p>
                 {received.spiritStones > 0 ? (
                   <>
-                    <span className="font-mono">{received.spiritStones}</span>{' '}
+                    <SpiritStones amount={received.spiritStones} />{' '}
                     灵石{' '}
                   </>
                 ) : null}

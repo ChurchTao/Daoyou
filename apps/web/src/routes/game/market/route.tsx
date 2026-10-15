@@ -9,6 +9,7 @@ import { GameSceneFrame } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkDialog, type InkDialogState } from '@app/components/ui/InkDialog';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import {
@@ -23,7 +24,6 @@ import {
   getMarketNodeSwitchOptions,
   resolveMarketSwitchLayer,
 } from '@daoyou/game-rules/world/market';
-import { formatCompactGameNumber } from '@daoyou/game-rules/presentation/numbers';
 import type { MarketAccessState, MarketListing } from '@daoyou/game-domain/market';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
@@ -223,8 +223,8 @@ function MarketWorkspace({
         title: '确认购买',
         content: (
           <p>
-            确认购买所选 {picked.length} 件商品？
-            <span className="font-mono"> {total} </span>灵石将用于本次交易。
+            确认购买所选 {picked.length} 件商品？{' '}
+            <SpiritStones amount={total} /> 灵石将用于本次交易。
           </p>
         ),
         confirmLabel: '确认购买',
@@ -413,14 +413,14 @@ function MarketWorkspace({
                       {item.basePrice && item.basePrice > item.price ? (
                         <p className="text-ink-secondary text-xs">
                           原价{' '}
-                          <span className="font-mono line-through">
-                            {item.basePrice}
+                          <span className="line-through">
+                            <SpiritStones amount={item.basePrice} />
                           </span>{' '}
                           灵石
                         </p>
                       ) : null}
                       <p>
-                        售价 <span className="font-mono">{item.price}</span>{' '}
+                        售价 <SpiritStones amount={item.price} />{' '}
                         灵石 · 本批限购一件
                       </p>
                       <InkButton
@@ -440,10 +440,10 @@ function MarketWorkspace({
                   )}
                 </ItemSlot>
                 <p
-                  className="text-ink-secondary mt-1 text-center font-mono text-xs"
+                  className="mt-1 text-center text-xs"
                   aria-label={`售价 ${item.price} 灵石`}
                 >
-                  {formatCompactGameNumber(item.price)}
+                  <SpiritStones amount={item.price} />
                 </p>
               </div>
             ))}
@@ -473,7 +473,10 @@ function MarketWorkspace({
         <div className="bg-paper border-ink/20 sticky bottom-[var(--game-bottom-offset)] z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-t py-3 text-sm">
           <span>
             已选 <span className="font-mono">{picked.length}</span> 件 · 合计{' '}
-            <strong className="font-mono">{total}</strong> 灵石
+            <strong>
+              <SpiritStones amount={total} />
+            </strong>{' '}
+            灵石
           </span>
           <div className="flex items-center gap-3">
             <InkButton disabled={pending} onClick={() => setSelected([])}>

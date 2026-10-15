@@ -1,21 +1,45 @@
-import { z } from 'zod';
-import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
-import { getAuctionUnitPriceCap, isAuctionListableQuality } from './settlement.js';
-import { ItemGrantSchema, itemDefinition } from '../inventory/index.js';
-import { InventoryEquipmentSchema } from '../inventory/equipment.js';
+import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
+import { findItemDefinition } from '@daoyou/game-content/items';
+import {
+  AUCTION_MAX_TRANSACTION_TOTAL,
+  AUCTION_MAX_UNIT_PRICE,
+} from '@daoyou/game-domain/auction';
 import {
   ConsumableFactsSchema,
   SeedFactsSchema,
   materialFactsOf,
 } from '@daoyou/game-domain/inventory';
-import { findItemDefinition } from '@daoyou/game-content/items';
-import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
+import { z } from 'zod';
 import { BeastTransferSchema } from '../beasts/trade.js';
-
+import { InventoryEquipmentSchema } from '../inventory/equipment.js';
+import { ItemGrantSchema, itemDefinition } from '../inventory/index.js';
+import {
+  getAuctionUnitPriceCap,
+  isAuctionListableQuality,
+} from './settlement.js';
 
 /** 单次上架件数以该物品的背包堆叠上限为准，不另设固定件数。 */
 export function auctionListingStackLimit(definitionId: string): number {
   return itemDefinition(definitionId).stackLimit;
+}
+
+/** 单次购买件数与上架对齐：不超过该物品堆叠上限和货单剩余，高单价再受单次成交总额约束。 */
+export function auctionPurchaseQuantityLimit(input: {
+  definitionId: string;
+  remainingQuantity: number;
+  unitPrice: number;
+}): number {
+  const unitPrice = Math.max(0, Math.floor(input.unitPrice));
+  const affordable =
+    unitPrice > 0 ? Math.floor(AUCTION_MAX_TRANSACTION_TOTAL / unitPrice) : 0;
+  return Math.max(
+    0,
+    Math.min(
+      auctionListingStackLimit(input.definitionId),
+      Math.floor(input.remainingQuantity),
+      affordable,
+    ),
+  );
 }
 
 const AuctionInventoryGrantSchema = ItemGrantSchema.extend({
@@ -44,10 +68,7 @@ export const AuctionSnapshotSchema = z
       ctx.addIssue({ code: 'custom', message: '超过堆叠上限' });
   });
 
-
-
 type AuctionItemFacts = { definitionId: string; instanceData: unknown };
-
 
 /** 无品质品类保持其等级／流派体系，不合成旧式品质。 */
 export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
@@ -68,12 +89,10 @@ export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
   return null;
 }
 
-
 export function auctionItemPriceCap(item: AuctionItemFacts) {
   const quality = auctionItemQuality(item);
   return quality ? getAuctionUnitPriceCap(quality) : AUCTION_MAX_UNIT_PRICE;
 }
-
 
 export function auctionItemCategory(item: AuctionItemFacts): string {
   const definition = itemDefinition(item.definitionId);
@@ -90,7 +109,6 @@ export function auctionItemCategory(item: AuctionItemFacts): string {
       return definition.kind;
   }
 }
-
 
 export function auctionBlockReason(
   item: AuctionItemFacts & { location: string; equipped?: boolean },

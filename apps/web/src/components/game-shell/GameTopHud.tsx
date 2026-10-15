@@ -6,6 +6,7 @@ import { useSectIdentityDialog } from '@app/components/feature/sect/useSectIdent
 import Link from '@app/components/router/AppLink';
 import { InkHorizontalScroll } from '@app/components/ui';
 import { GameImage } from '@app/components/ui/GameImage';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -15,7 +16,7 @@ import { useGameHudDialogs } from './useGameHudDialogs';
 import type { GameHudSnapshot } from './useGameHudModel';
 import { usePlayerMeritTier } from './usePlayerMeritTier';
 
-function formatSpiritStones(value: number): string {
+function formatReputation(value: number): string {
   if (value >= 50000) {
     return `${Math.floor(value / 10000)}万`;
   }
@@ -85,13 +86,13 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     {
       key: 'spirit-stones',
       label: `${spiritStonesInfo.icon} ${spiritStonesInfo.label}`,
-      value: formatSpiritStones(snapshot.spiritStones),
+      value: <SpiritStones amount={snapshot.spiritStones} mode="compact" />,
       tone: 'wealth',
     },
     {
       key: 'reputation',
       label: `${reputationInfo.icon} ${reputationInfo.label}`,
-      value: formatSpiritStones(snapshot.reputation),
+      value: formatReputation(snapshot.reputation),
       tone: 'wealth',
       onClick: () => {
         void navigate('/game/tianjiao-vault');

@@ -15,6 +15,7 @@ import {
   InkTag,
 } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { cn } from '@app/lib/cn';
 import type {
   WandererBeastOffer,
@@ -27,7 +28,6 @@ import type {
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
 import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
-import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
 import { WANDERER_SUPERIOR_DEW_ID } from '@daoyou/game-rules/wanderer';
 import { useState, type ReactNode } from 'react';
 
@@ -36,8 +36,6 @@ type Received =
   | { kind: 'dew'; quantity: number; line: string }
   | { kind: 'book'; definitionId: string; line: string }
   | { kind: 'incense'; line: string };
-
-const stones = getGameConceptInfo('spirit_stones');
 
 function sealedBookIcon() {
   const skillId = [...BEAST_SUPERIOR_BOOK_SKILL_IDS][0];
@@ -78,11 +76,7 @@ function Quote({ children }: { children: ReactNode }) {
 function StonePrice({ amount }: { amount: number }) {
   return (
     <p className="mt-1 text-center text-sm">
-      <span aria-hidden="true">{stones.icon} </span>
-      <span className="font-mono font-semibold">
-        {amount.toLocaleString('zh-CN')}
-      </span>{' '}
-      {stones.label}
+      <SpiritStones amount={amount} className="font-semibold" />
     </p>
   );
 }
@@ -209,7 +203,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵印',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')}{' '}
+          花费 <SpiritStones amount={expectedPrice} />{' '}
           灵石，买一本随机上品传承灵印。
         </p>
       ),
@@ -240,7 +234,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下引妖香',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')} 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
           份引妖香。
         </p>
       ),
@@ -267,7 +261,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵露',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')} 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
           瓶上品归元灵露。
         </p>
       ),
@@ -301,13 +295,15 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             <LoadError message={stateFeed.error} onRetry={stateFeed.refresh} />
           ) : null}
           {state ? (
-            <div className="flex items-start gap-4">
-              <BeastIcon
-                speciesId={state.wantedSpeciesId}
-                isMutant
-                className="shrink-0 text-7xl"
-              />
-              <div className="min-w-0 space-y-2">
+            <div className="space-y-3">
+              <div className="flex justify-center py-2">
+                <BeastIcon
+                  speciesId={state.wantedSpeciesId}
+                  isMutant
+                  className="text-8xl"
+                />
+              </div>
+              <div className="space-y-2 text-center">
                 <Quote>
                   {state.wantedSpeciesName}
                   我找了一路。你要是带着，灵露我给得比别的都多。
@@ -425,8 +421,8 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             <InkNotice>正在打听这位游商。</InkNotice>
           ) : null}
           {state ? (
-            <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
-              <div className="w-28">
+            <div className="grid grid-cols-3 items-start gap-3">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   item={shelfItem(BEAST_LURE.id, 1)}
                   className="w-full"
@@ -447,7 +443,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 </ItemSlot>
                 <StonePrice amount={state.incensePrice} />
               </div>
-              <div className="w-28">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   item={shelfItem(WANDERER_SUPERIOR_DEW_ID, 1)}
                   className="w-full"
@@ -468,7 +464,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 </ItemSlot>
                 <StonePrice amount={state.dewPrice} />
               </div>
-              <div className="w-28">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   className="w-full"
                   emptyLabel="随机上品传承灵印"

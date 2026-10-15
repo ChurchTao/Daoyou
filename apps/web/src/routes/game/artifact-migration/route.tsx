@@ -7,6 +7,7 @@ import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { GameSceneFrame } from '@app/components/game-shell/GameSceneFrame';
 import { InkModal } from '@app/components/layout/InkModal';
 import { InkButton } from '@app/components/ui/InkButton';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { usePlayerSession } from '@app/lib/resources/player';
 import type { ArtifactMigrationResult, ArtifactMigrationSource } from '@daoyou/game-domain/legacy/migrations';
@@ -236,9 +237,7 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                 {confirm.spiritStones > 0 && (
                   <p>
                     神品额外赠送灵石{' '}
-                    <span className="font-mono">
-                      {confirm.spiritStones.toLocaleString()}
-                    </span>。
+                    <SpiritStones amount={confirm.spiritStones} />。
                   </p>
                 )}
                 <p className="text-ink-secondary">
@@ -339,9 +338,7 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                 {result.spiritStones > 0 && (
                   <p className="text-sm">
                     额外获得灵石{' '}
-                    <span className="font-mono">
-                      {result.spiritStones.toLocaleString()}
-                    </span>
+                    <SpiritStones amount={result.spiritStones} />
                     。
                   </p>
                 )}

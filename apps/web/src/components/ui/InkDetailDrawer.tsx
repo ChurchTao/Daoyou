@@ -1,4 +1,6 @@
 import { cn } from '@app/lib/cn';
+import { useBodyScrollLock } from '@app/lib/hooks/useBodyScrollLock';
+import { useOverlayViewport } from '@app/lib/hooks/useOverlayViewport';
 import {
   useEffect,
   useId,
@@ -58,7 +60,10 @@ export function InkDetailDrawer({
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
+  useBodyScrollLock(isOpen);
+  useOverlayViewport(viewportRef, isOpen);
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -70,8 +75,6 @@ export function InkDetailDrawer({
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const focusTimer = window.setTimeout(() => panelRef.current?.focus(), 0);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && closeOnEscape) onCloseRef.current();
@@ -81,8 +84,7 @@ export function InkDetailDrawer({
     return () => {
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [closeOnEscape, isOpen]);
 
@@ -113,7 +115,7 @@ export function InkDetailDrawer({
   if (!isOpen || typeof document === 'undefined') return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50">
+    <div ref={viewportRef} className="fixed inset-0 z-50">
       <button
         type="button"
         className="ink-overlay absolute inset-0 h-full w-full cursor-default"
@@ -129,7 +131,7 @@ export function InkDetailDrawer({
         tabIndex={-1}
         onKeyDown={trapFocus}
         className={cn(
-          'ink-detail-drawer bg-bgpaper border-ink/20 absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col border-t shadow-2xl md:inset-y-0 md:right-0 md:left-auto md:h-[100dvh] md:max-h-none md:border-t-0 md:border-l',
+          'ink-detail-drawer bg-bgpaper border-ink/20 absolute inset-x-0 bottom-0 flex max-h-[calc(var(--overlay-viewport-height,100dvh)*0.88)] flex-col border-t shadow-2xl md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-full md:border-t-0 md:border-l',
           drawerSizeClass[size],
           className,
         )}
@@ -152,7 +154,7 @@ export function InkDetailDrawer({
             </div>
           ) : null}
         </header>
-        <div className="battle-scroll min-h-0 flex-1 overflow-y-auto pt-4 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pb-[max(env(safe-area-inset-bottom),1.25rem)] md:pl-5">
+        <div className="battle-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] pl-[max(env(safe-area-inset-left),1rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pb-[max(env(safe-area-inset-bottom),1.25rem)] md:pl-5">
           {children}
         </div>
         {footer ? (

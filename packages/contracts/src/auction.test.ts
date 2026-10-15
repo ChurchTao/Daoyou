@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
 import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
+import { expect, it } from 'vitest';
 import { AuctionBuySchema, AuctionListSchema } from './auction.js';
 it('上架仅接收版本引用，公开和专属对象不得混用', () => {
   const body = {
@@ -43,7 +43,16 @@ it('购买必须携带重试标识，货单拒绝旧快照', () => {
     quantity: 1,
   };
   expect(AuctionBuySchema.safeParse(body).success).toBe(true);
+  expect(AuctionBuySchema.safeParse({ ...body, quantity: 999 }).success).toBe(
+    true,
+  );
   expect(
     AuctionBuySchema.safeParse({ ...body, requestId: undefined }).success,
+  ).toBe(false);
+  expect(AuctionBuySchema.safeParse({ ...body, quantity: 0 }).success).toBe(
+    false,
+  );
+  expect(
+    AuctionBuySchema.safeParse({ ...body, quantity: 2_147_483_648 }).success,
   ).toBe(false);
 });

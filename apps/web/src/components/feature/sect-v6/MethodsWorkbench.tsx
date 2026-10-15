@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { methodLevelCap, methodTrainingCost } from '@daoyou/game-rules/sects';
 import {
@@ -186,13 +187,13 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
             {singleCost ? (
               <p>
                 研习1级：{singleCost.cultivationExp.toLocaleString()} 修为 ·{' '}
-                {singleCost.spiritStones.toLocaleString()} 灵石
+                <SpiritStones amount={singleCost.spiritStones} /> 灵石
               </p>
             ) : null}
             {fastSteps > 1 ? (
               <p>
                 研习{fastSteps}级：{spentExp.toLocaleString()} 修为 ·{' '}
-                {spentStones.toLocaleString()} 灵石
+                <SpiritStones amount={spentStones} /> 灵石
               </p>
             ) : null}
             <span

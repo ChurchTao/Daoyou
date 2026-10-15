@@ -1,22 +1,25 @@
-import { AUCTION_MAX_TRANSACTION_TOTAL } from '@daoyou/game-domain/auction';
+import type { AuctionBeastListRequest } from '@daoyou/contracts/auction';
 import {
-  calculateAuctionSettlement,
+  type AuctionListingView,
+  type AuctionListRequest,
+} from '@daoyou/contracts/auction';
+import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@daoyou/game-content/social/config';
+import { AUCTION_MAX_TRANSACTION_TOTAL } from '@daoyou/game-domain/auction';
+import type { MailAttachment } from '@daoyou/game-domain/mail';
+import {
   auctionBlockReason,
   auctionItemCategory,
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
   AuctionSnapshotSchema,
+  calculateAuctionSettlement,
 } from '@daoyou/game-rules/auction';
-import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@daoyou/game-content/social/config';
-import type { AuctionBeastListRequest } from '@daoyou/contracts/auction';
-import { type AuctionListingView, type AuctionListRequest } from '@daoyou/contracts/auction';
 import {
   beastAuctionBlockReason,
   BeastTransferSchema,
 } from '@daoyou/game-rules/beasts/trade';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
-import type { MailAttachment } from '@daoyou/game-domain/mail';
 import {
   assertBeastIdle,
   BeastError,
@@ -319,6 +322,14 @@ export class AuctionOperations {
           '此物为专属交易，不可购买',
         );
       const attachment = listingAttachment(listing, quantity);
+      if (attachment.type === 'inventory_v1') {
+        const definitionId = attachment.inventory?.definitionId;
+        if (!definitionId || quantity > auctionListingStackLimit(definitionId))
+          throw new AuctionServiceError(
+            'INVALID_QUANTITY',
+            '购买数量不能超过该物品的堆叠上限',
+          );
+      }
       const { grossAmount, feeAmount, sellerAmount } =
         calculateAuctionSettlement(listing.price, quantity);
       if (grossAmount > AUCTION_MAX_TRANSACTION_TOTAL)

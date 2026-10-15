@@ -2,6 +2,7 @@ import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import type { BeastTradePreview } from '@daoyou/game-domain/beasts';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { beastOriginName } from '@daoyou/game-rules/beasts/growth';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { BeastIcon } from './BeastIcon';
 import { BeastMutationTag } from './BeastMutationTag';
 
@@ -51,10 +52,8 @@ export function BeastTradeCard({
           </span>
         )}
         {price !== undefined && (
-          <span className="block pt-1 text-amber-800">
-            <span className="font-mono font-semibold">
-              {price.toLocaleString()}
-            </span>{' '}
+          <span className="block pt-1">
+            <SpiritStones amount={price} className="font-semibold" />{' '}
             灵石
           </span>
         )}

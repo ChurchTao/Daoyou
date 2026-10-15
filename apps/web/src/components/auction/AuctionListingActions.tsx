@@ -1,7 +1,10 @@
 import { InkButton, InkQuantityInput } from '@app/components/ui';
-import { AUCTION_MAX_PURCHASE_QUANTITY, AUCTION_MAX_TRANSACTION_TOTAL } from '@daoyou/game-domain/auction';
-import { calculateAuctionSettlement } from '@daoyou/game-rules/auction';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { AuctionListingView } from '@daoyou/contracts/auction';
+import {
+  auctionPurchaseQuantityLimit,
+  calculateAuctionSettlement,
+} from '@daoyou/game-rules/auction';
 import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
 import { useState } from 'react';
 
@@ -27,11 +30,13 @@ export function AuctionListingActions({
   const [quantity, setQuantity] = useState('1');
   const isOwner = listing.sellerId === ownerId;
   const isBeast = listing.itemType === 'beast';
-  const maxQuantity = Math.min(
-    listing.remainingQuantity,
-    AUCTION_MAX_PURCHASE_QUANTITY,
-    Math.floor(AUCTION_MAX_TRANSACTION_TOTAL / listing.price),
-  );
+  const maxQuantity = isBeast
+    ? 1
+    : auctionPurchaseQuantityLimit({
+        definitionId: listing.item.definitionId,
+        remainingQuantity: listing.remainingQuantity,
+        unitPrice: listing.price,
+      });
   const count = Number(quantity);
   const validQuantity =
     Number.isInteger(count) && count >= 1 && count <= maxQuantity;
@@ -66,7 +71,7 @@ export function AuctionListingActions({
         )}
       </div>
       <p>
-        单价 <span className="font-mono">{listing.price.toLocaleString()}</span>{' '}
+        单价 <SpiritStones amount={listing.price} />{' '}
         灵石／{isBeast ? '只' : '件'}
       </p>
       {!isOwner && !isBeast && maxQuantity > 1 && (
@@ -83,9 +88,7 @@ export function AuctionListingActions({
       {!isOwner && (
         <p className="text-amber-800">
           合计{' '}
-          <span className="font-mono font-semibold">
-            {total?.toLocaleString() ?? '—'}
-          </span>{' '}
+          {total === null ? '—' : <SpiritStones amount={total} />}{' '}
           灵石
         </p>
       )}

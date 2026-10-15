@@ -170,7 +170,7 @@ export function AtlasMobileToolbar({
         title="查找地点"
         onClose={onDismiss}
         closeLabel="完成"
-        className="max-h-[70dvh]"
+        className="max-h-[calc(var(--overlay-viewport-height,100dvh)*0.7)]"
         size="sm"
       >
         <label className="block">

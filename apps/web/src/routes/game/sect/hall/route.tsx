@@ -1,4 +1,5 @@
 import { apiFetch } from '@app/lib/api/fetch';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import {
   NpcConversation,
   useConversationSession,
@@ -360,8 +361,8 @@ function HallStipendConversation({
         session.result === 'claimed' ? (
           <>
             本周周俸已经入账，实际领取
-            <span className="text-crimson font-medium">
-              {stipend.spiritStones.toLocaleString('zh-CN')}枚灵石
+            <span className="font-medium">
+              <SpiritStones amount={stipend.spiritStones} /> 枚灵石
             </span>
             。
           </>
@@ -371,8 +372,8 @@ function HallStipendConversation({
       ) : (
         <>
           本周应发
-          <span className="text-crimson font-medium">
-            {stipend.spiritStones.toLocaleString('zh-CN')}枚灵石
+          <span className="font-medium">
+            <SpiritStones amount={stipend.spiritStones} /> 枚灵石
           </span>
           。核对无误便可领取。
         </>

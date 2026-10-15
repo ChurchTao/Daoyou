@@ -5,6 +5,7 @@ import {
 } from '@app/components/ui';
 import { getMaterialTypeInfo } from '@daoyou/game-content/presentation/concepts';
 import type { BlackMarketReveal } from '@daoyou/game-domain/black-market';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 
 const ratingTone: Record<BlackMarketReveal['rating'], string> = {
   血亏: 'text-crimson',
@@ -88,13 +89,13 @@ export function BlackMarketRevealPanel({
       <div className="border-ink/15 mt-8 grid w-full max-w-xl gap-3 border-y py-5 text-sm sm:grid-cols-2 sm:text-base">
         <p>
           货主开价：
-          <strong>{reveal.ownerAskPrice.toLocaleString()} 灵石</strong>
+          <strong><SpiritStones amount={reveal.ownerAskPrice} /> 灵石</strong>
         </p>
         <p>
-          成交价：<strong>{reveal.paidPrice.toLocaleString()} 灵石</strong>
+          成交价：<strong><SpiritStones amount={reveal.paidPrice} /> 灵石</strong>
         </p>
         <p>
-          真实价值：<strong>{reveal.trueValue.toLocaleString()} 灵石</strong>
+          真实价值：<strong><SpiritStones amount={reveal.trueValue} /> 灵石</strong>
         </p>
         <p>属性：{reveal.material.element || '无明显五行'}</p>
         <p>价值比：{reveal.valueRatio.toFixed(2)} 倍</p>

@@ -10,7 +10,7 @@ export interface InkDialogState {
   id: string;
   title?: string;
   content: ReactNode;
-  confirmLabel?: string | null;
+  confirmLabel?: ReactNode | null;
   cancelLabel?: string | null;
   loading?: boolean;
   loadingLabel?: string;

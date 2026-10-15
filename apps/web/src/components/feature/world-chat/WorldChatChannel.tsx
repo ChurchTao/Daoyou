@@ -140,7 +140,6 @@ function WorldChatChannelBody({
   const [following, setFollowing] = useState(
     () => views[feed.activeChannel].following,
   );
-  const [editing, setEditing] = useState(false);
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [giveOpen, setGiveOpen] = useState(false);
   const [refundsOpen, setRefundsOpen] = useState(false);
@@ -153,7 +152,7 @@ function WorldChatChannelBody({
   );
   const [connection, setConnection] =
     useState<RealtimeConnectionState>('connecting');
-  const height = useWorldChatViewport(workspaceRef, editing);
+  const { height, keyboardViewport } = useWorldChatViewport(workspaceRef);
   const view = views[feed.activeChannel];
   const charCount = Array.from(view.draft).length;
   const displayMessages = useMemo(
@@ -336,6 +335,7 @@ function WorldChatChannelBody({
     feed.hasNewer,
     feed.pendingMessages,
     height,
+    keyboardViewport,
     scrollRevision,
     reportVisible,
     restoreAnchor,
@@ -538,11 +538,19 @@ function WorldChatChannelBody({
           : '连接中';
 
   return (
-    <>
+    <div className="world-chat-slot" style={{ height }}>
       <div
         ref={workspaceRef}
         className="world-chat-workspace"
-        style={{ height }}
+        data-keyboard={keyboardViewport ? '' : undefined}
+        style={
+          keyboardViewport
+            ? {
+                top: keyboardViewport.top,
+                height: keyboardViewport.height,
+              }
+            : undefined
+        }
       >
         <nav
           aria-label="聊天频道"
@@ -805,8 +813,6 @@ function WorldChatChannelBody({
                   inkFieldVariants({ variant: 'underlined', size: 'sm' }),
                   'battle-scroll max-h-32 resize-none',
                 )}
-                onFocus={() => setEditing(true)}
-                onBlur={() => setEditing(false)}
                 onChange={(event) =>
                   changeDraft(
                     Array.from(event.target.value).slice(0, 100).join(''),
@@ -928,6 +934,6 @@ function WorldChatChannelBody({
       {refundsOpen ? (
         <WorldChatRefundsDialog onClose={() => setRefundsOpen(false)} />
       ) : null}
-    </>
+    </div>
   );
 }

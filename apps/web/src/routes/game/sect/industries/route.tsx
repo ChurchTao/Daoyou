@@ -1,4 +1,5 @@
 import { apiFetch } from '@app/lib/api/fetch';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import {
   NpcConversation,
   useConversationSession,
@@ -149,7 +150,7 @@ function DonationConversation({
     messages.push({
       id: 'used',
       speaker: actor.name,
-      body: `今日建设已经完成：向${presentation.facilityLabels[member.data.facilityKey ?? ''] ?? '所选设施'}捐献${formatSpiritStones(member.data.spiritStones ?? 0)}灵石，获得${member.data.contribution ?? 0}点宗门贡献。`,
+      body: <>今日建设已经完成：向{presentation.facilityLabels[member.data.facilityKey ?? ''] ?? '所选设施'}捐献<SpiritStones amount={member.data.spiritStones ?? 0} />灵石，获得{member.data.contribution ?? 0}点宗门贡献。</>,
       tone: 'attention',
     });
   else if (facility)
@@ -162,7 +163,7 @@ function DonationConversation({
     messages.push({
       id: 'quote',
       speaker: actor.name,
-      body: `本次需要捐献${formatSpiritStones(quote.spiritStones)}灵石，可增加${quote.constructionPoints}点建设进度并获得${quote.contribution}点宗门贡献。`,
+      body: <>本次需要捐献<SpiritStones amount={quote.spiritStones} />灵石，可增加{quote.constructionPoints}点建设进度并获得{quote.contribution}点宗门贡献。</>,
     });
   if (session.result)
     messages.push({
@@ -230,12 +231,6 @@ function describeFacility(label: string, facility: SectFacilityState): string {
     : `${prefix}建设进度${facility.progress}/${facility.target}`;
 }
 
-function formatSpiritStones(amount: number): string {
-  return amount % 10_000 === 0
-    ? `${amount / 10_000}万`
-    : amount.toLocaleString('zh-CN');
-}
-
 function donationOptions(input: {
   facilities: readonly SectFacilityState[];
   facility: SectFacilityState | undefined;
@@ -257,7 +252,7 @@ function donationOptions(input: {
     return [
       ...SECT_CONSTRUCTION_DONATION_OPTIONS.map((option) => ({
         id: `amount:${option.spiritStones}`,
-        label: `捐献${formatSpiritStones(option.spiritStones)}灵石`,
+        label: <>捐献<SpiritStones amount={option.spiritStones} />灵石</>,
       })),
       { id: 'back-facility', label: '改选设施' },
       { id: 'leave', label: '弟子告退', tone: 'muted' as const },

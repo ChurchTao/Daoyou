@@ -1,10 +1,9 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
+import { useBodyScrollLock } from '@app/lib/hooks/useBodyScrollLock';
+import { useOverlayViewport } from '@app/lib/hooks/useOverlayViewport';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-
-let openDialogs = 0;
-let previousOverflow = '';
 
 /** Native dialogs keep focus and Escape scoped to the active editor or picker. */
 export function AdminDialog({
@@ -28,16 +27,8 @@ export function AdminDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  useEffect(() => {
-    if (!open) return;
-    if (openDialogs++ === 0) {
-      previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      if (--openDialogs === 0) document.body.style.overflow = previousOverflow;
-    };
-  }, [open]);
+  useBodyScrollLock(open);
+  useOverlayViewport(ref, open);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -63,12 +54,12 @@ export function AdminDialog({
         if (!busy) onClose();
       }}
       className={cn(
-        'bg-bgpaper text-ink border-ink/20 fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-xl overflow-hidden border p-0 shadow-xl backdrop:bg-black/40',
+        'bg-bgpaper text-ink border-ink/20 fixed inset-0 m-auto max-h-[calc(var(--overlay-viewport-height,100dvh)*0.9)] w-[calc(var(--overlay-viewport-width,100vw)-1.5rem)] max-w-xl overflow-hidden border p-0 shadow-xl backdrop:bg-black/40',
         wide && 'max-w-4xl',
       )}
     >
       {open && (
-        <div className="flex max-h-[90dvh] flex-col">
+        <div className="flex max-h-[calc(var(--overlay-viewport-height,100dvh)*0.9)] flex-col">
           <header className="border-ink/10 flex shrink-0 items-center justify-between gap-4 border-b px-5 py-4">
             <h3 id={titleId} className="text-lg font-semibold">
               {title}

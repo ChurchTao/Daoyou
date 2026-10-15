@@ -1,5 +1,7 @@
 import { cn } from '@app/lib/cn';
-import { type ReactNode, useEffect, useState } from 'react';
+import { useBodyScrollLock } from '@app/lib/hooks/useBodyScrollLock';
+import { useOverlayViewport } from '@app/lib/hooks/useOverlayViewport';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface InkModalProps {
@@ -24,6 +26,9 @@ export function InkModal({
   className = '',
 }: InkModalProps) {
   const [mounted, setMounted] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useBodyScrollLock(isOpen);
+  useOverlayViewport(viewportRef, mounted && isOpen);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -43,43 +48,34 @@ export function InkModal({
     };
   }, [isOpen, onClose]);
 
-  // 防止背景滚动
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center pt-[max(var(--app-safe-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-[max(var(--app-safe-top),1rem)] md:pr-[max(env(safe-area-inset-right),1rem)] md:pb-[max(env(safe-area-inset-bottom),1rem)] md:pl-[max(env(safe-area-inset-left),1rem)]">
+    <div
+      ref={viewportRef}
+      className="fixed inset-0 z-50 flex items-center justify-center pt-[max(var(--app-safe-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-[max(var(--app-safe-top),1rem)] md:pr-[max(env(safe-area-inset-right),1rem)] md:pb-[max(env(safe-area-inset-bottom),1rem)] md:pl-[max(env(safe-area-inset-left),1rem)]"
+    >
       {/* 遮罩层 */}
       <div className="ink-overlay absolute inset-0" onClick={onClose} />
 
       {/* 模态框内容 */}
       <div
         className={cn(
-          'bg-bgpaper border-ink/20 relative z-10 w-full max-w-md border p-4 md:p-5',
+          'bg-bgpaper border-ink/20 relative z-10 flex max-h-full min-h-0 w-full max-w-md flex-col border p-4 md:p-5',
           className,
         )}
         role="dialog"
         aria-modal="true"
       >
         {title && (
-          <h3 className="text-ink font-heading text-center text-[1.35rem]">
+          <h3 className="text-ink font-heading shrink-0 text-center text-[1.35rem]">
             {title}
           </h3>
         )}
 
         <div
           className={cn(
-            'battle-scroll max-h-[60vh] overflow-y-auto',
+            'battle-scroll max-h-[60dvh] min-h-0 overflow-y-auto overscroll-contain',
             title && 'mt-3',
           )}
         >
@@ -87,7 +83,7 @@ export function InkModal({
         </div>
 
         {footer && (
-          <div className="border-ink/15 mt-4 border-t border-dashed pt-3">
+          <div className="border-ink/15 mt-4 shrink-0 border-t border-dashed pt-3">
             {footer}
           </div>
         )}

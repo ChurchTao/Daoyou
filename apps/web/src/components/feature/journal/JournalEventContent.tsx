@@ -3,9 +3,10 @@ import {
   type PlayerJournalEvent,
 } from '@daoyou/contracts/player/journal';
 import { Fragment } from 'react';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 
 const resourceStyles = {
-  spiritStones: { label: '灵石', className: 'text-amber-700' },
+  spiritStones: { label: '灵石', className: 'text-ink' },
   exp: { label: '修为', className: 'text-teal' },
   insight: { label: '感悟', className: 'text-resource-shield' },
   reputation: { label: '声望', className: 'text-amber-700' },
@@ -21,6 +22,9 @@ function ResourceAmount({
   value: number;
 }) {
   const style = resourceStyles[resource];
+  if (resource === 'spiritStones') {
+    return <span className="whitespace-nowrap">灵石{value > 0 ? '+' : value < 0 ? '-' : ''}<SpiritStones amount={Math.abs(value)} /></span>;
+  }
   return (
     <span className={`whitespace-nowrap ${style.className}`}>
       {style.label}
