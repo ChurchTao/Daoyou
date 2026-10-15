@@ -37,69 +37,84 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#141918" />
+    <meta name="theme-color" content="#f8f3e6" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="万界道友" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      if (navigator.standalone === true) {
+        document.documentElement.dataset.iosStandalone = '';
+      }
+    </script>
     <style>
+      :root {
+        --app-surface-color: #f8f3e6;
+        --app-safe-top: env(safe-area-inset-top, 0px);
+        --app-bottom-reserve: env(
+          safe-area-max-inset-bottom,
+          env(safe-area-inset-bottom, 0px)
+        );
+      }
+
       html,
-      body,
-      #root {
-        min-height: 100%;
-        margin: 0;
-      }
-
       body {
-        background-color: #f8f3e6;
+        margin: 0;
+        background-color: var(--app-surface-color);
       }
 
-      /* Only while the boot screen is mounted. iOS standalone leaves a
-         canvas strip below 100dvh; this paints that strip and drops away
-         with the boot screen so later scenes keep their own backgrounds. */
-      html:has(.app-boot-screen) {
-        overflow: hidden;
-        background-color: #f8f3e6;
-        background-image: url('/assets/paper.webp');
-        background-repeat: repeat;
-        background-size: 250px;
+      #root {
+        min-height: 100dvh;
+      }
+
+      .app-system-top {
+        display: none;
+      }
+
+      /* iOS Home Screen apps can blur content below the status bar. A fixed,
+         painted edge selects a solid system background; 12px is its minimum
+         paint area, not a guessed status-bar height. Keep below modal layers. */
+      html[data-ios-standalone]:not(:fullscreen):not(:has(:fullscreen)) {
+        --app-safe-top: max(env(safe-area-inset-top, 0px), 12px);
+      }
+
+      html[data-ios-standalone]:not(:fullscreen):not(:has(:fullscreen))
+        .app-system-top {
+        position: fixed;
+        z-index: 45;
+        inset: 0 0 auto;
+        display: block;
+        height: var(--app-safe-top);
+        pointer-events: none;
+        background-color: var(--app-surface-color);
       }
 
       .app-boot-screen {
         box-sizing: border-box;
         position: fixed;
-        isolation: isolate;
         inset: 0;
         display: grid;
         place-items: center;
-        overflow: visible;
-        padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+        overflow: hidden;
+        padding-top: calc(var(--app-safe-top) + 1rem);
         padding-right: calc(env(safe-area-inset-right, 0px) + 1rem);
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
         padding-left: calc(env(safe-area-inset-left, 0px) + 1rem);
         color: #2c1810;
         text-align: center;
-      }
-
-      .app-boot-screen::before {
-        content: '';
-        position: absolute;
-        z-index: -1;
-        right: 0;
-        left: 0;
-        top: 0;
-        bottom: calc(env(safe-area-inset-top, 0px) * -1);
         background:
+          linear-gradient(
+            #f8f3e6,
+            rgba(248, 243, 230, 0) 18%,
+            rgba(248, 243, 230, 0) 82%,
+            #f8f3e6
+          ),
           radial-gradient(
             circle at 49% 42%,
             rgba(255, 253, 247, 0.94) 0,
-            rgba(248, 243, 230, 0.52) 58%,
-            rgba(233, 222, 200, 0.6) 100%
+            rgba(248, 243, 230, 0) 75%
           ),
-          url('/assets/paper.webp') center top / 250px repeat,
+          url('/assets/paper.webp') center top / 300px repeat,
           #f8f3e6;
       }
 
@@ -303,6 +318,7 @@
   </head>
 
   <body>
+    <div class="app-system-top" aria-hidden="true"></div>
     <div id="root">
       <div
         class="app-boot-screen"

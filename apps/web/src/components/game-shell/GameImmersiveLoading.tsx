@@ -1,3 +1,4 @@
+import { AppViewportColor } from '@app/components/layout/AppViewportColor';
 import { GameLoadingState } from './GameLoadingState';
 
 export function GameImmersiveLoading({
@@ -6,7 +7,8 @@ export function GameImmersiveLoading({
   message?: string;
 }) {
   return (
-    <div className="app-safe-area-page h-full min-h-[100svh] bg-[#111713]">
+    <div className="app-safe-area-page h-full min-h-dvh bg-[#111713]">
+      <AppViewportColor color="#111713" />
       <GameLoadingState message={message} variant="immersive" />
     </div>
   );

@@ -70,7 +70,7 @@ function PlayerShell() {
     const isDead = Boolean(note);
 
     return (
-      <div className="app-safe-area-page bg-paper flex min-h-[100svh] items-center justify-center">
+      <div className="app-safe-area-page bg-paper flex min-h-dvh items-center justify-center">
         <div className="w-full max-w-xl p-6">
           <h1 className="text-xl font-semibold tracking-wide">
             {isDead ? '前世道途已尽' : '尚未凝聚真身'}
@@ -93,11 +93,7 @@ function PlayerShell() {
     );
   }
 
-  return (
-    <div className="bg-paper min-h-screen">
-      <Outlet />
-    </div>
-  );
+  return <Outlet />;
 }
 
 function resolveSpecialSceneDescriptor(
@@ -217,7 +213,7 @@ function SectVisitSceneChrome() {
   }
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(env(safe-area-inset-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(var(--app-safe-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
       <div className="pointer-events-auto">
         <button
           type="button"
@@ -278,16 +274,16 @@ export function GameViewportLayout() {
         '--game-bottom-offset':
           bottomChromeHeight !== null
             ? `${bottomChromeHeight}px`
-            : 'calc(env(safe-area-inset-bottom) + 7rem)',
+            : 'calc(var(--app-bottom-reserve) + 7rem)',
       }) as CSSProperties,
     [bottomChromeHeight],
   );
 
   return (
-    <div data-game-viewport className="bg-paper min-h-[100svh]" style={viewportStyle}>
+    <div data-game-viewport className="bg-paper" style={viewportStyle}>
       <AuthProvider>
       <WorldChatFeedProvider>
-        <div className="flex min-h-[100svh] flex-col">
+        <div className="flex min-h-dvh flex-col">
           <div className="sticky top-0 z-30">
             <GameTopHud snapshot={hud} />
             <HuntTeamBar />
@@ -306,7 +302,7 @@ export function GameViewportLayout() {
         </div>
         <RealtimeConnectionToasts />
         <GuideOverlay />
-        <div data-game-bottom-chrome ref={bottomChromeRef} className="fixed inset-x-0 bottom-0 z-40">
+        <div data-game-bottom-chrome ref={bottomChromeRef} className="game-bottom-chrome">
           <WorldChatPreviewBar />
           <GameBottomDock
             sceneId={scene?.id ?? null}
@@ -327,7 +323,7 @@ export function GameViewportLayout() {
 
 function GameCombatLayoutBody() {
   return (
-    <div className="bg-paper h-screen overflow-hidden">
+    <div className="bg-paper h-dvh overflow-hidden">
       <main className="h-full overflow-hidden">
         <Outlet />
       </main>
@@ -355,11 +351,9 @@ export function GameActivityLayout() {
 
 export function GameNarrativeLayout() {
   return (
-    <div className="min-h-[100svh] overflow-hidden bg-[#111713]">
-      <main className="min-h-[100svh]">
-        <Outlet />
-      </main>
-    </div>
+    <main>
+      <Outlet />
+    </main>
   );
 }
 
@@ -428,10 +422,10 @@ function GameGenesisLayoutBody() {
   );
 
   return (
-    <div className="bg-paper h-screen overflow-hidden">
+    <div className="bg-paper h-dvh overflow-hidden">
       <div className="flex h-full flex-col overflow-hidden">
         <header className="border-battle-rule-strong border-b border-dashed bg-[rgba(248,243,230,0.92)]">
-          <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 pt-[calc(env(safe-area-inset-top)+0.8rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-3 pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+          <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 pt-[calc(var(--app-safe-top)+0.8rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-3 pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
             <InkButton href={descriptor.backAction.href}>
               {descriptor.backAction.label}
             </InkButton>
@@ -463,7 +457,7 @@ export function GameGenesisLayout() {
 }
 
 const DUNGEON_SCENE_TOP_OFFSET_FALLBACK =
-  'calc(env(safe-area-inset-top) + 3.5rem)';
+  'calc(var(--app-safe-top) + 3.5rem)';
 
 function DungeonSceneChrome({
   chromeRef,
@@ -487,7 +481,7 @@ function DungeonSceneChrome({
             : 'pointer-events-auto'
         }
       >
-        <div className="mx-auto flex min-h-12 w-full max-w-5xl items-center gap-3 pt-[env(safe-area-inset-top)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+        <div className="mx-auto flex min-h-12 w-full max-w-5xl items-center gap-3 pt-[var(--app-safe-top)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
           <button
             type="button"
             onClick={() => navigate(descriptor.backAction.href)}
@@ -584,9 +578,7 @@ export default function GameLayout() {
   const { userId } = useLoaderData() as UserLoaderData;
   return (
     <PlayerProvider accountId={userId}>
-      <div className="bg-paper min-h-screen">
-        <Outlet />
-      </div>
+      <Outlet />
     </PlayerProvider>
   );
 }

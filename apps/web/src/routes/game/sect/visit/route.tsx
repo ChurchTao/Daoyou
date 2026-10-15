@@ -47,7 +47,7 @@ export default function SectVisitPage() {
 
   if (!definition || !landmark) {
     return (
-      <div className="app-safe-area-page bg-paper flex h-full min-h-[100svh] items-center justify-center [--app-safe-area-inline-space:1.5rem]">
+      <div className="app-safe-area-page bg-paper flex h-full items-center justify-center [--app-safe-area-inline-space:1.5rem]">
         <div className="border-ink/15 bg-background max-w-md border p-6 text-center shadow-sm">
           <h1 className="text-xl font-semibold">山门不在此界</h1>
           <p className="text-ink-secondary mt-3 text-sm leading-7">
@@ -63,7 +63,7 @@ export default function SectVisitPage() {
 
   const presentation = getSectPresentation(definition.id);
   return (
-    <div className="bg-paper h-full min-h-[100svh] overflow-y-auto pt-[calc(env(safe-area-inset-top)+5.5rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-24 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+    <div className="bg-paper h-full overflow-y-auto pt-[calc(var(--app-safe-top)+5.5rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-24 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
       <title>
         {formatDocumentTitle(`${presentation.scenes.map.title} · 访宗`)}
       </title>

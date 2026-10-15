@@ -39,7 +39,7 @@ export default function SectForeignGatePage() {
   const target = task.battleTarget;
   const claimable = task.state === 'claimable';
   return (
-    <div className="bg-paper h-full min-h-[100svh] overflow-y-auto pt-[calc(env(safe-area-inset-top)+5.5rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-24 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
+    <div className="bg-paper h-full overflow-y-auto pt-[calc(var(--app-safe-top)+5.5rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-24 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
       <title>
         {formatDocumentTitle(`${presentation.scenes.gate.title} · 悬赏目标`)}
       </title>

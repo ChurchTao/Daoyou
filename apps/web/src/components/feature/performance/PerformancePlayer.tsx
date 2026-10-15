@@ -301,7 +301,7 @@ export function PerformancePlayer({
 
   return (
     <section
-      className="relative flex h-[100svh] flex-col overflow-hidden bg-paper text-ink"
+      className="relative flex h-dvh flex-col overflow-hidden bg-paper text-ink"
       aria-label={script.title}
     >
       <div className="sr-only" aria-live="polite">
@@ -316,7 +316,7 @@ export function PerformancePlayer({
         {closing ? '可以离开这一幕了。' : null}
       </div>
 
-      <div className="absolute top-[calc(env(safe-area-inset-top)+0.15rem)] right-[calc(env(safe-area-inset-right)+0.35rem)] z-20 flex items-center">
+      <div className="absolute top-[calc(var(--app-safe-top)+0.15rem)] right-[calc(env(safe-area-inset-right)+0.35rem)] z-20 flex items-center">
         <button
           type="button"
           onClick={() => setShowLog((open) => !open)}
@@ -346,7 +346,7 @@ export function PerformancePlayer({
             'flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] lg:px-12 lg:py-10',
             picture
               ? 'pt-6'
-              : 'pt-[max(env(safe-area-inset-top),1.5rem)]',
+              : 'pt-[max(var(--app-safe-top),1.5rem)]',
           )}
         >
           <div className={cn('flex flex-1 flex-col', !picture && 'mx-auto w-full max-w-2xl')}>

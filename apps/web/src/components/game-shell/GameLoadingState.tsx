@@ -14,7 +14,7 @@ const variantClassNames: Record<GameLoadingStateProps['variant'], string> = {
   inline: 'flex min-h-20 items-center justify-center py-4 text-center',
   immersive: 'flex h-full min-h-48 items-center justify-center text-[#e7dcc6]',
   fullscreen:
-    'app-safe-area-page bg-paper flex min-h-[100svh] items-center justify-center',
+    'app-safe-area-page bg-paper flex min-h-dvh items-center justify-center',
 };
 
 export function GameLoadingState({

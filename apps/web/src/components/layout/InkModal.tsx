@@ -58,7 +58,7 @@ export function InkModal({
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center pt-[max(env(safe-area-inset-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-[max(env(safe-area-inset-top),1rem)] md:pr-[max(env(safe-area-inset-right),1rem)] md:pb-[max(env(safe-area-inset-bottom),1rem)] md:pl-[max(env(safe-area-inset-left),1rem)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pt-[max(var(--app-safe-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[max(env(safe-area-inset-bottom),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-[max(var(--app-safe-top),1rem)] md:pr-[max(env(safe-area-inset-right),1rem)] md:pb-[max(env(safe-area-inset-bottom),1rem)] md:pl-[max(env(safe-area-inset-left),1rem)]">
       {/* 遮罩层 */}
       <div className="ink-overlay absolute inset-0" onClick={onClose} />
 
