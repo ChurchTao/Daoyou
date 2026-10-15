@@ -125,7 +125,10 @@ export async function requireAdminLoader({
   }
 
   if (response.status === 403) {
-    return replace('/game');
+    throw new Response('当前账号没有管理员权限，请确认管理员账号配置。', {
+      status: 403,
+      statusText: '无管理员权限',
+    });
   }
 
   if (!response.ok || !payload.userId || !payload.email) {

@@ -1,18 +1,16 @@
-# Cloudflare Pages serves a real file before these rules. There is no
-# top-level 404.html fallback to index.html: a missing file is a 404.
-# Do not add "/* /index.html 200". That rewrite answers a missing
-# /assets/*.js with HTML and a 200, which browsers then cache as the script.
-# A new top-level route prefix has to be listed here. Paths under /game,
-# /admin, /login, and /signup are already covered.
+# 仅将已知的前端路由重写到首页，保留地址栏中的原路径。
+# Cloudflare Pages 会把 /index.html 规范化为 /，因此重写目标直接使用 /。
+# Cloudflare 构建会输出根目录 404.html，使缺失的脚本和其他资源返回真正的 404。
+# 新增顶级前端路由时，须在此添加规则；不要使用覆盖资源路径的 /* 回退。
 
-/login /index.html 200
-/login/* /index.html 200
-/signup /index.html 200
-/signup/* /index.html 200
-/forgot-password /index.html 200
-/reset-password /index.html 200
-/game /index.html 200
-/game/* /index.html 200
-/admin /index.html 200
-/admin/* /index.html 200
-/combat-replay/* /index.html 200
+/login / 200
+/signup / 200
+/forgot-password / 200
+/reset-password / 200
+/game / 200
+/admin / 200
+/login/* / 200
+/signup/* / 200
+/game/* / 200
+/admin/* / 200
+/combat-replay/* / 200

@@ -1,9 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig, type Plugin, type UserConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 const alias = {
   '@app': fileURLToPath(new URL('./src', import.meta.url)),
@@ -24,6 +25,22 @@ const appVersionManifestPlugin = (buildId: string): Plugin => ({
   },
 });
 
+const cloudflareNotFoundPlugin = (): Plugin => ({
+  name: 'cloudflare-not-found',
+  generateBundle() {
+    // Cloudflare 用根目录 404.html 区分缺失资源；EdgeOne 的 SPA 产物不能包含它。
+    if (!process.env.CF_PAGES_COMMIT_SHA) return;
+    this.emitFile({
+      type: 'asset',
+      fileName: '404.html',
+      source: readFileSync(
+        fileURLToPath(new URL('./cloudflare/404.html', import.meta.url)),
+        'utf8',
+      ),
+    });
+  },
+});
+
 export default defineConfig((): UserConfig => {
   const buildId = createBuildId();
   return {
@@ -34,6 +51,7 @@ export default defineConfig((): UserConfig => {
       react(),
       tailwindcss(),
       appVersionManifestPlugin(buildId),
+      cloudflareNotFoundPlugin(),
       ...VitePWA({
         strategies: 'injectManifest',
         srcDir: 'src',
@@ -43,7 +61,7 @@ export default defineConfig((): UserConfig => {
         devOptions: { enabled: false },
         injectManifest: {
           rollupFormat: 'iife',
-          // Public images live under assets/ without a content hash.
+          // public 目录下的图片没有内容哈希。
           dontCacheBustURLsMatching:
             /^assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css)$/,
           globPatterns: [

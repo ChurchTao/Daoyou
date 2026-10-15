@@ -1,4 +1,7 @@
 {
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run build:client",
+  "outputDirectory": "apps/web/dist",
   "rewrites": [
     { "source": "/login", "destination": "/index.html" },
     { "source": "/login/*", "destination": "/index.html" },
@@ -45,15 +48,6 @@
       ]
     },
     {
-      "source": "/404.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/manifest.webmanifest",
       "headers": [
         {
@@ -85,7 +79,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable, s-maxage=60"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
@@ -94,7 +88,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable, s-maxage=60"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
@@ -145,7 +139,14 @@
     },
     {
       "source": "/*",
-      "headers": [{ "key": "X-Frame-Options", "value": "DENY" }]
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
   ]
 }
