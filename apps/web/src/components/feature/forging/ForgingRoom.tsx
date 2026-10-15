@@ -280,7 +280,7 @@ export function ForgingRoom() {
                         <div className="space-y-1 text-xs">
                           <p>
                             {session.cost ? (
-                              <><SpiritStones amount={session.cost.spiritStones} /> 灵石 · {session.cost.qi} 天地灵气</>
+                              <><SpiritStones amount={session.cost.spiritStones} /> · {session.cost.qi} 天地灵气</>
                             ) : '选择图纸后确定本次消耗'}
                           </p>
                           <div className="text-ink-secondary flex items-center gap-2">
@@ -429,7 +429,7 @@ export function ForgingRoom() {
               </p>
             ))}
             <p>
-              {session.cost && <SpiritStones amount={session.cost.spiritStones} />} 灵石 ·{' '}
+              {session.cost && <SpiritStones amount={session.cost.spiritStones} />} ·{' '}
               {session.cost?.qi} 天地灵气
             </p>
           </div>

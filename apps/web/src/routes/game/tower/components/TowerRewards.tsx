@@ -195,7 +195,7 @@ export function TowerRewards({ view }: { view: TowerView }) {
           <div className="space-y-3 text-sm leading-6">
             {preview.spiritStones > 0 ? (
               <p>
-                <SpiritStones amount={preview.spiritStones} /> 灵石
+                <SpiritStones amount={preview.spiritStones} />
               </p>
             ) : null}
             {preview.reputation > 0 ? (
@@ -217,7 +217,6 @@ export function TowerRewards({ view }: { view: TowerView }) {
                 {received.spiritStones > 0 ? (
                   <>
                     <SpiritStones amount={received.spiritStones} />{' '}
-                    灵石{' '}
                   </>
                 ) : null}
                 {received.reputation > 0 ? (

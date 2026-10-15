@@ -582,8 +582,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   本次消耗{' '}
                   <span className="font-mono">{session.result.cost.qi}</span>{' '}
                   天地灵气 ·{' '}
-                  <SpiritStones amount={session.result.cost.spiritStones} />{' '}
-                  灵石
+                  <SpiritStones amount={session.result.cost.spiritStones} />
                 </p>
                 <InkButton variant="primary" onClick={clear}>
                   继续
@@ -734,8 +733,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                           {input.expectedCost.qi}
                         </span>{' '}
                         天地灵气 ·{' '}
-                        <SpiritStones amount={input.expectedCost.spiritStones} />{' '}
-                        灵石
+                        <SpiritStones amount={input.expectedCost.spiritStones} />
                       </p>
                     )}
                     <p className="text-ink-secondary" role="status">
@@ -833,8 +831,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   {confirmation.input.expectedCost.qi}
                 </span>{' '}
                 天地灵气 ·{' '}
-                <SpiritStones amount={confirmation.input.expectedCost.spiritStones} />{' '}
-                灵石
+                <SpiritStones amount={confirmation.input.expectedCost.spiritStones} />
               </p>
               {confirmation.warning && (
                 <p className="text-crimson">{confirmation.warning}</p>

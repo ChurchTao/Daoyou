@@ -260,8 +260,7 @@ export function ListItemModal({
           {selected ? (
             <p className="text-ink-secondary text-xs">
               单价上限{' '}
-              <SpiritStones amount={auctionItemPriceCap(selected)} />{' '}
-              灵石
+              <SpiritStones amount={auctionItemPriceCap(selected)} />
             </p>
           ) : null}
           <InkSelect
@@ -298,8 +297,7 @@ export function ListItemModal({
             按本次数量整批成交预计税费{' '}
             <SpiritStones amount={quote.feeAmount} />
             ，实得{' '}
-            <SpiritStones amount={quote.sellerAmount} />{' '}
-            灵石。分次成交按每次交易计税。
+            <SpiritStones amount={quote.sellerAmount} />。分次成交按每次交易计税。
           </p>
           <p className="text-ink-secondary text-xs">
             寄售48小时；成交款与未售物品通过邮件收取。

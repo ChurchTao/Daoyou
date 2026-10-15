@@ -3,7 +3,7 @@
 /* 引入本地字体 */
 @font-face {
   font-family: 'LXGWWenKai';
-  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/LXGWWenKaiLite-Regular.ttf')
+  src: url('/assets/fonts/LXGWWenKaiLite-Regular.ttf')
     format('truetype');
   font-weight: 400;
   font-style: normal;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: 'Ma Shan Zheng';
-  src: url('https://lxd-waimao.oss-cn-hangzhou.aliyuncs.com/daoyou/fonts/MaShanZheng-Regular.ttf')
+  src: url('/assets/fonts/MaShanZheng-Regular.ttf')
     format('truetype');
   font-weight: 400;
   font-style: normal;
@@ -71,7 +71,7 @@
   --color-tier-xuan: #1685a9;
   --color-tier-zhen: #b35c44;
   --color-tier-di: #003472;
-  --color-tier-tian: #efbf04;
+  --color-tier-tian: #9b730b;
   --color-tier-xian: #801dae;
   --color-tier-shen: #c1121f;
 }
@@ -85,7 +85,7 @@
 
 :root {
   /* 字体变量 */
-  --font-lxgwwenkai: 'LXGWWenKai', serif;
+  --font-lxgwwenkai: 'LXGWWenKai', 'STFangsong', FangSong, 'Songti SC', SimSun, serif;
   --font-ma-shan-zheng: 'Ma Shan Zheng', cursive;
 }
 
@@ -110,7 +110,7 @@
 
 body {
   color: var(--color-ink);
-  font-family: var(--font-lxgwwenkai), serif;
+  font-family: var(--font-lxgwwenkai);
 }
 
 /* 标题字体样式 */
@@ -208,7 +208,7 @@ body {
 
 /* 战报只定义字体环境；字号和行高由结构化日志组件按层级管理。 */
 .battle-report {
-  font-family: var(--font-lxgwwenkai), serif;
+  font-family: var(--font-lxgwwenkai);
   text-align: left;
 }
 

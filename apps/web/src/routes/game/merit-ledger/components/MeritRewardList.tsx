@@ -21,7 +21,7 @@ export function MeritRewardList({ rewards }: { rewards: RewardSelection[] }) {
               <span key={`${label}-${index}`}>
                 {index > 0 ? '、' : null}
                 {reward.type === 'spirit_stones' ? (
-                  <>灵石 <SpiritStones amount={quantity} /></>
+                  <SpiritStones amount={quantity} />
                 ) : (
                   <><GameIcon value="🏵️" /> {label} <span className="font-mono font-semibold tracking-tight">{quantity.toLocaleString('zh-CN')}</span></>
                 )}

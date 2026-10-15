@@ -203,8 +203,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵印',
       content: (
         <p className="text-sm leading-7">
-          花费 <SpiritStones amount={expectedPrice} />{' '}
-          灵石，买一本随机上品传承灵印。
+          花费 <SpiritStones amount={expectedPrice} />，买一本随机上品传承灵印。
         </p>
       ),
       confirmLabel: '买下',
@@ -234,7 +233,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下引妖香',
       content: (
         <p className="text-sm leading-7">
-          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} />，买 1
           份引妖香。
         </p>
       ),
@@ -261,7 +260,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵露',
       content: (
         <p className="text-sm leading-7">
-          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} />，买 1
           瓶上品归元灵露。
         </p>
       ),

@@ -7,10 +7,8 @@ export function formatCompactSpiritStones(amount: number): string {
 }
 
 export function getSpiritStoneColor(amount: number): string {
-  if (amount >= 100_000_000) return tierColorMap['神品'];
-  if (amount >= 10_000_000) return tierColorMap['仙品'];
-  if (amount >= 1_000_000) return tierColorMap['天品'];
-  if (amount >= 100_000) return tierColorMap['玄品'];
-  if (amount >= 10_000) return tierColorMap['灵品'];
+  if (amount >= 10_000_000) return tierColorMap['神品'];
+  if (amount >= 1_000_000) return tierColorMap['仙品'];
+  if (amount >= 100_000) return tierColorMap['地品'];
   return 'text-ink';
 }

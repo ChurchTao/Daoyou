@@ -85,7 +85,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
     },
     {
       key: 'spirit-stones',
-      label: `${spiritStonesInfo.icon} ${spiritStonesInfo.label}`,
+      label: spiritStonesInfo.icon,
       value: <SpiritStones amount={snapshot.spiritStones} mode="compact" />,
       tone: 'wealth',
     },

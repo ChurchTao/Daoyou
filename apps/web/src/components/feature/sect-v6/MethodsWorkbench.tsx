@@ -187,13 +187,13 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
             {singleCost ? (
               <p>
                 研习1级：{singleCost.cultivationExp.toLocaleString()} 修为 ·{' '}
-                <SpiritStones amount={singleCost.spiritStones} /> 灵石
+                <SpiritStones amount={singleCost.spiritStones} />
               </p>
             ) : null}
             {fastSteps > 1 ? (
               <p>
                 研习{fastSteps}级：{spentExp.toLocaleString()} 修为 ·{' '}
-                <SpiritStones amount={spentStones} /> 灵石
+                <SpiritStones amount={spentStones} />
               </p>
             ) : null}
             <span

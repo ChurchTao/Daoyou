@@ -130,7 +130,7 @@ export function WorldChatGiveRedPacketDialog({
               ? `${feed.cooldownRemaining} 秒后可发送`
               : (
                   <>
-                    确认发出 <SpiritStones amount={amountValue || 0} /> 灵石
+                    确认发出 <SpiritStones amount={amountValue || 0} />
                   </>
                 )}
         </InkButton>
@@ -160,7 +160,7 @@ export function WorldChatGiveRedPacketDialog({
           onChange={setAmount}
           hint={
             <>
-              单个红包总额至少 <SpiritStones amount={50_000} /> 灵石
+              单个红包总额至少 <SpiritStones amount={50_000} />
             </>
           }
           disabled={pending || !!resumed}
@@ -224,14 +224,12 @@ export function WorldChatGiveRedPacketDialog({
             {mode === 'equal' ? (
               <>
                 每份{' '}
-                <SpiritStones amount={amountValue / countValue} />{' '}
-                灵石
+                <SpiritStones amount={amountValue / countValue} />
               </>
             ) : (
               <>
                 共{' '}
-                <SpiritStones amount={amountValue} />{' '}
-                灵石，随机分为 <span className="font-mono">{countValue}</span>{' '}
+                <SpiritStones amount={amountValue} />，随机分为 <span className="font-mono">{countValue}</span>{' '}
                 份
               </>
             )}
@@ -395,8 +393,7 @@ export function WorldChatRedPacketDialog({
             {canRefund ? (
               <p className="text-sm">
                 待退款{' '}
-                <SpiritStones amount={detail.packet.refundAmount} />{' '}
-                灵石，将退回当前活跃角色。
+                <SpiritStones amount={detail.packet.refundAmount} />，将退回当前活跃角色。
               </p>
             ) : null}
           </div>
@@ -407,8 +404,7 @@ export function WorldChatRedPacketDialog({
               {detail.packet.count}
             </span>{' '}
             份 · 共{' '}
-            <SpiritStones amount={detail.packet.amount} />{' '}
-            灵石
+            <SpiritStones amount={detail.packet.amount} />
           </p>
           <div className="divide-ink/10 divide-y">
             {detail.claims.map((claim, index) => (
@@ -499,7 +495,7 @@ export function WorldChatRefundsDialog({ onClose }: { onClose(): void }) {
               <p>{packet.greeting}</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <span>
-                  <SpiritStones amount={packet.refundAmount} /> 灵石
+                  <SpiritStones amount={packet.refundAmount} />
                 </span>
                 <InkButton
                   variant="primary"

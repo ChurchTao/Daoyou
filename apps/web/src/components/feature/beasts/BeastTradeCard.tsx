@@ -53,8 +53,7 @@ export function BeastTradeCard({
         )}
         {price !== undefined && (
           <span className="block pt-1">
-            <SpiritStones amount={price} className="font-semibold" />{' '}
-            灵石
+            <SpiritStones amount={price} className="font-semibold" />
           </span>
         )}
       </span>

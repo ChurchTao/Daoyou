@@ -6,6 +6,7 @@ import {
   ItemSlot,
 } from '@app/components/feature/items/ItemSlot';
 import { GameSceneFrame } from '@app/components/game-shell';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkDialog, type InkDialogState } from '@app/components/ui/InkDialog';
@@ -223,8 +224,8 @@ function MarketWorkspace({
         title: '确认购买',
         content: (
           <p>
-            确认购买所选 {picked.length} 件商品？{' '}
-            <SpiritStones amount={total} /> 灵石将用于本次交易。
+            确认购买所选 {picked.length} 件商品？ 本次交易将消耗{' '}
+            <SpiritStones amount={total} mode="compact" />。
           </p>
         ),
         confirmLabel: '确认购买',
@@ -363,7 +364,7 @@ function MarketWorkspace({
           {!snapshot && !shelfError ? (
             <p role="status">掌柜正在盘货……</p>
           ) : null}
-          <InventoryGrid className="grid-cols-5 gap-2 sm:grid-cols-5">
+          <InventoryGrid className="grid-cols-4 gap-2 sm:grid-cols-5">
             {listings.map((item) => (
               <div key={item.id} className="min-w-0">
                 <ItemSlot
@@ -414,14 +415,16 @@ function MarketWorkspace({
                         <p className="text-ink-secondary text-xs">
                           原价{' '}
                           <span className="line-through">
-                            <SpiritStones amount={item.basePrice} />
-                          </span>{' '}
-                          灵石
+                            <SpiritStones
+                              amount={item.basePrice}
+                              mode="compact"
+                            />
+                          </span>
                         </p>
                       ) : null}
                       <p>
-                        售价 <SpiritStones amount={item.price} />{' '}
-                        灵石 · 本批限购一件
+                        售价 <SpiritStones amount={item.price} mode="compact" />{' '}
+                        · 本批限购一件
                       </p>
                       <InkButton
                         disabled={locked || item.quantity <= 0}
@@ -440,10 +443,11 @@ function MarketWorkspace({
                   )}
                 </ItemSlot>
                 <p
-                  className="mt-1 text-center text-xs"
+                  className="mt-1 flex items-center justify-center gap-1 whitespace-nowrap text-xs"
                   aria-label={`售价 ${item.price} 灵石`}
                 >
-                  <SpiritStones amount={item.price} />
+                  <GameIcon value="💰" className="-translate-y-px" />
+                  <SpiritStones amount={item.price} mode="compact" />
                 </p>
               </div>
             ))}
@@ -451,9 +455,7 @@ function MarketWorkspace({
           {snapshot && !listings.length ? (
             <p className="text-ink-secondary text-sm">掌柜正在备货，请稍候。</p>
           ) : null}
-          <p className="text-ink-secondary text-xs">
-            标价单位为灵石，选择商品后统一购买。
-          </p>
+          <p className="text-ink-secondary text-xs">选择商品后统一购买。</p>
         </section>
         <section className="hidden min-w-0 lg:block" aria-label="角色物品">
           {inventory}
@@ -470,13 +472,12 @@ function MarketWorkspace({
         </p>
       ) : null}
       {picked.length ? (
-        <div className="bg-paper border-ink/20 sticky bottom-[var(--game-bottom-offset)] z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-t py-3 text-sm">
+        <div className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-t py-3 text-sm">
           <span>
             已选 <span className="font-mono">{picked.length}</span> 件 · 合计{' '}
             <strong>
-              <SpiritStones amount={total} />
-            </strong>{' '}
-            灵石
+              <SpiritStones amount={total} mode="compact" />
+            </strong>
           </span>
           <div className="flex items-center gap-3">
             <InkButton disabled={pending} onClick={() => setSelected([])}>

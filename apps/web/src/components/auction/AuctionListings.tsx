@@ -95,11 +95,10 @@ export function AuctionListings({
                 {(close) => actions(listing, close)}
               </ItemSlot>
               <p
-                className="mt-1 flex flex-wrap items-baseline justify-center gap-x-1 text-xs"
+                className="mt-1 text-center text-xs"
                 aria-label={`单价 ${listing.price.toLocaleString()} 灵石`}
               >
                 <SpiritStones amount={listing.price} />
-                <span>灵石</span>
               </p>
             </div>
           ),

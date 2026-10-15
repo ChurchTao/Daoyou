@@ -236,8 +236,7 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                 </p>
                 {confirm.spiritStones > 0 && (
                   <p>
-                    神品额外赠送灵石{' '}
-                    <SpiritStones amount={confirm.spiritStones} />。
+                    神品额外赠送 <SpiritStones amount={confirm.spiritStones} />。
                   </p>
                 )}
                 <p className="text-ink-secondary">
@@ -337,8 +336,7 @@ function MigrationPage({ ownerId }: { ownerId: string }) {
                 </div>
                 {result.spiritStones > 0 && (
                   <p className="text-sm">
-                    额外获得灵石{' '}
-                    <SpiritStones amount={result.spiritStones} />
+                    额外获得 <SpiritStones amount={result.spiritStones} />
                     。
                   </p>
                 )}

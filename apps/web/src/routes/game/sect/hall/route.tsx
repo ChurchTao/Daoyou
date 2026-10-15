@@ -362,7 +362,7 @@ function HallStipendConversation({
           <>
             本周周俸已经入账，实际领取
             <span className="font-medium">
-              <SpiritStones amount={stipend.spiritStones} /> 枚灵石
+              <SpiritStones amount={stipend.spiritStones} />
             </span>
             。
           </>
@@ -373,7 +373,7 @@ function HallStipendConversation({
         <>
           本周应发
           <span className="font-medium">
-            <SpiritStones amount={stipend.spiritStones} /> 枚灵石
+            <SpiritStones amount={stipend.spiritStones} />
           </span>
           。核对无误便可领取。
         </>
