@@ -13,6 +13,7 @@ import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { useResourceMutation } from '@app/lib/resources/mutations';
@@ -565,10 +566,10 @@ export default function SpiritFieldPage() {
                       ? ''
                       : method.resourceKind === 'none'
                         ? '无需消耗'
-                        : `${({ qi: '天地灵气', mp: '法力', spirit_stones: '灵石' } as Record<string, string>)[method.resourceKind]} ${method.cost.amount}`}
-                    {method.cost.spiritStones
-                      ? `灵石 ${method.cost.spiritStones}`
-                      : ''}
+                        : method.resourceKind === 'spirit_stones'
+                          ? <>灵石 <SpiritStones amount={method.cost.amount} /></>
+                          : `${({ qi: '天地灵气', mp: '法力' } as Record<string, string>)[method.resourceKind]} ${method.cost.amount}`}
+                    {method.cost.spiritStones ? <> 灵石 <SpiritStones amount={method.cost.spiritStones} /></> : null}
                   </span>
                   <InkButton
                     variant="primary"

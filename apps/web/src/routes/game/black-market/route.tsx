@@ -9,6 +9,7 @@ import {
   InkNotice,
   type InkDialogState,
 } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorCurrency } from '@app/lib/resources/player';
 import type {
@@ -17,7 +18,7 @@ import type {
   BlackMarketOverview,
   BlackMarketSessionView,
 } from '@daoyou/game-domain/black-market';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import { BlackMarketConversation } from './BlackMarketConversation';
 import { BlackMarketEntryPreview } from './BlackMarketEntryPreview';
@@ -45,7 +46,7 @@ export default function BlackMarketPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [notice, setNotice] = useState<string>();
+  const [notice, setNotice] = useState<ReactNode>();
   const [retryableMessage, setRetryableMessage] = useState<string>();
   const [openingStep, setOpeningStep] = useState<number>();
   const [entryDialog, setEntryDialog] = useState<InkDialogState | null>(null);
@@ -221,9 +222,13 @@ export default function BlackMarketPage() {
       } else if (offeredPrice != null) {
         const feedback =
           result.outcome === 'accepted'
-            ? `摊主点头认价：${result.session.currentPrice.toLocaleString()} 灵石。`
+            ? (
+                <>摊主点头认价：<SpiritStones amount={result.session.currentPrice} /> 灵石。</>
+              )
             : result.outcome === 'countered'
-              ? `摊主松了口：现在要价 ${result.session.currentPrice.toLocaleString()} 灵石。`
+              ? (
+                  <>摊主松了口：现在要价 <SpiritStones amount={result.session.currentPrice} /> 灵石。</>
+                )
               : result.outcome === 'locked'
                 ? '这一下压得太狠，摊主把价彻底咬死了。'
                 : result.outcome === 'rejected'
@@ -429,7 +434,12 @@ export default function BlackMarketPage() {
         aside={
           <GameSceneAsideSection title="随身资用">
             <p className="text-sm leading-7">
-              灵石余额：{currency.data?.spiritStones ?? '读取中'}
+              灵石余额：
+              {currency.data ? (
+                <SpiritStones amount={currency.data.spiritStones} mode="compact" />
+              ) : (
+                '读取中'
+              )}
             </p>
           </GameSceneAsideSection>
         }

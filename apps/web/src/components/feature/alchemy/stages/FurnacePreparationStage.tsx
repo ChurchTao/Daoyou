@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { cn } from '@app/lib/cn';
 import type { AlchemyPropertyKey } from '@daoyou/game-domain/consumables';
 import { GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES } from '@daoyou/game-rules/alchemy';
@@ -261,7 +262,7 @@ export function FurnacePreparationStage() {
           </p>
           <p>
             {session.readiness.estimatedSpiritStones !== null
-              ? `${session.readiness.estimatedSpiritStones.toLocaleString()} 灵石 · ${session.qiCost} 天地灵气`
+              ? <><SpiritStones amount={session.readiness.estimatedSpiritStones} /> 灵石 · {session.qiCost} 天地灵气</>
               : '投入灵材后确定本次消耗'}
           </p>
         </div>

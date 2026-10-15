@@ -8,6 +8,7 @@ import {
   GameSceneTabs,
 } from '@app/components/game-shell';
 import { GameSceneHelpButton } from '@app/components/game-shell/GameSceneSection';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   InkButton,
@@ -299,16 +300,12 @@ export default function AuctionPage() {
             </p>
             <p>
               单价{' '}
-              <span className="font-mono">
-                {listing.price.toLocaleString()}
-              </span>{' '}
+              <SpiritStones amount={listing.price} />{' '}
               灵石
             </p>
             <p className="text-amber-800">
               合计{' '}
-              <span className="font-mono font-semibold">
-                {total.toLocaleString()}
-              </span>{' '}
+              <SpiritStones amount={total} className="font-semibold" />{' '}
               灵石
             </p>
             {listing.itemType === 'beast' &&

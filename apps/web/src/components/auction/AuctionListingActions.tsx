@@ -1,4 +1,5 @@
 import { InkButton, InkQuantityInput } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { AuctionListingView } from '@daoyou/contracts/auction';
 import {
   auctionPurchaseQuantityLimit,
@@ -70,7 +71,7 @@ export function AuctionListingActions({
         )}
       </div>
       <p>
-        单价 <span className="font-mono">{listing.price.toLocaleString()}</span>{' '}
+        单价 <SpiritStones amount={listing.price} />{' '}
         灵石／{isBeast ? '只' : '件'}
       </p>
       {!isOwner && !isBeast && maxQuantity > 1 && (
@@ -87,9 +88,7 @@ export function AuctionListingActions({
       {!isOwner && (
         <p className="text-amber-800">
           合计{' '}
-          <span className="font-mono font-semibold">
-            {total?.toLocaleString() ?? '—'}
-          </span>{' '}
+          {total === null ? '—' : <SpiritStones amount={total} />}{' '}
           灵石
         </p>
       )}

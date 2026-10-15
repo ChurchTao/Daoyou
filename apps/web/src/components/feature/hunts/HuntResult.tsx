@@ -1,5 +1,6 @@
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { InkModal } from '@app/components/layout/InkModal';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { HuntBattleReward } from '@daoyou/contracts/hunts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import { useState } from 'react';
@@ -46,7 +47,7 @@ export function HuntResult({
               </span>
               <span>
                 灵石{' '}
-                <span className="font-mono">+{data.reward.spiritStones}</span>
+                +<SpiritStones amount={data.reward.spiritStones} />
               </span>
               <span>
                 感悟 <span className="font-mono">+{data.reward.insight}</span>

@@ -1,4 +1,5 @@
 import { NpcConversation } from '@app/components/feature/room';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import {
   InkButton,
   InkDetailDrawer,
@@ -7,14 +8,11 @@ import {
   InkNotice,
 } from '@app/components/ui';
 import { normalizeBlackMarketPlayerBody } from '@daoyou/game-rules/black-market';
-import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
 import type {
   BlackMarketNpcSummary,
   BlackMarketSessionView,
 } from '@daoyou/game-domain/black-market';
-import { useState } from 'react';
-
-const SPIRIT_STONES = getGameConceptInfo('spirit_stones');
+import { useState, type ReactNode } from 'react';
 
 const quickMessages = [
   '仔细观察货物外观',
@@ -47,7 +45,7 @@ export function BlackMarketConversation({
   session: BlackMarketSessionView;
   busy: boolean;
   error?: string;
-  notice?: string;
+  notice?: ReactNode;
   onSubmit(message: string | undefined, offeredPrice?: number): void;
   onCommit(): Promise<void>;
   onLeave(): void;
@@ -74,9 +72,8 @@ export function BlackMarketConversation({
             以当前报价买下「{session.listing.disguisedName}
             」？成交后将当场揭晓真品。
           </p>
-          <p className="text-gold font-semibold">
-            将消耗：{SPIRIT_STONES.icon} {session.currentPrice.toLocaleString()}{' '}
-            {SPIRIT_STONES.label}
+          <p className="font-semibold">
+            将消耗：<SpiritStones amount={session.currentPrice} /> 灵石
           </p>
           <p className="text-ink-secondary">暗巷交易落子无悔。</p>
         </div>
@@ -216,8 +213,8 @@ export function BlackMarketConversation({
       <div className="flex items-center justify-between gap-3">
         <span className="text-ink-secondary text-sm">
           当前报价：
-          <strong className="text-gold font-normal">
-            {session.currentPrice.toLocaleString()} 灵石
+          <strong className="font-normal">
+            <SpiritStones amount={session.currentPrice} /> 灵石
           </strong>
         </span>
         <InkButton onClick={confirmPurchase} disabled={busy} variant="primary">
@@ -264,7 +261,12 @@ export function BlackMarketConversation({
         isOpen={composerOpen && !dealReady && session.canInteract}
         onClose={() => setComposerOpen(false)}
         title={`与${npc.name}交谈`}
-        description={`当前要价 ${session.currentPrice.toLocaleString()} 灵石。快捷语只会填入说辞，不会直接发送。`}
+        description={
+          <>
+            当前要价 <SpiritStones amount={session.currentPrice} />
+            灵石。快捷语只会填入说辞，不会直接发送。
+          </>
+        }
         size="md"
         footer={
           <div className="flex items-center justify-between gap-3">

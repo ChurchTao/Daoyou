@@ -15,6 +15,7 @@ import {
   InkTag,
 } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { cn } from '@app/lib/cn';
 import type {
   WandererBeastOffer,
@@ -27,7 +28,6 @@ import type {
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
 import { BEAST_LURE } from '@daoyou/game-content/items/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
-import { getGameConceptInfo } from '@daoyou/game-content/presentation/concepts';
 import { WANDERER_SUPERIOR_DEW_ID } from '@daoyou/game-rules/wanderer';
 import { useState, type ReactNode } from 'react';
 
@@ -36,8 +36,6 @@ type Received =
   | { kind: 'dew'; quantity: number; line: string }
   | { kind: 'book'; definitionId: string; line: string }
   | { kind: 'incense'; line: string };
-
-const stones = getGameConceptInfo('spirit_stones');
 
 function sealedBookIcon() {
   const skillId = [...BEAST_SUPERIOR_BOOK_SKILL_IDS][0];
@@ -78,11 +76,7 @@ function Quote({ children }: { children: ReactNode }) {
 function StonePrice({ amount }: { amount: number }) {
   return (
     <p className="mt-1 text-center text-sm">
-      <span aria-hidden="true">{stones.icon} </span>
-      <span className="font-mono font-semibold">
-        {amount.toLocaleString('zh-CN')}
-      </span>{' '}
-      {stones.label}
+      <SpiritStones amount={amount} className="font-semibold" />
     </p>
   );
 }
@@ -209,7 +203,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵印',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')}{' '}
+          花费 <SpiritStones amount={expectedPrice} />{' '}
           灵石，买一本随机上品传承灵印。
         </p>
       ),
@@ -240,7 +234,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下引妖香',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')} 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
           份引妖香。
         </p>
       ),
@@ -267,7 +261,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
       title: '买下灵露',
       content: (
         <p className="text-sm leading-7">
-          花费 {stones.icon} {expectedPrice.toLocaleString('zh-CN')} 灵石，买 1
+          花费 <SpiritStones amount={expectedPrice} /> 灵石，买 1
           瓶上品归元灵露。
         </p>
       ),

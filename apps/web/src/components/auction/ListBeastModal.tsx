@@ -5,6 +5,7 @@ import { BeastTradeDetails } from '@app/components/feature/beasts/BeastTradePrev
 import { InkModal } from '@app/components/layout';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkInput, InkNotice, InkSelect } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import { AuctionBeastListSchema } from '@daoyou/contracts/auction';
@@ -207,9 +208,7 @@ export function ListBeastModal({
             />
             <p className="text-ink-secondary text-xs">
               单价上限{' '}
-              <span className="font-mono">
-                {AUCTION_MAX_UNIT_PRICE.toLocaleString()}
-              </span>{' '}
+              <SpiritStones amount={AUCTION_MAX_UNIT_PRICE} />{' '}
               灵石
             </p>
             <InkSelect
@@ -243,13 +242,9 @@ export function ListBeastModal({
             )}
             <p>
               预计税费{' '}
-              <span className="font-mono">
-                {quote.feeAmount.toLocaleString()}
-              </span>
+              <SpiritStones amount={quote.feeAmount} />
               ，实得{' '}
-              <span className="font-mono">
-                {quote.sellerAmount.toLocaleString()}
-              </span>{' '}
+              <SpiritStones amount={quote.sellerAmount} />{' '}
               灵石。
             </p>
             <p className="text-ink-secondary text-xs">

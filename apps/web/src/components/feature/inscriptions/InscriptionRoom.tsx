@@ -9,6 +9,7 @@ import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import {
   MAX_CRAFT_MATERIAL_QUANTITY,
@@ -581,9 +582,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   本次消耗{' '}
                   <span className="font-mono">{session.result.cost.qi}</span>{' '}
                   天地灵气 ·{' '}
-                  <span className="font-mono">
-                    {session.result.cost.spiritStones}
-                  </span>{' '}
+                  <SpiritStones amount={session.result.cost.spiritStones} />{' '}
                   灵石
                 </p>
                 <InkButton variant="primary" onClick={clear}>
@@ -735,9 +734,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                           {input.expectedCost.qi}
                         </span>{' '}
                         天地灵气 ·{' '}
-                        <span className="font-mono">
-                          {input.expectedCost.spiritStones}
-                        </span>{' '}
+                        <SpiritStones amount={input.expectedCost.spiritStones} />{' '}
                         灵石
                       </p>
                     )}
@@ -836,9 +833,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                   {confirmation.input.expectedCost.qi}
                 </span>{' '}
                 天地灵气 ·{' '}
-                <span className="font-mono">
-                  {confirmation.input.expectedCost.spiritStones}
-                </span>{' '}
+                <SpiritStones amount={confirmation.input.expectedCost.spiritStones} />{' '}
                 灵石
               </p>
               {confirmation.warning && (

@@ -1,5 +1,6 @@
 import { InventoryGrid, ItemSlot } from '@app/components/feature/items/ItemSlot';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { RewardSelection } from '@daoyou/game-domain/rewards';
 import { rewardDisplayItem } from '@daoyou/game-rules/rewards/materials';
 import { meritRewardLabel } from './MeritRewardList.helpers';
@@ -19,14 +20,11 @@ export function MeritRewardList({ rewards }: { rewards: RewardSelection[] }) {
             return (
               <span key={`${label}-${index}`}>
                 {index > 0 ? '、' : null}
-                <GameIcon
-                  value={reward.type === 'spirit_stones' ? '💰' : '🏵️'}
-                />{' '}
-                {label}
-                <span className="font-mono font-semibold tracking-tight">
-                  {' '}
-                  {quantity.toLocaleString('zh-CN')}
-                </span>
+                {reward.type === 'spirit_stones' ? (
+                  <>灵石 <SpiritStones amount={quantity} /></>
+                ) : (
+                  <><GameIcon value="🏵️" /> {label} <span className="font-mono font-semibold tracking-tight">{quantity.toLocaleString('zh-CN')}</span></>
+                )}
               </span>
             );
           })}

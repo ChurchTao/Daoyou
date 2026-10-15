@@ -7,6 +7,7 @@ import {
 } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton, InkCard, InkNotice } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
@@ -158,7 +159,7 @@ export default function InnRecoveryPage() {
       title: '要引泉疗伤吗？',
       content: (
         <div className="space-y-2 text-sm leading-7">
-          <p>洞府法阵会消耗 {state.spiritStoneCost} 灵石，引灵眼泉息入体。</p>
+          <p>洞府法阵会消耗 <SpiritStones amount={state.spiritStoneCost} /> 灵石，引灵眼泉息入体。</p>
           <p>
             泉息周转之后，你的气血与法力都会恢复，身上所有状态也会一并散去。
           </p>
@@ -166,7 +167,7 @@ export default function InnRecoveryPage() {
           <p>丹毒不会被灵泉化开，若有余毒，仍需另寻办法。</p>
         </div>
       ),
-      confirmLabel: `付 ${state.spiritStoneCost} 灵石引泉`,
+      confirmLabel: <>付 <SpiritStones amount={state.spiritStoneCost} /> 灵石引泉</>,
       cancelLabel: '再想想',
       onConfirm: handleRecovery,
     });

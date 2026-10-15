@@ -1,4 +1,5 @@
 import { apiFetch } from '@app/lib/api/fetch';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -16,6 +17,7 @@ import type { AlchemyFormula, AlchemyMode } from '@daoyou/game-domain/consumable
 import type { Material } from '@daoyou/game-domain/character';
 import {
   createElement,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -90,7 +92,7 @@ type CraftResult = Omit<
   formulaProgress?: AlchemyResultState['formulaProgress'];
 };
 
-function buildCraftConfirmationDetails(items: Array<[string, string]>) {
+function buildCraftConfirmationDetails(items: Array<[string, ReactNode]>) {
   return createElement(
     'dl',
     { className: 'space-y-2' },
@@ -588,7 +590,17 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
             : (formula?.name ?? '未选择'),
         ],
         ['材料投入', `${materials.ids.length} 味 · 共 ${totalDose} 份`],
-        ['灵石消耗', `${readiness.estimatedSpiritStones ?? 0} 枚`],
+        [
+          '灵石消耗',
+          createElement(
+            'span',
+            null,
+            createElement(SpiritStones, {
+              amount: readiness.estimatedSpiritStones ?? 0,
+            }),
+            ' 枚',
+          ),
+        ],
         ['天地灵气', `${qiCost} 点`],
         ...(expectedMode === 'improvised'
           ? ([

@@ -1,5 +1,5 @@
 import { cn } from '@app/lib/cn';
-import type { ChangeEvent, KeyboardEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
 import type { HTMLInputTypeAttribute } from 'react';
 import {
   inkFieldVariants,
@@ -16,7 +16,7 @@ export interface InkInputProps extends InkFieldVariantProps {
   ) => void;
   multiline?: boolean;
   rows?: number;
-  hint?: string;
+  hint?: ReactNode;
   error?: string;
   disabled?: boolean;
   type?: HTMLInputTypeAttribute;

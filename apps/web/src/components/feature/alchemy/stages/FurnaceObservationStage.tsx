@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useAlchemyCraftSession } from '../alchemyCraftContext';
 import {
   describeAppearanceTendency,
@@ -60,7 +61,7 @@ export function FurnaceObservationStage() {
       </details>
       <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <span className="text-xs">
-          {session.readiness.estimatedSpiritStones?.toLocaleString()} 灵石 ·{' '}
+          {session.readiness.estimatedSpiritStones !== null && <SpiritStones amount={session.readiness.estimatedSpiritStones} />} 灵石 ·{' '}
           {session.qiCost} 天地灵气
         </span>
         <div className="flex gap-3">

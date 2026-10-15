@@ -1,4 +1,5 @@
 import { useCultivatorCurrency } from '@app/lib/resources/player';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
 import type { ReactNode } from 'react';
 
 /** Shared status row for bag management and item selection. */
@@ -22,12 +23,11 @@ export function InventoryHeader({
             aria-live="polite"
             aria-atomic="true"
           >
-            <span aria-hidden="true">💰</span>{' '}
-            <span className="font-mono">
-              {data?.spiritStones === undefined
-                ? '—'
-                : data.spiritStones.toLocaleString('zh-CN')}
-            </span>{' '}
+            {data?.spiritStones === undefined ? (
+              '—'
+            ) : (
+              <SpiritStones amount={data.spiritStones} mode="compact" />
+            )}{' '}
             灵石
           </span>
           <span className="font-mono whitespace-nowrap">{capacity}</span>
