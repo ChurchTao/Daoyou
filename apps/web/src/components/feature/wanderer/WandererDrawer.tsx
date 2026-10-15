@@ -301,13 +301,15 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             <LoadError message={stateFeed.error} onRetry={stateFeed.refresh} />
           ) : null}
           {state ? (
-            <div className="flex items-start gap-4">
-              <BeastIcon
-                speciesId={state.wantedSpeciesId}
-                isMutant
-                className="shrink-0 text-7xl"
-              />
-              <div className="min-w-0 space-y-2">
+            <div className="space-y-3">
+              <div className="flex justify-center py-2">
+                <BeastIcon
+                  speciesId={state.wantedSpeciesId}
+                  isMutant
+                  className="text-8xl"
+                />
+              </div>
+              <div className="space-y-2 text-center">
                 <Quote>
                   {state.wantedSpeciesName}
                   我找了一路。你要是带着，灵露我给得比别的都多。
@@ -425,8 +427,8 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
             <InkNotice>正在打听这位游商。</InkNotice>
           ) : null}
           {state ? (
-            <div className="flex flex-col gap-8 sm:flex-row sm:items-start">
-              <div className="w-28">
+            <div className="grid grid-cols-3 items-start gap-3">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   item={shelfItem(BEAST_LURE.id, 1)}
                   className="w-full"
@@ -447,7 +449,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 </ItemSlot>
                 <StonePrice amount={state.incensePrice} />
               </div>
-              <div className="w-28">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   item={shelfItem(WANDERER_SUPERIOR_DEW_ID, 1)}
                   className="w-full"
@@ -468,7 +470,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 </ItemSlot>
                 <StonePrice amount={state.dewPrice} />
               </div>
-              <div className="w-28">
+              <div className="w-full max-w-28 justify-self-center">
                 <ItemSlot
                   className="w-full"
                   emptyLabel="随机上品传承灵印"
