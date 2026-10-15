@@ -162,11 +162,13 @@ export function PreviewSlot({
     window.addEventListener('scroll', position, true);
     window.addEventListener('resize', position);
     window.visualViewport?.addEventListener('resize', position);
+    window.visualViewport?.addEventListener('scroll', position);
     return () => {
       observer.disconnect();
       window.removeEventListener('scroll', position, true);
       window.removeEventListener('resize', position);
       window.visualViewport?.removeEventListener('resize', position);
+      window.visualViewport?.removeEventListener('scroll', position);
     };
   }, [open]);
   return (

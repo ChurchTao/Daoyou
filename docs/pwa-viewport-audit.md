@@ -120,7 +120,7 @@ world-chat、导航隐藏、菜单展开时保持现有显示语义；空的 bot
 
 ### 4.4 键盘、横屏与沉浸场景
 
-- 聊天继续使用自己的 visualViewport 测量；不增加全局 `innerHeight`、`--vh`、resize 定时器。
+- 聊天继续局部使用 visualViewport；2026-10-15 键盘漂移修复见第 8 节。不增加全局 `innerHeight`、`--vh` 或 resize 定时器。
 - 不通过新增 `interactive-widget` 或 VirtualKeyboard 全局开关同时改变 Android 键盘策略。若需调整，另按真实键盘证据处理。
 - 原有 `data-chat-keyboard` 隐藏底栏的行为和 `--game-bottom-offset` 接口保留；测量不能把底栏安全区再减一次。
 - 横屏继续由真正贴左右边缘的 HUD、导航、画布控件和 Portal 面板消费左右安全区；内容不能被祖先和子节点重复挤压。
@@ -201,3 +201,48 @@ world-chat、导航隐藏、菜单展开时保持现有显示语义；空的 bot
 本轮没有修改纯领域逻辑，未新增单元测试或运行 `pnpm run test`。**尚未验证 iOS／Android 真机、Safari／Firefox、原生系统键盘、PWA 实际安装／离线／更新；没有部署或发布。**
 
 若推荐方案在真机上仍失败，先用上述测量定位平台与坐标差异，再更新这一份方案；不能将独立运行 100vh、负 inset、扩大背景和 JS viewport 高度四套办法同时保留下来。
+
+## 8. 2026-10-15 聊天键盘高度漂移修复
+
+原逻辑将 `visualViewport.height` 减去聊天区的文档顶部坐标，却未处理键盘聚焦后的 `offsetTop`；在缩小的可视范围内仍保留整段场景头部扣减，会将聊天区压到 160px 下限。键盘模式又以 `display:none` 隐藏 bottom chrome，ResizeObserver 将正文预留同步降为零，改变文档高度，与系统聚焦滚动相互影响。失焦会重建测量 effect，并可能把键盘尚未收起时的 `innerHeight` 记成新的完整高度。
+
+现在的职责如下：
+
+- 普通模式按文档坐标测量聊天占位，桌面及硬件键盘聚焦不改变布局。
+- 检测到触屏键盘压缩可视范围后，保留正常聊天占位与 dock 实测高度，仅把聊天表面固定到 `visualViewport.offsetTop`／`height` 对应范围。消息列表收缩，频道与输入区可见；顶边、横屏两侧沿用统一安全区。
+- dock 改为 `visibility:hidden`，保留测量尺寸；订阅 viewport resize／scroll 及 window scroll，以同一 rAF 合并更新，不调用 `scrollIntoView`／`window.scrollTo` 争抢焦点滚动。
+- 键盘关闭动画期间不因 blur 提前重置基准；可视高度恢复后解除固定布局。恢复时从原占位测量，不能从尚未完成 React 更新的固定表面测量，否则重复开关仍会累积高度。
+- 场景入场动画期间仅取消祖先 transform，避免形成 fixed 包含块；不取消／重启动画。离开路由清除键盘标记及事件监听。
+
+本地验收使用可用 Playwright（Browser 专用技能未提供），地址 `http://127.0.0.1:5174/game/world-chat`。在 393×852、360×800、852×393 触屏上下文分别连续开关 4 次，模拟 visual viewport 高度压缩及 offsetTop 变化，期间输入并清空三行草稿，没有发送消息。每次输入框均在可视范围内、焦点保留、无横向溢出；文档高度、聊天占位与 dock 尺寸在开关前后不变。独立验证 viewport scroll 使聊天 top 跟随到 120px，失焦后的关闭动画、系统频道无输入框、返回洞府后 dock 恢复；桌面 1440×900 和触屏未弹键盘聚焦均不启用固定模式。无页面运行错误或框架错误浮层。
+
+静态检查：`pnpm run lint`、Web `typecheck`、`pnpm run build:client`、相关文件 Prettier 与 `git diff --check`。没有纯领域逻辑变更，未运行单元测试。截图 `/tmp/daoyou-chat-keyboard-after.png` 仅为可视视口契约模拟，**不是 iOS 原生键盘截图**；原生键盘动画、第三方输入法及真机 PWA 仍需验收。
+
+平台背景参考 [Chrome 键盘视口说明](https://developer.chrome.com/blog/viewport-resize-behavior)、[WebKit 的 visualViewport scroll 时机报告](https://bugs.webkit.org/show_bug.cgi?id=218465) 与 [iOS 键盘额外底部空白报告](https://bugs.webkit.org/show_bug.cgi?id=292603)。这些说明平台差异，具体缺陷依据本仓库测量逻辑与本地复现确定。
+
+## 9. 共享弹层与物品预览的同类问题修复
+
+后续排查确认：`InkModal` 在关闭状态挂载时仍清空 `body.overflow`，会覆盖打开中的抽屉。实际打开灵兽喂养后，背景可被滚动 350px。通用弹层也没有处理键盘缩小 visual viewport：地图搜索框仍在约 459px，而可视底边已经变为 380px。物品预览虽然计算 offsetTop，却未订阅 visual viewport scroll，纯视口上移时保持旧位置。
+
+已在共享职责处收口：
+
+- `useBodyScrollLock` 为三个弹层组件统一计数。关闭的弹层不参与锁定；仅最后一个打开层关闭后恢复最初的 body overflow。移除 Modal、Drawer、AdminDialog 各自的旧锁定逻辑。
+- `useOverlayViewport` 只在弹层打开时监听 resize／scroll，以 rAF 合并更新固定层的可视四边边界及局部高度／宽度变量；不用全局根高度或定时轮询。关闭时清理监听与临时样式。
+- Modal 的整体高度限制在可视容器内，标题／footer 保持可见，正文可收缩和滚动。Drawer 的 88% 和地图搜索的 70% 上限改从可视高度计算；后台原生 dialog 同样使用可视边界。
+- 已聚焦字段可能因容器缩小被裁掉，测量后只滚动弹层内的滚动祖先，不调用页面级 scrollTo／scrollIntoView。抽屉关闭时恢复焦点使用 preventScroll。
+- ItemSlot 补齐 visualViewport scroll 的订阅与清理，复用原来的定位函数。
+
+验证环境仍是本地 `127.0.0.1:5174` 与可用 Playwright，Browser 专用技能未提供。以下视口变化为 Chromium 中的契约模拟，不是原生系统键盘：
+
+- 灵兽喂养打开后 body overflow 保持 hidden，遮罩上滚轮滚动背景仍为 0；关闭后恢复原值。
+- 世界传音“展示→随身物品→收起→取消”：有效模态层数 1→2→1→0，前三步保持 hidden，最后一步恢复原值。物品 popover 不计入模态层数。
+- 地图搜索在 380px 可视高度下，抽屉 bottom=380px，搜索输入框约 188—232px，落在可视范围内。
+- 红包祝福语在相同高度下，经正文内部滚动落在约 261—311px，footer 约 311—380px，页面 scrollY 保持 0；没有发出红包。
+- 展示附言弹窗在 380px 可视高度下，整体约 12—368px；offsetTop 改成 90px 后，整体跟随到约 102—458px，正文输入仍可见。关闭后锁定解除。
+- 物品预览仅收到 viewport scroll，offsetTop 从 300 改为 450 时，预览 top 随之从约 347 调到 497px；不再需要额外 resize。
+- 后台“材料库→新增材料”原生 dialog 在 380px 可视高度下约 19—361px，输入和底部操作区可见；视口上移后同步跟随，取消后无残留锁。没有保存材料。
+- 1440×900、360×800、852×393 下抽查红包抽屉：正常布局无横向溢出；模拟键盘压缩后，祝福语及 footer 均在可视范围内。关闭后恢复原 overflow。原生 focus 可能主动滚动文档，代码没有额外争抢这一滚动。
+
+`pnpm run lint`、Web 类型检查、`pnpm run build:client`、共享实现／文档的 Prettier 检查与 `git diff --check` 用于本轮静态验证。没有纯领域逻辑改动，未新增／运行领域单元测试。测试只打开、聚焦、滚动及关闭界面，没有发送聊天、消耗资源或提交后台修改。开发服务在并行工作期间重启导致的一次会话校验错误已刷新恢复，不能归为前端修复效果。
+
+**iOS／Android 真机、原生键盘动画与第三方输入法仍待验证，没有部署。** 本节取代早先“保留旧弹层滚动锁”的范围约定；新增能力归属于共享弹层，不回填各业务页面的补偿样式。
