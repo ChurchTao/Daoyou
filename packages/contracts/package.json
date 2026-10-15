@@ -65,6 +65,7 @@
     "./spirit-field": "./dist/spiritField.js",
     "./sponsorship": "./dist/sponsorship.js",
     "./task": "./dist/task.js",
+    "./transfer": "./dist/transfer.js",
     "./wanderer": "./dist/wanderer.js",
     "./world-chat": "./dist/public/world-chat.js"
   },

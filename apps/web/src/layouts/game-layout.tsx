@@ -87,6 +87,7 @@ function PlayerShell() {
               {isDead ? '前往转世重修' : '前往角色创建'}
             </InkButton>
             <InkButton href="/game">返回主界面</InkButton>
+            <InkButton href="/transfer">跨服转入与转出记录</InkButton>
           </div>
         </div>
       </div>

@@ -25,6 +25,11 @@ export const router = createBrowserRouter(
         handle={title('公开战谱')}
       />
       {authRoutes}
+      <Route
+        path="/transfer"
+        lazy={lazyRoute(() => import('@app/routes/transfer/route'))}
+        handle={title('跨服转移')}
+      />
       {gameRoutes}
 
       {adminRoutes}

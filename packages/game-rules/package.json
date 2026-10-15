@@ -95,6 +95,7 @@
     "./story": "./dist/public/story.js",
     "./tower": "./dist/public/tower.js",
     "./tower/host": "./dist/tower/host.js",
+    "./transfer": "./dist/transfer/policy.js",
     "./wanderer": "./dist/public/wanderer.js",
     "./world/atlas": "./dist/public/world/atlas.js",
     "./world/dungeon": "./dist/world/dungeon.js",
