@@ -48,15 +48,6 @@
       ]
     },
     {
-      "source": "/404.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
-      ]
-    },
-    {
       "source": "/manifest.webmanifest",
       "headers": [
         {
@@ -88,7 +79,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable, s-maxage=60"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
@@ -97,7 +88,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable, s-maxage=60"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
