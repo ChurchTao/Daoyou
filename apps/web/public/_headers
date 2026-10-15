@@ -1,10 +1,8 @@
-# Keep Cache-Control values in step with the repository-root edgeone.json.
-# Paths that set Cache-Control do not overlap: Cloudflare joins repeated
-# Cache-Control values instead of replacing them.
+# Cache-Control 的取值须与仓库根目录的 edgeone.json 保持一致。
+# 设置 Cache-Control 的路径互不重叠；Cloudflare 会合并重复的同名响应头。
 #
-# A rule matches the request path, including when the body is a 404.
-# Hashed bundles therefore use s-maxage so the edge drops a bad response
-# within a minute, while browsers may keep a real file for a year.
+# 路径规则也可能命中错误响应。带哈希的构建资源只在浏览器长期缓存，
+# 边缘缓存保留较短有效期，避免错误响应在边缘长期滞留。
 
 /
   Cache-Control: public, max-age=0, must-revalidate
@@ -30,14 +28,14 @@
 /icons/*
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
-# Vite content hashes. immutable is for browsers. s-maxage is for the edge.
+# Vite 为构建产物添加内容哈希；immutable 约束浏览器缓存，s-maxage 约束边缘缓存。
 /assets/*.js
   Cache-Control: public, max-age=31536000, immutable, s-maxage=60
 
 /assets/*.css
   Cache-Control: public, max-age=31536000, immutable, s-maxage=60
 
-# Public images are replaced in place and are not content-hashed.
+# public 目录下的图片使用固定路径，更新时不会改变文件名。
 /assets/*.webp
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 
@@ -55,3 +53,5 @@
 
 /*
   X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
