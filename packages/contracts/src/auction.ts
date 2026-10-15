@@ -2,30 +2,9 @@ import type { AuctionItemType } from '@daoyou/game-domain/auction';
 
 import { z } from 'zod';
 
-
-import { AUCTION_MAX_PURCHASE_QUANTITY, AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
 
 import { type BeastTradePreview } from '@daoyou/game-domain/beasts';
-
-
-
 
 export const AuctionListSchema = z
   .object({
@@ -46,18 +25,15 @@ export const AuctionListSchema = z
     '专属寄售须指定好友，公开寄售不指定买家',
   );
 
-
 export type AuctionListRequest = z.infer<typeof AuctionListSchema>;
-
 
 export const AuctionBuySchema = z
   .object({
     listingId: z.uuid(),
-    quantity: z.number().int().min(1).max(AUCTION_MAX_PURCHASE_QUANTITY),
+    quantity: z.number().int().min(1).max(2_147_483_647),
     requestId: z.uuid(),
   })
   .strict();
-
 
 export const AuctionBeastListSchema = z
   .strictObject({
@@ -76,10 +52,7 @@ export const AuctionBeastListSchema = z
     '专属寄售须指定好友，公开寄售不指定买家',
   );
 
-
 export type AuctionBeastListRequest = z.infer<typeof AuctionBeastListSchema>;
-
-
 
 type AuctionListingBase = {
   id: string;
@@ -95,8 +68,6 @@ type AuctionListingBase = {
   targetCultivatorName: string | null;
   expiresAt: string;
 };
-
-
 
 export type AuctionListingView = AuctionListingBase &
   (

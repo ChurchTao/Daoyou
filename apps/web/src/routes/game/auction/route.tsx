@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { AuctionListingActions } from '@app/components/auction/AuctionListingActions';
 import { AuctionListings } from '@app/components/auction/AuctionListings';
 import { ListBeastModal } from '@app/components/auction/ListBeastModal';
@@ -19,31 +18,34 @@ import {
   InkNotice,
   InkSelect,
 } from '@app/components/ui';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
+import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { type AuctionListingView } from '@daoyou/contracts/auction';
+import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import {
-  AUCTION_MAX_PURCHASE_QUANTITY,
-  AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_ITEM_TYPES,
+  AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_TYPE_NAMES,
   type AuctionAssetType,
   type AuctionItemType,
 } from '@daoyou/game-domain/auction';
-import { calculateAuctionSettlement } from '@daoyou/game-rules/auction';
+import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
+import { MATERIAL_TYPE_NAMES } from '@daoyou/game-domain/inventory';
+import { getRealmStageLevel } from '@daoyou/game-domain/progression';
+import {
+  auctionPurchaseQuantityLimit,
+  calculateAuctionSettlement,
+} from '@daoyou/game-rules/auction';
+import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
 import {
   hasReachedLateQiRefining,
   LATE_QI_AUCTION_DENIED,
 } from '@daoyou/game-rules/progression/realm-access';
-import { getRealmStageLevel } from '@daoyou/game-domain/progression';
-import { type AuctionListingView } from '@daoyou/contracts/auction';
-import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
-import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
-import { EQUIPMENT_SLOT_NAMES } from '@daoyou/game-domain/equipment';
-import { MATERIAL_TYPE_NAMES } from '@daoyou/game-domain/inventory';
-import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
@@ -250,12 +252,15 @@ export default function AuctionPage() {
       pushToast({ message: '角色信息读取中，请稍后重试', tone: 'warning' });
       return false;
     }
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity >
-        Math.min(listing.remainingQuantity, AUCTION_MAX_PURCHASE_QUANTITY)
-    )
+    const maxQuantity =
+      listing.itemType === 'beast'
+        ? 1
+        : auctionPurchaseQuantityLimit({
+            definitionId: listing.item.definitionId,
+            remainingQuantity: listing.remainingQuantity,
+            unitPrice: listing.price,
+          });
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > maxQuantity)
       return false;
     const total = calculateAuctionSettlement(
       listing.price,

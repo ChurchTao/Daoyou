@@ -1,12 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
-import { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';
 import { ITEM_DEFINITIONS } from '@daoyou/game-content/items';
+import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
+import { describe, expect, it } from 'vitest';
+import { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';
 import {
   auctionBlockReason,
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
+  auctionPurchaseQuantityLimit,
   AuctionSnapshotSchema,
 } from './items.js';
 
@@ -186,4 +187,43 @@ it('上架件数跟随背包堆叠上限', () => {
     }).success,
   ).toBe(false);
   expect(auctionListingStackLimit('equipment.v6')).toBe(1);
+});
+
+it('购买件数跟随同一堆叠上限，并受剩余数量与成交总额约束', () => {
+  const book = ITEM_DEFINITIONS.find((item) => item.kind === 'beast_book')!;
+  expect(
+    auctionPurchaseQuantityLimit({
+      definitionId: 'material.v1',
+      remainingQuantity: 999,
+      unitPrice: 1,
+    }),
+  ).toBe(999);
+  expect(
+    auctionPurchaseQuantityLimit({
+      definitionId: book.id,
+      remainingQuantity: 99,
+      unitPrice: 1,
+    }),
+  ).toBe(99);
+  expect(
+    auctionPurchaseQuantityLimit({
+      definitionId: 'equipment.v6',
+      remainingQuantity: 1,
+      unitPrice: 1,
+    }),
+  ).toBe(1);
+  expect(
+    auctionPurchaseQuantityLimit({
+      definitionId: 'material.v1',
+      remainingQuantity: 40,
+      unitPrice: 100,
+    }),
+  ).toBe(40);
+  expect(
+    auctionPurchaseQuantityLimit({
+      definitionId: 'material.v1',
+      remainingQuantity: 999,
+      unitPrice: 1_600_000,
+    }),
+  ).toBe(625);
 });
