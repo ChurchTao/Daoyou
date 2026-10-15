@@ -277,7 +277,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       }
       const label = this.add
         .text(0, 0, shortName, {
-          fontFamily: 'LXGWWenKai, serif',
+          fontFamily: 'LXGWWenKai, "STFangsong", "FangSong", "Songti SC", "SimSun", serif',
           fontSize: world
             ? enabled
               ? '24px'
