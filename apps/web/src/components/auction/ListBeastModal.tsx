@@ -208,8 +208,7 @@ export function ListBeastModal({
             />
             <p className="text-ink-secondary text-xs">
               单价上限{' '}
-              <SpiritStones amount={AUCTION_MAX_UNIT_PRICE} />{' '}
-              灵石
+              <SpiritStones amount={AUCTION_MAX_UNIT_PRICE} />
             </p>
             <InkSelect
               label="寄售范围"
@@ -244,8 +243,7 @@ export function ListBeastModal({
               预计税费{' '}
               <SpiritStones amount={quote.feeAmount} />
               ，实得{' '}
-              <SpiritStones amount={quote.sellerAmount} />{' '}
-              灵石。
+              <SpiritStones amount={quote.sellerAmount} />。
             </p>
             <p className="text-ink-secondary text-xs">
               寄售48小时，每单一只。上架后暂离灵兽仓，成交款或退回灵兽通过邮件领取。

@@ -73,7 +73,7 @@ export function BlackMarketConversation({
             」？成交后将当场揭晓真品。
           </p>
           <p className="font-semibold">
-            将消耗：<SpiritStones amount={session.currentPrice} /> 灵石
+            将消耗：<SpiritStones amount={session.currentPrice} />
           </p>
           <p className="text-ink-secondary">暗巷交易落子无悔。</p>
         </div>
@@ -214,7 +214,7 @@ export function BlackMarketConversation({
         <span className="text-ink-secondary text-sm">
           当前报价：
           <strong className="font-normal">
-            <SpiritStones amount={session.currentPrice} /> 灵石
+            <SpiritStones amount={session.currentPrice} />
           </strong>
         </span>
         <InkButton onClick={confirmPurchase} disabled={busy} variant="primary">
@@ -263,8 +263,7 @@ export function BlackMarketConversation({
         title={`与${npc.name}交谈`}
         description={
           <>
-            当前要价 <SpiritStones amount={session.currentPrice} />
-            灵石。快捷语只会填入说辞，不会直接发送。
+            当前要价 <SpiritStones amount={session.currentPrice} />。快捷语只会填入说辞，不会直接发送。
           </>
         }
         size="md"

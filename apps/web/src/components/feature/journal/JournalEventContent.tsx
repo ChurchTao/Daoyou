@@ -23,7 +23,7 @@ function ResourceAmount({
 }) {
   const style = resourceStyles[resource];
   if (resource === 'spiritStones') {
-    return <span className="whitespace-nowrap">灵石{value > 0 ? '+' : value < 0 ? '-' : ''}<SpiritStones amount={Math.abs(value)} /></span>;
+    return <span className="whitespace-nowrap">{value > 0 ? '+' : value < 0 ? '-' : ''}<SpiritStones amount={Math.abs(value)} /></span>;
   }
   return (
     <span className={`whitespace-nowrap ${style.className}`}>

@@ -46,7 +46,6 @@ export function HuntResult({
                 <span className="font-mono">+{data.reward.experience}</span>
               </span>
               <span>
-                灵石{' '}
                 +<SpiritStones amount={data.reward.spiritStones} />
               </span>
               <span>

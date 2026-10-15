@@ -50,7 +50,7 @@ export function BeastActionDrawer({
             <span className="font-mono">
               {beast.maxLifespan - beast.currentLifespan}
             </span>{' '}
-            点寿命，消耗 <SpiritStones amount={cost} /> 灵石。
+            点寿命，消耗 <SpiritStones amount={cost} />。
           </p>
           <p>
             现有灵石 <SpiritStones amount={spiritStones} mode="compact" />

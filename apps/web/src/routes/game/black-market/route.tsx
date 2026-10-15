@@ -223,11 +223,11 @@ export default function BlackMarketPage() {
         const feedback =
           result.outcome === 'accepted'
             ? (
-                <>摊主点头认价：<SpiritStones amount={result.session.currentPrice} /> 灵石。</>
+                <>摊主点头认价：<SpiritStones amount={result.session.currentPrice} />。</>
               )
             : result.outcome === 'countered'
               ? (
-                  <>摊主松了口：现在要价 <SpiritStones amount={result.session.currentPrice} /> 灵石。</>
+                  <>摊主松了口：现在要价 <SpiritStones amount={result.session.currentPrice} />。</>
                 )
               : result.outcome === 'locked'
                 ? '这一下压得太狠，摊主把价彻底咬死了。'

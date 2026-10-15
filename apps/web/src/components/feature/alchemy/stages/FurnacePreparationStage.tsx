@@ -262,7 +262,7 @@ export function FurnacePreparationStage() {
           </p>
           <p>
             {session.readiness.estimatedSpiritStones !== null
-              ? <><SpiritStones amount={session.readiness.estimatedSpiritStones} /> 灵石 · {session.qiCost} 天地灵气</>
+              ? <><SpiritStones amount={session.readiness.estimatedSpiritStones} /> · {session.qiCost} 天地灵气</>
               : '投入灵材后确定本次消耗'}
           </p>
         </div>

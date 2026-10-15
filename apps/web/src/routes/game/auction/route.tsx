@@ -300,13 +300,11 @@ export default function AuctionPage() {
             </p>
             <p>
               单价{' '}
-              <SpiritStones amount={listing.price} />{' '}
-              灵石
+              <SpiritStones amount={listing.price} />
             </p>
             <p className="text-amber-800">
               合计{' '}
-              <SpiritStones amount={total} className="font-semibold" />{' '}
-              灵石
+              <SpiritStones amount={total} className="font-semibold" />
             </p>
             {listing.itemType === 'beast' &&
               !canDeployBeast(listing.beast, ownerLevel) && (

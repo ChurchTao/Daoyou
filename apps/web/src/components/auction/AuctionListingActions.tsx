@@ -71,8 +71,7 @@ export function AuctionListingActions({
         )}
       </div>
       <p>
-        单价 <SpiritStones amount={listing.price} />{' '}
-        灵石／{isBeast ? '只' : '件'}
+        单价 <SpiritStones amount={listing.price} />／{isBeast ? '只' : '件'}
       </p>
       {!isOwner && !isBeast && maxQuantity > 1 && (
         <div>
@@ -88,8 +87,7 @@ export function AuctionListingActions({
       {!isOwner && (
         <p className="text-amber-800">
           合计{' '}
-          {total === null ? '—' : <SpiritStones amount={total} />}{' '}
-          灵石
+          {total === null ? '—' : <SpiritStones amount={total} />}
         </p>
       )}
       {isBeast && !isOwner && !canDeployBeast(listing.beast, ownerLevel) && (

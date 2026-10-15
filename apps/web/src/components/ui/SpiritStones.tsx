@@ -19,10 +19,10 @@ export function SpiritStones({
   return (
     <span
       className={cn(
-        'inline-flex items-baseline gap-1 whitespace-nowrap',
+        'inline-flex items-center gap-1 whitespace-nowrap',
         className,
       )}
-      title={mode === 'compact' ? `💰 ${fullAmount} 灵石` : undefined}
+      title={mode === 'compact' ? `💰 ${fullAmount}` : undefined}
     >
       {mode === 'exact' && <GameIcon value="💰" />}
       {mode === 'compact' && <span className="sr-only">{fullAmount} 灵石</span>}

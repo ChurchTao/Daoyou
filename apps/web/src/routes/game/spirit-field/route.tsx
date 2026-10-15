@@ -567,9 +567,9 @@ export default function SpiritFieldPage() {
                       : method.resourceKind === 'none'
                         ? '无需消耗'
                         : method.resourceKind === 'spirit_stones'
-                          ? <>灵石 <SpiritStones amount={method.cost.amount} /></>
+                          ? <SpiritStones amount={method.cost.amount} />
                           : `${({ qi: '天地灵气', mp: '法力' } as Record<string, string>)[method.resourceKind]} ${method.cost.amount}`}
-                    {method.cost.spiritStones ? <> 灵石 <SpiritStones amount={method.cost.spiritStones} /></> : null}
+                    {method.cost.spiritStones ? <> <SpiritStones amount={method.cost.spiritStones} /></> : null}
                   </span>
                   <InkButton
                     variant="primary"

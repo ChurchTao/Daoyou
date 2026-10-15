@@ -61,7 +61,7 @@ export function FurnaceObservationStage() {
       </details>
       <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <span className="text-xs">
-          {session.readiness.estimatedSpiritStones !== null && <SpiritStones amount={session.readiness.estimatedSpiritStones} />} 灵石 ·{' '}
+          {session.readiness.estimatedSpiritStones !== null && <SpiritStones amount={session.readiness.estimatedSpiritStones} />} ·{' '}
           {session.qiCost} 天地灵气
         </span>
         <div className="flex gap-3">

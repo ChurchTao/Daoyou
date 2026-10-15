@@ -530,7 +530,7 @@ export default function MarketRecyclePage() {
                               </span>
                             </span>
                             <span className="shrink-0">
-                              <SpiritStones amount={item.unitPrice} /> 灵石/份
+                              <SpiritStones amount={item.unitPrice} />/份
                             </span>
                           </div>
                           {item.comment ? (
@@ -549,7 +549,7 @@ export default function MarketRecyclePage() {
                   </details>
                   <p className="hidden justify-between text-sm lg:flex">
                     <span>合计</span>
-                    <strong><SpiritStones amount={currentQuote.total} /> 灵石</strong>
+                    <strong><SpiritStones amount={currentQuote.total} /></strong>
                   </p>
                 </>
               ) : !quoteError ? (
@@ -595,7 +595,7 @@ export default function MarketRecyclePage() {
               <summary className="cursor-pointer">本次成交记录</summary>
               <div className="mt-2 max-h-28 space-y-2 overflow-y-auto">
                 {receipts.map((receipt, index) => (
-                  <p key={index}>收妥 {receipt.quantity} 份，付你 <SpiritStones amount={receipt.total} /> 灵石。</p>
+                  <p key={index}>收妥 {receipt.quantity} 份，付你 <SpiritStones amount={receipt.total} />。</p>
                 ))}
               </div>
             </details>
@@ -732,8 +732,7 @@ export default function MarketRecyclePage() {
           <span className="text-sm">
             {currentQuote ? (
               <>
-                合计 <SpiritStones amount={currentQuote.total} />{' '}
-                灵石
+                合计 <SpiritStones amount={currentQuote.total} />
               </>
             ) : (
               '等待重新报价'
