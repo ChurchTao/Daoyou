@@ -1,7 +1,7 @@
 .combat-v6-page {
   height: 100%;
   overflow: auto;
-  padding: max(env(safe-area-inset-top), 1rem)
+  padding: max(var(--app-safe-top), 1rem)
     max(env(safe-area-inset-right), 1rem) max(env(safe-area-inset-bottom), 1rem)
     max(env(safe-area-inset-left), 1rem);
   color: var(--color-ink);
@@ -440,7 +440,7 @@
 }
 @media (max-width: 899px) {
   .combat-v6-page {
-    padding: max(env(safe-area-inset-top), 0.65rem)
+    padding: max(var(--app-safe-top), 0.65rem)
       max(env(safe-area-inset-right), 0.65rem)
       max(env(safe-area-inset-bottom), 0.65rem)
       max(env(safe-area-inset-left), 0.65rem);

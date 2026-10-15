@@ -133,7 +133,7 @@ export function GameActivityOverlay({
   children: React.ReactNode;
 }) {
   return (
-    <div className="absolute inset-0 z-30 grid place-items-center bg-black/72 pt-[max(env(safe-area-inset-top),1.5rem)] pr-[max(env(safe-area-inset-right),1.5rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)] pl-[max(env(safe-area-inset-left),1.5rem)] backdrop-blur-sm">
+    <div className="absolute inset-0 z-30 grid place-items-center bg-black/72 pt-[max(var(--app-safe-top),1.5rem)] pr-[max(env(safe-area-inset-right),1.5rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)] pl-[max(env(safe-area-inset-left),1.5rem)] backdrop-blur-sm">
       <div className="w-full max-w-md text-center">{children}</div>
     </div>
   );

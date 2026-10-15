@@ -1,3 +1,4 @@
+import { AppViewportColor } from '@app/components/layout/AppViewportColor';
 import { InkButton } from '@app/components/ui';
 import { GameImage } from '@app/components/ui/GameImage';
 import { useTypewriter } from '@app/lib/hooks/useTypewriter';
@@ -189,9 +190,10 @@ export function NarrativePerformanceStage({
 
   return (
     <section
-      className="relative isolate min-h-[100svh] overflow-hidden bg-[#111713] text-[#f5efdf]"
+      className="relative isolate min-h-dvh overflow-hidden bg-[#111713] text-[#f5efdf]"
       aria-label={script.title}
     >
+      <AppViewportColor color="#111713" />
       <GameImage
         key={act.id}
         src={script.backdrop.src}
@@ -204,7 +206,7 @@ export function NarrativePerformanceStage({
       />
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(7,12,11,0.14)_0%,rgba(7,12,11,0.36)_44%,rgba(7,12,11,0.94)_100%)] md:bg-[linear-gradient(90deg,rgba(7,12,11,0.92)_0%,rgba(7,12,11,0.68)_46%,rgba(7,12,11,0.16)_78%)]" />
 
-      <div className="mx-auto flex min-h-[100svh] w-full max-w-7xl flex-col pt-[calc(env(safe-area-inset-top)+1.25rem)] pr-[max(env(safe-area-inset-right),1.25rem)] pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pl-[max(env(safe-area-inset-left),1.25rem)] sm:pr-[max(env(safe-area-inset-right),2rem)] sm:pl-[max(env(safe-area-inset-left),2rem)] md:pr-[max(env(safe-area-inset-right),3rem)] md:pl-[max(env(safe-area-inset-left),3rem)]">
+      <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col pt-[calc(var(--app-safe-top)+1.25rem)] pr-[max(env(safe-area-inset-right),1.25rem)] pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pl-[max(env(safe-area-inset-left),1.25rem)] sm:pr-[max(env(safe-area-inset-right),2rem)] sm:pl-[max(env(safe-area-inset-left),2rem)] md:pr-[max(env(safe-area-inset-right),3rem)] md:pl-[max(env(safe-area-inset-left),3rem)]">
         <header className="flex items-start justify-between gap-5">
           <div>
             <p className="text-xs tracking-[0.28em] text-[#d8cba9]">

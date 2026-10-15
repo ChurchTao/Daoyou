@@ -37,7 +37,10 @@
 - 清扫与采掘共用的横屏、全屏进入和释放逻辑放在 `apps/web/src/lib/gameActivityImmersive.ts`；共享启动层和沉浸状态监听放在 `apps/web/src/components/feature/game-activity/`
 - 清扫摇杆使用 `phaser4-rex-plugins` 的 Virtual Joystick，并由清扫 Phaser runtime 持有、渲染和销毁；采掘放索按钮仍是玩法私有 DOM 控件。各玩法 runtime 与服务端重放规则保持独立
 - PWA 安装状态由应用根 Provider 统一持有；小游戏只在全屏失败时给出场景化安装提示，系统设置保留固定安装入口。展开菜单「下载游戏」进入 `/game/download`，按苹果手机、安卓手机和电脑以循环示意图说明如何添加到主屏幕；浏览器可以直接安装时，该页提供安装按钮
-- PWA 安全区由顶层布局和共享固定层分别负责：背景与画布可以铺满系统区域，HUD、导航、正文和模态交互必须避让 `safe-area-inset-*`；不得给 `body` 统一增加 padding
+- 根画布只画纯色，不给 `body` 增加安全区 padding。Provider 外壳不拥有高度或背景；普通完整场景使用 `min-height:100dvh`，画布与固定工作区使用 `height:100dvh`，保留各自滚动方式。
+- 系统顶部绘色层仅有 `index.html` 中 `#root` 外的 `.app-system-top`，由首帧的 iOS 独立运行标记启用；真实 fullscreen 关闭。屏幕顶部控件读取 `--app-safe-top`，左右及底部仍使用系统 inset。非纸色场景用 `AppViewportColor` 同步根底色和 theme-color，退出恢复纸色，不按 URL 另建主题注册表。
+- 主流程 bottom chrome 统一拥有不透明背景、最大底部安全区留白及定位；`GameBottomDock` 只负责业务间距。main 使用实测 `--game-bottom-offset`，不再额外叠加底部 inset；聊天键盘仍由场景独立处理。Portal 弹层保留自己的安全区。
+- 跨平台审计、已实施的清理规则、本地验证及真机待验收项见 [PWA 视口梳理](pwa-viewport-audit.md)。
 - 冷启动壳由 `index.html` 提供首字节后的静态反馈，React Router 根路由使用同构的 `AppBootScreen` 承接懒加载与初始 loader 阶段
 - `routes/game/components/` 只保留真正属于某个页面的私有组件；跨两个以上路由族复用的组件不得继续放在 `routes/**`
 

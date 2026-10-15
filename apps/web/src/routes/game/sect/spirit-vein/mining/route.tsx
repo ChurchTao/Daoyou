@@ -1,3 +1,4 @@
+import { AppViewportColor } from '@app/components/layout/AppViewportColor';
 import { apiFetch } from '@app/lib/api/fetch';
 import {
   GameActivityFullscreenRetry,
@@ -308,6 +309,7 @@ export default function SectSpiritVeinMiningPage() {
       className="fixed inset-0 isolate overflow-hidden bg-[#07110f] text-stone-50"
       aria-label="灵索采矿小游戏"
     >
+      <AppViewportColor color="#07110f" />
       <GameImage
         src="/assets/sect/mining/spirit-vein-cavern.webp"
         alt=""
@@ -319,7 +321,7 @@ export default function SectSpiritVeinMiningPage() {
 
       <div ref={rootRef} className="absolute inset-0" />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 px-[max(env(safe-area-inset-left),0.75rem)] pt-[max(env(safe-area-inset-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 px-[max(env(safe-area-inset-left),0.75rem)] pt-[max(var(--app-safe-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
         <div className="pointer-events-auto rounded-full bg-[#10201b]/65 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md">
           <span>
             {viewport.coarsePointer ? '分' : '得分'} {progress?.score ?? 0}

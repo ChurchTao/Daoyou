@@ -28,7 +28,7 @@ export function AuthPageShell({
   const announcement = authLoaderData?.announcement?.trim() || null;
 
   return (
-    <div className="bg-paper relative min-h-screen overflow-hidden">
+    <div className="bg-paper relative overflow-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-20"
@@ -39,7 +39,7 @@ export function AuthPageShell({
           backgroundSize: '420px',
         }}
       />
-      <div className="app-safe-area-page relative mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col justify-center">
+      <div className="app-safe-area-page relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-center">
         <div className="mx-auto w-full max-w-xl">
           {announcement ? (
             <div className="border-ink/15 bg-bgpaper/88 mb-4 flex items-center gap-3 overflow-hidden border border-dashed px-3 py-2 shadow-[0_8px_20px_rgba(44,24,16,0.05)]">

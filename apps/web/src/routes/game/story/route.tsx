@@ -28,7 +28,7 @@ export default function StoryRoute() {
 
   if (story.error || profile.error || player.error || !cultivator) {
     return (
-      <div className="app-safe-area-page flex min-h-[100svh] items-center justify-center bg-paper px-6 text-ink">
+      <div className="app-safe-area-page flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
         <div className="max-w-md text-center">
           <p>故事暂时没能接上。</p>
           <InkButton onClick={() => navigate('/game')} className="mt-5">

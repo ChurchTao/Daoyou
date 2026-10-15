@@ -3,7 +3,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 
 export default function NotFound() {
   return (
-    <div className="app-safe-area-page bg-paper relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden">
+    <div className="app-safe-area-page bg-paper relative flex min-h-dvh flex-col items-center justify-center overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-15">
         <div className="text-ink/10 absolute top-16 left-8 text-7xl">
           「虚」

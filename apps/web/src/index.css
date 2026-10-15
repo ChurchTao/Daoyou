@@ -95,7 +95,7 @@
 
   box-sizing: border-box;
   padding-top: calc(
-    env(safe-area-inset-top, 0px) + var(--app-safe-area-block-space)
+    var(--app-safe-top) + var(--app-safe-area-block-space)
   );
   padding-right: calc(
     env(safe-area-inset-right, 0px) + var(--app-safe-area-inline-space)
@@ -109,9 +109,6 @@
 }
 
 body {
-  background-color: var(--color-bgpaper);
-  background-image: url('/assets/paper.webp');
-  background-size: 300px;
   color: var(--color-ink);
   font-family: var(--font-lxgwwenkai), serif;
 }
@@ -183,8 +180,23 @@ body {
 }
 
 .battle-dock {
-  background: rgba(248, 243, 230, 0.96);
   border-top: 1px dashed var(--color-battle-rule-strong);
+}
+
+/* One owner for dock background and system clearance. Reserve the maximum
+   inset so Chrome's moving system bar changes position instead of padding. */
+.game-bottom-chrome {
+  position: fixed;
+  z-index: 40;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) - var(--app-bottom-reserve));
+  left: 0;
+  padding-bottom: var(--app-bottom-reserve);
+  background-color: var(--color-bgpaper);
+}
+
+.game-bottom-chrome:empty {
+  display: none;
 }
 
 /* 移动端适配 */

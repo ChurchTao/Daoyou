@@ -134,7 +134,7 @@ export function InkDetailDrawer({
           className,
         )}
       >
-        <header className="border-ink/15 shrink-0 border-b border-dashed pt-3 pr-[max(env(safe-area-inset-right),1rem)] pb-3 pl-[max(env(safe-area-inset-left),1rem)] md:pt-[max(env(safe-area-inset-top),1.25rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-5">
+        <header className="border-ink/15 shrink-0 border-b border-dashed pt-3 pr-[max(env(safe-area-inset-right),1rem)] pb-3 pl-[max(env(safe-area-inset-left),1rem)] md:pt-[max(var(--app-safe-top),1.25rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-5">
           <div className="flex items-center justify-between gap-3">
             <h2 id={titleId} className="text-lg font-semibold">
               {title}

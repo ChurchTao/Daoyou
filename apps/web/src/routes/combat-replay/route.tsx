@@ -27,7 +27,7 @@ export default function BattleSharePage() {
     </main>
   );
   return (
-    <main className="bg-paper text-ink flex min-h-svh flex-col items-center justify-center gap-4 px-4 text-sm">
+    <main className="bg-paper text-ink flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-sm">
       <p role={error ? 'alert' : 'status'}>{error || '正在载入公开战谱……'}</p>
       <Link className="underline" to="/">返回首页</Link>
     </main>

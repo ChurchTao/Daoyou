@@ -48,7 +48,7 @@ function PreviewShelf({
   };
 
   return (
-    <div className="app-safe-area-page mx-auto flex min-h-[100svh] w-full max-w-xl flex-col bg-paper px-6 py-8 text-ink">
+    <div className="app-safe-area-page mx-auto flex min-h-dvh w-full max-w-xl flex-col bg-paper px-6 py-8 text-ink">
       <h1 className="font-heading text-4xl">看演出</h1>
       <p className="mt-3 text-sm leading-7 text-ink-secondary">只看这一遍，不记进度。</p>
       {note ? <p className="mt-4 text-sm leading-7 text-crimson">{note}</p> : null}
