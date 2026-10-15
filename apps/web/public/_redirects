@@ -1,0 +1,18 @@
+# Cloudflare Pages serves a real file before these rules. There is no
+# top-level 404.html fallback to index.html: a missing file is a 404.
+# Do not add "/* /index.html 200". That rewrite answers a missing
+# /assets/*.js with HTML and a 200, which browsers then cache as the script.
+# A new top-level route prefix has to be listed here. Paths under /game,
+# /admin, /login, and /signup are already covered.
+
+/login /index.html 200
+/login/* /index.html 200
+/signup /index.html 200
+/signup/* /index.html 200
+/forgot-password /index.html 200
+/reset-password /index.html 200
+/game /index.html 200
+/game/* /index.html 200
+/admin /index.html 200
+/admin/* /index.html 200
+/combat-replay/* /index.html 200
