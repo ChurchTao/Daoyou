@@ -132,7 +132,8 @@ export const dailyRoutes = [
       {
         id: 'tasks',
         presentation: 'archive',
-        summary: '查看破境任务和试炼进度。宗门任务请到宗门事务中查看。',
+        summary:
+          '境界圆满后，破境卷宗会自动送达。依次备妥、渡关，再回静室冲关。',
       },
       '任务中心',
     )}

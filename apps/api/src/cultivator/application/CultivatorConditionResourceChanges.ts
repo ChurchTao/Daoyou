@@ -21,7 +21,6 @@ import {
 export function conditionChangesAfterConsumable(args: {
   consumable: Consumable;
   remainingConsumable: Consumable | null;
-  taskSummary: ResourceDataMap['player.task-summary'];
   state: {
     condition: unknown;
     cultivationProgress: unknown;
@@ -42,17 +41,6 @@ export function conditionChangesAfterConsumable(args: {
   };
 }): ResourceChangeDescriptor[] {
   const changes: ResourceChangeDescriptor[] = [
-    {
-      resourceTopic: 'player.tasks',
-      eventType: 'tasks.maybe_changed',
-      operation: 'invalidate',
-    },
-    {
-      resourceTopic: 'player.task-summary',
-      eventType: 'tasks.maybe_changed',
-      operation: 'replace',
-      payload: args.taskSummary,
-    },
     {
       resourceTopic: 'inventory.consumables',
       eventType: 'inventory.consumable.used',

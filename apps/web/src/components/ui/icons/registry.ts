@@ -1,5 +1,37 @@
 /** GameIcon alone resolves these names; all icon files live in public/assets/icons. */
 export const iconRegistry: ReadonlyMap<string, string> = new Map([
+  [
+    'breakthrough-foundation_qi',
+    '/assets/icons/breakthrough-foundation_qi.webp',
+  ],
+  [
+    'breakthrough-core_condensation',
+    '/assets/icons/breakthrough-core_condensation.webp',
+  ],
+  [
+    'breakthrough-heart_demon_nascent',
+    '/assets/icons/breakthrough-heart_demon_nascent.webp',
+  ],
+  [
+    'breakthrough-tribulation_deity',
+    '/assets/icons/breakthrough-tribulation_deity.webp',
+  ],
+  [
+    'breakthrough-law_insight_void',
+    '/assets/icons/breakthrough-law_insight_void.webp',
+  ],
+  [
+    'breakthrough-tribulation_body',
+    '/assets/icons/breakthrough-tribulation_body.webp',
+  ],
+  [
+    'breakthrough-inner_demon_grand',
+    '/assets/icons/breakthrough-inner_demon_grand.webp',
+  ],
+  [
+    'breakthrough-heavenly_tribulation_final',
+    '/assets/icons/breakthrough-heavenly_tribulation_final.webp',
+  ],
   ['beast-fusion-cauldron', '/assets/icons/beast-fusion-cauldron.png'],
   ['earthfire-furnace', '/assets/icons/earthfire-furnace-ink.png'],
   ['xuanfire-furnace', '/assets/icons/xuanfire-furnace-ink.png'],

@@ -3,8 +3,6 @@ export { BreakthroughBattlePointerSchema } from '../tasks/breakthrough-pointer.j
 export type { BreakthroughBattlePointer } from '../tasks/breakthrough-pointer.js';
 export type {
   AutoCompleteObjectiveDefinition,
-  CompleteDungeonObjectiveDefinition,
-  CraftBreakthroughPillObjectiveDefinition,
   EventCountObjectiveDefinition,
   InsightAtLeastObjectiveDefinition,
   StatusActiveObjectiveDefinition,

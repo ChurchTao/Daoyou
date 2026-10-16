@@ -3,5 +3,5 @@ export const BEAST_REJUVENATION = {
   name: '化生果',
   kind: 'beast_rejuvenation' as const,
   stackLimit: 99,
-  description: '使灵兽回到幼年，等级与属性点重新养成。',
+  description: '洗去灵兽已分配的属性点，等级与修为不变。',
 };

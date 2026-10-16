@@ -32,7 +32,6 @@ import {
   lockActiveMembership,
   readSectCombatProgress,
 } from '@server/lib/repositories/sectCombatRepository.js';
-import { updateCultivatorTask } from '@server/lib/repositories/taskRepository.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import {
   buildFateEffectEntry,
@@ -41,7 +40,6 @@ import {
 } from '@server/reshape/application/FateFragmentRegistry.js';
 import { assertInventoryIdle, InventoryError } from '@server/inventory/operations.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
-import { TaskService } from '@server/tasks/application/TaskService.js';
 import { readCombatV6ConditionAuthority } from '@server/combat/application/CombatV6ConditionAuthority.js';
 import {
   mapPreHeavenFatesForRuntime,
@@ -49,7 +47,6 @@ import {
   replacePreHeavenFates,
   replaceSpiritualRoots,
 } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import { getBreakthroughTaskDefinition } from '@server/tasks/application/taskDefinitions.js';
 
 export async function patchDevCultivator(
   owner: string,
@@ -305,46 +302,7 @@ export async function patchDevCultivator(
             .update(cultivators)
             .set({ condition })
             .where(eq(cultivators.id, owner));
-          if (prep.completedDungeonObjectiveIds) {
-            const tasks = await TaskService.syncCultivatorTasks(owner, tx);
-            const realm = input.realm ?? before.realm;
-            const task = tasks.find(
-              (task) =>
-                task.category === 'breakthrough_major' &&
-                task.metadata.fromRealm === realm,
-            );
-            const definition =
-              task && getBreakthroughTaskDefinition(task.definitionId);
-            if (!task || !definition)
-              throw new InventoryError('当前没有破境任务');
-            for (const id of prep.completedDungeonObjectiveIds) {
-              if (
-                !definition.stages.some((stage) =>
-                  stage.objectives.some(
-                    (objective) =>
-                      objective.id === id &&
-                      objective.kind === 'complete_dungeon',
-                  ),
-                )
-              )
-                throw new InventoryError('仅允许准备当前破境任务的秘境目标');
-            }
-            const objectives = task.objectives.map((objective) =>
-              prep.completedDungeonObjectiveIds!.includes(objective.objectiveId)
-                ? {
-                    ...objective,
-                    completed: true,
-                    progressValue: 1,
-                    completedAt: now,
-                    updatedAt: now,
-                  }
-                : objective,
-            );
-            await updateCultivatorTask(task.id, owner, { objectives }, tx);
-          }
         }
-        if (input.realm || input.realmStage || input.breakthroughPreparation)
-          await TaskService.syncCultivatorTasks(owner, tx);
         const state = await new ResourceEventCommitter().commit(tx, {
           actor: { userId: before.userId, cultivatorId: owner },
           source: 'dev-cultivator',
@@ -357,8 +315,6 @@ export async function patchDevCultivator(
                 'player.progress',
                 'player.condition',
                 'player.sect-combat',
-                'player.tasks',
-                'player.task-summary',
               ] as const
             ).map((resourceTopic) => ({
               resourceTopic,

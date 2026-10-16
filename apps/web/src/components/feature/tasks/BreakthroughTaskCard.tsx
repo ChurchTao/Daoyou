@@ -27,11 +27,14 @@ function StatusPill({
 export function BreakthroughTaskCard({
   task,
   className,
+  compact = false,
 }: {
   task: TaskInstance;
   className?: string;
+  compact?: boolean;
 }) {
-  const currentStage = task.snapshot.stages.find((stage) => stage.current) ?? null;
+  const currentStage =
+    task.snapshot.stages.find((stage) => stage.current) ?? null;
   const fromRealm = task.snapshot.fromRealm ?? task.metadata.fromRealm ?? null;
   const toRealm = task.snapshot.toRealm ?? task.metadata.toRealm ?? null;
   const contextText =
@@ -43,12 +46,14 @@ export function BreakthroughTaskCard({
     return (
       <div
         className={cn(
-          'space-y-4 border border-dashed border-ink/8 bg-[rgba(248,243,230,0.6)] p-4',
+          'border-ink/8 space-y-4 border border-dashed bg-[rgba(248,243,230,0.6)] p-4',
           className,
         )}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-3">
-          <p className="text-ink-secondary min-w-0 truncate text-xs">{contextText}</p>
+        <div className="border-ink/10 flex items-center justify-between gap-3 border-b pb-3">
+          <p className="text-ink-secondary min-w-0 truncate text-xs">
+            {contextText}
+          </p>
           <StatusPill text="任务已完成" tone="ready" />
         </div>
 
@@ -76,12 +81,21 @@ export function BreakthroughTaskCard({
   return (
     <div
       className={cn(
-        'space-y-4 border border-dashed border-ink/10 bg-[rgba(248,243,230,0.82)] p-4',
+        compact
+          ? 'border-ink/10 space-y-3 border-t pt-4'
+          : 'border-ink/10 space-y-4 border border-dashed bg-[rgba(248,243,230,0.82)] p-4',
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-ink/10 pb-3">
-        <p className="text-ink-secondary min-w-0 truncate text-xs">{contextText}</p>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3',
+          !compact && 'border-ink/10 border-b pb-3',
+        )}
+      >
+        <p className="text-ink-secondary min-w-0 truncate text-xs">
+          {contextText}
+        </p>
         <StatusPill
           text={`第 ${stageNumber}/${totalStages} 阶段`}
           tone="pending"
@@ -89,12 +103,12 @@ export function BreakthroughTaskCard({
       </div>
 
       <div className="space-y-2">
-        <p className="text-ink text-base font-semibold tracking-[0.04em]">
-          {currentStage.title}
-        </p>
-        <p className="text-ink-secondary text-sm leading-7">
-          {currentStage.description}
-        </p>
+        <p className="text-ink text-sm font-medium">{currentStage.title}</p>
+        {!compact ? (
+          <p className="text-ink-secondary text-sm leading-7">
+            {currentStage.description}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -112,7 +126,10 @@ export function BreakthroughTaskCard({
         {currentStage.links
           .filter((link) => link.href !== '/game/tasks')
           .map((link) => (
-            <InkButton key={`${task.id}:${link.href}:${link.label}`} href={link.href}>
+            <InkButton
+              key={`${task.id}:${link.href}:${link.label}`}
+              href={link.href}
+            >
               {link.label}
             </InkButton>
           ))}

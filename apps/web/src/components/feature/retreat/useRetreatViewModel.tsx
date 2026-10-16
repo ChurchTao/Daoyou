@@ -1,9 +1,13 @@
-import { ApiFailure, postEvents } from '@app/lib/api/postEvents';
-import { useInkUI } from '@app/components/providers/InkUIProvider';
 import {
   getQiErrorMessage,
   useQiActionConfirm,
 } from '@app/components/feature/cultivator/useQiActionConfirm';
+import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { ApiFailure, postEvents } from '@app/lib/api/postEvents';
+import { useTaskList } from '@app/lib/hooks/useTaskList';
+import { playerTaskSummaryResource } from '@app/lib/resources/definitions';
+import { useSingletonResource } from '@app/lib/resources/hooks';
+import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCondition,
   useCultivatorCurrency,
@@ -11,36 +15,34 @@ import {
   useCultivatorProgress,
   usePlayerSession,
 } from '@app/lib/resources/player';
-import type { Cultivator } from '@daoyou/game-domain/character';
-import { useTaskList } from '@app/lib/hooks/useTaskList';
-import { useResourceMutation } from '@app/lib/resources/mutations';
 import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
-import {
-  calculateBreakthroughChance,
-  getNextStage,
-} from '@daoyou/game-rules/cultivation';
 import type {
   RetreatAction,
   RetreatResultData,
   RetreatStreamEvent,
 } from '@daoyou/contracts/retreat';
+import type { Cultivator } from '@daoyou/game-domain/character';
 import type { TaskInstance } from '@daoyou/game-domain/tasks';
+import {
+  calculateBreakthroughChance,
+  getNextStage,
+} from '@daoyou/game-rules/cultivation';
 import { getRetreatQiCost } from '@daoyou/game-rules/qi';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  type ReincarnateContextData,
-  consumeRetreatEvents,
-  isSuccessfulBreakthrough,
-} from './retreatStream';
+  buildBreakthroughChancePresentation,
+  type BreakthroughChancePresentation,
+} from './breakthroughChancePresentation';
 import {
   buildRetreatEfficiencyModel,
   type RetreatEfficiencyModel,
 } from './retreatEfficiency';
 import {
-  buildBreakthroughChancePresentation,
-  type BreakthroughChancePresentation,
-} from './breakthroughChancePresentation';
+  consumeRetreatEvents,
+  isSuccessfulBreakthrough,
+  type ReincarnateContextData,
+} from './retreatStream';
 
 export interface CultivationProgressData {
   cultivation_exp: number;
@@ -66,8 +68,7 @@ type RetreatCultivatorView = Pick<
   cultivation_progress: NonNullable<Cultivator['cultivation_progress']>;
 };
 
-export interface BreakthroughChancePreviewData
-  extends BreakthroughChancePresentation {
+export interface BreakthroughChancePreviewData extends BreakthroughChancePresentation {
   recommendation: string;
 }
 
@@ -84,6 +85,7 @@ export interface UseRetreatViewModelReturn {
   majorBreakthroughBlocked: boolean;
   tasksLoading: boolean;
   taskError: string | undefined;
+  reloadTasks: () => Promise<void>;
 
   retreatYears: string;
   handleRetreatYearsChange: (value: string) => void;
@@ -110,8 +112,7 @@ interface RetreatFailurePayload {
 }
 
 type RetreatRequestOutcome =
-  | { ok: true }
-  | { ok: false; payload: RetreatFailurePayload | null };
+  { ok: true } | { ok: false; payload: RetreatFailurePayload | null };
 
 export function useRetreatViewModel(): UseRetreatViewModelReturn {
   const profile = useCultivatorIdentity();
@@ -152,7 +153,9 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     tasks,
     loading: tasksLoading,
     error: taskError,
+    reload: reloadTasks,
   } = useTaskList(cultivator?.id);
+  const taskSummary = useSingletonResource(playerTaskSummaryResource);
   const [retreatYears, setRetreatYears] = useState('10');
   const requestInFlight = useRef(false);
   const [retreatResult, setRetreatResult] = useState<RetreatResultData | null>(
@@ -222,8 +225,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
   );
 
   const currentMajorTask = useMemo(
-    () =>
-      tasks ? findCurrentMajorBreakthroughTask(cultivator, tasks) : null,
+    () => (tasks ? findCurrentMajorBreakthroughTask(cultivator, tasks) : null),
     [cultivator, tasks],
   );
 
@@ -234,10 +236,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
 
   const breakthroughPreview =
     useMemo((): BreakthroughChancePreviewData | null => {
-      if (
-        !cultivator ||
-        !cultivationProgress?.canBreakthrough
-      ) {
+      if (!cultivator || !cultivationProgress?.canBreakthrough) {
         return null;
       }
 
@@ -254,10 +253,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       } catch {
         return null;
       }
-    }, [
-      cultivator,
-      cultivationProgress?.canBreakthrough,
-    ]);
+    }, [cultivator, cultivationProgress?.canBreakthrough]);
 
   const handleRetreatYearsChange = useCallback((value: string) => {
     const numeric = value.replace(/[^\d]/g, '');
@@ -288,7 +284,8 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       setReincarnateContext(null);
 
       try {
-        const requestId = window.sessionStorage.getItem(storageKey) ?? crypto.randomUUID();
+        const requestId =
+          window.sessionStorage.getItem(storageKey) ?? crypto.randomUUID();
         window.sessionStorage.setItem(storageKey, requestId);
         try {
           await consumeRetreatEvents(
@@ -297,40 +294,42 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
               requestId,
             }),
             {
-          cultivatorSnapshot,
-          onResult: (result) => {
-            window.sessionStorage.removeItem(storageKey);
-            setRetreatResult(result);
-            setRetreatResultOpen(true);
-            setRetreatResultStreaming(Boolean(result.storyType));
+              cultivatorSnapshot,
+              onResult: (result) => {
+                window.sessionStorage.removeItem(storageKey);
+                setRetreatResult(result);
+                setRetreatResultOpen(true);
+                setRetreatResultStreaming(Boolean(result.storyType));
 
-            if (isSuccessfulBreakthrough(result)) {
-              setCelebrationTick((current) => current + 1);
-            }
-          },
-          onStoryUpdate: setRetreatResult,
-          onReincarnateContext: setReincarnateContext,
-          onState: (state) => {
-            if (state.replayed) {
-              profile.invalidate();
-              condition.invalidate();
-              progress.invalidate();
-              currency.invalidate();
-              playerSession.invalidate();
-            }
-            if (state.changes.length === 0) return;
-            consumeChanges(state);
-          },
-          onError: (message) => {
-            setRetreatResultStreaming(false);
-            pushToast({
-              message,
-              tone: 'warning',
-            });
-          },
-        },
-        );
-        return { ok: true };
+                if (isSuccessfulBreakthrough(result)) {
+                  setCelebrationTick((current) => current + 1);
+                }
+              },
+              onStoryUpdate: setRetreatResult,
+              onReincarnateContext: setReincarnateContext,
+              onState: (state) => {
+                if (state.replayed) {
+                  profile.invalidate();
+                  condition.invalidate();
+                  progress.invalidate();
+                  currency.invalidate();
+                  playerSession.invalidate();
+                  void reloadTasks();
+                  taskSummary.invalidate();
+                }
+                if (state.changes.length === 0) return;
+                consumeChanges(state);
+              },
+              onError: (message) => {
+                setRetreatResultStreaming(false);
+                pushToast({
+                  message,
+                  tone: 'warning',
+                });
+              },
+            },
+          );
+          return { ok: true };
         } catch (error) {
           if (error instanceof ApiFailure) {
             return {
@@ -346,7 +345,18 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
         setRetreatLoading(false);
       }
     },
-    [consumeChanges, cultivator, pushToast, profile, condition, progress, currency, playerSession],
+    [
+      consumeChanges,
+      cultivator,
+      pushToast,
+      profile,
+      condition,
+      progress,
+      currency,
+      playerSession,
+      reloadTasks,
+      taskSummary,
+    ],
   );
 
   const handleRetreat = useCallback(async () => {
@@ -366,9 +376,15 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
       qiCost: getRetreatQiCost(parsedYears),
       confirmLabel: '入定闭关',
       details: (
-        <p className={parsedYears >= remainingLifespan ? 'text-crimson' : undefined}>
+        <p
+          className={
+            parsedYears >= remainingLifespan ? 'text-crimson' : undefined
+          }
+        >
           闭关 {parsedYears} 年，消耗等量寿元。当前余寿 {remainingLifespan} 年。
-          {parsedYears >= remainingLifespan ? '此次闭关将耗尽寿元，出关后踏入轮回。' : ''}
+          {parsedYears >= remainingLifespan
+            ? '此次闭关将耗尽寿元，出关后踏入轮回。'
+            : ''}
         </p>
       ),
       onConfirm: async () => {
@@ -483,6 +499,7 @@ export function useRetreatViewModel(): UseRetreatViewModelReturn {
     majorBreakthroughBlocked,
     tasksLoading,
     taskError,
+    reloadTasks,
     retreatYears,
     handleRetreatYearsChange,
     retreatLoading,

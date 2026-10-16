@@ -22,7 +22,10 @@ import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import type { BeastPickerPage } from '@daoyou/contracts/beasts';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import type { InventoryView } from '@daoyou/contracts/inventory';
-import { previewBeastFeeding } from '@daoyou/game-rules/beasts/growth';
+import {
+  beastRejuvenationReason,
+  previewBeastFeeding,
+} from '@daoyou/game-rules/beasts/growth';
 import { beastRefinementReason } from '@daoyou/game-rules/beasts/refinement';
 import { BEAST_REFINEMENT } from '@daoyou/game-content/beasts';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
@@ -150,13 +153,7 @@ export function BeastBookDrawer({
       )
         return '此物品不是化生果。';
       if (!beast) return '正在核对灵兽状态。';
-      if (
-        !beast.level &&
-        !beast.exp &&
-        Object.values(beast.allocatedAttributes).every((point) => point === 0)
-      )
-        return '灵兽已是初生状态。';
-      return '';
+      return beastRejuvenationReason(beast);
     }
     if (definition.kind !== 'beast_book') return '此物品不是传承灵印。';
     if (!definition.skillId) return '此灵印已无法用于领悟传承。';
@@ -259,7 +256,7 @@ export function BeastBookDrawer({
             : refining
               ? `已重归初生，技能 ${result.oldSkillCount} → ${result.newSkillCount} 项，寿命已恢复。`
               : rejuvenating
-                ? '洗点完成，灵兽已回到0级。'
+                ? '洗点完成，属性点已重置。'
                 : result.oldSkill
                   ? `${beastSkillPresentation(result.oldSkill).name} → ${beastSkillPresentation(result.newSkill!).name}`
                   : `已领悟${beastSkillPresentation(result.newSkill!).name}`,
@@ -312,7 +309,7 @@ export function BeastBookDrawer({
                   : refining
                     ? '，重归0级，重新孕育资质、成长与技能。'
                     : rejuvenating
-                      ? '，回到0级，属性点重新养成。'
+                      ? '，已分配属性点退回待分配，等级与修为不变。'
                       : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
               {feeding ? (
@@ -521,7 +518,7 @@ export function BeastBookDrawer({
           ) : rejuvenating ? (
             <>
               为{beast?.name}使用{BEAST_REJUVENATION.name}将消耗1颗。
-              等级与修为归零，已分配属性点清零。宝宝恢复50点待分配属性，野生为0点。捕获时已有等级的野生，原有点数亏损保留。
+              等级与修为不变，已分配属性点全部退回待分配。捕获时已有等级的野生，原有点数亏损保留。
               资质、成长、技能、身份、寿命和编组不变。确定洗点吗？
             </>
           ) : (

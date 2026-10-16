@@ -10,6 +10,25 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 
 export type CultivatorTaskRecord = typeof schema.cultivatorTasks.$inferSelect;
 
+export async function readCultivatorTaskSummary(
+  cultivatorId: string,
+  q: DbExecutor,
+) {
+  const rows = await q
+    .select({
+      status: schema.cultivatorTasks.status,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(schema.cultivatorTasks)
+    .where(eq(schema.cultivatorTasks.cultivatorId, cultivatorId))
+    .groupBy(schema.cultivatorTasks.status);
+  const counts = new Map(rows.map((row) => [row.status, Number(row.count)]));
+  return {
+    activeCount: counts.get('active') ?? 0,
+    claimableCount: counts.get('completed') ?? 0,
+  };
+}
+
 function getTaskExecutor(q?: DbExecutor | DbTransaction) {
   return q ?? getExecutor();
 }
@@ -91,7 +110,7 @@ export async function createCultivatorTask(
     metadata: TaskInstanceMetadata;
   },
   q?: DbExecutor | DbTransaction,
-): Promise<CultivatorTaskRecord> {
+): Promise<CultivatorTaskRecord | null> {
   const executor = getTaskExecutor(q);
   const rows = await executor
     .insert(schema.cultivatorTasks)
@@ -104,9 +123,15 @@ export async function createCultivatorTask(
       objectives: input.objectives,
       metadata: input.metadata,
     })
+    .onConflictDoNothing({
+      target: [
+        schema.cultivatorTasks.cultivatorId,
+        schema.cultivatorTasks.definitionId,
+      ],
+    })
     .returning();
 
-  return rows[0];
+  return rows[0] ?? null;
 }
 
 export async function updateCultivatorTask(

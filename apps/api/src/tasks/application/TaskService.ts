@@ -3,16 +3,13 @@ import {
   runDbTasks,
   type DbTransaction,
 } from '@server/lib/drizzle/db.js';
-import {
-  findActiveCultivatorTaskProgressById,
-  getCultivatorBreakthroughPillQuantities,
-  type CultivatorBreakthroughPillRecord,
-} from '@server/lib/repositories/cultivatorRepository.js';
+import { findActiveCultivatorTaskProgressById } from '@server/lib/repositories/cultivatorRepository.js';
 import {
   createCultivatorTask,
   findCultivatorTaskByDefinition,
   findCultivatorTaskById,
   listCultivatorTasks,
+  readCultivatorTaskSummary,
   updateCultivatorTask,
   type CultivatorTaskRecord,
 } from '@server/lib/repositories/taskRepository.js';
@@ -20,15 +17,14 @@ import {
   getNextStage,
   getOrInitCultivationProgress,
 } from '@daoyou/game-rules/cultivation';
-import { getBreakthroughPillLabel } from '@daoyou/game-rules/consumables/breakthrough';
 import { isConditionStatusActive } from '@daoyou/game-rules/condition';
 import type { ConditionStatusKey } from '@daoyou/game-domain/condition';
 import { REALM_ORDER, type RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress, Cultivator } from '@daoyou/game-domain/character';
 import type { MailAttachment } from '@daoyou/game-domain/mail';
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type {
   TaskActionLink,
-  TaskEvent,
   TaskInstance,
   TaskInstanceMetadata,
   TaskObjectiveDefinition,
@@ -51,10 +47,11 @@ import {
 interface TaskServiceWriteOptions {
   tx?: DbTransaction;
   readOnly?: boolean;
+  onChange?: () => void;
 }
 
 interface TaskSyncOptions extends TaskServiceWriteOptions {
-  hideCompletedBreakthrough?: boolean;
+  currentBreakthroughOnly?: boolean;
 }
 
 export interface MajorBreakthroughGate {
@@ -74,8 +71,6 @@ interface TaskProgressContext {
   realmStage: Cultivator['realm_stage'];
   cultivationProgress: Cultivator['cultivation_progress'];
   condition: Cultivator['condition'];
-  breakthroughPillQuantities: Partial<Record<RealmType, number>>;
-  genericBreakthroughPillQuantity: number;
 }
 
 function resolveTaskRewardAttachments(
@@ -164,60 +159,15 @@ function hasActiveStatus(
   );
 }
 
-function buildBreakthroughPillInventory(
-  pills: CultivatorBreakthroughPillRecord[],
-): Pick<
-  TaskProgressContext,
-  'breakthroughPillQuantities' | 'genericBreakthroughPillQuantity'
-> {
-  const breakthroughPillQuantities: Partial<Record<RealmType, number>> = {};
-  let genericBreakthroughPillQuantity = 0;
-
-  for (const pill of pills) {
-    const quantity = Math.max(0, pill.quantity ?? 0);
-    if (quantity <= 0) {
-      continue;
-    }
-
-    if (pill.targetRealm && pill.targetRealm in REALM_ORDER) {
-      const targetRealm = pill.targetRealm as RealmType;
-      breakthroughPillQuantities[targetRealm] =
-        (breakthroughPillQuantities[targetRealm] ?? 0) + quantity;
-      continue;
-    }
-
-    genericBreakthroughPillQuantity += quantity;
-  }
-
-  return {
-    breakthroughPillQuantities,
-    genericBreakthroughPillQuantity,
-  };
-}
-
-function getPreparedBreakthroughPillQuantity(
-  context: TaskProgressContext,
-  targetRealm: RealmType,
-): number {
-  return (
-    (context.breakthroughPillQuantities[targetRealm] ?? 0) +
-    context.genericBreakthroughPillQuantity
-  );
-}
-
-async function loadTaskProgressContextOrThrow(
+async function loadTaskProgressContext(
   cultivatorId: string,
   options: TaskServiceWriteOptions = {},
-): Promise<TaskProgressContext> {
+): Promise<TaskProgressContext | null> {
   const q = options.tx ?? getExecutor();
-  const [record, breakthroughPills] =
-    await runDbTasks(q, [
-      () => findActiveCultivatorTaskProgressById(cultivatorId, q),
-      () => getCultivatorBreakthroughPillQuantities(cultivatorId, q),
-    ]);
+  const record = await findActiveCultivatorTaskProgressById(cultivatorId, q);
 
   if (!record) {
-    throw new Error('角色不存在');
+    return null;
   }
 
   return {
@@ -232,8 +182,16 @@ async function loadTaskProgressContextOrThrow(
     condition:
       (record.condition as Cultivator['condition'] | null | undefined) ??
       undefined,
-    ...buildBreakthroughPillInventory(breakthroughPills),
   };
+}
+
+async function loadTaskProgressContextOrThrow(
+  cultivatorId: string,
+  options: TaskServiceWriteOptions = {},
+): Promise<TaskProgressContext> {
+  const context = await loadTaskProgressContext(cultivatorId, options);
+  if (!context) throw new Error('角色不存在');
+  return context;
 }
 
 function normalizeObjectiveStates(input: unknown): TaskObjectiveState[] {
@@ -334,44 +292,6 @@ function resolveObjectiveProgress(
         },
       };
     }
-    case 'craft_breakthrough_pill': {
-      const preparedPillQuantity = getPreparedBreakthroughPillQuantity(
-        context,
-        definition.targetRealm,
-      );
-      const completed = state?.completed === true || preparedPillQuantity > 0;
-      const nextState = completed
-        ? completeObjectiveState(
-            {
-              ...createDefaultObjectiveState(definition.id),
-              ...state,
-              objectiveId: definition.id,
-            },
-            preparedPillQuantity || state?.progressValue || 1,
-            nowIso,
-          )
-        : {
-            ...createDefaultObjectiveState(definition.id),
-            ...state,
-            objectiveId: definition.id,
-            progressValue: preparedPillQuantity,
-            updatedAt: nowIso,
-          };
-
-      return {
-        objectiveState: nextState,
-        progress: {
-          id: definition.id,
-          kind: definition.kind,
-          title: definition.title,
-          description: definition.description,
-          completed,
-          progressText: completed
-            ? `已备妥${getBreakthroughPillLabel(definition.targetRealm)}`
-            : `尚未炼成${getBreakthroughPillLabel(definition.targetRealm)}`,
-        },
-      };
-    }
     case 'insight_at_least': {
       const currentInsight =
         context.cultivationProgress?.comprehension_insight ?? 0;
@@ -390,6 +310,8 @@ function resolveObjectiveProgress(
             ...createDefaultObjectiveState(definition.id),
             ...state,
             objectiveId: definition.id,
+            completed: false,
+            completedAt: undefined,
             progressValue: currentInsight,
             updatedAt: nowIso,
           };
@@ -422,6 +344,8 @@ function resolveObjectiveProgress(
             ...createDefaultObjectiveState(definition.id),
             ...state,
             objectiveId: definition.id,
+            completed: false,
+            completedAt: undefined,
             progressValue: 0,
             updatedAt: nowIso,
           };
@@ -437,28 +361,6 @@ function resolveObjectiveProgress(
           progressText: completed
             ? '已具备'
             : `尚未具备 · ${definition.description}`,
-        },
-      };
-    }
-    case 'complete_dungeon': {
-      const completed = state?.completed === true;
-      const nextState = {
-        ...createDefaultObjectiveState(definition.id),
-        ...state,
-        objectiveId: definition.id,
-      };
-
-      return {
-        objectiveState: nextState,
-        progress: {
-          id: definition.id,
-          kind: definition.kind,
-          title: definition.title,
-          description: definition.description,
-          completed,
-          progressText: completed
-            ? `已通过${definition.mapNodeName}`
-            : `尚未通过${definition.mapNodeName}`,
         },
       };
     }
@@ -526,31 +428,13 @@ function resolveObjectiveProgress(
 function resolveStageLinks(
   taskId: string,
   stage: TaskStageTemplate,
-  objectiveProgresses: TaskObjectiveProgress[],
 ): TaskActionLink[] {
-  const pendingDungeonObjective = stage.objectives.find((objective) => {
-    if (objective.kind !== 'complete_dungeon') return false;
-    return objectiveProgresses.some(
-      (progress) => progress.id === objective.id && !progress.completed,
-    );
-  });
-
   return stage.links.map((link) => {
     switch (link.kind) {
       case 'alchemy':
         return { label: link.label, href: '/game/craft/alchemy' };
       case 'cultivator':
         return { label: link.label, href: '/game/cultivator' };
-      case 'dungeon':
-        return {
-          label: link.label,
-          href:
-            pendingDungeonObjective?.kind === 'complete_dungeon'
-              ? `/game/map-v2?intent=dungeon&nodeId=${encodeURIComponent(
-                  pendingDungeonObjective.mapNodeId,
-                )}`
-              : '/game/map-v2?intent=dungeon',
-        };
       case 'inn':
         return { label: link.label, href: '/game/inn' };
       case 'market':
@@ -592,17 +476,29 @@ function buildTaskSnapshot(
 
   for (const stage of definition.stages) {
     const objectiveProgresses = stage.objectives.map((objective) => {
+      const previousState = stateMap.get(objective.id);
       const resolved = resolveObjectiveProgress(
         objective,
-        stateMap.get(objective.id),
+        previousState,
         context,
         nowIso,
       );
+      // A read or repeated synchronization must not manufacture a task change.
+      if (
+        previousState &&
+        serializeObjectiveStates([{ ...previousState, updatedAt: undefined }]) ===
+          serializeObjectiveStates([{ ...resolved.objectiveState, updatedAt: undefined }])
+      ) {
+        resolved.objectiveState.updatedAt = previousState.updatedAt;
+      }
       nextStates.push(resolved.objectiveState);
       return resolved.progress;
     });
     const stageCompleted = objectiveProgresses.every(
       (objective) => objective.completed,
+    );
+    const challenge = stage.objectives.find(
+      (objective) => objective.kind === 'win_task_challenge',
     );
     stageProgresses.push({
       id: stage.id,
@@ -611,7 +507,12 @@ function buildTaskSnapshot(
       completionText: stage.completionText,
       completed: stageCompleted,
       current: false,
-      links: resolveStageLinks(record.id, stage, objectiveProgresses),
+      links: resolveStageLinks(record.id, stage),
+      challengeId:
+        challenge?.kind === 'win_task_challenge' &&
+        !objectiveProgresses.find((progress) => progress.id === challenge.id)?.completed
+          ? challenge.challengeId
+          : undefined,
       objectives: objectiveProgresses,
     });
   }
@@ -709,7 +610,7 @@ function getCurrentMajorDefinition(
 function isOutdatedBreakthroughDefinition(
   context: Pick<TaskProgressContext, 'realm'>,
   definition: RuntimeTaskDefinition,
-): definition is BreakthroughTaskDefinition {
+): boolean {
   return (
     definition.category === 'breakthrough_major' &&
     REALM_ORDER[context.realm] >= REALM_ORDER[definition.toRealm]
@@ -773,7 +674,10 @@ async function archiveOutdatedBreakthroughRecord(
 ): Promise<TaskInstance> {
   const archivedObjectiveStates = definition.stages.flatMap((stage) =>
     stage.objectives.map((objective) =>
-      buildArchivedBreakthroughObjectiveState(objective, nowIso),
+      buildArchivedBreakthroughObjectiveState(
+        objective,
+        record.completedAt?.toISOString() ?? nowIso,
+      ),
     ),
   );
   const completedAt = record.completedAt ?? new Date(nowIso);
@@ -806,6 +710,7 @@ async function archiveOutdatedBreakthroughRecord(
           options.tx,
         )) ?? archivedProjection)
     : record;
+  if (needsArchiveUpdate && !options.readOnly) options.onChange?.();
 
   return mapTaskInstance(
     archivedRecord,
@@ -827,28 +732,19 @@ async function createTaskRecordIfMissing(
     return;
   }
 
-  try {
-    await createCultivatorTask(
-      {
-        cultivatorId: context.cultivatorId,
-        definitionId: definition.id,
-        category: definition.category,
-        status: 'active',
-        currentStage: definition.stages[0]?.id ?? null,
-        objectives: buildDefaultObjectiveStates(definition),
-        metadata: createTaskMetadata(definition),
-      },
-      options.tx,
-    );
-  } catch (error) {
-    if (
-      !error ||
-      typeof error !== 'object' ||
-      (error as { code?: string }).code !== '23505'
-    ) {
-      throw error;
-    }
-  }
+  const created = await createCultivatorTask(
+    {
+      cultivatorId: context.cultivatorId,
+      definitionId: definition.id,
+      category: definition.category,
+      status: 'active',
+      currentStage: definition.stages[0]?.id ?? null,
+      objectives: buildDefaultObjectiveStates(definition),
+      metadata: createTaskMetadata(definition),
+    },
+    options.tx,
+  );
+  if (created) options.onChange?.();
 }
 
 async function ensureCurrentTaskRecords(
@@ -887,16 +783,38 @@ async function syncTaskRecord(
     );
   }
 
-  const preparedRecord = record;
+  // Preserve the qualification earned before these two trials were introduced.
+  const grandfatheredChallengeId =
+    record.status === 'completed'
+      ? definition.fromRealm === '炼气'
+        ? 'win-foundation-challenge'
+        : definition.fromRealm === '筑基'
+          ? 'win-core-challenge'
+          : null
+      : null;
+  const currentObjectiveStates = normalizeObjectiveStates(record.objectives);
+  const preparedRecord =
+    grandfatheredChallengeId &&
+    !currentObjectiveStates.some((state) => state.objectiveId === grandfatheredChallengeId)
+      ? {
+          ...record,
+          objectives: [
+            ...currentObjectiveStates,
+            completeObjectiveState(
+              createDefaultObjectiveState(grandfatheredChallengeId),
+              1,
+              nowIso,
+            ),
+          ],
+        }
+      : record;
   const resolved = buildTaskSnapshot(
     preparedRecord,
     definition,
     context,
     nowIso,
   );
-  const serializedCurrent = serializeObjectiveStates(
-    normalizeObjectiveStates(preparedRecord.objectives),
-  );
+  const serializedCurrent = serializeObjectiveStates(currentObjectiveStates);
   const serializedNext = serializeObjectiveStates(resolved.objectiveStates);
   const currentMetadata =
     (preparedRecord.metadata as TaskInstanceMetadata | null | undefined) ??
@@ -941,6 +859,7 @@ async function syncTaskRecord(
           options.tx,
         )) ?? projectedRecord)
     : preparedRecord;
+  if (needsUpdate && !options.readOnly) options.onChange?.();
 
   return mapTaskInstance(nextRecord, resolved.snapshot);
 }
@@ -966,22 +885,50 @@ async function syncCultivatorTasksWithContext(
     )
   ).filter((task): task is TaskInstance => task !== null);
 
-  if (!options.hideCompletedBreakthrough) {
+  if (!options.currentBreakthroughOnly) {
     return visibleTasks;
   }
 
   const currentMajorDefinition = getCurrentMajorDefinition(context);
   return visibleTasks.filter(
     (task) =>
-      !(
-        task.category === 'breakthrough_major' &&
-        task.status === 'completed' &&
-        task.definitionId !== currentMajorDefinition?.id
-      ),
+      task.category !== 'breakthrough_major' ||
+      task.definitionId === currentMajorDefinition?.id,
   );
 }
 
 export const TaskService = {
+  async synchronizeResourceChanges(
+    cultivatorId: string,
+    tx: DbTransaction,
+  ): Promise<ResourceChangeDescriptor[]> {
+    const context = await loadTaskProgressContext(cultivatorId, { tx });
+    if (!context) return [];
+    let changed = false;
+    await syncCultivatorTasksWithContext(context, {
+      tx,
+      onChange: () => {
+        changed = true;
+      },
+    });
+    if (!changed) return [];
+    const scope = { kind: 'cultivator' as const, id: cultivatorId };
+    return [
+      {
+        scope,
+        resourceTopic: 'player.tasks',
+        eventType: 'tasks.progress_changed',
+        operation: 'invalidate',
+      },
+      {
+        scope,
+        resourceTopic: 'player.task-summary',
+        eventType: 'tasks.progress_changed',
+        operation: 'replace',
+        payload: await readCultivatorTaskSummary(cultivatorId, tx),
+      },
+    ];
+  },
   async syncCultivatorTasks(
     cultivatorId: string,
     tx?: DbTransaction,
@@ -996,7 +943,7 @@ export const TaskService = {
   ): Promise<TaskInstance[]> {
     const context = await loadTaskProgressContextOrThrow(cultivatorId);
     const tasks = await syncCultivatorTasksWithContext(context, {
-      hideCompletedBreakthrough: true,
+      currentBreakthroughOnly: true,
     });
     if (!status) {
       return tasks;
@@ -1014,7 +961,7 @@ export const TaskService = {
     const tasks = await syncCultivatorTasksWithContext(context, {
       tx,
       readOnly: true,
-      hideCompletedBreakthrough: true,
+      currentBreakthroughOnly: true,
     });
     return status ? tasks.filter((task) => task.status === status) : tasks;
   },
@@ -1023,7 +970,8 @@ export const TaskService = {
     cultivatorId: string,
     taskId: string,
   ): Promise<TaskInstance | null> {
-    const tasks = await this.syncCultivatorTasks(cultivatorId);
+    const context = await loadTaskProgressContextOrThrow(cultivatorId);
+    const tasks = await syncCultivatorTasksWithContext(context, { readOnly: true });
     return tasks.find((task) => task.id === taskId) ?? null;
   },
 
@@ -1040,7 +988,7 @@ export const TaskService = {
       };
     }
 
-    const tasks = await syncCultivatorTasksWithContext(context);
+    const tasks = await syncCultivatorTasksWithContext(context, { readOnly: true });
     const task =
       tasks.find((item) => item.definitionId === definition.id) ?? null;
 
@@ -1049,90 +997,6 @@ export const TaskService = {
       blocked: task?.status !== 'completed',
       task,
     };
-  },
-
-  async recordDungeonCompletion(
-    cultivatorId: string,
-    mapNodeId: string,
-    options: TaskServiceWriteOptions = {},
-  ): Promise<TaskInstance[]> {
-    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
-    await ensureCurrentTaskRecords(context, options);
-    const records = await listCultivatorTasks(cultivatorId, {
-      status: 'active',
-      q: options.tx,
-    });
-    const nowIso = new Date().toISOString();
-
-    for (const record of records) {
-      const definition = getBreakthroughTaskDefinition(record.definitionId);
-      if (!definition) {
-        continue;
-      }
-
-      const nextStates = normalizeObjectiveStates(record.objectives);
-      let changed = false;
-
-      for (const stage of definition.stages) {
-        for (const objective of stage.objectives) {
-          if (
-            objective.kind !== 'complete_dungeon' ||
-            objective.mapNodeId !== mapNodeId
-          ) {
-            continue;
-          }
-
-          const stateIndex = nextStates.findIndex(
-            (state) => state.objectiveId === objective.id,
-          );
-          const currentState =
-            stateIndex >= 0
-              ? nextStates[stateIndex]
-              : createDefaultObjectiveState(objective.id);
-          if (currentState.completed) {
-            continue;
-          }
-
-          const completedState = completeObjectiveState(
-            {
-              ...currentState,
-              objectiveId: objective.id,
-            },
-            1,
-            nowIso,
-          );
-          if (stateIndex >= 0) {
-            nextStates[stateIndex] = completedState;
-          } else {
-            nextStates.push(completedState);
-          }
-          changed = true;
-        }
-      }
-
-      if (changed) {
-        await updateCultivatorTask(
-          record.id,
-          cultivatorId,
-          {
-            objectives: nextStates,
-          },
-          options.tx,
-        );
-      }
-    }
-
-    return syncCultivatorTasksWithContext(context, options);
-  },
-
-  async recordTaskEvent(
-    cultivatorId: string,
-    _event: TaskEvent,
-    options: TaskServiceWriteOptions = {},
-  ): Promise<TaskInstance[]> {
-    const context = await loadTaskProgressContextOrThrow(cultivatorId, options);
-    await ensureCurrentTaskRecords(context, options);
-    return syncCultivatorTasksWithContext(context, options);
   },
 
   async claimTaskReward(

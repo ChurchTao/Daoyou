@@ -55,6 +55,7 @@
     "./market": "./dist/market.js",
     "./market/beast-pack": "./dist/market/beast-pack.js",
     "./materials": "./dist/public/materials.js",
+    "./performance/breakthrough": "./dist/performance/breakthrough.js",
     "./performance/catalog": "./dist/performance/catalog.js",
     "./presentation/concepts": "./dist/presentation/concepts.js",
     "./qi/config": "./dist/qi/config.js",
@@ -94,9 +95,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@daoyou/combat-core": "workspace:*",
     "@daoyou/constants": "workspace:*",
     "@daoyou/game-domain": "workspace:*",
-    "@daoyou/combat-core": "workspace:*",
     "zod": "^4.6.4"
   }
 }

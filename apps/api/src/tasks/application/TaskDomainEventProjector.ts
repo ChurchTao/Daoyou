@@ -4,9 +4,7 @@ import {
   isDomainEventType,
   type DomainEventEnvelope,
 } from '@daoyou/contracts/events';
-import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type { FeatureCommandResult } from '@server/player/application/state/CommandExecutors.js';
-import { readPlayerTaskSummary } from '@server/player/application/PlayerResourceReaderService.js';
 import { TaskService } from '@server/tasks/application/TaskService.js';
 
 export async function projectTaskDomainEvent(
@@ -15,70 +13,25 @@ export async function projectTaskDomainEvent(
 ): Promise<FeatureCommandResult<{ status: 'applied' | 'ignored' }>> {
   if (isDomainEventType(event, 'alchemy.craft.completed')) {
     await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
-    await TaskService.recordTaskEvent(
+    const resourceChanges = await TaskService.synchronizeResourceChanges(
       event.data.cultivatorId,
-      'alchemy_crafted',
-      { tx },
+      tx,
     );
-    return taskProjectionResult(event.data.cultivatorId, tx);
-  }
-
-  if (isDomainEventType(event, 'ranking.challenge.completed')) {
     return {
-      result: { status: 'ignored' as const },
-      resourceChanges: [],
+      result: { status: resourceChanges.length ? 'applied' : 'ignored' },
+      resourceChanges,
     };
   }
 
-  if (isDomainEventType(event, 'dungeon.run.settled')) {
-    await lockCultivatorForStateMutation(tx, event.data.cultivatorId);
-    if (event.data.outcome === 'completed') {
-      await TaskService.recordDungeonCompletion(
-        event.data.cultivatorId,
-        event.data.mapNodeId,
-        { tx },
-      );
-    }
-    await TaskService.recordTaskEvent(
-      event.data.cultivatorId,
-      'dungeon_completed',
-      { tx },
-    );
-    return taskProjectionResult(event.data.cultivatorId, tx);
-  }
-
-  if (isDomainEventType(event, 'yield.claimed')) {
-    return {
-      result: { status: 'ignored' as const },
-      resourceChanges: [],
-    };
+  // 破境不再消费秘境、论道或历练结算。activity.* 消费者仍会收到这些事件，
+  // 这里明确忽略，避免当成未知事件重试。主线剧情由同一消费者另行投影。
+  if (
+    isDomainEventType(event, 'ranking.challenge.completed') ||
+    isDomainEventType(event, 'dungeon.run.settled') ||
+    isDomainEventType(event, 'yield.claimed')
+  ) {
+    return { result: { status: 'ignored' }, resourceChanges: [] };
   }
 
   throw new Error(`任务投影不支持领域事件: ${event.type}`);
-}
-
-async function taskProjectionResult(
-  cultivatorId: string,
-  tx: DbTransaction,
-): Promise<FeatureCommandResult<{ status: 'applied' | 'ignored' }>> {
-  const taskSummary = await readPlayerTaskSummary(cultivatorId, tx);
-  const scope = { kind: 'cultivator' as const, id: cultivatorId };
-  return {
-    result: { status: 'applied' as const },
-    resourceChanges: [
-      {
-        scope,
-        resourceTopic: 'player.tasks',
-        eventType: 'tasks.progress_changed',
-        operation: 'invalidate',
-      },
-      {
-        scope,
-        resourceTopic: 'player.task-summary',
-        eventType: 'tasks.progress_changed',
-        operation: 'replace',
-        payload: taskSummary,
-      },
-    ] satisfies ResourceChangeDescriptor[],
-  };
 }
