@@ -21,4 +21,7 @@ export {
   splitCapturedBeasts,
   warehouseBeastCount,
 } from '../../beasts/progression.js';
-export { rejuvenateBeast } from '../../beasts/rejuvenation.js';
+export {
+  beastRejuvenationReason,
+  rejuvenateBeast,
+} from '../../beasts/rejuvenation.js';

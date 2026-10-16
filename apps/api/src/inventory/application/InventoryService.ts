@@ -18,6 +18,7 @@ import {
   type ItemGrant,
 } from '@daoyou/game-domain/inventory';
 import {
+  beastRejuvenationReason,
   previewBeastFeeding,
   rejuvenateBeast,
 } from '@daoyou/game-rules/beasts/growth';
@@ -876,14 +877,8 @@ export async function mutateInventory(
                 b.id === input.beastId && b.revision === input.beastRevision,
             );
             if (!beast) throw new InventoryError('灵兽已有变化，请重新查看');
-            if (
-              !beast.level &&
-              !beast.exp &&
-              Object.values(beast.allocatedAttributes).every(
-                (point) => point === 0,
-              )
-            )
-              throw new InventoryError('灵兽已是初生状态');
+            const reason = beastRejuvenationReason(beast);
+            if (reason) throw new InventoryError(reason);
             const rejuvenated = rejuvenateBeast(beast);
             await tx
               .update(cultivatorBeasts)

@@ -231,7 +231,7 @@ export const rejuvenationAdapter: ItemAdapter = (item) => ({
       {
         title: '洗点效果',
         entries: lines(
-          '修为归零。捕获时已有等级的野生，原有点数亏损保留。',
+          '已分配属性点退回待分配，等级与修为不变。捕获时已有等级的野生，原有点数亏损保留。',
         ),
       },
     ],
