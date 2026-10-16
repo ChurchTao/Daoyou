@@ -401,10 +401,8 @@ const taskObjectiveProgressSchema = z
     id: z.string(),
     kind: z.enum([
       'auto_complete',
-      'craft_breakthrough_pill',
       'insight_at_least',
       'status_active',
-      'complete_dungeon',
       'win_task_challenge',
       'event_count',
     ]),
@@ -423,6 +421,7 @@ const taskStageProgressSchema = z
     completed: z.boolean(),
     current: z.boolean(),
     links: z.array(taskActionLinkSchema),
+    challengeId: z.string().optional(),
     objectives: z.array(taskObjectiveProgressSchema),
   })
   .strict();

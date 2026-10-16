@@ -12,14 +12,17 @@ import { InkButton, InkNotice } from '@app/components/ui';
 import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { useCultivatorProgress } from '@app/lib/resources/player';
 import { useStory } from '@app/lib/story/useStory';
-import { findCurrentMajorBreakthroughTask } from '@app/lib/tasks/taskClient';
-import { getBodyCultivationSummary } from '@daoyou/game-rules/body-cultivation/progress';
-import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
 import {
+  findCurrentMajorBreakthroughTask,
+  getBreakthroughNextStep,
+} from '@app/lib/tasks/taskClient';
+import { getBodyCultivationSummary } from '@daoyou/game-rules/body-cultivation/progress';
+import {
+  getConditionStatusTemplate,
   getPillToxicityStage,
   isConditionStatusActive,
-  getConditionStatusTemplate,
 } from '@daoyou/game-rules/condition';
+import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 function calculateYieldHours(lastYieldAt: Date | string | undefined) {
@@ -50,6 +53,7 @@ export function HomeView() {
     tasks,
     loading: tasksLoading,
     error: taskError,
+    reload: reloadTasks,
   } = useTaskList(cultivator?.id);
   const [yieldHours, setYieldHours] = useState(() =>
     calculateYieldHours(cultivator?.last_yield_at),
@@ -120,7 +124,7 @@ export function HomeView() {
   const story = useStory(Boolean(cultivator));
   const storyCue = story.story?.prompt ? story.story : null;
 
-  if (isLoading || tasksLoading || !tasks) {
+  if (isLoading || (!taskError && (tasksLoading || !tasks))) {
     return <GameSceneLoading message="正在进入洞府……" />;
   }
 
@@ -151,6 +155,18 @@ export function HomeView() {
   const isMajorBreakthroughCandidate = Boolean(
     cultivator.realm_stage === '圆满' && getNextMajorRealm(cultivator.realm),
   );
+  if (taskError && isMajorBreakthroughCandidate) {
+    urgentItems.push(
+      <HomeUrgentRow
+        key="breakthrough-refresh"
+        title="破境卷宗待核对"
+        summary="卷宗暂未读到，重新核对即可查看下一步准备。"
+        action={
+          <InkButton onClick={() => void reloadTasks()}>重新核对</InkButton>
+        }
+      />,
+    );
+  }
   if (storyCue) {
     urgentItems.push(
       <HomeUrgentRow
@@ -193,10 +209,7 @@ export function HomeView() {
   }
 
   if (currentMajorTask) {
-    const summary =
-      currentMajorTask.status === 'completed'
-        ? '准备充分，可冲关'
-        : '完成破境任务后可冲关';
+    const summary = getBreakthroughNextStep(currentMajorTask);
     urgentItems.push(
       <HomeUrgentRow
         key="major-breakthrough-task"

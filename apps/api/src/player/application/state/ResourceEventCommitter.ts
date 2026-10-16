@@ -7,6 +7,7 @@ import {
 } from '@server/lib/repositories/playerStateRepository.js';
 import type { PlayerResourceMutationMeta } from '@daoyou/contracts/player';
 import { refreshCombatV6CharacterResources } from '@server/combat/character-resources.js';
+import { TaskService } from '@server/tasks/application/TaskService.js';
 import {
   withCharacterPanelInvalidations,
   withBagInvalidations,
@@ -56,6 +57,14 @@ export class ResourceEventCommitter {
     ).map(change => change.scope.id));
     for (const id of changedCharacters) await refreshCombatV6CharacterResources(id, tx);
     const scopedChanges = withBagInvalidations(withCharacterPanelInvalidations(originalChanges));
+    const taskCharacters = new Set(scopedChanges.filter((change) =>
+      change.scope.kind === 'cultivator' &&
+      ['player.profile', 'player.condition', 'player.progress', 'inventory.bag'].includes(change.resourceTopic),
+    ).map((change) => change.scope.id));
+    for (const id of taskCharacters) {
+      const taskChanges = await TaskService.synchronizeResourceChanges(id, tx);
+      scopedChanges.push(...resolveResourceChangeScopes(taskChanges));
+    }
     const commits = await bumpResourceVersions(tx, scopedChanges);
     const changes = await insertResourceChanges(tx, {
       actorUserId: input.actor?.userId,

@@ -1,18 +1,18 @@
 import { InkButton, InkChoiceButton } from '@app/components/ui';
 import { GameImage } from '@app/components/ui/GameImage';
-import { useTypewriter } from '@app/lib/hooks/useTypewriter';
 import { cn } from '@app/lib/cn';
-import {
-  currentPerformanceCue,
-  createPerformanceState,
-  reducePerformance,
-  type PerformanceLogEntry,
-  type PerformanceState,
-} from '@daoyou/game-rules/performance/interpreter';
+import { useTypewriter } from '@app/lib/hooks/useTypewriter';
 import type {
   PerformanceContext,
   PerformanceScript,
 } from '@daoyou/game-domain/performance';
+import {
+  createPerformanceState,
+  currentPerformanceCue,
+  reducePerformance,
+  type PerformanceLogEntry,
+  type PerformanceState,
+} from '@daoyou/game-rules/performance/interpreter';
 import { useEffect, useRef, useState } from 'react';
 
 const choiceMarks = ['一', '二', '三', '四'] as const;
@@ -33,23 +33,43 @@ function ScenePicture({
   src,
   alt,
   focus,
+  fit,
 }: {
   src: string;
   alt: string;
   focus: string;
+  fit: 'cover' | 'contain';
 }) {
   return (
-    <figure className="relative h-[22svh] max-h-48 w-full shrink-0 overflow-hidden lg:h-auto lg:max-h-none lg:w-[38%] lg:self-stretch">
+    <figure
+      className={cn(
+        'relative w-full shrink-0 overflow-hidden lg:h-auto lg:max-h-none lg:w-[38%] lg:self-stretch',
+        fit === 'contain' ? 'h-[38svh] max-h-80' : 'h-[22svh] max-h-48',
+      )}
+    >
       <GameImage
         key={src}
         src={src}
         alt=""
-        className="absolute inset-0 size-full object-cover"
+        purpose={fit === 'contain' ? 'artwork' : undefined}
+        className={cn(
+          'absolute inset-0 size-full',
+          fit === 'contain'
+            ? 'object-contain p-5 pb-20 motion-safe:animate-[fade-in_1.2s_ease-out] lg:p-10 lg:pb-36'
+            : 'object-cover',
+        )}
         style={{ objectPosition: focus }}
       />
       {alt ? (
-        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#1c1712]/80 via-[#1c1712]/40 to-transparent px-5 pt-12 pb-4 text-[#f6f1e6]">
-          <p className="text-xs tracking-[0.28em] text-[#f6f1e6]/75">眼前</p>
+        <figcaption
+          className={cn(
+            'absolute inset-x-0 bottom-0 px-5 pb-4',
+            fit === 'contain'
+              ? 'from-paper via-paper/90 text-ink-secondary bg-gradient-to-t to-transparent pt-5 lg:px-10 lg:pb-10'
+              : 'bg-gradient-to-t from-[#1c1712]/80 via-[#1c1712]/40 to-transparent pt-12 text-[#f6f1e6]',
+          )}
+        >
+          <p className="text-xs tracking-[0.28em] opacity-75">眼前</p>
           <p className="mt-1 text-sm leading-6">{alt}</p>
         </figcaption>
       ) : null}
@@ -60,8 +80,8 @@ function ScenePicture({
 function SceneWords({ alt }: { alt: string }) {
   return (
     <div className="mb-6">
-      <p className="text-xs tracking-[0.28em] text-ink-secondary">眼前</p>
-      <p className="mt-2 text-base leading-7 text-ink">{alt}</p>
+      <p className="text-ink-secondary text-xs tracking-[0.28em]">眼前</p>
+      <p className="text-ink mt-2 text-base leading-7">{alt}</p>
     </div>
   );
 }
@@ -79,7 +99,7 @@ function Passage({
 }) {
   if (entry.kind === 'title') {
     return (
-      <p className="text-center font-heading text-4xl leading-tight text-ink sm:text-5xl">
+      <p className="font-heading text-ink text-center text-4xl leading-tight sm:text-5xl">
         {text}
       </p>
     );
@@ -97,9 +117,11 @@ function Passage({
               className="h-14 w-11 object-cover"
             />
           ) : null}
-          <p className="font-heading text-2xl leading-none text-ink">{entry.speaker}</p>
+          <p className="font-heading text-ink text-2xl leading-none">
+            {entry.speaker}
+          </p>
         </div>
-        <p className="mt-3 text-xl leading-9 whitespace-pre-wrap text-ink">
+        <p className="text-ink mt-3 text-xl leading-9 whitespace-pre-wrap">
           「{text}
           {quoteClosed ? '」' : ''}
         </p>
@@ -109,8 +131,10 @@ function Passage({
 
   return (
     <div>
-      <p className="text-xs tracking-[0.28em] text-teal">旁白</p>
-      <p className="mt-2 text-xl leading-9 whitespace-pre-wrap text-ink">{text}</p>
+      <p className="text-teal text-xs tracking-[0.28em]">旁白</p>
+      <p className="text-ink mt-2 text-xl leading-9 whitespace-pre-wrap">
+        {text}
+      </p>
     </div>
   );
 }
@@ -124,10 +148,12 @@ function ReadLog({
 }) {
   return (
     <div className="flex flex-col">
-      <h2 className="text-sm text-ink-secondary">前面的字</h2>
+      <h2 className="text-ink-secondary text-sm">前面的字</h2>
       <ol className="mt-4 max-h-[40svh] space-y-5 overflow-y-auto lg:max-h-[52svh]">
         {entries.length === 0 ? (
-          <li className="text-base leading-8 text-ink-secondary">还没有读过的句子。</li>
+          <li className="text-ink-secondary text-base leading-8">
+            还没有读过的句子。
+          </li>
         ) : (
           entries.map((entry, index) => (
             <li key={`${entry.kind}:${entry.text}:${index}`}>
@@ -136,7 +162,11 @@ function ReadLog({
           ))
         )}
       </ol>
-      <InkButton onClick={onClose} className="mt-5 self-start" variant="secondary">
+      <InkButton
+        onClick={onClose}
+        className="mt-5 self-start"
+        variant="secondary"
+      >
         合上
       </InkButton>
     </div>
@@ -152,6 +182,9 @@ export function PerformancePlayer({
   error,
   onFinish,
   onExit,
+  pictureFit = 'cover',
+  finishHint,
+  finishPendingLabel = '落字中……',
 }: {
   script: PerformanceScript;
   context: PerformanceContext;
@@ -161,6 +194,9 @@ export function PerformancePlayer({
   error?: string;
   onFinish: (outcome: string) => void;
   onExit: () => void;
+  pictureFit?: 'cover' | 'contain';
+  finishHint?: string;
+  finishPendingLabel?: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
   const [showLog, setShowLog] = useState(false);
@@ -170,17 +206,21 @@ export function PerformancePlayer({
   const slipRef = useRef<HTMLButtonElement>(null);
   const cue = currentPerformanceCue(script, state);
   const text =
-    cue && (cue.type === 'narration' || cue.type === 'line' || cue.type === 'title')
+    cue &&
+    (cue.type === 'narration' || cue.type === 'line' || cue.type === 'title')
       ? cue.text
       : '';
   const typewriter = useTypewriter({
     text,
     speed: cue?.type === 'title' ? 70 : cue?.type === 'narration' ? 46 : 34,
     startDelay: reducedMotion ? 0 : 40,
-    enabled: !reducedMotion && !state.revealed && !state.ending && text.length > 0,
+    enabled:
+      !reducedMotion && !state.revealed && !state.ending && text.length > 0,
   });
   const shown =
-    reducedMotion || state.revealed || state.ending ? text : typewriter.displayedText;
+    reducedMotion || state.revealed || state.ending
+      ? text
+      : typewriter.displayedText;
   const textComplete = reducedMotion || state.revealed || typewriter.isComplete;
   const closing = state.ending || state.finished;
   const choosing = !closing && cue?.type === 'choice';
@@ -205,8 +245,12 @@ export function PerformancePlayer({
       return;
     }
     if (!state.revealed) {
-      const revealed = reducePerformance(script, context, state, { type: 'advance' });
-      dispatch(reducePerformance(script, context, revealed, { type: 'advance' }));
+      const revealed = reducePerformance(script, context, state, {
+        type: 'advance',
+      });
+      dispatch(
+        reducePerformance(script, context, revealed, { type: 'advance' }),
+      );
       return;
     }
     dispatch(reducePerformance(script, context, state, { type: 'advance' }));
@@ -214,7 +258,9 @@ export function PerformancePlayer({
 
   const choose = (index: number) => {
     if (busy || showLog || !choosing) return;
-    dispatch(reducePerformance(script, context, state, { type: 'choose', index }));
+    dispatch(
+      reducePerformance(script, context, state, { type: 'choose', index }),
+    );
   };
 
   const finish = () => {
@@ -301,7 +347,7 @@ export function PerformancePlayer({
 
   return (
     <section
-      className="relative flex h-dvh flex-col overflow-hidden bg-paper text-ink"
+      className="bg-paper text-ink relative flex h-dvh flex-col overflow-hidden"
       aria-label={script.title}
     >
       <div className="sr-only" aria-live="polite">
@@ -320,7 +366,7 @@ export function PerformancePlayer({
         <button
           type="button"
           onClick={() => setShowLog((open) => !open)}
-          className="min-h-11 cursor-pointer px-2 text-sm text-ink/35 transition-colors hover:text-ink/70 focus-visible:text-ink/80 focus-visible:outline-none"
+          className="text-ink/35 hover:text-ink/70 focus-visible:text-ink/80 min-h-11 cursor-pointer px-2 text-sm transition-colors focus-visible:outline-none"
         >
           {showLog ? '接着看' : '回看'}
         </button>
@@ -329,7 +375,7 @@ export function PerformancePlayer({
             type="button"
             onClick={onExit}
             disabled={busy}
-            className="min-h-11 cursor-pointer px-2 text-sm text-ink/35 transition-colors hover:text-ink/70 focus-visible:text-ink/80 focus-visible:outline-none disabled:cursor-wait"
+            className="text-ink/35 hover:text-ink/70 focus-visible:text-ink/80 min-h-11 cursor-pointer px-2 text-sm transition-colors focus-visible:outline-none disabled:cursor-wait"
           >
             {exitLabel}
           </button>
@@ -338,115 +384,141 @@ export function PerformancePlayer({
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {picture ? (
-          <ScenePicture src={picture} alt={state.backdrop.alt} focus={state.backdrop.focus} />
+          <ScenePicture
+            src={picture}
+            alt={state.backdrop.alt}
+            focus={state.backdrop.focus}
+            fit={pictureFit}
+          />
         ) : null}
 
         <div
           className={cn(
             'flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] lg:px-12 lg:py-10',
-            picture
-              ? 'pt-6'
-              : 'pt-[max(var(--app-safe-top),1.5rem)]',
+            picture ? 'pt-6' : 'pt-[max(var(--app-safe-top),1.5rem)]',
           )}
         >
-          <div className={cn('flex flex-1 flex-col', !picture && 'mx-auto w-full max-w-2xl')}>
-          {showLog ? (
-            <ReadLog entries={state.log} onClose={() => setShowLog(false)} />
-          ) : null}
+          <div
+            className={cn(
+              'flex flex-1 flex-col',
+              !picture && 'mx-auto w-full max-w-2xl',
+            )}
+          >
+            {showLog ? (
+              <ReadLog entries={state.log} onClose={() => setShowLog(false)} />
+            ) : null}
 
-          {!showLog && reading && readingKind ? (
-            <button
-              ref={slipRef}
-              type="button"
-              onClick={turn}
-              disabled={busy}
-              aria-label={textComplete ? '继续' : '先看完这句'}
-              className="flex w-full cursor-pointer flex-col bg-transparent text-left font-[inherit] text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-crimson disabled:cursor-wait lg:my-auto"
-            >
-              {place ? <SceneWords alt={place} /> : null}
-              {readingKind !== 'title' ? <h1 className="sr-only">{script.title}</h1> : null}
-              {readingKind === 'title' && cue?.type === 'title' && cue.kicker ? (
-                <p className="mb-3 text-center text-sm tracking-[0.22em] text-ink-secondary">
-                  {cue.kicker}
-                </p>
-              ) : null}
-              <Passage
-                entry={{
-                  kind: readingKind,
-                  speaker: speaker?.name,
-                }}
-                portrait={speaker?.portrait}
-                text={shown}
-                quoteClosed={textComplete}
-              />
-              <p
-                className={cn(
-                  'mt-4 text-sm text-ink-secondary',
-                  readingKind === 'title' && 'text-center',
-                )}
+            {!showLog && reading && readingKind ? (
+              <button
+                ref={slipRef}
+                type="button"
+                onClick={turn}
+                disabled={busy}
+                aria-label={textComplete ? '继续' : '先看完这句'}
+                className="text-ink focus-visible:outline-crimson flex w-full cursor-pointer flex-col bg-transparent text-left font-[inherit] outline-none focus-visible:outline-2 focus-visible:outline-offset-8 disabled:cursor-wait lg:my-auto"
               >
-                {continueHint}
-              </p>
-            </button>
-          ) : null}
-
-          {!showLog && choosing && cue?.type === 'choice' ? (
-            <div className="lg:my-auto">
-              {place ? <SceneWords alt={place} /> : null}
-              <h1 className="sr-only">{script.title}</h1>
-              {closingEntry ? <Passage entry={closingEntry} text={closingEntry.text} /> : null}
-              <div
-                className="mt-5 flex flex-col gap-3"
-                role="group"
-                aria-label="要怎么做"
-              >
-                {cue.options.map((option, index) => (
-                  <InkChoiceButton
-                    key={option.label}
-                    layout="card"
-                    disabled={busy}
-                    onClick={() => choose(index)}
-                  >
-                    <span className="mr-3 text-ink-secondary">{choiceMarks[index]}</span>
-                    {option.label}
-                  </InkChoiceButton>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {!showLog && closing ? (
-            <div className="lg:my-auto">
-              {place ? <SceneWords alt={place} /> : null}
-              <h1 className="sr-only">{script.title}</h1>
-              {closingEntry ? (
-                <Passage entry={closingEntry} text={closingEntry.text} />
-              ) : (
-                <p className="font-heading text-4xl text-ink">{script.title}</p>
-              )}
-              {error ? (
-                <p role="alert" className="mt-4 text-sm leading-7 text-crimson">
-                  {error}
-                </p>
-              ) : null}
-              <div className="mt-5">
-                <InkButton
-                  onClick={finish}
-                  pending={busy}
-                  pendingLabel="落字中……"
-                  variant="primary"
+                {place ? <SceneWords alt={place} /> : null}
+                {readingKind !== 'title' ? (
+                  <h1 className="sr-only">{script.title}</h1>
+                ) : null}
+                {readingKind === 'title' &&
+                cue?.type === 'title' &&
+                cue.kicker ? (
+                  <p className="text-ink-secondary mb-3 text-center text-sm tracking-[0.22em]">
+                    {cue.kicker}
+                  </p>
+                ) : null}
+                <Passage
+                  entry={{
+                    kind: readingKind,
+                    speaker: speaker?.name,
+                  }}
+                  portrait={speaker?.portrait}
+                  text={shown}
+                  quoteClosed={textComplete}
+                />
+                <p
+                  className={cn(
+                    'text-ink-secondary mt-4 text-sm',
+                    readingKind === 'title' && 'text-center',
+                  )}
                 >
-                  {finalLabel}
-                </InkButton>
-              </div>
-            </div>
-          ) : null}
+                  {continueHint}
+                </p>
+              </button>
+            ) : null}
 
-          {!showLog && !closing && error ? (
-            <p role="alert" className="mt-4 text-sm leading-7 text-crimson">
-              {error}
-            </p>
-          ) : null}
+            {!showLog && choosing && cue?.type === 'choice' ? (
+              <div className="lg:my-auto">
+                {place ? <SceneWords alt={place} /> : null}
+                <h1 className="sr-only">{script.title}</h1>
+                {closingEntry ? (
+                  <Passage entry={closingEntry} text={closingEntry.text} />
+                ) : null}
+                <div
+                  className="mt-5 flex flex-col gap-3"
+                  role="group"
+                  aria-label="要怎么做"
+                >
+                  {cue.options.map((option, index) => (
+                    <InkChoiceButton
+                      key={option.label}
+                      layout="card"
+                      disabled={busy}
+                      onClick={() => choose(index)}
+                    >
+                      <span className="text-ink-secondary mr-3">
+                        {choiceMarks[index]}
+                      </span>
+                      {option.label}
+                    </InkChoiceButton>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {!showLog && closing ? (
+              <div className="lg:my-auto">
+                {place ? <SceneWords alt={place} /> : null}
+                <h1 className="sr-only">{script.title}</h1>
+                {closingEntry ? (
+                  <Passage entry={closingEntry} text={closingEntry.text} />
+                ) : (
+                  <p className="font-heading text-ink text-4xl">
+                    {script.title}
+                  </p>
+                )}
+                {error ? (
+                  <p
+                    role="alert"
+                    className="text-crimson mt-4 text-sm leading-7"
+                  >
+                    {error}
+                  </p>
+                ) : null}
+                {finishHint ? (
+                  <p className="text-ink-secondary mt-4 text-sm leading-7">
+                    {finishHint}
+                  </p>
+                ) : null}
+                <div className="mt-5">
+                  <InkButton
+                    onClick={finish}
+                    pending={busy}
+                    pendingLabel={finishPendingLabel}
+                    variant="primary"
+                  >
+                    {finalLabel}
+                  </InkButton>
+                </div>
+              </div>
+            ) : null}
+
+            {!showLog && !closing && error ? (
+              <p role="alert" className="text-crimson mt-4 text-sm leading-7">
+                {error}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

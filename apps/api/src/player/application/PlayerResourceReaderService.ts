@@ -8,7 +8,6 @@ import {
 import { TRANSFER_PENDING_NOTE, TRANSFERRED_NOTE } from '@daoyou/contracts/transfer';
 import {
   cultivators,
-  cultivatorTasks,
   mails,
   sectMemberships,
 } from '@server/lib/drizzle/schema.js';
@@ -30,6 +29,7 @@ import type { ResourceTopic } from '@daoyou/contracts/resources';
 import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { and, desc, eq, sql } from 'drizzle-orm';
+import { readCultivatorTaskSummary } from '@server/lib/repositories/taskRepository.js';
 
 export function readPlayerResourcesSnapshot(args: {
   userId: string;
@@ -75,19 +75,7 @@ export async function readPlayerTaskSummary(
   cultivatorId: string,
   q: DbExecutor,
 ): Promise<PlayerResourceMap['task-summary']> {
-  const rows = await q
-    .select({
-      status: cultivatorTasks.status,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(cultivatorTasks)
-    .where(eq(cultivatorTasks.cultivatorId, cultivatorId))
-    .groupBy(cultivatorTasks.status);
-  const counts = new Map(rows.map((row) => [row.status, Number(row.count)]));
-  return {
-    activeCount: counts.get('active') ?? 0,
-    claimableCount: counts.get('completed') ?? 0,
-  };
+  return readCultivatorTaskSummary(cultivatorId, q);
 }
 
 export async function readPlayerProgress(

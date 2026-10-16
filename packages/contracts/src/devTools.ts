@@ -126,11 +126,6 @@ export function createDevCultivatorPatchSchema({
         .object({
           clearMind: z.boolean().optional(),
           protectMeridians: z.boolean().optional(),
-          completedDungeonObjectiveIds: z
-            .array(z.string().min(1).max(120))
-            .min(1)
-            .max(10)
-            .optional(),
         })
         .strict()
         .refine((v) => Object.keys(v).length > 0, '试炼准备不能为空')

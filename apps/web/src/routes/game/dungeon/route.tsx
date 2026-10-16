@@ -2,7 +2,6 @@ import { useCultivatorDisplayProjection } from '@app/components/feature/cultivat
 import { GameSceneLoading } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
-import { useTaskList } from '@app/lib/hooks/useTaskList';
 import { Suspense, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
@@ -22,7 +21,6 @@ function DungeonContent() {
   const cultivator = projection.data?.cultivator ?? null;
   const battleEntryResources = projection.data?.display.resources;
   const isCultivatorLoading = projection.loading;
-  const { tasks, loading: tasksLoading } = useTaskList(cultivator?.id);
   const [searchParams] = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');
   const navigate = useNavigate();
@@ -46,7 +44,7 @@ function DungeonContent() {
 
   // 修正加载状态：ViewModel 内部已经处理了副本状态的加载
   // 这里只需要处理用户信息的加载
-  if ((isCultivatorLoading && !cultivator) || tasksLoading || !tasks) {
+  if (isCultivatorLoading && !cultivator) {
     const descriptor = resolveDungeonSceneDescriptor('loading');
     return (
       <DungeonSceneScreen descriptor={descriptor}>
@@ -80,7 +78,6 @@ function DungeonContent() {
             viewState={viewState}
             cultivator={cultivator}
             displayResources={battleEntryResources}
-            tasks={tasks}
             processing={processing}
             actions={actions}
             onSettlementConfirm={handleSettlementConfirm}

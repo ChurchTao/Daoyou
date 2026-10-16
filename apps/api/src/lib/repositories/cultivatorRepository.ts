@@ -2,36 +2,6 @@ import { getExecutor, type DbExecutor } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { and, eq, sql } from 'drizzle-orm';
 
-export interface CultivatorBreakthroughPillRecord {
-  targetRealm: string | null;
-  quantity: number;
-}
-
-export async function getCultivatorBreakthroughPillQuantities(
-  cultivatorId: string,
-  q: DbExecutor = getExecutor(),
-): Promise<CultivatorBreakthroughPillRecord[]> {
-  const targetRealm = sql<
-    string | null
-  >`${schema.consumables.spec} -> 'alchemyMeta' ->> 'breakthroughTargetRealm'`;
-  return q
-    .select({
-      targetRealm,
-      quantity: sql<number>`coalesce(sum(${schema.consumables.quantity}), 0)::int`,
-    })
-    .from(schema.consumables)
-    .where(
-      and(
-        eq(schema.consumables.cultivatorId, cultivatorId),
-        eq(schema.consumables.type, '丹药'),
-        sql`${schema.consumables.spec} ->> 'kind' = 'pill'`,
-        sql`${schema.consumables.spec} ->> 'family' = 'breakthrough'`,
-        sql`${schema.consumables.quantity} > 0`,
-      ),
-    )
-    .groupBy(targetRealm);
-}
-
 export async function hasCultivatorRecoveryPill(
   cultivatorId: string,
   q: DbExecutor = getExecutor(),

@@ -1,4 +1,5 @@
 import { PillQuickbar } from '@app/components/feature/items/PillQuickbar';
+import { BreakthroughTaskCard } from '@app/components/feature/tasks/BreakthroughTaskCard';
 import {
   GameSceneFrame,
   GameSceneLoading,
@@ -10,6 +11,7 @@ import { GameSceneHelpButton } from '@app/components/game-shell/GameSceneSection
 import { InkButton, InkNotice } from '@app/components/ui';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkNodeSlider } from '@app/components/ui/InkNodeSlider';
+import { getBreakthroughNextStep } from '@app/lib/tasks/taskClient';
 import {
   BOTTLENECK_EXP_PENALTY,
   BOTTLENECK_THRESHOLD,
@@ -19,12 +21,14 @@ import {
 } from '@daoyou/game-content/cultivation';
 import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
 import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
+import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
 import { getNextStage } from '@daoyou/game-rules/cultivation';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { BreakthroughConfirmModal } from './BreakthroughConfirmModal';
 import type { RetreatBuffTag } from './retreatEfficiency';
 import { RetreatResultModal } from './RetreatResultModal';
+import { isSuccessfulBreakthrough } from './retreatStream';
 import {
   useRetreatViewModel,
   type BreakthroughChancePreviewData,
@@ -286,6 +290,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
   const [activeTab, setActiveTab] = useState<'retreat' | 'breakthrough'>(
     'retreat',
   );
+  const [appliedGate, setAppliedGate] = useState<string | null>(null);
   const [pillPending, setPillPending] = useState(false);
   const navigate = useNavigate();
   const {
@@ -301,6 +306,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
     majorBreakthroughBlocked,
     tasksLoading,
     taskError,
+    reloadTasks,
     retreatYears,
     handleRetreatYearsChange,
     retreatLoading,
@@ -316,6 +322,19 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
     closeRetreatResult,
     handleGoReincarnate,
   } = useRetreatViewModel();
+  const majorGateKey =
+    retreatResult && isSuccessfulBreakthrough(retreatResult)
+      ? 'toStage' in retreatResult.summary &&
+        retreatResult.summary.toStage === '圆满' &&
+        retreatResult.summary.toRealm &&
+        getNextMajorRealm(retreatResult.summary.toRealm)
+        ? `${retreatResult.summary.fromRealm}${retreatResult.summary.fromStage}-${retreatResult.summary.toRealm}`
+        : null
+      : null;
+  if (majorGateKey !== appliedGate) {
+    setAppliedGate(majorGateKey);
+    if (majorGateKey) setActiveTab('breakthrough');
+  }
   const shouldHoldResultShell =
     !cultivator && retreatResultOpen && Boolean(retreatResult?.depleted);
   const headerMeta =
@@ -400,7 +419,9 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
     tasksLoading && isMajorBreakthrough
       ? '正在核对破境准备……'
       : majorBreakthroughBlocked
-        ? `${currentMajorTask?.snapshot.title ?? '破境任务'}尚未完成。`
+        ? currentMajorTask
+          ? getBreakthroughNextStep(currentMajorTask)
+          : '正在等候破境卷宗，重新核对后即可查看准备。'
         : !nextStage
           ? '道途已至此境之巅。'
           : !cultivationProgress?.canBreakthrough
@@ -527,18 +548,18 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
               <BreakthroughWarnings preview={breakthroughPreview} />
               {isMajorBreakthrough && majorBreakthroughBlocked ? (
                 taskError ? (
-                  <InkNotice>{taskError}</InkNotice>
-                ) : currentMajorTask?.snapshot.missingRequirements.length ? (
-                  <details className="text-ink-secondary text-sm leading-7">
-                    <summary className="cursor-pointer">查看未完成准备</summary>
-                    <ul className="mt-2 list-disc space-y-1 pl-4">
-                      {currentMajorTask.snapshot.missingRequirements.map(
-                        (requirement) => (
-                          <li key={requirement}>{requirement}</li>
-                        ),
-                      )}
-                    </ul>
-                  </details>
+                  <InkNotice>
+                    {taskError}
+                    <InkButton onClick={() => void reloadTasks()}>
+                      重新核对准备
+                    </InkButton>
+                  </InkNotice>
+                ) : currentMajorTask ? (
+                  <BreakthroughTaskCard task={currentMajorTask} compact />
+                ) : !tasksLoading ? (
+                  <InkButton onClick={() => void reloadTasks()}>
+                    重新核对准备
+                  </InkButton>
                 ) : null
               ) : null}
               <InkButton

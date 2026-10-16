@@ -13,7 +13,6 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
-import type { TaskInstance } from '@daoyou/game-domain/tasks';
 import {
   isConditionStatusActive,
   getConditionStatusTemplate,
@@ -40,7 +39,6 @@ interface DungeonViewRendererProps {
     'id' | 'realm' | 'attributes' | 'condition'
   > | null;
   displayResources?: DungeonDisplayResources;
-  tasks: TaskInstance[];
   processing: boolean;
   actions: {
     beginBattle: () => Promise<void>;

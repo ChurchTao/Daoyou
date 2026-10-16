@@ -37,9 +37,7 @@ import {
   marrowWashBreakthroughChanges,
 } from '@server/cultivator/application/CultivatorConditionResourceChanges.js';
 import { InnRecoveryService } from '@server/cultivator/application/InnRecoveryService.js';
-import { readPlayerTaskSummary } from '@server/player/application/PlayerResourceReaderService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
-import { TaskService } from '@server/tasks/application/TaskService.js';
 
 type Actor = { userId: string; cultivatorId: string };
 
@@ -187,14 +185,9 @@ export function consumeCultivatorConsumable(args: {
             .where(eq(cultivators.id, args.actor.cultivatorId))
             .limit(1);
           if (!state) throw new Error('角色不存在');
-          await TaskService.syncCultivatorTasks(args.actor.cultivatorId, tx);
           const remainingConsumable = await getCultivatorConsumableById(
             args.actor.cultivatorId,
             args.consumableId,
-            tx,
-          );
-          const taskSummary = await readPlayerTaskSummary(
-            args.actor.cultivatorId,
             tx,
           );
           return {
@@ -205,7 +198,6 @@ export function consumeCultivatorConsumable(args: {
             resourceChanges: conditionChangesAfterConsumable({
               consumable: result.consumable,
               remainingConsumable,
-              taskSummary,
               state: {
                 ...state,
                 realm: state.realm as RealmType,

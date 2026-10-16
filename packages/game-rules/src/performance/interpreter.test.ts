@@ -1,16 +1,17 @@
+import { BREAKTHROUGH_PERFORMANCES } from '@daoyou/game-content/performance/breakthrough';
 import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
+import {
+  fillPerformanceScript,
+  parsePerformanceScript,
+  type PerformanceScript,
+} from '@daoyou/game-domain/performance';
 import { describe, expect, it } from 'vitest';
 import {
   createPerformanceState,
   currentPerformanceCue,
   reducePerformance,
 } from './interpreter.js';
-import {
-  fillPerformanceScript,
-  parsePerformanceScript,
-  type PerformanceScript,
-} from '@daoyou/game-domain/performance';
 
 const script = parsePerformanceScript({
   id: 'sample',
@@ -70,15 +71,45 @@ function playArrival(scriptId: string, choice: 0 | 1) {
   let state = createPerformanceState(script, context);
   for (let step = 0; step < 80 && !state.finished; step += 1) {
     const cue = currentPerformanceCue(script, state);
-    state = reducePerformance(script, context, state,
-      cue?.type === 'choice' ? { type: 'choose', index: choice }
-        : cue?.type === 'end' ? { type: 'finish' } : { type: 'advance' },
+    state = reducePerformance(
+      script,
+      context,
+      state,
+      cue?.type === 'choice'
+        ? { type: 'choose', index: choice }
+        : cue?.type === 'end'
+          ? { type: 'finish' }
+          : { type: 'advance' },
     );
   }
   return { script, state };
 }
 
 describe('performance interpreter', () => {
+  it('keeps each breakthrough at its decision until the player explicitly finishes, and can replay it', () => {
+    for (const script of Object.values(BREAKTHROUGH_PERFORMANCES)) {
+      let state = createPerformanceState(script);
+      const initial = structuredClone(state);
+      for (let step = 0; step < 80 && !state.ending; step += 1) {
+        state = reducePerformance(script, {}, state, { type: 'advance' });
+      }
+      expect(state.ending, script.id).toBe(true);
+      expect(state.finished).toBe(false);
+      expect(state.outcome).toBeUndefined();
+      expect(reducePerformance(script, {}, state, { type: 'advance' })).toEqual(
+        state,
+      );
+      const confirmed = reducePerformance(script, {}, state, {
+        type: 'finish',
+      });
+      expect(confirmed.finished).toBe(true);
+      expect(confirmed.outcome).toBe('challenge');
+      expect(
+        reducePerformance(script, {}, confirmed, { type: 'restart' }),
+      ).toEqual(initial);
+    }
+  });
+
   it('plays every arrival chapter performance and inquiry to its configured outcome', () => {
     const performances = getStoryChapter('arrival').beats.filter(
       (beat) => beat.kind === 'performance',
@@ -86,9 +117,13 @@ describe('performance interpreter', () => {
     for (const beat of performances) {
       for (const choice of [0, 1] as const) {
         const played = playArrival(beat.script, choice);
-        expect(played.state.finished, `${beat.script}, choice ${choice}`).toBe(true);
+        expect(played.state.finished, `${beat.script}, choice ${choice}`).toBe(
+          true,
+        );
         expect(played.state.outcome).toBe(beat.outcome);
-        expect(JSON.stringify(played.script)).not.toMatch(/\{(?:name|alchemy_teacher|forge_teacher|instructor)\}/);
+        expect(JSON.stringify(played.script)).not.toMatch(
+          /\{(?:name|alchemy_teacher|forge_teacher|instructor)\}/,
+        );
       }
     }
     expect(playArrival('arrival-ember', 0).state.log).toContainEqual(
@@ -101,7 +136,9 @@ describe('performance interpreter', () => {
 
   it('fills declared actor names and rejects undeclared actor tokens', () => {
     const input = {
-      id: 'teacher', title: '丹房', requires: ['teacher'],
+      id: 'teacher',
+      title: '丹房',
+      requires: ['teacher'],
       cast: { teacher: { name: '{teacher}' } },
       cues: [
         { type: 'scene', alt: '丹房' },
@@ -110,10 +147,16 @@ describe('performance interpreter', () => {
       ],
     };
     const script = parsePerformanceScript(input);
-    expect(fillPerformanceScript(script, { teacher: '程晚照' }).cast.teacher?.name).toBe('程晚照');
+    expect(
+      fillPerformanceScript(script, { teacher: '程晚照' }).cast.teacher?.name,
+    ).toBe('程晚照');
     expect(script.cast.teacher?.name).toBe('{teacher}');
-    expect(() => fillPerformanceScript(script, {})).toThrow('演出缺少填词：teacher');
-    expect(() => parsePerformanceScript({ ...input, requires: [] })).toThrow('演出填词未声明：teacher');
+    expect(() => fillPerformanceScript(script, {})).toThrow(
+      '演出缺少填词：teacher',
+    );
+    expect(() => parsePerformanceScript({ ...input, requires: [] })).toThrow(
+      '演出填词未声明：teacher',
+    );
   });
 
   it('allows a scene that has words and no picture', () => {

@@ -13,7 +13,6 @@ export type TaskDailyKind = 'alchemy' | 'dungeon' | 'ranking';
 
 export const TASK_EVENT_VALUES = [
   'alchemy_crafted',
-  'dungeon_completed',
   'spirit_field_sown',
   'spirit_field_cared',
   'spirit_field_harvested',
@@ -23,10 +22,8 @@ export type TaskEvent = (typeof TASK_EVENT_VALUES)[number];
 
 export type TaskObjectiveKind =
   | 'auto_complete'
-  | 'craft_breakthrough_pill'
   | 'insight_at_least'
   | 'status_active'
-  | 'complete_dungeon'
   | 'win_task_challenge'
   | 'event_count';
 
@@ -46,11 +43,6 @@ export interface AutoCompleteObjectiveDefinition extends TaskObjectiveDefinition
   kind: 'auto_complete';
 }
 
-export interface CraftBreakthroughPillObjectiveDefinition extends TaskObjectiveDefinitionBase {
-  kind: 'craft_breakthrough_pill';
-  targetRealm: RealmType;
-}
-
 export interface InsightAtLeastObjectiveDefinition extends TaskObjectiveDefinitionBase {
   kind: 'insight_at_least';
   threshold: number;
@@ -62,12 +54,6 @@ export interface StatusActiveObjectiveDefinition extends TaskObjectiveDefinition
     ConditionStatusKey,
     'breakthrough_focus' | 'protect_meridians' | 'clear_mind'
   >;
-}
-
-export interface CompleteDungeonObjectiveDefinition extends TaskObjectiveDefinitionBase {
-  kind: 'complete_dungeon';
-  mapNodeId: string;
-  mapNodeName: string;
 }
 
 export interface WinTaskChallengeObjectiveDefinition extends TaskObjectiveDefinitionBase {
@@ -83,10 +69,8 @@ export interface EventCountObjectiveDefinition extends TaskObjectiveDefinitionBa
 
 export type TaskObjectiveDefinition =
   | AutoCompleteObjectiveDefinition
-  | CraftBreakthroughPillObjectiveDefinition
   | InsightAtLeastObjectiveDefinition
   | StatusActiveObjectiveDefinition
-  | CompleteDungeonObjectiveDefinition
   | WinTaskChallengeObjectiveDefinition
   | EventCountObjectiveDefinition;
 
@@ -152,6 +136,7 @@ export interface TaskStageProgress {
   completed: boolean;
   current: boolean;
   links: TaskActionLink[];
+  challengeId?: string;
   objectives: TaskObjectiveProgress[];
 }
 

@@ -4,9 +4,9 @@ import type {
   TaskChallengeResponse,
   TaskRewardClaimResponse,
 } from '@daoyou/contracts/task';
-import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import type { TaskInstance } from '@daoyou/game-domain/tasks';
+import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
 
 async function readJsonOrThrow<T>(response: Response): Promise<T> {
   const payload = await response.json();
@@ -55,10 +55,7 @@ export async function claimTaskReward(taskId: string) {
 }
 
 export function findCurrentMajorBreakthroughTask(
-  cultivator:
-    | Pick<Cultivator, 'realm' | 'realm_stage'>
-    | null
-    | undefined,
+  cultivator: Pick<Cultivator, 'realm' | 'realm_stage'> | null | undefined,
   tasks: TaskInstance[],
 ): TaskInstance | null {
   if (!cultivator || cultivator.realm_stage !== '圆满') {
@@ -80,3 +77,11 @@ export function findCurrentMajorBreakthroughTask(
   );
 }
 
+export function getBreakthroughNextStep(task: TaskInstance): string {
+  if (task.status === 'completed') return '破境准备已齐，回静室正式冲关。';
+  const stage = task.snapshot.stages.find((item) => item.current);
+  const objective = stage?.objectives.find((item) => !item.completed);
+  return objective
+    ? `${objective.title} · ${objective.progressText}`
+    : (stage?.description ?? task.snapshot.summary);
+}
