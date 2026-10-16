@@ -1,4 +1,7 @@
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { db } from '@server/lib/drizzle/db.js';
+import * as schema from '@server/lib/drizzle/schema.js';
+import { and, eq } from 'drizzle-orm';
 import { invalidateActiveCultivatorRef } from '@server/lib/auth/activeCultivator.js';
 import {
   redisLockKeys,
@@ -83,6 +86,11 @@ export function createCultivatorFromTemp(args: {
           '您已经拥有一位道身，无法创建新的道身',
         );
       }
+      const pendingTransfer = await db.query.cultivators.findFirst({
+        columns: { id: true },
+        where: and(eq(schema.cultivators.userId, args.userId), eq(schema.cultivators.status, 'transfer_pending')),
+      });
+      if (pendingTransfer) throw new CultivatorCreationCommandError('原角色转服尚未完成，暂不可创建新角色');
       const [cultivator, fates] = await Promise.all([
         getTempCharacter(args.tempCultivatorId),
         getTempFates(args.tempCultivatorId),

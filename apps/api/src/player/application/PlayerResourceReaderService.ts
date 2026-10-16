@@ -5,6 +5,7 @@ import {
   runDbTasks,
   type DbExecutor,
 } from '@server/lib/drizzle/db.js';
+import { TRANSFER_PENDING_NOTE, TRANSFERRED_NOTE } from '@daoyou/contracts/transfer';
 import {
   cultivators,
   cultivatorTasks,
@@ -389,5 +390,8 @@ async function findInactiveCultivatorNote(
     .where(eq(cultivators.userId, userId))
     .orderBy(desc(cultivators.updatedAt))
     .limit(1);
-  return latest?.status === 'dead' ? '前世道途已尽' : undefined;
+  if (latest?.status === 'dead') return '前世道途已尽';
+  if (latest?.status === 'transfer_pending') return TRANSFER_PENDING_NOTE;
+  if (latest?.status === 'transferred') return TRANSFERRED_NOTE;
+  return undefined;
 }

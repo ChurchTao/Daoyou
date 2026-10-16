@@ -21,6 +21,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/accounts',
   },
   {
+    title: '跨服转入审核',
+    description: '审核申请与维护来源服公钥白名单',
+    href: '/admin/transfers',
+  },
+  {
     title: '系统邮件',
     description: '按条件发布公告与奖励',
     href: '/admin/broadcast/game-mail',

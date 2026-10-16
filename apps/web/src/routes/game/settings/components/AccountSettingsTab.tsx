@@ -427,6 +427,13 @@ export function AccountSettingsTab() {
       </SettingsSection>
 
       <SettingsSection
+        title="跨服转移"
+        description="定向导出角色或查看目标服的导入审核。导出后原角色会暂时冻结。"
+      >
+        <InkButton href="/transfer">管理转服</InkButton>
+      </SettingsSection>
+
+      <SettingsSection
         title="登录状态"
         description="退出当前浏览器的登录状态，不会删除账号或角色数据。"
       >

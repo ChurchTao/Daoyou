@@ -36,6 +36,7 @@ export const DOMAIN_EVENT_TYPES = [
   'market.material.revealed',
   'ranking.position.changed',
   'beast.exceptional.acquired',
+  'cultivator.boundary.crossed',
   'sponsorship.order.received',
   'combat.v6.battle.finished',
 ] as const;
@@ -239,6 +240,14 @@ export function createDomainEventDataSchemas({
       cultivatorName: z.string().min(1).max(100),
       source: z.enum(['fusion', 'capture']),
       beast: BeastTradePreviewSchema,
+    }),
+    'cultivator.boundary.crossed': z.strictObject({
+      userId: z.uuid(),
+      cultivatorId: z.uuid(),
+      cultivatorName: z.string().min(1).max(100),
+      realm: z.enum(REALM_VALUES),
+      realmStage: z.enum(REALM_STAGE_VALUES),
+      direction: z.enum(['departed', 'arrived', 'returned']),
     }),
     'sponsorship.order.received': z
       .object({

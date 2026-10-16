@@ -463,6 +463,13 @@
       "when": 1791960132857,
       "tag": "0065_wanderer_book_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792056360753,
+      "tag": "0066_strange_the_hood",
+      "breakpoints": true
     }
   ]
 }

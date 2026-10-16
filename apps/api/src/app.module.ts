@@ -46,6 +46,7 @@ import { SponsorshipModule } from './sponsorship/sponsorship.module.js';
 import { StoryModule } from './story/story.module.js';
 import { TasksModule } from './tasks/tasks.module.js';
 import { TowerModule } from './tower/tower.module.js';
+import { TransferModule } from './transfer/transfer.module.js';
 import { WandererModule } from './wanderer/wanderer.module.js';
 
 @Module({
@@ -98,6 +99,7 @@ import { WandererModule } from './wanderer/wanderer.module.js';
     WandererModule,
     DungeonModule,
     TowerModule,
+    TransferModule,
     // Namespace authorization fallbacks must follow every concrete route.
     NotFoundModule,
   ],
