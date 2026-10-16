@@ -14,6 +14,6 @@ describe('transfer item limits', () => {
   it('applies arrival limits to stones, beasts and sect method damage', () => {
     expect(TRANSFER_STONE_LIMIT).toBe(15_000_000);
     expect(TRANSFER_BEAST_LIMIT).toBe(3);
-    expect([1, 15, 16, 50].map(transferredSectMethodLevel)).toEqual([1, 1, 1, 35]);
+    expect([1, 10, 11, 50].map(transferredSectMethodLevel)).toEqual([1, 1, 1, 40]);
   });
 });

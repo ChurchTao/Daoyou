@@ -82,7 +82,7 @@ export default function AdminTransfersPage() {
         <p>来源：{review.sourceServerId} · 来源角色：{review.sourceCultivatorId}</p>
         <p>目标账号：{review.userId} · 提交：{new Date(review.submittedAt).toLocaleString()}</p>
         <p>灵石 {review.preview.spiritStones.toLocaleString()} · 宗门 {review.preview.sectId ?? '无'} · 功法 {review.preview.manualCount} · 穿戴 {review.preview.equippedCount} · 灵兽 {review.preview.beastCount}</p>
-        {review.preview.sect && <p>抵达后宗门心法（已各降 15 级）：{Object.entries(review.preview.sect.methods).map(([id, level]) => `${id} ${level} 级`).join('、')}；经脉深度 {review.preview.sect.meridianDepth}。贡献与职位清零。</p>}
+        {review.preview.sect && <p>抵达后宗门心法（修为受损，已各降 10 级）：{Object.entries(review.preview.sect.methods).map(([id, level]) => `${id} ${level} 级`).join('、')}；经脉深度 {review.preview.sect.meridianDepth}。贡献与职位清零。</p>}
         <ul className="text-ink-secondary list-inside list-disc">{review.preview.items.map((item, index) => <li key={index}>{item.slot === null ? '穿戴' : `背包 ${item.slot + 1} 格`} · {item.name ?? item.definitionId}{item.equipmentLevel === null ? '' : ` · ${item.equipmentLevel} 级 / 品质 ${item.baseQuality}`} × {item.quantity}</li>)}</ul>
         {review.preview.manuals.length > 0 && <p>功法：{review.preview.manuals.map((manual) => `${manual.id} ${manual.level} 层`).join('、')}</p>}
         {review.preview.beasts.length > 0 && <p>灵兽：{review.preview.beasts.map((beast) => `${beast.name}（${beast.speciesId}，${beast.level} 级，成长 ${beast.growth}）`).join('、')}</p>}

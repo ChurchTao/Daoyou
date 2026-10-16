@@ -134,7 +134,7 @@ function PreviewCard({ preview, detailed = false }: { preview: Preview; detailed
       <section className="space-y-2 border-ink/10 border-t pt-4">
         <h3 className="font-semibold">宗门与功法</h3>
         <p>宗门：{preview.sectId ?? '无'}{preview.sect ? ` · 经脉深度 ${preview.sect.meridianDepth} · 当前路线 ${preview.sect.activePathId}` : ''}</p>
-        {preview.sect && <p className="text-crimson">虚空损伤已计入下列宗门心法等级：每本降低 15 级，最低 1 级。贡献与职位不携带。</p>}
+        {preview.sect && <p className="text-crimson">虚空已损伤自身修为，下列宗门心法每门降低 10 级，最低保留 1 级。贡献与职位不携带。</p>}
         {preview.sect && <p>宗门功法：{Object.entries(preview.sect.methods).map(([id, level]) => `${id} ${level}级`).join(' · ') || '无'}</p>}
         <ul className="grid gap-1 sm:grid-cols-2">{preview.manuals.map((manual) => <li key={manual.id}>{manual.id} · {manual.level} 级{preview.manualSlots?.some((slot) => slot.manualId === manual.id) ? ' · 已装配' : ''}</li>)}</ul>
         {!preview.manuals.length && <p className="text-ink-secondary">无已学功法</p>}
@@ -294,7 +294,7 @@ export default function TransferPage() {
       </section>}
 
       {mode === 'export' && <section className="border-ink/15 bg-bgpaper space-y-6 border p-5 shadow-[0_18px_40px_rgba(44,24,16,0.08)] sm:p-7">
-        <p className="text-ink-secondary max-w-2xl text-sm leading-7">从当前服务器撕裂虚空，前往目标界。虚空会损伤宗门心法，也会吞噬超出携带上限的财物与灵兽。</p>
+        <p className="text-ink-secondary max-w-2xl text-sm leading-7">从当前服务器撕裂虚空，前往目标界。虚空会损伤自身修为，也会吞噬超出携带上限的财物与灵兽。</p>
         {pendingExport || completedExport && !pendingExport ? <div className="space-y-4 text-sm leading-7">
           <h2 className="font-heading text-2xl">转出进度</h2>
           {pendingExport ? <><p><strong>{pendingExport.characterName}</strong> 已冻结，等待目标服审核。请保存存档并提交到目标服；审核结束后把回执粘贴在此处。</p>
@@ -312,12 +312,12 @@ export default function TransferPage() {
             <div className="border-crimson/20 bg-crimson/5 space-y-2 border p-4">
               <p className="font-semibold">撕裂虚空前请确认</p>
               <ul className="list-inside list-disc space-y-1">
-                <li>导出成功后，原服角色立即冻结；目标服管理员审核通过后才能使用新角色。</li>
+                <li>导出成功后，原服角色立即冻结；目标服管理员审核通过后才能使用新角色。冻结是指这个角色立刻不能再修行，账号也不能另开新角色；角色和家当都还在，只是被扣住。审核通过前可以反悔：到目标服撤销申请；若存档还没提交，先提交再撤销。把驳回回执贴回原服的转出页，角色就会解冻。审核一旦通过，原角色记为已转出，不能再恢复。</li>
                 <li>虚空只能容纳 1500 万灵石；声望、宗门贡献和职位无法跨界。</li>
-                <li>撕裂虚空会损伤宗门心法，每本降低 15 级，最低保留 1 级；其他角色修炼进度按存档保留。</li>
+                <li>撕裂虚空会损伤自身修为，宗门心法因此每门降低 10 级，最低保留 1 级。</li>
                 <li>只带穿戴装备和背包前 8 格；符箓每格最多 10 张，其他物品每格最多 30 个，v1 材料会被虚空吞噬。</li>
                 <li>灵兽袋前 3 只可以同行。超出上限的物品与灵兽不入存档，目标服不会补发。</li>
-                <li>目标服需要信任原服，且目标账号必须是正式账号；被拒后需用审核回执在原服解冻。</li>
+                <li>目标服需要信任原服，且目标账号必须是正式账号。</li>
               </ul>
             </div>
             <label className="block">请输入 <strong className="text-crimson">{CONFIRM_TEXT}</strong> 以继续<input className="border-ink/20 bg-paper mt-2 block w-full border p-3" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="off" /></label>
