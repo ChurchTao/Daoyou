@@ -3,35 +3,11 @@ import { apiFetch } from '@app/lib/api/fetch';
 import { requireUserLoader } from '@app/lib/router/loaders';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { PreviewCard, type Preview } from './preview';
 
 export const loader = requireUserLoader;
 
 const CONFIRM_TEXT = '我已知晓虚空风险';
-
-type Preview = {
-  name: string;
-  realm: string;
-  realmStage: string;
-  age?: number;
-  lifespan?: number;
-  attributes?: Record<string, number>;
-  unallocatedAttributePoints?: number;
-  cultivationProgress?: Record<string, unknown>;
-  condition?: Record<string, unknown>;
-  roots?: { element: string; strength: number; marrowWashBonus: number; grade: string | null }[];
-  fates?: { name: string; quality: string | null; description: string | null }[];
-  spiritStones: number;
-  sectId: string | null;
-  sect?: { methods: Record<string, number>; activePathId: string; meridianDepth: number } | null;
-  manualCount: number;
-  manuals: { id: string; level: number; unlockedLevel?: number }[];
-  manualSlots?: { slot: number; manualId: string }[];
-  equippedCount: number;
-  items: { location?: string; slot: number | null; equipmentSlot?: string | null; definitionId: string; quantity: number; name: string | null; equipmentLevel: number | null; baseQuality: number | null }[];
-  beastCount: number;
-  beasts: { name: string; speciesId: string; level: number; growth: number }[];
-  storyReceiptCount?: number;
-};
 type ImportRequest = {
   id: string;
   status: string;
@@ -82,8 +58,6 @@ function StepHeader({ title, steps, current }: { title: string; steps: string[];
   </div>;
 }
 
-const attributeLabels: Record<string, string> = { vitality: '体魄', strength: '力量', spirit: '灵力', endurance: '耐力', speed: '速度', willpower: '意志' };
-
 function TransferVista({ mode, onBack }: { mode: 'import' | 'export'; onBack: () => void }) {
   const arrival = mode === 'import';
   return <section className="relative" aria-labelledby="transfer-vista-title">
@@ -108,53 +82,6 @@ function TransferVista({ mode, onBack }: { mode: 'import' | 'export'; onBack: ()
       </div>
     </div>
   </section>;
-}
-
-function PreviewCard({ preview, detailed = false }: { preview: Preview; detailed?: boolean }) {
-  const body = preview.condition?.tracks && typeof preview.condition.tracks === 'object'
-    ? (preview.condition.tracks as Record<string, unknown>).bodyCultivation as { realm?: string; tracks?: Record<string, { level?: number; progress?: number }> } | undefined
-    : undefined;
-  return <div className="space-y-4 text-sm">
-    <div className="border-ink/15 bg-paper border p-4">
-      <p className="text-crimson mb-1 text-xs tracking-widest">抵达目标界后的预计状态</p>
-      <p className="font-heading text-xl">{preview.name} · {preview.realm} {preview.realmStage}</p>
-      <p className="text-ink-secondary mt-1">灵石 <span className="font-mono">{preview.spiritStones.toLocaleString()}</span> · 功法 {preview.manualCount} · 穿戴 {preview.equippedCount} · 灵兽 {preview.beastCount}</p>
-    </div>
-    {detailed && <>
-      <section className="space-y-2">
-        <h3 className="font-semibold">角色与修炼</h3>
-        <p>年龄 {preview.age ?? '—'} / 寿元 {preview.lifespan ?? '—'}；未分配属性点 {preview.unallocatedAttributePoints ?? '—'}</p>
-        <p>{Object.entries(preview.attributes ?? {}).map(([key, value]) => `${attributeLabels[key] ?? key} ${value}`).join(' · ') || '暂无属性记录'}</p>
-        <p>修为经验 {String(preview.cultivationProgress?.cultivation_exp ?? '—')} · 参悟 {String(preview.cultivationProgress?.comprehension_insight ?? '—')}</p>
-        <p>肉身境界：{body?.realm ?? '未开始'}</p>
-        {body?.tracks && <p>肉身修炼：{Object.entries(body.tracks).map(([name, track]) => `${name} ${track.level ?? 0}级（${track.progress ?? 0}）`).join(' · ')}</p>}
-        <p>灵根：{preview.roots?.map((root) => `${root.element} ${root.grade ?? ''} ${root.strength}（洗髓加成 ${root.marrowWashBonus}）`).join(' · ') || '无'}</p>
-        <p>先天气运：{preview.fates?.map((fate) => `${fate.name}${fate.quality ? ` · ${fate.quality}` : ''}`).join('；') || '无'}</p>
-      </section>
-      <section className="space-y-2 border-ink/10 border-t pt-4">
-        <h3 className="font-semibold">宗门与功法</h3>
-        <p>宗门：{preview.sectId ?? '无'}{preview.sect ? ` · 经脉深度 ${preview.sect.meridianDepth} · 当前路线 ${preview.sect.activePathId}` : ''}</p>
-        {preview.sect && <p className="text-crimson">虚空已损伤自身修为，下列宗门心法每门降低 10 级，最低保留 1 级。贡献与职位不携带。</p>}
-        {preview.sect && <p>宗门功法：{Object.entries(preview.sect.methods).map(([id, level]) => `${id} ${level}级`).join(' · ') || '无'}</p>}
-        <ul className="grid gap-1 sm:grid-cols-2">{preview.manuals.map((manual) => <li key={manual.id}>{manual.id} · {manual.level} 级{preview.manualSlots?.some((slot) => slot.manualId === manual.id) ? ' · 已装配' : ''}</li>)}</ul>
-        {!preview.manuals.length && <p className="text-ink-secondary">无已学功法</p>}
-      </section>
-      <section className="space-y-2 border-ink/10 border-t pt-4">
-        <h3 className="font-semibold">可携带物品 · {preview.items.length} 格</h3>
-        <ul className="grid gap-2 sm:grid-cols-2">{preview.items.map((item, index) => <li className="border-ink/10 border p-2" key={`${item.location}-${item.slot}-${index}`}>
-          <span className="text-ink-secondary">{item.location === 'equipped' ? `穿戴 ${item.equipmentSlot ?? ''}` : `背包第 ${(item.slot ?? 0) + 1} 格`}</span>
-          <span className="block">{item.name ?? item.definitionId} × {item.quantity}{item.equipmentLevel !== null ? ` · 强化 ${item.equipmentLevel}` : ''}{item.baseQuality !== null ? ` · 品质 ${item.baseQuality}` : ''}</span>
-        </li>)}</ul>
-        {!preview.items.length && <p className="text-ink-secondary">无可携带物品</p>}
-      </section>
-      <section className="space-y-2 border-ink/10 border-t pt-4">
-        <h3 className="font-semibold">随行灵兽 · {preview.beasts.length} / 3 只</h3>
-        <ul>{preview.beasts.map((beast, index) => <li key={`${beast.speciesId}-${index}`}>{beast.name} · {beast.speciesId} · {beast.level} 级 · 成长 {beast.growth}</li>)}</ul>
-        {!preview.beasts.length && <p className="text-ink-secondary">无可携带灵兽</p>}
-        <p className="text-ink-secondary">剧情记录 {preview.storyReceiptCount ?? 0} 条也会随角色迁移。</p>
-      </section>
-    </>}
-  </div>;
 }
 
 export default function TransferPage() {

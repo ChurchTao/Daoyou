@@ -1,5 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { apiFetch } from '@app/lib/api/fetch';
+import { PreviewCard, type Preview } from '@app/routes/transfer/preview';
 import { useCallback, useEffect, useState } from 'react';
 
 type TransferReview = {
@@ -9,20 +10,7 @@ type TransferReview = {
   sourceCultivatorId: string;
   submittedAt: string;
   packageHash: string;
-  preview: {
-    name: string;
-    realm: string;
-    realmStage: string;
-    spiritStones: number;
-    sectId: string | null;
-    sect?: { methods: Record<string, number>; meridianDepth: number } | null;
-    manualCount: number;
-    manuals: { id: string; level: number }[];
-    equippedCount: number;
-    beastCount: number;
-    beasts: { name: string; speciesId: string; level: number; growth: number }[];
-    items: { slot: number | null; definitionId: string; quantity: number; name: string | null; equipmentLevel: number | null; baseQuality: number | null }[];
-  };
+  preview: Preview;
 };
 type TrustedServer = { serverId: string; signingPublicKey: string; enabled: boolean };
 
@@ -78,14 +66,9 @@ export default function AdminTransfersPage() {
       <InkButton variant="secondary" disabled={busy} onClick={() => void run(async () => {})}>刷新</InkButton>
       {reviews.length === 0 && <p className="text-ink-secondary text-sm">暂无待审核申请</p>}
       {reviews.map((review) => <article key={review.id} className="border-ink/15 space-y-2 border-t pt-4 text-sm">
-        <p className="font-semibold">{review.preview.name} · {review.preview.realm} {review.preview.realmStage}</p>
         <p>来源：{review.sourceServerId} · 来源角色：{review.sourceCultivatorId}</p>
         <p>目标账号：{review.userId} · 提交：{new Date(review.submittedAt).toLocaleString()}</p>
-        <p>灵石 {review.preview.spiritStones.toLocaleString()} · 宗门 {review.preview.sectId ?? '无'} · 功法 {review.preview.manualCount} · 穿戴 {review.preview.equippedCount} · 灵兽 {review.preview.beastCount}</p>
-        {review.preview.sect && <p>抵达后宗门心法（修为受损，已各降 10 级）：{Object.entries(review.preview.sect.methods).map(([id, level]) => `${id} ${level} 级`).join('、')}；经脉深度 {review.preview.sect.meridianDepth}。贡献与职位清零。</p>}
-        <ul className="text-ink-secondary list-inside list-disc">{review.preview.items.map((item, index) => <li key={index}>{item.slot === null ? '穿戴' : `背包 ${item.slot + 1} 格`} · {item.name ?? item.definitionId}{item.equipmentLevel === null ? '' : ` · ${item.equipmentLevel} 级 / 品质 ${item.baseQuality}`} × {item.quantity}</li>)}</ul>
-        {review.preview.manuals.length > 0 && <p>功法：{review.preview.manuals.map((manual) => `${manual.id} ${manual.level} 层`).join('、')}</p>}
-        {review.preview.beasts.length > 0 && <p>灵兽：{review.preview.beasts.map((beast) => `${beast.name}（${beast.speciesId}，${beast.level} 级，成长 ${beast.growth}）`).join('、')}</p>}
+        <PreviewCard preview={review.preview} detailed />
         <p className="text-ink-secondary font-mono text-xs break-all">SHA-256: {review.packageHash}</p>
         <input className="border-ink/20 bg-paper w-full border p-2" value={notes[review.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [review.id]: event.target.value }))} placeholder="驳回理由（选填）" maxLength={1000} />
         <div className="flex gap-2">
