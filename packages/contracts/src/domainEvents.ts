@@ -80,6 +80,10 @@ export const DOMAIN_EVENT_DEFINITIONS = {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.beast-exceptional-acquired.v1`,
   },
+  'cultivator.boundary.crossed': {
+    version: 1,
+    subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.gameplay.cultivator-boundary-crossed.v1`,
+  },
   'sponsorship.order.received': {
     version: 1,
     subject: `${DOMAIN_EVENT_SUBJECT_PREFIX}.sponsorship.order-received.v1`,

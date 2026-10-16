@@ -41,6 +41,12 @@ export class TransferController {
     return this.service.export(actor.userId, actor.cultivatorId, input.challenge);
   }
 
+  @Get('export-preview')
+  @Access('active')
+  exportPreview(@CurrentCultivator() actor: ActiveCultivatorRef) {
+    return this.service.exportPreview(actor.userId, actor.cultivatorId);
+  }
+
   @Get('exports')
   exports(@CurrentUser() user: AuthUser) { return this.service.ownExport(user.id); }
 

@@ -7,7 +7,6 @@ import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
 import { getSectWeekKey } from '@server/sects/organization/SectOrganizationClock.js';
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
 import type { TransferSnapshot } from './transfer-snapshot.js';
 
 export async function importTransferSnapshot(tx: DbTransaction, userId: string, snapshot: TransferSnapshot): Promise<string> {

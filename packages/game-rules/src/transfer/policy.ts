@@ -1,8 +1,14 @@
 import type { InventoryItem } from '@daoyou/game-domain/inventory';
 import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
 
-export const TRANSFER_STONE_LIMIT = 10_000_000;
+export const TRANSFER_STONE_LIMIT = 15_000_000;
 export const TRANSFER_BAG_SLOTS = 8;
+export const TRANSFER_BEAST_LIMIT = 3;
+export const TRANSFER_SECT_METHOD_LOSS = 15;
+
+export function transferredSectMethodLevel(level: number): number {
+  return Math.max(1, level - TRANSFER_SECT_METHOD_LOSS);
+}
 
 export function transferableQuantity(item: Pick<InventoryItem, 'definitionId' | 'instanceData' | 'quantity'>): number {
   if (item.definitionId === 'material.v1') return 0;

@@ -39,7 +39,7 @@ const environmentSchema = z
     NATS_USER: z.string().trim().min(1),
     NATS_PASSWORD: z.string().min(1),
     CRON_SECRET: z.string().optional(),
-    TRANSFER_SERVER_ID: z.string().trim().min(1).max(160).optional(),
+    TRANSFER_SERVER_ID: z.string().trim().regex(/^[A-Za-z0-9._-]{1,160}$/).optional(),
     TRANSFER_SIGNING_PRIVATE_KEY_B64: z.string().optional(),
     TRANSFER_ENCRYPTION_PRIVATE_KEY_B64: z.string().optional(),
     SMTP_PORT: positiveInteger('465', 65535),

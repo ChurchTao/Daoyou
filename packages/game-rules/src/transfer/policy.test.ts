@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { transferableQuantity } from './policy.js';
+import { TRANSFER_BEAST_LIMIT, TRANSFER_STONE_LIMIT, transferableQuantity, transferredSectMethodLevel } from './policy.js';
 
 describe('transfer item limits', () => {
   it('excludes material.v1 and caps talismans separately', () => {
@@ -9,5 +9,11 @@ describe('transfer item limits', () => {
       spec: { kind: 'talisman', scenario: 'test', sessionMode: 'consume_on_action' },
     }, quantity: 20 })).toBe(10);
     expect(transferableQuantity({ definitionId: 'seed.v1', instanceData: null, quantity: 50 })).toBe(30);
+  });
+
+  it('applies arrival limits to stones, beasts and sect method damage', () => {
+    expect(TRANSFER_STONE_LIMIT).toBe(15_000_000);
+    expect(TRANSFER_BEAST_LIMIT).toBe(3);
+    expect([1, 15, 16, 50].map(transferredSectMethodLevel)).toEqual([1, 1, 1, 35]);
   });
 });

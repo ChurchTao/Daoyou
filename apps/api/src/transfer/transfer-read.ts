@@ -1,5 +1,5 @@
 import type { TransferPackageHeader } from '@daoyou/contracts/transfer';
-import { TRANSFER_STONE_LIMIT, transferableBagItems } from '@daoyou/game-rules/transfer';
+import { TRANSFER_BEAST_LIMIT, TRANSFER_STONE_LIMIT, transferableBagItems } from '@daoyou/game-rules/transfer';
 import { BeastLineupSchema } from '@daoyou/game-domain/beasts';
 import { and, eq } from 'drizzle-orm';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
@@ -7,6 +7,8 @@ import * as schema from '@server/lib/drizzle/schema.js';
 import { inventoryItemOf, assertInventoryIdle } from '@server/inventory/operations.js';
 import { readSectCombatProgress } from '@server/lib/repositories/sectCombatRepository.js';
 import { validateTransferSnapshot, type TransferSnapshot } from './transfer-snapshot.js';
+
+export class TransferEligibilityError extends Error {}
 
 export async function readTransferSnapshot(
   tx: DbTransaction,
@@ -19,23 +21,23 @@ export async function readTransferSnapshot(
     eq(schema.cultivators.userId, userId),
     eq(schema.cultivators.status, 'active'),
   )).for('update');
-  if (!role) throw new Error('角色不可导出');
+  if (!role) throw new TransferEligibilityError('角色不可导出');
   await assertInventoryIdle(cultivatorId, tx);
   const activeListing = await tx.query.auctionListings.findFirst({
     columns: { id: true },
     where: and(eq(schema.auctionListings.sellerId, cultivatorId), eq(schema.auctionListings.status, 'active')),
   });
-  if (activeListing) throw new Error('请先撤下所有在售物品和灵兽');
+  if (activeListing) throw new TransferEligibilityError('请先撤下所有在售物品和灵兽');
   const pendingMail = await tx.query.mails.findMany({
     columns: { attachments: true, isClaimed: true },
     where: and(eq(schema.mails.cultivatorId, cultivatorId), eq(schema.mails.isClaimed, false)),
   });
   if (pendingMail.some((mail) => Array.isArray(mail.attachments) && mail.attachments.length > 0))
-    throw new Error('请先领取所有邮件附件');
+    throw new TransferEligibilityError('请先领取所有邮件附件');
   const openPacket = await tx.query.chatRedPackets.findFirst({ columns: { id: true }, where: and(eq(schema.chatRedPackets.senderCultivatorId, cultivatorId), eq(schema.chatRedPackets.status, 'open')) });
-  if (openPacket) throw new Error('请等待红包结束并完成退款');
+  if (openPacket) throw new TransferEligibilityError('请等待红包结束并完成退款');
   const activeRun = await tx.query.dungeonRuns.findFirst({ columns: { id: true }, where: and(eq(schema.dungeonRuns.cultivatorId, cultivatorId), eq(schema.dungeonRuns.status, 'EXPLORING')) });
-  if (activeRun) throw new Error('请先结束进行中的副本');
+  if (activeRun) throw new TransferEligibilityError('请先结束进行中的副本');
 
   const roots = await tx.select().from(schema.spiritualRoots).where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
   const fates = await tx.select().from(schema.preHeavenFates).where(eq(schema.preHeavenFates.cultivatorId, cultivatorId));
@@ -45,7 +47,11 @@ export async function readTransferSnapshot(
   const items = [...inventory.filter((item) => item.location === 'equipped'), ...transferableBagItems(inventory)];
   const equipped = await tx.select().from(schema.cultivatorEquipmentSlots).where(eq(schema.cultivatorEquipmentSlots.cultivatorId, cultivatorId));
   const [lineupRow] = await tx.select().from(schema.cultivatorBeastLineups).where(eq(schema.cultivatorBeastLineups.cultivatorId, cultivatorId));
-  const lineup = BeastLineupSchema.parse(lineupRow?.lineup ?? { carriedBeastIds: [], revision: 0 });
+  const sourceLineup = BeastLineupSchema.parse(lineupRow?.lineup ?? { carriedBeastIds: [], revision: 0 });
+  const carriedBeastIds = sourceLineup.carriedBeastIds.slice(0, TRANSFER_BEAST_LIMIT);
+  const lineup = { ...sourceLineup, carriedBeastIds,
+    ...(sourceLineup.leadBeastId && !carriedBeastIds.includes(sourceLineup.leadBeastId) ? { leadBeastId: undefined } : {}),
+  };
   const beastRows = await tx.select().from(schema.cultivatorBeasts).where(eq(schema.cultivatorBeasts.cultivatorId, cultivatorId));
   const beastMap = new Map(beastRows.map((beast) => [beast.id, beast]));
   const beasts = lineup.carriedBeastIds.map((id) => {

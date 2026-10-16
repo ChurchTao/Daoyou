@@ -1,4 +1,4 @@
-import { TransferChallengeSchema, type TransferChallenge } from '@daoyou/contracts/transfer';
+import { TRANSFER_FORMAT_VERSION, TransferChallengeSchema, type TransferChallenge } from '@daoyou/contracts/transfer';
 import { AppConfigService } from '@server/config/app-config.service.js';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { createHash, createPrivateKey, createPublicKey, type KeyObject } from 'node:crypto';
@@ -6,6 +6,9 @@ import { CompactEncrypt, CompactSign, compactDecrypt, compactVerify, decodeProte
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+const challengeTyp = `daoyou-transfer-challenge-v${TRANSFER_FORMAT_VERSION}`;
+const packageTyp = `daoyou-transfer-v${TRANSFER_FORMAT_VERSION}`;
+const receiptTyp = `daoyou-transfer-receipt-v${TRANSFER_FORMAT_VERSION}`;
 
 @Injectable()
 export class TransferCrypto {
@@ -20,7 +23,7 @@ export class TransferCrypto {
     if (signing && encryption) {
       this.signingKey = createPrivateKey(Buffer.from(signing, 'base64'));
       this.encryptionKey = createPrivateKey(Buffer.from(encryption, 'base64'));
-      if (this.signingKey.asymmetricKeyType !== 'ed25519' || this.encryptionKey.asymmetricKeyType !== 'rsa')
+      if (this.signingKey.asymmetricKeyType !== 'ed25519' || this.encryptionKey.asymmetricKeyType !== 'rsa' || (this.encryptionKey.asymmetricKeyDetails?.modulusLength ?? 0) < 2048)
         throw new Error('Transfer requires Ed25519 signing and RSA encryption keys');
     }
   }
@@ -43,7 +46,7 @@ export class TransferCrypto {
   async signChallenge(challenge: TransferChallenge): Promise<string> {
     const { serverId, signingKey } = this.requireKeys();
     return new CompactSign(textEncoder.encode(JSON.stringify(challenge)))
-      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: 'daoyou-transfer-challenge-v1' })
+      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: challengeTyp })
       .sign(signingKey);
   }
 
@@ -55,28 +58,32 @@ export class TransferCrypto {
     const key = createPublicKey(untrusted.signingPublicKey);
     const verified = await compactVerify(compact, key, { algorithms: ['EdDSA'] });
     const challenge = TransferChallengeSchema.parse(JSON.parse(textDecoder.decode(verified.payload)));
-    if (JSON.stringify(challenge) !== JSON.stringify(untrusted) || verified.protectedHeader.kid !== challenge.targetServerId)
+    if (JSON.stringify(challenge) !== JSON.stringify(untrusted) || verified.protectedHeader.kid !== challenge.targetServerId || verified.protectedHeader.typ !== challengeTyp)
       throw new Error('导入凭证签名与目标服务器不一致');
     if (requireUnexpired && Date.parse(challenge.expiresAt) <= Date.now()) throw new Error('导入凭证已过期');
     const encryptionKey = createPublicKey(challenge.encryptionPublicKey);
-    if (encryptionKey.asymmetricKeyType !== 'rsa' || key.asymmetricKeyType !== 'ed25519')
+    if (encryptionKey.asymmetricKeyType !== 'rsa' || (encryptionKey.asymmetricKeyDetails?.modulusLength ?? 0) < 2048 || key.asymmetricKeyType !== 'ed25519')
       throw new Error('导入凭证密钥类型无效');
     return challenge;
   }
 
   async seal(snapshot: unknown, challenge: TransferChallenge): Promise<string> {
     const { serverId, signingKey } = this.requireKeys();
-    const encrypted = await new CompactEncrypt(textEncoder.encode(JSON.stringify(snapshot)))
-      .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM', typ: 'daoyou-transfer-v1' })
+    const plaintext = textEncoder.encode(JSON.stringify(snapshot));
+    if (plaintext.length > 256_000) throw new Error('转服存档过大');
+    const encrypted = await new CompactEncrypt(plaintext)
+      .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM', typ: packageTyp })
       .encrypt(createPublicKey(challenge.encryptionPublicKey));
-    return new CompactSign(textEncoder.encode(encrypted))
-      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: 'daoyou-transfer-v1' })
+    const compact = await new CompactSign(textEncoder.encode(encrypted))
+      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: packageTyp })
       .sign(signingKey);
+    if (compact.length > 500_000) throw new Error('转服包过大');
+    return compact;
   }
 
   sourceId(compact: string): string {
     const header = decodeProtectedHeader(compact);
-    if (header.alg !== 'EdDSA' || header.typ !== 'daoyou-transfer-v1' || typeof header.kid !== 'string')
+    if (header.alg !== 'EdDSA' || header.typ !== packageTyp || typeof header.kid !== 'string' || !/^[A-Za-z0-9._-]{1,160}$/.test(header.kid))
       throw new Error('转服包头无效');
     return header.kid;
   }
@@ -85,8 +92,11 @@ export class TransferCrypto {
     const { encryptionKey } = this.requireKeys();
     if (compact.length > 500_000) throw new Error('转服包过大');
     const verified = await compactVerify(compact, createPublicKey(sourcePublicKey), { algorithms: ['EdDSA'] });
+    if (verified.protectedHeader.typ !== packageTyp || typeof verified.protectedHeader.kid !== 'string')
+      throw new Error('转服包签名头无效');
     const encrypted = textDecoder.decode(verified.payload);
     const decrypted = await compactDecrypt(encrypted, encryptionKey, { keyManagementAlgorithms: ['RSA-OAEP-256'], contentEncryptionAlgorithms: ['A256GCM'] });
+    if (decrypted.protectedHeader.typ !== packageTyp) throw new Error('转服包加密头版本无效');
     if (decrypted.plaintext.length > 256_000) throw new Error('转服存档过大');
     return JSON.parse(textDecoder.decode(decrypted.plaintext));
   }
@@ -96,14 +106,14 @@ export class TransferCrypto {
   async signReceipt(input: { requestId: string; packageHash: string; status: 'imported' | 'rejected' }): Promise<string> {
     const { serverId, signingKey } = this.requireKeys();
     return new CompactSign(textEncoder.encode(JSON.stringify({ ...input, targetServerId: serverId })))
-      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: 'daoyou-transfer-receipt-v1' })
+      .setProtectedHeader({ alg: 'EdDSA', kid: serverId, typ: receiptTyp })
       .sign(signingKey);
   }
 
   async verifyReceipt(compact: string, challenge: TransferChallenge): Promise<{ requestId: string; packageHash: string; status: 'imported' | 'rejected'; targetServerId: string }> {
     if (compact.length > 4096) throw new Error('转服回执过大');
     const verified = await compactVerify(compact, createPublicKey(challenge.signingPublicKey), { algorithms: ['EdDSA'] });
-    if (verified.protectedHeader.kid !== challenge.targetServerId || verified.protectedHeader.typ !== 'daoyou-transfer-receipt-v1')
+    if (verified.protectedHeader.kid !== challenge.targetServerId || verified.protectedHeader.typ !== receiptTyp)
       throw new Error('转服回执来源不一致');
     const value = JSON.parse(textDecoder.decode(verified.payload)) as Record<string, unknown>;
     if (value['targetServerId'] !== challenge.targetServerId || value['requestId'] !== challenge.requestId ||
