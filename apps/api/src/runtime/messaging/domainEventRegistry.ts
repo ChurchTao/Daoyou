@@ -131,6 +131,7 @@ export async function registerMessageInfrastructure(
           'market.material.revealed',
           'ranking.position.changed',
           'beast.exceptional.acquired',
+          'cultivator.boundary.crossed',
         ],
         handle: handleWorldRumorEvent,
       }),

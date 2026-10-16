@@ -73,12 +73,14 @@ export async function lockCultivatorForStateMutation(
   cultivatorId: string,
 ): Promise<void> {
   const [row] = await tx
-    .select({ id: cultivators.id })
+    .select({ id: cultivators.id, status: cultivators.status })
     .from(cultivators)
     .where(eq(cultivators.id, cultivatorId))
     .for('update')
     .limit(1);
   if (!row) throw new Error('角色不存在');
+  if (row.status === 'transfer_pending' || row.status === 'transferred')
+    throw new Error('转服中的角色不可操作');
 }
 
 export async function readScopeVersion(

@@ -128,6 +128,51 @@ export const cultivators = pgTable(
   ],
 );
 
+export const transferTrustedServers = pgTable('wanjiedaoyou_transfer_trusted_servers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  serverId: varchar('server_id', { length: 160 }).notNull().unique(),
+  signingPublicKey: text('signing_public_key').notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  createdBy: uuid('created_by').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const transferImportRequests = pgTable('wanjiedaoyou_transfer_import_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  status: varchar('status', { length: 20 }).$type<'issued' | 'pending' | 'imported' | 'rejected'>().notNull().default('issued'),
+  challenge: text('challenge').notNull(),
+  package: text('package'),
+  packageHash: varchar('package_hash', { length: 64 }),
+  sourceServerId: varchar('source_server_id', { length: 160 }),
+  sourceCultivatorId: uuid('source_cultivator_id'),
+  preview: jsonb('preview'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  submittedAt: timestamp('submitted_at', { withTimezone: true }),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewedBy: uuid('reviewed_by'),
+  reviewNote: text('review_note'),
+  importedCultivatorId: uuid('imported_cultivator_id').references(() => cultivators.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('transfer_import_status_created_idx').on(table.status, table.createdAt),
+  uniqueIndex('transfer_import_source_character_unique').on(table.sourceServerId, table.sourceCultivatorId).where(sql`${table.status} = 'imported'`),
+]);
+
+export const transferExports = pgTable('wanjiedaoyou_transfer_exports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cultivatorId: uuid('cultivator_id').notNull().references(() => cultivators.id),
+  targetServerId: varchar('target_server_id', { length: 160 }).notNull(),
+  targetRequestId: uuid('target_request_id').notNull(),
+  challenge: text('challenge').notNull(),
+  package: text('package').notNull(),
+  status: varchar('status', { length: 20 }).$type<'pending' | 'imported' | 'rejected'>().notNull().default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('transfer_export_cultivator_unique').on(table.cultivatorId).where(sql`${table.status} <> 'rejected'`),
+  uniqueIndex('transfer_export_target_request_unique').on(table.targetServerId, table.targetRequestId),
+]);
+
 export const cultivatorAutoStrategies = pgTable(
   'wanjiedaoyou_cultivator_auto_strategies',
   {
