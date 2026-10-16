@@ -8,6 +8,7 @@ import { GameTopHud } from '@app/components/game-shell/GameTopHud';
 import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
+import { TRANSFER_PENDING_NOTE, TRANSFERRED_NOTE } from '@daoyou/contracts/transfer';
 import { AuthProvider } from '@app/lib/auth/authContext';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
@@ -67,27 +68,33 @@ function PlayerShell() {
   }
 
   if (!hasActiveCultivator) {
-    const isDead = Boolean(note);
+    const isDead = note === '前世道途已尽';
+    const isTransferPending = note === TRANSFER_PENDING_NOTE;
+    const wasTransferred = note === TRANSFERRED_NOTE;
 
     return (
       <div className="app-safe-area-page bg-paper flex min-h-dvh items-center justify-center">
         <div className="w-full max-w-xl p-6">
           <h1 className="text-xl font-semibold tracking-wide">
-            {isDead ? '前世道途已尽' : '尚未凝聚真身'}
+            {isDead ? '前世道途已尽' : isTransferPending ? '道身转服审核中' : wasTransferred ? '道身已转出' : '尚未凝聚真身'}
           </h1>
           <p className="text-ink-secondary mt-3 text-sm leading-7">
             {note ||
-              '当前账号下还没有活跃角色。先完成角色创建，再进入万界修行主流程。'}
+              '当前账号下还没有活跃角色。可以创建新角色，也可以从其他服务器转入已有角色。'}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <InkButton
               variant="primary"
-              href={isDead ? '/game/reincarnate' : '/game/create'}
+              href={isTransferPending ? '/transfer' : isDead ? '/game/reincarnate' : '/game/create'}
             >
-              {isDead ? '前往转世重修' : '前往角色创建'}
+              {isTransferPending ? '查看转服进度' : isDead ? '前往转世重修' : '前往角色创建'}
             </InkButton>
             <InkButton href="/game">返回主界面</InkButton>
           </div>
+          {!isDead && !isTransferPending && !wasTransferred && <div className="mt-4 text-sm text-ink-secondary">
+            已有旧服道身？<InkButton href="/transfer?mode=import" variant="secondary">从其他服务器转入</InkButton>
+          </div>}
+          {(isTransferPending || wasTransferred) && <div className="mt-4"><InkButton href="/transfer" variant="secondary">查看跨服记录</InkButton></div>}
         </div>
       </div>
     );

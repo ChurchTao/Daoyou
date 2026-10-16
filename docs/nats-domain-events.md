@@ -38,6 +38,7 @@ Redis 是当前 V6 战斗运行态和回放 outbox 的权威。`CombatV6RuntimeS
 | `equipment.forged` | `daoyou.domain.gameplay.equipment-forged.v1` | `world-rumor-projector-v1`（带器诀或器蕴时推送装备预览） |
 | `market.material.revealed` | `daoyou.domain.gameplay.market-material-revealed.v1` | `world-rumor-projector-v1` |
 | `ranking.position.changed` | `daoyou.domain.gameplay.ranking-position-changed.v1` | `world-rumor-projector-v1` |
+| `cultivator.boundary.crossed` | `daoyou.domain.gameplay.cultivator-boundary-crossed.v1` | `world-rumor-projector-v1`（跨界飞升：离界、降临、折返） |
 
 `ranking.challenge.completed` 仍保留为战斗完成事实，但当前任务定义没有对应计数目标，任务投影器会显式忽略它。
 

@@ -24,6 +24,11 @@ export const adminRoutes = (
       handle={title('账号管理')}
     />
     <Route
+      path="transfers"
+      lazy={lazyRoute(() => import('@app/routes/admin/transfers/route'))}
+      handle={title('跨服转入审核')}
+    />
+    <Route
       path="broadcast/game-mail"
       lazy={lazyRoute(
         () => import('@app/routes/admin/broadcast/game-mail/route'),

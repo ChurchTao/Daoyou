@@ -92,6 +92,33 @@ export async function projectWorldRumorDomainEvent(
     return createRumor(event, event.data.userId, 'text', text, { text });
   }
 
+  if (isDomainEventType(event, 'cultivator.boundary.crossed')) {
+    const { cultivatorName, realm, realmStage, direction } = event.data;
+    const name = `「${cultivatorName}」`;
+    const who = `${realm}${realmStage}修士${name}`;
+    const text = deterministicTemplate(
+      event.id,
+      direction === 'arrived'
+        ? [
+            `${who}撕裂虚空，降临此界。`,
+            `虚空裂隙洞开，${name}自界外步入此间，落脚时已是${realm}${realmStage}。`,
+            `夜观天象者见异光西来，传闻${name}破界降临，修为已至${realm}${realmStage}。`,
+          ]
+        : direction === 'departed'
+          ? [
+              `${who}撕裂虚空，飞升离界。`,
+              `${name}破开界壁，踏光而去，此界再难寻其踪迹。`,
+              `天象骤变，${name}辞别同道，自${realm}${realmStage}飞升离开此界。`,
+            ]
+          : [
+              `${who}未能穿过虚空，折返此界。`,
+              `${name}自裂隙中退回，飞升未成，仍在此界修行。`,
+              `虚空之路中断，${name}重归此界，离界之行就此作罢。`,
+            ],
+    );
+    return createRumor(event, event.data.userId, 'text', text, { text });
+  }
+
   if (isDomainEventType(event, 'beast.exceptional.acquired')) {
     const { beast, cultivatorName, source } = event.data;
     const text =
