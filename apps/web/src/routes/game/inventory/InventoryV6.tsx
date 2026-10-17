@@ -39,6 +39,7 @@ import {
 } from '@daoyou/game-rules/inventory';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router';
+import { EquipmentComparisonPreview } from './EquipmentComparisonPreview';
 import { EquipmentAction, EquipmentRack } from './EquipmentRack';
 
 const endpoint = '/api/combat-v6/inventory';
@@ -246,6 +247,25 @@ export default function InventoryV6() {
               items: items.map(({ id, revision }) => ({ id, revision })),
             }),
     });
+  }
+  function renderActions(entry: Item, close: () => void) {
+    return (
+      <ItemActions
+        key={`${entry.id}:${entry.revision}`}
+        item={entry}
+        pending={unavailable}
+        equipped={equipped}
+        level={level}
+        act={async (action) => {
+          await act(action);
+          close();
+        }}
+        onDiscard={() => {
+          close();
+          confirmDiscard([entry]);
+        }}
+      />
+    );
   }
   return (
     <GameSceneFrame variant="workflow">
@@ -484,25 +504,27 @@ export default function InventoryV6() {
                     ? () => toggleSelection(entry.id)
                     : undefined,
                 quickOnTouch: selecting,
-                children:
-                  entry && !selecting
+                renderItemPreview:
+                  entry &&
+                  !selecting &&
+                  location === 'bag' &&
+                  !entry.equipped &&
+                  itemDefinition(entry.definitionId).kind === 'equipment'
                     ? (close) => (
-                        <ItemActions
-                          key={`${entry.id}:${entry.revision}`}
+                        <EquipmentComparisonPreview
+                          key={`${character?.id}:${entry.id}:${entry.revision}`}
                           item={entry}
-                          pending={unavailable}
                           equipped={equipped}
                           level={level}
-                          act={async (action) => {
-                            await act(action);
-                            close();
-                          }}
-                          onDiscard={() => {
-                            close();
-                            confirmDiscard([entry]);
-                          }}
+                          pending={unavailable}
+                          close={close}
+                          actions={renderActions(entry, close)}
                         />
                       )
+                    : undefined,
+                children:
+                  entry && !selecting
+                    ? (close) => renderActions(entry, close)
                     : undefined,
               })}
             />

@@ -1,7 +1,7 @@
-import type { InventoryView } from '@daoyou/contracts/inventory';
-import type { ItemDefinition } from '@daoyou/game-domain/inventory';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { RealmType } from '@daoyou/constants/realms';
+import type { InventoryView } from '@daoyou/contracts/inventory';
+import type { CultivatorCondition } from '@daoyou/game-domain/condition';
+import type { ItemDefinition } from '@daoyou/game-domain/inventory';
 
 export type DisplayItem = Pick<
   InventoryView['items'][number],
@@ -12,6 +12,7 @@ export type PreviewTone =
 export type PreviewLine = {
   label?: string;
   value: string | number;
+  comparison?: { value: string; tone: PreviewTone };
   numeric?: boolean;
   tone?: PreviewTone;
 };
@@ -37,6 +38,7 @@ export type HeaderEntry =
   | { kind: 'quantity'; label: string; value: number }
   | { kind: 'status'; value: string };
 export type PreviewOptions = {
+  equipmentComparison?: import('@daoyou/game-rules/equipment/projection').EquipmentReplacementPreview;
   quantityLabel?: string;
   hideQuantity?: boolean;
   realm?: RealmType;
