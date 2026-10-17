@@ -41,6 +41,13 @@ function PreviewLineView({
         )}
       >
         {row.value}
+        {row.comparison ? (
+          <span
+            className={cn('ml-2 whitespace-nowrap', tones[row.comparison.tone])}
+          >
+            {row.comparison.value}
+          </span>
+        ) : null}
       </span>
     </div>
   );
