@@ -17,7 +17,7 @@ import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { useRef, useState } from 'react';
 import { ConsumableUseActions } from './ConsumableUseActions';
 import { consumeInventoryItem } from './consumeInventoryItem';
-import { BagInventoryItems } from './InventoryItems';
+import { BagInventoryItems, InventoryItems } from './InventoryItems';
 
 type Item = InventoryView['items'][number];
 
@@ -37,6 +37,7 @@ export function PillQuickbar({
   const { pushToast } = useInkUI();
   const busy = useRef(false);
   const [pending, setPending] = useState(false);
+  const PillInventory = trainingTrack ? InventoryItems : BagInventoryItems;
   const unavailable = disabled || pending || bag.isRefreshing || !!bag.error;
   const pills = (bag.data?.items ?? []).filter((item) => {
     if (itemDefinition(item.definitionId).kind !== 'consumable') return false;
@@ -99,10 +100,18 @@ export function PillQuickbar({
         </p>
       ) : pills.length ? (
         <div className="max-w-xl">
-          <BagInventoryItems
+          <PillInventory
             items={pills}
             compact
+            className={
+              trainingTrack
+                ? 'grid-cols-[repeat(auto-fill,6rem)] gap-2 sm:grid-cols-[repeat(auto-fill,6rem)]'
+                : undefined
+            }
             slotProps={(item) => ({
+              className: trainingTrack
+                ? '[&_.line-clamp-2]:text-xs [&_.line-clamp-2]:leading-4'
+                : undefined,
               disabled: pending,
               previewOptions: {
                 realm: profile.data?.cultivator.realm,

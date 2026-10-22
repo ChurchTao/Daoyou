@@ -28,6 +28,36 @@ function getRequiredEnv(name: 'BETTER_AUTH_SECRET' | 'BETTER_AUTH_URL') {
   return value;
 }
 
+function getAuthBaseURLConfig() {
+  const fallback = getRequiredEnv('BETTER_AUTH_URL');
+  const allowedHosts = (
+    getRuntimeEnvironment().BETTER_AUTH_ALLOWED_HOSTS ?? ''
+  )
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => {
+      try {
+        return new URL(value).host;
+      } catch {
+        return value;
+      }
+    });
+
+  if (allowedHosts.length === 0) {
+    return fallback;
+  }
+
+  return {
+    allowedHosts,
+    fallback,
+    protocol:
+      new URL(fallback).protocol === 'https:'
+        ? ('https' as const)
+        : ('http' as const),
+  };
+}
+
 function getGitHubProviderConfig() {
   const clientId = getRuntimeEnvironment().GITHUB_CLIENT_ID;
   const clientSecret = getRuntimeEnvironment().GITHUB_CLIENT_SECRET;
@@ -89,7 +119,7 @@ const zhAuthTranslations = {
 export const authSchemaName = BETTER_AUTH_SCHEMA_NAME;
 
 export const auth = betterAuth({
-  baseURL: getRequiredEnv('BETTER_AUTH_URL'),
+  baseURL: getAuthBaseURLConfig(),
   secret: getRequiredEnv('BETTER_AUTH_SECRET'),
   trustedOrigins: getPublicWebOrigins(),
   database: drizzleAdapter(db, {
