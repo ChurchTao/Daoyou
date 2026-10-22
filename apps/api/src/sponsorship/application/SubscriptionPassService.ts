@@ -1,32 +1,41 @@
 import type { AfdianSponsorshipConfig } from '@daoyou/game-domain/sponsorship';
 import {
-  extendSubscriptionEnd,
+  materializeRewardAttachments,
+  rewardAttachments,
+} from '@daoyou/game-rules/rewards/materials';
+import {
   findSubscriptionPlan,
   readSubscriptionRewards,
+  resolveSubscriptionTermEnd,
   selectActiveSubscriptionPlan,
   sponsorshipCalendarDate,
   type SubscriptionPlanFact,
   type SubscriptionTermFact,
 } from '@daoyou/game-rules/sponsorship';
-import {
-  materializeRewardAttachments,
-  rewardAttachments,
-} from '@daoyou/game-rules/rewards/materials';
 import { db, type DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   cultivators,
   sponsorshipAdminActions,
   sponsorshipDailyGrants,
-  sponsorshipMeritRecords,
   sponsorshipOrders,
-  sponsorshipProviderLinks,
   sponsorshipSubscriptionTerms,
 } from '@server/lib/drizzle/schema.js';
 import { getAfdianSponsorshipConfig } from '@server/lib/repositories/appSettingsRepository.js';
 import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
 import type { ProviderSponsorPlan } from '@server/lib/sponsorship/types.js';
 import { MailService } from '@server/mail/application/MailService.js';
-import { and, eq, gt, gte, isNotNull, lt, ne, or } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  isNotNull,
+  lt,
+  ne,
+  or,
+} from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 const TERM_ERROR = 'SUBSCRIPTION_TERM_UNRESOLVED';
@@ -55,6 +64,7 @@ function termFacts(
   rows: (typeof sponsorshipSubscriptionTerms.$inferSelect)[],
 ): SubscriptionTermFact[] {
   return rows.map((row) => ({
+    id: row.id,
     planId: row.planKey,
     level: row.level,
     startsAt: row.startsAt,
@@ -62,43 +72,10 @@ function termFacts(
   }));
 }
 
-export async function ensureSponsorshipProviderLink(
-  tx: DbTransaction,
-  args: { provider: string; providerUserId: string; cultivatorId: string },
-): Promise<'ok' | 'conflict'> {
-  await tx
-    .insert(sponsorshipProviderLinks)
-    .values({
-      provider: args.provider,
-      providerUserId: args.providerUserId,
-      cultivatorId: args.cultivatorId,
-    })
-    .onConflictDoNothing();
-  const link = await tx.query.sponsorshipProviderLinks.findFirst({
-    where: and(
-      eq(sponsorshipProviderLinks.provider, args.provider),
-      eq(sponsorshipProviderLinks.providerUserId, args.providerUserId),
-    ),
-  });
-  if (!link || link.cultivatorId !== args.cultivatorId) return 'conflict';
-  return 'ok';
-}
-
-export async function findLinkedCultivator(
-  provider: string,
-  providerUserId: string,
-): Promise<string | null> {
-  const link = await db.query.sponsorshipProviderLinks.findFirst({
-    columns: { cultivatorId: true },
-    where: and(
-      eq(sponsorshipProviderLinks.provider, provider),
-      eq(sponsorshipProviderLinks.providerUserId, providerUserId),
-    ),
-  });
-  return link?.cultivatorId ?? null;
-}
-
-async function markTermUnresolved(orderId: string, message: string): Promise<void> {
+async function markTermUnresolved(
+  orderId: string,
+  message: string,
+): Promise<void> {
   await db
     .update(sponsorshipOrders)
     .set({
@@ -115,49 +92,18 @@ async function resolveProductType(args: {
 }): Promise<number | null> {
   if (args.productType !== null) return args.productType;
   try {
-    return (await requireSponsorshipProvider().queryPlan(args.planId))?.productType ?? null;
+    return (
+      (await requireSponsorshipProvider().queryPlan(args.planId))
+        ?.productType ?? null
+    );
   } catch {
     return null;
   }
 }
 
-function decideTermEnd(args: {
-  queryFailed: boolean;
-  sponsorPlan: ProviderSponsorPlan | null;
-  month: number | null;
-  anchor: Date;
-  existingEndsAt: Date | null | undefined;
-  existingPermanent: boolean;
-}):
-  | { kind: 'permanent'; provisional: boolean }
-  | { kind: 'expire'; endsAt: Date; provisional: boolean }
-  | { kind: 'unresolved' } {
-  if (!args.queryFailed && args.sponsorPlan?.permanent) {
-    return { kind: 'permanent', provisional: false };
-  }
-  if (!args.queryFailed && args.sponsorPlan?.expireTime) {
-    return {
-      kind: 'expire',
-      endsAt: args.sponsorPlan.expireTime,
-      provisional: false,
-    };
-  }
-  if (args.existingPermanent) return { kind: 'permanent', provisional: true };
-  if (args.month && args.month > 0) {
-    const base =
-      args.existingEndsAt && args.existingEndsAt > args.anchor
-        ? args.existingEndsAt
-        : args.anchor;
-    return {
-      kind: 'expire',
-      endsAt: extendSubscriptionEnd(base, args.month),
-      provisional: true,
-    };
-  }
-  return { kind: 'unresolved' };
-}
-
-export async function syncSubscriptionTermForOrder(orderId: string): Promise<void> {
+export async function syncSubscriptionTermForOrder(
+  orderId: string,
+): Promise<boolean> {
   const order = await db.query.sponsorshipOrders.findFirst({
     where: eq(sponsorshipOrders.id, orderId),
   });
@@ -166,38 +112,23 @@ export async function syncSubscriptionTermForOrder(orderId: string): Promise<voi
     order.fulfillmentStatus !== 'fulfilled' ||
     order.revokedAt ||
     !order.planId ||
-    !order.providerUserId
-  ) {
-    return;
-  }
+    !order.providerUserId ||
+    !order.recipientCultivatorId
+  )
+    return false;
   const config = await getAfdianSponsorshipConfig();
   const plan = findSubscriptionPlan(config, order.planId);
-  if (!plan) return;
+  if (!plan) return false;
   const productType = await resolveProductType({
     productType: order.productType,
     planId: order.planId,
   });
   if (productType === null) {
     await markTermUnresolved(orderId, '无法确认爱发电方案类型，订阅期限未写入');
-    return;
+    return false;
   }
-  if (productType !== 0) return;
-  const link = await db.query.sponsorshipProviderLinks.findFirst({
-    where: and(
-      eq(sponsorshipProviderLinks.provider, order.provider),
-      eq(sponsorshipProviderLinks.providerUserId, order.providerUserId),
-    ),
-  });
-  if (!link) return;
-  const anchor = order.providerCreatedAt ?? order.createdAt;
-  const existing = await db.query.sponsorshipSubscriptionTerms.findFirst({
-    where: and(
-      eq(sponsorshipSubscriptionTerms.cultivatorId, link.cultivatorId),
-      eq(sponsorshipSubscriptionTerms.afdianPlanId, order.planId),
-    ),
-  });
+  if (productType !== 0) return false;
   let sponsorPlan: ProviderSponsorPlan | null = null;
-  let queryFailed = false;
   try {
     const sponsors = await requireSponsorshipProvider().querySponsors([
       order.providerUserId,
@@ -207,58 +138,82 @@ export async function syncSubscriptionTermForOrder(orderId: string): Promise<voi
         .find((sponsor) => sponsor.userId === order.providerUserId)
         ?.plans.find((item) => item.planId === order.planId) ?? null;
   } catch {
-    queryFailed = true;
+    // Provider downtime uses a provisional, idempotent extension below.
   }
-  const decision = decideTermEnd({
-    queryFailed,
-    sponsorPlan,
-    month: order.month,
-    anchor,
-    existingEndsAt: existing?.endsAt,
-    existingPermanent: Boolean(existing && existing.endsAt === null),
+  const anchor = order.providerCreatedAt ?? order.createdAt;
+  const resolved = await db.transaction(async (tx) => {
+    // Establish ownership once. Renewal and retries never change the recipient.
+    await tx
+      .insert(sponsorshipSubscriptionTerms)
+      .values({
+        cultivatorId: order.recipientCultivatorId,
+        provider: order.provider,
+        providerUserId: order.providerUserId!,
+        planKey: plan.id,
+        level: plan.level,
+        afdianPlanId: order.planId!,
+        startsAt: anchor,
+        endsAt: anchor,
+        provisional: true,
+      })
+      .onConflictDoNothing();
+    const [existing] = await tx
+      .select()
+      .from(sponsorshipSubscriptionTerms)
+      .where(
+        and(
+          eq(sponsorshipSubscriptionTerms.provider, order.provider),
+          eq(
+            sponsorshipSubscriptionTerms.providerUserId,
+            order.providerUserId!,
+          ),
+          eq(sponsorshipSubscriptionTerms.afdianPlanId, order.planId!),
+        ),
+      )
+      .for('update');
+    if (!existing) throw new Error('订阅权益不存在');
+    const sourceOrder = existing.sourceOrderId
+      ? await tx.query.sponsorshipOrders.findFirst({
+          where: eq(sponsorshipOrders.id, existing.sourceOrderId),
+        })
+      : null;
+    const latestOrderAt = sourceOrder
+      ? (sourceOrder.providerCreatedAt ?? sourceOrder.createdAt)
+      : null;
+    const decision = resolveSubscriptionTermEnd({
+      sponsorPlan,
+      month: order.month,
+      anchor,
+      existing: latestOrderAt
+        ? { endsAt: existing.endsAt, latestOrderAt }
+        : null,
+    });
+    if (!decision) return false;
+    await tx
+      .update(sponsorshipSubscriptionTerms)
+      .set({
+        planKey: plan.id,
+        level: plan.level,
+        startsAt: existing.startsAt < anchor ? existing.startsAt : anchor,
+        endsAt: decision.endsAt,
+        provisional: decision.provisional,
+        lastSyncedAt: new Date(),
+        sourceOrderId:
+          latestOrderAt && latestOrderAt > anchor
+            ? existing.sourceOrderId
+            : order.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(sponsorshipSubscriptionTerms.id, existing.id));
+    return true;
   });
-  if (decision.kind === 'unresolved') {
+  if (!resolved) {
     await markTermUnresolved(
       orderId,
       '爱发电未返回到期时间，且订单没有可顺延的赞助月份',
     );
-    return;
+    return false;
   }
-  const startsAt =
-    existing && existing.startsAt < anchor ? existing.startsAt : anchor;
-  await db
-    .insert(sponsorshipSubscriptionTerms)
-    .values({
-      cultivatorId: link.cultivatorId,
-      provider: order.provider,
-      providerUserId: order.providerUserId,
-      planKey: plan.id,
-      level: plan.level,
-      afdianPlanId: order.planId,
-      startsAt,
-      endsAt: decision.kind === 'permanent' ? null : decision.endsAt,
-      provisional: decision.provisional,
-      lastSyncedAt: new Date(),
-      sourceOrderId: order.id,
-    })
-    .onConflictDoUpdate({
-      target: [
-        sponsorshipSubscriptionTerms.cultivatorId,
-        sponsorshipSubscriptionTerms.afdianPlanId,
-      ],
-      set: {
-        provider: order.provider,
-        providerUserId: order.providerUserId,
-        planKey: plan.id,
-        level: plan.level,
-        startsAt,
-        endsAt: decision.kind === 'permanent' ? null : decision.endsAt,
-        provisional: decision.provisional,
-        lastSyncedAt: new Date(),
-        sourceOrderId: order.id,
-        updatedAt: new Date(),
-      },
-    });
   if (order.lastErrorCode === TERM_ERROR) {
     await db
       .update(sponsorshipOrders)
@@ -267,8 +222,14 @@ export async function syncSubscriptionTermForOrder(orderId: string): Promise<voi
         lastErrorMessage: null,
         updatedAt: new Date(),
       })
-      .where(eq(sponsorshipOrders.id, order.id));
+      .where(
+        and(
+          eq(sponsorshipOrders.id, order.id),
+          eq(sponsorshipOrders.lastErrorCode, TERM_ERROR),
+        ),
+      );
   }
+  return true;
 }
 
 export async function grantSubscriptionDailySupply(args: {
@@ -277,9 +238,13 @@ export async function grantSubscriptionDailySupply(args: {
   tx: DbTransaction;
 }): Promise<void> {
   const config = await getAfdianSponsorshipConfig();
-  const rows = await args.tx.query.sponsorshipSubscriptionTerms.findMany({
-    where: eq(sponsorshipSubscriptionTerms.cultivatorId, args.cultivatorId),
-  });
+  // Transfer takes the same row lock, so ownership cannot change during delivery.
+  const rows = await args.tx
+    .select()
+    .from(sponsorshipSubscriptionTerms)
+    .where(eq(sponsorshipSubscriptionTerms.cultivatorId, args.cultivatorId))
+    .orderBy(asc(sponsorshipSubscriptionTerms.id))
+    .for('update');
   const active = selectActiveSubscriptionPlan(
     termFacts(rows),
     planFacts(config),
@@ -287,7 +252,9 @@ export async function grantSubscriptionDailySupply(args: {
     { requireRewards: true },
   );
   if (!active) return;
-  const plan = config.subscriptionPlans.find((item) => item.id === active.planId);
+  const plan = config.subscriptionPlans.find(
+    (item) => item.id === active.planId,
+  );
   const rewards = plan ? readSubscriptionRewards(plan.dailyRewards) : null;
   if (!plan || !rewards?.length) return;
   const [cultivator] = await args.tx
@@ -300,16 +267,12 @@ export async function grantSubscriptionDailySupply(args: {
     .insert(sponsorshipDailyGrants)
     .values({
       cultivatorId: args.cultivatorId,
+      subscriptionTermId: active.termId,
       grantDate,
       planKey: plan.id,
       level: active.level,
     })
-    .onConflictDoNothing({
-      target: [
-        sponsorshipDailyGrants.cultivatorId,
-        sponsorshipDailyGrants.grantDate,
-      ],
-    })
+    .onConflictDoNothing()
     .returning({ id: sponsorshipDailyGrants.id });
   if (!reserved) return;
   const mail = await MailService.sendMail(
@@ -337,16 +300,25 @@ export async function readCultivatorSubscriptionPass(cultivatorId: string) {
     where: eq(sponsorshipSubscriptionTerms.cultivatorId, cultivatorId),
   });
   const now = new Date();
-  const active = selectActiveSubscriptionPlan(termFacts(rows), planFacts(config), now);
+  const active = selectActiveSubscriptionPlan(
+    termFacts(rows),
+    planFacts(config),
+    now,
+  );
   if (!active) return null;
   const grant = await db.query.sponsorshipDailyGrants.findFirst({
     columns: { id: true },
     where: and(
-      eq(sponsorshipDailyGrants.cultivatorId, cultivatorId),
+      or(
+        eq(sponsorshipDailyGrants.cultivatorId, cultivatorId),
+        eq(sponsorshipDailyGrants.subscriptionTermId, active.termId),
+      ),
       eq(sponsorshipDailyGrants.grantDate, sponsorshipCalendarDate(now)),
     ),
   });
-  const plan = config.subscriptionPlans.find((item) => item.id === active.planId);
+  const plan = config.subscriptionPlans.find(
+    (item) => item.id === active.planId,
+  );
   return {
     name: active.name,
     level: active.level,
@@ -354,7 +326,9 @@ export async function readCultivatorSubscriptionPass(cultivatorId: string) {
     permanent: active.endsAt === null,
     deliveredToday: Boolean(grant),
     rewardsConfigured: active.hasRewards,
-    dailyRewards: plan ? (readSubscriptionRewards(plan.dailyRewards) ?? []) : [],
+    dailyRewards: plan
+      ? (readSubscriptionRewards(plan.dailyRewards) ?? [])
+      : [],
   };
 }
 
@@ -433,7 +407,8 @@ export async function reconcileSubscriptionTerms(): Promise<{
     if (!sponsorPlan.expireTime) continue;
     const correction = term.provisional;
     const earlier =
-      term.endsAt === null || term.endsAt.getTime() > sponsorPlan.expireTime.getTime();
+      term.endsAt === null ||
+      term.endsAt.getTime() > sponsorPlan.expireTime.getTime();
     if (!correction && !earlier) continue;
     if (!correction && earlier) shortened += 1;
     await db
@@ -476,7 +451,6 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
   let skipped = 0;
   const ready: {
     userId: string;
-    cultivatorId: string;
     orders: typeof orders;
   }[] = [];
   for (const [userId, userOrders] of grouped) {
@@ -499,32 +473,15 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
       skipped += 1;
       continue;
     }
-    const meritCultivators = new Set<string>();
-    for (const order of subscriptionOrders) {
-      const record = await db.query.sponsorshipMeritRecords.findFirst({
-        columns: { cultivatorId: true },
-        where: eq(sponsorshipMeritRecords.orderId, order.id),
-      });
-      if (record) meritCultivators.add(record.cultivatorId);
-    }
-    const linked = await findLinkedCultivator('afdian', userId);
-    const cultivatorId =
-      meritCultivators.size === 1
-        ? [...meritCultivators][0]!
-        : meritCultivators.size === 0
-          ? linked
-          : null;
-    if (!cultivatorId || (linked && linked !== cultivatorId)) {
-      skipped += 1;
-      continue;
-    }
-    ready.push({ userId, cultivatorId, orders: subscriptionOrders });
+    ready.push({ userId, orders: subscriptionOrders });
   }
   let sponsors: Map<string, ProviderSponsorPlan[]>;
   try {
     sponsors = await sponsorPlansByUser(ready.map((item) => item.userId));
   } catch (error) {
-    console.error('[sponsorship-pass] historical sponsor query failed', { error });
+    console.error('[sponsorship-pass] historical sponsor query failed', {
+      error,
+    });
     return { users: grouped.size, updated: 0, skipped: grouped.size };
   }
   for (const item of ready) {
@@ -534,12 +491,6 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
       continue;
     }
     await db.transaction(async (tx) => {
-      const link = await ensureSponsorshipProviderLink(tx, {
-        provider: 'afdian',
-        providerUserId: item.userId,
-        cultivatorId: item.cultivatorId,
-      });
-      if (link === 'conflict') return;
       const byPlan = new Map<string, typeof item.orders>();
       for (const order of item.orders) {
         if (!order.planId) continue;
@@ -552,29 +503,48 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
         const sponsorPlan = plans.find((plan) => plan.planId === afdianPlanId);
         if (!catalog || !sponsorPlan) continue;
         if (!sponsorPlan.permanent && !sponsorPlan.expireTime) continue;
-        const startsAt = planOrders.reduce(
-          (earliest, order) => {
-            const at = order.providerCreatedAt ?? order.createdAt;
-            return at < earliest ? at : earliest;
-          },
-          planOrders[0]!.providerCreatedAt ?? planOrders[0]!.createdAt,
-        );
+        const startsAt = planOrders.reduce((earliest, order) => {
+          const at = order.providerCreatedAt ?? order.createdAt;
+          return at < earliest ? at : earliest;
+        }, planOrders[0]!.providerCreatedAt ?? planOrders[0]!.createdAt);
         const source =
           planOrders.toSorted(
             (left, right) =>
               (right.providerCreatedAt ?? right.createdAt).getTime() -
               (left.providerCreatedAt ?? left.createdAt).getTime(),
           )[0] ?? planOrders[0]!;
+        const existing = await tx.query.sponsorshipSubscriptionTerms.findFirst({
+          where: and(
+            eq(sponsorshipSubscriptionTerms.provider, 'afdian'),
+            eq(sponsorshipSubscriptionTerms.providerUserId, item.userId),
+            eq(sponsorshipSubscriptionTerms.afdianPlanId, afdianPlanId),
+          ),
+        });
+        const firstRecipient = planOrders
+          .toSorted(
+            (left, right) =>
+              (left.providerCreatedAt ?? left.createdAt).getTime() -
+              (right.providerCreatedAt ?? right.createdAt).getTime(),
+          )
+          .find((order) => order.recipientCultivatorId)?.recipientCultivatorId;
+        const cultivatorId = existing ? existing.cultivatorId : firstRecipient;
+        if (!existing && !cultivatorId) {
+          skipped += 1;
+          continue;
+        }
         await tx
           .insert(sponsorshipSubscriptionTerms)
           .values({
-            cultivatorId: item.cultivatorId,
+            cultivatorId,
             provider: 'afdian',
             providerUserId: item.userId,
             planKey: catalog.id,
             level: catalog.level,
             afdianPlanId,
-            startsAt,
+            startsAt:
+              existing && existing.startsAt < startsAt
+                ? existing.startsAt
+                : startsAt,
             endsAt: sponsorPlan.permanent ? null : sponsorPlan.expireTime,
             provisional: false,
             lastSyncedAt: new Date(),
@@ -582,14 +552,18 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
           })
           .onConflictDoUpdate({
             target: [
-              sponsorshipSubscriptionTerms.cultivatorId,
+              sponsorshipSubscriptionTerms.provider,
+              sponsorshipSubscriptionTerms.providerUserId,
               sponsorshipSubscriptionTerms.afdianPlanId,
             ],
             set: {
               planKey: catalog.id,
               level: catalog.level,
               providerUserId: item.userId,
-              startsAt,
+              startsAt:
+                existing && existing.startsAt < startsAt
+                  ? existing.startsAt
+                  : startsAt,
               endsAt: sponsorPlan.permanent ? null : sponsorPlan.expireTime,
               provisional: false,
               lastSyncedAt: new Date(),
@@ -609,65 +583,80 @@ export async function syncHistoricalSubscriptionTerms(adminUserId: string) {
   return { users: grouped.size, updated, skipped };
 }
 
-export async function rebindSponsorshipProviderUser(args: {
+export async function listSponsorshipSubscriptionsForAdmin(
+  providerUserId?: string,
+) {
+  const config = await getAfdianSponsorshipConfig();
+  const rows = await db
+    .select({
+      id: sponsorshipSubscriptionTerms.id,
+      providerUserId: sponsorshipSubscriptionTerms.providerUserId,
+      name: sponsorshipSubscriptionTerms.planKey,
+      afdianPlanId: sponsorshipSubscriptionTerms.afdianPlanId,
+      cultivatorId: sponsorshipSubscriptionTerms.cultivatorId,
+      cultivatorName: cultivators.name,
+      endsAt: sponsorshipSubscriptionTerms.endsAt,
+    })
+    .from(sponsorshipSubscriptionTerms)
+    .leftJoin(
+      cultivators,
+      eq(cultivators.id, sponsorshipSubscriptionTerms.cultivatorId),
+    )
+    .where(
+      providerUserId
+        ? eq(sponsorshipSubscriptionTerms.providerUserId, providerUserId)
+        : undefined,
+    )
+    .orderBy(desc(sponsorshipSubscriptionTerms.updatedAt))
+    .limit(200);
+  return rows.map((row) => ({
+    ...row,
+    name:
+      config.subscriptionPlans.find((plan) => plan.id === row.name)?.name ??
+      row.name,
+  }));
+}
+
+export async function transferSponsorshipSubscription(args: {
   adminUserId: string;
-  providerUserId: string;
+  subscriptionId: string;
+  expectedCultivatorId: string | null;
   cultivatorId: string;
 }): Promise<void> {
-  const cultivator = await db.query.cultivators.findFirst({
-    columns: { id: true },
-    where: eq(cultivators.id, args.cultivatorId),
-  });
-  if (!cultivator) throw new SubscriptionPassError('角色不存在', 404);
-  try {
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(sponsorshipProviderLinks)
-        .values({
-          provider: 'afdian',
-          providerUserId: args.providerUserId,
-          cultivatorId: args.cultivatorId,
-          reboundBy: args.adminUserId,
-        })
-        .onConflictDoUpdate({
-          target: [
-            sponsorshipProviderLinks.provider,
-            sponsorshipProviderLinks.providerUserId,
-          ],
-          set: {
-            cultivatorId: args.cultivatorId,
-            reboundBy: args.adminUserId,
-            updatedAt: new Date(),
-          },
-        });
-      await tx
-        .update(sponsorshipSubscriptionTerms)
-        .set({ cultivatorId: args.cultivatorId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(sponsorshipSubscriptionTerms.provider, 'afdian'),
-            eq(sponsorshipSubscriptionTerms.providerUserId, args.providerUserId),
-          ),
-        );
-      await tx.insert(sponsorshipAdminActions).values({
-        adminUserId: args.adminUserId,
-        action: 'rebind_provider_user',
-        metadata: {
-          providerUserId: args.providerUserId,
-          cultivatorId: args.cultivatorId,
-        },
-      });
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : '';
-    if (message.includes('sponsorship_terms_cultivator_plan_uidx')) {
-      throw new SubscriptionPassError(
-        '目标角色已有同一爱发电方案的订阅期限',
-        409,
-      );
+  await db.transaction(async (tx) => {
+    const [term] = await tx
+      .select()
+      .from(sponsorshipSubscriptionTerms)
+      .where(eq(sponsorshipSubscriptionTerms.id, args.subscriptionId))
+      .for('update');
+    if (!term) throw new SubscriptionPassError('订阅权益不存在', 404);
+    if (term.cultivatorId !== args.expectedCultivatorId) {
+      throw new SubscriptionPassError('订阅归属已变化，请刷新后重试', 409);
     }
-    throw error;
-  }
+    const cultivator = await tx.query.cultivators.findFirst({
+      columns: { id: true },
+      where: and(
+        eq(cultivators.id, args.cultivatorId),
+        eq(cultivators.status, 'active'),
+      ),
+    });
+    if (!cultivator)
+      throw new SubscriptionPassError('目标角色不存在或已非活跃角色', 404);
+    if (term.cultivatorId === args.cultivatorId) return;
+    await tx
+      .update(sponsorshipSubscriptionTerms)
+      .set({ cultivatorId: args.cultivatorId, updatedAt: new Date() })
+      .where(eq(sponsorshipSubscriptionTerms.id, term.id));
+    await tx.insert(sponsorshipAdminActions).values({
+      adminUserId: args.adminUserId,
+      action: 'transfer_subscription',
+      metadata: {
+        subscriptionId: term.id,
+        previousCultivatorId: term.cultivatorId,
+        cultivatorId: args.cultivatorId,
+      },
+    });
+  });
 }
 
 export async function releaseSubscriptionTermForRevokedOrder(
@@ -691,7 +680,8 @@ export async function releaseSubscriptionTermForRevokedOrder(
   });
   if (remaining) return;
   await tx
-    .delete(sponsorshipSubscriptionTerms)
+    .update(sponsorshipSubscriptionTerms)
+    .set({ endsAt: new Date(), provisional: false, updatedAt: new Date() })
     .where(
       and(
         eq(sponsorshipSubscriptionTerms.provider, order.provider),

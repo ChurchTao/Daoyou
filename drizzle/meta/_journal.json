@@ -470,6 +470,13 @@
       "when": 1792056360753,
       "tag": "0066_strange_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792637821975,
+      "tag": "0067_sponsorship_order_recipients",
+      "breakpoints": true
     }
   ]
 }

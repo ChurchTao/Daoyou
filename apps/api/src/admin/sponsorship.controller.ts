@@ -72,13 +72,18 @@ export class AdminSponsorshipController {
   syncSubscriptions(@CurrentUser() user: AuthUser) {
     return this.service.syncSubscriptions(user.id);
   }
-  @Post('provider-links/rebind')
+  @Get('subscriptions')
+  subscriptions(@FirstQuery('providerUserId') providerUserId?: string) {
+    return this.service.subscriptions(providerUserId);
+  }
+  @Post('subscriptions/:id/transfer')
   @HttpCode(200)
-  rebind(
+  transferSubscription(
     @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
     @JsonBody({ fallback: null }) body: unknown,
   ) {
-    return this.service.rebind(user.id, body);
+    return this.service.transferSubscription(user.id, id, body);
   }
   @Post('manual-grants')
   @HttpCode(201)

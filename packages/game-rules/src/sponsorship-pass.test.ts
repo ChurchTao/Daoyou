@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { AfdianSponsorshipConfigSchema } from '@daoyou/game-domain/sponsorship';
 import { DEFAULT_AFDIAN_SPONSORSHIP_CONFIG } from '@daoyou/game-content/sponsorship/defaults';
+import { AfdianSponsorshipConfigSchema } from '@daoyou/game-domain/sponsorship';
+import { describe, expect, it } from 'vitest';
 import {
   extendSubscriptionEnd,
+  resolveSubscriptionTermEnd,
   selectActiveSubscriptionPlan,
   sponsorshipCalendarDate,
   sponsorshipTierSupply,
@@ -31,6 +32,7 @@ function term(
   endsAt: string | null,
 ): SubscriptionTermFact {
   return {
+    id: planId,
     planId,
     level,
     startsAt: new Date(startsAt),
@@ -39,6 +41,79 @@ function term(
 }
 
 describe('subscription pass rules', () => {
+  it('does not extend a provisional subscription again for retries or older orders', () => {
+    const anchor = new Date('2026-10-12T04:00:00Z');
+    const endsAt = extendSubscriptionEnd(anchor, 1);
+    const existing = { endsAt, latestOrderAt: anchor };
+    for (const at of [anchor, new Date('2026-10-01T04:00:00Z')]) {
+      expect(
+        resolveSubscriptionTermEnd({
+          sponsorPlan: null,
+          month: 1,
+          anchor: at,
+          existing,
+        }),
+      ).toEqual({ endsAt, provisional: true });
+    }
+    expect(
+      resolveSubscriptionTermEnd({
+        sponsorPlan: null,
+        month: 1,
+        anchor: new Date('2026-10-15T04:00:00Z'),
+        existing,
+      })?.endsAt,
+    ).toEqual(extendSubscriptionEnd(endsAt, 1));
+    expect(
+      resolveSubscriptionTermEnd({
+        sponsorPlan: null,
+        month: null,
+        anchor,
+        existing: null,
+      }),
+    ).toBeNull();
+  });
+
+  it('uses the provider expiry even when it shortens an existing term', () => {
+    const anchor = new Date('2026-10-12T04:00:00Z');
+    expect(
+      resolveSubscriptionTermEnd({
+        sponsorPlan: { permanent: false, expireTime: anchor },
+        month: 1,
+        anchor,
+        existing: {
+          endsAt: extendSubscriptionEnd(anchor, 1),
+          latestOrderAt: anchor,
+        },
+      }),
+    ).toEqual({ endsAt: anchor, provisional: false });
+    expect(
+      resolveSubscriptionTermEnd({
+        sponsorPlan: { permanent: true, expireTime: null },
+        month: 1,
+        anchor,
+        existing: null,
+      }),
+    ).toEqual({ endsAt: null, provisional: false });
+  });
+
+  it('selects the identity with the longer expiry when two payers support the same plan', () => {
+    const source = term('low', 1, '2026-10-01T00:00:00Z', null);
+    const at = new Date('2026-10-12T04:00:00Z');
+    expect(
+      selectActiveSubscriptionPlan(
+        [
+          {
+            ...source,
+            id: 'payer-a',
+            endsAt: new Date('2026-11-01T00:00:00Z'),
+          },
+          { ...source, id: 'payer-b' },
+        ],
+        [low],
+        at,
+      )?.termId,
+    ).toBe('payer-b');
+  });
   it('keeps legacy configs without a plan list', () => {
     const legacy = structuredClone(DEFAULT_AFDIAN_SPONSORSHIP_CONFIG);
     delete (legacy as { subscriptionPlans?: unknown }).subscriptionPlans;
@@ -116,13 +191,22 @@ describe('subscription pass rules', () => {
 
   it('extends by Shanghai calendar months and clamps short months', () => {
     expect(
-      extendSubscriptionEnd(new Date('2026-01-31T02:00:00.000Z'), 1).toISOString(),
+      extendSubscriptionEnd(
+        new Date('2026-01-31T02:00:00.000Z'),
+        1,
+      ).toISOString(),
     ).toBe('2026-02-27T16:00:00.000Z');
     expect(
-      extendSubscriptionEnd(new Date('2024-01-31T02:00:00.000Z'), 1).toISOString(),
+      extendSubscriptionEnd(
+        new Date('2024-01-31T02:00:00.000Z'),
+        1,
+      ).toISOString(),
     ).toBe('2024-02-28T16:00:00.000Z');
     expect(
-      extendSubscriptionEnd(new Date('2026-02-28T16:00:00.000Z'), 1).toISOString(),
+      extendSubscriptionEnd(
+        new Date('2026-02-28T16:00:00.000Z'),
+        1,
+      ).toISOString(),
     ).toBe('2026-03-31T16:00:00.000Z');
   });
 
@@ -190,8 +274,6 @@ describe('subscription pass rules', () => {
         { requireRewards: true },
       )?.planId,
     ).toBe('low');
-    expect(
-      selectActiveSubscriptionPlan(terms, [low], at)?.endsAt,
-    ).toBeNull();
+    expect(selectActiveSubscriptionPlan(terms, [low], at)?.endsAt).toBeNull();
   });
 });

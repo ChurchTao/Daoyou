@@ -1,7 +1,22 @@
-import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
+import type { ResourceChange } from '@daoyou/contracts/resources';
+import {
+  SPONSORSHIP_TIER_META,
+  type SponsorshipTierId,
+} from '@daoyou/game-domain/sponsorship';
+import {
+  findSubscriptionPlan,
+  formatSponsorshipMonth,
+  highestSponsorshipTier,
+  isSponsorshipOrderAccepted,
+  resolveSponsorshipTier,
+  sponsorshipReputationGain,
+  sponsorshipTierSupply,
+} from '@daoyou/game-rules/sponsorship';
+import { addReputation } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { sendViaSmtp } from '@server/lib/admin/smtp.js';
 import { getAdminUserIds } from '@server/lib/auth/adminAccess.js';
 import { authUsers } from '@server/lib/auth/schema.js';
+import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { db, type DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   cultivators,
@@ -12,6 +27,7 @@ import {
   sponsorshipMeritRecords,
   sponsorshipOrders,
   sponsorshipOrderSnapshots,
+  sponsorshipSubscriptionTerms,
 } from '@server/lib/drizzle/schema.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
@@ -27,10 +43,6 @@ import {
 import { hashSponsorshipClaimCode } from '@server/lib/sponsorship/claimCode.js';
 import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
 import type { ProviderOrder } from '@server/lib/sponsorship/types.js';
-import { SPONSORSHIP_TIER_META, type SponsorshipTierId } from '@daoyou/game-domain/sponsorship';
-import type { ResourceChange } from '@daoyou/contracts/resources';
-import { findSubscriptionPlan, formatSponsorshipMonth, highestSponsorshipTier, isSponsorshipOrderAccepted, resolveSponsorshipTier, sponsorshipReputationGain, sponsorshipTierSupply } from '@daoyou/game-rules/sponsorship';
-import { addReputation } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { MailService } from '@server/mail/application/MailService.js';
 import {
   describeJournal,
@@ -53,8 +65,6 @@ import {
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import {
-  ensureSponsorshipProviderLink,
-  findLinkedCultivator,
   readCultivatorSubscriptionPass,
   releaseSubscriptionTermForRevokedOrder,
   syncSubscriptionTermForOrder,
@@ -326,6 +336,7 @@ async function matchCheckoutIntent(
     where: and(
       eq(cultivators.id, intent.cultivatorId),
       eq(cultivators.userId, intent.userId),
+      eq(cultivators.status, 'active'),
     ),
   });
   return cultivator
@@ -381,22 +392,38 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
           existing.verificationStatus === 'verified' &&
           (existing.resolvedTier || subscriptionPlan)
         ) {
+          if (existing.lastErrorCode === 'INVALID_CHECKOUT_INTENT') return;
+          if (existing.recipientCultivatorId) {
+            const intent = existing.checkoutIntentId
+              ? await db.query.sponsorshipCheckoutIntents.findFirst({
+                  where: eq(
+                    sponsorshipCheckoutIntents.id,
+                    existing.checkoutIntentId,
+                  ),
+                })
+              : null;
+            const claimed = !intent
+              ? await db.query.sponsorshipClaims.findFirst({
+                  where: and(
+                    eq(sponsorshipClaims.orderId, orderId),
+                    eq(sponsorshipClaims.status, 'claimed'),
+                  ),
+                })
+              : null;
+            await fulfillOrderToCultivator(
+              orderId,
+              existing.recipientCultivatorId,
+              claimed ? 'claim' : 'order',
+              intent?.publicListing ?? claimed?.publicListing ?? true,
+            );
+            return;
+          }
           if (existing.checkoutIntentId) {
-            const intent = await db.query.sponsorshipCheckoutIntents.findFirst({
-              where: eq(
-                sponsorshipCheckoutIntents.id,
-                existing.checkoutIntentId,
-              ),
-            });
-            if (intent?.cultivatorId) {
-              await fulfillOrderToCultivator(
-                orderId,
-                intent.cultivatorId,
-                'order',
-                intent.publicListing,
-              );
-              return;
-            }
+            throw new SponsorshipApplicationError(
+              '原订单收件角色已不存在，需管理员核查',
+              'SPONSORSHIP_CULTIVATOR_NOT_FOUND',
+              409,
+            );
           }
           const claimed = await db.query.sponsorshipClaims.findFirst({
             where: and(
@@ -404,6 +431,13 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
               eq(sponsorshipClaims.status, 'claimed'),
             ),
           });
+          if (claimed && !claimed.cultivatorId) {
+            throw new SponsorshipApplicationError(
+              '原认领角色已不存在，需管理员核查',
+              'SPONSORSHIP_CULTIVATOR_NOT_FOUND',
+              409,
+            );
+          }
           if (claimed?.cultivatorId) {
             await fulfillOrderToCultivator(
               orderId,
@@ -412,28 +446,6 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
               claimed.publicListing,
             );
             return;
-          }
-          if (existing.providerUserId) {
-            const linkedCultivatorId = await findLinkedCultivator(
-              existing.provider,
-              existing.providerUserId,
-            );
-            if (linkedCultivatorId) {
-              const profile = await db.query.sponsorshipMeritProfiles.findFirst({
-                columns: { isPublic: true },
-                where: eq(
-                  sponsorshipMeritProfiles.cultivatorId,
-                  linkedCultivatorId,
-                ),
-              });
-              await fulfillOrderToCultivator(
-                orderId,
-                linkedCultivatorId,
-                'order',
-                profile?.isPublic ?? true,
-              );
-              return;
-            }
           }
           if (existing.fulfillmentStatus === 'awaiting_claim') {
             await ensureClaimAndSendMessage(orderId);
@@ -517,6 +529,7 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
                   : 'awaiting_claim',
               resolvedTier: tier,
               checkoutIntentId: intent?.id ?? null,
+              recipientCultivatorId: intent?.cultivatorId ?? null,
               configSnapshot: config,
               verifiedAt: new Date(),
               lastErrorCode: invalidIntent ? 'INVALID_CHECKOUT_INTENT' : null,
@@ -555,6 +568,12 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
   } catch (error) {
     if (isRedisLockContention(error)) throw error;
     const message = error instanceof Error ? error.message : String(error);
+    const requiresAttention =
+      error instanceof SponsorshipApplicationError &&
+      [
+        'SPONSORSHIP_CULTIVATOR_NOT_FOUND',
+        'SPONSORSHIP_RECIPIENT_MISMATCH',
+      ].includes(error.code);
     const verificationMismatch = message.includes(
       'API 订单与已签名 Webhook 核心字段不一致',
     );
@@ -564,13 +583,16 @@ export async function processSponsorshipOrder(orderId: string): Promise<void> {
         verificationStatus: verificationMismatch
           ? 'needs_attention'
           : undefined,
-        fulfillmentStatus: verificationMismatch
-          ? 'needs_attention'
-          : 'retry_wait',
+        fulfillmentStatus:
+          verificationMismatch || requiresAttention
+            ? 'needs_attention'
+            : 'retry_wait',
         retryCount: sql`${sponsorshipOrders.retryCount} + 1`,
         lastErrorCode: verificationMismatch
           ? 'SIGNED_ORDER_MISMATCH'
-          : 'PROCESSING_FAILED',
+          : requiresAttention
+            ? error.code
+            : 'PROCESSING_FAILED',
         lastErrorMessage: message.slice(0, 1_000),
         updatedAt: new Date(),
       })
@@ -691,36 +713,60 @@ async function fulfillOrderToCultivator(
         const subscriptionPlan = findSubscriptionPlan(config, order.planId);
         if (!order.resolvedTier && !subscriptionPlan)
           return { status: 'skipped' as const, changes: [] };
-        if (order.providerUserId) {
-          const link = await ensureSponsorshipProviderLink(tx, {
-            provider: order.provider,
-            providerUserId: order.providerUserId,
-            cultivatorId,
-          });
-          if (link === 'conflict') {
-            await tx
-              .update(sponsorshipOrders)
-              .set({
-                fulfillmentStatus: 'needs_attention',
-                lastErrorCode: 'PROVIDER_LINK_CONFLICT',
-                lastErrorMessage:
-                  '该爱发电用户已绑定其他角色，请先改绑后再重试',
-                updatedAt: new Date(),
-              })
-              .where(eq(sponsorshipOrders.id, orderId));
-            return { status: 'conflict' as const, changes: [] };
-          }
+        if (order.verificationStatus !== 'verified') {
+          throw new SponsorshipApplicationError(
+            '订单尚未核验',
+            'SPONSORSHIP_ORDER_UNVERIFIED',
+            409,
+          );
+        }
+        if (
+          order.recipientCultivatorId &&
+          order.recipientCultivatorId !== cultivatorId
+        ) {
+          throw new SponsorshipApplicationError(
+            '订单收件角色不可变更',
+            'SPONSORSHIP_RECIPIENT_MISMATCH',
+            409,
+          );
+        }
+        const cultivator = await tx.query.cultivators.findFirst({
+          columns: { id: true, userId: true, name: true },
+          where: and(
+            eq(cultivators.id, cultivatorId),
+            eq(cultivators.status, 'active'),
+          ),
+        });
+        if (!cultivator) {
+          throw new SponsorshipApplicationError(
+            '订单收件角色不存在或已非活跃角色',
+            'SPONSORSHIP_CULTIVATOR_NOT_FOUND',
+            409,
+          );
         }
         const existingRecord = await tx.query.sponsorshipMeritRecords.findFirst(
           {
-            columns: { id: true },
+            columns: { id: true, cultivatorId: true },
             where: eq(sponsorshipMeritRecords.orderId, orderId),
           },
         );
         if (existingRecord) {
+          if (existingRecord.cultivatorId !== cultivatorId) {
+            throw new SponsorshipApplicationError(
+              '订单已有其他角色的功德记录，需管理员核查',
+              'SPONSORSHIP_RECIPIENT_MISMATCH',
+              409,
+            );
+          }
           await tx
             .update(sponsorshipOrders)
-            .set({ fulfillmentStatus: 'fulfilled', fulfilledAt: new Date() })
+            .set({
+              fulfillmentStatus: 'fulfilled',
+              recipientCultivatorId: cultivatorId,
+              fulfilledAt: new Date(),
+              lastErrorCode: null,
+              lastErrorMessage: null,
+            })
             .where(eq(sponsorshipOrders.id, orderId));
           lease.assertHeld();
           return { status: 'fulfilled' as const, changes: [] };
@@ -730,6 +776,7 @@ async function fulfillOrderToCultivator(
             .update(sponsorshipOrders)
             .set({
               fulfillmentStatus: 'fulfilled',
+              recipientCultivatorId: cultivatorId,
               fulfilledAt: new Date(),
               lastErrorCode: null,
               lastErrorMessage: null,
@@ -746,11 +793,6 @@ async function fulfillOrderToCultivator(
           return { status: 'fulfilled' as const, changes: [] };
         }
         const resolvedTier = order.resolvedTier;
-        const cultivator = await tx.query.cultivators.findFirst({
-          columns: { id: true, userId: true, name: true },
-          where: eq(cultivators.id, cultivatorId),
-        });
-        if (!cultivator) throw new Error('功德目标角色不存在');
         const profile = await tx.query.sponsorshipMeritProfiles.findFirst({
           where: eq(sponsorshipMeritProfiles.cultivatorId, cultivatorId),
         });
@@ -826,6 +868,7 @@ async function fulfillOrderToCultivator(
           .update(sponsorshipOrders)
           .set({
             fulfillmentStatus: 'fulfilled',
+            recipientCultivatorId: cultivatorId,
             fulfilledAt: new Date(),
             lastErrorCode: null,
             lastErrorMessage: null,
@@ -920,7 +963,7 @@ async function ensureClaimAndSendMessage(orderId: string): Promise<void> {
     return;
   const tierName = order.resolvedTier
     ? SPONSORSHIP_TIER_META[order.resolvedTier].name
-    : subscriptionPlan?.name ?? '订阅';
+    : (subscriptionPlan?.name ?? '订阅');
   try {
     await provider.sendMessage(
       order.providerUserId,
@@ -1043,6 +1086,7 @@ export async function claimSponsorshipOrder(args: {
         where: and(
           eq(cultivators.id, args.cultivatorId),
           eq(cultivators.userId, args.userId),
+          eq(cultivators.status, 'active'),
         ),
       });
       if (!cultivator) {
@@ -1062,6 +1106,8 @@ export async function claimSponsorshipOrder(args: {
             verificationStatus: true,
             fulfillmentStatus: true,
             resolvedTier: true,
+            checkoutIntentId: true,
+            recipientCultivatorId: true,
           },
           where: eq(sponsorshipOrders.id, claim.orderId),
         });
@@ -1072,6 +1118,8 @@ export async function claimSponsorshipOrder(args: {
         if (
           !currentOrder ||
           currentOrder.verificationStatus !== 'verified' ||
+          currentOrder.checkoutIntentId !== null ||
+          currentOrder.recipientCultivatorId !== null ||
           (!currentOrder.resolvedTier && !mappedPlan) ||
           !['awaiting_claim', 'retry_wait'].includes(
             currentOrder.fulfillmentStatus,
@@ -1082,22 +1130,6 @@ export async function claimSponsorshipOrder(args: {
             'SPONSORSHIP_CLAIM_ORDER_UNAVAILABLE',
             409,
           );
-        }
-        if (currentOrder.providerUserId) {
-          const linkedCultivatorId = await findLinkedCultivator(
-            currentOrder.provider,
-            currentOrder.providerUserId,
-          );
-          if (
-            linkedCultivatorId &&
-            linkedCultivatorId !== args.cultivatorId
-          ) {
-            throw new SponsorshipApplicationError(
-              '该爱发电用户已绑定其他角色，请先由管理员改绑',
-              'PROVIDER_LINK_CONFLICT',
-              409,
-            );
-          }
         }
         const [updated] = await tx
           .update(sponsorshipClaims)
@@ -1126,7 +1158,11 @@ export async function claimSponsorshipOrder(args: {
         }
         const [linkedOrder] = await tx
           .update(sponsorshipOrders)
-          .set({ fulfillmentStatus: 'linked', updatedAt: new Date() })
+          .set({
+            fulfillmentStatus: 'linked',
+            recipientCultivatorId: args.cultivatorId,
+            updatedAt: new Date(),
+          })
           .where(
             and(
               eq(sponsorshipOrders.id, claim.orderId),
@@ -1454,7 +1490,7 @@ export async function reconcileAfdianOrders(
 export async function retryPendingSponsorshipWork(): Promise<number> {
   const rows = await db.query.sponsorshipOrders.findMany({
     columns: { id: true },
-    where: sql`${sponsorshipOrders.fulfillmentStatus} IN ('pending', 'linked', 'awaiting_claim', 'retry_wait')`,
+    where: sql`${sponsorshipOrders.fulfillmentStatus} IN ('pending', 'linked', 'awaiting_claim', 'retry_wait') OR (${sponsorshipOrders.fulfillmentStatus} = 'needs_attention' AND ${sponsorshipOrders.lastErrorCode} = 'PROVIDER_LINK_CONFLICT')`,
     orderBy: [asc(sponsorshipOrders.updatedAt)],
     limit: 200,
   });
@@ -1583,7 +1619,46 @@ export async function getSponsorshipOrderForAdmin(orderId: string) {
       orderBy: [desc(sponsorshipOrderSnapshots.createdAt)],
     }),
   ]);
-  return order ? { order, claims, records, snapshots } : null;
+  if (!order) return null;
+  const recipient = order.recipientCultivatorId
+    ? await db.query.cultivators.findFirst({
+        columns: { id: true, name: true },
+        where: eq(cultivators.id, order.recipientCultivatorId),
+      })
+    : null;
+  const subscription =
+    order.providerUserId && order.planId
+      ? await db
+          .select({
+            id: sponsorshipSubscriptionTerms.id,
+            cultivatorId: sponsorshipSubscriptionTerms.cultivatorId,
+            cultivatorName: cultivators.name,
+          })
+          .from(sponsorshipSubscriptionTerms)
+          .leftJoin(
+            cultivators,
+            eq(cultivators.id, sponsorshipSubscriptionTerms.cultivatorId),
+          )
+          .where(
+            and(
+              eq(sponsorshipSubscriptionTerms.provider, order.provider),
+              eq(
+                sponsorshipSubscriptionTerms.providerUserId,
+                order.providerUserId,
+              ),
+              eq(sponsorshipSubscriptionTerms.afdianPlanId, order.planId),
+            ),
+          )
+          .limit(1)
+      : [];
+  return {
+    order,
+    claims,
+    records,
+    snapshots,
+    recipient: recipient ?? null,
+    subscription: subscription[0] ?? null,
+  };
 }
 
 export async function retrySponsorshipOrderAsAdmin(
@@ -1614,6 +1689,15 @@ export async function retrySponsorshipOrderAsAdmin(
     orderId,
   });
   await processSponsorshipOrder(orderId);
+  const updated = await db.query.sponsorshipOrders.findFirst({
+    columns: { fulfillmentStatus: true, lastErrorMessage: true },
+    where: eq(sponsorshipOrders.id, orderId),
+  });
+  return {
+    success: true,
+    fulfillmentStatus: updated!.fulfillmentStatus,
+    message: updated!.lastErrorMessage,
+  };
 }
 
 export async function revealSponsorshipSnapshot(args: {
@@ -1650,6 +1734,9 @@ export async function rotateSponsorshipClaimAsAdmin(
           verificationStatus: true,
           fulfillmentStatus: true,
           resolvedTier: true,
+          planId: true,
+          checkoutIntentId: true,
+          recipientCultivatorId: true,
         },
         where: eq(sponsorshipOrders.id, orderId),
       });
@@ -1662,7 +1749,13 @@ export async function rotateSponsorshipClaimAsAdmin(
       }
       if (
         order.verificationStatus !== 'verified' ||
-        !order.resolvedTier ||
+        (!order.resolvedTier &&
+          !findSubscriptionPlan(
+            await getAfdianSponsorshipConfig(),
+            order.planId,
+          )) ||
+        order.checkoutIntentId !== null ||
+        order.recipientCultivatorId !== null ||
         !['awaiting_claim', 'retry_wait', 'needs_attention'].includes(
           order.fulfillmentStatus,
         )

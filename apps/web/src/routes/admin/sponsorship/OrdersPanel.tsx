@@ -1,5 +1,5 @@
-import { AdminDialog } from '@app/routes/admin/_components/AdminDialog';
 import { InkButton } from '@app/components/ui/InkButton';
+import { AdminDialog } from '@app/routes/admin/_components/AdminDialog';
 import { SPONSORSHIP_TIER_META } from '@daoyou/game-domain/sponsorship';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -75,15 +75,19 @@ export function OrdersPanel({
   ) => {
     if (
       action === 'revoke' &&
-      !window.confirm('确认撤销该订单的功德记录？角色最高档位会按剩余记录重算。')
+      !window.confirm(
+        '确认撤销该订单的功德记录？角色最高档位会按剩余记录重算。',
+      )
     )
       return;
     setBusy(true);
     try {
-      await sponsorshipRequest(
-        `/api/admin/sponsorship/orders/${orderId}/${action}`,
-        { method: 'POST' },
-      );
+      const result = await sponsorshipRequest<{
+        fulfillmentStatus?: string;
+        message?: string | null;
+      }>(`/api/admin/sponsorship/orders/${orderId}/${action}`, {
+        method: 'POST',
+      });
       await load();
       setDetail(
         await sponsorshipRequest<SponsorshipOrderDetail>(
@@ -94,7 +98,7 @@ export function OrdersPanel({
         action === 'revoke'
           ? '订单已撤销'
           : action === 'retry'
-            ? '已重新处理该订单'
+            ? `当前状态：${fulfillmentLabel(result.fulfillmentStatus ?? '')}${result.message ? `；${result.message}` : ''}`
             : '认领码已轮换',
       );
     } catch (error) {
@@ -105,7 +109,11 @@ export function OrdersPanel({
   };
 
   const revealSnapshot = async (snapshotId: string) => {
-    if (!window.confirm('原始快照可能包含支付信息，查看会写入审计日志。确认继续？'))
+    if (
+      !window.confirm(
+        '原始快照可能包含支付信息，查看会写入审计日志。确认继续？',
+      )
+    )
       return;
     setBusy(true);
     try {
@@ -236,17 +244,23 @@ export function OrdersPanel({
               >
                 重试
               </InkButton>
-              <InkButton
-                variant="secondary"
-                disabled={
-                  busy ||
-                  order.fulfillmentStatus === 'fulfilled' ||
-                  order.fulfillmentStatus === 'revoked'
-                }
-                onClick={() => void act(order.id, 'rotate-claim')}
-              >
-                轮换认领码
-              </InkButton>
+              {detail?.claims.some((claim) =>
+                ['active', 'expired'].includes(claim.status),
+              ) &&
+                !order.checkoutIntentId &&
+                !order.recipientCultivatorId &&
+                order.verificationStatus === 'verified' &&
+                ['awaiting_claim', 'retry_wait', 'needs_attention'].includes(
+                  order.fulfillmentStatus,
+                ) && (
+                  <InkButton
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void act(order.id, 'rotate-claim')}
+                  >
+                    轮换认领码
+                  </InkButton>
+                )}
               <InkButton
                 variant="primary"
                 disabled={busy || order.fulfillmentStatus === 'revoked'}
@@ -271,6 +285,25 @@ export function OrdersPanel({
               <p className="font-mono text-xs">{order.providerUserId}</p>
             )}
             {order.lastErrorMessage && <p>{order.lastErrorMessage}</p>}
+            <div>
+              <h4 className="font-medium">订单收件角色</h4>
+              <p className="mt-1">
+                {detail.recipient?.name ??
+                  (order.recipientCultivatorId
+                    ? '角色已不可用'
+                    : '尚未确定或原角色已不存在')}
+              </p>
+              {detail.recipient && (
+                <p className="mt-1 font-mono text-xs">{detail.recipient.id}</p>
+              )}
+              {detail.subscription && (
+                <p className="text-ink-secondary mt-2">
+                  订阅每日物资归属：
+                  {detail.subscription.cultivatorName ?? '未分配角色'}
+                  。需变更时请前往「人工处理」转移订阅。
+                </p>
+              )}
+            </div>
             <div>
               <h4 className="font-medium">认领</h4>
               {detail.claims.length ? (

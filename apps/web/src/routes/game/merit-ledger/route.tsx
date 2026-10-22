@@ -3,7 +3,7 @@ import { MeritStamp } from '@app/components/feature/merit/MeritStamp';
 import { GameSceneFrame } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
-import { usePlayerMailSummary } from '@app/lib/resources/player';
+import { usePlayerMailSummary, useCultivatorIdentity } from '@app/lib/resources/player';
 import {
   SPONSORSHIP_TIER_IDS,
   SPONSORSHIP_TIER_META,
@@ -68,6 +68,7 @@ async function fetchWorld(): Promise<MeritPublicRow[]> {
 export default function MeritLedgerPage() {
   const { pushToast } = useInkUI();
   const mailSummary = usePlayerMailSummary();
+  const identity = useCultivatorIdentity();
   const [tab, setTab] = useState<Tab>('mine');
   const [config, setConfig] = useState<MeritClientConfig | null>(null);
   const [mine, setMine] = useState<MeritState | null>(null);
@@ -336,6 +337,7 @@ export default function MeritLedgerPage() {
 
       {tab === 'support' && (
         <MeritOffer
+          recipientName={identity.data?.cultivator.name ?? '当前角色'}
           config={config}
           busy={busy}
           publicListing={publicListing}

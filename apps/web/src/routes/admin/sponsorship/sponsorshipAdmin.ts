@@ -25,6 +25,8 @@ export type SponsorshipOrder = {
   id: string;
   providerOrderId: string;
   providerUserId: string | null;
+  recipientCultivatorId: string | null;
+  checkoutIntentId: string | null;
   resolvedTier: SponsorshipTierId | null;
   verificationStatus: string;
   fulfillmentStatus: string;
@@ -34,6 +36,12 @@ export type SponsorshipOrder = {
 
 export type SponsorshipOrderDetail = {
   order: SponsorshipOrder;
+  recipient: { id: string; name: string } | null;
+  subscription: {
+    id: string;
+    cultivatorId: string | null;
+    cultivatorName: string | null;
+  } | null;
   claims: {
     id: string;
     status: string;

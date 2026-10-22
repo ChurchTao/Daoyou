@@ -14,6 +14,7 @@ import type { MeritClientConfig } from './meritTypes';
 
 export function MeritOffer({
   config,
+  recipientName,
   busy,
   publicListing,
   claimCode,
@@ -24,6 +25,7 @@ export function MeritOffer({
   onCheckout,
 }: {
   config: MeritClientConfig | null;
+  recipientName: string;
   busy: boolean;
   publicListing: boolean;
   claimCode: string;
@@ -79,7 +81,9 @@ export function MeritOffer({
                 )}
                 onClick={() => setPicked(tier)}
               >
-                <span className="text-sm">{SPONSORSHIP_TIER_META[tier].name}</span>
+                <span className="text-sm">
+                  {SPONSORSHIP_TIER_META[tier].name}
+                </span>
                 <span className="shrink-0 text-xs">
                   <GameIcon value="🏵️" /> 每月
                   <span className="font-mono font-semibold tracking-tight">
@@ -116,6 +120,7 @@ export function MeritOffer({
           }
         >
           <div className="space-y-4">
+            <p className="text-sm">本次功德与声望归入：{recipientName}</p>
             <div>
               <p className="text-xs tracking-[0.14em] opacity-60">结缘即得</p>
               <p className="mt-1">
@@ -135,6 +140,9 @@ export function MeritOffer({
                 <div className="mt-2">
                   <MeritRewardList rewards={supply.dailyRewards} />
                 </div>
+                <p className="mt-2 text-xs opacity-75">
+                  首次订阅归入本次角色；已有同一爱发电方案的订阅，续费沿用原受益角色。需换人可联系管理员转移订阅。
+                </p>
               </div>
             ) : null}
           </div>
