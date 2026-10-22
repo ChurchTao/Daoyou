@@ -27,13 +27,18 @@ describe('炼体成长与收益数据包', () => {
     data.realms[6].softTrackCap = 70;
     const pack = loadBodyCultivationPack(data);
     expect(bodyCultivationThreshold(10, pack)).toBe(920);
-    expect(bodyCultivationEffectTexts('skin', 10, pack)).toEqual(['防御修炼 Lv.20']);
-    expect(bodyCultivationEffectTexts('qi_blood', 10, pack)).toEqual(['裸身气血 +10%', '固定治疗强度 +3']);
+    expect(bodyCultivationEffectTexts('skin', 10, pack)).toEqual(['物理减伤 40% + 100（对手修炼为 0）']);
+    expect(bodyCultivationEffectTexts('qi_blood', 10, pack)).toEqual(['基础气血 +10%', '固定治疗强度 +3']);
     const input = state(71);
     const result = compileBodyCultivationV6(input, { ...basePanel, maxHp: 1000 }, pack);
     expect(result).toMatchObject({ defenseCultivate: 140, lifeFoundationLevel: 70, maxHpBonus: 700, healPowerBonus: 23 });
     expect(result.diagnostics).toHaveLength(5);
     expect(input.tracks.skin.level).toBe(71);
+  });
+  it('称号分段不受前一称号的旧单轨上限限制', () => {
+    const data = structuredClone(raw);
+    data.realms[1].totalLevel = 26;
+    expect(loadBodyCultivationPack(data).realms[1].totalLevel).toBe(26);
   });
   it('拒绝未知字段、重复修炼属性、不可达位阶及倒退上限', () => {
     expect(() => loadBodyCultivationPack({ ...raw, unknown: 1 })).toThrow('body-cultivation.json');
@@ -41,7 +46,7 @@ describe('炼体成长与收益数据包', () => {
     duplicate.tracks.skin.benefit.attribute = 'attackCultivate';
     expect(() => loadBodyCultivationPack(duplicate)).toThrow('各映射一次');
     const unreachable = structuredClone(raw);
-    unreachable.realms[1].totalLevel = 26;
+    unreachable.realms[6].totalLevel = 301;
     expect(() => loadBodyCultivationPack(unreachable)).toThrow('无法达到');
     const cap = structuredClone(raw);
     cap.realms[1].softTrackCap = 4;

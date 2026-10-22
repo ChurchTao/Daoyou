@@ -15,7 +15,6 @@
     "./auction": "./dist/auction.js",
     "./background-commands": "./dist/backgroundCommands.js",
     "./beasts": "./dist/combatV6Beasts.js",
-    "./body-cultivation": "./dist/bodyCultivation.js",
     "./character-generation": "./dist/character-generation.js",
     "./character/attributes": "./dist/characterAttributes.js",
     "./combat": "./dist/combatV6.js",

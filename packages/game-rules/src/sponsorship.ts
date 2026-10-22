@@ -91,6 +91,7 @@ export {
   extendSubscriptionEnd,
   findSubscriptionPlan,
   readSubscriptionRewards,
+  resolveSubscriptionTermEnd,
   sponsorshipTierSupply,
   selectActiveSubscriptionPlan,
   sponsorshipCalendarDate,

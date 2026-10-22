@@ -25,6 +25,23 @@ export const SponsorshipPublicQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
 });
 
+export const SponsorshipSubscriptionTransferSchema = z
+  .object({
+    expectedCultivatorId: z.uuid().nullable(),
+    cultivatorId: z.uuid(),
+  })
+  .strict();
+
+export type SponsorshipSubscriptionSummary = {
+  id: string;
+  providerUserId: string;
+  name: string;
+  afdianPlanId: string;
+  cultivatorId: string | null;
+  cultivatorName: string | null;
+  endsAt: string | null;
+};
+
 export type SponsorshipCheckoutRequest = z.infer<
   typeof SponsorshipCheckoutRequestSchema
 >;

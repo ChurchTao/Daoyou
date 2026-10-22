@@ -1,18 +1,11 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  Post,
-  UseFilters,
-} from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import { redisLockErrorResponse } from '@server/lib/http/errors.js';
+import { Controller, HttpCode, Inject, Post, UseFilters } from '@nestjs/common';
 import { AttributeResetServiceError } from '@server/cultivator/application/AttributeResetService.js';
 import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/cultivator/application/QiService.js';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
@@ -25,7 +18,6 @@ const ConsumeSchema = z.object({
   revision: z.number().int().nonnegative().optional(),
   quantity: z.number().int().min(1).max(99).default(1),
 });
-const BreakthroughSchema = z.object({}).strict();
 
 function qiErrorResponse(error: unknown) {
   if (error instanceof QiInsufficientError)
@@ -72,29 +64,6 @@ const InnErrors = apiErrorFilter((error) => {
       { status: 400 },
     );
 });
-const BreakthroughErrors = apiErrorFilter(
-  (error) =>
-    redisLockErrorResponse(error) ??
-    Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '肉身进阶失败',
-      },
-      { status: 400 },
-    ),
-);
-const MarrowWashErrors = apiErrorFilter((error) => {
-  const lock = redisLockErrorResponse(error);
-  if (lock) return lock;
-  const qi = qiErrorResponse(error);
-  if (qi) return qi;
-  const message = error instanceof Error ? error.message : '洗髓破限失败';
-  return Response.json(
-    { success: false, error: message },
-    { status: message === '角色不存在' ? 404 : 400 },
-  );
-});
-
 @Controller('api/cultivator')
 @Access('active')
 export class ConditionController {
@@ -117,29 +86,5 @@ export class ConditionController {
   @UseFilters(InnErrors)
   recover(@CurrentCultivator() actor: ActiveCultivatorRef) {
     return this.condition.recover(actor);
-  }
-
-  @Get('body-cultivation/breakthrough')
-  readiness(@CurrentCultivator() actor: ActiveCultivatorRef) {
-    return this.condition.readiness(actor);
-  }
-
-  @Post('body-cultivation/breakthrough')
-  @HttpCode(200)
-  @UseFilters(BreakthroughErrors)
-  breakthrough(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody({ fallback: {} }, new ZodPipe(BreakthroughSchema))
-    _input: z.infer<typeof BreakthroughSchema>,
-  ) {
-    void _input;
-    return this.condition.breakthrough(actor);
-  }
-
-  @Post('marrow-wash/breakthrough')
-  @HttpCode(200)
-  @UseFilters(MarrowWashErrors)
-  marrowWash(@CurrentCultivator() actor: ActiveCultivatorRef) {
-    return this.condition.marrowWash(actor);
   }
 }

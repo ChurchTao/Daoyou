@@ -1,12 +1,12 @@
 import { InkBadge } from '@app/components/ui';
 import { cn } from '@app/lib/cn';
+import type { Cultivator } from '@daoyou/game-domain/character';
 import {
   getBodyCultivationSummary,
   type BodyCultivationSummary,
   type BodyCultivationTrackSummary,
 } from '@daoyou/game-rules/body-cultivation/progress';
 import { type MarrowWashSummary } from '@daoyou/game-rules/body-cultivation/training';
-import type { Cultivator } from '@daoyou/game-domain/character';
 import { type ReactNode } from 'react';
 import { getTrackProgressPercent } from './bodyCultivationProgress';
 
@@ -38,71 +38,37 @@ function BodyMetric({
   );
 }
 
-export function RequirementLine({
-  met,
-  children,
-}: {
-  met: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <span className={cn(met ? 'text-wood' : 'text-ink-secondary')}>
-      {met ? '✓' : '·'} {children}
-    </span>
-  );
-}
-
 function BodyCultivationOverviewCard({
   summary,
-  nextRealm = summary.nextRealm,
-  status,
-  statusTone = 'default',
-  action,
-  children,
 }: {
   summary: BodyCultivationSummary;
-  nextRealm?: BodyCultivationSummary['nextRealm'];
-  status?: string;
-  statusTone?: 'default' | 'success' | 'muted';
-  action?: ReactNode;
-  children?: ReactNode;
 }) {
-  const nextRealmLabel = nextRealm?.label ?? '已至顶阶';
-
   return (
-    <div className="border-ink/15 bg-bgpaper/75 overflow-hidden border border-dashed">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-3 py-3">
-        <div className="min-w-0">
-          <p className="text-ink-secondary text-xs leading-5">当前阶位</p>
-          <p className="text-ink text-xl leading-8 font-semibold">
-            {summary.realm.label}
-          </p>
-          <p className="text-ink-secondary text-xs leading-5">
-            {summary.realm.unlockText}
-          </p>
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
-
-      <div className="border-ink/10 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-dashed px-3 py-3 md:grid-cols-4">
-        <BodyMetric label="炼体等级" value={`Lv.${summary.totalLevel}`} />
-        <BodyMetric
-          label="单轨上限"
-          value={`Lv.${summary.realm.softTrackCap}`}
-        />
-        <BodyMetric label="下一境界" value={nextRealmLabel} />
-        <BodyMetric
-          label="进阶状态"
-          value={status ?? (nextRealm ? '条件未齐' : '已圆满')}
-          tone={statusTone}
-        />
-      </div>
-
-      {children ? (
-        <div className="border-ink/10 border-t border-dashed px-3 py-3">
-          {children}
-        </div>
-      ) : null}
+    <div className="bg-ink/3 grid grid-cols-2 gap-3 p-3 text-sm">
+      <BodyMetric label="肉身称号" value={summary.realm.label} />
+      <BodyMetric
+        label="炼体总等级"
+        value={<span className="font-mono">Lv.{summary.totalLevel}</span>}
+      />
+      <BodyMetric
+        label="当前单轨上限"
+        value={<span className="font-mono">Lv.{summary.trackLevelCap}</span>}
+      />
+      <BodyMetric
+        label="下一称号"
+        value={
+          summary.nextTitle ? (
+            <>
+              {summary.nextTitle.label} · 总{' '}
+              <span className="font-mono">
+                Lv.{summary.nextTitle.totalLevel}
+              </span>
+            </>
+          ) : (
+            '已得道体之称'
+          )
+        }
+      />
     </div>
   );
 }
@@ -132,9 +98,6 @@ function BodyCultivationTrackCard({
         <div className="flex items-center justify-between gap-2 text-xs leading-5">
           <span className="text-ink-secondary">
             {track.progress} / {track.threshold}
-          </span>
-          <span className="text-ink-secondary">
-            下个节点 Lv.{track.nextMilestoneLevel}
           </span>
         </div>
         <div className="bg-ink/10 mt-1 h-1.5 overflow-hidden">
@@ -206,11 +169,7 @@ export function BodyCultivationSummaryContent({
 }) {
   return (
     <div className={cn('space-y-3', dense && 'space-y-2')}>
-      <BodyCultivationOverviewCard
-        summary={summary}
-        status={summary.nextRealm ? '继续修炼' : '已圆满'}
-        statusTone={summary.nextRealm ? 'default' : 'success'}
-      />
+      <BodyCultivationOverviewCard summary={summary} />
       <BodyCultivationTrackGrid
         summary={summary}
         dense={dense}
@@ -239,7 +198,7 @@ export function MarrowWashSummaryContent({
         <div className="min-w-0">
           <p className="text-ink-secondary text-xs leading-5">当前洗髓</p>
           <p className="text-ink text-xl leading-8 font-semibold">
-            Lv.{summary.level} · {summary.realmLabel}
+            Lv.{summary.level}
           </p>
           <p className="text-ink-secondary text-xs leading-5">
             服用洗髓丹推进进度，升级沉淀为自由属性点。
@@ -251,17 +210,8 @@ export function MarrowWashSummaryContent({
       <div className="border-ink/10 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-dashed px-3 py-3 md:grid-cols-4">
         <BodyMetric label="当前上限" value={`Lv.${summary.levelCap}`} />
         <BodyMetric
-          label="破限门槛"
-          value={
-            summary.nextBreakthroughLevel
-              ? `Lv.${summary.nextBreakthroughLevel}`
-              : '修为不足'
-          }
-        />
-        <BodyMetric
-          label="破限状态"
-          value={summary.canBreakthrough ? '可破限' : '继续洗髓'}
-          tone={summary.canBreakthrough ? 'success' : 'default'}
+          label="修炼状态"
+          value={summary.level >= summary.levelCap ? '境界上限' : '可服丹修炼'}
         />
         {typeof unallocatedPoints === 'number' ? (
           <BodyMetric label="自由属性点" value={unallocatedPoints} />

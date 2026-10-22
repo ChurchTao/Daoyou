@@ -354,7 +354,7 @@ export function PreviewCard({
                     <p className="text-ink-secondary text-xs">
                       单轨上限{' '}
                       <span className="font-mono">
-                        Lv.{body.realm.softTrackCap}
+                        Lv.{body.trackLevelCap}
                       </span>
                     </p>
                   </div>

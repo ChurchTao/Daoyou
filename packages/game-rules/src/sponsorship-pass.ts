@@ -9,6 +9,7 @@ import { RewardSelectionsSchema } from './rewards/items.js';
 const SHANGHAI = 'Asia/Shanghai';
 
 export type SubscriptionTermFact = {
+  id: string;
   planId: string;
   level: number;
   startsAt: Date;
@@ -23,6 +24,7 @@ export type SubscriptionPlanFact = {
 };
 
 export type ActiveSubscription = {
+  termId: string;
   planId: string;
   name: string;
   level: number;
@@ -129,7 +131,8 @@ function preferActive(
   candidate: ActiveSubscription,
   selected: ActiveSubscription,
 ): boolean {
-  if (candidate.level !== selected.level) return candidate.level > selected.level;
+  if (candidate.level !== selected.level)
+    return candidate.level > selected.level;
   if (candidate.endsAt === null) return selected.endsAt !== null;
   if (selected.endsAt === null) return false;
   return candidate.endsAt.getTime() > selected.endsAt.getTime();
@@ -151,6 +154,7 @@ export function selectActiveSubscriptionPlan(
     const hasRewards = plan.dailyRewardCount > 0;
     if (options?.requireRewards && !hasRewards) continue;
     const candidate: ActiveSubscription = {
+      termId: term.id,
       planId: plan.id,
       name: plan.name,
       level: term.level,
@@ -160,4 +164,32 @@ export function selectActiveSubscriptionPlan(
     if (!selected || preferActive(candidate, selected)) selected = candidate;
   }
   return selected;
+}
+
+/** A retry or older order must not extend the same provisional term twice. */
+export function resolveSubscriptionTermEnd(args: {
+  sponsorPlan: { permanent: boolean; expireTime: Date | null } | null;
+  month: number | null;
+  anchor: Date;
+  existing: { endsAt: Date | null; latestOrderAt: Date } | null;
+}): { endsAt: Date | null; provisional: boolean } | null {
+  if (args.sponsorPlan?.permanent) {
+    return { endsAt: null, provisional: false };
+  }
+  if (args.sponsorPlan?.expireTime) {
+    return { endsAt: args.sponsorPlan.expireTime, provisional: false };
+  }
+  if (
+    args.existing &&
+    (args.existing.endsAt === null ||
+      args.existing.latestOrderAt >= args.anchor)
+  ) {
+    return { endsAt: args.existing.endsAt, provisional: true };
+  }
+  if (!args.month || args.month < 1) return null;
+  const base =
+    args.existing?.endsAt && args.existing.endsAt > args.anchor
+      ? args.existing.endsAt
+      : args.anchor;
+  return { endsAt: extendSubscriptionEnd(base, args.month), provisional: true };
 }

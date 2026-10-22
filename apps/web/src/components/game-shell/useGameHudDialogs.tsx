@@ -170,7 +170,7 @@ export function useGameHudDialogs(
               提升：服用炼体丹，丹力会进入对应的肉身轨道。
             </p>
             <p className="text-ink-secondary mt-1">
-              进阶：五轨总等级与人物境界满足要求后，可无消耗、无失败地逐阶提升肉身阶位。
+              肉身称号随五轨总等级自动变化，单轨与洗髓上限仅由角色境界决定。
             </p>
           </div>
           <MarrowWashSummaryContent

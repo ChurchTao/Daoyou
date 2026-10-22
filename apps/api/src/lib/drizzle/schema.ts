@@ -1516,6 +1516,10 @@ export const sponsorshipOrders = pgTable(
       () => sponsorshipCheckoutIntents.id,
       { onDelete: 'set null' },
     ),
+    recipientCultivatorId: uuid('recipient_cultivator_id').references(
+      () => cultivators.id,
+      { onDelete: 'set null' },
+    ),
     configSnapshot: jsonb('config_snapshot'),
     retryCount: integer('retry_count').notNull().default(0),
     lastErrorCode: varchar('last_error_code', { length: 80 }),
@@ -1701,9 +1705,9 @@ export const sponsorshipSubscriptionTerms = pgTable(
   'wanjiedaoyou_sponsorship_subscription_terms',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    cultivatorId: uuid('cultivator_id')
-      .references(() => cultivators.id, { onDelete: 'cascade' })
-      .notNull(),
+    cultivatorId: uuid('cultivator_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
     provider: varchar('provider', { length: 32 }).notNull(),
     providerUserId: varchar('provider_user_id', { length: 80 }).notNull(),
     planKey: varchar('plan_key', { length: 64 }).notNull(),
@@ -1713,17 +1717,22 @@ export const sponsorshipSubscriptionTerms = pgTable(
     endsAt: timestamp('ends_at'),
     provisional: boolean('provisional').notNull().default(false),
     lastSyncedAt: timestamp('last_synced_at'),
-    sourceOrderId: uuid('source_order_id').references(() => sponsorshipOrders.id, {
-      onDelete: 'set null',
-    }),
+    sourceOrderId: uuid('source_order_id').references(
+      () => sponsorshipOrders.id,
+      {
+        onDelete: 'set null',
+      },
+    ),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('sponsorship_terms_cultivator_plan_uidx').on(
-      table.cultivatorId,
+    uniqueIndex('sponsorship_terms_provider_user_plan_uidx').on(
+      table.provider,
+      table.providerUserId,
       table.afdianPlanId,
     ),
+    index('sponsorship_terms_cultivator_idx').on(table.cultivatorId),
     index('sponsorship_terms_provider_user_idx').on(
       table.provider,
       table.providerUserId,
@@ -1739,18 +1748,28 @@ export const sponsorshipDailyGrants = pgTable(
   'wanjiedaoyou_sponsorship_daily_grants',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    cultivatorId: uuid('cultivator_id')
-      .references(() => cultivators.id, { onDelete: 'cascade' })
-      .notNull(),
+    cultivatorId: uuid('cultivator_id').references(() => cultivators.id, {
+      onDelete: 'set null',
+    }),
+    subscriptionTermId: uuid('subscription_term_id').references(
+      () => sponsorshipSubscriptionTerms.id,
+      { onDelete: 'restrict' },
+    ),
     grantDate: date('grant_date', { mode: 'string' }).notNull(),
     planKey: varchar('plan_key', { length: 64 }).notNull(),
     level: integer('level').notNull(),
-    mailId: uuid('mail_id').references(() => mails.id, { onDelete: 'set null' }),
+    mailId: uuid('mail_id').references(() => mails.id, {
+      onDelete: 'set null',
+    }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex('sponsorship_daily_grants_cultivator_date_uidx').on(
       table.cultivatorId,
+      table.grantDate,
+    ),
+    uniqueIndex('sponsorship_daily_grants_term_date_uidx').on(
+      table.subscriptionTermId,
       table.grantDate,
     ),
   ],

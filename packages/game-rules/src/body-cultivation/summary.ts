@@ -1,16 +1,21 @@
+import type { RealmType } from '@daoyou/constants/realms';
 import {
   BODY_CULTIVATION_PACK,
   BODY_CULTIVATION_TRACK_KEYS,
 } from '@daoyou/game-content/body-cultivation';
-import { bodyCultivationEffectTexts } from './benefits.js';
 import type {
   BodyCultivationRealm,
   BodyCultivationTrackKey,
   BodyCultivationTrackPath,
   CultivatorCondition,
 } from '@daoyou/game-domain/condition';
-import type { RealmType } from '@daoyou/constants/realms';
-import { BODY_CULTIVATION_REALM_REQUIREMENTS, BODY_TRACK_LABELS, type BodyCultivationRealmRequirement, getNextBodyCultivationRealm, getBodyCultivationThresholdByLevel, isCultivationRealmAtLeast } from './config.js';
+import { bodyCultivationEffectTexts } from './benefits.js';
+import {
+  BODY_CULTIVATION_REALM_REQUIREMENTS,
+  BODY_TRACK_LABELS,
+  getBodyCultivationLevelCapByCultivationRealm,
+  getBodyCultivationThresholdByLevel,
+} from './config.js';
 import { normalizeBodyCultivationState } from './normalize.js';
 
 export interface BodyCultivationTrackSummary {
@@ -31,65 +36,22 @@ export interface BodyCultivationTrackSummary {
 export interface BodyCultivationRealmSummary {
   key: BodyCultivationRealm;
   label: string;
-  softTrackCap: number;
-  unlockText: string;
-}
-
-export interface BodyCultivationBreakthroughRequirementSummary {
-  label: string;
-  met: boolean;
-}
-
-export interface BodyCultivationNextRealmSummary
-  extends BodyCultivationRealmSummary {
-  canAttempt: boolean;
-  requirements: BodyCultivationBreakthroughRequirementSummary[];
 }
 
 export interface BodyCultivationSummary {
   realm: BodyCultivationRealmSummary;
   totalLevel: number;
   tracks: BodyCultivationTrackSummary[];
-  nextRealm: BodyCultivationNextRealmSummary | null;
+  trackLevelCap: number;
+  nextTitle: { label: string; totalLevel: number } | null;
 }
 
 function getNextMilestoneLevel(level: number): number {
   const interval = BODY_CULTIVATION_PACK.progress.milestoneInterval;
-  return Math.max(interval, Math.ceil((Math.max(0, level) + 1) / interval) * interval);
-}
-
-function buildNextRealmSummary(options: {
-  currentRealm: BodyCultivationRealm;
-  totalLevel: number;
-  cultivatorRealm?: RealmType;
-}): BodyCultivationNextRealmSummary | null {
-  const nextRealm = getNextBodyCultivationRealm(options.currentRealm);
-  if (!nextRealm) return null;
-
-  const config: BodyCultivationRealmRequirement =
-    BODY_CULTIVATION_REALM_REQUIREMENTS[nextRealm];
-  const requirements: BodyCultivationBreakthroughRequirementSummary[] = [
-    {
-      label: `总炼体 Lv.${options.totalLevel}/${config.totalLevel}`,
-      met: options.totalLevel >= config.totalLevel,
-    },
-    {
-      label: `修为境界达到${config.minCultivationRealm}`,
-      met: isCultivationRealmAtLeast(
-        options.cultivatorRealm,
-        config.minCultivationRealm,
-      ),
-    },
-  ];
-
-  return {
-    key: config.realm,
-    label: config.label,
-    softTrackCap: config.softTrackCap,
-    unlockText: config.unlockText,
-    canAttempt: requirements.every((requirement) => requirement.met),
-    requirements,
-  };
+  return Math.max(
+    interval,
+    Math.ceil((Math.max(0, level) + 1) / interval) * interval,
+  );
 }
 
 export function getBodyCultivationSummary(
@@ -123,15 +85,14 @@ export function getBodyCultivationSummary(
     realm: {
       key: realmConfig.realm,
       label: realmConfig.label,
-      softTrackCap: realmConfig.softTrackCap,
-      unlockText: realmConfig.unlockText,
     },
     totalLevel,
     tracks,
-    nextRealm: buildNextRealmSummary({
-      currentRealm: state.realm,
-      totalLevel,
-      cultivatorRealm: options.cultivatorRealm,
-    }),
+    trackLevelCap: getBodyCultivationLevelCapByCultivationRealm(
+      options.cultivatorRealm,
+    ),
+    nextTitle:
+      BODY_CULTIVATION_PACK.realms.find((row) => row.totalLevel > totalLevel) ??
+      null,
   };
 }

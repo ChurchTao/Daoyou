@@ -6,14 +6,13 @@ import {
 import type { PlayerIdentityCultivator } from '@daoyou/contracts/player';
 import {
   clampSpiritualRootEffectiveStrength,
-  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
 } from '@daoyou/game-rules/body-cultivation/training';
 import { ElementType } from '@daoyou/constants/elements';
 import { GenderType, SpiritualRootGrade } from '@daoyou/game-domain/character';
 import { Quality } from '@daoyou/constants/qualities';
 import { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { Cultivator, PreHeavenFate } from '@daoyou/game-domain/character';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import {
   db,
   getExecutor,
@@ -398,23 +397,6 @@ export async function replaceSpiritualRoots(
       grade: root.grade ?? resolveSpiritualRootGrade(rootCount, root.element),
     })),
   );
-}
-
-export async function setSpiritualRootMarrowWashBonus(
-  userId: string,
-  cultivatorId: string,
-  targetBonus: number,
-  tx?: DbTransaction,
-): Promise<void> {
-  const bonus = Math.max(0, Math.floor(targetBonus));
-  const dbInstance = getExecutor(tx);
-  await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
-  await dbInstance
-    .update(schema.spiritualRoots)
-    .set({
-      marrowWashBonus: sql`least(${bonus}, greatest(0, ${SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP} - ${schema.spiritualRoots.strength}))`,
-    })
-    .where(eq(schema.spiritualRoots.cultivatorId, cultivatorId));
 }
 
 export async function replacePreHeavenFates(

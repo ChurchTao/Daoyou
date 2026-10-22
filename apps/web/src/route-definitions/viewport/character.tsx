@@ -84,9 +84,9 @@ export const characterRoutes = [
     handle={scene(
       {
         id: 'body-cultivation',
-        summary: '核对升阶条件和消耗，准备肉身升阶。',
+        summary: '服用丹药淬炼肉身，称号随总等级自动提升。',
       },
-      '肉身升阶',
+      '肉身炼体',
     )}
   />,
   <Route

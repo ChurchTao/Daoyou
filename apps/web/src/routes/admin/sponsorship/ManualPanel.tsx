@@ -1,10 +1,11 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import type { SponsorshipSubscriptionSummary } from '@daoyou/contracts/sponsorship';
 import {
   SPONSORSHIP_TIER_IDS,
   SPONSORSHIP_TIER_META,
   type SponsorshipTierId,
 } from '@daoyou/game-domain/sponsorship';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { sponsorshipRequest } from './sponsorshipAdmin';
 
 export function ManualPanel({
@@ -13,13 +14,36 @@ export function ManualPanel({
   onNotice: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [providerUserId, setProviderUserId] = useState('');
+  const [subscriptions, setSubscriptions] = useState<
+    SponsorshipSubscriptionSummary[]
+  >([]);
+  const [subscriptionId, setSubscriptionId] = useState('');
   const [cultivatorId, setCultivatorId] = useState('');
   const [grantCultivatorId, setGrantCultivatorId] = useState('');
   const [tier, setTier] = useState<SponsorshipTierId>('faint_light');
   const [supportedAt, setSupportedAt] = useState('');
   const [publicListing, setPublicListing] = useState(true);
   const [sendMail, setSendMail] = useState(true);
+
+  const selectedSubscription = subscriptions.find(
+    (term) => term.id === subscriptionId,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    void sponsorshipRequest<SponsorshipSubscriptionSummary[]>(
+      '/api/admin/sponsorship/subscriptions',
+    )
+      .then((rows) => {
+        if (!cancelled) setSubscriptions(rows);
+      })
+      .catch((error) => {
+        if (!cancelled)
+          onNotice(error instanceof Error ? error.message : '订阅读取失败');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onNotice]);
 
   const sync = async () => {
     setBusy(true);
@@ -28,6 +52,11 @@ export function ManualPanel({
         updated: number;
         skipped: number;
       }>('/api/admin/sponsorship/subscription-sync', { method: 'POST' });
+      setSubscriptions(
+        await sponsorshipRequest<SponsorshipSubscriptionSummary[]>(
+          '/api/admin/sponsorship/subscriptions',
+        ),
+      );
       onNotice(
         `订阅期限已同步：更新 ${result.updated}，跳过 ${result.skipped}`,
       );
@@ -38,22 +67,36 @@ export function ManualPanel({
     }
   };
 
-  const rebind = async () => {
+  const transfer = async () => {
+    if (!selectedSubscription) return;
+    if (
+      !window.confirm(
+        `确认将「${selectedSubscription.name}」从${selectedSubscription.cultivatorName ?? '未分配角色'}转移到角色 ${cultivatorId.trim()}？历史功德不迁移，当日已发物资不重复发放。`,
+      )
+    )
+      return;
     setBusy(true);
     try {
-      await sponsorshipRequest('/api/admin/sponsorship/provider-links/rebind', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          providerUserId: providerUserId.trim(),
-          cultivatorId: cultivatorId.trim(),
-        }),
-      });
-      setProviderUserId('');
+      await sponsorshipRequest(
+        `/api/admin/sponsorship/subscriptions/${selectedSubscription.id}/transfer`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            expectedCultivatorId: selectedSubscription.cultivatorId,
+            cultivatorId: cultivatorId.trim(),
+          }),
+        },
+      );
+      setSubscriptions(
+        await sponsorshipRequest<SponsorshipSubscriptionSummary[]>(
+          '/api/admin/sponsorship/subscriptions',
+        ),
+      );
       setCultivatorId('');
-      onNotice('爱发电用户已改绑到指定角色');
+      onNotice('订阅受益角色已转移，历史订单与功德记录保留原归属');
     } catch (error) {
-      onNotice(error instanceof Error ? error.message : '改绑失败');
+      onNotice(error instanceof Error ? error.message : '转移失败');
     } finally {
       setBusy(false);
     }
@@ -93,27 +136,40 @@ export function ManualPanel({
         <p className="text-ink-secondary mt-1 max-w-xl text-sm">
           按已履约、且不早于自动处理起点的订阅订单，向爱发电核对到期时间。
         </p>
-        <InkButton className="mt-3" variant="primary" disabled={busy} onClick={() => void sync()}>
+        <InkButton
+          className="mt-3"
+          variant="primary"
+          disabled={busy}
+          onClick={() => void sync()}
+        >
           开始同步
         </InkButton>
       </section>
       <section className="py-6">
-        <h3 className="text-lg">改绑爱发电用户</h3>
+        <h3 className="text-lg">转移订阅受益角色</h3>
         <p className="text-ink-secondary mt-1 max-w-xl text-sm">
-          一个爱发电用户只对应一个角色。订单提示已绑定其他角色时，先改绑，再回到订单里重试。
+          每笔订单按下单或认领角色发放功德。订阅续费保留原受益角色，需换人时在此单独转移。
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
           <label className="text-sm">
-            爱发电用户 ID
-            <input
-              className="mt-1 w-full border p-2 font-mono text-sm"
-              value={providerUserId}
+            订阅权益（最近更新的 200 条）
+            <select
+              className="mt-1 w-full border p-2 text-sm"
+              value={subscriptionId}
               disabled={busy}
-              onChange={(event) => setProviderUserId(event.target.value)}
-            />
+              onChange={(event) => setSubscriptionId(event.target.value)}
+            >
+              <option value="">请选择订阅</option>
+              {subscriptions.map((term) => (
+                <option key={term.id} value={term.id}>
+                  {term.name} · {term.cultivatorName ?? '未分配'} ·{' '}
+                  {term.providerUserId}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="text-sm">
-            角色 ID
+            目标角色 ID
             <input
               className="mt-1 w-full border p-2 font-mono text-sm"
               value={cultivatorId}
@@ -123,10 +179,10 @@ export function ManualPanel({
           </label>
           <InkButton
             variant="primary"
-            disabled={busy || !providerUserId.trim() || !cultivatorId.trim()}
-            onClick={() => void rebind()}
+            disabled={busy || !selectedSubscription || !cultivatorId.trim()}
+            onClick={() => void transfer()}
           >
-            改绑
+            转移订阅
           </InkButton>
         </div>
       </section>

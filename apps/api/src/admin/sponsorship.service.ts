@@ -1,5 +1,12 @@
+import { SponsorshipSubscriptionTransferSchema } from '@daoyou/contracts/sponsorship';
+import {
+  AfdianSponsorshipConfigSchema,
+  SPONSORSHIP_TIER_IDS,
+} from '@daoyou/game-domain/sponsorship';
+import { RewardSelectionsSchema } from '@daoyou/game-rules/rewards/materials';
 import { HttpException, Injectable } from '@nestjs/common';
 import { getAfdianSponsorshipConfig } from '@server/lib/repositories/appSettingsRepository.js';
+import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
 import {
   getSponsorshipOrderForAdmin,
   grantManualSponsorshipMerit,
@@ -11,13 +18,11 @@ import {
   SponsorshipApplicationError,
   updateSponsorshipConfigAsAdmin,
 } from '@server/sponsorship/application/SponsorshipApplicationService.js';
-import { requireSponsorshipProvider } from '@server/lib/sponsorship/providerRegistry.js';
-import { AfdianSponsorshipConfigSchema, SPONSORSHIP_TIER_IDS } from '@daoyou/game-domain/sponsorship';
-import { RewardSelectionsSchema } from '@daoyou/game-rules/rewards/materials';
 import {
-  rebindSponsorshipProviderUser,
+  listSponsorshipSubscriptionsForAdmin,
   SubscriptionPassError,
   syncHistoricalSubscriptionTerms,
+  transferSponsorshipSubscription,
 } from '@server/sponsorship/application/SubscriptionPassService.js';
 import { z } from 'zod';
 
@@ -47,12 +52,6 @@ const ConfigUpdateSchema = z
       immortality_witness: TierConfigSchema,
     }),
     subscriptionPlans: z.array(SubscriptionPlanUpdateSchema).max(40).optional(),
-  })
-  .strict();
-const RebindSchema = z
-  .object({
-    providerUserId: z.string().trim().min(1).max(80),
-    cultivatorId: z.uuid(),
   })
   .strict();
 const ManualGrantSchema = z
@@ -156,8 +155,7 @@ export class AdminSponsorshipService {
     const id = z.uuid().safeParse(idParam);
     if (!id.success) throw new HttpException({ error: '订单不存在' }, 404);
     try {
-      await retrySponsorshipOrderAsAdmin(id.data, userId);
-      return { success: true };
+      return await retrySponsorshipOrderAsAdmin(id.data, userId);
     } catch (error) {
       return sponsorshipErrorResponse(error);
     }
@@ -200,16 +198,31 @@ export class AdminSponsorshipService {
       return sponsorshipErrorResponse(error);
     }
   }
-  async rebind(userId: string, inputBody: unknown) {
-    const parsed = RebindSchema.safeParse(inputBody);
+  async subscriptions(providerUserId?: string) {
+    const parsed = z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .optional()
+      .safeParse(providerUserId);
     if (!parsed.success)
-      throw new HttpException(
-        { error: '参数错误', details: parsed.error.flatten() },
-        400,
-      );
+      throw new HttpException({ error: '爱发电用户 ID 无效' }, 400);
+    return listSponsorshipSubscriptionsForAdmin(parsed.data);
+  }
+  async transferSubscription(
+    userId: string,
+    idParam: string,
+    inputBody: unknown,
+  ) {
+    const id = z.uuid().safeParse(idParam);
+    const parsed = SponsorshipSubscriptionTransferSchema.safeParse(inputBody);
+    if (!id.success || !parsed.success)
+      throw new HttpException({ error: '参数错误' }, 400);
     try {
-      await rebindSponsorshipProviderUser({
+      await transferSponsorshipSubscription({
         adminUserId: userId,
+        subscriptionId: id.data,
         ...parsed.data,
       });
       return { success: true };

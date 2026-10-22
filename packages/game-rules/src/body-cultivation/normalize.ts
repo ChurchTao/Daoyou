@@ -1,11 +1,17 @@
+import {
+  BODY_CULTIVATION_PACK,
+  BODY_CULTIVATION_TRACK_KEYS,
+} from '@daoyou/game-content/body-cultivation';
 import type {
   BodyCultivationState,
   BodyCultivationTrackKey,
   ConditionProgressTrack,
   CultivatorCondition,
 } from '@daoyou/game-domain/condition';
-import { BODY_CULTIVATION_TRACK_KEYS } from '@daoyou/game-content/body-cultivation';
-import { BODY_REALM_LABELS, LEGACY_TEMPERING_TO_BODY_TRACK, createEmptyProgressTrack } from './config.js';
+import {
+  LEGACY_TEMPERING_TO_BODY_TRACK,
+  createEmptyProgressTrack,
+} from './config.js';
 
 function normalizeProgressTrack(
   value: ConditionProgressTrack | undefined,
@@ -41,7 +47,6 @@ export function createDefaultBodyCultivationState(): BodyCultivationState {
 export function normalizeBodyCultivationState(
   conditionInput: CultivatorCondition | undefined,
 ): BodyCultivationState {
-  const defaults = createDefaultBodyCultivationState();
   const rawBody = conditionInput?.tracks?.bodyCultivation;
   const legacyTempering = conditionInput?.tracks?.tempering;
   const tracks = createEmptyBodyTracks();
@@ -53,35 +58,24 @@ export function normalizeBodyCultivationState(
   if (!rawBody && legacyTempering) {
     for (const [legacyKey, bodyKey] of Object.entries(
       LEGACY_TEMPERING_TO_BODY_TRACK,
-    ) as Array<[keyof typeof LEGACY_TEMPERING_TO_BODY_TRACK, BodyCultivationTrackKey]>) {
+    ) as Array<
+      [keyof typeof LEGACY_TEMPERING_TO_BODY_TRACK, BodyCultivationTrackKey]
+    >) {
       tracks[bodyKey] = normalizeProgressTrack(legacyTempering[legacyKey]);
     }
   }
 
-  const realm =
-    rawBody?.realm && rawBody.realm in BODY_REALM_LABELS
-      ? rawBody.realm
-      : defaults.realm;
-
+  const totalLevel = Object.values(tracks).reduce(
+    (sum, track) => sum + track.level,
+    0,
+  );
+  const realm = BODY_CULTIVATION_PACK.realms
+    .toReversed()
+    .find((row) => totalLevel >= row.totalLevel)!.realm;
   return {
     version: 1,
     realm,
     tracks,
     milestones: rawBody?.milestones ?? {},
-    breakthrough:
-      rawBody?.breakthrough &&
-      rawBody.breakthrough.targetRealm in BODY_REALM_LABELS
-        ? {
-            targetRealm: rawBody.breakthrough.targetRealm,
-            progress: Math.max(
-              0,
-              Math.min(100, Math.floor(rawBody.breakthrough.progress ?? 0)),
-            ),
-            failedAttempts: Math.max(
-              0,
-              Math.floor(rawBody.breakthrough.failedAttempts ?? 0),
-            ),
-          }
-        : undefined,
   };
 }
