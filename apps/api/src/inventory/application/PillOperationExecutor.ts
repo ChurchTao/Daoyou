@@ -1,51 +1,16 @@
-import { getOrInitCultivationProgress } from '@daoyou/game-rules/cultivation';
+import { QUALITY_ORDER } from '@daoyou/constants/qualities';
+import {
+  CULTIVATION_PILL_MAX_QUALITY_BY_REALM,
+  PILL_TOXICITY_CAP,
+  REALM_PILL_USAGE_LIMITS,
+} from '@daoyou/game-content/consumables';
 import { COMPREHENSION_INSIGHT_CAP } from '@daoyou/game-content/cultivation';
-import { getMinimumPillQualityByRealm } from '@daoyou/game-rules/consumables';
-import { CULTIVATION_PILL_MAX_QUALITY_BY_REALM, PILL_TOXICITY_CAP, REALM_PILL_USAGE_LIMITS } from '@daoyou/game-content/consumables';
 import type {
-  CultivatorDisplayInput,
   Consumable,
   CultivationProgress,
   Cultivator,
+  CultivatorDisplayInput,
 } from '@daoyou/game-domain/character';
-import {
-  BODY_CULTIVATION_REALM_REQUIREMENTS,
-  BODY_REALM_LABELS,
-  getBodyTrackKeyFromPath,
-  isBodyCultivationTrackPath,
-  isLegacyTemperingTrackPath,
-  createDefaultBodyCultivationState,
-  normalizeBodyCultivationState,
-} from '@daoyou/game-rules/body-cultivation/progress';
-import {
-  getConditionStatusCureTargets,
-  getConditionStatusTemplate,
-  getTrackConfig,
-} from '@daoyou/game-rules/condition';
-import {
-  isPillConsumable,
-  isSpiritFruitConsumable,
-} from '@daoyou/game-domain/consumables';
-import {
-  CULTIVATION_BOOST_STATUS_KEY,
-  getCultivationBoostPercent,
-} from '@daoyou/game-rules/consumables/cultivation';
-import {
-  advanceMarrowWashTowardBreakthrough,
-  getMarrowWashLevelCapByCultivationRealm,
-  getNextMarrowWashBreakthroughLevel,
-  isMarrowWashBreakthroughRequired,
-  normalizeMarrowWashState,
-} from '@daoyou/game-rules/body-cultivation/training';
-import {
-  BREAKTHROUGH_FOCUS_STATUS_KEY,
-  CLEAR_MIND_STATUS_KEY,
-  getBreakthroughFocusBonus,
-  getProtectMeridiansReductionPercent,
-  PROTECT_MERIDIANS_STATUS_KEY,
-  getPillUsageLimitReachedText,
-  getPrimaryPillQuotaCategory,
-} from '@daoyou/game-rules/alchemy';
 import type {
   BodyCultivationTrackPath,
   ConditionStatusDuration,
@@ -54,8 +19,49 @@ import type {
   ConditionTrackPath,
   CultivatorCondition,
 } from '@daoyou/game-domain/condition';
-import { QUALITY_ORDER } from '@daoyou/constants/qualities';
-import type { ConditionOperation, PillSpec } from '@daoyou/game-domain/consumables';
+import type {
+  ConditionOperation,
+  PillSpec,
+} from '@daoyou/game-domain/consumables';
+import {
+  isPillConsumable,
+  isSpiritFruitConsumable,
+} from '@daoyou/game-domain/consumables';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getPillUsageLimitReachedText,
+  getPrimaryPillQuotaCategory,
+  getProtectMeridiansReductionPercent,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@daoyou/game-rules/alchemy';
+import {
+  advanceBodyCultivationTrack,
+  createDefaultBodyCultivationState,
+  getBodyCultivationLevelCapByCultivationRealm,
+  getBodyTrackKeyFromPath,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+} from '@daoyou/game-rules/body-cultivation/progress';
+import {
+  advanceMarrowWash,
+  getMarrowWashLevelCapByCultivationRealm,
+  getMarrowWashRootBonus,
+  normalizeMarrowWashState,
+  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
+} from '@daoyou/game-rules/body-cultivation/training';
+import {
+  getConditionStatusCureTargets,
+  getConditionStatusTemplate,
+  getTrackConfig,
+} from '@daoyou/game-rules/condition';
+import { getMinimumPillQualityByRealm } from '@daoyou/game-rules/consumables';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostPercent,
+} from '@daoyou/game-rules/consumables/cultivation';
+import { getOrInitCultivationProgress } from '@daoyou/game-rules/cultivation';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 
 const EXECUTION_ORDER: ConditionOperation['type'][] = [
@@ -264,6 +270,7 @@ function setTrackState(
 function applyTrackReward(
   cultivator: PillCultivatorFacts,
   track: ConditionTrackPath,
+  newLevel: number,
 ): PillCultivatorFacts {
   const nextCultivator = cultivator;
   const reward = getTrackConfig(track).reward;
@@ -274,6 +281,21 @@ function applyTrackReward(
         0,
         Math.floor(nextCultivator.unallocated_attribute_points ?? 0),
       ) + 1;
+    nextCultivator.spiritual_roots = nextCultivator.spiritual_roots.map(
+      (root) => {
+        const baseStrength = root.baseStrength ?? root.strength;
+        const marrowWashBonus = Math.min(
+          Math.max(root.marrowWashBonus ?? 0, getMarrowWashRootBonus(newLevel)),
+          Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
+        );
+        return {
+          ...root,
+          baseStrength,
+          marrowWashBonus,
+          strength: baseStrength + marrowWashBonus,
+        };
+      },
+    );
     return nextCultivator;
   }
 
@@ -328,44 +350,29 @@ function applyTrackProgress(
       : track;
 
   const current = getTrackState(nextCondition, track);
-  if (track === 'marrow_wash') {
-    const result = advanceMarrowWashTowardBreakthrough(
-      normalizeMarrowWashState(nextCondition),
-      getEffectiveTrackProgressValue(value),
-    );
-    for (const newLevel of result.levelUps) {
-      nextCultivator = applyTrackReward(nextCultivator, track);
-      levelUps.push({ track: levelUpTrack, newLevel });
-    }
-    nextCondition = setTrackState(
-      nextCondition,
-      track,
-      result.state.level,
-      result.state.progress,
-    );
-    return {
-      cultivator: nextCultivator,
-      condition: nextCondition,
-      levelUps,
-    };
+  const result =
+    track === 'marrow_wash'
+      ? advanceMarrowWash(
+          normalizeMarrowWashState(nextCondition),
+          getEffectiveTrackProgressValue(value),
+          cultivator.realm,
+        )
+      : advanceBodyCultivationTrack(
+          current,
+          getEffectiveTrackProgressValue(value),
+          cultivator.realm,
+        );
+  for (const newLevel of result.levelUps) {
+    nextCultivator = applyTrackReward(nextCultivator, track, newLevel);
+    levelUps.push({ track: levelUpTrack, newLevel });
   }
-
-  let level = current.level;
-  let progress = current.progress + getEffectiveTrackProgressValue(value);
-
-  while (progress >= getTrackConfig(track).thresholdByLevel(level)) {
-    progress -= getTrackConfig(track).thresholdByLevel(level);
-    level += 1;
-    nextCultivator = applyTrackReward(nextCultivator, track);
-    levelUps.push({ track: levelUpTrack, newLevel: level });
-  }
-
-  nextCondition = setTrackState(nextCondition, track, level, progress);
-  return {
-    cultivator: nextCultivator,
-    condition: nextCondition,
-    levelUps,
-  };
+  nextCondition = setTrackState(
+    nextCondition,
+    track,
+    result.state.level,
+    result.state.progress,
+  );
+  return { cultivator: nextCultivator, condition: nextCondition, levelUps };
 }
 
 function applyRestoreResourceOperation(
@@ -563,123 +570,26 @@ function getNetPillToxicityDelta(spec: PillSpec): number {
   }, 0);
 }
 
-function assertBodyCultivationPillTrackCaps(
-  condition: CultivatorCondition,
-  spec: PillSpec,
-  itemLabel: '丹药' | '灵果',
-): void {
-  let projectedCondition = condition;
-
-  for (const operation of sortOperations(spec.operations)) {
-    if (
-      operation.type !== 'advance_track' ||
-      (!isBodyCultivationTrackPath(operation.track) &&
-        !isLegacyTemperingTrackPath(operation.track))
-    ) {
-      continue;
-    }
-
-    const value = Math.max(0, Math.floor(operation.value));
-    if (value <= 0) {
-      continue;
-    }
-
-    const bodyState = normalizeBodyCultivationState(projectedCondition);
-    const cap =
-      BODY_CULTIVATION_REALM_REQUIREMENTS[bodyState.realm].softTrackCap;
-    const trackState = getTrackState(projectedCondition, operation.track);
-    const trackName = getTrackConfig(operation.track).name;
-    const realmLabel = BODY_REALM_LABELS[bodyState.realm];
-
-    if (trackState.level >= cap) {
-      throw new Error(
-        `${trackName}已达当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用${itemLabel}。`,
-      );
-    }
-
-    let level = trackState.level;
-    let progress = trackState.progress;
-    let remaining = value;
-
-    while (remaining > 0) {
-      const threshold = getTrackConfig(operation.track).thresholdByLevel(level);
-      const needed = threshold - progress;
-      if (remaining < needed) {
-        progress += remaining;
-        break;
-      }
-
-      remaining -= needed;
-      level += 1;
-      progress = 0;
-
-      if (level > cap || (level === cap && remaining > 0)) {
-        throw new Error(
-          `${trackName}本次药力将超过当前肉身境界「${realmLabel}」的单轨上限 Lv.${cap}，请先完成肉身破限后再服用${itemLabel}。`,
-        );
-      }
-    }
-
-    projectedCondition = setTrackState(
-      projectedCondition,
-      operation.track,
-      level,
-      progress,
-    );
-  }
-}
-
-function assertMarrowWashPillTrackCaps(
+function isTrainingPillAtCap(
   cultivator: PillCultivatorFacts,
-  condition: CultivatorCondition,
-  spec: PillSpec,
-  itemLabel: '丹药' | '灵果',
-): void {
-  let projectedState = normalizeMarrowWashState(condition);
-  const cap = getMarrowWashLevelCapByCultivationRealm(cultivator.realm);
-
-  for (const operation of sortOperations(spec.operations)) {
-    if (
-      operation.type !== 'advance_track' ||
-      operation.track !== 'marrow_wash'
-    ) {
-      continue;
-    }
-
-    const value = Math.max(0, Math.floor(operation.value));
-    if (value <= 0) {
-      continue;
-    }
-
-    if (isMarrowWashBreakthroughRequired(projectedState)) {
-      const breakthroughLevel =
-        getNextMarrowWashBreakthroughLevel(projectedState);
-      throw new Error(
-        `洗髓已达破限瓶颈 Lv.${breakthroughLevel}，请先完成本次破限后再服用${itemLabel}。`,
-      );
-    }
-
-    if (projectedState.level >= cap) {
-      throw new Error(
-        `洗髓已达当前修为境界的等级上限 Lv.${cap}，请先提升修为境界后再服用${itemLabel}。`,
-      );
-    }
-
-    const advancement = advanceMarrowWashTowardBreakthrough(
-      projectedState,
-      value,
-    );
-    if (
-      advancement.state.level > cap ||
-      (advancement.state.level === cap && advancement.state.progress > 0)
-    ) {
-      throw new Error(
-        `本次药力将超过当前修为境界的洗髓等级上限 Lv.${cap}，请先提升修为境界后再服用${itemLabel}。`,
-      );
-    }
-
-    projectedState = advancement.state;
-  }
+  spec: Pick<PillSpec, 'operations'>,
+): boolean {
+  const tracks = spec.operations.flatMap((operation) =>
+    operation.type === 'advance_track' && operation.value > 0
+      ? [operation.track]
+      : [],
+  );
+  const condition = cultivator.condition!;
+  return (
+    tracks.length > 0 &&
+    tracks.every(
+      (track) =>
+        getTrackState(condition, track).level >=
+        (track === 'marrow_wash'
+          ? getMarrowWashLevelCapByCultivationRealm(cultivator.realm)
+          : getBodyCultivationLevelCapByCultivationRealm(cultivator.realm)),
+    )
+  );
 }
 
 function getEffectiveQuotaCategory(
@@ -709,6 +619,7 @@ function consumeBreakthroughStatus(
 
 export const PillOperationExecutor = {
   sortOperations,
+  isTrainingPillAtCap,
 
   execute(
     cultivator: PillCultivatorFacts,
@@ -775,17 +686,16 @@ export const PillOperationExecutor = {
     ) {
       throw new Error(PILL_TOXICITY_BLOCK_MESSAGE);
     }
-    assertBodyCultivationPillTrackCaps(
-      nextCondition,
-      effectConsumable.spec,
-      itemLabel,
-    );
-    assertMarrowWashPillTrackCaps(
-      nextCultivator,
-      nextCondition,
-      effectConsumable.spec,
-      itemLabel,
-    );
+    if (
+      isTrainingPillAtCap(
+        { ...nextCultivator, condition: nextCondition },
+        effectConsumable.spec,
+      )
+    ) {
+      throw new Error(
+        `对应修炼已达当前修为境界的等级上限，请先提升修为境界后再服用${itemLabel}。`,
+      );
+    }
 
     if (quotaCategory === 'long_term') {
       const used =

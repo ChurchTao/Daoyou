@@ -223,7 +223,11 @@ export const ConsumableUseEngine = {
       throw new Error('该消耗品缺少有效丹药或灵果 spec。');
     }
 
-    if (consumable.spec.operations.some((operation) => operation.type === 'gain_beast_cultivation')) {
+    if (
+      consumable.spec.operations.some(
+        (operation) => operation.type === 'gain_beast_cultivation',
+      )
+    ) {
       throw new Error('请在灵兽页选择灵兽后喂养');
     }
 
@@ -241,12 +245,22 @@ export const ConsumableUseEngine = {
       typeof PillOperationExecutor.execute
     >['trackLevelUps'] = [];
     const appliedEffects: string[] = [];
+    let consumedQuantity = 0;
     for (let index = 0; index < quantity; index++) {
+      if (
+        index > 0 &&
+        PillOperationExecutor.isTrainingPillAtCap(
+          nextCultivator,
+          consumable.spec,
+        )
+      )
+        break;
       const execution = PillOperationExecutor.execute(
         nextCultivator,
         consumable,
       );
       nextCultivator = execution.cultivator;
+      consumedQuantity += 1;
       trackLevelUps.push(...execution.trackLevelUps);
       appliedEffects.push(...execution.appliedEffects);
     }
@@ -287,7 +301,7 @@ export const ConsumableUseEngine = {
         userId,
         cultivatorId,
         consumableId,
-        quantity,
+        consumedQuantity,
         tx,
       );
     };
@@ -309,7 +323,7 @@ export const ConsumableUseEngine = {
     return {
       message: isSpiritFruit
         ? `${consumable.name}已服下：${appliedEffects.join('，')}。`
-        : `${consumable.name}已服下${quantity > 1 ? ` ${quantity} 颗` : ''}，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
+        : `${consumable.name}已服下${consumedQuantity > 1 ? ` ${consumedQuantity} 颗` : ''}，药力已经入体。${lifespanMessage}${trackMessage}`.trim(),
       consumable,
       profilePatch: {
         lifespan: nextCultivator.lifespan,

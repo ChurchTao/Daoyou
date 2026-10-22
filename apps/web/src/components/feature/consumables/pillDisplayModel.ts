@@ -1,47 +1,16 @@
-import { getMinimumPillQualityByRealm } from '@daoyou/game-rules/consumables';
+import { QUALITY_ORDER } from '@daoyou/constants/qualities';
+import { type RealmType } from '@daoyou/constants/realms';
 import { CULTIVATION_PILL_MAX_QUALITY_BY_REALM } from '@daoyou/game-content/consumables';
-import {
-  BODY_CULTIVATION_REALM_REQUIREMENTS,
-  getBodyCultivationThresholdByLevel,
-  getBodyTrackKeyFromPath,
-  isBodyCultivationTrackPath,
-  isLegacyTemperingTrackPath,
-  normalizeBodyCultivationState,
-  getBodyCultivationSummary,
-} from '@daoyou/game-rules/body-cultivation/progress';
-import { getBreakthroughFocusPillLabel } from '@daoyou/game-rules/consumables/breakthrough';
-import {
-  getConditionStatusTemplate,
-  getTrackConfig,
-} from '@daoyou/game-rules/condition';
-import {
-  CULTIVATION_BOOST_STATUS_KEY,
-  getCultivationBoostDisplayText,
-} from '@daoyou/game-rules/consumables/cultivation';
 import {
   getGameConceptLabel,
   getResourceLabel,
   getResourceText,
 } from '@daoyou/game-content/presentation/concepts';
-import {
-  getPillAppearanceLabel,
-  BREAKTHROUGH_FOCUS_STATUS_KEY,
-  CLEAR_MIND_STATUS_KEY,
-  getBreakthroughFocusBonus,
-  getProtectMeridiansReductionPercent,
-  PROTECT_MERIDIANS_STATUS_KEY,
-  getLongevityPillUsageLimit,
-  getPillUsageKeywordLabel,
-  getPillUsageRuleText,
-  getPrimaryPillQuotaCategory,
-  getRealmPillUsageLimit,
-} from '@daoyou/game-rules/alchemy';
+import type { Consumable } from '@daoyou/game-domain/character';
 import type {
   ConditionStatusKey,
   CultivatorCondition,
 } from '@daoyou/game-domain/condition';
-import { QUALITY_ORDER } from '@daoyou/constants/qualities';
-import { type RealmType } from '@daoyou/constants/realms';
 import type {
   ConditionOperation,
   PillFamily,
@@ -49,7 +18,44 @@ import type {
   PillSpec,
   SpiritFruitSpec,
 } from '@daoyou/game-domain/consumables';
-import type { Consumable } from '@daoyou/game-domain/character';
+import {
+  BREAKTHROUGH_FOCUS_STATUS_KEY,
+  CLEAR_MIND_STATUS_KEY,
+  getBreakthroughFocusBonus,
+  getLongevityPillUsageLimit,
+  getPillAppearanceLabel,
+  getPillUsageKeywordLabel,
+  getPillUsageRuleText,
+  getPrimaryPillQuotaCategory,
+  getProtectMeridiansReductionPercent,
+  getRealmPillUsageLimit,
+  PROTECT_MERIDIANS_STATUS_KEY,
+} from '@daoyou/game-rules/alchemy';
+import {
+  advanceBodyCultivationTrack,
+  getBodyCultivationLevelCapByCultivationRealm,
+  getBodyCultivationSummary,
+  getBodyCultivationThresholdByLevel,
+  getBodyTrackKeyFromPath,
+  isBodyCultivationTrackPath,
+  isLegacyTemperingTrackPath,
+  normalizeBodyCultivationState,
+} from '@daoyou/game-rules/body-cultivation/progress';
+import {
+  advanceMarrowWash,
+  getMarrowWashSummary,
+  normalizeMarrowWashState,
+} from '@daoyou/game-rules/body-cultivation/training';
+import {
+  getConditionStatusTemplate,
+  getTrackConfig,
+} from '@daoyou/game-rules/condition';
+import { getMinimumPillQualityByRealm } from '@daoyou/game-rules/consumables';
+import { getBreakthroughFocusPillLabel } from '@daoyou/game-rules/consumables/breakthrough';
+import {
+  CULTIVATION_BOOST_STATUS_KEY,
+  getCultivationBoostDisplayText,
+} from '@daoyou/game-rules/consumables/cultivation';
 
 interface PillDisplayOptions {
   realm?: RealmType;
@@ -495,39 +501,28 @@ function buildCostAndRuleLines(
   return lines;
 }
 
-function advanceProgressPreview(args: {
-  level: number;
-  progress: number;
-  value: number;
-  thresholdByLevel: (level: number) => number;
-}) {
-  let level = Math.max(0, Math.floor(args.level));
-  let progress = Math.max(0, Math.floor(args.progress));
-  let remaining = Math.max(0, Math.floor(args.value));
-
-  while (remaining > 0) {
-    const threshold = Math.max(1, args.thresholdByLevel(level));
-    const needed = threshold - progress;
-    if (remaining < needed) {
-      progress += remaining;
-      break;
-    }
-    remaining -= needed;
-    level += 1;
-    progress = 0;
-  }
-
-  return {
-    level,
-    progress,
-    threshold: Math.max(1, args.thresholdByLevel(level)),
-  };
-}
-
 function getBodyTrackPreviewLines(
   operation: Extract<ConditionOperation, { type: 'advance_track' }>,
   condition: CultivatorCondition,
+  realm: RealmType,
 ): string[] {
+  if (operation.track === 'marrow_wash') {
+    const current = getMarrowWashSummary(condition, { cultivatorRealm: realm });
+    const next = advanceMarrowWash(
+      normalizeMarrowWashState(condition),
+      operation.value,
+      realm,
+    );
+    return [
+      `当前修为境界洗髓上限：Lv.${current.levelCap}`,
+      current.level >= current.levelCap
+        ? '已达上限，提升修为后可继续洗髓'
+        : `预计洗髓：Lv.${current.level} → Lv.${next.state.level}，自由属性点 +${next.levelUps.length}`,
+      ...(next.unusedProgress > 0 && current.level < current.levelCap
+        ? [`满级溢出药力 ${next.unusedProgress} 不保留`]
+        : []),
+    ];
+  }
   if (
     !isBodyCultivationTrackPath(operation.track) &&
     !isLegacyTemperingTrackPath(operation.track)
@@ -538,14 +533,16 @@ function getBodyTrackPreviewLines(
   const trackKey = getBodyTrackKeyFromPath(operation.track);
   const state = normalizeBodyCultivationState(condition);
   const currentTrack = state.tracks[trackKey];
-  const trackCap =
-    BODY_CULTIVATION_REALM_REQUIREMENTS[state.realm].softTrackCap;
-  const next = advanceProgressPreview({
-    level: currentTrack.level,
-    progress: currentTrack.progress,
-    value: operation.value,
-    thresholdByLevel: getBodyCultivationThresholdByLevel,
-  });
+  const trackCap = getBodyCultivationLevelCapByCultivationRealm(realm);
+  const advancement = advanceBodyCultivationTrack(
+    currentTrack,
+    operation.value,
+    realm,
+  );
+  const next = {
+    ...advancement.state,
+    threshold: getBodyCultivationThresholdByLevel(advancement.state.level),
+  };
   const currentSummary = getBodyCultivationSummary(condition).tracks.find(
     (track) => track.key === trackKey,
   );
@@ -575,31 +572,23 @@ function getBodyTrackPreviewLines(
   );
   const lines = [
     `推进轨道：${trackName.replace('炼体·', '')} +${operation.value}`,
-    `当前肉身境界单轨上限：Lv.${trackCap}`,
+    `当前修为境界单轨上限：Lv.${trackCap}`,
   ];
 
   if (currentTrack.level >= trackCap) {
-    lines.push('已达上限，请先完成肉身破限');
+    lines.push('已达上限，提升修为后可继续修炼');
     return lines;
   }
 
-  if (next.level > trackCap || (next.level === trackCap && next.progress > 0)) {
-    lines.push(
-      `预计超过上限：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
-      '请先完成肉身破限后再服用',
-    );
-    return lines;
-  }
+  if (advancement.unusedProgress > 0)
+    lines.push(`满级溢出药力 ${advancement.unusedProgress} 不保留`);
 
   lines.push(
     `预计进度：Lv.${currentTrack.level} ${currentTrack.progress}/${currentThreshold} -> Lv.${next.level} ${next.progress}/${next.threshold}`,
   );
 
   if (next.level > currentTrack.level && nextSummary) {
-    lines.push(
-      `升级后收益：${nextSummary.currentEffects.join('、')}`,
-      `下个节点：Lv.${nextSummary.nextMilestoneLevel}`,
-    );
+    lines.push(`升级后收益：${nextSummary.currentEffects.join('、')}`);
   } else if (currentSummary) {
     lines.push(`当前收益：${currentSummary.currentEffects.join('、')}`);
   }
@@ -611,13 +600,13 @@ function buildTrackPreviewLines(
   spec: Pick<PillSpec | SpiritFruitSpec, 'operations'>,
   options?: PillDisplayOptions,
 ): string[] {
-  if (!options?.condition) {
+  if (!options?.condition || !options.realm) {
     return [];
   }
 
   return spec.operations.flatMap((operation) =>
     operation.type === 'advance_track'
-      ? getBodyTrackPreviewLines(operation, options.condition!)
+      ? getBodyTrackPreviewLines(operation, options.condition!, options.realm!)
       : [],
   );
 }

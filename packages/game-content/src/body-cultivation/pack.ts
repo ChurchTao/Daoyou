@@ -54,10 +54,12 @@ export function loadBodyCultivationPack(data: unknown) {
         if (realm.totalLevel !== 0) issue(['realms', i, 'totalLevel'], '初始位阶总等级门槛必须为零');
       } else {
         if (realm.softTrackCap <= previous.softTrackCap || realm.totalLevel <= previous.totalLevel || REALM_ORDER[realm.minCultivationRealm] < REALM_ORDER[previous.minCultivationRealm]) issue(['realms', i, realm.realm], '位阶门槛和上限必须递增，修为境界不能倒退');
-        if (realm.totalLevel > previous.softTrackCap * BODY_CULTIVATION_TRACK_KEYS.length) issue(['realms', i, 'totalLevel'], '前一位阶五轨上限无法达到此门槛');
       }
     });
     const cap = pack.realms[pack.realms.length - 1].softTrackCap;
+    for (const [i, realm] of pack.realms.entries()) {
+      if (realm.totalLevel > cap * BODY_CULTIVATION_TRACK_KEYS.length) issue(['realms', i, 'totalLevel'], '五轨最高等级无法达到此称号门槛');
+    }
     if (!Number.isSafeInteger(pack.progress.base + pack.progress.perLevel * cap)) issue(['progress'], '最高等级进度需求溢出');
   }).safeParse(data);
   if (!result.success) throw new Error(formatContentPackErrors('bodyCultivation/data/body-cultivation.json', data, result.error.issues));

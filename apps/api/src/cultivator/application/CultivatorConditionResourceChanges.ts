@@ -13,9 +13,7 @@ import type {
   Cultivator,
 } from '@daoyou/game-domain/character';
 import {
-  qiCurrencyChange,
   qiCurrencyPatch,
-  type QiSettlementBaseline,
 } from '@server/cultivator/application/QiResourceChanges.js';
 
 export function conditionChangesAfterConsumable(args: {
@@ -192,40 +190,5 @@ export function innRecoveryChanges(args: {
       operation: 'replace',
       payload: args.progress,
     },
-  ];
-}
-
-export function bodyBreakthroughChanges(args: {
-  condition: ResourceDataMap['player.condition'];
-}): ResourceChangeDescriptor[] {
-  return [
-    {
-      resourceTopic: 'player.condition',
-      eventType: 'condition.body_cultivation.breakthrough',
-      operation: 'replace',
-      payload: args.condition,
-    },
-  ];
-}
-
-export function marrowWashBreakthroughChanges(args: {
-  condition: ResourceDataMap['player.condition'];
-  spiritualRoots: Cultivator['spiritual_roots'];
-  qi: QiSettlementBaseline;
-}): ResourceChangeDescriptor[] {
-  return [
-    {
-      resourceTopic: 'player.condition',
-      eventType: 'condition.marrow_wash.breakthrough',
-      operation: 'replace',
-      payload: args.condition,
-    },
-    {
-      resourceTopic: 'player.profile',
-      eventType: 'profile.spiritual_roots.marrow_wash_bonus',
-      operation: 'merge',
-      payload: { cultivator: { spiritual_roots: args.spiritualRoots } },
-    },
-    qiCurrencyChange('currency.qi.spent', args.qi),
   ];
 }

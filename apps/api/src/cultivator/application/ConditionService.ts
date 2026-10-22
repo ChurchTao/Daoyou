@@ -12,12 +12,10 @@ import {
   normalizeBodyCultivationState,
 } from '@daoyou/game-rules/body-cultivation/progress';
 import {
-  breakthroughBodyCultivationRealm as advanceBodyCultivationRealm,
   normalizeMarrowWashState,
 } from '@daoyou/game-rules/body-cultivation/training';
 import { PILL_TOXICITY_CAP } from '@daoyou/game-content/consumables';
 import type {
-  BodyCultivationRealm,
   ConditionStatusDuration,
   ConditionStatusInstance,
   ConditionStatusKey,
@@ -495,32 +493,4 @@ export const ConditionService = {
     );
   },
 
-  breakthroughBodyCultivationRealm(
-    cultivator: Pick<Cultivator, 'realm' | 'condition'>,
-    conditionInput: CultivatorCondition | undefined,
-  ): {
-    condition: CultivatorCondition;
-    fromRealm: BodyCultivationRealm;
-    toRealm: BodyCultivationRealm;
-  } {
-    const condition = conditionInput ?? cultivator.condition;
-    if (!condition) {
-      throw new Error('角色状态尚未初始化，无法进行肉身破限');
-    }
-    const result = advanceBodyCultivationRealm(condition, {
-      cultivatorRealm: cultivator.realm,
-    });
-
-    return {
-      condition: {
-        ...condition,
-        tracks: {
-          ...condition.tracks,
-          bodyCultivation: result.state,
-        },
-      },
-      fromRealm: result.fromRealm,
-      toRealm: result.toRealm,
-    };
-  },
 };

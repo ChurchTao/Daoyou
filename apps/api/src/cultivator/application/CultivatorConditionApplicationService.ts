@@ -1,43 +1,28 @@
-import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
-import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
   BEAST_LURE_SEARCHES,
   igniteBeastLure,
 } from '@daoyou/game-rules/combat/wild';
-import { recordJournalChange } from '@server/player/application/JournalSettlement.js';
-import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
-import { cultivators } from '@server/lib/drizzle/schema.js';
-import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
-import { loadPlayerInnRecoveryFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
-import { readMarrowWashFacts } from '@server/cultivator/application/readers/CultivatorFactsReader.js';
-import { getCultivatorConsumableById } from '@server/cultivator/application/readers/CultivatorInventoryRepository.js';
-import { setSpiritualRootMarrowWashBonus } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import { updateCultivator } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { stripExpCapForStorage } from '@daoyou/game-rules/cultivation';
 import {
-  breakthroughMarrowWash,
-  MARROW_WASH_BREAKTHROUGH_QI_COST,
-  SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
-} from '@daoyou/game-rules/body-cultivation/training';
-import type { RealmStage, RealmType } from '@daoyou/constants/realms';
-import { randomUUID } from 'crypto';
-import { and, eq, sql } from 'drizzle-orm';
-import { inventoryItems } from '@server/lib/drizzle/schema.js';
-import { loadPlayerBodyCultivationFacts } from '@server/cultivator/application/BodyCultivationBreakthroughService.js';
-import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { ConsumableUseEngine } from '@server/inventory/application/ConsumableUseEngine.js';
-import {
-  bodyBreakthroughChanges,
   conditionChangesAfterConsumable,
   innRecoveryChanges,
-  marrowWashBreakthroughChanges,
 } from '@server/cultivator/application/CultivatorConditionResourceChanges.js';
 import { InnRecoveryService } from '@server/cultivator/application/InnRecoveryService.js';
-import { QiService } from '@server/cultivator/application/QiService.js';
+import { loadPlayerInnRecoveryFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
+import { getCultivatorConsumableById } from '@server/cultivator/application/readers/CultivatorInventoryRepository.js';
+import { hasActiveDungeon } from '@server/dungeon/occupancy.js';
+import { ConsumableUseEngine } from '@server/inventory/application/ConsumableUseEngine.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { cultivators, inventoryItems } from '@server/lib/drizzle/schema.js';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
+import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
+import { recordJournalChange } from '@server/player/application/JournalSettlement.js';
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
+import { and, eq, sql } from 'drizzle-orm';
 
 type Actor = { userId: string; cultivatorId: string };
 
@@ -263,126 +248,6 @@ export async function recoverCultivatorAtInn(args: { actor: Actor }) {
           condition: recovery.nextCondition,
           spiritStones: updated.spiritStones,
           progress: recovery.nextCultivationProgress,
-        }),
-      };
-    },
-  });
-}
-
-export async function breakthroughBodyCultivation(args: { actor: Actor }) {
-  return playerCommandExecutor.executeWithLock({
-    userId: args.actor.userId,
-    cultivatorId: args.actor.cultivatorId,
-    source: 'body_cultivation_breakthrough',
-    command: async (tx) => {
-      const cultivator = await loadPlayerBodyCultivationFacts(
-        args.actor.userId,
-        args.actor.cultivatorId,
-        tx,
-      );
-      if (!cultivator) throw new Error('角色不存在');
-      const result = ConditionService.breakthroughBodyCultivationRealm(
-        cultivator,
-        cultivator.condition,
-      );
-      const saved = await updateCultivator(
-        args.actor.cultivatorId,
-        { condition: result.condition },
-        tx,
-      );
-      if (!saved) throw new Error('更新角色数据失败');
-      return {
-        result: {
-          fromRealm: result.fromRealm,
-          toRealm: result.toRealm,
-          condition: result.condition,
-        },
-        resourceChanges: bodyBreakthroughChanges({
-          condition: result.condition,
-        }),
-      };
-    },
-  });
-}
-
-export function breakthroughCultivatorMarrowWash(args: { actor: Actor }) {
-  const actionInstanceId = randomUUID();
-  return playerCommandExecutor.executeWithLock({
-    userId: args.actor.userId,
-    cultivatorId: args.actor.cultivatorId,
-    source: 'marrow_wash_breakthrough',
-    command: async (tx) => {
-      const cultivator = await readMarrowWashFacts(
-        args.actor.userId,
-        args.actor.cultivatorId,
-        tx,
-      );
-      if (!cultivator) throw new Error('角色不存在');
-      const result = breakthroughMarrowWash(cultivator.condition, {
-        cultivatorRealm: cultivator.realm,
-      });
-      const nextRoots = cultivator.spiritualRoots.map((root) => {
-        const baseStrength = root.baseStrength ?? root.strength;
-        const nextBonus = Math.min(
-          result.toRealm,
-          Math.max(0, SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP - baseStrength),
-        );
-        return {
-          ...root,
-          baseStrength,
-          marrowWashBonus: nextBonus,
-          strength: Math.min(
-            SPIRITUAL_ROOT_EFFECTIVE_STRENGTH_CAP,
-            baseStrength + nextBonus,
-          ),
-        };
-      });
-      const reservation = await QiService.reserveQi({
-        cultivatorId: args.actor.cultivatorId,
-        action: 'marrow_wash_breakthrough',
-        actionInstanceId,
-        cost: MARROW_WASH_BREAKTHROUGH_QI_COST,
-        metadata: {
-          fromRealm: result.fromRealm,
-          toRealm: result.toRealm,
-          breakthroughLevel: result.breakthroughLevel,
-        },
-        tx,
-      });
-      if (
-        !(await updateCultivator(
-          args.actor.cultivatorId,
-          { condition: result.condition },
-          tx,
-        ))
-      ) {
-        throw new Error('更新角色数据失败');
-      }
-      await setSpiritualRootMarrowWashBonus(
-        args.actor.userId,
-        args.actor.cultivatorId,
-        result.toRealm,
-        tx,
-      );
-      await QiService.commitReservation({
-        actionInstanceId,
-        metadata: { committedAt: new Date().toISOString() },
-        tx,
-      });
-      return {
-        result: {
-          fromRealm: result.fromRealm,
-          toRealm: result.toRealm,
-          breakthroughLevel: result.breakthroughLevel,
-          qiCost: MARROW_WASH_BREAKTHROUGH_QI_COST,
-          qiAfter: reservation.qiAfter,
-          condition: result.condition,
-          spiritual_roots: nextRoots,
-        },
-        resourceChanges: marrowWashBreakthroughChanges({
-          condition: result.condition,
-          spiritualRoots: nextRoots,
-          qi: reservation,
         }),
       };
     },
