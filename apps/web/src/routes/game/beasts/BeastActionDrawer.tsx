@@ -35,7 +35,10 @@ export function BeastActionDrawer({
           <InkButton
             variant="primary"
             pending={pending}
-            disabled={action === 'rest' && (cost <= 0 || cost > spiritStones)}
+            disabled={
+              (action === 'rest' && (cost <= 0 || cost > spiritStones)) ||
+              (action === 'release' && beast.isLocked)
+            }
             onClick={confirm}
           >
             确认{labels[action]}
@@ -61,8 +64,7 @@ export function BeastActionDrawer({
           <p>
             <span className="font-mono">{beast.level}</span> 级 · 成长{' '}
             <span className="font-mono">{beast.growth.toFixed(3)}</span> ·{' '}
-            <span className="font-mono">{beast.skillSlotCapacity}</span>{' '}
-            项技能
+            <span className="font-mono">{beast.skillSlotCapacity}</span> 项技能
           </p>
           <p>放生没有收益，无法找回。该灵兽会同时取消携带。</p>
         </div>

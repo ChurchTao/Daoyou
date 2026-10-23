@@ -46,6 +46,10 @@ export class AuctionService {
     const page = params.page || 1;
     const limit = params.limit || 20;
     const totalPages = Math.ceil(result.total / limit);
+    const slots =
+      params.scope === 'mine'
+        ? await this.operations.listingSlots(owner)
+        : undefined;
     return {
       listings: result.listings.map(publicAuctionListing),
       pagination: {
@@ -55,6 +59,7 @@ export class AuctionService {
         totalPages,
         hasMore: page < totalPages,
       },
+      ...(slots ? { slots } : {}),
     };
   }
 

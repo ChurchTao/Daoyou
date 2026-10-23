@@ -1,5 +1,6 @@
 import type {
   HuntCreateTeamSchema,
+  HuntTeamChatSend,
   HuntTeamCommand,
 } from '@daoyou/contracts/hunts';
 import type { HuntEventIdSchema } from '@daoyou/game-domain/hunts';
@@ -79,10 +80,14 @@ export class HuntsService {
     };
   }
 
-  async speak(actor: ActiveCultivatorRef, teamId: string, text: string) {
+  async speak(
+    actor: ActiveCultivatorRef,
+    teamId: string,
+    input: HuntTeamChatSend,
+  ) {
     return {
       success: true,
-      data: await sendHuntTeamChat(actor, teamId, text),
+      data: await sendHuntTeamChat(actor, teamId, input),
     };
   }
 }

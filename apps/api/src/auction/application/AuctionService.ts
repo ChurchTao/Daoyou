@@ -4,7 +4,10 @@ import {
   type AuctionListRequest,
 } from '@daoyou/contracts/auction';
 import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@daoyou/game-content/social/config';
-import { AUCTION_MAX_TRANSACTION_TOTAL } from '@daoyou/game-domain/auction';
+import {
+  AUCTION_MAX_ACTIVE_LISTINGS,
+  AUCTION_MAX_TRANSACTION_TOTAL,
+} from '@daoyou/game-domain/auction';
 import type { MailAttachment } from '@daoyou/game-domain/mail';
 import {
   auctionBlockReason,
@@ -132,6 +135,14 @@ export class AuctionOperations {
     return auctionRepository.findActiveListings(options, this.database);
   }
 
+  async listingSlots(sellerId: string) {
+    const summary = await auctionRepository.summarizeActiveBySeller(
+      sellerId,
+      this.database,
+    );
+    return { ...summary, limit: AUCTION_MAX_ACTIVE_LISTINGS };
+  }
+
   async clearCache() {
     const keys = await this.cache.keys('auction:listings:*');
     if (keys.length) await this.cache.del(...keys);
@@ -143,8 +154,14 @@ export class AuctionOperations {
     targetCultivatorId: string | undefined,
     tx: DbTransaction,
   ) {
-    if ((await auctionRepository.countActiveBySeller(owner, tx)) >= 5)
-      throw new AuctionServiceError('MAX_LISTINGS', '寄售位已满（最多5个）');
+    if (
+      (await auctionRepository.countActiveBySeller(owner, tx)) >=
+      AUCTION_MAX_ACTIVE_LISTINGS
+    )
+      throw new AuctionServiceError(
+        'MAX_LISTINGS',
+        `寄售位已满（最多${AUCTION_MAX_ACTIVE_LISTINGS}个）`,
+      );
     let targetCultivatorName: string | undefined;
     if (visibility === 'private') {
       if (!targetCultivatorId)

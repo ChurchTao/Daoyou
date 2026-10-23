@@ -47,7 +47,7 @@ export function FusionWorkspace({
     { ownerLevel: number; lineup: BeastLineup } | undefined
   >(ownerLevel !== undefined && lineup ? { ownerLevel, lineup } : undefined);
   const [selected, setSelected] = useState<[SummonedBeast?, SummonedBeast?]>(
-    () => [initialBeast, undefined],
+    () => [initialBeast?.isLocked ? undefined : initialBeast, undefined],
   );
   const [slot, setSlot] = useState<0 | 1>();
   const [preview, setPreview] = useState(false);

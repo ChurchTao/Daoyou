@@ -14,6 +14,7 @@ export function beastFusionMaterialReason(
   beast: SummonedBeast,
   ownerLevel: number,
 ): string {
+  if (beast.isLocked) return '灵兽已锁定，请先解锁';
   if (beast.isMutant) return '变异灵兽不能参与融合';
   if (beast.level < BEAST_FUSION.minimumLevel)
     return `灵兽须达到${BEAST_FUSION.minimumLevel}级`;

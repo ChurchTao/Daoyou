@@ -166,7 +166,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
   };
 
   const askBeast = (beast: WandererBeastOffer) => {
-    if (pending || beast.lead) return;
+    if (pending || beast.lead || beast.isLocked) return;
     openDialog({
       title: '交给游商',
       content: (
@@ -364,7 +364,7 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                 <li key={beast.id}>
                   <button
                     type="button"
-                    disabled={pending || beast.lead || !state}
+                    disabled={pending || beast.lead || beast.isLocked || !state}
                     onClick={() => askBeast(beast)}
                     className="bg-paper border-ink/20 hover:border-crimson/50 focus-visible:outline-crimson flex w-full min-w-0 items-center gap-4 border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -388,7 +388,11 @@ export function WandererDrawer({ onClose }: { onClose: () => void }) {
                         </span>{' '}
                         瓶上品归元灵露
                       </span>
-                      {beast.lead ? (
+                      {beast.isLocked ? (
+                        <span className="text-ink-secondary block">
+                          已锁定，请先解锁
+                        </span>
+                      ) : beast.lead ? (
                         <span className="text-ink-secondary block">
                           正在首发，先取消首发
                         </span>

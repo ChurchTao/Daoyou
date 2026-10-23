@@ -1,10 +1,13 @@
 import { AttributeAllocation } from '@app/components/feature/attributes/AttributeAllocation';
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
+import { BeastLockTag } from '@app/components/feature/beasts/BeastLockTag';
 import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTag';
 import { BeastSkillGrid } from '@app/components/feature/beasts/BeastSkillGrid';
 import { InkModal } from '@app/components/layout/InkModal';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkBadge } from '@app/components/ui/InkBadge';
 import { InkButton } from '@app/components/ui/InkButton';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkTag } from '@app/components/ui/InkTag';
 import { InkTooltip } from '@app/components/ui/InkTooltip';
 import { BEAST_PROGRESSION, BEAST_SPECIES } from '@daoyou/game-content/beasts';
@@ -24,8 +27,17 @@ import { useState } from 'react';
 import type { BeastAction } from './BeastActionDrawer';
 
 const species = new Map(BEAST_SPECIES.map((s) => [s.id as string, s]));
+const panelStats = [
+  ['maxHp', '气血'],
+  ['maxMp', '法力'],
+  ['physicalAtk', '物攻'],
+  ['physicalDef', '物防'],
+  ['magicAtk', '法攻'],
+  ['magicDef', '法防'],
+  ['speed', '速度'],
+] as const;
 
-export function BeastLeadSeal() {
+function BeastLeadSeal() {
   return (
     <InkBadge tone="accent" compact className="shrink-0">
       首发
@@ -55,6 +67,45 @@ function Stat({
     </div>
   );
 }
+
+function BeastOption({
+  icon,
+  label,
+  description,
+  disabled,
+  onClick,
+  danger,
+}: {
+  icon: string;
+  label: string;
+  description: string;
+  disabled?: boolean;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="hover:bg-ink/5 focus-visible:outline-teal flex min-h-12 w-full items-center justify-between gap-3 px-2 py-3 text-left transition-colors focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <GameIcon value={icon} className="text-2xl" />
+      <span className="min-w-0 flex-1">
+        <span className={`block text-sm ${danger ? 'text-crimson' : ''}`}>
+          {label}
+        </span>
+        <span className="text-ink-secondary mt-1 block text-xs leading-5">
+          {description}
+        </span>
+      </span>
+      <span aria-hidden className="text-ink-secondary shrink-0">
+        ›
+      </span>
+    </button>
+  );
+}
+
 export function BeastPanel({
   beast,
   ownerLevel,
@@ -65,6 +116,7 @@ export function BeastPanel({
   withdraw,
   bagFull,
   act,
+  setLocked,
   learn,
   refine,
   rejuvenate,
@@ -84,6 +136,7 @@ export function BeastPanel({
   withdraw?: () => void;
   bagFull?: boolean;
   act: (action: BeastAction) => void;
+  setLocked: (isLocked: boolean) => void;
   learn: () => void;
   refine: () => void;
   rejuvenate: () => void;
@@ -102,6 +155,11 @@ export function BeastPanel({
     agility: 0,
   });
   const [confirming, setConfirming] = useState(false);
+  const [tools, setTools] = useState<'cultivate' | 'manage' | null>(null);
+  function choose(action: () => void) {
+    setTools(null);
+    action();
+  }
   const total = Object.values(draft).reduce((sum, value) => sum + value, 0);
   const before = beastPanel(beast);
   const attributes = beastAttributes(beast);
@@ -134,13 +192,14 @@ export function BeastPanel({
         </div>
         <div className="contents min-w-0 @min-[30rem]:block">
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-1">
+            <div className="mb-1 flex flex-wrap items-center gap-1">
               <h2
                 className="min-w-0 truncate text-lg @min-[30rem]:text-xl"
                 title={beast.name}
               >
                 {beast.name}
               </h2>
+              <BeastLockTag isLocked={beast.isLocked} />
               {beast.isMutant ? (
                 <BeastMutationTag isMutant />
               ) : (
@@ -148,20 +207,16 @@ export function BeastPanel({
                   {beastOriginName(beast)}
                 </InkTag>
               )}
-              <InkButton
-                variant="ghost"
-                className="shrink-0 px-0 text-sm tracking-normal"
-                disabled={pending}
-                onClick={rename}
-              >
-                改名
-              </InkButton>
             </div>
             <div className="text-ink-secondary flex items-center gap-1 text-xs leading-6 whitespace-nowrap">
-              <span className="min-w-0 truncate" title={definition?.name}>
-                {definition?.name ?? '—'}
-              </span>
-              <span aria-hidden>·</span>
+              {definition && beast.name !== definition.name ? (
+                <>
+                  <span className="min-w-0 truncate" title={definition.name}>
+                    {definition.name}
+                  </span>
+                  <span aria-hidden>·</span>
+                </>
+              ) : null}
               <span className="shrink-0">
                 <span className="font-mono">{beast.level}</span>级
               </span>
@@ -195,7 +250,7 @@ export function BeastPanel({
               </span>
             </div>
           </div>
-          <div className="col-span-2 grid grid-cols-2 gap-x-2 gap-y-1 @min-[30rem]:mt-2 @min-[44rem]:flex @min-[44rem]:flex-wrap">
+          <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 @min-[30rem]:mt-2">
             {withdraw ? null : (
               <div className="flex items-center">
                 <InkButton
@@ -230,40 +285,12 @@ export function BeastPanel({
                 ) : null}
               </div>
             ) : null}
-            {store ? (
-              <div className="flex items-center">
-                <InkButton disabled={pending || warehouseFull} onClick={store}>
-                  存入仓库
-                </InkButton>
-                {warehouseFull ? (
-                  <InkTooltip label="存入仓库条件">灵兽仓库已满。</InkTooltip>
-                ) : null}
-              </div>
-            ) : null}
-            {fuse ? (
-              <InkButton disabled={pending} onClick={fuse}>
-                融合
-              </InkButton>
-            ) : null}
-            <div className="flex items-center">
-              <InkButton disabled={pending || capped} onClick={feed}>
-                喂养
-              </InkButton>
-              {capped ? (
-                <InkTooltip label="喂养条件">已达当前培养上限。</InkTooltip>
-              ) : null}
-            </div>
-            <div className="flex items-center">
-              <InkButton
-                disabled={pending || beast.currentLifespan >= beast.maxLifespan}
-                onClick={() => act('rest')}
-              >
-                休养
-              </InkButton>
-              {beast.currentLifespan >= beast.maxLifespan ? (
-                <InkTooltip label="休养条件">寿命已满。</InkTooltip>
-              ) : null}
-            </div>
+            <InkButton disabled={pending} onClick={() => setTools('cultivate')}>
+              培养
+            </InkButton>
+            <InkButton disabled={pending} onClick={() => setTools('manage')}>
+              管理
+            </InkButton>
           </div>
         </div>
       </div>
@@ -271,17 +298,7 @@ export function BeastPanel({
         <section>
           <h3 className="text-teal mb-2 text-sm">战斗属性</h3>
           <dl className="grid grid-cols-2 gap-x-5">
-            {(
-              [
-                ['maxHp', '气血'],
-                ['maxMp', '法力'],
-                ['physicalAtk', '物攻'],
-                ['physicalDef', '物防'],
-                ['magicAtk', '法攻'],
-                ['magicDef', '法防'],
-                ['speed', '速度'],
-              ] as const
-            ).map(([key, label]) => (
+            {panelStats.map(([key, label]) => (
               <Stat
                 key={key}
                 label={label}
@@ -342,16 +359,128 @@ export function BeastPanel({
         onChange={setDraft}
         disabled={pending || !canAllocate || confirming}
         onConfirm={() => setConfirming(true)}
-        headerAction={
-          <InkButton disabled={pending} onClick={rejuvenate}>
-            洗点
-          </InkButton>
-        }
       />
+      <InkDetailDrawer
+        isOpen={tools !== null}
+        title={`${tools === 'cultivate' ? '培养' : '管理'} · ${beast.name}`}
+        onClose={() => setTools(null)}
+        size="md"
+      >
+        {tools === 'cultivate' ? (
+          <div className="divide-ink/10 divide-y">
+            <BeastOption
+              icon="🍑"
+              label="喂养"
+              description={
+                capped
+                  ? '使用丹药或灵果提升等级，已达当前培养上限'
+                  : '使用丹药或灵果，为灵兽增加修为、提升等级'
+              }
+              disabled={pending || capped}
+              onClick={() => choose(feed)}
+            />
+            <BeastOption
+              icon="🌿"
+              label="休养"
+              description={
+                beast.currentLifespan >= beast.maxLifespan
+                  ? '消耗灵石恢复寿命，当前寿命已满'
+                  : '消耗灵石恢复寿命，让灵兽继续随行出战'
+              }
+              disabled={pending || beast.currentLifespan >= beast.maxLifespan}
+              onClick={() => choose(() => act('rest'))}
+            />
+            <BeastOption
+              icon="📜"
+              label="领悟传承"
+              description="使用传承灵印学习技能，可能替换已有技能"
+              disabled={pending}
+              onClick={() => choose(learn)}
+            />
+            <BeastOption
+              icon="💧"
+              label="洗炼"
+              description="重新生成资质、成长与技能，等级和修为归零"
+              disabled={pending}
+              onClick={() => choose(refine)}
+            />
+            <BeastOption
+              icon="🍒"
+              label="洗点"
+              description="使用化生果退回已分配属性点，重新安排加点"
+              disabled={pending}
+              onClick={() => choose(rejuvenate)}
+            />
+          </div>
+        ) : (
+          <div className="divide-ink/10 divide-y">
+            <BeastOption
+              icon={beast.isLocked ? '🔓' : '🔒'}
+              label={beast.isLocked ? '解锁' : '锁定'}
+              description={
+                beast.isLocked
+                  ? '解除保护，允许融合、寄售、回收与放生'
+                  : '禁止融合、寄售、回收与放生，保护这只灵兽'
+              }
+              disabled={pending}
+              onClick={() => choose(() => setLocked(!beast.isLocked))}
+            />
+            <BeastOption
+              icon="✍️"
+              label="改名"
+              description="为这只灵兽取一个新的名字"
+              disabled={pending}
+              onClick={() => choose(rename)}
+            />
+            {store ? (
+              <BeastOption
+                icon="📦"
+                label="存入仓库"
+                description={
+                  warehouseFull
+                    ? '寄存暂不出行的灵兽，当前仓库已满'
+                    : '寄存暂不出行的灵兽，存入后取消首发'
+                }
+                disabled={pending || warehouseFull}
+                onClick={() => choose(store)}
+              />
+            ) : null}
+            {fuse ? (
+              <BeastOption
+                icon="icon:beast-fusion-cauldron"
+                label="融合"
+                description={
+                  beast.isLocked
+                    ? '两只灵兽融合为新个体，当前已锁定，请先解锁'
+                    : '消耗两只灵兽，融合成一只新的灵兽'
+                }
+                disabled={pending || beast.isLocked}
+                onClick={() => choose(fuse)}
+              />
+            ) : null}
+            <BeastOption
+              icon="🕊️"
+              label="放生"
+              description={
+                beast.isLocked
+                  ? '放生后无法找回，当前已锁定，请先解锁'
+                  : isLead
+                    ? '放生后无法找回，请先取消首发'
+                    : '放生没有收益，无法找回'
+              }
+              disabled={pending || isLead || beast.isLocked}
+              danger
+              onClick={() => choose(() => act('release'))}
+            />
+          </div>
+        )}
+      </InkDetailDrawer>
       <InkModal
         isOpen={confirming}
         onClose={() => {
-          if (!pending) setConfirming(false);
+          if (!pending) {
+            setConfirming(false);
+          }
         }}
         title={`确认分配 · ${beast.name}`}
         footer={
@@ -393,39 +522,10 @@ export function BeastPanel({
         </dl>
       </InkModal>
       <section className="border-ink/15 border-t pt-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-teal text-sm">技能</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <InkButton disabled={pending} onClick={learn}>
-              领悟传承
-            </InkButton>
-            <InkButton disabled={pending} onClick={refine}>
-              洗炼
-            </InkButton>
-          </div>
-        </div>
+        <h3 className="text-teal mb-3 text-sm">技能</h3>
         <BeastSkillGrid skills={beast.skills} />
       </section>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span
-          className={
-            reason ? 'text-crimson text-xs' : 'text-ink-secondary text-xs'
-          }
-        >
-          {reason ?? (withdraw ? '寄养中' : '可出战')}
-        </span>
-        <div className="flex items-center gap-1">
-          <InkButton
-            disabled={pending || isLead}
-            onClick={() => act('release')}
-          >
-            放生
-          </InkButton>
-          {isLead ? (
-            <InkTooltip label="放生条件">放生前请先取消首发。</InkTooltip>
-          ) : null}
-        </div>
-      </div>
+      {reason ? <p className="text-crimson text-xs">{reason}</p> : null}
     </div>
   );
 }

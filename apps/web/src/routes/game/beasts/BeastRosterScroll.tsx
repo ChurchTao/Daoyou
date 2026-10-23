@@ -51,7 +51,7 @@ export function BeastRosterScroll({ children }: { children: ReactNode }) {
       >
         <div
           ref={contentRef}
-          className="grid grid-cols-3 gap-1 pr-2 md:grid-cols-1"
+          className="grid grid-cols-2 gap-1 pr-2 md:grid-cols-1"
         >
           {children}
         </div>

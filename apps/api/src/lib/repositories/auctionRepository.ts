@@ -213,24 +213,43 @@ export async function findActiveListings(
   };
 }
 
+function occupyingListingWhere(sellerId: string, now = new Date()) {
+  return and(
+    eq(schema.auctionListings.sellerId, sellerId),
+    eq(schema.auctionListings.status, 'active'),
+    gte(schema.auctionListings.expiresAt, now),
+  );
+}
+
 /**
- * 统计卖家进行中的拍卖数量
+ * 统计卖家仍在展示期内的在售货单。已过期但尚未被过期任务改写状态的记录不占寄售位。
  */
 export async function countActiveBySeller(
   sellerId: string,
   executor?: DbExecutor,
 ): Promise<number> {
+  const summary = await summarizeActiveBySeller(sellerId, executor);
+  return summary.used;
+}
+
+export async function summarizeActiveBySeller(
+  sellerId: string,
+  executor?: DbExecutor,
+): Promise<{ used: number; items: number; beasts: number }> {
   const q = executor ?? getExecutor();
-  const result = await q
-    .select({ count: sql<number>`count(*)::int` })
+  const [row] = await q
+    .select({
+      used: sql<number>`count(*)::int`,
+      beasts: sql<number>`count(*) filter (where ${schema.auctionListings.itemType} = 'beast')::int`,
+      items: sql<number>`count(*) filter (where ${schema.auctionListings.itemType} <> 'beast')::int`,
+    })
     .from(schema.auctionListings)
-    .where(
-      and(
-        eq(schema.auctionListings.sellerId, sellerId),
-        eq(schema.auctionListings.status, 'active'),
-      ),
-    );
-  return result[0]?.count || 0;
+    .where(occupyingListingWhere(sellerId));
+  return {
+    used: Number(row?.used ?? 0),
+    items: Number(row?.items ?? 0),
+    beasts: Number(row?.beasts ?? 0),
+  };
 }
 
 /**

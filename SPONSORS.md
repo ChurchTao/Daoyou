@@ -4,7 +4,7 @@
 
 > 本页自动生成，请勿直接编辑。同步爱发电运行 `pnpm run sponsors:sync`；仅更新历史名单时运行 `pnpm run sponsors:render`。
 
-最后更新：2026-10-15
+最后更新：2026-10-23
 
 ## 爱发电赞助人
 

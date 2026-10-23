@@ -28,6 +28,7 @@ export const WandererBeastOfferSchema = z
     level: z.number().int().nonnegative(),
     revision: z.number().int().nonnegative(),
     lead: z.boolean(),
+    isLocked: z.boolean(),
     bottles: z.number().int().min(2).max(12),
   })
   .strict();

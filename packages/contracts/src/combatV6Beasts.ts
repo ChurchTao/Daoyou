@@ -17,6 +17,9 @@ export const BeastRestSchema = z
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
+export const BeastLockSchema = BeastRestSchema.extend({
+  isLocked: z.boolean(),
+});
 export function createBeastAllocateSchema(
   BeastAllocationSchema: ReturnType<typeof createBeastAllocationSchema>,
 ) {

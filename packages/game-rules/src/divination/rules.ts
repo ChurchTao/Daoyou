@@ -31,7 +31,9 @@ export function resolveDivination(dice: DivinationDice) {
     rewardScenario:
       total === 18
         ? ('qi_restore_large' as const)
-        : ('qi_restore_small' as const),
+        : a === c
+          ? ('qi_restore_medium' as const)
+          : ('qi_restore_small' as const),
   };
 }
 

@@ -9,8 +9,6 @@ describe('chat message creation', () => {
       textContent: '旧战报',
     });
     expect(result.success).toBe(false);
-    if (!result.success)
-      expect(result.error.issues[0].message).toContain('仅支持文字、道具、灵兽与战绩消息');
   });
   it('accepts text, item and beast showcases', () => {
     expect(

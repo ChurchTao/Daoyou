@@ -7,6 +7,7 @@ import {
   useCultivatorCondition,
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
+import { bodyTrainingLevelCap } from '@daoyou/game-content/body-cultivation';
 import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
 import type { BodyCultivationTrackPath } from '@daoyou/game-domain/condition';
 import {
@@ -27,8 +28,8 @@ const trackPositions = [
 ];
 const number = (value: number) => Number(value.toFixed(1));
 
-function TrackEffects({ track }: { track: BodyCultivationTrackSummary }) {
-  const effect = bodyCultivationEffectValues(track.key, track.level);
+function getTrackEffects(track: BodyCultivationTrackSummary, level: number) {
+  const effect = bodyCultivationEffectValues(track.key, level);
   const reducing = track.key === 'skin' || track.key === 'primordial_spirit';
   const physical = track.key === 'skin' || track.key === 'sinew_bone';
   const primary =
@@ -50,33 +51,92 @@ function TrackEffects({ track }: { track: BodyCultivationTrackSummary }) {
             ? []
             : [
                 {
-                  label: reducing ? '受封印命中基值' : '封印命中基值',
-                  value: `${reducing ? '−' : '+'}${number(effect.sealBasePercent)}%`,
+                  label: reducing ? '封印抵抗加成' : '封印命中加成',
+                  value: `+${number(effect.sealBasePercent)}%`,
                 },
               ]),
         ];
+  return { effect, primary, secondary, reducing };
+}
+
+function TrackEffects({
+  track,
+  levelCap,
+}: {
+  track: BodyCultivationTrackSummary;
+  levelCap: number;
+}) {
+  const { effect, primary, secondary, reducing } = getTrackEffects(
+    track,
+    track.level,
+  );
+  const next = getTrackEffects(track, track.level + 1);
+  const hasNext = track.level < bodyTrainingLevelCap();
   return (
     <div aria-label="当前修炼效果">
       <dl>
         <dt className="text-ink-secondary text-sm">{primary.label}</dt>
-        <dd className="mt-1 font-mono text-5xl leading-tight font-semibold tracking-tight lg:text-6xl">
-          {primary.value}
-          <span className="ml-1 text-2xl">%</span>
+        <dd className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <span className="font-mono text-5xl leading-tight font-semibold tracking-tight lg:text-6xl">
+            {primary.value}
+            <span className="ml-1 text-2xl">%</span>
+          </span>
+          {hasNext ? (
+            <span
+              title={`下一级（Lv.${track.level + 1}）`}
+              className="text-teal inline-flex items-baseline gap-2"
+            >
+              <span aria-hidden="true" className="text-ink-secondary text-base">
+                →
+              </span>
+              <span className="sr-only">下一级</span>
+              <span className="font-mono text-xl font-semibold">
+                {next.primary.value}%
+              </span>
+            </span>
+          ) : null}
         </dd>
       </dl>
       <dl className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
-        {secondary.map((stat) => (
+        {secondary.map((stat, index) => (
           <div key={stat.label}>
             <dt className="text-ink-secondary text-xs">{stat.label}</dt>
-            <dd className="mt-1 font-mono text-lg font-semibold">
-              {stat.value}
+            <dd className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="font-mono text-lg font-semibold">
+                {stat.value}
+              </span>
+              {hasNext ? (
+                <span
+                  title={`下一级（Lv.${track.level + 1}）`}
+                  className="text-teal inline-flex items-baseline gap-2 text-xs"
+                >
+                  <span aria-hidden="true" className="text-ink-secondary">
+                    →
+                  </span>
+                  <span className="sr-only">下一级</span>
+                  <span className="font-mono">
+                    {next.secondary[index].value}
+                  </span>
+                </span>
+              ) : null}
             </dd>
           </div>
         ))}
       </dl>
+      {!hasNext || track.level >= levelCap ? (
+        <p className="text-ink-secondary mt-3 text-xs">
+          {hasNext ? '下一级效果需突破当前境界后获得。' : '已达最高等级。'}
+        </p>
+      ) : null}
       {effect.kind === 'training' ? (
         <p className="text-ink-secondary mt-3 text-xs">
-          对手修炼为 <span className="font-mono">0</span> 时
+          对手修炼为 <span className="font-mono">0</span> 时的示例。
+          {effect.trainingLevel >=
+          (reducing
+            ? -DaoyouRule.damageCultivateDiffMin
+            : DaoyouRule.damageCultivateDiffMax)
+            ? '示例已达等级差上限，实际效果随对手修炼变化。'
+            : null}
         </p>
       ) : null}
     </div>
@@ -149,11 +209,11 @@ export function BodyCultivationDetailPanel() {
               aria-controls="body-training-detail"
               onClick={() => setSelected(candidate.path)}
               className={cn(
-                'min-h-16 px-1 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50',
+                'enabled:hover:bg-crimson/10 enabled:hover:text-crimson enabled:active:bg-crimson/15 focus-visible:bg-crimson/10 focus-visible:outline-crimson min-h-16 cursor-pointer px-1 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-50',
                 trackPositions[index],
                 selected === candidate.path
                   ? 'text-crimson bg-crimson/5'
-                  : 'text-ink-secondary hover:bg-ink/3',
+                  : 'text-ink-secondary',
               )}
             >
               <span
@@ -178,10 +238,10 @@ export function BodyCultivationDetailPanel() {
             aria-controls="body-training-detail"
             onClick={() => setSelected('marrow_wash')}
             className={cn(
-              'col-start-3 row-start-3 min-h-16 px-1 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50',
+              'enabled:hover:bg-crimson/10 enabled:hover:text-crimson enabled:active:bg-crimson/15 focus-visible:bg-crimson/10 focus-visible:outline-crimson col-start-3 row-start-3 min-h-16 cursor-pointer px-1 py-2 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-50',
               selected === 'marrow_wash'
                 ? 'text-crimson bg-crimson/5'
-                : 'text-ink-secondary hover:bg-ink/3',
+                : 'text-ink-secondary',
             )}
           >
             <span
@@ -213,7 +273,11 @@ export function BodyCultivationDetailPanel() {
             Lv.{current.level} / {cap}
           </span>
         </div>
-        {track ? <TrackEffects track={track} /> : <MarrowWashPanel />}
+        {track ? (
+          <TrackEffects track={track} levelCap={cap} />
+        ) : (
+          <MarrowWashPanel />
+        )}
         <div className="mt-6">
           <div className="text-ink-secondary mb-1 flex justify-between gap-2 text-xs">
             <span>{capped ? `${identity.realm}上限` : '进度'}</span>
@@ -266,12 +330,20 @@ export function BodyCultivationDetailPanel() {
                       {DaoyouRule.damageCultivateDiffMin} 至{' '}
                       {DaoyouRule.damageCultivateDiffMax}
                     </span>
-                    。固定伤害不受影响，结算伤害最低为{' '}
+                    。每点差值影响{' '}
+                    <span className="font-mono">
+                      {number(DaoyouRule.cultivateRate * 100)}%
+                    </span>{' '}
+                    与{' '}
+                    <span className="font-mono">
+                      {DaoyouRule.cultivateFlat}
+                    </span>{' '}
+                    点伤害。对手修炼为零的示例达到上限后，继续升级仍可抵消对手的对应修炼。固定伤害不受影响，结算伤害最低为{' '}
                     <span className="font-mono">{DaoyouRule.minDamage}</span>。
                   </p>
                   {track.key === 'organs' ||
                   track.key === 'primordial_spirit' ? (
-                    <p>封印修炼差先修正命中基值，再按命中上下限折算。</p>
+                    <p>封印效果还受双方等级与命中、抵抗属性影响。</p>
                   ) : null}
                 </>
               )

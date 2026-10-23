@@ -10,6 +10,7 @@ import { type HuntEvent } from '@daoyou/game-domain/hunts';
 import {
   huntEventById,
   huntIsOpen,
+  huntKickError,
   huntRealmAllowed,
   huntStartError,
   selectHuntTeam,
@@ -30,8 +31,8 @@ import {
 } from '@server/lib/redis/lock.js';
 import { checkAndAcquireCooldown } from '@server/lib/redis/worldChatLimiter.js';
 import { journalOperationKey } from '@server/lib/repositories/playerJournalRepository.js';
-import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { publishHuntTeamStart } from '@server/realtime/infrastructure/huntTeamStartBroadcaster.js';
+import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { and, eq } from 'drizzle-orm';
 export type HuntActor = { userId: string; cultivatorId: string };
 export const huntTeamKey = (id: string) => `hunt:v1:team:${id}`;
@@ -429,6 +430,26 @@ export async function commandHuntTeam(
       };
       await saveTeam(next, team, lease);
       return null;
+    }
+    if (command.type === 'kick') {
+      const error = huntKickError(
+        team,
+        actor.cultivatorId,
+        command.cultivatorId,
+      );
+      if (error) {
+        throw new ArenaV6Error(error, error.startsWith('只有队长') ? 403 : 400);
+      }
+      const members = team.members
+        .filter((member) => member.cultivatorId !== command.cultivatorId)
+        .map((member) => ({ ...member, ready: false }));
+      const next = {
+        ...team,
+        members,
+        revision: team.revision + 1,
+      };
+      await saveTeam(next, team, lease);
+      return next;
     }
     if (command.type === 'ready') {
       if (team.status !== 'assembling') throw new ArenaV6Error('正在开战');
