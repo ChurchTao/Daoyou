@@ -411,6 +411,38 @@ export async function renameBeast(
   });
 }
 
+export async function setBeastLocked(
+  cultivatorId: string,
+  id: string,
+  revision: number,
+  isLocked: boolean,
+) {
+  return mutate(cultivatorId, async (tx) => {
+    const roster = await readBeastRoster(cultivatorId, tx);
+    const beast = roster.beasts.find((entry) => entry.id === id);
+    if (!beast || beast.revision !== revision)
+      throw new BeastError('灵兽已有变化，请重新查看');
+    if (!!beast.isLocked === isLocked) return roster;
+    if (beast.revision >= 100000) throw new BeastError('灵兽版本已达上限');
+    await tx
+      .update(cultivatorBeasts)
+      .set({
+        individual: beastIndividualData({
+          ...beast,
+          isLocked,
+          revision: beast.revision + 1,
+        }),
+      })
+      .where(
+        and(
+          eq(cultivatorBeasts.id, id),
+          eq(cultivatorBeasts.cultivatorId, cultivatorId),
+        ),
+      );
+    return readBeastRoster(cultivatorId, tx);
+  });
+}
+
 export async function releaseBeast(
   cultivatorId: string,
   id: string,
@@ -421,6 +453,7 @@ export async function releaseBeast(
     const beast = roster.beasts.find((b) => b.id === id);
     if (!beast || beast.revision !== revision)
       throw new BeastError('灵兽已有变化，请重新查看');
+    if (beast.isLocked) throw new BeastError('灵兽已锁定，请先解锁');
     if (roster.lineup.leadBeastId === id) throw new BeastError('请先取消首发');
     await tx
       .update(cultivatorBeastLineups)

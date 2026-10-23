@@ -32,6 +32,20 @@ const pair = () =>
       ),
     );
 describe('融合与宝宝身份', () => {
+  it('任一材料锁定时禁止融合，解锁后恢复资格', () => {
+    const [a, b] = pair();
+    for (const parents of [
+      [{ ...a, isLocked: true }, b],
+      [a, { ...b, isLocked: true }],
+    ]) {
+      expect(beastFusionReason(parents[0], parents[1], 30)).toContain('锁定');
+      expect(() => fuseBeasts(parents[0], parents[1], ids[2], 42)).toThrow();
+    }
+    expect(beastFusionReason({ ...a, isLocked: false }, b, 30)).toBe('');
+    expect(() =>
+      fuseBeasts({ ...a, isLocked: false }, b, ids[2], 42),
+    ).not.toThrow();
+  });
   it('历史材料点数不足不阻断融合，结果按新身份重建并校验点数', () => {
     const [a, b] = pair().map((beast) => ({
       ...beast,

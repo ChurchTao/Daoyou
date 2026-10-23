@@ -99,6 +99,7 @@ export async function readWandererBeasts(
         level: beast.level,
         revision: beast.revision,
         lead: roster.lineup.leadBeastId === beast.id,
+        isLocked: !!beast.isLocked,
         bottles: offer.bottles,
       },
     ];
@@ -210,6 +211,7 @@ async function sellBeast(
   const beast = roster.beasts.find((entry) => entry.id === input.beastId);
   if (!beast || beast.revision !== input.expectedRevision)
     throw new WandererError(409, '灵兽已有变化，请重新查看');
+  if (beast.isLocked) throw new WandererError(409, '灵兽已锁定，请先解锁');
   if (!beast.isMutant) throw new WandererError(400, '云游商人只收变异灵兽');
   if (roster.lineup.leadBeastId === beast.id)
     throw new WandererError(400, '请先取消首发');

@@ -164,7 +164,7 @@ export function ListBeastModal({
                   <div key={entry.id}>
                     <BeastTradeCard
                       beast={entry}
-                      disabled={busy}
+                      disabled={busy || entry.isLocked}
                       onClick={() => setSelected(entry)}
                     />
                     {reason && (

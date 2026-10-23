@@ -2,6 +2,7 @@ import type {
   BeastAllocateRequest,
   BeastFusionRequest,
   BeastLineupRequestSchema,
+  BeastLockSchema,
   BeastPickerQuerySchema,
   BeastPlaceSchema,
   BeastRenameSchema,
@@ -17,6 +18,7 @@ import {
   releaseBeast,
   renameBeast,
   restBeast,
+  setBeastLocked,
   updateBeastLineup,
 } from '@server/combat/application/CombatV6BeastService.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
@@ -77,6 +79,17 @@ export class BeastsService {
         input.beastId,
         input.expectedRevision,
         input.name,
+      ),
+    };
+  }
+  async lock(owner: string, input: z.infer<typeof BeastLockSchema>) {
+    return {
+      success: true,
+      data: await setBeastLocked(
+        owner,
+        input.beastId,
+        input.expectedRevision,
+        input.isLocked,
       ),
     };
   }

@@ -17,6 +17,7 @@ export function beastAuctionBlockReason(
 ) {
   if (beast.ownerCultivatorId !== owner) return '只能寄售自己的灵兽';
   if (beast.revision !== revision) return '灵兽已有变化，请重新查看';
+  if (beast.isLocked) return '灵兽已锁定，请先解锁';
   if (lineup.leadBeastId === beast.id) return '请先取消灵兽首发';
   if (lineup.carriedBeastIds.includes(beast.id)) return '请先将灵兽存入仓库';
   if (!BeastSchema.safeParse(beast).success || beast.revision >= 99999)

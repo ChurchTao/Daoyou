@@ -1,4 +1,3 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import {
   combatV6Request,
   mutationBody,
@@ -15,22 +14,23 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkQuantityInput } from '@app/components/ui/InkQuantityInput';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
-import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import type { BeastPickerPage } from '@daoyou/contracts/beasts';
-import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import type { InventoryView } from '@daoyou/contracts/inventory';
+import { BEAST_REFINEMENT } from '@daoyou/game-content/beasts';
+import { BEAST_REJUVENATION } from '@daoyou/game-content/items/beasts';
+import type { SummonedBeast } from '@daoyou/game-domain/beasts';
+import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
 import {
   beastRejuvenationReason,
   previewBeastFeeding,
 } from '@daoyou/game-rules/beasts/growth';
+import { beastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import { beastRefinementReason } from '@daoyou/game-rules/beasts/refinement';
-import { BEAST_REFINEMENT } from '@daoyou/game-content/beasts';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
-import { BEAST_REJUVENATION } from '@daoyou/game-content/items/beasts';
-import { ConsumableFactsSchema } from '@daoyou/game-domain/inventory';
 import { useEffect, useRef, useState } from 'react';
 
 export function BeastBookDrawer({
@@ -170,8 +170,13 @@ export function BeastBookDrawer({
             : matchesInventoryFilters(item, filter),
         )
       : [];
-  const selected =
-    candidates.find((item) => item.id === selectedItem?.id) ?? selectedItem;
+  const selected = refining
+    ? (candidates.find((item) => item.id === selectedItem?.id) ??
+      candidates.find(
+        (item) =>
+          item.definitionId === selectedItem?.definitionId && !bookReason(item),
+      ))
+    : (candidates.find((item) => item.id === selectedItem?.id) ?? selectedItem);
   const selectedSkillId = selected
     ? itemDefinition(selected.definitionId).skillId
     : undefined;
@@ -249,7 +254,7 @@ export function BeastBookDrawer({
         onUpdate(next);
         bagQuery.invalidate();
         storage.reload();
-        setSelectedItem(undefined);
+        if (!refining) setSelectedItem(undefined);
         pushToast({
           message: feeding
             ? `灵兽修为 +${result.gained}，当前${result.level}级。`
@@ -312,6 +317,12 @@ export function BeastBookDrawer({
                       ? '，已分配属性点退回待分配，等级与修为不变。'
                       : `，领悟「${selectedSkillName}」，${learningEffect}，结果不可撤销。`}
               </p>
+              {refining ? (
+                <p className="text-ink-secondary">
+                  当前灵露剩余{' '}
+                  <span className="font-mono">{selected.quantity}</span> 瓶
+                </p>
+              ) : null}
               {feeding ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span>数量</span>
@@ -349,7 +360,7 @@ export function BeastBookDrawer({
                   else setConfirming(true);
                 }}
               >
-                {actionName}
+                {refining && refinementBefore ? '继续洗炼' : actionName}
               </InkButton>
             </div>
           ) : null
@@ -393,11 +404,21 @@ export function BeastBookDrawer({
               </p>
             </section>
           ) : null}
+          {refining &&
+          refinementBefore &&
+          selectedItem &&
+          !unavailable &&
+          !selected ? (
+            <p role="status" className="text-ink-secondary">
+              所选灵露当前不可用，请重新选择。
+            </p>
+          ) : null}
           <CraftInventoryPanel
             source={source}
             onSource={(value) => {
               if (value === 'storage') storage.reload();
               setSource(value);
+              if (refining) setSelectedItem(undefined);
             }}
             view={inventory}
             loading={inventoryLoading}

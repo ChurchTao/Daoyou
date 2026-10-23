@@ -19,6 +19,19 @@ const lineup = { carriedBeastIds: [], revision: 0 };
 const starter = generateStarterBeast(id, owner, species, 7);
 
 describe('灵兽交易资产规则', () => {
+  it('锁定个体禁止寄售，解锁后恢复资格', () => {
+    expect(
+      beastAuctionBlockReason({ ...starter, isLocked: true }, owner, 0, lineup),
+    ).toContain('锁定');
+    expect(
+      beastAuctionBlockReason(
+        { ...starter, isLocked: false },
+        owner,
+        0,
+        lineup,
+      ),
+    ).toBeNull();
+  });
   it('允许初始、捕获、变异和零寿命个体，不改变培养事实', () => {
     for (const beast of [
       starter,

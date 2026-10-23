@@ -10,6 +10,7 @@ export function createBeastSchema(content: {
       ownerCultivatorId: z.uuid(),
       speciesId: z.string(),
       isMutant: z.boolean().optional(),
+      isLocked: z.boolean().optional(),
       originKind: z.enum(['baby', 'pseudo_baby', 'wild']),
       initialLevel: z.number().int().min(0).max(180),
       name: z.string().min(1).max(40),

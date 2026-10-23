@@ -1,5 +1,5 @@
 import { BeastIcon } from '@app/components/feature/beasts/BeastIcon';
-import { BeastMutationTag } from '@app/components/feature/beasts/BeastMutationTag';
+import { BeastRosterEntry } from '@app/components/feature/beasts/BeastRosterEntry';
 import {
   combatV6Request,
   mutationBody,
@@ -25,7 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { BeastActionDrawer, type BeastAction } from './BeastActionDrawer';
 import { BeastBookDrawer } from './BeastBookDrawer';
-import { BeastLeadSeal, BeastPanel } from './BeastPanel';
+import { BeastPanel } from './BeastPanel';
 import { BeastRenameModal } from './BeastRenameModal';
 import { BeastRosterScroll } from './BeastRosterScroll';
 import { FusionWorkspace } from './fusion/FusionWorkspace';
@@ -273,37 +273,13 @@ export default function BeastsPage() {
                 </p>
                 <BeastRosterScroll>
                   {orderedBag.map((beast) => (
-                    <button
-                      type="button"
+                    <BeastRosterEntry
                       key={beast.id}
-                      aria-pressed={detail?.id === beast.id}
-                      onClick={() => setDetailId(beast.id)}
-                      className={`hover:bg-teal/5 flex min-w-0 items-center gap-2 border-l-2 px-1 py-3 text-left transition-colors md:gap-3 md:px-2 ${detail?.id === beast.id ? 'border-teal bg-teal/8' : 'border-transparent'}`}
-                    >
-                      <span
-                        aria-hidden
-                        className="shrink-0 font-sans text-2xl md:text-3xl"
-                      >
-                        <BeastIcon
-                          speciesId={beast.speciesId}
-                          isMutant={beast.isMutant}
-                        />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-1">
-                          <span className="truncate text-sm" title={beast.name}>
-                            {beast.name}
-                          </span>
-                          <BeastMutationTag isMutant={beast.isMutant} />
-                        </span>
-                        <span className="text-ink-secondary flex flex-wrap items-center gap-1 text-xs">
-                          <span className="font-mono">{beast.level} 级</span>
-                          {view.lineup.leadBeastId === beast.id ? (
-                            <BeastLeadSeal />
-                          ) : null}
-                        </span>
-                      </span>
-                    </button>
+                      beast={beast}
+                      selected={detail?.id === beast.id}
+                      isLead={view.lineup.leadBeastId === beast.id}
+                      onSelect={() => setDetailId(beast.id)}
+                    />
                   ))}
                   {Array.from(
                     {
@@ -316,7 +292,7 @@ export default function BeastsPage() {
                       <button
                         key={i}
                         type="button"
-                        className="text-ink-secondary hover:bg-teal/5 hover:text-teal min-h-14 text-xs transition-colors"
+                        className="text-ink-secondary hover:bg-teal/5 hover:text-teal h-16 text-xs transition-colors"
                         onClick={() =>
                           pushToast({
                             message: '可从灵兽仓库取出，或在野外捕捉。',
@@ -346,6 +322,18 @@ export default function BeastsPage() {
                   }
                   lineup={(type) => lineup(detail.id, type)}
                   act={(type) => setAction({ beastId: detail.id, type })}
+                  setLocked={(isLocked) => {
+                    void mutate(
+                      'lock',
+                      {
+                        beastId: detail.id,
+                        expectedRevision: detail.revision,
+                        isLocked,
+                      },
+                      'POST',
+                      isLocked ? '灵兽已锁定' : '灵兽已解锁',
+                    );
+                  }}
                   learn={() => setLearningId(detail.id)}
                   refine={() => setRefiningId(detail.id)}
                   rejuvenate={() => setRejuvenatingId(detail.id)}
