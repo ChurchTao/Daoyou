@@ -82,8 +82,14 @@ function TrackEffects({
             <span className="ml-1 text-2xl">%</span>
           </span>
           {hasNext ? (
-            <span className="text-teal text-xs">
-              下一级{' '}
+            <span
+              title={`下一级（Lv.${track.level + 1}）`}
+              className="text-teal inline-flex items-baseline gap-2"
+            >
+              <span aria-hidden="true" className="text-ink-secondary text-base">
+                →
+              </span>
+              <span className="sr-only">下一级</span>
               <span className="font-mono text-xl font-semibold">
                 {next.primary.value}%
               </span>
@@ -100,8 +106,14 @@ function TrackEffects({
                 {stat.value}
               </span>
               {hasNext ? (
-                <span className="text-teal text-xs">
-                  下一级{' '}
+                <span
+                  title={`下一级（Lv.${track.level + 1}）`}
+                  className="text-teal inline-flex items-baseline gap-2 text-xs"
+                >
+                  <span aria-hidden="true" className="text-ink-secondary">
+                    →
+                  </span>
+                  <span className="sr-only">下一级</span>
                   <span className="font-mono">
                     {next.secondary[index].value}
                   </span>
