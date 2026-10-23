@@ -30,6 +30,7 @@ import { type AuctionListingView } from '@daoyou/contracts/auction';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import {
   AUCTION_ITEM_TYPES,
+  AUCTION_MAX_ACTIVE_LISTINGS,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_TYPE_NAMES,
   type AuctionAssetType,
@@ -54,6 +55,7 @@ type ItemTypeFilter = AuctionItemType | 'all';
 type ListingsPayload = {
   listings: AuctionListingView[];
   pagination: { page: number; total: number; totalPages: number };
+  slots?: { used: number; limit: number; items: number; beasts: number };
 };
 const ASSET_TABS = [
   { label: '道具', value: 'item' },
@@ -446,7 +448,10 @@ export default function AuctionPage() {
               title: '拍卖行规则',
               content: (
                 <div className="space-y-2 text-sm leading-6">
-                  <p>道具与灵兽合计最多寄售5单，每单保留48小时。</p>
+                  <p>
+                    道具与灵兽合计最多寄售{AUCTION_MAX_ACTIVE_LISTINGS}
+                    单，每单保留48小时。
+                  </p>
                   <p>堆叠道具按件计价，可选择购买数量。灵兽每单1只。</p>
                   <p>
                     成交按单价适用3%～15%超额累进税率，成交款与退回物品通过邮件领取。
@@ -477,13 +482,30 @@ export default function AuctionPage() {
         >
           筛选{filterCount ? ` · ${filterCount}` : ''}
         </InkButton>
-        <div className="text-ink-secondary flex items-center gap-2 text-xs">
+        <div className="text-ink-secondary flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs">
           <p>
-            {mine ? '我的寄售' : '在售'}
-            {data && (
+            {mine && data?.slots ? (
               <>
-                {' '}
-                · <span className="font-mono">{data.pagination.total}</span> 单
+                寄售位{' '}
+                <span className="font-mono">
+                  {data.slots.used}/{data.slots.limit}
+                </span>
+                {' · 道具 '}
+                <span className="font-mono">{data.slots.items}</span>
+                {' · 灵兽 '}
+                <span className="font-mono">{data.slots.beasts}</span>
+              </>
+            ) : (
+              <>
+                {mine ? '我的寄售' : '在售'}
+                {data && (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <span className="font-mono">{data.pagination.total}</span>{' '}
+                    单
+                  </>
+                )}
               </>
             )}
           </p>
