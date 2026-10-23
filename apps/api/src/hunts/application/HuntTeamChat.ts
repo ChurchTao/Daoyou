@@ -1,4 +1,8 @@
-import type { HuntTeamChatMessage } from '@daoyou/contracts/hunts';
+import type {
+  HuntTeamChatMessage,
+  HuntTeamChatReply,
+  HuntTeamChatSend,
+} from '@daoyou/contracts/hunts';
 import { HUNT_TEAM_CHAT_MAX_CHARS } from '@daoyou/contracts/hunts';
 import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
@@ -22,6 +26,26 @@ function countChars(input: string) {
   return Array.from(input).length;
 }
 
+function parseReply(value: unknown): HuntTeamChatReply | null {
+  if (!value || typeof value !== 'object') return null;
+  const reply = value as Partial<HuntTeamChatReply>;
+  if (
+    typeof reply.messageId !== 'string' ||
+    !reply.messageId ||
+    typeof reply.senderName !== 'string' ||
+    !reply.senderName ||
+    typeof reply.summary !== 'string' ||
+    !reply.summary
+  ) {
+    return null;
+  }
+  return {
+    messageId: reply.messageId,
+    senderName: reply.senderName,
+    summary: reply.summary,
+  };
+}
+
 function parseMessage(raw: string, teamId: string): HuntTeamChatMessage | null {
   try {
     const parsed = JSON.parse(raw) as Partial<HuntTeamChatMessage>;
@@ -40,7 +64,14 @@ function parseMessage(raw: string, teamId: string): HuntTeamChatMessage | null {
       teamId,
       senderCultivatorId: parsed.senderCultivatorId,
       senderName: parsed.senderName,
+      senderRealm:
+        typeof parsed.senderRealm === 'string' ? parsed.senderRealm : '',
+      senderRealmStage:
+        typeof parsed.senderRealmStage === 'string'
+          ? parsed.senderRealmStage
+          : '',
       text: parsed.text,
+      reply: parseReply(parsed.reply),
       createdAt: parsed.createdAt,
     };
   } catch {
@@ -84,13 +115,29 @@ export async function listHuntTeamChat(
     .reverse();
 }
 
+async function replySnapshot(
+  teamId: string,
+  messageId: string,
+): Promise<HuntTeamChatReply> {
+  const rows = await redis.lrange(huntTeamChatKey(teamId), 0, CHAT_LIMIT - 1);
+  const target = rows
+    .map((raw) => parseMessage(raw, teamId))
+    .find((message) => message?.id === messageId);
+  if (!target) throw new ArenaV6Error('原消息已不在记录中', 400);
+  return {
+    messageId: target.id,
+    senderName: target.senderName,
+    summary: Array.from(target.text).slice(0, 80).join(''),
+  };
+}
+
 export async function sendHuntTeamChat(
   actor: HuntActor,
   teamId: string,
-  text: string,
+  input: HuntTeamChatSend,
 ): Promise<HuntTeamChatMessage> {
   const team = await requireMember(actor, teamId);
-  const trimmed = text.trim();
+  const trimmed = input.text.trim();
   const length = countChars(trimmed);
   if (length < 1 || length > HUNT_TEAM_CHAT_MAX_CHARS) {
     throw new ArenaV6Error(
@@ -98,6 +145,9 @@ export async function sendHuntTeamChat(
       400,
     );
   }
+  const reply = input.replyToMessageId
+    ? await replySnapshot(teamId, input.replyToMessageId)
+    : null;
   const cooldown = await acquireRedisCooldown({
     key: `hunt:v1:chat:cooldown:${actor.cultivatorId}`,
     cooldownSeconds: COOLDOWN_SECONDS,
@@ -111,7 +161,10 @@ export async function sendHuntTeamChat(
     teamId,
     senderCultivatorId: actor.cultivatorId,
     senderName: identity.name,
+    senderRealm: identity.realm,
+    senderRealmStage: identity.realmStage,
     text: textFilter.mask(trimmed).text,
+    reply,
     createdAt: new Date().toISOString(),
   };
   const stored = await redis.eval(

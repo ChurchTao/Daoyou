@@ -29,6 +29,19 @@ export function huntStartError(
   if (team.members.some((m) => !m.ready)) return '请等待全员准备';
   return null;
 }
+export function huntKickError(
+  team: HuntTeam,
+  actorId: string,
+  targetId: string,
+): string | null {
+  if (team.leaderId !== actorId) return '只有队长可以请离道友';
+  if (team.status === 'in_battle') return '战斗中不能调整队伍';
+  if (team.status === 'starting') return '队伍正在出战，请稍候';
+  if (targetId === actorId) return '离开队伍即可自行退出';
+  if (!team.members.some((member) => member.cultivatorId === targetId))
+    return '这位道友已经不在队伍中';
+  return null;
+}
 export function selectHuntTeam(
   teams: HuntTeam[],
   realm: RealmType,

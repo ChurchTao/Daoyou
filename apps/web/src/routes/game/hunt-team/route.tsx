@@ -1,3 +1,4 @@
+import { HuntMemberList } from '@app/components/feature/hunts/HuntMemberList';
 import { HuntTeamChat } from '@app/components/feature/hunts/HuntTeamChat';
 import {
   huntTargetLabel,
@@ -10,7 +11,6 @@ import {
   GameSceneLoading,
   GameSceneNote,
 } from '@app/components/game-shell';
-import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkSelect } from '@app/components/ui/InkSelect';
 import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
@@ -153,116 +153,105 @@ export default function HuntTeamPage() {
           </InkButton>
         </form>
       ) : (
-        <div className="space-y-5 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span>
-              {huntTeamStatusLabel(team.status)}{' '}
-              <span className="font-mono">{team.members.length}/4</span>
-            </span>
-            <span className="text-ink-secondary">
-              {team.minRealm}至{team.maxRealm}
-            </span>
-          </div>
-          <ul className="divide-ink/10 divide-y">
-            {team.members.map((member) => (
-              <li
-                key={member.cultivatorId}
-                className="flex items-center gap-2 py-3"
-              >
-                <GameIcon
-                  value="icon:cultivator-male-avatar"
-                  className="text-3xl"
-                />
-                <span className="min-w-0 flex-1">
-                  {member.name}
-                  {member.cultivatorId === team.leaderId ? ' · 队长' : ''}
-                  <span className="text-ink-secondary block text-xs">
-                    {member.realm}
-                    {member.assisting ? ' · 助战' : ''}
-                  </span>
-                </span>
-                <span>{member.ready ? '已准备' : '未准备'}</span>
-              </li>
-            ))}
-          </ul>
-          {leader && team.status === 'assembling' ? (
-            <HuntTargetField
+        <div className="flex min-h-[calc(100dvh-var(--game-bottom-offset)-19rem)] flex-col text-sm">
+          <div className="shrink-0 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <span>
+                {huntTeamStatusLabel(team.status)}{' '}
+                <span className="font-mono">{team.members.length}/4</span>
+              </span>
+              <span className="text-ink-secondary">
+                {team.minRealm}至{team.maxRealm}
+              </span>
+            </div>
+            <HuntMemberList
               team={team}
-              disabled={pending}
-              onPick={(eventId) =>
-                void act(`/api/hunts/teams/${team.id}`, {
-                  type: 'target',
-                  eventId,
+              actorId={actorId ?? ''}
+              pending={pending}
+              onKick={(cultivatorId) =>
+                act(`/api/hunts/teams/${team.id}`, {
+                  type: 'kick',
+                  cultivatorId,
                   revision: team.revision,
                 })
               }
             />
-          ) : (
-            <p>
-              目标：
-              {team.event
-                ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
-                : '尚未选定'}
-            </p>
-          )}
-          {team.status === 'in_battle' && team.battleId ? (
-            <InkButton
-              onClick={() => navigate(`/game/combat-v6/hunt/${team.battleId}`)}
-            >
-              进入战斗
-            </InkButton>
-          ) : (
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {leader && team.status === 'assembling' ? (
+              <HuntTargetField
+                team={team}
+                disabled={pending}
+                onPick={(eventId) =>
+                  void act(`/api/hunts/teams/${team.id}`, {
+                    type: 'target',
+                    eventId,
+                    revision: team.revision,
+                  })
+                }
+              />
+            ) : (
+              <p>
+                目标：
+                {team.event
+                  ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
+                  : '尚未选定'}
+              </p>
+            )}
+            {team.status === 'in_battle' && team.battleId ? (
               <InkButton
-                disabled={pending || team.status !== 'assembling'}
-                onClick={() => command('ready')}
+                onClick={() =>
+                  navigate(`/game/combat-v6/hunt/${team.battleId}`)
+                }
               >
-                {self?.ready ? '取消准备' : '准备'}
+                进入战斗
               </InkButton>
-              {leader ? (
-                <>
-                  <InkButton
-                    disabled={
-                      pending ||
-                      !team.event ||
-                      team.members.length < 2 ||
-                      team.members.some((member) => !member.ready)
-                    }
-                    onClick={() => command('start')}
-                  >
-                    {team.status === 'starting' ? '继续出战' : '开始讨伐'}
-                  </InkButton>
-                  <InkButton
-                    disabled={
-                      pending ||
-                      team.status !== 'assembling' ||
-                      team.members.length >= 4
-                    }
-                    onClick={() =>
-                      void act(`/api/hunts/teams/${team.id}`, {
-                        type: 'recruit',
-                      }).then((ok) => {
-                        if (ok) setNote('已发到世界频道');
-                      })
-                    }
-                  >
-                    召集道友
-                  </InkButton>
-                </>
-              ) : null}
-              <InkButton
-                disabled={pending || team.status === 'starting'}
-                onClick={() => command('leave')}
-              >
-                离开队伍
-              </InkButton>
-            </div>
-          )}
-          {team.members.length < 2 ? (
-            <p className="text-ink-secondary leading-7">
-              再邀一位道友，准备妥当便可出战。
-            </p>
-          ) : null}
+            ) : (
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <InkButton
+                  disabled={pending || team.status !== 'assembling'}
+                  onClick={() => command('ready')}
+                >
+                  {self?.ready ? '取消准备' : '准备'}
+                </InkButton>
+                {leader ? (
+                  <>
+                    <InkButton
+                      disabled={
+                        pending ||
+                        !team.event ||
+                        team.members.length < 2 ||
+                        team.members.some((member) => !member.ready)
+                      }
+                      onClick={() => command('start')}
+                    >
+                      {team.status === 'starting' ? '继续出战' : '开始讨伐'}
+                    </InkButton>
+                    <InkButton
+                      disabled={
+                        pending ||
+                        team.status !== 'assembling' ||
+                        team.members.length >= 4
+                      }
+                      onClick={() =>
+                        void act(`/api/hunts/teams/${team.id}`, {
+                          type: 'recruit',
+                        }).then((ok) => {
+                          if (ok) setNote('已发到世界频道');
+                        })
+                      }
+                    >
+                      召集道友
+                    </InkButton>
+                  </>
+                ) : null}
+                <InkButton
+                  disabled={pending || team.status === 'starting'}
+                  onClick={() => command('leave')}
+                >
+                  离开队伍
+                </InkButton>
+              </div>
+            )}
+          </div>
           {actorId ? (
             <HuntTeamChat key={team.id} team={team} actorId={actorId} />
           ) : null}

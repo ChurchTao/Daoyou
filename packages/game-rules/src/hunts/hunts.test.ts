@@ -9,7 +9,7 @@ import {
   huntEventsAt,
   huntIsOpen,
 } from './config.js';
-import { huntStartError, selectHuntTeam } from './rules.js';
+import { huntKickError, huntStartError, selectHuntTeam } from './rules.js';
 const now = HUNT_CYCLE_MS * 100 + 10;
 function team(count: number, assisting = false): HuntTeam {
   return {
@@ -165,6 +165,18 @@ describe('世界讨伐准入与刷新', () => {
     const loose = team(2);
     loose.event = null;
     expect(huntStartError(loose, 'c0', now)).toMatch('选定');
+  });
+  it('只有队长能在集结时请离其他队员', () => {
+    expect(huntKickError(team(2), 'c1', 'c0')).toMatch('队长');
+    expect(huntKickError(team(2), 'c0', 'c0')).toMatch('离开队伍');
+    expect(huntKickError(team(2), 'c0', 'c9')).toMatch('不在队伍');
+    expect(huntKickError(team(2), 'c0', 'c1')).toBeNull();
+    const starting = team(2);
+    starting.status = 'starting';
+    expect(huntKickError(starting, 'c0', 'c1')).toMatch('出战');
+    const battle = team(2);
+    battle.status = 'in_battle';
+    expect(huntKickError(battle, 'c0', 'c1')).toMatch('战斗中');
   });
   it('快速匹配优先补齐符合境界的队伍，排除已开战与满队', () => {
     const a = team(1),

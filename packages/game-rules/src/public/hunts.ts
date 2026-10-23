@@ -5,12 +5,13 @@ export {
   huntIsOpen,
   huntMapHref,
 } from '../hunts/config.js';
+export { huntEnemies, huntNpcCommand } from '../hunts/content.js';
 export {
+  huntKickError,
   huntRealmAllowed,
   huntStartError,
   selectHuntTeam,
 } from '../hunts/rules.js';
-export { huntEnemies, huntNpcCommand } from '../hunts/content.js';
 export {
   huntParticipantSucceeded,
   settleHuntResources,

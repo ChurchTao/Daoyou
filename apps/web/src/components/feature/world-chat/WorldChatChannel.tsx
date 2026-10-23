@@ -4,7 +4,6 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import { inkFieldVariants } from '@app/components/ui/inkFieldStyles';
 import { cn } from '@app/lib/cn';
 import {
   realtimeClient,
@@ -34,9 +33,9 @@ import {
   WorldChatRefundsDialog,
 } from './WorldChatRedPacketDialog';
 import { WorldChatShowcaseDialog } from './WorldChatShowcaseDialog';
+import { WorldChatTextComposer } from './WorldChatTextComposer';
 import { useWorldChatFeedModel } from './useWorldChatFeedModel';
 import { useWorldChatViewport } from './useWorldChatViewport';
-import { getWorldChatMessageBody } from './worldChatSummary';
 import './worldChatViewport.css';
 
 type Anchor = { id: string; offset: number };
@@ -154,7 +153,6 @@ function WorldChatChannelBody({
     useState<RealtimeConnectionState>('connecting');
   const { height, keyboardViewport } = useWorldChatViewport(workspaceRef);
   const view = views[feed.activeChannel];
-  const charCount = Array.from(view.draft).length;
   const displayMessages = useMemo(
     () => [...feed.messages].reverse(),
     [feed.messages],
@@ -775,113 +773,60 @@ function WorldChatChannelBody({
           ) : null}
           {canSend ? (
             <div className="border-ink/15 shrink-0 border-t border-dashed pt-2">
-              {view.reply ? (
-                <div className="border-teal bg-ink/4 mb-2 flex min-w-0 items-center gap-2 border-l-2 px-3 py-1">
-                  <div className="min-w-0 flex-1 text-sm">
-                    <p className="text-teal">回复 {view.reply.senderName}</p>
-                    <p className="text-ink-secondary truncate">
-                      {getWorldChatMessageBody(view.reply)}
-                    </p>
-                  </div>
-                  <InkButton
-                    className="min-h-11"
-                    variant="secondary"
-                    onClick={() =>
-                      setViews((current) => ({
-                        ...current,
-                        [feed.activeChannel]: {
-                          ...current[feed.activeChannel],
-                          reply: null,
-                        },
-                      }))
-                    }
-                  >
-                    取消
-                  </InkButton>
-                </div>
-              ) : null}
-              <label className="sr-only" htmlFor="world-chat-input">
-                传音内容
-              </label>
-              <textarea
-                id="world-chat-input"
-                ref={inputRef}
-                rows={1}
-                value={view.draft}
+              <WorldChatTextComposer
+                inputId="world-chat-input"
+                inputRef={inputRef}
+                draft={view.draft}
+                maxChars={100}
                 placeholder="与道友说点什么……"
-                className={cn(
-                  inkFieldVariants({ variant: 'underlined', size: 'sm' }),
-                  'battle-scroll max-h-32 resize-none',
-                )}
-                onChange={(event) =>
-                  changeDraft(
-                    Array.from(event.target.value).slice(0, 100).join(''),
-                  )
+                label="传音内容"
+                posting={feed.posting}
+                cooldownRemaining={feed.cooldownRemaining}
+                sendDisabled={
+                  connection === 'offline' || connection === 'blocked'
                 }
-                onKeyDown={(event) => {
-                  if (
-                    event.key === 'Enter' &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing &&
-                    !matchMedia('(pointer: coarse)').matches
-                  ) {
-                    event.preventDefault();
-                    void send();
-                  }
-                }}
+                reply={view.reply}
+                onDraftChange={changeDraft}
+                onClearReply={() =>
+                  setViews((current) => ({
+                    ...current,
+                    [feed.activeChannel]: {
+                      ...current[feed.activeChannel],
+                      reply: null,
+                    },
+                  }))
+                }
+                onSend={() => void send()}
+                leading={
+                  <>
+                    <InkButton
+                      disabled={feed.posting}
+                      className="min-h-11"
+                      variant="secondary"
+                      onClick={() => setShowcaseOpen(true)}
+                    >
+                      <GameIcon value="📦" className="mr-1" />
+                      展示
+                    </InkButton>
+                    <InkButton
+                      disabled={feed.posting}
+                      className="min-h-11"
+                      variant="secondary"
+                      onClick={() => setGiveOpen(true)}
+                    >
+                      <GameIcon value="🧧" className="mr-1" />
+                      红包
+                    </InkButton>
+                    <InkButton
+                      className="min-h-11 md:hidden"
+                      variant="secondary"
+                      onClick={() => setRefundsOpen(true)}
+                    >
+                      待退款
+                    </InkButton>
+                  </>
+                }
               />
-              <div className="flex flex-wrap items-center justify-between gap-1 pt-1">
-                <div className="flex items-center gap-1">
-                  <InkButton
-                    disabled={feed.posting}
-                    className="min-h-11"
-                    variant="secondary"
-                    onClick={() => setShowcaseOpen(true)}
-                  >
-                    <GameIcon value="📦" className="mr-1" />
-                    展示
-                  </InkButton>
-                  <InkButton
-                    disabled={feed.posting}
-                    className="min-h-11"
-                    variant="secondary"
-                    onClick={() => setGiveOpen(true)}
-                  >
-                    <GameIcon value="🧧" className="mr-1" />
-                    红包
-                  </InkButton>
-                  <InkButton
-                    className="min-h-11 md:hidden"
-                    variant="secondary"
-                    onClick={() => setRefundsOpen(true)}
-                  >
-                    待退款
-                  </InkButton>
-                </div>
-                <div className="flex items-center gap-2">
-                  {charCount >= 80 ? (
-                    <span className="text-ink-secondary font-mono text-xs">
-                      {charCount}/100
-                    </span>
-                  ) : null}
-                  <InkButton
-                    variant="primary"
-                    className="min-h-11"
-                    onClick={() => void send()}
-                    disabled={
-                      !view.draft.trim() ||
-                      feed.posting ||
-                      feed.cooldownRemaining > 0 ||
-                      connection === 'offline' ||
-                      connection === 'blocked'
-                    }
-                  >
-                    {feed.cooldownRemaining > 0
-                      ? `${feed.cooldownRemaining}s`
-                      : '发送'}
-                  </InkButton>
-                </div>
-              </div>
             </div>
           ) : null}
         </div>

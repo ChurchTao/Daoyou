@@ -140,7 +140,7 @@ export class HuntsController {
     @JsonBody({ fallback: undefined }, new ZodPipe(HuntTeamChatSendSchema))
     input: HuntTeamChatSend,
   ) {
-    return this.hunts.speak(actor, teamId, input.text);
+    return this.hunts.speak(actor, teamId, input);
   }
 
   @Post('teams/:teamId')

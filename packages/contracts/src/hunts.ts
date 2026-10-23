@@ -48,6 +48,13 @@ export const HuntTeamCommandSchema = z.discriminatedUnion('type', [
       revision: z.number().int().nonnegative(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal('kick'),
+      cultivatorId: z.uuid(),
+      revision: z.number().int().nonnegative(),
+    })
+    .strict(),
   z.object({ type: z.literal('recruit') }).strict(),
 ]);
 
@@ -58,17 +65,27 @@ export const HUNT_TEAM_CHAT_MAX_CHARS = 100;
 export const HuntTeamChatSendSchema = z
   .object({
     text: z.string().max(400),
+    replyToMessageId: z.uuid().optional(),
   })
   .strict();
 
 export type HuntTeamChatSend = z.infer<typeof HuntTeamChatSendSchema>;
+
+export type HuntTeamChatReply = {
+  messageId: string;
+  senderName: string;
+  summary: string;
+};
 
 export type HuntTeamChatMessage = {
   id: string;
   teamId: string;
   senderCultivatorId: string;
   senderName: string;
+  senderRealm: string;
+  senderRealmStage: string;
   text: string;
+  reply: HuntTeamChatReply | null;
   createdAt: string;
 };
 
