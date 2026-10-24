@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-special.schema.json",
   "formatVersion": 1,
-  "contentRevision": 6,
+  "contentRevision": 7,
   "essences": [
     {
       "id": "dao_equipment.essence.cangfeng",
@@ -750,7 +750,7 @@
   ],
   "rageResource": {
     "name": "战意",
-    "initial": 0,
+    "initial": 30,
     "maximum": 150
   },
   "rageGain": {
