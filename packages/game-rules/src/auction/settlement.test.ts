@@ -1,6 +1,6 @@
+import { seedFactsOf } from '@daoyou/game-domain/inventory';
 import { buildSpiritFieldSeedMaterialFromPlant } from '@daoyou/game-domain/spirit-field';
 import { auctionBlockReason, auctionItemPriceCap } from './items.js';
-import { seedFactsOf } from '@daoyou/game-domain/inventory';
 import {
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
@@ -30,6 +30,7 @@ describe('auctionConfig', () => {
     const quote = calculateAuctionSettlement(unitPrice, 40);
     expect(unitPrice).toBe(800_000);
     expect(quote.grossAmount).toBe(32_000_000);
+    expect(getAuctionUnitPriceCap('神品')).toBe(9_999_999);
   });
 
   it('灵植种子同样只有玄品及以上可以寄售', () => {
