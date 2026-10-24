@@ -29,7 +29,7 @@ it('normalizes key order and defaults while preserving every material fact', () 
   expect(inventoryStackIdentity('equipment.v6', {})).toBeNull();
 });
 
-it('stacks pills across batch details but keeps effects and value separate', () => {
+it('stacks pills by visible name, type, quality, effect, and appearance', () => {
   const pill = {
     name: '厚土蕴灵丹',
     type: '丹药' as const,
@@ -75,6 +75,32 @@ it('stacks pills across batch details but keeps effects and value separate', () 
   ).toBe(key);
   expect(
     inventoryStackIdentity('consumable.v1', { ...pill, score: 402 }),
+  ).toBe(key);
+  expect(
+    inventoryStackIdentity('consumable.v1', {
+      ...pill,
+      spec: {
+        ...pill.spec,
+        family: 'healing',
+        consumeRules: {
+          scene: 'out_of_battle_only',
+          quotaCategory: 'long_term',
+        },
+        alchemyMeta: {
+          ...pill.spec.alchemyMeta,
+          version: 3,
+          stability: 40,
+          toxicityRating: 30,
+          fitBand: 'poor',
+          fitScore: 0.2,
+          breakthroughTargetRealm: '元婴',
+          breakthroughLabel: '护婴丹',
+        },
+      },
+    }),
+  ).toBe(key);
+  expect(
+    inventoryStackIdentity('consumable.v1', { ...pill, type: '灵果' }),
   ).not.toBe(key);
   expect(
     inventoryStackIdentity('consumable.v1', {
@@ -91,18 +117,6 @@ it('stacks pills across batch details but keeps effects and value separate', () 
       spec: {
         ...pill.spec,
         alchemyMeta: { ...pill.spec.alchemyMeta, appearance: 'perfect' },
-      },
-    }),
-  ).not.toBe(key);
-  expect(
-    inventoryStackIdentity('consumable.v1', {
-      ...pill,
-      spec: {
-        ...pill.spec,
-        alchemyMeta: {
-          ...pill.spec.alchemyMeta,
-          breakthroughTargetRealm: '元婴',
-        },
       },
     }),
   ).not.toBe(key);

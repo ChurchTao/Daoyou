@@ -4,7 +4,6 @@ import {
   SeedFactsSchema,
 } from '@daoyou/game-domain/inventory';
 import { stableSerializeConsumableSpec } from '@daoyou/game-domain/consumables';
-import { calculatePillScore } from '../alchemy/pillScore.js';
 
 /** Versioned, length-prefixed UTF-8 facts; SQL backfill uses the same encoding. */
 export function inventoryStackIdentity(
@@ -19,18 +18,12 @@ export function inventoryStackIdentity(
     const spec = facts.spec;
     if (spec.kind !== 'pill')
       return `consumable.v2:${JSON.stringify([facts.name, facts.type, facts.quality, stableSerializeConsumableSpec(spec)])}`;
-    const stackableSpec = {
-      kind: spec.kind,
-      family: spec.family,
-      operations: spec.operations,
-      consumeRules: spec.consumeRules,
-      ...(spec.alchemyMeta.version === 4 ? { protocol: 'pill:v4' } : {}),
+    // Players compare name, type, quality, effect operations, and appearance.
+    const visibleEffect = {
       appearance: spec.alchemyMeta.appearance ?? null,
-      breakthroughTargetRealm: spec.alchemyMeta.breakthroughTargetRealm ?? null,
-      breakthroughLabel: spec.alchemyMeta.breakthroughLabel ?? null,
-      recycleScore: calculatePillScore(facts),
+      operations: spec.operations,
     };
-    return `consumable.v3:${JSON.stringify([facts.name, facts.type, facts.quality, facts.score, stableSerializeConsumableSpec(stackableSpec)])}`;
+    return `consumable.v4:${JSON.stringify([facts.name, facts.type, facts.quality, stableSerializeConsumableSpec(visibleEffect)])}`;
   }
   if (definitionId !== 'material.v1') return `definition.v1:${definitionId}`;
   const facts = MaterialFactsSchema.parse(data);

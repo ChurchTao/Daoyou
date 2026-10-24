@@ -158,7 +158,7 @@ describe('alchemy inventory migration', () => {
         prompt: '另一段提示词',
       }),
     );
-    expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
+    expect(inventoryStackIdentity('consumable.v1', pill)).toBe(
       inventoryStackIdentity('consumable.v1', {
         ...pill,
         score: pill.score + 1,
@@ -167,7 +167,7 @@ describe('alchemy inventory migration', () => {
     expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
       inventoryStackIdentity('consumable.v1', { ...pill, name: '另一种丹药' }),
     );
-    expect(inventoryStackIdentity('consumable.v1', pill)).not.toBe(
+    expect(inventoryStackIdentity('consumable.v1', pill)).toBe(
       inventoryStackIdentity('consumable.v1', {
         ...pill,
         spec: {
