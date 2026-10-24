@@ -153,105 +153,101 @@ export default function HuntTeamPage() {
           </InkButton>
         </form>
       ) : (
-        <div className="flex min-h-[calc(100dvh-var(--game-bottom-offset)-19rem)] flex-col text-sm">
-          <div className="shrink-0 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <span>
-                {huntTeamStatusLabel(team.status)}{' '}
-                <span className="font-mono">{team.members.length}/4</span>
-              </span>
-              <span className="text-ink-secondary">
-                {team.minRealm}至{team.maxRealm}
-              </span>
-            </div>
-            <HuntMemberList
+        <div className="space-y-4 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span>
+              {huntTeamStatusLabel(team.status)}{' '}
+              <span className="font-mono">{team.members.length}/4</span>
+            </span>
+            <span className="text-ink-secondary">
+              {team.minRealm}至{team.maxRealm}
+            </span>
+          </div>
+          <HuntMemberList
+            team={team}
+            actorId={actorId ?? ''}
+            pending={pending}
+            onKick={(cultivatorId) =>
+              act(`/api/hunts/teams/${team.id}`, {
+                type: 'kick',
+                cultivatorId,
+                revision: team.revision,
+              })
+            }
+          />
+          {leader && team.status === 'assembling' ? (
+            <HuntTargetField
               team={team}
-              actorId={actorId ?? ''}
-              pending={pending}
-              onKick={(cultivatorId) =>
-                act(`/api/hunts/teams/${team.id}`, {
-                  type: 'kick',
-                  cultivatorId,
+              disabled={pending}
+              onPick={(eventId) =>
+                void act(`/api/hunts/teams/${team.id}`, {
+                  type: 'target',
+                  eventId,
                   revision: team.revision,
                 })
               }
             />
-            {leader && team.status === 'assembling' ? (
-              <HuntTargetField
-                team={team}
-                disabled={pending}
-                onPick={(eventId) =>
-                  void act(`/api/hunts/teams/${team.id}`, {
-                    type: 'target',
-                    eventId,
-                    revision: team.revision,
-                  })
-                }
-              />
-            ) : (
-              <p>
-                目标：
-                {team.event
-                  ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
-                  : '尚未选定'}
-              </p>
-            )}
-            {team.status === 'in_battle' && team.battleId ? (
+          ) : (
+            <p>
+              目标：
+              {team.event
+                ? `${huntTargetLabel(team.event)} · ${team.event.locationName}`
+                : '尚未选定'}
+            </p>
+          )}
+          {team.status === 'in_battle' && team.battleId ? (
+            <InkButton
+              onClick={() => navigate(`/game/combat-v6/hunt/${team.battleId}`)}
+            >
+              进入战斗
+            </InkButton>
+          ) : (
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
               <InkButton
-                onClick={() =>
-                  navigate(`/game/combat-v6/hunt/${team.battleId}`)
-                }
+                disabled={pending || team.status !== 'assembling'}
+                onClick={() => command('ready')}
               >
-                进入战斗
+                {self?.ready ? '取消准备' : '准备'}
               </InkButton>
-            ) : (
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
-                <InkButton
-                  disabled={pending || team.status !== 'assembling'}
-                  onClick={() => command('ready')}
-                >
-                  {self?.ready ? '取消准备' : '准备'}
-                </InkButton>
-                {leader ? (
-                  <>
-                    <InkButton
-                      disabled={
-                        pending ||
-                        !team.event ||
-                        team.members.length < 2 ||
-                        team.members.some((member) => !member.ready)
-                      }
-                      onClick={() => command('start')}
-                    >
-                      {team.status === 'starting' ? '继续出战' : '开始讨伐'}
-                    </InkButton>
-                    <InkButton
-                      disabled={
-                        pending ||
-                        team.status !== 'assembling' ||
-                        team.members.length >= 4
-                      }
-                      onClick={() =>
-                        void act(`/api/hunts/teams/${team.id}`, {
-                          type: 'recruit',
-                        }).then((ok) => {
-                          if (ok) setNote('已发到世界频道');
-                        })
-                      }
-                    >
-                      召集道友
-                    </InkButton>
-                  </>
-                ) : null}
-                <InkButton
-                  disabled={pending || team.status === 'starting'}
-                  onClick={() => command('leave')}
-                >
-                  离开队伍
-                </InkButton>
-              </div>
-            )}
-          </div>
+              {leader ? (
+                <>
+                  <InkButton
+                    disabled={
+                      pending ||
+                      !team.event ||
+                      team.members.length < 2 ||
+                      team.members.some((member) => !member.ready)
+                    }
+                    onClick={() => command('start')}
+                  >
+                    {team.status === 'starting' ? '继续出战' : '开始讨伐'}
+                  </InkButton>
+                  <InkButton
+                    disabled={
+                      pending ||
+                      team.status !== 'assembling' ||
+                      team.members.length >= 4
+                    }
+                    onClick={() =>
+                      void act(`/api/hunts/teams/${team.id}`, {
+                        type: 'recruit',
+                      }).then((ok) => {
+                        if (ok) setNote('已发到世界频道');
+                      })
+                    }
+                  >
+                    召集道友
+                  </InkButton>
+                </>
+              ) : null}
+              <InkButton
+                disabled={pending || team.status === 'starting'}
+                onClick={() => command('leave')}
+              >
+                离开队伍
+              </InkButton>
+            </div>
+          )}
           {actorId ? (
             <HuntTeamChat key={team.id} team={team} actorId={actorId} />
           ) : null}
