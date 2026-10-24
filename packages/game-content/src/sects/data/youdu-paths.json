@@ -876,7 +876,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 2,
-          "description": "摄魂的基础减伤与承伤增幅各增加5个百分点（口径待校准）。",
+          "description": "摄魂的基础减伤与承伤增幅各增加5%（口径待校准）。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -908,7 +908,7 @@
           "name": "索魂",
           "layer": 3,
           "slot": 1,
-          "description": "拘灵术命中率增加当前回合数×0.5个百分点，最多增加12个百分点。",
+          "description": "拘灵术命中率增加当前回合数×0.5%，最多增加12%。",
           "passives": [
             "youdu.passive.soul_seek"
           ]
@@ -918,7 +918,7 @@
           "name": "乘虚",
           "layer": 3,
           "slot": 2,
-          "description": "对带毒类异常的目标，拘灵术命中率增加20个百分点；魂毒额外增加4个百分点。",
+          "description": "对带毒类异常的目标，拘灵术命中率增加20%；魂毒额外增加4%。",
           "passives": [
             "youdu.passive.soul_wound"
           ]
@@ -1094,7 +1094,7 @@
           "name": "窥隙",
           "layer": 1,
           "slot": 1,
-          "description": "攻击带魂毒的目标时，临时增加12个百分点暴击率。",
+          "description": "攻击带魂毒的目标时，临时增加12%暴击率。",
           "passives": [
             "youdu.passive.poison_blaze"
           ]
@@ -1124,7 +1124,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 1,
-          "description": "摄魂的基础减伤与承伤增幅各增加5个百分点（口径待校准）。",
+          "description": "摄魂的基础减伤与承伤增幅各增加5%（口径待校准）。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -1298,7 +1298,7 @@
           "name": "噬魂夺生",
           "layer": 7,
           "slot": 2,
-          "description": "造成230%普通物理伤害，恢复目标本次实际损失的气血，随机驱散1个增益。目标带毒时暴击倍率增加60个百分点。开场冷却18回合，使用后冷却36回合。",
+          "description": "造成230%普通物理伤害，恢复目标本次实际损失的气血，随机驱散1个增益。目标带毒时暴击倍率增加60%。开场冷却18回合，使用后冷却36回合。",
           "grantSkills": [
             "youdu.skill.life_and_death"
           ]

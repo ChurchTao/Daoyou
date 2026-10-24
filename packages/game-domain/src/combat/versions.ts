@@ -20,7 +20,7 @@ export const COMBAT_V6_CHARACTER_BUILD_VERSIONS: CombatV6VersionStamp = Object.f
 export const COMBAT_V6_SEAL_CURVE_ARENA_VERSIONS: CombatV6VersionStamp = Object.freeze({
   engineVersion: 'combat-v6',
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v11',
+  rulesetVersion: 'daoyou_rules_v12',
   contentVersion: 'daoyou_arena_beast_content_v1',
   projectionVersion: 'arena_beast_v2',
 });

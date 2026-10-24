@@ -188,6 +188,25 @@ function conditionedDefend(
   };
 }
 describe('当前场次托管', () => {
+  it.each([
+    { expected: 1625 },
+    { percentageDamage: true, expected: 1000 },
+    { origin: 'hook-derived' as const, expected: 1000 },
+    { formula: 'judge' as const, expected: 1000 },
+  ])('普通固伤估分纳入法修，并传递比例与来源排除条件：%j', ({ expected, ...metadata }) => {
+    const fixed: SkillDef = {
+      id: 'fixed', name: '固伤', tags: ['spell'],
+      targeting: { side: 'enemy' },
+      effects: [{ type: 'fixedHit', power: 1000, ...metadata }],
+    };
+    const battle = fixture([fixed.id], [fixed]);
+    battle.unit('player').attrs.spellCultivate = 60;
+    battle.unit('enemy').attrs.resistSpellCultivate = 60;
+    const candidate = rankAutoActions(
+      observeAutoBattle(battle.snapshot(), 'player', []), 'player', [fixed], [], battle.queryCommands('player'),
+    ).find(candidate => candidate.command.type === 'skill');
+    expect(candidate?.intents.find(intent => intent.targetId === 'enemy')?.damage).toBe(expected);
+  });
   it('可配置的宗门状态都来自现行状态定义', () => {
     for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
       const statuses = definition.statuses;

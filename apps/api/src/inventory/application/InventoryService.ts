@@ -27,6 +27,7 @@ import { compileDaoEquipmentSpecialLoadoutV1 } from '@daoyou/game-rules/equipmen
 import {
   addItems,
   changeEquipmentLocation,
+  compactStorage,
   emptySlot,
   InventoryItemSchema,
   itemDefinition,
@@ -351,6 +352,10 @@ export async function grantInventory(
 ) {
   if (!grants.length) return [];
   // Only relevant stacks and the bounded bag are needed, even with an unlimited store.
+  // Consumable keys are derived from current facts, so stale stored keys still match.
+  const grantsConsumable = grants.some(
+    (grant) => grant.definitionId === 'consumable.v1',
+  );
   const rows = await tx
     .select()
     .from(inventoryItems)
@@ -359,18 +364,27 @@ export async function grantInventory(
         eq(inventoryItems.cultivatorId, owner),
         or(
           eq(inventoryItems.location, 'bag'),
-          or(
-            ...grants.map((g) =>
+          ...grants
+            .filter((grant) => grant.definitionId !== 'consumable.v1')
+            .map((grant) =>
               and(
-                eq(inventoryItems.definitionId, g.definitionId),
+                eq(inventoryItems.definitionId, grant.definitionId),
                 eq(
                   inventoryItems.stackKey,
-                  inventoryStackKey(g.definitionId, g.instanceData) ?? '',
+                  inventoryStackKey(grant.definitionId, grant.instanceData) ??
+                    '',
                 ),
-                sql`${inventoryItems.quantity} < ${itemDefinition(g.definitionId).stackLimit}`,
+                sql`${inventoryItems.quantity} < ${itemDefinition(grant.definitionId).stackLimit}`,
               ),
             ),
-          ),
+          ...(grantsConsumable
+            ? [
+                and(
+                  eq(inventoryItems.definitionId, 'consumable.v1'),
+                  sql`${inventoryItems.quantity} < ${itemDefinition('consumable.v1').stackLimit}`,
+                ),
+              ]
+            : []),
         ),
       ),
     );
@@ -380,16 +394,21 @@ export async function grantInventory(
   );
   const before = rows
     .filter((row) =>
-      grants.some(
-        (grant) =>
+      grants.some((grant) => {
+        const key = resolvedStackKey(
+          row.definitionId,
+          row.instanceData,
+          row.stackKey,
+        );
+        return (
           row.definitionId === grant.definitionId &&
-          row.stackKey !== null &&
-          row.stackKey ===
-            inventoryStackKey(grant.definitionId, grant.instanceData) &&
-          row.quantity < itemDefinition(grant.definitionId).stackLimit,
-      ),
+          key !== null &&
+          key === inventoryStackKey(grant.definitionId, grant.instanceData) &&
+          row.quantity < itemDefinition(grant.definitionId).stackLimit
+        );
+      }),
     )
-    .map(inventoryItemOf);
+    .map((row) => withResolvedConsumableStack(inventoryItemOf(row)));
   let next = before;
   for (const grant of grants)
     next = addItems(
@@ -454,12 +473,28 @@ function transferInventoryItem(
   ];
 }
 
-function normalizeConsumableStack(item: InventoryItem): InventoryItem {
+function resolvedStackKey(
+  definitionId: string,
+  instanceData: unknown,
+  stored: string | null,
+): string | null {
+  return definitionId === 'consumable.v1'
+    ? inventoryStackKey(definitionId, instanceData)
+    : stored;
+}
+
+/** Keep the stored revision so the caller can bump it once when the row is written. */
+function withResolvedConsumableStack(item: InventoryItem): InventoryItem {
   if (item.definitionId !== 'consumable.v1') return item;
   const stackKey = inventoryStackKey(item.definitionId, item.instanceData);
-  return stackKey === item.stackKey
+  return stackKey === item.stackKey ? item : { ...item, stackKey };
+}
+
+function normalizeConsumableStack(item: InventoryItem): InventoryItem {
+  const resolved = withResolvedConsumableStack(item);
+  return resolved === item
     ? item
-    : { ...item, stackKey, revision: item.revision + 1 };
+    : { ...resolved, revision: item.revision + 1 };
 }
 
 export async function mutateInventory(
@@ -514,19 +549,15 @@ export async function mutateInventory(
             );
           if (equipped.length) throw new InventoryError('请先卸下装备');
           const stackFilters = sources.flatMap((item) =>
-            item.stackKey
+            item.definitionId === 'consumable.v1' || item.stackKey
               ? [
                   and(
                     eq(inventoryItems.definitionId, item.definitionId),
-                    eq(
-                      inventoryItems.stackKey,
-                      item.definitionId === 'consumable.v1'
-                        ? inventoryStackKey(
-                            item.definitionId,
-                            item.instanceData,
-                          )!
-                        : item.stackKey,
-                    ),
+                    ...(item.definitionId === 'consumable.v1'
+                      ? []
+                      : [
+                          eq(inventoryItems.stackKey, item.stackKey ?? ''),
+                        ]),
                     sql`${inventoryItems.quantity} < ${itemDefinition(item.definitionId).stackLimit}`,
                   ),
                 ]
@@ -547,10 +578,34 @@ export async function mutateInventory(
               : [];
           const before = [
             ...new Map(
-              [...rows, ...targets].map((row) => [
-                row.id,
-                inventoryItemOf(row),
-              ]),
+              [
+                ...rows.map((row) => [row.id, inventoryItemOf(row)] as const),
+                ...targets
+                  .map(inventoryItemOf)
+                  .filter((item) =>
+                    sources.some((source) => {
+                      const itemKey = resolvedStackKey(
+                        item.definitionId,
+                        item.instanceData,
+                        item.stackKey,
+                      );
+                      const sourceKey = resolvedStackKey(
+                        source.definitionId,
+                        source.instanceData,
+                        source.stackKey,
+                      );
+                      return (
+                        item.definitionId === source.definitionId &&
+                        itemKey !== null &&
+                        itemKey === sourceKey
+                      );
+                    }),
+                  )
+                  .map(
+                    (item) =>
+                      [item.id, withResolvedConsumableStack(item)] as const,
+                  ),
+              ],
             ).values(),
           ];
           let next = before.map((item) => ({ ...item }));
@@ -640,7 +695,14 @@ export async function mutateInventory(
         ).map(inventoryItemOf);
         if (input.action === 'transfer' && input.location === 'storage') {
           const source = before.find((i) => i.id === input.id);
-          if (source) {
+          const wanted = source
+            ? resolvedStackKey(
+                source.definitionId,
+                source.instanceData,
+                source.stackKey,
+              )
+            : null;
+          if (source && wanted !== null) {
             const stacks = await tx
               .select()
               .from(inventoryItems)
@@ -649,21 +711,26 @@ export async function mutateInventory(
                   eq(inventoryItems.cultivatorId, owner),
                   eq(inventoryItems.location, 'storage'),
                   eq(inventoryItems.definitionId, source.definitionId),
-                  eq(
-                    inventoryItems.stackKey,
-                    source.definitionId === 'consumable.v1'
-                      ? inventoryStackKey(
-                          source.definitionId,
-                          source.instanceData,
-                        )!
-                      : (source.stackKey ?? ''),
-                  ),
+                  source.definitionId === 'consumable.v1'
+                    ? undefined
+                    : eq(inventoryItems.stackKey, source.stackKey ?? ''),
                   sql`${inventoryItems.quantity} < ${itemDefinition(source.definitionId).stackLimit}`,
                 ),
               )
-              .orderBy(asc(inventoryItems.id))
-              .limit(1);
-            before.push(...stacks.map(inventoryItemOf));
+              .orderBy(asc(inventoryItems.id));
+            before.push(
+              ...stacks
+                .filter(
+                  (row) =>
+                    resolvedStackKey(
+                      row.definitionId,
+                      row.instanceData,
+                      row.stackKey,
+                    ) === wanted,
+                )
+                .slice(0, 1)
+                .map((row) => withResolvedConsumableStack(inventoryItemOf(row))),
+            );
           }
         }
         let next = before.map((i) => ({ ...i }));
@@ -698,7 +765,28 @@ export async function mutateInventory(
             )
           )
             throw new InventoryError('背包已变化，请刷新');
-          next = sortBag(next.map(normalizeConsumableStack));
+          const storageBefore = (
+            await tx
+              .select()
+              .from(inventoryItems)
+              .where(
+                and(
+                  eq(inventoryItems.cultivatorId, owner),
+                  eq(inventoryItems.location, 'storage'),
+                  eq(inventoryItems.definitionId, 'consumable.v1'),
+                ),
+              )
+          ).map(inventoryItemOf);
+          before.push(...storageBefore);
+          const sorted = sortBag(
+            [...next, ...storageBefore].map(normalizeConsumableStack),
+          );
+          next = [
+            ...sorted.filter((entry) => entry.location !== 'storage'),
+            ...compactStorage(
+              sorted.filter((entry) => entry.location === 'storage'),
+            ),
+          ];
         } else if (item) {
           const equipped = await tx
             .select()

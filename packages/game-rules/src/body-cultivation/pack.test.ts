@@ -27,7 +27,7 @@ describe('炼体成长与收益数据包', () => {
     data.realms[6].softTrackCap = 70;
     const pack = loadBodyCultivationPack(data);
     expect(bodyCultivationThreshold(10, pack)).toBe(920);
-    expect(bodyCultivationEffectTexts('skin', 10, pack)).toEqual(['物理减伤 40% + 100（对手修炼为 0）']);
+    expect(bodyCultivationEffectTexts('skin', 10, pack)).toEqual(['物理减伤 16.67% + 41.67（对手修炼为 0）']);
     expect(bodyCultivationEffectTexts('qi_blood', 10, pack)).toEqual(['基础气血 +10%', '固定治疗强度 +3']);
     const input = state(71);
     const result = compileBodyCultivationV6(input, { ...basePanel, maxHp: 1000 }, pack);

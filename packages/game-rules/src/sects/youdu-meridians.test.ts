@@ -286,7 +286,7 @@ describe('幽都经脉触发与边界', () => {
     }
   });
 
-  it('索魂逐回合增加至12个百分点；乘虚区分普通毒20点与魂毒24点', () => {
+  it('索魂逐回合增加至12%；乘虚区分普通毒20点与魂毒24点', () => {
     const sealAtFifty: typeof daoyouFormulas.sealHitChance = (source, target, level, _base, additiveChance) =>
       daoyouFormulas.sealHitChance(source, target, level, 50, additiveChance);
     for (const [r, expected] of [[1, 0.505], [24, 0.62], [40, 0.62]]) {
@@ -312,7 +312,7 @@ describe('幽都经脉触发与边界', () => {
     }
     const { b } = setup(['明心']); round(b, { s: skill('insight', 's') }); expect(status(b, 's', 'insight_strong')).toBeDefined();
   });
-  it('蚀心只强化带魂毒的血影；窥隙增加12个百分点且不让固定伤害暴击', () => {
+  it('蚀心只强化带魂毒的血影；窥隙增加12%且不让固定伤害暴击', () => {
     const base = setup([], 'poison_master').b, shade = setup(['蚀心'], 'poison_master').b;
     for (const b of [base, shade]) { b.applyStatus('t', T('poison'), 3, 'a'); round(b, { s: skill('blood_shadow') }); }
     expect(damage(shade)[0]).toBeCloseTo(damage(base)[0] * 1.3, -1);

@@ -3,6 +3,7 @@ export {
   InventoryItemSchema,
   ItemGrantSchema,
   addItems,
+  compactStorage,
   emptySlot,
   itemDefinition,
   learnBeastSkill,

@@ -1,15 +1,9 @@
-import * as creationProductRepository from '@server/lib/repositories/creationProductRepository.js';
-import { calculateSingleElixirScore } from '@server/utils/rankingUtils.js';
-import { legacyProductForGrant } from '@daoyou/game-domain/legacy/products';
-import { buildConsumableStackKey } from '@daoyou/game-domain/consumables';
 import { ELEMENT_VALUES, ElementType } from '@daoyou/constants/elements';
 import { MaterialType } from '@daoyou/game-domain/inventory';
-import { Quality, QUALITY_ORDER } from '@daoyou/constants/qualities';
+import { Quality } from '@daoyou/constants/qualities';
 import type {
-  Artifact,
   Consumable,
   Cultivator,
-  Material,
 } from '@daoyou/game-domain/character';
 import {
   and,
@@ -21,7 +15,6 @@ import {
   sql,
   type SQL,
 } from 'drizzle-orm';
-import { createHash } from 'node:crypto';
 import {
   getExecutor,
   type DbExecutor,
@@ -32,13 +25,9 @@ import { consumeBagConsumable, getBagConsumable } from '@server/inventory/applic
 import { mapConsumableRow } from '@server/inventory/application/consumablePersistence.js';
 import { toArtifactFromProduct } from '@server/legacy-items/application/creationProductArtifactSupport.js';
 import { sanitizeMaterialDetails } from '@server/inventory/application/materialDetailsPrivacy.js';
-import { addMaterialStackToInventory } from '@server/inventory/application/materialInventory.js';
 
 import { assertCultivatorOwnership } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 
-function hashConsumableStackSignature(signature: string): string {
-  return createHash('sha256').update(signature).digest('hex');
-}
 type InventoryType = 'artifacts' | 'consumables' | 'materials';
 
 type InventoryItemByType = {
@@ -97,25 +86,6 @@ export async function getCultivatorConsumableById(
   executor?: DbExecutor | DbTransaction,
 ): Promise<Consumable | null> {
   return getBagConsumable(cultivatorId, consumableId, executor);
-}
-
-export async function getCultivatorMaterialById(
-  cultivatorId: string,
-  materialId: string,
-  executor?: DbExecutor | DbTransaction,
-): Promise<Material | null> {
-  const q = executor ?? getExecutor();
-  const [row] = await q
-    .select()
-    .from(schema.materials)
-    .where(
-      and(
-        eq(schema.materials.cultivatorId, cultivatorId),
-        eq(schema.materials.id, materialId),
-      ),
-    )
-    .limit(1);
-  return row ? mapMaterialRow(row) : null;
 }
 
 export async function getPaginatedInventoryByType<T extends InventoryType>(
@@ -306,203 +276,6 @@ export async function getPaginatedInventoryByType<T extends InventoryType>(
   };
 }
 
-export async function addMaterialToInventoryInTransaction(
-  cultivatorId: string,
-  material: Material,
-  tx: DbTransaction,
-): Promise<Material> {
-  const q = getExecutor(tx);
-  const result = await addMaterialStackToInventory(cultivatorId, material, tx);
-  const stored = await getCultivatorMaterialById(cultivatorId, result.id, q);
-  if (!stored) throw new Error('材料入库失败');
-  return stored;
-}
-
-/**
- * 从物品栏移除材料
- */
-export async function removeMaterialFromInventoryInTransaction(
-  cultivatorId: string,
-  materialName: string,
-  quantity: number,
-  tx: DbTransaction,
-): Promise<
-  Array<
-    | { operation: 'upsert'; item: Material }
-    | { operation: 'remove'; id: string }
-  >
-> {
-  const dbInstance = getExecutor(tx);
-  const materials = await dbInstance
-    .select()
-    .from(schema.materials)
-    .where(
-      and(
-        eq(schema.materials.cultivatorId, cultivatorId),
-        eq(schema.materials.name, materialName),
-      ),
-    );
-
-  const sortedMaterials = sortMaterialsByQualityAsc(materials);
-  if (sortedMaterials.length === 0) {
-    throw new Error(`材料 ${materialName} 不存在`);
-  }
-
-  const totalQuantity = sortedMaterials.reduce(
-    (sum, material) => sum + material.quantity,
-    0,
-  );
-  if (totalQuantity < quantity) {
-    throw new Error(
-      `材料 ${materialName} 不足，需要 ${quantity}，当前拥有 ${totalQuantity}`,
-    );
-  }
-
-  let remaining = quantity;
-  const changes: Array<
-    | { operation: 'upsert'; item: Material }
-    | { operation: 'remove'; id: string }
-  > = [];
-  for (const material of sortedMaterials) {
-    if (remaining <= 0) break;
-
-    const consumeQuantity = Math.min(material.quantity, remaining);
-    remaining -= consumeQuantity;
-
-    if (consumeQuantity === material.quantity) {
-      await dbInstance
-        .delete(schema.materials)
-        .where(eq(schema.materials.id, material.id));
-      changes.push({ operation: 'remove', id: material.id });
-    } else {
-      const [updated] = await dbInstance
-        .update(schema.materials)
-        .set({ quantity: material.quantity - consumeQuantity })
-        .where(eq(schema.materials.id, material.id))
-        .returning();
-      if (!updated) throw new Error('材料数量更新失败');
-      changes.push({ operation: 'upsert', item: mapMaterialRow(updated) });
-    }
-  }
-  return changes;
-}
-
-function sortMaterialsByQualityAsc<
-  T extends {
-    id: string;
-    rank: string;
-    quantity: number;
-    createdAt: Date | null;
-  },
->(materials: T[]): T[] {
-  return [...materials].sort((a, b) => {
-    const rankDiff =
-      (QUALITY_ORDER[a.rank as Quality] ?? Number.MAX_SAFE_INTEGER) -
-      (QUALITY_ORDER[b.rank as Quality] ?? Number.MAX_SAFE_INTEGER);
-    if (rankDiff !== 0) return rankDiff;
-
-    const createdDiff =
-      (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
-    if (createdDiff !== 0) return createdDiff;
-
-    return a.id.localeCompare(b.id);
-  });
-}
-
-export async function addArtifactToInventoryInTransaction(
-  cultivatorId: string,
-  artifact: Artifact,
-  tx: DbTransaction,
-): Promise<Artifact> {
-  const dbInstance = getExecutor(tx);
-  const score = artifact.score ?? 0;
-  const rawProductModel =
-    artifact.productModel &&
-    typeof artifact.productModel === 'object' &&
-    !Array.isArray(artifact.productModel)
-      ? (artifact.productModel as Record<string, unknown>)
-      : null;
-  const normalizedProductModel = rawProductModel
-    ? legacyProductForGrant(rawProductModel)
-    : null;
-
-  if (
-    !rawProductModel ||
-    !normalizedProductModel ||
-    normalizedProductModel.productType !== 'artifact'
-  ) {
-    throw new Error('法宝数据缺少有效 productModel，无法入库');
-  }
-
-  const inserted = await creationProductRepository.insert(
-    {
-      cultivatorId,
-      productType: 'artifact',
-      name: artifact.name,
-      description: artifact.description || null,
-      element: artifact.element,
-      quality: artifact.quality || '凡品',
-      slot: artifact.slot,
-      score,
-      isEquipped: false,
-      productModel: normalizedProductModel,
-    },
-    dbInstance,
-  );
-  return mapArtifactRow(toArtifactFromProduct(inserted));
-}
-
-export async function addConsumableToInventoryInTransaction(
-  cultivatorId: string,
-  consumable: Consumable,
-  tx: DbTransaction,
-): Promise<Consumable> {
-  const dbInstance = getExecutor(tx);
-  const score = calculateSingleElixirScore(consumable);
-  const quality = consumable.quality || '凡品';
-  const stackKey = hashConsumableStackSignature(
-    buildConsumableStackKey({
-      ...consumable,
-      quality,
-    }),
-  );
-  const [saved] = await dbInstance
-    .insert(schema.consumables)
-    .values({
-      cultivatorId,
-      name: consumable.name,
-      type: consumable.type,
-      prompt: consumable.prompt || '',
-      quality,
-      stackKey,
-      spec: consumable.spec,
-      quantity: consumable.quantity,
-      description: consumable.description || null,
-      score,
-    })
-    .onConflictDoUpdate({
-      target: [
-        schema.consumables.cultivatorId,
-        schema.consumables.name,
-        schema.consumables.quality,
-        schema.consumables.type,
-        schema.consumables.stackKey,
-      ],
-      targetWhere: sql`${schema.consumables.stackKey} is not null`,
-      set: {
-        quantity: sql`${schema.consumables.quantity} + ${consumable.quantity}`,
-        score: sql`GREATEST(${schema.consumables.score}, ${score})`,
-        prompt: consumable.prompt || '',
-        spec: consumable.spec,
-        description: consumable.description || null,
-        stackKey,
-      },
-    })
-    .returning();
-  if (!saved) throw new Error('消耗品入库失败');
-  return mapConsumableRow(saved);
-}
-
 export async function consumeConsumableById(
   userId: string,
   cultivatorId: string,
@@ -518,8 +291,3 @@ export async function consumeConsumableById(
   await assertCultivatorOwnership(userId, cultivatorId, dbInstance);
   return consumeBagConsumable(cultivatorId, consumableId, quantity, dbInstance);
 }
-
-/**
- * 更新角色上次领取收益时间（内部版本，用于事务中）
- * 跳过权限检查，由调用方保证权限
- */

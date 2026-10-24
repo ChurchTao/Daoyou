@@ -10,8 +10,8 @@
 
 | 定义ID | 名称 | 适用物种 |
 | --- | --- | --- |
-| `beast.refinement.origin-dew` | 归元灵露 | 炼气、筑基、金丹 |
-| `beast.refinement.superior-origin-dew` | 上品归元灵露 | 全部游戏境界；元婴及以上必须使用 |
+| `beast.refinement.origin-dew` | 归元灵露 | 炼气、筑基、金丹、元婴、化神 |
+| `beast.refinement.superior-origin-dew` | 上品归元灵露 | 全部游戏境界；炼虚及以上必须使用 |
 
 每次消耗一瓶。判断依据为物种携带境界，与灵兽当前等级无关；主人仍须达到物种携带境界。上品不提高任何概率，与普通使用同一`rollBeastTraits`函数、同一物种出生配置；低阶物种在相同seed下两种药露结果完全一致。
 

@@ -29,7 +29,7 @@ packages/shared/src/engine/sect/content/<sect-id>/
 
 `definition.ts` 导出 `SectDefinitionWithoutPaths`。能力使用辨识联合，不能再用布尔字段表达是否占主动栏：
 
-每本心法必须声明独立的 `growthProfile`。普通派生属性使用 `ADD`，概率与穿透等百分点属性使用 `FIXED`；`maxValue` 是180级终点，不是每级增量。主心法即使没有面板属性，也必须声明曲线和四类神通成长：
+每本心法必须声明独立的 `growthProfile`。普通派生属性使用 `ADD`，概率与穿透等按 % 加减的属性使用 `FIXED`；`maxValue` 是180级终点，不是每级增量。主心法即使没有面板属性，也必须声明曲线和四类神通成长：
 
 ```ts
 {
@@ -49,7 +49,7 @@ packages/shared/src/engine/sect/content/<sect-id>/
 }
 ```
 
-曲线只允许 `early`、`balanced`、`late`。面板 `ADD` 上限30%，概率点数上限15个百分点，四类神通效果上限30%；持续时间最高增加2回合，计数最高增加3。伤害、治疗、护盾、Buff属性、`percent_damage_modifier` 和 `dynamic_scalar` 会按分类成长，技能成本、冷却、资源上限、形态与资源循环不会自动成长。需要持续时间成长的 Buff 使用 `withSectBuffMethodGrowth(config, { duration: true })` 显式声明。
+曲线只允许 `early`、`balanced`、`late`。面板 `ADD` 上限30%，概率点数上限15%，四类神通效果上限30%；持续时间最高增加2回合，计数最高增加3。伤害、治疗、护盾、Buff属性、`percent_damage_modifier` 和 `dynamic_scalar` 会按分类成长，技能成本、冷却、资源上限、形态与资源循环不会自动成长。需要持续时间成长的 Buff 使用 `withSectBuffMethodGrowth(config, { duration: true })` 显式声明。
 
 ```ts
 const abilities: SectAbilityDefinition[] = [

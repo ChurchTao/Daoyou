@@ -120,7 +120,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v8'
     | 'daoyou_rules_v9'
     | 'daoyou_rules_v10'
-    | 'daoyou_rules_v11';
+    | 'daoyou_rules_v11'
+    | 'daoyou_rules_v12';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'
@@ -702,7 +703,7 @@ export type SkillDef = {
   schoolTerm?: SchoolTerm;
   /** 群法分灵；没有则系数 1 */
   splash?: SplashSpec;
-  /** 封印底（百分点，如 55）；缺省由 rules 的 sealChanceBase 决定 */
+  /** 封印底（单位为 %，55 表示 55%）；缺省由 rules 的 sealChanceBase 决定 */
   sealBase?: number;
   targeting: SkillTargeting;
   /** 按 targeting 的最大候选人数预检法力；准备完成后截取实际人数并按 costMp 结算。
@@ -795,6 +796,8 @@ export type ActionScope = {
 };
 
 export type StrikeFormulaInput = {
+  percentageDamage?: boolean;
+  origin?: DamageOrigin;
   family: FormulaFamily | (string & {});
   kind: DamageKind;
   source: Unit;

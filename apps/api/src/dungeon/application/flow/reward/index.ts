@@ -3,7 +3,6 @@
  */
 
 export {
-  QUALITY_HINT_OFFSET,
   REALM_REWARD_CONFIG,
   TIER_MULTIPLIER,
 } from '@server/dungeon/application/flow/reward/rewardConfig.js';

@@ -1,12 +1,12 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { CombatV6Battle } from '@app/components/feature/combat-v6/CombatV6Battle';
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
 import { useArenaV6Session } from '@app/components/feature/combat-v6/useArenaV6Session';
 import { HuntResult } from '@app/components/feature/hunts/HuntResult';
+import { apiFetch } from '@app/lib/api/fetch';
 import { HUNT_BOSSES } from '@daoyou/game-content/hunts';
-import { huntMapHref } from '@daoyou/game-rules/hunts';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
+const HUNT_TEAM_HREF = '/game/hunt-team';
 
 export default function ArenaBattleRoute() {
   const { battleId = '' } = useParams();
@@ -49,9 +49,7 @@ function ArenaBattle({
         if (!response.ok && response.status !== 404)
           throw new Error('退出观战失败，请重试');
       }
-      navigate(
-        state.session?.hunt ? huntMapHref(state.session.hunt) : '/game/arena',
-      );
+      navigate(state.session?.hunt ? HUNT_TEAM_HREF : '/game/arena');
     } catch (cause) {
       setLeaveError(cause instanceof Error ? cause.message : '退出观战失败');
     } finally {
@@ -65,7 +63,7 @@ function ArenaBattle({
     : spectator
       ? '擂台观战'
       : '擂台切磋';
-  const back = session?.hunt ? huntMapHref(session.hunt) : '/game/arena';
+  const back = session?.hunt ? HUNT_TEAM_HREF : '/game/arena';
   const backLabel = session?.hunt ? '返回讨伐队伍' : '返回擂台';
   return (
     <CombatV6Page

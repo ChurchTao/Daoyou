@@ -209,7 +209,7 @@ export const refinementAdapter: ItemAdapter = (item, def) => {
       ],
       description:
         dew.color === 'gold'
-          ? '元婴及以上灵兽须用此露。洗炼所得与普通归元灵露相同。'
+          ? '炼虚及以上灵兽须用此露。洗炼所得与普通归元灵露相同。'
           : '涤去后天积累。',
     }),
   };

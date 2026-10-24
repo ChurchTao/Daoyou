@@ -1,28 +1,22 @@
+import {
+  AUCTION_CATALOG_UNIT_PRICE_CAP,
+  AUCTION_MIN_QUALITY,
+  AUCTION_QUALITY_UNIT_PRICE_CAPS,
+  AUCTION_TAX_BRACKETS,
+} from '@daoyou/game-content/auction/config';
 import type { AuctionSettlementQuote } from '@daoyou/game-domain/auction';
-import { AUCTION_MIN_QUALITY, AUCTION_QUALITY_UNIT_PRICE_CAPS, AUCTION_TAX_BRACKETS } from '@daoyou/game-content/auction/config';
-
-import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
-
-
 
 import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
-
-
-
 
 export function isAuctionListableQuality(quality: Quality): boolean {
   return QUALITY_ORDER[quality] >= QUALITY_ORDER[AUCTION_MIN_QUALITY];
 }
 
-
-
-
 export function getAuctionUnitPriceCap(quality: Quality): number {
-  return AUCTION_QUALITY_UNIT_PRICE_CAPS[quality] ?? AUCTION_MAX_UNIT_PRICE;
+  return (
+    AUCTION_QUALITY_UNIT_PRICE_CAPS[quality] ?? AUCTION_CATALOG_UNIT_PRICE_CAP
+  );
 }
-
-
-
 
 export function getAuctionMarginalRateBps(unitPrice: number): number {
   const normalizedPrice = Math.max(0, Math.floor(unitPrice));
@@ -31,9 +25,6 @@ export function getAuctionMarginalRateBps(unitPrice: number): number {
       ?.rateBps ?? AUCTION_TAX_BRACKETS[AUCTION_TAX_BRACKETS.length - 1].rateBps
   );
 }
-
-
-
 
 export function calculateAuctionSettlement(
   unitPrice: number,

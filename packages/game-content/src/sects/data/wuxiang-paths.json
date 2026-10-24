@@ -588,7 +588,7 @@
     {
       "id": "wuxiang.passive.wrath.6.1",
       "name": "乘隙",
-      "description": "显相时，击破破绽提供的伤害增量再提高5个百分点。"
+      "description": "显相时，击破破绽提供的伤害增量再提高5%。"
     },
     {
       "id": "wuxiang.passive.wrath.6.2",
@@ -1149,7 +1149,7 @@
           "name": "乘隙",
           "layer": 6,
           "slot": 1,
-          "description": "显相时，击破破绽提供的伤害增量再提高5个百分点。",
+          "description": "显相时，击破破绽提供的伤害增量再提高5%。",
           "passives": [
             "wuxiang.passive.wrath.6.1"
           ]

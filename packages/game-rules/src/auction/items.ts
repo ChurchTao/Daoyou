@@ -1,6 +1,8 @@
 import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
+import { AUCTION_CATALOG_UNIT_PRICE_CAP } from '@daoyou/game-content/auction/config';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import {
+  AUCTION_MAX_SELLER_RECEIPT,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_MAX_UNIT_PRICE,
 } from '@daoyou/game-domain/auction';
@@ -8,19 +10,43 @@ import {
   ConsumableFactsSchema,
   SeedFactsSchema,
   materialFactsOf,
+  type ItemDefinition,
 } from '@daoyou/game-domain/inventory';
 import { z } from 'zod';
 import { BeastTransferSchema } from '../beasts/trade.js';
 import { InventoryEquipmentSchema } from '../inventory/equipment.js';
 import { ItemGrantSchema, itemDefinition } from '../inventory/index.js';
 import {
+  calculateAuctionSettlement,
   getAuctionUnitPriceCap,
   isAuctionListableQuality,
 } from './settlement.js';
 
+/** 没有品质锚、价值随个体或功法／技能身份变化的品类。 */
+const AUCTION_APPRAISAL_KINDS = new Set<ItemDefinition['kind']>([
+  'equipment',
+  'manual_jade',
+  'beast_book',
+]);
+
 /** 单次上架件数以该物品的背包堆叠上限为准，不另设固定件数。 */
 export function auctionListingStackLimit(definitionId: string): number {
   return itemDefinition(definitionId).stackLimit;
+}
+
+/**
+ * 高出原目录上限的成交，卖家到手不能超过单次灵石入账上限。
+ * 材料等原价档保持既有件数规则，不在这里收紧。
+ */
+export function auctionSellerReceiptAllows(
+  unitPrice: number,
+  quantity: number,
+): boolean {
+  if (unitPrice <= AUCTION_CATALOG_UNIT_PRICE_CAP) return true;
+  return (
+    calculateAuctionSettlement(unitPrice, quantity).sellerAmount <=
+    AUCTION_MAX_SELLER_RECEIPT
+  );
 }
 
 /** 单次购买件数与上架对齐：不超过该物品堆叠上限和货单剩余，高单价再受单次成交总额约束。 */
@@ -32,7 +58,7 @@ export function auctionPurchaseQuantityLimit(input: {
   const unitPrice = Math.max(0, Math.floor(input.unitPrice));
   const affordable =
     unitPrice > 0 ? Math.floor(AUCTION_MAX_TRANSACTION_TOTAL / unitPrice) : 0;
-  return Math.max(
+  let limit = Math.max(
     0,
     Math.min(
       auctionListingStackLimit(input.definitionId),
@@ -40,6 +66,10 @@ export function auctionPurchaseQuantityLimit(input: {
       affordable,
     ),
   );
+  while (limit > 0 && !auctionSellerReceiptAllows(unitPrice, limit)) {
+    limit -= 1;
+  }
+  return limit;
 }
 
 const AuctionInventoryGrantSchema = ItemGrantSchema.extend({
@@ -91,7 +121,11 @@ export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
 
 export function auctionItemPriceCap(item: AuctionItemFacts) {
   const quality = auctionItemQuality(item);
-  return quality ? getAuctionUnitPriceCap(quality) : AUCTION_MAX_UNIT_PRICE;
+  if (quality) return getAuctionUnitPriceCap(quality);
+  const kind = itemDefinition(item.definitionId).kind;
+  return AUCTION_APPRAISAL_KINDS.has(kind)
+    ? AUCTION_MAX_UNIT_PRICE
+    : AUCTION_CATALOG_UNIT_PRICE_CAP;
 }
 
 export function auctionItemCategory(item: AuctionItemFacts): string {

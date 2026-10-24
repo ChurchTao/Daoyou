@@ -20,7 +20,7 @@ describe('equipment special configuration', () => {
     expect(DAO_RAGE_RESOURCE).toEqual({
       id: 'combat.resource.rage',
       name: '战意',
-      current: 0,
+      current: 30,
       max: 150,
     });
   });

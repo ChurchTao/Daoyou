@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_BASE_PROJECTION_VERSIONS } from '@daoyou/game-domain/combat';
 import {
   CommandType,
+  DamageOrigin,
   EffectType,
   FormulaFamily,
   SkillTag,
@@ -51,11 +52,13 @@ describe('Daoyou formulas', () => {
     expect(physicalBase(5, 20)).toBe(1);
   });
 
-  it('clamps damage cultivation differences to plus or minus 20', () => {
-    expect(Math.floor(applyCultivate(500, 30))).toBe(800);
-    expect(Math.floor(applyCultivate(500, 20))).toBe(800);
-    expect(Math.floor(applyCultivate(500, -30))).toBe(200);
-    expect(Math.floor(applyCultivate(500, -20))).toBe(200);
+  it('maps a sixty-level difference to twenty-five without an early cap', () => {
+    expect(applyCultivate(1000, 60)).toBe(1625);
+    expect(applyCultivate(1000, -60)).toBe(375);
+    expect(applyCultivate(1000, 0)).toBe(1000);
+    expect(applyCultivate(1000, 24)).toBe(1250);
+    expect(applyCultivate(1000, -24)).toBe(750);
+    expect(applyCultivate(1000, -45)).toBeLessThan(applyCultivate(1000, -44));
   });
 
   it('applies physical fury before defense and cultivation', () => {
@@ -84,7 +87,7 @@ describe('Daoyou formulas', () => {
         power: 0,
         fury: true,
       }),
-    ).toBe(210);
+    ).toBe(186);
   });
 
   it('applies spell school terms and splash before cultivation', () => {
@@ -120,7 +123,7 @@ describe('Daoyou formulas', () => {
         splash: { perTarget: 0.1, floor: 0.5 },
         targetCount: 5,
       }),
-    ).toBe(91);
+    ).toBe(72);
   });
 
   it('scales player spell attack to the physical single-hit band and keeps a defense floor', () => {
@@ -170,7 +173,7 @@ describe('Daoyou formulas', () => {
     expect(spellStrike(100, 1000, 0, UnitKind.Pet)).toBe(1);
   });
 
-  it('keeps fixed and judge damage independent from panels and cultivation', () => {
+  it('applies spell cultivation to ordinary fixed damage while judge damage stays unchanged', () => {
     const source = unit({
       hp: 100,
       speed: 10,
@@ -198,11 +201,11 @@ describe('Daoyou formulas', () => {
           power: 225,
           fury: false,
         }),
-      ).toBe(225);
+      ).toBe(family === FormulaFamily.Fixed ? 462 : 225);
     }
   });
 
-  it('uses point-based hit, guaranteed spell hit, and a smooth seal cultivation curve', () => {
+  it('uses point-based hit and linear seal cultivation before the probability soft bounds', () => {
     const source = unit(
       {
         hp: 100,
@@ -231,7 +234,7 @@ describe('Daoyou formulas', () => {
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.9);
     expect(daoyouFormulas.spellHitChance(source, target)).toBe(1);
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(
-      (55 + 18 * Math.tanh(60 / 15)) / 100,
+      (75 + 20 * (1 - Math.exp(-1.5))) / 100,
     );
     source.attrs.hit = -1000;
     expect(daoyouFormulas.physicalHitChance(source, target)).toBe(0.45);
@@ -240,7 +243,7 @@ describe('Daoyou formulas', () => {
     source.attrs.spellCultivate = 0;
     target.attrs.resistSpellCultivate = 60;
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeCloseTo(
-      (55 - 18 * Math.tanh(60 / 15)) / 100,
+      (20 + 10 * Math.exp(-2.5)) / 100,
     );
     source.attrs.sealHit = 1000;
     expect(daoyouFormulas.sealHitChance(source, target, 50)).toBeGreaterThan(
@@ -321,6 +324,32 @@ describe('Daoyou formulas', () => {
 });
 
 describe('Daoyou ruleset integration', () => {
+  it.each([
+    { attack: 60, defense: 0, expected: 1625 },
+    { attack: 0, defense: 60, expected: 375 },
+    { attack: 60, defense: 60, expected: 1000 },
+    { attack: 60, defense: 0, percentageDamage: true, expected: 1000 },
+    { attack: 60, defense: 0, origin: DamageOrigin.HookDerived, expected: 1000 },
+    { attack: 60, defense: 0, formula: FormulaFamily.Judge, expected: 1000 },
+  ])('resolves fixedHit cultivation and excludes percentage/derived/judge damage: %j', ({ attack, defense, expected, ...metadata }) => {
+    const skill: SkillDef = {
+      id: 'test-fixed', name: '测试固伤', tags: [SkillTag.Spell],
+      targeting: { side: TargetSide.Enemy, mode: TargetMode.Explicit, count: 1 },
+      effects: [{ type: EffectType.FixedHit, power: 1000, ...metadata }],
+    };
+    const battle = createBattle({
+      seed: 1, versions: COMBAT_V6_BASE_PROJECTION_VERSIONS,
+      ruleset: daoyouDeterministicRuleset, skills: [skill],
+      units: [
+        lineup({ id: 'source', side: 0, skills: [skill.id], attrs: { hp: 10000, speed: 20, spellCultivate: attack } }),
+        lineup({ id: 'target', side: 1, attrs: { hp: 10000, speed: 1, magicDef: 99999, resistSpellCultivate: defense } }),
+      ],
+    });
+    battle.submit('source', { type: CommandType.Skill, skillId: skill.id, targets: ['target'] });
+    battle.submit('target', { type: CommandType.Defend });
+    battle.lockAndResolve();
+    expect(battle.unit('target').attrs.hp).toBe(10000 - expected);
+  });
   it('applies fury, critical hit, deterministic fluctuation, and defend in order', () => {
     const battle = createBattle({
       seed: 1,

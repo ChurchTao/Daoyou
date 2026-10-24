@@ -7,6 +7,7 @@ import { AUCTION_PRIVATE_LISTING_TALISMAN_SCENARIO } from '@daoyou/game-content/
 import {
   AUCTION_MAX_ACTIVE_LISTINGS,
   AUCTION_MAX_TRANSACTION_TOTAL,
+  AUCTION_MAX_UNIT_PRICE,
 } from '@daoyou/game-domain/auction';
 import type { MailAttachment } from '@daoyou/game-domain/mail';
 import {
@@ -15,6 +16,7 @@ import {
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
+  auctionSellerReceiptAllows,
   AuctionSnapshotSchema,
   calculateAuctionSettlement,
 } from '@daoyou/game-rules/auction';
@@ -356,6 +358,11 @@ export class AuctionOperations {
             AUCTION_MAX_TRANSACTION_TOTAL.toLocaleString() +
             ' 灵石',
         );
+      if (!auctionSellerReceiptAllows(listing.price, quantity))
+        throw new AuctionServiceError(
+          'INVALID_QUANTITY',
+          '单次购买件数过多，请分次购买',
+        );
       const [buyer] = await tx
         .select({ userId: schema.cultivators.userId })
         .from(schema.cultivators)
@@ -497,6 +504,13 @@ export class AuctionOperations {
       visibility,
       targetCultivatorId,
     } = input;
+    if (price > AUCTION_MAX_UNIT_PRICE)
+      throw new AuctionServiceError(
+        'INVALID_PRICE',
+        '该灵兽单价不得超过 ' +
+          AUCTION_MAX_UNIT_PRICE.toLocaleString() +
+          ' 灵石',
+      );
     await assertBeastIdle(owner);
     const [row] = await tx
       .select()

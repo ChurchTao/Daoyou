@@ -40,8 +40,6 @@ export function manualMechanismSummary(
     effect.type,
   );
   const value = Number((manualMechanismValue(effect, level) * 100).toFixed(6));
-  const unit =
-    effect.type === 'evasion' || effect.type === 'sealResist' ? '百分点' : '%';
   const tag = {
     damage: '增伤',
     mitigation: '减伤',
@@ -55,7 +53,7 @@ export function manualMechanismSummary(
   return {
     condition,
     label,
-    value: `${negative ? '−' : '+'}${value}${unit}`,
+    value: `${negative ? '−' : '+'}${value}%`,
     tag,
     description,
   };

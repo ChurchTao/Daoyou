@@ -26,28 +26,9 @@ export function attachmentsToResourceOperations(
         gains.push({ type: 'reputation', value: item.quantity });
         break;
       case 'material':
-        gains.push({
-          type: 'material',
-          value: item.quantity,
-          data: item.data,
-        });
-        break;
       case 'consumable':
-        gains.push({
-          type: 'consumable',
-          value: item.quantity,
-          data: item.data,
-        });
-        break;
       case 'artifact':
-        for (let i = 0; i < (item.quantity || 1); i += 1) {
-          gains.push({
-            type: 'artifact',
-            value: 1,
-            data: item.data,
-          });
-        }
-        break;
+        throw new Error('旧藏宝库已停止入库');
       case 'cultivation_exp':
         gains.push({ type: 'cultivation_exp', value: item.quantity });
         break;

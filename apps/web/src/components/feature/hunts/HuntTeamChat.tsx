@@ -317,10 +317,7 @@ export function HuntTeamChat({
   );
 
   return (
-    <section
-      aria-label="队伍传音"
-      className="mt-4 flex min-h-64 flex-1 flex-col"
-    >
+    <section aria-label="队伍传音" className="flex h-80 flex-col">
       <div
         ref={logRef}
         className="battle-scroll min-h-0 flex-1 overflow-y-auto"

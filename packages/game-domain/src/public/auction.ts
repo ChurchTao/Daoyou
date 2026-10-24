@@ -1,6 +1,7 @@
 /** Public auction capabilities. Keep implementation files private. */
 export {
   AUCTION_MAX_ACTIVE_LISTINGS,
+  AUCTION_MAX_SELLER_RECEIPT,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_MAX_UNIT_PRICE,
 } from '../auction/limits.js';

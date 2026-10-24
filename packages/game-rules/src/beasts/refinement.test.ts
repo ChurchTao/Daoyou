@@ -1,12 +1,13 @@
-import { expect, it } from 'vitest';
-import { z } from 'zod';
+import { REALM_ORDER } from '@daoyou/constants/realms';
+import { BEASTS_REFINEMENT_SCHEMA as schema } from '@daoyou/game-content/authoring/beasts';
 import {
-  BEAST_SPECIES,
   BEAST_REFINEMENT,
+  BEAST_SPECIES,
   BeastRefinementPackShape,
   loadBeastRefinementPack,
 } from '@daoyou/game-content/beasts';
-import { BEASTS_REFINEMENT_SCHEMA as schema } from '@daoyou/game-content/authoring/beasts';
+import { expect, it } from 'vitest';
+import { z } from 'zod';
 import { generateCapturedBeast } from './generator.js';
 import { gainBeastExp } from './progression.js';
 import { beastRefinementReason, refineBeast } from './refinement.js';
@@ -38,7 +39,9 @@ it.each(BEAST_SPECIES)(
   (species) => {
     const beast = generateCapturedBeast(id, id, species.id, 100, 1);
     expect(beastRefinementReason(beast, normal.id, 180)).toBe(
-      species.carryLevel >= 65 ? '此物种需使用上品归元灵露。' : '',
+      REALM_ORDER[species.realm] > REALM_ORDER['化神']
+        ? '此物种需使用上品归元灵露。'
+        : '',
     );
     expect(beastRefinementReason(beast, advanced.id, 180)).toBe('');
     const next = refineBeast(beast, advanced.id, 180, 42);

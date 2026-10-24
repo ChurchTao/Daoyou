@@ -222,8 +222,6 @@ export async function executeYieldCommand(args: {
                   tx,
                 );
                 break;
-              case 'material':
-                break;
               default:
                 throw new Error(`未知的资源类型: ${gain.type}`);
             }
