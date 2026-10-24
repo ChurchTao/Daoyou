@@ -276,7 +276,7 @@ describe('器蕴精修', () => {
       }).defenseIgnore,
     ).toBe(0);
   });
-  it('封禁器蕴贡献一个百分点且仍遵守封印公式上下限', () => {
+  it('封禁器蕴贡献1%且仍遵守封印公式上下限', () => {
     const battle = battleWith([], []);
     const source = battle.unit('self');
     const target = battle.unit('foe');

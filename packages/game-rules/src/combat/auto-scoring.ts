@@ -1,7 +1,9 @@
-import { FormulaFamily, UnitKind } from '@daoyou/combat-core/enums';
+import { DamageOrigin, FormulaFamily, UnitKind } from '@daoyou/combat-core/enums';
+import type { DamageOrigin as DamageOriginType } from '@daoyou/combat-core/enums';
 import type { SchoolTerm, SplashSpec, Unit } from '@daoyou/combat-core/types';
 import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
 import { applyCultivate, schoolTermValue, splashFactor } from './daoyou/formulas.js';
+import { cultivationModifiers } from './daoyou/cultivation.js';
 
 /** 公开气血比例低于此值时，给自动估分一小段收尾加分。 */
 export const ENEMY_EXECUTE_HP_RATIO = 0.2;
@@ -69,6 +71,8 @@ function ownSpell(
  * 对方防御、对方攻击、破防分支、攻差倍数都不产生评分差。
  */
 export function visibleOutgoingDamage(input: {
+  percentageDamage?: boolean;
+  origin?: DamageOriginType;
   source: Unit;
   family: string;
   coeff: number;
@@ -79,8 +83,12 @@ export function visibleOutgoingDamage(input: {
   targetCount: number;
 }): number {
   const { source, family, coeff, power, skillLevel, schoolTerm, splash, targetCount } = input;
-  if (family === FormulaFamily.Fixed || family === FormulaFamily.Judge)
+  if (family === FormulaFamily.Judge)
     return finish(power);
+  if (family === FormulaFamily.Fixed)
+    return finish(input.percentageDamage || (input.origin ?? DamageOrigin.ActionDirect) !== DamageOrigin.ActionDirect
+      ? power
+      : applyCultivate(power, source.attrs.spellCultivate));
   if (family === FormulaFamily.AttackDifference) {
     return finish(
       applyCultivate(source.attrs.physicalAtk * coeff, source.attrs.attackCultivate),
@@ -125,8 +133,7 @@ export function visibleSealHitChance(
   const percent =
     basePercent +
     (level - targetLevel) * DaoyouRule.sealLevelWeight +
-    DaoyouRule.sealCultivateWeight *
-      Math.tanh(source.attrs.spellCultivate / DaoyouRule.sealCultivateScale) +
+    cultivationModifiers(source.attrs.spellCultivate).sealPercent +
     (source.attrs.sealHit / pointScale) * 100 +
     additiveChance * 100;
   const floor = DaoyouRule.sealChanceFloor * 100;

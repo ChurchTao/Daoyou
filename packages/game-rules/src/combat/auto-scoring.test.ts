@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest';
 import type { Unit } from '@daoyou/combat-core/types';
+import { createUnit } from '@daoyou/combat-core';
+import { daoyouFormulas } from './daoyou/formulas.js';
 import {
   expressionReadsHiddenTarget,
   visibleOutgoingDamage,
@@ -125,4 +127,14 @@ it('命中和封印不读取对方闪避与抵抗', () => {
   expect(expressionReadsHiddenTarget('effective.speed > targetEffective.speed')).toBe(true);
   expect(expressionReadsHiddenTarget('targetFact.defenseTraining')).toBe(true);
   expect(expressionReadsHiddenTarget('targetIsPlayer + targetFact.isCharacter')).toBe(false);
+});
+
+it('修炼估分使用 60→25 换算，封印与真实零抵抗目标一致', () => {
+  const source = unit({ kind: 'player' });
+  source.attrs.spellCultivate = 60;
+  source.attrs.attackCultivate = 60;
+  expect(visibleOutgoingDamage({ source, family: 'physical', coeff: 1, power: 0, skillLevel: 60, targetCount: 1 })).toBe(320);
+  expect(visibleOutgoingDamage({ source, family: 'fixed', coeff: 1, power: 1000, skillLevel: 60, targetCount: 1 })).toBe(1625);
+  const target = createUnit({ id: 'target', name: '目标', kind: 'npc', side: 1, level: 60, attrs: { hp: 1000, speed: 1 } }, 0);
+  expect(visibleSealHitChance(source, 60, 60, 55)).toBe(daoyouFormulas.sealHitChance(source, target, 60, 55));
 });

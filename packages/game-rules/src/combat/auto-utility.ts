@@ -314,6 +314,8 @@ export function rankAutoActions(
               const resultFactor = effect.resultFactors?.[Math.min(hit, effect.resultFactors.length - 1)] ?? 1;
               damage += (friendly
                 ? formulas.baseDamage({
+                    percentageDamage: effect.type === 'fixedHit' ? effect.percentageDamage : undefined,
+                    origin: effect.type === 'fixedHit' ? effect.origin : undefined,
                     source,
                     target: defender,
                     kind,
@@ -327,6 +329,8 @@ export function rankAutoActions(
                     targetCount: selected.length,
                   })
                 : visibleOutgoingDamage({
+                    percentageDamage: effect.type === 'fixedHit' ? effect.percentageDamage : undefined,
+                    origin: effect.type === 'fixedHit' ? effect.origin : undefined,
                     source,
                     family,
                     coeff,

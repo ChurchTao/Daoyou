@@ -39,7 +39,7 @@ const WildRuntimeSchema = z
             versions: z
               .object({
                 engineVersion: z.literal('combat-v6'),
-                rulesetVersion: z.enum(['daoyou_rules_v8', 'daoyou_rules_v9', 'daoyou_rules_v10', 'daoyou_rules_v11']),
+                rulesetVersion: z.enum(['daoyou_rules_v8', 'daoyou_rules_v9', 'daoyou_rules_v10', 'daoyou_rules_v11', 'daoyou_rules_v12']),
                 contentVersion: z.literal('daoyou_wild_seeking_content_v2'),
                 projectionVersion: z.literal('wild_individual_v3'),
                 autoPolicyVersion: z.string().min(1).optional(),

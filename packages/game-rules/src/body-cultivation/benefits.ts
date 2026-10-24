@@ -1,6 +1,6 @@
 import type { BodyCultivationTrackKey } from '@daoyou/game-domain/condition';
 import { BODY_CULTIVATION_PACK, BODY_CULTIVATION_TRACK_KEYS, bodyTrainingLevelCap } from '@daoyou/game-content/body-cultivation';
-import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
+import { cultivationModifiers } from '../combat/daoyou/cultivation.js';
 
 export type BodyCultivationEffectValues =
   | { kind: 'life'; hpPercent: number; healPower: number }
@@ -16,14 +16,13 @@ export function bodyCultivationEffectValues(key: BodyCultivationTrackKey, level:
     healPower: Math.floor(safeLevel / benefit.healLevelsPerPoint),
   };
   const trainingLevel = safeLevel * benefit.perLevel;
-  const defending = benefit.attribute === 'defenseCultivate' || benefit.attribute === 'resistSpellCultivate';
-  const difference = Math.max(DaoyouRule.damageCultivateDiffMin, Math.min(DaoyouRule.damageCultivateDiffMax, defending ? -trainingLevel : trainingLevel));
+  const modifier = cultivationModifiers(trainingLevel);
   return {
     kind: 'training', trainingLevel,
-    damagePercent: Math.abs(difference * DaoyouRule.cultivateRate * 100),
-    damageFlat: Math.abs(difference * DaoyouRule.cultivateFlat),
+    damagePercent: modifier.damageRate * 100,
+    damageFlat: modifier.damageFlat,
     sealBasePercent: benefit.attribute === 'spellCultivate' || benefit.attribute === 'resistSpellCultivate'
-      ? DaoyouRule.sealCultivateWeight * Math.tanh(trainingLevel / DaoyouRule.sealCultivateScale)
+      ? modifier.sealPercent
       : null,
   };
 }
@@ -45,7 +44,7 @@ export function bodyCultivationBenefits(levels: Record<BodyCultivationTrackKey, 
 
 export function bodyCultivationEffectTexts(key: BodyCultivationTrackKey, level: number, pack = BODY_CULTIVATION_PACK): string[] {
   const effect = bodyCultivationEffectValues(key, level, pack);
-  const number = (value: number) => Number(value.toFixed(1));
+  const number = (value: number) => Number(value.toFixed(2));
   if (effect.kind === 'life') return [
     `基础气血 +${number(effect.hpPercent)}%`,
     `固定治疗强度 +${effect.healPower}`,
@@ -54,7 +53,7 @@ export function bodyCultivationEffectTexts(key: BodyCultivationTrackKey, level: 
   const reducing = benefit.kind === 'training' && (benefit.attribute === 'defenseCultivate' || benefit.attribute === 'resistSpellCultivate');
   const physical = benefit.kind === 'training' && (benefit.attribute === 'attackCultivate' || benefit.attribute === 'defenseCultivate');
   return [
-    `${physical ? '物理' : '法术'}${reducing ? '减伤' : '增伤'} ${number(effect.damagePercent)}% + ${effect.damageFlat}（对手修炼为 0）`,
+    `${physical ? '物理' : '法术'}${reducing ? '减伤' : '增伤'} ${number(effect.damagePercent)}% + ${number(effect.damageFlat)}（对手修炼为 0）`,
     ...(effect.sealBasePercent === null ? [] : [
       `${reducing ? '受封印命中基值 −' : '封印命中基值 +'}${number(effect.sealBasePercent)}%`,
     ]),

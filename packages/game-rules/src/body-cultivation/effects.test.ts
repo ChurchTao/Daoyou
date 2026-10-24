@@ -32,8 +32,8 @@ describe('炼体效果展示', () => {
       expect(effect.kind).toBe('training');
       if (effect.kind !== 'training')
         throw new Error('expected training effect');
-      expect(effect.damagePercent).toBe(30);
-      expect(effect.damageFlat).toBe(75);
+      expect(effect.damagePercent).toBe(12.5);
+      expect(effect.damageFlat).toBe(31.25);
       const direction = key === 'skin' || key === 'primordial_spirit' ? -1 : 1;
       expect(
         applyCultivate(1000, direction * effect.trainingLevel),
@@ -43,15 +43,35 @@ describe('炼体效果展示', () => {
       );
     },
   );
-  it('60 级修炼的伤害修正按等级差上限显示，不虚报 120% 减伤', () => {
+  it('60 级修炼等效 25 级，提供 50% 与 125 点伤害修正', () => {
     const effect = bodyCultivationEffectValues('skin', 60);
     expect(effect).toMatchObject({
       kind: 'training',
       trainingLevel: 60,
-      damagePercent: 40,
-      damageFlat: 100,
+      damagePercent: 50,
+      damageFlat: 125,
     });
-    expect(applyCultivate(1000, -60)).toBe(1000 * 0.6 - 100);
+    expect(applyCultivate(1000, -60)).toBe(375);
+  });
+  it.each(['skin', 'sinew_bone', 'organs', 'primordial_spirit'] as const)(
+    '%s 从 44 到 45 级继续成长，且不提前取整等效等级',
+    (key) => {
+      const current = bodyCultivationEffectValues(key, 44);
+      const next = bodyCultivationEffectValues(key, 45);
+      if (current.kind !== 'training' || next.kind !== 'training')
+        throw new Error('expected training effect');
+      expect(current.damagePercent).toBeCloseTo(36.6666667);
+      expect(current.damageFlat).toBeCloseTo(91.6666667);
+      expect(next.damagePercent).toBe(37.5);
+      expect(next.damageFlat).toBe(93.75);
+    },
+  );
+  it('封印展示的是线性基值修正，最终命中仍受软边界限制', () => {
+    const effect = bodyCultivationEffectValues('organs', 60);
+    expect(effect).toMatchObject({ sealBasePercent: 50 });
+    const chance = daoyouFormulas.sealHitChance(unit('source', 60, 0), unit('target', 0, 0));
+    expect(chance).toBeCloseTo((75 + 20 * (1 - Math.exp(-1.5))) / 100);
+    expect(chance).toBeLessThan(0.95);
   });
   it('封印基值修正与实际封印命中公式一致', () => {
     const effect = bodyCultivationEffectValues('organs', 15);
@@ -95,9 +115,11 @@ describe('炼体效果展示', () => {
     pack.tracks.skin.benefit.perLevel = 2;
     expect(bodyCultivationEffectValues('skin', 5, pack)).toMatchObject({
       trainingLevel: 10,
-      damagePercent: 20,
-      damageFlat: 50,
     });
+    const effect = bodyCultivationEffectValues('skin', 5, pack);
+    if (effect.kind !== 'training') throw new Error('expected training effect');
+    expect(effect.damagePercent).toBeCloseTo(25 / 3);
+    expect(effect.damageFlat).toBeCloseTo(125 / 6);
     pack.tracks.qi_blood.benefit.hpRatioPerLevel = 0.01;
     pack.tracks.qi_blood.benefit.healLevelsPerPoint = 3;
     expect(bodyCultivationEffectValues('qi_blood', 15, pack)).toMatchObject({

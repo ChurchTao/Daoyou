@@ -26,7 +26,7 @@ const trackPositions = [
   'col-start-1 row-start-3',
   'col-start-3 row-start-1',
 ];
-const number = (value: number) => Number(value.toFixed(1));
+const number = (value: number) => Number(value.toFixed(2));
 
 function getTrackEffects(track: BodyCultivationTrackSummary, level: number) {
   const effect = bodyCultivationEffectValues(track.key, level);
@@ -45,18 +45,18 @@ function getTrackEffects(track: BodyCultivationTrackSummary, level: number) {
       : [
           {
             label: `固定${reducing ? '减伤' : '增伤'}`,
-            value: effect.damageFlat,
+            value: number(effect.damageFlat),
           },
           ...(effect.sealBasePercent === null
             ? []
             : [
                 {
-                  label: reducing ? '封印抵抗加成' : '封印命中加成',
-                  value: `+${number(effect.sealBasePercent)}%`,
+                  label: reducing ? '受封印命中基值' : '封印命中基值',
+                  value: `${effect.sealBasePercent === 0 ? '' : reducing ? '−' : '+'}${number(effect.sealBasePercent)}%`,
                 },
               ]),
         ];
-  return { effect, primary, secondary, reducing };
+  return { effect, primary, secondary };
 }
 
 function TrackEffects({
@@ -66,7 +66,7 @@ function TrackEffects({
   track: BodyCultivationTrackSummary;
   levelCap: number;
 }) {
-  const { effect, primary, secondary, reducing } = getTrackEffects(
+  const { effect, primary, secondary } = getTrackEffects(
     track,
     track.level,
   );
@@ -130,13 +130,8 @@ function TrackEffects({
       ) : null}
       {effect.kind === 'training' ? (
         <p className="text-ink-secondary mt-3 text-xs">
-          对手修炼为 <span className="font-mono">0</span> 时的示例。
-          {effect.trainingLevel >=
-          (reducing
-            ? -DaoyouRule.damageCultivateDiffMin
-            : DaoyouRule.damageCultivateDiffMax)
-            ? '示例已达等级差上限，实际效果随对手修炼变化。'
-            : null}
+          对手对应修炼为 <span className="font-mono">0</span>{' '}
+          时的示例，实际按双方修炼等级差结算。
         </p>
       ) : null}
     </div>
@@ -325,25 +320,35 @@ export function BodyCultivationDetailPanel() {
               ) : (
                 <>
                   <p>
-                    伤害修正取双方对应修炼的等级差，差值范围为{' '}
+                    双方对应修炼按等级差结算，每级影响约{' '}
                     <span className="font-mono">
-                      {DaoyouRule.damageCultivateDiffMin} 至{' '}
-                      {DaoyouRule.damageCultivateDiffMax}
-                    </span>
-                    。每点差值影响{' '}
-                    <span className="font-mono">
-                      {number(DaoyouRule.cultivateRate * 100)}%
+                      {number(
+                        DaoyouRule.cultivateRate *
+                          DaoyouRule.cultivateLevelScale *
+                          100,
+                      )}%
                     </span>{' '}
                     与{' '}
                     <span className="font-mono">
-                      {DaoyouRule.cultivateFlat}
+                      {number(
+                        DaoyouRule.cultivateFlat * DaoyouRule.cultivateLevelScale,
+                      )}
                     </span>{' '}
-                    点伤害。对手修炼为零的示例达到上限后，继续升级仍可抵消对手的对应修炼。固定伤害不受影响，结算伤害最低为{' '}
+                    点伤害，持续成长至满级。普通固伤也受法术修炼差影响；百分比扣血、反震和伤势不受此修正。结算伤害最低为{' '}
                     <span className="font-mono">{DaoyouRule.minDamage}</span>。
                   </p>
                   {track.key === 'organs' ||
                   track.key === 'primordial_spirit' ? (
-                    <p>封印效果还受双方等级与命中、抵抗属性影响。</p>
+                    <p>
+                      封印基值每级差修正约{' '}
+                      <span className="font-mono">
+                        {number(
+                          DaoyouRule.sealCultivateRate *
+                            DaoyouRule.cultivateLevelScale,
+                        )}%
+                      </span>
+                      ；最终命中仍受双方等级、命中、抵抗属性与概率边界影响。
+                    </p>
                   ) : null}
                 </>
               )

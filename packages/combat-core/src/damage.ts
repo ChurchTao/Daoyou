@@ -99,7 +99,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
       : 0),
     origin,
   })
-  const strikeInput = { ...input, defenseIgnore: defenseIgnoreHook.defenseIgnore }
+  const strikeInput = { ...input, origin, defenseIgnore: defenseIgnoreHook.defenseIgnore }
   let raw = computeBase(ctx, source, target, src, dst, strikeInput, fury)
   const critAdd = modifierValue(modifiers, 'critMultiplierAdd', source, target, skill, ctx)
   const extraTakenFactor = input.healInstead ? 1 : passiveSkills(ctx.skills, target).reduce((factor, passive) => factor * (passive.innate?.criticalExtraTakenFactor ?? 1), 1)
@@ -290,6 +290,8 @@ function computeBase(
         })
       : withAttrs(target, targetAttrs)
   return ctx.rules.formulas.baseDamage({
+    percentageDamage: input.percentageDamage,
+    origin: input.origin,
     family,
     kind: input.kind,
     source: withAttrs(source, src),

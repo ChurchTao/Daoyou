@@ -1,7 +1,7 @@
 {
   "$schema": "./encounters.schema.json",
   "formatVersion": 3,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "minRealm": "金丹",
   "difficultyStep": 5,
   "floors": [
@@ -156,7 +156,7 @@
       "dodge": 90,
       "referencePhysicalDef": 430,
       "referenceMagicDef": 510,
-      "damagePerRound": 775
+      "damagePerRound": 700
     },
     "元婴": {
       "physicalAtk": 850,
@@ -228,7 +228,7 @@
       "dodge": 185,
       "referencePhysicalDef": 970,
       "referenceMagicDef": 1340,
-      "damagePerRound": 2050
+      "damagePerRound": 2250
     }
   }
 }
