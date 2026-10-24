@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { MailAttachmentsSchema } from './attachments.js';
+import {
+  attachmentsToResourceOperations,
+  MailAttachmentsSchema,
+} from './attachments.js';
 import {
   ItemLibraryConsumablePayloadSchema,
   ItemLibraryMaterialPayloadSchema,
@@ -108,5 +111,24 @@ describe('ItemLibraryMaterialPayloadSchema', () => {
     if (attachment.type !== 'material') return;
     expect(attachment.data.details).toEqual(payload.details);
     expect(attachment.data.quantity).toBe(2);
+  });
+
+  it('refuses to turn stored vault attachments into resource gains', () => {
+    const [attachment] = MailAttachmentsSchema.parse([
+      {
+        type: 'material',
+        name: '青纹眠籽',
+        quantity: 1,
+        data: {
+          name: '青纹眠籽',
+          type: 'herb',
+          rank: '凡品',
+          quantity: 1,
+        },
+      },
+    ]);
+    expect(() => attachmentsToResourceOperations([attachment])).toThrow(
+      '旧藏宝库已停止入库',
+    );
   });
 });

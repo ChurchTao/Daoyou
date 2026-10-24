@@ -15,7 +15,7 @@ import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import { grantInventory } from '@server/inventory/operations.js';
 import { sanitizeMaterialForClient } from '@server/inventory/presentation.js';
 
-/** Only used when producing new rewards; never converts stored mail on claim. */
+/** New rewards and stored material/consumable claims both enter the current inventory. */
 export function newRewardAttachment(item: MailAttachment): MailAttachment {
   assertCurrentRewardItem(
     item.type === 'inventory_v1' ? item.inventory?.instanceData : item.data,
@@ -101,27 +101,27 @@ export function publicMailAttachment(item: MailAttachment): MailAttachment {
   return item;
 }
 
+function claimableInventoryAttachment(item: MailAttachment): MailAttachment | null {
+  if (item.type === 'inventory_v1') return item;
+  if (item.type === 'artifact') throw new Error('旧法宝不能再写入洞府宝库');
+  if (item.type !== 'material' && item.type !== 'consumable') return null;
+  const next = newRewardAttachment(item);
+  if (next.type !== 'inventory_v1') throw new Error('旧藏宝库已停止入库');
+  return next;
+}
+
 export async function deliverMailInventory(
   owner: string,
   attachments: MailAttachment[],
   tx: DbTransaction,
 ) {
-  const grants = attachments
-    .filter((a) => a.type === 'inventory_v1')
-    .map((a) => {
-      const grant = MailInventoryGrantSchema.parse(a.inventory);
-      if (grant.quantity !== a.quantity) throw new Error('邮件物品数量不一致');
-      return grant;
-    });
+  const grants = attachments.flatMap((item) => {
+    const next = claimableInventoryAttachment(item);
+    if (!next || next.type !== 'inventory_v1') return [];
+    const grant = MailInventoryGrantSchema.parse(next.inventory);
+    if (grant.quantity !== next.quantity) throw new Error('邮件物品数量不一致');
+    return [grant];
+  });
   const delivered = await grantInventory(owner, grants, tx);
-  return [
-    ...new Set([
-      ...delivered.map((item) => item.location),
-      ...(attachments.some((a) =>
-        ['material', 'consumable', 'artifact'].includes(a.type),
-      )
-        ? ['vault']
-        : []),
-    ]),
-  ];
+  return [...new Set(delivered.map((item) => item.location))];
 }

@@ -231,7 +231,14 @@ export class PlayerMailApplicationService {
               throw new PlayerMailCommandError('邮件已领取或不存在', 400);
             describeJournal(tx, args.actor.cultivatorId, current.title);
             const attachments = (current.attachments as MailAttachment[]) || [];
-            const gains = attachmentsToResourceOperations(attachments);
+            const gains = attachmentsToResourceOperations(
+              attachments.filter(
+                (item) =>
+                  item.type !== 'material' &&
+                  item.type !== 'consumable' &&
+                  item.type !== 'artifact',
+              ),
+            );
             if (attachments.length === 0) {
               return {
                 result: { message: 'No attachments' },
@@ -331,7 +338,14 @@ export class PlayerMailApplicationService {
             const attachments = claimable.flatMap(
               (mail) => (mail.attachments as MailAttachment[]) || [],
             );
-            const gains = attachmentsToResourceOperations(attachments);
+            const gains = attachmentsToResourceOperations(
+              attachments.filter(
+                (item) =>
+                  item.type !== 'material' &&
+                  item.type !== 'consumable' &&
+                  item.type !== 'artifact',
+              ),
+            );
             if (mailIds.length === 0) {
               return {
                 result: {

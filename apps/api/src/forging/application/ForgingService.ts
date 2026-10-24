@@ -16,7 +16,6 @@ import {
   seedFactsOf,
   type InventoryItem,
 } from '@daoyou/game-domain/inventory';
-import { buildSpiritFieldSeedMaterialFromPlant } from '@daoyou/game-domain/spirit-field';
 import { generateStarterBeast } from '@daoyou/game-rules/beasts/generation';
 import {
   BEAST_BAG_CAPACITY,
@@ -36,7 +35,6 @@ import { legacyMaterialUnavailableReason } from '@daoyou/game-rules/items/legacy
 import { parseMailAttachments } from '@daoyou/game-rules/mail';
 import { storyMarkForSignal } from '@daoyou/game-rules/story';
 import { QiService } from '@server/cultivator/application/QiService.js';
-import { addConsumableToInventoryInTransaction } from '@server/cultivator/application/readers/CultivatorInventoryRepository.js';
 import { readCultivatorName } from '@server/cultivator/facts.js';
 import { generateForgingNarrative } from '@server/forging/application/ForgingNarrativeService.js';
 import { mapConsumableRow } from '@server/inventory/application/consumablePersistence.js';
@@ -558,12 +556,14 @@ export async function grantDevResources(input: DevGrant) {
         );
         ids.push(mail.id);
       } else if (grant.type === 'vault-consumable') {
-        const item = await addConsumableToInventoryInTransaction(
-          input.cultivatorId,
-          { ...grant.facts, quantity: grant.quantity },
-          tx,
-        );
-        if (item.id) ids.push(item.id);
+        const granted = await grantInventory(input.cultivatorId, [
+          {
+            definitionId: 'consumable.v1',
+            quantity: grant.quantity,
+            instanceData: grant.facts,
+          },
+        ], tx);
+        ids.push(...granted.map((item) => item.id));
       } else if (grant.type === 'beast') {
         if (!BEAST_SPECIES.some((species) => species.id === grant.speciesId))
           throw new InventoryError('灵兽物种无效');
@@ -611,27 +611,23 @@ export async function grantDevResources(input: DevGrant) {
         );
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
-        const [row] = await tx
-          .insert(materials)
-          .values({
-            ...buildSpiritFieldSeedMaterialFromPlant(
-              grant.facts.seedSpec.plant,
-              grant.quantity,
-            ),
-            cultivatorId: input.cultivatorId,
-          })
-          .returning({ id: materials.id });
-        ids.push(row.id);
-      } else if (grant.type === 'vault-material') {
-        const [row] = await tx
-          .insert(materials)
-          .values({
-            ...grant.facts,
-            cultivatorId: input.cultivatorId,
+        const granted = await grantInventory(input.cultivatorId, [
+          {
+            definitionId: 'seed.v1',
             quantity: grant.quantity,
-          })
-          .returning({ id: materials.id });
-        ids.push(row.id);
+            instanceData: grant.facts,
+          },
+        ], tx);
+        ids.push(...granted.map((item) => item.id));
+      } else if (grant.type === 'vault-material') {
+        const granted = await grantInventory(input.cultivatorId, [
+          {
+            definitionId: 'material.v1',
+            quantity: grant.quantity,
+            instanceData: grant.facts,
+          },
+        ], tx);
+        ids.push(...granted.map((item) => item.id));
       } else if (grant.type === 'spirit-stones') {
         const updated = await tx
           .update(cultivators)

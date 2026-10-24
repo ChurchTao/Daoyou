@@ -1,19 +1,11 @@
-import { recordJournalChange } from '@server/player/application/JournalSettlement.js';
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import * as schema from '@server/lib/drizzle/schema.js';
-import {
-  addArtifactToInventoryInTransaction,
-  addConsumableToInventoryInTransaction,
-  addMaterialToInventoryInTransaction,
-  removeMaterialFromInventoryInTransaction,
-} from '@server/cultivator/application/readers/CultivatorInventoryRepository.js';
 import {
   updateCultivationExp,
   updateLifespan,
   updateReputation,
   updateSpiritStones,
 } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
-import { calculateSingleElixirScore } from '@server/utils/rankingUtils.js';
 import type {
   ResourceOperation,
   ResourceOperationResult,
@@ -21,8 +13,7 @@ import type {
   ResourceValidationResult,
 } from '@daoyou/game-domain/resources';
 import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
-import type { Artifact, Consumable, Material } from '@daoyou/game-domain/character';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 function createSettlement(): ResourceOperationSettlement {
   return { inventoryChanges: [] };
@@ -81,36 +72,8 @@ export class ResourceEngine {
       cultivation_exp?: number;
       comprehension_insight?: number;
     } | null;
-    const requiredMaterials = new Map<string, number>();
-    for (const requirement of requirements) {
-      if (requirement.type !== 'material' || !requirement.name) continue;
-      requiredMaterials.set(
-        requirement.name,
-        (requiredMaterials.get(requirement.name) ?? 0) + requirement.value,
-      );
-    }
-    const materialQuantities = new Map<string, number>();
-    if (requiredMaterials.size > 0) {
-      const rows = await q
-        .select({
-          name: schema.materials.name,
-          quantity: sql<number>`coalesce(sum(${schema.materials.quantity}), 0)::int`,
-        })
-        .from(schema.materials)
-        .where(
-          and(
-            eq(schema.materials.cultivatorId, cultivatorId),
-            inArray(schema.materials.name, [...requiredMaterials.keys()]),
-          ),
-        )
-        .groupBy(schema.materials.name);
-      for (const row of rows) {
-        materialQuantities.set(row.name, Number(row.quantity));
-      }
-    }
     const missing: ResourceOperation[] = [];
     const errors: string[] = [];
-    const checkedMaterials = new Set<string>();
     for (const requirement of requirements) {
       let current: number | null = null;
       let label = '';
@@ -136,21 +99,6 @@ export class ResourceEngine {
           label = getGameConceptLabel('comprehension_insight');
           break;
         case 'material':
-          if (requirement.name && checkedMaterials.has(requirement.name)) {
-            continue;
-          }
-          if (requirement.name) checkedMaterials.add(requirement.name);
-          if (
-            requirement.name &&
-            (materialQuantities.get(requirement.name) ?? 0) <
-              (requiredMaterials.get(requirement.name) ?? requirement.value)
-          ) {
-            missing.push(requirement);
-            errors.push(
-              `材料 ${requirement.name} 不足，需要 ${requiredMaterials.get(requirement.name) ?? requirement.value}`,
-            );
-          }
-          continue;
         case 'hp_loss':
         case 'mp_loss':
         case 'battle':
@@ -266,33 +214,6 @@ export class ResourceEngine {
           );
           break;
         case 'material':
-          if (operation.name) {
-            const changes = await removeMaterialFromInventoryInTransaction(
-              args.cultivatorId,
-              operation.name,
-              operation.value,
-              args.tx,
-            );
-            recordJournalChange(args.tx, args.cultivatorId, {
-              kind: 'item', id: `material:${operation.name}`, name: operation.name, amount: -operation.value,
-            });
-            settlement.inventoryChanges.push(
-              ...changes.map((change) =>
-                change.operation === 'upsert'
-                  ? {
-                      kind: 'materials' as const,
-                      operation: 'upsert' as const,
-                      item: change.item,
-                    }
-                  : {
-                      kind: 'materials' as const,
-                      operation: 'remove' as const,
-                      id: change.id,
-                    },
-              ),
-            );
-          }
-          break;
         case 'hp_loss':
         case 'mp_loss':
         case 'battle':
@@ -347,80 +268,13 @@ export class ResourceEngine {
           );
           break;
         case 'material':
-          if (operation.data && 'name' in operation.data) {
-            const material = { ...operation.data } as Material;
-            material.quantity = operation.value;
-            const item = await addMaterialToInventoryInTransaction(
-              args.cultivatorId,
-              material,
-              args.tx,
-            );
-            recordJournalChange(args.tx, args.cultivatorId, {
-              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
-            });
-            settlement.inventoryChanges.push({
-              kind: 'materials',
-              operation: 'upsert',
-              item,
-            });
-          } else {
-            return {
-              success: false,
-              operations,
-              errors: ['材料数据不完整，缺少 name 字段'],
-            };
-          }
-          break;
         case 'artifact':
-          if (operation.data && 'name' in operation.data) {
-            const artifact = { ...operation.data } as Artifact;
-            const item = await addArtifactToInventoryInTransaction(
-              args.cultivatorId,
-              artifact,
-              args.tx,
-            );
-            recordJournalChange(args.tx, args.cultivatorId, {
-              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: 1,
-            });
-            settlement.inventoryChanges.push({
-              kind: 'artifacts',
-              operation: 'upsert',
-              item,
-            });
-          } else {
-            return {
-              success: false,
-              operations,
-              errors: ['法宝数据不完整，缺少 name 字段'],
-            };
-          }
-          break;
         case 'consumable':
-          if (operation.data && 'name' in operation.data) {
-            const consumable = { ...operation.data } as Consumable;
-            consumable.quantity = operation.value;
-            consumable.score = calculateSingleElixirScore(consumable);
-            const item = await addConsumableToInventoryInTransaction(
-              args.cultivatorId,
-              consumable,
-              args.tx,
-            );
-            recordJournalChange(args.tx, args.cultivatorId, {
-              kind: 'item', id: item.id ?? `${operation.type}:${item.name}`, name: item.name, amount: operation.value,
-            });
-            settlement.inventoryChanges.push({
-              kind: 'consumables',
-              operation: 'upsert',
-              item,
-            });
-          } else {
-            return {
-              success: false,
-              operations,
-              errors: ['消耗品数据不完整，缺少 name 字段'],
-            };
-          }
-          break;
+          return {
+            success: false,
+            operations,
+            errors: ['旧藏宝库已停止入库'],
+          };
         case 'hp_loss':
         case 'mp_loss':
         case 'battle':

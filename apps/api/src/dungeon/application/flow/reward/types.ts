@@ -62,8 +62,6 @@ export interface ValueRange {
 export interface RewardRangeConfig {
   /** 灵石数量范围 */
   spirit_stones: ValueRange;
-  /** 材料价值范围 */
-  material_price: ValueRange;
   /** 修为值范围 */
   cultivation_exp: ValueRange;
   /** 感悟值范围 */
