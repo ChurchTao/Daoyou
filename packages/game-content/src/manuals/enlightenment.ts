@@ -47,7 +47,8 @@ export const enlightenmentQualityMinimumRealms = [
   '炼虚',
 ] as const;
 
-// 前四境沿用原典籍估价；后四境以独立参考值延续倒数权重，不改变材料售价。
+// 前四境沿用原典籍估价；后四境以独立参考值延续价格梯度，不改变材料售价。
+// 悟道权重在规则层取参考价平方根的倒数。
 export const realmReferenceValues = [
   BASE_PRICES.玄品,
   BASE_PRICES.真品,

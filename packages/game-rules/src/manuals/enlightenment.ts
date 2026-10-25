@@ -66,7 +66,9 @@ export function enlightenmentDistribution(quality: Quality): number[] {
   const weights = ENLIGHTENMENT_REALMS.map((_, r) =>
     supports[rank].includes(r)
       ? 1 /
-        (realmReferenceValues[r] * TYPE_MULTIPLIERS.gongfa_manual)
+        Math.sqrt(
+          realmReferenceValues[r] * TYPE_MULTIPLIERS.gongfa_manual,
+        )
       : 0,
   );
   const total = weights.reduce((sum, w) => sum + w, 0);
