@@ -63,30 +63,54 @@ describe('悟道室', () => {
     visit([], 0);
     expect(count).toBe(494);
   });
-  it('凡灵玄真的境界概率和费用逐值保留，后四境概率为零', () => {
-    const legacyQualities = ENLIGHTENMENT_QUALITIES.slice(0, 4);
-    const legacySupports = [[0], [0, 1], [0, 1, 2], [1, 2, 3]];
-    const legacyInsightCosts = [1, 2, 3, 5, 8, 12];
-    for (const [rank, quality] of legacyQualities.entries()) {
-      const weights = ENLIGHTENMENT_REALMS.slice(0, 4).map((_, r) =>
-        legacySupports[rank].includes(r)
-          ? 1 /
-            (BASE_PRICES[ENLIGHTENMENT_QUALITIES[r + 2]] *
-              TYPE_MULTIPLIERS.gongfa_manual)
+  it('八品按参考价平方根的倒数分配，费用阶梯不变', () => {
+    const supports = [
+      [0],
+      [0, 1],
+      [0, 1, 2],
+      [1, 2, 3],
+      [2, 3, 4],
+      [3, 4, 5],
+      [4, 5, 6],
+      [5, 6, 7],
+    ];
+    const references = [
+      BASE_PRICES.玄品,
+      BASE_PRICES.真品,
+      BASE_PRICES.地品,
+      BASE_PRICES.天品,
+      200_000,
+      1_000_000,
+      5_000_000,
+      25_000_000,
+    ];
+    const insightCosts = [1, 2, 3, 5, 8, 12, 20, 32];
+    const published = [
+      [1, 0, 0, 0, 0, 0, 0, 0],
+      [0.634, 0.366, 0, 0, 0, 0, 0, 0],
+      [0.5281, 0.3049, 0.167, 0, 0, 0, 0, 0],
+      [0, 0.5578, 0.3055, 0.1366, 0, 0, 0, 0],
+      [0, 0, 0.5985, 0.2677, 0.1338, 0, 0, 0],
+      [0, 0, 0, 0.5802, 0.2901, 0.1297, 0, 0],
+      [0, 0, 0, 0, 0.6071, 0.2715, 0.1214, 0],
+      [0, 0, 0, 0, 0, 0.6071, 0.2715, 0.1214],
+    ];
+    for (const [rank, quality] of ENLIGHTENMENT_QUALITIES.entries()) {
+      const weights = references.map((reference, realm) =>
+        supports[rank].includes(realm)
+          ? 1 / Math.sqrt(reference * TYPE_MULTIPLIERS.gongfa_manual)
           : 0,
       );
       const total = weights.reduce((sum, weight) => sum + weight, 0);
-      expect(enlightenmentDistribution(quality)).toEqual([
-        ...weights.map((weight) => weight / total),
-        0,
-        0,
-        0,
-        0,
-      ]);
+      const distribution = enlightenmentDistribution(quality);
+      expect(distribution).toEqual(weights.map((weight) => weight / total));
+      distribution.forEach((probability, realm) => {
+        expect(probability).toBeCloseTo(published[rank][realm], 4);
+      });
       expect(previewEnlightenment([quality], 1).cost).toEqual({
         qi: rank + 1,
-        baseInsight: legacyInsightCosts[rank],
-        insight: legacyInsightCosts[rank],
+        baseInsight: insightCosts[rank],
+        insight: insightCosts[rank],
       });
     }
   });
