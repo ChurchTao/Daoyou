@@ -1,2 +1,0 @@
-ALTER TABLE "wanjiedaoyou_cultivator_manual_slots" DROP CONSTRAINT "cultivator_manual_slot_valid";--> statement-breakpoint
-ALTER TABLE "wanjiedaoyou_cultivator_manual_slots" ADD CONSTRAINT "cultivator_manual_slot_valid" CHECK ("wanjiedaoyou_cultivator_manual_slots"."slot" BETWEEN 1 AND 8);

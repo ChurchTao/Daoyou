@@ -4,6 +4,7 @@ import type { AuctionListingView } from '@daoyou/contracts/auction';
 import {
   auctionPurchaseQuantityLimit,
   calculateAuctionSettlement,
+  isAuctionBuyOrderKind,
 } from '@daoyou/game-rules/auction';
 import { canDeployBeast } from '@daoyou/game-rules/beasts/projection';
 import { useState } from 'react';
@@ -16,6 +17,7 @@ export function AuctionListingActions({
   pendingId,
   onBuy,
   onCancel,
+  onWantSame,
   close,
 }: {
   listing: AuctionListingView;
@@ -25,6 +27,7 @@ export function AuctionListingActions({
   pendingId: string | null;
   onBuy: (listing: AuctionListingView, quantity: number) => Promise<boolean>;
   onCancel: (listing: AuctionListingView) => Promise<boolean>;
+  onWantSame?: (listing: AuctionListingView) => void;
   close: () => void;
 }) {
   const [quantity, setQuantity] = useState('1');
@@ -76,6 +79,8 @@ export function AuctionListingActions({
       {!isOwner && !isBeast && maxQuantity > 1 && (
         <div>
           <InkQuantityInput
+            showLabel
+            fullWidth
             label="购买数量"
             max={maxQuantity}
             value={quantity}
@@ -116,6 +121,20 @@ export function AuctionListingActions({
       >
         {isOwner ? '下架' : '购买'}
       </InkButton>
+      {!isOwner &&
+        !isBeast &&
+        onWantSame &&
+        isAuctionBuyOrderKind(listing.itemType) && (
+          <InkButton
+            disabled={!!pendingId || expired}
+            onClick={() => {
+              onWantSame(listing);
+              close();
+            }}
+          >
+            求购同款
+          </InkButton>
+        )}
     </div>
   );
 }

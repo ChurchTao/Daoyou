@@ -2,18 +2,22 @@ import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { AUCTION_CATALOG_UNIT_PRICE_CAP } from '@daoyou/game-content/auction/config';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import {
+  AUCTION_BUY_ORDER_ITEM_TYPES,
   AUCTION_MAX_SELLER_RECEIPT,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_MAX_UNIT_PRICE,
+  type AuctionMaterialCondition,
 } from '@daoyou/game-domain/auction';
 import {
   ConsumableFactsSchema,
+  MaterialFactsSchema,
   SeedFactsSchema,
   materialFactsOf,
   type ItemDefinition,
 } from '@daoyou/game-domain/inventory';
 import { z } from 'zod';
 import { BeastTransferSchema } from '../beasts/trade.js';
+import { inventoryStackIdentity } from '../inventory/stack-key.js';
 import { InventoryEquipmentSchema } from '../inventory/equipment.js';
 import { ItemGrantSchema, itemDefinition } from '../inventory/index.js';
 import {
@@ -162,4 +166,82 @@ export function auctionBlockReason(
   if (quality && !isAuctionListableQuality(quality))
     return `仅玄品及以上物品可寄售，当前为${quality}`;
   return null;
+}
+
+/** 灵兽、道装与丹药／灵果无法用固定事实精确指定收购，暂不开放。 */
+const AUCTION_BUY_ORDER_KINDS = new Set<ItemDefinition['kind']>(
+  AUCTION_BUY_ORDER_ITEM_TYPES,
+);
+
+export function isAuctionBuyOrderKind(kind: ItemDefinition['kind']): boolean {
+  return AUCTION_BUY_ORDER_KINDS.has(kind);
+}
+
+export function auctionBuyOrderTargetBlockReason(item: {
+  definitionId: string;
+  instanceData: unknown;
+}): string | null {
+  const definition = findItemDefinition(item.definitionId);
+  if (!definition) return '该物品不支持收购';
+  if (!isAuctionBuyOrderKind(definition.kind)) return '该物品不支持收购';
+  const instanceData = item.instanceData ?? null;
+  if (definition.kind === 'material') {
+    if (!MaterialFactsSchema.safeParse(instanceData).success)
+      return '材料属性无效';
+  } else if (definition.kind === 'seed') {
+    if (!SeedFactsSchema.safeParse(instanceData).success)
+      return '灵种属性无效';
+  } else if (instanceData !== null) {
+    return '固定物品不能附带个体属性';
+  }
+  const quality = auctionItemQuality({ definitionId: definition.id, instanceData });
+  if (quality && !isAuctionListableQuality(quality))
+    return `仅玄品及以上物品可收购，当前为${quality}`;
+  if (inventoryStackIdentity(definition.id, instanceData) === null)
+    return '该物品不支持收购';
+  return null;
+}
+
+/** 条件收购只接受材料，且材料品质仍需满足寄售门槛。 */
+export function auctionMaterialConditionBlockReason(
+  condition: AuctionMaterialCondition,
+): string | null {
+  if (!isAuctionListableQuality(condition.quality))
+    return `仅玄品及以上材料可收购，当前为${condition.quality}`;
+  return null;
+}
+
+/** 条件收购只比较品质、类型与五行，名称和描述不参与匹配。 */
+export function auctionMaterialConditionMatches(
+  condition: AuctionMaterialCondition,
+  item: { definitionId: string; instanceData: unknown },
+): boolean {
+  if (item.definitionId !== 'material.v1') return false;
+  const parsed = MaterialFactsSchema.safeParse(item.instanceData);
+  if (!parsed.success) return false;
+  const facts = parsed.data;
+  if (condition.quality !== facts.rank) return false;
+  if (condition.type !== null && condition.type !== facts.type) return false;
+  if (condition.element === 'any') return true;
+  if (condition.element === 'none') return facts.element === null;
+  return condition.element === facts.element;
+}
+
+/** 收购目标必须能落到背包堆叠身份，卖家只有完全同款才能供货。 */
+export function auctionBuyOrderTargetStackKey(item: {
+  definitionId: string;
+  instanceData: unknown;
+}): string | null {
+  return inventoryStackIdentity(item.definitionId, item.instanceData ?? null);
+}
+
+export function auctionBuyOrderMatchesItem(
+  order: { definitionId: string; stackKey: string },
+  item: { definitionId: string; instanceData: unknown },
+): boolean {
+  if (order.definitionId !== item.definitionId) return false;
+  return (
+    inventoryStackIdentity(item.definitionId, item.instanceData ?? null) ===
+    order.stackKey
+  );
 }

@@ -117,6 +117,9 @@ function LoginVerifyPage({
       >
         <InkInput
           label="验证码"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
           value={otp}
           onChange={(value) => {
             setOtp(value);

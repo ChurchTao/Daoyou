@@ -1,14 +1,31 @@
 import { cn } from '@app/lib/cn';
-import type { ChangeEvent, KeyboardEvent, ReactNode } from 'react';
-import type { HTMLInputTypeAttribute } from 'react';
+import {
+  useId,
+  type ChangeEvent,
+  type InputHTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react';
+import { InkField } from './InkField';
 import {
   inkFieldVariants,
   type InkFieldVariantProps,
 } from './inkFieldStyles';
 
-export interface InkInputProps extends InkFieldVariantProps {
-  label?: string;
-  placeholder?: string;
+type NativeInputProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  | 'value'
+  | 'onChange'
+  | 'onKeyDown'
+  | 'size'
+  | 'children'
+  | 'className'
+  | 'defaultValue'
+>;
+
+export interface InkInputProps extends InkFieldVariantProps, NativeInputProps {
+  label?: ReactNode;
   value: string;
   onChange: (
     value: string,
@@ -18,23 +35,19 @@ export interface InkInputProps extends InkFieldVariantProps {
   rows?: number;
   hint?: ReactNode;
   error?: string;
-  disabled?: boolean;
-  type?: HTMLInputTypeAttribute;
-  min?: number;
-  max?: number;
+  labelClassName?: string;
+  containerClassName?: string;
+  className?: string;
   onKeyDown?: (
     event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
-  labelClassName?: string;
 }
 
 /**
- * 输入框组件
- * 支持单行输入和多行文本域
+ * 统一表单输入。原生 input 属性会透传；multiline 时使用 textarea。
  */
 export function InkInput({
   label,
-  placeholder,
   value,
   onChange,
   multiline = false,
@@ -49,51 +62,68 @@ export function InkInput({
   variant,
   size,
   labelClassName,
+  containerClassName,
+  className,
+  id,
+  'aria-describedby': ariaDescribedBy,
+  ...rest
 }: InkInputProps) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const messageId = `${inputId}-message`;
+  const hasMessage = Boolean(error || hint);
+  const describedBy =
+    [ariaDescribedBy, hasMessage ? messageId : undefined]
+      .filter(Boolean)
+      .join(' ') || undefined;
   const fieldClass = cn(
     inkFieldVariants({ variant, size }),
-    multiline && 'battle-scroll min-h-24 resize-y',
-    disabled && 'opacity-50 cursor-not-allowed',
+    multiline
+      ? 'battle-scroll h-auto min-h-24 resize-y py-2'
+      : type === 'number' &&
+          'font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+    className,
   );
-
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => onChange(event.target.value, event);
-
+  const controlProps = {
+    id: inputId,
+    value,
+    disabled,
+    onKeyDown,
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? true : undefined,
+    className: fieldClass,
+  };
   return (
-    <label className="flex flex-col gap-1">
-      {label && (
-        <span className={cn('text-ink font-semibold tracking-[0.08em]', labelClassName)}>
-          {label}
-        </span>
-      )}
+    <InkField
+      id={inputId}
+      label={label}
+      hint={hint}
+      error={error}
+      disabled={disabled}
+      className={containerClassName}
+      labelClassName={labelClassName}
+      messageId={messageId}
+    >
       {multiline ? (
         <textarea
-          className={fieldClass}
-          placeholder={placeholder}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={onKeyDown}
+          {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)}
+          {...controlProps}
           rows={rows}
-          disabled={disabled}
+          onChange={handleChange}
         />
       ) : (
         <input
+          {...rest}
+          {...controlProps}
           type={type}
           min={min}
           max={max}
-          className={fieldClass}
-          placeholder={placeholder}
-          value={value}
           onChange={handleChange}
-          onKeyDown={onKeyDown}
-          disabled={disabled}
         />
       )}
-      {hint && !error && (
-        <span className="text-ink-secondary text-[0.82rem]">{hint}</span>
-      )}
-      {error && <span className="text-crimson text-[0.82rem]">{error}</span>}
-    </label>
+    </InkField>
   );
 }

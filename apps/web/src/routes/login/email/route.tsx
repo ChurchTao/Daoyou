@@ -111,6 +111,7 @@ export default function LoginEmailRoute() {
         <InkInput
           label="邮箱"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(value) => {
             setEmail(value);

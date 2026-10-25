@@ -1,21 +1,41 @@
 import { cn } from '@app/lib/cn';
-import type { ChangeEvent, ReactNode } from 'react';
+import {
+  useId,
+  type ChangeEvent,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react';
 
+import { InkField } from './InkField';
 import {
   inkFieldVariants,
   type InkFieldVariantProps,
 } from './inkFieldStyles';
 
-export interface InkSelectProps extends InkFieldVariantProps {
-  label?: string;
+type NativeSelectProps = Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  | 'value'
+  | 'onChange'
+  | 'size'
+  | 'children'
+  | 'className'
+  | 'multiple'
+  | 'defaultValue'
+>;
+
+export interface InkSelectProps
+  extends InkFieldVariantProps,
+    NativeSelectProps {
+  label?: ReactNode;
   value: string;
   onChange: (value: string, event: ChangeEvent<HTMLSelectElement>) => void;
-  children: ReactNode;
-  hint?: string;
+  hint?: ReactNode;
   error?: string;
-  disabled?: boolean;
-  className?: string;
   labelClassName?: string;
+  containerClassName?: string;
+  className?: string;
+  disabled?: boolean;
+  children: ReactNode;
 }
 
 export function InkSelect({
@@ -28,34 +48,44 @@ export function InkSelect({
   disabled = false,
   variant,
   size,
-  className,
   labelClassName,
+  containerClassName,
+  className,
+  id,
+  'aria-describedby': ariaDescribedBy,
+  ...rest
 }: InkSelectProps) {
-  const fieldClass = cn(
-    inkFieldVariants({ variant, size }),
-    disabled && 'opacity-50 cursor-not-allowed',
-    className,
-  );
-
+  const generatedId = useId();
+  const selectId = id ?? generatedId;
+  const messageId = `${selectId}-message`;
+  const hasMessage = Boolean(error || hint);
+  const describedBy =
+    [ariaDescribedBy, hasMessage ? messageId : undefined]
+      .filter(Boolean)
+      .join(' ') || undefined;
   return (
-    <label className="flex flex-col gap-1">
-      {label && (
-        <span className={cn('text-ink font-semibold tracking-[0.08em]', labelClassName)}>
-          {label}
-        </span>
-      )}
+    <InkField
+      id={selectId}
+      label={label}
+      hint={hint}
+      error={error}
+      disabled={disabled}
+      className={containerClassName}
+      labelClassName={labelClassName}
+      messageId={messageId}
+    >
       <select
-        className={fieldClass}
+        {...rest}
+        id={selectId}
         value={value}
-        onChange={(event) => onChange(event.target.value, event)}
         disabled={disabled}
+        aria-describedby={describedBy}
+        aria-invalid={error ? true : undefined}
+        onChange={(event) => onChange(event.target.value, event)}
+        className={cn(inkFieldVariants({ variant, size }), className)}
       >
         {children}
       </select>
-      {hint && !error && (
-        <span className="text-ink-secondary text-[0.82rem]">{hint}</span>
-      )}
-      {error && <span className="text-crimson text-[0.82rem]">{error}</span>}
-    </label>
+    </InkField>
   );
 }

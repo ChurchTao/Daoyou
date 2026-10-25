@@ -22,6 +22,7 @@ export const redisLockKeys = {
   forgingPreparation: (cultivatorId: string) =>
     `lock:forging:preparation:${cultivatorId}`,
   auctionListing: (listingId: string) => `lock:auction:listing:${listingId}`,
+  auctionBuyOrder: (orderId: string) => `lock:auction:buy-order:${orderId}`,
   battleMatch: (matchId: string) => `lock:battle-match:${matchId}`,
   cron: (jobName: string) => `lock:cron:${jobName}`,
   marketGeneration: (nodeId: string, layer: number | string, cycle: string) =>

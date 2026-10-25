@@ -12,6 +12,8 @@ import {
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import {
   AuctionBeastListSchema,
+  AuctionBuyOrderCreateSchema,
+  AuctionBuyOrderSupplySchema,
   AuctionBuySchema,
   AuctionListSchema,
 } from '@daoyou/contracts/auction';
@@ -20,8 +22,12 @@ import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
-import { AuctionListingsErrors, auctionMutationErrors } from './auction-errors.js';
-import { ListingsSchema } from './auction-input.js';
+import {
+  AuctionBuyOrdersErrors,
+  AuctionListingsErrors,
+  auctionMutationErrors,
+} from './auction-errors.js';
+import { BuyOrdersSchema, ListingsSchema } from './auction-input.js';
 import { AuctionService } from './auction.service.js';
 
 @Controller('api/auction')
@@ -95,6 +101,75 @@ export class AuctionController {
         400,
       );
     return this.auction.listBeast(actor, request.data);
+  }
+
+  @Get('buy-orders')
+  @UseFilters(AuctionBuyOrdersErrors)
+  buyOrders(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @FirstQuery() query: Record<string, string | undefined>,
+  ) {
+    const params = BuyOrdersSchema.parse({
+      scope: query.scope || undefined,
+      itemType: query.itemType || undefined,
+      itemCategory: query.itemCategory || undefined,
+      itemQuality: query.itemQuality || undefined,
+      itemName: query.itemName || undefined,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      sortBy: query.sortBy || undefined,
+      page: query.page ? Number(query.page) : undefined,
+      limit: query.limit ? Number(query.limit) : undefined,
+    });
+    return this.auction.buyOrders(actor.cultivatorId, params);
+  }
+
+  @Post('buy-orders')
+  @HttpCode(200)
+  @UseFilters(auctionMutationErrors('buy-order-create'))
+  createBuyOrder(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody({ fallback: undefined }) body: unknown,
+  ) {
+    const request = AuctionBuyOrderCreateSchema.safeParse(body);
+    if (!request.success)
+      throw new HttpException(
+        { error: '参数错误', details: request.error.issues },
+        400,
+      );
+    return this.auction.createBuyOrder(actor, request.data);
+  }
+
+  @Post('buy-orders/:id/supply')
+  @HttpCode(200)
+  @UseFilters(auctionMutationErrors('buy-order-supply'))
+  supplyBuyOrder(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('id') id: string,
+    @JsonBody({ fallback: undefined }) body: unknown,
+  ) {
+    const parsedId = z.uuid().safeParse(id);
+    if (!parsedId.success)
+      throw new HttpException({ error: '收购单标识无效' }, 400);
+    const request = AuctionBuyOrderSupplySchema.safeParse(body);
+    if (!request.success)
+      throw new HttpException(
+        { error: '参数错误', details: request.error.issues },
+        400,
+      );
+    return this.auction.supplyBuyOrder(actor, parsedId.data, request.data);
+  }
+
+  @Delete('buy-orders/:id')
+  @UseFilters(auctionMutationErrors('buy-order-cancel'))
+  cancelBuyOrder(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('id') id: string,
+  ) {
+    const parsed = z.uuid().safeParse(id);
+    if (!parsed.success)
+      throw new HttpException({ error: '收购单标识无效' }, 400);
+    return this.auction.cancelBuyOrder(actor, parsed.data);
   }
 
   @Delete(':id')

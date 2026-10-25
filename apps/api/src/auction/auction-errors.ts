@@ -23,6 +23,12 @@ const statusMap: Record<string, number> = {
   TARGET_NOT_FRIEND: 403,
   MISSING_TALISMAN: 400,
   NOT_TARGET_BUYER: 403,
+  ITEM_CHANGED: 409,
+  INVALID_TARGET: 400,
+  MAX_BUY_ORDERS: 400,
+  BUY_ORDER_NOT_FOUND: 404,
+  BUY_ORDER_EXPIRED: 400,
+  ITEM_MISMATCH: 400,
 };
 
 export const AuctionListingsErrors = apiErrorFilter((error) => {
@@ -35,8 +41,25 @@ export const AuctionListingsErrors = apiErrorFilter((error) => {
   return Response.json({ error: '获取拍卖列表失败' }, { status: 500 });
 });
 
+export const AuctionBuyOrdersErrors = apiErrorFilter((error) => {
+  if (error instanceof z.ZodError)
+    return Response.json(
+      { error: '参数错误', details: error.issues },
+      { status: 400 },
+    );
+  console.error('Auction Buy Orders API Error:', error);
+  return Response.json({ error: '获取收购列表失败' }, { status: 500 });
+});
+
 export function auctionMutationErrors(
-  operation: 'buy' | 'list' | 'list-beast' | 'cancel',
+  operation:
+    | 'buy'
+    | 'list'
+    | 'list-beast'
+    | 'cancel'
+    | 'buy-order-create'
+    | 'buy-order-supply'
+    | 'buy-order-cancel',
 ) {
   return apiErrorFilter((error) => {
     const lock = redisLockErrorResponse(error);
@@ -57,15 +80,25 @@ export function auctionMutationErrors(
         { error: error.message },
         { status: statusMap[error.code] || 400 },
       );
-    const action =
-      operation === 'buy' ? 'Buy' : operation === 'cancel' ? 'Cancel' : 'List';
+    const action = {
+      buy: 'Buy',
+      list: 'List',
+      'list-beast': 'ListBeast',
+      cancel: 'Cancel',
+      'buy-order-create': 'BuyOrderCreate',
+      'buy-order-supply': 'BuyOrderSupply',
+      'buy-order-cancel': 'BuyOrderCancel',
+    }[operation];
     console.error(`Auction ${action} API Error:`, error);
-    const message =
-      operation === 'buy'
-        ? '购买失败，请稍后重试'
-        : operation === 'cancel'
-          ? '下架失败，请稍后重试'
-          : '上架失败，请稍后重试';
+    const message = {
+      buy: '购买失败，请稍后重试',
+      list: '上架失败，请稍后重试',
+      'list-beast': '上架失败，请稍后重试',
+      cancel: '下架失败，请稍后重试',
+      'buy-order-create': '发布收购失败，请稍后重试',
+      'buy-order-supply': '供货失败，请稍后重试',
+      'buy-order-cancel': '取消收购失败，请稍后重试',
+    }[operation];
     return Response.json({ error: message }, { status: 500 });
   });
 }

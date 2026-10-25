@@ -66,7 +66,10 @@ export class AuctionServiceError extends Error {
     this.name = 'AuctionServiceError';
   }
 }
-type AuctionMutationOptions = { tx?: DbTransaction; deferCacheClear?: boolean };
+export type AuctionMutationOptions = {
+  tx?: DbTransaction;
+  deferCacheClear?: boolean;
+};
 type Listing = auctionRepository.AuctionListing;
 
 function listingAttachment(listing: Listing, quantity: number): MailAttachment {

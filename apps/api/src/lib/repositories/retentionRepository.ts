@@ -1,6 +1,7 @@
 import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
 import { getExecutor } from '@server/lib/drizzle/db.js';
 import {
+  auctionBuyOrders,
   auctionListings,
   dungeonHistories,
   dungeonRuns,
@@ -21,6 +22,7 @@ export type ExpiredDataCleanupCutoffs = {
   sectShopPurchases: Date;
   sectStipendClaims: Date;
   auctionListings: Date;
+  auctionBuyOrders: Date;
 };
 
 export type ExpiredDataCleanupResult = {
@@ -32,6 +34,7 @@ export type ExpiredDataCleanupResult = {
   sectShopPurchases: number;
   sectStipendClaims: number;
   auctionListings: number;
+  auctionBuyOrders: number;
 };
 
 async function deleteExpiredRows(
@@ -124,6 +127,22 @@ export async function pruneExpiredData(
       .returning({ id: auctionListings.id }),
   );
 
+  const auctionBuyOrdersDeleted = await deleteExpiredRows(q, (executor) =>
+    executor
+      .delete(auctionBuyOrders)
+      .where(
+        and(
+          inArray(auctionBuyOrders.status, [
+            'filled',
+            'expired',
+            'cancelled',
+          ]),
+          lt(auctionBuyOrders.createdAt, cutoffs.auctionBuyOrders),
+        ),
+      )
+      .returning({ id: auctionBuyOrders.id }),
+  );
+
   return {
     mails: mailsDeleted,
     qiLogs: qiLogsDeleted,
@@ -133,5 +152,6 @@ export async function pruneExpiredData(
     sectShopPurchases: sectShopPurchasesDeleted,
     sectStipendClaims: sectStipendClaimsDeleted,
     auctionListings: auctionListingsDeleted,
+    auctionBuyOrders: auctionBuyOrdersDeleted,
   };
 }
