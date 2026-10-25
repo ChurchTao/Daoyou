@@ -63,15 +63,15 @@ describe('悟道室', () => {
     visit([], 0);
     expect(count).toBe(494);
   });
-  it('六个旧品级的境界概率和费用逐值保留，后四境概率为零', () => {
-    const legacyQualities = ENLIGHTENMENT_QUALITIES.slice(0, 6);
-    const legacySupports = [[0], [0, 1], [0, 1, 2], [1, 2, 3], [2, 3], [3]];
+  it('凡灵玄真的境界概率和费用逐值保留，后四境概率为零', () => {
+    const legacyQualities = ENLIGHTENMENT_QUALITIES.slice(0, 4);
+    const legacySupports = [[0], [0, 1], [0, 1, 2], [1, 2, 3]];
     const legacyInsightCosts = [1, 2, 3, 5, 8, 12];
     for (const [rank, quality] of legacyQualities.entries()) {
       const weights = ENLIGHTENMENT_REALMS.slice(0, 4).map((_, r) =>
         legacySupports[rank].includes(r)
           ? 1 /
-            (BASE_PRICES[legacyQualities[r + 2]] *
+            (BASE_PRICES[ENLIGHTENMENT_QUALITIES[r + 2]] *
               TYPE_MULTIPLIERS.gongfa_manual)
           : 0,
       );
@@ -93,8 +93,16 @@ describe('悟道室', () => {
   it('高品加低品不放大高阶绝对产出率，满格必成', () => {
     const single = previewEnlightenment(['天品'], 1);
     const full = previewEnlightenment(['天品', '凡品', '凡品', '凡品'], 1);
-    expect(single.probabilities[3]).toBe(0.25);
-    expect(full.probabilities).toEqual([0.75, 0, 0, 0.25, 0, 0, 0, 0]);
+    expect(full.successChance).toBe(1);
+    expect(full.probabilities[0]).toBeCloseTo(0.75, 12);
+    for (let realm = 1; realm < ENLIGHTENMENT_REALMS.length; realm++)
+      expect(full.probabilities[realm]).toBeCloseTo(
+        single.probabilities[realm],
+        12,
+      );
+    expect(single.probabilities[3]).toBeGreaterThan(single.probabilities[4]);
+    expect(single.probabilities[4]).toBeGreaterThan(single.probabilities[5]);
+    expect(single.probabilities[5]).toBeGreaterThan(0);
     expect(rollEnlightenment(single, () => 0.99)).toBeNull();
     expect(rollEnlightenment(full, () => 0.999999)).toMatch(/^jade\./);
   });
@@ -129,14 +137,14 @@ describe('悟道室', () => {
     ['金丹', '地品'],
     ['元婴', '天品'],
     ['化神', '仙品'],
-    ['炼虚', '仙品'],
+    ['炼虚', '神品'],
     ['合体', '神品'],
     ['大乘', '神品'],
     ['渡劫', '神品'],
   ] as const)('%s境界最高可用%s典籍', (realm, quality) => {
     expect(enlightenmentQualityCap(realm)).toBe(quality);
   });
-  it('仙品最低化神、神品最低合体，允许预先悟得下一境界玉简', () => {
+  it('仙品最低化神、神品最低炼虚，允许预先悟得窗口内更高境界玉简', () => {
     const highBook = (rank: '仙品' | '神品'): InventoryItem => ({
       ...item(),
       instanceData: { name: '高阶典籍', type: 'gongfa_manual', rank },
@@ -145,36 +153,43 @@ describe('悟道室', () => {
       '需化神境界',
     );
     expect(enlightenmentMaterialProblem(highBook('仙品'), '化神')).toBeNull();
-    expect(enlightenmentMaterialProblem(highBook('神品'), '炼虚')).toBe(
-      '需合体境界',
+    expect(enlightenmentMaterialProblem(highBook('神品'), '化神')).toBe(
+      '需炼虚境界',
     );
-    expect(enlightenmentMaterialProblem(highBook('神品'), '合体')).toBeNull();
-    expect(
-      prepareEnlightenment([highBook('仙品')], [ref], '化神', 1).preview
-        .probabilities[5],
-    ).toBeGreaterThan(0);
-    expect(
-      prepareEnlightenment([highBook('神品')], [ref], '合体', 1).preview
-        .probabilities[7],
-    ).toBeGreaterThan(0);
+    expect(enlightenmentMaterialProblem(highBook('神品'), '炼虚')).toBeNull();
+    const xian = prepareEnlightenment([highBook('仙品')], [ref], '化神', 1)
+      .preview.probabilities;
+    expect(xian[4]).toBeGreaterThan(xian[5]);
+    expect(xian[5]).toBeGreaterThan(xian[6]);
+    const shen = prepareEnlightenment([highBook('神品')], [ref], '炼虚', 1)
+      .preview.probabilities;
+    expect(shen[5]).toBeGreaterThan(shen[6]);
+    expect(shen[6]).toBeGreaterThan(shen[7]);
   });
-  it('仙品仅产化神炼虚、神品仅产合体大乘，混低品不放大高境产出', () => {
-    for (const [quality, first, second] of [
-      ['仙品', 4, 5],
-      ['神品', 6, 7],
-    ] as const) {
+  it('地天仙神沿三境窗口上移，混低品不放大高境产出', () => {
+    const windows = [
+      ['地品', 2, 4],
+      ['天品', 3, 5],
+      ['仙品', 4, 6],
+      ['神品', 5, 7],
+    ] as const;
+    for (const [quality, first, last] of windows) {
       const single = previewEnlightenment([quality], 1);
       const full = previewEnlightenment([quality, '凡品', '凡品', '凡品'], 1);
       const distribution = enlightenmentDistribution(quality);
-      for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++) {
-        if (r === first || r === second) {
-          expect(distribution[r]).toBeGreaterThan(0);
-          expect(full.probabilities[r]).toBe(single.probabilities[r]);
+      for (let realm = 0; realm < ENLIGHTENMENT_REALMS.length; realm++) {
+        if (realm >= first && realm <= last) {
+          expect(distribution[realm]).toBeGreaterThan(0);
+          expect(full.probabilities[realm]).toBeCloseTo(
+            single.probabilities[realm],
+            12,
+          );
+          if (realm < last)
+            expect(distribution[realm]).toBeGreaterThan(distribution[realm + 1]);
         } else {
-          expect(distribution[r]).toBe(0);
+          expect(distribution[realm]).toBe(0);
         }
       }
-      expect(distribution[first] / distribution[second]).toBeCloseTo(5, 12);
       expect(full.successChance).toBe(1);
     }
   });

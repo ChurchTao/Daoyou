@@ -40,9 +40,27 @@ describe('六个功法位及独立高阶书目', () => {
     }
     for (const manual of advanced)
       expect(changeManual({
-        state: empty(), realm: '化神', action: 'learn', slot: 5,
+        state: empty(), realm: '大乘', action: 'learn', slot: 5,
         manualId: manual.id, expectedRevision: 0, resources,
       })).toMatchObject({ ok: true, state: { learned: [{ manualId: manual.id, slot: 5 }] } });
+    const later = advanced.find((manual) => manual.realm === '炼虚')!;
+    const peak = advanced.find((manual) => manual.realm === '大乘')!;
+    expect(changeManual({
+      state: empty(), realm: '化神', action: 'learn', slot: 5,
+      manualId: later.id, expectedRevision: 0, resources,
+    }).ok).toBe(false);
+    expect(changeManual({
+      state: empty(), realm: '炼虚', action: 'learn', slot: 5,
+      manualId: later.id, expectedRevision: 0, resources,
+    })).toMatchObject({ ok: true });
+    expect(changeManual({
+      state: empty(), realm: '合体', action: 'learn', slot: 5,
+      manualId: peak.id, expectedRevision: 0, resources,
+    }).ok).toBe(false);
+    expect(changeManual({
+      state: empty(), realm: '大乘', action: 'learn', slot: 6,
+      manualId: peak.id, expectedRevision: 0, resources,
+    })).toMatchObject({ ok: true });
   });
 
   it('每位最多六本，两高阶位独立计数，满位仍可免费替换', () => {
@@ -124,13 +142,13 @@ describe('六个功法位及独立高阶书目', () => {
     const state: CultivatorManualStateV1 = { ...empty(), learned: [{
       manualId: manual.id, slot: 5, level: 3, unlockedLevel: 3,
     }] };
-    const unlocked = changeManual({ state, realm: '化神', action: 'unlock', slot: 5,
+    const unlocked = changeManual({ state, realm: '大乘', action: 'unlock', slot: 5,
       manualId: manual.id, expectedRevision: 0, resources });
     expect(unlocked.ok && unlocked.state.learned[0].unlockedLevel).toBe(6);
     if (!unlocked.ok) return;
-    expect(changeManual({ state: unlocked.state, realm: '合体', action: 'train', slot: 6,
+    expect(changeManual({ state: unlocked.state, realm: '大乘', action: 'train', slot: 6,
       manualId: manual.id, expectedRevision: 1, resources }).ok).toBe(false);
-    expect(changeManual({ state: unlocked.state, realm: '炼虚', action: 'train', slot: 5,
+    expect(changeManual({ state: unlocked.state, realm: '大乘', action: 'train', slot: 5,
       manualId: manual.id, expectedRevision: 1, resources })).toMatchObject({
       ok: true, cost: manualRule(manual).costsByRealm[manual.realm][2],
       state: { learned: [{ level: 4, slot: 5 }] },

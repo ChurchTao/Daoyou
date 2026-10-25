@@ -105,7 +105,10 @@ export function validateManualStateV1(
       if (slot > getManualSlotCount(realm)) fail('当前境界尚未开放该功法归属位');
     }
     const rule = manualRule(def);
-    if (manualLearningSlot(def) > getManualSlotCount(realm))
+    if (
+      REALM_VALUES.indexOf(realm) < REALM_VALUES.indexOf(def.realm) ||
+      manualLearningSlot(def) > getManualSlotCount(realm)
+    )
       fail('当前境界不能修炼该功法');
     if (
       !Number.isInteger(entry.level) ||

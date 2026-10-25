@@ -164,7 +164,7 @@ it('学习消耗一本，修炼与切换不额外消耗玉简', () => {
   expect(manualJadeCost(state, { ...action, action: 'train' })).toBe(0);
   expect(manualJadeCost(state, { ...action, action: 'activate' })).toBe(0);
 });
-it('化神通过第五位学习原大乘来源玉简，仍校验同名玉简及最新版本', () => {
+it('大乘来源玉简要到大乘才能学习，仍校验同名玉简及最新版本', () => {
   const manualId = 'character_manual.yuanshi_zhenjie';
   const advancedAction: ManualAction = { ...action, manualId, slot: 5 };
   const advancedJade = {
@@ -172,7 +172,9 @@ it('化神通过第五位学习原大乘来源玉简，仍校验同名玉简及�
     definitionId: `jade.${manualId}`,
     stackKey: `definition.v1:jade.${manualId}`,
   };
-  expect(previewManualAction(state, '化神', advancedAction, resources, advancedJade)).toMatchObject({
+  expect(previewManualAction(state, '化神', advancedAction, resources, advancedJade).ok).toBe(false);
+  expect(previewManualAction(state, '合体', advancedAction, resources, advancedJade).ok).toBe(false);
+  expect(previewManualAction(state, '大乘', advancedAction, resources, advancedJade)).toMatchObject({
     ok: true,
     cost: { experience: 0, insight: 0 },
     state: {
@@ -180,14 +182,17 @@ it('化神通过第五位学习原大乘来源玉简，仍校验同名玉简及�
       build: { slots: [{ slot: 5, manualId }] },
     },
   });
+  expect(previewManualAction(state, '大乘', { ...advancedAction, slot: 6 }, resources, advancedJade)).toMatchObject({
+    ok: true,
+    state: { learned: [{ manualId, slot: 6 }] },
+  });
   for (const invalidAction of [
     { ...advancedAction, slot: 4 as const },
-    { ...advancedAction, slot: 6 as const },
     { ...advancedAction, expectedRevision: 1 },
     { ...advancedAction, item: { id: 'jade', revision: 1 } },
   ])
-    expect(previewManualAction(state, '化神', invalidAction, resources, advancedJade).ok).toBe(false);
+    expect(previewManualAction(state, '大乘', invalidAction, resources, advancedJade).ok).toBe(false);
   expect(previewManualAction(state, '元婴', advancedAction, resources, advancedJade).ok).toBe(false);
-  expect(previewManualAction(state, '化神', advancedAction, resources, item).ok).toBe(false);
+  expect(previewManualAction(state, '大乘', advancedAction, resources, item).ok).toBe(false);
   expect(state.learned).toEqual([]);
 });

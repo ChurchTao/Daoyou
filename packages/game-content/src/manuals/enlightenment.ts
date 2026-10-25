@@ -24,15 +24,16 @@ export const ENLIGHTENMENT_REALMS = [
 
 export const insightCosts = [1, 2, 3, 5, 8, 12, 20, 32];
 
+/** Sliding three-realm window, same shape as the original four basic realms. */
 export const supports = [
   [0],
   [0, 1],
   [0, 1, 2],
   [1, 2, 3],
-  [2, 3],
-  [3],
-  [4, 5],
-  [6, 7],
+  [2, 3, 4],
+  [3, 4, 5],
+  [4, 5, 6],
+  [5, 6, 7],
 ];
 
 export const enlightenmentQualityMinimumRealms = [
@@ -43,7 +44,7 @@ export const enlightenmentQualityMinimumRealms = [
   '金丹',
   '元婴',
   '化神',
-  '合体',
+  '炼虚',
 ] as const;
 
 // 前四境沿用原典籍估价；后四境以独立参考值延续倒数权重，不改变材料售价。

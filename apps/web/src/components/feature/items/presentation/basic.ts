@@ -124,10 +124,7 @@ export const manualAdapter: ItemAdapter = (item, def) => {
       header: [
         field('类型', '功法玉简'),
         field('功法类别', isAdvancedManual(manual) ? '高阶功法' : '基础功法'),
-        field(
-          '要求',
-          isAdvancedManual(manual) ? '化神及以上' : `${manual.realm}及以上`,
-        ),
+        field('要求', `${manual.realm}及以上`),
         quantity(item, options),
       ],
       sections: [

@@ -1,4 +1,4 @@
-import type { RealmType } from '@daoyou/constants/realms';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import {
   getManualSlotCount,
   canEquipManualInSlot,
@@ -39,6 +39,8 @@ export function changeManual(input: {
     input.slot > getManualSlotCount(realm)
   )
     return fail('功法不适用于该已开放功法位');
+  if (REALM_VALUES.indexOf(realm) < REALM_VALUES.indexOf(def.realm))
+    return fail('当前境界不能修炼该功法');
   const next = structuredClone(state);
   const learned = next.learned.find((d) => d.manualId === def.id);
   const rule = manualRule(def);
