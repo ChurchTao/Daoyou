@@ -14,6 +14,7 @@ import {
 } from '@daoyou/game-content/manuals';
 import { cn } from '@app/lib/cn';
 import { enlightenmentQualityCap } from '@daoyou/game-rules/manuals';
+import { isAdvancedManual } from '@daoyou/game-rules/manuals/projection';
 import { REALM_VALUES } from '@daoyou/constants/realms';
 import { useState } from 'react';
 import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
@@ -40,7 +41,7 @@ function Probabilities({ session }: { session: EnlightenmentSession }) {
         session.preview!.probabilities[i] > 0 ? (
           <p key={realm} className="flex flex-wrap justify-between gap-x-3">
             <span>
-              {realm}功法
+              {i >= 4 ? `高阶功法 · ${realm}传承` : `${realm}基础功法`}
               {session.view &&
               REALM_VALUES.indexOf(realm) >
                 REALM_VALUES.indexOf(session.view.realm) ? (
@@ -276,7 +277,7 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
                     </p>
                     {manual ? (
                       <p className="text-ink-secondary text-xs">
-                        {manual.realm}功法 · 玉简已收入储物袋
+                        {isAdvancedManual(manual) ? '高阶功法' : `${manual.realm}基础功法`} · 玉简已收入储物袋
                       </p>
                     ) : null}
                     <p className="text-ink-secondary text-xs">
@@ -393,7 +394,7 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
               选入一至四本功法典籍，静心参悟。典籍越多，领悟越有把握；放满四本，必能悟得一门功法。品质越高，越有机会领悟高深功法。
             </p>
             <p>
-              参悟会消耗所选典籍、天地灵气与道心感悟，即使未有所悟也不返还。所得功法会凝录为玉简收入储物袋，达到相应境界后即可修习。
+              参悟会消耗所选典籍、天地灵气与道心感悟，即使未有所悟也不返还。所得功法会凝录为玉简收入储物袋。玉简都要达到对应境界才能修习；高阶功法学会后，可放入任一已开放的高阶位。
             </p>
           </div>
         </details>

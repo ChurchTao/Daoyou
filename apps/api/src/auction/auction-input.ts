@@ -1,4 +1,7 @@
-import { AUCTION_ITEM_TYPES } from '@daoyou/game-domain/auction';
+import {
+  AUCTION_BUY_ORDER_ITEM_TYPES,
+  AUCTION_ITEM_TYPES,
+} from '@daoyou/game-domain/auction';
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { z } from 'zod';
 
@@ -13,6 +16,19 @@ export const ListingsSchema = z.object({
   minPrice: z.number().int().min(0).optional(),
   maxPrice: z.number().int().min(0).optional(),
   sortBy: z.enum(['price_asc', 'price_desc', 'latest']).optional(),
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export const BuyOrdersSchema = z.object({
+  scope: z.enum(['all', 'mine']).default('all'),
+  itemType: z.enum(AUCTION_BUY_ORDER_ITEM_TYPES).optional(),
+  itemCategory: z.string().trim().min(1).max(50).optional(),
+  itemQuality: z.enum(QUALITY_VALUES).optional(),
+  itemName: z.string().trim().min(1).max(200).optional(),
+  minPrice: z.number().int().min(0).optional(),
+  maxPrice: z.number().int().min(0).optional(),
+  sortBy: z.enum(['price_desc', 'latest']).optional(),
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
 });

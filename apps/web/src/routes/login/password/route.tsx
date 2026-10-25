@@ -121,6 +121,7 @@ export default function LoginPasswordRoute() {
         <InkInput
           label="邮箱"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(value) => {
             setEmail(value);
@@ -133,6 +134,7 @@ export default function LoginPasswordRoute() {
         <InkInput
           label="密码"
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={(value) => {
             setPassword(value);

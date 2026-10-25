@@ -1,5 +1,8 @@
+import { AuctionBuyOrderActions } from '@app/components/auction/AuctionBuyOrderActions';
+import { AuctionBuyOrders } from '@app/components/auction/AuctionBuyOrders';
 import { AuctionListingActions } from '@app/components/auction/AuctionListingActions';
 import { AuctionListings } from '@app/components/auction/AuctionListings';
+import { CreateBuyOrderModal } from '@app/components/auction/CreateBuyOrderModal';
 import { ListBeastModal } from '@app/components/auction/ListBeastModal';
 import { ListItemModal } from '@app/components/auction/ListItemModal';
 import {
@@ -26,10 +29,15 @@ import {
   useCultivatorIdentity,
 } from '@app/lib/resources/player';
 import { QUALITY_VALUES } from '@daoyou/constants/qualities';
-import { type AuctionListingView } from '@daoyou/contracts/auction';
+import {
+  type AuctionBuyOrderView,
+  type AuctionListingView,
+} from '@daoyou/contracts/auction';
 import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import {
+  AUCTION_BUY_ORDER_ITEM_TYPES,
   AUCTION_ITEM_TYPES,
+  AUCTION_MAX_ACTIVE_BUY_ORDERS,
   AUCTION_MAX_ACTIVE_LISTINGS,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_TYPE_NAMES,
@@ -52,14 +60,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 type ItemTypeFilter = AuctionItemType | 'all';
+type AuctionView = 'item' | 'beast' | 'buy';
 type ListingsPayload = {
   listings: AuctionListingView[];
   pagination: { page: number; total: number; totalPages: number };
   slots?: { used: number; limit: number; items: number; beasts: number };
 };
+type BuyOrdersPayload = {
+  orders: AuctionBuyOrderView[];
+  pagination: { page: number; total: number; totalPages: number };
+  slots?: { used: number; limit: number };
+};
 const ASSET_TABS = [
   { label: '道具', value: 'item' },
   { label: '灵兽', value: 'beast' },
+  { label: '收购', value: 'buy' },
 ];
 const ITEM_TYPES = AUCTION_ITEM_TYPES.filter((type) => type !== 'beast');
 const HIGH_VALUE_PURCHASE_CONFIRM_THRESHOLD = 100_000;
@@ -81,16 +96,23 @@ function getCategoryOptions(type: ItemTypeFilter) {
 export default function AuctionPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   // Preserve existing itemType=beast links while making assetType the primary tab.
-  const assetType: AuctionAssetType =
-    searchParams.get('assetType') === 'beast' ||
-    (!searchParams.has('assetType') && searchParams.get('itemType') === 'beast')
-      ? 'beast'
-      : 'item';
+  const rawAssetType = searchParams.get('assetType');
+  const view: AuctionView =
+    rawAssetType === 'buy'
+      ? 'buy'
+      : rawAssetType === 'beast' ||
+          (!searchParams.has('assetType') &&
+            searchParams.get('itemType') === 'beast')
+        ? 'beast'
+        : 'item';
+  const assetType: AuctionAssetType = view === 'beast' ? 'beast' : 'item';
+  const availableItemTypes: readonly AuctionItemType[] =
+    view === 'buy' ? AUCTION_BUY_ORDER_ITEM_TYPES : ITEM_TYPES;
   const rawType = searchParams.get('itemType');
   const itemType: ItemTypeFilter =
-    assetType === 'beast'
+    view === 'beast'
       ? 'beast'
-      : ITEM_TYPES.includes(rawType as (typeof ITEM_TYPES)[number])
+      : availableItemTypes.includes(rawType as AuctionItemType)
         ? (rawType as ItemTypeFilter)
         : 'all';
   const mine = searchParams.get('tab') === 'my';
@@ -100,7 +122,10 @@ export default function AuctionPage() {
   )
     ? searchParams.get('itemCategory')!
     : 'all';
-  const supportsQuality = ['material', 'seed', 'consumable'].includes(itemType);
+  const supportsQuality =
+    view === 'buy'
+      ? ['material', 'seed'].includes(itemType)
+      : ['material', 'seed', 'consumable'].includes(itemType);
   const rawQuality = searchParams.get('itemQuality');
   const itemQuality =
     supportsQuality &&
@@ -108,12 +133,21 @@ export default function AuctionPage() {
       ? rawQuality!
       : 'all';
   const rawSort = searchParams.get('sortBy');
+  const defaultSort = view === 'buy' ? 'price_desc' : 'latest';
   const sortBy =
-    rawSort === 'price_asc' || rawSort === 'price_desc' ? rawSort : 'latest';
+    view === 'buy'
+      ? rawSort === 'latest'
+        ? 'latest'
+        : 'price_desc'
+      : rawSort === 'price_asc' || rawSort === 'price_desc'
+        ? rawSort
+        : 'latest';
   const rawPage = Number(searchParams.get('page'));
   const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
   const searchMode =
-    searchParams.get('searchMode') === 'sellerName' ? 'sellerName' : 'itemName';
+    view === 'buy' || searchParams.get('searchMode') !== 'sellerName'
+      ? 'itemName'
+      : 'sellerName';
   const searchValue = searchParams.get(searchMode) || '';
   const profile = useCultivatorIdentity();
   const currency = useCultivatorCurrency();
@@ -132,7 +166,16 @@ export default function AuctionPage() {
     data?: ListingsPayload;
     error?: string;
   }>();
+  const [buyResult, setBuyResult] = useState<{
+    key: string;
+    data?: BuyOrdersPayload;
+    error?: string;
+  }>();
   const [showListModal, setShowListModal] = useState(false);
+  const [showCreateBuyOrder, setShowCreateBuyOrder] = useState(false);
+  const [wantSameSource, setWantSameSource] =
+    useState<AuctionListingView | null>(null);
+  const supplyAttempt = useRef<{ key: string; id: string }>(undefined);
   const [filterDraft, setFilterDraft] = useState<{
     itemType: ItemTypeFilter;
     category: string;
@@ -176,9 +219,24 @@ export default function AuctionPage() {
   const requestKey = `${listUrl}:${refresh}`;
   const currentResult = result?.key === requestKey ? result : undefined;
   const data = currentResult?.data;
+  const buyParams = new URLSearchParams({
+    scope: mine ? 'mine' : 'all',
+    page: String(page),
+    limit: '24',
+    sortBy,
+  });
+  if (itemType !== 'all') buyParams.set('itemType', itemType);
+  if (itemCategory !== 'all') buyParams.set('itemCategory', itemCategory);
+  if (itemQuality !== 'all') buyParams.set('itemQuality', itemQuality);
+  if (searchValue.trim()) buyParams.set('itemName', searchValue.trim());
+  const buyOrdersUrl = `/api/auction/buy-orders?${buyParams}`;
+  const buyRequestKey = `${buyOrdersUrl}:${refresh}`;
+  const currentBuyResult =
+    buyResult?.key === buyRequestKey ? buyResult : undefined;
+  const buyData = currentBuyResult?.data;
 
   useEffect(() => {
-    if (!auctionOpen) return;
+    if (!auctionOpen || view === 'buy') return;
     const controller = new AbortController();
     void apiFetch(listUrl, { signal: controller.signal })
       .then(async (response) => {
@@ -195,10 +253,31 @@ export default function AuctionPage() {
           });
       });
     return () => controller.abort();
-  }, [auctionOpen, listUrl, requestKey]);
+  }, [auctionOpen, view, listUrl, requestKey]);
+
+  useEffect(() => {
+    if (!auctionOpen || view !== 'buy') return;
+    const controller = new AbortController();
+    void apiFetch(buyOrdersUrl, { signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || '获取收购列表失败');
+        if (!controller.signal.aborted)
+          setBuyResult({ key: buyRequestKey, data: payload });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setBuyResult({
+            key: buyRequestKey,
+            error: error instanceof Error ? error.message : '获取收购列表失败',
+          });
+      });
+    return () => controller.abort();
+  }, [auctionOpen, view, buyOrdersUrl, buyRequestKey]);
 
   // A sale or cancellation may empty the last page; keep the current filters.
   useEffect(() => {
+    if (view === 'buy') return;
     if (!data || page <= Math.max(1, data.pagination.totalPages)) return;
     setSearchParams(
       (previous) => {
@@ -208,7 +287,20 @@ export default function AuctionPage() {
       },
       { replace: true },
     );
-  }, [data, page, setSearchParams]);
+  }, [data, page, setSearchParams, view]);
+
+  useEffect(() => {
+    if (view !== 'buy') return;
+    if (!buyData || page <= Math.max(1, buyData.pagination.totalPages)) return;
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set('page', String(Math.max(1, buyData.pagination.totalPages)));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [buyData, page, setSearchParams, view]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
@@ -351,19 +443,87 @@ export default function AuctionPage() {
       setRefresh((value) => value + 1);
     }
   }
-  const assetLabel = assetType === 'item' ? '道具' : '灵兽';
+  async function handleSupply(
+    order: AuctionBuyOrderView,
+    itemId: string,
+    revision: number,
+    quantity: number,
+  ) {
+    if (pending.current) return false;
+    pending.current = true;
+    const key = JSON.stringify([order.id, itemId, quantity]);
+    if (supplyAttempt.current?.key !== key)
+      supplyAttempt.current = { key, id: crypto.randomUUID() };
+    setPendingId(order.id);
+    try {
+      const response = await mutate<{ message: string }>(
+        apiFetch(`/api/auction/buy-orders/${order.id}/supply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestId: supplyAttempt.current.id,
+            itemId,
+            revision,
+            quantity,
+          }),
+        }),
+      );
+      supplyAttempt.current = undefined;
+      pushToast({ message: response.message, tone: 'success' });
+      return true;
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '供货失败',
+        tone: 'danger',
+      });
+      return false;
+    } finally {
+      pending.current = false;
+      setPendingId(null);
+      setRefresh((value) => value + 1);
+    }
+  }
+
+  async function handleCancelBuyOrder(order: AuctionBuyOrderView) {
+    if (pending.current) return false;
+    pending.current = true;
+    setPendingId(order.id);
+    try {
+      const response = await mutate<{ message: string }>(
+        apiFetch(`/api/auction/buy-orders/${order.id}`, { method: 'DELETE' }),
+      );
+      pushToast({ message: response.message, tone: 'success' });
+      return true;
+    } catch (error) {
+      pushToast({
+        message: error instanceof Error ? error.message : '取消收购失败',
+        tone: 'danger',
+      });
+      return false;
+    } finally {
+      pending.current = false;
+      setPendingId(null);
+      setRefresh((value) => value + 1);
+    }
+  }
+
+  const assetLabel =
+    view === 'buy' ? '收购' : view === 'item' ? '道具' : '灵兽';
   const filterCount =
-    Number(assetType === 'item' && itemType !== 'all') +
+    Number(view !== 'beast' && itemType !== 'all') +
     Number(itemCategory !== 'all') +
     Number(itemQuality !== 'all') +
     Number(Boolean(searchValue.trim())) +
-    Number(sortBy !== 'latest');
+    Number(sortBy !== defaultSort);
   const draftCategoryOptions = getCategoryOptions(
     filterDraft?.itemType ?? itemType,
   );
-  const draftSupportsQuality = ['material', 'seed', 'consumable'].includes(
-    filterDraft?.itemType ?? itemType,
-  );
+  const draftSupportsQuality =
+    view === 'buy'
+      ? ['material', 'seed'].includes(filterDraft?.itemType ?? itemType)
+      : ['material', 'seed', 'consumable'].includes(
+          filterDraft?.itemType ?? itemType,
+        );
   function applyFilters() {
     if (!filterDraft) return;
     updateQuery({
@@ -423,10 +583,11 @@ export default function AuctionPage() {
         <div className="min-w-0 flex-1">
           <GameSceneTabs
             items={ASSET_TABS}
-            activeValue={assetType}
+            activeValue={view}
             onChange={(value) => {
               updateQuery({
-                assetType: value,
+                assetType: value === 'item' ? null : value,
+                tab: null,
                 itemType: null,
                 itemCategory: null,
                 itemQuality: null,
@@ -438,29 +599,65 @@ export default function AuctionPage() {
         </div>
         <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <InkButton onClick={() => updateQuery({ tab: mine ? null : 'my' })}>
-            {mine ? '返回市场' : '我的寄售'}
+            {mine
+              ? view === 'buy'
+                ? '返回收购'
+                : '返回市场'
+              : view === 'buy'
+                ? '我的收购'
+                : '我的寄售'}
           </InkButton>
-          <InkButton variant="primary" onClick={() => setShowListModal(true)}>
-            上架
-          </InkButton>
+          {view === 'buy' ? (
+            <InkButton
+              variant="primary"
+              onClick={() => setShowCreateBuyOrder(true)}
+            >
+              发布收购
+            </InkButton>
+          ) : (
+            <InkButton variant="primary" onClick={() => setShowListModal(true)}>
+              上架
+            </InkButton>
+          )}
           <GameSceneHelpButton
             help={{
-              title: '拍卖行规则',
-              content: (
-                <div className="space-y-2 text-sm leading-6">
-                  <p>
-                    道具与灵兽合计最多寄售{AUCTION_MAX_ACTIVE_LISTINGS}
-                    单，每单保留48小时。
-                  </p>
-                  <p>堆叠道具按件计价，可选择购买数量。灵兽每单1只。</p>
-                  <p>
-                    成交按单价适用3%～15%超额累进税率，成交款与退回物品通过邮件领取。
-                  </p>
-                  <p>
-                    好友专属寄售须消耗1张随身拍卖行贵宾符，仅卖家与指定道友可见。同账号不可回购。
-                  </p>
-                </div>
-              ),
+              title: view === 'buy' ? '收购规则' : '拍卖行规则',
+              content:
+                view === 'buy' ? (
+                  <div className="space-y-2 text-sm leading-6">
+                    <p>
+                      收购单最多{AUCTION_MAX_ACTIVE_BUY_ORDERS}
+                      个，每单保留48小时。
+                    </p>
+                    <p>
+                      发布时冻结“单价 × 数量”的灵石，撤单或过期后按剩余数量通过邮件退回。
+                    </p>
+                    <p>
+                      其他道友可用背包中完全同款供货；材料还可按品质、类型、五行发布条件收购，名称与描述不限。同账号角色不可互相供货。
+                    </p>
+                    <p>
+                      条件收购只支持材料，品质仍需玄品及以上；成交物品以实际交付材料为准。
+                    </p>
+                    <p>
+                      成交按单价适用3%～15%超额累进税率，由供货方承担；物品与灵石均通过邮件领取。
+                    </p>
+                    <p>灵兽、道装与丹药／灵果暂不支持收购。</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 text-sm leading-6">
+                    <p>
+                      道具与灵兽合计最多寄售{AUCTION_MAX_ACTIVE_LISTINGS}
+                      单，每单保留48小时。
+                    </p>
+                    <p>堆叠道具按件计价，可选择购买数量。灵兽每单1只。</p>
+                    <p>
+                      成交按单价适用3%～15%超额累进税率，成交款与退回物品通过邮件领取。
+                    </p>
+                    <p>
+                      好友专属寄售须消耗1张随身拍卖行贵宾符，仅卖家与指定道友可见。同账号不可回购。
+                    </p>
+                  </div>
+                ),
             }}
           />
         </div>
@@ -484,7 +681,30 @@ export default function AuctionPage() {
         </InkButton>
         <div className="text-ink-secondary flex min-w-0 flex-1 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs">
           <p>
-            {mine && data?.slots ? (
+            {view === 'buy' ? (
+              mine && buyData?.slots ? (
+                <>
+                  收购位{' '}
+                  <span className="font-mono">
+                    {buyData.slots.used}/{buyData.slots.limit}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {mine ? '我的收购' : '求购'}
+                  {buyData && (
+                    <>
+                      {' '}
+                      ·{' '}
+                      <span className="font-mono">
+                        {buyData.pagination.total}
+                      </span>{' '}
+                      单
+                    </>
+                  )}
+                </>
+              )
+            ) : mine && data?.slots ? (
               <>
                 寄售位{' '}
                 <span className="font-mono">
@@ -527,10 +747,10 @@ export default function AuctionPage() {
                 className="min-h-11"
                 onClick={() =>
                   setFilterDraft({
-                    itemType: assetType === 'beast' ? 'beast' : 'all',
+                    itemType: view === 'beast' ? 'beast' : 'all',
                     category: 'all',
                     quality: 'all',
-                    sortBy: 'latest',
+                    sortBy: defaultSort,
                     searchMode: 'itemName',
                     searchValue: '',
                   })
@@ -556,9 +776,9 @@ export default function AuctionPage() {
             }}
           >
             <div className="grid grid-cols-2 gap-3">
-              {assetType === 'item' && (
+              {view !== 'beast' && (
                 <InkSelect
-                  label="道具分类"
+                  label={view === 'buy' ? '收购品类' : '道具分类'}
                   value={filterDraft.itemType}
                   onChange={(value) =>
                     setFilterDraft({
@@ -569,8 +789,13 @@ export default function AuctionPage() {
                     })
                   }
                 >
-                  <option value="all">全部道具</option>
-                  {ITEM_TYPES.map((type) => (
+                  <option value="all">
+                    {view === 'buy' ? '全部品类' : '全部道具'}
+                  </option>
+                  {(view === 'buy'
+                    ? AUCTION_BUY_ORDER_ITEM_TYPES
+                    : ITEM_TYPES
+                  ).map((type) => (
                     <option key={type} value={type}>
                       {AUCTION_TYPE_NAMES[type]}
                     </option>
@@ -618,45 +843,123 @@ export default function AuctionPage() {
                   setFilterDraft({ ...filterDraft, sortBy: value })
                 }
               >
-                <option value="latest">最新上架</option>
-                <option value="price_asc">价格从低到高</option>
-                <option value="price_desc">价格从高到低</option>
+                {view === 'buy' ? (
+                  <>
+                    <option value="price_desc">收购价从高到低</option>
+                    <option value="latest">最新发布</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="latest">最新上架</option>
+                    <option value="price_asc">价格从低到高</option>
+                    <option value="price_desc">价格从高到低</option>
+                  </>
+                )}
               </InkSelect>
             </div>
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-3">
-              <InkSelect
-                label="搜索方式"
-                value={filterDraft.searchMode}
-                onChange={(value) =>
-                  setFilterDraft({
-                    ...filterDraft,
-                    searchMode: value,
-                    searchValue: '',
-                  })
-                }
-              >
-                <option value="itemName">{assetLabel}</option>
-                <option value="sellerName">卖家</option>
-              </InkSelect>
+            {view === 'buy' ? (
               <InkInput
-                label="完整名称"
+                label="物品名称"
                 value={filterDraft.searchValue}
                 onChange={(value) =>
                   setFilterDraft({ ...filterDraft, searchValue: value })
                 }
-                placeholder={
-                  filterDraft.searchMode === 'sellerName'
-                    ? '完整卖家名'
-                    : assetType === 'beast'
-                      ? '灵兽自定义全名'
-                      : '完整道具名'
-                }
+                placeholder="完整物品名"
               />
-            </div>
+            ) : (
+              <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-start gap-3">
+                <InkSelect
+                  label="搜索方式"
+                  value={filterDraft.searchMode}
+                  onChange={(value) =>
+                    setFilterDraft({
+                      ...filterDraft,
+                      searchMode: value,
+                      searchValue: '',
+                    })
+                  }
+                >
+                  <option value="itemName">{assetLabel}</option>
+                  <option value="sellerName">卖家</option>
+                </InkSelect>
+                <InkInput
+                  label="完整名称"
+                  value={filterDraft.searchValue}
+                  onChange={(value) =>
+                    setFilterDraft({ ...filterDraft, searchValue: value })
+                  }
+                  placeholder={
+                    filterDraft.searchMode === 'sellerName'
+                      ? '完整卖家名'
+                      : assetType === 'beast'
+                        ? '灵兽自定义全名'
+                        : '完整道具名'
+                  }
+                />
+              </div>
+            )}
           </form>
         </InkDetailDrawer>
       )}
-      {!currentResult ? (
+      {view === 'buy' ? (
+        !currentBuyResult ? (
+          <GameLoadingState message="正在获取收购列表……" variant="inline" />
+        ) : currentBuyResult.error ? (
+          <InkNotice tone="warning">
+            {currentBuyResult.error}
+            <InkButton onClick={() => setRefresh((value) => value + 1)}>
+              重试
+            </InkButton>
+          </InkNotice>
+        ) : buyData && buyData.orders.length > 0 ? (
+          <>
+            <AuctionBuyOrders
+              key={buyOrdersUrl}
+              orders={buyData.orders}
+              ownerId={identity?.id}
+              now={now}
+              actions={(order, close) => (
+                <AuctionBuyOrderActions
+                  order={order}
+                  ownerId={identity?.id}
+                  now={now}
+                  pendingId={pendingId}
+                  onSupply={handleSupply}
+                  onCancel={handleCancelBuyOrder}
+                  close={close}
+                />
+              )}
+            />
+            {buyData.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4">
+                <InkButton
+                  disabled={page <= 1}
+                  onClick={() =>
+                    updateQuery({ page: String(page - 1) }, false)
+                  }
+                >
+                  上一页
+                </InkButton>
+                <span className="font-mono text-sm">
+                  {page} / {buyData.pagination.totalPages}
+                </span>
+                <InkButton
+                  disabled={page >= buyData.pagination.totalPages}
+                  onClick={() =>
+                    updateQuery({ page: String(page + 1) }, false)
+                  }
+                >
+                  下一页
+                </InkButton>
+              </div>
+            )}
+          </>
+        ) : (
+          <InkNotice>
+            {mine ? '当前没有符合条件的收购单' : '当前没有符合条件的求购'}
+          </InkNotice>
+        )
+      ) : !currentResult ? (
         <GameLoadingState message="正在获取拍卖列表……" variant="inline" />
       ) : currentResult.error ? (
         <InkNotice tone="warning">
@@ -681,6 +984,7 @@ export default function AuctionPage() {
                 pendingId={pendingId}
                 onBuy={handleBuy}
                 onCancel={handleCancel}
+                onWantSame={(listing) => setWantSameSource(listing)}
                 close={close}
               />
             )}
@@ -711,11 +1015,49 @@ export default function AuctionPage() {
         </InkNotice>
       )}
       {showListModal &&
+        view !== 'buy' &&
         (assetType === 'beast' ? (
           <ListBeastModal {...listModalProps} />
         ) : (
           <ListItemModal {...listModalProps} />
         ))}
+      {showCreateBuyOrder && (
+        <CreateBuyOrderModal
+          onClose={() => setShowCreateBuyOrder(false)}
+          onSuccess={() => {
+            setShowCreateBuyOrder(false);
+            updateQuery({
+              assetType: 'buy',
+              tab: 'my',
+              itemType: null,
+              itemCategory: null,
+              itemQuality: null,
+              itemName: null,
+              sellerName: null,
+            });
+            setRefresh((value) => value + 1);
+          }}
+        />
+      )}
+      {wantSameSource && (
+        <CreateBuyOrderModal
+          listingSource={wantSameSource}
+          onClose={() => setWantSameSource(null)}
+          onSuccess={() => {
+            setWantSameSource(null);
+            updateQuery({
+              assetType: 'buy',
+              tab: 'my',
+              itemType: null,
+              itemCategory: null,
+              itemQuality: null,
+              itemName: null,
+              sellerName: null,
+            });
+            setRefresh((value) => value + 1);
+          }}
+        />
+      )}
       <InkDialog
         dialog={dialog}
         onClose={() => {

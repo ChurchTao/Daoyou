@@ -1,7 +1,13 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
+export const INK_CONTROL_HEIGHTS = {
+  sm: 'h-9',
+  md: 'h-12',
+  lg: 'h-14',
+} as const;
+
 export const inkFieldVariants = cva(
-  'text-ink placeholder:text-ink-secondary/60 w-full bg-transparent font-sans leading-[1.6] focus:outline-none',
+  'text-ink placeholder:text-ink-secondary/60 w-full bg-transparent font-sans leading-[1.6] focus:outline-none disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
@@ -13,9 +19,9 @@ export const inkFieldVariants = cva(
       },
       size: {
         // iOS 会在聚焦字号小于 16px 的输入框时放大整页，小号字段也保持 text-base。
-        sm: 'px-2 py-2 text-base',
-        md: 'px-3 py-3 text-base',
-        lg: 'px-4 py-4 text-lg',
+        sm: `${INK_CONTROL_HEIGHTS.sm} px-2 text-base`,
+        md: `${INK_CONTROL_HEIGHTS.md} px-3 text-base`,
+        lg: `${INK_CONTROL_HEIGHTS.lg} px-4 text-lg`,
       },
     },
     defaultVariants: {

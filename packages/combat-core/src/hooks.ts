@@ -2,13 +2,18 @@
  * 战斗内钩子总线。被动技能在 bindDataHooks 里订阅。
  * cancelled / damage 是钩子回写通道（跳过出手、改最终伤害）。
  */
-import type { DamageKind, DamageOrigin, HookName } from "./enums.js"
+import type { DamageKind, DamageOrigin, HookName, StatusCategory, StatusFlag } from "./enums.js"
 import type { BattleEvent, SkillId, Unit } from "./types.js"
 
 export type { HookName }
 
 export type HookContext = {
   removedStatusKind?: string
+  removedStatusCategory?: StatusCategory
+  removedStatusDispellable?: boolean
+  removedStatusFlags?: StatusFlag[]
+  statusRemovedByAlly?: boolean
+  dotStatusId?: string
   statusRemoveReason?: string
   source?: Unit
   target?: Unit

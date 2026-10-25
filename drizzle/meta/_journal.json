@@ -477,6 +477,27 @@
       "when": 1792637821975,
       "tag": "0067_sponsorship_order_recipients",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1792904286108,
+      "tag": "0068_smiling_outlaw_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792922870739,
+      "tag": "0069_small_wrecking_crew",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1792933686067,
+      "tag": "0070_manual_slot_code_validation",
+      "breakpoints": true
     }
   ]
 }

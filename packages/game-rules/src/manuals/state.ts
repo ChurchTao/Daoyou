@@ -1,7 +1,9 @@
-import type { RealmType } from '@daoyou/constants/realms';
+import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import {
   getManualSlotCount,
-  manualSlot,
+  canEquipManualInSlot,
+  isAdvancedManual,
+  manualLearnedSlot,
   MAX_MANUALS_PER_SLOT,
   validateManualStateV1,
 } from './compiler.js';
@@ -33,10 +35,12 @@ export function changeManual(input: {
   const def = CHARACTER_MANUALS_V1.find((d) => d.id === input.manualId);
   if (
     !def ||
-    manualSlot(def) !== input.slot ||
+    !canEquipManualInSlot(def, input.slot) ||
     input.slot > getManualSlotCount(realm)
   )
-    return fail('功法不属于已开放的境界位');
+    return fail('功法不适用于该已开放功法位');
+  if (REALM_VALUES.indexOf(realm) < REALM_VALUES.indexOf(def.realm))
+    return fail('当前境界不能修炼该功法');
   const next = structuredClone(state);
   const learned = next.learned.find((d) => d.manualId === def.id);
   const rule = manualRule(def);
@@ -45,20 +49,23 @@ export function changeManual(input: {
     if (learned) return fail('已学会此功法，请修炼或突破瓶颈');
     const count = next.learned.filter((entry) =>
       CHARACTER_MANUALS_V1.some(
-        (manual) => manual.id === entry.manualId && manual.realm === def.realm,
+        (manual) => manual.id === entry.manualId && manualLearnedSlot(manual, entry) === input.slot,
       ),
     ).length;
     if (count >= MAX_MANUALS_PER_SLOT)
-      return fail('该境界位已学满六种功法');
+      return fail('该功法位已学满六种功法');
     next.learned.push({
       manualId: def.id,
       level: 1,
       unlockedLevel: rule.bottlenecks[0] ?? rule.maxLevel,
+      ...(isAdvancedManual(def) ? { slot: input.slot } : {}),
     });
     if (!next.build.slots.some((s) => s.slot === input.slot))
       next.build.slots.push({ slot: input.slot, manualId: def.id });
   } else {
     if (!learned) return fail('尚未学习此功法');
+    if (manualLearnedSlot(def, learned) !== input.slot)
+      return fail('此功法属于其他功法位，不能跨位运转或培养');
     if (action === 'activate') {
       if (
         next.build.slots.some(

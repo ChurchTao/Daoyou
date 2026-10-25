@@ -4,12 +4,17 @@ import { evalExpr } from './expr.js'
  * 钩子/效果条件匹配。只认标签、状态、技能 id 列表和数值门槛，不认门派。
  */
 import type { BattleContext } from "./context.js"
-import type { DamageKind, DamageOrigin } from "./enums.js"
+import type { DamageKind, DamageOrigin, StatusCategory, StatusFlag } from "./enums.js"
 import type { EffectWhen, SkillDef, SkillId, Unit } from "./types.js"
 import { isStanding, resourceOf } from "./units.js"
 
 export type WhenScope = {
   removedStatusKind?: string
+  removedStatusCategory?: StatusCategory
+  removedStatusDispellable?: boolean
+  removedStatusFlags?: StatusFlag[]
+  statusRemovedByAlly?: boolean
+  dotStatusId?: string
   statusRemoveReason?: string
   originalResourceCost?: number
   source: Unit
@@ -20,6 +25,8 @@ export type WhenScope = {
   origin?: DamageOrigin
   isPrimary?: boolean
   percentageDamage?: boolean
+  damage?: number
+  hpDamage?: number
   /** 写入 marks 的前缀，通常是被动技能 id + 钩子下标 */
   markKey?: string
 }
@@ -40,6 +47,14 @@ function hasCategory(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, categor
   return unit.statuses.some((status) => {
     const category = ctx.statusDefs.get(status.id)?.category
     return category !== undefined && categories.includes(category)
+  })
+}
+
+function hasDispelClass(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, classes: string[], enemyApplied = false, units: Unit[] = []): boolean {
+  return unit.statuses.some(status => {
+    if (enemyApplied && !units.some(other => other.id === status.sourceId && other.side !== unit.side)) return false
+    const def = ctx.statusDefs.get(status.id)
+    return def?.dispellable !== false && def?.dispelClass !== undefined && classes.includes(def.dispelClass)
   })
 }
 
@@ -65,12 +80,26 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
   return undefined
 }
 
-export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
+export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills' | 'invokingAttackSkills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
+  if (when.rootActionOnly && ctx.invokingAttackSkills) return false
+  if (when.sameAttackTarget !== undefined && (Boolean(scope.target && scope.source.actionHistory?.lastAttackTargetId === scope.target.id) !== when.sameAttackTarget)) return false
+  if (when.previousAttackKind && scope.source.actionHistory?.lastAttackKind !== when.previousAttackKind) return false
+  if (when.repeatedIncomingSkill !== undefined) {
+    const previous = scope.source.actionHistory?.lastIncomingAttack
+    const repeated = Boolean(previous && ctx.currentAction && previous.sourceId === ctx.currentAction.sourceId && previous.skillId === ctx.currentAction.skillId)
+    if (repeated !== when.repeatedIncomingSkill) return false
+  }
   if (when.excludeSpellRepeat && ctx.currentAction?.spellRepeatFactor !== undefined) return false
-  if (when.expression !== undefined && !evalExpr(when.expression, { allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
+  if (when.expression !== undefined && !evalExpr(when.expression, { allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, damage: scope.damage, hpDamage: scope.hpDamage, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
+  if (when.removedStatusCategory && scope.removedStatusCategory !== when.removedStatusCategory) return false
+  if (when.removedStatusDispellable !== undefined && scope.removedStatusDispellable !== when.removedStatusDispellable) return false
+  if (when.removedStatusFlags && !when.removedStatusFlags.some(flag => scope.removedStatusFlags?.includes(flag))) return false
+  if (when.excludedRemovedStatusFlags?.some(flag => scope.removedStatusFlags?.includes(flag))) return false
+  if (when.statusRemovedByAlly !== undefined && scope.statusRemovedByAlly !== when.statusRemovedByAlly) return false
+  if (when.dotStatusIds && (!scope.dotStatusId || !when.dotStatusIds.includes(scope.dotStatusId))) return false
   if (when.statusRemoveReason && scope.statusRemoveReason !== when.statusRemoveReason) return false
   if (when.originalResourceCostMax !== undefined && (scope.originalResourceCost === undefined || scope.originalResourceCost > when.originalResourceCostMax)) return false
   if (when.targetDowned !== undefined && scope.target?.flags.downed !== when.targetDowned) return false
@@ -99,6 +128,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.sourceHasBarrier !== undefined && scope.source.barriers.some(b => b.current > 0) !== when.sourceHasBarrier) return false
   if (when.targetHasBarrier !== undefined && (!scope.target || scope.target.barriers.some(b => b.current > 0) !== when.targetHasBarrier)) return false
   if (when.sourceStatusCategories && !hasCategory(ctx, scope.source, when.sourceStatusCategories)) return false
+  if (when.sourceStatusDispelClasses && !hasDispelClass(ctx, scope.source, when.sourceStatusDispelClasses, when.sourceStatusEnemyApplied, units)) return false
   if (when.sourceRemovableControl && !scope.source.statuses.some(s => {
     const def = ctx.statusDefs.get(s.id)
     return def?.category === 'control' && def.dispellable !== false && !def.blocksRevive
@@ -144,6 +174,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetAbsentStatusIds && foe && hasId(foe, when.targetAbsentStatusIds)) return false
   if (when.targetAbsentStatusKinds && foe && hasKind(foe, when.targetAbsentStatusKinds)) return false
   if (when.targetStatusCategories && (!foe || !hasCategory(ctx, foe, when.targetStatusCategories))) return false
+  if (when.targetStatusDispelClasses && (!foe || !hasDispelClass(ctx, foe, when.targetStatusDispelClasses))) return false
   if (when.targetAbsentStatusCategories && foe && hasCategory(ctx, foe, when.targetAbsentStatusCategories)) return false
   if (when.targetStatusStack) {
     const stacks = targetStatusStacks(ctx, when, foe)

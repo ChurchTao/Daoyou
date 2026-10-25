@@ -118,6 +118,7 @@ function ResetPasswordPage({ resetToken }: { resetToken: string }) {
         <InkInput
           label="新密码"
           type="password"
+          autoComplete="new-password"
           value={password}
           onChange={(value) => {
             setPassword(value);
@@ -130,6 +131,7 @@ function ResetPasswordPage({ resetToken }: { resetToken: string }) {
         <InkInput
           label="确认新密码"
           type="password"
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(value) => {
             setConfirmPassword(value);

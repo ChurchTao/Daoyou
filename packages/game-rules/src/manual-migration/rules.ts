@@ -41,7 +41,7 @@ export function buildManualMigrationPolicy(
         ];
       }),
     ) as ManualMigrationPolicy['rules'],
-    catalog: CHARACTER_MANUALS_V1.map((m) => ({
+    catalog: CHARACTER_MANUALS_V1.filter((m) => realms.includes(m.realm)).map((m) => ({
       definitionId: `jade.${m.id}`,
       name: m.name,
       realm: m.realm,

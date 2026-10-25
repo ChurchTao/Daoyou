@@ -14,6 +14,10 @@ import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { z } from 'zod';
 
 const nonnegative = z.number().int().min(0).max(2_147_483_647);
+const manualSlot = z.union([
+  z.literal(1), z.literal(2), z.literal(3),
+  z.literal(4), z.literal(5), z.literal(6),
+]);
 const cultivationProgress = z.object({
   cultivation_exp: nonnegative,
   comprehension_insight: nonnegative.max(200),
@@ -57,7 +61,7 @@ export const TransferSnapshotSchema = z.strictObject({
   }),
   roots: z.array(z.strictObject({ element: z.string().max(10), strength: nonnegative.max(100), marrowWashBonus: nonnegative.max(100), grade: z.string().max(20).nullable() })).max(9),
   fates: z.array(z.strictObject({ name: z.string().min(1).max(100), quality: z.string().max(10).nullable(), details: z.unknown(), description: z.string().nullable() })).max(20),
-  manuals: z.strictObject({ learned: z.array(z.strictObject({ manualId: z.string().max(160), level: nonnegative, unlockedLevel: nonnegative })).max(100), slots: z.array(z.strictObject({ slot: z.number().int().min(1).max(4), manualId: z.string().max(160) })).max(4) }),
+  manuals: z.strictObject({ learned: z.array(z.strictObject({ manualId: z.string().max(160), level: nonnegative, unlockedLevel: nonnegative, slot: manualSlot.optional() })).max(100), slots: z.array(z.strictObject({ slot: manualSlot, manualId: z.string().max(160) })).max(6) }),
   sect: z.strictObject({ sectId: z.string().max(64), methods: z.record(z.string(), nonnegative), activePathId: z.string().max(160), meridianDepth: z.number().int().min(0).max(7), loadouts: z.array(z.strictObject({ pathId: z.string().max(160), nodeIds: z.array(z.string().max(160)).max(7) })).max(2) }).nullable(),
   items: z.array(InventoryItemStructureSchema).max(14),
   equipped: z.array(z.strictObject({ slot: z.enum(DAO_EQUIPMENT_SLOTS), itemId: z.string().max(160) })).max(6),
@@ -101,7 +105,7 @@ export function validateTransferSnapshot(input: unknown): TransferSnapshot {
   const manualDiagnostics = validateManualStateV1({
     version: 1, revision: 0, learned: snapshot.manuals.learned,
     build: { slots: snapshot.manuals.slots },
-  } as Parameters<typeof validateManualStateV1>[0], snapshot.role.realm);
+  }, snapshot.role.realm);
   if (manualDiagnostics.some((diagnostic) => diagnostic.severity === 'error'))
     throw new Error('原服功法数据不符合目标服规则');
   if (snapshot.sect) {

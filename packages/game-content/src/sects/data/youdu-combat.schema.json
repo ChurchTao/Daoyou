@@ -99,7 +99,11 @@
               "on": {
                 "type": "string",
                 "enum": [
+                  "beforeActionWindow",
+                  "afterActionWindow",
+                  "afterDefend",
                   "beforeAction",
+                  "onDotCalc",
                   "onHitCalc",
                   "onDefenseIgnoreCalc",
                   "onBeHit",

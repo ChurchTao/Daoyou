@@ -7,6 +7,7 @@ import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
 import { manualAttributeValue } from './attributes.js';
 import { CHARACTER_MANUALS_V1, manualRule } from '@daoyou/game-content/manuals';
 import { compileManualSkill, manualMechanismValue } from './mechanism.js';
+import { compileManualStatusDefs } from './later-mechanisms.js';
 import { MANUAL_REALMS } from '@daoyou/game-domain/manuals/authoring';
 import type {
   CharacterManualDefV1,
@@ -16,16 +17,46 @@ import type {
   ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
 
+export const MANUAL_SLOT_REALMS = ['炼气', '筑基', '金丹', '元婴', '化神', '合体'] as const;
+
+/** Each slot owns its learned manuals, including a choice of six advanced manuals. */
 export const MAX_MANUALS_PER_SLOT = 6;
 
 export function getManualSlotCount(realm: RealmType): number {
-  return Math.min(4, REALM_VALUES.indexOf(realm) + 1);
+  return MANUAL_SLOT_REALMS.filter(
+    (slotRealm) => REALM_VALUES.indexOf(slotRealm) <= REALM_VALUES.indexOf(realm),
+  ).length;
 }
 export function isManualSlotV1(value: number): value is ManualSlotV1 {
-  return Number.isInteger(value) && value >= 1 && value <= 4;
+  return Number.isInteger(value) && value >= 1 && value <= MANUAL_SLOT_REALMS.length;
 }
-export function manualSlot(definition: CharacterManualDefV1): ManualSlotV1 {
-  return (MANUAL_REALMS.indexOf(definition.realm) + 1) as ManualSlotV1;
+/** Original content realm slot; use canEquipManualInSlot for loadout eligibility. */
+export function manualSlot(definition: CharacterManualDefV1): number {
+  return MANUAL_REALMS.indexOf(definition.realm) + 1;
+}
+export function isAdvancedManual(definition: CharacterManualDefV1): boolean {
+  return manualSlot(definition) >= 5;
+}
+/** Earliest opened slot needed to learn this manual, independent of its source realm. */
+export function manualLearningSlot(definition: CharacterManualDefV1): ManualSlotV1 {
+  return isAdvancedManual(definition) ? 5 : manualSlot(definition) as ManualSlotV1;
+}
+/** Basic records predate slot ownership; advanced records must explicitly choose a slot. */
+export function manualLearnedSlot(
+  definition: CharacterManualDefV1,
+  entry: CultivatorManualStateV1['learned'][number],
+): ManualSlotV1 | undefined {
+  if (isAdvancedManual(definition))
+    return entry.slot === 5 || entry.slot === 6 ? entry.slot : undefined;
+  const slot = manualLearningSlot(definition);
+  return entry.slot === undefined || entry.slot === slot ? slot : undefined;
+}
+export function canEquipManualInSlot(
+  definition: CharacterManualDefV1,
+  slot: number,
+): boolean {
+  return isManualSlotV1(slot) &&
+    (isAdvancedManual(definition) ? slot >= 5 : manualSlot(definition) === slot);
 }
 export function validateManualStateV1(
   state: CultivatorManualStateV1,
@@ -52,6 +83,7 @@ export function validateManualStateV1(
     fail('功法版本无效');
   const byId = new Map(definitions.map((d) => [d.id, d]));
   const learned = new Set<string>();
+  const learnedSlots = new Map<string, ManualSlotV1>();
   const learnedCounts = new Map<ManualSlotV1, number>();
   for (const entry of state.learned) {
     const def = entry && byId.get(entry.manualId);
@@ -60,12 +92,23 @@ export function validateManualStateV1(
       continue;
     }
     learned.add(entry.manualId);
-    const slot = manualSlot(def);
-    const count = (learnedCounts.get(slot) ?? 0) + 1;
-    learnedCounts.set(slot, count);
-    if (count > MAX_MANUALS_PER_SLOT) fail('每个境界位最多学习六种功法');
+    const slot = manualLearnedSlot(def, entry);
+    if (slot === undefined) {
+      fail(isAdvancedManual(def)
+        ? '高阶功法缺少有效归属位，请先迁移旧功法存档，原学习进度已保留'
+        : '基础功法归属位无效');
+    } else {
+      learnedSlots.set(entry.manualId, slot);
+      const count = (learnedCounts.get(slot) ?? 0) + 1;
+      learnedCounts.set(slot, count);
+      if (count > MAX_MANUALS_PER_SLOT) fail('每个功法位最多学习六种功法');
+      if (slot > getManualSlotCount(realm)) fail('当前境界尚未开放该功法归属位');
+    }
     const rule = manualRule(def);
-    if (manualSlot(def) > getManualSlotCount(realm))
+    if (
+      REALM_VALUES.indexOf(realm) < REALM_VALUES.indexOf(def.realm) ||
+      manualLearningSlot(def) > getManualSlotCount(realm)
+    )
       fail('当前境界不能修炼该功法');
     if (
       !Number.isInteger(entry.level) ||
@@ -79,17 +122,24 @@ export function validateManualStateV1(
     if (entry.level < previousCap) fail('不能提前解锁功法瓶颈');
   }
   const occupied = new Set<number>();
+  const activated = new Set<string>();
   for (const entry of state.build.slots) {
     const def = entry && byId.get(entry.manualId);
     if (
       !def ||
       !learned.has(entry.manualId) ||
       !isManualSlotV1(entry.slot) ||
-      manualSlot(def) !== entry.slot ||
-      occupied.has(entry.slot)
+      !canEquipManualInSlot(def, entry.slot) ||
+      learnedSlots.get(entry.manualId) !== entry.slot ||
+      entry.slot > getManualSlotCount(realm) ||
+      occupied.has(entry.slot) ||
+      activated.has(entry.manualId)
     )
-      fail('激活功法必须已学且归属对应境界位，每位只能一本');
-    if (entry) occupied.add(entry.slot);
+      fail('激活功法必须已学且符合已开放功法位，同一本功法只能激活一次');
+    if (entry) {
+      occupied.add(entry.slot);
+      activated.add(entry.manualId);
+    }
   }
   return diagnostics;
 }
@@ -106,6 +156,7 @@ export function compileCharacterManualsV1(
   const projection: CharacterManualProjectionV1 = {
     attributeBonuses: {},
     skills: [],
+    statusDefs: [],
     passiveSkillIds: [],
     skillLevels: {},
     panel: [],
@@ -125,6 +176,7 @@ export function compileCharacterManualsV1(
         (projection.attributeBonuses[effect.attribute] ?? 0) +
         manualAttributeValue(effect, level);
     projection.skills.push(compileManualSkill(def, level));
+    projection.statusDefs.push(...compileManualStatusDefs(def, manualMechanismValue(def.mechanism, level)));
     if (def.mechanism.type === 'sealResist')
       projection.panel.push({
         attr: 'sealResist',

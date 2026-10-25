@@ -68,7 +68,7 @@ export function WorldChatTextComposer({
         placeholder={placeholder}
         className={cn(
           inkFieldVariants({ variant: 'underlined', size: 'sm' }),
-          'battle-scroll max-h-32 resize-none',
+          'battle-scroll h-auto max-h-32 resize-none py-2',
         )}
         onChange={(event) =>
           onDraftChange(

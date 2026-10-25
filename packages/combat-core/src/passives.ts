@@ -31,6 +31,7 @@ export function bindDataHooks(ctx: BattleContext): void {
       skill.hooks.forEach((hook, hookIndex) => {
         ctx.hooks.on(hook.on, (hctx) => {
           if (hook.targetIsSelf && hctx.target?.id !== unit.id) return
+          if (hook.sourceIsEnemy && (!hctx.source || hctx.source.side === unit.side)) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return
           if (hook.sourceIsOwnedPet && (hctx.source?.kind !== "pet" || hctx.source.ownerId !== unit.id)) return
           if (hook.requireKind && hctx.kind !== hook.requireKind) return
@@ -59,6 +60,11 @@ export function bindDataHooks(ctx: BattleContext): void {
           const originalResourceCost = (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0)
           const scope: WhenScope = {
             removedStatusKind: hctx.removedStatusKind,
+            removedStatusCategory: hctx.removedStatusCategory,
+            removedStatusDispellable: hctx.removedStatusDispellable,
+            removedStatusFlags: hctx.removedStatusFlags,
+            statusRemovedByAlly: hctx.statusRemovedByAlly,
+            dotStatusId: hctx.dotStatusId,
             statusRemoveReason: hctx.statusRemoveReason,
             originalResourceCost,
             source: unit,
@@ -69,6 +75,8 @@ export function bindDataHooks(ctx: BattleContext): void {
             origin: hctx.origin,
             isPrimary: hctx.isPrimary,
             percentageDamage: hctx.percentageDamage,
+            damage: hctx.damage,
+            hpDamage: hctx.hpDamage,
             markKey: `${skill.id}:${hookIndex}`,
           }
           if (!matchesWhen(ctx, hook.when, scope)) return

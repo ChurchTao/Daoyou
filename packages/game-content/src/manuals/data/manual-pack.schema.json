@@ -39,7 +39,11 @@
                 "炼气",
                 "筑基",
                 "金丹",
-                "元婴"
+                "元婴",
+                "化神",
+                "炼虚",
+                "合体",
+                "大乘"
               ]
             },
             "additionalProperties": {
@@ -69,7 +73,11 @@
               "炼气",
               "筑基",
               "金丹",
-              "元婴"
+              "元婴",
+              "化神",
+              "炼虚",
+              "合体",
+              "大乘"
             ]
           }
         },
@@ -113,7 +121,11 @@
             "炼气",
             "筑基",
             "金丹",
-            "元婴"
+            "元婴",
+            "化神",
+            "炼虚",
+            "合体",
+            "大乘"
           ]
         },
         "description": {
@@ -224,6 +236,88 @@
                 },
                 "valueAt9": {
                   "$ref": "#/$defs/__schema5"
+                }
+              },
+              "required": [
+                "type",
+                "condition",
+                "valueAt1",
+                "valueAt9"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "sealRecovery",
+                    "primaryDamage",
+                    "healingBarrier",
+                    "focusedPhysical",
+                    "defendBarrier",
+                    "dotMitigation",
+                    "secondaryMitigation",
+                    "dotDamage",
+                    "barrierDamage",
+                    "adaptiveMitigation",
+                    "openingBarrier",
+                    "damageBarrier",
+                    "damageRecovery",
+                    "heavyMitigation",
+                    "physicalFury",
+                    "debuffDefenseIgnore",
+                    "defendWeaken",
+                    "repeatedMitigation",
+                    "unhurtRecovery",
+                    "secondaryDamage",
+                    "preActionMitigation",
+                    "followupMitigation"
+                  ]
+                },
+                "condition": {
+                  "type": "string",
+                  "const": "always"
+                },
+                "valueAt1": {
+                  "$ref": "#/$defs/__schema4"
+                },
+                "valueAt9": {
+                  "$ref": "#/$defs/__schema5"
+                }
+              },
+              "required": [
+                "type",
+                "condition",
+                "valueAt1",
+                "valueAt9"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "attackDispel",
+                    "selfCleanse"
+                  ]
+                },
+                "condition": {
+                  "type": "string",
+                  "const": "always"
+                },
+                "valueAt1": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                },
+                "valueAt9": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
                 }
               },
               "required": [

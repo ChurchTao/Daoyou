@@ -9,4 +9,6 @@ export {
   ENLIGHTENMENT_REALMS,
   insightCosts,
   supports,
+  enlightenmentQualityMinimumRealms,
+  realmReferenceValues,
 } from '../manuals/enlightenment.js';

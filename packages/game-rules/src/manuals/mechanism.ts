@@ -1,18 +1,9 @@
 import { DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, TargetSide } from '@daoyou/combat-core/enums';
 import { type EffectWhen, type SkillDef, type SkillHook } from '@daoyou/combat-core/types';
 import type { ManualMechanism } from '@daoyou/game-domain/manuals/authoring';
-
-export function manualMechanismValue(
-  mechanism: ManualMechanism,
-  level: number,
-): number {
-  return Number(
-    (
-      mechanism.valueAt1 +
-      ((mechanism.valueAt9 - mechanism.valueAt1) * (level - 1)) / 8
-    ).toFixed(8),
-  );
-}
+import { compileLaterManualSkill } from './later-mechanisms.js';
+import { manualMechanismValue } from './mechanism-value.js';
+export { manualMechanismValue } from './mechanism-value.js';
 
 function conditionWhen(condition: ManualMechanism['condition']): EffectWhen {
   switch (condition) {
@@ -57,6 +48,8 @@ export function compileManualSkill(
 ): SkillDef {
   const mechanism = manual.mechanism;
   const value = manualMechanismValue(mechanism, level);
+  const later = compileLaterManualSkill(manual, value);
+  if (later) return later;
   const when: EffectWhen = {
     ...conditionWhen(mechanism.condition),
     sourceStanding: true,

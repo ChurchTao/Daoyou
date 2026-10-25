@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-export const MANUAL_REALMS = ['炼气', '筑基', '金丹', '元婴'] as const;
+export const MANUAL_REALMS = [
+  '炼气',
+  '筑基',
+  '金丹',
+  '元婴',
+  '化神',
+  '炼虚',
+  '合体',
+  '大乘',
+] as const;
 export const MANUAL_ATTRIBUTES = [
   'vitality',
   'strength',
@@ -66,6 +75,40 @@ export const ManualMechanismShape = z.discriminatedUnion('type', [
     ]),
     condition: ManualConditionShape,
     ...growth,
+  }),
+  z.strictObject({
+    type: z.enum([
+      'sealRecovery',
+      'primaryDamage',
+      'healingBarrier',
+      'focusedPhysical',
+      'defendBarrier',
+      'dotMitigation',
+      'secondaryMitigation',
+      'dotDamage',
+      'barrierDamage',
+      'adaptiveMitigation',
+      'openingBarrier',
+      'damageBarrier',
+      'damageRecovery',
+      'heavyMitigation',
+      'physicalFury',
+      'debuffDefenseIgnore',
+      'defendWeaken',
+      'repeatedMitigation',
+      'unhurtRecovery',
+      'secondaryDamage',
+      'preActionMitigation',
+      'followupMitigation',
+    ]),
+    condition: z.literal('always'),
+    ...growth,
+  }),
+  z.strictObject({
+    type: z.enum(['attackDispel', 'selfCleanse']),
+    condition: z.literal('always'),
+    valueAt1: z.number().positive().max(1),
+    valueAt9: z.number().positive().max(1),
   }),
 ]);
 export type ManualMechanism = z.infer<typeof ManualMechanismShape>;

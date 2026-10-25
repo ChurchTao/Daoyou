@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { manualSlot, validateManualStateV1 } from './compiler.js';
+import { manualLearningSlot, validateManualStateV1 } from './compiler.js';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { changeManual } from './state.js';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
@@ -12,7 +12,7 @@ function learn(state: CultivatorManualStateV1, manual = manuals[0]) {
     state,
     action: 'learn',
     manualId: manual.id,
-    slot: manualSlot(manual),
+    slot: manualLearningSlot(manual),
     realm: '筑基',
     expectedRevision: state.revision,
     resources: { experience: 1000, insight: 100 },
@@ -76,7 +76,7 @@ describe('功法每境界六种学习上限', () => {
     state.learned.push({ manualId: extra.id, level: 1, unlockedLevel: 3 });
     expect(validateManualStateV1(state, '筑基', [...CHARACTER_MANUALS_V1, extra])).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ message: '每个境界位最多学习六种功法' }),
+        expect.objectContaining({ message: '每个功法位最多学习六种功法' }),
       ]),
     );
   });

@@ -41,12 +41,12 @@ function success(result: ReturnType<typeof act>) {
   return result.state;
 }
 describe('境界功法培养', () => {
-  it('四个境界逐一开放，后续境界保持四位', () => {
+  it('四个基础位逐境开放，高阶位分别化神和合体开放', () => {
     expect(
-      ['炼气', '筑基', '金丹', '元婴', '化神', '渡劫'].map((r) =>
+      ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘', '渡劫'].map((r) =>
         getManualSlotCount(r as '炼气'),
       ),
-    ).toEqual([1, 2, 3, 4, 4, 4]);
+    ).toEqual([1, 2, 3, 4, 5, 5, 6, 6, 6]);
     expect(
       changeManual({
         state: empty(),
@@ -170,8 +170,8 @@ describe('境界功法培养', () => {
   });
 });
 describe('功法数据包', () => {
-  it('二十四本内容与逐层成本可以加载', () => {
-    expect(loadManualPack(MANUAL_PACK).manuals).toHaveLength(24);
+  it('四十八本内容与逐层成本可以加载', () => {
+    expect(loadManualPack(MANUAL_PACK).manuals).toHaveLength(48);
   });
   it.each([
     'duplicate',

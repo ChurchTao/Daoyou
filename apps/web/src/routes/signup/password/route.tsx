@@ -116,6 +116,7 @@ export default function SignupPasswordRoute() {
         <InkInput
           label="邮箱"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(value) => {
             setEmail(value);
@@ -128,6 +129,7 @@ export default function SignupPasswordRoute() {
         <InkInput
           label="密码"
           type="password"
+          autoComplete="new-password"
           value={password}
           onChange={(value) => {
             setPassword(value);
@@ -140,6 +142,7 @@ export default function SignupPasswordRoute() {
         <InkInput
           label="确认密码"
           type="password"
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(value) => {
             setConfirmPassword(value);

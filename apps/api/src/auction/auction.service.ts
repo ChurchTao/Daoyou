@@ -1,5 +1,7 @@
 import type {
   AuctionBeastListRequest,
+  AuctionBuyOrderCreateRequest,
+  AuctionBuyOrderSupplyRequest,
   AuctionBuySchema,
   AuctionListRequest,
 } from '@daoyou/contracts/auction';
@@ -12,11 +14,12 @@ import type { DbClient } from '@server/lib/drizzle/db.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import type { z } from 'zod';
 import { AuctionApplicationService } from './application/AuctionApplicationService.js';
+import { AuctionBuyOrderOperations } from './application/AuctionBuyOrderService.js';
 import {
   AuctionOperations,
   publicAuctionListing,
 } from './application/AuctionService.js';
-import type { ListingsSchema } from './auction-input.js';
+import type { BuyOrdersSchema, ListingsSchema } from './auction-input.js';
 
 @Injectable()
 export class AuctionService {
@@ -24,6 +27,8 @@ export class AuctionService {
     @Inject(AuctionApplicationService)
     private readonly application: AuctionApplicationService,
     @Inject(AuctionOperations) private readonly operations: AuctionOperations,
+    @Inject(AuctionBuyOrderOperations)
+    private readonly buyOrderOperations: AuctionBuyOrderOperations,
     @Inject(DRIZZLE_DATABASE) private readonly database: DbClient,
   ) {}
 
@@ -91,6 +96,46 @@ export class AuctionService {
     await this.assertRealm(actor.cultivatorId);
     return toPlayerStateMutationResponse(
       await this.application.cancelAuctionListing({ actor, listingId }),
+    );
+  }
+
+  async buyOrders(
+    owner: string,
+    params: z.infer<typeof BuyOrdersSchema>,
+  ) {
+    await this.assertRealm(owner);
+    return this.buyOrderOperations.listBuyOrders(owner, params);
+  }
+
+  async createBuyOrder(
+    actor: ActiveCultivatorRef,
+    input: AuctionBuyOrderCreateRequest,
+  ) {
+    await this.assertRealm(actor.cultivatorId);
+    return toPlayerStateMutationResponse(
+      await this.application.createAuctionBuyOrder({ actor, ...input }),
+    );
+  }
+
+  async supplyBuyOrder(
+    actor: ActiveCultivatorRef,
+    buyOrderId: string,
+    input: AuctionBuyOrderSupplyRequest,
+  ) {
+    await this.assertRealm(actor.cultivatorId);
+    return toPlayerStateMutationResponse(
+      await this.application.supplyAuctionBuyOrder({
+        actor,
+        buyOrderId,
+        ...input,
+      }),
+    );
+  }
+
+  async cancelBuyOrder(actor: ActiveCultivatorRef, buyOrderId: string) {
+    await this.assertRealm(actor.cultivatorId);
+    return toPlayerStateMutationResponse(
+      await this.application.cancelAuctionBuyOrder({ actor, buyOrderId }),
     );
   }
 }

@@ -1,10 +1,10 @@
-import type { SkillDef } from '@daoyou/combat-core/types';
+import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
 import type {
   CombatV6PanelContribution,
   CombatV6ProjectionDiagnostic,
 } from '../combat/projection.js';
 
-export type ManualSlotV1 = 1 | 2 | 3 | 4;
+export type ManualSlotV1 = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface ManualBuildV1 {
   slots: Array<{ slot: ManualSlotV1; manualId: string }>;
@@ -13,7 +13,7 @@ export interface ManualBuildV1 {
 export interface CultivatorManualStateV1 {
   version: 1;
   revision: number;
-  learned: Array<{ manualId: string; level: number; unlockedLevel: number }>;
+  learned: Array<{ manualId: string; level: number; unlockedLevel: number; slot?: ManualSlotV1 }>;
   build: ManualBuildV1;
 }
 
@@ -31,7 +31,7 @@ export interface CombatV6CapabilityContribution {
 
 export interface CharacterManualDefV1 {
   id: string;
-  realm: '炼气' | '筑基' | '金丹' | '元婴';
+  realm: (typeof import('./pack.js').MANUAL_REALMS)[number];
   name: string;
   description: string;
   progressionId: string;
@@ -47,6 +47,7 @@ export interface CharacterManualDefV1 {
 export interface CharacterManualProjectionV1 {
   attributeBonuses: Partial<import('../cultivator.js').Attributes>;
   skills: SkillDef[];
+  statusDefs: StatusDef[];
   passiveSkillIds: string[];
   skillLevels: Record<string, number>;
   panel: CombatV6PanelContribution[];

@@ -41,6 +41,25 @@ function player(id: string): CombatV6TrainingPlayerInput {
     manuals: { version: 1, revision: 0, learned: [], build: { slots: [] } },
   };
 }
+it('同一本高阶功法的不同层数可共同入战，数值状态不会发生全局定义冲突', () => {
+  const a = player('a');
+  const b = player('b');
+  for (const [index, entry] of [a, b].entries()) {
+    const level = index === 0 ? 1 : 9;
+    entry.cultivator.realm = '合体';
+    entry.manuals = {
+      version: 1, revision: 0,
+      learned: ['character_manual.lianshen', 'character_manual.jingang_xian'].map((manualId, index) => ({ manualId, level, unlockedLevel: level === 1 ? 3 : 9, slot: index === 0 ? 5 : 6 })),
+      build: { slots: [{ slot: 5, manualId: 'character_manual.lianshen' }, { slot: 6, manualId: 'character_manual.jingang_xian' }] },
+    };
+  }
+  const battle = compileRankingBattle([a, b], 42);
+  for (const kind of ['character_manual.lianshen.respite', 'character_manual.jingang_xian.weaken']) {
+    const definitions = battle.statusDefs!.filter(status => status.kind === kind);
+    expect(definitions).toHaveLength(2);
+    expect(new Set(definitions.map(status => status.id)).size).toBe(2);
+  }
+});
 it('首发合法性、满资源及输入隔离', () => {
   const a = player('00000000-0000-4000-8000-000000000001');
   const b = player('00000000-0000-4000-8000-000000000002');

@@ -3,6 +3,8 @@ import {
   ENLIGHTENMENT_REALMS,
   insightCosts,
   supports,
+  enlightenmentQualityMinimumRealms,
+  realmReferenceValues,
   CHARACTER_MANUALS_V1,
 } from '@daoyou/game-content/manuals';
 import type {
@@ -10,10 +12,7 @@ import type {
   EnlightenmentPreview,
 } from '@daoyou/game-domain/manuals';
 
-import {
-  BASE_PRICES,
-  TYPE_MULTIPLIERS,
-} from '@daoyou/game-content/materials';
+import { TYPE_MULTIPLIERS } from '@daoyou/game-content/materials';
 
 import {
   InventoryRuleError,
@@ -32,7 +31,12 @@ import { REALM_VALUES, type RealmType } from '@daoyou/constants/realms';
 import { type Quality } from '@daoyou/constants/qualities';
 
 export function enlightenmentQualityCap(realm: RealmType) {
-  return ENLIGHTENMENT_QUALITIES[Math.min(5, REALM_VALUES.indexOf(realm) + 2)];
+  const realmIndex = REALM_VALUES.indexOf(realm);
+  return ENLIGHTENMENT_QUALITIES[
+    enlightenmentQualityMinimumRealms.findLastIndex(
+      (minimum) => REALM_VALUES.indexOf(minimum) <= realmIndex,
+    )
+  ];
 }
 
 export function enlightenmentMaterialProblem(
@@ -49,20 +53,20 @@ export function enlightenmentMaterialProblem(
   )
     return '请选择功法典籍';
   const rank = ENLIGHTENMENT_QUALITIES.findIndex((q) => q === parsed.data.rank);
-  if (rank < 0) return '当前最高支持天品典籍';
-  if (rank > Math.min(5, REALM_VALUES.indexOf(realm) + 2))
-    return `需${ENLIGHTENMENT_REALMS[rank - 2]}境界`;
+  if (rank < 0) return '典籍品级无效';
+  const minimumRealm = enlightenmentQualityMinimumRealms[rank];
+  if (REALM_VALUES.indexOf(realm) < REALM_VALUES.indexOf(minimumRealm))
+    return `需${minimumRealm}境界`;
   return null;
 }
 
 export function enlightenmentDistribution(quality: Quality): number[] {
   const rank = ENLIGHTENMENT_QUALITIES.findIndex((q) => q === quality);
-  if (rank < 0) throw new InventoryRuleError('当前最高支持天品典籍');
+  if (rank < 0) throw new InventoryRuleError('典籍品级无效');
   const weights = ENLIGHTENMENT_REALMS.map((_, r) =>
     supports[rank].includes(r)
       ? 1 /
-        (BASE_PRICES[ENLIGHTENMENT_QUALITIES[r + 2]] *
-          TYPE_MULTIPLIERS.gongfa_manual)
+        (realmReferenceValues[r] * TYPE_MULTIPLIERS.gongfa_manual)
       : 0,
   );
   const total = weights.reduce((sum, w) => sum + w, 0);
@@ -79,7 +83,7 @@ export function previewEnlightenment(
     throw new InventoryRuleError('命格费用无效');
   let qi = 0;
   let baseInsight = 0;
-  const probabilities = [0, 0, 0, 0];
+  const probabilities = ENLIGHTENMENT_REALMS.map(() => 0);
   for (const quality of qualities) {
     const distribution = enlightenmentDistribution(quality);
     const rank = ENLIGHTENMENT_QUALITIES.findIndex((q) => q === quality);
@@ -151,9 +155,9 @@ export function prepareEnlightenment(
   });
   const candidates = CHARACTER_MANUALS_V1.filter(
     (manual) =>
-      preview.probabilities[ENLIGHTENMENT_REALMS.indexOf(manual.realm)] > 0,
+      preview.probabilities[ENLIGHTENMENT_REALMS.findIndex((realm) => realm === manual.realm)] > 0,
   );
-  for (let r = 0; r < 4; r++) {
+  for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++) {
     if (
       preview.probabilities[r] > 0 &&
       !candidates.some((m) => m.realm === ENLIGHTENMENT_REALMS[r])
@@ -191,7 +195,7 @@ export function rollEnlightenment(
     (last, p, r) => (p > 0 ? r : last),
     0,
   );
-  for (let r = 0; r < 4; r++) {
+  for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++) {
     cumulative += preview.probabilities[r];
     if (roll < cumulative) {
       realmIndex = r;

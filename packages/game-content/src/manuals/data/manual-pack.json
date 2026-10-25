@@ -144,6 +144,142 @@
             "experience": 32000,
             "insight": 45
           }
+        ],
+        "化神": [
+          {
+            "experience": 16000,
+            "insight": 12
+          },
+          {
+            "experience": 32000,
+            "insight": 18
+          },
+          {
+            "experience": 48000,
+            "insight": 24
+          },
+          {
+            "experience": 64000,
+            "insight": 30
+          },
+          {
+            "experience": 80000,
+            "insight": 36
+          },
+          {
+            "experience": 96000,
+            "insight": 42
+          },
+          {
+            "experience": 112000,
+            "insight": 48
+          },
+          {
+            "experience": 128000,
+            "insight": 54
+          }
+        ],
+        "炼虚": [
+          {
+            "experience": 64000,
+            "insight": 14
+          },
+          {
+            "experience": 128000,
+            "insight": 21
+          },
+          {
+            "experience": 192000,
+            "insight": 28
+          },
+          {
+            "experience": 256000,
+            "insight": 35
+          },
+          {
+            "experience": 320000,
+            "insight": 42
+          },
+          {
+            "experience": 384000,
+            "insight": 49
+          },
+          {
+            "experience": 448000,
+            "insight": 56
+          },
+          {
+            "experience": 512000,
+            "insight": 63
+          }
+        ],
+        "合体": [
+          {
+            "experience": 256000,
+            "insight": 16
+          },
+          {
+            "experience": 512000,
+            "insight": 24
+          },
+          {
+            "experience": 768000,
+            "insight": 32
+          },
+          {
+            "experience": 1024000,
+            "insight": 40
+          },
+          {
+            "experience": 1280000,
+            "insight": 48
+          },
+          {
+            "experience": 1536000,
+            "insight": 56
+          },
+          {
+            "experience": 1792000,
+            "insight": 64
+          },
+          {
+            "experience": 2048000,
+            "insight": 72
+          }
+        ],
+        "大乘": [
+          {
+            "experience": 1024000,
+            "insight": 18
+          },
+          {
+            "experience": 2048000,
+            "insight": 27
+          },
+          {
+            "experience": 3072000,
+            "insight": 36
+          },
+          {
+            "experience": 4096000,
+            "insight": 45
+          },
+          {
+            "experience": 5120000,
+            "insight": 54
+          },
+          {
+            "experience": 6144000,
+            "insight": 63
+          },
+          {
+            "experience": 7168000,
+            "insight": 72
+          },
+          {
+            "experience": 8192000,
+            "insight": 81
+          }
         ]
       }
     }
@@ -683,6 +819,486 @@
           "spell",
           "fixed"
         ]
+      }
+    },
+    {
+      "id": "character_manual.lianshen",
+      "name": "炼神术",
+      "realm": "化神",
+      "description": "神念凝炼，解封守心。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "sealRecovery",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.daojing",
+      "name": "道经",
+      "realm": "化神",
+      "description": "道始轮海，聚元击要。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "primaryDamage",
+        "condition": "always",
+        "valueAt1": 0.03,
+        "valueAt9": 0.07
+      }
+    },
+    {
+      "id": "character_manual.xihuang",
+      "name": "西皇经",
+      "realm": "化神",
+      "description": "道宫养神，济人凝护。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "healingBarrier",
+        "condition": "always",
+        "valueAt1": 0.01,
+        "valueAt9": 0.03
+      }
+    },
+    {
+      "id": "character_manual.hengyu",
+      "name": "恒宇经",
+      "realm": "化神",
+      "description": "四极贯通，锋芒不移。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "focusedPhysical",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.baimai_lianbao",
+      "name": "百脉炼宝决",
+      "realm": "化神",
+      "description": "百脉为炉，守身成宝。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "defendBarrier",
+        "condition": "always",
+        "valueAt1": 0.03,
+        "valueAt9": 0.07
+      }
+    },
+    {
+      "id": "character_manual.wandu_hunyuan",
+      "name": "万毒混元身",
+      "realm": "化神",
+      "description": "万毒淬体，混元护身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "dotMitigation",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.xukong",
+      "name": "虚空经",
+      "realm": "炼虚",
+      "description": "身寄虚空，避众锋芒。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "speed",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "secondaryMitigation",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.taiyin_zhenjing",
+      "name": "太阴真经",
+      "realm": "炼虚",
+      "description": "太阴蚀骨，余威绵长。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "dotDamage",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.taiyang_zhenjing",
+      "name": "太阳真经",
+      "realm": "炼虚",
+      "description": "太阳炼真，炽光消障。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "barrierDamage",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.jingzhe",
+      "name": "惊蛰十二变",
+      "realm": "炼虚",
+      "description": "真血应变，受击知势。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "adaptiveMitigation",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.wuzang_duanyuan",
+      "name": "五藏锻元功",
+      "realm": "炼虚",
+      "description": "五藏储元，初战凝护。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "openingBarrier",
+        "condition": "always",
+        "valueAt1": 0.08,
+        "valueAt9": 0.16
+      }
+    },
+    {
+      "id": "character_manual.shalu",
+      "name": "杀戮仙诀",
+      "realm": "炼虚",
+      "description": "杀气凝丝，攻伐护身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "damageBarrier",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.fansheng",
+      "name": "梵圣真魔功",
+      "realm": "合体",
+      "description": "法体归一，战中炼身。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "damageRecovery",
+        "condition": "always",
+        "valueAt1": 0.03,
+        "valueAt9": 0.07
+      }
+    },
+    {
+      "id": "character_manual.gushen",
+      "name": "古神诀",
+      "realm": "合体",
+      "description": "古神炼体，重击不折。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "heavyMitigation",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.taihuang",
+      "name": "太皇经",
+      "realm": "合体",
+      "description": "皇道龙气，攻伐绝伦。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "strength",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "physicalFury",
+        "condition": "always",
+        "valueAt1": 0.03,
+        "valueAt9": 0.09
+      }
+    },
+    {
+      "id": "character_manual.jiuzhuan_tiangong",
+      "name": "九转天功",
+      "realm": "合体",
+      "description": "天功流转，乘隙破法。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "debuffDefenseIgnore",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.jingang_xian",
+      "name": "金刚仙天功",
+      "realm": "合体",
+      "description": "金刚守御，回锋折锐。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "defendWeaken",
+        "condition": "always",
+        "valueAt1": 0.05,
+        "valueAt9": 0.15
+      }
+    },
+    {
+      "id": "character_manual.jiutian_shidi",
+      "name": "九天十地经",
+      "realm": "合体",
+      "description": "经文护道，济伤祛扰。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "followupMitigation",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
+      }
+    },
+    {
+      "id": "character_manual.yuanshi_zhenjie",
+      "name": "原始真解",
+      "realm": "大乘",
+      "description": "观符识理，洞悉重招。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "willpower",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "repeatedMitigation",
+        "condition": "always",
+        "valueAt1": 0.05,
+        "valueAt9": 0.15
+      }
+    },
+    {
+      "id": "character_manual.bumie_jing",
+      "name": "不灭经",
+      "realm": "大乘",
+      "description": "肉身不灭，息隙复元。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "unhurtRecovery",
+        "condition": "always",
+        "valueAt1": 0.015,
+        "valueAt9": 0.035
+      }
+    },
+    {
+      "id": "character_manual.liudao_lunhui",
+      "name": "六道轮回天功",
+      "realm": "大乘",
+      "description": "六道演化，余威遍敌。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "secondaryDamage",
+        "condition": "always",
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
+      }
+    },
+    {
+      "id": "character_manual.tuntian",
+      "name": "吞天魔功",
+      "realm": "大乘",
+      "description": "吞天化势，夺敌浮华。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "spirit",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "attackDispel",
+        "condition": "always",
+        "valueAt1": 0.15,
+        "valueAt9": 0.35
+      }
+    },
+    {
+      "id": "character_manual.bumie_tiangong",
+      "name": "不灭天功",
+      "realm": "大乘",
+      "description": "褪旧生新，涤去侵蚀。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "vitality",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "selfCleanse",
+        "condition": "always",
+        "valueAt1": 0.15,
+        "valueAt9": 0.35
+      }
+    },
+    {
+      "id": "character_manual.wushi",
+      "name": "无始经",
+      "realm": "大乘",
+      "description": "未启先守，静候后发。",
+      "progressionId": "standard",
+      "effects": [
+        {
+          "attribute": "endurance",
+          "valuePerLevel": 5,
+          "valueAt1": 40
+        }
+      ],
+      "mechanism": {
+        "type": "preActionMitigation",
+        "condition": "always",
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
       }
     }
   ]

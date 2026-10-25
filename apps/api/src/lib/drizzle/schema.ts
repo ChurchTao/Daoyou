@@ -1,4 +1,5 @@
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
+import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
 import type { StoryStatus, StoryTrack } from '@daoyou/game-domain/story';
 import type {
   SystemMailConditions,
@@ -687,9 +688,7 @@ export const cultivatorManualStates = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' }),
     revision: integer('revision').notNull().default(0),
     learned: jsonb('learned')
-      .$type<
-        Array<{ manualId: string; level: number; unlockedLevel: number }>
-      >()
+      .$type<CultivatorManualStateV1['learned']>()
       .notNull()
       .default([]),
     updatedAt: timestamp('updated_at')
@@ -717,7 +716,6 @@ export const cultivatorManualSlots = pgTable(
       table.cultivatorId,
       table.manualId,
     ),
-    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 4`),
   ],
 );
 
@@ -2135,6 +2133,74 @@ export const auctionListings = pgTable(
     index('auction_visibility_target_status_idx').on(
       table.visibility,
       table.targetCultivatorId,
+      table.status,
+    ),
+  ],
+);
+
+// 拍卖行收购单表：买家冻结灵石，卖家从背包交付同款物品
+export const auctionBuyOrders = pgTable(
+  'wanjiedaoyou_auction_buy_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    buyerId: uuid('buyer_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    buyerName: varchar('buyer_name', { length: 100 }).notNull(),
+
+    // 收购目标：精确堆叠，或材料品质／类型／五行条件
+    targetMode: varchar('target_mode', { length: 20 })
+      .notNull()
+      .default('exact'), // exact | condition
+    itemType: varchar('item_type', { length: 20 }).notNull(),
+    itemName: varchar('item_name', { length: 200 }).notNull().default(''),
+    itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
+    itemCategory: varchar('item_category', { length: 50 })
+      .notNull()
+      .default(''),
+    targetDefinitionId: varchar('target_definition_id', {
+      length: 160,
+    }).notNull(),
+    targetStackKey: varchar('target_stack_key', { length: 200 }),
+    targetSnapshot: jsonb('target_snapshot'),
+    targetConditions: jsonb('target_conditions'),
+
+    // 价格与数量；冻结额可由剩余数量 × 单价推导
+    price: integer('price').notNull(),
+    initialQuantity: integer('initial_quantity').notNull(),
+    remainingQuantity: integer('remaining_quantity').notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('active'), // active | filled | expired | cancelled
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    filledAt: timestamp('filled_at'),
+  },
+  (table) => [
+    index('auction_buy_order_status_expires_price_idx').on(
+      table.status,
+      table.expiresAt,
+      table.price,
+    ),
+    index('auction_buy_order_status_expires_created_idx').on(
+      table.status,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_status_type_expires_created_idx').on(
+      table.status,
+      table.itemType,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_status_name_expires_created_idx').on(
+      table.status,
+      table.itemName,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_buyer_status_idx').on(
+      table.buyerId,
       table.status,
     ),
   ],

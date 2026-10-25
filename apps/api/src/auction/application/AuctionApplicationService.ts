@@ -1,5 +1,7 @@
 import type {
   AuctionBeastListRequest,
+  AuctionBuyOrderCreateRequest,
+  AuctionBuyOrderSupplyRequest,
   AuctionListRequest,
 } from '@daoyou/contracts/auction';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
@@ -9,6 +11,7 @@ import { cultivators } from '@server/lib/drizzle/schema.js';
 import { redisLockKeys, type withRedisLock } from '@server/lib/redis/lock.js';
 import type { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { eq } from 'drizzle-orm';
+import type { AuctionBuyOrderOperations } from './AuctionBuyOrderService.js';
 import type { AuctionOperations } from './AuctionService.js';
 
 type AuctionActor = { userId: string; cultivatorId: string };
@@ -16,6 +19,7 @@ type AuctionActor = { userId: string; cultivatorId: string };
 export class AuctionApplicationService {
   constructor(
     private readonly operations: AuctionOperations,
+    private readonly buyOrders: AuctionBuyOrderOperations,
     private readonly commands: PlayerCommandExecutor,
     private readonly facts: CultivatorQueriesService,
     private readonly withLock: typeof withRedisLock,
@@ -255,5 +259,151 @@ export class AuctionApplicationService {
     });
     await this.operations.clearCache();
     return committed;
+  }
+
+  async createAuctionBuyOrder(
+    args: AuctionBuyOrderCreateRequest & { actor: AuctionActor },
+  ) {
+    return this.commands.executeWithLock({
+      userId: args.actor.userId,
+      cultivatorId: args.actor.cultivatorId,
+      source: 'auction_buy_order_create',
+      requestId: args.requestId,
+      idempotency: {
+        key: `auction-buy-order-create:${args.actor.cultivatorId}:${args.requestId}`,
+        fingerprint: JSON.stringify([
+          args.source,
+          args.targetMode,
+          args.condition,
+          args.price,
+          args.quantity,
+        ]),
+      },
+      lock: { context: 'auction-buy-order-create', timeoutMs: 10_000 },
+      command: async (tx) => {
+        const { name } = await this.facts.name(args.actor.cultivatorId, tx);
+        const result = await this.buyOrders.createBuyOrder(
+          {
+            requestId: args.requestId,
+            source: args.source,
+            targetMode: args.targetMode,
+            condition: args.condition,
+            price: args.price,
+            quantity: args.quantity,
+            buyerCultivatorId: args.actor.cultivatorId,
+            buyerCultivatorName: name,
+          },
+          { tx },
+        );
+        const [currency] = await tx
+          .select({ spiritStones: cultivators.spirit_stones })
+          .from(cultivators)
+          .where(eq(cultivators.id, args.actor.cultivatorId))
+          .limit(1);
+        if (!currency) throw new Error('收购单发布后角色不存在');
+        return {
+          result,
+          resourceChanges: [
+            {
+              resourceTopic: 'player.currency',
+              eventType: 'currency.auction.spent',
+              operation: 'merge',
+              payload: { spiritStones: currency.spiritStones },
+            },
+          ] satisfies ResourceChangeDescriptor[],
+        };
+      },
+    });
+  }
+
+  async supplyAuctionBuyOrder(
+    args: AuctionBuyOrderSupplyRequest & {
+      actor: AuctionActor;
+      buyOrderId: string;
+    },
+  ) {
+    return this.withLock(
+      {
+        keys: [
+          redisLockKeys.auctionBuyOrder(args.buyOrderId),
+          redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
+        ],
+        context: 'auction-buy-order-supply',
+        timeoutMs: 10_000,
+        retries: 0,
+      },
+      (lease) =>
+        this.commands.execute({
+          coordination: { mode: 'redis', lease },
+          userId: args.actor.userId,
+          cultivatorId: args.actor.cultivatorId,
+          source: 'auction_buy_order_supply',
+          idempotency: {
+            key: `auction-buy-order-supply:${args.buyOrderId}:${args.requestId}`,
+            fingerprint: `${args.actor.cultivatorId}:${args.buyOrderId}:${args.itemId}:${args.quantity}`,
+          },
+          command: async (tx) => {
+            const result = await this.buyOrders.supplyBuyOrder(
+              {
+                buyOrderId: args.buyOrderId,
+                sellerCultivatorId: args.actor.cultivatorId,
+                itemId: args.itemId,
+                revision: args.revision,
+                quantity: args.quantity,
+              },
+              { tx },
+            );
+            return {
+              result,
+              resourceChanges: [
+                {
+                  resourceTopic: 'inventory.bag',
+                  eventType: 'inventory.auction.supplied',
+                  operation: 'invalidate',
+                },
+              ] satisfies ResourceChangeDescriptor[],
+            };
+          },
+        }),
+    );
+  }
+
+  async cancelAuctionBuyOrder(args: {
+    actor: AuctionActor;
+    buyOrderId: string;
+  }) {
+    return this.withLock(
+      {
+        keys: [
+          redisLockKeys.auctionBuyOrder(args.buyOrderId),
+          redisLockKeys.cultivatorMutation(args.actor.cultivatorId),
+        ],
+        context: 'auction-buy-order-cancel',
+        timeoutMs: 10_000,
+        retries: 0,
+      },
+      (lease) =>
+        this.commands.execute({
+          coordination: { mode: 'redis', lease },
+          userId: args.actor.userId,
+          cultivatorId: args.actor.cultivatorId,
+          source: 'auction_buy_order_cancel',
+          allowEmpty: true,
+          idempotency: {
+            key: `auction-buy-order-cancel:${args.buyOrderId}`,
+            fingerprint: `${args.actor.cultivatorId}:${args.buyOrderId}`,
+          },
+          command: async (tx) => ({
+            result: await this.buyOrders.cancelBuyOrder(
+              {
+                buyOrderId: args.buyOrderId,
+                buyerCultivatorId: args.actor.cultivatorId,
+              },
+              { tx },
+            ),
+            resourceChanges: [],
+          }),
+        }),
+    );
   }
 }

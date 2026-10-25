@@ -83,6 +83,8 @@ export function observeAutoBattle(
                 }
               : undefined,
           skillUses: owned ? { ...unit.skillUses } : undefined,
+          hpDamageThisRound: owned && unit.hpDamageThisRound ? { ...unit.hpDamageThisRound } : undefined,
+          hpLossThisRound: owned && unit.hpLossThisRound ? { ...unit.hpLossThisRound } : undefined,
           cooldowns: owned ? { ...unit.cooldowns } : undefined,
           entryRound: owned ? unit.entryRound : undefined,
           spellActionsSinceEntry: owned ? unit.spellActionsSinceEntry : undefined,
@@ -129,7 +131,7 @@ export function observeAutoBattle(
             benched: false,
             defending: false,
             auto: false,
-            skipNextAction: false,
+            skipNextAction: owned ? unit.flags.skipNextAction : false,
           },
         };
       }),
