@@ -2151,7 +2151,10 @@ export const auctionBuyOrders = pgTable(
       .notNull(),
     buyerName: varchar('buyer_name', { length: 100 }).notNull(),
 
-    // 收购目标：固定定义物品，或完整固化的材料／灵种堆叠
+    // 收购目标：精确堆叠，或材料品质／类型／五行条件
+    targetMode: varchar('target_mode', { length: 20 })
+      .notNull()
+      .default('exact'), // exact | condition
     itemType: varchar('item_type', { length: 20 }).notNull(),
     itemName: varchar('item_name', { length: 200 }).notNull().default(''),
     itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
@@ -2161,8 +2164,9 @@ export const auctionBuyOrders = pgTable(
     targetDefinitionId: varchar('target_definition_id', {
       length: 160,
     }).notNull(),
-    targetStackKey: varchar('target_stack_key', { length: 200 }).notNull(),
-    targetSnapshot: jsonb('target_snapshot').notNull(),
+    targetStackKey: varchar('target_stack_key', { length: 200 }),
+    targetSnapshot: jsonb('target_snapshot'),
+    targetConditions: jsonb('target_conditions'),
 
     // 价格与数量；冻结额可由剩余数量 × 单价推导
     price: integer('price').notNull(),

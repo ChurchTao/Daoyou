@@ -8,6 +8,12 @@ export {
 } from '../auction/limits.js';
 export type { AuctionSettlementQuote } from '../auction/settlement.js';
 export {
+  AuctionMaterialConditionElementSchema,
+  AuctionMaterialConditionSchema,
+  auctionMaterialConditionLabel,
+} from '../auction/conditions.js';
+export type { AuctionMaterialCondition } from '../auction/conditions.js';
+export {
   AUCTION_BUY_ORDER_ITEM_TYPES,
   AUCTION_BUY_ORDER_STATUSES,
   AUCTION_ITEM_TYPES,

@@ -5,9 +5,14 @@ import type {
 import {
   AUCTION_MAX_ACTIVE_BUY_ORDERS,
   AUCTION_MAX_TRANSACTION_TOTAL,
+  AuctionMaterialConditionSchema,
+  auctionMaterialConditionLabel,
   type AuctionBuyOrderItemType,
 } from '@daoyou/game-domain/auction';
-import { SeedFactsSchema } from '@daoyou/game-domain/inventory';
+import {
+  MaterialFactsSchema,
+  SeedFactsSchema,
+} from '@daoyou/game-domain/inventory';
 import {
   AuctionSnapshotSchema,
   auctionBuyOrderMatchesItem,
@@ -17,8 +22,11 @@ import {
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
+  auctionMaterialConditionBlockReason,
+  auctionMaterialConditionMatches,
   auctionSellerReceiptAllows,
   calculateAuctionSettlement,
+  getAuctionUnitPriceCap,
 } from '@daoyou/game-rules/auction';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { inventoryStackIdentity } from '@daoyou/game-rules/inventory/stacking';
@@ -73,18 +81,7 @@ export function publicAuctionBuyOrder(
   order: AuctionBuyOrder,
   supplyableItems: SupplyableItem[] = [],
 ): AuctionBuyOrderView {
-  const snapshot = AuctionSnapshotSchema.parse(order.targetSnapshot);
-  if (snapshot.version !== 'inventory_v1')
-    throw new AuctionServiceError('INVALID_TARGET', '收购单快照无效');
-  const attachment = publicMailAttachment({
-    type: 'inventory_v1',
-    name: order.itemName,
-    quantity: 1,
-    inventory: { ...snapshot.item, quantity: 1 },
-  });
-  if (!attachment.inventory)
-    throw new AuctionServiceError('INVALID_TARGET', '收购单快照无效');
-  return {
+  const base = {
     id: order.id,
     buyerId: order.buyerId,
     buyerName: order.buyerName,
@@ -92,12 +89,6 @@ export function publicAuctionBuyOrder(
     itemName: order.itemName,
     itemQuality: order.itemQuality,
     itemCategory: order.itemCategory,
-    item: {
-      name: order.itemName,
-      definitionId: attachment.inventory.definitionId,
-      instanceData: attachment.inventory.instanceData ?? null,
-      quantity: order.remainingQuantity,
-    },
     price: order.price,
     initialQuantity: order.initialQuantity,
     remainingQuantity: order.remainingQuantity,
@@ -108,6 +99,41 @@ export function publicAuctionBuyOrder(
       0,
     ),
     supplyableItems,
+  };
+  if (order.targetMode === 'condition') {
+    const condition = AuctionMaterialConditionSchema.safeParse(
+      order.targetConditions,
+    );
+    if (!condition.success)
+      throw new AuctionServiceError('INVALID_TARGET', '收购条件无效');
+    return {
+      ...base,
+      targetMode: 'condition',
+      condition: condition.data,
+      item: null,
+    };
+  }
+  const snapshot = AuctionSnapshotSchema.safeParse(order.targetSnapshot);
+  if (!snapshot.success || snapshot.data.version !== 'inventory_v1')
+    throw new AuctionServiceError('INVALID_TARGET', '收购单快照无效');
+  const attachment = publicMailAttachment({
+    type: 'inventory_v1',
+    name: order.itemName,
+    quantity: 1,
+    inventory: { ...snapshot.data.item, quantity: 1 },
+  });
+  if (!attachment.inventory)
+    throw new AuctionServiceError('INVALID_TARGET', '收购单快照无效');
+  return {
+    ...base,
+    targetMode: 'exact',
+    condition: null,
+    item: {
+      name: order.itemName,
+      definitionId: attachment.inventory.definitionId,
+      instanceData: attachment.inventory.instanceData ?? null,
+      quantity: order.remainingQuantity,
+    },
   };
 }
 
@@ -130,15 +156,9 @@ export class AuctionBuyOrderOperations {
     private readonly mail: MailDeliveryService,
   ) {}
 
-  private async supplyableByStackKey(owner: string) {
+  private async bagSupplyCandidates(owner: string) {
     const rows = await this.database
-      .select({
-        id: schema.inventoryItems.id,
-        definitionId: schema.inventoryItems.definitionId,
-        instanceData: schema.inventoryItems.instanceData,
-        quantity: schema.inventoryItems.quantity,
-        revision: schema.inventoryItems.revision,
-      })
+      .select()
       .from(schema.inventoryItems)
       .where(
         and(
@@ -146,24 +166,48 @@ export class AuctionBuyOrderOperations {
           eq(schema.inventoryItems.location, 'bag'),
         ),
       );
-    const map = new Map<string, SupplyableItem[]>();
+    const candidates: (SupplyableItem & {
+      definitionId: string;
+      instanceData: unknown;
+    })[] = [];
     for (const row of rows) {
+      try {
+        const item = inventoryItemOf(row);
+        candidates.push({
+          id: item.id,
+          quantity: item.quantity,
+          revision: item.revision,
+          definitionId: item.definitionId,
+          instanceData: item.instanceData ?? null,
+        });
+      } catch {
+        continue;
+      }
+    }
+    return candidates;
+  }
+
+  private exactSupplyByStackKey(
+    candidates: (SupplyableItem & {
+      definitionId: string;
+      instanceData: unknown;
+    })[],
+  ) {
+    const map = new Map<string, SupplyableItem[]>();
+    for (const item of candidates) {
       let stackKey: string | null;
       try {
-        stackKey = inventoryStackIdentity(
-          row.definitionId,
-          row.instanceData ?? null,
-        );
+        stackKey = inventoryStackIdentity(item.definitionId, item.instanceData);
       } catch {
         continue;
       }
       if (!stackKey) continue;
-      const key = stackLookupKey(row.definitionId, stackKey);
+      const key = stackLookupKey(item.definitionId, stackKey);
       const items = map.get(key) ?? [];
       items.push({
-        id: row.id,
-        quantity: row.quantity,
-        revision: row.revision,
+        id: item.id,
+        quantity: item.quantity,
+        revision: item.revision,
       });
       map.set(key, items);
     }
@@ -177,10 +221,9 @@ export class AuctionBuyOrderOperations {
       { ...options, page, limit, viewerCultivatorId: owner },
       this.database,
     );
-    const supplyable =
-      options.scope === 'mine'
-        ? new Map<string, SupplyableItem[]>()
-        : await this.supplyableByStackKey(owner);
+    const candidates =
+      options.scope === 'mine' ? [] : await this.bagSupplyCandidates(owner);
+    const exactSupply = this.exactSupplyByStackKey(candidates);
     const totalPages = Math.ceil(result.total / limit);
     const slots =
       options.scope === 'mine'
@@ -193,14 +236,31 @@ export class AuctionBuyOrderOperations {
           }
         : undefined;
     return {
-      orders: result.orders.map((order) =>
-        publicAuctionBuyOrder(
-          order,
-          supplyable.get(
-            stackLookupKey(order.targetDefinitionId, order.targetStackKey),
-          ) ?? [],
-        ),
-      ),
+      orders: result.orders.map((order) => {
+        if (order.targetMode === 'condition') {
+          const condition = AuctionMaterialConditionSchema.safeParse(
+            order.targetConditions,
+          );
+          const supplyable = condition.success
+            ? candidates
+                .filter((item) =>
+                  auctionMaterialConditionMatches(condition.data, item),
+                )
+                .map(({ id, quantity, revision }) => ({
+                  id,
+                  quantity,
+                  revision,
+                }))
+            : [];
+          return publicAuctionBuyOrder(order, supplyable);
+        }
+        const supplyable = order.targetStackKey
+          ? (exactSupply.get(
+              stackLookupKey(order.targetDefinitionId, order.targetStackKey),
+            ) ?? [])
+          : [];
+        return publicAuctionBuyOrder(order, supplyable);
+      }),
       pagination: {
         page,
         limit,
@@ -213,22 +273,23 @@ export class AuctionBuyOrderOperations {
   }
 
   private async resolveTarget(
-    input: AuctionBuyOrderCreateRequest & { buyerCultivatorId: string },
+    source: NonNullable<AuctionBuyOrderCreateRequest['source']>,
+    buyerCultivatorId: string,
     tx: DbTransaction,
   ): Promise<{ definitionId: string; instanceData: unknown }> {
-    if (input.source.kind === 'bag') {
+    if (source.kind === 'bag') {
       const [row] = await tx
         .select()
         .from(schema.inventoryItems)
         .where(
           and(
-            eq(schema.inventoryItems.id, input.source.itemId),
-            eq(schema.inventoryItems.cultivatorId, input.buyerCultivatorId),
+            eq(schema.inventoryItems.id, source.itemId),
+            eq(schema.inventoryItems.cultivatorId, buyerCultivatorId),
             eq(schema.inventoryItems.location, 'bag'),
           ),
         )
         .limit(1);
-      if (!row || row.revision !== input.source.revision)
+      if (!row || row.revision !== source.revision)
         throw new AuctionServiceError(
           'ITEM_CHANGED',
           '物品已变化，请重新选择收购目标',
@@ -239,7 +300,7 @@ export class AuctionBuyOrderOperations {
         instanceData: item.instanceData ?? null,
       };
     }
-    const listing = await findListingById(input.source.listingId, tx);
+    const listing = await findListingById(source.listingId, tx);
     if (
       !listing ||
       listing.status !== 'active' ||
@@ -248,8 +309,8 @@ export class AuctionBuyOrderOperations {
       throw new AuctionServiceError('LISTING_NOT_FOUND', '货单已下架或售出');
     if (
       listing.visibility === 'private' &&
-      listing.targetCultivatorId !== input.buyerCultivatorId &&
-      listing.sellerId !== input.buyerCultivatorId
+      listing.targetCultivatorId !== buyerCultivatorId &&
+      listing.sellerId !== buyerCultivatorId
     )
       throw new AuctionServiceError('LISTING_NOT_FOUND', '货单不可见');
     const snapshot = AuctionSnapshotSchema.parse(listing.itemSnapshot);
@@ -279,20 +340,75 @@ export class AuctionBuyOrderOperations {
           'MAX_BUY_ORDERS',
           `收购位已满（最多${AUCTION_MAX_ACTIVE_BUY_ORDERS}个）`,
         );
-      const target = await this.resolveTarget(input, tx);
-      const blocked = auctionBuyOrderTargetBlockReason(target);
-      if (blocked) throw new AuctionServiceError('INVALID_TARGET', blocked);
-      const definition = itemDefinition(target.definitionId);
-      if (input.quantity > auctionListingStackLimit(target.definitionId))
+      const targetMode = input.targetMode;
+      let targetDefinitionId: string;
+      let targetStackKey: string | null;
+      let targetSnapshot: unknown | null;
+      let targetConditions: unknown | null;
+      let itemName: string;
+      let itemQuality: string;
+      let itemCategory: string;
+      let quantityLimit: number;
+      let priceCap: number;
+      if (targetMode === 'condition') {
+        if (!input.condition)
+          throw new AuctionServiceError(
+            'INVALID_TARGET',
+            '条件收购必须提供收购条件',
+          );
+        const blocked = auctionMaterialConditionBlockReason(input.condition);
+        if (blocked)
+          throw new AuctionServiceError('INVALID_TARGET', blocked);
+        targetDefinitionId = 'material.v1';
+        targetStackKey = null;
+        targetSnapshot = null;
+        targetConditions = input.condition;
+        itemName = auctionMaterialConditionLabel(input.condition);
+        itemQuality = input.condition.quality;
+        itemCategory = input.condition.type ?? 'material';
+        quantityLimit = auctionListingStackLimit(targetDefinitionId);
+        priceCap = getAuctionUnitPriceCap(input.condition.quality);
+      } else {
+        if (!input.source)
+          throw new AuctionServiceError(
+            'INVALID_TARGET',
+            '直接收购必须选择收购目标',
+          );
+        const target = await this.resolveTarget(
+          input.source,
+          input.buyerCultivatorId,
+          tx,
+        );
+        const blocked = auctionBuyOrderTargetBlockReason(target);
+        if (blocked) throw new AuctionServiceError('INVALID_TARGET', blocked);
+        const stackKey = auctionBuyOrderTargetStackKey(target);
+        if (!stackKey)
+          throw new AuctionServiceError('INVALID_TARGET', '该物品不支持收购');
+        targetDefinitionId = target.definitionId;
+        targetStackKey = stackKey;
+        targetSnapshot = targetSnapshotOf(
+          target.definitionId,
+          target.instanceData,
+        );
+        targetConditions = null;
+        itemName = targetName(target.definitionId, target.instanceData);
+        itemQuality = auctionItemQuality(target) ?? '';
+        itemCategory = auctionItemCategory(target);
+        quantityLimit = auctionListingStackLimit(target.definitionId);
+        priceCap = auctionItemPriceCap(target);
+      }
+      const definition = itemDefinition(targetDefinitionId);
+      if (input.quantity > quantityLimit)
         throw new AuctionServiceError(
           'INVALID_QUANTITY',
-          '收购数量不能超过该物品的堆叠上限',
+          targetMode === 'condition'
+            ? '收购数量不能超过材料堆叠上限'
+            : '收购数量不能超过该物品的堆叠上限',
         );
-      const cap = auctionItemPriceCap(target);
-      if (input.price > cap)
+      if (input.price > priceCap)
         throw new AuctionServiceError(
           'INVALID_PRICE',
-          '该物品单价不得超过 ' + cap.toLocaleString() + ' 灵石',
+          '该收购单价不得超过 ' + priceCap.toLocaleString() + ' 灵石',
         );
       const grossAmount = input.price * input.quantity;
       if (grossAmount > AUCTION_MAX_TRANSACTION_TOTAL)
@@ -307,9 +423,6 @@ export class AuctionBuyOrderOperations {
           'INVALID_QUANTITY',
           '收购数量过多，请分单发布',
         );
-      const stackKey = auctionBuyOrderTargetStackKey(target);
-      if (!stackKey)
-        throw new AuctionServiceError('INVALID_TARGET', '该物品不支持收购');
       const [paid] = await tx
         .update(schema.cultivators)
         .set({
@@ -328,16 +441,15 @@ export class AuctionBuyOrderOperations {
         {
           buyerId: input.buyerCultivatorId,
           buyerName: input.buyerCultivatorName,
+          targetMode,
           itemType: definition.kind as AuctionBuyOrderItemType,
-          itemName: targetName(target.definitionId, target.instanceData),
-          itemQuality: auctionItemQuality(target) ?? '',
-          itemCategory: auctionItemCategory(target),
-          targetDefinitionId: target.definitionId,
-          targetStackKey: stackKey,
-          targetSnapshot: targetSnapshotOf(
-            target.definitionId,
-            target.instanceData,
-          ),
+          itemName,
+          itemQuality,
+          itemCategory,
+          targetDefinitionId,
+          targetStackKey,
+          targetSnapshot,
+          targetConditions,
           price: input.price,
           quantity: input.quantity,
           expiresAt: new Date(Date.now() + AUCTION_BUY_ORDER_TTL_MS),
@@ -421,7 +533,23 @@ export class AuctionBuyOrderOperations {
         throw new InventoryError('物品已变化，请刷新');
       if (item.quantity < input.quantity)
         throw new InventoryError('物品数量不足');
-      if (
+      const conditionResult =
+        order.targetMode === 'condition'
+          ? AuctionMaterialConditionSchema.safeParse(order.targetConditions)
+          : null;
+      if (conditionResult && !conditionResult.success)
+        throw new AuctionServiceError('INVALID_TARGET', '收购条件无效');
+      const condition = conditionResult?.success
+        ? conditionResult.data
+        : null;
+      if (condition) {
+        if (!auctionMaterialConditionMatches(condition, item))
+          throw new AuctionServiceError(
+            'ITEM_MISMATCH',
+            '该物品不符合收购条件',
+          );
+      } else if (
+        !order.targetStackKey ||
         !auctionBuyOrderMatchesItem(
           {
             definitionId: order.targetDefinitionId,
@@ -462,24 +590,42 @@ export class AuctionBuyOrderOperations {
         ),
         tx,
       );
-      const snapshot = AuctionSnapshotSchema.parse(order.targetSnapshot);
-      if (snapshot.version !== 'inventory_v1')
-        throw new AuctionServiceError('INVALID_TARGET', '收购单快照无效');
+      const deliveredFacts = condition
+        ? MaterialFactsSchema.parse(item.instanceData)
+        : null;
+      const deliveredName = deliveredFacts?.name ?? order.itemName;
+      const deliveredItem = deliveredFacts
+        ? {
+            definitionId: item.definitionId,
+            quantity: 1,
+            instanceData: deliveredFacts,
+          }
+        : (() => {
+            const snapshot = AuctionSnapshotSchema.safeParse(
+              order.targetSnapshot,
+            );
+            if (!snapshot.success || snapshot.data.version !== 'inventory_v1')
+              throw new AuctionServiceError(
+                'INVALID_TARGET',
+                '收购单快照无效',
+              );
+            return snapshot.data.item;
+          })();
       await this.mail.send(
         order.buyerId,
         '拍卖行收购成交',
         '已收到【' +
-          order.itemName +
+          deliveredName +
           '】' +
           input.quantity +
           '件，请领取附件。',
         [
           {
             type: 'inventory_v1',
-            name: order.itemName,
+            name: deliveredName,
             quantity: input.quantity,
             inventory: {
-              ...snapshot.item,
+              ...deliveredItem,
               quantity: input.quantity,
             },
           },
@@ -491,7 +637,7 @@ export class AuctionBuyOrderOperations {
         input.sellerCultivatorId,
         '拍卖行收购交付',
         '【' +
-          order.itemName +
+          deliveredName +
           '】交付' +
           input.quantity +
           '件，成交额' +

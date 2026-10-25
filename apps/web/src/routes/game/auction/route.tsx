@@ -633,7 +633,10 @@ export default function AuctionPage() {
                       发布时冻结“单价 × 数量”的灵石，撤单或过期后按剩余数量通过邮件退回。
                     </p>
                     <p>
-                      其他道友可用背包中完全同款供货，同账号角色不可互相供货。
+                      其他道友可用背包中完全同款供货；材料还可按品质、类型、五行发布条件收购，名称与描述不限。同账号角色不可互相供货。
+                    </p>
+                    <p>
+                      条件收购只支持材料，品质仍需玄品及以上；成交物品以实际交付材料为准。
                     </p>
                     <p>
                       成交按单价适用3%～15%超额累进税率，由供货方承担；物品与灵石均通过邮件领取。
@@ -914,6 +917,7 @@ export default function AuctionPage() {
               key={buyOrdersUrl}
               orders={buyData.orders}
               ownerId={identity?.id}
+              now={now}
               actions={(order, close) => (
                 <AuctionBuyOrderActions
                   order={order}

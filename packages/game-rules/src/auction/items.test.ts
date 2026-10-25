@@ -11,6 +11,8 @@ import {
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
+  auctionMaterialConditionBlockReason,
+  auctionMaterialConditionMatches,
   auctionPurchaseQuantityLimit,
   AuctionSnapshotSchema,
 } from './items.js';
@@ -305,6 +307,94 @@ describe('收购目标规则', () => {
         instanceData: material.instanceData,
       }),
     ).toBe(false);
+  });
+
+  it('条件收购只比较品质、类型与五行，忽略名称和描述', () => {
+    const condition = {
+      type: 'ore' as const,
+      quality: '玄品' as const,
+      element: 'any' as const,
+    };
+    expect(auctionMaterialConditionBlockReason(condition)).toBeNull();
+    expect(auctionMaterialConditionMatches(condition, material)).toBe(true);
+    expect(
+      auctionMaterialConditionMatches(condition, {
+        ...material,
+        instanceData: {
+          ...material.instanceData,
+          name: '庚金',
+          description: '另一段描述',
+        },
+      }),
+    ).toBe(true);
+    expect(
+      auctionMaterialConditionMatches(condition, {
+        ...material,
+        instanceData: { ...material.instanceData, name: '赤炎草', type: 'herb' },
+      }),
+    ).toBe(false);
+    expect(
+      auctionMaterialConditionMatches(condition, {
+        ...material,
+        instanceData: { ...material.instanceData, rank: '真品' },
+      }),
+    ).toBe(false);
+    expect(
+      auctionMaterialConditionMatches(condition, {
+        definitionId: 'seed.v1',
+        instanceData: material.instanceData,
+      }),
+    ).toBe(false);
+  });
+
+  it('条件类型可为任意材料，五行可限定属性或无属性', () => {
+    const anyType = {
+      type: null,
+      quality: '玄品' as const,
+      element: 'none' as const,
+    };
+    expect(auctionMaterialConditionMatches(anyType, material)).toBe(true);
+    expect(
+      auctionMaterialConditionMatches(anyType, {
+        ...material,
+        instanceData: { ...material.instanceData, element: '火' },
+      }),
+    ).toBe(false);
+    expect(
+      auctionMaterialConditionMatches(
+        { ...anyType, element: '火' },
+        {
+          ...material,
+          instanceData: { ...material.instanceData, element: '火', type: 'herb' },
+        },
+      ),
+    ).toBe(true);
+    expect(
+      auctionMaterialConditionMatches(
+        { ...anyType, element: '火' },
+        {
+          ...material,
+          instanceData: { ...material.instanceData, element: '水' },
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it('条件品质不能低于玄品', () => {
+    expect(
+      auctionMaterialConditionBlockReason({
+        type: 'herb',
+        quality: '灵品',
+        element: 'any',
+      }),
+    ).toContain('玄品');
+    expect(
+      auctionMaterialConditionBlockReason({
+        type: null,
+        quality: '神品',
+        element: 'none',
+      }),
+    ).toBeNull();
   });
 });
 

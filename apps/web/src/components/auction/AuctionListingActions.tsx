@@ -79,6 +79,8 @@ export function AuctionListingActions({
       {!isOwner && !isBeast && maxQuantity > 1 && (
         <div>
           <InkQuantityInput
+            showLabel
+            fullWidth
             label="购买数量"
             max={maxQuantity}
             value={quantity}

@@ -6,6 +6,7 @@ import {
   AUCTION_MAX_SELLER_RECEIPT,
   AUCTION_MAX_TRANSACTION_TOTAL,
   AUCTION_MAX_UNIT_PRICE,
+  type AuctionMaterialCondition,
 } from '@daoyou/game-domain/auction';
 import {
   ConsumableFactsSchema,
@@ -199,6 +200,31 @@ export function auctionBuyOrderTargetBlockReason(item: {
   if (inventoryStackIdentity(definition.id, instanceData) === null)
     return '该物品不支持收购';
   return null;
+}
+
+/** 条件收购只接受材料，且材料品质仍需满足寄售门槛。 */
+export function auctionMaterialConditionBlockReason(
+  condition: AuctionMaterialCondition,
+): string | null {
+  if (!isAuctionListableQuality(condition.quality))
+    return `仅玄品及以上材料可收购，当前为${condition.quality}`;
+  return null;
+}
+
+/** 条件收购只比较品质、类型与五行，名称和描述不参与匹配。 */
+export function auctionMaterialConditionMatches(
+  condition: AuctionMaterialCondition,
+  item: { definitionId: string; instanceData: unknown },
+): boolean {
+  if (item.definitionId !== 'material.v1') return false;
+  const parsed = MaterialFactsSchema.safeParse(item.instanceData);
+  if (!parsed.success) return false;
+  const facts = parsed.data;
+  if (condition.quality !== facts.rank) return false;
+  if (condition.type !== null && condition.type !== facts.type) return false;
+  if (condition.element === 'any') return true;
+  if (condition.element === 'none') return facts.element === null;
+  return condition.element === facts.element;
 }
 
 /** 收购目标必须能落到背包堆叠身份，卖家只有完全同款才能供货。 */

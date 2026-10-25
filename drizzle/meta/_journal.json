@@ -484,6 +484,13 @@
       "when": 1792904286108,
       "tag": "0068_smiling_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792922870739,
+      "tag": "0069_small_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

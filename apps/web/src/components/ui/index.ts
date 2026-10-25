@@ -11,6 +11,7 @@ export {
   type InkDialogState,
 } from './InkDialog';
 export { InkDivider, type InkDividerProps } from './InkDivider';
+export { InkField, type InkFieldProps } from './InkField';
 export { inkFieldVariants, type InkFieldVariantProps } from './inkFieldStyles';
 export {
   InkHorizontalScroll,

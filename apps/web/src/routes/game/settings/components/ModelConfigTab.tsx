@@ -84,6 +84,7 @@ export function ModelConfigTab() {
         label="供应商"
         value={provider}
         onChange={handleProviderChange}
+        size="sm"
         labelClassName={settingsLabelClass}
       >
         <option value="deepseek">{PROVIDER_LABELS.deepseek}</option>

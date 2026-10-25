@@ -6,6 +6,7 @@ import {
   eq,
   gte,
   lte,
+  or,
   sql,
   type SQL,
 } from 'drizzle-orm';
@@ -22,13 +23,15 @@ export async function createBuyOrder(
   data: {
     buyerId: string;
     buyerName: string;
+    targetMode: 'exact' | 'condition';
     itemType: AuctionBuyOrderItemType;
     itemName: string;
     itemQuality: string;
     itemCategory: string;
     targetDefinitionId: string;
-    targetStackKey: string;
-    targetSnapshot: unknown;
+    targetStackKey: string | null;
+    targetSnapshot: unknown | null;
+    targetConditions: unknown | null;
     price: number;
     quantity: number;
     expiresAt: Date;
@@ -41,6 +44,7 @@ export async function createBuyOrder(
     .values({
       buyerId: data.buyerId,
       buyerName: data.buyerName,
+      targetMode: data.targetMode,
       itemType: data.itemType,
       itemName: data.itemName,
       itemQuality: data.itemQuality,
@@ -48,6 +52,7 @@ export async function createBuyOrder(
       targetDefinitionId: data.targetDefinitionId,
       targetStackKey: data.targetStackKey,
       targetSnapshot: data.targetSnapshot,
+      targetConditions: data.targetConditions,
       price: data.price,
       initialQuantity: data.quantity,
       remainingQuantity: data.quantity,
@@ -117,8 +122,16 @@ export async function findActiveBuyOrders(
   }
   if (itemType)
     conditions.push(eq(schema.auctionBuyOrders.itemType, itemType));
-  if (itemCategory)
-    conditions.push(eq(schema.auctionBuyOrders.itemCategory, itemCategory));
+  if (itemCategory) {
+    const category = or(
+      eq(schema.auctionBuyOrders.itemCategory, itemCategory),
+      and(
+        eq(schema.auctionBuyOrders.itemType, 'material'),
+        eq(schema.auctionBuyOrders.itemCategory, 'material'),
+      ),
+    );
+    if (category) conditions.push(category);
+  }
   if (itemQuality)
     conditions.push(eq(schema.auctionBuyOrders.itemQuality, itemQuality));
   if (itemName)

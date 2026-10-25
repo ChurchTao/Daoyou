@@ -9,6 +9,8 @@ export {
   auctionItemPriceCap,
   auctionItemQuality,
   auctionListingStackLimit,
+  auctionMaterialConditionBlockReason,
+  auctionMaterialConditionMatches,
   auctionPurchaseQuantityLimit,
   auctionSellerReceiptAllows,
   isAuctionBuyOrderKind,
@@ -16,4 +18,5 @@ export {
 export {
   calculateAuctionSettlement,
   getAuctionUnitPriceCap,
+  isAuctionListableQuality,
 } from '../auction/settlement.js';

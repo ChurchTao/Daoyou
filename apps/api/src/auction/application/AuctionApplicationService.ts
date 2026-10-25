@@ -273,6 +273,8 @@ export class AuctionApplicationService {
         key: `auction-buy-order-create:${args.actor.cultivatorId}:${args.requestId}`,
         fingerprint: JSON.stringify([
           args.source,
+          args.targetMode,
+          args.condition,
           args.price,
           args.quantity,
         ]),
@@ -284,6 +286,8 @@ export class AuctionApplicationService {
           {
             requestId: args.requestId,
             source: args.source,
+            targetMode: args.targetMode,
+            condition: args.condition,
             price: args.price,
             quantity: args.quantity,
             buyerCultivatorId: args.actor.cultivatorId,

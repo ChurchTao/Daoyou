@@ -1,4 +1,8 @@
-import { InkButton, InkQuantityInput } from '@app/components/ui';
+import {
+  InkButton,
+  InkQuantityInput,
+  InkSelect,
+} from '@app/components/ui';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import type { AuctionBuyOrderView } from '@daoyou/contracts/auction';
@@ -30,10 +34,13 @@ export function AuctionBuyOrderActions({
   const isOwner = order.buyerId === ownerId;
   const bagQuery = useInventoryBag(!isOwner);
   const [quantity, setQuantity] = useState('1');
+  const [selectedItemId, setSelectedItemId] = useState<string>();
   const supplyableIds = new Set(order.supplyableItems.map((item) => item.id));
-  const stack = [...(bagQuery.data?.items ?? [])]
+  const stacks = [...(bagQuery.data?.items ?? [])]
     .filter((item) => supplyableIds.has(item.id))
-    .sort((a, b) => b.quantity - a.quantity)[0];
+    .sort((a, b) => b.quantity - a.quantity);
+  const stack =
+    stacks.find((item) => item.id === selectedItemId) ?? stacks[0];
   const maxQuantity = Math.min(
     order.remainingQuantity,
     stack?.quantity ?? 0,
@@ -51,18 +58,17 @@ export function AuctionBuyOrderActions({
   const expired = minutes === 0;
   const refund = order.remainingQuantity * order.price;
   return (
-    <div className="space-y-3">
-      <div className="text-ink-secondary space-y-1 text-xs">
-        <p>
-          买家：{order.buyerName}
+    <div className="space-y-3 text-sm">
+      <div className="text-ink-secondary flex flex-wrap gap-x-3">
+        <span>
+          求购者：{order.buyerName}
           {isOwner ? '（我）' : ''}
-        </p>
-        <p>
-          剩余时间：
+        </span>
+        <span className={expired ? 'text-crimson' : undefined}>
           {expired
             ? '已过期'
-            : `${Math.floor(minutes / 60)}时${minutes % 60}分`}
-        </p>
+            : `剩余 ${Math.floor(minutes / 60)}时${minutes % 60}分`}
+        </span>
       </div>
       <p>
         收购单价 <SpiritStones amount={order.price} />／件 · 剩余{' '}
@@ -74,7 +80,7 @@ export function AuctionBuyOrderActions({
             撤单后剩余冻结{' '}
             <SpiritStones amount={refund} className="font-semibold" />。
           </p>
-          <p className="text-ink-secondary text-xs">
+          <p className="text-ink-secondary">
             冻结灵石通过邮件退回，已成交部分不受影响。
           </p>
           <InkButton
@@ -92,24 +98,44 @@ export function AuctionBuyOrderActions({
       ) : (
         <>
           {stack ? (
-            <div>
-              <InkQuantityInput
-                label="供货数量"
-                max={maxQuantity}
-                value={quantity}
-                onChange={setQuantity}
-                disabled={!!pendingId}
-              />
-              <p className="text-ink-secondary mt-1 text-xs">
-                从背包「{stack.name}」扣除，最多可供{' '}
-                <span className="font-mono">{maxQuantity}</span> 件。
-              </p>
+            <div className="space-y-3">
+              {stacks.length > 1 ? (
+                <InkSelect
+                  label="供货堆叠"
+                  value={stack.id}
+                  onChange={(value) => setSelectedItemId(value)}
+                  disabled={!!pendingId}
+                >
+                  {stacks.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} · {item.quantity}件
+                    </option>
+                  ))}
+                </InkSelect>
+              ) : null}
+              <div>
+                <InkQuantityInput
+                  showLabel
+                  fullWidth
+                  label="供货数量"
+                  max={maxQuantity}
+                  value={quantity}
+                  onChange={setQuantity}
+                  disabled={!!pendingId}
+                />
+                <p className="text-ink-secondary mt-1">
+                  从背包「{stack.name}」扣除，最多可供{' '}
+                  <span className="font-mono">{maxQuantity}</span> 件。
+                </p>
+              </div>
             </div>
           ) : (
-            <p className="text-ink-secondary text-sm">
+            <p className="text-ink-secondary">
               {bagQuery.loading
                 ? '正在核对背包……'
-                : '背包中没有与收购目标完全一致的物品，无法供货。'}
+                : order.targetMode === 'condition'
+                  ? '背包中没有符合收购条件的材料，无法供货。'
+                  : '背包中没有与收购目标完全一致的物品，无法供货。'}
             </p>
           )}
           {quote ? (
@@ -119,7 +145,7 @@ export function AuctionBuyOrderActions({
               <SpiritStones amount={quote.sellerAmount} className="font-semibold" />
             </p>
           ) : null}
-          <p className="text-ink-secondary text-xs">
+          <p className="text-ink-secondary">
             收购款通过邮件发放，灵石与物品都需要领取。
           </p>
           <InkButton
