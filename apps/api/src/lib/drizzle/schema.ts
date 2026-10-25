@@ -2140,6 +2140,70 @@ export const auctionListings = pgTable(
   ],
 );
 
+// 拍卖行收购单表：买家冻结灵石，卖家从背包交付同款物品
+export const auctionBuyOrders = pgTable(
+  'wanjiedaoyou_auction_buy_orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    buyerId: uuid('buyer_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    buyerName: varchar('buyer_name', { length: 100 }).notNull(),
+
+    // 收购目标：固定定义物品，或完整固化的材料／灵种堆叠
+    itemType: varchar('item_type', { length: 20 }).notNull(),
+    itemName: varchar('item_name', { length: 200 }).notNull().default(''),
+    itemQuality: varchar('item_quality', { length: 20 }).notNull().default(''),
+    itemCategory: varchar('item_category', { length: 50 })
+      .notNull()
+      .default(''),
+    targetDefinitionId: varchar('target_definition_id', {
+      length: 160,
+    }).notNull(),
+    targetStackKey: varchar('target_stack_key', { length: 200 }).notNull(),
+    targetSnapshot: jsonb('target_snapshot').notNull(),
+
+    // 价格与数量；冻结额可由剩余数量 × 单价推导
+    price: integer('price').notNull(),
+    initialQuantity: integer('initial_quantity').notNull(),
+    remainingQuantity: integer('remaining_quantity').notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('active'), // active | filled | expired | cancelled
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    filledAt: timestamp('filled_at'),
+  },
+  (table) => [
+    index('auction_buy_order_status_expires_price_idx').on(
+      table.status,
+      table.expiresAt,
+      table.price,
+    ),
+    index('auction_buy_order_status_expires_created_idx').on(
+      table.status,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_status_type_expires_created_idx').on(
+      table.status,
+      table.itemType,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_status_name_expires_created_idx').on(
+      table.status,
+      table.itemName,
+      table.expiresAt,
+      table.createdAt,
+    ),
+    index('auction_buy_order_buyer_status_idx').on(
+      table.buyerId,
+      table.status,
+    ),
+  ],
+);
+
 /**
  * @deprecated 赌战历史表，无运行时读写及自动清理；本轮保留结构与数据。
  * 后续删除顺序先于 battleRecordsV3（存在外键）。

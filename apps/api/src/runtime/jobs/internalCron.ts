@@ -4,6 +4,7 @@ import {
   generateDailyMarketMaterialLibraryEntries,
   ITEM_LIBRARY_SYSTEM_USER_ID,
 } from '@server/admin/application/MaterialLibraryService.js';
+import type { AuctionBuyOrderOperations } from '@server/auction/application/AuctionBuyOrderService.js';
 import type { AuctionOperations } from '@server/auction/application/AuctionService.js';
 import { db, getExecutor } from '@server/lib/drizzle/db.js';
 import { cultivators } from '@server/lib/drizzle/schema.js';
@@ -228,12 +229,14 @@ async function withJobLock<T extends CronJobResult>(
 
 export async function runAuctionExpireJob(
   auction: AuctionOperations,
+  buyOrders: AuctionBuyOrderOperations,
 ): Promise<CronJobResult> {
   return withJobLock('auction-expire', async () => {
-    const processed = await auction.expireListings();
+    const listings = await auction.expireListings();
+    const orders = await buyOrders.expireBuyOrders();
     return {
       success: true,
-      processed,
+      processed: listings + orders,
       skipped: false,
     };
   });
@@ -405,6 +408,7 @@ export async function runExpiredDataCleanupJob(): Promise<
           sectShopPurchases: new Date(now - SECT_SHOP_PURCHASE_RETENTION_MS),
           sectStipendClaims: new Date(now - SECT_STIPEND_CLAIM_RETENTION_MS),
           auctionListings: new Date(now - AUCTION_LISTING_RETENTION_MS),
+          auctionBuyOrders: new Date(now - AUCTION_LISTING_RETENTION_MS),
         },
         tx,
       )),

@@ -16,6 +16,7 @@ import {
 } from '@server/redis/redis.module.js';
 import type { Redis } from 'ioredis';
 import { AuctionApplicationService } from './application/AuctionApplicationService.js';
+import { AuctionBuyOrderOperations } from './application/AuctionBuyOrderService.js';
 import { AuctionOperations } from './application/AuctionService.js';
 import { AuctionController } from './auction.controller.js';
 import { AuctionService } from './auction.service.js';
@@ -40,15 +41,30 @@ import { AuctionService } from './auction.service.js';
       inject: [DRIZZLE_DATABASE, REDIS_CLIENT, MailDeliveryService],
     },
     {
+      provide: AuctionBuyOrderOperations,
+      useFactory: (database: DbClient, mail: MailDeliveryService) =>
+        new AuctionBuyOrderOperations(database, mail),
+      inject: [DRIZZLE_DATABASE, MailDeliveryService],
+    },
+    {
       provide: AuctionApplicationService,
       useFactory: (
         operations: AuctionOperations,
+        buyOrders: AuctionBuyOrderOperations,
         commands: PlayerCommandExecutor,
         facts: CultivatorQueriesService,
         lock: typeof withRedisLock,
-      ) => new AuctionApplicationService(operations, commands, facts, lock),
+      ) =>
+        new AuctionApplicationService(
+          operations,
+          buyOrders,
+          commands,
+          facts,
+          lock,
+        ),
       inject: [
         AuctionOperations,
+        AuctionBuyOrderOperations,
         PlayerCommandExecutor,
         CultivatorQueriesService,
         REDIS_LOCK,
@@ -56,6 +72,6 @@ import { AuctionService } from './auction.service.js';
     },
     AuctionService,
   ],
-  exports: [AuctionOperations],
+  exports: [AuctionOperations, AuctionBuyOrderOperations],
 })
 export class AuctionModule {}

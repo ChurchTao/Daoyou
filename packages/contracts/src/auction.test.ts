@@ -1,6 +1,11 @@
 import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
 import { expect, it } from 'vitest';
-import { AuctionBuySchema, AuctionListSchema } from './auction.js';
+import {
+  AuctionBuyOrderCreateSchema,
+  AuctionBuyOrderSupplySchema,
+  AuctionBuySchema,
+  AuctionListSchema,
+} from './auction.js';
 it('上架仅接收版本引用，公开和专属对象不得混用', () => {
   const body = {
     requestId: '00000000-0000-4000-8000-000000000001',
@@ -36,6 +41,64 @@ it('上架仅接收版本引用，公开和专属对象不得混用', () => {
     }).success,
   ).toBe(true);
 });
+it('收购目标只能引用背包物品或在售货单', () => {
+  const base = {
+    requestId: '00000000-0000-4000-8000-000000000001',
+    price: 100,
+    quantity: 10,
+  };
+  expect(
+    AuctionBuyOrderCreateSchema.safeParse({
+      ...base,
+      source: {
+        kind: 'bag',
+        itemId: '00000000-0000-4000-8000-000000000002',
+        revision: 0,
+      },
+    }).success,
+  ).toBe(true);
+  expect(
+    AuctionBuyOrderCreateSchema.safeParse({
+      ...base,
+      source: {
+        kind: 'listing',
+        listingId: '00000000-0000-4000-8000-000000000003',
+      },
+    }).success,
+  ).toBe(true);
+  for (const patch of [
+    { source: { kind: 'bag', itemId: base.requestId } },
+    { source: { kind: 'bag', itemId: base.requestId, revision: -1 } },
+    { source: { kind: 'listing', listingId: base.requestId, extra: true } },
+    { source: { kind: 'bag', itemId: base.requestId, revision: 0 }, price: 0 },
+    { source: { kind: 'bag', itemId: base.requestId, revision: 0 }, quantity: 0 },
+    { source: { kind: 'bag', itemId: base.requestId, revision: 0 }, target: {} },
+  ])
+    expect(AuctionBuyOrderCreateSchema.safeParse({ ...base, ...patch }).success).toBe(
+      false,
+    );
+});
+
+it('供货必须携带物品版本与重试标识', () => {
+  const body = {
+    requestId: '00000000-0000-4000-8000-000000000001',
+    itemId: '00000000-0000-4000-8000-000000000002',
+    revision: 0,
+    quantity: 10,
+  };
+  expect(AuctionBuyOrderSupplySchema.safeParse(body).success).toBe(true);
+  for (const patch of [
+    { requestId: undefined },
+    { itemId: undefined },
+    { revision: undefined },
+    { quantity: 0 },
+    { quantity: 2_147_483_648 },
+  ])
+    expect(AuctionBuyOrderSupplySchema.safeParse({ ...body, ...patch }).success).toBe(
+      false,
+    );
+});
+
 it('购买必须携带重试标识，货单拒绝旧快照', () => {
   const body = {
     listingId: '00000000-0000-4000-8000-000000000001',
