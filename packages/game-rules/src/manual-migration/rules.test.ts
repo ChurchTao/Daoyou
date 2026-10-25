@@ -153,4 +153,10 @@ describe('旧功法补偿', () => {
       ).toThrow();
     }
   });
+  it('扩境不扩大旧功法补偿的自选范围', () => {
+    expect(policy.catalog.every((manual) => ['炼气', '筑基', '金丹', '元婴'].includes(manual.realm))).toBe(true);
+    expect(() => validateManualSelection([
+      { definitionId: 'jade.character_manual.lianshen', quantity: 1 },
+    ], 1, policy)).toThrow('自选玉简或数量无效');
+  });
 });

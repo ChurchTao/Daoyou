@@ -1,12 +1,13 @@
 import { withManualAttributes, compileCharacterManualsV1 } from '../../manuals/compiler.js';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { resolveCombatCapabilitiesV1 } from '../../manuals/capabilities.js';
+import { classifyManualStatuses } from '../../manuals/later-mechanisms.js';
 import type { CombatV6VersionStamp } from '@daoyou/combat-core/types';
 import type { CombatV6ProjectionDiagnostic, CombatV6ProjectionResult, CharacterCombatInput } from "@daoyou/game-domain/combat"
 
-function manualContentConflicts(existingSkills: string[], existingStatuses: string[]): CombatV6ProjectionDiagnostic[] {
+function manualContentConflicts(existingSkills: string[], existingStatuses: string[], manualStatusIds: string[]): CombatV6ProjectionDiagnostic[] {
   const existing = new Set([...existingSkills, ...existingStatuses])
-  return CHARACTER_MANUALS_V1.flatMap((definition) => [definition.id, ...(definition.skill ? [definition.skill.id] : [])])
+  return [...CHARACTER_MANUALS_V1.flatMap((definition) => [definition.id, ...(definition.skill ? [definition.skill.id] : [])]), ...manualStatusIds]
     .filter((id) => existing.has(id))
     .map((id) => ({ severity: "error" as const, code: "CONTENT_ID_CONFLICT" as const, message: `功法战斗内容 ID 冲突：${id}` }))
 }
@@ -27,7 +28,7 @@ export function composeCharacterManuals(
     ...base.diagnostics,
     ...manuals.projection.diagnostics,
     ...capabilities.diagnostics,
-    ...manualContentConflicts(base.skills.map((skill) => skill.id), base.statusDefs.map((status) => status.id)),
+    ...manualContentConflicts(base.skills.map((skill) => skill.id), base.statusDefs.map((status) => status.id), manuals.projection.statusDefs.map((status) => status.id)),
   ]
   if (diagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics, versions }
   const attrs = { ...base.unit.attrs }
@@ -50,7 +51,7 @@ export function composeCharacterManuals(
       tags: [...new Set([...(base.unit.tags ?? []), ...manuals.projection.unitTags])],
     },
     skills: [...base.skills, ...manuals.projection.skills.filter((skill) => passiveIds.has(skill.id))],
-    statusDefs: base.statusDefs,
+    statusDefs: [...classifyManualStatuses(base.statusDefs), ...manuals.projection.statusDefs],
     diagnostics,
     versions,
   }

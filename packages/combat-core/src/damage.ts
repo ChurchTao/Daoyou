@@ -4,6 +4,7 @@
  */
 import { combatModifiers, modifierValue, isReviveBlocked } from './modifiers.js';
 import { evalExpr } from './expr.js';
+import { recordHpLoss } from './hp-loss.js';
 import { skillOf, passiveSkills } from "./skills.js"
 import { MIN_DAMAGE, MIN_HP } from "./constants.js"
 import { absorbBarriers } from "./barriers.js"
@@ -55,7 +56,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
 
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const skill = skillId ? skillOf(ctx.skills, source, skillId) : undefined
-  const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin })
+  const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
   src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
   src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
   const protector = input.kind === DamageKind.Physical && !input.healInstead && !modifiers.some(m => m.ignoreProtection) ? findProtector(ctx, target) : undefined
@@ -89,6 +90,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const crit = input.kind === DamageKind.Fixed || burstFactor !== 1 ? false : critRoll?.crit ?? ctx.rng.chance(Math.min(1, Math.max(0, critRoll?.chance ?? critChance)))
 
   const defenseIgnoreHook = ctx.hooks.emit(HookName.OnDefenseIgnoreCalc, {
+    percentageDamage: input.percentageDamage,
     source,
     target,
     kind: input.kind,
@@ -146,7 +148,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
     }
   }
   const sourceBoundFactor = target.statuses.reduce((factor, status) => factor * (status.sourceId === source.id ? ctx.statusDefs.get(status.id)?.damageTakenFromSource ?? 1 : 1), 1)
-  const defenseModifiers = combatModifiers(ctx, target, { target: source, skill, skillId, kind: input.kind, origin })
+  const defenseModifiers = combatModifiers(ctx, target, { target: source, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
   const incomingFactor = Math.max(0, 1 + modifierValue(defenseModifiers, 'damageTakenBonus', target, source, skill, ctx))
   const incomingAdd = modifierValue(defenseModifiers, 'damageTakenAdd', target, source, skill, ctx)
   const damageResultFactor = modifiers.reduce((factor, modifier) => factor * evalExpr(modifier.damageResultFactor ?? 1, { source, target, state: ctx.state, skillLevel: input.skillLevel ?? source.level, targets: input.targetCount ?? 1 }), 1)
@@ -164,11 +166,19 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   let targetAmount = amount
   if (protector) {
     const keep = ctx.rules.protectionTargetRatio ?? 0
-    applyDamage(ctx, source, protector, Math.floor(amount * (1 - keep)), input.kind, silent, origin, input.cannotKill)
+    applyDamage(ctx, source, protector, Math.floor(amount * (1 - keep)), input.kind, silent, origin, input.cannotKill, 1, input.percentageDamage)
     targetAmount = Math.floor(amount * keep * (1 + modifierValue(modifiers, 'protectedDamageBonus', source, target, skill, ctx)))
   }
   const barrierFactor = 1 + modifierValue(modifiers, 'barrierDamageBonus', source, target, skill, ctx)
-  const hpDamage = applyDamage(ctx, source, target, targetAmount, input.kind, silent, origin, input.cannotKill, barrierFactor)
+  const barrierDrainBonus = modifierValue(modifiers, 'barrierDrainBonus', source, target, skill, ctx)
+  const hpDamage = applyDamage(ctx, source, target, targetAmount, input.kind, silent, origin, input.cannotKill, barrierFactor, input.percentageDamage, barrierDrainBonus)
+  if (ctx.currentAction?.sourceId === source.id && origin === DamageOrigin.ActionDirect && !input.percentageDamage) {
+    if (isPrimary) ctx.currentAction.primaryHpDamage = (ctx.currentAction.primaryHpDamage ?? 0) + hpDamage;
+    if (input.kind !== DamageKind.Fixed && hpDamage > 0) {
+      const targets = (ctx.currentAction.incomingAttackTargetIds ??= []);
+      if (!targets.includes(target.id)) targets.push(target.id);
+    }
+  }
   if (!silent) {
     // 溅射继承本击的最终结果；不重新命中、暴击、减防或递归触发溅射。
     for (const modifier of modifiers) {
@@ -210,6 +220,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
       skillId,
       isPrimary,
       origin,
+      percentageDamage: input.percentageDamage,
     }
     ctx.hooks.emit(HookName.AfterStrike, { ...hit })
     if (hpDamage > 0) ctx.hooks.emit(HookName.AfterHit, hit)
@@ -339,14 +350,16 @@ export function applyDamage(
   origin: DamageOriginType = silent ? DamageOrigin.HookDerived : DamageOrigin.ActionDirect,
   cannotKill = false,
   barrierDestructionFactor = 1,
+  percentageDamage = false,
+  barrierDrainBonus = 0,
 ): number {
   if (!isStanding(target) || target.flags.downed) return 0
 
   const skill = ctx.currentAction?.skillId ? skillOf(ctx.skills, source, ctx.currentAction.skillId) : undefined
-  const finalModifiers = combatModifiers(ctx, target, { target: source, skill, skillId: skill?.id, kind, origin })
+  const finalModifiers = combatModifiers(ctx, target, { target: source, skill, skillId: skill?.id, kind, origin, percentageDamage })
   const received = Math.max(0, Math.floor(amount * Math.max(0, 1 + modifierValue(finalModifiers, 'allDamageTakenBonus', target, source, skill, ctx))))
   const kept = redirectOverflow(ctx, source, target, received, kind, origin)
-  const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept, barrierDestructionFactor)
+  const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept, barrierDestructionFactor, barrierDrainBonus)
   const barrierAbsorbed = kept - enteringHp
   const appliedToHp = cannotKill
     ? Math.min(enteringHp, Math.max(0, target.attrs.hp - MIN_HP))
@@ -388,6 +401,7 @@ export function applyDamage(
       skillId: ctx.currentAction?.skillId,
       isPrimary: ctx.currentAction?.primaryTargetId === target.id,
       origin,
+      percentageDamage,
     })
   }
   ctx.hooks.emit(HookName.AfterDamage, {
@@ -398,6 +412,7 @@ export function applyDamage(
     kind,
     skillId: ctx.currentAction?.skillId,
     origin,
+    percentageDamage,
   })
   breakStatusesOnDamage(ctx, target)
   if (hp <= 0) ctx.applyHpZero(target, source, ctx.currentAction?.skillId, kind, origin)
@@ -405,6 +420,7 @@ export function applyDamage(
 }
 
 function recordHpDamage(ctx: BattleContext, target: Unit, amount: number): void {
+  recordHpLoss(ctx, target, amount)
   const previous = target.hpDamageThisRound
   target.hpDamageThisRound = {
     round: ctx.state.round,
@@ -553,7 +569,9 @@ export function changeWound(ctx: BattleContext, source: Unit, target: Unit, amou
   const before = target.wound
   target.wound = Math.max(0, Math.min(target.attrs.maxHp - MIN_HP, before + Math.floor(amount)))
   if (target.wound === before) return
+  const hpBefore = target.attrs.hp
   target.attrs.hp = Math.min(target.attrs.hp, recoverableHp(target))
+  recordHpLoss(ctx, target, hpBefore - target.attrs.hp)
   ctx.emit({ type: EventType.WoundChanged, sourceId: source.id, targetId: target.id, before, after: target.wound, hpAfter: target.attrs.hp, recoverableHpAfter: recoverableHp(target) })
 }
 

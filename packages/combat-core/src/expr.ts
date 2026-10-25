@@ -223,6 +223,10 @@ class Parser {
       const loss = this.env.source.hpDamageThisRound
       return loss && loss.round === this.env.state?.round ? loss.amount : 0
     }
+    if (name === "roundHpLoss") {
+      const loss = this.env.source.hpLossThisRound
+      return loss && loss.round === this.env.state?.round ? loss.amount : 0
+    }
     if (name === ExprVar.ImpactDamage) return this.env.impactDamage ?? 0
     if (name === ExprVar.TargetStatusStacks) return this.env.targetStatusStacks ?? 0
     if (name === ExprVar.Level) return this.env.source.level

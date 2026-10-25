@@ -57,7 +57,7 @@ export const TransferSnapshotSchema = z.strictObject({
   }),
   roots: z.array(z.strictObject({ element: z.string().max(10), strength: nonnegative.max(100), marrowWashBonus: nonnegative.max(100), grade: z.string().max(20).nullable() })).max(9),
   fates: z.array(z.strictObject({ name: z.string().min(1).max(100), quality: z.string().max(10).nullable(), details: z.unknown(), description: z.string().nullable() })).max(20),
-  manuals: z.strictObject({ learned: z.array(z.strictObject({ manualId: z.string().max(160), level: nonnegative, unlockedLevel: nonnegative })).max(100), slots: z.array(z.strictObject({ slot: z.number().int().min(1).max(4), manualId: z.string().max(160) })).max(4) }),
+  manuals: z.strictObject({ learned: z.array(z.strictObject({ manualId: z.string().max(160), level: nonnegative, unlockedLevel: nonnegative })).max(100), slots: z.array(z.strictObject({ slot: z.number().int().min(1).max(8), manualId: z.string().max(160) })).max(8) }),
   sect: z.strictObject({ sectId: z.string().max(64), methods: z.record(z.string(), nonnegative), activePathId: z.string().max(160), meridianDepth: z.number().int().min(0).max(7), loadouts: z.array(z.strictObject({ pathId: z.string().max(160), nodeIds: z.array(z.string().max(160)).max(7) })).max(2) }).nullable(),
   items: z.array(InventoryItemStructureSchema).max(14),
   equipped: z.array(z.strictObject({ slot: z.enum(DAO_EQUIPMENT_SLOTS), itemId: z.string().max(160) })).max(6),

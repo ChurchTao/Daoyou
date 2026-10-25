@@ -74,8 +74,10 @@ export function absorbBarriers(
   target: Unit,
   amount: number,
   destructionFactor = 1,
+  extraDrainBonus = 0,
 ): number {
   let remaining = atLeast(0, Math.floor(amount));
+  let absorbedPoints = 0;
   const factor = Math.max(1, destructionFactor);
   const ordered = target.barriers
     .filter((barrier) => barrier.current > 0)
@@ -88,6 +90,7 @@ export function absorbBarriers(
     const absorbed = Math.min(before, Math.floor(remaining * factor));
     barrier.current -= absorbed;
     remaining -= absorbed / factor;
+    absorbedPoints += absorbed;
     ctx.emit({
       type: EventType.BarrierChanged,
       sourceId: barrier.sourceId,
@@ -97,6 +100,19 @@ export function absorbBarriers(
       after: barrier.current,
       reason: 'absorbed',
     });
+  }
+  // Extra destruction spends only barrier points. It cannot enlarge the HP
+  // remainder when an attack breaks a small shield, including multiple sources.
+  let extra = Math.floor(absorbedPoints * (1 + Math.max(0, extraDrainBonus))) - absorbedPoints;
+  for (const barrier of ordered) {
+    if (extra <= 0) break;
+    const before = barrier.current;
+    const destroyed = Math.min(before, extra);
+    if (destroyed <= 0) continue;
+    barrier.current -= destroyed;
+    extra -= destroyed;
+    ctx.emit({ type: EventType.BarrierChanged, sourceId: barrier.sourceId,
+      unitId: target.id, barrierId: barrier.id, before, after: barrier.current, reason: 'absorbed' });
   }
   target.barriers = target.barriers.filter((barrier) => barrier.current > 0);
   return Math.max(0, Math.floor(remaining));

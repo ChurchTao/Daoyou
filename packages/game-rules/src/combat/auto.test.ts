@@ -482,6 +482,25 @@ describe('当前场次托管', () => {
       observed.units.find((unit) => unit.id === 'player')?.statuses[0].sourceId,
     ).toBe('');
   });
+  it('防御准备可读取己方承伤与休息事实，敌方相同事实不影响观察且不共享可变引用', () => {
+    const battle = fixture();
+    const own = battle.unit('player');
+    own.hpDamageThisRound = { round: 1, amount: 100 };
+    own.hpLossThisRound = { round: 1, amount: 120 };
+    own.flags.skipNextAction = true;
+    const before = observeAutoBattle(battle.snapshot(), 'player', []);
+    const observed = before.units.find(unit => unit.id === 'player')!;
+    expect(observed.hpDamageThisRound?.amount).toBe(100);
+    expect(observed.hpLossThisRound?.amount).toBe(120);
+    expect(observed.flags.skipNextAction).toBe(true);
+    const enemy = battle.unit('enemy');
+    enemy.hpDamageThisRound = { round: 1, amount: 9999 };
+    enemy.hpLossThisRound = { round: 1, amount: 9999 };
+    enemy.flags.skipNextAction = true;
+    expect(observeAutoBattle(battle.snapshot(), 'player', [])).toEqual(before);
+    observed.hpLossThisRound!.amount = 0;
+    expect(own.hpLossThisRound.amount).toBe(120);
+  });
   it('目标血线只约束选中目标，严格灵兽范围无人可选时顺延', () => {
     const battle = fixture(['heal', 'strike']);
     const strategy: AutoStrategy = {

@@ -1,23 +1,23 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { useInventoryBag } from '@app/lib/resources/bag';
-import type {
-  ManualAction,
-  CharacterManualDefV1,
-} from '@daoyou/game-domain/manuals';
-import type { ManualView } from '@daoyou/contracts/manuals';
 import type { InventoryView } from '@daoyou/contracts/inventory';
+import type { ManualView } from '@daoyou/contracts/manuals';
+import { CHARACTER_MANUALS_V1, manualRule } from '@daoyou/game-content/manuals';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
+import type {
+  CharacterManualDefV1,
+  ManualAction,
+} from '@daoyou/game-domain/manuals';
+import { itemDefinition } from '@daoyou/game-rules/inventory';
+import {
+  manualJadeCost,
+  previewManualAction,
+} from '@daoyou/game-rules/manuals';
+import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
 import {
   manualAttributeValue,
   manualSlot,
 } from '@daoyou/game-rules/manuals/projection';
-import {
-  CHARACTER_MANUALS_V1,
-  manualRule,
-} from '@daoyou/game-content/manuals';
-import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
-import { itemDefinition } from '@daoyou/game-rules/inventory';
-import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
-import { manualJadeCost, previewManualAction } from '@daoyou/game-rules/manuals';
 import { ManualProgress } from './ManualProgress';
 import { manualMechanismSummary } from './manualPresentation';
 
@@ -181,23 +181,36 @@ export function ManualDetail({
           </div>
         ))}
         <div className="border-ink/20 border-l-2 pl-3">
-          <p className="text-ink-secondary mb-1 text-xs leading-relaxed">
-            {mechanism.condition}
-          </p>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <span>{mechanism.label}</span>
-            <span className="font-mono text-base font-semibold">
-              {mechanism.value}
+          {mechanism.fullRule ? (
+            <div className="space-y-2 text-sm leading-relaxed">
+              <p>{mechanism.description}</p>
               {cost ? (
-                <>
-                  <span className="text-ink-secondary mx-2 text-sm font-normal">
-                    →
-                  </span>
-                  <span className="text-crimson">{nextMechanism.value}</span>
-                </>
+                <p className="text-crimson">→ {nextMechanism.description}</p>
               ) : null}
-            </span>
-          </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-ink-secondary mb-1 text-xs leading-relaxed">
+                {mechanism.condition}
+              </p>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span>{mechanism.label}</span>
+                <span className="font-mono text-base font-semibold">
+                  {mechanism.value}
+                  {cost ? (
+                    <>
+                      <span className="text-ink-secondary mx-2 text-sm font-normal">
+                        →
+                      </span>
+                      <span className="text-crimson">
+                        {nextMechanism.value}
+                      </span>
+                    </>
+                  ) : null}
+                </span>
+              </div>
+            </>
+          )}
         </div>
         {cost ? (
           <p className="text-ink-secondary text-right text-xs">

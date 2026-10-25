@@ -108,7 +108,7 @@ it('学习接受储物袋或储藏室中版本一致的同名玉简', () => {
 });
 it('严格请求拒绝旧改修协议、非法槽位和客户端自报费用', () => {
   expect(ManualActionSchema.safeParse(action).success).toBe(true);
-  expect(ManualActionSchema.safeParse({ ...action, slot: 5 }).success).toBe(
+  expect(ManualActionSchema.safeParse({ ...action, slot: 9 }).success).toBe(
     false,
   );
   expect(ManualActionSchema.safeParse({ ...action, cost: 0 }).success).toBe(

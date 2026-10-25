@@ -7,6 +7,7 @@ import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
 import { manualAttributeValue } from './attributes.js';
 import { CHARACTER_MANUALS_V1, manualRule } from '@daoyou/game-content/manuals';
 import { compileManualSkill, manualMechanismValue } from './mechanism.js';
+import { compileManualStatusDefs } from './later-mechanisms.js';
 import { MANUAL_REALMS } from '@daoyou/game-domain/manuals/authoring';
 import type {
   CharacterManualDefV1,
@@ -19,10 +20,10 @@ import type {
 export const MAX_MANUALS_PER_SLOT = 6;
 
 export function getManualSlotCount(realm: RealmType): number {
-  return Math.min(4, REALM_VALUES.indexOf(realm) + 1);
+  return Math.min(MANUAL_REALMS.length, REALM_VALUES.indexOf(realm) + 1);
 }
 export function isManualSlotV1(value: number): value is ManualSlotV1 {
-  return Number.isInteger(value) && value >= 1 && value <= 4;
+  return Number.isInteger(value) && value >= 1 && value <= MANUAL_REALMS.length;
 }
 export function manualSlot(definition: CharacterManualDefV1): ManualSlotV1 {
   return (MANUAL_REALMS.indexOf(definition.realm) + 1) as ManualSlotV1;
@@ -106,6 +107,7 @@ export function compileCharacterManualsV1(
   const projection: CharacterManualProjectionV1 = {
     attributeBonuses: {},
     skills: [],
+    statusDefs: [],
     passiveSkillIds: [],
     skillLevels: {},
     panel: [],
@@ -125,6 +127,7 @@ export function compileCharacterManualsV1(
         (projection.attributeBonuses[effect.attribute] ?? 0) +
         manualAttributeValue(effect, level);
     projection.skills.push(compileManualSkill(def, level));
+    projection.statusDefs.push(...compileManualStatusDefs(def, manualMechanismValue(def.mechanism, level)));
     if (def.mechanism.type === 'sealResist')
       projection.panel.push({
         attr: 'sealResist',

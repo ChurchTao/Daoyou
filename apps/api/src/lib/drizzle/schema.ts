@@ -717,7 +717,7 @@ export const cultivatorManualSlots = pgTable(
       table.cultivatorId,
       table.manualId,
     ),
-    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 4`),
+    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 8`),
   ],
 );
 

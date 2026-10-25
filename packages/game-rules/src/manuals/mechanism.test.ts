@@ -154,8 +154,8 @@ function strike(
 }
 
 describe('首版功法内容合同', () => {
-  it('24本各六种，六维与机制逐层成长且无品质/产出字段', () => {
-    for (const realm of ['炼气', '筑基', '金丹', '元婴'])
+  it('八境各六种，六维与机制逐层成长且无品质/产出字段', () => {
+    for (const realm of ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘'])
       expect(
         CHARACTER_MANUALS_V1.filter((m) => m.realm === realm),
       ).toHaveLength(6);
@@ -165,7 +165,7 @@ describe('首版功法内容合同', () => {
       expect(manual.effects).toHaveLength(1);
       for (let level = 1; level <= 9; level++) {
         const result = compileCharacterManualsV1({
-          realm: '元婴',
+          realm: '大乘',
           state: {
             version: 1,
             revision: 0,

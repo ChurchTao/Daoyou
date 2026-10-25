@@ -1,13 +1,16 @@
-import { describe, expect, it } from 'vitest';
 import {
   CHARACTER_MANUALS_V1,
   ENLIGHTENMENT_QUALITIES,
+  ENLIGHTENMENT_REALMS,
 } from '@daoyou/game-content/manuals';
+import { BASE_PRICES, TYPE_MULTIPLIERS } from '@daoyou/game-content/materials';
 import { type InventoryItem } from '@daoyou/game-domain/inventory';
+import { describe, expect, it } from 'vitest';
 import { inventoryStackIdentity } from '../inventory/stack-key.js';
 import {
   enlightenmentDistribution,
   enlightenmentMaterialProblem,
+  enlightenmentQualityCap,
   prepareEnlightenment,
   previewEnlightenment,
   rollEnlightenment,
@@ -26,7 +29,7 @@ const item = (quantity = 4): InventoryItem => ({
 const ref = { id: 'book', revision: 0, quantity: 4 };
 
 describe('悟道室', () => {
-  it('209种组合概率归一、每格25%，拆合各境界期望一致', () => {
+  it('八品494种组合概率归一、每格25%，拆合各境界期望一致', () => {
     let count = 0;
     function visit(
       qs: (typeof ENLIGHTENMENT_QUALITIES)[number][],
@@ -35,12 +38,13 @@ describe('悟道室', () => {
       if (qs.length) {
         count++;
         const p = previewEnlightenment(qs, 1);
+        expect(p.probabilities).toHaveLength(8);
         expect(p.successChance).toBe(qs.length / 4);
         expect(p.probabilities.reduce((a, b) => a + b, 0)).toBeCloseTo(
           p.successChance,
           12,
         );
-        for (let r = 0; r < 4; r++)
+        for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++)
           expect(p.probabilities[r]).toBeCloseTo(
             qs.reduce(
               (sum, q) => sum + previewEnlightenment([q], 1).probabilities[r],
@@ -49,21 +53,48 @@ describe('悟道室', () => {
             12,
           );
         const reversed = previewEnlightenment([...qs].reverse(), 1);
-        for (let r = 0; r < 4; r++)
+        for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++)
           expect(reversed.probabilities[r]).toBeCloseTo(p.probabilities[r], 12);
       }
       if (qs.length < 4)
-        for (let i = start; i < 6; i++)
+        for (let i = start; i < ENLIGHTENMENT_QUALITIES.length; i++)
           visit([...qs, ENLIGHTENMENT_QUALITIES[i]], i);
     }
     visit([], 0);
-    expect(count).toBe(209);
+    expect(count).toBe(494);
+  });
+  it('六个旧品级的境界概率和费用逐值保留，后四境概率为零', () => {
+    const legacyQualities = ENLIGHTENMENT_QUALITIES.slice(0, 6);
+    const legacySupports = [[0], [0, 1], [0, 1, 2], [1, 2, 3], [2, 3], [3]];
+    const legacyInsightCosts = [1, 2, 3, 5, 8, 12];
+    for (const [rank, quality] of legacyQualities.entries()) {
+      const weights = ENLIGHTENMENT_REALMS.slice(0, 4).map((_, r) =>
+        legacySupports[rank].includes(r)
+          ? 1 /
+            (BASE_PRICES[legacyQualities[r + 2]] *
+              TYPE_MULTIPLIERS.gongfa_manual)
+          : 0,
+      );
+      const total = weights.reduce((sum, weight) => sum + weight, 0);
+      expect(enlightenmentDistribution(quality)).toEqual([
+        ...weights.map((weight) => weight / total),
+        0,
+        0,
+        0,
+        0,
+      ]);
+      expect(previewEnlightenment([quality], 1).cost).toEqual({
+        qi: rank + 1,
+        baseInsight: legacyInsightCosts[rank],
+        insight: legacyInsightCosts[rank],
+      });
+    }
   });
   it('高品加低品不放大高阶绝对产出率，满格必成', () => {
     const single = previewEnlightenment(['天品'], 1);
     const full = previewEnlightenment(['天品', '凡品', '凡品', '凡品'], 1);
     expect(single.probabilities[3]).toBe(0.25);
-    expect(full.probabilities).toEqual([0.75, 0, 0, 0.25]);
+    expect(full.probabilities).toEqual([0.75, 0, 0, 0.25, 0, 0, 0, 0]);
     expect(rollEnlightenment(single, () => 0.99)).toBeNull();
     expect(rollEnlightenment(full, () => 0.999999)).toMatch(/^jade\./);
   });
@@ -82,7 +113,6 @@ describe('悟道室', () => {
     };
     expect(enlightenmentMaterialProblem(higher, '炼气')).toContain('筑基');
     expect(enlightenmentMaterialProblem(higher, '筑基')).toBeNull();
-    expect(() => previewEnlightenment(['仙品'], 1)).toThrow();
     expect(
       enlightenmentMaterialProblem(
         {
@@ -93,7 +123,62 @@ describe('悟道室', () => {
       ),
     ).toBeTruthy();
   });
-  it('灵气按1至6线性累加，感悟折扣合计向上取整并至少1点', () => {
+  it.each([
+    ['炼气', '玄品'],
+    ['筑基', '真品'],
+    ['金丹', '地品'],
+    ['元婴', '天品'],
+    ['化神', '仙品'],
+    ['炼虚', '仙品'],
+    ['合体', '神品'],
+    ['大乘', '神品'],
+    ['渡劫', '神品'],
+  ] as const)('%s境界最高可用%s典籍', (realm, quality) => {
+    expect(enlightenmentQualityCap(realm)).toBe(quality);
+  });
+  it('仙品最低化神、神品最低合体，允许预先悟得下一境界玉简', () => {
+    const highBook = (rank: '仙品' | '神品'): InventoryItem => ({
+      ...item(),
+      instanceData: { name: '高阶典籍', type: 'gongfa_manual', rank },
+    });
+    expect(enlightenmentMaterialProblem(highBook('仙品'), '元婴')).toBe(
+      '需化神境界',
+    );
+    expect(enlightenmentMaterialProblem(highBook('仙品'), '化神')).toBeNull();
+    expect(enlightenmentMaterialProblem(highBook('神品'), '炼虚')).toBe(
+      '需合体境界',
+    );
+    expect(enlightenmentMaterialProblem(highBook('神品'), '合体')).toBeNull();
+    expect(
+      prepareEnlightenment([highBook('仙品')], [ref], '化神', 1).preview
+        .probabilities[5],
+    ).toBeGreaterThan(0);
+    expect(
+      prepareEnlightenment([highBook('神品')], [ref], '合体', 1).preview
+        .probabilities[7],
+    ).toBeGreaterThan(0);
+  });
+  it('仙品仅产化神炼虚、神品仅产合体大乘，混低品不放大高境产出', () => {
+    for (const [quality, first, second] of [
+      ['仙品', 4, 5],
+      ['神品', 6, 7],
+    ] as const) {
+      const single = previewEnlightenment([quality], 1);
+      const full = previewEnlightenment([quality, '凡品', '凡品', '凡品'], 1);
+      const distribution = enlightenmentDistribution(quality);
+      for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++) {
+        if (r === first || r === second) {
+          expect(distribution[r]).toBeGreaterThan(0);
+          expect(full.probabilities[r]).toBe(single.probabilities[r]);
+        } else {
+          expect(distribution[r]).toBe(0);
+        }
+      }
+      expect(distribution[first] / distribution[second]).toBeCloseTo(5, 12);
+      expect(full.successChance).toBe(1);
+    }
+  });
+  it('灵气按1至8线性累加，感悟折扣合计向上取整并至少1点', () => {
     expect(
       previewEnlightenment(['凡品', '凡品', '凡品', '凡品'], 1).cost,
     ).toEqual({ qi: 4, baseInsight: 4, insight: 4 });
@@ -105,6 +190,48 @@ describe('悟道室', () => {
     ).toEqual({ qi: 10, baseInsight: 10, insight: 8 });
     expect(previewEnlightenment(['天品'], 0).cost.insight).toBe(1);
     expect(previewEnlightenment(['凡品', '天品'], 1).cost.qi).toBe(7);
+    expect(previewEnlightenment(['仙品', '神品'], 1).cost).toEqual({
+      qi: 15,
+      baseInsight: 52,
+      insight: 52,
+    });
+    expect(
+      previewEnlightenment(['神品', '神品', '神品', '神品'], 0.8).cost,
+    ).toEqual({
+      qi: 32,
+      baseInsight: 128,
+      insight: 103,
+    });
+  });
+  it('八个境界共48本功法均可通过悟道获得', () => {
+    const ids = new Set<string>();
+    for (const quality of ENLIGHTENMENT_QUALITIES) {
+      const preview = previewEnlightenment(
+        [quality, quality, quality, quality],
+        1,
+      );
+      let cumulative = 0;
+      for (let r = 0; r < ENLIGHTENMENT_REALMS.length; r++) {
+        const probability = preview.probabilities[r];
+        if (probability > 0) {
+          const pool = CHARACTER_MANUALS_V1.filter(
+            (manual) => manual.realm === ENLIGHTENMENT_REALMS[r],
+          );
+          expect(pool).toHaveLength(6);
+          for (const [i, manual] of pool.entries()) {
+            const rolls = [
+              cumulative + probability / 2,
+              (i + 0.5) / pool.length,
+            ];
+            const jade = rollEnlightenment(preview, () => rolls.shift()!);
+            expect(jade).toBe(`jade.${manual.id}`);
+            ids.add(jade!);
+          }
+        }
+        cumulative += probability;
+      }
+    }
+    expect(ids.size).toBe(48);
   });
   it('命格浮点聚合不多扣一点感悟，拆分不获得取整优惠', () => {
     expect(
@@ -194,4 +321,38 @@ describe('悟道室', () => {
     expect(prepared.afterMaterials).toEqual([]);
     expect(prepared.preview.successChance).toBe(0.5);
   });
+  it.each(['仙品', '神品'] as const)(
+    '%s预检所有高境玉简，已有同名堆叠不能绕过容量检查',
+    (quality) => {
+      const jade = CHARACTER_MANUALS_V1.find(
+        (manual) => manual.realm === (quality === '仙品' ? '化神' : '合体'),
+      )!;
+      const definitionId = `jade.${jade.id}`;
+      const bag = [
+        {
+          ...item(5),
+          instanceData: {
+            name: '高阶典籍',
+            type: 'gongfa_manual' as const,
+            rank: quality,
+          },
+        },
+        ...Array.from({ length: 39 }, (_, i): InventoryItem => ({
+          ...item(),
+          id: `jade${i}`,
+          slotIndex: i + 1,
+          definitionId,
+          instanceData: null,
+          stackKey: inventoryStackIdentity(definitionId, null),
+          quantity: 1,
+        })),
+      ];
+      const realm = quality === '仙品' ? '化神' : '合体';
+      expect(() => prepareEnlightenment(bag, [ref], realm, 1)).toThrow('空位');
+      bag[0].quantity = 4;
+      expect(
+        prepareEnlightenment(bag, [ref], realm, 1).afterMaterials,
+      ).toHaveLength(39);
+    },
+  );
 });

@@ -1,5 +1,7 @@
 # combat-v6 境界功法系统
 
+> 2026-10-25更新：已逐境扩展至大乘八位，渡劫维持八位，新增24本高阶功法；本文件保留原版设计，现行扩展规则与验收见[后续境界功法实施记录](combat-v6-manual-later-realms-implementation.md)。
+
 > 2026-09-10：经用户确认，替代 Phase 5A／9F 的本篇、真解和覆盖散功方案。无旧数据迁移或兼容。
 > 上位设计：[改造路线图](./combat-v6-mhxy-redesign-roadmap.md)。
 

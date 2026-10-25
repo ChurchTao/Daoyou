@@ -187,15 +187,21 @@ function handleRestoreHp(
     const cap = atLeast(0, Math.floor(evalExpr(effect.maxGainPerAction, env)))
     power = Math.min(power, Math.max(0, cap - (action.hpRestoreGains[gainKey] ?? 0)))
   }
+  let totalRestored = 0;
   for (const target of targets) {
     const restored = applyHpRestore(ctx, source, target, power, {
       revive: effect.revive,
       allowFatal: effect.allowFatal,
       clearStatuses: effect.clearStatuses,
     })
+    totalRestored += restored;
     if (action && restored > 0) {
       action.hpRestoreGains[gainKey] = (action.hpRestoreGains[gainKey] ?? 0) + restored
     }
+  }
+  if (effect.gainCounter && totalRestored > 0) {
+    const facts = source.combatFacts ??= {};
+    facts[effect.gainCounter] = (facts[effect.gainCounter] ?? 0) + 1;
   }
 }
 
@@ -254,7 +260,7 @@ function handleRemoveStatus(
   for (const target of targets) {
     const max = effect.maxCount === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(evalExpr(effect.maxCount, { ...env, target })))
     for (const status of matchingStatuses(target, effect).filter(s => !effect.ownedOnly || s.sourceId === source.id).slice(0, max)) {
-      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, effect.ownedOnly ? source.id : undefined)
+      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, effect.ownedOnly ? source.id : undefined, source)
     }
   }
 }
@@ -376,12 +382,14 @@ function handleDispel(
     const candidates = t.statuses
       .filter((status) => {
         const def = ctx.statusDefs.get(status.id)
+        if (effect.enemyAppliedOnly && !ctx.state.units.some(unit => unit.id === status.sourceId && unit.side !== t.side)) return false
         if (def?.dispellable === false) return false
         if (effect.schoolOnly && !def?.school) return false
         if (effect.includeStatusFlags?.length && !effect.includeStatusFlags.some((flag) => Boolean(def?.[flag]))) return false
         if (effect.excludeStatusFlags?.some((flag) => Boolean(def?.[flag]))) return false
         return effect.statusIds?.includes(status.id) === true ||
           effect.kinds?.includes(status.kind) === true ||
+          (def?.dispelClass !== undefined && effect.dispelClasses?.includes(def.dispelClass) === true) ||
           (def?.category !== undefined && effect.categories?.includes(def.category) === true)
       })
       .sort((a, b) => {
@@ -406,7 +414,7 @@ function handleDispel(
         ctx.emit({ type: EventType.ChanceResolved, branchId: `${skill.id}.dispel.${status.id}`, sourceId: source.id, targetId: t.id, chance, success });
         if (!success) continue;
       }
-      removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel)
+      removeStatus(ctx, t, status.id, StatusRemoveReason.Dispel, status.sourceId, source)
       if (effect.preventReapplyThisRound || effect.immunityRounds) (t.flags.statusImmunityThroughRound ??= {})[status.kind] = ctx.state.round + (effect.immunityRounds ?? 0)
     }
   }

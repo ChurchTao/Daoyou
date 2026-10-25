@@ -1,7 +1,7 @@
 import type { CombatV6CommandOptions, Command, SkillDef, SkillEffect, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { evalExpr, skillLevelOf } from '@daoyou/combat-core/expr';
 import { isActiveAttackSkill } from '@daoyou/combat-core';
-import { FailReason } from '@daoyou/combat-core/enums';
+import { FailReason, HookName } from '@daoyou/combat-core/enums';
 import { matchesWhen, targetStatusStacks } from '@daoyou/combat-core/when';
 import { daoyouRulesetV6 } from './daoyou/index.js';
 import type { AutoObservation } from './auto-observation.js';
@@ -734,10 +734,101 @@ export function rankAutoActions(
       );
     }
   }
-  if (options.canDefend)
+  if (options.canDefend) {
+    // Value immediate barriers and one explicit prepare -> attack -> weaken
+    // structure; no arbitrary passive chain or enemy panel is simulated.
+    const defender = { ...source, flags: { ...source.flags, defending: true } };
+    const barriers = new Map(source.barriers.map(barrier => [barrier.kind, barrier.current]));
+    const maxHp = Math.max(1, source.attrs.maxHp);
+    let uncovered = Math.max(0, maxHp - source.attrs.hp - source.barriers.reduce((sum, barrier) => sum + barrier.current, 0));
+    let barrierValue = 0;
+    const preparations = new Map<string, number>();
+    const recentDamage = [source.hpDamageThisRound, source.hpLossThisRound].find(
+      ledger => ledger && ledger.round >= observation.round - 1 && ledger.round <= observation.round,
+    )?.amount ?? 0;
+    for (const id of new Set(source.passives)) {
+      const passive = source.skillOverrides[id] ?? skills.find(skill => skill.id === id);
+      if (!passive || passive.conflicts?.some(other => source.passives.includes(other) || source.skills.includes(other))) continue;
+      for (const [hookIndex, hook] of (passive.hooks ?? []).entries()) {
+        if (hook.on !== HookName.AfterDefend || !hook.sourceIsSelf || hook.sourceIsEnemy || hook.sourceIsOwnedPet || hook.requireKind || hook.aim === 'others' || (hook.targeting && hook.targeting.side !== 'self')) continue;
+        const scope = { source: defender, target: defender, markKey: `${id}:${hookIndex}` };
+        if (!matchesWhen(context, hook.when, scope)) continue;
+        const env = { state: context.state, source: defender, target: defender, skillLevel: skillLevelOf(source, id), targets: 1 };
+        const chance = Math.max(0, Math.min(1, evalExpr(hook.chance ?? 1, env)));
+        for (const [effectIndex, effect] of hook.effects.entries()) {
+          if (effect.type === 'applyStatus' && (!effect.targeting || effect.targeting.side === 'self') && recentDamage > 0 && uncovered > 0 && !source.flags.skipNextAction && matchesWhen(context, effect.when, scope)) {
+            const ready = definitions.get(effect.statusId);
+            if (!ready || ready.category !== 'buff' || evalExpr(effect.duration, env) < 1 || source.statuses.some(status => status.id === ready.id || status.kind === ready.kind)) continue;
+            const prepared = { ...defender, flags: { ...defender.flags, defending: false }, combatFacts: { ...defender.combatFacts }, statuses: [...defender.statuses, {
+              id: ready.id, kind: ready.kind, remainingRounds: 1, stacks: 1, sourceId: source.id,
+              appliedRound: observation.round, speedMod: 0, attrMods: {},
+              damageTakenPhysical: 1, damageTakenSpell: 1, healTaken: 1, healDealt: 1,
+            }] };
+            // Only the direct preparation hook's declared facts are copied.
+            for (const fact of hook.effects) if (fact.type === 'modifyFact' && matchesWhen(context, fact.when, scope)) {
+              prepared.combatFacts[fact.key] = evalExpr(fact.value, { ...env, source: prepared });
+            }
+            const future = { ...context, state: { ...context.state, round: observation.round + 1 } };
+            let value = 0;
+            for (const followupOption of options.skills) {
+              const followup = source.skillOverrides[followupOption.skillId] ?? skills.find(entry => entry.id === followupOption.skillId);
+              if (!followup || !followupOption.ready || followupOption.reasons.length || followup.preparation || !isActiveAttackSkill(followup)) continue;
+              const hit = followup.effects.find(entry => entry.type === 'spellHit' || (entry.type === 'physicalHit' && !entry.healInstead));
+              if (!hit) continue;
+              const kind = hit.type === 'physicalHit' ? 'physical' : 'spell';
+              if (source.statuses.some(status => {
+                const def = definitions.get(status.id);
+                return def?.blocksAction || def?.blockedCommands?.includes('skill') ||
+                  (kind === 'physical' ? def?.blocksPhysical : def?.blocksSpell) ||
+                  (def?.blocksNonArtSkills && !followup.tags.includes('art')) ||
+                  (def?.blocksArts && followup.tags.includes('art'));
+              })) continue;
+              for (const targetId of followupOption.selectableTargetIds) {
+                const target = observation.units.find(unit => unit.id === targetId);
+                if (!target || target.side === source.side || !alive(target) || !evaluate(followup, [target]).intentions.some(intent => intent.targetId === target.id && intent.damage > 0)) continue;
+                for (const [followupIndex, followupHook] of (passive.hooks ?? []).entries()) {
+                  if (followupHook.on !== HookName.AfterHit || !followupHook.sourceIsSelf || followupHook.targeting || (followupHook.aim && followupHook.aim !== 'hookTarget') ||
+                    (followupHook.requireKind && followupHook.requireKind !== kind) || !followupHook.when?.requireStatusIds?.includes(ready.id)) continue;
+                  const hitScope: Parameters<typeof matchesWhen>[2] = { source: prepared, target, skill: followup, skillId: followup.id, kind, origin: 'action-direct', isPrimary: true, markKey: `${id}:${followupIndex}` };
+                  if ((typeof followupHook.when.expression === 'string' && expressionReadsHiddenTarget(followupHook.when.expression)) ||
+                    (typeof followupHook.chance === 'string' && expressionReadsHiddenTarget(followupHook.chance)) || !matchesWhen(future, followupHook.when, hitScope)) continue;
+                  const followupChance = Math.max(0, Math.min(1, evalExpr(followupHook.chance ?? 1, { state: future.state, source: prepared, target, skillLevel: skillLevelOf(source, id), targets: 1 })));
+                  for (const debuff of followupHook.effects) {
+                    if (debuff.type !== 'applyStatus' || debuff.self || debuff.hit || debuff.targeting ||
+                      (typeof debuff.when?.expression === 'string' && expressionReadsHiddenTarget(debuff.when.expression)) ||
+                      (typeof debuff.duration === 'string' && expressionReadsHiddenTarget(debuff.duration)) || !matchesWhen(future, debuff.when, hitScope)) continue;
+                    const def = definitions.get(debuff.statusId);
+                    if (!def?.consumeAfterDamagingAction || evalExpr(debuff.duration, { state: future.state, source: prepared, target, skillLevel: skillLevelOf(source, id), targets: 1 }) < 1 || target.statuses.some(status => status.id === def.id || status.kind === def.kind)) continue;
+                    const reduction = Math.max(0, Math.min(1, 1 - Math.max(def.damageDealtPhysical ?? 1, def.damageDealtSpell ?? 1)));
+                    // A delayed application may miss, be dispelled, or affect a
+                    // different attacker. Credit only 35% of visible recent loss.
+                    const hitChance = kind === 'physical' ? visiblePhysicalHitChance(source, target.level) : formulas.spellHitChance(source, target);
+                    value = Math.max(value, chance * followupChance * hitChance * Math.min(uncovered, recentDamage) * reduction * 0.35 / maxHp * 100);
+                  }
+                }
+              }
+            }
+            preparations.set(ready.id, Math.max(preparations.get(ready.id) ?? 0, value));
+            continue;
+          }
+          if (effect.type !== 'applyBarrier' || effect.stack || (effect.targeting && effect.targeting.side !== 'self') || !matchesWhen(context, effect.when, { ...scope, markKey: `${scope.markKey}:${effectIndex}` })) continue;
+          const amount = Math.max(0, Math.min(Math.floor(evalExpr(effect.power, env)), effect.maxPower === undefined ? Infinity : Math.floor(evalExpr(effect.maxPower, env))));
+          const previous = barriers.get(effect.kind) ?? 0;
+          const gain = chance * Math.min(uncovered, Math.max(0, amount - previous));
+          barriers.set(effect.kind, Math.max(previous, amount));
+          uncovered -= gain;
+          barrierValue += gain / maxHp * 60 * Math.max(0, 1 - ratio(source));
+        }
+      }
+    }
     add(
       { type: 'defend' },
-      { ...empty(), survival: 0.001 + Math.max(0, 0.25 - ratio(source)) * 20 },
+      { ...empty(), survival: 0.001 + Math.max(0, 0.25 - ratio(source)) * 20 + barrierValue + [...preparations.values()].reduce((sum, value) => sum + value, 0) },
+      [
+        ...(barrierValue > 0 ? ['防御附盾只按缺血、现盾与本次新增量估算，不推演后续连锁'] : []),
+        ...([...preparations.values()].some(value => value > 0) ? ['防御准备仅按可用攻击、近期可见承伤和下次出手减伤作保守估值'] : []),
+      ],
     );
+  }
   return candidates.sort((a, b) => b.score - a.score);
 }

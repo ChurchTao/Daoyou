@@ -97,7 +97,13 @@ export type StatusCategory =
   (typeof StatusCategory)[keyof typeof StatusCategory];
 
 export const HookName = {
+  /** 包括休息、控制及无指令的出手窗口。 */
+  BeforeActionWindow: 'beforeActionWindow',
+  AfterActionWindow: 'afterActionWindow',
+  AfterDefend: 'afterDefend',
   BeforeAction: 'beforeAction',
+  /** 自然气血DOT完成比例与封顶后、扣血前；不处理扣蓝。 */
+  OnDotCalc: 'onDotCalc',
   OnHitCalc: 'onHitCalc',
   /** 物理伤害公式前计算忽防比例。 */
   OnDefenseIgnoreCalc: 'onDefenseIgnoreCalc',

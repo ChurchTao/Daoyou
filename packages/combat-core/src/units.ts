@@ -96,6 +96,8 @@ export function cloneUnit(unit: Unit): Unit {
     attrs: { ...unit.attrs },
     combatFacts: { ...unit.combatFacts },
     ...(unit.hpDamageThisRound ? { hpDamageThisRound: { ...unit.hpDamageThisRound } } : {}),
+    ...(unit.hpLossThisRound ? { hpLossThisRound: { ...unit.hpLossThisRound } } : {}),
+    ...(unit.actionHistory ? { actionHistory: structuredClone(unit.actionHistory) } : {}),
     skillUses: { ...unit.skillUses },
     ...(unit.skillsUsedThisRound ? { skillsUsedThisRound: { ...unit.skillsUsedThisRound, skillIds: [...unit.skillsUsedThisRound.skillIds] } } : {}),
     cooldowns: { ...unit.cooldowns },

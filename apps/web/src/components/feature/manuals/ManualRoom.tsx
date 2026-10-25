@@ -1,25 +1,25 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { apiFetch } from '@app/lib/api/fetch';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import { useCultivatorIdentity } from '@app/lib/resources/player';
-import type {
-  ManualAction,
-  CharacterManualDefV1,
-} from '@daoyou/game-domain/manuals';
-import type { ManualView } from '@daoyou/contracts/manuals';
 import type { InventoryView } from '@daoyou/contracts/inventory';
-import {
-  manualAttributeValue,
-  getManualSlotCount,
-  MAX_MANUALS_PER_SLOT,
-} from '@daoyou/game-rules/manuals/projection';
+import type { ManualView } from '@daoyou/contracts/manuals';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
+import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
+import type {
+  CharacterManualDefV1,
+  ManualAction,
+} from '@daoyou/game-domain/manuals';
 import { MANUAL_REALMS } from '@daoyou/game-domain/manuals/authoring';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
-import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
+import {
+  getManualSlotCount,
+  manualAttributeValue,
+  MAX_MANUALS_PER_SLOT,
+} from '@daoyou/game-rules/manuals/projection';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'react-router';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
@@ -237,7 +237,7 @@ export function ManualRoom() {
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-7">
             <section
               aria-label="当前所修功法"
-              className="relative grid grid-cols-2 gap-2 lg:sticky lg:top-3 lg:min-h-[32rem] lg:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem] lg:grid-rows-2 lg:items-center lg:gap-y-12 lg:py-12"
+              className="relative grid grid-cols-2 gap-2 lg:sticky lg:top-3 lg:min-h-[32rem] lg:grid-cols-[6.5rem_minmax(0,1fr)_6.5rem] lg:grid-rows-4 lg:items-center lg:gap-y-5 lg:py-5"
             >
               {gender ? (
                 <GameImage
@@ -261,7 +261,7 @@ export function ManualRoom() {
                 return (
                   <div
                     key={slotRealm}
-                    className={`relative ${index === 0 ? 'lg:col-start-1 lg:row-start-1' : index === 1 ? 'lg:col-start-1 lg:row-start-2' : index === 2 ? 'lg:col-start-3 lg:row-start-1' : 'lg:col-start-3 lg:row-start-2'} ${feedback?.manualId === activeManual?.id ? 'motion-safe:animate-pulse' : ''}`}
+                    className={`relative ${index < 4 ? 'lg:col-start-1' : 'lg:col-start-3'} ${['lg:row-start-1', 'lg:row-start-2', 'lg:row-start-3', 'lg:row-start-4'][index % 4]} ${feedback?.manualId === activeManual?.id ? 'motion-safe:animate-pulse' : ''}`}
                   >
                     <ManualRealmSlot
                       realm={slotRealm}

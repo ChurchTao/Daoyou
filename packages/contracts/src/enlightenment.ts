@@ -21,7 +21,7 @@ export const EnlightenmentRequestSchema = z
       .object({
         realm: z.enum(REALM_VALUES),
         insightMultiplier: z.number().finite().nonnegative(),
-        qi: z.number().int().min(1).max(24),
+        qi: z.number().int().min(1).max(32),
         insight: z.number().int().positive(),
       })
       .strict(),

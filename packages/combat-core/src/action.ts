@@ -13,11 +13,13 @@ import {
 import { BUILTIN_SKILL_ID, MIN_HP, NORMAL_ATTACK_COEFF } from './constants.js';
 import type { BattleContext } from './context.js';
 import { resolveAliveTarget, resolveStrike } from './damage.js';
+import { recordHpLoss } from './hp-loss.js';
 import { applyEffect, makeEnv } from './effects.js';
 import {
   CommandPolicy,
   CommandType,
   DamageKind,
+  DamageOrigin,
   EffectType,
   EventType,
   failDetail,
@@ -95,7 +97,15 @@ export function lockCommands(ctx: BattleContext): void {
 }
 
 export function resolveAction(ctx: BattleContext, unit: Unit): void {
-  if (!isActionable(unit)) return;
+  ctx.hooks.emit(HookName.BeforeActionWindow, { source: unit });
+  try {
+    if (isActionable(unit)) resolveActionWindow(ctx, unit);
+  } finally {
+    ctx.hooks.emit(HookName.AfterActionWindow, { source: unit });
+  }
+}
+
+function resolveActionWindow(ctx: BattleContext, unit: Unit): void {
 
   // 横扫等「休息一回合」：跳过的是下一回合，不是当回合剩余出手。
   if (unit.flags.skipNextAction) {
@@ -152,6 +162,9 @@ export function resolveAction(ctx: BattleContext, unit: Unit): void {
     command.type === CommandType.Protect
   ) {
     ctx.emit({ type: EventType.ActionStart, unitId: unit.id, command });
+    clearAttackMemory(unit);
+    if (command.type === CommandType.Defend)
+      ctx.hooks.emit(HookName.AfterDefend, { source: unit, target: unit });
     return;
   }
 
@@ -188,6 +201,7 @@ const commandHandlers: Partial<
     resolveSummon(ctx, unit, command.petId);
   },
   recall: (ctx, unit) => {
+    clearAttackMemory(unit);
     ctx.emit({
       type: EventType.ActionStart,
       unitId: unit.id,
@@ -349,7 +363,10 @@ function resolvePhysicalAttack(
     skillId: BUILTIN_SKILL_ID.Attack,
     kind: DamageKind.Physical,
     isPrimary: true,
+    hpDamage: ctx.currentAction.primaryHpDamage ?? 0,
+    origin: DamageOrigin.ActionDirect,
   });
+  rememberAttack(ctx, unit, DamageKind.Physical);
   ctx.currentAction = undefined;
 }
 
@@ -380,6 +397,7 @@ function resolveSummon(ctx: BattleContext, unit: Unit, petId: string): void {
     });
     return;
   }
+  clearAttackMemory(unit);
   for (const other of ctx.state.units) {
     if (
       other.kind === UnitKind.Pet &&
@@ -741,6 +759,7 @@ function resolveSkillAction(
     // 横扫耗血不会把自己打到 0。
     const spend = Math.min(atLeast(0, unit.attrs.hp - MIN_HP), hpCost);
     unit.attrs.hp -= spend;
+    recordHpLoss(ctx, unit, spend);
     ctx.emit({
       type: EventType.HpCost,
       unitId: unit.id,
@@ -837,6 +856,7 @@ function resolveSkillAction(
     const mp = Math.min(unit.attrs.mp, Math.max(0, Math.floor(evalExpr(skill.successCostMp, costEnv))));
     if (hp > 0) {
       unit.attrs.hp -= hp;
+      recordHpLoss(ctx, unit, hp);
       ctx.emit({ type: EventType.HpCost, unitId: unit.id, amount: hp, hpAfter: unit.attrs.hp });
     }
     if (mp > 0) {
@@ -891,9 +911,34 @@ function resolveSkillAction(
     skillId: skill.id,
     kind,
     isPrimary: true,
+    hpDamage: ctx.currentAction.primaryHpDamage ?? 0,
+    origin: DamageOrigin.ActionDirect,
   });
+  if (!ctx.currentAction.failed && !ctx.invokingAttackSkills) {
+    if (isActiveAttackSkill(skill)) rememberAttack(ctx, unit, kind);
+    else clearAttackMemory(unit);
+  }
   if (!ctx.currentAction.failed) (unit.skillUses ??= {})[skill.id] = (unit.skillUses?.[skill.id] ?? 0) + 1;
   ctx.currentAction = undefined;
+}
+
+/** Update once after all native segments/repeats and attached effects have finished. */
+function rememberAttack(ctx: BattleContext, unit: Unit, kind?: DamageKind): void {
+  const action = ctx.currentAction;
+  if (!action || ctx.invokingAttackSkills) return;
+  const history = (unit.actionHistory ??= {});
+  history.lastAttackTargetId = action.primaryTargetId;
+  history.lastAttackKind = kind;
+  for (const target of ctx.state.units) {
+    if (!action.incomingAttackTargetIds?.includes(target.id)) continue;
+    (target.actionHistory ??= {}).lastIncomingAttack = { sourceId: unit.id, skillId: action.skillId };
+  }
+}
+
+function clearAttackMemory(unit: Unit): void {
+  if (!unit.actionHistory) return;
+  delete unit.actionHistory.lastAttackTargetId;
+  delete unit.actionHistory.lastAttackKind;
 }
 
 function applyDeclaredEffects(

@@ -6,4 +6,4 @@ export {
   manualSlot,
   validateManualStateV1,
 } from '../../manuals/compiler.js';
-export { manualMechanismValue } from '../../manuals/mechanism.js';
+export { manualMechanismValue } from '../../manuals/mechanism-value.js';

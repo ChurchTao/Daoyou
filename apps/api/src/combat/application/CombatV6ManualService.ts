@@ -197,6 +197,11 @@ export async function mutateManuals(owner: string, action: ManualAction) {
               operation: 'invalidate',
               eventType: 'combat_v6.manuals.changed',
             },
+            ...('item' in action ? [{
+              resourceTopic: 'inventory.bag' as const,
+              operation: 'invalidate' as const,
+              eventType: 'combat_v6.manuals.changed',
+            }] : []),
           ],
         });
         lease.assertHeld();

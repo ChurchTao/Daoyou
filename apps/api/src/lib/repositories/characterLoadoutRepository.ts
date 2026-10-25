@@ -1,3 +1,8 @@
+import type { DaoEquipmentLoadoutV1 } from '@daoyou/game-domain/equipment';
+import type {
+  CultivatorManualStateV1,
+  ManualSlotV1,
+} from '@daoyou/game-domain/manuals';
 import type { DbExecutor } from '@server/lib/drizzle/db.js';
 import {
   cultivatorEquipmentSlots,
@@ -5,8 +10,6 @@ import {
   cultivatorManualStates,
   inventoryItems,
 } from '@server/lib/drizzle/schema.js';
-import type { DaoEquipmentLoadoutV1 } from '@daoyou/game-domain/equipment';
-import type { CultivatorManualStateV1 } from '@daoyou/game-rules/manuals';
 import { eq } from 'drizzle-orm';
 import { readActiveSectCombatProgress } from './sectCombatRepository.js';
 
@@ -32,7 +35,7 @@ export async function readCharacterManuals(
     learned: manualState?.learned ?? [],
     build: {
       slots: slots.map((slot) => ({
-        slot: slot.slot as 1 | 2 | 3 | 4,
+        slot: slot.slot as ManualSlotV1,
         manualId: slot.manualId,
       })),
     },

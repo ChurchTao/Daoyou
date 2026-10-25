@@ -18,6 +18,7 @@ import {
   StatusRemoveReason,
   StatusTick,
   TickKind,
+  HookName,
 } from "./enums.js"
 import { evalExpr, skillLevelOf } from "./expr.js"
 import { skillOf, passiveSkills } from "./skills.js"
@@ -265,7 +266,8 @@ function applyStatusTick(ctx: BattleContext, unit: Unit, inst: StatusInstance, d
   if (def.onTick.ratioOfMaxHp !== undefined) {
     const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
       def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
-    applyDamage(ctx, source, unit, amount, DamageKind.Fixed, true, DamageOrigin.Status)
+    const hooked = ctx.hooks.emit(HookName.OnDotCalc, { source, target: unit, damage: amount, kind: DamageKind.Fixed, origin: DamageOrigin.Status, dotStatusId: def.id })
+    applyDamage(ctx, source, unit, Math.max(0, Math.floor(hooked.damage ?? amount)), DamageKind.Fixed, true, DamageOrigin.Status)
   }
   if (def.onTick.ratioOfMaxMp) applyMpDamage(ctx, source, unit, Math.floor(Math.min(unit.attrs.maxMp * def.onTick.ratioOfMaxMp,
     def.onTick.mpCap === undefined ? Infinity : evalExpr(def.onTick.mpCap, env))))
