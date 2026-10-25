@@ -5,7 +5,7 @@ import { createBattle } from '@daoyou/combat-core/session';
 import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { COMBAT_V6_BASE_PROJECTION_VERSIONS } from '@daoyou/game-domain/combat';
-import { compileCharacterManualsV1, manualSlot } from './compiler.js';
+import { compileCharacterManualsV1, isAdvancedManual, manualLearningSlot } from './compiler.js';
 import { CHARACTER_MANUALS_V1, MANUAL_PACK } from '@daoyou/game-content/manuals';
 import { compileManualSkill, manualMechanismValue } from './mechanism.js';
 import { loadManualPack } from '@daoyou/game-domain/manuals/authoring';
@@ -174,10 +174,11 @@ describe('首版功法内容合同', () => {
                 manualId: manual.id,
                 level,
                 unlockedLevel: level <= 3 ? 3 : level <= 6 ? 6 : 9,
+                ...(isAdvancedManual(manual) ? { slot: 5 as const } : {}),
               },
             ],
             build: {
-              slots: [{ slot: manualSlot(manual), manualId: manual.id }],
+              slots: [{ slot: manualLearningSlot(manual), manualId: manual.id }],
             },
           },
         });

@@ -4,7 +4,7 @@ import type {
   CombatV6ProjectionDiagnostic,
 } from '../combat/projection.js';
 
-export type ManualSlotV1 = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type ManualSlotV1 = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface ManualBuildV1 {
   slots: Array<{ slot: ManualSlotV1; manualId: string }>;
@@ -13,7 +13,7 @@ export interface ManualBuildV1 {
 export interface CultivatorManualStateV1 {
   version: 1;
   revision: number;
-  learned: Array<{ manualId: string; level: number; unlockedLevel: number }>;
+  learned: Array<{ manualId: string; level: number; unlockedLevel: number; slot?: ManualSlotV1 }>;
   build: ManualBuildV1;
 }
 

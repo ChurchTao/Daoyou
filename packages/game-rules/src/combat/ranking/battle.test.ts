@@ -49,8 +49,8 @@ it('同一本高阶功法的不同层数可共同入战，数值状态不会发�
     entry.cultivator.realm = '合体';
     entry.manuals = {
       version: 1, revision: 0,
-      learned: ['character_manual.lianshen', 'character_manual.jingang_xian'].map(manualId => ({ manualId, level, unlockedLevel: level === 1 ? 3 : 9 })),
-      build: { slots: [{ slot: 5, manualId: 'character_manual.lianshen' }, { slot: 7, manualId: 'character_manual.jingang_xian' }] },
+      learned: ['character_manual.lianshen', 'character_manual.jingang_xian'].map((manualId, index) => ({ manualId, level, unlockedLevel: level === 1 ? 3 : 9, slot: index === 0 ? 5 : 6 })),
+      build: { slots: [{ slot: 5, manualId: 'character_manual.lianshen' }, { slot: 6, manualId: 'character_manual.jingang_xian' }] },
     };
   }
   const battle = compileRankingBattle([a, b], 42);

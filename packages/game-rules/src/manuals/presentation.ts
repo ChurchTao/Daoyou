@@ -81,8 +81,8 @@ export function manualMechanismDescription(
       return `宗门主动法术攻击带可净化普通数值减益的目标时，忽视${value}%法防；不将封印、印记或持续伤害算作该减益`;
     case 'defendWeaken':
       return `防御后，下回合首次造成主目标实际掉血的宗门物理／法术攻击附加折锋：该敌人下次物理／法术伤害行动-${value}%；准备与折锋均短期有效，可驱散`;
-    case 'healingCleanse':
-      return `正常完成甘露愿／归元愿后，有${value}%概率净除存活人物主目标1项普通数值减益；每回合至多尝试1次，不解封印或持续伤害，不要求轮换目标`;
+    case 'followupMitigation':
+      return `每回合首次被敌方直接物理／法术攻击造成实际掉血后，本回合后续此类伤害-${value}%；首击不减，同次攻击后续段也生效，不含普通固定伤害、持续伤害或自损`;
     case 'repeatedMitigation':
       return `最近同一敌人连续使用同一宗门攻击招式对本人造成直接物理／法术伤害时，后续出手伤害-${value}%；仅1档，多段不自行完成识破，换敌或换招重记`;
     case 'unhurtRecovery':

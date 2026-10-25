@@ -41,12 +41,12 @@ function success(result: ReturnType<typeof act>) {
   return result.state;
 }
 describe('境界功法培养', () => {
-  it('八个境界逐一开放，渡劫保持八位', () => {
+  it('四个基础位逐境开放，高阶位分别化神和合体开放', () => {
     expect(
       ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘', '渡劫'].map((r) =>
         getManualSlotCount(r as '炼气'),
       ),
-    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 8]);
+    ).toEqual([1, 2, 3, 4, 5, 5, 6, 6, 6]);
     expect(
       changeManual({
         state: empty(),

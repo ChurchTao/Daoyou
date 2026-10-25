@@ -4,10 +4,11 @@ import { createBattle, restoreBattle } from '@daoyou/combat-core/session';
 import type { BattleSession } from '@daoyou/combat-core/session';
 import type { CreateBattleInput, SkillDef } from '@daoyou/combat-core/types';
 import { COMBAT_V6_BASE_PROJECTION_VERSIONS } from '@daoyou/game-domain/combat';
+import type { ManualSlotV1 } from '@daoyou/game-domain/manuals';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { createDaoyouRuleset } from '../combat/daoyou/index.js';
-import { compileCharacterManualsV1, manualSlot } from './compiler.js';
+import { compileCharacterManualsV1 } from './compiler.js';
 import { classifyManualStatuses } from './later-mechanisms.js';
 
 const sects = Object.values(COMBAT_V6_SECT_DEFINITIONS);
@@ -28,7 +29,7 @@ function realSkill(id: string): SkillDef {
 
 function projection(names: string[], level = 9, guaranteedChance = false) {
   const definitions = CHARACTER_MANUALS_V1.map(manual =>
-    guaranteedChance && names.includes(manual.name) && ['healingCleanse', 'attackDispel', 'selfCleanse'].includes(manual.mechanism.type)
+    guaranteedChance && names.includes(manual.name) && ['attackDispel', 'selfCleanse'].includes(manual.mechanism.type)
       ? { ...manual, mechanism: { ...manual.mechanism, valueAt1: 0.99, valueAt9: 1 } }
       : manual,
   );
@@ -41,8 +42,8 @@ function projection(names: string[], level = 9, guaranteedChance = false) {
     realm: '大乘',
     state: {
       version: 1, revision: 0,
-      learned: manuals.map(manual => ({ manualId: manual.id, level, unlockedLevel: level <= 3 ? 3 : level <= 6 ? 6 : 9 })),
-      build: { slots: manuals.map(manual => ({ slot: manualSlot(manual), manualId: manual.id })) },
+      learned: manuals.map((manual, index) => ({ manualId: manual.id, level, unlockedLevel: level <= 3 ? 3 : level <= 6 ? 6 : 9, slot: (5 + index) as ManualSlotV1 })),
+      build: { slots: manuals.map((manual, index) => ({ slot: (5 + index) as ManualSlotV1, manualId: manual.id })) },
     },
   }, definitions);
   if (!result.ok) throw new Error(JSON.stringify(result.diagnostics));
@@ -366,17 +367,17 @@ describe('later realm manual battle contracts', () => {
     expect(barrierTotal(modified, 'b')).toBe(2000);
   });
 
-  it('西皇 and 九天 follow actual 无相 main-target healing and ignore hostile or downed targets', () => {
+  it('西皇 follows actual 无相 main-target healing and ignores hostile or downed targets', () => {
     const healing = realSkill('wuxiang.skill.nectar');
-    const { battle } = setup({ names: ['西皇经', '九天十地经'], skills: [healing], ally: true, guaranteedChance: true });
+    const { battle } = setup({ names: ['西皇经'], skills: [healing], ally: true, guaranteedChance: true });
     const slow = sectStatuses.find(status => status.name === '滞魂')!;
     battle.applyStatus('ally', slow.id, 3, 'b');
     cast(battle, healing.id, 'a', ['ally']);
     expect(battle.unit('ally').attrs.hp).toBeGreaterThan(5000);
     expect(barrierTotal(battle, 'ally')).toBeGreaterThan(0);
-    expect(battle.unit('ally').statuses.some(status => status.id === slow.id)).toBe(false);
+    expect(battle.unit('ally').statuses.some(status => status.id === slow.id)).toBe(true);
     expect(barrierTotal(battle, 'b')).toBe(0);
-    const downed = setup({ names: ['西皇经', '九天十地经'], skills: [healing], ally: true, guaranteedChance: true }).battle;
+    const downed = setup({ names: ['西皇经'], skills: [healing], ally: true, guaranteedChance: true }).battle;
     downed.unit('ally').attrs.hp = 0;
     downed.unit('ally').flags.downed = true;
     cast(downed, healing.id, 'a', ['ally']);
@@ -384,14 +385,67 @@ describe('later realm manual battle contracts', () => {
     expect(barrierTotal(downed, 'b')).toBe(0);
   });
 
-  it('九天 removes only one ordinary debuff instance when the same source-bound status comes from two attackers', () => {
-    const healing = realSkill('wuxiang.skill.nectar');
-    const { battle } = setup({ names: ['九天十地经'], skills: [healing], ally: true, secondary: true, guaranteedChance: true });
-    battle.applyStatus('ally', 'lingxiao.status.wound', 5, 'b');
-    battle.applyStatus('ally', 'lingxiao.status.wound', 5, 'secondary');
-    expect(battle.unit('ally').statuses.filter(status => status.id === 'lingxiao.status.wound')).toHaveLength(2);
-    cast(battle, healing.id, 'a', ['ally']);
-    expect(battle.unit('ally').statuses.filter(status => status.id === 'lingxiao.status.wound')).toHaveLength(1);
+  it.each([[1, 7080], [9, 7240]])('九天 protects subsequent native segments at level %i and resets each round', (level, hp) => {
+    const triple = controlledStrike([{ type: EffectType.PhysicalHit, hits: 3 }]);
+    const { battle } = setup({ targetNames: ['九天十地经'], level, skills: [triple] });
+    cast(battle);
+    expect(battle.unit('b').attrs.hp).toBe(hp);
+    cast(battle);
+    expect(battle.unit('b').attrs.hp).toBe(2 * hp - 10000);
+  });
+
+  it('九天 carries protection across attackers and physical/spell damage, without depending on the defender sect', () => {
+    const spell = realSkill('tianyan.skill.fire');
+    spell.effects = [{ type: EffectType.SpellHit }];
+    spell.costMp = undefined;
+    const { battle, input } = setup({ targetNames: ['九天十地经'], skills: [controlledStrike(), spell], ally: true });
+    input.units.find(unit => unit.id === 'ally')!.skills = [spell.id];
+    input.units.find(unit => unit.id === 'ally')!.attrs = { ...input.units[0]!.attrs, speed: 15 };
+    const multiple = createBattle(input);
+    multiple.submit('a', { type: CommandType.Skill, skillId: strikeId, targets: ['b'] });
+    multiple.submit('ally', { type: CommandType.Skill, skillId: spell.id, targets: ['b'] });
+    multiple.lockAndResolve();
+    expect(multiple.unit('b').attrs.hp).toBe(8120);
+    expect(battle.unit('b').attrs.hp).toBe(10000);
+  });
+
+  it('九天 ignores fully absorbed hits, fixed damage, DOT and self damage as activation sources', () => {
+    const { battle } = setup({ targetNames: ['九天十地经'], skills: [controlledStrike([
+      { type: EffectType.FixedHit, power: 1000 },
+      { type: EffectType.FixedHit, power: 1000, origin: DamageOrigin.Status },
+      { type: EffectType.PhysicalHit },
+      { type: EffectType.SpellHit },
+    ])] });
+    cast(battle);
+    expect(battle.unit('b').attrs.hp).toBe(6120);
+    const blocked = setup({ targetNames: ['九天十地经'], skills: [controlledStrike([{ type: EffectType.PhysicalHit, hits: 4 }])] }).battle;
+    shield(blocked, 'b', 2000);
+    cast(blocked);
+    expect(blocked.unit('b').attrs.hp).toBe(8120);
+    const dot = setup({ targetNames: ['九天十地经'] }).battle;
+    dot.applyStatus('b', 'youdu.status.poison', 3, 'a');
+    dot.lockAndResolve();
+    expect(dot.unit('b').attrs.hp).toBeLessThan(10000);
+    expect(dot.unit('b').combatFacts?.['character_manual.jiutian_shidi.hurtRound']).toBeUndefined();
+    const self = setup({ names: ['九天十地经'], skills: [controlledStrike([{ type: EffectType.LoseHp, power: 100, targeting: { side: TargetSide.Self } }])] }).battle;
+    self.submit('a', { type: CommandType.Skill, skillId: strikeId, targets: ['b'] });
+    self.submit('b', { type: CommandType.Attack, target: 'a' });
+    self.lockAndResolve();
+    expect(self.unit('a').attrs.hp).toBe(8900);
+  });
+
+  it('九天 also protects later spell copies within the same action', () => {
+    const spell = realSkill('tianyan.skill.fire');
+    spell.effects = [{ type: EffectType.SpellHit }];
+    spell.costMp = undefined;
+    const repeat: SkillDef = { id: 'fixture.repeat', name: 'repeat', tags: [SkillTag.Passive],
+      targeting: { side: TargetSide.Self }, effects: [], innate: { spellRepeat: { chance: 1, factor: 1 } } };
+    const { input } = setup({ targetNames: ['九天十地经'], skills: [spell] });
+    input.skills!.push(repeat);
+    input.units[0]!.passives!.push(repeat.id);
+    const battle = createBattle(input);
+    cast(battle, spell.id);
+    expect(battle.unit('b').attrs.hp).toBe(8120);
   });
 
   it('吞天 removes an eligible numeric buff once per two rounds, retaining rule markers and non-dispellable effects', () => {

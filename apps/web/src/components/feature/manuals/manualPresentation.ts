@@ -41,7 +41,7 @@ export function manualMechanismSummary(
           physicalFury: '狂暴',
           debuffDefenseIgnore: '破防',
           defendWeaken: '折锋',
-          healingCleanse: '净除',
+          followupMitigation: '承势',
           repeatedMitigation: '识破',
           unhurtRecovery: '调息',
           secondaryDamage: '群攻',

@@ -108,9 +108,8 @@ it('学习接受储物袋或储藏室中版本一致的同名玉简', () => {
 });
 it('严格请求拒绝旧改修协议、非法槽位和客户端自报费用', () => {
   expect(ManualActionSchema.safeParse(action).success).toBe(true);
-  expect(ManualActionSchema.safeParse({ ...action, slot: 9 }).success).toBe(
-    false,
-  );
+  for (const slot of [0, 7, 8, 9])
+    expect(ManualActionSchema.safeParse({ ...action, slot }).success).toBe(false);
   expect(ManualActionSchema.safeParse({ ...action, cost: 0 }).success).toBe(
     false,
   );
@@ -164,4 +163,31 @@ it('学习消耗一本，修炼与切换不额外消耗玉简', () => {
   expect(manualJadeCost(state, action)).toBe(1);
   expect(manualJadeCost(state, { ...action, action: 'train' })).toBe(0);
   expect(manualJadeCost(state, { ...action, action: 'activate' })).toBe(0);
+});
+it('化神通过第五位学习原大乘来源玉简，仍校验同名玉简及最新版本', () => {
+  const manualId = 'character_manual.yuanshi_zhenjie';
+  const advancedAction: ManualAction = { ...action, manualId, slot: 5 };
+  const advancedJade = {
+    ...item,
+    definitionId: `jade.${manualId}`,
+    stackKey: `definition.v1:jade.${manualId}`,
+  };
+  expect(previewManualAction(state, '化神', advancedAction, resources, advancedJade)).toMatchObject({
+    ok: true,
+    cost: { experience: 0, insight: 0 },
+    state: {
+      learned: [{ manualId, level: 1, unlockedLevel: 3, slot: 5 }],
+      build: { slots: [{ slot: 5, manualId }] },
+    },
+  });
+  for (const invalidAction of [
+    { ...advancedAction, slot: 4 as const },
+    { ...advancedAction, slot: 6 as const },
+    { ...advancedAction, expectedRevision: 1 },
+    { ...advancedAction, item: { id: 'jade', revision: 1 } },
+  ])
+    expect(previewManualAction(state, '化神', invalidAction, resources, advancedJade).ok).toBe(false);
+  expect(previewManualAction(state, '元婴', advancedAction, resources, advancedJade).ok).toBe(false);
+  expect(previewManualAction(state, '化神', advancedAction, resources, item).ok).toBe(false);
+  expect(state.learned).toEqual([]);
 });

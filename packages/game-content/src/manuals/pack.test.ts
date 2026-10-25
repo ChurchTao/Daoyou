@@ -31,6 +31,14 @@ describe('manual content pack', () => {
     expect(schema).toEqual(z.toJSONSchema(ManualPackShape, { reused: 'ref' }));
   });
 
+  it('uses the same 40 to 80 attribute growth for all advanced manuals', () => {
+    const pack = loadManualPack(data);
+    for (const manual of pack.manuals.filter(manual => MANUAL_REALMS.indexOf(manual.realm) >= 4)) {
+      expect(manual.effects).toEqual([expect.objectContaining({ valueAt1: 40, valuePerLevel: 5 })]);
+      expect(manual.effects[0]!.valueAt1 + 8 * manual.effects[0]!.valuePerLevel).toBe(80);
+    }
+  });
+
   it.each([
     ['damage reduction above 20%', 'dotMitigation', 0.21],
     ['probability above 100%', 'selfCleanse', 1.01],

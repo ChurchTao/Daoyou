@@ -12,12 +12,16 @@ import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
 import type {
   CharacterManualDefV1,
   ManualAction,
+  ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
-import { MANUAL_REALMS } from '@daoyou/game-domain/manuals/authoring';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import {
   getManualSlotCount,
+  isAdvancedManual,
+  manualLearnedSlot,
+  manualLearningSlot,
   manualAttributeValue,
+  MANUAL_SLOT_REALMS,
   MAX_MANUALS_PER_SLOT,
 } from '@daoyou/game-rules/manuals/projection';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -36,7 +40,6 @@ const subscribeViewport = (notify: () => void) => {
   return () => query.removeEventListener('change', notify);
 };
 const desktopSnapshot = () => window.matchMedia(desktopQuery).matches;
-type Realm = CharacterManualDefV1['realm'];
 
 export function ManualRoom() {
   const identity = useCultivatorIdentity();
@@ -51,7 +54,7 @@ export function ManualRoom() {
   const [view, setView] = useState<ManualView>();
   const [refresh, setRefresh] = useState(0);
   const [selection, setSelection] = useState<{
-    realm: Realm;
+    slot: ManualSlotV1;
     manualId?: string;
     item?: InventoryView['items'][number];
   }>();
@@ -135,8 +138,7 @@ export function ManualRoom() {
                       : `${name} · 第 ${progress?.level} 层${progress?.level === 9 ? '，功法圆满。' : '已成。'}`,
             });
             setSelection({
-              realm: CHARACTER_MANUALS_V1.find((m) => m.id === action.manualId)!
-                .realm,
+              slot: action.slot,
               manualId: action.manualId,
             });
           }
@@ -159,16 +161,35 @@ export function ManualRoom() {
     (m) =>
       m.id === (hintedItem && itemDefinition(hintedItem.definitionId).manualId),
   );
-  const realm = selection?.realm ?? hintedManual?.realm ?? MANUAL_REALMS[0];
   const unlocked = view ? getManualSlotCount(view.realm) : 0;
-  const realmOpen = MANUAL_REALMS.indexOf(realm) < unlocked;
-  const learnedManuals = CHARACTER_MANUALS_V1.filter(
-    (m) =>
-      m.realm === realm &&
-      view?.state?.learned.some((p) => p.manualId === m.id),
+  const learnedInSlot = (targetSlot: ManualSlotV1) =>
+    CHARACTER_MANUALS_V1.filter((manual) =>
+      view?.state?.learned.some(
+        (entry) =>
+          entry.manualId === manual.id &&
+          manualLearnedSlot(manual, entry) === targetSlot,
+      ),
+    );
+  const hintedProgress = view?.state?.learned.find(
+    (entry) => entry.manualId === hintedManual?.id,
   );
+  const hintedSlot = hintedManual
+    ? (hintedProgress && manualLearnedSlot(hintedManual, hintedProgress)) ??
+      (isAdvancedManual(hintedManual)
+        ? ([5, 6] as const).find(
+            (candidate) =>
+              candidate <= unlocked &&
+              learnedInSlot(candidate).length < MAX_MANUALS_PER_SLOT,
+          ) ?? 5
+        : manualLearningSlot(hintedManual))
+    : undefined;
+  const slot = selection?.slot ?? hintedSlot ?? 1;
+  const realm = MANUAL_SLOT_REALMS[slot - 1];
+  const slotOpen = slot <= unlocked;
+  const label = slot > 4 ? '高阶功法' : `${realm} · 基础功法`;
+  const learnedManuals = learnedInSlot(slot);
   const currentManual = learnedManuals.find((m) =>
-    view?.state?.build.slots.some((s) => s.manualId === m.id),
+    view?.state?.build.slots.some((s) => s.slot === slot && s.manualId === m.id),
   );
   const manual = CHARACTER_MANUALS_V1.find(
     (m) =>
@@ -180,7 +201,7 @@ export function ManualRoom() {
   );
   const itemChoice = selection?.item ?? (!selection ? hintedItem : undefined);
   const choose = (m: CharacterManualDefV1) => {
-    setSelection({ realm: m.realm, manualId: m.id });
+    setSelection({ slot, manualId: m.id });
     setFeedback(undefined);
     setDrawer(desktop ? null : 'detail');
   };
@@ -207,8 +228,9 @@ export function ManualRoom() {
   const detail =
     manual && view ? (
       <ManualDetail
-        key={manual.id}
+        key={`${slot}:${manual.id}`}
         manual={manual}
+        slot={slot}
         view={view}
         pending={pending}
         itemChoice={itemChoice}
@@ -249,11 +271,12 @@ export function ManualRoom() {
                   className="pointer-events-none absolute inset-0 hidden h-full w-full object-contain select-none lg:block"
                 />
               ) : null}
-              {MANUAL_REALMS.map((slotRealm, index) => {
-                const activeManual = CHARACTER_MANUALS_V1.find(
-                  (m) =>
-                    m.realm === slotRealm &&
-                    view.state?.build.slots.some((s) => s.manualId === m.id),
+              {MANUAL_SLOT_REALMS.map((slotRealm, index) => {
+                const targetSlot = (index + 1) as ManualSlotV1;
+                const activeManual = CHARACTER_MANUALS_V1.find((m) =>
+                  view.state?.build.slots.some(
+                    (s) => s.slot === targetSlot && s.manualId === m.id,
+                  ),
                 );
                 const progress = view.state?.learned.find(
                   (p) => p.manualId === activeManual?.id,
@@ -261,29 +284,24 @@ export function ManualRoom() {
                 return (
                   <div
                     key={slotRealm}
-                    className={`relative ${index < 4 ? 'lg:col-start-1' : 'lg:col-start-3'} ${['lg:row-start-1', 'lg:row-start-2', 'lg:row-start-3', 'lg:row-start-4'][index % 4]} ${feedback?.manualId === activeManual?.id ? 'motion-safe:animate-pulse' : ''}`}
+                    className={`relative ${index < 4 ? 'lg:col-start-1' : 'lg:col-start-3'} ${['lg:row-start-1', 'lg:row-start-2', 'lg:row-start-3', 'lg:row-start-4'][index < 4 ? index : index - 3]} ${feedback?.manualId === activeManual?.id ? 'motion-safe:animate-pulse' : ''}`}
                   >
                     <ManualRealmSlot
                       realm={slotRealm}
+                      slot={targetSlot}
                       manual={activeManual}
                       progress={progress}
                       unlocked={index < unlocked}
-                      selected={realm === slotRealm}
+                      selected={slot === targetSlot}
                       onSelect={() => {
                         if (pending) return;
                         setSelection({
-                          realm: slotRealm,
+                          slot: targetSlot,
                           manualId: activeManual?.id,
                         });
                         setFeedback(undefined);
                         setDrawer(
-                          !activeManual &&
-                            !view.state?.learned.some((p) =>
-                              CHARACTER_MANUALS_V1.some(
-                                (m) =>
-                                  m.id === p.manualId && m.realm === slotRealm,
-                              ),
-                            )
+                          !activeManual && learnedInSlot(targetSlot).length === 0
                             ? 'picker'
                             : null,
                         );
@@ -294,12 +312,14 @@ export function ManualRoom() {
               })}
             </section>
             <section
-              aria-label={`${realm}功法书目`}
+              aria-label={`${label}书目，第${slot}位`}
               className="lg:border-ink/15 min-w-0 lg:border-l lg:pl-7"
             >
               <header className="mb-3 flex min-h-11 items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2">
-                  <h3 className="font-medium">{realm}</h3>
+                  <h3 className="font-medium">
+                    {label}{slot > 4 ? ` · 第${slot}位` : ''}
+                  </h3>
                   <span className="text-ink-secondary font-mono text-xs">
                     {learnedManuals.length}/{MAX_MANUALS_PER_SLOT}
                   </span>
@@ -308,7 +328,7 @@ export function ManualRoom() {
                   <InkButton
                     disabled={
                       pending ||
-                      !realmOpen ||
+                      !slotOpen ||
                       !!view.blockedReason ||
                       !view.state
                     }
@@ -325,7 +345,9 @@ export function ManualRoom() {
                     const progress = view.state!.learned.find(
                       (p) => p.manualId === m.id,
                     )!;
-                    const active = currentManual?.id === m.id;
+                    const activeSlot = view.state!.build.slots.find(
+                      (s) => s.manualId === m.id,
+                    )?.slot;
                     const effect = m.effects[0];
                     return (
                       <button
@@ -340,12 +362,12 @@ export function ManualRoom() {
                         <span className="block pr-3 text-sm font-medium">
                           {m.name}
                         </span>
-                        {active ? (
+                        {activeSlot ? (
                           <span
                             className="text-crimson absolute top-2 right-1 text-[10px]"
-                            aria-label="当前生效"
+                            aria-label={`第${activeSlot}位生效`}
                           >
-                            修
+                            {slot > 4 ? `修${activeSlot}` : '修'}
                           </span>
                         ) : null}
                         <span className="text-ink-secondary mt-1 block text-xs">
@@ -367,9 +389,9 @@ export function ManualRoom() {
                 </div>
               ) : !manual ? (
                 <div className="border-ink/10 text-ink-secondary border-y py-12 text-center">
-                  <p>{realmOpen ? '此境界尚未习得功法' : `${realm}期开放`}</p>
+                  <p>{slotOpen ? `尚未习得${label}` : `${realm}期开放`}</p>
                   <p className="mt-2 text-xs">
-                    {realmOpen
+                    {slotOpen
                       ? '以一枚玉简，开启修习。'
                       : '境界提升后，可在此运转一本功法。'}
                   </p>
@@ -395,14 +417,14 @@ export function ManualRoom() {
         {drawer === 'picker' && view ? (
           <ManualJadePicker
             view={view}
-            realm={realm}
+            slot={slot}
             disabled={pending || !!view.blockedReason}
             onChoose={(action, item) => {
               const chosen = CHARACTER_MANUALS_V1.find(
                 (m) => m.id === action.manualId,
               )!;
               setSelection({
-                realm: chosen.realm,
+                slot: action.slot,
                 manualId: chosen.id,
                 item,
               });

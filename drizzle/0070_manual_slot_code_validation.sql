@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_cultivator_manual_slots" DROP CONSTRAINT "cultivator_manual_slot_valid";

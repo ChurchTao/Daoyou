@@ -1,4 +1,5 @@
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
+import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
 import type { StoryStatus, StoryTrack } from '@daoyou/game-domain/story';
 import type {
   SystemMailConditions,
@@ -687,9 +688,7 @@ export const cultivatorManualStates = pgTable(
       .references(() => cultivators.id, { onDelete: 'cascade' }),
     revision: integer('revision').notNull().default(0),
     learned: jsonb('learned')
-      .$type<
-        Array<{ manualId: string; level: number; unlockedLevel: number }>
-      >()
+      .$type<CultivatorManualStateV1['learned']>()
       .notNull()
       .default([]),
     updatedAt: timestamp('updated_at')
@@ -717,7 +716,6 @@ export const cultivatorManualSlots = pgTable(
       table.cultivatorId,
       table.manualId,
     ),
-    check('cultivator_manual_slot_valid', sql`${table.slot} BETWEEN 1 AND 8`),
   ],
 );
 

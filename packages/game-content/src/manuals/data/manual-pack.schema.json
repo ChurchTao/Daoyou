@@ -272,7 +272,8 @@
                     "repeatedMitigation",
                     "unhurtRecovery",
                     "secondaryDamage",
-                    "preActionMitigation"
+                    "preActionMitigation",
+                    "followupMitigation"
                   ]
                 },
                 "condition": {
@@ -300,7 +301,6 @@
                 "type": {
                   "type": "string",
                   "enum": [
-                    "healingCleanse",
                     "attackDispel",
                     "selfCleanse"
                   ]

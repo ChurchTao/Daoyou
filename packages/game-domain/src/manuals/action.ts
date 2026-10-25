@@ -9,8 +9,6 @@ const target = {
     z.literal(4),
     z.literal(5),
     z.literal(6),
-    z.literal(7),
-    z.literal(8),
   ]),
   manualId: z.string().min(1).max(160),
 };

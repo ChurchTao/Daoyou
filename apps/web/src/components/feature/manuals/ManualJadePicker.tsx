@@ -3,11 +3,14 @@ import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
 import type {
   ManualAction,
-  CharacterManualDefV1,
+  ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
 import type { ManualView } from '@daoyou/contracts/manuals';
 import type { InventoryView } from '@daoyou/contracts/inventory';
-import { manualSlot } from '@daoyou/game-rules/manuals/projection';
+import {
+  canEquipManualInSlot,
+  MANUAL_SLOT_REALMS,
+} from '@daoyou/game-rules/manuals/projection';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { manualJadeCost, previewManualAction } from '@daoyou/game-rules/manuals';
@@ -22,13 +25,13 @@ import { InventoryItems } from '../items/InventoryItems';
 
 export function ManualJadePicker({
   view,
-  realm,
+  slot,
   manualId,
   disabled,
   onChoose,
 }: {
   view: ManualView;
-  realm: CharacterManualDefV1['realm'];
+  slot: ManualSlotV1;
   manualId?: string;
   disabled: boolean;
   onChoose: (
@@ -36,6 +39,7 @@ export function ManualJadePicker({
     item: InventoryView['items'][number],
   ) => void;
 }) {
+  const label = slot > 4 ? '高阶' : `${MANUAL_SLOT_REALMS[slot - 1]}基础`;
   const jadeCost =
     manualId && view.state
       ? manualJadeCost(view.state, { action: 'unlock', manualId })
@@ -57,7 +61,7 @@ export function ManualJadePicker({
     );
     if (
       !manual ||
-      manual.realm !== realm ||
+      !canEquipManualInSlot(manual, slot) ||
       (manualId && manual.id !== manualId) ||
       !view.state
     )
@@ -65,7 +69,7 @@ export function ManualJadePicker({
     const action: ManualAction = {
       action: manualId ? 'unlock' : 'learn',
       manualId: manual.id,
-      slot: manualSlot(manual),
+      slot,
       expectedRevision: view.state.revision,
       item: { id: item.id, revision: item.revision },
     };
@@ -97,13 +101,13 @@ export function ManualJadePicker({
       <p className="text-ink-secondary">
         {manualId
           ? `选择同名玉简，本次突破消耗 ${jadeCost} 本。`
-          : `选择一本${realm}功法玉简，开始修习。`}
+          : `选择一本${label}功法玉简，开始修习。`}
       </p>
       {inventory && !error && choices.length === 0 ? (
         <p role="status">
           {manualId
             ? `${source === 'bag' ? '储物袋' : '洞府储藏室'}中没有足够的同名玉简，本次需要 ${jadeCost} 本。`
-            : `${source === 'bag' ? '储物袋' : '洞府储藏室'}中没有可学习的${realm}功法玉简。`}
+            : `${source === 'bag' ? '储物袋' : '洞府储藏室'}中没有可学习的${label}功法玉简。`}
         </p>
       ) : null}
       <InventoryItems
@@ -142,7 +146,7 @@ export function ManualJadePicker({
                         ? '此物品不是功法玉简。'
                         : manualId
                           ? '此玉简不能用于当前功法的瓶颈突破。'
-                          : '此功法已学习或不属于当前境界位。'}
+                          : '此功法已学习或不适用于当前功法位。'}
                     </p>
                   )
                 : undefined,

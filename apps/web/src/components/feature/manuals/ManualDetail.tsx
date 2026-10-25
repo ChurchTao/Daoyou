@@ -7,6 +7,7 @@ import { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
 import type {
   CharacterManualDefV1,
   ManualAction,
+  ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import {
@@ -16,19 +17,21 @@ import {
 import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
 import {
   manualAttributeValue,
-  manualSlot,
+  isAdvancedManual,
 } from '@daoyou/game-rules/manuals/projection';
 import { ManualProgress } from './ManualProgress';
 import { manualMechanismSummary } from './manualPresentation';
 
 export function ManualDetail({
   manual,
+  slot,
   view,
   pending,
   itemChoice,
   onSubmit,
 }: {
   manual: CharacterManualDefV1;
+  slot: ManualSlotV1;
   view: ManualView;
   pending: boolean;
   itemChoice?: InventoryView['items'][number];
@@ -48,10 +51,8 @@ export function ManualDetail({
     manual,
     Math.min(level + 1, rule.maxLevel),
   );
-  const equipped = CHARACTER_MANUALS_V1.find(
-    (m) =>
-      m.realm === manual.realm &&
-      state?.build.slots.some((s) => s.manualId === m.id),
+  const equipped = CHARACTER_MANUALS_V1.find((m) =>
+    state?.build.slots.some((s) => s.slot === slot && s.manualId === m.id),
   );
   const active = equipped?.id === manual.id;
   const equippedProgress = state?.learned.find(
@@ -73,7 +74,7 @@ export function ManualDetail({
   const target = state
     ? {
         expectedRevision: state.revision,
-        slot: manualSlot(manual),
+        slot,
         manualId: manual.id,
       }
     : undefined;
@@ -91,6 +92,15 @@ export function ManualDetail({
   const preview =
     state && action
       ? previewManualAction(state, view.realm, action, view.resources, jade)
+      : undefined;
+  const activatePreview =
+    state && target
+      ? previewManualAction(
+          state,
+          view.realm,
+          { ...target, action: 'activate' },
+          view.resources,
+        )
       : undefined;
   const cost =
     progress && !complete && !bottleneck
@@ -117,12 +127,15 @@ export function ManualDetail({
             </span>
           </div>
           <p className="text-ink-secondary mt-1 text-xs">
-            {manual.realm} · {mechanism.tag}
+            {isAdvancedManual(manual)
+              ? `高阶功法 · 第${slot}位`
+              : `${manual.realm} · 基础功法`}{' '}
+            · {mechanism.tag}
           </p>
         </div>
         {progress && !active && target ? (
           <InkButton
-            disabled={blocked}
+            disabled={blocked || !activatePreview?.ok}
             onClick={() => onSubmit({ ...target, action: 'activate' })}
             className="min-h-11 shrink-0"
           >

@@ -830,8 +830,8 @@
       "effects": [
         {
           "attribute": "willpower",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -850,8 +850,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -870,8 +870,8 @@
       "effects": [
         {
           "attribute": "willpower",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -890,8 +890,8 @@
       "effects": [
         {
           "attribute": "strength",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -910,8 +910,8 @@
       "effects": [
         {
           "attribute": "endurance",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -930,8 +930,8 @@
       "effects": [
         {
           "attribute": "vitality",
-          "valuePerLevel": 6,
-          "valueAt1": 48
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -950,8 +950,8 @@
       "effects": [
         {
           "attribute": "speed",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -970,8 +970,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -990,8 +990,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1010,8 +1010,8 @@
       "effects": [
         {
           "attribute": "vitality",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1030,8 +1030,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1050,8 +1050,8 @@
       "effects": [
         {
           "attribute": "endurance",
-          "valuePerLevel": 6,
-          "valueAt1": 64
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1070,8 +1070,8 @@
       "effects": [
         {
           "attribute": "strength",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1090,8 +1090,8 @@
       "effects": [
         {
           "attribute": "vitality",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1110,8 +1110,8 @@
       "effects": [
         {
           "attribute": "strength",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1130,8 +1130,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1150,8 +1150,8 @@
       "effects": [
         {
           "attribute": "endurance",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1170,15 +1170,15 @@
       "effects": [
         {
           "attribute": "willpower",
-          "valuePerLevel": 8,
-          "valueAt1": 80
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
-        "type": "healingCleanse",
+        "type": "followupMitigation",
         "condition": "always",
-        "valueAt1": 0.15,
-        "valueAt9": 0.35
+        "valueAt1": 0.04,
+        "valueAt9": 0.12
       }
     },
     {
@@ -1190,8 +1190,8 @@
       "effects": [
         {
           "attribute": "willpower",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1210,8 +1210,8 @@
       "effects": [
         {
           "attribute": "vitality",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1230,8 +1230,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1250,8 +1250,8 @@
       "effects": [
         {
           "attribute": "spirit",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1270,8 +1270,8 @@
       "effects": [
         {
           "attribute": "vitality",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {
@@ -1290,8 +1290,8 @@
       "effects": [
         {
           "attribute": "endurance",
-          "valuePerLevel": 8,
-          "valueAt1": 104
+          "valuePerLevel": 5,
+          "valueAt1": 40
         }
       ],
       "mechanism": {

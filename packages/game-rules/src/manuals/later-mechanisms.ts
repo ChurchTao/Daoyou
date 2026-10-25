@@ -119,20 +119,23 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       }));
       break;
     case 'healingBarrier':
-    case 'healingCleanse': {
-      const cleanse = manual.mechanism.type === 'healingCleanse';
-      const benefit: SkillEffect = cleanse
-        ? { type: EffectType.Dispel, dispelClasses: ['numeric-debuff'], enemyAppliedOnly: true, maxCount: 1, chance: value }
-        : shield(manual, `floor(target.maxHp * ${value})`, `floor(source.maxHp * ${value})`);
       hooks = [{ on: HookName.AfterAction, sourceIsSelf: true, targeting: livingAlly,
         when: { rootActionOnly: true, actionSucceeded: true, skillIds: healingSkills,
           targetDead: false, targetDowned: false, targetEnemy: false, foeKind: 'player',
-          expression: `round >= fact.${next}`,
-          ...(cleanse ? { targetStatusDispelClasses: ['numeric-debuff'] } : {}) },
-        effects: [fact(next, 'round + 1'), benefit],
+          expression: `round >= fact.${next}` },
+        effects: [fact(next, 'round + 1'), shield(manual, `floor(target.maxHp * ${value})`, `floor(source.maxHp * ${value})`)],
       }];
       break;
-    }
+    case 'followupMitigation':
+      hooks = [
+        ...(['physical', 'spell'] as const).map((kind): SkillHook => ({
+          on: HookName.AfterDamage, targetIsSelf: true, sourceIsEnemy: true, requireKind: kind,
+          when: { ...direct, expression: 'hpDamage > 0' }, aim: HookAim.Self,
+          effects: [fact(`${id}.hurtRound`, 'round')],
+        })),
+        ...defense(1 - value, { expression: `round == fact.${id}.hurtRound` }),
+      ];
+      break;
     case 'focusedPhysical':
       hooks = [{ on: HookName.OnDefenseIgnoreCalc, sourceIsSelf: true, requireKind: 'physical',
         when: { ...active, targetSlot: 'primary', sameAttackTarget: true, previousAttackKind: 'physical' },

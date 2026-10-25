@@ -1,11 +1,13 @@
 import type {
   CharacterManualDefV1,
   CultivatorManualStateV1,
+  ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
 import { ManualProgress } from './ManualProgress';
 
 export function ManualRealmSlot({
   realm,
+  slot,
   manual,
   progress,
   unlocked,
@@ -13,6 +15,7 @@ export function ManualRealmSlot({
   onSelect,
 }: {
   realm: CharacterManualDefV1['realm'];
+  slot: ManualSlotV1;
   manual?: CharacterManualDefV1;
   progress?: CultivatorManualStateV1['learned'][number];
   unlocked: boolean;
@@ -24,12 +27,12 @@ export function ManualRealmSlot({
       type="button"
       disabled={!unlocked}
       aria-pressed={selected}
-      aria-label={`${realm}功法位${manual ? `：${manual.name}` : unlocked ? '：择法' : '：未开放'}`}
+      aria-label={`${slot > 4 ? '高阶' : `${realm}基础`}功法第${slot}位${manual ? `：${manual.name}` : unlocked ? '：择法' : '：未开放'}`}
       onClick={onSelect}
       className={`relative min-h-16 w-full border px-2 py-2 text-left transition-colors lg:min-h-32 lg:px-3 lg:py-3 ${!unlocked ? 'border-ink/10 bg-bgpaper/90 text-ink/35' : selected ? 'border-ink/50 bg-bgpaper shadow-sm' : 'border-ink/20 bg-bgpaper/90 hover:border-ink/50'}`}
     >
       <span className="text-ink-secondary mb-1 flex items-center justify-between gap-1 text-xs lg:mb-2">
-        <span>{realm}</span>
+        <span>{slot > 4 ? `高阶 · 第${slot}位` : `基础 · ${realm}`}</span>
         {progress ? (
           <span className="font-mono lg:hidden">{progress.level} 层</span>
         ) : null}
