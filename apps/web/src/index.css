@@ -1,24 +1,5 @@
 @import 'tailwindcss';
 
-/* 引入本地字体 */
-@font-face {
-  font-family: 'LXGWWenKai';
-  src: url('/assets/fonts/LXGWWenKaiLite-Regular.ttf')
-    format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Ma Shan Zheng';
-  src: url('/assets/fonts/MaShanZheng-Regular.ttf')
-    format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme {
   /* 色彩系统 */
   --color-bgpaper: #f8f3e6;
@@ -81,7 +62,7 @@
   --color-background: var(--color-bgpaper);
   --color-foreground: var(--color-ink);
   --font-sans: var(--font-lxgwwenkai);
-  --font-heading: 'Ma Shan Zheng';
+  --font-heading: var(--font-ma-shan-zheng);
 }
 
 :root {

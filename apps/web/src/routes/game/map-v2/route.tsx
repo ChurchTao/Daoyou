@@ -17,6 +17,7 @@ import {
 import { GameLoadingState } from '@app/components/game-shell/GameLoadingState';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { bodyFontFamily } from '@app/lib/fonts';
 import { updateGameSettings, useGameSettings } from '@app/lib/game-setting';
 import { usePlayerSession } from '@app/lib/resources/player';
 import { type WandererState } from '@daoyou/contracts/wanderer';
@@ -27,6 +28,7 @@ import {
   ATLAS_REGIONS,
   getAtlasLocations,
   getAtlasRegion,
+  getAtlasShortName,
   hasAtlasMap,
   matchesAtlasCategories,
   parseAtlasCategories,
@@ -47,6 +49,12 @@ import { AtlasTextMap } from './AtlasTextMap';
 import { AtlasToolbar } from './AtlasToolbar';
 
 const locations = getAtlasLocations();
+// Region switches reuse the Canvas runtime, so prepare every map label once.
+const atlasFontText = [
+  ...ATLAS_REGIONS.map((region) => region.name),
+  ...locations.map(getAtlasShortName),
+  '› · 未开放',
+].join('');
 
 export default function AtlasPage() {
   const { mapMode } = useGameSettings();
@@ -243,7 +251,9 @@ export default function AtlasPage() {
     }, 15000);
     void Promise.all([
       import('./AtlasPhaserRuntime'),
-      document.fonts.load('16px LXGWWenKai').catch(() => []),
+      document.fonts
+        .load(`16px "${bodyFontFamily}"`, atlasFontText)
+        .catch(() => []),
     ])
       .then(([runtime]) => {
         if (disposed || !root.current) return;
