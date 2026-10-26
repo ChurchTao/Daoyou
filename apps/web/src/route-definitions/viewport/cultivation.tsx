@@ -51,6 +51,18 @@ export const cultivationRoutes = [
     )}
   />,
   <Route
+    path="enlightenment/codex"
+    lazy={lazyRoute(() => import('@app/routes/game/enlightenment/codex/route'))}
+    handle={scene(
+      {
+        id: 'manual-codex',
+        presentation: 'archive',
+        summary: '遍览诸般功法，查阅各层增益与运转之效。',
+      },
+      '功法图鉴',
+    )}
+  />,
+  <Route
     path="inscriptions"
     lazy={lazyRoute(() => import('@app/routes/game/inscriptions/route'))}
     handle={scene(

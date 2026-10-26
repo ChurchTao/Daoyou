@@ -149,9 +149,14 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
   return (
     <GameSceneFrame variant="workflow">
       <div className="space-y-5 text-sm">
-        <p className="text-ink-secondary leading-6">
-          卷帙静陈，灵气微动。择几卷典籍，静心参悟其中法理。
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-ink-secondary leading-6">
+            卷帙静陈，灵气微动。择几卷典籍，静心参悟其中法理。
+          </p>
+          <InkButton href="/game/enlightenment/codex" className="shrink-0">
+            功法图鉴
+          </InkButton>
+        </div>
         {session.error ? (
           <p role="alert" className="text-crimson">
             {session.error}{' '}

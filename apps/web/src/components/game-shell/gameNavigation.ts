@@ -107,6 +107,11 @@ export const gameDockGroups: GameNavGroup[] = [
         expandedDockLabel: '📜 悟道室',
       },
       {
+        id: 'manual-codex',
+        sceneLabel: '功法图鉴',
+        href: '/game/enlightenment/codex',
+      },
+      {
         id: 'inscriptions',
         sceneLabel: '阵纹室',
         href: '/game/inscriptions',
