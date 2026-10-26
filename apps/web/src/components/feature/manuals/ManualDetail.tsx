@@ -14,10 +14,13 @@ import {
   manualJadeCost,
   previewManualAction,
 } from '@daoyou/game-rules/manuals';
-import { manualEffectLines } from '@daoyou/game-rules/manuals/presentation';
 import {
-  manualAttributeValue,
+  manualEffectLines,
+  manualMechanismDescription,
+} from '@daoyou/game-rules/manuals/presentation';
+import {
   isAdvancedManual,
+  manualAttributeValue,
 } from '@daoyou/game-rules/manuals/projection';
 import { ManualProgress } from './ManualProgress';
 import { manualMechanismSummary } from './manualPresentation';
@@ -196,10 +199,13 @@ export function ManualDetail({
         <div className="border-ink/20 border-l-2 pl-3">
           {mechanism.fullRule ? (
             <div className="space-y-2 text-sm leading-relaxed">
-              <p>{mechanism.description}</p>
-              {cost ? (
-                <p className="text-crimson">→ {nextMechanism.description}</p>
-              ) : null}
+              <p>
+                {manualMechanismDescription(
+                  manual,
+                  level,
+                  cost ? level + 1 : undefined,
+                )}
+              </p>
             </div>
           ) : (
             <>
@@ -420,10 +426,11 @@ export function ManualDetail({
         </div>
       ) : null}
       <details className="border-ink/10 text-ink-secondary border-t pt-3 text-xs">
-        <summary className="cursor-pointer py-1">功法释义与作用范围</summary>
+        <summary className="cursor-pointer py-1">
+          {complete ? '功法释义' : '功法释义与圆满效果'}
+        </summary>
         <div className="mt-3 space-y-3 leading-relaxed">
           <p>{manual.description}</p>
-          <p>{mechanism.description}</p>
           {!complete ? (
             <div>
               <p className="text-ink mb-1">九层圆满</p>

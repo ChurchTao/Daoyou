@@ -42,13 +42,13 @@ export const BEAST_STATUS_DEFS: StatusDef[] =
     const effect = skill.effect;
     if (effect.type === 'spiritSurge') return [{
       id: `${skill.id}.status`, name: skill.name, kind: 'beast.spirit-surge',
-      category: StatusCategory.Buff, expireSameRound: true,
+      category: StatusCategory.Buff, dispelClass: 'numeric-buff', expireSameRound: true,
       attrMods: { magicAtk: `floor(fact.magic * 10 / ${effect.magicDivisor * 10})` },
     }];
     if (effect.type === 'eightfoldFlame') return ['physicalAtk', 'physicalDef', 'speed', 'spirit'].map(attribute => ({
       id: `${skill.id}.${attribute}`,
       name: `${skill.name}·${{ physicalAtk: '削攻', physicalDef: '削防', speed: '迟滞', spirit: '扰灵' }[attribute]}`,
-      kind: 'beast.eightfold-weakness', category: StatusCategory.Debuff,
+      kind: 'beast.eightfold-weakness', category: StatusCategory.Debuff, dispelClass: 'numeric-debuff',
       attrMods: attribute === 'spirit'
         ? { magicAtk: `target.magicAtk * -${effect.weakenRatio}`, magicDef: `target.magicDef * -${effect.weakenRatio}` }
         : { [attribute]: `target.${attribute} * -${effect.weakenRatio}` },
@@ -72,6 +72,7 @@ export const BEAST_STATUS_DEFS: StatusDef[] =
               name: '中毒',
               kind: 'beast.poison',
               category: StatusCategory.Dot,
+              dispelClass: 'hp-dot',
               ticks: StatusTick.RoundEnd,
               onTick: {
                 type: TickKind.Dot,
@@ -86,6 +87,7 @@ export const BEAST_STATUS_DEFS: StatusDef[] =
               name: skill.name,
               kind: 'beast.spell-defense',
               category: StatusCategory.Buff,
+              dispelClass: 'numeric-buff',
               damageTakenSpell: skill.effect.takenFactor,
               expireSameRound: true,
             }]

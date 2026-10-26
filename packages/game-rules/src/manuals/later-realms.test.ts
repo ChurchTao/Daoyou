@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CommandType, DamageKind, DamageOrigin, EffectType, EventType, SkillTag, StatusCategory, StatusHit, TargetSide } from '@daoyou/combat-core/enums';
+import { CommandType, DamageKind, DamageOrigin, EffectType, EventType, SkillTag, StatusCategory, StatusHit, StatusTick, TargetSide, TickKind } from '@daoyou/combat-core/enums';
 import { createBattle, restoreBattle } from '@daoyou/combat-core/session';
 import type { BattleSession } from '@daoyou/combat-core/session';
-import type { CreateBattleInput, SkillDef } from '@daoyou/combat-core/types';
+import type { CreateBattleInput, SkillDef, StatusDef } from '@daoyou/combat-core/types';
+import { BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
+import { DAO_EQUIPMENT_ARTS_V1 } from '@daoyou/game-content/equipment/special';
 import { COMBAT_V6_BASE_PROJECTION_VERSIONS } from '@daoyou/game-domain/combat';
 import type { ManualSlotV1 } from '@daoyou/game-domain/manuals';
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
@@ -66,6 +68,7 @@ function setup(options: {
   ally?: boolean; secondary?: boolean; guaranteedChance?: boolean;
   hp?: number; mp?: number; maxMp?: number; sourceSpeed?: number; targetSpeed?: number;
   seed?: number;
+  statusDefs?: StatusDef[];
 } = {}) {
   const own = projection(options.names ?? [], options.level, options.guaranteedChance);
   const opponent = projection(options.targetNames ?? [], options.level, options.guaranteedChance);
@@ -87,7 +90,7 @@ function setup(options: {
       decideCommand: () => ({ type: CommandType.Defend }),
     },
     skills: [...skills, ...own.skills, ...opponent.skills],
-    statusDefs: classifyManualStatuses([...sectStatuses, ...own.statusDefs, ...opponent.statusDefs]),
+    statusDefs: classifyManualStatuses([...sectStatuses, ...BEAST_STATUS_DEFS, ...(options.statusDefs ?? []), ...own.statusDefs, ...opponent.statusDefs]),
     units: [
       { id: 'a', name: 'a', side: 0, kind: 'player', level: 10, attrs,
         skills: skills.map(skill => skill.id), skillLevels: Object.fromEntries(skills.map(skill => [skill.id, 10])), passives: own.passiveSkillIds },
@@ -112,7 +115,158 @@ function barrierTotal(battle: BattleSession, unitId: string) {
 }
 
 describe('later realm manual battle contracts', () => {
-  it('道经 strengthens only active primary direct damage, including ordinary fixed damage', () => {
+  it('applies offensive manuals to basic attacks and unrelated active arts without a sect skill allowlist', () => {
+    const basic = setup({ names: ['道经'] }).battle;
+    basic.submit('a', { type: CommandType.Attack, target: 'b' });
+    basic.lockAndResolve();
+    expect(basic.unit('b').attrs.hp).toBe(8930);
+    const art: SkillDef = { id: 'fixture.unrelated.art', name: '道装攻击', tags: [SkillTag.Art],
+      targeting: { side: TargetSide.Enemy }, effects: [{ type: EffectType.PhysicalHit }] };
+    const { battle } = setup({ names: ['道经'], skills: [art] });
+    cast(battle, art.id);
+    expect(battle.unit('b').attrs.hp).toBe(8930);
+  });
+
+  it('太阴 and 万毒 cover unnamed HP damage over time while MP loss stays unchanged', () => {
+    const status: StatusDef = { id: 'fixture.unknown.poison', kind: 'fixture.poison', name: '无名毒',
+      category: StatusCategory.Dot, ticks: StatusTick.RoundEnd,
+      onTick: { type: TickKind.Dot, ratioOfMaxHp: 0.1, ratioOfMaxMp: 0.1 } };
+    const { battle } = setup({ names: ['太阴真经'], targetNames: ['万毒混元身'], statusDefs: [status] });
+    battle.applyStatus('b', status.id, 3, 'a');
+    battle.lockAndResolve();
+    expect(battle.unit('b').attrs.hp).toBe(9174);
+    expect(battle.unit('b').attrs.mp).toBe(9000);
+  });
+
+  it('太阴 does not amplify self-inflicted periodic costs', () => {
+    const cost: StatusDef = { id: 'fixture.periodic.cost', name: '气血代价', kind: 'fixture.cost',
+      category: StatusCategory.Dot, ticks: StatusTick.RoundEnd, dispellable: false,
+      onTick: { type: TickKind.Dot, ratioOfMaxHp: 0.1 } };
+    const { battle } = setup({ names: ['太阴真经'], statusDefs: [cost] });
+    battle.applyStatus('a', cost.id, 3, 'a');
+    battle.lockAndResolve();
+    expect(battle.unit('a').attrs.hp).toBe(9000);
+  });
+
+  it('西皇 follows a generic self-healing art even at full HP', () => {
+    const heal: SkillDef = { id: 'fixture.healing.art', name: '道装治疗', tags: [SkillTag.Art, SkillTag.Support],
+      targeting: { side: TargetSide.Ally }, effects: [{ type: EffectType.Heal, power: 100, fixedBase: true }] };
+    const { battle } = setup({ names: ['西皇经'], skills: [heal] });
+    cast(battle, heal.id, 'a', ['a']);
+    expect(barrierTotal(battle, 'a')).toBe(700);
+  });
+
+  it('西皇 supports real equipment healing and shields only the primary living player', () => {
+    const art = structuredClone(DAO_EQUIPMENT_ARTS_V1.find(art => art.skill.effects.some(effect => effect.type === EffectType.Heal))!.skill);
+    art.resourceCosts = undefined;
+    const { battle } = setup({ names: ['西皇经'], skills: [art], ally: true });
+    cast(battle, art.id, 'a', ['ally']);
+    expect(barrierTotal(battle, 'ally')).toBe(700);
+    expect(barrierTotal(battle, 'a')).toBe(0);
+  });
+
+  it.each([
+    { type: EffectType.RestoreHp, power: 100, targeting: { side: TargetSide.Self } },
+    { type: EffectType.PhysicalHit, healInstead: true },
+    { type: EffectType.Revive, hpRatio: 0.5 },
+  ] satisfies SkillDef['effects'])('西皇 does not mistake recovery, healing strikes or revival for active healing: %j', effect => {
+    const skill = controlledStrike([effect]);
+    skill.targeting = { side: TargetSide.Ally, includeDowned: true };
+    const { battle } = setup({ names: ['西皇经'], skills: [skill], hp: 5000 });
+    cast(battle, skill.id, 'a', ['a']);
+    expect(barrierTotal(battle, 'a')).toBe(0);
+  });
+
+  it('西皇 ignores automatic healing and healing excluded by the actual branch', () => {
+    const status: StatusDef = { id: 'fixture.regeneration', name: '回春', kind: 'fixture.regeneration',
+      category: StatusCategory.Buff, ticks: StatusTick.RoundEnd, healingPerRound: 100 };
+    const skill = controlledStrike([{ type: EffectType.RandomBranch, branchId: 'no-healing', chance: 0,
+      successEffects: [{ type: EffectType.Heal, power: 100 }], failureEffects: [] }]);
+    skill.targeting = { side: TargetSide.Ally };
+    const { battle } = setup({ names: ['西皇经'], skills: [skill], statusDefs: [status], hp: 5000 });
+    battle.applyStatus('a', status.id, 3, 'a');
+    cast(battle, skill.id, 'a', ['a']);
+    expect(battle.unit('a').attrs.hp).toBe(5100);
+    expect(barrierTotal(battle, 'a')).toBe(0);
+  });
+
+  it('万毒 reduces beast poison from a fallen enemy, while 太阴 never grants its bonus to owned pets', () => {
+    const poison = BEAST_STATUS_DEFS.find(status => status.kind === 'beast.poison')!;
+    const { input } = setup({ names: ['太阴真经'], targetNames: ['万毒混元身'] });
+    input.units.push({ id: 'pet', name: 'pet', ownerId: 'a', side: 0, kind: 'pet',
+      attrs: { hp: 1000, maxHp: 1000, physicalAtk: 1, physicalDef: 0, speed: 1 } });
+    const battle = createBattle(input);
+    battle.applyStatus('b', poison.id, 3, 'pet');
+    battle.unit('pet').flags.dead = true;
+    battle.unit('pet').attrs.hp = 0;
+    battle.lockAndResolve();
+    expect(10000 - battle.unit('b').attrs.hp).toBe(Math.floor(10000 * poison.onTick!.ratioOfMaxHp! * 0.7));
+  });
+
+  it.each(['youdu.status.poison', 'tianyan.status.seal'])('九转 recognizes hostile %s but excludes self-applied states', statusId => {
+    const spell = controlledStrike([{ type: EffectType.SpellHit }]);
+    for (const sourceId of ['a', 'b']) {
+      const { battle } = setup({ names: ['九转天功'], skills: [spell] });
+      battle.unit('b').attrs.magicDef = 500;
+      battle.applyStatus('b', statusId, 3, sourceId);
+      cast(battle);
+      const hit = battle.log().find(event => event.type === EventType.Damage && event.sourceId === 'a' && event.targetId === 'b');
+      expect(hit && 'amount' in hit && hit.amount).toBe(sourceId === 'a' ? 590 : 500);
+    }
+  });
+
+  it('九转, 吞天 and 不灭 recognize equipment numeric states while keeping positive and negative classes separate', () => {
+    const buff: StatusDef = { id: 'fixture.art.buff', name: '道装增益', kind: 'fixture.art.buff',
+      category: StatusCategory.Buff, dispelClass: 'art', damageTakenSpell: 0.9 };
+    const debuff: StatusDef = { id: 'fixture.art.debuff', name: '道装减益', kind: 'fixture.art.debuff',
+      category: StatusCategory.Debuff, dispelClass: 'art', speedMod: -1 };
+    const spell = controlledStrike([{ type: EffectType.SpellHit }]);
+    const attack = setup({ names: ['九转天功', '吞天魔功'], skills: [spell], statusDefs: [buff, debuff], guaranteedChance: true }).battle;
+    attack.unit('b').attrs.magicDef = 500;
+    attack.applyStatus('b', buff.id, 5, 'b');
+    attack.applyStatus('b', debuff.id, 5, 'a');
+    cast(attack);
+    expect(attack.unit('b').attrs.hp).toBe(9469);
+    expect(attack.unit('b').statuses.map(status => status.id)).toContain(debuff.id);
+    expect(attack.unit('b').statuses.map(status => status.id)).not.toContain(buff.id);
+
+    const cleanse = setup({ names: ['不灭天功'], statusDefs: [buff, debuff], guaranteedChance: true }).battle;
+    cleanse.applyStatus('a', buff.id, 5, 'b');
+    cleanse.applyStatus('a', debuff.id, 5, 'b');
+    cleanse.lockAndResolve();
+    expect(cleanse.unit('a').statuses.map(status => status.id)).toContain(buff.id);
+    expect(cleanse.unit('a').statuses.map(status => status.id)).not.toContain(debuff.id);
+  });
+
+  it('吞天 accepts unfamiliar numeric buffs without treating command states and rule markers as ordinary buffs', () => {
+    const buff: StatusDef = { id: 'fixture.unknown.buff', name: '强身', kind: 'fixture.numeric', category: StatusCategory.Buff, attrMods: { physicalDef: 10 } };
+    const rule: StatusDef = { ...buff, id: 'fixture.rule', kind: 'fixture.rule', name: '形态', untargetable: false, actFirst: true };
+    const marker: StatusDef = { id: 'fixture.marker', name: '印记', kind: 'fixture.marker', category: StatusCategory.Buff };
+    const { battle } = setup({ names: ['吞天魔功'], statusDefs: [buff, rule, marker], guaranteedChance: true });
+    battle.applyStatus('b', rule.id, 5, 'b');
+    battle.applyStatus('b', marker.id, 5, 'b');
+    cast(battle);
+    expect(battle.unit('a').combatFacts?.['character_manual.tuntian.next']).toBeUndefined();
+    battle.applyStatus('b', buff.id, 5, 'b');
+    cast(battle);
+    expect(battle.unit('b').statuses.map(status => status.id)).toEqual([rule.id, marker.id]);
+  });
+
+  it('原始 recognizes repeated basic attacks and 太阳 breaks shields with a basic attack', () => {
+    const repeated = setup({ targetNames: ['原始真解'] }).battle;
+    for (let i = 0; i < 2; i++) {
+      repeated.submit('a', { type: CommandType.Attack, target: 'b' });
+      repeated.lockAndResolve();
+    }
+    expect(repeated.unit('b').attrs.hp).toBe(8250);
+    const sun = setup({ names: ['太阳真经'] }).battle;
+    shield(sun, 'b', 2000);
+    sun.submit('a', { type: CommandType.Attack, target: 'b' });
+    sun.lockAndResolve();
+    expect(barrierTotal(sun, 'b')).toBe(600);
+  });
+
+  it('道经 strengthens primary direct damage, including ordinary fixed damage', () => {
     const group = controlledStrike([
       { type: EffectType.FixedHit, power: 1000 },
       { type: EffectType.FixedHit, power: 1000, percentageDamage: true },
@@ -126,7 +280,7 @@ describe('later realm manual battle contracts', () => {
     const basic = setup({ names: ['道经'] }).battle;
     basic.submit('a', { type: CommandType.Attack, target: 'b' });
     basic.lockAndResolve();
-    expect(basic.unit('b').attrs.hp).toBe(9000);
+    expect(basic.unit('b').attrs.hp).toBe(8930);
   });
 
   it('六道 strengthens real group secondary fixed damage, while primary, percentage and derived damage remain unchanged', () => {
@@ -149,9 +303,9 @@ describe('later realm manual battle contracts', () => {
     const high = setup({ names: ['五藏锻元功'], maxMp: 100000, mp: 1 });
     const lowShield = barrierTotal(low.battle, 'a');
     const highShield = barrierTotal(high.battle, 'a');
-    expect(lowShield).toBe(160);
+    expect(lowShield).toBe(240);
     expect(highShield).toBeGreaterThan(lowShield);
-    expect(highShield).toBeLessThanOrEqual(1000);
+    expect(highShield).toBe(1200);
     expect(high.battle.unit('a').attrs.mp).toBe(1);
     const restored = restoreBattle(high.input, high.battle.snapshot(), [...high.battle.log()]);
     expect(barrierTotal(restored, 'a')).toBe(highShield);
@@ -201,7 +355,7 @@ describe('later realm manual battle contracts', () => {
     const large = setup({ names: ['太阳真经'], skills: [spell] }).battle;
     shield(large, 'b', 2000);
     cast(large, spell.id);
-    expect(barrierTotal(large, 'b')).toBe(820);
+    expect(barrierTotal(large, 'b')).toBe(600);
     expect(large.unit('b').attrs.hp).toBe(10000);
     const small = setup({ names: ['太阳真经'], skills: [spell] }).battle;
     shield(small, 'b', 500);
@@ -211,7 +365,7 @@ describe('later realm manual battle contracts', () => {
     shield(split, 'b', 1000);
     split.unit('b').barriers.push({ ...split.unit('b').barriers[0]!, id: 'second', kind: 'second' });
     cast(split, spell.id);
-    expect(barrierTotal(split, 'b')).toBe(820);
+    expect(barrierTotal(split, 'b')).toBe(600);
     expect(split.unit('b').attrs.hp).toBe(10000);
     const bare = setup({ names: ['太阳真经'], skills: [spell] }).battle;
     cast(bare, spell.id);
@@ -273,7 +427,7 @@ describe('later realm manual battle contracts', () => {
       const large = setup({ targetNames: ['古神诀'], skills: [controlledStrike([{ type: effect, coeff: 3 }])] }).battle;
       shield(large, 'b', 500);
       cast(large);
-      expect(large.unit('b').attrs.hp).toBe(7770);
+      expect(large.unit('b').attrs.hp).toBe(8025);
     }
     const fixed = setup({ targetNames: ['古神诀'], skills: [controlledStrike([{ type: EffectType.FixedHit, power: 3000 }])] }).battle;
     cast(fixed);
@@ -316,10 +470,10 @@ describe('later realm manual battle contracts', () => {
     expect(battle.unit('a').statuses.some(status => status.id === 'character_manual.jingang_xian.ready')).toBe(true);
     battle.submit('a', { type: CommandType.Skill, skillId: strikeId, targets: ['b'] });
     cast(battle, strikeId, 'b', ['a']);
-    expect(battle.unit('a').attrs.hp).toBe(8300);
+    expect(battle.unit('a').attrs.hp).toBe(8700);
     expect(battle.unit('b').statuses.some(status => status.kind === 'character_manual.jingang_xian.weaken')).toBe(false);
     cast(battle, strikeId, 'b', ['a']);
-    expect(battle.unit('a').attrs.hp).toBe(6300);
+    expect(battle.unit('a').attrs.hp).toBe(6700);
     const blocked = setup({ names: ['金刚仙天功'] }).battle;
     blocked.submit('a', { type: CommandType.Defend });
     blocked.lockAndResolve();
@@ -344,11 +498,11 @@ describe('later realm manual battle contracts', () => {
     battle.lockAndResolve();
     battle.submit('a', { type: CommandType.Skill, skillId: strikeId, targets: ['b'] });
     cast(battle, strikeId, 'b', ['a']);
-    expect(battle.unit('a').attrs.hp).toBe(9050);
+    expect(battle.unit('a').attrs.hp).toBe(9150);
     expect(battle.unit('b').attrs.hp).toBe(9000);
     expect(battle.unit('a').statuses.some(status => status.kind === 'character_manual.jingang_xian.weaken')).toBe(true);
     cast(battle);
-    expect(battle.unit('b').attrs.hp).toBe(8150);
+    expect(battle.unit('b').attrs.hp).toBe(8350);
   });
 
   it.each(['魂毒', '余火'])('太阴 and 万毒 modify capped %s HP ticks exactly once without changing MP ticks or shield bypass', name => {
@@ -362,7 +516,7 @@ describe('later realm manual battle contracts', () => {
     cast(modified);
     const tick = 10000 - base.unit('b').attrs.hp;
     expect(tick).toBeGreaterThan(0);
-    expect(10000 - modified.unit('b').attrs.hp).toBe(Math.floor(tick * 1.18 * 0.82));
+    expect(10000 - modified.unit('b').attrs.hp).toBe(Math.floor(tick * 1.18 * 0.7));
     expect(modified.unit('b').attrs.mp).toBe(base.unit('b').attrs.mp);
     expect(barrierTotal(modified, 'b')).toBe(2000);
   });
@@ -385,7 +539,7 @@ describe('later realm manual battle contracts', () => {
     expect(barrierTotal(downed, 'b')).toBe(0);
   });
 
-  it.each([[1, 7080], [9, 7240]])('九天 protects subsequent native segments at level %i and resets each round', (level, hp) => {
+  it.each([[1, 7120], [9, 7360]])('九天 protects subsequent native segments at level %i and resets each round', (level, hp) => {
     const triple = controlledStrike([{ type: EffectType.PhysicalHit, hits: 3 }]);
     const { battle } = setup({ targetNames: ['九天十地经'], level, skills: [triple] });
     cast(battle);
@@ -405,7 +559,7 @@ describe('later realm manual battle contracts', () => {
     multiple.submit('a', { type: CommandType.Skill, skillId: strikeId, targets: ['b'] });
     multiple.submit('ally', { type: CommandType.Skill, skillId: spell.id, targets: ['b'] });
     multiple.lockAndResolve();
-    expect(multiple.unit('b').attrs.hp).toBe(8120);
+    expect(multiple.unit('b').attrs.hp).toBe(8180);
     expect(battle.unit('b').attrs.hp).toBe(10000);
   });
 
@@ -417,11 +571,11 @@ describe('later realm manual battle contracts', () => {
       { type: EffectType.SpellHit },
     ])] });
     cast(battle);
-    expect(battle.unit('b').attrs.hp).toBe(6120);
+    expect(battle.unit('b').attrs.hp).toBe(6180);
     const blocked = setup({ targetNames: ['九天十地经'], skills: [controlledStrike([{ type: EffectType.PhysicalHit, hits: 4 }])] }).battle;
     shield(blocked, 'b', 2000);
     cast(blocked);
-    expect(blocked.unit('b').attrs.hp).toBe(8120);
+    expect(blocked.unit('b').attrs.hp).toBe(8180);
     const dot = setup({ targetNames: ['九天十地经'] }).battle;
     dot.applyStatus('b', 'youdu.status.poison', 3, 'a');
     dot.lockAndResolve();
@@ -445,7 +599,7 @@ describe('later realm manual battle contracts', () => {
     input.units[0]!.passives!.push(repeat.id);
     const battle = createBattle(input);
     cast(battle, spell.id);
-    expect(battle.unit('b').attrs.hp).toBe(8120);
+    expect(battle.unit('b').attrs.hp).toBe(8180);
   });
 
   it('吞天 removes an eligible numeric buff once per two rounds, retaining rule markers and non-dispellable effects', () => {
@@ -486,12 +640,12 @@ describe('later realm manual battle contracts', () => {
     const { battle } = setup({ names: ['不灭经'], hp: 5000 });
     shield(battle, 'a', 10000);
     cast(battle, strikeId, 'b', ['a']);
-    expect(battle.unit('a').attrs.hp).toBe(5350);
+    expect(battle.unit('a').attrs.hp).toBe(5700);
     battle.lockAndResolve();
     battle.lockAndResolve();
-    expect(battle.unit('a').attrs.hp).toBe(6050);
+    expect(battle.unit('a').attrs.hp).toBe(7100);
     battle.lockAndResolve();
-    expect(battle.unit('a').attrs.hp).toBe(6050);
+    expect(battle.unit('a').attrs.hp).toBe(7100);
   });
 
   it.each(['costHp', 'successCostHp'] as const)('不灭经 cannot recover in a round that paid %s', cost => {
@@ -516,7 +670,7 @@ describe('later realm manual battle contracts', () => {
     expect(capped.unit('a').attrs.hp).toBe(5000);
     capped.unit('a').wound = 0;
     for (let i = 0; i < 3; i++) capped.lockAndResolve();
-    expect(capped.unit('a').attrs.hp).toBe(6050);
+    expect(capped.unit('a').attrs.hp).toBe(7100);
   });
 
   it('炼神 grants short resistance only after a hostile seal expires, and never proactively removes the seal', () => {
@@ -586,7 +740,7 @@ describe('later realm manual battle contracts', () => {
     battle.submit('a', { type: CommandType.Defend });
     battle.lockAndResolve();
     cast(battle);
-    expect(afterFirst - battle.unit('b').attrs.hp).toBe(560);
+    expect(afterFirst - battle.unit('b').attrs.hp).toBe(590);
     cast(battle, support.id, 'a', ['a']);
     const beforeFinal = battle.unit('b').attrs.hp;
     cast(battle);
@@ -602,9 +756,9 @@ describe('later realm manual battle contracts', () => {
     cast(battle);
     expect(battle.unit('b').attrs.hp).toBe(8000);
     cast(battle);
-    expect(battle.unit('b').attrs.hp).toBe(6240);
+    expect(battle.unit('b').attrs.hp).toBe(6320);
     cast(battle, spell.id);
-    expect(battle.unit('b').attrs.hp).toBe(5240);
+    expect(battle.unit('b').attrs.hp).toBe(5320);
   });
 
   it('原始 does not recognize later segments of the first use, but resists the next whole repeated attack', () => {
@@ -613,7 +767,7 @@ describe('later realm manual battle contracts', () => {
     cast(battle);
     expect(battle.unit('b').attrs.hp).toBe(7000);
     cast(battle);
-    expect(battle.unit('b').attrs.hp).toBe(4450);
+    expect(battle.unit('b').attrs.hp).toBe(4750);
   });
 
   it('无始 protection closes when a controlled action window is skipped', () => {

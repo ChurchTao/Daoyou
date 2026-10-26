@@ -837,8 +837,8 @@
       "mechanism": {
         "type": "sealRecovery",
         "condition": "always",
-        "valueAt1": 0.04,
-        "valueAt9": 0.12
+        "valueAt1": 0.25,
+        "valueAt9": 0.45
       }
     },
     {
@@ -877,8 +877,8 @@
       "mechanism": {
         "type": "healingBarrier",
         "condition": "always",
-        "valueAt1": 0.01,
-        "valueAt9": 0.03
+        "valueAt1": 0.03,
+        "valueAt9": 0.07
       }
     },
     {
@@ -897,8 +897,8 @@
       "mechanism": {
         "type": "focusedPhysical",
         "condition": "always",
-        "valueAt1": 0.04,
-        "valueAt9": 0.12
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
       }
     },
     {
@@ -937,8 +937,8 @@
       "mechanism": {
         "type": "dotMitigation",
         "condition": "always",
-        "valueAt1": 0.06,
-        "valueAt9": 0.18
+        "valueAt1": 0.1,
+        "valueAt9": 0.3
       }
     },
     {
@@ -997,8 +997,8 @@
       "mechanism": {
         "type": "barrierDamage",
         "condition": "always",
-        "valueAt1": 0.06,
-        "valueAt9": 0.18
+        "valueAt1": 0.2,
+        "valueAt9": 0.4
       }
     },
     {
@@ -1017,8 +1017,8 @@
       "mechanism": {
         "type": "adaptiveMitigation",
         "condition": "always",
-        "valueAt1": 0.04,
-        "valueAt9": 0.12
+        "valueAt1": 0.06,
+        "valueAt9": 0.16
       }
     },
     {
@@ -1037,8 +1037,8 @@
       "mechanism": {
         "type": "openingBarrier",
         "condition": "always",
-        "valueAt1": 0.08,
-        "valueAt9": 0.16
+        "valueAt1": 0.12,
+        "valueAt9": 0.24
       }
     },
     {
@@ -1097,8 +1097,8 @@
       "mechanism": {
         "type": "heavyMitigation",
         "condition": "always",
-        "valueAt1": 0.06,
-        "valueAt9": 0.18
+        "valueAt1": 0.15,
+        "valueAt9": 0.35
       }
     },
     {
@@ -1157,8 +1157,8 @@
       "mechanism": {
         "type": "defendWeaken",
         "condition": "always",
-        "valueAt1": 0.05,
-        "valueAt9": 0.15
+        "valueAt1": 0.15,
+        "valueAt9": 0.35
       }
     },
     {
@@ -1177,8 +1177,8 @@
       "mechanism": {
         "type": "followupMitigation",
         "condition": "always",
-        "valueAt1": 0.04,
-        "valueAt9": 0.12
+        "valueAt1": 0.06,
+        "valueAt9": 0.18
       }
     },
     {
@@ -1197,8 +1197,8 @@
       "mechanism": {
         "type": "repeatedMitigation",
         "condition": "always",
-        "valueAt1": 0.05,
-        "valueAt9": 0.15
+        "valueAt1": 0.1,
+        "valueAt9": 0.25
       }
     },
     {
@@ -1217,8 +1217,8 @@
       "mechanism": {
         "type": "unhurtRecovery",
         "condition": "always",
-        "valueAt1": 0.015,
-        "valueAt9": 0.035
+        "valueAt1": 0.03,
+        "valueAt9": 0.07
       }
     },
     {
@@ -1257,8 +1257,8 @@
       "mechanism": {
         "type": "attackDispel",
         "condition": "always",
-        "valueAt1": 0.15,
-        "valueAt9": 0.35
+        "valueAt1": 0.35,
+        "valueAt9": 0.65
       }
     },
     {
@@ -1277,8 +1277,8 @@
       "mechanism": {
         "type": "selfCleanse",
         "condition": "always",
-        "valueAt1": 0.15,
-        "valueAt9": 0.35
+        "valueAt1": 0.3,
+        "valueAt9": 0.6
       }
     },
     {

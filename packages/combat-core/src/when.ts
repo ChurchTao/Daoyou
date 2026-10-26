@@ -50,10 +50,11 @@ function hasCategory(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, categor
   })
 }
 
-function hasDispelClass(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, classes: string[], enemyApplied = false, units: Unit[] = []): boolean {
+function hasDispelClass(ctx: Pick<BattleContext, 'statusDefs'>, unit: Unit, classes: string[], enemyApplied = false, units: Unit[] = [], categories?: StatusCategory[]): boolean {
   return unit.statuses.some(status => {
     if (enemyApplied && !units.some(other => other.id === status.sourceId && other.side !== unit.side)) return false
     const def = ctx.statusDefs.get(status.id)
+    if (categories && (!def?.category || !categories.includes(def.category))) return false
     return def?.dispellable !== false && def?.dispelClass !== undefined && classes.includes(def.dispelClass)
   })
 }
@@ -113,6 +114,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetEnemy && (!scope.target || scope.target.side === scope.source.side)) return false
   if (when.targetHasStandingPet !== undefined && (!scope.target || units.some(u => u.kind === 'pet' && u.ownerId === scope.target!.id && isStanding(u)) !== when.targetHasStandingPet)) return false
   if (when.actionSucceeded && (!ctx.currentAction || ctx.currentAction.failed)) return false
+  if (when.actionHealedTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.healedTargetIds?.includes(scope.target.id)) !== when.actionHealedTarget)) return false
   if (when.actionKilledTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.killedTargetIds?.includes(scope.target.id)) !== when.actionKilledTarget)) return false
   if (when.actionReducedTargetToZero !== undefined && (Boolean(scope.target && ctx.currentAction?.hpZeroTargetIds?.includes(scope.target.id)) !== when.actionReducedTargetToZero)) return false
   const initialHpRatio = ctx.currentAction?.initialHpRatio ?? hpRatio(scope.source)
@@ -128,7 +130,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.sourceHasBarrier !== undefined && scope.source.barriers.some(b => b.current > 0) !== when.sourceHasBarrier) return false
   if (when.targetHasBarrier !== undefined && (!scope.target || scope.target.barriers.some(b => b.current > 0) !== when.targetHasBarrier)) return false
   if (when.sourceStatusCategories && !hasCategory(ctx, scope.source, when.sourceStatusCategories)) return false
-  if (when.sourceStatusDispelClasses && !hasDispelClass(ctx, scope.source, when.sourceStatusDispelClasses, when.sourceStatusEnemyApplied, units)) return false
+  if (when.sourceStatusDispelClasses && !hasDispelClass(ctx, scope.source, when.sourceStatusDispelClasses, when.sourceStatusEnemyApplied, units, when.sourceStatusCategories)) return false
   if (when.sourceRemovableControl && !scope.source.statuses.some(s => {
     const def = ctx.statusDefs.get(s.id)
     return def?.category === 'control' && def.dispellable !== false && !def.blocksRevive
@@ -174,7 +176,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.targetAbsentStatusIds && foe && hasId(foe, when.targetAbsentStatusIds)) return false
   if (when.targetAbsentStatusKinds && foe && hasKind(foe, when.targetAbsentStatusKinds)) return false
   if (when.targetStatusCategories && (!foe || !hasCategory(ctx, foe, when.targetStatusCategories))) return false
-  if (when.targetStatusDispelClasses && (!foe || !hasDispelClass(ctx, foe, when.targetStatusDispelClasses))) return false
+  if (when.targetStatusDispelClasses && (!foe || !hasDispelClass(ctx, foe, when.targetStatusDispelClasses, when.targetStatusEnemyApplied, units, when.targetStatusCategories))) return false
   if (when.targetAbsentStatusCategories && foe && hasCategory(ctx, foe, when.targetAbsentStatusCategories)) return false
   if (when.targetStatusStack) {
     const stacks = targetStatusStacks(ctx, when, foe)

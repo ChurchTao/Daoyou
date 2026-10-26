@@ -397,6 +397,7 @@ export type EffectWhen = {
   targetEnemy?: boolean;
   targetHasStandingPet?: boolean;
   actionSucceeded?: boolean;
+  actionHealedTarget?: boolean;
   actionKilledTarget?: boolean;
   /** 包括被致命恢复救回的目标。 */
   actionReducedTargetToZero?: boolean;
@@ -429,6 +430,7 @@ export type EffectWhen = {
   targetAbsentStatusKinds?: string[];
   targetStatusCategories?: StatusCategory[];
   targetStatusDispelClasses?: string[];
+  targetStatusEnemyApplied?: boolean;
   targetAbsentStatusCategories?: StatusCategory[];
   targetStatusStack?: {
     statusId?: StatusId;
@@ -557,6 +559,8 @@ type EffectCore =
   | {
       type: typeof EffectType.Dispel;
       enemyAppliedOnly?: boolean;
+      /** Additional category restriction; selectors below remain a union. */
+      requireCategories?: StatusCategory[];
       kinds?: string[];
       statusIds?: StatusId[];
       categories?: StatusCategory[];

@@ -74,7 +74,14 @@ const handlers: { [K in SkillEffect["type"]]?: EffectHandler<Extract<SkillEffect
   },
   [EffectType.Dispel]: handleDispel,
   [EffectType.Heal]: (ctx, source, _skill, effect, targets, env) => {
-    for (const t of targets) applyHeal(ctx, source, t, evalExpr(effect.power, { ...env, target: t }), effect.healMaxHp, effect.fixedBase, effect.includeHealPower)
+    for (const t of targets) {
+      const valid = applyHeal(ctx, source, t, evalExpr(effect.power, { ...env, target: t }), effect.healMaxHp, effect.fixedBase, effect.includeHealPower)
+      const action = ctx.currentAction
+      if (valid && action?.sourceId === source.id && ctx.suppressHooks === 0 && !ctx.invokingAttackSkills) {
+        const healed = action.healedTargetIds ??= []
+        if (!healed.includes(t.id)) healed.push(t.id)
+      }
+    }
   },
   [EffectType.RestoreHp]: handleRestoreHp,
   [EffectType.RestoreMp]: handleRestoreMp,
@@ -384,6 +391,7 @@ function handleDispel(
         const def = ctx.statusDefs.get(status.id)
         if (effect.enemyAppliedOnly && !ctx.state.units.some(unit => unit.id === status.sourceId && unit.side !== t.side)) return false
         if (def?.dispellable === false) return false
+        if (effect.requireCategories && (!def?.category || !effect.requireCategories.includes(def.category))) return false
         if (effect.schoolOnly && !def?.school) return false
         if (effect.includeStatusFlags?.length && !effect.includeStatusFlags.some((flag) => Boolean(def?.[flag]))) return false
         if (effect.excludeStatusFlags?.some((flag) => Boolean(def?.[flag]))) return false

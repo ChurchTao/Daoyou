@@ -281,10 +281,14 @@
                   "const": "always"
                 },
                 "valueAt1": {
-                  "$ref": "#/$defs/__schema4"
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 0.5
                 },
                 "valueAt9": {
-                  "$ref": "#/$defs/__schema5"
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 0.5
                 }
               },
               "required": [

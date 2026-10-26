@@ -1,46 +1,39 @@
-import { DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, StatusFlag, StatusRemoveReason, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
+import { DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, StatusFlag, StatusRemoveReason, TargetMode, TargetSide, TickKind } from '@daoyou/combat-core/enums';
 import type { EffectWhen, SkillDef, SkillEffect, SkillHook, StatusDef } from '@daoyou/combat-core/types';
-import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import type { ManualMechanism } from '@daoyou/game-domain/manuals/authoring';
 
-// Explicit content support: rule markers, forms, seals and non-dispellable costs
-// must not become ordinary numeric buffs merely because they share a category.
-const numericDebuffs = new Set([
-  'lingxiao.status.wound', 'youdu.status.slow', 'youdu.status.slow_strong',
-  'youdu.status.siphon', 'youdu.status.siphon_strong', 'tianyan.status.bind', 'tianyan.status.weaken',
-  'tianyan.status.weaken_deep', 'tianyan.status.truce', 'tianyan.status.truce_deep',
-  'tianyan.status.spell_dull', 'tianyan.status.spell_dull_deep',
-  'tianyan.status.foundation_break', 'tianyan.status.melt',
-  'jiujie.status.magic_break', 'jiujie.status.physical_break',
+// Classify the effect rather than its sect or ID. Mixed rule/command states
+// remain excluded even when they also carry a numeric bonus.
+const numericFields = new Set([
+  'speedMod', 'attrMods', 'damageTakenPhysical', 'damageTakenSpell', 'damageDealtPhysical',
+  'damageDealtSpell', 'healTaken', 'healDealt', 'physicalDefenseIgnore', 'damageTakenFromSource', 'sealHitTakenFactor',
 ]);
-const numericBuffs = new Set([
-  'lingxiao.status.sword_aura', 'lingxiao.status.sword_aura_ganjiang',
-  'lingxiao.status.clarity', 'lingxiao.status.clarity_anshen',
-  'lingxiao.status.shadow', 'lingxiao.status.pride',
-  'youdu.status.revival', 'youdu.status.enter_soul', 'youdu.status.evil_flame',
-  'wuxiang.status.insight', 'wuxiang.status.insight_self', 'wuxiang.status.initiative',
-  'tianyan.status.ward', 'tianyan.status.ward_deep', 'tianyan.status.adapt',
-  'jiujie.status.guardian', 'jiujie.status.insight',
+const numericMetadata = new Set([
+  'id', 'name', 'kind', 'category', 'school', 'sourceBound', 'snapshotModifiers',
+  'expireSameRound', 'maxStacks', 'extendable', 'priority', 'untilBattleEnd', 'consumeAfterDamagingAction',
 ]);
-export const MANUAL_HP_DOT_IDS = Object.values(COMBAT_V6_SECT_DEFINITIONS)
-  .flatMap((sect) => sect.statuses)
-  .filter((status) => status.category === StatusCategory.Dot && status.onTick?.ratioOfMaxHp !== undefined)
-  .map((status) => status.id);
-const activeSkills = [...new Set(Object.values(COMBAT_V6_SECT_DEFINITIONS).flatMap((sect) => [
-  ...sect.skills,
-  ...sect.paths.flatMap((path) => [
-    ...(path.grantSkills ?? []),
-    ...path.nodes.flatMap((node) => node.grantSkills ?? []),
-  ]),
-]).filter((skill) => skill.kind === 'active').map((skill) => skill.definition.id))];
-const healingSkills = ['wuxiang.skill.nectar', 'wuxiang.skill.renew'];
+const numericModifierFields = new Set([
+  'damageBonus', 'damageTakenBonus', 'allDamageTakenBonus', 'damageTakenAdd',
+  'defenseIgnoreAdd', 'critChanceAdd', 'physicalFuryChanceAdd', 'sealResistanceAdd', 'healTaken', 'healDealt',
+]);
 
 export function classifyManualStatuses(statuses: StatusDef[]): StatusDef[] {
   return statuses.map((status) => {
-    if (status.dispellable === false) return status;
-    const dispelClass = numericDebuffs.has(status.id) ? 'numeric-debuff'
-      : numericBuffs.has(status.id) ? 'numeric-buff'
-      : MANUAL_HP_DOT_IDS.includes(status.id) ? 'hp-dot' : undefined;
+    if (status.dispellable === false || status.dispelClass) return status;
+    let dispelClass: string | undefined;
+    if (status.category === StatusCategory.Dot && status.onTick?.type === TickKind.Dot && (status.onTick.ratioOfMaxHp ?? 0) > 0)
+      dispelClass = 'hp-dot';
+    else if (status.category === StatusCategory.Control && !status.blocksRevive)
+      dispelClass = 'seal';
+    else if (status.category === StatusCategory.Buff || status.category === StatusCategory.Debuff) {
+      const numeric = Object.keys(status).some(key => numericFields.has(key)) || (status.modifiers?.length ?? 0) > 0;
+      const pure = Object.keys(status).every(key => numericFields.has(key) || numericMetadata.has(key) || key === 'dispellable' || key === 'modifiers');
+      const modifiers = status.modifiers?.every(modifier => Object.keys(modifier).every(key => key === 'when'
+        ? Object.keys(modifier.when ?? {}).every(condition => condition === 'requireKind' || condition === 'damageOrigins')
+        : numericModifierFields.has(key)));
+      if (numeric && pure && modifiers !== false)
+        dispelClass = status.category === StatusCategory.Buff ? 'numeric-buff' : 'numeric-debuff';
+    }
     return dispelClass ? { ...status, dispelClass } : status;
   });
 }
@@ -53,8 +46,8 @@ function strengthStatusId(manual: Manual, kind: string, value: number): string {
 }
 const direct: EffectWhen = { damageOrigins: [DamageOrigin.ActionDirect], sourceStanding: true };
 const active: EffectWhen = {
-  ...direct, skillIds: activeSkills, rootActionOnly: true,
-  excludeSpellRepeat: true, excludePercentageDamage: true,
+  ...direct, rootActionOnly: true,
+  excludeSkillTags: [SkillTag.Passive], excludePercentageDamage: true,
 };
 const livingAlly = {
   side: TargetSide.Ally, mode: TargetMode.Explicit, count: 1, requireKind: 'player' as const,
@@ -120,7 +113,7 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       break;
     case 'healingBarrier':
       hooks = [{ on: HookName.AfterAction, sourceIsSelf: true, targeting: livingAlly,
-        when: { rootActionOnly: true, actionSucceeded: true, skillIds: healingSkills,
+        when: { rootActionOnly: true, sourceStanding: true, actionSucceeded: true, actionHealedTarget: true, excludeSkillTags: [SkillTag.Passive],
           targetDead: false, targetDowned: false, targetEnemy: false, foeKind: 'player',
           expression: `round >= fact.${next}` },
         effects: [fact(next, 'round + 1'), shield(manual, `floor(target.maxHp * ${value})`, `floor(source.maxHp * ${value})`)],
@@ -149,14 +142,14 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
     case 'dotDamage':
       hooks = [{ on: HookName.OnDotCalc, requireKind: 'fixed',
         ...(manual.mechanism.type === 'dotDamage' ? { sourceIsSelf: true } : { targetIsSelf: true, sourceIsEnemy: true }),
-        when: { sourceStanding: true, dotStatusIds: MANUAL_HP_DOT_IDS },
+        when: { sourceStanding: true, ...(manual.mechanism.type === 'dotDamage' ? { targetEnemy: true } : {}) },
         effects: [{ type: EffectType.ModifyStrike, factor: manual.mechanism.type === 'dotDamage' ? 1 + value : 1 - value }] }];
       break;
     case 'secondaryMitigation':
       hooks = defense(1 - value, { targetSlot: 'secondary' });
       break;
     case 'barrierDamage':
-      modifiers = [{ when: { ...active, requireKind: 'spell' }, barrierDrainBonus: value }];
+      modifiers = (['physical', 'spell'] as const).map(kind => ({ when: { ...active, requireKind: kind }, barrierDrainBonus: value }));
       break;
     case 'adaptiveMitigation': {
       const recorded = `${id}.recorded`;
@@ -186,7 +179,7 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       break;
     case 'damageRecovery':
       hooks = [{ on: HookName.AfterHit, sourceIsSelf: true, aim: HookAim.Self,
-        when: { ...active, excludeSpellRepeat: false, targetSlot: 'primary' },
+        when: { ...active, targetSlot: 'primary' },
         effects: [{ type: EffectType.RestoreHp, power: `floor(hpDamage * ${value})`, maxGainPerAction: `floor(source.maxHp * ${value / 2})` }] }];
       break;
     case 'heavyMitigation':
@@ -197,7 +190,8 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       break;
     case 'debuffDefenseIgnore':
       hooks = [{ on: HookName.OnDefenseIgnoreCalc, sourceIsSelf: true, requireKind: 'spell',
-        when: { ...active, targetStatusDispelClasses: ['numeric-debuff'] },
+        when: { ...active, targetStatusDispelClasses: ['numeric-debuff', 'hp-dot', 'seal', 'art'],
+          targetStatusCategories: [StatusCategory.Debuff, StatusCategory.Dot, StatusCategory.Control], targetStatusEnemyApplied: true },
         effects: [{ type: EffectType.ModifyDefenseIgnore, add: value }] }];
       break;
     case 'defendWeaken':
@@ -219,7 +213,7 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       ];
       break;
     case 'repeatedMitigation':
-      hooks = defense(1 - value, { rootActionOnly: true, skillIds: activeSkills, repeatedIncomingSkill: true });
+      hooks = defense(1 - value, { rootActionOnly: true, repeatedIncomingSkill: true });
       break;
     case 'unhurtRecovery':
       hooks = [{ on: HookName.OnRoundEnd, aim: HookAim.Self,
@@ -228,13 +222,15 @@ export function compileLaterManualSkill(manual: Manual, value: number): SkillDef
       break;
     case 'attackDispel':
       hooks = [{ on: HookName.AfterHit, sourceIsSelf: true,
-        when: { ...active, targetSlot: 'primary', targetStatusDispelClasses: ['numeric-buff'], expression: `round >= fact.${next}` },
-        effects: [fact(next, 'round + 2'), { type: EffectType.Dispel, dispelClasses: ['numeric-buff'], maxCount: 1, chance: value }] }];
+        when: { ...active, targetSlot: 'primary', targetStatusDispelClasses: ['numeric-buff', 'art'],
+          targetStatusCategories: [StatusCategory.Buff], expression: `round >= fact.${next}` },
+        effects: [fact(next, 'round + 2'), { type: EffectType.Dispel, requireCategories: [StatusCategory.Buff], dispelClasses: ['numeric-buff', 'art'], maxCount: 1, chance: value }] }];
       break;
     case 'selfCleanse':
       hooks = [{ on: HookName.OnRoundStart, aim: HookAim.Self,
-        when: { sourceStanding: true, sourceStatusDispelClasses: ['numeric-debuff', 'hp-dot'], sourceStatusEnemyApplied: true },
-        effects: [{ type: EffectType.Dispel, dispelClasses: ['numeric-debuff', 'hp-dot'], enemyAppliedOnly: true, maxCount: 1, chance: value }] }];
+        when: { sourceStanding: true, sourceStatusDispelClasses: ['numeric-debuff', 'hp-dot', 'art'],
+          sourceStatusCategories: [StatusCategory.Debuff, StatusCategory.Dot], sourceStatusEnemyApplied: true },
+        effects: [{ type: EffectType.Dispel, requireCategories: [StatusCategory.Debuff, StatusCategory.Dot], dispelClasses: ['numeric-debuff', 'hp-dot', 'art'], enemyAppliedOnly: true, maxCount: 1, chance: value }] }];
       break;
     case 'preActionMitigation':
       hooks = [
