@@ -6,20 +6,23 @@ export function BeastRosterEntry({
   beast,
   selected,
   isLead,
+  disabled,
   onSelect,
 }: {
   beast: SummonedBeast;
   selected: boolean;
   isLead?: boolean;
+  disabled?: boolean;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       aria-label={`${beast.name}，${beast.level}级${beast.isMutant ? '，变异' : ''}${beast.isLocked ? '，已锁定' : ''}${isLead ? '，首发' : ''}`}
       aria-pressed={selected}
       onClick={onSelect}
-      className={`hover:bg-teal/5 focus-visible:outline-teal flex h-16 min-w-0 items-center gap-2 border-l-2 px-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] ${selected ? 'border-teal bg-teal/8' : 'border-transparent'}`}
+      className={`hover:bg-teal/5 focus-visible:outline-teal flex h-16 min-w-0 items-center gap-2 border-l-2 px-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] disabled:cursor-not-allowed disabled:opacity-50 ${selected ? 'border-teal bg-teal/8' : 'border-transparent'}`}
     >
       <BeastIcon
         speciesId={beast.speciesId}

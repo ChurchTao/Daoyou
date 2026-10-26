@@ -34,6 +34,9 @@
 /assets/*.css
   Cache-Control: public, max-age=31536000, immutable
 
+/assets/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
 # public 目录下的图片使用固定路径，更新时不会改变文件名。
 /assets/*.webp
   Cache-Control: public, max-age=86400, stale-while-revalidate=604800

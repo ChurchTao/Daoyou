@@ -41,7 +41,7 @@ export const tierColorMap: Record<Tier, string> = {
   筑基: 'text-tier-ling',
   金丹: 'text-tier-xuan',
   元婴: 'text-tier-zhen',
-  化神: 'text-tier-shen',
+  化神: 'text-realm-huashen',
   炼虚: 'text-tier-di',
   合体: 'text-tier-tian',
   大乘: 'text-tier-xian',

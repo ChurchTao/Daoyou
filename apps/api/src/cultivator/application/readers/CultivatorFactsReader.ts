@@ -8,7 +8,16 @@ import type {
   CultivationProgress,
 } from '@daoyou/game-domain/character';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
+
+export async function readCultivatorTitles(ids: string[], executor?: DbExecutor) {
+  if (!ids.length) return new Map<string, string | null>();
+  const rows = await (executor ?? getExecutor())
+    .select({ id: cultivators.id, title: cultivators.title })
+    .from(cultivators)
+    .where(inArray(cultivators.id, ids));
+  return new Map(rows.map((row) => [row.id, row.title]));
+}
 
 async function requireFacts<T>(
   cultivatorId: string,

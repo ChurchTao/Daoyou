@@ -37,7 +37,7 @@ export function manualMechanismSummary(
           openingBarrier: '凝盾',
           damageBarrier: '攻守',
           damageRecovery: '汲血',
-          heavyMitigation: '削峰',
+          heavyMitigation: '抗重击',
           physicalFury: '狂暴',
           debuffDefenseIgnore: '破防',
           defendWeaken: '折锋',
@@ -64,7 +64,7 @@ export function manualMechanismSummary(
     'kinds' in effect
       ? effect.kinds
           .map(
-            (k) => ({ physical: '物理', spell: '法术', fixed: '普通固定' })[k],
+            (k) => ({ physical: '物理', spell: '法术', fixed: '固定' })[k],
           )
           .join('／')
       : '';

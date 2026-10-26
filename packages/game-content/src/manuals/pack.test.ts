@@ -40,7 +40,8 @@ describe('manual content pack', () => {
   });
 
   it.each([
-    ['damage reduction above 20%', 'dotMitigation', 0.21],
+    ['advanced damage reduction above 50%', 'dotMitigation', 0.51],
+    ['basic damage reduction above 20%', 'mitigation', 0.21],
     ['probability above 100%', 'selfCleanse', 1.01],
     ['unbounded script', 'script', 0.1],
   ])('rejects %s', (_, type, valueAt9) => {
@@ -50,6 +51,7 @@ describe('manual content pack', () => {
       condition: 'always',
       valueAt1: 0.01,
       valueAt9,
+      ...(type === 'mitigation' ? { kinds: ['physical'] } : {}),
     };
     expect(() => loadManualPack(copy)).toThrow();
   });

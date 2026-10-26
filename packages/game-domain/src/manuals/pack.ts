@@ -102,7 +102,8 @@ export const ManualMechanismShape = z.discriminatedUnion('type', [
       'followupMitigation',
     ]),
     condition: z.literal('always'),
-    ...growth,
+    valueAt1: z.number().positive().max(0.5),
+    valueAt9: z.number().positive().max(0.5),
   }),
   z.strictObject({
     type: z.enum(['attackDispel', 'selfCleanse']),

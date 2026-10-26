@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import './index.css';
 import { registerPreloadErrorRecovery } from './lib/appVersion';
+import './lib/fonts';
 import { initializePwaInstallCapture } from './lib/pwaInstall';
 import { registerProductionServiceWorker } from './lib/serviceWorker';
 import { router } from './router';

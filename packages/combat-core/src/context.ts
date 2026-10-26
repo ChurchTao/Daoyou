@@ -48,6 +48,8 @@ export type BattleContext = {
     resourceGains: Record<string, number>
     /** 独立气血恢复的行动内累计量；行动结束即销毁。 */
     hpRestoreGains: Record<string, number>
+    /** Valid direct healing effects, including healing an already full target. */
+    healedTargetIds?: UnitId[]
     impactDamageByTarget: Record<UnitId, number>
     /** 本次主目标非比例、非派生直接伤害的实际扣血。 */
     primaryHpDamage?: number

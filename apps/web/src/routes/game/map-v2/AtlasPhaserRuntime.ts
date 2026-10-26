@@ -1,5 +1,6 @@
 import type { HuntMapPoint } from '@app/components/feature/hunts/HuntMapMarkers';
 import { GameIcon } from '@app/components/ui/GameIcon';
+import { bodyFontStack } from '@app/lib/fonts';
 import type { HuntEvent } from '@daoyou/game-domain/hunts';
 import {
   ATLAS_ANCHORS,
@@ -277,7 +278,7 @@ export function attachAtlasPhaser(args: AtlasArguments): AtlasController {
       }
       const label = this.add
         .text(0, 0, shortName, {
-          fontFamily: 'LXGWWenKai, "STFangsong", "FangSong", "Songti SC", "SimSun", serif',
+          fontFamily: bodyFontStack,
           fontSize: world
             ? enabled
               ? '24px'

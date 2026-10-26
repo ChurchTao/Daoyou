@@ -84,6 +84,7 @@ export type HuntTeamChatMessage = {
   senderName: string;
   senderRealm: string;
   senderRealmStage: string;
+  senderTitle?: string | null;
   text: string;
   reply: HuntTeamChatReply | null;
   createdAt: string;

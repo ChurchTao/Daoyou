@@ -48,6 +48,7 @@
     "graphology-types": "^0.24.8",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0",
+    "vite-plugin-font": "5.1.2",
     "vite-plugin-pwa": "2.0.0",
     "workbox-cacheable-response": "7.4.1",
     "workbox-expiration": "7.4.1",

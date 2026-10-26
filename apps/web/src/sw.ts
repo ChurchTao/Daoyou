@@ -27,7 +27,7 @@ const MEDIA_CACHE = 'daoyou-media';
 const SHELL_URL = '/index.html';
 const NAVIGATION_TIMEOUT_MS = 4_000;
 const HASHED_BUILD_ASSET =
-  /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css)$/;
+  /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2)$/;
 
 // version.json is how the open page detects a new build. API responses carry
 // identity and game state, so neither can be replayed from cache.
