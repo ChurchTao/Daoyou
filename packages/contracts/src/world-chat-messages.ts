@@ -125,6 +125,7 @@ export interface WorldChatMessageDTO {
   senderName: string;
   senderRealm: string;
   senderRealmStage: string;
+  senderTitle?: string | null;
   messageType: WorldChatMessageType;
   textContent: string | null;
   payload: WorldChatPayload;

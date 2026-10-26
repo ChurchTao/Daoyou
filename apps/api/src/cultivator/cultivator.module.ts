@@ -10,16 +10,20 @@ import { ProfileController } from './profile.controller.js';
 import { ProfileService } from './profile.service.js';
 import { RetreatService } from './retreat.service.js';
 import { YieldService } from './yield.service.js';
+import { CharacterCardController } from './character-card.controller.js';
+import { CharacterCardService } from './character-card.service.js';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [
+    CharacterCardController,
     ProfileController,
     ConditionController,
     LifecycleController,
     CultivationController,
   ],
   providers: [
+    CharacterCardService,
     CultivatorQueriesService,
     ProfileService,
     ConditionService,

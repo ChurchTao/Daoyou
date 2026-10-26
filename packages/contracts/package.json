@@ -50,6 +50,7 @@
     "./manuals": "./dist/combatV6Manuals.js",
     "./market": "./dist/market.js",
     "./player": "./dist/player.js",
+    "./player/card": "./dist/characterCard.js",
     "./player/journal": "./dist/playerJournal.js",
     "./qi": "./dist/qi.js",
     "./rankings": "./dist/rankings.js",

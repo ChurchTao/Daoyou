@@ -17,6 +17,7 @@ import {
 } from '@server/lib/drizzle/schema.js';
 import { encodeNatsSubjectToken } from '@server/realtime/infrastructure/natsCorePubSub.js';
 import { ChatError } from '@server/social/application/chatError.js';
+import { readCultivatorTitles } from '@server/cultivator/facts.js';
 import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createTransactionalMessage } from './transactionalMessageRepository.js';
@@ -43,7 +44,10 @@ function cutoff() {
   return new Date(Date.now() - CHAT_RETENTION_DAYS * 86_400_000);
 }
 
-export function messageFromRow(row: MessageRow): WorldChatMessageDTO {
+export function messageFromRow(
+  row: MessageRow,
+  senderTitle: string | null = null,
+): WorldChatMessageDTO {
   return {
     id: row.id,
     sequence: row.sequence,
@@ -52,6 +56,7 @@ export function messageFromRow(row: MessageRow): WorldChatMessageDTO {
     senderUserId: row.senderUserId,
     senderCultivatorId: row.senderCultivatorId,
     senderName: row.senderName,
+    senderTitle,
     senderRealm: row.senderRealm,
     senderRealmStage: row.senderRealmStage,
     messageType: row.messageType,
@@ -227,7 +232,12 @@ export async function insertChatMessage(
       createdAt: input.createdAt ? new Date(input.createdAt) : new Date(),
     })
     .returning();
-  const message = messageFromRow(row!);
+  const titles = await readCultivatorTitles(
+    input.senderCultivatorId ? [input.senderCultivatorId] : [], tx,
+  );
+  const message = messageFromRow(
+    row!, titles.get(input.senderCultivatorId ?? '') ?? null,
+  );
   if (!notify) return { message, outboxId: undefined };
   const outbox = await queueChatNotification(tx, {
     destination: chatSubject(input.channel, input.sectId),
@@ -238,6 +248,10 @@ export async function insertChatMessage(
 }
 
 async function hydrateMessages(rows: MessageRow[], q: DbExecutor) {
+  const senderIds = [...new Set(rows.flatMap((row) =>
+    row.senderCultivatorId ? [row.senderCultivatorId] : [],
+  ))];
+  const senderTitles = await readCultivatorTitles(senderIds, q);
   const replyIds = rows.flatMap((row) =>
     row.reply ? [row.reply.messageId] : [],
   );
@@ -265,7 +279,9 @@ async function hydrateMessages(rows: MessageRow[], q: DbExecutor) {
     : [];
   const packetById = new Map(packets.map((packet) => [packet.id, packet]));
   return rows.map((row) => {
-    const message = messageFromRow(row);
+    const message = messageFromRow(
+      row, senderTitles.get(row.senderCultivatorId ?? '') ?? null,
+    );
     if (message.reply) {
       const target = targetById.get(message.reply.messageId);
       if (target && target.status !== 'active')

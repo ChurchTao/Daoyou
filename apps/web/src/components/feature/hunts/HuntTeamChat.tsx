@@ -105,6 +105,7 @@ function toWorldMessage(
     senderUserId: member?.userId ?? '',
     senderCultivatorId: message.senderCultivatorId,
     senderName: message.senderName,
+    senderTitle: message.senderTitle,
     senderRealm: realm,
     senderRealmStage: message.senderRealmStage || realm,
     messageType: 'text',

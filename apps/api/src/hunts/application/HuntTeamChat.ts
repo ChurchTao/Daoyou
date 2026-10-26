@@ -6,7 +6,10 @@ import type {
 import { HUNT_TEAM_CHAT_MAX_CHARS } from '@daoyou/contracts/hunts';
 import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
-import { readCultivatorPublicIdentity } from '@server/cultivator/facts.js';
+import {
+  readCultivatorPublicIdentity,
+  readCultivatorTitles,
+} from '@server/cultivator/facts.js';
 import { acquireRedisCooldown } from '@server/lib/redis/cooldownLimiter.js';
 import { redis } from '@server/lib/redis/index.js';
 import { publishHuntTeamChat } from '@server/realtime/infrastructure/huntTeamChatBroadcaster.js';
@@ -64,6 +67,8 @@ function parseMessage(raw: string, teamId: string): HuntTeamChatMessage | null {
       teamId,
       senderCultivatorId: parsed.senderCultivatorId,
       senderName: parsed.senderName,
+      senderTitle:
+        typeof parsed.senderTitle === 'string' ? parsed.senderTitle : null,
       senderRealm:
         typeof parsed.senderRealm === 'string' ? parsed.senderRealm : '',
       senderRealmStage:
@@ -109,10 +114,19 @@ export async function listHuntTeamChat(
 ): Promise<HuntTeamChatMessage[]> {
   await requireMember(actor, teamId);
   const rows = await redis.lrange(huntTeamChatKey(teamId), 0, CHAT_LIMIT - 1);
-  return rows
+  const messages = rows
     .map((raw) => parseMessage(raw, teamId))
     .filter((message): message is HuntTeamChatMessage => Boolean(message))
     .reverse();
+  const titles = await readCultivatorTitles(
+    [...new Set(messages.map((message) => message.senderCultivatorId))],
+  );
+  return messages.map((message) => ({
+    ...message,
+    senderTitle: titles.has(message.senderCultivatorId)
+      ? titles.get(message.senderCultivatorId)
+      : message.senderTitle,
+  }));
 }
 
 async function replySnapshot(
@@ -156,11 +170,13 @@ export async function sendHuntTeamChat(
     throw new ArenaV6Error(`请 ${cooldown.remainingSeconds} 秒后再发言`, 409);
   }
   const identity = await readCultivatorPublicIdentity(actor.cultivatorId);
+  const titles = await readCultivatorTitles([actor.cultivatorId]);
   const message: HuntTeamChatMessage = {
     id: crypto.randomUUID(),
     teamId,
     senderCultivatorId: actor.cultivatorId,
     senderName: identity.name,
+    senderTitle: titles.get(actor.cultivatorId) ?? null,
     senderRealm: identity.realm,
     senderRealmStage: identity.realmStage,
     text: textFilter.mask(trimmed).text,
