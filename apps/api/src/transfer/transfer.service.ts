@@ -60,6 +60,11 @@ export class TransferService {
     @Inject(TransferCrypto) private readonly crypto: TransferCrypto,
   ) {}
 
+  localIdentity() {
+    const identity = this.crypto.signingIdentity();
+    return identity ? { enabled: true as const, ...identity } : { enabled: false as const };
+  }
+
   async issue(userId: string) {
     const identity = this.crypto.publicIdentity();
     const existing = await this.database.query.cultivators.findFirst({

@@ -34,6 +34,14 @@ export class TransferCrypto {
     return { serverId: this.serverId, signingKey: this.signingKey, encryptionKey: this.encryptionKey };
   }
 
+  signingIdentity(): { serverId: string; signingPublicKey: string } | null {
+    if (!this.serverId || !this.signingKey) return null;
+    return {
+      serverId: this.serverId,
+      signingPublicKey: createPublicKey(this.signingKey).export({ type: 'spki', format: 'pem' }).toString().trim(),
+    };
+  }
+
   publicIdentity() {
     const { serverId, signingKey, encryptionKey } = this.requireKeys();
     return {

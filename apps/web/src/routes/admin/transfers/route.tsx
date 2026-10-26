@@ -1,3 +1,4 @@
+import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
 import { apiFetch } from '@app/lib/api/fetch';
 import { PreviewCard, type Preview } from '@app/routes/transfer/preview';
@@ -13,6 +14,7 @@ type TransferReview = {
   preview: Preview;
 };
 type TrustedServer = { serverId: string; signingPublicKey: string; enabled: boolean };
+type LocalIdentity = { enabled: true; serverId: string; signingPublicKey: string } | { enabled: false };
 
 async function adminTransferApi<T>(path: string, body?: object): Promise<T> {
   const response = await apiFetch(`/api/admin/transfers${path}`, {
@@ -27,8 +29,10 @@ async function adminTransferApi<T>(path: string, body?: object): Promise<T> {
 }
 
 export default function AdminTransfersPage() {
+  const { pushToast } = useInkUI();
   const [reviews, setReviews] = useState<TransferReview[]>([]);
   const [trusted, setTrusted] = useState<TrustedServer[]>([]);
+  const [identity, setIdentity] = useState<LocalIdentity | null>(null);
   const [serverId, setServerId] = useState('');
   const [publicKey, setPublicKey] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -36,11 +40,14 @@ export default function AdminTransfersPage() {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [nextReviews, nextTrusted] = await Promise.all([
-      adminTransferApi<TransferReview[]>(''), adminTransferApi<TrustedServer[]>('/trusted-servers'),
+    const [nextReviews, nextTrusted, nextIdentity] = await Promise.all([
+      adminTransferApi<TransferReview[]>(''),
+      adminTransferApi<TrustedServer[]>('/trusted-servers'),
+      adminTransferApi<LocalIdentity>('/identity'),
     ]);
     setReviews(nextReviews);
     setTrusted(nextTrusted);
+    setIdentity(nextIdentity);
   }, []);
   useEffect(() => {
     const timer = window.setTimeout(() => { void refresh().catch((cause) => setError(String(cause))); }, 0);
@@ -55,11 +62,33 @@ export default function AdminTransfersPage() {
     finally { setBusy(false); }
   };
 
+  const copyText = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      pushToast({ message: `${label}已复制`, tone: 'success' });
+    } catch {
+      pushToast({ message: `复制失败，请手动选择${label}`, tone: 'warning' });
+    }
+  };
+
   return <div className="space-y-6">
     <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
       <h2 className="font-heading text-ink text-3xl">跨服转入审核</h2>
-      <p className="text-ink-secondary mt-2 text-sm">仅接收白名单服务器签发的存档。公钥应通过服务器维护者独立核对后录入。</p>
+      <p className="text-ink-secondary mt-2 text-sm">仅接收白名单服务器签发的存档。来源服签名公钥可在该服本页复制，核对后录入。</p>
     </header>
+    <section className="border-ink/15 bg-bgpaper/90 space-y-3 border border-dashed p-6">
+      <h3 className="text-xl font-semibold">本服签名身份</h3>
+      <p className="text-ink-secondary text-sm">其他服务器接收本服转出时，录入下面的服务器 ID 和 Ed25519 签名公钥。解密公钥随玩家凭证传递，不必手工登记。</p>
+      {identity?.enabled === false && <p className="text-ink-secondary text-sm">此服务器未启用转服，未配置签名身份。</p>}
+      {identity?.enabled && <>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">服务器 ID：<span className="font-mono">{identity.serverId}</span></p>
+          <InkButton variant="secondary" onClick={() => void copyText(identity.serverId, '服务器 ID')}>复制服务器 ID</InkButton>
+        </div>
+        <pre className="border-ink/15 bg-paper text-ink overflow-x-auto border p-3 font-mono text-xs break-all whitespace-pre-wrap">{identity.signingPublicKey}</pre>
+        <InkButton variant="secondary" onClick={() => void copyText(identity.signingPublicKey, '签名公钥')}>复制签名公钥</InkButton>
+      </>}
+    </section>
     {error && <p className="border-crimson/30 text-crimson border p-3 text-sm">{error}</p>}
     <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
       <h3 className="text-xl font-semibold">待审核申请</h3>
