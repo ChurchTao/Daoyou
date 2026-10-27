@@ -141,7 +141,7 @@ export const daoyouFormulas: FormulaSet = {
   spellHitChance() {
     return 1
   },
-  sealHitChance(source, target, skillLevel, sealBase, additiveChance = 0) {
+  sealHitChance(source, target, skillLevel, sealBase, additiveChance = 0, ceiling = DaoyouRule.sealChanceCeil) {
     const level = skillLevel ?? source.level
     const basePercent = (sealBase ?? DaoyouRule.sealChanceBase * 100)
     const combatLevel = Math.max(source.level, target.level)
@@ -156,14 +156,15 @@ export const daoyouFormulas: FormulaSet = {
       ((source.attrs.sealHit - target.attrs.sealResist) / pointScale) * 100 +
       additiveChance * 100
     const floor = DaoyouRule.sealChanceFloor * 100
-    const ceil = DaoyouRule.sealChanceCeil * 100
+    const ceil = clamp(DaoyouRule.sealChanceFloor, 1, ceiling) * 100
     if (percent < DaoyouRule.sealSoftFloorStart) {
       const span = DaoyouRule.sealSoftFloorStart - floor
-      return (floor + span * Math.exp((percent - DaoyouRule.sealSoftFloorStart) / span)) / 100
+      return Math.min(ceil, floor + span * Math.exp((percent - DaoyouRule.sealSoftFloorStart) / span)) / 100
     }
-    if (percent > DaoyouRule.sealSoftCeilStart) {
-      const span = ceil - DaoyouRule.sealSoftCeilStart
-      return (DaoyouRule.sealSoftCeilStart + span * (1 - Math.exp(-(percent - DaoyouRule.sealSoftCeilStart) / span))) / 100
+    const softCeilStart = Math.min(DaoyouRule.sealSoftCeilStart, ceil)
+    if (percent > softCeilStart) {
+      const span = ceil - softCeilStart
+      return span === 0 ? ceil / 100 : (softCeilStart + span * (1 - Math.exp(-(percent - softCeilStart) / span))) / 100
     }
     return percent / 100
   },

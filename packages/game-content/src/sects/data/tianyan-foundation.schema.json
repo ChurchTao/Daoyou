@@ -436,6 +436,7 @@
                     "items": {
                       "type": "string",
                       "enum": [
+                        "blocksDamagingSpells",
                         "blocksAction",
                         "blocksSpell",
                         "blocksPhysical",

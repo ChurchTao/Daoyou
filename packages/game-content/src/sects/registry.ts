@@ -1,4 +1,5 @@
 import type { SectDefinitionV6 } from '@daoyou/game-domain/combat';
+import { BAILU_V6_DEFINITION } from './bailu.js';
 import { JIUJIE_V6_DEFINITION, validateJiujieContentV1 } from './jiujie.js';
 import { LINGXIAO_V6_DEFINITION } from './lingxiao.js';
 import { validateSectSkillLearningContent } from './skill-learning.js';
@@ -6,7 +7,7 @@ import { TIANYAN_V6_DEFINITION } from './tianyan.js';
 import { WUXIANG_V6_DEFINITION } from './wuxiang.js';
 import { YOUDU_V6_DEFINITION } from './youdu.js';
 
-/** 当前五宗门内容目录。 */
+/** 当前六宗门内容目录。 */
 export const COMBAT_V6_SECT_DEFINITIONS: Record<
   import('@daoyou/game-domain/combat').CombatV6SectId,
   SectDefinitionV6
@@ -16,6 +17,7 @@ export const COMBAT_V6_SECT_DEFINITIONS: Record<
   wuxiang: WUXIANG_V6_DEFINITION,
   tianyan: TIANYAN_V6_DEFINITION,
   jiujie: JIUJIE_V6_DEFINITION,
+  bailu: BAILU_V6_DEFINITION,
 });
 
 function definitionIds(definition: SectDefinitionV6): string[] {

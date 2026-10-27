@@ -138,3 +138,17 @@ it('修炼估分使用 60→25 换算，封印与真实零抵抗目标一致', (
   const target = createUnit({ id: 'target', name: '目标', kind: 'npc', side: 1, level: 60, attrs: { hp: 1000, speed: 1 } }, 0);
   expect(visibleSealHitChance(source, 60, 60, 55)).toBe(daoyouFormulas.sealHitChance(source, target, 60, 55));
 });
+
+it('局部封印上限与统一公式一致，且不改变普通技能的上限', () => {
+  const source = unit({ kind: 'player' });
+  source.attrs.sealHit = 100000;
+  const target = createUnit({ id: 'target', name: '目标', kind: 'npc', side: 1, level: 60, attrs: { hp: 1000, speed: 1 } }, 0);
+  const ordinary = visibleSealHitChance(source, 60, 60, 55);
+  expect(ordinary).toBeLessThanOrEqual(0.95);
+  expect(visibleSealHitChance(source, 60, 60, 55, 0, 1)).toBeGreaterThan(0.95);
+  for (const ceiling of [0.2, 0.5, 0.95, 1]) {
+    expect(visibleSealHitChance(source, 60, 60, 55, 0, ceiling))
+      .toBe(daoyouFormulas.sealHitChance(source, target, 60, 55, 0, ceiling));
+  }
+  expect(visibleSealHitChance(source, 60, 60, 55)).toBe(ordinary);
+});

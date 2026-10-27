@@ -67,6 +67,18 @@ export function rankAutoActions(
   };
   const planned = (target: Unit) =>
     intents.filter((intent) => intent.targetId === target.id);
+  function wakePenalty(target: Unit, largestHpHit: number): number {
+    if (target.side === source.side || largestHpHit <= 0 ||
+      !observation.units.some(unit => unit.id !== target.id && unit.side !== source.side && alive(unit))) return 0;
+    const sleeping = [
+      ...target.statuses.map(status => ({ definition: definitions.get(status.id), rounds: status.remainingRounds })),
+      ...planned(target).flatMap(intent => intent.statuses.map(id => ({ definition: definitions.get(id), rounds: 1 }))),
+    ];
+    const lostRounds = sleeping.reduce((rounds, { definition, rounds: remaining }) =>
+      definition?.blocksAction && definition.breakOnDamage && largestHpHit > (definition.breakOnDamageAbove ?? 0)
+        ? Math.max(rounds, Math.min(3, remaining)) : rounds, 0);
+    return lostRounds * 14;
+  }
   const taken = (
     target: Unit,
     key: 'damageTakenPhysical' | 'damageTakenSpell' | 'healTaken' | 'healDealt',
@@ -106,7 +118,34 @@ export function rankAutoActions(
         return matchesWhen(context, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === selected[0]?.id });
       });
     }
+    function sealChance(target: Unit, def: StatusDef | undefined, chanceFactor: number) {
+      if (target.statuses.some(status => definitions.get(status.id)?.immuneToSeal)) return 0;
+      const scope = { source, target, skill, skillId: skill.id, statusKind: def?.kind, statusHit: 'seal' as const };
+      const applicable = [
+        ...(skill.modifiers ?? []),
+        ...source.passives.flatMap(id => (source.skillOverrides[id] ?? skills.find(entry => entry.id === id))?.modifiers ?? []),
+        ...source.statuses.flatMap(status => definitions.get(status.id)?.modifiers ?? []),
+      ].filter(modifier => {
+        const when = modifier.when;
+        if (target.side !== source.side &&
+          ((typeof when?.expression === 'string' && expressionReadsHiddenTarget(when.expression)) ||
+            when?.targetSkillIds || when?.targetAbsentSkillIds || when?.targetHasNegativeSpellResistance !== undefined)) return false;
+        return matchesWhen(context, when, scope);
+      });
+      if (applicable.some(modifier => modifier.sealAlwaysHit)) return 1;
+      const env = { state: context.state, source, target, skillLevel: skillLevelOf(source, skill.id), targets: selected.length };
+      const sum = (key: 'sealChanceCeilAdd' | 'sealChanceAdd' | 'sealHitAdd') => applicable.reduce((total, modifier) => total + evalExpr(modifier[key] ?? 0, env), 0);
+      const ceiling = Math.max(0, Math.min(1, (skill.sealChanceCeil ?? formulas.sealChanceCeil ?? 1) + sum('sealChanceCeilAdd')));
+      const actor = { ...source, attrs: { ...source.attrs, sealHit: source.attrs.sealHit + sum('sealHitAdd') } };
+      const base = target.side === source.side
+        ? formulas.sealHitChance(actor, target, env.skillLevel, skill.sealBase, sum('sealChanceAdd'), ceiling)
+        : visibleSealHitChance(actor, target.level, env.skillLevel, skill.sealBase, sum('sealChanceAdd'), ceiling);
+      const ownFactor = applicable.reduce((factor, modifier) => factor * evalExpr(modifier.sealChanceFactor ?? 1, env), 1);
+      const targetFactor = target.statuses.reduce((factor, status) => factor * (definitions.get(status.id)?.sealHitTakenFactor ?? 1), 1);
+      return Math.min(ceiling, Math.max(0, base * ownFactor * targetFactor)) * Math.max(0, Math.min(1, chanceFactor));
+    }
     const benefits = empty();
+    const wakingPenalties = new Map<string, number>();
     const intentions: AutoIntent[] = [];
     const notes = new Set<string>(['不可见的对方面板不进入估分；不推演被动连锁']);
     const skipsNextAction = skill.effects.some(
@@ -307,12 +346,13 @@ export function rankAutoActions(
               magicDef: kind === 'spell' ? target.attrs.magicDef * (1 - ignore) : target.attrs.magicDef,
             } };
             let damage = 0;
+            const strikeDamage: number[] = [];
             for (let hit = 0; hit < hits; hit++) {
               const coeff = Array.isArray(effect.coeff)
                 ? (effect.coeff[Math.min(hit, effect.coeff.length - 1)] ?? 1)
                 : (effect.coeff ?? 1);
               const resultFactor = effect.resultFactors?.[Math.min(hit, effect.resultFactors.length - 1)] ?? 1;
-              damage += (friendly
+              const amount = (friendly
                 ? formulas.baseDamage({
                     percentageDamage: effect.type === 'fixedHit' ? effect.percentageDamage : undefined,
                     origin: effect.type === 'fixedHit' ? effect.origin : undefined,
@@ -340,6 +380,8 @@ export function rankAutoActions(
                     splash: skill.splash,
                     targetCount: selected.length,
                   })) * resultFactor;
+              damage += amount;
+              strikeDamage.push(amount);
             }
             const chance = 'cannotMiss' in effect && effect.cannotMiss ? 1 :
               kind === 'physical'
@@ -371,8 +413,19 @@ export function rankAutoActions(
             const barrierFactor = Math.max(1, 1 + modifier('barrierDamageBonus'));
             const removedBarrier = Math.min(barrier, damage * barrierFactor);
             const hpDamage = Math.max(0, damage - removedBarrier / barrierFactor);
+            const scale = damage / Math.max(1, strikeDamage.reduce((sum, amount) => sum + amount, 0));
+            let remainingBarrier = barrier;
+            let largestHpHit = 0;
+            for (const amount of strikeDamage) {
+              const scaled = amount * scale;
+              const absorbed = Math.min(remainingBarrier, scaled * barrierFactor);
+              remainingBarrier -= absorbed;
+              largestHpHit = Math.max(largestHpHit, scaled - absorbed / barrierFactor);
+            }
             const pool = friendly ? target.attrs.maxHp : source.attrs.maxHp;
             offense = (friendly ? -1 : 1) * (damageValue(target, hpDamage * chance, effect.cannotKill) + removedBarrier / Math.max(1, pool) * 60 * chance);
+            wakingPenalties.set(target.id, Math.max(wakingPenalties.get(target.id) ?? 0,
+              wakePenalty(target, largestHpHit) * chance * probability));
             intent.damage = hpDamage * chance * probability;
           } else if (
             effect.type === 'revive' ||
@@ -439,19 +492,7 @@ export function rankAutoActions(
               const duration = Math.max(0, Math.min(3, value(effect.duration)));
               const chance =
                 effect.hit === 'seal'
-                  ? friendly
-                    ? formulas.sealHitChance(
-                        source,
-                        target,
-                        env.skillLevel,
-                        skill.sealBase,
-                      )
-                    : visibleSealHitChance(
-                        source,
-                        target.level,
-                        env.skillLevel,
-                        skill.sealBase,
-                      )
+                  ? sealChance(target, def, value(effect.chanceFactor ?? 1))
                   : 1;
               const harmful =
                 def?.category === 'control' ||
@@ -459,13 +500,11 @@ export function rankAutoActions(
                 def?.category === 'dot' ||
                 def?.blocksAction ||
                 def?.blocksPhysical ||
-                def?.blocksSpell;
+                def?.blocksSpell ||
+                def?.blocksDamagingSpells;
               const sign = harmful ? (friendly ? -1 : 1) : friendly ? 1 : -1;
-              const coordination = planned(target).some((i) =>
-                i.statuses.includes(effect.statusId),
-              )
-                ? 0.25
-                : 1;
+              const coordination = planned(target).some(intent => intent.statuses.some(id =>
+                id === effect.statusId || (def && definitions.get(id)?.kind === def.kind))) ? 0.25 : 1;
               // A small panel buff is not worth the same as a full control turn.
               // Estimate its relative contribution using the recipient's panel.
               if (def?.healingPerRound !== undefined) {
@@ -491,9 +530,23 @@ export function rankAutoActions(
               control =
                 sign *
                 controlDuration *
-                (def?.protectsTarget ? Math.max(0, 1 - ratio(target)) * 8 : def?.blocksAction ? 14 : def?.blocksArts ? 2 : def?.blockedCommands?.length === 1 ? 4 : attributeValue) *
-                chance *
-                coordination;
+                (def?.interceptHostileAction ? 0 : def?.protectsTarget ? Math.max(0, 1 - ratio(target)) * 8 : def?.blocksAction ? 14 : def?.blocksArts ? 2 : def?.blockedCommands?.length === 1 ? 4 : attributeValue) *
+                chance * coordination;
+              if (!friendly && def?.blocksAction && def.breakOnDamage &&
+                !observation.units.some(unit => unit.id !== target.id && unit.side !== source.side && alive(unit) &&
+                  !unit.statuses.some(status => {
+                    const other = definitions.get(status.id);
+                    return other?.blocksAction && other.breakOnDamage;
+                  }) && !planned(unit).some(intent => intent.statuses.some(id => {
+                    const other = definitions.get(id);
+                    return other?.blocksAction && other.breakOnDamage;
+                  })))) control = 0;
+              if (def?.interceptHostileAction && friendly) {
+                const threats = observation.units.filter(unit => unit.side !== source.side && alive(unit) &&
+                  !unit.statuses.some(status => definitions.get(status.id)?.blocksAction)).length;
+                const rounds = Math.max(0, duration - Number(target.flags.hostileActionGuardRound === observation.round));
+                survival += rounds * (1 - ratio(target)) * Math.min(2, threats) * 10;
+              }
               // A buff's future benefit is less certain than damage or healing now.
               if (def?.category === 'buff' && friendly && !harmful)
                 control *= 0.1;
@@ -614,6 +667,7 @@ export function rankAutoActions(
         }
       }
     }
+    benefits.control -= [...wakingPenalties.values()].reduce((sum, penalty) => sum + penalty, 0);
     return { benefits, notes: [...notes], intentions };
   }
   function add(
@@ -632,6 +686,9 @@ export function rankAutoActions(
   for (const id of options.attackTargetIds) {
     const target = observation.units.find((u) => u.id === id);
     if (!target) continue;
+    const chance = target.side === source.side
+      ? formulas.physicalHitChance(source, target)
+      : visiblePhysicalHitChance(source, target.level);
     const damage =
       (target.side === source.side
         ? formulas.baseDamage({
@@ -651,15 +708,15 @@ export function rankAutoActions(
             skillLevel: source.level,
             targetCount: 1,
           })) *
-      (target.side === source.side
-        ? formulas.physicalHitChance(source, target)
-        : visiblePhysicalHitChance(source, target.level)) *
       taken(target, 'damageTakenPhysical');
+    const removedBarrier = Math.min(damage, target.barriers.reduce((sum, barrier) => sum + barrier.current, 0));
+    const hpDamage = Math.max(0, damage - removedBarrier);
     add(
       { type: 'attack', target: id },
-      { ...empty(), offense: damageValue(target, damage) },
+      { ...empty(), offense: damageValue(target, hpDamage * chance) + removedBarrier / Math.max(1, source.attrs.maxHp) * 60 * chance,
+        control: 0 - wakePenalty(target, hpDamage) * chance },
       [],
-      [{ targetId: id, damage, healing: 0, statuses: [], revive: false }],
+      [{ targetId: id, damage: hpDamage * chance, healing: 0, statuses: [], revive: false }],
     );
   }
   for (const option of options.skills) {
@@ -673,6 +730,11 @@ export function rankAutoActions(
       .sort(stable);
     if (!pool.length) continue;
     const count = Math.min(pool.length, option.targetCount);
+    const limitedFill = option.targetMode === 'fill' && skill.targeting.maxSelected !== undefined;
+    const marked = skill.targeting.secondaryOwnedStatusKind
+      ? pool.filter(target => target.statuses.some(status =>
+          status.kind === skill.targeting.secondaryOwnedStatusKind && status.sourceId === source.id))
+      : [];
     const ranked = pool
       .map((unit) => ({ unit, value: evaluate(skill, [unit]).benefits }))
       .sort(
@@ -684,7 +746,10 @@ export function rankAutoActions(
       );
     // Engine-selected modes cannot be optimized by naming a different first target.
     const groups =
-      option.targetMode === 'all'
+      limitedFill
+        ? pool.map(primary => [primary, ...marked.filter(target => target.id !== primary.id),
+            ...ranked.map(entry => entry.unit).filter(target => target.id !== primary.id && !marked.includes(target))].slice(0, count))
+        : option.targetMode === 'all'
         ? [pool]
         : option.targetMode === 'random' || option.targetMode === 'lowestDef'
           ? [pool]
@@ -699,6 +764,20 @@ export function rankAutoActions(
               : [ranked.slice(0, count).map((item) => item.unit)];
     for (const targets of groups) {
       const { benefits, notes, intentions } = evaluate(skill, targets);
+      if (limitedFill && count > 1) {
+        const primary = targets[0];
+        const known = new Set([primary.id, ...marked.filter(target => target.id !== primary.id).slice(0, count - 1).map(target => target.id)]);
+        if (known.size < count) {
+          const risk = pool.filter(target => !known.has(target.id)).reduce((worst, target) =>
+            Math.min(worst, evaluate(skill, [target]).benefits.control), 0);
+          benefits.control = Math.min(benefits.control, risk);
+          notes.push('补选按引擎规则处理；不读取敌方速度，以可见候选的唤醒风险保守估值');
+        }
+        for (let index = intentions.length - 1; index >= 0; index--) {
+          const target = observation.units.find(unit => unit.id === intentions[index].targetId);
+          if (target?.side !== source.side && !known.has(intentions[index].targetId)) intentions.splice(index, 1);
+        }
+      }
       if (option.targetMode === 'random' || option.targetMode === 'lowestDef') {
         const factor = count / pool.length;
         benefits.offense *= factor;
@@ -726,7 +805,7 @@ export function rankAutoActions(
         {
           type: 'skill',
           skillId: skill.id,
-          targets: targets.slice(0, count).map((target) => target.id),
+          targets: targets.slice(0, Math.min(count, skill.targeting.maxSelected ?? count)).map((target) => target.id),
         },
         benefits,
         notes,

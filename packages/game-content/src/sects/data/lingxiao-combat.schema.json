@@ -18,3483 +18,28 @@
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "string",
-        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+        "$ref": "#/$defs/__schema0"
       }
     },
     "skills": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "school": {
-            "type": "string",
-            "const": "lingxiao"
-          },
-          "modifiers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "when": {
-                  "type": "object",
-                  "properties": {
-                    "skillIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "skillTags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "physical",
-                          "spell",
-                          "seal",
-                          "support",
-                          "passive",
-                          "art"
-                        ]
-                      }
-                    },
-                    "requireKind": {
-                      "type": "string",
-                      "const": "physical"
-                    },
-                    "pvp": {
-                      "type": "boolean"
-                    },
-                    "teamUniqueTag": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "targetEnemy": {
-                      "type": "boolean"
-                    },
-                    "targetHasStandingPet": {
-                      "type": "boolean"
-                    },
-                    "actionSucceeded": {
-                      "type": "boolean"
-                    },
-                    "actionKilledTarget": {
-                      "type": "boolean"
-                    },
-                    "sourceInitialHpRatioMin": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "sourceInitialHpRatioBelow": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "sourceStanding": {
-                      "type": "boolean"
-                    },
-                    "sourceTags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "sourceHasBarrier": {
-                      "type": "boolean"
-                    },
-                    "requireStatusIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                      }
-                    },
-                    "requireAbsentStatusIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                      }
-                    },
-                    "foeKind": {
-                      "type": "string",
-                      "enum": [
-                        "player",
-                        "pet",
-                        "npc"
-                      ]
-                    },
-                    "oncePerRound": {
-                      "type": "boolean"
-                    },
-                    "oncePerBattle": {
-                      "type": "boolean"
-                    },
-                    "sourceResource": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                        },
-                        "min": {
-                          "type": "number",
-                          "minimum": 0
-                        },
-                        "max": {
-                          "type": "number",
-                          "minimum": 0
-                        }
-                      },
-                      "required": [
-                        "id"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "teamAura": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "damageBonus": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "damageAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "physicalAttackAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "critChanceAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "critMultiplierAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "defenseIgnoreAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "protectedDamageBonus": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "ignoreProtection": {
-                  "type": "boolean"
-                },
-                "splash": {
-                  "type": "object",
-                  "properties": {
-                    "factor": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "count": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    }
-                  },
-                  "required": [
-                    "factor",
-                    "count"
-                  ],
-                  "additionalProperties": false
-                },
-                "mirrorToTargetPet": {
-                  "type": "boolean"
-                },
-                "recoverySkipChance": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "waiveHpCostAndRequirement": {
-                  "type": "boolean"
-                },
-                "hpRequirement": {
-                  "type": "object",
-                  "properties": {
-                    "min": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    }
-                  },
-                  "required": [
-                    "min"
-                  ],
-                  "additionalProperties": false
-                },
-                "targetCountAdd": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "physicalHitsAdd": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 10
-                },
-                "resetCooldownOnKill": {
-                  "type": "boolean"
-                },
-                "ignoreReviveBlock": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "hooks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "on": {
-                  "type": "string",
-                  "enum": [
-                    "beforeActionWindow",
-                    "afterActionWindow",
-                    "afterDefend",
-                    "beforeAction",
-                    "onDotCalc",
-                    "onHitCalc",
-                    "onDefenseIgnoreCalc",
-                    "onBeHit",
-                    "afterDamage",
-                    "afterHit",
-                    "afterStrike",
-                    "onFatal",
-                    "onStatusRemoved",
-                    "onDeath",
-                    "onRoundStart",
-                    "onRoundEnd",
-                    "onTargetLost",
-                    "afterAction",
-                    "onCritRoll",
-                    "onHitRoll",
-                    "onHealCalc",
-                    "onBarrierCalc",
-                    "onWoundCalc"
-                  ]
-                },
-                "sourceIsSelf": {
-                  "type": "boolean"
-                },
-                "targetIsSelf": {
-                  "type": "boolean"
-                },
-                "aim": {
-                  "type": "string",
-                  "enum": [
-                    "self",
-                    "hookTarget",
-                    "hookSource",
-                    "others"
-                  ]
-                },
-                "aimCount": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "aimMode": {
-                  "type": "string",
-                  "enum": [
-                    "explicit",
-                    "fill",
-                    "all",
-                    "random",
-                    "lowestHp",
-                    "lowestDef"
-                  ]
-                },
-                "when": {
-                  "type": "object",
-                  "properties": {
-                    "skillIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "skillTags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "physical",
-                          "spell",
-                          "seal",
-                          "support",
-                          "passive",
-                          "art"
-                        ]
-                      }
-                    },
-                    "requireKind": {
-                      "type": "string",
-                      "const": "physical"
-                    },
-                    "pvp": {
-                      "type": "boolean"
-                    },
-                    "teamUniqueTag": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "targetEnemy": {
-                      "type": "boolean"
-                    },
-                    "targetHasStandingPet": {
-                      "type": "boolean"
-                    },
-                    "actionSucceeded": {
-                      "type": "boolean"
-                    },
-                    "actionKilledTarget": {
-                      "type": "boolean"
-                    },
-                    "sourceInitialHpRatioMin": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "sourceInitialHpRatioBelow": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "sourceStanding": {
-                      "type": "boolean"
-                    },
-                    "sourceTags": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "sourceHasBarrier": {
-                      "type": "boolean"
-                    },
-                    "requireStatusIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                      }
-                    },
-                    "requireAbsentStatusIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                      }
-                    },
-                    "foeKind": {
-                      "type": "string",
-                      "enum": [
-                        "player",
-                        "pet",
-                        "npc"
-                      ]
-                    },
-                    "oncePerRound": {
-                      "type": "boolean"
-                    },
-                    "oncePerBattle": {
-                      "type": "boolean"
-                    },
-                    "sourceResource": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                        },
-                        "min": {
-                          "type": "number",
-                          "minimum": 0
-                        },
-                        "max": {
-                          "type": "number",
-                          "minimum": 0
-                        }
-                      },
-                      "required": [
-                        "id"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "chance": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 300
-                    }
-                  ]
-                },
-                "effects": {
-                  "minItems": 1,
-                  "type": "array",
-                  "items": {
-                    "oneOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "physicalHit"
-                          },
-                          "hits": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 20
-                          },
-                          "coeff": {
-                            "anyOf": [
-                              {
-                                "type": "number",
-                                "minimum": 0
-                              },
-                              {
-                                "type": "array",
-                                "items": {
-                                  "type": "number",
-                                  "minimum": 0
-                                }
-                              }
-                            ]
-                          },
-                          "resultFactors": {
-                            "type": "array",
-                            "items": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "power": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "coeff"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "applyStatus"
-                          },
-                          "statusId": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          },
-                          "duration": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "self": {
-                            "type": "boolean"
-                          },
-                          "storeTarget": {
-                            "type": "boolean"
-                          },
-                          "hit": {
-                            "type": "string",
-                            "enum": [
-                              "always",
-                              "seal"
-                            ]
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "statusId",
-                          "duration"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "modifyResource"
-                          },
-                          "resourceId": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "amount": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "mode": {
-                            "type": "string",
-                            "enum": [
-                              "set",
-                              "add"
-                            ]
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "resourceId",
-                          "amount"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "skipNextAction"
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "restoreHp"
-                          },
-                          "power": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "power"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "applyBarrier"
-                          },
-                          "untilBattleEnd": {
-                            "type": "boolean"
-                          },
-                          "id": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          },
-                          "name": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "power": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "duration": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "id",
-                          "kind",
-                          "name",
-                          "power",
-                          "duration"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "removeStatus"
-                          },
-                          "statusIds": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            }
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "statusIds"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "const": "dispel"
-                          },
-                          "categories": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "enum": [
-                                "buff",
-                                "debuff",
-                                "control",
-                                "dot"
-                              ]
-                            }
-                          },
-                          "maxCount": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 300
-                              }
-                            ]
-                          },
-                          "random": {
-                            "type": "boolean"
-                          },
-                          "when": {
-                            "type": "object",
-                            "properties": {
-                              "skillIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "skillTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "physical",
-                                    "spell",
-                                    "seal",
-                                    "support",
-                                    "passive",
-                                    "art"
-                                  ]
-                                }
-                              },
-                              "requireKind": {
-                                "type": "string",
-                                "const": "physical"
-                              },
-                              "pvp": {
-                                "type": "boolean"
-                              },
-                              "teamUniqueTag": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "targetEnemy": {
-                                "type": "boolean"
-                              },
-                              "targetHasStandingPet": {
-                                "type": "boolean"
-                              },
-                              "actionSucceeded": {
-                                "type": "boolean"
-                              },
-                              "actionKilledTarget": {
-                                "type": "boolean"
-                              },
-                              "sourceInitialHpRatioMin": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceInitialHpRatioBelow": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1
-                              },
-                              "sourceStanding": {
-                                "type": "boolean"
-                              },
-                              "sourceTags": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "sourceHasBarrier": {
-                                "type": "boolean"
-                              },
-                              "requireStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "requireAbsentStatusIds": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                }
-                              },
-                              "foeKind": {
-                                "type": "string",
-                                "enum": [
-                                  "player",
-                                  "pet",
-                                  "npc"
-                                ]
-                              },
-                              "oncePerRound": {
-                                "type": "boolean"
-                              },
-                              "oncePerBattle": {
-                                "type": "boolean"
-                              },
-                              "sourceResource": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                                  },
-                                  "min": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  },
-                                  "max": {
-                                    "type": "number",
-                                    "minimum": 0
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              }
-                            },
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "categories"
-                        ],
-                        "additionalProperties": false
-                      }
-                    ]
-                  }
-                }
-              },
-              "required": [
-                "on",
-                "effects"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "cooldownRounds": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1000000
-          },
-          "recoveryStatusId": {
-            "type": "string",
-            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-          },
-          "costHp": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              }
-            ]
-          },
-          "costMp": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              }
-            ]
-          },
-          "description": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          },
-          "requireHpRatio": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "requireHpAboveRatio": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "requireHpBelowRatio": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "forbidRevivedRound": {
-            "type": "boolean"
-          },
-          "resourceRequirements": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "resourceId": {
-                  "type": "string",
-                  "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                },
-                "min": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                }
-              },
-              "required": [
-                "resourceId",
-                "min"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "tags": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "physical",
-                "spell",
-                "seal",
-                "support",
-                "passive",
-                "art"
-              ]
-            }
-          },
-          "sealBase": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100
-          },
-          "targeting": {
-            "type": "object",
-            "properties": {
-              "side": {
-                "type": "string",
-                "enum": [
-                  "enemy",
-                  "ally",
-                  "self",
-                  "any"
-                ]
-              },
-              "requireKind": {
-                "type": "string",
-                "enum": [
-                  "player",
-                  "pet",
-                  "npc"
-                ]
-              },
-              "mode": {
-                "type": "string",
-                "enum": [
-                  "explicit",
-                  "fill",
-                  "all",
-                  "random",
-                  "lowestHp",
-                  "lowestDef"
-                ]
-              },
-              "count": {
-                "anyOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1000000
-                  },
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200
-                  }
-                ]
-              }
-            },
-            "required": [
-              "side"
-            ],
-            "additionalProperties": false
-          },
-          "effects": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "physicalHit"
-                    },
-                    "hits": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 20
-                    },
-                    "coeff": {
-                      "anyOf": [
-                        {
-                          "type": "number",
-                          "minimum": 0
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "number",
-                            "minimum": 0
-                          }
-                        }
-                      ]
-                    },
-                    "resultFactors": {
-                      "type": "array",
-                      "items": {
-                        "type": "number",
-                        "minimum": 0
-                      }
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "coeff"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyStatus"
-                    },
-                    "statusId": {
-                      "type": "string",
-                      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "duration": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "self": {
-                      "type": "boolean"
-                    },
-                    "storeTarget": {
-                      "type": "boolean"
-                    },
-                    "hit": {
-                      "type": "string",
-                      "enum": [
-                        "always",
-                        "seal"
-                      ]
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "statusId",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "modifyResource"
-                    },
-                    "resourceId": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "amount": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "mode": {
-                      "type": "string",
-                      "enum": [
-                        "set",
-                        "add"
-                      ]
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "resourceId",
-                    "amount"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "skipNextAction"
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "restoreHp"
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "power"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "applyBarrier"
-                    },
-                    "untilBattleEnd": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "type": "string",
-                      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "kind": {
-                      "type": "string",
-                      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                    },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "power": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "duration": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "id",
-                    "kind",
-                    "name",
-                    "power",
-                    "duration"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "removeStatus"
-                    },
-                    "statusIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                      }
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "statusIds"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "dispel"
-                    },
-                    "categories": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "buff",
-                          "debuff",
-                          "control",
-                          "dot"
-                        ]
-                      }
-                    },
-                    "maxCount": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 300
-                        }
-                      ]
-                    },
-                    "random": {
-                      "type": "boolean"
-                    },
-                    "when": {
-                      "type": "object",
-                      "properties": {
-                        "skillIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "skillTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "enum": [
-                              "physical",
-                              "spell",
-                              "seal",
-                              "support",
-                              "passive",
-                              "art"
-                            ]
-                          }
-                        },
-                        "requireKind": {
-                          "type": "string",
-                          "const": "physical"
-                        },
-                        "pvp": {
-                          "type": "boolean"
-                        },
-                        "teamUniqueTag": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "targetEnemy": {
-                          "type": "boolean"
-                        },
-                        "targetHasStandingPet": {
-                          "type": "boolean"
-                        },
-                        "actionSucceeded": {
-                          "type": "boolean"
-                        },
-                        "actionKilledTarget": {
-                          "type": "boolean"
-                        },
-                        "sourceInitialHpRatioMin": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceInitialHpRatioBelow": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        },
-                        "sourceStanding": {
-                          "type": "boolean"
-                        },
-                        "sourceTags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "minLength": 1
-                          }
-                        },
-                        "sourceHasBarrier": {
-                          "type": "boolean"
-                        },
-                        "requireStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "requireAbsentStatusIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string",
-                            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                          }
-                        },
-                        "foeKind": {
-                          "type": "string",
-                          "enum": [
-                            "player",
-                            "pet",
-                            "npc"
-                          ]
-                        },
-                        "oncePerRound": {
-                          "type": "boolean"
-                        },
-                        "oncePerBattle": {
-                          "type": "boolean"
-                        },
-                        "sourceResource": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-                            },
-                            "min": {
-                              "type": "number",
-                              "minimum": 0
-                            },
-                            "max": {
-                              "type": "number",
-                              "minimum": 0
-                            }
-                          },
-                          "required": [
-                            "id"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "categories"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "school",
-          "tags",
-          "targeting",
-          "effects"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema1"
       }
     },
     "statuses": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "kind": {
-            "type": "string",
-            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-          },
-          "category": {
-            "type": "string",
-            "enum": [
-              "buff",
-              "debuff",
-              "control",
-              "dot"
-            ]
-          },
-          "sourceBound": {
-            "type": "boolean"
-          },
-          "damageTakenFromSource": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "healTaken": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "damageTakenSpell": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "damageDealtPhysical": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "untilBattleEnd": {
-            "type": "boolean"
-          },
-          "priority": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "blocksAction": {
-            "type": "boolean"
-          },
-          "actFirst": {
-            "type": "boolean"
-          },
-          "commandPolicy": {
-            "type": "string",
-            "enum": [
-              "none",
-              "random",
-              "randomAttackTarget",
-              "randomNormalAttackTarget",
-              "storedAttack"
-            ]
-          },
-          "attrMods": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string",
-              "enum": [
-                "hp",
-                "maxHp",
-                "mp",
-                "maxMp",
-                "physicalAtk",
-                "physicalDef",
-                "magicAtk",
-                "magicDef",
-                "healPower",
-                "speed",
-                "hit",
-                "dodge",
-                "critRate",
-                "spellCritRate",
-                "physicalFuryRate",
-                "sealHit",
-                "sealResist",
-                "attackCultivate",
-                "defenseCultivate",
-                "spellCultivate",
-                "resistSpellCultivate"
-              ]
-            },
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                },
-                {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200
-                }
-              ]
-            }
-          },
-          "speedMod": {
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              }
-            ]
-          },
-          "immuneToSeal": {
-            "type": "boolean"
-          },
-          "physicalDefenseIgnore": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "dispellable": {
-            "type": "boolean"
-          },
-          "extendable": {
-            "type": "boolean"
-          },
-          "expireSameRound": {
-            "type": "boolean"
-          },
-          "onExpire": {
-            "type": "object",
-            "properties": {
-              "statusId": {
-                "type": "string",
-                "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-              },
-              "duration": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 99
-              }
-            },
-            "required": [
-              "statusId",
-              "duration"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "kind",
-          "category"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema12"
       }
     },
     "resources": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "current": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1000000
-          },
-          "max": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "exclusiveMinimum": 0,
-                "maximum": 1000000
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "current",
-          "max"
-        ],
-        "additionalProperties": false
+        "$ref": "#/$defs/__schema13"
       }
     }
   },
@@ -3506,5 +51,916 @@
     "statuses",
     "resources"
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "string",
+      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "school": {
+          "type": "string",
+          "const": "lingxiao"
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "when": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "teamAura": {
+                "$ref": "#/$defs/__schema4"
+              },
+              "damageBonus": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "damageAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "physicalAttackAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "critChanceAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "critMultiplierAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "defenseIgnoreAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "protectedDamageBonus": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "ignoreProtection": {
+                "type": "boolean"
+              },
+              "splash": {
+                "type": "object",
+                "properties": {
+                  "factor": {
+                    "maximum": 1,
+                    "$ref": "#/$defs/__schema5"
+                  },
+                  "count": {
+                    "$ref": "#/$defs/__schema7"
+                  }
+                },
+                "required": [
+                  "factor",
+                  "count"
+                ],
+                "additionalProperties": false
+              },
+              "mirrorToTargetPet": {
+                "type": "boolean"
+              },
+              "recoverySkipChance": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "waiveHpCostAndRequirement": {
+                "type": "boolean"
+              },
+              "hpRequirement": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "maximum": 1,
+                    "$ref": "#/$defs/__schema5"
+                  }
+                },
+                "required": [
+                  "min"
+                ],
+                "additionalProperties": false
+              },
+              "targetCountAdd": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "physicalHitsAdd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10,
+                "$ref": "#/$defs/__schema5"
+              },
+              "resetCooldownOnKill": {
+                "type": "boolean"
+              },
+              "ignoreReviveBlock": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "on": {
+                "type": "string",
+                "enum": [
+                  "beforeActionWindow",
+                  "afterActionWindow",
+                  "afterDefend",
+                  "beforeAction",
+                  "onDotCalc",
+                  "onHitCalc",
+                  "onDefenseIgnoreCalc",
+                  "onBeHit",
+                  "afterDamage",
+                  "afterHit",
+                  "afterStrike",
+                  "onFatal",
+                  "onStatusRemoved",
+                  "onStatusResolved",
+                  "onHostileActionIntercepted",
+                  "onDeath",
+                  "onRoundStart",
+                  "onRoundEnd",
+                  "onTargetLost",
+                  "afterAction",
+                  "onCritRoll",
+                  "onHitRoll",
+                  "onHealCalc",
+                  "onBarrierCalc",
+                  "onWoundCalc"
+                ]
+              },
+              "sourceIsSelf": {
+                "type": "boolean"
+              },
+              "targetIsSelf": {
+                "type": "boolean"
+              },
+              "aim": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "hookTarget",
+                  "hookSource",
+                  "others"
+                ]
+              },
+              "aimCount": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "aimMode": {
+                "type": "string",
+                "enum": [
+                  "explicit",
+                  "fill",
+                  "all",
+                  "random",
+                  "lowestHp",
+                  "lowestDef"
+                ]
+              },
+              "when": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "chance": {
+                "$ref": "#/$defs/__schema7"
+              },
+              "effects": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema8"
+                }
+              }
+            },
+            "required": [
+              "on",
+              "effects"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cooldownRounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "$ref": "#/$defs/__schema9"
+        },
+        "recoveryStatusId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "costHp": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "costMp": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "requireHpRatio": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema9"
+        },
+        "requireHpAboveRatio": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema9"
+        },
+        "requireHpBelowRatio": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema9"
+        },
+        "forbidRevivedRound": {
+          "type": "boolean"
+        },
+        "resourceRequirements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "resourceId": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "min": {
+                "$ref": "#/$defs/__schema9"
+              }
+            },
+            "required": [
+              "resourceId",
+              "min"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "tags": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema11"
+          }
+        },
+        "sealBase": {
+          "maximum": 100,
+          "$ref": "#/$defs/__schema9"
+        },
+        "targeting": {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "enemy",
+                "ally",
+                "self",
+                "any"
+              ]
+            },
+            "requireKind": {
+              "type": "string",
+              "enum": [
+                "player",
+                "pet",
+                "npc"
+              ]
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "explicit",
+                "fill",
+                "all",
+                "random",
+                "lowestHp",
+                "lowestDef"
+              ]
+            },
+            "count": {
+              "$ref": "#/$defs/__schema10"
+            }
+          },
+          "required": [
+            "side"
+          ],
+          "additionalProperties": false
+        },
+        "effects": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema8"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "school",
+        "tags",
+        "targeting",
+        "effects"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "skillTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "physical",
+              "spell",
+              "seal",
+              "support",
+              "passive",
+              "art"
+            ]
+          }
+        },
+        "requireKind": {
+          "type": "string",
+          "const": "physical"
+        },
+        "pvp": {
+          "type": "boolean"
+        },
+        "teamUniqueTag": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "targetEnemy": {
+          "type": "boolean"
+        },
+        "targetHasStandingPet": {
+          "type": "boolean"
+        },
+        "actionSucceeded": {
+          "type": "boolean"
+        },
+        "actionKilledTarget": {
+          "type": "boolean"
+        },
+        "sourceInitialHpRatioMin": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema5"
+        },
+        "sourceInitialHpRatioBelow": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema5"
+        },
+        "sourceStanding": {
+          "type": "boolean"
+        },
+        "sourceTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "sourceHasBarrier": {
+          "type": "boolean"
+        },
+        "requireStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        "requireAbsentStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
+        },
+        "foeKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "oncePerRound": {
+          "type": "boolean"
+        },
+        "oncePerBattle": {
+          "type": "boolean"
+        },
+        "sourceResource": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "min": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "max": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema4": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema5": {
+      "type": "number",
+      "minimum": 0
+    },
+    "__schema6": {
+      "type": "string",
+      "pattern": "^lingxiao\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      ]
+    },
+    "__schema8": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "physicalHit"
+            },
+            "hits": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "$ref": "#/$defs/__schema5"
+            },
+            "coeff": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema5"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema5"
+                  }
+                }
+              ]
+            },
+            "resultFactors": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            },
+            "power": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "coeff"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "applyStatus"
+            },
+            "statusId": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "duration": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "self": {
+              "type": "boolean"
+            },
+            "storeTarget": {
+              "type": "boolean"
+            },
+            "hit": {
+              "type": "string",
+              "enum": [
+                "always",
+                "seal"
+              ]
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "modifyResource"
+            },
+            "resourceId": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "set",
+                "add"
+              ]
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "resourceId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "skipNextAction"
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "restoreHp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "applyBarrier"
+            },
+            "untilBattleEnd": {
+              "type": "boolean"
+            },
+            "id": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "kind": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "name": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "duration": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "kind",
+            "name",
+            "power",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "removeStatus"
+            },
+            "statusIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "statusIds"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "dispel"
+            },
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "buff",
+                  "debuff",
+                  "control",
+                  "dot"
+                ]
+              }
+            },
+            "maxCount": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "random": {
+              "type": "boolean"
+            },
+            "when": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "categories"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema9": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "__schema10": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema9"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    },
+    "__schema11": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "spell",
+        "seal",
+        "support",
+        "passive",
+        "art"
+      ]
+    },
+    "__schema12": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "kind": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "buff",
+            "debuff",
+            "control",
+            "dot"
+          ]
+        },
+        "sourceBound": {
+          "type": "boolean"
+        },
+        "damageTakenFromSource": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "healTaken": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "damageTakenSpell": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "damageDealtPhysical": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "untilBattleEnd": {
+          "type": "boolean"
+        },
+        "priority": {
+          "$ref": "#/$defs/__schema9"
+        },
+        "blocksAction": {
+          "type": "boolean"
+        },
+        "actFirst": {
+          "type": "boolean"
+        },
+        "commandPolicy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "random",
+            "randomAttackTarget",
+            "randomNormalAttackTarget",
+            "storedAttack"
+          ]
+        },
+        "attrMods": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "hp",
+              "maxHp",
+              "mp",
+              "maxMp",
+              "physicalAtk",
+              "physicalDef",
+              "magicAtk",
+              "magicDef",
+              "healPower",
+              "speed",
+              "hit",
+              "dodge",
+              "critRate",
+              "spellCritRate",
+              "physicalFuryRate",
+              "sealHit",
+              "sealResist",
+              "attackCultivate",
+              "defenseCultivate",
+              "spellCultivate",
+              "resistSpellCultivate"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema10"
+          }
+        },
+        "speedMod": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "immuneToSeal": {
+          "type": "boolean"
+        },
+        "physicalDefenseIgnore": {
+          "maximum": 1,
+          "$ref": "#/$defs/__schema9"
+        },
+        "dispellable": {
+          "type": "boolean"
+        },
+        "extendable": {
+          "type": "boolean"
+        },
+        "expireSameRound": {
+          "type": "boolean"
+        },
+        "onExpire": {
+          "type": "object",
+          "properties": {
+            "statusId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "duration": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99,
+              "$ref": "#/$defs/__schema9"
+            }
+          },
+          "required": [
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "category"
+      ],
+      "additionalProperties": false
+    },
+    "__schema13": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "name": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "current": {
+          "type": "integer",
+          "$ref": "#/$defs/__schema9"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000,
+              "$ref": "#/$defs/__schema9"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "current",
+        "max"
+      ],
+      "additionalProperties": false
+    }
+  }
 }

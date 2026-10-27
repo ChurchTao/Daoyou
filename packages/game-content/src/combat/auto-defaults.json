@@ -256,6 +256,42 @@
         }
       ]
     },
+    "bailu.path.edict": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "selfHpBelow", "percent": 30 }],
+          "action": { "type": "skill", "skillId": "bailu.skill.fuyuan" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "targetHpBelow", "percent": 15 },
+            { "type": "targetStatus", "kind": "bailu.seal", "present": false, "ownedBySelf": false }
+          ],
+          "action": { "type": "skill", "skillId": "bailu.skill.poxie" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "bailu.path.song": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [{ "type": "selfHpBelow", "percent": 20 }],
+          "action": { "type": "skill", "skillId": "bailu.skill.fuyuan" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "targetHpBelow", "percent": 20 },
+            { "type": "targetStatus", "kind": "bailu.seal", "present": false, "ownedBySelf": false }
+          ],
+          "action": { "type": "skill", "skillId": "bailu.skill.poxie" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
     "jiujie.path.thunder": {
       "version": 1,
       "rules": [

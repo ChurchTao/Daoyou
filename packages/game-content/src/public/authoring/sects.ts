@@ -1,4 +1,10 @@
 /** Public authoring/sects capabilities. Keep implementation files private. */
+export { BAILU_COMBAT, BailuCombatPackShape, compileBailuCombatPack, loadBailuCombatPack } from '../../sects/bailu-pack.js';
+export { BAILU_PATHS, BailuPathsPackShape, compileBailuPathsPack, loadBailuPathsPack } from '../../sects/bailu-path-pack.js';
+export { default as SECTS_BAILU_COMBAT_DATA } from '../../sects/data/bailu-combat.json' with { type: 'json' };
+export { default as SECTS_BAILU_COMBAT_SCHEMA } from '../../sects/data/bailu-combat.schema.json' with { type: 'json' };
+export { default as SECTS_BAILU_PATHS_DATA } from '../../sects/data/bailu-paths.json' with { type: 'json' };
+export { default as SECTS_BAILU_PATHS_SCHEMA } from '../../sects/data/bailu-paths.schema.json' with { type: 'json' };
 export {
   LINGXIAO_COMBAT,
   LingxiaoCombatPackShape,

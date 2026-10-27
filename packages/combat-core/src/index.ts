@@ -8,7 +8,7 @@ export { HookBus, type HookContext, type HookFn } from "./hooks.js"
 export { evalExpr, skillLevelOf } from "./expr.js"
 export { DEFAULT_ATTRS, createUnit, effectiveSpeed, effectiveAttrs, isStanding, isActionable, resourceOf, recoverableHp } from "./units.js"
 export { absorbBarriers, applyBarrier, clearBarriers, tickBarriers } from "./barriers.js"
-export { isActiveAttackSkill, skillOf } from "./skills.js"
+export { isActiveAttackSkill, isDamagingSpellSkill, skillOf } from "./skills.js"
 export { applyWound, changeWound } from "./damage.js"
 export { standingUnits, enemiesOf, alliesOf, unitById } from "./query.js"
 export { BattleError, ErrorCode } from "./errors.js"
@@ -78,6 +78,7 @@ export type {
   SkillHook,
   SkillTargeting,
   StatusDef,
+  StatusApplyResult,
   StatusId,
   StatusInstance,
   Unit,

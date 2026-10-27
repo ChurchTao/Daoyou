@@ -3,9 +3,31 @@ import { EffectType, TargetSide } from '@daoyou/combat-core/enums';
 import { DAO_EQUIPMENT_ARTS_V1 } from '@daoyou/game-content/equipment/special';
 import { describe, expect, it } from 'vitest';
 import { combatV6SkillDetails } from './skill-details.js';
+import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
 import { LINGXIAO_COMBAT } from '@daoyou/game-content/authoring/sects';
 
 describe('combat skill previews', () => {
+  it('describes generic sleep, hostile-action interception and damaging-spell restrictions', () => {
+    const statuses: StatusDef[] = [
+      { id: 'sleep', kind: 'control', name: '梦', blocksAction: true, breakOnDamage: true, breakOnDamageAbove: 30 },
+      { id: 'guard', kind: 'guard', name: '护持', category: 'buff', interceptHostileAction: true },
+      { id: 'spell-only', kind: 'control', name: '禁攻法', blocksDamagingSpells: true },
+      { id: 'focus', kind: 'focus', name: '凝神', category: 'buff', modifiers: [{ sealChanceCeilAdd: 0.1 }] },
+    ];
+    const skills: SkillDef[] = statuses.map(status => ({
+      id: status.id, name: status.name, description: '当前能力。', tags: ['support'],
+      targeting: { side: 'enemy' }, effects: [{ type: 'applyStatus', statusId: status.id, duration: 3 }],
+    }));
+    skills[2].sealChanceCeil = 0.9;
+    const details = combatV6SkillDetails(skills, statuses);
+    expect(details.sleep.description).toContain('单次实际损失气血超过30点');
+    expect(details.sleep.description).toContain('不累计多段伤害');
+    expect(details.guard.description).toContain('每回合免疫来自敌方的首次攻击性行为');
+    expect(details['spell-only'].description).toContain('禁止攻击法术');
+    expect(details['spell-only'].description).toContain('辅助法术、物理技能及装备器诀不受此项限制');
+    expect(details['spell-only'].description).toContain('本技能普通封印命中上限：90%');
+    expect(details.focus.description).toContain('封印命中上限提高10个百分点');
+  });
   it('shows combo chances from the authoritative hooks', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);
     expect(details['beast.combo'].description).toContain('45% 概率');

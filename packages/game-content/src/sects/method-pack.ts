@@ -19,7 +19,7 @@ export const SectMethodsPackShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
   contentRevision: z.number().int().positive(),
-  sects: z.strictObject({ lingxiao: methods, youdu: methods, wuxiang: methods, tianyan: methods, jiujie: methods }),
+  sects: z.strictObject({ lingxiao: methods, youdu: methods, wuxiang: methods, tianyan: methods, jiujie: methods, bailu: methods }),
 });
 export function loadSectMethodsPack(data: unknown) {
   const result = SectMethodsPackShape.superRefine((pack, ctx) => {
