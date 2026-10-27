@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { QUALITY_ORDER, QUALITY_VALUES } from '@daoyou/constants/qualities';
 import { EQUIPMENT_LEVELS } from './levels.js';
 import {
   DAO_EQUIPMENT_SLOTS,
@@ -28,6 +28,7 @@ export const EquipmentForgingPackShape = z.strictObject({
           qi: z.number().int().nonnegative().max(1_000_000),
           quantity: z.number().int().min(1).max(5),
           rank: z.enum(QUALITY_VALUES),
+          enhanceRankSteps: z.number().int().min(1).max(7),
         }),
       )
       .length(9),
@@ -92,6 +93,11 @@ export function loadEquipmentForgingPack(
       if (levels.has(cost.level))
         issue(['forging', 'costs', i, 'level'], `器阶重复：${cost.level}`);
       levels.add(cost.level);
+      if (QUALITY_ORDER[cost.rank] + cost.enhanceRankSteps > QUALITY_ORDER['神品'])
+        issue(
+          ['forging', 'costs', i, 'enhanceRankSteps'],
+          '顶满品质高出神品，强化端无法达到',
+        );
     });
   });
   const result = schema.safeParse(data);

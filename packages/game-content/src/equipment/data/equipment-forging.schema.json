@@ -153,6 +153,11 @@
                   "仙品",
                   "神品"
                 ]
+              },
+              "enhanceRankSteps": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 7
               }
             },
             "required": [
@@ -160,7 +165,8 @@
               "spiritStones",
               "qi",
               "quantity",
-              "rank"
+              "rank",
+              "enhanceRankSteps"
             ],
             "additionalProperties": false
           }
