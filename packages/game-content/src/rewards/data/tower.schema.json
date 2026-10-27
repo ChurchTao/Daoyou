@@ -29,7 +29,8 @@
             "type": "string",
             "enum": [
               "beast_book",
-              "blueprint"
+              "blueprint",
+              "manual_jade"
             ]
           },
           "entries": {

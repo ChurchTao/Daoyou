@@ -8,7 +8,7 @@ import { addItems } from '../inventory/test-helpers.js';
 import { BLUEPRINTS } from '@daoyou/game-content/items/equipment';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
 import { forgedName } from './names.js';
-import { forgingBoosts, forgingCost } from './rules.js';
+import { forgingBaseQuality, forgingBoosts, forgingCost } from './rules.js';
 
 const facts = MaterialFactsSchema.parse({
   name: '玄铁',
@@ -26,6 +26,7 @@ describe('blueprint forging', () => {
       qi: 7,
       quantity: 1,
       rank: '凡品',
+      enhanceRankSteps: 2,
     });
     expect(forgingCost(30).quantity).toBe(1);
     expect(forgingCost(50).rank).toBe('灵品');
@@ -34,14 +35,42 @@ describe('blueprint forging', () => {
       qi: 15,
       quantity: 2,
       rank: '灵品',
+      enhanceRankSteps: 2,
     });
     expect(forgingCost(170)).toEqual({
-      spiritStones: 28900,
+      spiritStones: 45156,
       qi: 39,
       quantity: 5,
-      rank: '地品',
+      rank: '天品',
+      enhanceRankSteps: 2,
     });
     expect(() => forgingCost(15)).toThrow();
+    expect(forgingCost(110).spiritStones).toBe(18906);
+    expect(forgingCost(130).spiritStones).toBe(26406);
+    expect(forgingCost(150).spiritStones).toBe(35156);
+  });
+  it('高阶最低品质上移两阶内顶满，渡劫天品起步、神品顶满', () => {
+    const pile = (
+      level: number,
+      rank: '玄品' | '真品' | '地品' | '天品' | '仙品' | '神品',
+    ) => {
+      const quantity = forgingCost(level).quantity;
+      return [{ facts: { ...facts, rank }, quantity }];
+    };
+    expect(forgingBaseQuality(90, pile(90, '地品'))).toBe(1);
+    expect(() => forgingBaseQuality(110, pile(110, '玄品'))).toThrow('真品');
+    expect(forgingBaseQuality(110, pile(110, '真品'))).toBe(0);
+    expect(forgingBaseQuality(110, pile(110, '地品'))).toBe(0.5);
+    expect(forgingBaseQuality(110, pile(110, '天品'))).toBe(1);
+    expect(() => forgingBaseQuality(130, pile(130, '真品'))).toThrow('地品');
+    expect(forgingBaseQuality(130, pile(130, '天品'))).toBe(0.5);
+    expect(forgingBaseQuality(130, pile(130, '仙品'))).toBe(1);
+    expect(forgingBaseQuality(150, pile(150, '天品'))).toBe(0.5);
+    expect(forgingBaseQuality(150, pile(150, '仙品'))).toBe(1);
+    expect(() => forgingBaseQuality(170, pile(170, '地品'))).toThrow('天品');
+    expect(forgingBaseQuality(170, pile(170, '仙品'))).toBe(0.5);
+    expect(forgingBaseQuality(170, pile(170, '神品'))).toBe(1);
+    expect(() => forgingBoosts(170, 180, pile(170, '神品'))).toThrow('化神');
   });
   it('rejects overlevel, excessive, insufficient and under-quality inputs', () => {
     expect(() => forgingBoosts(30, 20, [{ facts, quantity: 1 }])).toThrow(

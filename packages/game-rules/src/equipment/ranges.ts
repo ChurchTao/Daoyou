@@ -16,7 +16,7 @@ export function daoEquipmentAttributeRange(equipmentLevel: number): {
 }
 
 
-/** 品阶进度为0～1；全部材料平均超出门槛两阶时封顶。 */
+/** 品阶进度为 0～1。进度 1 对应强化端，所需超出阶数由打造配置决定。 */
 export function daoEquipmentBaseRange(
   stat: DaoEquipmentTemplateV1['baseStats'][number],
   equipmentLevel: number,

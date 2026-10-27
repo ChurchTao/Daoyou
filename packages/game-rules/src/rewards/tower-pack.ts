@@ -25,7 +25,7 @@ export const TowerRewardPackShape = z.strictObject({
     z.string(),
     z.strictObject({
       label: z.string().min(1),
-      kind: z.enum(['beast_book', 'blueprint']),
+      kind: z.enum(['beast_book', 'blueprint', 'manual_jade']),
       entries: z.array(z.string()).min(1),
     }),
   ),

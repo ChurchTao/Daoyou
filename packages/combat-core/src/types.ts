@@ -135,6 +135,7 @@ export type CombatV6VersionStamp = {
     | 'combat-v6-tower-v6'
     | 'combat-v6-tower-v7'
     | 'combat-v6-tower-v8'
+    | 'combat-v6-tower-v9'
     | 'combat-v6-ranking-v1'
     | 'combat-v6-sect-task-v1'
     | 'combat-v6-breakthrough-v1'
@@ -468,6 +469,8 @@ export type EffectWhen = {
   oncePerRound?: boolean;
   requireKind?: DamageKind;
   sourceResource?: { id: string; min?: number; max?: number };
+  /** 召唤者身上须带有其中一种状态。 */
+  ownerStatusKinds?: string[];
   sourceDefending?: boolean;
   damageOrigins?: DamageOrigin[];
   sourceStanding?: boolean;

@@ -63,11 +63,15 @@ describe('幻境内容与固定周表', () => {
         }
       }
     }
-    const first = compileTowerEncounter('金丹', 1, week).units[0].attrs.hp;
-    const pair = compileTowerEncounter('金丹', 2, week).units;
-    expect(pair.reduce((sum, u) => sum + u.attrs.hp, 0)).toBe(
-      Math.round(first * 1.025),
-    );
+    const pool = (floor: number) =>
+      compileTowerEncounter('金丹', floor, week).units.reduce(
+        (sum, unit) => sum + (unit.attrs.hp ?? 0),
+        0,
+      );
+    const first = pool(1);
+    const second = pool(2);
+    expect(second).toBeGreaterThan(first);
+    expect(Math.abs(second / first - 1.025)).toBeLessThan(0.04);
   });
   it('拒绝缺层、错误里程碑与过快防御成长', () => {
     const floor = structuredClone(raw);

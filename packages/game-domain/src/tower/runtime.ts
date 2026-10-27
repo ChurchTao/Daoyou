@@ -6,7 +6,7 @@ import type { TowerNpcPlan } from './npc-plan.js';
 export type TowerBlessings = Partial<Record<TowerBlessingId, number>>;
 
 export interface TowerBattleSnapshot extends PveRestoredState {
-  version: 'tower-v6-v8';
+  version: 'tower-v6-v9';
   playerId: string;
   input: PresentedBattleInput;
   npcPlans: Record<string, TowerNpcPlan>;

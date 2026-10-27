@@ -76,6 +76,7 @@ type Actor = { userId: string; cultivatorId: string };
 type Run = NonNullable<TowerView['state']> & {
   season: TowerView['season'];
   hasBeasts?: boolean;
+  loadout?: CombatV6TrainingPlayerInput;
   battle?: {
     id: string;
     revision: number;
@@ -300,6 +301,7 @@ export async function startTower(owner: string) {
       season,
 
       hasBeasts: hasBeasts(player),
+      loadout: player,
     };
     run.choices = buildTowerBlessingChoices({
       runId: run.runId,
@@ -357,11 +359,13 @@ export async function advanceTower(
         await save(owner, run, lease);
         return publicView(owner, run);
       }
-      run.hasBeasts = hasBeasts(player);
+      const fighter = run.loadout ?? player;
+      run.loadout = fighter;
+      run.hasBeasts = hasBeasts(fighter);
       const published = await readTowerPublishedWeek(run.season.seasonKey);
       if (!published) throw new TowerV6Error('幻境发布配置缺失');
       const host = createTowerHost(
-        player,
+        fighter,
         run.realm,
         run.floor,
         run.blessings,

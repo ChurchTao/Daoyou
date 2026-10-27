@@ -326,22 +326,15 @@ export default function TowerRoute() {
                           >
                             {choice.name}{' '}
                             <span className="ml-2 font-mono">
-                              +{Math.round(def.perStack * 100)}%
+                              ×{choice.nextStacks}
                             </span>
                           </InkButton>
                           <p className="text-ink-secondary mt-1 text-sm leading-6">
-                            {def.label}
+                            {def.description}
                           </p>
                           {choice.currentStacks ? (
                             <p className="text-ink-secondary mt-1 font-mono text-sm">
-                              {Math.round(
-                                choice.currentStacks * def.perStack * 100,
-                              )}
-                              % →{' '}
-                              {Math.round(
-                                choice.nextStacks * def.perStack * 100,
-                              )}
-                              %
+                              ×{choice.currentStacks} → ×{choice.nextStacks}
                             </p>
                           ) : null}
                         </div>
@@ -392,7 +385,7 @@ export default function TowerRoute() {
             ) : null}
             {!choosing ? (
               <p className="text-ink-secondary mt-3 text-xs">
-                每场满气血、满法力迎战
+                入境锁定装备、功法与灵兽。祝福可叠加。每场满气血、满法力迎战。
               </p>
             ) : null}
             {state && Object.keys(state.blessings).length ? (
@@ -407,9 +400,7 @@ export default function TowerRoute() {
                       triggerContent={
                         <>
                           <GameIcon value={def.icon} />
-                          <span className="font-mono text-sm">
-                            +{Math.round((stacks ?? 0) * def.perStack * 100)}%
-                          </span>
+                          <span className="font-mono text-sm">×{stacks}</span>
                         </>
                       }
                     >

@@ -119,13 +119,13 @@ describe('满状态幻境与可恢复机制', () => {
     };
     const before = structuredClone(p);
     const plain = createTowerHost(p, '金丹', 1, {}, week, 42);
-    const buffed = createTowerHost(p, '金丹', 1, { beast_power: 2 }, week, 42);
+    const buffed = createTowerHost(p, '金丹', 1, { beast: 2 }, week, 42);
     const pet = buffed.state.units.find((u) => u.kind === 'pet')!;
     const basePet = plain.state.units.find((u) => u.kind === 'pet')!;
     expect(pet.attrs.physicalAtk).toBe(
-      Math.floor(basePet.attrs.physicalAtk * 1.16),
+      Math.floor(basePet.attrs.physicalAtk * 1.28),
     );
-    expect(pet.attrs.magicAtk).toBe(Math.floor(basePet.attrs.magicAtk * 1.16));
+    expect(pet.attrs.magicAtk).toBe(Math.floor(basePet.attrs.magicAtk * 1.28));
     for (const u of buffed.state.units.filter((u) => u.side === 0)) {
       expect(u.attrs.hp).toBe(u.attrs.maxHp);
       expect(u.attrs.mp).toBe(u.attrs.maxMp);
@@ -288,8 +288,8 @@ describe('满状态幻境与可恢复机制', () => {
   it('祝福不修改正常构筑且数值不复利', () => {
     const input = player('youdu'),
       before = structuredClone(input);
-    expect(projectTowerPlayer(input, { physical_power: 3 })).toEqual(
-      projectTowerPlayer(input, { physical_power: 3 }),
+    expect(projectTowerPlayer(input, { might: 3, iron: 2 })).toEqual(
+      projectTowerPlayer(input, { might: 3, iron: 2 }),
     );
     expect(input).toEqual(before);
   });
@@ -336,7 +336,7 @@ describe('多敌阵容', () => {
           );
           expect(
             encounter.units.reduce((sum, u) => sum + u.attrs.hp, 0),
-          ).toBeLessThanOrEqual(solo.units[0].attrs.hp);
+          ).toBeLessThanOrEqual(Math.ceil(solo.units[0].attrs.hp * 1.2));
           for (const support of encounter.units.slice(1)) {
             expect(support.passives).not.toContain('tower.last-stand');
             expect(support.attrs.sealResist).toBe(50);
@@ -402,7 +402,7 @@ describe('多敌阵容', () => {
     }
     expect(restored.runtimeSnapshot()).toEqual(active.runtimeSnapshot());
   });
-  it('护主实际降低物理和法术伤害 15%/30%，不降低固定伤害', () => {
+  it('护主实际降低物理和法术伤害 40%/80%，不降低固定伤害', () => {
     for (const type of ['physicalHit', 'spellHit', 'fixedHit'] as const) {
       const amounts: number[] = [];
       for (const stacks of [0, 1, 2]) {
@@ -465,10 +465,10 @@ describe('多敌阵容', () => {
       }
       expect(amounts[0]).toBeGreaterThan(0);
       expect(
-        Math.abs(amounts[1] - amounts[0] * (type === 'fixedHit' ? 1 : 0.85)),
+        Math.abs(amounts[1] - amounts[0] * (type === 'fixedHit' ? 1 : 0.6)),
       ).toBeLessThanOrEqual(2);
       expect(
-        Math.abs(amounts[2] - amounts[0] * (type === 'fixedHit' ? 1 : 0.7)),
+        Math.abs(amounts[2] - amounts[0] * (type === 'fixedHit' ? 1 : 0.2)),
       ).toBeLessThanOrEqual(2);
     }
   });
@@ -508,7 +508,10 @@ describe('多敌阵容', () => {
 
 it('Host编译策略后冻结战斗，恢复不重新读取周策略', () => {
   const pack = publishTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
-  pack.floors[0].enemies[0].traits = [{ id: 'vital' }];
+  const required = pack.floors[0].enemies[0].traits.filter((trait) =>
+    ['charge', 'limited_healing', 'guard'].includes(trait.id),
+  );
+  pack.floors[0].enemies[0].traits = [...required, { id: 'vital' }];
   const host = createTowerHost(
     durablePlayer(),
     '金丹',

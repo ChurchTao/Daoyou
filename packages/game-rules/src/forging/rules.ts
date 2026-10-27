@@ -43,7 +43,32 @@ export function forgingCost(level: number) {
     qi: cost.qi,
     quantity: cost.quantity,
     rank: cost.rank,
+    enhanceRankSteps: cost.enhanceRankSteps,
   };
+}
+
+/** 白字品阶进度。平均超出最低品质达到 enhanceRankSteps 阶时顶满强化端。 */
+export function forgingBaseQuality(
+  level: number,
+  materials: { facts: MaterialFacts; quantity: number }[],
+) {
+  const cost = forgingCost(level);
+  if (
+    materials.some((m) => !Number.isInteger(m.quantity) || m.quantity < 1) ||
+    materials.reduce((n, m) => n + m.quantity, 0) !== cost.quantity
+  )
+    throw new InventoryRuleError(`需要恰好 ${cost.quantity} 件材料`);
+  let excess = 0;
+  for (const { facts, quantity } of materials) {
+    if (
+      !(facts.rank in QUALITY_ORDER) ||
+      QUALITY_ORDER[facts.rank as Quality] < QUALITY_ORDER[cost.rank]
+    )
+      throw new InventoryRuleError(`材料最低品质为${cost.rank}`);
+    excess +=
+      quantity * (QUALITY_ORDER[facts.rank as Quality] - QUALITY_ORDER[cost.rank]);
+  }
+  return Math.min(1, excess / (cost.quantity * cost.enhanceRankSteps));
 }
 
 export function forgingBoosts(
@@ -84,13 +109,5 @@ export function forgingInputs(
   materials: { facts: MaterialFacts; quantity: number }[],
 ) {
   const boosts = forgingBoosts(level, ownerLevel, materials);
-  const cost = forgingCost(level);
-  const excess = materials.reduce(
-    (sum, material) =>
-      sum +
-      material.quantity *
-        (QUALITY_ORDER[material.facts.rank] - QUALITY_ORDER[cost.rank]),
-    0,
-  );
-  return { boosts, baseQuality: Math.min(1, excess / (cost.quantity * 2)) };
+  return { boosts, baseQuality: forgingBaseQuality(level, materials) };
 }

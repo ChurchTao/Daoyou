@@ -1,7 +1,7 @@
 {
   "$schema": "./tower.schema.json",
   "formatVersion": 3,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "pools": {
     "books": {
       "label": "随机普通传承灵印",
@@ -116,6 +116,48 @@
         "blueprint.necklace.90",
         "blueprint.belt.90",
         "blueprint.footwear.90"
+      ]
+    },
+    "manuals": {
+      "label": "随机功法玉简",
+      "kind": "manual_jade",
+      "entries": [
+        "jade.character_manual.taibai",
+        "jade.character_manual.taiyang",
+        "jade.character_manual.xuanyin",
+        "jade.character_manual.yudan",
+        "jade.character_manual.tianluo",
+        "jade.character_manual.liuji",
+        "jade.character_manual.tuotian",
+        "jade.character_manual.mingwang",
+        "jade.character_manual.yuanci",
+        "jade.character_manual.haoran",
+        "jade.character_manual.qianlang",
+        "jade.character_manual.yousha",
+        "jade.character_manual.lianshen",
+        "jade.character_manual.daojing",
+        "jade.character_manual.xihuang",
+        "jade.character_manual.hengyu",
+        "jade.character_manual.baimai_lianbao",
+        "jade.character_manual.wandu_hunyuan",
+        "jade.character_manual.xukong",
+        "jade.character_manual.taiyin_zhenjing",
+        "jade.character_manual.taiyang_zhenjing",
+        "jade.character_manual.jingzhe",
+        "jade.character_manual.wuzang_duanyuan",
+        "jade.character_manual.shalu",
+        "jade.character_manual.fansheng",
+        "jade.character_manual.gushen",
+        "jade.character_manual.taihuang",
+        "jade.character_manual.jiuzhuan_tiangong",
+        "jade.character_manual.jingang_xian",
+        "jade.character_manual.jiutian_shidi",
+        "jade.character_manual.yuanshi_zhenjie",
+        "jade.character_manual.bumie_jing",
+        "jade.character_manual.liudao_lunhui",
+        "jade.character_manual.tuntian",
+        "jade.character_manual.bumie_tiangong",
+        "jade.character_manual.wushi"
       ]
     }
   },
@@ -303,6 +345,15 @@
           "source": {
             "kind": "pool",
             "poolId": "blueprints"
+          }
+        },
+        {
+          "id": "manual",
+          "chance": 0.3,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "manuals"
           }
         }
       ]

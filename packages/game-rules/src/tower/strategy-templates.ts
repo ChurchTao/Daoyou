@@ -54,47 +54,18 @@ function recipe(
   validateTowerFloorStrategy(result);
   return result;
 }
-/** Generation alone knows floor mappings. The compiler consumes only the resulting strategy. */
+/** Ordinary floors preview the next key floor. Key floors keep their own late cycle. */
 export function expandTowerFloor(
   week: TowerWeek,
   floor: number,
 ): TowerFloorStrategy {
-  const normal = generation.normalFloors[String(floor)];
-  const leadIn = generation.leadIns[String(floor)];
-  if (leadIn) {
-    const key = week.floors.find((r) => r.floor === leadIn.source);
-    if (!key?.formationId) throw new Error('幻境铺垫缺少关键层');
-    const source = expandTowerFloor(week, leadIn.source);
-    const leader = source.enemies.find((e) => e.role === 'leader')!;
-    const prelude =
-      generation.preludes[leadIn.mode === 'leader' ? 'solo' : key.formationId];
-    if (!prelude) throw new Error('幻境铺垫引用无效');
-    const behavior =
-      prelude.behavior === 'source' ? leader.behaviorId : prelude.behavior;
-    return recipe(
-      floor,
-      prelude.formation,
-      prelude.archetype ?? leader.archetype,
-      behavior,
-      generation.behaviorTraits[behavior] ?? [],
-      false,
-    );
-  }
-  if (normal)
-    return recipe(
-      floor,
-      normal.formation,
-      normal.archetype,
-      normal.behavior,
-      [],
-      false,
-    );
-  const row = week.floors.find((r) => r.floor === floor);
+  const keyFloor = [5, 10, 15, 20].find((value) => value >= floor);
+  const row = week.floors.find((r) => r.floor === keyFloor);
   const combo = generation.combinations.find(
     (c) => c.id === row?.combinationId,
   );
   if (!row?.formationId || !combo) throw new Error('幻境关键层缺少配置');
-  const late = generation.lateFloors.includes(floor);
+  const late = floor === keyFloor && generation.lateFloors.includes(floor);
   return recipe(
     floor,
     row.formationId,
