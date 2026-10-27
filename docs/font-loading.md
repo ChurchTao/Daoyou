@@ -10,6 +10,16 @@
 - 分包保留 `font-display: swap`，并使用工具生成的本地字体度量回退。自动语言分组遗漏的原字库符号通过 `whiteList` 补入界面子集。
 - 字体源文件或分包配置变化后，清理 `apps/web/node_modules/.vite/` 再构建；上游全字库缓存不检查源文件内容和配置变化。
 
+## 彩色表情
+
+图标和正文不用同一套字体。`GameIcon` 使用 `--font-emoji`：先用 Segoe UI Emoji、Apple Color Emoji、Noto Color Emoji，系统字库没有该字形时才用 Daoyou Emoji。正文和标题仍先用霞鹜文楷或马善政，系统表情字体排在中文度量回退之前。太极等文楷里已有的符号继续由文楷绘制。
+
+- `apps/web/src/assets/fonts/DaoyouEmoji.woff2` 是去掉区域旗帜后的整套 Noto Color Emoji COLRv1，约 1.3MB。界面新增一个这份字库里已有的表情时，不用重新生成字体。许可证在 `apps/web/public/assets/fonts/OFL-NotoColorEmoji.txt`。
+- `@font-face` 使用 `tech(color-COLRv1)`。不认识该格式的浏览器会跳过它，图标改用系统表情。
+- 写在正文、底栏和句子里的表情不走这份字体，仍看系统字库。Windows 10 上，这类文字里的新表情仍可能空白；要稳定显示，把该字符交给 `GameIcon`。
+- 地图 Canvas 继续使用不含表情字体的 `bodyFontStack`。
+- 这份 woff2 不进入 `vite-plugin-font`。样式引用后由 Vite 加上内容哈希。只有更换上游 Noto 表情字库时，才运行 `apps/web/scripts/subset-emoji-font.py`。
+
 ## 开发和部署
 
 正常使用已有的 `pnpm run dev`、`pnpm run build:client`。首次运行时 Vite 配置补装固定版本 `7.6.8` 的字体转换原生库，需要能访问 GitHub Releases；普通部署不需要 Python。

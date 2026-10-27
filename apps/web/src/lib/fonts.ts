@@ -12,10 +12,22 @@ import {
 } from '../assets/fonts/MaShanZheng-Regular.ttf?subsets';
 
 export const bodyFontFamily = bodyFont.family;
+// Canvas labels use the Chinese face only. System emoji fonts sit after it so
+// incidental emoji are not taken by the YaHei metric fallback.
 export const bodyFontStack = `"${bodyFont.family}", ${bodyFallback}`;
 
-document.documentElement.style.setProperty('--font-lxgwwenkai', bodyFontStack);
+const systemEmojiFamilies =
+  '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"';
+
+function textFontStack(family: string, metricFallback: string) {
+  return `"${family}", ${systemEmojiFamilies}, ${metricFallback}`;
+}
+
+document.documentElement.style.setProperty(
+  '--font-lxgwwenkai',
+  textFontStack(bodyFont.family, bodyFallback),
+);
 document.documentElement.style.setProperty(
   '--font-ma-shan-zheng',
-  `"${headingFont.family}", ${headingFallback}`,
+  textFontStack(headingFont.family, headingFallback),
 );

@@ -1,6 +1,9 @@
 @import 'tailwindcss';
+@import './assets/fonts/daoyou-emoji.css';
 
 @theme {
+  --font-emoji: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
+    'Daoyou Emoji';
   /* 色彩系统 */
   --color-bgpaper: #f8f3e6;
   --color-paper: #f8f3e6;
@@ -66,9 +69,12 @@
 }
 
 :root {
-  /* 字体变量 */
-  --font-lxgwwenkai: 'LXGWWenKai', 'STFangsong', FangSong, 'Songti SC', SimSun, serif;
-  --font-ma-shan-zheng: 'Ma Shan Zheng', cursive;
+  /* 正文先用中文字体，太极等已有符号保持文楷。系统表情排在雅黑之前，
+     避免中文回退字体把表情画成黑白。图标另用 --font-emoji。 */
+  --font-lxgwwenkai: 'LXGWWenKai', 'Segoe UI Emoji', 'Apple Color Emoji',
+    'Noto Color Emoji', 'STFangsong', FangSong, 'Songti SC', SimSun, serif;
+  --font-ma-shan-zheng: 'Ma Shan Zheng', 'Segoe UI Emoji', 'Apple Color Emoji',
+    'Noto Color Emoji', cursive;
 }
 
 .app-safe-area-page {

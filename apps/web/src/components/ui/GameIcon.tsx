@@ -39,7 +39,7 @@ export function GameIcon({
   return (
     <span
       className={cn(
-        'inline-flex h-[1em] w-[1em] shrink-0 items-center justify-center align-[-0.125em] font-sans leading-none',
+        'inline-flex h-[1em] w-[1em] shrink-0 items-center justify-center align-[-0.125em] font-emoji font-normal leading-none [font-synthesis:none] [font-variant-emoji:emoji]',
         className,
       )}
       role={label ? 'img' : undefined}
