@@ -19,6 +19,23 @@ const locationNames: Record<string, string> = {
   cave: '学舍',
 };
 
+const locationPositions: Record<string, { left: string; top: string }> = {
+  hall: { left: '50%', top: '35%' },
+  archive: { left: '51%', top: '13%' },
+  paths: { left: '21%', top: '22%' },
+  arena: { left: '80%', top: '42%' },
+  affairs: { left: '36%', top: '56%' },
+  treasury: { left: '75%', top: '21%' },
+  industries: { left: '78%', top: '61%' },
+  cultivation: { left: '17%', top: '45%' },
+  alchemy: { left: '24%', top: '66%' },
+  refinery: { left: '86%', top: '71%' },
+  vein: { left: '8%', top: '32%' },
+  garden: { left: '11%', top: '75%' },
+  gate: { left: '49%', top: '80%' },
+  cave: { left: '63%', top: '68%' },
+};
+
 export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: BAILU_SECT_ID,
   announcement:
@@ -32,9 +49,8 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
       title: '一言立身',
       theme: 'stillness',
       backdrop: {
-        // 复用各宗共用的无字山门庭院，不充作书院专属地图。
-        src: '/assets/sect/sweep/cloud-stair-courtyard.webp',
-        alt: '云雾环绕的无字山门庭院，石阶与松树围着一片开阔的青石地面',
+        src: '/assets/sect/onboarding/bailu-v1.webp',
+        alt: '白鹿书院松溪石桥前，山长在学籍案旁迎接新学子，远处讲堂、问学台与论道场间诸生读书试法',
       },
       acts: [
         {
@@ -44,7 +60,7 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
           body: '石阶尽头传来诵书声，忽而整齐，忽而有人停下争辩。引路的学子替你拂去肩头落叶，领你穿过松庭。院中没有高悬的兵刃，只有几卷摊开的旧书。',
           speaker:
             '引路学子：“先入院听一听。这里读过的道理，终要走到山下去用。”',
-          backgroundPosition: '50% 28%',
+          backgroundPosition: '50% 72%',
           tone: 'mist',
         },
         {
@@ -53,7 +69,7 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
           scene: '白鹿书院 · 白鹿堂',
           body: '山长未问你能诵多少经文，只指着案前一盏将熄的灯：若一言便能使人俯首，该如何知道自己所言无误？你沉默片刻，承认仍须求证。',
           speaker: '山长：“肯再问一句，便还有读书的地方。”',
-          backgroundPosition: '50% 14%',
+          backgroundPosition: '53% 37%',
           tone: 'stillness',
         },
         {
@@ -63,7 +79,7 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
           body: '教习向一名持剑学子颔首。剑势才起，他只说了一声“定身！”浩气随声落下，执剑的手停在半空。片刻后言令散去，二人重新作揖，各自说出方才的破绽。',
           speaker:
             '教习：“正言可以制敌，也须容人答辩。言出之前，先知道自己要止住什么。”',
-          backgroundPosition: '46% 48%',
+          backgroundPosition: '20% 44%',
           tone: 'steel',
         },
         {
@@ -73,7 +89,7 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
           body: '另一侧有人以指代笔，将游学所见写在空中。最后一字落定，他扬声道“破邪！”墨迹随浩气凝成辞锋，击散场中的试法石影。远处诸生并未停笔，仍在补记这一式的得失。',
           speaker:
             '教习：“正言执律，文章有势。路有两条，养的都是胸中这一口正气。”',
-          backgroundPosition: '56% 56%',
+          backgroundPosition: '84% 46%',
           tone: 'ember',
         },
         {
@@ -83,18 +99,21 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
           body: '掌籍先生递来一卷空白册页。你写下自己的名字，又写下今日尚未想明白的问题。山长将《白鹿正学》放在案边，示意你带着它去寻自己的答案。',
           speaker:
             '山长：“从今日起，你的言行也是书院的一页。愿你所言，担得起自己所行。”',
-          backgroundPosition: '50% 34%',
+          backgroundPosition: '68% 65%',
           tone: 'stillness',
         },
       ],
     },
   },
   map: {
-    alt: '白鹿书院设施导航',
+    image: '/assets/maps/bailu-academy-v1.webp',
+    alt: '白鹿书院松溪舆图，中央白鹿堂连接藏书楼、临水问学台与论道场，山门石桥、学舍和芝兰圃分布其间',
+    aspectRatio: 1536 / 1024,
     hotspots: [
       ...STANDARD_SECT_PRESENTATION.map.hotspots.map((hotspot) => ({
         ...hotspot,
         label: locationNames[hotspot.id] ?? hotspot.label,
+        ...locationPositions[hotspot.id],
         ...(hotspot.id === 'gate'
           ? {
               visitor: {
@@ -109,8 +128,8 @@ export const BAILU_SECT_PRESENTATION: SectPresentationTheme = {
         label: '护院大阵',
         facility: 'formation',
         permission: 'sect.formation.view',
-        left: '0',
-        top: '0',
+        left: '92%',
+        top: '53%',
         note: '宗门战后续开放',
         locked: true,
         visitor: { description: '青石阵纹环绕院墙，外客可在阵外观望。' },

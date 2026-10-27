@@ -259,6 +259,23 @@ describe('hostile root-action guards', () => {
     expect(battle.unit('b').attrs.hp).toBe(949);
     expect(battle.unit('b').flags.hostileActionGuardRound).toBeUndefined();
   });
+
+  it('does not treat source-owned mark cleanup on other targets as an attack', () => {
+    const transfer = active('transfer', [
+      { type: EffectType.RemoveStatus, kinds: ['mark'], ownedOnly: true, targeting: { side: TargetSide.Enemy, mode: 'all' } },
+      { type: EffectType.FixedHit, power: 20 },
+    ]);
+    const input = setup([transfer]);
+    input.statusDefs!.push({ id: 'mark', name: 'mark', kind: 'mark', category: StatusCategory.Debuff, sourceBound: true });
+    input.units.push({ ...input.units[1]!, id: 'c', name: 'c', slot: 1 });
+    const battle = createBattle(input);
+    battle.applyStatus('c', 'guard', 4, 'c');
+    battle.applyStatus('c', 'mark', 4, 'a');
+    cast(battle, transfer.id);
+    expect(battle.unit('c').flags.hostileActionGuardRound).toBeUndefined();
+    expect(battle.unit('c').statuses.map(status => status.id)).toEqual(['guard']);
+    expect(battle.unit('b').attrs.hp).toBe(980);
+  });
 });
 
 describe('sleep and attack restrictions', () => {

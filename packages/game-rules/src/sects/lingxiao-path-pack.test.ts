@@ -22,7 +22,7 @@ function compile(definition: SectDefinitionV6, pathIndex: number, nodeId: string
   return compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
 }
 describe('红尘剑宗完整流派配置', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(LingxiaoPathsPackShape)).toEqual(schema));
+  it('Schema 同步', () => expect(z.toJSONSchema(LingxiaoPathsPackShape, { reused: 'ref' })).toEqual(schema));
   it('全部 42 节点可编译', () => {
     for (const [i, path] of LINGXIAO_V6_DEFINITION.paths.entries())
       for (const node of path.nodes) expect(compile(LINGXIAO_V6_DEFINITION, i, node.id).ok).toBe(true);

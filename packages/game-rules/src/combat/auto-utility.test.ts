@@ -277,6 +277,32 @@ describe('automatic sleep coordination', () => {
       .toEqual({ type: 'attack', target: awake.id });
   });
 
+  it('submits only the selected primary target while respecting a visible owned secondary mark', () => {
+    const { source, enemy, awake, options } = setup();
+    status(awake, 'mark');
+    awake.statuses[0].sourceId = source.id;
+    const marked: StatusDef = { id: 'mark', kind: 'mark', name: '标记' };
+    const spell: SkillDef = { ...single, targeting: { side: 'enemy', mode: 'fill', count: 2, maxSelected: 1, secondaryOwnedStatusKind: 'mark' } };
+    options.skills = [{ ...options.skills[0], targetMode: 'fill', targetCount: 2 }];
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy, awake] }, source.id, [spell], [marked], options);
+    const casts = candidates.filter(candidate => candidate.command.type === 'skill');
+    expect(casts).toHaveLength(2);
+    expect(casts.every(candidate => candidate.command.type === 'skill' && candidate.command.targets.length === 1)).toBe(true);
+    const primary = casts.find(candidate => candidate.command.type === 'skill' && candidate.command.targets[0] === enemy.id)!;
+    expect(primary.intents.map(intent => intent.targetId)).toEqual([enemy.id, awake.id]);
+  });
+
+  it('does not choose a fill spell whose unknown secondary target could wake a sleeping enemy', () => {
+    const { source, enemy, awake, options } = setup();
+    status(enemy, sleep.id);
+    const other = { ...structuredClone(awake), id: 'other', slot: 3 };
+    const spell: SkillDef = { ...single, targeting: { side: 'enemy', mode: 'fill', count: 2, maxSelected: 1 } };
+    options.attackTargetIds.push(other.id);
+    options.skills = [{ ...options.skills[0], selectableTargetIds: [enemy.id, awake.id, other.id], targetMode: 'fill', targetCount: 2 }];
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy, awake, other] }, source.id, [spell], [sleep], options);
+    expect(candidates[0].command).toEqual({ type: 'attack', target: awake.id });
+  });
+
   it('does not wake for barrier-only damage or accumulate a single-hit wake threshold across hits', () => {
     const { enemy, options, rank } = setup();
     status(enemy, sleep.id);

@@ -26,7 +26,8 @@ function cloneSkill(skill: SkillDef): SkillDef {
 }
 
 function allSkillDefs(input: CompileSectCombatV6Input): SectSkillDefV6[] {
-  return [
+  // 多个节点可引用同一份技能；不同定义复用 ID 仍由下方校验拒绝。
+  return [...new Set([
     ...input.definition.skills,
     ...input.definition.paths.flatMap((path) => [
       ...(path.foundationPassives ?? []),
@@ -36,7 +37,7 @@ function allSkillDefs(input: CompileSectCombatV6Input): SectSkillDefV6[] {
         ...(node.grantSkills ?? []),
       ]),
     ]),
-  ]
+  ])]
 }
 
 function validateDefinition(

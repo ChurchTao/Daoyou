@@ -43,7 +43,7 @@ describe('atlas single-purpose locations', () => {
     ).toHaveLength(9);
     expect(
       nodes.filter((node) => getAtlasCategory(node) === 'sect'),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
 
   it('makes Qingxi slope exclusively a wild habitat, including its authoritative config', () => {

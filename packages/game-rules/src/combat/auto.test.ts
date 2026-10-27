@@ -619,7 +619,7 @@ describe('当前场次托管', () => {
     battle.unit('pet').flags.downed = true;
     expect(chooseWithStrategy(battle, strategy, defs).type).toBe('skill');
   });
-  it.each(['combat_auto_rules_v3', undefined])(
+  it.each(['combat_auto_rules_v3', 'combat_auto_rules_v6', undefined])(
     '旧自动策略版本（%s）忽略冻结战术，改用临场应变',
     (version) => {
       const battle = fixture(['strike']);

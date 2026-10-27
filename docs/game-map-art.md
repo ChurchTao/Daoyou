@@ -12,4 +12,12 @@
 | 南疆区域底画 | [nanjiang-region-v1.webp](../apps/web/public/assets/maps/nanjiang-region-v1.webp) | `/assets/maps/nanjiang-region-v1.webp` | 1536×1024 | 760,402 bytes | 已接入 |
 | 北境冰原区域底画 | [northland-region-v1.webp](../apps/web/public/assets/maps/northland-region-v1.webp) | `/assets/maps/northland-region-v1.webp` | 1536×1024 | 617,564 bytes | 已接入 |
 
-七张均为不透明背景图，不是节点图集，已接入 `/game/map-v2`。天南、乱星海、慕兰草原、大晋皇朝、南疆、北境冰原分别锚定现有 23 个、11 个、4 个、20 个、5 个、3 个地点。入口、地点、文字与命中区由交互层独立提供，锚点按各自构图确定，新版不绘制节点连线。一级地图另标注天澜草原、天沙大陆、五龙海、无边海、极西之地、飓风沙漠，均显示“未开放”并禁用进入；这六区底画尚未制作，仅标注地理名称。现有规格不约束后续素材。
+上述七张均为不透明背景图，不是节点图集，已接入 `/game/map-v2`。天南、乱星海、慕兰草原、大晋皇朝、南疆、北境冰原分别锚定现有 23 个、11 个、4 个、20 个、5 个、3 个地点。入口、地点、文字与命中区由交互层独立提供，锚点按各自构图确定，新版不绘制节点连线。一级地图另标注天澜草原、天沙大陆、五龙海、无边海、极西之地、飓风沙漠，均显示“未开放”并禁用进入；这六区底画尚未制作，仅标注地理名称。现有规格不约束后续素材。
+
+## 宗门独立舆图
+
+| 用途 | 文件 | 静态 URL | 尺寸 | 大小 | 接入状态 |
+| --- | --- | --- | --- | ---: | --- |
+| 白鹿书院宗门／访宗底画 | [bailu-academy-v1.webp](../apps/web/public/assets/maps/bailu-academy-v1.webp) | `/assets/maps/bailu-academy-v1.webp` | 1536×1024 | 683,964 bytes | 已接入，15个设施热点由交互层叠加 |
+
+白鹿入宗演出另使用`/assets/sect/onboarding/bailu-v1.webp`（1536×1024，633,636 bytes）。验收与接入记录见[白鹿方案第14节](combat-v6-bailu-fangcun-sect-design.md#14-专属美术接入2026-10-27)。
