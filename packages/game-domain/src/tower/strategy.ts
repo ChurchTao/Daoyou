@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v8' as const;
+export const TOWER_STRATEGY_VERSION = 'combat-v6-tower-v9' as const;
 
 const trait = z.strictObject({
   id: z.string().min(1),

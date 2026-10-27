@@ -14,6 +14,7 @@ const baseline = z.strictObject({
   speed: positive,
   hit: positive,
   dodge: positive,
+  cultivate: positive.int(),
 });
 const scale = z.strictObject({
   rounds: z.number().min(1).max(12),

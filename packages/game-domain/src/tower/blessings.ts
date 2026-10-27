@@ -1,11 +1,16 @@
-
-
 export const TOWER_BLESSING_IDS = [
-  'physical_power',
-  'spell_power',
-  'guard',
-  'swiftness',
-  'beast_power',
+  'might',
+  'spell',
+  'edge',
+  'crit',
+  'iron',
+  'vigor',
+  'shell',
+  'haste',
+  'mend',
+  'beast',
+  'beastHaste',
+  'beastHide',
 ] as const;
 
 export type TowerBlessingId = (typeof TOWER_BLESSING_IDS)[number];

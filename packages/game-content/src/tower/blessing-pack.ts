@@ -5,6 +5,16 @@ import { z } from 'zod';
 
 import raw from './data/blessings.json' with { type: 'json' };
 
+const rate = z.number().positive().max(0.5);
+const combatAttribute = z.enum([
+  'physicalAtk',
+  'magicAtk',
+  'physicalDef',
+  'magicDef',
+  'speed',
+  'maxHp',
+  'healPower',
+]);
 export const TowerBlessingsPackShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(2),
@@ -16,27 +26,36 @@ export const TowerBlessingsPackShape = z.strictObject({
         name: z.string().min(1),
         icon: z.string().min(1),
         label: z.string().min(1),
+        description: z.string().min(1),
         maxStacks: z.number().int().min(1).max(3),
-        effect: z.strictObject({
-          target: z.enum(['player', 'beasts']),
-          attributes: z
-            .array(
-              z.enum([
-                'physicalAtk',
-                'magicAtk',
-                'physicalDef',
-                'magicDef',
-                'speed',
-              ]),
-            )
-            .min(1),
-          perStack: z.number().positive().max(0.1),
-        }),
+        effect: z.discriminatedUnion('kind', [
+          z.strictObject({
+            kind: z.literal('attributes'),
+            target: z.enum(['player', 'beasts']),
+            attributes: z.array(combatAttribute).min(1),
+            perStack: rate,
+          }),
+          z.strictObject({
+            kind: z.literal('crit'),
+            target: z.enum(['player', 'beasts']),
+            perStack: rate,
+          }),
+          z.strictObject({
+            kind: z.literal('damageDealt'),
+            target: z.enum(['player', 'beasts']),
+            perStack: rate,
+          }),
+          z.strictObject({
+            kind: z.literal('damageTaken'),
+            target: z.enum(['player', 'beasts']),
+            perStack: rate,
+          }),
+        ]),
       }),
     )
     .length(TOWER_BLESSING_IDS.length),
   choices: z.strictObject({
-    count: z.number().int().min(1).max(3),
+    count: z.number().int().min(1).max(4),
     afterFloors: z
       .array(z.number().int().min(0).max(19))
       .min(1)

@@ -39,10 +39,10 @@ describe('配置驱动与玩法节点', () => {
       buildTowerBlessingChoices({
         runId: 'fixed',
         clearedFloor: 16,
-        blessings: { physical_power: 3, guard: 3, swiftness: 2 },
+        blessings: { might: 3, spell: 3, edge: 2 },
         hasBeasts: false,
       }).map((c) => c.id),
-    ).toContain('swiftness');
+    ).toContain('edge');
   });
   it('错误内容引用在加载时拒绝，不悄悄回落到默认方案', () => {
     const content = structuredClone(raw);
@@ -74,18 +74,27 @@ describe('配置驱动与玩法节点', () => {
     expect(towerStrategySignature(floor)).not.toBe(before);
     expect(towerStrategySignature(floor, true)).toBe(formation);
   });
-  it('铺垫仅保留行动所需词条，预览与真实周期一致', () => {
+  it('普通层预习下一关键层的阵容，不提前带上碎梦', () => {
     const pack = publishTowerWeek(season);
     const previews = publishedTowerPreviews(pack);
-    for (const floor of [4, 9, 14, 19]) {
+    for (const floor of [1, 4, 6, 9, 11, 14, 16, 19]) {
+      const key = [5, 10, 15, 20].find((value) => value >= floor)!;
       const strategy = pack.floors[floor - 1];
+      const source = pack.floors[key - 1];
+      const combo = generation.combinations.find(
+        (row) =>
+          row.behavior === source.enemies[0].behaviorId ||
+          row.lateBehavior === source.enemies[0].behaviorId,
+      )!;
       expect(strategy.kind).toBe('normal');
+      expect(strategy.enemies.map((enemy) => enemy.role)).toEqual(
+        source.enemies.map((enemy) => enemy.role),
+      );
+      expect(strategy.enemies[0].behaviorId).toBe(combo.behavior);
       expect(
-        strategy.enemies
-          .flatMap((e) => e.traits)
-          .some((t) =>
-            ['last_stand', 'armor', 'magic_ward', 'seal_resist'].includes(t.id),
-          ),
+        strategy.enemies.some((enemy) =>
+          enemy.traits.some((trait) => trait.id === 'last_stand'),
+        ),
       ).toBe(false);
       const result = publishedTowerEncounter(pack, '金丹', floor);
       for (const [index, enemy] of strategy.enemies.entries()) {
@@ -97,9 +106,6 @@ describe('配置驱动与玩法节点', () => {
         );
       }
     }
-    expect(pack.floors[13].enemies[0].behaviorId).toBe(
-      pack.floors[14].enemies[0].behaviorId,
-    );
   });
 });
 
@@ -120,8 +126,7 @@ describe('金丹二十层多种子检查', () => {
         }> = [];
         for (let floor = 1; floor <= 20; floor++) {
           const blessings: TowerBlessings = {};
-          const offense =
-            sect === 'lingxiao' ? 'physical_power' : 'spell_power';
+          const offense = sect === 'lingxiao' ? 'might' : 'spell';
           for (let cleared = 0; cleared < floor; cleared++) {
             const choices = buildTowerBlessingChoices({
               runId: `matrix-${sect}-${hasPet}`,
@@ -130,8 +135,8 @@ describe('金丹二十层多种子检查', () => {
               hasBeasts: hasPet,
             });
             const priorities = hasPet
-              ? [offense, 'guard', 'beast_power', 'swiftness']
-              : [offense, 'guard', 'swiftness'];
+              ? [offense, 'edge', 'beast', 'shell', 'iron', 'crit']
+              : [offense, 'edge', 'shell', 'iron', 'crit', 'vigor'];
             const choice = [...choices]
               .sort(
                 (a, b) => priorities.indexOf(a.id) - priorities.indexOf(b.id),

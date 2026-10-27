@@ -15,8 +15,8 @@
       "maximum": 9007199254740991
     },
     "blessings": {
-      "minItems": 5,
-      "maxItems": 5,
+      "minItems": 12,
+      "maxItems": 12,
       "type": "array",
       "items": {
         "$ref": "#/$defs/__schema0"
@@ -28,21 +28,29 @@
         "count": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 3
+          "maximum": 4
         },
         "afterFloors": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema2"
+            "$ref": "#/$defs/__schema3"
           }
         }
       },
-      "required": ["count", "afterFloors"],
+      "required": [
+        "count",
+        "afterFloors"
+      ],
       "additionalProperties": false
     }
   },
-  "required": ["formatVersion", "contentRevision", "blessings", "choices"],
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "blessings",
+    "choices"
+  ],
   "additionalProperties": false,
   "$defs": {
     "__schema0": {
@@ -51,11 +59,18 @@
         "id": {
           "type": "string",
           "enum": [
-            "physical_power",
-            "spell_power",
-            "guard",
-            "swiftness",
-            "beast_power"
+            "might",
+            "spell",
+            "edge",
+            "crit",
+            "iron",
+            "vigor",
+            "shell",
+            "haste",
+            "mend",
+            "beast",
+            "beastHaste",
+            "beastHide"
           ]
         },
         "name": {
@@ -70,43 +85,157 @@
           "type": "string",
           "minLength": 1
         },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
         "maxStacks": {
           "type": "integer",
           "minimum": 1,
           "maximum": 3
         },
         "effect": {
-          "type": "object",
-          "properties": {
-            "target": {
-              "type": "string",
-              "enum": ["player", "beasts"]
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "attributes"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "player",
+                    "beasts"
+                  ]
+                },
+                "attributes": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "target",
+                "attributes",
+                "perStack"
+              ],
+              "additionalProperties": false
             },
-            "attributes": {
-              "minItems": 1,
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/__schema1"
-              }
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "crit"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "player",
+                    "beasts"
+                  ]
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "target",
+                "perStack"
+              ],
+              "additionalProperties": false
             },
-            "perStack": {
-              "type": "number",
-              "exclusiveMinimum": 0,
-              "maximum": 0.1
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "damageDealt"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "player",
+                    "beasts"
+                  ]
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "target",
+                "perStack"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "damageTaken"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "player",
+                    "beasts"
+                  ]
+                },
+                "perStack": {
+                  "$ref": "#/$defs/__schema2"
+                }
+              },
+              "required": [
+                "kind",
+                "target",
+                "perStack"
+              ],
+              "additionalProperties": false
             }
-          },
-          "required": ["target", "attributes", "perStack"],
-          "additionalProperties": false
+          ]
         }
       },
-      "required": ["id", "name", "icon", "label", "maxStacks", "effect"],
+      "required": [
+        "id",
+        "name",
+        "icon",
+        "label",
+        "description",
+        "maxStacks",
+        "effect"
+      ],
       "additionalProperties": false
     },
     "__schema1": {
       "type": "string",
-      "enum": ["physicalAtk", "magicAtk", "physicalDef", "magicDef", "speed"]
+      "enum": [
+        "physicalAtk",
+        "magicAtk",
+        "physicalDef",
+        "magicDef",
+        "speed",
+        "maxHp",
+        "healPower"
+      ]
     },
     "__schema2": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 0.5
+    },
+    "__schema3": {
       "type": "integer",
       "minimum": 0,
       "maximum": 19

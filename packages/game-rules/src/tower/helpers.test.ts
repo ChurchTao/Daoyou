@@ -61,13 +61,15 @@ describe('tower helpers', () => {
     const args = {
       runId: 'run-1',
       clearedFloor: 0,
-      blessings: { physical_power: 3 },
+      blessings: { might: 3 },
       hasBeasts: false,
     };
     const choices = buildTowerBlessingChoices(args);
-    expect(choices).toHaveLength(3);
-    expect(choices.map((c) => c.id)).not.toContain('physical_power');
-    expect(choices.map((c) => c.id)).not.toContain('beast_power');
+    expect(choices).toHaveLength(4);
+    expect(choices.map((c) => c.id)).not.toContain('might');
+    expect(choices.map((c) => c.id)).not.toContain('beast');
+    expect(choices.map((c) => c.id)).not.toContain('beastHaste');
+    expect(choices.map((c) => c.id)).not.toContain('beastHide');
     expect(buildTowerBlessingChoices({ ...args, clearedFloor: 1 })).toEqual([]);
     expect(buildTowerBlessingChoices({ ...args, clearedFloor: 20 })).toEqual(
       [],
@@ -77,13 +79,13 @@ describe('tower helpers', () => {
   it('previews additive combat attributes', () => {
     expect(
       getTowerBlessingEffectPreview({
-        blessingId: 'physical_power',
+        blessingId: 'might',
         currentStacks: 2,
         nextStacks: 3,
       }),
     ).toMatchObject({
-      currentLabel: '人物物理攻击 +16%',
-      nextLabel: '人物物理攻击 +24%',
+      currentLabel: '人物物攻 +24%',
+      nextLabel: '人物物攻 +36%',
     });
   });
 
