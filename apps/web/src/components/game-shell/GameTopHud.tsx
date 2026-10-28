@@ -122,7 +122,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
   ];
 
   return (
-    <header className="border-ink/10 bg-paper border-b border-dashed">
+    <header className="border-ink/10 border-b border-dashed">
       <div className="mx-auto block w-full max-w-5xl pt-[calc(var(--app-safe-top)+0.5rem)] pr-[max(env(safe-area-inset-right),0.625rem)] pb-2 pl-[max(env(safe-area-inset-left),0.625rem)] text-left sm:pr-[max(env(safe-area-inset-right),0.75rem)] sm:pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
         {combatNotice ? (
           <Link
@@ -137,7 +137,7 @@ export function GameTopHud({ snapshot }: { snapshot: GameHudSnapshot | null }) {
           <Link
             href="/game/cultivator"
             aria-label="查看角色"
-            className="border-ink/12 bg-bgpaper/85 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed md:h-16 md:w-16"
+            className="border-ink/12 bg-paper flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dashed md:h-16 md:w-16"
           >
             <GameImage
               purpose="interface"

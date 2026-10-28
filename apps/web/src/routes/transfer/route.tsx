@@ -1,4 +1,5 @@
 import { InkButton } from '@app/components/ui/InkButton';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import { apiFetch } from '@app/lib/api/fetch';
 import { requireUserLoader } from '@app/lib/router/loaders';
 import { useCallback, useEffect, useState } from 'react';
@@ -136,7 +137,7 @@ export default function TransferPage() {
 
   const openEntry = () => setSearchParams({});
 
-  return <main className={`bg-paper min-h-dvh text-ink ${mode ? '' : 'app-safe-area-page'}`}>
+  return <PaperSurface as="main" className={`min-h-dvh text-ink ${mode ? '' : 'app-safe-area-page'}`}>
     {mode && <TransferVista mode={mode} onBack={openEntry} />}
     <div className={mode ? 'relative z-10 mx-auto -mt-28 max-w-6xl space-y-4 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:-mt-[clamp(8.5rem,22svh,15rem)] sm:px-6' : 'mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6'}>
       {!mode && <header className="border-ink/15 space-y-3 border-b pb-6">
@@ -149,12 +150,12 @@ export default function TransferPage() {
       {!mode && message && <p role="status" className="border-teal/30 text-teal border p-3 text-sm">{message}</p>}
 
       {!mode && <div className="grid gap-4 sm:grid-cols-2">
-        <button type="button" onClick={() => openMode('import')} className="border-ink/20 bg-bgpaper/90 hover:border-crimson/50 min-h-44 space-y-3 border p-6 text-left transition-colors">
+        <button type="button" onClick={() => openMode('import')} className="border-ink/20 bg-paper hover:border-crimson/50 min-h-44 space-y-3 border p-6 text-left transition-colors">
           <span className="block space-y-3"><span className="text-crimson block text-sm">目标服务器 · 来到此界</span><span className="font-heading block text-2xl">降临此界 · 转入 →</span>
           <span className="text-ink-secondary block max-w-xs text-sm leading-7">领取接引凭证，上传原界存档，等待守界管理员审核。</span>
           {requests.some((request) => request.status === 'pending') && <span className="text-crimson block text-sm">有待审核申请</span>}</span>
         </button>
-        <button type="button" onClick={() => openMode('export')} className="border-ink/20 bg-bgpaper/90 hover:border-crimson/50 min-h-44 space-y-3 border p-6 text-left transition-colors">
+        <button type="button" onClick={() => openMode('export')} className="border-ink/20 bg-paper hover:border-crimson/50 min-h-44 space-y-3 border p-6 text-left transition-colors">
           <span className="block space-y-3"><span className="text-crimson block text-sm">原服务器 · 离开此界</span><span className="font-heading block text-2xl">飞升离界 · 转出 →</span>
           <span className="text-ink-secondary block max-w-xs text-sm leading-7">知晓虚空风险，核对可携行之物，再用目标界凭证打包。</span>
           {pendingExport && <span className="text-crimson block text-sm">有待处理的转出</span>}</span>
@@ -273,5 +274,5 @@ export default function TransferPage() {
       </section>}
       </div>}
     </div>
-  </main>;
+  </PaperSurface>;
 }

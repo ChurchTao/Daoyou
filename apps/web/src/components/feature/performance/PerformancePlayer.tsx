@@ -66,7 +66,7 @@ function ScenePicture({
             'absolute inset-x-0 bottom-0 px-5 pb-4',
             fit === 'contain'
               ? 'from-paper via-paper/90 text-ink-secondary bg-gradient-to-t to-transparent pt-5 lg:px-10 lg:pb-10'
-              : 'bg-gradient-to-t from-[#1c1712]/80 via-[#1c1712]/40 to-transparent pt-12 text-[#f6f1e6]',
+              : 'from-scene-scrim/80 via-scene-scrim/40 bg-gradient-to-t to-transparent pt-12 text-[#f6f1e6]',
           )}
         >
           <p className="text-xs tracking-[0.28em] opacity-75">眼前</p>

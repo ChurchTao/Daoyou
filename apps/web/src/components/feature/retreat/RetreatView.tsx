@@ -378,7 +378,7 @@ export function RetreatView({ sectContext }: RetreatViewProps) {
           headerMeta={headerMeta}
         >
           <GameSceneSection>
-            <div className="border-ink/10 bg-bgpaper/70 border border-dashed px-4 py-4 text-sm leading-7">
+            <div className="border-ink/10 bg-paper-2 border border-dashed px-4 py-4 text-sm leading-7">
               前尘回响尚未收束，听完这一段，再踏入轮回。
             </div>
           </GameSceneSection>

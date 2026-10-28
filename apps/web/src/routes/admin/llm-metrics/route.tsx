@@ -106,7 +106,7 @@ function SummaryCard(props: {
   hint?: string;
 }) {
   return (
-    <div className="border-ink/15 bg-bgpaper/85 border border-dashed p-4">
+    <div className="border-ink/15 bg-paper border border-dashed p-4">
       <p className="text-ink-secondary text-xs tracking-[0.2em]">{props.title}</p>
       <p className="text-ink mt-2 text-2xl font-semibold">{props.value}</p>
       {props.hint ? (
@@ -163,7 +163,7 @@ export default function AdminLlmMetricsPage() {
 
   return (
     <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <header className="border-ink/15 bg-paper border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">LLM OPS</p>
         <h2 className="font-heading text-ink mt-2 text-4xl">LLM 调用观测</h2>
         <p className="text-ink-secondary mt-2 max-w-3xl text-sm leading-7">
@@ -173,7 +173,7 @@ export default function AdminLlmMetricsPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
+      <section className="border-ink/15 bg-paper space-y-4 border border-dashed p-6">
         <div className="flex flex-wrap items-center gap-3">
           <InkSelect
             size="sm"
@@ -274,7 +274,7 @@ export default function AdminLlmMetricsPage() {
         ) : null}
       </section>
 
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <section className="border-ink/15 bg-paper border border-dashed p-6">
         <h3 className="text-ink text-xl font-semibold">按场景汇总</h3>
         <p className="text-ink-secondary mt-2 text-sm">
           看这里最容易判断这次降本是否生效：`dungeon-round`、
@@ -329,7 +329,7 @@ export default function AdminLlmMetricsPage() {
         </div>
       </section>
 
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <section className="border-ink/15 bg-paper border border-dashed p-6">
         <h3 className="text-ink text-xl font-semibold">最近调用</h3>
         <p className="text-ink-secondary mt-2 text-sm">
           这里用于排查单次异常：某个场景突然 chars 暴涨、usage 不返回缓存字段、或某模型重试异常增多。

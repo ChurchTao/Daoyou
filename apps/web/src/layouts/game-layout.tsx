@@ -8,6 +8,7 @@ import { GameTopHud } from '@app/components/game-shell/GameTopHud';
 import { RealtimeConnectionToasts } from '@app/components/game-shell/RealtimeConnectionToasts';
 import { useGameHudModel } from '@app/components/game-shell/useGameHudModel';
 import { InkButton } from '@app/components/ui/InkButton';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import { TRANSFER_PENDING_NOTE, TRANSFERRED_NOTE } from '@daoyou/contracts/transfer';
 import { AuthProvider } from '@app/lib/auth/authContext';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
@@ -73,7 +74,7 @@ function PlayerShell() {
     const wasTransferred = note === TRANSFERRED_NOTE;
 
     return (
-      <div className="app-safe-area-page bg-paper flex min-h-dvh items-center justify-center">
+      <PaperSurface className="app-safe-area-page flex min-h-dvh items-center justify-center">
         <div className="w-full max-w-xl p-6">
           <h1 className="text-xl font-semibold tracking-wide">
             {isDead ? '前世道途已尽' : isTransferPending ? '道身转服审核中' : wasTransferred ? '道身已转出' : '尚未凝聚真身'}
@@ -96,7 +97,7 @@ function PlayerShell() {
           </div>}
           {(isTransferPending || wasTransferred) && <div className="mt-4"><InkButton href="/transfer" variant="secondary">查看跨服记录</InkButton></div>}
         </div>
-      </div>
+      </PaperSurface>
     );
   }
 
@@ -225,12 +226,12 @@ function SectVisitSceneChrome() {
         <button
           type="button"
           onClick={onBack}
-          className="border-battle-rule-strong text-battle-muted hover:text-crimson border border-dashed bg-[rgba(248,243,230,0.94)] px-3 py-2 text-sm shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm transition"
+          className="border-battle-rule-strong text-battle-muted hover:text-crimson border border-dashed bg-paper px-3 py-2 text-sm shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm transition"
         >
           [{label}]
         </button>
       </div>
-      <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-[rgba(248,243,230,0.94)] px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
+      <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-paper px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
         <div className="text-ink font-semibold">{routeTitle}</div>
         <div className="text-battle-muted text-xs tracking-[0.12em]">
           人界 · 访宗舆图
@@ -287,14 +288,14 @@ export function GameViewportLayout() {
   );
 
   return (
-    <div data-game-viewport className="bg-paper" style={viewportStyle}>
+    <PaperSurface data-game-viewport className="min-h-dvh" style={viewportStyle}>
       <AuthProvider>
       <WorldChatFeedProvider>
         <div className="flex min-h-dvh flex-col">
-          <div className="sticky top-0 z-30">
+          <PaperSurface className="sticky top-0 z-30">
             <GameTopHud snapshot={hud} />
             <HuntTeamBar />
-          </div>
+          </PaperSurface>
           <main
             className="min-h-0 flex-1"
             style={{
@@ -309,7 +310,11 @@ export function GameViewportLayout() {
         </div>
         <RealtimeConnectionToasts />
         <GuideOverlay />
-        <div data-game-bottom-chrome ref={bottomChromeRef} className="game-bottom-chrome">
+        <PaperSurface
+          data-game-bottom-chrome
+          ref={bottomChromeRef}
+          className="game-bottom-chrome"
+        >
           <WorldChatPreviewBar />
           <GameBottomDock
             sceneId={scene?.id ?? null}
@@ -321,20 +326,20 @@ export function GameViewportLayout() {
             onToggleExpanded={toggleDockExpanded}
             dockMode={scene?.dock ?? 'core'}
           />
-        </div>
+        </PaperSurface>
       </WorldChatFeedProvider>
       </AuthProvider>
-    </div>
+    </PaperSurface>
   );
 }
 
 function GameCombatLayoutBody() {
   return (
-    <div className="bg-paper h-dvh overflow-hidden">
+    <PaperSurface className="h-dvh overflow-hidden">
       <main className="h-full overflow-hidden">
         <Outlet />
       </main>
-    </div>
+    </PaperSurface>
   );
 }
 
@@ -348,7 +353,7 @@ export function GameCombatLayout() {
 
 export function GameActivityLayout() {
   return (
-    <div className="h-[100dvh] touch-none overflow-hidden overscroll-none bg-[#141918]">
+    <div className="bg-scene h-[100dvh] touch-none overflow-hidden overscroll-none">
       <main className="h-full overflow-hidden">
         <Outlet />
       </main>
@@ -366,7 +371,7 @@ export function GameNarrativeLayout() {
 
 function GameMapLayoutBody() {
   return (
-    <div className="bg-paper h-dvh overflow-hidden">
+    <div className="bg-scene h-dvh overflow-hidden">
       <div className="relative h-full overflow-hidden">
         <SectVisitSceneChrome />
         <main className="h-full overflow-hidden">
@@ -429,9 +434,9 @@ function GameGenesisLayoutBody() {
   );
 
   return (
-    <div className="bg-paper h-dvh overflow-hidden">
+    <PaperSurface className="h-dvh overflow-hidden">
       <div className="flex h-full flex-col overflow-hidden">
-        <header className="border-battle-rule-strong border-b border-dashed bg-[rgba(248,243,230,0.92)]">
+        <header className="border-battle-rule-strong border-b border-dashed bg-paper">
           <div className="mx-auto flex max-w-6xl items-start justify-between gap-4 pt-[calc(var(--app-safe-top)+0.8rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-3 pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
             <InkButton href={descriptor.backAction.href}>
               {descriptor.backAction.label}
@@ -455,7 +460,7 @@ function GameGenesisLayoutBody() {
           </div>
         </main>
       </div>
-    </div>
+    </PaperSurface>
   );
 }
 
@@ -552,7 +557,7 @@ function GameDungeonLayoutBody() {
   }, [descriptor, updateScrollState]);
 
   return (
-    <div className="bg-paper h-dvh overflow-hidden" style={dungeonLayoutStyle}>
+    <PaperSurface className="h-dvh overflow-hidden" style={dungeonLayoutStyle}>
       <div className="relative h-full overflow-hidden">
         {!isImmersiveBattleScene && (
           <DungeonSceneChrome chromeRef={chromeRef} isScrolled={isScrolled} />
@@ -569,7 +574,7 @@ function GameDungeonLayoutBody() {
           <Outlet />
         </main>
       </div>
-    </div>
+    </PaperSurface>
   );
 }
 

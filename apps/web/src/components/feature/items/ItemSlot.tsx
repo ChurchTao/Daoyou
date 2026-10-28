@@ -316,7 +316,7 @@ export function PreviewSlot({
           </span>
         ) : null}
         {badge || item?.equipped ? (
-          <span className="text-crimson bg-paper/90 absolute top-0 right-1 text-[10px]">
+          <span className="text-crimson bg-paper absolute top-0 right-1 text-[10px]">
             {badge ?? '已装备'}
           </span>
         ) : null}

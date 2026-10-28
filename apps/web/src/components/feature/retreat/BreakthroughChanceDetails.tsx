@@ -36,7 +36,7 @@ export function BreakthroughChanceDetails({
             <span
               key={factor.key}
               className={cn(
-                'border-ink/15 bg-bgpaper/70 inline-flex max-w-full items-center gap-1.5 border border-dashed px-2 py-1 text-xs leading-5',
+                'border-ink/15 bg-paper-2 inline-flex max-w-full items-center gap-1.5 border border-dashed px-2 py-1 text-xs leading-5',
                 factor.tone === 'positive' &&
                   'border-emerald-700/25 text-emerald-800',
                 factor.tone === 'warning' && 'border-wood/35 text-wood',

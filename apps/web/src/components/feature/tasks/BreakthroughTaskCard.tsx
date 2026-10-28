@@ -46,7 +46,7 @@ export function BreakthroughTaskCard({
     return (
       <div
         className={cn(
-          'border-ink/8 space-y-4 border border-dashed bg-[rgba(248,243,230,0.6)] p-4',
+          'border-ink/8 bg-paper-2 space-y-4 border border-dashed p-4',
           className,
         )}
       >
@@ -83,7 +83,7 @@ export function BreakthroughTaskCard({
       className={cn(
         compact
           ? 'border-ink/10 space-y-3 border-t pt-4'
-          : 'border-ink/10 space-y-4 border border-dashed bg-[rgba(248,243,230,0.82)] p-4',
+          : 'border-ink/10 bg-paper space-y-4 border border-dashed p-4',
         className,
       )}
     >

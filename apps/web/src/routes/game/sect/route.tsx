@@ -104,7 +104,7 @@ export default function SectPage() {
                 type="button"
                 disabled={disabled}
                 onClick={() => spot.route && navigate(spot.route)}
-                className="bg-paper/90 min-h-24 p-4 text-left transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="bg-paper min-h-24 p-4 text-left transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <strong>{spot.label}</strong>
                 <p className="text-ink-secondary mt-2 text-sm">

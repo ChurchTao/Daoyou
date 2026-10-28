@@ -4,10 +4,14 @@
 @theme {
   --font-emoji: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
     'Daoyou Emoji';
-  /* 色彩系统 */
+  /* 四档底色。纸纹只由 PaperSurface 绘制。
+     sheet 纸底，paper / bgpaper 正文板，paper-2 凹槽，scene 画境页，scene-scrim 画上的深色条。 */
+  --color-sheet: #f3efe7;
   --color-bgpaper: #f8f3e6;
   --color-paper: #f8f3e6;
   --color-paper-2: #f1ead8;
+  --color-scene: #141918;
+  --color-scene-scrim: #1c1712;
   --color-ink: #2c1810;
   --color-ink-secondary: #5a4a42;
   --color-crimson: #c1121f;
@@ -23,7 +27,7 @@
   --color-battle-rule-strong: rgba(44, 24, 16, 0.3);
   --color-battle-muted: rgba(44, 24, 16, 0.48);
   --color-battle-faint: rgba(44, 24, 16, 0.08);
-  --color-battle-surface: rgba(248, 243, 230, 0.74);
+  --color-battle-surface: color-mix(in srgb, var(--color-paper) 74%, transparent);
   --color-battle-crimson-soft: rgba(193, 18, 31, 0.08);
   --color-battle-teal-soft: rgba(74, 124, 89, 0.08);
   --color-battle-gold-soft: rgba(239, 191, 4, 0.58);
@@ -106,13 +110,6 @@ body {
   font-family: var(--font-ma-shan-zheng), cursive;
 }
 
-/* 宣纸背景 */
-.bg-paper {
-  background-color: var(--color-bgpaper);
-  background-image: url('/assets/paper.webp');
-  background-size: 300px;
-}
-
 .ink-overlay {
   background: rgba(20, 10, 5, 0.6);
 }
@@ -180,7 +177,6 @@ body {
   bottom: calc(env(safe-area-inset-bottom, 0px) - var(--app-bottom-reserve));
   left: 0;
   padding-bottom: var(--app-bottom-reserve);
-  background-color: var(--color-bgpaper);
 }
 
 .game-bottom-chrome:empty {

@@ -17,15 +17,11 @@ import { rollDrops } from '../drops/index.js';
 
 import { SeededRng } from '@daoyou/combat-core/rng';
 
-import { OPEN_EQUIPMENT_LEVELS } from '@daoyou/game-domain/equipment';
-
-import { equipmentRealm } from '../equipment/realm.js';
-
 import type { ItemGrant } from '@daoyou/game-domain/inventory';
 
 import { itemDefinition } from '../inventory/index.js';
 
-import { BLUEPRINTS } from '@daoyou/game-content/items/equipment';
+import { blueprintDropEntries } from './blueprint-distribution.js';
 
 import { materialFactsOf } from '@daoyou/game-domain/inventory';
 
@@ -123,11 +119,10 @@ export function planDungeonReward(
   const items: ItemGrant[] = [];
   let materialCount = 0;
   const count = budget.rewards[0]?.quantity ?? 0;
-  const levels = OPEN_EQUIPMENT_LEVELS.filter(
-    (value) => equipmentRealm(value).requiredLevel <= level,
+  const blueprints = blueprintDropEntries(
+    getLevelRealmStage(level).realm,
+    'lower',
   );
-  const blueprintLevel = levels[levels.length - 1] ?? OPEN_EQUIPMENT_LEVELS[0];
-  const blueprints = BLUEPRINTS.filter((item) => item.level === blueprintLevel);
   const weightedEntries = (
     entries: { rewardId: string; weight: number }[],
     categoryWeight: number,
@@ -153,10 +148,7 @@ export function planDungeonReward(
               [{ rewardId: 'dungeon.material', weight: 1 }],
               config.weights.material,
             ),
-            ...weightedEntries(
-              blueprints.map((item) => ({ rewardId: item.id, weight: 1 })),
-              config.weights.blueprint,
-            ),
+            ...weightedEntries(blueprints, config.weights.blueprint),
             ...weightedEntries(pack.books, config.weights.book),
           ],
         },
@@ -204,10 +196,7 @@ export function planDungeonReward(
               pack.superiorBooks.map((rewardId) => ({ rewardId, weight: 1 })),
               bonus.superiorBook,
             ),
-            ...weightedEntries(
-              blueprints.map((item) => ({ rewardId: item.id, weight: 1 })),
-              bonus.blueprint,
-            ),
+            ...weightedEntries(blueprints, bonus.blueprint),
           ],
         },
       ],

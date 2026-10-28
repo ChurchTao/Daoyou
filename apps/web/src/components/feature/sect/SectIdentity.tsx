@@ -90,7 +90,7 @@ export function SectIdentityDetails({
   return (
     <div
       className={cn(
-        'border-ink/15 bg-bgpaper/55 border border-dashed px-3 py-1',
+        'border-ink/15 bg-paper-2 border border-dashed px-3 py-1',
         className,
       )}
     >

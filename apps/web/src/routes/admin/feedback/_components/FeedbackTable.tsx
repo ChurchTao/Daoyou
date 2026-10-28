@@ -224,7 +224,7 @@ export function FeedbackTable() {
       </div>
 
       {/* 表格 */}
-      <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
+      <div className="border-ink/15 bg-paper overflow-x-auto border border-dashed">
         <table className="w-full min-w-[800px] text-sm">
           <thead className="border-ink/10 text-ink-secondary border-b text-left">
             <tr>

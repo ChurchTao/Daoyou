@@ -77,8 +77,8 @@ export default function SectOnboardingPage() {
 
   if (profile.error) {
     return (
-      <div className="app-safe-area-page flex min-h-dvh items-center justify-center bg-[#131713] text-[#f3ecdc] [--app-safe-area-inline-space:1.5rem]">
-        <AppViewportColor color="#131713" />
+      <div className="app-safe-area-page flex min-h-dvh items-center justify-center bg-scene text-[#f3ecdc] [--app-safe-area-inline-space:1.5rem]">
+        <AppViewportColor color="#141918" />
         <div className="max-w-md text-center">
           <p className="leading-8">山门云路暂被雾气遮住了。</p>
           <p className="mt-2 text-sm leading-7 text-[#d7cbb3]">

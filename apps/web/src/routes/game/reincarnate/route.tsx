@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const genesisPanelClassName =
-  'border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 md:px-5 md:py-5';
+  'border-battle-rule-strong border border-dashed bg-paper px-4 py-4 md:px-5 md:py-5';
 
 interface ReincarnateContext {
   story?: string;
@@ -64,7 +64,7 @@ export default function ReincarnatePage() {
       <section className={genesisPanelClassName}>
         <InkSection title="【前世余音】">
           {context?.story ? (
-            <div className="border-ink-border bg-bgpaper/80 border border-dashed p-4 text-sm leading-7 whitespace-pre-line">
+            <div className="border-ink-border bg-paper border border-dashed p-4 text-sm leading-7 whitespace-pre-line">
               {context.story}
             </div>
           ) : (

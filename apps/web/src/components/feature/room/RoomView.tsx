@@ -59,7 +59,7 @@ export function RoomView({
   }, [conversationOpen, selectedId]);
 
   return (
-    <section className="border-ink/20 min-h-[34rem] border bg-[rgba(248,243,230,0.42)]">
+    <section className="border-ink/20 bg-paper min-h-[34rem] border">
       {conversationOpen ? (
         <div
           id="room-conversation"
@@ -102,7 +102,7 @@ export function RoomView({
                   onClick={() => onSelect(actor.id)}
                   className={cn(
                     'border-ink/20 hover:border-crimson/35 focus-visible:outline-crimson group flex min-h-40 w-full min-w-0 flex-col items-center justify-center border border-dashed px-3 py-4 text-center transition-[color,border-color,background-color,transform] focus-visible:outline-2 focus-visible:outline-offset-4 md:min-h-48 md:px-4 md:py-5',
-                    'cursor-pointer hover:bg-[rgba(248,243,230,0.6)] md:hover:-translate-y-0.5',
+                    'hover:bg-paper-2 cursor-pointer md:hover:-translate-y-0.5',
                     actor.disabled && 'cursor-not-allowed opacity-50',
                   )}
                 >

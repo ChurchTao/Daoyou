@@ -83,7 +83,7 @@ function BodyCultivationTrackCard({
   showNextEffects?: boolean;
 }) {
   return (
-    <div className="border-ink/15 bg-bgpaper/60 border border-dashed px-3 py-3">
+    <div className="border-ink/15 bg-paper-2 border border-dashed px-3 py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-ink text-sm font-semibold">{track.name}</h3>
@@ -193,7 +193,7 @@ export function MarrowWashSummaryContent({
   );
 
   return (
-    <div className="border-ink/15 bg-bgpaper/75 overflow-hidden border border-dashed">
+    <div className="border-ink/15 bg-paper-2 overflow-hidden border border-dashed">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-3 py-3">
         <div className="min-w-0">
           <p className="text-ink-secondary text-xs leading-5">当前洗髓</p>

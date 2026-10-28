@@ -4,6 +4,7 @@ import { PwaInstallProvider } from '@app/components/providers/PwaInstallProvider
 import Link from '@app/components/router/AppLink';
 import { RouteDocumentTitle } from '@app/components/router/RouteDocumentTitle';
 import { InkLoadingBar } from '@app/components/ui/InkLoadingBar';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import {
   isDynamicImportError,
   reloadIntoLatestVersion,
@@ -81,7 +82,7 @@ export function RootRouteErrorView({ error }: { error: unknown }) {
   const pageTitle = isVersionError ? '版本已更迭' : '道途异常';
 
   return (
-    <div className="app-safe-area-page bg-paper flex min-h-dvh items-center justify-center">
+    <PaperSurface className="app-safe-area-page flex min-h-dvh items-center justify-center">
       <title>{formatDocumentTitle(pageTitle)}</title>
       <div className="w-full max-w-xl p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">
@@ -133,6 +134,6 @@ export function RootRouteErrorView({ error }: { error: unknown }) {
           )}
         </div>
       </div>
-    </div>
+    </PaperSurface>
   );
 }

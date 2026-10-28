@@ -92,18 +92,20 @@ describe('副本混合物品奖励', () => {
   });
 
   it.each([
-    [1, 10],
-    [20, 10],
-    [25, 30],
-    [45, 50],
-    [65, 70],
-    [85, 90],
-    [180, 90],
-  ])('副本等级 %s 对应已开放图纸档位 %s', (level, expected) => {
+    [1, [10]],
+    [20, [10]],
+    [25, [10, 30]],
+    [45, [10, 30, 50]],
+    [65, [10, 30, 50, 70]],
+    [85, [30, 50, 70, 90]],
+    [165, [110, 130, 150, 170]],
+    [180, [110, 130, 150, 170]],
+  ])('副本等级 %s 的图纸落在 %j', (level, expected) => {
     const pack = structuredClone(originalPack);
     pack.sources.completion.weights = { material: 0, blueprint: 1, book: 0 };
+    const levels = new Set<number>();
     const slots = new Set<string>();
-    for (let seed = 0; seed < 128; seed++) {
+    for (let seed = 0; seed < 256; seed++) {
       const result = planDungeonReward(
         seed,
         'completion',
@@ -113,9 +115,11 @@ describe('副本混合物品奖励', () => {
       );
       const item = findItemDefinition(result.items[0].definitionId)!;
       expect(item.kind).toBe('blueprint');
-      expect(item.level).toBe(expected);
+      expect(expected).toContain(item.level);
+      levels.add(item.level!);
       slots.add(item.slot!);
     }
+    expect([...levels].sort((a, b) => a - b)).toEqual(expected);
     expect(slots.size).toBe(6);
   });
 
@@ -215,8 +219,8 @@ describe('秘境额外养成奖励', () => {
     }
     expect(totals.originDew).toBeCloseTo(0.5, 10);
     expect(totals.superiorOriginDew).toBeCloseTo(0.2, 10);
-    expect(totals.blueprint).toBeCloseTo(0.75, 10);
-    expect(totals.superiorBook).toBeCloseTo(0.1005, 4);
+    expect(totals.blueprint).toBeCloseTo(0.3, 10);
+    expect(totals.superiorBook).toBeCloseTo(0.11083252963632712, 8);
   });
 
   it.each(['exploration', 'battle', 'completion'] as const)(
@@ -255,7 +259,6 @@ describe('秘境额外养成奖励', () => {
         for (const [id] of bonus) {
           const definition = findItemDefinition(id)!;
           if (definition.kind === 'blueprint') {
-            expect(definition.level).toBe(70);
             seen.add('blueprint');
           } else if (definition.kind === 'beast_book') {
             expect(DUNGEON_REWARD_PACK.superiorBooks).toContain(id);
@@ -266,7 +269,6 @@ describe('秘境额外养成奖励', () => {
       expect(missed).toBe(true);
       expect(seen).toEqual(
         new Set([
-          'blueprint',
           'superiorBook',
           'beast.refinement.origin-dew',
           'beast.refinement.superior-origin-dew',
