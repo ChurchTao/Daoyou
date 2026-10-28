@@ -51,8 +51,8 @@ function StageShell({
   children: ReactNode;
 }) {
   return (
-    <section className="relative isolate min-h-dvh overflow-hidden bg-[#101613] pt-[calc(var(--app-safe-top)+1.5rem)] pr-[max(env(safe-area-inset-right),1.25rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),1.25rem)] text-[#f4eedf] sm:pr-[max(env(safe-area-inset-right),2rem)] sm:pl-[max(env(safe-area-inset-left),2rem)]">
-      <AppViewportColor color="#101613" />
+    <section className="relative isolate min-h-dvh overflow-hidden bg-scene pt-[calc(var(--app-safe-top)+1.5rem)] pr-[max(env(safe-area-inset-right),1.25rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),1.25rem)] text-[#f4eedf] sm:pr-[max(env(safe-area-inset-right),2rem)] sm:pl-[max(env(safe-area-inset-left),2rem)]">
+      <AppViewportColor color="#141918" />
       <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_70%_20%,rgba(145,116,67,0.18),transparent_34%),linear-gradient(155deg,#18221c,#0c110f_72%)]" />
       <div className="absolute inset-0 -z-10 [background-image:repeating-linear-gradient(115deg,transparent_0,transparent_32px,rgba(255,255,255,0.04)_33px)] opacity-20" />
       <div className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-3xl flex-col">

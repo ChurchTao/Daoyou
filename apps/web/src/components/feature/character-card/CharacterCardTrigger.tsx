@@ -67,7 +67,7 @@ export function CharacterCardTrigger({
           <button
             type="button"
             aria-label="关闭名片"
-            className="-mt-2 -mr-2 flex size-9 items-center justify-center text-lg"
+            className="-mt-2 flex size-9 items-center justify-center text-lg"
             onClick={close}
           >
             ×

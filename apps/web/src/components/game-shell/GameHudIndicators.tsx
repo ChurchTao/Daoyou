@@ -71,7 +71,7 @@ export function HudTag({
   onClick?: () => void;
 }) {
   const className = cn(
-    'border-ink/15 bg-bgpaper/70 inline-flex max-w-full min-w-0 items-center gap-1.5 border border-dashed px-1.5 py-0.5 text-[0.68rem] leading-4 md:text-xs',
+    'border-ink/15 bg-paper inline-flex max-w-full min-w-0 items-center gap-1.5 border border-dashed px-1.5 py-0.5 text-[0.68rem] leading-4 md:text-xs',
     tone === 'qi' && 'border-teal/35 text-teal',
     tone === 'wealth' && 'border-wood/35 text-wood',
     onClick && 'hover:border-crimson/45 hover:text-crimson transition-colors',

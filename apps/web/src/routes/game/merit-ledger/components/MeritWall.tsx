@@ -46,7 +46,7 @@ export function MeritWall({ rows }: { rows: MeritPublicRow[] }) {
             {members.map((row) => (
               <article
                 key={row.cultivatorId}
-                className="border-ink/15 bg-paper/70 min-w-0 border p-3"
+                className="border-ink/15 bg-paper-2 min-w-0 border p-3"
               >
                 <p className="truncate text-sm font-medium">
                   {row.name}

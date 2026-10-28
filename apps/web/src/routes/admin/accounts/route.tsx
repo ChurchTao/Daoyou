@@ -447,7 +447,7 @@ export default function AdminAccountsPage() {
 
   return (
     <div className="space-y-5">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <header className="border-ink/15 bg-paper border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.2em]">
           ACCOUNT OPERATIONS
         </p>
@@ -459,7 +459,7 @@ export default function AdminAccountsPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 space-y-5 border border-dashed p-6">
+      <section className="border-ink/15 bg-paper space-y-5 border border-dashed p-6">
         <form
           className="flex flex-wrap items-end gap-3"
           onSubmit={submitSearch}
@@ -518,7 +518,7 @@ export default function AdminAccountsPage() {
           </div>
         ) : null}
 
-        <div className="border-ink/15 bg-bgpaper/80 overflow-x-auto border border-dashed">
+        <div className="border-ink/15 bg-paper overflow-x-auto border border-dashed">
           <table className="w-full min-w-[1360px] text-sm">
             <thead className="border-ink/10 text-ink-secondary border-b text-left">
               <tr>

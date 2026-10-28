@@ -190,10 +190,10 @@ export function NarrativePerformanceStage({
 
   return (
     <section
-      className="relative isolate min-h-dvh overflow-hidden bg-[#111713] text-[#f5efdf]"
+      className="relative isolate min-h-dvh overflow-hidden bg-scene text-[#f5efdf]"
       aria-label={script.title}
     >
-      <AppViewportColor color="#111713" />
+      <AppViewportColor color="#141918" />
       <GameImage
         key={act.id}
         src={script.backdrop.src}

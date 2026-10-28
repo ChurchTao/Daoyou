@@ -63,14 +63,10 @@ export function MeritTierCard({
   return (
     <article
       className={cn(
-        'group relative overflow-hidden border p-4 bg-blend-multiply transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 sm:p-5',
+        'group relative overflow-hidden border p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 sm:p-5',
         presentation.cardClassName,
         className,
       )}
-      style={{
-        backgroundImage: "url('/assets/paper.webp')",
-        backgroundSize: '300px',
-      }}
     >
       <CardCorner className="top-2 left-2 border-t border-l" />
       <CardCorner className="top-2 right-2 border-t border-r" />

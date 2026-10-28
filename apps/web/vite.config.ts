@@ -111,7 +111,6 @@ export default defineConfig(async (): Promise<UserConfig> => {
             'manifest.webmanifest',
             'favicon.svg',
             'icons/*.png',
-            'assets/paper.webp',
             'assets/app-boot/*.{svg,webp}',
           ],
         },

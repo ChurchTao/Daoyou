@@ -72,11 +72,11 @@ export default function AdminTransfersPage() {
   };
 
   return <div className="space-y-6">
-    <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+    <header className="border-ink/15 bg-paper border border-dashed p-6">
       <h2 className="font-heading text-ink text-3xl">跨服转入审核</h2>
       <p className="text-ink-secondary mt-2 text-sm">仅接收白名单服务器签发的存档。来源服签名公钥可在该服本页复制，核对后录入。</p>
     </header>
-    <section className="border-ink/15 bg-bgpaper/90 space-y-3 border border-dashed p-6">
+    <section className="border-ink/15 bg-paper space-y-3 border border-dashed p-6">
       <h3 className="text-xl font-semibold">本服签名身份</h3>
       <p className="text-ink-secondary text-sm">其他服务器接收本服转出时，录入下面的服务器 ID 和 Ed25519 签名公钥。解密公钥随玩家凭证传递，不必手工登记。</p>
       {identity?.enabled === false && <p className="text-ink-secondary text-sm">此服务器未启用转服，未配置签名身份。</p>}
@@ -90,7 +90,7 @@ export default function AdminTransfersPage() {
       </>}
     </section>
     {error && <p className="border-crimson/30 text-crimson border p-3 text-sm">{error}</p>}
-    <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
+    <section className="border-ink/15 bg-paper space-y-4 border border-dashed p-6">
       <h3 className="text-xl font-semibold">待审核申请</h3>
       <InkButton variant="secondary" disabled={busy} onClick={() => void run(async () => {})}>刷新</InkButton>
       {reviews.length === 0 && <p className="text-ink-secondary text-sm">暂无待审核申请</p>}
@@ -110,7 +110,7 @@ export default function AdminTransfersPage() {
         </div>
       </article>)}
     </section>
-    <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
+    <section className="border-ink/15 bg-paper space-y-4 border border-dashed p-6">
       <h3 className="text-xl font-semibold">来源服务器白名单</h3>
       <input className="border-ink/20 bg-paper w-full border p-2 text-sm" value={serverId} onChange={(event) => setServerId(event.target.value)} placeholder="来源服务器 ID" />
       <textarea className="border-ink/20 bg-paper w-full border p-2 font-mono text-xs" rows={5} value={publicKey} onChange={(event) => setPublicKey(event.target.value)} placeholder="Ed25519 PEM 公钥" />

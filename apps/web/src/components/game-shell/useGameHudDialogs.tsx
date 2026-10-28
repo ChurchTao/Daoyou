@@ -165,7 +165,7 @@ export function useGameHudDialogs(
             summary={snapshot.bodyCultivation}
             dense
           />
-          <div className="border-ink/10 bg-bgpaper/60 border border-dashed px-3 py-2 text-xs leading-5">
+          <div className="border-ink/10 bg-paper-2 border border-dashed px-3 py-2 text-xs leading-5">
             <p className="text-ink">
               提升：服用炼体丹，丹力会进入对应的肉身轨道。
             </p>
@@ -322,7 +322,7 @@ export function useGameHudDialogs(
       content: (
         <div className="space-y-3 text-sm leading-7">
           <p>进入秘境、闭关修行、突破与造物时需要消耗的一定的天地灵气。</p>
-          <div className="border-ink/10 bg-bgpaper/70 space-y-1 border border-dashed px-3 py-2">
+          <div className="border-ink/10 bg-paper-2 space-y-1 border border-dashed px-3 py-2">
             <p>
               当前{qiInfo.label}：
               {qiState
@@ -409,7 +409,7 @@ export function useGameHudDialogs(
       content: (
         <div className="space-y-4 text-sm leading-7">
           {!hasStatuses && !hasToxicity ? (
-            <div className="border-ink/10 bg-bgpaper/70 space-y-2 border border-dashed px-3 py-2">
+            <div className="border-ink/10 bg-paper-2 space-y-2 border border-dashed px-3 py-2">
               <p className="text-ink font-medium">安稳</p>
               <p className="text-ink-secondary">
                 当前没有持续伤势、丹药药力或突破准备状态。
@@ -423,7 +423,7 @@ export function useGameHudDialogs(
           {hasToxicity ? (
             <section className="space-y-2">
               <p className="text-ink text-sm font-medium">丹毒</p>
-              <div className="border-ink/10 bg-bgpaper/70 space-y-1 border border-dashed px-3 py-2 text-xs leading-5">
+              <div className="border-ink/10 bg-paper-2 space-y-1 border border-dashed px-3 py-2 text-xs leading-5">
                 <p>
                   当前：{snapshot.pillToxicity.label}（
                   {snapshot.pillToxicity.value}）
