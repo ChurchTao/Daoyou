@@ -77,7 +77,7 @@ export function forgingBoosts(
   materials: { facts: MaterialFacts; quantity: number }[],
 ): ForgingBoosts {
   if (!isOpenEquipmentLevel(level))
-    throw new InventoryRuleError('道装打造仅开放至化神期');
+    throw new InventoryRuleError('道装打造仅开放至渡劫期');
   const cost = forgingCost(level);
   if (equipmentRealm(level).requiredLevel > ownerLevel)
     throw new InventoryRuleError('图纸境界超过人物境界，无法铸造');

@@ -1,6 +1,8 @@
 import { DAO_FORMATION_INSCRIPTIONS_V1 } from '../equipment/content.js';
 
-export const INSCRIPTION_MAX_LEVEL = 11;
+export const INSCRIPTION_MAX_LEVEL = 19;
+/** 绘制与合成共用上限。材料份数够时可以直接绘出这一级。 */
+export const INSCRIPTION_DRAW_MAX_LEVEL = INSCRIPTION_MAX_LEVEL;
 export const inscriptionItemId = (patternId: string, level: number) =>
   `inscription.${patternId}.${level}`;
 

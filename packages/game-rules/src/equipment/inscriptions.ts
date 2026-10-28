@@ -14,6 +14,10 @@ const LEVEL_LIMITS = [
   { equipmentLevel: 50, maxLevel: 7 },
   { equipmentLevel: 70, maxLevel: 9 },
   { equipmentLevel: 90, maxLevel: 11 },
+  { equipmentLevel: 110, maxLevel: 13 },
+  { equipmentLevel: 130, maxLevel: 15 },
+  { equipmentLevel: 150, maxLevel: 17 },
+  { equipmentLevel: 170, maxLevel: 19 },
 ] as const;
 
 

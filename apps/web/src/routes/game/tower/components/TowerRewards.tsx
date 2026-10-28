@@ -96,10 +96,11 @@ function RewardSlots({
               收起
             </button>
           </div>
-          <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto p-1">
+          <div className="grid max-h-72 auto-rows-max grid-cols-3 content-start gap-2 overflow-y-auto overscroll-contain p-1">
             {pool.definitionIds.map((id) => (
               <ItemSlot
                 key={id}
+                className="min-h-[auto] w-full"
                 item={rewardItem({ definitionId: id, quantity: pool.quantity })}
                 quantityLabel="奖励"
               />

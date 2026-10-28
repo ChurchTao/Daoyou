@@ -19,7 +19,17 @@ const panelAttribute = z.enum([
   'sealResist',
 ]);
 const bounds = z.tuple([z.number().int().nonnegative().max(1000000), z.number().int().nonnegative().max(1000000)]);
-const level = z.union([z.literal(10), z.literal(30), z.literal(50), z.literal(70), z.literal(90)]);
+const level = z.union([
+  z.literal(10),
+  z.literal(30),
+  z.literal(50),
+  z.literal(70),
+  z.literal(90),
+  z.literal(110),
+  z.literal(130),
+  z.literal(150),
+  z.literal(170),
+]);
 const statRange = z.strictObject({ level, normal: bounds, enhanced: bounds });
 const probability = z.number().min(0).max(1);
 
@@ -34,7 +44,7 @@ export const EquipmentBasePackShape = z.strictObject({
         name: z.string().trim().min(1),
         slot: z.enum(DAO_EQUIPMENT_SLOTS),
         baseStats: z
-          .array(z.strictObject({ attr: panelAttribute, ranges: z.array(statRange).length(5) }))
+          .array(z.strictObject({ attr: panelAttribute, ranges: z.array(statRange).length(9) }))
           .min(1),
       }),
     )
@@ -52,7 +62,7 @@ export const EquipmentBasePackShape = z.strictObject({
     .min(1),
   generation: z.strictObject({
     bonusCountProbabilities: z.tuple([probability, probability, probability]),
-    bonusRanges: z.array(z.strictObject({ level, min: z.number().int().positive(), max: z.number().int().positive() })).length(5),
+    bonusRanges: z.array(z.strictObject({ level, min: z.number().int().positive(), max: z.number().int().positive() })).length(9),
   }),
 });
 

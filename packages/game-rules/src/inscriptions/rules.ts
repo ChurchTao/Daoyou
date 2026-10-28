@@ -28,6 +28,7 @@ import { itemDefinition } from '../inventory/index.js';
 import { InventoryEquipmentSchema } from '../inventory/equipment.js';
 
 import {
+  INSCRIPTION_DRAW_MAX_LEVEL,
   INSCRIPTION_MAX_LEVEL,
   inscriptionItemId,
 } from '@daoyou/game-content/items/inscriptions';
@@ -58,8 +59,8 @@ export function inscriptionMaterialProblem(item: InventoryItem): string | null {
 
 export function inscriptionLevelTenths(level: number) {
   if (!Number.isInteger(level) || level < 1 || level > INSCRIPTION_MAX_LEVEL)
-    throw new InventoryRuleError('阵纹等级须为1至11级');
-  return 40 * 2 ** (level - 1);
+    throw new InventoryRuleError(`阵纹等级须为1至${INSCRIPTION_MAX_LEVEL}级`);
+  return 40 * 3 ** (level - 1);
 }
 
 export function previewInscriptionDraw(
@@ -69,12 +70,13 @@ export function previewInscriptionDraw(
     throw new InventoryRuleError('至少需要4份材料');
   let remaining = totalTenths;
   const outputs: { level: number; quantity: number }[] = [];
-  for (let level = INSCRIPTION_MAX_LEVEL; level >= 1; level--) {
+  for (let level = INSCRIPTION_DRAW_MAX_LEVEL; level >= 1; level--) {
     const required = inscriptionLevelTenths(level);
     const quantity = Math.floor(remaining / required);
     if (quantity) outputs.push({ level, quantity });
     remaining %= required;
-    if (outputs.length === 3) break;
+    // 只留主产物和副产物两个等级，其余份数溢散。
+    if (outputs.length === 2) break;
   }
   return {
     totalTenths,

@@ -1,15 +1,15 @@
 import type { Quality } from '@daoyou/constants/qualities';
 
-// 独立经济配置，不随坊市报价或材料描述变化。内部统一使用十分之一份。
+// 矿石份数。妖兽、辅助、天材地宝按 1.2、1.5、2.5 倍，由类型系数换成整数十分位。
 export const QUALITY_SHARES: Record<Quality, number> = {
-  凡品: 1,
-  灵品: 6,
-  玄品: 20,
-  真品: 60,
-  地品: 200,
-  天品: 1000,
-  仙品: 4000,
-  神品: 20000,
+  凡品: 10,
+  灵品: 60,
+  玄品: 200,
+  真品: 600,
+  地品: 2000,
+  天品: 10000,
+  仙品: 40000,
+  神品: 200000,
 };
 
 export const TYPE_TENTHS = { ore: 10, monster: 12, aux: 15, tcdb: 25 } as const;

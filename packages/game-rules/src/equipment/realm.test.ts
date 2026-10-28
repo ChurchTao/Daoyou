@@ -49,14 +49,6 @@ describe('九境界道装门槛', () => {
     },
   );
 
-  it.each([110, 130, 150, 170])('保留%s档资产但禁止打造', (level) => {
-    expect(isEquipmentLevel(level)).toBe(true);
-    expect(() => forgingBoosts(level, 180, [])).toThrow('仅开放至化神');
-    expect(generateDaoEquipmentV1({ id: 'closed', createdAt: 'test', seed: 1,
-      templateId: 'dao_equipment.standard.weapon.v1', equipmentLevel: level,
-      generatorVersion: 'dao_equipment_generator_v1' }).ok).toBe(false);
-  });
-
   it('不再接受已合并的旧器阶', () => {
     for (let level = 20; level <= 180; level += 20)
       expect(isEquipmentLevel(level)).toBe(false);

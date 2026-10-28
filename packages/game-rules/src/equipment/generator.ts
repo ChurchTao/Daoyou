@@ -54,7 +54,7 @@ export function generateDaoEquipmentV1(
     diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
   }
   if (!isOpenEquipmentLevel(input.equipmentLevel)) {
-    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至化神期", "equipmentLevel"))
+    diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至渡劫期", "equipmentLevel"))
   }
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) {
     diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
@@ -143,7 +143,7 @@ export function generateDaoEquipmentV2(
   const diagnostics: CombatV6ProjectionDiagnostic[] = []
   const template = daoEquipmentTemplateOf(input.templateId)
   if (!template) diagnostics.push(error("UNKNOWN_EQUIPMENT_TEMPLATE", "道装模板不存在", "templateId"))
-  if (!isOpenEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至化神期", "equipmentLevel"))
+  if (!isOpenEquipmentLevel(input.equipmentLevel)) diagnostics.push(error("INVALID_EQUIPMENT_LEVEL", "道装仅开放至渡劫期", "equipmentLevel"))
   if (!Number.isInteger(input.seed) || input.seed < 0 || input.seed > 0xffffffff) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "seed 必须是0～2^32-1的整数", "seed"))
   if (!input.id?.trim() || !input.createdAt?.trim()) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "道装 id 与 createdAt 不能为空"))
   if (input.generatorVersion !== DAO_EQUIPMENT_GENERATOR_VERSION_V2) diagnostics.push(error("INVALID_EQUIPMENT_IDENTITY", "生成器版本不受支持", "generatorVersion"))
