@@ -50,7 +50,7 @@ export function AdminShell({
   return (
     <div className="bg-paper relative min-h-dvh overflow-hidden">
       <div className="app-safe-area-page relative mx-auto flex w-full max-w-7xl flex-col gap-6 [--app-safe-area-block-space:1.5rem] lg:flex-row lg:[--app-safe-area-inline-space:2rem]">
-        <aside className="border-ink/15 bg-bgpaper/90 w-full shrink-0 border border-dashed p-4 lg:sticky lg:top-[calc(var(--app-safe-top)+1.5rem)] lg:max-h-[calc(100dvh-3rem)] lg:w-72 lg:self-start lg:overflow-y-auto">
+        <aside className="border-ink/15 bg-paper-2 w-full shrink-0 border border-dashed p-4 lg:sticky lg:top-[calc(var(--app-safe-top)+1.5rem)] lg:max-h-[calc(100dvh-3rem)] lg:w-72 lg:self-start lg:overflow-y-auto">
           <div className="border-ink/10 lg:mb-4 lg:border-b lg:pb-4">
             <p className="text-ink-secondary hidden text-xs tracking-[0.2em] lg:block">
               OPS CONSOLE

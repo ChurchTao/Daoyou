@@ -177,7 +177,7 @@ function DivinationTable() {
             {artError && (
               <p
                 role="alert"
-                className="bg-bgpaper/90 absolute inset-0 grid place-items-center p-4 text-center text-sm"
+                className="bg-paper absolute inset-0 grid place-items-center p-4 text-center text-sm"
               >
                 案台未能加载，请刷新重试。
               </p>
@@ -197,7 +197,7 @@ function DivinationTable() {
                     </span>
                   )}
                 </button>
-                <label className="bg-bgpaper/95 text-ink absolute top-3 left-3 flex min-h-11 items-center gap-2 px-3 text-base shadow-sm">
+                <label className="bg-paper text-ink absolute top-3 left-3 flex min-h-11 items-center gap-2 px-3 text-base shadow-sm">
                   <span className="text-ink-secondary">问</span>
                   <select
                     aria-label="占卜方向"

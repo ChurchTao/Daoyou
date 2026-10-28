@@ -1,4 +1,5 @@
 import Link from '@app/components/router/AppLink';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import {
   AUTH_LAYOUT_ROUTE_ID,
   type AuthLoaderData,
@@ -28,7 +29,7 @@ export function AuthPageShell({
   const announcement = authLoaderData?.announcement?.trim() || null;
 
   return (
-    <div className="bg-paper relative overflow-hidden">
+    <PaperSurface className="relative overflow-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-20"
@@ -42,7 +43,7 @@ export function AuthPageShell({
       <div className="app-safe-area-page relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-center">
         <div className="mx-auto w-full max-w-xl">
           {announcement ? (
-            <div className="border-ink/15 bg-bgpaper/88 mb-4 flex items-center gap-3 overflow-hidden border border-dashed px-3 py-2 shadow-[0_8px_20px_rgba(44,24,16,0.05)]">
+            <div className="border-ink/15 bg-paper mb-4 flex items-center gap-3 overflow-hidden border border-dashed px-3 py-2 shadow-[0_8px_20px_rgba(44,24,16,0.05)]">
               <span className="text-ink-secondary shrink-0 tracking-[0.22em]">
                 公告
               </span>
@@ -77,7 +78,7 @@ export function AuthPageShell({
             <p className="text-ink-secondary/80 mb-3 text-[0.72rem] tracking-[0.38em] sm:mb-4">
               DAOYOU.ORG
             </p>
-            <div className="border-ink/12 bg-paper/90 mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full border border-dashed shadow-[0_12px_36px_rgba(44,24,16,0.08)] sm:mb-5 sm:h-32 sm:w-32">
+            <div className="border-ink/12 bg-paper mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full border border-dashed shadow-[0_12px_36px_rgba(44,24,16,0.08)] sm:mb-5 sm:h-32 sm:w-32">
               <img
                 src="/assets/daoyou_logo.webp"
                 alt="万界道友 Logo"
@@ -95,7 +96,7 @@ export function AuthPageShell({
             </p>
           </header>
 
-          <section className="border-ink/18 bg-bgpaper/92 relative overflow-hidden border border-dashed px-5 py-5 shadow-lg sm:px-7 sm:py-6">
+          <section className="border-ink/18 bg-paper relative overflow-hidden border border-dashed px-5 py-5 shadow-lg sm:px-7 sm:py-6">
             <div className="relative">
               {backHref ? (
                 <Link
@@ -127,6 +128,6 @@ export function AuthPageShell({
           ) : null}
         </div>
       </div>
-    </div>
+    </PaperSurface>
   );
 }

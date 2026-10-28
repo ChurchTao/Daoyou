@@ -162,7 +162,7 @@ export const TOWER_SKILLS: SkillDef[] = [
     tags: ['physical'],
     targeting: { side: 'enemy', count: 1 },
     effects: [
-      { type: 'physicalHit', coeff: 1.8 },
+      { type: 'physicalHit', coeff: 5 },
       {
         type: 'applyStatus',
         statusId: 'tower.exposed',
@@ -186,7 +186,7 @@ export const TOWER_SKILLS: SkillDef[] = [
     costMp: 18,
     targeting: { side: 'enemy', mode: 'fill', count: 2 },
     effects: [
-      { type: 'spellHit', coeff: 0.7, power: 30 },
+      { type: 'spellHit', coeff: 0.7, power: 780 },
       {
         type: 'applyStatus',
         statusId: 'tower.exposed',

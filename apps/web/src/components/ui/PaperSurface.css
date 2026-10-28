@@ -1,0 +1,63 @@
+/* 纸底。底色用 --color-sheet，纤维层保持名片原方案。 */
+.paper-surface {
+  isolation: isolate;
+  background: var(--color-sheet);
+  --paper-mottle: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='620' height='360'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='.012 .02' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .28 0 0 0 .9 -.38'/></filter><rect width='620' height='360' filter='url(%23m)'/></svg>");
+  --paper-fibre-d: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='620' height='360'><filter id='a' x='0' y='0'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='80' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .4 0 0 0 0 .32 0 0 0 0 .22 0 0 0 1.3 -.55'/></filter><rect width='620' height='360' filter='url(%23a)'/></svg>");
+  --paper-fibre-l: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='620' height='360'><filter id='a' x='0' y='0'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='28' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 .99 0 0 0 0 .96 0 0 0 1.3 -.55'/></filter><rect width='620' height='360' filter='url(%23a)'/></svg>");
+  --paper-grain-d: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='t' x='0' y='0'><feTurbulence type='fractalNoise' baseFrequency='1.25' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .36 0 0 0 0 .28 0 0 0 0 .18 0 0 0 3 -1.7'/></filter><rect width='160' height='160' filter='url(%23t)'/></svg>");
+  --paper-grain-l: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='t' x='0' y='0'><feTurbulence type='fractalNoise' baseFrequency='1.25' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 .97 0 0 0 3 -1.7'/></filter><rect width='160' height='160' filter='url(%23t)'/></svg>");
+}
+
+.paper-surface__layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 620px 360px;
+}
+
+.paper-surface__mottle {
+  background-image: var(--paper-mottle);
+  mix-blend-mode: multiply;
+  opacity: 0.18;
+}
+
+.paper-surface__fibre-d {
+  background-image: var(--paper-fibre-d);
+  mix-blend-mode: multiply;
+  opacity: 0.42;
+}
+
+.paper-surface__fibre-l {
+  background-image: var(--paper-fibre-l);
+  opacity: 0.4;
+}
+
+.paper-surface__grain-d {
+  background: var(--paper-grain-d) 0 0 / 160px;
+  mix-blend-mode: multiply;
+  opacity: 0.3;
+}
+
+.paper-surface__grain-l {
+  background: var(--paper-grain-l) 0 -1px / 160px;
+  opacity: 0.5;
+}
+
+.paper-surface__stroke-d,
+.paper-surface__stroke-l {
+  -webkit-mask: var(--paper-stroke) 0 0 / 620px 360px;
+  mask: var(--paper-stroke) 0 0 / 620px 360px;
+}
+
+.paper-surface__stroke-d {
+  background: #5c4a36;
+  mix-blend-mode: multiply;
+  opacity: 0.42;
+}
+
+.paper-surface__stroke-l {
+  background: #ffffff;
+  opacity: 0.4;
+}

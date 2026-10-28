@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-forging.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 7,
   "generation": {
     "essenceCountProbabilities": [
       0.82,
@@ -74,63 +74,72 @@
         "spiritStones": 100,
         "qi": 7,
         "quantity": 1,
-        "rank": "凡品"
+        "rank": "凡品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 30,
         "spiritStones": 900,
         "qi": 11,
         "quantity": 1,
-        "rank": "凡品"
+        "rank": "凡品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 50,
         "spiritStones": 2500,
         "qi": 15,
         "quantity": 2,
-        "rank": "灵品"
+        "rank": "灵品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 70,
         "spiritStones": 4900,
         "qi": 19,
         "quantity": 2,
-        "rank": "灵品"
+        "rank": "灵品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 90,
         "spiritStones": 8100,
         "qi": 23,
         "quantity": 3,
-        "rank": "玄品"
+        "rank": "玄品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 110,
-        "spiritStones": 12100,
+        "spiritStones": 18906,
         "qi": 27,
         "quantity": 3,
-        "rank": "玄品"
+        "rank": "真品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 130,
-        "spiritStones": 16900,
+        "spiritStones": 26406,
         "qi": 31,
         "quantity": 4,
-        "rank": "真品"
+        "rank": "地品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 150,
-        "spiritStones": 22500,
+        "spiritStones": 35156,
         "qi": 35,
         "quantity": 4,
-        "rank": "真品"
+        "rank": "地品",
+        "enhanceRankSteps": 2
       },
       {
         "level": 170,
-        "spiritStones": 28900,
+        "spiritStones": 45156,
         "qi": 39,
         "quantity": 5,
-        "rank": "地品"
+        "rank": "天品",
+        "enhanceRankSteps": 2
       }
     ]
   }

@@ -128,7 +128,7 @@ function renderPreparationNotice(
         ),
       }}
     >
-      <div className="border-ink/20 bg-paper/80 space-y-4 border border-dashed p-4 text-sm leading-7">
+      <div className="border-ink/20 bg-paper space-y-4 border border-dashed p-4 text-sm leading-7">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <div className="mb-1 flex items-center justify-between gap-3 text-xs">

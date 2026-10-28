@@ -18,6 +18,9 @@ export class TransferAdminController {
   @Get()
   list() { return this.service.reviewList(); }
 
+  @Get('identity')
+  identity() { return this.service.localIdentity(); }
+
   @Get('trusted-servers')
   trusted() { return this.service.trustedServers(); }
 

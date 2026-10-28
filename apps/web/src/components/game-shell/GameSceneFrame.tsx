@@ -38,7 +38,7 @@ function SceneSurface({
   return (
     <Tag
       className={cn(
-        'animate-fade-in min-w-0 bg-[rgba(248,243,230,0.82)] bg-[linear-gradient(180deg,rgba(255,252,245,0.42),rgba(248,243,230,0))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] md:px-5 md:py-5',
+        'animate-fade-in bg-paper min-w-0 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_10px_30px_rgba(44,24,16,0.06)] md:px-5 md:py-5',
         className,
       )}
     >
@@ -111,7 +111,7 @@ export function GameSceneNote({
         'border-l-2 px-4 py-3 text-sm leading-7',
         tone === 'danger'
           ? 'border-crimson bg-crimson/6 text-crimson'
-          : 'border-crimson text-ink bg-[rgba(248,243,230,0.88)]',
+          : 'border-crimson text-ink bg-paper',
         className,
       )}
     >

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { SeededRng } from '@daoyou/combat-core/rng';
-import { equipmentRealm } from '../equipment/realm.js';
 import { findItemDefinition } from '@daoyou/game-content/items';
+import { blueprintRealmWeights } from './blueprint-distribution.js';
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@daoyou/constants/realms';
 import {
   planYieldRewards,
@@ -31,7 +30,7 @@ describe('挂机固定总量掉落', () => {
   it('八个名额抽出两张图纸后只剩六份材料', () => {
     const plan = planYieldRewards(input, (stream) => {
       const slot = Number(stream.split(':')[2]);
-      return () => (slot < 2 ? 0.8 : 0);
+      return () => (slot < 2 ? 0.9 : 0);
     });
     expect(plan.materialCount).toBe(6);
     expect(plan.items).toHaveLength(2);
@@ -57,21 +56,28 @@ describe('挂机固定总量掉落', () => {
     ).toBe(true);
   });
 
-  it('所有境界只产出已开放且可炼制的图纸', () => {
+  it('每个名额有 8% 图纸，境界按权重表而不是本境一档', () => {
+    const category =
+      YIELD_REWARD_PACK.weights.blueprint /
+      (YIELD_REWARD_PACK.weights.material +
+        YIELD_REWARD_PACK.weights.blueprint +
+        YIELD_REWARD_PACK.weights.book);
+    expect(category).toBeCloseTo(0.08, 10);
     for (const realm of REALM_VALUES)
       for (const realmStage of REALM_STAGE_VALUES) {
+        const allowed = new Set(
+          blueprintRealmWeights(realm, 'yield').map((row) => row.level),
+        );
         const plan = planYieldRewards(
           { ...input, realm, realmStage },
-          constant(0.8),
+          constant(0.9),
         );
         expect(plan.items).toHaveLength(8);
         for (const item of plan.items) {
           const definition = findItemDefinition(item.definitionId)!;
           expect(definition.kind).toBe('blueprint');
-          expect(definition.level).toBeLessThanOrEqual(90);
-          expect(
-            equipmentRealm(definition.level!).requiredLevel,
-          ).toBeLessThanOrEqual(getRealmStageLevel(realm, realmStage));
+          expect(allowed.has(definition.level!)).toBe(true);
+          expect(definition.level).toBeLessThanOrEqual(130);
         }
       }
   });

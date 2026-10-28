@@ -12,7 +12,7 @@ base64 < transfer-signing.pem | tr -d '\n'
 base64 < transfer-encryption.pem | tr -d '\n'
 ```
 
-将两个 base64 结果分别设置为 `TRANSFER_SIGNING_PRIVATE_KEY_B64`、`TRANSFER_ENCRYPTION_PRIVATE_KEY_B64`，与 `TRANSFER_SERVER_ID` 一起配置。勿将私钥或完整环境文件提交到仓库。目标服维护者通过独立渠道核对来源服的 `transfer-signing.pub.pem`，然后在 `/admin/transfers` 添加来源服务器 ID 和公钥。白名单只属于目标服，默认不信任其他服。停用白名单会阻止新申请和待审申请通过。
+将两个 base64 结果分别设置为 `TRANSFER_SIGNING_PRIVATE_KEY_B64`、`TRANSFER_ENCRYPTION_PRIVATE_KEY_B64`，与 `TRANSFER_SERVER_ID` 一起配置。勿将私钥或完整环境文件提交到仓库。本服的服务器 ID 和 Ed25519 签名公钥可在 `/admin/transfers` 的「本服签名身份」中查看并复制；`openssl pkey -pubout` 得到的 `transfer-signing.pub.pem` 与页面展示的是同一把公钥。目标服维护者核对后，在该页添加来源服务器 ID 和签名公钥。白名单只登记签名公钥，解密公钥随玩家凭证传递。白名单只属于目标服，默认不信任其他服。停用白名单会阻止新申请和待审申请通过。
 
 部署时应用 `drizzle/0066_strange_the_hood.sql` 所属的常规业务迁移。每台服必须自行保留私钥备份；未结案的存档和回执依赖当时的私钥。轮换签名密钥前先结案待审申请和待处理转出，轮换解密密钥前先结案待审存档。使用 HTTPS，限制管理员账号访问。目标服结案后清除存储的加密存档正文，保留摘要、哈希和审核记录；备份中的历史正文仍需妥善保管。
 

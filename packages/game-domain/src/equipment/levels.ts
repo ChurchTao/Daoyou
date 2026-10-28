@@ -10,7 +10,7 @@ export function isEquipmentLevel(level: number) {
 }
 
 
-/** 保留九境界资产标识，首批只有前五境界可产出装备。 */
+/** 炼气至化神可以铸造。更高器阶的图纸按历练、副本和蜃楼规则掉落，铸造仍拒绝。 */
 export const OPEN_EQUIPMENT_LEVELS = [10, 30, 50, 70, 90] as const;
 
 export function isOpenEquipmentLevel(level: number) {

@@ -18,7 +18,7 @@ import { projectBeastRoster } from '../beasts/projection.js';
 
 import { isStanding } from '@daoyou/combat-core/units';
 
-import { type Attrs } from '@daoyou/combat-core/types';
+import { type Attrs, type SkillDef } from '@daoyou/combat-core/types';
 
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
 
@@ -47,24 +47,85 @@ export const TOWER_V6_VERSIONS = {
   contentVersion: TOWER_CONTENT_VERSION,
 } as const;
 
-function applyBlessings(
-  attrs: Partial<Attrs>,
+function blessingStacks(
   blessings: TowerBlessings,
-  target: 'player' | 'beasts',
-  pack = TOWER_BLESSINGS_PACK,
+  id: keyof TowerBlessings,
+  maxStacks: number,
 ) {
-  const base = { ...attrs };
+  return Math.max(0, Math.min(maxStacks, Math.floor(blessings[id] ?? 0)));
+}
+
+function rememberPassive(unit: { passives?: string[] }, id: string) {
+  unit.passives = [...(unit.passives ?? []), id];
+}
+
+type BlessingUnit = { attrs: Partial<Attrs>; passives?: string[] };
+
+function scaleAttribute(unit: BlessingUnit, key: keyof Attrs, factor: number) {
+  const next = Math.floor((unit.attrs[key] ?? 0) * factor);
+  unit.attrs[key] = next;
+  if (key === 'maxHp') unit.attrs.hp = next;
+}
+
+function strikePassive(
+  id: string,
+  name: string,
+  incoming: boolean,
+  factor: number,
+): SkillDef {
+  return {
+    id,
+    name,
+    tags: ['passive'],
+    targeting: { side: 'self' },
+    effects: [],
+    hooks: [
+      {
+        on: 'onHitCalc',
+        sourceIsSelf: !incoming,
+        targetIsSelf: incoming,
+        effects: [{ type: 'modifyStrike', factor }],
+      },
+    ],
+  };
+}
+
+/** Stacks add within a blessing. Different blessings stay active together. */
+export function applyTowerBlessings(
+  player: BlessingUnit,
+  beasts: BlessingUnit[],
+  blessings: TowerBlessings,
+  pack = TOWER_BLESSINGS_PACK,
+): SkillDef[] {
+  const skills: SkillDef[] = [];
   for (const rule of pack.blessings) {
-    if (rule.effect.target !== target) continue;
-    const stacks = Math.max(
-      0,
-      Math.min(rule.maxStacks, Math.floor(blessings[rule.id] ?? 0)),
-    );
-    for (const key of rule.effect.attributes)
-      attrs[key] = Math.floor(
-        (base[key] ?? 0) * (1 + stacks * rule.effect.perStack),
-      );
+    const stacks = blessingStacks(blessings, rule.id, rule.maxStacks);
+    if (!stacks) continue;
+    const effect = rule.effect;
+    const units = effect.target === 'beasts' ? beasts : [player];
+    if (effect.kind === 'attributes') {
+      const factor = 1 + stacks * effect.perStack;
+      for (const unit of units)
+        for (const key of effect.attributes) scaleAttribute(unit, key, factor);
+      continue;
+    }
+    if (effect.kind === 'crit') {
+      for (const unit of units) {
+        unit.attrs.critRate = (unit.attrs.critRate ?? 0) + stacks * effect.perStack;
+        unit.attrs.spellCritRate =
+          (unit.attrs.spellCritRate ?? 0) + stacks * effect.perStack;
+      }
+      continue;
+    }
+    const id = `tower.blessing.${rule.id}`;
+    const incoming = effect.kind === 'damageTaken';
+    const factor = incoming
+      ? 1 - stacks * effect.perStack
+      : 1 + stacks * effect.perStack;
+    for (const unit of units) rememberPassive(unit, id);
+    skills.push(strikePassive(id, rule.name, incoming, factor));
   }
+  return skills;
 }
 
 export function projectTowerPlayer(
@@ -79,7 +140,7 @@ export function projectTowerPlayer(
     resourcePolicy: 'full',
   });
   if (!projected.ok) throw new Error('请先完成新版宗门构筑');
-  applyBlessings(projected.unit.attrs, blessings, 'player', pack);
+  applyTowerBlessings(projected.unit, [], blessings, pack);
   return projected;
 }
 
@@ -92,7 +153,7 @@ export class TowerHost extends CombatV6PveHostSession {
     restored?: PveRestoredState,
   ) {
     if (
-      source.version !== 'tower-v6-v8' ||
+      source.version !== 'tower-v6-v9' ||
       source.input.versions?.contentVersion !== TOWER_CONTENT_VERSION ||
       !source.npcPlans
     )
@@ -164,15 +225,21 @@ export function createTowerHost(
   published?: PublishedTowerWeek,
 ) {
   if (!published && !week) throw new Error('幻境周配置缺失');
-  const projected = projectTowerPlayer(player, blessings);
+  const projected = projectCharacterToCombatV6({
+    ...structuredClone(player),
+    side: 0,
+    slot: 0,
+    resourcePolicy: 'full',
+  });
+  if (!projected.ok) throw new Error('请先完成新版宗门构筑');
   const unit = projected.unit;
   const beasts = projectBeastRoster(player.beasts, unit.id!, 0, 0, unit.level);
-  for (const beast of beasts) applyBlessings(beast.attrs, blessings, 'beasts');
+  const blessingSkills = applyTowerBlessings(unit, beasts, blessings);
   const enemies = published
     ? publishedTowerEncounter(published, realm, floor)
     : compileTowerEncounter(realm, floor, week!);
   return new TowerHost({
-    version: 'tower-v6-v8',
+    version: 'tower-v6-v9',
     playerId: unit.id!,
     npcPlans: enemies.plans,
     input: {
@@ -184,7 +251,12 @@ export function createTowerHost(
         contentVersion: published?.contentVersion ?? week!.version,
       },
       units: [unit, ...beasts, ...enemies.units],
-      skills: [...projected.skills, ...BEAST_SKILLS, ...enemies.skills],
+      skills: [
+        ...projected.skills,
+        ...BEAST_SKILLS,
+        ...blessingSkills,
+        ...enemies.skills,
+      ],
       statusDefs: [
         ...projected.statusDefs,
         ...BEAST_STATUS_DEFS,

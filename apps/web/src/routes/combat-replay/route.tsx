@@ -1,4 +1,5 @@
 import { CombatV6Page } from '@app/components/feature/combat-v6/CombatV6Page';
+import { PaperSurface } from '@app/components/ui/PaperSurface';
 import { CombatV6ReplayPlayer } from '@app/components/feature/combat-v6/CombatV6ReplayPlayer';
 import { combatV6Request } from '@app/components/feature/combat-v6/request';
 import type { CombatV6ReplayView } from '@daoyou/game-rules/combat/replay';
@@ -20,16 +21,16 @@ export default function BattleSharePage() {
     return () => abort.abort();
   }, [shareCode]);
   if (record) return (
-    <main className="bg-paper h-dvh overflow-hidden">
+    <PaperSurface as="main" className="h-dvh overflow-hidden">
       <CombatV6Page title="公开战谱" active>
         <CombatV6ReplayPlayer record={record} title="公开战谱" back="/" backLabel="返回首页" />
       </CombatV6Page>
-    </main>
+    </PaperSurface>
   );
   return (
-    <main className="bg-paper text-ink flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-sm">
+    <PaperSurface as="main" className="text-ink flex min-h-dvh flex-col items-center justify-center gap-4 px-4 text-sm">
       <p role={error ? 'alert' : 'status'}>{error || '正在载入公开战谱……'}</p>
       <Link className="underline" to="/">返回首页</Link>
-    </main>
+    </PaperSurface>
   );
 }

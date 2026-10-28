@@ -82,7 +82,7 @@ export default function CommunityQqGroupAdminPage() {
 
   return (
     <div className="space-y-6">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <header className="border-ink/15 bg-paper border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.22em]">
           COMMUNITY
         </p>
@@ -93,7 +93,7 @@ export default function CommunityQqGroupAdminPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 border border-dashed p-6 space-y-4">
+      <section className="border-ink/15 bg-paper border border-dashed p-6 space-y-4">
         {!customized && !loading ? (
           <p className="text-ink-secondary text-sm">
             当前尚未写入数据库，玩家端显示的是代码内建默认群号。保存后即可改为后台控制。

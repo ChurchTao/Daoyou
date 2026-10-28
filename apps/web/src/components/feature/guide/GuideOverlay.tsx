@@ -310,11 +310,11 @@ function GuideSession({
       {hole ? (
         <>
           <div
-            className="pointer-events-auto absolute inset-x-0 top-0 bg-[#1c1712]/72"
+            className="pointer-events-auto absolute inset-x-0 top-0 bg-scene-scrim/72"
             style={{ height: hole.top }}
           />
           <div
-            className="pointer-events-auto absolute left-0 bg-[#1c1712]/72"
+            className="pointer-events-auto absolute left-0 bg-scene-scrim/72"
             style={{
               top: hole.top,
               width: hole.left,
@@ -322,7 +322,7 @@ function GuideSession({
             }}
           />
           <div
-            className="pointer-events-auto absolute right-0 bg-[#1c1712]/72"
+            className="pointer-events-auto absolute right-0 bg-scene-scrim/72"
             style={{
               top: hole.top,
               left: hole.left + hole.width,
@@ -330,7 +330,7 @@ function GuideSession({
             }}
           />
           <div
-            className="pointer-events-auto absolute inset-x-0 bottom-0 bg-[#1c1712]/72"
+            className="pointer-events-auto absolute inset-x-0 bottom-0 bg-scene-scrim/72"
             style={{ top: hole.top + hole.height }}
           />
           <div
@@ -358,7 +358,7 @@ function GuideSession({
           ) : null}
         </>
       ) : (
-        <div className="pointer-events-none absolute inset-0 bg-[#1c1712]/55" />
+        <div className="pointer-events-none absolute inset-0 bg-scene-scrim/55" />
       )}
 
       <div

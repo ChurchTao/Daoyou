@@ -139,7 +139,7 @@ function RealmTokenBar({
               'shrink-0 border px-3 py-2 text-sm leading-5 transition-colors',
               isActive
                 ? 'border-crimson/45 bg-crimson/8 text-crimson'
-                : 'border-ink/15 bg-paper/60 text-ink-secondary hover:border-crimson/30 hover:text-ink',
+                : 'border-ink/15 bg-paper-2 text-ink-secondary hover:border-crimson/30 hover:text-ink',
             )}
           >
             <span className="font-semibold">{realm}</span>

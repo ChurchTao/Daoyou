@@ -17,7 +17,7 @@ import { type TowerKeyFormation } from '@daoyou/game-domain/tower';
 import { hashTowerSeed } from './helpers.js';
 
 
-export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v8' as const;
+export const TOWER_CONTENT_VERSION = 'combat-v6-tower-v9' as const;
 
 export const TOWER_KEY_FLOORS = [5, 10, 15, 20] as const;
 

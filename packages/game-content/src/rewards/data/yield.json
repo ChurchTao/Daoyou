@@ -1,10 +1,10 @@
 {
   "poolId": "yield",
-  "poolVersion": 2,
+  "poolVersion": 3,
   "weights": {
-    "material": 75,
-    "blueprint": 20,
-    "book": 5
+    "material": 345,
+    "blueprint": 32,
+    "book": 23
   },
   "books": [
     {

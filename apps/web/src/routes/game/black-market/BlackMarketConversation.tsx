@@ -309,7 +309,7 @@ export function BlackMarketConversation({
             </div>
           </div>
 
-          <div className="border-ink/20 bg-paper/40 focus-within:border-crimson/45 border">
+          <div className="border-ink/20 bg-paper focus-within:border-crimson/45 border">
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}

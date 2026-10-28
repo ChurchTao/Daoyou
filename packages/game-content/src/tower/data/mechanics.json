@@ -1,10 +1,10 @@
 {
-  "guardReduction": 0.15,
+  "guardReduction": 0.4,
   "guardStacks": 2,
   "furyThreshold": 0.4,
   "furyFactor": 1.15,
-  "exposedFactor": 1.25,
-  "healRatio": 0.2,
+  "exposedFactor": 1.8,
+  "healRatio": 0.65,
   "healCost": 12,
   "sealDuration": 1
 }

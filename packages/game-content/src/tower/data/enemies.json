@@ -104,7 +104,7 @@
       "label": "铁甲",
       "group": "survival",
       "multiply": {
-        "physicalDef": 1.5625
+        "physicalDef": 2.1
       },
       "maxGuards": 1,
       "add": {},
@@ -116,7 +116,7 @@
       "label": "灵障",
       "group": "survival",
       "multiply": {
-        "magicDef": 1.5,
+        "magicDef": 1.9,
         "hp": 0.8
       },
       "add": {},

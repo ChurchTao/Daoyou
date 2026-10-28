@@ -77,7 +77,7 @@ export default function AuthAnnouncementAdminPage() {
 
   return (
     <div className="space-y-6">
-      <header className="border-ink/15 bg-bgpaper/90 border border-dashed p-6">
+      <header className="border-ink/15 bg-paper border border-dashed p-6">
         <p className="text-ink-secondary text-xs tracking-[0.22em]">
           ANNOUNCEMENT
         </p>
@@ -88,7 +88,7 @@ export default function AuthAnnouncementAdminPage() {
         </p>
       </header>
 
-      <section className="border-ink/15 bg-bgpaper/90 space-y-4 border border-dashed p-6">
+      <section className="border-ink/15 bg-paper space-y-4 border border-dashed p-6">
         <InkInput
           label="公告内容"
           value={announcement}

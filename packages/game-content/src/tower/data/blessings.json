@@ -1,71 +1,164 @@
 {
   "$schema": "./blessings.schema.json",
   "formatVersion": 2,
-  "contentRevision": 3,
+  "contentRevision": 5,
   "blessings": [
     {
-      "id": "physical_power",
+      "id": "might",
       "name": "强攻",
       "icon": "💪",
-      "label": "人物物理攻击",
+      "label": "人物物攻",
       "maxStacks": 3,
+      "description": "提高人物物理攻击。每层 +12%，三层 +36%。可与其他祝福叠加。",
       "effect": {
+        "kind": "attributes",
         "target": "player",
         "attributes": ["physicalAtk"],
-        "perStack": 0.08
+        "perStack": 0.12
       }
     },
     {
-      "id": "spell_power",
+      "id": "spell",
       "name": "灵威",
       "icon": "🔮",
-      "label": "人物法术攻击",
+      "label": "人物法攻",
       "maxStacks": 3,
+      "description": "提高人物法术攻击。每层 +12%，三层 +36%。可与其他祝福叠加。",
       "effect": {
+        "kind": "attributes",
         "target": "player",
         "attributes": ["magicAtk"],
-        "perStack": 0.08
+        "perStack": 0.12
       }
     },
     {
-      "id": "guard",
+      "id": "edge",
+      "name": "锋芒",
+      "icon": "🗡️",
+      "label": "人物伤害",
+      "maxStacks": 3,
+      "description": "提高人物造成的全部伤害。每层 +8%，三层 +24%。可与其他祝福叠加。",
+      "effect": { "kind": "damageDealt", "target": "player", "perStack": 0.08 }
+    },
+    {
+      "id": "crit",
+      "name": "会心",
+      "icon": "✨",
+      "label": "人物暴击",
+      "maxStacks": 3,
+      "description": "提高人物物理和法术暴击。每层 +4%，三层 +12%。可与其他祝福叠加。",
+      "effect": { "kind": "crit", "target": "player", "perStack": 0.04 }
+    },
+    {
+      "id": "iron",
       "name": "坚守",
       "icon": "🛡️",
       "label": "人物双防",
       "maxStacks": 3,
+      "description": "提高人物物理和法术防御。每层 +10%，三层 +30%。可与其他祝福叠加。",
       "effect": {
+        "kind": "attributes",
         "target": "player",
         "attributes": ["physicalDef", "magicDef"],
-        "perStack": 0.08
+        "perStack": 0.1
       }
     },
     {
-      "id": "swiftness",
+      "id": "vigor",
+      "name": "厚血",
+      "icon": "❤️",
+      "label": "人物气血",
+      "maxStacks": 3,
+      "description": "提高人物气血上限。每层 +12%，三层 +36%。可与其他祝福叠加。",
+      "effect": {
+        "kind": "attributes",
+        "target": "player",
+        "attributes": ["maxHp"],
+        "perStack": 0.12
+      }
+    },
+    {
+      "id": "shell",
+      "name": "护体",
+      "icon": "🪨",
+      "label": "人物承伤",
+      "maxStacks": 3,
+      "description": "降低人物受到的全部伤害。每层减免 8%，三层后承受 76%。可与其他祝福叠加。",
+      "effect": { "kind": "damageTaken", "target": "player", "perStack": 0.08 }
+    },
+    {
+      "id": "haste",
       "name": "疾行",
       "icon": "👣",
       "label": "人物速度",
       "maxStacks": 3,
+      "description": "提高人物速度。每层 +8%，三层 +24%。可与其他祝福叠加。",
       "effect": {
+        "kind": "attributes",
         "target": "player",
         "attributes": ["speed"],
-        "perStack": 0.05
+        "perStack": 0.08
       }
     },
     {
-      "id": "beast_power",
+      "id": "mend",
+      "name": "回春",
+      "icon": "🌿",
+      "label": "人物治疗",
+      "maxStacks": 3,
+      "description": "提高人物治疗量。每层 +20%，三层 +60%。可与其他祝福叠加。",
+      "effect": {
+        "kind": "attributes",
+        "target": "player",
+        "attributes": ["healPower"],
+        "perStack": 0.2
+      }
+    },
+    {
+      "id": "beast",
       "name": "兽威",
       "icon": "🐾",
       "label": "灵兽双攻",
       "maxStacks": 3,
+      "description": "提高灵兽物理和法术攻击。每层 +14%，三层 +42%。可与其他祝福叠加。",
       "effect": {
+        "kind": "attributes",
         "target": "beasts",
         "attributes": ["physicalAtk", "magicAtk"],
-        "perStack": 0.08
+        "perStack": 0.14
+      }
+    },
+    {
+      "id": "beastHaste",
+      "name": "灵迅",
+      "icon": "💨",
+      "label": "灵兽速度",
+      "maxStacks": 3,
+      "description": "提高灵兽速度。每层 +10%，三层 +30%。可与其他祝福叠加。",
+      "effect": {
+        "kind": "attributes",
+        "target": "beasts",
+        "attributes": ["speed"],
+        "perStack": 0.1
+      }
+    },
+    {
+      "id": "beastHide",
+      "name": "兽甲",
+      "icon": "🐢",
+      "label": "灵兽双防",
+      "maxStacks": 3,
+      "description": "提高灵兽物理和法术防御。每层 +12%，三层 +36%。可与其他祝福叠加。",
+      "effect": {
+        "kind": "attributes",
+        "target": "beasts",
+        "attributes": ["physicalDef", "magicDef"],
+        "perStack": 0.12
       }
     }
   ],
   "choices": {
-    "count": 3,
+    "count": 4,
     "afterFloors": [0, 2, 4, 6, 8, 10, 12, 14, 16]
   }
 }

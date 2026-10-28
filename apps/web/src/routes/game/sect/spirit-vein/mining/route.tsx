@@ -322,7 +322,7 @@ export default function SectSpiritVeinMiningPage() {
       <div ref={rootRef} className="absolute inset-0" />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 px-[max(env(safe-area-inset-left),0.75rem)] pt-[max(var(--app-safe-top),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)]">
-        <div className="pointer-events-auto rounded-full bg-[#10201b]/65 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md">
+        <div className="pointer-events-auto rounded-full bg-scene-scrim/65 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md">
           <span>
             {viewport.coarsePointer ? '分' : '得分'} {progress?.score ?? 0}
           </span>
@@ -355,7 +355,7 @@ export default function SectSpiritVeinMiningPage() {
           ) : null}
           <button
             type="button"
-            className="rounded-full bg-[#10201b]/65 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md transition hover:bg-[#10201b]/85 disabled:opacity-50"
+            className="rounded-full bg-scene-scrim/65 px-4 py-2 text-sm shadow-lg ring-1 ring-white/10 backdrop-blur-md transition hover:bg-scene-scrim/85 disabled:opacity-50"
             onClick={() => void exit()}
             disabled={submitting}
           >

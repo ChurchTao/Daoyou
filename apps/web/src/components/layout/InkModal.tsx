@@ -75,7 +75,7 @@ export function InkModal({
 
         <div
           className={cn(
-            'battle-scroll max-h-[60dvh] min-h-0 overflow-y-auto overscroll-contain',
+            'battle-scroll max-h-[60dvh] min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain',
             title && 'mt-3',
           )}
         >

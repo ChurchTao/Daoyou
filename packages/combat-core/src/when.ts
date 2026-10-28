@@ -152,6 +152,10 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.sourceHpRatioBelow !== undefined && hpRatio(scope.source) >= when.sourceHpRatioBelow) return false
   if (when.sourceHpRatioAbove !== undefined && hpRatio(scope.source) <= when.sourceHpRatioAbove) return false
   if (when.sourceTags?.length && !when.sourceTags.every((tag) => scope.source.tags.includes(tag))) return false
+  if (when.ownerStatusKinds?.length) {
+    const owner = units.find((unit) => unit.id === scope.source.ownerId)
+    if (!owner || !when.ownerStatusKinds.some((kind) => hasKind(owner, [kind]))) return false
+  }
   if (when.sourceDefending !== undefined && scope.source.flags.defending !== when.sourceDefending) return false
   if (when.sourceStanding !== undefined && isStanding(scope.source) !== when.sourceStanding) return false
   if (when.damageOrigins?.length && (!scope.origin || !when.damageOrigins.includes(scope.origin))) return false

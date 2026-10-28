@@ -48,7 +48,7 @@ const MAX_PROMPT_LENGTH = 200;
 const countChars = (input: string): number => Array.from(input).length;
 
 const genesisPanelClassName =
-  'border-battle-rule-strong border border-dashed bg-[rgba(248,243,230,0.88)] px-4 py-4 md:px-5 md:py-5';
+  'border-battle-rule-strong border border-dashed bg-paper px-4 py-4 md:px-5 md:py-5';
 
 function chunkPairs<T>(items: T[]): T[][] {
   const rows: T[][] = [];
