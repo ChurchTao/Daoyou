@@ -1,7 +1,7 @@
 {
   "$schema": "./tower.schema.json",
   "formatVersion": 3,
-  "contentRevision": 8,
+  "contentRevision": 9,
   "pools": {
     "books": {
       "label": "随机普通传承灵印",
@@ -115,7 +115,31 @@
         "blueprint.armor.90",
         "blueprint.necklace.90",
         "blueprint.belt.90",
-        "blueprint.footwear.90"
+        "blueprint.footwear.90",
+        "blueprint.weapon.110",
+        "blueprint.head.110",
+        "blueprint.armor.110",
+        "blueprint.necklace.110",
+        "blueprint.belt.110",
+        "blueprint.footwear.110",
+        "blueprint.weapon.130",
+        "blueprint.head.130",
+        "blueprint.armor.130",
+        "blueprint.necklace.130",
+        "blueprint.belt.130",
+        "blueprint.footwear.130",
+        "blueprint.weapon.150",
+        "blueprint.head.150",
+        "blueprint.armor.150",
+        "blueprint.necklace.150",
+        "blueprint.belt.150",
+        "blueprint.footwear.150",
+        "blueprint.weapon.170",
+        "blueprint.head.170",
+        "blueprint.armor.170",
+        "blueprint.necklace.170",
+        "blueprint.belt.170",
+        "blueprint.footwear.170"
       ]
     },
     "manuals": {
@@ -297,6 +321,15 @@
             "kind": "pool",
             "poolId": "blueprints"
           }
+        },
+        {
+          "id": "blueprint-extra",
+          "chance": 0.3,
+          "quantity": 1,
+          "source": {
+            "kind": "pool",
+            "poolId": "blueprints"
+          }
         }
       ]
     },
@@ -336,15 +369,6 @@
           "source": {
             "kind": "item",
             "definitionId": "beast.refinement.superior-origin-dew"
-          }
-        },
-        {
-          "id": "bonus",
-          "chance": 0.5,
-          "quantity": 1,
-          "source": {
-            "kind": "pool",
-            "poolId": "blueprints"
           }
         },
         {

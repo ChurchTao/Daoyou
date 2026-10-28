@@ -4,8 +4,7 @@ import type {
 } from '@daoyou/game-domain/tower';
 import { rollDrops } from '../drops/index.js';
 import { SeededRng } from '@daoyou/combat-core/rng';
-import { isOpenEquipmentLevel } from '@daoyou/game-domain/equipment';
-import { equipmentRealm } from '../equipment/realm.js';
+import { blueprintDropEntries } from './blueprint-distribution.js';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import { itemDefinition } from '../inventory/index.js';
 import { hashTowerSeed } from '../tower/helpers.js';
@@ -22,15 +21,19 @@ function eligibleRewardItems(
     drop.source.kind === 'item'
       ? [drop.source.definitionId]
       : pack.pools[drop.source.poolId].entries;
-  const level = combatCharacterLevel(realm, '初期');
   const advanced = REALM_ORDER[realm] >= REALM_ORDER['化神'];
+  if (drop.source.kind === 'pool' && pack.pools[drop.source.poolId].kind === 'blueprint') {
+    const allowed = new Set(
+      blueprintDropEntries(
+        realm,
+        drop.id === 'blueprint-extra' ? 'near' : 'lower',
+      ).map((entry) => entry.rewardId),
+    );
+    return ids.filter((id) => allowed.has(id));
+  }
   return ids.filter((id) => {
     const item = itemDefinition(id);
-    if (item.kind === 'blueprint')
-      return (
-        isOpenEquipmentLevel(item.level!) &&
-        equipmentRealm(item.level!).requiredLevel <= level
-      );
+    if (item.kind === 'blueprint') return false;
     if (item.kind !== 'manual_jade') return true;
     const manual = CHARACTER_MANUALS_V1.find((row) => row.id === item.manualId);
     if (!manual) return false;
@@ -86,12 +89,21 @@ export function planTowerReward(
         version: pack.contentRevision,
         groups: row.drops.map((drop) => {
           const eligible = eligibleRewardItems(drop, realm, pack);
+          const blueprintWeights = new Map(
+            drop.source.kind === 'pool' &&
+            pack.pools[drop.source.poolId].kind === 'blueprint'
+              ? blueprintDropEntries(
+                  realm,
+                  drop.id === 'blueprint-extra' ? 'near' : 'lower',
+                ).map((entry) => [entry.rewardId, entry.weight])
+              : [],
+          );
           return {
             id: drop.id,
             chance: drop.chance,
             entries: eligible.map((rewardId) => ({
               rewardId,
-              weight: 1,
+              weight: blueprintWeights.get(rewardId) ?? 1,
               quantity: { min: drop.quantity, max: drop.quantity },
             })),
           };

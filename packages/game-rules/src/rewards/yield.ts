@@ -1,12 +1,9 @@
 import { z } from 'zod';
-import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { type DropPool } from '@daoyou/game-domain/rewards';
 import { rollDrops } from '../drops/index.js';
-import { OPEN_EQUIPMENT_LEVELS } from '@daoyou/game-domain/equipment';
-import { equipmentRealm } from '../equipment/realm.js';
 import { YieldCalculator } from '../yield/YieldCalculator.js';
 import type { ItemGrant } from '@daoyou/game-domain/inventory';
-import { BLUEPRINTS } from '@daoyou/game-content/items/equipment';
+import { blueprintDropEntries } from './blueprint-distribution.js';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { REWARDS_YIELD_DATA as raw } from '@daoyou/game-content/rewards/yield';
@@ -56,12 +53,8 @@ export function planYieldRewards(
   const count = YieldCalculator.calculateMaterialCount(
     Math.min(input.hoursElapsed, 24),
   );
-  const ownerLevel = getRealmStageLevel(input.realm, input.realmStage);
-  const levels = OPEN_EQUIPMENT_LEVELS.filter(
-    (value) => equipmentRealm(value).requiredLevel <= ownerLevel,
-  );
-  const level = levels[levels.length - 1];
-  const blueprints = BLUEPRINTS.filter((item) => item.level === level);
+  const blueprints = blueprintDropEntries(input.realm, 'yield');
+  const blueprintWeight = blueprints.reduce((sum, item) => sum + item.weight, 0);
   const bookWeight = pack.books.reduce((sum, book) => sum + book.weight, 0);
   const entry = (rewardId: string, value: number) => ({
     rewardId,
@@ -78,7 +71,10 @@ export function planYieldRewards(
         entries: [
           entry('yield.material', pack.weights.material),
           ...blueprints.map((item) =>
-            entry(item.id, pack.weights.blueprint / blueprints.length),
+            entry(
+              item.rewardId,
+              (pack.weights.blueprint * item.weight) / blueprintWeight,
+            ),
           ),
           ...pack.books.map((book) =>
             entry(
