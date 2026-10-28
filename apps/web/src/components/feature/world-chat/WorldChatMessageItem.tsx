@@ -135,7 +135,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
             </div>
           ) : !isSystemRumor ? (
             <div
-              className="bg-ink/5 text-ink-secondary mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-sm"
+              className="bg-ink/5 text-ink-secondary flex size-7 shrink-0 items-center justify-center rounded-full text-sm"
               aria-hidden="true"
             >
               {Array.from(message.senderName)[0]}
@@ -143,9 +143,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
           ) : null}
           <div className="min-w-0 flex-1">
             {!grouped ? (
-              <div
-                className="mb-0.5 flex min-h-6 items-center justify-between gap-2 text-sm"
-              >
+              <div className="mb-0.5 flex h-7 items-center justify-between gap-2 text-sm">
                 <div className="flex min-w-0 items-center gap-1.5">
                   {isSystemRumor ? (
                     <>
@@ -163,8 +161,14 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                           onSelectFriend={isOwn ? undefined : onSelectFriend}
                         >
                           <span className="flex min-w-0 items-baseline gap-1.5">
-                            <span className="max-w-full shrink-0 truncate font-semibold">{message.senderName}</span>
-                            {senderTitle ? <span className="min-w-0 truncate text-xs text-ink-secondary">「{senderTitle}」</span> : null}
+                            <span className="max-w-full shrink-0 truncate font-semibold">
+                              {message.senderName}
+                            </span>
+                            {senderTitle ? (
+                              <span className="text-ink-secondary min-w-0 truncate text-xs">
+                                「{senderTitle}」
+                              </span>
+                            ) : null}
                           </span>
                         </CharacterCardTrigger>
                       ) : (
@@ -184,7 +188,7 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                 <div className="flex shrink-0 items-center gap-1">
                   {!isSystemRumor && onReply ? (
                     <InkButton
-                      className="min-h-11 px-1 text-sm md:min-h-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
+                      className="-my-2 min-h-11 px-1 text-sm md:my-0 md:min-h-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
                       variant="secondary"
                       onClick={() => onReply(message)}
                     >
