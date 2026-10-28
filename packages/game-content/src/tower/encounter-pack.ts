@@ -15,6 +15,7 @@ const baseline = z.strictObject({
   hit: positive,
   dodge: positive,
   cultivate: positive.int(),
+  sealHit: positive,
 });
 const scale = z.strictObject({
   rounds: z.number().min(1).max(12),
@@ -40,6 +41,7 @@ export const TowerEncounterPackShape = z.strictObject({
     hpGrowth: z.number().min(0).max(0.1),
     outputGrowth: z.number().min(0).max(0.1),
     defenseGrowth: z.number().min(0).max(0.01),
+    survivalScale: z.number().min(1).max(3),
     types: z.strictObject({ normal: scale, elite: scale, boss: scale }),
   }),
   baselines: z.strictObject({
