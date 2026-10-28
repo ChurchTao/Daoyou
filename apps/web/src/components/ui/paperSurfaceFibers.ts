@@ -1,4 +1,4 @@
-// 与 hutu.si scene.js 中 tt(2024) + t0() 一致。正面先画 170 条深色纤维，再画 120 条浅色纤维。
+// 由 hutu.si scene.js 的 tt(2024) + t0() 改疏、改淡。正面先画深色纤维，再画浅色纤维。
 
 function createFiberRandom(seed: number) {
   let state = seed >>> 0;
@@ -24,14 +24,14 @@ function fiberSvg(count: number, random: () => number) {
     const controlX = (x + endX) / 2 - Math.sin(angle) * bend;
     const controlY = (y + endY) / 2 + Math.cos(angle) * bend;
     const fixed = (point: number) => point.toFixed(1);
-    paths += `<path d='M${fixed(x)} ${fixed(y)}Q${fixed(controlX)} ${fixed(controlY)} ${fixed(endX)} ${fixed(endY)}' stroke-width='${(0.3 + random() * 0.5).toFixed(2)}' stroke-opacity='${(0.2 + random() * 0.45).toFixed(2)}'/>`;
+    paths += `<path d='M${fixed(x)} ${fixed(y)}Q${fixed(controlX)} ${fixed(controlY)} ${fixed(endX)} ${fixed(endY)}' stroke-width='${(0.3 + random() * 0.48).toFixed(2)}' stroke-opacity='${(0.18 + random() * 0.4).toFixed(2)}'/>`;
   }
   return `<svg xmlns='http://www.w3.org/2000/svg' width='620' height='360'><g fill='none' stroke='#000' stroke-linecap='round'>${paths}</g></svg>`;
 }
 
 const random = createFiberRandom(2024);
-const frontDarkSvg = fiberSvg(170, random);
-const frontLightSvg = fiberSvg(120, random);
+const frontDarkSvg = fiberSvg(88, random);
+const frontLightSvg = fiberSvg(68, random);
 
 function maskUrl(svg: string) {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
