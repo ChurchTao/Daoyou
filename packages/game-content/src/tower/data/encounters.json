@@ -1,7 +1,7 @@
 {
   "$schema": "./encounters.schema.json",
   "formatVersion": 3,
-  "contentRevision": 6,
+  "contentRevision": 7,
   "minRealm": "金丹",
   "difficultyStep": 5,
   "floors": [
@@ -130,6 +130,7 @@
     "hpGrowth": 0.025,
     "outputGrowth": 0.025,
     "defenseGrowth": 0.005,
+    "survivalScale": 1.8,
     "types": {
       "normal": {
         "output": 1,
@@ -157,7 +158,8 @@
       "referencePhysicalDef": 430,
       "referenceMagicDef": 510,
       "damagePerRound": 700,
-      "cultivate": 15
+      "cultivate": 15,
+      "sealHit": 126
     },
     "元婴": {
       "physicalAtk": 850,
@@ -170,7 +172,8 @@
       "referencePhysicalDef": 580,
       "referenceMagicDef": 690,
       "damagePerRound": 1100,
-      "cultivate": 20
+      "cultivate": 20,
+      "sealHit": 174
     },
     "化神": {
       "physicalAtk": 1040,
@@ -183,7 +186,8 @@
       "referencePhysicalDef": 720,
       "referenceMagicDef": 860,
       "damagePerRound": 1400,
-      "cultivate": 30
+      "cultivate": 30,
+      "sealHit": 232
     },
     "炼虚": {
       "physicalAtk": 1130,
@@ -196,7 +200,8 @@
       "referencePhysicalDef": 780,
       "referenceMagicDef": 980,
       "damagePerRound": 1600,
-      "cultivate": 40
+      "cultivate": 40,
+      "sealHit": 238
     },
     "合体": {
       "physicalAtk": 1240,
@@ -209,7 +214,8 @@
       "referencePhysicalDef": 850,
       "referenceMagicDef": 1100,
       "damagePerRound": 1800,
-      "cultivate": 45
+      "cultivate": 45,
+      "sealHit": 323
     },
     "大乘": {
       "physicalAtk": 1330,
@@ -222,7 +228,8 @@
       "referencePhysicalDef": 910,
       "referenceMagicDef": 1220,
       "damagePerRound": 1850,
-      "cultivate": 50
+      "cultivate": 50,
+      "sealHit": 343
     },
     "渡劫": {
       "physicalAtk": 1420,
@@ -235,7 +242,8 @@
       "referencePhysicalDef": 970,
       "referenceMagicDef": 1340,
       "damagePerRound": 2250,
-      "cultivate": 60
+      "cultivate": 60,
+      "sealHit": 324
     }
   }
 }

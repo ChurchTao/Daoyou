@@ -7,6 +7,19 @@ import { type Quality } from '@daoyou/constants/qualities';
 
 const BOOK_RECYCLE_PRICES = [5_000, 15_000, 50_000, 150_000, 300_000] as const;
 
+/** 元婴起与历练时基冻结在 187.5 倍。炼气到金丹仍用原表，不随历练基数重算。 */
+const BLUEPRINT_RECYCLE_PRICES: Record<RealmType, number> = {
+  炼气: 5_000,
+  筑基: 15_000,
+  金丹: 50_000,
+  元婴: 150_000,
+  化神: 300_000,
+  炼虚: 600_000,
+  合体: 900_000,
+  大乘: 1_200_000,
+  渡劫: 2_400_000,
+};
+
 function bookRecycleUnitPrice(realm: RealmType): number {
   const index = REALM_VALUES.indexOf(realm);
   return BOOK_RECYCLE_PRICES[Math.min(index, BOOK_RECYCLE_PRICES.length - 1)];
@@ -27,7 +40,7 @@ export function blueprintRecycleUnitPrice(level: number): number {
     (entry) => entry.level === level,
   );
   if (!cost) throw new Error('道装图纸境界无效');
-  return bookRecycleUnitPrice(getLevelRealmStage(level).realm);
+  return BLUEPRINT_RECYCLE_PRICES[getLevelRealmStage(level).realm];
 }
 
 export function equipmentRecycleUnitPrice(equipment: {

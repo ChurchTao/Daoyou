@@ -1,4 +1,10 @@
-import type { CompiledTowerEncounter } from '@daoyou/game-domain/tower';
+import { UnitKind } from '@daoyou/combat-core/enums';
+import {
+  type CreateBattleInput,
+  type SkillDef,
+  type StatusDef,
+} from '@daoyou/combat-core/types';
+import type { RealmType } from '@daoyou/constants/realms';
 import {
   TOWER_ENCOUNTER_PACK as pack,
   TOWER_CATALOG,
@@ -6,16 +12,17 @@ import {
   TOWER_STATUS_DEFS,
   type TowerModifier,
 } from '@daoyou/game-content/tower';
-import type { RealmType } from '@daoyou/constants/realms';
-import { UnitKind } from '@daoyou/combat-core/enums';
-import { type CreateBattleInput, type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import type { CompiledTowerEncounter } from '@daoyou/game-domain/tower';
 import {
-  type TowerNpcPlan,
   TOWER_STRATEGY_VERSION,
   type TowerFloorStrategy,
+  type TowerNpcPlan,
 } from '@daoyou/game-domain/tower';
-import { towerStrategyPreview, validateTowerFloorStrategy } from './strategy.js';
+import {
+  towerStrategyPreview,
+  validateTowerFloorStrategy,
+} from './strategy.js';
 
 /** Bind only matching reference strings; no mechanic names or slot assumptions. */
 function bindReferences<T>(value: T, refs: Map<string, string>): T {
@@ -131,6 +138,7 @@ export function compileTowerStrategy(
       );
     const pool = Math.round(
       base.damagePerRound *
+        scaling.survivalScale *
         (1 + scaling.hpGrowth * (f.floor - 1)) *
         scaling.types[f.kind].rounds *
         f.budget.hpScale *
@@ -204,7 +212,11 @@ export function compileTowerStrategy(
           TOWER_CATALOG.defaults.spellCritRate * scale('spellCritRate') +
           add('spellCritRate'),
         sealHit:
-          TOWER_CATALOG.defaults.sealHit * scale('sealHit') + add('sealHit'),
+          (e.archetype === 'binder'
+            ? base.sealHit
+            : TOWER_CATALOG.defaults.sealHit) *
+            scale('sealHit') +
+          add('sealHit'),
         sealResist:
           TOWER_CATALOG.defaults.sealResist * scale('sealResist') +
           add('sealResist'),

@@ -70,7 +70,14 @@ describe('blueprint forging', () => {
     expect(() => forgingBaseQuality(170, pile(170, '地品'))).toThrow('天品');
     expect(forgingBaseQuality(170, pile(170, '仙品'))).toBe(0.5);
     expect(forgingBaseQuality(170, pile(170, '神品'))).toBe(1);
-    expect(() => forgingBoosts(170, 180, pile(170, '神品'))).toThrow('化神');
+    expect(forgingBoosts(170, 165, pile(170, '神品'))).toEqual({
+      ore: 5,
+      essence: 0,
+      attributes: 0,
+    });
+    expect(() => forgingBoosts(170, 160, pile(170, '神品'))).toThrow(
+      '人物境界',
+    );
   });
   it('rejects overlevel, excessive, insufficient and under-quality inputs', () => {
     expect(() => forgingBoosts(30, 20, [{ facts, quantity: 1 }])).toThrow(
