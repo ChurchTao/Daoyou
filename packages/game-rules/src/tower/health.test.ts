@@ -1,17 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { automaticCommands } from '../combat/auto.js';
-import {
-  buildTowerBlessingChoices,
-  TOWER_ELIGIBLE_REALMS,
-} from './helpers.js';
-import { getTowerSeasonMeta } from './season.js';
-import { createTowerWeek, TOWER_ENCOUNTERS } from './weekly.js';
-import { applyCultivate, physicalBase } from '../combat/daoyou/formulas.js';
-import { compileTowerEncounter } from './content.js';
 import { TOWER_MECHANICS_DATA as mechanics } from '@daoyou/game-content/authoring/tower';
 import { type TowerBlessings } from '@daoyou/game-domain/tower';
+import { describe, expect, it } from 'vitest';
+import { automaticCommands } from '../combat/auto.js';
+import { applyCultivate, physicalBase } from '../combat/daoyou/formulas.js';
+import { compileTowerEncounter } from './content.js';
+import { buildTowerBlessingChoices, TOWER_ELIGIBLE_REALMS } from './helpers.js';
 import { createTowerHost, projectTowerPlayer } from './host.js';
 import { towerReferenceBuild } from './reference-fixtures.js';
+import { getTowerSeasonMeta } from './season.js';
+import { createTowerWeek, TOWER_ENCOUNTERS } from './weekly.js';
 
 const week = createTowerWeek(getTowerSeasonMeta(new Date('2026-09-23')));
 
@@ -19,12 +16,11 @@ describe('输出预算定标的战斗节奏', () => {
   for (const realm of TOWER_ELIGIBLE_REALMS) {
     it(`${realm} 普通、精英与首领有不同的行动窗口`, () => {
       for (const [floor, min] of [
-        // 物理命中曲线和人物法术系数 1.7 之后，雷狱与断尘都能在首层一轮清掉杂兵。
-        [1, 1, 2],
-        [5, 3, 4],
-        [10, 4, 6],
-        [15, 3, 4.5],
-        [20, 5, 7],
+        [1, 2],
+        [5, 3],
+        [10, 4],
+        [15, 3],
+        [20, 5],
       ]) {
         const samples: Array<{ sect: string; seed: number; rounds: number }> =
           [];
@@ -106,10 +102,9 @@ describe('输出预算定标的战斗节奏', () => {
               host.submitGroup(commands);
               host.resolveRound();
             }
-            expect(
-              host.finished,
-              `${realm}/${floor}/${sect}/${seed}`,
-            ).toBe(true);
+            expect(host.finished, `${realm}/${floor}/${sect}/${seed}`).toBe(
+              true,
+            );
             samples.push({ sect, seed, rounds: host.trace().rounds.length });
           }
         }
@@ -122,7 +117,7 @@ describe('输出预算定标的战斗节奏', () => {
           JSON.stringify(samples),
           median,
         );
-        if (floor > 1) expect(median).toBeGreaterThanOrEqual(min);
+        expect(median).toBeGreaterThanOrEqual(min);
       }
     }, 20000);
   }

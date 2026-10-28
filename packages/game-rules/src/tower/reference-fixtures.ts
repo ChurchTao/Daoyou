@@ -11,10 +11,7 @@ import { allocateBeast, gainBeastExp } from '../beasts/progression.js';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { type CombatV6SectId } from '@daoyou/game-domain/combat';
 import type { CombatV6TrainingPlayerInput } from '@daoyou/game-domain/combat';
-import {
-  DAO_EQUIPMENT_GENERATOR_VERSION,
-  OPEN_EQUIPMENT_LEVELS,
-} from '@daoyou/game-domain/equipment';
+import { DAO_EQUIPMENT_GENERATOR_VERSION } from '@daoyou/game-domain/equipment';
 import { DAO_EQUIPMENT_TEMPLATES_V1 } from '@daoyou/game-content/equipment/base';
 import { generateDaoEquipmentV1 } from '../equipment/generator.js';
 import { equipmentRealm } from '../equipment/realm.js';
@@ -59,7 +56,8 @@ export function towerReferenceBuild(
   );
   allocation[0] += budget - allocation.reduce((a, b) => a + b, 0);
   const attrs = allocation.map((points) => natural + points);
-  const equipmentLevel = [...OPEN_EQUIPMENT_LEVELS]
+  // 定标样本仍穿炼气至化神。铸造档已含炼虚至渡劫，不在这里改写既有战力。
+  const equipmentLevel = [10, 30, 50, 70, 90]
     .reverse()
     .find((n) => equipmentRealm(n).requiredLevel <= level)!;
   const owner = '00000000-0000-4000-8000-000000000001';

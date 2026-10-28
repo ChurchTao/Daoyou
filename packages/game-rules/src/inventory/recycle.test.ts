@@ -144,7 +144,7 @@ describe('回收边界', () => {
     ).not.toBeNull();
     expect(recycleBlockingReason({ ...equipment, id: 'other' })).not.toBeNull();
   });
-  it('玉简和图纸按境界定价，未开放图纸以化神档封顶', () => {
+  it('玉简停在化神档，图纸按境界继续抬价', () => {
     expect(
       [
         'character_manual.changchun',
@@ -156,10 +156,12 @@ describe('回收边界', () => {
     expect(
       [10, 30, 50, 70, 90, 110, 130, 150, 170].map(blueprintRecycleUnitPrice),
     ).toEqual([
-      5_000, 15_000, 50_000, 150_000, 300_000, 300_000, 300_000, 300_000,
-      300_000,
+      5_000, 15_000, 50_000, 150_000, 300_000, 600_000, 900_000, 1_200_000,
+      2_400_000,
     ]);
     expect(equipmentRecycleUnitPrice({ equipmentLevel: 90 })).toBe(215_670);
+    expect(equipmentRecycleUnitPrice({ equipmentLevel: 110 })).toBe(433_234);
+    expect(equipmentRecycleUnitPrice({ equipmentLevel: 170 })).toBe(1_711_609);
   });
   it('不把未知定义或损坏的道装、消耗品当作可回收物品', () => {
     for (const definitionId of ['equipment.v6', 'unknown', 'consumable.v1']) {

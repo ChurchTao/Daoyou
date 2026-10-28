@@ -165,7 +165,7 @@ function validateInstance(
     diagnostics.push(
       diagnostic(
         'INVALID_EQUIPMENT_LEVEL',
-        '道装仅开放至化神期，御使门槛须为对应境界初期',
+        '道装仅开放至渡劫期，御使门槛须为对应境界初期',
       ),
     );
   }

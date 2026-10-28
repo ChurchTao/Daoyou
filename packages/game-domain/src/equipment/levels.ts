@@ -10,8 +10,8 @@ export function isEquipmentLevel(level: number) {
 }
 
 
-/** 炼气至化神可以铸造。更高器阶的图纸按历练、副本和蜃楼规则掉落，铸造仍拒绝。 */
-export const OPEN_EQUIPMENT_LEVELS = [10, 30, 50, 70, 90] as const;
+/** 当前可铸造的器阶。图纸掉落另见 blueprintRealmWeights，不要用这张表裁掉落。 */
+export const OPEN_EQUIPMENT_LEVELS = EQUIPMENT_LEVELS;
 
 export function isOpenEquipmentLevel(level: number) {
   return OPEN_EQUIPMENT_LEVELS.some((value) => value === level);

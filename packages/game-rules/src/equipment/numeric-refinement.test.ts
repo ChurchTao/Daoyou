@@ -42,7 +42,32 @@ describe('材料品阶决定白字区间，材料种类保留择优', () => {
     expect(() => forgingInputs(90, 85, [material('凡品'), material('神品', 2)])).toThrow('品质');
     expect(() => forgingInputs(90, 85, [material('地品', 2)])).toThrow('恰好');
     expect(() => forgingInputs(90, 80, [material('地品', 3)])).toThrow('人物境界');
-    expect(() => forgingInputs(110, 180, [material('神品', 3)])).toThrow('化神');
+    expect(forgingInputs(110, 105, [material('神品', 3)])).toMatchObject({
+      baseQuality: 1,
+    });
+    expect(() => forgingInputs(110, 100, [material('神品', 3)])).toThrow(
+      '人物境界',
+    );
+  });
+  it('炼虚至渡劫法兵端点按设计表，强化端不低于普通端', () => {
+    const template = daoEquipmentTemplateOf(input().templateId)!;
+    const stat = (attr: string) =>
+      template.baseStats.find((row) => row.attr === attr)!;
+    const ends = [
+      [110, 'physicalAtk', 700, 899, 769, 988],
+      [170, 'physicalAtk', 1050, 1349, 1155, 1483],
+      [110, 'magicAtk', 156, 202, 172, 221],
+      [170, 'healPower', 270, 486, 297, 535],
+    ] as const;
+    for (const [level, attr, min, max, enhancedMin, enhancedMax] of ends) {
+      expect(daoEquipmentBaseRange(stat(attr), level, 0)).toEqual({ min, max });
+      expect(daoEquipmentBaseRange(stat(attr), level, 1)).toEqual({
+        min: enhancedMin,
+        max: enhancedMax,
+      });
+      expect(enhancedMin).toBeGreaterThanOrEqual(min);
+      expect(enhancedMax).toBeGreaterThanOrEqual(max);
+    }
   });
   it('100级武器的中间范围按端点插值取整，不是对成品乘倍率', () => {
     const stat = daoEquipmentTemplateOf(input().templateId)!.baseStats[0];
@@ -76,10 +101,14 @@ it.each(DAO_EQUIPMENT_SLOTS)('%s按文档端点生成，普通和最高品阶均
     expect(compileDaoEquipmentSpecialLoadoutV1({ [slot]: result.instance }, 85).ok).toBe(true);
   }
 });
-it('五个境界的参考档和双加预算固定，六维不重复且仅法兵法衣有绿字', () => {
-  expect(OPEN_EQUIPMENT_LEVELS.map(equipmentReferenceLevel)).toEqual([20, 40, 60, 80, 100]);
+it('九个境界的参考档和双加预算固定，六维不重复且仅法兵法衣有绿字', () => {
+  expect(OPEN_EQUIPMENT_LEVELS.map(equipmentReferenceLevel)).toEqual([
+    20, 40, 60, 80, 100, 120, 140, 160, 180,
+  ]);
   expect(OPEN_EQUIPMENT_LEVELS.map(daoEquipmentAttributeRange)).toEqual([
-    { min: 4, max: 7 }, { min: 7, max: 14 }, { min: 11, max: 22 }, { min: 15, max: 29 }, { min: 18, max: 36 },
+    { min: 4, max: 7 }, { min: 7, max: 14 }, { min: 11, max: 22 },
+    { min: 15, max: 29 }, { min: 18, max: 36 }, { min: 22, max: 43 },
+    { min: 25, max: 50 }, { min: 29, max: 58 }, { min: 33, max: 65 },
   ]);
   const seen = new Set<string>();
   for (const slot of DAO_EQUIPMENT_SLOTS) for (let seed = 0; seed < 128; seed++) {

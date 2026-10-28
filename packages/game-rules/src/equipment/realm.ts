@@ -9,7 +9,7 @@ export function equipmentRealm(level: number) {
 }
 
 
-/** 数值参考档与资产/境界标识分离：炼气20，筑基40，金丹60，元婴80，化神100。 */
+/** 数值参考档与资产/境界标识分离：炼气 20，之后每境 +20，至渡劫 180。 */
 export function equipmentReferenceLevel(level: number) {
   if (!isOpenEquipmentLevel(level)) throw new Error('该境界道装尚未开放');
   return level + 10;

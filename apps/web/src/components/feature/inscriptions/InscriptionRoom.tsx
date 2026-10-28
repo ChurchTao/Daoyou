@@ -25,7 +25,11 @@ import { inscriptionMaterialProblem, prepareInscriptionDraw, prepareInscriptionE
 import { itemDefinition } from '@daoyou/game-rules/inventory';
 import { EQUIPMENT_ATTRIBUTE_NAMES } from '@daoyou/game-domain/equipment';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
-import { inscriptionItemId } from '@daoyou/game-content/items/inscriptions';
+import {
+  INSCRIPTION_DRAW_MAX_LEVEL,
+  INSCRIPTION_MAX_LEVEL,
+  inscriptionItemId,
+} from '@daoyou/game-content/items/inscriptions';
 import { cn } from '@app/lib/cn';
 import { useState } from 'react';
 import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
@@ -210,7 +214,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       return def.kind === 'equipment' ? null : '请选择道装';
     if (def.kind !== 'inscription') return '请选择阵纹';
     if (tab === 'strengthen') {
-      if (def.level === 11) return '已达最高等级';
+      if (def.level === INSCRIPTION_MAX_LEVEL) return '已达最高等级';
       const firstRef = pair.find((ref) => ref !== null);
       const first = firstRef ? byId.get(firstRef.id) : undefined;
       if (first && first.definitionId !== item.definitionId)
@@ -779,10 +783,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           </summary>
           <div className="text-ink-secondary mt-3 space-y-2">
             <p>
-              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数翻倍，优先绘成高等级阵纹，最高11级。每512份消耗1点天地灵气，最少1点、最多100点；每1份消耗1灵石，均向上取整，余料也计入费用；最多产出三个等级组，其余材料随绘制消耗。
+              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数变为三倍，优先绘成高等级阵纹，最高{INSCRIPTION_DRAW_MAX_LEVEL}级。每512份消耗1点天地灵气，最少1点、最多100点；每1份消耗1灵石，均向上取整，余料也计入费用。只产出主产物和副产物两个等级，其余材料溢散。
             </p>
             <p>
-              九种阵纹等概率独立生成。同种同级可两两合成，绘制与合成均必定成功。阵纹适用部位及等级须符合道装要求。
+              九种阵纹等概率独立生成。同种同级可两两合成，绘制与合成均必定成功，最高{INSCRIPTION_MAX_LEVEL}级，合成费用仍逐级翻倍。阵纹适用部位及等级须符合道装孔上限。
             </p>
             <p>
               已烙印阵纹可消耗储物袋或储藏室中同种同级阵纹进行孔内合成。阵纹不能拆卸，覆盖时旧阵纹不返还。产出优先入袋，满时存入储藏室。

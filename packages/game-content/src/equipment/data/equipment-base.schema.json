@@ -67,8 +67,8 @@
                   ]
                 },
                 "ranges": {
-                  "minItems": 5,
-                  "maxItems": 5,
+                  "minItems": 9,
+                  "maxItems": 9,
                   "type": "array",
                   "items": {
                     "type": "object",
@@ -94,6 +94,22 @@
                           {
                             "type": "number",
                             "const": 90
+                          },
+                          {
+                            "type": "number",
+                            "const": 110
+                          },
+                          {
+                            "type": "number",
+                            "const": 130
+                          },
+                          {
+                            "type": "number",
+                            "const": 150
+                          },
+                          {
+                            "type": "number",
+                            "const": 170
                           }
                         ]
                       },
@@ -251,8 +267,8 @@
           "maxItems": 3
         },
         "bonusRanges": {
-          "minItems": 5,
-          "maxItems": 5,
+          "minItems": 9,
+          "maxItems": 9,
           "type": "array",
           "items": {
             "type": "object",
@@ -278,6 +294,22 @@
                   {
                     "type": "number",
                     "const": 90
+                  },
+                  {
+                    "type": "number",
+                    "const": 110
+                  },
+                  {
+                    "type": "number",
+                    "const": 130
+                  },
+                  {
+                    "type": "number",
+                    "const": 150
+                  },
+                  {
+                    "type": "number",
+                    "const": 170
                   }
                 ]
               },
