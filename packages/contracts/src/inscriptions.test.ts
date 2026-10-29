@@ -25,4 +25,40 @@ it('契约拒绝超四格、非法数量、任意孔位和拆卸操作', () => {
   expect(
     InscriptionRequestSchema.safeParse({ ...base, action: 'remove' }).success,
   ).toBe(false);
+  expect(
+    InscriptionRequestSchema.safeParse({
+      requestId: base.requestId,
+      expectedCost: { qi: 0, spiritStones: 0 },
+      action: 'inscribe',
+      equipment: { id: 'equipment', revision: 0 },
+      steps: [
+        {
+          socket: 0,
+          inscription: { id: 'glyph-0', revision: 0 },
+          mode: 'engrave',
+          replace: false,
+        },
+        {
+          socket: 1,
+          inscription: { id: 'glyph-0', revision: 0 },
+          mode: 'engrave',
+          replace: false,
+        },
+      ],
+    }).success,
+  ).toBe(true);
+  expect(
+    InscriptionRequestSchema.safeParse({
+      requestId: base.requestId,
+      expectedCost: { qi: 0, spiritStones: 0 },
+      action: 'inscribe',
+      equipment: { id: 'equipment', revision: 0 },
+      steps: [0, 1, 0].map((socket) => ({
+        socket,
+        inscription: { id: 'glyph-0', revision: 0 },
+        mode: 'engrave',
+        replace: false,
+      })),
+    }).success,
+  ).toBe(false);
 });
