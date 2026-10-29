@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "sects": {
     "lingxiao": [
       {
@@ -341,6 +341,48 @@
           "mode": "add",
           "value": 0.15
         }
+      }
+    ],
+    "baishou": [
+      {
+        "id": "baishou.method.canon",
+        "slot": 1,
+        "name": "《百兽真形》",
+        "isPrimary": true
+      },
+      {
+        "id": "baishou.method.combat",
+        "slot": 2,
+        "name": "《山海争雄》",
+        "isPrimary": false,
+        "panel": { "attr": "physicalAtk", "mode": "add", "value": 0.5 }
+      },
+      {
+        "id": "baishou.method.taming",
+        "slot": 3,
+        "name": "《灵犀相契》",
+        "isPrimary": false,
+        "panel": { "attr": "magicDef", "mode": "add", "value": 0.4 }
+      },
+      {
+        "id": "baishou.method.ferocity",
+        "slot": 4,
+        "name": "《长驱逐猎》",
+        "isPrimary": false
+      },
+      {
+        "id": "baishou.method.wing",
+        "slot": 5,
+        "name": "《逍遥游》",
+        "isPrimary": false,
+        "panel": { "attr": "dodge", "mode": "add", "value": 0.5 }
+      },
+      {
+        "id": "baishou.method.hide",
+        "slot": 6,
+        "name": "《龙筋虎骨》",
+        "isPrimary": false,
+        "panel": { "attr": "physicalDef", "mode": "add", "value": 0.4 }
       }
     ],
     "bailu": [

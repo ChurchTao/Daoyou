@@ -195,6 +195,7 @@ export function projectCharacterEquipment(
         beltPhysicalDef: equipmentContribution(input.equipment.belt, 'physicalDef'),
         wuxiang_wind_weapon: input.equipment.weapon?.element === '风' ? 1 : 0,
         weaponDamage: equipmentContribution(input.equipment.weapon, 'physicalAtk'),
+        metalEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element === '金').length,
         metalFireWindEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(e => e?.element && MERIDIAN_EQUIPMENT_ELEMENTS.has(e.element)).length,
         weaponXuanfengLevel: Math.max(0, ...weaponXuanfeng.map(formation => formation.level)),
         weaponXuanfengAttack: weaponXuanfeng.reduce((sum, formation) => sum + formation.level, 0) * daoFormationInscriptionOf(DAO_FORMATION_INSCRIPTION_ID.Xuanfeng)!.valuePerLevel,

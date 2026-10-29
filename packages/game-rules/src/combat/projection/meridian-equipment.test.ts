@@ -53,6 +53,7 @@ describe('杀意和杀伐的装备条件投影', () => {
       if (!result.ok) continue;
       const count = [first, second].filter(element => ['金', '火', '风'].includes(element)).length;
       expect(result.unit.combatFacts?.metalFireWindEquipmentCount).toBe(count);
+      expect(result.unit.combatFacts?.metalEquipmentCount).toBe([first, second].filter(element => element === '金').length);
       expect(result.unit.tags?.includes('equipment.weapon_armor.metal_fire_wind')).toBe(count === 2);
     }
   });
@@ -66,6 +67,7 @@ describe('杀意和杀伐的装备条件投影', () => {
       expect(result.ok).toBe(true);
       if (!result.ok) continue;
       expect(result.unit.combatFacts?.metalFireWindEquipmentCount).toBe(1);
+      expect(result.unit.combatFacts?.metalEquipmentCount).toBe(0);
       expect(result.unit.tags).not.toContain('equipment.weapon_armor.metal_fire_wind');
     }
   });

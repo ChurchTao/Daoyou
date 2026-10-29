@@ -34,6 +34,9 @@
         },
         "bailu": {
           "$ref": "#/$defs/__schema0"
+        },
+        "baishou": {
+          "$ref": "#/$defs/__schema0"
         }
       },
       "required": [
@@ -42,7 +45,8 @@
         "wuxiang",
         "tianyan",
         "jiujie",
-        "bailu"
+        "bailu",
+        "baishou"
       ],
       "additionalProperties": false
     }
