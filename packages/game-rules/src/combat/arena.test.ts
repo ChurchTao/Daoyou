@@ -177,13 +177,16 @@ describe('arena public host', () => {
       ).not.toThrow();
     expect(runtime).toEqual(before);
   });
-  it('旧自动策略版本仍能恢复竞技场，其他战斗版本不匹配仍拒绝', () => {
-    const runtime = fixture(2);
-    runtime.state.versions.autoPolicyVersion = 'combat_auto_rules_v3';
-    expect(arenaBattle(runtime).snapshot()).toEqual(runtime.state);
-    runtime.state.versions.rulesetVersion = 'daoyou_rules_v10';
-    expect(() => arenaBattle(runtime)).toThrow('ARENA_VERSION_MISMATCH');
-  });
+  it.each(['combat_auto_rules_v3', 'combat_auto_rules_v6'])(
+    '旧自动策略版本%s仍能恢复竞技场，其他战斗版本不匹配仍拒绝',
+    (version) => {
+      const runtime = fixture(2);
+      runtime.state.versions.autoPolicyVersion = version;
+      expect(arenaBattle(runtime).snapshot()).toEqual(runtime.state);
+      runtime.state.versions.rulesetVersion = 'daoyou_rules_v10';
+      expect(() => arenaBattle(runtime)).toThrow('ARENA_VERSION_MISMATCH');
+    },
+  );
 
   it('AUTO 请求协议可解析，回放只记录展开后的实际指令', () => {
     const input = {

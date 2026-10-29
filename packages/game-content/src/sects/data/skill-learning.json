@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 8,
+  "contentRevision": 9,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -1021,6 +1021,226 @@
     },
     "tianyan.passive.severance": {
       "sourceMethodId": "tianyan.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.skill.poxie": {
+      "sourceMethodId": "bailu.method.song",
+      "unlockMethodLevel": 1
+    },
+    "bailu.skill.zhuxie": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 20
+    },
+    "bailu.skill.rumeng": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 10
+    },
+    "bailu.skill.jinfa": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 40
+    },
+    "bailu.skill.shihun": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 25
+    },
+    "bailu.skill.dingshen": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 30
+    },
+    "bailu.skill.luanshen": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 15
+    },
+    "bailu.skill.shicuo": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 25
+    },
+    "bailu.skill.babing": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 20
+    },
+    "bailu.skill.jinqi": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 20
+    },
+    "bailu.skill.fuyuan": {
+      "sourceMethodId": "bailu.method.recovery",
+      "unlockMethodLevel": 1
+    },
+    "bailu.skill.juqi": {
+      "sourceMethodId": "bailu.method.bearing",
+      "unlockMethodLevel": 30
+    },
+    "bailu.skill.ningshen": {
+      "sourceMethodId": "bailu.method.recovery",
+      "unlockMethodLevel": 100
+    },
+    "bailu.skill.hushen": {
+      "sourceMethodId": "bailu.method.bearing",
+      "unlockMethodLevel": 120
+    },
+    "bailu.skill.pojia": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 120
+    },
+    "bailu.skill.dianming": {
+      "sourceMethodId": "bailu.method.song",
+      "unlockMethodLevel": 1
+    },
+    "bailu.skill.jinsheng": {
+      "sourceMethodId": "bailu.method.edict",
+      "unlockMethodLevel": 1
+    },
+    "bailu.skill.shesheng": {
+      "sourceMethodId": "bailu.method.song",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.rectification": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 100
+    },
+    "bailu.passive.composition": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.zhenbi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.qiongjie": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.yanci": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.yuyin": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.chiheng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.xiansheng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.shouzhi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.lore_revive": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.bujuan": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.shenbian": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.xianying": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.jiejci": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.wenping": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.tuna": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.bianfeng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.shouye": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.pozhi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.zhengsheng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.bixue": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.liyan": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.cifeng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.toubian": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.dinglun": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.yushe": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.cangfeng": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.shoujie": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.buqu": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.lianzhang": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.wenshi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.chengxi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.yulun": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.xuci": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.zhuxin": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.cuozhi": {
+      "sourceMethodId": "bailu.method.canon",
+      "unlockMethodLevel": 1
+    },
+    "bailu.passive.righteousness": {
+      "sourceMethodId": "bailu.method.canon",
       "unlockMethodLevel": 1
     }
   }

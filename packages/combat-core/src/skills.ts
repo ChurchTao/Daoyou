@@ -15,6 +15,11 @@ export function isActiveAttackSkill(skill: SkillDef): boolean {
     !hasEffect(effects, effect => effect.type === EffectType.InvokeAttackSkills)
 }
 
+export function isDamagingSpellSkill(skill: SkillDef): boolean {
+  return skill.tags.includes(SkillTag.Spell) && !skill.tags.includes(SkillTag.Physical) &&
+    !skill.tags.includes(SkillTag.Art) && isActiveAttackSkill(skill);
+}
+
 export function invokesAttackSkills(skill: SkillDef): boolean {
   return hasEffect([...skill.effects, ...(skill.successEffects ?? []), ...(skill.preparation?.effects ?? [])], effect => effect.type === EffectType.InvokeAttackSkills)
 }

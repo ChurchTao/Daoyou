@@ -1,4 +1,5 @@
 import { removeStatus } from './status-removal.js';
+import { reportStatusResult, type StatusResolutionOptions } from './status-result.js';
 export { removeStatus, breakStatusesOnDamage, clearCombatStatuses } from './status-removal.js';
 /**
  * 状态机。kind 相同则后覆盖先（端游同类法术规则）；持续回合在 roundEnd 扣，
@@ -23,7 +24,7 @@ import {
 import { evalExpr, skillLevelOf } from "./expr.js"
 import { skillOf, passiveSkills } from "./skills.js"
 import { standingUnits } from "./unit-query.js"
-import type { Attrs, Command, ExprEnv, StatusDef, StatusId, StatusInstance, Unit, UnitId } from './types.js';
+import type { Attrs, Command, ExprEnv, StatusApplyResult, StatusDef, StatusId, StatusInstance, Unit, UnitId } from './types.js';
 import type { CommandPolicy as CommandPolicyType } from './enums.js';
 import { effectiveAttrs, isStanding } from "./units.js"
 import { combatModifiers } from "./modifiers.js"
@@ -40,7 +41,7 @@ export function hasStatusKind(unit: Unit, kind: string): boolean {
 export function hasBlock(
   ctx: BattleContext,
   unit: Unit,
-  key: typeof StatusFlag.BlocksAction | typeof StatusFlag.BlocksSpell | typeof StatusFlag.BlocksPhysical,
+  key: typeof StatusFlag.BlocksAction | typeof StatusFlag.BlocksSpell | typeof StatusFlag.BlocksPhysical | typeof StatusFlag.BlocksDamagingSpells,
 ): boolean {
   return unit.statuses.some((s) => statusDef(ctx, s.id)?.[key])
 }
@@ -89,15 +90,16 @@ export function applyStatus(
   statusId: StatusId,
   duration: number,
   sourceId: UnitId,
-  options: { storedTargetId?: UnitId; env?: ExprEnv } = {},
-): void {
+  options: { storedTargetId?: UnitId; env?: ExprEnv; resolution?: StatusResolutionOptions } = {},
+): StatusApplyResult {
   const def = statusDef(ctx, statusId)
   if (!def) {
     ctx.emit({ type: EventType.ActionFailed, unitId: sourceId, reason: failDetail(FailReason.UnknownStatus, statusId) })
-    return
+    return reportStatusResult(ctx, unit, statusId, sourceId, 'rejected', { ...options.resolution, duration, reason: 'unknown-status' })
   }
 
-  if (isStatusImmune(ctx, unit, def, options.env?.source ?? ctx.state.units.find(u => u.id === sourceId))) return
+  if (isStatusImmune(ctx, unit, def, options.env?.source ?? ctx.state.units.find(u => u.id === sourceId)))
+    return reportStatusResult(ctx, unit, statusId, sourceId, 'immune', { ...options.resolution, duration })
   // Only ordinary classified buffs may be extended; entry and special effects opt out.
   if (def.category === StatusCategory.Buff && def.extendable !== false && !def.untargetable &&
       !def.blocksRevive && !def.ticks && !def.blocksAction && !def.blocksSpell && !def.blocksPhysical && !def.actFirst) {
@@ -133,7 +135,8 @@ export function applyStatus(
       (existing?.remainingRounds ?? 0) > 1 || existing?.appliedRound === ctx.state.round
     if (existing && hasPendingTick && previousPriority !== undefined &&
       (previousPriority > priority || (previousPriority === priority &&
-        (previous?.untilBattleEnd || (!def.untilBattleEnd && existing.remainingRounds >= duration))))) return
+        (previous?.untilBattleEnd || (!def.untilBattleEnd && existing.remainingRounds >= duration)))))
+      return reportStatusResult(ctx, unit, statusId, sourceId, 'rejected', { ...options.resolution, duration, reason: 'priority' })
   }
   const tickMpPower = def.onTick?.snapshot && def.onTick.mpPower !== undefined
     ? evalExpr(def.onTick.mpPower, env) : undefined
@@ -161,7 +164,7 @@ export function applyStatus(
     existing.damageTakenPhysical = (def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN) ** stacks
     existing.damageTakenSpell = (def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN) ** stacks
     ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration })
-    return
+    return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
   }
 
   // 同类法术：以后一次的持续和效果为准（不可叠层时）。
@@ -191,6 +194,7 @@ export function applyStatus(
   // 达摩护体等改的是真实上限，expire 时要在 removeStatus 里扣回来。
   if (attrMods.maxHp) unit.attrs.maxHp += attrMods.maxHp
   ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration })
+  return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
 }
 
 /** 复制当前运行时快照；sourceId 仅改为本次施法者，不参与后续资格判断。 */
@@ -202,7 +206,12 @@ export function copyStatusInstance(
   durationAdd = 0,
 ): void {
   const def = statusDef(ctx, instance.id)
-  if (!def || isStatusImmune(ctx, target, def)) return
+  if (!def || isStatusImmune(ctx, target, def)) {
+    reportStatusResult(ctx, target, instance.id, source.id, def ? 'immune' : 'rejected', {
+      skillId: ctx.currentAction?.skillId, duration: instance.remainingRounds,
+    });
+    return;
+  }
   for (const current of [...target.statuses].filter((status) => status.kind === instance.kind && (!def.sourceBound || status.sourceId === source.id))) {
     removeStatus(ctx, target, current.id, StatusRemoveReason.Replaced, def.sourceBound ? source.id : undefined)
   }
@@ -215,6 +224,9 @@ export function copyStatusInstance(
   target.statuses.push(copy)
   if (copy.attrMods.maxHp) target.attrs.maxHp += copy.attrMods.maxHp
   ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds })
+  reportStatusResult(ctx, target, copy.id, source.id, 'applied', {
+    skillId: ctx.currentAction?.skillId, duration: copy.remainingRounds,
+  });
 }
 
 export function tickStatuses(ctx: BattleContext): void {

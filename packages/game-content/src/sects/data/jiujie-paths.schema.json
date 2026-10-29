@@ -50,6 +50,8 @@
                     "afterStrike",
                     "onFatal",
                     "onStatusRemoved",
+                    "onStatusResolved",
+                    "onHostileActionIntercepted",
                     "onDeath",
                     "onRoundStart",
                     "onRoundEnd",
@@ -866,6 +868,7 @@
               "items": {
                 "type": "string",
                 "enum": [
+                  "blocksDamagingSpells",
                   "blocksAction",
                   "blocksSpell",
                   "blocksPhysical",

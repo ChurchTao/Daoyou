@@ -13,7 +13,7 @@ import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS } from '@daoyou/game-domain/combat';
 
 describe('红尘剑宗技能、状态与资源配置', () => {
-  it('Schema 同步', () => expect(z.toJSONSchema(LingxiaoCombatPackShape)).toEqual(schema));
+  it('Schema 同步', () => expect(z.toJSONSchema(LingxiaoCombatPackShape, { reused: 'ref' })).toEqual(schema));
   it('拒绝多段系数缺失、超上限门槛和不存在的资源', () => {
     const coefficients = JSON.parse(JSON.stringify(raw));
     coefficients.skills[0].effects[0].coeff = [1];

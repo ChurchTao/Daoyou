@@ -273,6 +273,15 @@
       "name": "九劫天宫",
       "description": "雷墟天阙悬于万劫雷狱之上，九重天门在雷池尽头等待后来者。",
       "tags": ["正统天道", "劫雷审判", "雷墟天阙"]
+    },
+    {
+      "id": "SECT_BAILU",
+      "kind": "sect",
+      "sect_id": "bailu",
+      "parent_id": "DJ_CENTRAL_01",
+      "name": "白鹿书院",
+      "description": "晋京近郊的青山间，书院临溪而立。诵读声越过松庭，门人以浩然正气践行所学。",
+      "tags": ["儒门书院", "浩然正气", "言出法随"]
     }
   ],
   "satellite_nodes": [

@@ -5,7 +5,7 @@
 import type { BattleContext } from "./context.js"
 import { applyEffect, makeEnv } from "./effects.js"
 import { DamageKind, EffectType, HookAim, HookName, TargetMode } from "./enums.js"
-import { evalExpr } from "./expr.js"
+import { evalExpr, skillLevelOf } from "./expr.js"
 import type { HookContext } from "./hooks.js"
 import { skillOf } from "./skills.js"
 import { enemiesOf } from './unit-query.js';
@@ -59,6 +59,12 @@ export function bindDataHooks(ctx: BattleContext): void {
           const actionSkill = skillId ? skillOf(ctx.skills, actor, skillId) : undefined
           const originalResourceCost = (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0)
           const scope: WhenScope = {
+            statusId: hctx.statusId,
+            statusKind: hctx.statusKind,
+            statusHit: hctx.statusHit,
+            statusResult: hctx.statusResult,
+            statusChance: hctx.statusChance,
+            statusDuration: hctx.statusDuration,
             removedStatusKind: hctx.removedStatusKind,
             removedStatusCategory: hctx.removedStatusCategory,
             removedStatusDispellable: hctx.removedStatusDispellable,
@@ -84,6 +90,10 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.limitConsumption === "onAttempt") consumeWhen(ctx, hook.when, scope)
 
           const env = {
+            statusChance: hctx.statusChance,
+            statusDuration: hctx.statusDuration,
+            statusDefs: ctx.statusDefs,
+            skills: ctx.skills,
             allyPetSkillUnused: ctx.currentAction?.sourceId === unit.id ? ctx.currentAction.allyPetSkillUnused : false,
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             state: ctx.state,
@@ -96,6 +106,13 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return
 
           const targets = resolveHookTargets(ctx, hook, unit, hctx, skill)
+          const effectSource = hook.effectSource === 'eventSource' ? hctx.source : unit;
+          if (!effectSource) return;
+          const effectSkill = hook.effectSkill === 'eventSkill' ? actionSkill : skill;
+          if (!effectSkill) return;
+          const effectEnv = hook.effectSource === 'eventSource' || hook.effectSkill === 'eventSkill'
+            ? { ...env, source: effectSource, skillLevel: skillLevelOf(effectSource, hook.effectSkill === 'eventSkill' ? effectSkill.id : hctx.skillId ?? skill.id) }
+            : env;
           let applied = false
           ctx.suppressHooks += 1
           try {
@@ -104,19 +121,19 @@ export function bindDataHooks(ctx: BattleContext): void {
               // Explicit target selectors evaluate child conditions against each selected unit.
               if (hook.targeting || effect.targeting) {
                 const resolved = effect.targeting
-                  ? resolveSkillTargets(ctx, unit, { ...skill, targeting: effect.targeting }, targets.map(t => t.id))
+                  ? resolveSkillTargets(ctx, effectSource, { ...effectSkill, targeting: effect.targeting }, targets.map(t => t.id))
                   : targets
                 for (const target of resolved) {
                   const selectedScope = { ...effectScope, target }
                   if (!matchesWhen(ctx, effect.when, selectedScope)) continue
-                  applyHookEffect(ctx, unit, skill, effect, [target], { ...env, target, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, target) }, hctx)
+                  applyHookEffect(ctx, effectSource, effectSkill, effect, [target], { ...effectEnv, target, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, target) }, hctx)
                   consumeWhen(ctx, effect.when, selectedScope)
                   applied = true
                 }
               } else {
                 if (!matchesWhen(ctx, effect.when, effectScope)) continue
                 if (!targets.length && needsHookTarget(effect)) continue
-                applyHookEffect(ctx, unit, skill, effect, targets, { ...env, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, hctx.target) }, hctx)
+                applyHookEffect(ctx, effectSource, effectSkill, effect, targets, { ...effectEnv, targetStatusStacks: targetStatusStacks(ctx, effect.when ?? hook.when, hctx.target) }, hctx)
                 consumeWhen(ctx, effect.when, effectScope)
                 applied = true
               }

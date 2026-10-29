@@ -1,0 +1,1194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "passives": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema0"
+      }
+    },
+    "paths": {
+      "minItems": 2,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema9"
+      }
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "passives",
+    "paths"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "on": {
+                "type": "string",
+                "enum": [
+                  "beforeActionWindow",
+                  "afterActionWindow",
+                  "afterDefend",
+                  "beforeAction",
+                  "onDotCalc",
+                  "onHitCalc",
+                  "onDefenseIgnoreCalc",
+                  "onBeHit",
+                  "afterDamage",
+                  "afterHit",
+                  "afterStrike",
+                  "onFatal",
+                  "onStatusRemoved",
+                  "onStatusResolved",
+                  "onHostileActionIntercepted",
+                  "onDeath",
+                  "onRoundStart",
+                  "onRoundEnd",
+                  "onTargetLost",
+                  "afterAction",
+                  "onCritRoll",
+                  "onHitRoll",
+                  "onHealCalc",
+                  "onBarrierCalc",
+                  "onWoundCalc"
+                ]
+              },
+              "sourceIsSelf": {
+                "type": "boolean"
+              },
+              "targetIsSelf": {
+                "type": "boolean"
+              },
+              "sourceIsOwnedPet": {
+                "type": "boolean"
+              },
+              "effectSource": {
+                "type": "string",
+                "const": "eventSource"
+              },
+              "effectSkill": {
+                "type": "string",
+                "const": "eventSkill"
+              },
+              "aim": {
+                "type": "string",
+                "enum": [
+                  "self",
+                  "hookTarget",
+                  "hookSource",
+                  "others"
+                ]
+              },
+              "targeting": {
+                "$ref": "#/$defs/__schema2"
+              },
+              "chance": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "when": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "limitConsumption": {
+                "type": "string",
+                "enum": [
+                  "onAttempt",
+                  "onSuccess"
+                ]
+              },
+              "effects": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema6"
+                }
+              }
+            },
+            "required": [
+              "on",
+              "effects"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "when": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "damageBonus": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "damageResultFactor": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "damageTakenBonus": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "allDamageTakenBonus": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "sealChanceAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "sealChanceFactor": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "sealChanceCeilAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "sealHitAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "sealAlwaysHit": {
+                "type": "boolean"
+              },
+              "bypassNegativeSpellResistance": {
+                "type": "boolean"
+              },
+              "bypassImmunity": {
+                "type": "object",
+                "properties": {
+                  "statusKinds": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema4"
+                    }
+                  },
+                  "passiveIds": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema4"
+                    }
+                  }
+                },
+                "required": [
+                  "statusKinds",
+                  "passiveIds"
+                ],
+                "additionalProperties": false
+              },
+              "critChanceAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "defenseIgnoreAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "targetCountAdd": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "statusDurationAdd": {
+                "type": "object",
+                "properties": {
+                  "statusId": {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  "amount": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                },
+                "required": [
+                  "statusId",
+                  "amount"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "string",
+      "pattern": "^bailu\\.[a-z][a-z0-9_.]*$"
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "enemy",
+            "ally",
+            "self",
+            "any"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "explicit",
+            "fill",
+            "all",
+            "random",
+            "lowestHp",
+            "lowestDef"
+          ]
+        },
+        "count": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "maxSelected": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "extraCount": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "extraChance": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "secondaryOwnedStatusKind": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "fillPriority": {
+          "type": "string",
+          "const": "delayedRevivalThenSpeed"
+        },
+        "reserveExtraCost": {
+          "type": "boolean"
+        },
+        "fillPriorityPassives": {
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema4"
+            }
+          }
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "requireStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "includeDowned": {
+          "type": "boolean"
+        },
+        "includeDead": {
+          "type": "boolean"
+        },
+        "onlyDowned": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      ]
+    },
+    "__schema4": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "skillIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "skillTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "physical",
+              "spell",
+              "seal",
+              "support",
+              "passive",
+              "art"
+            ]
+          }
+        },
+        "excludeSkillTags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "physical",
+              "spell",
+              "seal",
+              "support",
+              "passive",
+              "art"
+            ]
+          }
+        },
+        "requireKind": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "spell",
+            "fixed"
+          ]
+        },
+        "damageOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "action-direct",
+              "hook-derived",
+              "status"
+            ]
+          }
+        },
+        "resolvedStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "resolvedStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "statusResults": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "miss",
+              "immune",
+              "rejected",
+              "intercepted"
+            ]
+          }
+        },
+        "statusHit": {
+          "type": "string",
+          "enum": [
+            "always",
+            "seal"
+          ]
+        },
+        "targetEnemy": {
+          "type": "boolean"
+        },
+        "targetDowned": {
+          "type": "boolean"
+        },
+        "targetDead": {
+          "type": "boolean"
+        },
+        "targetHasStandingPet": {
+          "type": "boolean"
+        },
+        "targetHasNegativeSpellResistance": {
+          "type": "boolean"
+        },
+        "sourceStanding": {
+          "type": "boolean"
+        },
+        "actionSucceeded": {
+          "type": "boolean"
+        },
+        "actionKilledTarget": {
+          "type": "boolean"
+        },
+        "targetSlot": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "all",
+            "normal"
+          ]
+        },
+        "foeKind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "pet",
+            "npc"
+          ]
+        },
+        "foeTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "teamUniqueTag": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "sourceHpRatioBelow": {
+          "type": "number"
+        },
+        "targetHpRatioBelow": {
+          "type": "number"
+        },
+        "targetStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "targetAbsentStatusKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "targetOwnedStatus": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "appliedThisRound": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "requireStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "requireAbsentStatusIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema4"
+          }
+        },
+        "targetStatusCategories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          }
+        },
+        "targetAbsentStatusCategories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "buff",
+              "debuff",
+              "control",
+              "dot"
+            ]
+          }
+        },
+        "oncePerRound": {
+          "type": "boolean"
+        },
+        "oncePerBattle": {
+          "type": "boolean"
+        },
+        "oncePerActionTarget": {
+          "type": "boolean"
+        },
+        "rootActionOnly": {
+          "type": "boolean"
+        },
+        "excludeSpellRepeat": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "invokeSkill"
+            },
+            "skillId": {
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "spellHit"
+            },
+            "coeff": {
+              "type": "number"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "defenseIgnore": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "coeff"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "applyStatus"
+            },
+            "statusId": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "duration": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "self": {
+              "type": "boolean"
+            },
+            "hit": {
+              "type": "string",
+              "enum": [
+                "always",
+                "seal"
+              ]
+            },
+            "chanceFactor": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "statusId",
+            "duration"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeStatus"
+            },
+            "statusIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema4"
+              }
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStatusDuration"
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema4"
+              }
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "ownedOnly": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "kinds",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyFact"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^bailu_[a-z0-9_]+$"
+            },
+            "value": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "key",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyResource"
+            },
+            "resourceId": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "amount": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "resourceId",
+            "amount"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "restoreHp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "revive": {
+              "type": "boolean"
+            },
+            "gainCounter": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "heal"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "fixedBase": {
+              "type": "boolean"
+            },
+            "includeHealPower": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "restoreMp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "damageMp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "removeWound"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "loseHp"
+            },
+            "power": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "power"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyStrike"
+            },
+            "factor": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "add": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema7"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "randomBranch"
+            },
+            "branchId": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "chance": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "successEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            },
+            "failureEffects": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema6"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "branchId",
+            "chance",
+            "successEffects",
+            "failureEffects"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema7": {
+      "$ref": "#/$defs/__schema5"
+    },
+    "__schema8": {
+      "$ref": "#/$defs/__schema2"
+    },
+    "__schema9": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresConnectedNodes": {
+          "type": "boolean",
+          "const": true
+        },
+        "foundationPassives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "grantSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "nodes": {
+          "minItems": 21,
+          "maxItems": 21,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "requiresConnectedNodes",
+        "foundationPassives",
+        "grantSkills",
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "__schema10": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "slot": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "automatic": {
+          "type": "boolean"
+        },
+        "passives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "grantSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        "panel": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "attr": {
+                "type": "string",
+                "enum": [
+                  "hp",
+                  "maxHp",
+                  "mp",
+                  "maxMp",
+                  "physicalAtk",
+                  "physicalDef",
+                  "magicAtk",
+                  "magicDef",
+                  "healPower",
+                  "speed",
+                  "hit",
+                  "dodge",
+                  "critRate",
+                  "spellCritRate",
+                  "physicalFuryRate",
+                  "sealHit",
+                  "sealResist",
+                  "attackCultivate",
+                  "defenseCultivate",
+                  "spellCultivate",
+                  "resistSpellCultivate"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "multiply"
+                ]
+              },
+              "value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "attr",
+              "mode",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "patches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skillId": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "operation": {
+                "type": "string",
+                "const": "setCooldownRounds"
+              },
+              "value": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "skillId",
+              "operation",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "layer",
+        "slot"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

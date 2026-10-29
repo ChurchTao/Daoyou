@@ -51,9 +51,12 @@ export function removeStatus(
   });
 }
 
-export function breakStatusesOnDamage(ctx: BattleContext, unit: Unit): void {
+export function breakStatusesOnDamage(ctx: BattleContext, unit: Unit, hpDamage = 1): void {
   const broken = unit.statuses.filter(
-    (s) => ctx.statusDefs.get(s.id)?.breakOnDamage,
+    (s) => {
+      const def = ctx.statusDefs.get(s.id);
+      return def?.breakOnDamage && hpDamage > (def.breakOnDamageAbove ?? 0);
+    },
   );
   for (const s of broken)
     removeStatus(ctx, unit, s.id, StatusRemoveReason.Damage);

@@ -1,7 +1,7 @@
 import { combatV6SkillDetails } from '../combat/skill-details.js';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { compileCurrentSectCombatV6 } from './index.js';
-import type { SectCombatProgressV6 } from '@daoyou/game-domain/combat';
+import type { SectCombatProgressV6, SectSkillDefV6 } from '@daoyou/game-domain/combat';
 
 export function sectSkillCatalog(
   progress: SectCombatProgressV6,
@@ -41,9 +41,17 @@ export function sectSkillCatalog(
       })),
     ) ?? []),
   ];
-  return authored
-    .filter(({ skill }) => skill.kind !== 'internal')
-    .map(({ skill, requirement }) => {
+  const unique = new Map<string, { skill: SectSkillDefV6; requirements: string[] }>();
+  for (const { skill, requirement } of authored) {
+    if (skill.kind === 'internal') continue;
+    const existing = unique.get(skill.definition.id);
+    if (existing) {
+      if (!existing.requirements.includes(requirement)) existing.requirements.push(requirement);
+    } else unique.set(skill.definition.id, { skill, requirements: [requirement] });
+  }
+  return [...unique.values()]
+    .map(({ skill, requirements }) => {
+      const requirement = requirements.includes('') ? '' : requirements.join('，或');
       const actual = skills.get(skill.definition.id) ?? skill.definition;
       const available =
         projection.activeSkillIds.includes(actual.id) ||

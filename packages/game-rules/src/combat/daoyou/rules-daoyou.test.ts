@@ -46,6 +46,18 @@ function unit(
 }
 
 describe('Daoyou formulas', () => {
+  it('applies a local seal ceiling inside the soft curve without changing ordinary casters', () => {
+    const source = unit({ hp: 100, sealHit: 1000 }, 90);
+    const target = unit({ hp: 100 }, 90);
+    const ordinary = daoyouFormulas.sealHitChance(source, target, 90);
+    const expanded = daoyouFormulas.sealHitChance(source, target, 90, undefined, 0, 1);
+    expect(ordinary).toBeLessThan(0.95);
+    expect(expanded).toBeGreaterThan(0.95);
+    expect(expanded).toBeLessThan(1);
+    expect(daoyouFormulas.sealHitChance(source, target, 90)).toBe(ordinary);
+    expect(daoyouFormulas.sealHitChance(source, target, 90, undefined, 0, 0.5)).toBeLessThanOrEqual(0.5);
+  });
+
   it('uses the physical broken and unbroken defense formulas', () => {
     expect(physicalBase(20, 5)).toBeCloseTo(19.5);
     expect(physicalBase(20, 18)).toBeCloseTo(2.6);

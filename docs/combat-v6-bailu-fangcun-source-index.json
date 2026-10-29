@@ -1,0 +1,879 @@
+{
+  "retrievedAt": "2026-10-26",
+  "proposalUpdatedAt": "2026-10-27",
+  "targetSect": {
+    "id": "bailu",
+    "name": "白鹿书院"
+  },
+  "scope": "PC time-based servers; API snapshot has no formal effective date. Apply official October changes separately; do not claim live full-server parity.",
+  "referencePage": "http://xyq.yzz.cn/special/qjbmmn/",
+  "sources": [
+    {
+      "key": "nodes",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data?mpid=4",
+      "sha256": "2ac2feaca69bdcd5444349fe019d28d9e7a49e8420534be7bb180f291994b75c"
+    },
+    {
+      "key": "paths",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data/lp?mpid=4",
+      "sha256": "09214e035b7154b632a2958f0bba82e941240fb6f09288fa5fbab48613e9d8a8"
+    },
+    {
+      "key": "officialSkills",
+      "url": "https://xyq.163.com/mp002.html",
+      "sha256": "1415486e623692424b56e8c6478f6f3b32765754b8a029c0eb00e04b8c970408"
+    },
+    {
+      "key": "officialApril",
+      "url": "https://xyq.163.com/news/20260417/4905_1296495.html",
+      "sha256": "8129f74fa7bb653f7ae5fb22b76cad49837dfc65498e1e244d237d8d349d2627"
+    },
+    {
+      "key": "officialAprilImage",
+      "url": "https://nie.res.netease.com/r/pic/20260417/5317ca07-c678-4f68-aefc-6c029039458d.jpg",
+      "sha256": "4d8bca1ebd14ef6cb33725706786faddc152777b9532d89427597fafc06365b8"
+    },
+    {
+      "key": "officialOctober",
+      "url": "https://xyq.163.com/news/20261012/4999_1316352.html",
+      "sha256": "e82017f3931f10c42d3aad08bcfa4fb683f491dc8b3a3e9a0ca11c827659e011"
+    },
+    {
+      "key": "officialApril2025",
+      "url": "https://xyq.163.com/news/20250418/4905_1228382.html",
+      "sha256": "aa82ce84e9e79f19c8334de6ee05fc575a3ada99a13471b528a9330ab70d3adf"
+    },
+    {
+      "key": "playerDamage2023",
+      "url": "https://xyq.yzz.cn/focus/202312/1711430.shtml",
+      "retrievedAt": "2026-10-27",
+      "note": "Player-tested skill terms; falling-thunder term was reverse engineered, with stated +/-1 uncertainty.",
+      "sha256": "b35223b2e085b30af6505643061fa80e8cf6487d8b679f413957a8b06f516a64"
+    },
+    {
+      "key": "historicalDuration2018",
+      "url": "https://xyq.yzz.cn/focus/201811/1528735.shtml",
+      "retrievedAt": "2026-10-27",
+      "note": "Historical duration staircase, not a claim of present full-server verification.",
+      "sha256": "b630b4b84e88a489226737ae931e101013963247f6ed48cb0ef3a667d92fd54e"
+    },
+    {
+      "key": "officialAccountRecovery2024",
+      "url": "https://www.toutiao.com/article/7392512724569293350/",
+      "retrievedAt": "2026-10-27",
+      "note": "Official-account single observation at skill level 180; L+10 is explicitly an extrapolation.",
+      "sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    }
+  ],
+  "paths": [
+    {
+      "id": "12",
+      "mpname": "方寸山",
+      "mpid": "4",
+      "lpid": "3",
+      "lpname": "五雷正宗"
+    },
+    {
+      "id": "11",
+      "mpname": "方寸山",
+      "mpid": "4",
+      "lpid": "2",
+      "lpname": "伏魔天师"
+    },
+    {
+      "id": "10",
+      "mpname": "方寸山",
+      "mpid": "4",
+      "lpid": "1",
+      "lpname": "拘灵散修"
+    }
+  ],
+  "nodeIndex": [
+    {
+      "id": "23902",
+      "path": 1,
+      "sourceRow": 1,
+      "sourceColumn": 1,
+      "name": "雷动",
+      "descriptionSha256": "42da5bd64888f84ab030e4d546387eaf9f22b110610eadf910bf90207ed73980",
+      "proposedName": "振笔"
+    },
+    {
+      "id": "23901",
+      "path": 1,
+      "sourceRow": 1,
+      "sourceColumn": 2,
+      "name": "苦缠",
+      "descriptionSha256": "07a2c6b0b60ca5657c9d575c743532f80eed0fc8aa0a58d124ad3842900a05e4",
+      "proposedName": "穷诘"
+    },
+    {
+      "id": "23903",
+      "path": 1,
+      "sourceRow": 1,
+      "sourceColumn": 3,
+      "name": "灵咒",
+      "descriptionSha256": "53fb71a2d2f1f46344ab680d617dc5693e8c92e95c6c410daa5e49513dc72d3c",
+      "proposedName": "严辞"
+    },
+    {
+      "id": "23904",
+      "path": 1,
+      "sourceRow": 2,
+      "sourceColumn": 1,
+      "name": "黄粱",
+      "descriptionSha256": "3667f878ca3cf78f2586739120257b021d84bef7848fc7ada8704d4f8bf9e91a",
+      "proposedName": "余音"
+    },
+    {
+      "id": "23905",
+      "path": 1,
+      "sourceRow": 2,
+      "sourceColumn": 2,
+      "name": "制约",
+      "descriptionSha256": "08e0b76b8a4791b0439d51c534d3683e46f01c5b68c76c8ef1f02baf41289654",
+      "proposedName": "持衡"
+    },
+    {
+      "id": "23906",
+      "path": 1,
+      "sourceRow": 2,
+      "sourceColumn": 3,
+      "name": "必果",
+      "descriptionSha256": "d0a5b9d110a9d94dbccfd8c5c0e9ae7a0a8a227dfd73f1d7bbc1615fd3e1f8b5",
+      "proposedName": "先声"
+    },
+    {
+      "id": "23907",
+      "path": 1,
+      "sourceRow": 3,
+      "sourceColumn": 1,
+      "name": "补缺",
+      "descriptionSha256": "726823d1a1cce77b17bd99a09863dd327aa99dfc338b5a617ed138b31f52b866",
+      "proposedName": "守志"
+    },
+    {
+      "id": "23908",
+      "path": 1,
+      "sourceRow": 3,
+      "sourceColumn": 2,
+      "name": "不倦",
+      "descriptionSha256": "e85e67c2ecc111533d345e91273feb07e76e699fcd756fb98b22df388e4ed490",
+      "proposedName": "不倦"
+    },
+    {
+      "id": "23909",
+      "path": 1,
+      "sourceRow": 3,
+      "sourceColumn": 3,
+      "name": "精炼",
+      "descriptionSha256": "4326d4636e0586c50559d881897f2bb88f785a043262b2d52a383bb800573178",
+      "proposedName": "审辨"
+    },
+    {
+      "id": "23910",
+      "path": 1,
+      "sourceRow": 4,
+      "sourceColumn": 1,
+      "name": "化身",
+      "descriptionSha256": "662293e336539752b5fca243d72f47ebe7b9c4eb0c4771f77a40b1ec8ddbda5b",
+      "proposedName": "贤影"
+    },
+    {
+      "id": "23911",
+      "path": 1,
+      "sourceRow": 4,
+      "sourceColumn": 2,
+      "name": "囚笼",
+      "descriptionSha256": "9130e4c61d2ade3864a27e5551616b705b7cb861c052e01e4639a6987065f13c",
+      "proposedName": "戒辞"
+    },
+    {
+      "id": "23912",
+      "path": 1,
+      "sourceRow": 4,
+      "sourceColumn": 3,
+      "name": "幻变",
+      "descriptionSha256": "6de56dd867c5b5119a96a6f53bc13fe91de80f85680dabb7a2376dce095f9142",
+      "proposedName": "文屏"
+    },
+    {
+      "id": "23914",
+      "path": 1,
+      "sourceRow": 5,
+      "sourceColumn": 1,
+      "name": "吐纳",
+      "descriptionSha256": "84262fe8b181d28375a38abfaaceb67394950338497f3ea0131ecf8e2ca9493e",
+      "proposedName": "吐纳"
+    },
+    {
+      "id": "23913",
+      "path": 1,
+      "sourceRow": 5,
+      "sourceColumn": 2,
+      "name": "斗法",
+      "descriptionSha256": "ee708abb0c2065325ab055143d0e449483e7009bce625ae2b677eaaa64667402",
+      "proposedName": "辩锋"
+    },
+    {
+      "id": "23915",
+      "path": 1,
+      "sourceRow": 5,
+      "sourceColumn": 3,
+      "name": "灵符",
+      "descriptionSha256": "3ff9e0a29ed343bfaada589f6e0d6d64c588047cf662c6b7655beb950cca5b3b",
+      "proposedName": "授业"
+    },
+    {
+      "id": "23916",
+      "path": 1,
+      "sourceRow": 6,
+      "sourceColumn": 1,
+      "name": "破煞",
+      "descriptionSha256": "297b9ad0a2fcdcd5a15593ebc4511f9e1e15c97c70437af5a49e826c99578626",
+      "proposedName": "破执"
+    },
+    {
+      "id": "23917",
+      "path": 1,
+      "sourceRow": 6,
+      "sourceColumn": 2,
+      "name": "灵威",
+      "descriptionSha256": "8a3eef0950d5c8a49f380ca63f5929ff9027307e121551bc1546331163cdc369",
+      "proposedName": "正声"
+    },
+    {
+      "id": "23918",
+      "path": 1,
+      "sourceRow": 6,
+      "sourceColumn": 3,
+      "name": "碎甲",
+      "descriptionSha256": "0e6229e0e92d58697bb81193dfc8a17993f73e0476af56e7a8d7dee65cf50ea6",
+      "proposedName": "笔削"
+    },
+    {
+      "id": "23919",
+      "path": 1,
+      "sourceRow": 7,
+      "sourceColumn": 2,
+      "name": "顺势而为",
+      "descriptionSha256": "acbb859363273574ffa4d41794ed4f6920d3df53a27988b027abd9dbf863b625",
+      "proposedName": "一言定局"
+    },
+    {
+      "id": "23920",
+      "path": 1,
+      "sourceRow": 8,
+      "sourceColumn": 1,
+      "name": "额外能力",
+      "descriptionSha256": "027f81e189cfa995ec5369c2ace1955f74ba06148dcc3ab382e59e2178783c59",
+      "proposedName": "进学"
+    },
+    {
+      "id": "23921",
+      "path": 1,
+      "sourceRow": 9,
+      "sourceColumn": 1,
+      "name": "拘灵散修",
+      "descriptionSha256": "84c18b6b0ac90cf471c99de1d94cabdb687304d2fe93e69df82e29f0fd78afbb",
+      "proposedName": "正言执律"
+    },
+    {
+      "id": "23931",
+      "path": 2,
+      "sourceRow": 1,
+      "sourceColumn": 1,
+      "name": "驱雷",
+      "descriptionSha256": "e7809572e80253d24d01879d294baae5d2a97930933709c5d99659d25f233691",
+      "proposedName": "立言"
+    },
+    {
+      "id": "23933",
+      "path": 2,
+      "sourceRow": 1,
+      "sourceColumn": 2,
+      "name": "策电",
+      "descriptionSha256": "2c8be4acad834df5cff6c50a4d963139ef7a35aa51287d9ad8bfc3d4880c69ed",
+      "proposedName": "辞锋"
+    },
+    {
+      "id": "23932",
+      "path": 2,
+      "sourceRow": 1,
+      "sourceColumn": 3,
+      "name": "雷动",
+      "descriptionSha256": "42da5bd64888f84ab030e4d546387eaf9f22b110610eadf910bf90207ed73980",
+      "proposedName": "振笔"
+    },
+    {
+      "id": "23934",
+      "path": 2,
+      "sourceRow": 2,
+      "sourceColumn": 1,
+      "name": "鬼怮",
+      "descriptionSha256": "a4a398e3ba25f81833e293e8a803f0d5bee6a194dee547ba7216a620b849f2a2",
+      "proposedName": "透辩"
+    },
+    {
+      "id": "23935",
+      "path": 2,
+      "sourceRow": 2,
+      "sourceColumn": 2,
+      "name": "炼魂",
+      "descriptionSha256": "c4b35c65c2c49174ae5ea76385e71802aaeeb74c37361fa0ebd8e6b20c18cf88",
+      "proposedName": "定论"
+    },
+    {
+      "id": "23936",
+      "path": 2,
+      "sourceRow": 2,
+      "sourceColumn": 3,
+      "name": "余悸",
+      "descriptionSha256": "be109cd443843c47765c57b8b3402f6bbf2a5a7f016cad8ff572a6116913d3e8",
+      "proposedName": "余慑"
+    },
+    {
+      "id": "23937",
+      "path": 2,
+      "sourceRow": 3,
+      "sourceColumn": 1,
+      "name": "宝诀",
+      "descriptionSha256": "1891b6e585169aa9546c45000196b276525b14bc95963dd1471a7066bf1f4f16",
+      "proposedName": "藏锋"
+    },
+    {
+      "id": "23938",
+      "path": 2,
+      "sourceRow": 3,
+      "sourceColumn": 2,
+      "name": "妙用",
+      "descriptionSha256": "c1193c8f5aef597811781f4e41fcfe21dda0c347f439e02e0c5e4fc4094ab0c7",
+      "proposedName": "守节"
+    },
+    {
+      "id": "23939",
+      "path": 2,
+      "sourceRow": 3,
+      "sourceColumn": 3,
+      "name": "不灭",
+      "descriptionSha256": "dab3949d404d700667f0b8c214205df56740af92476dcc8887b8e2f4c063ff69",
+      "proposedName": "不屈"
+    },
+    {
+      "id": "23940",
+      "path": 2,
+      "sourceRow": 4,
+      "sourceColumn": 1,
+      "name": "化身",
+      "descriptionSha256": "662293e336539752b5fca243d72f47ebe7b9c4eb0c4771f77a40b1ec8ddbda5b",
+      "proposedName": "贤影"
+    },
+    {
+      "id": "23941",
+      "path": 2,
+      "sourceRow": 4,
+      "sourceColumn": 2,
+      "name": "怒霆",
+      "descriptionSha256": "cdb0f23034e4fc9b40ce2b31e7c9b9ce6bb72f9087fdd5028400af2a05a7d50e",
+      "proposedName": "连章"
+    },
+    {
+      "id": "23942",
+      "path": 2,
+      "sourceRow": 4,
+      "sourceColumn": 3,
+      "name": "批亢",
+      "descriptionSha256": "361e567c852ec6f9a9c8905b841b9bf61012f1ada0b4173fc408a7e944a9bbf3",
+      "proposedName": "文势"
+    },
+    {
+      "id": "23943",
+      "path": 2,
+      "sourceRow": 5,
+      "sourceColumn": 1,
+      "name": "顺势",
+      "descriptionSha256": "c43cbd13e9d87f80a83cafa61ee62d7d20eac40e0133cbf5c811a85091ef0f34",
+      "proposedName": "乘隙"
+    },
+    {
+      "id": "23944",
+      "path": 2,
+      "sourceRow": 5,
+      "sourceColumn": 2,
+      "name": "雷咒",
+      "descriptionSha256": "bfd25405e58d9e48bf8a45c90d45ddf1002c8b02df6daab2f5b4af7a499a572c",
+      "proposedName": "余论"
+    },
+    {
+      "id": "23945",
+      "path": 2,
+      "sourceRow": 5,
+      "sourceColumn": 3,
+      "name": "吐纳",
+      "descriptionSha256": "84262fe8b181d28375a38abfaaceb67394950338497f3ea0131ecf8e2ca9493e",
+      "proposedName": "吐纳"
+    },
+    {
+      "id": "23946",
+      "path": 2,
+      "sourceRow": 6,
+      "sourceColumn": 1,
+      "name": "灵能",
+      "descriptionSha256": "b082b216da3838e50d95d011f9f819b1cdc6762940d749c61c23db20e08f6197",
+      "proposedName": "蓄辞"
+    },
+    {
+      "id": "23947",
+      "path": 2,
+      "sourceRow": 6,
+      "sourceColumn": 2,
+      "name": "超导",
+      "descriptionSha256": "e648ccdfd4982636e4adcdf368f2024e06291dc0f6587768226e72c0f638ce86",
+      "proposedName": "诛心"
+    },
+    {
+      "id": "23948",
+      "path": 2,
+      "sourceRow": 6,
+      "sourceColumn": 3,
+      "name": "摧心",
+      "descriptionSha256": "47ae6f0fa8625d1c606589a73608d31c433b490944e37387129353299cc501f6",
+      "proposedName": "挫志"
+    },
+    {
+      "id": "23949",
+      "path": 2,
+      "sourceRow": 7,
+      "sourceColumn": 2,
+      "name": "钟馗论道",
+      "descriptionSha256": "c3d35c07173ee521d94c5656e07eb67407e0521dd24b9d10c6273a50e0d80c5e",
+      "proposedName": "舍生立言"
+    },
+    {
+      "id": "23950",
+      "path": 2,
+      "sourceRow": 8,
+      "sourceColumn": 1,
+      "name": "额外能力",
+      "descriptionSha256": "3deea2d5cf722b02a5680b3b9f05241f6fac64b9b9470c9da609e77f384d741b",
+      "proposedName": "进学"
+    },
+    {
+      "id": "23951",
+      "path": 2,
+      "sourceRow": 9,
+      "sourceColumn": 1,
+      "name": "伏魔天师",
+      "descriptionSha256": "4460f9cb9d50f1b02e0e3d3b7d2d6406204988ef3d87c5f36cc7faece02b5df1",
+      "proposedName": "浩气文章"
+    },
+    {
+      "id": "23964",
+      "path": 3,
+      "sourceRow": 1,
+      "sourceColumn": 1,
+      "name": "五雷·挪移",
+      "descriptionSha256": "a224d60b86a89c78b82ee8eec02a4f763ef751b11d3091ce652d03fa39299445",
+      "proposedName": "援经据典"
+    },
+    {
+      "id": "23962",
+      "path": 3,
+      "sourceRow": 1,
+      "sourceColumn": 2,
+      "name": "雷动",
+      "descriptionSha256": "42da5bd64888f84ab030e4d546387eaf9f22b110610eadf910bf90207ed73980",
+      "proposedName": "振笔"
+    },
+    {
+      "id": "23963",
+      "path": 3,
+      "sourceRow": 1,
+      "sourceColumn": 3,
+      "name": "雷暴",
+      "descriptionSha256": "6312388ea44a8e0bb0eea539858193b95408e9ff329b700505a207da9b67c012",
+      "proposedName": "贯通"
+    },
+    {
+      "id": "23961",
+      "path": 3,
+      "sourceRow": 2,
+      "sourceColumn": 1,
+      "name": "咒诀",
+      "descriptionSha256": "245e99d56ab9813bf3ca0f5924451a907f1118d645da3210394ecb29d22087eb",
+      "proposedName": "成诵"
+    },
+    {
+      "id": "23965",
+      "path": 3,
+      "sourceRow": 2,
+      "sourceColumn": 2,
+      "name": "穿透",
+      "descriptionSha256": "c339fb50feb426dc75204845aeba4101768aee53c89ecd74932b1ff202e744c7",
+      "proposedName": "透彻"
+    },
+    {
+      "id": "23966",
+      "path": 3,
+      "sourceRow": 2,
+      "sourceColumn": 3,
+      "name": "天怒",
+      "descriptionSha256": "74b34b649bfa6965a8dd27f27ef07d297a18281d70a3a0fc840314a8be5d538e",
+      "proposedName": "慷慨"
+    },
+    {
+      "id": "23967",
+      "path": 3,
+      "sourceRow": 3,
+      "sourceColumn": 1,
+      "name": "宝诀",
+      "descriptionSha256": "1891b6e585169aa9546c45000196b276525b14bc95963dd1471a7066bf1f4f16",
+      "proposedName": "藏锋"
+    },
+    {
+      "id": "23968",
+      "path": 3,
+      "sourceRow": 3,
+      "sourceColumn": 2,
+      "name": "妙用",
+      "descriptionSha256": "c1193c8f5aef597811781f4e41fcfe21dda0c347f439e02e0c5e4fc4094ab0c7",
+      "proposedName": "守节"
+    },
+    {
+      "id": "23969",
+      "path": 3,
+      "sourceRow": 3,
+      "sourceColumn": 3,
+      "name": "不灭",
+      "descriptionSha256": "dab3949d404d700667f0b8c214205df56740af92476dcc8887b8e2f4c063ff69",
+      "proposedName": "不屈"
+    },
+    {
+      "id": "23970",
+      "path": 3,
+      "sourceRow": 4,
+      "sourceColumn": 1,
+      "name": "雷衍",
+      "descriptionSha256": "1ed10b6762fdab311fe959d89dba4ca927798b7a55161ae3356c8a4aa41e0df9",
+      "proposedName": "衍义"
+    },
+    {
+      "id": "23971",
+      "path": 3,
+      "sourceRow": 4,
+      "sourceColumn": 2,
+      "name": "雷鸣",
+      "descriptionSha256": "054d7fb859a4cb405b6792b0d11a0ce6db03dad58d7fc4db5e0c5510181fce69",
+      "proposedName": "振聋"
+    },
+    {
+      "id": "23972",
+      "path": 3,
+      "sourceRow": 4,
+      "sourceColumn": 3,
+      "name": "天箓",
+      "descriptionSha256": "cd89b1f9cd5c33069aef4bbe6d87c666a0b3499c8806e868db6aaa8e9820c442",
+      "proposedName": "博贯"
+    },
+    {
+      "id": "23973",
+      "path": 3,
+      "sourceRow": 5,
+      "sourceColumn": 1,
+      "name": "顺势",
+      "descriptionSha256": "c43cbd13e9d87f80a83cafa61ee62d7d20eac40e0133cbf5c811a85091ef0f34",
+      "proposedName": "乘隙"
+    },
+    {
+      "id": "23974",
+      "path": 3,
+      "sourceRow": 5,
+      "sourceColumn": 2,
+      "name": "神机",
+      "descriptionSha256": "58b0bb4e249890bd76d65b046cc1904050b3a1526ef26c91ebb34c05ad1484a0",
+      "proposedName": "破题"
+    },
+    {
+      "id": "23975",
+      "path": 3,
+      "sourceRow": 5,
+      "sourceColumn": 3,
+      "name": "吐纳",
+      "descriptionSha256": "84262fe8b181d28375a38abfaaceb67394950338497f3ea0131ecf8e2ca9493e",
+      "proposedName": "吐纳"
+    },
+    {
+      "id": "23976",
+      "path": 3,
+      "sourceRow": 6,
+      "sourceColumn": 1,
+      "name": "造化",
+      "descriptionSha256": "069d55bb032c74b4f7b480809d82b4ed228ada6a9b0bafd977c2f76cbd76bcd8",
+      "proposedName": "温故"
+    },
+    {
+      "id": "23977",
+      "path": 3,
+      "sourceRow": 6,
+      "sourceColumn": 2,
+      "name": "聚集",
+      "descriptionSha256": "c8067cbb3c4a3d2270ce7ad49a26ca11d3b657010f69b46ebbfed01bbc4a2bb7",
+      "proposedName": "砺笔"
+    },
+    {
+      "id": "23978",
+      "path": 3,
+      "sourceRow": 6,
+      "sourceColumn": 3,
+      "name": "摧心",
+      "descriptionSha256": "47ae6f0fa8625d1c606589a73608d31c433b490944e37387129353299cc501f6",
+      "proposedName": "挫志"
+    },
+    {
+      "id": "23979",
+      "path": 3,
+      "sourceRow": 7,
+      "sourceColumn": 2,
+      "name": "奇门",
+      "descriptionSha256": "8e24e199c5391a01c013fc3097b4ee0a5def7f5d96341c33f6671b6314c77d86",
+      "proposedName": "通变"
+    },
+    {
+      "id": "23980",
+      "path": 3,
+      "sourceRow": 8,
+      "sourceColumn": 1,
+      "name": "额外能力",
+      "descriptionSha256": "cb764fbb6aabcc04c24eff913ece5f9bbf0d2f91cb16aa5c861ebff8b5d41672",
+      "proposedName": "进学"
+    },
+    {
+      "id": "23981",
+      "path": 3,
+      "sourceRow": 9,
+      "sourceColumn": 1,
+      "name": "五雷正宗",
+      "descriptionSha256": "26ea623491cde2666b22071dca41de8f3b4b51f49d391f09aa9fce13a87cf731",
+      "proposedName": "经义通玄"
+    }
+  ],
+  "octoberOverlay": [
+    {
+      "target": "skill: lightning-mark",
+      "summary": "Cast special five-thunder spell, mark primary target uniquely by source; cooldown 8."
+    },
+    {
+      "target": "node: 23933",
+      "summary": "Primary-target five-thunder damage +10%; remove level-125 condition."
+    },
+    {
+      "target": "node: 23947",
+      "summary": "Replace rain bonus with +40% triple-spell damage against sealed targets."
+    }
+  ],
+  "copyrightNote": "Source URLs, hashes, node names and coordinates only; no full source descriptions.",
+  "versionCaveat": "Official April 2025 prose says level >150, live node API says level >=150. Proposal chooses the API boundary explicitly. October changes are a proposed overlay, not a claim of final full-server deployment.",
+  "targetPaths": [
+    {
+      "id": "bailu.path.edict",
+      "name": "正言执律",
+      "sourcePath": 1
+    },
+    {
+      "id": "bailu.path.song",
+      "name": "浩气文章",
+      "sourcePath": 2
+    }
+  ],
+  "futurePath": {
+    "name": "经义通玄",
+    "sourcePath": 3,
+    "enabled": false
+  },
+  "adaptationPolicy": {
+    "identity": "儒门；浩然正气、言出法随；宗门定名白鹿书院",
+    "specialDependencies": "法宝、灵宝、天气依赖直接改成宗门被动、现有主动与灵兽联动；不创建对应独立体系",
+    "numbers": "有依据的原型数值先复刻，年代基线与实测外推标明；新改编初值单列"
+  },
+  "targetMethods": [
+    {
+      "slot": 1,
+      "id": "bailu.method.canon",
+      "name": "白鹿正学"
+    },
+    {
+      "slot": 2,
+      "id": "bailu.method.song",
+      "name": "正气长歌"
+    },
+    {
+      "slot": 3,
+      "id": "bailu.method.edict",
+      "name": "春秋笔法"
+    },
+    {
+      "slot": 4,
+      "id": "bailu.method.recovery",
+      "name": "养气存诚"
+    },
+    {
+      "slot": 5,
+      "id": "bailu.method.bearing",
+      "name": "慎独明心"
+    },
+    {
+      "slot": 6,
+      "id": "bailu.method.step",
+      "name": "君子行"
+    }
+  ],
+  "targetSkillNames": [
+    {
+      "source": "五雷咒",
+      "name": "破邪！"
+    },
+    {
+      "source": "落雷符",
+      "name": "诛邪！"
+    },
+    {
+      "source": "催眠符",
+      "name": "入梦！"
+    },
+    {
+      "source": "失心符",
+      "name": "禁法！"
+    },
+    {
+      "source": "失魂符",
+      "name": "失魂！"
+    },
+    {
+      "source": "定身符",
+      "name": "定身！"
+    },
+    {
+      "source": "落魄符",
+      "name": "乱神！"
+    },
+    {
+      "source": "离魂符",
+      "name": "失措！"
+    },
+    {
+      "source": "追魂符",
+      "name": "罢兵！"
+    },
+    {
+      "source": "失忆符",
+      "name": "禁器！"
+    },
+    {
+      "source": "归元咒",
+      "name": "复元！"
+    },
+    {
+      "source": "乾天罡气",
+      "name": "聚气！"
+    },
+    {
+      "source": "凝神术",
+      "name": "凝神！"
+    },
+    {
+      "source": "分身术",
+      "name": "护身！"
+    },
+    {
+      "source": "碎甲符",
+      "name": "破甲！"
+    },
+    {
+      "source": "引雷符",
+      "name": "点名！"
+    }
+  ],
+  "numericBaselines": {
+    "spellSchoolTerm": {
+      "quad": "1/120",
+      "linear": 1.5,
+      "intercept": 30,
+      "evidence": "2023 player measurements"
+    },
+    "aoeSchoolTerm": {
+      "linear": "4/3",
+      "intercept": 35,
+      "evidence": "2023 reverse-engineered player measurements; +/-1"
+    },
+    "aoeSplash": "1 - 0.1 * actualTargetCount",
+    "spellSealDuration": {
+      "levels": [0, 25, 45, 75, 100, 125],
+      "rounds": [1, 2, 3, 4, 5, 6]
+    },
+    "physicalOrArtSealDuration": {
+      "levels": [0, 25, 45, 75, 100, 125],
+      "rounds": [2, 3, 4, 5, 6, 7]
+    },
+    "sleepDuration": {
+      "levels": [0, 45, 75, 100, 125],
+      "rounds": [1, 2, 3, 4, 5],
+      "pvpCap": 4
+    },
+    "restoreMp": {
+      "expression": "L + 10",
+      "evidence": "extrapolated from one official-account level-180 sample of 190 MP"
+    }
+  },
+  "adaptedNumbers": {
+    "guardRevival": {
+      "baseChance": 0.2,
+      "successCap": 3,
+      "hpRatio": 0.2,
+      "baseChanceIsAdaptation": true
+    },
+    "source23908": {
+      "chanceFactor": 1.15
+    },
+    "source23937": {
+      "firstRoundChanceFactor": 1.8,
+      "perRoundFactorDecay": 0.1,
+      "minimumFactor": 1
+    },
+    "source23938": {
+      "chanceFactor": 1.15
+    },
+    "source23939": {
+      "extraSuccesses": 3,
+      "magicAtkPerOwnRevival": 40
+    },
+    "damageGrowthPercent": "min(7.5, canonLevel / 24)",
+    "retryChanceFactor": 0.5,
+    "petFollowUp": {
+      "procChance": 0.2,
+      "sealRounds": 2,
+      "procChanceIsAdaptation": true
+    },
+    "guardWrath": {
+      "amount": 12,
+      "budget": "owner and round"
+    },
+    "nextBaseSpellBonus": 0.4
+  },
+  "skillNamingStyle": {
+    "active": "短促言令，正式显示名包含全角感叹号；书名号仅用于文档行文",
+    "passiveAndStatus": "保留儒门名称，不添加感叹号",
+    "mechanics": "本次仅改名称与施法文案，不改原型映射、数值、触发、心法或流派"
+  },
+  "targetMeridianSkillNames": [
+    {
+      "source": "顺势而为",
+      "nodeName": "一言定局",
+      "name": "噤声！"
+    },
+    {
+      "source": "钟馗论道",
+      "nodeName": "舍生立言",
+      "name": "舍生！"
+    }
+  ]
+}
