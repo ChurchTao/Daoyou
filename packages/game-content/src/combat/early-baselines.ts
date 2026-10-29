@@ -1,7 +1,7 @@
 
 
 // The tower starts at Gold Core. These two baselines extend its encounter budget
-// to the realms used by early dungeons, breakthroughs and sect tasks.
+// to the realms used by breakthroughs and sect tasks. Dungeons keep their own pack.
 export const earlyBaselines = {
   炼气: {
     damagePerRound: 180,
