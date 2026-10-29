@@ -63,19 +63,30 @@ export function inscriptionLevelTenths(level: number) {
   return 40 * 3 ** (level - 1);
 }
 
-const INSCRIPTION_DRAW_QI_CAP = 40;
-/** 四件神品天材地宝 = 2_000_000 份 = 20_000_000 个十分位，开方后正好顶到上限。 */
+/** 四件神品天材地宝 = 2_000_000 份 = 20_000_000 个十分位，开方后正好 30 点，之后不再截断。 */
 const INSCRIPTION_DRAW_QI_REFERENCE_TENTHS = 20_000_000;
-const INSCRIPTION_DRAW_QI_STEP =
-  INSCRIPTION_DRAW_QI_REFERENCE_TENTHS / INSCRIPTION_DRAW_QI_CAP ** 2;
+const INSCRIPTION_DRAW_QI_AT_REFERENCE = 30;
 
 function inscriptionDrawQi(totalTenths: number) {
-  const step = INSCRIPTION_DRAW_QI_STEP;
-  let qi = Math.ceil(Math.sqrt(totalTenths / step));
+  const reference = INSCRIPTION_DRAW_QI_REFERENCE_TENTHS;
+  const at = INSCRIPTION_DRAW_QI_AT_REFERENCE;
+  let qi = Math.ceil(at * Math.sqrt(totalTenths / reference));
   if (!Number.isFinite(qi) || qi < 1) qi = 1;
-  while (qi > 1 && (qi - 1) * (qi - 1) * step >= totalTenths) qi -= 1;
-  while (qi < INSCRIPTION_DRAW_QI_CAP && qi * qi * step < totalTenths) qi += 1;
-  return Math.min(INSCRIPTION_DRAW_QI_CAP, qi);
+  const scale = at * at;
+  while (qi > 1 && (qi - 1) * (qi - 1) * reference >= totalTenths * scale)
+    qi -= 1;
+  while (qi * qi * reference < totalTenths * scale) qi += 1;
+  return qi;
+}
+
+/** 按份数开方，最少 1。 */
+function inscriptionDrawSpiritStones(totalTenths: number) {
+  let stones = Math.ceil(Math.sqrt(totalTenths / 10));
+  if (!Number.isFinite(stones) || stones < 1) stones = 1;
+  while (stones > 1 && (stones - 1) * (stones - 1) * 10 >= totalTenths)
+    stones -= 1;
+  while (stones * stones * 10 < totalTenths) stones += 1;
+  return stones;
 }
 
 export function previewInscriptionDraw(
@@ -99,7 +110,7 @@ export function previewInscriptionDraw(
     outputs,
     cost: {
       qi: inscriptionDrawQi(totalTenths),
-      spiritStones: Math.ceil(totalTenths / 10),
+      spiritStones: inscriptionDrawSpiritStones(totalTenths),
     },
   };
 }
