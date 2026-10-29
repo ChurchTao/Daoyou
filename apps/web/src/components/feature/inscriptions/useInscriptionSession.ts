@@ -65,7 +65,6 @@ export function useInscriptionSession(ownerId: string) {
   const locked =
     pending ||
     !!unresolved ||
-    !!result ||
     !view ||
     !bag.data ||
     bag.isRefreshing ||
