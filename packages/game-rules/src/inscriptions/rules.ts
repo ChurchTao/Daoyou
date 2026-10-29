@@ -63,6 +63,21 @@ export function inscriptionLevelTenths(level: number) {
   return 40 * 3 ** (level - 1);
 }
 
+const INSCRIPTION_DRAW_QI_CAP = 40;
+/** 四件神品天材地宝 = 2_000_000 份 = 20_000_000 个十分位，开方后正好顶到上限。 */
+const INSCRIPTION_DRAW_QI_REFERENCE_TENTHS = 20_000_000;
+const INSCRIPTION_DRAW_QI_STEP =
+  INSCRIPTION_DRAW_QI_REFERENCE_TENTHS / INSCRIPTION_DRAW_QI_CAP ** 2;
+
+function inscriptionDrawQi(totalTenths: number) {
+  const step = INSCRIPTION_DRAW_QI_STEP;
+  let qi = Math.ceil(Math.sqrt(totalTenths / step));
+  if (!Number.isFinite(qi) || qi < 1) qi = 1;
+  while (qi > 1 && (qi - 1) * (qi - 1) * step >= totalTenths) qi -= 1;
+  while (qi < INSCRIPTION_DRAW_QI_CAP && qi * qi * step < totalTenths) qi += 1;
+  return Math.min(INSCRIPTION_DRAW_QI_CAP, qi);
+}
+
 export function previewInscriptionDraw(
   totalTenths: number,
 ): InscriptionDrawPreview {
@@ -83,7 +98,7 @@ export function previewInscriptionDraw(
     remainderTenths: remaining,
     outputs,
     cost: {
-      qi: Math.min(100, Math.max(1, Math.ceil(totalTenths / 5120))),
+      qi: inscriptionDrawQi(totalTenths),
       spiritStones: Math.ceil(totalTenths / 10),
     },
   };
@@ -184,19 +199,29 @@ export function inscriptionStrengthenCost(
 ): InscriptionCost {
   inscriptionLevelTenths(targetLevel);
   if (targetLevel < 2) throw new InventoryRuleError('合成须提升阵纹等级');
-  return { qi: 0, spiritStones: 10 * 2 ** (targetLevel - 2) };
+  return { qi: 0, spiritStones: 8 * 2 ** (targetLevel - 2) };
 }
+
+export const MAX_INSCRIPTION_STRENGTHEN_TIMES = 15;
 
 export function prepareInscriptionStrengthen(
   items: InventoryItem[],
   refs: InscriptionMaterialRef[],
 ) {
+  const total = refs.reduce((sum, ref) => sum + ref.quantity, 0);
+  const times = total / 2;
   if (
     refs.length < 1 ||
     refs.length > 2 ||
-    refs.reduce((sum, r) => sum + r.quantity, 0) !== 2
+    total < 2 ||
+    total % 2 !== 0 ||
+    times > MAX_INSCRIPTION_STRENGTHEN_TIMES
   )
-    throw new InventoryRuleError('需要两枚同种同级阵纹');
+    throw new InventoryRuleError(
+      times > MAX_INSCRIPTION_STRENGTHEN_TIMES
+        ? `单次最多合成${MAX_INSCRIPTION_STRENGTHEN_TIMES}次`
+        : '需要两枚同种同级阵纹',
+    );
   const afterMaterials = consume(items, refs);
   const first = inscriptionOf(resolve(items, refs[0]));
   if (
@@ -209,7 +234,11 @@ export function prepareInscriptionStrengthen(
   const level = first.level + 1;
   const cost = inscriptionStrengthenCost(level);
   const definitionId = inscriptionItemId(first.patternId, level);
-  return { afterMaterials, cost, grant: { definitionId, quantity: 1 } };
+  return {
+    afterMaterials,
+    cost: { qi: 0, spiritStones: cost.spiritStones * times },
+    grant: { definitionId, quantity: times },
+  };
 }
 
 export function prepareInscriptionEquipment(
@@ -265,4 +294,50 @@ export function prepareInscriptionEquipment(
     equipmentId: equipmentItem.id,
     equipped: equipmentItem.location === 'equipped',
   };
+}
+
+export type InscriptionSocketStep = {
+  socket: 0 | 1;
+  inscription: InscriptionRef;
+  action: 'engrave' | 'strengthen_socket';
+  replace: boolean;
+};
+
+export function prepareInscriptionSockets(
+  items: InventoryItem[],
+  equipmentRef: InscriptionRef,
+  steps: InscriptionSocketStep[],
+) {
+  if (steps.length < 1 || steps.length > 2)
+    throw new InventoryRuleError('请选择一至两个孔位');
+  if (new Set(steps.map((step) => step.socket)).size !== steps.length)
+    throw new InventoryRuleError('同一孔位不能重复烙印');
+  resolve(items, equipmentRef);
+  for (const step of steps) resolve(items, step.inscription);
+  let current = items;
+  let cost: InscriptionCost = { qi: 0, spiritStones: 0 };
+  let equipped = false;
+  let equipmentId = equipmentRef.id;
+  for (const step of steps) {
+    const equipment = current.find((item) => item.id === equipmentRef.id);
+    const inscription = current.find((item) => item.id === step.inscription.id);
+    if (!equipment || !inscription)
+      throw new InventoryRuleError('物品已变化，请重新选择');
+    const plan = prepareInscriptionEquipment(
+      current,
+      { id: equipment.id, revision: equipment.revision },
+      step.socket,
+      { id: inscription.id, revision: inscription.revision },
+      step.action,
+      step.replace,
+    );
+    current = plan.after;
+    cost = {
+      qi: cost.qi + plan.cost.qi,
+      spiritStones: cost.spiritStones + plan.cost.spiritStones,
+    };
+    equipped = equipped || plan.equipped;
+    equipmentId = plan.equipmentId;
+  }
+  return { after: current, cost, equipmentId, equipped };
 }

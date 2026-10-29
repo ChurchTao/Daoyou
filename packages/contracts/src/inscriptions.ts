@@ -22,6 +22,12 @@ const equipment = {
   socket: z.union([z.literal(0), z.literal(1)]),
   inscription: ref,
 };
+const socketStep = z.strictObject({
+  socket: z.union([z.literal(0), z.literal(1)]),
+  inscription: ref,
+  mode: z.enum(['engrave', 'strengthen_socket']),
+  replace: z.boolean(),
+});
 export const InscriptionRequestSchema = z.discriminatedUnion('action', [
   z.strictObject({
     ...common,
@@ -44,6 +50,12 @@ export const InscriptionRequestSchema = z.discriminatedUnion('action', [
     ...common,
     ...equipment,
     action: z.literal('strengthen_socket'),
+  }),
+  z.strictObject({
+    ...common,
+    action: z.literal('inscribe'),
+    equipment: ref,
+    steps: z.array(socketStep).min(1).max(2),
   }),
 ]);
 export type InscriptionRequest = z.infer<typeof InscriptionRequestSchema>;

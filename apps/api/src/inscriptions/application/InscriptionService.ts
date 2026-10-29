@@ -5,7 +5,7 @@ import type {
 } from '@daoyou/contracts/inscriptions';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import { type InscriptionCost } from '@daoyou/game-domain/inscriptions';
-import { prepareInscriptionDraw, prepareInscriptionEquipment, prepareInscriptionStrengthen, rollInscriptionDraw } from '@daoyou/game-rules/inscriptions/rules';
+import { prepareInscriptionDraw, prepareInscriptionEquipment, prepareInscriptionSockets, prepareInscriptionStrengthen, rollInscriptionDraw } from '@daoyou/game-rules/inscriptions/rules';
 import { type InventoryItem, type ItemGrant } from '@daoyou/game-domain/inventory';
 import { addItems } from '@daoyou/game-rules/inventory';
 import { inventoryStackIdentity } from '@daoyou/game-rules/inventory/stacking';
@@ -85,7 +85,12 @@ export async function mutateInscriptions(
             ? input.materials.map((item) => item.id)
             : input.action === 'strengthen'
               ? input.inscriptions.map((item) => item.id)
-              : [input.equipment.id, input.inscription.id];
+              : input.action === 'inscribe'
+                ? [
+                    input.equipment.id,
+                    ...input.steps.map((step) => step.inscription.id),
+                  ]
+                : [input.equipment.id, input.inscription.id];
         const before = (
           await tx
             .select()
@@ -120,6 +125,18 @@ export async function mutateInscriptions(
           after = plan.afterMaterials;
           cost = plan.cost;
           grants = [plan.grant];
+        } else if (input.action === 'inscribe') {
+          const plan = prepareInscriptionSockets(
+            before,
+            input.equipment,
+            input.steps.map((step) => ({
+              socket: step.socket,
+              inscription: step.inscription,
+              action: step.mode,
+              replace: step.replace,
+            })),
+          );
+          ({ after, cost, equipmentId, equipped } = plan);
         } else {
           const plan = prepareInscriptionEquipment(
             before,
