@@ -171,8 +171,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
   }>();
   const inventory = session.bag.data;
   useEffect(() => {
-    if (session.result?.action === 'inscribe') setSockets(emptySockets());
-  }, [session.result]);
+    if (!session.result) return;
+    storage.reload();
+    if (session.result.action === 'inscribe') setSockets(emptySockets());
+  }, [session.result, storage.reload]);
   const pickerView = source === 'bag' ? inventory : storage.view;
   const pickerError = source === 'bag' ? session.bag.error : storage.error;
   const pickerLocked =
@@ -180,11 +182,20 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     !pickerView ||
     (source === 'storage' && storage.loading) ||
     !!pickerError;
-  const items = [
-    ...chosenItems.values(),
+  const freshItems = [
     ...(inventory?.items ?? []),
     ...(inventory?.equippedItems ?? []),
     ...(storage.view?.items ?? []),
+  ];
+  const freshIds = new Set(freshItems.map((item) => item.id));
+  const items = [
+    ...[...chosenItems.values()].filter((item) => {
+      if (freshIds.has(item.id)) return false;
+      if (!inventory) return true;
+      if (item.location === 'bag' || item.location === 'equipped') return false;
+      return !(storage.view && item.location === 'storage');
+    }),
+    ...freshItems,
   ];
   const byId = new Map(items.map((item) => [item.id, item]));
   const equipmentItem = equipmentRef ? byId.get(equipmentRef.id) : undefined;
