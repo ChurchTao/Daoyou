@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "contentRevision": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "defenseWeight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "stages": {
+      "type": "object",
+      "properties": {
+        "初期": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "中期": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "后期": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "圆满": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "初期",
+        "中期",
+        "后期",
+        "圆满"
+      ],
+      "additionalProperties": false
+    },
+    "tiers": {
+      "type": "object",
+      "properties": {
+        "easy": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "normal": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "hard": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "elite": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "boss": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "easy",
+        "normal",
+        "hard",
+        "elite",
+        "boss"
+      ],
+      "additionalProperties": false
+    },
+    "kinds": {
+      "type": "object",
+      "properties": {
+        "normal": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "elite": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "boss": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "normal",
+        "elite",
+        "boss"
+      ],
+      "additionalProperties": false
+    },
+    "intensity": {
+      "type": "object",
+      "properties": {
+        "炼气": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "筑基": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "金丹": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "元婴": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "化神": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "炼虚": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "合体": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "大乘": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "渡劫": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "炼气",
+        "筑基",
+        "金丹",
+        "元婴",
+        "化神",
+        "炼虚",
+        "合体",
+        "大乘",
+        "渡劫"
+      ],
+      "additionalProperties": false
+    },
+    "baselines": {
+      "type": "object",
+      "properties": {
+        "炼气": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "筑基": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "金丹": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "元婴": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "化神": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "炼虚": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "合体": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "大乘": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "渡劫": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "炼气",
+        "筑基",
+        "金丹",
+        "元婴",
+        "化神",
+        "炼虚",
+        "合体",
+        "大乘",
+        "渡劫"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "formatVersion",
+    "contentRevision",
+    "defenseWeight",
+    "stages",
+    "tiers",
+    "kinds",
+    "intensity",
+    "baselines"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 3
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "hp": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "output": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      },
+      "required": [
+        "hp",
+        "output",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "__schema2": {
+      "type": "object",
+      "properties": {
+        "maxHp": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "physicalAtk": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "magicAtk": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "physicalDef": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "magicDef": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "speed": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "hit": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "dodge": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "referencePhysicalDef": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "referenceMagicDef": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "maxHp",
+        "physicalAtk",
+        "magicAtk",
+        "physicalDef",
+        "magicDef",
+        "speed",
+        "hit",
+        "dodge",
+        "referencePhysicalDef",
+        "referenceMagicDef"
+      ],
+      "additionalProperties": false
+    },
+    "__schema3": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1000000
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "./dungeon-enemies.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "defenseWeight": 0.45,
+  "stages": {
+    "初期": 0.92,
+    "中期": 1,
+    "后期": 1.08,
+    "圆满": 1.16
+  },
+  "tiers": {
+    "easy": 0.9,
+    "normal": 1,
+    "hard": 1.1,
+    "elite": 1.18,
+    "boss": 1.28
+  },
+  "kinds": {
+    "normal": { "hp": 1, "output": 1, "count": 1 },
+    "elite": { "hp": 1.4, "output": 1.12, "count": 2 },
+    "boss": { "hp": 1.55, "output": 1.15, "count": 1 }
+  },
+  "intensity": {
+    "炼气": 0.32,
+    "筑基": 0.4,
+    "金丹": 0.48,
+    "元婴": 0.62,
+    "化神": 0.72,
+    "炼虚": 0.82,
+    "合体": 0.9,
+    "大乘": 0.95,
+    "渡劫": 1
+  },
+  "baselines": {
+    "炼气": {
+      "maxHp": 499,
+      "physicalAtk": 180,
+      "magicAtk": 153,
+      "physicalDef": 61,
+      "magicDef": 55,
+      "speed": 62,
+      "hit": 108,
+      "dodge": 13,
+      "referencePhysicalDef": 137,
+      "referenceMagicDef": 116
+    },
+    "筑基": {
+      "maxHp": 1101,
+      "physicalAtk": 372,
+      "magicAtk": 316,
+      "physicalDef": 126,
+      "magicDef": 113,
+      "speed": 138,
+      "hit": 145,
+      "dodge": 29,
+      "referencePhysicalDef": 286,
+      "referenceMagicDef": 243
+    },
+    "金丹": {
+      "maxHp": 1718,
+      "physicalAtk": 561,
+      "magicAtk": 477,
+      "physicalDef": 196,
+      "magicDef": 176,
+      "speed": 214,
+      "hit": 181,
+      "dodge": 45,
+      "referencePhysicalDef": 432,
+      "referenceMagicDef": 367
+    },
+    "元婴": {
+      "maxHp": 3010,
+      "physicalAtk": 854,
+      "magicAtk": 726,
+      "physicalDef": 328,
+      "magicDef": 295,
+      "speed": 291,
+      "hit": 218,
+      "dodge": 62,
+      "referencePhysicalDef": 579,
+      "referenceMagicDef": 492
+    },
+    "化神": {
+      "maxHp": 3482,
+      "physicalAtk": 1092,
+      "magicAtk": 928,
+      "physicalDef": 441,
+      "magicDef": 397,
+      "speed": 368,
+      "hit": 255,
+      "dodge": 79,
+      "referencePhysicalDef": 727,
+      "referenceMagicDef": 618
+    },
+    "炼虚": {
+      "maxHp": 4101,
+      "physicalAtk": 1363,
+      "magicAtk": 1159,
+      "physicalDef": 570,
+      "magicDef": 513,
+      "speed": 443,
+      "hit": 291,
+      "dodge": 95,
+      "referencePhysicalDef": 874,
+      "referenceMagicDef": 743
+    },
+    "合体": {
+      "maxHp": 5040,
+      "physicalAtk": 1764,
+      "magicAtk": 1500,
+      "physicalDef": 758,
+      "magicDef": 682,
+      "speed": 521,
+      "hit": 328,
+      "dodge": 112,
+      "referencePhysicalDef": 1021,
+      "referenceMagicDef": 868
+    },
+    "大乘": {
+      "maxHp": 5968,
+      "physicalAtk": 2197,
+      "magicAtk": 1868,
+      "physicalDef": 946,
+      "magicDef": 851,
+      "speed": 598,
+      "hit": 365,
+      "dodge": 128,
+      "referencePhysicalDef": 1169,
+      "referenceMagicDef": 994
+    },
+    "渡劫": {
+      "maxHp": 6783,
+      "physicalAtk": 2789,
+      "magicAtk": 2371,
+      "physicalDef": 1158,
+      "magicDef": 1042,
+      "speed": 673,
+      "hit": 401,
+      "dodge": 144,
+      "referencePhysicalDef": 1315,
+      "referenceMagicDef": 1118
+    }
+  }
+}

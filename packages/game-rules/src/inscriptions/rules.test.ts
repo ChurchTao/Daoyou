@@ -159,7 +159,7 @@ describe('阵纹物品与绘制', () => {
         { level: 4, quantity: 1 },
         { level: 1, quantity: 1 },
       ],
-      cost: { qi: 1, spiritStones: 112 },
+      cost: { qi: 1, spiritStones: 11 },
     });
     expect(previewInscriptionDraw(180).outputs).toEqual([
       { level: 2, quantity: 1 },
@@ -167,9 +167,7 @@ describe('阵纹物品与绘制', () => {
     ]);
     expect(previewInscriptionDraw(180).remainderTenths).toBe(20);
     expect(previewInscriptionDraw(40).cost.qi).toBe(1);
-    expect(previewInscriptionDraw(500000).cost.qi).toBe(7);
-    expect(previewInscriptionDraw(12500).cost.qi).toBe(1);
-    expect(previewInscriptionDraw(12501).cost.qi).toBe(2);
+    expect(previewInscriptionDraw(500000).cost.qi).toBe(5);
     expect(previewInscriptionDraw(40 * 3 ** 7 + 40 * 3 ** 6)).toMatchObject({
       outputs: [
         { level: 8, quantity: 1 },
@@ -180,44 +178,41 @@ describe('阵纹物品与绘制', () => {
     for (const value of [0, 39, 39.9, NaN, Infinity])
       expect(() => previewInscriptionDraw(value)).toThrow();
   });
-  it('绘制灵气按份数开方，灵石仍按份数向上取整且包含余料', () => {
-    expect(previewInscriptionDraw(40).cost).toEqual({ qi: 1, spiritStones: 4 });
+  it('绘制灵气和灵石都按份数开方，余料计入，灵石最少1', () => {
+    expect(previewInscriptionDraw(40).cost).toEqual({ qi: 1, spiritStones: 2 });
+    expect(previewInscriptionDraw(41).cost.spiritStones).toBe(3);
     expect(previewInscriptionDraw(100).cost).toEqual({
       qi: 1,
-      spiritStones: 10,
+      spiritStones: 4,
     });
-    expect(previewInscriptionDraw(101).cost).toEqual({
-      qi: 1,
-      spiritStones: 11,
-    });
-    expect(previewInscriptionDraw(12500).cost).toEqual({
-      qi: 1,
-      spiritStones: 1250,
-    });
-    expect(previewInscriptionDraw(12501).cost).toEqual({
-      qi: 2,
-      spiritStones: 1251,
-    });
+    expect(previewInscriptionDraw(101).cost.spiritStones).toBe(4);
     const divine = material('tcdb', 1, '神品');
     expect(
       prepareInscriptionDraw([divine], [ref(divine)]).preview.cost,
-    ).toEqual({ qi: 20, spiritStones: 500000 });
+    ).toEqual({ qi: 15, spiritStones: 708 });
   });
-  it('四件神品天材地宝的灵气为40点，超出后不再增加，灵石继续按全部投入计费', () => {
-    expect(previewInscriptionDraw(20_000_000).cost.qi).toBe(40);
-    expect(previewInscriptionDraw(20_000_001).cost.qi).toBe(40);
+  it('四件神品天材地宝的灵气为30点，再投入时增幅递减且不截断', () => {
+    const reference = previewInscriptionDraw(20_000_000).cost;
+    const next = previewInscriptionDraw(20_000_001).cost.qi;
+    const doubled = previewInscriptionDraw(40_000_000).cost.qi;
+    const tripled = previewInscriptionDraw(60_000_000).cost.qi;
+    expect(reference).toEqual({ qi: 30, spiritStones: 1415 });
+    expect(next).toBe(31);
+    expect(doubled - reference.qi).toBeLessThan(reference.qi);
+    expect(tripled - doubled).toBeLessThan(doubled - reference.qi);
     const ore = material('ore', 4, '神品');
-    expect(prepareInscriptionDraw([ore], [ref(ore, 4)]).preview.cost.qi).toBe(
-      26,
-    );
+    expect(prepareInscriptionDraw([ore], [ref(ore, 4)]).preview.cost).toEqual({
+      qi: 19,
+      spiritStones: 895,
+    });
     const divine = material('tcdb', 4, '神品');
     expect(
       prepareInscriptionDraw([divine], [ref(divine, 4)]).preview.cost,
-    ).toEqual({ qi: 40, spiritStones: 2000000 });
+    ).toEqual(reference);
     const stacked = material('tcdb', 30, '神品');
     expect(
       prepareInscriptionDraw([stacked], [ref(stacked, 30)]).preview.cost.qi,
-    ).toBe(40);
+    ).toBeGreaterThan(30);
   });
   it('只保留主产物和副产物，其余能量溢散但仍计入灵气消耗', () => {
     const preview = previewInscriptionDraw(9490);
@@ -226,7 +221,7 @@ describe('阵纹物品与绘制', () => {
       { level: 4, quantity: 2 },
     ]);
     expect(preview.remainderTenths).toBe(850);
-    expect(preview.cost).toEqual({ qi: 1, spiritStones: 949 });
+    expect(preview.cost).toEqual({ qi: 1, spiritStones: 31 });
     expect(
       rollInscriptionDraw(preview, () => 0).map((grant) => grant.quantity),
     ).toEqual([2, 2]);

@@ -39,6 +39,55 @@ import type { DisplayItem } from '../items/presentation/types.js';
 import { useInscriptionSession } from './useInscriptionSession';
 
 type Item = InventoryView['items'][number];
+type ChosenItem = { item: Item; storageKey: string | null };
+
+function storageListKey(filter: InventoryFilter, page: number) {
+  return [
+    filter.kind,
+    filter.minRank ?? '',
+    filter.maxRank ?? '',
+    filter.materialType ?? '',
+    filter.element ?? '',
+    page,
+  ].join(':');
+}
+
+function reconcileChosen(
+  current: Map<string, ChosenItem>,
+  fresh: Map<string, Item>,
+  inventoryLoaded: boolean,
+  loadedKey: string | null,
+) {
+  if (current.size === 0) return current;
+  let changed = false;
+  const next = new Map(current);
+  for (const [id, chosen] of current) {
+    const seen = fresh.get(id);
+    if (seen) {
+      if (
+        seen.quantity !== chosen.item.quantity ||
+        seen.revision !== chosen.item.revision ||
+        seen.location !== chosen.item.location
+      ) {
+        next.set(id, { ...chosen, item: seen });
+        changed = true;
+      }
+      continue;
+    }
+    const consumed =
+      inventoryLoaded &&
+      (chosen.item.location === 'bag' ||
+        chosen.item.location === 'equipped' ||
+        (chosen.item.location === 'storage' &&
+          chosen.storageKey !== null &&
+          loadedKey === chosen.storageKey));
+    if (consumed) {
+      next.delete(id);
+      changed = true;
+    }
+  }
+  return changed ? next : current;
+}
 type Tab = 'draw' | 'strengthen' | 'engrave';
 const modes = [
   { value: 'draw', label: '绘制' },
@@ -162,7 +211,9 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
   const [filter, setFilter] = useState<InventoryFilter>({ kind: 'material' });
   const storage = useCraftStorage(filter, source === 'storage');
-  const [chosenItems, setChosenItems] = useState<Map<string, Item>>(new Map());
+  const [chosenItems, setChosenItems] = useState<Map<string, ChosenItem>>(
+    new Map(),
+  );
   const [selectionError, setSelectionError] = useState('');
   const [confirmation, setConfirmation] = useState<{
     input: InscriptionRequest;
@@ -171,8 +222,10 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
   }>();
   const inventory = session.bag.data;
   useEffect(() => {
-    if (session.result?.action === 'inscribe') setSockets(emptySockets());
-  }, [session.result]);
+    if (!session.result) return;
+    storage.reload();
+    if (session.result.action === 'inscribe') setSockets(emptySockets());
+  }, [session.result, storage.reload]);
   const pickerView = source === 'bag' ? inventory : storage.view;
   const pickerError = source === 'bag' ? session.bag.error : storage.error;
   const pickerLocked =
@@ -180,12 +233,43 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     !pickerView ||
     (source === 'storage' && storage.loading) ||
     !!pickerError;
-  const items = [
-    ...chosenItems.values(),
+  const freshItems = [
     ...(inventory?.items ?? []),
     ...(inventory?.equippedItems ?? []),
     ...(storage.view?.items ?? []),
   ];
+  const freshById = new Map(freshItems.map((item) => [item.id, item]));
+  const loadedStorageKey = storage.view
+    ? storageListKey(filter, storage.page)
+    : null;
+  const items = [
+    ...[...chosenItems.values()].flatMap((chosen) => {
+      const fresh = freshById.get(chosen.item.id);
+      if (fresh) return [];
+      if (!inventory) return [chosen.item];
+      if (
+        chosen.item.location === 'bag' ||
+        chosen.item.location === 'equipped'
+      )
+        return [];
+      // 储藏室按页加载。不在当前页不等于已消耗，沿用放入时记下的那一份。
+      if (
+        chosen.item.location === 'storage' &&
+        chosen.storageKey !== null &&
+        loadedStorageKey === chosen.storageKey
+      )
+        return [];
+      return [chosen.item];
+    }),
+    ...freshItems,
+  ];
+  const reconciledChosen = reconcileChosen(
+    chosenItems,
+    freshById,
+    !!inventory,
+    loadedStorageKey,
+  );
+  if (reconciledChosen !== chosenItems) setChosenItems(reconciledChosen);
   const byId = new Map(items.map((item) => [item.id, item]));
   const equipmentItem = equipmentRef ? byId.get(equipmentRef.id) : undefined;
   const equipment = equipmentItem
@@ -366,7 +450,17 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     return null;
   }
   function remember(item: Item) {
-    setChosenItems((current) => new Map(current).set(item.id, item));
+    setChosenItems((current) => {
+      const next = new Map(current);
+      next.set(item.id, {
+        item,
+        storageKey:
+          item.location === 'storage'
+            ? storageListKey(filter, storage.page)
+            : null,
+      });
+      return next;
+    });
   }
   function placeMaterial(item: Item, quantity: number, closeDrawer: boolean) {
     if (pickerLocked) return;
@@ -1037,7 +1131,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           </summary>
           <div className="text-ink-secondary mt-3 space-y-2">
             <p>
-              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数变为三倍，优先绘成高等级阵纹，最高{INSCRIPTION_DRAW_MAX_LEVEL}级。天地灵气按投入份数开方计，最少1点、最多40点，四件神品天材地宝正好40点；每1份消耗1灵石，均向上取整，余料也计入费用。只产出主产物和副产物两个等级，其余材料溢散。
+              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数变为三倍，优先绘成高等级阵纹，最高{INSCRIPTION_DRAW_MAX_LEVEL}级。天地灵气和灵石都按投入份数开方计，最少1点。四件神品天材地宝正好30点灵气，再投入时增加变少。余料也计入费用。只产出主产物和副产物两个等级，其余材料溢散。
             </p>
             <p>
               九种阵纹等概率独立生成。同种同级按两枚一组合成，单次最多{MAX_INSCRIPTION_STRENGTHEN_TIMES}次，绘制与合成均必定成功，最高{INSCRIPTION_MAX_LEVEL}级，合成费用仍逐级翻倍。两个孔可以一次烙印。阵纹适用部位及等级须符合道装孔上限。
