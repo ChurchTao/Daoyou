@@ -1048,7 +1048,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           </summary>
           <div className="text-ink-secondary mt-3 space-y-2">
             <p>
-              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数变为三倍，优先绘成高等级阵纹，最高{INSCRIPTION_DRAW_MAX_LEVEL}级。天地灵气按投入份数开方计，最少1点、最多40点，四件神品天材地宝正好40点；每1份消耗1灵石，均向上取整，余料也计入费用。只产出主产物和副产物两个等级，其余材料溢散。
+              矿石、妖兽材料、辅助材料、天材地宝均可入墨。每4份绘成一级阵纹，高一级所需份数变为三倍，优先绘成高等级阵纹，最高{INSCRIPTION_DRAW_MAX_LEVEL}级。天地灵气和灵石都按投入份数开方计，最少1点。四件神品天材地宝正好30点灵气，再投入时增加变少。余料也计入费用。只产出主产物和副产物两个等级，其余材料溢散。
             </p>
             <p>
               九种阵纹等概率独立生成。同种同级按两枚一组合成，单次最多{MAX_INSCRIPTION_STRENGTHEN_TIMES}次，绘制与合成均必定成功，最高{INSCRIPTION_MAX_LEVEL}级，合成费用仍逐级翻倍。两个孔可以一次烙印。阵纹适用部位及等级须符合道装孔上限。

@@ -21,6 +21,7 @@ import {
 } from '@daoyou/game-rules/equipment/projection';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
 import { field, lines } from './helpers';
+import { inscriptionPatternIcon } from './inscription';
 import type {
   ItemAdapter,
   PreviewEntry,
@@ -102,7 +103,7 @@ function equipmentSections(
           ? [
               {
                 label: `第${index + 1}孔`,
-                value: `${daoFormationInscriptionOf(old.patternId)!.name} · ${old.level}级（移除）`,
+                value: `${inscriptionPatternIcon(old.patternId)} ${daoFormationInscriptionOf(old.patternId)!.name} · ${old.level}级（移除）`,
                 tone: 'warning' as const,
               },
               {
@@ -131,11 +132,13 @@ function equipmentSections(
       return [
         {
           label: `第${index + 1}孔`,
-          value: `${definition.name} · ${formation.level}级`,
+          value: `${inscriptionPatternIcon(definition.id)} ${definition.name} · ${formation.level}级`,
           comparison:
             comparison && old?.patternId !== formation.patternId
               ? {
-                  value: old ? `原 ${oldDef!.name} ${old.level}级` : '新增',
+                  value: old
+                    ? `原 ${inscriptionPatternIcon(old.patternId)} ${oldDef!.name} ${old.level}级`
+                    : '新增',
                   tone: 'muted' as const,
                 }
               : undefined,
