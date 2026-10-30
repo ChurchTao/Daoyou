@@ -339,7 +339,7 @@
       "id": "bailu.skill.fuyuan",
       "name": "复元！",
       "school": "bailu",
-      "description": "消耗20法力恢复自身气血，恢复量为心法等级+10；普通恢复不修复伤势。",
+      "description": "消耗20法力，恢复心法等级+10点气血。",
       "tags": [
         "spell",
         "support"
@@ -361,7 +361,7 @@
       "id": "bailu.skill.juqi",
       "name": "聚气！",
       "school": "bailu",
-      "description": "消耗20气血恢复自身法力，不透支致死。恢复法力为心法等级+10。",
+      "description": "消耗20气血，恢复心法等级+10点法力。",
       "tags": [
         "spell",
         "support"
@@ -402,7 +402,7 @@
       "id": "bailu.skill.hushen",
       "name": "护身！",
       "school": "bailu",
-      "description": "消耗80法力，4回合内每轮免疫首次敌方攻击性行为的全部作用；不会阻止群攻对其他人的效果。",
+      "description": "消耗80法力，4回合内每轮免疫首次敌方攻击性行为的全部作用。",
       "tags": [
         "spell",
         "support"
@@ -458,7 +458,7 @@
       "id": "bailu.skill.dianming",
       "name": "点名！",
       "school": "bailu",
-      "description": "浩气文章专属。以一次特殊破邪攻击主目标，留下本人唯一朱批；改标移除自己的旧朱批，不影响他人。消耗30法力，与破邪伤害相同；冷却8回合。",
+      "description": "浩气文章专属。以破邪攻击主目标，留下本人唯一朱批；再次点名会换掉自己原先的朱批。消耗30法力，冷却8回合。",
       "tags": [
         "spell"
       ],
@@ -506,7 +506,7 @@
       "id": "bailu.skill.jinsheng",
       "name": "噤声！",
       "school": "bailu",
-      "description": "消耗70战意，必中封法并附禁言2回合，仍受绝对免疫、护身与目标合法性限制。冷却6回合；自身封法时不可用。",
+      "description": "消耗70战意，必中封法并附禁言2回合。自身被封法时不可用。冷却6回合。",
       "tags": [
         "spell",
         "seal"
@@ -550,7 +550,7 @@
       "id": "bailu.skill.shesheng",
       "name": "舍生！",
       "school": "bailu",
-      "description": "气血至少一半时消耗80法力，将自身气血留为1点，获得5回合不可驱散的舍生立言：破邪伤害+70%，回合末缩短自身拘灵类禁复活状态1回合。冷却8，开场冷却4。",
+      "description": "气血至少一半可施放。消耗80法力，自身气血留1点，获得5回合不可驱散的舍生立言：破邪伤害提高70%，回合末使自身拘灵缩短1回合。冷却8回合，开战冷却4回合。",
       "tags": [
         "spell",
         "support"
@@ -595,7 +595,7 @@
       "id": "bailu.passive.righteousness",
       "name": "浩然正气",
       "school": "bailu",
-      "description": "对幽都单位伤害提高10%；对鬼魂单位物理、法术伤害翻倍，不阻止其复起。两者同时满足时相乘。",
+      "description": "对幽都单位伤害提高10%；对鬼魂单位物理、法术伤害翻倍。两者同时满足时相乘。",
       "tags": [
         "passive"
       ],
@@ -943,7 +943,7 @@
               "bailu.skill.poxie"
             ]
           },
-          "damageBonus": 0.4
+          "damageBonus": 0.25
         }
       ]
     },
