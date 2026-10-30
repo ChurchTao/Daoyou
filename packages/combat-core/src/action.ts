@@ -37,10 +37,10 @@ import { evalExpr } from './expr.js';
 import { atLeast } from './math.js';
 import { standingUnits } from './unit-query.js';
 import { checkSkillRequirements } from './requirements.js';
-import { invokesAttackSkills, isActiveAttackSkill, skillOf } from './skills.js';
+import { invokesAttackSkills, isActiveAttackSkill, isDamagingSpellSkill, skillOf } from './skills.js';
 import { commandBlockReason, commandPolicyOf, hasBlock, hasStatusFlag } from './status.js';
 import { removeStatus } from './status-removal.js';
-import { poolFor, resolveSkillTargets } from './targeting.js';
+import { costTargets, poolFor, resolveSkillTargets } from './targeting.js';
 import type { Command, SkillDef, Unit } from './types.js';
 import {
   canCollectCommand,
@@ -97,11 +97,14 @@ export function lockCommands(ctx: BattleContext): void {
 }
 
 export function resolveAction(ctx: BattleContext, unit: Unit): void {
+  const previousHostileAction = ctx.hostileAction;
+  ctx.hostileAction = { sourceId: unit.id, interceptedTargetIds: [] };
   ctx.hooks.emit(HookName.BeforeActionWindow, { source: unit });
   try {
     if (isActionable(unit)) resolveActionWindow(ctx, unit);
   } finally {
     ctx.hooks.emit(HookName.AfterActionWindow, { source: unit });
+    ctx.hostileAction = previousHostileAction;
   }
 }
 
@@ -476,9 +479,10 @@ function resolveSkillCommand(
   }
   // 失心等封法：法术失败，未同时封物则转普通攻击。
   if (
-    skill.tags.includes(SkillTag.Spell) &&
+    (isDamagingSpellSkill(skill) && hasBlock(ctx, unit, StatusFlag.BlocksDamagingSpells)) ||
+    (skill.tags.includes(SkillTag.Spell) &&
     !skill.tags.includes(SkillTag.Art) &&
-    hasBlock(ctx, unit, StatusFlag.BlocksSpell)
+    hasBlock(ctx, unit, StatusFlag.BlocksSpell))
   ) {
     ctx.emit({
       type: EventType.ActionFailed,
@@ -530,6 +534,17 @@ function resolveSkillCommand(
 }
 
 type ResolvedSkillTargets = { targets: Unit[]; normalTargetIds: string[] };
+
+/** A triggered cast pays ordinary costs and respects eligibility without taking a turn. */
+export function invokeSkill(ctx: BattleContext, unit: Unit, skillId: string, targets: Unit[]): void {
+  if (!isStanding(unit) || unit.flags.skipNextAction || ctx.state.result) return;
+  const skill = skillOf(ctx.skills, unit, skillId);
+  if (!skill || skill.tags.includes(SkillTag.Passive) || !unit.skills.includes(skillId)) return;
+  const normalTargetIds: string[] = [];
+  const resolved = resolveSkillTargets(ctx, unit, skill, targets.map(target => target.id), undefined, normalTargetIds);
+  if (checkSkillRequirements(ctx, unit, skill, resolved).reasons.length) return;
+  resolveSkill(ctx, unit, skill, resolved.map(target => target.id), undefined, { targets: resolved, normalTargetIds });
+}
 
 function resolveSkill(
   ctx: BattleContext,
@@ -612,6 +627,10 @@ function resolveSkillAction(
     return;
   }
 
+  if (skill.targeting.reserveExtraCost && unit.attrs.mp < checkSkillRequirements(ctx, unit, skill, costTargets(ctx, unit, skill)).mpCost) {
+    fallbackToAttack(ctx, unit, targetIds, FailReason.InsufficientMp);
+    return;
+  }
   const normalTargetIds: string[] = resolved?.normalTargetIds ?? [];
   const targets = resolved?.targets ?? resolveSkillTargets(
     ctx,

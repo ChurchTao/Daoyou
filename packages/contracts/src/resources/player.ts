@@ -523,7 +523,7 @@ export const PLAYER_RESOURCE_DATA_SCHEMAS = {
       revision: z.number().int().nonnegative(),
       membershipId: z.string().uuid().optional(),
       sectId: z
-        .enum(['lingxiao', 'youdu', 'wuxiang', 'tianyan', 'jiujie'])
+        .enum(['lingxiao', 'youdu', 'wuxiang', 'tianyan', 'jiujie', 'bailu'])
         .optional(),
       sectName: z.string().optional(),
       activePathId: z.string().optional(),

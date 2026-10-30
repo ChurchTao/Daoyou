@@ -6,7 +6,7 @@ import type { BattleContext } from "./context.js"
 import { BattlePhase, CommandType, EventType, HookName, HpZeroOutcome, MatchWinner, ResultReason, Team } from "./enums.js"
 import { BattleError, ErrorCode } from "./errors.js"
 import { HookBus } from "./hooks.js"
-import { clearRoundFlags, invokeAttackSkills, lockCommands } from './action.js';
+import { clearRoundFlags, invokeAttackSkills, invokeSkill, lockCommands } from './action.js';
 import { resolveRoundActions } from './pipeline.js';
 import { commandOptions } from './query.js';
 import { teamFled, teamWiped, unitById } from './unit-query.js';
@@ -76,6 +76,7 @@ export class BattleSession {
       checkEnd: (reason) => this.finishIfNeeded(reason),
       suppressHooks: 0,
       invokeAttackSkills: (source, skill, targets) => invokeAttackSkills(ctx, source, skill, targets),
+      invokeSkill: (source, skillId, targets) => invokeSkill(ctx, source, skillId, targets),
     }
     this.ctx = ctx
     if (restored) rng.state = restored.state.rngState

@@ -188,6 +188,35 @@ function conditionedDefend(
   };
 }
 describe('当前场次托管', () => {
+  it('人物隔离一名敌人后，灵兽攻击另一名敌人而不打醒睡眠', () => {
+    const sleep: StatusDef = { id: 'sleep', kind: 'sleep', name: '入梦', category: 'control', blocksAction: true, breakOnDamage: true };
+    const control: SkillDef = { id: 'sleep-skill', name: '催眠', tags: ['spell', 'support'], sealBase: 100, targeting: { side: 'enemy' }, effects: [{ type: 'applyStatus', statusId: sleep.id, duration: 3, hit: 'seal' }] };
+    const battle = createBattle({
+      seed: 42, ruleset: daoyouRulesetV6, skills: [control], statusDefs: [sleep],
+      units: [
+        { id: 'player', name: '人物', kind: 'player', side: 0, level: 60, skills: [control.id], attrs: { hp: 1000, maxHp: 1000, mp: 100, physicalAtk: 10, speed: 50 } },
+        { id: 'pet', name: '灵兽', kind: 'pet', ownerId: 'player', side: 0, level: 60, attrs: { hp: 1000, physicalAtk: 100, speed: 40 } },
+        { id: 'enemy', name: '敌人', kind: 'npc', side: 1, level: 60, attrs: { hp: 10000, speed: 10 } },
+        { id: 'enemy2', name: '敌人二', kind: 'npc', side: 1, level: 60, attrs: { hp: 10000, speed: 10 } },
+      ],
+    });
+    const choose = () => automaticCommands(battle.snapshot(), 'player', [control], id => battle.queryCommands(id), { statusDefs: [sleep] });
+    expect(choose()).toEqual([
+      { unitId: 'player', command: { type: 'skill', skillId: control.id, targets: ['enemy'] } },
+      { unitId: 'pet', command: { type: 'attack', target: 'enemy2' } },
+    ]);
+    Object.assign(battle.unit('enemy').attrs, { speed: 9999, sealResist: 9999, physicalAtk: 9999 });
+    expect(choose()[1].command).toEqual({ type: 'attack', target: 'enemy2' });
+  });
+
+  it('只向己方观察暴露护身本轮是否已使用', () => {
+    const battle = fixture();
+    battle.unit('player').flags.hostileActionGuardRound = 1;
+    battle.unit('enemy').flags.hostileActionGuardRound = 1;
+    const observed = observeAutoBattle(battle.snapshot(), 'player', []);
+    expect(observed.units.find(unit => unit.id === 'player')!.flags.hostileActionGuardRound).toBe(1);
+    expect(observed.units.find(unit => unit.id === 'enemy')!.flags.hostileActionGuardRound).toBeUndefined();
+  });
   it.each([
     { expected: 1625 },
     { percentageDamage: true, expected: 1000 },
@@ -590,7 +619,7 @@ describe('当前场次托管', () => {
     battle.unit('pet').flags.downed = true;
     expect(chooseWithStrategy(battle, strategy, defs).type).toBe('skill');
   });
-  it.each(['combat_auto_rules_v3', undefined])(
+  it.each(['combat_auto_rules_v3', 'combat_auto_rules_v6', undefined])(
     '旧自动策略版本（%s）忽略冻结战术，改用临场应变',
     (version) => {
       const battle = fixture(['strike']);

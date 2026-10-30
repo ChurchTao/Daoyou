@@ -131,6 +131,7 @@ function beastComboDescription(skill: SkillDef): string | undefined {
   return `普通攻击命中后，有 ${Math.round(hook.chance * 100)}% 概率向原目标追加一次普攻；自身所有物理伤害降低 ${Math.round((1 - effect.physicalFactor) * 100)}%。目标拥有反震或高级反震时不触发，偷袭不解除此限制。`;
 }
 const effectLabels: Record<SkillEffect['type'], string> = {
+  invokeSkill: '依规则施展指定神通',
   invokeAttackSkills: '依次施展已学主动攻击技能',
   repeat: "连续触发效果",
   modifyFact: "心念流转",
@@ -173,12 +174,32 @@ export function combatV6SkillDetails(
   options: { includeBeastFlavor?: boolean } = {},
 ) {
   const names = new Map(statuses.map((status) => [status.id, status.name]));
+  const statusTraits = (status: StatusDef | undefined): string[] => {
+    if (!status) return [];
+    const traits: string[] = [];
+    if (status.blocksDamagingSpells)
+      traits.push('禁止攻击法术；辅助法术、物理技能及装备器诀不受此项限制');
+    if (status.interceptHostileAction)
+      traits.push('每回合免疫来自敌方的首次攻击性行为，同一次多段攻击只占一次；群攻对其他单位照常');
+    if (status.breakOnDamage) traits.push(status.breakOnDamageAbove === undefined
+      ? '实际损失气血后解除；仅损失护盾不解除'
+      : `单次实际损失气血超过${status.breakOnDamageAbove}点后解除；不累计多段伤害，仅损失护盾不解除`);
+    for (const modifier of status.modifiers ?? []) {
+      if (typeof modifier.sealChanceCeilAdd === 'number')
+        traits.push(`${modifier.when ? '满足条件时，' : ''}封印命中上限提高${Math.round(modifier.sealChanceCeilAdd * 100)}个百分点，最高100%`);
+      if (modifier.sealAlwaysHit)
+        traits.push('满足条件时跳过普通封印命中判定；仍受免疫与目标合法性限制');
+    }
+    return traits;
+  };
   const describe = (effect: SkillEffect): string => {
     let text = effectLabels[effect.type];
     if (effect.type === EffectType.ApplyStatus) {
       text = `${effect.self ? '自身' : ''}施加「${names.get(effect.statusId) ?? '状态'}」`;
       if (typeof effect.duration === 'number')
         text += `，持续 ${effect.duration} 回合`;
+      const traits = statusTraits(statuses.find(status => status.id === effect.statusId));
+      if (traits.length) text += `；${traits.join('；')}`;
     } else if (effect.type === EffectType.ApplyBarrier) {
       text = `获得「${effect.name}」护盾`;
     } else if (effect.type === EffectType.RandomBranch) {
@@ -197,11 +218,15 @@ export function combatV6SkillDetails(
       lines.push(`当前气血须低于${Math.round(skill.requireHpBelowRatio * 100)}%。`);
     if (typeof skill.targeting.count === 'number' && skill.targeting.count > 1)
       lines.push(`基础目标数：最多${skill.targeting.count}个。`);
+    if (skill.sealChanceCeil !== undefined)
+      lines.push(`本技能普通封印命中上限：${Math.round(skill.sealChanceCeil * 100)}%。`);
+    if (skill.modifiers?.some(modifier => modifier.sealAlwaysHit))
+      lines.push('满足条件时跳过普通封印命中判定；仍受免疫与目标合法性限制。');
     for (const effect of skill.effects) {
       if (effect.type === EffectType.SkipNextAction) lines.push(describe(effect));
       if (effect.type === EffectType.ApplyStatus) {
         const status = statuses.find(s => s.id === effect.statusId);
-        if (status?.category === 'buff' && !status.onExpire && !status.commandPolicy)
+        if ((status?.category === 'buff' && !status.onExpire && !status.commandPolicy) || statusTraits(status).length)
           lines.push(describe(effect));
       }
     }

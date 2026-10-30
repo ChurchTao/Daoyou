@@ -28,9 +28,13 @@ export type BattleContext = {
   /** >0 时命中不再触发 afterHit/onBeHit，避免连击/反击/反震互爆 */
   suppressHooks: number
   invokeAttackSkills: (source: Unit, skill: SkillDef, targets: Unit[]) => void
+  invokeSkill?: (source: Unit, skillId: SkillId, targets: Unit[]) => void
   invokingAttackSkills?: boolean
+  /** One root command, including invoked child skills and native spell repeats. */
+  hostileAction?: { sourceId: UnitId; interceptedTargetIds: UnitId[] }
   /** 当前这次出手；OnHitCalc / when.skillIds 读这里。 */
   currentAction?: {
+    interceptedTargetIds?: UnitId[]
     allyPetSkillUnused?: boolean
     triggeredTargets?: string[]
     normalTargetIds?: UnitId[]

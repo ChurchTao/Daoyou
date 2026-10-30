@@ -12,7 +12,7 @@ import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from
 
 describe('宗门心法配置', () => {
   it('编辑器 Schema 与运行时结构一致', () => {
-    expect(z.toJSONSchema(SectMethodsPackShape)).toEqual(schema);
+    expect(z.toJSONSchema(SectMethodsPackShape, { reused: 'ref' })).toEqual(schema);
   });
   it('拒绝重复槽位、外宗 ID 和多个主心法', () => {
     for (const change of [

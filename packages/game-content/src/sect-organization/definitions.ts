@@ -1,4 +1,5 @@
 import type { SectDefinition } from '@daoyou/game-domain/sects';
+import { BAILU_DEFINITION } from './bailu/definition.js';
 import { JIUJIE_DEFINITION } from './jiujie/definition.js';
 import { LINGXIAO_DEFINITION } from './lingxiao/definition.js';
 import { TIANYAN_DEFINITION } from './tianyan/definition.js';
@@ -16,6 +17,7 @@ export const SECT_ORGANIZATION_DEFINITIONS: Readonly<
       TIANYAN_DEFINITION,
       YOUDU_DEFINITION,
       JIUJIE_DEFINITION,
+      BAILU_DEFINITION,
     ].map((definition) => [definition.id, definition]),
   ),
 );

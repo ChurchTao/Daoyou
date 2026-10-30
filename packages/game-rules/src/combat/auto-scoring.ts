@@ -122,6 +122,7 @@ export function visibleSealHitChance(
   skillLevel: number | undefined,
   sealBase: number | undefined,
   additiveChance = 0,
+  ceiling: number = DaoyouRule.sealChanceCeil,
 ): number {
   const level = skillLevel ?? source.level;
   const basePercent = sealBase ?? DaoyouRule.sealChanceBase * 100;
@@ -137,19 +138,21 @@ export function visibleSealHitChance(
     (source.attrs.sealHit / pointScale) * 100 +
     additiveChance * 100;
   const floor = DaoyouRule.sealChanceFloor * 100;
-  const ceil = DaoyouRule.sealChanceCeil * 100;
+  const ceil = clamp(DaoyouRule.sealChanceFloor, 1, ceiling) * 100;
   if (percent < DaoyouRule.sealSoftFloorStart) {
     const span = DaoyouRule.sealSoftFloorStart - floor;
     return (
-      (floor + span * Math.exp((percent - DaoyouRule.sealSoftFloorStart) / span)) /
+      Math.min(ceil, floor + span * Math.exp((percent - DaoyouRule.sealSoftFloorStart) / span)) /
       100
     );
   }
-  if (percent > DaoyouRule.sealSoftCeilStart) {
-    const span = ceil - DaoyouRule.sealSoftCeilStart;
+  const softCeilStart = Math.min(DaoyouRule.sealSoftCeilStart, ceil);
+  if (percent > softCeilStart) {
+    const span = ceil - softCeilStart;
+    if (span === 0) return ceil / 100;
     return (
-      (DaoyouRule.sealSoftCeilStart +
-        span * (1 - Math.exp(-(percent - DaoyouRule.sealSoftCeilStart) / span))) /
+      (softCeilStart +
+        span * (1 - Math.exp(-(percent - softCeilStart) / span))) /
       100
     );
   }

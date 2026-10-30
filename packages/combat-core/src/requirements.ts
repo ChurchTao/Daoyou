@@ -2,7 +2,7 @@ import type { BattleContext } from './context.js';
 import { FailReason, SkillTag, StatusFlag, failDetail } from './enums.js';
 import { evalExpr } from './expr.js';
 import { atLeast } from './math.js';
-import { invokesAttackSkills, isActiveAttackSkill, skillOf } from './skills.js';
+import { invokesAttackSkills, isActiveAttackSkill, isDamagingSpellSkill, skillOf } from './skills.js';
 import { commandBlockReason, hasBlock } from './status.js';
 import type { SkillDef, Unit } from './types.js';
 import { combatModifiers } from './modifiers.js';
@@ -51,6 +51,8 @@ export function checkSkillRequirements(
 
   if (hasBlock(ctx, unit, StatusFlag.BlocksAction))
     reasons.push('blocks-action');
+  if (isDamagingSpellSkill(skill) && hasBlock(ctx, unit, StatusFlag.BlocksDamagingSpells))
+    reasons.push(FailReason.Sealed);
   if (
     skill.tags.includes(SkillTag.Spell) &&
     !skill.tags.includes(SkillTag.Art) &&

@@ -12,6 +12,7 @@ import { WUXIANG_MODULE, WUXIANG_SECT_PRESENTATION } from './wuxiang/index.js';
 import { TIANYAN_MODULE, TIANYAN_SECT_PRESENTATION } from './tianyan/index.js';
 import { YOUDU_MODULE, YOUDU_SECT_PRESENTATION } from './youdu/index.js';
 import { JIUJIE_MODULE, JIUJIE_SECT_PRESENTATION } from './jiujie/index.js';
+import { BAILU_MODULE, BAILU_SECT_PRESENTATION } from './bailu/index.js';
 
 export interface ProductionSectEntry {
   module: SectModule;
@@ -52,6 +53,10 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
   {
     module: JIUJIE_MODULE,
     presentation: JIUJIE_SECT_PRESENTATION,
+  },
+  {
+    module: BAILU_MODULE,
+    presentation: BAILU_SECT_PRESENTATION,
   },
 ]);
 

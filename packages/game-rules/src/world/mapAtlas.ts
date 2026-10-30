@@ -142,6 +142,7 @@ export const DAJIN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   SECT_TIANYAN: [0.197, 0.19],
   SECT_YOUDU: [0.1, 0.655],
   SECT_JIUJIE: [0.902, 0.373],
+  SECT_BAILU: [0.725, 0.555],
 };
 
 export const NANJIANG_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
