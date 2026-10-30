@@ -182,7 +182,7 @@ describe('status outcomes', () => {
 });
 
 describe('hostile root-action guards', () => {
-  it('blocks every segment and hostile attachment only for the protected target while paying costs', () => {
+  it('blocks only the first segment, later segments connect, and hostile attachments stay blocked', () => {
     const strike = active('mixed', [
       { type: EffectType.PhysicalHit, hits: 3 },
       { type: EffectType.FixedHit, power: 20 },
@@ -202,7 +202,7 @@ describe('hostile root-action guards', () => {
     battle.hooks.on(HookName.OnHostileActionIntercepted, h => intercepted.push(h.target!.id));
     cast(battle, strike.id, ['b', 'c']);
     expect(intercepted).toEqual(['b']);
-    expect(battle.unit('b').attrs.hp).toBe(1000);
+    expect(battle.unit('b').attrs.hp).toBe(800);
     expect(battle.unit('b').attrs.mp).toBe(300);
     expect(battle.unit('b').statuses.map(status => status.id)).toEqual(['guard']);
     expect(battle.unit('c').attrs.hp).toBe(680);
@@ -226,7 +226,7 @@ describe('hostile root-action guards', () => {
     const battle = createBattle(setup([spell, physical, invoke, repeat]));
     battle.applyStatus('b', 'guard', 4, 'b');
     cast(battle, mode === 'spell-repeat' ? 'spell' : 'invoke');
-    expect(battle.unit('b').attrs.hp).toBe(1000);
+    expect(battle.unit('b').attrs.hp).toBeLessThan(1000);
     expect(battle.log().filter(event => event.type === EventType.MechanicTriggered && event.mechanicId === 'guard')).toHaveLength(1);
   });
 

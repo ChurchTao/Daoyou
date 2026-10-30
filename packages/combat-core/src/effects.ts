@@ -550,6 +550,7 @@ function handleHit(
         skillId: skill.id,
         isPrimary: ctx.currentAction?.primaryTargetId === t.id,
         origin: effect.type === EffectType.FixedHit ? effect.origin : undefined,
+        segmentIndex: i,
       })
     }
   }
