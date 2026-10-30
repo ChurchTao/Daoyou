@@ -1707,7 +1707,7 @@
           "name": "进学",
           "layer": 7,
           "slot": 1,
-          "description": "speed增加30。",
+          "description": "速度增加30点。",
           "automatic": true,
           "panel": [
             {
@@ -1732,7 +1732,7 @@
           "name": "正言执律",
           "layer": 7,
           "slot": 3,
-          "description": "speed增加30。",
+          "description": "速度增加30点。",
           "automatic": true,
           "panel": [
             {
@@ -1944,7 +1944,7 @@
           "name": "进学",
           "layer": 7,
           "slot": 1,
-          "description": "magicAtk增加40。",
+          "description": "法术攻击增加40点。",
           "automatic": true,
           "panel": [
             {
@@ -1969,7 +1969,7 @@
           "name": "浩气文章",
           "layer": 7,
           "slot": 3,
-          "description": "magicAtk增加40。",
+          "description": "法术攻击增加40点。",
           "automatic": true,
           "panel": [
             {

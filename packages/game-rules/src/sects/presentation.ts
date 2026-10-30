@@ -92,6 +92,6 @@ export const SECT_PANEL_LABELS: Record<string, string> = {
   sealHit: '封印命中',
   sealResist: '封印抵抗',
   hit: '命中',
-  evasion: '躲避',
-  healingPower: '治疗强度',
+  dodge: '躲避',
+  healPower: '治疗强度',
 };
