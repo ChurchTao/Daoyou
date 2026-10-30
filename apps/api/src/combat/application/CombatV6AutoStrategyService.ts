@@ -1,17 +1,29 @@
 import { db } from '@server/lib/drizzle/db.js';
 import {
-  readCustomAutoStrategy,
-  removeCustomAutoStrategy,
-  saveCustomAutoStrategy,
+  mutateAutoStrategyBook,
+  readAutoStrategyBook,
 } from '@server/lib/repositories/combatV6AutoStrategyRepository.js';
 import { autoStatusChoices } from '@daoyou/game-content/combat/auto-status-options';
-import { type AutoStrategy } from '@daoyou/game-domain/combat/auto';
+import {
+  type AutoStrategy,
+  type AutoStrategyBook,
+  type AutoStrategySlotIndex,
+  activateStoredAutoStrategySlot,
+  activeStoredAutoStrategy,
+  preferDefaultAutoStrategy,
+  removeAutoStrategySlot,
+  saveAutoStrategySlot,
+} from '@daoyou/game-domain/combat/auto';
 import { defaultAutoStrategy } from '@daoyou/game-content/combat/auto-strategies';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
 import { assembleCombatV6TrainingPlayer } from '@server/combat/application/CombatV6BuildService.js';
 
 export class AutoStrategyError extends Error {}
+
+function emptySlots(): AutoStrategyBook['slots'] {
+  return [null, null, null];
+}
 
 export async function readCombatAutoStrategy(cultivatorId: string) {
   const { player } = await assembleCombatV6TrainingPlayer(cultivatorId, db);
@@ -35,7 +47,7 @@ export async function readCombatAutoStrategy(cultivatorId: string) {
       ...path.nodes.flatMap((node) => node.grantSkills ?? []),
     ].map(({ definition: skill }) => [skill.id, skill.name]),
   );
-  const custom = await readCustomAutoStrategy(cultivatorId, pathId, db);
+  const book = await readAutoStrategyBook(cultivatorId, pathId, db);
   return {
     pathId,
     pathName: path.name,
@@ -43,7 +55,9 @@ export async function readCombatAutoStrategy(cultivatorId: string) {
       version: 1 as const,
       rules: [],
     },
-    customStrategy: custom,
+    customStrategy: activeStoredAutoStrategy(book),
+    slots: book?.slots ?? emptySlots(),
+    activeSlot: book?.activeSlot ?? null,
     availableResources:
       projected.unit.resources?.map((resource) => ({
         id: resource.id,
@@ -59,22 +73,42 @@ export async function readCombatAutoStrategy(cultivatorId: string) {
   };
 }
 
-export async function saveCombatAutoStrategy(
-  cultivatorId: string,
-  pathId: string,
-  strategy: AutoStrategy,
+function skillIds(strategy: AutoStrategy | null | undefined) {
+  return (
+    strategy?.rules.flatMap((rule) =>
+      rule.action.type === 'skill' ? [rule.action.skillId] : [],
+    ) ?? []
+  );
+}
+
+function withBook(
+  view: Awaited<ReturnType<typeof readCombatAutoStrategy>>,
+  book: AutoStrategyBook | null,
 ) {
-  const view = await readCombatAutoStrategy(cultivatorId);
+  return {
+    ...view,
+    customStrategy: activeStoredAutoStrategy(book),
+    slots: book?.slots ?? emptySlots(),
+    activeSlot: book?.activeSlot ?? null,
+  };
+}
+
+function assertCurrentPath(
+  view: Awaited<ReturnType<typeof readCombatAutoStrategy>>,
+  pathId: string,
+) {
   if (view.pathId !== pathId)
     throw new AutoStrategyError('当前流派已变化，请刷新');
+}
+
+function assertStrategyAllowed(
+  view: Awaited<ReturnType<typeof readCombatAutoStrategy>>,
+  strategy: AutoStrategy,
+) {
   const allowed = new Set([
     ...view.availableSkills.map((skill) => skill.id),
-    ...view.defaultStrategy.rules.flatMap((rule) =>
-      rule.action.type === 'skill' ? [rule.action.skillId] : [],
-    ),
-    ...(view.customStrategy?.rules.flatMap((rule) =>
-      rule.action.type === 'skill' ? [rule.action.skillId] : [],
-    ) ?? []),
+    ...skillIds(view.defaultStrategy),
+    ...view.slots.flatMap((slot) => skillIds(slot)),
   ]);
   if (
     strategy.rules.some(
@@ -96,7 +130,7 @@ export async function saveCombatAutoStrategy(
     )
   )
     throw new AutoStrategyError('策略包含无效的战斗资源');
-  const statusChoices = autoStatusChoices(pathId);
+  const statusChoices = autoStatusChoices(view.pathId);
   if (
     strategy.rules.some((rule) =>
       rule.conditions.some((condition) => {
@@ -120,8 +154,45 @@ export async function saveCombatAutoStrategy(
     )
   )
     throw new AutoStrategyError('策略包含当前宗门不可用的状态');
-  await saveCustomAutoStrategy(cultivatorId, pathId, strategy, db);
-  return { ...view, customStrategy: strategy };
+}
+
+export async function saveCombatAutoStrategy(
+  cultivatorId: string,
+  pathId: string,
+  slot: AutoStrategySlotIndex | undefined,
+  strategy: AutoStrategy,
+) {
+  const view = await readCombatAutoStrategy(cultivatorId);
+  assertCurrentPath(view, pathId);
+  assertStrategyAllowed(view, strategy);
+  const target = slot ?? view.activeSlot ?? 0;
+  const book = await mutateAutoStrategyBook(
+    cultivatorId,
+    pathId,
+    (current) => saveAutoStrategySlot(current, target, strategy),
+    db,
+  );
+  return withBook(view, book);
+}
+
+export async function activateCombatAutoStrategy(
+  cultivatorId: string,
+  pathId: string,
+  slot: AutoStrategySlotIndex,
+) {
+  const view = await readCombatAutoStrategy(cultivatorId);
+  assertCurrentPath(view, pathId);
+  const book = await mutateAutoStrategyBook(
+    cultivatorId,
+    pathId,
+    (current) => {
+      const next = activateStoredAutoStrategySlot(current, slot);
+      if (!next) throw new AutoStrategyError('这套战术还没保存');
+      return next;
+    },
+    db,
+  );
+  return withBook(view, book);
 }
 
 export async function resetCombatAutoStrategy(
@@ -129,8 +200,28 @@ export async function resetCombatAutoStrategy(
   pathId: string,
 ) {
   const view = await readCombatAutoStrategy(cultivatorId);
-  if (view.pathId !== pathId)
-    throw new AutoStrategyError('当前流派已变化，请刷新');
-  await removeCustomAutoStrategy(cultivatorId, pathId, db);
-  return { ...view, customStrategy: null };
+  assertCurrentPath(view, pathId);
+  const book = await mutateAutoStrategyBook(
+    cultivatorId,
+    pathId,
+    preferDefaultAutoStrategy,
+    db,
+  );
+  return withBook(view, book);
+}
+
+export async function removeCombatAutoStrategySlot(
+  cultivatorId: string,
+  pathId: string,
+  slot: AutoStrategySlotIndex,
+) {
+  const view = await readCombatAutoStrategy(cultivatorId);
+  assertCurrentPath(view, pathId);
+  const book = await mutateAutoStrategyBook(
+    cultivatorId,
+    pathId,
+    (current) => removeAutoStrategySlot(current, slot),
+    db,
+  );
+  return withBook(view, book);
 }

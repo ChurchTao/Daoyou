@@ -12,7 +12,10 @@ import type { TowerClaims } from '@daoyou/game-rules/tower';
 import type { DivinationDice, DivinationDirection } from '@daoyou/game-domain/divination';
 import type { WildEncounter } from '@daoyou/game-domain/wild';
 import type { WildRuntime } from '@daoyou/contracts/combat/wild';
-import type { AutoStrategy } from '@daoyou/game-domain/combat/auto';
+import type {
+  AutoStrategy,
+  AutoStrategyBook,
+} from '@daoyou/game-domain/combat/auto';
 import type { CombatV6ReplayV1 } from '@daoyou/game-domain/combat/replay';
 import type {
   ResourceChangeOperation,
@@ -181,7 +184,9 @@ export const cultivatorAutoStrategies = pgTable(
       .notNull()
       .references(() => cultivators.id, { onDelete: 'cascade' }),
     pathId: varchar('path_id', { length: 160 }).notNull(),
-    strategy: jsonb('strategy').$type<AutoStrategy>().notNull(),
+    strategy: jsonb('strategy')
+      .$type<AutoStrategyBook | AutoStrategy>()
+      .notNull(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.cultivatorId, table.pathId] })],
