@@ -22,7 +22,7 @@ describe('combat skill previews', () => {
     const details = combatV6SkillDetails(skills, statuses);
     expect(details.sleep.description).toContain('单次实际损失气血超过30点');
     expect(details.sleep.description).toContain('不累计多段伤害');
-    expect(details.guard.description).toContain('每回合免疫来自敌方的首次攻击性行为');
+    expect(details.guard.description).toContain('每回合免疫来自敌方的第一次攻击的第一段');
     expect(details['spell-only'].description).toContain('禁止攻击法术');
     expect(details['spell-only'].description).toContain('辅助法术、物理技能及装备器诀不受此项限制');
     expect(details['spell-only'].description).toContain('本技能普通封印命中上限：90%');

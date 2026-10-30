@@ -402,7 +402,7 @@
       "id": "bailu.skill.hushen",
       "name": "护身！",
       "school": "bailu",
-      "description": "消耗80法力，4回合内每轮免疫首次敌方攻击性行为的全部作用。",
+      "description": "消耗80法力，4回合内每轮免疫敌方第一次攻击的第一段，后续段数正常命中。",
       "tags": [
         "spell",
         "support"

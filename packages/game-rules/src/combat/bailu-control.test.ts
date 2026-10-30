@@ -96,7 +96,7 @@ describe('白鹿书院封印与贤影纵切', () => {
     }
   });
 
-  it('护身阻挡整次多段和附带封印，其他群攻目标正常，费用与正声仅各结算一次', () => {
+  it('护身只阻挡多段的第一段和附带封印，后续段数及其他目标正常，费用与正声仅各结算一次', () => {
     successfulRolls();
     const { input } = setup('edict', ['zhengsheng']);
     const mixed: SkillDef = { id: 'test.mixed', name: '混合群攻', tags: ['spell'],
@@ -110,7 +110,9 @@ describe('白鹿书院封印与贤影纵切', () => {
     input.units[2]!.skills = [mixed.id]; input.units[3]!.skills = [followup.id];
     const battle = createBattle(input);
     round(battle, { s: cast(skillId.Hushen, ['s']), t: cast(mixed.id, ['s', 'a']), t1: cast(followup.id, ['s']) });
-    expect(battle.unit('s').attrs.hp).toBe(attrs.hp - 31);
+    const guardedSegments = battle.log().filter(event => event.type === 'damage' && event.sourceId === 't' && event.targetId === 's');
+    expect(guardedSegments).toHaveLength(2);
+    expect(battle.unit('s').attrs.hp).toBe(attrs.hp - guardedSegments.reduce((sum, event) => sum + (event.type === 'damage' ? event.amount : 0), 0) - 31);
     expect(has(battle, 's', statusId.Law)).toBe(false);
     expect(battle.unit('a').attrs.hp).toBeLessThan(attrs.hp);
     expect(has(battle, 'a', statusId.Law)).toBe(true);

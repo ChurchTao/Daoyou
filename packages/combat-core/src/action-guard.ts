@@ -3,7 +3,7 @@ import { DamageOrigin, EventType, HookName } from './enums.js';
 import type { SkillId, Unit } from './types.js';
 import { isStanding } from './units.js';
 
-/** An intercepted target stays protected for this entire root command. */
+/** The first damage segment of this root command is intercepted. Later segments still connect. */
 export function interceptHostileAction(
   ctx: BattleContext,
   source: Unit,

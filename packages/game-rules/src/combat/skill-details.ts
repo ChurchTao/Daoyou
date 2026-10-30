@@ -180,7 +180,7 @@ export function combatV6SkillDetails(
     if (status.blocksDamagingSpells)
       traits.push('禁止攻击法术；辅助法术、物理技能及装备器诀不受此项限制');
     if (status.interceptHostileAction)
-      traits.push('每回合免疫来自敌方的首次攻击性行为，同一次多段攻击只占一次；群攻对其他单位照常');
+      traits.push('每回合免疫来自敌方的第一次攻击的第一段，同一次攻击的后续段数仍会命中');
     if (status.breakOnDamage) traits.push(status.breakOnDamageAbove === undefined
       ? '实际损失气血后解除；仅损失护盾不解除'
       : `单次实际损失气血超过${status.breakOnDamageAbove}点后解除；不累计多段伤害，仅损失护盾不解除`);

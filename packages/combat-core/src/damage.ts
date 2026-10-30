@@ -44,6 +44,8 @@ export type StrikeInput = {
   cannotMiss?: boolean
   cannotKill?: boolean
   origin?: DamageOriginType
+  /** 同一次多段里的序号。贤影只拦截第 0 段。 */
+  segmentIndex?: number
 }
 
 export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
@@ -60,7 +62,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const spellAttack = !silent && !ctx.invokingAttackSkills && !input.healInstead && source.side !== target.side &&
     skill?.tags.includes(SkillTag.Spell) && !skill.tags.includes(SkillTag.Physical);
   if (spellAttack) (target.combatFacts ??= {})[`spellAttackedRound:${source.id}`] = ctx.state.round;
-  if (!input.healInstead && interceptHostileAction(ctx, source, target, skillId, origin)) return
+  if (!input.healInstead && (input.segmentIndex ?? 0) === 0 && interceptHostileAction(ctx, source, target, skillId, origin)) return
   const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
   src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
   src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
