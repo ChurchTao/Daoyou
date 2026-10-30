@@ -9,6 +9,7 @@ import {
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { compileSectDefinitionV6 } from './compiler.js';
 import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from './build-state.js';
+import { SECT_PANEL_LABELS } from './presentation.js';
 
 describe('宗门心法配置', () => {
   it('编辑器 Schema 与运行时结构一致', () => {
@@ -33,5 +34,17 @@ describe('宗门心法配置', () => {
     const result = compileSectDefinitionV6({ definition, progress, characterLevel: 10 });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.projection.panel).toContainEqual({ attr: 'physicalAtk', mode: 'add', value: 3 });
+  });
+  it('心法与经脉面板属性都有中文名', () => {
+    const attrs = new Set<string>();
+    for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+      for (const method of definition.methods) if (method.panel) attrs.add(method.panel.attr);
+      for (const path of definition.paths) for (const node of path.nodes) for (const panel of node.panel ?? []) attrs.add(panel.attr);
+    }
+    for (const attr of attrs) {
+      const label = SECT_PANEL_LABELS[attr];
+      expect(label, attr).toBeTruthy();
+      expect(label, attr).not.toMatch(/[A-Za-z]/);
+    }
   });
 });

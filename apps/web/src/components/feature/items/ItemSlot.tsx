@@ -55,7 +55,7 @@ export function ItemSlot({
 }: SlotProps & {
   item?: DisplayItem;
   children?: (close: () => void) => ReactNode;
-  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出';
+  quantityLabel?: '持有' | '库存' | '奖励' | '投入' | '产出' | '返还';
   previewOptions?: PreviewOptions;
   renderItemPreview?: (close: () => void) => ReactNode;
 }) {

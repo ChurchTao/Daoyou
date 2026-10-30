@@ -88,7 +88,9 @@ export async function mutateInscriptions(
               : input.action === 'inscribe'
                 ? [
                     input.equipment.id,
-                    ...input.steps.map((step) => step.inscription.id),
+                    ...input.steps.flatMap((step) =>
+                      step.mode === 'remove' ? [] : [step.inscription.id],
+                    ),
                   ]
                 : [input.equipment.id, input.inscription.id];
         const before = (
@@ -129,14 +131,19 @@ export async function mutateInscriptions(
           const plan = prepareInscriptionSockets(
             before,
             input.equipment,
-            input.steps.map((step) => ({
-              socket: step.socket,
-              inscription: step.inscription,
-              action: step.mode,
-              replace: step.replace,
-            })),
+            input.steps.map((step) =>
+              step.mode === 'remove'
+                ? { socket: step.socket, action: 'remove' as const }
+                : {
+                    socket: step.socket,
+                    inscription: step.inscription,
+                    action: step.mode,
+                    replace: step.replace,
+                  },
+            ),
           );
           ({ after, cost, equipmentId, equipped } = plan);
+          grants = plan.grants;
         } else {
           const plan = prepareInscriptionEquipment(
             before,
@@ -147,6 +154,7 @@ export async function mutateInscriptions(
             input.action === 'engrave' && input.replace,
           );
           ({ after, cost, equipmentId, equipped } = plan);
+          grants = plan.grants;
         }
         if (
           cost.qi !== input.expectedCost.qi ||

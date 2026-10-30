@@ -1,7 +1,7 @@
 import { apiFetch } from '@app/lib/api/fetch';
 import { InkButton } from '@app/components/ui/InkButton';
 import { autoStatusChoices } from '@daoyou/game-content/combat/auto-status-options';
-import { MAX_AUTO_STRATEGY_RULES, SaveAutoStrategySchema, type AutoComparison, type AutoStrategy } from '@daoyou/game-domain/combat/auto';
+import { AUTO_STRATEGY_SLOT_LABELS, MAX_AUTO_STRATEGY_RULES, SaveAutoStrategySchema, type AutoComparison, type AutoStrategy, type AutoStrategyBook, type AutoStrategySlotIndex } from '@daoyou/game-domain/combat/auto';
 import { autoComparison } from '@daoyou/game-rules/combat/auto';
 import { useEffect, useState } from 'react';
 import { SettingsMessage } from './SettingsFields';
@@ -13,10 +13,30 @@ type View = {
   pathName: string;
   defaultStrategy: AutoStrategy;
   customStrategy: AutoStrategy | null;
+  slots: AutoStrategyBook['slots'];
+  activeSlot: AutoStrategySlotIndex | null;
   availableSkills: { id: string; name: string }[];
   availableResources: { id: string; name: string }[];
   skillNames: Record<string, string>;
 };
+
+function normalizeView(loaded: View): View {
+  const slots = loaded.slots ?? [
+    loaded.customStrategy,
+    null,
+    null,
+  ];
+  return {
+    ...loaded,
+    slots,
+    activeSlot:
+      loaded.activeSlot === undefined
+        ? loaded.customStrategy
+          ? 0
+          : null
+        : loaded.activeSlot,
+  };
+}
 
 const conditionChoices: { value: Condition['type']; label: string }[] = [
   { value: 'selfHpBelow', label: '自身气血' },
@@ -65,8 +85,15 @@ function newCondition(
   if (type === 'allyDowned') return { type };
   if (type === 'enemyCountAtLeast') return { type, count: 2 };
   if (type === 'selfResourceAtLeast') return { type, resourceId, amount: 1 };
-  if (type === 'selfStatus')
-    return { type, kind: statuses.self[0]?.kind ?? '', present: false };
+  if (type === 'selfStatus') {
+    const first = statuses.self[0];
+    return {
+      type,
+      kind: first?.kind ?? '',
+      statusId: first?.statusId,
+      present: false,
+    };
+  }
   if (type === 'targetStatus' || type === 'allyStatus') {
     const first =
       type === 'allyStatus'
@@ -164,26 +191,46 @@ async function request(
     data?: View;
   };
   if (!response.ok || !payload.success || !payload.data)
-    throw new Error(payload.error ?? `暂时无法${method === 'GET' ? '读取' : '保存'}自动战术，请稍后重试。`);
-  return payload.data;
+    throw new Error(
+      payload.error ??
+        `暂时无法${method === 'GET' ? '读取' : '更新'}自动战术，请稍后重试。`,
+    );
+  return normalizeView(payload.data);
+}
+
+function openSlot(loaded: View, index: AutoStrategySlotIndex, from?: AutoStrategySlotIndex) {
+  return structuredClone(
+    loaded.slots[index] ??
+      (from === undefined ? null : loaded.slots[from]) ??
+      loaded.defaultStrategy,
+  );
 }
 
 export function CombatAutoStrategyTab() {
   const [view, setView] = useState<View | null>(null);
   const [draft, setDraft] = useState<AutoStrategy | null>(null);
+  const [baseline, setBaseline] = useState<AutoStrategy | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<AutoStrategySlotIndex>(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const changed =
+    Boolean(draft && baseline) &&
+    JSON.stringify(draft) !== JSON.stringify(baseline);
 
   useEffect(() => {
     let active = true;
     void request('GET')
       .then((loaded) => {
         if (!active) return;
+        const savedIndex = loaded.slots.findIndex((slot) => slot);
+        const selected = (loaded.activeSlot ??
+          (savedIndex >= 0 ? savedIndex : 0)) as AutoStrategySlotIndex;
+        const opened = openSlot(loaded, selected);
         setView(loaded);
-        setDraft(
-          structuredClone(loaded.customStrategy ?? loaded.defaultStrategy),
-        );
+        setSelectedSlot(selected);
+        setDraft(opened);
+        setBaseline(structuredClone(opened));
       })
       .catch((error: unknown) => {
         if (active)
@@ -212,6 +259,19 @@ export function CombatAutoStrategyTab() {
     setDraft({ ...draft, rules: next });
     setEditingIndex(index + direction);
   };
+  const selectSlot = (index: AutoStrategySlotIndex) => {
+    if (!view || index === selectedSlot || busy) return;
+    if (changed) {
+      setMessage('先保存或撤销当前改动，再切换战术。');
+      return;
+    }
+    const opened = openSlot(view, index, selectedSlot);
+    setSelectedSlot(index);
+    setDraft(opened);
+    setBaseline(structuredClone(opened));
+    setEditingIndex(null);
+    setMessage(null);
+  };
   const save = async () => {
     if (!view || !draft) return;
     if (draft.rules.length > MAX_AUTO_STRATEGY_RULES) {
@@ -228,14 +288,39 @@ export function CombatAutoStrategyTab() {
     try {
       const next = await request('PUT', {
         pathId: view.pathId,
+        slot: selectedSlot,
         strategy: parsed.data,
       });
+      const saved = next.slots[selectedSlot] ?? parsed.data;
       setView(next);
-      setDraft(structuredClone(parsed.data));
+      setDraft(structuredClone(saved));
+      setBaseline(structuredClone(saved));
       setEditingIndex(null);
-      setMessage('战术已保存，从下一场战斗生效。');
+      setMessage(
+        `${AUTO_STRATEGY_SLOT_LABELS[selectedSlot]}已保存，从下一场战斗生效。`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '保存失败');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const activate = async () => {
+    if (!view) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const next = await request('PUT', {
+        pathId: view.pathId,
+        slot: selectedSlot,
+        activate: true,
+      });
+      setView(next);
+      setMessage(
+        `${AUTO_STRATEGY_SLOT_LABELS[selectedSlot]}将从下一场战斗生效。`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '切换失败');
     } finally {
       setBusy(false);
     }
@@ -247,11 +332,34 @@ export function CombatAutoStrategyTab() {
     try {
       const next = await request('DELETE', { pathId: view.pathId });
       setView(next);
-      setDraft(structuredClone(next.defaultStrategy));
-      setEditingIndex(null);
-      setMessage('已恢复流派战术，从下一场战斗生效。');
+      setMessage('已改用流派战术，已保存的战术仍在。从下一场战斗生效。');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '恢复失败');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removeSlot = async () => {
+    if (!view) return;
+    if (changed) {
+      setMessage('先保存或撤销当前改动，再删除这套战术。');
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const next = await request('DELETE', {
+        pathId: view.pathId,
+        slot: selectedSlot,
+      });
+      const opened = structuredClone(next.defaultStrategy);
+      setView(next);
+      setDraft(opened);
+      setBaseline(structuredClone(opened));
+      setEditingIndex(null);
+      setMessage(`已删除${AUTO_STRATEGY_SLOT_LABELS[selectedSlot]}。`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '删除失败');
     } finally {
       setBusy(false);
     }
@@ -260,8 +368,8 @@ export function CombatAutoStrategyTab() {
   if (!view || !draft)
     return <SettingsMessage>{message ?? '正在读取自动战术…'}</SettingsMessage>;
 
-  const saved = view.customStrategy ?? view.defaultStrategy;
-  const changed = JSON.stringify(draft) !== JSON.stringify(saved);
+  const selectedSaved = view.slots[selectedSlot] !== null;
+  const selectedActive = view.activeSlot === selectedSlot;
   const learned = new Set(view.availableSkills.map((skill) => skill.id));
   const statusChoices = autoStatusChoices(view.pathId);
   return (
@@ -272,12 +380,37 @@ export function CombatAutoStrategyTab() {
             {view.pathName} · 自动战术
           </p>
           <p className="mt-1 text-sm leading-6">
-            按顺序出招。条件不符或招式不可用时，尝试下一条。
+            按顺序出招。条件不符或招式不可用时，尝试下一条。本流派可存三套，保存只覆盖选中的一套。
           </p>
         </div>
         <span className="border-crimson/30 bg-crimson/6 text-crimson border px-2 py-1 text-xs">
-          {view.customStrategy ? '自定战术' : '流派战术'}
+          {view.activeSlot === null
+            ? '流派战术'
+            : `${AUTO_STRATEGY_SLOT_LABELS[view.activeSlot]}出战`}
         </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="已存战术">
+        {AUTO_STRATEGY_SLOT_LABELS.map((label, index) => {
+          const slot = index as AutoStrategySlotIndex;
+          const selected = selectedSlot === slot;
+          const filled = view.slots[slot] !== null;
+          const active = view.activeSlot === slot;
+          return (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              className={`min-h-10 border px-2 py-2 text-sm ${selected ? 'border-crimson bg-crimson/6 text-ink' : 'border-ink/20 text-ink-secondary hover:text-ink'}`}
+              onClick={() => selectSlot(slot)}
+            >
+              {label}
+              {active ? <span className="text-crimson"> 出战</span> : null}
+              {filled ? null : <span> 空</span>}
+            </button>
+          );
+        })}
       </div>
 
       <ol className="border-ink/15 border-b">
@@ -909,7 +1042,8 @@ export function CombatAutoStrategyTab() {
             variant="secondary"
             disabled={busy}
             onClick={() => {
-              setDraft(structuredClone(saved));
+              if (!baseline) return;
+              setDraft(structuredClone(baseline));
               setEditingIndex(null);
               setMessage(null);
             }}
@@ -920,18 +1054,35 @@ export function CombatAutoStrategyTab() {
         <InkButton
           variant="primary"
           pending={busy}
-          disabled={!changed && Boolean(view.customStrategy)}
-          onClick={() => void save()}
+          disabled={selectedSaved && !changed && selectedActive}
+          onClick={() =>
+            void (selectedSaved && !changed && !selectedActive ? activate() : save())
+          }
         >
-          保存战术
+          {!selectedSaved
+            ? '保存到此套'
+            : changed
+              ? '保存战术'
+              : selectedActive
+                ? '当前出战'
+                : '用这套出战'}
         </InkButton>
-        {view.customStrategy ? (
+        {view.activeSlot !== null ? (
           <InkButton
             variant="secondary"
             disabled={busy}
             onClick={() => void reset()}
           >
             恢复流派战术
+          </InkButton>
+        ) : null}
+        {selectedSaved ? (
+          <InkButton
+            variant="secondary"
+            disabled={busy}
+            onClick={() => void removeSlot()}
+          >
+            删除此套
           </InkButton>
         ) : null}
       </div>
@@ -941,7 +1092,7 @@ export function CombatAutoStrategyTab() {
         </p>
       ) : null}
       <p className="text-ink-secondary text-xs leading-5">
-        未习得的招式会自动略过；改动从下一场战斗生效。灵兽自行选择法术或普攻。
+        未习得的招式会自动略过；出战的一套从下一场战斗生效。灵兽自行选择法术或普攻。
       </p>
       {message ? <SettingsMessage>{message}</SettingsMessage> : null}
     </div>

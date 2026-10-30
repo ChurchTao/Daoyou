@@ -118,8 +118,38 @@ describe('白鹿书院封印与贤影纵切', () => {
     expect(battle.unit('t').attrs.mp).toBe(attrs.mp - 90);
     expect(battle.unit('t').cooldowns![mixed.id]).toBe(5);
     expect(battle.unit('t').combatFacts!.completed).toBe(1);
-    expect(battle.unit('s').resources.find(resource => resource.id === DAO_RAGE_RESOURCE_ID)!.current).toBe(12);
+    expect(battle.unit('s').resources.find(resource => resource.id === DAO_RAGE_RESOURCE_ID)!.current).toBe(8);
     expect(battle.log().filter(event => event.type === 'mechanicTriggered' && event.mechanicId === statusId.Guard)).toHaveLength(1);
+  });
+
+  it('蓄辞由凝神准备下一次破邪，护身不准备，点名不消费', () => {
+    successfulRolls();
+    const withXuci = (battleInput: CreateBattleInput) => {
+      const passive = definition.paths.flatMap(path => path.nodes).find(node => node.id.endsWith('.xuci'))!.passives![0]!;
+      battleInput.skills!.push(passive.definition);
+      battleInput.units[0]!.passives!.push(passive.definition.id);
+      return createBattle(battleInput);
+    };
+    const prepared = withXuci(setup('song').input);
+    const plain = withXuci(setup('song').input);
+    round(prepared, { s: cast(skillId.Hushen, ['s']) });
+    round(plain, { s: cast(skillId.Hushen, ['s']) });
+    expect(has(prepared, 's', statusId.Charged)).toBe(false);
+    round(prepared, { s: cast(skillId.Ningshen, ['s']) });
+    round(plain, { s: { type: 'defend' } });
+    expect(has(prepared, 's', statusId.Charged)).toBe(true);
+    expect(has(plain, 's', statusId.Charged)).toBe(false);
+    const beforePrepared = prepared.unit('t').attrs.hp;
+    const beforePlain = plain.unit('t').attrs.hp;
+    round(prepared, { s: cast(skillId.Poxie, ['t']) });
+    round(plain, { s: cast(skillId.Poxie, ['t']) });
+    const preparedDamage = beforePrepared - prepared.unit('t').attrs.hp;
+    const plainDamage = beforePlain - plain.unit('t').attrs.hp;
+    expect(preparedDamage).toBe(Math.floor(plainDamage * 1.25));
+    expect(has(prepared, 's', statusId.Charged)).toBe(false);
+    round(prepared, { s: cast(skillId.Ningshen, ['s']) });
+    round(prepared, { s: cast(skillId.Dianming, ['t']) });
+    expect(has(prepared, 's', statusId.Charged)).toBe(true);
   });
 
   it('审辨仅重试首次机会，保留原言令的技能等级、概率、时长与一次费用', () => {

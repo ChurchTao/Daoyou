@@ -15,6 +15,7 @@ import {
   inscriptionStrengthenCost,
   prepareInscriptionDraw,
   prepareInscriptionEquipment,
+  prepareInscriptionRemoval,
   prepareInscriptionSockets,
   prepareInscriptionStrengthen,
   previewInscriptionDraw,
@@ -424,7 +425,7 @@ describe('合成与烙印', () => {
       plan.afterMaterials.find((item) => item.id === stored.id),
     ).toBeUndefined();
   });
-  it('双孔可同种；覆盖须确认且旧阵纹不返还，输入保持不变', () => {
+  it('双孔可同种；替换须确认并返还旧阵纹，输入保持不变', () => {
     const eq = equipment();
     const g = glyph(2, 2);
     const frozen = JSON.stringify(eq);
@@ -449,7 +450,7 @@ describe('合成与烙印', () => {
         'engrave',
         false,
       ),
-    ).toThrow('确认覆盖');
+    ).toThrow('确认替换');
     const second = prepareInscriptionEquipment(
       first.after,
       ref(changed),
@@ -475,6 +476,96 @@ describe('合成与烙印', () => {
       true,
     );
     expect(replaced.after).toHaveLength(1);
+    expect(replaced.grants).toEqual([
+      { definitionId: inscriptionItemId(xuanfeng, 2), quantity: 1 },
+    ]);
+    expect(
+      InventoryEquipmentSchema.parse(replaced.after[0].instanceData)
+        .formationInscriptions,
+    ).toEqual([{ patternId: xuanfeng, level: 2 }, null]);
+    const lingyao = glyph(1, 1, 'dao_inscription.lingyao', 4);
+    const swapped = prepareInscriptionEquipment(
+      [changed, lingyao],
+      ref(changed),
+      0,
+      ref(lingyao),
+      'engrave',
+      true,
+    );
+    expect(swapped.grants).toEqual([
+      { definitionId: inscriptionItemId(xuanfeng, 2), quantity: 1 },
+    ]);
+    expect(swapped.after.find((item) => item.id === lingyao.id)).toBeUndefined();
+    expect(
+      InventoryEquipmentSchema.parse(
+        swapped.after.find((item) => item.id === eq.id)!.instanceData,
+      ).formationInscriptions,
+    ).toEqual([{ patternId: 'dao_inscription.lingyao', level: 1 }, null]);
+  });
+  it('取下清空孔位并返还阵纹，空孔与重复孔位会被拒绝', () => {
+    const eq = equipment();
+    const frozen = JSON.stringify([eq, glyph(2, 1)]);
+    const first = prepareInscriptionEquipment(
+      [eq, glyph(2, 1)],
+      ref(eq),
+      0,
+      ref(glyph(2, 1)),
+      'engrave',
+      false,
+    );
+    expect(JSON.stringify([eq, glyph(2, 1)])).toBe(frozen);
+    const changed = first.after.find((item) => item.id === eq.id)!;
+    const removed = prepareInscriptionRemoval(first.after, ref(changed), 0);
+    expect(removed.cost).toEqual({ qi: 0, spiritStones: 0 });
+    expect(removed.equipped).toBe(true);
+    expect(removed.grants).toEqual([
+      { definitionId: inscriptionItemId(xuanfeng, 2), quantity: 1 },
+    ]);
+    expect(
+      InventoryEquipmentSchema.parse(removed.after[0].instanceData)
+        .formationInscriptions,
+    ).toEqual([null, null]);
+    expect(removed.after).toHaveLength(1);
+    expect(() => prepareInscriptionRemoval(removed.after, ref(removed.after[0]), 0)).toThrow(
+      '没有阵纹',
+    );
+    const both = prepareInscriptionSockets(
+      [equipment(), glyph(1, 2)],
+      ref(equipment()),
+      [
+        {
+          socket: 0,
+          inscription: ref(glyph(1, 2)),
+          action: 'engrave',
+          replace: false,
+        },
+        {
+          socket: 1,
+          inscription: ref(glyph(1, 2)),
+          action: 'engrave',
+          replace: false,
+        },
+      ],
+    );
+    const engraved = both.after.find((item) => item.id === 'equipment')!;
+    const taken = prepareInscriptionSockets(both.after, ref(engraved), [
+      { socket: 0, action: 'remove' },
+      { socket: 1, action: 'remove' },
+    ]);
+    expect(taken.grants).toEqual([
+      { definitionId: inscriptionItemId(xuanfeng, 1), quantity: 2 },
+    ]);
+    expect(taken.cost).toEqual({ qi: 0, spiritStones: 0 });
+    expect(
+      InventoryEquipmentSchema.parse(taken.after[0].instanceData)
+        .formationInscriptions,
+    ).toEqual([null, null]);
+    expect(() =>
+      prepareInscriptionSockets(both.after, ref(engraved), [
+        { socket: 0, action: 'remove' },
+        { socket: 0, action: 'remove' },
+      ]),
+    ).toThrow('同一孔位');
   });
   it('孔内合成消耗一枚，保留另一孔，检查部位与装备上限', () => {
     const eq = equipment(10);

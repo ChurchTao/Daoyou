@@ -166,7 +166,7 @@
     {
       "id": "bailu.passive.chiheng",
       "name": "持衡",
-      "description": "入梦命中乘0.95，其他常规言令乘1.05；",
+      "description": "入梦命中乘0.95，其他常规言令乘1.05。",
       "modifiers": [
         {
           "when": {
@@ -195,7 +195,7 @@
     {
       "id": "bailu.passive.xiansheng",
       "name": "先声",
-      "description": "本场首次常规封印尝试，目标为不高于自身等级且无抗封技能的敌玩家时必中；仍受绝对免疫限制。",
+      "description": "本场首次常规封印，目标等级不高于自身且没有抗封技能时必中。",
       "modifiers": [
         {
           "when": {
@@ -247,7 +247,7 @@
     {
       "id": "bailu.passive.shouzhi",
       "name": "守志",
-      "description": "回合开始气血不足30%时，有35%概率自动凝神。要求站立、至少50法力且未被封法，消耗50法力；倒地不触发。",
+      "description": "回合开始时，若站立、气血不足30%、至少有50法力且未被封法，有35%概率自动施放凝神，消耗50法力。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -329,7 +329,7 @@
     {
       "id": "bailu.passive.shenbian",
       "name": "审辨",
-      "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。免疫和覆盖拒绝不补判。",
+      "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -1048,7 +1048,7 @@
     {
       "id": "bailu.passive.zhengsheng",
       "name": "正声",
-      "description": "贤影每轮实际拦截首次敌方攻击性行为后增加12战意。",
+      "description": "贤影每轮实际拦截首次敌方攻击性行为后增加8战意。",
       "hooks": [
         {
           "on": "onHostileActionIntercepted",
@@ -1056,7 +1056,7 @@
             {
               "type": "modifyResource",
               "resourceId": "combat.resource.rage",
-              "amount": 12
+              "amount": 8
             }
           ],
           "targetIsSelf": true,
@@ -1095,7 +1095,7 @@
     {
       "id": "bailu.passive.cifeng",
       "name": "辞锋",
-      "description": "基础破邪主目标伤害提高10%，",
+      "description": "基础破邪主目标伤害提高10%。",
       "modifiers": [
         {
           "when": {
@@ -1191,7 +1191,7 @@
     {
       "id": "bailu.passive.cangfeng",
       "name": "藏锋",
-      "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1204,7 +1204,7 @@
     {
       "id": "bailu.passive.shoujie",
       "name": "守节",
-      "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1217,7 +1217,7 @@
     {
       "id": "bailu.passive.buqu",
       "name": "不屈",
-      "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1230,7 +1230,7 @@
     {
       "id": "bailu.passive.lianzhang",
       "name": "连章",
-      "description": "基础破邪合法施放五次后，下一次额外作用三名目标，随后重新累计；点名既不累计也不消费。",
+      "description": "破邪施放五次后，下一次额外作用三名目标，随后重新累计。",
       "modifiers": [
         {
           "when": {
@@ -1406,7 +1406,7 @@
     {
       "id": "bailu.passive.xuci",
       "name": "蓄辞",
-      "description": "主动成功施放护身后，下一次基础破邪伤害提高40%，不叠加；合法施放后消费，倒地清除，不增强点名。",
+      "description": "成功施放凝神后，下一次破邪伤害提高25%。",
       "hooks": [
         {
           "on": "afterAction",
@@ -1421,7 +1421,7 @@
           "aim": "self",
           "when": {
             "skillIds": [
-              "bailu.skill.hushen"
+              "bailu.skill.ningshen"
             ],
             "actionSucceeded": true
           }
@@ -1552,7 +1552,7 @@
           "name": "持衡",
           "layer": 2,
           "slot": 2,
-          "description": "入梦命中乘0.95，其他常规言令乘1.05；",
+          "description": "入梦命中乘0.95，其他常规言令乘1.05。",
           "passives": [
             "bailu.passive.chiheng"
           ]
@@ -1562,7 +1562,7 @@
           "name": "先声",
           "layer": 2,
           "slot": 3,
-          "description": "本场首次常规封印尝试，目标为不高于自身等级且无抗封技能的敌玩家时必中；仍受绝对免疫限制。",
+          "description": "本场首次常规封印，目标等级不高于自身且没有抗封技能时必中。",
           "passives": [
             "bailu.passive.xiansheng"
           ]
@@ -1572,7 +1572,7 @@
           "name": "守志",
           "layer": 3,
           "slot": 1,
-          "description": "回合开始气血不足30%时，有35%概率自动凝神。要求站立、至少50法力且未被封法，消耗50法力；倒地不触发。",
+          "description": "回合开始时，若站立、气血不足30%、至少有50法力且未被封法，有35%概率自动施放凝神，消耗50法力。",
           "passives": [
             "bailu.passive.shouzhi"
           ]
@@ -1593,7 +1593,7 @@
           "name": "审辨",
           "layer": 3,
           "slot": 3,
-          "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。免疫和覆盖拒绝不补判。",
+          "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。",
           "passives": [
             "bailu.passive.shenbian"
           ]
@@ -1680,7 +1680,7 @@
           "name": "正声",
           "layer": 6,
           "slot": 2,
-          "description": "贤影每轮实际拦截首次敌方攻击性行为后增加12战意。",
+          "description": "贤影每轮实际拦截首次敌方攻击性行为后增加8战意。",
           "passives": [
             "bailu.passive.zhengsheng"
           ]
@@ -1707,7 +1707,7 @@
           "name": "进学",
           "layer": 7,
           "slot": 1,
-          "description": "speed增加30。",
+          "description": "速度增加30点。",
           "automatic": true,
           "panel": [
             {
@@ -1722,7 +1722,7 @@
           "name": "一言定局",
           "layer": 7,
           "slot": 2,
-          "description": "授予噤声：70战意、冷却6回合、必中封法2回合。",
+          "description": "授予噤声：消耗70战意，必中封法并附禁言2回合。自身被封法时不可用。冷却6回合。",
           "grantSkills": [
             "bailu.skill.jinsheng"
           ]
@@ -1732,7 +1732,7 @@
           "name": "正言执律",
           "layer": 7,
           "slot": 3,
-          "description": "speed增加30。",
+          "description": "速度增加30点。",
           "automatic": true,
           "panel": [
             {
@@ -1771,7 +1771,7 @@
           "name": "辞锋",
           "layer": 1,
           "slot": 2,
-          "description": "基础破邪主目标伤害提高10%，",
+          "description": "基础破邪主目标伤害提高10%。",
           "passives": [
             "bailu.passive.cifeng"
           ]
@@ -1821,7 +1821,7 @@
           "name": "藏锋",
           "layer": 3,
           "slot": 1,
-          "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%。",
           "passives": [
             "bailu.passive.cangfeng",
             "bailu.passive.lore_revive"
@@ -1832,7 +1832,7 @@
           "name": "守节",
           "layer": 3,
           "slot": 2,
-          "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%。",
           "passives": [
             "bailu.passive.shoujie",
             "bailu.passive.lore_revive"
@@ -1843,7 +1843,7 @@
           "name": "不屈",
           "layer": 3,
           "slot": 3,
-          "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%。",
           "passives": [
             "bailu.passive.buqu",
             "bailu.passive.lore_revive"
@@ -1864,7 +1864,7 @@
           "name": "连章",
           "layer": 4,
           "slot": 2,
-          "description": "基础破邪合法施放五次后，下一次额外作用三名目标，随后重新累计；点名既不累计也不消费。",
+          "description": "破邪施放五次后，下一次额外作用三名目标，随后重新累计。",
           "passives": [
             "bailu.passive.lianzhang"
           ]
@@ -1914,7 +1914,7 @@
           "name": "蓄辞",
           "layer": 6,
           "slot": 1,
-          "description": "主动成功施放护身后，下一次基础破邪伤害提高40%，不叠加；合法施放后消费，倒地清除，不增强点名。",
+          "description": "成功施放凝神后，下一次破邪伤害提高25%。",
           "passives": [
             "bailu.passive.xuci"
           ]
@@ -1944,7 +1944,7 @@
           "name": "进学",
           "layer": 7,
           "slot": 1,
-          "description": "magicAtk增加40。",
+          "description": "法术攻击增加40点。",
           "automatic": true,
           "panel": [
             {
@@ -1959,7 +1959,7 @@
           "name": "舍生立言",
           "layer": 7,
           "slot": 2,
-          "description": "授予舍生：半血以上可用，80法力，气血留1，5回合破邪+70%。",
+          "description": "授予舍生：气血至少一半可施放，消耗80法力，气血留1点，获得5回合不可驱散的舍生立言，破邪伤害提高70%，回合末使自身拘灵缩短1回合。冷却8回合，开战冷却4回合。",
           "grantSkills": [
             "bailu.skill.shesheng"
           ]
@@ -1969,7 +1969,7 @@
           "name": "浩气文章",
           "layer": 7,
           "slot": 3,
-          "description": "magicAtk增加40。",
+          "description": "法术攻击增加40点。",
           "automatic": true,
           "panel": [
             {

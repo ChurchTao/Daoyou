@@ -854,10 +854,11 @@
       "procChanceIsAdaptation": true
     },
     "guardWrath": {
-      "amount": 12,
+      "amount": 8,
       "budget": "owner and round"
     },
-    "nextBaseSpellBonus": 0.4
+    "nextBaseSpellBonus": 0.25,
+    "nextBaseSpellTrigger": "bailu.skill.ningshen"
   },
   "skillNamingStyle": {
     "active": "短促言令，正式显示名包含全角感叹号；书名号仅用于文档行文",

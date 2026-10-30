@@ -31,7 +31,7 @@ import {
   inscriptionItemId,
 } from '@daoyou/game-content/items/inscriptions';
 import { cn } from '@app/lib/cn';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
@@ -117,8 +117,12 @@ function formationText(value: DaoFormationInscriptionStateV1 | null) {
 }
 type SocketDraft = {
   inscription?: InscriptionRef;
-  action: 'engrave' | 'strengthen_socket';
+  action: 'engrave' | 'strengthen_socket' | 'remove';
 };
+type InscribeStep = Extract<
+  InscriptionRequest,
+  { action: 'inscribe' }
+>['steps'][number];
 const emptySockets = (): [SocketDraft, SocketDraft] => [
   { action: 'engrave' },
   { action: 'engrave' },
@@ -177,7 +181,13 @@ function MaterialDoseForm({
   );
 }
 
-function GrantItems({ grants }: { grants: ItemGrant[] }) {
+function GrantItems({
+  grants,
+  quantityLabel = '产出',
+}: {
+  grants: ItemGrant[];
+  quantityLabel?: '产出' | '返还';
+}) {
   return (
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
       {grants.map((grant) => (
@@ -188,7 +198,7 @@ function GrantItems({ grants }: { grants: ItemGrant[] }) {
             name: itemDefinition(grant.definitionId).name,
             instanceData: null,
           }}
-          quantityLabel="产出"
+          quantityLabel={quantityLabel}
         />
       ))}
     </div>
@@ -220,11 +230,22 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     lines: string[];
     warning?: string;
   }>();
+  const plannedEquipment = useRef<Item | null>(null);
   const inventory = session.bag.data;
   useEffect(() => {
     if (!session.result) return;
     storage.reload();
-    if (session.result.action === 'inscribe') setSockets(emptySockets());
+    if (session.result.action !== 'inscribe') return;
+    setSockets(emptySockets());
+    const updated = plannedEquipment.current;
+    if (!updated) return;
+    setChosenItems((current) => {
+      const chosen = current.get(updated.id);
+      if (!chosen || chosen.item.revision === updated.revision) return current;
+      const next = new Map(current);
+      next.set(updated.id, { ...chosen, item: updated });
+      return next;
+    });
   }, [session.result, storage.reload]);
   const pickerView = source === 'bag' ? inventory : storage.view;
   const pickerError = source === 'bag' ? session.bag.error : storage.error;
@@ -349,43 +370,86 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     } else if (!equipment || !equipmentItem)
       problem ??= '选择道装，再把阵纹放入孔位';
     else {
-      const steps = ([0, 1] as const).flatMap((index) => {
+      const steps = ([0, 1] as const).flatMap((index): InscribeStep[] => {
         const draft = sockets[index];
+        const old = equipment.formationInscriptions[index];
+        if (draft.action === 'remove') {
+          if (!old) return [];
+          const pattern = daoFormationInscriptionOf(old.patternId)!;
+          socketLines.push(
+            `第${index + 1}孔取下 ${pattern.name} · ${old.level}级`,
+          );
+          return [{ socket: index, mode: 'remove' as const }];
+        }
         const inscription = live(draft.inscription);
         if (!inscription) return [];
-        const old = equipment.formationInscriptions[index];
         const definition = itemDefinition(inscription.definitionId);
         const level =
           definition.kind === 'inscription' ? definition.level! : 0;
+        const inscriptionRef = {
+          id: inscription.id,
+          revision: inscription.revision,
+        };
+        if (draft.action === 'strengthen_socket') {
+          socketLines.push(
+            old
+              ? `第${index + 1}孔合成至 ${old.level + 1}级`
+              : `第${index + 1}孔合成`,
+          );
+          return [
+            {
+              socket: index,
+              inscription: inscriptionRef,
+              mode: 'strengthen_socket' as const,
+              replace: false,
+            },
+          ];
+        }
         socketLines.push(
-          draft.action === 'strengthen_socket' && old
-            ? `第${index + 1}孔合成至 ${old.level + 1}级`
-            : old
-              ? `第${index + 1}孔覆盖为 ${definition.name} · ${level}级`
-              : `第${index + 1}孔烙印 ${definition.name} · ${level}级`,
+          old
+            ? `第${index + 1}孔替换为 ${definition.name} · ${level}级`
+            : `第${index + 1}孔烙印 ${definition.name} · ${level}级`,
         );
         return [
           {
             socket: index,
-            inscription: { id: inscription.id, revision: inscription.revision },
-            mode: draft.action,
-            replace: draft.action === 'engrave' && !!old,
+            inscription: inscriptionRef,
+            mode: 'engrave' as const,
+            replace: !!old,
           },
         ];
       });
-      if (!steps.length) problem ??= '两个孔可以一次烙印';
+      if (!steps.length)
+        problem ??= equipment.formationInscriptions.some(Boolean)
+          ? '放入阵纹，或取下已有阵纹'
+          : '两个孔可以一次烙印';
       else {
-        const ruleSteps: InscriptionSocketStep[] = steps.map((step) => ({
-          socket: step.socket,
-          inscription: step.inscription,
-          action: step.mode,
-          replace: step.replace,
-        }));
+        const ruleSteps: InscriptionSocketStep[] = steps.map((step) =>
+          step.mode === 'remove'
+            ? { socket: step.socket, action: 'remove' }
+            : {
+                socket: step.socket,
+                inscription: step.inscription,
+                action: step.mode,
+                replace: step.replace,
+              },
+        );
         const plan = prepareInscriptionSockets(
           items,
           { id: equipmentItem.id, revision: equipmentItem.revision },
           ruleSteps,
         );
+        const updated = plan.after.find((item) => item.id === equipmentItem.id);
+        plannedEquipment.current = updated
+          ? {
+              ...equipmentItem,
+              instanceData: updated.instanceData,
+              revision: updated.revision,
+              quantity: updated.quantity,
+              location: updated.location,
+              slotIndex: updated.slotIndex,
+            }
+          : null;
         input = {
           action: 'inscribe',
           requestId: '',
@@ -571,12 +635,25 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       lines.push(
         `${equipmentItem!.location === 'storage' ? '储藏室' : equipmentItem!.location === 'equipped' ? '已穿戴' : '储物袋'} · ${equipmentItem!.name}`,
         ...socketLines,
-        ...input.steps.map(
-          (step) => `消耗：${describe(step.inscription, 1)}`,
+        ...input.steps.flatMap((step) =>
+          step.mode === 'remove'
+            ? []
+            : [`消耗：${describe(step.inscription, 1)}`],
         ),
       );
-      if (input.steps.some((step) => step.replace))
-        warning = '覆盖后旧阵纹消失，不会返还。';
+      const returned = input.steps.flatMap((step) => {
+        const old = equipment?.formationInscriptions[step.socket];
+        if (
+          !old ||
+          !(step.mode === 'remove' || (step.mode === 'engrave' && step.replace))
+        )
+          return [];
+        const pattern = daoFormationInscriptionOf(old.patternId)!;
+        return [`返还 ${pattern.name} · ${old.level}级`];
+      });
+      lines.push(...returned);
+      if (returned.length)
+        lines.push('返还的阵纹优先入袋，满时存入储藏室。');
     } else {
       lines.push(
         `${equipmentItem!.location === 'storage' ? '储藏室' : equipmentItem!.location === 'equipped' ? '已穿戴' : '储物袋'} · ${equipmentItem!.name}`,
@@ -721,17 +798,26 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       />
     </CraftInventoryPanel>
   );
-  const operationLabel =
-    tab === 'draw'
-      ? '绘制阵纹'
-      : tab === 'strengthen' ||
-          sockets.some((slot) => slot.action === 'strengthen_socket' && slot.inscription)
-        ? '合成阵纹'
-        : input?.action === 'inscribe' && input.steps.length === 2
-          ? '烙印两孔'
-          : input?.action === 'inscribe' && input.steps.some((step) => step.replace)
-            ? '覆盖烙印'
-            : '烙印阵纹';
+  const operationLabel = (() => {
+    if (tab === 'draw') return '绘制阵纹';
+    if (
+      tab === 'strengthen' ||
+      sockets.some(
+        (slot) => slot.action === 'strengthen_socket' && slot.inscription,
+      )
+    )
+      return '合成阵纹';
+    if (input?.action !== 'inscribe') return '烙印阵纹';
+    const removes = input.steps.filter((step) => step.mode === 'remove').length;
+    const replaces = input.steps.filter(
+      (step) => step.mode === 'engrave' && step.replace,
+    ).length;
+    if (removes === input.steps.length) return '取下阵纹';
+    if (replaces && removes) return '替换并取下';
+    if (replaces) return '替换烙印';
+    if (input.steps.length === 2) return '烙印两孔';
+    return '烙印阵纹';
+  })();
   type BoardSlot = {
     label: string;
     position: string;
@@ -742,6 +828,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     actionLabel?: string;
     choose: () => void;
     merge?: () => void;
+    detach?: () => void;
   };
   function selectSocket(index: 0 | 1, action: 'engrave' | 'strengthen_socket') {
     setActiveSlot(index);
@@ -829,15 +916,26 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                 selected:
                   !!equipment &&
                   picker === 'inscription' &&
-                  activeSlot === index,
-                badge: incoming
-                  ? draft.action === 'strengthen_socket'
-                    ? '待合成'
-                    : '待烙印'
-                  : undefined,
-                actionLabel: incoming ? '移出待用阵纹' : '放入阵纹',
+                  activeSlot === index &&
+                  draft.action !== 'remove',
+                badge:
+                  draft.action === 'remove'
+                    ? '待取下'
+                    : incoming
+                      ? draft.action === 'strengthen_socket'
+                        ? '待合成'
+                        : old
+                          ? '待替换'
+                          : '待烙印'
+                      : undefined,
+                actionLabel:
+                  draft.action === 'remove'
+                    ? '取消取下'
+                    : incoming
+                      ? '移出待用阵纹'
+                      : '放入阵纹',
                 choose: () => {
-                  if (incoming) {
+                  if (draft.action === 'remove' || incoming) {
                     setSockets((current) =>
                       current.map((slot, i) =>
                         i === index
@@ -851,9 +949,22 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                 },
                 merge:
                   old &&
+                  draft.action !== 'remove' &&
                   !incoming &&
                   old.level < daoFormationMaxLevel(equipment!.equipmentLevel)
                     ? () => selectSocket(index, 'strengthen_socket')
+                    : undefined,
+                detach:
+                  old && draft.action !== 'remove' && !incoming
+                    ? () => {
+                        setActiveSlot(index);
+                        setSelectionError('');
+                        setSockets((current) =>
+                          current.map((slot, i) =>
+                            i === index ? { action: 'remove' } : slot,
+                          ) as [SocketDraft, SocketDraft],
+                        );
+                      }
                     : undefined,
               };
             }),
@@ -895,10 +1006,17 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                     ? '阵纹已成，优先收入储物袋，满时存入储藏室。'
                     : session.result.action === 'strengthen'
                       ? '合成完成，产物优先入袋，满时存入储藏室。可以继续合成。'
-                      : '孔位已更新，可以继续烙印。'}
+                      : session.result.grants.length
+                        ? '孔位已更新。取下或换下的阵纹优先收入储物袋，满时存入储藏室。'
+                        : '孔位已更新，可以继续烙印。'}
                 </p>
                 {!!session.result.grants.length && (
-                  <GrantItems grants={session.result.grants} />
+                  <GrantItems
+                    grants={session.result.grants}
+                    quantityLabel={
+                      session.result.action === 'inscribe' ? '返还' : '产出'
+                    }
+                  />
                 )}
                 <p className="text-ink-secondary text-xs">
                   本次消耗{' '}
@@ -1027,6 +1145,17 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                                     孔内合成
                                   </InkButton>
                                 )}
+                                {slot.detach && (
+                                  <InkButton
+                                    disabled={session.locked}
+                                    onClick={() => {
+                                      slot.detach!();
+                                      close();
+                                    }}
+                                  >
+                                    取下
+                                  </InkButton>
+                                )}
                               </div>
                             )
                           : undefined}
@@ -1137,7 +1266,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
               九种阵纹等概率独立生成。同种同级按两枚一组合成，单次最多{MAX_INSCRIPTION_STRENGTHEN_TIMES}次，绘制与合成均必定成功，最高{INSCRIPTION_MAX_LEVEL}级，合成费用仍逐级翻倍。两个孔可以一次烙印。阵纹适用部位及等级须符合道装孔上限。
             </p>
             <p>
-              已烙印阵纹可消耗储物袋或储藏室中同种同级阵纹进行孔内合成。阵纹不能拆卸，覆盖时旧阵纹不返还。产出优先入袋，满时存入储藏室。
+              已烙印阵纹可以无损取下。孔位已有阵纹时再次烙印为替换，旧阵纹返还储物袋，满时存入储藏室。孔内合成仍消耗一枚同种同级阵纹。产出优先入袋，满时存入储藏室。
             </p>
           </div>
         </details>

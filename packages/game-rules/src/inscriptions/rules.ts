@@ -252,6 +252,36 @@ export function prepareInscriptionStrengthen(
   };
 }
 
+function loadInscriptionEquipment(
+  items: InventoryItem[],
+  equipmentRef: InscriptionRef,
+) {
+  const equipmentItem = resolve(items, equipmentRef);
+  if (
+    equipmentItem.definitionId !== 'equipment.v6' ||
+    !['bag', 'storage', 'equipped'].includes(equipmentItem.location)
+  )
+    throw new InventoryRuleError('请选择随身或已穿戴道装');
+  return {
+    equipmentItem,
+    equipment: InventoryEquipmentSchema.parse(equipmentItem.instanceData),
+  };
+}
+
+function returnedInscription(patternId: string, level: number): ItemGrant {
+  return { definitionId: inscriptionItemId(patternId, level), quantity: 1 };
+}
+
+function mergeGrants(grants: ItemGrant[]) {
+  const merged = new Map<string, ItemGrant>();
+  for (const grant of grants) {
+    const current = merged.get(grant.definitionId);
+    if (current) current.quantity += grant.quantity;
+    else merged.set(grant.definitionId, { ...grant });
+  }
+  return [...merged.values()];
+}
+
 export function prepareInscriptionEquipment(
   items: InventoryItem[],
   equipmentRef: InscriptionRef,
@@ -262,16 +292,14 @@ export function prepareInscriptionEquipment(
 ) {
   if (socket !== 0 && socket !== 1)
     throw new InventoryRuleError('请选择有效阵纹孔位');
-  const equipmentItem = resolve(items, equipmentRef);
-  if (
-    equipmentItem.definitionId !== 'equipment.v6' ||
-    !['bag', 'storage', 'equipped'].includes(equipmentItem.location)
-  )
-    throw new InventoryRuleError('请选择随身或已穿戴道装');
-  const equipment = InventoryEquipmentSchema.parse(equipmentItem.instanceData);
+  const { equipmentItem, equipment } = loadInscriptionEquipment(
+    items,
+    equipmentRef,
+  );
   const incoming = inscriptionOf(resolve(items, inscriptionRef));
   const old = equipment.formationInscriptions[socket];
   let next = incoming;
+  const grants: ItemGrant[] = [];
   let cost: InscriptionCost = { qi: 0, spiritStones: 0 };
   if (action === 'strengthen_socket') {
     if (
@@ -282,8 +310,10 @@ export function prepareInscriptionEquipment(
       throw new InventoryRuleError('孔内合成需要一枚同种同级阵纹');
     next = { ...old, level: old.level + 1 };
     cost = inscriptionStrengthenCost(next.level);
-  } else if (old && !replace)
-    throw new InventoryRuleError('请确认覆盖，旧阵纹不会返还');
+  } else if (old) {
+    if (!replace) throw new InventoryRuleError('请确认替换，旧阵纹将返还');
+    grants.push(returnedInscription(old.patternId, old.level));
+  }
   if (next.level > daoFormationMaxLevel(equipment.equipmentLevel))
     throw new InventoryRuleError('阵纹等级超过该装备每孔上限');
   const pattern = DAO_FORMATION_INSCRIPTIONS_V1.find(
@@ -302,17 +332,52 @@ export function prepareInscriptionEquipment(
   return {
     after,
     cost,
+    grants,
     equipmentId: equipmentItem.id,
     equipped: equipmentItem.location === 'equipped',
   };
 }
 
-export type InscriptionSocketStep = {
-  socket: 0 | 1;
-  inscription: InscriptionRef;
-  action: 'engrave' | 'strengthen_socket';
-  replace: boolean;
-};
+export function prepareInscriptionRemoval(
+  items: InventoryItem[],
+  equipmentRef: InscriptionRef,
+  socket: number,
+) {
+  if (socket !== 0 && socket !== 1)
+    throw new InventoryRuleError('请选择有效阵纹孔位');
+  const { equipmentItem, equipment } = loadInscriptionEquipment(
+    items,
+    equipmentRef,
+  );
+  const old = equipment.formationInscriptions[socket];
+  if (!old) throw new InventoryRuleError('此孔没有阵纹');
+  equipment.formationInscriptions[socket] = null;
+  const validated = InventoryEquipmentSchema.parse(equipment);
+  const after = items.map((item) =>
+    item.id === equipmentItem.id
+      ? { ...item, instanceData: validated, revision: item.revision + 1 }
+      : item,
+  );
+  return {
+    after,
+    cost: { qi: 0, spiritStones: 0 } satisfies InscriptionCost,
+    grants: [returnedInscription(old.patternId, old.level)],
+    equipmentId: equipmentItem.id,
+    equipped: equipmentItem.location === 'equipped',
+  };
+}
+
+export type InscriptionSocketStep =
+  | {
+      socket: 0 | 1;
+      inscription: InscriptionRef;
+      action: 'engrave' | 'strengthen_socket';
+      replace: boolean;
+    }
+  | {
+      socket: 0 | 1;
+      action: 'remove';
+    };
 
 export function prepareInscriptionSockets(
   items: InventoryItem[],
@@ -322,27 +387,37 @@ export function prepareInscriptionSockets(
   if (steps.length < 1 || steps.length > 2)
     throw new InventoryRuleError('请选择一至两个孔位');
   if (new Set(steps.map((step) => step.socket)).size !== steps.length)
-    throw new InventoryRuleError('同一孔位不能重复烙印');
+    throw new InventoryRuleError('同一孔位不能重复操作');
   resolve(items, equipmentRef);
-  for (const step of steps) resolve(items, step.inscription);
+  for (const step of steps) {
+    if (step.action !== 'remove') resolve(items, step.inscription);
+  }
   let current = items;
   let cost: InscriptionCost = { qi: 0, spiritStones: 0 };
   let equipped = false;
   let equipmentId = equipmentRef.id;
+  const grants: ItemGrant[] = [];
   for (const step of steps) {
     const equipment = current.find((item) => item.id === equipmentRef.id);
-    const inscription = current.find((item) => item.id === step.inscription.id);
-    if (!equipment || !inscription)
-      throw new InventoryRuleError('物品已变化，请重新选择');
-    const plan = prepareInscriptionEquipment(
-      current,
-      { id: equipment.id, revision: equipment.revision },
-      step.socket,
-      { id: inscription.id, revision: inscription.revision },
-      step.action,
-      step.replace,
-    );
+    if (!equipment) throw new InventoryRuleError('物品已变化，请重新选择');
+    const equipmentRefNow = { id: equipment.id, revision: equipment.revision };
+    let plan;
+    if (step.action === 'remove') {
+      plan = prepareInscriptionRemoval(current, equipmentRefNow, step.socket);
+    } else {
+      const inscription = current.find((item) => item.id === step.inscription.id);
+      if (!inscription) throw new InventoryRuleError('物品已变化，请重新选择');
+      plan = prepareInscriptionEquipment(
+        current,
+        equipmentRefNow,
+        step.socket,
+        { id: inscription.id, revision: inscription.revision },
+        step.action,
+        step.replace,
+      );
+    }
     current = plan.after;
+    grants.push(...plan.grants);
     cost = {
       qi: cost.qi + plan.cost.qi,
       spiritStones: cost.spiritStones + plan.cost.spiritStones,
@@ -350,5 +425,5 @@ export function prepareInscriptionSockets(
     equipped = equipped || plan.equipped;
     equipmentId = plan.equipmentId;
   }
-  return { after: current, cost, equipmentId, equipped };
+  return { after: current, cost, grants: mergeGrants(grants), equipmentId, equipped };
 }
