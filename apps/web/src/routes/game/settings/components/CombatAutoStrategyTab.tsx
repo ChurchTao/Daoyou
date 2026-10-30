@@ -85,8 +85,15 @@ function newCondition(
   if (type === 'allyDowned') return { type };
   if (type === 'enemyCountAtLeast') return { type, count: 2 };
   if (type === 'selfResourceAtLeast') return { type, resourceId, amount: 1 };
-  if (type === 'selfStatus')
-    return { type, kind: statuses.self[0]?.kind ?? '', present: false };
+  if (type === 'selfStatus') {
+    const first = statuses.self[0];
+    return {
+      type,
+      kind: first?.kind ?? '',
+      statusId: first?.statusId,
+      present: false,
+    };
+  }
   if (type === 'targetStatus' || type === 'allyStatus') {
     const first =
       type === 'allyStatus'
