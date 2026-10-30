@@ -1,7 +1,7 @@
 {
   "$schema": "./dungeon-enemies.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "defenseWeight": 0.45,
   "stages": {
     "初期": 0.92,
@@ -28,9 +28,9 @@
     "元婴": 0.62,
     "化神": 0.72,
     "炼虚": 0.82,
-    "合体": 0.9,
-    "大乘": 0.95,
-    "渡劫": 1
+    "合体": 0.86,
+    "大乘": 0.9,
+    "渡劫": 0.94
   },
   "baselines": {
     "炼气": {
@@ -106,9 +106,9 @@
       "referenceMagicDef": 743
     },
     "合体": {
-      "maxHp": 5040,
-      "physicalAtk": 1764,
-      "magicAtk": 1500,
+      "maxHp": 4838,
+      "physicalAtk": 1675,
+      "magicAtk": 1424,
       "physicalDef": 758,
       "magicDef": 682,
       "speed": 521,
@@ -118,9 +118,9 @@
       "referenceMagicDef": 868
     },
     "大乘": {
-      "maxHp": 5968,
-      "physicalAtk": 2197,
-      "magicAtk": 1868,
+      "maxHp": 5491,
+      "physicalAtk": 1950,
+      "magicAtk": 1658,
       "physicalDef": 946,
       "magicDef": 851,
       "speed": 598,
@@ -130,9 +130,9 @@
       "referenceMagicDef": 994
     },
     "渡劫": {
-      "maxHp": 6783,
-      "physicalAtk": 2789,
-      "magicAtk": 2371,
+      "maxHp": 5969,
+      "physicalAtk": 2258,
+      "magicAtk": 1920,
       "physicalDef": 1158,
       "magicDef": 1042,
       "speed": 673,
