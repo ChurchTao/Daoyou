@@ -84,12 +84,20 @@ function player(sectId: CombatV6SectId) {
 describe('秘境遭遇与收益', () => {
   it('同境界同轮次的地图危险档位提高敌方气血与输出', () => {
     const input = player('youdu');
-    const easy = createDungeonHost(input, 45, 'normal', 1, 'easy').state
-      .units[1].attrs;
-    const normal = createDungeonHost(input, 45, 'normal', 1, 'normal').state
-      .units[1].attrs;
-    const boss = createDungeonHost(input, 45, 'normal', 1, 'boss').state
-      .units[1].attrs;
+    const encounter = {
+      realm: '金丹' as const,
+      stage: '中期' as const,
+      template: 'normal' as const,
+    };
+    const easy = createDungeonHost(input, { ...encounter, tier: 'easy' }, 1)
+      .state.units[1].attrs;
+    const normal = createDungeonHost(
+      input,
+      { ...encounter, tier: 'normal' },
+      1,
+    ).state.units[1].attrs;
+    const boss = createDungeonHost(input, { ...encounter, tier: 'boss' }, 1)
+      .state.units[1].attrs;
     expect(easy.maxHp).toBeLessThan(normal.maxHp);
     expect(normal.maxHp).toBeLessThan(boss.maxHp);
     expect(easy.physicalAtk).toBeLessThan(normal.physicalAtk);
@@ -120,7 +128,11 @@ describe('秘境遭遇与收益', () => {
     it(`${template}: 保存恢复不改变结果、RNG 与逐行动差量`, () => {
       const input = player('youdu'),
         before = structuredClone(input);
-      const host = createDungeonHost(input, 5, template, 72);
+      const host = createDungeonHost(
+        input,
+        { realm: '炼气', stage: '初期', template, tier: 'normal' },
+        72,
+      );
       expect(host.state.units[0].attrs.hp).toBe(100);
       expect(
         host.queryCommands().skills.some((s) => s.skillId.includes('capture')),

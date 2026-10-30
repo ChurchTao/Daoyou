@@ -28,6 +28,7 @@ import {
 import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
 import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
+import type { DungeonTemplate } from '@daoyou/game-domain/combat/challenges';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import type { DungeonSessionView } from '@daoyou/contracts/combat/dungeon';
 import {
@@ -41,7 +42,10 @@ import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { getMapNode } from '@daoyou/game-content/world/map';
-import { resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
+import {
+  clampDungeonEnemyRealmStage,
+  resolveDungeonMapConfig,
+} from '@daoyou/game-rules/world/dungeon';
 import { appendDungeonReward } from '@daoyou/game-rules/rewards/dungeon';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { RealmType } from '@daoyou/constants/realms';
@@ -93,29 +97,39 @@ export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
     },
   };
 }
-export function dungeonLevel(mapId: string) {
-  const map = getMapNode(mapId);
+function dungeonBattleSetup(state: DungeonState) {
+  const map = getMapNode(state.mapNodeId);
   if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
-  return combatCharacterLevel(map.realm_requirement as RealmType, '初期');
+  const mapConfig = resolveDungeonMapConfig(map);
+  const battle = state.pendingAction?.costs.find(
+    (cost) => cost.type === 'battle',
+  );
+  const stage = clampDungeonEnemyRealmStage(
+    battle?.metadata?.realm_stage ?? '中期',
+    mapConfig,
+  );
+  const template: DungeonTemplate =
+    battle?.metadata?.is_boss || state.currentRound >= state.maxRounds
+      ? 'boss'
+      : state.currentRound >= 3
+        ? 'elite'
+        : 'normal';
+  return {
+    realm: map.realm_requirement as RealmType,
+    stage,
+    template,
+    tier: mapConfig.difficultyTier,
+  };
 }
 export async function prepareDungeonEncounter(
   state: DungeonState,
 ): Promise<DungeonEncounterPayload> {
   const { player } = await dungeonPlayer(state.cultivatorId);
-  const template =
-    state.currentRound >= state.maxRounds
-      ? 'boss'
-      : state.currentRound >= 3
-        ? 'elite'
-        : 'normal';
-  const level = dungeonLevel(state.mapNodeId);
-  const map = getMapNode(state.mapNodeId)!;
+  const encounter = dungeonBattleSetup(state);
   const host = createDungeonHost(
     player,
-    level,
-    template,
+    encounter,
     randomInt(0, 0x7fffffff),
-    resolveDungeonMapConfig(map).difficultyTier,
   );
   // Carry resources across encounters within this run without changing the persistent beast schema.
   const snapshot = host.runtimeSnapshot();
@@ -162,6 +176,7 @@ export function beginDungeonBattle(
   prepared: DungeonEncounterPayload,
 ): DungeonBattlePayload {
   const restored = new DungeonHost(prepared.encounter);
+  const encounter = dungeonBattleSetup(state);
   return {
     session: {
       battleId: randomUUID(),
@@ -170,8 +185,8 @@ export function beginDungeonBattle(
       enemyData: {
         name: prepared.preview.enemies[0],
         realm: state.playerInfo.realm,
-        stage: '初期',
-        level: String(dungeonLevel(state.mapNodeId)),
+        stage: encounter.stage,
+        level: String(combatCharacterLevel(encounter.realm, encounter.stage)),
         difficulty: 1,
       },
     },
