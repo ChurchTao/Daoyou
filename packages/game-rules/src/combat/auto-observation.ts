@@ -132,6 +132,9 @@ export function observeAutoBattle(
             defending: false,
             auto: false,
             skipNextAction: owned ? unit.flags.skipNextAction : false,
+            ...(owned && unit.flags.hostileActionGuardRound !== undefined
+              ? { hostileActionGuardRound: unit.flags.hostileActionGuardRound }
+              : {}),
           },
         };
       }),

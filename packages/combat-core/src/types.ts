@@ -61,6 +61,7 @@ export type {
 export type UnitId = string;
 export type SkillId = string;
 export type StatusId = string;
+export type StatusApplyResult = 'applied' | 'miss' | 'immune' | 'rejected' | 'intercepted';
 
 export type CombatResourceState = {
   id: string;
@@ -204,6 +205,8 @@ export type StatusInstance = {
 };
 
 export type UnitFlags = {
+  /** Shared by hostile-action guards; refreshing a status cannot reset this round's use. */
+  hostileActionGuardRound?: number;
   statusImmunityThroughRound?: Record<string, number>;
   capturedBy?: UnitId;
   reviveAtRound?: number;
@@ -342,6 +345,10 @@ export type LineupUnit = {
 };
 
 export type SkillTargeting = {
+  secondaryOwnedStatusKind?: string;
+  fillPriority?: 'delayedRevivalThenSpeed';
+  fillPriorityPassives?: string[][];
+  reserveExtraCost?: boolean;
   /** Maximum manually selected targets; fill chooses the remainder. */
   maxSelected?: number;
   excludeSelf?: boolean;
@@ -369,6 +376,11 @@ export type SkillTargeting = {
 
 /** 钩子/效果的通用过滤。引擎只做匹配，不要在这里写门派名。 */
 export type EffectWhen = {
+  resolvedStatusIds?: StatusId[];
+  resolvedStatusKinds?: string[];
+  statusResults?: StatusApplyResult[];
+  statusHit?: StatusHit;
+  targetHasNegativeSpellResistance?: boolean;
   /** 不响应器诀调用的子技能；普通法连仍属于当前行动。 */
   rootActionOnly?: boolean;
   sameAttackTarget?: boolean;
@@ -465,6 +477,7 @@ export type EffectWhen = {
 };
 
 type EffectCore =
+  | { type: typeof EffectType.InvokeSkill; skillId: SkillId }
   | { type: typeof EffectType.InvokeAttackSkills }
   | { type: typeof EffectType.Repeat; min: number; max: number; effects: SkillEffect[] }
   | { type: typeof EffectType.ModifyFact; key: string; value: Expr }
@@ -543,6 +556,8 @@ type EffectCore =
       storeTarget?: boolean;
       /** 封印类走 sealHitChance，否则必中 */
       hit?: StatusHit;
+      /** Multiplies the ordinary resolved seal chance; immunity still applies. */
+      chanceFactor?: Expr;
     }
   | {
       type: typeof EffectType.RemoveStatus;
@@ -626,6 +641,10 @@ export type RandomBranchEffect = Extract<
 >;
 
 export type SkillHook = {
+  /** Reuse the triggering skill's level, identity and seal parameters. */
+  effectSkill?: 'eventSkill';
+  /** Keep trigger budgets on the owner, but apply effects as the triggering actor. */
+  effectSource?: 'eventSource';
   on: HookName;
   sourceIsEnemy?: boolean;
   /** Damage returned to an attacker; may be suppressed by its innate capability. */
@@ -676,6 +695,10 @@ export type CombatModifier = {
   /** 同组队伍光环只取一次；来源倒地时失效。 */
   teamAura?: string;
   sealChanceFactor?: Expr;
+  sealHitAdd?: Expr;
+  sealChanceCeilAdd?: Expr;
+  sealAlwaysHit?: boolean;
+  bypassNegativeSpellResistance?: boolean;
   sealChanceAdd?: Expr;
   statusDurationAdd?: { statusId: string; amount: Expr };
   ignoreSealStatusKinds?: string[];
@@ -743,6 +766,7 @@ export type SkillDef = {
   splash?: SplashSpec;
   /** 封印底（单位为 %，55 表示 55%）；缺省由 rules 的 sealChanceBase 决定 */
   sealBase?: number;
+  sealChanceCeil?: number;
   targeting: SkillTargeting;
   /** 按 targeting 的最大候选人数预检法力；准备完成后截取实际人数并按 costMp 结算。
    * 准备阶段不得增加候选人数或法力标价；只用于先承受风险、再决定出手规模的技能。
@@ -760,6 +784,8 @@ export type SkillDef = {
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
 export type StatusDef = {
+  /** Ignore the first hostile root action against this unit each round. */
+  interceptHostileAction?: boolean;
   /** Command restrictions also apply to preflight/UI; resting is not a seal. */
   blockedCommands?: CommandType[];
   blocksNonArtSkills?: boolean;
@@ -784,6 +810,7 @@ export type StatusDef = {
   category?: StatusCategory;
   blocksAction?: boolean;
   blocksSpell?: boolean;
+  blocksDamagingSpells?: boolean;
   blocksPhysical?: boolean;
   blocksRevive?: boolean;
   /** 倒地不清（锢魂：死亡期间仍禁止复活） */
@@ -794,6 +821,8 @@ export type StatusDef = {
   revealStealth?: boolean;
   actFirst?: boolean;
   breakOnDamage?: boolean;
+  /** Strict single-hit HP-loss threshold; barriers and excess damage do not count. */
+  breakOnDamageAbove?: number;
   commandPolicy?: CommandPolicy;
   speedMod?: Expr;
   attrMods?: Partial<Record<AttrName, Expr>>;
@@ -875,6 +904,7 @@ export type FormulaSet = {
     skillLevel?: number,
     sealBase?: number,
     additiveChance?: number,
+    ceiling?: number,
   ): number;
   fleeChance(unit: Unit, enemies: Unit[]): number;
 };
@@ -1070,10 +1100,14 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  statusDuration?: number;
+  statusChance?: number;
+  statusDefs?: ReadonlyMap<string, StatusDef>;
+  skills?: ReadonlyMap<string, SkillDef>;
   allyPetSkillUnused?: boolean;
   normalTargetIds?: string[];
   killedTargetIds?: string[];
-  state?: Pick<BattleState, "round" | "units">;
+  state?: Pick<BattleState, "round" | "units"> & Partial<Pick<BattleState, "result">>;
   skillLevel: number;
   targets: number;
   source: Unit;

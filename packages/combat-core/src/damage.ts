@@ -9,7 +9,8 @@ import { skillOf, passiveSkills } from "./skills.js"
 import { MIN_DAMAGE, MIN_HP } from "./constants.js"
 import { absorbBarriers } from "./barriers.js"
 import type { BattleContext } from "./context.js"
-import { DamageKind, DamageOrigin, EventType, FailReason, FormulaFamily, HookName } from "./enums.js"
+import { DamageKind, DamageOrigin, EventType, FailReason, FormulaFamily, HookName, SkillTag } from "./enums.js"
+import { interceptHostileAction } from './action-guard.js';
 import { atLeast, floorAtLeast } from "./math.js"
 import { alliesOf, tryUnit } from "./unit-query.js"
 import { breakStatusesOnDamage, clearCombatStatuses } from "./status-removal.js"
@@ -56,6 +57,10 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
 
   const skillId = input.skillId ?? ctx.currentAction?.skillId
   const skill = skillId ? skillOf(ctx.skills, source, skillId) : undefined
+  const spellAttack = !silent && !ctx.invokingAttackSkills && !input.healInstead && source.side !== target.side &&
+    skill?.tags.includes(SkillTag.Spell) && !skill.tags.includes(SkillTag.Physical);
+  if (spellAttack) (target.combatFacts ??= {})[`spellAttackedRound:${source.id}`] = ctx.state.round;
+  if (!input.healInstead && interceptHostileAction(ctx, source, target, skillId, origin)) return
   const modifiers = combatModifiers(ctx, source, { target, skill, skillId, kind: input.kind, origin, percentageDamage: input.percentageDamage })
   src.hit += modifierValue(modifiers, 'hitAdd', source, target, skill, ctx)
   src.physicalAtk += modifierValue(modifiers, 'physicalAttackAdd', source, target, skill, ctx)
@@ -63,6 +68,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   if (protector) ctx.emit({ type: EventType.ProtectTrigger, protectorId: protector.id, originalTargetId: target.id })
 
   if (!input.cannotMiss && input.kind !== DamageKind.Fixed && !rollHit(ctx, source, target, src, dst, input.kind)) return
+  if (spellAttack) (target.combatFacts ??= {})[`spellHitRound:${source.id}`] = ctx.state.round;
 
   const fury = input.kind === DamageKind.Physical && ctx.rng.chance(src.physicalFuryRate + modifierValue(modifiers, 'physicalFuryChanceAdd', source, target, skill, ctx))
   const isPrimary =
@@ -414,7 +420,7 @@ export function applyDamage(
     origin,
     percentageDamage,
   })
-  breakStatusesOnDamage(ctx, target)
+  breakStatusesOnDamage(ctx, target, hpDamage)
   if (hp <= 0) ctx.applyHpZero(target, source, ctx.currentAction?.skillId, kind, origin)
   return hpDamage
 }

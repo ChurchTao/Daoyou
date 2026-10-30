@@ -6,7 +6,7 @@ import { BattlePhase, TargetMode } from './enums.js';
 import { checkSkillRequirements } from './requirements.js';
 import { skillOf } from './skills.js';
 import { commandBlockReason } from './status.js';
-import { isUntargetableBy, poolFor, targetCount } from './targeting.js';
+import { costTargets, isUntargetableBy, poolFor, targetCount } from './targeting.js';
 import type { CombatV6CommandOptions, Unit, UnitId } from './types.js';
 import { alliesOf, enemiesOf, unitById } from './unit-query.js';
 import { canCollectCommand, isStanding } from './units.js';
@@ -50,7 +50,7 @@ export function commandOptions(
       ctx,
       unit,
       skill,
-      targets.slice(0, targetCount(unit, skill, 1, ctx)),
+      costTargets(ctx, unit, skill, targets),
     );
     const skillReasons = canSubmit
       ? check.reasons

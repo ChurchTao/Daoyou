@@ -11,6 +11,18 @@ type StatusChoices = {
 
 /** Only combat states with a useful player-facing tactical meaning are editable. */
 const choices: Record<string, StatusChoices> = {
+  bailu: {
+    self: [
+      { kind: 'bailu.guard', statusId: 'bailu.status.guard', label: '贤影护身' },
+      { kind: 'bailu.focus', statusId: 'bailu.status.focus', label: '明志' },
+    ],
+    target: [
+      { kind: 'bailu.seal', label: '书院言令', side: 'enemy', ownedBySelf: false },
+      { kind: 'bailu.seal', statusId: 'bailu.status.sleep', label: '入梦', side: 'enemy', ownedBySelf: false },
+      { kind: 'bailu.seal', statusId: 'bailu.status.sleep_deep', label: '入梦（余音）', side: 'enemy', ownedBySelf: false },
+      { kind: 'bailu.mark', statusId: 'bailu.status.mark', label: '自己点定的朱批', side: 'enemy', ownedBySelf: true },
+    ],
+  },
   lingxiao: {
     self: [{ kind: 'lingxiao.clarity', label: '剑心通明' }],
     target: [

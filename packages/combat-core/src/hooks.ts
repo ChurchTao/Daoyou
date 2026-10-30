@@ -3,11 +3,19 @@
  * cancelled / damage 是钩子回写通道（跳过出手、改最终伤害）。
  */
 import type { DamageKind, DamageOrigin, HookName, StatusCategory, StatusFlag } from "./enums.js"
-import type { BattleEvent, SkillId, Unit } from "./types.js"
+import type { BattleEvent, SkillId, StatusApplyResult, Unit } from "./types.js"
 
 export type { HookName }
 
 export type HookContext = {
+  statusId?: string
+  statusKind?: string
+  statusCategory?: StatusCategory
+  statusHit?: import('./enums.js').StatusHit
+  statusResult?: StatusApplyResult
+  statusChance?: number
+  statusDuration?: number
+  statusReason?: string
   removedStatusKind?: string
   removedStatusCategory?: StatusCategory
   removedStatusDispellable?: boolean

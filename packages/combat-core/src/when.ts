@@ -5,10 +5,16 @@ import { evalExpr } from './expr.js'
  */
 import type { BattleContext } from "./context.js"
 import type { DamageKind, DamageOrigin, StatusCategory, StatusFlag } from "./enums.js"
-import type { EffectWhen, SkillDef, SkillId, Unit } from "./types.js"
+import type { EffectWhen, SkillDef, SkillId, StatusApplyResult, Unit } from "./types.js"
 import { isStanding, resourceOf } from "./units.js"
 
 export type WhenScope = {
+  statusId?: string
+  statusKind?: string
+  statusHit?: import('./enums.js').StatusHit
+  statusResult?: StatusApplyResult
+  statusChance?: number
+  statusDuration?: number
   removedStatusKind?: string
   removedStatusCategory?: StatusCategory
   removedStatusDispellable?: boolean
@@ -83,6 +89,21 @@ function markName(scope: WhenScope, round: number, when: EffectWhen): string | u
 
 export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentAction'> & Partial<Pick<BattleContext, 'skills' | 'invokingAttackSkills'>> & { state: Pick<BattleContext['state'], 'round'> & Partial<Pick<BattleContext['state'], 'units'>> }, when: EffectWhen | undefined, scope: WhenScope): boolean {
   if (!when) return true
+  if (when.resolvedStatusIds && (!scope.statusId || !when.resolvedStatusIds.includes(scope.statusId))) return false
+  if (when.resolvedStatusKinds && (!scope.statusKind || !when.resolvedStatusKinds.includes(scope.statusKind))) return false
+  if (when.statusResults && (!scope.statusResult || !when.statusResults.includes(scope.statusResult))) return false
+  if (when.statusHit && scope.statusHit !== when.statusHit) return false
+  if (when.targetHasNegativeSpellResistance !== undefined) {
+    const target = scope.target;
+    const resistant = Boolean(target && ctx.skills && passiveSkills(ctx.skills, target).some(passive => {
+      const innate = passive.innate;
+      return (innate?.negativeSpellResistance ?? 0) > 0 || (innate?.sealHitTakenFactor ?? 1) < 1 ||
+        innate?.immuneStatusCategories?.includes('control') ||
+        innate?.immuneStatusKinds?.some(kind => [...ctx.statusDefs.values()].some(def => def.kind === kind &&
+          (def.category === 'control' || def.blocksAction || def.blocksSpell || def.blocksPhysical || def.blocksDamagingSpells)));
+    }));
+    if (resistant !== when.targetHasNegativeSpellResistance) return false;
+  }
   if (when.rootActionOnly && ctx.invokingAttackSkills) return false
   if (when.sameAttackTarget !== undefined && (Boolean(scope.target && scope.source.actionHistory?.lastAttackTargetId === scope.target.id) !== when.sameAttackTarget)) return false
   if (when.previousAttackKind && scope.source.actionHistory?.lastAttackKind !== when.previousAttackKind) return false
@@ -92,7 +113,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
     if (repeated !== when.repeatedIncomingSkill) return false
   }
   if (when.excludeSpellRepeat && ctx.currentAction?.spellRepeatFactor !== undefined) return false
-  if (when.expression !== undefined && !evalExpr(when.expression, { allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, damage: scope.damage, hpDamage: scope.hpDamage, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
+  if (when.expression !== undefined && !evalExpr(when.expression, { statusDuration: scope.statusDuration, statusChance: scope.statusChance, statusDefs: ctx.statusDefs, skills: ctx.skills, allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, damage: scope.damage, hpDamage: scope.hpDamage, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
   if (when.removedStatusCategory && scope.removedStatusCategory !== when.removedStatusCategory) return false

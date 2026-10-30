@@ -115,6 +115,8 @@ export const HookName = {
   AfterStrike: 'afterStrike',
   OnFatal: 'onFatal',
   OnStatusRemoved: 'onStatusRemoved',
+  OnStatusResolved: 'onStatusResolved',
+  OnHostileActionIntercepted: 'onHostileActionIntercepted',
   OnDeath: 'onDeath',
   OnRoundStart: 'onRoundStart',
   OnRoundEnd: 'onRoundEnd',
@@ -215,6 +217,7 @@ export const FormulaFamily = {
 export type FormulaFamily = (typeof FormulaFamily)[keyof typeof FormulaFamily];
 
 export const EffectType = {
+  InvokeSkill: 'invokeSkill',
   InvokeAttackSkills: 'invokeAttackSkills',
   Repeat: 'repeat',
   ModifyFact: 'modifyFact',
@@ -302,6 +305,7 @@ export const TickKind = {
 export type TickKind = (typeof TickKind)[keyof typeof TickKind];
 
 export const StatusFlag = {
+  BlocksDamagingSpells: 'blocksDamagingSpells',
   BlocksAction: 'blocksAction',
   BlocksSpell: 'blocksSpell',
   BlocksPhysical: 'blocksPhysical',

@@ -23,7 +23,7 @@ export function skillLevelOf(unit: Unit, skillId: string): number {
 }
 
 function bindUnit(unit: Unit): Record<string, number> {
-  const out: Record<string, number> = { level: unit.level }
+  const out: Record<string, number> = { level: unit.level, wound: unit.wound }
   for (const key of ATTR_NAMES) out[key] = unit.attrs[key]
   return out
 }
@@ -175,6 +175,33 @@ class Parser {
   }
 
   private lookup(name: string): number {
+    if (name === 'combatEnded') return this.env.state?.result ? 1 : 0
+    if (name === 'guardUsedThisRound') return this.env.state && this.env.source.flags.hostileActionGuardRound === this.env.state.round ? 1 : 0
+    if (name === 'targetGuardUsedThisRound') return this.env.state && this.env.target?.flags.hostileActionGuardRound === this.env.state.round ? 1 : 0
+    if (name === 'statusChance') return this.env.statusChance ?? 0
+    if (name === 'statusDuration') return this.env.statusDuration ?? 0
+    if (name === 'reviveBlocked') return this.env.source.statuses.some(s => this.env.statusDefs?.get(s.id)?.blocksRevive) ? 1 : 0
+    if (name === 'sourceSpellBlocked') return this.env.source.statuses.some(s => {
+      const def = this.env.statusDefs?.get(s.id)
+      return def?.blocksAction || def?.blocksSpell || def?.blocksNonArtSkills || def?.blockedCommands?.includes('skill')
+    }) ? 1 : 0
+    if (name === 'targetDelayedRevival') return this.env.target?.passives.some(id => (this.env.target?.skillOverrides[id] ?? this.env.skills?.get(id))?.innate?.delayedRevivalRounds) ? 1 : 0
+    if (name.startsWith('knownSkillLevel.')) {
+      const id = name.slice('knownSkillLevel.'.length)
+      return this.env.source.skills.includes(id) || this.env.source.passives.includes(id) ? skillLevelOf(this.env.source, id) : 0
+    }
+    if (name === 'enemyPlayerCount') return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === 'player').length ?? 0
+    if (name.startsWith('ownedEnemyStatusCount.')) {
+      const kind = name.slice('ownedEnemyStatusCount.'.length)
+      return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === 'player' && u.statuses.some(s => s.kind === kind && s.sourceId === this.env.source.id)).length ?? 0
+    }
+    if (name.startsWith('targetStatusAge.')) {
+      const kind = name.slice('targetStatusAge.'.length)
+      const status = this.env.target?.statuses.find(s => s.kind === kind && s.sourceId === this.env.source.id)
+      return status && this.env.state ? Math.max(0, this.env.state.round - status.appliedRound) : 0
+    }
+    if (name === 'targetSpellAttackedBySourceThisRound') return this.env.state && this.env.target?.combatFacts?.[`spellAttackedRound:${this.env.source.id}`] === this.env.state.round ? 1 : 0
+    if (name === 'targetSpellHitBySourceThisRound') return this.env.state && this.env.target?.combatFacts?.[`spellHitRound:${this.env.source.id}`] === this.env.state.round ? 1 : 0
     if (name.startsWith('hasStatus.')) return this.env.source.statuses.some(s => s.id === name.slice(10)) ? 1 : 0
     if (name.startsWith('allyDistinctOtherTagCount.')) {
       const prefix = `${name.slice(26)}.`

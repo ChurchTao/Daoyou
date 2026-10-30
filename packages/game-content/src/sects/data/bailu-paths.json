@@ -1,0 +1,1985 @@
+{
+  "$schema": "./bailu-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "bailu.passive.rectification",
+      "name": "正名立论",
+      "description": "主心法100级后，将武器伤害贡献的12%折为封印命中等级，并允许本宗常规言令封印鬼魂。",
+      "modifiers": [
+        {
+          "when": {
+            "expression": "knownSkillLevel.bailu.passive.righteousness>=100"
+          },
+          "sealHitAdd": "fact.weaponDamage*0.12"
+        },
+        {
+          "when": {
+            "expression": "knownSkillLevel.bailu.passive.righteousness>=100"
+          },
+          "bypassImmunity": {
+            "statusKinds": [
+              "bailu.seal"
+            ],
+            "passiveIds": [
+              "beast.ghost",
+              "beast.advanced-ghost"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.composition",
+      "name": "文章有势",
+      "description": "基础破邪额外一目标，封印命中乘0.85；第二目标伤害与主目标相同。对灵兽的破邪及三叠仙音伤害+30%，余慑替换破邪加成为45%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ]
+          },
+          "targetCountAdd": 1
+        },
+        {
+          "sealChanceFactor": 0.85
+        },
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "foeKind": "pet"
+          },
+          "damageBonus": "0.3+0.15*known.bailu.passive.yushe*ownedTargetStatus.bailu.pet_history"
+        },
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.sandie"
+            ],
+            "foeKind": "pet"
+          },
+          "damageBonus": 0.3
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.pet_history",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "foeKind": "pet",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerActionTarget": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.zhenbi",
+      "name": "振笔",
+      "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.zhuxie"
+            ],
+            "targetSlot": "primary"
+          },
+          "critChanceAdd": 0.15
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.qiongjie",
+      "name": "穷诘",
+      "description": "本人禁言或折辩成功后，分别使其额外承受法术或物理伤害3%，随同该封印一同消失。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun"
+            ]
+          },
+          "sealChanceAdd": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.yanci",
+      "name": "严辞",
+      "description": "定身成功时，使目标当回合物理、法术承伤提高15%。",
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.stern",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "resolvedStatusIds": [
+              "bailu.status.still"
+            ],
+            "statusResults": [
+              "applied"
+            ],
+            "statusHit": "seal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.yuyin",
+      "name": "余音",
+      "description": "本人入梦改为受到单次实际气血伤害严格大于30才醒。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng"
+            ]
+          },
+          "sealChanceAdd": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.chiheng",
+      "name": "持衡",
+      "description": "入梦命中乘0.95，其他常规言令乘1.05；",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng"
+            ]
+          },
+          "sealChanceFactor": 0.95
+        },
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ]
+          },
+          "sealChanceFactor": 1.05
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.xiansheng",
+      "name": "先声",
+      "description": "本场首次常规封印尝试，目标为不高于自身等级且无抗封技能的敌玩家时必中；仍受绝对免疫限制。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "player",
+            "targetHasNegativeSpellResistance": false,
+            "expression": "(target.level<=level)*(1-fact.bailu_seal_attempted)"
+          },
+          "sealAlwaysHit": true,
+          "bypassNegativeSpellResistance": true
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_seal_attempted",
+              "value": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "statusHit": "seal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.shouzhi",
+      "name": "守志",
+      "description": "回合开始气血不足30%时，有35%概率自动凝神。要求站立、至少50法力且未被封法，消耗50法力；倒地不触发。",
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "invokeSkill",
+              "skillId": "bailu.skill.ningshen"
+            }
+          ],
+          "aim": "self",
+          "chance": 0.35,
+          "when": {
+            "sourceStanding": true,
+            "sourceHpRatioBelow": 0.3,
+            "expression": "(mp>=50)*(1-sourceSpellBlocked)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.lore_revive",
+      "name": "文脉不绝",
+      "description": "倒地当回合末仅判一次护命：基础20%，成功最多3次；先修20%上限伤势，再恢复20%上限气血。禁复活、已站立或战斗结束时失去本次机会。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_down_round",
+              "value": "round"
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "removeWound",
+              "power": "maxHp*0.2"
+            },
+            {
+              "type": "restoreHp",
+              "power": "maxHp*0.2",
+              "revive": true,
+              "gainCounter": "bailu_revives"
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.revive_growth",
+              "duration": 99,
+              "when": {
+                "expression": "known.bailu.passive.buqu*(hp>0)"
+              }
+            }
+          ],
+          "aim": "self",
+          "chance": "0.2*(1+0.15*known.bailu.passive.bujuan+0.15*known.bailu.passive.shoujie)*if(known.bailu.passive.cangfeng,max(1,1.8-0.1*(round-1)),1)",
+          "limitConsumption": "onAttempt",
+          "when": {
+            "expression": "(fact.bailu_down_round==round)*(hp==0)*(fact.bailu_revives<3+3*known.bailu.passive.buqu)*(1-reviveBlocked)*(1-combatEnded)",
+            "oncePerRound": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.bujuan",
+      "name": "不倦",
+      "description": "授予文脉不绝，其基础概率乘1.15。",
+      "modifiers": [
+        {
+          "sealChanceAdd": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.shenbian",
+      "name": "审辨",
+      "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。免疫和覆盖拒绝不补判。",
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.sleep",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.sleep"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.sleep_deep",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.sleep_deep"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.law",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.law"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.soul",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.soul"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.still",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.still"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.confusion",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.confusion"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.confusion_full",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.confusion_full"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.disarray",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.disarray"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.peace",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.peace"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.device",
+              "duration": "max(1,statusDuration)",
+              "hit": "seal",
+              "chanceFactor": 0.5
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "resolvedStatusIds": [
+              "bailu.status.device"
+            ],
+            "statusResults": [
+              "miss"
+            ],
+            "statusHit": "seal",
+            "expression": "1-fact.bailu_pet_seal_attempted",
+            "oncePerBattle": true
+          },
+          "effectSkill": "eventSkill",
+          "limitConsumption": "onAttempt"
+        },
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_pet_seal_attempted",
+              "value": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "foeKind": "pet",
+            "teamUniqueTag": "sect.bailu",
+            "statusResults": [
+              "applied",
+              "miss",
+              "immune",
+              "rejected",
+              "intercepted"
+            ],
+            "statusHit": "seal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.xianying",
+      "name": "贤影",
+      "description": "护身持续增加1回合。",
+      "modifiers": [
+        {
+          "statusDurationAdd": {
+            "statusId": "bailu.status.guard",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.jiejci",
+      "name": "戒辞",
+      "description": "携带本人常规言令的敌玩家倒地，留下5回合戒辞；后续轮初未被封印时随机再受1回合禁言或折辩。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.cage",
+              "duration": 5,
+              "targeting": {
+                "side": "enemy",
+                "mode": "explicit",
+                "count": 1,
+                "includeDowned": true,
+                "includeDead": true
+              }
+            }
+          ],
+          "when": {
+            "foeKind": "player",
+            "targetEnemy": true,
+            "targetOwnedStatus": {
+              "kind": "bailu.seal"
+            }
+          }
+        },
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "bailu.branch.cage",
+              "chance": 0.5,
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "bailu.status.law",
+                  "duration": 1,
+                  "hit": "seal"
+                }
+              ],
+              "failureEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "bailu.status.soul",
+                  "duration": 1,
+                  "hit": "seal"
+                }
+              ],
+              "when": {
+                "targetOwnedStatus": {
+                  "kind": "bailu.cage"
+                },
+                "targetAbsentStatusKinds": [
+                  "bailu.seal"
+                ]
+              }
+            }
+          ],
+          "targeting": {
+            "side": "enemy",
+            "mode": "all"
+          },
+          "when": {
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.wenping",
+      "name": "文屏",
+      "description": "护身期间所受所有伤害降低20%，护身冷却改为8回合。",
+      "modifiers": [
+        {
+          "when": {
+            "requireStatusIds": [
+              "bailu.status.guard"
+            ]
+          },
+          "allDamageTakenBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.tuna",
+      "name": "吐纳",
+      "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_extra_hp",
+              "value": "max(0,hp-maxHp*0.5)"
+            },
+            {
+              "type": "loseHp",
+              "power": "fact.bailu_extra_hp"
+            },
+            {
+              "type": "restoreMp",
+              "power": "fact.bailu_extra_hp*0.25"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "bailu.skill.juqi"
+            ],
+            "actionSucceeded": true
+          }
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_extra_heal",
+              "value": "min(maxHp*0.5,max(0,maxHp-wound-hp),mp*4)"
+            },
+            {
+              "type": "restoreHp",
+              "power": "fact.bailu_extra_heal"
+            },
+            {
+              "type": "damageMp",
+              "power": "floor(fact.bailu_extra_heal*0.25)"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "bailu.skill.fuyuan"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.bianfeng",
+      "name": "辩锋",
+      "description": "本轮护身免疫尚未消费时，乱神在同一次封印判定中兼带禁言、折辩的降防效果。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.luanshen"
+            ]
+          },
+          "sealChanceAdd": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.shouye",
+      "name": "授业",
+      "description": "本人及在场灵兽站立时，每轮首次灵兽主动直接法术命中主目标，有20%概率以灵兽自身封印参数追加2回合敛锋。",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.restrain",
+              "duration": 2,
+              "hit": "seal"
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "chance": 0.2,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "sourceStanding": true,
+            "requireKind": "spell",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "primary",
+            "rootActionOnly": true,
+            "excludeSpellRepeat": true,
+            "oncePerRound": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.pozhi",
+      "name": "破执",
+      "description": "每成功封印两次后，下次成功封印附加4回合笔削。只统计本人常规主动言令的实际成功。",
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.armor",
+              "duration": 4,
+              "when": {
+                "expression": "fact.bailu_seal_successes>=2"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "bailu_seal_successes",
+              "value": "if(fact.bailu_seal_successes>=2,0,fact.bailu_seal_successes+1)"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.rumeng",
+              "bailu.skill.jinfa",
+              "bailu.skill.shihun",
+              "bailu.skill.dingshen",
+              "bailu.skill.luanshen",
+              "bailu.skill.shicuo",
+              "bailu.skill.babing",
+              "bailu.skill.jinqi"
+            ],
+            "statusHit": "seal",
+            "statusResults": [
+              "applied"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.zhengsheng",
+      "name": "正声",
+      "description": "贤影每轮实际拦截首次敌方攻击性行为后增加12战意。",
+      "hooks": [
+        {
+          "on": "onHostileActionIntercepted",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "combat.resource.rage",
+              "amount": 12
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "oncePerRound": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.bixue",
+      "name": "笔削",
+      "description": "破甲首轮效果提高100%，之后每轮减少基础效果20%，不低于基础效果；破甲冷却5回合。",
+      "modifiers": [
+        {
+          "sealChanceAdd": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.liyan",
+      "name": "立言",
+      "description": "基础破邪法术暴击率提高3个百分点。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ]
+          },
+          "critChanceAdd": 0.03
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.cifeng",
+      "name": "辞锋",
+      "description": "基础破邪主目标伤害提高10%，",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "targetSlot": "primary"
+          },
+          "damageBonus": 0.1
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.toubian",
+      "name": "透辩",
+      "description": "破邪第二目标仅保留10%的法防贡献，相当于该次伤害忽略90%法防。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "targetSlot": "secondary"
+          },
+          "defenseIgnoreAdd": 0.9
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.dinglun",
+      "name": "定论",
+      "description": "入场唯一同门，本轮被本人法术攻击过的敌玩家倒地即留永久定论；每个已标玩家使本人对未标玩家法伤+7%；全部标记后破邪额外三人。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.verdict",
+              "duration": 99,
+              "targeting": {
+                "side": "enemy",
+                "mode": "explicit",
+                "count": 1,
+                "includeDowned": true,
+                "includeDead": true
+              }
+            }
+          ],
+          "when": {
+            "targetEnemy": true,
+            "foeKind": "player",
+            "teamUniqueTag": "sect.bailu",
+            "expression": "targetSpellAttackedBySourceThisRound"
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell",
+            "foeKind": "player",
+            "expression": "1-ownedTargetStatus.bailu.verdict"
+          },
+          "damageBonus": "0.07*ownedEnemyStatusCount.bailu.verdict"
+        },
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "expression": "(enemyPlayerCount>0)*(ownedEnemyStatusCount.bailu.verdict>=enemyPlayerCount)"
+          },
+          "targetCountAdd": 3
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.yushe",
+      "name": "余慑",
+      "description": "被本人基础破邪攻击过的灵兽，之后破邪的悲恸加成由30%替换为45%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ]
+          },
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.cangfeng",
+      "name": "藏锋",
+      "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageResultFactor": "1+min(0.075,knownSkillLevel.bailu.passive.righteousness/2400)"
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.shoujie",
+      "name": "守节",
+      "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageResultFactor": "1+min(0.075,knownSkillLevel.bailu.passive.righteousness/2400)"
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.buqu",
+      "name": "不屈",
+      "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%；",
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageResultFactor": "1+min(0.075,knownSkillLevel.bailu.passive.righteousness/2400)"
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.lianzhang",
+      "name": "连章",
+      "description": "基础破邪合法施放五次后，下一次额外作用三名目标，随后重新累计；点名既不累计也不消费。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "expression": "fact.bailu_chain>=5"
+          },
+          "targetCountAdd": 3
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "bailu_chain",
+              "value": "if(fact.bailu_chain>=5,0,fact.bailu_chain+1)"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.wenshi",
+      "name": "文势",
+      "description": "贤影期间法术伤害提高20%，所受所有伤害降低15%。",
+      "modifiers": [
+        {
+          "when": {
+            "requireStatusIds": [
+              "bailu.status.guard"
+            ]
+          },
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.chengxi",
+      "name": "乘隙",
+      "description": "对没有在场灵兽的玩家造成法术伤害提高12%。",
+      "modifiers": [
+        {
+          "when": {
+            "foeKind": "player",
+            "requireKind": "spell",
+            "targetHasStandingPet": false
+          },
+          "damageBonus": 0.12
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.yulun",
+      "name": "余论",
+      "description": "本人击倒带本人朱批的敌玩家后留下3回合余论，每轮首次可被攻击时受本人一次追击。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.echo",
+              "duration": 3,
+              "targeting": {
+                "side": "enemy",
+                "mode": "explicit",
+                "count": 1,
+                "includeDowned": true,
+                "includeDead": true
+              }
+            },
+            {
+              "type": "removeStatus",
+              "kinds": [
+                "bailu.mark"
+              ],
+              "ownedOnly": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "foeKind": "player",
+            "targetEnemy": true,
+            "targetOwnedStatus": {
+              "kind": "bailu.mark"
+            }
+          }
+        },
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "bailu.branch.echo",
+              "chance": 1,
+              "when": {
+                "targetOwnedStatus": {
+                  "kind": "bailu.echo"
+                },
+                "expression": "1-ownedTargetStatus.bailu.echo_spent"
+              },
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "bailu.status.echo_spent",
+                  "duration": 1
+                },
+                {
+                  "type": "spellHit",
+                  "coeff": 1,
+                  "power": "skillLevel*skillLevel/120+skillLevel*1.5+30"
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "targeting": {
+            "side": "enemy",
+            "mode": "all"
+          },
+          "when": {
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "afterActionWindow",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "bailu.branch.echo",
+              "chance": 1,
+              "when": {
+                "targetOwnedStatus": {
+                  "kind": "bailu.echo"
+                },
+                "expression": "1-ownedTargetStatus.bailu.echo_spent"
+              },
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "bailu.status.echo_spent",
+                  "duration": 1
+                },
+                {
+                  "type": "spellHit",
+                  "coeff": 1,
+                  "power": "skillLevel*skillLevel/120+skillLevel*1.5+30"
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "targeting": {
+            "side": "enemy",
+            "mode": "all"
+          },
+          "when": {
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.xuci",
+      "name": "蓄辞",
+      "description": "主动成功施放护身后，下一次基础破邪伤害提高40%，不叠加；合法施放后消费，倒地清除，不增强点名。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.charged",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "bailu.skill.hushen"
+            ],
+            "actionSucceeded": true
+          }
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "bailu.status.charged"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "bailu.skill.poxie"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.zhuxin",
+      "name": "诛心",
+      "description": "三叠仙音攻击带封印的目标时伤害提高40%。",
+      "modifiers": [
+        {
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.sandie"
+            ],
+            "targetStatusCategories": [
+              "control"
+            ]
+          },
+          "damageBonus": 0.4
+        }
+      ]
+    },
+    {
+      "id": "bailu.passive.cuozhi",
+      "name": "挫志",
+      "description": "本轮被本人法术实际命中过的敌单位倒地后，保留3回合物攻、法攻、物防、法防各降低12%的气势受挫。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "bailu.status.weaken",
+              "duration": 3,
+              "targeting": {
+                "side": "enemy",
+                "mode": "explicit",
+                "count": 1,
+                "includeDowned": true,
+                "includeDead": true
+              }
+            }
+          ],
+          "when": {
+            "targetEnemy": true,
+            "expression": "targetSpellHitBySourceThisRound"
+          }
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "bailu.path.edict",
+      "name": "正言执律",
+      "description": "以言令制约敌人，与灵兽协作，护持队友行动空间。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [
+        "bailu.passive.rectification"
+      ],
+      "grantSkills": [
+        "bailu.skill.pojia"
+      ],
+      "nodes": [
+        {
+          "id": "bailu.node.edict.zhenbi",
+          "name": "振笔",
+          "layer": 1,
+          "slot": 1,
+          "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+          "passives": [
+            "bailu.passive.zhenbi"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.qiongjie",
+          "name": "穷诘",
+          "layer": 1,
+          "slot": 2,
+          "description": "本人禁言或折辩成功后，分别使其额外承受法术或物理伤害3%，随同该封印一同消失。",
+          "passives": [
+            "bailu.passive.qiongjie"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.yanci",
+          "name": "严辞",
+          "layer": 1,
+          "slot": 3,
+          "description": "定身成功时，使目标当回合物理、法术承伤提高15%。",
+          "passives": [
+            "bailu.passive.yanci"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.yuyin",
+          "name": "余音",
+          "layer": 2,
+          "slot": 1,
+          "description": "本人入梦改为受到单次实际气血伤害严格大于30才醒。",
+          "passives": [
+            "bailu.passive.yuyin"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.chiheng",
+          "name": "持衡",
+          "layer": 2,
+          "slot": 2,
+          "description": "入梦命中乘0.95，其他常规言令乘1.05；",
+          "passives": [
+            "bailu.passive.chiheng"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.xiansheng",
+          "name": "先声",
+          "layer": 2,
+          "slot": 3,
+          "description": "本场首次常规封印尝试，目标为不高于自身等级且无抗封技能的敌玩家时必中；仍受绝对免疫限制。",
+          "passives": [
+            "bailu.passive.xiansheng"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.shouzhi",
+          "name": "守志",
+          "layer": 3,
+          "slot": 1,
+          "description": "回合开始气血不足30%时，有35%概率自动凝神。要求站立、至少50法力且未被封法，消耗50法力；倒地不触发。",
+          "passives": [
+            "bailu.passive.shouzhi"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.bujuan",
+          "name": "不倦",
+          "layer": 3,
+          "slot": 2,
+          "description": "授予文脉不绝，其基础概率乘1.15。",
+          "passives": [
+            "bailu.passive.bujuan",
+            "bailu.passive.lore_revive"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.shenbian",
+          "name": "审辨",
+          "layer": 3,
+          "slot": 3,
+          "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。免疫和覆盖拒绝不补判。",
+          "passives": [
+            "bailu.passive.shenbian"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.xianying",
+          "name": "贤影",
+          "layer": 4,
+          "slot": 1,
+          "description": "护身持续增加1回合。",
+          "passives": [
+            "bailu.passive.xianying"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.jiejci",
+          "name": "戒辞",
+          "layer": 4,
+          "slot": 2,
+          "description": "携带本人常规言令的敌玩家倒地，留下5回合戒辞；后续轮初未被封印时随机再受1回合禁言或折辩。",
+          "passives": [
+            "bailu.passive.jiejci"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.wenping",
+          "name": "文屏",
+          "layer": 4,
+          "slot": 3,
+          "description": "护身期间所受所有伤害降低20%，护身冷却改为8回合。",
+          "passives": [
+            "bailu.passive.wenping"
+          ],
+          "patches": [
+            {
+              "skillId": "bailu.skill.hushen",
+              "operation": "setCooldownRounds",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "id": "bailu.node.edict.tuna",
+          "name": "吐纳",
+          "layer": 5,
+          "slot": 1,
+          "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+          "passives": [
+            "bailu.passive.tuna"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.bianfeng",
+          "name": "辩锋",
+          "layer": 5,
+          "slot": 2,
+          "description": "本轮护身免疫尚未消费时，乱神在同一次封印判定中兼带禁言、折辩的降防效果。",
+          "passives": [
+            "bailu.passive.bianfeng"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.shouye",
+          "name": "授业",
+          "layer": 5,
+          "slot": 3,
+          "description": "本人及在场灵兽站立时，每轮首次灵兽主动直接法术命中主目标，有20%概率以灵兽自身封印参数追加2回合敛锋。",
+          "passives": [
+            "bailu.passive.shouye"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.pozhi",
+          "name": "破执",
+          "layer": 6,
+          "slot": 1,
+          "description": "每成功封印两次后，下次成功封印附加4回合笔削。只统计本人常规主动言令的实际成功。",
+          "passives": [
+            "bailu.passive.pozhi"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.zhengsheng",
+          "name": "正声",
+          "layer": 6,
+          "slot": 2,
+          "description": "贤影每轮实际拦截首次敌方攻击性行为后增加12战意。",
+          "passives": [
+            "bailu.passive.zhengsheng"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.bixue",
+          "name": "笔削",
+          "layer": 6,
+          "slot": 3,
+          "description": "破甲首轮效果提高100%，之后每轮减少基础效果20%，不低于基础效果；破甲冷却5回合。",
+          "passives": [
+            "bailu.passive.bixue"
+          ],
+          "patches": [
+            {
+              "skillId": "bailu.skill.pojia",
+              "operation": "setCooldownRounds",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "id": "bailu.node.edict.reward_1",
+          "name": "进学",
+          "layer": 7,
+          "slot": 1,
+          "description": "speed增加30。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "bailu.node.edict.reward_2",
+          "name": "一言定局",
+          "layer": 7,
+          "slot": 2,
+          "description": "授予噤声：70战意、冷却6回合、必中封法2回合。",
+          "grantSkills": [
+            "bailu.skill.jinsheng"
+          ]
+        },
+        {
+          "id": "bailu.node.edict.reward_3",
+          "name": "正言执律",
+          "layer": 7,
+          "slot": 3,
+          "description": "speed增加30。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bailu.path.song",
+      "name": "浩气文章",
+      "description": "以文章攻伐，朱批引势，连续破邪并维持击倒优势。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [
+        "bailu.passive.composition"
+      ],
+      "grantSkills": [
+        "bailu.skill.dianming"
+      ],
+      "nodes": [
+        {
+          "id": "bailu.node.song.liyan",
+          "name": "立言",
+          "layer": 1,
+          "slot": 1,
+          "description": "基础破邪法术暴击率提高3个百分点。",
+          "passives": [
+            "bailu.passive.liyan"
+          ]
+        },
+        {
+          "id": "bailu.node.song.cifeng",
+          "name": "辞锋",
+          "layer": 1,
+          "slot": 2,
+          "description": "基础破邪主目标伤害提高10%，",
+          "passives": [
+            "bailu.passive.cifeng"
+          ]
+        },
+        {
+          "id": "bailu.node.song.zhenbi",
+          "name": "振笔",
+          "layer": 1,
+          "slot": 3,
+          "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+          "passives": [
+            "bailu.passive.zhenbi"
+          ]
+        },
+        {
+          "id": "bailu.node.song.toubian",
+          "name": "透辩",
+          "layer": 2,
+          "slot": 1,
+          "description": "破邪第二目标仅保留10%的法防贡献，相当于该次伤害忽略90%法防。",
+          "passives": [
+            "bailu.passive.toubian"
+          ]
+        },
+        {
+          "id": "bailu.node.song.dinglun",
+          "name": "定论",
+          "layer": 2,
+          "slot": 2,
+          "description": "入场唯一同门，本轮被本人法术攻击过的敌玩家倒地即留永久定论；每个已标玩家使本人对未标玩家法伤+7%；全部标记后破邪额外三人。",
+          "passives": [
+            "bailu.passive.dinglun"
+          ]
+        },
+        {
+          "id": "bailu.node.song.yushe",
+          "name": "余慑",
+          "layer": 2,
+          "slot": 3,
+          "description": "被本人基础破邪攻击过的灵兽，之后破邪的悲恸加成由30%替换为45%。",
+          "passives": [
+            "bailu.passive.yushe"
+          ]
+        },
+        {
+          "id": "bailu.node.song.cangfeng",
+          "name": "藏锋",
+          "layer": 3,
+          "slot": 1,
+          "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "passives": [
+            "bailu.passive.cangfeng",
+            "bailu.passive.lore_revive"
+          ]
+        },
+        {
+          "id": "bailu.node.song.shoujie",
+          "name": "守节",
+          "layer": 3,
+          "slot": 2,
+          "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "passives": [
+            "bailu.passive.shoujie",
+            "bailu.passive.lore_revive"
+          ]
+        },
+        {
+          "id": "bailu.node.song.buqu",
+          "name": "不屈",
+          "layer": 3,
+          "slot": 3,
+          "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%；",
+          "passives": [
+            "bailu.passive.buqu",
+            "bailu.passive.lore_revive"
+          ]
+        },
+        {
+          "id": "bailu.node.song.xianying",
+          "name": "贤影",
+          "layer": 4,
+          "slot": 1,
+          "description": "护身持续增加1回合。",
+          "passives": [
+            "bailu.passive.xianying"
+          ]
+        },
+        {
+          "id": "bailu.node.song.lianzhang",
+          "name": "连章",
+          "layer": 4,
+          "slot": 2,
+          "description": "基础破邪合法施放五次后，下一次额外作用三名目标，随后重新累计；点名既不累计也不消费。",
+          "passives": [
+            "bailu.passive.lianzhang"
+          ]
+        },
+        {
+          "id": "bailu.node.song.wenshi",
+          "name": "文势",
+          "layer": 4,
+          "slot": 3,
+          "description": "贤影期间法术伤害提高20%，所受所有伤害降低15%。",
+          "passives": [
+            "bailu.passive.wenshi"
+          ]
+        },
+        {
+          "id": "bailu.node.song.chengxi",
+          "name": "乘隙",
+          "layer": 5,
+          "slot": 1,
+          "description": "对没有在场灵兽的玩家造成法术伤害提高12%。",
+          "passives": [
+            "bailu.passive.chengxi"
+          ]
+        },
+        {
+          "id": "bailu.node.song.yulun",
+          "name": "余论",
+          "layer": 5,
+          "slot": 2,
+          "description": "本人击倒带本人朱批的敌玩家后留下3回合余论，每轮首次可被攻击时受本人一次追击。",
+          "passives": [
+            "bailu.passive.yulun"
+          ]
+        },
+        {
+          "id": "bailu.node.song.tuna",
+          "name": "吐纳",
+          "layer": 5,
+          "slot": 3,
+          "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+          "passives": [
+            "bailu.passive.tuna"
+          ]
+        },
+        {
+          "id": "bailu.node.song.xuci",
+          "name": "蓄辞",
+          "layer": 6,
+          "slot": 1,
+          "description": "主动成功施放护身后，下一次基础破邪伤害提高40%，不叠加；合法施放后消费，倒地清除，不增强点名。",
+          "passives": [
+            "bailu.passive.xuci"
+          ]
+        },
+        {
+          "id": "bailu.node.song.zhuxin",
+          "name": "诛心",
+          "layer": 6,
+          "slot": 2,
+          "description": "三叠仙音攻击带封印的目标时伤害提高40%。",
+          "passives": [
+            "bailu.passive.zhuxin"
+          ]
+        },
+        {
+          "id": "bailu.node.song.cuozhi",
+          "name": "挫志",
+          "layer": 6,
+          "slot": 3,
+          "description": "本轮被本人法术实际命中过的敌单位倒地后，保留3回合物攻、法攻、物防、法防各降低12%的气势受挫。",
+          "passives": [
+            "bailu.passive.cuozhi"
+          ]
+        },
+        {
+          "id": "bailu.node.song.reward_1",
+          "name": "进学",
+          "layer": 7,
+          "slot": 1,
+          "description": "magicAtk增加40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "bailu.node.song.reward_2",
+          "name": "舍生立言",
+          "layer": 7,
+          "slot": 2,
+          "description": "授予舍生：半血以上可用，80法力，气血留1，5回合破邪+70%。",
+          "grantSkills": [
+            "bailu.skill.shesheng"
+          ]
+        },
+        {
+          "id": "bailu.node.song.reward_3",
+          "name": "浩气文章",
+          "layer": 7,
+          "slot": 3,
+          "description": "magicAtk增加40。",
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

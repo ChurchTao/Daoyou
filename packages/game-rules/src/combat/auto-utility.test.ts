@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createUnit } from '@daoyou/combat-core';
 import type { CombatV6CommandOptions, SkillDef, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { rankAutoActions } from './auto-utility.js';
+import type { AutoIntent } from './auto-utility.js';
 
 const barrierPassive: SkillDef = {
   id: 'defense-ward',
@@ -222,5 +223,177 @@ describe('automatic defense preparation estimate', () => {
     const before = rank();
     Object.assign(enemy.attrs, { physicalAtk: 999999, magicAtk: 999999, physicalDef: 999999, magicDef: 999999, speed: 999999, dodge: 999999 });
     expect(rank()).toEqual(before);
+  });
+});
+
+describe('automatic sleep coordination', () => {
+  const sleep: StatusDef = {
+    id: 'sleep', kind: 'sleep', name: '睡眠', category: 'control',
+    blocksAction: true, breakOnDamage: true,
+  };
+  const single: SkillDef = {
+    id: 'single', name: '单法', tags: ['spell'], targeting: { side: 'enemy' },
+    effects: [{ type: 'spellHit', power: 120 }],
+  };
+  const group: SkillDef = {
+    id: 'group', name: '群法', tags: ['spell'], targeting: { side: 'enemy', mode: 'all' },
+    effects: [{ type: 'spellHit', power: 150 }],
+  };
+  function setup() {
+    const base = fixture([]);
+    const awake = { ...structuredClone(base.enemy), id: 'awake', slot: 2 };
+    base.source.skills = [single.id, group.id];
+    base.options.attackTargetIds.push(awake.id);
+    for (const skill of [single, group]) base.options.skills.push({
+      skillId: skill.id, name: skill.name, ready: true, reasons: [],
+      costs: { hp: 0, mp: 0, resources: [] },
+      selectableTargetIds: [base.enemy.id, awake.id],
+      targetMode: skill.id === group.id ? 'all' : 'explicit',
+      targetCount: skill.id === group.id ? 2 : 1,
+    });
+    const rank = (defs = [sleep], intents: AutoIntent[] = []) => rankAutoActions(
+      { round: 1, units: [base.source, base.enemy, awake] }, base.source.id,
+      [single, group], defs, base.options, intents,
+    );
+    return { ...base, awake, rank };
+  }
+
+  it('prefers an awake target and discounts a group spell that would wake another enemy', () => {
+    const { source, enemy, awake, rank } = setup();
+    status(enemy, sleep.id);
+    const before = structuredClone([source, enemy, awake]);
+    const candidates = rank();
+    expect(candidates[0].command).toEqual({ type: 'skill', skillId: single.id, targets: [awake.id] });
+    expect(candidates.find(candidate => candidate.command.type === 'skill' && candidate.command.skillId === group.id)!.benefits.control).toBeLessThan(0);
+    expect([source, enemy, awake]).toEqual(before);
+  });
+
+  it('lets a pet avoid the sleep its owner has already planned', () => {
+    const { source, enemy, awake, options, rank } = setup();
+    source.kind = 'pet';
+    source.ownerId = 'owner';
+    options.skills = [];
+    expect(rank([sleep], [{ targetId: enemy.id, damage: 0, healing: 0, statuses: [sleep.id], revive: false }])[0].command)
+      .toEqual({ type: 'attack', target: awake.id });
+  });
+
+  it('submits only the selected primary target while respecting a visible owned secondary mark', () => {
+    const { source, enemy, awake, options } = setup();
+    status(awake, 'mark');
+    awake.statuses[0].sourceId = source.id;
+    const marked: StatusDef = { id: 'mark', kind: 'mark', name: '标记' };
+    const spell: SkillDef = { ...single, targeting: { side: 'enemy', mode: 'fill', count: 2, maxSelected: 1, secondaryOwnedStatusKind: 'mark' } };
+    options.skills = [{ ...options.skills[0], targetMode: 'fill', targetCount: 2 }];
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy, awake] }, source.id, [spell], [marked], options);
+    const casts = candidates.filter(candidate => candidate.command.type === 'skill');
+    expect(casts).toHaveLength(2);
+    expect(casts.every(candidate => candidate.command.type === 'skill' && candidate.command.targets.length === 1)).toBe(true);
+    const primary = casts.find(candidate => candidate.command.type === 'skill' && candidate.command.targets[0] === enemy.id)!;
+    expect(primary.intents.map(intent => intent.targetId)).toEqual([enemy.id, awake.id]);
+  });
+
+  it('does not choose a fill spell whose unknown secondary target could wake a sleeping enemy', () => {
+    const { source, enemy, awake, options } = setup();
+    status(enemy, sleep.id);
+    const other = { ...structuredClone(awake), id: 'other', slot: 3 };
+    const spell: SkillDef = { ...single, targeting: { side: 'enemy', mode: 'fill', count: 2, maxSelected: 1 } };
+    options.attackTargetIds.push(other.id);
+    options.skills = [{ ...options.skills[0], selectableTargetIds: [enemy.id, awake.id, other.id], targetMode: 'fill', targetCount: 2 }];
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy, awake, other] }, source.id, [spell], [sleep], options);
+    expect(candidates[0].command).toEqual({ type: 'attack', target: awake.id });
+  });
+
+  it('does not wake for barrier-only damage or accumulate a single-hit wake threshold across hits', () => {
+    const { enemy, options, rank } = setup();
+    status(enemy, sleep.id);
+    shield(enemy, 'cover', 'cover', 1000);
+    expect(rank().filter(candidate => candidate.intents.some(intent => intent.targetId === enemy.id && intent.damage > 0))).toHaveLength(0);
+    enemy.barriers = [];
+    options.skills = [];
+    const threshold = { ...sleep, breakOnDamageAbove: 30 };
+    expect(rank([threshold]).find(candidate => candidate.command.type === 'attack' && candidate.command.target === enemy.id)!.benefits.control).toBe(0);
+    options.skills = [{ skillId: 'small-hits', name: '多段', ready: true, reasons: [], costs: { hp: 0, mp: 0, resources: [] }, selectableTargetIds: [enemy.id], targetMode: 'explicit', targetCount: 1 }];
+    const source = fixture([]).source;
+    const smallHits: SkillDef = { id: 'small-hits', name: '多段', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{ type: 'spellHit', power: 20, hits: 3 }] };
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy, { ...structuredClone(enemy), id: 'other', slot: 2, statuses: [] }] }, source.id, [smallHits], [threshold], options);
+    expect(candidates.find(candidate => candidate.command.type === 'skill')!.benefits.control).toBe(0);
+  });
+
+  it('still attacks when the only remaining enemy is asleep', () => {
+    const { source, enemy, options } = setup();
+    status(enemy, sleep.id);
+    options.attackTargetIds = [enemy.id];
+    options.skills = [];
+    expect(rankAutoActions({ round: 1, units: [source, enemy] }, source.id, [], [sleep], options)[0].command.type).toBe('attack');
+  });
+
+  it('charges the lost sleep once for separate damage packets in one skill', () => {
+    const { source, enemy, awake, options } = setup();
+    status(enemy, sleep.id);
+    const packets: SkillDef = { ...single, effects: [{ type: 'spellHit', power: 50 }, { type: 'fixedHit', power: 50 }] };
+    options.skills = [{ ...options.skills[0], selectableTargetIds: [enemy.id] }];
+    const candidate = rankAutoActions({ round: 1, units: [source, enemy, awake] }, source.id, [packets], [sleep], options)
+      .find(entry => entry.command.type === 'skill')!;
+    expect(candidate.benefits.control).toBe(-28);
+  });
+
+  it('discounts a planned control of the same kind and does not reward an existing one', () => {
+    const { source, enemy, options } = setup();
+    const ordinary: StatusDef = { ...sleep, blocksAction: false, breakOnDamage: false, blocksSpell: true };
+    const other: StatusDef = { ...ordinary, id: 'other-seal' };
+    const control: SkillDef = { id: 'control', name: '催眠', tags: ['support'], targeting: { side: 'enemy' }, effects: [{ type: 'applyStatus', statusId: other.id, duration: 2 }] };
+    options.skills = [{ skillId: control.id, name: control.name, ready: true, reasons: [], costs: { hp: 0, mp: 0, resources: [] }, selectableTargetIds: [enemy.id], targetMode: 'explicit', targetCount: 1 }];
+    const candidates = rankAutoActions({ round: 1, units: [source, enemy] }, source.id, [control], [ordinary, other], options,
+      [{ targetId: enemy.id, damage: 0, healing: 0, statuses: [sleep.id], revive: false }]);
+    expect(candidates.find(candidate => candidate.command.type === 'skill')!.benefits.control).toBe(4);
+    status(enemy, ordinary.id);
+    expect(rankAutoActions({ round: 1, units: [source, enemy] }, source.id, [control], [ordinary, other], options)
+      .find(candidate => candidate.command.type === 'skill')!.benefits.control).toBe(0);
+  });
+});
+
+describe('automatic hostile-action protection and seal estimates', () => {
+  function setup() {
+    const base = fixture([]);
+    const guard: StatusDef = { id: 'action-guard', kind: 'guard', name: '护身', category: 'buff', interceptHostileAction: true };
+    const skill: SkillDef = { id: 'protect', name: '护身', tags: ['support'], targeting: { side: 'self' }, effects: [{ type: 'applyStatus', statusId: guard.id, duration: 1 }] };
+    base.options.skills.push({ skillId: skill.id, name: skill.name, ready: true, reasons: [], costs: { hp: 0, mp: 0, resources: [] }, selectableTargetIds: [base.source.id], targetMode: 'explicit', targetCount: 1 });
+    return { ...base, guard, skill, rank: () => base.rank([skill], [guard]) };
+  }
+
+  it('values a remaining interception at low health, but does not open with it at full health', () => {
+    const { source, enemy, rank } = setup();
+    expect(rank()[0].command).toMatchObject({ type: 'skill', skillId: 'protect' });
+    const before = rank();
+    Object.assign(enemy.attrs, { physicalAtk: 99999, magicAtk: 99999, speed: 99999 });
+    expect(rank()).toEqual(before);
+    source.attrs.hp = source.attrs.maxHp;
+    expect(rank()[0].command.type).toBe('attack');
+  });
+
+  it('does not count a spent round budget or an existing guard again', () => {
+    const { source, rank } = setup();
+    source.flags.hostileActionGuardRound = 1;
+    expect(rank().find(candidate => candidate.command.type === 'skill')!.benefits.survival).toBe(0);
+    source.flags.hostileActionGuardRound = undefined;
+    status(source, 'action-guard');
+    expect(rank().find(candidate => candidate.command.type === 'skill')!.benefits.survival).toBe(0);
+  });
+
+  it('uses only the actor seal points and local ceiling modifiers', () => {
+    const { source, enemy, options } = fixture([]);
+    const seal: StatusDef = { id: 'sealed', kind: 'control', name: '封印', category: 'control', blocksSpell: true };
+    const focus: StatusDef = { id: 'focus', kind: 'focus', name: '凝神', category: 'buff', modifiers: [{ sealChanceCeilAdd: 0.1, sealHitAdd: 10000 }] };
+    const skill: SkillDef = { id: 'seal', name: '封', tags: ['support'], sealBase: 55, targeting: { side: 'enemy' }, effects: [{ type: 'applyStatus', statusId: seal.id, duration: 2, hit: 'seal' }] };
+    options.skills = [{ skillId: skill.id, name: skill.name, ready: true, reasons: [], costs: { hp: 0, mp: 0, resources: [] }, selectableTargetIds: [enemy.id], targetMode: 'explicit', targetCount: 1 }];
+    const rank = () => rankAutoActions({ round: 1, units: [source, enemy] }, source.id, [skill], [seal, focus], options).find(candidate => candidate.command.type === 'skill')!;
+    const ordinary = rank().benefits.control;
+    status(source, focus.id);
+    expect(rank().benefits.control).toBeGreaterThan(ordinary);
+    const before = rank();
+    Object.assign(enemy.attrs, { sealResist: 999999, resistSpellCultivate: 999999 });
+    expect(rank()).toEqual(before);
+    source.statuses = [];
+    expect(rank().benefits.control).toBe(ordinary);
   });
 });

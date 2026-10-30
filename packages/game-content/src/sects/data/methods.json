@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "sects": {
     "lingxiao": [
       {
@@ -340,6 +340,69 @@
           "attr": "speed",
           "mode": "add",
           "value": 0.15
+        }
+      }
+    ],
+    "bailu": [
+      {
+        "id": "bailu.method.canon",
+        "slot": 1,
+        "name": "《白鹿正学》",
+        "isPrimary": true
+      },
+      {
+        "id": "bailu.method.song",
+        "slot": 2,
+        "name": "《正气长歌》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "bailu.method.edict",
+        "slot": 3,
+        "name": "《春秋笔法》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "sealHit",
+          "mode": "add",
+          "value": 0.25
+        }
+      },
+      {
+        "id": "bailu.method.recovery",
+        "slot": 4,
+        "name": "《养气存诚》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "bailu.method.bearing",
+        "slot": 5,
+        "name": "《慎独明心》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "bailu.method.step",
+        "slot": 6,
+        "name": "《君子行》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "dodge",
+          "mode": "add",
+          "value": 0.3
         }
       }
     ]

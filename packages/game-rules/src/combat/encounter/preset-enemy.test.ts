@@ -5,13 +5,18 @@ import { presetEnemyAttrs } from './preset-enemy.js';
 describe('预设敌人预算', () => {
   it('金丹中期与蜃楼的整场气血和输出预算一致', () => {
     const base = TOWER_ENCOUNTER_PACK.baselines.金丹;
+    const budgets = TOWER_ENCOUNTER_PACK.scaling.types;
     const normal = presetEnemyAttrs(50, 'normal');
     const elite = presetEnemyAttrs(50, 'elite', 2);
     const boss = presetEnemyAttrs(50, 'boss');
-    expect(normal.maxHp).toBe(Math.round(base.damagePerRound * 2.5));
-    expect(Math.abs(elite.maxHp * 2 - base.damagePerRound * 5.5)).toBeLessThanOrEqual(1);
-    expect(boss.maxHp).toBe(Math.round(base.damagePerRound * 8));
+    expect(normal.maxHp).toBe(Math.round(base.damagePerRound * budgets.normal.rounds));
+    expect(Math.abs(elite.maxHp * 2 - base.damagePerRound * budgets.elite.rounds)).toBeLessThanOrEqual(1);
+    expect(boss.maxHp).toBe(Math.round(base.damagePerRound * budgets.boss.rounds));
     expect(normal.physicalAtk).toBe(base.physicalAtk);
+    expect(Math.abs((elite.physicalAtk - base.referencePhysicalDef) * 2 -
+      (base.physicalAtk - base.referencePhysicalDef) * budgets.elite.output)).toBeLessThanOrEqual(1);
+    expect(Math.abs((elite.magicAtk - base.referenceMagicDef) * 2 -
+      (base.magicAtk - base.referenceMagicDef) * budgets.elite.output)).toBeLessThanOrEqual(1);
     expect(boss.physicalAtk).toBeGreaterThan(normal.physicalAtk);
   });
 
