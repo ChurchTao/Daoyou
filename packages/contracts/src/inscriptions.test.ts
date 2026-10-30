@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { InscriptionRequestSchema } from './inscriptions.js';
 
-it('契约拒绝超四格、非法数量、任意孔位和拆卸操作', () => {
+it('契约拒绝超四格、非法数量、任意孔位和未知拆卸动作，并接受孔位取下', () => {
   const base = {
     requestId: '9f6c6548-0561-488e-b659-d8a8e63bec62',
     expectedCost: { qi: 1, spiritStones: 4 },
@@ -40,13 +40,20 @@ it('契约拒绝超四格、非法数量、任意孔位和拆卸操作', () => {
         },
         {
           socket: 1,
-          inscription: { id: 'glyph-0', revision: 0 },
-          mode: 'engrave',
-          replace: false,
+          mode: 'remove',
         },
       ],
     }).success,
   ).toBe(true);
+  expect(
+    InscriptionRequestSchema.safeParse({
+      requestId: base.requestId,
+      expectedCost: { qi: 0, spiritStones: 0 },
+      action: 'inscribe',
+      equipment: { id: 'equipment', revision: 0 },
+      steps: [{ socket: 0, mode: 'remove', inscription: { id: 'glyph-0', revision: 0 } }],
+    }).success,
+  ).toBe(false);
   expect(
     InscriptionRequestSchema.safeParse({
       requestId: base.requestId,

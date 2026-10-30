@@ -17,17 +17,22 @@ const common = {
     spiritStones: z.number().int().nonnegative(),
   }),
 };
+const socketIndex = z.union([z.literal(0), z.literal(1)]);
 const equipment = {
   equipment: ref,
-  socket: z.union([z.literal(0), z.literal(1)]),
+  socket: socketIndex,
   inscription: ref,
 };
-const socketStep = z.strictObject({
-  socket: z.union([z.literal(0), z.literal(1)]),
+const imprintStep = {
+  socket: socketIndex,
   inscription: ref,
-  mode: z.enum(['engrave', 'strengthen_socket']),
   replace: z.boolean(),
-});
+};
+const socketStep = z.discriminatedUnion('mode', [
+  z.strictObject({ ...imprintStep, mode: z.literal('engrave') }),
+  z.strictObject({ ...imprintStep, mode: z.literal('strengthen_socket') }),
+  z.strictObject({ socket: socketIndex, mode: z.literal('remove') }),
+]);
 export const InscriptionRequestSchema = z.discriminatedUnion('action', [
   z.strictObject({
     ...common,
