@@ -26,12 +26,40 @@ const NEAR_STEPS = [
   { offset: 0, weight: 1 },
 ] as const;
 
-export type BlueprintDropProfile = 'yield' | 'lower' | 'near';
+/** 云游地图的图纸下限。元婴及以下只发本境，更高地图去掉此境界以下的档。 */
+const DUNGEON_BLUEPRINT_FLOOR: RealmType = '元婴';
+
+export type BlueprintDropProfile = 'yield' | 'lower' | 'near' | 'dungeon';
+
+function realmWeightRow(realmIndex: number, weight: number) {
+  return {
+    realm: REALM_VALUES[realmIndex]!,
+    level: EQUIPMENT_LEVELS[realmIndex]!,
+    weight,
+  };
+}
+
+/** 元婴及以下只留本境。更高境界保留低三境到本境的原权重，低于元婴的档直接去掉。 */
+function dungeonBlueprintRealmWeights(realm: RealmType) {
+  const index = REALM_VALUES.indexOf(realm);
+  const floor = REALM_VALUES.indexOf(DUNGEON_BLUEPRINT_FLOOR);
+  if (index <= floor) return [realmWeightRow(index, 1)];
+  const totals = new Map<number, number>();
+  for (const step of LOWER_STEPS) {
+    const target = index + step.offset;
+    if (target < floor || target >= REALM_VALUES.length) continue;
+    totals.set(target, (totals.get(target) ?? 0) + step.weight);
+  }
+  return [...totals.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([realmIndex, weight]) => realmWeightRow(realmIndex, weight));
+}
 
 export function blueprintRealmWeights(
   realm: RealmType,
   profile: BlueprintDropProfile,
 ): { realm: RealmType; level: number; weight: number }[] {
+  if (profile === 'dungeon') return dungeonBlueprintRealmWeights(realm);
   const steps =
     profile === 'yield' ? YIELD_STEPS : profile === 'near' ? NEAR_STEPS : LOWER_STEPS;
   const maxIndex =

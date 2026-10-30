@@ -121,7 +121,7 @@ export function planDungeonReward(
   const count = budget.rewards[0]?.quantity ?? 0;
   const blueprints = blueprintDropEntries(
     getLevelRealmStage(level).realm,
-    'lower',
+    'dungeon',
   );
   const weightedEntries = (
     entries: { rewardId: string; weight: number }[],
