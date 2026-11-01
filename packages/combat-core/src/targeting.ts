@@ -39,6 +39,10 @@ export function canSelect(
   skill: SkillDef,
 ): boolean {
   if (skill.targeting.excludeSelf && source.id === target.id) return false;
+  const stackLimit = skill.targeting.ownedStatusStackLimit;
+  if (stackLimit && target.statuses
+    .filter(status => status.kind === stackLimit.kind && status.sourceId === source.id)
+    .reduce((sum, status) => sum + status.stacks, 0) >= stackLimit.max) return false;
   if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
   if (target.flags.capturedBy || target.flags.benched) return false;
   if (skill.targeting.requireRevivable &&

@@ -1,4 +1,10 @@
 /** Public authoring/sects capabilities. Keep implementation files private. */
+export { WANQIAO_COMBAT, WanqiaoCombatPackShape, compileWanqiaoCombatPack, loadWanqiaoCombatPack } from '../../sects/wanqiao-pack.js';
+export { WANQIAO_PATHS, WanqiaoPathsPackShape, compileWanqiaoPathsPack, loadWanqiaoPathsPack } from '../../sects/wanqiao-path-pack.js';
+export { default as SECTS_WANQIAO_COMBAT_DATA } from '../../sects/data/wanqiao-combat.json' with { type: 'json' };
+export { default as SECTS_WANQIAO_COMBAT_SCHEMA } from '../../sects/data/wanqiao-combat.schema.json' with { type: 'json' };
+export { default as SECTS_WANQIAO_PATHS_DATA } from '../../sects/data/wanqiao-paths.json' with { type: 'json' };
+export { default as SECTS_WANQIAO_PATHS_SCHEMA } from '../../sects/data/wanqiao-paths.schema.json' with { type: 'json' };
 export { BAILU_COMBAT, BailuCombatPackShape, compileBailuCombatPack, loadBailuCombatPack } from '../../sects/bailu-pack.js';
 export { BAILU_PATHS, BailuPathsPackShape, compileBailuPathsPack, loadBailuPathsPack } from '../../sects/bailu-path-pack.js';
 export { default as SECTS_BAILU_COMBAT_DATA } from '../../sects/data/bailu-combat.json' with { type: 'json' };

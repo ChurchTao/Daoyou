@@ -8,11 +8,12 @@ export type SectMethodDefV6 = {
   id: string
   slot: 1 | 2 | 3 | 4 | 5 | 6
   name: string
+  description?: string
   isPrimary: boolean
   panel?: CombatV6PanelContribution
 }
 
-export type CombatV6SectId = "lingxiao" | "youdu" | "wuxiang" | "tianyan" | "jiujie" | "bailu"
+export type CombatV6SectId = "lingxiao" | "youdu" | "wuxiang" | "tianyan" | "jiujie" | "bailu" | "wanqiao"
 
 export type SectSkillDefV6 = {
   sourceMethodId: string
@@ -23,6 +24,7 @@ export type SectSkillDefV6 = {
 
 export type SkillPatchV6 =
   | { skillId: string; operation: "setCooldownRounds"; value: number }
+  | { skillId: string; operation: "setTargetingSide"; value: SkillDef['targeting']['side'] }
   | { skillId: string; operation: "includeDownedTargets"; value: boolean }
   | { skillId: string; operation: "setRequireHpRatio"; value: number }
   | { skillId: string; operation: "capRequireHpRatio"; value: number }

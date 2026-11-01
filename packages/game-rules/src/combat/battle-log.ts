@@ -272,7 +272,9 @@ export function appendBattleEntries(
       case 'mechanicTriggered':
         return { text: `${name(e.sourceId)}触发「${e.name}」` };
       case 'mpCost':
-        return { text: `${name(e.unitId)}法力 −${e.amount}`, detail: true };
+        return e.absorbedDamage !== undefined
+          ? { text: `${name(e.unitId)}的「${status(e.statusId ?? '')}」抵消 ${e.absorbedDamage} 点伤害，消耗 ${e.amount} 法力` }
+          : { text: `${name(e.unitId)}法力 −${e.amount}`, detail: true };
       case 'hpCost':
         return { text: `${name(e.unitId)}气血 −${e.amount}`, detail: true };
       case 'mpDamage':

@@ -35,12 +35,13 @@ function hasErrors(diagnostics: CombatV6ProjectionDiagnostic[]): boolean {
   return diagnostics.some((item) => item.severity === "error")
 }
 
-function applyContribution(attrs: LineupUnit["attrs"], contribution: CombatV6PanelContribution): void {
+function applyContribution(attrs: LineupUnit["attrs"], contribution: CombatV6PanelContribution, facts: Record<string, number> = {}): void {
   const values = attrs as Record<string, number | undefined>
   const current = values[contribution.attr] ?? 0
+  const amount = contribution.value * (contribution.sourceFact ? facts[contribution.sourceFact] ?? 0 : 1)
   values[contribution.attr] = contribution.mode === "add"
-    ? Math.floor(current + contribution.value)
-    : Math.floor(current * contribution.value)
+    ? Math.floor(current + amount)
+    : Math.floor(current * amount)
 }
 
 function panelAttrs(attributes: Attributes): LineupUnit["attrs"] {
@@ -139,6 +140,11 @@ export function projectCharacterEquipment(
     [...(item?.baseStats ?? []), ...daoFormationPanel(item)].filter(r => r.attr === attr).reduce((sum, r) => sum + r.value, 0)
   const weaponXuanfeng = input.equipment.weapon?.formationInscriptions.flatMap(formation =>
     formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Xuanfeng ? [formation] : []) ?? []
+  const meridianEquipmentFacts = {
+    woodEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(item => item?.element === '木').length,
+    fireEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(item => item?.element === '火').length,
+    changshengMaxHp: Object.values(input.equipment).reduce((sum, item) => sum + (item?.formationInscriptions ?? []).reduce((subtotal, formation) => subtotal + (formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Changsheng ? formation.level * daoFormationInscriptionOf(DAO_FORMATION_INSCRIPTION_ID.Changsheng)!.valuePerLevel : 0), 0), 0),
+  }
 
   const training = compileBodyCultivationV6(input.cultivator.condition?.tracks.bodyCultivation, characterPanel)
   const sect = input.sect
@@ -162,7 +168,7 @@ export function projectCharacterEquipment(
   attrs.spellCultivate = training.spellCultivate
   attrs.resistSpellCultivate = training.resistSpellCultivate
   for (const roll of equipment.projection.panel) applyContribution(attrs, { attr: roll.attr, mode: "add", value: roll.value })
-  for (const contribution of sect?.projection.panel ?? []) applyContribution(attrs, contribution)
+  for (const contribution of sect?.projection.panel ?? []) applyContribution(attrs, contribution, meridianEquipmentFacts)
   applyResources(input, attrs, diagnostics)
   if (hasErrors(diagnostics)) return { ok: false, diagnostics, versions }
 
@@ -185,6 +191,8 @@ export function projectCharacterEquipment(
         { ...DAO_RAGE_RESOURCE },
       ],
       combatFacts: {
+        ...meridianEquipmentFacts,
+        wanqiao_undertone_level: input.sect?.methods['wanqiao.method.undertone'] ?? 0,
         ...(input.sect?.sectId === "jiujie" ? {
         spiritPoints: effectiveAttributes.spirit,
         thunderMethodLevel: input.sect?.methods['jiujie.method.thunder'] ?? 0,

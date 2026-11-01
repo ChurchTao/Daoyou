@@ -27,6 +27,15 @@ const damage = (targetId: string, amount: number): CombatV6DisplayEvent => ({
 });
 
 describe('battle log presentation', () => {
+  it('explains MP-funded absorption separately from ordinary casting costs', () => {
+    const log = appendBattleEntries(empty, events([
+      { type: 'mpCost', unitId: 'a', amount: 35, mpAfter: 65, absorbedDamage: 35, statusId: 'hollow' },
+      { type: 'mpCost', unitId: 'a', amount: 30, mpAfter: 35 },
+    ]), { ...view, display: { ...view.display, statuses: { hollow: '含虚' } } });
+    const lines = log.entries.flatMap(entry => entry.lines);
+    expect(lines[0]).toMatchObject({ text: '甲的「含虚」抵消 35 点伤害，消耗 35 法力' });
+    expect(lines[1]).toMatchObject({ text: '甲法力 −30', detail: true });
+  });
   it('does not combine damage from different sources', () => {
     const log = appendBattleEntries(empty, events([
       { type: 'actionStart', unitId: 'a', command: { type: 'attack', target: 'b' } },

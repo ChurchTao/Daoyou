@@ -180,6 +180,8 @@ class Parser {
     if (name === 'targetGuardUsedThisRound') return this.env.state && this.env.target?.flags.hostileActionGuardRound === this.env.state.round ? 1 : 0
     if (name === 'statusChance') return this.env.statusChance ?? 0
     if (name === 'statusDuration') return this.env.statusDuration ?? 0
+    if (name === 'removedStatusRounds') return this.env.removedStatusRounds ?? 0
+    if (name === 'removedStatusSkillLevel') return this.env.removedStatusSkillLevel ?? 0
     if (name === 'reviveBlocked') return this.env.source.statuses.some(s => this.env.statusDefs?.get(s.id)?.blocksRevive) ? 1 : 0
     if (name === 'sourceSpellBlocked') return this.env.source.statuses.some(s => {
       const def = this.env.statusDefs?.get(s.id)
@@ -226,6 +228,13 @@ class Parser {
     if (name.startsWith('statusRounds.')) return this.env.source.statuses.find(s => s.kind === name.slice(13))?.remainingRounds ?? 0
     if (name.startsWith('targetStatusRounds.')) return this.env.target?.statuses.find(s => s.kind === name.slice(19))?.remainingRounds ?? 0
     if (name.startsWith('ownedTargetStatus.')) return this.env.target?.statuses.some(s => s.kind === name.slice(18) && s.sourceId === this.env.source.id) ? 1 : 0
+    if (name.startsWith('ownedTargetStatusStacks.')) return this.env.target?.statuses
+      .filter(s => s.kind === name.slice('ownedTargetStatusStacks.'.length) && s.sourceId === this.env.source.id)
+      .reduce((sum, status) => sum + status.stacks, 0) ?? 0
+    if (name.startsWith('ownedTargetStatusRounds.')) return this.env.target?.statuses
+      .find(s => s.kind === name.slice('ownedTargetStatusRounds.'.length) && s.sourceId === this.env.source.id)?.remainingRounds ?? 0
+    if (name.startsWith('ownedTargetStatusSkillLevel.')) return this.env.target?.statuses
+      .find(s => s.kind === name.slice('ownedTargetStatusSkillLevel.'.length) && s.sourceId === this.env.source.id)?.appliedSkillLevel ?? 0
     if (name === 'allyDownedPlayers') return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'player' && u.flags.downed && !u.flags.escaped).length ?? 0
     if (name === 'allyMaxMagicAtk') return Math.max(0, ...(this.env.state?.units.filter(u => u.side === this.env.source.side && u.id !== this.env.source.id && u.kind === 'player').map(u => u.attrs.magicAtk) ?? []))
     if (name === 'targetDeployedPets') return this.env.state?.units.filter(u => u.kind === 'pet' && u.ownerId === this.env.target?.id && u.marks.includes('battle:deployed')).length ?? 0

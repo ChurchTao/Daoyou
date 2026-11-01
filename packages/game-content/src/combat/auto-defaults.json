@@ -312,6 +312,152 @@
           "target": "best"
         }
       ]
+    },
+    "wanqiao.path.resonance": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [
+            {
+              "type": "selfHpBelow",
+              "percent": 35
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.rest"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfResourceAtLeast",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 3
+            },
+            {
+              "type": "enemyCountAtLeast",
+              "count": 2
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.resonate"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "enemyCountAtLeast",
+              "count": 2
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.chorus"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.pierce"
+          },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "wanqiao.path.subtlety": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [
+            {
+              "type": "selfHpBelow",
+              "percent": 35
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.rest"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "selfResourceAtLeast",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 3
+            },
+            {
+              "type": "targetStatus",
+              "kind": "wanqiao.mist",
+              "present": false,
+              "ownedBySelf": true
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.coda"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "targetStatus",
+              "kind": "wanqiao.mist",
+              "present": true,
+              "ownedBySelf": true
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.catalyze"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "enemyCountAtLeast",
+              "count": 2
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.undertone"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            {
+              "type": "targetStatus",
+              "kind": "wanqiao.mist",
+              "present": false,
+              "ownedBySelf": true
+            }
+          ],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.echo"
+          },
+          "target": "best"
+        },
+        {
+          "conditions": [],
+          "action": {
+            "type": "skill",
+            "skillId": "wanqiao.skill.pierce"
+          },
+          "target": "lowestHpEnemy"
+        }
+      ]
     }
   }
 }

@@ -26,6 +26,16 @@ describe('宗门心法配置', () => {
       expect(() => loadSectMethodsPack(data)).toThrow('content/data/methods.json: sects.lingxiao');
     }
   });
+  it('心法简介可选但不能是空白或超长文案', () => {
+    for (const description of ['', '   ', '字'.repeat(501)]) {
+      const data = structuredClone(raw);
+      data.sects.wanqiao[0].description = description;
+      expect(() => loadSectMethodsPack(data)).toThrow('description');
+    }
+    const old = structuredClone(raw);
+    Reflect.deleteProperty(old.sects.wanqiao[0], 'description');
+    expect(() => loadSectMethodsPack(old)).not.toThrow();
+  });
   it('修改心法面板系数后实际编译采用新值', () => {
     const data = structuredClone(raw);
     data.sects.lingxiao[0].panel.value = 3;

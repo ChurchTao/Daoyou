@@ -17,6 +17,10 @@ export type HookContext = {
   statusDuration?: number
   statusReason?: string
   removedStatusKind?: string
+  removedStatusId?: string
+  removedStatusSourceId?: string
+  removedStatusRounds?: number
+  removedStatusSkillLevel?: number
   removedStatusCategory?: StatusCategory
   removedStatusDispellable?: boolean
   removedStatusFlags?: StatusFlag[]

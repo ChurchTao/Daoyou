@@ -15,6 +15,8 @@ export type CombatV6PanelContribution = {
   attr: AttrName
   mode: "add" | "multiply"
   value: number
+  /** Scale this contribution by an independently projected equipment fact. */
+  sourceFact?: string
 }
 
 export interface CultivatorBaseCombatInput {

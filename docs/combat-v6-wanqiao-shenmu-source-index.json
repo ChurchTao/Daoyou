@@ -1,0 +1,948 @@
+{
+  "researchDate": "2026-10-30",
+  "timezone": "Asia/Shanghai",
+  "game": "梦幻西游电脑版时间服",
+  "school": {
+    "name": "神木林",
+    "mpid": 13
+  },
+  "effectiveBaseline": {
+    "date": "2026-10-27",
+    "clientVersion": "3.0.636",
+    "basis": [
+      "officialOctober2026",
+      "officialOctoberRollout",
+      "O2.nodes"
+    ],
+    "limitation": "The baseline dates the announced adjustment. It does not prove every hidden base skill formula."
+  },
+  "plan": "combat-v6-wanqiao-shenmu-integration-plan.md",
+  "scope": {
+    "firstReleasePathIds": [
+      1,
+      2
+    ],
+    "futurePathIds": [
+      3
+    ],
+    "battleNodesPerPath": 19,
+    "automaticRewardsPerPath": 2,
+    "firstReleasePositions": 42,
+    "researchedPositions": 63
+  },
+  "sources": [
+    {
+      "id": "O2.nodes",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data?mpid=13",
+      "sha256": "1f85654b9e557b1ac4270dff190852e5bb3e69c624f590dde2be709ab2d81071",
+      "role": "Current meridian positions, numeric descriptions and replacement references; no intrinsic effective date."
+    },
+    {
+      "id": "O2.paths",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data/lp?mpid=13",
+      "sha256": "dcb24e210fbca3449309ca1dc46f368c7385c920922cb024fbce6dc3fe95d62b",
+      "role": "Current three path names."
+    },
+    {
+      "id": "officialSkills",
+      "url": "https://xyq.163.com/mp015.html",
+      "sha256": "d91b037fc225856d44ccd5c4540e8f537d91b8dc7164ba00bdfb7b00f6746b4e"
+    },
+    {
+      "id": "officialApril2026",
+      "url": "https://xyq.163.com/news/20260417/4905_1296495.html",
+      "sha256": "8129f74fa7bb653f7ae5fb22b76cad49837dfc65498e1e244d237d8d349d2627"
+    },
+    {
+      "id": "officialApril2026Image",
+      "url": "https://nie.res.netease.com/r/pic/20260417/0285a603-fcc8-4e46-b157-b7f71e740060.jpg",
+      "sha256": "cded18daadecfb97ac29013c0928200af133f48846e48eabe459bcceb317f2ba"
+    },
+    {
+      "id": "officialOctober2026",
+      "url": "https://xyq.163.com/news/20261012/4999_1316352.html",
+      "sha256": "e82017f3931f10c42d3aad08bcfa4fb683f491dc8b3a3e9a0ca11c827659e011"
+    },
+    {
+      "id": "officialOctoberRollout",
+      "url": "https://xyq.163.com/wh/20261026/4907_1317690.html",
+      "sha256": "8626bc0326d03f65333284c0d9f6b84dd74c77cf215cc0b814c4f5e98042ca3d"
+    },
+    {
+      "id": "simulatorInterface",
+      "url": "https://xyq.res.netease.com/pc/zt/20210802175253/js/app/interface_6dfbafd.js",
+      "sha256": "87311074c8eb4c8eaabe50e5f7400dfb9676c8b089a1ca4f6b25476457992f6d"
+    },
+    {
+      "id": "O5.recipes",
+      "url": "https://xyq.res.netease.com/pc/zt/20220413213749/js/app/table_data_fff84d1.js",
+      "sha256": "f17b32f5f7a801227c04119c9c129907d37d3d1c3de0543792fb67f15680e895",
+      "role": "Historical healer rework and recipe facts; current node changes override this data."
+    },
+    {
+      "id": "O5.healerRework",
+      "url": "https://xyq.res.netease.com/pc/zt/20220413213749/js/app/data_fdfc639.js",
+      "sha256": "ca05a96241514cecf0a6b2d48e639d68d851830d5cbcab7efca3857bb1acccc0",
+      "role": "Historical healer rework and recipe facts; current node changes override this data."
+    },
+    {
+      "id": "O6",
+      "url": "https://xyq.163.com/2016/cfrs/skills.html",
+      "role": "Historical ascension skill stages; not proof of all current branch details."
+    }
+  ],
+  "paths": [
+    {
+      "lpid": 1,
+      "name": "通天法王",
+      "scope": "first-release",
+      "positions": [
+        {
+          "sourceId": "32902",
+          "name": "法身",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "automatic": false,
+          "replacesFoundation": {
+            "sourceId": "40131",
+            "name": "风灵"
+          }
+        },
+        {
+          "sourceId": "32901",
+          "name": "风魂",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32903",
+          "name": "灵佑",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32904",
+          "name": "追击",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32905",
+          "name": "咒法",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32906",
+          "name": "狂叶",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32907",
+          "name": "劲草",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32908",
+          "name": "冰锥",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32909",
+          "name": "苍埃",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32910",
+          "name": "神木",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32911",
+          "name": "月影",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32912",
+          "name": "薪火",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32913",
+          "name": "纯净",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32914",
+          "name": "蔓延",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32915",
+          "name": "破杀",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32916",
+          "name": "啸风",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32917",
+          "name": "滋养",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32918",
+          "name": "灵归",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32919",
+          "name": "风卷残云",
+          "sourcePosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32920",
+          "name": "额外能力",
+          "sourcePosition": {
+            "layer": 8,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 1
+          },
+          "automatic": true
+        },
+        {
+          "sourceId": "32921",
+          "name": "通天法王",
+          "sourcePosition": {
+            "layer": 9,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 3
+          },
+          "automatic": true
+        }
+      ]
+    },
+    {
+      "lpid": 2,
+      "name": "巫影祭司",
+      "scope": "first-release",
+      "positions": [
+        {
+          "sourceId": "32931",
+          "name": "风魂",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32933",
+          "name": "迷缚",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32932",
+          "name": "法身",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "automatic": false,
+          "replacesFoundation": {
+            "sourceId": "40131",
+            "name": "风灵"
+          }
+        },
+        {
+          "sourceId": "32934",
+          "name": "伏毒",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32935",
+          "name": "咒法",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32936",
+          "name": "灵木",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32937",
+          "name": "绞藤",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32938",
+          "name": "冰锥",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32939",
+          "name": "寄生",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "automatic": false,
+          "replacesFoundation": {
+            "sourceId": "40132",
+            "name": "鞭挞"
+          }
+        },
+        {
+          "sourceId": "32940",
+          "name": "神木",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32941",
+          "name": "月影",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32942",
+          "name": "薪火",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32943",
+          "name": "纯净",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32944",
+          "name": "蔓延",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32945",
+          "name": "破杀",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32946",
+          "name": "激活",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32947",
+          "name": "滋养",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32948",
+          "name": "毒萃",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32949",
+          "name": "凋零之歌",
+          "sourcePosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32950",
+          "name": "额外能力",
+          "sourcePosition": {
+            "layer": 8,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 1
+          },
+          "automatic": true
+        },
+        {
+          "sourceId": "32951",
+          "name": "巫影祭司",
+          "sourcePosition": {
+            "layer": 9,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 3
+          },
+          "automatic": true
+        }
+      ]
+    },
+    {
+      "lpid": 3,
+      "name": "灵木药宗",
+      "scope": "future",
+      "positions": [
+        {
+          "sourceId": "32961",
+          "name": "木魂",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32962",
+          "name": "绿茵",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32963",
+          "name": "滋润",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32964",
+          "name": "明心",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32965",
+          "name": "反哺",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32966",
+          "name": "祛除",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32967",
+          "name": "药颂",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32968",
+          "name": "亲和",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32969",
+          "name": "灵精",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32970",
+          "name": "风神",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32971",
+          "name": "月影",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32972",
+          "name": "转化",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32973",
+          "name": "纯净",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32974",
+          "name": "救主",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32975",
+          "name": "百草·回春龙沙",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32976",
+          "name": "润泽",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32977",
+          "name": "木精",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32978",
+          "name": "调和",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32979",
+          "name": "百草·古树长青",
+          "sourcePosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "automatic": false
+        },
+        {
+          "sourceId": "32980",
+          "name": "额外能力",
+          "sourcePosition": {
+            "layer": 8,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 1
+          },
+          "automatic": true
+        },
+        {
+          "sourceId": "32981",
+          "name": "灵木药宗",
+          "sourcePosition": {
+            "layer": 9,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 3
+          },
+          "automatic": true
+        }
+      ]
+    }
+  ]
+}
