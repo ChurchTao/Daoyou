@@ -8,9 +8,21 @@ import {
   manualRule,
 } from '@daoyou/game-content/manuals';
 import { changeManual } from './state.js';
-import type { InventoryItem } from '@daoyou/game-domain/inventory';
+import type { InventoryItem, ItemGrant } from '@daoyou/game-domain/inventory';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import type { RealmType } from '@daoyou/constants/realms';
+
+/** Forgetting any learned manual returns one jade, whatever its level or prior costs. */
+export const FORGOTTEN_MANUAL_JADE_QUANTITY = 1;
+
+export function forgottenManualJade(manualId: string): ItemGrant | undefined {
+  const manual = CHARACTER_MANUALS_V1.find((entry) => entry.id === manualId);
+  if (!manual) return undefined;
+  return {
+    definitionId: `jade.${manual.id}`,
+    quantity: FORGOTTEN_MANUAL_JADE_QUANTITY,
+  };
+}
 
 /** Learning costs one jade; successive bottlenecks cost two, then three. */
 export function manualJadeCost(

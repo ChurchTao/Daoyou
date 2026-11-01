@@ -18,12 +18,17 @@ import {
 } from '@daoyou/game-rules/cultivation';
 import type { ManualAction } from '@daoyou/game-domain/manuals';
 import type { ManualView } from '@daoyou/contracts/manuals';
-import { manualJadeCost, previewManualAction } from '@daoyou/game-rules/manuals';
+import {
+  forgottenManualJade,
+  manualJadeCost,
+  previewManualAction,
+} from '@daoyou/game-rules/manuals';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
 import { and, eq } from 'drizzle-orm';
 import {
   assertInventoryIdle,
+  grantInventory,
   InventoryError,
   inventoryItemOf,
   saveInventoryPlan,
@@ -170,6 +175,11 @@ export async function mutateManuals(owner: string, action: ManualAction) {
             tx,
           );
         }
+        if (action.action === 'forget') {
+          const grant = forgottenManualJade(action.manualId);
+          if (!grant) throw new InventoryError('功法不存在');
+          await grantInventory(owner, [grant], tx);
+        }
         if (action.action === 'train') {
           progress.cultivation_exp -= result.cost.experience;
           progress.comprehension_insight -= result.cost.insight;
@@ -197,11 +207,15 @@ export async function mutateManuals(owner: string, action: ManualAction) {
               operation: 'invalidate',
               eventType: 'combat_v6.manuals.changed',
             },
-            ...('item' in action ? [{
-              resourceTopic: 'inventory.bag' as const,
-              operation: 'invalidate' as const,
-              eventType: 'combat_v6.manuals.changed',
-            }] : []),
+            ...(action.action === 'forget' || 'item' in action
+              ? [
+                  {
+                    resourceTopic: 'inventory.bag' as const,
+                    operation: 'invalidate' as const,
+                    eventType: 'combat_v6.manuals.changed',
+                  },
+                ]
+              : []),
           ],
         });
         lease.assertHeld();

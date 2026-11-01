@@ -20,7 +20,7 @@ export function changeManual(input: {
   expectedRevision: number;
   slot: ManualSlotV1;
   manualId: string;
-  action: 'learn' | 'activate' | 'train' | 'unlock';
+  action: 'learn' | 'activate' | 'train' | 'unlock' | 'forget';
   resources: { experience: number; insight: number };
 }): ManualStateChangeResult {
   const { state, realm, action } = input;
@@ -66,7 +66,12 @@ export function changeManual(input: {
     if (!learned) return fail('尚未学习此功法');
     if (manualLearnedSlot(def, learned) !== input.slot)
       return fail('此功法属于其他功法位，不能跨位运转或培养');
-    if (action === 'activate') {
+    if (action === 'forget') {
+      next.learned = next.learned.filter((entry) => entry.manualId !== def.id);
+      next.build.slots = next.build.slots.filter(
+        (entry) => entry.manualId !== def.id,
+      );
+    } else if (action === 'activate') {
       if (
         next.build.slots.some(
           (s) => s.slot === input.slot && s.manualId === def.id,

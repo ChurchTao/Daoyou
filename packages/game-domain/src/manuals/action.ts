@@ -23,6 +23,7 @@ export const ManualActionSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('unlock'), ...target, item }),
   z.strictObject({ action: z.literal('train'), ...target }),
   z.strictObject({ action: z.literal('activate'), ...target }),
+  z.strictObject({ action: z.literal('forget'), ...target }),
 ]);
 
 export type ManualAction = z.infer<typeof ManualActionSchema>;

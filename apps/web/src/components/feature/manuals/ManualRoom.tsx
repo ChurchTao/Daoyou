@@ -1,6 +1,7 @@
 import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkDialog, type InkDialogState } from '@app/components/ui/InkDialog';
 import { tierColorMap } from '@app/components/ui/inkBadgeTiers';
 import { apiFetch } from '@app/lib/api/fetch';
 import { cn } from '@app/lib/cn';
@@ -17,6 +18,7 @@ import type {
   ManualSlotV1,
 } from '@daoyou/game-domain/manuals';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
+import { FORGOTTEN_MANUAL_JADE_QUANTITY } from '@daoyou/game-rules/manuals';
 import {
   getManualSlotCount,
   isAdvancedManual,
@@ -73,10 +75,13 @@ export function ManualRoom() {
     params.get('itemId') ? 'detail' : null,
   );
   const [pending, setPending] = useState(false);
+  const [confirmForget, setConfirmForget] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState<{
     manualId: string;
+    slot: ManualSlotV1;
     message: string;
+    page?: boolean;
   }>();
   const busy = useRef(false);
   const mounted = useRef(true);
@@ -131,27 +136,47 @@ export function ManualRoom() {
         if (mounted.current) {
           setView(data);
           if (succeeded) {
-            const progress = data.state?.learned.find(
-              (m) => m.manualId === action.manualId,
-            );
             const name = CHARACTER_MANUALS_V1.find(
               (m) => m.id === action.manualId,
             )?.name;
-            setFeedback({
-              manualId: action.manualId,
-              message:
-                action.action === 'unlock'
-                  ? `已开放至第 ${progress?.unlockedLevel} 层，可以继续参悟。`
-                  : action.action === 'activate'
-                    ? `已改修《${name}》。`
-                    : action.action === 'learn'
-                      ? `已习得《${name}》。`
-                      : `${name} · 第 ${progress?.level} 层${progress?.level === 9 ? '，功法圆满。' : '已成。'}`,
-            });
-            setSelection({
-              slot: action.slot,
-              manualId: action.manualId,
-            });
+            if (action.action === 'forget') {
+              const next = data.state?.learned.find((entry) =>
+                CHARACTER_MANUALS_V1.some(
+                  (candidate) =>
+                    candidate.id === entry.manualId &&
+                    manualLearnedSlot(candidate, entry) === action.slot,
+                ),
+              );
+              setFeedback({
+                manualId: action.manualId,
+                slot: action.slot,
+                page: true,
+                message: `已遗忘《${name}》，留下一本玉简。`,
+              });
+              setSelection({ slot: action.slot, manualId: next?.manualId });
+              setDrawer(null);
+              setConfirmForget(false);
+            } else {
+              const progress = data.state?.learned.find(
+                (m) => m.manualId === action.manualId,
+              );
+              setFeedback({
+                manualId: action.manualId,
+                slot: action.slot,
+                message:
+                  action.action === 'unlock'
+                    ? `已开放至第 ${progress?.unlockedLevel} 层，可以继续参悟。`
+                    : action.action === 'activate'
+                      ? `已改修《${name}》。`
+                      : action.action === 'learn'
+                        ? `已习得《${name}》。`
+                        : `${name} · 第 ${progress?.level} 层${progress?.level === 9 ? '，功法圆满。' : '已成。'}`,
+              });
+              setSelection({
+                slot: action.slot,
+                manualId: action.manualId,
+              });
+            }
           }
         }
       } catch {
@@ -246,15 +271,63 @@ export function ManualRoom() {
         pending={pending}
         itemChoice={itemChoice}
         onSubmit={(action) => void submit(action)}
+        onForget={
+          view.state?.learned.some((entry) => entry.manualId === manual.id)
+            ? () => setConfirmForget(true)
+            : undefined
+        }
       />
     ) : null;
+  const manualState = view?.state;
+  const learnedLevel = manualState?.learned.find(
+    (entry) => entry.manualId === manual?.id,
+  )?.level;
+  const forgetDialog: InkDialogState | null =
+    confirmForget && manual && manualState && learnedLevel
+      ? {
+          id: `forget-${manual.id}-${manualState.revision}`,
+          title: '遗忘此法',
+          confirmLabel: '确认遗忘',
+          cancelLabel: '再想想',
+          content: (
+            <div className="space-y-2 text-sm leading-7">
+              <p>
+                散去《{manual.name}》。此刻第{' '}
+                <span className="font-mono">{learnedLevel}</span>{' '}
+                层的进境一并散去。
+              </p>
+              <p>已投入的修为、感悟，以及先前耗去的玉简，都留在这条路上。</p>
+              <p>
+                只留下{' '}
+                <span className="font-mono">
+                  {FORGOTTEN_MANUAL_JADE_QUANTITY}
+                </span>{' '}
+                本《{manual.name}》玉简，以待后人学习，免得此法断绝。修到第几层，也都只这一本。
+              </p>
+            </div>
+          ),
+          onConfirm: () =>
+            submit({
+              action: 'forget',
+              expectedRevision: manualState.revision,
+              slot,
+              manualId: manual.id,
+            }),
+        }
+      : null;
+  const pageMessage =
+    feedback && feedback.page && feedback.slot === slot ? feedback.message : '';
+  const detailMessage =
+    feedback && !feedback.page && feedback.manualId === manual?.id
+      ? feedback.message
+      : '';
   const status = (
     <p
       role="status"
       aria-live="polite"
       className="text-crimson min-h-5 text-xs"
     >
-      {feedback?.manualId === manual?.id ? feedback?.message : ''}
+      {detailMessage}
     </p>
   );
 
@@ -355,8 +428,21 @@ export function ManualRoom() {
                   >
                     学习新功法
                   </InkButton>
+                ) : slotOpen ? (
+                  <span className="text-ink-secondary text-xs">
+                    已满，先遗忘一本
+                  </span>
                 ) : null}
               </header>
+              {pageMessage ? (
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="text-crimson mb-3 text-xs"
+                >
+                  {pageMessage}
+                </p>
+              ) : null}
               {learnedManuals.length ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
                   {learnedManuals.map((m) => {
@@ -463,6 +549,10 @@ export function ManualRoom() {
           </>
         )}
       </InkDetailDrawer>
+      <InkDialog
+        dialog={forgetDialog}
+        onClose={() => setConfirmForget(false)}
+      />
     </>
   );
 }

@@ -32,6 +32,7 @@ export function ManualDetail({
   pending,
   itemChoice,
   onSubmit,
+  onForget,
 }: {
   manual: CharacterManualDefV1;
   slot: ManualSlotV1;
@@ -39,6 +40,7 @@ export function ManualDetail({
   pending: boolean;
   itemChoice?: InventoryView['items'][number];
   onSubmit: (action: ManualAction) => void;
+  onForget?: () => void;
 }) {
   const bag = useInventoryBag();
   const state = view.state;
@@ -423,6 +425,18 @@ export function ManualDetail({
                   : '学习此功法'}
             </InkButton>
           </div>
+        </div>
+      ) : null}
+      {progress && onForget ? (
+        <div className="border-ink/10 flex justify-end border-t pt-3">
+          <InkButton
+            variant="ghost"
+            disabled={blocked}
+            className="min-h-11"
+            onClick={onForget}
+          >
+            遗忘此法
+          </InkButton>
         </div>
       ) : null}
       <details className="border-ink/10 text-ink-secondary border-t pt-3 text-xs">

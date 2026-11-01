@@ -6,7 +6,12 @@ import {
 import { MANUAL_PACK } from '@daoyou/game-content/manuals';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
 import type { InventoryItem } from '@daoyou/game-domain/inventory';
-import { manualJadeCost, previewManualAction } from './action.js';
+import {
+  FORGOTTEN_MANUAL_JADE_QUANTITY,
+  forgottenManualJade,
+  manualJadeCost,
+  previewManualAction,
+} from './action.js';
 
 const state: CultivatorManualStateV1 = {
   version: 1,
@@ -116,6 +121,14 @@ it('严格请求拒绝旧改修协议、非法槽位和客户端自报费用', (
   expect(
     ManualActionSchema.safeParse({ ...action, action: 'forget' }).success,
   ).toBe(false);
+  const forget: ManualAction = {
+    action: 'forget',
+    manualId,
+    slot: 1,
+    expectedRevision: 0,
+  };
+  expect(ManualActionSchema.safeParse(forget).success).toBe(true);
+  expect(ManualActionSchema.safeParse({ ...forget, item }).success).toBe(false);
 });
 it.each([
   [3, 2, 6],
@@ -159,10 +172,50 @@ it.each([
     expect(learned.learned[0].unlockedLevel).toBe(level);
   },
 );
-it('学习消耗一本，修炼与切换不额外消耗玉简', () => {
+it('学习消耗一本，修炼、切换与遗忘不额外消耗玉简', () => {
   expect(manualJadeCost(state, action)).toBe(1);
   expect(manualJadeCost(state, { ...action, action: 'train' })).toBe(0);
   expect(manualJadeCost(state, { ...action, action: 'activate' })).toBe(0);
+  expect(
+    manualJadeCost(state, {
+      action: 'forget',
+      manualId,
+      slot: 1,
+      expectedRevision: 0,
+    }),
+  ).toBe(0);
+});
+it('遗忘只计划返还一本同名玉简，与层数无关', () => {
+  expect(FORGOTTEN_MANUAL_JADE_QUANTITY).toBe(1);
+  const learned: CultivatorManualStateV1 = {
+    version: 1,
+    revision: 4,
+    learned: [{ manualId, level: 9, unlockedLevel: 9 }],
+    build: { slots: [{ slot: 1, manualId }] },
+  };
+  const forget: ManualAction = {
+    action: 'forget',
+    manualId,
+    slot: 1,
+    expectedRevision: 4,
+  };
+  expect(previewManualAction(state, '炼气', forget, resources).ok).toBe(false);
+  expect(previewManualAction(learned, '炼气', forget, resources)).toMatchObject({
+    ok: true,
+    cost: { experience: 0, insight: 0 },
+    state: { revision: 5, learned: [], build: { slots: [] } },
+  });
+  expect(learned.learned[0]).toMatchObject({ level: 9, unlockedLevel: 9 });
+  expect(forgottenManualJade(manualId)).toEqual({
+    definitionId: `jade.${manualId}`,
+    quantity: 1,
+  });
+  const advanced = 'character_manual.yuanshi_zhenjie';
+  expect(forgottenManualJade(advanced)).toEqual({
+    definitionId: `jade.${advanced}`,
+    quantity: 1,
+  });
+  expect(forgottenManualJade('missing')).toBeUndefined();
 });
 it('大乘来源玉简要到大乘才能学习，仍校验同名玉简及最新版本', () => {
   const manualId = 'character_manual.yuanshi_zhenjie';
