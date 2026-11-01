@@ -24,13 +24,9 @@ import {
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
-import {
-  AUCTION_CATALOG_UNIT_PRICE_CAP,
-  AUCTION_MIN_QUALITY,
-} from '@daoyou/game-content/auction/config';
+import { AUCTION_MIN_QUALITY } from '@daoyou/game-content/auction/config';
 import {
   AUCTION_MAX_TRANSACTION_TOTAL,
-  AUCTION_MAX_UNIT_PRICE,
   auctionMaterialConditionLabel,
   type AuctionMaterialCondition,
 } from '@daoyou/game-domain/auction';
@@ -56,11 +52,7 @@ type BuyMode = 'exact' | 'condition';
 
 function listingPriceCap(listing: AuctionListingView) {
   if (listing.itemType === 'beast') return 0;
-  if (QUALITY_VALUES.includes(listing.itemQuality as Quality))
-    return getAuctionUnitPriceCap(listing.itemQuality as Quality);
-  return ['manual_jade', 'beast_book'].includes(listing.itemType)
-    ? AUCTION_MAX_UNIT_PRICE
-    : AUCTION_CATALOG_UNIT_PRICE_CAP;
+  return auctionItemPriceCap(listing.item);
 }
 
 function conditionDefaultQuality(rank: Quality | undefined): Quality {
@@ -160,7 +152,7 @@ export function CreateBuyOrderModal({
       ? listingPriceCap(listingSource)
       : selected
         ? auctionItemPriceCap(selected)
-        : AUCTION_MAX_UNIT_PRICE;
+        : 0;
   const maxQuantity = useCondition
     ? auctionListingStackLimit('material.v1')
     : targetDefinitionId

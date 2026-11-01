@@ -19,6 +19,17 @@ describe('auctionConfig', () => {
     });
   });
 
+  it('超过200万的部分按12%计税', () => {
+    expect(calculateAuctionSettlement(3_000_000, 1)).toEqual({
+      unitPrice: 3_000_000,
+      quantity: 1,
+      grossAmount: 3_000_000,
+      feeAmount: 336_800,
+      sellerAmount: 2_663_200,
+      marginalRatePercent: 12,
+    });
+  });
+
   it('跨税档后卖家到手金额仍然递增', () => {
     const before = calculateAuctionSettlement(100_000, 1);
     const after = calculateAuctionSettlement(100_001, 1);
