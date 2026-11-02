@@ -1,14 +1,28 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { cn } from '@app/lib/cn';
+import { useCultivatorIdentity } from '@app/lib/resources/player';
 import type { SkillDef } from '@daoyou/combat-core/types';
 import type { SectV6View } from '@daoyou/contracts/sects/combat';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
-import type { SectSkillDefV6 } from '@daoyou/game-domain/combat';
+import type {
+  SectMethodDefV6,
+  SectSkillDefV6,
+} from '@daoyou/game-domain/combat';
 import { sectSkillCatalog } from '@daoyou/game-rules/sects/presentation';
 import { useEffect, useState } from 'react';
 import { combatV6Request } from '../combat-v6/request';
 import { SkillDescription } from '../skills/SkillDescription';
+
+const slotPositions = [
+  'col-start-1 row-start-2',
+  'col-start-3 row-start-2',
+  'col-start-1 row-start-3',
+  'col-start-3 row-start-3',
+  'col-start-1 row-start-1',
+  'col-start-3 row-start-1',
+] as const;
 
 export function SectMethodCodex() {
   const [view, setView] = useState<SectV6View>();
@@ -68,6 +82,7 @@ function Codex({
   progress: NonNullable<SectV6View['progress']>;
   characterLevel: number;
 }) {
+  const gender = useCultivatorIdentity().data?.cultivator?.gender;
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
   const methodSkillIds = new Set([
     ...definition.skills.map((skill) => skill.definition.id),
@@ -85,153 +100,180 @@ function Codex({
     .map((method) => ({
       method,
       level: progress.methods[method.id] ?? 0,
-      skills: skills.filter((skill) => skill.methodId === method.id),
-    }))
-    .filter((group) => group.skills.length > 0);
-  const opening =
-    groups.flatMap((group) => group.skills).find((skill) => skill.available) ??
-    groups[0]?.skills[0];
+      skills: [
+        ...skills.filter(
+          (skill) => skill.methodId === method.id && skill.available,
+        ),
+        ...skills.filter(
+          (skill) => skill.methodId === method.id && !skill.available,
+        ),
+      ],
+    }));
+  const opening = groups
+    .flatMap((group) => group.skills)
+    .find((skill) => skill.available);
   const [methodId, setMethodId] = useState(
     () =>
       groups.find((group) =>
         group.skills.some((skill) => skill.id === opening?.id),
       )?.method.id ??
+      groups.find((group) => group.method.isPrimary)?.method.id ??
       groups[0]?.method.id ??
       '',
   );
-  const [selectedId, setSelectedId] = useState(opening?.id ?? '');
+  const [selectedId, setSelectedId] = useState(
+    () => opening?.id ?? groups[0]?.skills[0]?.id ?? '',
+  );
   const group = groups.find((item) => item.method.id === methodId) ?? groups[0];
-  const selected =
-    group?.skills.find((skill) => skill.id === selectedId) ?? group?.skills[0];
-  const learned = group?.skills.filter((skill) => skill.available) ?? [];
-  const unlearned = group?.skills.filter((skill) => !skill.available) ?? [];
+  const selected = group?.skills.find((skill) => skill.id === selectedId);
   const chooseMethod = (id: string) => {
     const next = groups.find((item) => item.method.id === id);
     setMethodId(id);
-    const skill =
-      next?.skills.find((item) => item.available) ?? next?.skills[0];
-    if (skill) setSelectedId(skill.id);
+    setSelectedId(next?.skills[0]?.id ?? '');
   };
-  if (!group || !selected) {
-    return <p className="text-ink-secondary text-sm">此宗尚未配置心法神通。</p>;
+  if (!group) {
+    return <p className="text-ink-secondary text-sm">此宗尚未配置心法。</p>;
   }
   return (
-    <div>
-      <div
-        role="tablist"
-        aria-label="心法"
-        className="border-ink/10 flex gap-1 overflow-x-auto border-b"
-      >
-        {groups.map((item) => {
-          const active = item.method.id === group.method.id;
-          return (
-            <button
-              key={item.method.id}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => chooseMethod(item.method.id)}
-              className={cn(
-                'focus-visible:outline-crimson/60 shrink-0 border-b-2 px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2',
-                active
-                  ? 'border-crimson text-ink'
-                  : 'text-ink-secondary hover:text-ink border-transparent',
-              )}
-            >
-              <span className="block text-sm leading-5">
-                {item.method.name}
-              </span>
-              <span className="mt-0.5 block text-xs leading-4">
-                <span className="font-mono">{item.level}</span>级
-                {item.method.isPrimary ? ' · 主修' : ''}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-        <div>
-          {learned.length ? (
-            <SkillTiles
-              label="已习"
-              skills={learned}
-              selectedId={selected.id}
-              onSelect={setSelectedId}
+    <div className="grid items-start gap-5 text-sm lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-7">
+      <section aria-label="心法" className="lg:sticky lg:top-3">
+        <div className="grid grid-cols-[6.75rem_minmax(0,1fr)_6.75rem] grid-rows-3 items-center gap-x-1 gap-y-2 sm:grid-cols-[8.75rem_minmax(0,1fr)_8.75rem] sm:gap-x-2">
+          {gender ? (
+            <GameImage
+              src={`/assets/manuals/cultivator-${gender === '女' ? 'female' : 'male'}-meditation.webp`}
+              alt=""
+              width={960}
+              height={960}
+              draggable={false}
+              className="pointer-events-none col-start-2 row-span-3 row-start-1 h-56 w-full object-contain select-none sm:h-72 lg:h-[22rem]"
             />
-          ) : null}
-          {unlearned.length ? (
-            <div className={learned.length ? 'mt-5' : undefined}>
-              <SkillTiles
-                label="未习"
-                skills={unlearned}
-                selectedId={selected.id}
-                onSelect={setSelectedId}
-                quiet
+          ) : (
+            <div className="col-start-2 row-span-3 row-start-1 h-56 sm:h-72 lg:h-[22rem]" />
+          )}
+          {groups.map((item) => (
+            <div
+              key={item.method.id}
+              className={slotPositions[item.method.slot - 1]}
+            >
+              <MethodOrbit
+                method={item.method}
+                level={item.level}
+                selected={item.method.id === group.method.id}
+                onSelect={() => chooseMethod(item.method.id)}
               />
             </div>
-          ) : null}
+          ))}
         </div>
-        <SkillSheet
-          skill={selected}
-          definition={findSkill(progress.sectId, selected.id)}
-        />
-      </div>
+      </section>
+      <section
+        aria-label={`${group.method.name}的神通`}
+        className="border-ink/15 min-w-0 border-t pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-7"
+      >
+        <header className="mb-3 flex min-h-11 items-baseline gap-2">
+          <h3 className="font-medium">{group.method.name}</h3>
+          <span className="text-ink-secondary font-mono text-xs">
+            {group.level}级
+          </span>
+        </header>
+        {group.skills.length ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
+            {group.skills.map((skill) => {
+              const active = skill.id === selected?.id;
+              return (
+                <button
+                  key={skill.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setSelectedId(skill.id)}
+                  className={cn(
+                    'focus-visible:outline-crimson relative min-h-16 border border-l-2 px-2 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2',
+                    active
+                      ? 'border-ink/15 border-l-crimson bg-ink/5'
+                      : skill.available
+                        ? 'border-ink/15 hover:bg-ink/5'
+                        : 'border-ink/10 text-ink/45 hover:bg-ink/5',
+                  )}
+                >
+                  <span className="block pr-1 text-sm font-medium">
+                    {skill.name}
+                  </span>
+                  <span className="text-ink-secondary mt-1 block text-xs">
+                    {skill.passive ? '被动' : '神通'}
+                    {skill.available ? '' : ' · 未习'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-ink-secondary border-ink/10 border-y py-12 text-center">
+            此心法没有可查阅的神通。
+          </p>
+        )}
+        {selected ? (
+          <div className="border-ink/15 mt-4 border-t pt-4">
+            <SkillSheet
+              skill={selected}
+              definition={findSkill(progress.sectId, selected.id)}
+            />
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
 
-function SkillTiles({
-  label,
-  skills,
-  selectedId,
+function MethodOrbit({
+  method,
+  level,
+  selected,
   onSelect,
-  quiet = false,
 }: {
-  label: string;
-  skills: ReturnType<typeof sectSkillCatalog>;
-  selectedId: string;
-  onSelect: (id: string) => void;
-  quiet?: boolean;
+  method: SectMethodDefV6;
+  level: number;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   return (
-    <div>
-      <p className="text-ink-secondary mb-2 text-xs">{label}</p>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-2">
-        {skills.map((skill) => {
-          const selected = skill.id === selectedId;
-          return (
-            <button
-              key={skill.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onSelect(skill.id)}
-              className={cn(
-                'focus-visible:outline-crimson/60 flex min-h-14 flex-col items-center justify-center px-2 py-2 text-center focus-visible:outline-2 focus-visible:outline-offset-2',
-                selected
-                  ? 'bg-ink text-bgpaper'
-                  : quiet
-                    ? 'text-ink/45 hover:text-ink hover:bg-ink/5'
-                    : 'bg-bgpaper text-ink border-ink/15 hover:border-ink/40 border',
-              )}
-            >
-              <span className="line-clamp-2 text-sm leading-5">
-                {skill.name}
-              </span>
-              {skill.available ? (
-                <span
-                  className={cn(
-                    'font-mono text-[11px] leading-none',
-                    selected ? 'text-bgpaper/70' : 'text-ink-secondary',
-                  )}
-                >
-                  {skill.level}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <button
+      type="button"
+      aria-pressed={selected}
+      aria-label={`${method.name}，${level}级${method.isPrimary ? '，主修' : ''}`}
+      onClick={onSelect}
+      className={cn(
+        'focus-visible:outline-crimson min-h-16 w-full px-0.5 py-1.5 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+        selected
+          ? 'bg-ink/8 text-ink'
+          : 'text-ink-secondary hover:bg-ink/5 hover:text-ink',
+        level === 0 && !selected && 'text-ink/40',
+      )}
+    >
+      {method.isPrimary ? (
+        <span className="text-crimson block text-[10px] tracking-[0.28em]">
+          主修
+        </span>
+      ) : null}
+      <span className="inline-flex max-w-full items-center justify-center gap-1">
+        {selected ? (
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rotate-45 bg-current"
+          />
+        ) : null}
+        <span
+          className={cn(
+            'inline-block border-b border-current pb-0.5 text-xs leading-4 whitespace-nowrap sm:text-sm sm:leading-5',
+            selected && 'border-b-2 font-semibold',
+          )}
+        >
+          {method.name}
+        </span>
+      </span>
+      <span className="mt-0.5 block font-mono text-xs">
+        {level}
+        <span className="font-sans">级</span>
+      </span>
+    </button>
   );
 }
 
@@ -256,13 +298,17 @@ function SkillSheet({
   ].filter((item): item is string => !!item);
   return (
     <article>
-      <p className="text-ink-secondary text-xs leading-5">
-        {skill.passive ? '被动' : '神通'}
-        {skill.available ? ' · 已习' : ' · 未习'}
-      </p>
-      <h3 className="mt-1 text-3xl leading-tight font-medium">{skill.name}</h3>
-      {flavor ? <p className="mt-5 text-lg leading-8">{flavor}</p> : null}
-      <div className="border-ink/10 mt-6 border-t pt-4">
+      <header className="flex flex-wrap items-baseline gap-2">
+        <h3 className="text-lg font-semibold">{skill.name}</h3>
+        <span className="text-ink-secondary text-xs">
+          {skill.passive ? '被动' : '神通'}
+          {skill.available ? ' · 已习' : ' · 未习'}
+        </span>
+      </header>
+      {flavor ? (
+        <p className="text-ink-secondary mt-3 leading-7">{flavor}</p>
+      ) : null}
+      <div className="border-ink/10 mt-4 border-t pt-4">
         <p className="text-ink-secondary text-xs">功效</p>
         <p className="mt-2 leading-7 whitespace-pre-line">
           <SkillDescription text={effect} />
