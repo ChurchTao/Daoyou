@@ -301,3 +301,66 @@ export function applyMysteryAction(
   run.log = run.log.slice(-LOG_LIMIT);
   return { ok: true, run, newClues: w.newClues };
 }
+
+const DIALOGUE_MEMORY = 4;
+
+/** 此刻该人物可以透露的秘密：解锁条件已满足、且玩家尚未掌握对应线索。 */
+export function mysteryRevealableSecrets(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  npcId: string,
+) {
+  const npc = caseFile.npcs.find((n) => n.id === npcId);
+  return (npc?.secrets ?? []).filter(
+    (s) =>
+      !run.clues.includes(s.clueId) &&
+      evaluateMysteryCondition(s.requires, run),
+  );
+}
+
+/**
+ * 自由对话：问题与回复由服务端生成，这里只做在场校验、扣行动力与越权过滤。
+ * 模型声称透露的线索只保留当前确实可以透露的那些，话术无法套出未解锁的线索。
+ */
+export function applyMysteryDialogue(
+  caseFile: MysteryCaseFile,
+  current: MysteryRunState,
+  turn: {
+    npcId: string;
+    question: string;
+    reply: string;
+    reveal: readonly string[];
+  },
+): MysteryActionResult {
+  if (current.actionsLeft <= 0) {
+    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+  }
+  const npc = caseFile.npcs.find(
+    (n) => n.id === turn.npcId && n.roomId === current.location,
+  );
+  if (!npc) return { ok: false, error: '此人不在这里' };
+  const allowed = new Set(
+    mysteryRevealableSecrets(caseFile, current, npc.id).map((s) => s.clueId),
+  );
+  const run = cloneRun(current);
+  run.turn += 1;
+  spend(run, 1);
+  if (!run.talkedTo.includes(npc.id)) run.talkedTo.push(npc.id);
+  const w = new RunWriter(caseFile, run);
+  w.log({ kind: 'speech', speaker: '你', text: turn.question });
+  w.log({ kind: 'speech', speaker: npc.name, text: turn.reply });
+  for (const clueId of turn.reveal)
+    if (allowed.has(clueId)) w.revealClue(clueId);
+  run.dialogue = {
+    ...current.dialogue,
+    [npc.id]: [
+      ...(current.dialogue?.[npc.id] ?? []),
+      { q: turn.question, a: turn.reply },
+    ].slice(-DIALOGUE_MEMORY),
+  };
+  if (run.actionsLeft === 0) {
+    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
+  }
+  run.log = run.log.slice(-LOG_LIMIT);
+  return { ok: true, run, newClues: w.newClues };
+}

@@ -73,6 +73,7 @@ import type {
 import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
 import {
   applyMysteryAction,
+  applyMysteryDialogue,
   checkMysteryAnswers,
   createMysteryRun,
   needsMysteryRestock,
@@ -87,7 +88,10 @@ import {
   DungeonSettlement,
   DungeonState,
 } from '@server/dungeon/application/flow/types.js';
+import { textFilter } from '@server/social/application/textFilter.js';
+import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
 import type { generateMysteryCase } from '../mystery/MysteryCaseGenerator.js';
+import { generateNpcReply } from '../mystery/MysteryDialogue.js';
 import { isKeyClue, requireMysteryTemplate } from '../mystery/mysteryState.js';
 import {
   insertScenario,
@@ -1984,6 +1988,98 @@ export class DungeonFlowService {
           mystery.run,
           input.action,
         );
+        if (!result.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            result.error,
+            400,
+          );
+        }
+        mystery.run = { ...result.run, lastActionId: input.actionId };
+        for (const clueId of result.newClues) {
+          if (isKeyClue(mystery.caseFile, clueId))
+            await appendClueReward(state, clueId);
+        }
+        return this.finishMysteryStep(cultivatorId, state, options);
+      },
+      options.lease,
+    );
+  }
+
+  /**
+   * 与人物自由对话：先做在场与行动力校验再调用模型，避免无效请求产生费用；
+   * 模型失败不扣行动力。透露的线索经规则层过滤，关键线索照常累计探索收益。
+   */
+  async talkMystery(
+    cultivatorId: string,
+    input: {
+      runId: string;
+      actionId: string;
+      turn: number;
+      npcId: string;
+      question: string;
+    },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-talk',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const present = mystery.caseFile.npcs.some(
+          (n) => n.id === input.npcId && n.roomId === mystery.run.location,
+        );
+        if (!present || mystery.run.actionsLeft <= 0) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            present ? '行动力已耗尽，只能结案推理' : '此人不在这里',
+            400,
+          );
+        }
+        const question = textFilter
+          .mask(normalizeFreeformLlmInput(input.question))
+          .text.slice(0, 80);
+        if (!question) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            '请说点什么',
+            400,
+          );
+        }
+        const answer = await generateNpcReply({
+          caseFile: mystery.caseFile,
+          run: mystery.run,
+          npcId: input.npcId,
+          question,
+        }).catch((error: unknown) => {
+          console.warn('[DungeonMystery] 人物对话生成失败:', error);
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '对方一时没有回应，请稍后再问',
+            409,
+          );
+        });
+        const result = applyMysteryDialogue(mystery.caseFile, mystery.run, {
+          npcId: input.npcId,
+          question,
+          ...answer,
+        });
         if (!result.ok) {
           throw new DungeonFlowError(
             DungeonFlowErrorCode.INVALID_ACTION,

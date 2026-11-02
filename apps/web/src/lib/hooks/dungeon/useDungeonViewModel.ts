@@ -113,6 +113,7 @@ export function useDungeonViewModel(
     recoverDungeon,
     mysteryAct,
     mysteryDeduce,
+    mysteryTalk,
     processing,
   } = useDungeonActions(refresh, state);
 
@@ -295,6 +296,20 @@ export function useDungeonViewModel(
     );
   };
 
+  const handleMysteryTalk = async (npcId: string, question: string) => {
+    if (!state?.runId || !state.mysteryView) return false;
+    const data = await mysteryTalk(
+      state.runId,
+      state.mysteryView.turn,
+      npcId,
+      question,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+    return data !== null;
+  };
+
   const handleMysteryDeduce = async (answers: MysteryAnswers) => {
     if (!state?.runId) return;
     const data = await mysteryDeduce(state.runId, answers);
@@ -362,6 +377,7 @@ export function useDungeonViewModel(
       completeBattle: handleBattleComplete,
       mysteryAct: handleMysteryAct,
       mysteryDeduce: handleMysteryDeduce,
+      mysteryTalk: handleMysteryTalk,
     },
   };
 }

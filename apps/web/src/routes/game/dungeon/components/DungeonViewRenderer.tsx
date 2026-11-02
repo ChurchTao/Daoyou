@@ -59,6 +59,7 @@ interface DungeonViewRendererProps {
     completeBattle: (data: BattleCallbackData | null) => void;
     mysteryAct: (action: MysteryAction) => Promise<void>;
     mysteryDeduce: (answers: MysteryAnswers) => Promise<void>;
+    mysteryTalk: (npcId: string, question: string) => Promise<boolean>;
   };
   onSettlementConfirm?: () => void;
 }
@@ -379,6 +380,7 @@ export function DungeonViewRenderer({
           view={viewState.view}
           processing={processing}
           onAct={actions.mysteryAct}
+          onTalk={actions.mysteryTalk}
           onDeduce={actions.mysteryDeduce}
           onQuit={actions.quitDungeon}
         />

@@ -292,6 +292,8 @@ export interface MysteryRunState {
   firedInteractions: string[];
   log: MysteryLogEntry[];
   lastActionId?: string;
+  /** 与各人物的自由对话记录，每人只保留最近几轮。 */
+  dialogue?: Record<string, Array<{ q: string; a: string }>>;
 }
 
 export const MysteryActionSchema = z.discriminatedUnion('type', [

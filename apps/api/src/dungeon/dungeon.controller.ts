@@ -14,6 +14,7 @@ import {
 import {
   DungeonMysteryActRequestSchema,
   DungeonMysteryDeduceRequestSchema,
+  DungeonMysteryTalkRequestSchema,
 } from '@daoyou/contracts/dungeon/mystery';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
@@ -87,6 +88,17 @@ export class DungeonController {
     input: z.infer<typeof DungeonMysteryActRequestSchema>,
   ) {
     return this.dungeon.execute(actor, { kind: 'mystery-act', ...input });
+  }
+
+  @Post('mystery/talk')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryTalk(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryTalkRequestSchema))
+    input: z.infer<typeof DungeonMysteryTalkRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-talk', ...input });
   }
 
   @Post('mystery/deduce')

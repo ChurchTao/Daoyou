@@ -1,6 +1,7 @@
 import {
   MysteryActionSchema,
   MysteryAnswersSchema,
+  MysteryIdSchema,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { z } from 'zod';
 
@@ -26,4 +27,18 @@ export const DungeonMysteryDeduceRequestSchema = z
 
 export type DungeonMysteryDeduceRequest = z.infer<
   typeof DungeonMysteryDeduceRequestSchema
+>;
+
+export const DungeonMysteryTalkRequestSchema = z
+  .object({
+    runId: z.uuid(),
+    actionId: z.uuid(),
+    turn: z.number().int().nonnegative(),
+    npcId: MysteryIdSchema,
+    question: z.string().trim().min(1).max(80),
+  })
+  .strict();
+
+export type DungeonMysteryTalkRequest = z.infer<
+  typeof DungeonMysteryTalkRequestSchema
 >;

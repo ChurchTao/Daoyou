@@ -1,7 +1,9 @@
 /** Public dungeon mystery capabilities. Keep implementation files private. */
 export {
   applyMysteryAction,
+  applyMysteryDialogue,
   createMysteryRun,
+  mysteryRevealableSecrets,
   evaluateMysteryCondition,
   mysteryNeighbors,
 } from '../dungeon/mystery/engine.js';

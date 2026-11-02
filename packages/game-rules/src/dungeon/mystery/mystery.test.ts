@@ -10,7 +10,12 @@ import {
   type MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { describe, expect, it } from 'vitest';
-import { applyMysteryAction, createMysteryRun } from './engine.js';
+import {
+  applyMysteryAction,
+  applyMysteryDialogue,
+  createMysteryRun,
+  mysteryRevealableSecrets,
+} from './engine.js';
 import { projectMysteryView } from './projection.js';
 import { checkMysteryAnswers, scoreMysteryRun } from './scoring.js';
 import { buildMysterySkeleton } from './skeleton.js';
@@ -369,5 +374,69 @@ describe('mystery skeleton', () => {
     expect(() =>
       buildMysterySkeleton({ ...template, archetype: 'unlock' }, 1),
     ).toThrow('暂不支持原型 unlock 的骨架生成');
+  });
+});
+
+describe('mystery dialogue', () => {
+  it('drops clues the model tries to reveal before their conditions are met', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }]);
+    // 尚未到过丹房，韩老三的说法还不能透露；也不能借他之口拿到别处的线索。
+    expect(mysteryRevealableSecrets(caseFile, run, 'han')).toEqual([]);
+    const result = applyMysteryDialogue(caseFile, run, {
+      npcId: 'han',
+      question: '你兄长是怎么死的？',
+      reply: '兽潮。',
+      reveal: ['han_claim', 'poison_ash'],
+    });
+    expect(result.ok && result.newClues).toEqual([]);
+    expect(result.ok && result.run.actionsLeft).toBe(run.actionsLeft - 1);
+  });
+
+  it('reveals unlocked secrets, logs both sides and keeps a short memory', () => {
+    const caseFile = fallback();
+    let run = play(caseFile, [
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+      { type: 'move', roomId: 'stone_hall' },
+    ]);
+    expect(
+      mysteryRevealableSecrets(caseFile, run, 'han').map((s) => s.clueId),
+    ).toEqual(['han_claim']);
+    for (let i = 0; i < 5; i++) {
+      const result = applyMysteryDialogue(caseFile, run, {
+        npcId: 'han',
+        question: `问题${i}`,
+        reply: `回答${i}`,
+        reveal: ['han_claim'],
+      });
+      if (!result.ok) throw new Error(result.error);
+      if (i === 0) expect(result.newClues).toEqual(['han_claim']);
+      else expect(result.newClues).toEqual([]);
+      run = result.run;
+    }
+    expect(run.dialogue?.han.map((d) => d.q)).toEqual([
+      '问题1',
+      '问题2',
+      '问题3',
+      '问题4',
+    ]);
+    expect(run.log.slice(-2)).toEqual([
+      { turn: run.turn, kind: 'speech', speaker: '你', text: '问题4' },
+      { turn: run.turn, kind: 'speech', speaker: '韩老三', text: '回答4' },
+    ]);
+  });
+
+  it('requires the person to be present', () => {
+    const caseFile = fallback();
+    const run = createMysteryRun(caseFile, 30);
+    expect(
+      applyMysteryDialogue(caseFile, run, {
+        npcId: 'su',
+        question: '在吗',
+        reply: '在',
+        reveal: [],
+      }),
+    ).toEqual({ ok: false, error: '此人不在这里' });
   });
 });

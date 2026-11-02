@@ -2,6 +2,7 @@ import type { DungeonExpectedState } from '@daoyou/contracts/combat/dungeon';
 import type {
   DungeonMysteryActRequest,
   DungeonMysteryDeduceRequest,
+  DungeonMysteryTalkRequest,
 } from '@daoyou/contracts/dungeon/mystery';
 import {
   toClientDungeonResult,
@@ -41,6 +42,7 @@ type DungeonCommand =
     }
   | ({ kind: 'mystery-act' } & DungeonMysteryActRequest)
   | ({ kind: 'mystery-deduce' } & DungeonMysteryDeduceRequest)
+  | ({ kind: 'mystery-talk' } & DungeonMysteryTalkRequest)
   | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
@@ -307,6 +309,8 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return 'dungeon_mystery_act';
     case 'mystery-deduce':
       return 'dungeon_mystery_deduce';
+    case 'mystery-talk':
+      return 'dungeon_mystery_talk';
     case 'battle-begin':
       return 'dungeon_battle_begin';
     case 'recover':
@@ -370,6 +374,8 @@ async function prepareDungeonCommand(
       return flow.actMystery(cultivatorId, command, options);
     case 'mystery-deduce':
       return flow.deduceMystery(cultivatorId, command, options);
+    case 'mystery-talk':
+      return flow.talkMystery(cultivatorId, command, options);
     case 'battle-begin':
       return flow.beginBattle(cultivatorId, command.encounterId, options);
     case 'recover':

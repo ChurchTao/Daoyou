@@ -1,5 +1,5 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type {
   DungeonMaterialSelection,
@@ -95,6 +95,22 @@ export function useDungeonActions(
         turn,
         action,
       });
+    },
+    mysteryTalk: (
+      runId: string,
+      turn: number,
+      npcId: string,
+      question: string,
+    ) => {
+      const key = JSON.stringify([runId, turn, npcId, question]);
+      if (actionRequest.current?.key !== key)
+        actionRequest.current = { key, id: crypto.randomUUID() };
+      // 人物作答需要调用模型，略长于普通调查动作。
+      return mutate(
+        'mystery/talk',
+        { runId, actionId: actionRequest.current.id, turn, npcId, question },
+        45000,
+      );
     },
     mysteryDeduce: (runId: string, answers: MysteryAnswers) =>
       mutate('mystery/deduce', { runId, answers }),

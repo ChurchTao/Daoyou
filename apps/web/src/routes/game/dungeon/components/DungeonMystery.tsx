@@ -3,6 +3,7 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { InkInput } from '@app/components/ui/InkInput';
 import { cn } from '@app/lib/cn';
 import type {
   MysteryAction,
@@ -18,6 +19,7 @@ interface DungeonMysteryProps {
   view: MysteryPlayerView;
   processing: boolean;
   onAct: (action: MysteryAction) => Promise<void>;
+  onTalk: (npcId: string, question: string) => Promise<boolean>;
   onDeduce: (answers: MysteryAnswers) => Promise<void>;
   onQuit: () => Promise<boolean>;
 }
@@ -51,13 +53,31 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
   return <p className="text-ink leading-8">{entry.text}</p>;
 }
 
+/** 与某人的对话：此人的发言，以及紧接在其回答之前的玩家提问。 */
+function dialogueWith(log: MysteryLogEntry[], npcName: string) {
+  return log
+    .filter(
+      (entry, i) =>
+        entry.kind === 'speech' &&
+        (entry.speaker === npcName ||
+          (entry.speaker === '你' && log[i + 1]?.speaker === npcName)),
+    )
+    .slice(-10);
+}
+
 export function DungeonMystery({
   view,
   processing,
   onAct,
+  onTalk,
   onDeduce,
   onQuit,
 }: DungeonMysteryProps) {
+  const [asking, setAsking] = useState<{
+    npcId: string;
+    npcName: string;
+  } | null>(null);
+  const [question, setQuestion] = useState('');
   const [notebookOpen, setNotebookOpen] = useState(false);
   const [deducing, setDeducing] = useState(false);
   const [picker, setPicker] = useState<Picker | null>(null);
@@ -153,15 +173,16 @@ export function DungeonMystery({
                 <div className="flex gap-1">
                   <InkButton
                     disabled={processing}
-                    onClick={() => act({ type: 'talk', npcId: npc.id })}
+                    onClick={() =>
+                      setAsking({ npcId: npc.id, npcName: npc.name })
+                    }
                   >
                     交谈
                   </InkButton>
                   <InkButton
                     variant="outline"
                     disabled={
-                      processing ||
-                      view.clues.length + view.items.length === 0
+                      processing || view.clues.length + view.items.length === 0
                     }
                     onClick={() =>
                       setPicker({
@@ -255,6 +276,66 @@ export function DungeonMystery({
         onClose={() => setDeducing(false)}
         onSubmit={onDeduce}
       />
+
+      <InkDetailDrawer
+        isOpen={asking !== null}
+        onClose={() => setAsking(null)}
+        size="md"
+        title={asking ? `与${asking.npcName}交谈` : ''}
+        description="直接问你想知道的事。每问一句消耗 1 点行动力。"
+        footer={
+          asking ? (
+            <div className="flex w-full flex-wrap items-end gap-2">
+              <InkInput
+                containerClassName="min-w-0 flex-1"
+                value={question}
+                maxLength={80}
+                placeholder="例如：你昨夜在做什么？"
+                onChange={setQuestion}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && question.trim() && !processing) {
+                    event.preventDefault();
+                    void onTalk(asking.npcId, question.trim()).then(
+                      (sent) => sent && setQuestion(''),
+                    );
+                  }
+                }}
+              />
+              <InkButton
+                variant="primary"
+                disabled={!question.trim() || processing || exhausted}
+                pending={processing}
+                pendingLabel="对方思索中……"
+                onClick={() =>
+                  void onTalk(asking.npcId, question.trim()).then(
+                    (sent) => sent && setQuestion(''),
+                  )
+                }
+              >
+                问
+              </InkButton>
+              <InkButton
+                variant="ghost"
+                disabled={processing || exhausted}
+                onClick={() => act({ type: 'talk', npcId: asking.npcId })}
+              >
+                寒暄
+              </InkButton>
+            </div>
+          ) : null
+        }
+      >
+        {asking ? (
+          <div className="space-y-2 text-sm">
+            {dialogueWith(view.log, asking.npcName).map((entry, index) => (
+              <MysteryLogLine key={index} entry={entry} />
+            ))}
+            {exhausted ? (
+              <p className="text-crimson">行动力已尽，不能再问了。</p>
+            ) : null}
+          </div>
+        ) : null}
+      </InkDetailDrawer>
 
       <InkDetailDrawer
         isOpen={picker !== null}

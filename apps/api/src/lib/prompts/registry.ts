@@ -32,6 +32,7 @@ const promptSources = [
   'dungeon-case.md',
   'dungeon-case-text.md',
   'dungeon-case-review.md',
+  'dungeon-npc.md',
   'dungeon-round.md',
   'dungeon-settlement.md',
   'fate-naming.md',
