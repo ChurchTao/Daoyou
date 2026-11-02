@@ -323,5 +323,30 @@
       "answer": "su",
       "explanation": "苏晚的玉佩与禁制石门的五瓣云纹相合，她是玄微子的孙女，遗府理应归她。"
     }
+  ],
+  "events": [
+    {
+      "id": "evt_destroy",
+      "warnAt": 12,
+      "at": 15,
+      "unless": {
+        "any": [
+          {
+            "has_clue": "han_pack"
+          },
+          {
+            "flag": "han_exposed"
+          }
+        ]
+      },
+      "warning": "韩老三不知何时退到了石室边上，频频回望暗道的方向，袖口蹭了些新土。",
+      "text": "暗道深处传来一声火石轻响，随后飘出一股焦糊味。等你回过神来，韩老三已拍着衣襟回到石室，神色如常——暗道里像是有什么东西被烧掉了。",
+      "effects": [
+        {
+          "kind": "destroy_object",
+          "objectId": "escape_pack"
+        }
+      ]
+    }
   ]
 }

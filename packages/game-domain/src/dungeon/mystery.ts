@@ -40,6 +40,18 @@ export const MysteryEffectSchema = z.discriminatedUnion('kind', [
 
 export type MysteryEffect = z.infer<typeof MysteryEffectSchema>;
 
+/** 随回合发生的事件可能造成的后果：物件被毁、人物离场或设置标记。 */
+export const MysteryEventEffectSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('destroy_object'),
+    objectId: MysteryIdSchema,
+  }),
+  z.strictObject({ kind: z.literal('npc_leave'), npcId: MysteryIdSchema }),
+  z.strictObject({ kind: z.literal('set_flag'), flag: MysteryIdSchema }),
+]);
+
+export type MysteryEventEffect = z.infer<typeof MysteryEventEffectSchema>;
+
 export const MYSTERY_ARCHETYPE_VALUES = [
   'whodunit',
   'unlock',
@@ -292,6 +304,24 @@ export const MysteryCaseFileSchema = z.strictObject({
     )
     .min(1)
     .max(5),
+  /**
+   * 随回合推进的事件：到 `warnAt` 回合给出预兆，到 `at` 回合发生；
+   * 发生前 `unless` 已满足则不再发生。旧案卷没有此字段。
+   */
+  events: z
+    .array(
+      z.strictObject({
+        id: MysteryIdSchema,
+        warnAt: z.number().int().min(1),
+        at: z.number().int().min(1),
+        unless: MysteryConditionSchema,
+        warning: Text(160),
+        text: Text(200),
+        effects: z.array(MysteryEventEffectSchema).min(1).max(3),
+      }),
+    )
+    .max(3)
+    .optional(),
   /** 守住某个房间入口的守卫：可强闯（战斗）或满足条件后化解。旧案卷没有此字段。 */
   guards: z
     .array(
@@ -311,7 +341,7 @@ export const MysteryCaseFileSchema = z.strictObject({
 export type MysteryCaseFile = z.infer<typeof MysteryCaseFileSchema>;
 
 export type MysteryLogKind =
-  'scene' | 'detail' | 'speech' | 'clue' | 'item' | 'system';
+  'scene' | 'detail' | 'speech' | 'clue' | 'item' | 'system' | 'event';
 
 export interface MysteryLogEntry {
   turn: number;
@@ -339,6 +369,12 @@ export interface MysteryRunState {
   dialogue?: Record<string, Array<{ q: string; a: string }>>;
   /** 已通过（化解或击败）的守卫。 */
   passedGuards?: string[];
+  /** 已给出预兆（`warn:` 前缀）或已发生的事件。 */
+  events?: string[];
+  /** 被毁去、不能再搜查的物件。 */
+  destroyed?: string[];
+  /** 已离场的人物。 */
+  departed?: string[];
 }
 
 export const MysteryActionSchema = z.discriminatedUnion('type', [

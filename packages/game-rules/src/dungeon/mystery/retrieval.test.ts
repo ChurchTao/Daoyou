@@ -205,3 +205,54 @@ describe('retrieval scoring', () => {
     ).toBeNull();
   });
 });
+
+describe('timed events', () => {
+  const look = (caseFile: MysteryCaseFile, run: MysteryRunState) => {
+    const result = applyMysteryAction(caseFile, run, {
+      type: 'search',
+      objectId: 'obj_entrance',
+    });
+    if (!result.ok) throw new Error(result.error);
+    return result.run;
+  };
+
+  it('warns first, then erases the true-place traces and sends the decoy away', () => {
+    const { caseFile } = buildMysterySkeleton(template, 11);
+    const erase = caseFile.events!.find((e) => e.id === 'evt_erase')!;
+    const leave = caseFile.events!.find((e) => e.id === 'evt_leave')!;
+    let run = createMysteryRun(caseFile, template.scale.action_budget);
+    run = look(caseFile, { ...run, turn: erase.warnAt - 1 });
+    expect(run.events).toEqual(['warn:evt_erase']);
+    expect(run.log.at(-1)).toMatchObject({ kind: 'event' });
+    run = look(caseFile, { ...run, turn: leave.at - 1 });
+    expect(run.events).toEqual(
+      expect.arrayContaining(['evt_erase', 'evt_leave']),
+    );
+    expect(run.destroyed).toEqual(['obj_place']);
+    expect(run.departed).toEqual(['npc_decoy']);
+
+    const decoy = caseFile.npcs.find((n) => n.id === 'npc_decoy')!;
+    const there = { ...run, location: decoy.roomId };
+    expect(
+      applyMysteryAction(caseFile, there, { type: 'talk', npcId: decoy.id }),
+    ).toEqual({ ok: false, error: '此人不在这里' });
+    const view = projectMysteryView(
+      { templateId: template.id, caseSource: 'fallback', caseFile, run: there },
+      template,
+    );
+    expect(view.npcsHere.some((n) => n.id === decoy.id)).toBe(false);
+  });
+
+  it('does not happen once the player got there first', () => {
+    const { caseFile } = buildMysterySkeleton(template, 11);
+    const erase = caseFile.events!.find((e) => e.id === 'evt_erase')!;
+    const run = look(caseFile, {
+      ...createMysteryRun(caseFile, template.scale.action_budget),
+      turn: erase.at - 1,
+      clues: ['clue_place'],
+      flags: ['decoy_turned'],
+    });
+    expect(run.events ?? []).toEqual([]);
+    expect(run.destroyed).toBeUndefined();
+  });
+});

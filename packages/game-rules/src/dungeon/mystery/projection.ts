@@ -79,14 +79,14 @@ export function projectMysteryView(
       };
     }),
     objects: caseFile.objects
-      .filter((o) => o.roomId === room.id)
+      .filter((o) => o.roomId === room.id && !run.destroyed?.includes(o.id))
       .map((o) => ({
         id: o.id,
         name: o.name,
         searched: run.searched.includes(o.id),
       })),
     npcsHere: caseFile.npcs
-      .filter((n) => n.roomId === room.id)
+      .filter((n) => n.roomId === room.id && !run.departed?.includes(n.id))
       .map((n) => ({ id: n.id, name: n.name, title: n.title })),
     knownNpcs: caseFile.npcs
       .filter((n) => knownNpcIds.has(n.id))

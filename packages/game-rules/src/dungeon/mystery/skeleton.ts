@@ -20,6 +20,19 @@ export interface MysteryCaseSkeleton {
 
 const T = MYSTERY_TEXT_PLACEHOLDER;
 
+/** 事件的预兆与发生回合：按行动力预算的比例换算。 */
+export function eventTurns(
+  template: MysteryScenarioTemplate,
+  warn: number,
+  at: number,
+) {
+  const budget = template.scale.action_budget;
+  return {
+    warnAt: Math.max(1, Math.round(budget * warn)),
+    at: Math.max(2, Math.round(budget * at)),
+  };
+}
+
 /** 按模板原型分派骨架构造器；同一模板与种子总是得到同一骨架。 */
 export function buildMysterySkeleton(
   template: MysteryScenarioTemplate,
@@ -501,7 +514,22 @@ function buildWhodunitSkeleton(
       { id: 'how', options, answer: 'method_true', explanation: T },
       { id: 'heir', answer: heir, explanation: T },
     ],
+    // 行动过半时凶手去毁掉藏起的罪证；玩家先拿到罪证或当面戳穿凶手即可阻止。
+    events: [
+      {
+        id: 'evt_destroy',
+        ...eventTurns(template, 0.4, 0.5),
+        unless: {
+          any: [{ has_clue: 'clue_hidden' }, { flag: 'culprit_exposed' }],
+        },
+        warning: T,
+        text: T,
+        effects: [{ kind: 'destroy_object', objectId: 'obj_hidden' }],
+      },
+    ],
   };
+  purposes.evt_destroy =
+    '凶手察觉调查逼近，趁你不备去毁掉藏起的罪证；预兆是凶手的异常举动，发生时只写你事后察觉藏罪证之处被人动过、东西已毁，不写罪证的具体内容';
   if (methodVia === 'tool')
     purposes.use_tool_method = '用工具探查作案器物，发现作案手段';
   return { caseFile, purposes };

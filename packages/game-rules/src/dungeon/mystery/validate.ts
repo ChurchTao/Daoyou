@@ -21,8 +21,22 @@ export interface MysteryReachability {
  */
 export function computeMysteryReachability(
   caseFile: MysteryCaseFile,
-  options: { skipGuarded?: boolean } = {},
+  options: { skipGuarded?: boolean; worstEvents?: boolean } = {},
 ): MysteryReachability {
+  // 最坏情况：所有事件都发生，被毁的物件与离场的人物一开始就不可用。
+  const lost = new Set(
+    options.worstEvents
+      ? (caseFile.events ?? []).flatMap((e) =>
+          e.effects.flatMap((x) =>
+            x.kind === 'destroy_object'
+              ? [x.objectId]
+              : x.kind === 'npc_leave'
+                ? [x.npcId]
+                : [],
+          ),
+        )
+      : [],
+  );
   const facts = {
     rooms: new Set([caseFile.startRoomId]),
     clues: new Set<string>(),
@@ -43,8 +57,10 @@ export function computeMysteryReachability(
     }
   };
   const roomOf = (targetId: string) =>
-    caseFile.objects.find((o) => o.id === targetId)?.roomId ??
-    caseFile.npcs.find((n) => n.id === targetId)?.roomId;
+    lost.has(targetId)
+      ? undefined
+      : (caseFile.objects.find((o) => o.id === targetId)?.roomId ??
+        caseFile.npcs.find((n) => n.id === targetId)?.roomId);
 
   let size = -1;
   const total = () =>
@@ -85,7 +101,7 @@ export function computeMysteryReachability(
         facts.items.add(item.id);
     }
     for (const npc of caseFile.npcs) {
-      if (!facts.rooms.has(npc.roomId)) continue;
+      if (!facts.rooms.has(npc.roomId) || lost.has(npc.id)) continue;
       for (const secret of npc.secrets) {
         if (evaluateMysteryCondition(secret.requires, view))
           facts.clues.add(secret.clueId);
@@ -326,18 +342,38 @@ export function validateMysteryCase(
     if (sources === 0) issues.push(`线索 ${clue.id} 没有获取途径`);
   }
 
-  // 守卫后面只放加分内容：即使一个守卫都不进，每个结案问题仍有关键线索支撑。
-  const unguarded = caseFile.guards?.length
-    ? computeMysteryReachability(caseFile, { skipGuarded: true })
-    : reach;
-  if (caseFile.guards?.length)
+  for (const e of caseFile.events ?? []) {
+    if (e.warnAt >= e.at) issues.push(`事件 ${e.id} 的预兆须早于发生`);
+    if (e.at > template.scale.action_budget)
+      issues.push(`事件 ${e.id} 发生得晚于行动力预算`);
+    checkCondition(`事件 ${e.id} 的阻止条件`, e.unless);
+    for (const x of e.effects) {
+      if (x.kind === 'destroy_object' && !objects.has(x.objectId))
+        issues.push(`事件 ${e.id} 毁去的物件 ${x.objectId} 不存在`);
+      if (x.kind === 'npc_leave' && !npcs.has(x.npcId))
+        issues.push(`事件 ${e.id} 离场的人物 ${x.npcId} 不存在`);
+    }
+  }
+  unique(
+    '事件',
+    (caseFile.events ?? []).map((e) => e.id),
+  );
+
+  // 最坏情况下（不进任何守卫房间、所有事件都已发生）每个结案问题仍有关键线索支撑：
+  // 守卫与事件只影响加分，不让案子无解。
+  if (caseFile.guards?.length || caseFile.events?.length) {
+    const worst = computeMysteryReachability(caseFile, {
+      skipGuarded: true,
+      worstEvents: true,
+    });
     for (const tq of template.questions)
       if (
         !keyClues.some(
-          (c) => c.supports.includes(tq.id) && unguarded.clues.has(c.id),
+          (c) => c.supports.includes(tq.id) && worst.clues.has(c.id),
         )
       )
-        issues.push(`结案问题 ${tq.id} 只能靠守卫后的线索支撑`);
+        issues.push(`结案问题 ${tq.id} 在守卫与事件的最坏情况下失去支撑`);
+  }
 
   const questions = new Map(caseFile.questions.map((q) => [q.id, q]));
   for (const tq of template.questions) {

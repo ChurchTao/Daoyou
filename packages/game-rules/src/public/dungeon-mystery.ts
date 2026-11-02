@@ -7,6 +7,7 @@ export {
   evaluateMysteryCondition,
   mysteryGuardAt,
   mysteryGuardChallenge,
+  mysteryNpcPresent,
   mysteryNeighbors,
   mysteryRevealableSecrets,
 } from '../dungeon/mystery/engine.js';

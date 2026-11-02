@@ -323,14 +323,13 @@ async function sweepScenarioLibrary() {
     where status = 'running'
       and started_at < now() - make_interval(secs => ${policy.staleRunningMs / 1000})
   `);
-  // 生成流水线升级后，旧版本的生成剧本整批停用；保底案卷逐份校验。
+  // 生成流水线升级后，旧版本的生成剧本整批停用；保底案卷也停用，随后以当前内容重新入库。
   await db
     .update(dungeonScenarios)
     .set({ status: 'retired', retiredAt: new Date() })
     .where(
       and(
         eq(dungeonScenarios.status, 'active'),
-        eq(dungeonScenarios.source, 'generated'),
         lt(dungeonScenarios.generatorVersion, MYSTERY_GENERATOR_VERSION),
       ),
     );

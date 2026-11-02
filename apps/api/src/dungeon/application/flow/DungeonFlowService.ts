@@ -80,6 +80,7 @@ import {
   createMysteryRun,
   mysteryConfrontationTarget,
   mysteryGuardChallenge,
+  mysteryNpcPresent,
   needsMysteryRestock,
   pickMysteryScenario,
   scoreMysteryRun,
@@ -2073,8 +2074,8 @@ export class DungeonFlowService {
             409,
           );
         }
-        const present = mystery.caseFile.npcs.some(
-          (n) => n.id === input.npcId && n.roomId === mystery.run.location,
+        const present = Boolean(
+          mysteryNpcPresent(mystery.caseFile, mystery.run, input.npcId),
         );
         if (!present || mystery.run.actionsLeft <= 0) {
           throw new DungeonFlowError(

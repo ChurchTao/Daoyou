@@ -44,8 +44,8 @@
     {
       "id": "room_side_1",
       "name": "东厢货房",
-      "description": "东厢货房堆满陈旧木箱，空气凝滞，霉味混着桐油气。角落一只木箱上散落着几册受潮的簿子。渔村少年阿潮蹲在箱旁，不时探头望向西厢。",
-      "brief": "东厢货房，木箱堆叠，阿潮蹲在一旁。",
+      "description": "东厢货房堆满陈旧木箱，空气凝滞，霉味混着桐油气。角落一只木箱上散落着几册受潮的簿子，地上留着几行来回踱步的湿脚印。",
+      "brief": "东厢货房，木箱堆叠，霉气扑鼻。",
       "exits": ["room_sealed"]
     },
     {
@@ -450,6 +450,47 @@
         "has_item": "item_pass"
       },
       "bypassText": "你出示通行令牌，傀儡猩红双目微闪，长戟缓缓放下，侧身让开通道，阵法波动渐息。"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_erase",
+      "warnAt": 15,
+      "at": 19,
+      "unless": {
+        "any": [
+          {
+            "has_clue": "clue_place"
+          },
+          {
+            "flag": "rival_exposed"
+          }
+        ]
+      },
+      "warning": "柳三娘借口去透口气，目光却几次落在通往封底密室的那道门上。",
+      "text": "封底密室的方向传来哗啦一阵水响。柳三娘回来时裙摆湿了半截，若无其事地理着袖口——密室地上若有什么痕迹，多半已被她抹平了。",
+      "effects": [
+        {
+          "kind": "destroy_object",
+          "objectId": "obj_place"
+        }
+      ]
+    },
+    {
+      "id": "evt_leave",
+      "warnAt": 21,
+      "at": 25,
+      "unless": {
+        "flag": "decoy_turned"
+      },
+      "warning": "阿潮攥着海图在货房里来回踱步，嘴里念叨着再不动手，宝贝就要被人抢先挖走了。",
+      "text": "阿潮再也按捺不住，揣着那张海图游出了沉船，说要上岸找家伙来挖，转眼便没了踪影。",
+      "effects": [
+        {
+          "kind": "npc_leave",
+          "npcId": "npc_decoy"
+        }
+      ]
     }
   ]
 }

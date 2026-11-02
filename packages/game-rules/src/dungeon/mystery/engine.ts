@@ -90,7 +90,59 @@ function cloneRun(run: MysteryRunState): MysteryRunState {
     firedInteractions: [...run.firedInteractions],
     log: [...run.log],
     ...(run.passedGuards ? { passedGuards: [...run.passedGuards] } : {}),
+    ...(run.events ? { events: [...run.events] } : {}),
+    ...(run.destroyed ? { destroyed: [...run.destroyed] } : {}),
+    ...(run.departed ? { departed: [...run.departed] } : {}),
   };
+}
+
+/** 人物此刻是否在该房间：离场的人物不再出现。 */
+export function mysteryNpcPresent(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  npcId: string,
+  roomId = run.location,
+) {
+  return caseFile.npcs.find(
+    (n) =>
+      n.id === npcId && n.roomId === roomId && !run.departed?.includes(n.id),
+  );
+}
+
+/**
+ * 推进随回合发生的事件：到预兆回合记一条预兆，到发生回合执行后果。
+ * 阻止条件在预兆或发生前已满足的事件不再推进；每个事件的预兆与发生各只一次。
+ */
+function advanceMysteryEvents(w: RunWriter) {
+  const run = w.run;
+  for (const event of w.caseFile.events ?? []) {
+    const seen = run.events ?? [];
+    if (seen.includes(event.id)) continue;
+    if (evaluateMysteryCondition(event.unless, run)) continue;
+    if (run.turn >= event.at) {
+      run.events = [...seen, event.id];
+      w.log({ kind: 'event', text: event.text });
+      for (const effect of event.effects) {
+        if (effect.kind === 'destroy_object')
+          run.destroyed = [...(run.destroyed ?? []), effect.objectId];
+        else if (effect.kind === 'npc_leave')
+          run.departed = [...(run.departed ?? []), effect.npcId];
+        else if (!run.flags.includes(effect.flag)) run.flags.push(effect.flag);
+      }
+    } else if (run.turn >= event.warnAt && !seen.includes(`warn:${event.id}`)) {
+      run.events = [...seen, `warn:${event.id}`];
+      w.log({ kind: 'event', text: event.warning });
+    }
+  }
+}
+
+/** 动作收尾：推进事件、提示行动力耗尽、截断日志。 */
+function finishTurn(w: RunWriter): MysteryActionResult {
+  advanceMysteryEvents(w);
+  if (w.run.actionsLeft === 0)
+    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
+  w.run.log = w.run.log.slice(-LOG_LIMIT);
+  return { ok: true, run: w.run, newClues: w.newClues };
 }
 
 /** 守在该房间入口、尚未通过的守卫。 */
@@ -166,10 +218,7 @@ export function applyMysteryGuardBattle(
       text: `你没能闯过${ahead.guard.name}，只得退了回来。`,
     });
   }
-  if (run.actionsLeft === 0)
-    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
-  run.log = run.log.slice(-LOG_LIMIT);
-  return { ok: true, run, newClues: w.newClues };
+  return finishTurn(w);
 }
 
 class RunWriter {
@@ -275,6 +324,8 @@ export function applyMysteryAction(
         (o) => o.id === action.objectId && o.roomId === run.location,
       );
       if (!object) return { ok: false, error: '此处没有这件东西' };
+      if (run.destroyed?.includes(object.id))
+        return { ok: false, error: '它已经被毁去了' };
       const before = run.clues.length + run.items.length;
       if (!run.searched.includes(object.id)) {
         spend(run, 1);
@@ -311,11 +362,11 @@ export function applyMysteryAction(
         return { ok: false, error: '你身上没有这件东西' };
       const targetHere =
         caseFile.objects.some(
-          (o) => o.id === action.targetId && o.roomId === run.location,
-        ) ||
-        caseFile.npcs.some(
-          (n) => n.id === action.targetId && n.roomId === run.location,
-        );
+          (o) =>
+            o.id === action.targetId &&
+            o.roomId === run.location &&
+            !run.destroyed?.includes(o.id),
+        ) || Boolean(mysteryNpcPresent(caseFile, run, action.targetId));
       if (!targetHere) return { ok: false, error: '目标不在此处' };
       spend(run, 1);
       const interaction = caseFile.interactions.find(
@@ -335,9 +386,7 @@ export function applyMysteryAction(
       break;
     }
     case 'talk': {
-      const npc = caseFile.npcs.find(
-        (n) => n.id === action.npcId && n.roomId === run.location,
-      );
+      const npc = mysteryNpcPresent(caseFile, run, action.npcId);
       if (!npc) return { ok: false, error: '此人不在这里' };
       spend(run, 1);
       const first = !run.talkedTo.includes(npc.id);
@@ -361,9 +410,7 @@ export function applyMysteryAction(
       break;
     }
     case 'present': {
-      const npc = caseFile.npcs.find(
-        (n) => n.id === action.npcId && n.roomId === run.location,
-      );
+      const npc = mysteryNpcPresent(caseFile, run, action.npcId);
       if (!npc) return { ok: false, error: '此人不在这里' };
       if (
         !run.clues.includes(action.evidenceId) &&
@@ -388,11 +435,7 @@ export function applyMysteryAction(
     }
   }
 
-  if (run.actionsLeft === 0) {
-    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
-  }
-  run.log = run.log.slice(-LOG_LIMIT);
-  return { ok: true, run, newClues: w.newClues };
+  return finishTurn(w);
 }
 
 const DIALOGUE_MEMORY = 4;
@@ -428,9 +471,7 @@ export function applyMysteryDialogue(
   if (current.actionsLeft <= 0) {
     return { ok: false, error: '行动力已耗尽，只能结案推理' };
   }
-  const npc = caseFile.npcs.find(
-    (n) => n.id === turn.npcId && n.roomId === current.location,
-  );
+  const npc = mysteryNpcPresent(caseFile, current, turn.npcId);
   if (!npc) return { ok: false, error: '此人不在这里' };
   const allowed = new Set(
     mysteryRevealableSecrets(caseFile, current, npc.id).map((s) => s.clueId),
@@ -451,9 +492,5 @@ export function applyMysteryDialogue(
       { q: turn.question, a: turn.reply },
     ].slice(-DIALOGUE_MEMORY),
   };
-  if (run.actionsLeft === 0) {
-    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
-  }
-  run.log = run.log.slice(-LOG_LIMIT);
-  return { ok: true, run, newClues: w.newClues };
+  return finishTurn(w);
 }

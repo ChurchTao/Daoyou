@@ -52,6 +52,14 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
       </p>
     );
   }
+  if (entry.kind === 'event') {
+    return (
+      <p className="border-ink/40 bg-ink/5 border-l-2 px-3 py-2 text-sm leading-7">
+        <span className="text-ink mr-2 font-semibold">异动</span>
+        {entry.text}
+      </p>
+    );
+  }
   if (entry.kind === 'system') {
     return <p className="text-ink-secondary text-sm leading-7">{entry.text}</p>;
   }

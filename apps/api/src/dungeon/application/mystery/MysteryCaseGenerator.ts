@@ -118,6 +118,7 @@ function ids(skeleton: MysteryCaseSkeleton) {
     questions: c.questions.map((q) => q.id),
     options: c.questions.flatMap((q) => q.options?.map((o) => o.id) ?? []),
     guards: (c.guards ?? []).map((g) => g.id),
+    events: (c.events ?? []).map((e) => e.id),
   };
 }
 
@@ -201,7 +202,7 @@ function cueObjects(s: MysteryCaseSkeleton) {
 
 const TEXT_PARTS = {
   places: {
-    task: '为每个房间写初次进入的描写与再次进入的一句话；有进入条件的房间写受阻描写；为每个物件写细看后的描写。房间描写只写空间、光线、气味与在场人物的姿态，不描写任何物件的细节（物件会单独列出）。物件分两种：藏有线索或可被探查的物件只写一句引人注意的异样，不写具体发现，具体发现由线索正文呈现；其余物件可以细写陈设。',
+    task: '为每个房间写初次进入的描写与再次进入的一句话；有进入条件的房间写受阻描写；为每个守卫写拦路的样子与被化解时的情形；为每个随时间发生的事件写预兆与发生时的情形（第二人称，只写你察觉到的）；为每个物件写细看后的描写。房间描写只写空间、光线、气味与在场人物的姿态，不描写任何物件的细节（物件会单独列出）；会因事件离场的人物（见 case.events 的 affects）不写进房间描写。物件分两种：藏有线索或可被探查的物件只写一句引人注意的异样，不写具体发现，具体发现由线索正文呈现；其余物件可以细写陈设。',
     schema: (s: MysteryCaseSkeleton) => {
       const id = ids(s);
       const cues = cueObjects(s);
@@ -232,6 +233,18 @@ const TEXT_PARTS = {
             bypassText: Text(
               120,
               `你用化解办法令它让路时的情形；作用：${s.purposes[g]}`,
+            ),
+          }),
+        ),
+        events: keyed(id.events, (e) =>
+          z.object({
+            warning: Text(
+              80,
+              `事件发生前的预兆，只写看得见的异常举动，不点破意图；作用：${s.purposes[e]}`,
+            ),
+            text: Text(
+              120,
+              `事件发生时你察觉到的情形与后果；作用：${s.purposes[e]}`,
             ),
           }),
         ),
@@ -363,6 +376,17 @@ function structureContext(
       room: nameOf(g.roomId),
       purpose: s.purposes[g.id],
     })),
+    events: (c.events ?? []).map((e) => ({
+      id: e.id,
+      purpose: s.purposes[e.id],
+      affects: e.effects.map((x) =>
+        x.kind === 'destroy_object'
+          ? nameOf(x.objectId)
+          : x.kind === 'npc_leave'
+            ? nameOf(x.npcId)
+            : x.flag,
+      ),
+    })),
     answers: c.questions.map((q) => ({
       id: q.id,
       answer: q.options
@@ -428,6 +452,10 @@ function assemble(
   const guard = places.guards as Record<
     string,
     { description: string; bypassText: string }
+  >;
+  const event = places.events as Record<
+    string,
+    { warning: string; text: string }
   >;
   return {
     ...c,
@@ -516,6 +544,15 @@ function assemble(
         : {}),
       explanation: clip(str(evidence.explanations, q.id), 200),
     })),
+    ...(c.events
+      ? {
+          events: c.events.map((e) => ({
+            ...e,
+            warning: clip(event[e.id]?.warning ?? '', 160),
+            text: clip(event[e.id]?.text ?? '', 200),
+          })),
+        }
+      : {}),
     ...(c.guards
       ? {
           guards: c.guards.map((g) => ({
@@ -540,7 +577,7 @@ export interface MysteryCaseRequest {
 }
 
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
-export const MYSTERY_GENERATOR_VERSION = 2;
+export const MYSTERY_GENERATOR_VERSION = 3;
 
 export interface GeneratedMysteryCase {
   caseFile: MysteryCaseFile;

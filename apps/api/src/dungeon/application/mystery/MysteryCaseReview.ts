@@ -75,6 +75,10 @@ function textFields(c: MysteryCaseFile): TextField[] {
   for (const i of c.interactions) add(`interactions.${i.id}`, i, 'text', 220);
   for (const q of c.questions)
     add(`questions.${q.id}.explanation`, q, 'explanation', 200);
+  for (const e of c.events ?? []) {
+    add(`events.${e.id}.warning`, e, 'warning', 160);
+    add(`events.${e.id}.text`, e, 'text', 200);
+  }
   for (const g of c.guards ?? []) {
     add(`guards.${g.id}.description`, g, 'description', 200);
     add(`guards.${g.id}.bypassText`, g, 'bypassText', 200);

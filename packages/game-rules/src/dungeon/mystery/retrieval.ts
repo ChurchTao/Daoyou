@@ -3,7 +3,7 @@ import type {
   MysteryCaseFile,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import type { MysteryCaseSkeleton } from './skeleton.js';
+import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
 
 const T = '…';
 
@@ -541,7 +541,32 @@ export function buildRetrievalSkeleton(
       { id: 'owner', answer: owner, explanation: T },
     ],
     ...(guards.length ? { guards } : {}),
+    // 夺宝者抹去真藏处的痕迹；被误导者照假线索离去。玩家抢先一步即可阻止。
+    events: [
+      {
+        id: 'evt_erase',
+        ...eventTurns(template, 0.4, 0.5),
+        unless: {
+          any: [{ has_clue: 'clue_place' }, { flag: 'rival_exposed' }],
+        },
+        warning: T,
+        text: T,
+        effects: [{ kind: 'destroy_object', objectId: 'obj_place' }],
+      },
+      {
+        id: 'evt_leave',
+        ...eventTurns(template, 0.55, 0.65),
+        unless: { flag: 'decoy_turned' },
+        warning: T,
+        text: T,
+        effects: [{ kind: 'npc_leave', npcId: decoy }],
+      },
+    ],
   };
+  purposes.evt_erase =
+    '夺宝者察觉你在追查，趁你不备去抹掉真藏处留下的痕迹；预兆是夺宝者的异常举动，发生时只写你事后察觉某处被人动过、痕迹已被抹去，不写痕迹的具体内容';
+  purposes.evt_leave =
+    '被误导者等不及，照伪造线索独自去假藏处挖宝，离开了遗迹；预兆是他越来越焦躁，发生时写他离去';
   if (methodVia === 'tool')
     purposes.use_tool_seal = '用工具探查禁制铭文，发现开禁的关键一环';
   return { caseFile, purposes };
