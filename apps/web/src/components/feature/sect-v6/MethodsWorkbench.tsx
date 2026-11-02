@@ -7,6 +7,7 @@ import {
   sectSkillCatalog,
 } from '@daoyou/game-rules/sects/presentation';
 import { useMemo, useState } from 'react';
+import { SkillDescription } from '../skills/SkillDescription';
 import {
   actionProblem,
   actionReference,
@@ -172,8 +173,8 @@ export function MethodsWorkbench({ view, pending, act }: SectWorkspaceProps) {
                   {skill.requirement}
                 </p>
               ) : null}
-              <p className="text-ink-secondary mt-2 leading-7">
-                {skill.description}
+              <p className="text-ink-secondary mt-2 leading-7 whitespace-pre-line">
+                <SkillDescription text={skill.description} />
               </p>
             </section>
           ) : (

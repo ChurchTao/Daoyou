@@ -1,6 +1,15 @@
-import { z } from 'zod';
 import { ATTR_NAMES } from '@daoyou/combat-core/constants';
-import { DamageKind, DamageOrigin, EffectType, StatusCategory, StatusFlag, StatusHit, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
+import {
+  DamageKind,
+  DamageOrigin,
+  EffectType,
+  StatusCategory,
+  StatusFlag,
+  StatusHit,
+  TargetMode,
+  TargetSide,
+} from '@daoyou/combat-core/enums';
+import { z } from 'zod';
 
 export const tyId = z.string().regex(/^tianyan\.[a-z][a-z0-9_.]*$/);
 export const tyExpr = z.union([
@@ -88,6 +97,7 @@ export const tyEffect = z.discriminatedUnion('type', [
 export const tyStatus = z.strictObject({
   id: tyId,
   name: z.string(),
+  description: z.string().min(1).max(1000).optional(),
   kind: tyId,
   category: z.enum(StatusCategory),
   school: z.literal('tianyan'),

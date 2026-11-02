@@ -1,7 +1,22 @@
-import { z } from 'zod';
 import { ATTR_NAMES } from '@daoyou/combat-core/constants';
-import { CommandPolicy, CommandType, StatusFlag, StatusHit, DamageKind, DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, TargetMode, TargetSide, UnitKind } from '@daoyou/combat-core/enums';
+import {
+  CommandPolicy,
+  CommandType,
+  DamageKind,
+  DamageOrigin,
+  EffectType,
+  HookAim,
+  HookName,
+  SkillTag,
+  StatusCategory,
+  StatusFlag,
+  StatusHit,
+  TargetMode,
+  TargetSide,
+  UnitKind,
+} from '@daoyou/combat-core/enums';
 import { type SkillEffect } from '@daoyou/combat-core/types';
+import { z } from 'zod';
 
 export const jjId = z.string().regex(/^jiujie\.[a-z][a-z0-9_.]*$/);
 const ref = z.string().min(1);
@@ -76,10 +91,30 @@ export const jjModifier = z.strictObject({
 const common = { when: jjWhen.optional(), targeting: jjTargeting.optional() };
 export const jjEffect: z.ZodType<SkillEffect> = z.lazy(() =>
   z.discriminatedUnion('type', [
-    z.strictObject({ ...common, type: z.literal(EffectType.Repeat), min: z.number().int().min(1).max(9), max: z.number().int().min(1).max(9), effects: z.array(jjEffect) }),
-    z.strictObject({ ...common, type: z.literal(EffectType.SpellHit), coeff: z.number(), power: jjExpr.optional(), defenseIgnore: jjExpr.optional() }),
-    z.strictObject({ ...common, type: z.literal(EffectType.DamageMp), power: jjExpr }),
-    z.strictObject({ ...common, type: z.literal(EffectType.LoseHp), power: jjExpr }),
+    z.strictObject({
+      ...common,
+      type: z.literal(EffectType.Repeat),
+      min: z.number().int().min(1).max(9),
+      max: z.number().int().min(1).max(9),
+      effects: z.array(jjEffect),
+    }),
+    z.strictObject({
+      ...common,
+      type: z.literal(EffectType.SpellHit),
+      coeff: z.number(),
+      power: jjExpr.optional(),
+      defenseIgnore: jjExpr.optional(),
+    }),
+    z.strictObject({
+      ...common,
+      type: z.literal(EffectType.DamageMp),
+      power: jjExpr,
+    }),
+    z.strictObject({
+      ...common,
+      type: z.literal(EffectType.LoseHp),
+      power: jjExpr,
+    }),
     z.strictObject({
       ...common,
       type: z.literal(EffectType.RandomBranch),
@@ -217,13 +252,14 @@ export const jjHook = z.strictObject({
   targeting: jjTargeting.optional(),
   chance: jjExpr.optional(),
   when: jjWhen.optional(),
-  limitConsumption: z.enum(["onSuccess", "onAttempt"]).optional(),
+  limitConsumption: z.enum(['onSuccess', 'onAttempt']).optional(),
   effects: z.array(jjEffect).min(1),
 });
 export const jjStatus = z.strictObject({
-  school: z.literal("jiujie"),
+  school: z.literal('jiujie'),
   id: jjId,
   name: z.string().min(1),
+  description: z.string().min(1).max(1000).optional(),
   kind: jjId,
   category: z.enum(StatusCategory),
   dispellable: z.boolean().optional(),

@@ -59,7 +59,7 @@ const STANDARD_HOTSPOTS: readonly SectMapHotspot[] = [
     permission: 'sect.arena.use',
     left: '0',
     top: '0',
-    note: '神通 · 战术 · 小比',
+    note: '小比 · 演武',
   },
   {
     id: 'affairs',

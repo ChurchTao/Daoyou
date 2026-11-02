@@ -1,7 +1,7 @@
 {
   "$schema": "./wuxiang-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 4,
   "baseSkillIds": [
     "wuxiang.skill.mind",
     "wuxiang.skill.pierce",
@@ -16,7 +16,7 @@
       "id": "wuxiang.skill.mind",
       "name": "一念生相",
       "school": "wuxiang",
-      "description": "指定宗门技能积烈念或寂念。集齐三念，于回合末显相；烈念较多为魔相，寂念较多为佛相。三烈、二烈一寂、一烈二寂、三寂分别持续3、4、5、8回合。显相期间停止普通积念。三寂法相可在致死时破相，回复人物等级×12气血。所有承伤降低1%。",
+      "description": "一念起处，佛魔自分。\n指定的宗门技能会积烈念或寂念。集齐三念后，在回合结束时显相：烈念多为[[wuxiang.status.demon]]，寂念多为[[wuxiang.status.buddha]]。三烈、二烈一寂、一烈二寂、三寂分别持续3、4、5、8回合。显相期间不再按普通方式积念。三寂法相可以在致命时破开，回复人物等级×12的气血。受到的伤害降低1%。",
       "tags": [
         "passive"
       ],
@@ -458,7 +458,7 @@
       "id": "wuxiang.skill.pierce",
       "name": "破妄指",
       "school": "wuxiang",
-      "description": "造成固定伤害；对战人物时只作用一人，对战生灵时在技能39、60级分别增至二、三人。 本相成功施放后获得1枚烈念。",
+      "description": "一指破妄，直指本相。\n造成固定伤害。对战人物时攻击一人。对战生灵时，心法达到39级攻击两人，达到60级攻击三人。本相施放成功后获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -481,7 +481,7 @@
       "id": "wuxiang.skill.nectar",
       "name": "甘露愿",
       "school": "wuxiang",
-      "description": "为友方恢复气血；显相时最多扩展三个目标，并额外照拂本愿印持有者。 本相成功施放后获得1枚寂念。",
+      "description": "甘露回润，同门得济。\n为友方恢复气血。显相时最多治疗三人，并额外治疗持有[[wuxiang.status.vow]]的友方。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -504,7 +504,7 @@
       "id": "wuxiang.skill.ward",
       "name": "护生愿",
       "school": "wuxiang",
-      "description": "降低友方本回合所受所有伤害，基础减伤20%；显相时扩大作用范围。 本相成功施放后获得1枚寂念。",
+      "description": "护生一愿，伤势暂歇。\n使友方获得[[wuxiang.status.ward]]，本回合受到的伤害降低20%。显相时扩大作用范围。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -528,7 +528,7 @@
       "id": "wuxiang.skill.empower",
       "name": "破障愿",
       "school": "wuxiang",
-      "description": "提高友方本回合造成的所有伤害，基础增伤20%；显相时扩大作用范围。 本相成功施放后获得1枚烈念。",
+      "description": "破障一愿，攻势骤起。\n使友方获得[[wuxiang.status.empower]]，本回合造成的伤害提高20%。显相时扩大作用范围。本相施放成功后获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -552,7 +552,7 @@
       "id": "wuxiang.skill.turn",
       "name": "一念回转",
       "school": "wuxiang",
-      "description": "交换尚未显相时的烈念与寂念。",
+      "description": "一念回转，烈寂互换。\n尚未显相时，交换烈念与寂念的数量。",
       "tags": [
         "spell",
         "support"
@@ -615,7 +615,7 @@
       "id": "wuxiang.skill.restore",
       "name": "返照归真",
       "school": "wuxiang",
-      "description": "回复自身气血。本相额外修复伤势；显相时本回合减伤20%并延长法相1回合。每次显相重置冷却。 本相成功施放后获得1枚寂念。",
+      "description": "返照归真，伤损复原。\n回复自身气血。尚未显相时额外修复伤势；显相时获得[[wuxiang.status.repair_guard]]，并延长法相1回合。每次显相会重置冷却。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -661,7 +661,7 @@
       "id": "wuxiang.skill.strike",
       "name": "摧岳",
       "school": "wuxiang",
-      "description": "对单体发动一次物理攻击；显相时基础威力提高40%，烈念增幅另计。 本相成功施放后获得1枚烈念。",
+      "description": "摧岳一击，势压一人。\n对一名敌人造成物理伤害。显相时基础威力提高40%，烈念的增幅另外计算。本相施放成功后获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -690,7 +690,7 @@
       "id": "wuxiang.skill.stars",
       "name": "劫火散华",
       "school": "wuxiang",
-      "description": "对三个目标各发动一次物理攻击，基础威力为普通攻击的55%，显相时提升至80%，烈念增幅另计。 本相成功施放后获得1枚烈念。",
+      "description": "劫火散华，星火连落。\n对三名敌人造成物理伤害，威力为普通攻击的55%。显相时提高到80%，烈念的增幅另外计算。本相施放成功后获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -723,7 +723,7 @@
       "id": "wuxiang.skill.expose",
       "name": "照隙",
       "school": "wuxiang",
-      "description": "为指定敌人附加持续5回合的破绽。 本相成功施放后获得1枚烈念。",
+      "description": "照见空隙，破绽自现。\n使一名敌人获得[[wuxiang.status.breach]]，持续5回合。本相施放成功后获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -744,7 +744,7 @@
       "id": "wuxiang.skill.burn",
       "name": "三念俱焚",
       "school": "wuxiang",
-      "description": "燃尽尚未显化的念头，造成固定伤害；每枚念头使本次伤害提高15%。",
+      "description": "三念俱焚，余火成伤。\n燃尽尚未显化的念头，造成固定伤害。每枚念头使本次伤害提高15%。",
       "tags": [
         "spell",
         "support"
@@ -784,7 +784,7 @@
       "id": "wuxiang.skill.vow",
       "name": "本愿印",
       "school": "wuxiang",
-      "description": "为一名友方结下本愿印，持续整场；再次施放会转移自己的旧印。愿法额外惠及结印者；与普通作用目标重合时，效果提高50%。施放愿法后额外为结印者恢复人物等级＋治疗能力×20%的气血。 本相成功施放后获得1枚寂念。",
+      "description": "本愿落印，护持相随。\n为一名友方结下[[wuxiang.status.vow]]。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -817,7 +817,7 @@
       "id": "wuxiang.skill.renew",
       "name": "归元愿",
       "school": "wuxiang",
-      "description": "为友方恢复气血并修复伤势，使受损的气血上限复原。 本相成功施放后获得1枚寂念。",
+      "description": "归元一愿，气血复全。\n为友方恢复气血，并修复伤势，使受损的气血上限复原。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -844,7 +844,7 @@
       "id": "wuxiang.skill.revive",
       "name": "莲华还生",
       "school": "wuxiang",
-      "description": "复活一名倒地友方人物，恢复20%气血；无法越过禁复活效果。 本相成功施放后获得1枚寂念。",
+      "description": "莲华还生，神魂归位。\n复活一名倒地的友方人物，恢复20%气血。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -867,7 +867,7 @@
       "id": "wuxiang.skill.insight",
       "name": "慧眼观照",
       "school": "wuxiang",
-      "description": "洞察友方气机，修复其伤势，并使其治疗能力增加自身等级的一半，持续3回合。 本相成功施放后获得1枚寂念。",
+      "description": "慧眼观照，气机可医。\n修复一名友方的伤势，并使其获得[[wuxiang.status.insight]]，持续3回合。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -892,7 +892,7 @@
       "id": "wuxiang.skill.unbind",
       "name": "解缚还生",
       "school": "wuxiang",
-      "description": "消耗30战意，使倒地友方人物的拘灵缩短1回合。禁复活效果解除后将其复活并恢复20%气血；仍被拘灵时仅削减持续。 本相成功施放后获得1枚寂念。",
+      "description": "解缚还生，拘灵松动。\n消耗30战意，使倒地友方人物的拘灵缩短1回合。拘灵结束后复活该人物，并恢复20%气血。本相施放成功后获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -933,7 +933,7 @@
       "id": "wuxiang.skill.overload",
       "name": "魔临无间",
       "school": "wuxiang",
-      "description": "显相时随机施展一式：摧岳式使烈念物伤增益翻倍，击倒时延长法相1回合并免于本次过载退相；散华式攻击六个目标。未豁免时本回合末退相。冷却4回合，开场冷却2回合。",
+      "description": "魔相临世，一式尽出。\n显相时随机施展一式。摧岳式使烈念带来的物理伤害增益翻倍；若击倒目标，法相延长1回合，并且这次不会退相。散华式对六个目标造成物理伤害。若没有免除退相，法相在本回合结束时消退。冷却4回合，开战冷却2回合。",
       "tags": [
         "physical"
       ],
@@ -1011,7 +1011,7 @@
       "id": "wuxiang.skill.cleanse",
       "name": "净业愿",
       "school": "wuxiang",
-      "description": "显相时随机解除目标一种可净化的异常，使其本回合不再获得相同异常。施放后法相过载，本回合末退相。",
+      "description": "净业一愿，异常暂消。\n显相时随机解除目标一种可以净化的异常，并让其在本回合内不再获得相同异常。施放后法相在本回合结束时消退。",
       "tags": [
         "spell",
         "support"
@@ -1061,6 +1061,7 @@
     {
       "id": "wuxiang.status.ward",
       "name": "护生愿",
+      "description": "本回合受到的伤害降低。基础为20%，显相和经脉会进一步提高。",
       "kind": "wuxiang.ward",
       "category": "buff",
       "expireSameRound": true,
@@ -1074,6 +1075,7 @@
     {
       "id": "wuxiang.status.empower",
       "name": "破障愿",
+      "description": "本回合造成的伤害提高。基础为20%，显相和经脉会进一步提高。",
       "kind": "wuxiang.empower",
       "category": "buff",
       "expireSameRound": true,
@@ -1087,6 +1089,7 @@
     {
       "id": "wuxiang.status.vow",
       "name": "本愿印",
+      "description": "持续整场。愿法会额外照顾结印者；如果结印者本来就是目标，效果提高50%。施放愿法后，再为结印者恢复人物等级加上治疗能力20%的气血。再次结印会转移旧印。",
       "kind": "wuxiang.vow",
       "category": "buff",
       "sourceBound": true,
@@ -1096,6 +1099,7 @@
     {
       "id": "wuxiang.status.breach",
       "name": "破绽",
+      "description": "被指出的空隙。魔心修罗对带有自己所施破绽的目标造成物理伤害时伤害提高，打出后破绽消散。",
       "kind": "wuxiang.breach",
       "category": "debuff",
       "sourceBound": true
@@ -1103,6 +1107,7 @@
     {
       "id": "wuxiang.status.insight",
       "name": "慧眼观照",
+      "description": "治疗能力提高施术者等级的一半。",
       "kind": "wuxiang.insight",
       "category": "buff",
       "attrMods": {
@@ -1129,6 +1134,7 @@
     {
       "id": "wuxiang.status.repair_guard",
       "name": "返照护持",
+      "description": "本回合受到的伤害降低20%。",
       "kind": "wuxiang.repair_guard",
       "category": "buff",
       "expireSameRound": true,
@@ -1141,6 +1147,7 @@
     {
       "id": "wuxiang.status.demon",
       "name": "魔相",
+      "description": "烈念较多时显化的法相。按集齐时的念头比例持续，并加强物理伤害。",
       "kind": "wuxiang.form",
       "category": "buff",
       "dispellable": false,
@@ -1171,6 +1178,7 @@
     {
       "id": "wuxiang.status.buddha",
       "name": "佛相",
+      "description": "寂念较多时显化的法相。按集齐时的念头比例持续，并加强治疗与守护。",
       "kind": "wuxiang.form",
       "category": "buff",
       "dispellable": false,

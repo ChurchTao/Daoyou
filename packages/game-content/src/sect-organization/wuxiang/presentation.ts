@@ -128,7 +128,7 @@ export const WUXIANG_SECT_PRESENTATION: SectPresentationTheme = {
         '57%',
         '/game/sect/arena',
         'sect.arena.use',
-        '神通 · 战术 · 小比',
+        '小比 · 演武',
       ),
       hotspot(
         'affairs',

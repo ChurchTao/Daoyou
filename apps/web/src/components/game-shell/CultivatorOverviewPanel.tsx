@@ -24,8 +24,14 @@ const CharacterCardSettings = lazy(() =>
     (module) => ({ default: module.CharacterCardSettings }),
   ),
 );
+const SectMethodCodex = lazy(() =>
+  import('@app/components/feature/sect-v6/SectMethodCodex').then((module) => ({
+    default: module.SectMethodCodex,
+  })),
+);
 const tabs = [
   { value: 'attributes', label: '人物属性' },
+  { value: 'sect', label: '宗门心法' },
   { value: 'innate', label: '先天设定' },
   { value: 'manuals', label: '所修功法' },
   { value: 'body', label: '肉身修炼' },
@@ -105,7 +111,9 @@ export function CultivatorOverviewPanel() {
         className="min-w-0"
       >
         <Suspense fallback={<GameSceneLoading message="正在翻阅角色资料……" />}>
-          {active.value === 'innate' ? (
+          {active.value === 'sect' ? (
+            <SectMethodCodex />
+          ) : active.value === 'innate' ? (
             <CultivatorBiography />
           ) : active.value === 'manuals' ? (
             <ManualRoom />

@@ -1,10 +1,9 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { InkButton } from '@app/components/ui/InkButton';
+import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
-import type { SectV6Action } from '@daoyou/game-domain/sects/commands';
 import type { SectV6View } from '@daoyou/contracts/sects/combat';
-import { sectSkillCatalog } from '@daoyou/game-rules/sects/presentation';
+import type { SectV6Action } from '@daoyou/game-domain/sects/commands';
 import { useEffect, useRef, useState } from 'react';
 import { combatV6Request, mutationBody } from '../combat-v6/request';
 import { MeridianEditor } from './MeridianEditor';
@@ -12,7 +11,7 @@ import { MethodsWorkbench } from './MethodsWorkbench';
 import { SectPathChoice } from './SectPathChoice';
 
 const endpoint = '/api/combat-v6/sect';
-export type SectWorkspaceMode = 'methods' | 'paths' | 'skills';
+export type SectWorkspaceMode = 'methods' | 'paths';
 export function SectWorkspace({
   mode,
   onExit,
@@ -138,7 +137,7 @@ export function SectWorkspace({
                     })
                   }
                 />
-              ) : mode === 'methods' ? (
+              ) : (
                 <>
                   {!view.progress.activePathId ? (
                     <p className="text-ink-secondary mt-3 text-sm leading-7">
@@ -152,36 +151,11 @@ export function SectWorkspace({
                     act={act}
                   />
                 </>
-              ) : (
-                <Skills view={view} />
               )}
             </>
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function Skills({ view }: { view: SectV6View }) {
-  const skills = sectSkillCatalog(view.progress!, view.characterLevel);
-  return (
-    <div className="space-y-3">
-      {skills.map((skill) => (
-        <section
-          className="border-ink/10 space-y-1 border-b pb-3"
-          key={skill.id}
-        >
-          <p className="font-medium">
-            {skill.name} · {skill.passive ? '被动' : '神通'} · {skill.level}级
-          </p>
-          <p className="text-ink-secondary">
-            {skill.methodName} ·{' '}
-            {skill.available ? '已解锁' : skill.requirement}
-          </p>
-          <p>{skill.description}</p>
-        </section>
-      ))}
     </div>
   );
 }

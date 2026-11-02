@@ -1,4 +1,5 @@
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
+import { SkillDescription } from '@app/components/feature/skills/SkillDescription';
 import { InkNotice } from '@app/components/ui';
 import type { PublicCombatV6Build } from '@daoyou/game-domain/combat';
 import {
@@ -85,8 +86,8 @@ export function CultivatorLoadoutSections({
             <summary className="cursor-pointer">
               {skill.name} · Lv.<span className="font-mono">{skill.level}</span>
             </summary>
-            <p className="text-ink-secondary mt-2 leading-6">
-              {skill.description}
+            <p className="text-ink-secondary mt-2 leading-6 whitespace-pre-line">
+              <SkillDescription text={skill.description} />
             </p>
           </details>
         ))}

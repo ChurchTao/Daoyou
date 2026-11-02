@@ -21,7 +21,7 @@ export const sectRoutes = [
       {
         id: 'sect-abilities',
         presentation: 'workflow',
-        summary: '旧宗门神通入口将迁往宗门演武场。',
+        summary: '旧宗门神通入口改到角色页的宗门心法。',
       },
       '宗门演武',
     )}
@@ -108,7 +108,7 @@ export const sectRoutes = [
       {
         id: 'sect-abilities',
         presentation: 'workflow',
-        summary: '旧神通入口将迁往宗门演武场。',
+        summary: '旧神通入口改到角色页的宗门心法。',
       },
       '宗门演武',
     )}
@@ -134,7 +134,7 @@ export const sectRoutes = [
       {
         id: 'sect-abilities',
         presentation: 'workflow',
-        summary: '配置宗门神通与自动战术。',
+        summary: '演武场，承接宗门小比。',
       },
       '宗门演武',
     )}

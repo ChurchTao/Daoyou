@@ -1,7 +1,7 @@
 {
   "$schema": "./bailu-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
       "id": "bailu.passive.rectification",
@@ -151,7 +151,7 @@
     {
       "id": "bailu.passive.yuyin",
       "name": "余音",
-      "description": "本人入梦改为受到单次实际气血伤害严格大于30才醒。",
+      "description": "入梦改为单次气血伤害超过30点才醒来。",
       "modifiers": [
         {
           "when": {
@@ -166,7 +166,7 @@
     {
       "id": "bailu.passive.chiheng",
       "name": "持衡",
-      "description": "入梦命中乘0.95，其他常规言令乘1.05。",
+      "description": "入梦的封印命中变为原来的95%，其他常规言令的封印命中变为原来的105%。",
       "modifiers": [
         {
           "when": {
@@ -1542,7 +1542,7 @@
           "name": "余音",
           "layer": 2,
           "slot": 1,
-          "description": "本人入梦改为受到单次实际气血伤害严格大于30才醒。",
+          "description": "入梦改为单次气血伤害超过30点才醒来。",
           "passives": [
             "bailu.passive.yuyin"
           ]
@@ -1552,7 +1552,7 @@
           "name": "持衡",
           "layer": 2,
           "slot": 2,
-          "description": "入梦命中乘0.95，其他常规言令乘1.05。",
+          "description": "入梦的封印命中变为原来的95%，其他常规言令的封印命中变为原来的105%。",
           "passives": [
             "bailu.passive.chiheng"
           ]
