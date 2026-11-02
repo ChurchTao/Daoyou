@@ -198,7 +198,7 @@ it('preserves stacked panels, highest factors, cost rounding and conflict reject
   if (!result.ok) return;
   expect(result.projection.panel).toContainEqual({
     attr: 'critRate',
-    value: 0.02,
+    value: 0.06,
   });
   expect(result.projection.rageGainFactor).toBe(1.25);
   expect(result.projection.rageCostFactor).toBe(0.8);

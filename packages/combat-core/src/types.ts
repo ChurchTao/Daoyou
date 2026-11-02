@@ -409,6 +409,8 @@ export type EffectWhen = {
   pvp?: boolean;
   teamUniqueTag?: string;
   targetEnemy?: boolean;
+  /** 目标是其他友方，不含自己。 */
+  targetOtherAlly?: boolean;
   targetHasStandingPet?: boolean;
   actionSucceeded?: boolean;
   actionHealedTarget?: boolean;
@@ -829,6 +831,8 @@ export type SkillDef = {
     };
     revealStealth?: boolean;
     mpCostWaiverChance?: number;
+    /** 施疗加成，在受疗倍率之前乘到治疗基数上。 */
+    healDealtAdd?: number;
     mpCostFactor?: number;
     spellMpCostFactor?: number;
     suppressSpellRetaliation?: boolean;
@@ -1184,6 +1188,11 @@ export type ExprEnv = {
   damage?: number;
   /** 实际气血损失，已排除过量伤害。 */
   hpDamage?: number;
+  /** 受疗倍率之前的治疗基数。 */
+  healBase?: number;
+  heal?: number;
+  /** 本次出手技能的实际资源消耗，不含折扣前标价。 */
+  resourceCost?: number;
   impactDamage?: number;
   targetStatusStacks?: number;
   originalResourceCost?: number;

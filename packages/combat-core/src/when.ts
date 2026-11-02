@@ -133,6 +133,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
   if (when.pvp !== undefined && units.some(u => u.side !== scope.source.side && u.kind === 'player') !== when.pvp) return false
   if (when.teamUniqueTag && units.filter(u => u.side === scope.source.side && u.kind === 'player' && u.tags.includes(when.teamUniqueTag!)).length !== 1) return false
   if (when.targetEnemy && (!scope.target || scope.target.side === scope.source.side)) return false
+  if (when.targetOtherAlly && (!scope.target || scope.target.id === scope.source.id || scope.target.side !== scope.source.side)) return false
   if (when.targetHasStandingPet !== undefined && (!scope.target || units.some(u => u.kind === 'pet' && u.ownerId === scope.target!.id && isStanding(u)) !== when.targetHasStandingPet)) return false
   if (when.actionSucceeded && (!ctx.currentAction || ctx.currentAction.failed)) return false
   if (when.actionHealedTarget !== undefined && (Boolean(scope.target && ctx.currentAction?.healedTargetIds?.includes(scope.target.id)) !== when.actionHealedTarget)) return false

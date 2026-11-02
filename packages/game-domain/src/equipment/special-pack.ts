@@ -58,6 +58,34 @@ const essenceEffect = z.discriminatedUnion('type', [
     chance: ratio,
     hpRatio: ratio.positive(),
   }),
+  z.strictObject({ type: z.literal('attackMpRestore'), ratio: ratio.positive() }),
+  z.strictObject({
+    type: z.literal('attackFollowUp'),
+    chance: ratio,
+    factor: ratio.positive(),
+  }),
+  z.strictObject({ type: z.literal('roundStartCleanse'), chance: ratio }),
+  z.strictObject({ type: z.literal('sealMissRage'), amount: positive.int() }),
+  z.strictObject({
+    type: z.literal('lowHpTaken'),
+    threshold: ratio.positive(),
+    reduction: ratio.positive(),
+  }),
+  z.strictObject({ type: z.literal('barrierGain'), factor: ratio.positive() }),
+  z.strictObject({ type: z.literal('mpRegen'), maxRatio: ratio.positive() }),
+  z.strictObject({ type: z.literal('healDealt'), factor: ratio.positive() }),
+  z.strictObject({ type: z.literal('allyHealEcho'), ratio: ratio.positive() }),
+  z.strictObject({ type: z.literal('defendRage'), amount: positive.int() }),
+  z.strictObject({ type: z.literal('artRageRefund'), ratio: ratio.positive() }),
+  z.strictObject({ type: z.literal('openingRage'), amount: positive.int() }),
+  z.strictObject({ type: z.literal('primarySpeedDamage'), factor: ratio.positive() }),
+  z.strictObject({ type: z.literal('dodgeChance'), value: ratio.positive() }),
+  z.strictObject({
+    type: z.literal('firstLowHpSpeed'),
+    threshold: ratio.positive(),
+    factor: ratio.positive(),
+    duration: z.number().int().min(1).max(99),
+  }),
 ]);
 const artEffect = z.discriminatedUnion('type', [
   z.strictObject({

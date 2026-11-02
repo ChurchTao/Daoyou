@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CommandType, DamageKind, EffectType, EventType, HookName, SkillTag, StatusCategory, TargetSide } from '@daoyou/combat-core/enums';
+import { CommandType, DamageKind, EffectType, EventType, HookName, SkillTag, StatusCategory, StatusHit, TargetSide } from '@daoyou/combat-core/enums';
 import { createBattle } from '@daoyou/combat-core/session';
-import { type SkillDef } from '@daoyou/combat-core/types';
+import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS } from '@daoyou/game-domain/combat';
 import {
@@ -17,6 +17,7 @@ import {
   createDaoRageGainPassive,
   DAO_EQUIPMENT_ESSENCES_V1,
 } from '@daoyou/game-content/equipment/special';
+import { DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
 import { loadEquipmentSpecialPack } from '@daoyou/game-domain/equipment/authoring/special';
 import type { DaoEquipmentSlot } from '@daoyou/game-domain/equipment';
 
@@ -49,6 +50,7 @@ function battleWith(
   playerPassives: string[],
   attack?: SkillDef,
   seed = 5,
+  extraStatuses: StatusDef[] = [],
 ) {
   return createBattle({
     seed,
@@ -71,6 +73,7 @@ function battleWith(
         category: StatusCategory.Debuff,
         blocksRevive: true,
       },
+      ...extraStatuses,
     ],
     units: [
       {
@@ -124,8 +127,8 @@ function resolve(battle: ReturnType<typeof battleWith>, skill?: SkillDef) {
 }
 
 describe('器蕴精修', () => {
-  it('仅开放14种并由参数渲染说明', () => {
-    expect(pack.essences).toHaveLength(14);
+  it('仅开放30种并由参数渲染说明', () => {
+    expect(pack.essences).toHaveLength(30);
     expect(
       DAO_EQUIPMENT_ESSENCES_V1.every(
         (entry) => entry.description && !entry.description.includes('{'),
@@ -250,7 +253,7 @@ describe('器蕴精修', () => {
         kind: DamageKind.Physical,
         chance: 0.1,
       }).chance,
-    ).toBeCloseTo(0.08);
+    ).toBeCloseTo(0.06);
     expect(
       battle.hooks.emit(HookName.OnCritRoll, {
         source: battle.unit('foe'),
@@ -276,21 +279,28 @@ describe('器蕴精修', () => {
       }).defenseIgnore,
     ).toBe(0);
   });
-  it('封禁器蕴贡献1%且仍遵守封印公式上下限', () => {
+  it('封禁器蕴贡献固定3个百分点且仍遵守封印公式上下限', () => {
     const battle = battleWith([], []);
     const source = battle.unit('self');
     const target = battle.unit('foe');
-    source.level = target.level = 45;
     const formula = createDaoyouRuleset().formulas.sealHitChance;
-    const baseline = formula(source, target, 45);
-    const entry = DAO_EQUIPMENT_ESSENCES_V1.find(
+    const pojing = DAO_EQUIPMENT_ESSENCES_V1.find(
       (entry) => entry.id === id('pojin'),
     )!;
-    source.attrs.sealHit += entry.panel![0].value;
-    expect(formula(source, target, 45) - baseline).toBeCloseTo(0.01);
-    source.attrs.sealHit = 1000;
-    expect(formula(source, target, 45)).toBeGreaterThan(0.94);
-    expect(formula(source, target, 45)).toBeLessThanOrEqual(0.95);
+    const dinghun = DAO_EQUIPMENT_ESSENCES_V1.find(
+      (entry) => entry.id === id('dinghun'),
+    )!;
+    expect(pojing.passive?.modifiers?.[0].sealChanceAdd).toBe(0.03);
+    expect(dinghun.passive?.modifiers?.[0].sealResistanceAdd).toBe(0.03);
+    for (const level of [45, 150]) {
+      source.level = target.level = level;
+      const baseline = formula(source, target, level);
+      expect(formula(source, target, level, undefined, 0.03) - baseline).toBeCloseTo(0.03);
+      expect(baseline - formula(source, target, level, undefined, -0.03)).toBeCloseTo(0.03);
+    }
+    source.level = target.level = 45;
+    expect(formula(source, target, 45, undefined, 1)).toBeGreaterThan(0.94);
+    expect(formula(source, target, 45, undefined, 1)).toBeLessThanOrEqual(0.95);
   });
   it('激昂按失血比例提高受击战意，单次获得最多100', () => {
     const p = createDaoRageGainPassive(1.25);
@@ -361,5 +371,320 @@ describe('器蕴精修', () => {
             event.type === EventType.Hit && event.kind === DamageKind.Spell,
         ),
     ).toBe(false);
+  });
+});
+
+describe('新增器蕴', () => {
+  const essence = (key: string) =>
+    DAO_EQUIPMENT_ESSENCES_V1.find((entry) => entry.id === id(key))!;
+  const hitsOf = (battle: ReturnType<typeof battleWith>) =>
+    battle.log().filter((event) => event.type === EventType.Hit && event.sourceId === 'self');
+
+  it('把指定数值写进说明，机制词条不写额外否定句', () => {
+    expect(essence('cangfeng').description).toContain('3%');
+    expect(essence('ningshen').description).toContain('3%');
+    expect(essence('zhenyue').description).toContain('2%');
+    expect(essence('shouxin').description).toContain('2%');
+    expect(essence('pojin').description).toContain('3%');
+    expect(essence('dinghun').description).toContain('3%');
+    expect(essence('kuanggu').panel).toEqual([
+      { attr: 'physicalFuryRate', mode: 'add', value: 0.03 },
+    ]);
+    expect(essence('kuanggu').description).toContain('物理狂暴率提高3%');
+    for (const key of [
+      'kuanggu', 'shiling', 'lianzhu', 'dingshen', 'jingxin', 'buqu', 'jinshen',
+      'naling', 'yuwen', 'tongze', 'zhige', 'yunu', 'xushi', 'taxu', 'bifeng', 'juechen',
+    ]) expect(essence(key).description).not.toMatch(/不/);
+  });
+
+  it('噬灵按普攻实际扣血恢复法力', () => {
+    const skill = essence('shiling').passive!;
+    const battle = battleWith([skill], [skill.id]);
+    battle.unit('self').attrs.mp = 0;
+    battle.submit('self', { type: CommandType.Attack, target: 'foe' });
+    battle.submit('foe', { type: CommandType.Defend });
+    battle.lockAndResolve();
+    const lost = 10000 - battle.unit('foe').attrs.hp;
+    expect(battle.unit('self').attrs.mp).toBe(Math.floor(lost * 0.08));
+    const mp = battle.unit('self').attrs.mp;
+    battle.hooks.emit(HookName.AfterHit, {
+      source: battle.unit('self'),
+      target: battle.unit('foe'),
+      skillId: 'dao_equipment.skill.other',
+      kind: DamageKind.Physical,
+      hpDamage: 100,
+    });
+    expect(battle.unit('self').attrs.mp).toBe(mp);
+  });
+
+  it('连珠每回合至多追加一次50%强度的物理攻击', () => {
+    const entry = structuredClone(pack.essences.find((item) => item.id === id('lianzhu'))!);
+    if (entry.effect.type !== 'attackFollowUp') throw new Error('type');
+    entry.effect.chance = 1;
+    const skill = compileEquipmentEssence(entry).passive!;
+    const battle = battleWith([skill], [skill.id]);
+    battle.submit('self', { type: CommandType.Attack, target: 'foe' });
+    battle.submit('foe', { type: CommandType.Defend });
+    battle.lockAndResolve();
+    expect(hitsOf(battle)).toHaveLength(2);
+    const again = battleWith([skill], [skill.id]);
+    const strike = {
+      source: again.unit('self'),
+      target: again.unit('foe'),
+      skillId: 'attack',
+      kind: DamageKind.Physical,
+      hpDamage: 20,
+      isPrimary: true,
+    };
+    again.hooks.emit(HookName.AfterHit, strike);
+    again.hooks.emit(HookName.AfterHit, strike);
+    expect(hitsOf(again)).toHaveLength(1);
+  });
+
+  it('定神以6%概率在回合开始解除一个可解除控制', () => {
+    expect(essence('dingshen').passive?.hooks?.[0].chance).toBe(0.06);
+    const entry = structuredClone(pack.essences.find((item) => item.id === id('dingshen'))!);
+    if (entry.effect.type !== 'roundStartCleanse') throw new Error('type');
+    entry.effect.chance = 1;
+    const skill = compileEquipmentEssence(entry).passive!;
+    const battle = createBattle({
+      seed: 1,
+      versions: COMBAT_V6_CHARACTER_BUILD_VERSIONS,
+      ruleset: createDaoyouRuleset(),
+      skills: [skill],
+      statusDefs: [{ id: 'lock', name: '定身', kind: 'lock', category: StatusCategory.Control, blocksAction: true }],
+      units: [{
+        id: 'self', name: 'self', side: 0, kind: 'player', level: 10, passives: [skill.id],
+        attrs: { hp: 100, maxHp: 100, speed: 10 },
+      }, {
+        id: 'foe', name: 'foe', side: 1, kind: 'player', level: 10,
+        attrs: { hp: 100, maxHp: 100, speed: 1 },
+      }],
+    });
+    battle.applyStatus('self', 'lock', 3, 'foe');
+    battle.hooks.emit(HookName.OnRoundStart);
+    expect(battle.unit('self').statuses.some((status) => status.id === 'lock')).toBe(false);
+  });
+
+  it('镜心在封印落空时获得10点战意', () => {
+    const skill = essence('jingxin').passive!;
+    const battle = battleWith([skill], [skill.id]);
+    battle.unit('self').resources.push({ id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 0, max: 150 });
+    battle.hooks.emit(HookName.OnStatusResolved, {
+      source: battle.unit('self'),
+      target: battle.unit('foe'),
+      statusHit: StatusHit.Seal,
+      statusResult: 'applied',
+    });
+    expect(battle.unit('self').resources[0].current).toBe(0);
+    battle.hooks.emit(HookName.OnStatusResolved, {
+      source: battle.unit('self'),
+      target: battle.unit('foe'),
+      statusHit: StatusHit.Seal,
+      statusResult: 'miss',
+    });
+    expect(battle.unit('self').resources[0].current).toBe(10);
+  });
+
+  it('不屈在气血低于35%时把受到的伤害结果降低5%', () => {
+    const skill = essence('buqu').passive!;
+    expect(skill.modifiers?.[0]).toMatchObject({
+      allDamageTakenBonus: -0.05,
+      when: { sourceHpRatioBelow: 0.35 },
+    });
+    const battle = battleWith([skill], [skill.id]);
+    battle.unit('self').attrs.hp = 300;
+    battle.unit('self').attrs.speed = 1;
+    battle.unit('foe').attrs.speed = 100;
+    battle.unit('foe').attrs.physicalAtk = 100;
+    const bare = battleWith([], []);
+    bare.unit('self').attrs.hp = 300;
+    bare.unit('self').attrs.speed = 1;
+    bare.unit('foe').attrs.speed = 100;
+    bare.unit('foe').attrs.physicalAtk = 100;
+    for (const current of [battle, bare]) {
+      current.submit('foe', { type: CommandType.Attack, target: 'self' });
+      current.submit('self', { type: CommandType.Defend });
+      current.lockAndResolve();
+    }
+    const wounded = 300 - battle.unit('self').attrs.hp;
+    const plain = 300 - bare.unit('self').attrs.hp;
+    expect(wounded).toBe(Math.floor(plain * 0.95));
+  });
+
+  it('金身把获得的护盾提高12%', () => {
+    const skill = essence('jinshen').passive!;
+    const battle = battleWith([skill], [skill.id]);
+    const shielded = battle.hooks.emit(HookName.OnBarrierCalc, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      barrier: 100,
+    });
+    expect(shielded.barrier).toBeCloseTo(112);
+  });
+
+  it('纳灵在回合结束恢复最大法力的5%', () => {
+    const skill = essence('naling').passive!;
+    const battle = battleWith([skill], [skill.id]);
+    battle.unit('self').attrs.mp = 0;
+    battle.hooks.emit(HookName.OnRoundEnd);
+    expect(battle.unit('self').attrs.mp).toBe(5);
+    battle.unit('self').attrs.mp = 0;
+    battle.unit('self').flags.downed = true;
+    battle.hooks.emit(HookName.OnRoundEnd);
+    expect(battle.unit('self').attrs.mp).toBe(0);
+  });
+
+  it('余温先提高治疗基数，同泽按基数的20%回哺并受减疗约束', () => {
+    const heal: SkillDef = {
+      id: 'heal',
+      name: '疗',
+      tags: [SkillTag.Spell],
+      targeting: { side: TargetSide.Ally, count: 1 },
+      effects: [{ type: EffectType.Heal, power: '100', fixedBase: true }],
+    };
+    const fight = (keys: string[], reduced?: 'ally' | 'self') => {
+      const skills = keys.map((key) => essence(key).passive!);
+      const battle = createBattle({
+        seed: 1,
+        versions: COMBAT_V6_CHARACTER_BUILD_VERSIONS,
+        ruleset: createDaoyouRuleset(),
+        skills: [...skills, heal],
+        statusDefs: [{ id: 'less', name: '减疗', kind: 'less', category: StatusCategory.Debuff, healTaken: 0.5 }],
+        units: [
+          {
+            id: 'self', name: 'self', side: 0, kind: 'player', level: 20,
+            passives: skills.map((skill) => skill.id), skills: ['heal'],
+            attrs: { hp: 100, maxHp: 1000, speed: 20, healPower: 0 },
+          },
+          {
+            id: 'ally', name: 'ally', side: 0, kind: 'player', level: 20,
+            attrs: { hp: 100, maxHp: 1000, speed: 1 },
+          },
+          {
+            id: 'foe', name: 'foe', side: 1, kind: 'player', level: 20,
+            attrs: { hp: 100, maxHp: 100, speed: 1 },
+          },
+        ],
+      });
+      if (reduced) battle.applyStatus(reduced, 'less', 3, 'foe');
+      battle.submit('self', { type: CommandType.Skill, skillId: 'heal', targets: ['ally'] });
+      battle.submit('ally', { type: CommandType.Defend });
+      battle.submit('foe', { type: CommandType.Defend });
+      battle.lockAndResolve();
+      return battle;
+    };
+    expect(fight(['yuwen']).unit('ally').attrs.hp).toBe(210);
+    expect(fight(['yuwen'], 'ally').unit('ally').attrs.hp).toBe(155);
+    const echoed = fight(['yuwen', 'tongze']);
+    expect(echoed.unit('ally').attrs.hp).toBe(210);
+    expect(echoed.unit('self').attrs.hp).toBe(122);
+    expect(fight(['tongze'], 'self').unit('self').attrs.hp).toBe(110);
+  });
+
+  it('止戈、余怒和蓄势按确认数值处理战意', () => {
+    const guard = essence('zhige').passive!;
+    const guarded = battleWith([guard], [guard.id]);
+    guarded.unit('self').resources.push({ id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 0, max: 150 });
+    guarded.hooks.emit(HookName.AfterDefend, { source: guarded.unit('self'), target: guarded.unit('self') });
+    expect(guarded.unit('self').resources[0].current).toBe(5);
+
+    const refund = essence('yunu').passive!;
+    const art: SkillDef = {
+      id: 'art',
+      name: '诀',
+      tags: [SkillTag.Art],
+      resourceCosts: [{ resourceId: DAO_RAGE_RESOURCE_ID, amount: 40 }],
+      originalResourceCosts: [{ resourceId: DAO_RAGE_RESOURCE_ID, amount: 100 }],
+      targeting: { side: TargetSide.Enemy, count: 1 },
+      effects: [{ type: EffectType.FixedHit, power: '1' }],
+    };
+    const battle = battleWith([refund], [refund.id], art);
+    battle.unit('self').resources.push({ id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 40, max: 150 });
+    battle.submit('self', { type: CommandType.Skill, skillId: 'art', targets: ['foe'] });
+    battle.submit('foe', { type: CommandType.Defend });
+    battle.lockAndResolve();
+    expect(battle.unit('self').resources[0].current).toBe(6);
+
+    const opened = compileDaoEquipmentSpecialLoadoutV1(
+      { belt: item('belt', ['xushi']) },
+      100,
+    );
+    if (!opened.ok) throw new Error('compile');
+    expect(opened.projection.rageInitialAdd).toBe(10);
+    expect(essence('xushi').description).toContain('10');
+  });
+
+  it('踏虚只提高对较慢主目标的伤害结果4%', () => {
+    const skill = essence('taxu').passive!;
+    expect(skill.modifiers?.every((modifier) => modifier.damageResultFactor === 1.04 && modifier.when?.targetSlot === 'primary')).toBe(true);
+    const battle = battleWith([skill], [skill.id]);
+    const bare = battleWith([], []);
+    for (const current of [battle, bare]) {
+      current.submit('self', { type: CommandType.Attack, target: 'foe' });
+      current.submit('foe', { type: CommandType.Defend });
+      current.lockAndResolve();
+    }
+    const boosted = 10000 - battle.unit('foe').attrs.hp;
+    const plain = 10000 - bare.unit('foe').attrs.hp;
+    expect(boosted).toBe(Math.floor(plain * 1.04));
+  });
+
+  it('避锋把受到的物理命中率降低4个百分点', () => {
+    const skill = essence('bifeng').passive!;
+    const battle = battleWith([skill], [skill.id]);
+    const rolled = battle.hooks.emit(HookName.OnHitRoll, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      kind: DamageKind.Physical,
+      chance: 0.8,
+    });
+    expect(rolled.chance).toBeCloseTo(0.76);
+    const spell = battle.hooks.emit(HookName.OnHitRoll, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      kind: DamageKind.Spell,
+      chance: 0.8,
+    });
+    expect(spell.chance).toBe(0.8);
+  });
+
+  it('绝尘在气血首次低于30%时提高速度，本场只触发一次', () => {
+    const skill = essence('juechen').passive!;
+    const result = compileDaoEquipmentSpecialLoadoutV1(
+      { footwear: item('footwear', ['juechen']) },
+      100,
+    );
+    if (!result.ok) throw new Error('compile');
+    const battle = battleWith(
+      result.projection.skills,
+      result.projection.passiveSkillIds.filter((skillId) => skillId.includes('juechen')),
+      undefined,
+      5,
+      result.projection.statusDefs,
+    );
+    battle.unit('self').attrs.hp = 400;
+    battle.hooks.emit(HookName.AfterDamage, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      hpDamage: 50,
+    });
+    expect(battle.unit('self').statuses.some((status) => status.id === 'dao_equipment.status.juechen')).toBe(false);
+    battle.unit('self').attrs.hp = 250;
+    battle.hooks.emit(HookName.AfterDamage, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      hpDamage: 200,
+    });
+    const applied = () => battle.log().filter((event) => event.type === EventType.StatusApplied && event.statusId === 'dao_equipment.status.juechen');
+    expect(applied()).toHaveLength(1);
+    battle.unit('self').attrs.hp = 200;
+    battle.hooks.emit(HookName.AfterDamage, {
+      source: battle.unit('foe'),
+      target: battle.unit('self'),
+      hpDamage: 100,
+    });
+    expect(applied()).toHaveLength(1);
+    expect(result.projection.statusDefs.some((status) => status.id === 'dao_equipment.status.juechen')).toBe(true);
   });
 });

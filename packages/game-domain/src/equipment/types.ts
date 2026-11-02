@@ -131,6 +131,8 @@ export interface DaoEquipmentEssenceDefV1 {
   requiredStageOffset?: number;
   resourceGainFactors?: Record<string, number>;
   resourceCostFactors?: Record<string, number>;
+  rageInitialAdd?: number;
+  statusDefs?: StatusDef[];
 }
 
 export interface DaoEquipmentArtDefV1 {
@@ -188,6 +190,7 @@ export type DaoEquipmentSpecialProjectionV1 = DaoEquipmentProjectionV1 & {
   effectiveRequiredLevels: Partial<Record<DaoEquipmentSlot, number>>;
   rageGainFactor: number;
   rageCostFactor: number;
+  rageInitialAdd: number;
 };
 
 export type CompileDaoEquipmentSpecialLoadoutV1Result =
