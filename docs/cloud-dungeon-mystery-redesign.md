@@ -1,6 +1,6 @@
 # 云游探秘重构：剧本杀式解谜副本设计
 
-状态：设计已确认（2026-11-02），第 15 节各项按“建议默认”拍板；P0 原型实施中，进度见第 17 节。
+状态：设计已确认（2026-11-02），第 15 节各项按“建议默认”拍板；实施进度见第 17 节。后续开发路线见 [cloud-dungeon-roadmap.md](cloud-dungeon-roadmap.md)，上线前事项见 [cloud-dungeon-launch-checklist.md](cloud-dungeon-launch-checklist.md)。
 
 ## 1. 一句话
 
