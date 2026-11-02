@@ -39,6 +39,18 @@ export const cultivationRoutes = [
     )}
   />,
   <Route
+    path="craft/refine/codex"
+    lazy={lazyRoute(() => import('@app/routes/game/craft/refine/codex/route'))}
+    handle={scene(
+      {
+        id: 'equipment-codex',
+        presentation: 'archive',
+        summary: '按境界与部位查阅基础属性范围、器蕴与器诀。',
+      },
+      '装备图鉴',
+    )}
+  />,
+  <Route
     path="enlightenment"
     lazy={lazyRoute(() => import('@app/routes/game/enlightenment/route'))}
     handle={scene(

@@ -22,7 +22,7 @@ import {
   EQUIPMENT_ATTRIBUTE_NAMES,
 } from '@daoyou/game-domain/equipment';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useBeforeUnload, useBlocker } from 'react-router';
+import { useBeforeUnload, useBlocker, useNavigate } from 'react-router';
 import { ForgingFurnace } from './ForgingFurnace';
 import { ForgingInventory, type ForgeFilter } from './ForgingInventory';
 import { useForgingSession, type ForgeItem } from './useForgingSession';
@@ -61,6 +61,14 @@ const facilities: RoomActorView[] = [
     responsibility: '辨灵材之性，知铸器之理',
     appearance: 'facility',
   },
+  {
+    id: 'codex',
+    sigil: '📖',
+    name: '装备图鉴',
+    identity: '器谱',
+    responsibility: '查阅各境各部位的基础属性、器蕴与器诀',
+    appearance: 'facility',
+  },
 ];
 const compactQuery = '(max-width: 767px)';
 function subscribeCompact(callback: () => void) {
@@ -72,6 +80,7 @@ const readCompact = () => window.matchMedia(compactQuery).matches;
 const readServerCompact = () => false;
 
 export function ForgingRoom() {
+  const navigate = useNavigate();
   const [facility, setFacility] = useState('');
   const [filter, setFilter] = useState<InventoryFilter>(defaultInventoryFilter);
   const session = useForgingSession(
@@ -143,9 +152,12 @@ export function ForgingRoom() {
         ) : null}
         {!facility ? (
           <RoomView
-            description="地火映壁，炉中尚有余温。图卷与铸器碑分列两侧，择一处走近。"
+            description="地火映壁，炉中尚有余温。图卷、器谱与铸器碑列于炉侧，择一处走近。"
             actors={facilities}
-            onSelect={setFacility}
+            onSelect={(id) => {
+              if (id === 'codex') navigate('/game/craft/refine/codex');
+              else setFacility(id);
+            }}
             prompt="选择一处设施"
           />
         ) : (
