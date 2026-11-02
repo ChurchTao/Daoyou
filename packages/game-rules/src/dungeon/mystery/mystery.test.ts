@@ -1,3 +1,4 @@
+import { getAllSatelliteNodes } from '@daoyou/game-content/world/map';
 import {
   getMysteryFallbackCase,
   getMysteryTemplate,
@@ -67,6 +68,30 @@ describe('mystery scenario content', () => {
       const caseFile = getMysteryFallbackCase(t.id);
       expect(caseFile, t.id).toBeDefined();
       expect(validateMysteryCase(caseFile!, t)).toEqual([]);
+    }
+  });
+
+  it('gives every dungeon satellite a complete scenario setting', () => {
+    const inRange = (list: string[], min: number, max: number) =>
+      list.length >= min && list.length <= max;
+    const dungeons = getAllSatelliteNodes().filter((n) => n.dungeon_config);
+    expect(dungeons.length).toBeGreaterThan(0);
+    for (const node of dungeons) {
+      const s = node.dungeon_config!.scenario;
+      expect(s, node.id).toBeDefined();
+      expect(
+        s!.templates.every((id) => getMysteryTemplate(id)),
+        node.id,
+      ).toBe(true);
+      expect(s!.setting.length, node.id).toBeLessThanOrEqual(200);
+      expect(inRange(s!.places, 6, 10), `${node.id} places`).toBe(true);
+      expect(inRange(s!.inhabitants, 4, 8), `${node.id} inhabitants`).toBe(
+        true,
+      );
+      expect(inRange(s!.history, 1, 3), `${node.id} history`).toBe(true);
+      expect(inRange(s!.objects, 4, 8), `${node.id} objects`).toBe(true);
+      expect(inRange(s!.factions, 0, 4), `${node.id} factions`).toBe(true);
+      expect(s!.forbidden.length, `${node.id} forbidden`).toBeGreaterThan(0);
     }
   });
 

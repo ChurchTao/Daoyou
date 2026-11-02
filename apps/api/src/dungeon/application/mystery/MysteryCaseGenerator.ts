@@ -4,7 +4,10 @@ import {
   type MysteryCaseFile,
   type MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import type { SatelliteNode } from '@daoyou/game-domain/world/map';
+import type {
+  DungeonScenarioConfig,
+  SatelliteNode,
+} from '@daoyou/game-domain/world/map';
 import {
   buildMysterySkeleton,
   validateMysteryCase,
@@ -134,7 +137,10 @@ function outlineSchema(
   return z.object({
     npcs: keyed(id.npcs, (key) =>
       z.object({
-        name: Text(6, `人物在全案中唯一使用的名字；作用：${p[key]}`),
+        name: Text(
+          6,
+          `人物在全案中唯一使用的名字，姓氏从 naming.surnames 中选、彼此不同；不能言语者可用称号；作用：${p[key]}`,
+        ),
         title: Text(
           8,
           `对外身份称谓；${spec.liarLabel}的称谓即其对外宣称的身份，全案提到时都用这个称谓`,
@@ -173,7 +179,7 @@ function outlineSchema(
     title: Text(12, '案卷标题'),
     truth: Text(
       500,
-      '完整真相：只用上面定下的名字，与 canon 和各线索 fact 一致',
+      '完整真相：以第三人称写成此地发生过的往事经过（谁、为何、如何、事后做了什么），不写玩家的调查过程，不用“你”；只用上面定下的名字，与 canon 和各线索 fact 一致',
     ),
     brief: z.object({
       identity: Text(100, '玩家此行的身份'),
@@ -573,13 +579,34 @@ export interface MysteryCaseRequest {
     SatelliteNode,
     'name' | 'realm_requirement' | 'tags' | 'description'
   >;
-  setting: { setting: string; factions?: string[]; forbidden?: string[] };
+  setting: DungeonScenarioConfig;
   /** 开局的节点：生成失败时只能退回绑定到此节点的保底案卷。 */
   mapNodeId: string;
 }
 
+/** 修仙题材常见姓氏。模型偏爱沈、柳、赵、陆等少数几个，按种子给出一组以拉开各案的人名。 */
+const SURNAMES =
+  '韩厉墨萧凌白秦楚叶云林方顾温卫钟岳唐聂殷孟葛褚晏贺奚宁严戚商闻俞霍邵乔谭苗蔺甘晁鲁骆'.split(
+    '',
+  );
+
+function namingPalette(seed: number) {
+  let x = seed >>> 0 || 1;
+  const pool = [...SURNAMES];
+  const surnames: string[] = [];
+  while (surnames.length < 8) {
+    x = (Math.imul(x, 1664525) + 1013904223) >>> 0;
+    surnames.push(pool.splice(x % pool.length, 1)[0]!);
+  }
+  return {
+    surnames,
+    avoid:
+      '不用沈、柳、赵、陆、苏、李、王、张作姓，不用“清秋”“铁山”“三娘”这类常见名',
+  };
+}
+
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
-export const MYSTERY_GENERATOR_VERSION = 3;
+export const MYSTERY_GENERATOR_VERSION = 4;
 
 export interface GeneratedMysteryCase {
   caseFile: MysteryCaseFile;
@@ -609,6 +636,7 @@ export async function generateMysteryCase(
         schema: outlineSchema(skeleton, spec),
         context: {
           archetype: { rules: spec.rules },
+          naming: namingPalette(request.seed),
           template: {
             name: template.name,
             summary: template.summary,
@@ -619,12 +647,19 @@ export async function generateMysteryCase(
             })),
             writing_guidance: template.writing_guidance,
           },
+          // 节点的结构化设定：房间、人物、往事与物件都从这里取材。
           setting: {
             name: node.name,
             realm: node.realm_requirement,
             tags: node.tags,
             description: node.description,
-            ...setting,
+            overview: setting.setting,
+            places: setting.places,
+            inhabitants: setting.inhabitants,
+            history: setting.history,
+            objects: setting.objects,
+            factions: setting.factions,
+            forbidden: setting.forbidden,
           },
           structure: {
             rooms: skeleton.caseFile.rooms.map((r) => ({
@@ -663,7 +698,8 @@ export async function generateMysteryCase(
           part: key,
           task: TEXT_PARTS[key].task,
           writing_guidance: template.writing_guidance,
-          forbidden: setting.forbidden ?? [],
+          setting: setting.setting,
+          forbidden: setting.forbidden,
           case: structure,
         },
       });
