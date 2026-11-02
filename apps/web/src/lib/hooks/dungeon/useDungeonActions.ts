@@ -2,8 +2,6 @@ import { useInkUI } from '@app/components/providers/InkUIProvider';
 import { apiFetch } from '@app/lib/api/fetch';
 import { consumeResourceMutation } from '@app/lib/resources/mutations';
 import type {
-  DungeonMaterialSelection,
-  DungeonOption,
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
@@ -67,23 +65,6 @@ export function useDungeonActions(
     startDungeon: async (mapNodeId: string) =>
       // 解谜秘境开局需要生成案卷，耗时长于普通操作。
       (await mutate('start', { mapNodeId }, 200000))?.state ?? null,
-    performAction: (
-      option: DungeonOption,
-      runId: string,
-      round: number,
-      materialSelections: DungeonMaterialSelection[] = [],
-    ) => {
-      const key = JSON.stringify([runId, round, option.id, materialSelections]);
-      if (actionRequest.current?.key !== key)
-        actionRequest.current = { key, id: crypto.randomUUID() };
-      return mutate('action', {
-        choiceId: option.id,
-        actionId: actionRequest.current.id,
-        runId,
-        round,
-        materialSelections,
-      });
-    },
     mysteryAct: (runId: string, turn: number, action: MysteryAction) => {
       // 同一回合重试同一动作时沿用 actionId，服务端据此去重。
       const key = JSON.stringify([runId, turn, action]);
@@ -127,8 +108,6 @@ export function useDungeonActions(
       mutate('mystery/deduce', { runId, answers }),
     beginBattle: (encounterId: string) =>
       mutate('battle/begin', { encounterId }),
-    continueLooting: () => mutate('looting/continue', { expected }),
-    escapeLooting: () => mutate('looting/escape', { expected }),
     recoverDungeon: (action: DungeonRecoverAction) =>
       mutate('recover', { action, expected }),
     quitDungeon: () =>

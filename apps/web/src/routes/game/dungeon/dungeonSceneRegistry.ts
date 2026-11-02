@@ -20,7 +20,6 @@ export type DungeonSceneState =
   | 'exploring'
   | 'battle_preparation'
   | 'in_battle'
-  | 'looting'
   | 'settlement';
 
 const dungeonSceneDescriptors: Record<
@@ -87,16 +86,6 @@ const dungeonSceneDescriptors: Record<
     density: 'full',
     loadingMessage: '战局演算中……',
   },
-  looting: {
-    sceneLabel: '战后休整',
-    subtitle: '余波未散，决定是继续深入，还是及时收手。',
-    backAction: {
-      label: '返回洞府',
-      href: '/game',
-    },
-    density: 'card',
-    loadingMessage: '正在整理战后余波……',
-  },
   settlement: {
     sceneLabel: '探索结束',
     subtitle: '尘埃落定，此行所得已可回带洞府。',
@@ -112,8 +101,7 @@ const dungeonSceneDescriptors: Record<
 export const defaultDungeonSceneDescriptor =
   dungeonSceneDescriptors.map_selection;
 
-const DUNGEON_SCENE_TOP_OFFSET_FALLBACK =
-  'calc(var(--app-safe-top) + 3.5rem)';
+const DUNGEON_SCENE_TOP_OFFSET_FALLBACK = 'calc(var(--app-safe-top) + 3.5rem)';
 
 export const DUNGEON_SCENE_CONTENT_TOP_GAP = `calc(var(--dungeon-scene-top-offset, ${DUNGEON_SCENE_TOP_OFFSET_FALLBACK}) + 0.5rem)`;
 export const DUNGEON_SCENE_CONTENT_BOTTOM_GAP =

@@ -16,7 +16,6 @@ export type LlmSceneId =
   | 'dungeon-case-text'
   | 'dungeon-case-review'
   | 'dungeon-npc'
-  | 'dungeon-round'
   | 'dungeon-settlement'
   | 'fate-naming'
   | 'equipment-forge-naming'

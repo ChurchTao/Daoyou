@@ -14,7 +14,6 @@ import {
 import type { Redis } from 'ioredis';
 import { DungeonApplicationService } from './application/DungeonApplicationService.js';
 import { DungeonFlowService } from './application/flow/DungeonFlowService.js';
-import { generateDungeonRound } from './application/flow/DungeonRoundGenerator.js';
 import { DungeonRunStore } from './application/flow/DungeonRunStore.js';
 import { generateDungeonEnding } from './application/flow/DungeonSettlementGenerator.js';
 import { generateMysteryCase } from './application/mystery/MysteryCaseGenerator.js';
@@ -41,7 +40,6 @@ import { DungeonService } from './dungeon.service.js';
         lock: typeof withRedisLock,
       ) =>
         new DungeonFlowService(
-          generateDungeonRound,
           generateDungeonEnding,
           database,
           runs,

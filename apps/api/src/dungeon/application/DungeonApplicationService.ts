@@ -33,14 +33,6 @@ import { toPlayerStateMutationResponse } from '@server/player/application/state/
 
 type DungeonCommand =
   | { kind: 'start'; mapNodeId: string }
-  | {
-      kind: 'action';
-      choiceId: number;
-      actionId: string;
-      runId: string;
-      round: number;
-      materialSelections: import('@daoyou/game-domain/dungeon').DungeonMaterialSelection[];
-    }
   | ({ kind: 'mystery-act' } & DungeonMysteryActRequest)
   | ({ kind: 'mystery-deduce' } & DungeonMysteryDeduceRequest)
   | ({ kind: 'mystery-talk' } & DungeonMysteryTalkRequest)
@@ -57,8 +49,6 @@ type DungeonCommand =
         | 'force_quit';
     }
   | { kind: 'quit'; expected: DungeonExpectedState }
-  | { kind: 'looting-continue'; expected: DungeonExpectedState }
-  | { kind: 'looting-escape'; expected: DungeonExpectedState }
   | { kind: 'battle-abandon'; battleId: string }
   | { kind: 'battle-execute'; battleId: string; requestId?: string };
 
@@ -305,8 +295,6 @@ function dungeonCommandSource(command: DungeonCommand): string {
   switch (command.kind) {
     case 'start':
       return 'dungeon_start';
-    case 'action':
-      return 'dungeon_action';
     case 'mystery-act':
       return 'dungeon_mystery_act';
     case 'mystery-deduce':
@@ -321,10 +309,6 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return `dungeon_recover_${command.action}`;
     case 'quit':
       return 'dungeon_quit';
-    case 'looting-continue':
-      return 'dungeon_looting_continue';
-    case 'looting-escape':
-      return 'dungeon_looting_escape';
     case 'battle-abandon':
       return 'dungeon_battle_abandon';
     case 'battle-execute':
@@ -355,25 +339,6 @@ async function prepareDungeonCommand(
   switch (command.kind) {
     case 'start':
       return flow.startDungeon(cultivatorId, command.mapNodeId, options);
-    case 'action': {
-      const state = await flow.getState(cultivatorId);
-      if (
-        !state ||
-        state.runId !== command.runId ||
-        (state.currentRound !== command.round &&
-          !state.costLedger?.some(
-            (entry) => entry.actionId === command.actionId,
-          ))
-      ) {
-        throw new DungeonStartError('探索轮次已变化，请刷新后重新选择', 409);
-      }
-      return flow.handleAction(
-        cultivatorId,
-        command.choiceId,
-        command.actionId,
-        { ...options, materialSelections: command.materialSelections },
-      );
-    }
     case 'mystery-act':
       return flow.actMystery(cultivatorId, command, options);
     case 'mystery-deduce':
@@ -388,10 +353,6 @@ async function prepareDungeonCommand(
       return flow.recoverDungeon(cultivatorId, command.action, options);
     case 'quit':
       return flow.quitDungeon(cultivatorId, options);
-    case 'looting-continue':
-      return flow.continueFromLooting(cultivatorId, options);
-    case 'looting-escape':
-      return flow.escapeFromLooting(cultivatorId, options);
     case 'battle-abandon':
       throw new Error('请在战斗中使用逃跑指令');
     case 'battle-execute': {

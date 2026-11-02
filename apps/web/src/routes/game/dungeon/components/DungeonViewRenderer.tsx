@@ -8,8 +8,6 @@ import { DungeonViewState } from '@app/lib/hooks/dungeon/useDungeonViewModel';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import type {
-  DungeonMaterialSelection,
-  DungeonOption,
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
@@ -30,8 +28,6 @@ import {
 } from '../dungeonSceneRegistry';
 import { BattlePreparation } from './BattlePreparation';
 import { DungeonBattle } from './DungeonBattle';
-import { DungeonExploring } from './DungeonExploring';
-import { DungeonLooting } from './DungeonLooting';
 import { DungeonMapSelector } from './DungeonMapSelector';
 import { DungeonMystery } from './DungeonMystery';
 import type { DungeonDisplayResources } from './DungeonRunPanel';
@@ -48,13 +44,7 @@ interface DungeonViewRendererProps {
   actions: {
     beginBattle: () => Promise<void>;
     startDungeon: (nodeId: string) => Promise<void>;
-    performAction: (
-      option: DungeonOption,
-      selections?: DungeonMaterialSelection[],
-    ) => Promise<void>;
     quitDungeon: () => Promise<boolean>;
-    continueLooting: () => Promise<void>;
-    escapeLooting: () => Promise<void>;
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
     mysteryAct: (action: MysteryAction) => Promise<void>;
@@ -294,27 +284,6 @@ export function DungeonViewRenderer({
     );
   }
 
-  if (viewState.type === 'looting') {
-    return (
-      <DungeonSceneScreen
-        descriptor={resolveDungeonRunSceneDescriptor(
-          'looting',
-          viewState.state,
-        )}
-      >
-        <DungeonLooting
-          state={viewState.state}
-          cultivator={cultivator}
-          displayResources={displayResources}
-          onContinue={actions.continueLooting}
-          onEscape={actions.escapeLooting}
-          onQuit={actions.quitDungeon}
-          processing={processing}
-        />
-      </DungeonSceneScreen>
-    );
-  }
-
   if (viewState.type === 'recoverable_error') {
     const actionsAvailable =
       viewState.state.recoverableActions ??
@@ -391,7 +360,7 @@ export function DungeonViewRenderer({
     );
   }
 
-  if (viewState.type === 'exploring') {
+  if (viewState.type === 'legacy') {
     return (
       <DungeonSceneScreen
         descriptor={resolveDungeonRunSceneDescriptor(
@@ -399,16 +368,18 @@ export function DungeonViewRenderer({
           viewState.state,
         )}
       >
-        <DungeonExploring
-          key={`${viewState.state.runId}:${viewState.state.currentRound}`}
-          state={viewState.state}
-          lastRound={viewState.lastRound}
-          cultivator={cultivator}
-          displayResources={displayResources}
-          onAction={actions.performAction}
-          onQuit={actions.quitDungeon}
-          processing={processing}
-        />
+        <InkCard className="space-y-4 p-6">
+          <p className="text-ink leading-7">
+            这是旧版云游留下的未完成探索。云游探秘已改为解谜玩法，旧探索无法继续推进；结束后此前已确定的收获照常带回。
+          </p>
+          <InkButton
+            variant="primary"
+            disabled={processing}
+            onClick={() => void actions.quitDungeon()}
+          >
+            结束探索
+          </InkButton>
+        </InkCard>
       </DungeonSceneScreen>
     );
   }

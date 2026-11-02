@@ -328,7 +328,13 @@
       "environmental_status": "abundant_qi",
       "tags": ["偏僻", "高阶灵草", "妖兽巢穴", "闭关地"],
       "description": "一座在海图上没有任何标记的孤岛，岛上怪石嶙峋，偶有惊人妖气冲天而起。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "乱星海上无名孤岛，怪石间凿有一处闭关洞府，洞外妖兽巢穴环伺，岛心长着几株高阶灵草。"
+        }
+      }
     },
     {
       "id": "SAT_LX_02",
@@ -356,7 +362,13 @@
       "environmental_status": null,
       "tags": ["空间裂缝", "古魔气", "瞬移危险"],
       "description": "此处空间极不稳定，肉眼可见道道漆黑裂缝如蛛网般蔓延，稍有不慎便会形神俱灭。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "坠魔谷外围的空间断层带，漆黑裂缝如蛛网蔓延，裂缝间悬着几座被空间切碎的古修士石台，古魔气时隐时现。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_01",
@@ -367,7 +379,13 @@
       "environmental_status": "toxic_air",
       "tags": ["炼尸", "阴气滔天", "万年尸熊", "阴属性材料"],
       "description": "藏于沼泽深处的古老石墓，石门上刻满了镇邪符文，却掩盖不住内部溢出的尸气。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "南疆沼泽深处的石墓，石门刻满镇邪符文，墓中有炼尸的石棺、阴气凝成的寒雾与守墓人的旧居。"
+        }
+      }
     },
     {
       "id": "SAT_ML_01",
@@ -378,7 +396,13 @@
       "environmental_status": null,
       "tags": ["潜入", "圣兽分身", "慕兰灵石"],
       "description": "慕兰法士秘密举行祭祀的简易阵地，戒备森严，似乎在酝酿某种阴谋。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "慕兰法士在草原上秘密搭起的简易祭坛，帐篷、图腾柱与祭器环绕，四周有法士巡哨，祭台下埋着供奉之物。"
+        }
+      }
     },
     {
       "id": "SAT_TN_03",
@@ -389,7 +413,13 @@
       "environmental_status": null,
       "tags": ["灵药残存", "木灵气", "陷阱"],
       "description": "血色禁地边缘的一处荒废园子，虽然杂草丛生，但偶尔能惊鸿一瞥地看到年份久远的药草。",
-      "dungeon_config": { "difficulty": "easy" }
+      "dungeon_config": {
+        "difficulty": "easy",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "落日森林边缘荒废的药园，篱笆倾倒、药圃杂草丛生，园主的竹屋与晾药架尚在，园中布有防贼的小陷阱。"
+        }
+      }
     },
     {
       "id": "SAT_TN_08",
@@ -411,7 +441,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "近海妖兽", "潮汐礁洞", "炼气试炼"],
       "description": "魁星岛外海退潮后显露的礁洞，洞内多见低阶海兽踪迹，也藏着被潮水冲刷出的贝晶与水行材料。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "魁星岛外海退潮后露出的礁洞，洞壁挂着贝晶，潮水冲进洞底的石穴，近海妖兽在暗处出没。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_02",
@@ -422,7 +458,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "古龙逆鳞", "阵眼崩坏", "高危夺宝"],
       "description": "裂渊深处裸露出的古祭坛，阵纹已被岁月磨损，却仍在吞吐骇人的龙威。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "玄黄裂渊深处的古祭坛，阵纹被岁月磨损，阵眼崩坏处吞吐着古龙威压，祭坛四周散落着祭器与龙鳞。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_10",
@@ -433,7 +475,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "碎鳞石林", "界隙罡风", "合体历练"],
       "description": "逆鳞祭坛外侧散布着大片黑色石林，石面残留古龙鳞纹，罡风虽烈，却未触及祭坛核心杀机。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "逆鳞祭坛外的黑色石林，石面残留古龙鳞纹，界隙罡风在石柱间呼啸，石林深处有前人歇脚的石龛。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_03",
@@ -444,7 +492,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "神殿守卫", "法则碎片", "深海禁制"],
       "description": "沉没在黑潮最深处的神殿废墟，殿门未启已闻雷鸣，仿佛仍有古神在沉睡。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "九幽冥海黑潮最深处的沉日神殿废墟，殿门未启已闻雷鸣，神殿守卫仍在巡行，殿内有供台与法则碎片凝成的光幕。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_11",
@@ -455,7 +509,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "黑潮贝场", "冥海灵贝", "法则潮汐"],
       "description": "沉日神殿外围的黑潮贝场随冥海潮汐开合，灵贝与残破法则碎屑偶尔被卷上礁台。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "沉日神殿外围的黑潮贝场，灵贝随潮汐开合，礁台上搭着采贝人的棚屋，潮水间漂着残破的法则碎屑。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_04",
@@ -466,7 +526,13 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "劫火炼体", "天道投影", "飞升残卷"],
       "description": "飞升台外围回廊燃烧着不灭劫火，踏错一步便会被天道投影当场抹杀。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "飞升台外围燃着不灭劫火的回廊，廊柱刻满劫纹，天道投影在廊中游走，廊尽头有前人留下的炼体石室。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_12",
@@ -477,7 +543,13 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "残雷碑林", "劫纹参悟", "渡劫试炼"],
       "description": "飞升台边缘残立着成片雷碑，碑面劫纹时明时灭，可供渡劫修士参悟雷劫余韵。",
-      "dungeon_config": { "difficulty": "elite" }
+      "dungeon_config": {
+        "difficulty": "elite",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "飞升台边缘的残雷碑林，雷碑上劫纹时明时灭，碑林间有参悟者留下的蒲团与刻痕，偶有残雷落下。"
+        }
+      }
     },
     {
       "id": "SAT_TN_04",
@@ -488,7 +560,13 @@
       "environmental_status": null,
       "tags": ["单人副本", "试炼阵", "木灵脉", "宗门秘库", "藏经残卷"],
       "description": "黄枫谷后山深处封存多年的试炼禁地，灵雾常年不散，偶有古阵自鸣。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "黄枫谷后山封存多年的试炼禁地，灵雾常年不散，古阵偶尔自鸣，禁地深处有宗门秘库与看守长老的静室。"
+        }
+      }
     },
     {
       "id": "SAT_TN_05",
@@ -499,7 +577,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "传送残阵", "空间乱流", "跨海线索"],
       "description": "废矿最深处的巨井中埋着古传送阵核心，阵纹残破却仍偶尔闪烁跨域灵光。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "废弃灵石矿最深处的巨井，井底埋着古传送阵核心，阵纹残破却偶尔闪烁跨域灵光，井壁凿有旧矿工的歇脚洞。"
+        }
+      }
     },
     {
       "id": "SAT_TN_06",
@@ -510,7 +594,13 @@
       "environmental_status": "toxic_air",
       "tags": ["单人副本", "古魔印记", "魔气潮汐", "高危机缘"],
       "description": "坠魔谷深处散落着多座古魔祭坛，黑色魔纹时隐时现，令人神魂不宁。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "坠魔谷深处散落的古魔祭坛群，黑色魔纹时隐时现，祭坛间有魔修留下的营地与被镇压的魔器。"
+        }
+      }
     },
     {
       "id": "SAT_YW_01",
@@ -538,7 +628,13 @@
       "environmental_status": "abundant_qi",
       "tags": ["单人副本", "星宫禁卫", "地脉结晶", "灵脉争夺"],
       "description": "圣山下方天然地脉形成的秘窟，灵气如潮，亦有星宫遗留禁卫巡弋。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "天星城圣山下天然地脉形成的秘窟，灵气如潮，地脉结晶遍布洞壁，星宫遗留的禁卫仍在巡弋。"
+        }
+      }
     },
     {
       "id": "SAT_LX_04",
@@ -549,7 +645,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "妖兽伏击", "古殿残图", "寒煞之气"],
       "description": "六连殿下方被海潮浸蚀的古回廊，阴寒灵压交错，暗处潜伏大量海妖。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "魁星岛六连殿下被海潮浸蚀的古回廊，寒煞之气凝在石壁上，回廊尽头有残缺的古殿壁画与海妖巢穴。"
+        }
+      }
     },
     {
       "id": "SAT_LX_05",
@@ -560,7 +662,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "虚天鼎残影", "上古傀儡", "夺鼎线索", "上古秘术"],
       "description": "虚天殿深处的星辰石阶漂浮于虚空，越往上禁制越强，常有修士在此陨落。",
-      "dungeon_config": { "difficulty": "elite" }
+      "dungeon_config": {
+        "difficulty": "elite",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "虚天殿深处漂浮于虚空的星辰石阶，越往上禁制越强，石阶旁立着上古傀儡，阶顶隐约可见虚天鼎残影。"
+        }
+      }
     },
     {
       "id": "SAT_ML_02",
@@ -571,7 +679,13 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "圣禽图腾", "法士军阵", "边境冲突"],
       "description": "慕兰法士供奉圣禽的古老祭台，祭阵发动时天地灵机紊乱，杀机四伏。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "慕兰法士供奉圣禽的古老祭天台，图腾柱林立，法士军阵驻在台下，祭台中央的祭坑供着圣禽遗物。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_05",
@@ -582,7 +696,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "玄冰妖灵", "寒髓矿脉", "冰系传承", "冰系功法"],
       "description": "小极宫最深层的玄冰库封印了万年寒气，连神识都可能在此被冻结。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "北夜小极宫最深层的万年玄冰库，寒气凝成冰柱，库中封存寒髓与冰系传承，守库长老的冰室就在库门边。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_06",
@@ -593,7 +713,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "镇魔符印", "塔灵试炼", "通天灵宝残片"],
       "description": "昆吾山腹地耸立的古塔镇压着多重魔魂，塔层越高，封印反噬越猛烈。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "昆吾山腹地的镇魔古塔，塔层间刻满镇魔符印，守塔人世代居于塔底，塔灵在上层考验来者。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_13",
@@ -604,7 +730,13 @@
       "environmental_status": "abundant_qi",
       "tags": ["单人副本", "灵液暗河", "山腹禁制", "炼虚资源"],
       "description": "昆吾山封印外层有灵液暗河穿行山腹，河道禁制尚可周旋，偶能寻得被灵液浸润的古材。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "昆吾山封印外层穿行山腹的灵液暗河，河道禁制尚可周旋，岸边有前人凿出的石阶与被灵液浸润的古材堆。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_07",
@@ -615,7 +747,13 @@
       "environmental_status": null,
       "tags": ["单人副本", "机关傀儡", "古卷秘档", "星象推演", "秘术典籍"],
       "description": "昔日名震人界的天机阁遗址，如今机关错乱，仍残存大量推演秘术。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "昔日名震人界的天机阁旧址，机关错乱、傀儡失控，阁中藏有古卷秘档与星象推演用的浑天仪，阁主的书斋尚存。"
+        }
+      }
     },
     {
       "id": "SAT_TN_07",
@@ -626,7 +764,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "藏经阁", "功法残卷", "禁制书架"],
       "description": "黄枫谷旧藏经阁下方的封闭地窖，书架与玉简多有残缺，仍可寻到可修炼的基础功法。",
-      "dungeon_config": { "difficulty": "easy" }
+      "dungeon_config": {
+        "difficulty": "easy",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "黄枫谷旧藏经阁下方的封闭地窖，书架与玉简多有残缺，禁制书架会锁住乱翻的人，看守老人在地窖口守了几十年。"
+        }
+      }
     },
     {
       "id": "SAT_LX_06",
@@ -637,7 +781,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["单人副本", "玉简密室", "神通刻痕", "上古秘术传承"],
       "description": "虚天殿侧翼封存玉简的回廊，墙壁刻有残缺术式轨迹，常伴随傀儡巡守与禁制反噬。",
-      "dungeon_config": { "difficulty": "elite" }
+      "dungeon_config": {
+        "difficulty": "elite",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "虚天殿侧翼封存玉简的回廊，墙壁刻有残缺的神通轨迹，玉简密室一间连着一间，傀儡巡守、禁制反噬。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_09",
@@ -648,7 +798,13 @@
       "environmental_status": "freezing",
       "tags": ["单人副本", "冰系功法玉简", "神识试炼", "长老封印"],
       "description": "小极宫历代长老封存冰系典籍之地，入内需以神识破封，失败则会被寒煞反噬。",
-      "dungeon_config": { "difficulty": "elite" }
+      "dungeon_config": {
+        "difficulty": "elite",
+        "scenario": {
+          "templates": ["inheritance_murder", "lost_relic"],
+          "setting": "北夜小极宫历代长老封存冰系典籍的藏经窟，入内需以神识破封，窟中有长老坐化的冰龛与典籍石架。"
+        }
+      }
     },
     {
       "id": "SAT_DJ_08",
@@ -659,7 +815,13 @@
       "environmental_status": "scorching",
       "tags": ["单人副本", "法则风暴", "古仙残兵", "天关遗宝"],
       "description": "天关之外漂浮着破碎战场，法则风暴昼夜不息，稍有分神便会形神俱灭。",
-      "dungeon_config": { "difficulty": "boss" }
+      "dungeon_config": {
+        "difficulty": "boss",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "太虚天关外漂浮的碎空战场，法则风暴昼夜不息，古仙残兵与断裂的战车散落在浮石上，战场中央有一座残破的帅台。"
+        }
+      }
     },
     {
       "id": "WILD_TN_MINE",
