@@ -7,6 +7,8 @@ import type {
   MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
 
+import { mysteryHint } from './hint.js';
+
 const LOG_LIMIT = 80;
 
 /** 条件求值只读取会单调增长的事实，保证可解性推演与运行时一致。 */
@@ -304,6 +306,12 @@ export function applyMysteryAction(
         return { ok: false, error: `${guard.name}拦住了去路，须强闯或化解` };
       spend(run, 1);
       enterRoom(w, target);
+      break;
+    }
+    case 'reflect': {
+      // 静思：花 1 点行动力换一句方向性提示，提示只看此刻的局面。
+      spend(run, 1);
+      w.log({ kind: 'hint', text: mysteryHint(caseFile, current) });
       break;
     }
     case 'bypass_guard': {

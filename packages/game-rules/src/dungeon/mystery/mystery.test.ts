@@ -474,3 +474,41 @@ describe('mystery dialogue', () => {
     ).toEqual({ ok: false, error: '此人不在这里' });
   });
 });
+
+describe('mystery hints', () => {
+  it('spends an action and points at the most useful thing at hand', () => {
+    const caseFile = fallback();
+    const run = {
+      ...createMysteryRun(caseFile, template.scale.action_budget),
+      location: 'stone_hall',
+      visited: ['waterfall', 'stone_hall'],
+    };
+    const result = applyMysteryAction(caseFile, run, { type: 'reflect' });
+    expect(result.ok && result.run.actionsLeft).toBe(run.actionsLeft - 1);
+    expect(result.ok && result.run.log.at(-1)).toEqual({
+      turn: 1,
+      kind: 'hint',
+      text: '此处的坐化遗骸，值得细看。',
+    });
+  });
+
+  it('suggests closing the case once nothing useful is left', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, SOLVE);
+    const reach = computeMysteryReachability(caseFile);
+    const done = {
+      ...run,
+      clues: [...reach.clues],
+      firedReactions: caseFile.npcs.flatMap((n) =>
+        n.reactions.map((r) => r.id),
+      ),
+      firedInteractions: caseFile.interactions.map((i) => i.id),
+      visited: caseFile.rooms.map((r) => r.id),
+      items: caseFile.items.map((i) => i.id),
+    };
+    const result = applyMysteryAction(caseFile, done, { type: 'reflect' });
+    expect(result.ok && result.run.log.at(-1)?.text).toBe(
+      '眼下的线索已够你推断，不妨翻翻笔记，着手结案。',
+    );
+  });
+});

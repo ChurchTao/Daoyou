@@ -341,7 +341,14 @@ export const MysteryCaseFileSchema = z.strictObject({
 export type MysteryCaseFile = z.infer<typeof MysteryCaseFileSchema>;
 
 export type MysteryLogKind =
-  'scene' | 'detail' | 'speech' | 'clue' | 'item' | 'system' | 'event';
+  | 'scene'
+  | 'detail'
+  | 'speech'
+  | 'clue'
+  | 'item'
+  | 'system'
+  | 'event'
+  | 'hint';
 
 export interface MysteryLogEntry {
   turn: number;
@@ -392,6 +399,7 @@ export const MysteryActionSchema = z.discriminatedUnion('type', [
     evidenceId: MysteryIdSchema,
   }),
   z.strictObject({ type: z.literal('bypass_guard'), guardId: MysteryIdSchema }),
+  z.strictObject({ type: z.literal('reflect') }),
 ]);
 
 export type MysteryAction = z.infer<typeof MysteryActionSchema>;

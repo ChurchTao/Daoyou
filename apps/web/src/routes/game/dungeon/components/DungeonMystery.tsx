@@ -52,6 +52,14 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
       </p>
     );
   }
+  if (entry.kind === 'hint') {
+    return (
+      <p className="border-wood/50 bg-wood/5 border-l-2 px-3 py-2 text-sm leading-7">
+        <span className="text-wood mr-2 font-semibold">静思</span>
+        {entry.text}
+      </p>
+    );
+  }
   if (entry.kind === 'event') {
     return (
       <p className="border-ink/40 bg-ink/5 border-l-2 px-3 py-2 text-sm leading-7">
@@ -262,7 +270,14 @@ export function DungeonMystery({
       )}
 
       {!exhausted ? (
-        <div className="text-center">
+        <div className="flex flex-wrap justify-center gap-3">
+          <InkButton
+            variant="secondary"
+            disabled={processing}
+            onClick={() => act({ type: 'reflect' })}
+          >
+            静思
+          </InkButton>
           <InkButton
             variant="primary"
             disabled={processing}
