@@ -122,11 +122,15 @@ export function useDungeonActions(
       mutate('recover', { action, expected }),
     quitDungeon: () =>
       new Promise<Awaited<ReturnType<typeof mutate>>>((resolve) => {
+        // 解谜对决前放走真凶：仍按结案结算，只是没有战斗分。
+        const confrontation =
+          state?.status === 'WAITING_BATTLE' && Boolean(state.mysteryView);
         openDialog({
-          title: '结束探索',
-          content:
-            '确定结束本次探索吗？已获得的收益将结算发放，但不会获得通关奖励。',
-          confirmLabel: '确认离开',
+          title: confrontation ? '任其遁走' : '结束探索',
+          content: confrontation
+            ? '放走真凶后此案即告了结，推理所得照常结算，只是拿不到战斗分。确定不追了吗？'
+            : '确定结束本次探索吗？已获得的收益将结算发放，但不会获得通关奖励。',
+          confirmLabel: confrontation ? '放其离去' : '确认离开',
           cancelLabel: '取消',
           onConfirm: async () => {
             resolve(await mutate('quit', { expected }));

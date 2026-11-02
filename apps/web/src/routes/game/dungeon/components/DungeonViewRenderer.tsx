@@ -18,8 +18,8 @@ import type {
   MysteryAnswers,
 } from '@daoyou/game-domain/dungeon/mystery';
 import {
-  isConditionStatusActive,
   getConditionStatusTemplate,
+  isConditionStatusActive,
 } from '@daoyou/game-rules/condition';
 import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { canChallengeDungeonRealm } from '@daoyou/game-rules/world/dungeon';
@@ -254,6 +254,7 @@ export function DungeonViewRenderer({
           processing={processing}
           onBegin={actions.beginBattle}
           onQuit={actions.quitDungeon}
+          confrontation={Boolean(viewState.state.mysteryView)}
         />
       </DungeonSceneScreen>
     );

@@ -1,6 +1,7 @@
 import type {
   MysteryAnswers,
   MysteryCaseFile,
+  MysteryConfrontationOutcome,
   MysteryResult,
   MysteryRewardTier,
   MysteryRunState,
@@ -42,6 +43,24 @@ export function checkMysteryAnswers(
 }
 
 /**
+ * 结案后是否进入对决：模板有战斗权重，且玩家正确指认了真凶。
+ * 指错人时真凶不会暴露，也就无从对决。返回真凶，否则 null。
+ */
+export function mysteryConfrontationTarget(
+  caseFile: MysteryCaseFile,
+  template: MysteryScenarioTemplate,
+  answers: MysteryAnswers,
+) {
+  if (template.scoring.combat <= 0) return null;
+  const culprit = caseFile.npcs.find((n) => n.role === 'culprit');
+  if (!culprit) return null;
+  const accused = caseFile.questions.some(
+    (q) => q.answer === culprit.id && answers[q.id] === culprit.id,
+  );
+  return accused ? culprit : null;
+}
+
+/**
  * 规则评分。放弃结案（answers 为空）时真相记零。
  * 效率分乘以真相正确率，避免不调查直接乱猜也能拿到效率分。
  */
@@ -50,6 +69,7 @@ export function scoreMysteryRun(
   template: MysteryScenarioTemplate,
   run: MysteryRunState,
   answers: MysteryAnswers,
+  confrontation: MysteryConfrontationOutcome = 'none',
 ): MysteryResult {
   const weights = template.scoring;
   const correct: Record<string, boolean> = {};
@@ -91,8 +111,7 @@ export function scoreMysteryRun(
     coverage: Math.round(weights.coverage * coverageRatio),
     efficiency: Math.round(weights.efficiency * efficiencyRatio * truthRatio),
     branch: Math.min(weights.branch, branchPoints),
-    // 首版解谜不含战斗，战斗权重按满分计入。
-    combat: weights.combat,
+    combat: confrontation === 'won' ? weights.combat : 0,
   };
   const total =
     breakdown.truth +
@@ -110,5 +129,6 @@ export function scoreMysteryRun(
     branches,
     keyCluesFound,
     keyCluesTotal: keyClues.length,
+    ...(weights.combat > 0 ? { confrontation } : {}),
   };
 }

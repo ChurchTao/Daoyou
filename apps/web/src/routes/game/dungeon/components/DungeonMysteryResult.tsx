@@ -1,5 +1,12 @@
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 
+const CONFRONTATION_LABELS = {
+  won: '擒下真凶',
+  lost: '交手落败，真凶脱逃',
+  spared: '未曾出手，真凶遁走',
+  none: '未能指认真凶',
+} as const;
+
 const SCORE_LABELS = {
   truth: '真相',
   coverage: '线索',
@@ -48,6 +55,11 @@ export function DungeonMysteryResult({
           <span className="mx-1 font-mono">
             {result.keyCluesFound}/{result.keyCluesTotal}
           </span>
+          {result.confrontation && (
+            <span className="ml-3">
+              {CONFRONTATION_LABELS[result.confrontation]}
+            </span>
+          )}
         </p>
       </div>
 
@@ -55,7 +67,10 @@ export function DungeonMysteryResult({
         {result.explanations.map((item) => {
           const correct = result.correct[item.questionId];
           return (
-            <div key={item.questionId} className="border-ink/15 border px-3 py-2">
+            <div
+              key={item.questionId}
+              className="border-ink/15 border px-3 py-2"
+            >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{item.prompt}</span>
                 <span className={correct ? 'text-wood' : 'text-crimson'}>

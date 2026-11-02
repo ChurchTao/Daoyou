@@ -342,6 +342,8 @@ export function useDungeonViewModel(
               isFinished: true,
               settlement: data.settlement,
               realGains: data.realGains,
+              // 解谜对决结束后评分随最终状态下发。
+              mysteryView: data.dungeonState?.mysteryView ?? prev.mysteryView,
             }
           : null,
       );

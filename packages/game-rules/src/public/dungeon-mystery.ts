@@ -3,30 +3,14 @@ export {
   applyMysteryAction,
   applyMysteryDialogue,
   createMysteryRun,
-  mysteryRevealableSecrets,
   evaluateMysteryCondition,
   mysteryNeighbors,
+  mysteryRevealableSecrets,
 } from '../dungeon/mystery/engine.js';
 export type { MysteryActionResult } from '../dungeon/mystery/engine.js';
 export {
-  computeMysteryReachability,
-  estimateMysteryMinimumActions,
-  validateMysteryCase,
-} from '../dungeon/mystery/validate.js';
-export {
-  checkMysteryAnswers,
-  mysteryTierForScore,
-  scoreMysteryRun,
-} from '../dungeon/mystery/scoring.js';
-export { projectMysteryView } from '../dungeon/mystery/projection.js';
-export {
-  buildMysterySkeleton,
-  MYSTERY_TEXT_PLACEHOLDER,
-} from '../dungeon/mystery/skeleton.js';
-export type { MysteryCaseSkeleton } from '../dungeon/mystery/skeleton.js';
-export {
-  decideMysteryRestock,
   MYSTERY_LIBRARY_POLICY,
+  decideMysteryRestock,
   needsMysteryRestock,
   pickMysteryScenario,
   shouldRetireMysteryScenario,
@@ -37,3 +21,20 @@ export type {
   RestockDecision,
   ScenarioPick,
 } from '../dungeon/mystery/library.js';
+export { projectMysteryView } from '../dungeon/mystery/projection.js';
+export {
+  checkMysteryAnswers,
+  mysteryConfrontationTarget,
+  mysteryTierForScore,
+  scoreMysteryRun,
+} from '../dungeon/mystery/scoring.js';
+export {
+  MYSTERY_TEXT_PLACEHOLDER,
+  buildMysterySkeleton,
+} from '../dungeon/mystery/skeleton.js';
+export type { MysteryCaseSkeleton } from '../dungeon/mystery/skeleton.js';
+export {
+  computeMysteryReachability,
+  estimateMysteryMinimumActions,
+  validateMysteryCase,
+} from '../dungeon/mystery/validate.js';

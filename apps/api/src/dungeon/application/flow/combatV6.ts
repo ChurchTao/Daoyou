@@ -1,4 +1,49 @@
+import type { RealmType } from '@daoyou/constants/realms';
+import type { DungeonSessionView } from '@daoyou/contracts/combat/dungeon';
+import { getMapNode } from '@daoyou/game-content/world/map';
+import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
+import type { DungeonTemplate } from '@daoyou/game-domain/combat/challenges';
+import { type DungeonBattleSnapshot } from '@daoyou/game-domain/combat/challenges';
+import type { CultivatorCondition } from '@daoyou/game-domain/condition';
+import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
+import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
+import {
+  beastDeathIds,
+  beastVictoryExperience,
+  gainBeastExp,
+} from '@daoyou/game-rules/beasts/growth';
+import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
 import { publicUnitAppearances } from '@daoyou/game-rules/combat/appearance';
+import { automaticCommands } from '@daoyou/game-rules/combat/auto';
+import {
+  carryDungeonBeastResources,
+  createDungeonHost,
+  DungeonHost,
+} from '@daoyou/game-rules/combat/dungeon/host';
+import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
+import {
+  combatV6Display,
+  combatV6DisplayEvent,
+  combatV6Playback,
+  combatV6Units,
+  visibleUnitNames,
+} from '@daoyou/game-rules/combat/presentation';
+import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
+import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
+import { appendDungeonReward } from '@daoyou/game-rules/rewards/dungeon';
+import {
+  clampDungeonEnemyRealmStage,
+  resolveDungeonMapConfig,
+} from '@daoyou/game-rules/world/dungeon';
+import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
+import { ConditionService } from '@server/cultivator/application/ConditionService.js';
+import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { hasActiveDungeon } from '@server/dungeon/application/flow/occupancy.js';
+import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
+import type {
+  BattleSession,
+  DungeonState,
+} from '@server/dungeon/application/flow/types.js';
 import { db, type DbExecutor } from '@server/lib/drizzle/db.js';
 import {
   cultivatorBeasts,
@@ -13,47 +58,9 @@ import {
 } from '@server/lib/repositories/combatV6BeastRepository.js';
 import { archiveCombatV6Replay } from '@server/lib/repositories/combatV6ReplayRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
-import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6BuildService.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { ResourceEventCommitter } from '@server/player/application/state/ResourceEventCommitter.js';
-import { automaticCommands } from '@daoyou/game-rules/combat/auto';
-import {
-  combatV6Display,
-  combatV6DisplayEvent,
-  combatV6Playback,
-  combatV6Units,
-  visibleUnitNames,
-} from '@daoyou/game-rules/combat/presentation';
-import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
-import { liveReplayDelta } from '@daoyou/game-rules/combat/playback';
-import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
-import type { DungeonTemplate } from '@daoyou/game-domain/combat/challenges';
-import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
-import type { DungeonSessionView } from '@daoyou/contracts/combat/dungeon';
-import {
-  beastDeathIds,
-  beastVictoryExperience,
-  gainBeastExp,
-} from '@daoyou/game-rules/beasts/growth';
-import { type DungeonBattleSnapshot } from '@daoyou/game-domain/combat/challenges';
-import { carryDungeonBeastResources, createDungeonHost, DungeonHost } from '@daoyou/game-rules/combat/dungeon/host';
-import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
-import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
-import { evaluateFateContext } from '@daoyou/game-rules/character/fates';
-import { getMapNode } from '@daoyou/game-content/world/map';
-import {
-  clampDungeonEnemyRealmStage,
-  resolveDungeonMapConfig,
-} from '@daoyou/game-rules/world/dungeon';
-import { appendDungeonReward } from '@daoyou/game-rules/rewards/dungeon';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
-import type { RealmType } from '@daoyou/constants/realms';
 import { and, eq, ne } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
-import { hasActiveDungeon } from '@server/dungeon/application/flow/occupancy.js';
-import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
-import type { BattleSession, DungeonState } from '@server/dungeon/application/flow/types.js';
 
 export interface DungeonBattlePayload {
   session: BattleSession;
@@ -108,8 +115,11 @@ function dungeonBattleSetup(state: DungeonState) {
     battle?.metadata?.realm_stage ?? '中期',
     mapConfig,
   );
+  // 解谜对决：被揭穿的真凶是整场唯一的敌人，按首领强度。
   const template: DungeonTemplate =
-    battle?.metadata?.is_boss || state.currentRound >= state.maxRounds
+    state.mystery?.verdict ||
+    battle?.metadata?.is_boss ||
+    state.currentRound >= state.maxRounds
       ? 'boss'
       : state.currentRound >= 3
         ? 'elite'
@@ -123,19 +133,17 @@ function dungeonBattleSetup(state: DungeonState) {
 }
 export async function prepareDungeonEncounter(
   state: DungeonState,
+  narration?: { enemyName: string; description: string },
 ): Promise<DungeonEncounterPayload> {
   const { player } = await dungeonPlayer(state.cultivatorId);
   const encounter = dungeonBattleSetup(state);
-  const host = createDungeonHost(
-    player,
-    encounter,
-    randomInt(0, 0x7fffffff),
-  );
+  const host = createDungeonHost(player, encounter, randomInt(0, 0x7fffffff));
   // Carry resources across encounters within this run without changing the persistent beast schema.
   const snapshot = host.runtimeSnapshot();
-  const narratedName = state.pendingAction?.costs.find(
-    (cost) => cost.type === 'battle',
-  )?.metadata?.enemy_name;
+  const narratedName =
+    narration?.enemyName ??
+    state.pendingAction?.costs.find((cost) => cost.type === 'battle')?.metadata
+      ?.enemy_name;
   if (narratedName) {
     const enemy = snapshot.input.units.find((unit) => unit.side === 1);
     if (enemy) enemy.name = narratedName.slice(0, 40);
@@ -157,8 +165,10 @@ export async function prepareDungeonEncounter(
     preview: {
       id: randomUUID(),
       description:
+        narration?.description ??
         state.pendingAction?.costs.find((cost) => cost.type === 'battle')
-          ?.metadata?.description ?? '前路被守敌截住，战意已起。',
+          ?.metadata?.description ??
+        '前路被守敌截住，战意已起。',
       enemies: snapshot.input.units
         .filter((unit) => unit.side === 1)
         .map((unit) => unit.name ?? '秘境守敌'),
@@ -230,7 +240,10 @@ function view(payload: DungeonBattlePayload, after = -1): DungeonSessionView {
     outcome: host.trace().outcome,
     units: combatV6Units(host.state, snapshot.input.statusDefs ?? []),
     display: {
-      unitAppearances: publicUnitAppearances(snapshot.timeline.unitAppearances, visibleUnitNames(host.state, snapshot.events, host.playerId)),
+      unitAppearances: publicUnitAppearances(
+        snapshot.timeline.unitAppearances,
+        visibleUnitNames(host.state, snapshot.events, host.playerId),
+      ),
       ...combatV6Display(
         snapshot.input.skills ?? [],
         snapshot.input.statusDefs ?? [],
@@ -286,7 +299,10 @@ export async function changeDungeonBattle(
             payload.snapshot.input.skills ?? [],
             (id) =>
               host.controlledCommandOptions().find((o) => o.unitId === id)!,
-            { statusDefs: payload.snapshot.input.statusDefs, strategies: { [host.playerId]: host.playerAutoStrategy } },
+            {
+              statusDefs: payload.snapshot.input.statusDefs,
+              strategies: { [host.playerId]: host.playerAutoStrategy },
+            },
           );
           if (commands.length) host.submitGroup(commands);
         }

@@ -328,6 +328,12 @@ export interface MysteryScoreBreakdown {
   combat: number;
 }
 
+/**
+ * 指认真凶后的对决结果：won 擒下、lost 落败让其逃脱、spared 未迎战任其遁走、
+ * none 未指认真凶（不触发对决）。
+ */
+export type MysteryConfrontationOutcome = 'won' | 'lost' | 'spared' | 'none';
+
 export interface MysteryResult {
   answers: MysteryAnswers;
   correct: Record<string, boolean>;
@@ -338,6 +344,8 @@ export interface MysteryResult {
   branches: string[];
   keyCluesFound: number;
   keyCluesTotal: number;
+  /** 模板含战斗权重时记录对决结果。 */
+  confrontation?: MysteryConfrontationOutcome;
 }
 
 /** 服务端权威记录，挂在 DungeonState.mystery 上，绝不直接下发。 */
@@ -348,6 +356,8 @@ export interface MysteryRecord {
   caseFile: MysteryCaseFile;
   run: MysteryRunState;
   result?: MysteryResult;
+  /** 已指认真凶、等待对决结果的结案答案；对决结束后连同结果一起评分。 */
+  verdict?: { answers: MysteryAnswers; culpritId: string };
   /** 对应剧本库中的剧本；保底案卷未入库时为空。 */
   scenarioId?: string;
   /** 冷启动生成的案卷需要在开局提交时一并入库。 */
@@ -366,6 +376,8 @@ export interface MysteryPlayerView {
   title: string;
   /** 此案已经历过（结案过）。 */
   replay: boolean;
+  /** 指认真凶后对方会负隅顽抗，战胜才能拿到战斗分。 */
+  confrontation: boolean;
   templateName: string;
   brief: MysteryCaseFile['brief'] & {
     relations: Array<{ npcId: string; name: string; text: string }>;

@@ -6,9 +6,12 @@ export function BattlePreparation({
   processing,
   onBegin,
   onQuit,
+  confrontation = false,
 }: {
   encounter: DungeonEncounterView;
   processing: boolean;
+  /** 解谜结案后与真凶对决：放弃迎战即任其遁走，仍按结案结算。 */
+  confrontation?: boolean;
   onBegin: () => Promise<void>;
   onQuit: () => Promise<boolean>;
 }) {
@@ -17,7 +20,7 @@ export function BattlePreparation({
       <p className="text-ink leading-8">{encounter.description}</p>
       <div>
         <p className="text-ink-secondary mb-2 text-sm">
-          前方守敌 ·{' '}
+          {confrontation ? '负隅顽抗' : '前方守敌'} ·{' '}
           <span className="font-mono">{encounter.enemies.length}</span> 位
         </p>
         <p className="text-crimson text-lg">{encounter.enemies.join('、')}</p>
@@ -41,7 +44,9 @@ export function BattlePreparation({
         </div>
       </dl>
       <p className="text-ink-secondary text-sm leading-7">
-        迎战将以当前气血、法力入场，战斗消耗会保留。也可就此结束探索，带走此前已确定的收获。
+        {confrontation
+          ? '迎战将以当前气血、法力入场，战斗消耗会保留。擒下真凶可得战斗分；落败或放其离去，推理所得照常结算，只是少了这一项。'
+          : '迎战将以当前气血、法力入场，战斗消耗会保留。也可就此结束探索，带走此前已确定的收获。'}
       </p>
       <div className="flex flex-wrap gap-3">
         <InkButton disabled={processing} onClick={() => void onBegin()}>
@@ -52,7 +57,7 @@ export function BattlePreparation({
           disabled={processing}
           onClick={() => void onQuit()}
         >
-          结束探索
+          {confrontation ? '任其遁走' : '结束探索'}
         </InkButton>
       </div>
     </div>

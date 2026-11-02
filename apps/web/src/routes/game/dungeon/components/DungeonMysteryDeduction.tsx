@@ -41,7 +41,11 @@ export function DungeonMysteryDeduction({
       isOpen={isOpen}
       onClose={onClose}
       title="结案推理"
-      description="结案后不能再调查。推断越准确、线索越完整，所得越丰厚。"
+      description={
+        view.confrontation
+          ? '结案后不能再调查。指认真凶后对方可能负隅顽抗，擒下方得全功。推断越准确、线索越完整，所得越丰厚。'
+          : '结案后不能再调查。推断越准确、线索越完整，所得越丰厚。'
+      }
       footer={
         <InkButton
           variant="primary"
@@ -51,7 +55,7 @@ export function DungeonMysteryDeduction({
           onClick={() =>
             openDialog({
               title: '确认结案',
-              content: '结案后本次探索即告结束，不能再回头调查。确定提交推断吗？',
+              content: '结案后不能再回头调查。确定提交推断吗？',
               confirmLabel: '提交推断',
               cancelLabel: '再想想',
               onConfirm: async () => {

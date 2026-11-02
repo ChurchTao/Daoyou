@@ -69,6 +69,7 @@ import type { generateDungeonEnding } from './DungeonSettlementGenerator.js';
 import type {
   MysteryAction,
   MysteryAnswers,
+  MysteryConfrontationOutcome,
 } from '@daoyou/game-domain/dungeon/mystery';
 import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
 import {
@@ -76,6 +77,7 @@ import {
   applyMysteryDialogue,
   checkMysteryAnswers,
   createMysteryRun,
+  mysteryConfrontationTarget,
   needsMysteryRestock,
   pickMysteryScenario,
   scoreMysteryRun,
@@ -1265,6 +1267,12 @@ export class DungeonFlowService {
     const battle = await getDungeonBattle(cultivatorId, battleId);
     if (!battle?.outcome) throw new Error('请先完成战斗');
     delete state.activeBattleId;
+    if (state.mystery?.verdict)
+      return this.finishMysteryConfrontation(
+        state,
+        battle.outcome === 'victory' ? 'won' : 'lost',
+        options,
+      );
     state.history[state.history.length - 1].outcome =
       battle.outcome === 'victory'
         ? `历经 ${battle.round} 回合，你击败了秘境守敌。`
@@ -1509,6 +1517,12 @@ export class DungeonFlowService {
                   Object.values(state.mystery.result.correct).every(Boolean)
                     ? '真相大白'
                     : '疑云未散',
+                  ...(state.mystery.result.confrontation === 'won'
+                    ? ['擒下真凶']
+                    : state.mystery.result.confrontation === 'lost' ||
+                        state.mystery.result.confrontation === 'spared'
+                      ? ['真凶遁走']
+                      : []),
                 ]
               : ['功成身退'],
       },
@@ -2132,6 +2146,36 @@ export class DungeonFlowService {
             400,
           );
         }
+        const culprit = mysteryConfrontationTarget(
+          mystery.caseFile,
+          template,
+          input.answers,
+        );
+        if (culprit) {
+          const encounter = await prepareDungeonEncounter(state, {
+            enemyName: culprit.name,
+            description: `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
+          }).catch((error: unknown) => {
+            console.warn('[DungeonMystery] 对决准备失败:', error);
+            throw new DungeonFlowError(
+              DungeonFlowErrorCode.INVALID_STATE,
+              '对决未能展开，请稍后再结案',
+              409,
+            );
+          });
+          mystery.verdict = { answers: input.answers, culpritId: culprit.id };
+          state.status = 'WAITING_BATTLE';
+          state.encounter = encounter.preview;
+          if (options.deferPersistence) {
+            return {
+              state,
+              isFinished: false,
+              ...this.buildStateHooks(cultivatorId, state, encounter),
+            };
+          }
+          await this.saveState(cultivatorId, state, encounter);
+          return { state, isFinished: false };
+        }
         mystery.result = scoreMysteryRun(
           mystery.caseFile,
           template,
@@ -2146,6 +2190,31 @@ export class DungeonFlowService {
       },
       options.lease,
     );
+  }
+
+  /** 对决结束（胜、负或放走）：连同对决结果评分，按完成通关结算。 */
+  private async finishMysteryConfrontation(
+    state: DungeonState,
+    outcome: MysteryConfrontationOutcome,
+    options: DungeonFlowOptions,
+  ) {
+    const mystery = state.mystery!;
+    const verdict = mystery.verdict!;
+    mystery.result = scoreMysteryRun(
+      mystery.caseFile,
+      requireMysteryTemplate(mystery.templateId),
+      mystery.run,
+      verdict.answers,
+      outcome,
+    );
+    mystery.verdict = undefined;
+    state.encounter = undefined;
+    const settled = await this.settleDungeon(state, {
+      endDisposition: 'completed',
+      deferPersistence: options.deferPersistence,
+    });
+    // 结算结果不含状态时补上，前端据此展示评分明细。
+    return { ...settled, state: settled.state ?? state };
   }
 
   private callAI(state: DungeonState): Promise<DungeonRound> {
@@ -2426,6 +2495,8 @@ export class DungeonFlowService {
     if (!state) return { success: true };
     if (state.activeBattleId)
       throw new Error('请在战斗中使用逃跑指令，或完成战斗后离开');
+    if (state.mystery?.verdict && state.status === 'WAITING_BATTLE')
+      return this.finishMysteryConfrontation(state, 'spared', options);
     if (state.endDisposition)
       return this.settleDungeon(state, {
         pendingAction: state.pendingAction,

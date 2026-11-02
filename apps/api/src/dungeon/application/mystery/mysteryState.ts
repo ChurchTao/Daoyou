@@ -61,6 +61,10 @@ export function mysteryEndingContext(mystery: MysteryRecord) {
           correct: mystery.result.correct,
           tier: mystery.result.tier,
           branches: mystery.result.branches,
+          confrontation: mystery.result.confrontation ?? null,
+          culprit:
+            mystery.caseFile.npcs.find((n) => n.role === 'culprit')?.name ??
+            null,
         }
       : null,
     recentEvents: mystery.run.log

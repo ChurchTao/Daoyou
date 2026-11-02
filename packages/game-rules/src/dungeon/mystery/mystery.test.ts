@@ -17,7 +17,11 @@ import {
   mysteryRevealableSecrets,
 } from './engine.js';
 import { projectMysteryView } from './projection.js';
-import { checkMysteryAnswers, scoreMysteryRun } from './scoring.js';
+import {
+  checkMysteryAnswers,
+  mysteryConfrontationTarget,
+  scoreMysteryRun,
+} from './scoring.js';
 import { buildMysterySkeleton } from './skeleton.js';
 import { computeMysteryReachability, validateMysteryCase } from './validate.js';
 
@@ -177,18 +181,47 @@ describe('mystery scoring', () => {
   it('awards S for a thorough correct deduction', () => {
     const caseFile = fallback();
     const run = play(caseFile, SOLVE);
-    const result = scoreMysteryRun(caseFile, template, run, CORRECT);
+    const result = scoreMysteryRun(caseFile, template, run, CORRECT, 'won');
     expect(result.correct).toEqual({ who: true, how: true, heir: true });
     expect(result.branches).toEqual(['lies_exposed', 'heir_trusted']);
     expect(result.keyCluesFound).toBe(result.keyCluesTotal);
     expect(result.breakdown).toEqual({
-      truth: 55,
-      coverage: 20,
+      truth: 50,
+      coverage: 15,
       efficiency: 15,
       branch: 10,
-      combat: 0,
+      combat: 10,
     });
+    expect(result.confrontation).toBe('won');
     expect(result.tier).toBe('S');
+  });
+
+  it('awards combat points only when the exposed culprit is defeated', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, SOLVE);
+    for (const outcome of ['lost', 'spared'] as const) {
+      const result = scoreMysteryRun(caseFile, template, run, CORRECT, outcome);
+      expect(result.breakdown.combat).toBe(0);
+      expect(result.total).toBe(90);
+      expect(result.confrontation).toBe(outcome);
+    }
+  });
+
+  it('confronts the culprit only after a correct accusation', () => {
+    const caseFile = fallback();
+    expect(mysteryConfrontationTarget(caseFile, template, CORRECT)?.role).toBe(
+      'culprit',
+    );
+    expect(
+      mysteryConfrontationTarget(caseFile, template, { ...CORRECT, who: 'su' }),
+    ).toBeNull();
+    expect(
+      mysteryConfrontationTarget(
+        caseFile,
+        { ...template, scoring: { ...template.scoring, combat: 0, truth: 60 } },
+        CORRECT,
+      ),
+    ).toBeNull();
   });
 
   it('withholds efficiency from blind guessing', () => {
@@ -199,7 +232,8 @@ describe('mystery scoring', () => {
       how: 'poison_incense',
       heir: 'han',
     });
-    expect(result.breakdown.truth).toBe(18);
+    expect(result.breakdown.truth).toBe(17);
+    expect(result.breakdown.combat).toBe(0);
     expect(result.breakdown.efficiency).toBe(5);
     expect(result.tier).toBe('D');
     expect(scoreMysteryRun(caseFile, template, run, {}).total).toBe(0);

@@ -36,6 +36,7 @@ export function projectMysteryView(
   return {
     title: caseFile.title,
     replay: record.replay ?? false,
+    confrontation: template.scoring.combat > 0,
     templateName: template.name,
     brief: {
       ...caseFile.brief,
