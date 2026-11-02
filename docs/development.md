@@ -154,6 +154,12 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiCl
 - 未设置 `LLM_PROVIDER` 时自动回退：有 `ALIBABA_API_KEY` 用 `alibaba`，否则有 `DEEPSEEK_API_KEY` 用 `deepseek`
 - 玩家 BYOK 仍优先生效，不走服务端分流
 
+高级模型组 `LLM_ADVANCED_PROVIDER` 与 `LLM_PROVIDER` 格式相同，同样支持多条路由、权重与按用户粘滞，只服务于需要更强推理与一致性的场景（清单见 `apps/api/src/lib/llm/tiers.ts`，当前为解谜案卷大纲 `dungeon-case` 与一致性审校 `dungeon-case-review`）：
+
+- 未设置时，这些场景沿用 `LLM_PROVIDER`
+- 只在请求高级场景时解析高级组；高级组配置有误只影响这些场景，不波及其余调用
+- 列出的供应商必须配置对应 API Key；玩家 BYOK 同样优先于两组路由
+
 其它变量：
 
 - `ALIBABA_API_KEY`：阿里云百炼 API Key

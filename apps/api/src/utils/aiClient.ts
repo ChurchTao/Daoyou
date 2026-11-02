@@ -2,13 +2,15 @@ import type { LlmByokConfig, LlmProviderId } from '@daoyou/contracts/llm/config'
 import {
   pickHighestWeightLlmRoute,
   pickLlmRouteByUserHash,
-  resolveServerLlmRoutes,
+  resolveServerLlmTierRoutes,
+  type LlmModelTier,
   type LlmRoute,
 } from '@daoyou/contracts/llm/routing';
 import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { getCurrentContext } from '@server/lib/http/context.js';
 import { recordLlmCallMetric } from '@server/lib/llm/metricsStore.js';
 import { LLM_PROVIDERS } from '@server/lib/llm/providers.js';
+import { llmTierForScene } from '@server/lib/llm/tiers.js';
 import type {
   LlmCallAttemptMetrics,
   LlmCallMetrics,
@@ -242,18 +244,23 @@ function getRequestUserId(): string | undefined {
   return getCurrentContext()?.user?.id;
 }
 
-function listConfiguredServerRoutes(): LlmRoute[] {
-  return resolveServerLlmRoutes({
-    providerSpec: getRuntimeEnvironment().LLM_PROVIDER,
-    availableProviders: {
-      alibaba: Boolean(getRuntimeEnvironment().ALIBABA_API_KEY?.trim()),
-      deepseek: Boolean(getRuntimeEnvironment().DEEPSEEK_API_KEY?.trim()),
+function listConfiguredServerRoutes(tier: LlmModelTier): LlmRoute[] {
+  const env = getRuntimeEnvironment();
+  return resolveServerLlmTierRoutes(
+    {
+      basicSpec: env.LLM_PROVIDER,
+      advancedSpec: env.LLM_ADVANCED_PROVIDER,
+      availableProviders: {
+        alibaba: Boolean(env.ALIBABA_API_KEY?.trim()),
+        deepseek: Boolean(env.DEEPSEEK_API_KEY?.trim()),
+      },
     },
-  });
+    tier,
+  );
 }
 
-function resolveServerRoute(): LlmRoute {
-  const routes = listConfiguredServerRoutes();
+function resolveServerRoute(tier: LlmModelTier): LlmRoute {
+  const routes = listConfiguredServerRoutes(tier);
   if (routes.length === 1) {
     return routes[0];
   }
@@ -271,7 +278,7 @@ function resolveModel(sceneId: LlmSceneId): ResolvedModel {
         provider: requestConfig.provider,
         model: requestConfig.model,
       }
-    : resolveServerRoute();
+    : resolveServerRoute(llmTierForScene(sceneId));
   const providerId = route.provider;
   const def = LLM_PROVIDERS[providerId];
   const modelName = route.model;
