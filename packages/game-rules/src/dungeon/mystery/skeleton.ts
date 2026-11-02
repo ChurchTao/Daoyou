@@ -3,6 +3,7 @@ import type {
   MysteryCaseFile,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
+import { buildRetrievalSkeleton } from './retrieval.js';
 
 /** 文本占位符；骨架里所有面向玩家的文字都由 LLM 之后填写。 */
 export const MYSTERY_TEXT_PLACEHOLDER = '…';
@@ -18,6 +19,21 @@ export interface MysteryCaseSkeleton {
 }
 
 const T = MYSTERY_TEXT_PLACEHOLDER;
+
+/** 按模板原型分派骨架构造器；同一模板与种子总是得到同一骨架。 */
+export function buildMysterySkeleton(
+  template: MysteryScenarioTemplate,
+  seed: number,
+): MysteryCaseSkeleton {
+  switch (template.archetype) {
+    case 'whodunit':
+      return buildWhodunitSkeleton(template, seed);
+    case 'retrieval':
+      return buildRetrievalSkeleton(template, seed);
+    default:
+      throw new Error(`暂不支持原型 ${template.archetype} 的骨架生成`);
+  }
+}
 
 /** whodunit 原型约定的身份槽位与结案问题。 */
 const WHODUNIT_SLOTS = ['culprit', 'heir', 'suspect'] as const;
@@ -50,7 +66,7 @@ const METHOD_OPTIONS = [
  * （工具探查、旁人目击或取得信任后的传人）、凶手在哪方面说谎、有无旁人。
  * 每局都有一名被冤枉的嫌疑人：留有可疑物证，被当面出示后给出反证。
  */
-export function buildMysterySkeleton(
+function buildWhodunitSkeleton(
   template: MysteryScenarioTemplate,
   seed: number,
 ): MysteryCaseSkeleton {

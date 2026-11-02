@@ -75,9 +75,11 @@ import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
 import {
   applyMysteryAction,
   applyMysteryDialogue,
+  applyMysteryGuardBattle,
   checkMysteryAnswers,
   createMysteryRun,
   mysteryConfrontationTarget,
+  mysteryGuardChallenge,
   needsMysteryRestock,
   pickMysteryScenario,
   scoreMysteryRun,
@@ -109,6 +111,20 @@ import type { DungeonRunStore } from './DungeonRunStore.js';
 import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 const FLOW_LOCK_TTL_SECONDS = 180;
+
+/** 结尾对决的结算标签，按对手身份措辞。 */
+function mysteryConfrontationTags(
+  mystery: NonNullable<DungeonState['mystery']>,
+): string[] {
+  const outcome = mystery.result?.confrontation;
+  const rival =
+    requireMysteryTemplate(mystery.templateId).archetype === 'retrieval'
+      ? '夺宝者'
+      : '真凶';
+  if (outcome === 'won') return [`擒下${rival}`];
+  if (outcome === 'lost' || outcome === 'spared') return [`${rival}遁走`];
+  return [];
+}
 export { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 class DungeonSettlementRecoverableError extends Error {
@@ -1267,6 +1283,12 @@ export class DungeonFlowService {
     const battle = await getDungeonBattle(cultivatorId, battleId);
     if (!battle?.outcome) throw new Error('请先完成战斗');
     delete state.activeBattleId;
+    if (state.mystery?.pendingGuard)
+      return this.finishMysteryGuard(
+        state,
+        battle.outcome === 'victory',
+        options,
+      );
     if (state.mystery?.verdict)
       return this.finishMysteryConfrontation(
         state,
@@ -1517,12 +1539,7 @@ export class DungeonFlowService {
                   Object.values(state.mystery.result.correct).every(Boolean)
                     ? '真相大白'
                     : '疑云未散',
-                  ...(state.mystery.result.confrontation === 'won'
-                    ? ['擒下真凶']
-                    : state.mystery.result.confrontation === 'lost' ||
-                        state.mystery.result.confrontation === 'spared'
-                      ? ['真凶遁走']
-                      : []),
+                  ...mysteryConfrontationTags(state.mystery),
                 ]
               : ['功成身退'],
       },
@@ -2154,7 +2171,10 @@ export class DungeonFlowService {
         if (culprit) {
           const encounter = await prepareDungeonEncounter(state, {
             enemyName: culprit.name,
-            description: `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
+            description:
+              template.archetype === 'retrieval'
+                ? `禁制应声而开的一刻，${culprit.name}撕下伪装，出手抢夺遗珍——拦下此人，遗珍才能交到该得之人手里。`
+                : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
           }).catch((error: unknown) => {
             console.warn('[DungeonMystery] 对决准备失败:', error);
             throw new DungeonFlowError(
@@ -2190,6 +2210,94 @@ export class DungeonFlowService {
       },
       options.lease,
     );
+  }
+
+  /** 强闯守卫：校验后进入遭遇战（精英强度），行动力在战斗结束时扣除。 */
+  async challengeMysteryGuard(
+    cultivatorId: string,
+    input: { runId: string; actionId: string; turn: number; guardId: string },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-guard',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const check = mysteryGuardChallenge(
+          mystery.caseFile,
+          mystery.run,
+          input.guardId,
+        );
+        if (!check.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            check.error,
+            400,
+          );
+        }
+        mystery.pendingGuard = check.guard.id;
+        const encounter = await prepareDungeonEncounter(state, {
+          enemyName: check.guard.name,
+          description: check.guard.description,
+        }).catch((error: unknown) => {
+          console.warn('[DungeonMystery] 守卫遭遇战准备失败:', error);
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '遭遇战未能展开，请稍后再试',
+            409,
+          );
+        });
+        mystery.run = { ...mystery.run, lastActionId: input.actionId };
+        state.status = 'WAITING_BATTLE';
+        state.encounter = encounter.preview;
+        if (options.deferPersistence) {
+          return {
+            state,
+            isFinished: false,
+            ...this.buildStateHooks(cultivatorId, state, encounter),
+          };
+        }
+        await this.saveState(cultivatorId, state, encounter);
+        return { state, isFinished: false };
+      },
+      options.lease,
+    );
+  }
+
+  /** 守卫战结束：胜则进入其房间，败则退回原处；都消耗 1 点行动力并回到调查。 */
+  private async finishMysteryGuard(
+    state: DungeonState,
+    won: boolean,
+    options: DungeonFlowOptions,
+  ): Promise<DungeonSettlementResult> {
+    const mystery = state.mystery!;
+    const result = applyMysteryGuardBattle(
+      mystery.caseFile,
+      mystery.run,
+      mystery.pendingGuard!,
+      won,
+    );
+    if (result.ok) mystery.run = result.run;
+    mystery.pendingGuard = undefined;
+    state.encounter = undefined;
+    state.status = 'EXPLORING';
+    return this.finishMysteryStep(state.cultivatorId, state, options);
   }
 
   /** 对决结束（胜、负或放走）：连同对决结果评分，按完成通关结算。 */
@@ -2497,6 +2605,14 @@ export class DungeonFlowService {
       throw new Error('请在战斗中使用逃跑指令，或完成战斗后离开');
     if (state.mystery?.verdict && state.status === 'WAITING_BATTLE')
       return this.finishMysteryConfrontation(state, 'spared', options);
+    if (state.mystery?.pendingGuard && state.status === 'WAITING_BATTLE') {
+      // 迎战前退回：不扣行动力，回到调查；清掉去重标记，稍后可再次强闯。
+      state.mystery.pendingGuard = undefined;
+      state.mystery.run = { ...state.mystery.run, lastActionId: undefined };
+      state.encounter = undefined;
+      state.status = 'EXPLORING';
+      return this.finishMysteryStep(cultivatorId, state, options);
+    }
     if (state.endDisposition)
       return this.settleDungeon(state, {
         pendingAction: state.pendingAction,

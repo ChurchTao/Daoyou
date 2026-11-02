@@ -50,6 +50,11 @@ export function toClientDungeonResult<T>(value: T): T {
   return result as T;
 }
 
+function finaleOpponent(mystery: MysteryRecord) {
+  const role = requireMysteryTemplate(mystery.templateId).finale?.role;
+  return mystery.caseFile.npcs.find((n) => n.role === role)?.name ?? null;
+}
+
 /** 结局叙事的输入：只给已发生的事实与评分结论。 */
 export function mysteryEndingContext(mystery: MysteryRecord) {
   return {
@@ -62,9 +67,7 @@ export function mysteryEndingContext(mystery: MysteryRecord) {
           tier: mystery.result.tier,
           branches: mystery.result.branches,
           confrontation: mystery.result.confrontation ?? null,
-          culprit:
-            mystery.caseFile.npcs.find((n) => n.role === 'culprit')?.name ??
-            null,
+          opponent: finaleOpponent(mystery),
         }
       : null,
     recentEvents: mystery.run.log

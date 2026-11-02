@@ -6,12 +6,15 @@ export function BattlePreparation({
   processing,
   onBegin,
   onQuit,
-  confrontation = false,
+  mode,
 }: {
   encounter: DungeonEncounterView;
   processing: boolean;
-  /** 解谜结案后与真凶对决：放弃迎战即任其遁走，仍按结案结算。 */
-  confrontation?: boolean;
+  /**
+   * 解谜中的遭遇战：finale 为结案后的对决，放弃即任其遁走、仍按结案结算；
+   * guard 为强闯守卫，放弃即退回调查。
+   */
+  mode?: 'finale' | 'guard';
   onBegin: () => Promise<void>;
   onQuit: () => Promise<boolean>;
 }) {
@@ -20,8 +23,12 @@ export function BattlePreparation({
       <p className="text-ink leading-8">{encounter.description}</p>
       <div>
         <p className="text-ink-secondary mb-2 text-sm">
-          {confrontation ? '负隅顽抗' : '前方守敌'} ·{' '}
-          <span className="font-mono">{encounter.enemies.length}</span> 位
+          {mode === 'finale'
+            ? '负隅顽抗'
+            : mode === 'guard'
+              ? '拦路守卫'
+              : '前方守敌'}{' '}
+          · <span className="font-mono">{encounter.enemies.length}</span> 位
         </p>
         <p className="text-crimson text-lg">{encounter.enemies.join('、')}</p>
       </div>
@@ -44,9 +51,11 @@ export function BattlePreparation({
         </div>
       </dl>
       <p className="text-ink-secondary text-sm leading-7">
-        {confrontation
-          ? '迎战将以当前气血、法力入场，战斗消耗会保留。擒下真凶可得战斗分；落败或放其离去，推理所得照常结算，只是少了这一项。'
-          : '迎战将以当前气血、法力入场，战斗消耗会保留。也可就此结束探索，带走此前已确定的收获。'}
+        {mode === 'finale'
+          ? '迎战将以当前气血、法力入场，战斗消耗会保留。擒下对手可得对决分；落败或放其离去，推理所得照常结算，只是少了这一项。'
+          : mode === 'guard'
+            ? '迎战将以当前气血、法力入场，战斗消耗会保留。胜则闯入，败则退回原处，都消耗 1 点行动力；也可暂且退回，另寻化解之法。'
+            : '迎战将以当前气血、法力入场，战斗消耗会保留。也可就此结束探索，带走此前已确定的收获。'}
       </p>
       <div className="flex flex-wrap gap-3">
         <InkButton disabled={processing} onClick={() => void onBegin()}>
@@ -57,7 +66,11 @@ export function BattlePreparation({
           disabled={processing}
           onClick={() => void onQuit()}
         >
-          {confrontation ? '任其遁走' : '结束探索'}
+          {mode === 'finale'
+            ? '任其遁走'
+            : mode === 'guard'
+              ? '暂且退回'
+              : '结束探索'}
         </InkButton>
       </div>
     </div>

@@ -311,7 +311,13 @@
       "environmental_status": "formation_suppressed",
       "tags": ["断壁残垣", "残魂", "功法残页", "多重禁制"],
       "description": "昔日鼎盛的剑宗遗址，即便崩塌多年，空气中仍残留着令人心悸的剑意。",
-      "dungeon_config": { "difficulty": "hard" }
+      "dungeon_config": {
+        "difficulty": "hard",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "云梦山崩塌的上古剑宗遗址，断壁之间残留剑意与多重禁制，偶有残魂游荡，藏经阁与剑冢都已半毁。"
+        }
+      }
     },
     {
       "id": "SAT_LX_01",
@@ -333,7 +339,13 @@
       "environmental_status": "freezing",
       "tags": ["水属性", "禁制宝箱", "海兽袭击"],
       "description": "数百年前大型商船的沉没之地，被密集的珊瑚与海草覆盖，幽暗中似有眼睛在窥视。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "数百年前沉没的大型商船，船舱被珊瑚与海草覆盖，货舱里有带禁制的宝箱，海兽在幽暗中窥伺。"
+        }
+      }
     },
     {
       "id": "SAT_ZMG_01",
@@ -509,7 +521,13 @@
       "environmental_status": null,
       "tags": ["单人副本", "阵旗残卷", "傀儡守卫", "炼器材料"],
       "description": "天星宗封存旧阵盘的地下库房，禁制层层叠叠，稍有差池便会触发阵灵反噬。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["lost_relic"],
+          "setting": "天星宗封存旧阵盘的地下库房，阵旗与阵盘层层封存，傀儡守在库门，禁制稍有差池便会引发阵灵反噬。"
+        }
+      }
     },
     {
       "id": "SAT_LX_03",

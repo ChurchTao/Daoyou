@@ -42,3 +42,17 @@ export const DungeonMysteryTalkRequestSchema = z
 export type DungeonMysteryTalkRequest = z.infer<
   typeof DungeonMysteryTalkRequestSchema
 >;
+
+/** 强闯守卫：先进入遭遇战，战斗结束后回到调查。 */
+export const DungeonMysteryGuardRequestSchema = z
+  .object({
+    runId: z.uuid(),
+    actionId: z.uuid(),
+    turn: z.number().int().nonnegative(),
+    guardId: MysteryIdSchema,
+  })
+  .strict();
+
+export type DungeonMysteryGuardRequest = z.infer<
+  typeof DungeonMysteryGuardRequestSchema
+>;

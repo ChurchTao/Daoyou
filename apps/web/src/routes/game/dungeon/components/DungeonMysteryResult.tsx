@@ -1,10 +1,10 @@
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 
 const CONFRONTATION_LABELS = {
-  won: '擒下真凶',
-  lost: '交手落败，真凶脱逃',
-  spared: '未曾出手，真凶遁走',
-  none: '未能指认真凶',
+  won: '对决获胜，擒下对手',
+  lost: '对决落败，对手脱逃',
+  spared: '未曾出手，对手遁走',
+  none: '未触发对决',
 } as const;
 
 const SCORE_LABELS = {
@@ -55,6 +55,14 @@ export function DungeonMysteryResult({
           <span className="mx-1 font-mono">
             {result.keyCluesFound}/{result.keyCluesTotal}
           </span>
+          {result.guards && (
+            <span className="ml-3">
+              守卫
+              <span className="mx-1 font-mono">
+                {result.guards.passed}/{result.guards.total}
+              </span>
+            </span>
+          )}
           {result.confrontation && (
             <span className="ml-3">
               {CONFRONTATION_LABELS[result.confrontation]}

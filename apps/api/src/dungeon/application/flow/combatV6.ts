@@ -115,11 +115,12 @@ function dungeonBattleSetup(state: DungeonState) {
     battle?.metadata?.realm_stage ?? '中期',
     mapConfig,
   );
-  // 解谜对决：被揭穿的真凶是整场唯一的敌人，按首领强度。
-  const template: DungeonTemplate =
-    state.mystery?.verdict ||
-    battle?.metadata?.is_boss ||
-    state.currentRound >= state.maxRounds
+  // 解谜：结尾对决按首领强度，调查途中的守卫按精英强度。
+  const template: DungeonTemplate = state.mystery?.pendingGuard
+    ? 'elite'
+    : state.mystery?.verdict ||
+        battle?.metadata?.is_boss ||
+        state.currentRound >= state.maxRounds
       ? 'boss'
       : state.currentRound >= 3
         ? 'elite'

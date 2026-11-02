@@ -3,7 +3,11 @@ import type {
   MysteryRecord,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { evaluateMysteryCondition, mysteryNeighbors } from './engine.js';
+import {
+  evaluateMysteryCondition,
+  mysteryGuardAt,
+  mysteryNeighbors,
+} from './engine.js';
 
 /** 只投影玩家已经知道的内容；真相与答案仅在结案后附带。 */
 export function projectMysteryView(
@@ -36,7 +40,12 @@ export function projectMysteryView(
   return {
     title: caseFile.title,
     replay: record.replay ?? false,
-    confrontation: template.scoring.combat > 0,
+    confrontation: Boolean(template.finale?.points),
+    ...(record.pendingGuard
+      ? { pendingBattle: 'guard' as const }
+      : record.verdict
+        ? { pendingBattle: 'finale' as const }
+        : {}),
     templateName: template.name,
     brief: {
       ...caseFile.brief,
@@ -51,11 +60,22 @@ export function projectMysteryView(
     location: { id: room.id, name: room.name, description: room.description },
     exits: mysteryNeighbors(caseFile, room.id).map((r) => {
       const locked = !evaluateMysteryCondition(r.requires, run);
+      const guard = locked ? undefined : mysteryGuardAt(caseFile, run, r.id);
       return {
         id: r.id,
         name: r.name,
         locked,
         ...(locked && r.lockedText ? { hint: r.lockedText } : {}),
+        ...(guard
+          ? {
+              guard: {
+                id: guard.id,
+                name: guard.name,
+                description: guard.description,
+                canBypass: evaluateMysteryCondition(guard.bypass, run),
+              },
+            }
+          : {}),
       };
     }),
     objects: caseFile.objects

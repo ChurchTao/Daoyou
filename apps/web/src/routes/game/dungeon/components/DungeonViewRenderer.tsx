@@ -60,6 +60,7 @@ interface DungeonViewRendererProps {
     mysteryAct: (action: MysteryAction) => Promise<void>;
     mysteryDeduce: (answers: MysteryAnswers) => Promise<void>;
     mysteryTalk: (npcId: string, question: string) => Promise<boolean>;
+    mysteryGuard: (guardId: string) => Promise<void>;
   };
   onSettlementConfirm?: () => void;
 }
@@ -254,7 +255,7 @@ export function DungeonViewRenderer({
           processing={processing}
           onBegin={actions.beginBattle}
           onQuit={actions.quitDungeon}
-          confrontation={Boolean(viewState.state.mysteryView)}
+          mode={viewState.state.mysteryView?.pendingBattle}
         />
       </DungeonSceneScreen>
     );
@@ -382,6 +383,7 @@ export function DungeonViewRenderer({
           processing={processing}
           onAct={actions.mysteryAct}
           onTalk={actions.mysteryTalk}
+          onGuard={actions.mysteryGuard}
           onDeduce={actions.mysteryDeduce}
           onQuit={actions.quitDungeon}
         />

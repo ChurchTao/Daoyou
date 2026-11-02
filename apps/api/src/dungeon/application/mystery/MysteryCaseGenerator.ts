@@ -22,12 +22,75 @@ import {
 
 const STAGE_TIMEOUT_MS = 60_000;
 
-/** whodunit 骨架约定：凶手与其谎言线索的 id。 */
-const CULPRIT = 'npc_culprit';
-const HEIR = 'npc_heir';
+/** 各骨架共同约定：说谎者的原话写在这条线索里。 */
 const CLAIM_CLUE = 'clue_claim';
 /** 由程序渲染、审校时不允许改写的字段。 */
 const LOCKED_FIELDS = [`clues.${CLAIM_CLUE}.text`];
+
+/**
+ * 案型描述：说谎的人物、真相中必须点名的人物、大纲里需要先定下的事实设定（canon）
+ * 以及写真相时要遵守的骨架约定。新增案型只需在此登记。
+ */
+interface MysteryArchetypeSpec {
+  liar: string;
+  liarLabel: string;
+  cast: readonly string[];
+  canon: Record<string, string>;
+  rules: readonly string[];
+}
+
+const ARCHETYPES: Partial<
+  Record<MysteryScenarioTemplate['archetype'], MysteryArchetypeSpec>
+> = {
+  whodunit: {
+    liar: 'npc_culprit',
+    liarLabel: '凶手',
+    cast: ['npc_culprit', 'npc_heir'],
+    canon: {
+      victim: '洞府主人的名字、身份与表面死因',
+      culprit: '凶手的真名、伪装身份与动机',
+      method: '作案手段：用了什么东西、怎样下手、留下什么痕迹',
+      lie: '凶手对外宣称来历的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+      contradiction: 'clue_record 记载的哪条事实与 lie 矛盾',
+      suspect: '嫌疑人为何被怀疑（可疑物证从何而来）、清白的真相与可核实的凭据',
+      token: '传人的祖传信物是什么样子；其纹样与洞府主人一脉的印记相同',
+    },
+    rules: [
+      '凶手是 npc_culprit，传人是 npc_heir，npc_suspect 是被冤枉的嫌疑人（有可疑物证，但有清白的缘由与凭据）。',
+      '作案手段、谎言与戳穿它的记录、罪证藏在哪里、信物如何证明血脉，都以各元素的“作用”为准。',
+      '骨架里有封闭密室时，开门靠钥匙，门上纹样只是洞府主人一脉的印记。',
+      '“手段”一问的选项：真相一项必须与手段线索一致，干扰项要说得通、但与物证不符。',
+    ],
+  },
+  retrieval: {
+    liar: 'npc_rival',
+    liarLabel: '夺宝者',
+    cast: ['npc_rival', 'npc_owner'],
+    canon: {
+      legacy: '留下遗珍的前辈是谁、遗珍是什么、为何封存',
+      rival: '夺宝者的真名、对外身份与图谋',
+      place: '遗珍真正的藏处在哪、有什么特征；伪造线索所指的假藏处在哪',
+      method: '开禁法门：铭文写明的部分与缺失的关键一环分别是什么',
+      lie: '夺宝者对外宣称来意或行踪的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+      contradiction: 'clue_record 记载的哪条事实与 lie 矛盾',
+      forged:
+        '伪造线索是什么、何时由谁伪造、破绽在哪；被误导者为何深信、看出破绽后如何改口',
+      token: '应得之人的信物是什么样子；其纹样与前辈一脉的印记相同',
+    },
+    rules: [
+      '夺宝者是 npc_rival，应得之人是 npc_owner，npc_decoy 是被假线索骗了的人（真心相信，不是同伙），npc_keeper（如有）是守遗者。',
+      '遗珍真正的藏处、开禁法门、伪造线索与它的破绽、信物如何证明来历，都以各元素的“作用”为准；遗珍此刻仍封在真藏处的暗藏禁制里，从外面看不出，没有人取出过；正殿只有遗刻与开禁铭文，遗珍不在正殿。',
+      '骨架里有封闭密室时，开门靠钥匙，门上纹样只是前辈一脉的印记。守卫拦在静室门口，可强闯，也可凭“作用”所述的办法化解。',
+      '“藏处”与“法门”两问的选项：四个选项各不相同；真相一项必须与线索一致，干扰项要说得通、但与物证不符；假藏处与伪造线索所指一致，另两个干扰项是别的地点。',
+    ],
+  },
+};
+
+function archetypeOf(template: MysteryScenarioTemplate) {
+  const spec = ARCHETYPES[template.archetype];
+  if (!spec) throw new Error(`暂不支持原型 ${template.archetype} 的案卷生成`);
+  return spec;
+}
 
 const Text = (limit: number, hint: string) =>
   z.string().describe(`${hint}，${limit} 字以内`);
@@ -53,12 +116,15 @@ function ids(skeleton: MysteryCaseSkeleton) {
     reactions: c.npcs.flatMap((n) => n.reactions.map((r) => r.id)),
     interactions: c.interactions.map((i) => i.id),
     questions: c.questions.map((q) => q.id),
-    methodOptions:
-      c.questions.find((q) => q.id === 'how')?.options?.map((o) => o.id) ?? [],
+    options: c.questions.flatMap((q) => q.options?.map((o) => o.id) ?? []),
+    guards: (c.guards ?? []).map((g) => g.id),
   };
 }
 
-function outlineSchema(skeleton: MysteryCaseSkeleton) {
+function outlineSchema(
+  skeleton: MysteryCaseSkeleton,
+  spec: MysteryArchetypeSpec,
+) {
   const id = ids(skeleton);
   const p = skeleton.purposes;
   const name = (limit: number) => (key: string) =>
@@ -70,7 +136,7 @@ function outlineSchema(skeleton: MysteryCaseSkeleton) {
         name: Text(6, `人物在全案中唯一使用的名字；作用：${p[key]}`),
         title: Text(
           8,
-          '对外身份称谓；凶手的称谓即其对外宣称的身份，全案提到时都用这个称谓',
+          `对外身份称谓；${spec.liarLabel}的称谓即其对外宣称的身份，全案提到时都用这个称谓`,
         ),
         nature: Text(
           40,
@@ -82,32 +148,26 @@ function outlineSchema(skeleton: MysteryCaseSkeleton) {
     rooms: keyed(id.rooms, name(8)),
     objects: keyed(id.objects, name(8)),
     items: keyed(id.items, name(8)),
+    guards: keyed(id.guards, name(8)),
     clues: keyed(id.clues, (key) =>
       z.object({
         name: Text(8, `线索名称；作用：${p[key]}`),
         fact: Text(50, '这条线索揭示的核心事实，一句话，后续正文必须与之一致'),
       }),
     ),
-    canon: z.object({
-      victim: Text(40, '洞府主人的名字、身份与表面死因'),
-      culprit: Text(60, '凶手的真名、伪装身份与动机'),
-      method: Text(60, '作案手段：用了什么东西、怎样下手、留下什么痕迹'),
-      lie: Text(
-        50,
-        '凶手对外宣称来历的原话，一两句，不加引号；与其称谓 title 一致',
+    canon: z.object(
+      Object.fromEntries(
+        Object.entries(spec.canon).map(([key, hint]) => [
+          key,
+          Text(key === 'lie' ? 50 : 60, hint),
+        ]),
+      ) as Record<string, z.ZodString>,
+    ),
+    options: keyed(id.options, (key) =>
+      Text(
+        16,
+        `结案选择题的选项说法，只写地点或做法本身，不带“伪”“假”“错”等透露对错的字眼；作用：${p[`option:${key}`]}`,
       ),
-      contradiction: Text(60, 'clue_record 记载的哪条事实与 lie 矛盾'),
-      suspect: Text(
-        60,
-        '嫌疑人为何被怀疑（可疑物证从何而来）、清白的真相与可核实的凭据',
-      ),
-      token: Text(
-        40,
-        '传人的祖传信物是什么样子；其纹样与洞府主人一脉的印记相同',
-      ),
-    }),
-    methodOptions: keyed(id.methodOptions, (key) =>
-      Text(16, `结案时“手段”一问的选项说法；作用：${p[`option:${key}`]}`),
     ),
     title: Text(12, '案卷标题'),
     truth: Text(
@@ -163,6 +223,18 @@ const TEXT_PARTS = {
               : {}),
           }),
         ),
+        guards: keyed(id.guards, (g) =>
+          z.object({
+            description: Text(
+              120,
+              `守卫拦在门口的样子与气势，不写化解办法；作用：${s.purposes[g]}`,
+            ),
+            bypassText: Text(
+              120,
+              `你用化解办法令它让路时的情形；作用：${s.purposes[g]}`,
+            ),
+          }),
+        ),
         objects: keyed(id.objects, (o) =>
           cues.has(o)
             ? Text(
@@ -195,7 +267,7 @@ const TEXT_PARTS = {
     },
   },
   people: {
-    task: '提到任何人物的对外身份时只用其 title，不另起说法；为每个人物写初见台词、无话可说时的台词、被出示无关证据时的台词，言行符合其 nature（不能言语者只写动作）；为每条秘密写说出时的台词，内容与对应线索的 fact 一致；凶手说谎的那条秘密只写说话前的神态动作，原话由程序补上；为每个反应写被出示证据时的言行，只提证据名称，不重新描写证据细节。人物只知道自己 nature 与 truth 中该知道的事，不说破玩家尚未发现的线索；凶手的初见台词只谈来意，不谈来历。',
+    task: '提到任何人物的对外身份时只用其 title，不另起说法；为每个人物写初见台词、无话可说时的台词、被出示无关证据时的台词，言行符合其 nature（不能言语者只写动作）；为每条秘密写说出时的台词，内容与对应线索的 fact 一致；说谎者（case.liar）说谎的那条秘密只写说话前的神态动作，原话由程序补上；为每个反应写被出示证据时的言行，只提证据名称，不重新描写证据细节。人物只知道自己 nature 与 truth 中该知道的事，不说破玩家尚未发现的线索；说谎者的初见台词不提谎言所涉之事。',
     schema: (s: MysteryCaseSkeleton) => {
       const id = ids(s);
       return z.object({
@@ -222,7 +294,11 @@ const TEXT_PARTS = {
 type TextPart = keyof typeof TEXT_PARTS;
 
 /** 供文本阶段参考的结构摘要：名称、作用与获取方式，不含任何 id 以外的推断。 */
-function structureContext(s: MysteryCaseSkeleton, o: Outline) {
+function structureContext(
+  s: MysteryCaseSkeleton,
+  o: Outline,
+  spec: MysteryArchetypeSpec,
+) {
   const c = s.caseFile;
   const nameOf = (id: string) =>
     o.rooms[id] ??
@@ -230,11 +306,13 @@ function structureContext(s: MysteryCaseSkeleton, o: Outline) {
     o.clues[id]?.name ??
     o.items[id] ??
     o.npcs[id]?.name ??
+    o.guards[id] ??
     id;
   return {
     title: o.title,
     truth: o.truth,
     canon: o.canon,
+    liar: o.npcs[spec.liar]?.name,
     rooms: c.rooms.map((r) => ({
       id: r.id,
       name: nameOf(r.id),
@@ -279,9 +357,23 @@ function structureContext(s: MysteryCaseSkeleton, o: Outline) {
       item: nameOf(x.itemId),
       target: nameOf(x.targetId),
     })),
-    answers: c.questions.map((q) => ({ id: q.id, answer: nameOf(q.answer) })),
+    guards: (c.guards ?? []).map((g) => ({
+      id: g.id,
+      name: nameOf(g.id),
+      room: nameOf(g.roomId),
+      purpose: s.purposes[g.id],
+    })),
+    answers: c.questions.map((q) => ({
+      id: q.id,
+      answer: q.options
+        ? str(o.options, q.answer) || q.answer
+        : nameOf(q.answer),
+    })),
   };
 }
+
+const str = (record: Record<string, unknown>, key: string) =>
+  String(record[key] ?? '');
 
 async function callStage<S extends z.ZodType>(args: {
   promptId: 'dungeon-case' | 'dungeon-case-text';
@@ -302,13 +394,26 @@ async function callStage<S extends z.ZodType>(args: {
       sceneId: args.sceneId,
       timeoutMs: STAGE_TIMEOUT_MS,
     });
-  // 结构已经固定，失败只可能是网络或输出截断，单段重试一次即可。
-  const result = await run().catch(() => run());
-  return result.output as z.infer<S>;
+  // 结构已经固定，失败只可能是网络、输出截断或个别字段留空，单段重试一次即可。
+  const first = await run().catch(() => null);
+  if (first && !hasEmptyText(first.output)) return first.output as z.infer<S>;
+  const second = await run().catch((error: unknown) => {
+    if (first) return first;
+    throw error;
+  });
+  return second.output as z.infer<S>;
+}
+
+function hasEmptyText(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim() === '';
+  if (value && typeof value === 'object')
+    return Object.values(value).some(hasEmptyText);
+  return false;
 }
 
 function assemble(
   s: MysteryCaseSkeleton,
+  spec: MysteryArchetypeSpec,
   o: Outline,
   places: z.infer<ReturnType<(typeof TEXT_PARTS)['places']['schema']>>,
   evidence: z.infer<ReturnType<(typeof TEXT_PARTS)['evidence']['schema']>>,
@@ -319,9 +424,11 @@ function assemble(
     string,
     { description: string; brief: string; lockedText?: string }
   >;
-  const str = (record: Record<string, unknown>, key: string) =>
-    String(record[key] ?? '');
-  const lie = clip(o.canon.lie, 80).replace(/[“”"]/g, '');
+  const lie = clip(o.canon.lie ?? '', 80).replace(/[“”"]/g, '');
+  const guard = places.guards as Record<
+    string,
+    { description: string; bypassText: string }
+  >;
   return {
     ...c,
     title: clip(o.title, 24),
@@ -355,7 +462,7 @@ function assemble(
       // 凶手的说法只有一个出处，线索与台词逐字一致。
       text:
         x.id === CLAIM_CLUE
-          ? clip(`${o.npcs[CULPRIT]?.name ?? ''}自称：“${lie}”`, 160)
+          ? clip(`${o.npcs[spec.liar]?.name ?? ''}自称：“${lie}”`, 160)
           : clip(str(evidence.clues, x.id), 160),
     })),
     items: c.items.map((x) => ({
@@ -403,12 +510,22 @@ function assemble(
         ? {
             options: q.options.map((x) => ({
               ...x,
-              label: clip(str(o.methodOptions, x.id), 30),
+              label: clip(str(o.options, x.id), 30),
             })),
           }
         : {}),
       explanation: clip(str(evidence.explanations, q.id), 200),
     })),
+    ...(c.guards
+      ? {
+          guards: c.guards.map((g) => ({
+            ...g,
+            name: clip(o.guards[g.id] ?? '', 12),
+            description: clip(guard[g.id]?.description ?? '', 200),
+            bypassText: clip(guard[g.id]?.bypassText ?? '', 200),
+          })),
+        }
+      : {}),
   };
 }
 
@@ -443,14 +560,16 @@ export async function generateMysteryCase(
   const { template, node, setting } = request;
   let reviewIssueCount = 0;
   try {
+    const spec = archetypeOf(template);
     const skeleton = buildMysterySkeleton(template, request.seed);
     const draftOutline = () =>
       callStage({
         promptId: 'dungeon-case',
         sceneId: 'dungeon-case',
         name: 'DungeonMysteryOutline',
-        schema: outlineSchema(skeleton),
+        schema: outlineSchema(skeleton, spec),
         context: {
+          archetype: { rules: spec.rules },
           template: {
             name: template.name,
             summary: template.summary,
@@ -479,19 +598,22 @@ export async function generateMysteryCase(
               role: n.role,
               room: n.roomId,
             })),
+            guards: (skeleton.caseFile.guards ?? []).map((g) => ({
+              id: g.id,
+              room: g.roomId,
+              purpose: skeleton.purposes[g.id],
+            })),
             answers: skeleton.caseFile.questions,
           },
         },
       });
-    // 真相必须用定下的名字提到凶手与传人，否则后续正文会各说各话；不符则重写一次大纲。
+    // 真相必须用定下的名字提到关键人物，否则后续正文会各说各话；不符则重写一次大纲。
     const truthMissesCast = (o: Outline) =>
-      [CULPRIT, HEIR].some(
-        (id) => !o.truth.includes(o.npcs[id]?.name ?? '\u0000'),
-      );
+      spec.cast.some((id) => !o.truth.includes(o.npcs[id]?.name ?? '\u0000'));
     let outline = await draftOutline();
     if (truthMissesCast(outline)) outline = await draftOutline();
     if (truthMissesCast(outline)) throw new Error('真相与人物名字不一致');
-    const structure = structureContext(skeleton, outline);
+    const structure = structureContext(skeleton, outline, spec);
     const part = <S extends z.ZodType>(key: TextPart, schema: S) =>
       callStage({
         promptId: 'dungeon-case-text',
@@ -513,7 +635,7 @@ export async function generateMysteryCase(
       part('people', TEXT_PARTS.people.schema(skeleton)),
     ]);
     const draft = MysteryCaseFileSchema.safeParse(
-      assemble(skeleton, outline, places, evidence, people),
+      assemble(skeleton, spec, outline, places, evidence, people),
     );
     if (!draft.success)
       throw new Error(

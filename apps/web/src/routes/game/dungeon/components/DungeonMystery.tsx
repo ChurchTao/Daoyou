@@ -21,8 +21,13 @@ interface DungeonMysteryProps {
   onAct: (action: MysteryAction) => Promise<void>;
   onTalk: (npcId: string, question: string) => Promise<boolean>;
   onDeduce: (answers: MysteryAnswers) => Promise<void>;
+  onGuard: (guardId: string) => Promise<void>;
   onQuit: () => Promise<boolean>;
 }
+
+type GuardedExit = MysteryPlayerView['exits'][number] & {
+  guard: NonNullable<MysteryPlayerView['exits'][number]['guard']>;
+};
 
 type Picker =
   | { kind: 'present'; npcId: string; npcName: string }
@@ -71,6 +76,7 @@ export function DungeonMystery({
   onAct,
   onTalk,
   onDeduce,
+  onGuard,
   onQuit,
 }: DungeonMysteryProps) {
   const [asking, setAsking] = useState<{
@@ -81,6 +87,7 @@ export function DungeonMystery({
   const [notebookOpen, setNotebookOpen] = useState(false);
   const [deducing, setDeducing] = useState(false);
   const [picker, setPicker] = useState<Picker | null>(null);
+  const [guarded, setGuarded] = useState<GuardedExit | null>(null);
 
   const current = view.log.filter((entry) => entry.turn === view.turn);
   const earlier = view.log.filter((entry) => entry.turn !== view.turn);
@@ -89,6 +96,7 @@ export function DungeonMystery({
 
   const act = async (action: MysteryAction) => {
     setPicker(null);
+    setGuarded(null);
     await onAct(action);
   };
 
@@ -225,9 +233,13 @@ export function DungeonMystery({
                 <InkChoiceButton
                   key={exit.id}
                   disabled={processing || exit.locked}
-                  onClick={() => act({ type: 'move', roomId: exit.id })}
+                  onClick={() =>
+                    exit.guard
+                      ? setGuarded({ ...exit, guard: exit.guard })
+                      : act({ type: 'move', roomId: exit.id })
+                  }
                 >
-                  {exit.locked ? '🔒 ' : ''}
+                  {exit.locked ? '🔒 ' : exit.guard ? '⚔️ ' : ''}
                   {exit.name}
                 </InkChoiceButton>
               ))}
@@ -333,6 +345,55 @@ export function DungeonMystery({
             {exhausted ? (
               <p className="text-crimson">行动力已尽，不能再问了。</p>
             ) : null}
+          </div>
+        ) : null}
+      </InkDetailDrawer>
+
+      <InkDetailDrawer
+        isOpen={guarded !== null}
+        onClose={() => setGuarded(null)}
+        size="sm"
+        title={
+          guarded ? `${guarded.guard.name}拦住了去${guarded.name}的路` : ''
+        }
+        description="强闯将进入一场战斗，化解需要相应的线索或物品；两者都消耗 1 点行动力。"
+        footer={
+          guarded ? (
+            <div className="flex flex-wrap gap-2">
+              <InkButton
+                variant="primary"
+                disabled={processing || exhausted}
+                onClick={() => {
+                  const id = guarded.guard.id;
+                  setGuarded(null);
+                  void onGuard(id);
+                }}
+              >
+                强闯
+              </InkButton>
+              <InkButton
+                disabled={processing || exhausted || !guarded.guard.canBypass}
+                onClick={() =>
+                  act({ type: 'bypass_guard', guardId: guarded.guard.id })
+                }
+              >
+                化解
+              </InkButton>
+              <InkButton variant="ghost" onClick={() => setGuarded(null)}>
+                回头
+              </InkButton>
+            </div>
+          ) : null
+        }
+      >
+        {guarded ? (
+          <div className="space-y-2 text-sm leading-7">
+            <p>{guarded.guard.description}</p>
+            <p className="text-ink-secondary">
+              {guarded.guard.canBypass
+                ? '你已有化解它的办法。'
+                : '你还没有化解它的办法，也许线索就在别处。'}
+            </p>
           </div>
         ) : null}
       </InkDetailDrawer>

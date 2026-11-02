@@ -43,21 +43,43 @@ export function checkMysteryAnswers(
 }
 
 /**
- * 结案后是否进入对决：模板有战斗权重，且玩家正确指认了真凶。
- * 指错人时真凶不会暴露，也就无从对决。返回真凶，否则 null。
+ * 结案后是否进入对决：模板配置了结尾对决，且 `finale.when` 中的问题全部答对
+ * （如指认对真凶、找对藏处与法门）。答错时对方不会翻脸。返回对决的人物，否则 null。
  */
 export function mysteryConfrontationTarget(
   caseFile: MysteryCaseFile,
   template: MysteryScenarioTemplate,
   answers: MysteryAnswers,
 ) {
-  if (template.scoring.combat <= 0) return null;
-  const culprit = caseFile.npcs.find((n) => n.role === 'culprit');
-  if (!culprit) return null;
-  const accused = caseFile.questions.some(
-    (q) => q.answer === culprit.id && answers[q.id] === culprit.id,
+  const finale = template.finale;
+  if (!finale || finale.points <= 0) return null;
+  const target = caseFile.npcs.find((n) => n.role === finale.role);
+  if (!target) return null;
+  const solved = finale.when.every((id) => {
+    const q = caseFile.questions.find((x) => x.id === id);
+    return Boolean(q) && answers[id] === q!.answer;
+  });
+  return solved ? target : null;
+}
+
+/**
+ * 战斗分：结尾对决战胜得 `finale.points`；其余按通过守卫（化解与击败同分）的比例计，
+ * 没有守卫的案卷这部分按满额计。
+ */
+function combatPoints(
+  template: MysteryScenarioTemplate,
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  confrontation: MysteryConfrontationOutcome,
+) {
+  const finale = template.finale?.points ?? 0;
+  const guardShare = template.scoring.combat - finale;
+  const total = caseFile.guards?.length ?? 0;
+  const passed = Math.min(total, run.passedGuards?.length ?? 0);
+  return (
+    (confrontation === 'won' ? finale : 0) +
+    (total === 0 ? guardShare : Math.round((guardShare * passed) / total))
   );
-  return accused ? culprit : null;
 }
 
 /**
@@ -111,7 +133,7 @@ export function scoreMysteryRun(
     coverage: Math.round(weights.coverage * coverageRatio),
     efficiency: Math.round(weights.efficiency * efficiencyRatio * truthRatio),
     branch: Math.min(weights.branch, branchPoints),
-    combat: confrontation === 'won' ? weights.combat : 0,
+    combat: combatPoints(template, caseFile, run, confrontation),
   };
   const total =
     breakdown.truth +
@@ -129,6 +151,14 @@ export function scoreMysteryRun(
     branches,
     keyCluesFound,
     keyCluesTotal: keyClues.length,
-    ...(weights.combat > 0 ? { confrontation } : {}),
+    ...(template.finale ? { confrontation } : {}),
+    ...(caseFile.guards?.length
+      ? {
+          guards: {
+            passed: run.passedGuards?.length ?? 0,
+            total: caseFile.guards.length,
+          },
+        }
+      : {}),
   };
 }

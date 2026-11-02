@@ -218,7 +218,7 @@ describe('mystery scoring', () => {
     expect(
       mysteryConfrontationTarget(
         caseFile,
-        { ...template, scoring: { ...template.scoring, combat: 0, truth: 60 } },
+        { ...template, finale: undefined },
         CORRECT,
       ),
     ).toBeNull();

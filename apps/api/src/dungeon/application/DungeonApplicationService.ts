@@ -2,28 +2,29 @@ import type { DungeonExpectedState } from '@daoyou/contracts/combat/dungeon';
 import type {
   DungeonMysteryActRequest,
   DungeonMysteryDeduceRequest,
+  DungeonMysteryGuardRequest,
   DungeonMysteryTalkRequest,
 } from '@daoyou/contracts/dungeon/mystery';
-import {
-  toClientDungeonResult,
-  toClientDungeonState,
-} from '@server/dungeon/application/mystery/mysteryState.js';
-import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { type ResourceChangeDescriptor } from '@daoyou/contracts/resources';
-import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
+import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { canChallengeDungeonRealm } from '@daoyou/game-rules/world/dungeon';
 import { dungeonPlayer } from '@server/dungeon/application/flow/combatV6.js';
 import {
   type DungeonFlowService,
   type DungeonPersistenceSettlement,
 } from '@server/dungeon/application/flow/DungeonFlowService.js';
+import {
+  toClientDungeonResult,
+  toClientDungeonState,
+} from '@server/dungeon/application/mystery/mysteryState.js';
 import type { DbTransaction } from '@server/lib/drizzle/db.js';
 import {
   redisLockKeys,
   type RedisLeaseContext,
   type withRedisLock,
 } from '@server/lib/redis/lock.js';
+import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import type { Redis } from 'ioredis';
 
 import type { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
@@ -43,6 +44,7 @@ type DungeonCommand =
   | ({ kind: 'mystery-act' } & DungeonMysteryActRequest)
   | ({ kind: 'mystery-deduce' } & DungeonMysteryDeduceRequest)
   | ({ kind: 'mystery-talk' } & DungeonMysteryTalkRequest)
+  | ({ kind: 'mystery-guard' } & DungeonMysteryGuardRequest)
   | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
@@ -311,6 +313,8 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return 'dungeon_mystery_deduce';
     case 'mystery-talk':
       return 'dungeon_mystery_talk';
+    case 'mystery-guard':
+      return 'dungeon_mystery_guard';
     case 'battle-begin':
       return 'dungeon_battle_begin';
     case 'recover':
@@ -376,6 +380,8 @@ async function prepareDungeonCommand(
       return flow.deduceMystery(cultivatorId, command, options);
     case 'mystery-talk':
       return flow.talkMystery(cultivatorId, command, options);
+    case 'mystery-guard':
+      return flow.challengeMysteryGuard(cultivatorId, command, options);
     case 'battle-begin':
       return flow.beginBattle(cultivatorId, command.encounterId, options);
     case 'recover':

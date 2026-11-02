@@ -89,7 +89,87 @@ function cloneRun(run: MysteryRunState): MysteryRunState {
     firedReactions: [...run.firedReactions],
     firedInteractions: [...run.firedInteractions],
     log: [...run.log],
+    ...(run.passedGuards ? { passedGuards: [...run.passedGuards] } : {}),
   };
+}
+
+/** 守在该房间入口、尚未通过的守卫。 */
+export function mysteryGuardAt(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  roomId: string,
+) {
+  return caseFile.guards?.find(
+    (g) => g.roomId === roomId && !run.passedGuards?.includes(g.id),
+  );
+}
+
+/** 进入房间：首次进入写全貌，再次进入写一句。 */
+function enterRoom(w: RunWriter, target: MysteryCaseFile['rooms'][number]) {
+  w.run.location = target.id;
+  const first = !w.run.visited.includes(target.id);
+  if (first) w.run.visited.push(target.id);
+  w.log({ kind: 'scene', text: first ? target.description : target.brief });
+}
+
+/** 守卫所守房间与当前位置相邻、尚未通过时，返回守卫与房间。 */
+function guardAhead(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  guardId: string,
+) {
+  const guard = caseFile.guards?.find((g) => g.id === guardId);
+  if (!guard || run.passedGuards?.includes(guard.id)) return null;
+  const room = mysteryNeighbors(caseFile, run.location).find(
+    (r) => r.id === guard.roomId,
+  );
+  return room ? { guard, room } : null;
+}
+
+/** 强闯前的校验：守卫就在前方、行动力尚存。成功时返回守卫。 */
+export function mysteryGuardChallenge(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  guardId: string,
+):
+  | { ok: true; guard: NonNullable<MysteryCaseFile['guards']>[number] }
+  | { ok: false; error: string } {
+  if (run.actionsLeft <= 0)
+    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+  const ahead = guardAhead(caseFile, run, guardId);
+  if (!ahead) return { ok: false, error: '前方没有拦路的守卫' };
+  if (!evaluateMysteryCondition(ahead.room.requires, run))
+    return { ok: false, error: ahead.room.lockedText ?? '去路被阻' };
+  return { ok: true, guard: ahead.guard };
+}
+
+/** 强闯的遭遇战结束：消耗 1 点行动力；胜则守卫退散并进入房间，败则留在原地。 */
+export function applyMysteryGuardBattle(
+  caseFile: MysteryCaseFile,
+  current: MysteryRunState,
+  guardId: string,
+  won: boolean,
+): MysteryActionResult {
+  const ahead = guardAhead(caseFile, current, guardId);
+  if (!ahead) return { ok: false, error: '前方没有拦路的守卫' };
+  const run = cloneRun(current);
+  run.turn += 1;
+  spend(run, 1);
+  const w = new RunWriter(caseFile, run);
+  if (won) {
+    run.passedGuards = [...(run.passedGuards ?? []), guardId];
+    w.log({ kind: 'system', text: `你击退了${ahead.guard.name}。` });
+    enterRoom(w, ahead.room);
+  } else {
+    w.log({
+      kind: 'system',
+      text: `你没能闯过${ahead.guard.name}，只得退了回来。`,
+    });
+  }
+  if (run.actionsLeft === 0)
+    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
+  run.log = run.log.slice(-LOG_LIMIT);
+  return { ok: true, run, newClues: w.newClues };
 }
 
 class RunWriter {
@@ -170,11 +250,24 @@ export function applyMysteryAction(
           error: target.lockedText ?? '去路被阻，暂时无法通过',
         };
       }
+      const guard = mysteryGuardAt(caseFile, run, target.id);
+      if (guard)
+        return { ok: false, error: `${guard.name}拦住了去路，须强闯或化解` };
       spend(run, 1);
-      run.location = target.id;
-      const first = !run.visited.includes(target.id);
-      if (first) run.visited.push(target.id);
-      w.log({ kind: 'scene', text: first ? target.description : target.brief });
+      enterRoom(w, target);
+      break;
+    }
+    case 'bypass_guard': {
+      const ahead = guardAhead(caseFile, run, action.guardId);
+      if (!ahead) return { ok: false, error: '前方没有拦路的守卫' };
+      if (!evaluateMysteryCondition(ahead.room.requires, run))
+        return { ok: false, error: ahead.room.lockedText ?? '去路被阻' };
+      if (!evaluateMysteryCondition(ahead.guard.bypass, run))
+        return { ok: false, error: '你还没有化解它的办法' };
+      spend(run, 1);
+      run.passedGuards = [...(run.passedGuards ?? []), ahead.guard.id];
+      w.log({ kind: 'detail', text: ahead.guard.bypassText });
+      enterRoom(w, ahead.room);
       break;
     }
     case 'search': {

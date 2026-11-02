@@ -5,6 +5,7 @@ import type {
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { evaluateMysteryCondition, mysteryNeighbors } from './engine.js';
+import { MYSTERY_TEXT_PLACEHOLDER } from './skeleton.js';
 
 export interface MysteryReachability {
   rooms: Set<string>;
@@ -16,9 +17,11 @@ export interface MysteryReachability {
 /**
  * 从开局出发做不动点推演：只要条件满足就假定玩家会去做。
  * 消耗物品不回收，因此结果是“理论上能拿到”的上界。
+ * 守卫按“打不过”处理：只有化解条件满足才能进入其房间；`skipGuarded` 时完全不进入。
  */
 export function computeMysteryReachability(
   caseFile: MysteryCaseFile,
+  options: { skipGuarded?: boolean } = {},
 ): MysteryReachability {
   const facts = {
     rooms: new Set([caseFile.startRoomId]),
@@ -50,7 +53,12 @@ export function computeMysteryReachability(
     size = total();
     for (const roomId of [...facts.rooms]) {
       for (const next of mysteryNeighbors(caseFile, roomId)) {
-        if (evaluateMysteryCondition(next.requires, view))
+        const guards = caseFile.guards?.filter((g) => g.roomId === next.id);
+        if (guards?.length && options.skipGuarded) continue;
+        if (
+          evaluateMysteryCondition(next.requires, view) &&
+          (guards ?? []).every((g) => evaluateMysteryCondition(g.bypass, view))
+        )
           facts.rooms.add(next.id);
       }
     }
@@ -152,6 +160,7 @@ export function estimateMysteryMinimumActions(caseFile: MysteryCaseFile) {
   return (
     caseFile.rooms.length -
     1 +
+    (caseFile.guards?.length ?? 0) +
     searchObjects.size +
     talkNpcs +
     reactions +
@@ -281,6 +290,19 @@ export function validateMysteryCase(
     checkCondition(`交互 ${i.id}`, i.requires);
     checkEffects(`交互 ${i.id}`, i.effects);
   }
+  const guardRooms = new Set<string>();
+  for (const g of caseFile.guards ?? []) {
+    if (!rooms.has(g.roomId)) issues.push(`守卫 ${g.id} 所在房间不存在`);
+    if (g.roomId === caseFile.startRoomId)
+      issues.push(`守卫 ${g.id} 不能守入口`);
+    if (guardRooms.has(g.roomId)) issues.push(`房间 ${g.roomId} 有多个守卫`);
+    guardRooms.add(g.roomId);
+    checkCondition(`守卫 ${g.id} 的化解条件`, g.bypass);
+  }
+  unique(
+    '守卫',
+    (caseFile.guards ?? []).map((g) => g.id),
+  );
   for (const rel of caseFile.brief.relations)
     if (!npcs.has(rel.npcId))
       issues.push(`角色本关系引用了不存在的人物 ${rel.npcId}`);
@@ -304,6 +326,19 @@ export function validateMysteryCase(
     if (sources === 0) issues.push(`线索 ${clue.id} 没有获取途径`);
   }
 
+  // 守卫后面只放加分内容：即使一个守卫都不进，每个结案问题仍有关键线索支撑。
+  const unguarded = caseFile.guards?.length
+    ? computeMysteryReachability(caseFile, { skipGuarded: true })
+    : reach;
+  if (caseFile.guards?.length)
+    for (const tq of template.questions)
+      if (
+        !keyClues.some(
+          (c) => c.supports.includes(tq.id) && unguarded.clues.has(c.id),
+        )
+      )
+        issues.push(`结案问题 ${tq.id} 只能靠守卫后的线索支撑`);
+
   const questions = new Map(caseFile.questions.map((q) => [q.id, q]));
   for (const tq of template.questions) {
     const q = questions.get(tq.id);
@@ -325,6 +360,11 @@ export function validateMysteryCase(
         issues.push(`结案问题 ${tq.id} 至少需要两个选项`);
       else if (!q.options.some((o) => o.id === q.answer))
         issues.push(`结案问题 ${tq.id} 的答案不在选项中`);
+      const labels = q.options
+        ?.map((o) => o.label)
+        .filter((label) => label !== MYSTERY_TEXT_PLACEHOLDER);
+      if (labels && new Set(labels).size !== labels.length)
+        issues.push(`结案问题 ${tq.id} 的选项说法有重复`);
     }
   }
   if (caseFile.questions.length !== template.questions.length)

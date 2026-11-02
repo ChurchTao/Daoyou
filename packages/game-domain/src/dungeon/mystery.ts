@@ -118,6 +118,17 @@ export const MysteryScenarioTemplateSchema = z
       branch: z.number().int().min(0),
       combat: z.number().int().min(0),
     }),
+    /**
+     * 结尾对决：`when` 中的问题全部答对时，身份为 `role` 的人物翻脸动手，
+     * 战胜得 `points` 分；战斗分的其余部分按通过守卫的比例计。
+     */
+    finale: z
+      .strictObject({
+        role: MysteryIdSchema,
+        when: z.array(MysteryIdSchema).min(1).max(5),
+        points: z.number().int().min(0),
+      })
+      .optional(),
     writing_guidance: Text(600),
   })
   .superRefine((template, ctx) => {
@@ -127,6 +138,24 @@ export const MysteryScenarioTemplateSchema = z
         code: 'custom',
         path: ['scoring'],
         message: '评分权重之和必须为 100',
+      });
+    }
+    const finale = template.finale;
+    if (finale && finale.points > s.combat) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['finale', 'points'],
+        message: '结尾对决分不能超过战斗权重',
+      });
+    }
+    if (
+      finale &&
+      finale.when.some((id) => !template.questions.some((q) => q.id === id))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['finale', 'when'],
+        message: '结尾对决引用了不存在的结案问题',
       });
     }
   });
@@ -263,6 +292,20 @@ export const MysteryCaseFileSchema = z.strictObject({
     )
     .min(1)
     .max(5),
+  /** 守住某个房间入口的守卫：可强闯（战斗）或满足条件后化解。旧案卷没有此字段。 */
+  guards: z
+    .array(
+      z.strictObject({
+        id: MysteryIdSchema,
+        roomId: MysteryIdSchema,
+        name: Text(12),
+        description: Text(200),
+        bypass: MysteryConditionSchema,
+        bypassText: Text(200),
+      }),
+    )
+    .max(2)
+    .optional(),
 });
 
 export type MysteryCaseFile = z.infer<typeof MysteryCaseFileSchema>;
@@ -294,6 +337,8 @@ export interface MysteryRunState {
   lastActionId?: string;
   /** 与各人物的自由对话记录，每人只保留最近几轮。 */
   dialogue?: Record<string, Array<{ q: string; a: string }>>;
+  /** 已通过（化解或击败）的守卫。 */
+  passedGuards?: string[];
 }
 
 export const MysteryActionSchema = z.discriminatedUnion('type', [
@@ -310,6 +355,7 @@ export const MysteryActionSchema = z.discriminatedUnion('type', [
     npcId: MysteryIdSchema,
     evidenceId: MysteryIdSchema,
   }),
+  z.strictObject({ type: z.literal('bypass_guard'), guardId: MysteryIdSchema }),
 ]);
 
 export type MysteryAction = z.infer<typeof MysteryActionSchema>;
@@ -346,6 +392,8 @@ export interface MysteryResult {
   keyCluesTotal: number;
   /** 模板含战斗权重时记录对决结果。 */
   confrontation?: MysteryConfrontationOutcome;
+  /** 案卷有守卫时记录通过情况。 */
+  guards?: { passed: number; total: number };
 }
 
 /** 服务端权威记录，挂在 DungeonState.mystery 上，绝不直接下发。 */
@@ -358,6 +406,8 @@ export interface MysteryRecord {
   result?: MysteryResult;
   /** 已指认真凶、等待对决结果的结案答案；对决结束后连同结果一起评分。 */
   verdict?: { answers: MysteryAnswers; culpritId: string };
+  /** 正在强闯的守卫：遭遇战结束后回到调查。 */
+  pendingGuard?: string;
   /** 对应剧本库中的剧本；保底案卷未入库时为空。 */
   scenarioId?: string;
   /** 冷启动生成的案卷需要在开局提交时一并入库。 */
@@ -376,8 +426,10 @@ export interface MysteryPlayerView {
   title: string;
   /** 此案已经历过（结案过）。 */
   replay: boolean;
-  /** 指认真凶后对方会负隅顽抗，战胜才能拿到战斗分。 */
+  /** 结案答对后对手会翻脸动手，战胜才能拿到对决分。 */
   confrontation: boolean;
+  /** 正在等待的遭遇战：结尾对决或强闯守卫。 */
+  pendingBattle?: 'finale' | 'guard';
   templateName: string;
   brief: MysteryCaseFile['brief'] & {
     relations: Array<{ npcId: string; name: string; text: string }>;
@@ -386,7 +438,18 @@ export interface MysteryPlayerView {
   actionBudget: number;
   actionsLeft: number;
   location: { id: string; name: string; description: string };
-  exits: Array<{ id: string; name: string; locked: boolean; hint?: string }>;
+  exits: Array<{
+    id: string;
+    name: string;
+    locked: boolean;
+    hint?: string;
+    guard?: {
+      id: string;
+      name: string;
+      description: string;
+      canBypass: boolean;
+    };
+  }>;
   objects: Array<{ id: string; name: string; searched: boolean }>;
   npcsHere: Array<{ id: string; name: string; title: string }>;
   knownNpcs: Array<{ id: string; name: string; title: string }>;

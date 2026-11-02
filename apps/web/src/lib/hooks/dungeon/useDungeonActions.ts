@@ -112,6 +112,17 @@ export function useDungeonActions(
         45000,
       );
     },
+    mysteryGuard: (runId: string, turn: number, guardId: string) => {
+      const key = JSON.stringify([runId, turn, 'guard', guardId]);
+      if (actionRequest.current?.key !== key)
+        actionRequest.current = { key, id: crypto.randomUUID() };
+      return mutate('mystery/guard', {
+        runId,
+        actionId: actionRequest.current.id,
+        turn,
+        guardId,
+      });
+    },
     mysteryDeduce: (runId: string, answers: MysteryAnswers) =>
       mutate('mystery/deduce', { runId, answers }),
     beginBattle: (encounterId: string) =>
@@ -122,13 +133,21 @@ export function useDungeonActions(
       mutate('recover', { action, expected }),
     quitDungeon: () =>
       new Promise<Awaited<ReturnType<typeof mutate>>>((resolve) => {
-        // 解谜对决前放走真凶：仍按结案结算，只是没有战斗分。
-        const confrontation =
-          state?.status === 'WAITING_BATTLE' && Boolean(state.mysteryView);
+        const pending =
+          state?.status === 'WAITING_BATTLE'
+            ? state.mysteryView?.pendingBattle
+            : undefined;
+        // 守卫战前退回：不扣行动力，直接回到调查。
+        if (pending === 'guard') {
+          void mutate('quit', { expected }).then(resolve);
+          return;
+        }
+        // 解谜对决前放走对手：仍按结案结算，只是没有对决分。
+        const confrontation = pending === 'finale';
         openDialog({
           title: confrontation ? '任其遁走' : '结束探索',
           content: confrontation
-            ? '放走真凶后此案即告了结，推理所得照常结算，只是拿不到战斗分。确定不追了吗？'
+            ? '放走对手后此案即告了结，推理所得照常结算，只是拿不到对决分。确定不追了吗？'
             : '确定结束本次探索吗？已获得的收益将结算发放，但不会获得通关奖励。',
           confirmLabel: confrontation ? '放其离去' : '确认离开',
           cancelLabel: '取消',

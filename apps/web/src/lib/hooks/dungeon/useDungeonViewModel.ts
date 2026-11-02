@@ -114,6 +114,7 @@ export function useDungeonViewModel(
     mysteryAct,
     mysteryDeduce,
     mysteryTalk,
+    mysteryGuard,
     processing,
   } = useDungeonActions(refresh, state);
 
@@ -296,6 +297,18 @@ export function useDungeonViewModel(
     );
   };
 
+  const handleMysteryGuard = async (guardId: string) => {
+    if (!state?.runId || !state.mysteryView) return;
+    const data = await mysteryGuard(
+      state.runId,
+      state.mysteryView.turn,
+      guardId,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+  };
+
   const handleMysteryTalk = async (npcId: string, question: string) => {
     if (!state?.runId || !state.mysteryView) return false;
     const data = await mysteryTalk(
@@ -380,6 +393,7 @@ export function useDungeonViewModel(
       mysteryAct: handleMysteryAct,
       mysteryDeduce: handleMysteryDeduce,
       mysteryTalk: handleMysteryTalk,
+      mysteryGuard: handleMysteryGuard,
     },
   };
 }

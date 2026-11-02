@@ -2,8 +2,11 @@
 export {
   applyMysteryAction,
   applyMysteryDialogue,
+  applyMysteryGuardBattle,
   createMysteryRun,
   evaluateMysteryCondition,
+  mysteryGuardAt,
+  mysteryGuardChallenge,
   mysteryNeighbors,
   mysteryRevealableSecrets,
 } from '../dungeon/mystery/engine.js';

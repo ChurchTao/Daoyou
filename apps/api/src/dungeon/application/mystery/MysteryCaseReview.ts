@@ -5,15 +5,8 @@ import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 
 /** 大纲阶段确定、后续所有正文都必须遵守的事实设定。 */
-export interface MysteryCanon {
-  victim: string;
-  culprit: string;
-  method: string;
-  lie: string;
-  contradiction: string;
-  suspect: string;
-  token: string;
-}
+/** 大纲阶段定下的事实设定，字段随案型不同。 */
+export type MysteryCanon = Record<string, string>;
 
 const INTERNAL_ID = /[a-z]+_[a-z0-9_]+/;
 
@@ -82,15 +75,23 @@ function textFields(c: MysteryCaseFile): TextField[] {
   for (const i of c.interactions) add(`interactions.${i.id}`, i, 'text', 220);
   for (const q of c.questions)
     add(`questions.${q.id}.explanation`, q, 'explanation', 200);
+  for (const g of c.guards ?? []) {
+    add(`guards.${g.id}.description`, g, 'description', 200);
+    add(`guards.${g.id}.bypassText`, g, 'bypassText', 200);
+  }
   return fields;
 }
 
 function names(c: MysteryCaseFile) {
   return Object.fromEntries(
-    [...c.rooms, ...c.objects, ...c.clues, ...c.items, ...c.npcs].map((x) => [
-      x.id,
-      'title' in x ? `${x.name}（${x.title}）` : x.name,
-    ]),
+    [
+      ...c.rooms,
+      ...c.objects,
+      ...c.clues,
+      ...c.items,
+      ...c.npcs,
+      ...(c.guards ?? []),
+    ].map((x) => [x.id, 'title' in x ? `${x.name}（${x.title}）` : x.name]),
   );
 }
 
