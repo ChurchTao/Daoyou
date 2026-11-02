@@ -64,6 +64,19 @@ import {
 } from '@server/dungeon/application/flow/types.js';
 import type { DungeonRunStore } from './DungeonRunStore.js';
 import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
+import type {
+  MysteryAction,
+  MysteryAnswers,
+} from '@daoyou/game-domain/dungeon/mystery';
+import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
+import {
+  applyMysteryAction,
+  checkMysteryAnswers,
+  createMysteryRun,
+  scoreMysteryRun,
+} from '@daoyou/game-rules/dungeon/mystery';
+import type { generateMysteryCase } from '../mystery/MysteryCaseGenerator.js';
+import { isKeyClue, requireMysteryTemplate } from '../mystery/mysteryState.js';
 
 const FLOW_LOCK_TTL_SECONDS = 180;
 export { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
@@ -191,6 +204,21 @@ async function appendRoundRewards(
   return items;
 }
 
+/** 解谜模式以获得关键线索代替轮次作为探索收益的节点。 */
+async function appendClueReward(state: DungeonState, clueId: string) {
+  const reward = await resolveDungeonReward(
+    state,
+    `clue:${clueId}`,
+    'exploration',
+  );
+  const previous = state.v6Rewards ?? [];
+  state.v6Rewards = appendDungeonReward(previous, reward);
+  if (previous === state.v6Rewards) return;
+  state.accumulatedRewards.push(
+    ...reward.items.map((item) => ({ name: dungeonRewardItemName(item) })),
+  );
+}
+
 const DEFAULT_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
   'safe_retreat',
   'force_quit',
@@ -278,6 +306,7 @@ export class DungeonFlowService {
     private readonly runs: DungeonRunStore,
     private readonly resources: ResourceEngine,
     private readonly withLock: typeof withRedisLock,
+    private readonly generateCase: typeof generateMysteryCase,
   ) {}
 
   private buildFallbackOption(
@@ -378,6 +407,7 @@ export class DungeonFlowService {
     });
     if (
       state.status === 'EXPLORING' &&
+      !state.mystery &&
       (state.currentOptions?.length ?? 0) === 0
     ) {
       state.currentOptions = [this.buildFallbackOption(state)];
@@ -698,21 +728,27 @@ export class DungeonFlowService {
         action: 'dungeon_start',
       });
 
-      // 3. 首次 AI 调用
-      const roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
-        cultivatorId,
-      );
+      // 3. 解谜节点生成案卷；其余节点沿用首轮 AI 剧情
+      const scenario = this.getMapNode(mapNodeId).dungeon_config?.scenario;
+      let roundData: DungeonRound | undefined;
+      if (scenario) {
+        await this.initMystery(state, scenario);
+      } else {
+        roundData = await this.previewRoundResourceLoss(
+          this.normalizeRoundOptions(await this.callAI(state), state),
+          cultivatorId,
+        );
 
-      // 4. 更新历史并存入 Redis
-      const acceptedItems = await appendRoundRewards(state);
-      const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
-      state.history.push({
-        round: 1,
-        scene: roundData.scene_description,
-        gained_items: gainedNames,
-      });
-      state.currentOptions = roundData.interaction.options;
+        // 4. 更新历史并存入 Redis
+        const acceptedItems = await appendRoundRewards(state);
+        const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
+        state.history.push({
+          round: 1,
+          scene: roundData.scene_description,
+          gained_items: gainedNames,
+        });
+        state.currentOptions = roundData.interaction.options;
+      }
       if (!options.deferPersistence) {
         await this.saveState(cultivatorId, state);
       }
@@ -1425,10 +1461,22 @@ export class DungeonFlowService {
     const settlement: DungeonSettlement = state.settlement ?? {
       ending_narrative: ending!.narrative,
       settlement: {
-        reward_tier: endDisposition === 'completed' ? ending!.rating : 'C',
+        // 解谜模式的评级由规则评分决定，LLM 只写结局叙事。
+        reward_tier:
+          endDisposition === 'completed'
+            ? (state.mystery?.result?.tier ?? ending!.rating)
+            : 'C',
         reward_blueprints: [],
         performance_tags:
-          endDisposition === 'completed' ? ['功成身退'] : ['及时止损'],
+          endDisposition !== 'completed'
+            ? ['及时止损']
+            : state.mystery?.result
+              ? [
+                  Object.values(state.mystery.result.correct).every(Boolean)
+                    ? '真相大白'
+                    : '疑云未散',
+                ]
+              : ['功成身退'],
       },
     };
     settlement.inventoryRewards = (state.v6Rewards ?? []).flatMap(
@@ -1713,6 +1761,169 @@ export class DungeonFlowService {
       },
     };
   }
+  private async initMystery(
+    state: DungeonState,
+    scenario: DungeonScenarioConfig,
+  ) {
+    const templateId =
+      scenario.templates[(state.rewardSeed ?? 0) % scenario.templates.length];
+    if (!templateId) throw new Error('秘境剧本配置无效');
+    const template = requireMysteryTemplate(templateId);
+    const mapNode = this.getMapNode(state.mapNodeId);
+    const { caseFile, source } = await this.generateCase({
+      template,
+      node: {
+        name: mapNode.name,
+        realm_requirement: mapNode.realm_requirement,
+        tags: mapNode.tags,
+        description: mapNode.description,
+      },
+      setting: scenario,
+      player: state.playerInfo,
+    });
+    state.mystery = {
+      templateId,
+      caseSource: source,
+      caseFile,
+      run: createMysteryRun(caseFile, template.scale.action_budget),
+    };
+    state.maxRounds = 1;
+    state.history.push({ round: 1, scene: caseFile.brief.opening });
+  }
+
+  private requireMysteryState(
+    state: DungeonState | null,
+    runId: string,
+  ): asserts state is DungeonState & {
+    mystery: NonNullable<DungeonState['mystery']>;
+  } {
+    if (!state?.mystery || state.runId !== runId) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '探索状态已变化，请刷新',
+        409,
+      );
+    }
+  }
+
+  private finishMysteryStep(
+    cultivatorId: string,
+    state: DungeonState,
+    options: DungeonFlowOptions,
+  ) {
+    if (options.deferPersistence) {
+      return {
+        state,
+        isFinished: false,
+        ...this.buildStateHooks(cultivatorId, state),
+      };
+    }
+    return this.saveState(cultivatorId, state).then(() => ({
+      state,
+      isFinished: false,
+    }));
+  }
+
+  /** 解谜调查动作：只改变运行态，获得关键线索时累计探索收益。 */
+  async actMystery(
+    cultivatorId: string,
+    input: { runId: string; actionId: string; turn: number; action: MysteryAction },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-act',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const result = applyMysteryAction(
+          mystery.caseFile,
+          mystery.run,
+          input.action,
+        );
+        if (!result.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            result.error,
+            400,
+          );
+        }
+        mystery.run = { ...result.run, lastActionId: input.actionId };
+        for (const clueId of result.newClues) {
+          if (isKeyClue(mystery.caseFile, clueId))
+            await appendClueReward(state, clueId);
+        }
+        return this.finishMysteryStep(cultivatorId, state, options);
+      },
+      options.lease,
+    );
+  }
+
+  /** 结案：规则评分后按完成通关结算，评分决定通关奖励档位。 */
+  async deduceMystery(
+    cultivatorId: string,
+    input: { runId: string; answers: MysteryAnswers },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-deduce',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (state.status !== 'EXPLORING' || mystery.result) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const template = requireMysteryTemplate(mystery.templateId);
+        const invalid = checkMysteryAnswers(
+          mystery.caseFile,
+          template,
+          mystery.run,
+          input.answers,
+        );
+        if (invalid) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            invalid,
+            400,
+          );
+        }
+        mystery.result = scoreMysteryRun(
+          mystery.caseFile,
+          template,
+          mystery.run,
+          input.answers,
+        );
+        const settled = await this.settleDungeon(state, {
+          endDisposition: 'completed',
+          deferPersistence: options.deferPersistence,
+        });
+        return { ...settled, state: settled.state ?? state };
+      },
+      options.lease,
+    );
+  }
+
   private callAI(state: DungeonState): Promise<DungeonRound> {
     return this.generateRound(state);
   }

@@ -7,6 +7,10 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
+import type {
+  MysteryAction,
+  MysteryAnswers,
+} from '@daoyou/game-domain/dungeon/mystery';
 import { useRef, useState } from 'react';
 
 export function useDungeonActions(
@@ -26,7 +30,7 @@ export function useDungeonActions(
       }
     : null;
 
-  async function mutate(path: string, body?: unknown) {
+  async function mutate(path: string, body?: unknown, timeoutMs = 90000) {
     if (pending.current) return null;
     pending.current = true;
     setProcessing(true);
@@ -36,7 +40,7 @@ export function useDungeonActions(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       const data = await response.json();
       if (!response.ok || data.error) {
@@ -61,7 +65,8 @@ export function useDungeonActions(
   return {
     processing,
     startDungeon: async (mapNodeId: string) =>
-      (await mutate('start', { mapNodeId }))?.state ?? null,
+      // 解谜秘境开局需要生成案卷，耗时长于普通操作。
+      (await mutate('start', { mapNodeId }, 200000))?.state ?? null,
     performAction: (
       option: DungeonOption,
       runId: string,
@@ -79,6 +84,20 @@ export function useDungeonActions(
         materialSelections,
       });
     },
+    mysteryAct: (runId: string, turn: number, action: MysteryAction) => {
+      // 同一回合重试同一动作时沿用 actionId，服务端据此去重。
+      const key = JSON.stringify([runId, turn, action]);
+      if (actionRequest.current?.key !== key)
+        actionRequest.current = { key, id: crypto.randomUUID() };
+      return mutate('mystery/act', {
+        runId,
+        actionId: actionRequest.current.id,
+        turn,
+        action,
+      });
+    },
+    mysteryDeduce: (runId: string, answers: MysteryAnswers) =>
+      mutate('mystery/deduce', { runId, answers }),
     beginBattle: (encounterId: string) =>
       mutate('battle/begin', { encounterId }),
     continueLooting: () => mutate('looting/continue', { expected }),

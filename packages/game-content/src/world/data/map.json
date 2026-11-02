@@ -294,7 +294,13 @@
       "environmental_status": null,
       "tags": ["单人副本", "阵法破解", "坐化遗骸", "古宝", "功法玉简"],
       "description": "掩映在瀑布后的隐秘洞穴，洞口禁制已然残破，透着一股岁月腐朽的气息。",
-      "dungeon_config": { "difficulty": "normal" }
+      "dungeon_config": {
+        "difficulty": "normal",
+        "scenario": {
+          "templates": ["inheritance_murder"],
+          "setting": "太岳山瀑布后的古修士洞府，洞口禁制残破，洞内有坐化遗骸、丹房与封闭的石门。"
+        }
+      }
     },
     {
       "id": "SAT_TN_02",

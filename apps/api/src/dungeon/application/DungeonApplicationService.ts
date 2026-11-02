@@ -1,4 +1,12 @@
 import type { DungeonExpectedState } from '@daoyou/contracts/combat/dungeon';
+import type {
+  DungeonMysteryActRequest,
+  DungeonMysteryDeduceRequest,
+} from '@daoyou/contracts/dungeon/mystery';
+import {
+  toClientDungeonResult,
+  toClientDungeonState,
+} from '@server/dungeon/application/mystery/mysteryState.js';
 import { RESOURCE_DATA_SCHEMAS } from '@server/lib/resources/schemas.js';
 import { type ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
@@ -31,6 +39,8 @@ type DungeonCommand =
       round: number;
       materialSelections: import('@daoyou/game-domain/dungeon').DungeonMaterialSelection[];
     }
+  | ({ kind: 'mystery-act' } & DungeonMysteryActRequest)
+  | ({ kind: 'mystery-deduce' } & DungeonMysteryDeduceRequest)
   | { kind: 'battle-begin'; encounterId: string }
   | {
       kind: 'recover';
@@ -80,7 +90,10 @@ export class DungeonApplicationService {
         timeoutMs: 30000,
         retries: 0,
       },
-      async () => this.flow.getState(cultivatorId, runId),
+      async () => {
+        const state = await this.flow.getState(cultivatorId, runId);
+        return state ? toClientDungeonState(state) : state;
+      },
     );
   }
 
@@ -148,7 +161,11 @@ export class DungeonApplicationService {
             }),
         });
         if (afterCommit) await afterCommit();
-        return toPlayerStateMutationResponse(committed);
+        // 持久化会补全 runId 等字段，投影必须在提交之后进行。
+        return toPlayerStateMutationResponse({
+          ...committed,
+          result: toClientDungeonResult(committed.result),
+        });
       },
     );
     if (cacheKey) {
@@ -286,6 +303,10 @@ function dungeonCommandSource(command: DungeonCommand): string {
       return 'dungeon_start';
     case 'action':
       return 'dungeon_action';
+    case 'mystery-act':
+      return 'dungeon_mystery_act';
+    case 'mystery-deduce':
+      return 'dungeon_mystery_deduce';
     case 'battle-begin':
       return 'dungeon_battle_begin';
     case 'recover':
@@ -345,6 +366,10 @@ async function prepareDungeonCommand(
         { ...options, materialSelections: command.materialSelections },
       );
     }
+    case 'mystery-act':
+      return flow.actMystery(cultivatorId, command, options);
+    case 'mystery-deduce':
+      return flow.deduceMystery(cultivatorId, command, options);
     case 'battle-begin':
       return flow.beginBattle(cultivatorId, command.encounterId, options);
     case 'recover':

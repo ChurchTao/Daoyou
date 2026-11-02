@@ -11,6 +11,10 @@ import {
   DungeonActionRequestSchema,
   DungeonFlowRequestSchema,
 } from '@daoyou/contracts/combat/dungeon';
+import {
+  DungeonMysteryActRequestSchema,
+  DungeonMysteryDeduceRequestSchema,
+} from '@daoyou/contracts/dungeon/mystery';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
@@ -74,7 +78,29 @@ export class DungeonController {
     return this.dungeon.execute(actor, { kind: 'action', ...input });
   }
 
-  @Post('recover')
+  @Post('mystery/act')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryAct(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryActRequestSchema))
+    input: z.infer<typeof DungeonMysteryActRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-act', ...input });
+  }
+
+  @Post('mystery/deduce')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryDeduce(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryDeduceRequestSchema))
+    input: z.infer<typeof DungeonMysteryDeduceRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-deduce', ...input });
+  }
+
+    @Post('recover')
   @HttpCode(200)
   @UseFilters(DungeonRecoverErrors)
   recover(

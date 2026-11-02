@@ -1,0 +1,29 @@
+/** Public dungeon mystery capabilities. Keep implementation files private. */
+export {
+  MYSTERY_ANSWER_KIND_VALUES,
+  MYSTERY_ARCHETYPE_VALUES,
+  MysteryActionSchema,
+  MysteryAnswersSchema,
+  MysteryCaseFileSchema,
+  MysteryConditionSchema,
+  MysteryEffectSchema,
+  MysteryIdSchema,
+  MysteryScenarioTemplateSchema,
+} from '../dungeon/mystery.js';
+export type {
+  MysteryAction,
+  MysteryAnswerKind,
+  MysteryAnswers,
+  MysteryCaseFile,
+  MysteryCondition,
+  MysteryEffect,
+  MysteryLogEntry,
+  MysteryLogKind,
+  MysteryPlayerView,
+  MysteryRecord,
+  MysteryResult,
+  MysteryRewardTier,
+  MysteryRunState,
+  MysteryScenarioTemplate,
+  MysteryScoreBreakdown,
+} from '../dungeon/mystery.js';

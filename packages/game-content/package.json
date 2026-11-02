@@ -35,6 +35,7 @@
     "./cultivation": "./dist/public/cultivation.js",
     "./divination": "./dist/public/divination.js",
     "./dungeon/cost": "./dist/dungeon/cost.js",
+    "./dungeon/scenarios": "./dist/dungeon/scenarios/index.js",
     "./economy": "./dist/economy.js",
     "./economy/legacy-market": "./dist/economy/legacy-market.js",
     "./equipment/base": "./dist/equipment/content.js",

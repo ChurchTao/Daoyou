@@ -13,6 +13,10 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
+import type {
+  MysteryAction,
+  MysteryAnswers,
+} from '@daoyou/game-domain/dungeon/mystery';
 import {
   isConditionStatusActive,
   getConditionStatusTemplate,
@@ -29,6 +33,7 @@ import { DungeonBattle } from './DungeonBattle';
 import { DungeonExploring } from './DungeonExploring';
 import { DungeonLooting } from './DungeonLooting';
 import { DungeonMapSelector } from './DungeonMapSelector';
+import { DungeonMystery } from './DungeonMystery';
 import type { DungeonDisplayResources } from './DungeonRunPanel';
 import { DungeonSettlement } from './DungeonSettlement';
 
@@ -52,6 +57,8 @@ interface DungeonViewRendererProps {
     escapeLooting: () => Promise<void>;
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
+    mysteryAct: (action: MysteryAction) => Promise<void>;
+    mysteryDeduce: (answers: MysteryAnswers) => Promise<void>;
   };
   onSettlementConfirm?: () => void;
 }
@@ -277,6 +284,7 @@ export function DungeonViewRenderer({
         <DungeonSettlement
           settlement={viewState.settlement}
           realGains={viewState.realGains}
+          mysteryResult={viewState.mystery?.result}
           onConfirm={onSettlementConfirm}
         />
       </DungeonSceneScreen>
@@ -355,6 +363,25 @@ export function DungeonViewRenderer({
             ))}
           </div>
         </InkCard>
+      </DungeonSceneScreen>
+    );
+  }
+
+  if (viewState.type === 'mystery') {
+    return (
+      <DungeonSceneScreen
+        descriptor={resolveDungeonRunSceneDescriptor(
+          'exploring',
+          viewState.state,
+        )}
+      >
+        <DungeonMystery
+          view={viewState.view}
+          processing={processing}
+          onAct={actions.mysteryAct}
+          onDeduce={actions.mysteryDeduce}
+          onQuit={actions.quitDungeon}
+        />
       </DungeonSceneScreen>
     );
   }

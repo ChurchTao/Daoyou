@@ -317,6 +317,10 @@ export interface DungeonPendingAction {
 // === Internal State Management ===
 
 export interface DungeonState {
+  /** 解谜模式权威记录（含隐藏真相），仅服务端持有。 */
+  mystery?: import('./mystery.js').MysteryRecord;
+  /** 解谜模式玩家投影，仅出现在下发给客户端的状态中。 */
+  mysteryView?: import('./mystery.js').MysteryPlayerView;
   encounter?: import('./actions.js').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('./rewards.js').DungeonRewardEntry[];

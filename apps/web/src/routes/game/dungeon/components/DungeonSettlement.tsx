@@ -8,16 +8,20 @@ import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import type { DungeonSettlement as DungeonSettlementType } from '@daoyou/game-domain/dungeon';
 import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
+import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
+import { DungeonMysteryResult } from './DungeonMysteryResult';
 
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;
   realGains?: ResourceOperation[];
+  mysteryResult?: MysteryPlayerView['result'];
   onConfirm?: () => void;
 }
 
 export function DungeonSettlement({
   settlement,
   realGains = [],
+  mysteryResult,
   onConfirm,
 }: DungeonSettlementProps) {
   const handleConfirm = () => {
@@ -98,6 +102,8 @@ export function DungeonSettlement({
       <p className="text-ink/80 leading-relaxed">
         {settlement?.ending_narrative || '探索已结束。'}
       </p>
+
+      {mysteryResult ? <DungeonMysteryResult result={mysteryResult} /> : null}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {keyResources.length > 0 ? (

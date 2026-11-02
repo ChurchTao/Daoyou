@@ -1,6 +1,7 @@
 export const DungeonFlowErrorCode = {
   NOT_FOUND: 'DUNGEON_NOT_FOUND',
   INVALID_STATE: 'DUNGEON_INVALID_STATE',
+  INVALID_ACTION: 'DUNGEON_INVALID_ACTION',
 } as const;
 
 export type DungeonFlowErrorCode =
@@ -10,7 +11,7 @@ export class DungeonFlowError extends Error {
   constructor(
     public code: DungeonFlowErrorCode,
     message: string,
-    public status: 404 | 409,
+    public status: 400 | 404 | 409,
   ) {
     super(message);
     this.name = 'DungeonFlowError';

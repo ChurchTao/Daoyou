@@ -29,6 +29,7 @@ const promptSources = [
   'breakthrough-story.md',
   'character-generation.md',
   'divine-fortune.md',
+  'dungeon-case.md',
   'dungeon-round.md',
   'dungeon-settlement.md',
   'fate-naming.md',

@@ -10,8 +10,18 @@ export interface NodeMarketConfig {
   seed_ratio?: Partial<Record<MarketLayer, number>>;
 }
 
+export interface DungeonScenarioConfig {
+  /** 可抽取的解谜剧本模板 id；配置后该节点走解谜模式。 */
+  templates: string[];
+  /** 场景基调，供案卷生成使用。 */
+  setting: string;
+  factions?: string[];
+  forbidden?: string[];
+}
+
 export interface DungeonMapConfig {
   difficulty: DungeonDifficultyTier;
+  scenario?: DungeonScenarioConfig;
 }
 
 export interface ResolvedDungeonMapConfig {

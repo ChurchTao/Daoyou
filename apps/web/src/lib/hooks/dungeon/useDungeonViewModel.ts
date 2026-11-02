@@ -8,6 +8,11 @@ import type {
   DungeonSettlement,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
+import type {
+  MysteryAction,
+  MysteryAnswers,
+  MysteryPlayerView,
+} from '@daoyou/game-domain/dungeon/mystery';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import { useMemo } from 'react';
 import type { BattleCallbackData } from './types';
@@ -25,6 +30,7 @@ export type DungeonViewState =
       preSelectedNodeId: string | null;
     }
   | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
+  | { type: 'mystery'; state: DungeonState; view: MysteryPlayerView }
   | { type: 'battle_preparation'; state: DungeonState }
   | {
       type: 'in_battle';
@@ -37,6 +43,7 @@ export type DungeonViewState =
       type: 'settlement';
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
+      mystery?: MysteryPlayerView;
     };
 
 export type DungeonMutationResolution =
@@ -47,6 +54,7 @@ export type DungeonMutationResolution =
       type: 'settlement';
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
+      state?: DungeonState;
     }
   | { type: 'clear' };
 
@@ -70,6 +78,7 @@ export function resolveDungeonMutationResult(
       type: 'settlement',
       settlement: data.settlement,
       realGains: data.realGains,
+      state: data.state,
     };
   }
   if (data.state) return { type: 'state', state: data.state };
@@ -102,6 +111,8 @@ export function useDungeonViewModel(
     continueLooting,
     escapeLooting,
     recoverDungeon,
+    mysteryAct,
+    mysteryDeduce,
     processing,
   } = useDungeonActions(refresh, state);
 
@@ -163,6 +174,7 @@ export function useDungeonViewModel(
         type: 'settlement',
         settlement: state.settlement,
         realGains: state.realGains,
+        mystery: state.mysteryView,
       };
     }
 
@@ -173,6 +185,10 @@ export function useDungeonViewModel(
 
     if (state?.status === 'RECOVERABLE_ERROR') {
       return { type: 'recoverable_error', state };
+    }
+
+    if (state?.mysteryView && state.status === 'EXPLORING') {
+      return { type: 'mystery', state, view: state.mysteryView };
     }
 
     // 探索中
@@ -255,19 +271,36 @@ export function useDungeonViewModel(
     if (resolution.type === 'state') {
       setState(resolution.state);
     } else if (resolution.type === 'settlement') {
-      setState((prev) =>
-        prev
+      setState((prev) => {
+        const base = resolution.state ?? prev;
+        return base
           ? {
-              ...prev,
+              ...base,
               isFinished: true,
               settlement: resolution.settlement,
               realGains: resolution.realGains,
             }
-          : null,
-      );
+          : null;
+      });
     } else if (resolution.type === 'clear') {
       setState(null);
     }
+  };
+
+  const handleMysteryAct = async (action: MysteryAction) => {
+    if (!state?.runId || !state.mysteryView) return;
+    const data = await mysteryAct(state.runId, state.mysteryView.turn, action);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+  };
+
+  const handleMysteryDeduce = async (answers: MysteryAnswers) => {
+    if (!state?.runId) return;
+    const data = await mysteryDeduce(state.runId, answers);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   /**
@@ -327,6 +360,8 @@ export function useDungeonViewModel(
       escapeLooting: handleEscapeLooting,
       recoverDungeon: handleRecoverDungeon,
       completeBattle: handleBattleComplete,
+      mysteryAct: handleMysteryAct,
+      mysteryDeduce: handleMysteryDeduce,
     },
   };
 }

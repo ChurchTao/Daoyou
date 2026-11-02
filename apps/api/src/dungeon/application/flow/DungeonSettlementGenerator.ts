@@ -3,6 +3,7 @@ import { renderPrompt } from '@server/lib/prompts/index.js';
 import { generateAiObject } from '@server/utils/aiClient.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
+import { mysteryEndingContext } from '../mystery/mysteryState.js';
 import type { DungeonState } from './types.js';
 
 /** LLM supplies ending prose/rating; flow owns deterministic rewards and commits. */
@@ -11,11 +12,15 @@ export async function generateDungeonEnding(
   endDisposition: DungeonEndDisposition,
 ) {
   const prompt = renderPrompt('dungeon-settlement', {
-    userContextJson: stableCompactStringify({
-      history: state.history,
-      endDisposition,
-      rewards: state.v6Rewards,
-    }),
+    userContextJson: stableCompactStringify(
+      state.mystery
+        ? { ...mysteryEndingContext(state.mystery), endDisposition }
+        : {
+            history: state.history,
+            endDisposition,
+            rewards: state.v6Rewards,
+          },
+    ),
   });
   const ending = await generateAiObject({
     system: prompt.system,

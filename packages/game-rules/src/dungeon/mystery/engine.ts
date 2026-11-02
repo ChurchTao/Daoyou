@@ -1,0 +1,295 @@
+import type {
+  MysteryAction,
+  MysteryCaseFile,
+  MysteryCondition,
+  MysteryEffect,
+  MysteryLogEntry,
+  MysteryRunState,
+} from '@daoyou/game-domain/dungeon/mystery';
+
+const LOG_LIMIT = 80;
+
+/** 条件求值只读取会单调增长的事实，保证可解性推演与运行时一致。 */
+export interface MysteryFacts {
+  clues: ReadonlySet<string> | readonly string[];
+  items: ReadonlySet<string> | readonly string[];
+  flags: ReadonlySet<string> | readonly string[];
+  visited: ReadonlySet<string> | readonly string[];
+}
+
+function has(values: ReadonlySet<string> | readonly string[], id: string) {
+  return 'has' in values ? values.has(id) : values.includes(id);
+}
+
+export function evaluateMysteryCondition(
+  condition: MysteryCondition | undefined,
+  facts: MysteryFacts,
+): boolean {
+  if (!condition) return true;
+  if ('has_clue' in condition) return has(facts.clues, condition.has_clue);
+  if ('has_item' in condition) return has(facts.items, condition.has_item);
+  if ('flag' in condition) return has(facts.flags, condition.flag);
+  if ('visited' in condition) return has(facts.visited, condition.visited);
+  if ('all' in condition)
+    return condition.all.every((c) => evaluateMysteryCondition(c, facts));
+  return condition.any.some((c) => evaluateMysteryCondition(c, facts));
+}
+
+/** 房间连通按无向图处理：任一侧声明出口即可往返。 */
+export function mysteryNeighbors(caseFile: MysteryCaseFile, roomId: string) {
+  const room = caseFile.rooms.find((r) => r.id === roomId);
+  const ids = new Set(room?.exits ?? []);
+  for (const other of caseFile.rooms) {
+    if (other.exits.includes(roomId)) ids.add(other.id);
+  }
+  ids.delete(roomId);
+  return caseFile.rooms.filter((r) => ids.has(r.id));
+}
+
+export function createMysteryRun(
+  caseFile: MysteryCaseFile,
+  actionBudget: number,
+): MysteryRunState {
+  const start = caseFile.rooms.find((r) => r.id === caseFile.startRoomId);
+  return {
+    turn: 0,
+    actionBudget,
+    actionsLeft: actionBudget,
+    location: caseFile.startRoomId,
+    visited: [caseFile.startRoomId],
+    searched: [],
+    clues: [],
+    items: caseFile.items.filter((i) => i.initial).map((i) => i.id),
+    flags: [],
+    talkedTo: [],
+    firedReactions: [],
+    firedInteractions: [],
+    log: [
+      { turn: 0, kind: 'scene', text: caseFile.brief.opening },
+      ...(start ? [{ turn: 0, kind: 'scene' as const, text: start.description }] : []),
+    ],
+  };
+}
+
+export type MysteryActionResult =
+  | { ok: true; run: MysteryRunState; newClues: string[] }
+  | { ok: false; error: string };
+
+function cloneRun(run: MysteryRunState): MysteryRunState {
+  return {
+    ...run,
+    visited: [...run.visited],
+    searched: [...run.searched],
+    clues: [...run.clues],
+    items: [...run.items],
+    flags: [...run.flags],
+    talkedTo: [...run.talkedTo],
+    firedReactions: [...run.firedReactions],
+    firedInteractions: [...run.firedInteractions],
+    log: [...run.log],
+  };
+}
+
+class RunWriter {
+  readonly newClues: string[] = [];
+  constructor(
+    readonly caseFile: MysteryCaseFile,
+    readonly run: MysteryRunState,
+  ) {}
+
+  log(entry: Omit<MysteryLogEntry, 'turn'>) {
+    this.run.log.push({ turn: this.run.turn, ...entry });
+  }
+
+  revealClue(clueId: string) {
+    if (this.run.clues.includes(clueId)) return;
+    const clue = this.caseFile.clues.find((c) => c.id === clueId);
+    if (!clue) return;
+    this.run.clues.push(clueId);
+    this.newClues.push(clueId);
+    this.log({ kind: 'clue', text: `${clue.name}：${clue.text}` });
+  }
+
+  grantItem(itemId: string) {
+    if (this.run.items.includes(itemId)) return;
+    const item = this.caseFile.items.find((i) => i.id === itemId);
+    if (!item) return;
+    this.run.items.push(itemId);
+    this.log({ kind: 'item', text: `${item.name}：${item.text}` });
+  }
+
+  apply(effects: readonly MysteryEffect[]) {
+    for (const effect of effects) {
+      switch (effect.kind) {
+        case 'reveal_clue':
+          this.revealClue(effect.clueId);
+          break;
+        case 'grant_item':
+          this.grantItem(effect.itemId);
+          break;
+        case 'consume_item':
+          this.run.items = this.run.items.filter((id) => id !== effect.itemId);
+          break;
+        case 'set_flag':
+          if (!this.run.flags.includes(effect.flag))
+            this.run.flags.push(effect.flag);
+          break;
+      }
+    }
+  }
+}
+
+function spend(run: MysteryRunState, amount: number) {
+  run.actionsLeft = Math.max(0, run.actionsLeft - amount);
+}
+
+/** 执行一个调查动作。只改变运行态，不涉及任何真实资源。 */
+export function applyMysteryAction(
+  caseFile: MysteryCaseFile,
+  current: MysteryRunState,
+  action: MysteryAction,
+): MysteryActionResult {
+  if (current.actionsLeft <= 0) {
+    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+  }
+  const run = cloneRun(current);
+  run.turn += 1;
+  const w = new RunWriter(caseFile, run);
+
+  switch (action.type) {
+    case 'move': {
+      const target = mysteryNeighbors(caseFile, run.location).find(
+        (r) => r.id === action.roomId,
+      );
+      if (!target) return { ok: false, error: '此处无法直接前往该地点' };
+      if (!evaluateMysteryCondition(target.requires, run)) {
+        return { ok: false, error: target.lockedText ?? '去路被阻，暂时无法通过' };
+      }
+      spend(run, 1);
+      run.location = target.id;
+      const first = !run.visited.includes(target.id);
+      if (first) run.visited.push(target.id);
+      w.log({ kind: 'scene', text: first ? target.description : target.brief });
+      break;
+    }
+    case 'search': {
+      const object = caseFile.objects.find(
+        (o) => o.id === action.objectId && o.roomId === run.location,
+      );
+      if (!object) return { ok: false, error: '此处没有这件东西' };
+      const before = run.clues.length + run.items.length;
+      if (!run.searched.includes(object.id)) {
+        spend(run, 1);
+        run.searched.push(object.id);
+      }
+      w.log({ kind: 'detail', text: object.detail });
+      for (const clue of caseFile.clues) {
+        if (
+          clue.foundAt?.objectId === object.id &&
+          evaluateMysteryCondition(clue.foundAt.requires, run)
+        )
+          w.revealClue(clue.id);
+      }
+      for (const item of caseFile.items) {
+        if (
+          item.foundAt?.objectId === object.id &&
+          !run.firedInteractions.includes(`found:${item.id}`) &&
+          evaluateMysteryCondition(item.foundAt.requires, run)
+        ) {
+          run.firedInteractions.push(`found:${item.id}`);
+          w.grantItem(item.id);
+        }
+      }
+      if (run.clues.length + run.items.length === before && current.searched.includes(object.id)) {
+        w.log({ kind: 'system', text: '再看一遍，并无新的发现。' });
+      }
+      break;
+    }
+    case 'use': {
+      if (!run.items.includes(action.itemId))
+        return { ok: false, error: '你身上没有这件东西' };
+      const targetHere =
+        caseFile.objects.some(
+          (o) => o.id === action.targetId && o.roomId === run.location,
+        ) ||
+        caseFile.npcs.some(
+          (n) => n.id === action.targetId && n.roomId === run.location,
+        );
+      if (!targetHere) return { ok: false, error: '目标不在此处' };
+      spend(run, 1);
+      const interaction = caseFile.interactions.find(
+        (i) =>
+          i.itemId === action.itemId &&
+          i.targetId === action.targetId &&
+          !run.firedInteractions.includes(i.id) &&
+          evaluateMysteryCondition(i.requires, run),
+      );
+      if (!interaction) {
+        w.log({ kind: 'system', text: '试了试，毫无反应。' });
+        break;
+      }
+      run.firedInteractions.push(interaction.id);
+      w.log({ kind: 'detail', text: interaction.text });
+      w.apply(interaction.effects);
+      break;
+    }
+    case 'talk': {
+      const npc = caseFile.npcs.find(
+        (n) => n.id === action.npcId && n.roomId === run.location,
+      );
+      if (!npc) return { ok: false, error: '此人不在这里' };
+      spend(run, 1);
+      const first = !run.talkedTo.includes(npc.id);
+      if (first) run.talkedTo.push(npc.id);
+      const secrets = npc.secrets.filter(
+        (s) =>
+          !run.clues.includes(s.clueId) &&
+          evaluateMysteryCondition(s.requires, run),
+      );
+      if (first || secrets.length === 0) {
+        w.log({
+          kind: 'speech',
+          speaker: npc.name,
+          text: first ? npc.greeting : npc.idleLine,
+        });
+      }
+      for (const secret of secrets) {
+        w.log({ kind: 'speech', speaker: npc.name, text: secret.line });
+        w.revealClue(secret.clueId);
+      }
+      break;
+    }
+    case 'present': {
+      const npc = caseFile.npcs.find(
+        (n) => n.id === action.npcId && n.roomId === run.location,
+      );
+      if (!npc) return { ok: false, error: '此人不在这里' };
+      if (
+        !run.clues.includes(action.evidenceId) &&
+        !run.items.includes(action.evidenceId)
+      )
+        return { ok: false, error: '你并未掌握这件证据' };
+      spend(run, 1);
+      if (!run.talkedTo.includes(npc.id)) run.talkedTo.push(npc.id);
+      const reaction = npc.reactions.find(
+        (r) =>
+          r.evidenceId === action.evidenceId &&
+          !run.firedReactions.includes(r.id),
+      );
+      if (!reaction) {
+        w.log({ kind: 'speech', speaker: npc.name, text: npc.deflectLine });
+        break;
+      }
+      run.firedReactions.push(reaction.id);
+      w.log({ kind: 'speech', speaker: npc.name, text: reaction.line });
+      w.apply(reaction.effects);
+      break;
+    }
+  }
+
+  if (run.actionsLeft === 0) {
+    w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
+  }
+  run.log = run.log.slice(-LOG_LIMIT);
+  return { ok: true, run, newClues: w.newClues };
+}

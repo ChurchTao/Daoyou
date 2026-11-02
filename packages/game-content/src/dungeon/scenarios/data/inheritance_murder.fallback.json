@@ -1,0 +1,309 @@
+{
+  "templateId": "inheritance_murder",
+  "title": "瀑后遗府",
+  "truth": "洞府主人玄微子并非寿尽坐化。三年前，他的大弟子韩沧觊觎遗府传承，在师尊炼丹时往丹炉中掺入断魂香，玄微子在静坐中气脉断绝。韩沧当时未能破开师尊留下的血脉禁制，只得离山。如今他化名散修韩老三，谎称亡兄是玄微子的二弟子，雇你前来破禁，想坐收传承。随行的少女苏晚是玄微子的孙女，身上的玉佩正是开启禁制的信物，遗府理应归她。",
+  "brief": {
+    "identity": "你是一名游历至太岳山的修士，受散修韩老三重金所托，前来瀑布后的古修士洞府。",
+    "goal": "替韩老三取回他“亡兄”留在洞府中的遗物，并查明洞府主人真正的死因。",
+    "opening": "瀑布砸在青石上，水雾扑面而来。你拨开垂藤，洞口禁制的光幕已经残破得只剩几缕游丝。韩老三说他要先进去守着石室，叮嘱你小心机关；另一位自称洞府主人后人的少女苏晚，昨夜比你们更早进了洞，至今没有出来。",
+    "relations": [
+      {
+        "npcId": "han",
+        "text": "雇主，散修，自称亡兄曾是洞府主人的二弟子。"
+      },
+      {
+        "npcId": "su",
+        "text": "自称洞府主人后人的少女，与韩老三素不相识。"
+      }
+    ]
+  },
+  "startRoomId": "waterfall",
+  "rooms": [
+    {
+      "id": "waterfall",
+      "name": "瀑后洞口",
+      "description": "水声在身后闷闷作响，洞口石壁湿滑，长满青苔。残破的禁制光幕贴着岩壁游走，像将熄的灯芯。往里是一条向下的石阶，通往一间宽阔的石室。",
+      "brief": "水雾弥漫的洞口，石阶向下通往石室。",
+      "exits": ["stone_hall"]
+    },
+    {
+      "id": "stone_hall",
+      "name": "石室",
+      "description": "石室穹顶开着一线天光。正中蒲团上端坐着一具遗骸，衣袍早已朽成灰絮，双手仍结着法印。左侧门洞飘出淡淡药味，右侧一道窄门通往更深处。韩老三正背着手站在遗骸前。",
+      "brief": "遗骸端坐的石室，左通丹房，右通静室。",
+      "exits": ["alchemy", "quiet_room"]
+    },
+    {
+      "id": "alchemy",
+      "name": "丹房",
+      "description": "丹房里立着一尊半人高的青铜丹炉，炉口积着厚厚的灰。靠墙一排药架，瓶罐东倒西歪。空气里除了陈年药味，还有一丝说不清的甜腥。",
+      "brief": "青铜丹炉与药架，空气里有股甜腥。",
+      "exits": []
+    },
+    {
+      "id": "quiet_room",
+      "name": "静室",
+      "description": "静室狭小，一面墙是书架，另一面是一道刻满纹样的石门，石门下方有一枚铜钥形状的凹槽。少女苏晚盘膝坐在石门前，听见脚步声，手按上了腰间的剑。",
+      "brief": "书架与禁制石门，苏晚守在门前。",
+      "exits": ["tunnel"]
+    },
+    {
+      "id": "tunnel",
+      "name": "暗道",
+      "description": "石门后不是想象中的宝库，而是一条低矮的暗道，尽头直通山外。地上有新鲜的脚印，角落里塞着一个鼓鼓的行囊。",
+      "brief": "通往山外的暗道，角落有个行囊。",
+      "exits": [],
+      "requires": {
+        "has_item": "bronze_key"
+      },
+      "lockedText": "石门紧闭，下方的凹槽像在等一枚铜钥。"
+    }
+  ],
+  "objects": [
+    {
+      "id": "moss_wall",
+      "roomId": "waterfall",
+      "name": "洞口石壁",
+      "detail": "青苔被什么东西刮掉了一大片，露出几道深深的爪痕，痕迹还很新，边缘的石屑都没被水冲净。"
+    },
+    {
+      "id": "remains",
+      "roomId": "stone_hall",
+      "name": "坐化遗骸",
+      "detail": "遗骸骨色青黑，不似寿尽之人。你小心掰开结印的手指，右手食指骨上有一道刻痕，像是临死前用指甲硬划出来的；腰间朽烂的布袋里掉出一枚铜钥。"
+    },
+    {
+      "id": "furnace",
+      "roomId": "alchemy",
+      "name": "青铜丹炉",
+      "detail": "炉灰板结成块，表面看不出什么。炉膛很深，徒手够不到底。"
+    },
+    {
+      "id": "shelf",
+      "roomId": "alchemy",
+      "name": "药架",
+      "detail": "瓶罐里多是寻常的回气丹、辟谷丹，有几瓶摔碎在地。架子最下层横着一把拨火用的铁钳。"
+    },
+    {
+      "id": "bookcase",
+      "roomId": "quiet_room",
+      "name": "书架",
+      "detail": "书架上多是丹经和游记。一本蓝皮册子夹在中间，封面写着“门下名录”。"
+    },
+    {
+      "id": "stone_door",
+      "roomId": "quiet_room",
+      "name": "禁制石门",
+      "detail": "石门正中刻着一朵五瓣云纹，纹路深处隐隐流转着灵光，形状像是要与什么东西相合。"
+    },
+    {
+      "id": "escape_pack",
+      "roomId": "tunnel",
+      "name": "行囊",
+      "detail": "行囊用油布裹着，打开后是几件换洗衣物、一罐易容药膏，还有一块被磨去名字的令牌。"
+    }
+  ],
+  "clues": [
+    {
+      "id": "claw_marks",
+      "name": "新鲜爪痕",
+      "text": "洞口石壁上有几道很新的兽类爪痕。",
+      "key": false,
+      "supports": [],
+      "foundAt": {
+        "objectId": "moss_wall"
+      }
+    },
+    {
+      "id": "finger_mark",
+      "name": "指骨刻痕",
+      "text": "遗骸右手食指骨上划着半个字，看得出是“韩”字的左半边。遗骸骨色青黑，不似寿尽。",
+      "key": true,
+      "supports": ["who"],
+      "foundAt": {
+        "objectId": "remains"
+      }
+    },
+    {
+      "id": "spilled_pills",
+      "name": "摔碎的药瓶",
+      "text": "药架下摔碎了几瓶回气丹，像是有人翻找过。",
+      "key": false,
+      "supports": [],
+      "foundAt": {
+        "objectId": "shelf"
+      }
+    },
+    {
+      "id": "poison_ash",
+      "name": "炉底残香",
+      "text": "丹炉底部的灰里混着暗红色的香渣，凑近闻有股甜腥，正是空气里那股味道的来源——一种能让人在静坐中气脉断绝的毒香。",
+      "key": true,
+      "supports": ["how"]
+    },
+    {
+      "id": "roster_page",
+      "name": "门下名录",
+      "text": "名录只记了两名弟子：大弟子韩沧，二弟子早夭，未留姓名。韩沧一栏下注着“师尊坐化前三日离山”。",
+      "key": true,
+      "supports": ["who"],
+      "foundAt": {
+        "objectId": "bookcase"
+      }
+    },
+    {
+      "id": "han_claim",
+      "name": "韩老三的说法",
+      "text": "韩老三说，他亡兄是玄微子的二弟子，三十年前死于兽潮，他自己从没来过这里。",
+      "key": false,
+      "supports": []
+    },
+    {
+      "id": "seal_pattern",
+      "name": "五瓣云纹",
+      "text": "禁制石门上刻着五瓣云纹，纹路像是在等待某件信物与之相合。",
+      "key": true,
+      "supports": ["heir"],
+      "foundAt": {
+        "objectId": "stone_door"
+      }
+    },
+    {
+      "id": "pendant_match",
+      "name": "云纹玉佩",
+      "text": "苏晚的玉佩上刻着同样的五瓣云纹，是祖父玄微子留给她的信物。",
+      "key": true,
+      "supports": ["heir"]
+    },
+    {
+      "id": "han_pack",
+      "name": "暗道行囊",
+      "text": "暗道里藏着新近放下的行囊，内有易容药膏和一块被磨去名字的令牌，令牌背面残留着与名录上相同的门派印记。",
+      "key": true,
+      "supports": ["who"],
+      "foundAt": {
+        "objectId": "escape_pack"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "bronze_key",
+      "name": "铜钥",
+      "text": "从遗骸腰间布袋里掉出的铜钥，形状与静室石门下的凹槽相仿。",
+      "foundAt": {
+        "objectId": "remains"
+      }
+    },
+    {
+      "id": "fire_tongs",
+      "name": "拨火钳",
+      "text": "丹房药架下的铁钳，足够伸进丹炉深处。",
+      "foundAt": {
+        "objectId": "shelf"
+      }
+    }
+  ],
+  "npcs": [
+    {
+      "id": "han",
+      "name": "韩老三",
+      "title": "散修",
+      "role": "culprit",
+      "roomId": "stone_hall",
+      "greeting": "“道友来了。”韩老三拱拱手，目光却一直落在遗骸上，“我那苦命的兄长当年就在这位前辈门下。东西取到了，酬劳一分不少。”",
+      "idleLine": "“前辈的东西多半在里头那道石门后，道友多费心。”",
+      "deflectLine": "韩老三瞥了一眼，笑道：“这东西与我兄长的遗物无关吧？道友莫要分心。”",
+      "secrets": [
+        {
+          "clueId": "han_claim",
+          "requires": {
+            "visited": "alchemy"
+          },
+          "line": "“丹房？我没进去过。”韩老三摆摆手，“我兄长是二弟子，三十年前死在兽潮里，我这辈子头一回来这地方。”"
+        }
+      ],
+      "reactions": [
+        {
+          "id": "han_roster",
+          "evidenceId": "roster_page",
+          "line": "韩老三盯着名录，嘴角的笑僵住了。“二弟子早夭……这、这名录多半记错了。”他的手不自觉地按向腰间，又飞快地松开。",
+          "effects": [
+            {
+              "kind": "set_flag",
+              "flag": "han_exposed"
+            }
+          ],
+          "exposesLie": true
+        },
+        {
+          "id": "han_pack_reaction",
+          "evidenceId": "han_pack",
+          "line": "“哪来的行囊？想必是别的探宝人留下的。”韩老三说得很快，却不再看你的眼睛。",
+          "effects": [],
+          "exposesLie": false
+        }
+      ]
+    },
+    {
+      "id": "su",
+      "name": "苏晚",
+      "title": "少女修士",
+      "role": "heir",
+      "roomId": "quiet_room",
+      "greeting": "苏晚没有起身，只冷冷地看着你：“你是跟那个姓韩的一起来的？这道门不是你们能碰的，请回吧。”",
+      "idleLine": "苏晚抿着嘴不说话，手始终没有离开剑柄。",
+      "deflectLine": "苏晚看了一眼，摇摇头：“这与我何干？”",
+      "secrets": [],
+      "reactions": [
+        {
+          "id": "su_seal",
+          "evidenceId": "seal_pattern",
+          "line": "苏晚沉默良久，从衣领里拉出一枚玉佩，上面的云纹与石门一模一样。“这是祖父留给我的。他说过，这道门只认这块玉。”她松开了剑柄。",
+          "effects": [
+            {
+              "kind": "reveal_clue",
+              "clueId": "pendant_match"
+            },
+            {
+              "kind": "set_flag",
+              "flag": "heir_trusted"
+            }
+          ],
+          "exposesLie": false
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "id": "tongs_furnace",
+      "itemId": "fire_tongs",
+      "targetId": "furnace",
+      "text": "你用铁钳探进炉膛，搅开板结的炉灰。底部翻出一层暗红色的香渣，那股甜腥味一下子浓烈起来，呛得你屏住了呼吸。",
+      "effects": [
+        {
+          "kind": "reveal_clue",
+          "clueId": "poison_ash"
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "who",
+      "answer": "han",
+      "explanation": "遗骸指骨上的半个“韩”字、名录中“大弟子韩沧，师尊坐化前三日离山”的记载，以及暗道里带门派印记的易容行囊，都指向化名韩老三的韩沧。"
+    },
+    {
+      "id": "how",
+      "answer": "poison_ash",
+      "explanation": "丹炉底部残留的断魂香正是空气中甜腥味的来源，玄微子在静坐炼丹时吸入毒香、气脉断绝，骨色因此青黑。"
+    },
+    {
+      "id": "heir",
+      "answer": "su",
+      "explanation": "苏晚的玉佩与禁制石门的五瓣云纹相合，她是玄微子的孙女，遗府理应归她。"
+    }
+  ]
+}

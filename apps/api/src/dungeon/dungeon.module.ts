@@ -17,6 +17,7 @@ import { DungeonFlowService } from './application/flow/DungeonFlowService.js';
 import { generateDungeonRound } from './application/flow/DungeonRoundGenerator.js';
 import { DungeonRunStore } from './application/flow/DungeonRunStore.js';
 import { generateDungeonEnding } from './application/flow/DungeonSettlementGenerator.js';
+import { generateMysteryCase } from './application/mystery/MysteryCaseGenerator.js';
 import { DungeonBattleController } from './dungeon-battle.controller.js';
 import { DungeonController } from './dungeon.controller.js';
 import { DungeonService } from './dungeon.service.js';
@@ -46,6 +47,7 @@ import { DungeonService } from './dungeon.service.js';
           runs,
           resources,
           lock,
+          generateMysteryCase,
         ),
       inject: [DRIZZLE_DATABASE, DungeonRunStore, ResourceEngine, REDIS_LOCK],
     },

@@ -12,6 +12,7 @@ export type LlmSceneId =
   | 'character-generation'
   | 'divine-fortune'
   | 'daily-divination'
+  | 'dungeon-case'
   | 'dungeon-round'
   | 'dungeon-settlement'
   | 'fate-naming'

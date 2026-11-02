@@ -23,6 +23,7 @@
     "./combat/auto": "./dist/combatAuto.js",
     "./combat/breakthrough": "./dist/combatV6Breakthrough.js",
     "./combat/dungeon": "./dist/combatV6Dungeon.js",
+    "./dungeon/mystery": "./dist/dungeonMystery.js",
     "./combat/ranking": "./dist/combatV6Ranking.js",
     "./combat/replays": "./dist/combatV6Replay.js",
     "./combat/runtime": "./dist/combatV6Runtime.js",
