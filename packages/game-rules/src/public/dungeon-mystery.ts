@@ -22,3 +22,16 @@ export {
   MYSTERY_TEXT_PLACEHOLDER,
 } from '../dungeon/mystery/skeleton.js';
 export type { MysteryCaseSkeleton } from '../dungeon/mystery/skeleton.js';
+export {
+  decideMysteryRestock,
+  MYSTERY_LIBRARY_POLICY,
+  needsMysteryRestock,
+  pickMysteryScenario,
+  shouldRetireMysteryScenario,
+} from '../dungeon/mystery/library.js';
+export type {
+  LibraryPlay,
+  LibraryScenario,
+  RestockDecision,
+  ScenarioPick,
+} from '../dungeon/mystery/library.js';

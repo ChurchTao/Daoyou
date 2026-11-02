@@ -341,14 +341,29 @@ export interface MysteryResult {
 /** 服务端权威记录，挂在 DungeonState.mystery 上，绝不直接下发。 */
 export interface MysteryRecord {
   templateId: string;
-  caseSource: 'generated' | 'fallback';
+  /** library：取自剧本库；generated：冷启动实时生成；fallback：手写保底。 */
+  caseSource: 'library' | 'generated' | 'fallback';
   caseFile: MysteryCaseFile;
   run: MysteryRunState;
   result?: MysteryResult;
+  /** 对应剧本库中的剧本；保底案卷未入库时为空。 */
+  scenarioId?: string;
+  /** 冷启动生成的案卷需要在开局提交时一并入库。 */
+  insertScenario?: boolean;
+  /** 已结案过的本再玩一次：仅用于提示与统计，结算与首次相同。 */
+  replay?: boolean;
+  /** 首次进入此本：用于累计剧本的全服游玩人数。 */
+  firstPlay?: boolean;
+  /** 开局提交后需要为该槽投递的补货请求。 */
+  restock?: { reason: 'exhausted' | 'low_stock' | 'cold_start' };
+  /** 结算统计已写入剧本库，防止重试时重复累计。 */
+  statsRecorded?: boolean;
 }
 
 export interface MysteryPlayerView {
   title: string;
+  /** 此案已经历过（结案过）。 */
+  replay: boolean;
   templateName: string;
   brief: MysteryCaseFile['brief'] & {
     relations: Array<{ npcId: string; name: string; text: string }>;

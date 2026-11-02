@@ -101,6 +101,12 @@ export function DungeonMystery({
         </div>
       </div>
 
+      {view.replay ? (
+        <p className="text-ink-secondary text-sm">
+          此案你已经历过，人物与线索都与上次相同。
+        </p>
+      ) : null}
+
       <InkCard className="space-y-3 p-5">
         <div className="text-ink-secondary text-sm">{view.location.name}</div>
         {current.map((entry, index) => (

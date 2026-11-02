@@ -13,12 +13,8 @@ import {
 import type { LlmSceneId } from '@server/lib/llm/types.js';
 import { renderPrompt } from '@server/lib/prompts/index.js';
 import { generateAiObject } from '@server/utils/aiClient.js';
-import {
-  stableCompactStringify,
-  truncateText,
-} from '@server/utils/llmPayload.js';
+import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
-import type { PlayerInfo } from '../flow/types.js';
 import {
   cleanMysteryText as clip,
   reviewMysteryCase,
@@ -404,7 +400,16 @@ export interface MysteryCaseRequest {
     'name' | 'realm_requirement' | 'tags' | 'description'
   >;
   setting: { setting: string; factions?: string[]; forbidden?: string[] };
-  player: Pick<PlayerInfo, 'realm' | 'gender' | 'personality' | 'background'>;
+}
+
+/** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
+export const MYSTERY_GENERATOR_VERSION = 1;
+
+export interface GeneratedMysteryCase {
+  caseFile: MysteryCaseFile;
+  source: 'generated' | 'fallback';
+  /** 审校修正的问题数，仅生成成功时有意义。 */
+  reviewIssueCount: number;
 }
 
 /**
@@ -413,8 +418,10 @@ export interface MysteryCaseRequest {
  */
 export async function generateMysteryCase(
   request: MysteryCaseRequest,
-): Promise<{ caseFile: MysteryCaseFile; source: 'generated' | 'fallback' }> {
-  const { template, node, setting, player } = request;
+): Promise<GeneratedMysteryCase> {
+  // 剧本全服共享，不带任何玩家个人信息，角色本只用第二人称“你”。
+  const { template, node, setting } = request;
+  let reviewIssueCount = 0;
   try {
     const skeleton = buildMysterySkeleton(template, request.seed);
     const draftOutline = () =>
@@ -440,12 +447,6 @@ export async function generateMysteryCase(
             tags: node.tags,
             description: node.description,
             ...setting,
-          },
-          player: {
-            realm: player.realm,
-            gender: player.gender,
-            personality: truncateText(player.personality, 20),
-            background: truncateText(player.background, 80),
           },
           structure: {
             rooms: skeleton.caseFile.rooms.map((r) => ({
@@ -513,6 +514,7 @@ export async function generateMysteryCase(
         return { caseFile: reviewed, issues: [] };
       });
       reviewed = result.caseFile;
+      reviewIssueCount += result.issues.length;
       if (result.issues.length === 0) break;
       console.info(`[DungeonMystery] 第 ${round} 轮审校修正:`, result.issues);
     }
@@ -523,12 +525,12 @@ export async function generateMysteryCase(
           .slice(0, 8)
           .map((i) => `${i.path.join('.')}: ${i.message}`);
     if (parsed.success && issues.length === 0)
-      return { caseFile: parsed.data, source: 'generated' };
+      return { caseFile: parsed.data, source: 'generated', reviewIssueCount };
     console.warn('[DungeonMystery] 案卷组装未通过校验，改用保底案卷:', issues);
   } catch (error) {
     console.warn('[DungeonMystery] 案卷生成失败，改用保底案卷:', error);
   }
   const fallback = getMysteryFallbackCase(template.id);
   if (!fallback) throw new Error('剧本缺少保底案卷');
-  return { caseFile: fallback, source: 'fallback' };
+  return { caseFile: fallback, source: 'fallback', reviewIssueCount: 0 };
 }

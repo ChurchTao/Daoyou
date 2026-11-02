@@ -33,6 +33,7 @@ export function projectMysteryView(
 
   return {
     title: caseFile.title,
+    replay: record.replay ?? false,
     templateName: template.name,
     brief: {
       ...caseFile.brief,

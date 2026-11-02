@@ -1,20 +1,28 @@
+import {
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  RealmType,
+  type RealmStage,
+} from '@daoyou/constants/realms';
+import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
+import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
+import type { Cultivator } from '@daoyou/game-domain/character';
+import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { DungeonEndDisposition } from '@daoyou/game-domain/dungeon';
-import { getRealmStageNaturalAttributeValue } from '@daoyou/game-rules/progression/attributes';
 import type {
   ResourceOperation,
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@daoyou/game-domain/resources';
-import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
-import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
-import { canChallengeDungeonRealm, resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
+import { getRealmStageNaturalAttributeValue } from '@daoyou/game-rules/progression/attributes';
 import {
   appendDungeonReward,
   dungeonRewardItemName,
 } from '@daoyou/game-rules/rewards/dungeon';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
-import { REALM_STAGE_VALUES, REALM_VALUES, RealmType, type RealmStage } from '@daoyou/constants/realms';
-import type { Cultivator } from '@daoyou/game-domain/character';
+import {
+  canChallengeDungeonRealm,
+  resolveDungeonMapConfig,
+} from '@daoyou/game-rules/world/dungeon';
 import { assertCombatV6MutationAllowed } from '@server/combat/mutation-policy.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
@@ -38,7 +46,11 @@ import type { RewardBlueprint } from '@server/dungeon/application/flow/reward/in
 import { RewardFactory } from '@server/dungeon/application/flow/reward/index.js';
 import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
 import { grantInventory } from '@server/inventory/operations.js';
-import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
+import type {
+  DbClient,
+  DbExecutor,
+  DbTransaction,
+} from '@server/lib/drizzle/db.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import {
@@ -54,16 +66,6 @@ import { randomUUID } from 'crypto';
 import type { generateDungeonRound } from './DungeonRoundGenerator.js';
 import type { generateDungeonEnding } from './DungeonSettlementGenerator.js';
 
-import {
-  DungeonOptionCost,
-  DungeonPendingAction,
-  DungeonRecoverAction,
-  DungeonRound,
-  DungeonSettlement,
-  DungeonState,
-} from '@server/dungeon/application/flow/types.js';
-import type { DungeonRunStore } from './DungeonRunStore.js';
-import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 import type {
   MysteryAction,
   MysteryAnswers,
@@ -73,10 +75,32 @@ import {
   applyMysteryAction,
   checkMysteryAnswers,
   createMysteryRun,
+  needsMysteryRestock,
+  pickMysteryScenario,
   scoreMysteryRun,
 } from '@daoyou/game-rules/dungeon/mystery';
+import {
+  DungeonOptionCost,
+  DungeonPendingAction,
+  DungeonRecoverAction,
+  DungeonRound,
+  DungeonSettlement,
+  DungeonState,
+} from '@server/dungeon/application/flow/types.js';
 import type { generateMysteryCase } from '../mystery/MysteryCaseGenerator.js';
 import { isKeyClue, requireMysteryTemplate } from '../mystery/mysteryState.js';
+import {
+  insertScenario,
+  loadScenarioCase,
+  readScenarioLibrary,
+  recordScenarioSettlement,
+  recordScenarioStart,
+  requestScenarioRestock,
+  scenarioTemplatesForNode,
+  wakeScenarioWorker,
+} from '../mystery/ScenarioLibrary.js';
+import type { DungeonRunStore } from './DungeonRunStore.js';
+import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 const FLOW_LOCK_TTL_SECONDS = 180;
 export { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
@@ -750,7 +774,11 @@ export class DungeonFlowService {
         state.currentOptions = roundData.interaction.options;
       }
       if (!options.deferPersistence) {
+        await this.database.transaction((tx) =>
+          this.persistMysteryStart(tx, state),
+        );
         await this.saveState(cultivatorId, state);
+        this.requestMysteryRestock(state);
       }
 
       if (!options.deferPersistence && qiActionInstanceId) {
@@ -787,6 +815,7 @@ export class DungeonFlowService {
               },
               tx,
             });
+            await this.persistMysteryStart(tx, state);
             await this.persistStateRecord(cultivatorId, state, undefined, tx);
             await QiService.commitReservation({
               actionInstanceId: qiActionInstanceId,
@@ -806,6 +835,7 @@ export class DungeonFlowService {
           },
           afterCommit: async () => {
             await this.runs.saveRedisState(cultivatorId, state);
+            this.requestMysteryRestock(state);
           },
         };
       }
@@ -1761,36 +1791,127 @@ export class DungeonFlowService {
       },
     };
   }
+  /**
+   * 解谜开局：从全服剧本库选本，不调用 LLM；库里一本都没有时才实时生成，
+   * 生成成功的案卷在开局提交时一并入库。需要补货时记下请求，提交后投递。
+   */
   private async initMystery(
     state: DungeonState,
     scenario: DungeonScenarioConfig,
   ) {
-    const templateId =
-      scenario.templates[(state.rewardSeed ?? 0) % scenario.templates.length];
-    if (!templateId) throw new Error('秘境剧本配置无效');
-    const template = requireMysteryTemplate(templateId);
-    const mapNode = this.getMapNode(state.mapNodeId);
-    const { caseFile, source } = await this.generateCase({
-      template,
-      // 与模板抽取错开，避免两者完全相关。
-      seed: ((state.rewardSeed ?? 0) ^ 0x9e3779b9) >>> 0,
-      node: {
-        name: mapNode.name,
-        realm_requirement: mapNode.realm_requirement,
-        tags: mapNode.tags,
-        description: mapNode.description,
-      },
-      setting: scenario,
-      player: state.playerInfo,
+    const templateIds = scenarioTemplatesForNode(state.mapNodeId);
+    if (templateIds.length === 0) throw new Error('秘境剧本配置无效');
+    const library = await readScenarioLibrary(
+      state.cultivatorId,
+      state.mapNodeId,
+      templateIds,
+      this.database,
+    );
+    let pick = pickMysteryScenario({
+      templateIds,
+      ...library,
+      random: Math.random,
     });
-    state.mystery = {
-      templateId,
-      caseSource: source,
-      caseFile,
-      run: createMysteryRun(caseFile, template.scale.action_budget),
-    };
+    const fromLibrary =
+      pick.kind === 'scenario'
+        ? await loadScenarioCase(pick.scenarioId, this.database)
+        : null;
+    if (pick.kind === 'scenario' && !fromLibrary)
+      pick = { kind: 'empty', templateId: pick.templateId };
+    const template = requireMysteryTemplate(pick.templateId);
+    const restock = needsMysteryRestock(pick)
+      ? {
+          reason:
+            pick.kind === 'empty'
+              ? ('cold_start' as const)
+              : pick.unplayedLeft === 0
+                ? ('exhausted' as const)
+                : ('low_stock' as const),
+        }
+      : undefined;
+
+    if (pick.kind === 'scenario' && fromLibrary) {
+      state.mystery = {
+        templateId: pick.templateId,
+        caseSource: 'library',
+        caseFile: fromLibrary,
+        run: createMysteryRun(fromLibrary, template.scale.action_budget),
+        scenarioId: pick.scenarioId,
+        replay: pick.replay,
+        firstPlay: pick.firstPlay,
+        ...(restock ? { restock } : {}),
+      };
+    } else {
+      const mapNode = this.getMapNode(state.mapNodeId);
+      const { caseFile, source } = await this.generateCase({
+        template,
+        seed: ((state.rewardSeed ?? 0) ^ 0x9e3779b9) >>> 0,
+        node: {
+          name: mapNode.name,
+          realm_requirement: mapNode.realm_requirement,
+          tags: mapNode.tags,
+          description: mapNode.description,
+        },
+        setting: scenario,
+      });
+      state.mystery = {
+        templateId: pick.templateId,
+        caseSource: source,
+        caseFile,
+        run: createMysteryRun(caseFile, template.scale.action_budget),
+        // 只有生成成功的案卷入库；保底案卷由清扫任务按节点入库。
+        ...(source === 'generated'
+          ? { scenarioId: randomUUID(), insertScenario: true, firstPlay: true }
+          : {}),
+        ...(restock ? { restock } : {}),
+      };
+    }
     state.maxRounds = 1;
-    state.history.push({ round: 1, scene: caseFile.brief.opening });
+    state.history.push({
+      round: 1,
+      scene: state.mystery.caseFile.brief.opening,
+    });
+  }
+
+  /** 开局提交：冷启动案卷入库，并写入游玩记录。须在保存运行态之前调用。 */
+  private async persistMysteryStart(q: DbExecutor, state: DungeonState) {
+    const mystery = state.mystery;
+    if (!mystery?.scenarioId) return;
+    if (mystery.insertScenario) {
+      await insertScenario(q, {
+        id: mystery.scenarioId,
+        mapNodeId: state.mapNodeId,
+        templateId: mystery.templateId,
+        caseFile: mystery.caseFile,
+        source: 'generated',
+      });
+      mystery.insertScenario = false;
+    }
+    await recordScenarioStart(q, {
+      cultivatorId: state.cultivatorId,
+      scenarioId: mystery.scenarioId,
+      mapNodeId: state.mapNodeId,
+      templateId: mystery.templateId,
+      firstPlay: mystery.firstPlay ?? false,
+    });
+  }
+
+  /** 开局提交后投递补货；被限流忽略或投递失败都不影响本局。 */
+  private requestMysteryRestock(state: DungeonState) {
+    const mystery = state.mystery;
+    if (!mystery?.restock) return;
+    void requestScenarioRestock({
+      mapNodeId: state.mapNodeId,
+      templateId: mystery.templateId,
+      reason: mystery.restock.reason,
+      requestedBy: state.cultivatorId,
+    })
+      .then((decision) =>
+        decision === 'enqueue' ? wakeScenarioWorker() : undefined,
+      )
+      .catch((error: unknown) =>
+        console.warn('[DungeonMystery] 补货投递失败:', error),
+      );
   }
 
   private requireMysteryState(
@@ -1829,7 +1950,12 @@ export class DungeonFlowService {
   /** 解谜调查动作：只改变运行态，获得关键线索时累计探索收益。 */
   async actMystery(
     cultivatorId: string,
-    input: { runId: string; actionId: string; turn: number; action: MysteryAction },
+    input: {
+      runId: string;
+      actionId: string;
+      turn: number;
+      action: MysteryAction;
+    },
     options: DungeonFlowOptions = {},
   ) {
     return this.withFlowLock(
@@ -2033,12 +2159,34 @@ export class DungeonFlowService {
     state.recoverableActions = undefined;
     state.activeBattleId = undefined;
 
-    return this.runs.archiveDungeon(
-      this.normalizeState(state),
-      settlement,
-      realGains,
-      options,
+    return this.recordMysterySettlement(state, options.tx).then(() =>
+      this.runs.archiveDungeon(
+        this.normalizeState(state),
+        settlement,
+        realGains,
+        options,
+      ),
     );
+  }
+
+  /**
+   * 结算写入剧本库统计，与运行态归档同一事务；标记随运行态一起提交，
+   * 重试时不会重复累计。结算本身与普通开局完全相同。
+   */
+  private async recordMysterySettlement(
+    state: DungeonState,
+    tx?: DbTransaction,
+  ) {
+    const mystery = state.mystery;
+    if (!mystery?.scenarioId || mystery.statsRecorded) return;
+    await recordScenarioSettlement(tx ?? this.database, {
+      cultivatorId: state.cultivatorId,
+      scenarioId: mystery.scenarioId,
+      completed: Boolean(mystery.result),
+      total: mystery.result?.total ?? null,
+      replay: mystery.replay ?? false,
+    });
+    mystery.statsRecorded = true;
   }
 
   /**

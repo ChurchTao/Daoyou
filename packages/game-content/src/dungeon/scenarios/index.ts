@@ -24,6 +24,22 @@ const FALLBACK_CASES: Record<string, MysteryCaseFile> = Object.fromEntries(
   }),
 );
 
+/** 手写保底案卷与场景绑定，只入库到与其场景相符的节点。 */
+const FALLBACK_NODES: Record<string, readonly string[]> = {
+  inheritance_murder: ['SAT_TN_01'],
+};
+
+export function listMysteryFallbackSeeds(): Array<{
+  templateId: string;
+  mapNodeId: string;
+}> {
+  return Object.entries(FALLBACK_NODES).flatMap(([templateId, nodes]) =>
+    FALLBACK_CASES[templateId]
+      ? nodes.map((mapNodeId) => ({ templateId, mapNodeId }))
+      : [],
+  );
+}
+
 export function getMysteryTemplate(
   id: string,
 ): MysteryScenarioTemplate | undefined {

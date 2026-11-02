@@ -17,6 +17,7 @@ import type {
   AutoStrategyBook,
 } from '@daoyou/game-domain/combat/auto';
 import type { CombatV6ReplayV1 } from '@daoyou/game-domain/combat/replay';
+import type { MysteryCaseFile } from '@daoyou/game-domain/dungeon/mystery';
 import type {
   ResourceChangeOperation,
   ResourceScopeKind,
@@ -1999,6 +2000,106 @@ export const dungeonRuns = pgTable(
       table.updatedAt,
     ),
     index('dungeon_runs_status_updated_idx').on(table.status, table.updatedAt),
+  ],
+);
+
+// 解谜副本全服剧本库：开局只从这里选本，案卷含真相，仅服务端读取。
+export const dungeonScenarios = pgTable(
+  'wanjiedaoyou_dungeon_scenarios',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    templateId: varchar('template_id', { length: 60 }).notNull(),
+    title: varchar('title', { length: 60 }).notNull(),
+    caseFile: jsonb('case_file').$type<MysteryCaseFile>().notNull(),
+    source: varchar('source', { length: 20 })
+      .$type<'generated' | 'seed'>()
+      .notNull(),
+    generatorVersion: integer('generator_version').notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<'active' | 'retired'>()
+      .notNull()
+      .default('active'),
+    reviewIssueCount: integer('review_issue_count').notNull().default(0),
+    generation: jsonb('generation').$type<Record<string, unknown>>(),
+    playCount: integer('play_count').notNull().default(0),
+    completionCount: integer('completion_count').notNull().default(0),
+    scoreSum: integer('score_sum').notNull().default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    retiredAt: timestamp('retired_at'),
+  },
+  (table) => [
+    index('dungeon_scenarios_slot_status_idx').on(
+      table.mapNodeId,
+      table.templateId,
+      table.status,
+    ),
+  ],
+);
+
+// 角色玩过哪些剧本；开局即写入，结案时更新是否看过真相与最好成绩。
+export const dungeonScenarioPlays = pgTable(
+  'wanjiedaoyou_dungeon_scenario_plays',
+  {
+    cultivatorId: uuid('cultivator_id')
+      .references(() => cultivators.id, { onDelete: 'cascade' })
+      .notNull(),
+    scenarioId: uuid('scenario_id')
+      .references(() => dungeonScenarios.id, { onDelete: 'cascade' })
+      .notNull(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    templateId: varchar('template_id', { length: 60 }).notNull(),
+    playCount: integer('play_count').notNull().default(1),
+    completed: boolean('completed').notNull().default(false),
+    bestTotal: integer('best_total'),
+    firstPlayedAt: timestamp('first_played_at').defaultNow().notNull(),
+    lastPlayedAt: timestamp('last_played_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.cultivatorId, table.scenarioId] }),
+    index('dungeon_scenario_plays_cultivator_node_idx').on(
+      table.cultivatorId,
+      table.mapNodeId,
+    ),
+  ],
+);
+
+// 剧本生成任务，表即队列；同一槽同时只允许一个待生成任务。
+export const dungeonScenarioJobs = pgTable(
+  'wanjiedaoyou_dungeon_scenario_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    mapNodeId: varchar('map_node_id', { length: 100 }).notNull(),
+    templateId: varchar('template_id', { length: 60 }).notNull(),
+    status: varchar('status', { length: 20 })
+      .$type<'queued' | 'running' | 'succeeded' | 'failed'>()
+      .notNull()
+      .default('queued'),
+    reason: varchar('reason', { length: 20 })
+      .$type<'exhausted' | 'low_stock' | 'cold_start' | 'warmup' | 'admin'>()
+      .notNull(),
+    requestedBy: uuid('requested_by'),
+    attempts: integer('attempts').notNull().default(0),
+    error: text('error'),
+    scenarioId: uuid('scenario_id'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+  },
+  (table) => [
+    uniqueIndex('dungeon_scenario_jobs_slot_pending_unique')
+      .on(table.mapNodeId, table.templateId)
+      .where(sql`${table.status} in ('queued', 'running')`),
+    index('dungeon_scenario_jobs_status_created_idx').on(
+      table.status,
+      table.createdAt,
+    ),
+    index('dungeon_scenario_jobs_slot_finished_idx').on(
+      table.mapNodeId,
+      table.templateId,
+      table.status,
+      table.finishedAt,
+    ),
   ],
 );
 
