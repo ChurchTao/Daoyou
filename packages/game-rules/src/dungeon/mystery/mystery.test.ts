@@ -50,7 +50,7 @@ const SOLVE: MysteryAction[] = [
   { type: 'present', npcId: 'han', evidenceId: 'roster_page' },
 ];
 
-const CORRECT = { who: 'han', how: 'poison_ash', heir: 'su' };
+const CORRECT = { who: 'han', how: 'poison_incense', heir: 'su' };
 
 describe('mystery scenario content', () => {
   it('ships a fallback case for every template that passes validation', () => {
@@ -87,7 +87,7 @@ describe('mystery case validation', () => {
     caseFile.questions[1]!.answer = 'claw_marks';
     const issues = validateMysteryCase(caseFile, template);
     expect(issues).toContain('房间 waterfall 的出口 nowhere 不存在');
-    expect(issues).toContain('结案问题 how 的答案应为关键线索 id');
+    expect(issues).toContain('结案问题 how 的答案不在选项中');
   });
 });
 
@@ -128,7 +128,7 @@ describe('mystery engine', () => {
       { type: 'search', objectId: 'moss_wall' },
       { type: 'search', objectId: 'moss_wall' },
     ]);
-    expect(run.actionsLeft).toBe(23);
+    expect(run.actionsLeft).toBe(template.scale.action_budget - 1);
     expect(run.clues).toEqual(['claw_marks']);
   });
 
@@ -179,7 +179,7 @@ describe('mystery scoring', () => {
     expect(result.breakdown).toEqual({
       truth: 55,
       coverage: 20,
-      efficiency: 11,
+      efficiency: 15,
       branch: 10,
       combat: 0,
     });
@@ -191,7 +191,7 @@ describe('mystery scoring', () => {
     const run = createMysteryRun(caseFile, 24);
     const result = scoreMysteryRun(caseFile, template, run, {
       who: 'su',
-      how: 'poison_ash',
+      how: 'poison_incense',
       heir: 'han',
     });
     expect(result.breakdown.truth).toBe(18);
@@ -200,14 +200,13 @@ describe('mystery scoring', () => {
     expect(scoreMysteryRun(caseFile, template, run, {}).total).toBe(0);
   });
 
-  it('only accepts clue answers the player actually holds', () => {
+  it('rejects answers outside the offered choices and unknown questions', () => {
     const caseFile = fallback();
-    const run = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }]);
-    expect(checkMysteryAnswers(caseFile, template, run, CORRECT)).toBe(
-      '凶手用了什么手段：只能以已掌握的线索作答',
-    );
     const solved = play(caseFile, SOLVE);
     expect(checkMysteryAnswers(caseFile, template, solved, CORRECT)).toBeNull();
+    expect(
+      checkMysteryAnswers(caseFile, template, solved, { ...CORRECT, how: 'x' }),
+    ).toBe('凶手用了什么手段：请选择一个选项');
     expect(
       checkMysteryAnswers(caseFile, template, solved, { ...CORRECT, x: 'y' }),
     ).toBe('未知的问题：x');
@@ -308,11 +307,62 @@ describe('mystery skeleton', () => {
     };
     const result = scoreMysteryRun(caseFile, template, run, {
       who: 'npc_culprit',
-      how: 'clue_method',
+      how: 'method_true',
       heir: 'npc_heir',
     });
     expect(result.correct).toEqual({ who: true, how: true, heir: true });
     expect(result.branches).toEqual(['lies_exposed', 'heir_trusted']);
+  });
+
+  it('always includes a wrongly suspected NPC who can be cleared', () => {
+    for (const seed of seeds) {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const suspect = caseFile.npcs.find((n) => n.role === 'suspect');
+      expect(suspect?.reactions[0]).toMatchObject({
+        evidenceId: 'clue_suspect',
+        effects: [
+          { kind: 'reveal_clue', clueId: 'clue_alibi' },
+          { kind: 'set_flag', flag: 'suspect_cleared' },
+        ],
+      });
+      expect(caseFile.npcs.length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('does not keep the correct method option first for small seeds', () => {
+    const firsts = Array.from({ length: 40 }, (_, seed) => {
+      const how = buildMysterySkeleton(template, seed).caseFile.questions.find(
+        (q) => q.id === 'how',
+      )!;
+      return how.options![0]!.id;
+    });
+    expect(firsts.filter((id) => id === 'method_true').length).toBeLessThan(20);
+  });
+
+  it('varies how the method is revealed, the sealed room and the answer position', () => {
+    const shapes = seeds.map((seed) => {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const how = caseFile.questions.find((q) => q.id === 'how')!;
+      return {
+        via:
+          caseFile.interactions.length > 0
+            ? 'tool'
+            : caseFile.npcs.find((n) =>
+                n.secrets.some((s) => s.clueId === 'clue_method'),
+              )!.role,
+        sealed: caseFile.rooms.some((r) => r.id === 'room_sealed'),
+        answerIndex: how.options!.findIndex((o) => o.id === how.answer),
+      };
+    });
+    expect(new Set(shapes.map((s) => s.via))).toEqual(
+      new Set(['tool', 'witness', 'heir']),
+    );
+    expect(new Set(shapes.map((s) => s.sealed))).toEqual(
+      new Set([true, false]),
+    );
+    expect(new Set(shapes.map((s) => s.answerIndex))).toEqual(
+      new Set([0, 1, 2, 3]),
+    );
   });
 
   it('rejects templates of other archetypes', () => {

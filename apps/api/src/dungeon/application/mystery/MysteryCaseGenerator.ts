@@ -53,6 +53,8 @@ function ids(skeleton: MysteryCaseSkeleton) {
     reactions: c.npcs.flatMap((n) => n.reactions.map((r) => r.id)),
     interactions: c.interactions.map((i) => i.id),
     questions: c.questions.map((q) => q.id),
+    methodOptions:
+      c.questions.find((q) => q.id === 'how')?.options?.map((o) => o.id) ?? [],
   };
 }
 
@@ -95,8 +97,18 @@ function outlineSchema(skeleton: MysteryCaseSkeleton) {
         '凶手对外宣称来历的原话，一两句，不加引号；与其称谓 title 一致',
       ),
       contradiction: Text(60, 'clue_record 记载的哪条事实与 lie 矛盾'),
-      token: Text(40, '传人的祖传信物是什么样子；其纹样与密室门上的印记相同'),
+      suspect: Text(
+        60,
+        '嫌疑人为何被怀疑（可疑物证从何而来）、清白的真相与可核实的凭据',
+      ),
+      token: Text(
+        40,
+        '传人的祖传信物是什么样子；其纹样与洞府主人一脉的印记相同',
+      ),
     }),
+    methodOptions: keyed(id.methodOptions, (key) =>
+      Text(16, `结案时“手段”一问的选项说法；作用：${p[`option:${key}`]}`),
+    ),
     title: Text(12, '案卷标题'),
     truth: Text(
       500,
@@ -387,6 +399,14 @@ function assemble(
     })),
     questions: c.questions.map((q) => ({
       ...q,
+      ...(q.options
+        ? {
+            options: q.options.map((x) => ({
+              ...x,
+              label: clip(str(o.methodOptions, x.id), 30),
+            })),
+          }
+        : {}),
       explanation: clip(str(evidence.explanations, q.id), 200),
     })),
   };
@@ -403,7 +423,7 @@ export interface MysteryCaseRequest {
 }
 
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
-export const MYSTERY_GENERATOR_VERSION = 1;
+export const MYSTERY_GENERATOR_VERSION = 2;
 
 export interface GeneratedMysteryCase {
   caseFile: MysteryCaseFile;

@@ -27,11 +27,12 @@ import {
   dungeonScenarios,
 } from '@server/lib/drizzle/schema.js';
 import { publishScheduledBackgroundCommand } from '@server/lib/mq/backgroundCommandPublisher.js';
-import { and, count, eq, inArray, max, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, lt, max, sql } from 'drizzle-orm';
 import {
   generateMysteryCase,
   MYSTERY_GENERATOR_VERSION,
 } from './MysteryCaseGenerator.js';
+import { reviewMysteryCase } from './MysteryCaseReview.js';
 
 type JobReason = (typeof dungeonScenarioJobs.$inferInsert)['reason'];
 
@@ -322,6 +323,27 @@ async function sweepScenarioLibrary() {
     where status = 'running'
       and started_at < now() - make_interval(secs => ${policy.staleRunningMs / 1000})
   `);
+  // 生成流水线升级后，旧版本的生成剧本整批停用；保底案卷逐份校验。
+  await db
+    .update(dungeonScenarios)
+    .set({ status: 'retired', retiredAt: new Date() })
+    .where(
+      and(
+        eq(dungeonScenarios.status, 'active'),
+        eq(dungeonScenarios.source, 'generated'),
+        lt(dungeonScenarios.generatorVersion, MYSTERY_GENERATOR_VERSION),
+      ),
+    );
+  const seeds = await db
+    .select({ id: dungeonScenarios.id })
+    .from(dungeonScenarios)
+    .where(
+      and(
+        eq(dungeonScenarios.status, 'active'),
+        eq(dungeonScenarios.source, 'seed'),
+      ),
+    );
+  for (const seed of seeds) await loadScenarioCase(seed.id);
   for (const seed of listMysteryFallbackSeeds()) {
     if (!scenarioTemplatesForNode(seed.mapNodeId).includes(seed.templateId))
       continue;
@@ -333,6 +355,8 @@ async function sweepScenarioLibrary() {
           eq(dungeonScenarios.mapNodeId, seed.mapNodeId),
           eq(dungeonScenarios.templateId, seed.templateId),
           eq(dungeonScenarios.source, 'seed'),
+          // 与引擎不兼容而停用的保底案卷，用当前版本重新入库。
+          eq(dungeonScenarios.status, 'active'),
         ),
       );
     const caseFile = getMysteryFallbackCase(seed.templateId);
@@ -400,6 +424,18 @@ async function runJob(job: {
     });
     if (generated.source !== 'generated')
       throw new Error('生成未通过校验，未入库保底案卷');
+    // 入库把关：后台生成不影响开局，用高级模型组再做一次独立审校，只计数不改写。
+    const audit = await reviewMysteryCase(generated.caseFile, undefined, {
+      apply: false,
+    });
+    const majorIssues = audit.issues.filter((i) => i.severity === 'major');
+    if (majorIssues.length > MYSTERY_LIBRARY_POLICY.maxMajorIssuesForLibrary)
+      throw new Error(
+        `审校发现 ${majorIssues.length} 处严重矛盾，未入库：${majorIssues
+          .slice(0, 3)
+          .map((i) => i.problem)
+          .join('；')}`,
+      );
     await db.transaction(async (tx) => {
       const scenarioId = await insertScenario(tx, {
         mapNodeId: job.map_node_id,
@@ -407,7 +443,12 @@ async function runJob(job: {
         caseFile: generated.caseFile,
         source: 'generated',
         reviewIssueCount: generated.reviewIssueCount,
-        generation: { durationMs: Date.now() - startedAt, jobId: job.id },
+        generation: {
+          durationMs: Date.now() - startedAt,
+          jobId: job.id,
+          auditIssues: audit.issues.length,
+          auditMajorIssues: majorIssues.length,
+        },
       });
       await tx
         .update(dungeonScenarioJobs)

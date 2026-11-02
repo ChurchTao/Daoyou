@@ -297,8 +297,26 @@
     },
     {
       "id": "how",
-      "answer": "poison_ash",
-      "explanation": "丹炉底部残留的断魂香正是空气中甜腥味的来源，玄微子在静坐炼丹时吸入毒香、气脉断绝，骨色因此青黑。"
+      "answer": "poison_incense",
+      "explanation": "丹炉底部残留的断魂香正是空气中甜腥味的来源，玄微子在静坐炼丹时吸入毒香、气脉断绝，骨色因此青黑。",
+      "options": [
+        {
+          "id": "fall_into_madness",
+          "label": "走火入魔、寿尽坐化"
+        },
+        {
+          "id": "poison_incense",
+          "label": "在丹炉中掺入毒香"
+        },
+        {
+          "id": "hidden_needle",
+          "label": "暗器刺入要穴"
+        },
+        {
+          "id": "beast_attack",
+          "label": "守洞妖兽袭杀"
+        }
+      ]
     },
     {
       "id": "heir",

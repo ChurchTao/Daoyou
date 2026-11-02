@@ -66,7 +66,9 @@ export function createMysteryRun(
     firedInteractions: [],
     log: [
       { turn: 0, kind: 'scene', text: caseFile.brief.opening },
-      ...(start ? [{ turn: 0, kind: 'scene' as const, text: start.description }] : []),
+      ...(start
+        ? [{ turn: 0, kind: 'scene' as const, text: start.description }]
+        : []),
     ],
   };
 }
@@ -163,7 +165,10 @@ export function applyMysteryAction(
       );
       if (!target) return { ok: false, error: '此处无法直接前往该地点' };
       if (!evaluateMysteryCondition(target.requires, run)) {
-        return { ok: false, error: target.lockedText ?? '去路被阻，暂时无法通过' };
+        return {
+          ok: false,
+          error: target.lockedText ?? '去路被阻，暂时无法通过',
+        };
       }
       spend(run, 1);
       run.location = target.id;
@@ -200,7 +205,10 @@ export function applyMysteryAction(
           w.grantItem(item.id);
         }
       }
-      if (run.clues.length + run.items.length === before && current.searched.includes(object.id)) {
+      if (
+        run.clues.length + run.items.length === before &&
+        current.searched.includes(object.id)
+      ) {
         w.log({ kind: 'system', text: '再看一遍，并无新的发现。' });
       }
       break;

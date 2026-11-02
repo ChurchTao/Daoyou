@@ -15,10 +15,10 @@
   ],
   "scale": {
     "rooms": [4, 6],
-    "npcs": [2, 4],
-    "key_clues": [4, 6],
-    "red_herrings": [1, 3],
-    "action_budget": 24
+    "npcs": [2, 5],
+    "key_clues": [4, 8],
+    "red_herrings": [1, 4],
+    "action_budget": 30
   },
   "roles": [
     {
@@ -34,6 +34,13 @@
       "count": [1, 1],
       "lies": false,
       "guidance": "真正应得传承的人，起初戒备、不愿多说。玩家出示特定证据后才会建立信任（设置模板分支标记），信任后透露关键内情。"
+    },
+    {
+      "slot": "suspect",
+      "label": "嫌疑人",
+      "count": [0, 1],
+      "lies": false,
+      "guidance": "被冤枉的人：与死者有过节或有所图，身上有指向自己的可疑物证，性情不讨喜；被出示该物证后会说出清白的缘由并拿出可核实的凭据。"
     },
     {
       "slot": "witness",
@@ -53,8 +60,8 @@
     {
       "id": "how",
       "prompt": "凶手用了什么手段",
-      "answer_kind": "clue",
-      "guidance": "答案是一条揭示作案手段的关键线索 id，且需要通过物品交互才能获得。"
+      "answer_kind": "choice",
+      "guidance": "选项给出若干作案手段的说法：真相一项，其余为顺着可疑物证、传闻或表象会得出的误判。"
     },
     {
       "id": "heir",

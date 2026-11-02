@@ -53,15 +53,18 @@ export function scoreMysteryRun(
 ): MysteryResult {
   const weights = template.scoring;
   const correct: Record<string, boolean> = {};
-  for (const q of caseFile.questions) correct[q.id] = answers[q.id] === q.answer;
+  for (const q of caseFile.questions)
+    correct[q.id] = answers[q.id] === q.answer;
   const truthRatio =
     caseFile.questions.length === 0
       ? 0
-      : Object.values(correct).filter(Boolean).length / caseFile.questions.length;
+      : Object.values(correct).filter(Boolean).length /
+        caseFile.questions.length;
 
   const keyClues = caseFile.clues.filter((c) => c.key);
   const keyCluesFound = keyClues.filter((c) => run.clues.includes(c.id)).length;
-  const coverageRatio = keyClues.length === 0 ? 1 : keyCluesFound / keyClues.length;
+  const coverageRatio =
+    keyClues.length === 0 ? 1 : keyCluesFound / keyClues.length;
 
   const efficiencyRatio = Math.min(
     1,

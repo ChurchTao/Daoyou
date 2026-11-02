@@ -11,6 +11,7 @@ export interface MysteryCanon {
   method: string;
   lie: string;
   contradiction: string;
+  suspect: string;
   token: string;
 }
 

@@ -16,6 +16,11 @@ export const MYSTERY_LIBRARY_POLICY = {
   maxJobAttempts: 3,
   /** running 超过此时长视为中断。 */
   staleRunningMs: 10 * 60_000,
+  /**
+   * 入库把关：独立审校报告的严重矛盾超过此数则不入库、按失败重试。
+   * 审校模型本身有误报，阈值不设为 0，避免几乎全部被拒、反复烧费用。
+   */
+  maxMajorIssuesForLibrary: 2,
   /** 上线预热时每槽至少保有的剧本数。 */
   warmupPerSlot: 2,
   /** 自动停用：游玩次数达到此值后才评估。 */

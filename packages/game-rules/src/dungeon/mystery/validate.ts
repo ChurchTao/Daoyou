@@ -58,14 +58,22 @@ export function computeMysteryReachability(
       const at = clue.foundAt;
       if (!at) continue;
       const room = roomOf(at.objectId);
-      if (room && facts.rooms.has(room) && evaluateMysteryCondition(at.requires, view))
+      if (
+        room &&
+        facts.rooms.has(room) &&
+        evaluateMysteryCondition(at.requires, view)
+      )
         facts.clues.add(clue.id);
     }
     for (const item of caseFile.items) {
       const at = item.foundAt;
       if (!at) continue;
       const room = roomOf(at.objectId);
-      if (room && facts.rooms.has(room) && evaluateMysteryCondition(at.requires, view))
+      if (
+        room &&
+        facts.rooms.has(room) &&
+        evaluateMysteryCondition(at.requires, view)
+      )
         facts.items.add(item.id);
     }
     for (const npc of caseFile.npcs) {
@@ -101,7 +109,11 @@ function conditionRefs(condition: MysteryCondition | undefined): {
   items: string[];
   rooms: string[];
 } {
-  const refs = { clues: [] as string[], items: [] as string[], rooms: [] as string[] };
+  const refs = {
+    clues: [] as string[],
+    items: [] as string[],
+    rooms: [] as string[],
+  };
   const walk = (c: MysteryCondition | undefined) => {
     if (!c) return;
     if ('has_clue' in c) refs.clues.push(c.has_clue);
@@ -120,7 +132,9 @@ function inRange(value: number, [min, max]: readonly [number, number]) {
 
 /** 估算最短通关所需行动力：移动、搜查、对话与交互各计一次。 */
 export function estimateMysteryMinimumActions(caseFile: MysteryCaseFile) {
-  const keyClues = new Set(caseFile.clues.filter((c) => c.key).map((c) => c.id));
+  const keyClues = new Set(
+    caseFile.clues.filter((c) => c.key).map((c) => c.id),
+  );
   const searchObjects = new Set(
     [...caseFile.clues, ...caseFile.items]
       .map((x) => x.foundAt?.objectId)
@@ -159,11 +173,26 @@ export function validateMysteryCase(
     }
     return seen;
   };
-  const rooms = unique('房间', caseFile.rooms.map((r) => r.id));
-  const objects = unique('物件', caseFile.objects.map((o) => o.id));
-  const clues = unique('线索', caseFile.clues.map((c) => c.id));
-  const items = unique('物品', caseFile.items.map((i) => i.id));
-  const npcs = unique('人物', caseFile.npcs.map((n) => n.id));
+  const rooms = unique(
+    '房间',
+    caseFile.rooms.map((r) => r.id),
+  );
+  const objects = unique(
+    '物件',
+    caseFile.objects.map((o) => o.id),
+  );
+  const clues = unique(
+    '线索',
+    caseFile.clues.map((c) => c.id),
+  );
+  const items = unique(
+    '物品',
+    caseFile.items.map((i) => i.id),
+  );
+  const npcs = unique(
+    '人物',
+    caseFile.npcs.map((n) => n.id),
+  );
   const all = [...rooms, ...objects, ...clues, ...items, ...npcs];
   if (new Set(all).size !== all.length)
     issues.push('房间、物件、线索、物品、人物之间的 id 不能重名');
@@ -186,28 +215,36 @@ export function validateMysteryCase(
 
   const checkCondition = (where: string, c: MysteryCondition | undefined) => {
     const refs = conditionRefs(c);
-    for (const id of refs.clues) if (!clues.has(id)) issues.push(`${where} 引用了不存在的线索 ${id}`);
-    for (const id of refs.items) if (!items.has(id)) issues.push(`${where} 引用了不存在的物品 ${id}`);
-    for (const id of refs.rooms) if (!rooms.has(id)) issues.push(`${where} 引用了不存在的房间 ${id}`);
+    for (const id of refs.clues)
+      if (!clues.has(id)) issues.push(`${where} 引用了不存在的线索 ${id}`);
+    for (const id of refs.items)
+      if (!items.has(id)) issues.push(`${where} 引用了不存在的物品 ${id}`);
+    for (const id of refs.rooms)
+      if (!rooms.has(id)) issues.push(`${where} 引用了不存在的房间 ${id}`);
   };
   const checkEffects = (where: string, effects: readonly MysteryEffect[]) => {
     for (const e of effects) {
       if (e.kind === 'reveal_clue' && !clues.has(e.clueId))
         issues.push(`${where} 揭示了不存在的线索 ${e.clueId}`);
-      if ((e.kind === 'grant_item' || e.kind === 'consume_item') && !items.has(e.itemId))
+      if (
+        (e.kind === 'grant_item' || e.kind === 'consume_item') &&
+        !items.has(e.itemId)
+      )
         issues.push(`${where} 引用了不存在的物品 ${e.itemId}`);
     }
   };
 
   for (const room of caseFile.rooms) {
     for (const exit of room.exits)
-      if (!rooms.has(exit)) issues.push(`房间 ${room.id} 的出口 ${exit} 不存在`);
+      if (!rooms.has(exit))
+        issues.push(`房间 ${room.id} 的出口 ${exit} 不存在`);
     checkCondition(`房间 ${room.id}`, room.requires);
     if (room.requires && !room.lockedText)
       issues.push(`房间 ${room.id} 有进入条件但缺少受阻提示`);
   }
   for (const object of caseFile.objects)
-    if (!rooms.has(object.roomId)) issues.push(`物件 ${object.id} 所在房间不存在`);
+    if (!rooms.has(object.roomId))
+      issues.push(`物件 ${object.id} 所在房间不存在`);
   for (const x of [...caseFile.clues, ...caseFile.items]) {
     if (x.foundAt) {
       if (!objects.has(x.foundAt.objectId))
@@ -219,10 +256,12 @@ export function validateMysteryCase(
   const roles = new Map(template.roles.map((r) => [r.slot, 0]));
   for (const npc of caseFile.npcs) {
     if (!rooms.has(npc.roomId)) issues.push(`人物 ${npc.id} 所在房间不存在`);
-    if (!roles.has(npc.role)) issues.push(`人物 ${npc.id} 的身份 ${npc.role} 不在模板中`);
+    if (!roles.has(npc.role))
+      issues.push(`人物 ${npc.id} 的身份 ${npc.role} 不在模板中`);
     else roles.set(npc.role, roles.get(npc.role)! + 1);
     for (const s of npc.secrets) {
-      if (!clues.has(s.clueId)) issues.push(`人物 ${npc.id} 的秘密线索 ${s.clueId} 不存在`);
+      if (!clues.has(s.clueId))
+        issues.push(`人物 ${npc.id} 的秘密线索 ${s.clueId} 不存在`);
       checkCondition(`人物 ${npc.id} 的秘密`, s.requires);
     }
     for (const r of npc.reactions) {
@@ -243,7 +282,8 @@ export function validateMysteryCase(
     checkEffects(`交互 ${i.id}`, i.effects);
   }
   for (const rel of caseFile.brief.relations)
-    if (!npcs.has(rel.npcId)) issues.push(`角色本关系引用了不存在的人物 ${rel.npcId}`);
+    if (!npcs.has(rel.npcId))
+      issues.push(`角色本关系引用了不存在的人物 ${rel.npcId}`);
 
   const reach = computeMysteryReachability(caseFile);
   for (const room of caseFile.rooms)
@@ -253,8 +293,12 @@ export function validateMysteryCase(
   for (const clue of caseFile.clues) {
     const sources =
       (clue.foundAt ? 1 : 0) +
-      caseFile.npcs.filter((n) => n.secrets.some((s) => s.clueId === clue.id)).length +
-      [...caseFile.interactions, ...caseFile.npcs.flatMap((n) => n.reactions)].filter((x) =>
+      caseFile.npcs.filter((n) => n.secrets.some((s) => s.clueId === clue.id))
+        .length +
+      [
+        ...caseFile.interactions,
+        ...caseFile.npcs.flatMap((n) => n.reactions),
+      ].filter((x) =>
         x.effects.some((e) => e.kind === 'reveal_clue' && e.clueId === clue.id),
       ).length;
     if (sources === 0) issues.push(`线索 ${clue.id} 没有获取途径`);
@@ -287,7 +331,8 @@ export function validateMysteryCase(
     issues.push('结案问题与模板数量不一致');
   for (const clue of caseFile.clues)
     for (const qid of clue.supports)
-      if (!questions.has(qid)) issues.push(`线索 ${clue.id} 支撑的问题 ${qid} 不存在`);
+      if (!questions.has(qid))
+        issues.push(`线索 ${clue.id} 支撑的问题 ${qid} 不存在`);
 
   for (const branch of template.branches) {
     if (branch.kind === 'flag' && !reach.flags.has(branch.flag))

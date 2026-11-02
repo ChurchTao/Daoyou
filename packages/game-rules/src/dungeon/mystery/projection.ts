@@ -17,7 +17,9 @@ export function projectMysteryView(
     caseFile.npcs.find((n) => n.id === id)?.name ?? id;
   const knownNpcIds = new Set([
     ...caseFile.brief.relations.map((r) => r.npcId),
-    ...caseFile.npcs.filter((n) => run.visited.includes(n.roomId)).map((n) => n.id),
+    ...caseFile.npcs
+      .filter((n) => run.visited.includes(n.roomId))
+      .map((n) => n.id),
   ]);
   const labelOf = (questionId: string, answer: string) => {
     const tq = template.questions.find((q) => q.id === questionId);
@@ -57,7 +59,11 @@ export function projectMysteryView(
     }),
     objects: caseFile.objects
       .filter((o) => o.roomId === room.id)
-      .map((o) => ({ id: o.id, name: o.name, searched: run.searched.includes(o.id) })),
+      .map((o) => ({
+        id: o.id,
+        name: o.name,
+        searched: run.searched.includes(o.id),
+      })),
     npcsHere: caseFile.npcs
       .filter((n) => n.roomId === room.id)
       .map((n) => ({ id: n.id, name: n.name, title: n.title })),
@@ -79,7 +85,9 @@ export function projectMysteryView(
         id: tq.id,
         prompt: tq.prompt,
         kind: tq.answer_kind,
-        ...(tq.answer_kind === 'choice' && q?.options ? { options: q.options } : {}),
+        ...(tq.answer_kind === 'choice' && q?.options
+          ? { options: q.options }
+          : {}),
       };
     }),
     ...(result
