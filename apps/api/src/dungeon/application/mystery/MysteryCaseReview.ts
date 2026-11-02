@@ -23,6 +23,8 @@ export function cleanMysteryText(text: string, limit: number) {
     .replace(new RegExp(INTERNAL_ID.source, 'g'), '')
     // 偶尔混入的英文单词。
     .replace(/ ?[A-Za-z]{2,} ?/g, '')
+    // 去掉英文后留下的空括号。
+    .replace(/[（(]\s*[）)]/g, '')
     .trim();
   return value.length <= limit ? value : `${value.slice(0, limit - 1)}…`;
 }
@@ -73,8 +75,11 @@ function textFields(c: MysteryCaseFile): TextField[] {
     for (const r of n.reactions) add(`reactions.${r.id}`, r, 'line', 220);
   }
   for (const i of c.interactions) add(`interactions.${i.id}`, i, 'text', 220);
-  for (const q of c.questions)
+  for (const q of c.questions) {
     add(`questions.${q.id}.explanation`, q, 'explanation', 200);
+    for (const o of q.options ?? [])
+      add(`options.${q.id}.${o.id}`, o, 'label', 30);
+  }
   for (const e of c.events ?? []) {
     add(`events.${e.id}.warning`, e, 'warning', 160);
     add(`events.${e.id}.text`, e, 'text', 200);

@@ -69,6 +69,21 @@ describe('mystery scenario content', () => {
       expect(validateMysteryCase(caseFile!, t)).toEqual([]);
     }
   });
+
+  it('only hands out a fallback case on the node it was written for', () => {
+    expect(getMysteryFallbackCase('lost_relic', 'SAT_LX_02')).toBeDefined();
+    expect(getMysteryFallbackCase('lost_relic', 'SAT_TN_02')).toBeUndefined();
+  });
+
+  it('rejects choice labels that give the answer away', () => {
+    const caseFile = fallback();
+    caseFile.questions
+      .find((q) => q.id === 'how')!
+      .options!.find((o) => o.id !== 'poison_incense')!.label = '照伪造的图挖';
+    expect(validateMysteryCase(caseFile, template)).toContain(
+      '结案问题 how 的选项说法透露了对错',
+    );
+  });
 });
 
 describe('mystery case validation', () => {

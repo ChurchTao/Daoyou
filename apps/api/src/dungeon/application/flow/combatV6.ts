@@ -146,8 +146,16 @@ export async function prepareDungeonEncounter(
     state.pendingAction?.costs.find((cost) => cost.type === 'battle')?.metadata
       ?.enemy_name;
   if (narratedName) {
-    const enemy = snapshot.input.units.find((unit) => unit.side === 1);
-    if (enemy) enemy.name = narratedName.slice(0, 40);
+    const enemies = snapshot.input.units.filter((unit) => unit.side === 1);
+    // 解谜遭遇战整队都用叙事里的名字，多于一人时按甲乙丙区分，不出现模板的通用名。
+    const named = narration ? enemies : enemies.slice(0, 1);
+    named.forEach((enemy, i) => {
+      enemy.name = (
+        named.length > 1
+          ? `${narratedName}·${'甲乙丙丁戊'[i] ?? i + 1}`
+          : narratedName
+      ).slice(0, 40);
+    });
   }
   snapshot.input.units = carryDungeonBeastResources(
     snapshot.input.units,

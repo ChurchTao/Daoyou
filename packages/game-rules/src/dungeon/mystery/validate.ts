@@ -401,6 +401,8 @@ export function validateMysteryCase(
         .filter((label) => label !== MYSTERY_TEXT_PLACEHOLDER);
       if (labels && new Set(labels).size !== labels.length)
         issues.push(`结案问题 ${tq.id} 的选项说法有重复`);
+      if (labels?.some((label) => /[伪假]/.test(label)))
+        issues.push(`结案问题 ${tq.id} 的选项说法透露了对错`);
     }
   }
   if (caseFile.questions.length !== template.questions.length)

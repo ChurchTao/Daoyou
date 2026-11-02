@@ -420,6 +420,7 @@ async function runJob(job: {
       seed: Math.floor(Math.random() * 0x100000000),
       node,
       setting,
+      mapNodeId: job.map_node_id,
     });
     if (generated.source !== 'generated')
       throw new Error('生成未通过校验，未入库保底案卷');

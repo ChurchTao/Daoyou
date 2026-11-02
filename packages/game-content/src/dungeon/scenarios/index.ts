@@ -53,9 +53,16 @@ export function listMysteryTemplates(): MysteryScenarioTemplate[] {
   return Object.values(TEMPLATES);
 }
 
+/**
+ * 模板的手写保底案卷。给出节点时只返回绑定到该节点的保底案卷：
+ * 保底案卷的场景是写死的，不能拿到别的节点上用。
+ */
 export function getMysteryFallbackCase(
   templateId: string,
+  mapNodeId?: string,
 ): MysteryCaseFile | undefined {
+  if (mapNodeId && !FALLBACK_NODES[templateId]?.includes(mapNodeId))
+    return undefined;
   const caseFile = FALLBACK_CASES[templateId];
   return caseFile ? structuredClone(caseFile) : undefined;
 }

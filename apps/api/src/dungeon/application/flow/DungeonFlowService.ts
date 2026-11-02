@@ -1220,6 +1220,16 @@ export class DungeonFlowService {
           description: mapNode.description,
         },
         setting: scenario,
+        mapNodeId: state.mapNodeId,
+      }).catch((error: unknown) => {
+        // 此地没有场景相符的保底案卷：不开局（灵气不扣），排队补货后请玩家稍后再来。
+        console.warn('[DungeonMystery] 冷启动生成失败:', error);
+        this.enqueueRestock(state, pick.templateId, 'cold_start');
+        throw new DungeonFlowError(
+          DungeonFlowErrorCode.INVALID_STATE,
+          '此地的剧本还在推演，请稍后再来',
+          409,
+        );
       });
       state.mystery = {
         templateId: pick.templateId,
@@ -1267,10 +1277,20 @@ export class DungeonFlowService {
   private requestMysteryRestock(state: DungeonState) {
     const mystery = state.mystery;
     if (!mystery?.restock) return;
+    this.enqueueRestock(state, mystery.templateId, mystery.restock.reason);
+  }
+
+  private enqueueRestock(
+    state: DungeonState,
+    templateId: string,
+    reason: NonNullable<
+      NonNullable<DungeonState['mystery']>['restock']
+    >['reason'],
+  ) {
     void requestScenarioRestock({
       mapNodeId: state.mapNodeId,
-      templateId: mystery.templateId,
-      reason: mystery.restock.reason,
+      templateId,
+      reason,
       requestedBy: state.cultivatorId,
     })
       .then((decision) =>

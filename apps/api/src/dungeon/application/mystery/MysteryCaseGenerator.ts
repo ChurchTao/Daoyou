@@ -574,6 +574,8 @@ export interface MysteryCaseRequest {
     'name' | 'realm_requirement' | 'tags' | 'description'
   >;
   setting: { setting: string; factions?: string[]; forbidden?: string[] };
+  /** 开局的节点：生成失败时只能退回绑定到此节点的保底案卷。 */
+  mapNodeId: string;
 }
 
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
@@ -588,7 +590,7 @@ export interface GeneratedMysteryCase {
 
 /**
  * 三段式生成：程序按种子生成可解骨架 → LLM 起名并写真相 → 三段正文并行填写。
- * 所有引用由骨架固定，LLM 只写文字；任一段失败则使用模板的手写保底案卷。
+ * 所有引用由骨架固定，LLM 只写文字；任一段失败时，只在节点绑定了保底案卷时退回保底，否则抛错。
  */
 export async function generateMysteryCase(
   request: MysteryCaseRequest,
@@ -709,7 +711,7 @@ export async function generateMysteryCase(
   } catch (error) {
     console.warn('[DungeonMystery] 案卷生成失败，改用保底案卷:', error);
   }
-  const fallback = getMysteryFallbackCase(template.id);
-  if (!fallback) throw new Error('剧本缺少保底案卷');
+  const fallback = getMysteryFallbackCase(template.id, request.mapNodeId);
+  if (!fallback) throw new Error('案卷生成失败，此地没有可用的保底案卷');
   return { caseFile: fallback, source: 'fallback', reviewIssueCount: 0 };
 }
