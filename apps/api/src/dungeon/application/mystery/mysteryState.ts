@@ -38,7 +38,8 @@ function isDungeonState(value: unknown): value is DungeonState {
 export function toClientDungeonResult<T>(value: T): T {
   if (!value || typeof value !== 'object') return value;
   const result = { ...(value as Record<string, unknown>) };
-  if (isDungeonState(result.state)) result.state = toClientDungeonState(result.state);
+  if (isDungeonState(result.state))
+    result.state = toClientDungeonState(result.state);
   const callback = result.callbackData as Record<string, unknown> | undefined;
   if (callback && isDungeonState(callback.dungeonState)) {
     result.callbackData = {

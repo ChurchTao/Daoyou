@@ -30,6 +30,8 @@ const promptSources = [
   'character-generation.md',
   'divine-fortune.md',
   'dungeon-case.md',
+  'dungeon-case-text.md',
+  'dungeon-case-review.md',
   'dungeon-round.md',
   'dungeon-settlement.md',
   'fate-naming.md',

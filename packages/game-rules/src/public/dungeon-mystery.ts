@@ -17,3 +17,8 @@ export {
   scoreMysteryRun,
 } from '../dungeon/mystery/scoring.js';
 export { projectMysteryView } from '../dungeon/mystery/projection.js';
+export {
+  buildMysterySkeleton,
+  MYSTERY_TEXT_PLACEHOLDER,
+} from '../dungeon/mystery/skeleton.js';
+export type { MysteryCaseSkeleton } from '../dungeon/mystery/skeleton.js';

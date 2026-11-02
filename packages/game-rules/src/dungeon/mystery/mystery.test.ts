@@ -1,17 +1,19 @@
-import { describe, expect, it } from 'vitest';
 import {
   getMysteryFallbackCase,
   getMysteryTemplate,
   listMysteryTemplates,
 } from '@daoyou/game-content/dungeon/scenarios';
-import type {
-  MysteryAction,
-  MysteryCaseFile,
-  MysteryRunState,
+import {
+  MysteryCaseFileSchema,
+  type MysteryAction,
+  type MysteryCaseFile,
+  type MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
+import { describe, expect, it } from 'vitest';
 import { applyMysteryAction, createMysteryRun } from './engine.js';
 import { projectMysteryView } from './projection.js';
 import { checkMysteryAnswers, scoreMysteryRun } from './scoring.js';
+import { buildMysterySkeleton } from './skeleton.js';
 import { computeMysteryReachability, validateMysteryCase } from './validate.js';
 
 const template = getMysteryTemplate('inheritance_murder')!;
@@ -110,7 +112,10 @@ describe('mystery engine', () => {
     const caseFile = fallback();
     const run = createMysteryRun(caseFile, 24);
     expect(
-      applyMysteryAction(caseFile, run, { type: 'search', objectId: 'remains' }),
+      applyMysteryAction(caseFile, run, {
+        type: 'search',
+        objectId: 'remains',
+      }),
     ).toMatchObject({ ok: false });
     expect(
       applyMysteryAction(caseFile, run, { type: 'talk', npcId: 'han' }),
@@ -153,7 +158,10 @@ describe('mystery engine', () => {
 
   it('refuses further actions once the budget is spent', () => {
     const caseFile = fallback();
-    const run: MysteryRunState = { ...createMysteryRun(caseFile, 24), actionsLeft: 0 };
+    const run: MysteryRunState = {
+      ...createMysteryRun(caseFile, 24),
+      actionsLeft: 0,
+    };
     expect(
       applyMysteryAction(caseFile, run, { type: 'move', roomId: 'stone_hall' }),
     ).toEqual({ ok: false, error: '行动力已耗尽，只能结案推理' });
@@ -239,5 +247,77 @@ describe('mystery projection', () => {
       prompt: '谁害死了洞府主人',
       answerLabel: '韩老三',
     });
+  });
+});
+
+describe('mystery skeleton', () => {
+  const seeds = Array.from({ length: 300 }, (_, i) => i * 7919 + 13);
+
+  it('always produces a schema-valid, solvable case', () => {
+    for (const seed of seeds) {
+      const { caseFile, purposes } = buildMysterySkeleton(template, seed);
+      expect(
+        MysteryCaseFileSchema.safeParse(caseFile).success,
+        `seed ${seed}`,
+      ).toBe(true);
+      expect(validateMysteryCase(caseFile, template), `seed ${seed}`).toEqual(
+        [],
+      );
+      for (const id of [
+        ...caseFile.rooms.map((r) => r.id),
+        ...caseFile.objects.map((o) => o.id),
+        ...caseFile.clues.map((c) => c.id),
+        ...caseFile.npcs.map((n) => n.id),
+      ])
+        expect(purposes[id], `${id} purpose`).toBeTruthy();
+    }
+  });
+
+  it('is deterministic per seed', () => {
+    expect(buildMysterySkeleton(template, 42)).toEqual(
+      buildMysterySkeleton(template, 42),
+    );
+  });
+
+  it('varies room count, layout and cast across seeds', () => {
+    const shapes = seeds.map((seed) => {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      return {
+        rooms: caseFile.rooms.length,
+        witness: caseFile.npcs.some((n) => n.role === 'witness'),
+        layout: JSON.stringify(caseFile.rooms.map((r) => r.exits)),
+      };
+    });
+    expect(new Set(shapes.map((s) => s.rooms))).toEqual(new Set([4, 5, 6]));
+    expect(new Set(shapes.map((s) => s.witness))).toEqual(
+      new Set([true, false]),
+    );
+    expect(new Set(shapes.map((s) => s.layout)).size).toBeGreaterThan(10);
+  });
+
+  it('can be solved to an S rating by following its own structure', () => {
+    const { caseFile } = buildMysterySkeleton(template, 2024);
+    const reach = computeMysteryReachability(caseFile);
+    const run = {
+      ...createMysteryRun(caseFile, template.scale.action_budget),
+      clues: [...reach.clues],
+      flags: [...reach.flags],
+      firedReactions: caseFile.npcs.flatMap((n) =>
+        n.reactions.map((r) => r.id),
+      ),
+    };
+    const result = scoreMysteryRun(caseFile, template, run, {
+      who: 'npc_culprit',
+      how: 'clue_method',
+      heir: 'npc_heir',
+    });
+    expect(result.correct).toEqual({ who: true, how: true, heir: true });
+    expect(result.branches).toEqual(['lies_exposed', 'heir_trusted']);
+  });
+
+  it('rejects templates of other archetypes', () => {
+    expect(() =>
+      buildMysterySkeleton({ ...template, archetype: 'unlock' }, 1),
+    ).toThrow('暂不支持原型 unlock 的骨架生成');
   });
 });

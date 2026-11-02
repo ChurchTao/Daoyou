@@ -1772,6 +1772,8 @@ export class DungeonFlowService {
     const mapNode = this.getMapNode(state.mapNodeId);
     const { caseFile, source } = await this.generateCase({
       template,
+      // 与模板抽取错开，避免两者完全相关。
+      seed: ((state.rewardSeed ?? 0) ^ 0x9e3779b9) >>> 0,
       node: {
         name: mapNode.name,
         realm_requirement: mapNode.realm_requirement,
