@@ -12,6 +12,7 @@ import type {
 import { useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
+import { MysteryClueRail } from './MysteryClueRail';
 import { MysteryLogLine } from './MysteryLogLine';
 import { MysteryMechanismPanel } from './MysteryMechanismPanel';
 import { MysteryMiniMap } from './MysteryMiniMap';
@@ -90,19 +91,19 @@ function dialogueWith(log: MysteryLogEntry[], npcName: string) {
     .slice(-10);
 }
 
-/** 宽屏时案情板常驻右栏，窄屏时收进抽屉。 */
-function useWideScreen() {
-  const query = '(min-width: 1024px)';
-  const [wide, setWide] = useState(
+/** 屏宽分级：≥1024px 左栏常驻地图，≥1280px 再加右侧线索栏。 */
+function useMinWidth(px: number) {
+  const query = `(min-width: ${px}px)`;
+  const [matches, setMatches] = useState(
     () => typeof window !== 'undefined' && window.matchMedia(query).matches,
   );
   useEffect(() => {
     const media = window.matchMedia(query);
-    const update = () => setWide(media.matches);
+    const update = () => setMatches(media.matches);
     media.addEventListener('change', update);
     return () => media.removeEventListener('change', update);
-  }, []);
-  return wide;
+  }, [query]);
+  return matches;
 }
 
 export function DungeonMystery({
@@ -115,7 +116,8 @@ export function DungeonMystery({
   onGuard,
   onQuit,
 }: DungeonMysteryProps) {
-  const wide = useWideScreen();
+  const wide = useMinWidth(1024);
+  const full = useMinWidth(1280);
   const { notes, pin, markSeen } = useMysteryNotes(runId);
   const [asking, setAsking] = useState<{
     npcId: string;
@@ -144,7 +146,8 @@ export function DungeonMystery({
     view.exits.filter((exit) => !exit.locked).map((exit) => exit.id),
   );
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id));
-  const boardVisible = wide || boardOpen;
+  // 打开案情板的线索页，或宽屏右栏常驻时，新线索数秒后视为已读。
+  const cluesVisible = (boardOpen && boardTab === 'clues') || full;
   const clueIds = [...view.clues, ...view.items].map((x) => x.id).join();
   const spent = view.actionBudget - view.actionsLeft;
   const guide = useMysteryGuide({
@@ -153,12 +156,11 @@ export function DungeonMystery({
     deduce: view.clues.length >= 3 || spent * 2 >= view.actionBudget,
   });
 
-  // 线索页展示数秒后视为已读，宽屏常驻时新线索也有片刻“新”标记。
   useEffect(() => {
-    if (!boardVisible || boardTab !== 'clues' || !clueIds) return;
+    if (!cluesVisible || !clueIds) return;
     const timer = window.setTimeout(() => markSeen(clueIds.split(',')), 3000);
     return () => window.clearTimeout(timer);
-  }, [boardVisible, boardTab, clueIds, markSeen]);
+  }, [cluesVisible, clueIds, markSeen]);
 
   const act = async (action: MysteryAction) => {
     setPicker(null);
@@ -325,8 +327,28 @@ export function DungeonMystery({
   );
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
-      <div className="space-y-5">
+    <div
+      className={cn(
+        wide && 'grid items-start gap-10',
+        full
+          ? 'grid-cols-[13rem_minmax(0,42rem)_15rem] justify-center'
+          : wide && 'grid-cols-[13rem_minmax(0,1fr)]',
+      )}
+    >
+      {wide ? (
+        <aside className="sticky top-4 space-y-2 opacity-60 transition-opacity duration-500 focus-within:opacity-100 hover:opacity-100">
+          <div className="text-ink-secondary text-sm">地图</div>
+          <MysteryMiniMap
+            map={view.map}
+            reachable={reachable}
+            disabled={busy}
+            onSelect={goTo}
+          />
+          <p className="text-ink-secondary text-xs">点相邻的房间可以前往</p>
+        </aside>
+      ) : null}
+
+      <div className="flex min-h-[70dvh] flex-col gap-5 lg:min-h-0">
         <div className="border-ink/15 flex items-center justify-between gap-3 border-b border-dashed pb-3 text-sm">
           {wide ? (
             <span className="text-ink-secondary">{view.location.name}</span>
@@ -371,7 +393,7 @@ export function DungeonMystery({
             className="border-wood/50 bg-wood/5 flex items-start justify-between gap-3 border-l-2 px-3 py-2 text-sm leading-7"
           >
             <span>
-              {guide.step.id === 'board' && wide
+              {guide.step.id === 'board' && full
                 ? '拿到的线索会自动记进右侧的案情板，随时可以翻看和整理。'
                 : guide.step.text}
             </span>
@@ -396,15 +418,6 @@ export function DungeonMystery({
           </p>
         ))}
 
-        {wide ? (
-          <MysteryMiniMap
-            map={view.map}
-            reachable={reachable}
-            disabled={busy}
-            onSelect={goTo}
-          />
-        ) : null}
-
         {view.turn === 0 ? (
           <p className="text-ink-secondary text-center text-sm tracking-[0.3em]">
             {view.title}
@@ -414,14 +427,14 @@ export function DungeonMystery({
         {segmentStart > 0 ? (
           <button
             type="button"
-            className="text-ink-secondary hover:text-ink text-sm"
+            className="text-ink-secondary hover:text-ink self-start text-sm"
             onClick={() => openBoard('log')}
           >
             回看之前的经过
           </button>
         ) : null}
 
-        <div className="mx-auto max-w-2xl text-[1.0625rem]">
+        <div className="w-full max-w-2xl self-center text-[1.0625rem]">
           <MysteryProse
             entries={segment}
             turn={view.turn}
@@ -452,8 +465,8 @@ export function DungeonMystery({
           />
         </div>
 
-        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:justify-end lg:gap-4 lg:border-0 lg:px-0">
-          {wide ? null : (
+        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 mt-auto flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:justify-end lg:gap-4 lg:border-0 lg:bg-transparent lg:px-0">
+          {full ? null : (
             <InkButton variant="ghost" onClick={() => openBoard('clues')}>
               线索与人物
               {unread.length > 0 ? (
@@ -481,20 +494,21 @@ export function DungeonMystery({
         </div>
       </div>
 
-      {wide ? (
-        <aside className="border-ink/15 sticky top-4 max-h-[calc(100dvh-8rem)] overflow-y-auto border-l pl-6">
-          {board}
+      {full ? (
+        <aside className="sticky top-4">
+          <MysteryClueRail view={view} seen={notes.seen} onOpen={openBoard} />
         </aside>
-      ) : (
-        <InkDetailDrawer
-          isOpen={boardOpen}
-          onClose={() => setBoardOpen(false)}
-          title="案情板"
-          description="线索、人物、地点与调查经过都记在这里。"
-        >
-          {board}
-        </InkDetailDrawer>
-      )}
+      ) : null}
+
+      <InkDetailDrawer
+        isOpen={boardOpen}
+        onClose={() => setBoardOpen(false)}
+        size="md"
+        title="案情板"
+        description="线索、人物、地点与调查经过都记在这里。"
+      >
+        {board}
+      </InkDetailDrawer>
 
       <DungeonMysteryDeduction
         view={view}
