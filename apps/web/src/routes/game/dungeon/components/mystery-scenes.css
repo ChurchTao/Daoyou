@@ -51,6 +51,53 @@
   animation: mystery-scene-in 0.8s ease-out 1s both;
 }
 
+/* 迎战对峙：对手从左侧压入，你从右侧站定，墨痕随后划开。 */
+.mystery-duel-foe {
+  animation: mystery-duel-in-left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mystery-duel-self {
+  animation: mystery-duel-in-right 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+}
+
+.mystery-duel-slash {
+  transform-origin: top;
+  animation: mystery-duel-slash 0.5s ease-out 0.45s both;
+}
+
+@keyframes mystery-duel-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mystery-duel-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mystery-duel-slash {
+  from {
+    opacity: 0;
+    scale: 1 0;
+  }
+  to {
+    opacity: 1;
+    scale: 1 1;
+  }
+}
+
 @keyframes mystery-reveal-name {
   from {
     opacity: 0;
@@ -183,8 +230,14 @@
 
   .mystery-omen,
   .mystery-reveal-name,
-  .mystery-reveal-text {
+  .mystery-reveal-text,
+  .mystery-duel-slash {
     animation: none;
+  }
+
+  .mystery-duel-foe,
+  .mystery-duel-self {
+    animation: mystery-scene-in 0.3s ease-out both;
   }
 
   /* 暗场与盖印仍需结束事件来收起，只把时长压到最短。 */

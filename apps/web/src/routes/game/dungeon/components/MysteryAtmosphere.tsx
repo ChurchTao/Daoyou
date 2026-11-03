@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
+import { mysteryPortraitUrl } from './mysteryArt';
 
 /**
  * 事件发生时的整屏暗场：本回合有事件发生、且还没为这一回合播过时播一次。
@@ -80,12 +81,16 @@ export function MysteryAnomalyVeil({
 export function MysteryReveal({
   name,
   description,
+  portrait,
   onDone,
 }: {
   name: string;
   description: string;
+  /** 对手立绘键；没有素材时只显示名字。 */
+  portrait?: string;
   onDone: () => void;
 }) {
+  const url = mysteryPortraitUrl(portrait);
   useEffect(() => {
     const timer = window.setTimeout(onDone, 4200);
     return () => window.clearTimeout(timer);
@@ -98,6 +103,16 @@ export function MysteryReveal({
       onClick={onDone}
     >
       <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
+      {url ? (
+        <span className="mystery-reveal-name bg-paper/90 rounded-full p-4">
+          <img
+            src={url}
+            alt=""
+            aria-hidden="true"
+            className="size-40 object-contain md:size-56"
+          />
+        </span>
+      ) : null}
       <span className="mystery-reveal-name text-crimson text-4xl font-semibold tracking-[0.3em] md:text-5xl">
         {name}
       </span>

@@ -1,5 +1,7 @@
 import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
 import {
+  MYSTERY_MANIFEST_KIND_VALUES,
+  MYSTERY_PORTRAIT_VALUES,
   MysteryCaseFileSchema,
   type MysteryCaseFile,
   type MysteryScenarioTemplate,
@@ -345,7 +347,26 @@ function outlineSchema(
           '此人真实是什么人（种族、来历、能否言语），全案以此为准',
         ),
         relation: Text(60, '玩家进场时已知的表面关系，不泄露真相'),
+        portrait: z
+          .enum(MYSTERY_PORTRAIT_VALUES)
+          .describe(
+            '通用立绘：按此人的外貌身份选最贴近的一类，-m 男、-f 女。disciple 年轻弟子与闯关者，elder 年长修士（长老、前辈、执事），wanderer 散修游侠与寻宝人，merchant 商贾掮客，servant 仆役匠人与采药人，noble 世家子弟与传人；非人形选 spirit 器灵残魂、yaoguai 精怪妖物、puppet 傀儡守兽',
+          ),
       }),
+    ),
+    guardLooks: keyed(id.guards, () =>
+      z
+        .enum(['spirit', 'yaoguai', 'puppet'])
+        .describe(
+          '守卫的通用立绘：spirit 阵灵残魂、yaoguai 妖兽精怪、puppet 傀儡',
+        ),
+    ),
+    manifestKind: keyed(id.manifest, () =>
+      z
+        .enum(MYSTERY_MANIFEST_KIND_VALUES)
+        .describe(
+          '异变化形的类型：grass 草木、earth 地脉山石、water 水泽海潮、demonic 魔气、corpse 阴尸',
+        ),
     ),
     rooms: keyed(id.rooms, name(8)),
     objects: keyed(id.objects, name(8)),
@@ -770,6 +791,7 @@ function assemble(
         ...n,
         name: clip(o.npcs[n.id]?.name ?? '', 12),
         title: clip(o.npcs[n.id]?.title ?? '', 16),
+        ...(o.npcs[n.id]?.portrait ? { portrait: o.npcs[n.id]!.portrait } : {}),
         greeting: clip(lines?.greeting ?? '', 200),
         idleLine: clip(lines?.idleLine ?? '', 120),
         deflectLine: clip(lines?.deflectLine ?? '', 120),
@@ -814,6 +836,9 @@ function assemble(
           manifest: {
             name: clip(o.manifest?.manifest ?? '', 12),
             description: clip(str(places.manifest ?? {}, 'manifest'), 200),
+            ...(o.manifestKind?.manifest
+              ? { kind: o.manifestKind.manifest }
+              : {}),
           },
         }
       : {}),
@@ -847,6 +872,7 @@ function assemble(
           guards: c.guards.map((g) => ({
             ...g,
             name: clip(o.guards[g.id] ?? '', 12),
+            ...(o.guardLooks?.[g.id] ? { portrait: o.guardLooks[g.id] } : {}),
             description: clip(guard[g.id]?.description ?? '', 200),
             bypassText: clip(guard[g.id]?.bypassText ?? '', 200),
           })),
@@ -889,7 +915,7 @@ function namingPalette(seed: number) {
 }
 
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
-export const MYSTERY_GENERATOR_VERSION = 5;
+export const MYSTERY_GENERATOR_VERSION = 6;
 
 export interface GeneratedMysteryCase {
   caseFile: MysteryCaseFile;

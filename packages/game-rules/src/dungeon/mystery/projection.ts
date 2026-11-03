@@ -172,9 +172,29 @@ export function projectMysteryView(
     replay: record.replay ?? false,
     confrontation: Boolean(template.finale?.points),
     ...(record.pendingGuard
-      ? { pendingBattle: 'guard' as const }
+      ? {
+          pendingBattle: 'guard' as const,
+          ...(() => {
+            const portrait = caseFile.guards?.find(
+              (g) => g.id === record.pendingGuard,
+            )?.portrait;
+            return portrait ? { pendingFoePortrait: portrait } : {};
+          })(),
+        }
       : record.verdict
-        ? { pendingBattle: 'finale' as const }
+        ? {
+            pendingBattle: 'finale' as const,
+            ...(() => {
+              const portrait =
+                record.verdict.culpritId === 'manifest'
+                  ? caseFile.manifest?.kind &&
+                    `manifest-${caseFile.manifest.kind}`
+                  : caseFile.npcs.find(
+                      (n) => n.id === record.verdict!.culpritId,
+                    )?.portrait;
+              return portrait ? { pendingFoePortrait: portrait } : {};
+            })(),
+          }
         : {}),
     templateName: template.name,
     brief: {
@@ -208,6 +228,7 @@ export function projectMysteryView(
                 name: guard.name,
                 description: guard.description,
                 canBypass: evaluateMysteryCondition(guard.bypass, run),
+                ...(guard.portrait ? { portrait: guard.portrait } : {}),
               },
             }
           : {}),
@@ -249,7 +270,12 @@ export function projectMysteryView(
       }),
     npcsHere: caseFile.npcs
       .filter((n) => n.roomId === room.id && !run.departed?.includes(n.id))
-      .map((n) => ({ id: n.id, name: n.name, title: n.title })),
+      .map((n) => ({
+        id: n.id,
+        name: n.name,
+        title: n.title,
+        ...(n.portrait ? { portrait: n.portrait } : {}),
+      })),
     knownNpcs: caseFile.npcs
       .filter((n) => knownNpcIds.has(n.id))
       .map((n) => {
@@ -265,6 +291,7 @@ export function projectMysteryView(
           id: n.id,
           name: n.name,
           title: n.title,
+          ...(n.portrait ? { portrait: n.portrait } : {}),
           status,
           ...(room ? { roomId: room.id, roomName: room.name } : {}),
           ...(lastLine ? { lastLine } : {}),

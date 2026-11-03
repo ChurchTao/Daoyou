@@ -1,14 +1,85 @@
-import { InkButton } from '@app/components/ui/InkButton';
+import { cn } from '@app/lib/cn';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import { useCallback, useState } from 'react';
+import './mystery-scenes.css';
+import { mysteryPortraitUrl } from './mysteryArt';
 import { MysteryReveal } from './MysteryAtmosphere';
 
+type Mode = 'finale' | 'guard' | undefined;
+
+const COPY: Record<
+  'finale' | 'guard' | 'other',
+  {
+    label: string;
+    fight: string;
+    retreat: string;
+    retreatNote: string;
+  }
+> = {
+  finale: {
+    label: '结尾对决 · 首领',
+    fight: '胜：擒下对手，拿到对决分。败：推理所得照常结算。',
+    retreat: '任其遁走',
+    retreatNote: '不打这一仗，推理所得照常结算，只是拿不到对决分。',
+  },
+  guard: {
+    label: '守卫 · 精英',
+    fight: '胜则闯入；败则退回原处。两者都耗 1 点行动力。',
+    retreat: '暂且退回',
+    retreatNote: '回到调查，另寻化解之法，不耗行动力。',
+  },
+  other: {
+    label: '前方守敌',
+    fight: '胜则继续前行。',
+    retreat: '结束探索',
+    retreatNote: '带走此前已确定的收获。',
+  },
+};
+
+function Meter({
+  label,
+  current,
+  max,
+  tone,
+}: {
+  label: string;
+  current: number;
+  max: number;
+  tone: 'hp' | 'mp';
+}) {
+  const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-xs">
+        <span className="text-paper/70">{label}</span>
+        <span className="font-mono">
+          {Math.floor(current)} / {Math.floor(max)}
+        </span>
+      </div>
+      <div className="bg-paper/15 mt-1 h-1.5 overflow-hidden rounded-full">
+        <div
+          className={cn(
+            'h-full rounded-full transition-[width] duration-700',
+            tone === 'hp' ? 'bg-crimson' : 'bg-[#6f8a9a]',
+          )}
+          style={{ width: `${ratio * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 迎战准备：暗场中敌我对峙。对手立绘、身份与情状在一侧，你的气血、法力与出战灵兽在另一侧；
+ * 选择写成两张后果卡，说明打与不打各会怎样。结尾对决先播一段“现形”转场。
+ */
 export function BattlePreparation({
   encounter,
   processing,
   onBegin,
   onQuit,
   mode,
+  portrait,
 }: {
   encounter: DungeonEncounterView;
   processing: boolean;
@@ -16,73 +87,123 @@ export function BattlePreparation({
    * 解谜中的遭遇战：finale 为结案后的对决，放弃即任其遁走、仍按结案结算；
    * guard 为强闯守卫，放弃即退回调查。
    */
-  mode?: 'finale' | 'guard';
+  mode?: Mode;
+  /** 对手的立绘键。 */
+  portrait?: string;
   onBegin: () => Promise<void>;
   onQuit: () => Promise<boolean>;
 }) {
   const [revealed, setRevealed] = useState(mode !== 'finale');
   const reveal = useCallback(() => setRevealed(true), []);
+  const copy = COPY[mode ?? 'other'];
+  const foeUrl = mysteryPortraitUrl(portrait);
+  const foeName = encounter.enemies.join('、');
+  const lowHp =
+    encounter.hp.max > 0 && encounter.hp.current / encounter.hp.max < 0.3;
+
   return (
-    <div className="space-y-6 py-4">
+    <div className="bg-ink text-paper relative overflow-hidden rounded-lg px-5 py-6 md:px-8 md:py-8">
       {revealed ? null : (
         <MysteryReveal
-          name={encounter.enemies.join('、')}
+          name={foeName}
           description={encounter.description}
+          portrait={portrait}
           onDone={reveal}
         />
       )}
-      <p className="text-ink leading-8">{encounter.description}</p>
-      <div>
-        <p className="text-ink-secondary mb-2 text-sm">
-          {mode === 'finale'
-            ? '负隅顽抗'
-            : mode === 'guard'
-              ? '拦路守卫'
-              : '前方守敌'}{' '}
-          · <span className="font-mono">{encounter.enemies.length}</span> 位
-        </p>
-        <p className="text-crimson text-lg">{encounter.enemies.join('、')}</p>
+      <div className="text-paper/60 text-xs tracking-[0.3em]">{copy.label}</div>
+
+      <div className="mt-5 grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-8">
+        <div className="mystery-duel-foe flex flex-col items-center gap-3 text-center md:flex-row md:items-center md:text-left">
+          <div className="bg-paper flex size-28 shrink-0 items-center justify-center rounded-full md:size-36">
+            {foeUrl ? (
+              <img
+                src={foeUrl}
+                alt=""
+                aria-hidden="true"
+                className="size-24 object-contain md:size-32"
+              />
+            ) : (
+              <span className="text-ink-secondary text-4xl">
+                {foeName.slice(0, 1)}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 space-y-2">
+            <div className="text-crimson text-2xl font-semibold tracking-[0.2em] md:text-3xl">
+              {foeName}
+            </div>
+            <p className="text-paper/80 text-sm leading-7">
+              {encounter.description}
+            </p>
+          </div>
+        </div>
+
+        {/* 敌我之间一道斜墨痕，只在宽屏出现。 */}
+        <div
+          aria-hidden
+          className="mystery-duel-slash from-paper/0 via-paper/40 to-paper/0 hidden h-44 w-px rotate-12 bg-gradient-to-b md:block"
+        />
+
+        <div className="mystery-duel-self space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-paper/10 border-paper/30 flex size-10 items-center justify-center rounded-full border text-sm">
+              你
+            </div>
+            <div className="text-paper/70 text-xs">
+              出战灵兽：{encounter.beast ?? '无'}
+            </div>
+          </div>
+          <Meter
+            label="气血"
+            current={encounter.hp.current}
+            max={encounter.hp.max}
+            tone="hp"
+          />
+          <Meter
+            label="法力"
+            current={encounter.mp.current}
+            max={encounter.mp.max}
+            tone="mp"
+          />
+          <p
+            className={cn(
+              'text-xs leading-6',
+              lowHp ? 'text-[#e57361]' : 'text-paper/60',
+            )}
+          >
+            {lowHp
+              ? '气血不足三成，慎战。'
+              : '以当前气血、法力入场，战斗消耗会保留。'}
+          </p>
+        </div>
       </div>
-      <dl className="border-ink/15 grid grid-cols-2 gap-4 border-y py-4 text-sm">
-        <div>
-          <dt className="text-ink-secondary">气血</dt>
-          <dd className="mt-1 font-mono">
-            {Math.floor(encounter.hp.current)} / {Math.floor(encounter.hp.max)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-ink-secondary">法力</dt>
-          <dd className="mt-1 font-mono">
-            {Math.floor(encounter.mp.current)} / {Math.floor(encounter.mp.max)}
-          </dd>
-        </div>
-        <div className="col-span-2">
-          <dt className="text-ink-secondary">出战灵兽</dt>
-          <dd className="mt-1">{encounter.beast ?? '无'}</dd>
-        </div>
-      </dl>
-      <p className="text-ink-secondary text-sm leading-7">
-        {mode === 'finale'
-          ? '迎战将以当前气血、法力入场，战斗消耗会保留。擒下对手可得对决分；落败或放其离去，推理所得照常结算，只是少了这一项。'
-          : mode === 'guard'
-            ? '迎战将以当前气血、法力入场，战斗消耗会保留。胜则闯入，败则退回原处，都消耗 1 点行动力；也可暂且退回，另寻化解之法。'
-            : '迎战将以当前气血、法力入场，战斗消耗会保留。也可就此结束探索，带走此前已确定的收获。'}
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <InkButton disabled={processing} onClick={() => void onBegin()}>
-          {processing ? '处理中…' : '迎战'}
-        </InkButton>
-        <InkButton
-          variant="secondary"
+
+      <div className="mt-7 grid gap-3 md:grid-cols-2">
+        <button
+          type="button"
           disabled={processing}
+          className="border-crimson bg-crimson/15 hover:bg-crimson/25 rounded-lg border px-4 py-3 text-left transition-colors disabled:opacity-50"
+          onClick={() => void onBegin()}
+        >
+          <div className="font-semibold text-[#e57361]">
+            {processing ? '处理中…' : '迎战'}
+          </div>
+          <div className="text-paper/75 mt-1 text-sm leading-6">
+            {copy.fight}
+          </div>
+        </button>
+        <button
+          type="button"
+          disabled={processing}
+          className="border-paper/25 hover:bg-paper/5 rounded-lg border px-4 py-3 text-left transition-colors disabled:opacity-50"
           onClick={() => void onQuit()}
         >
-          {mode === 'finale'
-            ? '任其遁走'
-            : mode === 'guard'
-              ? '暂且退回'
-              : '结束探索'}
-        </InkButton>
+          <div className="font-semibold">{copy.retreat}</div>
+          <div className="text-paper/70 mt-1 text-sm leading-6">
+            {copy.retreatNote}
+          </div>
+        </button>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
-import { MysterySeal } from './MysteryCaseBoard';
+import { MysteryPortrait } from './MysteryPortrait';
 
 type Guard = NonNullable<MysteryPlayerView['exits'][number]['guard']>;
 
@@ -83,7 +83,11 @@ export function MysteryGuardCard({
     >
       <div className="mystery-guard-card bg-paper border-crimson w-full max-w-md space-y-5 border-t-4 p-6 shadow-[0_20px_60px_rgba(44,24,16,0.35)]">
         <div className="flex items-center gap-4">
-          <MysterySeal name={guard.name} />
+          <MysteryPortrait
+            portrait={guard.portrait}
+            name={guard.name}
+            size="md"
+          />
           <div>
             <div className="text-ink-secondary text-sm">
               去往{roomName}的路被拦住了

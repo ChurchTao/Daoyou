@@ -53,6 +53,7 @@ pnpm run db:migrate
 - `daoyou-ink-portraits`: 玩家、NPC、BOSS 与灵兽写意墨像立绘的固定笔墨基准、物种设计方法、彩墨与视觉验收；见 `.agents/skills/daoyou-ink-portraits/SKILL.md`。
 - `daoyou-skill-totems`: 技能图标的水墨图腾构形、机制辨识、固定验收参考与小尺寸防漂移；见 [.agents/skills/daoyou-skill-totems/SKILL.md](.agents/skills/daoyou-skill-totems/SKILL.md)。
 - `daoyou-map-art`: 世界总览与独立区域地图的国画水墨、彩墨、地域辨识、空间尺度及素材交付；见 [.agents/skills/daoyou-map-art/SKILL.md](.agents/skills/daoyou-map-art/SKILL.md)。
+- `daoyou-scene-art`: 云游探秘解谜副本按地貌类别的淡墨场景底图（开局题签与案情板地点页），规范笔墨、文字区留白与叠放浓淡；见 [.agents/skills/daoyou-scene-art/SKILL.md](.agents/skills/daoyou-scene-art/SKILL.md)。
 - `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
 - `daoyou-beast-design`: 灵兽物种、生灵层次、命名、资质成长及出生技能池设计与审查；扩充或调整物种前读取 `.agents/skills/daoyou-beast-design/SKILL.md`，实施同时遵守领域技能。
 - Only the skills present in `.agents/skills/` are project skill entrypoints. For runtime work, inspect `package.json`, `apps/api/src/main.ts`, Vite/Docker configs and `docs/local-development.md`; for condition/alchemy/market work, combine the domain, data and backend skills as applicable.

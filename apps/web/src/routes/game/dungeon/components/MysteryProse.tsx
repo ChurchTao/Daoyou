@@ -2,6 +2,7 @@ import { cn } from '@app/lib/cn';
 import type { MysteryLogEntry } from '@daoyou/game-domain/dungeon/mystery';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import './mystery-scenes.css';
+import { useTypewriter } from './useMysteryTypewriter';
 
 /** 正文里可以点的字：物件、在场人物或去处；`gone` 是已毁去或已离场的，划去不可点。 */
 export interface ProseTarget {
@@ -91,12 +92,15 @@ export function MysteryProse({
   targets,
   menuFor,
   footer,
+  typewriter = false,
 }: {
   entries: MysteryLogEntry[];
   turn: number;
   targets: ProseTarget[];
   menuFor: (target: ProseTarget) => ProseMenuItem[];
   footer?: ReactNode;
+  /** 本回合新段落逐字显出；显出完毕前字不可点。 */
+  typewriter?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const latestRef = useRef<HTMLDivElement>(null);
@@ -111,6 +115,14 @@ export function MysteryProse({
   const extra = fallbackLine(missing);
   const extraSpans = extra ? locateTargets([extra], missing).spans[0]! : [];
   const firstNew = entries.findIndex((entry) => entry.turn === turn);
+  // 本回合各段在逐字显示中的起点。
+  const offsets: number[] = [];
+  let total = 0;
+  for (const entry of entries) {
+    offsets.push(total);
+    if (entry.turn === turn) total += entry.text.length;
+  }
+  const { shown, typing, skip } = useTypewriter(turn, total, typewriter);
 
   // 每次行动后把新段落带到视野里。
   useEffect(() => {
@@ -195,9 +207,21 @@ export function MysteryProse({
   };
 
   return (
-    <div ref={containerRef} className="relative space-y-4">
+    <div
+      ref={containerRef}
+      className="relative space-y-4"
+      onClick={typing ? skip : undefined}
+    >
       {entries.map((entry, index) => {
         const fresh = entry.turn === turn;
+        const budget = fresh
+          ? Math.max(0, Math.min(entry.text.length, shown - offsets[index]!))
+          : entry.text.length;
+        // 还没轮到显出的段落先留空位，保留滚动定位用的引用。
+        if (fresh && budget === 0)
+          return (
+            <div key={index} ref={index === firstNew ? latestRef : undefined} />
+          );
         return (
           <div
             key={index}
@@ -217,15 +241,20 @@ export function MysteryProse({
               ) : (
                 ENTRY_LABEL[entry.kind]
               )}
-              {renderText(entry.text, spans[index]!)}
+              {budget < entry.text.length
+                ? entry.text.slice(0, budget)
+                : renderText(entry.text, spans[index]!)}
             </span>
           </div>
         );
       })}
-      {extra ? (
-        <p className="text-ink-secondary leading-8">
+      {extra && !typing ? (
+        <p className="text-ink-secondary animate-fade-in leading-8">
           {renderText(extra, extraSpans)}
         </p>
+      ) : null}
+      {typing ? (
+        <p className="text-ink-secondary text-xs">点一下显示全文</p>
       ) : null}
       {footer}
 

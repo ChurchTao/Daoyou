@@ -2,6 +2,8 @@
 export {
   MYSTERY_ANSWER_KIND_VALUES,
   MYSTERY_ARCHETYPE_VALUES,
+  MYSTERY_MANIFEST_KIND_VALUES,
+  MYSTERY_PORTRAIT_VALUES,
   MysteryActionSchema,
   MysteryAnswersSchema,
   MysteryCaseFileSchema,
@@ -26,6 +28,7 @@ export type {
   MysteryMapRoom,
   MysteryNpcStatus,
   MysteryPlayerView,
+  MysteryPortrait,
   MysteryRecord,
   MysteryResult,
   MysteryRewardTier,

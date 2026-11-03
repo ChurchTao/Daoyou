@@ -11,6 +11,7 @@ import {
   type MysteryCaseFile,
   type MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
+import { DUNGEON_SCENE_KIND_VALUES } from '@daoyou/game-domain/world/map';
 import { describe, expect, it } from 'vitest';
 import {
   applyMysteryAction,
@@ -109,6 +110,10 @@ describe('mystery scenario content', () => {
       expect(inRange(s!.objects, 4, 8), `${node.id} objects`).toBe(true);
       expect(inRange(s!.factions, 0, 4), `${node.id} factions`).toBe(true);
       expect(s!.forbidden.length, `${node.id} forbidden`).toBeGreaterThan(0);
+      expect(
+        DUNGEON_SCENE_KIND_VALUES.includes(s!.scene!),
+        `${node.id} scene`,
+      ).toBe(true);
       // 每个节点至少两种自然适配的案型，开局在其间轮换。
       expect(
         s!.templates.length,

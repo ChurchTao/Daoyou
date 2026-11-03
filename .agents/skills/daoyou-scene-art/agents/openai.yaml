@@ -1,0 +1,4 @@
+interface:
+  display_name: "道友 · 解谜场景插画"
+  short_description: "解谜副本地貌类别底图的笔墨、留白构图、文字叠放浓淡与素材交付规范"
+  default_prompt: "使用 $daoyou-scene-art，为指定的地貌类别设计或评审解谜副本的淡墨场景底图，检查地貌辨识、文字区留白与笔墨一致性。"

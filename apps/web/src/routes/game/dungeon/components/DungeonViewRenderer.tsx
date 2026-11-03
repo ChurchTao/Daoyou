@@ -250,6 +250,7 @@ export function DungeonViewRenderer({
           onBegin={actions.beginBattle}
           onQuit={actions.quitDungeon}
           mode={viewState.state.mysteryView?.pendingBattle}
+          portrait={viewState.state.mysteryView?.pendingFoePortrait}
         />
       </DungeonSceneScreen>
     );
@@ -360,6 +361,10 @@ export function DungeonViewRenderer({
           onGuard={actions.mysteryGuard}
           onDeduce={actions.mysteryDeduce}
           onQuit={actions.quitDungeon}
+          scene={
+            getMapNode(viewState.state.mapNodeId)?.dungeon_config?.scenario
+              ?.scene
+          }
         />
       </DungeonSceneScreen>
     );

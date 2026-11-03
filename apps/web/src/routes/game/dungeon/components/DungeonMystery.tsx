@@ -12,6 +12,7 @@ import type {
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useCallback, useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
+import { mysterySceneUrl } from './mysteryArt';
 import { MysteryAnomalyVeil, MysteryEventFlash } from './MysteryAtmosphere';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryClueRail } from './MysteryClueRail';
@@ -19,6 +20,7 @@ import { MysteryGuardCard } from './MysteryGuardCard';
 import { MysteryLogLine } from './MysteryLogLine';
 import { MysteryMechanismScene } from './MysteryMechanismScene';
 import { MysteryMiniMap } from './MysteryMiniMap';
+import { MysteryPortrait } from './MysteryPortrait';
 import {
   MysteryProse,
   type ProseMenuItem,
@@ -26,6 +28,7 @@ import {
 } from './MysteryProse';
 import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
+import { useTypewriterPreference } from './useMysteryTypewriter';
 
 interface DungeonMysteryProps {
   view: MysteryPlayerView;
@@ -39,6 +42,8 @@ interface DungeonMysteryProps {
   ) => Promise<void>;
   onGuard: (guardId: string) => Promise<void>;
   onQuit: () => Promise<boolean>;
+  /** 此地的场景插画类别，用于开局题签与地点页底图。 */
+  scene?: string;
 }
 
 type Picker =
@@ -121,7 +126,9 @@ export function DungeonMystery({
   onDeduce,
   onGuard,
   onQuit,
+  scene,
 }: DungeonMysteryProps) {
+  const sceneUrl = mysterySceneUrl(scene);
   const wide = useMinWidth(1024);
   const full = useMinWidth(1280);
   const { notes, pin, markSeen } = useMysteryNotes(runId);
@@ -129,6 +136,9 @@ export function DungeonMystery({
     npcId: string;
     npcName: string;
   } | null>(null);
+  const askingPortrait = view.knownNpcs.find(
+    (n) => n.id === asking?.npcId,
+  )?.portrait;
   const [question, setQuestion] = useState('');
   const [boardOpen, setBoardOpen] = useState(false);
   const [boardTab, setBoardTab] = useState<MysteryBoardTab>('clues');
@@ -137,6 +147,7 @@ export function DungeonMystery({
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
   const [operating, setOperating] = useState<string | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const typewriter = useTypewriterPreference();
 
   const exhausted = view.actionsLeft <= 0;
   const operatingMechanism =
@@ -345,6 +356,7 @@ export function DungeonMystery({
         goTo(roomId);
       }}
       reachable={reachable}
+      sceneUrl={sceneUrl}
     />
   );
 
@@ -461,9 +473,19 @@ export function DungeonMystery({
         ) : null}
 
         {view.turn === 0 ? (
-          <p className="text-ink-secondary text-center text-sm tracking-[0.3em]">
-            {view.title}
-          </p>
+          <div
+            className={cn(
+              'flex items-center justify-center bg-cover bg-center',
+              sceneUrl && 'min-h-40 md:min-h-56',
+            )}
+            style={
+              sceneUrl ? { backgroundImage: `url(${sceneUrl})` } : undefined
+            }
+          >
+            <p className="text-ink-secondary text-center text-sm tracking-[0.3em]">
+              {view.title}
+            </p>
+          </div>
         ) : null}
 
         {segmentStart > 0 ? (
@@ -482,6 +504,7 @@ export function DungeonMystery({
             turn={view.turn}
             targets={targets}
             menuFor={menuFor}
+            typewriter={typewriter.enabled}
             footer={
               processing ? (
                 <p
@@ -548,6 +571,17 @@ export function DungeonMystery({
         size="md"
         title="案情板"
         description="线索、人物、地点与调查经过都记在这里。"
+        footer={
+          <button
+            type="button"
+            role="switch"
+            aria-checked={typewriter.enabled}
+            className="text-ink-secondary hover:text-ink text-sm"
+            onClick={typewriter.toggle}
+          >
+            文字逐字显示：{typewriter.enabled ? '开' : '关'}
+          </button>
+        }
       >
         {board}
       </InkDetailDrawer>
@@ -566,7 +600,20 @@ export function DungeonMystery({
         isOpen={asking !== null}
         onClose={() => setAsking(null)}
         size="md"
-        title={asking ? `与${asking.npcName}交谈` : ''}
+        title={
+          asking ? (
+            <span className="flex items-center gap-3">
+              <MysteryPortrait
+                portrait={askingPortrait}
+                name={asking.npcName}
+                size="md"
+              />
+              与{asking.npcName}交谈
+            </span>
+          ) : (
+            ''
+          )
+        }
         description="直接问你想知道的事，每问一句耗 1 点行动力。"
         footer={
           asking ? (

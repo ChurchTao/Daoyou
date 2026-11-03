@@ -9,6 +9,7 @@ import type {
 import { useState } from 'react';
 import { MysteryLogLine } from './MysteryLogLine';
 import { MysteryMiniMap } from './MysteryMiniMap';
+import { MysteryPortrait } from './MysteryPortrait';
 import type { MysteryNotes } from './useMysteryNotes';
 
 export type MysteryBoardTab = 'clues' | 'people' | 'places' | 'log';
@@ -26,29 +27,6 @@ const STATUS: Record<
   exposed: { label: '说法被戳穿', tone: 'bad' },
   departed: { label: '已离场', tone: 'neutral' },
 };
-
-/** 人物的姓氏印章，代替尚未绘制的立绘。 */
-export function MysterySeal({
-  name,
-  muted,
-}: {
-  name: string;
-  muted?: boolean;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full border text-sm',
-        muted
-          ? 'border-ink-border text-ink-secondary'
-          : 'border-crimson/60 text-crimson',
-      )}
-    >
-      {name.slice(0, 1)}
-    </span>
-  );
-}
 
 function Empty({ children }: { children: string }) {
   return (
@@ -137,6 +115,7 @@ export function MysteryCaseBoard({
   onUseItem,
   onSelectRoom,
   reachable,
+  sceneUrl,
 }: {
   view: MysteryPlayerView;
   notes: MysteryNotes;
@@ -149,6 +128,8 @@ export function MysteryCaseBoard({
   onUseItem: (item: Item) => void;
   onSelectRoom: (roomId: string) => void;
   reachable: ReadonlySet<string>;
+  /** 此地的场景插画，地点页顶部的淡墨底图；没有素材时不显示。 */
+  sceneUrl?: string;
 }) {
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id)).length;
   const here = new Set(view.npcsHere.map((n) => n.id));
@@ -239,8 +220,10 @@ export function MysteryCaseBoard({
                 className="border-ink/15 space-y-2 border px-3 py-2"
               >
                 <div className="flex items-center gap-3">
-                  <MysterySeal
+                  <MysteryPortrait
+                    portrait={npc.portrait}
                     name={npc.name}
+                    size="md"
                     muted={npc.status === 'departed'}
                   />
                   <div className="min-w-0 flex-1">
@@ -290,6 +273,14 @@ export function MysteryCaseBoard({
 
       {tab === 'places' ? (
         <div className="space-y-3">
+          {sceneUrl ? (
+            <img
+              src={sceneUrl}
+              alt=""
+              aria-hidden="true"
+              className="h-28 w-full object-cover"
+            />
+          ) : null}
           <MysteryMiniMap
             map={view.map}
             reachable={reachable}

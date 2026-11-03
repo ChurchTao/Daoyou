@@ -297,6 +297,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "cave",
           "templates": [
             "inheritance_murder",
             "lost_relic",
@@ -354,6 +355,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "sect_ruin",
           "templates": [
             "inheritance_murder",
             "lost_relic",
@@ -412,6 +414,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "cave",
           "templates": [
             "inheritance_murder",
             "anomaly_source"
@@ -468,6 +471,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "sea",
           "templates": [
             "inheritance_murder",
             "lost_relic"
@@ -524,6 +528,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "void",
           "templates": [
             "trial_seal",
             "anomaly_source"
@@ -578,6 +583,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "tomb",
           "templates": [
             "inheritance_murder",
             "trial_seal",
@@ -635,6 +641,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "steppe",
           "templates": [
             "anomaly_source",
             "faction_choice"
@@ -692,6 +699,7 @@
       "dungeon_config": {
         "difficulty": "easy",
         "scenario": {
+          "scene": "forest",
           "templates": [
             "inheritance_murder",
             "anomaly_source"
@@ -758,6 +766,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "sea",
           "templates": [
             "lost_relic",
             "anomaly_source"
@@ -813,6 +822,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "void",
           "templates": [
             "lost_relic",
             "trial_seal"
@@ -866,6 +876,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "tower_stele",
           "templates": [
             "trial_seal",
             "anomaly_source"
@@ -919,6 +930,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "sea",
           "templates": [
             "lost_relic",
             "trial_seal"
@@ -972,6 +984,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "sea",
           "templates": [
             "anomaly_source",
             "faction_choice"
@@ -1028,6 +1041,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "tower_stele",
           "templates": [
             "lost_relic",
             "trial_seal"
@@ -1081,6 +1095,7 @@
       "dungeon_config": {
         "difficulty": "elite",
         "scenario": {
+          "scene": "tower_stele",
           "templates": [
             "trial_seal",
             "anomaly_source"
@@ -1134,6 +1149,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "forest",
           "templates": [
             "inheritance_murder",
             "trial_seal",
@@ -1191,6 +1207,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "underground",
           "templates": [
             "trial_seal",
             "anomaly_source"
@@ -1247,6 +1264,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "void",
           "templates": [
             "anomaly_source",
             "faction_choice"
@@ -1303,6 +1321,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "sect_ruin",
           "templates": [
             "inheritance_murder",
             "lost_relic",
@@ -1359,6 +1378,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "underground",
           "templates": [
             "anomaly_source",
             "faction_choice"
@@ -1415,6 +1435,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "sea",
           "templates": [
             "lost_relic",
             "anomaly_source"
@@ -1470,6 +1491,7 @@
       "dungeon_config": {
         "difficulty": "elite",
         "scenario": {
+          "scene": "sect_ruin",
           "templates": [
             "lost_relic",
             "trial_seal",
@@ -1528,6 +1550,7 @@
       "dungeon_config": {
         "difficulty": "normal",
         "scenario": {
+          "scene": "steppe",
           "templates": [
             "anomaly_source",
             "faction_choice"
@@ -1584,6 +1607,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "ice",
           "templates": [
             "inheritance_murder",
             "lost_relic"
@@ -1639,6 +1663,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "tower_stele",
           "templates": [
             "inheritance_murder",
             "trial_seal",
@@ -1695,6 +1720,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "underground",
           "templates": [
             "lost_relic",
             "anomaly_source"
@@ -1750,6 +1776,7 @@
       "dungeon_config": {
         "difficulty": "hard",
         "scenario": {
+          "scene": "sect_ruin",
           "templates": [
             "inheritance_murder",
             "trial_seal"
@@ -1806,6 +1833,7 @@
       "dungeon_config": {
         "difficulty": "easy",
         "scenario": {
+          "scene": "underground",
           "templates": [
             "inheritance_murder",
             "lost_relic"
@@ -1860,6 +1888,7 @@
       "dungeon_config": {
         "difficulty": "elite",
         "scenario": {
+          "scene": "sect_ruin",
           "templates": [
             "lost_relic",
             "trial_seal"
@@ -1916,6 +1945,7 @@
       "dungeon_config": {
         "difficulty": "elite",
         "scenario": {
+          "scene": "ice",
           "templates": [
             "inheritance_murder",
             "trial_seal"
@@ -1970,6 +2000,7 @@
       "dungeon_config": {
         "difficulty": "boss",
         "scenario": {
+          "scene": "void",
           "templates": [
             "lost_relic",
             "faction_choice"

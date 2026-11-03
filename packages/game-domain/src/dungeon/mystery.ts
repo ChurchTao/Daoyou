@@ -57,6 +57,39 @@ export const MysteryEventEffectSchema = z.discriminatedUnion('kind', [
 
 export type MysteryEventEffect = z.infer<typeof MysteryEventEffectSchema>;
 
+/**
+ * 通用人物立绘：类别加性别（男 m／女 f），非人形不分性别。案卷人物与守卫各选其一，
+ * 素材按此键名交付；没有对应素材时界面显示姓氏印章。
+ */
+export const MYSTERY_PORTRAIT_VALUES = [
+  'disciple-m',
+  'disciple-f',
+  'elder-m',
+  'elder-f',
+  'wanderer-m',
+  'wanderer-f',
+  'merchant-m',
+  'merchant-f',
+  'servant-m',
+  'servant-f',
+  'noble-m',
+  'noble-f',
+  'spirit',
+  'yaoguai',
+  'puppet',
+] as const;
+
+export type MysteryPortrait = (typeof MYSTERY_PORTRAIT_VALUES)[number];
+
+/** 异变化形的类型：草木、地脉、水泽、魔气、阴尸。 */
+export const MYSTERY_MANIFEST_KIND_VALUES = [
+  'grass',
+  'earth',
+  'water',
+  'demonic',
+  'corpse',
+] as const;
+
 export const MYSTERY_ARCHETYPE_VALUES = [
   'whodunit',
   'unlock',
@@ -292,6 +325,8 @@ export const MysteryCaseFileSchema = z.strictObject({
         title: Text(16),
         role: MysteryIdSchema,
         roomId: MysteryIdSchema,
+        /** 通用立绘；旧案卷没有此字段。 */
+        portrait: z.enum(MYSTERY_PORTRAIT_VALUES).optional(),
         greeting: Text(200),
         idleLine: Text(120),
         deflectLine: Text(120),
@@ -396,7 +431,11 @@ export const MysteryCaseFileSchema = z.strictObject({
     .optional(),
   /** 异变化形：异变溯源中结尾对决的对手，不是人物。 */
   manifest: z
-    .strictObject({ name: Text(12), description: Text(200) })
+    .strictObject({
+      name: Text(12),
+      description: Text(200),
+      kind: z.enum(MYSTERY_MANIFEST_KIND_VALUES).optional(),
+    })
     .optional(),
   /** 守住某个房间入口的守卫：可强闯（战斗）或满足条件后化解。旧案卷没有此字段。 */
   guards: z
@@ -406,6 +445,7 @@ export const MysteryCaseFileSchema = z.strictObject({
         roomId: MysteryIdSchema,
         name: Text(12),
         description: Text(200),
+        portrait: z.enum(MYSTERY_PORTRAIT_VALUES).optional(),
         bypass: MysteryConditionSchema,
         bypassText: Text(200),
       }),
@@ -612,6 +652,8 @@ export interface MysteryPlayerView {
   confrontation: boolean;
   /** 正在等待的遭遇战：结尾对决或强闯守卫。 */
   pendingBattle?: 'finale' | 'guard';
+  /** 待战对手的立绘键：人物与守卫用其立绘，异变化形为 manifest-类型。 */
+  pendingFoePortrait?: string;
   templateName: string;
   brief: MysteryCaseFile['brief'] & {
     relations: Array<{ npcId: string; name: string; text: string }>;
@@ -630,6 +672,7 @@ export interface MysteryPlayerView {
       name: string;
       description: string;
       canBypass: boolean;
+      portrait?: MysteryPortrait;
     };
   }>;
   objects: Array<{
@@ -649,11 +692,17 @@ export interface MysteryPlayerView {
       hints: Array<string | null>;
     };
   }>;
-  npcsHere: Array<{ id: string; name: string; title: string }>;
+  npcsHere: Array<{
+    id: string;
+    name: string;
+    title: string;
+    portrait?: MysteryPortrait;
+  }>;
   knownNpcs: Array<{
     id: string;
     name: string;
     title: string;
+    portrait?: MysteryPortrait;
     status: MysteryNpcStatus;
     /** 所在地点；离场或尚未到过其所在房间时为空。 */
     roomId?: string;
