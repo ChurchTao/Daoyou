@@ -401,7 +401,16 @@ export const MysteryCaseFileSchema = z.strictObject({
 export type MysteryCaseFile = z.infer<typeof MysteryCaseFileSchema>;
 
 export type MysteryLogKind =
-  'scene' | 'detail' | 'speech' | 'clue' | 'item' | 'system' | 'event' | 'hint';
+  | 'scene'
+  | 'detail'
+  | 'speech'
+  | 'clue'
+  | 'item'
+  | 'system'
+  /** 事件发生；`omen` 为事件的预兆（旧运行态里预兆也记为 event）。 */
+  | 'event'
+  | 'omen'
+  | 'hint';
 
 export interface MysteryLogEntry {
   turn: number;
@@ -632,7 +641,12 @@ export interface MysteryPlayerView {
     source?: MysterySourceRef;
   }>;
   /** 已出现预兆、尚未发生也未被阻止的事件。 */
-  alerts: Array<{ id: string; text: string }>;
+  /** 已有预兆、尚未发生的事件；`turnsLeft` 为再行动几次后发生。 */
+  alerts: Array<{ id: string; text: string; turnsLeft: number }>;
+  /** 到访过的地方里被毁去的物件名。 */
+  lost: string[];
+  /** 异变溯源的加剧进度：已发生几重、共几重、是否已被镇住。其他案型没有。 */
+  anomaly?: { stage: number; stages: number; contained: boolean };
   map: { rooms: MysteryMapRoom[]; edges: Array<[string, string]> };
   log: MysteryLogEntry[];
   questions: Array<{

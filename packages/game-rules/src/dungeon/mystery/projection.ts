@@ -8,6 +8,7 @@ import type {
   MysteryScenarioTemplate,
   MysterySourceRef,
 } from '@daoyou/game-domain/dungeon/mystery';
+import { mysteryAnomalyStatus } from './anomaly.js';
 import {
   evaluateMysteryCondition,
   mysteryGuardAt,
@@ -143,6 +144,7 @@ export function projectMysteryView(
   template: MysteryScenarioTemplate,
 ): MysteryPlayerView {
   const { caseFile, run, result } = record;
+  const anomaly = mysteryAnomalyStatus(caseFile, run);
   const room =
     caseFile.rooms.find((r) => r.id === run.location) ?? caseFile.rooms[0]!;
   const npcName = (id: string) =>
@@ -308,7 +310,17 @@ export function projectMysteryView(
           !run.events.includes(e.id) &&
           !evaluateMysteryCondition(e.unless, run),
       )
-      .map((e) => ({ id: e.id, text: e.warning })),
+      .map((e) => ({
+        id: e.id,
+        text: e.warning,
+        turnsLeft: Math.max(1, e.at - run.turn),
+      })),
+    lost: caseFile.objects
+      .filter(
+        (o) => run.destroyed?.includes(o.id) && run.visited.includes(o.roomId),
+      )
+      .map((o) => o.name),
+    ...(anomaly ? { anomaly } : {}),
     map: projectMap(caseFile, run),
     log: run.log,
     questions: template.questions.map((tq) => {

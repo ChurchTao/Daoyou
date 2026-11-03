@@ -1,6 +1,7 @@
 import { SeededRng } from '@daoyou/combat-core/rng';
 import type {
   MysteryCaseFile,
+  MysteryRunState,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
@@ -42,6 +43,25 @@ const REMEDY_OPTIONS = [
  * 异变分三重随回合加剧，封住偏殿或毁去源头物证，只伤加分内容；
  * 找到镇物用在源头可暂时镇住。随种子变化的有：房间连通、人物站位、有无知情者、守卫个数。
  */
+const STAGE_PREFIX = 'evt_stage_';
+const CONTAINED_FLAG = 'anomaly_contained';
+
+/** 异变加剧的进度：按骨架约定的分重事件与镇住标记计算；不是异变案卷时返回 null。 */
+export function mysteryAnomalyStatus(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+) {
+  const stages = (caseFile.events ?? []).filter((e) =>
+    e.id.startsWith(STAGE_PREFIX),
+  );
+  if (stages.length === 0) return null;
+  return {
+    stage: stages.filter((e) => run.events?.includes(e.id)).length,
+    stages: stages.length,
+    contained: run.flags.includes(CONTAINED_FLAG),
+  };
+}
+
 export function buildAnomalySkeleton(
   template: MysteryScenarioTemplate,
   seed: number,
@@ -412,7 +432,7 @@ export function buildAnomalySkeleton(
       purposes[`option:${id}`] = purpose;
       return { id, label: T };
     });
-  const contained = { flag: 'anomaly_contained' };
+  const contained = { flag: CONTAINED_FLAG };
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,

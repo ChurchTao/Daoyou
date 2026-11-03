@@ -610,7 +610,7 @@ describe('mystery view for the case board', () => {
       events: [`warn:${event.id}`],
     };
     expect(view(caseFile, warned).alerts).toEqual([
-      { id: event.id, text: event.warning },
+      { id: event.id, text: event.warning, turnsLeft: event.at - warned.turn },
     ]);
     expect(
       view(caseFile, { ...warned, flags: ['han_exposed'] }).alerts,

@@ -223,7 +223,7 @@ describe('timed events', () => {
     let run = createMysteryRun(caseFile, template.scale.action_budget);
     run = look(caseFile, { ...run, turn: erase.warnAt - 1 });
     expect(run.events).toEqual(['warn:evt_erase']);
-    expect(run.log.at(-1)).toMatchObject({ kind: 'event' });
+    expect(run.log.at(-1)).toMatchObject({ kind: 'omen' });
     run = look(caseFile, { ...run, turn: leave.at - 1 });
     expect(run.events).toEqual(
       expect.arrayContaining(['evt_erase', 'evt_leave']),

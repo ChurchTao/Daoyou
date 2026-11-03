@@ -1,6 +1,6 @@
 import type { MysteryLogEntry } from '@daoyou/game-domain/dungeon/mystery';
 
-/** 调查日志的一行：线索、物品、对话、突发与提示各有标记。 */
+/** 调查日志的一行：线索、物品、对话、突发、预兆与提示各有标记。 */
 export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
   if (entry.kind === 'clue' || entry.kind === 'item') {
     return (
@@ -33,6 +33,14 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
     return (
       <p className="border-ink/40 bg-ink/5 border-l-2 px-3 py-2 text-sm leading-7">
         <span className="text-ink mr-2 font-semibold">突发</span>
+        {entry.text}
+      </p>
+    );
+  }
+  if (entry.kind === 'omen') {
+    return (
+      <p className="text-crimson/90 text-sm leading-7">
+        <span className="mr-2 font-semibold">预兆</span>
         {entry.text}
       </p>
     );

@@ -1,4 +1,4 @@
-/* 解谜副本的专属场景：机关盘、守卫对峙。 */
+/* 解谜副本的专属场景与表现：机关盘、守卫对峙、预兆、异动与异变侵蚀。 */
 
 .mystery-scene {
   animation: mystery-scene-in 0.35s ease-out;
@@ -25,6 +25,66 @@
 
 .mystery-guard-card {
   animation: mystery-guard-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 预兆：字微微颤动两下。 */
+.mystery-omen {
+  animation: mystery-omen-tremble 0.5s ease-in-out 2;
+}
+
+/* 事件发生：整屏短暂暗场。 */
+.mystery-event-flash {
+  animation: mystery-event-flash 1.6s ease-in-out forwards;
+}
+
+/* 镇物镇住异变：朱印压下再淡去。 */
+.mystery-ward-stamp {
+  animation: mystery-ward-stamp 1.8s ease-out forwards;
+}
+
+@keyframes mystery-omen-tremble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5px);
+  }
+  75% {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes mystery-event-flash {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  60% {
+    opacity: 0.88;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mystery-ward-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.8) rotate(-8deg);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(-8deg);
+  }
 }
 
 @keyframes mystery-scene-in {
@@ -97,5 +157,15 @@
 
   .mystery-seal-bloom {
     opacity: 0;
+  }
+
+  .mystery-omen {
+    animation: none;
+  }
+
+  /* 暗场与盖印仍需结束事件来收起，只把时长压到最短。 */
+  .mystery-event-flash,
+  .mystery-ward-stamp {
+    animation-duration: 1ms;
   }
 }

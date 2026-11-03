@@ -1,12 +1,13 @@
 import { cn } from '@app/lib/cn';
 import type { MysteryLogEntry } from '@daoyou/game-domain/dungeon/mystery';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import './mystery-scenes.css';
 
-/** 正文里可以点的字：物件、在场人物或去处。 */
+/** 正文里可以点的字：物件、在场人物或去处；`gone` 是已毁去或已离场的，划去不可点。 */
 export interface ProseTarget {
   key: string;
   name: string;
-  kind: 'object' | 'npc' | 'exit';
+  kind: 'object' | 'npc' | 'exit' | 'gone';
   /** 去处进不去等情形：字照常标出，但显示为灰色。 */
   muted?: boolean;
 }
@@ -45,7 +46,7 @@ function locateTargets(texts: string[], targets: ProseTarget[]) {
         from = start + 1;
       }
     }
-    if (!placed) missing.push(target);
+    if (!placed && target.kind !== 'gone') missing.push(target);
   }
   for (const list of spans) list.sort((a, b) => a.start - b.start);
   return { spans, missing };
@@ -68,6 +69,7 @@ const ENTRY_STYLE: Partial<Record<MysteryLogEntry['kind'], string>> = {
   item: 'border-crimson/40 border-l-2 pl-3 text-sm leading-7',
   hint: 'border-wood/50 border-l-2 pl-3 text-sm leading-7',
   event: 'border-ink/40 border-l-2 pl-3 leading-8',
+  omen: 'text-crimson/90 leading-8',
   system: 'text-ink-secondary text-sm leading-7',
 };
 
@@ -76,6 +78,7 @@ const ENTRY_LABEL: Partial<Record<MysteryLogEntry['kind'], ReactNode>> = {
   item: <span className="text-crimson mr-2">得到一件物品</span>,
   hint: <span className="text-wood mr-2">提示</span>,
   event: <span className="text-ink mr-2 font-semibold">突发</span>,
+  omen: <span className="mr-2 font-semibold">预兆</span>,
 };
 
 /**
@@ -150,6 +153,18 @@ export function MysteryProse({
     let cursor = 0;
     for (const span of list) {
       parts.push(text.slice(cursor, span.start));
+      if (span.target.kind === 'gone') {
+        parts.push(
+          <span
+            key={span.target.key}
+            className="text-ink-secondary line-through decoration-1"
+          >
+            {text.slice(span.start, span.end)}
+          </span>,
+        );
+        cursor = span.end;
+        continue;
+      }
       const active = menu?.target.key === span.target.key;
       parts.push(
         <button
@@ -192,12 +207,18 @@ export function MysteryProse({
               fresh ? 'animate-fade-in' : 'opacity-60',
             )}
           >
-            {entry.kind === 'speech' ? (
-              <span className="font-semibold">{entry.speaker}：</span>
-            ) : (
-              ENTRY_LABEL[entry.kind]
-            )}
-            {renderText(entry.text, spans[index]!)}
+            <span
+              className={cn(
+                entry.kind === 'omen' && fresh && 'mystery-omen inline-block',
+              )}
+            >
+              {entry.kind === 'speech' ? (
+                <span className="font-semibold">{entry.speaker}：</span>
+              ) : (
+                ENTRY_LABEL[entry.kind]
+              )}
+              {renderText(entry.text, spans[index]!)}
+            </span>
           </div>
         );
       })}

@@ -75,6 +75,34 @@ describe('anomaly escalation', () => {
     });
   });
 
+  it('reports escalation, the coming omen and what was lost to the player', () => {
+    const { caseFile } = buildMysterySkeleton(template, 9);
+    const [s1, s2] = caseFile.events!;
+    const view = (run: MysteryRunState) =>
+      projectMysteryView(
+        { templateId: template.id, caseSource: 'fallback', caseFile, run },
+        template,
+      );
+    let run = look(caseFile, { ...inHub(caseFile), turn: s1!.at - 1 });
+    expect(view(run).anomaly).toEqual({
+      stage: 1,
+      stages: 3,
+      contained: false,
+    });
+    run = look(caseFile, { ...run, turn: s2!.warnAt - 1 });
+    expect(run.log.at(-1)).toMatchObject({ kind: 'omen' });
+    expect(view(run).alerts).toEqual([
+      { id: s2!.id, text: s2!.warning, turnsLeft: s2!.at - run.turn },
+    ]);
+    run = look(caseFile, { ...run, turn: s2!.at - 1 });
+    expect(view(run).anomaly?.stage).toBe(2);
+    const evidence = caseFile.objects.find((o) => o.id === 'obj_evidence')!;
+    expect(view(run).lost).toEqual([]);
+    expect(
+      view({ ...run, visited: [...run.visited, evidence.roomId] }).lost,
+    ).toEqual([evidence.name]);
+  });
+
   it('stops escalating once the ward is used on the source', () => {
     const { caseFile } = buildMysterySkeleton(template, 9);
     const stage = caseFile.events!.find((e) => e.id === 'evt_stage_1')!;

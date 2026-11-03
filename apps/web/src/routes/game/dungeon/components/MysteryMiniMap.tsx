@@ -102,6 +102,17 @@ export function MysteryMiniMap({
               strokeWidth={room.here ? 1.5 : 1}
               strokeDasharray={room.visited || room.here ? undefined : '3 2'}
             />
+            {room.sealed ? (
+              <ellipse
+                cx={p.x + 4}
+                cy={p.y + 1}
+                rx={NODE_W / 2 + 2}
+                ry={NODE_H / 2 + 3}
+                className="fill-ink"
+                fillOpacity={0.55}
+                transform={`rotate(-6 ${p.x} ${p.y})`}
+              />
+            ) : null}
             <text
               x={p.x}
               y={p.y + 4}

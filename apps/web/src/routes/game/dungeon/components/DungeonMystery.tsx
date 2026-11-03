@@ -11,6 +11,7 @@ import type {
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useCallback, useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
+import { MysteryAnomalyVeil, MysteryEventFlash } from './MysteryAtmosphere';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryClueRail } from './MysteryClueRail';
 import { MysteryGuardCard } from './MysteryGuardCard';
@@ -131,6 +132,7 @@ export function DungeonMystery({
   const [picker, setPicker] = useState<Picker | null>(null);
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
   const [operating, setOperating] = useState<string | null>(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   const exhausted = view.actionsLeft <= 0;
   const operatingMechanism =
@@ -223,7 +225,18 @@ export function DungeonMystery({
       kind: 'exit' as const,
       muted: e.locked,
     })),
+    // 被毁去的物件与离场的人，名字在正文里划去。
+    ...[
+      ...view.lost,
+      ...view.knownNpcs
+        .filter((n) => n.status === 'departed')
+        .map((n) => n.name),
+    ].map((name) => ({ key: `g:${name}`, name, kind: 'gone' as const })),
   ];
+  const soonest = view.alerts.reduce<number | null>(
+    (min, a) => (min === null ? a.turnsLeft : Math.min(min, a.turnsLeft)),
+    null,
+  );
 
   const COST = '耗 1 行动力';
   const itemUseMenu = (id: string, name: string): ProseMenuItem[] =>
@@ -354,7 +367,7 @@ export function DungeonMystery({
       ) : null}
 
       <div className="flex min-h-[70dvh] flex-col gap-5 lg:min-h-0">
-        <div className="border-ink/15 flex items-center justify-between gap-3 border-b border-dashed pb-3 text-sm">
+        <div className="border-ink/15 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-dashed pb-3 text-sm">
           {wide ? (
             <span className="text-ink-secondary">{view.location.name}</span>
           ) : (
@@ -369,7 +382,38 @@ export function DungeonMystery({
               </span>
             </button>
           )}
-          <div className="flex items-center gap-3">
+          <div className="relative flex items-center gap-3">
+            {soonest !== null ? (
+              <button
+                type="button"
+                aria-expanded={alertsOpen}
+                className="text-crimson flex items-center gap-1.5"
+                onClick={() => setAlertsOpen((open) => !open)}
+              >
+                <span className="bg-crimson inline-block size-1.5 animate-pulse rounded-full" />
+                {soonest <= 1 ? '异动将至' : `异动 · ${soonest} 步后`}
+              </button>
+            ) : null}
+            {alertsOpen && view.alerts.length > 0 ? (
+              <div
+                role="status"
+                className="bg-paper border-crimson/40 absolute top-full right-0 z-20 mt-2 w-72 max-w-[80vw] space-y-2 border p-3 text-sm leading-7 shadow-[0_8px_24px_rgba(44,24,16,0.12)]"
+              >
+                {view.alerts.map((alert) => (
+                  <p key={alert.id}>
+                    {alert.text}
+                    <span className="text-ink-secondary ml-1">
+                      {alert.turnsLeft <= 1
+                        ? '（下一步就会发生）'
+                        : `（再行动 ${alert.turnsLeft} 次后发生）`}
+                    </span>
+                  </p>
+                ))}
+                <p className="text-ink-secondary">
+                  查明真相或找到对策，或许能阻止它。
+                </p>
+              </div>
+            ) : null}
             <MysteryIncense
               left={view.actionsLeft}
               budget={view.actionBudget}
@@ -411,17 +455,6 @@ export function DungeonMystery({
             </button>
           </p>
         ) : null}
-
-        {view.alerts.map((alert) => (
-          <p
-            key={alert.id}
-            role="status"
-            className="border-crimson/50 bg-crimson/5 border-l-2 px-3 py-2 text-sm leading-7"
-          >
-            <span className="text-crimson mr-2 font-semibold">注意</span>
-            {alert.text}
-          </p>
-        ))}
 
         {view.turn === 0 ? (
           <p className="text-ink-secondary text-center text-sm tracking-[0.3em]">
@@ -583,6 +616,14 @@ export function DungeonMystery({
           </div>
         ) : null}
       </InkDetailDrawer>
+
+      <MysteryEventFlash
+        turn={view.turn}
+        happened={view.log.some(
+          (entry) => entry.turn === view.turn && entry.kind === 'event',
+        )}
+      />
+      {view.anomaly ? <MysteryAnomalyVeil {...view.anomaly} /> : null}
 
       {operatingMechanism ? (
         <MysteryMechanismScene

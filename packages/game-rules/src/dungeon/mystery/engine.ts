@@ -158,7 +158,7 @@ function advanceMysteryEvents(w: RunWriter) {
       }
     } else if (run.turn >= event.warnAt && !seen.includes(`warn:${event.id}`)) {
       run.events = [...seen, `warn:${event.id}`];
-      w.log({ kind: 'event', text: event.warning });
+      w.log({ kind: 'omen', text: event.warning });
     }
   }
 }
