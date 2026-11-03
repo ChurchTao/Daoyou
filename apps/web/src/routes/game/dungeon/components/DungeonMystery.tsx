@@ -1,9 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
-import { InkCard } from '@app/components/ui/InkCard';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkInput } from '@app/components/ui/InkInput';
-import { InkTag } from '@app/components/ui/InkTag';
 import { cn } from '@app/lib/cn';
 import type {
   MysteryAction,
@@ -13,14 +11,15 @@ import type {
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
-import {
-  MysteryCaseBoard,
-  MysterySeal,
-  type MysteryBoardTab,
-} from './MysteryCaseBoard';
+import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryLogLine } from './MysteryLogLine';
 import { MysteryMechanismPanel } from './MysteryMechanismPanel';
 import { MysteryMiniMap } from './MysteryMiniMap';
+import {
+  MysteryProse,
+  type ProseMenuItem,
+  type ProseTarget,
+} from './MysteryProse';
 import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
 
@@ -37,19 +36,47 @@ interface DungeonMysteryProps {
 
 type Picker =
   | { kind: 'present'; npcId: string; npcName: string }
-  | { kind: 'use'; itemId: string; itemName: string };
+  | { kind: 'use'; itemId: string; itemName: string }
+  | { kind: 'useOn'; targetId: string; targetName: string };
 
 type GuardedExit = MysteryPlayerView['exits'][number] & {
   guard: NonNullable<MysteryPlayerView['exits'][number]['guard']>;
 };
 
-const STATUS_LABEL = {
-  unmet: '',
-  talked: '',
-  opened: '已说出实情',
-  exposed: '谎言被戳穿',
-  departed: '已离场',
-} as const;
+/** 行动力：一炷香，烧去的部分越来越短，旁边写明剩余点数。 */
+function MysteryIncense({ left, budget }: { left: number; budget: number }) {
+  const percent = budget > 0 ? (left / budget) * 100 : 0;
+  return (
+    <span className="text-ink-secondary flex items-center gap-2">
+      <span aria-hidden className="bg-ink/10 relative h-1 w-14 sm:w-24">
+        <span
+          className={cn(
+            'absolute inset-y-0 left-0 transition-[width] duration-700',
+            left <= 2 ? 'bg-crimson' : 'bg-wood',
+          )}
+          style={{ width: `${percent}%` }}
+        />
+        {left > 0 ? (
+          <span
+            className="bg-crimson absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[left] duration-700"
+            style={{ left: `${percent}%` }}
+          />
+        ) : null}
+      </span>
+      <span>
+        行动力
+        <span
+          className={cn(
+            'ml-1 font-mono font-semibold tracking-tight',
+            left <= 2 ? 'text-crimson' : 'text-ink',
+          )}
+        >
+          {left} / {budget}
+        </span>
+      </span>
+    </span>
+  );
+}
 
 /** 与某人的对话：此人的发言，以及紧接在其回答之前的玩家提问。 */
 function dialogueWith(log: MysteryLogEntry[], npcName: string) {
@@ -102,9 +129,17 @@ export function DungeonMystery({
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
   const [operating, setOperating] = useState<string | null>(null);
 
-  const current = view.log.filter((entry) => entry.turn === view.turn);
   const exhausted = view.actionsLeft <= 0;
-  const lockedHints = view.exits.filter((exit) => exit.locked && exit.hint);
+  const busy = processing || exhausted;
+  // 正文从进入当前地点那一回合讲起（开局时含开场白）。
+  let lastScene = view.log.length - 1;
+  while (lastScene > 0 && view.log[lastScene]!.kind !== 'scene') lastScene--;
+  const sceneTurn = view.log[lastScene]?.turn ?? view.turn;
+  const segmentStart = Math.max(
+    0,
+    view.log.findIndex((entry) => entry.turn === sceneTurn),
+  );
+  const segment = view.log.slice(segmentStart);
   const reachable = new Set(
     view.exits.filter((exit) => !exit.locked).map((exit) => exit.id),
   );
@@ -164,6 +199,109 @@ export function DungeonMystery({
       .map(({ x }) => x);
   };
 
+  const targets: ProseTarget[] = [
+    ...view.objects.map((o) => ({
+      key: `o:${o.id}`,
+      name: o.name,
+      kind: 'object' as const,
+    })),
+    ...view.npcsHere.map((n) => ({
+      key: `n:${n.id}`,
+      name: n.name,
+      kind: 'npc' as const,
+    })),
+    ...view.exits.map((e) => ({
+      key: `e:${e.id}`,
+      name: e.name,
+      kind: 'exit' as const,
+      muted: e.locked,
+    })),
+  ];
+
+  const COST = '耗 1 行动力';
+  const itemUseMenu = (id: string, name: string): ProseMenuItem[] =>
+    view.items.length > 0
+      ? [
+          {
+            label: '对其使用物品…',
+            note: COST,
+            disabled: busy,
+            onSelect: () =>
+              setPicker({ kind: 'useOn', targetId: id, targetName: name }),
+          },
+        ]
+      : [];
+
+  const menuFor = (target: ProseTarget): ProseMenuItem[] => {
+    const id = target.key.slice(2);
+    if (target.kind === 'object') {
+      const object = view.objects.find((o) => o.id === id);
+      if (!object) return [];
+      const m = object.mechanism;
+      return [
+        object.searched
+          ? {
+              label: '再看一遍',
+              note: '不耗行动力',
+              disabled: busy,
+              onSelect: () => act({ type: 'search', objectId: id }),
+            }
+          : {
+              label: '调查',
+              note: COST,
+              disabled: busy,
+              onSelect: () => act({ type: 'search', objectId: id }),
+            },
+        ...(m
+          ? [
+              m.solved
+                ? { label: '机关已开启' }
+                : m.locked
+                  ? { label: '机关已锁死' }
+                  : {
+                      label: '解开机关',
+                      note: '按错多耗 1 点',
+                      disabled: busy,
+                      onSelect: () => setOperating(m.id),
+                    },
+            ]
+          : []),
+        ...itemUseMenu(id, object.name),
+      ];
+    }
+    if (target.kind === 'npc') {
+      const npc = view.npcsHere.find((n) => n.id === id);
+      if (!npc) return [];
+      return [
+        {
+          label: '交谈',
+          note: '每问一句耗 1 点',
+          disabled: busy,
+          onSelect: () => startTalk(npc),
+        },
+        {
+          label: '出示线索…',
+          note: COST,
+          disabled: busy || view.clues.length + view.items.length === 0,
+          onSelect: () => startPresent(npc),
+        },
+        ...itemUseMenu(id, npc.name),
+        { label: '查看人物资料', onSelect: () => openBoard('people') },
+      ];
+    }
+    const exit = view.exits.find((e) => e.id === id);
+    if (!exit) return [];
+    if (exit.locked) return [{ label: exit.hint ?? '暂时进不去' }];
+    return [
+      {
+        label: `前往${exit.name}`,
+        note: exit.guard ? `${exit.guard.name}拦路` : COST,
+        disabled: busy,
+        onSelect: () => goTo(id),
+      },
+    ];
+  };
+
   const board = (
     <MysteryCaseBoard
       view={view}
@@ -188,25 +326,27 @@ export function DungeonMystery({
 
   return (
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-8">
-      <div className="space-y-4">
-        <div className="border-ink/15 flex flex-wrap items-center justify-between gap-2 border-b border-dashed pb-3 text-sm">
-          <div className="text-ink-secondary">
-            {view.title}
-            <span className="mx-2">·</span>
-            {view.location.name}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-ink-secondary">
-              行动力
-              <span
-                className={cn(
-                  'ml-1 font-mono font-semibold tracking-tight',
-                  view.actionsLeft <= 4 ? 'text-crimson' : 'text-ink',
-                )}
-              >
-                {view.actionsLeft} / {view.actionBudget}
+      <div className="space-y-5">
+        <div className="border-ink/15 flex items-center justify-between gap-3 border-b border-dashed pb-3 text-sm">
+          {wide ? (
+            <span className="text-ink-secondary">{view.location.name}</span>
+          ) : (
+            <button
+              type="button"
+              className="text-ink-secondary hover:text-ink"
+              onClick={() => openBoard('places')}
+            >
+              {view.location.name}
+              <span className="ml-1 underline decoration-dotted underline-offset-4">
+                地图
               </span>
-            </span>
+            </button>
+          )}
+          <div className="flex items-center gap-3">
+            <MysteryIncense
+              left={view.actionsLeft}
+              budget={view.actionBudget}
+            />
             <InkButton variant="ghost" disabled={processing} onClick={onQuit}>
               离开
             </InkButton>
@@ -256,157 +396,77 @@ export function DungeonMystery({
           </p>
         ))}
 
-        <MysteryMiniMap
-          map={view.map}
-          reachable={reachable}
-          disabled={processing || exhausted}
-          onSelect={goTo}
-        />
+        {wide ? (
+          <MysteryMiniMap
+            map={view.map}
+            reachable={reachable}
+            disabled={busy}
+            onSelect={goTo}
+          />
+        ) : null}
 
-        <InkCard className="space-y-3 p-5">
-          {current.map((entry, index) => (
-            <MysteryLogLine key={index} entry={entry} />
-          ))}
-        </InkCard>
+        {view.turn === 0 ? (
+          <p className="text-ink-secondary text-center text-sm tracking-[0.3em]">
+            {view.title}
+          </p>
+        ) : null}
 
-        {exhausted ? (
-          <InkCard className="space-y-3 p-5 text-center">
-            <p>行动力已用完，调查到此为止。对照案情板想一想，然后提交推理。</p>
-            <InkButton variant="primary" onClick={() => setDeducing(true)}>
-              提交推理
-            </InkButton>
-          </InkCard>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-ink-secondary text-xs">
-              每个动作耗 1 点行动力（提示也算）；看过的物件再看不耗。
-            </p>
-            {view.objects.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {view.objects.map((object) => (
-                  <InkChoiceButton
-                    key={object.id}
-                    disabled={processing}
-                    onClick={() => act({ type: 'search', objectId: object.id })}
+        {segmentStart > 0 ? (
+          <button
+            type="button"
+            className="text-ink-secondary hover:text-ink text-sm"
+            onClick={() => openBoard('log')}
+          >
+            回看之前的经过
+          </button>
+        ) : null}
+
+        <div className="mx-auto max-w-2xl text-[1.0625rem]">
+          <MysteryProse
+            entries={segment}
+            turn={view.turn}
+            targets={targets}
+            menuFor={menuFor}
+            footer={
+              processing ? (
+                <p
+                  aria-label="正在推演"
+                  className="text-ink-secondary animate-pulse tracking-[0.5em]"
+                >
+                  ……
+                </p>
+              ) : exhausted ? (
+                <div className="space-y-3 pt-2 text-center">
+                  <p>
+                    行动力已用完，调查到此为止。对照案情板想一想，然后提交推理。
+                  </p>
+                  <InkButton
+                    variant="primary"
+                    onClick={() => setDeducing(true)}
                   >
-                    {object.searched
-                      ? `${object.name}（已查看）`
-                      : `调查${object.name}`}
-                  </InkChoiceButton>
-                ))}
-                {view.objects
-                  .flatMap((object) =>
-                    object.mechanism ? [object.mechanism] : [],
-                  )
-                  .map((m) => (
-                    <InkChoiceButton
-                      key={m.id}
-                      disabled={processing || m.solved || m.locked}
-                      onClick={() => setOperating(m.id)}
-                    >
-                      {m.solved
-                        ? `${m.name}（已开启）`
-                        : m.locked
-                          ? `${m.name}（已锁死）`
-                          : `解开机关：${m.name}`}
-                    </InkChoiceButton>
-                  ))}
-              </div>
-            ) : null}
-
-            {view.npcsHere.map((here) => {
-              const npc = view.knownNpcs.find((n) => n.id === here.id);
-              const status = npc ? STATUS_LABEL[npc.status] : '';
-              return (
-                <div
-                  key={here.id}
-                  className="border-ink/15 flex flex-wrap items-center gap-3 border px-3 py-2"
-                >
-                  <MysterySeal name={here.name} />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-semibold">{here.name}</span>
-                    <span className="text-ink-secondary ml-2 text-sm">
-                      {here.title}
-                    </span>
-                    {status ? (
-                      <InkTag
-                        className="ml-2"
-                        tone={npc?.status === 'exposed' ? 'bad' : 'good'}
-                      >
-                        {status}
-                      </InkTag>
-                    ) : null}
-                  </div>
-                  <div className="flex gap-1">
-                    <InkButton
-                      disabled={processing}
-                      onClick={() => startTalk(here)}
-                    >
-                      交谈
-                    </InkButton>
-                    <InkButton
-                      variant="outline"
-                      disabled={
-                        processing ||
-                        view.clues.length + view.items.length === 0
-                      }
-                      onClick={() => startPresent(here)}
-                    >
-                      出示线索
-                    </InkButton>
-                  </div>
+                    提交推理
+                  </InkButton>
                 </div>
-              );
-            })}
+              ) : null
+            }
+          />
+        </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-ink-secondary">前往</span>
-              {view.exits.map((exit) => (
-                <InkChoiceButton
-                  key={exit.id}
-                  disabled={processing || exit.locked}
-                  onClick={() => goTo(exit.id)}
-                >
-                  {exit.name}
-                  {exit.locked
-                    ? '（进不去）'
-                    : exit.guard
-                      ? '（有人拦路）'
-                      : ''}
-                </InkChoiceButton>
-              ))}
-            </div>
-            {lockedHints.map((exit) => (
-              <p key={exit.id} className="text-ink-secondary text-sm">
-                {exit.name}：{exit.hint}
-              </p>
-            ))}
-          </div>
-        )}
-
-        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:grid lg:grid-cols-2 lg:border-0 lg:px-0">
-          <InkButton
-            variant="ghost"
-            className="lg:hidden"
-            onClick={() => openBoard('places')}
-          >
-            地图
-          </InkButton>
-          <InkButton
-            variant="ghost"
-            className="lg:hidden"
-            onClick={() => openBoard('clues')}
-          >
-            线索与人物
-            {unread.length > 0 ? (
-              <span className="text-crimson ml-1 font-mono">
-                {unread.length}
-              </span>
-            ) : null}
-          </InkButton>
+        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:justify-end lg:gap-4 lg:border-0 lg:px-0">
+          {wide ? null : (
+            <InkButton variant="ghost" onClick={() => openBoard('clues')}>
+              线索与人物
+              {unread.length > 0 ? (
+                <span
+                  aria-label="有新线索"
+                  className="bg-crimson ml-1 inline-block size-1.5 rounded-full align-super"
+                />
+              ) : null}
+            </InkButton>
+          )}
           <InkButton
             variant="secondary"
-            disabled={processing || exhausted}
+            disabled={busy}
             onClick={() => act({ type: 'reflect' })}
           >
             提示
@@ -575,9 +635,11 @@ export function DungeonMystery({
         title={
           picker?.kind === 'present'
             ? `向${picker.npcName}出示哪条线索`
-            : picker
-              ? `把${picker.itemName}用在哪里`
-              : ''
+            : picker?.kind === 'useOn'
+              ? `对${picker.targetName}使用哪件物品`
+              : picker
+                ? `把${picker.itemName}用在哪里`
+                : ''
         }
         description="耗 1 点行动力。"
       >
@@ -618,6 +680,27 @@ export function DungeonMystery({
                   }
                 >
                   {target.name}
+                </InkChoiceButton>
+              ))
+            : null}
+          {picker?.kind === 'useOn'
+            ? view.items.map((item) => (
+                <InkChoiceButton
+                  key={item.id}
+                  layout="card"
+                  disabled={processing}
+                  onClick={() =>
+                    act({
+                      type: 'use',
+                      itemId: item.id,
+                      targetId: picker.targetId,
+                    })
+                  }
+                >
+                  <div className="font-semibold">{item.name}</div>
+                  <div className="text-ink-secondary mt-1 text-sm">
+                    {item.text}
+                  </div>
                 </InkChoiceButton>
               ))
             : null}

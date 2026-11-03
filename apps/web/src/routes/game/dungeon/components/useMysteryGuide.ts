@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 export const MYSTERY_GUIDE_STEPS = [
   {
     id: 'act',
-    text: '点下方的物件、人物或去处来行动，每个动作耗 1 点行动力。',
+    text: '点正文里带虚线的字就能行动：调查物件、与人交谈、前往别处。每个动作耗 1 点行动力。',
   },
   {
     id: 'board',
