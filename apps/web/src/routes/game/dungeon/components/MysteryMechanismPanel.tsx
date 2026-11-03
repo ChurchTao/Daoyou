@@ -38,7 +38,7 @@ export function MysteryMechanismPanel({
       onClose={close}
       size="sm"
       title={mechanism?.name ?? ''}
-      description="依次点选三个部件。按对即开启；按错会反噬，多耗 1 点行动力。"
+      description="依次点选三个部件，选满后确认。按对即开启；按错会反噬，多耗 1 点行动力。"
       footer={
         mechanism ? (
           <div className="flex flex-wrap gap-2">
@@ -51,14 +51,14 @@ export function MysteryMechanismPanel({
                 void onSubmit(mechanism.id, sequence);
               }}
             >
-              按下
+              确认这个次序
             </InkButton>
             <InkButton
               variant="ghost"
               disabled={picked.length === 0}
               onClick={() => setPicked((prev) => prev.slice(0, -1))}
             >
-              撤销
+              撤回一步
             </InkButton>
           </div>
         ) : null
@@ -92,8 +92,8 @@ export function MysteryMechanismPanel({
           </p>
           <p className="text-ink-secondary text-sm">
             {mechanism.failures > 0
-              ? `已反噬 ${mechanism.failures} 次，再错 ${remaining} 次将锁死。`
-              : `错满 ${mechanism.maxFailures} 次将锁死。`}
+              ? `已按错 ${mechanism.failures} 次，还能错 ${remaining} 次，错满就锁死。`
+              : `最多能错 ${mechanism.maxFailures - 1} 次，错满 ${mechanism.maxFailures} 次就锁死。`}
           </p>
         </div>
       ) : null}

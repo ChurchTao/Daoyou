@@ -1452,7 +1452,7 @@ export class DungeonFlowService {
         if (!present || mystery.run.actionsLeft <= 0) {
           throw new DungeonFlowError(
             DungeonFlowErrorCode.INVALID_ACTION,
-            present ? '行动力已耗尽，只能结案推理' : '此人不在这里',
+            present ? '行动力已用完，只能提交推理了' : '此人不在这里',
             400,
           );
         }
@@ -1562,7 +1562,7 @@ export class DungeonFlowService {
             console.warn('[DungeonMystery] 对决准备失败:', error);
             throw new DungeonFlowError(
               DungeonFlowErrorCode.INVALID_STATE,
-              '对决未能展开，请稍后再结案',
+              '对决未能展开，请稍后再提交推理',
               409,
             );
           });

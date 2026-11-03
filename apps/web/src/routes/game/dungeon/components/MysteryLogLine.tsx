@@ -1,6 +1,6 @@
 import type { MysteryLogEntry } from '@daoyou/game-domain/dungeon/mystery';
 
-/** 调查日志的一行：线索、物品、对话、异动与静思各有标记。 */
+/** 调查日志的一行：线索、物品、对话、突发与提示各有标记。 */
 export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
   if (entry.kind === 'clue' || entry.kind === 'item') {
     return (
@@ -9,6 +9,7 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
           {entry.kind === 'clue' ? '获得线索' : '获得物品'}
         </span>
         {entry.text}
+        <span className="text-ink-secondary ml-1">（已记入案情板）</span>
       </p>
     );
   }
@@ -23,7 +24,7 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
   if (entry.kind === 'hint') {
     return (
       <p className="border-wood/50 bg-wood/5 border-l-2 px-3 py-2 text-sm leading-7">
-        <span className="text-wood mr-2 font-semibold">静思</span>
+        <span className="text-wood mr-2 font-semibold">提示</span>
         {entry.text}
       </p>
     );
@@ -31,7 +32,7 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
   if (entry.kind === 'event') {
     return (
       <p className="border-ink/40 bg-ink/5 border-l-2 px-3 py-2 text-sm leading-7">
-        <span className="text-ink mr-2 font-semibold">异动</span>
+        <span className="text-ink mr-2 font-semibold">突发</span>
         {entry.text}
       </p>
     );

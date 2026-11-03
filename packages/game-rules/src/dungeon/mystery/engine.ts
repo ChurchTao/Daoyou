@@ -214,7 +214,7 @@ export function mysteryGuardChallenge(
   | { ok: true; guard: NonNullable<MysteryCaseFile['guards']>[number] }
   | { ok: false; error: string } {
   if (run.actionsLeft <= 0)
-    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+    return { ok: false, error: '行动力已用完，只能提交推理了' };
   const ahead = guardAhead(caseFile, run, guardId);
   if (!ahead) return { ok: false, error: '前方没有拦路的守卫' };
   if (!evaluateMysteryCondition(ahead.room.requires, run))
@@ -308,7 +308,7 @@ export function applyMysteryAction(
   action: MysteryAction,
 ): MysteryActionResult {
   if (current.actionsLeft <= 0) {
-    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+    return { ok: false, error: '行动力已用完，只能提交推理了' };
   }
   const run = cloneRun(current);
   run.turn += 1;
@@ -330,7 +330,10 @@ export function applyMysteryAction(
         return { ok: false, error: `${target.name}已被异变封住` };
       const guard = mysteryGuardAt(caseFile, run, target.id);
       if (guard)
-        return { ok: false, error: `${guard.name}拦住了去路，须强闯或化解` };
+        return {
+          ok: false,
+          error: `${guard.name}拦住了去路：可以应战，或找到化解的办法`,
+        };
       spend(run, 1);
       enterRoom(w, target);
       break;
@@ -561,7 +564,7 @@ export function applyMysteryDialogue(
   },
 ): MysteryActionResult {
   if (current.actionsLeft <= 0) {
-    return { ok: false, error: '行动力已耗尽，只能结案推理' };
+    return { ok: false, error: '行动力已用完，只能提交推理了' };
   }
   const npc = mysteryNpcPresent(caseFile, current, turn.npcId);
   if (!npc) return { ok: false, error: '此人不在这里' };

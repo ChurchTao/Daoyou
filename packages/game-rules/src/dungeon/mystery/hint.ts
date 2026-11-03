@@ -33,7 +33,7 @@ function reachableRooms(caseFile: MysteryCaseFile, run: MysteryRunState) {
 /**
  * 静思：从此刻马上能做、且能推进案情的事里挑一件，给一句方向性提示。
  * 只指地点、人物或物品，不说出线索内容。优先补证据最少的结案问题，
- * 同一房间里的事排在前面；都没有时提示着手结案。
+ * 同一房间里的事排在前面；都没有时提示提交推理。
  */
 export function mysteryHint(
   caseFile: MysteryCaseFile,
@@ -189,6 +189,7 @@ export function mysteryHint(
 
   candidates.sort((a, b) => a.rank - b.rank);
   return (
-    candidates[0]?.text ?? '眼下的线索已够你推断，不妨翻翻笔记，着手结案。'
+    candidates[0]?.text ??
+    '眼下的线索已经够用了，对照案情板想一想，然后提交推理。'
   );
 }

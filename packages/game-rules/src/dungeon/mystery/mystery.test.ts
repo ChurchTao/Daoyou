@@ -232,7 +232,7 @@ describe('mystery engine', () => {
     };
     expect(
       applyMysteryAction(caseFile, run, { type: 'move', roomId: 'stone_hall' }),
-    ).toEqual({ ok: false, error: '行动力已耗尽，只能结案推理' });
+    ).toEqual({ ok: false, error: '行动力已用完，只能提交推理了' });
   });
 });
 
@@ -561,7 +561,7 @@ describe('mystery hints', () => {
     };
     const result = applyMysteryAction(caseFile, done, { type: 'reflect' });
     expect(result.ok && result.run.log.at(-1)?.text).toBe(
-      '眼下的线索已够你推断，不妨翻翻笔记，着手结案。',
+      '眼下的线索已经够用了，对照案情板想一想，然后提交推理。',
     );
   });
 });

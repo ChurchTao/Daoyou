@@ -21,8 +21,8 @@ const STATUS: Record<
   { label: string; tone: 'neutral' | 'good' | 'bad' | 'info' }
 > = {
   unmet: { label: '尚未交谈', tone: 'neutral' },
-  talked: { label: '交谈过', tone: 'neutral' },
-  opened: { label: '已交底', tone: 'good' },
+  talked: { label: '已交谈', tone: 'neutral' },
+  opened: { label: '已说出实情', tone: 'good' },
   exposed: { label: '谎言被戳穿', tone: 'bad' },
   departed: { label: '已离场', tone: 'neutral' },
 };
@@ -114,7 +114,7 @@ function ClueCard({
           )}
           onClick={() => setChoosing(true)}
         >
-          {pinnedTo ? `钉于：${pinnedTo.prompt}` : '钉到结案问题…'}
+          {pinnedTo ? `已钉到：${pinnedTo.prompt}` : '钉到推理题，作为依据…'}
         </button>
       )}
     </div>
@@ -154,7 +154,7 @@ export function MysteryCaseBoard({
   const here = new Set(view.npcsHere.map((n) => n.id));
   const groups = new Map<string, MysteryPlayerView['clues']>();
   for (const clue of view.clues) {
-    const label = clue.source ? `得自 · ${clue.source.name}` : '其他';
+    const label = clue.source ? `来自${clue.source.name}` : '其他';
     groups.set(label, [...(groups.get(label) ?? []), clue]);
   }
 
@@ -201,7 +201,7 @@ export function MysteryCaseBoard({
           ))}
           {view.items.length > 0 ? (
             <div className="space-y-2">
-              <div className="text-ink-secondary text-sm">随身之物</div>
+              <div className="text-ink-secondary text-sm">随身物品</div>
               {view.items.map((item) => (
                 <div
                   key={item.id}
@@ -278,7 +278,7 @@ export function MysteryCaseBoard({
                       }
                       onClick={() => onPresent(npc)}
                     >
-                      出示
+                      出示线索
                     </InkButton>
                   </div>
                 ) : null}

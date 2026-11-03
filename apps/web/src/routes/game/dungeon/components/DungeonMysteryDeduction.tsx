@@ -47,11 +47,11 @@ export function DungeonMysteryDeduction({
     <InkDetailDrawer
       isOpen={isOpen}
       onClose={onClose}
-      title="结案推理"
+      title="提交推理"
       description={
         view.confrontation
-          ? '结案后不能再调查。答对关键问题后对手可能翻脸动手，擒下方得全功。推断越准确、线索越完整，所得越丰厚。'
-          : '结案后不能再调查。推断越准确、线索越完整，所得越丰厚。'
+          ? '提交后调查结束，按答对的题结算，答得越准、线索越全奖励越好。答对关键题后对手可能动手，打赢才能拿满分。'
+          : '提交后调查结束，按答对的题结算，答得越准、线索越全奖励越好。'
       }
       footer={
         <InkButton
@@ -61,9 +61,9 @@ export function DungeonMysteryDeduction({
           pendingLabel="推演中……"
           onClick={() =>
             openDialog({
-              title: '确认结案',
-              content: '结案后不能再回头调查。确定提交推断吗？',
-              confirmLabel: '提交推断',
+              title: '确认提交推理',
+              content: '提交后不能再回去调查，将按你的回答结算。确定提交吗？',
+              confirmLabel: '提交',
               cancelLabel: '再想想',
               onConfirm: async () => {
                 await onSubmit(answers);
@@ -72,7 +72,7 @@ export function DungeonMysteryDeduction({
             })
           }
         >
-          提交推断
+          提交推理
         </InkButton>
       }
     >
@@ -92,7 +92,7 @@ export function DungeonMysteryDeduction({
                   );
                   return pinned.length > 0
                     ? `你的依据：${pinned.map((c) => c.name).join('、')}`
-                    : '尚未钉下依据';
+                    : '还没有钉上线索（可在案情板的线索页钉到此题）';
                 })()}
               </p>
               {choices.length === 0 ? (

@@ -21,6 +21,7 @@ import {
 import { MysteryLogLine } from './MysteryLogLine';
 import { MysteryMechanismPanel } from './MysteryMechanismPanel';
 import { MysteryMiniMap } from './MysteryMiniMap';
+import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
 
 interface DungeonMysteryProps {
@@ -45,7 +46,7 @@ type GuardedExit = MysteryPlayerView['exits'][number] & {
 const STATUS_LABEL = {
   unmet: '',
   talked: '',
-  opened: '已交底',
+  opened: '已说出实情',
   exposed: '谎言被戳穿',
   departed: '已离场',
 } as const;
@@ -110,6 +111,12 @@ export function DungeonMystery({
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id));
   const boardVisible = wide || boardOpen;
   const clueIds = [...view.clues, ...view.items].map((x) => x.id).join();
+  const spent = view.actionBudget - view.actionsLeft;
+  const guide = useMysteryGuide({
+    act: !exhausted,
+    board: view.clues.length + view.items.length > 0,
+    deduce: view.clues.length >= 3 || spent * 2 >= view.actionBudget,
+  });
 
   // 线索页展示数秒后视为已读，宽屏常驻时新线索也有片刻“新”标记。
   useEffect(() => {
@@ -197,7 +204,7 @@ export function DungeonMystery({
                   view.actionsLeft <= 4 ? 'text-crimson' : 'text-ink',
                 )}
               >
-                {view.actionsLeft}/{view.actionBudget}
+                {view.actionsLeft} / {view.actionBudget}
               </span>
             </span>
             <InkButton variant="ghost" disabled={processing} onClick={onQuit}>
@@ -212,13 +219,39 @@ export function DungeonMystery({
           </p>
         ) : null}
 
+        {view.actionsLeft > 0 && view.actionsLeft <= 2 ? (
+          <p role="status" className="text-crimson text-sm">
+            行动力只剩 {view.actionsLeft} 点了，可以考虑提交推理。
+          </p>
+        ) : null}
+
+        {guide.step ? (
+          <p
+            role="status"
+            className="border-wood/50 bg-wood/5 flex items-start justify-between gap-3 border-l-2 px-3 py-2 text-sm leading-7"
+          >
+            <span>
+              {guide.step.id === 'board' && wide
+                ? '拿到的线索会自动记进右侧的案情板，随时可以翻看和整理。'
+                : guide.step.text}
+            </span>
+            <button
+              type="button"
+              className="text-ink-secondary hover:text-ink shrink-0"
+              onClick={() => guide.dismiss(guide.step!.id)}
+            >
+              知道了
+            </button>
+          </p>
+        ) : null}
+
         {view.alerts.map((alert) => (
           <p
             key={alert.id}
             role="status"
             className="border-crimson/50 bg-crimson/5 border-l-2 px-3 py-2 text-sm leading-7"
           >
-            <span className="text-crimson mr-2 font-semibold">异动</span>
+            <span className="text-crimson mr-2 font-semibold">注意</span>
             {alert.text}
           </p>
         ))}
@@ -238,13 +271,16 @@ export function DungeonMystery({
 
         {exhausted ? (
           <InkCard className="space-y-3 p-5 text-center">
-            <p>行动力已尽，把你掌握的线索拼起来，给出推断。</p>
+            <p>行动力已用完，调查到此为止。对照案情板想一想，然后提交推理。</p>
             <InkButton variant="primary" onClick={() => setDeducing(true)}>
-              结案推理
+              提交推理
             </InkButton>
           </InkCard>
         ) : (
           <div className="space-y-3">
+            <p className="text-ink-secondary text-xs">
+              每个动作耗 1 点行动力（提示也算）；看过的物件再看不耗。
+            </p>
             {view.objects.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {view.objects.map((object) => (
@@ -254,8 +290,8 @@ export function DungeonMystery({
                     onClick={() => act({ type: 'search', objectId: object.id })}
                   >
                     {object.searched
-                      ? `再看${object.name} ✓`
-                      : `查看${object.name}`}
+                      ? `${object.name}（已查看）`
+                      : `调查${object.name}`}
                   </InkChoiceButton>
                 ))}
                 {view.objects
@@ -271,8 +307,8 @@ export function DungeonMystery({
                       {m.solved
                         ? `${m.name}（已开启）`
                         : m.locked
-                          ? `🔒 ${m.name}（已锁死）`
-                          : `操作${m.name}`}
+                          ? `${m.name}（已锁死）`
+                          : `解开机关：${m.name}`}
                     </InkChoiceButton>
                   ))}
               </div>
@@ -316,7 +352,7 @@ export function DungeonMystery({
                       }
                       onClick={() => startPresent(here)}
                     >
-                      出示
+                      出示线索
                     </InkButton>
                   </div>
                 </div>
@@ -324,15 +360,19 @@ export function DungeonMystery({
             })}
 
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-ink-secondary">去往</span>
+              <span className="text-ink-secondary">前往</span>
               {view.exits.map((exit) => (
                 <InkChoiceButton
                   key={exit.id}
                   disabled={processing || exit.locked}
                   onClick={() => goTo(exit.id)}
                 >
-                  {exit.locked ? '🔒 ' : exit.guard ? '⚔️ ' : ''}
                   {exit.name}
+                  {exit.locked
+                    ? '（进不去）'
+                    : exit.guard
+                      ? '（有人拦路）'
+                      : ''}
                 </InkChoiceButton>
               ))}
             </div>
@@ -344,7 +384,7 @@ export function DungeonMystery({
           </div>
         )}
 
-        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 grid grid-cols-4 gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:grid-cols-2 lg:border-0 lg:px-0">
+        <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:grid lg:grid-cols-2 lg:border-0 lg:px-0">
           <InkButton
             variant="ghost"
             className="lg:hidden"
@@ -357,7 +397,7 @@ export function DungeonMystery({
             className="lg:hidden"
             onClick={() => openBoard('clues')}
           >
-            案情板
+            线索与人物
             {unread.length > 0 ? (
               <span className="text-crimson ml-1 font-mono">
                 {unread.length}
@@ -369,14 +409,14 @@ export function DungeonMystery({
             disabled={processing || exhausted}
             onClick={() => act({ type: 'reflect' })}
           >
-            静思
+            提示
           </InkButton>
           <InkButton
             variant="primary"
             disabled={processing}
             onClick={() => setDeducing(true)}
           >
-            结案
+            提交推理
           </InkButton>
         </div>
       </div>
@@ -390,6 +430,7 @@ export function DungeonMystery({
           isOpen={boardOpen}
           onClose={() => setBoardOpen(false)}
           title="案情板"
+          description="线索、人物、地点与调查经过都记在这里。"
         >
           {board}
         </InkDetailDrawer>
@@ -409,7 +450,7 @@ export function DungeonMystery({
         onClose={() => setAsking(null)}
         size="md"
         title={asking ? `与${asking.npcName}交谈` : ''}
-        description="直接问你想知道的事。每问一句消耗 1 点行动力。"
+        description="直接问你想知道的事，每问一句耗 1 点行动力。"
         footer={
           asking ? (
             <div className="flex w-full flex-wrap items-end gap-2">
@@ -439,14 +480,14 @@ export function DungeonMystery({
                   )
                 }
               >
-                问
+                提问
               </InkButton>
               <InkButton
                 variant="ghost"
                 disabled={processing || exhausted}
                 onClick={() => act({ type: 'talk', npcId: asking.npcId })}
               >
-                寒暄
+                闲聊几句
               </InkButton>
             </div>
           ) : null
@@ -485,7 +526,7 @@ export function DungeonMystery({
         title={
           guarded ? `${guarded.guard.name}拦住了去${guarded.name}的路` : ''
         }
-        description="强闯将进入一场战斗，化解需要相应的线索或物品；两者都消耗 1 点行动力。"
+        description="应战会进入一场战斗；化解需要相应的线索或物品。两者都耗 1 点行动力。"
         footer={
           guarded ? (
             <div className="flex flex-wrap gap-2">
@@ -498,7 +539,7 @@ export function DungeonMystery({
                   void onGuard(id);
                 }}
               >
-                强闯
+                应战
               </InkButton>
               <InkButton
                 disabled={processing || exhausted || !guarded.guard.canBypass}
@@ -509,7 +550,7 @@ export function DungeonMystery({
                 化解
               </InkButton>
               <InkButton variant="ghost" onClick={() => setGuarded(null)}>
-                回头
+                先退开
               </InkButton>
             </div>
           ) : null
@@ -520,8 +561,8 @@ export function DungeonMystery({
             <p>{guarded.guard.description}</p>
             <p className="text-ink-secondary">
               {guarded.guard.canBypass
-                ? '你已有化解它的办法。'
-                : '你还没有化解它的办法，也许线索就在别处。'}
+                ? '你已经有化解的办法，可以不战而过。'
+                : '你还没有化解的办法，线索可能在别处。'}
             </p>
           </div>
         ) : null}
@@ -533,11 +574,12 @@ export function DungeonMystery({
         size="sm"
         title={
           picker?.kind === 'present'
-            ? `向${picker.npcName}出示`
+            ? `向${picker.npcName}出示哪条线索`
             : picker
-              ? `将${picker.itemName}用在`
+              ? `把${picker.itemName}用在哪里`
               : ''
         }
+        description="耗 1 点行动力。"
       >
         <div className="space-y-2">
           {picker?.kind === 'present'
