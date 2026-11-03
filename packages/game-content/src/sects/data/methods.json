@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 4,
   "sects": {
     "lingxiao": [
       {
@@ -403,6 +403,75 @@
           "attr": "dodge",
           "mode": "add",
           "value": 0.3
+        }
+      }
+    ],
+    "wanqiao": [
+      {
+        "id": "wanqiao.method.canon",
+        "slot": 1,
+        "name": "《听万窍》",
+        "description": "初入山门，先学静听。石有隙，竹有窍，人的心念也须留出空处；待自己的声音静下来，才辨得清天地如何应答。",
+        "isPrimary": true
+      },
+      {
+        "id": "wanqiao.method.tone",
+        "slot": 2,
+        "name": "《风入松》",
+        "description": "风过松间，疏密自有声律。门人从中学会调音运息，将清声炼得有骨有锋，一声出手，轻重皆由心定。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wanqiao.method.undertone",
+        "slot": 3,
+        "name": "《弦外音》",
+        "description": "弦止之后，仍有一线声音未散。修者把这点余音留在气机细隙中，使它随呼吸回转；待旁人察觉，回声已深。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wanqiao.method.rest",
+        "slot": 4,
+        "name": "《月满空山》",
+        "description": "月照空山，草木无言。修者借这一分静意收拢散乱气息，慢慢养稳气血与筋骨；身中有了安处，行止便多一分安定。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "wanqiao.method.hollow",
+        "slot": 5,
+        "name": "《虚舟》",
+        "description": "空舟能容物，虚心能应变。修者在来势之间留出转圜，让气息游走于身周，护得住自己，也不失从容。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "dodge",
+          "mode": "add",
+          "value": 0.3
+        }
+      },
+      {
+        "id": "wanqiao.method.breath",
+        "slot": 6,
+        "name": "《一息绵长》",
+        "description": "一呼一吸，细匀绵长。修者涵养胸中灵息，使一段声音止后，仍有余力续起下一段，与身旁的众声相和。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "maxMp",
+          "mode": "add",
+          "value": 2
         }
       }
     ]

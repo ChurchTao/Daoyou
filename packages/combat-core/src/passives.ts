@@ -68,6 +68,8 @@ export function bindDataHooks(ctx: BattleContext): void {
             statusChance: hctx.statusChance,
             statusDuration: hctx.statusDuration,
             removedStatusKind: hctx.removedStatusKind,
+            removedStatusRounds: hctx.removedStatusRounds,
+            removedStatusSkillLevel: hctx.removedStatusSkillLevel,
             removedStatusCategory: hctx.removedStatusCategory,
             removedStatusDispellable: hctx.removedStatusDispellable,
             removedStatusFlags: hctx.removedStatusFlags,
@@ -92,6 +94,8 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.limitConsumption === "onAttempt") consumeWhen(ctx, hook.when, scope)
 
           const env = {
+            removedStatusRounds: hctx.removedStatusRounds,
+            removedStatusSkillLevel: hctx.removedStatusSkillLevel,
             statusChance: hctx.statusChance,
             statusDuration: hctx.statusDuration,
             statusDefs: ctx.statusDefs,

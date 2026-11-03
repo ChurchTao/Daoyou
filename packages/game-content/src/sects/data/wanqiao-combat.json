@@ -1,0 +1,3582 @@
+{
+  "$schema": "./wanqiao-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "wanqiao.skill.chorus",
+    "wanqiao.skill.pierce",
+    "wanqiao.skill.fissure",
+    "wanqiao.skill.silence",
+    "wanqiao.skill.echo",
+    "wanqiao.skill.blood",
+    "wanqiao.skill.rest",
+    "wanqiao.skill.hollow",
+    "wanqiao.skill.harmony",
+    "wanqiao.passive.foundation"
+  ],
+  "resources": [
+    {
+      "id": "wanqiao.resource.breath",
+      "name": "窍息",
+      "current": 0,
+      "max": 6
+    }
+  ],
+  "skills": [
+    {
+      "id": "wanqiao.skill.chorus",
+      "name": "众窍鸣",
+      "school": "wanqiao",
+      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标数随《听万窍》等级增加；每个实际目标消耗30法力。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(5,1+floor(skillLevel/35))",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.empty_power",
+          "duration": 1,
+          "self": true,
+          "when": {
+            "expression": "known.wanqiao.passive.resonance.kuangye*(resource.wanqiao.resource.breath==0)"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.chorus_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_extra_spent",
+              "value": "min(1,resource.wanqiao.resource.breath)",
+              "when": {
+                "expression": "(known.wanqiao.passive.resonance.zhuiji+0)"
+              }
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": "-fact.wanqiao_extra_spent",
+              "when": {
+                "expression": "(known.wanqiao.passive.resonance.zhuiji+0)"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_total_spent",
+              "value": "fact.wanqiao_total_spent+fact.wanqiao_extra_spent",
+              "when": {
+                "expression": "(known.wanqiao.passive.resonance.zhuiji+0)"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_emptied",
+              "value": "max(fact.wanqiao_emptied,fact.wanqiao_extra_spent*(resource.wanqiao.resource.breath==0))",
+              "when": {
+                "expression": "(known.wanqiao.passive.resonance.zhuiji+0)"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": 0,
+              "resultFactors": [
+                0.4
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        }
+      ],
+      "formula": "spell",
+      "schoolTerm": {
+        "linear": 1.3333333333333333,
+        "intercept": 35
+      },
+      "splash": {
+        "perTarget": 0.1,
+        "floor": 0.1
+      },
+      "costMp": "30*targets"
+    },
+    {
+      "id": "wanqiao.skill.pierce",
+      "name": "裂帛",
+      "school": "wanqiao",
+      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害，消耗至多三层窍息，每层使本次伤害提高15%；劲节改为20%，随隙则将耗息强化移至叩隙。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(3,resource.wanqiao.resource.breath)*(1-known.wanqiao.passive.subtlety.jisheng)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.pierce_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": 0,
+              "resultFactors": [
+                0.4
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        }
+      ],
+      "costMp": 30,
+      "modifiers": [
+        {
+          "damageBonus": "0.15*fact.wanqiao_spent",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce"
+            ]
+          }
+        }
+      ],
+      "formula": "spell",
+      "schoolTerm": {
+        "quad": 0.008333333333333333,
+        "linear": 1.5,
+        "intercept": 30
+      }
+    },
+    {
+      "id": "wanqiao.skill.fissure",
+      "name": "叩隙",
+      "school": "wanqiao",
+      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并造成相当于实际气血伤害10%的伤势。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(1,resource.wanqiao.resource.breath)*known.wanqiao.passive.resonance.cangai*targetIsPlayer"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(2,resource.wanqiao.resource.breath)",
+          "when": {
+            "expression": "known.wanqiao.passive.subtlety.jisheng",
+            "targetStatusKinds": [
+              "wanqiao.mist",
+              "youdu.poison",
+              "beast.poison",
+              "builtin.rest",
+              "jiujie.status.rest_minor",
+              "jiujie.status.rest_major",
+              "wanqiao.spell_rest"
+            ]
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(2,resource.wanqiao.resource.breath)",
+          "when": {
+            "expression": "known.wanqiao.passive.subtlety.jisheng",
+            "targetStatusCategories": [
+              "control"
+            ]
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0,
+          "resultFactors": [
+            0.9
+          ]
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.fissure_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))*(1+known.wanqiao.passive.resonance.cangai*(targetIsPlayer)*(fact.wanqiao_spent>0))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": 0,
+              "resultFactors": [
+                0.36000000000000004
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        }
+      ],
+      "costMp": 30,
+      "formula": "spell",
+      "schoolTerm": {
+        "quad": 0.008333333333333333,
+        "linear": 1.5,
+        "intercept": 30
+      }
+    },
+    {
+      "id": "wanqiao.skill.silence",
+      "name": "截声",
+      "school": "wanqiao",
+      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害；对灵兽有20%概率施加[[wanqiao.status.freeze_pending]]，使其下一完整回合无法行动。截流可耗息强化并驱散一个增益。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(1,resource.wanqiao.resource.breath)*(known.wanqiao.passive.resonance.bingzhui+known.wanqiao.passive.subtlety.bingzhui)*targetIsPet"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0,
+          "resultFactors": [
+            0.85
+          ]
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.freeze",
+          "chance": "0.2+0.4*(known.wanqiao.passive.resonance.bingzhui+known.wanqiao.passive.subtlety.bingzhui)*(fact.wanqiao_spent>0)",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.freeze_pending",
+              "duration": 1
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "foeKind": "pet"
+          }
+        },
+        {
+          "type": "dispel",
+          "categories": [
+            "buff"
+          ],
+          "maxCount": 1,
+          "when": {
+            "expression": "(known.wanqiao.passive.resonance.bingzhui+known.wanqiao.passive.subtlety.bingzhui)*(fact.wanqiao_spent>0)",
+            "foeKind": "pet"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.silence_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": 0,
+              "resultFactors": [
+                0.34
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        }
+      ],
+      "costMp": 30,
+      "formula": "spell",
+      "schoolTerm": {
+        "quad": 0.008333333333333333,
+        "linear": 1.5,
+        "intercept": 30
+      }
+    },
+    {
+      "id": "wanqiao.skill.echo",
+      "name": "留音",
+      "school": "wanqiao",
+      "description": "弦声已止，余音仍在。\n对一名敌人施加一层本人[[wanqiao.status.echo]]，最多三层，持续四次轮末；修成入窍后有机会直接施加三层。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.direct_echo_layers",
+          "chance": "0.02*resource.wanqiao.resource.breath*known.wanqiao.passive.subtlety.lingmu",
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4
+            }
+          ]
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.amplified",
+          "duration": 4,
+          "when": {
+            "expression": "ownedTargetStatus.wanqiao.amplified"
+          }
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "wanqiao.skill.blood",
+      "name": "泣血吟",
+      "school": "wanqiao",
+      "description": "以血为弦，发出长吟。\n当前气血须不少于最大气血的50%；消耗最大气血的20%对一名敌人造成法术伤害，并进入[[wanqiao.status.spell_rest_pending]]，下一完整回合不能使用宗门神通。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_blood_cost",
+          "value": "floor(maxHp*0.2)"
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": "2*fact.wanqiao_blood_cost"
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.blood_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": "2*fact.wanqiao_blood_cost",
+              "resultFactors": [
+                0.4
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.spell_rest_pending",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "costHp": "floor(maxHp*0.2)",
+      "requireHpRatio": 0.5,
+      "formula": "spell",
+      "schoolTerm": {
+        "quad": 0.008333333333333333,
+        "linear": 1.5,
+        "intercept": 30
+      }
+    },
+    {
+      "id": "wanqiao.skill.rest",
+      "name": "息心",
+      "school": "wanqiao",
+      "description": "收声敛息，让气血徐徐回转。\n回复自身相当于《月满空山》等级四倍的气血，不能越过伤势造成的恢复上限。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "heal",
+          "power": "floor(skillLevel*4)",
+          "fixedBase": true,
+          "includeHealPower": false
+        }
+      ],
+      "costMp": 50
+    },
+    {
+      "id": "wanqiao.skill.hollow",
+      "name": "含虚",
+      "school": "wanqiao",
+      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]：普通护盾结算后，至多50%的名义伤害改由法力抵消，每抵消一点消耗一点法力。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.hollow",
+          "duration": 4,
+          "self": true
+        }
+      ],
+      "costMp": 30
+    },
+    {
+      "id": "wanqiao.skill.harmony",
+      "name": "和鸣",
+      "school": "wanqiao",
+      "description": "清声相和，众人气机同振。\n使至多三名友方获得[[wanqiao.status.harmony]]，法攻增加《一息绵长》等级的一半并向下取整，持续四回合；每个实际目标消耗25法力。内和改为仅作用本人。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "ally",
+        "mode": "fill",
+        "count": "3-2*(known.wanqiao.passive.resonance.ziyang+known.wanqiao.passive.subtlety.ziyang)",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.harmony",
+          "duration": 4
+        }
+      ],
+      "costMp": "25*targets"
+    },
+    {
+      "id": "wanqiao.skill.undertone",
+      "name": "潜籁",
+      "school": "wanqiao",
+      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，每个实际目标消耗30法力；每次命中有20%概率施加本人[[wanqiao.status.echo]]。本次行动命中已有本人留音的目标时，至多返还一层窍息。可触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(5,1+floor(skillLevel/35))",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_existing_mist",
+          "value": 0
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0,
+          "resultFactors": [
+            0.8
+          ]
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.undertone_repeat",
+          "chance": "(0.02+0.06*(known.wanqiao.passive.resonance.yueying+known.wanqiao.passive.subtlety.yueying))",
+          "successEffects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 1
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_extra_spent",
+              "value": "min(1,resource.wanqiao.resource.breath)",
+              "when": {
+                "expression": "(0+known.wanqiao.passive.subtlety.fudu)"
+              }
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": "-fact.wanqiao_extra_spent",
+              "when": {
+                "expression": "(0+known.wanqiao.passive.subtlety.fudu)"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_total_spent",
+              "value": "fact.wanqiao_total_spent+fact.wanqiao_extra_spent",
+              "when": {
+                "expression": "(0+known.wanqiao.passive.subtlety.fudu)"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_emptied",
+              "value": "max(fact.wanqiao_emptied,fact.wanqiao_extra_spent*(resource.wanqiao.resource.breath==0))",
+              "when": {
+                "expression": "(0+known.wanqiao.passive.subtlety.fudu)"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            },
+            {
+              "type": "spellHit",
+              "coeff": 1,
+              "power": 0,
+              "resultFactors": [
+                0.32000000000000006
+              ]
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            }
+          ],
+          "failureEffects": []
+        }
+      ],
+      "formula": "spell",
+      "schoolTerm": {
+        "linear": 1.3333333333333333,
+        "intercept": 35
+      },
+      "splash": {
+        "perTarget": 0.1,
+        "floor": 0.1
+      },
+      "costMp": "30*targets"
+    },
+    {
+      "id": "wanqiao.skill.catalyze",
+      "name": "引响",
+      "school": "wanqiao",
+      "description": "轻叩余音，使暗伏之声骤然响起。\n对目标身上的本人[[wanqiao.status.echo]]追加一次当前结算伤害，并以[[wanqiao.status.amplified]]强化后续留音；持有窍息时消耗一层，强化所有敌方身上的本人留音。本场留音基础伤害每次再提高6%，至多提高60%。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1,
+        "includeOwnedStatusKind": "wanqiao.mist"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "min(1,resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "fixedHit",
+          "power": "floor(fact.wanqiao_undertone_level*0.5)*ownedTargetStatusStacks.wanqiao.mist*min(targetStatusAge.wanqiao.mist+1,3)*(1+0.06*fact.wanqiao_catalysis)*if(ownedTargetStatus.wanqiao.amplified,if(targetIsPlayer,2,4),1)",
+          "origin": "status"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.amplified",
+          "duration": "ownedTargetStatusRounds.wanqiao.mist",
+          "when": {
+            "expression": "fact.wanqiao_spent==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.amplified",
+          "duration": "ownedTargetStatusRounds.wanqiao.mist",
+          "targeting": {
+            "side": "enemy",
+            "mode": "all",
+            "includeOwnedStatusKind": "wanqiao.mist"
+          },
+          "when": {
+            "expression": "fact.wanqiao_spent>0"
+          }
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_catalysis",
+          "value": "min(10,fact.wanqiao_catalysis+1)"
+        }
+      ],
+      "costMp": 100
+    },
+    {
+      "id": "wanqiao.skill.distill",
+      "name": "叠韵",
+      "school": "wanqiao",
+      "description": "旧韵未散，新声又叠。\n消耗300法力和一层窍息，获得[[wanqiao.status.distill]]：潜籁附加留音的概率翻倍，持续五回合，包含当前回合。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": 1
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.distill",
+          "duration": 5,
+          "self": true
+        }
+      ],
+      "costMp": 300,
+      "resourceRequirements": [
+        {
+          "resourceId": "wanqiao.resource.breath",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.skill.resonate",
+      "name": "万窍齐鸣",
+      "school": "wanqiao",
+      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息，消耗全部窍息施展一次众窍鸣，每消耗一层使本次伤害提高16%；选中经脉「复音」后再提高12%。开场冷却三回合，施放后冷却六回合；不触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "min(5,1+floor(skillLevel/35))",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "spellHit",
+          "coeff": 1,
+          "power": 0
+        }
+      ],
+      "formula": "spell",
+      "schoolTerm": {
+        "linear": 1.3333333333333333,
+        "intercept": 35
+      },
+      "splash": {
+        "perTarget": 0.1,
+        "floor": 0.1
+      },
+      "costMp": 100,
+      "cooldownRounds": 6,
+      "initialCooldownRounds": 3,
+      "resourceRequirements": [
+        {
+          "resourceId": "wanqiao.resource.breath",
+          "min": 1
+        }
+      ],
+      "modifiers": [
+        {
+          "damageBonus": "0.16*fact.wanqiao_spent+0.12*known.wanqiao.passive.resonance.yueying",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.resonate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.skill.coda",
+      "name": "无声之章",
+      "school": "wanqiao",
+      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息，消耗全部窍息，使一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]：法术承伤提高16%，每消耗一层窍息再提高2%；随机敌方累计获得三层、每消耗一层再增加半层本人留音，半层按概率结算。施放后冷却八回合，不触发复响。",
+      "tags": [
+        "spell"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": 1,
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_echo",
+          "value": 0
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_initial_breath",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_spent",
+          "value": "resource.wanqiao.resource.breath"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_total_spent",
+          "value": "fact.wanqiao_spent"
+        },
+        {
+          "type": "modifyFact",
+          "key": "wanqiao_emptied",
+          "value": "fact.wanqiao_spent*(fact.wanqiao_spent==resource.wanqiao.resource.breath)"
+        },
+        {
+          "type": "modifyResource",
+          "resourceId": "wanqiao.resource.breath",
+          "amount": "-fact.wanqiao_spent"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_0",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==0"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_1",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==1"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_2",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==2"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_3",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==3"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_4",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==4"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_5",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==5"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.breath_6",
+          "duration": 99,
+          "self": true,
+          "when": {
+            "expression": "resource.wanqiao.resource.breath==6"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "wanqiao.status.vulnerable",
+          "duration": 2
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_1",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wanqiao.coda_half_1",
+              "chance": 0.5,
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wanqiao.status.echo",
+                  "duration": 4,
+                  "targeting": {
+                    "side": "enemy",
+                    "mode": "random",
+                    "count": 1,
+                    "ownedStatusStackLimit": {
+                      "kind": "wanqiao.mist",
+                      "max": 3
+                    }
+                  }
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==1"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_2",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==2"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_3",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wanqiao.coda_half_3",
+              "chance": 0.5,
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wanqiao.status.echo",
+                  "duration": 4,
+                  "targeting": {
+                    "side": "enemy",
+                    "mode": "random",
+                    "count": 1,
+                    "ownedStatusStackLimit": {
+                      "kind": "wanqiao.mist",
+                      "max": 3
+                    }
+                  }
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==3"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_4",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==4"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_5",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wanqiao.coda_half_5",
+              "chance": 0.5,
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wanqiao.status.echo",
+                  "duration": 4,
+                  "targeting": {
+                    "side": "enemy",
+                    "mode": "random",
+                    "count": 1,
+                    "ownedStatusStackLimit": {
+                      "kind": "wanqiao.mist",
+                      "max": 3
+                    }
+                  }
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==5"
+          }
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "wanqiao.coda_budget_6",
+          "chance": 1,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.echo",
+              "duration": 4,
+              "targeting": {
+                "side": "enemy",
+                "mode": "random",
+                "count": 1,
+                "ownedStatusStackLimit": {
+                  "kind": "wanqiao.mist",
+                  "max": 3
+                }
+              }
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "fact.wanqiao_spent==6"
+          }
+        }
+      ],
+      "costMp": 100,
+      "cooldownRounds": 8,
+      "resourceRequirements": [
+        {
+          "resourceId": "wanqiao.resource.breath",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.foundation",
+      "name": "空谷应声",
+      "school": "wanqiao",
+      "description": "空谷有应，气息往复而不绝。\n窍息最多六层，每层使法攻提高10；开场窍息取《一息绵长》等级除以60向下取整，偶数轮末恢复一层。部分直接法术有2%概率复响，追加40%伤害。",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": "min(6,floor(skillLevel/60))"
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            }
+          ],
+          "when": {
+            "oncePerBattle": true,
+            "sourceStanding": true
+          },
+          "aim": "self"
+        },
+        {
+          "on": "beforeAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_spent",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_total_spent",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_echo",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_extra_spent",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_emptied",
+              "value": 0
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 1,
+              "when": {
+                "expression": "(resource.wanqiao.resource.breath==0)*(known.wanqiao.passive.resonance.linggui+0)"
+              }
+            },
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 1,
+              "when": {
+                "expression": "(round-floor(round/2)*2==0)*(1-(known.wanqiao.passive.resonance.fashen+known.wanqiao.passive.subtlety.fashen))"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            }
+          ],
+          "when": {
+            "sourceStanding": true
+          },
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "wanqiao.status.empty_power"
+              ],
+              "targeting": {
+                "side": "self"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus",
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence",
+              "wanqiao.skill.echo",
+              "wanqiao.skill.blood",
+              "wanqiao.skill.rest",
+              "wanqiao.skill.hollow",
+              "wanqiao.skill.harmony",
+              "wanqiao.skill.undertone",
+              "wanqiao.skill.catalyze",
+              "wanqiao.skill.distill",
+              "wanqiao.skill.resonate",
+              "wanqiao.skill.coda"
+            ]
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 0,
+              "mode": "set"
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_catalysis",
+              "value": 0
+            },
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_empty_count",
+              "value": 0
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "wound",
+              "power": "hpDamage*0.1"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.fissure"
+            ],
+            "expression": "fact.wanqiao_echo==0"
+          },
+          "aim": "hookTarget"
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_existing_mist",
+              "value": 1,
+              "when": {
+                "expression": "ownedTargetStatus.wanqiao.mist*(fact.wanqiao_echo==0)"
+              }
+            },
+            {
+              "type": "randomBranch",
+              "branchId": "wanqiao.undertone_hit_mist",
+              "chance": "min(1,(0.2*(1+hasStatus.wanqiao.status.distill))+0.05*known.wanqiao.passive.subtlety.fudu*fact.wanqiao_echo*fact.wanqiao_extra_spent)",
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wanqiao.status.echo",
+                  "duration": 4,
+                  "when": {
+                    "expression": "ownedTargetStatus.wanqiao.mist==0"
+                  }
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.undertone"
+            ]
+          },
+          "aim": "hookTarget"
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyResource",
+              "resourceId": "wanqiao.resource.breath",
+              "amount": 1,
+              "when": {
+                "expression": "fact.wanqiao_existing_mist"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_0",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==0"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_1",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==1"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_2",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==2"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_3",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==3"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_4",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==4"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_5",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==5"
+              }
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.breath_6",
+              "duration": 99,
+              "self": true,
+              "when": {
+                "expression": "resource.wanqiao.resource.breath==6"
+              }
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.undertone"
+            ],
+            "sourceStanding": true
+          },
+          "aim": "self"
+        },
+        {
+          "on": "onDotCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": "1+0.2*hasStatus.wanqiao.status.flow"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "dotStatusIds": [
+              "wanqiao.status.echo"
+            ]
+          },
+          "aim": "hookTarget"
+        },
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "wanqiao.status.amplified"
+              ],
+              "ownedOnly": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "removedStatusKind": "wanqiao.mist"
+          },
+          "aim": "hookTarget"
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "wanqiao.status.breath_0",
+      "name": "窍息·0",
+      "description": "当前没有窍息，不获得窍息提供的法攻加成。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 0
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_1",
+      "name": "窍息·1",
+      "description": "当前持有一层窍息，法攻提高10。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 10
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_2",
+      "name": "窍息·2",
+      "description": "当前持有两层窍息，法攻提高20。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 20
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_3",
+      "name": "窍息·3",
+      "description": "当前持有三层窍息，法攻提高30。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 30
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_4",
+      "name": "窍息·4",
+      "description": "当前持有四层窍息，法攻提高40。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 40
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_5",
+      "name": "窍息·5",
+      "description": "当前持有五层窍息，法攻提高50。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 50
+      }
+    },
+    {
+      "id": "wanqiao.status.breath_6",
+      "name": "窍息·6",
+      "description": "当前持有六层窍息，法攻提高60。此状态随窍息层数变化。",
+      "kind": "wanqiao.breath_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 60
+      }
+    },
+    {
+      "id": "wanqiao.status.empty_power",
+      "name": "空鸣",
+      "description": "零窍息施展众窍鸣时，本次技能及复响临时获得100法攻；行动结束后消失。",
+      "kind": "wanqiao.empty_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "attrMods": {
+        "magicAtk": 100
+      }
+    },
+    {
+      "id": "wanqiao.status.incantation",
+      "name": "通微",
+      "description": "《弦外音》等级不低于人物战斗等级时，本场战斗法攻提高60。",
+      "kind": "wanqiao.incantation",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": 60
+      }
+    },
+    {
+      "id": "wanqiao.status.fire_power",
+      "name": "续声",
+      "description": "武器或衣甲带有火元素时，每件火元素装备每轮使法攻再提高3，累积至本场战斗结束。",
+      "kind": "wanqiao.fire_power",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "untilBattleEnd": true,
+      "attrMods": {
+        "magicAtk": "3*fact.fireEquipmentCount*fact.wanqiao_fire_rounds"
+      }
+    },
+    {
+      "id": "wanqiao.status.echo",
+      "name": "留音",
+      "description": "由施法者分别维持的余音，最多三层。每次轮末按施放心法等级、层数及持续时间造成固定气血伤害；引响可强化后续结算。",
+      "kind": "wanqiao.mist",
+      "school": "wanqiao",
+      "category": "dot",
+      "sourceBound": true,
+      "maxStacks": 3,
+      "ticks": "roundEnd",
+      "expireSameRound": true,
+      "onTick": {
+        "type": "dot",
+        "hpPower": "floor(fact.wanqiao_undertone_level*0.5)*ownedTargetStatusStacks.wanqiao.mist*min(targetStatusAge.wanqiao.mist+1,3)*(1+0.06*fact.wanqiao_catalysis)*if(ownedTargetStatus.wanqiao.amplified,if(targetIsPlayer,2,4),1)"
+      }
+    },
+    {
+      "id": "wanqiao.status.amplified",
+      "name": "引响",
+      "description": "强化施法者本人留在此目标上的留音：后续轮末伤害对人物提高至两倍，对其他目标提高至四倍。",
+      "kind": "wanqiao.amplified",
+      "school": "wanqiao",
+      "category": "debuff",
+      "sourceBound": true
+    },
+    {
+      "id": "wanqiao.status.hollow",
+      "name": "含虚",
+      "description": "普通护盾结算后，至多50%的名义伤害改由法力抵消；每抵消一点消耗一点法力，法力不足时仍会损失气血。",
+      "kind": "wanqiao.hollow",
+      "school": "wanqiao",
+      "category": "buff",
+      "mpShieldRatio": 0.5
+    },
+    {
+      "id": "wanqiao.status.harmony",
+      "name": "和鸣",
+      "description": "法攻按施放时《一息绵长》等级的一半提高，向下取整；修成内和时，另提高15%法术伤害。",
+      "kind": "wanqiao.harmony",
+      "school": "wanqiao",
+      "category": "buff",
+      "attrMods": {
+        "magicAtk": "floor(skillLevel*0.5)"
+      },
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageBonus": "0.15*(known.wanqiao.passive.resonance.ziyang+known.wanqiao.passive.subtlety.ziyang)"
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.status.distill",
+      "name": "叠韵",
+      "description": "潜籁附加留音的概率翻倍，最多为100%；持续五回合，包含施放的当前回合。",
+      "kind": "wanqiao.distill",
+      "school": "wanqiao",
+      "category": "buff",
+      "expireSameRound": true
+    },
+    {
+      "id": "wanqiao.status.flow",
+      "name": "流韵",
+      "description": "全部伤害提高20%，持续两回合；再次触发时刷新持续时间，不会叠加。",
+      "kind": "wanqiao.flow",
+      "school": "wanqiao",
+      "category": "buff",
+      "modifiers": [
+        {
+          "damageBonus": 0.2
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.status.vulnerable",
+      "name": "无声之章",
+      "description": "受到的法术伤害提高16%；施放者每消耗一层窍息再提高2%。持续两回合。",
+      "kind": "wanqiao.vulnerable",
+      "school": "wanqiao",
+      "category": "debuff",
+      "snapshotModifiers": true,
+      "modifiers": [
+        {
+          "when": {
+            "requireKind": "spell"
+          },
+          "damageTakenBonus": "0.16+0.02*fact.wanqiao_spent"
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.status.freeze_pending",
+      "name": "截声将至",
+      "description": "本回合尚可行动；下一个完整回合会转为截声，使目标无法行动。",
+      "kind": "wanqiao.freeze_pending",
+      "school": "wanqiao",
+      "category": "control",
+      "sourceBound": true,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "wanqiao.status.freeze",
+        "duration": 1
+      }
+    },
+    {
+      "id": "wanqiao.status.freeze",
+      "name": "截声",
+      "description": "本回合无法行动，回合结束后解除。",
+      "kind": "wanqiao.freeze",
+      "school": "wanqiao",
+      "category": "control",
+      "sourceBound": true,
+      "expireSameRound": true,
+      "blocksAction": true
+    },
+    {
+      "id": "wanqiao.status.spell_rest_pending",
+      "name": "泣血余息",
+      "description": "泣血吟施放后，本回合不禁法；下一个完整回合会进入禁法调息。",
+      "kind": "wanqiao.spell_rest_pending",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "wanqiao.status.spell_rest",
+        "duration": 1
+      }
+    },
+    {
+      "id": "wanqiao.status.spell_rest",
+      "name": "禁法调息",
+      "description": "本回合不能使用宗门神通，仍可普通攻击或防御；回合结束后解除。",
+      "kind": "wanqiao.spell_rest",
+      "school": "wanqiao",
+      "category": "buff",
+      "dispellable": false,
+      "expireSameRound": true,
+      "blockedSkillSchools": ["wanqiao"]
+    }
+  ]
+}

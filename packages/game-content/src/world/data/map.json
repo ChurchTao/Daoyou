@@ -282,6 +282,15 @@
       "name": "白鹿书院",
       "description": "晋京近郊的青山间，书院临溪而立。诵读声越过松庭，门人以浩然正气践行所学。",
       "tags": ["儒门书院", "浩然正气", "言出法随"]
+    },
+    {
+      "id": "SECT_WANQIAO",
+      "kind": "sect",
+      "sect_id": "wanqiao",
+      "parent_id": "TN_YUE_01",
+      "name": "万窍山",
+      "description": "太岳幽谷中山石多隙，风入竹窍，清声相应。门人于松间石畔听风修心，从空处领悟变化。",
+      "tags": ["听风观窍", "虚而能应", "余音入微"]
     }
   ],
   "satellite_nodes": [

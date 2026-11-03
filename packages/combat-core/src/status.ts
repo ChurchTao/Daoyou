@@ -52,6 +52,7 @@ export function commandBlockReason(ctx: BattleContext, unit: Unit, command: Comm
   for (const instance of unit.statuses) {
     const def = statusDef(ctx, instance.id)
     if (def?.blockedCommands?.includes(command.type) ||
+        (skill?.school && def?.blockedSkillSchools?.includes(skill.school)) ||
         (skill && def?.blocksNonArtSkills && !skill.tags.includes('art')) ||
         (skill && def?.blocksArts && skill.tags.includes('art'))) return 'command-restricted'
   }
@@ -115,7 +116,7 @@ export function applyStatus(
     target: unit,
   }
   // 状态面板表达式按施放时有效属性快照；刷新同 kind 时排除旧层，避免自身滚雪球。
-  const withoutSameKind = { ...unit, statuses: unit.statuses.filter((status) => status.kind !== def.kind) }
+  const withoutSameKind = { ...unit, statuses: unit.statuses.filter((status) => status.kind !== def.kind || (def.sourceBound && status.sourceId !== sourceId)) }
   const snapshotTarget = { ...unit, attrs: effectiveAttrs(withoutSameKind) }
   const env: ExprEnv = {
     ...baseEnv,
@@ -126,7 +127,7 @@ export function applyStatus(
   }
   const priority = def.priority === undefined ? undefined : evalExpr(def.priority, env)
   if (priority !== undefined) {
-    const existing = unit.statuses.find(s => s.kind === def.kind)
+    const existing = unit.statuses.find(s => s.kind === def.kind && (!def.sourceBound || s.sourceId === sourceId))
     const previous = existing && statusDef(ctx, existing.id)
     const previousPriority = existing?.priority ?? (typeof previous?.priority === 'number' ? previous.priority : undefined)
     // The last round-start tick has already fired. Its remaining visual lifetime
@@ -147,23 +148,24 @@ export function applyStatus(
   }
 
   const maxStacks = def.maxStacks && def.maxStacks > 1 ? def.maxStacks : 1
-  const existing = maxStacks > 1 ? unit.statuses.find((s) => s.kind === def.kind) : undefined
+  const existing = maxStacks > 1 ? unit.statuses.find((s) => s.kind === def.kind && (!def.sourceBound || s.sourceId === sourceId)) : undefined
   if (existing) {
     const stacks = Math.min(maxStacks, existing.stacks + 1)
     existing.stacks = stacks
     existing.remainingRounds = duration
     existing.sourceId = sourceId
     existing.appliedRound = ctx.state.round
+    existing.appliedSkillLevel = env.skillLevel
     existing.priority = priority
     existing.tickMpPower = tickMpPower
-    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined) existing.tickSkillLevel = env.skillLevel
+    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.hpPower !== undefined || def.onTick?.mpPower !== undefined) existing.tickSkillLevel = env.skillLevel
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
     existing.healDealt = healDealt ** stacks
     existing.damageTakenPhysical = (def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN) ** stacks
     existing.damageTakenSpell = (def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN) ** stacks
-    ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration })
+    ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId } : {}) })
     return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
   }
 
@@ -183,8 +185,9 @@ export function applyStatus(
     speedMod: evalExpr(def.speedMod ?? 0, env),
     attrMods,
     storedTargetId: options.storedTargetId,
+    appliedSkillLevel: env.skillLevel,
     ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
-    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
+    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.hpPower !== undefined || def.onTick?.mpPower !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -193,7 +196,7 @@ export function applyStatus(
   })
   // 达摩护体等改的是真实上限，expire 时要在 removeStatus 里扣回来。
   if (attrMods.maxHp) unit.attrs.maxHp += attrMods.maxHp
-  ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration })
+  ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId } : {}) })
   return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
 }
 
@@ -223,7 +226,7 @@ export function copyStatusInstance(
   }
   target.statuses.push(copy)
   if (copy.attrMods.maxHp) target.attrs.maxHp += copy.attrMods.maxHp
-  ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds })
+  ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId: copy.sourceId } : {}) })
   reportStatusResult(ctx, target, copy.id, source.id, 'applied', {
     skillId: ctx.currentAction?.skillId, duration: copy.remainingRounds,
   });
@@ -238,7 +241,7 @@ export function tickStatuses(ctx: BattleContext): void {
         const caster = ctx.state.units.find(candidate => candidate.id === inst.sourceId)
         const cost = caster?.id === unit.id ? def.upkeepMp.self : def.upkeepMp.other
         if (!caster || !isStanding(caster) || caster.attrs.mp < cost) {
-          removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired)
+          removeStatus(ctx, unit, inst.id, StatusRemoveReason.Expired, inst.sourceId)
           continue
         }
         applyMpDamage(ctx, caster, caster, cost)
@@ -278,6 +281,11 @@ function applyStatusTick(ctx: BattleContext, unit: Unit, inst: StatusInstance, d
   if (def.onTick.ratioOfMaxHp !== undefined) {
     const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
       def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
+    const hooked = ctx.hooks.emit(HookName.OnDotCalc, { source, target: unit, damage: amount, kind: DamageKind.Fixed, origin: DamageOrigin.Status, dotStatusId: def.id })
+    applyDamage(ctx, source, unit, Math.max(0, Math.floor(hooked.damage ?? amount)), DamageKind.Fixed, true, DamageOrigin.Status)
+  }
+  if (def.onTick.hpPower !== undefined) {
+    const amount = Math.max(0, Math.floor(evalExpr(def.onTick.hpPower, env)))
     const hooked = ctx.hooks.emit(HookName.OnDotCalc, { source, target: unit, damage: amount, kind: DamageKind.Fixed, origin: DamageOrigin.Status, dotStatusId: def.id })
     applyDamage(ctx, source, unit, Math.max(0, Math.floor(hooked.damage ?? amount)), DamageKind.Fixed, true, DamageOrigin.Status)
   }

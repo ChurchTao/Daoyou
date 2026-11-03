@@ -62,6 +62,13 @@ export default function SectVisitPage() {
   }
 
   const presentation = getSectPresentation(definition.id);
+  const visitorEntry = bounty
+    ? {
+        hotspotId: 'gate',
+        label: '前往山门查探悬赏目标',
+        route: `/game/sect/${encodeURIComponent(sectId)}/gate`,
+      }
+    : undefined;
   return (
     <div className="bg-paper h-full overflow-y-auto pt-[calc(var(--app-safe-top)+5.5rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pt-24 md:pr-[max(env(safe-area-inset-right),1.5rem)] md:pl-[max(env(safe-area-inset-left),1.5rem)]">
       <title>
@@ -72,25 +79,41 @@ export default function SectVisitPage() {
           <p className="text-ink-secondary mb-3 text-sm leading-7">
             外宗访客可远观诸院，只在山门与护山阵法外驻足，不得进入门内设施。
           </p>
-          <SectMap
-            mode="visitor"
-            image={presentation.map.image!}
-            alt={presentation.map.alt}
-            aspectRatio={presentation.map.aspectRatio}
-            hotspots={presentation.map.hotspots}
-            rooms={presentation.rooms}
-            scenes={presentation.scenes}
-            visitorEntry={
-              bounty
-                ? {
-                    hotspotId: 'gate',
-                    label: '前往山门查探悬赏目标',
-                    route: `/game/sect/${encodeURIComponent(sectId)}/gate`,
-                  }
-                : undefined
-            }
-            onNavigate={(route) => navigate(route)}
-          />
+          {presentation.map.image ? (
+            <SectMap
+              mode="visitor"
+              image={presentation.map.image}
+              alt={presentation.map.alt}
+              aspectRatio={presentation.map.aspectRatio}
+              hotspots={presentation.map.hotspots}
+              rooms={presentation.rooms}
+              scenes={presentation.scenes}
+              visitorEntry={visitorEntry}
+              onNavigate={(route) => navigate(route)}
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {presentation.map.hotspots
+                .filter((spot) => spot.visitor)
+                .map((spot) => (
+                  <article key={spot.id} className="border-ink/15 border p-4">
+                    <h2 className="font-semibold">{spot.label}</h2>
+                    <p className="text-ink-secondary mt-2 text-sm leading-6">
+                      {spot.visitor?.description}
+                    </p>
+                    {visitorEntry?.hotspotId === spot.id ? (
+                      <InkButton
+                        variant="primary"
+                        className="mt-4"
+                        onClick={() => navigate(visitorEntry.route)}
+                      >
+                        {visitorEntry.label}
+                      </InkButton>
+                    ) : null}
+                  </article>
+                ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

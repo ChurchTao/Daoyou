@@ -8,6 +8,7 @@ const methods = z.array(z.strictObject({
   id: z.string().regex(/^[a-z]+\.method\.[a-z_]+$/),
   slot: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
   name: z.string().trim().min(1).max(60),
+  description: z.string().trim().min(1).max(500).optional(),
   isPrimary: z.boolean(),
   panel: z.strictObject({
     attr: z.enum(ATTR_NAMES),
@@ -19,7 +20,7 @@ export const SectMethodsPackShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
   contentRevision: z.number().int().positive(),
-  sects: z.strictObject({ lingxiao: methods, youdu: methods, wuxiang: methods, tianyan: methods, jiujie: methods, bailu: methods }),
+  sects: z.strictObject({ lingxiao: methods, youdu: methods, wuxiang: methods, tianyan: methods, jiujie: methods, bailu: methods, wanqiao: methods }),
 });
 export function loadSectMethodsPack(data: unknown) {
   const result = SectMethodsPackShape.superRefine((pack, ctx) => {

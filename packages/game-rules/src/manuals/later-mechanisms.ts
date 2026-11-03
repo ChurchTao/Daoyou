@@ -9,7 +9,7 @@ const numericFields = new Set([
   'damageDealtSpell', 'healTaken', 'healDealt', 'physicalDefenseIgnore', 'damageTakenFromSource', 'sealHitTakenFactor',
 ]);
 const numericMetadata = new Set([
-  'id', 'name', 'kind', 'category', 'school', 'sourceBound', 'snapshotModifiers',
+  'id', 'name', 'description', 'kind', 'category', 'school', 'sourceBound', 'snapshotModifiers',
   'expireSameRound', 'maxStacks', 'extendable', 'priority', 'untilBattleEnd', 'consumeAfterDamagingAction',
 ]);
 const numericModifierFields = new Set([

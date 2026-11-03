@@ -278,7 +278,7 @@ function handleRemoveStatus(
   for (const target of targets) {
     const max = effect.maxCount === undefined ? Number.POSITIVE_INFINITY : Math.max(0, Math.floor(evalExpr(effect.maxCount, { ...env, target })))
     for (const status of matchingStatuses(target, effect).filter(s => !effect.ownedOnly || s.sourceId === source.id).slice(0, max)) {
-      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, effect.ownedOnly ? source.id : undefined, source)
+      removeStatus(ctx, target, status.id, StatusRemoveReason.Consumed, status.sourceId, source)
     }
   }
 }

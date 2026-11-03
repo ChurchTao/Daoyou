@@ -347,6 +347,22 @@ function applyDefend(ctx: BattleContext, target: Unit, kind: DamageKindType, raw
   return floorAtLeast(MIN_DAMAGE, raw * (factor ?? ctx.rules.formulas.defendPhysicalFactor))
 }
 
+/** MP absorption funds a portion of post-barrier nominal damage, including overkill. */
+function absorbDamageWithMp(ctx: BattleContext, target: Unit, amount: number): number {
+  let ratio = 0
+  let statusId: string | undefined
+  for (const status of target.statuses) {
+    const candidate = ctx.statusDefs.get(status.id)?.mpShieldRatio ?? 0
+    if (candidate > ratio) { ratio = Math.min(1, candidate); statusId = status.id }
+  }
+  const absorbed = Math.min(Math.floor(Math.max(0, amount) * ratio), Math.max(0, Math.floor(target.attrs.mp)))
+  if (absorbed > 0) {
+    target.attrs.mp -= absorbed
+    ctx.emit({ type: EventType.MpCost, unitId: target.id, amount: absorbed, mpAfter: target.attrs.mp, absorbedDamage: absorbed, statusId })
+  }
+  return amount - absorbed
+}
+
 /** silent=true 表示来自钩子的二次打击，不再触发 onBeHit（避免反击/反震互爆）。 */
 export function applyDamage(
   ctx: BattleContext,
@@ -367,19 +383,20 @@ export function applyDamage(
   const finalModifiers = combatModifiers(ctx, target, { target: source, skill, skillId: skill?.id, kind, origin, percentageDamage })
   const received = Math.max(0, Math.floor(amount * Math.max(0, 1 + modifierValue(finalModifiers, 'allDamageTakenBonus', target, source, skill, ctx))))
   const kept = redirectOverflow(ctx, source, target, received, kind, origin)
-  const enteringHp = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept, barrierDestructionFactor, barrierDrainBonus)
-  const barrierAbsorbed = kept - enteringHp
+  const afterBarriers = origin === DamageOrigin.Status ? kept : absorbBarriers(ctx, target, kept, barrierDestructionFactor, barrierDrainBonus)
+  const enteringHp = absorbDamageWithMp(ctx, target, afterBarriers)
+  const absorbedBeforeHp = kept - enteringHp
   const appliedToHp = cannotKill
     ? Math.min(enteringHp, Math.max(0, target.attrs.hp - MIN_HP))
     : enteringHp
   ctx.lastStrikeDamage = enteringHp
   if (origin === DamageOrigin.ActionDirect && ctx.currentAction?.sourceId === source.id &&
-    kind !== DamageKind.Fixed && (barrierAbsorbed > 0 || appliedToHp > 0)) {
+    kind !== DamageKind.Fixed && (absorbedBeforeHp > 0 || appliedToHp > 0)) {
     ctx.currentAction.hasPhysicalOrSpellImpact = true
   }
-  if (origin === DamageOrigin.ActionDirect && ctx.currentAction?.sourceId === source.id && barrierAbsorbed > 0) {
+  if (origin === DamageOrigin.ActionDirect && ctx.currentAction?.sourceId === source.id && absorbedBeforeHp > 0) {
     ctx.currentAction.impactDamageByTarget[target.id] =
-      (ctx.currentAction.impactDamageByTarget[target.id] ?? 0) + barrierAbsorbed
+      (ctx.currentAction.impactDamageByTarget[target.id] ?? 0) + absorbedBeforeHp
   }
   if (appliedToHp <= 0) return 0
   const hpBefore = target.attrs.hp
@@ -452,7 +469,8 @@ function redirectOverflow(
   const kept = atLeast(0, Math.floor(amount * spec.keep))
   const bounced = atLeast(0, Math.floor(amount * spec.toCaster))
   if (caster && isStanding(caster) && caster.id !== target.id && bounced > 0) {
-    const enteringHp = origin === DamageOrigin.Status ? bounced : absorbBarriers(ctx, caster, bounced)
+    const afterBarriers = origin === DamageOrigin.Status ? bounced : absorbBarriers(ctx, caster, bounced)
+    const enteringHp = absorbDamageWithMp(ctx, caster, afterBarriers)
     if (enteringHp <= 0) return kept
     const hp = atLeast(0, caster.attrs.hp - enteringHp)
     const hpDamage = caster.attrs.hp - hp

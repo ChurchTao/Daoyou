@@ -194,6 +194,8 @@ export type StatusInstance = {
   speedMod: number;
   attrMods: Partial<Attrs>;
   storedTargetId?: UnitId;
+  /** 施加／刷新时的技能等级，供移除后的效果读取。 */
+  appliedSkillLevel?: number;
   /** 自然到期转入下一状态时沿用施法等级。 */
   transitionSkillLevel?: number;
   /** 周期数值沿用施加时的技能等级，快照恢复不重新读取施法者技能。 */
@@ -346,6 +348,8 @@ export type LineupUnit = {
 };
 
 export type SkillTargeting = {
+  /** 排除来自本次施法者、已达到指定层数的目标。 */
+  ownedStatusStackLimit?: { kind: string; max: number };
   secondaryOwnedStatusKind?: string;
   fillPriority?: 'delayedRevivalThenSpeed';
   fillPriorityPassives?: string[][];
@@ -849,6 +853,8 @@ export type StatusDef = {
   interceptHostileAction?: boolean;
   /** Command restrictions also apply to preflight/UI; resting is not a seal. */
   blockedCommands?: CommandType[];
+  /** Restrict skills from these schools while leaving other skills and basic commands available. */
+  blockedSkillSchools?: string[];
   blocksNonArtSkills?: boolean;
   blocksArts?: boolean;
   protectsTarget?: boolean;
@@ -860,6 +866,8 @@ export type StatusDef = {
   /** 后续回合末由施法者支付；法力不足或施法者离场时移除此状态。 */
   upkeepMp?: { self: number; other: number };
   sourceBound?: boolean;
+  /** 普通护盾之后，以1点MP抵消1点伤害；多项取最高比例。 */
+  mpShieldRatio?: number;
   damageTakenFromSource?: number;
   immuneToSeal?: boolean;
   physicalDefenseIgnore?: number;
@@ -902,6 +910,7 @@ export type StatusDef = {
     ratioOfMaxMp?: number;
     hpCap?: Expr;
     mpCap?: Expr;
+    hpPower?: Expr;
     mpPower?: Expr;
     snapshot?: boolean;
   };
@@ -1061,6 +1070,8 @@ export type BattleEvent =
       unitId: UnitId;
       amount: number;
       mpAfter: number;
+      absorbedDamage?: number;
+      statusId?: StatusId;
     }
   | {
       type: typeof EventType.HpCost;
@@ -1106,12 +1117,15 @@ export type BattleEvent =
       unitId: UnitId;
       statusId: StatusId;
       duration: number;
+      untilBattleEnd?: true;
+      sourceId?: UnitId;
     }
   | {
       type: typeof EventType.StatusRemoved;
       unitId: UnitId;
       statusId: StatusId;
       reason: string;
+      sourceId?: UnitId;
     }
   | {
       type: typeof EventType.MechanicTriggered;
@@ -1172,6 +1186,8 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  removedStatusRounds?: number;
+  removedStatusSkillLevel?: number;
   statusDuration?: number;
   statusChance?: number;
   statusDefs?: ReadonlyMap<string, StatusDef>;
