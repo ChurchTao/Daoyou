@@ -786,6 +786,7 @@
     },
     {
       "id": "bailu.status.restrain",
+      "description": "无法使用普通攻击和物理技能。",
       "name": "敛锋",
       "kind": "bailu.seal",
       "school": "bailu",
@@ -795,6 +796,7 @@
     },
     {
       "id": "bailu.status.stern",
+      "description": "本回合受到的物理伤害和法术伤害提高15%。",
       "name": "严辞",
       "kind": "bailu.stern",
       "school": "bailu",
@@ -865,7 +867,7 @@
     {
       "id": "bailu.status.armor_strong",
       "name": "笔削",
-      "description": "物理防御和法术防御先降低10%，之后每回合少降一些，直到回到5%。",
+      "description": "物理防御和法术防御先降低10%，降低幅度随后每回合依次变为9%、8%、7%，再解除。",
       "kind": "bailu.armor",
       "school": "bailu",
       "category": "debuff",
@@ -891,6 +893,7 @@
     },
     {
       "id": "bailu.status.cage",
+      "description": "戒辞留下的倒地记录，倒地后保留。后续回合开始时，若施加者站立且目标未被言令封印，会随机尝试附加1回合禁言或折辩，仍须经过封印判定。",
       "name": "戒辞",
       "kind": "bailu.cage",
       "school": "bailu",
@@ -901,6 +904,7 @@
     },
     {
       "id": "bailu.status.verdict",
+      "description": "定论留下的本场记录。每名带有本人定论的敌方人物，使本人对未标记敌方人物的法术伤害提高7%；所有敌方人物均有本人定论时，破邪额外攻击三人。",
       "name": "定论",
       "kind": "bailu.verdict",
       "school": "bailu",
@@ -912,6 +916,7 @@
     },
     {
       "id": "bailu.status.echo",
+      "description": "余论留下的追击记录。每回合目标首次可被攻击时，受到施加者一次法术追击；倒地后仍保留记录。",
       "name": "余论",
       "kind": "bailu.echo",
       "school": "bailu",
@@ -922,6 +927,7 @@
     },
     {
       "id": "bailu.status.weaken",
+      "description": "物攻、法攻、物防和法防各降低12%，倒地后仍保留。",
       "name": "气势受挫",
       "kind": "bailu.weaken",
       "school": "bailu",
@@ -955,6 +961,7 @@
     },
     {
       "id": "bailu.status.charged",
+      "description": "下一次破邪造成的伤害提高25%，该次成功施放后消耗。",
       "name": "辞锋待发",
       "kind": "bailu.charged",
       "school": "bailu",
@@ -972,6 +979,7 @@
     },
     {
       "id": "bailu.status.revive_growth",
+      "description": "不屈通过文脉不绝复起后留下的成长记录，法攻增加本场文脉不绝成功复起次数×40，倒地后保留。",
       "name": "文脉不绝",
       "kind": "bailu.revive_growth",
       "school": "bailu",
@@ -985,6 +993,7 @@
     },
     {
       "id": "bailu.status.pet_history",
+      "description": "记录此灵兽已被施加者的基础破邪攻击。配合余慑经脉，施加者后续破邪对该灵兽的增伤由30%改为45%；本记录自身不直接造成伤害。",
       "name": "余慑",
       "kind": "bailu.pet_history",
       "school": "bailu",
@@ -995,6 +1004,7 @@
     },
     {
       "id": "bailu.status.armor_90",
+      "description": "物理防御和法术防御各降低9%，本回合结束后转为降低8%的笔削。",
       "name": "笔削",
       "kind": "bailu.armor",
       "school": "bailu",
@@ -1011,6 +1021,7 @@
     },
     {
       "id": "bailu.status.armor_80",
+      "description": "物理防御和法术防御各降低8%，本回合结束后转为降低7%的笔削。",
       "name": "笔削",
       "kind": "bailu.armor",
       "school": "bailu",
@@ -1027,6 +1038,7 @@
     },
     {
       "id": "bailu.status.armor_70",
+      "description": "物理防御和法术防御各降低7%，本回合结束后解除。",
       "name": "笔削",
       "kind": "bailu.armor",
       "school": "bailu",
@@ -1039,6 +1051,7 @@
     },
     {
       "id": "bailu.status.echo_spent",
+      "description": "记录施加者的余论在本回合已经追击过此目标，避免同一回合重复触发；本回合结束后清除。",
       "name": "余论已发",
       "kind": "bailu.echo_spent",
       "school": "bailu",

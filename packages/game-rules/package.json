@@ -86,6 +86,7 @@
     "./sect-organization/production": "./dist/sect-organization/production/productionRuntime.js",
     "./sect-organization/tasks": "./dist/sect-organization/core/organization/taskRequirements.js",
     "./sects": "./dist/public/sects.js",
+    "./sects/atlas": "./dist/public/sects-atlas.js",
     "./sects/presentation": "./dist/sects/presentation.js",
     "./shops/exchange": "./dist/shops/exchange.js",
     "./shops/purchase": "./dist/shops/purchase.js",

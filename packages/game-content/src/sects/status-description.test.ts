@@ -18,14 +18,25 @@ const descriptions = [bailu, jiujie, lingxiao, wanqiao, wuxiang, xiaoyue, youdu,
   .map((skill) => skill.description ?? '');
 
 describe('宗门状态说明引用', () => {
-  it('万窍山技能有意象与功效，所有战斗状态均可查看说明', () => {
+  it('万窍山技能有意象与功效', () => {
     for (const skill of wanqiao.skills) {
       const [flavor, effect] = skill.description.split('\n');
       expect(flavor, skill.id).toBeTruthy();
       expect(effect, skill.id).toBeTruthy();
     }
-    for (const status of wanqiao.statuses)
-      expect(status.description, status.id).toBeTruthy();
+  });
+
+  it('全部宗门的每个战斗状态均有可查询的说明', () => {
+    const details = sectStatusDetails();
+    for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+      for (const status of definition.statuses) {
+        expect(status.description?.trim(), status.id).toBeTruthy();
+        expect(details[status.id], status.id).toEqual({
+          name: status.name,
+          description: status.description,
+        });
+      }
+    }
   });
 
   it('技能文案里的状态标记都能打开对应说明', () => {

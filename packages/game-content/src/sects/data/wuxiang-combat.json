@@ -1116,6 +1116,7 @@
     },
     {
       "id": "wuxiang.status.insight_self",
+      "description": "自身治疗强度增加人物等级。",
       "name": "观照生慧",
       "kind": "wuxiang.insight_self",
       "category": "buff",
@@ -1125,6 +1126,7 @@
     },
     {
       "id": "wuxiang.status.initiative",
+      "description": "本回合速度提高自身速度的15%，增加值向下取整。",
       "name": "先机",
       "kind": "wuxiang.initiative",
       "category": "buff",
@@ -1208,6 +1210,7 @@
     },
     {
       "id": "wuxiang.status.cultivation",
+      "description": "记录愿力与众生安住的修持收益：修成愿力后，治疗强度增加武器伤害贡献的24%并向下取整；封印抵抗增加众生安住在本场累计的数值。",
       "name": "愿力修持",
       "kind": "wuxiang.cultivation",
       "category": "buff",

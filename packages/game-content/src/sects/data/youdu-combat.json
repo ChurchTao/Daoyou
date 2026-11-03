@@ -546,6 +546,7 @@
     },
     {
       "id": "youdu.status.strong_poison",
+      "description": "每回合末损失最大气血的6%与最大法力的2%；单次气血损失不超过施放心法等级×12，法力损失不超过施放心法等级。",
       "name": "蚀骨魂毒",
       "kind": "youdu.poison",
       "category": "dot",
@@ -623,6 +624,7 @@
     },
     {
       "id": "youdu.status.siphon_strong",
+      "description": "摄魂的强化形态，造成的伤害降低15%，受到的伤害提高15%。",
       "name": "摄魂",
       "kind": "youdu.siphon",
       "category": "debuff",
@@ -635,6 +637,7 @@
     },
     {
       "id": "youdu.status.bound_soul",
+      "description": "对倒地目标留下的拘魄，受到的伤害提高3%。倒地后保留，持续本场战斗。",
       "name": "拘魄",
       "kind": "youdu.bound_soul",
       "category": "debuff",
@@ -649,6 +652,7 @@
     },
     {
       "id": "youdu.status.judgment_ready",
+      "description": "敌方非灵兽单位倒下后获得，灭魂杀伤害提高50%。本次灭魂杀没有击倒非灵兽目标时消耗。",
       "name": "断魂",
       "kind": "youdu.judgment_ready",
       "category": "buff",
@@ -666,6 +670,7 @@
     },
     {
       "id": "youdu.status.slow_strong",
+      "description": "滞魂的强化形态，速度减少施放心法等级×20%向下取整后数值的1.5倍。",
       "name": "滞魂",
       "kind": "youdu.slow",
       "category": "debuff",
@@ -673,6 +678,7 @@
     },
     {
       "id": "youdu.status.insight_strong",
+      "description": "可以看破隐身，受到的封印命中概率变为原来的85%。",
       "name": "洞幽法眼",
       "kind": "youdu.insight",
       "category": "buff",
@@ -681,6 +687,7 @@
     },
     {
       "id": "youdu.status.soul_flight",
+      "description": "涤魂诀留下的当回合记录。携带此记录的敌方人物本回合倒下时，封魂经脉会为其附加2回合拘灵，限制复活；本记录自身不直接禁复活。",
       "name": "封魂",
       "kind": "youdu.soul_flight",
       "category": "debuff",
@@ -691,6 +698,7 @@
     },
     {
       "id": "youdu.status.death_echo",
+      "description": "使下一次成功施放的拘灵术多持续1回合，成功施放后消耗此效果。",
       "name": "魂响",
       "kind": "youdu.death_echo",
       "category": "buff",
@@ -754,6 +762,7 @@
     },
     {
       "id": "youdu.status.enter_soul_pending",
+      "description": "成功施放摄魂后的蓄势记录，本回合结束时转为入魂，强化下一回合的物理伤害。",
       "name": "入魂蓄势",
       "kind": "youdu.enter_soul_pending",
       "category": "buff",
@@ -766,6 +775,7 @@
     },
     {
       "id": "youdu.status.enter_soul",
+      "description": "造成的物理伤害提高15%。",
       "name": "入魂",
       "kind": "youdu.enter_soul",
       "category": "buff",
@@ -774,6 +784,7 @@
     },
     {
       "id": "youdu.status.evil_flame",
+      "description": "噬魂增威触发后，造成的物理伤害提高12%。",
       "name": "噬魂增威",
       "kind": "youdu.evil_flame",
       "category": "buff",
@@ -782,6 +793,7 @@
     },
     {
       "id": "youdu.status.reincarnation",
+      "description": "物理攻击提高60，受到的物理伤害额外减少60。物理暴击率、忽视物防比例、物理狂暴概率和封印抵抗概率各增加60÷max(1，人物等级×10)，此式按概率小数计算。",
       "name": "六魂归元",
       "kind": "youdu.reincarnation",
       "category": "buff",

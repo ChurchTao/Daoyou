@@ -443,6 +443,7 @@
     },
     {
       "id": "lingxiao.status.shadow_preparing",
+      "description": "惊鸿施放后的起势记录。本回合结束时转为惊鸿，为下一回合提供15%的速度加成。",
       "name": "惊鸿起势",
       "kind": "lingxiao.shadow_preparing",
       "category": "buff",
@@ -465,6 +466,7 @@
     },
     {
       "id": "lingxiao.status.sword_aura_ganjiang",
+      "description": "破极剑意的强化形态，物理攻击忽视目标15%的物理防御。",
       "name": "破极剑意",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
@@ -474,6 +476,7 @@
     },
     {
       "id": "lingxiao.status.clarity_anshen",
+      "description": "剑心通明的强化形态：法防增加施放心法等级，封印抵抗增加心法等级的一半并向下取整，受到的法术伤害降低50%。",
       "name": "剑心通明",
       "kind": "lingxiao.clarity",
       "category": "buff",
@@ -497,6 +500,7 @@
     },
     {
       "id": "lingxiao.status.bravery",
+      "description": "勇武强化的惊雷命中后留下的破绽。受到施加者造成的伤害提高10%，目标倒地后清除。",
       "name": "惊雷破绽",
       "kind": "lingxiao.bravery",
       "category": "debuff",
@@ -507,6 +511,7 @@
     },
     {
       "id": "lingxiao.status.pride",
+      "description": "亲自击倒敌方人物后获得的傲视，造成的物理伤害提高40%。",
       "name": "傲视",
       "kind": "lingxiao.pride",
       "category": "buff",
