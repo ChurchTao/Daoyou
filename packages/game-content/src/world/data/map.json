@@ -299,6 +299,7 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
+            "lost_relic",
             "trial_seal"
           ],
           "setting": "太岳山瀑布后的古修士洞府。洞口禁制残破，水声终年不息，洞内石室幽深，丹房、静室与一道封闭石门都还保持着主人闭关时的样子，主人的枯骨端坐其中。",
@@ -354,6 +355,7 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
+            "inheritance_murder",
             "lost_relic",
             "trial_seal"
           ],
@@ -412,7 +414,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "anomaly_source"
           ],
           "setting": "乱星海中一座海图上没有标记的孤岛。怪石嶙峋，岛心凿有一处闭关洞府，洞外妖兽巢穴环伺，近来妖气冲天、兽群躁动不安。",
@@ -468,6 +469,7 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
+            "inheritance_murder",
             "lost_relic"
           ],
           "setting": "数百年前沉没的大型商船。船舱被珊瑚与海草覆盖，货舱里有带禁制的宝箱，海水时退时涨，海兽在幽暗中窥伺。",
@@ -523,7 +525,6 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -579,7 +580,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -636,7 +636,6 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
-            "lost_relic",
             "anomaly_source",
             "faction_choice"
           ],
@@ -695,7 +694,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "anomaly_source"
           ],
           "setting": "落日森林边缘、血色禁地外围的一处荒废药园。篱笆倾倒、药圃杂草丛生，园主的竹屋与晾药架尚在，木灵气浓郁，园中埋着防贼的旧陷阱，最近药草却开始成片枯萎。",
@@ -869,7 +867,6 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -976,7 +973,6 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic",
             "anomaly_source",
             "faction_choice"
           ],
@@ -1086,7 +1082,6 @@
         "difficulty": "elite",
         "scenario": {
           "templates": [
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -1141,7 +1136,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "trial_seal",
             "faction_choice"
           ],
@@ -1198,7 +1192,6 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -1255,7 +1248,6 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic",
             "anomaly_source",
             "faction_choice"
           ],
@@ -1312,6 +1304,7 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
+            "inheritance_murder",
             "lost_relic",
             "trial_seal"
           ],
@@ -1367,7 +1360,6 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
-            "lost_relic",
             "anomaly_source",
             "faction_choice"
           ],
@@ -1537,7 +1529,6 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
-            "lost_relic",
             "anomaly_source",
             "faction_choice"
           ],
@@ -1650,7 +1641,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "trial_seal",
             "anomaly_source"
           ],
@@ -1762,7 +1752,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "trial_seal"
           ],
           "setting": "昔日名震人界的天机阁旧址。机关错乱、傀儡失控，阁中藏有古卷秘档与推演星象用的浑天仪，阁主的书斋尚存，仿佛主人只是暂时离开。",
@@ -1872,7 +1861,6 @@
         "difficulty": "elite",
         "scenario": {
           "templates": [
-            "inheritance_murder",
             "lost_relic",
             "trial_seal"
           ],
@@ -1930,7 +1918,6 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic",
             "trial_seal"
           ],
           "setting": "北夜小极宫历代长老封存冰系典籍的藏经窟。入内需以神识破封，窟中有长老坐化的冰龛与典籍石架，失败则会被寒煞反噬。",

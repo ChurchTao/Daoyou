@@ -1,6 +1,7 @@
 import {
   getMysteryFallbackCase,
   getMysteryTemplate,
+  listMysteryFallbackSeeds,
   listMysteryTemplates,
 } from '@daoyou/game-content/dungeon/scenarios';
 import { getAllSatelliteNodes } from '@daoyou/game-content/world/map';
@@ -92,7 +93,25 @@ describe('mystery scenario content', () => {
       expect(inRange(s!.objects, 4, 8), `${node.id} objects`).toBe(true);
       expect(inRange(s!.factions, 0, 4), `${node.id} factions`).toBe(true);
       expect(s!.forbidden.length, `${node.id} forbidden`).toBeGreaterThan(0);
+      // 每个节点至少两种自然适配的案型，开局在其间轮换。
+      expect(
+        s!.templates.length,
+        `${node.id} templates`,
+      ).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it('binds every fallback case to a node that uses its template', () => {
+    for (const seed of listMysteryFallbackSeeds()) {
+      const node = getAllSatelliteNodes().find((n) => n.id === seed.mapNodeId);
+      expect(
+        node?.dungeon_config?.scenario?.templates,
+        `${seed.templateId}@${seed.mapNodeId}`,
+      ).toContain(seed.templateId);
+    }
+    expect(
+      new Set(listMysteryFallbackSeeds().map((s) => s.templateId)).size,
+    ).toBe(listMysteryTemplates().length);
   });
 
   it('only hands out a fallback case on the node it was written for', () => {
