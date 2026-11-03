@@ -10,6 +10,7 @@ import type {
 } from '@daoyou/game-domain/world/map';
 import {
   buildMysterySkeleton,
+  renderHintRule,
   validateMysteryCase,
   type MysteryCaseSkeleton,
 } from '@daoyou/game-rules/dungeon/mystery';
@@ -87,6 +88,26 @@ const ARCHETYPES: Partial<
       '“藏处”与“法门”两问的选项：四个选项各不相同；真相一项必须与线索一致，干扰项要说得通、但与物证不符；假藏处与伪造线索所指一致，另两个干扰项是别的地点。',
     ],
   },
+  unlock: {
+    liar: 'npc_rival',
+    liarLabel: '闯关者',
+    cast: ['npc_rival', 'npc_fallen'],
+    canon: {
+      legacy: '设下试炼的前辈是谁、为何设下、闯过者能得到什么',
+      trial: '主禁制与两处机关各是什么样子；部件取什么成套的物象',
+      catalyst: '开启主禁制的引子是什么、为何是它',
+      rival: '闯关者的真名、来历与图谋；当年如何把假解法给了前人',
+      lie: '闯关者对外宣称来历或与前人关系的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+      contradiction: 'clue_record 记载的哪条事实与 lie 矛盾',
+      fallen: '前人是谁、何时在此失败、自以为的原因与真正的原因',
+    },
+    rules: [
+      '守试者是 npc_warden，闯关者是 npc_rival，前人是 npc_fallen；前人当年是照闯关者给的假解法操作才触发反噬，他自己却以为是记错了一步。',
+      '两处机关与主禁制的具体解法由程序决定，提示原话也由程序补上；你只为机关与部件起名、写外观与情形，不要在任何文字里写出机关的解法或次序。',
+      '同一机关的四个部件名称成套（如卦象、四象、五行、星宿、此地特有的器物），每个两到四字，彼此不同。',
+      '“引子”与“前人失败原因”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
+    ],
+  },
 };
 
 function archetypeOf(template: MysteryScenarioTemplate) {
@@ -119,7 +140,17 @@ function ids(skeleton: MysteryCaseSkeleton) {
     reactions: c.npcs.flatMap((n) => n.reactions.map((r) => r.id)),
     interactions: c.interactions.map((i) => i.id),
     questions: c.questions.map((q) => q.id),
-    options: c.questions.flatMap((q) => q.options?.map((o) => o.id) ?? []),
+    // 由程序渲染说法的选项（主禁制次序）不交给模型。
+    options: c.questions.flatMap(
+      (q) =>
+        q.options?.map((o) => o.id).filter((id) => !skeleton.sequences?.[id]) ??
+        [],
+    ),
+    mechanisms: (c.mechanisms ?? []).map((m) => m.id),
+    smallMechanisms: (c.mechanisms ?? [])
+      .filter((m) => !m.final)
+      .map((m) => m.id),
+    parts: (c.mechanisms ?? []).flatMap((m) => m.parts.map((p) => p.id)),
     guards: (c.guards ?? []).map((g) => g.id),
     events: (c.events ?? []).map((e) => e.id),
   };
@@ -156,6 +187,13 @@ function outlineSchema(
     objects: keyed(id.objects, name(8)),
     items: keyed(id.items, name(8)),
     guards: keyed(id.guards, name(8)),
+    mechanisms: keyed(id.mechanisms, name(8)),
+    parts: keyed(id.parts, (key) =>
+      Text(
+        4,
+        `机关部件的名称，两到四字，与同一机关的其余三个部件成套；作用：${p[key]}`,
+      ),
+    ),
     clues: keyed(id.clues, (key) =>
       z.object({
         name: Text(8, `线索名称；作用：${p[key]}`),
@@ -239,6 +277,18 @@ const TEXT_PARTS = {
             bypassText: Text(
               120,
               `你用化解办法令它让路时的情形；作用：${s.purposes[g]}`,
+            ),
+          }),
+        ),
+        mechanisms: keyed(id.smallMechanisms, (m) =>
+          z.object({
+            solvedText: Text(
+              100,
+              `按对次序后机关开启的情形，不写开启后得到的内容；作用：${s.purposes[m]}`,
+            ),
+            backlashText: Text(
+              80,
+              `按错次序时机关反噬的情形（气血翻涌、禁光反震等）；作用：${s.purposes[m]}`,
             ),
           }),
         ),
@@ -382,6 +432,14 @@ function structureContext(
       room: nameOf(g.roomId),
       purpose: s.purposes[g.id],
     })),
+    mechanisms: (c.mechanisms ?? []).map((m) => ({
+      id: m.id,
+      name: o.mechanisms?.[m.id],
+      at: nameOf(m.objectId),
+      final: m.final,
+      parts: m.parts.map((p) => o.parts?.[p.id]),
+      purpose: s.purposes[m.id],
+    })),
     events: (c.events ?? []).map((e) => ({
       id: e.id,
       purpose: s.purposes[e.id],
@@ -390,7 +448,9 @@ function structureContext(
           ? nameOf(x.objectId)
           : x.kind === 'npc_leave'
             ? nameOf(x.npcId)
-            : x.flag,
+            : x.kind === 'lock_mechanism'
+              ? (o.mechanisms?.[x.mechanismId] ?? x.mechanismId)
+              : x.flag,
       ),
     })),
     answers: c.questions.map((q) => ({
@@ -455,6 +515,19 @@ function assemble(
     { description: string; brief: string; lockedText?: string }
   >;
   const lie = clip(o.canon.lie ?? '', 80).replace(/[“”"]/g, '');
+  // 机关提示与主禁制次序选项由程序按规则渲染，避免模型写出互相矛盾的提示。
+  const partLabel = (id: string) => clip(o.parts?.[id] ?? '', 8);
+  const hintText = new Map(
+    (c.mechanisms ?? []).flatMap((m) =>
+      m.hints.map(
+        (h) => [h.clueId, renderHintRule(h.rule, partLabel)] as const,
+      ),
+    ),
+  );
+  const mech = (places.mechanisms ?? {}) as Record<
+    string,
+    { solvedText: string; backlashText: string }
+  >;
   const guard = places.guards as Record<
     string,
     { description: string; bypassText: string }
@@ -497,7 +570,12 @@ function assemble(
       text:
         x.id === CLAIM_CLUE
           ? clip(`${o.npcs[spec.liar]?.name ?? ''}自称：“${lie}”`, 160)
-          : clip(str(evidence.clues, x.id), 160),
+          : hintText.has(x.id)
+            ? clip(
+                `${clip(str(evidence.clues, x.id), 100)}：“${hintText.get(x.id)}”`,
+                160,
+              )
+            : clip(str(evidence.clues, x.id), 160),
     })),
     items: c.items.map((x) => ({
       ...x,
@@ -525,7 +603,9 @@ function assemble(
             line:
               x.clueId === CLAIM_CLUE
                 ? clip(`${clip(line, 60)}“${lie}”`, 220)
-                : clip(line, 220),
+                : hintText.has(x.clueId)
+                  ? clip(`${clip(line, 120)}“${hintText.get(x.clueId)}”`, 220)
+                  : clip(line, 220),
           };
         }),
         reactions: n.reactions.map((x) => ({
@@ -544,12 +624,30 @@ function assemble(
         ? {
             options: q.options.map((x) => ({
               ...x,
-              label: clip(str(o.options, x.id), 30),
+              label: s.sequences?.[x.id]
+                ? s.sequences[x.id]!.map(partLabel).join('→')
+                : clip(str(o.options, x.id), 30),
             })),
           }
         : {}),
       explanation: clip(str(evidence.explanations, q.id), 200),
     })),
+    ...(c.mechanisms
+      ? {
+          mechanisms: c.mechanisms.map((m) => ({
+            ...m,
+            name: clip(o.mechanisms?.[m.id] ?? '', 12),
+            parts: m.parts.map((x) => ({ ...x, label: partLabel(x.id) })),
+            // 主禁制在结案时作答，没有开启与反噬的现场描写。
+            solvedText: m.final
+              ? '主禁制应声而开。'
+              : clip(mech[m.id]?.solvedText ?? '', 200),
+            backlashText: m.final
+              ? '主禁制纹丝不动。'
+              : clip(mech[m.id]?.backlashText ?? '', 160),
+          })),
+        }
+      : {}),
     ...(c.events
       ? {
           events: c.events.map((e) => ({
@@ -725,7 +823,26 @@ export async function generateMysteryCase(
     let reviewed = drafted;
     for (let round = 1; round <= 2; round++) {
       const result = await reviewMysteryCase(reviewed, outline.canon, {
-        locked: LOCKED_FIELDS,
+        locked: [
+          ...LOCKED_FIELDS,
+          ...(drafted.mechanisms ?? []).flatMap((m) =>
+            m.hints.flatMap((h) => [
+              `clues.${h.clueId}.text`,
+              ...drafted.npcs.flatMap((n) =>
+                n.secrets.some((x) => x.clueId === h.clueId)
+                  ? [`secrets.${n.id}:${h.clueId}`]
+                  : [],
+              ),
+            ]),
+          ),
+          ...Object.keys(skeleton.sequences ?? {}).flatMap((id) =>
+            drafted.questions.flatMap((q) =>
+              q.options?.some((x) => x.id === id)
+                ? [`options.${q.id}.${id}`]
+                : [],
+            ),
+          ),
+        ],
       }).catch((error: unknown) => {
         console.warn('[DungeonMystery] 一致性审校失败，沿用当前稿:', error);
         return { caseFile: reviewed, issues: [] };

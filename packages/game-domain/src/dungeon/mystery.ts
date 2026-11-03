@@ -48,6 +48,10 @@ export const MysteryEventEffectSchema = z.discriminatedUnion('kind', [
   }),
   z.strictObject({ kind: z.literal('npc_leave'), npcId: MysteryIdSchema }),
   z.strictObject({ kind: z.literal('set_flag'), flag: MysteryIdSchema }),
+  z.strictObject({
+    kind: z.literal('lock_mechanism'),
+    mechanismId: MysteryIdSchema,
+  }),
 ]);
 
 export type MysteryEventEffect = z.infer<typeof MysteryEventEffectSchema>;
@@ -176,6 +180,23 @@ export type MysteryScenarioTemplate = z.infer<
   typeof MysteryScenarioTemplateSchema
 >;
 
+/** 机关的提示规则：某部件居第几位、某部件在另一部件之前、某部件不在其中。 */
+export const MysteryHintRuleSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('position'),
+    part: MysteryIdSchema,
+    index: z.number().int().min(0).max(2),
+  }),
+  z.strictObject({
+    kind: z.literal('before'),
+    first: MysteryIdSchema,
+    then: MysteryIdSchema,
+  }),
+  z.strictObject({ kind: z.literal('absent'), part: MysteryIdSchema }),
+]);
+
+export type MysteryHintRule = z.infer<typeof MysteryHintRuleSchema>;
+
 const FoundAtSchema = z.strictObject({
   objectId: MysteryIdSchema,
   requires: MysteryConditionSchema.optional(),
@@ -231,7 +252,7 @@ export const MysteryCaseFileSchema = z.strictObject({
       }),
     )
     .min(1)
-    .max(16),
+    .max(20),
   items: z
     .array(
       z.strictObject({
@@ -322,6 +343,37 @@ export const MysteryCaseFileSchema = z.strictObject({
     )
     .max(3)
     .optional(),
+  /**
+   * 机关：按次序从 4 个部件中选 3 个开启。`final` 为主禁制，只在结案时作答、不可操作。
+   * 提示规则挂在提示线索上，线索正文由程序按规则渲染。旧案卷没有此字段。
+   */
+  mechanisms: z
+    .array(
+      z.strictObject({
+        id: MysteryIdSchema,
+        objectId: MysteryIdSchema,
+        name: Text(12),
+        final: z.boolean(),
+        parts: z
+          .array(z.strictObject({ id: MysteryIdSchema, label: Text(8) }))
+          .length(4),
+        solution: z.array(MysteryIdSchema).length(3),
+        hints: z
+          .array(
+            z.strictObject({
+              clueId: MysteryIdSchema,
+              rule: MysteryHintRuleSchema,
+            }),
+          )
+          .min(1)
+          .max(4),
+        onSolve: z.array(MysteryEffectSchema).max(3),
+        solvedText: Text(200),
+        backlashText: Text(160),
+      }),
+    )
+    .max(3)
+    .optional(),
   /** 守住某个房间入口的守卫：可强闯（战斗）或满足条件后化解。旧案卷没有此字段。 */
   guards: z
     .array(
@@ -382,6 +434,11 @@ export interface MysteryRunState {
   destroyed?: string[];
   /** 已离场的人物。 */
   departed?: string[];
+  /** 各机关的操作结果：失败次数与是否开启、是否锁死。 */
+  mechanisms?: Record<
+    string,
+    { failures: number; solved: boolean; locked: boolean }
+  >;
 }
 
 export const MysteryActionSchema = z.discriminatedUnion('type', [
@@ -400,6 +457,11 @@ export const MysteryActionSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('bypass_guard'), guardId: MysteryIdSchema }),
   z.strictObject({ type: z.literal('reflect') }),
+  z.strictObject({
+    type: z.literal('operate'),
+    mechanismId: MysteryIdSchema,
+    sequence: z.array(MysteryIdSchema).length(3),
+  }),
 ]);
 
 export type MysteryAction = z.infer<typeof MysteryActionSchema>;
@@ -528,7 +590,21 @@ export interface MysteryPlayerView {
       canBypass: boolean;
     };
   }>;
-  objects: Array<{ id: string; name: string; searched: boolean }>;
+  objects: Array<{
+    id: string;
+    name: string;
+    searched: boolean;
+    /** 物件上的机关（主禁制不在此列）。 */
+    mechanism?: {
+      id: string;
+      name: string;
+      parts: Array<{ id: string; label: string }>;
+      failures: number;
+      maxFailures: number;
+      solved: boolean;
+      locked: boolean;
+    };
+  }>;
   npcsHere: Array<{ id: string; name: string; title: string }>;
   knownNpcs: Array<{
     id: string;

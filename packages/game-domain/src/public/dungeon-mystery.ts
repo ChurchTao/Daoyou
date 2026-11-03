@@ -17,6 +17,7 @@ export type {
   MysteryCaseFile,
   MysteryCondition,
   MysteryConfrontationOutcome,
+  MysteryHintRule,
   MysteryEffect,
   MysteryLogEntry,
   MysteryLogKind,

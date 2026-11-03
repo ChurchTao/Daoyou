@@ -11,8 +11,10 @@ import type {
 import {
   evaluateMysteryCondition,
   mysteryGuardAt,
+  mysteryMechanismState,
   mysteryNeighbors,
 } from './engine.js';
+import { MECHANISM_MAX_FAILURES } from './mechanism.js';
 
 /**
  * 线索的来源：按玩家实际可能的获取方式依次判断（搜查过的物件、交谈过的人、
@@ -205,11 +207,30 @@ export function projectMysteryView(
     }),
     objects: caseFile.objects
       .filter((o) => o.roomId === room.id && !run.destroyed?.includes(o.id))
-      .map((o) => ({
-        id: o.id,
-        name: o.name,
-        searched: run.searched.includes(o.id),
-      })),
+      .map((o) => {
+        const m = caseFile.mechanisms?.find(
+          (x) => x.objectId === o.id && !x.final,
+        );
+        const state = m ? mysteryMechanismState(run, m.id) : undefined;
+        return {
+          id: o.id,
+          name: o.name,
+          searched: run.searched.includes(o.id),
+          ...(m && state
+            ? {
+                mechanism: {
+                  id: m.id,
+                  name: m.name,
+                  parts: m.parts,
+                  failures: state.failures,
+                  maxFailures: MECHANISM_MAX_FAILURES,
+                  solved: state.solved,
+                  locked: state.locked,
+                },
+              }
+            : {}),
+        };
+      }),
     npcsHere: caseFile.npcs
       .filter((n) => n.roomId === room.id && !run.departed?.includes(n.id))
       .map((n) => ({ id: n.id, name: n.name, title: n.title })),

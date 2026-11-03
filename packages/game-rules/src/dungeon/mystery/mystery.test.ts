@@ -446,8 +446,8 @@ describe('mystery skeleton', () => {
 
   it('rejects templates of other archetypes', () => {
     expect(() =>
-      buildMysterySkeleton({ ...template, archetype: 'unlock' }, 1),
-    ).toThrow('暂不支持原型 unlock 的骨架生成');
+      buildMysterySkeleton({ ...template, archetype: 'allegiance' }, 1),
+    ).toThrow('暂不支持原型 allegiance 的骨架生成');
   });
 });
 

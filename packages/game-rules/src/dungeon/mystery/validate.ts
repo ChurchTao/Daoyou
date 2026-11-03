@@ -5,6 +5,7 @@ import type {
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { evaluateMysteryCondition, mysteryNeighbors } from './engine.js';
+import { mechanismCandidates } from './mechanism.js';
 import { MYSTERY_TEXT_PLACEHOLDER } from './skeleton.js';
 
 export interface MysteryReachability {
@@ -114,6 +115,20 @@ export function computeMysteryReachability(
           apply(reaction.effects);
       }
     }
+    // 机关：所在房间可达即假定能开启；最坏情况下视为全部锁死。
+    if (!options.worstEvents)
+      for (const m of caseFile.mechanisms ?? []) {
+        const room = roomOf(m.objectId);
+        if (m.final || !room || !facts.rooms.has(room)) continue;
+        apply(m.onSolve);
+        facts.flags.add(`${m.id}_solved`);
+      }
+    const small = (caseFile.mechanisms ?? []).filter((m) => !m.final);
+    if (
+      small.length > 0 &&
+      small.every((m) => facts.flags.has(`${m.id}_solved`))
+    )
+      facts.flags.add('trial_clean');
     for (const interaction of caseFile.interactions) {
       const room = roomOf(interaction.targetId);
       if (
@@ -177,6 +192,7 @@ export function estimateMysteryMinimumActions(caseFile: MysteryCaseFile) {
     caseFile.rooms.length -
     1 +
     (caseFile.guards?.length ?? 0) +
+    (caseFile.mechanisms ?? []).filter((m) => !m.final).length +
     searchObjects.size +
     talkNpcs +
     reactions +
@@ -336,6 +352,7 @@ export function validateMysteryCase(
       [
         ...caseFile.interactions,
         ...caseFile.npcs.flatMap((n) => n.reactions),
+        ...(caseFile.mechanisms ?? []).map((m) => ({ effects: m.onSolve })),
       ].filter((x) =>
         x.effects.some((e) => e.kind === 'reveal_clue' && e.clueId === clue.id),
       ).length;
@@ -359,9 +376,51 @@ export function validateMysteryCase(
     (caseFile.events ?? []).map((e) => e.id),
   );
 
+  const mechanisms = unique(
+    '机关',
+    (caseFile.mechanisms ?? []).map((m) => m.id),
+  );
+  if ((caseFile.mechanisms ?? []).filter((m) => m.final).length > 1)
+    issues.push('主禁制至多一个');
+  for (const m of caseFile.mechanisms ?? []) {
+    if (!objects.has(m.objectId))
+      issues.push(`机关 ${m.id} 所在物件 ${m.objectId} 不存在`);
+    const partIds = m.parts.map((p) => p.id);
+    if (new Set(partIds).size !== partIds.length)
+      issues.push(`机关 ${m.id} 的部件 id 重复`);
+    if (
+      new Set(m.solution).size !== m.solution.length ||
+      !m.solution.every((id) => partIds.includes(id))
+    )
+      issues.push(`机关 ${m.id} 的解法须是三个不同的部件`);
+    for (const h of m.hints) {
+      if (!clues.has(h.clueId))
+        issues.push(`机关 ${m.id} 的提示线索 ${h.clueId} 不存在`);
+      const refs =
+        h.rule.kind === 'before' ? [h.rule.first, h.rule.then] : [h.rule.part];
+      if (!refs.every((id) => partIds.includes(id)))
+        issues.push(`机关 ${m.id} 的提示引用了不存在的部件`);
+    }
+    const candidates = mechanismCandidates(
+      partIds,
+      m.hints.map((h) => h.rule),
+    );
+    if (candidates.length !== 1 || candidates[0]!.join() !== m.solution.join())
+      issues.push(`机关 ${m.id} 的提示不能唯一确定解法`);
+    checkEffects(`机关 ${m.id}`, m.onSolve);
+  }
+  for (const e of caseFile.events ?? [])
+    for (const x of e.effects)
+      if (x.kind === 'lock_mechanism' && !mechanisms.has(x.mechanismId))
+        issues.push(`事件 ${e.id} 锁死的机关 ${x.mechanismId} 不存在`);
+
   // 最坏情况下（不进任何守卫房间、所有事件都已发生）每个结案问题仍有关键线索支撑：
   // 守卫与事件只影响加分，不让案子无解。
-  if (caseFile.guards?.length || caseFile.events?.length) {
+  if (
+    caseFile.guards?.length ||
+    caseFile.events?.length ||
+    caseFile.mechanisms?.length
+  ) {
     const worst = computeMysteryReachability(caseFile, {
       skipGuarded: true,
       worstEvents: true,
@@ -399,9 +458,13 @@ export function validateMysteryCase(
       const labels = q.options
         ?.map((o) => o.label)
         .filter((label) => label !== MYSTERY_TEXT_PLACEHOLDER);
+      // 真相本身可能带“假”字（如误信了假解法），只检查干扰项。
+      const decoys = q.options
+        ?.filter((o) => o.id !== q.answer)
+        .map((o) => o.label);
       if (labels && new Set(labels).size !== labels.length)
         issues.push(`结案问题 ${tq.id} 的选项说法有重复`);
-      if (labels?.some((label) => /[伪假]/.test(label)))
+      if (decoys?.some((label) => /[伪假]/.test(label)))
         issues.push(`结案问题 ${tq.id} 的选项说法透露了对错`);
     }
   }

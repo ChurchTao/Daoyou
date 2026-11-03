@@ -7,8 +7,9 @@ export {
   evaluateMysteryCondition,
   mysteryGuardAt,
   mysteryGuardChallenge,
-  mysteryNpcPresent,
+  mysteryMechanismState,
   mysteryNeighbors,
+  mysteryNpcPresent,
   mysteryRevealableSecrets,
 } from '../dungeon/mystery/engine.js';
 export type { MysteryActionResult } from '../dungeon/mystery/engine.js';
@@ -25,6 +26,11 @@ export type {
   RestockDecision,
   ScenarioPick,
 } from '../dungeon/mystery/library.js';
+export {
+  MECHANISM_MAX_FAILURES,
+  mechanismCandidates,
+  renderHintRule,
+} from '../dungeon/mystery/mechanism.js';
 export { projectMysteryView } from '../dungeon/mystery/projection.js';
 export {
   checkMysteryAnswers,

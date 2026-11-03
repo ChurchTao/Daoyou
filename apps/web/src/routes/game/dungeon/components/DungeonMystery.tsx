@@ -19,6 +19,7 @@ import {
   type MysteryBoardTab,
 } from './MysteryCaseBoard';
 import { MysteryLogLine } from './MysteryLogLine';
+import { MysteryMechanismPanel } from './MysteryMechanismPanel';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { useMysteryNotes } from './useMysteryNotes';
 
@@ -98,6 +99,7 @@ export function DungeonMystery({
   const [deducing, setDeducing] = useState(false);
   const [picker, setPicker] = useState<Picker | null>(null);
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
+  const [operating, setOperating] = useState<string | null>(null);
 
   const current = view.log.filter((entry) => entry.turn === view.turn);
   const exhausted = view.actionsLeft <= 0;
@@ -256,6 +258,23 @@ export function DungeonMystery({
                       : `查看${object.name}`}
                   </InkChoiceButton>
                 ))}
+                {view.objects
+                  .flatMap((object) =>
+                    object.mechanism ? [object.mechanism] : [],
+                  )
+                  .map((m) => (
+                    <InkChoiceButton
+                      key={m.id}
+                      disabled={processing || m.solved || m.locked}
+                      onClick={() => setOperating(m.id)}
+                    >
+                      {m.solved
+                        ? `${m.name}（已开启）`
+                        : m.locked
+                          ? `🔒 ${m.name}（已锁死）`
+                          : `操作${m.name}`}
+                    </InkChoiceButton>
+                  ))}
               </div>
             ) : null}
 
@@ -444,6 +463,20 @@ export function DungeonMystery({
           </div>
         ) : null}
       </InkDetailDrawer>
+
+      <MysteryMechanismPanel
+        mechanism={
+          view.objects.find((o) => o.mechanism?.id === operating)?.mechanism ??
+          null
+        }
+        processing={processing}
+        actionsLeft={view.actionsLeft}
+        onClose={() => setOperating(null)}
+        onSubmit={async (mechanismId, sequence) => {
+          setOperating(null);
+          await act({ type: 'operate', mechanismId, sequence });
+        }}
+      />
 
       <InkDetailDrawer
         isOpen={guarded !== null}

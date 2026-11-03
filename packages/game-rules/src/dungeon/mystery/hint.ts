@@ -5,6 +5,7 @@ import type {
 import {
   evaluateMysteryCondition,
   mysteryGuardAt,
+  mysteryMechanismState,
   mysteryNeighbors,
   mysteryNpcPresent,
 } from './engine.js';
@@ -137,6 +138,28 @@ export function mysteryHint(
       Math.min(40, ...reveals.map(urgency)),
       targetRoom,
       `你身上的${item?.name ?? '东西'}，也许能派上用场。`,
+    );
+  }
+  // 机关：提示都已到手、尚未开启也未锁死时，提醒去试。
+  for (const m of caseFile.mechanisms ?? []) {
+    if (m.final) continue;
+    const state = mysteryMechanismState(run, m.id);
+    const object = caseFile.objects.find((o) => o.id === m.objectId);
+    if (
+      state.solved ||
+      state.locked ||
+      !object ||
+      run.destroyed?.includes(object.id) ||
+      !rooms.has(object.roomId) ||
+      !m.hints.every((h) => run.clues.includes(h.clueId))
+    )
+      continue;
+    add(
+      5,
+      object.roomId,
+      object.roomId === run.location
+        ? `${object.name}的门道你已摸清，不妨一试。`
+        : `${roomName(object.roomId)}的机关，你已有头绪。`,
     );
   }
   for (const item of caseFile.items) {

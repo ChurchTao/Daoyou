@@ -298,7 +298,8 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
-            "inheritance_murder"
+            "inheritance_murder",
+            "trial_seal"
           ],
           "setting": "太岳山瀑布后的古修士洞府。洞口禁制残破，水声终年不息，洞内石室幽深，丹房、静室与一道封闭石门都还保持着主人闭关时的样子，主人的枯骨端坐其中。",
           "places": [
@@ -353,7 +354,8 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "云梦山中崩塌多年的上古剑宗遗址。断壁残垣间剑意犹存，多重禁制半毁半存，藏经阁与剑冢只剩基座，偶有剑宗残魂在废墟间游荡。",
           "places": [
@@ -520,7 +522,8 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "坠魔谷外围的空间断层带。漆黑裂缝如蛛网蔓延，裂缝间悬着几座被空间切碎的古修士石台，古魔气时隐时现，稍有不慎便会被乱流卷走。",
           "places": [
@@ -574,7 +577,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "南疆沼泽深处的无名石墓。石门刻满镇邪符文，墓中有炼尸的石棺与阴气凝成的寒雾，守墓人的旧居就在墓道旁，近来墓中尸气外溢、沼泽里的活物接连死去。",
           "places": [
@@ -805,7 +809,8 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "玄黄裂渊深处的古龙逆鳞祭坛。阵纹被岁月磨损，阵眼崩坏处吞吐着骇人的龙威，祭坛四周散落着祭器与龙鳞，只有合体修士敢于靠近。",
           "places": [
@@ -857,7 +862,8 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "逆鳞祭坛外侧散布的黑色石林。石面残留古龙鳞纹，界隙罡风在石柱间呼啸，石林深处有前人歇脚的石龛，最近罡风越来越烈、石柱接连崩裂。",
           "places": [
@@ -909,7 +915,8 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "九幽冥海黑潮最深处的沉日神殿废墟。殿门未启已闻雷鸣，神殿守卫仍在巡行，殿内有供台与法则碎片凝成的光幕，仿佛仍有古神在沉睡。",
           "places": [
@@ -1016,7 +1023,8 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "飞升台外围燃烧着不灭劫火的回廊。廊柱刻满劫纹，天道投影在廊中游走，踏错一步便会被抹杀，回廊尽头有前人留下的炼体石室与飞升残卷。",
           "places": [
@@ -1068,7 +1076,8 @@
         "difficulty": "elite",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "飞升台边缘残立的成片雷碑。碑面劫纹时明时灭，碑林间有参悟者留下的蒲团与刻痕，偶有残雷落下，最近雷碑亮得越来越频繁。",
           "places": [
@@ -1121,7 +1130,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "黄枫谷后山封存多年的试炼禁地。灵雾常年不散，古阵偶尔自鸣，禁地深处有宗门秘库与看守长老的静室，只在宗门大比前后开启。",
           "places": [
@@ -1176,7 +1186,8 @@
         "difficulty": "hard",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "废弃灵石矿最深处的巨井。井底埋着古传送阵的核心，阵纹残破却偶尔闪烁跨域灵光，井壁凿有旧矿工的歇脚洞，空间乱流时有时无。",
           "places": [
@@ -1286,7 +1297,8 @@
         "difficulty": "normal",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "天星宗封存旧阵盘的地下库房。阵旗与阵盘层层封存，傀儡守在库门，禁制稍有差池便会引发阵灵反噬，库中记录残缺，管理多年无人问津。",
           "places": [
@@ -1449,7 +1461,8 @@
         "difficulty": "elite",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "虚天殿深处漂浮于虚空的星辰石阶。越往上禁制越强，石阶旁立着上古傀儡，阶顶隐约可见虚天鼎残影，每次开殿都有各方修士为夺鼎线索相互算计。",
           "places": [
@@ -1616,7 +1629,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "昆吾山腹地耸立的镇魔古塔。塔层间刻满镇魔符印，守塔人世代居于塔底，塔灵在上层考验来者；塔层越高，封印反噬越猛烈，最近塔身时有震动。",
           "places": [
@@ -1725,7 +1739,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "昔日名震人界的天机阁旧址。机关错乱、傀儡失控，阁中藏有古卷秘档与推演星象用的浑天仪，阁主的书斋尚存，仿佛主人只是暂时离开。",
           "places": [
@@ -1835,7 +1850,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "虚天殿侧翼封存玉简的回廊。墙壁刻有残缺的神通轨迹，玉简密室一间连着一间，傀儡巡守，禁制会在玉简被取走时反噬。",
           "places": [
@@ -1891,7 +1907,8 @@
         "scenario": {
           "templates": [
             "inheritance_murder",
-            "lost_relic"
+            "lost_relic",
+            "trial_seal"
           ],
           "setting": "北夜小极宫历代长老封存冰系典籍的藏经窟。入内需以神识破封，窟中有长老坐化的冰龛与典籍石架，失败则会被寒煞反噬。",
           "places": [

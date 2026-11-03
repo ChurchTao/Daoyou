@@ -4,6 +4,7 @@ import type {
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { buildRetrievalSkeleton } from './retrieval.js';
+import { buildUnlockSkeleton } from './unlock.js';
 
 /** 文本占位符；骨架里所有面向玩家的文字都由 LLM 之后填写。 */
 export const MYSTERY_TEXT_PLACEHOLDER = '…';
@@ -16,6 +17,8 @@ export const MYSTERY_TEXT_PLACEHOLDER = '…';
 export interface MysteryCaseSkeleton {
   caseFile: MysteryCaseFile;
   purposes: Record<string, string>;
+  /** 由程序渲染说法的选择题选项：选项 id → 主禁制部件次序。 */
+  sequences?: Record<string, string[]>;
 }
 
 const T = MYSTERY_TEXT_PLACEHOLDER;
@@ -43,6 +46,8 @@ export function buildMysterySkeleton(
       return buildWhodunitSkeleton(template, seed);
     case 'retrieval':
       return buildRetrievalSkeleton(template, seed);
+    case 'unlock':
+      return buildUnlockSkeleton(template, seed);
     default:
       throw new Error(`暂不支持原型 ${template.archetype} 的骨架生成`);
   }

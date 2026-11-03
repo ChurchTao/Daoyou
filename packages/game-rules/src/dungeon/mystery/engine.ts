@@ -8,6 +8,7 @@ import type {
 } from '@daoyou/game-domain/dungeon/mystery';
 
 import { mysteryHint } from './hint.js';
+import { MECHANISM_MAX_FAILURES } from './mechanism.js';
 
 const LOG_LIMIT = 80;
 
@@ -95,7 +96,19 @@ function cloneRun(run: MysteryRunState): MysteryRunState {
     ...(run.events ? { events: [...run.events] } : {}),
     ...(run.destroyed ? { destroyed: [...run.destroyed] } : {}),
     ...(run.departed ? { departed: [...run.departed] } : {}),
+    ...(run.mechanisms
+      ? {
+          mechanisms: Object.fromEntries(
+            Object.entries(run.mechanisms).map(([k, v]) => [k, { ...v }]),
+          ),
+        }
+      : {}),
   };
+}
+
+/** 机关当前状态；尚未操作过的视为全新。 */
+export function mysteryMechanismState(run: MysteryRunState, id: string) {
+  return run.mechanisms?.[id] ?? { failures: 0, solved: false, locked: false };
 }
 
 /** 人物此刻是否在该房间：离场的人物不再出现。 */
@@ -129,7 +142,15 @@ function advanceMysteryEvents(w: RunWriter) {
           run.destroyed = [...(run.destroyed ?? []), effect.objectId];
         else if (effect.kind === 'npc_leave')
           run.departed = [...(run.departed ?? []), effect.npcId];
-        else if (!run.flags.includes(effect.flag)) run.flags.push(effect.flag);
+        else if (effect.kind === 'lock_mechanism') {
+          const state = mysteryMechanismState(run, effect.mechanismId);
+          if (!state.solved)
+            run.mechanisms = {
+              ...run.mechanisms,
+              [effect.mechanismId]: { ...state, locked: true },
+            };
+        } else if (!run.flags.includes(effect.flag))
+          run.flags.push(effect.flag);
       }
     } else if (run.turn >= event.warnAt && !seen.includes(`warn:${event.id}`)) {
       run.events = [...seen, `warn:${event.id}`];
@@ -312,6 +333,63 @@ export function applyMysteryAction(
       // 静思：花 1 点行动力换一句方向性提示，提示只看此刻的局面。
       spend(run, 1);
       w.log({ kind: 'hint', text: mysteryHint(caseFile, current) });
+      break;
+    }
+    case 'operate': {
+      const mechanism = caseFile.mechanisms?.find(
+        (m) => m.id === action.mechanismId && !m.final,
+      );
+      const object = caseFile.objects.find((o) => o.id === mechanism?.objectId);
+      if (
+        !mechanism ||
+        !object ||
+        object.roomId !== run.location ||
+        run.destroyed?.includes(object.id)
+      )
+        return { ok: false, error: '此处没有这处机关' };
+      const state = mysteryMechanismState(run, mechanism.id);
+      if (state.solved) return { ok: false, error: '这处机关已经开启' };
+      if (state.locked) return { ok: false, error: '这处机关已经锁死' };
+      const partIds = mechanism.parts.map((p) => p.id);
+      if (
+        new Set(action.sequence).size !== 3 ||
+        !action.sequence.every((id) => partIds.includes(id))
+      )
+        return { ok: false, error: '须从部件中依次选出三个' };
+      const correct = action.sequence.every(
+        (id, i) => mechanism.solution[i] === id,
+      );
+      if (correct) {
+        spend(run, 1);
+        run.mechanisms = {
+          ...run.mechanisms,
+          [mechanism.id]: { ...state, solved: true },
+        };
+        if (!run.flags.includes(`${mechanism.id}_solved`))
+          run.flags.push(`${mechanism.id}_solved`);
+        w.log({ kind: 'detail', text: mechanism.solvedText });
+        w.apply(mechanism.onSolve);
+        // 小机关全部一次开启、从未触发反噬时记下分支标记。
+        const all = (caseFile.mechanisms ?? []).filter((m) => !m.final);
+        if (
+          all.every((m) => mysteryMechanismState(run, m.id).solved) &&
+          all.every((m) => mysteryMechanismState(run, m.id).failures === 0) &&
+          !run.flags.includes('trial_clean')
+        )
+          run.flags.push('trial_clean');
+      } else {
+        // 反噬：多扣 1 点行动力，错满即锁死。
+        spend(run, 2);
+        const failures = state.failures + 1;
+        const locked = failures >= MECHANISM_MAX_FAILURES;
+        run.mechanisms = {
+          ...run.mechanisms,
+          [mechanism.id]: { ...state, failures, locked },
+        };
+        w.log({ kind: 'event', text: mechanism.backlashText });
+        if (locked)
+          w.log({ kind: 'system', text: `${mechanism.name}彻底锁死了。` });
+      }
       break;
     }
     case 'bypass_guard': {
