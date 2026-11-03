@@ -349,6 +349,7 @@ export function DungeonViewRenderer({
       >
         <DungeonMystery
           view={viewState.view}
+          runId={viewState.state.runId}
           processing={processing}
           onAct={actions.mysteryAct}
           onTalk={actions.mysteryTalk}

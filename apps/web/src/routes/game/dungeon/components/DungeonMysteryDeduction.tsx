@@ -7,18 +7,25 @@ import type {
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useState } from 'react';
+import { MysteryWaiting } from './MysteryWaiting';
 
 interface DungeonMysteryDeductionProps {
   view: MysteryPlayerView;
+  /** 玩家在案情板上把线索钉到的问题：clueId → questionId。 */
+  pins: Record<string, string>;
   isOpen: boolean;
   processing: boolean;
   onClose: () => void;
   onSubmit: (answers: MysteryAnswers) => Promise<void>;
 }
 
-/** 结案：人物题从已结识的人物中选，线索题只能用已掌握的线索作答。 */
+/**
+ * 结案：人物题从已结识的人物中选，线索题只能用已掌握的线索作答；
+ * 每题上方列出玩家在案情板上钉下的依据，没钉也可以直接作答。
+ */
 export function DungeonMysteryDeduction({
   view,
+  pins,
   isOpen,
   processing,
   onClose,
@@ -43,7 +50,7 @@ export function DungeonMysteryDeduction({
       title="结案推理"
       description={
         view.confrontation
-          ? '结案后不能再调查。指认真凶后对方可能负隅顽抗，擒下方得全功。推断越准确、线索越完整，所得越丰厚。'
+          ? '结案后不能再调查。答对关键问题后对手可能翻脸动手，擒下方得全功。推断越准确、线索越完整，所得越丰厚。'
           : '结案后不能再调查。推断越准确、线索越完整，所得越丰厚。'
       }
       footer={
@@ -70,11 +77,22 @@ export function DungeonMysteryDeduction({
       }
     >
       <div className="space-y-5">
+        <MysteryWaiting active={processing} kind="deduce" />
         {view.questions.map((question) => {
           const choices = choicesFor(question);
           return (
             <div key={question.id}>
-              <div className="mb-2 font-semibold">{question.prompt}</div>
+              <div className="mb-1 font-semibold">{question.prompt}</div>
+              <p className="text-ink-secondary mb-2 text-sm">
+                {(() => {
+                  const pinned = view.clues.filter(
+                    (c) => pins[c.id] === question.id,
+                  );
+                  return pinned.length > 0
+                    ? `你的依据：${pinned.map((c) => c.name).join('、')}`
+                    : '尚未钉下依据';
+                })()}
+              </p>
               {choices.length === 0 ? (
                 <p className="text-ink-secondary text-sm">
                   {question.kind === 'clue'

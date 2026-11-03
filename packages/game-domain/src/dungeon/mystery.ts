@@ -466,6 +466,40 @@ export interface MysteryRecord {
   statsRecorded?: boolean;
 }
 
+/** 线索或物品从哪里得来：某个地点或某个人。 */
+export interface MysterySourceRef {
+  kind: 'place' | 'person';
+  id: string;
+  name: string;
+}
+
+/** 玩家眼中人物的状态：尚未交谈、交谈过、出示证据后交底、谎言被戳穿、已离场。 */
+export type MysteryNpcStatus =
+  | 'unmet'
+  | 'talked'
+  | 'opened'
+  | 'exposed'
+  | 'departed';
+
+/** 已知地点：到访过的房间及其相邻房间。 */
+export interface MysteryMapRoom {
+  id: string;
+  name: string;
+  /** 距入口的步数，供示意图分层。 */
+  depth: number;
+  here: boolean;
+  visited: boolean;
+  locked: boolean;
+  guarded: boolean;
+  /** 在场人物数，仅到访过的房间。 */
+  people: number;
+  /** 此处有物件被毁。 */
+  disturbed: boolean;
+  /** 物件看过几件、共几件，仅到访过的房间。 */
+  searched: number;
+  objects: number;
+}
+
 export interface MysteryPlayerView {
   title: string;
   /** 此案已经历过（结案过）。 */
@@ -496,9 +530,31 @@ export interface MysteryPlayerView {
   }>;
   objects: Array<{ id: string; name: string; searched: boolean }>;
   npcsHere: Array<{ id: string; name: string; title: string }>;
-  knownNpcs: Array<{ id: string; name: string; title: string }>;
-  clues: Array<{ id: string; name: string; text: string }>;
-  items: Array<{ id: string; name: string; text: string }>;
+  knownNpcs: Array<{
+    id: string;
+    name: string;
+    title: string;
+    status: MysteryNpcStatus;
+    /** 所在地点；离场或尚未到过其所在房间时为空。 */
+    roomId?: string;
+    roomName?: string;
+    lastLine?: string;
+  }>;
+  clues: Array<{
+    id: string;
+    name: string;
+    text: string;
+    source?: MysterySourceRef;
+  }>;
+  items: Array<{
+    id: string;
+    name: string;
+    text: string;
+    source?: MysterySourceRef;
+  }>;
+  /** 已出现预兆、尚未发生也未被阻止的事件。 */
+  alerts: Array<{ id: string; text: string }>;
+  map: { rooms: MysteryMapRoom[]; edges: Array<[string, string]> };
   log: MysteryLogEntry[];
   questions: Array<{
     id: string;

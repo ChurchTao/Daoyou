@@ -1,10 +1,11 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
-import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
-import { MapNodeInfo } from '@daoyou/game-domain/world/map';
 import type { RealmType } from '@daoyou/constants/realms';
+import { MapNodeInfo } from '@daoyou/game-domain/world/map';
+import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { MapNodeCard } from '../MapNodeCard';
+import { MysteryWaiting } from './MysteryWaiting';
 type NoviceDungeonReadiness = ReturnType<typeof dungeonReadiness>;
 
 interface DungeonMapSelectorProps {
@@ -68,6 +69,7 @@ export function DungeonMapSelector({
               : '开始探索'}
         </InkButton>
       </div>
+      <MysteryWaiting active={isStarting} kind="start" />
     </div>
   );
 }

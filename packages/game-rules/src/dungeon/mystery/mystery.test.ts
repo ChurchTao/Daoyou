@@ -1,9 +1,9 @@
-import { getAllSatelliteNodes } from '@daoyou/game-content/world/map';
 import {
   getMysteryFallbackCase,
   getMysteryTemplate,
   listMysteryTemplates,
 } from '@daoyou/game-content/dungeon/scenarios';
+import { getAllSatelliteNodes } from '@daoyou/game-content/world/map';
 import {
   MysteryCaseFileSchema,
   type MysteryAction,
@@ -550,5 +550,61 @@ describe('mystery hints', () => {
     expect(result.ok && result.run.log.at(-1)?.text).toBe(
       '眼下的线索已够你推断，不妨翻翻笔记，着手结案。',
     );
+  });
+});
+
+describe('mystery view for the case board', () => {
+  const view = (caseFile: MysteryCaseFile, run: MysteryRunState) =>
+    projectMysteryView(
+      { templateId: template.id, caseSource: 'fallback', caseFile, run },
+      template,
+    );
+
+  it('tells where each clue came from and how each person stands', () => {
+    const caseFile = fallback();
+    const v = view(caseFile, play(caseFile, SOLVE));
+    expect(v.clues.every((c) => c.source)).toBe(true);
+    const roster = v.clues.find((c) => c.id === 'roster_page')!;
+    expect(roster.source).toMatchObject({ kind: 'place', id: 'quiet_room' });
+    const pendant = v.clues.find((c) => c.id === 'pendant_match')!;
+    expect(pendant.source).toMatchObject({ kind: 'person', id: 'su' });
+    const status = Object.fromEntries(v.knownNpcs.map((n) => [n.id, n.status]));
+    expect(status).toMatchObject({ han: 'exposed', su: 'opened' });
+  });
+
+  it('maps visited rooms and their neighbours, layered from the entrance', () => {
+    const caseFile = fallback();
+    const v = view(
+      caseFile,
+      createMysteryRun(caseFile, template.scale.action_budget),
+    );
+    const start = v.map.rooms.find((r) => r.here)!;
+    expect(start).toMatchObject({ id: caseFile.startRoomId, depth: 0 });
+    expect(v.map.rooms.filter((r) => r.visited)).toHaveLength(1);
+    expect(v.map.rooms.length).toBeGreaterThan(1);
+    expect(
+      v.map.edges.every(([a, b]) =>
+        [a, b].every((id) => v.map.rooms.some((r) => r.id === id)),
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps a warning on screen until the event happens or is prevented', () => {
+    const caseFile = fallback();
+    const event = caseFile.events![0]!;
+    const warned = {
+      ...createMysteryRun(caseFile, template.scale.action_budget),
+      events: [`warn:${event.id}`],
+    };
+    expect(view(caseFile, warned).alerts).toEqual([
+      { id: event.id, text: event.warning },
+    ]);
+    expect(
+      view(caseFile, { ...warned, flags: ['han_exposed'] }).alerts,
+    ).toEqual([]);
+    expect(
+      view(caseFile, { ...warned, events: [...warned.events, event.id] })
+        .alerts,
+    ).toEqual([]);
   });
 });

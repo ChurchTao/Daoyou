@@ -1,13 +1,138 @@
 import type {
+  MysteryCaseFile,
+  MysteryMapRoom,
+  MysteryNpcStatus,
   MysteryPlayerView,
   MysteryRecord,
+  MysteryRunState,
   MysteryScenarioTemplate,
+  MysterySourceRef,
 } from '@daoyou/game-domain/dungeon/mystery';
 import {
   evaluateMysteryCondition,
   mysteryGuardAt,
   mysteryNeighbors,
 } from './engine.js';
+
+/**
+ * 线索的来源：按玩家实际可能的获取方式依次判断（搜查过的物件、交谈过的人、
+ * 回应过证据的人、用过的物品交互），都对不上时取第一个可能的来源。
+ */
+function clueSource(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  clueId: string,
+): MysterySourceRef | undefined {
+  const place = (roomId: string | undefined) => {
+    const room = caseFile.rooms.find((r) => r.id === roomId);
+    return room
+      ? { kind: 'place' as const, id: room.id, name: room.name }
+      : undefined;
+  };
+  const person = (npcId: string) => {
+    const npc = caseFile.npcs.find((n) => n.id === npcId);
+    return npc
+      ? { kind: 'person' as const, id: npc.id, name: npc.name }
+      : undefined;
+  };
+  const clue = caseFile.clues.find((c) => c.id === clueId);
+  const object = caseFile.objects.find((o) => o.id === clue?.foundAt?.objectId);
+  const fromSecret = caseFile.npcs.find((n) =>
+    n.secrets.some((x) => x.clueId === clueId),
+  );
+  const fromReaction = caseFile.npcs.find((n) =>
+    n.reactions.some((r) =>
+      r.effects.some((e) => e.kind === 'reveal_clue' && e.clueId === clueId),
+    ),
+  );
+  const interaction = caseFile.interactions.find((i) =>
+    i.effects.some((e) => e.kind === 'reveal_clue' && e.clueId === clueId),
+  );
+  const interactionPlace = () =>
+    interaction &&
+    (place(
+      caseFile.objects.find((o) => o.id === interaction.targetId)?.roomId,
+    ) ??
+      person(interaction.targetId));
+  if (object && run.searched.includes(object.id)) return place(object.roomId);
+  if (fromSecret && run.talkedTo.includes(fromSecret.id))
+    return person(fromSecret.id);
+  if (
+    fromReaction &&
+    fromReaction.reactions.some((r) => run.firedReactions.includes(r.id))
+  )
+    return person(fromReaction.id);
+  if (interaction && run.firedInteractions.includes(interaction.id))
+    return interactionPlace();
+  return (
+    (object && place(object.roomId)) ??
+    (fromSecret && person(fromSecret.id)) ??
+    (fromReaction && person(fromReaction.id)) ??
+    interactionPlace()
+  );
+}
+
+function npcStatus(
+  npc: MysteryCaseFile['npcs'][number],
+  run: MysteryRunState,
+): MysteryNpcStatus {
+  const fired = npc.reactions.filter((r) => run.firedReactions.includes(r.id));
+  if (run.departed?.includes(npc.id)) return 'departed';
+  if (fired.some((r) => r.exposesLie)) return 'exposed';
+  if (fired.length > 0) return 'opened';
+  return run.talkedTo.includes(npc.id) ? 'talked' : 'unmet';
+}
+
+/** 已知地点的示意：到访过的房间与其相邻房间，按距入口的步数分层。 */
+function projectMap(caseFile: MysteryCaseFile, run: MysteryRunState) {
+  const known = new Set(run.visited);
+  for (const id of run.visited)
+    for (const next of mysteryNeighbors(caseFile, id)) known.add(next.id);
+  const depth = new Map([[caseFile.startRoomId, 0]]);
+  const queue = [caseFile.startRoomId];
+  while (queue.length) {
+    const id = queue.shift()!;
+    for (const next of mysteryNeighbors(caseFile, id)) {
+      if (depth.has(next.id)) continue;
+      depth.set(next.id, depth.get(id)! + 1);
+      queue.push(next.id);
+    }
+  }
+  const rooms: MysteryMapRoom[] = caseFile.rooms
+    .filter((r) => known.has(r.id))
+    .map((r) => {
+      const visited = run.visited.includes(r.id);
+      const objects = caseFile.objects.filter(
+        (o) => o.roomId === r.id && !run.destroyed?.includes(o.id),
+      );
+      return {
+        id: r.id,
+        name: r.name,
+        depth: depth.get(r.id) ?? 0,
+        here: r.id === run.location,
+        visited,
+        locked: !evaluateMysteryCondition(r.requires, run),
+        guarded: Boolean(mysteryGuardAt(caseFile, run, r.id)),
+        people: visited
+          ? caseFile.npcs.filter(
+              (n) => n.roomId === r.id && !run.departed?.includes(n.id),
+            ).length
+          : 0,
+        disturbed: caseFile.objects.some(
+          (o) => o.roomId === r.id && run.destroyed?.includes(o.id),
+        ),
+        searched: visited
+          ? objects.filter((o) => run.searched.includes(o.id)).length
+          : 0,
+        objects: visited ? objects.length : 0,
+      };
+    });
+  const edges: Array<[string, string]> = [];
+  for (const room of caseFile.rooms)
+    for (const exit of room.exits)
+      if (known.has(room.id) && known.has(exit)) edges.push([room.id, exit]);
+  return { rooms, edges };
+}
 
 /** 只投影玩家已经知道的内容；真相与答案仅在结案后附带。 */
 export function projectMysteryView(
@@ -90,15 +215,66 @@ export function projectMysteryView(
       .map((n) => ({ id: n.id, name: n.name, title: n.title })),
     knownNpcs: caseFile.npcs
       .filter((n) => knownNpcIds.has(n.id))
-      .map((n) => ({ id: n.id, name: n.name, title: n.title })),
+      .map((n) => {
+        const status = npcStatus(n, run);
+        const room =
+          status !== 'departed' && run.visited.includes(n.roomId)
+            ? caseFile.rooms.find((r) => r.id === n.roomId)
+            : undefined;
+        const lastLine = run.log.findLast(
+          (e) => e.kind === 'speech' && e.speaker === n.name,
+        )?.text;
+        return {
+          id: n.id,
+          name: n.name,
+          title: n.title,
+          status,
+          ...(room ? { roomId: room.id, roomName: room.name } : {}),
+          ...(lastLine ? { lastLine } : {}),
+        };
+      }),
     clues: run.clues.flatMap((id) => {
       const c = caseFile.clues.find((x) => x.id === id);
-      return c ? [{ id: c.id, name: c.name, text: c.text }] : [];
+      if (!c) return [];
+      const source = clueSource(caseFile, run, c.id);
+      return [
+        { id: c.id, name: c.name, text: c.text, ...(source ? { source } : {}) },
+      ];
     }),
     items: run.items.flatMap((id) => {
       const i = caseFile.items.find((x) => x.id === id);
-      return i ? [{ id: i.id, name: i.name, text: i.text }] : [];
+      if (!i) return [];
+      const room = caseFile.rooms.find(
+        (r) =>
+          r.id ===
+          caseFile.objects.find((o) => o.id === i.foundAt?.objectId)?.roomId,
+      );
+      return [
+        {
+          id: i.id,
+          name: i.name,
+          text: i.text,
+          ...(room
+            ? {
+                source: {
+                  kind: 'place' as const,
+                  id: room.id,
+                  name: room.name,
+                },
+              }
+            : {}),
+        },
+      ];
     }),
+    alerts: (caseFile.events ?? [])
+      .filter(
+        (e) =>
+          run.events?.includes(`warn:${e.id}`) &&
+          !run.events.includes(e.id) &&
+          !evaluateMysteryCondition(e.unless, run),
+      )
+      .map((e) => ({ id: e.id, text: e.warning })),
+    map: projectMap(caseFile, run),
     log: run.log,
     questions: template.questions.map((tq) => {
       const q = caseFile.questions.find((x) => x.id === tq.id);
