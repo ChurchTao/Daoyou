@@ -658,6 +658,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksSpell": true,
       "attrMods": {
         "magicDef": "-target.magicDef*0.1"
@@ -679,6 +680,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksDamagingSpells": true,
       "attrMods": {
         "physicalDef": "-target.physicalDef*0.1"
@@ -700,6 +702,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksPhysical": true,
       "attrMods": {
         "physicalDef": "-target.physicalDef*0.05",
@@ -752,6 +755,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksSpell": true,
       "attrMods": {
         "dodge": "-target.dodge*0.1"
@@ -764,6 +768,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksPhysical": true,
       "attrMods": {
         "physicalDef": "-target.physicalDef*0.1"
@@ -776,6 +781,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksArts": true
     },
     {
@@ -784,6 +790,7 @@
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
+      "isSeal": true,
       "blocksPhysical": true
     },
     {

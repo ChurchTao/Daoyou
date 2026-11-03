@@ -5,7 +5,7 @@ import { combatModifiers, modifierValue, sealHitTakenFactor } from './modifiers.
 import { DEFAULT_HITS } from "./constants.js"
 import type { BattleContext } from "./context.js"
 import { applyBarrier } from "./barriers.js"
-import { applyDamage, applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyWound, changeWound, resolveStrike } from "./damage.js"
+import { applyDamage, applyHeal, applyHpRestore, applyMpDamage, applyRevive, applyReviveWithOwnedPetHpCost, applyWound, changeWound, resolveStrike } from "./damage.js"
 import { DamageKind, DamageOrigin, EffectType, EventType, FailReason, FormulaFamily, StatusCategory, StatusHit, StatusRemoveReason } from "./enums.js"
 import { evalExpr } from "./expr.js"
 import { atLeast, floorAtLeast } from "./math.js"
@@ -201,12 +201,19 @@ function handleRestoreHp(
   }
   let totalRestored = 0;
   for (const target of targets) {
-    const restored = applyHpRestore(ctx, source, target, power, {
+    const roundKey = `hpRestoreRound:${ctx.state.round}:${source.id}:${skill.id}:${target.id}`
+    const roundCap = effect.maxGainPerRound === undefined ? undefined
+      : atLeast(0, Math.floor(evalExpr(effect.maxGainPerRound, { ...env, target })))
+    const targetPower = roundCap === undefined ? power
+      : Math.min(power, Math.max(0, roundCap - (source.combatFacts?.[roundKey] ?? 0)))
+    const restored = applyHpRestore(ctx, source, target, targetPower, {
       revive: effect.revive,
       allowFatal: effect.allowFatal,
       clearStatuses: effect.clearStatuses,
     })
     totalRestored += restored;
+    if (roundCap !== undefined && restored > 0)
+      (source.combatFacts ??= {})[roundKey] = (source.combatFacts?.[roundKey] ?? 0) + restored
     if (action && restored > 0) {
       action.hpRestoreGains[gainKey] = (action.hpRestoreGains[gainKey] ?? 0) + restored
     }
@@ -380,7 +387,7 @@ function handleApplyStatus(
     if (hit === StatusHit.Seal) {
       const targetModifiers = combatModifiers(ctx, t, { target: source, skill, skillId: skill.id })
       const additiveChance = modifierValue(modifiers, 'sealChanceAdd', source, t, skill, ctx) - modifierValue(targetModifiers, 'sealResistanceAdd', t, source, skill, ctx)
-      const ceiling = Math.min(1, Math.max(0, (skill.sealChanceCeil ?? ctx.rules.formulas.sealChanceCeil ?? 1) + modifierValue(modifiers, 'sealChanceCeilAdd', source, t, skill, ctx)));
+      const ceiling = Math.min(1, Math.max(0, (skill.sealChanceCeil ?? ctx.rules.formulas.sealChanceCeil ?? 1) + modifierValue(modifiers, 'sealChanceCeilAdd', source, t, skill, ctx) + modifierValue(targetModifiers, 'sealChanceCeilTakenAdd', t, source, skill, ctx)));
       const sourceAttrs = effectiveAttrs(source);
       sourceAttrs.sealHit += modifierValue(modifiers, 'sealHitAdd', source, t, skill, ctx);
       const baseChance = ctx.rules.formulas.sealHitChance({ ...source, attrs: sourceAttrs }, { ...t, attrs: effectiveAttrs(t) }, env.skillLevel, skill.sealBase, additiveChance, ceiling)
@@ -491,7 +498,10 @@ function handleRevive(
       effect.hpRatio !== undefined
         ? t.attrs.maxHp * evalExpr(effect.hpRatio, { ...env, target: t })
         : evalExpr(effect.hp, { ...env, target: t })
-    applyRevive(ctx, source, t, effect.respectHealTaken ? Math.floor(hp) * healTakenFactor(t) : hp)
+    const restore = effect.respectHealTaken ? Math.floor(hp) * healTakenFactor(t) : hp
+    if (effect.ownedPetHpCostRatio !== undefined)
+      applyReviveWithOwnedPetHpCost(ctx, source, t, restore, evalExpr(effect.ownedPetHpCostRatio, { ...env, target: t }))
+    else applyRevive(ctx, source, t, restore)
   }
 }
 

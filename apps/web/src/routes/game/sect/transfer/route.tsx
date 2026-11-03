@@ -159,7 +159,7 @@ export default function SectTransferPage() {
             <InkCard key={sect.id} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <strong>{sect.name}</strong>
-                {sect.id === 'wanqiao' && (
+                {sect.id === 'xiaoyue' && (
                   <InkBadge tone="accent">新宗门</InkBadge>
                 )}
               </div>

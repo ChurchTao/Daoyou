@@ -1,7 +1,7 @@
 {
   "$schema": "./skill-learning.schema.json",
   "formatVersion": 1,
-  "contentRevision": 10,
+  "contentRevision": 11,
   "skills": {
     "lingxiao.skill.triple": {
       "sourceMethodId": "lingxiao.method.canon",
@@ -1434,6 +1434,218 @@
     "wanqiao.passive.subtlety.ziyang": {
       "sourceMethodId": "wanqiao.method.breath",
       "unlockMethodLevel": 1
+    },
+    "xiaoyue.skill.transform": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 20
+    },
+    "xiaoyue.skill.lion_strike": {
+      "sourceMethodId": "xiaoyue.method.onslaught",
+      "unlockMethodLevel": 20
+    },
+    "xiaoyue.skill.eagle_strike": {
+      "sourceMethodId": "xiaoyue.method.onslaught",
+      "unlockMethodLevel": 30
+    },
+    "xiaoyue.skill.chain_strike": {
+      "sourceMethodId": "xiaoyue.method.fury",
+      "unlockMethodLevel": 30
+    },
+    "xiaoyue.skill.elephant_seal": {
+      "sourceMethodId": "xiaoyue.method.onslaught",
+      "unlockMethodLevel": 20
+    },
+    "xiaoyue.skill.intimidate": {
+      "sourceMethodId": "xiaoyue.method.beast",
+      "unlockMethodLevel": 15
+    },
+    "xiaoyue.skill.meditate": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 40
+    },
+    "xiaoyue.skill.frenzy": {
+      "sourceMethodId": "xiaoyue.method.guard",
+      "unlockMethodLevel": 20
+    },
+    "xiaoyue.skill.mana_breath": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 120
+    },
+    "xiaoyue.skill.demon_unbound": {
+      "sourceMethodId": "xiaoyue.method.onslaught",
+      "unlockMethodLevel": 120
+    },
+    "xiaoyue.skill.best_partners": {
+      "sourceMethodId": "xiaoyue.method.beast",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.skill.foundation": {
+      "sourceMethodId": "xiaoyue.method.guard",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.1.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.1.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.1.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.2.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.2.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.2.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.3.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.3.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.3.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.4.1": {
+      "sourceMethodId": "xiaoyue.method.wing",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.4.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.4.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.5.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.5.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.5.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.6.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.6.2": {
+      "sourceMethodId": "xiaoyue.method.fury",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.6.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.blood.7.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.foundation": {
+      "sourceMethodId": "xiaoyue.method.beast",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.1.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.1.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.1.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.2.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.2.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.2.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.3.1": {
+      "sourceMethodId": "xiaoyue.method.fury",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.3.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.3.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.4.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.4.2": {
+      "sourceMethodId": "xiaoyue.method.wing",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.4.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.5.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.5.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.5.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.6.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.6.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.6.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.7.1": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.7.2": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
+    },
+    "xiaoyue.passive.bond.7.3": {
+      "sourceMethodId": "xiaoyue.method.canon",
+      "unlockMethodLevel": 0
     }
   }
 }

@@ -6,6 +6,7 @@ import { validateSectSkillLearningContent } from './skill-learning.js';
 import { TIANYAN_V6_DEFINITION } from './tianyan.js';
 import { WUXIANG_V6_DEFINITION } from './wuxiang.js';
 import { WANQIAO_V6_DEFINITION } from './wanqiao.js';
+import { XIAOYUE_V6_DEFINITION } from './xiaoyue.js';
 import { YOUDU_V6_DEFINITION } from './youdu.js';
 
 /** 技能说明里 [[状态ID]] 对应的名称与详细说明。 */
@@ -35,6 +36,7 @@ export const COMBAT_V6_SECT_DEFINITIONS: Record<
   jiujie: JIUJIE_V6_DEFINITION,
   bailu: BAILU_V6_DEFINITION,
   wanqiao: WANQIAO_V6_DEFINITION,
+  xiaoyue: XIAOYUE_V6_DEFINITION,
 });
 
 function definitionIds(definition: SectDefinitionV6): string[] {

@@ -1,0 +1,883 @@
+{
+  "$schema": "./xiaoyue-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "xiaoyue.skill.transform",
+    "xiaoyue.skill.lion_strike",
+    "xiaoyue.skill.eagle_strike",
+    "xiaoyue.skill.chain_strike",
+    "xiaoyue.skill.elephant_seal",
+    "xiaoyue.skill.intimidate",
+    "xiaoyue.skill.meditate",
+    "xiaoyue.skill.frenzy",
+    "xiaoyue.skill.mana_breath",
+    "xiaoyue.skill.demon_unbound",
+    "xiaoyue.skill.foundation"
+  ],
+  "skills": [
+    {
+      "id": "xiaoyue.skill.transform",
+      "name": "兽形",
+      "school": "xiaoyue",
+      "description": "消耗20法力凝成兽形，物攻临时增加主心法等级，持续四个完整后续回合；兽形是狮搏、鹏击、连环击和镇形的前提。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.quick_penalty"
+          ],
+          "targeting": {
+            "side": "self"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.transform",
+          "duration": 4,
+          "self": true
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.active_transform_ready",
+          "duration": 99,
+          "self": true
+        }
+      ],
+      "requirement": "(1-hasStatus.xiaoyue.status.transform)+hasStatus.xiaoyue.status.quick_penalty",
+      "costMp": 20
+    },
+    {
+      "id": "xiaoyue.skill.lion_strike",
+      "name": "狮搏",
+      "school": "xiaoyue",
+      "description": "兽形期间消耗30法力，对单个敌人发动一次较强物理攻击，首版物理系数1.15。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.15
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": 30
+    },
+    {
+      "id": "xiaoyue.skill.eagle_strike",
+      "name": "鹏击",
+      "school": "xiaoyue",
+      "description": "兽形期间攻击多名敌人；随《生死搏》达到30／50／75／125级，至多攻击3／4／5／6人。基础消耗30法力，每增加一个实际目标另耗10法力。出手后下一次人物行动休息，也不能连续两回合使用。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,4,3)))",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "randomBranch",
+          "branchId": "xiaoyue.eagle.roar",
+          "chance": 0.3,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.roar_boost",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "known.xiaoyue.passive.blood.3.2*hasStatus.xiaoyue.status.active_transform_ready"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85
+        },
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.roar_boost",
+            "xiaoyue.status.active_transform_ready"
+          ],
+          "targeting": {
+            "side": "self"
+          }
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": "30+10*(targets-1)",
+      "cooldownRounds": 2,
+      "recoveryStatusId": "xiaoyue.status.rest"
+    },
+    {
+      "id": "xiaoyue.skill.chain_strike",
+      "name": "连环击",
+      "school": "xiaoyue",
+      "description": "兽形期间连续攻击一名敌人；随《狂兽诀》达到30／50／75／125／175级，出手2／3／5／6／7段。每段预付30法力；目标倒地即停止余段。出手后下一次人物行动休息并取消兽形。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "hits": "if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))",
+          "coeff": [
+            0.72,
+            0.62,
+            0.52,
+            0.42,
+            0.32,
+            0.27,
+            0.23
+          ]
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.rest",
+          "duration": 1,
+          "self": true
+        },
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.transform"
+          ],
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "1-known.xiaoyue.passive.blood.6.2"
+          }
+        },
+        {
+          "type": "modifyStatusDuration",
+          "kinds": [
+            "xiaoyue.status.transform"
+          ],
+          "amount": -2,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "known.xiaoyue.passive.blood.6.2"
+          }
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": "30*if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))",
+      "recoveryStatusId": "xiaoyue.status.rest"
+    },
+    {
+      "id": "xiaoyue.skill.elephant_seal",
+      "name": "镇形",
+      "school": "xiaoyue",
+      "description": "兽形期间消耗50法力攻击单个敌人；物理命中后另作封印判定，使其下一完整行动窗口无法行动。自身下一回合禁用本宗神通并取消兽形。",
+      "tags": [
+        "physical",
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.8
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "xiaoyue.elephant.keep_form",
+          "chance": "0.7*known.xiaoyue.passive.blood.3.3*(hp/maxHp<0.3)",
+          "successEffects": [
+            {
+              "type": "modifyStatusDuration",
+              "kinds": [
+                "xiaoyue.status.transform"
+              ],
+              "amount": 2,
+              "targeting": {
+                "side": "self"
+              }
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.transform"
+              ],
+              "targeting": {
+                "side": "self"
+              }
+            }
+          ]
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.spell_rest_pending",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": 50,
+      "sealBase": 55,
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.stun_pending",
+              "duration": 1,
+              "hit": "seal"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.elephant_seal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.skill.intimidate",
+      "name": "兽威",
+      "school": "xiaoyue",
+      "description": "消耗20法力，以兽威封住敌方灵兽或普通敌方生灵下一完整行动窗口；不能选敌方玩家角色，免控目标仍可抵御。",
+      "tags": [
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "requireKinds": [
+          "pet",
+          "npc"
+        ]
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.stun_pending",
+          "duration": 1,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 20,
+      "sealBase": 55
+    },
+    {
+      "id": "xiaoyue.skill.meditate",
+      "name": "定心",
+      "school": "xiaoyue",
+      "description": "消耗40法力凝神定心，法攻和法防各增加主心法等级的30%向下取整值，持续四个后续回合。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.calm",
+          "duration": 4,
+          "self": true
+        }
+      ],
+      "costMp": 40
+    },
+    {
+      "id": "xiaoyue.skill.frenzy",
+      "name": "狂反",
+      "school": "xiaoyue",
+      "description": "消耗30法力进入狂反，持续三个后续回合；受敌方直接物理攻击命中时自动反击一次，首版反击物理系数0.5。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.frenzy",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": 30
+    },
+    {
+      "id": "xiaoyue.skill.mana_breath",
+      "name": "养息",
+      "school": "xiaoyue",
+      "description": "支付固定30气血养息，持续三个后续回合，每轮末回复主心法等级一半的法力，向下取整。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.mana_breath",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costHp": 30
+    },
+    {
+      "id": "xiaoyue.skill.demon_unbound",
+      "name": "裂甲狂身",
+      "school": "xiaoyue",
+      "description": "消耗30法力，以施放前物防为快照，临时降低50%物防、把原物防10%转为物攻；持续三个后续回合，死亡即清除。复活当回合不可施放。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.demon_unbound",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": 30,
+      "forbidRevivedRound": true
+    },
+    {
+      "id": "xiaoyue.skill.best_partners",
+      "name": "最佳搭档",
+      "school": "xiaoyue",
+      "description": "需兽形且本人灵兽站立，消耗500法力，冷却八回合、入场冷却四回合。本人狮搏并标记该敌人；原本出战灵兽下一次正常物理攻击同目标时首击增强20%，双方协同攻击不可被保护。不会额外产生灵兽行动。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.15
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.best_partner_mark",
+          "duration": 1
+        }
+      ],
+      "requirement": "ownStandingPet*hasStatus.xiaoyue.status.transform",
+      "costMp": 500,
+      "cooldownRounds": 8,
+      "initialCooldownRounds": 4,
+      "modifiers": [
+        {
+          "ignoreProtection": true,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.best_partners"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.skill.foundation",
+      "name": "兽王本能",
+      "school": "xiaoyue",
+      "description": "兽形、休息与狂反的共通本能；狂反期间受敌方直接物理命中时，自动对攻击者发动一次反击。",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "onBeHit",
+          "effects": [
+            {
+              "type": "physicalHit",
+              "coeff": 0.5
+            }
+          ],
+          "targetIsSelf": true,
+          "requireKind": "physical",
+          "retaliation": true,
+          "aim": "hookSource",
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.frenzy"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerActionTarget": true
+          },
+          "sourceIsEnemy": true
+        },
+        {
+          "on": "onStatusRemoved",
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "removedStatusKind": "xiaoyue.status.transform"
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.quick_penalty",
+                "xiaoyue.status.active_transform_ready"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "xiaoyue.status.transform",
+      "kind": "xiaoyue.status.transform",
+      "name": "兽形",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "变身后提升物攻；鹏击、狮搏、连环击与镇形需要兽形。",
+      "dispellable": true,
+      "attrMods": {
+        "physicalAtk": "skillLevel"
+      }
+    },
+    {
+      "id": "xiaoyue.status.active_transform_ready",
+      "kind": "xiaoyue.status.active_transform_ready",
+      "name": "主动兽形余势",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主动兽形余势",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.quick_penalty",
+      "kind": "xiaoyue.status.quick_penalty",
+      "name": "迅捷减攻",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "迅捷减攻",
+      "dispellable": false,
+      "attrMods": {
+        "physicalAtk": "-level"
+      }
+    },
+    {
+      "id": "xiaoyue.status.rest",
+      "kind": "xiaoyue.status.rest",
+      "name": "力竭休息",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "下一次人物行动休息；灵兽仍可行动。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.stun_pending",
+      "kind": "xiaoyue.status.stun_pending",
+      "name": "镇形待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "镇形待生效",
+      "dispellable": true,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.stun",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.stun",
+      "kind": "xiaoyue.status.stun",
+      "name": "镇形禁动",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "镇形禁动",
+      "dispellable": true,
+      "isSeal": true,
+      "blocksAction": true,
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.spell_rest_pending",
+      "kind": "xiaoyue.status.spell_rest_pending",
+      "name": "镇形禁法待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "镇形禁法待生效",
+      "dispellable": false,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.spell_rest",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.spell_rest",
+      "kind": "xiaoyue.status.spell_rest",
+      "name": "镇形禁法",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "镇形禁法",
+      "dispellable": false,
+      "blockedSkillSchools": [
+        "xiaoyue"
+      ],
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.calm",
+      "kind": "xiaoyue.status.calm",
+      "name": "定心",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "定心",
+      "dispellable": true,
+      "attrMods": {
+        "magicAtk": "floor(skillLevel*0.3)",
+        "magicDef": "floor(skillLevel*0.3)"
+      }
+    },
+    {
+      "id": "xiaoyue.status.frenzy",
+      "kind": "xiaoyue.status.frenzy",
+      "name": "狂反",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "狂反",
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.mana_breath",
+      "kind": "xiaoyue.status.mana_breath",
+      "name": "养息",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "养息",
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.demon_unbound",
+      "kind": "xiaoyue.status.demon_unbound",
+      "name": "裂甲狂身",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "裂甲狂身",
+      "dispellable": true,
+      "attrMods": {
+        "physicalDef": "-floor(physicalDef*0.5)",
+        "physicalAtk": "floor(physicalDef*0.1)"
+      }
+    },
+    {
+      "id": "xiaoyue.status.claw",
+      "kind": "xiaoyue.status.claw",
+      "name": "爪印",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "爪印",
+      "dispellable": false,
+      "maxStacks": 6,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.roar_boost",
+      "kind": "xiaoyue.status.roar_boost",
+      "name": "鹰啸余威",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "鹰啸余威",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.4,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.wing_guard",
+      "kind": "xiaoyue.status.wing_guard",
+      "name": "展翅",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "展翅",
+      "dispellable": false,
+      "attrMods": {
+        "dodge": "floor(level*0.2)"
+      },
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.wing_guard_pending",
+      "kind": "xiaoyue.status.wing_guard_pending",
+      "name": "展翅待生效",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "展翅待生效",
+      "dispellable": false,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.wing_guard",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.recoil",
+      "kind": "xiaoyue.status.recoil",
+      "name": "狂袭",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "狂袭",
+      "dispellable": false,
+      "attrMods": {
+        "physicalAtk": "fact.xiaoyue_recoil_bonus"
+      }
+    },
+    {
+      "id": "xiaoyue.status.backwater",
+      "kind": "xiaoyue.status.backwater",
+      "name": "背水",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "背水",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.lion_soul",
+      "kind": "xiaoyue.status.lion_soul",
+      "name": "狮魂",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "狮魂",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.totem",
+      "kind": "xiaoyue.status.totem",
+      "name": "图腾狮搏",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "本人下一次狮搏伤害结果提高4%；需最初同契的灵兽仍在场。",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.04,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "requireKind": "physical",
+            "sourceHasStandingPet": true,
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.totem_link"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.rebirth_bonus",
+      "kind": "xiaoyue.status.rebirth_bonus",
+      "name": "回光",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "回光",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.bloodlust",
+      "kind": "xiaoyue.status.bloodlust",
+      "name": "嗜血",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "嗜血",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.revenge",
+      "kind": "xiaoyue.status.revenge",
+      "name": "复仇",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "复仇",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.chengxiong",
+      "kind": "xiaoyue.status.chengxiong",
+      "name": "逞凶",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "逞凶",
+      "dispellable": false,
+      "sourceBound": true,
+      "persistWhenDowned": true
+    },
+    {
+      "id": "xiaoyue.status.best_partner_mark",
+      "kind": "xiaoyue.status.best_partner_mark",
+      "name": "最佳搭档",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "最佳搭档",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.seen_pet",
+      "kind": "xiaoyue.status.seen_pet",
+      "name": "曾经出战",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "曾经出战",
+      "dispellable": false,
+      "persistWhenBenched": true,
+      "untilBattleEnd": true
+    },
+    {
+      "id": "xiaoyue.status.anger_pet",
+      "kind": "xiaoyue.status.anger_pet",
+      "name": "怒火",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "怒火",
+      "dispellable": false,
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.revenge_pet",
+      "kind": "xiaoyue.status.revenge_pet",
+      "name": "复仇待击",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主人倒地后，本宠对击倒者的下一次正常直接物理首击增伤20%。",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.2,
+          "when": {
+            "targetStatusFromSourceOwnerKinds": [
+              "xiaoyue.status.revenge"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.pressure_pending",
+      "kind": "xiaoyue.status.pressure_pending",
+      "name": "威压待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "下回合起威慑敌方灵兽。",
+      "dispellable": true,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.pressure_stun",
+        "duration": 2
+      }
+    },
+    {
+      "id": "xiaoyue.status.pressure_stun",
+      "kind": "xiaoyue.status.pressure_stun",
+      "name": "威压",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "无法行动，持续两回合。",
+      "isSeal": true,
+      "blocksAction": true,
+      "expireSameRound": true,
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.totem_link",
+      "kind": "xiaoyue.status.totem_link",
+      "name": "图腾同契",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主人下一次狮搏需由这只仍在场的灵兽同契。",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.best_partner_pet",
+      "kind": "xiaoyue.status.best_partner_pet",
+      "name": "最佳搭档同契",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "只有原本与主人协同的灵兽可兑现最佳搭档标记。",
+      "dispellable": false,
+      "sourceBound": true
+    }
+  ]
+}

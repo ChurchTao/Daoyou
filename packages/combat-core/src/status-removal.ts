@@ -48,6 +48,7 @@ export function removeStatus(
       removedStatusSkillLevel: inst.appliedSkillLevel ?? inst.tickSkillLevel ?? inst.transitionSkillLevel ?? 0,
       removedStatusCategory: def?.category,
       removedStatusDispellable: def?.dispellable !== false,
+      removedStatusWasSeal: def?.isSeal === true,
       removedStatusFlags: Object.values(StatusFlag).filter(flag => def?.[flag] === true),
       statusRemovedByAlly: remover ? remover.side === unit.side : false,
       statusRemoveReason: reason,

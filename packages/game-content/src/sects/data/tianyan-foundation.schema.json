@@ -126,6 +126,9 @@
         "blocksSpell": {
           "type": "boolean"
         },
+        "isSeal": {
+          "type": "boolean"
+        },
         "consumeAfterDamagingAction": {
           "type": "boolean"
         },

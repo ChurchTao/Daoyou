@@ -212,6 +212,12 @@ class Parser {
         .flatMap(unit => unit.tags.filter(tag => tag.startsWith(prefix) && !own.has(tag))) ?? []).size
     }
     if (name === 'enemyCount') return this.env.state?.units.filter(u => u.side !== this.env.source.side && !u.flags.dead && !u.flags.downed && !u.flags.escaped && !u.flags.benched).length ?? 0
+    if (name === 'allyStandingPets') return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'pet' && isStanding(u)).length ?? 0
+    if (name === 'ownStandingPet') return this.env.state?.units.some(u => u.kind === 'pet' && u.ownerId === this.env.source.id && isStanding(u)) ? 1 : 0
+    if (name === 'ownPetHp' || name === 'ownPetMaxHp') {
+      const pet = this.env.state?.units.find(u => u.kind === 'pet' && u.ownerId === this.env.source.id && isStanding(u))
+      return pet ? pet.attrs[name === 'ownPetHp' ? 'hp' : 'maxHp'] : 0
+    }
     if (name === 'actionKillsTarget') return this.env.target && this.env.killedTargetIds?.includes(this.env.target.id) ? 1 : 0
     if (name === 'normalTarget') return this.env.target && this.env.normalTargetIds?.includes(this.env.target.id) ? 1 : 0
     if (name === 'enemyPlayers') return this.env.state?.units.filter(u => u.side !== this.env.source.side && u.kind === 'player').length ?? 0

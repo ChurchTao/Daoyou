@@ -148,6 +148,7 @@
       "description": "无法使用法术。",
       "school": "tianyan",
       "category": "control",
+      "isSeal": true,
       "blocksSpell": true
     },
     {

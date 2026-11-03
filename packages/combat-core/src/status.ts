@@ -250,7 +250,7 @@ export function tickStatuses(ctx: BattleContext): void {
 
       if (def?.ticks === StatusTick.RoundEnd && def.healingPerRound !== undefined && isStanding(unit)) {
         const source = ctx.state.units.find(candidate => candidate.id === inst.sourceId) ?? unit
-        applyHeal(ctx, source, unit, evalExpr(def.healingPerRound, { state: ctx.state, source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }), false, false, false)
+        applyHeal(ctx, source, unit, evalExpr(def.healingPerRound, { state: ctx.state, source, target: unit, skillLevel: inst.tickSkillLevel ?? 0, targets: 1 }), false, false, false, DamageOrigin.Status)
       }
 
       // 当回合结束过期的状态保留到所有跳伤和回合末钩子结算完成。

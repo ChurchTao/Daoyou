@@ -2083,6 +2083,7 @@
       "name": "禁诀敕令",
       "description": "无法使用装备器诀。",
       "category": "control",
+      "isSeal": true,
       "school": "jiujie",
       "blocksArts": true
     },
@@ -2103,6 +2104,7 @@
       "name": "封兵敕令",
       "description": "无法普通攻击。",
       "category": "control",
+      "isSeal": true,
       "school": "jiujie",
       "blockedCommands": [
         "attack"

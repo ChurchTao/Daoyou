@@ -1,0 +1,657 @@
+{
+  "researchDate": "2026-11-03",
+  "timezone": "Asia/Shanghai",
+  "game": "梦幻西游电脑版",
+  "school": {
+    "name": "狮驼岭",
+    "mpid": 9
+  },
+  "scope": {
+    "firstReleasePathIds": [
+      1,
+      2
+    ],
+    "positions": 42,
+    "battleNodesPerPath": 19,
+    "automaticRewardsPerPath": 2
+  },
+  "effectiveBaseline": {
+    "date": "2026-10-27",
+    "basis": [
+      "nodes",
+      "octoberAdjustment",
+      "octoberRollout"
+    ],
+    "limitation": "经脉接口未包含已全服放出的化形；公告未公布其概率、三种增幅和节点坐标。基础门派页也未公开隐藏伤害系数。"
+  },
+  "plan": "combat-v6-shituoling-integration-plan.md",
+  "sources": [
+    {
+      "id": "nodes",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data?mpid=9",
+      "sha256": "27e96e556a7c19c5d45af06a3112f9de45d7ba239025885e9f123ea44768ccf8"
+    },
+    {
+      "id": "paths",
+      "url": "https://s3.game.163.com/9609135a23928d5f/api/data/lp?mpid=9",
+      "sha256": "de5e91f2ab5e97f4e78bda6902a8186b42df14a28531cd5425e7db0f841332f6"
+    },
+    {
+      "id": "skills",
+      "url": "https://xyq.163.com/mp011.html",
+      "sha256": "f771349dc7f6fa0b1d4ffb62848c3d522d1e1abead9ddb1d68d9b64b41dfd65a"
+    },
+    {
+      "id": "octoberAdjustment",
+      "url": "https://xyq.163.com/news/20261012/4999_1316352.html",
+      "sha256": "11454afd7b786dd4c5b6100a293bae0424ebfa4dd6e09e521917d0defd797909"
+    },
+    {
+      "id": "octoberRollout",
+      "url": "https://xyq.163.com/wh/20261026/4907_1317690.html",
+      "sha256": "ca567be1609c5fa0bd30cac5621fbd74ad530339951827f88c345d96b2fad338"
+    }
+  ],
+  "paths": [
+    {
+      "lpid": 1,
+      "name": "嗜血狂魔",
+      "positions": [
+        {
+          "sourceId": "28901",
+          "name": "爪印",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "71040b4a72c7b7debf5b78307930c12c1d2ab0ff24ffa138a42d75b3b12fbc8a"
+        },
+        {
+          "sourceId": "28902",
+          "name": "迅捷",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "d91c374661f9abe811bfe67e5154e67c635281fc533147c1a102445b76bf293a"
+        },
+        {
+          "sourceId": "28903",
+          "name": "驭兽",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "1c07545ab7326a334fec0a32995d8a089536f7370fba3a1e8268c636d460836b"
+        },
+        {
+          "sourceId": "28904",
+          "name": "化血",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "5a954173b8ca3fe6bc1595c8787578dc72958a143135da23ce6a3d2b4c283e7b"
+        },
+        {
+          "sourceId": "28905",
+          "name": "宁息",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "cee852303dca173db371b11a79522d5659e3de1f27c8d8ccdadce77971a632bc"
+        },
+        {
+          "sourceId": "28906",
+          "name": "兽王",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "7710fb7940ecd19bb57b99543c479d993ba5c1044aacc27257c470f5e62f300c"
+        },
+        {
+          "sourceId": "28907",
+          "name": "威压",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "60c84146326de6921b5a8eb1400be93a8f0a31e2981cb76c811147140a4f2b4f"
+        },
+        {
+          "sourceId": "28909",
+          "name": "鹰啸",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "b1c28f712b7fbc8db4efb7204d547b992a7bf4d3920ef1b356f2033d102deb28"
+        },
+        {
+          "sourceId": "28908",
+          "name": "怒象",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "7ac4e6a78b8e77065751c118f5de1073613fd2b3ac6c3372b51c8c72bf91593e"
+        },
+        {
+          "sourceId": "28910",
+          "name": "九天",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "efdce390bfa8bfffbfc0ffebb290e7a0cfa230c0c145933ba95abb669df23c9a"
+        },
+        {
+          "sourceId": "28911",
+          "name": "展翅",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "dea433d92a65307f6442e693b7b9449cd4c5d5a766a1a14d6b6a24e7bbe5450b"
+        },
+        {
+          "sourceId": "28912",
+          "name": "协战",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "2a023023c25886e4b712a126a933ff93431a2819f326cba9440ad950b1f08e3d"
+        },
+        {
+          "sourceId": "28914",
+          "name": "怒火",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "9f1ce40ae5b791bc075493c004f4671e6e29070ab7f3052ec356d2238dd15344"
+        },
+        {
+          "sourceId": "28913",
+          "name": "狂袭",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "0d93252e7994cb5a14ae853834bf2f207e913d68a92485e31e9246a6228943b3"
+        },
+        {
+          "sourceId": "28915",
+          "name": "癫狂",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "11892e5ea46e806185dd89bf66058d82bcaf9a27470abe313b6027e6cd27aff3"
+        },
+        {
+          "sourceId": "28916",
+          "name": "死地",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "a38f7df303b15559a9d05a793b48476aee9dafdd7a2bdfd9a8963b10e610f802"
+        },
+        {
+          "sourceId": "28917",
+          "name": "乱击",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "a62e7ba5b09d7577ec53704be12f78e7813f5589c3b33dc559674d2fb9271365"
+        },
+        {
+          "sourceId": "28949",
+          "name": "肝胆",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "90b31910f226b7b58203029b85e8148965841c1023268dc5b035ed8b36f91061"
+        },
+        {
+          "sourceId": "28919",
+          "name": "背水",
+          "sourcePosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "e371fde6a6d9fb2674613cc945f2840e0a50db042892d911dd7bb4e0bc7d307a"
+        },
+        {
+          "sourceId": "28920",
+          "name": "额外能力",
+          "sourcePosition": {
+            "layer": 8,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 1
+          },
+          "automatic": true,
+          "descriptionSha256": "027f81e189cfa995ec5369c2ace1955f74ba06148dcc3ab382e59e2178783c59"
+        },
+        {
+          "sourceId": "28921",
+          "name": "嗜血狂魔",
+          "sourcePosition": {
+            "layer": 9,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 3
+          },
+          "automatic": true,
+          "descriptionSha256": "8af5a6072872d28142359fa09001f0d874253a669503c90fac22fd38b5559d76"
+        }
+      ]
+    },
+    {
+      "lpid": 2,
+      "name": "万兽之王",
+      "positions": [
+        {
+          "sourceId": "28931",
+          "name": "狮王",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "0aafcca2ba7e5308ae583abd82b905d90e3a62cd8237d46f48ae30ad7467193a"
+        },
+        {
+          "sourceId": "28932",
+          "name": "健壮",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "2f082a6b46840deebe35764a9f613b386e1cd3c925b5f4ae0e31d42375622cc8"
+        },
+        {
+          "sourceId": "28933",
+          "name": "图腾",
+          "sourcePosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 1,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "e3c6739ed34e1d6ca7d40131cdc46a5e4db7654d4ef2d20f204d82fc9b0e00bf"
+        },
+        {
+          "sourceId": "28934",
+          "name": "回光",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "e0e534474ef330a400d159b8f03a40ffd8649a763f14c460a09f796d19f85d2c"
+        },
+        {
+          "sourceId": "28935",
+          "name": "育养",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "1cf669b56fa0eef7abadf0f40fd7edc49ecf5171b1c795fdda7c962940d5fd83"
+        },
+        {
+          "sourceId": "28936",
+          "name": "守势",
+          "sourcePosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 2,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "2e2b9347149dcce9f3642e78973cee116c528ee5f4e08e15df1d522ccfe6edd9"
+        },
+        {
+          "sourceId": "28937",
+          "name": "护盾",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "2e40522eeec41946a35a047dc47c2e27ddc3db29e6241df9d7d09faa00afe370"
+        },
+        {
+          "sourceId": "28938",
+          "name": "狂化",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "609cca08a733cfa00a4f3c96617c9154c5bb9c859693ebf4169ec7ff4841946e"
+        },
+        {
+          "sourceId": "28939",
+          "name": "矫健",
+          "sourcePosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 3,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "19eb76b852c9e76e8dbe4b4b805815a9f8170df57759951faec388e8058bddd6"
+        },
+        {
+          "sourceId": "28940",
+          "name": "协同",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "852dadc762412cf5a6a658394474c5e79c7e90343c09bf1e515aea40e2a227f0"
+        },
+        {
+          "sourceId": "28941",
+          "name": "九天",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "efdce390bfa8bfffbfc0ffebb290e7a0cfa230c0c145933ba95abb669df23c9a"
+        },
+        {
+          "sourceId": "28942",
+          "name": "嗜血",
+          "sourcePosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 4,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "b3030ebe067fa41927a9aee28989adad689c05e678cb141fa56b9bdd094e68af"
+        },
+        {
+          "sourceId": "28944",
+          "name": "羁绊",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "cf4973b8677f7c9599df885ab108f5e3ebcc69c4f1b12d270fb9dadcb52b3924"
+        },
+        {
+          "sourceId": "28943",
+          "name": "报恩",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "085ce2e54edf119328a3c9977391ff51f3151b6908be4df4182caca569ebe595"
+        },
+        {
+          "sourceId": "28945",
+          "name": "钢牙",
+          "sourcePosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 5,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "0acdb7100c016d3ad1e1d3fc8aca910c216d594f33db73a5fef93237682e9ac1"
+        },
+        {
+          "sourceId": "28946",
+          "name": "复仇",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 1
+          },
+          "automatic": false,
+          "descriptionSha256": "a845a961d3a733a9ed2674eccd366f53016815c7aaf84510be1cc8d5a496bfed"
+        },
+        {
+          "sourceId": "28947",
+          "name": "逞凶",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "1b182272d008edbe40962c8b34450353dc26e8296175d25d20760f23ceaa7e07"
+        },
+        {
+          "sourceId": "28982",
+          "name": "救主",
+          "sourcePosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "projectPosition": {
+            "layer": 6,
+            "slot": 3
+          },
+          "automatic": false,
+          "descriptionSha256": "7f31ca5a6a54218b2e9a8f8470c7f7d858defee9a737c61009f6491936c45025"
+        },
+        {
+          "sourceId": "28948",
+          "name": "最佳搭档",
+          "sourcePosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 2
+          },
+          "automatic": false,
+          "descriptionSha256": "56f4b2586eb428bfc322d46bd4ccaca30df33a61ffdde3969f9270bb55efbcb7"
+        },
+        {
+          "sourceId": "28950",
+          "name": "额外能力",
+          "sourcePosition": {
+            "layer": 8,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 1
+          },
+          "automatic": true,
+          "descriptionSha256": "c44b7f16da1193759a4fd07b4ddf7adbd8dac2f622bf715b0f8c4e796963b6aa"
+        },
+        {
+          "sourceId": "28951",
+          "name": "万兽之王",
+          "sourcePosition": {
+            "layer": 9,
+            "slot": 1
+          },
+          "projectPosition": {
+            "layer": 7,
+            "slot": 3
+          },
+          "automatic": true,
+          "descriptionSha256": "0351896fb3517c10f8a3828bf573b2925ebfd0ec62de2682dc5731f6d9c1a954"
+        }
+      ]
+    }
+  ]
+}

@@ -1011,6 +1011,14 @@ describe('当前场次托管', () => {
             'wanqiao.skill.catalyze', 'wanqiao.skill.undertone',
             'wanqiao.skill.echo', 'wanqiao.skill.pierce',
           ],
+          'xiaoyue.path.blood': [
+            'xiaoyue.skill.transform', 'xiaoyue.skill.chain_strike',
+            'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
+          ],
+          'xiaoyue.path.bond': [
+            'xiaoyue.skill.transform', 'xiaoyue.skill.lion_strike',
+            'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
+          ],
         };
         expect(unlearned).toEqual(expectedUnlearned[path.id] ?? []);
       }

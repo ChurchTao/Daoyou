@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 5,
   "sects": {
     "lingxiao": [
       {
@@ -473,6 +473,75 @@
           "mode": "add",
           "value": 2
         }
+      }
+    ],
+    "xiaoyue": [
+      {
+        "id": "xiaoyue.method.canon",
+        "slot": 1,
+        "name": "《百兽化形》",
+        "description": "观山林百兽的形与息，悟得自身演化兽形的根基。",
+        "isPrimary": true
+      },
+      {
+        "id": "xiaoyue.method.onslaught",
+        "slot": 2,
+        "name": "《生死搏》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        },
+        "description": "练近身扑击与腾空疾袭，于一瞬之间判定进退。"
+      },
+      {
+        "id": "xiaoyue.method.beast",
+        "slot": 3,
+        "name": "《驭灵诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        },
+        "description": "与灵兽同息相应，各守其性，在并肩行进中悟得协同之法。"
+      },
+      {
+        "id": "xiaoyue.method.fury",
+        "slot": 4,
+        "name": "《狂兽诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "hit",
+          "mode": "add",
+          "value": 0.5
+        },
+        "description": "以连绵攻势逼敌失守，出手越急，越要守住气息。"
+      },
+      {
+        "id": "xiaoyue.method.wing",
+        "slot": 5,
+        "name": "《观羽步》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "dodge",
+          "mode": "add",
+          "value": 0.3
+        },
+        "description": "观飞鸟振羽与转折，习其避让腾挪之法，练成崖间身法。"
+      },
+      {
+        "id": "xiaoyue.method.guard",
+        "slot": 6,
+        "name": "《伏形诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        },
+        "description": "观山兽伏身护体之势，守住气息，于承击后寻机反扑。"
       }
     ]
   }

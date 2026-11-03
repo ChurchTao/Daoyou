@@ -223,6 +223,8 @@
                   "onCritRoll",
                   "onHitRoll",
                   "onHealCalc",
+                  "afterHeal",
+                  "onPetSummoned",
                   "onBarrierCalc",
                   "onWoundCalc"
                 ]
@@ -248,6 +250,7 @@
                 "type": "string",
                 "enum": [
                   "self",
+                  "ownedPet",
                   "hookTarget",
                   "hookSource",
                   "others"
@@ -1195,6 +1198,9 @@
           ]
         },
         "blocksAction": {
+          "type": "boolean"
+        },
+        "isSeal": {
           "type": "boolean"
         },
         "blocksSpell": {

@@ -152,6 +152,7 @@ export const NANJIANG_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   WILD_DJ_BANYAN: [0.235, 0.716],
   WILD_DJ_DARKCAVE: [0.854, 0.742],
   SECT_WUXIANG: [0.82, 0.27],
+  SECT_XIAOYUE: [0.34, 0.275],
 };
 
 export const NORTHLAND_ANCHORS: Readonly<Record<string, AtlasPoint>> = {

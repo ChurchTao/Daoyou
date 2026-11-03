@@ -5,11 +5,12 @@ import lingxiao from './data/lingxiao-combat.json' with { type: 'json' };
 import tianyan from './data/tianyan-skills.json' with { type: 'json' };
 import wanqiao from './data/wanqiao-combat.json' with { type: 'json' };
 import wuxiang from './data/wuxiang-combat.json' with { type: 'json' };
+import xiaoyue from './data/xiaoyue-combat.json' with { type: 'json' };
 import youdu from './data/youdu-combat.json' with { type: 'json' };
 import { COMBAT_V6_SECT_DEFINITIONS, sectStatusDetails } from './registry.js';
 
 const token = /\[\[([a-z0-9_.]+)\]\]/g;
-const descriptions = [bailu, jiujie, lingxiao, wanqiao, wuxiang, youdu, tianyan]
+const descriptions = [bailu, jiujie, lingxiao, wanqiao, wuxiang, xiaoyue, youdu, tianyan]
   .flatMap((pack) => [
     ...(pack.skills ?? []),
     ...('elemental' in pack ? pack.elemental.map((entry) => entry.skill) : []),
@@ -29,6 +30,8 @@ describe('宗门状态说明引用', () => {
 
   it('技能文案里的状态标记都能打开对应说明', () => {
     const details = sectStatusDetails();
+    for (const status of xiaoyue.statuses)
+      expect(details[status.id], status.id).toEqual({ name: status.name, description: status.description });
     const referenced = descriptions.flatMap((text) =>
       [...text.matchAll(token)].map((match) => match[1]),
     );

@@ -141,6 +141,7 @@ export function projectCharacterEquipment(
   const weaponXuanfeng = input.equipment.weapon?.formationInscriptions.flatMap(formation =>
     formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Xuanfeng ? [formation] : []) ?? []
   const meridianEquipmentFacts = {
+    metalEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(item => item?.element === '金').length,
     woodEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(item => item?.element === '木').length,
     fireEquipmentCount: [input.equipment.weapon, input.equipment.armor].filter(item => item?.element === '火').length,
     changshengMaxHp: Object.values(input.equipment).reduce((sum, item) => sum + (item?.formationInscriptions ?? []).reduce((subtotal, formation) => subtotal + (formation?.patternId === DAO_FORMATION_INSCRIPTION_ID.Changsheng ? formation.level * daoFormationInscriptionOf(DAO_FORMATION_INSCRIPTION_ID.Changsheng)!.valuePerLevel : 0), 0), 0),

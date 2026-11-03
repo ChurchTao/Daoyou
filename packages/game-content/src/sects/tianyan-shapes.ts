@@ -100,6 +100,7 @@ export const tyStatus = z.strictObject({
   description: z.string().min(1).max(1000).optional(),
   kind: tyId,
   category: z.enum(StatusCategory),
+  isSeal: z.boolean().optional(),
   school: z.literal('tianyan'),
   untilBattleEnd: z.boolean().optional(),
   persistWhenDowned: z.boolean().optional(),

@@ -1,0 +1,2107 @@
+{
+  "$schema": "./xiaoyue-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "xiaoyue.passive.bond.foundation",
+      "name": "狮魂同契",
+      "description": "本人狮搏击倒非灵兽敌人后，本宠获得一层狮魂；下次正常直接物理第一击增伤8%，有狮王时为10%。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.lion_soul",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike",
+              "xiaoyue.skill.best_partners"
+            ],
+            "excludeFoeKinds": [
+              "pet"
+            ],
+            "sourceHasStandingPet": true,
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": "1+0.08+0.02*known.xiaoyue.passive.bond.1.1"
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.lion_soul"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.lion_soul"
+              ]
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "aim": "hookSource",
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.lion_soul"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.lion_soul",
+              "duration": 99
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "ownedPet",
+          "when": {
+            "targetOwnedStatus": {
+              "kind": "xiaoyue.status.best_partner_mark"
+            },
+            "sourceStanding": true,
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.best_partner_pet"
+            ]
+          }
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.1
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.rebirth_bonus"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.rebirth_bonus"
+              ]
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "aim": "hookSource",
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.rebirth_bonus"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.1.1",
+      "name": "爪印",
+      "description": "攻击或受击给敌人爪印，至多六层；每目标每轮首击每层追加人物等级的最终伤害。",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.claw",
+              "duration": 5
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetEnemy": true,
+            "oncePerActionTarget": true
+          }
+        },
+        {
+          "on": "onBeHit",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.claw",
+              "duration": 5
+            }
+          ],
+          "targetIsSelf": true,
+          "sourceIsEnemy": true,
+          "aim": "hookSource",
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "oncePerActionTarget": true
+          }
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "finalAdd": "level*ownedTargetStatusStacks.xiaoyue.status.claw"
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "oncePerRoundTarget": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.1.2",
+      "name": "迅捷",
+      "description": "对 NPC 进场获得短兽形，期间物攻降低人物等级。",
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.transform",
+              "duration": 1,
+              "self": true
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.quick_penalty",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "pvp": false,
+            "oncePerBattle": true,
+            "expression": "round==1",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.1.3",
+      "name": "驭兽",
+      "description": "同队在场灵兽造成伤害+3%、承伤-3%，同类效果不叠加。",
+      "modifiers": [
+        {
+          "teamAura": "xiaoyue.blood.beast_aura",
+          "damageBonus": 0.03,
+          "when": {
+            "sourceKind": "pet"
+          }
+        },
+        {
+          "teamAura": "xiaoyue.blood.beast_aura_taken",
+          "allDamageTakenBonus": -0.03,
+          "when": {
+            "sourceKind": "pet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.2.1",
+      "name": "化血",
+      "description": "本人直接物理攻击每段有30%概率回复实际气血伤害的16%。",
+      "hooks": [
+        {
+          "on": "afterDamage",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "hpDamage*0.16"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "chance": 0.3,
+          "when": {
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "expression": "hpDamage>0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.2.2",
+      "name": "宁息",
+      "description": "兽形多持续一回合；击倒目标时15%概率再延一回合。",
+      "modifiers": [
+        {
+          "statusDurationAdd": {
+            "statusId": "xiaoyue.status.transform",
+            "amount": 1
+          },
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.transform"
+            ]
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyStatusDuration",
+              "kinds": [
+                "xiaoyue.status.transform"
+              ],
+              "amount": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "chance": 0.15,
+          "when": {
+            "oncePerRound": true,
+            "requireStatusKinds": [
+              "xiaoyue.status.transform"
+            ]
+          },
+          "limitConsumption": "onAttempt"
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.2.3",
+      "name": "兽王",
+      "description": "受封时降低封印命中率上限，每名同队在场灵兽降低2个百分点。",
+      "modifiers": [
+        {
+          "sealChanceCeilTakenAdd": "-0.02*allyStandingPets"
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.3.1",
+      "name": "威压",
+      "description": "狮搏对敌方灵兽增伤20%，35%概率附加下轮禁动。",
+      "modifiers": [
+        {
+          "damageResultFactor": 1.2,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "foeKind": "pet",
+            "requireKind": "physical"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.pressure_pending",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "chance": 0.35,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "foeKind": "pet",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.3.2",
+      "name": "鹰啸",
+      "description": "主动兽形后的首次鹏击有30%概率全段增伤40%；鹏击后消耗该机会。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.active_transform_ready"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.3.3",
+      "name": "怒象",
+      "description": "气血低于30%时，镇形有70%概率保留兽形并延长两回合。"
+    },
+    {
+      "id": "xiaoyue.passive.blood.4.1",
+      "name": "九天",
+      "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+      "modifiers": [
+        {
+          "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.blood.4.1*knownSkillLevel.xiaoyue.passive.blood.4.1/60)",
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue"
+          }
+        },
+        {
+          "damageResultFactor": 1.05,
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue",
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.4.2",
+      "name": "展翅",
+      "description": "主动兽形后的首个完整回合闪避增加人物等级20%的点数。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.wing_guard_pending",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.transform"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.4.3",
+      "name": "协战",
+      "description": "本人出战灵兽存活时，本人物理伤害+7%。",
+      "modifiers": [
+        {
+          "damageResultFactor": 1.07,
+          "when": {
+            "sourceHasStandingPet": true,
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.5.1",
+      "name": "怒火",
+      "description": "双剑合璧或摧灵斩后，本宠本轮下一次正常直接物理第一击伤害+32%。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.anger_pet",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "skillIds": [
+              "dao_equipment.skill.diefeng",
+              "dao_equipment.skill.cuiling"
+            ],
+            "actionSucceeded": true
+          }
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.32
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.anger_pet"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal"
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.anger_pet"
+              ]
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "aim": "hookSource",
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.anger_pet"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.5.2",
+      "name": "狂袭",
+      "description": "反震实际损血的5%转物攻一回合；致命反震留1气血，根行动结束后倒地。",
+      "hooks": [
+        {
+          "on": "afterDamage",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_recoil_bonus",
+              "value": "fact.xiaoyue_recoil_bonus+hpDamage*0.05"
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.recoil",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "retaliationDamage": true,
+            "requireKind": "fixed",
+            "damageOrigins": [
+              "hook-derived"
+            ],
+            "expression": "hpDamage>0"
+          }
+        },
+        {
+          "on": "onStatusRemoved",
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "removedStatusKind": "xiaoyue.status.recoil",
+            "statusRemoveReason": "expired"
+          },
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_recoil_bonus",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "on": "onDeath",
+          "targetIsSelf": true,
+          "aim": "self",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_recoil_bonus",
+              "value": 0
+            }
+          ]
+        }
+      ],
+      "modifiers": [
+        {
+          "deferFatalRetaliation": true
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.5.3",
+      "name": "癫狂",
+      "description": "裂甲狂身期间物理暴击率额外提高12个百分点。",
+      "modifiers": [
+        {
+          "critChanceAdd": 0.12,
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.demon_unbound"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.6.1",
+      "name": "死地",
+      "description": "本人本场阵亡后，下次鹏击临时物攻+200。",
+      "modifiers": [
+        {
+          "physicalAttackAdd": 200,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "expression": "fact.xiaoyue_has_died>0"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_has_died",
+              "value": 1
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self"
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_has_died",
+              "value": 0
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "expression": "fact.xiaoyue_has_died>0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.6.2",
+      "name": "乱击",
+      "description": "连环击不取消兽形，改扣剩余两回合；本次物攻+狂兽诀等级、结果+10%。",
+      "modifiers": [
+        {
+          "physicalAttackAdd": "skillLevel",
+          "damageResultFactor": 1.1,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.chain_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.6.3",
+      "name": "肝胆",
+      "description": "每只不同本人灵兽首次入场提高鹏击和连环击免休息率2%，最多六只。",
+      "hooks": [
+        {
+          "on": "onPetSummoned",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_unique_pets",
+              "value": "min(6,fact.xiaoyue_unique_pets+1)"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "targetAbsentStatusKinds": [
+              "xiaoyue.status.seen_pet"
+            ]
+          }
+        },
+        {
+          "on": "onPetSummoned",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.seen_pet",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "targetAbsentStatusKinds": [
+              "xiaoyue.status.seen_pet"
+            ]
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "recoverySkipChance": "min(0.12,fact.xiaoyue_unique_pets*0.02)",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike",
+              "xiaoyue.skill.chain_strike"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.blood.7.2",
+      "name": "背水",
+      "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人。",
+      "hooks": [
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.backwater",
+              "duration": 2,
+              "self": true
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "statusRemoveReason": "dispel",
+            "statusRemovedByAlly": true,
+            "removedStatusWasSeal": true
+          }
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.backwater"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "actionSucceeded": true
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "targetCountAdd": 1,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "requireStatusKinds": [
+              "xiaoyue.status.backwater"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.1.1",
+      "name": "狮王",
+      "description": "狮魂首击增幅由8%提高25%至10%。"
+    },
+    {
+      "id": "xiaoyue.passive.bond.1.2",
+      "name": "健壮",
+      "description": "本人出战灵兽物防、法防各提高5%。",
+      "modifiers": [
+        {
+          "ownedPetAura": true,
+          "physicalDefenseAdd": "effective.physicalDef*0.05",
+          "magicDefenseAdd": "effective.magicDef*0.05"
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.1.3",
+      "name": "图腾",
+      "description": "灵兽获得狮魂时，主人记录下一次狮搏结果提高4%；需原本宠仍在场，最迟下回合末失效。",
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.totem",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "targetIsOwnedPet": true,
+          "aim": "self",
+          "when": {
+            "resolvedStatusKinds": [
+              "xiaoyue.status.lion_soul"
+            ],
+            "statusResults": [
+              "applied"
+            ],
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "onStatusResolved",
+          "targetIsOwnedPet": true,
+          "aim": "ownedPet",
+          "when": {
+            "resolvedStatusKinds": [
+              "xiaoyue.status.lion_soul"
+            ],
+            "statusResults": [
+              "applied"
+            ],
+            "sourceStanding": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.totem_link",
+              "duration": 1
+            }
+          ]
+        },
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.totem"
+              ]
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.2.1",
+      "name": "回光",
+      "description": "前宠阵亡后首次换入替补时，50%概率使替补下次正常物理首击+10%。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_pet_died",
+              "value": 1
+            }
+          ],
+          "targetIsOwnedPet": true,
+          "aim": "self",
+          "when": {
+            "sourceStanding": true
+          }
+        },
+        {
+          "on": "onPetSummoned",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.rebirth_bonus",
+              "duration": 99
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "chance": 0.5,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "petEntryKind": "switch",
+            "oncePerBattle": true,
+            "expression": "fact.xiaoyue_pet_died>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.2.2",
+      "name": "育养",
+      "description": "本人每轮首次造成实际物理伤害时，30%概率为本宠回复伤害的18%，每轮至多本宠最大气血8%。",
+      "hooks": [
+        {
+          "on": "afterDamage",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "hpDamage*0.18",
+              "maxGainPerRound": "target.maxHp*0.08"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "ownedPet",
+          "chance": 0.3,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerRound": true,
+            "expression": "hpDamage>0",
+            "sourceHasStandingPet": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.2.3",
+      "name": "守势",
+      "description": "本宠每轮首次被敌方直接攻击命中时，护盾前伤害降低10%。",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 0.9
+            }
+          ],
+          "targetIsOwnedPet": true,
+          "sourceIsEnemy": true,
+          "when": {
+            "oncePerRound": true,
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.3.1",
+      "name": "护盾",
+      "description": "本宠获得狮魂时，刷新不叠加护盾：12×狂兽诀等级，上限本宠最大气血10%。",
+      "hooks": [
+        {
+          "on": "onStatusResolved",
+          "effects": [
+            {
+              "type": "applyBarrier",
+              "id": "xiaoyue.barrier.lion_soul",
+              "kind": "xiaoyue.lion_soul",
+              "name": "狮魂护盾",
+              "power": "min(12*skillLevel,target.maxHp*0.1)",
+              "duration": 2,
+              "maxPower": "target.maxHp*0.1"
+            }
+          ],
+          "targetIsOwnedPet": true,
+          "aim": "ownedPet",
+          "when": {
+            "resolvedStatusKinds": [
+              "xiaoyue.status.lion_soul"
+            ],
+            "statusResults": [
+              "applied"
+            ],
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.3.2",
+      "name": "狂化",
+      "description": "兽形期间，本宠每轮首次命中的正常物理首击有12%概率伤害翻倍。",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 2
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookTarget",
+          "chance": 0.12,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.transform"
+            ],
+            "oncePerRound": true,
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.3.3",
+      "name": "矫健",
+      "description": "本宠气血至少70%时，正常直接物理伤害提高10%。",
+      "modifiers": [
+        {
+          "ownedPetAura": true,
+          "damageResultFactor": 1.1,
+          "when": {
+            "sourceKind": "pet",
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "expression": "hp/maxHp>=0.7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.4.1",
+      "name": "协同",
+      "description": "本队仅一名本宗时，本人与本宠每轮首次攻击已封印目标，各增伤12%。",
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.12
+            }
+          ],
+          "sourceIsSelf": true,
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue",
+            "targetHasSeal": true,
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerRound": true
+          }
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.12
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue",
+            "targetHasSeal": true,
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerRound": true,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.4.2",
+      "name": "九天",
+      "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+      "modifiers": [
+        {
+          "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.bond.4.2*knownSkillLevel.xiaoyue.passive.bond.4.2/60)",
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue"
+          }
+        },
+        {
+          "damageResultFactor": 1.05,
+          "when": {
+            "teamUniqueTag": "sect.xiaoyue",
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.4.3",
+      "name": "嗜血",
+      "description": "本宠在 PvP 正常攻击击倒玩家后，正常直接物理伤害提高10%两回合。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.bloodlust",
+              "duration": 2
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookSource",
+          "when": {
+            "pvp": true,
+            "foeKind": "player",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "sourceStanding": true,
+            "targetSlot": "normal"
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "ownedPetAura": true,
+          "damageResultFactor": 1.1,
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.bloodlust"
+            ],
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.5.1",
+      "name": "羁绊",
+      "description": "本人或本宠实际受疗后，另一方回复该值18%；每轮上限受益者最大气血8%，不递归。",
+      "hooks": [
+        {
+          "on": "afterHeal",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "heal*0.18",
+              "maxGainPerRound": "target.maxHp*0.08"
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "expression": "heal>0",
+            "sourceHasStandingPet": true
+          }
+        },
+        {
+          "on": "afterHeal",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "heal*0.18",
+              "maxGainPerRound": "target.maxHp*0.08"
+            }
+          ],
+          "targetIsOwnedPet": true,
+          "aim": "self",
+          "when": {
+            "expression": "heal>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.5.2",
+      "name": "报恩",
+      "description": "本宠每轮首次正常直接物理伤害后30%概率为主人回复其实际伤害18%，每轮最多主人最大气血8%。",
+      "hooks": [
+        {
+          "on": "afterDamage",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "hpDamage*0.18",
+              "maxGainPerRound": "target.maxHp*0.08"
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "self",
+          "chance": 0.3,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "oncePerRound": true,
+            "expression": "hpDamage>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.5.3",
+      "name": "钢牙",
+      "description": "武器、衣甲每有一件金元素，本人狮搏与本宠正常物理首击各增伤5%，至多10%。",
+      "modifiers": [
+        {
+          "damageResultFactor": "1+0.05*min(2,fact.metalEquipmentCount)",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "onHitCalc",
+          "sourceIsOwnedPet": true,
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": "1+0.05*min(2,fact.metalEquipmentCount)"
+            }
+          ],
+          "when": {
+            "sourceStanding": true,
+            "requireKind": "physical",
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "normal",
+            "oncePerRound": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.6.1",
+      "name": "复仇",
+      "description": "主人倒地时标记击倒者；本宠下次正常攻击该目标首击增伤20%，本场一次。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.revenge",
+              "duration": 99
+            }
+          ],
+          "targetIsSelf": true,
+          "aim": "hookSource",
+          "when": {
+            "oncePerBattle": true,
+            "sourceHasStandingPet": true
+          }
+        },
+        {
+          "on": "onDeath",
+          "targetIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "oncePerBattle": true,
+            "sourceHasStandingPet": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.revenge_pet",
+              "duration": 99
+            }
+          ]
+        },
+        {
+          "on": "afterStrike",
+          "sourceIsOwnedPet": true,
+          "aim": "ownedPet",
+          "when": {
+            "targetOwnedStatus": {
+              "kind": "xiaoyue.status.revenge"
+            },
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.revenge_pet"
+            ]
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.revenge_pet"
+              ]
+            }
+          ]
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.revenge"
+              ],
+              "ownedOnly": true
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookTarget",
+          "when": {
+            "targetOwnedStatus": {
+              "kind": "xiaoyue.status.revenge"
+            },
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.revenge_pet"
+            ]
+          }
+        },
+        {
+          "on": "afterAction",
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "aim": "hookSource",
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.revenge_pet"
+            ]
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.revenge_pet"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.6.2",
+      "name": "逞凶",
+      "description": "本人或本宠击倒敌方玩家后，对该玩家所属灵兽的正常直接物理伤害提高8%。",
+      "hooks": [
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.chengxiong",
+              "duration": 99,
+              "targeting": {
+                "side": "enemy",
+                "includeDowned": true,
+                "onlyDowned": true
+              }
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "pvp": true,
+            "foeKind": "player"
+          }
+        },
+        {
+          "on": "onDeath",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.chengxiong",
+              "duration": 99,
+              "targeting": {
+                "side": "enemy",
+                "includeDowned": true,
+                "onlyDowned": true
+              }
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookTarget",
+          "when": {
+            "pvp": true,
+            "foeKind": "player",
+            "sourceStanding": true
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "damageResultFactor": 1.08,
+          "when": {
+            "targetOwnerStatusKinds": [
+              "xiaoyue.status.chengxiong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical"
+          }
+        },
+        {
+          "ownedPetAura": true,
+          "damageResultFactor": 1.08,
+          "when": {
+            "targetOwnerStatusKinds": [
+              "xiaoyue.status.chengxiong"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.6.3",
+      "name": "救主",
+      "description": "主人倒地且本宠足额站立时，每场仅一次50%机会以本宠最大气血30%为代价复活主人10%气血。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "revive",
+              "hpRatio": 0.1,
+              "ownedPetHpCostRatio": 0.3
+            }
+          ],
+          "aim": "self",
+          "chance": 0.5,
+          "limitConsumption": "onAttempt",
+          "when": {
+            "oncePerBattle": true,
+            "sourceHasStandingPet": true,
+            "expression": "(hp==0)*(1-reviveBlocked)*(ownPetHp>floor((ownPetMaxHp*3+9)/10))*(1-combatEnded)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.7.1",
+      "name": "兽势",
+      "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+      "modifiers": [
+        {
+          "critChanceAdd": 0.02,
+          "when": {
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.7.2",
+      "name": "最佳搭档",
+      "description": "兽形且本宠站立时可用最佳搭档；本人狮搏并标记目标，本宠下一次同目标正常物理首击增强20%。",
+      "modifiers": [
+        {
+          "ownedPetAura": true,
+          "ignoreProtection": true,
+          "when": {
+            "targetStatusFromSourceOwnerKinds": [
+              "xiaoyue.status.best_partner_mark"
+            ],
+            "requireStatusKinds": [
+              "xiaoyue.status.best_partner_pet"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "sourceIsSelf": true,
+          "aim": "ownedPet",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.best_partners"
+            ],
+            "actionSucceeded": true,
+            "sourceStanding": true
+          },
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.best_partner_pet",
+              "duration": 1
+            }
+          ]
+        },
+        {
+          "on": "onHitCalc",
+          "effects": [
+            {
+              "type": "modifyStrike",
+              "factor": 1.2
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "targetOwnedStatus": {
+              "kind": "xiaoyue.status.best_partner_mark"
+            },
+            "sourceStanding": true,
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.best_partner_pet"
+            ]
+          }
+        },
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.best_partner_mark"
+              ],
+              "ownedOnly": true
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookTarget",
+          "when": {
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal",
+            "targetOwnedStatus": {
+              "kind": "xiaoyue.status.best_partner_mark"
+            },
+            "sourceStanding": true,
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.best_partner_pet"
+            ]
+          }
+        },
+        {
+          "on": "afterAction",
+          "sourceIsOwnedPet": true,
+          "effectSource": "eventSource",
+          "aim": "hookSource",
+          "when": {
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.best_partner_pet"
+            ],
+            "sourceStanding": true
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.best_partner_pet"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.passive.bond.7.3",
+      "name": "兽威",
+      "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+      "modifiers": [
+        {
+          "critChanceAdd": 0.02,
+          "when": {
+            "requireKind": "physical"
+          }
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "xiaoyue.path.blood",
+      "name": "百相化形",
+      "description": "观百兽之形而炼己身，善用兽形与群攻，在攻守转换间保持气息。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [],
+      "grantSkills": [],
+      "revokeSkillIds": [],
+      "resources": [],
+      "nodes": [
+        {
+          "id": "xiaoyue.node.blood.1.1",
+          "name": "爪印",
+          "description": "攻击或受击给敌人爪印，至多六层；每目标每轮首击每层追加人物等级的最终伤害。",
+          "layer": 1,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.1.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.1.2",
+          "name": "迅捷",
+          "description": "对 NPC 进场获得短兽形，期间物攻降低人物等级。",
+          "layer": 1,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.1.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.1.3",
+          "name": "驭兽",
+          "description": "同队在场灵兽造成伤害+3%、承伤-3%，同类效果不叠加。",
+          "layer": 1,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.1.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.2.1",
+          "name": "化血",
+          "description": "本人直接物理攻击每段有30%概率回复实际气血伤害的16%。",
+          "layer": 2,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.2.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.2.2",
+          "name": "宁息",
+          "description": "兽形多持续一回合；击倒目标时15%概率再延一回合。",
+          "layer": 2,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.2.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.2.3",
+          "name": "兽王",
+          "description": "受封时降低封印命中率上限，每名同队在场灵兽降低2个百分点。",
+          "layer": 2,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.2.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.3.1",
+          "name": "威压",
+          "description": "狮搏对敌方灵兽增伤20%，35%概率附加下轮禁动。",
+          "layer": 3,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.3.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.3.2",
+          "name": "鹰啸",
+          "description": "主动兽形后的首次鹏击有30%概率全段增伤40%；鹏击后消耗该机会。",
+          "layer": 3,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.3.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.3.3",
+          "name": "怒象",
+          "description": "气血低于30%时，镇形有70%概率保留兽形并延长两回合。",
+          "layer": 3,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.3.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.4.1",
+          "name": "九天",
+          "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+          "layer": 4,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.4.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.4.2",
+          "name": "展翅",
+          "description": "主动兽形后的首个完整回合闪避增加人物等级20%的点数。",
+          "layer": 4,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.4.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.4.3",
+          "name": "协战",
+          "description": "本人出战灵兽存活时，本人物理伤害+7%。",
+          "layer": 4,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.4.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.5.1",
+          "name": "怒火",
+          "description": "双剑合璧或摧灵斩后，本宠本轮下一次正常直接物理第一击伤害+32%。",
+          "layer": 5,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.5.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.5.2",
+          "name": "狂袭",
+          "description": "反震实际损血的5%转物攻一回合；致命反震留1气血，根行动结束后倒地。",
+          "layer": 5,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.5.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.5.3",
+          "name": "癫狂",
+          "description": "裂甲狂身期间物理暴击率额外提高12个百分点。",
+          "layer": 5,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.5.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.6.1",
+          "name": "死地",
+          "description": "本人本场阵亡后，下次鹏击临时物攻+200。",
+          "layer": 6,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.blood.6.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.6.2",
+          "name": "乱击",
+          "description": "连环击不取消兽形，改扣剩余两回合；本次物攻+狂兽诀等级、结果+10%。",
+          "layer": 6,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.6.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.6.3",
+          "name": "肝胆",
+          "description": "每只不同本人灵兽首次入场提高鹏击和连环击免休息率2%，最多六只。",
+          "layer": 6,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.blood.6.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.7.1",
+          "name": "迅行",
+          "description": "第七层自动奖励：速度+30。",
+          "layer": 7,
+          "slot": 1,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.7.2",
+          "name": "背水",
+          "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人。",
+          "layer": 7,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.blood.7.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.blood.7.3",
+          "name": "疾行",
+          "description": "第七层自动奖励：速度+30。",
+          "layer": 7,
+          "slot": 3,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "speed",
+              "mode": "add",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.path.bond",
+      "name": "灵兽同契",
+      "description": "与本人出战灵兽平等相应，各凭所长并肩作战；无灵兽时协同收益暂失效。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [
+        "xiaoyue.passive.bond.foundation"
+      ],
+      "grantSkills": [],
+      "revokeSkillIds": [],
+      "resources": [],
+      "nodes": [
+        {
+          "id": "xiaoyue.node.bond.1.1",
+          "name": "狮王",
+          "description": "狮魂首击增幅由8%提高25%至10%。",
+          "layer": 1,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.1.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.1.2",
+          "name": "健壮",
+          "description": "本人出战灵兽物防、法防各提高5%。",
+          "layer": 1,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.1.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.1.3",
+          "name": "图腾",
+          "description": "灵兽获得狮魂时，主人记录下一次狮搏结果提高4%；需原本宠仍在场，最迟下回合末失效。",
+          "layer": 1,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.1.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.2.1",
+          "name": "回光",
+          "description": "前宠阵亡后首次换入替补时，50%概率使替补下次正常物理首击+10%。",
+          "layer": 2,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.2.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.2.2",
+          "name": "育养",
+          "description": "本人每轮首次造成实际物理伤害时，30%概率为本宠回复伤害的18%，每轮至多本宠最大气血8%。",
+          "layer": 2,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.2.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.2.3",
+          "name": "守势",
+          "description": "本宠每轮首次被敌方直接攻击命中时，护盾前伤害降低10%。",
+          "layer": 2,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.2.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.3.1",
+          "name": "护盾",
+          "description": "本宠获得狮魂时，刷新不叠加护盾：12×狂兽诀等级，上限本宠最大气血10%。",
+          "layer": 3,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.3.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.3.2",
+          "name": "狂化",
+          "description": "兽形期间，本宠每轮首次命中的正常物理首击有12%概率伤害翻倍。",
+          "layer": 3,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.3.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.3.3",
+          "name": "矫健",
+          "description": "本宠气血至少70%时，正常直接物理伤害提高10%。",
+          "layer": 3,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.3.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.4.1",
+          "name": "协同",
+          "description": "本队仅一名本宗时，本人与本宠每轮首次攻击已封印目标，各增伤12%。",
+          "layer": 4,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.4.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.4.2",
+          "name": "九天",
+          "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+          "layer": 4,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.4.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.4.3",
+          "name": "嗜血",
+          "description": "本宠在 PvP 正常攻击击倒玩家后，正常直接物理伤害提高10%两回合。",
+          "layer": 4,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.4.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.5.1",
+          "name": "羁绊",
+          "description": "本人或本宠实际受疗后，另一方回复该值18%；每轮上限受益者最大气血8%，不递归。",
+          "layer": 5,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.5.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.5.2",
+          "name": "报恩",
+          "description": "本宠每轮首次正常直接物理伤害后30%概率为主人回复其实际伤害18%，每轮最多主人最大气血8%。",
+          "layer": 5,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.5.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.5.3",
+          "name": "钢牙",
+          "description": "武器、衣甲每有一件金元素，本人狮搏与本宠正常物理首击各增伤5%，至多10%。",
+          "layer": 5,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.5.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.6.1",
+          "name": "复仇",
+          "description": "主人倒地时标记击倒者；本宠下次正常攻击该目标首击增伤20%，本场一次。",
+          "layer": 6,
+          "slot": 1,
+          "passives": [
+            "xiaoyue.passive.bond.6.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.6.2",
+          "name": "逞凶",
+          "description": "本人或本宠击倒敌方玩家后，对该玩家所属灵兽的正常直接物理伤害提高8%。",
+          "layer": 6,
+          "slot": 2,
+          "passives": [
+            "xiaoyue.passive.bond.6.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.6.3",
+          "name": "救主",
+          "description": "主人倒地且本宠足额站立时，每场仅一次50%机会以本宠最大气血30%为代价复活主人10%气血。",
+          "layer": 6,
+          "slot": 3,
+          "passives": [
+            "xiaoyue.passive.bond.6.3"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.7.1",
+          "name": "兽势",
+          "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+          "layer": 7,
+          "slot": 1,
+          "automatic": true,
+          "passives": [
+            "xiaoyue.passive.bond.7.1"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.7.2",
+          "name": "最佳搭档",
+          "description": "兽形且本宠站立时可用最佳搭档；本人狮搏并标记目标，本宠下一次同目标正常物理首击增强20%。",
+          "layer": 7,
+          "slot": 2,
+          "grantSkills": [
+            "xiaoyue.skill.best_partners"
+          ],
+          "passives": [
+            "xiaoyue.passive.bond.7.2"
+          ]
+        },
+        {
+          "id": "xiaoyue.node.bond.7.3",
+          "name": "兽威",
+          "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+          "layer": 7,
+          "slot": 3,
+          "automatic": true,
+          "passives": [
+            "xiaoyue.passive.bond.7.3"
+          ]
+        }
+      ]
+    }
+  ]
+}

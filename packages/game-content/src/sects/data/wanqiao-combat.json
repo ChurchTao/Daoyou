@@ -3549,6 +3549,7 @@
       "kind": "wanqiao.freeze",
       "school": "wanqiao",
       "category": "control",
+      "isSeal": true,
       "sourceBound": true,
       "expireSameRound": true,
       "blocksAction": true

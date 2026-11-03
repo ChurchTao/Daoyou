@@ -37,6 +37,9 @@
         },
         "wanqiao": {
           "$ref": "#/$defs/__schema0"
+        },
+        "xiaoyue": {
+          "$ref": "#/$defs/__schema0"
         }
       },
       "required": [
@@ -46,7 +49,8 @@
         "tianyan",
         "jiujie",
         "bailu",
-        "wanqiao"
+        "wanqiao",
+        "xiaoyue"
       ],
       "additionalProperties": false
     }

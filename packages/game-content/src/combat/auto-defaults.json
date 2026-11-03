@@ -461,6 +461,76 @@
           "target": "lowestHpEnemy"
         }
       ]
+    },
+    "xiaoyue.path.blood": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.transform" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true },
+            { "type": "targetHpBelow", "percent": 30 }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.chain_strike" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true },
+            { "type": "enemyCountAtLeast", "count": 2 }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.eagle_strike" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        }
+      ]
+    },
+    "xiaoyue.path.bond": {
+      "version": 1,
+      "rules": [
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": false }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.transform" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true },
+            { "type": "targetHpBelow", "percent": 30 }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true },
+            { "type": "enemyCountAtLeast", "count": 3 }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.eagle_strike" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfStatus", "kind": "xiaoyue.status.transform", "statusId": "xiaoyue.status.transform", "present": true }
+          ],
+          "action": { "type": "skill", "skillId": "xiaoyue.skill.lion_strike" },
+          "target": "lowestHpEnemy"
+        }
+      ]
     }
   }
 }

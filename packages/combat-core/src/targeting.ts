@@ -44,6 +44,8 @@ export function canSelect(
     .filter(status => status.kind === stackLimit.kind && status.sourceId === source.id)
     .reduce((sum, status) => sum + status.stacks, 0) >= stackLimit.max) return false;
   if (skill.targeting.requireKind && target.kind !== skill.targeting.requireKind) return false;
+  if (skill.targeting.requireKinds && !skill.targeting.requireKinds.includes(target.kind)) return false;
+  if (skill.targeting.requireOwnedPet && (target.kind !== 'pet' || target.ownerId !== source.id)) return false;
   if (target.flags.capturedBy || target.flags.benched) return false;
   if (skill.targeting.requireRevivable &&
     (isReviveBlocked(ctx, target) ||
@@ -233,7 +235,9 @@ export function resolveSkillTargets(
   if (forcedPrimaryId) {
     const forced = ctx.state.units.find((unit) => unit.id === forcedPrimaryId);
     if (forced && forced.id !== source.id && isStanding(forced) &&
-      (!skill.targeting.requireKind || forced.kind === skill.targeting.requireKind)) {
+      (!skill.targeting.requireKind || forced.kind === skill.targeting.requireKind) &&
+      (!skill.targeting.requireKinds || skill.targeting.requireKinds.includes(forced.kind)) &&
+      (!skill.targeting.requireOwnedPet || (forced.kind === 'pet' && forced.ownerId === source.id))) {
       picked.push(forced);
       seen.add(forced.id);
     }

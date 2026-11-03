@@ -48,7 +48,7 @@ export const wqHook = z.strictObject({
   aim: z.enum(HookAim).optional(), when: wqWhen.optional(), effects: z.array(wqEffect).min(1),
 });
 export const wqStatus = z.strictObject({
-  id: wqId, name: z.string().min(1), description: z.string().min(1).optional(), kind: ref, school: z.literal('wanqiao'), category: z.enum(StatusCategory),
+  id: wqId, name: z.string().min(1), description: z.string().min(1).optional(), kind: ref, school: z.literal('wanqiao'), category: z.enum(StatusCategory), isSeal: z.boolean().optional(),
   dispellable: z.boolean().optional(), untilBattleEnd: z.boolean().optional(), sourceBound: z.boolean().optional(),
   maxStacks: z.number().int().positive().optional(), ticks: z.enum(StatusTick).optional(),
   expireSameRound: z.boolean().optional(), snapshotModifiers: z.boolean().optional(),

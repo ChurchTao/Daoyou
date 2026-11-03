@@ -124,6 +124,15 @@ export {
   WANQIAO_V6_ID,
 } from '@daoyou/game-content/sects/wanqiao';
 
+export {
+  XIAOYUE_METHOD_ID,
+  XIAOYUE_PATH_ID,
+  XIAOYUE_SKILL_ID,
+  XIAOYUE_STATUS_ID,
+  XIAOYUE_V6_DEFINITION,
+  XIAOYUE_V6_ID,
+} from '@daoyou/game-content/sects/xiaoyue';
+
 export type {
   CombatV6SectId,
   CompileSectCombatV6Result,

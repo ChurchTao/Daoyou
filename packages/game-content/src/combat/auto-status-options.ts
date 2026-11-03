@@ -11,6 +11,12 @@ type StatusChoices = {
 
 /** Only combat states with a useful player-facing tactical meaning are editable. */
 const choices: Record<string, StatusChoices> = {
+  xiaoyue: {
+    self: [
+      { kind: 'xiaoyue.status.transform', statusId: 'xiaoyue.status.transform', label: '兽形' },
+    ],
+    target: [],
+  },
   wanqiao: {
     self: [
       { kind: 'wanqiao.hollow', statusId: 'wanqiao.status.hollow', label: '含虚' },
