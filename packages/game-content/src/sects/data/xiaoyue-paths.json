@@ -880,7 +880,8 @@
           "when": {
             "skillIds": [
               "xiaoyue.skill.lion_strike"
-            ]
+            ],
+            "expression": "statusAge.xiaoyue.status.totem>0"
           }
         }
       ]

@@ -1,4 +1,5 @@
 import { createBattle } from '@daoyou/combat-core/session';
+import { effectiveAttrs } from '@daoyou/combat-core/units';
 import type { Command, CreateBattleInput } from '@daoyou/combat-core/types';
 import { XIAOYUE_V6_DEFINITION as definition, XIAOYUE_SKILL_ID, XIAOYUE_STATUS_ID } from '@daoyou/game-content/sects/xiaoyue';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS as versions } from '@daoyou/game-domain/combat';
@@ -121,5 +122,49 @@ describe('啸岳岭基础技能回合边界', () => {
       status.id === XIAOYUE_STATUS_ID.StunPending)).toBe(true);
     expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.SpellRest ||
       status.id === XIAOYUE_STATUS_ID.SpellRestPending)).toBe(true);
+    const mp = battle.unit('s').attrs.mp;
+    round(battle, cast(XIAOYUE_SKILL_ID.Meditate, ['s']));
+    expect(battle.unit('s').attrs.mp).toBe(mp);
+    expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.calm')).toBe(false);
+  });
+
+  it('兽威只能选敌方灵兽或普通生灵，并在下一行动窗口禁动', () => {
+    const battle = setup();
+    round(battle, cast(XIAOYUE_SKILL_ID.Intimidate));
+    expect(battle.unit('s').attrs.mp).toBe(9980);
+    expect(battle.unit('t0').statuses.some(status => status.id === XIAOYUE_STATUS_ID.StunPending ||
+      status.id === XIAOYUE_STATUS_ID.Stun)).toBe(true);
+    const againstPlayer = setup();
+    againstPlayer.unit('t0').kind = 'player';
+    round(againstPlayer, cast(XIAOYUE_SKILL_ID.Intimidate));
+    expect(againstPlayer.unit('s').attrs.mp).toBe(10000);
+    expect(againstPlayer.unit('t0').statuses).toHaveLength(0);
+  });
+
+  it('定心、养息和裂甲狂身按说明支付费用并改变有效属性或回气', () => {
+    const calm = setup();
+    round(calm, cast(XIAOYUE_SKILL_ID.Meditate, ['s']));
+    expect(calm.unit('s').attrs.mp).toBe(9960);
+    expect(effectiveAttrs(calm.unit('s')).magicAtk).toBe(54);
+    expect(effectiveAttrs(calm.unit('s')).magicDef).toBe(54);
+
+    const breath = setup();
+    breath.unit('s').attrs.mp = 500;
+    round(breath, cast(XIAOYUE_SKILL_ID.ManaBreath, ['s']));
+    expect(breath.unit('s').attrs.hp).toBe(9970);
+    expect(breath.unit('s').attrs.mp).toBe(500);
+    round(breath);
+    expect(breath.unit('s').attrs.mp).toBe(590);
+    round(breath);
+    round(breath);
+    expect(breath.unit('s').attrs.mp).toBe(770);
+    round(breath);
+    expect(breath.unit('s').attrs.mp).toBe(770);
+
+    const unbound = setup();
+    round(unbound, cast(XIAOYUE_SKILL_ID.DemonUnbound, ['s']));
+    expect(unbound.unit('s').attrs.mp).toBe(9970);
+    expect(effectiveAttrs(unbound.unit('s')).physicalDef).toBe(50);
+    expect(effectiveAttrs(unbound.unit('s')).physicalAtk).toBe(1010);
   });
 });

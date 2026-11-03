@@ -97,6 +97,39 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(battle.unit('reserve').statuses.some(status => status.id === lionSoul)).toBe(false);
   });
 
+  it('图腾只在狮魂实际赋予原本宠时建立主人与灵兽的同契标记', () => {
+    const battle = setup('xiaoyue.path.bond', ['1.3']);
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    battle.unit('t0').attrs.hp = 1;
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+    expect(battle.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(true);
+    expect(battle.unit('ownPet').statuses.some(status => status.id === 'xiaoyue.status.totem_link')).toBe(true);
+    expect(battle.unit('allyPet').statuses.some(status => status.id === 'xiaoyue.status.totem_link')).toBe(false);
+    round(battle, { s: { type: 'summon', petId: 'reserve' } });
+    expect(battle.unit('ownPet').statuses.some(status => status.id === 'xiaoyue.status.totem_link')).toBe(false);
+    expect(battle.unit('reserve').statuses.some(status => status.id === 'xiaoyue.status.totem_link')).toBe(false);
+  });
+
+  it('图腾增强下一回合的狮搏，结算后消耗且不会在触发当回合误消耗', () => {
+    const base = setup();
+    const enhanced = setup('xiaoyue.path.bond', ['1.3']);
+    for (const battle of [base, enhanced]) {
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+      battle.unit('t0').attrs.hp = 1;
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike) });
+    }
+    expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(true);
+    for (const battle of [base, enhanced]) round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike, ['guard']) });
+    const baseHit = hits(base, 's').find(event => event.type === 'damage' && event.targetId === 'guard');
+    const enhancedHit = hits(enhanced, 's').find(event => event.type === 'damage' && event.targetId === 'guard');
+    expect(baseHit?.type).toBe('damage');
+    expect(enhancedHit?.type).toBe('damage');
+    if (baseHit?.type === 'damage' && enhancedHit?.type === 'damage')
+      expect(enhancedHit.amount).toBeGreaterThan(baseHit.amount);
+    expect(enhanced.unit('s').statuses.some(status => status.id === 'xiaoyue.status.totem')).toBe(false);
+  });
+
   it('最佳搭档只合并主人和本宠的正常行动，标记目标的两次攻击都在保护前结算', () => {
     vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
     const battle = setup('xiaoyue.path.bond', ['7.2']);
@@ -201,6 +234,18 @@ describe('啸岳岭同契与真实灵兽', () => {
 });
 
 describe('啸岳岭血啸关键经脉', () => {
+  it('威压只由狮搏命中敌方灵兽触发，并限制其下一行动', () => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 0.35);
+    const battle = setup('xiaoyue.path.blood', ['3.1']);
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+    round(battle, { s: cast(XIAOYUE_SKILL_ID.LionStrike, ['enemyPet']) });
+    expect(battle.unit('enemyPet').statuses.some(status => status.id === 'xiaoyue.status.pressure_pending' ||
+      status.id === 'xiaoyue.status.pressure_stun')).toBe(true);
+    expect(battle.unit('t0').statuses.some(status => status.id.startsWith('xiaoyue.status.pressure'))).toBe(false);
+    const before = hits(battle, 'enemyPet').length;
+    round(battle, { enemyPet: { type: 'attack', target: 's' } });
+    expect(hits(battle, 'enemyPet')).toHaveLength(before);
+  });
   it('爪印由本人首次命中叠层，下一回合同目标首击追加固定人物等级伤害', () => {
     const battle = setup('xiaoyue.path.blood', ['1.1']);
     round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });

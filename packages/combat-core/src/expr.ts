@@ -231,6 +231,10 @@ class Parser {
     if (name.startsWith('effective.')) return effectiveAttrs(this.env.source)[name.slice(10) as keyof Unit['attrs']] ?? 0
     if (name.startsWith('allyTagCount.')) return this.env.state?.units.filter(u => u.side === this.env.source.side && u.kind === 'player' && u.tags.includes(name.slice(13))).length ?? 0
     if (name.startsWith('known.')) return [...this.env.source.skills, ...this.env.source.passives].includes(name.slice(6)) ? 1 : 0
+    if (name.startsWith('statusAge.')) {
+      const status = this.env.source.statuses.find(s => s.kind === name.slice('statusAge.'.length) && s.sourceId === this.env.source.id)
+      return status && this.env.state ? Math.max(0, this.env.state.round - status.appliedRound) : 0
+    }
     if (name.startsWith('statusRounds.')) return this.env.source.statuses.find(s => s.kind === name.slice(13))?.remainingRounds ?? 0
     if (name.startsWith('targetStatusRounds.')) return this.env.target?.statuses.find(s => s.kind === name.slice(19))?.remainingRounds ?? 0
     if (name.startsWith('ownedTargetStatus.')) return this.env.target?.statuses.some(s => s.kind === name.slice(18) && s.sourceId === this.env.source.id) ? 1 : 0

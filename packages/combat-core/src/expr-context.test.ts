@@ -41,6 +41,14 @@ describe('contextual expressions', () => {
     expect(evalExpr('targetStatusAge.mark', env)).toBe(0);
   });
 
+  it('reports a source-owned status age from the round it was applied', () => {
+    const { source, env } = fixture();
+    source.statuses.push(mark(source.id, 1));
+    expect(evalExpr('statusAge.mark', env)).toBe(2);
+    source.statuses[0].sourceId = 'another-caster';
+    expect(evalExpr('statusAge.mark', env)).toBe(0);
+  });
+
   it('isolates attacker history and first-action guard budgets by round and source', () => {
     const { source, target, env } = fixture();
     source.flags.hostileActionGuardRound = 3;

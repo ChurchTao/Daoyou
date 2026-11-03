@@ -27,7 +27,7 @@ export function validateXiaoyueReferences(data: unknown, ids: Set<string>, issue
   if (typeof data === 'string') {
     for (const match of data.matchAll(/\b(?:known|knownSkillLevel)\.(xiaoyue\.(?:skill|passive)\.[a-z0-9_.]+)/g))
       if (!ids.has(match[1])) issue(path, '引用不存在：' + match[1]);
-    for (const match of data.matchAll(/\b(?:hasStatus|statusRounds|targetStatusRounds|ownedTargetStatusStacks)\.(xiaoyue\.status\.[a-z0-9_.]+)/g))
+    for (const match of data.matchAll(/\b(?:hasStatus|statusRounds|statusAge|targetStatusRounds|ownedTargetStatusStacks)\.(xiaoyue\.status\.[a-z0-9_.]+)/g))
       if (!ids.has(match[1])) issue(path, '引用不存在：' + match[1]);
     return;
   }
