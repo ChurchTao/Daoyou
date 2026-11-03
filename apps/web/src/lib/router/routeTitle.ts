@@ -7,6 +7,7 @@ const SECT_VISIT_TITLES: Readonly<Record<string, string>> = {
   wuxiang: '无相禅宗舆图',
   tianyan: '天衍圣地舆图',
   youdu: '幽都舆图',
+  wanqiao: '万窍山舆图',
 };
 
 export type GameSceneGroup =

@@ -19,6 +19,23 @@ const locationNames: Record<string, string> = {
   cave: '静庐',
 };
 
+const hotspotPositions: Record<string, { left: string; top: string }> = {
+  hall: { left: '45%', top: '21%' },
+  archive: { left: '18%', top: '21%' },
+  paths: { left: '75%', top: '12%' },
+  arena: { left: '23%', top: '45%' },
+  affairs: { left: '44%', top: '40%' },
+  treasury: { left: '52%', top: '31%' },
+  industries: { left: '65%', top: '42%' },
+  cultivation: { left: '14%', top: '67%' },
+  alchemy: { left: '71%', top: '34%' },
+  refinery: { left: '79%', top: '43%' },
+  vein: { left: '92%', top: '53%' },
+  garden: { left: '68%', top: '68%' },
+  gate: { left: '51%', top: '83%' },
+  cave: { left: '24%', top: '74%' },
+};
+
 export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
   sectId: WANQIAO_SECT_ID,
   announcement:
@@ -72,11 +89,13 @@ export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
     },
   },
   map: {
-    alt: '万窍山设施导航',
+    image: '/assets/sect/wanqiao-map.webp',
+    alt: '万窍山洞石、竹林与山涧间，听风堂、鸣石坪、诸院和山门由石径相连的水墨鸟瞰图',
     hotspots: [
       ...STANDARD_SECT_PRESENTATION.map.hotspots.map((hotspot) => ({
         ...hotspot,
         label: locationNames[hotspot.id] ?? hotspot.label,
+        ...hotspotPositions[hotspot.id],
         ...(hotspot.id === 'gate' ? {
           visitor: { description: '石径穿过竹林与鸣石，引路门人在山门前为外客登记来意。' },
         } : {}),
@@ -86,8 +105,8 @@ export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
         label: '护山音阵',
         facility: 'formation',
         permission: 'sect.formation.view',
-        left: '0',
-        top: '0',
+        left: '91%',
+        top: '21%',
         note: '宗门战后续开放',
         locked: true,
         visitor: { description: '山谷诸窍与阵中鸣石遥相应答，外客可在阵外静听山中的回声。' },

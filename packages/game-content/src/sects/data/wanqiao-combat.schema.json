@@ -982,6 +982,10 @@
           "type": "string",
           "minLength": 1
         },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
         "kind": {
           "$ref": "#/$defs/__schema6"
         },
@@ -1028,8 +1032,12 @@
         "blocksAction": {
           "type": "boolean"
         },
-        "blocksNonArtSkills": {
-          "type": "boolean"
+        "blockedSkillSchools": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema14"
+          }
         },
         "mpShieldRatio": {
           "type": "number",
@@ -1120,6 +1128,10 @@
         "category"
       ],
       "additionalProperties": false
+    },
+    "__schema14": {
+      "type": "string",
+      "const": "wanqiao"
     }
   }
 }

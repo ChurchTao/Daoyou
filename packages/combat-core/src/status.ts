@@ -52,6 +52,7 @@ export function commandBlockReason(ctx: BattleContext, unit: Unit, command: Comm
   for (const instance of unit.statuses) {
     const def = statusDef(ctx, instance.id)
     if (def?.blockedCommands?.includes(command.type) ||
+        (skill?.school && def?.blockedSkillSchools?.includes(skill.school)) ||
         (skill && def?.blocksNonArtSkills && !skill.tags.includes('art')) ||
         (skill && def?.blocksArts && skill.tags.includes('art'))) return 'command-restricted'
   }

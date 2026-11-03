@@ -25,7 +25,9 @@ describe('万窍山组织与战斗目录接入', () => {
     })));
     const presentation = resolveSectPresentation('wanqiao', WANQIAO_SECT_PRESENTATION);
     expect(presentation.onboarding?.script.acts.length).toBeGreaterThan(0);
-    expect(presentation.map.image).toBeUndefined();
+    expect(presentation.map.image).toBe('/assets/sect/wanqiao-map.webp');
+    expect(presentation.map.hotspots.every(spot => spot.left !== '0' && spot.top !== '0')).toBe(true);
+    expect(new Set(presentation.map.hotspots.map(spot => `${spot.left},${spot.top}`)).size).toBe(presentation.map.hotspots.length);
     expect(presentation.rooms.affairs.actors.map(actor => actor.roleKey)).toEqual([
       'daily', 'weekly', 'promotion',
     ]);

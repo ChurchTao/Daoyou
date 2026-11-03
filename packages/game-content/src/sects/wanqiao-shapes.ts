@@ -48,11 +48,11 @@ export const wqHook = z.strictObject({
   aim: z.enum(HookAim).optional(), when: wqWhen.optional(), effects: z.array(wqEffect).min(1),
 });
 export const wqStatus = z.strictObject({
-  id: wqId, name: z.string().min(1), kind: ref, school: z.literal('wanqiao'), category: z.enum(StatusCategory),
+  id: wqId, name: z.string().min(1), description: z.string().min(1).optional(), kind: ref, school: z.literal('wanqiao'), category: z.enum(StatusCategory),
   dispellable: z.boolean().optional(), untilBattleEnd: z.boolean().optional(), sourceBound: z.boolean().optional(),
   maxStacks: z.number().int().positive().optional(), ticks: z.enum(StatusTick).optional(),
   expireSameRound: z.boolean().optional(), snapshotModifiers: z.boolean().optional(),
-  blocksAction: z.boolean().optional(), blocksNonArtSkills: z.boolean().optional(),
+  blocksAction: z.boolean().optional(), blockedSkillSchools: z.array(z.literal('wanqiao')).min(1).optional(),
   mpShieldRatio: z.number().min(0).max(1).optional(),
   attrMods: z.partialRecord(z.enum(ATTR_NAMES), wqExpr).optional(), modifiers: z.array(wqModifier).optional(),
   onTick: z.strictObject({ type: z.enum(TickKind), hpPower: wqExpr }).optional(),

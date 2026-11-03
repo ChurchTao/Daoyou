@@ -27,7 +27,7 @@
       "id": "wanqiao.skill.chorus",
       "name": "众窍鸣",
       "school": "wanqiao",
-      "description": "引众窍共鸣，攻击至多五个敌人；每个实际目标消耗30法力。",
+      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标数随《听万窍》等级增加；每个实际目标消耗30法力。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -282,7 +282,7 @@
       "id": "wanqiao.skill.pierce",
       "name": "裂帛",
       "school": "wanqiao",
-      "description": "以清声裂帛，攻击一个敌人；消耗最多三窍息，每层增伤15%，劲节提高至20%。随隙替换此耗息效果。",
+      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害，消耗至多三层窍息，每层使本次伤害提高15%；劲节改为20%，随隙则将耗息强化移至叩隙。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -440,7 +440,7 @@
       "id": "wanqiao.skill.fissure",
       "name": "叩隙",
       "school": "wanqiao",
-      "description": "叩入气机细隙，造成法术伤害及等于实际气血伤害10%的伤势。",
+      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并造成相当于实际气血伤害10%的伤势。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -619,7 +619,7 @@
       "id": "wanqiao.skill.silence",
       "name": "截声",
       "school": "wanqiao",
-      "description": "攻击一个敌人；对灵兽有20%概率使其下一完整回合无法行动，截流可耗息强化并驱散一个增益。",
+      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害；对灵兽有20%概率施加[[wanqiao.status.freeze_pending]]，使其下一完整回合无法行动。截流可耗息强化并驱散一个增益。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -797,7 +797,7 @@
       "id": "wanqiao.skill.echo",
       "name": "留音",
       "school": "wanqiao",
-      "description": "留下一线回声，施加一层本人留音，最多三层，持续四次轮末；入窍有机会直接施加三层。",
+      "description": "弦声已止，余音仍在。\n对一名敌人施加一层本人[[wanqiao.status.echo]]，最多三层，持续四次轮末；修成入窍后有机会直接施加三层。",
       "tags": [
         "spell"
       ],
@@ -945,7 +945,7 @@
       "id": "wanqiao.skill.blood",
       "name": "泣血吟",
       "school": "wanqiao",
-      "description": "以气血发出长吟。需要至少50%最大气血，消耗最大气血的20%，下一完整回合不能使用宗门神通。",
+      "description": "以血为弦，发出长吟。\n当前气血须不少于最大气血的50%；消耗最大气血的20%对一名敌人造成法术伤害，并进入[[wanqiao.status.spell_rest_pending]]，下一完整回合不能使用宗门神通。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -1105,7 +1105,7 @@
       "id": "wanqiao.skill.rest",
       "name": "息心",
       "school": "wanqiao",
-      "description": "收声敛息，回复自身心法等级四倍的气血，不能越过伤势造成的恢复上限。",
+      "description": "收声敛息，让气血徐徐回转。\n回复自身相当于《月满空山》等级四倍的气血，不能越过伤势造成的恢复上限。",
       "tags": [
         "spell"
       ],
@@ -1219,7 +1219,7 @@
       "id": "wanqiao.skill.hollow",
       "name": "含虚",
       "school": "wanqiao",
-      "description": "以虚护身，四回合内普通护盾后的50%名义伤害由法力抵消；每抵消一点耗一点法力。",
+      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]：普通护盾结算后，至多50%的名义伤害改由法力抵消，每抵消一点消耗一点法力。",
       "tags": [
         "spell"
       ],
@@ -1333,7 +1333,7 @@
       "id": "wanqiao.skill.harmony",
       "name": "和鸣",
       "school": "wanqiao",
-      "description": "使至多三名友方法攻增加心法等级的一半，持续四回合；每人消耗25法力。内和改为仅本人。",
+      "description": "清声相和，众人气机同振。\n使至多三名友方获得[[wanqiao.status.harmony]]，法攻增加《一息绵长》等级的一半并向下取整，持续四回合；每个实际目标消耗25法力。内和改为仅作用本人。",
       "tags": [
         "spell"
       ],
@@ -1449,7 +1449,7 @@
       "id": "wanqiao.skill.undertone",
       "name": "潜籁",
       "school": "wanqiao",
-      "description": "攻击多个敌人并概率留下余音。命中已有本人留音的目标，本次行动至多返还一窍息。",
+      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，每个实际目标消耗30法力；每次命中有20%概率施加本人[[wanqiao.status.echo]]。本次行动命中已有本人留音的目标时，至多返还一层窍息。可触发复响。",
       "tags": [
         "spell"
       ],
@@ -1703,7 +1703,7 @@
       "id": "wanqiao.skill.catalyze",
       "name": "引响",
       "school": "wanqiao",
-      "description": "对本人的留音追加一次当前结算伤害并强化；持有窍息时耗一层强化所有敌人身上的本人留音。本场基础增幅每次加6%，上限60%。",
+      "description": "轻叩余音，使暗伏之声骤然响起。\n对目标身上的本人[[wanqiao.status.echo]]追加一次当前结算伤害，并以[[wanqiao.status.amplified]]强化后续留音；持有窍息时消耗一层，强化所有敌方身上的本人留音。本场留音基础伤害每次再提高6%，至多提高60%。",
       "tags": [
         "spell"
       ],
@@ -1846,7 +1846,7 @@
       "id": "wanqiao.skill.distill",
       "name": "叠韵",
       "school": "wanqiao",
-      "description": "消耗300法力及一窍息，使潜籁附加留音的概率翻倍，持续五回合，包含当前回合。",
+      "description": "旧韵未散，新声又叠。\n消耗300法力和一层窍息，获得[[wanqiao.status.distill]]：潜籁附加留音的概率翻倍，持续五回合，包含当前回合。",
       "tags": [
         "spell"
       ],
@@ -1966,7 +1966,7 @@
       "id": "wanqiao.skill.resonate",
       "name": "万窍齐鸣",
       "school": "wanqiao",
-      "description": "消耗全部窍息使用一次众窍鸣，每层提高16%伤害。复音另加12%；不触发复响。",
+      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息，消耗全部窍息施展一次众窍鸣，每消耗一层使本次伤害提高16%；选中经脉「复音」后再提高12%。开场冷却三回合，施放后冷却六回合；不触发复响。",
       "tags": [
         "spell"
       ],
@@ -2109,7 +2109,7 @@
       "id": "wanqiao.skill.coda",
       "name": "无声之章",
       "school": "wanqiao",
-      "description": "耗尽窍息，使一名敌人两回合法术承伤增加16%加每层2%；随机敌方累计获得3加每层0.5层本人留音，不触发复响。",
+      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息，消耗全部窍息，使一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]：法术承伤提高16%，每消耗一层窍息再提高2%；随机敌方累计获得三层、每消耗一层再增加半层本人留音，半层按概率结算。施放后冷却八回合，不触发复响。",
       "tags": [
         "spell"
       ],
@@ -2742,7 +2742,7 @@
       "id": "wanqiao.passive.foundation",
       "name": "空谷应声",
       "school": "wanqiao",
-      "description": "窍息最多六层，每层法攻增加10；初始层数取一息绵长等级除60向下取整，偶数轮末恢复一层。部分直接法术有2%概率复响，追加40%伤害。",
+      "description": "空谷有应，气息往复而不绝。\n窍息最多六层，每层使法攻提高10；开场窍息取《一息绵长》等级除以60向下取整，偶数轮末恢复一层。部分直接法术有2%概率复响，追加40%伤害。",
       "tags": [
         "passive"
       ],
@@ -3309,6 +3309,7 @@
     {
       "id": "wanqiao.status.breath_0",
       "name": "窍息·0",
+      "description": "当前没有窍息，不获得窍息提供的法攻加成。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3321,6 +3322,7 @@
     {
       "id": "wanqiao.status.breath_1",
       "name": "窍息·1",
+      "description": "当前持有一层窍息，法攻提高10。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3333,6 +3335,7 @@
     {
       "id": "wanqiao.status.breath_2",
       "name": "窍息·2",
+      "description": "当前持有两层窍息，法攻提高20。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3345,6 +3348,7 @@
     {
       "id": "wanqiao.status.breath_3",
       "name": "窍息·3",
+      "description": "当前持有三层窍息，法攻提高30。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3357,6 +3361,7 @@
     {
       "id": "wanqiao.status.breath_4",
       "name": "窍息·4",
+      "description": "当前持有四层窍息，法攻提高40。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3369,6 +3374,7 @@
     {
       "id": "wanqiao.status.breath_5",
       "name": "窍息·5",
+      "description": "当前持有五层窍息，法攻提高50。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3381,6 +3387,7 @@
     {
       "id": "wanqiao.status.breath_6",
       "name": "窍息·6",
+      "description": "当前持有六层窍息，法攻提高60。此状态随窍息层数变化。",
       "kind": "wanqiao.breath_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3393,6 +3400,7 @@
     {
       "id": "wanqiao.status.empty_power",
       "name": "空鸣",
+      "description": "零窍息施展众窍鸣时，本次技能及复响临时获得100法攻；行动结束后消失。",
       "kind": "wanqiao.empty_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3404,6 +3412,7 @@
     {
       "id": "wanqiao.status.incantation",
       "name": "通微",
+      "description": "《弦外音》等级不低于人物战斗等级时，本场战斗法攻提高60。",
       "kind": "wanqiao.incantation",
       "school": "wanqiao",
       "category": "buff",
@@ -3416,6 +3425,7 @@
     {
       "id": "wanqiao.status.fire_power",
       "name": "续声",
+      "description": "武器或衣甲带有火元素时，每件火元素装备每轮使法攻再提高3，累积至本场战斗结束。",
       "kind": "wanqiao.fire_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3428,6 +3438,7 @@
     {
       "id": "wanqiao.status.echo",
       "name": "留音",
+      "description": "由施法者分别维持的余音，最多三层。每次轮末按施放心法等级、层数及持续时间造成固定气血伤害；引响可强化后续结算。",
       "kind": "wanqiao.mist",
       "school": "wanqiao",
       "category": "dot",
@@ -3443,6 +3454,7 @@
     {
       "id": "wanqiao.status.amplified",
       "name": "引响",
+      "description": "强化施法者本人留在此目标上的留音：后续轮末伤害对人物提高至两倍，对其他目标提高至四倍。",
       "kind": "wanqiao.amplified",
       "school": "wanqiao",
       "category": "debuff",
@@ -3451,6 +3463,7 @@
     {
       "id": "wanqiao.status.hollow",
       "name": "含虚",
+      "description": "普通护盾结算后，至多50%的名义伤害改由法力抵消；每抵消一点消耗一点法力，法力不足时仍会损失气血。",
       "kind": "wanqiao.hollow",
       "school": "wanqiao",
       "category": "buff",
@@ -3459,6 +3472,7 @@
     {
       "id": "wanqiao.status.harmony",
       "name": "和鸣",
+      "description": "法攻按施放时《一息绵长》等级的一半提高，向下取整；修成内和时，另提高15%法术伤害。",
       "kind": "wanqiao.harmony",
       "school": "wanqiao",
       "category": "buff",
@@ -3478,6 +3492,7 @@
     {
       "id": "wanqiao.status.distill",
       "name": "叠韵",
+      "description": "潜籁附加留音的概率翻倍，最多为100%；持续五回合，包含施放的当前回合。",
       "kind": "wanqiao.distill",
       "school": "wanqiao",
       "category": "buff",
@@ -3486,6 +3501,7 @@
     {
       "id": "wanqiao.status.flow",
       "name": "流韵",
+      "description": "全部伤害提高20%，持续两回合；再次触发时刷新持续时间，不会叠加。",
       "kind": "wanqiao.flow",
       "school": "wanqiao",
       "category": "buff",
@@ -3498,6 +3514,7 @@
     {
       "id": "wanqiao.status.vulnerable",
       "name": "无声之章",
+      "description": "受到的法术伤害提高16%；施放者每消耗一层窍息再提高2%。持续两回合。",
       "kind": "wanqiao.vulnerable",
       "school": "wanqiao",
       "category": "debuff",
@@ -3514,6 +3531,7 @@
     {
       "id": "wanqiao.status.freeze_pending",
       "name": "截声将至",
+      "description": "本回合尚可行动；下一个完整回合会转为截声，使目标无法行动。",
       "kind": "wanqiao.freeze_pending",
       "school": "wanqiao",
       "category": "control",
@@ -3527,6 +3545,7 @@
     {
       "id": "wanqiao.status.freeze",
       "name": "截声",
+      "description": "本回合无法行动，回合结束后解除。",
       "kind": "wanqiao.freeze",
       "school": "wanqiao",
       "category": "control",
@@ -3537,6 +3556,7 @@
     {
       "id": "wanqiao.status.spell_rest_pending",
       "name": "泣血余息",
+      "description": "泣血吟施放后，本回合不禁法；下一个完整回合会进入禁法调息。",
       "kind": "wanqiao.spell_rest_pending",
       "school": "wanqiao",
       "category": "buff",
@@ -3550,12 +3570,13 @@
     {
       "id": "wanqiao.status.spell_rest",
       "name": "禁法调息",
+      "description": "本回合不能使用宗门神通，仍可普通攻击或防御；回合结束后解除。",
       "kind": "wanqiao.spell_rest",
       "school": "wanqiao",
       "category": "buff",
       "dispellable": false,
       "expireSameRound": true,
-      "blocksNonArtSkills": true
+      "blockedSkillSchools": ["wanqiao"]
     }
   ]
 }

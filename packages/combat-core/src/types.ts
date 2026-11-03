@@ -853,6 +853,8 @@ export type StatusDef = {
   interceptHostileAction?: boolean;
   /** Command restrictions also apply to preflight/UI; resting is not a seal. */
   blockedCommands?: CommandType[];
+  /** Restrict skills from these schools while leaving other skills and basic commands available. */
+  blockedSkillSchools?: string[];
   blocksNonArtSkills?: boolean;
   blocksArts?: boolean;
   protectsTarget?: boolean;
