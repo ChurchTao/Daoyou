@@ -1,14 +1,12 @@
 import { NpcConversation } from '@app/components/feature/room';
-import { SectWorkspace } from '@app/components/feature/sect-v6/SectWorkspace';
 import {
   SectNpcConversationRegistry,
   SectRoutedRoom,
   SectTaskLocationConversation,
   type SectNpcConversationRendererProps,
 } from '@app/components/feature/sect/room';
-import { createSectRoomNpcHref } from '@app/components/feature/sect/sectRoomNavigation';
 import { STANDARD_SECT_PRESENTATION } from '@daoyou/game-rules/sect-organization';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { SectPermissionBoundary, SectScene } from '../components/SectScene';
 
 export default function SectAbilitiesPage() {
@@ -26,8 +24,6 @@ const arenaRegistry = new SectNpcConversationRegistry([
 ]).assertRoom(STANDARD_SECT_PRESENTATION.rooms.arena);
 
 function SectArenaBody() {
-  const [searchParams] = useSearchParams();
-  if (searchParams.get('workspace') === 'loadout') return <SectAbilitiesBody />;
   return (
     <SectScene sceneKey="arena" mood="arena">
       <SectRoutedRoom
@@ -51,22 +47,16 @@ function ArenaInstructorConversation({
         {
           id: 'greeting',
           speaker: actor.name,
-          body: '心法与经脉决定神通，已解锁的神通会自动用于战斗。可在此查阅当前效果。',
+          body: '心法与经脉决定神通。已经学会的效果，记在角色的宗门心法里。',
         },
       ]}
       options={[
-        { id: 'workspace', label: '查阅宗门神通' },
+        { id: 'workspace', label: '查看宗门心法' },
         { id: 'leave', label: '弟子告退', tone: 'muted' },
       ]}
       onSelectOption={(id) => {
         if (id === 'leave') onExit();
-        else
-          navigate(
-            createSectRoomNpcHref(
-              '/game/sect/arena?workspace=loadout',
-              actor.roleKey,
-            ),
-          );
+        else navigate('/game/cultivator?tab=sect');
       }}
     />
   );
@@ -90,17 +80,5 @@ function ArenaMarshalConversation({
       options={[{ id: 'leave', label: '弟子告退', tone: 'muted' }]}
       onSelectOption={onExit}
     />
-  );
-}
-
-function SectAbilitiesBody() {
-  const navigate = useNavigate();
-  return (
-    <SectScene sceneKey="arena" mood="arena">
-      <SectWorkspace
-        mode="skills"
-        onExit={() => navigate('/game/sect/arena')}
-      />
-    </SectScene>
   );
 }

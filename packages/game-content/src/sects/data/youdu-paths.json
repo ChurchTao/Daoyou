@@ -1,7 +1,7 @@
 {
   "$schema": "./youdu-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "youdu.passive.recoil",
@@ -714,7 +714,7 @@
           "chance": 0.6
         }
       ],
-      "description": "血影蚀心、百鬼噬魂命中时有30%概率附加3回合魂毒；森罗迷障期间为60%。概率与毒持续待校准。"
+      "description": "血影蚀心、百鬼噬魂命中时有30%概率附加3回合魂毒；森罗迷障期间为60%。"
     },
     {
       "id": "youdu.passive.crit_reward_1",
@@ -876,7 +876,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 2,
-          "description": "摄魂的基础减伤与承伤增幅各增加5%（口径待校准）。",
+          "description": "摄魂的基础减伤与承伤增幅各增加5%。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -1124,7 +1124,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 1,
-          "description": "摄魂的基础减伤与承伤增幅各增加5%（口径待校准）。",
+          "description": "摄魂的基础减伤与承伤增幅各增加5%。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -1217,7 +1217,7 @@
           "name": "透魂",
           "layer": 4,
           "slot": 3,
-          "description": "自己施加的魂毒忽略高级毒性的免疫，不穿透其他免疫。",
+          "description": "自己施加的魂毒可以越过高级毒性的免疫。",
           "passives": [
             "youdu.passive.nether_poison"
           ]
@@ -1227,7 +1227,7 @@
           "name": "战意汲取",
           "layer": 5,
           "slot": 1,
-          "description": "攻击带魂毒目标后恢复2战意；每次出手对每个目标结算一次（频率待校准）。",
+          "description": "攻击带魂毒目标后恢复2战意；每次出手对每个目标结算一次。",
           "passives": [
             "youdu.passive.feast"
           ]
@@ -1247,7 +1247,7 @@
           "name": "六魂归元",
           "layer": 5,
           "slot": 3,
-          "description": "己方仅一名幽都修士，回合结束敌方至少6个魂毒单位时，获得6回合六魂归元：物理攻击、暴击等级、穿刺等级、狂暴等级、抗封等级、格挡值各增加60。等级换算待校准。",
+          "description": "己方仅一名幽都修士，回合结束敌方至少6个魂毒单位时，获得6回合六魂归元：物理攻击、暴击等级、穿刺等级、狂暴等级、抗封等级、格挡值各增加60。",
           "passives": [
             "youdu.passive.reincarnation"
           ]
@@ -1288,7 +1288,7 @@
           "layer": 7,
           "slot": 1,
           "automatic": true,
-          "description": "物理暴击等级增加40点（等级换算待校准）。",
+          "description": "物理暴击等级增加40点。",
           "passives": [
             "youdu.passive.crit_reward_1"
           ]
@@ -1298,7 +1298,7 @@
           "name": "噬魂夺生",
           "layer": 7,
           "slot": 2,
-          "description": "造成230%普通物理伤害，恢复目标本次实际损失的气血，随机驱散1个增益。目标带毒时暴击倍率增加60%。开场冷却18回合，使用后冷却36回合。",
+          "description": "对一名敌人造成物理伤害，威力为普通攻击的230%。自身恢复本次让目标损失的气血，并随机驱散目标1个增益。目标带有魂毒时，暴击伤害倍率提高60%。开战冷却18回合，使用后冷却36回合。",
           "grantSkills": [
             "youdu.skill.life_and_death"
           ]
@@ -1309,7 +1309,7 @@
           "layer": 7,
           "slot": 3,
           "automatic": true,
-          "description": "物理暴击等级增加40点（等级换算待校准）。",
+          "description": "物理暴击等级增加40点。",
           "passives": [
             "youdu.passive.crit_reward_2"
           ]

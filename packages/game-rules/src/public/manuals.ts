@@ -11,7 +11,12 @@ export type {
   ManualStateChangeResult,
   ResolveCombatCapabilitiesV1Result,
 } from '../manuals/index.js';
-export { manualJadeCost, previewManualAction } from '../manuals/action.js';
+export {
+  FORGOTTEN_MANUAL_JADE_QUANTITY,
+  forgottenManualJade,
+  manualJadeCost,
+  previewManualAction,
+} from '../manuals/action.js';
 export {
   enlightenmentMaterialProblem,
   enlightenmentQualityCap,

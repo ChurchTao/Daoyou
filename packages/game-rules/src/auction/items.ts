@@ -26,11 +26,16 @@ import {
   isAuctionListableQuality,
 } from './settlement.js';
 
-/** 没有品质锚、价值随个体或功法／技能身份变化的品类。 */
-const AUCTION_APPRAISAL_KINDS = new Set<ItemDefinition['kind']>([
+/**
+ * 无品质、且单价可到灵石单次入账上限的品类。
+ * 道装、玉简、传承灵印按个体或身份估价；道装图纸与阵纹的市价同样超过原目录上限。
+ */
+const AUCTION_HIGH_UNIT_PRICE_KINDS = new Set<ItemDefinition['kind']>([
   'equipment',
   'manual_jade',
   'beast_book',
+  'blueprint',
+  'inscription',
 ]);
 
 /** 单次上架件数以该物品的背包堆叠上限为准，不另设固定件数。 */
@@ -127,7 +132,7 @@ export function auctionItemPriceCap(item: AuctionItemFacts) {
   const quality = auctionItemQuality(item);
   if (quality) return getAuctionUnitPriceCap(quality);
   const kind = itemDefinition(item.definitionId).kind;
-  return AUCTION_APPRAISAL_KINDS.has(kind)
+  return AUCTION_HIGH_UNIT_PRICE_KINDS.has(kind)
     ? AUCTION_MAX_UNIT_PRICE
     : AUCTION_CATALOG_UNIT_PRICE_CAP;
 }

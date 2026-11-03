@@ -57,7 +57,9 @@ export function bindDataHooks(ctx: BattleContext): void {
           const skillId = hctx.skillId ?? ctx.currentAction?.skillId
           const actor = hctx.source ?? unit
           const actionSkill = skillId ? skillOf(ctx.skills, actor, skillId) : undefined
-          const originalResourceCost = (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0)
+          const costEnv = actionSkill ? makeEnv(unit, actionSkill, []) : undefined
+          const originalResourceCost = (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, costEnv!), 0)
+          const resourceCost = (actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, costEnv!), 0)
           const scope: WhenScope = {
             statusId: hctx.statusId,
             statusKind: hctx.statusKind,
@@ -104,7 +106,10 @@ export function bindDataHooks(ctx: BattleContext): void {
             normalTargetIds: ctx.currentAction?.normalTargetIds,
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
-            originalResourceCost: (actionSkill?.originalResourceCosts ?? actionSkill?.resourceCosts ?? []).reduce((sum, cost) => sum + evalExpr(cost.amount, makeEnv(unit, actionSkill!, [])), 0),
+            heal: hctx.heal,
+            healBase: hctx.healBase,
+            originalResourceCost,
+            resourceCost,
             targetStatusStacks: targetStatusStacks(ctx, hook.when, hctx.target),
           }
           if (hook.chance !== undefined && !ctx.rng.chance(evalExpr(hook.chance, env))) return

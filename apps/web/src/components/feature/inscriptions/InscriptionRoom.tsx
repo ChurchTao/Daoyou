@@ -128,6 +128,14 @@ const emptySockets = (): [SocketDraft, SocketDraft] => [
   { action: 'engrave' },
 ];
 
+function inscriptionSlotMark(item?: { definitionId: string }) {
+  if (!item) return undefined;
+  const definition = itemDefinition(item.definitionId);
+  if (definition.kind !== 'inscription' || definition.level == null)
+    return undefined;
+  return `${definition.level}级`;
+}
+
 function drawOutputText(preview: InscriptionDrawPreview) {
   const summary = preview.outputs
     .map((output) => `${output.level}级 ×${output.quantity}`)
@@ -199,6 +207,7 @@ function GrantItems({
             instanceData: null,
           }}
           quantityLabel={quantityLabel}
+          slotMark={inscriptionSlotMark(grant)}
         />
       ))}
     </div>
@@ -754,6 +763,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           return {
             disabled: pickerLocked || !!reason,
             quickOnTouch: true,
+            slotMark: inscriptionSlotMark(item),
             badge: placed
               ? `已投${placed}`
               : item && !reason
@@ -1092,6 +1102,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                         emptyIcon="＋"
                         selected={slot.selected}
                         badge={slot.badge}
+                        slotMark={inscriptionSlotMark(slot.item)}
                         disabled={session.locked || slot.disabled}
                         onQuickAction={slot.choose}
                         quickOnTouch

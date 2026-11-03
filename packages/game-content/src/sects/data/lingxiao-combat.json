@@ -1,7 +1,7 @@
 {
   "$schema": "./lingxiao-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 9,
   "baseSkillIds": [
     "lingxiao.skill.triple",
     "lingxiao.skill.waiting",
@@ -47,7 +47,7 @@
         }
       ],
       "requireHpAboveRatio": 0.5,
-      "description": "凝剑断尘，连续斩击一个敌人，剑势逐段增强。剑息期间免疫封印。",
+      "description": "凝剑断尘，剑势连斩。\n对一名敌人造成三段物理伤害，后段更强。随后进入[[lingxiao.status.recovery]]。",
       "recoveryStatusId": "lingxiao.status.recovery"
     },
     {
@@ -71,7 +71,7 @@
           "storeTarget": true
         }
       ],
-      "description": "藏锋蓄势，消耗当前气血的5%，当回合不攻击；次回合提高物攻、命中和速度，自动攻击蓄势时选定的敌人，此后恢复自由行动。"
+      "description": "藏锋不发，静待惊雷。\n消耗当前气血的5%，本回合不攻击，并进入[[lingxiao.status.preparing]]。下回合转为[[lingxiao.status.waiting]]，提高物理攻击、命中和速度，自动攻击蓄势时选定的敌人。"
     },
     {
       "id": "lingxiao.skill.formation",
@@ -104,7 +104,7 @@
       ],
       "requireHpAboveRatio": 0.1,
       "forbidRevivedRound": true,
-      "description": "临渊决剑，以气血为代价攻击多个敌人。剑息期间免疫封印，复起当回合不可施展。"
+      "description": "以气血换剑势，一剑临渊。\n消耗气血，对多名敌人造成物理伤害，然后进入[[lingxiao.status.recovery]]。复起的当回合不能施展。"
     },
     {
       "id": "lingxiao.skill.sword_aura",
@@ -125,7 +125,7 @@
           "duration": 5
         }
       ],
-      "description": "以破极剑意加持一名友方，使其物理攻击忽视目标10%的物防；同类效果刷新，不叠加。"
+      "description": "剑意破极，锋芒直入。\n使一名友方获得[[lingxiao.status.sword_aura]]，持续5回合。物理攻击会忽视目标10%的物理防御。"
     },
     {
       "id": "lingxiao.skill.clarity",
@@ -146,7 +146,7 @@
           "self": true
         }
       ],
-      "description": "剑心通明，凝神守一，提高自身法防与封抗。"
+      "description": "剑心通明，凝神守一。\n自身获得[[lingxiao.status.clarity]]，持续5回合。法术防御提高心法等级，封印抵抗提高心法等级的一半。"
     },
     {
       "id": "lingxiao.skill.confuse",
@@ -171,7 +171,7 @@
           "hit": "seal"
         }
       ],
-      "description": "振剑长吟，剑鸣如龙，震慑敌方心神；有概率使一只怪物陷入混乱、随机攻击，无法作用于人物或召唤灵。"
+      "description": "剑鸣如龙，乱其心神。\n有概率使一只怪物陷入[[lingxiao.status.confuse]]，持续2回合。"
     },
     {
       "id": "lingxiao.skill.shadow_strike",
@@ -199,7 +199,7 @@
         }
       ],
       "cooldownRounds": 6,
-      "description": "攻击一个敌人，造成100%普通物理攻击伤害；仅下一回合速度提高15%。消耗50法力，冷却6回合。"
+      "description": "掠影一击，身法骤起。\n对一名敌人造成物理伤害。下一回合获得[[lingxiao.status.shadow]]，速度提高15%。冷却6回合。"
     },
     {
       "id": "lingxiao.skill.pursuit",
@@ -221,7 +221,7 @@
           "self": true
         }
       ],
-      "description": "蓄势追击，下一次断尘攻击人物时，对其在场召唤灵造成等量伤害；击倒主目标则保留追击状态。消耗50法力，冷却6回合。",
+      "description": "追击之势，剑及灵兽。\n获得[[lingxiao.status.pursuit]]。下一次断尘攻击人物时，对其在场召唤灵造成同等物理伤害。主目标被击倒时，追击状态保留。冷却6回合。",
       "modifiers": [
         {
           "when": {
@@ -281,7 +281,7 @@
           "power": 0
         }
       ],
-      "description": "造成110%普通物理攻击伤害结果，不能被保护；60%概率使目标重创2回合，回复降低30%，受到自己的伤害提高10%。消耗50法力，冷却6回合。",
+      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。",
       "modifiers": [
         {
           "when": {
@@ -336,7 +336,7 @@
           "power": 0
         }
       ],
-      "description": "造成110%普通物理攻击伤害结果，不能被保护；60%概率使目标重创2回合，回复降低30%，受到自己的伤害提高10%。消耗50法力，冷却6回合。",
+      "description": "长驱直入，剑不容护。\n对一名敌人造成物理伤害，威力为普通攻击的110%，且不能被保护。有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。冷却6回合。",
       "modifiers": [
         {
           "when": {
@@ -373,6 +373,7 @@
     {
       "id": "lingxiao.status.waiting",
       "name": "惊雷",
+      "description": "物理攻击和命中提高心法等级，速度提高心法等级×2，并自动攻击蓄势时选定的敌人。攻击后恢复自由行动。",
       "kind": "lingxiao.waiting",
       "category": "buff",
       "commandPolicy": "storedAttack",
@@ -387,6 +388,7 @@
     {
       "id": "lingxiao.status.sword_aura",
       "name": "破极剑意",
+      "description": "物理攻击忽视目标10%的物理防御。再次获得时刷新时间，不会叠加。",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
       "physicalDefenseIgnore": 0.1,
@@ -396,6 +398,7 @@
     {
       "id": "lingxiao.status.clarity",
       "name": "剑心通明",
+      "description": "法术防御提高心法等级，封印抵抗提高心法等级的一半。",
       "kind": "lingxiao.clarity",
       "category": "buff",
       "attrMods": {
@@ -407,6 +410,7 @@
     {
       "id": "lingxiao.status.confuse",
       "name": "剑龙吟",
+      "description": "行动不受控制，会随机攻击。",
       "kind": "lingxiao.confuse",
       "category": "control",
       "commandPolicy": "random",
@@ -415,6 +419,7 @@
     {
       "id": "lingxiao.status.recovery",
       "name": "剑息",
+      "description": "无法行动，期间不会被封印。",
       "kind": "lingxiao.rest",
       "category": "control",
       "blocksAction": true,
@@ -425,6 +430,7 @@
     {
       "id": "lingxiao.status.preparing",
       "name": "藏锋",
+      "description": "本回合不攻击。回合结束时转为惊雷。",
       "kind": "lingxiao.preparing",
       "category": "buff",
       "expireSameRound": true,
@@ -451,6 +457,7 @@
     {
       "id": "lingxiao.status.shadow",
       "name": "惊鸿",
+      "description": "速度提高15%。",
       "kind": "lingxiao.shadow",
       "category": "buff",
       "speedMod": "target.speed * 0.15",
@@ -481,6 +488,7 @@
     {
       "id": "lingxiao.status.wound",
       "name": "重创",
+      "description": "受到的治疗降低30%。受到施加者的伤害提高10%。",
       "kind": "lingxiao.wound",
       "category": "debuff",
       "sourceBound": true,
@@ -507,6 +515,7 @@
     {
       "id": "lingxiao.status.pursuit",
       "name": "乘胜追击",
+      "description": "下一次断尘若攻击人物，会对其在场召唤灵造成同等伤害。主目标被击倒时，这个状态保留。",
       "kind": "lingxiao.pursuit",
       "category": "buff",
       "untilBattleEnd": true,

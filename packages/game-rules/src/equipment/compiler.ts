@@ -606,6 +606,9 @@ export function compileDaoEquipmentSpecialLoadoutV1(
     ...artDefs.flatMap((item) =>
       (item.statusDefs ?? []).map((status) => status.id),
     ),
+    ...essenceDefs.flatMap((item) =>
+      (item.statusDefs ?? []).map((status) => status.id),
+    ),
     DAO_RAGE_RESOURCE_ID,
   ];
   if (new Set(contentIds).size !== contentIds.length) {
@@ -647,8 +650,10 @@ export function compileDaoEquipmentSpecialLoadoutV1(
   const effectiveEssenceIds: string[] = [];
   const seenNonStack = new Set<string>();
   const essenceSkills: DaoEquipmentArtDefV1['skill'][] = [];
+  const essenceStatusDefs: NonNullable<DaoEquipmentArtDefV1['statusDefs']> = [];
   let rageGainFactor = 1;
   let rageCostFactor = 1;
+  let rageInitialAdd = 0;
   for (const occurrence of occurrences) {
     const definition = essenceMap.get(occurrence.id)!;
     if (definition.stackPolicy !== 'stack' && seenNonStack.has(definition.id)) {
@@ -682,6 +687,11 @@ export function compileDaoEquipmentSpecialLoadoutV1(
       ...definition.passive,
       id: `${definition.passive.id}.${occurrence.slot}`,
     });
+    for (const status of definition.statusDefs ?? []) {
+      if (!essenceStatusDefs.some((candidate) => candidate.id === status.id))
+        essenceStatusDefs.push(status);
+    }
+    rageInitialAdd += definition.rageInitialAdd ?? 0;
     rageGainFactor = Math.max(
       rageGainFactor,
       definition.resourceGainFactors?.[DAO_RAGE_RESOURCE_ID] ?? 1,
@@ -696,7 +706,9 @@ export function compileDaoEquipmentSpecialLoadoutV1(
 
   const grantedArtIds: string[] = [];
   const skills = [] as DaoEquipmentArtDefV1['skill'][];
-  const statusDefs = [] as NonNullable<DaoEquipmentArtDefV1['statusDefs']>;
+  const statusDefs = [...essenceStatusDefs] as NonNullable<
+    DaoEquipmentArtDefV1['statusDefs']
+  >;
   for (const occurrence of artOccurrences) {
     const definition = artMap.get(occurrence.id)!;
     if (grantedArtIds.includes(definition.id)) {
@@ -748,6 +760,7 @@ export function compileDaoEquipmentSpecialLoadoutV1(
       effectiveRequiredLevels,
       rageGainFactor,
       rageCostFactor,
+      rageInitialAdd,
     },
   };
 }

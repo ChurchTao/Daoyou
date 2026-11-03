@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-forging.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "generation": {
     "essenceCountProbabilities": [
       0.82,
@@ -23,7 +23,23 @@
       "dao_equipment.essence.chuanxuan",
       "dao_equipment.essence.chengnian",
       "dao_equipment.essence.huichun",
-      "dao_equipment.essence.huming"
+      "dao_equipment.essence.huming",
+      "dao_equipment.essence.kuanggu",
+      "dao_equipment.essence.shiling",
+      "dao_equipment.essence.lianzhu",
+      "dao_equipment.essence.dingshen",
+      "dao_equipment.essence.jingxin",
+      "dao_equipment.essence.buqu",
+      "dao_equipment.essence.jinshen",
+      "dao_equipment.essence.naling",
+      "dao_equipment.essence.yuwen",
+      "dao_equipment.essence.tongze",
+      "dao_equipment.essence.zhige",
+      "dao_equipment.essence.yunu",
+      "dao_equipment.essence.xushi",
+      "dao_equipment.essence.taxu",
+      "dao_equipment.essence.bifeng",
+      "dao_equipment.essence.juechen"
     ],
     "artPool": [
       "dao_equipment.art.huiyuan",

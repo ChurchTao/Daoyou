@@ -37,6 +37,8 @@ type SlotProps = {
   selected?: boolean;
   disabled?: boolean;
   badge?: string;
+  /** 左上角标记，例如阵纹室的等级。不改图标、名称和预览。 */
+  slotMark?: string;
   emptyLabel?: string;
   emptyIcon?: ReactNode;
   className?: string;
@@ -86,6 +88,7 @@ export function PreviewSlot({
   selected,
   disabled,
   badge,
+  slotMark,
   emptyLabel = '空格',
   emptyIcon = '·',
   className,
@@ -107,6 +110,7 @@ export function PreviewSlot({
   const touchMoved = useRef(false);
   const pointer = useRef('');
   const slotName = item?.name ?? emptyLabel;
+  const mark = item ? slotMark : undefined;
   const quantityText = item
     ? item.quantity > 9999
       ? `${(item.quantity / 10000).toFixed(2)}万`
@@ -184,7 +188,9 @@ export function PreviewSlot({
         data-guide={guideAnchor}
         type="button"
         aria-label={
-          item ? `${item.name}，${item.quantity}件` : emptyLabel || '空格'
+          item
+            ? `${item.name}${mark ? `，${mark}` : ''}，${item.quantity}件`
+            : emptyLabel || '空格'
         }
         aria-expanded={item ? open : undefined}
         aria-disabled={disabled || (!item && !onQuickAction)}
@@ -299,7 +305,27 @@ export function PreviewSlot({
             <span className="line-clamp-2 w-full">{slotName}</span>
           </span>
         ) : null}
-        {item && item.quantity > 1 ? (
+        {mark ? (
+          <span
+            className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
+            style={
+              item && item.quantity > 1
+                ? {
+                    fontSize: `min(1rem, 20cqw, calc((100cqw - 1.25rem) / ${mark.length + quantityText.length + 1}))`,
+                  }
+                : undefined
+            }
+          >
+            {mark}
+            {item && item.quantity > 1 ? (
+              <span className="ml-0.5">
+                <span className="text-[0.75em]">×</span>
+                {quantityText}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
+        {item && item.quantity > 1 && !mark ? (
           <span
             className="text-ink absolute top-1 left-1 font-mono text-[clamp(0.75rem,20cqw,1rem)] leading-none font-semibold tracking-tight whitespace-nowrap [text-shadow:0_1px_2px_var(--color-paper)]"
             style={

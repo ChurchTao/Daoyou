@@ -8,6 +8,21 @@ import { WUXIANG_V6_DEFINITION } from './wuxiang.js';
 import { WANQIAO_V6_DEFINITION } from './wanqiao.js';
 import { YOUDU_V6_DEFINITION } from './youdu.js';
 
+/** 技能说明里 [[状态ID]] 对应的名称与详细说明。 */
+export function sectStatusDetails() {
+  const details: Record<string, { name: string; description: string }> = {};
+  for (const definition of Object.values(COMBAT_V6_SECT_DEFINITIONS)) {
+    for (const status of definition.statuses) {
+      if (status.description)
+        details[status.id] = {
+          name: status.name,
+          description: status.description,
+        };
+    }
+  }
+  return details;
+}
+
 /** 当前宗门内容目录。 */
 export const COMBAT_V6_SECT_DEFINITIONS: Record<
   import('@daoyou/game-domain/combat').CombatV6SectId,

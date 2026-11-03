@@ -188,7 +188,13 @@ export function projectCharacterEquipment(
       skillOverrides: [...(sect?.projection.skillOverrides ?? []), ...equipment.projection.skillOverrides],
       resources: [
         ...(sect?.projection.resources ?? []),
-        { ...DAO_RAGE_RESOURCE },
+        {
+          ...DAO_RAGE_RESOURCE,
+          current: Math.min(
+            DAO_RAGE_RESOURCE.max,
+            DAO_RAGE_RESOURCE.current + equipment.projection.rageInitialAdd,
+          ),
+        },
       ],
       combatFacts: {
         ...meridianEquipmentFacts,

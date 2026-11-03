@@ -503,7 +503,11 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
   }
 
   // 独立治疗公式可自行计入治疗能力，同时仍接受通用施疗与受疗修正。
-  const amount = floorAtLeast(MIN_DAMAGE, power + (fixedBase || !includeHealPower ? 0 : effectiveAttrs(source).healPower))
+  const rawAmount = floorAtLeast(MIN_DAMAGE, power + (fixedBase || !includeHealPower ? 0 : effectiveAttrs(source).healPower))
+  const dealtAdd = ctx.suppressHooks > 0
+    ? 0
+    : passiveSkills(ctx.skills, source).reduce((sum, skill) => sum + (skill.innate?.healDealtAdd ?? 0), 0)
+  const amount = rawAmount * (1 + dealtAdd)
   const isPrimary =
     ctx.currentAction?.primaryTargetId !== undefined && target.id === ctx.currentAction.primaryTargetId
   const taken = healTakenFactor(target) * (fixedBase ? 1 : healDealtFactor(source))
@@ -512,6 +516,7 @@ export function applyHeal(ctx: BattleContext, source: Unit, target: Unit, power:
     source,
     target,
     heal: amount * taken,
+    healBase: amount,
     skillId: ctx.currentAction?.skillId,
     isPrimary,
   })

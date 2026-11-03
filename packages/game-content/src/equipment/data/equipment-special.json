@@ -1,7 +1,7 @@
 {
   "$schema": "./equipment-special.schema.json",
   "formatVersion": 1,
-  "contentRevision": 7,
+  "contentRevision": 8,
   "essences": [
     {
       "id": "dao_equipment.essence.cangfeng",
@@ -10,7 +10,7 @@
       "effect": {
         "type": "panelAdd",
         "attribute": "critRate",
-        "value": 0.01
+        "value": 0.03
       },
       "description": "器中锋芒凝聚，物理暴击概率提高{valuePercent}%。"
     },
@@ -21,7 +21,7 @@
       "effect": {
         "type": "panelAdd",
         "attribute": "spellCritRate",
-        "value": 0.01
+        "value": 0.03
       },
       "description": "器中锋芒凝聚，法术暴击概率提高{valuePercent}%。"
     },
@@ -32,7 +32,7 @@
       "effect": {
         "type": "sealChance",
         "side": "hit",
-        "value": 0.01
+        "value": 0.03
       },
       "description": "器蕴护持神识，封禁命中概率提高{valuePercent}%。"
     },
@@ -43,7 +43,7 @@
       "effect": {
         "type": "sealChance",
         "side": "resist",
-        "value": 0.01
+        "value": 0.03
       },
       "description": "器蕴护持神识，受到封禁时命中概率降低{valuePercent}%。"
     },
@@ -91,7 +91,7 @@
       "effect": {
         "type": "antiCrit",
         "kind": "physical",
-        "value": 0.01
+        "value": 0.02
       }
     },
     {
@@ -102,7 +102,7 @@
       "effect": {
         "type": "antiCrit",
         "kind": "spell",
-        "value": 0.01
+        "value": 0.02
       }
     },
     {
@@ -163,6 +163,142 @@
       "allowedSlots": [
         "weapon"
       ]
+    },
+    {
+      "id": "dao_equipment.essence.kuanggu",
+      "name": "狂骨",
+      "stackPolicy": "stack",
+      "effect": {
+        "type": "panelAdd",
+        "attribute": "physicalFuryRate",
+        "value": 0.03
+      },
+      "description": "器蕴鼓荡筋骨，物理狂暴率提高{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.shiling",
+      "name": "噬灵",
+      "stackPolicy": "unique",
+      "allowedSlots": ["weapon"],
+      "effect": { "type": "attackMpRestore", "ratio": 0.08 },
+      "description": "普攻命中后，按本次实际扣减气血的{ratioPercent}%恢复自身法力。"
+    },
+    {
+      "id": "dao_equipment.essence.lianzhu",
+      "name": "连珠",
+      "stackPolicy": "unique",
+      "allowedSlots": ["weapon"],
+      "effect": { "type": "attackFollowUp", "chance": 0.25, "factor": 0.5 },
+      "description": "普攻命中后，有{chancePercent}%概率追加一次{factorPercent}%强度的物理攻击，每回合至多一次。"
+    },
+    {
+      "id": "dao_equipment.essence.dingshen",
+      "name": "定神",
+      "stackPolicy": "unique",
+      "allowedSlots": ["head"],
+      "effect": { "type": "roundStartCleanse", "chance": 0.06 },
+      "description": "回合开始时，有{chancePercent}%概率解除自身一个可解除的控制。"
+    },
+    {
+      "id": "dao_equipment.essence.jingxin",
+      "name": "镜心",
+      "stackPolicy": "unique",
+      "allowedSlots": ["head"],
+      "effect": { "type": "sealMissRage", "amount": 10 },
+      "description": "自身封印被抵抗时，获得{amount}点战意。"
+    },
+    {
+      "id": "dao_equipment.essence.buqu",
+      "name": "不屈",
+      "stackPolicy": "unique",
+      "allowedSlots": ["armor"],
+      "effect": { "type": "lowHpTaken", "threshold": 0.35, "reduction": 0.05 },
+      "description": "气血低于上限的{thresholdPercent}%时，受到的伤害结果降低{reductionPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.jinshen",
+      "name": "金身",
+      "stackPolicy": "unique",
+      "allowedSlots": ["armor"],
+      "effect": { "type": "barrierGain", "factor": 0.12 },
+      "description": "自身获得的护盾量提高{factorPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.naling",
+      "name": "纳灵",
+      "stackPolicy": "unique",
+      "allowedSlots": ["necklace"],
+      "effect": { "type": "mpRegen", "maxRatio": 0.05 },
+      "description": "自身在场时，回合结束恢复最大法力的{maxRatioPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.yuwen",
+      "name": "余温",
+      "stackPolicy": "unique",
+      "allowedSlots": ["necklace"],
+      "effect": { "type": "healDealt", "factor": 0.1 },
+      "description": "自身治疗量提高{factorPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.tongze",
+      "name": "同泽",
+      "stackPolicy": "unique",
+      "allowedSlots": ["necklace"],
+      "effect": { "type": "allyHealEcho", "ratio": 0.2 },
+      "description": "治疗友方时，按该次治疗基数的{ratioPercent}%恢复自身气血，受减疗与伤势上限约束。"
+    },
+    {
+      "id": "dao_equipment.essence.zhige",
+      "name": "止戈",
+      "stackPolicy": "unique",
+      "allowedSlots": ["belt"],
+      "effect": { "type": "defendRage", "amount": 5 },
+      "description": "使用防御时，获得{amount}点战意。"
+    },
+    {
+      "id": "dao_equipment.essence.yunu",
+      "name": "余怒",
+      "stackPolicy": "unique",
+      "allowedSlots": ["belt"],
+      "effect": { "type": "artRageRefund", "ratio": 0.15 },
+      "description": "施展器诀后，返还本次消耗战意的{ratioPercent}%，向下取整。"
+    },
+    {
+      "id": "dao_equipment.essence.xushi",
+      "name": "蓄势",
+      "stackPolicy": "unique",
+      "allowedSlots": ["belt"],
+      "effect": { "type": "openingRage", "amount": 10 },
+      "description": "入场时战意增加{amount}点。"
+    },
+    {
+      "id": "dao_equipment.essence.taxu",
+      "name": "踏虚",
+      "stackPolicy": "unique",
+      "allowedSlots": ["footwear"],
+      "effect": { "type": "primarySpeedDamage", "factor": 0.04 },
+      "description": "速度高于主目标时，对其造成的伤害结果提高{factorPercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.bifeng",
+      "name": "避锋",
+      "stackPolicy": "unique",
+      "allowedSlots": ["footwear"],
+      "effect": { "type": "dodgeChance", "value": 0.04 },
+      "description": "受到物理攻击时，闪避率提高{valuePercent}%。"
+    },
+    {
+      "id": "dao_equipment.essence.juechen",
+      "name": "绝尘",
+      "stackPolicy": "unique",
+      "allowedSlots": ["footwear"],
+      "effect": {
+        "type": "firstLowHpSpeed",
+        "threshold": 0.3,
+        "factor": 0.15,
+        "duration": 2
+      },
+      "description": "本场气血首次低于上限的{thresholdPercent}%时，速度提高{factorPercent}%，持续{duration}回合。"
     }
   ],
   "arts": [

@@ -1,7 +1,7 @@
 {
   "$schema": "./bailu-combat.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 3,
   "baseSkillIds": [
     "bailu.skill.poxie",
     "bailu.skill.zhuxie",
@@ -24,7 +24,7 @@
       "id": "bailu.skill.poxie",
       "name": "破邪！",
       "school": "bailu",
-      "description": "凝浩然正气攻击一名敌人。浩气文章额外攻击一人；朱批目标优先作为第二目标。",
+      "description": "浩然正气凝于笔端。\n对一名敌人造成法术伤害。若修成浩气文章，会再攻击一人，并优先选择带有[[bailu.status.mark]]的目标。",
       "tags": [
         "spell"
       ],
@@ -54,7 +54,7 @@
       "id": "bailu.skill.zhuxie",
       "name": "诛邪！",
       "school": "bailu",
-      "description": "言辞化作枪剑，攻击至多三名敌人，每实际目标消耗30法力。优先补选鬼魂及高速目标；仅可在没有敌方人物的战斗中施放。",
+      "description": "言辞化作枪剑，专诛邪祟。\n对最多三名敌人造成法术伤害，每个实际目标消耗30法力。优先补选鬼魂和速度高的目标。只能在没有敌方人物的战斗中施放。",
       "tags": [
         "spell"
       ],
@@ -99,7 +99,7 @@
       "id": "bailu.skill.rumeng",
       "name": "入梦！",
       "school": "bailu",
-      "description": "使目标入梦，无法行动；受实际气血伤害即醒，余音改为单次伤害严格超过30点才醒。",
+      "description": "一声入梦，心神沉寂。\n使目标陷入[[bailu.status.sleep]]，无法行动。持续回合随心法等级提高。若修成余音，则改为[[bailu.status.sleep_deep]]。",
       "tags": [
         "spell",
         "seal"
@@ -138,7 +138,7 @@
       "id": "bailu.skill.jinfa",
       "name": "禁法！",
       "school": "bailu",
-      "description": "封印目标门派法术并降低10%法防。基础封印命中70%。",
+      "description": "一言封喉，法术难出。\n使目标陷入[[bailu.status.law]]，无法使用法术，法术防御降低10%。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -165,7 +165,7 @@
       "id": "bailu.skill.shihun",
       "name": "失魂！",
       "school": "bailu",
-      "description": "封印目标攻击法术并降低10%物防，允许辅助法术。基础封印命中70%。",
+      "description": "神魂一滞，攻术散乱。\n使目标陷入[[bailu.status.soul]]，无法使用造成伤害的法术，物理防御降低10%。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -192,7 +192,7 @@
       "id": "bailu.skill.dingshen",
       "name": "定身！",
       "school": "bailu",
-      "description": "封印普通攻击和物理技能，降低物防、法防各5%。基础封印命中70%。",
+      "description": "正气定身，兵刃难举。\n使目标陷入[[bailu.status.still]]，无法使用普通攻击和物理技能，物理防御和法术防御各降低5%。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -219,7 +219,7 @@
       "id": "bailu.skill.luanshen",
       "name": "乱神！",
       "school": "bailu",
-      "description": "封印门派法术，普通攻击随机选择目标。辩锋满足条件时同次封印兼带禁言与折辩的降防。",
+      "description": "诘问乱神，攻向无定。\n使目标陷入[[bailu.status.confusion]]，无法使用法术，普通攻击会随机选择目标。持续回合随心法等级提高。辩锋生效时改为[[bailu.status.confusion_full]]。",
       "tags": [
         "spell",
         "seal"
@@ -258,7 +258,7 @@
       "id": "bailu.skill.shicuo",
       "name": "失措！",
       "school": "bailu",
-      "description": "封印门派法术并降低10%有效躲避。基础封印命中70%。",
+      "description": "正名失措，身法散乱。\n使目标陷入[[bailu.status.disarray]]，无法使用法术，躲避降低10%。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -285,7 +285,7 @@
       "id": "bailu.skill.babing",
       "name": "罢兵！",
       "school": "bailu",
-      "description": "封印普通攻击和物理技能并降低10%物防。基础封印命中70%。",
+      "description": "罢兵止戈，锋芒收敛。\n使目标陷入[[bailu.status.peace]]，无法使用普通攻击和物理技能，物理防御降低10%。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -312,7 +312,7 @@
       "id": "bailu.skill.jinqi",
       "name": "禁器！",
       "school": "bailu",
-      "description": "封印装备器诀，不妨碍普通宗门技能。基础封印命中70%。",
+      "description": "缄诀封器，器灵哑然。\n使目标陷入[[bailu.status.device]]，无法使用装备器诀。持续回合随心法等级提高。",
       "tags": [
         "spell",
         "seal"
@@ -339,7 +339,7 @@
       "id": "bailu.skill.fuyuan",
       "name": "复元！",
       "school": "bailu",
-      "description": "消耗20法力，恢复心法等级+10点气血。",
+      "description": "一文复元，气血回生。\n消耗20法力，恢复心法等级+10点气血。",
       "tags": [
         "spell",
         "support"
@@ -361,7 +361,7 @@
       "id": "bailu.skill.juqi",
       "name": "聚气！",
       "school": "bailu",
-      "description": "消耗20气血，恢复心法等级+10点法力。",
+      "description": "以血换气，神意复聚。\n消耗20气血，恢复心法等级+10点法力。",
       "tags": [
         "spell",
         "support"
@@ -381,7 +381,7 @@
       "id": "bailu.skill.ningshen",
       "name": "凝神！",
       "school": "bailu",
-      "description": "消耗50法力，10回合内封印命中与封印上限各提高10个百分点。",
+      "description": "凝神明志，言出必中。\n自身获得[[bailu.status.focus]]，持续10回合。封印命中和封印命中上限各提高10个百分点。",
       "tags": [
         "spell",
         "support"
@@ -402,7 +402,7 @@
       "id": "bailu.skill.hushen",
       "name": "护身！",
       "school": "bailu",
-      "description": "消耗80法力，4回合内每轮免疫敌方第一次攻击的第一段，后续段数正常命中。",
+      "description": "贤影护身，先机不侵。\n自身获得[[bailu.status.guard]]，持续4回合。",
       "tags": [
         "spell",
         "support"
@@ -423,7 +423,7 @@
       "id": "bailu.skill.pojia",
       "name": "破甲！",
       "school": "bailu",
-      "description": "正言执律专属。每目标消耗50法力，降低至多三名敌人的双防各5%，持续4回合；笔削首轮双倍，随后每轮减少原降幅的20%，不低于基础降幅。",
+      "description": "笔削落下，防备见骨。\n使最多三名敌人陷入[[bailu.status.armor]]，物理防御和法术防御各降低5%，持续4回合。每个目标消耗50法力。若修成笔削，首回合改为[[bailu.status.armor_strong]]。",
       "tags": [
         "spell",
         "support"
@@ -458,7 +458,7 @@
       "id": "bailu.skill.dianming",
       "name": "点名！",
       "school": "bailu",
-      "description": "浩气文章专属。以破邪攻击主目标，留下本人唯一朱批；再次点名会换掉自己原先的朱批。消耗30法力，冷却8回合。",
+      "description": "点名留批，正气锁定一人。\n对主目标造成法术伤害，并留下[[bailu.status.mark]]。再次点名会把印记移到新目标。消耗30法力，冷却8回合。",
       "tags": [
         "spell"
       ],
@@ -506,7 +506,7 @@
       "id": "bailu.skill.jinsheng",
       "name": "噤声！",
       "school": "bailu",
-      "description": "消耗70战意，必中封法并附禁言2回合。自身被封法时不可用。冷却6回合。",
+      "description": "战意化言，一语封喉。\n消耗70战意，必定使目标陷入[[bailu.status.law]]，持续2回合。自身无法使用法术时不能施放。冷却6回合。",
       "tags": [
         "spell",
         "seal"
@@ -550,7 +550,7 @@
       "id": "bailu.skill.shesheng",
       "name": "舍生！",
       "school": "bailu",
-      "description": "气血至少一半可施放。消耗80法力，自身气血留1点，获得5回合不可驱散的舍生立言：破邪伤害提高70%，回合末使自身拘灵缩短1回合。冷却8回合，开战冷却4回合。",
+      "description": "舍身立言，正气尽出。\n气血至少一半才能施放。消耗80法力，将自身气血降到1点，获得[[bailu.status.sacrifice]]，持续5回合。冷却8回合，开战冷却4回合。",
       "tags": [
         "spell",
         "support"
@@ -595,7 +595,7 @@
       "id": "bailu.passive.righteousness",
       "name": "浩然正气",
       "school": "bailu",
-      "description": "对幽都单位伤害提高10%；对鬼魂单位物理、法术伤害翻倍。两者同时满足时相乘。",
+      "description": "浩然正气，邪不胜正。\n对幽都目标造成的伤害提高10%。对鬼魂目标造成的物理伤害和法术伤害翻倍。两种条件同时满足时，两段加成相乘。",
       "tags": [
         "passive"
       ],
@@ -633,6 +633,7 @@
     {
       "id": "bailu.status.sleep",
       "name": "入梦",
+      "description": "无法行动。受到气血伤害后醒来。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -642,6 +643,7 @@
     {
       "id": "bailu.status.sleep_deep",
       "name": "入梦",
+      "description": "无法行动。单次受到的气血伤害超过30点后醒来。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -652,6 +654,7 @@
     {
       "id": "bailu.status.law",
       "name": "禁言",
+      "description": "无法使用法术。法术防御降低10%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -672,6 +675,7 @@
     {
       "id": "bailu.status.soul",
       "name": "折辩",
+      "description": "无法使用造成伤害的法术。物理防御降低10%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -692,6 +696,7 @@
     {
       "id": "bailu.status.still",
       "name": "肃立",
+      "description": "无法使用普通攻击和物理技能。物理防御和法术防御各降低5%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -704,6 +709,7 @@
     {
       "id": "bailu.status.confusion",
       "name": "诘问",
+      "description": "无法使用法术。普通攻击会随机选择目标。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -713,6 +719,7 @@
     {
       "id": "bailu.status.confusion_full",
       "name": "诘问",
+      "description": "无法使用法术。普通攻击会随机选择目标。物理防御和法术防御各降低10%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -741,6 +748,7 @@
     {
       "id": "bailu.status.disarray",
       "name": "正名",
+      "description": "无法使用法术。躲避降低10%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -752,6 +760,7 @@
     {
       "id": "bailu.status.peace",
       "name": "罢兵",
+      "description": "无法使用普通攻击和物理技能。物理防御降低10%。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -763,6 +772,7 @@
     {
       "id": "bailu.status.device",
       "name": "缄诀",
+      "description": "无法使用装备器诀。",
       "kind": "bailu.seal",
       "school": "bailu",
       "category": "control",
@@ -801,6 +811,7 @@
     {
       "id": "bailu.status.focus",
       "name": "明志",
+      "description": "封印命中提高10个百分点，封印命中上限也提高10个百分点。",
       "kind": "bailu.focus",
       "school": "bailu",
       "category": "buff",
@@ -814,6 +825,7 @@
     {
       "id": "bailu.status.guard",
       "name": "贤影",
+      "description": "每回合抵挡敌方第一次攻击的第一下。同一次攻击若还有后续伤害，那些伤害仍会命中。",
       "kind": "bailu.guard",
       "school": "bailu",
       "category": "buff",
@@ -834,6 +846,7 @@
     {
       "id": "bailu.status.armor",
       "name": "笔削",
+      "description": "物理防御和法术防御各降低5%。",
       "kind": "bailu.armor",
       "school": "bailu",
       "category": "debuff",
@@ -845,6 +858,7 @@
     {
       "id": "bailu.status.armor_strong",
       "name": "笔削",
+      "description": "物理防御和法术防御先降低10%，之后每回合少降一些，直到回到5%。",
       "kind": "bailu.armor",
       "school": "bailu",
       "category": "debuff",
@@ -861,6 +875,7 @@
     {
       "id": "bailu.status.mark",
       "name": "朱批",
+      "description": "点名留下的印记，持续整场。破邪的额外一击会优先打向带有此印的目标。再次点名会把印记移走。",
       "kind": "bailu.mark",
       "school": "bailu",
       "category": "debuff",
@@ -915,6 +930,7 @@
     {
       "id": "bailu.status.sacrifice",
       "name": "舍生立言",
+      "description": "破邪造成的法术伤害提高70%。每个回合结束时，自身的拘灵缩短1回合。无法被驱散。",
       "kind": "bailu.sacrifice",
       "school": "bailu",
       "category": "buff",

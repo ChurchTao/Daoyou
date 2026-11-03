@@ -248,6 +248,9 @@ class Parser {
       return this.env.state?.units.filter(u => (u.side !== this.env.source.side) === enemy && !u.flags.dead && !u.flags.escaped && !u.flags.benched && (!enemy || !u.flags.downed) && u.statuses.some(s => s.kind === kind)).length ?? 0
     }
     if (name === "originalResourceCost") return this.env.originalResourceCost ?? 0
+    if (name === "resourceCost") return this.env.resourceCost ?? 0
+    if (name === "heal") return this.env.heal ?? 0
+    if (name === "healBase") return this.env.healBase ?? 0
     if (name.startsWith("resource.")) return this.env.source.resources.find(r => r.id === name.slice(9))?.current ?? 0
     if (name.startsWith("fact.")) return this.env.source.combatFacts?.[name.slice(5)] ?? 0
     if (name.startsWith("uses.")) return this.env.source.skillUses?.[name.slice(5)] ?? 0

@@ -10,6 +10,7 @@ import {
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { InventoryError } from '@server/inventory/operations.js';
+import { InventoryRuleError } from '@daoyou/game-domain/inventory';
 import { ManualActionSchema } from '@daoyou/game-domain/manuals';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
@@ -26,7 +27,7 @@ const ManualErrors = apiErrorFilter((error) => {
       { success: false, error: '请求参数无效' },
       { status: 400 },
     );
-  if (error instanceof InventoryError)
+  if (error instanceof InventoryError || error instanceof InventoryRuleError)
     return Response.json(
       { success: false, error: error.message },
       { status: 409 },

@@ -1,7 +1,18 @@
-import { z } from 'zod';
 import { ATTR_NAMES } from '@daoyou/combat-core/constants';
-import { DamageKind, DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, TargetMode, TargetSide, UnitKind } from '@daoyou/combat-core/enums';
+import {
+  DamageKind,
+  DamageOrigin,
+  EffectType,
+  HookAim,
+  HookName,
+  SkillTag,
+  StatusCategory,
+  TargetMode,
+  TargetSide,
+  UnitKind,
+} from '@daoyou/combat-core/enums';
 import { type SkillEffect } from '@daoyou/combat-core/types';
+import { z } from 'zod';
 
 export const wxId = z.string().regex(/^wuxiang\.[a-z][a-z0-9_.]*$/);
 const ref = z.string().min(1);
@@ -199,6 +210,7 @@ export const wxHook = z.strictObject({
 export const wxStatus = z.strictObject({
   id: wxId,
   name: z.string().min(1),
+  description: z.string().min(1).max(1000).optional(),
   kind: wxId,
   category: z.enum(StatusCategory),
   dispellable: z.boolean().optional(),

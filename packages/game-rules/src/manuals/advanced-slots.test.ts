@@ -94,7 +94,7 @@ describe('六个功法位及独立高阶书目', () => {
 
   it('同书不可跨位重复学习，激活与培养只限所属位，非法状态拒绝投影', () => {
     const state = learnedState();
-    for (const action of ['learn', 'activate', 'train', 'unlock'] as const)
+    for (const action of ['learn', 'activate', 'train', 'unlock', 'forget'] as const)
       expect(changeManual({ state, realm: '大乘', action, slot: 6,
         manualId: advanced[0].id, expectedRevision: 0, resources }).ok).toBe(false);
     for (const slots of [

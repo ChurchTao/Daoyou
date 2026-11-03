@@ -39,6 +39,8 @@ export type HookContext = {
   defenseIgnore?: number
   /** 钩子可改治疗量 */
   heal?: number
+  /** 受疗倍率之前的治疗基数。 */
+  healBase?: number
   /** 钩子可改护盾量。 */
   barrier?: number
   /** 钩子可改疗伤量。 */

@@ -1,10 +1,11 @@
+import { SkillDescription } from '@app/components/feature/skills/SkillDescription';
 import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { findBeastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import type { CombatV6SkillCommandOption } from '@daoyou/combat-core/types';
-import { useState, type ReactNode } from 'react';
+import { findBeastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import { reasonText } from '@daoyou/game-rules/combat/log';
+import { useState, type ReactNode } from 'react';
 import { skillNeedsTarget } from './presentation';
 import type { CombatV6Session } from './session';
 
@@ -156,8 +157,12 @@ export function CombatV6SkillChoice({
             <h3>{selected.name}</h3>
             <p className="cv6-choice-scope">{scope(selected)}</p>
             <p className="cv6-choice-description">
-              {session.display?.skillDetails?.[selected.skillId]?.description ??
-                '暂无效果说明。'}
+              <SkillDescription
+                text={
+                  session.display?.skillDetails?.[selected.skillId]
+                    ?.description ?? '暂无效果说明。'
+                }
+              />
             </p>
             <dl className="cv6-choice-costs">
               {costItems(selected).map((cost) => (
@@ -176,7 +181,13 @@ export function CombatV6SkillChoice({
             </dl>
             {selected.reasons.length ? (
               <p className="cv6-choice-warning">
-                {selected.reasons.map(reason => reason === 'cooldown' ? `冷却剩余 ${selected.cooldownRemaining ?? 0} 回合` : reasonText(reason)).join('；')}
+                {selected.reasons
+                  .map((reason) =>
+                    reason === 'cooldown'
+                      ? `冷却剩余 ${selected.cooldownRemaining ?? 0} 回合`
+                      : reasonText(reason),
+                  )
+                  .join('；')}
                 {selected.ready ? '（行动时判定）' : ''}
               </p>
             ) : null}

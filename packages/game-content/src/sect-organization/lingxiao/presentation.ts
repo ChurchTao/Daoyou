@@ -109,7 +109,7 @@ export const LINGXIAO_SECT_PRESENTATION: SectPresentationTheme = {
         permission: 'sect.arena.use',
         left: '57%',
         top: '64%',
-        note: '神通 · 战术 · 小比',
+        note: '小比 · 演武',
       },
       {
         id: 'affairs',

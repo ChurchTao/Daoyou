@@ -1,19 +1,23 @@
+import { InkButton } from '@app/components/ui/InkButton';
+import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
+import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
+import { type MeridianNodeDefV6 } from '@daoyou/game-domain/combat';
+import { getLevelRealmStage } from '@daoyou/game-domain/progression';
 import {
   canSelectMeridianNode,
   connectedMeridianSelection,
-  meridianNodesConnect,
-  toggleMeridianNode,
   MERIDIAN_LEVELS,
+  meridianNodesConnect,
   meridianUnlockCost,
+  toggleMeridianNode,
 } from '@daoyou/game-rules/sects';
-import { InkButton } from '@app/components/ui/InkButton';
-import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { getLevelRealmStage } from '@daoyou/game-domain/progression';
-import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
-import { type MeridianNodeDefV6 } from '@daoyou/game-domain/combat';
-import { SECT_PANEL_LABELS } from '@daoyou/game-rules/sects/presentation';
-import { useState, useSyncExternalStore } from 'react';
+import {
+  SECT_PANEL_LABELS,
+  sectSkillCatalog,
+} from '@daoyou/game-rules/sects/presentation';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useBeforeUnload, useBlocker } from 'react-router';
+import { SkillDescription } from '../skills/SkillDescription';
 import {
   actionProblem,
   actionReference,
@@ -51,9 +55,10 @@ export function MeridianEditor({
     readServerCompact,
   );
   const path = definition.paths.find((entry) => entry.id === pathId)!;
-  const original = connectedMeridianSelection(path, progress.meridianLoadouts.find(
-    (entry) => entry.pathId === pathId,
-  )!.nodeIds);
+  const original = connectedMeridianSelection(
+    path,
+    progress.meridianLoadouts.find((entry) => entry.pathId === pathId)!.nodeIds,
+  );
   const nodes = draft ?? original;
   const dirty =
     nodes.length !== original.length ||
@@ -73,9 +78,22 @@ export function MeridianEditor({
     if (next) return [{ from, to: next }];
     if (!path.requiresConnectedNodes) return [];
     return path.nodes
-      .filter(to => to.layer <= progress.meridianDepth && meridianNodesConnect(from, to))
-      .map(to => ({ from, to }));
+      .filter(
+        (to) =>
+          to.layer <= progress.meridianDepth && meridianNodesConnect(from, to),
+      )
+      .map((to) => ({ from, to }));
   });
+  const skillDetails = useMemo(
+    () =>
+      new Map(
+        sectSkillCatalog(progress, view.characterLevel).map((skill) => [
+          skill.id,
+          skill,
+        ]),
+      ),
+    [progress, view.characterLevel],
+  );
   const skillNames = new Map(
     [
       ...definition.skills,
@@ -123,6 +141,7 @@ export function MeridianEditor({
       depth={progress.meridianDepth}
       pathName={path.name}
       skillNames={skillNames}
+      skillDetails={skillDetails}
       locked={locked}
       reachable={canSelectMeridianNode(path, nodes, focused)}
       onChoose={chooseNode}
@@ -188,7 +207,9 @@ export function MeridianEditor({
                 return (
                   <path
                     key={`${from.id}:${to.id}`}
-                    className={active ? 'stroke-crimson/70' : 'stroke-crimson/30'}
+                    className={
+                      active ? 'stroke-crimson/70' : 'stroke-crimson/30'
+                    }
                     strokeWidth={active ? 2 : 1.5}
                     fill="none"
                     strokeLinejoin="round"
@@ -206,25 +227,39 @@ export function MeridianEditor({
                     .filter((node) => node.layer === index + 1)
                     .sort((a, b) => a.slot - b.slot)
                     .map((node) => {
-                      const selected = node.automatic ? node.layer <= progress.meridianDepth : nodes.includes(node.id);
-                      const changed = !node.automatic && selected !== original.includes(node.id);
-                      const reachable = node.automatic || canSelectMeridianNode(path, nodes, node);
-                      const available = !node.automatic && !selected && reachable && node.layer <= progress.meridianDepth && !selectedByLayer[index];
+                      const selected = node.automatic
+                        ? node.layer <= progress.meridianDepth
+                        : nodes.includes(node.id);
+                      const changed =
+                        !node.automatic &&
+                        selected !== original.includes(node.id);
+                      const reachable =
+                        node.automatic ||
+                        canSelectMeridianNode(path, nodes, node);
+                      const available =
+                        !node.automatic &&
+                        !selected &&
+                        reachable &&
+                        node.layer <= progress.meridianDepth &&
+                        !selectedByLayer[index];
                       return (
                         <button
                           type="button"
                           key={node.id}
                           className={[
-                            'bg-paper hover:border-ink/40 focus-visible:outline-crimson/60 relative z-1 flex h-16 w-16 cursor-pointer items-center justify-center border text-center text-xs transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-4 sm:text-sm motion-reduce:transition-none',
+                            'bg-paper hover:border-ink/40 focus-visible:outline-crimson/60 relative z-1 flex h-16 w-16 cursor-pointer items-center justify-center border text-center text-xs transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-4 motion-reduce:transition-none sm:text-sm',
                             node.automatic ? 'rounded-full' : '',
                             selected
                               ? 'border-crimson/65 bg-paper-2 text-crimson ring-crimson/10 ring-2'
                               : available
                                 ? 'border-crimson/35 text-ink ring-crimson/10 ring-2'
-                                : !reachable || node.layer > progress.meridianDepth
+                                : !reachable ||
+                                    node.layer > progress.meridianDepth
                                   ? 'border-ink/10 text-ink/35'
                                   : 'border-ink/25 text-ink-secondary',
-                            focused.id === node.id ? 'outline-ink/25 outline outline-offset-3' : '',
+                            focused.id === node.id
+                              ? 'outline-ink/25 outline outline-offset-3'
+                              : '',
                           ].join(' ')}
                           data-selected={selected}
                           data-reachable={reachable}
@@ -236,7 +271,10 @@ export function MeridianEditor({
                         >
                           {node.name}
                           {changed ? (
-                            <span aria-hidden="true" className="bg-crimson border-paper absolute -right-1 -top-1 h-2 w-2 rounded-full border" />
+                            <span
+                              aria-hidden="true"
+                              className="bg-crimson border-paper absolute -top-1 -right-1 h-2 w-2 rounded-full border"
+                            />
                           ) : null}
                         </button>
                       );
@@ -399,6 +437,7 @@ function NodeDetails({
   depth,
   pathName,
   skillNames,
+  skillDetails,
   locked,
   reachable,
   onChoose,
@@ -409,22 +448,26 @@ function NodeDetails({
   depth: number;
   pathName: string;
   skillNames: Map<string, string>;
+  skillDetails: Map<string, { id: string; name: string; description: string }>;
   locked: boolean;
   reachable: boolean;
   onChoose: () => void;
   showTitle: boolean;
 }) {
-  const affected = [
+  const relatedSkills = [
     ...new Set([
-      ...(node.patches ?? [])
-        .map((patch) => skillNames.get(patch.skillId))
-        .filter((name): name is string => !!name),
-      ...(node.grantSkills ?? []).map((skill) => skill.definition.name),
-      ...(node.revokeSkillIds ?? [])
-        .map((id) => skillNames.get(id))
-        .filter((name): name is string => !!name),
+      ...(node.grantSkills ?? []).map((skill) => skill.definition.id),
+      ...(node.passives ?? []).map((skill) => skill.definition.id),
+      ...(node.patches ?? []).map((patch) => patch.skillId),
     ]),
-  ];
+  ].flatMap((id) => {
+    const skill = skillDetails.get(id);
+    if (!skill || skill.description.trim() === node.description.trim()) return [];
+    return [skill];
+  });
+  const revoked = (node.revokeSkillIds ?? [])
+    .map((id) => skillNames.get(id))
+    .filter((name): name is string => !!name);
   const unavailable = node.layer > depth;
   return (
     <>
@@ -432,10 +475,19 @@ function NodeDetails({
         {pathName} · 第{layerNames[node.layer - 1]}层
       </p>
       {showTitle ? <h3>{node.name}</h3> : null}
-      <p className="text-ink-secondary mt-3 mb-5 leading-7">
-        {node.description}
+      <p className="text-ink-secondary mt-3 mb-5 leading-7 whitespace-pre-line">
+        <SkillDescription text={node.description} />
       </p>
-      <div className="border-ink/10 mb-5 space-y-2 border-t pt-4">
+      <div className="border-ink/10 mb-5 space-y-3 border-t pt-4">
+        {relatedSkills.map((skill) => (
+          <div key={skill.id}>
+            <p className="font-medium">{skill.name}</p>
+            <p className="text-ink-secondary leading-7 whitespace-pre-line">
+              <SkillDescription text={skill.description} />
+            </p>
+          </div>
+        ))}
+        {revoked.length ? <p>收回{revoked.join('、')}</p> : null}
         {unavailable ? (
           <>
             <p className="text-ink-secondary text-xs leading-relaxed">
@@ -449,14 +501,6 @@ function NodeDetails({
           </>
         ) : (
           <>
-            {affected.length ? (
-              <>
-                <p className="text-ink-secondary text-xs leading-relaxed">
-                  关联神通
-                </p>
-                <p>{affected.join('、')}</p>
-              </>
-            ) : null}
             {node.panel?.filter((panel) => !panel.sourceFact).map((panel, index) => (
               <p key={index}>
                 {SECT_PANEL_LABELS[panel.attr] ?? panel.attr}{' '}
@@ -465,7 +509,11 @@ function NodeDetails({
               </p>
             ))}
             <p className="text-ink-secondary text-xs leading-relaxed">
-              {node.automatic ? '贯通本层后自动获得，不占经脉选择。' : selected ? '当前方案已选择此节点。' : '选择后替换本层原节点。'}
+              {node.automatic
+                ? '贯通本层后自动获得，不占经脉选择。'
+                : selected
+                  ? '当前方案已选择此节点。'
+                  : '选择后替换本层原节点。'}
             </p>
           </>
         )}
@@ -477,7 +525,13 @@ function NodeDetails({
         disabled={locked || unavailable || node.automatic || !reachable}
         onClick={onChoose}
       >
-        {unavailable ? '尚未解锁' : node.automatic ? '已自动获得' : selected ? '取消选择' : '选择此节点'}
+        {unavailable
+          ? '尚未解锁'
+          : node.automatic
+            ? '已自动获得'
+            : selected
+              ? '取消选择'
+              : '选择此节点'}
       </InkButton>
     </>
   );

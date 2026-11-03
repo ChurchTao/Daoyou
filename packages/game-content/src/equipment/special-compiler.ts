@@ -1,6 +1,6 @@
-import { DamageKind, EffectType, HookAim, HookName, SkillTag, StatusCategory, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
+import { BUILTIN_SKILL_ID } from '@daoyou/combat-core/constants';
+import { DamageKind, DamageOrigin, EffectType, HookAim, HookName, SkillTag, StatusCategory, StatusHit, TargetMode, TargetSide } from '@daoyou/combat-core/enums';
 import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
-import { DaoyouRule } from '../combat/tuning.js';
 import { DAO_RAGE_PASSIVE_ID, DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
 import type { EquipmentSpecialPack } from '@daoyou/game-domain/equipment/authoring/special';
 import type { DaoEquipmentArtDefV1, DaoEquipmentEssenceDefV1 } from '@daoyou/game-domain/equipment';
@@ -39,16 +39,16 @@ export function compileEquipmentEssence(
     case 'requiredStageOffset':
       return { ...identity, requiredStageOffset: effect.value };
     case 'sealChance':
-      // Convert probability to the owning ruleset's point scale BEFORE its shared caps.
       return {
         ...identity,
-        panel: [
-          {
-            attr: effect.side === 'hit' ? 'sealHit' : 'sealResist',
-            mode: 'add',
-            value: effect.value * DaoyouRule.hitChanceScale,
-          },
-        ],
+        passive: {
+          ...passive,
+          modifiers: [
+            effect.side === 'hit'
+              ? { sealChanceAdd: effect.value }
+              : { sealResistanceAdd: effect.value },
+          ],
+        },
       };
     case 'antiCrit':
     case 'defenseIgnore':
@@ -125,6 +125,303 @@ export function compileEquipmentEssence(
           ],
         },
       };
+    case 'attackMpRestore':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.AfterHit,
+              sourceIsSelf: true,
+              requireKind: DamageKind.Physical,
+              aim: HookAim.Self,
+              when: { skillIds: [BUILTIN_SKILL_ID.Attack] },
+              effects: [
+                {
+                  type: EffectType.RestoreMp,
+                  power: `floor(hpDamage * ${effect.ratio})`,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'attackFollowUp':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.AfterHit,
+              sourceIsSelf: true,
+              requireKind: DamageKind.Physical,
+              chance: effect.chance,
+              limitConsumption: 'onAttempt',
+              aim: HookAim.HookTarget,
+              when: {
+                skillIds: [BUILTIN_SKILL_ID.Attack],
+                oncePerRound: true,
+              },
+              effects: [
+                {
+                  type: EffectType.PhysicalHit,
+                  resultFactors: [effect.factor],
+                  critMultiplier: 1,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'roundStartCleanse':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnRoundStart,
+              aim: HookAim.Self,
+              chance: effect.chance,
+              when: { sourceRemovableControl: true },
+              effects: [
+                {
+                  type: EffectType.Dispel,
+                  categories: [StatusCategory.Control],
+                  excludeStatusFlags: ['blocksRevive'],
+                  maxCount: 1,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'sealMissRage':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnStatusResolved,
+              sourceIsSelf: true,
+              aim: HookAim.Self,
+              when: {
+                statusHit: StatusHit.Seal,
+                statusResults: ['miss'],
+              },
+              effects: [
+                {
+                  type: EffectType.ModifyResource,
+                  resourceId: DAO_RAGE_RESOURCE_ID,
+                  amount: effect.amount,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'lowHpTaken':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          modifiers: [
+            {
+              allDamageTakenBonus: -effect.reduction,
+              when: { sourceHpRatioBelow: effect.threshold },
+            },
+          ],
+        },
+      };
+    case 'barrierGain':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnBarrierCalc,
+              targetIsSelf: true,
+              effects: [
+                {
+                  type: EffectType.ModifyBarrier,
+                  factor: Number((1 + effect.factor).toFixed(6)),
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'mpRegen':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnRoundEnd,
+              aim: HookAim.Self,
+              when: { sourceStanding: true },
+              effects: [
+                {
+                  type: EffectType.RestoreMp,
+                  power: `floor(source.maxMp * ${effect.maxRatio})`,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'healDealt':
+      return {
+        ...identity,
+        passive: { ...passive, innate: { healDealtAdd: effect.factor } },
+      };
+    case 'allyHealEcho':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnHealCalc,
+              sourceIsSelf: true,
+              aim: HookAim.Self,
+              when: { targetOtherAlly: true },
+              effects: [
+                {
+                  type: EffectType.Heal,
+                  power: `floor(healBase * ${effect.ratio})`,
+                  fixedBase: true,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'defendRage':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.AfterDefend,
+              sourceIsSelf: true,
+              aim: HookAim.Self,
+              effects: [
+                {
+                  type: EffectType.ModifyResource,
+                  resourceId: DAO_RAGE_RESOURCE_ID,
+                  amount: effect.amount,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'artRageRefund':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.AfterAction,
+              sourceIsSelf: true,
+              aim: HookAim.Self,
+              when: { skillTags: [SkillTag.Art] },
+              effects: [
+                {
+                  type: EffectType.ModifyResource,
+                  resourceId: DAO_RAGE_RESOURCE_ID,
+                  amount: `floor(resourceCost * ${effect.ratio})`,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    case 'openingRage':
+      return { ...identity, rageInitialAdd: effect.amount };
+    case 'primarySpeedDamage':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          modifiers: (
+            [DamageKind.Physical, DamageKind.Spell, DamageKind.Fixed] as const
+          ).map((kind) => ({
+            damageResultFactor: Number((1 + effect.factor).toFixed(6)),
+            when: {
+              requireKind: kind,
+              targetSlot: 'primary' as const,
+              expression: 'effective.speed > targetEffective.speed',
+              ...(kind === DamageKind.Fixed
+                ? { damageOrigins: [DamageOrigin.ActionDirect] }
+                : {}),
+            },
+          })),
+        },
+      };
+    case 'dodgeChance':
+      return {
+        ...identity,
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.OnHitRoll,
+              targetIsSelf: true,
+              requireKind: DamageKind.Physical,
+              effects: [{ type: EffectType.ModifyChance, add: -effect.value }],
+            },
+          ],
+        },
+      };
+    case 'firstLowHpSpeed': {
+      const statusId = `dao_equipment.status.${entry.id.slice('dao_equipment.essence.'.length)}`;
+      return {
+        ...identity,
+        statusDefs: [
+          {
+            id: statusId,
+            name: entry.name,
+            kind: entry.id,
+            category: StatusCategory.Buff,
+            dispelClass: 'art',
+            priority: effect.factor,
+            expireSameRound: true,
+            extendable: false,
+            speedMod: `floor(target.speed * ${effect.factor})`,
+          },
+        ],
+        passive: {
+          ...passive,
+          hooks: [
+            {
+              on: HookName.AfterDamage,
+              targetIsSelf: true,
+              aim: HookAim.Self,
+              when: {
+                oncePerBattle: true,
+                expression: `if(source.hp / source.maxHp < ${effect.threshold}, if((source.hp + hpDamage) / source.maxHp >= ${effect.threshold}, 1, 0), 0)`,
+              },
+              effects: [
+                {
+                  type: EffectType.ApplyStatus,
+                  statusId,
+                  duration: effect.duration,
+                },
+              ],
+            },
+          ],
+        },
+      };
+    }
     case 'rageGain':
       return {
         ...identity,

@@ -18,7 +18,7 @@ import {
 } from './items.js';
 
 describe('新版寄售规则', () => {
-  it('无品质品类开放寄售，难估价货品与固定货品使用不同单价上限', () => {
+  it('无品质品类开放寄售，图纸与阵纹和难估价货品共用更高单价上限', () => {
     for (const definition of ITEM_DEFINITIONS.filter((d) =>
       [
         'equipment',
@@ -36,12 +36,16 @@ describe('新版寄售规则', () => {
         instanceData: null,
         location: 'bag',
       };
-      const appraisal = ['equipment', 'manual_jade', 'beast_book'].includes(
-        definition.kind,
-      );
+      const highPrice = [
+        'equipment',
+        'manual_jade',
+        'beast_book',
+        'blueprint',
+        'inscription',
+      ].includes(definition.kind);
       expect(auctionItemQuality(item)).toBeNull();
       expect(auctionItemPriceCap(item)).toBe(
-        appraisal ? AUCTION_MAX_UNIT_PRICE : AUCTION_CATALOG_UNIT_PRICE_CAP,
+        highPrice ? AUCTION_MAX_UNIT_PRICE : AUCTION_CATALOG_UNIT_PRICE_CAP,
       );
       expect(auctionBlockReason(item)).toBeNull();
     }

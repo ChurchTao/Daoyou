@@ -61,7 +61,8 @@ export type {
 export type UnitId = string;
 export type SkillId = string;
 export type StatusId = string;
-export type StatusApplyResult = 'applied' | 'miss' | 'immune' | 'rejected' | 'intercepted';
+export type StatusApplyResult =
+  'applied' | 'miss' | 'immune' | 'rejected' | 'intercepted';
 
 export type CombatResourceState = {
   id: string;
@@ -412,6 +413,8 @@ export type EffectWhen = {
   pvp?: boolean;
   teamUniqueTag?: string;
   targetEnemy?: boolean;
+  /** 目标是其他友方，不含自己。 */
+  targetOtherAlly?: boolean;
   targetHasStandingPet?: boolean;
   actionSucceeded?: boolean;
   actionHealedTarget?: boolean;
@@ -483,9 +486,22 @@ export type EffectWhen = {
 type EffectCore =
   | { type: typeof EffectType.InvokeSkill; skillId: SkillId }
   | { type: typeof EffectType.InvokeAttackSkills }
-  | { type: typeof EffectType.Repeat; min: number; max: number; effects: SkillEffect[] }
+  | {
+      type: typeof EffectType.Repeat;
+      min: number;
+      max: number;
+      effects: SkillEffect[];
+    }
   | { type: typeof EffectType.ModifyFact; key: string; value: Expr }
-  | { type: typeof EffectType.ModifyStatusDuration; kinds?: string[]; categories?: StatusCategory[]; maxCount?: number; random?: boolean; amount: Expr; ownedOnly?: boolean }
+  | {
+      type: typeof EffectType.ModifyStatusDuration;
+      kinds?: string[];
+      categories?: StatusCategory[];
+      maxCount?: number;
+      random?: boolean;
+      amount: Expr;
+      ownedOnly?: boolean;
+    }
   | {
       type: typeof EffectType.RandomBranch;
       branchId: string;
@@ -539,7 +555,13 @@ type EffectCore =
       origin?: DamageOrigin;
       cannotKill?: boolean;
     }
-  | { type: typeof EffectType.Heal; power: Expr; healMaxHp?: boolean; fixedBase?: boolean; includeHealPower?: boolean }
+  | {
+      type: typeof EffectType.Heal;
+      power: Expr;
+      healMaxHp?: boolean;
+      fixedBase?: boolean;
+      includeHealPower?: boolean;
+    }
   | {
       type: typeof EffectType.RestoreHp;
       power: Expr;
@@ -551,7 +573,12 @@ type EffectCore =
       clearStatuses?: boolean;
     }
   | { type: typeof EffectType.RestoreMp; power: Expr }
-  | { type: typeof EffectType.Revive; hp?: Expr; hpRatio?: Expr; respectHealTaken?: boolean }
+  | {
+      type: typeof EffectType.Revive;
+      hp?: Expr;
+      hpRatio?: Expr;
+      respectHealTaken?: boolean;
+    }
   | {
       type: typeof EffectType.ApplyStatus;
       statusId: StatusId;
@@ -783,7 +810,41 @@ export type SkillDef = {
   /** 同单位带了列出的技能则本被动不生效（高级连击 vs 连击） */
   conflicts?: SkillId[];
   /** 开战即生效的能力，不占状态栏（感知看破隐身、简易耗蓝） */
-  innate?: { criticalExtraTakenFactor?: number; physicalBurst?: { chance: number; factor: number; derivedSkillIds?: string[] }; negativeSpellResistance?: number; sealHitTakenFactor?: number; delayedRevivalRounds?: number; preventDelayedRevival?: boolean; rejectHpRecovery?: boolean; rejectBuffs?: boolean; damageToDelayedRevival?: number; damageFromDelayedRevival?: number; immuneStatusCategories?: StatusCategory[]; immuneStatusKinds?: string[]; buffDuration?: { factor: number; maxExtra: number }; entryStatus?: { statusId: string; minDuration: number; maxDuration: number }; revealStealth?: boolean; mpCostWaiverChance?: number; mpCostFactor?: number; spellMpCostFactor?: number; suppressSpellRetaliation?: boolean; spellRepeat?: { chance: number; factor: number }; spellFluctuation?: { min: number; max: number }; suppressPhysicalRetaliation?: boolean; ignoreParry?: boolean };
+  innate?: {
+    criticalExtraTakenFactor?: number;
+    physicalBurst?: {
+      chance: number;
+      factor: number;
+      derivedSkillIds?: string[];
+    };
+    negativeSpellResistance?: number;
+    sealHitTakenFactor?: number;
+    delayedRevivalRounds?: number;
+    preventDelayedRevival?: boolean;
+    rejectHpRecovery?: boolean;
+    rejectBuffs?: boolean;
+    damageToDelayedRevival?: number;
+    damageFromDelayedRevival?: number;
+    immuneStatusCategories?: StatusCategory[];
+    immuneStatusKinds?: string[];
+    buffDuration?: { factor: number; maxExtra: number };
+    entryStatus?: {
+      statusId: string;
+      minDuration: number;
+      maxDuration: number;
+    };
+    revealStealth?: boolean;
+    mpCostWaiverChance?: number;
+    /** 施疗加成，在受疗倍率之前乘到治疗基数上。 */
+    healDealtAdd?: number;
+    mpCostFactor?: number;
+    spellMpCostFactor?: number;
+    suppressSpellRetaliation?: boolean;
+    spellRepeat?: { chance: number; factor: number };
+    spellFluctuation?: { min: number; max: number };
+    suppressPhysicalRetaliation?: boolean;
+    ignoreParry?: boolean;
+  };
 };
 
 /** 状态模板。字段是能力开关，不要为某个门派加专用字段。 */
@@ -812,6 +873,8 @@ export type StatusDef = {
   onExpire?: { statusId: StatusId; duration: number };
   id: StatusId;
   name: string;
+  /** 玩家可见说明。不参与战斗结算。 */
+  description?: string;
   kind: string;
   category?: StatusCategory;
   blocksAction?: boolean;
@@ -839,7 +902,16 @@ export type StatusDef = {
   healingPerRound?: Expr;
   /** Consumed after physical/spell action damage, including barriers; fixed damage is excluded. */
   consumeAfterDamagingAction?: boolean;
-  onTick?: { type: TickKind; ratioOfMaxHp?: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr; hpPower?: Expr; mpPower?: Expr; snapshot?: boolean };
+  onTick?: {
+    type: TickKind;
+    ratioOfMaxHp?: number;
+    ratioOfMaxMp?: number;
+    hpCap?: Expr;
+    mpCap?: Expr;
+    hpPower?: Expr;
+    mpPower?: Expr;
+    snapshot?: boolean;
+  };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;
   /** 承伤分流：目标留下 keep，其余 toCaster 打到状态来源 */
@@ -1035,7 +1107,8 @@ export type BattleEvent =
       barrierId: string;
       before: number;
       after: number;
-      reason: 'applied' | 'refreshed' | 'absorbed' | 'expired' | 'downed' | 'decayed';
+      reason:
+        'applied' | 'refreshed' | 'absorbed' | 'expired' | 'downed' | 'decayed';
     }
   | {
       type: typeof EventType.StatusApplied;
@@ -1120,7 +1193,8 @@ export type ExprEnv = {
   allyPetSkillUnused?: boolean;
   normalTargetIds?: string[];
   killedTargetIds?: string[];
-  state?: Pick<BattleState, "round" | "units"> & Partial<Pick<BattleState, "result">>;
+  state?: Pick<BattleState, 'round' | 'units'> &
+    Partial<Pick<BattleState, 'result'>>;
   skillLevel: number;
   targets: number;
   source: Unit;
@@ -1128,6 +1202,11 @@ export type ExprEnv = {
   damage?: number;
   /** 实际气血损失，已排除过量伤害。 */
   hpDamage?: number;
+  /** 受疗倍率之前的治疗基数。 */
+  healBase?: number;
+  heal?: number;
+  /** 本次出手技能的实际资源消耗，不含折扣前标价。 */
+  resourceCost?: number;
   impactDamage?: number;
   targetStatusStacks?: number;
   originalResourceCost?: number;

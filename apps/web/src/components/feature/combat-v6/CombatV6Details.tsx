@@ -1,4 +1,5 @@
 import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
+import { StatusMention } from '@app/components/feature/skills/SkillDescription';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import type { CombatV6Session, CombatV6Unit } from './session';
 const attributeLabels: Record<string, string> = {
@@ -69,7 +70,8 @@ export function CombatV6Details({
               <div className="cv6-dl-row" key={r.id}>
                 <dt>{r.name}</dt>
                 <dd className="font-mono">
-                  {r.current}{r.max === null ? '' : ` / ${r.max}`}
+                  {r.current}
+                  {r.max === null ? '' : ` / ${r.max}`}
                 </dd>
               </div>
             ))}
@@ -83,7 +85,11 @@ export function CombatV6Details({
           <ul>
             {detailUnit.statuses.map((s, index) => (
               <li key={`${s.id}:${index}`}>
-                {s.name ?? display?.statuses[s.id] ?? '未知状态'} ·{' '}
+                <StatusMention
+                  id={s.id}
+                  name={s.name ?? display?.statuses[s.id] ?? '未知状态'}
+                />
+                {' · '}
                 {s.untilBattleEnd ? (
                   '本场持续'
                 ) : (
@@ -105,7 +111,14 @@ export function CombatV6Details({
                 <span className="font-mono">
                   {detailUnit.publicBars ? `${b.current / 100}%` : b.current}
                 </span>{' '}
-                · {b.untilBattleEnd ? '至战斗结束' : <><span className="font-mono">{b.remainingRounds}</span> 回合</>}
+                ·{' '}
+                {b.untilBattleEnd ? (
+                  '至战斗结束'
+                ) : (
+                  <>
+                    <span className="font-mono">{b.remainingRounds}</span> 回合
+                  </>
+                )}
               </li>
             ))}
           </ul>

@@ -192,8 +192,13 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'sect-abilities',
         sceneLabel: '宗门演武',
-        href: '/game/sect/arena?workspace=loadout&npc=instructor',
-        expandedDockLabel: '📜 宗门神通',
+        href: '/game/sect/arena',
+      },
+      {
+        id: 'sect-methods',
+        sceneLabel: '宗门心法',
+        href: '/game/cultivator?tab=sect',
+        expandedDockLabel: '📜 宗门心法',
       },
       { id: 'sect-onboarding', sceneLabel: '诸宗山门' },
       { id: 'sect-transfer', sceneLabel: '欺天台 · 转宗' },
@@ -277,6 +282,11 @@ export const gameDockGroups: GameNavGroup[] = [
       {
         id: 'refine',
         sceneLabel: '炼器室',
+      },
+      {
+        id: 'equipment-codex',
+        sceneLabel: '装备图鉴',
+        href: '/game/craft/refine/codex',
       },
     ],
   },
