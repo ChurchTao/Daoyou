@@ -25,7 +25,11 @@ import {
   scoreMysteryRun,
 } from './scoring.js';
 import { buildMysterySkeleton } from './skeleton.js';
-import { computeMysteryReachability, validateMysteryCase } from './validate.js';
+import {
+  computeMysteryReachability,
+  estimateMysteryMinimumActions,
+  validateMysteryCase,
+} from './validate.js';
 
 const template = getMysteryTemplate('inheritance_murder')!;
 
@@ -429,6 +433,42 @@ describe('mystery skeleton', () => {
       ])
         expect(purposes[id], `${id} purpose`).toBeTruthy();
     }
+  });
+
+  it('mixes in the decoy-liar variant, where the liar is not the culprit', () => {
+    const liarOf = (caseFile: MysteryCaseFile) =>
+      caseFile.npcs.find((n) => n.reactions.some((r) => r.exposesLie))?.id;
+    const byVariant = new Map<string, number>();
+    for (const seed of seeds) {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const variant = caseFile.variant ?? 'base';
+      byVariant.set(variant, (byVariant.get(variant) ?? 0) + 1);
+      const who = caseFile.questions.find((q) => q.id === 'who')!.answer;
+      if (variant === 'decoy_liar') {
+        expect(liarOf(caseFile), `seed ${seed}`).toBe('npc_suspect');
+        expect(who).toBe('npc_culprit');
+        expect(
+          estimateMysteryMinimumActions(caseFile),
+          `seed ${seed}`,
+        ).toBeLessThanOrEqual(template.scale.action_budget * 0.75);
+      } else {
+        expect(liarOf(caseFile)).toBe(who);
+      }
+    }
+    // 权重 3 : 2，300 个种子里变体约占四成。
+    expect(byVariant.get('decoy_liar')).toBeGreaterThan(90);
+    expect(byVariant.get('base')).toBeGreaterThan(150);
+  });
+
+  it('keeps base skeletons unchanged by the variant draw', () => {
+    const base = seeds.find(
+      (seed) => !buildMysterySkeleton(template, seed).caseFile.variant,
+    )!;
+    const { caseFile } = buildMysterySkeleton(
+      { ...template, variants: undefined },
+      base,
+    );
+    expect(buildMysterySkeleton(template, base).caseFile).toEqual(caseFile);
   });
 
   it('is deterministic per seed', () => {

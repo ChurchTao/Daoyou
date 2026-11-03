@@ -18,7 +18,7 @@
     "rooms": [5, 8],
     "npcs": [3, 4],
     "key_clues": [8, 10],
-    "red_herrings": [3, 3],
+    "red_herrings": [3, 4],
     "action_budget": 38
   },
   "roles": [
@@ -95,5 +95,9 @@
     "combat": 20
   },
   "finale": { "role": "manifest", "when": ["source", "remedy"], "points": 10 },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "unwitting", "weight": 2 }
+  ],
   "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的症状、痕迹和动作，不写空泛的氛围。症状要写出轻重与方向，越近源头越重。异变化形要贴合此地（草木、地脉、海潮、魔气），写出样子与威势。祸首说话圆滑但经不起记载对质；当地人是真心认错了人；背锅者性情不讨喜但清白。"
 }

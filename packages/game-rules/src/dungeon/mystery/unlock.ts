@@ -9,7 +9,11 @@ import {
   mechanismSequences,
   pickHintRules,
 } from './mechanism.js';
-import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
+import {
+  eventTurns,
+  pickMysteryVariant,
+  type MysteryCaseSkeleton,
+} from './skeleton.js';
 
 const T = '…';
 
@@ -43,6 +47,14 @@ const CAUSE_OPTIONS = [
   ['cause_other', '干扰项：另一种看似合理的原因'],
 ] as const;
 
+/** honest_rival：闯关者给的解法本是对的，前人自己记错了一步。 */
+const CAUSE_OPTIONS_HONEST = [
+  ['cause_true', '真相：前人记错了一步次序，闯关者给他的解法本是对的'],
+  ['cause_misled', '干扰项：被闯关者的假解法误导（闯关者其实没有骗他）'],
+  ['cause_rumor', '干扰项：传闻所说的原因（触怒了守试者）'],
+  ['cause_other', '干扰项：另一种看似合理的原因'],
+] as const;
+
 /**
  * 生成破禁试炼骨架：两个小机关（各 4 部件、选 3 个按序开启，两条提示唯一确定解法），
  * 开启后各得一句主禁制残句；主禁制在结案时作答，由铭文与两句残句三条规则唯一确定。
@@ -67,6 +79,9 @@ export function buildUnlockSkeleton(
     return out;
   };
   const random = () => rng.next();
+  // honest_rival：闯关者所言属实，误导来自前人记错的一步。
+  const variant = pickMysteryVariant(template, seed);
+  const honest = variant === 'honest_rival';
 
   const roll = rng.next();
   const guardCount = roll < 0.25 ? 0 : roll < 0.75 ? 1 : 2;
@@ -307,21 +322,27 @@ export function buildUnlockSkeleton(
     'clue_record',
     true,
     ['cause'],
-    '记载中的事实，与闯关者的说法矛盾，可当面戳穿',
+    honest
+      ? '记载中的事实，与前人自述的经过矛盾：当年他按动的次序与他记得的不同，可当面指出'
+      : '记载中的事实，与闯关者的说法矛盾，可当面戳穿',
     'obj_record',
   );
   clue(
     'clue_trace',
     true,
     ['cause'],
-    '第二处机关旁的新痕迹，显示有人在前人之前动过手脚',
+    honest
+      ? '第二处机关旁的旧痕迹，显示当年按动的次序与正确次序只差一步'
+      : '第二处机关旁的新痕迹，显示有人在前人之前动过手脚',
     'obj_trace',
   );
   clue(
     'clue_misled',
     true,
     ['cause'],
-    '前人看到痕迹后醒悟：当年那套解法是闯关者给的，他被误导了',
+    honest
+      ? '前人被指出记载后醒悟：当年是自己记错了一步，闯关者给的解法没有错'
+      : '前人看到痕迹后醒悟：当年那套解法是闯关者给的，他被误导了',
   );
   guarded.forEach((_, i) =>
     clue(
@@ -338,13 +359,17 @@ export function buildUnlockSkeleton(
     'clue_claim',
     false,
     [],
-    '闯关者关于自己来历或与前人关系的说法（是谎言）',
+    honest
+      ? '闯关者关于当年把解法交给前人的说法（属实，但他拿不出凭据）'
+      : '闯关者关于自己来历或与前人关系的说法（是谎言）',
   );
   clue(
     'clue_account',
     false,
     [],
-    '前人自述的失败原因：以为是自己记错了一步（并非真相）',
+    honest
+      ? '前人自述的失败原因：认定是闯关者给了他假解法（并非真相，他记错了一步）'
+      : '前人自述的失败原因：以为是自己记错了一步（并非真相）',
   );
 
   const npc = (
@@ -393,27 +418,33 @@ export function buildUnlockSkeleton(
       rival,
       'rival',
       rivalRoom,
-      '同场的闯关者，声称从前人那里得了解法，实则误导旁人',
+      honest
+        ? '同场的闯关者，当年把解法如实给了前人，却被前人认定是骗子；脾气冲，不屑辩解'
+        : '同场的闯关者，声称从前人那里得了解法，实则误导旁人',
       {
         secrets: [
           { clueId: 'clue_claim', requires: { visited: hub }, line: T },
         ],
-        reactions: [
-          {
-            id: 'react_rival_record',
-            evidenceId: 'clue_record',
-            line: T,
-            effects: [{ kind: 'set_flag', flag: 'rival_exposed' }],
-            exposesLie: true,
-          },
-        ],
+        reactions: honest
+          ? []
+          : [
+              {
+                id: 'react_rival_record',
+                evidenceId: 'clue_record',
+                line: T,
+                effects: [{ kind: 'set_flag', flag: 'rival_exposed' }],
+                exposesLie: true,
+              },
+            ],
       },
     ),
     npc(
       fallen,
       'fallen',
       fallenRoom,
-      '曾在此失败的前人（残念或重伤未走的人），记忆有偏差',
+      honest
+        ? '曾在此失败的前人（残念或重伤未走的人），记错了一步却认定是闯关者害了他'
+        : '曾在此失败的前人（残念或重伤未走的人），记忆有偏差',
       {
         secrets: [
           { clueId: 'clue_account', requires: { visited: hub }, line: T },
@@ -424,16 +455,27 @@ export function buildUnlockSkeleton(
           },
         ],
         reactions: [
-          {
-            id: 'react_fallen_trace',
-            evidenceId: 'clue_trace',
-            line: T,
-            effects: [
-              { kind: 'reveal_clue', clueId: 'clue_misled' },
-              { kind: 'set_flag', flag: 'fallen_turned' },
-            ],
-            exposesLie: false,
-          },
+          honest
+            ? {
+                id: 'react_fallen_record',
+                evidenceId: 'clue_record',
+                line: T,
+                effects: [
+                  { kind: 'reveal_clue', clueId: 'clue_misled' },
+                  { kind: 'set_flag', flag: 'fallen_turned' },
+                ],
+                exposesLie: true,
+              }
+            : {
+                id: 'react_fallen_trace',
+                evidenceId: 'clue_trace',
+                line: T,
+                effects: [
+                  { kind: 'reveal_clue', clueId: 'clue_misled' },
+                  { kind: 'set_flag', flag: 'fallen_turned' },
+                ],
+                exposesLie: false,
+              },
         ],
       },
     ),
@@ -442,15 +484,22 @@ export function buildUnlockSkeleton(
     '玩家读过主禁制铭文后再问，守试者以谜语道出引子';
   purposes[`${warden}:clue_m2_h2`] =
     '玩家到过第二处试炼室后再问，守试者以谜语道出一条机关提示';
-  purposes[`${rival}:clue_claim`] =
-    '玩家到过主殿后再问，闯关者说出关于自己来历的谎言';
-  purposes[`${fallen}:clue_account`] =
-    '玩家到过主殿后再问，前人说出自以为的失败原因';
+  purposes[`${rival}:clue_claim`] = honest
+    ? '玩家到过主殿后再问，闯关者说起当年把解法交给前人的经过（属实）'
+    : '玩家到过主殿后再问，闯关者说出关于自己来历的谎言';
+  purposes[`${fallen}:clue_account`] = honest
+    ? '玩家到过主殿后再问，前人咬定是闯关者给了他假解法'
+    : '玩家到过主殿后再问，前人说出自以为的失败原因';
   purposes[`${fallen}:clue_m1_h2`] =
     '玩家到过第一处试炼室后再问，前人回忆起一条机关提示';
-  purposes.react_rival_record = '被记载当面戳穿谎言时的慌乱与狡辩';
-  purposes.react_fallen_trace =
-    '被出示机关旁的新痕迹后醒悟，说出当年那套解法是谁给的';
+  if (honest)
+    purposes.react_fallen_record =
+      '被出示记载后愣住，终于想起当年是自己按错了一步，对闯关者的怨气化作愧意';
+  else {
+    purposes.react_rival_record = '被记载当面戳穿谎言时的慌乱与狡辩';
+    purposes.react_fallen_trace =
+      '被出示机关旁的新痕迹后醒悟，说出当年那套解法是谁给的';
+  }
 
   const guards: NonNullable<MysteryCaseFile['guards']> = guarded.map(
     (room, i) => {
@@ -494,7 +543,9 @@ export function buildUnlockSkeleton(
       ) ?? fill[2]!,
   };
   purposes['option:order_true'] = '真正的开启次序';
-  purposes['option:order_rival'] = '干扰项：闯关者给的次序';
+  purposes['option:order_rival'] = honest
+    ? '干扰项：闯关者凭记忆转述的次序（大体对，但差了铭文校正的一步）'
+    : '干扰项：闯关者给的次序';
   purposes['option:order_fallen'] = '干扰项：照前人记忆字面得出的次序';
   purposes['option:order_other'] = '干扰项：另一种次序';
 
@@ -506,6 +557,7 @@ export function buildUnlockSkeleton(
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,
+    ...(variant !== 'base' ? { variant } : {}),
     title: T,
     truth: T,
     brief: {
@@ -545,7 +597,7 @@ export function buildUnlockSkeleton(
       },
       {
         id: 'cause',
-        options: options(CAUSE_OPTIONS),
+        options: options(honest ? CAUSE_OPTIONS_HONEST : CAUSE_OPTIONS),
         answer: 'cause_true',
         explanation: T,
       },
@@ -558,7 +610,10 @@ export function buildUnlockSkeleton(
         id: 'evt_tamper',
         ...eventTurns(template, 0.45, 0.55),
         unless: {
-          any: [{ flag: 'mech_2_solved' }, { flag: 'rival_exposed' }],
+          any: [
+            { flag: 'mech_2_solved' },
+            { flag: honest ? 'fallen_turned' : 'rival_exposed' },
+          ],
         },
         warning: T,
         text: T,
@@ -566,7 +621,8 @@ export function buildUnlockSkeleton(
       },
     ],
   };
-  purposes.evt_tamper =
-    '闯关者按捺不住，抢先去乱试第二处机关；预兆是他频频往那边去，发生时写机关被他弄得锁死';
+  purposes.evt_tamper = honest
+    ? '前人心急，照自己记错的次序去试第二处机关；预兆是他频频往那边去、口中念着那套次序，发生时写机关被他弄得锁死'
+    : '闯关者按捺不住，抢先去乱试第二处机关；预兆是他频频往那边去，发生时写机关被他弄得锁死';
   return { caseFile, purposes, sequences };
 }

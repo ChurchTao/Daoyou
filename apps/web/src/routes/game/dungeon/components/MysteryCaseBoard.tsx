@@ -23,7 +23,7 @@ const STATUS: Record<
   unmet: { label: '尚未交谈', tone: 'neutral' },
   talked: { label: '已交谈', tone: 'neutral' },
   opened: { label: '已说出实情', tone: 'good' },
-  exposed: { label: '谎言被戳穿', tone: 'bad' },
+  exposed: { label: '说法被戳穿', tone: 'bad' },
   departed: { label: '已离场', tone: 'neutral' },
 };
 

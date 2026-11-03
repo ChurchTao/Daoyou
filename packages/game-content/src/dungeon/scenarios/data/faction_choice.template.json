@@ -89,10 +89,10 @@
     },
     {
       "id": "broker_exposed",
-      "label": "揭穿中间人",
+      "label": "揭穿挑拨或隐情",
       "kind": "flag",
       "flag": "broker_exposed",
-      "guidance": "中间人被密信揭穿时设置。",
+      "guidance": "中间人被密信揭穿时设置；honest_broker 变体里由揭穿隐瞒祸事的那方代表设置。",
       "points": 5
     }
   ],
@@ -108,5 +108,9 @@
     "when": ["intent_a", "intent_b"],
     "points": 10
   },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "honest_broker", "weight": 2 }
+  ],
   "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的布置、文书、痕迹和动作，不写空泛的氛围。两方都要写得有血有肉、各有道理，不写成脸谱化的正邪；所图祸及无辜的一方也有自己的说辞。中间人八面玲珑，说话两头讨好。"
 }

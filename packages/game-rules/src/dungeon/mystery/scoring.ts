@@ -62,10 +62,16 @@ export function mysteryConfrontationTarget(
       return caseFile.npcs.find((n) => n.role === 'envoy_b');
     if (side === 'side_b')
       return caseFile.npcs.find((n) => n.role === 'envoy_a');
-    // 调停只有揭穿了中间人才会与他摊牌，否则不起冲突。
-    return run?.flags.includes('broker_exposed')
-      ? caseFile.npcs.find((n) => n.role === 'broker')
-      : undefined;
+    // 调停只有揭穿了挑拨或隐情（broker_exposed）才会与被揭穿的那人摊牌，否则不起冲突。
+    // 被揭穿者通常是中间人；honest_broker 变体里是隐瞒祸事的那一方代表。
+    if (!run?.flags.includes('broker_exposed')) return undefined;
+    return caseFile.npcs.find((n) =>
+      n.reactions.some((r) =>
+        r.effects.some(
+          (e) => e.kind === 'set_flag' && e.flag === 'broker_exposed',
+        ),
+      ),
+    );
   };
   const target =
     finale.role === 'manifest'

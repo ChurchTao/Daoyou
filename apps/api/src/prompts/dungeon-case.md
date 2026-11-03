@@ -11,6 +11,7 @@ id: dungeon-case
 用户只提供一份 JSON：
 
 - `archetype.rules`：本案型的骨架约定，写真相时必须遵守。
+- `archetype.variant`（如有）：本局的结构变体，说明谁在说谎、真相如何成立；与常见套路不同时以它为准，整本案卷都要贴合。
 - `template`：剧本梗概、人物身份说明与文风要求。
 - `setting`：地图节点的名称、境界、标签与结构化设定：`overview` 总述、`places` 典型场所、`inhabitants` 可能出现的人物身份、`history` 往事钩子、`objects` 特有器物与痕迹、`factions` 相关势力、`forbidden` 禁写内容。
 - `structure`：骨架摘要，包括房间作用与连通、人物身份与站位、守卫、结案答案。

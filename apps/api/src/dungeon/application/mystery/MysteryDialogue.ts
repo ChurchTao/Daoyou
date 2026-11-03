@@ -27,15 +27,12 @@ export async function generateNpcReply(args: {
     clueId: s.clueId,
     content: s.line,
   }));
-  // 凶手对外的说法：其秘密里的非关键线索（谎言），对话中必须与之一致。
-  const publicClaim =
-    npc.role === 'culprit'
-      ? npc.secrets
-          .map((s) => clueText(s.clueId))
-          .filter((c) => c && !c.key)
-          .map((c) => c!.text)
-          .join(' ')
-      : '';
+  // 说谎者对外的说法（clue_claim 系列线索），对话中必须与之一致；
+  // 谁说谎随案型变体而定，不按身份判断。
+  const publicClaim = npc.secrets
+    .filter((s) => s.clueId.startsWith('clue_claim'))
+    .map((s) => clueText(s.clueId)?.text ?? '')
+    .join(' ');
   const prompt = renderPrompt('dungeon-npc', {
     userContextJson: stableCompactStringify({
       npc: {

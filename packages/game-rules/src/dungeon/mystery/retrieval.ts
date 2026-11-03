@@ -3,9 +3,44 @@ import type {
   MysteryCaseFile,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
+import {
+  eventTurns,
+  pickMysteryVariant,
+  type MysteryCaseSkeleton,
+} from './skeleton.js';
 
 const T = '…';
+
+/**
+ * swapped：遗珍早已被转移。结构与 base 相同，各元素的作用改写：遗刻与最显眼的
+ * 线索都指向原藏处，那里只剩当年转移遗珍的人留下的赝品；转移的痕迹才指向真藏处。
+ * 夺宝者仍在说谎，但不知道原藏处是赝品。
+ */
+const SWAPPED_PURPOSES: Record<string, string> = {
+  obj_forged:
+    '遗珍原先的藏处：放着一件以假乱真的赝品（当年转移遗珍的人留下的障眼法），与遗刻所说的特征吻合',
+  obj_place:
+    '当年转移遗珍时留下的痕迹（记录、拖痕、新封条等），指明遗珍被移去的新藏处（新藏处本身另在一处，从外面看不出）',
+  clue_legacy:
+    '前辈遗刻的原话，说的是遗珍原先的藏处；遗珍后来被转移，遗刻已经不准',
+  clue_place: '转移遗珍的痕迹或记录，指明遗珍被移去的新藏处',
+  clue_debunk:
+    '被误导者细看原藏处的“遗珍”后道出的破绽（材质、分量、年份对不上），证明那是赝品',
+  clue_forged: '原藏处里的“遗珍”，与遗刻所述一模一样——其实是当年留下的赝品',
+  clue_rumor: '被误导者转述的说法：他认定原藏处的遗珍就是真品，深信不疑',
+  npc_rival:
+    '夺宝者，以无害的身份出现，盯上了原藏处的遗珍，不知道那是赝品；想独吞遗珍',
+  npc_decoy: '被原藏处的赝品骗了的人，真诚地相信遗珍就在原处，并替它作证',
+  react_decoy_forged: '被出示原藏处的“遗珍”后细看，惊觉其中破绽，认出是赝品',
+  evt_erase:
+    '夺宝者察觉原藏处有异，循迹去找，趁你不备抹掉了转移遗珍的痕迹；预兆是夺宝者的异常举动，发生时只写你事后察觉某处被人动过、痕迹已被抹去，不写痕迹的具体内容',
+  evt_leave:
+    '被误导者等不及，抱着原藏处的赝品离开了遗迹；预兆是他越来越焦躁，发生时写他离去',
+  'option:place_true': '真正的藏处：遗珍被转移后的新藏处，与转移的痕迹相符',
+  'option:place_false': '干扰项：遗珍原先的藏处（遗刻所说之处，如今只剩赝品）',
+  'option:place_rumor':
+    '干扰项：照遗刻字面最容易误读出的另一处地点，与原藏处不是同一处',
+};
 
 /** retrieval 原型约定的身份槽位与结案问题。 */
 const RETRIEVAL_SLOTS = ['rival', 'owner', 'decoy'] as const;
@@ -71,6 +106,7 @@ export function buildRetrievalSkeleton(
     rng.chance(0.5);
   const methodVia = withKeeper ? 'keeper' : pick(['tool', 'owner'] as const);
   const lieAbout = pick(['purpose', 'whereabouts'] as const);
+  const variant = pickMysteryVariant(template, seed);
   const withSealed = rng.chance(0.5);
   const roll = rng.next();
   const guardCount = roll < 0.2 ? 0 : roll < 0.7 ? 1 : 2;
@@ -490,6 +526,7 @@ export function buildRetrievalSkeleton(
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,
+    ...(variant !== 'base' ? { variant } : {}),
     title: T,
     truth: T,
     brief: {
@@ -569,5 +606,10 @@ export function buildRetrievalSkeleton(
     '被误导者等不及，照伪造线索独自去假藏处挖宝，离开了遗迹；预兆是他越来越焦躁，发生时写他离去';
   if (methodVia === 'tool')
     purposes.use_tool_seal = '用工具探查禁制铭文，发现开禁的关键一环';
+  if (variant === 'swapped') {
+    purposes[`${decoy}:clue_rumor`] =
+      '玩家到过正殿后再问，被误导者说出他深信的原藏处';
+    Object.assign(purposes, SWAPPED_PURPOSES);
+  }
   return { caseFile, purposes };
 }

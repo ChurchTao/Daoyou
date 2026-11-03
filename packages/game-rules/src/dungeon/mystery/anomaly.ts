@@ -4,7 +4,11 @@ import type {
   MysteryRunState,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
+import {
+  eventTurns,
+  pickMysteryVariant,
+  type MysteryCaseSkeleton,
+} from './skeleton.js';
 
 const T = '…';
 
@@ -88,6 +92,9 @@ export function buildAnomalySkeleton(
     rng.chance(0.5);
   const roll = rng.next();
   const guardCount = roll < 0.25 ? 0 : roll < 0.75 ? 1 : 2;
+  // unwitting：说谎的可疑者只是在掩盖小过；真正引发异变的是当地人无心的一个举动。
+  const variant = pickMysteryVariant(template, seed);
+  const unwitting = variant === 'unwitting';
 
   // 房间：入口、受害最显处（当地人在此）、源头、两到三处偏殿，可能有守卫把守的静室。
   const entrance = 'room_entrance';
@@ -137,7 +144,12 @@ export function buildAnomalySkeleton(
   const local = 'npc_local';
   const scapegoat = 'npc_scapegoat';
   const sage = 'npc_sage';
-  const culpritRoom = pick(openRooms.filter((r) => r !== source));
+  // unwitting 里可疑者被戳穿后才说出撞见的一幕，他不能站在会被异变封住的偏殿。
+  const culpritRoom = pick(
+    openRooms.filter(
+      (r) => r !== source && (!unwitting || (r !== farSide && r !== loreSide)),
+    ),
+  );
   const scapegoatRoom = pick(
     openRooms.filter((r) => r !== culpritRoom && r !== source),
   );
@@ -166,7 +178,9 @@ export function buildAnomalySkeleton(
   object(
     'obj_evidence',
     source,
-    '源头旁祸首留下的东西（器物、记号、截脉的钉子等）',
+    unwitting
+      ? '源头旁留下的东西：当地人出于好意改动此处（改水道、移阵石等）时落下的器物或痕迹'
+      : '源头旁祸首留下的东西（器物、记号、截脉的钉子等）',
   );
   object('obj_carving', source, '源头处前人刻下的平息古法残文');
   object(
@@ -256,16 +270,27 @@ export function buildAnomalySkeleton(
     'clue_evidence',
     true,
     ['culprit'],
-    '源头旁祸首留下的物证，能落到祸首身上',
+    unwitting
+      ? '源头旁的物证，能落到当地人身上：是他当初好心改动此处时留下的'
+      : '源头旁祸首留下的物证，能落到祸首身上',
     'obj_evidence',
   );
   clue(
     'clue_record',
-    true,
-    ['culprit'],
-    '记载中的事实，与祸首所称的行踪或所为矛盾，可当面戳穿',
+    !unwitting,
+    unwitting ? [] : ['culprit'],
+    unwitting
+      ? '记载中的事实，与可疑者所称的行踪矛盾，可当面戳穿'
+      : '记载中的事实，与祸首所称的行踪或所为矛盾，可当面戳穿',
     'obj_record',
   );
+  if (unwitting)
+    clue(
+      'clue_seen',
+      true,
+      ['culprit'],
+      '可疑者被戳穿后坦白自己的小过，并说出当时撞见当地人在源头动过什么',
+    );
   clue(
     'clue_alibi',
     true,
@@ -304,7 +329,14 @@ export function buildAnomalySkeleton(
     '指向背锅者的可疑痕迹：确有其事，但另有清白的缘由',
     'obj_suspect',
   );
-  clue('clue_claim', false, [], '祸首关于自己行踪或所为的说法（是谎言）');
+  clue(
+    'clue_claim',
+    false,
+    [],
+    unwitting
+      ? '可疑者关于自己行踪的说法（是谎言，为掩盖私采、越界之类的小过）'
+      : '祸首关于自己行踪或所为的说法（是谎言）',
+  );
   clue('clue_belief', false, [], '当地人认定的罪魁与源头（是错的）');
 
   const npc = (
@@ -332,7 +364,9 @@ export function buildAnomalySkeleton(
       culprit,
       'culprit',
       culpritRoom,
-      '引发异变的祸首（有意或无心），在行踪或所为上说谎',
+      unwitting
+        ? '形迹可疑的外来者，为掩盖私采、越界之类的小过谎称了行踪，与异变无关；被戳穿后坦白，并说出撞见的一幕'
+        : '引发异变的祸首（有意或无心），在行踪或所为上说谎',
       {
         secrets: [
           { clueId: 'clue_claim', requires: { visited: hub }, line: T },
@@ -342,7 +376,12 @@ export function buildAnomalySkeleton(
             id: 'react_culprit_record',
             evidenceId: 'clue_record',
             line: T,
-            effects: [{ kind: 'set_flag', flag: 'culprit_exposed' }],
+            effects: [
+              ...(unwitting
+                ? [{ kind: 'reveal_clue' as const, clueId: 'clue_seen' }]
+                : []),
+              { kind: 'set_flag', flag: 'culprit_exposed' },
+            ],
             exposesLie: true,
           },
         ],
@@ -352,7 +391,9 @@ export function buildAnomalySkeleton(
       local,
       'local',
       hub,
-      '受异变所害的当地人，症状说得最清楚，认定的罪魁却是错的',
+      unwitting
+        ? '受异变所害的当地人，正是他出于好意的一个举动（改水道、移阵石等）无意中引发了异变；他自己不知情，说的都是真话，认定的罪魁却是错的'
+        : '受异变所害的当地人，症状说得最清楚，认定的罪魁却是错的',
       {
         secrets: [
           { clueId: 'clue_belief', requires: { visited: hub }, line: T },
@@ -395,13 +436,16 @@ export function buildAnomalySkeleton(
         reactions: [],
       }),
     );
-  purposes[`${culprit}:clue_claim`] =
-    '玩家到过受害最显处后再问，祸首说出关于自己行踪或所为的谎言';
+  purposes[`${culprit}:clue_claim`] = unwitting
+    ? '玩家到过受害最显处后再问，可疑者说出关于自己行踪的谎言'
+    : '玩家到过受害最显处后再问，祸首说出关于自己行踪或所为的谎言';
   purposes[`${local}:clue_belief`] = '当地人说出他认定的罪魁与源头';
   if (withSage)
     purposes[`${sage}:clue_lore`] =
       '玩家读过源头残文后再问，知情者道出平息古法的关键一环';
-  purposes.react_culprit_record = '被记载当面戳穿时的慌乱与狡辩';
+  purposes.react_culprit_record = unwitting
+    ? '被记载当面戳穿后，坦白自己的小过，并说出当时撞见当地人在源头做了什么'
+    : '被记载当面戳穿时的慌乱与狡辩';
   purposes.react_scapegoat_cleared =
     '被出示可疑痕迹后又急又恼，说出清白的缘由并拿出凭据';
   purposes.use_ward_source = '把镇物用在源头上，异变暂时被压住';
@@ -436,6 +480,7 @@ export function buildAnomalySkeleton(
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,
+    ...(variant !== 'base' ? { variant } : {}),
     title: T,
     truth: T,
     brief: {
@@ -472,7 +517,7 @@ export function buildAnomalySkeleton(
         answer: 'source_true',
         explanation: T,
       },
-      { id: 'culprit', answer: culprit, explanation: T },
+      { id: 'culprit', answer: unwitting ? local : culprit, explanation: T },
       {
         id: 'remedy',
         options: options(REMEDY_OPTIONS),

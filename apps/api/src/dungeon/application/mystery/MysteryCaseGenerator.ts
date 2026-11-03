@@ -41,6 +41,14 @@ interface MysteryArchetypeSpec {
   cast: readonly string[];
   canon: Record<string, string>;
   rules: readonly string[];
+  /**
+   * 结构变体对案型描述的覆盖：canon 按键合并，其余整体替换。
+   * 变体改变谁说谎、真相如何成立，结案问题不变。
+   */
+  variants?: Record<
+    string,
+    Partial<Omit<MysteryArchetypeSpec, 'variants'>> & { summary: string }
+  >;
 }
 
 const ARCHETYPES: Partial<
@@ -65,6 +73,28 @@ const ARCHETYPES: Partial<
       '骨架里有封闭密室时，开门靠钥匙，门上纹样只是洞府主人一脉的印记。',
       '“手段”一问的选项：真相一项必须与手段线索一致，干扰项要说得通、但与物证不符。',
     ],
+    variants: {
+      decoy_liar: {
+        summary:
+          '本局说谎的不是凶手，而是被冤枉的嫌疑人：他为掩盖一件与命案无关、见不得人的私事谎称了案发时的行踪；凶手以伪装身份出现但所言不虚，只对案发当晚避而不谈，要靠物证坐实。',
+        liar: 'npc_suspect',
+        liarLabel: '嫌疑人',
+        canon: {
+          culprit:
+            '凶手的真名、伪装身份与动机；他不说谎，只对案发当晚的事避而不谈',
+          lie: '嫌疑人对外宣称案发时行踪的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+          contradiction: 'clue_record 记载的哪条事实与嫌疑人的 lie 矛盾',
+          suspect:
+            '嫌疑人为何被怀疑（可疑物证从何而来）、清白的真相与凭据；他谎称行踪是为掩盖哪件与命案无关的私事；那晚他躲在暗处时撞见了凶手的什么举动（clue_confess）',
+        },
+        rules: [
+          '凶手是 npc_culprit，传人是 npc_heir，npc_suspect 是被冤枉的嫌疑人。本局说谎的是嫌疑人，不是凶手：嫌疑人谎称案发时的行踪，是为掩盖一件与命案无关的私事；被记录戳穿后坦白私事，并说出那晚撞见凶手的一幕（clue_confess）。',
+          '凶手的伪装身份与说法都不作假，只是对案发当晚避而不谈；真相要靠作案手段、罪证与嫌疑人撞见的那一幕坐实，不要让凶手说出任何能被戳穿的谎言。',
+          '骨架里有封闭密室时，开门靠钥匙，门上纹样只是洞府主人一脉的印记。',
+          '“手段”一问的选项：真相一项必须与手段线索一致，干扰项要说得通、但与物证不符。',
+        ],
+      },
+    },
   },
   retrieval: {
     liar: 'npc_rival',
@@ -87,6 +117,26 @@ const ARCHETYPES: Partial<
       '骨架里有封闭密室时，开门靠钥匙，门上纹样只是前辈一脉的印记。守卫拦在静室门口，可强闯，也可凭“作用”所述的办法化解。',
       '“藏处”与“法门”两问的选项：四个选项各不相同；真相一项必须与线索一致，干扰项要说得通、但与物证不符；假藏处与伪造线索所指一致，另两个干扰项是别的地点。',
     ],
+    variants: {
+      swapped: {
+        summary:
+          '本局遗珍早已被转移：前辈遗刻与最显眼的线索都指向原先的藏处，那里只剩当年转移遗珍的人留下的赝品；转移的痕迹才指向真正的新藏处。夺宝者仍在说谎，但他不知道原藏处的是赝品。',
+        canon: {
+          place:
+            '遗珍原先藏在哪（遗刻所说之处，如今只剩赝品）、当年由谁为何转移、如今真正的新藏处在哪、有什么特征',
+          forged:
+            '原藏处的赝品是什么样子、当年谁为何留下它；被误导者为何深信它是真品、看出破绽后如何改口',
+          rival:
+            '夺宝者的真名、对外身份与图谋；他盯上的是原藏处的遗珍，不知道那是赝品',
+        },
+        rules: [
+          '夺宝者是 npc_rival，应得之人是 npc_owner，npc_decoy 是被原藏处的赝品骗了的人（真心相信，不是同伙），npc_keeper（如有）是守遗者。',
+          '本局遗珍早已被转移：遗刻说的是原先的藏处，那里只剩当年转移遗珍的人留下的赝品（不是夺宝者伪造的）；转移的痕迹指向真正的新藏处。新藏处此刻仍封在暗藏禁制里，从外面看不出，没有人取出过；正殿只有遗刻与开禁铭文，遗珍不在正殿。',
+          '骨架里有封闭密室时，开门靠钥匙，门上纹样只是前辈一脉的印记。守卫拦在静室门口，可强闯，也可凭“作用”所述的办法化解。',
+          '“藏处”与“法门”两问的选项：四个选项各不相同；真相一项是新藏处，必须与转移的痕迹一致；原藏处是干扰项，另两个干扰项是别的地点。',
+        ],
+      },
+    },
   },
   unlock: {
     liar: 'npc_rival',
@@ -107,6 +157,27 @@ const ARCHETYPES: Partial<
       '同一机关的四个部件名称成套（如卦象、四象、五行、星宿、此地特有的器物），每个两到四字，彼此不同。',
       '“引子”与“前人失败原因”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
     ],
+    variants: {
+      honest_rival: {
+        summary:
+          '本局闯关者说的是真话：当年他把正确的解法给了前人，是前人自己记错了一步才触发反噬，却一直认定闯关者害了他。被记载戳穿的是前人的说法，不是闯关者。',
+        canon: {
+          rival:
+            '闯关者的真名、来历与图谋；当年他把正确的解法给了前人，如今被前人当成骗子',
+          lie: '闯关者关于当年把解法交给前人的第一人称原话（“我……”），一两句，不加引号；这是实话，与其称谓 title 一致',
+          contradiction:
+            'clue_record 记载的哪条事实与前人自述的经过矛盾（当年他实际按动的次序）',
+          fallen:
+            '前人是谁、何时在此失败、记错了哪一步，以及他为何认定是闯关者害了他',
+        },
+        rules: [
+          '守试者是 npc_warden，闯关者是 npc_rival，前人是 npc_fallen。本局闯关者说的是实话：当年他把正确的解法给了前人；前人自己记错了一步才触发反噬，却认定是闯关者给了他假解法。',
+          '两处机关与主禁制的具体解法由程序决定，提示原话也由程序补上；你只为机关与部件起名、写外观与情形，不要在任何文字里写出机关的解法或次序。',
+          '同一机关的四个部件名称成套（如卦象、四象、五行、星宿、此地特有的器物），每个两到四字，彼此不同。',
+          '“引子”与“前人失败原因”两问的选项：“前人失败原因”的真相是前人自己记错了一步，“被闯关者误导”是干扰项；其余干扰项要说得通、但与线索不符。',
+        ],
+      },
+    },
   },
   anomaly: {
     liar: 'npc_culprit',
@@ -128,6 +199,28 @@ const ARCHETYPES: Partial<
       '异变化形（manifest）贴合此地（草木、地脉、海潮、魔气、阴尸），只在结案答对后才现身，调查中不要写它已经出现。',
       '“源头”与“平息之法”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
     ],
+    variants: {
+      unwitting: {
+        summary:
+          '本局引发异变的是当地人：他出于好意的一个举动（改水道、移阵石等）无意中断了地脉，自己并不知情，说的都是真话；形迹可疑、在行踪上说谎的外来者只是在掩盖私采、越界之类的小过，被戳穿后会说出撞见当地人在源头动过什么。',
+        cast: ['npc_local', 'npc_culprit'],
+        liarLabel: '可疑者',
+        canon: {
+          culprit:
+            '形迹可疑的外来者的真名与身份，他为掩盖哪件小过（私采、越界等）谎称行踪，那时撞见当地人在源头做了什么',
+          lie: '可疑者对外宣称行踪的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+          contradiction: 'clue_record 记载的哪条事实与可疑者的 lie 矛盾',
+          unwitting:
+            '当地人当初出于好意做了什么（改水道、移阵石等），为何会断了地脉；他认定的罪魁是谁',
+        },
+        rules: [
+          '本局引发异变的是当地人 npc_local：他出于好意的一个举动无意中断了地脉，自己不知情，说的都是真话。npc_culprit 只是形迹可疑的外来者，说谎是为掩盖小过，与异变无关；npc_scapegoat 是被冤枉的背锅者，npc_sage（如有）是知情者。',
+          '症状越近源头越重：受害最显处、偏殿与源头的描写要能看出轻重与方向。源头此刻只见异象，真相要靠痕迹与古法拼出。',
+          '异变化形（manifest）贴合此地（草木、地脉、海潮、魔气、阴尸），只在结案答对后才现身，调查中不要写它已经出现。',
+          '“源头”与“平息之法”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
+        ],
+      },
+    },
   },
   allegiance: {
     liar: 'npc_broker',
@@ -151,13 +244,39 @@ const ARCHETYPES: Partial<
       'truth 写清两方的真实图谋与中间人的挑拨，不写玩家最终站在哪一边；“你站在哪一边”一题没有标准答案。',
       '“图谋”两问的选项：真实图谋一项必须与线索一致，干扰项为公开说法、对方的指控与另一种猜测；“站在哪一边”的选项写成“支持某某”“两不相帮，出面调停”，用势力名称。',
     ],
+    variants: {
+      honest_broker: {
+        summary:
+          '本局中间人说的是真话：他两头奔走劝和，警告其中一方所图会祸及无辜，却拿不出凭据，两方都当他在挑拨。真正隐瞒的是所图会祸及无辜的那一方代表，被记载戳穿时连带败露。',
+        canon: {
+          broker: '中间人是谁、为何两头奔走劝和、他警告的是什么',
+          lie: '中间人对两方的警告的第一人称原话（“我……”），一两句，不加引号；这是实话，与其称谓 title 一致',
+          contradiction: 'clue_letter 劝和书信里哪件事证明了中间人所言不虚',
+        },
+        rules: [
+          '甲方代表是 npc_envoy_a，乙方代表是 npc_envoy_b，中间人是 npc_broker，npc_bystander（如有）是被卷进来的旁人；“甲方”“乙方”只是代号，正文里用两方的势力名称。',
+          '本局中间人说的是真话，没有挑拨：所图会祸及无辜的那一方代表隐瞒了这件事，被记载戳穿时一并败露；另一方另有私心但不害无辜。两方都要有自己的道理，不写成脸谱化的正邪。',
+          'truth 写清两方的真实图谋与中间人的劝和，不写玩家最终站在哪一边；“你站在哪一边”一题没有标准答案。',
+          '“图谋”两问的选项：真实图谋一项必须与线索一致，干扰项为公开说法、对方的指控与另一种猜测；“站在哪一边”的选项写成“支持某某”“两不相帮，出面调停”，用势力名称。',
+        ],
+      },
+    },
   },
 };
 
-function archetypeOf(template: MysteryScenarioTemplate) {
-  const spec = ARCHETYPES[template.archetype];
-  if (!spec) throw new Error(`暂不支持原型 ${template.archetype} 的案卷生成`);
-  return spec;
+/** 案型描述，叠加本局结构变体的覆盖。 */
+function archetypeOf(template: MysteryScenarioTemplate, variant = 'base') {
+  const base = ARCHETYPES[template.archetype];
+  if (!base) throw new Error(`暂不支持原型 ${template.archetype} 的案卷生成`);
+  const override = base.variants?.[variant];
+  if (variant !== 'base' && !override)
+    throw new Error(`案型 ${template.archetype} 没有变体 ${variant} 的描述`);
+  if (!override) return { spec: base, summary: undefined };
+  const { summary, canon, ...rest } = override;
+  return {
+    spec: { ...base, ...rest, canon: { ...base.canon, ...canon } },
+    summary,
+  };
 }
 
 const Text = (limit: number, hint: string) =>
@@ -303,7 +422,9 @@ const TEXT_PARTS = {
           z.object({
             description: Text(
               160,
-              `初次进入的描写，只写空间与人物，不写物件细节；作用：${s.purposes[room]}`,
+              s.caseFile.guards?.some((g) => g.roomId === room)
+                ? `初次进入的描写，只写空间与人物，不写物件细节；玩家要先闯过或化解门口的守卫才进得来，这里写的是进门后看到的样子，不要写守卫仍在；作用：${s.purposes[room]}`
+                : `初次进入的描写，只写空间与人物，不写物件细节；作用：${s.purposes[room]}`,
             ),
             brief: Text(30, '再次进入时的一句话'),
             ...(id.lockedRooms.includes(room)
@@ -768,7 +889,7 @@ function namingPalette(seed: number) {
 }
 
 /** 骨架或生成流水线不兼容地变化时递增，剧本库可据此整批停用旧本。 */
-export const MYSTERY_GENERATOR_VERSION = 4;
+export const MYSTERY_GENERATOR_VERSION = 5;
 
 export interface GeneratedMysteryCase {
   caseFile: MysteryCaseFile;
@@ -788,8 +909,11 @@ export async function generateMysteryCase(
   const { template, node, setting } = request;
   let reviewIssueCount = 0;
   try {
-    const spec = archetypeOf(template);
     const skeleton = buildMysterySkeleton(template, request.seed);
+    const { spec, summary: variantSummary } = archetypeOf(
+      template,
+      skeleton.caseFile.variant,
+    );
     const draftOutline = () =>
       callStage({
         promptId: 'dungeon-case',
@@ -797,7 +921,10 @@ export async function generateMysteryCase(
         name: 'DungeonMysteryOutline',
         schema: outlineSchema(skeleton, spec),
         context: {
-          archetype: { rules: spec.rules },
+          archetype: {
+            rules: spec.rules,
+            ...(variantSummary ? { variant: variantSummary } : {}),
+          },
           naming: namingPalette(request.seed),
           template: {
             name: template.name,

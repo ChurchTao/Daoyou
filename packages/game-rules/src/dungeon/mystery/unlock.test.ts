@@ -80,6 +80,27 @@ describe('unlock skeleton', () => {
   });
 });
 
+describe('unlock variants', () => {
+  it('mixes in the honest-rival variant, where the fallen misremembered', () => {
+    let honest = 0;
+    for (const seed of seeds) {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const exposed = caseFile.npcs
+        .filter((n) => n.reactions.some((r) => r.exposesLie))
+        .map((n) => n.id);
+      if (caseFile.variant === 'honest_rival') {
+        honest++;
+        expect(exposed, `seed ${seed}`).toEqual(['npc_fallen']);
+        expect(
+          estimateMysteryMinimumActions(caseFile),
+          `seed ${seed}`,
+        ).toBeLessThanOrEqual(template.scale.action_budget * 0.75);
+      } else expect(exposed).toEqual(['npc_rival']);
+    }
+    expect(honest).toBeGreaterThan(90);
+  });
+});
+
 describe('operating a mechanism', () => {
   it('opens on the right sequence and reveals the seal fragment', () => {
     const { caseFile } = buildMysterySkeleton(template, 17);

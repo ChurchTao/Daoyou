@@ -201,6 +201,20 @@ describe('repeated hints', () => {
   });
 });
 
+describe('retrieval variants', () => {
+  it('mixes in the swapped variant without changing the structure', () => {
+    let swapped = 0;
+    for (const seed of seeds) {
+      const { caseFile, purposes } = buildMysterySkeleton(template, seed);
+      if (caseFile.variant !== 'swapped') continue;
+      swapped++;
+      expect(purposes.obj_forged).toContain('赝品');
+      expect(purposes['option:place_false']).toContain('原先的藏处');
+    }
+    expect(swapped).toBeGreaterThan(90);
+  });
+});
+
 describe('retrieval scoring', () => {
   it('scores a full solve with every guard passed and the rival beaten as 100', () => {
     const caseFile = caseWithGuards(2);

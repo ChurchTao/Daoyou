@@ -3,7 +3,11 @@ import type {
   MysteryCaseFile,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { eventTurns, type MysteryCaseSkeleton } from './skeleton.js';
+import {
+  eventTurns,
+  pickMysteryVariant,
+  type MysteryCaseSkeleton,
+} from './skeleton.js';
 
 const T = '…';
 
@@ -50,6 +54,10 @@ export function buildAllegianceSkeleton(
   };
 
   const harmful = rng.chance(0.5) ? 'a' : 'b';
+  // honest_broker：中间人所言属实；隐瞒祸及无辜之事的是那一方的代表。
+  // broker_exposed 统一表示“挑拨或隐情被揭穿”，此变体里由揭穿该代表设置。
+  const variant = pickMysteryVariant(template, seed);
+  const honest = variant === 'honest_broker';
   const nature = (side: 'a' | 'b') =>
     side === harmful
       ? '所图会祸及无辜（为私利不惜牺牲旁人）'
@@ -142,7 +150,9 @@ export function buildAllegianceSkeleton(
   object(
     'obj_letter',
     elsewhere([brokerRoom]),
-    '中间人藏起的往来密信，可见其两头挑拨',
+    honest
+      ? '中间人收着的往来书信，可见他两头奔走劝和、所言不虚'
+      : '中间人藏起的往来密信，可见其两头挑拨',
   );
   guarded.forEach((room, i) =>
     object(
@@ -226,7 +236,15 @@ export function buildAllegianceSkeleton(
     '记载中与乙方代表所称矛盾的事实，可当面戳穿',
     'obj_record_b',
   );
-  clue('clue_letter', true, [], '中间人两头传话、暗中挑拨的密信', 'obj_letter');
+  clue(
+    'clue_letter',
+    true,
+    [],
+    honest
+      ? '中间人两头劝和的书信，证明他的警告不是挑拨'
+      : '中间人两头传话、暗中挑拨的密信',
+    'obj_letter',
+  );
   if (withBystander)
     clue(
       'clue_witness',
@@ -245,7 +263,14 @@ export function buildAllegianceSkeleton(
   );
   clue('clue_claim_a', false, [], '甲方代表的公开说法中的一句谎言');
   clue('clue_claim_b', false, [], '乙方代表的公开说法中的一句谎言');
-  clue('clue_claim', false, [], '中间人关于自己来意或立场的说法（是谎言）');
+  clue(
+    'clue_claim',
+    false,
+    [],
+    honest
+      ? '中间人对两方的警告（属实，但他拿不出凭据，两方都当他在挑拨）'
+      : '中间人关于自己来意或立场的说法（是谎言）',
+  );
 
   const npc = (
     id: string,
@@ -286,7 +311,12 @@ export function buildAllegianceSkeleton(
             id: `react_envoy_${side}`,
             evidenceId: `clue_record_${side}`,
             line: T,
-            effects: [{ kind: 'set_flag', flag: `envoy_${side}_exposed` }],
+            effects: [
+              { kind: 'set_flag', flag: `envoy_${side}_exposed` },
+              ...(honest && side === harmful
+                ? [{ kind: 'set_flag' as const, flag: 'broker_exposed' }]
+                : []),
+            ],
             exposesLie: true,
           },
         ],
@@ -299,20 +329,24 @@ export function buildAllegianceSkeleton(
       broker,
       'broker',
       brokerRoom,
-      '两头传话、暗中挑拨的中间人，想坐收渔利',
+      honest
+        ? '两头奔走劝和的中间人，所言属实：他警告其中一方所图会祸及无辜，却拿不出凭据，两方都当他在挑拨'
+        : '两头传话、暗中挑拨的中间人，想坐收渔利',
       {
         secrets: [
           { clueId: 'clue_claim', requires: { visited: hub }, line: T },
         ],
-        reactions: [
-          {
-            id: 'react_broker_letter',
-            evidenceId: 'clue_letter',
-            line: T,
-            effects: [{ kind: 'set_flag', flag: 'broker_exposed' }],
-            exposesLie: true,
-          },
-        ],
+        reactions: honest
+          ? []
+          : [
+              {
+                id: 'react_broker_letter',
+                evidenceId: 'clue_letter',
+                line: T,
+                effects: [{ kind: 'set_flag', flag: 'broker_exposed' }],
+                exposesLie: true,
+              },
+            ],
       },
     ),
   ];
@@ -339,14 +373,18 @@ export function buildAllegianceSkeleton(
     '玩家到过中立地后再问，甲方代表说出公开说法里的谎言';
   purposes[`${envoyB}:clue_claim_b`] =
     '玩家到过中立地后再问，乙方代表说出公开说法里的谎言';
-  purposes[`${broker}:clue_claim`] =
-    '玩家到过中立地后再问，中间人说出关于自己立场的谎言';
+  purposes[`${broker}:clue_claim`] = honest
+    ? '玩家到过中立地后再问，中间人说出他对两方的警告（属实）'
+    : '玩家到过中立地后再问，中间人说出关于自己立场的谎言';
   if (withBystander)
     purposes[`${bystander}:clue_witness`] =
       '玩家到过任一方营地后再问，旁人说出亲眼所见';
   purposes.react_envoy_a = '被记载当面戳穿时的慌乱与辩解';
   purposes.react_envoy_b = '被记载当面戳穿时的慌乱与辩解';
-  purposes.react_broker_letter = '被出示密信后撕下伪装，或狡辩或求饶';
+  if (honest)
+    purposes[`react_envoy_${harmful}`] =
+      '被记载当面戳穿时，此方隐瞒的祸及无辜之事随之败露，恼羞成怒';
+  else purposes.react_broker_letter = '被出示密信后撕下伪装，或狡辩或求饶';
 
   const guards: NonNullable<MysteryCaseFile['guards']> = guarded.map(
     (room, i) => {
@@ -354,7 +392,9 @@ export function buildAllegianceSkeleton(
       purposes[id] =
         i === 0
           ? '某一方布下的守卫（傀儡、护卫或驯兽）；持信物可令其让路'
-          : '某一方布下的守卫；揭穿中间人后得知的口令可令其退下';
+          : honest
+            ? '某一方布下的守卫；揭穿隐瞒祸事的那位代表后得知的口令可令其退下'
+            : '某一方布下的守卫；揭穿中间人后得知的口令可令其退下';
       return {
         id,
         roomId: room,
@@ -382,6 +422,7 @@ export function buildAllegianceSkeleton(
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,
+    ...(variant !== 'base' ? { variant } : {}),
     title: T,
     truth: T,
     brief: {
@@ -443,8 +484,9 @@ export function buildAllegianceSkeleton(
       },
     ],
   };
-  purposes.evt_burn =
-    '中间人察觉风声，去烧掉藏起的密信；预兆是他神色不宁、频频离开，发生时写你事后闻到焦味、密信已毁';
+  purposes.evt_burn = honest
+    ? '隐瞒祸事的那一方察觉中间人的书信会坏事，派人去烧掉它；预兆是那方的人在中间人附近转悠，发生时写你事后闻到焦味、书信已毁'
+    : '中间人察觉风声，去烧掉藏起的密信；预兆是他神色不宁、频频离开，发生时写你事后闻到焦味、密信已毁';
   purposes['explanation:side'] =
     '不评对错、不预设答案：用势力名称（不写“甲方”“乙方”）分别写三种抉择各自会带来什么，开头不要先下结论';
   return { caseFile, purposes };

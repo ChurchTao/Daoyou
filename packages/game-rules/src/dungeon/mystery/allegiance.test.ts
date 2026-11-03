@@ -27,6 +27,31 @@ describe('allegiance skeleton', () => {
   });
 });
 
+describe('allegiance variants', () => {
+  it('mixes in the honest-broker variant, where an envoy hides the harm', () => {
+    let honest = 0;
+    for (const seed of seeds) {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const broker = caseFile.npcs.find((n) => n.role === 'broker')!;
+      if (caseFile.variant !== 'honest_broker') {
+        expect(broker.reactions.some((r) => r.exposesLie)).toBe(true);
+        continue;
+      }
+      honest++;
+      expect(broker.reactions).toEqual([]);
+      // 调停且揭穿隐瞒祸事的代表后，对手是那位代表而不是中间人。
+      const target = mysteryConfrontationTarget(
+        caseFile,
+        template,
+        { ...KNOWN, side: 'side_mediate' },
+        { flags: ['broker_exposed'] },
+      );
+      expect(target?.role, `seed ${seed}`).toMatch(/^envoy_/);
+    }
+    expect(honest).toBeGreaterThan(90);
+  });
+});
+
 describe('allegiance judgement', () => {
   it('scores the intents but not the side you choose', () => {
     const { caseFile } = buildMysterySkeleton(template, 11);

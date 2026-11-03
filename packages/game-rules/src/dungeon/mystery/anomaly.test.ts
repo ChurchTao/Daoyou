@@ -48,6 +48,25 @@ describe('anomaly skeleton', () => {
   });
 });
 
+describe('anomaly variants', () => {
+  it('mixes in the unwitting variant, where the honest local caused it', () => {
+    let unwitting = 0;
+    for (const seed of seeds) {
+      const { caseFile } = buildMysterySkeleton(template, seed);
+      const culprit = caseFile.questions.find((q) => q.id === 'culprit')!;
+      const liar = caseFile.npcs.find((n) =>
+        n.reactions.some((r) => r.exposesLie),
+      )!;
+      if (caseFile.variant === 'unwitting') {
+        unwitting++;
+        expect(culprit.answer).toBe('npc_local');
+        expect(liar.id).not.toBe(culprit.answer);
+      } else expect(liar.id).toBe(culprit.answer);
+    }
+    expect(unwitting).toBeGreaterThan(90);
+  });
+});
+
 describe('anomaly escalation', () => {
   it('seals a side room at the first stage and blocks moving in', () => {
     const { caseFile } = buildMysterySkeleton(template, 9);

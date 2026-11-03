@@ -25,6 +25,24 @@ export interface MysteryCaseSkeleton {
 
 const T = MYSTERY_TEXT_PLACEHOLDER;
 
+/**
+ * 按模板权重为种子抽取结构变体。用独立的随机序列，
+ * 同一种子在 base 下得到的骨架与引入变体之前完全相同。
+ */
+export function pickMysteryVariant(
+  template: MysteryScenarioTemplate,
+  seed: number,
+): string {
+  const variants = template.variants ?? [{ id: 'base', weight: 1 }];
+  const total = variants.reduce((sum, v) => sum + v.weight, 0);
+  let roll = new SeededRng(seed ^ 0x5bd1e995).next() * total;
+  for (const v of variants) {
+    roll -= v.weight;
+    if (roll < 0) return v.id;
+  }
+  return variants[variants.length - 1]!.id;
+}
+
 /** 事件的预兆与发生回合：按行动力预算的比例换算。 */
 export function eventTurns(
   template: MysteryScenarioTemplate,
@@ -116,7 +134,12 @@ function buildWhodunitSkeleton(
       ? (['tool', 'witness', 'heir'] as const)
       : (['tool', 'heir'] as const),
   );
-  const lieAbout = pick(['identity', 'whereabouts'] as const);
+  const pickedLie = pick(['identity', 'whereabouts'] as const);
+  // decoy_liar：说谎的是嫌疑人（为掩盖与命案无关的私事谎称行踪），真凶不说谎。
+  const variant = pickMysteryVariant(template, seed);
+  const decoy = variant === 'decoy_liar';
+  const lieAbout = decoy ? 'whereabouts' : pickedLie;
+  const liarLabel = decoy ? '嫌疑人' : '凶手';
 
   // 房间：入口、中枢（死者所在）、作案处、若干旁室，可能有封闭密室（叶子，需钥匙）。
   const entrance = 'room_entrance';
@@ -190,8 +213,8 @@ function buildWhodunitSkeleton(
     'obj_record',
     pick(openRooms.filter((r) => r !== hub)),
     lieAbout === 'identity'
-      ? '存放记录的地方，记载着与凶手所称身份相悖的事实'
-      : '存放记录的地方，记载着与凶手所称行踪相悖的事实',
+      ? `存放记录的地方，记载着与${liarLabel}所称身份相悖的事实`
+      : `存放记录的地方，记载着与${liarLabel}所称行踪相悖的事实`,
   );
   object(
     'obj_seal',
@@ -287,13 +310,20 @@ function buildWhodunitSkeleton(
   );
   clue(
     'clue_record',
-    true,
-    ['who'],
+    !decoy,
+    decoy ? [] : ['who'],
     lieAbout === 'identity'
-      ? '记录中的事实，与凶手所称的身份矛盾，可当面戳穿'
-      : '记录中的事实，与凶手所称的行踪矛盾，可当面戳穿',
+      ? `记录中的事实，与${liarLabel}所称的身份矛盾，可当面戳穿`
+      : `记录中的事实，与${liarLabel}所称的行踪矛盾，可当面戳穿`,
     'obj_record',
   );
+  if (decoy)
+    clue(
+      'clue_confess',
+      true,
+      ['who'],
+      '嫌疑人被戳穿后坦白的私事，以及那晚为此躲在暗处时撞见的一幕：指向真凶',
+    );
   clue(
     'clue_hidden',
     true,
@@ -322,20 +352,24 @@ function buildWhodunitSkeleton(
     ['who'],
     '嫌疑人被出示可疑物证后给出的辩白与可核实的凭据，洗清其嫌疑',
   );
-  clue(
-    'clue_entrance',
-    false,
-    [],
-    '入口处的误导痕迹，有合理的其他解释',
-    'obj_entrance',
-  );
+  // decoy_liar 里嫌疑人的谎言与被戳穿的记录已是误导，入口痕迹不再出线索。
+  if (!decoy)
+    clue(
+      'clue_entrance',
+      false,
+      [],
+      '入口处的误导痕迹，有合理的其他解释',
+      'obj_entrance',
+    );
   clue(
     'clue_claim',
     false,
     [],
-    lieAbout === 'identity'
-      ? '凶手关于自己身份来历的说法（是谎言）'
-      : '凶手关于自己案发时行踪的说法（是谎言）',
+    decoy
+      ? '嫌疑人关于自己案发时行踪的说法（是谎言，为掩盖一件与命案无关、见不得人的私事）'
+      : lieAbout === 'identity'
+        ? '凶手关于自己身份来历的说法（是谎言）'
+        : '凶手关于自己案发时行踪的说法（是谎言）',
   );
   clue(
     'clue_suspect',
@@ -376,26 +410,45 @@ function buildWhodunitSkeleton(
     };
   };
   const npcs: MysteryCaseFile['npcs'] = [
-    npc(
-      culprit,
-      'culprit',
-      culpritRoom,
-      '真凶，以伪装身份出现，有求于玩家，乐于把嫌疑引向嫌疑人',
-      {
-        secrets: [
-          { clueId: 'clue_claim', requires: { visited: crime }, line: T },
-        ],
-        reactions: [
+    decoy
+      ? npc(
+          culprit,
+          'culprit',
+          culpritRoom,
+          '真凶，以伪装身份出现但所言不虚，只对案发当晚的事避而不谈；乐于把嫌疑引向嫌疑人',
           {
-            id: 'react_culprit_record',
-            evidenceId: 'clue_record',
-            line: T,
-            effects: [{ kind: 'set_flag', flag: 'culprit_exposed' }],
-            exposesLie: true,
+            secrets: [],
+            reactions: [
+              {
+                id: 'react_culprit_seen',
+                evidenceId: 'clue_confess',
+                line: T,
+                effects: [{ kind: 'set_flag', flag: 'culprit_exposed' }],
+                exposesLie: false,
+              },
+            ],
           },
-        ],
-      },
-    ),
+        )
+      : npc(
+          culprit,
+          'culprit',
+          culpritRoom,
+          '真凶，以伪装身份出现，有求于玩家，乐于把嫌疑引向嫌疑人',
+          {
+            secrets: [
+              { clueId: 'clue_claim', requires: { visited: crime }, line: T },
+            ],
+            reactions: [
+              {
+                id: 'react_culprit_record',
+                evidenceId: 'clue_record',
+                line: T,
+                effects: [{ kind: 'set_flag', flag: 'culprit_exposed' }],
+                exposesLie: true,
+              },
+            ],
+          },
+        ),
     npc(heir, 'heir', heirRoom, '真正的传人，起初戒备；不知道钥匙在哪', {
       secrets:
         methodVia === 'heir'
@@ -424,9 +477,13 @@ function buildWhodunitSkeleton(
       suspect,
       'suspect',
       suspectRoom,
-      '被冤枉的嫌疑人，有动机也有可疑之处，性情不讨喜，但与命案无关',
+      decoy
+        ? '被冤枉的嫌疑人，与命案无关，却为掩盖一件见不得人的私事谎称了案发时的行踪；被戳穿后坦白，并说出那晚撞见的一幕'
+        : '被冤枉的嫌疑人，有动机也有可疑之处，性情不讨喜，但与命案无关',
       {
-        secrets: [],
+        secrets: decoy
+          ? [{ clueId: 'clue_claim', requires: { visited: crime }, line: T }]
+          : [],
         reactions: [
           {
             id: 'react_suspect_cleared',
@@ -438,15 +495,37 @@ function buildWhodunitSkeleton(
             ],
             exposesLie: false,
           },
+          ...(decoy
+            ? [
+                {
+                  id: 'react_suspect_record',
+                  evidenceId: 'clue_record',
+                  line: T,
+                  effects: [
+                    { kind: 'reveal_clue' as const, clueId: 'clue_confess' },
+                    { kind: 'set_flag' as const, flag: 'suspect_confessed' },
+                  ],
+                  exposesLie: true,
+                },
+              ]
+            : []),
         ],
       },
     ),
   ];
-  purposes[`${culprit}:clue_claim`] =
-    lieAbout === 'identity'
-      ? '玩家到过作案处后再问，凶手说出关于自己身份来历的谎言'
-      : '玩家到过作案处后再问，凶手说出关于自己案发时行踪的谎言';
-  purposes.react_culprit_record = '被记录当面戳穿谎言时的慌乱';
+  if (decoy) {
+    purposes[`${suspect}:clue_claim`] =
+      '玩家到过作案处后再问，嫌疑人说出关于自己案发时行踪的谎言';
+    purposes.react_suspect_record =
+      '被记录当面戳穿谎言后，坦白那晚真正去做的私事，并说出当时撞见的一幕';
+    purposes.react_culprit_seen = '被出示嫌疑人撞见的那一幕时神色骤变';
+  } else {
+    purposes[`${culprit}:clue_claim`] =
+      lieAbout === 'identity'
+        ? '玩家到过作案处后再问，凶手说出关于自己身份来历的谎言'
+        : '玩家到过作案处后再问，凶手说出关于自己案发时行踪的谎言';
+    purposes.react_culprit_record = '被记录当面戳穿谎言时的慌乱';
+  }
   purposes.react_heir_seal = '被出示纹样后，拿出纹样相同的祖传信物、放下戒备';
   purposes.react_suspect_cleared =
     '被出示可疑物证后又急又恼，说出清白的缘由并拿出凭据';
@@ -485,6 +564,7 @@ function buildWhodunitSkeleton(
 
   const caseFile: MysteryCaseFile = {
     templateId: template.id,
+    ...(variant !== 'base' ? { variant } : {}),
     title: T,
     truth: T,
     brief: {

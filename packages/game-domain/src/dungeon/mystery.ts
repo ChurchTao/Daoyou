@@ -149,6 +149,20 @@ export const MysteryScenarioTemplateSchema = z
         points: z.number().int().min(0),
       })
       .optional(),
+    /**
+     * 同一案型内的结构变体与抽取权重：变体改变谁说谎、真相如何成立，
+     * 结案问题不变。没有此字段时只有 base。
+     */
+    variants: z
+      .array(
+        z.strictObject({
+          id: MysteryIdSchema,
+          weight: z.number().int().min(1).max(10),
+        }),
+      )
+      .min(1)
+      .max(4)
+      .optional(),
     writing_guidance: Text(600),
   })
   .superRefine((template, ctx) => {
@@ -208,6 +222,8 @@ const FoundAtSchema = z.strictObject({
 
 export const MysteryCaseFileSchema = z.strictObject({
   templateId: MysteryIdSchema,
+  /** 结构变体；缺省为 base。 */
+  variant: MysteryIdSchema.optional(),
   title: Text(24),
   truth: Text(600),
   brief: z.strictObject({
