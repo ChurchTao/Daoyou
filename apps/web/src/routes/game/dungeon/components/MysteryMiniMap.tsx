@@ -73,7 +73,7 @@ export function MysteryMiniMap({
         const p = pos.get(room.id)!;
         const canGo = reachable.has(room.id) && !disabled;
         const marks = [
-          room.locked ? '锁' : '',
+          room.sealed ? '封' : room.locked ? '锁' : '',
           room.guarded ? '守' : '',
           room.disturbed ? '异' : '',
         ].join('');

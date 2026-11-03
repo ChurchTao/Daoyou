@@ -19,6 +19,7 @@ function reachableRooms(caseFile: MysteryCaseFile, run: MysteryRunState) {
       if (
         rooms.has(next.id) ||
         !evaluateMysteryCondition(next.requires, run) ||
+        run.sealedRooms?.includes(next.id) ||
         mysteryGuardAt(caseFile, run, next.id)
       )
         continue;

@@ -6,6 +6,7 @@
 
 - [ ] 确定高级模型组的 DeepSeek 模型：DeepSeek 接口拒绝 `deepseek-v4.1-flash-1017`，可用的有 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-pro`。确定后更新预发布与生产环境的 `LLM_ADVANCED_PROVIDER`，并同步 `env/example.env`（当前仍写着被拒绝的型号）。
 - [ ] 预发布、生产环境都配置 `LLM_ADVANCED_PROVIDER`；未配置时高级场景会退回基础模型组，案卷一致性明显下降。
+- [ ] 结构化输出的稳定性：本地开发中基础模型组（qwen）曾间歇返回 “This response_format type is unavailable now”，导致后台生成批量失败。上线前确认所选模型对结构化输出的支持与配额，必要时为基础组配置多条路由。
 - [ ] 用目标环境的密钥实际调用一次 `dungeon-case`、`dungeon-case-text`、`dungeon-case-review`、`dungeon-npc`、`dungeon-settlement` 五个场景，确认模型可用、结构化输出正常。
 
 ## 2. 数据库与部署
@@ -17,7 +18,7 @@
 
 ## 3. 剧本库预热
 
-- [ ] 上线前在目标环境把每个库存位预热到至少 2 本。当前 31 个节点共 41 个库存位，预热目标约 82 本。
+- [ ] 上线前在目标环境把每个库存位预热到至少 2 本。当前 31 个节点、4 种案型共 74 个库存位（遗府疑案 11、遗珍寻踪 30、破禁试炼 17、异变溯源 16；阶段 3.5 撤掉牵强配对后会减少），预热目标约 150 本。
   - 清扫任务已会自动把不足 2 本的库存位排队补货，但全服待生成上限为 5、每个实例同一时间只生成 1 本、每本约 60–90 秒，单实例全部补满需要一个多小时。需提前启动并留出时间。
   - 预热后逐个库存位核对数量（`wanjiedaoyou_dungeon_scenarios` 按 `map_node_id, template_id` 统计 `status = 'active'`），并抽查各节点若干本的质量。
 - [ ] 评估预热与日常补货的模型费用（每本：大纲 1 次高级模型 + 正文 3 次基础模型 + 审校 1–2 次高级模型 + 入库审校 1 次高级模型）。

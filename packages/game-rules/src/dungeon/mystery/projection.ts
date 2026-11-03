@@ -114,6 +114,7 @@ function projectMap(caseFile: MysteryCaseFile, run: MysteryRunState) {
         here: r.id === run.location,
         visited,
         locked: !evaluateMysteryCondition(r.requires, run),
+        sealed: Boolean(run.sealedRooms?.includes(r.id)),
         guarded: Boolean(mysteryGuardAt(caseFile, run, r.id)),
         people: visited
           ? caseFile.npcs.filter(
@@ -186,13 +187,18 @@ export function projectMysteryView(
     actionsLeft: run.actionsLeft,
     location: { id: room.id, name: room.name, description: room.description },
     exits: mysteryNeighbors(caseFile, room.id).map((r) => {
-      const locked = !evaluateMysteryCondition(r.requires, run);
+      const sealed = Boolean(run.sealedRooms?.includes(r.id));
+      const locked = sealed || !evaluateMysteryCondition(r.requires, run);
       const guard = locked ? undefined : mysteryGuardAt(caseFile, run, r.id);
       return {
         id: r.id,
         name: r.name,
         locked,
-        ...(locked && r.lockedText ? { hint: r.lockedText } : {}),
+        ...(sealed
+          ? { hint: '已被异变封住，进不去了。' }
+          : locked && r.lockedText
+            ? { hint: r.lockedText }
+            : {}),
         ...(guard
           ? {
               guard: {

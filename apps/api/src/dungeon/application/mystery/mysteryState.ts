@@ -52,6 +52,7 @@ export function toClientDungeonResult<T>(value: T): T {
 
 function finaleOpponent(mystery: MysteryRecord) {
   const role = requireMysteryTemplate(mystery.templateId).finale?.role;
+  if (role === 'manifest') return mystery.caseFile.manifest?.name ?? null;
   return mystery.caseFile.npcs.find((n) => n.role === role)?.name ?? null;
 }
 

@@ -96,6 +96,7 @@ function cloneRun(run: MysteryRunState): MysteryRunState {
     ...(run.events ? { events: [...run.events] } : {}),
     ...(run.destroyed ? { destroyed: [...run.destroyed] } : {}),
     ...(run.departed ? { departed: [...run.departed] } : {}),
+    ...(run.sealedRooms ? { sealedRooms: [...run.sealedRooms] } : {}),
     ...(run.mechanisms
       ? {
           mechanisms: Object.fromEntries(
@@ -142,7 +143,10 @@ function advanceMysteryEvents(w: RunWriter) {
           run.destroyed = [...(run.destroyed ?? []), effect.objectId];
         else if (effect.kind === 'npc_leave')
           run.departed = [...(run.departed ?? []), effect.npcId];
-        else if (effect.kind === 'lock_mechanism') {
+        else if (effect.kind === 'seal_room') {
+          if (!run.sealedRooms?.includes(effect.roomId))
+            run.sealedRooms = [...(run.sealedRooms ?? []), effect.roomId];
+        } else if (effect.kind === 'lock_mechanism') {
           const state = mysteryMechanismState(run, effect.mechanismId);
           if (!state.solved)
             run.mechanisms = {
@@ -322,6 +326,8 @@ export function applyMysteryAction(
           error: target.lockedText ?? '去路被阻，暂时无法通过',
         };
       }
+      if (run.sealedRooms?.includes(target.id))
+        return { ok: false, error: `${target.name}已被异变封住` };
       const guard = mysteryGuardAt(caseFile, run, target.id);
       if (guard)
         return { ok: false, error: `${guard.name}拦住了去路，须强闯或化解` };

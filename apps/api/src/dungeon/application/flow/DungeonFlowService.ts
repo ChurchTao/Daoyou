@@ -110,10 +110,18 @@ function mysteryConfrontationTags(
   mystery: NonNullable<DungeonState['mystery']>,
 ): string[] {
   const outcome = mystery.result?.confrontation;
-  const rival =
-    requireMysteryTemplate(mystery.templateId).archetype === 'retrieval'
-      ? '夺宝者'
-      : '真凶';
+  const archetype = requireMysteryTemplate(mystery.templateId).archetype;
+  if (archetype === 'unlock') {
+    if (outcome === 'won') return ['通过试炼'];
+    if (outcome === 'lost' || outcome === 'spared') return ['试炼未竟'];
+    return [];
+  }
+  if (archetype === 'anomaly') {
+    if (outcome === 'won') return ['镇灭异变'];
+    if (outcome === 'lost' || outcome === 'spared') return ['异变未绝'];
+    return [];
+  }
+  const rival = archetype === 'retrieval' ? '夺宝者' : '真凶';
   if (outcome === 'won') return [`擒下${rival}`];
   if (outcome === 'lost' || outcome === 'spared') return [`${rival}遁走`];
   return [];
@@ -1526,7 +1534,12 @@ export class DungeonFlowService {
             description:
               template.archetype === 'retrieval'
                 ? `禁制应声而开的一刻，${culprit.name}撕下伪装，出手抢夺遗珍——拦下此人，遗珍才能交到该得之人手里。`
-                : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
+                : template.archetype === 'unlock'
+                  ? `主禁制应声而开的一刻，${culprit.name}拦在门前：“试炼的最后一关，是我。”`
+                  : template.archetype === 'anomaly'
+                    ? (mystery.caseFile.manifest?.description ??
+                      `你按古法着手平息异变，${culprit.name}自源头扑出！`)
+                    : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
           }).catch((error: unknown) => {
             console.warn('[DungeonMystery] 对决准备失败:', error);
             throw new DungeonFlowError(

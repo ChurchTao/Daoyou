@@ -52,6 +52,7 @@ export const MysteryEventEffectSchema = z.discriminatedUnion('kind', [
     kind: z.literal('lock_mechanism'),
     mechanismId: MysteryIdSchema,
   }),
+  z.strictObject({ kind: z.literal('seal_room'), roomId: MysteryIdSchema }),
 ]);
 
 export type MysteryEventEffect = z.infer<typeof MysteryEventEffectSchema>;
@@ -61,6 +62,7 @@ export const MYSTERY_ARCHETYPE_VALUES = [
   'unlock',
   'retrieval',
   'allegiance',
+  'anomaly',
 ] as const;
 
 export const MYSTERY_ANSWER_KIND_VALUES = ['npc', 'clue', 'choice'] as const;
@@ -374,6 +376,10 @@ export const MysteryCaseFileSchema = z.strictObject({
     )
     .max(3)
     .optional(),
+  /** 异变化形：异变溯源中结尾对决的对手，不是人物。 */
+  manifest: z
+    .strictObject({ name: Text(12), description: Text(200) })
+    .optional(),
   /** 守住某个房间入口的守卫：可强闯（战斗）或满足条件后化解。旧案卷没有此字段。 */
   guards: z
     .array(
@@ -434,6 +440,8 @@ export interface MysteryRunState {
   destroyed?: string[];
   /** 已离场的人物。 */
   departed?: string[];
+  /** 被异变封住、不能再进入的房间。 */
+  sealedRooms?: string[];
   /** 各机关的操作结果：失败次数与是否开启、是否锁死。 */
   mechanisms?: Record<
     string,
@@ -557,6 +565,8 @@ export interface MysteryMapRoom {
   people: number;
   /** 此处有物件被毁。 */
   disturbed: boolean;
+  /** 被异变封住。 */
+  sealed: boolean;
   /** 物件看过几件、共几件，仅到访过的房间。 */
   searched: number;
   objects: number;

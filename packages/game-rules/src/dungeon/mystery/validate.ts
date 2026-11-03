@@ -38,6 +38,13 @@ export function computeMysteryReachability(
         )
       : [],
   );
+  const sealed = new Set(
+    options.worstEvents
+      ? (caseFile.events ?? []).flatMap((e) =>
+          e.effects.flatMap((x) => (x.kind === 'seal_room' ? [x.roomId] : [])),
+        )
+      : [],
+  );
   const facts = {
     rooms: new Set([caseFile.startRoomId]),
     clues: new Set<string>(),
@@ -72,6 +79,7 @@ export function computeMysteryReachability(
       for (const next of mysteryNeighbors(caseFile, roomId)) {
         const guards = caseFile.guards?.filter((g) => g.roomId === next.id);
         if (guards?.length && options.skipGuarded) continue;
+        if (sealed.has(next.id)) continue;
         if (
           evaluateMysteryCondition(next.requires, view) &&
           (guards ?? []).every((g) => evaluateMysteryCondition(g.bypass, view))
@@ -369,6 +377,10 @@ export function validateMysteryCase(
         issues.push(`事件 ${e.id} 毁去的物件 ${x.objectId} 不存在`);
       if (x.kind === 'npc_leave' && !npcs.has(x.npcId))
         issues.push(`事件 ${e.id} 离场的人物 ${x.npcId} 不存在`);
+      if (x.kind === 'seal_room' && !rooms.has(x.roomId))
+        issues.push(`事件 ${e.id} 封住的房间 ${x.roomId} 不存在`);
+      if (x.kind === 'seal_room' && x.roomId === caseFile.startRoomId)
+        issues.push(`事件 ${e.id} 不能封住入口`);
     }
   }
   unique(

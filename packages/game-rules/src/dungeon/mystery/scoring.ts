@@ -53,7 +53,15 @@ export function mysteryConfrontationTarget(
 ) {
   const finale = template.finale;
   if (!finale || finale.points <= 0) return null;
-  const target = caseFile.npcs.find((n) => n.role === finale.role);
+  // 保留身份 manifest 表示异变化形，不是人物。
+  const target =
+    finale.role === 'manifest'
+      ? caseFile.manifest && {
+          id: 'manifest',
+          name: caseFile.manifest.name,
+          role: 'manifest',
+        }
+      : caseFile.npcs.find((n) => n.role === finale.role);
   if (!target) return null;
   const solved = finale.when.every((id) => {
     const q = caseFile.questions.find((x) => x.id === id);

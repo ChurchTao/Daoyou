@@ -315,6 +315,7 @@ export function MysteryCaseBoard({
                   </span>
                   {room.people > 0 ? ` · 有人 ${room.people}` : ''}
                   {room.disturbed ? ' · 有物被毁' : ''}
+                  {room.sealed ? ' · 已被封住' : ''}
                 </span>
               </div>
             ))}

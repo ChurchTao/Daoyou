@@ -108,6 +108,27 @@ const ARCHETYPES: Partial<
       '“引子”与“前人失败原因”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
     ],
   },
+  anomaly: {
+    liar: 'npc_culprit',
+    liarLabel: '祸首',
+    cast: ['npc_culprit', 'npc_local'],
+    canon: {
+      anomaly: '此地出了什么异常、从何时起、症状如何由轻到重',
+      source: '异变之源在哪里、是什么',
+      culprit: '祸首的真名、身份，以及他如何（有意或无心）引发了异变',
+      remedy: '平息异变的古法：源头残文写明的部分与缺失的关键一环',
+      lie: '祸首对外宣称行踪或所为的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+      contradiction: 'clue_record 记载的哪条事实与 lie 矛盾',
+      scapegoat: '背锅者为何被怀疑（可疑痕迹从何而来）、清白的真相与凭据',
+      manifest: '异变之源化成的形体叫什么、是什么样子',
+    },
+    rules: [
+      '祸首是 npc_culprit，当地人是 npc_local（真心认错了罪魁），npc_scapegoat 是被冤枉的背锅者，npc_sage（如有）是知情者。',
+      '症状越近源头越重：受害最显处、偏殿与源头的描写要能看出轻重与方向。源头此刻只见异象，真相要靠痕迹与古法拼出。',
+      '异变化形（manifest）贴合此地（草木、地脉、海潮、魔气、阴尸），只在结案答对后才现身，调查中不要写它已经出现。',
+      '“源头”与“平息之法”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
+    ],
+  },
 };
 
 function archetypeOf(template: MysteryScenarioTemplate) {
@@ -147,6 +168,7 @@ function ids(skeleton: MysteryCaseSkeleton) {
         [],
     ),
     mechanisms: (c.mechanisms ?? []).map((m) => m.id),
+    manifest: c.manifest ? ['manifest'] : [],
     smallMechanisms: (c.mechanisms ?? [])
       .filter((m) => !m.final)
       .map((m) => m.id),
@@ -188,6 +210,9 @@ function outlineSchema(
     items: keyed(id.items, name(8)),
     guards: keyed(id.guards, name(8)),
     mechanisms: keyed(id.mechanisms, name(8)),
+    manifest: keyed(id.manifest, () =>
+      Text(8, '异变化形的名字，二到六字，贴合此地'),
+    ),
     parts: keyed(id.parts, (key) =>
       Text(
         4,
@@ -280,6 +305,9 @@ const TEXT_PARTS = {
             ),
           }),
         ),
+        manifest: keyed(id.manifest, () =>
+          Text(120, '异变化形扑出时的样子与威势，贴合此地；只在结案答对后出现'),
+        ),
         mechanisms: keyed(id.smallMechanisms, (m) =>
           z.object({
             solvedText: Text(
@@ -300,7 +328,7 @@ const TEXT_PARTS = {
             ),
             text: Text(
               120,
-              `事件发生时你察觉到的情形与后果；作用：${s.purposes[e]}`,
+              `事件发生时你察觉到的情形与后果，被封、被毁或离开的必须是 case.events 中此事件 affects 所列的地点、物件或人物，不得换成别处；作用：${s.purposes[e]}`,
             ),
           }),
         ),
@@ -450,7 +478,9 @@ function structureContext(
             ? nameOf(x.npcId)
             : x.kind === 'lock_mechanism'
               ? (o.mechanisms?.[x.mechanismId] ?? x.mechanismId)
-              : x.flag,
+              : x.kind === 'seal_room'
+                ? nameOf(x.roomId)
+                : x.flag,
       ),
     })),
     answers: c.questions.map((q) => ({
@@ -632,6 +662,14 @@ function assemble(
         : {}),
       explanation: clip(str(evidence.explanations, q.id), 200),
     })),
+    ...(c.manifest
+      ? {
+          manifest: {
+            name: clip(o.manifest?.manifest ?? '', 12),
+            description: clip(str(places.manifest ?? {}, 'manifest'), 200),
+          },
+        }
+      : {}),
     ...(c.mechanisms
       ? {
           mechanisms: c.mechanisms.map((m) => ({
