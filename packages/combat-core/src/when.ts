@@ -16,6 +16,8 @@ export type WhenScope = {
   statusChance?: number
   statusDuration?: number
   removedStatusKind?: string
+  removedStatusRounds?: number
+  removedStatusSkillLevel?: number
   removedStatusCategory?: StatusCategory
   removedStatusDispellable?: boolean
   removedStatusFlags?: StatusFlag[]
@@ -113,7 +115,7 @@ export function matchesWhen(ctx: Pick<BattleContext, 'statusDefs' | 'currentActi
     if (repeated !== when.repeatedIncomingSkill) return false
   }
   if (when.excludeSpellRepeat && ctx.currentAction?.spellRepeatFactor !== undefined) return false
-  if (when.expression !== undefined && !evalExpr(when.expression, { statusDuration: scope.statusDuration, statusChance: scope.statusChance, statusDefs: ctx.statusDefs, skills: ctx.skills, allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, damage: scope.damage, hpDamage: scope.hpDamage, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
+  if (when.expression !== undefined && !evalExpr(when.expression, { statusDuration: scope.statusDuration, statusChance: scope.statusChance, removedStatusRounds: scope.removedStatusRounds, removedStatusSkillLevel: scope.removedStatusSkillLevel, statusDefs: ctx.statusDefs, skills: ctx.skills, allyPetSkillUnused: ctx.currentAction?.sourceId === scope.source.id ? ctx.currentAction.allyPetSkillUnused : false, source: scope.source, target: scope.target, damage: scope.damage, hpDamage: scope.hpDamage, skillLevel: scope.source.skillLevels[scope.skillId ?? ''] ?? scope.source.level, targets: 1, state: { ...ctx.state, units: ctx.state.units ?? [] } })) return false
   const units = ctx.state.units ?? []
   if (when.removedStatusKind && scope.removedStatusKind !== when.removedStatusKind) return false
   if (when.removedStatusCategory && scope.removedStatusCategory !== when.removedStatusCategory) return false

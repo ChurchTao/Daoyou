@@ -27,6 +27,17 @@ const damage = (targetId: string, amount: number): CombatV6DisplayEvent => ({
 });
 
 describe('battle log presentation', () => {
+  it('keeps battle-long status updates in details while preserving finite duration messages', () => {
+    const log = appendBattleEntries(empty, events([
+      { type: 'statusApplied', unitId: 'a', statusId: 'breath', duration: 99, untilBattleEnd: true },
+      { type: 'statusApplied', unitId: 'b', statusId: 'seal', duration: 2 },
+    ]), { ...view, display: { ...view.display, statuses: { breath: '窍息', seal: '封术' } } });
+    const lines = log.entries.flatMap(entry => entry.lines);
+    expect(lines[0]).toMatchObject({ text: '甲获得「窍息」· 持续本场战斗', detail: true });
+    expect(lines[1]).toMatchObject({ text: '乙获得「封术」· 2回合' });
+    expect(lines[1].detail).not.toBe(true);
+  });
+
   it('explains MP-funded absorption separately from ordinary casting costs', () => {
     const log = appendBattleEntries(empty, events([
       { type: 'mpCost', unitId: 'a', amount: 35, mpAfter: 65, absorbedDamage: 35, statusId: 'hollow' },

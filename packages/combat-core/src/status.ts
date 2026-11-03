@@ -157,14 +157,14 @@ export function applyStatus(
     existing.appliedSkillLevel = env.skillLevel
     existing.priority = priority
     existing.tickMpPower = tickMpPower
-    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined) existing.tickSkillLevel = env.skillLevel
+    if (def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.hpPower !== undefined || def.onTick?.mpPower !== undefined) existing.tickSkillLevel = env.skillLevel
     const healTaken = def.healTaken ?? DEFAULT_DAMAGE_TAKEN
     const healDealt = def.healDealt ?? DEFAULT_DAMAGE_TAKEN
     existing.healTaken = healTaken ** stacks
     existing.healDealt = healDealt ** stacks
     existing.damageTakenPhysical = (def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN) ** stacks
     existing.damageTakenSpell = (def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN) ** stacks
-    ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.sourceBound ? { sourceId } : {}) })
+    ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId } : {}) })
     return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
   }
 
@@ -186,7 +186,7 @@ export function applyStatus(
     storedTargetId: options.storedTargetId,
     appliedSkillLevel: env.skillLevel,
     ...(def.onExpire ? { transitionSkillLevel: env.skillLevel } : {}),
-    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.mpPower !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
+    ...(def.healingPerRound !== undefined || def.onTick?.hpCap !== undefined || def.onTick?.mpCap !== undefined || def.onTick?.hpPower !== undefined || def.onTick?.mpPower !== undefined ? { tickSkillLevel: env.skillLevel } : {}),
     damageTakenPhysical: def.damageTakenPhysical ?? DEFAULT_DAMAGE_TAKEN,
     damageTakenSpell: def.damageTakenSpell ?? DEFAULT_DAMAGE_TAKEN,
     healTaken: def.healTaken ?? DEFAULT_DAMAGE_TAKEN,
@@ -195,7 +195,7 @@ export function applyStatus(
   })
   // 达摩护体等改的是真实上限，expire 时要在 removeStatus 里扣回来。
   if (attrMods.maxHp) unit.attrs.maxHp += attrMods.maxHp
-  ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.sourceBound ? { sourceId } : {}) })
+  ctx.emit({ type: EventType.StatusApplied, unitId: unit.id, statusId: def.id, duration, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId } : {}) })
   return reportStatusResult(ctx, unit, statusId, sourceId, 'applied', { ...options.resolution, duration })
 }
 
@@ -225,7 +225,7 @@ export function copyStatusInstance(
   }
   target.statuses.push(copy)
   if (copy.attrMods.maxHp) target.attrs.maxHp += copy.attrMods.maxHp
-  ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds, ...(def.sourceBound ? { sourceId: copy.sourceId } : {}) })
+  ctx.emit({ type: EventType.StatusApplied, unitId: target.id, statusId: copy.id, duration: copy.remainingRounds, ...(def.untilBattleEnd ? { untilBattleEnd: true as const } : {}), ...(def.sourceBound ? { sourceId: copy.sourceId } : {}) })
   reportStatusResult(ctx, target, copy.id, source.id, 'applied', {
     skillId: ctx.currentAction?.skillId, duration: copy.remainingRounds,
   });
@@ -280,6 +280,11 @@ function applyStatusTick(ctx: BattleContext, unit: Unit, inst: StatusInstance, d
   if (def.onTick.ratioOfMaxHp !== undefined) {
     const amount = Math.max(1, Math.floor(Math.min(unit.attrs.maxHp * def.onTick.ratioOfMaxHp,
       def.onTick.hpCap === undefined ? Infinity : evalExpr(def.onTick.hpCap, env))))
+    const hooked = ctx.hooks.emit(HookName.OnDotCalc, { source, target: unit, damage: amount, kind: DamageKind.Fixed, origin: DamageOrigin.Status, dotStatusId: def.id })
+    applyDamage(ctx, source, unit, Math.max(0, Math.floor(hooked.damage ?? amount)), DamageKind.Fixed, true, DamageOrigin.Status)
+  }
+  if (def.onTick.hpPower !== undefined) {
+    const amount = Math.max(0, Math.floor(evalExpr(def.onTick.hpPower, env)))
     const hooked = ctx.hooks.emit(HookName.OnDotCalc, { source, target: unit, damage: amount, kind: DamageKind.Fixed, origin: DamageOrigin.Status, dotStatusId: def.id })
     applyDamage(ctx, source, unit, Math.max(0, Math.floor(hooked.damage ?? amount)), DamageKind.Fixed, true, DamageOrigin.Status)
   }

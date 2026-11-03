@@ -1083,19 +1083,13 @@
                 "dot"
               ]
             },
-            "ratioOfMaxHp": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "hpCap": {
+            "hpPower": {
               "$ref": "#/$defs/__schema5"
             }
           },
           "required": [
             "type",
-            "ratioOfMaxHp",
-            "hpCap"
+            "hpPower"
           ],
           "additionalProperties": false
         },

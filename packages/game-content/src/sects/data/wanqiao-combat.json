@@ -477,6 +477,8 @@
               "youdu.poison",
               "beast.poison",
               "builtin.rest",
+              "jiujie.status.rest_minor",
+              "jiujie.status.rest_major",
               "wanqiao.spell_rest"
             ]
           }
@@ -3435,8 +3437,7 @@
       "expireSameRound": true,
       "onTick": {
         "type": "dot",
-        "ratioOfMaxHp": 1,
-        "hpCap": "floor(fact.wanqiao_undertone_level*0.5)*ownedTargetStatusStacks.wanqiao.mist*min(targetStatusAge.wanqiao.mist+1,3)*(1+0.06*fact.wanqiao_catalysis)*if(ownedTargetStatus.wanqiao.amplified,if(targetIsPlayer,2,4),1)"
+        "hpPower": "floor(fact.wanqiao_undertone_level*0.5)*ownedTargetStatusStacks.wanqiao.mist*min(targetStatusAge.wanqiao.mist+1,3)*(1+0.06*fact.wanqiao_catalysis)*if(ownedTargetStatus.wanqiao.amplified,if(targetIsPlayer,2,4),1)"
       }
     },
     {

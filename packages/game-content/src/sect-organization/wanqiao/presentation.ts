@@ -73,10 +73,26 @@ export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
   },
   map: {
     alt: '万窍山设施导航',
-    hotspots: STANDARD_SECT_PRESENTATION.map.hotspots.map((hotspot) => ({
-      ...hotspot,
-      label: locationNames[hotspot.id] ?? hotspot.label,
-    })),
+    hotspots: [
+      ...STANDARD_SECT_PRESENTATION.map.hotspots.map((hotspot) => ({
+        ...hotspot,
+        label: locationNames[hotspot.id] ?? hotspot.label,
+        ...(hotspot.id === 'gate' ? {
+          visitor: { description: '石径穿过竹林与鸣石，引路门人在山门前为外客登记来意。' },
+        } : {}),
+      })),
+      {
+        id: 'formation',
+        label: '护山音阵',
+        facility: 'formation',
+        permission: 'sect.formation.view',
+        left: '0',
+        top: '0',
+        note: '宗门战后续开放',
+        locked: true,
+        visitor: { description: '山谷诸窍与阵中鸣石遥相应答，外客可在阵外静听山中的回声。' },
+      },
+    ],
   },
   facilityLabels: {
     archive: '藏音阁',
@@ -84,7 +100,9 @@ export const WANQIAO_SECT_PRESENTATION: SectPresentationTheme = {
     workshop: '百工坊',
     spirit_vein: '石隙灵脉',
     herb_garden: '草木园',
+    formation: '护山音阵',
   },
+  lockedFacilities: ['formation'],
   scenes: {
     map: { title: '万窍山', description: '风从石隙入山，众声各有来处。' },
     hall: { title: '听风堂', description: '掌籍门人在堂前经办弟子名册、晋升与周俸。' },

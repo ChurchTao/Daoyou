@@ -55,6 +55,6 @@ export const wqStatus = z.strictObject({
   blocksAction: z.boolean().optional(), blocksNonArtSkills: z.boolean().optional(),
   mpShieldRatio: z.number().min(0).max(1).optional(),
   attrMods: z.partialRecord(z.enum(ATTR_NAMES), wqExpr).optional(), modifiers: z.array(wqModifier).optional(),
-  onTick: z.strictObject({ type: z.enum(TickKind), ratioOfMaxHp: z.number().min(0).max(1), hpCap: wqExpr }).optional(),
+  onTick: z.strictObject({ type: z.enum(TickKind), hpPower: wqExpr }).optional(),
   onExpire: z.strictObject({ statusId: wqId, duration: z.number().int().positive() }).optional(),
 });

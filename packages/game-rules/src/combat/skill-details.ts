@@ -226,6 +226,7 @@ export function combatV6SkillDetails(
       if (effect.type === EffectType.SkipNextAction) lines.push(describe(effect));
       if (effect.type === EffectType.ApplyStatus) {
         const status = statuses.find(s => s.id === effect.statusId);
+        if (status?.untilBattleEnd) continue;
         if ((status?.category === 'buff' && !status.onExpire && !status.commandPolicy) || statusTraits(status).length)
           lines.push(describe(effect));
       }

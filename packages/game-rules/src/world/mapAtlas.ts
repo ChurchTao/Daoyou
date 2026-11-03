@@ -82,6 +82,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   WILD_ZMG_BLACKPOOL: [0.87, 0.235],
   WILD_ZMG_VINES: [0.92, 0.31],
   SECT_LINGXIAO: [0.715, 0.285],
+  SECT_WANQIAO: [0.27, 0.57],
 };
 
 export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {

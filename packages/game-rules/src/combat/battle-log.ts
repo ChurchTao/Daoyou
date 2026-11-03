@@ -231,7 +231,8 @@ export function appendBattleEntries(
         return { text: `目标转向${name(e.to)}` };
       case 'statusApplied':
         return {
-          text: `${name(e.unitId)}获得「${status(e.statusId)}」· ${e.duration}回合`,
+          text: `${name(e.unitId)}获得「${status(e.statusId)}」· ${e.untilBattleEnd ? '持续本场战斗' : `${e.duration}回合`}`,
+          ...(e.untilBattleEnd ? { detail: true } : {}),
         };
       case 'statusRemoved':
         return {

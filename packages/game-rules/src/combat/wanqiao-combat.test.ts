@@ -7,6 +7,7 @@ import {
   WANQIAO_V6_DEFINITION as definition, WANQIAO_SKILL_ID as skillId,
   WANQIAO_STATUS_ID as statusId, WANQIAO_RESOURCE_ID as resourceId,
 } from '@daoyou/game-content/sects/wanqiao';
+import { JIUJIE_V6_DEFINITION, JIUJIE_STATUS_ID } from '@daoyou/game-content/sects/jiujie';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS as versions } from '@daoyou/game-domain/combat';
 import type { MeridianNodeDefV6, SectCombatProgressV6 } from '@daoyou/game-domain/combat';
 import { compileSectDefinitionV6 } from '../sects/compiler.js';
@@ -141,6 +142,23 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(battle.unit('s').attrs.mp).toBe(29);
     expect(battle.unit('s').barriers).toEqual([]);
     expect(battle.unit('s').skillUses?.[skillId.Pierce] ?? 0).toBe(0);
+  });
+
+  it.each([
+    { targetStatus: undefined, spent: 0 },
+    { targetStatus: JIUJIE_STATUS_ID.Electric, spent: 0 },
+    { targetStatus: JIUJIE_STATUS_ID.RestMinor, spent: 2 },
+    { targetStatus: JIUJIE_STATUS_ID.RestMajor, spent: 2 },
+  ])('随隙识别真实调息状态，不把普通减益当作调息：$targetStatus', ({ targetStatus, spent }) => {
+    noProc();
+    const { input } = setup('subtlety', ['3.3']);
+    input.statusDefs!.push(...JIUJIE_V6_DEFINITION.statuses);
+    const battle = createBattle(input);
+    if (targetStatus) battle.applyStatus('t0', targetStatus, 2, 't0');
+    round(battle, { s: cast(skillId.Fissure) });
+    expect(battle.unit('s').combatFacts?.wanqiao_spent).toBe(spent);
+    expect(breath(battle).current).toBe(3 - spent);
+    expect(battle.unit('s').attrs.mp).toBe(attrs.mp - 30);
   });
 
   it('基础偶数轮恢复与凝听互斥，资源恢复后法攻状态同步', () => {
@@ -288,6 +306,21 @@ describe('万窍山真实技能与经脉战斗组合', () => {
     expect(battle.unit('s').attrs.mp).toBe(0);
     const costs = battle.log().filter(e => e.type === 'mpCost' && e.unitId === 's');
     expect(costs.map(e => e.type === 'mpCost' ? [e.amount, e.absorbedDamage ?? 0] : [])).toEqual([[30, 0], [40, 40]]);
+  });
+
+  it('留音按完整固定公式计算名义伤害，含虚不因目标最大气血较低而少扣法力', () => {
+    noProc();
+    const { input } = setup('subtlety');
+    input.units[2]!.attrs = { ...input.units[2]!.attrs, hp: 100, maxHp: 100, mp: 1000, maxMp: 1000 };
+    const battle = createBattle(input);
+    for (let i = 0; i < 3; i++) battle.applyStatus('t0', statusId.Echo, 4, 's');
+    battle.applyStatus('t0', statusId.Hollow, 4, 't0');
+    round(battle);
+    expect(battle.log().filter(e => e.type === 'mpCost' && e.unitId === 't0'))
+      .toEqual([{ type: 'mpCost', unitId: 't0', amount: 135, mpAfter: 865, absorbedDamage: 135, statusId: statusId.Hollow }]);
+    expect(battle.log().filter(e => e.type === 'damage' && e.targetId === 't0'))
+      .toEqual([{ type: 'damage', sourceId: 's', targetId: 't0', amount: 135, hpAfter: 0, kind: 'fixed' }]);
+    expect(battle.unit('t0').flags.downed).toBe(true);
   });
 
   it('流韵在本次根行动完成后强化留音DOT，直伤与周期伤害各只计一次', () => {

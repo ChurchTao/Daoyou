@@ -7,6 +7,24 @@ import type { SkillDef, StatusDef } from '@daoyou/combat-core/types';
 import { LINGXIAO_COMBAT } from '@daoyou/game-content/authoring/sects';
 
 describe('combat skill previews', () => {
+  it('keeps authored descriptions free of permanent snapshots while retaining finite buffs', () => {
+    const statuses: StatusDef[] = [
+      { id: 'snapshot', kind: 'snapshot', name: '资源快照', category: 'buff', untilBattleEnd: true },
+      { id: 'focus', kind: 'focus', name: '凝神', category: 'buff' },
+    ];
+    const skill: SkillDef = {
+      id: 'preview', name: '预览', description: '依当前资源获得法攻，施法时凝神。',
+      tags: ['support'], targeting: { side: 'self' },
+      effects: [
+        { type: 'applyStatus', statusId: 'snapshot', duration: 99, self: true },
+        { type: 'applyStatus', statusId: 'focus', duration: 3, self: true },
+      ],
+    };
+    const description = combatV6SkillDetails([skill], statuses)[skill.id].description;
+    expect(description).toBe(`${skill.description}\n自身施加「凝神」，持续 3 回合`);
+    expect(description).not.toContain('99');
+    expect(description).not.toContain('资源快照');
+  });
   it('describes generic sleep, hostile-action interception and damaging-spell restrictions', () => {
     const statuses: StatusDef[] = [
       { id: 'sleep', kind: 'control', name: '梦', blocksAction: true, breakOnDamage: true, breakOnDamageAbove: 30 },

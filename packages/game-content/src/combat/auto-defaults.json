@@ -396,6 +396,7 @@
             {
               "type": "targetStatus",
               "kind": "wanqiao.mist",
+              "statusId": "wanqiao.status.echo",
               "present": false,
               "ownedBySelf": true
             }
@@ -411,6 +412,7 @@
             {
               "type": "targetStatus",
               "kind": "wanqiao.mist",
+              "statusId": "wanqiao.status.echo",
               "present": true,
               "ownedBySelf": true
             }
@@ -439,6 +441,7 @@
             {
               "type": "targetStatus",
               "kind": "wanqiao.mist",
+              "statusId": "wanqiao.status.echo",
               "present": false,
               "ownedBySelf": true
             }

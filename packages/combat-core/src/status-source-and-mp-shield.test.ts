@@ -80,6 +80,20 @@ describe('source-bound status lifecycle', () => {
     ]);
   });
 
+  it('evaluates fixed HP tick power live while retaining the applied skill level', () => {
+    const fixedDot: StatusDef = { ...dot, id: 'fixed-dot', kind: 'fixed-dot', onTick: { type: TickKind.Dot, hpPower: 'skillLevel+fact.tickPower' } };
+    const apply = skill('apply', [{ type: EffectType.ApplyStatus, statusId: fixedDot.id, duration: 4 }]);
+    const battle = createBattle(config([apply], [fixedDot]));
+    battle.unit('a').combatFacts = { tickPower: 150 };
+    cast(battle, apply.id);
+    expect(battle.unit('target').attrs.hp).toBe(800);
+    battle.unit('a').combatFacts.tickPower = 350;
+    battle.unit('a').skillLevels[apply.id] = 99;
+    battle.lockAndResolve();
+    expect(battle.unit('target').attrs.hp).toBe(400);
+    expect(battle.log().filter(e => e.type === EventType.Damage).map(e => e.amount)).toEqual([200, 400]);
+  });
+
   it('dispels individual instances and exposes the removed snapshot to data hooks after restoration', () => {
     const buff: StatusDef = { id: 'buff', name: 'buff', kind: 'owned-buff', category: StatusCategory.Buff, sourceBound: true };
     const apply = skill('apply', [{ type: EffectType.ApplyStatus, statusId: 'buff', duration: 4 }]);
@@ -115,6 +129,32 @@ describe('source-bound status lifecycle', () => {
     expect(battle.log().filter(e => e.type === EventType.StatusRemoved).map(e => e.sourceId)).toEqual(['a', 'b']);
   });
 
+  it('tests removed duration and original skill level in hook and effect conditions', () => {
+    const buff: StatusDef = { id: 'buff', name: 'buff', kind: 'owned-buff', sourceBound: true };
+    const apply = skill('apply', [{ type: EffectType.ApplyStatus, statusId: buff.id, duration: 4 }]);
+    const dispel = skill('dispel', [{ type: EffectType.Dispel, statusIds: [buff.id], maxCount: 1 }]);
+    dispel.targeting.side = TargetSide.Any;
+    const observe: SkillDef = {
+      id: 'observe', name: 'observe', tags: [SkillTag.Passive], targeting: { side: TargetSide.Self }, effects: [],
+      hooks: [{ on: HookName.OnStatusRemoved, sourceIsSelf: true, aim: HookAim.Self,
+        when: { removedStatusKind: buff.kind, statusRemoveReason: 'dispel', expression: 'removedStatusRounds==3' },
+        effects: [
+          { type: EffectType.ModifyFact, key: 'refund', value: 'removedStatusRounds*removedStatusSkillLevel', when: { expression: 'removedStatusSkillLevel==50' } },
+          { type: EffectType.ModifyFact, key: 'wrong-level', value: 1, when: { expression: 'removedStatusSkillLevel==180' } },
+        ] }],
+    };
+    const input = config([apply, dispel, observe], [buff]);
+    input.units[0]!.passives = [observe.id];
+    const battle = createBattle(input);
+    cast(battle, apply.id);
+    cast(battle, apply.id, 'b');
+    const restored = restoreBattle(input, battle.snapshot(), [...battle.log()]);
+    restored.unit('a').skillLevels[apply.id] = 180;
+    cast(restored, dispel.id, 'ally');
+    expect(restored.unit('a').combatFacts?.refund).toBe(150);
+    expect(restored.unit('a').combatFacts?.['wrong-level']).toBeUndefined();
+  });
+
   it('copies a selected snapshot without replacing the other caster on the recipient', () => {
     const copy = skill('copy', [{ type: EffectType.CopyStatus, kinds: [dot.kind], maxCount: 1 }]);
     copy.targeting = { side: TargetSide.Enemy, mode: TargetMode.Fill, count: 2 };
@@ -125,6 +165,22 @@ describe('source-bound status lifecycle', () => {
     battle.applyStatus('ally', dot.id, 4, 'b');
     cast(battle, copy.id);
     expect(Object.fromEntries(battle.unit('ally').statuses.map(s => [s.sourceId, s.stacks]))).toEqual({ a: 2, b: 1 });
+  });
+
+  it.each([false, true])('reports battle-long duration for initial, stacked and copied statuses only when configured: %s', untilBattleEnd => {
+    const buff: StatusDef = { id: 'buff', name: 'buff', kind: 'buff', sourceBound: true, maxStacks: 3, untilBattleEnd };
+    const copy = skill('copy', [{ type: EffectType.CopyStatus, kinds: [buff.kind], maxCount: 1 }]);
+    copy.targeting = { side: TargetSide.Enemy, mode: TargetMode.Fill, count: 2 };
+    const battle = createBattle(config([copy], [buff]));
+    battle.applyStatus('target', buff.id, 99, 'a');
+    battle.applyStatus('target', buff.id, 99, 'a');
+    cast(battle, copy.id);
+    const applied = battle.log().filter(e => e.type === EventType.StatusApplied);
+    expect(applied).toHaveLength(3);
+    for (const event of applied) {
+      if (untilBattleEnd) expect(event).toMatchObject({ untilBattleEnd: true });
+      else expect(event).not.toHaveProperty('untilBattleEnd');
+    }
   });
 
   it('applies priority independently and excludes only the refreshing source from attribute snapshots', () => {

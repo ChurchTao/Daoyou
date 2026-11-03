@@ -38,6 +38,9 @@ describe('万窍山首版内容契约', () => {
     const known = structuredClone(combat);
     known.skills[0].costMp = '30+known.wanqiao.passive.missing';
     expect(() => loadWanqiaoCombatPack(known)).toThrow('引用不存在');
+    const tickFormula = structuredClone(combat);
+    tickFormula.statuses.find(status => status.id === 'wanqiao.status.echo')!.onTick!.hpPower = 'unverifiedCoefficient*skillLevel';
+    expect(() => loadWanqiaoCombatPack(tickFormula)).toThrow('未知表达式');
   });
 
   it('拒绝错位自动奖励及无效果节点', () => {

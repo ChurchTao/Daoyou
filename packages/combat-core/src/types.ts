@@ -839,7 +839,7 @@ export type StatusDef = {
   healingPerRound?: Expr;
   /** Consumed after physical/spell action damage, including barriers; fixed damage is excluded. */
   consumeAfterDamagingAction?: boolean;
-  onTick?: { type: TickKind; ratioOfMaxHp?: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr; mpPower?: Expr; snapshot?: boolean };
+  onTick?: { type: TickKind; ratioOfMaxHp?: number; ratioOfMaxMp?: number; hpCap?: Expr; mpCap?: Expr; hpPower?: Expr; mpPower?: Expr; snapshot?: boolean };
   /** 施加当回合结束也扣持续（复活当回合护体） */
   expireSameRound?: boolean;
   /** 承伤分流：目标留下 keep，其余 toCaster 打到状态来源 */
@@ -1042,6 +1042,7 @@ export type BattleEvent =
       unitId: UnitId;
       statusId: StatusId;
       duration: number;
+      untilBattleEnd?: true;
       sourceId?: UnitId;
     }
   | {
