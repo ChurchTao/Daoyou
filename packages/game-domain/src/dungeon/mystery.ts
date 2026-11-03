@@ -104,6 +104,8 @@ export const MysteryScenarioTemplateSchema = z
           id: MysteryIdSchema,
           prompt: Text(40),
           answer_kind: z.enum(MYSTERY_ANSWER_KIND_VALUES),
+          /** 抉择题：没有标准答案，不计入真相分，只决定结局走向。 */
+          judgement: z.boolean().optional(),
           guidance: Text(200),
         }),
       )
@@ -647,6 +649,8 @@ export interface MysteryPlayerView {
     prompt: string;
     kind: MysteryAnswerKind;
     options?: Array<{ id: string; label: string }>;
+    /** 抉择题，没有对错。 */
+    judgement?: boolean;
   }>;
   result?: MysteryResult & {
     truth: string;
@@ -655,6 +659,8 @@ export interface MysteryPlayerView {
       prompt: string;
       answerLabel: string;
       explanation: string;
+      /** 抉择题：answerLabel 是玩家的选择，不是标准答案。 */
+      judgement?: boolean;
     }>;
   };
 }

@@ -6,11 +6,13 @@ import {
 } from '@daoyou/game-domain/dungeon/mystery';
 
 import anomalySourceTemplate from './data/anomaly_source.template.json' with { type: 'json' };
+import factionChoiceTemplate from './data/faction_choice.template.json' with { type: 'json' };
 import inheritanceMurderTemplate from './data/inheritance_murder.template.json' with { type: 'json' };
 import lostRelicTemplate from './data/lost_relic.template.json' with { type: 'json' };
 import trialSealTemplate from './data/trial_seal.template.json' with { type: 'json' };
 
 import anomalySourceFallback from './data/anomaly_source.fallback.json' with { type: 'json' };
+import factionChoiceFallback from './data/faction_choice.fallback.json' with { type: 'json' };
 import inheritanceMurderFallback from './data/inheritance_murder.fallback.json' with { type: 'json' };
 import lostRelicFallback from './data/lost_relic.fallback.json' with { type: 'json' };
 import trialSealFallback from './data/trial_seal.fallback.json' with { type: 'json' };
@@ -21,6 +23,7 @@ const TEMPLATES: Record<string, MysteryScenarioTemplate> = Object.fromEntries(
     lostRelicTemplate,
     trialSealTemplate,
     anomalySourceTemplate,
+    factionChoiceTemplate,
   ].map((raw) => {
     const template = MysteryScenarioTemplateSchema.parse(raw);
     return [template.id, template];
@@ -34,6 +37,7 @@ const FALLBACK_CASES: Record<string, MysteryCaseFile> = Object.fromEntries(
     lostRelicFallback,
     trialSealFallback,
     anomalySourceFallback,
+    factionChoiceFallback,
   ].map((raw) => {
     const caseFile = MysteryCaseFileSchema.parse(raw);
     return [caseFile.templateId, caseFile];
@@ -46,6 +50,7 @@ const FALLBACK_NODES: Record<string, readonly string[]> = {
   lost_relic: ['SAT_LX_02'],
   trial_seal: ['SAT_TN_04'],
   anomaly_source: ['SAT_TN_03'],
+  faction_choice: ['SAT_LX_03'],
 };
 
 export function listMysteryFallbackSeeds(): Array<{

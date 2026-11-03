@@ -312,6 +312,7 @@ export function projectMysteryView(
         ...(tq.answer_kind === 'choice' && q?.options
           ? { options: q.options }
           : {}),
+        ...(tq.judgement ? { judgement: true } : {}),
       };
     }),
     ...(result
@@ -319,13 +320,20 @@ export function projectMysteryView(
           result: {
             ...result,
             truth: caseFile.truth,
-            explanations: caseFile.questions.map((q) => ({
-              questionId: q.id,
-              prompt:
-                template.questions.find((tq) => tq.id === q.id)?.prompt ?? q.id,
-              answerLabel: labelOf(q.id, q.answer),
-              explanation: q.explanation,
-            })),
+            explanations: caseFile.questions.map((q) => {
+              const tq = template.questions.find((x) => x.id === q.id);
+              // 抉择题展示玩家自己的选择，没有标准答案。
+              return {
+                questionId: q.id,
+                prompt: tq?.prompt ?? q.id,
+                answerLabel: labelOf(
+                  q.id,
+                  tq?.judgement ? (result.answers[q.id] ?? q.answer) : q.answer,
+                ),
+                explanation: q.explanation,
+                ...(tq?.judgement ? { judgement: true } : {}),
+              };
+            }),
           },
         }
       : {}),

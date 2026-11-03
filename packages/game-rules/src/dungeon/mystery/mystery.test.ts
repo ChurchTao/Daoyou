@@ -443,12 +443,6 @@ describe('mystery skeleton', () => {
       new Set([0, 1, 2, 3]),
     );
   });
-
-  it('rejects templates of other archetypes', () => {
-    expect(() =>
-      buildMysterySkeleton({ ...template, archetype: 'allegiance' }, 1),
-    ).toThrow('暂不支持原型 allegiance 的骨架生成');
-  });
 });
 
 describe('mystery dialogue', () => {

@@ -637,7 +637,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "anomaly_source"
+            "anomaly_source",
+            "faction_choice"
           ],
           "setting": "慕兰法士在草原上秘密搭起的简易祭坛。帐篷、图腾柱与祭器环绕，四周有法士巡哨，祭台下埋着供奉之物，似乎在酝酿某种针对天南的阴谋。",
           "places": [
@@ -976,7 +977,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "anomaly_source"
+            "anomaly_source",
+            "faction_choice"
           ],
           "setting": "沉日神殿外围的黑潮贝场。灵贝随冥海潮汐开合，礁台上搭着采贝人的棚屋，潮水间漂着残破的法则碎屑，几方采贝人为贝场归属争执不下。",
           "places": [
@@ -1140,7 +1142,8 @@
           "templates": [
             "inheritance_murder",
             "lost_relic",
-            "trial_seal"
+            "trial_seal",
+            "faction_choice"
           ],
           "setting": "黄枫谷后山封存多年的试炼禁地。灵雾常年不散，古阵偶尔自鸣，禁地深处有宗门秘库与看守长老的静室，只在宗门大比前后开启。",
           "places": [
@@ -1253,7 +1256,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "anomaly_source"
+            "anomaly_source",
+            "faction_choice"
           ],
           "setting": "坠魔谷深处散落的古魔祭坛群。黑色魔纹时隐时现，魔气随潮汐涨落，祭坛之间扎着魔修与正道修士各自的营地，彼此提防。",
           "places": [
@@ -1364,7 +1368,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "anomaly_source"
+            "anomaly_source",
+            "faction_choice"
           ],
           "setting": "天星城圣山下天然地脉形成的秘窟。灵气如潮，地脉结晶遍布洞壁，星宫遗留的禁卫仍在巡弋，几家势力为争夺灵脉开采权明争暗斗，近来地脉灵气忽强忽弱。",
           "places": [
@@ -1475,7 +1480,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "trial_seal"
+            "trial_seal",
+            "faction_choice"
           ],
           "setting": "虚天殿深处漂浮于虚空的星辰石阶。越往上禁制越强，石阶旁立着上古傀儡，阶顶隐约可见虚天鼎残影，每次开殿都有各方修士为夺鼎线索相互算计。",
           "places": [
@@ -1532,7 +1538,8 @@
         "scenario": {
           "templates": [
             "lost_relic",
-            "anomaly_source"
+            "anomaly_source",
+            "faction_choice"
           ],
           "setting": "慕兰法士供奉圣禽的古老祭天台。图腾柱林立，法士军阵驻在台下，祭台中央的祭坑供着圣禽遗物，祭阵发动时天地灵机紊乱。",
           "places": [
@@ -1977,7 +1984,8 @@
         "difficulty": "boss",
         "scenario": {
           "templates": [
-            "lost_relic"
+            "lost_relic",
+            "faction_choice"
           ],
           "setting": "太虚天关外漂浮的碎空战场。法则风暴昼夜不息，古仙残兵与断裂的战车散落在浮石上，战场中央有一座残破的帅台，两方后裔都在此寻找当年战事的真相与遗宝。",
           "places": [

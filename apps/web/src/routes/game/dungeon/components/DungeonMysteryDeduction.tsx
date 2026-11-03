@@ -85,6 +85,8 @@ export function DungeonMysteryDeduction({
               <div className="mb-1 font-semibold">{question.prompt}</div>
               <p className="text-ink-secondary mb-2 text-sm">
                 {(() => {
+                  if (question.judgement)
+                    return '此题没有对错，你的抉择决定此事的结局。';
                   const pinned = view.clues.filter(
                     (c) => pins[c.id] === question.id,
                   );

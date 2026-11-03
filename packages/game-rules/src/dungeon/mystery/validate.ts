@@ -439,6 +439,7 @@ export function validateMysteryCase(
     });
     for (const tq of template.questions)
       if (
+        !tq.judgement &&
         !keyClues.some(
           (c) => c.supports.includes(tq.id) && worst.clues.has(c.id),
         )
@@ -456,7 +457,7 @@ export function validateMysteryCase(
     const supporting = keyClues.filter(
       (c) => c.supports.includes(tq.id) && reach.clues.has(c.id),
     );
-    if (supporting.length === 0)
+    if (supporting.length === 0 && !tq.judgement)
       issues.push(`结案问题 ${tq.id} 没有可获得的关键线索支撑`);
     if (tq.answer_kind === 'npc' && !npcs.has(q.answer))
       issues.push(`结案问题 ${tq.id} 的答案应为人物 id`);

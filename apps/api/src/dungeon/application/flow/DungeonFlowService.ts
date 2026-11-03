@@ -116,6 +116,19 @@ function mysteryConfrontationTags(
     if (outcome === 'lost' || outcome === 'spared') return ['试炼未竟'];
     return [];
   }
+  if (archetype === 'allegiance') {
+    const side = mystery.caseFile.questions
+      .find((q) => q.id === 'side')
+      ?.options?.find((o) => o.id === mystery.result?.answers.side)?.label;
+    return [
+      ...(side ? [side.slice(0, 12)] : []),
+      ...(outcome === 'won'
+        ? ['力压对手']
+        : outcome === 'lost' || outcome === 'spared'
+          ? ['对手遁走']
+          : []),
+    ];
+  }
   if (archetype === 'anomaly') {
     if (outcome === 'won') return ['镇灭异变'];
     if (outcome === 'lost' || outcome === 'spared') return ['异变未绝'];
@@ -1527,6 +1540,7 @@ export class DungeonFlowService {
           mystery.caseFile,
           template,
           input.answers,
+          mystery.run,
         );
         if (culprit) {
           const encounter = await prepareDungeonEncounter(state, {
@@ -1536,10 +1550,14 @@ export class DungeonFlowService {
                 ? `禁制应声而开的一刻，${culprit.name}撕下伪装，出手抢夺遗珍——拦下此人，遗珍才能交到该得之人手里。`
                 : template.archetype === 'unlock'
                   ? `主禁制应声而开的一刻，${culprit.name}拦在门前：“试炼的最后一关，是我。”`
-                  : template.archetype === 'anomaly'
-                    ? (mystery.caseFile.manifest?.description ??
-                      `你按古法着手平息异变，${culprit.name}自源头扑出！`)
-                    : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
+                  : template.archetype === 'allegiance'
+                    ? culprit.role === 'broker'
+                      ? `你当众摊开密信，两方的怒火一齐落到${culprit.name}身上。${culprit.name}见挑拨败露，索性出手，要杀出一条路来。`
+                      : `你表明了立场。${culprit.name}脸色一沉：“既然道不同——”话音未落，兵刃已至。`
+                    : template.archetype === 'anomaly'
+                      ? (mystery.caseFile.manifest?.description ??
+                        `你按古法着手平息异变，${culprit.name}自源头扑出！`)
+                      : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
           }).catch((error: unknown) => {
             console.warn('[DungeonMystery] 对决准备失败:', error);
             throw new DungeonFlowError(

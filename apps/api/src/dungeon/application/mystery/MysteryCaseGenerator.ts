@@ -129,6 +129,29 @@ const ARCHETYPES: Partial<
       '“源头”与“平息之法”两问的选项：真相一项必须与线索一致，干扰项要说得通、但与线索不符。',
     ],
   },
+  allegiance: {
+    liar: 'npc_broker',
+    liarLabel: '中间人',
+    cast: ['npc_envoy_a', 'npc_envoy_b'],
+    canon: {
+      faction_a: '甲方是哪一方势力、公开说法是什么、真实图谋是什么',
+      faction_b: '乙方是哪一方势力、公开说法是什么、真实图谋是什么',
+      harm: '所图会祸及无辜的那一方，会害到谁、怎样害到',
+      broker: '中间人是谁、如何两头传话挑拨、自己图什么',
+      lie: '中间人对外宣称立场的第一人称原话（“我……”），一两句，不加引号、不写“某某谎称”；与其称谓 title 一致',
+      contradiction: 'clue_letter 密信揭示的哪件事与 lie 矛盾',
+      lie_a:
+        '甲方代表公开说法中的那句谎言（第一人称原话），以及 clue_record_a 记载的哪条事实与之矛盾',
+      lie_b:
+        '乙方代表公开说法中的那句谎言（第一人称原话），以及 clue_record_b 记载的哪条事实与之矛盾',
+    },
+    rules: [
+      '甲方代表是 npc_envoy_a，乙方代表是 npc_envoy_b，中间人是 npc_broker，npc_bystander（如有）是被卷进来的旁人；“甲方”“乙方”只是代号，正文里用两方的势力名称。',
+      '哪一方“所图会祸及无辜”、哪一方“另有私心但不害无辜”，以各元素的“作用”为准；两方都要有自己的道理，不写成脸谱化的正邪。',
+      'truth 写清两方的真实图谋与中间人的挑拨，不写玩家最终站在哪一边；“你站在哪一边”一题没有标准答案。',
+      '“图谋”两问的选项：真实图谋一项必须与线索一致，干扰项为公开说法、对方的指控与另一种猜测；“站在哪一边”的选项写成“支持某某”“两不相帮，出面调停”，用势力名称。',
+    ],
+  },
 };
 
 function archetypeOf(template: MysteryScenarioTemplate) {
@@ -357,8 +380,11 @@ const TEXT_PARTS = {
         interactions: keyed(id.interactions, (i) =>
           Text(80, `使用的动作与当下的感官反应；作用：${s.purposes[i]}`),
         ),
-        explanations: keyed(id.questions, () =>
-          Text(150, '答案解析，只用线索名称引用证据'),
+        explanations: keyed(id.questions, (q) =>
+          Text(
+            150,
+            s.purposes[`explanation:${q}`] ?? '答案解析，只用线索名称引用证据',
+          ),
         ),
       });
     },

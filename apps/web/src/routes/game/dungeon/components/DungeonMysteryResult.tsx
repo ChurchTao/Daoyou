@@ -81,11 +81,18 @@ export function DungeonMysteryResult({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{item.prompt}</span>
-                <span className={correct ? 'text-wood' : 'text-crimson'}>
-                  {correct ? '推断正确' : '推断有误'}
-                </span>
+                {item.judgement ? (
+                  <span className="text-ink-secondary">你的抉择</span>
+                ) : (
+                  <span className={correct ? 'text-wood' : 'text-crimson'}>
+                    {correct ? '推断正确' : '推断有误'}
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-sm">答案：{item.answerLabel}</p>
+              <p className="mt-1 text-sm">
+                {item.judgement ? '你选择：' : '答案：'}
+                {item.answerLabel}
+              </p>
               <p className="text-ink-secondary mt-1 text-sm leading-7">
                 {item.explanation}
               </p>

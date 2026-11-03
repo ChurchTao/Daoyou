@@ -3,6 +3,7 @@ import type {
   MysteryCaseFile,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
+import { buildAllegianceSkeleton } from './allegiance.js';
 import { buildAnomalySkeleton } from './anomaly.js';
 import { buildRetrievalSkeleton } from './retrieval.js';
 import { buildUnlockSkeleton } from './unlock.js';
@@ -51,6 +52,8 @@ export function buildMysterySkeleton(
       return buildUnlockSkeleton(template, seed);
     case 'anomaly':
       return buildAnomalySkeleton(template, seed);
+    case 'allegiance':
+      return buildAllegianceSkeleton(template, seed);
     default:
       throw new Error(`暂不支持原型 ${template.archetype} 的骨架生成`);
   }

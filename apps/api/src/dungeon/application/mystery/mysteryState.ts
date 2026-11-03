@@ -4,7 +4,10 @@ import type {
   MysteryRecord,
   MysteryScenarioTemplate,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { projectMysteryView } from '@daoyou/game-rules/dungeon/mystery';
+import {
+  mysteryConfrontationTarget,
+  projectMysteryView,
+} from '@daoyou/game-rules/dungeon/mystery';
 import type { DungeonState } from '../flow/types.js';
 
 export function requireMysteryTemplate(id: string): MysteryScenarioTemplate {
@@ -50,9 +53,38 @@ export function toClientDungeonResult<T>(value: T): T {
   return result as T;
 }
 
+/** 抉择题：玩家的选择，以及调停是否有揭穿中间人作为底气。 */
+function judgementContext(mystery: MysteryRecord) {
+  const template = requireMysteryTemplate(mystery.templateId);
+  const judged = template.questions.filter((q) => q.judgement);
+  if (judged.length === 0 || !mystery.result) return {};
+  return {
+    choices: Object.fromEntries(
+      judged.map((q) => [
+        q.prompt,
+        mystery.caseFile.questions
+          .find((x) => x.id === q.id)
+          ?.options?.find((o) => o.id === mystery.result!.answers[q.id])
+          ?.label ?? null,
+      ]),
+    ),
+    brokerExposed: mystery.run.flags.includes('broker_exposed'),
+  };
+}
+
 function finaleOpponent(mystery: MysteryRecord) {
-  const role = requireMysteryTemplate(mystery.templateId).finale?.role;
+  const template = requireMysteryTemplate(mystery.templateId);
+  const role = template.finale?.role;
   if (role === 'manifest') return mystery.caseFile.manifest?.name ?? null;
+  if (role === 'opposed')
+    return (
+      mysteryConfrontationTarget(
+        mystery.caseFile,
+        template,
+        mystery.result?.answers ?? {},
+        mystery.run,
+      )?.name ?? null
+    );
   return mystery.caseFile.npcs.find((n) => n.role === role)?.name ?? null;
 }
 
@@ -69,6 +101,7 @@ export function mysteryEndingContext(mystery: MysteryRecord) {
           branches: mystery.result.branches,
           confrontation: mystery.result.confrontation ?? null,
           opponent: finaleOpponent(mystery),
+          ...judgementContext(mystery),
         }
       : null,
     recentEvents: mystery.run.log

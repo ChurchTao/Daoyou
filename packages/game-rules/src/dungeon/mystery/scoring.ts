@@ -50,10 +50,22 @@ export function mysteryConfrontationTarget(
   caseFile: MysteryCaseFile,
   template: MysteryScenarioTemplate,
   answers: MysteryAnswers,
+  run?: Pick<MysteryRunState, 'flags'>,
 ) {
   const finale = template.finale;
   if (!finale || finale.points <= 0) return null;
-  // 保留身份 manifest 表示异变化形，不是人物。
+  // 保留身份：manifest 为异变化形；opposed 按抉择决定对手。
+  const opposed = () => {
+    const side = answers.side;
+    if (side === 'side_a')
+      return caseFile.npcs.find((n) => n.role === 'envoy_b');
+    if (side === 'side_b')
+      return caseFile.npcs.find((n) => n.role === 'envoy_a');
+    // 调停只有揭穿了中间人才会与他摊牌，否则不起冲突。
+    return run?.flags.includes('broker_exposed')
+      ? caseFile.npcs.find((n) => n.role === 'broker')
+      : undefined;
+  };
   const target =
     finale.role === 'manifest'
       ? caseFile.manifest && {
@@ -61,7 +73,9 @@ export function mysteryConfrontationTarget(
           name: caseFile.manifest.name,
           role: 'manifest',
         }
-      : caseFile.npcs.find((n) => n.role === finale.role);
+      : finale.role === 'opposed'
+        ? opposed()
+        : caseFile.npcs.find((n) => n.role === finale.role);
   if (!target) return null;
   const solved = finale.when.every((id) => {
     const q = caseFile.questions.find((x) => x.id === id);
@@ -102,14 +116,18 @@ export function scoreMysteryRun(
   confrontation: MysteryConfrontationOutcome = 'none',
 ): MysteryResult {
   const weights = template.scoring;
+  // 抉择题没有标准答案，不计对错。
+  const judged = new Set(
+    template.questions.filter((q) => q.judgement).map((q) => q.id),
+  );
   const correct: Record<string, boolean> = {};
   for (const q of caseFile.questions)
-    correct[q.id] = answers[q.id] === q.answer;
+    if (!judged.has(q.id)) correct[q.id] = answers[q.id] === q.answer;
   const truthRatio =
-    caseFile.questions.length === 0
+    Object.keys(correct).length === 0
       ? 0
       : Object.values(correct).filter(Boolean).length /
-        caseFile.questions.length;
+        Object.keys(correct).length;
 
   const keyClues = caseFile.clues.filter((c) => c.key);
   const keyCluesFound = keyClues.filter((c) => run.clues.includes(c.id)).length;
