@@ -6,6 +6,7 @@ import { cn } from '@app/lib/cn';
 import type {
   MysteryAction,
   MysteryAnswers,
+  MysteryEvidence,
   MysteryLogEntry,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
@@ -32,7 +33,10 @@ interface DungeonMysteryProps {
   processing: boolean;
   onAct: (action: MysteryAction) => Promise<void>;
   onTalk: (npcId: string, question: string) => Promise<boolean>;
-  onDeduce: (answers: MysteryAnswers) => Promise<void>;
+  onDeduce: (
+    answers: MysteryAnswers,
+    evidence: MysteryEvidence,
+  ) => Promise<void>;
   onGuard: (guardId: string) => Promise<void>;
   onQuit: () => Promise<boolean>;
 }

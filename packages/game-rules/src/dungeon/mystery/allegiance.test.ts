@@ -43,7 +43,7 @@ describe('allegiance judgement', () => {
     expect(
       scoreMysteryRun(caseFile, template, run, { ...KNOWN, side: 'side_a' })
         .breakdown.truth,
-    ).toBe(40);
+    ).toBe(16); // 两道图谋都答对但没有掌握支撑线索，各得 40%。
   });
 
   it('shows your own choice for the judgement question', () => {

@@ -114,7 +114,7 @@ function ClueCard({
           )}
           onClick={() => setChoosing(true)}
         >
-          {pinnedTo ? `已钉到：${pinnedTo.prompt}` : '钉到推理题，作为依据…'}
+          {pinnedTo ? `已作为证据：${pinnedTo.prompt}` : '作为某道题的证据…'}
         </button>
       )}
     </div>
@@ -122,7 +122,7 @@ function ClueCard({
 }
 
 /**
- * 案情板：线索按来源归组并可钉到结案问题，人物、地点与经过各一页。
+ * 案情板：线索按来源归组并可作为推理题的证据，人物、地点与经过各一页。
  * 窄屏放在抽屉里，宽屏常驻在调查页右侧。
  */
 export function MysteryCaseBoard({

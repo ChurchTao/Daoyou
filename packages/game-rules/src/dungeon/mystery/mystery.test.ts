@@ -29,6 +29,18 @@ import { computeMysteryReachability, validateMysteryCase } from './validate.js';
 
 const template = getMysteryTemplate('inheritance_murder')!;
 
+/** 每道题选一条真正支撑它的关键线索作为证据。 */
+const aptEvidence = (caseFile: MysteryCaseFile) =>
+  Object.fromEntries(
+    caseFile.questions.map((q) => [
+      q.id,
+      caseFile.clues
+        .filter((c) => c.key && c.supports.includes(q.id))
+        .slice(0, 1)
+        .map((c) => c.id),
+    ]),
+  );
+
 function fallback(): MysteryCaseFile {
   return getMysteryFallbackCase('inheritance_murder')!;
 }
@@ -240,7 +252,14 @@ describe('mystery scoring', () => {
   it('awards S for a thorough correct deduction', () => {
     const caseFile = fallback();
     const run = play(caseFile, SOLVE);
-    const result = scoreMysteryRun(caseFile, template, run, CORRECT, 'won');
+    const result = scoreMysteryRun(
+      caseFile,
+      template,
+      run,
+      CORRECT,
+      'won',
+      aptEvidence(caseFile),
+    );
     expect(result.correct).toEqual({ who: true, how: true, heir: true });
     expect(result.branches).toEqual(['lies_exposed', 'heir_trusted']);
     expect(result.keyCluesFound).toBe(result.keyCluesTotal);
@@ -259,7 +278,14 @@ describe('mystery scoring', () => {
     const caseFile = fallback();
     const run = play(caseFile, SOLVE);
     for (const outcome of ['lost', 'spared'] as const) {
-      const result = scoreMysteryRun(caseFile, template, run, CORRECT, outcome);
+      const result = scoreMysteryRun(
+        caseFile,
+        template,
+        run,
+        CORRECT,
+        outcome,
+        aptEvidence(caseFile),
+      );
       expect(result.breakdown.combat).toBe(0);
       expect(result.total).toBe(90);
       expect(result.confrontation).toBe(outcome);
@@ -291,11 +317,46 @@ describe('mystery scoring', () => {
       how: 'poison_incense',
       heir: 'han',
     });
-    expect(result.breakdown.truth).toBe(17);
+    // 只答对一题且无据：50 × 1/3 × 40%；没有任何有据答对的题，效率分为零。
+    expect(result.breakdown.truth).toBe(7);
     expect(result.breakdown.combat).toBe(0);
-    expect(result.breakdown.efficiency).toBe(5);
+    expect(result.breakdown.efficiency).toBe(0);
     expect(result.tier).toBe('D');
     expect(scoreMysteryRun(caseFile, template, run, {}).total).toBe(0);
+  });
+
+  it('gives full truth only to answers backed by evidence the player holds', () => {
+    const caseFile = fallback();
+    const blind = createMysteryRun(caseFile, 30);
+    const guessed = scoreMysteryRun(caseFile, template, blind, CORRECT);
+    expect(guessed.evidenced).toEqual({ who: false, how: false, heir: false });
+    expect(guessed.breakdown.truth).toBe(20);
+    expect(guessed.breakdown.efficiency).toBe(0);
+
+    const solved = play(caseFile, SOLVE);
+    const proven = scoreMysteryRun(caseFile, template, solved, CORRECT);
+    expect(proven.evidenced).toEqual({ who: true, how: true, heir: true });
+    expect(proven.breakdown.truth).toBe(50);
+    expect(proven.breakdown.efficiency).toBeGreaterThan(0);
+  });
+
+  it('credits evidence only when the chosen clue really supports the question', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, SOLVE);
+    const apt = aptEvidence(caseFile);
+    const unrelated = caseFile.clues.find(
+      (c) => !c.supports.includes('who') && run.clues.includes(c.id),
+    )!;
+    const result = scoreMysteryRun(caseFile, template, run, CORRECT, 'won', {
+      who: [unrelated.id, 'clue_not_held'],
+      how: apt.how!,
+    });
+    expect(result.evidence).toEqual({
+      who: { clueIds: [unrelated.id], apt: false },
+      how: { clueIds: apt.how, apt: true },
+    });
+    const full = scoreMysteryRun(caseFile, template, run, CORRECT, 'won', apt);
+    expect(result.breakdown.coverage).toBeLessThan(full.breakdown.coverage);
   });
 
   it('rejects answers outside the offered choices and unknown questions', () => {

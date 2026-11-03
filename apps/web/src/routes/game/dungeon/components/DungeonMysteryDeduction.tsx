@@ -5,6 +5,7 @@ import { cn } from '@app/lib/cn';
 import { useBodyScrollLock } from '@app/lib/hooks/useBodyScrollLock';
 import type {
   MysteryAnswers,
+  MysteryEvidence,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useEffect, useState } from 'react';
@@ -16,17 +17,20 @@ type Question = MysteryPlayerView['questions'][number];
 
 interface DungeonMysteryDeductionProps {
   view: MysteryPlayerView;
-  /** 玩家在案情板上把线索钉到的问题：clueId → questionId。 */
+  /** 玩家作为证据的线索归属哪道题：clueId → questionId。 */
   pins: Record<string, string>;
   isOpen: boolean;
   processing: boolean;
   onPin: (clueId: string, questionId: string | null) => void;
   onClose: () => void;
-  onSubmit: (answers: MysteryAnswers) => Promise<void>;
+  onSubmit: (
+    answers: MysteryAnswers,
+    evidence: MysteryEvidence,
+  ) => Promise<void>;
 }
 
 /**
- * 推理场景：整屏切换，每道题一张签，上方是钉上的线索（可在此直接增删），
+ * 推理场景：整屏切换，每道题一张签，上方是作为证据的线索（可在此直接增删），
  * 下方作答；抉择题画成两方对立的卷轴，注明不分对错。
  */
 export function DungeonMysteryDeduction(props: DungeonMysteryDeductionProps) {
@@ -74,7 +78,15 @@ function DeductionScene({
       confirmLabel: '提交',
       cancelLabel: '再想想',
       onConfirm: async () => {
-        await onSubmit(answers);
+        // 把本机记下的证据按题整理后一并提交，每题最多 5 条。
+        const evidence: MysteryEvidence = {};
+        for (const clue of view.clues) {
+          const questionId = pins[clue.id];
+          if (!questionId) continue;
+          const list = (evidence[questionId] ??= []);
+          if (list.length < 5) list.push(clue.id);
+        }
+        await onSubmit(answers, evidence);
         onClose();
       },
     });
@@ -85,9 +97,9 @@ function DeductionScene({
     return (
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-ink-secondary">依据</span>
+          <span className="text-ink-secondary">证据</span>
           {pinned.length === 0 ? (
-            <span className="text-ink-secondary">还没有钉上线索</span>
+            <span className="text-ink-secondary">还没有选证据</span>
           ) : (
             pinned.map((clue) => (
               <span
@@ -104,7 +116,7 @@ function DeductionScene({
               className="text-ink-secondary hover:text-ink underline decoration-dotted underline-offset-4"
               onClick={() => setPinning(open ? null : question.id)}
             >
-              {open ? '收起' : '增删依据'}
+              {open ? '收起' : '选择证据'}
             </button>
           ) : null}
         </div>
@@ -124,7 +136,7 @@ function DeductionScene({
                   {clue.name}
                   {elsewhere ? (
                     <span className="text-ink-secondary ml-1 text-xs">
-                      （已钉在别题）
+                      （已用于别题）
                     </span>
                   ) : null}
                 </InkChoiceButton>
@@ -234,7 +246,7 @@ function DeductionScene({
             <div className="text-ink-secondary text-sm">{view.title}</div>
             <h2 className="text-xl font-semibold">提交推理</h2>
             <p className="text-ink-secondary mt-1 text-sm leading-7">
-              提交后调查结束，按答对的题结算，答得越准、线索越全奖励越好。
+              提交后调查结束，按答对的题结算。答对还要有线索能证明才得满分；给每道题选上能证明它的线索作为证据，还能多得线索分。
               {view.confrontation
                 ? '答对关键题后对手可能动手，打赢才能拿满分。'
                 : ''}

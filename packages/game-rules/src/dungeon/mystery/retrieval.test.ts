@@ -20,6 +20,18 @@ import {
 } from './validate.js';
 
 const template = getMysteryTemplate('lost_relic')!;
+
+/** 每道题选一条真正支撑它的关键线索作为证据。 */
+const aptEvidence = (caseFile: MysteryCaseFile) =>
+  Object.fromEntries(
+    caseFile.questions.map((q) => [
+      q.id,
+      caseFile.clues
+        .filter((c) => c.key && c.supports.includes(q.id))
+        .slice(0, 1)
+        .map((c) => c.id),
+    ]),
+  );
 const seeds = Array.from({ length: 300 }, (_, i) => i * 7919 + 1);
 const SOLVED = { where: 'place_true', how: 'method_true', owner: 'npc_owner' };
 
@@ -154,6 +166,39 @@ describe('guards', () => {
       mysteryGuardChallenge(caseFile, won.ok ? won.run : run, guard.id),
     ).toMatchObject({ ok: false });
   });
+  it('notes that a beaten guard no longer blocks the room it guarded', () => {
+    const caseFile = caseWithGuards(2);
+    const run = readyRun(caseFile, 1);
+    const guard = caseFile.guards![1]!;
+    const won = applyMysteryGuardBattle(caseFile, run, guard.id, true);
+    if (!won.ok) throw new Error(won.error);
+    const lines = won.run.log
+      .filter((e) => e.turn === won.run.turn)
+      .map((e) => e.kind);
+    expect(lines).toEqual(['system', 'scene', 'system']);
+    expect(won.run.log.at(-1)?.text).toBe(`${guard.name}已不再拦路。`);
+  });
+});
+
+describe('repeated hints', () => {
+  it('does not charge for asking again when nothing has changed', () => {
+    const caseFile = caseWithGuards(1);
+    const run = createMysteryRun(caseFile, template.scale.action_budget);
+    const first = applyMysteryAction(caseFile, run, { type: 'reflect' });
+    if (!first.ok) throw new Error(first.error);
+    expect(first.run.actionsLeft).toBe(run.actionsLeft - 1);
+    const again = applyMysteryAction(caseFile, first.run, { type: 'reflect' });
+    if (!again.ok) throw new Error(again.error);
+    expect(again.run).toMatchObject({
+      actionsLeft: first.run.actionsLeft,
+      turn: first.run.turn,
+    });
+    expect(again.run.log.at(-1)?.text).toBe(
+      `还是那个念头：${first.run.log.at(-1)!.text}`,
+    );
+    const third = applyMysteryAction(caseFile, again.run, { type: 'reflect' });
+    expect(third.ok && third.run.actionsLeft).toBe(first.run.actionsLeft);
+  });
 });
 
 describe('retrieval scoring', () => {
@@ -169,7 +214,14 @@ describe('retrieval scoring', () => {
       ),
       passedGuards: caseFile.guards!.map((g) => g.id),
     };
-    const result = scoreMysteryRun(caseFile, template, run, SOLVED, 'won');
+    const result = scoreMysteryRun(
+      caseFile,
+      template,
+      run,
+      SOLVED,
+      'won',
+      aptEvidence(caseFile),
+    );
     expect(result.total).toBe(100);
     expect(result.branches).toEqual(['lies_exposed', 'decoy_turned']);
     expect(result.guards).toEqual({ passed: 2, total: 2 });

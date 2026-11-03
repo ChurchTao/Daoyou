@@ -63,6 +63,7 @@ import type {
   MysteryAction,
   MysteryAnswers,
   MysteryConfrontationOutcome,
+  MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
 import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
 import {
@@ -1505,7 +1506,11 @@ export class DungeonFlowService {
   /** 结案：规则评分后按完成通关结算，评分决定通关奖励档位。 */
   async deduceMystery(
     cultivatorId: string,
-    input: { runId: string; answers: MysteryAnswers },
+    input: {
+      runId: string;
+      answers: MysteryAnswers;
+      evidence?: MysteryEvidence;
+    },
     options: DungeonFlowOptions = {},
   ) {
     return this.withFlowLock(
@@ -1566,7 +1571,11 @@ export class DungeonFlowService {
               409,
             );
           });
-          mystery.verdict = { answers: input.answers, culpritId: culprit.id };
+          mystery.verdict = {
+            answers: input.answers,
+            culpritId: culprit.id,
+            ...(input.evidence ? { evidence: input.evidence } : {}),
+          };
           state.status = 'WAITING_BATTLE';
           state.encounter = encounter.preview;
           if (options.deferPersistence) {
@@ -1584,6 +1593,8 @@ export class DungeonFlowService {
           template,
           mystery.run,
           input.answers,
+          'none',
+          input.evidence,
         );
         const settled = await this.settleDungeon(state, {
           endDisposition: 'completed',
@@ -1697,6 +1708,7 @@ export class DungeonFlowService {
       mystery.run,
       verdict.answers,
       outcome,
+      verdict.evidence,
     );
     mystery.verdict = undefined;
     state.encounter = undefined;

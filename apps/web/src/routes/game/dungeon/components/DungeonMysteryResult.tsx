@@ -86,6 +86,11 @@ export function DungeonMysteryResult({
                 ) : (
                   <span className={correct ? 'text-wood' : 'text-crimson'}>
                     {correct ? '推断正确' : '推断有误'}
+                    {correct && result.evidenced
+                      ? result.evidenced[item.questionId]
+                        ? ' · 有据'
+                        : ' · 无据'
+                      : ''}
                   </span>
                 )}
               </div>
@@ -93,6 +98,26 @@ export function DungeonMysteryResult({
                 {item.judgement ? '你选择：' : '答案：'}
                 {item.answerLabel}
               </p>
+              {correct && result.evidenced?.[item.questionId] === false ? (
+                <p className="text-crimson mt-1 text-sm">
+                  你答对了，但没有找到能证明它的线索，此题只得部分分。
+                </p>
+              ) : null}
+              {item.evidence ? (
+                <p className="mt-1 text-sm">
+                  <span className="text-ink-secondary">你的证据：</span>
+                  {item.evidence.names.join('、')}
+                  <span
+                    className={
+                      item.evidence.apt
+                        ? 'text-wood ml-2'
+                        : 'text-ink-secondary ml-2'
+                    }
+                  >
+                    {item.evidence.apt ? '证据得当' : '没能证明此题'}
+                  </span>
+                </p>
+              ) : null}
               <p className="text-ink-secondary mt-1 text-sm leading-7">
                 {item.explanation}
               </p>

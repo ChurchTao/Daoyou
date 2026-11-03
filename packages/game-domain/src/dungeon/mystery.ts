@@ -482,6 +482,14 @@ export const MysteryAnswersSchema = z.record(MysteryIdSchema, MysteryIdSchema);
 
 export type MysteryAnswers = z.infer<typeof MysteryAnswersSchema>;
 
+/** 玩家为各推理题选作证据的线索：questionId → clueId[]。 */
+export const MysteryEvidenceSchema = z.record(
+  MysteryIdSchema,
+  z.array(MysteryIdSchema).max(5),
+);
+
+export type MysteryEvidence = z.infer<typeof MysteryEvidenceSchema>;
+
 export type MysteryRewardTier = 'S' | 'A' | 'B' | 'C' | 'D';
 
 export interface MysteryScoreBreakdown {
@@ -512,6 +520,10 @@ export interface MysteryResult {
   confrontation?: MysteryConfrontationOutcome;
   /** 案卷有守卫时记录通过情况。 */
   guards?: { passed: number; total: number };
+  /** 各计分题是否有据（掌握了支撑它的关键线索）。旧结果没有此字段。 */
+  evidenced?: Record<string, boolean>;
+  /** 各题选作证据的线索，以及其中是否有真正支撑该题的。旧结果没有此字段。 */
+  evidence?: Record<string, { clueIds: string[]; apt: boolean }>;
 }
 
 /** 服务端权威记录，挂在 DungeonState.mystery 上，绝不直接下发。 */
@@ -523,7 +535,11 @@ export interface MysteryRecord {
   run: MysteryRunState;
   result?: MysteryResult;
   /** 已指认真凶、等待对决结果的结案答案；对决结束后连同结果一起评分。 */
-  verdict?: { answers: MysteryAnswers; culpritId: string };
+  verdict?: {
+    answers: MysteryAnswers;
+    culpritId: string;
+    evidence?: MysteryEvidence;
+  };
   /** 正在强闯的守卫：遭遇战结束后回到调查。 */
   pendingGuard?: string;
   /** 对应剧本库中的剧本；保底案卷未入库时为空。 */
@@ -666,6 +682,8 @@ export interface MysteryPlayerView {
       explanation: string;
       /** 抉择题：answerLabel 是玩家的选择，不是标准答案。 */
       judgement?: boolean;
+      /** 玩家为此题选的证据（线索名），以及其中是否有真正能证明它的。 */
+      evidence?: { names: string[]; apt: boolean };
     }>;
   };
 }

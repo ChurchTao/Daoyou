@@ -8,6 +8,7 @@ import type {
 import type {
   MysteryAction,
   MysteryAnswers,
+  MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useRef, useState } from 'react';
 
@@ -104,8 +105,11 @@ export function useDungeonActions(
         guardId,
       });
     },
-    mysteryDeduce: (runId: string, answers: MysteryAnswers) =>
-      mutate('mystery/deduce', { runId, answers }),
+    mysteryDeduce: (
+      runId: string,
+      answers: MysteryAnswers,
+      evidence: MysteryEvidence,
+    ) => mutate('mystery/deduce', { runId, answers, evidence }),
     beginBattle: (encounterId: string) =>
       mutate('battle/begin', { encounterId }),
     recoverDungeon: (action: DungeonRecoverAction) =>

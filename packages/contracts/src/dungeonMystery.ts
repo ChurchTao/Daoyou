@@ -1,6 +1,7 @@
 import {
   MysteryActionSchema,
   MysteryAnswersSchema,
+  MysteryEvidenceSchema,
   MysteryIdSchema,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { z } from 'zod';
@@ -22,6 +23,8 @@ export const DungeonMysteryDeduceRequestSchema = z
   .object({
     runId: z.uuid(),
     answers: MysteryAnswersSchema,
+    /** 玩家为各题选作证据的线索；服务端只采信已掌握的线索。 */
+    evidence: MysteryEvidenceSchema.optional(),
   })
   .strict();
 

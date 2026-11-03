@@ -183,12 +183,39 @@ export function mysteryGuardAt(
   );
 }
 
-/** 进入房间：首次进入写全貌，再次进入写一句。 */
+/**
+ * 进入房间：首次进入写全貌，再次进入写一句。描写是开局时写定的，
+ * 之后再补上局面的变化（守卫已退、物件被毁、人物离场），免得叙事与局面矛盾。
+ * 毁物与离场只在玩家先前来过时补，没见过的不提。
+ */
 function enterRoom(w: RunWriter, target: MysteryCaseFile['rooms'][number]) {
   w.run.location = target.id;
   const first = !w.run.visited.includes(target.id);
   if (first) w.run.visited.push(target.id);
   w.log({ kind: 'scene', text: first ? target.description : target.brief });
+  for (const guard of w.caseFile.guards ?? [])
+    if (guard.roomId === target.id && w.run.passedGuards?.includes(guard.id))
+      w.log({ kind: 'system', text: `${guard.name}已不再拦路。` });
+  if (first) return;
+  for (const object of w.caseFile.objects)
+    if (object.roomId === target.id && w.run.destroyed?.includes(object.id))
+      w.log({ kind: 'system', text: `${object.name}已被毁去，只剩残迹。` });
+  for (const npc of w.caseFile.npcs)
+    if (npc.roomId === target.id && w.run.departed?.includes(npc.id))
+      w.log({ kind: 'system', text: `${npc.name}已经离开了这里。` });
+}
+
+const REPEAT_HINT = '还是那个念头：';
+
+/** 连点提示时，最近一次提示（其后只有“还是那个念头”的重复提醒）。 */
+function lastHint(run: MysteryRunState) {
+  for (let i = run.log.length - 1; i >= 0; i--) {
+    const entry = run.log[i]!;
+    if (entry.kind === 'hint') return entry.text;
+    if (entry.kind !== 'system' || !entry.text.startsWith(REPEAT_HINT))
+      return null;
+  }
+  return null;
 }
 
 /** 守卫所守房间与当前位置相邻、尚未通过时，返回守卫与房间。 */
@@ -309,6 +336,20 @@ export function applyMysteryAction(
 ): MysteryActionResult {
   if (current.actionsLeft <= 0) {
     return { ok: false, error: '行动力已用完，只能提交推理了' };
+  }
+  if (action.type === 'reflect') {
+    // 连点提示而局面未变：给出的是同一句，不扣行动力、不推进回合。
+    const hint = mysteryHint(caseFile, current);
+    if (lastHint(current) === hint) {
+      const run = cloneRun(current);
+      run.log.push({
+        turn: run.turn,
+        kind: 'system',
+        text: `${REPEAT_HINT}${hint}`,
+      });
+      run.log = run.log.slice(-LOG_LIMIT);
+      return { ok: true, run, newClues: [] };
+    }
   }
   const run = cloneRun(current);
   run.turn += 1;

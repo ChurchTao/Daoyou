@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-/** 玩家自己的推理笔记：线索钉到哪个结案问题、哪些线索已读。只存本机，不影响评分。 */
+/** 玩家自己的推理笔记：线索作为哪道推理题的证据、哪些线索已读。存在本机，提交推理时一并发出。 */
 export interface MysteryNotes {
   pins: Record<string, string>;
   seen: string[];

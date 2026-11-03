@@ -14,6 +14,7 @@ import type {
 import type {
   MysteryAction,
   MysteryAnswers,
+  MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
 import {
   getConditionStatusTemplate,
@@ -48,7 +49,10 @@ interface DungeonViewRendererProps {
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
     mysteryAct: (action: MysteryAction) => Promise<void>;
-    mysteryDeduce: (answers: MysteryAnswers) => Promise<void>;
+    mysteryDeduce: (
+      answers: MysteryAnswers,
+      evidence: MysteryEvidence,
+    ) => Promise<void>;
     mysteryTalk: (npcId: string, question: string) => Promise<boolean>;
     mysteryGuard: (guardId: string) => Promise<void>;
   };

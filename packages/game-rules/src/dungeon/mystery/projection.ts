@@ -352,6 +352,17 @@ export function projectMysteryView(
                 ),
                 explanation: q.explanation,
                 ...(tq?.judgement ? { judgement: true } : {}),
+                ...(result.evidence?.[q.id]
+                  ? {
+                      evidence: {
+                        names: result.evidence[q.id]!.clueIds.map(
+                          (id) =>
+                            caseFile.clues.find((c) => c.id === id)?.name ?? id,
+                        ),
+                        apt: result.evidence[q.id]!.apt,
+                      },
+                    }
+                  : {}),
               };
             }),
           },

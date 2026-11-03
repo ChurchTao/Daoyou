@@ -8,6 +8,7 @@ import type {
 import type {
   MysteryAction,
   MysteryAnswers,
+  MysteryEvidence,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
@@ -257,9 +258,12 @@ export function useDungeonViewModel(
     return data !== null;
   };
 
-  const handleMysteryDeduce = async (answers: MysteryAnswers) => {
+  const handleMysteryDeduce = async (
+    answers: MysteryAnswers,
+    evidence: MysteryEvidence,
+  ) => {
     if (!state?.runId) return;
-    const data = await mysteryDeduce(state.runId, answers);
+    const data = await mysteryDeduce(state.runId, answers, evidence);
     await applyMutationResult(
       data as Parameters<typeof resolveDungeonMutationResult>[0],
     );

@@ -2,6 +2,7 @@ import type {
   MysteryAnswers,
   MysteryCaseFile,
   MysteryConfrontationOutcome,
+  MysteryEvidence,
   MysteryResult,
   MysteryRewardTier,
   MysteryRunState,
@@ -104,9 +105,15 @@ function combatPoints(
   );
 }
 
+/** 答对但没有掌握任何支撑线索时，该题只得此比例的真相分。 */
+export const MYSTERY_UNEVIDENCED_CREDIT = 0.4;
+/** 线索分中“证据得当”所占比例，其余按找到的关键线索计。 */
+export const MYSTERY_EVIDENCE_SHARE = 0.2;
+
 /**
  * 规则评分。放弃结案（answers 为空）时真相记零。
- * 效率分乘以真相正确率，避免不调查直接乱猜也能拿到效率分。
+ * 答对的题要有据（掌握了支撑它的关键线索）才得满分，效率分只按有据答对率计，
+ * 不调查直接作答拿不到效率分；玩家选作证据的线索里有真正支撑该题的，得线索分的证据部分。
  */
 export function scoreMysteryRun(
   caseFile: MysteryCaseFile,
@@ -114,20 +121,57 @@ export function scoreMysteryRun(
   run: MysteryRunState,
   answers: MysteryAnswers,
   confrontation: MysteryConfrontationOutcome = 'none',
+  evidence: MysteryEvidence = {},
 ): MysteryResult {
   const weights = template.scoring;
   // 抉择题没有标准答案，不计对错。
   const judged = new Set(
     template.questions.filter((q) => q.judgement).map((q) => q.id),
   );
+  const scored = caseFile.questions.filter((q) => !judged.has(q.id));
+  const supports = (questionId: string, clueId: string) =>
+    caseFile.clues.some(
+      (c) => c.id === clueId && c.key && c.supports.includes(questionId),
+    );
   const correct: Record<string, boolean> = {};
-  for (const q of caseFile.questions)
-    if (!judged.has(q.id)) correct[q.id] = answers[q.id] === q.answer;
-  const truthRatio =
-    Object.keys(correct).length === 0
-      ? 0
-      : Object.values(correct).filter(Boolean).length /
-        Object.keys(correct).length;
+  const evidenced: Record<string, boolean> = {};
+  for (const q of scored) {
+    correct[q.id] = answers[q.id] === q.answer;
+    // 线索题以已掌握的线索作答，作答本身就是凭据。
+    const kind = template.questions.find((t) => t.id === q.id)?.answer_kind;
+    evidenced[q.id] =
+      (kind === 'clue' && run.clues.includes(answers[q.id] ?? '')) ||
+      run.clues.some((id) => supports(q.id, id));
+  }
+  const share = (count: number) =>
+    scored.length === 0 ? 0 : count / scored.length;
+  const truthRatio = share(
+    scored.reduce(
+      (sum, q) =>
+        sum +
+        (correct[q.id]
+          ? evidenced[q.id]
+            ? 1
+            : MYSTERY_UNEVIDENCED_CREDIT
+          : 0),
+      0,
+    ),
+  );
+  const provenRatio = share(
+    scored.filter((q) => correct[q.id] && evidenced[q.id]).length,
+  );
+  const chosen: NonNullable<MysteryResult['evidence']> = {};
+  for (const q of scored) {
+    const clueIds = (evidence[q.id] ?? []).filter((id) =>
+      run.clues.includes(id),
+    );
+    if (clueIds.length > 0)
+      chosen[q.id] = {
+        clueIds,
+        apt: clueIds.some((id) => supports(q.id, id)),
+      };
+  }
+  const aptRatio = share(Object.values(chosen).filter((e) => e.apt).length);
 
   const keyClues = caseFile.clues.filter((c) => c.key);
   const keyCluesFound = keyClues.filter((c) => run.clues.includes(c.id)).length;
@@ -156,8 +200,12 @@ export function scoreMysteryRun(
 
   const breakdown = {
     truth: Math.round(weights.truth * truthRatio),
-    coverage: Math.round(weights.coverage * coverageRatio),
-    efficiency: Math.round(weights.efficiency * efficiencyRatio * truthRatio),
+    coverage: Math.round(
+      weights.coverage *
+        ((1 - MYSTERY_EVIDENCE_SHARE) * coverageRatio +
+          MYSTERY_EVIDENCE_SHARE * aptRatio),
+    ),
+    efficiency: Math.round(weights.efficiency * efficiencyRatio * provenRatio),
     branch: Math.min(weights.branch, branchPoints),
     combat: combatPoints(template, caseFile, run, confrontation),
   };
@@ -186,5 +234,7 @@ export function scoreMysteryRun(
           },
         }
       : {}),
+    evidenced,
+    evidence: chosen,
   };
 }
