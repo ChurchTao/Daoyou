@@ -9,12 +9,13 @@ import type {
   MysteryLogEntry,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryClueRail } from './MysteryClueRail';
+import { MysteryGuardCard } from './MysteryGuardCard';
 import { MysteryLogLine } from './MysteryLogLine';
-import { MysteryMechanismPanel } from './MysteryMechanismPanel';
+import { MysteryMechanismScene } from './MysteryMechanismScene';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import {
   MysteryProse,
@@ -132,6 +133,10 @@ export function DungeonMystery({
   const [operating, setOperating] = useState<string | null>(null);
 
   const exhausted = view.actionsLeft <= 0;
+  const operatingMechanism =
+    view.objects.find((o) => o.mechanism?.id === operating)?.mechanism ?? null;
+  const closeMechanism = useCallback(() => setOperating(null), []);
+  const closeGuard = useCallback(() => setGuarded(null), []);
   const busy = processing || exhausted;
   // 正文从进入当前地点那一回合讲起（开局时含开场白）。
   let lastScene = view.log.length - 1;
@@ -579,68 +584,37 @@ export function DungeonMystery({
         ) : null}
       </InkDetailDrawer>
 
-      <MysteryMechanismPanel
-        mechanism={
-          view.objects.find((o) => o.mechanism?.id === operating)?.mechanism ??
-          null
-        }
-        processing={processing}
-        actionsLeft={view.actionsLeft}
-        onClose={() => setOperating(null)}
-        onSubmit={async (mechanismId, sequence) => {
-          setOperating(null);
-          await act({ type: 'operate', mechanismId, sequence });
-        }}
-      />
+      {operatingMechanism ? (
+        <MysteryMechanismScene
+          key={operatingMechanism.id}
+          mechanism={operatingMechanism}
+          lines={view.log.filter((entry) => entry.turn === view.turn)}
+          processing={processing}
+          actionsLeft={view.actionsLeft}
+          onClose={closeMechanism}
+          onSubmit={(mechanismId, sequence) =>
+            onAct({ type: 'operate', mechanismId, sequence })
+          }
+        />
+      ) : null}
 
-      <InkDetailDrawer
-        isOpen={guarded !== null}
-        onClose={() => setGuarded(null)}
-        size="sm"
-        title={
-          guarded ? `${guarded.guard.name}拦住了去${guarded.name}的路` : ''
-        }
-        description="应战会进入一场战斗；化解需要相应的线索或物品。两者都耗 1 点行动力。"
-        footer={
-          guarded ? (
-            <div className="flex flex-wrap gap-2">
-              <InkButton
-                variant="primary"
-                disabled={processing || exhausted}
-                onClick={() => {
-                  const id = guarded.guard.id;
-                  setGuarded(null);
-                  void onGuard(id);
-                }}
-              >
-                应战
-              </InkButton>
-              <InkButton
-                disabled={processing || exhausted || !guarded.guard.canBypass}
-                onClick={() =>
-                  act({ type: 'bypass_guard', guardId: guarded.guard.id })
-                }
-              >
-                化解
-              </InkButton>
-              <InkButton variant="ghost" onClick={() => setGuarded(null)}>
-                先退开
-              </InkButton>
-            </div>
-          ) : null
-        }
-      >
-        {guarded ? (
-          <div className="space-y-2 text-sm leading-7">
-            <p>{guarded.guard.description}</p>
-            <p className="text-ink-secondary">
-              {guarded.guard.canBypass
-                ? '你已经有化解的办法，可以不战而过。'
-                : '你还没有化解的办法，线索可能在别处。'}
-            </p>
-          </div>
-        ) : null}
-      </InkDetailDrawer>
+      {guarded ? (
+        <MysteryGuardCard
+          guard={guarded.guard}
+          roomName={guarded.name}
+          processing={processing}
+          exhausted={exhausted}
+          onFight={() => {
+            const id = guarded.guard.id;
+            setGuarded(null);
+            void onGuard(id);
+          }}
+          onBypass={() =>
+            act({ type: 'bypass_guard', guardId: guarded.guard.id })
+          }
+          onClose={closeGuard}
+        />
+      ) : null}
 
       <InkDetailDrawer
         isOpen={picker !== null}

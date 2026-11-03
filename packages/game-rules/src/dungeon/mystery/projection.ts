@@ -14,7 +14,7 @@ import {
   mysteryMechanismState,
   mysteryNeighbors,
 } from './engine.js';
-import { MECHANISM_MAX_FAILURES } from './mechanism.js';
+import { MECHANISM_MAX_FAILURES, renderHintRule } from './mechanism.js';
 
 /**
  * 线索的来源：按玩家实际可能的获取方式依次判断（搜查过的物件、交谈过的人、
@@ -232,6 +232,14 @@ export function projectMysteryView(
                   maxFailures: MECHANISM_MAX_FAILURES,
                   solved: state.solved,
                   locked: state.locked,
+                  hints: m.hints.map((h) =>
+                    run.clues.includes(h.clueId)
+                      ? renderHintRule(
+                          h.rule,
+                          (id) => m.parts.find((p) => p.id === id)?.label ?? id,
+                        )
+                      : null,
+                  ),
                 },
               }
             : {}),

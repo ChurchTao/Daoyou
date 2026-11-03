@@ -98,6 +98,31 @@ describe('operating a mechanism', () => {
     expect(result.ok && result.run.flags).toContain('mech_1_solved');
   });
 
+  it('shows only the hints the player has found, in plain words', () => {
+    const { caseFile } = buildMysterySkeleton(template, 17);
+    const mech = caseFile.mechanisms!.find((m) => m.id === 'mech_1')!;
+    const run = atMechanism(caseFile, 1);
+    const project = (clues: string[]) =>
+      projectMysteryView(
+        {
+          templateId: template.id,
+          caseSource: 'fallback',
+          caseFile,
+          run: { ...run, clues },
+        },
+        template,
+      ).objects.find((o) => o.id === 'obj_mech_1')!.mechanism!.hints;
+    expect(project([]).every((h) => h === null)).toBe(true);
+    const found = project([mech.hints[0]!.clueId]);
+    expect(found[0]).toBe(
+      renderHintRule(
+        mech.hints[0]!.rule,
+        (id) => mech.parts.find((p) => p.id === id)!.label,
+      ),
+    );
+    expect(found.slice(1).every((h) => h === null)).toBe(true);
+  });
+
   it('backlashes on a wrong sequence and locks after three failures', () => {
     const { caseFile } = buildMysterySkeleton(template, 17);
     const mech = caseFile.mechanisms!.find((m) => m.id === 'mech_1')!;

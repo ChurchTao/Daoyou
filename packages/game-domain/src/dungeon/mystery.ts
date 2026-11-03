@@ -401,14 +401,7 @@ export const MysteryCaseFileSchema = z.strictObject({
 export type MysteryCaseFile = z.infer<typeof MysteryCaseFileSchema>;
 
 export type MysteryLogKind =
-  | 'scene'
-  | 'detail'
-  | 'speech'
-  | 'clue'
-  | 'item'
-  | 'system'
-  | 'event'
-  | 'hint';
+  'scene' | 'detail' | 'speech' | 'clue' | 'item' | 'system' | 'event' | 'hint';
 
 export interface MysteryLogEntry {
   turn: number;
@@ -547,11 +540,7 @@ export interface MysterySourceRef {
 
 /** 玩家眼中人物的状态：尚未交谈、交谈过、出示证据后交底、谎言被戳穿、已离场。 */
 export type MysteryNpcStatus =
-  | 'unmet'
-  | 'talked'
-  | 'opened'
-  | 'exposed'
-  | 'departed';
+  'unmet' | 'talked' | 'opened' | 'exposed' | 'departed';
 
 /** 已知地点：到访过的房间及其相邻房间。 */
 export interface MysteryMapRoom {
@@ -615,6 +604,8 @@ export interface MysteryPlayerView {
       maxFailures: number;
       solved: boolean;
       locked: boolean;
+      /** 每条提示一格：已拿到提示线索的写出程序渲染的规则，没拿到的为 null。 */
+      hints: Array<string | null>;
     };
   }>;
   npcsHere: Array<{ id: string; name: string; title: string }>;

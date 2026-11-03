@@ -1,0 +1,101 @@
+/* 解谜副本的专属场景：机关盘、守卫对峙。 */
+
+.mystery-scene {
+  animation: mystery-scene-in 0.35s ease-out;
+}
+
+/* 按错：盘面一震。 */
+.mystery-disc-backlash {
+  animation: mystery-disc-shake 0.45s ease-in-out;
+}
+
+/* 裂纹逐笔画出。 */
+.mystery-crack {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 0;
+  animation: mystery-crack-draw 0.6s ease-out;
+}
+
+/* 解开：封印从中心晕开。 */
+.mystery-seal-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mystery-seal-bloom 1.2s ease-out forwards;
+}
+
+.mystery-guard-card {
+  animation: mystery-guard-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes mystery-scene-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mystery-disc-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px) rotate(-1deg);
+  }
+  40% {
+    transform: translateX(7px) rotate(1deg);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes mystery-crack-draw {
+  from {
+    stroke-dashoffset: 140;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes mystery-seal-bloom {
+  from {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(4.5);
+    opacity: 0;
+  }
+}
+
+@keyframes mystery-guard-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mystery-scene,
+  .mystery-disc-backlash,
+  .mystery-crack,
+  .mystery-seal-bloom,
+  .mystery-guard-card {
+    animation: none;
+  }
+
+  .mystery-seal-bloom {
+    opacity: 0;
+  }
+}
