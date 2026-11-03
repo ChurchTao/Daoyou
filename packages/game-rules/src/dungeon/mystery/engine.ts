@@ -395,7 +395,7 @@ export function applyMysteryAction(
           ...run.mechanisms,
           [mechanism.id]: { ...state, failures, locked },
         };
-        w.log({ kind: 'event', text: mechanism.backlashText });
+        w.log({ kind: 'detail', text: mechanism.backlashText });
         if (locked)
           w.log({ kind: 'system', text: `${mechanism.name}彻底锁死了。` });
       }

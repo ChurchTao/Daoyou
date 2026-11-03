@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
 
@@ -69,6 +69,43 @@ export function MysteryAnomalyVeil({
         </div>
       ) : null}
     </>,
+    document.body,
+  );
+}
+
+/**
+ * 结尾对决前的“现形”转场：暗场中对手的名字压出，再淡入其情状；
+ * 点一下或数秒后进入迎战准备。
+ */
+export function MysteryReveal({
+  name,
+  description,
+  onDone,
+}: {
+  name: string;
+  description: string;
+  onDone: () => void;
+}) {
+  useEffect(() => {
+    const timer = window.setTimeout(onDone, 4200);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+  return createPortal(
+    <button
+      type="button"
+      aria-label="跳过"
+      className="mystery-scene bg-ink text-paper fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center"
+      onClick={onDone}
+    >
+      <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
+      <span className="mystery-reveal-name text-crimson text-4xl font-semibold tracking-[0.3em] md:text-5xl">
+        {name}
+      </span>
+      <span className="mystery-reveal-text text-paper/80 max-w-xl leading-8">
+        {description}
+      </span>
+      <span className="text-paper/40 text-xs">点一下继续</span>
+    </button>,
     document.body,
   );
 }

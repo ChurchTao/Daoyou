@@ -42,6 +42,28 @@
   animation: mystery-ward-stamp 1.8s ease-out forwards;
 }
 
+/* 现形：名字从放大的墨影中压实，随后情状淡入。 */
+.mystery-reveal-name {
+  animation: mystery-reveal-name 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mystery-reveal-text {
+  animation: mystery-scene-in 0.8s ease-out 1s both;
+}
+
+@keyframes mystery-reveal-name {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(1.6);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
 @keyframes mystery-omen-tremble {
   0%,
   100% {
@@ -159,7 +181,9 @@
     opacity: 0;
   }
 
-  .mystery-omen {
+  .mystery-omen,
+  .mystery-reveal-name,
+  .mystery-reveal-text {
     animation: none;
   }
 

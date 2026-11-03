@@ -551,6 +551,7 @@ export function DungeonMystery({
       <DungeonMysteryDeduction
         view={view}
         pins={notes.pins}
+        onPin={pin}
         isOpen={deducing}
         processing={processing}
         onClose={() => setDeducing(false)}

@@ -1,5 +1,7 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
+import { useCallback, useState } from 'react';
+import { MysteryReveal } from './MysteryAtmosphere';
 
 export function BattlePreparation({
   encounter,
@@ -18,8 +20,17 @@ export function BattlePreparation({
   onBegin: () => Promise<void>;
   onQuit: () => Promise<boolean>;
 }) {
+  const [revealed, setRevealed] = useState(mode !== 'finale');
+  const reveal = useCallback(() => setRevealed(true), []);
   return (
     <div className="space-y-6 py-4">
+      {revealed ? null : (
+        <MysteryReveal
+          name={encounter.enemies.join('、')}
+          description={encounter.description}
+          onDone={reveal}
+        />
+      )}
       <p className="text-ink leading-8">{encounter.description}</p>
       <div>
         <p className="text-ink-secondary mb-2 text-sm">
