@@ -1,5 +1,5 @@
 /** Browser-safe, pure catalog and hypothetical build previews. */
-export { getSectAtlasData, previewSectAtlasBuild, toggleSectAtlasNode } from '../sects/atlas.js';
+export { getSectAtlasData, previewSectAtlasBuild, previewSectAtlasSkill, toggleSectAtlasNode } from '../sects/atlas.js';
 export type {
   SectAtlasBuildInput,
   SectAtlasBuildPreview,
@@ -8,6 +8,8 @@ export type {
   SectAtlasEntry,
   SectAtlasNumericField,
   SectAtlasSkill,
+  SectAtlasSkillInput,
+  SectAtlasSkillPreview,
   SectAtlasSource,
   SectAtlasStatus,
 } from '../sects/atlas.js';

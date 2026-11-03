@@ -30,7 +30,7 @@ const require = createRequire(import.meta.url);
 const atlasEntry = require.resolve('@daoyou/game-rules/sects/atlas');
 const bundled = await build({
   stdin: {
-    contents: `export { previewSectAtlasBuild, toggleSectAtlasNode } from '@daoyou/game-rules/sects/atlas';\nexport const SECT_ATLAS_SOURCE_HASH = ${JSON.stringify(sourceHashPlaceholder)};`,
+    contents: `export { previewSectAtlasBuild, previewSectAtlasSkill, toggleSectAtlasNode } from '@daoyou/game-rules/sects/atlas';\nexport const SECT_ATLAS_SOURCE_HASH = ${JSON.stringify(sourceHashPlaceholder)};`,
     resolveDir: repositoryRoot,
     sourcefile: 'website-sect-preview.js',
   },
@@ -112,6 +112,13 @@ export type SectAtlasBuildInput = {
   methods?: Record<string, number>;
   nodeIds?: string[];
 };
+export type SectAtlasSkillInput = {
+  sectId: string; skillId: string; methodLevel: number;
+};
+export type SectAtlasSkillPreview = {
+  skillId: string; sourceMethodId: string; methodLevel: number;
+  unlockMethodLevel: number; unlocked: boolean; numericFields: SectAtlasNumericField[];
+};
 export type SectAtlasBuildPreview = {
   ok: boolean;
   characterLevel: number;
@@ -139,6 +146,7 @@ export type SectAtlasBuildPreview = {
 };
 export declare const SECT_ATLAS_SOURCE_HASH: string;
 export declare function previewSectAtlasBuild(input: SectAtlasBuildInput): SectAtlasBuildPreview;
+export declare function previewSectAtlasSkill(input: SectAtlasSkillInput): SectAtlasSkillPreview;
 export declare function toggleSectAtlasNode(input: SectAtlasBuildInput, nodeId: string): SectAtlasBuildPreview;
 `;
 

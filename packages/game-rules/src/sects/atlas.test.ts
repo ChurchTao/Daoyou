@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { compileCurrentSectCombatV6 } from './index.js';
-import { getSectAtlasData, previewSectAtlasBuild, toggleSectAtlasNode } from './atlas.js';
+import { getSectAtlasData, previewSectAtlasBuild, previewSectAtlasSkill, toggleSectAtlasNode } from './atlas.js';
 
 describe('宗门离线图鉴与构筑预览', () => {
   it('包含两条流派的全部授予与被动技能、状态及可独立修改的序列化数据', () => {
@@ -114,5 +114,97 @@ describe('宗门离线图鉴与构筑预览', () => {
     expect(breath.resolved).toBeNull();
     const mist = fields.flatMap(field => field.variables).find(variable => variable.name === 'ownedTargetStatusStacks.wanqiao.mist')!;
     expect(mist.label).toBe('目标身上本人施加的「留音」层数');
+  });
+
+  it('独立预览心法成长，保留原始表达式、单位及解锁门槛', () => {
+    const eagle = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.eagle_strike', methodLevel });
+    const low = eagle(75);
+    const high = eagle(180);
+    const target = (result: typeof low) => result.numericFields.find(field => field.path === 'targeting.count')!;
+    expect(low).toMatchObject({ sourceMethodId: 'xiaoyue.method.onslaught', methodLevel: 75, unlockMethodLevel: 30, unlocked: true });
+    expect(target(low)).toMatchObject({ resolved: 5, resolvedDisplay: '5个目标' });
+    expect(target(high)).toMatchObject({ resolved: 6, resolvedDisplay: '6个目标' });
+    expect(target(low).value).toBe(target(high).value);
+    expect(target(low).display).toBe(target(high).display);
+    expect(target(low).contextLabel).toBe('基础参数 / 作用目标');
+    expect(high.numericFields.find(field => field.path === 'effects[0].chance')).toMatchObject({ value: 0.3, resolved: 0.3, display: '30%', resolvedDisplay: '30%' });
+    expect(eagle(0)).toMatchObject({ methodLevel: 0, unlocked: false });
+    const guardian = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'jiujie', skillId: 'jiujie.skill.divine_guardian', methodLevel }).numericFields.find(field => field.path === 'effects[0].duration')!;
+    expect(guardian(75).resolvedDisplay).toBe('4回合');
+    expect(guardian(180).resolvedDisplay).toBe('7回合');
+  });
+
+  it('可查流派与节点授予神通，但不套用流派或节点补丁', () => {
+    const pathSkill = previewSectAtlasSkill({ sectId: 'jiujie', skillId: 'jiujie.skill.thunderstorm', methodLevel: 75 });
+    const nodeSkill = previewSectAtlasSkill({ sectId: 'jiujie', skillId: 'jiujie.skill.absorb', methodLevel: 75 });
+    expect(pathSkill.sourceMethodId).toBe('jiujie.method.thunder');
+    expect(pathSkill.numericFields.find(field => field.path === 'effects[0].power')?.resolved).toBe(112.5);
+    expect(nodeSkill.numericFields.find(field => field.path === 'effects[3].power')?.resolved).toBe(112.5);
+    const sect = COMBAT_V6_SECT_DEFINITIONS.lingxiao;
+    const path = sect.paths[0];
+    const compiled = previewSectAtlasBuild({ sectId: sect.id, pathId: path.id, characterLevel: 180, nodeIds: path.nodes.filter(node => !node.automatic && node.slot === 2).map(node => node.id) });
+    expect(compiled.skills.find(skill => skill.id === 'lingxiao.skill.waiting')!.numericFields.find(field => field.path === 'costHp')?.resolved).toBe(0);
+    expect(previewSectAtlasSkill({ sectId: sect.id, skillId: 'lingxiao.skill.waiting', methodLevel: 180 }).numericFields.find(field => field.path === 'costHp')).toMatchObject({ value: 'hp * 0.05', resolved: null });
+  });
+
+  it('按施放心法等级计算直接施加状态，不把使用条件中的状态当成本技能加成', () => {
+    const transform = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.transform', methodLevel });
+    const physicalAttack = (methodLevel: number) => transform(methodLevel).numericFields.find(field => field.path === 'effects[1].statuses.xiaoyue.status.transform.attrMods.physicalAtk')!;
+    expect(physicalAttack(75)).toMatchObject({ value: 'skillLevel', resolved: 75, resolvedDisplay: '75' });
+    expect(physicalAttack(180).resolved).toBe(180);
+    expect(physicalAttack(75).contextLabel).toContain('施加状态·兽形');
+    expect(transform(75).numericFields.find(field => field.path === 'effects[1].duration')?.resolvedDisplay).toBe('4回合');
+    expect(previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.eagle_strike', methodLevel: 75 }).numericFields.some(field => field.path.includes('statuses.xiaoyue.status.transform.'))).toBe(false);
+  });
+
+  it('惊雷自然转为蓄势状态时沿用施放心法等级计算成长', () => {
+    const waiting = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'lingxiao', skillId: 'lingxiao.skill.waiting', methodLevel });
+    const physicalAttack = (methodLevel: number) => waiting(methodLevel).numericFields.find(field => field.path.endsWith('statuses.lingxiao.status.waiting.attrMods.physicalAtk'))!;
+    expect(physicalAttack(75)).toMatchObject({ value: 'skillLevel', resolved: 75 });
+    expect(physicalAttack(180).resolved).toBe(180);
+    expect(physicalAttack(75).contextLabel).toContain('自然转为·惊雷');
+    expect(waiting(75).numericFields.find(field => field.path.endsWith('statuses.lingxiao.status.waiting.speedMod'))?.resolved).toBe(150);
+  });
+
+  it('零级心法的零级门槛与正式编译一致，门槛标记不代替流派或节点选择', () => {
+    const sect = COMBAT_V6_SECT_DEFINITIONS.xiaoyue;
+    const compiled = previewSectAtlasBuild({ sectId: sect.id, pathId: sect.paths[0].id, characterLevel: 180, methods: Object.fromEntries(sect.methods.map(method => [method.id, 0])) });
+    expect(compiled.ok).toBe(true);
+    expect(compiled.skills.find(skill => skill.id === 'xiaoyue.skill.foundation')?.available).toBe(true);
+    expect(previewSectAtlasSkill({ sectId: sect.id, skillId: 'xiaoyue.skill.foundation', methodLevel: 0 })).toMatchObject({ methodLevel: 0, unlockMethodLevel: 0, unlocked: true });
+  });
+
+  it('复用正式师门项公式展示心法附加威力，原始系数仍保留', () => {
+    const power = (methodLevel: number) => previewSectAtlasSkill({ sectId: 'bailu', skillId: 'bailu.skill.poxie', methodLevel });
+    expect(power(75).numericFields.find(field => field.path === 'schoolTerm.total')).toMatchObject({ resolved: 189.375, resolvedDisplay: '189.375', variables: [{ name: 'skillLevel', label: '所属心法等级' }] });
+    expect(power(180).numericFields.find(field => field.path === 'schoolTerm.total')?.resolved).toBe(570);
+    expect(power(75).numericFields.find(field => field.path === 'schoolTerm.linear')).toMatchObject({ value: 1.5, resolved: 1.5 });
+  });
+
+  it('独立预览不假设人物等级、已学技能、属性或现场状态', () => {
+    const atlas = getSectAtlasData();
+    let contextualFields = 0;
+    for (const sect of atlas.sects) {
+      for (const skill of sect.skills) {
+        const result = previewSectAtlasSkill({ sectId: sect.id, skillId: skill.id, methodLevel: 75 });
+        for (const field of result.numericFields) {
+          if (field.variables.some(variable => variable.name !== 'skillLevel') || (field.variables.length && field.contextLabel.includes('按触发技能等级'))) {
+            contextualFields++;
+            expect(field.resolved, `${skill.id}:${field.path}`).toBeNull();
+            expect(field.resolvedDisplay).toBeNull();
+          } else expect(field.resolved, `${skill.id}:${field.path}`).not.toBeNull();
+        }
+      }
+    }
+    expect(contextualFields).toBeGreaterThan(0);
+  });
+
+  it.each([[-1, 0], [75.9, 75], [999, 180], [NaN, 0], [Infinity, 0]])('将独立心法等级 %s 规范为 %s', (input, expected) => {
+    expect(previewSectAtlasSkill({ sectId: 'xiaoyue', skillId: 'xiaoyue.skill.eagle_strike', methodLevel: input }).methodLevel).toBe(expected);
+  });
+
+  it('拒绝未知宗门与跨宗门神通，不依靠心法等级掩盖错误引用', () => {
+    expect(() => previewSectAtlasSkill({ sectId: 'unknown' as never, skillId: 'xiaoyue.skill.eagle_strike', methodLevel: 180 })).toThrow('未知宗门');
+    expect(() => previewSectAtlasSkill({ sectId: 'jiujie', skillId: 'xiaoyue.skill.eagle_strike', methodLevel: 180 })).toThrow('神通不属于当前宗门');
   });
 });

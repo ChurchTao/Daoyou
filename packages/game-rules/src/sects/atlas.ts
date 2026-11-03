@@ -6,6 +6,7 @@ import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import type { CombatV6SectId, SectCombatProgressV6, SectDefinitionV6, SectSkillDefV6 } from '@daoyou/game-domain/combat';
 import { combatV6SkillDetails } from '../combat/skill-details.js';
+import { schoolTermValue } from '../combat/daoyou/formulas.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileCurrentSectCombatV6 } from './index.js';
 import { canSelectMeridianNode, connectedMeridianSelection, toggleMeridianNode } from './meridian-selection.js';
@@ -67,6 +68,19 @@ export type SectAtlasBuildInput = {
   characterLevel: number;
   methods?: Record<string, number>;
   nodeIds?: string[];
+};
+export type SectAtlasSkillInput = {
+  sectId: CombatV6SectId;
+  skillId: string;
+  methodLevel: number;
+};
+export type SectAtlasSkillPreview = {
+  skillId: string;
+  sourceMethodId: string;
+  methodLevel: number;
+  unlockMethodLevel: number;
+  unlocked: boolean;
+  numericFields: SectAtlasNumericField[];
 };
 export type SectAtlasDiagnostic = { severity: 'info' | 'warning' | 'error'; code: string; message: string; path?: string };
 export type SectAtlasBuildPreview = {
@@ -252,6 +266,51 @@ function atlasEntry(definition: SectDefinitionV6): SectAtlasEntry {
 
 export function getSectAtlasData(): SectAtlasData {
   return { formatVersion: 1, limits: { maxCharacterLevel, maxMethodLevel: SECT_PROGRESSION.method.maxLevel, meridianCharacterLevels: [...MERIDIAN_LEVELS] }, sects: Object.values(COMBAT_V6_SECT_DEFINITIONS).map(atlasEntry) };
+}
+
+/** Preview authored skill growth without assuming a character, path or battle state. */
+export function previewSectAtlasSkill(input: SectAtlasSkillInput): SectAtlasSkillPreview {
+  if (!Object.hasOwn(COMBAT_V6_SECT_DEFINITIONS, input.sectId)) throw new Error('未知宗门');
+  const sect = COMBAT_V6_SECT_DEFINITIONS[input.sectId];
+  const skill = authoredSkills(sect).find(entry => entry.skill.definition.id === input.skillId)?.skill;
+  if (!skill) throw new Error('神通不属于当前宗门');
+  const methodLevel = Math.max(0, Math.min(SECT_PROGRESSION.method.maxLevel, Math.floor(Number.isFinite(input.methodLevel) ? input.methodLevel : 0)));
+  const fields = numericFields(skill.definition, methodLevel);
+  function appendAppliedStatuses(value: unknown, path: string, appliedLevel: number | undefined): void {
+    if (Array.isArray(value)) { value.forEach((child, index) => appendAppliedStatuses(child, `${path}[${index}]`, appliedLevel)); return; }
+    if (!value || typeof value !== 'object') return;
+    const record = value as Record<string, unknown>;
+    if (record.type === 'applyStatus') {
+      let status = sect.statuses.find(status => status.id === record.statusId);
+      let statusPath = path;
+      let context = fields.find(field => field.path === `${path}.duration`)?.contextLabel ?? '基础参数';
+      const seen = new Set<string>();
+      while (status && !seen.has(status.id)) {
+        seen.add(status.id);
+        statusPath += `.statuses.${status.id}`;
+        context += ` / ${seen.size === 1 ? '施加状态' : '自然转为'}·${status.name}`;
+        fields.push(...numericFields(status, appliedLevel, statusPath, '', undefined,
+          `${context}${appliedLevel === undefined ? ' / 按触发技能等级' : ''}`));
+        const nextId = status.onExpire?.statusId;
+        status = sect.statuses.find(status => status.id === nextId);
+        statusPath += '.onExpire';
+      }
+    }
+    for (const [key, child] of Object.entries(record)) appendAppliedStatuses(child, path ? `${path}.${key}` : key,
+      key === 'effects' && (record.effectSource === 'eventSource' || record.effectSkill === 'eventSkill') ? undefined : appliedLevel);
+  }
+  appendAppliedStatuses(skill.definition, '', methodLevel);
+  if (skill.definition.schoolTerm) {
+    const power = schoolTermValue(skill.definition.schoolTerm, methodLevel);
+    fields.push({ path: 'schoolTerm.total', label: '心法附加威力', contextLabel: '心法附加威力', value: power,
+      display: displayValue(power, 'power'), resolved: power, resolvedDisplay: displayValue(power, 'power'),
+      variables: [{ name: 'skillLevel', label: variables.skillLevel }] });
+  }
+  return {
+    skillId: skill.definition.id, sourceMethodId: skill.sourceMethodId, methodLevel,
+    unlockMethodLevel: skill.unlockMethodLevel, unlocked: methodLevel >= skill.unlockMethodLevel,
+    numericFields: fields,
+  };
 }
 
 function changedFields(before: unknown, after: unknown, path = ''): string[] {
