@@ -2,32 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 /** 逐字显示的速度：每秒字数。 */
 const CHARS_PER_SECOND = 35;
-const STORAGE_KEY = 'daoyou:mystery-typewriter';
-
-function readEnabled() {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) !== 'off';
-  } catch {
-    return true;
-  }
-}
-
-/** 玩家的“文字逐字显示”偏好，默认开启，记在本机。 */
-export function useTypewriterPreference() {
-  const [enabled, setEnabled] = useState(readEnabled);
-  const toggle = useCallback(() => {
-    setEnabled((prev) => {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, prev ? 'off' : 'on');
-      } catch {
-        // 本机存储不可用时只在本次页面内生效。
-      }
-      return !prev;
-    });
-  }, []);
-  return { enabled, toggle };
-}
-
 function prefersReducedMotion() {
   return (
     typeof window !== 'undefined' &&
@@ -37,14 +11,14 @@ function prefersReducedMotion() {
 
 /**
  * 本回合新段落逐字显出：返回已显出的字数，以及立即显示全文的 skip。
- * 只在回合变化时从零开始；刚载入页面、关闭偏好或减少动态效果时直接显示全文。
+ * 只在回合变化时从零开始；刚载入页面或系统设置了减少动态效果时直接显示全文。
  */
-export function useTypewriter(turn: number, total: number, enabled: boolean) {
+export function useTypewriter(turn: number, total: number) {
   const [state, setState] = useState({ turn, shown: Infinity });
   if (state.turn !== turn)
     setState({
       turn,
-      shown: enabled && !prefersReducedMotion() ? 0 : Infinity,
+      shown: prefersReducedMotion() ? Infinity : 0,
     });
   const shown = state.turn === turn ? state.shown : Infinity;
   const typing = shown < total;

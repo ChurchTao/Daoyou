@@ -72,6 +72,8 @@ const ENTRY_STYLE: Partial<Record<MysteryLogEntry['kind'], string>> = {
   event: 'border-ink/40 border-l-2 pl-3 leading-8',
   omen: 'text-crimson/90 leading-8',
   system: 'text-ink-secondary text-sm leading-7',
+  // 此地局面的变化：淡墨底框，连续几条拼成一块。
+  state: 'border-ink/40 bg-ink/5 border-l-2 px-3 py-1.5 text-sm leading-7',
 };
 
 const ENTRY_LABEL: Partial<Record<MysteryLogEntry['kind'], ReactNode>> = {
@@ -92,15 +94,12 @@ export function MysteryProse({
   targets,
   menuFor,
   footer,
-  typewriter = false,
 }: {
   entries: MysteryLogEntry[];
   turn: number;
   targets: ProseTarget[];
   menuFor: (target: ProseTarget) => ProseMenuItem[];
   footer?: ReactNode;
-  /** 本回合新段落逐字显出；显出完毕前字不可点。 */
-  typewriter?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const latestRef = useRef<HTMLDivElement>(null);
@@ -115,14 +114,17 @@ export function MysteryProse({
   const extra = fallbackLine(missing);
   const extraSpans = extra ? locateTargets([extra], missing).spans[0]! : [];
   const firstNew = entries.findIndex((entry) => entry.turn === turn);
-  // 本回合各段在逐字显示中的起点。
+  // 本回合各段在逐字显示中的起点；回访地点的描写玩家读过，整段直接显示，不占逐字进度。
+  const typed = (entry: MysteryLogEntry) =>
+    entry.turn === turn && !entry.revisit;
   const offsets: number[] = [];
   let total = 0;
   for (const entry of entries) {
     offsets.push(total);
-    if (entry.turn === turn) total += entry.text.length;
+    if (typed(entry)) total += entry.text.length;
   }
-  const { shown, typing, skip } = useTypewriter(turn, total, typewriter);
+  // 本回合新段落逐字显出；显出完毕前字不可点。
+  const { shown, typing, skip } = useTypewriter(turn, total);
 
   // 每次行动后把新段落带到视野里。
   useEffect(() => {
@@ -214,11 +216,13 @@ export function MysteryProse({
     >
       {entries.map((entry, index) => {
         const fresh = entry.turn === turn;
-        const budget = fresh
+        const stateHead =
+          entry.kind === 'state' && entries[index - 1]?.kind !== 'state';
+        const budget = typed(entry)
           ? Math.max(0, Math.min(entry.text.length, shown - offsets[index]!))
           : entry.text.length;
         // 还没轮到显出的段落先留空位，保留滚动定位用的引用。
-        if (fresh && budget === 0)
+        if (typed(entry) && budget === 0)
           return (
             <div key={index} ref={index === firstNew ? latestRef : undefined} />
           );
@@ -228,6 +232,7 @@ export function MysteryProse({
             ref={index === firstNew ? latestRef : undefined}
             className={cn(
               ENTRY_STYLE[entry.kind] ?? 'leading-8',
+              entry.kind === 'state' && !stateHead && '-mt-4 pt-0',
               fresh ? 'animate-fade-in' : 'opacity-60',
             )}
           >

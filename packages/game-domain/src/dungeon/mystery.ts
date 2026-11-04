@@ -466,13 +466,17 @@ export type MysteryLogKind =
   /** 事件发生；`omen` 为事件的预兆（旧运行态里预兆也记为 event）。 */
   | 'event'
   | 'omen'
-  | 'hint';
+  | 'hint'
+  /** 回到某地时补写的局面变化：去路、机关、取走与动过的东西、人物离场等。 */
+  | 'state';
 
 export interface MysteryLogEntry {
   turn: number;
   kind: MysteryLogKind;
   text: string;
   speaker?: string;
+  /** 回到去过的房间时的地点描写：玩家读过，前端整段直接显示，不再逐字显出。 */
+  revisit?: true;
 }
 
 export interface MysteryRunState {

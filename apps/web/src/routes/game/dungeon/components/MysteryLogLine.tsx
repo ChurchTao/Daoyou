@@ -45,6 +45,13 @@ export function MysteryLogLine({ entry }: { entry: MysteryLogEntry }) {
       </p>
     );
   }
+  if (entry.kind === 'state') {
+    return (
+      <p className="border-ink/40 bg-ink/5 border-l-2 px-3 py-2 text-sm leading-7">
+        {entry.text}
+      </p>
+    );
+  }
   if (entry.kind === 'system') {
     return <p className="text-ink-secondary text-sm leading-7">{entry.text}</p>;
   }

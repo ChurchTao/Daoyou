@@ -1,11 +1,14 @@
 import type {
   AdminDungeonJob,
+  AdminDungeonJobList,
   AdminDungeonJobsQuerySchema,
   AdminDungeonRestockSchema,
   AdminDungeonScenarioDetail,
   AdminDungeonScenarioList,
   AdminDungeonScenarioListQuerySchema,
   AdminDungeonScenarioRow,
+  AdminDungeonSlot,
+  AdminDungeonSlotsQuerySchema,
   AdminDungeonSlotsView,
   AdminDungeonWarmupSchema,
 } from '@daoyou/contracts/admin/dungeon-scenarios';
@@ -28,7 +31,6 @@ import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 
 const PAGE_SIZE = 50;
-const JOB_LIMIT = 100;
 
 const nodeName = (id: string) => getMapNode(id)?.name ?? id;
 const templateName = (id: string) => getMysteryTemplate(id)?.name ?? id;
@@ -59,10 +61,53 @@ function toRow(r: ScenarioRecord): AdminDungeonScenarioRow {
   };
 }
 
+function toJob(r: typeof dungeonScenarioJobs.$inferSelect): AdminDungeonJob {
+  return {
+    id: r.id,
+    mapNodeId: r.mapNodeId,
+    nodeName: nodeName(r.mapNodeId),
+    templateId: r.templateId,
+    templateName: templateName(r.templateId),
+    status: r.status,
+    reason: r.reason,
+    attempts: r.attempts,
+    error: r.error,
+    scenarioId: r.scenarioId,
+    createdAt: r.createdAt.toISOString(),
+    startedAt: r.startedAt?.toISOString() ?? null,
+    finishedAt: r.finishedAt?.toISOString() ?? null,
+  };
+}
+
 /** 云游剧本管理：库存总览、剧本库、生成任务；写操作只做停用恢复与投递任务。 */
 @Injectable()
 export class AdminDungeonScenariosService {
-  async slots(): Promise<AdminDungeonSlotsView> {
+  async slots(
+    query: z.infer<typeof AdminDungeonSlotsQuerySchema>,
+  ): Promise<AdminDungeonSlotsView> {
+    const { slots, pendingTotal } = await this.allSlots();
+    const names = (pick: (s: AdminDungeonSlot) => [string, string]) =>
+      [...new Map(slots.map(pick))].map(([id, name]) => ({ id, name }));
+    return {
+      slots: slots.slice((query.page - 1) * PAGE_SIZE, query.page * PAGE_SIZE),
+      total: slots.length,
+      page: query.page,
+      pageSize: PAGE_SIZE,
+      emptyTotal: slots.filter((s) => s.active === 0).length,
+      nodes: names((s) => [s.mapNodeId, s.nodeName]),
+      templates: names((s) => [s.templateId, s.templateName]),
+      pendingTotal,
+      maxPendingPerNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode,
+      warmupPerSlot: MYSTERY_LIBRARY_POLICY.warmupPerSlot,
+      generatorVersion: MYSTERY_GENERATOR_VERSION,
+    };
+  }
+
+  /** 全部库存位的在用、排队、生成中与最近失败，按配置顺序。 */
+  private async allSlots(): Promise<{
+    slots: AdminDungeonSlot[];
+    pendingTotal: number;
+  }> {
     const [active, pending, failures] = await Promise.all([
       db
         .select({
@@ -145,9 +190,6 @@ export class AdminDungeonScenariosService {
         };
       }),
       pendingTotal,
-      maxPendingPerNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode,
-      warmupPerSlot: MYSTERY_LIBRARY_POLICY.warmupPerSlot,
-      generatorVersion: MYSTERY_GENERATOR_VERSION,
     };
   }
 
@@ -220,30 +262,26 @@ export class AdminDungeonScenariosService {
 
   async jobs(
     query: z.infer<typeof AdminDungeonJobsQuerySchema>,
-  ): Promise<AdminDungeonJob[]> {
-    const rows = await db
-      .select()
-      .from(dungeonScenarioJobs)
-      .where(
-        query.status ? eq(dungeonScenarioJobs.status, query.status) : undefined,
-      )
-      .orderBy(desc(dungeonScenarioJobs.createdAt))
-      .limit(JOB_LIMIT);
-    return rows.map((r) => ({
-      id: r.id,
-      mapNodeId: r.mapNodeId,
-      nodeName: nodeName(r.mapNodeId),
-      templateId: r.templateId,
-      templateName: templateName(r.templateId),
-      status: r.status,
-      reason: r.reason,
-      attempts: r.attempts,
-      error: r.error,
-      scenarioId: r.scenarioId,
-      createdAt: r.createdAt.toISOString(),
-      startedAt: r.startedAt?.toISOString() ?? null,
-      finishedAt: r.finishedAt?.toISOString() ?? null,
-    }));
+  ): Promise<AdminDungeonJobList> {
+    const where = query.status
+      ? eq(dungeonScenarioJobs.status, query.status)
+      : undefined;
+    const [rows, [total]] = await Promise.all([
+      db
+        .select()
+        .from(dungeonScenarioJobs)
+        .where(where)
+        .orderBy(desc(dungeonScenarioJobs.createdAt))
+        .limit(PAGE_SIZE)
+        .offset((query.page - 1) * PAGE_SIZE),
+      db.select({ n: count() }).from(dungeonScenarioJobs).where(where),
+    ]);
+    return {
+      rows: rows.map(toJob),
+      total: total?.n ?? 0,
+      page: query.page,
+      pageSize: PAGE_SIZE,
+    };
   }
 
   restock(input: z.infer<typeof AdminDungeonRestockSchema>) {
@@ -257,8 +295,8 @@ export class AdminDungeonScenariosService {
 
   /** 按缺口为每个库存位投递任务，使在用数加排队数达到 perSlot。 */
   async warmup(input: z.infer<typeof AdminDungeonWarmupSchema>) {
-    const view = await this.slots();
-    const wanted = view.slots.flatMap((slot) =>
+    const { slots } = await this.allSlots();
+    const wanted = slots.flatMap((slot) =>
       Array.from(
         {
           length: Math.max(

@@ -34,6 +34,7 @@
     "./consumables": "./dist/public/consumables.js",
     "./cultivation": "./dist/public/cultivation.js",
     "./divination": "./dist/public/divination.js",
+    "./dungeon/case-kinds": "./dist/dungeon/caseKinds.js",
     "./dungeon/cost": "./dist/dungeon/cost.js",
     "./dungeon/scenarios": "./dist/dungeon/scenarios/index.js",
     "./economy": "./dist/economy.js",

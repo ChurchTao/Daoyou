@@ -1,5 +1,4 @@
-import { GameSceneLoading, GameSceneSection } from '@app/components/game-shell';
-import { InkSection } from '@app/components/layout';
+import { GameSceneLoading } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkCard } from '@app/components/ui/InkCard';
 import { InkNotice } from '@app/components/ui/InkNotice';
@@ -16,10 +15,6 @@ import type {
   MysteryAnswers,
   MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
-import {
-  getConditionStatusTemplate,
-  isConditionStatusActive,
-} from '@daoyou/game-rules/condition';
 import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { canChallengeDungeonRealm } from '@daoyou/game-rules/world/dungeon';
 import { DungeonSceneScreen } from '../dungeonScene';
@@ -74,132 +69,67 @@ function resolveDungeonRunSceneDescriptor(
   };
 }
 
-function renderPreparationNotice(
-  cultivator: Pick<Cultivator, 'realm' | 'condition'> | null,
-  displayResources: DungeonDisplayResources | undefined,
-  selectedNode: ReturnType<typeof getMapNode> | null,
-  readiness: ReturnType<typeof dungeonReadiness> | null,
-) {
-  if (!cultivator) return null;
-
-  const activeStatuses = (cultivator.condition?.statuses ?? []).filter(
-    (status) => isConditionStatusActive(status),
-  );
-  const statusNames = activeStatuses
-    .slice(0, 2)
-    .map((status) => getConditionStatusTemplate(status.key)?.name ?? status.key)
-    .join('、');
-  const hp = displayResources?.hp;
-  const mp = displayResources?.mp;
-  const hpPercent = Math.max(0, Math.min(100, Math.round(hp?.percent ?? 0)));
-  const mpPercent = Math.max(0, Math.min(100, Math.round(mp?.percent ?? 0)));
-  const nodeRealm = selectedNode?.realm_requirement;
-  const realmRisk =
-    nodeRealm && !canChallengeDungeonRealm(cultivator.realm, nodeRealm)
-      ? 'danger'
-      : nodeRealm === cultivator.realm
-        ? 'warning'
-        : 'info';
-  const reminder = readiness?.shouldBlock
-    ? readiness.reasons[0]
-    : realmRisk === 'danger'
-      ? `秘境要求${nodeRealm}，高于当前${cultivator.realm}境界。`
-      : statusNames
-        ? `当前有${statusNames}状态，出行前可先调息。`
-        : hpPercent < 60 || mpPercent < 60
-          ? '气血或法力偏低，出行前可先补足。'
-          : '状态平稳，可以出行；战后可休整，或带着已有收获离开。';
-
+/** 出行前的状态：只列气血、法力，不足时去灵眼之泉恢复。 */
+function TravelStatus({
+  displayResources,
+}: {
+  displayResources: DungeonDisplayResources | undefined;
+}) {
+  if (!displayResources) return null;
+  const { hp, mp } = displayResources;
   return (
-    <GameSceneSection
-      title="出行准备"
-      help={{
-        title: '秘境探索说明',
-        content: (
-          <div className="space-y-3 text-sm leading-7">
-            <p>每轮选择前可查看代价与危险度，离开秘境时结算收获。</p>
-            <p>
-              气血、法力、异常状态用于出行前判断，不作为探索选项的通过条件。
-            </p>
-            <p>
-              遭遇战逐行动播报；胜利后可继续深入或离开，失败或成功逃跑则结算此前收获。
-            </p>
-            <p>
-              探索休整时可使用恢复丹药；战斗中不能用药，场次之间不会自动恢复气血与法力。
-            </p>
-          </div>
-        ),
-      }}
-    >
-      <div className="border-ink/20 bg-paper space-y-4 border border-dashed p-4 text-sm leading-7">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-3 text-xs">
-              <span className="text-ink-secondary">气血</span>
-              <span className="text-ink font-mono">
-                {Math.floor(hp?.current ?? 0)}/{Math.floor(hp?.max ?? 0)}
-              </span>
-            </div>
-            <div className="bg-ink/10 h-1.5 overflow-hidden">
-              <div
-                className="bg-crimson h-full"
-                style={{ width: `${hpPercent}%` }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-3 text-xs">
-              <span className="text-ink-secondary">法力</span>
-              <span className="text-ink font-mono">
-                {Math.floor(mp?.current ?? 0)}/{Math.floor(mp?.max ?? 0)}
-              </span>
-            </div>
-            <div className="bg-ink/10 h-1.5 overflow-hidden">
-              <div
-                className="h-full bg-[var(--color-tier-xuan)]"
-                style={{ width: `${mpPercent}%` }}
-              />
-            </div>
-          </div>
-        </div>
+    <div className="text-ink-secondary flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+      <span>
+        气血{' '}
+        <span className="text-ink font-mono font-semibold tracking-tight">
+          {Math.floor(hp.current)}/{Math.floor(hp.max)}
+        </span>
+      </span>
+      <span>
+        法力{' '}
+        <span className="text-ink font-mono font-semibold tracking-tight">
+          {Math.floor(mp.current)}/{Math.floor(mp.max)}
+        </span>
+      </span>
+      <InkButton href="/game/inn" variant="secondary">
+        恢复状态
+      </InkButton>
+    </div>
+  );
+}
 
-        <div className="grid gap-2 md:grid-cols-2">
-          <p>异常：{statusNames || '无'}</p>
-          <p>
-            秘境：
-            {realmRisk === 'danger'
-              ? '越阶'
-              : realmRisk === 'warning'
-                ? '同阶'
-                : selectedNode
-                  ? '稳妥'
-                  : '待选'}
-          </p>
-        </div>
+const HOW_TO = [
+  {
+    title: '调查',
+    text: '点正文里带虚线的字：调查物件、与人交谈、前往别处，每步耗 1 点行动力。',
+  },
+  {
+    title: '推理',
+    text: '线索自动记进案情板，可以作为推理题的证据。',
+  },
+  {
+    title: '结案',
+    text: '行动力用尽前提交推理。答对且有线索为证，评分才高。',
+  },
+];
 
-        <p
-          className={
-            realmRisk === 'danger' || readiness?.shouldBlock
-              ? 'text-crimson'
-              : 'text-ink-secondary'
-          }
-        >
-          {reminder}
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          <InkButton href="/game/map-v2" variant="secondary">
-            {selectedNode ? '重选秘境' : '前往地图'}
-          </InkButton>
-          <InkButton href="/game/inn" variant="secondary">
-            去灵眼之泉
-          </InkButton>
-          <InkButton href="/game/craft/alchemy" variant="secondary">
-            去炼丹房
-          </InkButton>
-        </div>
-      </div>
-    </GameSceneSection>
+/** 秘境首页的玩法速览：调查、推理、结案三步。 */
+function MysteryHowTo() {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-ink-secondary text-sm">怎么玩</h2>
+      <ol className="space-y-3">
+        {HOW_TO.map((step, index) => (
+          <li key={step.title} className="flex gap-3 text-sm leading-7">
+            <span className="text-crimson font-mono">{index + 1}</span>
+            <span>
+              <span className="font-semibold">{step.title}</span>
+              <span className="text-ink-secondary"> · {step.text}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
@@ -239,10 +169,13 @@ export function DungeonViewRenderer({
   if (viewState.type === 'battle_preparation' && viewState.state.encounter) {
     return (
       <DungeonSceneScreen
-        descriptor={resolveDungeonRunSceneDescriptor(
-          'battle_preparation',
-          viewState.state,
-        )}
+        descriptor={{
+          ...resolveDungeonRunSceneDescriptor(
+            'battle_preparation',
+            viewState.state,
+          ),
+          hideChrome: Boolean(viewState.state.mysteryView),
+        }}
       >
         <BattlePreparation
           encounter={viewState.state.encounter}
@@ -347,10 +280,10 @@ export function DungeonViewRenderer({
   if (viewState.type === 'mystery') {
     return (
       <DungeonSceneScreen
-        descriptor={resolveDungeonRunSceneDescriptor(
-          'exploring',
-          viewState.state,
-        )}
+        descriptor={{
+          ...resolveDungeonRunSceneDescriptor('exploring', viewState.state),
+          hideChrome: true,
+        }}
       >
         <DungeonMystery
           view={viewState.view}
@@ -423,17 +356,8 @@ export function DungeonViewRenderer({
       <DungeonSceneScreen
         descriptor={resolveDungeonSceneDescriptor('map_selection')}
       >
-        <InkCard className="mb-6 p-6">
-          <div className="space-y-4 text-center">
-            <div className="my-4 text-6xl">🏔️</div>
-            <p>
-              修仙界广袤无垠，机缘与危机并存。
-              <br />
-              道友可愿前往，体悟一段未知的旅程？
-            </p>
-          </div>
-        </InkCard>
-        <InkSection title="选择秘境">
+        {/* 宽屏两栏：左侧选定的秘境与开局，右侧玩法与当前状态。 */}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
           <DungeonMapSelector
             selectedNode={selectedNode ?? null}
             onStart={actions.startDungeon}
@@ -442,17 +366,13 @@ export function DungeonViewRenderer({
             realmBlockReason={realmBlockReason}
             playerRealm={cultivator?.realm}
           />
-        </InkSection>
-        {renderPreparationNotice(
-          cultivator,
-          displayResources,
-          selectedNode ?? null,
-          readiness,
-        )}
-        <div className="mt-4 text-center">
-          <InkButton href="/game/dungeon/history" variant="ghost">
-            📖 查看历史记录
-          </InkButton>
+          <aside className="space-y-6">
+            <MysteryHowTo />
+            <TravelStatus displayResources={displayResources} />
+            <InkButton href="/game/dungeon/history" variant="ghost">
+              过往探秘记录
+            </InkButton>
+          </aside>
         </div>
       </DungeonSceneScreen>
     );

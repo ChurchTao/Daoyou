@@ -175,7 +175,7 @@ describe('guards', () => {
     const lines = won.run.log
       .filter((e) => e.turn === won.run.turn)
       .map((e) => e.kind);
-    expect(lines).toEqual(['system', 'scene', 'system']);
+    expect(lines).toEqual(['system', 'scene', 'state']);
     expect(won.run.log.at(-1)?.text).toBe(`${guard.name}已不再拦路。`);
   });
 });

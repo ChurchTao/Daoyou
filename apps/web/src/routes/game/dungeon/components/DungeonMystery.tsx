@@ -28,7 +28,6 @@ import {
 } from './MysteryProse';
 import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
-import { useTypewriterPreference } from './useMysteryTypewriter';
 
 interface DungeonMysteryProps {
   view: MysteryPlayerView;
@@ -59,7 +58,7 @@ type GuardedExit = MysteryPlayerView['exits'][number] & {
 function MysteryIncense({ left, budget }: { left: number; budget: number }) {
   const percent = budget > 0 ? (left / budget) * 100 : 0;
   return (
-    <span className="text-ink-secondary flex items-center gap-2">
+    <span className="text-ink-secondary flex items-center gap-2 whitespace-nowrap">
       <span aria-hidden className="bg-ink/10 relative h-1 w-14 sm:w-24">
         <span
           className={cn(
@@ -146,7 +145,6 @@ export function DungeonMystery({
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
   const [operating, setOperating] = useState<string | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  const typewriter = useTypewriterPreference();
 
   const exhausted = view.actionsLeft <= 0;
   const operatingMechanism =
@@ -418,8 +416,14 @@ export function DungeonMystery({
               left={view.actionsLeft}
               budget={view.actionBudget}
             />
+          </div>
+          {/* 顶部返回条在剧本进行中隐去：返回洞府保留进度，结束探索则就此结算。窄屏单独一行。 */}
+          <div className="flex w-full justify-end sm:w-auto">
+            <InkButton variant="ghost" href="/game">
+              返回洞府
+            </InkButton>
             <InkButton variant="ghost" disabled={processing} onClick={onQuit}>
-              离开
+              结束探索
             </InkButton>
           </div>
         </div>
@@ -446,17 +450,18 @@ export function DungeonMystery({
                 ? '拿到的线索会自动记进右侧的案情板，随时可以翻看和整理。'
                 : guide.step.text}
             </span>
-            <button
-              type="button"
-              className="text-ink-secondary hover:text-ink shrink-0"
+            <InkButton
+              variant="secondary"
+              className="shrink-0"
               onClick={() => guide.dismiss(guide.step!.id)}
             >
               知道了
-            </button>
+            </InkButton>
           </p>
         ) : null}
 
-        {view.turn === 0 ? (
+        {/* 有场景底图时每个地点都垫着，留住氛围；没有底图时只在开局写案名。 */}
+        {sceneUrl || view.turn === 0 ? (
           <div
             className={cn(
               'flex items-center justify-center',
@@ -476,13 +481,13 @@ export function DungeonMystery({
         ) : null}
 
         {segmentStart > 0 ? (
-          <button
-            type="button"
-            className="text-ink-secondary hover:text-ink self-start text-sm"
+          <InkButton
+            variant="secondary"
+            className="self-start"
             onClick={() => openBoard('log')}
           >
             回看之前的经过
-          </button>
+          </InkButton>
         ) : null}
 
         <div className="w-full max-w-2xl self-center text-[1.0625rem]">
@@ -491,7 +496,6 @@ export function DungeonMystery({
             turn={view.turn}
             targets={targets}
             menuFor={menuFor}
-            typewriter={typewriter.enabled}
             footer={
               processing ? (
                 <p
@@ -570,17 +574,6 @@ export function DungeonMystery({
         size="md"
         title="案情板"
         description="线索、人物、地点与调查经过都记在这里。"
-        footer={
-          <button
-            type="button"
-            role="switch"
-            aria-checked={typewriter.enabled}
-            className="text-ink-secondary hover:text-ink text-sm"
-            onClick={typewriter.toggle}
-          >
-            文字逐字显示：{typewriter.enabled ? '开' : '关'}
-          </button>
-        }
       >
         {board}
       </InkDetailDrawer>

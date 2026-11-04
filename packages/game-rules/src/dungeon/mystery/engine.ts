@@ -184,25 +184,79 @@ export function mysteryGuardAt(
 }
 
 /**
- * 进入房间：首次进入写全貌，再次进入写一句。描写是开局时写定的，
- * 之后再补上局面的变化（守卫已退、物件被毁、人物离场），免得叙事与局面矛盾。
- * 毁物与离场只在玩家先前来过时补，没见过的不提。
+ * 进入房间：每次都写全貌，回来时不再只给一句，免得前后浓淡割裂。描写是开局时写定的，
+ * 之后用 `state` 条目补上此地局面的变化，免得叙事与局面矛盾，前端单独标出、不被略过：
+ * 守卫已退、去路已开或被封、机关已开或锁死随时都补；查看过的物件、取走的物品、
+ * 用过物品的地方、被毁的物件与离场的人物只在玩家先前来过时补，没见过的不提。
  */
 function enterRoom(w: RunWriter, target: MysteryCaseFile['rooms'][number]) {
-  w.run.location = target.id;
-  const first = !w.run.visited.includes(target.id);
-  if (first) w.run.visited.push(target.id);
-  w.log({ kind: 'scene', text: first ? target.description : target.brief });
-  for (const guard of w.caseFile.guards ?? [])
-    if (guard.roomId === target.id && w.run.passedGuards?.includes(guard.id))
-      w.log({ kind: 'system', text: `${guard.name}已不再拦路。` });
+  const { caseFile, run } = w;
+  run.location = target.id;
+  const first = !run.visited.includes(target.id);
+  if (first) run.visited.push(target.id);
+  w.log({
+    kind: 'scene',
+    text: target.description,
+    ...(first ? {} : { revisit: true as const }),
+  });
+  const note = (text: string) => w.log({ kind: 'state', text });
+  const here = caseFile.objects.filter((o) => o.roomId === target.id);
+  const objectName = (id: string) =>
+    caseFile.objects.find((o) => o.id === id)?.name ?? id;
+
+  for (const guard of caseFile.guards ?? [])
+    if (guard.roomId === target.id && run.passedGuards?.includes(guard.id))
+      note(`${guard.name}已不再拦路。`);
+  for (const room of mysteryNeighbors(caseFile, target.id)) {
+    if (run.sealedRooms?.includes(room.id))
+      note(`通往${room.name}的路已被异变封住。`);
+    else if (room.requires && evaluateMysteryCondition(room.requires, run))
+      note(`通往${room.name}的路已经打开。`);
+  }
+  for (const mechanism of caseFile.mechanisms ?? []) {
+    const state = run.mechanisms?.[mechanism.id];
+    if (mechanism.final || !here.some((o) => o.id === mechanism.objectId))
+      continue;
+    if (state?.solved) note(`${mechanism.name}已经开启。`);
+    else if (state?.locked) note(`${mechanism.name}已经锁死，再也动不了。`);
+  }
   if (first) return;
-  for (const object of w.caseFile.objects)
-    if (object.roomId === target.id && w.run.destroyed?.includes(object.id))
-      w.log({ kind: 'system', text: `${object.name}已被毁去，只剩残迹。` });
-  for (const npc of w.caseFile.npcs)
-    if (npc.roomId === target.id && w.run.departed?.includes(npc.id))
-      w.log({ kind: 'system', text: `${npc.name}已经离开了这里。` });
+
+  // 每件物件只说一次：毁去、取走、动过优先于“查看过”。
+  const mentioned = new Set<string>();
+  for (const object of here)
+    if (run.destroyed?.includes(object.id)) {
+      mentioned.add(object.id);
+      note(`${object.name}已被毁去，只剩残迹。`);
+    }
+  for (const item of caseFile.items)
+    if (
+      item.foundAt &&
+      here.some((o) => o.id === item.foundAt!.objectId) &&
+      run.firedInteractions.includes(`found:${item.id}`)
+    ) {
+      mentioned.add(item.foundAt.objectId);
+      note(`${item.name}已从${objectName(item.foundAt.objectId)}取走。`);
+    }
+  for (const interaction of caseFile.interactions)
+    if (
+      run.firedInteractions.includes(interaction.id) &&
+      here.some((o) => o.id === interaction.targetId)
+    ) {
+      const item = caseFile.items.find((i) => i.id === interaction.itemId);
+      mentioned.add(interaction.targetId);
+      note(
+        `${objectName(interaction.targetId)}已用${item?.name ?? '物品'}动过。`,
+      );
+    }
+  const searched = here.filter(
+    (o) => run.searched.includes(o.id) && !mentioned.has(o.id),
+  );
+  if (searched.length > 0)
+    note(`你已查看过${searched.map((o) => o.name).join('、')}。`);
+  for (const npc of caseFile.npcs)
+    if (npc.roomId === target.id && run.departed?.includes(npc.id))
+      note(`${npc.name}已经离开了这里。`);
 }
 
 const REPEAT_HINT = '还是那个念头：';

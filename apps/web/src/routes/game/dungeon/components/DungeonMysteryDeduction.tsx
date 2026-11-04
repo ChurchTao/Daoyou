@@ -111,13 +111,9 @@ function DeductionScene({
             ))
           )}
           {view.clues.length > 0 ? (
-            <button
-              type="button"
-              className="text-ink-secondary hover:text-ink underline decoration-dotted underline-offset-4"
-              onClick={() => setPinning(open ? null : question.id)}
-            >
+            <InkButton onClick={() => setPinning(open ? null : question.id)}>
               {open ? '收起' : '选择证据'}
-            </button>
+            </InkButton>
           ) : null}
         </div>
         {open ? (

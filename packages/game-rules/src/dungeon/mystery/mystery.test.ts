@@ -1,3 +1,4 @@
+import { MYSTERY_CASE_KINDS } from '@daoyou/game-content/dungeon/case-kinds';
 import {
   getMysteryFallbackCase,
   getMysteryTemplate,
@@ -81,6 +82,11 @@ const SOLVE: MysteryAction[] = [
 const CORRECT = { who: 'han', how: 'poison_incense', heir: 'su' };
 
 describe('mystery scenario content', () => {
+  it('introduces every template to players under the same name', () => {
+    for (const t of listMysteryTemplates())
+      expect(MYSTERY_CASE_KINDS[t.id]?.name, t.id).toBe(t.name);
+  });
+
   it('ships a fallback case for every template that passes validation', () => {
     for (const t of listMysteryTemplates()) {
       const caseFile = getMysteryFallbackCase(t.id);
@@ -181,6 +187,22 @@ describe('mystery case validation', () => {
 });
 
 describe('mystery engine', () => {
+  it('describes a room in full again when the player returns to it', () => {
+    const caseFile = fallback();
+    const hall = caseFile.rooms.find((r) => r.id === 'stone_hall')!;
+    const run = play(caseFile, [
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+      { type: 'move', roomId: 'stone_hall' },
+    ]);
+    const visits = run.log.filter(
+      (e) => e.kind === 'scene' && e.text === hall.description,
+    );
+    expect(visits).toHaveLength(2);
+    // 回访那次标记出来，前端整段直接显示。
+    expect(visits.map((e) => e.revisit)).toEqual([undefined, true]);
+  });
+
   it('blocks locked rooms until the condition is met', () => {
     const caseFile = fallback();
     const run = play(caseFile, [
@@ -254,6 +276,63 @@ describe('mystery engine', () => {
     expect(
       applyMysteryAction(caseFile, run, { type: 'move', roomId: 'stone_hall' }),
     ).toEqual({ ok: false, error: '行动力已用完，只能提交推理了' });
+  });
+});
+
+describe('mystery room state notes', () => {
+  const caseFile = fallback();
+  const name = (list: { id: string; name: string }[], id: string) =>
+    list.find((x) => x.id === id)!.name;
+  /** 最后一次进入地点之后补写的局面变化。 */
+  const notesAfterLastScene = (run: ReturnType<typeof play>) => {
+    const at = run.log.findLastIndex((e) => e.kind === 'scene');
+    return run.log
+      .slice(at + 1)
+      .filter((e) => e.kind === 'state')
+      .map((e) => e.text);
+  };
+
+  it('notes a path that has opened, even on the first visit', () => {
+    const run = play(caseFile, [
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'search', objectId: 'remains' },
+      { type: 'move', roomId: 'quiet_room' },
+    ]);
+    expect(notesAfterLastScene(run)).toEqual([
+      `通往${name(caseFile.rooms, 'tunnel')}的路已经打开。`,
+    ]);
+  });
+
+  it('on return, notes what was taken and what was used, each object once', () => {
+    const run = play(caseFile, [
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+      { type: 'search', objectId: 'shelf' },
+      { type: 'search', objectId: 'furnace' },
+      { type: 'use', itemId: 'fire_tongs', targetId: 'furnace' },
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+    ]);
+    const tongs = name(caseFile.items, 'fire_tongs');
+    expect(notesAfterLastScene(run)).toEqual([
+      `${tongs}已从${name(caseFile.objects, 'shelf')}取走。`,
+      `${name(caseFile.objects, 'furnace')}已用${tongs}动过。`,
+    ]);
+  });
+
+  it('notes objects merely looked at, and stays quiet on a first visit', () => {
+    const looked = play(caseFile, [
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+      { type: 'search', objectId: 'furnace' },
+      { type: 'move', roomId: 'stone_hall' },
+      { type: 'move', roomId: 'alchemy' },
+    ]);
+    expect(notesAfterLastScene(looked)).toEqual([
+      `你已查看过${name(caseFile.objects, 'furnace')}。`,
+    ]);
+    const fresh = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }]);
+    expect(notesAfterLastScene(fresh)).toEqual([]);
   });
 });
 

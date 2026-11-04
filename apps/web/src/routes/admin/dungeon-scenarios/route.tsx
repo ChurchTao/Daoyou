@@ -8,6 +8,7 @@ import { apiFetch } from '@app/lib/api/fetch';
 import type {
   AdminDungeonEnqueueResult,
   AdminDungeonJob,
+  AdminDungeonJobList,
   AdminDungeonScenarioDetail,
   AdminDungeonScenarioList,
   AdminDungeonSlotsView,
@@ -148,6 +149,43 @@ function useLoad<T>(
   return { data: state.data, loading: key !== null && state.key !== key };
 }
 
+/** 列表分页：只有一页时不显示。 */
+function Pager({
+  page,
+  total,
+  pageSize,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  pageSize: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <InkButton
+        variant="ghost"
+        disabled={page <= 1}
+        onClick={() => onChange(page - 1)}
+      >
+        上一页
+      </InkButton>
+      <span className="font-mono">
+        {page} / {pages}
+      </span>
+      <InkButton
+        variant="ghost"
+        disabled={page >= pages}
+        onClick={() => onChange(page + 1)}
+      >
+        下一页
+      </InkButton>
+    </div>
+  );
+}
+
 function SlotsTab({
   refresh,
   run,
@@ -157,20 +195,20 @@ function SlotsTab({
   run: Run;
   onError: (message: string) => void;
 }) {
+  const [page, setPage] = useState(1);
   const { data, loading } = useLoad<AdminDungeonSlotsView>(
-    '/api/admin/dungeon-scenarios/slots',
+    `/api/admin/dungeon-scenarios/slots?page=${page}`,
     refresh,
     onError,
   );
   if (!data) return <p className="text-ink-secondary text-sm">加载中……</p>;
-  const empty = data.slots.filter((s) => s.active === 0).length;
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span className="text-ink-secondary">
           生成版本 <span className="font-mono">{data.generatorVersion}</span> ·
-          库存位 <span className="font-mono">{data.slots.length}</span>
-          ，空位 <span className="font-mono">{empty}</span> · 待生成{' '}
+          库存位 <span className="font-mono">{data.total}</span>
+          ，空位 <span className="font-mono">{data.emptyTotal}</span> · 待生成{' '}
           <span className="font-mono">{data.pendingTotal}</span>
           （每节点最多{' '}
           <span className="font-mono">{data.maxPendingPerNode}</span>
@@ -262,6 +300,12 @@ function SlotsTab({
           </tbody>
         </table>
       </div>
+      <Pager
+        page={data.page}
+        total={data.total}
+        pageSize={data.pageSize}
+        onChange={setPage}
+      />
     </section>
   );
 }
@@ -281,8 +325,9 @@ function LibraryTab({
     source: '',
     page: 1,
   });
+  // 只取筛选项：节点与案型取自全部库存位，与页码无关。
   const { data: slots } = useLoad<AdminDungeonSlotsView>(
-    '/api/admin/dungeon-scenarios/slots',
+    '/api/admin/dungeon-scenarios/slots?page=1',
     0,
     onError,
   );
@@ -297,19 +342,8 @@ function LibraryTab({
     refresh,
     onError,
   );
-  const nodes = [
-    ...new Map(
-      (slots?.slots ?? []).map((s) => [s.mapNodeId, s.nodeName]),
-    ).entries(),
-  ];
-  const templates = [
-    ...new Map(
-      (slots?.slots ?? []).map((s) => [s.templateId, s.templateName]),
-    ).entries(),
-  ];
   const set = (patch: Partial<typeof filters>) =>
     setFilters((prev) => ({ ...prev, page: 1, ...patch }));
-  const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <section className="space-y-4">
@@ -323,7 +357,7 @@ function LibraryTab({
           }}
         >
           <option value="">全部</option>
-          {nodes.map(([id, name]) => (
+          {(slots?.nodes ?? []).map(({ id, name }) => (
             <option key={id} value={id}>
               {name}
             </option>
@@ -335,7 +369,7 @@ function LibraryTab({
           onChange={(value) => set({ templateId: value })}
         >
           <option value="">全部</option>
-          {templates.map(([id, name]) => (
+          {(slots?.templates ?? []).map(({ id, name }) => (
             <option key={id} value={id}>
               {name}
             </option>
@@ -420,26 +454,13 @@ function LibraryTab({
           </tbody>
         </table>
       </div>
-      {pages > 1 ? (
-        <div className="flex items-center gap-3 text-sm">
-          <InkButton
-            variant="ghost"
-            disabled={filters.page <= 1}
-            onClick={() => setFilters((p) => ({ ...p, page: p.page - 1 }))}
-          >
-            上一页
-          </InkButton>
-          <span className="font-mono">
-            {filters.page} / {pages}
-          </span>
-          <InkButton
-            variant="ghost"
-            disabled={filters.page >= pages}
-            onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-          >
-            下一页
-          </InkButton>
-        </div>
+      {data ? (
+        <Pager
+          page={filters.page}
+          total={data.total}
+          pageSize={data.pageSize}
+          onChange={(page) => setFilters((p) => ({ ...p, page }))}
+        />
       ) : null}
     </section>
   );
@@ -455,8 +476,12 @@ function JobsTab({
   onError: (message: string) => void;
 }) {
   const [status, setStatus] = useState('');
-  const { data, loading } = useLoad<AdminDungeonJob[]>(
-    `/api/admin/dungeon-scenarios/jobs${status ? `?status=${status}` : ''}`,
+  const [page, setPage] = useState(1);
+  const { data, loading } = useLoad<AdminDungeonJobList>(
+    `/api/admin/dungeon-scenarios/jobs?${new URLSearchParams({
+      page: String(page),
+      ...(status ? { status } : {}),
+    })}`,
     refresh,
     onError,
   );
@@ -469,8 +494,15 @@ function JobsTab({
   return (
     <section className="space-y-4">
       <div className="max-w-xs">
-        <InkSelect label="状态" value={status} onChange={setStatus}>
-          <option value="">全部（最近 100 条）</option>
+        <InkSelect
+          label="状态"
+          value={status}
+          onChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+        >
+          <option value="">全部</option>
           {Object.entries(JOB_STATUS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -478,7 +510,10 @@ function JobsTab({
           ))}
         </InkSelect>
       </div>
-      {loading ? <p className="text-ink-secondary text-sm">加载中……</p> : null}
+      <p className="text-ink-secondary text-sm">
+        共 <span className="font-mono">{data?.total ?? 0}</span> 条
+        {loading ? '，加载中……' : ''}
+      </p>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="text-ink-secondary border-ink/15 border-b">
@@ -494,7 +529,7 @@ function JobsTab({
             </tr>
           </thead>
           <tbody>
-            {(data ?? []).map((job) => (
+            {(data?.rows ?? []).map((job) => (
               <tr key={job.id} className="border-ink/10 border-b">
                 <td className="py-2 pr-3">
                   {job.nodeName}·{job.templateName}
@@ -543,6 +578,14 @@ function JobsTab({
           </tbody>
         </table>
       </div>
+      {data ? (
+        <Pager
+          page={data.page}
+          total={data.total}
+          pageSize={data.pageSize}
+          onChange={setPage}
+        />
+      ) : null}
     </section>
   );
 }

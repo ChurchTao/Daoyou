@@ -1,7 +1,10 @@
+import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 
 const RECENT = 5;
+/** 打开案情板的字：虚线下划线，与正文里可点的字一致。 */
+const LINK = 'underline decoration-dotted underline-offset-4 hover:text-ink';
 
 /**
  * 宽屏右栏：只列最近几条线索与人物数，平时压低存在感，
@@ -30,19 +33,11 @@ export function MysteryClueRail({
       )}
     >
       <div className="text-ink-secondary flex gap-3">
-        <button
-          type="button"
-          className="hover:text-ink"
-          onClick={() => onOpen('clues')}
-        >
+        <button type="button" className={LINK} onClick={() => onOpen('clues')}>
           线索 <span className="font-mono">{view.clues.length}</span>
         </button>
         <span>·</span>
-        <button
-          type="button"
-          className="hover:text-ink"
-          onClick={() => onOpen('people')}
-        >
+        <button type="button" className={LINK} onClick={() => onOpen('people')}>
           人物 <span className="font-mono">{view.knownNpcs.length}</span>
         </button>
       </div>
@@ -57,7 +52,7 @@ export function MysteryClueRail({
             <li key={clue.id} className="border-ink/20 border-l-2 pl-3">
               <button
                 type="button"
-                className="hover:text-crimson text-left leading-6"
+                className="hover:text-crimson text-left leading-6 underline decoration-dotted underline-offset-4"
                 onClick={() => onOpen('clues')}
               >
                 {clue.name}
@@ -75,13 +70,9 @@ export function MysteryClueRail({
         </ul>
       )}
 
-      <button
-        type="button"
-        className="text-ink-secondary hover:text-ink"
-        onClick={() => onOpen('clues')}
-      >
-        展开完整案情板 →
-      </button>
+      <InkButton variant="secondary" onClick={() => onOpen('clues')}>
+        展开完整案情板
+      </InkButton>
     </div>
   );
 }

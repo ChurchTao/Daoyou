@@ -75,25 +75,21 @@ function ClueCard({
               {q.prompt}
             </button>
           ))}
-          <button
-            type="button"
-            className="text-ink-secondary px-2 py-0.5"
-            onClick={() => setChoosing(false)}
-          >
+          <InkButton variant="secondary" onClick={() => setChoosing(false)}>
             取消
-          </button>
+          </InkButton>
+        </div>
+      ) : pinnedTo ? (
+        <div className="flex flex-wrap items-center gap-x-1 text-sm">
+          <span className="text-crimson">已作为证据：{pinnedTo.prompt}</span>
+          <InkButton variant="secondary" onClick={() => setChoosing(true)}>
+            更换
+          </InkButton>
         </div>
       ) : (
-        <button
-          type="button"
-          className={cn(
-            'text-sm',
-            pinnedTo ? 'text-crimson' : 'text-ink-secondary hover:text-ink',
-          )}
-          onClick={() => setChoosing(true)}
-        >
-          {pinnedTo ? `已作为证据：${pinnedTo.prompt}` : '作为某道题的证据…'}
-        </button>
+        <InkButton onClick={() => setChoosing(true)}>
+          作为某道题的证据
+        </InkButton>
       )}
     </div>
   );

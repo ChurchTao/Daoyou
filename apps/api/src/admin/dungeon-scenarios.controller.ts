@@ -3,6 +3,7 @@ import {
   AdminDungeonRestockSchema,
   AdminDungeonScenarioListQuerySchema,
   AdminDungeonScenarioStatusSchema,
+  AdminDungeonSlotsQuerySchema,
   AdminDungeonWarmupSchema,
 } from '@daoyou/contracts/admin/dungeon-scenarios';
 import {
@@ -36,9 +37,13 @@ export class AdminDungeonScenariosController {
   ) {}
 
   @Get('slots')
-  async slots(@Res({ passthrough: true }) response: Response) {
+  async slots(
+    @FirstQuery(new ZodPipe(AdminDungeonSlotsQuerySchema))
+    query: z.infer<typeof AdminDungeonSlotsQuerySchema>,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     response.setHeader('Cache-Control', 'no-store');
-    return { success: true, data: await this.scenarios.slots() };
+    return { success: true, data: await this.scenarios.slots(query) };
   }
 
   @Get('jobs')

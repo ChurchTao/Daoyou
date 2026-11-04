@@ -11,6 +11,10 @@ export interface DungeonSceneDescriptor {
   backAction: DungeonSceneBackAction;
   density: DungeonSceneDensity;
   loadingMessage: string;
+  /** 不显示顶部返回条：剧本进行中由页面自己的状态栏提供返回与结束。 */
+  hideChrome?: boolean;
+  /** 标题左侧的题图（emoji），与标题同高，作为本页的印记。 */
+  icon?: string;
 }
 
 export type DungeonSceneState =
@@ -48,7 +52,9 @@ const dungeonSceneDescriptors: Record<
   },
   map_selection: {
     sceneLabel: '云游探秘',
-    subtitle: '择一处秘境，定此行的起点与气数。',
+    subtitle:
+      '修仙界广袤无垠，机缘与危机并存。每处秘境都藏着一桩悬案，道友可愿前往一探？',
+    icon: '🏔️',
     backAction: {
       label: '返回洞府',
       href: '/game',

@@ -4,7 +4,11 @@ import type {
   MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { describe, expect, it } from 'vitest';
-import { applyMysteryAction, createMysteryRun } from './engine.js';
+import {
+  applyMysteryAction,
+  createMysteryRun,
+  mysteryNeighbors,
+} from './engine.js';
 import {
   mechanismCandidates,
   mechanismSequences,
@@ -117,6 +121,37 @@ describe('operating a mechanism', () => {
     });
     expect(result.ok && result.run.clues).toContain('clue_frag_1');
     expect(result.ok && result.run.flags).toContain('mech_1_solved');
+  });
+
+  it('notes the opened mechanism when the player comes back', () => {
+    const { caseFile } = buildMysterySkeleton(template, 17);
+    const mech = caseFile.mechanisms!.find((m) => m.id === 'mech_1')!;
+    const run = atMechanism(caseFile, 1);
+    const solved = applyMysteryAction(caseFile, run, {
+      type: 'operate',
+      mechanismId: 'mech_1',
+      sequence: mech.solution,
+    });
+    if (!solved.ok) throw new Error(solved.error);
+    // 走到一个不设条件、无人把守的相邻房间再回来。
+    const exit = mysteryNeighbors(caseFile, run.location).find(
+      (r) => !r.requires && !caseFile.guards?.some((g) => g.roomId === r.id),
+    )!;
+    const away = applyMysteryAction(caseFile, solved.run, {
+      type: 'move',
+      roomId: exit.id,
+    });
+    if (!away.ok) throw new Error(away.error);
+    const back = applyMysteryAction(caseFile, away.run, {
+      type: 'move',
+      roomId: run.location,
+    });
+    if (!back.ok) throw new Error(back.error);
+    expect(
+      back.run.log
+        .filter((e) => e.kind === 'state' && e.turn === back.run.turn)
+        .map((e) => e.text),
+    ).toContain(`${mech.name}已经开启。`);
   });
 
   it('shows only the hints the player has found, in plain words', () => {
