@@ -102,7 +102,7 @@ function dialogueWith(log: MysteryLogEntry[], npcName: string) {
     .slice(-10);
 }
 
-/** 屏宽分级：≥1024px 左栏常驻地图，≥1280px 再加右侧线索栏。 */
+/** ≥1024px 时地图与线索并到右侧一栏常驻，正文独占左侧宽栏。 */
 function useMinWidth(px: number) {
   const query = `(min-width: ${px}px)`;
   const [matches, setMatches] = useState(
@@ -130,7 +130,6 @@ export function DungeonMystery({
 }: DungeonMysteryProps) {
   const sceneUrl = mysterySceneUrl(scene);
   const wide = useMinWidth(1024);
-  const full = useMinWidth(1280);
   const { notes, pin, markSeen } = useMysteryNotes(runId);
   const [asking, setAsking] = useState<{
     npcId: string;
@@ -169,7 +168,7 @@ export function DungeonMystery({
   );
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id));
   // 打开案情板的线索页，或宽屏右栏常驻时，新线索数秒后视为已读。
-  const cluesVisible = (boardOpen && boardTab === 'clues') || full;
+  const cluesVisible = (boardOpen && boardTab === 'clues') || wide;
   const clueIds = [...view.clues, ...view.items].map((x) => x.id).join();
   const spent = view.actionBudget - view.actionsLeft;
   const guide = useMysteryGuide({
@@ -363,25 +362,10 @@ export function DungeonMystery({
   return (
     <div
       className={cn(
-        wide && 'grid items-start gap-10',
-        full
-          ? 'grid-cols-[13rem_minmax(0,42rem)_15rem] justify-center'
-          : wide && 'grid-cols-[13rem_minmax(0,1fr)]',
+        wide &&
+          'grid grid-cols-[minmax(0,46rem)_18rem] items-start justify-center gap-10',
       )}
     >
-      {wide ? (
-        <aside className="sticky top-4 space-y-2 opacity-60 transition-opacity duration-500 focus-within:opacity-100 hover:opacity-100">
-          <div className="text-ink-secondary text-sm">地图</div>
-          <MysteryMiniMap
-            map={view.map}
-            reachable={reachable}
-            disabled={busy}
-            onSelect={goTo}
-          />
-          <p className="text-ink-secondary text-xs">点相邻的房间可以前往</p>
-        </aside>
-      ) : null}
-
       <div className="flex min-h-[70dvh] flex-col gap-5 lg:min-h-0">
         <div className="border-ink/15 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-dashed pb-3 text-sm">
           {wide ? (
@@ -458,7 +442,7 @@ export function DungeonMystery({
             className="border-wood/50 bg-wood/5 flex items-start justify-between gap-3 border-l-2 px-3 py-2 text-sm leading-7"
           >
             <span>
-              {guide.step.id === 'board' && full
+              {guide.step.id === 'board' && wide
                 ? '拿到的线索会自动记进右侧的案情板，随时可以翻看和整理。'
                 : guide.step.text}
             </span>
@@ -534,7 +518,7 @@ export function DungeonMystery({
         </div>
 
         <div className="bg-paper border-ink/15 sticky bottom-0 z-10 -mx-3 mt-auto flex justify-between gap-1 border-t px-3 py-2 lg:static lg:mx-0 lg:justify-end lg:gap-4 lg:border-0 lg:bg-transparent lg:px-0">
-          {full ? null : (
+          {wide ? null : (
             <InkButton variant="ghost" onClick={() => openBoard('clues')}>
               线索与人物
               {unread.length > 0 ? (
@@ -562,9 +546,21 @@ export function DungeonMystery({
         </div>
       </div>
 
-      {full ? (
-        <aside className="sticky top-4">
-          <MysteryClueRail view={view} seen={notes.seen} onOpen={openBoard} />
+      {wide ? (
+        <aside className="sticky top-4 max-h-[calc(100dvh-2rem)] space-y-8 overflow-y-auto">
+          <section className="space-y-2 opacity-60 transition-opacity duration-500 focus-within:opacity-100 hover:opacity-100">
+            <div className="text-ink-secondary text-sm">地图</div>
+            <MysteryMiniMap
+              map={view.map}
+              reachable={reachable}
+              disabled={busy}
+              onSelect={goTo}
+            />
+            <p className="text-ink-secondary text-xs">点相邻的房间可以前往</p>
+          </section>
+          <div className="border-ink/15 border-t border-dashed pt-6">
+            <MysteryClueRail view={view} seen={notes.seen} onOpen={openBoard} />
+          </div>
         </aside>
       ) : null}
 
