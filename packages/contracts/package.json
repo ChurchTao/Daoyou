@@ -6,6 +6,7 @@
   "exports": {
     "./account": "./dist/account.js",
     "./admin/accounts": "./dist/adminAccounts.js",
+    "./admin/dungeon-scenarios": "./dist/adminDungeonScenarios.js",
     "./admin/item-generation": "./dist/adminItemGeneration.js",
     "./admin/online-users": "./dist/adminOnlineUsers.js",
     "./admin/tower": "./dist/adminTower.js",

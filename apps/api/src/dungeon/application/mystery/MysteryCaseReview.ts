@@ -3,6 +3,10 @@ import { renderPrompt } from '@server/lib/prompts/index.js';
 import { generateAiObject } from '@server/utils/aiClient.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
+import {
+  MYSTERY_GENERATION_THINKING,
+  MYSTERY_STAGE_TIMEOUT_MS,
+} from './mysteryGenerationSettings.js';
 
 /** 大纲阶段确定、后续所有正文都必须遵守的事实设定。 */
 /** 大纲阶段定下的事实设定，字段随案型不同。 */
@@ -163,7 +167,8 @@ export async function reviewMysteryCase(
     schema,
     name: 'DungeonMysteryReview',
     sceneId: 'dungeon-case-review',
-    timeoutMs: 60_000,
+    timeoutMs: MYSTERY_STAGE_TIMEOUT_MS,
+    thinking: MYSTERY_GENERATION_THINKING,
   });
   const byPath = new Map(fields.map((f) => [f.path, f]));
   const issues: MysteryReviewIssue[] = [];

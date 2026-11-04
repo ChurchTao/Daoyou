@@ -1,4 +1,7 @@
-import type { LlmByokConfig, LlmProviderId } from '@daoyou/contracts/llm/config';
+import type {
+  LlmByokConfig,
+  LlmProviderId,
+} from '@daoyou/contracts/llm/config';
 import {
   pickHighestWeightLlmRoute,
   pickLlmRouteByUserHash,
@@ -17,7 +20,10 @@ import type {
   LlmSceneId,
   LlmStructuredFailureKind,
 } from '@server/lib/llm/types.js';
-import { stableCompactStringify, truncateText } from '@server/utils/llmPayload.js';
+import {
+  stableCompactStringify,
+  truncateText,
+} from '@server/utils/llmPayload.js';
 import {
   generateText,
   JSONParseError,
@@ -187,6 +193,26 @@ export interface AiTextOptions {
   timeoutMs?: number;
   maxOutputTokens?: number;
   reasoning?: AiReasoning;
+  /**
+   * 开启模型的思考模式，不指定思考预算：各提供方只发送自己的开关
+   * （DashScope 的 enable_thinking、DeepSeek 的 thinking），避免部分模型不支持
+   * thinking_budget 而拒绝请求。设置后忽略 reasoning。
+   */
+  thinking?: boolean;
+}
+
+/** 由 reasoning 与 thinking 得出本次调用的思考设置。 */
+function reasoningSettings(
+  options: Pick<AiTextOptions, 'reasoning' | 'thinking'>,
+) {
+  if (!options.thinking) return { reasoning: options.reasoning ?? 'none' };
+  return {
+    reasoning: 'provider-default' as const,
+    providerOptions: {
+      alibaba: { enableThinking: true },
+      deepseek: { thinking: { type: 'enabled' as const } },
+    },
+  };
 }
 
 export interface AiObjectOptions<
@@ -564,7 +590,7 @@ async function generateAiTextInternal(options: AiTextOptions) {
       prompt: options.prompt,
       abortSignal: options.abortSignal,
       maxOutputTokens: options.maxOutputTokens,
-      reasoning: options.reasoning ?? 'none',
+      ...reasoningSettings(options),
     });
     recordMetrics(metrics, {
       status: 'success',
@@ -606,7 +632,7 @@ export function streamAiText(options: AiTextOptions) {
       prompt: options.prompt,
       abortSignal: request.signal,
       maxOutputTokens: options.maxOutputTokens,
-      reasoning: options.reasoning ?? 'none',
+      ...reasoningSettings(options),
       onError: () => recordTerminalMetric('failure'),
       onAbort: ({ steps }) => {
         const usage: Record<string, number> = {};
@@ -763,7 +789,7 @@ async function generateAiObjectInternal<GENERATED, RESULT = GENERATED>(
         prompt: attempt.prompt,
         abortSignal: options.abortSignal,
         maxOutputTokens: attempt.maxOutputTokens,
-        reasoning: options.reasoning ?? 'none',
+        ...reasoningSettings(options),
         output,
       });
     },
@@ -804,7 +830,7 @@ async function generateAiArrayInternal<ELEMENT, RESULT = ELEMENT[]>(
         prompt: attempt.prompt,
         abortSignal: options.abortSignal,
         maxOutputTokens: attempt.maxOutputTokens,
-        reasoning: options.reasoning ?? 'none',
+        ...reasoningSettings(options),
         output,
       });
     },

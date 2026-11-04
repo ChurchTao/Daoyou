@@ -25,8 +25,12 @@ import {
   cleanMysteryText as clip,
   reviewMysteryCase,
 } from './MysteryCaseReview.js';
+import {
+  MYSTERY_GENERATION_THINKING,
+  MYSTERY_STAGE_TIMEOUT_MS,
+} from './mysteryGenerationSettings.js';
 
-const STAGE_TIMEOUT_MS = 60_000;
+const STAGE_TIMEOUT_MS = MYSTERY_STAGE_TIMEOUT_MS;
 
 /** 各骨架共同约定：说谎者的原话写在这条线索里。 */
 const CLAIM_CLUE = 'clue_claim';
@@ -681,6 +685,7 @@ async function callStage<S extends z.ZodType>(args: {
       name: args.name,
       sceneId: args.sceneId,
       timeoutMs: STAGE_TIMEOUT_MS,
+      thinking: MYSTERY_GENERATION_THINKING,
     });
   // 结构已经固定，失败只可能是网络、输出截断或个别字段留空，单段重试一次即可。
   const first = await run().catch(() => null);

@@ -299,8 +299,67 @@ export function wakeScenarioWorker() {
   return publishScheduledBackgroundCommand('dungeon-scenario.generate');
 }
 
+/**
+ * 管理后台投递：逐个给库存位排一个任务，不受失败冷却限制，但与补货共用咨询锁与全服上限；
+ * 达到上限后其余的跳过。返回排队与跳过的数量。
+ */
+export async function enqueueAdminScenarioJobs(
+  slots: Array<{ mapNodeId: string; templateId: string }>,
+) {
+  const result = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-jobs'))`,
+    );
+    const [pending] = await tx
+      .select({ n: count() })
+      .from(dungeonScenarioJobs)
+      .where(inArray(dungeonScenarioJobs.status, [...PENDING]));
+    const room = Math.max(
+      0,
+      MYSTERY_LIBRARY_POLICY.maxPendingJobs - (pending?.n ?? 0),
+    );
+    const accepted = slots.slice(0, room);
+    if (accepted.length > 0)
+      await tx
+        .insert(dungeonScenarioJobs)
+        .values(
+          accepted.map((slot) => ({ ...slot, reason: 'admin' as const })),
+        );
+    return {
+      enqueued: accepted.length,
+      skipped: slots.length - accepted.length,
+      pendingTotal: (pending?.n ?? 0) + accepted.length,
+    };
+  });
+  if (result.enqueued > 0) await wakeScenarioWorker();
+  console.info('[ScenarioLibrary] 后台投递', result);
+  return result;
+}
+
+/** 管理后台重试失败任务：尝试次数清零、重新排队；不是失败状态的任务不动。 */
+export async function retryFailedScenarioJob(jobId: string) {
+  const [row] = await db
+    .update(dungeonScenarioJobs)
+    .set({
+      status: 'queued',
+      attempts: 0,
+      error: null,
+      startedAt: null,
+      finishedAt: null,
+    })
+    .where(
+      and(
+        eq(dungeonScenarioJobs.id, jobId),
+        eq(dungeonScenarioJobs.status, 'failed'),
+      ),
+    )
+    .returning({ id: dungeonScenarioJobs.id });
+  if (row) await wakeScenarioWorker();
+  return Boolean(row);
+}
+
 /** 已配置剧本的全部槽。 */
-function configuredSlots() {
+export function configuredSlots() {
   return getAllSatelliteNodes().flatMap((node) =>
     scenarioTemplatesForNode(node.id).map((templateId) => ({
       mapNodeId: node.id,

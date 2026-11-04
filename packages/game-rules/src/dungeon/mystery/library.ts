@@ -5,7 +5,7 @@
  */
 export const MYSTERY_LIBRARY_POLICY = {
   /** 全服 queued + running 任务上限，达到后忽略新的投递。 */
-  maxPendingJobs: 5,
+  maxPendingJobs: 8,
   /** 角色在该槽剩余未玩剧本不超过此数时补货。 */
   lowStockThreshold: 1,
   /** 每槽 active 剧本上限，达到后只轮换旧本。 */
@@ -14,8 +14,8 @@ export const MYSTERY_LIBRARY_POLICY = {
   failureBackoffMs: 30 * 60_000,
   /** 单个任务的最大尝试次数。 */
   maxJobAttempts: 3,
-  /** running 超过此时长视为中断。 */
-  staleRunningMs: 10 * 60_000,
+  /** running 超过此时长视为中断；须大于大纲、正文、审校各步时限之和，免得慢任务被重复领取。 */
+  staleRunningMs: 90 * 60_000,
   /**
    * 入库把关：独立审校报告的严重矛盾超过此数则不入库、按失败重试。
    * 审校模型本身有误报，阈值不设为 0，避免几乎全部被拒、反复烧费用。

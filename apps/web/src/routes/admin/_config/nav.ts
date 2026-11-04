@@ -76,6 +76,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/tower-enemy-sets',
   },
   {
+    title: '云游剧本',
+    description: '解谜副本剧本库存、剧本详情与生成任务',
+    href: '/admin/dungeon-scenarios',
+  },
+  {
     title: 'QQ交流群',
     description: '玩家社群 QQ 群号配置',
     href: '/admin/community-group',

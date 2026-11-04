@@ -5,6 +5,7 @@ import {
   type RealmStage,
 } from '@daoyou/constants/realms';
 import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
+import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
 import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import type { DungeonEndDisposition } from '@daoyou/game-domain/dungeon';
@@ -65,7 +66,6 @@ import type {
   MysteryConfrontationOutcome,
   MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
-import type { DungeonScenarioConfig } from '@daoyou/game-domain/world/map';
 import {
   applyMysteryAction,
   applyMysteryDialogue,
@@ -88,7 +88,6 @@ import {
 } from '@server/dungeon/application/flow/types.js';
 import { textFilter } from '@server/social/application/textFilter.js';
 import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
-import type { generateMysteryCase } from '../mystery/MysteryCaseGenerator.js';
 import { generateNpcReply } from '../mystery/MysteryDialogue.js';
 import { isKeyClue, requireMysteryTemplate } from '../mystery/mysteryState.js';
 import {
@@ -342,7 +341,6 @@ export class DungeonFlowService {
     private readonly runs: DungeonRunStore,
     private readonly resources: ResourceEngine,
     private readonly withLock: typeof withRedisLock,
-    private readonly generateCase: typeof generateMysteryCase,
   ) {}
 
   private normalizeOptionCosts(option: { costs?: DungeonOptionCost[] }) {
@@ -654,7 +652,7 @@ export class DungeonFlowService {
       });
 
       // 3. 从剧本库选本开局
-      await this.initMystery(state, scenario);
+      await this.initMystery(state);
       if (!options.deferPersistence) {
         await this.database.transaction((tx) =>
           this.persistMysteryStart(tx, state),
@@ -1181,13 +1179,10 @@ export class DungeonFlowService {
     };
   }
   /**
-   * 解谜开局：从全服剧本库选本，不调用 LLM；库里一本都没有时才实时生成，
-   * 生成成功的案卷在开局提交时一并入库。需要补货时记下请求，提交后投递。
+   * 解谜开局：从全服剧本库选本，不调用 LLM；库里没有时用此地绑定的保底案卷，
+   * 都没有就不开局。需要补货时记下请求，提交后投递。
    */
-  private async initMystery(
-    state: DungeonState,
-    scenario: DungeonScenarioConfig,
-  ) {
+  private async initMystery(state: DungeonState) {
     const templateIds = scenarioTemplatesForNode(state.mapNodeId);
     if (templateIds.length === 0) throw new Error('秘境剧本配置无效');
     const library = await readScenarioLibrary(
@@ -1231,37 +1226,22 @@ export class DungeonFlowService {
         ...(restock ? { restock } : {}),
       };
     } else {
-      const mapNode = this.getMapNode(state.mapNodeId);
-      const { caseFile, source } = await this.generateCase({
-        template,
-        seed: ((state.rewardSeed ?? 0) ^ 0x9e3779b9) >>> 0,
-        node: {
-          name: mapNode.name,
-          realm_requirement: mapNode.realm_requirement,
-          tags: mapNode.tags,
-          description: mapNode.description,
-        },
-        setting: scenario,
-        mapNodeId: state.mapNodeId,
-      }).catch((error: unknown) => {
-        // 此地没有场景相符的保底案卷：不开局（灵气不扣），排队补货后请玩家稍后再来。
-        console.warn('[DungeonMystery] 冷启动生成失败:', error);
+      // 剧本全部由后台以高级模型生成、耗时较长，开局不再现场生成：库中没有时只用此地绑定的
+      // 保底案卷；连保底也没有就不开局（灵气不扣），排队补货后请玩家稍后再来。
+      const fallback = getMysteryFallbackCase(pick.templateId, state.mapNodeId);
+      if (!fallback) {
         this.enqueueRestock(state, pick.templateId, 'cold_start');
         throw new DungeonFlowError(
           DungeonFlowErrorCode.INVALID_STATE,
           '此地的剧本还在推演，请稍后再来',
           409,
         );
-      });
+      }
       state.mystery = {
         templateId: pick.templateId,
-        caseSource: source,
-        caseFile,
-        run: createMysteryRun(caseFile, template.scale.action_budget),
-        // 只有生成成功的案卷入库；保底案卷由清扫任务按节点入库。
-        ...(source === 'generated'
-          ? { scenarioId: randomUUID(), insertScenario: true, firstPlay: true }
-          : {}),
+        caseSource: 'fallback',
+        caseFile: fallback,
+        run: createMysteryRun(fallback, template.scale.action_budget),
         ...(restock ? { restock } : {}),
       };
     }
