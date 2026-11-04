@@ -1,0 +1,96 @@
+{
+  "id": "trial_seal",
+  "name": "破禁试炼",
+  "archetype": "unlock",
+  "summary": "前辈在此设下试炼与禁制，闯过者可得其所留之物。一位守试者守着试炼，只用谜语回答；另一名闯关者自称得了前人的解法，实则在误导旁人；当年失败的前人仍在此处，记得自己错在哪一步，却记岔了原因。玩家需要破开两处机关、拼出主禁制的开启次序与引子，并查明前人失败的真相。",
+  "fits_tags": [
+    "试炼阵",
+    "禁制",
+    "多重禁制",
+    "镇魔符印",
+    "塔灵试炼",
+    "劫纹参悟",
+    "阵眼崩坏",
+    "空间裂缝",
+    "机关傀儡"
+  ],
+  "scale": {
+    "rooms": [5, 8],
+    "npcs": [3, 3],
+    "key_clues": [12, 14],
+    "red_herrings": [2, 2],
+    "action_budget": 36
+  },
+  "roles": [
+    {
+      "slot": "warden",
+      "label": "守试者",
+      "count": [1, 1],
+      "lies": false,
+      "guidance": "器灵、残魂或守塔人，知道试炼的规矩，只用谜语回答；玩家读过主禁制铭文后才肯道出引子。"
+    },
+    {
+      "slot": "rival",
+      "label": "闯关者",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "同场的闯关者，自称从前人那里得了解法，实则当年正是他给了前人一套假解法；在来历或与前人的关系上说谎，可被记载当面戳穿。"
+    },
+    {
+      "slot": "fallen",
+      "label": "前人",
+      "count": [1, 1],
+      "lies": false,
+      "guidance": "曾在此失败的闯关者（残念或重伤未走的人），以为是自己记错了一步；被出示机关旁的新痕迹后醒悟（设置 fallen_turned）。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "order",
+      "prompt": "主禁制的开启次序",
+      "answer_kind": "choice",
+      "guidance": "选项为主禁制部件的不同次序，由程序渲染。"
+    },
+    {
+      "id": "catalyst",
+      "prompt": "以何为引",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干引子：真引子一项，其余为闯关者的说法、传闻与另一种误判。"
+    },
+    {
+      "id": "cause",
+      "prompt": "前人为何失败",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干原因：真相一项（被闯关者误导），其余为前人自述、传闻与另一种误判。"
+    }
+  ],
+  "branches": [
+    {
+      "id": "lies_exposed",
+      "label": "当面戳穿谎言",
+      "kind": "expose_all_lies",
+      "points": 5
+    },
+    {
+      "id": "trial_clean",
+      "label": "两处机关一次开启",
+      "kind": "flag",
+      "flag": "trial_clean",
+      "guidance": "两处小机关都开启且从未触发反噬时，由规则层设置 trial_clean。",
+      "points": 5
+    }
+  ],
+  "scoring": {
+    "truth": 45,
+    "coverage": 15,
+    "efficiency": 15,
+    "branch": 10,
+    "combat": 15
+  },
+  "finale": { "role": "warden", "when": ["order", "catalyst"], "points": 10 },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "honest_rival", "weight": 2 }
+  ],
+  "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的物件、痕迹和动作，不写空泛的氛围。机关的部件名称要成套（如卦象、四象、五行、星宿或此地特有的器物），一看即知是同一处机关的四个部件。守试者说话简短、带谜语，不直接给答案；闯关者说话热络，经不起记载对质；前人真心相信是自己的错。"
+}

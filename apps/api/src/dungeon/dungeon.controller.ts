@@ -1,3 +1,10 @@
+import { DungeonFlowRequestSchema } from '@daoyou/contracts/combat/dungeon';
+import {
+  DungeonMysteryActRequestSchema,
+  DungeonMysteryDeduceRequestSchema,
+  DungeonMysteryGuardRequestSchema,
+  DungeonMysteryTalkRequestSchema,
+} from '@daoyou/contracts/dungeon/mystery';
 import {
   Controller,
   Get,
@@ -7,10 +14,6 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import {
-  DungeonActionRequestSchema,
-  DungeonFlowRequestSchema,
-} from '@daoyou/contracts/combat/dungeon';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
@@ -18,8 +21,6 @@ import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import {
   DungeonActionErrors,
-  DungeonContinueErrors,
-  DungeonEscapeErrors,
   DungeonQuitErrors,
   DungeonRecoverErrors,
   DungeonStartErrors,
@@ -63,15 +64,48 @@ export class DungeonController {
     return this.dungeon.state(actor.cultivatorId, query.runId);
   }
 
-  @Post('action')
+  @Post('mystery/act')
   @HttpCode(200)
   @UseFilters(DungeonActionErrors)
-  action(
+  mysteryAct(
     @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody(new ZodPipe(DungeonActionRequestSchema))
-    input: z.infer<typeof DungeonActionRequestSchema>,
+    @JsonBody(new ZodPipe(DungeonMysteryActRequestSchema))
+    input: z.infer<typeof DungeonMysteryActRequestSchema>,
   ) {
-    return this.dungeon.execute(actor, { kind: 'action', ...input });
+    return this.dungeon.execute(actor, { kind: 'mystery-act', ...input });
+  }
+
+  @Post('mystery/talk')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryTalk(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryTalkRequestSchema))
+    input: z.infer<typeof DungeonMysteryTalkRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-talk', ...input });
+  }
+
+  @Post('mystery/guard')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryGuard(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryGuardRequestSchema))
+    input: z.infer<typeof DungeonMysteryGuardRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-guard', ...input });
+  }
+
+  @Post('mystery/deduce')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  mysteryDeduce(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonMysteryDeduceRequestSchema))
+    input: z.infer<typeof DungeonMysteryDeduceRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'mystery-deduce', ...input });
   }
 
   @Post('recover')
@@ -102,27 +136,5 @@ export class DungeonController {
     @FirstQuery('pageSize') pageSize?: string,
   ) {
     return this.dungeon.history(actor.cultivatorId, page, pageSize);
-  }
-
-  @Post('looting/continue')
-  @HttpCode(200)
-  @UseFilters(DungeonContinueErrors)
-  continue(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody(new ZodPipe(DungeonFlowRequestSchema))
-    input: z.infer<typeof DungeonFlowRequestSchema>,
-  ) {
-    return this.dungeon.execute(actor, { kind: 'looting-continue', ...input });
-  }
-
-  @Post('looting/escape')
-  @HttpCode(200)
-  @UseFilters(DungeonEscapeErrors)
-  escape(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody(new ZodPipe(DungeonFlowRequestSchema))
-    input: z.infer<typeof DungeonFlowRequestSchema>,
-  ) {
-    return this.dungeon.execute(actor, { kind: 'looting-escape', ...input });
   }
 }

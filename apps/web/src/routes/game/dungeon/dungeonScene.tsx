@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
@@ -64,9 +65,17 @@ export function DungeonSceneScreen({
     <div className={cn(containerClassName, className)} style={containerStyle}>
       {showSceneTitle ? (
         <header className="border-battle-rule-strong mb-5 border-b border-dashed pb-4 md:mb-6">
-          <h1 className="font-heading text-ink text-3xl leading-tight md:text-4xl">
-            {descriptor.sceneLabel}
-          </h1>
+          <div className="flex items-center gap-3">
+            {descriptor.icon ? (
+              <GameIcon
+                value={descriptor.icon}
+                className="text-3xl md:text-4xl"
+              />
+            ) : null}
+            <h1 className="font-heading text-ink text-3xl leading-tight md:text-4xl">
+              {descriptor.sceneLabel}
+            </h1>
+          </div>
           {descriptor.subtitle ? (
             <p className="text-battle-muted mt-2 text-sm leading-6">
               {descriptor.subtitle}

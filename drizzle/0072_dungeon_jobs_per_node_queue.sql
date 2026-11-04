@@ -1,0 +1,1 @@
+DROP INDEX "dungeon_scenario_jobs_slot_pending_unique";

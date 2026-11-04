@@ -498,6 +498,20 @@
       "when": 1792933686067,
       "tag": "0070_manual_slot_code_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793614886892,
+      "tag": "0071_dungeon_scenario_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793763146879,
+      "tag": "0072_dungeon_jobs_per_node_queue",
+      "breakpoints": true
     }
   ]
 }

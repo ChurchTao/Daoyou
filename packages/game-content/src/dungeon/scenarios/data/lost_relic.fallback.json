@@ -1,0 +1,496 @@
+{
+  "templateId": "lost_relic",
+  "title": "深海沉舟遗珠案",
+  "truth": "数百年前，一艘满载珍宝的大型商船沉没于深海，船长将一枚珍贵的避水珠封存在船体深处的封底密室中，并留下隐晦的遗刻与复杂的禁制。如今，几位修士潜入这片被珊瑚覆盖的遗迹。自称“海商遗孀”的柳三娘手持一张看似古老的海图，声称亡夫托梦指引她来取回传家宝，并极力诱导众人前往西厢客室挖掘。年轻的渔家子阿潮深信不疑，甚至言之凿凿地表示曾目睹柳三娘在那里有所发现。然而，当你仔细查验那张海图，会发现墨迹未干、纸张边缘有新鲜的撕裂痕迹，这显然是近日伪造之物。与此同时，一直沉默戒备的寻亲少女沈青禾，向你展示了一枚半块的玉佩。这玉佩背面的“双鱼衔珠纹”，与封底密室门环上的古老印记严丝合缝，更与正殿遗留的船长一脉纹样同源，证明了沈青禾才是船长真正的女儿，也就是遗珍合法的继承人。为了揭开真相，你需要进入由铁甲傀儡把守的区域获取旁证，并找到开启密室的青铜钥匙。在正殿，你解读了开禁阵盘上的铭文，得知仅靠钥匙无法完全解除禁制。此时，盘踞在角落的老龟魂苏醒，它告诉你缺失的关键一环在于口令：必须呼喊船长的名字，才能让密室内的积水退去，显露出真正的藏宝暗格。最终，柳三娘的谎言被航海日志中“妻子早已病故”的记录戳穿，她的阴谋也随之破产。真正的避水珠，依然静静躺在封底密室的水退之后，等待着它的主人沈青禾将其取回。",
+  "brief": {
+    "identity": "你是受邀协助调查沉船遗迹异常波动的筑基修士，精通鉴宝与阵法基础，受门派委托前来确认遗珍下落并维护秩序。",
+    "goal": "你的目标是识破伪装者的诡计，找出真正的遗珍藏匿点与开启方法，并将宝物归还给合法的继承人，避免遗迹陷入混乱或被贪婪者独占。",
+    "opening": "海水透过破碎的船板涌入，发出咕噜噜的低响。你踏入破桅入口，四周是缠绕如蛇的黑珊瑚，幽暗中似乎有无数眼睛在窥视。前方主舱正殿里，三个人影正在对峙：自称遗孀的柳三娘正挥舞着一张泛黄的海图，唾沫横飞地描述着藏宝细节；旁边的渔家少年阿潮一脸崇拜地点头附和；角落里，一个抱着半块玉佩的少女沈青禾冷冷地看着他们，眼神中满是戒备。正殿中央的石桌上，一块古老的开禁阵盘散发着微弱的光芒，而通往深处的封底密室大门紧闭，门上锈迹斑斑的门环刻着奇异的双鱼纹。空气中弥漫着咸腥与腐朽的味道，你知道，真相就藏在这些矛盾之中。",
+    "relations": [
+      {
+        "npcId": "npc_rival",
+        "text": "自称是当年沉船大商人的遗孀，声称丈夫临终托梦告知遗珍所在，特来取回亡夫信物。"
+      },
+      {
+        "npcId": "npc_owner",
+        "text": "自称寻找失踪多年的父亲线索，对他人保持距离，只肯向持有相同纹样信物的人透露实情。"
+      },
+      {
+        "npcId": "npc_decoy",
+        "text": "在遗迹外遇到的本地向导，坚称亲眼见柳三娘按图索骥找到了藏宝处，语气笃定且急切。"
+      },
+      {
+        "npcId": "npc_keeper",
+        "text": "盘踞在正殿角落的古老灵龟残魂，依附于开禁阵盘，气息微弱，直到你触碰铭文时才会发出微光并苏醒。"
+      }
+    ]
+  },
+  "startRoomId": "room_entrance",
+  "rooms": [
+    {
+      "id": "room_entrance",
+      "name": "破桅入口",
+      "description": "你踏入破桅入口，海风裹挟着咸腥湿气扑面而来。断裂的缆绳垂落，几片碎布在风中微颤，似有人匆忙离去。前方主舱正殿隐约可见，光线昏暗，寂静中透着久无人迹的沉闷。",
+      "brief": "破桅入口，海风咸腥，断缆垂落。",
+      "exits": ["room_hub"]
+    },
+    {
+      "id": "room_hub",
+      "name": "主舱正殿",
+      "description": "主舱正殿宽阔幽深，藻井残破，漏下几点天光。船长遗刻与开禁阵盘静置中央，老龟魂盘踞角落，气息微弱。沈青禾立于殿侧，神色戒备，目光如炬。",
+      "brief": "主舱正殿，遗刻阵盘犹在，少女静立。",
+      "exits": ["room_side_1", "room_side_2", "room_guarded_1"]
+    },
+    {
+      "id": "room_side_1",
+      "name": "东厢货房",
+      "description": "东厢货房堆满陈旧木箱，空气凝滞，霉味混着桐油气。角落一只木箱上散落着几册受潮的簿子，地上留着几行来回踱步的湿脚印。",
+      "brief": "东厢货房，木箱堆叠，霉气扑鼻。",
+      "exits": ["room_sealed"]
+    },
+    {
+      "id": "room_side_2",
+      "name": "西厢客室",
+      "description": "西厢客室陈设简朴，桌椅倾倒，地板朽木斑驳，有几处被撬起又草草按回。桌上摊着一张泛黄的海图。",
+      "brief": "西厢客室，陈设简朴，地板斑驳。",
+      "exits": []
+    },
+    {
+      "id": "room_sealed",
+      "name": "封底密室",
+      "description": "封底密室门扉紧闭，铜环古朴。门上双鱼衔珠纹清晰可见，非机关而是印记。室内积水未退，寒气逼人，唯有钥匙能开启此门。",
+      "brief": "封底密室，门环古朴，积水待退。",
+      "exits": [],
+      "requires": {
+        "has_item": "item_key"
+      },
+      "lockedText": "铁门紧闭，双鱼衔珠纹静默无言，需青铜钥匙方可开启。"
+    },
+    {
+      "id": "room_guarded_1",
+      "name": "暗礁静室",
+      "description": "暗礁静室的门半掩着，门内透出一点幽光，像是案上还摆着什么。",
+      "brief": "暗礁静室，铁甲傀儡守门，气场肃杀。",
+      "exits": []
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_entrance",
+      "roomId": "room_entrance",
+      "name": "断裂缆绳",
+      "detail": "断裂缆绳上挂着几片碎布，边缘磨损。"
+    },
+    {
+      "id": "obj_legacy",
+      "roomId": "room_hub",
+      "name": "船长遗刻",
+      "detail": "船长遗刻字迹苍劲，隐晦提及‘宝不在明堂’，暗示避水珠的真正去向，需仔细辨认方能读懂。"
+    },
+    {
+      "id": "obj_seal",
+      "roomId": "room_hub",
+      "name": "开禁阵盘",
+      "detail": "开禁阵盘表面刻有铭文，记载‘以钥启门，以令通幽’的大致法门，但缺失开启暗格的具体咒诀，显得不完整。"
+    },
+    {
+      "id": "obj_forged",
+      "roomId": "room_side_2",
+      "name": "改绘海图",
+      "detail": "一张泛黄的海图摊在桌上，西厢客室的位置画着醒目的朱圈。"
+    },
+    {
+      "id": "obj_place",
+      "roomId": "room_sealed",
+      "name": "湿漉手印",
+      "detail": "密室地面积着薄水，墙根附近似乎有什么痕迹。"
+    },
+    {
+      "id": "obj_record",
+      "roomId": "room_side_1",
+      "name": "航海日志",
+      "detail": "一册受潮的航海日志，末页的字迹比前面新些。"
+    },
+    {
+      "id": "obj_mark",
+      "roomId": "room_side_1",
+      "name": "双鱼衔珠纹",
+      "detail": "通往密室的门上刻着一圈纹样，线条古朴。"
+    },
+    {
+      "id": "obj_keyspot",
+      "roomId": "room_side_2",
+      "name": "锈蚀门环",
+      "detail": "一只锈蚀的门环挂在柜门上，内侧似乎卡着什么东西。"
+    },
+    {
+      "id": "obj_cache_1",
+      "roomId": "room_guarded_1",
+      "name": "旁证手札",
+      "detail": "旁证手札记载‘唯有血脉或持信物者能近身’，印证了开禁法门需特定条件，外人强闯必遭反噬。"
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue_legacy",
+      "name": "遗刻原文",
+      "text": "主舱正殿的船长遗刻上，字迹斑驳却力道深沉：‘宝不在明堂，而在影动之处；水退方见真形。’",
+      "key": true,
+      "supports": ["where"],
+      "foundAt": {
+        "objectId": "obj_legacy"
+      }
+    },
+    {
+      "id": "clue_place",
+      "name": "密室痕迹",
+      "text": "封底密室地面潮湿，有一枚清晰的湿漉手印，指向墙内暗格方向，与遗刻中‘水退’之意吻合。",
+      "key": true,
+      "supports": ["where"],
+      "foundAt": {
+        "objectId": "obj_place"
+      }
+    },
+    {
+      "id": "clue_record",
+      "name": "日志记载",
+      "text": "东厢货房的航海日志末页记录着：‘妻柳氏三年前已病故，葬于岸上。’",
+      "key": true,
+      "supports": ["where"],
+      "foundAt": {
+        "objectId": "obj_record"
+      }
+    },
+    {
+      "id": "clue_debunk",
+      "name": "海图破绽",
+      "text": "西厢客室的改绘海图墨迹未干，纸张边缘有新鲜撕裂痕，显然非百年旧物。",
+      "key": true,
+      "supports": ["where"]
+    },
+    {
+      "id": "clue_inscription",
+      "name": "阵盘铭文",
+      "text": "主舱正殿的开禁阵盘刻着‘以钥启门，以令通幽’，但缺失开启暗格的具体咒诀。",
+      "key": true,
+      "supports": ["how"],
+      "foundAt": {
+        "objectId": "obj_seal"
+      }
+    },
+    {
+      "id": "clue_method",
+      "name": "残魂提示",
+      "text": "老龟魂言语迟缓，提示你：‘念船长之名，水自退。’",
+      "key": true,
+      "supports": ["how"]
+    },
+    {
+      "id": "clue_mark",
+      "name": "门前纹样",
+      "text": "东厢货房双鱼衔珠纹线条古朴，确为前辈一脉标志。",
+      "key": true,
+      "supports": ["owner"],
+      "foundAt": {
+        "objectId": "obj_mark"
+      }
+    },
+    {
+      "id": "clue_token",
+      "name": "少女信物",
+      "text": "沈青禾出示半块玉佩，其背面纹路完整拼合了门上的双鱼衔珠纹。",
+      "key": true,
+      "supports": ["owner"]
+    },
+    {
+      "id": "clue_cache_1",
+      "name": "手札旁证",
+      "text": "暗礁静室的手札证实：‘唯有血脉或持信物者能近身，外人强闯必遭反噬。’",
+      "key": true,
+      "supports": ["how"],
+      "foundAt": {
+        "objectId": "obj_cache_1"
+      }
+    },
+    {
+      "id": "clue_forged",
+      "name": "假图误导",
+      "text": "柳三娘带来的海图上，西厢客室地板处画着朱圈，旁注“珠在此下”，笔意仿得像是旧时船图。",
+      "key": false,
+      "supports": [],
+      "foundAt": {
+        "objectId": "obj_forged"
+      }
+    },
+    {
+      "id": "clue_claim",
+      "name": "夺宝谎言",
+      "text": "柳三娘自称：“我是船长遗孀，亡夫托梦让我来取回他留给我的避水珠。”",
+      "key": false,
+      "supports": []
+    },
+    {
+      "id": "clue_rumor",
+      "name": "少年证言",
+      "text": "阿潮坚持说看见柳三娘从西厢客室挖出一颗珠子，虽然当时光线昏暗看不真切。",
+      "key": false,
+      "supports": []
+    },
+    {
+      "id": "clue_entrance",
+      "name": "入口误导",
+      "text": "破桅入口的断缆上挂着几片碎布，像是有人匆忙离开时扯下的。",
+      "key": false,
+      "supports": [],
+      "foundAt": {
+        "objectId": "obj_entrance"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "item_key",
+      "name": "青铜钥匙",
+      "text": "青铜钥匙锈迹斑斑，齿痕磨损严重，是开启封底密室门锁的唯一凭证。",
+      "foundAt": {
+        "objectId": "obj_keyspot"
+      }
+    },
+    {
+      "id": "item_pass",
+      "name": "通行令牌",
+      "text": "通行令牌由黑铁铸成，刻有船长徽记，持此令可令铁甲傀儡让路。",
+      "foundAt": {
+        "objectId": "obj_legacy"
+      }
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc_rival",
+      "name": "柳三娘",
+      "title": "海商遗孀",
+      "role": "rival",
+      "roomId": "room_hub",
+      "greeting": "你踏入主舱正殿，柳三娘一身素白麻衣，发间仅簪一支枯木步摇。她向你福了一礼，神色温婉如旧时闺秀，目光却在你腰间和脚边扫过，似在掂量你的深浅。",
+      "idleLine": "海风穿堂而过，卷起她袖口的流苏。她低头理了理膝上的裙摆，不再言语，只静静盯着前方斑驳的船板。",
+      "deflectLine": "见你拿出无关之物，她眉头微蹙，轻叹一声：‘这遗迹阴冷，莫要误了时辰。’随即侧身避开，不愿多看。",
+      "secrets": [
+        {
+          "clueId": "clue_claim",
+          "requires": {
+            "visited": "room_hub"
+          },
+          "line": "柳三娘指尖轻轻摩挲着袖口，嘴角勾起一抹悲戚的笑意，眼眶微红，仿佛沉浸在丧夫之痛中，声音轻柔得令人心碎。“我是船长遗孀，亡夫托梦让我来取回他留给我的避水珠。”"
+        }
+      ],
+      "reactions": [
+        {
+          "id": "react_rival_record",
+          "evidenceId": "clue_record",
+          "line": "柳三娘脸色骤变，原本温婉的面容瞬间僵硬。她猛地后退半步，手指紧紧掐住掌心，强作镇定道：‘日志？哼，不过是后人伪造的流言，妄图污蔑我亡夫的信誉！’",
+          "effects": [
+            {
+              "kind": "set_flag",
+              "flag": "rival_exposed"
+            }
+          ],
+          "exposesLie": true
+        }
+      ]
+    },
+    {
+      "id": "npc_owner",
+      "name": "沈青禾",
+      "title": "寻亲少女",
+      "role": "owner",
+      "roomId": "room_hub",
+      "greeting": "沈青禾立于阴影处，双手紧攥着半块玉佩。她抬眼打量你片刻，眼神警惕而疏离，未发一言便转身走向角落，背影透着拒人千里的寒意。",
+      "idleLine": "她背对着你，肩膀微微起伏，似乎在压抑呼吸。片刻后，她只是发出一声极轻的冷哼，并未回头。",
+      "deflectLine": "面对无关证据，她连眼皮都未抬一下，只是将手中的玉佩握得更紧，指节泛白，沉默地拒绝交流。",
+      "secrets": [],
+      "reactions": [
+        {
+          "id": "react_owner_mark",
+          "evidenceId": "clue_mark",
+          "line": "沈青禾抬起头，目光落在门环纹样上，瞳孔微微收缩。她缓缓掏出半块玉佩，将其贴在门环旁，纹路严丝合缝。她深吸一口气，紧绷的肩膀终于放松下来，低声道：‘原来……真的是这里。’",
+          "effects": [
+            {
+              "kind": "reveal_clue",
+              "clueId": "clue_token"
+            },
+            {
+              "kind": "set_flag",
+              "flag": "owner_trusted"
+            }
+          ],
+          "exposesLie": false
+        }
+      ]
+    },
+    {
+      "id": "npc_decoy",
+      "name": "阿潮",
+      "title": "渔村少年",
+      "role": "decoy",
+      "roomId": "room_side_1",
+      "greeting": "阿潮从阴影里窜出来，脸上带着汗渍与兴奋的红晕。他指着西厢方向，急切地向你比划着刚才看到的景象，眼中满是确信与崇拜。",
+      "idleLine": "他挠了挠头，有些局促地看着你，嘴里嘟囔着‘真就在那儿’，眼神飘忽，似乎在回忆细节以说服自己。",
+      "deflectLine": "被出示无关证据时，他愣了一下，随即不耐烦地摆手：‘别拿这些没用的东西晃我，我只信我的眼睛！’",
+      "secrets": [
+        {
+          "clueId": "clue_rumor",
+          "requires": {
+            "visited": "room_hub"
+          },
+          "line": "阿潮激动地挥舞手臂，压低声音道：‘就在西厢客室地板下！我当时看得真切，柳姐姐用那把铁钎撬开木板，里面确实有一颗珠子在发光，虽然光线暗，但我绝不会看错！’"
+        }
+      ],
+      "reactions": [
+        {
+          "id": "react_decoy_forged",
+          "evidenceId": "clue_forged",
+          "line": "阿潮凑近细看海图，脸上的兴奋逐渐褪去，取而代之的是惊愕。他指着墨迹颤抖道：‘这墨……还没干透！纸边也是新的撕裂痕，根本不是百年前的旧物！我……我看错了，是有人骗了我！’",
+          "effects": [
+            {
+              "kind": "reveal_clue",
+              "clueId": "clue_debunk"
+            },
+            {
+              "kind": "set_flag",
+              "flag": "decoy_turned"
+            }
+          ],
+          "exposesLie": false
+        }
+      ]
+    },
+    {
+      "id": "npc_keeper",
+      "name": "老龟魂",
+      "title": "守宝残魂",
+      "role": "keeper",
+      "roomId": "room_hub",
+      "greeting": "老龟魂依附于阵盘核心，甲壳上长满青苔。它缓缓睁开浑浊的眼珠，喉咙里发出咕噜声，示意你靠近阵盘阅读铭文，随后便陷入沉寂。",
+      "idleLine": "它闭目养神，偶尔吐出一串气泡，身体随着水流微微晃动，对周围的动静毫无反应。",
+      "deflectLine": "见你展示无关之物，它只是迟缓地摇了摇头，甲壳摩擦发出刺耳声响，再次低下头去，不再理会。",
+      "secrets": [
+        {
+          "clueId": "clue_method",
+          "requires": {
+            "has_clue": "clue_inscription"
+          },
+          "line": "老龟魂浑浊的眼珠转动了一下，缓慢吐出几个字：‘阵盘缺了一环……需念船长之名，水自退。’"
+        }
+      ],
+      "reactions": []
+    }
+  ],
+  "interactions": [],
+  "questions": [
+    {
+      "id": "where",
+      "options": [
+        {
+          "id": "place_true",
+          "label": "封底密室墙内暗格"
+        },
+        {
+          "id": "place_false",
+          "label": "西厢客室地板之下"
+        },
+        {
+          "id": "place_rumor",
+          "label": "主舱正殿神龛之后"
+        },
+        {
+          "id": "place_other",
+          "label": "东厢货房货架夹层"
+        }
+      ],
+      "answer": "place_true",
+      "explanation": "真相在封底密室墙内暗格。线索遗刻指明‘水退方见真形’，线索密室痕迹显示水退后显现处即为藏处，而线索假图误导指向的西厢客室仅有朽木。"
+    },
+    {
+      "id": "how",
+      "options": [
+        {
+          "id": "method_force",
+          "label": "强行击碎阵盘开启"
+        },
+        {
+          "id": "method_true",
+          "label": "念船长名号令水退"
+        },
+        {
+          "id": "method_forged",
+          "label": "照海图朱圈挖开地板"
+        },
+        {
+          "id": "method_other",
+          "label": "滴血认主激活禁制"
+        }
+      ],
+      "answer": "method_true",
+      "explanation": "需念船长名号令水退。线索阵盘铭文提示需口令，线索残魂提示关键在‘念船长之名’，结合线索密室痕迹中水退后的手印，可知此法可显真形。"
+    },
+    {
+      "id": "owner",
+      "answer": "npc_owner",
+      "explanation": "沈青禾是应得之人。线索门前纹样与线索少女信物的双鱼衔珠纹同源且拼合，印证线索手札旁证的血脉要求，证明她是船长之女，而非柳三娘。"
+    }
+  ],
+  "guards": [
+    {
+      "id": "guard_1",
+      "roomId": "room_guarded_1",
+      "name": "铁甲傀儡",
+      "description": "铁甲傀儡身披重甲，双目猩红，手持长戟横亘门前。它周身散发着冰冷的阵法波动，毫无生机，却威压十足，阻挡去路。",
+      "bypass": {
+        "has_item": "item_pass"
+      },
+      "bypassText": "你出示通行令牌，傀儡猩红双目微闪，长戟缓缓放下，侧身让开通道，阵法波动渐息。"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_erase",
+      "warnAt": 15,
+      "at": 19,
+      "unless": {
+        "any": [
+          {
+            "has_clue": "clue_place"
+          },
+          {
+            "flag": "rival_exposed"
+          }
+        ]
+      },
+      "warning": "柳三娘借口去透口气，目光却几次落在通往封底密室的那道门上。",
+      "text": "封底密室的方向传来哗啦一阵水响。柳三娘回来时裙摆湿了半截，若无其事地理着袖口——密室地上若有什么痕迹，多半已被她抹平了。",
+      "effects": [
+        {
+          "kind": "destroy_object",
+          "objectId": "obj_place"
+        }
+      ]
+    },
+    {
+      "id": "evt_leave",
+      "warnAt": 21,
+      "at": 25,
+      "unless": {
+        "flag": "decoy_turned"
+      },
+      "warning": "阿潮攥着海图在货房里来回踱步，嘴里念叨着再不动手，宝贝就要被人抢先挖走了。",
+      "text": "阿潮再也按捺不住，揣着那张海图游出了沉船，说要上岸找家伙来挖，转眼便没了踪影。",
+      "effects": [
+        {
+          "kind": "npc_leave",
+          "npcId": "npc_decoy"
+        }
+      ]
+    }
+  ]
+}

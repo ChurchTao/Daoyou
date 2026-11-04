@@ -10,6 +10,8 @@ const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';
 // 17:00 UTC equals 01:00 Asia/Shanghai.
 const MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE = '0 17 * * *';
 const SPONSORSHIP_RECONCILE_SCHEDULE = '*/10 * * * *';
+// Sweeps the dungeon scenario queue in case a wake-up was missed.
+const DUNGEON_SCENARIO_GENERATION_SCHEDULE = '*/5 * * * *';
 const SPONSORSHIP_DEEP_RECONCILE_SCHEDULE = '15 19 * * *';
 const SPONSORSHIP_CLEANUP_SCHEDULE = '30 19 * * *';
 const SPONSORSHIP_ADMIN_DIGEST_SCHEDULE = '0 1 * * *';
@@ -27,6 +29,10 @@ export const BACKGROUND_SCHEDULES = [
   {
     type: 'material-library.generate',
     expression: MATERIAL_LIBRARY_DAILY_GENERATION_SCHEDULE,
+  },
+  {
+    type: 'dungeon-scenario.generate',
+    expression: DUNGEON_SCENARIO_GENERATION_SCHEDULE,
   },
   { type: 'sponsorship.reconcile', expression: SPONSORSHIP_RECONCILE_SCHEDULE },
   {

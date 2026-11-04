@@ -4,18 +4,14 @@ import type {
 } from '@daoyou/game-domain/dungeon';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import { consumeDungeonMaterials } from '@daoyou/game-rules/dungeon';
-import { and, eq } from 'drizzle-orm';
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db.js';
-import { inventoryItems } from '@server/lib/drizzle/schema.js';
 import {
   inventoryItemOf,
   saveInventoryPlan,
 } from '@server/inventory/operations.js';
+import type { DbExecutor, DbTransaction } from '@server/lib/drizzle/db.js';
+import { inventoryItems } from '@server/lib/drizzle/schema.js';
 import { resourceEngine } from '@server/player/application/state/ResourceEngine.js';
+import { and, eq } from 'drizzle-orm';
 
 async function materialPlan(
   owner: string,
@@ -40,23 +36,6 @@ async function materialPlan(
 }
 const resourceCosts = (costs: DungeonOptionCost[]) =>
   costs.filter((cost) => cost.type !== 'material') as ResourceOperation[];
-
-export async function validateDungeonCosts(
-  userId: string,
-  owner: string,
-  costs: DungeonOptionCost[],
-  selections: DungeonMaterialSelection[] = [],
-) {
-  await materialPlan(owner, costs, getExecutor(), selections);
-  const validation = await resourceEngine.validate(
-    userId,
-    owner,
-    resourceCosts(costs),
-    getExecutor(),
-  );
-  if (!validation.valid)
-    throw new Error(validation.errors?.join('; ') || '资源不足');
-}
 
 /** Caller holds the character lock; costs and the dungeon ledger commit in the same transaction. */
 export async function applyDungeonCosts(

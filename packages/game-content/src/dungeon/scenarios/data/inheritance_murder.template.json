@@ -1,0 +1,102 @@
+{
+  "id": "inheritance_murder",
+  "name": "遗府疑案",
+  "archetype": "whodunit",
+  "summary": "一位前辈修士在自己的洞府中离奇坐化，表面是寿尽，实则遭人暗害。凶手如今以另一重身份混在探访者之中，想借玩家之手取得遗府传承；真正的传人也在场，却身份未明。玩家需要查明谁是凶手、用了什么手段，并判断遗府该交给谁。",
+  "fits_tags": [
+    "坐化遗骸",
+    "洞府",
+    "古修士",
+    "功法玉简",
+    "古宝",
+    "遗迹",
+    "宗门",
+    "传承"
+  ],
+  "scale": {
+    "rooms": [4, 6],
+    "npcs": [2, 5],
+    "key_clues": [4, 8],
+    "red_herrings": [1, 4],
+    "action_budget": 30
+  },
+  "roles": [
+    {
+      "slot": "culprit",
+      "label": "真凶",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "以伪装身份出现，表面和善、对玩家有所求。至少有一句可以被物证当面戳穿的谎言（reactions 中 exposesLie 为 true）。不主动透露关键线索。"
+    },
+    {
+      "slot": "heir",
+      "label": "传人",
+      "count": [1, 1],
+      "lies": false,
+      "guidance": "真正应得传承的人，起初戒备、不愿多说。玩家出示特定证据后才会建立信任（设置模板分支标记），信任后透露关键内情。"
+    },
+    {
+      "slot": "suspect",
+      "label": "嫌疑人",
+      "count": [0, 1],
+      "lies": false,
+      "guidance": "被冤枉的人：与死者有过节或有所图，身上有指向自己的可疑物证，性情不讨喜；被出示该物证后会说出清白的缘由并拿出可核实的凭据。"
+    },
+    {
+      "slot": "witness",
+      "label": "旁人",
+      "count": [0, 2],
+      "lies": false,
+      "guidance": "知道一部分事实但看不清全貌的人，可以提供误导或旁证。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "who",
+      "prompt": "谁害死了洞府主人",
+      "answer_kind": "npc",
+      "guidance": "答案是身份为 culprit 的人物 id；至少两条关键线索支撑。"
+    },
+    {
+      "id": "how",
+      "prompt": "凶手用了什么手段",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干作案手段的说法：真相一项，其余为顺着可疑物证、传闻或表象会得出的误判。"
+    },
+    {
+      "id": "heir",
+      "prompt": "遗府传承应交给谁",
+      "answer_kind": "npc",
+      "guidance": "答案是身份为 heir 的人物 id。"
+    }
+  ],
+  "branches": [
+    {
+      "id": "lies_exposed",
+      "label": "当面戳穿谎言",
+      "kind": "expose_all_lies",
+      "points": 5
+    },
+    {
+      "id": "heir_trusted",
+      "label": "取得传人信任",
+      "kind": "flag",
+      "flag": "heir_trusted",
+      "guidance": "传人在玩家出示证据后建立信任时，通过 set_flag 设置 heir_trusted。",
+      "points": 5
+    }
+  ],
+  "scoring": {
+    "truth": 50,
+    "coverage": 15,
+    "efficiency": 15,
+    "branch": 10,
+    "combat": 10
+  },
+  "finale": { "role": "culprit", "when": ["who"], "points": 10 },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "decoy_liar", "weight": 2 }
+  ],
+  "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的物件、痕迹和动作，不写空泛的氛围。线索文本要写清“看到了什么”，不要替玩家下结论。误导线索要合理，能解释为其他原因。人物台词符合身份和性格，凶手说话滴水不漏但经不起物证对质。"
+}

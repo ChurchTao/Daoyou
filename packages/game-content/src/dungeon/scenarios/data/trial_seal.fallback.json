@@ -1,0 +1,637 @@
+{
+  "templateId": "trial_seal",
+  "title": "黄枫谷禁地谜案",
+  "truth": "多年前，黄枫谷内门弟子萧承为了独占宗门秘库中的宝物，精心策划了一场阴谋。他利用唐远急于求成的心态，在上一届试炼开始前，偷偷潜入禁地篡改了部分机关的痕迹，并编造了一套虚假的解法传授给唐远。当唐远在第二处试炼室按照这套假解法操作五行玉柱时，立刻触发了致命的反噬阵法，导致其重伤被困，从此“失踪”。而萧承则对外宣称自己从未涉足禁地，试图撇清关系。唐远在漫长的岁月中，因记忆受损和深深的自责，始终认为是自己一时疏忽记错了一步才导致失败，未能察觉真相。直到玩家到来，通过执事留下的巡查记录戳穿了萧承的谎言，并在五行玉柱旁发现了近期有人恶意破坏的新刮痕，唐远这才恍然大悟，明白自己是被同门陷害。与此同时，玩家也在木灵守的谜语指引和唐远的真实回忆帮助下，破解了两处机关，拼凑出主禁制的正确开启次序，最终发现只有以纯净生机的木灵晶作为引子，才能安然打开那扇尘封已久的秘库石门。",
+  "brief": {
+    "identity": "你是黄枫谷的一名筑基期修士，受邀协助调查上一届试炼中弟子失踪的疑云，并尝试重启封闭多年的宗门秘库。",
+    "goal": "你需要破解禁地中的两处机关，查明前人失败的真相，找出开启主禁制的正确方法与引子，最终打开秘库石门。",
+    "opening": "你踏入迷雾林，四周古阵低鸣，空气中弥漫着浓郁的木灵气。前方隐约可见一座古老的石门，上面刻满了繁复的符文。一名自称内门弟子的青年迎了上来，热情地向你介绍情况，声称自己掌握了一些线索。而在更深处的试炼室里，一个满身伤痕的身影正虚弱地靠在墙边，眼神迷茫地望着你手中的试炼令牌。",
+    "relations": [
+      {
+        "npcId": "npc_warden",
+        "text": "黄枫谷后山试炼禁地的看守者，据传由开派祖师亲手点化，守护着通往宗门秘库的主禁制。"
+      },
+      {
+        "npcId": "npc_rival",
+        "text": "与玩家同场参加试炼的内门弟子，声称自己从前人那里得到了破解机关的线索。"
+      },
+      {
+        "npcId": "npc_fallen",
+        "text": "传闻在上一届试炼中离奇失踪的前辈，如今以重伤之躯滞留于此，似乎对当年的失败耿耿于怀。"
+      }
+    ]
+  },
+  "startRoomId": "room_entrance",
+  "rooms": [
+    {
+      "id": "room_entrance",
+      "name": "迷雾林入口",
+      "description": "你踏入迷雾林入口，四周古木参天，灵雾如纱般缠绕枝头。前方隐约可见一座斑驳的石碑矗立，碑文被岁月侵蚀得难以辨认。风穿过林间，带来泥土与草木混合的清苦气息。此处寂静无声，唯有偶尔传来的鸟鸣划破长空，指引着通往禁地深处的方向。",
+      "brief": "迷雾依旧，石碑静立。",
+      "exits": ["room_hub"]
+    },
+    {
+      "id": "room_hub",
+      "name": "主殿禁制前",
+      "description": "主殿禁制前，一座宏伟的秘库石门横亘眼前，门上刻有四门槽位，沉寂如铁。木灵守化作一团淡绿色的灵雾，悬浮于石门前，形态流转不定。空气中弥漫着浓郁的木灵气，令人精神一振。守试者静静注视着你，似乎在等待你的回应。",
+      "brief": "灵雾聚形，守试者静候。",
+      "exits": ["room_side_4", "room_trial_2", "room_side_3"]
+    },
+    {
+      "id": "room_side_4",
+      "name": "藏经残卷阁",
+      "description": "藏经残卷阁内，书架林立，上面堆满了泛黄的竹简与残破的卷轴。灰尘在透过窗棂的光束中飞舞。这里空无一人，只有陈旧的纸张气味弥漫。阁内光线昏暗，角落里的蛛网随风轻晃，显得荒凉而静谧。",
+      "brief": "尘封旧卷，无人问津。",
+      "exits": ["room_trial_1", "room_side_1"]
+    },
+    {
+      "id": "room_trial_2",
+      "name": "第二试炼室",
+      "description": "第二试炼室中，五行玉柱高耸，柱身刻有金木水火土五种纹路。角落阴影处似乎蜷缩着一个身影，衣衫褴褛，面色苍白，眼神空洞地望着玉柱。地上散落着几块碎石，空气中残留着淡淡的焦糊味，仿佛不久前发生过激烈的冲突。",
+      "brief": "唐远枯坐，玉柱冷峻。",
+      "exits": ["room_side_2"]
+    },
+    {
+      "id": "room_side_3",
+      "name": "木灵脉泉眼",
+      "description": "木灵脉泉眼处，一汪清泉从岩石缝隙中涌出，水面泛着淡淡的绿意。泉边生长着几株散发着微光的灵草，叶片上挂着晶莹的水珠。水声潺潺，伴随着清新的水汽扑面而来，令人心旷神怡。此处并无他人，唯有自然之声。",
+      "brief": "灵泉涌动，草木葱茏。",
+      "exits": []
+    },
+    {
+      "id": "room_trial_1",
+      "name": "第一试炼室",
+      "description": "第一试炼室内，四象阵盘嵌在地面中央，青龙、白虎、朱雀、玄武四个铜钮色泽古朴。墙壁上刻有模糊的古刻，记录着某种阵法顺序。室内光线较为明亮，空气干燥，没有任何人物在场，只有阵盘发出轻微的嗡鸣声。",
+      "brief": "阵盘静卧，古刻依稀。",
+      "exits": []
+    },
+    {
+      "id": "room_side_2",
+      "name": "执事巡查房",
+      "description": "执事巡查房内，一张厚重的紫檀案牍占据房间中央，上面摆放着笔墨纸砚和一本厚厚的巡查记录册。窗外透进微弱的光线，照亮了案牍上的尘埃。房间内空无一人，但似乎还残留着执事刚刚离开时的余温。",
+      "brief": "案牍静置，记录在册。",
+      "exits": []
+    },
+    {
+      "id": "room_side_1",
+      "name": "长老静室外厅",
+      "description": "长老静室外厅，两张蒲团相对而放，中间供奉着一座香炉，炉中香灰已冷。墙壁上挂着几幅褪色的山水画，描绘着宗门先祖的风采。这里安静肃穆，空气中带着一丝若有若无的檀香，令人不由自主地收敛心神。",
+      "brief": "蒲团香冷，静室无声。",
+      "exits": []
+    }
+  ],
+  "objects": [
+    {
+      "id": "obj_seal_main",
+      "roomId": "room_hub",
+      "name": "秘库石门",
+      "detail": "秘库石门上刻着一句关于开启次序的完整铭文，字迹深邃，隐隐透着威严。"
+    },
+    {
+      "id": "obj_mech_1",
+      "roomId": "room_trial_1",
+      "name": "四象阵盘",
+      "detail": "细看四象阵盘，四个铜钮表面有细微的磨损痕迹，尤其是青龙钮与玄武钮，划痕较深，显示出曾被频繁操作过。"
+    },
+    {
+      "id": "obj_mech_2",
+      "roomId": "room_trial_2",
+      "name": "五行玉柱",
+      "detail": "细看五行玉柱，金行柱与水行柱的连接处有明显的断裂修补痕迹，而火行柱与土行柱之间则留有新鲜的刮擦印记。"
+    },
+    {
+      "id": "obj_inscr_1",
+      "roomId": "room_side_4",
+      "name": "石壁古刻",
+      "detail": "石壁古刻旁，有一处不起眼的凹陷，里面嵌着一枚残缺的玉片，边缘锋利。"
+    },
+    {
+      "id": "obj_inscr_2",
+      "roomId": "room_trial_1",
+      "name": "残碑铭文",
+      "detail": "残碑铭文底部，刻着一行极小的注脚，字迹潦草，似乎是后人匆忙加上去的。"
+    },
+    {
+      "id": "obj_relic",
+      "roomId": "room_trial_2",
+      "name": "染血令牌",
+      "detail": "染血令牌上，血迹已经干涸发黑，但在令牌背面，隐约能看到一个清晰的指印。"
+    },
+    {
+      "id": "obj_record",
+      "roomId": "room_trial_2",
+      "name": "巡查记录册",
+      "detail": "巡查记录册的某一页被刻意撕去了一角，留下的边缘参差不齐，且墨迹新旧不一。"
+    },
+    {
+      "id": "obj_trace",
+      "roomId": "room_trial_2",
+      "name": "新刮痕",
+      "detail": "新刮痕周围的石粉尚未完全散去，呈现出一种新鲜的灰白色，与周围陈旧的环境格格不入。"
+    },
+    {
+      "id": "obj_entrance",
+      "roomId": "room_entrance",
+      "name": "禁地石碑",
+      "detail": "禁地石碑表面粗糙，刻痕深浅不一，顶部有一个明显的缺口，像是被重物撞击所致。"
+    },
+    {
+      "id": "obj_side_3",
+      "roomId": "room_side_3",
+      "name": "泉眼木灵晶",
+      "detail": "泉眼木灵晶悬浮在水面上方寸许，通体翠绿，内部仿佛有流光转动，散发出温润的气息。"
+    },
+    {
+      "id": "obj_side_2",
+      "roomId": "room_side_2",
+      "name": "执事案牍",
+      "detail": "执事案牍抽屉半掩，里面露出半截断裂的笔杆，笔尖沾有未干的墨渍。"
+    },
+    {
+      "id": "obj_side_1",
+      "roomId": "room_side_1",
+      "name": "蒲团香炉",
+      "detail": "蒲团香炉底部的香灰中，埋着一颗碎裂的瓷片，形状不规则，边缘锋利。"
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue_m1_h1",
+      "name": "石壁古刻",
+      "text": "藏经残卷阁的石壁古刻上，几行古篆被岁月磨得发浅，四象方位的布局依然清晰可辨：“玄武钮在白虎钮之前”",
+      "key": true,
+      "supports": [],
+      "foundAt": {
+        "objectId": "obj_inscr_1"
+      }
+    },
+    {
+      "id": "clue_m1_h2",
+      "name": "前人所见",
+      "text": "唐远坐在角落，眼神空洞地凝视着虚空，手指在膝盖上无意识地比划着某种按压的节奏，似在回忆当年的步骤。：“白虎钮在青龙钮之前”",
+      "key": true,
+      "supports": []
+    },
+    {
+      "id": "clue_frag_1",
+      "name": "阵盘残句",
+      "text": "四象阵盘解开后，机关内部发出机括转动声，一块隐藏的石板翻转，露出半行关于主禁制开启次序的残句。：“杜门槽在伤门槽之前”",
+      "key": true,
+      "supports": ["order"]
+    },
+    {
+      "id": "clue_m2_h1",
+      "name": "残碑铭文",
+      "text": "第一试炼室角落的残碑上刻着五行相生相克的图示，线条深浅不一，旁注一行小字：“火行柱在水行柱之前”",
+      "key": true,
+      "supports": [],
+      "foundAt": {
+        "objectId": "obj_inscr_2"
+      }
+    },
+    {
+      "id": "clue_m2_h2",
+      "name": "前人回忆",
+      "text": "唐远猛地抬头，目光锐利地盯着你，眼中闪过一丝痛苦与清醒交织的神色，低声述说当年亲眼所见的玉柱反应。：“金行柱在火行柱之前”",
+      "key": true,
+      "supports": []
+    },
+    {
+      "id": "clue_frag_2",
+      "name": "玉柱残句",
+      "text": "五行玉柱解开后，底座缓缓下沉，露出一段新的铭文残片，记载着主禁制开启次序的后半部分。：“杜门槽居第一”",
+      "key": true,
+      "supports": ["order"]
+    },
+    {
+      "id": "clue_main",
+      "name": "石门铭文",
+      "text": "主殿秘库石门中央刻有一整句完整的铭文，字体苍劲有力，明确记载了开启此门所需的特定次序。：“生门槽居第二”",
+      "key": true,
+      "supports": ["order"],
+      "foundAt": {
+        "objectId": "obj_seal_main"
+      }
+    },
+    {
+      "id": "clue_catalyst",
+      "name": "引子谜语",
+      "text": "木灵守化作一团淡绿色的灵雾，在你面前盘旋，雾气中隐约浮现出一株幼苗破土而出的虚影，指向开启之物。",
+      "key": true,
+      "supports": ["catalyst"]
+    },
+    {
+      "id": "clue_relic",
+      "name": "令牌痕迹",
+      "text": "唐远留下的染血令牌背面，刻有一个微小的凹槽，形状与某种植物根茎完全吻合，边缘残留着干枯的木质纤维。",
+      "key": true,
+      "supports": ["catalyst"],
+      "foundAt": {
+        "objectId": "obj_relic"
+      }
+    },
+    {
+      "id": "clue_record",
+      "name": "巡查记录",
+      "text": "第二试炼室角落散落着一本执事的巡查记录册，其中一页用朱砂记着：萧承曾在上一届试炼前三日独自进入禁地两个时辰。",
+      "key": true,
+      "supports": ["cause"],
+      "foundAt": {
+        "objectId": "obj_record"
+      }
+    },
+    {
+      "id": "clue_trace",
+      "name": "玉柱刮痕",
+      "text": "五行玉柱基座旁的新刮痕清晰可见，刀口新鲜且凌乱，显示有人近期在此处强行撬动或修改过机关结构。",
+      "key": true,
+      "supports": ["cause"],
+      "foundAt": {
+        "objectId": "obj_trace"
+      }
+    },
+    {
+      "id": "clue_misled",
+      "name": "前人醒悟",
+      "text": "唐远颤抖着手抚摸那新刮痕，脸色惨白，终于意识到当年那套导致他重伤的解法，并非他自己推演所得，而是被人刻意误导。",
+      "key": true,
+      "supports": ["cause"]
+    },
+    {
+      "id": "clue_claim",
+      "name": "闯关者谎言",
+      "text": "萧承自称：“我从未进过这禁地半步，更不认识什么唐师兄，这些都是道听途说。”",
+      "key": false,
+      "supports": []
+    },
+    {
+      "id": "clue_account",
+      "name": "前人自述",
+      "text": "唐远低着头，声音沙哑，反复念叨着自己当年一定是记错了五行玉柱的一步操作，才导致阵法反噬，言语间满是自责。",
+      "key": false,
+      "supports": []
+    }
+  ],
+  "items": [],
+  "npcs": [
+    {
+      "id": "npc_warden",
+      "name": "木灵守",
+      "title": "禁地守试者",
+      "role": "warden",
+      "roomId": "room_hub",
+      "greeting": "雾锁重门，灵台方寸。来者既入此局，便需以心映物。莫问路在何方，且看石上青苔、柱间微尘，皆藏天地生克之理。若心浮气躁，恐难窥得真意。",
+      "idleLine": "风起林梢，叶落无声。万物有时，客官不必在此久候。",
+      "deflectLine": "身外之物，如过眼云烟。客官若只执着于表象，终是徒劳。",
+      "secrets": [
+        {
+          "clueId": "clue_catalyst",
+          "requires": {
+            "has_clue": "clue_main"
+          },
+          "line": "木灵守微微颔首，周身灵雾流转，目光落在你手中的铭文拓片上，缓缓开口：‘枯荣有数，生机为引。非金非火，非水非土，唯有一物，含春而不争，化煞于无形。’"
+        },
+        {
+          "clueId": "clue_m2_h2",
+          "requires": {
+            "visited": "room_trial_2"
+          },
+          "line": "木灵守目光转向第二试炼室的方向，声音低沉：‘五行流转，生生不息。逆则伤，顺则生。切记，相生之道，在于顺势而为，而非强行逆转。’“金行柱在火行柱之前”"
+        }
+      ],
+      "reactions": []
+    },
+    {
+      "id": "npc_rival",
+      "name": "萧承",
+      "title": "内门弟子",
+      "role": "rival",
+      "roomId": "room_side_2",
+      "greeting": "道友有礼了！在下萧承，黄枫谷内门弟子。这禁地机关虽繁，但我已参透几分门道，正欲尝试。若能顺利通关，秘库中的宝物你我共享如何？",
+      "idleLine": "阵图推演，需静心凝神。稍等片刻，让我再理清思路。",
+      "deflectLine": "这些琐碎旧物，与破解大阵何干？道友莫要分散心神，耽误了时辰。",
+      "secrets": [
+        {
+          "clueId": "clue_claim",
+          "requires": {
+            "visited": "room_hub"
+          },
+          "line": "萧承闻言，嘴角的笑意僵了一瞬，随即故作轻松地拍了拍衣袖上的灰尘，眼神却有些飘忽不定，并未直接回答你的质问。“我从未进过这禁地半步，更不认识什么唐师兄，这些都是道听途说。”"
+        }
+      ],
+      "reactions": [
+        {
+          "id": "react_rival_record",
+          "evidenceId": "clue_record",
+          "line": "萧承脸色骤变，额角渗出冷汗，强撑着说道：‘这记录册……怕是有人故意伪造，意图污蔑于我！我从未进过这禁地半步，更不认识什么唐师兄，这都是你们道听途说，凭空捏造的谎言！’",
+          "effects": [
+            {
+              "kind": "set_flag",
+              "flag": "rival_exposed"
+            }
+          ],
+          "exposesLie": true
+        }
+      ]
+    },
+    {
+      "id": "npc_fallen",
+      "name": "唐远",
+      "title": "失踪弟子",
+      "role": "fallen",
+      "roomId": "room_trial_2",
+      "greeting": "咳咳……你是新来的？别靠近那根柱子……我当年就是记错了步骤，触发了反噬，才困在这里动弹不得。你千万小心，别再犯同样的错误。",
+      "idleLine": "岁月漫长，记忆早已模糊。我只记得那一步之差，害了自己，也累了旁人。",
+      "deflectLine": "那是多年前的旧事了，与你无关。你还是去琢磨那些阵盘吧，别管我这废人。",
+      "secrets": [
+        {
+          "clueId": "clue_account",
+          "requires": {
+            "visited": "room_hub"
+          },
+          "line": "唐远蜷缩在阴影中，双手紧紧攥着衣角，声音颤抖：‘我当时明明记得是先动木行柱，再动金行柱……一定是我老了，脑子糊涂了，记错了顺序，才招来这反噬之苦。’"
+        },
+        {
+          "clueId": "clue_m1_h2",
+          "requires": {
+            "visited": "room_trial_1"
+          },
+          "line": "唐远抬起头，浑浊的眼中闪过一丝清明：‘那日我在四象阵盘旁亲眼见过一行小字，写的是——’“白虎钮在青龙钮之前”"
+        }
+      ],
+      "reactions": [
+        {
+          "id": "react_fallen_trace",
+          "evidenceId": "clue_trace",
+          "line": "唐远盯着玉柱旁那道新鲜的刮痕，瞳孔剧烈收缩，猛地抬头看向萧承，声音嘶哑而惊恐：‘这道痕迹……是新的！不是你告诉我的解法留下的……是你！是你篡改了机关，误导了我！原来我一直以为是自己的错，其实是被你害了！’",
+          "effects": [
+            {
+              "kind": "reveal_clue",
+              "clueId": "clue_misled"
+            },
+            {
+              "kind": "set_flag",
+              "flag": "fallen_turned"
+            }
+          ],
+          "exposesLie": false
+        }
+      ]
+    }
+  ],
+  "interactions": [],
+  "questions": [
+    {
+      "id": "order",
+      "options": [
+        {
+          "id": "order_fallen",
+          "label": "伤门槽→生门槽→景门槽"
+        },
+        {
+          "id": "order_true",
+          "label": "杜门槽→生门槽→伤门槽"
+        },
+        {
+          "id": "order_other",
+          "label": "杜门槽→景门槽→伤门槽"
+        },
+        {
+          "id": "order_rival",
+          "label": "景门槽→生门槽→杜门槽"
+        }
+      ],
+      "answer": "order_true",
+      "explanation": "真相由石门铭文确定正确次序，四象阵盘与五行玉柱的残句分别印证了次序的前后两段，拼合即为完整路径。"
+    },
+    {
+      "id": "catalyst",
+      "options": [
+        {
+          "id": "catalyst_true",
+          "label": "嵌入木灵晶"
+        },
+        {
+          "id": "catalyst_rumor",
+          "label": "滴入心头血"
+        },
+        {
+          "id": "catalyst_other",
+          "label": "放置试炼令牌"
+        },
+        {
+          "id": "catalyst_rival",
+          "label": "敲击阵盘中心"
+        }
+      ],
+      "answer": "catalyst_true",
+      "explanation": "引子为木灵晶。石门铭文暗示需生机化解杀伐，令牌痕迹上的植物凹槽与灵雾幼苗虚影共同指向木灵晶蕴含纯净生机的特性。"
+    },
+    {
+      "id": "cause",
+      "options": [
+        {
+          "id": "cause_true",
+          "label": "被他人误导操作"
+        },
+        {
+          "id": "cause_other",
+          "label": "灵力不足反噬"
+        },
+        {
+          "id": "cause_self",
+          "label": "自己记错了一步"
+        },
+        {
+          "id": "cause_rumor",
+          "label": "触怒了守试者"
+        }
+      ],
+      "answer": "cause_true",
+      "explanation": "唐远失败系被误导。巡查记录戳穿萧承曾潜入禁地，新刮痕证明有人篡改机关，结合唐远的醒悟，确认为他人故意陷害而非其自身失误。"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt_tamper",
+      "warnAt": 16,
+      "at": 20,
+      "unless": {
+        "any": [
+          {
+            "flag": "mech_2_solved"
+          },
+          {
+            "flag": "rival_exposed"
+          }
+        ]
+      },
+      "warning": "萧承的目光频频飘向第二试炼室的方向，脚步虚浮，神色慌张，不时抬头观察四周，似乎在寻找什么机会。",
+      "text": "你察觉萧承突然冲向第二试炼室，不顾一切地胡乱按压五行玉柱的部件。一阵刺耳的摩擦声响起，玉柱旁的石板崩裂，新的刮痕凌乱交错，机关随即发出一声沉闷的锁死声，彻底失去了反应。",
+      "effects": [
+        {
+          "kind": "lock_mechanism",
+          "mechanismId": "mech_2"
+        }
+      ]
+    }
+  ],
+  "mechanisms": [
+    {
+      "id": "mech_1",
+      "objectId": "obj_mech_1",
+      "name": "四象阵盘",
+      "final": false,
+      "parts": [
+        {
+          "id": "m1_p1",
+          "label": "青龙钮"
+        },
+        {
+          "id": "m1_p2",
+          "label": "白虎钮"
+        },
+        {
+          "id": "m1_p3",
+          "label": "朱雀钮"
+        },
+        {
+          "id": "m1_p4",
+          "label": "玄武钮"
+        }
+      ],
+      "solution": ["m1_p4", "m1_p2", "m1_p1"],
+      "hints": [
+        {
+          "clueId": "clue_m1_h1",
+          "rule": {
+            "kind": "before",
+            "first": "m1_p4",
+            "then": "m1_p2"
+          }
+        },
+        {
+          "clueId": "clue_m1_h2",
+          "rule": {
+            "kind": "before",
+            "first": "m1_p2",
+            "then": "m1_p1"
+          }
+        }
+      ],
+      "onSolve": [
+        {
+          "kind": "reveal_clue",
+          "clueId": "clue_frag_1"
+        }
+      ],
+      "solvedText": "随着最后一个铜钮按下，四象阵盘发出低沉的轰鸣，地面微微震动，一道隐藏的石壁缓缓移开，露出一条通往深处的通道。",
+      "backlashText": "阵盘剧烈震颤，刺目的金光爆发而出，将你狠狠震飞，气血翻涌，喉头涌上一股腥甜。"
+    },
+    {
+      "id": "mech_2",
+      "objectId": "obj_mech_2",
+      "name": "五行玉柱",
+      "final": false,
+      "parts": [
+        {
+          "id": "m2_p1",
+          "label": "金行柱"
+        },
+        {
+          "id": "m2_p2",
+          "label": "木行柱"
+        },
+        {
+          "id": "m2_p3",
+          "label": "水行柱"
+        },
+        {
+          "id": "m2_p4",
+          "label": "火行柱"
+        }
+      ],
+      "solution": ["m2_p1", "m2_p4", "m2_p3"],
+      "hints": [
+        {
+          "clueId": "clue_m2_h1",
+          "rule": {
+            "kind": "before",
+            "first": "m2_p4",
+            "then": "m2_p3"
+          }
+        },
+        {
+          "clueId": "clue_m2_h2",
+          "rule": {
+            "kind": "before",
+            "first": "m2_p1",
+            "then": "m2_p4"
+          }
+        }
+      ],
+      "onSolve": [
+        {
+          "kind": "reveal_clue",
+          "clueId": "clue_frag_2"
+        }
+      ],
+      "solvedText": "五行玉柱依次亮起五色光芒，相互呼应，最终汇聚成一股柔和的能量流，注入地面，显现出一条隐秘的小径。",
+      "backlashText": "玉柱瞬间黯淡，狂暴的气劲从柱身迸发，如同重锤击打在你胸口，让你呼吸困难，视线一片模糊。"
+    },
+    {
+      "id": "seal_main",
+      "objectId": "obj_seal_main",
+      "name": "秘库石门",
+      "final": true,
+      "parts": [
+        {
+          "id": "s_p1",
+          "label": "生门槽"
+        },
+        {
+          "id": "s_p2",
+          "label": "伤门槽"
+        },
+        {
+          "id": "s_p3",
+          "label": "杜门槽"
+        },
+        {
+          "id": "s_p4",
+          "label": "景门槽"
+        }
+      ],
+      "solution": ["s_p3", "s_p1", "s_p2"],
+      "hints": [
+        {
+          "clueId": "clue_main",
+          "rule": {
+            "kind": "position",
+            "part": "s_p1",
+            "index": 1
+          }
+        },
+        {
+          "clueId": "clue_frag_1",
+          "rule": {
+            "kind": "before",
+            "first": "s_p3",
+            "then": "s_p2"
+          }
+        },
+        {
+          "clueId": "clue_frag_2",
+          "rule": {
+            "kind": "position",
+            "part": "s_p3",
+            "index": 0
+          }
+        }
+      ],
+      "onSolve": [],
+      "solvedText": "主禁制应声而开。",
+      "backlashText": "主禁制纹丝不动。"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import './mystery-scenes.css';
+import { mysteryPortraitUrl } from './mysteryArt';
+
+/**
+ * 事件发生时的整屏暗场：本回合有事件发生、且还没为这一回合播过时播一次。
+ * 页面刚载入时不补播。
+ */
+export function MysteryEventFlash({
+  turn,
+  happened,
+}: {
+  turn: number;
+  happened: boolean;
+}) {
+  const [shownTurn, setShownTurn] = useState(turn);
+  if (!happened || shownTurn === turn) return null;
+  return createPortal(
+    <div
+      aria-hidden
+      className="mystery-event-flash bg-ink pointer-events-none fixed inset-0 z-40 flex items-center justify-center"
+      onAnimationEnd={() => setShownTurn(turn)}
+    >
+      <span className="text-paper/70 text-2xl tracking-[1em]">变</span>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * 异变侵蚀：屏幕四周的墨色随加剧层级向内推进；镇住后墨色退去，
+ * 镇住的那一刻压下一方朱印。
+ */
+export function MysteryAnomalyVeil({
+  stage,
+  stages,
+  contained,
+}: {
+  stage: number;
+  stages: number;
+  contained: boolean;
+}) {
+  // 载入时已经镇住的不补播盖印。
+  const [stamped, setStamped] = useState(contained);
+  const level = contained || stages === 0 ? 0 : stage / stages;
+  return createPortal(
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-40 transition-[box-shadow] duration-[2000ms]"
+        style={{
+          boxShadow:
+            level > 0
+              ? `inset 0 0 ${120 + level * 220}px ${20 + level * 60}px rgba(44, 24, 16, ${0.35 + level * 0.4})`
+              : 'inset 0 0 0 0 rgba(44, 24, 16, 0)',
+        }}
+      />
+      {contained && !stamped ? (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center"
+        >
+          <div
+            className="mystery-ward-stamp border-crimson text-crimson flex size-28 items-center justify-center border-4 text-6xl"
+            onAnimationEnd={() => setStamped(true)}
+          >
+            镇
+          </div>
+        </div>
+      ) : null}
+    </>,
+    document.body,
+  );
+}
+
+/**
+ * 结尾对决前的“现形”转场：暗场中对手的名字压出，再淡入其情状；
+ * 点一下或数秒后进入迎战准备。
+ */
+export function MysteryReveal({
+  name,
+  description,
+  portrait,
+  onDone,
+}: {
+  name: string;
+  description: string;
+  /** 对手立绘键；没有素材时只显示名字。 */
+  portrait?: string;
+  onDone: () => void;
+}) {
+  const url = mysteryPortraitUrl(portrait);
+  useEffect(() => {
+    const timer = window.setTimeout(onDone, 4200);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+  return createPortal(
+    <button
+      type="button"
+      aria-label="跳过"
+      className="mystery-scene bg-ink text-paper fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center"
+      onClick={onDone}
+    >
+      <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
+      {url ? (
+        <span className="mystery-reveal-name bg-paper/90 rounded-full p-4">
+          <img
+            src={url}
+            alt=""
+            aria-hidden="true"
+            className="size-40 object-contain md:size-56"
+          />
+        </span>
+      ) : null}
+      <span className="mystery-reveal-name text-crimson text-4xl font-semibold tracking-[0.3em] md:text-5xl">
+        {name}
+      </span>
+      <span className="mystery-reveal-text text-paper/80 max-w-xl leading-8">
+        {description}
+      </span>
+      <span className="text-paper/40 text-xs">点一下继续</span>
+    </button>,
+    document.body,
+  );
+}

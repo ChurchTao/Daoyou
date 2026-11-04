@@ -1,11 +1,11 @@
-import { DungeonFlowError } from '@server/dungeon/application/flow/DungeonFlowService.js';
 import { CombatV6BuildError } from '@server/combat/application/CombatV6BuildService.js';
-import { redisLockErrorResponse } from '@server/lib/http/errors.js';
-import { DungeonStartError } from '@server/dungeon/application/DungeonApplicationService.js';
 import {
   QiInsufficientError,
   QiServiceError,
 } from '@server/cultivator/application/QiService.js';
+import { DungeonStartError } from '@server/dungeon/application/DungeonApplicationService.js';
+import { DungeonFlowError } from '@server/dungeon/application/flow/DungeonFlowService.js';
+import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import { ZodError } from 'zod';
 import { apiErrorFilter } from '../http/error-filter.js';
 import { JsonBodyParseError } from '../http/json-body.js';
@@ -88,8 +88,6 @@ function recoveryErrors(fallback: string) {
 }
 
 export const DungeonRecoverErrors = recoveryErrors('副本恢复失败');
-export const DungeonContinueErrors = recoveryErrors('副本推进失败');
-export const DungeonEscapeErrors = recoveryErrors('副本结算失败');
 
 export const DungeonQuitErrors = apiErrorFilter(
   (error) =>

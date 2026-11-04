@@ -1,0 +1,248 @@
+/* 解谜副本的专属场景与表现：机关盘、守卫对峙、预兆、异动与异变侵蚀。 */
+
+.mystery-scene {
+  animation: mystery-scene-in 0.35s ease-out;
+}
+
+/* 按错：盘面一震。 */
+.mystery-disc-backlash {
+  animation: mystery-disc-shake 0.45s ease-in-out;
+}
+
+/* 裂纹逐笔画出。 */
+.mystery-crack {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 0;
+  animation: mystery-crack-draw 0.6s ease-out;
+}
+
+/* 解开：封印从中心晕开。 */
+.mystery-seal-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mystery-seal-bloom 1.2s ease-out forwards;
+}
+
+.mystery-guard-card {
+  animation: mystery-guard-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 预兆：字微微颤动两下。 */
+.mystery-omen {
+  animation: mystery-omen-tremble 0.5s ease-in-out 2;
+}
+
+/* 事件发生：整屏短暂暗场。 */
+.mystery-event-flash {
+  animation: mystery-event-flash 1.6s ease-in-out forwards;
+}
+
+/* 镇物镇住异变：朱印压下再淡去。 */
+.mystery-ward-stamp {
+  animation: mystery-ward-stamp 1.8s ease-out forwards;
+}
+
+/* 现形：名字从放大的墨影中压实，随后情状淡入。 */
+.mystery-reveal-name {
+  animation: mystery-reveal-name 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mystery-reveal-text {
+  animation: mystery-scene-in 0.8s ease-out 1s both;
+}
+
+/* 迎战对峙：对手从左侧压入，你从右侧站定，墨痕随后划开。 */
+.mystery-duel-foe {
+  animation: mystery-duel-in-left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.mystery-duel-self {
+  animation: mystery-duel-in-right 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+}
+
+.mystery-duel-slash {
+  transform-origin: top;
+  animation: mystery-duel-slash 0.5s ease-out 0.45s both;
+}
+
+@keyframes mystery-duel-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mystery-duel-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes mystery-duel-slash {
+  from {
+    opacity: 0;
+    scale: 1 0;
+  }
+  to {
+    opacity: 1;
+    scale: 1 1;
+  }
+}
+
+@keyframes mystery-reveal-name {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(1.6);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+@keyframes mystery-omen-tremble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5px);
+  }
+  75% {
+    transform: translateX(1.5px);
+  }
+}
+
+@keyframes mystery-event-flash {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  60% {
+    opacity: 0.88;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mystery-ward-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.8) rotate(-8deg);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+@keyframes mystery-scene-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mystery-disc-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px) rotate(-1deg);
+  }
+  40% {
+    transform: translateX(7px) rotate(1deg);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes mystery-crack-draw {
+  from {
+    stroke-dashoffset: 140;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes mystery-seal-bloom {
+  from {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(4.5);
+    opacity: 0;
+  }
+}
+
+@keyframes mystery-guard-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mystery-scene,
+  .mystery-disc-backlash,
+  .mystery-crack,
+  .mystery-seal-bloom,
+  .mystery-guard-card {
+    animation: none;
+  }
+
+  .mystery-seal-bloom {
+    opacity: 0;
+  }
+
+  .mystery-omen,
+  .mystery-reveal-name,
+  .mystery-reveal-text,
+  .mystery-duel-slash {
+    animation: none;
+  }
+
+  .mystery-duel-foe,
+  .mystery-duel-self {
+    animation: mystery-scene-in 0.3s ease-out both;
+  }
+
+  /* 暗场与盖印仍需结束事件来收起，只把时长压到最短。 */
+  .mystery-event-flash,
+  .mystery-ward-stamp {
+    animation-duration: 1ms;
+  }
+}

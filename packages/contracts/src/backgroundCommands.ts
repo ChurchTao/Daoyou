@@ -10,6 +10,7 @@ export const BACKGROUND_COMMAND_TYPES = [
   'resource-replay.cleanup',
   'expired-data.cleanup',
   'material-library.generate',
+  'dungeon-scenario.generate',
   'sponsorship.reconcile',
   'sponsorship.deep-reconcile',
   'sponsorship.cleanup',
@@ -54,6 +55,12 @@ export const BACKGROUND_COMMAND_DEFINITIONS = {
     version: 1,
     subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.material-library-generate.v1`,
     scheduleBucketMs: 24 * 60 * 60_000,
+  },
+  // 剧本库生成队列的唤醒信号；短桶去重，命令本身不带参数，任务在数据库中。
+  'dungeon-scenario.generate': {
+    version: 1,
+    subject: `${BACKGROUND_COMMAND_SUBJECT_PREFIX}.dungeon-scenario-generate.v1`,
+    scheduleBucketMs: 30_000,
   },
   'sponsorship.reconcile': {
     version: 1,

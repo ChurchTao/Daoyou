@@ -86,6 +86,13 @@ export const adminRoutes = (
       handle={title('蜃楼敌人')}
     />
     <Route
+      path="dungeon-scenarios"
+      lazy={lazyRoute(
+        () => import('@app/routes/admin/dungeon-scenarios/route'),
+      )}
+      handle={title('云游剧本管理')}
+    />
+    <Route
       path="community-group"
       lazy={lazyRoute(() => import('@app/routes/admin/community-qrcode/route'))}
       handle={title('QQ交流群')}

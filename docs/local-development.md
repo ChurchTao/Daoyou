@@ -72,6 +72,25 @@ Nest收到SIGTERM／SIGINT后拒绝新请求，停止定时发布并排空HTTP�
 
 `prd` 指预发布调试，两组都使用 `NODE_ENV=development`，API 启用 watch，Web 使用 Node.js 运行 Vite。API 和 Web 分别读取同一份环境文件；Vite 根据 `HOST`、`WEB_PORT` 监听，并把 API／WebSocket 代理到 `PORT`。本地端口为 3001／5174；预发布调试默认 3000／5173。
 
+本地 `dev`／`prd` 会消费 NATS 后台 command，启动后可处理积压的补货、预热和重试任务。cron 仍只在 production 模式启动；本地可通过后台“云游剧本”的补一本、预热或重试操作投递任务。单本调试期间临时关闭本地后台消费的限制已撤销。
+
+单本验证指定一个排队任务 ID，只执行该任务一次，完整走生成、审校与入库，不清扫、补货或继续处理其他任务。将下面的占位符替换为任务 UUID，调用后检查返回的 `status`／`error`。失败时任务按原有策略回到排队或失败状态，不会在本次调用里继续执行：
+
+```bash
+cd apps/api
+node --env-file=../../env/staging.env --import tsx --input-type=module <<'NODE'
+import { runSingleScenarioGeneration } from './src/dungeon/application/mystery/ScenarioLibrary.ts';
+import { closeDatabase } from './src/lib/drizzle/db.ts';
+import { closeRedisConnection } from './src/lib/redis/index.ts';
+try {
+  console.log(await runSingleScenarioGeneration('替换为排队任务UUID'));
+} finally {
+  await closeDatabase();
+  await closeRedisConnection();
+}
+NODE
+```
+
 `env/staging.env` 从 `env/example.env` 准备，已有文件继续使用；它连接远程服务，不能用于自动化模拟测试写入。仅 `env/local.example.env` 和 `env/example.env` 纳入Git，实际 `env/` 配置默认忽略。原根目录 `.env` 原样移至 `env/legacy.env` 保留，不被任何命令加载；不将真实凭据放入本地配置或 `VITE_*`。整个 `env/` 排除在 Docker 构建上下文之外。
 
 Node的 `--env-file` 显式选择文件；Nest ConfigModule关闭dotenv自动发现。Vite使用 `envDir: false`，避免叠加另一份配置；公开的 `VITE_*` 由进程环境注入。不要在Shell中预先导出另一环境的业务凭据。

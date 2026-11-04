@@ -44,6 +44,7 @@ export function createBackgroundCommandHandlers(
     'expired-data.cleanup': () => jobs.expiredDataCleanup(),
     'material-library.generate': (command) =>
       jobs.materialLibraryGeneration(new Date(command.requestedAt)),
+    'dungeon-scenario.generate': () => jobs.dungeonScenarioGeneration(),
     'sponsorship.reconcile': () => jobs.sponsorshipReconcile(),
     'sponsorship.deep-reconcile': () => jobs.sponsorshipDeepReconcile(),
     'sponsorship.cleanup': () => jobs.sponsorshipCleanup(),

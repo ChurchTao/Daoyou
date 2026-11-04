@@ -1,0 +1,103 @@
+{
+  "id": "anomaly_source",
+  "name": "异变溯源",
+  "archetype": "anomaly",
+  "summary": "此地近来出了异常：灵脉枯竭、妖兽暴动、封印松动或药草成片枯萎。受害的当地人把罪责算在一个外来者头上，真正引发异变的人却混在其中、言辞闪烁。异变随时间层层加剧，玩家需要顺着症状找到源头、查明是谁引起，并找出平息之法。",
+  "fits_tags": [
+    "资源点",
+    "灵药残存",
+    "空间裂缝",
+    "妖兽巢穴",
+    "灵脉争夺",
+    "黑潮贝场",
+    "阴气滔天",
+    "古魔气",
+    "灵液暗河"
+  ],
+  "scale": {
+    "rooms": [5, 8],
+    "npcs": [3, 4],
+    "key_clues": [8, 10],
+    "red_herrings": [3, 4],
+    "action_budget": 38
+  },
+  "roles": [
+    {
+      "slot": "culprit",
+      "label": "祸首",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "引发异变的人，有意（截脉、偷走阵眼、私设邪阵）或无心（贪采、误触）；在行踪或所为上说谎，可被记载当面戳穿。"
+    },
+    {
+      "slot": "local",
+      "label": "当地人",
+      "count": [1, 1],
+      "lies": false,
+      "guidance": "受异变所害的人，症状说得最清楚，真心认定一个错误的罪魁与源头。"
+    },
+    {
+      "slot": "scapegoat",
+      "label": "背锅者",
+      "count": [1, 1],
+      "lies": false,
+      "guidance": "被当地人怪罪的外来者或化形妖物，有可疑之处，被出示可疑痕迹后拿出凭据洗清嫌疑（设置 scapegoat_cleared）。"
+    },
+    {
+      "slot": "sage",
+      "label": "知情者",
+      "count": [0, 1],
+      "lies": false,
+      "guidance": "懂得古法的老人、残魂或典籍守护者，玩家读过源头残文后才肯道出平息古法的关键一环。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "source",
+      "prompt": "异变之源在何处",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干源头：真源头一项，其余为当地人以为的、背锅者表象所指的与另一处。"
+    },
+    {
+      "id": "culprit",
+      "prompt": "是谁引起了异变",
+      "answer_kind": "npc",
+      "guidance": "答案是身份为 culprit 的人物 id。"
+    },
+    {
+      "id": "remedy",
+      "prompt": "如何平息异变",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干办法：真法一项，其余为蛮力镇压、当地土法与另一种误判。"
+    }
+  ],
+  "branches": [
+    {
+      "id": "lies_exposed",
+      "label": "当面戳穿谎言",
+      "kind": "expose_all_lies",
+      "points": 5
+    },
+    {
+      "id": "anomaly_contained",
+      "label": "暂时镇住异变",
+      "kind": "flag",
+      "flag": "anomaly_contained",
+      "guidance": "玩家把镇物用在源头时，由规则层设置 anomaly_contained。",
+      "points": 5
+    }
+  ],
+  "scoring": {
+    "truth": 45,
+    "coverage": 15,
+    "efficiency": 10,
+    "branch": 10,
+    "combat": 20
+  },
+  "finale": { "role": "manifest", "when": ["source", "remedy"], "points": 10 },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "unwitting", "weight": 2 }
+  ],
+  "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的症状、痕迹和动作，不写空泛的氛围。症状要写出轻重与方向，越近源头越重。异变化形要贴合此地（草木、地脉、海潮、魔气），写出样子与威势。祸首说话圆滑但经不起记载对质；当地人是真心认错了人；背锅者性情不讨喜但清白。"
+}

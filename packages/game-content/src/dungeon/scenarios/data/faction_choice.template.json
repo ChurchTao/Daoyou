@@ -1,0 +1,116 @@
+{
+  "id": "faction_choice",
+  "name": "立场抉择",
+  "archetype": "allegiance",
+  "summary": "两方势力在此对峙，各执一词，都想拉玩家入伙；暗中还有一个两头挑拨、想坐收渔利的中间人。双方的公开说法都有不实之处：一方另有私心但不害无辜，另一方所图会祸及无辜。玩家需要查清双方的真实图谋，揭穿中间人，再自己决定站在哪一边。",
+  "fits_tags": [
+    "灵脉争夺",
+    "边境冲突",
+    "法士军阵",
+    "宗门秘库",
+    "古魔印记",
+    "夺鼎线索",
+    "古仙残兵"
+  ],
+  "scale": {
+    "rooms": [5, 8],
+    "npcs": [3, 4],
+    "key_clues": [7, 10],
+    "red_herrings": [3, 3],
+    "action_budget": 34
+  },
+  "roles": [
+    {
+      "slot": "envoy_a",
+      "label": "甲方代表",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "甲方的出面人，想拉玩家入伙；公开说法与真实图谋不同，在一件事上说谎，可被记载当面戳穿。"
+    },
+    {
+      "slot": "envoy_b",
+      "label": "乙方代表",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "乙方的出面人，同上。"
+    },
+    {
+      "slot": "broker",
+      "label": "中间人",
+      "count": [1, 1],
+      "lies": true,
+      "guidance": "两头传话、暗中挑拨的人，自称中立，想坐收渔利；被出示密信后撕下伪装。"
+    },
+    {
+      "slot": "bystander",
+      "label": "旁人",
+      "count": [0, 1],
+      "lies": false,
+      "guidance": "被卷进来的人，知道双方各一部分实情，亲眼见过所图祸及无辜的那一方做过什么。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "intent_a",
+      "prompt": "甲方真正图谋什么",
+      "answer_kind": "choice",
+      "guidance": "选项给出若干说法：真实图谋一项，其余为公开说法、对方的指控与另一种猜测。"
+    },
+    {
+      "id": "intent_b",
+      "prompt": "乙方真正图谋什么",
+      "answer_kind": "choice",
+      "guidance": "同上。"
+    },
+    {
+      "id": "side",
+      "prompt": "你站在哪一边",
+      "answer_kind": "choice",
+      "judgement": true,
+      "guidance": "抉择题，没有对错：支持甲方、支持乙方，或两不相帮、出面调停。"
+    }
+  ],
+  "branches": [
+    {
+      "id": "envoy_a_exposed",
+      "label": "戳穿甲方的谎言",
+      "kind": "flag",
+      "flag": "envoy_a_exposed",
+      "guidance": "甲方代表被记载戳穿时设置。",
+      "points": 5
+    },
+    {
+      "id": "envoy_b_exposed",
+      "label": "戳穿乙方的谎言",
+      "kind": "flag",
+      "flag": "envoy_b_exposed",
+      "guidance": "乙方代表被记载戳穿时设置。",
+      "points": 5
+    },
+    {
+      "id": "broker_exposed",
+      "label": "揭穿挑拨或隐情",
+      "kind": "flag",
+      "flag": "broker_exposed",
+      "guidance": "中间人被密信揭穿时设置；honest_broker 变体里由揭穿隐瞒祸事的那方代表设置。",
+      "points": 5
+    }
+  ],
+  "scoring": {
+    "truth": 40,
+    "coverage": 15,
+    "efficiency": 10,
+    "branch": 15,
+    "combat": 20
+  },
+  "finale": {
+    "role": "opposed",
+    "when": ["intent_a", "intent_b"],
+    "points": 10
+  },
+  "variants": [
+    { "id": "base", "weight": 3 },
+    { "id": "honest_broker", "weight": 2 }
+  ],
+  "writing_guidance": "所有面向玩家的文字使用简体中文、第二人称“你”，文风克制、有古意，但每段都要具体：写看得见的布置、文书、痕迹和动作，不写空泛的氛围。两方都要写得有血有肉、各有道理，不写成脸谱化的正邪；所图祸及无辜的一方也有自己的说辞。中间人八面玲珑，说话两头讨好。"
+}

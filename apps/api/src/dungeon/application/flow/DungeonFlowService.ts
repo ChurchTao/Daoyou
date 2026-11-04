@@ -1,20 +1,28 @@
+import {
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  RealmType,
+  type RealmStage,
+} from '@daoyou/constants/realms';
+import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
+import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
+import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
+import type { Cultivator } from '@daoyou/game-domain/character';
 import type { DungeonEndDisposition } from '@daoyou/game-domain/dungeon';
-import { getRealmStageNaturalAttributeValue } from '@daoyou/game-rules/progression/attributes';
 import type {
   ResourceOperation,
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@daoyou/game-domain/resources';
-import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
-import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
-import { canChallengeDungeonRealm, resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
+import { getRealmStageNaturalAttributeValue } from '@daoyou/game-rules/progression/attributes';
 import {
   appendDungeonReward,
   dungeonRewardItemName,
 } from '@daoyou/game-rules/rewards/dungeon';
-import type { CultivatorCondition } from '@daoyou/game-domain/condition';
-import { REALM_STAGE_VALUES, REALM_VALUES, RealmType, type RealmStage } from '@daoyou/constants/realms';
-import type { Cultivator } from '@daoyou/game-domain/character';
+import {
+  canChallengeDungeonRealm,
+  resolveDungeonMapConfig,
+} from '@daoyou/game-rules/world/dungeon';
 import { assertCombatV6MutationAllowed } from '@server/combat/mutation-policy.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
@@ -30,15 +38,15 @@ import {
   type DungeonBattlePayload,
   type DungeonEncounterPayload,
 } from '@server/dungeon/application/flow/combatV6.js';
-import {
-  applyDungeonCosts,
-  validateDungeonCosts,
-} from '@server/dungeon/application/flow/costs.js';
-import type { RewardBlueprint } from '@server/dungeon/application/flow/reward/index.js';
+import { applyDungeonCosts } from '@server/dungeon/application/flow/costs.js';
 import { RewardFactory } from '@server/dungeon/application/flow/reward/index.js';
 import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
 import { grantInventory } from '@server/inventory/operations.js';
-import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
+import type {
+  DbClient,
+  DbExecutor,
+  DbTransaction,
+} from '@server/lib/drizzle/db.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import {
@@ -49,23 +57,88 @@ import {
 } from '@server/lib/redis/lock.js';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository.js';
 import type { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
-import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { randomUUID } from 'crypto';
-import type { generateDungeonRound } from './DungeonRoundGenerator.js';
 import type { generateDungeonEnding } from './DungeonSettlementGenerator.js';
 
+import type {
+  MysteryAction,
+  MysteryAnswers,
+  MysteryConfrontationOutcome,
+  MysteryEvidence,
+} from '@daoyou/game-domain/dungeon/mystery';
+import {
+  applyMysteryAction,
+  applyMysteryDialogue,
+  applyMysteryGuardBattle,
+  checkMysteryAnswers,
+  createMysteryRun,
+  mysteryConfrontationTarget,
+  mysteryGuardChallenge,
+  mysteryNpcPresent,
+  needsMysteryRestock,
+  pickMysteryScenario,
+  scoreMysteryRun,
+} from '@daoyou/game-rules/dungeon/mystery';
 import {
   DungeonOptionCost,
   DungeonPendingAction,
   DungeonRecoverAction,
-  DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@server/dungeon/application/flow/types.js';
+import { textFilter } from '@server/social/application/textFilter.js';
+import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
+import { generateNpcReply } from '../mystery/MysteryDialogue.js';
+import { isKeyClue, requireMysteryTemplate } from '../mystery/mysteryState.js';
+import {
+  insertScenario,
+  loadScenarioCase,
+  readScenarioLibrary,
+  recordScenarioSettlement,
+  recordScenarioStart,
+  requestScenarioRestock,
+  scenarioTemplatesForNode,
+  wakeScenarioWorker,
+} from '../mystery/ScenarioLibrary.js';
 import type { DungeonRunStore } from './DungeonRunStore.js';
 import { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 const FLOW_LOCK_TTL_SECONDS = 180;
+
+/** 结尾对决的结算标签，按对手身份措辞。 */
+function mysteryConfrontationTags(
+  mystery: NonNullable<DungeonState['mystery']>,
+): string[] {
+  const outcome = mystery.result?.confrontation;
+  const archetype = requireMysteryTemplate(mystery.templateId).archetype;
+  if (archetype === 'unlock') {
+    if (outcome === 'won') return ['通过试炼'];
+    if (outcome === 'lost' || outcome === 'spared') return ['试炼未竟'];
+    return [];
+  }
+  if (archetype === 'allegiance') {
+    const side = mystery.caseFile.questions
+      .find((q) => q.id === 'side')
+      ?.options?.find((o) => o.id === mystery.result?.answers.side)?.label;
+    return [
+      ...(side ? [side.slice(0, 12)] : []),
+      ...(outcome === 'won'
+        ? ['力压对手']
+        : outcome === 'lost' || outcome === 'spared'
+          ? ['对手遁走']
+          : []),
+    ];
+  }
+  if (archetype === 'anomaly') {
+    if (outcome === 'won') return ['镇灭异变'];
+    if (outcome === 'lost' || outcome === 'spared') return ['异变未绝'];
+    return [];
+  }
+  const rival = archetype === 'retrieval' ? '夺宝者' : '真凶';
+  if (outcome === 'won') return [`擒下${rival}`];
+  if (outcome === 'lost' || outcome === 'spared') return [`${rival}遁走`];
+  return [];
+}
 export { DungeonFlowError, DungeonFlowErrorCode } from './errors.js';
 
 class DungeonSettlementRecoverableError extends Error {
@@ -172,31 +245,22 @@ function toDungeonPersistenceSettlement(
   };
 }
 
-async function appendRoundRewards(
-  state: DungeonState,
-): Promise<RewardBlueprint[]> {
+/** 解谜模式以获得关键线索代替轮次作为探索收益的节点。 */
+async function appendClueReward(state: DungeonState, clueId: string) {
   const reward = await resolveDungeonReward(
     state,
-    `exploration:${state.currentRound}`,
+    `clue:${clueId}`,
     'exploration',
   );
   const previous = state.v6Rewards ?? [];
   state.v6Rewards = appendDungeonReward(previous, reward);
-  if (previous === state.v6Rewards) return [];
-  const items = reward.items.map((item) => ({
-    name: dungeonRewardItemName(item),
-  }));
-  state.accumulatedRewards.push(...items);
-  state.currentRoundItems = items;
-  return items;
+  if (previous === state.v6Rewards) return;
+  state.accumulatedRewards.push(
+    ...reward.items.map((item) => ({ name: dungeonRewardItemName(item) })),
+  );
 }
 
 const DEFAULT_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
-  'safe_retreat',
-  'force_quit',
-];
-const CONTINUE_RECOVERABLE_ACTIONS: DungeonRecoverAction[] = [
-  'retry_continue',
   'safe_retreat',
   'force_quit',
 ];
@@ -272,28 +336,12 @@ function cloneCosts(
 
 export class DungeonFlowService {
   constructor(
-    private readonly generateRound: typeof generateDungeonRound,
     private readonly generateEnding: typeof generateDungeonEnding,
     private readonly database: DbClient,
     private readonly runs: DungeonRunStore,
     private readonly resources: ResourceEngine,
     private readonly withLock: typeof withRedisLock,
   ) {}
-
-  private buildFallbackOption(
-    state: Pick<DungeonState, 'currentRound' | 'maxRounds'>,
-  ) {
-    const isFinalRound = state.currentRound >= state.maxRounds;
-    return {
-      id: 1,
-      text: isFinalRound
-        ? '稳住心神，清点本轮所得并结束探索。'
-        : '稳住心神，沿着当前线索继续探索。',
-      risk_level: 'low' as const,
-      costs: [],
-      costPreview: [],
-    };
-  }
 
   private normalizeOptionCosts(option: { costs?: DungeonOptionCost[] }) {
     const costs = cloneCosts(option.costs)
@@ -321,26 +369,6 @@ export class DungeonFlowService {
       }
       return !hasBattle || (cost.type !== 'hp_loss' && cost.type !== 'mp_loss');
     });
-  }
-
-  private normalizeRoundOptions(
-    roundData: DungeonRound,
-    state: Pick<DungeonState, 'currentRound' | 'maxRounds'>,
-  ) {
-    roundData.interaction.options = roundData.interaction.options.map(
-      (option) => {
-        const costPreview = this.normalizeOptionCosts(option);
-        return {
-          ...option,
-          costs: costPreview,
-          costPreview,
-        };
-      },
-    );
-    if (roundData.interaction.options.length === 0) {
-      roundData.interaction.options = [this.buildFallbackOption(state)];
-    }
-    return roundData;
   }
 
   private normalizeState(state: DungeonState): DungeonState {
@@ -376,12 +404,6 @@ export class DungeonFlowService {
         costPreview,
       };
     });
-    if (
-      state.status === 'EXPLORING' &&
-      (state.currentOptions?.length ?? 0) === 0
-    ) {
-      state.currentOptions = [this.buildFallbackOption(state)];
-    }
     if (state.status === 'RECOVERABLE_ERROR') {
       state.recoverableActions ??= DEFAULT_RECOVERABLE_ACTIONS;
     }
@@ -539,85 +561,6 @@ export class DungeonFlowService {
     return nextCondition;
   }
 
-  private previewOptionResourceLoss(
-    costs: DungeonOptionCost[],
-    cultivator: {
-      condition?: CultivatorCondition;
-      caps: { maxHp: number; maxMp: number };
-    },
-  ) {
-    const hpPercent = costs
-      .filter((cost) => cost.type === 'hp_loss')
-      .reduce((sum, cost) => sum + cost.value, 0);
-    const mpPercent = costs
-      .filter((cost) => cost.type === 'mp_loss')
-      .reduce((sum, cost) => sum + cost.value, 0);
-
-    if (hpPercent <= 0 && mpPercent <= 0) {
-      return;
-    }
-
-    const preview = {
-      rawHpLoss: Math.floor(cultivator.caps.maxHp * hpPercent),
-      rawMpLoss: Math.floor(cultivator.caps.maxMp * mpPercent),
-      hpLoss: Math.min(
-        Math.max(0, (cultivator.condition?.resources.hp.current ?? 1) - 1),
-        Math.floor(cultivator.caps.maxHp * hpPercent),
-      ),
-      mpLoss: Math.min(
-        cultivator.condition?.resources.mp.current ?? 0,
-        Math.floor(cultivator.caps.maxMp * mpPercent),
-      ),
-    };
-
-    for (const cost of costs) {
-      if (cost.type === 'hp_loss') {
-        cost.metadata = {
-          ...cost.metadata,
-          rawLoss: preview.rawHpLoss,
-          actualLoss: preview.hpLoss,
-        };
-      } else if (cost.type === 'mp_loss') {
-        cost.metadata = {
-          ...cost.metadata,
-          rawLoss: preview.rawMpLoss,
-          actualLoss: preview.mpLoss,
-        };
-      }
-    }
-  }
-
-  private async previewRoundResourceLoss(
-    roundData: DungeonRound,
-    cultivatorId: string,
-  ) {
-    const hasResourceLoss = roundData.interaction.options.some((option) =>
-      (option.costPreview ?? option.costs ?? []).some(
-        (cost) => cost.type === 'hp_loss' || cost.type === 'mp_loss',
-      ),
-    );
-    if (!hasResourceLoss) {
-      return roundData;
-    }
-
-    const { player, caps } = await dungeonPlayer(cultivatorId);
-    const cultivator = { condition: player.cultivator.condition, caps };
-
-    roundData.interaction.options = roundData.interaction.options.map(
-      (option) => {
-        const costPreview = cloneCosts(option.costPreview ?? option.costs);
-        this.previewOptionResourceLoss(costPreview, cultivator);
-        return {
-          ...option,
-          costs: costPreview,
-          costPreview,
-        };
-      },
-    );
-
-    return roundData;
-  }
-
   /**
    * 初始化副本
    */
@@ -651,6 +594,16 @@ export class DungeonFlowService {
       // 只有卫星地图节点可以进行副本挑战
       if (!isSatelliteNode(mapNodeId)) {
         throw new Error('只有秘境节点可以进行副本挑战');
+      }
+
+      // 云游探秘只剩解谜玩法：没有配置剧本的节点不能开局。
+      const scenario = this.getMapNode(mapNodeId).dungeon_config?.scenario;
+      if (!scenario) {
+        throw new DungeonFlowError(
+          DungeonFlowErrorCode.INVALID_ACTION,
+          '此地暂无可探之谜',
+          400,
+        );
       }
 
       // 1. 获取玩家与地图数据 (逻辑同你之前)
@@ -698,23 +651,14 @@ export class DungeonFlowService {
         action: 'dungeon_start',
       });
 
-      // 3. 首次 AI 调用
-      const roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
-        cultivatorId,
-      );
-
-      // 4. 更新历史并存入 Redis
-      const acceptedItems = await appendRoundRewards(state);
-      const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
-      state.history.push({
-        round: 1,
-        scene: roundData.scene_description,
-        gained_items: gainedNames,
-      });
-      state.currentOptions = roundData.interaction.options;
+      // 3. 从剧本库选本开局
+      await this.initMystery(state);
       if (!options.deferPersistence) {
+        await this.database.transaction((tx) =>
+          this.persistMysteryStart(tx, state),
+        );
         await this.saveState(cultivatorId, state);
+        this.requestMysteryRestock(state);
       }
 
       if (!options.deferPersistence && qiActionInstanceId) {
@@ -731,7 +675,6 @@ export class DungeonFlowService {
       if (options.deferPersistence) {
         return {
           state,
-          roundData,
           persist: async (tx: DbTransaction) => {
             if (!qiActionInstanceId) {
               throw new Error('副本灵气预扣标识缺失');
@@ -751,6 +694,7 @@ export class DungeonFlowService {
               },
               tx,
             });
+            await this.persistMysteryStart(tx, state);
             await this.persistStateRecord(cultivatorId, state, undefined, tx);
             await QiService.commitReservation({
               actionInstanceId: qiActionInstanceId,
@@ -770,11 +714,12 @@ export class DungeonFlowService {
           },
           afterCommit: async () => {
             await this.runs.saveRedisState(cultivatorId, state);
+            this.requestMysteryRestock(state);
           },
         };
       }
 
-      return { state, roundData };
+      return { state };
     } catch (error) {
       if (qiReservationOpen && qiActionInstanceId) {
         try {
@@ -791,358 +736,6 @@ export class DungeonFlowService {
       }
       throw error;
     }
-  }
-
-  /**
-   * 处理玩家交互
-   */
-  async handleAction(
-    cultivatorId: string,
-    choiceId: number,
-    actionId: string = randomUUID(),
-    options: DungeonFlowOptions = {},
-  ) {
-    return this.withFlowLock(
-      cultivatorId,
-      'dungeon-action',
-      () =>
-        this.handleActionUnlocked(cultivatorId, choiceId, actionId, options),
-      options.lease,
-    );
-  }
-
-  private async handleActionUnlocked(
-    cultivatorId: string,
-    choiceId: number,
-    actionId: string = randomUUID(),
-    options: DungeonFlowOptions = {},
-  ) {
-    const state = await this.getState(cultivatorId);
-    if (!state) throw new Error('副本已失效');
-    if (this.hasCommittedAction(state, actionId)) {
-      return { actionId, state, isFinished: state.isFinished };
-    }
-    if (
-      state.status !== 'EXPLORING' &&
-      !(
-        state.status === 'RECOVERABLE_ERROR' &&
-        state.pendingAction?.actionId === actionId
-      )
-    ) {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.INVALID_STATE,
-        '探索状态已变化，请刷新',
-        409,
-      );
-    }
-
-    // 1. 校验选项
-    const chosenOption = state.currentOptions?.find((o) => o.id === choiceId);
-    if (!chosenOption) {
-      throw new Error(`无效的交互选项: ${choiceId}`);
-    }
-
-    const actionCosts = this.normalizeOptionCosts(chosenOption);
-    const materialSelections = options.materialSelections ?? [];
-    if (
-      state.pendingAction?.actionId === actionId &&
-      (state.pendingAction.choiceId !== choiceId ||
-        stableCompactStringify(state.pendingAction.materialSelections ?? []) !==
-          stableCompactStringify(materialSelections))
-    ) {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.INVALID_STATE,
-        '原行动的提交物品已固定，请沿用原选择重试',
-        409,
-      );
-    }
-
-    const consumeActionCostsOrThrow = async (dryRun = false) => {
-      // 获取 userId
-      const userId = await findActiveCultivatorOwnerId(cultivatorId);
-      if (!userId) {
-        throw new Error('无法获取修真者所属用户');
-      }
-
-      if (dryRun)
-        return validateDungeonCosts(
-          userId,
-          cultivatorId,
-          actionCosts,
-          materialSelections,
-        );
-      const result = await this.database.transaction(async (tx) => {
-        const applied = await applyDungeonCosts(
-          userId,
-          cultivatorId,
-          actionCosts,
-          tx,
-          materialSelections,
-        );
-        if (applied.success) {
-          await this.applyConditionResourceLosses(
-            cultivatorId,
-            actionCosts,
-            tx,
-          );
-        }
-        return applied;
-      });
-
-      if (!result.success) {
-        throw new Error(result.errors?.join('; ') || '资源消耗失败');
-      }
-    };
-
-    await consumeActionCostsOrThrow(true);
-
-    const pendingAction: DungeonPendingAction = {
-      actionId,
-      choiceId,
-      choiceText: chosenOption.text,
-      round: state.currentRound,
-      status: 'pending',
-      costs: actionCosts,
-      materialSelections,
-      createdAt: new Date().toISOString(),
-    };
-    state.pendingAction = pendingAction;
-    state.costPreview = actionCosts;
-
-    // 2. 推进状态
-    state.history[state.history.length - 1].choice = chosenOption?.text;
-    const battleCost = actionCosts.find((c) => c.type === 'battle');
-    if (battleCost) {
-      let battlePayload: DungeonEncounterPayload;
-      try {
-        battlePayload = await prepareDungeonEncounter(state);
-      } catch (error) {
-        const recoverable = await this.markRecoverable(
-          cultivatorId,
-          state,
-          error instanceof Error ? error.message : '遭遇战生成失败',
-          ACTION_RECOVERABLE_ACTIONS,
-          options,
-        );
-        return options.deferPersistence
-          ? {
-              actionId,
-              state: recoverable,
-              isFinished: false,
-              ...this.buildStateHooks(cultivatorId, recoverable),
-            }
-          : { actionId, state: recoverable, isFinished: false };
-      }
-
-      if (!options.deferPersistence) {
-        try {
-          await consumeActionCostsOrThrow();
-        } catch (error) {
-          state.pendingAction = {
-            ...pendingAction,
-            status: 'failed',
-            error: error instanceof Error ? error.message : String(error),
-          };
-          state.costPreview = undefined;
-          state.status = 'EXPLORING';
-          await this.saveState(cultivatorId, state);
-          throw error;
-        }
-      }
-
-      this.commitCostsToState(state, pendingAction);
-      state.pendingAction = undefined;
-      state.costPreview = undefined;
-      state.status = 'WAITING_BATTLE';
-      state.encounter = battlePayload.preview;
-      state.currentOptions = [];
-
-      if (options.deferPersistence) {
-        return {
-          actionId,
-          state,
-          type: 'PREPARE_BATTLE',
-          isFinished: false,
-          persist: async (tx: DbTransaction) => {
-            const userId = await findActiveCultivatorOwnerId(cultivatorId);
-            if (!userId) {
-              throw new Error('无法获取修真者所属用户');
-            }
-            const consumeResult = await applyDungeonCosts(
-              userId,
-              cultivatorId,
-              actionCosts,
-              tx,
-              materialSelections,
-            );
-            if (!consumeResult.success) {
-              throw new Error(
-                consumeResult.errors?.join('; ') || '资源消耗失败',
-              );
-            }
-            const condition: Cultivator['condition'] | undefined =
-              (await this.applyConditionResourceLosses(
-                cultivatorId,
-                actionCosts,
-                tx,
-              )) ?? undefined;
-            await this.persistStateRecord(
-              cultivatorId,
-              state,
-              battlePayload,
-              tx,
-            );
-            return mergeDungeonPersistenceSettlements(
-              toDungeonPersistenceSettlement(consumeResult),
-              condition ? { condition } : null,
-            );
-          },
-          afterCommit: async () => {
-            await this.runs.saveRedisState(cultivatorId, state);
-          },
-        };
-      }
-
-      await this.saveState(cultivatorId, state, battlePayload);
-
-      return {
-        actionId,
-        state,
-        type: 'PREPARE_BATTLE',
-        isFinished: false,
-      };
-    }
-
-    if (state.currentRound >= state.maxRounds) {
-      state.status = 'SETTLING';
-      if (!options.deferPersistence) {
-        await this.saveState(cultivatorId, state);
-      }
-      try {
-        const result = await this.settleDungeon(state, {
-          pendingAction,
-          deferPersistence: options.deferPersistence,
-        });
-        return { actionId, ...result };
-      } catch (error) {
-        await this.markRecoverable(
-          cultivatorId,
-          state,
-          error instanceof Error ? error.message : '结算生成失败',
-          SETTLE_RECOVERABLE_ACTIONS,
-        );
-        throw error;
-      }
-    }
-
-    state.status = 'GENERATING_NEXT';
-    if (!options.deferPersistence) {
-      await this.saveState(cultivatorId, state);
-    }
-    state.currentRound++;
-
-    // 3. AI 生成下一轮
-    let roundData: DungeonRound;
-    try {
-      roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
-        cultivatorId,
-      );
-    } catch (error) {
-      state.currentRound--;
-      const recoverable = await this.markRecoverable(
-        cultivatorId,
-        state,
-        error instanceof Error ? error.message : '下一轮生成失败',
-        ACTION_RECOVERABLE_ACTIONS,
-        options,
-      );
-      return options.deferPersistence
-        ? {
-            actionId,
-            state: recoverable,
-            isFinished: false,
-            ...this.buildStateHooks(cultivatorId, recoverable),
-          }
-        : { actionId, state: recoverable, isFinished: false };
-    }
-
-    // LLM 成功后再扣资源，避免“生成失败但资源已扣除”
-    if (!options.deferPersistence) {
-      try {
-        await consumeActionCostsOrThrow();
-      } catch (error) {
-        state.currentRound--;
-        state.status = 'EXPLORING';
-        state.pendingAction = {
-          ...pendingAction,
-          status: 'failed',
-          error: error instanceof Error ? error.message : String(error),
-        };
-        state.costPreview = undefined;
-        await this.saveState(cultivatorId, state);
-        throw error;
-      }
-    }
-    this.commitCostsToState(state, pendingAction);
-    state.pendingAction = undefined;
-    state.costPreview = undefined;
-
-    // 记录过程战利品
-    const acceptedItems = await appendRoundRewards(state);
-    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
-
-    // 4. 更新状态
-    state.history.push({
-      round: state.currentRound,
-      scene: roundData.scene_description,
-      gained_items: gainedNames,
-    });
-    state.currentOptions = roundData.interaction.options;
-    state.dangerScore = roundData.status_update.internal_danger_score;
-    state.status = 'EXPLORING';
-
-    if (options.deferPersistence) {
-      return {
-        actionId,
-        state,
-        roundData,
-        isFinished: false,
-        persist: async (tx: DbTransaction) => {
-          const userId = await findActiveCultivatorOwnerId(cultivatorId);
-          if (!userId) {
-            throw new Error('无法获取修真者所属用户');
-          }
-          const consumeResult = await applyDungeonCosts(
-            userId,
-            cultivatorId,
-            actionCosts,
-            tx,
-            materialSelections,
-          );
-          if (!consumeResult.success) {
-            throw new Error(consumeResult.errors?.join('; ') || '资源消耗失败');
-          }
-          const condition: Cultivator['condition'] | undefined =
-            (await this.applyConditionResourceLosses(
-              cultivatorId,
-              actionCosts,
-              tx,
-            )) ?? undefined;
-          await this.persistStateRecord(cultivatorId, state, undefined, tx);
-          return mergeDungeonPersistenceSettlements(
-            toDungeonPersistenceSettlement(consumeResult),
-            condition ? { condition } : null,
-          );
-        },
-        afterCommit: async () => {
-          await this.runs.saveRedisState(cultivatorId, state);
-        },
-      };
-    }
-
-    await this.saveState(cultivatorId, state);
-    return { actionId, state, roundData, isFinished: false };
   }
 
   async beginBattle(
@@ -1195,167 +788,26 @@ export class DungeonFlowService {
     const battle = await getDungeonBattle(cultivatorId, battleId);
     if (!battle?.outcome) throw new Error('请先完成战斗');
     delete state.activeBattleId;
-    state.history[state.history.length - 1].outcome =
-      battle.outcome === 'victory'
-        ? `历经 ${battle.round} 回合，你击败了秘境守敌。`
-        : '战斗结束，你离开了秘境。';
-    if (battle.outcome !== 'victory')
-      return this.settleDungeon(state, {
-        endDisposition: 'retreated_after_battle',
-        deferPersistence: options.deferPersistence,
-      });
-    state.status = 'LOOTING';
-    state.currentRoundItems = (
-      state.v6Rewards?.find((r) => r.key === `battle:${battleId}`)?.items ?? []
-    ).map((item) => ({ name: dungeonRewardItemName(item) }));
-    if (options.deferPersistence)
-      return {
+    if (state.mystery?.pendingGuard)
+      return this.finishMysteryGuard(
         state,
-        isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state),
-      };
-    await this.saveState(cultivatorId, state);
-    return { state, isFinished: false };
-  }
-
-  async continueFromLooting(
-    cultivatorId: string,
-    options: DungeonFlowOptions = {},
-  ) {
-    return this.withFlowLock(
-      cultivatorId,
-      'dungeon-looting-continue',
-      () => this.continueFromLootingUnlocked(cultivatorId, options),
-      options.lease,
-    );
-  }
-
-  private async continueFromLootingUnlocked(
-    cultivatorId: string,
-    options: DungeonFlowOptions,
-  ) {
-    const state = await this.getState(cultivatorId);
-    if (!state) {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.NOT_FOUND,
-        '副本已失效',
-        404,
-      );
-    }
-    if (state.status !== 'LOOTING') {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.INVALID_STATE,
-        '当前副本状态已变化，请刷新后重试',
-        409,
-      );
-    }
-
-    state.status = 'GENERATING_NEXT';
-    state.statusReason = undefined;
-    state.recoverableActions = undefined;
-    state.currentRound++;
-
-    if (state.currentRound > state.maxRounds) {
-      return this.settleDungeon(state, {
-        deferPersistence: options.deferPersistence,
-      });
-    }
-
-    return this.generateRoundAfterLooting(cultivatorId, state, options);
-  }
-
-  private async generateRoundAfterLooting(
-    cultivatorId: string,
-    state: DungeonState,
-    options: DungeonFlowOptions = {},
-  ) {
-    let roundData: DungeonRound;
-    try {
-      roundData = await this.previewRoundResourceLoss(
-        this.normalizeRoundOptions(await this.callAI(state), state),
-        cultivatorId,
-      );
-    } catch (error) {
-      console.error('[DungeonService] 战后生成失败:', error);
-      const recoverable = await this.markRecoverable(
-        cultivatorId,
-        state,
-        error instanceof Error ? error.message : '战后继续推演失败',
-        CONTINUE_RECOVERABLE_ACTIONS,
+        battle.outcome === 'victory',
         options,
       );
-      return options.deferPersistence
-        ? {
-            state: recoverable,
-            isFinished: false,
-            ...this.buildStateHooks(cultivatorId, recoverable),
-          }
-        : { state: recoverable, isFinished: false };
-    }
-
-    const acceptedItems = await appendRoundRewards(state);
-    const gainedNames = acceptedItems.map((i) => i.name || '未知物品');
-
-    state.history.push({
-      round: state.currentRound,
-      scene: roundData.scene_description,
-      gained_items: gainedNames,
-    });
-    state.currentOptions = roundData.interaction.options;
-    state.dangerScore = roundData.status_update.internal_danger_score;
-    state.status = 'EXPLORING';
-    state.statusReason = undefined;
-    state.recoverableActions = undefined;
-
-    if (options.deferPersistence) {
-      return {
+    if (state.mystery?.verdict)
+      return this.finishMysteryConfrontation(
         state,
-        roundData,
-        isFinished: false,
-        ...this.buildStateHooks(cultivatorId, state),
-      };
-    }
-
-    await this.saveState(cultivatorId, state);
-    return { state, roundData, isFinished: false };
-  }
-
-  /**
-   * 战后见好就收
-   */
-  async escapeFromLooting(
-    cultivatorId: string,
-    options: DungeonFlowOptions = {},
-  ) {
-    return this.withFlowLock(
-      cultivatorId,
-      'dungeon-looting-escape',
-      () => this.escapeFromLootingUnlocked(cultivatorId, options),
-      options.lease,
-    );
-  }
-
-  private async escapeFromLootingUnlocked(
-    cultivatorId: string,
-    options: DungeonFlowOptions,
-  ) {
-    const state = await this.getState(cultivatorId);
-    if (!state) {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.NOT_FOUND,
-        '副本已失效',
-        404,
+        battle.outcome === 'victory' ? 'won' : 'lost',
+        options,
       );
-    }
-    if (state.status !== 'LOOTING') {
-      throw new DungeonFlowError(
-        DungeonFlowErrorCode.INVALID_STATE,
-        '当前副本状态已变化，请刷新后重试',
-        409,
-      );
-    }
+    // 旧版回合制副本已退役：遗留的遭遇战打完即结算离开，战斗所得照常发放。
+    const last = state.history.at(-1);
+    if (last)
+      last.outcome =
+        battle.outcome === 'victory'
+          ? `历经 ${battle.round} 回合，你击败了秘境守敌。`
+          : '战斗结束，你离开了秘境。';
     return this.settleDungeon(state, {
-      abandonedBattle: true,
       endDisposition: 'retreated_after_battle',
       deferPersistence: options.deferPersistence,
     });
@@ -1425,10 +877,23 @@ export class DungeonFlowService {
     const settlement: DungeonSettlement = state.settlement ?? {
       ending_narrative: ending!.narrative,
       settlement: {
-        reward_tier: endDisposition === 'completed' ? ending!.rating : 'C',
+        // 解谜模式的评级由规则评分决定，LLM 只写结局叙事。
+        reward_tier:
+          endDisposition === 'completed'
+            ? (state.mystery?.result?.tier ?? ending!.rating)
+            : 'C',
         reward_blueprints: [],
         performance_tags:
-          endDisposition === 'completed' ? ['功成身退'] : ['及时止损'],
+          endDisposition !== 'completed'
+            ? ['及时止损']
+            : state.mystery?.result
+              ? [
+                  Object.values(state.mystery.result.correct).every(Boolean)
+                    ? '真相大白'
+                    : '疑云未散',
+                  ...mysteryConfrontationTags(state.mystery),
+                ]
+              : ['功成身退'],
       },
     };
     settlement.inventoryRewards = (state.v6Rewards ?? []).flatMap(
@@ -1713,8 +1178,526 @@ export class DungeonFlowService {
       },
     };
   }
-  private callAI(state: DungeonState): Promise<DungeonRound> {
-    return this.generateRound(state);
+  /**
+   * 解谜开局：从全服剧本库选本，不调用 LLM；库里没有时用此地绑定的保底案卷，
+   * 都没有就不开局。需要补货时记下请求，提交后投递。
+   */
+  private async initMystery(state: DungeonState) {
+    const templateIds = scenarioTemplatesForNode(state.mapNodeId);
+    if (templateIds.length === 0) throw new Error('秘境剧本配置无效');
+    const library = await readScenarioLibrary(
+      state.cultivatorId,
+      state.mapNodeId,
+      templateIds,
+      this.database,
+    );
+    let pick = pickMysteryScenario({
+      templateIds,
+      ...library,
+      random: Math.random,
+    });
+    const fromLibrary =
+      pick.kind === 'scenario'
+        ? await loadScenarioCase(pick.scenarioId, this.database)
+        : null;
+    if (pick.kind === 'scenario' && !fromLibrary)
+      pick = { kind: 'empty', templateId: pick.templateId };
+    const template = requireMysteryTemplate(pick.templateId);
+    const restock = needsMysteryRestock(pick)
+      ? {
+          reason:
+            pick.kind === 'empty'
+              ? ('cold_start' as const)
+              : pick.unplayedLeft === 0
+                ? ('exhausted' as const)
+                : ('low_stock' as const),
+        }
+      : undefined;
+
+    if (pick.kind === 'scenario' && fromLibrary) {
+      state.mystery = {
+        templateId: pick.templateId,
+        caseSource: 'library',
+        caseFile: fromLibrary,
+        run: createMysteryRun(fromLibrary, template.scale.action_budget),
+        scenarioId: pick.scenarioId,
+        replay: pick.replay,
+        firstPlay: pick.firstPlay,
+        ...(restock ? { restock } : {}),
+      };
+    } else {
+      // 剧本全部由后台以高级模型生成、耗时较长，开局不再现场生成：库中没有时只用此地绑定的
+      // 保底案卷；连保底也没有就不开局（灵气不扣），排队补货后请玩家稍后再来。
+      const fallback = getMysteryFallbackCase(pick.templateId, state.mapNodeId);
+      if (!fallback) {
+        this.enqueueRestock(state, pick.templateId, 'cold_start');
+        throw new DungeonFlowError(
+          DungeonFlowErrorCode.INVALID_STATE,
+          '此地的剧本还在推演，请稍后再来',
+          409,
+        );
+      }
+      state.mystery = {
+        templateId: pick.templateId,
+        caseSource: 'fallback',
+        caseFile: fallback,
+        run: createMysteryRun(fallback, template.scale.action_budget),
+        ...(restock ? { restock } : {}),
+      };
+    }
+    state.maxRounds = 1;
+    state.history.push({
+      round: 1,
+      scene: state.mystery.caseFile.brief.opening,
+    });
+  }
+
+  /** 开局提交：冷启动案卷入库，并写入游玩记录。须在保存运行态之前调用。 */
+  private async persistMysteryStart(q: DbExecutor, state: DungeonState) {
+    const mystery = state.mystery;
+    if (!mystery?.scenarioId) return;
+    if (mystery.insertScenario) {
+      await insertScenario(q, {
+        id: mystery.scenarioId,
+        mapNodeId: state.mapNodeId,
+        templateId: mystery.templateId,
+        caseFile: mystery.caseFile,
+        source: 'generated',
+      });
+      mystery.insertScenario = false;
+    }
+    await recordScenarioStart(q, {
+      cultivatorId: state.cultivatorId,
+      scenarioId: mystery.scenarioId,
+      mapNodeId: state.mapNodeId,
+      templateId: mystery.templateId,
+      firstPlay: mystery.firstPlay ?? false,
+    });
+  }
+
+  /** 开局提交后投递补货；被限流忽略或投递失败都不影响本局。 */
+  private requestMysteryRestock(state: DungeonState) {
+    const mystery = state.mystery;
+    if (!mystery?.restock) return;
+    this.enqueueRestock(state, mystery.templateId, mystery.restock.reason);
+  }
+
+  private enqueueRestock(
+    state: DungeonState,
+    templateId: string,
+    reason: NonNullable<
+      NonNullable<DungeonState['mystery']>['restock']
+    >['reason'],
+  ) {
+    void requestScenarioRestock({
+      mapNodeId: state.mapNodeId,
+      templateId,
+      reason,
+      requestedBy: state.cultivatorId,
+    })
+      .then((decision) =>
+        decision === 'enqueue' ? wakeScenarioWorker() : undefined,
+      )
+      .catch((error: unknown) =>
+        console.warn('[DungeonMystery] 补货投递失败:', error),
+      );
+  }
+
+  private requireMysteryState(
+    state: DungeonState | null,
+    runId: string,
+  ): asserts state is DungeonState & {
+    mystery: NonNullable<DungeonState['mystery']>;
+  } {
+    if (!state?.mystery || state.runId !== runId) {
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '探索状态已变化，请刷新',
+        409,
+      );
+    }
+  }
+
+  private finishMysteryStep(
+    cultivatorId: string,
+    state: DungeonState,
+    options: DungeonFlowOptions,
+  ) {
+    if (options.deferPersistence) {
+      return {
+        state,
+        isFinished: false,
+        ...this.buildStateHooks(cultivatorId, state),
+      };
+    }
+    return this.saveState(cultivatorId, state).then(() => ({
+      state,
+      isFinished: false,
+    }));
+  }
+
+  /** 解谜调查动作：只改变运行态，获得关键线索时累计探索收益。 */
+  async actMystery(
+    cultivatorId: string,
+    input: {
+      runId: string;
+      actionId: string;
+      turn: number;
+      action: MysteryAction;
+    },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-act',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const result = applyMysteryAction(
+          mystery.caseFile,
+          mystery.run,
+          input.action,
+        );
+        if (!result.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            result.error,
+            400,
+          );
+        }
+        mystery.run = { ...result.run, lastActionId: input.actionId };
+        for (const clueId of result.newClues) {
+          if (isKeyClue(mystery.caseFile, clueId))
+            await appendClueReward(state, clueId);
+        }
+        return this.finishMysteryStep(cultivatorId, state, options);
+      },
+      options.lease,
+    );
+  }
+
+  /**
+   * 与人物自由对话：先做在场与行动力校验再调用模型，避免无效请求产生费用；
+   * 模型失败不扣行动力。透露的线索经规则层过滤，关键线索照常累计探索收益。
+   */
+  async talkMystery(
+    cultivatorId: string,
+    input: {
+      runId: string;
+      actionId: string;
+      turn: number;
+      npcId: string;
+      question: string;
+    },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-talk',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const present = Boolean(
+          mysteryNpcPresent(mystery.caseFile, mystery.run, input.npcId),
+        );
+        if (!present || mystery.run.actionsLeft <= 0) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            present ? '行动力已用完，只能提交推理了' : '此人不在这里',
+            400,
+          );
+        }
+        const question = textFilter
+          .mask(normalizeFreeformLlmInput(input.question))
+          .text.slice(0, 80);
+        if (!question) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            '请说点什么',
+            400,
+          );
+        }
+        const answer = await generateNpcReply({
+          caseFile: mystery.caseFile,
+          run: mystery.run,
+          npcId: input.npcId,
+          question,
+        }).catch((error: unknown) => {
+          console.warn('[DungeonMystery] 人物对话生成失败:', error);
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '对方一时没有回应，请稍后再问',
+            409,
+          );
+        });
+        const result = applyMysteryDialogue(mystery.caseFile, mystery.run, {
+          npcId: input.npcId,
+          question,
+          ...answer,
+        });
+        if (!result.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            result.error,
+            400,
+          );
+        }
+        mystery.run = { ...result.run, lastActionId: input.actionId };
+        for (const clueId of result.newClues) {
+          if (isKeyClue(mystery.caseFile, clueId))
+            await appendClueReward(state, clueId);
+        }
+        return this.finishMysteryStep(cultivatorId, state, options);
+      },
+      options.lease,
+    );
+  }
+
+  /** 结案：规则评分后按完成通关结算，评分决定通关奖励档位。 */
+  async deduceMystery(
+    cultivatorId: string,
+    input: {
+      runId: string;
+      answers: MysteryAnswers;
+      evidence?: MysteryEvidence;
+    },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-deduce',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (state.status !== 'EXPLORING' || mystery.result) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const template = requireMysteryTemplate(mystery.templateId);
+        const invalid = checkMysteryAnswers(
+          mystery.caseFile,
+          template,
+          mystery.run,
+          input.answers,
+        );
+        if (invalid) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            invalid,
+            400,
+          );
+        }
+        const culprit = mysteryConfrontationTarget(
+          mystery.caseFile,
+          template,
+          input.answers,
+          mystery.run,
+        );
+        if (culprit) {
+          const encounter = await prepareDungeonEncounter(state, {
+            enemyName: culprit.name,
+            description:
+              template.archetype === 'retrieval'
+                ? `禁制应声而开的一刻，${culprit.name}撕下伪装，出手抢夺遗珍——拦下此人，遗珍才能交到该得之人手里。`
+                : template.archetype === 'unlock'
+                  ? `主禁制应声而开的一刻，${culprit.name}拦在门前：“试炼的最后一关，是我。”`
+                  : template.archetype === 'allegiance'
+                    ? culprit.role === 'broker'
+                      ? `你当众摊开密信，两方的怒火一齐落到${culprit.name}身上。${culprit.name}见挑拨败露，索性出手，要杀出一条路来。`
+                      : `你表明了立场。${culprit.name}脸色一沉：“既然道不同——”话音未落，兵刃已至。`
+                    : template.archetype === 'anomaly'
+                      ? (mystery.caseFile.manifest?.description ??
+                        `你按古法着手平息异变，${culprit.name}自源头扑出！`)
+                      : `你当众点破了${culprit.name}的罪行。${culprit.name}见再无可辩，猝然发难，要夺路而逃——拦下此人，此案才算了结。`,
+          }).catch((error: unknown) => {
+            console.warn('[DungeonMystery] 对决准备失败:', error);
+            throw new DungeonFlowError(
+              DungeonFlowErrorCode.INVALID_STATE,
+              '对决未能展开，请稍后再提交推理',
+              409,
+            );
+          });
+          mystery.verdict = {
+            answers: input.answers,
+            culpritId: culprit.id,
+            ...(input.evidence ? { evidence: input.evidence } : {}),
+          };
+          state.status = 'WAITING_BATTLE';
+          state.encounter = encounter.preview;
+          if (options.deferPersistence) {
+            return {
+              state,
+              isFinished: false,
+              ...this.buildStateHooks(cultivatorId, state, encounter),
+            };
+          }
+          await this.saveState(cultivatorId, state, encounter);
+          return { state, isFinished: false };
+        }
+        mystery.result = scoreMysteryRun(
+          mystery.caseFile,
+          template,
+          mystery.run,
+          input.answers,
+          'none',
+          input.evidence,
+        );
+        const settled = await this.settleDungeon(state, {
+          endDisposition: 'completed',
+          deferPersistence: options.deferPersistence,
+        });
+        return { ...settled, state: settled.state ?? state };
+      },
+      options.lease,
+    );
+  }
+
+  /** 强闯守卫：校验后进入遭遇战（精英强度），行动力在战斗结束时扣除。 */
+  async challengeMysteryGuard(
+    cultivatorId: string,
+    input: { runId: string; actionId: string; turn: number; guardId: string },
+    options: DungeonFlowOptions = {},
+  ) {
+    return this.withFlowLock(
+      cultivatorId,
+      'dungeon-mystery-guard',
+      async () => {
+        const state = await this.getState(cultivatorId);
+        this.requireMysteryState(state, input.runId);
+        const mystery = state.mystery;
+        if (mystery.run.lastActionId === input.actionId) {
+          return { state, isFinished: state.isFinished };
+        }
+        if (
+          state.status !== 'EXPLORING' ||
+          mystery.result ||
+          mystery.run.turn !== input.turn
+        ) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '探索状态已变化，请刷新',
+            409,
+          );
+        }
+        const check = mysteryGuardChallenge(
+          mystery.caseFile,
+          mystery.run,
+          input.guardId,
+        );
+        if (!check.ok) {
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_ACTION,
+            check.error,
+            400,
+          );
+        }
+        mystery.pendingGuard = check.guard.id;
+        const encounter = await prepareDungeonEncounter(state, {
+          enemyName: check.guard.name,
+          description: check.guard.description,
+        }).catch((error: unknown) => {
+          console.warn('[DungeonMystery] 守卫遭遇战准备失败:', error);
+          throw new DungeonFlowError(
+            DungeonFlowErrorCode.INVALID_STATE,
+            '遭遇战未能展开，请稍后再试',
+            409,
+          );
+        });
+        mystery.run = { ...mystery.run, lastActionId: input.actionId };
+        state.status = 'WAITING_BATTLE';
+        state.encounter = encounter.preview;
+        if (options.deferPersistence) {
+          return {
+            state,
+            isFinished: false,
+            ...this.buildStateHooks(cultivatorId, state, encounter),
+          };
+        }
+        await this.saveState(cultivatorId, state, encounter);
+        return { state, isFinished: false };
+      },
+      options.lease,
+    );
+  }
+
+  /** 守卫战结束：胜则进入其房间，败则退回原处；都消耗 1 点行动力并回到调查。 */
+  private async finishMysteryGuard(
+    state: DungeonState,
+    won: boolean,
+    options: DungeonFlowOptions,
+  ): Promise<DungeonSettlementResult> {
+    const mystery = state.mystery!;
+    const result = applyMysteryGuardBattle(
+      mystery.caseFile,
+      mystery.run,
+      mystery.pendingGuard!,
+      won,
+    );
+    if (result.ok) mystery.run = result.run;
+    mystery.pendingGuard = undefined;
+    state.encounter = undefined;
+    state.status = 'EXPLORING';
+    return this.finishMysteryStep(state.cultivatorId, state, options);
+  }
+
+  /** 对决结束（胜、负或放走）：连同对决结果评分，按完成通关结算。 */
+  private async finishMysteryConfrontation(
+    state: DungeonState,
+    outcome: MysteryConfrontationOutcome,
+    options: DungeonFlowOptions,
+  ) {
+    const mystery = state.mystery!;
+    const verdict = mystery.verdict!;
+    mystery.result = scoreMysteryRun(
+      mystery.caseFile,
+      requireMysteryTemplate(mystery.templateId),
+      mystery.run,
+      verdict.answers,
+      outcome,
+      verdict.evidence,
+    );
+    mystery.verdict = undefined;
+    state.encounter = undefined;
+    const settled = await this.settleDungeon(state, {
+      endDisposition: 'completed',
+      deferPersistence: options.deferPersistence,
+    });
+    // 结算结果不含状态时补上，前端据此展示评分明细。
+    return { ...settled, state: settled.state ?? state };
   }
 
   async saveState(
@@ -1820,12 +1803,34 @@ export class DungeonFlowService {
     state.recoverableActions = undefined;
     state.activeBattleId = undefined;
 
-    return this.runs.archiveDungeon(
-      this.normalizeState(state),
-      settlement,
-      realGains,
-      options,
+    return this.recordMysterySettlement(state, options.tx).then(() =>
+      this.runs.archiveDungeon(
+        this.normalizeState(state),
+        settlement,
+        realGains,
+        options,
+      ),
     );
+  }
+
+  /**
+   * 结算写入剧本库统计，与运行态归档同一事务；标记随运行态一起提交，
+   * 重试时不会重复累计。结算本身与普通开局完全相同。
+   */
+  private async recordMysterySettlement(
+    state: DungeonState,
+    tx?: DbTransaction,
+  ) {
+    const mystery = state.mystery;
+    if (!mystery?.scenarioId || mystery.statsRecorded) return;
+    await recordScenarioSettlement(tx ?? this.database, {
+      cultivatorId: state.cultivatorId,
+      scenarioId: mystery.scenarioId,
+      completed: Boolean(mystery.result),
+      total: mystery.result?.total ?? null,
+      replay: mystery.replay ?? false,
+    });
+    mystery.statsRecorded = true;
   }
 
   /**
@@ -1894,15 +1899,14 @@ export class DungeonFlowService {
           409,
         );
       }
-      state.status = 'GENERATING_NEXT';
+      // 旧版回合制已退役，无法再推进下一轮，改为结算离开。
+      state.status = 'SETTLING';
       state.statusReason = undefined;
       state.recoverableActions = undefined;
-      if (state.currentRound > state.maxRounds) {
-        return this.settleDungeon(state, {
-          deferPersistence: options.deferPersistence,
-        });
-      }
-      return this.generateRoundAfterLooting(cultivatorId, state, options);
+      return this.settleDungeon(state, {
+        endDisposition: 'retreated_after_battle',
+        deferPersistence: options.deferPersistence,
+      });
     }
 
     if (action === 'retry_settle') {
@@ -1927,38 +1931,21 @@ export class DungeonFlowService {
     }
 
     if (action === 'retry') {
-      const pending = state.pendingAction;
-      if (!pending?.choiceId) {
-        state.status = 'EXPLORING';
-        state.statusReason = undefined;
-        state.recoverableActions = undefined;
-        state.pendingAction = undefined;
-        state.costPreview = undefined;
-        if (options.deferPersistence) {
-          return {
-            state,
-            isFinished: false,
-            ...this.buildStateHooks(cultivatorId, state),
-          };
-        }
-        await this.saveState(cultivatorId, state);
-        return { state, isFinished: false };
-      }
-
+      // 回到调查；旧版回合制待执行的选项不再重放。
       state.status = 'EXPLORING';
       state.statusReason = undefined;
       state.recoverableActions = undefined;
       state.pendingAction = undefined;
       state.costPreview = undefined;
-      if (!options.deferPersistence) {
-        await this.saveState(cultivatorId, state);
+      if (options.deferPersistence) {
+        return {
+          state,
+          isFinished: false,
+          ...this.buildStateHooks(cultivatorId, state),
+        };
       }
-      return this.handleActionUnlocked(
-        cultivatorId,
-        pending.choiceId,
-        pending.actionId,
-        { ...options, materialSelections: pending.materialSelections },
-      );
+      await this.saveState(cultivatorId, state);
+      return { state, isFinished: false };
     }
 
     throw new Error('未知的副本恢复动作');
@@ -1969,6 +1956,16 @@ export class DungeonFlowService {
     if (!state) return { success: true };
     if (state.activeBattleId)
       throw new Error('请在战斗中使用逃跑指令，或完成战斗后离开');
+    if (state.mystery?.verdict && state.status === 'WAITING_BATTLE')
+      return this.finishMysteryConfrontation(state, 'spared', options);
+    if (state.mystery?.pendingGuard && state.status === 'WAITING_BATTLE') {
+      // 迎战前退回：不扣行动力，回到调查；清掉去重标记，稍后可再次强闯。
+      state.mystery.pendingGuard = undefined;
+      state.mystery.run = { ...state.mystery.run, lastActionId: undefined };
+      state.encounter = undefined;
+      state.status = 'EXPLORING';
+      return this.finishMysteryStep(cultivatorId, state, options);
+    }
     if (state.endDisposition)
       return this.settleDungeon(state, {
         pendingAction: state.pendingAction,

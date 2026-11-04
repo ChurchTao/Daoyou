@@ -6,6 +6,7 @@ import {
   pickLlmRouteByUserHash,
   resolveLlmRouteModels,
   resolveServerLlmRoutes,
+  resolveServerLlmTierRoutes,
 } from './routing.js';
 
 const BOTH_KEYS = { alibaba: true, deepseek: true };
@@ -151,6 +152,44 @@ describe('resolveServerLlmRoutes', () => {
         availableProviders: { alibaba: true },
       }),
     ).toThrow('API key is not set');
+  });
+});
+
+describe('resolveServerLlmTierRoutes', () => {
+  const input = {
+    basicSpec: 'alibaba/qwen3.7-flash',
+    advancedSpec: 'deepseek/deepseek-v4.1-flash-1017:2,alibaba/qwen3.8-flash',
+    availableProviders: BOTH_KEYS,
+  };
+
+  it('parses the advanced group with the same format and weights', () => {
+    expect(resolveServerLlmTierRoutes(input, 'basic')).toEqual([
+      { provider: 'alibaba', model: 'qwen3.7-flash', weight: 1 },
+    ]);
+    expect(resolveServerLlmTierRoutes(input, 'advanced')).toEqual([
+      { provider: 'deepseek', model: 'deepseek-v4.1-flash-1017', weight: 2 },
+      { provider: 'alibaba', model: 'qwen3.8-flash', weight: 1 },
+    ]);
+  });
+
+  it('falls back to the basic group when the advanced group is unset', () => {
+    expect(
+      resolveServerLlmTierRoutes({ ...input, advancedSpec: '  ' }, 'advanced'),
+    ).toEqual(resolveServerLlmTierRoutes(input, 'basic'));
+  });
+
+  it('keeps basic scenes working when the advanced group is misconfigured', () => {
+    const broken = { ...input, availableProviders: { alibaba: true } };
+    expect(resolveServerLlmTierRoutes(broken, 'basic')).toHaveLength(1);
+    expect(() => resolveServerLlmTierRoutes(broken, 'advanced')).toThrow(
+      'LLM_ADVANCED_PROVIDER includes "deepseek" but its API key is not set.',
+    );
+    expect(() =>
+      resolveServerLlmTierRoutes(
+        { ...input, advancedSpec: 'openai/gpt' },
+        'advanced',
+      ),
+    ).toThrow('Invalid LLM_ADVANCED_PROVIDER "openai"');
   });
 });
 

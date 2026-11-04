@@ -514,6 +514,7 @@ function GameDungeonLayoutBody() {
   const [chromeHeight, setChromeHeight] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isImmersiveBattleScene = descriptor.density === 'full';
+  const showChrome = !isImmersiveBattleScene && !descriptor.hideChrome;
 
   useEffect(() => {
     const node = chromeRef.current;
@@ -535,17 +536,18 @@ function GameDungeonLayoutBody() {
     const observer = new ResizeObserver(updateChromeHeight);
     observer.observe(node);
     return () => observer.disconnect();
-  }, [isImmersiveBattleScene]);
+  }, [showChrome]);
 
   const dungeonLayoutStyle = useMemo(
     () =>
       ({
-        '--dungeon-scene-top-offset':
-          chromeHeight !== null
+        '--dungeon-scene-top-offset': !showChrome
+          ? 'calc(var(--app-safe-top) + 1rem)'
+          : chromeHeight !== null
             ? `${chromeHeight}px`
             : DUNGEON_SCENE_TOP_OFFSET_FALLBACK,
       }) as CSSProperties,
-    [chromeHeight],
+    [chromeHeight, showChrome],
   );
   const updateScrollState = useCallback(() => {
     const node = mainRef.current;
@@ -559,7 +561,7 @@ function GameDungeonLayoutBody() {
   return (
     <PaperSurface className="h-dvh overflow-hidden" style={dungeonLayoutStyle}>
       <div className="relative h-full overflow-hidden">
-        {!isImmersiveBattleScene && (
+        {showChrome && (
           <DungeonSceneChrome chromeRef={chromeRef} isScrolled={isScrolled} />
         )}
         <main

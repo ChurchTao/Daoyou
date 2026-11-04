@@ -21,6 +21,7 @@
     "./cultivation": "./dist/public/cultivation.js",
     "./divination": "./dist/public/divination.js",
     "./dungeon": "./dist/public/dungeon.js",
+    "./dungeon/mystery": "./dist/public/dungeon-mystery.js",
     "./equipment": "./dist/public/equipment.js",
     "./equipment/authoring/base": "./dist/equipment/pack.js",
     "./equipment/authoring/forging": "./dist/equipment/forging-pack.js",

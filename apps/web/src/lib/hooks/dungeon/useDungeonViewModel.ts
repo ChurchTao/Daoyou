@@ -1,13 +1,16 @@
 import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
 import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
 import type {
-  DungeonMaterialSelection,
-  DungeonOption,
   DungeonRecoverAction,
-  DungeonRound,
   DungeonSettlement,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
+import type {
+  MysteryAction,
+  MysteryAnswers,
+  MysteryEvidence,
+  MysteryPlayerView,
+} from '@daoyou/game-domain/dungeon/mystery';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import { useMemo } from 'react';
 import type { BattleCallbackData } from './types';
@@ -24,19 +27,21 @@ export type DungeonViewState =
       type: 'map_selection';
       preSelectedNodeId: string | null;
     }
-  | { type: 'exploring'; state: DungeonState; lastRound: DungeonRound }
+  /** 旧版回合制留下的未完成副本：只能结束探索。 */
+  | { type: 'legacy'; state: DungeonState }
+  | { type: 'mystery'; state: DungeonState; view: MysteryPlayerView }
   | { type: 'battle_preparation'; state: DungeonState }
   | {
       type: 'in_battle';
       battleId: string;
       state: DungeonState;
     }
-  | { type: 'looting'; state: DungeonState }
   | { type: 'recoverable_error'; state: DungeonState }
   | {
       type: 'settlement';
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
+      mystery?: MysteryPlayerView;
     };
 
 export type DungeonMutationResolution =
@@ -47,6 +52,7 @@ export type DungeonMutationResolution =
       type: 'settlement';
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
+      state?: DungeonState;
     }
   | { type: 'clear' };
 
@@ -70,6 +76,7 @@ export function resolveDungeonMutationResult(
       type: 'settlement',
       settlement: data.settlement,
       realGains: data.realGains,
+      state: data.state,
     };
   }
   if (data.state) return { type: 'state', state: data.state };
@@ -96,37 +103,17 @@ export function useDungeonViewModel(
   } = useDungeonState(cultivatorId);
   const {
     startDungeon,
-    performAction,
     beginBattle,
     quitDungeon,
-    continueLooting,
-    escapeLooting,
     recoverDungeon,
+    mysteryAct,
+    mysteryDeduce,
+    mysteryTalk,
+    mysteryGuard,
     processing,
   } = useDungeonActions(refresh, state);
 
   const { openQiActionConfirm } = useQiActionConfirm();
-
-  /**
-   * 计算最后一轮数据
-   */
-  const lastRound = useMemo<DungeonRound | null>(() => {
-    if (!state || state.isFinished || state.history.length === 0) {
-      return null;
-    }
-
-    return {
-      scene_description: state.history[state.history.length - 1].scene,
-      interaction: {
-        options: state.currentOptions || [],
-      },
-      acquired_items: state.currentRoundItems || [],
-      status_update: {
-        is_final_round: state.currentRound >= state.maxRounds,
-        internal_danger_score: state.dangerScore,
-      },
-    };
-  }, [state]);
 
   /**
    * 计算当前视图状态
@@ -163,21 +150,20 @@ export function useDungeonViewModel(
         type: 'settlement',
         settlement: state.settlement,
         realGains: state.realGains,
+        mystery: state.mysteryView,
       };
-    }
-
-    // 战后休整
-    if (state?.status === 'LOOTING') {
-      return { type: 'looting', state };
     }
 
     if (state?.status === 'RECOVERABLE_ERROR') {
       return { type: 'recoverable_error', state };
     }
 
-    // 探索中
-    if (state && lastRound) {
-      return { type: 'exploring', state, lastRound };
+    if (state?.mysteryView && state.status === 'EXPLORING') {
+      return { type: 'mystery', state, view: state.mysteryView };
+    }
+
+    if (state && !state.mysteryView) {
+      return { type: 'legacy', state };
     }
 
     // 地图选择
@@ -185,7 +171,7 @@ export function useDungeonViewModel(
       type: 'map_selection',
       preSelectedNodeId,
     };
-  }, [stateLoading, hasCultivator, state, lastRound, preSelectedNodeId]);
+  }, [stateLoading, hasCultivator, state, preSelectedNodeId]);
 
   /**
    * 操作：启动副本
@@ -202,39 +188,6 @@ export function useDungeonViewModel(
         }
       },
     });
-  };
-
-  /**
-   * 操作：执行选项
-   */
-  const handlePerformAction = async (
-    option: DungeonOption,
-    selections: DungeonMaterialSelection[] = [],
-  ) => {
-    if (!state?.runId) return;
-    const data = await performAction(
-      option,
-      state.runId,
-      state.currentRound,
-      selections,
-    );
-    await applyMutationResult(
-      data as Parameters<typeof resolveDungeonMutationResult>[0],
-    );
-  };
-
-  const handleContinueLooting = async () => {
-    const data = await continueLooting();
-    await applyMutationResult(
-      data as Parameters<typeof resolveDungeonMutationResult>[0],
-    );
-  };
-
-  const handleEscapeLooting = async () => {
-    const data = await escapeLooting();
-    await applyMutationResult(
-      data as Parameters<typeof resolveDungeonMutationResult>[0],
-    );
   };
 
   const handleRecoverDungeon = async (action: DungeonRecoverAction) => {
@@ -255,19 +208,65 @@ export function useDungeonViewModel(
     if (resolution.type === 'state') {
       setState(resolution.state);
     } else if (resolution.type === 'settlement') {
-      setState((prev) =>
-        prev
+      setState((prev) => {
+        const base = resolution.state ?? prev;
+        return base
           ? {
-              ...prev,
+              ...base,
               isFinished: true,
               settlement: resolution.settlement,
               realGains: resolution.realGains,
             }
-          : null,
-      );
+          : null;
+      });
     } else if (resolution.type === 'clear') {
       setState(null);
     }
+  };
+
+  const handleMysteryAct = async (action: MysteryAction) => {
+    if (!state?.runId || !state.mysteryView) return;
+    const data = await mysteryAct(state.runId, state.mysteryView.turn, action);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+  };
+
+  const handleMysteryGuard = async (guardId: string) => {
+    if (!state?.runId || !state.mysteryView) return;
+    const data = await mysteryGuard(
+      state.runId,
+      state.mysteryView.turn,
+      guardId,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+  };
+
+  const handleMysteryTalk = async (npcId: string, question: string) => {
+    if (!state?.runId || !state.mysteryView) return false;
+    const data = await mysteryTalk(
+      state.runId,
+      state.mysteryView.turn,
+      npcId,
+      question,
+    );
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
+    return data !== null;
+  };
+
+  const handleMysteryDeduce = async (
+    answers: MysteryAnswers,
+    evidence: MysteryEvidence,
+  ) => {
+    if (!state?.runId) return;
+    const data = await mysteryDeduce(state.runId, answers, evidence);
+    await applyMutationResult(
+      data as Parameters<typeof resolveDungeonMutationResult>[0],
+    );
   };
 
   /**
@@ -294,6 +293,8 @@ export function useDungeonViewModel(
               isFinished: true,
               settlement: data.settlement,
               realGains: data.realGains,
+              // 解谜对决结束后评分随最终状态下发。
+              mysteryView: data.dungeonState?.mysteryView ?? prev.mysteryView,
             }
           : null,
       );
@@ -321,12 +322,13 @@ export function useDungeonViewModel(
         );
       },
       startDungeon: handleStartDungeon,
-      performAction: handlePerformAction,
       quitDungeon: handleQuitDungeon,
-      continueLooting: handleContinueLooting,
-      escapeLooting: handleEscapeLooting,
       recoverDungeon: handleRecoverDungeon,
       completeBattle: handleBattleComplete,
+      mysteryAct: handleMysteryAct,
+      mysteryDeduce: handleMysteryDeduce,
+      mysteryTalk: handleMysteryTalk,
+      mysteryGuard: handleMysteryGuard,
     },
   };
 }

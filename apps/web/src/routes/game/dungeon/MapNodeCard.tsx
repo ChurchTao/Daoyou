@@ -2,12 +2,20 @@ import {
   dungeonDifficultyColorMap,
   tierColorMap,
 } from '@app/components/ui/InkBadge';
-import { InkTag } from '@app/components/ui/InkTag';
-import { type MapNodeInfo } from '@daoyou/game-domain/world/map';
-import { canChallengeDungeonRealm, resolveDungeonMapConfig } from '@daoyou/game-rules/world/dungeon';
 import { cn } from '@app/lib/cn';
 import type { RealmType } from '@daoyou/constants/realms';
+import { MYSTERY_CASE_KINDS } from '@daoyou/game-content/dungeon/case-kinds';
+import { type MapNodeInfo } from '@daoyou/game-domain/world/map';
+import {
+  canChallengeDungeonRealm,
+  resolveDungeonMapConfig,
+} from '@daoyou/game-rules/world/dungeon';
+import { mysterySceneUrl } from './components/mysteryArt';
 
+/**
+ * 选定秘境的介绍：场景底图、此地总述、推荐境界与难度，以及此地可能遇到的案型。
+ * 案型只写玩家进场前就该知道的事，不透露真相。
+ */
 export function MapNodeCard({
   node,
   playerRealm,
@@ -16,70 +24,75 @@ export function MapNodeCard({
   playerRealm?: RealmType;
 }) {
   const dungeonConfig = resolveDungeonMapConfig(node);
+  const scenario = node.dungeon_config?.scenario;
+  const sceneUrl = mysterySceneUrl(scenario?.scene);
+  const caseKinds = (scenario?.templates ?? []).flatMap(
+    (id) => MYSTERY_CASE_KINDS[id] ?? [],
+  );
   const isRealmEligible = playerRealm
     ? canChallengeDungeonRealm(playerRealm, node.realm_requirement)
     : true;
 
   return (
-    <div
-      className={cn(
-        'border transition-colors',
-        isRealmEligible
-          ? 'border-crimson bg-crimson/5'
-          : 'border-ink/20 bg-ink/5',
-      )}
-    >
-      <div className="cursor-pointer p-3">
-        <div className="mb-1 flex items-start justify-between">
-          <h3 className={cn('font-bold', isRealmEligible ? 'text-crimson' : 'text-ink')}>
-            {node.name}
-          </h3>
+    <article className="space-y-5">
+      <h2 className="font-heading text-ink text-2xl md:text-3xl">
+        {node.name}
+      </h2>
+      {sceneUrl ? (
+        // 与解谜正文同一取景：贴底、上缘渐隐；宽屏取 3:1，让开始按钮留在首屏。
+        <div
+          aria-hidden
+          className="aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom lg:aspect-[3/1]"
+          style={{ backgroundImage: `url(${sceneUrl})` }}
+        />
+      ) : null}
+
+      <div className="text-ink-secondary flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <span>
+          推荐境界{' '}
           <span
             className={cn(
-              'text-xs',
-              isRealmEligible ? 'text-crimson' : 'text-ink-secondary',
+              'font-semibold',
+              tierColorMap[node.realm_requirement],
             )}
           >
-            ● {isRealmEligible ? '已选择' : '境界不足'}
+            {node.realm_requirement}
           </span>
-        </div>
-        <p className="text-ink-secondary mb-2 line-clamp-2 text-xs">
-          {node.description}
-        </p>
-        <div className="text-ink-secondary mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-          <span>
-            推荐境界：
-            <span
-              className={cn('font-semibold', tierColorMap[node.realm_requirement])}
-            >
-              {node.realm_requirement}
-            </span>
+          {isRealmEligible ? null : (
+            <span className="text-crimson ml-1">（境界不足）</span>
+          )}
+        </span>
+        <span>
+          难度{' '}
+          <span
+            className={cn(
+              'font-semibold',
+              dungeonDifficultyColorMap[dungeonConfig.difficultyTier],
+            )}
+          >
+            {dungeonConfig.difficultyLabel}
           </span>
-          <span>
-            难度：
-            <span
-              className={cn(
-                'font-semibold',
-                dungeonDifficultyColorMap[dungeonConfig.difficultyTier],
-              )}
-            >
-              {dungeonConfig.difficultyLabel}
-            </span>
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {node.tags.slice(0, 3).map((t) => (
-            <InkTag
-              key={t}
-              variant="outline"
-              tone="neutral"
-              className="py-0 text-[10px]"
-            >
-              {t}
-            </InkTag>
-          ))}
-        </div>
+        </span>
       </div>
-    </div>
+
+      <p className="leading-8">{scenario?.setting ?? node.description}</p>
+
+      {caseKinds.length > 0 ? (
+        <section className="space-y-2">
+          <h3 className="text-ink-secondary text-sm">此地可能遇到的案子</h3>
+          <ul className="space-y-2">
+            {caseKinds.map((kind) => (
+              <li
+                key={kind.name}
+                className="border-ink/20 border-l-2 pl-3 text-sm leading-7"
+              >
+                <span className="font-semibold">{kind.name}</span>
+                <span className="text-ink-secondary"> · {kind.pitch}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </article>
   );
 }

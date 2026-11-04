@@ -6,6 +6,7 @@
   "exports": {
     "./account": "./dist/account.js",
     "./admin/accounts": "./dist/adminAccounts.js",
+    "./admin/dungeon-scenarios": "./dist/adminDungeonScenarios.js",
     "./admin/item-generation": "./dist/adminItemGeneration.js",
     "./admin/online-users": "./dist/adminOnlineUsers.js",
     "./admin/tower": "./dist/adminTower.js",
@@ -23,6 +24,7 @@
     "./combat/auto": "./dist/combatAuto.js",
     "./combat/breakthrough": "./dist/combatV6Breakthrough.js",
     "./combat/dungeon": "./dist/combatV6Dungeon.js",
+    "./dungeon/mystery": "./dist/dungeonMystery.js",
     "./combat/ranking": "./dist/combatV6Ranking.js",
     "./combat/replays": "./dist/combatV6Replay.js",
     "./combat/runtime": "./dist/combatV6Runtime.js",

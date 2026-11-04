@@ -20,6 +20,18 @@ export type LlmRoute = {
 export type LlmRoutingInput = {
   providerSpec?: string;
   availableProviders: Partial<Record<LlmProviderId, boolean>>;
+  /** 出错信息中引用的环境变量名。 */
+  envName?: string;
+};
+
+/** 基础模型组承担日常调用；高级模型组用于需要更强推理与一致性的场景。 */
+export const LLM_MODEL_TIERS = ['basic', 'advanced'] as const;
+
+export type LlmModelTier = (typeof LLM_MODEL_TIERS)[number];
+
+export const LLM_TIER_ENV_NAMES: Record<LlmModelTier, string> = {
+  basic: 'LLM_PROVIDER',
+  advanced: 'LLM_ADVANCED_PROVIDER',
 };
 
 const ROUTE_ENTRY = /^([a-z][a-z0-9_]*)(?:\/([^:,\s]+))?(?::(\d+))?$/i;
@@ -54,16 +66,19 @@ function sortRoutes(routes: readonly LlmRoute[]): LlmRoute[] {
   return [...routes].sort(compareRoutes);
 }
 
-function invalidSpecError(): Error {
+function invalidSpecError(envName: string): Error {
   return new Error(
-    'Invalid LLM_PROVIDER. Expected provider[/model][:weight], e.g. "alibaba/qwen3.7-flash:70,deepseek/deepseek-v4-flash:30".',
+    `Invalid ${envName}. Expected provider[/model][:weight], e.g. "alibaba/qwen3.7-flash:70,deepseek/deepseek-v4-flash:30".`,
   );
 }
 
-export function parseLlmRouteSpec(raw: string): LlmRouteSpec[] {
+export function parseLlmRouteSpec(
+  raw: string,
+  envName = LLM_TIER_ENV_NAMES.basic,
+): LlmRouteSpec[] {
   const trimmed = raw.trim();
   if (!trimmed) {
-    throw invalidSpecError();
+    throw invalidSpecError(envName);
   }
 
   const parts = trimmed
@@ -71,7 +86,7 @@ export function parseLlmRouteSpec(raw: string): LlmRouteSpec[] {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   if (parts.length === 0) {
-    throw invalidSpecError();
+    throw invalidSpecError(envName);
   }
 
   const seen = new Set<string>();
@@ -81,14 +96,14 @@ export function parseLlmRouteSpec(raw: string): LlmRouteSpec[] {
     const match = part.match(ROUTE_ENTRY);
     if (!match) {
       throw new Error(
-        `Invalid LLM_PROVIDER entry "${part}". Expected provider[/model][:weight].`,
+        `Invalid ${envName} entry "${part}". Expected provider[/model][:weight].`,
       );
     }
 
     const parsedId = LlmProviderIdSchema.safeParse(match[1]);
     if (!parsedId.success) {
       throw new Error(
-        `Invalid LLM_PROVIDER "${match[1]}". Expected one of: ${LLM_PROVIDER_IDS.join(', ')}`,
+        `Invalid ${envName} "${match[1]}". Expected one of: ${LLM_PROVIDER_IDS.join(', ')}`,
       );
     }
 
@@ -96,7 +111,7 @@ export function parseLlmRouteSpec(raw: string): LlmRouteSpec[] {
     const identity = `${parsedId.data}/${model ?? ''}`;
     if (seen.has(identity)) {
       throw new Error(
-        `Duplicate LLM_PROVIDER entry "${model ? `${parsedId.data}/${model}` : parsedId.data}".`,
+        `Duplicate ${envName} entry "${model ? `${parsedId.data}/${model}` : parsedId.data}".`,
       );
     }
     seen.add(identity);
@@ -134,6 +149,7 @@ function autoDetectRouteSpec(
 
 export function resolveLlmRouteModels(
   routes: readonly LlmRouteSpec[],
+  envName = LLM_TIER_ENV_NAMES.basic,
 ): LlmRoute[] {
   if (routes.length === 0) {
     throw new Error('No LLM routes to resolve.');
@@ -149,7 +165,7 @@ export function resolveLlmRouteModels(
   for (const route of resolved) {
     const key = llmRouteKey(route);
     if (seen.has(key)) {
-      throw new Error(`Duplicate LLM_PROVIDER route "${key}".`);
+      throw new Error(`Duplicate ${envName} route "${key}".`);
     }
     seen.add(key);
   }
@@ -158,19 +174,46 @@ export function resolveLlmRouteModels(
 }
 
 export function resolveServerLlmRoutes(input: LlmRoutingInput): LlmRoute[] {
+  const envName = input.envName ?? LLM_TIER_ENV_NAMES.basic;
   const specs = input.providerSpec?.trim()
-    ? parseLlmRouteSpec(input.providerSpec)
+    ? parseLlmRouteSpec(input.providerSpec, envName)
     : autoDetectRouteSpec(input.availableProviders);
 
   for (const spec of specs) {
     if (!input.availableProviders[spec.provider]) {
       throw new Error(
-        `LLM_PROVIDER includes "${spec.provider}" but its API key is not set.`,
+        `${envName} includes "${spec.provider}" but its API key is not set.`,
       );
     }
   }
 
-  return resolveLlmRouteModels(specs);
+  return resolveLlmRouteModels(specs, envName);
+}
+
+/**
+ * 解析指定模型组的路由。高级组格式与基础组相同；未配置时沿用基础组，
+ * 这样未部署高级模型的环境不受影响。只解析所需的一组，高级组配置有误
+ * 不会波及基础组场景。
+ */
+export function resolveServerLlmTierRoutes(
+  input: {
+    basicSpec?: string;
+    advancedSpec?: string;
+    availableProviders: Partial<Record<LlmProviderId, boolean>>;
+  },
+  tier: LlmModelTier,
+): LlmRoute[] {
+  if (tier === 'advanced' && input.advancedSpec?.trim()) {
+    return resolveServerLlmRoutes({
+      providerSpec: input.advancedSpec,
+      availableProviders: input.availableProviders,
+      envName: LLM_TIER_ENV_NAMES.advanced,
+    });
+  }
+  return resolveServerLlmRoutes({
+    providerSpec: input.basicSpec,
+    availableProviders: input.availableProviders,
+  });
 }
 
 export function pickLlmRouteByUserHash(
