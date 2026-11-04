@@ -20,7 +20,12 @@ import {
   type LibraryScenario,
   type RestockDecision,
 } from '@daoyou/game-rules/dungeon/mystery';
-import { db, getExecutor, type DbExecutor } from '@server/lib/drizzle/db.js';
+import {
+  db,
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
 import {
   dungeonScenarioJobs,
   dungeonScenarioPlays,
@@ -233,10 +238,26 @@ export async function recordScenarioSettlement(
 
 const PENDING = ['queued', 'running'] as const;
 
-/**
- * 投递补货任务。用事务级咨询锁串行化，保证全服待生成数不超过上限；
- * 被拦下的请求直接忽略，不排队。
- */
+/** 同一地图节点的投递用同一把事务级咨询锁串行化，保证该节点待生成数不超过上限。 */
+function lockNodeQueue(tx: DbTransaction, mapNodeId: string) {
+  return tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`dungeon-scenario-jobs:${mapNodeId}`}))`,
+  );
+}
+
+function pendingInNode(tx: DbTransaction, mapNodeId: string) {
+  return tx
+    .select({ n: count() })
+    .from(dungeonScenarioJobs)
+    .where(
+      and(
+        eq(dungeonScenarioJobs.mapNodeId, mapNodeId),
+        inArray(dungeonScenarioJobs.status, [...PENDING]),
+      ),
+    );
+}
+
+/** 投递补货任务；被拦下的请求直接忽略，不排队。 */
 export async function requestScenarioRestock(args: {
   mapNodeId: string;
   templateId: string;
@@ -244,9 +265,7 @@ export async function requestScenarioRestock(args: {
   requestedBy?: string;
 }): Promise<RestockDecision> {
   const decision = await db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-jobs'))`,
-    );
+    await lockNodeQueue(tx, args.mapNodeId);
     const slot = and(
       eq(dungeonScenarios.mapNodeId, args.mapNodeId),
       eq(dungeonScenarios.templateId, args.templateId),
@@ -256,7 +275,7 @@ export async function requestScenarioRestock(args: {
       eq(dungeonScenarioJobs.mapNodeId, args.mapNodeId),
       eq(dungeonScenarioJobs.templateId, args.templateId),
     );
-    const [[active], [pendingInSlot], [pendingTotal], [lastFailure]] =
+    const [[active], [pendingInSlot], [pendingNode], [lastFailure]] =
       await Promise.all([
         tx.select({ n: count() }).from(dungeonScenarios).where(slot),
         tx
@@ -265,10 +284,7 @@ export async function requestScenarioRestock(args: {
           .where(
             and(jobSlot, inArray(dungeonScenarioJobs.status, [...PENDING])),
           ),
-        tx
-          .select({ n: count() })
-          .from(dungeonScenarioJobs)
-          .where(inArray(dungeonScenarioJobs.status, [...PENDING])),
+        pendingInNode(tx, args.mapNodeId),
         tx
           .select({ at: max(dungeonScenarioJobs.finishedAt) })
           .from(dungeonScenarioJobs)
@@ -277,7 +293,7 @@ export async function requestScenarioRestock(args: {
     const result = decideMysteryRestock({
       activeInSlot: active?.n ?? 0,
       pendingInSlot: pendingInSlot?.n ?? 0,
-      pendingTotal: pendingTotal?.n ?? 0,
+      pendingInNode: pendingNode?.n ?? 0,
       lastFailedAt: lastFailure?.at ? lastFailure.at.getTime() : null,
       now: Date.now(),
     });
@@ -300,35 +316,44 @@ export function wakeScenarioWorker() {
 }
 
 /**
- * 管理后台投递：逐个给库存位排一个任务，不受失败冷却限制，但与补货共用咨询锁与全服上限；
- * 达到上限后其余的跳过。返回排队与跳过的数量。
+ * 管理后台投递：每个库存位可排多个任务，不受失败冷却与同槽去重限制，但与补货共用
+ * 节点咨询锁与节点上限；某节点排满后，该节点其余的跳过。返回排队与跳过的数量。
  */
 export async function enqueueAdminScenarioJobs(
   slots: Array<{ mapNodeId: string; templateId: string }>,
 ) {
+  const byNode = new Map<string, typeof slots>();
+  for (const slot of slots)
+    byNode.set(slot.mapNodeId, [...(byNode.get(slot.mapNodeId) ?? []), slot]);
   const result = await db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-jobs'))`,
-    );
-    const [pending] = await tx
+    let enqueued = 0;
+    // 按节点排序加锁，避免与并发的投递互相等待成死锁。
+    for (const [mapNodeId, nodeSlots] of [...byNode].sort(([a], [b]) =>
+      a.localeCompare(b),
+    )) {
+      await lockNodeQueue(tx, mapNodeId);
+      const [pending] = await pendingInNode(tx, mapNodeId);
+      const room = Math.max(
+        0,
+        MYSTERY_LIBRARY_POLICY.maxPendingPerNode - (pending?.n ?? 0),
+      );
+      const accepted = nodeSlots.slice(0, room);
+      if (accepted.length > 0)
+        await tx
+          .insert(dungeonScenarioJobs)
+          .values(
+            accepted.map((slot) => ({ ...slot, reason: 'admin' as const })),
+          );
+      enqueued += accepted.length;
+    }
+    const [pendingTotal] = await tx
       .select({ n: count() })
       .from(dungeonScenarioJobs)
       .where(inArray(dungeonScenarioJobs.status, [...PENDING]));
-    const room = Math.max(
-      0,
-      MYSTERY_LIBRARY_POLICY.maxPendingJobs - (pending?.n ?? 0),
-    );
-    const accepted = slots.slice(0, room);
-    if (accepted.length > 0)
-      await tx
-        .insert(dungeonScenarioJobs)
-        .values(
-          accepted.map((slot) => ({ ...slot, reason: 'admin' as const })),
-        );
     return {
-      enqueued: accepted.length,
-      skipped: slots.length - accepted.length,
-      pendingTotal: (pending?.n ?? 0) + accepted.length,
+      enqueued,
+      skipped: slots.length - enqueued,
+      pendingTotal: pendingTotal?.n ?? 0,
     };
   });
   if (result.enqueued > 0) await wakeScenarioWorker();
@@ -370,7 +395,7 @@ export function configuredSlots() {
 
 /**
  * 清扫：中断的任务按失败处理一次；手写保底案卷入库；
- * 每槽库存低于预热数时投递预热任务（受全服队列上限约束）。
+ * 每槽库存低于预热数时投递预热任务（受节点队列上限约束）。
  */
 async function sweepScenarioLibrary() {
   const policy = MYSTERY_LIBRARY_POLICY;
@@ -432,34 +457,41 @@ async function sweepScenarioLibrary() {
           eq(dungeonScenarios.status, 'active'),
         ),
       );
-    if ((active?.n ?? 0) < policy.warmupPerSlot) {
-      const decision = await requestScenarioRestock({
-        ...slot,
-        reason: 'warmup',
-      });
-      if (decision === 'queue_full') break;
-    }
+    if ((active?.n ?? 0) < policy.warmupPerSlot)
+      await requestScenarioRestock({ ...slot, reason: 'warmup' });
   }
 }
 
+/**
+ * 认领最早排队、且所在节点没有任务在跑的一个任务：同一节点逐个生成，不同节点并发。
+ * 认领用一把全局事务锁串行化，多实例同时认领也不会让同一节点跑两个。
+ */
 async function claimJob() {
-  const result = await db.execute<{
-    id: string;
-    map_node_id: string;
-    template_id: string;
-  }>(sql`
-    update ${dungeonScenarioJobs}
-    set status = 'running', started_at = now(), attempts = attempts + 1
-    where id = (
-      select id from ${dungeonScenarioJobs}
-      where status = 'queued'
-      order by created_at
-      for update skip locked
-      limit 1
-    )
-    returning id, map_node_id, template_id
-  `);
-  return result.rows[0];
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-claim'))`,
+    );
+    const result = await tx.execute<{
+      id: string;
+      map_node_id: string;
+      template_id: string;
+    }>(sql`
+      update ${dungeonScenarioJobs}
+      set status = 'running', started_at = now(), attempts = attempts + 1
+      where id = (
+        select j.id from ${dungeonScenarioJobs} j
+        where j.status = 'queued'
+          and not exists (
+            select 1 from ${dungeonScenarioJobs} r
+            where r.status = 'running' and r.map_node_id = j.map_node_id
+          )
+        order by j.created_at
+        limit 1
+      )
+      returning id, map_node_id, template_id
+    `);
+    return result.rows[0];
+  });
 }
 
 async function runJob(job: {
@@ -537,25 +569,48 @@ async function runJob(job: {
   }
 }
 
-/** 单次唤醒最多处理的任务数，避免处理器长时间占用。 */
-const JOBS_PER_WAKE = MYSTERY_LIBRARY_POLICY.maxPendingJobs;
+/** 每个实例的并发上限：每个节点同时只跑一个，故不超过配置了剧本的节点数。 */
+const WORKER_LIMIT = new Set(configuredSlots().map((s) => s.mapNodeId)).size;
+const workers = new Set<Promise<void>>();
+let processed = 0;
 let draining: Promise<{ processed: number }> | null = null;
 
+async function work() {
+  for (;;) {
+    const job = await claimJob();
+    if (!job) return;
+    await runJob(job);
+    processed++;
+  }
+}
+
+/** 补足工作者：空闲的工作者认领不到任务就退出，唤醒时再补上。 */
+function topUpWorkers() {
+  while (workers.size < WORKER_LIMIT) {
+    const worker: Promise<void> = work()
+      .catch((error: unknown) =>
+        console.warn('[ScenarioLibrary] 生成处理器异常:', error),
+      )
+      .finally(() => workers.delete(worker));
+    workers.add(worker);
+  }
+}
+
 /**
- * 后台命令 `dungeon-scenario.generate` 的处理器：先清扫，再逐个认领生成。
- * 每个实例同时只有一个生成在跑；正在处理时的重复唤醒直接复用当前处理。
+ * 后台命令 `dungeon-scenario.generate` 的处理器：先清扫，再按节点并发认领生成，
+ * 直到没有可认领的任务。处理中的重复唤醒补足工作者并复用当前处理。
  */
 export function runScenarioGeneration(): Promise<{ processed: number }> {
-  draining ??= (async () => {
+  if (draining) {
+    topUpWorkers();
+    return draining;
+  }
+  draining = (async () => {
     try {
       await sweepScenarioLibrary();
-      let processed = 0;
-      while (processed < JOBS_PER_WAKE) {
-        const job = await claimJob();
-        if (!job) break;
-        await runJob(job);
-        processed++;
-      }
+      processed = 0;
+      topUpWorkers();
+      while (workers.size > 0) await Promise.allSettled([...workers]);
       return { processed };
     } finally {
       draining = null;

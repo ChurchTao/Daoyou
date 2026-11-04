@@ -145,7 +145,7 @@ export class AdminDungeonScenariosService {
         };
       }),
       pendingTotal,
-      maxPendingJobs: MYSTERY_LIBRARY_POLICY.maxPendingJobs,
+      maxPendingPerNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode,
       warmupPerSlot: MYSTERY_LIBRARY_POLICY.warmupPerSlot,
       generatorVersion: MYSTERY_GENERATOR_VERSION,
     };

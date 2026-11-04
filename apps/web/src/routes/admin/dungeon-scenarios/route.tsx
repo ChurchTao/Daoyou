@@ -57,7 +57,7 @@ const day = (iso: string | null) =>
 
 const enqueueMessage = (r: AdminDungeonEnqueueResult) =>
   r.skipped > 0
-    ? `已投递 ${r.enqueued} 个任务，${r.skipped} 个因队列已满跳过（待生成 ${r.pendingTotal}）。`
+    ? `已投递 ${r.enqueued} 个任务，${r.skipped} 个因所在节点队列已满跳过（待生成 ${r.pendingTotal}）。`
     : `已投递 ${r.enqueued} 个任务（待生成 ${r.pendingTotal}）。`;
 
 export default function DungeonScenariosRoute() {
@@ -171,9 +171,10 @@ function SlotsTab({
           生成版本 <span className="font-mono">{data.generatorVersion}</span> ·
           库存位 <span className="font-mono">{data.slots.length}</span>
           ，空位 <span className="font-mono">{empty}</span> · 待生成{' '}
-          <span className="font-mono">
-            {data.pendingTotal} / {data.maxPendingJobs}
-          </span>
+          <span className="font-mono">{data.pendingTotal}</span>
+          （每节点最多{' '}
+          <span className="font-mono">{data.maxPendingPerNode}</span>
+          ，节点间并发）
         </span>
         <InkButton
           variant="primary"

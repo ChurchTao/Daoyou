@@ -1,11 +1,12 @@
 /**
  * 全服剧本库的选本与补货策略（纯函数）。剧本按“节点 × 模板”分槽，
- * 开局只从库中选本；库存不足时投递异步生成任务，全服待生成任务有上限。
+ * 开局只从库中选本；库存不足时投递异步生成任务。任务按地图节点排队：
+ * 每个节点的待生成任务有上限，同一节点逐个生成，不同节点并发。
  * 重温与首次游玩走同一结算路径，重温标记只用于提示和剧本统计。
  */
 export const MYSTERY_LIBRARY_POLICY = {
-  /** 全服 queued + running 任务上限，达到后忽略新的投递。 */
-  maxPendingJobs: 8,
+  /** 每个地图节点 queued + running 任务上限，达到后忽略该节点新的投递。 */
+  maxPendingPerNode: 8,
   /** 角色在该槽剩余未玩剧本不超过此数时补货。 */
   lowStockThreshold: 1,
   /** 每槽 active 剧本上限，达到后只轮换旧本。 */
@@ -137,11 +138,11 @@ export function needsMysteryRestock(pick: ScenarioPick): boolean {
 export type RestockDecision =
   'enqueue' | 'slot_full' | 'backoff' | 'slot_pending' | 'queue_full';
 
-/** 投递前的限流判断，依次检查库存上限、失败退避、同槽排队与全服队列上限。 */
+/** 自动补货的限流判断，依次检查库存上限、失败退避、同槽排队与节点队列上限。 */
 export function decideMysteryRestock(args: {
   activeInSlot: number;
   pendingInSlot: number;
-  pendingTotal: number;
+  pendingInNode: number;
   lastFailedAt: number | null;
   now: number;
 }): RestockDecision {
@@ -153,7 +154,7 @@ export function decideMysteryRestock(args: {
   )
     return 'backoff';
   if (args.pendingInSlot > 0) return 'slot_pending';
-  if (args.pendingTotal >= policy.maxPendingJobs) return 'queue_full';
+  if (args.pendingInNode >= policy.maxPendingPerNode) return 'queue_full';
   return 'enqueue';
 }
 

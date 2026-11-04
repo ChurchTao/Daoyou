@@ -505,6 +505,13 @@
       "when": 1793614886892,
       "tag": "0071_dungeon_scenario_library",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793763146879,
+      "tag": "0072_dungeon_jobs_per_node_queue",
+      "breakpoints": true
     }
   ]
 }

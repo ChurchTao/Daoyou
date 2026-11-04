@@ -129,7 +129,7 @@ describe('decideMysteryRestock', () => {
   const ok = {
     activeInSlot: 3,
     pendingInSlot: 0,
-    pendingTotal: 0,
+    pendingInNode: 0,
     lastFailedAt: null,
     now: 1_000_000_000,
   };
@@ -138,17 +138,17 @@ describe('decideMysteryRestock', () => {
     expect(decideMysteryRestock(ok)).toBe('enqueue');
   });
 
-  it('ignores the request once five jobs are pending server-wide', () => {
+  it('ignores the request once the node queue is full', () => {
     expect(
       decideMysteryRestock({
         ...ok,
-        pendingTotal: MYSTERY_LIBRARY_POLICY.maxPendingJobs - 1,
+        pendingInNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode - 1,
       }),
     ).toBe('enqueue');
     expect(
       decideMysteryRestock({
         ...ok,
-        pendingTotal: MYSTERY_LIBRARY_POLICY.maxPendingJobs,
+        pendingInNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode,
       }),
     ).toBe('queue_full');
   });

@@ -16,8 +16,10 @@ export interface AdminDungeonSlot {
 
 export interface AdminDungeonSlotsView {
   slots: AdminDungeonSlot[];
+  /** 全服 queued + running 任务数。 */
   pendingTotal: number;
-  maxPendingJobs: number;
+  /** 每个地图节点的待生成上限；同一节点逐个生成，不同节点并发。 */
+  maxPendingPerNode: number;
   warmupPerSlot: number;
   generatorVersion: number;
 }
@@ -71,7 +73,7 @@ export interface AdminDungeonJob {
   finishedAt: string | null;
 }
 
-/** 投递结果：enqueued 已排队，skipped 因全服上限跳过。 */
+/** 投递结果：enqueued 已排队，skipped 因所在节点队列已满跳过；pendingTotal 为投递后全服待生成数。 */
 export interface AdminDungeonEnqueueResult {
   enqueued: number;
   skipped: number;

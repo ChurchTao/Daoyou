@@ -2087,9 +2087,6 @@ export const dungeonScenarioJobs = pgTable(
     finishedAt: timestamp('finished_at'),
   },
   (table) => [
-    uniqueIndex('dungeon_scenario_jobs_slot_pending_unique')
-      .on(table.mapNodeId, table.templateId)
-      .where(sql`${table.status} in ('queued', 'running')`),
     index('dungeon_scenario_jobs_status_created_idx').on(
       table.status,
       table.createdAt,
