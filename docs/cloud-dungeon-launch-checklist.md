@@ -7,7 +7,7 @@
 - [ ] 确定高级模型组的 DeepSeek 模型：DeepSeek 接口拒绝 `deepseek-v4.1-flash-1017`，可用的有 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-pro`。确定后更新预发布与生产环境的 `LLM_ADVANCED_PROVIDER`，并同步 `env/example.env`（当前仍写着被拒绝的型号）。
 - [ ] 预发布、生产环境都配置 `LLM_ADVANCED_PROVIDER`；未配置时高级场景会退回基础模型组，案卷一致性明显下降。
 - [ ] 结构化输出的稳定性：本地开发中基础模型组（qwen）曾间歇返回 “This response_format type is unavailable now”，导致后台生成批量失败。上线前确认所选模型对结构化输出的支持与配额，必要时为基础组配置多条路由。
-- [ ] 高级模型的大纲阶段超时：阶段 7 抽查中异变溯源 `unwitting` 变体连续 3 次在大纲阶段超过 120 秒（`AI_DEFAULT_TIMEOUT_MS`），换种子后才成功，遗珍寻踪 `swapped` 也超时过一次。上线前用目标环境的高级模型测大纲耗时，必要时为大纲阶段单独放宽超时或换更快的模型；冷启动开局时超时会退回保底或拒绝开局。
+- [ ] 高级模型的大纲耗时：2026-11-04 起剧本生成开启思考，大纲一次约 5 分钟。单步时限已放宽到 15 分钟，传输层等待也已对长时限请求取消（Node 内置 fetch 默认只等响应头 300 秒）。上线前用目标环境的高级模型测一次完整生成的耗时与成功率；若经过反向代理或网关，确认其读超时不短于 15 分钟。
 - [ ] 用目标环境的密钥实际调用一次 `dungeon-case`、`dungeon-case-text`、`dungeon-case-review`、`dungeon-npc`、`dungeon-settlement` 五个场景，确认模型可用、结构化输出正常。
 
 ## 2. 数据库与部署

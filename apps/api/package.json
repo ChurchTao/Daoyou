@@ -48,6 +48,7 @@
     "raw-body": "^3.0.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "undici": "7.28.0",
     "ws": "^8.22.0",
     "zod": "^4.6.4",
     "@daoyou/constants": "workspace:*",

@@ -35,6 +35,7 @@ import {
   type LanguageModelCallOptions,
   type LanguageModelUsage,
 } from 'ai';
+import { Agent } from 'undici';
 import { z } from 'zod';
 
 const LLM_DEBUG_ENABLED =
@@ -60,7 +61,11 @@ function logLlmDebug(
   );
 }
 
-function createLlmDebugFetch(sceneId: LlmSceneId, model: string): typeof fetch {
+function createLlmDebugFetch(
+  sceneId: LlmSceneId,
+  model: string,
+  baseFetch: typeof fetch,
+): typeof fetch {
   return async (
     input: Parameters<typeof fetch>[0],
     init?: Parameters<typeof fetch>[1],
@@ -73,7 +78,7 @@ function createLlmDebugFetch(sceneId: LlmSceneId, model: string): typeof fetch {
     );
 
     try {
-      const response = await globalThis.fetch(input, init);
+      const response = await baseFetch(input, init);
       void response
         .clone()
         .text()
@@ -98,6 +103,25 @@ function createLlmDebugFetch(sceneId: LlmSceneId, model: string): typeof fetch {
 
 const AI_MAX_CONCURRENT_REQUESTS = 64;
 const AI_DEFAULT_TIMEOUT_MS = 120_000;
+
+/**
+ * Node 内置 fetch（undici）默认只等响应头 300 秒。非流式请求要等模型写完才返回响应头，
+ * 时限更长的请求（如开启思考的剧本生成）改用不设传输层等待的连接，由 timeoutMs 中止。
+ */
+const UNDICI_DEFAULT_HEADERS_TIMEOUT_MS = 300_000;
+const longWaitAgent = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
+const longWaitFetch: typeof fetch = (input, init) =>
+  globalThis.fetch(input, {
+    ...init,
+    dispatcher: longWaitAgent,
+  } as RequestInit);
+
+function baseFetchFor(options: Pick<AiTextOptions, 'timeoutMs'>) {
+  return (options.timeoutMs ?? AI_DEFAULT_TIMEOUT_MS) >
+    UNDICI_DEFAULT_HEADERS_TIMEOUT_MS
+    ? longWaitFetch
+    : undefined;
+}
 let activeAiRequests = 0;
 let rejectedAiRequests = 0;
 
@@ -297,7 +321,10 @@ function resolveServerRoute(tier: LlmModelTier): LlmRoute {
     : pickHighestWeightLlmRoute(routes);
 }
 
-function resolveModel(sceneId: LlmSceneId): ResolvedModel {
+function resolveModel(
+  sceneId: LlmSceneId,
+  options: Pick<AiTextOptions, 'timeoutMs'>,
+): ResolvedModel {
   const requestConfig = getRequestConfig();
   const route = requestConfig
     ? {
@@ -308,14 +335,15 @@ function resolveModel(sceneId: LlmSceneId): ResolvedModel {
   const providerId = route.provider;
   const def = LLM_PROVIDERS[providerId];
   const modelName = route.model;
-  const debugFetch = LLM_DEBUG_ENABLED
-    ? createLlmDebugFetch(sceneId, modelName)
-    : undefined;
+  const baseFetch = baseFetchFor(options);
+  const fetch = LLM_DEBUG_ENABLED
+    ? createLlmDebugFetch(sceneId, modelName, baseFetch ?? globalThis.fetch)
+    : baseFetch;
   const apiKey =
     requestConfig?.apiKey ?? getRuntimeEnvironment()[def.apiKeyEnv]?.trim();
 
   return {
-    model: def.create({ apiKey, fetch: debugFetch })(modelName),
+    model: def.create({ apiKey, fetch })(modelName),
     provider: providerId,
     modelName,
   };
@@ -580,7 +608,7 @@ function getStructuredRetryMaxOutputTokens(
 }
 
 async function generateAiTextInternal(options: AiTextOptions) {
-  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId, options);
   const metrics = createMetricContext(options, provider, modelName);
 
   try {
@@ -604,7 +632,7 @@ async function generateAiTextInternal(options: AiTextOptions) {
 }
 
 export function streamAiText(options: AiTextOptions) {
-  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId, options);
   const metrics = createMetricContext(options, provider, modelName);
   const request = startAiRequest(options);
   let terminalMetricRecorded = false;
@@ -762,7 +790,7 @@ async function generateStructured<
 async function generateAiObjectInternal<GENERATED, RESULT = GENERATED>(
   options: AiObjectOptions<GENERATED, RESULT>,
 ) {
-  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId, options);
   const metrics = createMetricContext(
     options,
     provider,
@@ -803,7 +831,7 @@ async function generateAiObjectInternal<GENERATED, RESULT = GENERATED>(
 async function generateAiArrayInternal<ELEMENT, RESULT = ELEMENT[]>(
   options: AiArrayOptions<ELEMENT, RESULT>,
 ) {
-  const { model, modelName, provider } = resolveModel(options.sceneId);
+  const { model, modelName, provider } = resolveModel(options.sceneId, options);
   const metrics = createMetricContext(
     options,
     provider,

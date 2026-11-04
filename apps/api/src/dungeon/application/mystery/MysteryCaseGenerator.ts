@@ -685,7 +685,10 @@ async function callStage<S extends z.ZodType>(args: {
       name: args.name,
       sceneId: args.sceneId,
       timeoutMs: STAGE_TIMEOUT_MS,
-      thinking: MYSTERY_GENERATION_THINKING,
+      thinking:
+        MYSTERY_GENERATION_THINKING[
+          args.promptId === 'dungeon-case' ? 'outline' : 'text'
+        ],
     });
   // 结构已经固定，失败只可能是网络、输出截断或个别字段留空，单段重试一次即可。
   const first = await run().catch(() => null);

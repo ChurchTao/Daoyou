@@ -168,7 +168,7 @@ export async function reviewMysteryCase(
     name: 'DungeonMysteryReview',
     sceneId: 'dungeon-case-review',
     timeoutMs: MYSTERY_STAGE_TIMEOUT_MS,
-    thinking: MYSTERY_GENERATION_THINKING,
+    thinking: MYSTERY_GENERATION_THINKING.review,
   });
   const byPath = new Map(fields.map((f) => [f.path, f]));
   const issues: MysteryReviewIssue[] = [];
