@@ -7,6 +7,11 @@
 export const MYSTERY_LIBRARY_POLICY = {
   /** 每个地图节点 queued + running 任务上限，达到后忽略该节点新的投递。 */
   maxPendingPerNode: 8,
+  /**
+   * 每个实例同时生成的剧本数上限。正文三段并行，16 本最多约 48 路模型调用，
+   * 给同进程的 AI 并发上限（64）留出玩家交谈与结算的余量。
+   */
+  maxConcurrentJobsPerInstance: 16,
   /** 角色在该槽剩余未玩剧本不超过此数时补货。 */
   lowStockThreshold: 1,
   /** 每槽 active 剧本上限，达到后只轮换旧本。 */

@@ -466,7 +466,7 @@ async function sweepScenarioLibrary() {
  * 认领最早排队、且所在节点没有任务在跑的一个任务：同一节点逐个生成，不同节点并发。
  * 认领用一把全局事务锁串行化，多实例同时认领也不会让同一节点跑两个。
  */
-async function claimJob() {
+async function claimJob(jobId?: string) {
   return db.transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-claim'))`,
@@ -481,6 +481,7 @@ async function claimJob() {
       where id = (
         select j.id from ${dungeonScenarioJobs} j
         where j.status = 'queued'
+          ${jobId !== undefined ? sql`and j.id = ${jobId}` : sql``}
           and not exists (
             select 1 from ${dungeonScenarioJobs} r
             where r.status = 'running' and r.map_node_id = j.map_node_id
@@ -516,9 +517,11 @@ async function runJob(job: {
     if (generated.source !== 'generated')
       throw new Error('生成未通过校验，未入库保底案卷');
     // 入库把关：后台生成不影响开局，用高级模型组再做一次独立审校，只计数不改写。
-    const audit = await reviewMysteryCase(generated.caseFile, undefined, {
-      apply: false,
-    });
+    const audit = await reviewMysteryCase(
+      generated.caseFile,
+      generated.reviewContext?.canon,
+      { apply: false, locked: generated.reviewContext?.locked },
+    );
     const majorIssues = audit.issues.filter((i) => i.severity === 'major');
     if (majorIssues.length > MYSTERY_LIBRARY_POLICY.maxMajorIssuesForLibrary)
       throw new Error(
@@ -569,8 +572,29 @@ async function runJob(job: {
   }
 }
 
-/** 每个实例的并发上限：每个节点同时只跑一个，故不超过配置了剧本的节点数。 */
-const WORKER_LIMIT = new Set(configuredSlots().map((s) => s.mapNodeId)).size;
+/** 手动执行指定的一个排队任务；不清扫、不补货，也不继续领取任务或重试整项任务。 */
+export async function runSingleScenarioGeneration(jobId: string) {
+  const job = await claimJob(jobId);
+  if (!job) throw new Error('任务不在排队中，或该节点已有任务正在生成');
+  await runJob(job);
+  const [result] = await db
+    .select({
+      id: dungeonScenarioJobs.id,
+      status: dungeonScenarioJobs.status,
+      attempts: dungeonScenarioJobs.attempts,
+      scenarioId: dungeonScenarioJobs.scenarioId,
+      error: dungeonScenarioJobs.error,
+    })
+    .from(dungeonScenarioJobs)
+    .where(eq(dungeonScenarioJobs.id, jobId));
+  return result;
+}
+
+/** 每个实例的并发上限：每个节点同时只跑一个，且不超过策略给定的单实例上限。 */
+const WORKER_LIMIT = Math.min(
+  new Set(configuredSlots().map((s) => s.mapNodeId)).size,
+  MYSTERY_LIBRARY_POLICY.maxConcurrentJobsPerInstance,
+);
 const workers = new Set<Promise<void>>();
 let processed = 0;
 let draining: Promise<{ processed: number }> | null = null;

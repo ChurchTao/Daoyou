@@ -15,8 +15,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@ai-sdk/alibaba": "^2.0.45",
-    "@ai-sdk/deepseek": "^3.0.44",
+    "@ai-sdk/alibaba": "^2.0.82",
+    "@ai-sdk/deepseek": "^3.0.79",
     "@better-auth/core": "^1.7.4",
     "@better-auth/drizzle-adapter": "^1.7.4",
     "@better-auth/i18n": "^1.7.4",
@@ -30,7 +30,7 @@
     "@nestjs/platform-ws": "^12.1.2",
     "@nestjs/schedule": "^12.0.2",
     "@nestjs/websockets": "^12.1.2",
-    "ai": "^7.0.99",
+    "ai": "^7.0.162",
     "altcha-lib": "^2.5.0",
     "better-auth": "^1.7.4",
     "better-call": "1.4.0",
@@ -48,7 +48,7 @@
     "raw-body": "^3.0.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "undici": "7.28.0",
+    "undici": "7.30.1",
     "ws": "^8.22.0",
     "zod": "^4.6.4",
     "@daoyou/constants": "workspace:*",

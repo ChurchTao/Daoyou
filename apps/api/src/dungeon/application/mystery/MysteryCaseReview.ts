@@ -12,6 +12,82 @@ import {
 /** 大纲阶段定下的事实设定，字段随案型不同。 */
 export type MysteryCanon = Record<string, string>;
 
+/** 三轮审校共用的故事设定与受保护字段，仅在服务端传递。 */
+export interface MysteryReviewContext {
+  canon: MysteryCanon;
+  locked: readonly string[];
+}
+
+/** 程序固定的归属、来源和触发关系，不从模型正文推断。 */
+export function mysteryCaseFacts(c: MysteryCaseFile, statement?: string) {
+  return {
+    startRoomId: c.startRoomId,
+    spatialRule:
+      'roomId 是程序固定的实际位置；出示线索是传达已知信息，不会搬动物件或人物。',
+    dialogueRule:
+      '秘密按 requires 解锁。反应不按数组顺序触发：人物在场、玩家持有 evidenceId 且该反应尚未触发即可，不要求先听过陈述或触发其他反应。exposesLie 标记本次是否戳穿谎言，不是其他反应的前置条件。',
+    rooms: c.rooms.map(({ id, exits, requires }) => ({ id, exits, requires })),
+    objects: c.objects.map(({ id, roomId }) => ({ id, roomId })),
+    clues: c.clues.map(({ id, foundAt, supports }) => ({
+      id,
+      foundAt,
+      supports,
+    })),
+    items: c.items.map(({ id, initial, foundAt }) => ({
+      id,
+      initial,
+      foundAt,
+    })),
+    npcs: c.npcs.map(({ id, role, roomId, secrets, reactions }) => ({
+      id,
+      role,
+      roomId,
+      statement: secrets.some((s) => s.clueId === 'clue_claim')
+        ? statement
+        : undefined,
+      secrets: secrets.map(({ clueId, requires }) => ({ clueId, requires })),
+      reactions: reactions.map(({ id, evidenceId, exposesLie, effects }) => ({
+        id,
+        field: `reactions.${id}`,
+        evidenceId,
+        exposesLie,
+        effects,
+      })),
+    })),
+    interactions: c.interactions.map(
+      ({ id, itemId, targetId, requires, effects }) => ({
+        id,
+        itemId,
+        targetId,
+        requires,
+        effects,
+      }),
+    ),
+    guards: (c.guards ?? []).map(({ id, roomId, bypass }) => ({
+      id,
+      roomId,
+      bypass,
+    })),
+    mechanisms: (c.mechanisms ?? []).map(
+      ({ id, objectId, final, hints, onSolve }) => ({
+        id,
+        objectId,
+        final,
+        hints,
+        onSolve,
+      }),
+    ),
+    events: (c.events ?? []).map(({ id, warnAt, at, unless, effects }) => ({
+      id,
+      warnAt,
+      at,
+      unless,
+      effects,
+    })),
+    answers: c.questions.map(({ id, answer }) => ({ id, answer })),
+  };
+}
+
 const INTERNAL_ID = /[a-z]+_[a-z0-9_]+/;
 
 /**
@@ -124,9 +200,8 @@ export async function reviewMysteryCase(
   options: { locked?: readonly string[]; apply?: boolean } = {},
 ): Promise<{ caseFile: MysteryCaseFile; issues: MysteryReviewIssue[] }> {
   const result = structuredClone(caseFile);
-  const fields = textFields(result).filter(
-    (f) => !options.locked?.includes(f.path),
-  );
+  const allFields = textFields(result);
+  const fields = allFields.filter((f) => !options.locked?.includes(f.path));
   const paths = fields.map((f) => f.path) as [string, ...string[]];
   const schema = z.object({
     issues: z
@@ -155,7 +230,18 @@ export async function reviewMysteryCase(
   });
   const prompt = renderPrompt('dungeon-case-review', {
     userContextJson: stableCompactStringify({
-      ...(canon ? { canon } : {}),
+      canon: {
+        ...canon,
+        programFacts: mysteryCaseFacts(
+          result,
+          result.clues.find((x) => x.id === 'clue_claim')?.text,
+        ),
+        readOnlyFields: Object.fromEntries(
+          allFields
+            .filter((f) => options.locked?.includes(f.path))
+            .map((f) => [f.path, f.get()]),
+        ),
+      },
       truth: caseFile.truth,
       names: names(caseFile),
       fields: Object.fromEntries(fields.map((f) => [f.path, f.get()])),

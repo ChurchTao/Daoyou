@@ -23,7 +23,9 @@ import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 import {
   cleanMysteryText as clip,
+  mysteryCaseFacts,
   reviewMysteryCase,
+  type MysteryReviewContext,
 } from './MysteryCaseReview.js';
 import {
   MYSTERY_GENERATION_THINKING,
@@ -47,6 +49,8 @@ interface MysteryArchetypeSpec {
   cast: readonly string[];
   canon: Record<string, string>;
   rules: readonly string[];
+  /** 变体改变职责的角色，输入说明改用本局骨架的作用。 */
+  roleOverrides?: readonly string[];
   /**
    * 结构变体对案型描述的覆盖：canon 按键合并，其余整体替换。
    * 变体改变谁说谎、真相如何成立，结案问题不变。
@@ -85,6 +89,7 @@ const ARCHETYPES: Partial<
           '本局说谎的不是凶手，而是被冤枉的嫌疑人：他为掩盖一件与命案无关、见不得人的私事谎称了案发时的行踪；凶手以伪装身份出现但所言不虚，只对案发当晚避而不谈，要靠物证坐实。',
         liar: 'npc_suspect',
         liarLabel: '嫌疑人',
+        roleOverrides: ['culprit', 'suspect'],
         canon: {
           culprit:
             '凶手的真名、伪装身份与动机；他不说谎，只对案发当晚的事避而不谈',
@@ -125,6 +130,7 @@ const ARCHETYPES: Partial<
     ],
     variants: {
       swapped: {
+        roleOverrides: ['rival', 'decoy'],
         summary:
           '本局遗珍早已被转移：前辈遗刻与最显眼的线索都指向原先的藏处，那里只剩当年转移遗珍的人留下的赝品；转移的痕迹才指向真正的新藏处。夺宝者仍在说谎，但他不知道原藏处的是赝品。',
         canon: {
@@ -165,6 +171,7 @@ const ARCHETYPES: Partial<
     ],
     variants: {
       honest_rival: {
+        roleOverrides: ['rival', 'fallen'],
         summary:
           '本局闯关者说的是真话：当年他把正确的解法给了前人，是前人自己记错了一步才触发反噬，却一直认定闯关者害了他。被记载戳穿的是前人的说法，不是闯关者。',
         canon: {
@@ -207,6 +214,7 @@ const ARCHETYPES: Partial<
     ],
     variants: {
       unwitting: {
+        roleOverrides: ['culprit', 'local'],
         summary:
           '本局引发异变的是当地人：他出于好意的一个举动（改水道、移阵石等）无意中断了地脉，自己并不知情，说的都是真话；形迹可疑、在行踪上说谎的外来者只是在掩盖私采、越界之类的小过，被戳穿后会说出撞见当地人在源头动过什么。',
         cast: ['npc_local', 'npc_culprit'],
@@ -252,6 +260,7 @@ const ARCHETYPES: Partial<
     ],
     variants: {
       honest_broker: {
+        roleOverrides: ['broker'],
         summary:
           '本局中间人说的是真话：他两头奔走劝和，警告其中一方所图会祸及无辜，却拿不出凭据，两方都当他在挑拨。真正隐瞒的是所图会祸及无辜的那一方代表，被记载戳穿时连带败露。',
         canon: {
@@ -549,7 +558,7 @@ const TEXT_PARTS = {
         ),
         secrets: keyed(id.secrets, (k) =>
           k.endsWith(`:${CLAIM_CLUE}`)
-            ? Text(60, '凶手说出谎言前的神态动作，不写台词')
+            ? Text(60, '该人物说出这条原话前的神态动作，不写台词')
             : Text(180, `说出秘密时的台词；作用：${s.purposes[k]}`),
         ),
         reactions: keyed(id.reactions, (r) =>
@@ -581,6 +590,7 @@ function structureContext(
     title: o.title,
     truth: o.truth,
     canon: o.canon,
+    programFacts: mysteryCaseFacts(c, o.canon.lie),
     liar: o.npcs[spec.liar]?.name,
     rooms: c.rooms.map((r) => ({
       id: r.id,
@@ -930,6 +940,7 @@ export interface GeneratedMysteryCase {
   source: 'generated' | 'fallback';
   /** 审校修正的问题数，仅生成成功时有意义。 */
   reviewIssueCount: number;
+  reviewContext?: MysteryReviewContext;
 }
 
 /**
@@ -948,6 +959,7 @@ export async function generateMysteryCase(
       template,
       skeleton.caseFile.variant,
     );
+    const programFacts = mysteryCaseFacts(skeleton.caseFile);
     const draftOutline = () =>
       callStage({
         promptId: 'dungeon-case',
@@ -966,7 +978,12 @@ export async function generateMysteryCase(
             roles: template.roles.map((r) => ({
               slot: r.slot,
               label: r.label,
-              guidance: r.guidance,
+              guidance: spec.roleOverrides?.includes(r.slot)
+                ? (skeleton.purposes[
+                    skeleton.caseFile.npcs.find((n) => n.role === r.slot)?.id ??
+                      ''
+                  ] ?? r.guidance)
+                : r.guidance,
             })),
             writing_guidance: template.writing_guidance,
           },
@@ -985,18 +1002,18 @@ export async function generateMysteryCase(
             forbidden: setting.forbidden,
           },
           structure: {
-            rooms: skeleton.caseFile.rooms.map((r) => ({
-              id: r.id,
+            ...programFacts,
+            rooms: programFacts.rooms.map((r) => ({
+              ...r,
               purpose: skeleton.purposes[r.id],
-              exits: r.exits,
             })),
-            npcs: skeleton.caseFile.npcs.map((n) => ({
-              id: n.id,
-              role: n.role,
+            npcs: programFacts.npcs.map((n) => ({
+              ...n,
               room: n.roomId,
+              purpose: skeleton.purposes[n.id],
             })),
-            guards: (skeleton.caseFile.guards ?? []).map((g) => ({
-              id: g.id,
+            guards: programFacts.guards.map((g) => ({
+              ...g,
               room: g.roomId,
               purpose: skeleton.purposes[g.id],
             })),
@@ -1043,31 +1060,35 @@ export async function generateMysteryCase(
           .join('；')}`,
       );
     const drafted = draft.data;
+    const reviewContext: MysteryReviewContext = {
+      canon: { ...outline.canon, variantRules: spec.rules.join('\n') },
+      locked: [
+        ...LOCKED_FIELDS,
+        ...(drafted.mechanisms ?? []).flatMap((m) =>
+          m.hints.flatMap((h) => [
+            `clues.${h.clueId}.text`,
+            ...drafted.npcs.flatMap((n) =>
+              n.secrets.some((x) => x.clueId === h.clueId)
+                ? [`secrets.${n.id}:${h.clueId}`]
+                : [],
+            ),
+          ]),
+        ),
+        ...Object.keys(skeleton.sequences ?? {}).flatMap((id) =>
+          drafted.questions.flatMap((q) =>
+            q.options?.some((x) => x.id === id)
+              ? [`options.${q.id}.${id}`]
+              : [],
+          ),
+        ),
+      ],
+    };
     // 分头撰写的正文最后统一对照事实设定审校，只改写有矛盾的字段。
     // 改写可能引入新的不一致，有修正时再审一轮，最多两轮。
     let reviewed = drafted;
     for (let round = 1; round <= 2; round++) {
-      const result = await reviewMysteryCase(reviewed, outline.canon, {
-        locked: [
-          ...LOCKED_FIELDS,
-          ...(drafted.mechanisms ?? []).flatMap((m) =>
-            m.hints.flatMap((h) => [
-              `clues.${h.clueId}.text`,
-              ...drafted.npcs.flatMap((n) =>
-                n.secrets.some((x) => x.clueId === h.clueId)
-                  ? [`secrets.${n.id}:${h.clueId}`]
-                  : [],
-              ),
-            ]),
-          ),
-          ...Object.keys(skeleton.sequences ?? {}).flatMap((id) =>
-            drafted.questions.flatMap((q) =>
-              q.options?.some((x) => x.id === id)
-                ? [`options.${q.id}.${id}`]
-                : [],
-            ),
-          ),
-        ],
+      const result = await reviewMysteryCase(reviewed, reviewContext.canon, {
+        locked: reviewContext.locked,
       }).catch((error: unknown) => {
         console.warn('[DungeonMystery] 一致性审校失败，沿用当前稿:', error);
         return { caseFile: reviewed, issues: [] };
@@ -1084,7 +1105,12 @@ export async function generateMysteryCase(
           .slice(0, 8)
           .map((i) => `${i.path.join('.')}: ${i.message}`);
     if (parsed.success && issues.length === 0)
-      return { caseFile: parsed.data, source: 'generated', reviewIssueCount };
+      return {
+        caseFile: parsed.data,
+        source: 'generated',
+        reviewIssueCount,
+        reviewContext,
+      };
     console.warn('[DungeonMystery] 案卷组装未通过校验，改用保底案卷:', issues);
   } catch (error) {
     console.warn('[DungeonMystery] 案卷生成失败，改用保底案卷:', error);

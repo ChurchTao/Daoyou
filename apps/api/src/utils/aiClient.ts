@@ -218,9 +218,8 @@ export interface AiTextOptions {
   maxOutputTokens?: number;
   reasoning?: AiReasoning;
   /**
-   * 开启模型的思考模式，不指定思考预算：各提供方只发送自己的开关
-   * （DashScope 的 enable_thinking、DeepSeek 的 thinking），避免部分模型不支持
-   * thinking_budget 而拒绝请求。设置后忽略 reasoning。
+   * 开启模型的思考模式：Alibaba 的思考预算统一为 4096，
+   * DeepSeek 仍使用其思考开关。设置后忽略 reasoning。
    */
   thinking?: boolean;
 }
@@ -233,7 +232,7 @@ function reasoningSettings(
   return {
     reasoning: 'provider-default' as const,
     providerOptions: {
-      alibaba: { enableThinking: true },
+      alibaba: { enableThinking: true, thinkingBudget: 4096 },
       deepseek: { thinking: { type: 'enabled' as const } },
     },
   };
