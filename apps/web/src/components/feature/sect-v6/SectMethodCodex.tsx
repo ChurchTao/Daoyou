@@ -84,15 +84,10 @@ function Codex({
 }) {
   const gender = useCultivatorIdentity().data?.cultivator?.gender;
   const definition = COMBAT_V6_SECT_DEFINITIONS[progress.sectId];
-  const methodSkillIds = new Set([
-    ...definition.skills.map((skill) => skill.definition.id),
-    ...definition.paths.flatMap((path) => [
-      ...(path.grantSkills ?? []).map((skill) => skill.definition.id),
-      ...(path.foundationPassives ?? []).map((skill) => skill.definition.id),
-    ]),
-  ]);
-  const skills = sectSkillCatalog(progress, characterLevel).filter((skill) =>
-    methodSkillIds.has(skill.id),
+  const skills = sectSkillCatalog(progress, characterLevel).filter(
+    (skill) =>
+      !skill.passive ||
+      definition.skills.some((entry) => entry.definition.id === skill.id),
   );
   const groups = definition.methods
     .slice()
@@ -289,12 +284,8 @@ function SkillSheet({
   const effect =
     lines.length > 1 ? lines.slice(1).join('\n') : skill.description;
   const costs = [
-    typeof definition?.costMp === 'number' && definition.costMp > 0
-      ? `${definition.costMp}法力`
-      : null,
-    typeof definition?.costHp === 'number' && definition.costHp > 0
-      ? `${definition.costHp}气血`
-      : null,
+    describeCost(definition?.costMp, '法力'),
+    describeCost(definition?.costHp, '气血'),
   ].filter((item): item is string => !!item);
   return (
     <article>
@@ -316,7 +307,9 @@ function SkillSheet({
       </div>
       {costs.length ||
       (typeof definition?.cooldownRounds === 'number' &&
-        definition.cooldownRounds > 0) ? (
+        definition.cooldownRounds > 0) ||
+      (typeof definition?.initialCooldownRounds === 'number' &&
+        definition.initialCooldownRounds > 0) ? (
         <dl className="border-ink/10 mt-4 grid gap-3 border-t pt-4 text-sm sm:grid-cols-2">
           {costs.length ? (
             <div>
@@ -334,6 +327,18 @@ function SkillSheet({
               </dd>
             </div>
           ) : null}
+          {typeof definition?.initialCooldownRounds === 'number' &&
+          definition.initialCooldownRounds > 0 ? (
+            <div>
+              <dt className="text-ink-secondary text-xs">开场冷却</dt>
+              <dd className="mt-1">
+                <span className="font-mono">
+                  {definition.initialCooldownRounds}
+                </span>{' '}
+                回合
+              </dd>
+            </div>
+          ) : null}
         </dl>
       ) : null}
       {!skill.available && skill.requirement ? (
@@ -343,6 +348,19 @@ function SkillSheet({
       ) : null}
     </article>
   );
+}
+
+function describeCost(
+  cost: SkillDef['costMp'],
+  unit: '法力' | '气血',
+): string | null {
+  if (typeof cost === 'number') return cost > 0 ? `${cost}${unit}` : null;
+  if (!cost) return null;
+  const perTarget = /^(\d+)\s*\*\s*targets$/.exec(cost.trim());
+  if (perTarget) return `每目标${perTarget[1]}${unit}`;
+  if (unit === '气血' && cost.replace(/\s/g, '') === 'floor(maxHp*0.2)')
+    return '最大气血的20%（向下取整）';
+  return `变动${unit}（以施放时为准）`;
 }
 
 function findSkill(

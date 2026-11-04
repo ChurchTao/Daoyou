@@ -17,18 +17,26 @@ export type HookContext = {
   statusDuration?: number
   statusReason?: string
   removedStatusKind?: string
+  removedStatusId?: string
+  removedStatusSourceId?: string
+  removedStatusRounds?: number
+  removedStatusSkillLevel?: number
   removedStatusCategory?: StatusCategory
   removedStatusDispellable?: boolean
+  removedStatusWasSeal?: boolean
   removedStatusFlags?: StatusFlag[]
   statusRemovedByAlly?: boolean
   dotStatusId?: string
   statusRemoveReason?: string
   source?: Unit
   target?: Unit
+  petEntryKind?: 'initial' | 'switch'
   event?: BattleEvent
   cancelled?: boolean
   /** 钩子可改最终伤害 */
   damage?: number
+  /** Flat addition after all result multipliers. */
+  finalDamageAdd?: number
   /** 本次伤害实际扣除的气血，不包含过量部分。 */
   hpDamage?: number
   /** 钩子可改物理忽防比例，最终由伤害入口夹取到 0～1。 */
@@ -48,6 +56,7 @@ export type HookContext = {
   crit?: boolean
   chance?: number
   percentageDamage?: boolean
+  retaliationDamage?: boolean
 }
 
 export type HookFn = (ctx: HookContext) => void

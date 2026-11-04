@@ -19,11 +19,9 @@ import type { InscriptionRequest } from '@daoyou/contracts/inscriptions';
 import type { InventoryView } from '@daoyou/contracts/inventory';
 import { daoFormationInscriptionOf } from '@daoyou/game-content/equipment/base';
 import { daoFormationMaxLevel } from '@daoyou/game-rules/equipment/projection';
-import type { DaoFormationInscriptionStateV1 } from '@daoyou/game-domain/equipment';
 import { type InscriptionDrawPreview, type InscriptionMaterialRef, type InscriptionRef } from '@daoyou/game-domain/inscriptions';
 import { inscriptionMaterialProblem, MAX_INSCRIPTION_STRENGTHEN_TIMES, prepareInscriptionDraw, prepareInscriptionSockets, prepareInscriptionStrengthen, type InscriptionSocketStep } from '@daoyou/game-rules/inscriptions/rules';
 import { itemDefinition } from '@daoyou/game-rules/inventory';
-import { EQUIPMENT_ATTRIBUTE_NAMES } from '@daoyou/game-domain/equipment';
 import { InventoryEquipmentSchema } from '@daoyou/game-rules/inventory/equipment';
 import {
   INSCRIPTION_DRAW_MAX_LEVEL,
@@ -31,7 +29,7 @@ import {
   inscriptionItemId,
 } from '@daoyou/game-content/items/inscriptions';
 import { cn } from '@app/lib/cn';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CraftInventoryPanel } from '../items/CraftInventoryPanel';
 import { InventoryItems } from '../items/InventoryItems';
 import { ItemSlot } from '../items/ItemSlot';
@@ -110,11 +108,6 @@ const refOf = (item: Item): InscriptionRef => ({
   id: item.id,
   revision: item.revision,
 });
-function formationText(value: DaoFormationInscriptionStateV1 | null) {
-  if (!value) return '空孔';
-  const pattern = daoFormationInscriptionOf(value.patternId)!;
-  return `${pattern.name} · ${value.level}级 · ${EQUIPMENT_ATTRIBUTE_NAMES[pattern.attr]} +${pattern.valuePerLevel * value.level}`;
-}
 type SocketDraft = {
   inscription?: InscriptionRef;
   action: 'engrave' | 'strengthen_socket' | 'remove';
@@ -238,24 +231,31 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     input: InscriptionRequest;
     lines: string[];
     warning?: string;
+    plannedEquipment: Item | null;
   }>();
-  const plannedEquipment = useRef<Item | null>(null);
+  const [plannedEquipment, setPlannedEquipment] = useState<Item | null>(null);
   const inventory = session.bag.data;
+  const reloadStorage = storage.reload;
   useEffect(() => {
-    if (!session.result) return;
-    storage.reload();
-    if (session.result.action !== 'inscribe') return;
-    setSockets(emptySockets());
-    const updated = plannedEquipment.current;
-    if (!updated) return;
-    setChosenItems((current) => {
-      const chosen = current.get(updated.id);
-      if (!chosen || chosen.item.revision === updated.revision) return current;
-      const next = new Map(current);
-      next.set(updated.id, { ...chosen, item: updated });
-      return next;
-    });
-  }, [session.result, storage.reload]);
+    if (session.result) reloadStorage();
+  }, [session.result, reloadStorage]);
+  const [handledResult, setHandledResult] = useState(session.result);
+  if (session.result && session.result !== handledResult) {
+    setHandledResult(session.result);
+    if (session.result.action === 'inscribe') {
+      setSockets(emptySockets());
+      if (plannedEquipment) {
+        setChosenItems((current) => {
+          const chosen = current.get(plannedEquipment.id);
+          if (!chosen || chosen.item.revision === plannedEquipment.revision)
+            return current;
+          const next = new Map(current);
+          next.set(plannedEquipment.id, { ...chosen, item: plannedEquipment });
+          return next;
+        });
+      }
+    }
+  }
   const pickerView = source === 'bag' ? inventory : storage.view;
   const pickerError = source === 'bag' ? session.bag.error : storage.error;
   const pickerLocked =
@@ -309,7 +309,8 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
     ref ? byId.get(ref.id) : undefined;
   let draw: InscriptionDrawPreview | undefined;
   let strengthenGrant: { name: string; level: number; quantity: number } | undefined;
-  let socketLines: string[] = [];
+  const socketLines: string[] = [];
+  let nextEquipment: Item | null = null;
   let input: InscriptionRequest | undefined;
   let problem: string | null = session.view?.blockedReason ?? null;
   const maxTimes = (() => {
@@ -449,7 +450,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
           ruleSteps,
         );
         const updated = plan.after.find((item) => item.id === equipmentItem.id);
-        plannedEquipment.current = updated
+        nextEquipment = updated
           ? {
               ...equipmentItem,
               instanceData: updated.instanceData,
@@ -672,6 +673,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
       input: { ...input, requestId: crypto.randomUUID() },
       lines,
       warning,
+      plannedEquipment: nextEquipment,
     });
   }
   function dismissResult() {
@@ -1302,6 +1304,7 @@ export function InscriptionRoom({ ownerId }: { ownerId: string }) {
                 disabled={session.locked}
                 onClick={() => {
                   if (confirmation) {
+                    setPlannedEquipment(confirmation.plannedEquipment);
                     void session.submit(confirmation.input);
                     setConfirmation(undefined);
                   }

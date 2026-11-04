@@ -30,6 +30,7 @@ describe('world atlas location coverage', () => {
         'WILD_DJ_BANYAN',
         'WILD_DJ_DARKCAVE',
         'SECT_WUXIANG',
+        'SECT_XIAOYUE',
       ],
     ],
   ] as const)(

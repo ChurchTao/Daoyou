@@ -44,7 +44,7 @@ export function towerReferenceBuild(
   const natural = getRealmStageNaturalAttributeValue(realm, stage);
   const budget = getRealmStageUnallocatedAttributeBudget(realm, stage);
   const weights =
-    sectId === 'lingxiao'
+    sectId === 'lingxiao' || sectId === 'xiaoyue'
       ? [40, 150, 0, 30, 30, 0]
       : sectId === 'jiujie' || sectId === 'tianyan'
         ? [40, 0, 150, 0, 30, 30]

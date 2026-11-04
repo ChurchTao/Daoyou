@@ -7,6 +7,24 @@ import { describe, expect, it } from 'vitest';
 import { combatV6SkillDetails } from './skill-details.js';
 
 describe('combat skill previews', () => {
+  it('keeps authored descriptions free of generated status mechanics', () => {
+    const statuses: StatusDef[] = [
+      { id: 'snapshot', kind: 'snapshot', name: '资源快照', category: 'buff', untilBattleEnd: true },
+      { id: 'focus', kind: 'focus', name: '凝神', category: 'buff' },
+    ];
+    const skill: SkillDef = {
+      id: 'preview', name: '预览', description: '依当前资源获得法攻，施法时凝神。',
+      tags: ['support'], targeting: { side: 'self' },
+      effects: [
+        { type: 'applyStatus', statusId: 'snapshot', duration: 99, self: true },
+        { type: 'applyStatus', statusId: 'focus', duration: 3, self: true },
+      ],
+    };
+    const description = combatV6SkillDetails([skill], statuses)[skill.id].description;
+    expect(description).toBe(skill.description);
+    expect(description).not.toContain('99');
+    expect(description).not.toContain('资源快照');
+  });
   it('describes generic sleep, hostile-action interception and damaging-spell restrictions', () => {
     const statuses: StatusDef[] = [
       {

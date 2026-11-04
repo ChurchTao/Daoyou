@@ -11,6 +11,23 @@ type StatusChoices = {
 
 /** Only combat states with a useful player-facing tactical meaning are editable. */
 const choices: Record<string, StatusChoices> = {
+  xiaoyue: {
+    self: [
+      { kind: 'xiaoyue.status.transform', statusId: 'xiaoyue.status.transform', label: '兽形' },
+    ],
+    target: [],
+  },
+  wanqiao: {
+    self: [
+      { kind: 'wanqiao.hollow', statusId: 'wanqiao.status.hollow', label: '含虚' },
+      { kind: 'wanqiao.harmony', statusId: 'wanqiao.status.harmony', label: '和鸣' },
+      { kind: 'wanqiao.distill', statusId: 'wanqiao.status.distill', label: '叠韵' },
+    ],
+    target: [
+      { kind: 'wanqiao.mist', statusId: 'wanqiao.status.echo', label: '自己留下的留音', side: 'enemy', ownedBySelf: true },
+      { kind: 'wanqiao.vulnerable', statusId: 'wanqiao.status.vulnerable', label: '无声之章', side: 'enemy', ownedBySelf: true },
+    ],
+  },
   bailu: {
     self: [
       { kind: 'bailu.guard', statusId: 'bailu.status.guard', label: '贤影护身' },
@@ -156,6 +173,12 @@ export function autoStatusChoices(pathId: string): StatusChoices {
     self: [],
     target: [],
   };
+  if (pathId === 'wanqiao.path.resonance')
+    return {
+      ...sectChoices,
+      self: sectChoices.self.filter((choice) => choice.kind !== 'wanqiao.distill'),
+      target: sectChoices.target.filter((choice) => choice.kind !== 'wanqiao.vulnerable'),
+    };
   if (pathId === 'wuxiang.path.compassion')
     return {
       ...sectChoices,

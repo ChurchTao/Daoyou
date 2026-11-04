@@ -112,6 +112,7 @@
     },
     {
       "id": "tianyan.status.weaken_deep",
+      "description": "下一次造成物理伤害或法术伤害时，伤害降低25%，该次伤害行动后消耗。",
       "kind": "tianyan.status.next_damage",
       "name": "镇岳",
       "school": "tianyan",
@@ -133,6 +134,7 @@
     },
     {
       "id": "tianyan.status.truce_deep",
+      "description": "下一次造成物理伤害或法术伤害时，伤害降低40%，该次伤害行动后消耗。",
       "kind": "tianyan.status.next_damage",
       "name": "镇世",
       "school": "tianyan",
@@ -148,10 +150,12 @@
       "description": "无法使用法术。",
       "school": "tianyan",
       "category": "control",
+      "isSeal": true,
       "blocksSpell": true
     },
     {
       "id": "tianyan.status.spell_dull",
+      "description": "造成的法术伤害降低25%。",
       "kind": "tianyan.status.spell_dull",
       "name": "留隙",
       "school": "tianyan",
@@ -160,6 +164,7 @@
     },
     {
       "id": "tianyan.status.spell_dull_deep",
+      "description": "造成的法术伤害降低35%。",
       "kind": "tianyan.status.spell_dull",
       "name": "禁流",
       "school": "tianyan",
@@ -201,6 +206,7 @@
     },
     {
       "id": "tianyan.status.ward_deep",
+      "description": "受到的物理伤害和法术伤害降低30%。",
       "kind": "tianyan.status.ward",
       "name": "守拙",
       "school": "tianyan",
@@ -210,6 +216,7 @@
     },
     {
       "id": "tianyan.status.adapt",
+      "description": "法术防御提高10%。",
       "kind": "tianyan.status.adapt",
       "name": "御变",
       "school": "tianyan",
@@ -220,6 +227,7 @@
     },
     {
       "id": "tianyan.status.ember",
+      "description": "每回合末损失最大气血的2%，单次损失上限为施放心法等级×0.8加施法者法攻×0.2。",
       "kind": "tianyan.status.ember",
       "name": "余火",
       "school": "tianyan",

@@ -82,6 +82,7 @@ export const TIANNAN_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   WILD_ZMG_BLACKPOOL: [0.87, 0.235],
   WILD_ZMG_VINES: [0.92, 0.31],
   SECT_LINGXIAO: [0.715, 0.285],
+  SECT_WANQIAO: [0.27, 0.57],
 };
 
 export const LUANXINGHAI_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
@@ -151,6 +152,7 @@ export const NANJIANG_ANCHORS: Readonly<Record<string, AtlasPoint>> = {
   WILD_DJ_BANYAN: [0.235, 0.716],
   WILD_DJ_DARKCAVE: [0.854, 0.742],
   SECT_WUXIANG: [0.82, 0.27],
+  SECT_XIAOYUE: [0.34, 0.275],
 };
 
 export const NORTHLAND_ANCHORS: Readonly<Record<string, AtlasPoint>> = {

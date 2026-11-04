@@ -13,6 +13,8 @@ import { TIANYAN_MODULE, TIANYAN_SECT_PRESENTATION } from './tianyan/index.js';
 import { YOUDU_MODULE, YOUDU_SECT_PRESENTATION } from './youdu/index.js';
 import { JIUJIE_MODULE, JIUJIE_SECT_PRESENTATION } from './jiujie/index.js';
 import { BAILU_MODULE, BAILU_SECT_PRESENTATION } from './bailu/index.js';
+import { WANQIAO_MODULE, WANQIAO_SECT_PRESENTATION } from './wanqiao/index.js';
+import { XIAOYUE_MODULE, XIAOYUE_SECT_PRESENTATION } from './xiaoyue/index.js';
 
 export interface ProductionSectEntry {
   module: SectModule;
@@ -57,6 +59,14 @@ export const PRODUCTION_SECTS = createProductionSectCatalog([
   {
     module: BAILU_MODULE,
     presentation: BAILU_SECT_PRESENTATION,
+  },
+  {
+    module: WANQIAO_MODULE,
+    presentation: WANQIAO_SECT_PRESENTATION,
+  },
+  {
+    module: XIAOYUE_MODULE,
+    presentation: XIAOYUE_SECT_PRESENTATION,
   },
 ]);
 

@@ -128,6 +128,8 @@ export const HookName = {
   OnHitRoll: 'onHitRoll',
   /** 治疗数字算出之后、入账之前。钩子可改 heal。 */
   OnHealCalc: 'onHealCalc',
+  AfterHeal: 'afterHeal',
+  OnPetSummoned: 'onPetSummoned',
   OnBarrierCalc: 'onBarrierCalc',
   OnWoundCalc: 'onWoundCalc',
 } as const;
@@ -135,6 +137,7 @@ export type HookName = (typeof HookName)[keyof typeof HookName];
 
 export const HookAim = {
   Self: 'self',
+  OwnedPet: 'ownedPet',
   HookTarget: 'hookTarget',
   HookSource: 'hookSource',
   /** 除本次目标外的其他敌人（风刃溅射） */

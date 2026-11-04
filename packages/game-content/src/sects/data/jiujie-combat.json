@@ -2050,7 +2050,7 @@
       "id": "jiujie.status.rest_minor",
       "kind": "jiujie.status.rest_minor",
       "name": "雷息·二重",
-      "description": "下回合无法使用宗门技能。",
+      "description": "下回合无法使用非器诀技能，仍可普通攻击、使用器诀或防御。",
       "category": "debuff",
       "school": "jiujie",
       "dispellable": false,
@@ -2083,6 +2083,7 @@
       "name": "禁诀敕令",
       "description": "无法使用装备器诀。",
       "category": "control",
+      "isSeal": true,
       "school": "jiujie",
       "blocksArts": true
     },
@@ -2103,6 +2104,7 @@
       "name": "封兵敕令",
       "description": "无法普通攻击。",
       "category": "control",
+      "isSeal": true,
       "school": "jiujie",
       "blockedCommands": [
         "attack"
@@ -2177,6 +2179,7 @@
     },
     {
       "id": "jiujie.status.cunxiong",
+      "description": "成功使用器诀后获得，震岳、掠霆及九劫归一造成的物理伤害提高10%。",
       "kind": "jiujie.status.cunxiong",
       "name": "存雄",
       "category": "buff",
@@ -2217,6 +2220,7 @@
     },
     {
       "id": "jiujie.status.attunement",
+      "description": "记录踏雷天尊经脉的属性收益：轰鸣满足心法等级条件时增加60法攻；驭意按灵力属性点增加5%速度和10%法攻、减少24%法防；灵光额外增加灵曜阵纹所提供法攻的25%。未选对应节点的部分不生效。",
       "kind": "jiujie.status.attunement",
       "name": "驭雷根基",
       "category": "buff",

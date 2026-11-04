@@ -225,6 +225,7 @@ export const blStatus = z.strictObject({
   kind: ref,
   school: z.literal('bailu'),
   category: z.enum(StatusCategory),
+  isSeal: z.boolean().optional(),
   blocksAction: z.boolean().optional(),
   blocksSpell: z.boolean().optional(),
   blocksDamagingSpells: z.boolean().optional(),

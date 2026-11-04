@@ -34,6 +34,12 @@
         },
         "bailu": {
           "$ref": "#/$defs/__schema0"
+        },
+        "wanqiao": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "xiaoyue": {
+          "$ref": "#/$defs/__schema0"
         }
       },
       "required": [
@@ -42,7 +48,9 @@
         "wuxiang",
         "tianyan",
         "jiujie",
-        "bailu"
+        "bailu",
+        "wanqiao",
+        "xiaoyue"
       ],
       "additionalProperties": false
     }
@@ -145,7 +153,7 @@
               "type": "number",
               "minimum": 0,
               "maximum": 10000,
-              "multipleOf": 0.000001
+              "multipleOf": 1e-06
             }
           },
           "required": [
@@ -154,6 +162,11 @@
             "value"
           ],
           "additionalProperties": false
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
         }
       },
       "required": [

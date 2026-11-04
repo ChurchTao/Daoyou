@@ -194,6 +194,8 @@ export type StatusInstance = {
   speedMod: number;
   attrMods: Partial<Attrs>;
   storedTargetId?: UnitId;
+  /** 施加／刷新时的技能等级，供移除后的效果读取。 */
+  appliedSkillLevel?: number;
   /** 自然到期转入下一状态时沿用施法等级。 */
   transitionSkillLevel?: number;
   /** 周期数值沿用施加时的技能等级，快照恢复不重新读取施法者技能。 */
@@ -269,6 +271,8 @@ export type Unit = {
   marks: string[];
   statuses: StatusInstance[];
   flags: UnitFlags;
+  /** A reflected fatal hit completes only after this unit's current action. */
+  pendingRetaliationFatal?: { sourceId: UnitId; skillId?: SkillId };
   command?: Command;
   lastCommand?: Command;
   lastTargetId?: UnitId;
@@ -346,6 +350,8 @@ export type LineupUnit = {
 };
 
 export type SkillTargeting = {
+  /** 排除来自本次施法者、已达到指定层数的目标。 */
+  ownedStatusStackLimit?: { kind: string; max: number };
   secondaryOwnedStatusKind?: string;
   fillPriority?: 'delayedRevivalThenSpeed';
   fillPriorityPassives?: string[][];
@@ -356,6 +362,9 @@ export type SkillTargeting = {
   includeOwnedStatusKind?: string;
   side: TargetSide;
   requireKind?: UnitKind;
+  requireKinds?: UnitKind[];
+  /** Only the acting player's currently deployed pet. */
+  requireOwnedPet?: boolean;
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
   mode?: TargetMode;
   /** Keep selected targets, then choose the remaining fill targets randomly. */
@@ -398,6 +407,7 @@ export type EffectWhen = {
   removedStatusKind?: string;
   removedStatusCategory?: StatusCategory;
   removedStatusDispellable?: boolean;
+  removedStatusWasSeal?: boolean;
   /** 任一指定控制旗标符合即可。 */
   removedStatusFlags?: StatusFlag[];
   excludedRemovedStatusFlags?: StatusFlag[];
@@ -412,6 +422,14 @@ export type EffectWhen = {
   /** 目标是其他友方，不含自己。 */
   targetOtherAlly?: boolean;
   targetHasStandingPet?: boolean;
+  sourceHasStandingPet?: boolean;
+  sourceKind?: UnitKind;
+  sourceOwnedPetStatusKinds?: string[];
+  targetOwnerStatusKinds?: string[];
+  /** A target status applied by the attacking pet's owner. */
+  targetStatusFromSourceOwnerKinds?: string[];
+  targetHasSeal?: boolean;
+  petEntryKind?: 'initial' | 'switch';
   actionSucceeded?: boolean;
   actionHealedTarget?: boolean;
   actionKilledTarget?: boolean;
@@ -470,12 +488,14 @@ export type EffectWhen = {
   sourceTags?: string[];
   oncePerBattle?: boolean;
   oncePerRound?: boolean;
+  oncePerRoundTarget?: boolean;
   requireKind?: DamageKind;
   sourceResource?: { id: string; min?: number; max?: number };
   /** 召唤者身上须带有其中一种状态。 */
   ownerStatusKinds?: string[];
   sourceDefending?: boolean;
   damageOrigins?: DamageOrigin[];
+  retaliationDamage?: boolean;
   sourceStanding?: boolean;
 };
 
@@ -562,6 +582,8 @@ type EffectCore =
       type: typeof EffectType.RestoreHp;
       power: Expr;
       maxGainPerAction?: Expr;
+      /** Effective HP restored to each target by this source and skill in one round. */
+      maxGainPerRound?: Expr;
       /** Increment this owner's combat fact once only if the effect restores HP. */
       gainCounter?: string;
       revive?: boolean;
@@ -574,6 +596,8 @@ type EffectCore =
       hp?: Expr;
       hpRatio?: Expr;
       respectHealTaken?: boolean;
+      /** Pay exact HP from the revived player's standing pet before revival. */
+      ownedPetHpCostRatio?: Expr;
     }
   | {
       type: typeof EffectType.ApplyStatus;
@@ -638,7 +662,7 @@ type EffectCore =
       power: Expr;
       duration: Expr;
     }
-  | { type: typeof EffectType.ModifyStrike; factor?: Expr; add?: Expr }
+  | { type: typeof EffectType.ModifyStrike; factor?: Expr; add?: Expr; finalAdd?: Expr }
   | { type: typeof EffectType.ModifyDefenseIgnore; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.ModifyHeal; factor?: Expr; add?: Expr }
   | { type: typeof EffectType.ModifyBarrier; factor?: Expr; add?: Expr }
@@ -683,6 +707,7 @@ export type SkillHook = {
   targetIsSelf?: boolean;
   sourceIsSelf?: boolean;
   sourceIsOwnedPet?: boolean;
+  targetIsOwnedPet?: boolean;
   requireKind?: DamageKind;
   /** hookSource=反击/反震打回来；hookTarget=连击再打原目标；others=其他敌人 */
   aim?: HookAim;
@@ -721,9 +746,13 @@ export type CombatModifier = {
   when?: EffectWhen;
   /** 同组队伍光环只取一次；来源倒地时失效。 */
   teamAura?: string;
+  /** Applies only to this owner's standing pet while the owner is standing. */
+  ownedPetAura?: boolean;
   sealChanceFactor?: Expr;
   sealHitAdd?: Expr;
   sealChanceCeilAdd?: Expr;
+  /** Adjustment supplied by the seal target, after the caster's ceiling bonus. */
+  sealChanceCeilTakenAdd?: Expr;
   sealAlwaysHit?: boolean;
   bypassNegativeSpellResistance?: boolean;
   sealChanceAdd?: Expr;
@@ -739,11 +768,15 @@ export type CombatModifier = {
   /** Multiplies the complete strike result, including flat result additions. */
   damageResultFactor?: Expr;
   physicalAttackAdd?: Expr;
+  physicalDefenseAdd?: Expr;
+  magicDefenseAdd?: Expr;
   critChanceAdd?: Expr;
   critMultiplierAdd?: Expr;
   defenseIgnoreAdd?: Expr;
   protectedDamageBonus?: Expr;
   ignoreProtection?: boolean;
+  /** Keep an attacker at 1 HP until its action ends after lethal fixed retaliation. */
+  deferFatalRetaliation?: boolean;
   splash?: { factor: number; count: Expr };
   mirrorToTargetPet?: boolean;
   recoverySkipChance?: Expr;
@@ -849,6 +882,8 @@ export type StatusDef = {
   interceptHostileAction?: boolean;
   /** Command restrictions also apply to preflight/UI; resting is not a seal. */
   blockedCommands?: CommandType[];
+  /** Restrict skills from these schools while leaving other skills and basic commands available. */
+  blockedSkillSchools?: string[];
   blocksNonArtSkills?: boolean;
   blocksArts?: boolean;
   protectsTarget?: boolean;
@@ -860,6 +895,8 @@ export type StatusDef = {
   /** 后续回合末由施法者支付；法力不足或施法者离场时移除此状态。 */
   upkeepMp?: { self: number; other: number };
   sourceBound?: boolean;
+  /** 普通护盾之后，以1点MP抵消1点伤害；多项取最高比例。 */
+  mpShieldRatio?: number;
   damageTakenFromSource?: number;
   immuneToSeal?: boolean;
   physicalDefenseIgnore?: number;
@@ -871,6 +908,8 @@ export type StatusDef = {
   description?: string;
   kind: string;
   category?: StatusCategory;
+  /** Distinguishes ordinary seals from other control statuses. */
+  isSeal?: boolean;
   blocksAction?: boolean;
   blocksSpell?: boolean;
   blocksDamagingSpells?: boolean;
@@ -902,6 +941,7 @@ export type StatusDef = {
     ratioOfMaxMp?: number;
     hpCap?: Expr;
     mpCap?: Expr;
+    hpPower?: Expr;
     mpPower?: Expr;
     snapshot?: boolean;
   };
@@ -1061,6 +1101,8 @@ export type BattleEvent =
       unitId: UnitId;
       amount: number;
       mpAfter: number;
+      absorbedDamage?: number;
+      statusId?: StatusId;
     }
   | {
       type: typeof EventType.HpCost;
@@ -1106,12 +1148,15 @@ export type BattleEvent =
       unitId: UnitId;
       statusId: StatusId;
       duration: number;
+      untilBattleEnd?: true;
+      sourceId?: UnitId;
     }
   | {
       type: typeof EventType.StatusRemoved;
       unitId: UnitId;
       statusId: StatusId;
       reason: string;
+      sourceId?: UnitId;
     }
   | {
       type: typeof EventType.MechanicTriggered;
@@ -1172,6 +1217,8 @@ export type CreateBattleInput = {
 };
 
 export type ExprEnv = {
+  removedStatusRounds?: number;
+  removedStatusSkillLevel?: number;
   statusDuration?: number;
   statusChance?: number;
   statusDefs?: ReadonlyMap<string, StatusDef>;

@@ -100,6 +100,11 @@ export class BattleSession {
         }
         applyEntryStatuses(this.ctx, unit)
       }
+      for (const pet of units) {
+        if (pet.kind !== 'pet' || pet.flags.benched) continue
+        const owner = units.find(unit => unit.id === pet.ownerId)
+        if (owner) this.ctx.hooks.emit(HookName.OnPetSummoned, { source: owner, target: pet, petEntryKind: 'initial' })
+      }
       this.ctx.emit({ type: EventType.RoundStart, round: 1 })
       this.ctx.hooks.emit(HookName.OnRoundStart)
     }
@@ -262,6 +267,7 @@ export class BattleSession {
 
   private finishIfNeeded(preferred?: BattleResult["reason"]): void {
     if (this.ctx.state.result) return
+    if (this.ctx.state.units.some(unit => unit.pendingRetaliationFatal)) return
     const wiped0 = teamWiped(this.ctx.state, 0)
     const wiped1 = teamWiped(this.ctx.state, 1)
     if (wiped0 && wiped1) {

@@ -114,6 +114,25 @@ export {
 
 export type { CombatV6PanelContribution } from '@daoyou/game-domain/combat';
 
+export {
+  WANQIAO_METHOD_ID,
+  WANQIAO_PATH_ID,
+  WANQIAO_RESOURCE_ID,
+  WANQIAO_SKILL_ID,
+  WANQIAO_STATUS_ID,
+  WANQIAO_V6_DEFINITION,
+  WANQIAO_V6_ID,
+} from '@daoyou/game-content/sects/wanqiao';
+
+export {
+  XIAOYUE_METHOD_ID,
+  XIAOYUE_PATH_ID,
+  XIAOYUE_SKILL_ID,
+  XIAOYUE_STATUS_ID,
+  XIAOYUE_V6_DEFINITION,
+  XIAOYUE_V6_ID,
+} from '@daoyou/game-content/sects/xiaoyue';
+
 export type {
   CombatV6SectId,
   CompileSectCombatV6Result,

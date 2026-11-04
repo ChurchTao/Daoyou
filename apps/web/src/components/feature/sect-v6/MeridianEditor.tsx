@@ -501,7 +501,7 @@ function NodeDetails({
           </>
         ) : (
           <>
-            {node.panel?.map((panel, index) => (
+            {node.panel?.filter((panel) => !panel.sourceFact).map((panel, index) => (
               <p key={index}>
                 {SECT_PANEL_LABELS[panel.attr] ?? panel.attr}{' '}
                 {panel.value >= 0 ? '+' : ''}

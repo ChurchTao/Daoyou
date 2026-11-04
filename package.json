@@ -25,13 +25,15 @@
     "sponsors:render": "node scripts/render-sponsors.ts",
     "sponsors:sync": "pnpm run sponsors:fetch && pnpm run sponsors:render && pnpm run sponsors:check",
     "test": "turbo run build --filter=\"./packages/*\" && vitest run",
-    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.node.json"
+    "typecheck": "turbo run typecheck && tsc --noEmit -p tsconfig.node.json",
+    "website:sects": "turbo run build --filter=@daoyou/game-rules... && tsx scripts/export-website-sects.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/d3-format": "^3.0.4",
     "@types/node": "^26.5.1",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "0.27.7",
     "eslint": "10.10.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.6",
@@ -50,7 +52,8 @@
     "@daoyou/game-domain": "workspace:*",
     "@daoyou/combat-core": "workspace:*",
     "@daoyou/game-content": "workspace:*",
-    "@daoyou/contracts": "workspace:*"
+    "@daoyou/contracts": "workspace:*",
+    "@daoyou/game-rules": "workspace:*"
   },
   "packageManager": "pnpm@12.10.1",
   "engines": {

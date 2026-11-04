@@ -1,0 +1,1222 @@
+{
+  "$schema": "./wanqiao-paths.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "passives": [
+    {
+      "id": "wanqiao.passive.resonance.fashen",
+      "name": "凝听",
+      "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+      "modifiers": [
+        {
+          "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
+          "when": {
+            "requireKind": "spell"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.fenghun",
+      "name": "回护",
+      "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyBarrier",
+              "id": "wanqiao.barrier.breath",
+              "kind": "wanqiao.breath",
+              "name": "回护",
+              "power": "fact.wanqiao_total_spent*level*2",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus",
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence",
+              "wanqiao.skill.echo",
+              "wanqiao.skill.blood",
+              "wanqiao.skill.rest",
+              "wanqiao.skill.hollow",
+              "wanqiao.skill.harmony",
+              "wanqiao.skill.undertone",
+              "wanqiao.skill.catalyze",
+              "wanqiao.skill.distill",
+              "wanqiao.skill.resonate",
+              "wanqiao.skill.coda"
+            ],
+            "expression": "fact.wanqiao_total_spent>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.lingyou",
+      "name": "含和",
+      "description": "持有窍息时，承受的所有伤害降低2%。",
+      "modifiers": [
+        {
+          "allDamageTakenBonus": -0.02,
+          "when": {
+            "sourceResource": {
+              "id": "wanqiao.resource.breath",
+              "min": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.zhuiji",
+      "name": "再应",
+      "description": "众窍鸣触发复响且仍有窍息时耗一层，使该次复响伤害提高40%。",
+      "modifiers": [
+        {
+          "damageResultFactor": 1.4,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus"
+            ],
+            "expression": "fact.wanqiao_echo*fact.wanqiao_extra_spent"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.zhoufa",
+      "name": "通微",
+      "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.incantation",
+              "duration": 99,
+              "self": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "oncePerBattle": true,
+            "expression": "knownSkillLevel.wanqiao.passive.resonance.zhoufa>=level",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.kuangye",
+      "name": "空鸣",
+      "description": "零窍息施展众窍鸣时，本次技能及复响临时增加100法攻。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.jingcao",
+      "name": "劲节",
+      "description": "裂帛每层窍息的伤害增幅由15%提高至20%。",
+      "modifiers": [
+        {
+          "damageBonus": "0.05*fact.wanqiao_spent",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.bingzhui",
+      "name": "截流",
+      "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+      "modifiers": [
+        {
+          "damageBonus": "0.35*(fact.wanqiao_spent>0)",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.silence"
+            ],
+            "foeKind": "pet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.cangai",
+      "name": "透隙",
+      "description": "叩隙对人物有窍息时耗一层：伤害增加10%，复响率翻倍，额外造成实际气血伤害50%的伤势。",
+      "modifiers": [
+        {
+          "damageBonus": "0.1*(fact.wanqiao_spent>0)",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.fissure"
+            ],
+            "foeKind": "player"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "wound",
+              "power": "hpDamage*0.5"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.fissure"
+            ],
+            "foeKind": "player",
+            "expression": "(fact.wanqiao_spent>0)*(fact.wanqiao_echo==0)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.shenmu",
+      "name": "中虚",
+      "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+      "modifiers": [
+        {
+          "damageBonus": "0.04*fact.woodEquipmentCount",
+          "when": {
+            "requireKind": "spell"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.yueying",
+      "name": "复音",
+      "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.xinhuo",
+      "name": "续声",
+      "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_fire_rounds",
+              "value": "fact.wanqiao_fire_rounds+1"
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.fire_power",
+              "duration": 99,
+              "self": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "sourceStanding": true,
+            "expression": "fact.fireEquipmentCount>0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.manyan",
+      "name": "流韵",
+      "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+      "modifiers": [
+        {
+          "damageBonus": 0.1,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ]
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.flow",
+              "duration": 2,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ],
+            "actionSucceeded": true,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.posha",
+      "name": "破音",
+      "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+      "modifiers": [
+        {
+          "critChanceAdd": 0.12,
+          "critMultiplierAdd": 0.2,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.xiaofeng",
+      "name": "虚而应",
+      "description": "正常行动将正数窍息消耗至零后，本场众窍鸣复响伤害累计提高20%。",
+      "modifiers": [
+        {
+          "damageResultFactor": "1+0.2*fact.wanqiao_empty_count",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus"
+            ],
+            "expression": "fact.wanqiao_echo"
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_empty_count",
+              "value": "fact.wanqiao_empty_count+1"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus",
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence",
+              "wanqiao.skill.echo",
+              "wanqiao.skill.blood",
+              "wanqiao.skill.rest",
+              "wanqiao.skill.hollow",
+              "wanqiao.skill.harmony",
+              "wanqiao.skill.undertone",
+              "wanqiao.skill.catalyze",
+              "wanqiao.skill.distill",
+              "wanqiao.skill.resonate",
+              "wanqiao.skill.coda"
+            ],
+            "expression": "fact.wanqiao_emptied>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.ziyang",
+      "name": "内和",
+      "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+      "hooks": [
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "removedStatusRounds*removedStatusSkillLevel"
+            }
+          ],
+          "sourceIsSelf": true,
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "removedStatusKind": "wanqiao.harmony",
+            "statusRemoveReason": "dispel",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.resonance.linggui",
+      "name": "虚生息",
+      "description": "轮末零窍息时额外获得一层，不受凝听取消基础恢复的影响。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.fenghun",
+      "name": "回护",
+      "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyBarrier",
+              "id": "wanqiao.barrier.breath",
+              "kind": "wanqiao.breath",
+              "name": "回护",
+              "power": "fact.wanqiao_total_spent*level*2",
+              "duration": 1
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.chorus",
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence",
+              "wanqiao.skill.echo",
+              "wanqiao.skill.blood",
+              "wanqiao.skill.rest",
+              "wanqiao.skill.hollow",
+              "wanqiao.skill.harmony",
+              "wanqiao.skill.undertone",
+              "wanqiao.skill.catalyze",
+              "wanqiao.skill.distill",
+              "wanqiao.skill.resonate",
+              "wanqiao.skill.coda"
+            ],
+            "expression": "fact.wanqiao_total_spent>0",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.mifu",
+      "name": "缠音",
+      "description": "带有本人留音的单位对本人造成的伤害降低3%。",
+      "modifiers": [
+        {
+          "allDamageTakenBonus": -0.03,
+          "when": {
+            "targetOwnedStatus": {
+              "kind": "wanqiao.mist"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.fashen",
+      "name": "凝听",
+      "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+      "modifiers": [
+        {
+          "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
+          "when": {
+            "requireKind": "spell"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.fudu",
+      "name": "伏声",
+      "description": "潜籁复响且仍有窍息时耗一层，该次附留音的概率增加5个百分点。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.zhoufa",
+      "name": "通微",
+      "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+      "hooks": [
+        {
+          "on": "onRoundStart",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.incantation",
+              "duration": 99,
+              "self": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "oncePerBattle": true,
+            "expression": "knownSkillLevel.wanqiao.passive.subtlety.zhoufa>=level",
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.lingmu",
+      "name": "入窍",
+      "description": "直接使用留音时，按当前窍息每层2%的概率直接施加三层。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.jiaoteng",
+      "name": "交响",
+      "description": "裂帛触发耗息时，按耗息层数每层10%的概率对同一目标附一层本人留音。",
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "randomBranch",
+              "branchId": "wanqiao.pierce_mist",
+              "chance": "0.1*fact.wanqiao_spent",
+              "successEffects": [
+                {
+                  "type": "applyStatus",
+                  "statusId": "wanqiao.status.echo",
+                  "duration": 4
+                }
+              ],
+              "failureEffects": []
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce"
+            ],
+            "expression": "(fact.wanqiao_spent>0)*(fact.wanqiao_echo==0)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.bingzhui",
+      "name": "截流",
+      "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+      "modifiers": [
+        {
+          "damageBonus": "0.35*(fact.wanqiao_spent>0)",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.silence"
+            ],
+            "foeKind": "pet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.jisheng",
+      "name": "随隙",
+      "description": "替换裂帛的耗息强化：叩隙对带留音、毒、封印或调息的目标耗最多两层，每层伤害增加35%。",
+      "modifiers": [
+        {
+          "damageBonus": "0.35*fact.wanqiao_spent",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.fissure"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.shenmu",
+      "name": "中虚",
+      "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+      "modifiers": [
+        {
+          "damageBonus": "0.04*fact.woodEquipmentCount",
+          "when": {
+            "requireKind": "spell"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.yueying",
+      "name": "复音",
+      "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+      "modifiers": [
+        {
+          "damageBonus": 0
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.xinhuo",
+      "name": "续声",
+      "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_fire_rounds",
+              "value": "fact.wanqiao_fire_rounds+1"
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.fire_power",
+              "duration": 99,
+              "self": true
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "sourceStanding": true,
+            "expression": "fact.fireEquipmentCount>0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.manyan",
+      "name": "流韵",
+      "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+      "modifiers": [
+        {
+          "damageBonus": 0.1,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ]
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "on": "afterAction",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "wanqiao.status.flow",
+              "duration": 2,
+              "self": true
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "self",
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ],
+            "actionSucceeded": true,
+            "sourceStanding": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.posha",
+      "name": "破音",
+      "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+      "modifiers": [
+        {
+          "critChanceAdd": 0.12,
+          "critMultiplierAdd": 0.2,
+          "when": {
+            "skillIds": [
+              "wanqiao.skill.pierce",
+              "wanqiao.skill.fissure",
+              "wanqiao.skill.silence"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.jihuo",
+      "name": "自应",
+      "description": "第8、16等八的倍数轮末，个人引响基础强化档加一，至多十档。",
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "wanqiao_catalysis",
+              "value": "min(10,fact.wanqiao_catalysis+1)"
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "sourceStanding": true,
+            "expression": "(round-floor(round/8)*8==0)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.passive.subtlety.ziyang",
+      "name": "内和",
+      "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+      "hooks": [
+        {
+          "on": "onStatusRemoved",
+          "effects": [
+            {
+              "type": "restoreHp",
+              "power": "removedStatusRounds*removedStatusSkillLevel"
+            }
+          ],
+          "sourceIsSelf": true,
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "removedStatusKind": "wanqiao.harmony",
+            "statusRemoveReason": "dispel",
+            "sourceStanding": true
+          }
+        }
+      ]
+    }
+  ],
+  "paths": [
+    {
+      "id": "wanqiao.path.resonance",
+      "name": "天籁",
+      "description": "心中留空，众窍自鸣，以群声与清音应敌。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [],
+      "grantSkills": [],
+      "revokeSkillIds": [],
+      "resources": [
+        "wanqiao.resource.breath"
+      ],
+      "nodes": [
+        {
+          "id": "wanqiao.node.resonance.fashen",
+          "name": "凝听",
+          "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+          "layer": 1,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.resonance.fashen"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.fenghun",
+          "name": "回护",
+          "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+          "layer": 1,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.fenghun"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.lingyou",
+          "name": "含和",
+          "description": "持有窍息时，承受的所有伤害降低2%。",
+          "layer": 1,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.lingyou"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.zhuiji",
+          "name": "再应",
+          "description": "众窍鸣触发复响且仍有窍息时耗一层，使该次复响伤害提高40%。",
+          "layer": 2,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.resonance.zhuiji"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.zhoufa",
+          "name": "通微",
+          "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+          "layer": 2,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.zhoufa"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.kuangye",
+          "name": "空鸣",
+          "description": "零窍息施展众窍鸣时，本次技能及复响临时增加100法攻。",
+          "layer": 2,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.kuangye"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.jingcao",
+          "name": "劲节",
+          "description": "裂帛每层窍息的伤害增幅由15%提高至20%。",
+          "layer": 3,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.resonance.jingcao"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.bingzhui",
+          "name": "截流",
+          "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+          "layer": 3,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.bingzhui"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.cangai",
+          "name": "透隙",
+          "description": "叩隙对人物有窍息时耗一层：伤害增加10%，复响率翻倍，额外造成实际气血伤害50%的伤势。",
+          "layer": 3,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.cangai"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.shenmu",
+          "name": "中虚",
+          "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+          "layer": 4,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.resonance.shenmu"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.yueying",
+          "name": "复音",
+          "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+          "layer": 4,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.yueying"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.xinhuo",
+          "name": "续声",
+          "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+          "layer": 4,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.xinhuo"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.chunjing",
+          "name": "澄心",
+          "description": "长生阵纹独立提供的最大气血贡献额外提高70%，不立即回复气血。",
+          "layer": 5,
+          "slot": 1,
+          "panel": [
+            {
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 0.7,
+              "sourceFact": "changshengMaxHp"
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.manyan",
+          "name": "流韵",
+          "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+          "layer": 5,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.manyan"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.posha",
+          "name": "破音",
+          "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+          "layer": 5,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.posha"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.xiaofeng",
+          "name": "虚而应",
+          "description": "正常行动将正数窍息消耗至零后，本场众窍鸣复响伤害累计提高20%。",
+          "layer": 6,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.resonance.xiaofeng"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.ziyang",
+          "name": "内和",
+          "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+          "layer": 6,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.resonance.ziyang"
+          ],
+          "patches": [
+            {
+              "skillId": "wanqiao.skill.harmony",
+              "operation": "setTargetingSide",
+              "value": "self"
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.linggui",
+          "name": "虚生息",
+          "description": "轮末零窍息时额外获得一层，不受凝听取消基础恢复的影响。",
+          "layer": 6,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.resonance.linggui"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.reward_left",
+          "name": "籁成",
+          "description": "法攻增加40。",
+          "layer": 7,
+          "slot": 1,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.ultimate",
+          "name": "万窍齐鸣",
+          "description": "领悟本道途终极神通。",
+          "layer": 7,
+          "slot": 2,
+          "grantSkills": [
+            "wanqiao.skill.resonate"
+          ]
+        },
+        {
+          "id": "wanqiao.node.resonance.reward_right",
+          "name": "天籁通明",
+          "description": "法攻再增加40。",
+          "layer": 7,
+          "slot": 3,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "magicAtk",
+              "mode": "add",
+              "value": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wanqiao.path.subtlety",
+      "name": "入微",
+      "description": "将余音留入气机细隙，循隙渐入，以回声侵敌。",
+      "requiresConnectedNodes": true,
+      "foundationPassives": [],
+      "grantSkills": [
+        "wanqiao.skill.undertone",
+        "wanqiao.skill.catalyze"
+      ],
+      "revokeSkillIds": [
+        "wanqiao.skill.chorus"
+      ],
+      "resources": [
+        "wanqiao.resource.breath"
+      ],
+      "nodes": [
+        {
+          "id": "wanqiao.node.subtlety.fenghun",
+          "name": "回护",
+          "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+          "layer": 1,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.subtlety.fenghun"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.mifu",
+          "name": "缠音",
+          "description": "带有本人留音的单位对本人造成的伤害降低3%。",
+          "layer": 1,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.mifu"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.fashen",
+          "name": "凝听",
+          "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+          "layer": 1,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.subtlety.fashen"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.fudu",
+          "name": "伏声",
+          "description": "潜籁复响且仍有窍息时耗一层，该次附留音的概率增加5个百分点。",
+          "layer": 2,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.subtlety.fudu"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.zhoufa",
+          "name": "通微",
+          "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+          "layer": 2,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.zhoufa"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.lingmu",
+          "name": "入窍",
+          "description": "直接使用留音时，按当前窍息每层2%的概率直接施加三层。",
+          "layer": 2,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.subtlety.lingmu"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.jiaoteng",
+          "name": "交响",
+          "description": "裂帛触发耗息时，按耗息层数每层10%的概率对同一目标附一层本人留音。",
+          "layer": 3,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.subtlety.jiaoteng"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.bingzhui",
+          "name": "截流",
+          "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+          "layer": 3,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.bingzhui"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.jisheng",
+          "name": "随隙",
+          "description": "替换裂帛的耗息强化：叩隙对带留音、毒、封印或调息的目标耗最多两层，每层伤害增加35%。",
+          "layer": 3,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.subtlety.jisheng"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.shenmu",
+          "name": "中虚",
+          "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+          "layer": 4,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.subtlety.shenmu"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.yueying",
+          "name": "复音",
+          "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+          "layer": 4,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.yueying"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.xinhuo",
+          "name": "续声",
+          "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+          "layer": 4,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.subtlety.xinhuo"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.chunjing",
+          "name": "澄心",
+          "description": "长生阵纹独立提供的最大气血贡献额外提高70%，不立即回复气血。",
+          "layer": 5,
+          "slot": 1,
+          "panel": [
+            {
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 0.7,
+              "sourceFact": "changshengMaxHp"
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.manyan",
+          "name": "流韵",
+          "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+          "layer": 5,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.manyan"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.posha",
+          "name": "破音",
+          "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+          "layer": 5,
+          "slot": 3,
+          "passives": [
+            "wanqiao.passive.subtlety.posha"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.jihuo",
+          "name": "自应",
+          "description": "第8、16等八的倍数轮末，个人引响基础强化档加一，至多十档。",
+          "layer": 6,
+          "slot": 1,
+          "passives": [
+            "wanqiao.passive.subtlety.jihuo"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.ziyang",
+          "name": "内和",
+          "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+          "layer": 6,
+          "slot": 2,
+          "passives": [
+            "wanqiao.passive.subtlety.ziyang"
+          ],
+          "patches": [
+            {
+              "skillId": "wanqiao.skill.harmony",
+              "operation": "setTargetingSide",
+              "value": "self"
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.ducui",
+          "name": "叠韵",
+          "description": "领悟叠韵：300法力和一窍息，五轮内潜籁附留音的概率翻倍。",
+          "layer": 6,
+          "slot": 3,
+          "grantSkills": [
+            "wanqiao.skill.distill"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.reward_left",
+          "name": "声入",
+          "description": "最大气血增加280，不立即治疗。",
+          "layer": 7,
+          "slot": 1,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 280
+            }
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.ultimate",
+          "name": "无声之章",
+          "description": "领悟本道途终极神通。",
+          "layer": 7,
+          "slot": 2,
+          "grantSkills": [
+            "wanqiao.skill.coda"
+          ]
+        },
+        {
+          "id": "wanqiao.node.subtlety.reward_right",
+          "name": "入微无间",
+          "description": "最大气血再增加280，不立即治疗。",
+          "layer": 7,
+          "slot": 3,
+          "automatic": true,
+          "panel": [
+            {
+              "attr": "maxHp",
+              "mode": "add",
+              "value": 280
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1000,11 +1000,54 @@ describe('当前场次托管', () => {
             ? [rule.action.skillId]
             : [],
         );
-        expect(unlearned).toEqual(
-          path.id === 'wuxiang.path.compassion' ? ['wuxiang.skill.nectar'] : [],
-        );
+        const expectedUnlearned: Record<string, string[]> = {
+          'wuxiang.path.compassion': ['wuxiang.skill.nectar'],
+          'wanqiao.path.resonance': [
+            'wanqiao.skill.rest', 'wanqiao.skill.resonate',
+            'wanqiao.skill.chorus', 'wanqiao.skill.pierce',
+          ],
+          'wanqiao.path.subtlety': [
+            'wanqiao.skill.rest', 'wanqiao.skill.coda',
+            'wanqiao.skill.catalyze', 'wanqiao.skill.undertone',
+            'wanqiao.skill.echo', 'wanqiao.skill.pierce',
+          ],
+          'xiaoyue.path.blood': [
+            'xiaoyue.skill.transform', 'xiaoyue.skill.chain_strike',
+            'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
+          ],
+          'xiaoyue.path.bond': [
+            'xiaoyue.skill.transform', 'xiaoyue.skill.lion_strike',
+            'xiaoyue.skill.eagle_strike', 'xiaoyue.skill.lion_strike',
+          ],
+        };
+        expect(unlearned).toEqual(expectedUnlearned[path.id] ?? []);
       }
     }
+  });
+  it.each([0, 1] as const)('万窍山道途%s在尚未学会主动法术时托管使用普攻', pathIndex => {
+    const projection = projectCharacterToCombatV6({
+      ...towerReferenceBuild('wanqiao', '炼气', '中期', pathIndex),
+      side: 0, slot: 0, resourcePolicy: 'full',
+    });
+    expect(projection.ok).toBe(true);
+    if (!projection.ok) return;
+    const battle = createBattle({
+      seed: 42, versions: COMBAT_V6_CHARACTER_BUILD_VERSIONS,
+      ruleset: daoyouRulesetV6, skills: [...projection.skills],
+      statusDefs: [...projection.statusDefs],
+      units: [projection.unit, {
+        id: 'enemy', name: '敌人', kind: 'npc', side: 1, level: 10,
+        attrs: { hp: 10000, maxHp: 10000, speed: 1 },
+      }],
+    });
+    const path = COMBAT_V6_SECT_DEFINITIONS.wanqiao.paths[pathIndex];
+    const command = automaticCommands(
+      battle.snapshot(), projection.unit.id, projection.skills,
+      id => battle.queryCommands(id),
+      { statusDefs: projection.statusDefs,
+        strategies: { [projection.unit.id]: DEFAULT_AUTO_STRATEGIES[path.id] } },
+    )[0].command;
+    expect(command).toMatchObject({ type: 'attack', target: 'enemy' });
   });
   it('灵兽选择优于普攻的主动物法技能，缺蓝或技能伤害不足时普攻', () => {
     const physical: SkillDef = {

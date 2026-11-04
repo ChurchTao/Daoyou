@@ -1,7 +1,7 @@
 {
   "$schema": "./methods.schema.json",
   "formatVersion": 1,
-  "contentRevision": 3,
+  "contentRevision": 5,
   "sects": {
     "lingxiao": [
       {
@@ -404,6 +404,144 @@
           "mode": "add",
           "value": 0.3
         }
+      }
+    ],
+    "wanqiao": [
+      {
+        "id": "wanqiao.method.canon",
+        "slot": 1,
+        "name": "《听万窍》",
+        "description": "初入山门，先学静听。石有隙，竹有窍，人的心念也须留出空处；待自己的声音静下来，才辨得清天地如何应答。",
+        "isPrimary": true
+      },
+      {
+        "id": "wanqiao.method.tone",
+        "slot": 2,
+        "name": "《风入松》",
+        "description": "风过松间，疏密自有声律。门人从中学会调音运息，将清声炼得有骨有锋，一声出手，轻重皆由心定。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wanqiao.method.undertone",
+        "slot": 3,
+        "name": "《弦外音》",
+        "description": "弦止之后，仍有一线声音未散。修者把这点余音留在气机细隙中，使它随呼吸回转；待旁人察觉，回声已深。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        }
+      },
+      {
+        "id": "wanqiao.method.rest",
+        "slot": 4,
+        "name": "《月满空山》",
+        "description": "月照空山，草木无言。修者借这一分静意收拢散乱气息，慢慢养稳气血与筋骨；身中有了安处，行止便多一分安定。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        }
+      },
+      {
+        "id": "wanqiao.method.hollow",
+        "slot": 5,
+        "name": "《虚舟》",
+        "description": "空舟能容物，虚心能应变。修者在来势之间留出转圜，让气息游走于身周，护得住自己，也不失从容。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "dodge",
+          "mode": "add",
+          "value": 0.3
+        }
+      },
+      {
+        "id": "wanqiao.method.breath",
+        "slot": 6,
+        "name": "《一息绵长》",
+        "description": "一呼一吸，细匀绵长。修者涵养胸中灵息，使一段声音止后，仍有余力续起下一段，与身旁的众声相和。",
+        "isPrimary": false,
+        "panel": {
+          "attr": "maxMp",
+          "mode": "add",
+          "value": 2
+        }
+      }
+    ],
+    "xiaoyue": [
+      {
+        "id": "xiaoyue.method.canon",
+        "slot": 1,
+        "name": "《百兽化形》",
+        "description": "观山林百兽的形与息，悟得自身演化兽形的根基。",
+        "isPrimary": true
+      },
+      {
+        "id": "xiaoyue.method.onslaught",
+        "slot": 2,
+        "name": "《生死搏》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalAtk",
+          "mode": "add",
+          "value": 0.5
+        },
+        "description": "练近身扑击与腾空疾袭，于一瞬之间判定进退。"
+      },
+      {
+        "id": "xiaoyue.method.beast",
+        "slot": 3,
+        "name": "《驭灵诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "magicDef",
+          "mode": "add",
+          "value": 0.4
+        },
+        "description": "与灵兽同息相应，各守其性，在并肩行进中悟得协同之法。"
+      },
+      {
+        "id": "xiaoyue.method.fury",
+        "slot": 4,
+        "name": "《狂兽诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "hit",
+          "mode": "add",
+          "value": 0.5
+        },
+        "description": "以连绵攻势逼敌失守，出手越急，越要守住气息。"
+      },
+      {
+        "id": "xiaoyue.method.wing",
+        "slot": 5,
+        "name": "《观羽步》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "dodge",
+          "mode": "add",
+          "value": 0.3
+        },
+        "description": "观飞鸟振羽与转折，习其避让腾挪之法，练成崖间身法。"
+      },
+      {
+        "id": "xiaoyue.method.guard",
+        "slot": 6,
+        "name": "《伏形诀》",
+        "isPrimary": false,
+        "panel": {
+          "attr": "physicalDef",
+          "mode": "add",
+          "value": 0.4
+        },
+        "description": "观山兽伏身护体之势，守住气息，于承击后寻机反扑。"
       }
     ]
   }

@@ -142,6 +142,8 @@ describe('resolveDungeonMapConfig', () => {
       youdu: 'DJ_VOID_01',
       jiujie: 'DJ_TRIB_01',
       bailu: 'DJ_CENTRAL_01',
+      wanqiao: 'TN_YUE_01',
+      xiaoyue: 'DJ_SOUTH_01',
     };
 
     expect(landmarks).toHaveLength(PRODUCTION_SECT_IDS.length);

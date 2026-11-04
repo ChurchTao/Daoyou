@@ -93,6 +93,7 @@ export function canCollectCommand(unit: Unit, deferred = false): boolean {
 export function cloneUnit(unit: Unit): Unit {
   return {
     ...unit,
+    ...(unit.pendingRetaliationFatal ? { pendingRetaliationFatal: { ...unit.pendingRetaliationFatal } } : {}),
     attrs: { ...unit.attrs },
     combatFacts: { ...unit.combatFacts },
     ...(unit.hpDamageThisRound ? { hpDamageThisRound: { ...unit.hpDamageThisRound } } : {}),

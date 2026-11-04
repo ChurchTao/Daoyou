@@ -27,6 +27,7 @@ export type BattleContext = {
   checkEnd: (reason?: BattleResult["reason"]) => void
   /** >0 时命中不再触发 afterHit/onBeHit，避免连击/反击/反震互爆 */
   suppressHooks: number
+  retaliationDepth?: number
   invokeAttackSkills: (source: Unit, skill: SkillDef, targets: Unit[]) => void
   invokeSkill?: (source: Unit, skillId: SkillId, targets: Unit[]) => void
   invokingAttackSkills?: boolean

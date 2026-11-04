@@ -262,6 +262,7 @@ export const jjStatus = z.strictObject({
   description: z.string().min(1).max(1000).optional(),
   kind: jjId,
   category: z.enum(StatusCategory),
+  isSeal: z.boolean().optional(),
   dispellable: z.boolean().optional(),
   extendable: z.boolean().optional(),
   expireSameRound: z.boolean().optional(),

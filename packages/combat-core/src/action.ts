@@ -12,7 +12,7 @@ import {
 } from './commands.js';
 import { BUILTIN_SKILL_ID, MIN_HP, NORMAL_ATTACK_COEFF } from './constants.js';
 import type { BattleContext } from './context.js';
-import { resolveAliveTarget, resolveStrike } from './damage.js';
+import { resolveAliveTarget, resolveStrike, settleDeferredRetaliationFatal } from './damage.js';
 import { recordHpLoss } from './hp-loss.js';
 import { applyEffect, makeEnv } from './effects.js';
 import {
@@ -104,6 +104,8 @@ export function resolveAction(ctx: BattleContext, unit: Unit): void {
     if (isActionable(unit)) resolveActionWindow(ctx, unit);
   } finally {
     ctx.hooks.emit(HookName.AfterActionWindow, { source: unit });
+    settleDeferredRetaliationFatal(ctx, unit);
+    ctx.checkEnd();
     ctx.hostileAction = previousHostileAction;
   }
 }
@@ -415,6 +417,7 @@ function resolveSummon(ctx: BattleContext, unit: Unit, petId: string): void {
   pet.spellActionsSinceEntry = 0;
   applyEntryStatuses(ctx, pet);
   ctx.emit({ type: EventType.PetSummoned, unitId: unit.id, petId: pet.id });
+  ctx.hooks.emit(HookName.OnPetSummoned, { source: unit, target: pet, petEntryKind: 'switch' });
 }
 
 function recallPet(ctx: BattleContext, owner: Unit, pet: Unit): void {

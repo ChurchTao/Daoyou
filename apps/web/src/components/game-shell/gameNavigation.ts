@@ -283,6 +283,11 @@ export const gameDockGroups: GameNavGroup[] = [
         id: 'refine',
         sceneLabel: '炼器室',
       },
+      {
+        id: 'equipment-codex',
+        sceneLabel: '装备图鉴',
+        href: '/game/craft/refine/codex',
+      },
     ],
   },
   {

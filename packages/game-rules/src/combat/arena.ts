@@ -211,7 +211,7 @@ export function arenaView(
     state.units.flatMap((u) => u.statuses.map((s) => s.id)),
   );
   for (const { event } of events)
-    if ('statusId' in event) visibleStatuses.add(event.statusId);
+    if ('statusId' in event && event.statusId) visibleStatuses.add(event.statusId);
   const display = combatV6Display(
     runtime.skills
       .filter((s) => visibleSkills.has(s.id))

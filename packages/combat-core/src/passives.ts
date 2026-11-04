@@ -4,7 +4,7 @@
  */
 import type { BattleContext } from "./context.js"
 import { applyEffect, makeEnv } from "./effects.js"
-import { DamageKind, EffectType, HookAim, HookName, TargetMode } from "./enums.js"
+import { DamageKind, DamageOrigin, EffectType, HookAim, HookName, TargetMode } from "./enums.js"
 import { evalExpr, skillLevelOf } from "./expr.js"
 import type { HookContext } from "./hooks.js"
 import { skillOf } from "./skills.js"
@@ -34,7 +34,9 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.sourceIsEnemy && (!hctx.source || hctx.source.side === unit.side)) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return
           if (hook.sourceIsOwnedPet && (hctx.source?.kind !== "pet" || hctx.source.ownerId !== unit.id)) return
+          if (hook.targetIsOwnedPet && (hctx.target?.kind !== "pet" || hctx.target.ownerId !== unit.id)) return
           if (hook.requireKind && hctx.kind !== hook.requireKind) return
+          if (hook.on === HookName.AfterHeal && hctx.origin === DamageOrigin.HookDerived && !hook.when?.damageOrigins?.includes(DamageOrigin.HookDerived)) return
           if (hook.parry && hctx.source) {
             const attacker = hctx.source
             if (attacker.passives.some((id) => skillOf(ctx.skills, attacker, id)?.innate?.ignoreParry)) return
@@ -68,13 +70,17 @@ export function bindDataHooks(ctx: BattleContext): void {
             statusChance: hctx.statusChance,
             statusDuration: hctx.statusDuration,
             removedStatusKind: hctx.removedStatusKind,
+            removedStatusRounds: hctx.removedStatusRounds,
+            removedStatusSkillLevel: hctx.removedStatusSkillLevel,
             removedStatusCategory: hctx.removedStatusCategory,
             removedStatusDispellable: hctx.removedStatusDispellable,
+            removedStatusWasSeal: hctx.removedStatusWasSeal,
             removedStatusFlags: hctx.removedStatusFlags,
             statusRemovedByAlly: hctx.statusRemovedByAlly,
             dotStatusId: hctx.dotStatusId,
             statusRemoveReason: hctx.statusRemoveReason,
             originalResourceCost,
+            petEntryKind: hctx.petEntryKind,
             source: unit,
             target: hctx.target,
             skill: actionSkill,
@@ -83,8 +89,10 @@ export function bindDataHooks(ctx: BattleContext): void {
             origin: hctx.origin,
             isPrimary: hctx.isPrimary,
             percentageDamage: hctx.percentageDamage,
+            retaliationDamage: hctx.retaliationDamage,
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
+            heal: hctx.heal,
             markKey: `${skill.id}:${hookIndex}`,
           }
           if (!matchesWhen(ctx, hook.when, scope)) return
@@ -92,6 +100,8 @@ export function bindDataHooks(ctx: BattleContext): void {
           if (hook.limitConsumption === "onAttempt") consumeWhen(ctx, hook.when, scope)
 
           const env = {
+            removedStatusRounds: hctx.removedStatusRounds,
+            removedStatusSkillLevel: hctx.removedStatusSkillLevel,
             statusChance: hctx.statusChance,
             statusDuration: hctx.statusDuration,
             statusDefs: ctx.statusDefs,
@@ -120,6 +130,7 @@ export function bindDataHooks(ctx: BattleContext): void {
             : env;
           let applied = false
           ctx.suppressHooks += 1
+          if (hook.retaliation) ctx.retaliationDepth = (ctx.retaliationDepth ?? 0) + 1
           try {
             for (const [effectIndex, effect] of hook.effects.entries()) {
               const effectScope = { ...scope, markKey: `${scope.markKey}:${effectIndex}` }
@@ -144,6 +155,7 @@ export function bindDataHooks(ctx: BattleContext): void {
               }
             }
           } finally {
+            if (hook.retaliation) ctx.retaliationDepth = (ctx.retaliationDepth ?? 1) - 1
             ctx.suppressHooks -= 1
           }
           if (applied && hook.limitConsumption !== "onAttempt") consumeWhen(ctx, hook.when, scope)
@@ -184,6 +196,7 @@ function applyHookEffect(
     const factor = evalExpr(effect.factor ?? 1, env)
     const add = evalExpr(effect.add ?? 0, env)
     hctx.damage = (hctx.damage ?? 0) * factor + add
+    if (effect.finalAdd !== undefined) hctx.finalDamageAdd = (hctx.finalDamageAdd ?? 0) + evalExpr(effect.finalAdd, env)
     return
   }
   if (effect.type === EffectType.ModifyDefenseIgnore) {
@@ -234,6 +247,7 @@ function resolveHookTargets(
   const aim: HookAimType | undefined = hook.aim
   if (aim === HookAim.HookSource) return hctx.source ? [hctx.source] : []
   if (aim === HookAim.Self) return [unit]
+  if (aim === HookAim.OwnedPet) return ctx.state.units.filter(u => u.kind === 'pet' && u.ownerId === unit.id && isStanding(u)).slice(0, 1)
   if (aim === HookAim.HookTarget) return hctx.target ? [hctx.target] : []
   if (aim === HookAim.Others) {
     const exclude = new Set<string>([unit.id, hctx.target?.id].filter((id): id is string => Boolean(id)))

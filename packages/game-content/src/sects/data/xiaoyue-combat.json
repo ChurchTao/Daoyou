@@ -1,0 +1,900 @@
+{
+  "$schema": "./xiaoyue-combat.schema.json",
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "baseSkillIds": [
+    "xiaoyue.skill.transform",
+    "xiaoyue.skill.lion_strike",
+    "xiaoyue.skill.eagle_strike",
+    "xiaoyue.skill.chain_strike",
+    "xiaoyue.skill.elephant_seal",
+    "xiaoyue.skill.intimidate",
+    "xiaoyue.skill.meditate",
+    "xiaoyue.skill.frenzy",
+    "xiaoyue.skill.mana_breath",
+    "xiaoyue.skill.demon_unbound",
+    "xiaoyue.skill.foundation"
+  ],
+  "skills": [
+    {
+      "id": "xiaoyue.skill.transform",
+      "name": "兽形",
+      "school": "xiaoyue",
+      "description": "观山林百兽之形，运息化为己用。\n消耗20法力获得[[xiaoyue.status.transform]]，物攻增加《百兽化形》等级，持续四个完整后续回合；狮搏、鹏击、连环击和镇形均须处于兽形。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.quick_penalty"
+          ],
+          "targeting": {
+            "side": "self"
+          }
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.transform",
+          "duration": 4,
+          "self": true
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.active_transform_ready",
+          "duration": 99,
+          "self": true
+        }
+      ],
+      "requirement": "(1-hasStatus.xiaoyue.status.transform)+hasStatus.xiaoyue.status.quick_penalty",
+      "costMp": 20
+    },
+    {
+      "id": "xiaoyue.skill.lion_strike",
+      "name": "狮搏",
+      "school": "xiaoyue",
+      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.15
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": 30
+    },
+    {
+      "id": "xiaoyue.skill.eagle_strike",
+      "name": "鹏击",
+      "school": "xiaoyue",
+      "description": "振羽凌空，俯冲敌阵。\n兽形期间攻击多名敌人；《生死搏》达到30／50／75／125级时，至多攻击3／4／5／6人。基础消耗30法力，每增加一个实际目标另耗10法力；出手后进入[[xiaoyue.status.rest]]，冷却两回合。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "mode": "fill",
+        "count": "if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,4,3)))",
+        "maxSelected": 1
+      },
+      "effects": [
+        {
+          "type": "randomBranch",
+          "branchId": "xiaoyue.eagle.roar",
+          "chance": 0.3,
+          "successEffects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.roar_boost",
+              "duration": 1,
+              "self": true
+            }
+          ],
+          "failureEffects": [],
+          "when": {
+            "expression": "known.xiaoyue.passive.blood.3.2*hasStatus.xiaoyue.status.active_transform_ready"
+          }
+        },
+        {
+          "type": "physicalHit",
+          "coeff": 0.85
+        },
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.roar_boost",
+            "xiaoyue.status.active_transform_ready"
+          ],
+          "targeting": {
+            "side": "self"
+          }
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.rest",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": "30+10*(targets-1)",
+      "cooldownRounds": 2,
+      "recoveryStatusId": "xiaoyue.status.rest"
+    },
+    {
+      "id": "xiaoyue.skill.chain_strike",
+      "name": "连环击",
+      "school": "xiaoyue",
+      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人；《狂兽诀》达到30／50／75／125／175级时，出手2／3／5／6／7段。每段预付30法力，目标倒地即停止余段；出手后进入[[xiaoyue.status.rest]]并取消兽形，习得乱击后改为缩短兽形两回合。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "hits": "if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))",
+          "coeff": [
+            0.72,
+            0.62,
+            0.52,
+            0.42,
+            0.32,
+            0.27,
+            0.23
+          ]
+        },
+        {
+          "type": "skipNextAction"
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.rest",
+          "duration": 1,
+          "self": true
+        },
+        {
+          "type": "removeStatus",
+          "statusIds": [
+            "xiaoyue.status.transform"
+          ],
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "1-known.xiaoyue.passive.blood.6.2"
+          }
+        },
+        {
+          "type": "modifyStatusDuration",
+          "kinds": [
+            "xiaoyue.status.transform"
+          ],
+          "amount": -2,
+          "targeting": {
+            "side": "self"
+          },
+          "when": {
+            "expression": "known.xiaoyue.passive.blood.6.2"
+          }
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": "30*if(skillLevel>=175,7,if(skillLevel>=125,6,if(skillLevel>=75,5,if(skillLevel>=50,3,2))))",
+      "recoveryStatusId": "xiaoyue.status.rest"
+    },
+    {
+      "id": "xiaoyue.skill.elephant_seal",
+      "name": "镇形",
+      "school": "xiaoyue",
+      "description": "踏地镇形，以攻势封住去路。\n兽形期间消耗50法力攻击一名敌人；物理命中后另作封印判定，命中者下一完整行动窗口受[[xiaoyue.status.stun]]限制。施放后取消兽形，自身下一回合受[[xiaoyue.status.spell_rest]]限制。",
+      "tags": [
+        "physical",
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 0.8
+        },
+        {
+          "type": "randomBranch",
+          "branchId": "xiaoyue.elephant.keep_form",
+          "chance": "0.7*known.xiaoyue.passive.blood.3.3*(hp/maxHp<0.3)",
+          "successEffects": [
+            {
+              "type": "modifyStatusDuration",
+              "kinds": [
+                "xiaoyue.status.transform"
+              ],
+              "amount": 2,
+              "targeting": {
+                "side": "self"
+              }
+            }
+          ],
+          "failureEffects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.transform"
+              ],
+              "targeting": {
+                "side": "self"
+              }
+            }
+          ]
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.spell_rest_pending",
+          "duration": 1,
+          "self": true
+        }
+      ],
+      "requirement": "hasStatus.xiaoyue.status.transform",
+      "costMp": 50,
+      "sealBase": 55,
+      "hooks": [
+        {
+          "on": "afterStrike",
+          "effects": [
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.stun_pending",
+              "duration": 1,
+              "hit": "seal"
+            }
+          ],
+          "sourceIsSelf": true,
+          "aim": "hookTarget",
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.elephant_seal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.skill.intimidate",
+      "name": "兽威",
+      "school": "xiaoyue",
+      "description": "观兽之威，令敌暂缓进逼。\n消耗20法力封印一名敌方灵兽或普通生灵，使其下一完整行动窗口受[[xiaoyue.status.stun]]限制；不能选择玩家角色，免控目标仍可抵御。",
+      "tags": [
+        "seal"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1,
+        "requireKinds": [
+          "pet",
+          "npc"
+        ]
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.stun_pending",
+          "duration": 1,
+          "hit": "seal"
+        }
+      ],
+      "costMp": 20,
+      "sealBase": 55
+    },
+    {
+      "id": "xiaoyue.skill.meditate",
+      "name": "定心",
+      "school": "xiaoyue",
+      "description": "收束心神，稳住吐息。\n消耗40法力获得[[xiaoyue.status.calm]]，法攻和法防各增加《百兽化形》等级的30%向下取整值，持续四个后续回合。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.calm",
+          "duration": 4,
+          "self": true
+        }
+      ],
+      "costMp": 40
+    },
+    {
+      "id": "xiaoyue.skill.frenzy",
+      "name": "狂反",
+      "school": "xiaoyue",
+      "description": "守中蓄势，受击即反扑。\n消耗30法力获得[[xiaoyue.status.frenzy]]，持续三个后续回合；受敌方直接物理攻击命中时自动反击，反击物理系数0.5，同一次行动至多反击一次。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.frenzy",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": 30
+    },
+    {
+      "id": "xiaoyue.skill.mana_breath",
+      "name": "养息",
+      "school": "xiaoyue",
+      "description": "缓息归元，以气血换取法力。\n支付固定30气血获得[[xiaoyue.status.mana_breath]]，持续三个后续回合；每轮末回复《百兽化形》等级一半的法力，向下取整。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.mana_breath",
+          "duration": 4,
+          "self": true
+        }
+      ],
+      "costHp": 30
+    },
+    {
+      "id": "xiaoyue.skill.demon_unbound",
+      "name": "裂甲狂身",
+      "school": "xiaoyue",
+      "description": "舍护身之势，换迅猛攻势。\n消耗30法力获得[[xiaoyue.status.demon_unbound]]：以施放前物防为基准，物防降低50%，原物防的10%转为物攻，持续三个后续回合；死亡即清除，复活当回合不可施放。",
+      "tags": [
+        "support"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.demon_unbound",
+          "duration": 3,
+          "self": true
+        }
+      ],
+      "costMp": 30,
+      "forbidRevivedRound": true
+    },
+    {
+      "id": "xiaoyue.skill.best_partners",
+      "name": "最佳搭档",
+      "school": "xiaoyue",
+      "description": "一人一兽各守其步，于同一破绽相应。\n须处于兽形且本人灵兽站立；消耗500法力，冷却八回合、入场冷却四回合。本人狮搏并给目标施加[[xiaoyue.status.best_partner_mark]]；原本出战灵兽下一次正常物理攻击同目标时首击增强20%。双方协同攻击不可被保护，不额外产生灵兽行动。",
+      "tags": [
+        "physical"
+      ],
+      "targeting": {
+        "side": "enemy",
+        "count": 1
+      },
+      "effects": [
+        {
+          "type": "physicalHit",
+          "coeff": 1.15
+        },
+        {
+          "type": "applyStatus",
+          "statusId": "xiaoyue.status.best_partner_mark",
+          "duration": 1
+        }
+      ],
+      "requirement": "ownStandingPet*hasStatus.xiaoyue.status.transform",
+      "costMp": 500,
+      "cooldownRounds": 8,
+      "initialCooldownRounds": 4,
+      "modifiers": [
+        {
+          "ignoreProtection": true,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.best_partners"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.skill.foundation",
+      "name": "兽王本能",
+      "school": "xiaoyue",
+      "description": "兽形起落之间，留住反扑的本能。\n管理兽形余势与回气；狂反期间受敌方直接物理命中时，对攻击者自动反击，同一次行动至多一次。",
+      "tags": [
+        "passive"
+      ],
+      "targeting": {
+        "side": "self"
+      },
+      "effects": [],
+      "hooks": [
+        {
+          "on": "onRoundEnd",
+          "effects": [
+            {
+              "type": "restoreMp",
+              "power": "floor(knownSkillLevel.xiaoyue.skill.mana_breath/2)"
+            }
+          ],
+          "aim": "self",
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.mana_breath"
+            ],
+            "sourceStanding": true,
+            "expression": "statusRounds.xiaoyue.status.mana_breath<4"
+          }
+        },
+        {
+          "on": "onBeHit",
+          "effects": [
+            {
+              "type": "physicalHit",
+              "coeff": 0.5
+            }
+          ],
+          "targetIsSelf": true,
+          "requireKind": "physical",
+          "retaliation": true,
+          "aim": "hookSource",
+          "when": {
+            "requireStatusKinds": [
+              "xiaoyue.status.frenzy"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "oncePerActionTarget": true
+          },
+          "sourceIsEnemy": true
+        },
+        {
+          "on": "onStatusRemoved",
+          "targetIsSelf": true,
+          "aim": "self",
+          "when": {
+            "removedStatusKind": "xiaoyue.status.transform"
+          },
+          "effects": [
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.quick_penalty",
+                "xiaoyue.status.active_transform_ready"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statuses": [
+    {
+      "id": "xiaoyue.status.transform",
+      "kind": "xiaoyue.status.transform",
+      "name": "兽形",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "物攻增加《百兽化形》等级；狮搏、鹏击、连环击和镇形须处于兽形。主动施放后持续四个完整后续回合。",
+      "dispellable": true,
+      "attrMods": {
+        "physicalAtk": "skillLevel"
+      }
+    },
+    {
+      "id": "xiaoyue.status.active_transform_ready",
+      "kind": "xiaoyue.status.active_transform_ready",
+      "name": "主动兽形余势",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主动兽形后保留的首次鹏击机会：习得鹰啸时，该次鹏击有30%概率使全部打击伤害结果提高40%；鹏击后消耗。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.quick_penalty",
+      "kind": "xiaoyue.status.quick_penalty",
+      "name": "迅捷减攻",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "迅捷在对 NPC 开场时给予的短兽形代价：物攻暂时降低人物等级；兽形结束时一并清除。",
+      "dispellable": false,
+      "attrMods": {
+        "physicalAtk": "-level"
+      }
+    },
+    {
+      "id": "xiaoyue.status.rest",
+      "kind": "xiaoyue.status.rest",
+      "name": "力竭休息",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "下一次人物行动休息，灵兽仍可正常行动；休息后解除。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.stun_pending",
+      "kind": "xiaoyue.status.stun_pending",
+      "name": "镇形待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "封印已命中，将在目标下一完整行动窗口转为镇形禁动；免控与封印抵抗按施加时规则判定。",
+      "dispellable": true,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.stun",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.stun",
+      "kind": "xiaoyue.status.stun",
+      "name": "镇形禁动",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "下一完整行动窗口无法行动，持续一个回合。",
+      "dispellable": true,
+      "isSeal": true,
+      "blocksAction": true,
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.spell_rest_pending",
+      "kind": "xiaoyue.status.spell_rest_pending",
+      "name": "镇形禁法待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "施放镇形后的回气限制，将在自身下一回合转为镇形禁法。",
+      "dispellable": false,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.spell_rest",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.spell_rest",
+      "kind": "xiaoyue.status.spell_rest",
+      "name": "镇形禁法",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "下一回合不能使用百兽崖神通；普通攻击、道装器诀及其他来源技能不受此状态限制。",
+      "dispellable": false,
+      "blockedSkillSchools": [
+        "xiaoyue"
+      ],
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.calm",
+      "kind": "xiaoyue.status.calm",
+      "name": "定心",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "法攻和法防各增加《百兽化形》等级的30%，分别向下取整；持续四个后续回合。",
+      "dispellable": true,
+      "attrMods": {
+        "magicAtk": "floor(skillLevel*0.3)",
+        "magicDef": "floor(skillLevel*0.3)"
+      }
+    },
+    {
+      "id": "xiaoyue.status.frenzy",
+      "kind": "xiaoyue.status.frenzy",
+      "name": "狂反",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "持续三个后续回合；受敌方直接物理攻击命中时，对攻击者反击一次，物理系数0.5，同一次行动至多反击一次。",
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.mana_breath",
+      "kind": "xiaoyue.status.mana_breath",
+      "name": "养息",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "持续三个后续回合；每轮末回复《百兽化形》等级的一半法力，向下取整，不超过法力上限。",
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.demon_unbound",
+      "kind": "xiaoyue.status.demon_unbound",
+      "name": "裂甲狂身",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "以施放前物防为基准，物防降低50%，原物防的10%转为物攻；持续三个后续回合，死亡即清除。",
+      "dispellable": true,
+      "attrMods": {
+        "physicalDef": "-floor(physicalDef*0.5)",
+        "physicalAtk": "floor(physicalDef*0.1)"
+      }
+    },
+    {
+      "id": "xiaoyue.status.claw",
+      "kind": "xiaoyue.status.claw",
+      "name": "爪印",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "目标至多叠加六层爪印；拥有爪印经脉的施加者每轮首次直接物理攻击该目标时，每层追加人物等级的最终伤害。",
+      "dispellable": false,
+      "maxStacks": 6,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.roar_boost",
+      "kind": "xiaoyue.status.roar_boost",
+      "name": "鹰啸余威",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "本次鹏击的物理伤害结果提高40%；只在鹰啸触发时获得，鹏击结算后消耗。",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.4,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.eagle_strike"
+            ],
+            "requireKind": "physical"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.wing_guard",
+      "kind": "xiaoyue.status.wing_guard",
+      "name": "展翅",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主动兽形后的首个完整回合，躲避增加人物等级的20%，向下取整；该回合结束后消失。",
+      "dispellable": false,
+      "attrMods": {
+        "dodge": "floor(level*0.2)"
+      },
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.wing_guard_pending",
+      "kind": "xiaoyue.status.wing_guard_pending",
+      "name": "展翅待生效",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主动兽形后记录展翅机会；下一完整回合转为展翅，增加躲避。",
+      "dispellable": false,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.wing_guard",
+        "duration": 1
+      }
+    },
+    {
+      "id": "xiaoyue.status.recoil",
+      "kind": "xiaoyue.status.recoil",
+      "name": "狂袭",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "狂袭将本次反震实际损失气血的5%转为物攻，持续一个回合；数值以触发时的损血为准。",
+      "dispellable": false,
+      "attrMods": {
+        "physicalAtk": "fact.xiaoyue_recoil_bonus"
+      }
+    },
+    {
+      "id": "xiaoyue.status.backwater",
+      "kind": "xiaoyue.status.backwater",
+      "name": "背水",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人；施放后消耗。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.lion_soul",
+      "kind": "xiaoyue.status.lion_soul",
+      "name": "狮魂",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "本人狮搏击倒非灵兽敌人后，本宠获得狮魂；本宠下一次正常直接物理第一击增伤8%，习得狮王时为10%，命中后消耗。",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.totem",
+      "kind": "xiaoyue.status.totem",
+      "name": "图腾狮搏",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "本人下一次狮搏伤害结果提高4%；需最初同契的灵兽仍在场，最迟下回合末失效。",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.04,
+          "when": {
+            "skillIds": [
+              "xiaoyue.skill.lion_strike"
+            ],
+            "requireKind": "physical",
+            "sourceHasStandingPet": true,
+            "sourceOwnedPetStatusKinds": [
+              "xiaoyue.status.totem_link"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.rebirth_bonus",
+      "kind": "xiaoyue.status.rebirth_bonus",
+      "name": "回光",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "前宠阵亡后首次换入替补时，回光有50%概率给予替补下次正常直接物理第一击10%增伤。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.bloodlust",
+      "kind": "xiaoyue.status.bloodlust",
+      "name": "嗜血",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "本宠在玩家对战中以正常攻击击倒玩家后，正常直接物理伤害提高10%，持续两个回合。",
+      "dispellable": false
+    },
+    {
+      "id": "xiaoyue.status.revenge",
+      "kind": "xiaoyue.status.revenge",
+      "name": "复仇",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "主人倒地时留在击倒者身上的复仇标记；本宠下一次正常直接物理首击命中该目标时增伤20%。",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.chengxiong",
+      "kind": "xiaoyue.status.chengxiong",
+      "name": "逞凶",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "被本人或本宠击倒的敌方玩家身上的标记；对其所属灵兽的正常直接物理伤害提高8%。",
+      "dispellable": false,
+      "sourceBound": true,
+      "persistWhenDowned": true
+    },
+    {
+      "id": "xiaoyue.status.best_partner_mark",
+      "kind": "xiaoyue.status.best_partner_mark",
+      "name": "最佳搭档",
+      "school": "xiaoyue",
+      "category": "debuff",
+      "description": "最佳搭档标记的敌人；原本协同的出战灵兽下一次正常物理攻击同目标时，第一击伤害提高20%。",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.seen_pet",
+      "kind": "xiaoyue.status.seen_pet",
+      "name": "曾经出战",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "记录这只本人灵兽已在本场首次入场；肝胆的免休息率增益每只不同灵兽只计算一次，至多六只。",
+      "dispellable": false,
+      "persistWhenBenched": true,
+      "untilBattleEnd": true
+    },
+    {
+      "id": "xiaoyue.status.anger_pet",
+      "kind": "xiaoyue.status.anger_pet",
+      "name": "怒火",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "怒火使本宠在本轮下一次正常直接物理第一击伤害提高32%；该次打击后消耗。",
+      "dispellable": false,
+      "expireSameRound": true
+    },
+    {
+      "id": "xiaoyue.status.revenge_pet",
+      "kind": "xiaoyue.status.revenge_pet",
+      "name": "复仇待击",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "主人倒地后，本宠对击倒者的下一次正常直接物理首击增伤20%。",
+      "dispellable": false,
+      "modifiers": [
+        {
+          "damageResultFactor": 1.2,
+          "when": {
+            "targetStatusFromSourceOwnerKinds": [
+              "xiaoyue.status.revenge"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "requireKind": "physical",
+            "targetSlot": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "xiaoyue.status.pressure_pending",
+      "kind": "xiaoyue.status.pressure_pending",
+      "name": "威压待生效",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "威压命中敌方灵兽后，下一回合转为禁动；该次命中仍受目标的控制抵抗规则约束。",
+      "dispellable": true,
+      "expireSameRound": true,
+      "onExpire": {
+        "statusId": "xiaoyue.status.pressure_stun",
+        "duration": 2
+      }
+    },
+    {
+      "id": "xiaoyue.status.pressure_stun",
+      "kind": "xiaoyue.status.pressure_stun",
+      "name": "威压",
+      "school": "xiaoyue",
+      "category": "control",
+      "description": "威压使目标无法行动，持续两个回合。",
+      "isSeal": true,
+      "blocksAction": true,
+      "expireSameRound": true,
+      "dispellable": true
+    },
+    {
+      "id": "xiaoyue.status.totem_link",
+      "kind": "xiaoyue.status.totem_link",
+      "name": "图腾同契",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "记录为主人触发图腾的原本灵兽；只有这只灵兽仍在场，主人下一次狮搏才获得图腾增伤。",
+      "dispellable": false,
+      "sourceBound": true
+    },
+    {
+      "id": "xiaoyue.status.best_partner_pet",
+      "kind": "xiaoyue.status.best_partner_pet",
+      "name": "最佳搭档同契",
+      "school": "xiaoyue",
+      "category": "buff",
+      "description": "记录最佳搭档施放时的原本出战灵兽；只有这只灵兽能兑现目标身上的最佳搭档标记。",
+      "dispellable": false,
+      "sourceBound": true
+    }
+  ]
+}

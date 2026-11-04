@@ -63,6 +63,25 @@ function cast(battle: ReturnType<typeof createBattle>, skillId: string, targets 
 }
 
 describe('status outcomes', () => {
+  it('restricts only skills from named schools while preserving other skills and basic commands', () => {
+    const restricted = active('restricted', [{ type: EffectType.FixedHit, power: 17 }]);
+    restricted.school = 'wanqiao';
+    const other = active('other', [{ type: EffectType.FixedHit, power: 17 }]);
+    other.school = 'tianyan';
+    const input = setup([restricted, other]);
+    input.statusDefs!.push({ id: 'school-rest', name: 'school-rest', kind: 'school-rest',
+      category: StatusCategory.Buff, blockedSkillSchools: ['wanqiao'] });
+    const battle = createBattle(input);
+    battle.applyStatus('a', 'school-rest', 2, 'a');
+    const options = battle.queryCommands('a');
+    expect(options.skills.find(skill => skill.skillId === restricted.id)?.ready).toBe(false);
+    expect(options.skills.find(skill => skill.skillId === other.id)?.ready).toBe(true);
+    expect(options.attackTargetIds).toContain('b');
+    expect(options.canDefend).toBe(true);
+    cast(battle, other.id);
+    expect(battle.unit('b').attrs.hp).toBe(983);
+  });
+
   it('reports actual application and priority rejection with independent command success', () => {
     const observe = passive('observe', [{ on: HookName.OnStatusResolved, sourceIsSelf: true,
       when: { statusHit: StatusHit.Seal, resolvedStatusKinds: ['control'], statusResults: ['applied'] },
