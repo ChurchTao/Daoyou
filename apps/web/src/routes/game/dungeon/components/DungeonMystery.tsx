@@ -475,8 +475,11 @@ export function DungeonMystery({
         {view.turn === 0 ? (
           <div
             className={cn(
-              'flex items-center justify-center bg-cover bg-center',
-              sceneUrl && 'min-h-40 md:min-h-56',
+              'flex items-center justify-center',
+              // 底图为 3:2，主体在两侧与下缘、上方多为留白：以 2:1 取景贴底裁去上缘，保留整幅宽度；
+              // 裁切处渐隐，避免截断的墨迹留下直边。
+              sceneUrl &&
+                'aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom',
             )}
             style={
               sceneUrl ? { backgroundImage: `url(${sceneUrl})` } : undefined

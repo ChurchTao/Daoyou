@@ -51,16 +51,16 @@ function Meter({
   return (
     <div>
       <div className="flex justify-between text-xs">
-        <span className="text-paper/70">{label}</span>
+        <span className="text-ink-secondary">{label}</span>
         <span className="font-mono">
           {Math.floor(current)} / {Math.floor(max)}
         </span>
       </div>
-      <div className="bg-paper/15 mt-1 h-1.5 overflow-hidden rounded-full">
+      <div className="bg-ink/10 mt-1 h-1.5 overflow-hidden rounded-full">
         <div
           className={cn(
             'h-full rounded-full transition-[width] duration-700',
-            tone === 'hp' ? 'bg-crimson' : 'bg-[#6f8a9a]',
+            tone === 'hp' ? 'bg-crimson' : 'bg-[#5d7380]',
           )}
           style={{ width: `${ratio * 100}%` }}
         />
@@ -70,7 +70,8 @@ function Meter({
 }
 
 /**
- * 迎战准备：暗场中敌我对峙。对手立绘、身份与情状在一侧，你的气血、法力与出战灵兽在另一侧；
+ * 迎战准备：纸面上敌我对峙，四周淡墨晕染收紧气氛。对手立绘、身份与情状在一侧，
+ * 你的气血、法力与出战灵兽在另一侧，中间一笔浓墨斜劈；
  * 选择写成两张后果卡，说明打与不打各会怎样。结尾对决先播一段“现形”转场。
  */
 export function BattlePreparation({
@@ -102,7 +103,7 @@ export function BattlePreparation({
     encounter.hp.max > 0 && encounter.hp.current / encounter.hp.max < 0.3;
 
   return (
-    <div className="bg-ink text-paper relative overflow-hidden rounded-lg px-5 py-6 md:px-8 md:py-8">
+    <div className="bg-paper text-ink relative overflow-hidden rounded-lg px-5 py-6 shadow-[inset_0_0_70px_12px_rgba(44,24,16,0.14)] md:px-8 md:py-8">
       {revealed ? null : (
         <MysteryReveal
           name={foeName}
@@ -111,46 +112,48 @@ export function BattlePreparation({
           onDone={reveal}
         />
       )}
-      <div className="text-paper/60 text-xs tracking-[0.3em]">{copy.label}</div>
+      <div className="text-ink-secondary text-xs tracking-[0.3em]">
+        {copy.label}
+      </div>
 
       <div className="mt-5 grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-8">
-        <div className="mystery-duel-foe flex flex-col items-center gap-3 text-center md:flex-row md:items-center md:text-left">
-          <div className="bg-paper flex size-28 shrink-0 items-center justify-center rounded-full md:size-36">
-            {foeUrl ? (
-              <img
-                src={foeUrl}
-                alt=""
-                aria-hidden="true"
-                className="size-24 object-contain md:size-32"
-              />
-            ) : (
-              <span className="text-ink-secondary text-4xl">
-                {foeName.slice(0, 1)}
-              </span>
-            )}
-          </div>
-          <div className="min-w-0 space-y-2">
+        <div className="mystery-duel-foe space-y-3">
+          <div className="flex flex-col items-center gap-3 text-center md:flex-row md:text-left">
+            <div className="flex size-32 shrink-0 items-center justify-center md:size-36">
+              {foeUrl ? (
+                <img
+                  src={foeUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-full object-contain"
+                />
+              ) : (
+                <span className="text-ink/40 text-6xl">
+                  {foeName.slice(0, 1)}
+                </span>
+              )}
+            </div>
             <div className="text-crimson text-2xl font-semibold tracking-[0.2em] md:text-3xl">
               {foeName}
             </div>
-            <p className="text-paper/80 text-sm leading-7">
-              {encounter.description}
-            </p>
           </div>
+          <p className="text-ink/80 text-center text-sm leading-7 md:text-left">
+            {encounter.description}
+          </p>
         </div>
 
-        {/* 敌我之间一道斜墨痕，只在宽屏出现。 */}
+        {/* 敌我之间一笔浓墨斜劈，两头飞白散开，只在宽屏出现。 */}
         <div
           aria-hidden
-          className="mystery-duel-slash from-paper/0 via-paper/40 to-paper/0 hidden h-44 w-px rotate-12 bg-gradient-to-b md:block"
+          className="mystery-duel-slash from-ink/0 via-ink/75 to-ink/0 hidden h-44 w-1.5 rotate-[14deg] rounded-full bg-gradient-to-b md:block"
         />
 
         <div className="mystery-duel-self space-y-3">
           <div className="flex items-center gap-3">
-            <div className="bg-paper/10 border-paper/30 flex size-10 items-center justify-center rounded-full border text-sm">
+            <div className="border-ink/30 flex size-10 items-center justify-center rounded-full border text-sm">
               你
             </div>
-            <div className="text-paper/70 text-xs">
+            <div className="text-ink-secondary text-xs">
               出战灵兽：{encounter.beast ?? '无'}
             </div>
           </div>
@@ -169,7 +172,7 @@ export function BattlePreparation({
           <p
             className={cn(
               'text-xs leading-6',
-              lowHp ? 'text-[#e57361]' : 'text-paper/60',
+              lowHp ? 'text-crimson' : 'text-ink-secondary',
             )}
           >
             {lowHp
@@ -183,24 +186,22 @@ export function BattlePreparation({
         <button
           type="button"
           disabled={processing}
-          className="border-crimson bg-crimson/15 hover:bg-crimson/25 rounded-lg border px-4 py-3 text-left transition-colors disabled:opacity-50"
+          className="border-crimson bg-crimson/5 hover:bg-crimson/10 rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-50"
           onClick={() => void onBegin()}
         >
-          <div className="font-semibold text-[#e57361]">
+          <div className="text-crimson font-semibold">
             {processing ? '处理中…' : '迎战'}
           </div>
-          <div className="text-paper/75 mt-1 text-sm leading-6">
-            {copy.fight}
-          </div>
+          <div className="text-ink/75 mt-1 text-sm leading-6">{copy.fight}</div>
         </button>
         <button
           type="button"
           disabled={processing}
-          className="border-paper/25 hover:bg-paper/5 rounded-lg border px-4 py-3 text-left transition-colors disabled:opacity-50"
+          className="border-ink/30 hover:bg-ink/5 rounded-md border bg-white/30 px-4 py-3 text-left transition-colors disabled:opacity-50"
           onClick={() => void onQuit()}
         >
           <div className="font-semibold">{copy.retreat}</div>
-          <div className="text-paper/70 mt-1 text-sm leading-6">
+          <div className="text-ink-secondary mt-1 text-sm leading-6">
             {copy.retreatNote}
           </div>
         </button>

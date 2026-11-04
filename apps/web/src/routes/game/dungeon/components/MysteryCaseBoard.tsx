@@ -278,7 +278,7 @@ export function MysteryCaseBoard({
               src={sceneUrl}
               alt=""
               aria-hidden="true"
-              className="h-28 w-full object-cover"
+              className="aspect-[2/1] w-full [mask-image:linear-gradient(to_bottom,transparent,black_18%)] object-cover object-bottom"
             />
           ) : null}
           <MysteryMiniMap
