@@ -6,6 +6,10 @@ export type {
   DungeonMaterialSelection,
 } from '../dungeon/actions.js';
 export type {
+  DungeonHistoryMystery,
+  DungeonHistoryResult,
+} from '../dungeon/history.js';
+export type {
   DungeonRewardEntry,
   DungeonRewardPlan,
   DungeonRewardResourceContext,

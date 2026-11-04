@@ -8,8 +8,10 @@ import {
 import {
   Controller,
   Get,
+  Header,
   HttpCode,
   Inject,
+  Param,
   Post,
   UseFilters,
 } from '@nestjs/common';
@@ -21,6 +23,7 @@ import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
 import {
   DungeonActionErrors,
+  DungeonHistoryErrors,
   DungeonQuitErrors,
   DungeonRecoverErrors,
   DungeonStartErrors,
@@ -130,11 +133,22 @@ export class DungeonController {
   }
 
   @Get('history')
+  @Header('Cache-Control', 'private, no-store')
   history(
     @CurrentCultivator() actor: ActiveCultivatorRef,
     @FirstQuery('page') page?: string,
     @FirstQuery('pageSize') pageSize?: string,
   ) {
     return this.dungeon.history(actor.cultivatorId, page, pageSize);
+  }
+
+  @Get('history/:id')
+  @Header('Cache-Control', 'private, no-store')
+  @UseFilters(DungeonHistoryErrors)
+  historyDetail(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @Param('id', new ZodPipe(z.uuid())) id: string,
+  ) {
+    return this.dungeon.historyDetail(actor.cultivatorId, id);
   }
 }

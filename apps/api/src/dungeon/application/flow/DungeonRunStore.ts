@@ -3,6 +3,7 @@ import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
 import { dungeonHistories, dungeonRuns } from '@server/lib/drizzle/schema.js';
 import { and, desc, eq, isNull, ne } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
+import { mysteryHistorySnapshot } from '../mystery/mysteryHistory.js';
 import type {
   DungeonBattlePayload,
   DungeonEncounterPayload,
@@ -198,13 +199,30 @@ export class DungeonRunStore {
   ) {
     const archive = async (tx: DbTransaction) => {
       if (!state.archiveHistoryCommittedAt) {
+        const mystery = state.mystery
+          ? mysteryHistorySnapshot(state.mystery)
+          : undefined;
         await tx.insert(dungeonHistories).values({
           cultivatorId: state.cultivatorId,
           theme: state.theme,
-          result: settlement,
-          log: state.history
-            .map((h) => `[Round ${h.round}] ${h.scene} -> Choice: ${h.choice}`)
-            .join('\n'),
+          result: {
+            ...settlement,
+            runId: state.runId,
+            ...(mystery ? { mystery } : {}),
+          },
+          log: mystery
+            ? mystery.log
+                .map(
+                  (h) =>
+                    `[行动 ${h.turn}] ${h.speaker ? `${h.speaker}：` : ''}${h.text}`,
+                )
+                .join('\n')
+            : state.history
+                .map(
+                  (h) =>
+                    `[Round ${h.round}] ${h.scene}${h.choice ? ` -> Choice: ${h.choice}` : ''}`,
+                )
+                .join('\n'),
           realGains: realGains ?? null,
         });
         state.archiveHistoryCommittedAt = new Date().toISOString();

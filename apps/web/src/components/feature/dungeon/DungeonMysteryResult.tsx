@@ -15,7 +15,7 @@ const SCORE_LABELS = {
   combat: '战斗',
 } as const;
 
-/** 结算时展示评分明细与真相，让玩家知道下次如何做得更好。 */
+/** 现场结算与历史回顾共用权威评分、证据和答案解析。 */
 export function DungeonMysteryResult({
   result,
 }: {

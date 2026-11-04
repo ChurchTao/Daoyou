@@ -8,7 +8,7 @@ import type {
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
-import { MysteryLogLine } from './MysteryLogLine';
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 
 type Mechanism = NonNullable<MysteryPlayerView['objects'][number]['mechanism']>;
 

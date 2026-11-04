@@ -352,6 +352,10 @@ export const gameDockGroups: GameNavGroup[] = [
         href: '/game/dungeon/history',
         expandedDockLabel: '🗂️ 探险札记',
       },
+      {
+        id: 'dungeon-history-detail',
+        sceneLabel: '探险回顾',
+      },
     ],
   },
   {

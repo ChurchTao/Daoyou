@@ -67,6 +67,12 @@ export const DungeonActionErrors = apiErrorFilter((error) => {
   return Response.json({ error: message }, { status });
 });
 
+export const DungeonHistoryErrors = apiErrorFilter((error) =>
+  error instanceof ZodError
+    ? Response.json({ error: '探险记录编号无效' }, { status: 400 })
+    : undefined,
+);
+
 function recoveryErrors(fallback: string) {
   return apiErrorFilter(
     (error) =>

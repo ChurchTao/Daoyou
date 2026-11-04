@@ -7,7 +7,7 @@ import type {
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useState } from 'react';
-import { MysteryLogLine } from './MysteryLogLine';
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { MysteryPortrait } from './MysteryPortrait';
 import type { MysteryNotes } from './useMysteryNotes';

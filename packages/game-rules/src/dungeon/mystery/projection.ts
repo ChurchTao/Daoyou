@@ -163,7 +163,10 @@ export function projectMysteryView(
     return (
       caseFile.questions
         .find((q) => q.id === questionId)
-        ?.options?.find((o) => o.id === answer)?.label ?? answer
+        ?.options?.find((o) => o.id === answer)?.label ??
+      // 旧案卷曾直接以线索作答，历史回顾仍应展示名称。
+      caseFile.clues.find((c) => c.id === answer)?.name ??
+      answer
     );
   };
 

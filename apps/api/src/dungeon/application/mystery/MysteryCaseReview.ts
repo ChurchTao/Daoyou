@@ -91,10 +91,23 @@ export function mysteryCaseFacts(c: MysteryCaseFile, statement?: string) {
 const INTERNAL_ID = /[a-z]+_[a-z0-9_]+/;
 
 /**
- * 去掉模型偶尔带出的内部 id、英文单词与 Markdown 标记，再按上限截断；不修改含义。
+ * 有名称表时先解析内部引用，未知引用拒绝写入；再清理格式并按上限截断。
+ * 未提供名称表的自由对话沿用原有清理方式。
  */
-export function cleanMysteryText(text: string, limit: number) {
-  const value = text
+export function cleanMysteryText(
+  text: string,
+  limit: number,
+  references?: Readonly<Record<string, string>>,
+) {
+  const resolved = references
+    ? text.replace(new RegExp(INTERNAL_ID.source, 'g'), (id) => {
+        const name = Object.hasOwn(references, id) ? references[id] : undefined;
+        if (!name || INTERNAL_ID.test(name))
+          throw new Error(`剧本文本引用了未知或无效名称：${id}`);
+        return name;
+      })
+    : text;
+  const value = resolved
     .replace(/\*\*/g, '')
     .replace(
       new RegExp(`[（(][^（）()]*${INTERNAL_ID.source}[^（）()]*[）)]`, 'g'),
@@ -171,7 +184,7 @@ function textFields(c: MysteryCaseFile): TextField[] {
   return fields;
 }
 
-function names(c: MysteryCaseFile) {
+function names(c: MysteryCaseFile, includeTitles = true) {
   return Object.fromEntries(
     [
       ...c.rooms,
@@ -180,7 +193,17 @@ function names(c: MysteryCaseFile) {
       ...c.items,
       ...c.npcs,
       ...(c.guards ?? []),
-    ].map((x) => [x.id, 'title' in x ? `${x.name}（${x.title}）` : x.name]),
+      ...(c.mechanisms ?? []),
+      ...(c.mechanisms ?? []).flatMap((m) =>
+        m.parts.map((p) => ({ id: p.id, name: p.label })),
+      ),
+      ...c.questions.flatMap((q) =>
+        (q.options ?? []).map((o) => ({ id: o.id, name: o.label })),
+      ),
+    ].map((x) => [
+      x.id,
+      includeTitles && 'title' in x ? `${x.name}（${x.title}）` : x.name,
+    ]),
   );
 }
 
@@ -257,6 +280,7 @@ export async function reviewMysteryCase(
     thinking: MYSTERY_GENERATION_THINKING.review,
   });
   const byPath = new Map(fields.map((f) => [f.path, f]));
+  const references = names(result, false);
   const issues: MysteryReviewIssue[] = [];
   for (const issue of output.issues) {
     const field = byPath.get(issue.field);
@@ -271,8 +295,17 @@ export async function reviewMysteryCase(
       problem: issue.problem,
       severity: issue.severity,
     });
-    const fixed = cleanMysteryText(issue.fixed, field.limit);
-    if (options.apply !== false && fixed) field.set(fixed);
+    if (options.apply !== false) {
+      try {
+        const fixed = cleanMysteryText(issue.fixed, field.limit, references);
+        if (fixed) field.set(fixed);
+      } catch (error) {
+        console.warn('[DungeonMystery] 审校修正文含无效引用，保留原文:', {
+          field: issue.field,
+          error,
+        });
+      }
+    }
   }
   return { caseFile: result, issues };
 }

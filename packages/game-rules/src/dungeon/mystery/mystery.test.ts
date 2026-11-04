@@ -461,6 +461,30 @@ describe('mystery scoring', () => {
 });
 
 describe('mystery projection', () => {
+  it('resolves clue answers from historical cases after the template moved to choices', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, SOLVE);
+    const result = scoreMysteryRun(caseFile, template, run, CORRECT);
+    const question = caseFile.questions.find((q) => q.id === 'how')!;
+    const clue = caseFile.clues[0]!;
+    delete question.options;
+    question.answer = clue.id;
+    const view = projectMysteryView(
+      {
+        templateId: template.id,
+        caseSource: 'fallback',
+        caseFile,
+        run,
+        result,
+      },
+      template,
+    );
+    expect(
+      view.result?.explanations.find((q) => q.questionId === 'how')
+        ?.answerLabel,
+    ).toBe(clue.name);
+  });
+
   it('hides truth and unrevealed clues until the case is closed', () => {
     const caseFile = fallback();
     const run = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }]);

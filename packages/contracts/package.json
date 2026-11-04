@@ -25,6 +25,7 @@
     "./combat/breakthrough": "./dist/combatV6Breakthrough.js",
     "./combat/dungeon": "./dist/combatV6Dungeon.js",
     "./dungeon/mystery": "./dist/dungeonMystery.js",
+    "./dungeon/history": "./dist/dungeonHistory.js",
     "./combat/ranking": "./dist/combatV6Ranking.js",
     "./combat/replays": "./dist/combatV6Replay.js",
     "./combat/runtime": "./dist/combatV6Runtime.js",

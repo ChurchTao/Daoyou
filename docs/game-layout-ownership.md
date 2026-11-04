@@ -44,6 +44,10 @@
 - 冷启动壳由 `index.html` 提供首字节后的静态反馈，React Router 根路由使用同构的 `AppBootScreen` 承接懒加载与初始 loader 阶段
 - `routes/game/components/` 只保留真正属于某个页面的私有组件；跨两个以上路由族复用的组件不得继续放在 `routes/**`
 
+探险札记的列表 `/game/dungeon/history` 与详情 `/game/dungeon/history/:id` 均归属 `GameViewportLayout`，登记为独立的 archive 场景。列表按页读取摘要，点击进入完整页面；详情保留来源页码，支持直接打开与刷新。正文展示结局、权威推理评分与答案解析、实际所得、已获线索及按行动整理的调查日志；评分与日志行复用 `components/feature/dungeon/`，不使用抽屉展示整份札记。
+
+新探险在原有归档事务中保存玩家可见的调查快照，不保存完整隐藏案卷。旧归档仅在能与本人的唯一已结束副本精确匹配时读取恢复，否则展示留存的旧式经过；读取不回写历史库。两个读取接口均按当前角色限定权限。
+
 ## 加载体验归属
 
 - `index.html` 持有冷启动首帧结构、宣纸背景和 `.ink-loading-bar` 关键 CSS；React 组件不得另建同名动画或复制关键帧

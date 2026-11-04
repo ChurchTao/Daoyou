@@ -9,7 +9,7 @@ import type { DungeonSettlement as DungeonSettlementType } from '@daoyou/game-do
 import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts';
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
-import { DungeonMysteryResult } from './DungeonMysteryResult';
+import { DungeonMysteryResult } from '@app/components/feature/dungeon/DungeonMysteryResult';
 
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;

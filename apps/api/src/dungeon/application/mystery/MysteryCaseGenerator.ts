@@ -22,7 +22,7 @@ import { generateAiObject } from '@server/utils/aiClient.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 import {
-  cleanMysteryText as clip,
+  cleanMysteryText,
   mysteryCaseFacts,
   reviewMysteryCase,
   type MysteryReviewContext,
@@ -726,6 +726,29 @@ function assemble(
   people: z.infer<ReturnType<(typeof TEXT_PARTS)['people']['schema']>>,
 ): MysteryCaseFile {
   const c = s.caseFile;
+  // 模型偶尔用内部 id 引用证据；必须在清洗与截断前换成本案的名称。
+  const references = {
+    ...o.rooms,
+    ...o.objects,
+    ...o.items,
+    ...o.guards,
+    ...o.mechanisms,
+    ...o.parts,
+    ...o.options,
+    ...Object.fromEntries(
+      [...Object.entries(o.clues), ...Object.entries(o.npcs)].map(
+        ([id, value]) => [id, value.name],
+      ),
+    ),
+    ...Object.fromEntries(
+      Object.entries(s.sequences ?? {}).map(([id, sequence]) => [
+        id,
+        sequence.map((part) => o.parts[part] ?? '').join('→'),
+      ]),
+    ),
+  };
+  const clip = (text: string, limit: number) =>
+    cleanMysteryText(text, limit, references);
   const room = places.rooms as Record<
     string,
     { description: string; brief: string; lockedText?: string }

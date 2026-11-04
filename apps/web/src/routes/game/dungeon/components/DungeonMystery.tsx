@@ -17,7 +17,7 @@ import { MysteryAnomalyVeil, MysteryEventFlash } from './MysteryAtmosphere';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryClueRail } from './MysteryClueRail';
 import { MysteryGuardCard } from './MysteryGuardCard';
-import { MysteryLogLine } from './MysteryLogLine';
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { MysteryMechanismScene } from './MysteryMechanismScene';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { MysteryPortrait } from './MysteryPortrait';

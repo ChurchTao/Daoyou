@@ -159,6 +159,20 @@ export const servicesRoutes = [
     )}
   />,
   <Route
+    path="dungeon/history/:id"
+    lazy={lazyRoute(
+      () => import('@app/routes/game/dungeon/history/detail/route'),
+    )}
+    handle={scene(
+      {
+        id: 'dungeon-history-detail',
+        presentation: 'archive',
+        summary: '重温此行的线索、推理与收获。',
+      },
+      '探险回顾',
+    )}
+  />,
+  <Route
     path="world-chat"
     lazy={lazyRoute(() => import('@app/routes/game/world-chat/route'))}
     handle={scene(
