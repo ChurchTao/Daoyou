@@ -58,6 +58,7 @@ import {
 } from '@server/lib/redis/lock.js';
 import { findActiveCultivatorOwnerId } from '@server/lib/repositories/cultivatorRepository.js';
 import type { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
+import { queueAchievementRumor } from '@server/social/application/achievementRumor.js';
 import { randomUUID } from 'crypto';
 import type { generateDungeonEnding } from './DungeonSettlementGenerator.js';
 
@@ -1060,8 +1061,13 @@ export class DungeonFlowService {
     }
 
     let domainEventId: string | undefined;
-    const recordDungeonSettledEvent = async (tx: DbTransaction) => {
+    let rumorOutboxId: string | undefined;
+    const persistSettlement = async (tx: DbTransaction) => {
       if (!state.runId) throw new Error('副本结算缺少运行编号');
+      await this.archiveDungeon(state, settlement, realGains, {
+        tx,
+        clearRedis: false,
+      });
       const event = await createDomainEvent(
         {
           type: 'dungeon.run.settled',
@@ -1077,25 +1083,33 @@ export class DungeonFlowService {
         tx,
       );
       domainEventId = event.id;
-    };
-
-    if (!deferPersistence) {
-      await this.database.transaction(async (tx) => {
-        await this.archiveDungeon(state, settlement, realGains, {
-          tx,
-          clearRedis: false,
+      const mystery = state.mystery;
+      if (
+        endDisposition === 'completed' &&
+        mystery?.result &&
+        mystery.result.total >= 96
+      ) {
+        const total = mystery.result.total;
+        const score = total === 100 ? '满分' : ` ${total} 分`;
+        rumorOutboxId = await queueAchievementRumor(tx, {
+          text: `「${state.playerInfo.name}」在云游中勘破《${mystery.caseFile.title}》，以${score}结案。`,
         });
-        await recordDungeonSettledEvent(tx);
-      });
+      }
+    };
+    const afterCommit = async () => {
       await this.runs.clearRedisState(state.cultivatorId);
-      publishTransactionalMessageBestEffort(domainEventId, {
+      const context = {
         source: 'dungeon_settlement',
         cultivatorId: state.cultivatorId,
         runId: state.runId,
-      });
-    }
+      };
+      publishTransactionalMessageBestEffort(domainEventId, context);
+      publishTransactionalMessageBestEffort(rumorOutboxId, context);
+    };
 
     if (!deferPersistence) {
+      await this.database.transaction(persistSettlement);
+      await afterCommit();
       return { isFinished: true, settlement, realGains };
     }
 
@@ -1158,25 +1172,14 @@ export class DungeonFlowService {
           gainedSettlement = toDungeonPersistenceSettlement(gainResult);
         }
 
-        await this.archiveDungeon(state, settlement, realGains, {
-          tx,
-          clearRedis: false,
-        });
-        await recordDungeonSettledEvent(tx);
+        await persistSettlement(tx);
         return mergeDungeonPersistenceSettlements(
           consumedSettlement,
           gainedSettlement,
           condition ? { condition } : null,
         );
       },
-      afterCommit: async () => {
-        await this.runs.clearRedisState(state.cultivatorId);
-        publishTransactionalMessageBestEffort(domainEventId, {
-          source: 'dungeon_settlement',
-          cultivatorId: state.cultivatorId,
-          runId: state.runId,
-        });
-      },
+      afterCommit,
     };
   }
   /**

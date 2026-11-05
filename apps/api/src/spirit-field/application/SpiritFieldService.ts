@@ -52,6 +52,7 @@ import type { Consumable, Material } from '@daoyou/game-domain/character';
 import { and, eq } from 'drizzle-orm';
 import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
 import { grantInventory } from '@server/inventory/operations.js';
+import { queueAchievementRumor } from '@server/social/application/achievementRumor.js';
 import {
   consumeFieldItem,
   fieldResource,
@@ -73,6 +74,7 @@ async function loadCultivator(
     .select({
       id: cultivators.id,
       userId: cultivators.userId,
+      name: cultivators.name,
       realm: cultivators.realm,
       spiritStones: cultivators.spirit_stones,
     })
@@ -739,7 +741,7 @@ export async function harvestSpiritField(
     command: async (tx) => {
       if (!preparation)
         throw new SpiritFieldServiceError('灵植尚未成型，暂不可采摘', 409);
-      await loadCultivator(actor, tx);
+      const cultivator = await loadCultivator(actor, tx);
       const field = await getOrCreateSpiritField(actor.cultivatorId, tx);
       const plot = field.plots[input.plotIndex];
       if (
@@ -819,6 +821,11 @@ export async function harvestSpiritField(
         },
         tx,
       );
+      if (plot.plant.quality === '仙品' && verified.quality === '神品') {
+        await queueAchievementRumor(tx, {
+          text: `道友「${cultivator.name}」的灵田生出异象，仙品灵种蜕变，收得神品「${preparation.identity.name}」。`,
+        });
+      }
       return {
         result: {
           name: preparation.identity.name,
