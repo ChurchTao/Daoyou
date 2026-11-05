@@ -1,10 +1,12 @@
 import type { RealmType } from '@daoyou/constants/realms';
+import type { GenderType } from '../character.js';
 import type { HuntEvent } from './event.js';
 
 export type HuntMember = {
   userId: string;
   cultivatorId: string;
   name: string;
+  gender?: GenderType;
   realm: RealmType;
   ready: boolean;
   assisting: boolean;

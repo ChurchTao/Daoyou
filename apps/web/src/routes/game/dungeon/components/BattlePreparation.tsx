@@ -1,8 +1,9 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import { useCallback, useState } from 'react';
 import './mystery-scenes.css';
-import { mysteryPortraitUrl } from './mysteryArt';
+import { mysteryPortraitIcon } from './mysteryArt';
 import { MysteryReveal } from './MysteryAtmosphere';
 
 type Mode = 'finale' | 'guard' | undefined;
@@ -97,7 +98,7 @@ export function BattlePreparation({
   const [revealed, setRevealed] = useState(mode !== 'finale');
   const reveal = useCallback(() => setRevealed(true), []);
   const copy = COPY[mode ?? 'other'];
-  const foeUrl = mysteryPortraitUrl(portrait);
+  const foeIcon = mysteryPortraitIcon(portrait);
   const foeName = encounter.enemies.join('、');
   const lowHp =
     encounter.hp.max > 0 && encounter.hp.current / encounter.hp.max < 0.3;
@@ -120,12 +121,11 @@ export function BattlePreparation({
         <div className="mystery-duel-foe space-y-3">
           <div className="flex flex-col items-center gap-3 text-center md:flex-row md:text-left">
             <div className="flex size-32 shrink-0 items-center justify-center md:size-36">
-              {foeUrl ? (
-                <img
-                  src={foeUrl}
-                  alt=""
-                  aria-hidden="true"
-                  className="size-full object-contain"
+              {foeIcon ? (
+                <GameIcon
+                  value={foeIcon}
+                  purpose="artwork"
+                  className="size-full"
                 />
               ) : (
                 <span className="text-ink/40 text-6xl">

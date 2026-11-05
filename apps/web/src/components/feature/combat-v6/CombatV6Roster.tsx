@@ -1,8 +1,9 @@
 import { BeastPortrait } from '@app/components/feature/beasts/BeastPortrait';
 import type { CombatV6UnitAppearance } from '@daoyou/game-domain/combat';
 import { DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
-import { memo, useMemo, type CSSProperties } from 'react';
 import type { frameFeedback } from '@daoyou/game-rules/combat/log';
+import { memo, useMemo, type CSSProperties } from 'react';
+import { combatPortraitValue } from './presentation';
 import type { CombatV6Unit } from './session';
 
 type UnitProps = {
@@ -63,14 +64,7 @@ const UnitRow = memo(function UnitRow({
         <span className="cv6-portrait">
           <BeastPortrait
             isMutant={appearance?.isMutant}
-            value={
-              appearance?.icon ??
-              (u.ownerId
-                ? '🐾'
-                : u.kind === 'player'
-                  ? 'icon:cultivator-male-avatar'
-                  : '👤')
-            }
+            value={combatPortraitValue(u, appearance)}
           />
           {ready ? (
             <span className="cv6-ready" aria-label="已下令">

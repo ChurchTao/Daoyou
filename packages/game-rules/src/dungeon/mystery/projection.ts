@@ -20,6 +20,17 @@ import {
 } from './engine.js';
 import { MECHANISM_MAX_FAILURES, renderHintRule } from './mechanism.js';
 
+export function mysteryFinalePortrait(
+  caseFile: MysteryCaseFile,
+  culpritId: string,
+) {
+  if (culpritId === 'manifest') {
+    const kind = caseFile.manifest?.kind;
+    return kind ? `manifest-${kind}` : undefined;
+  }
+  return caseFile.npcs.find((npc) => npc.id === culpritId)?.portrait;
+}
+
 /**
  * 线索的来源：按玩家实际可能的获取方式依次判断（搜查过的物件、交谈过的人、
  * 回应过证据的人、用过的物品交互），都对不上时取第一个可能的来源。
@@ -173,36 +184,22 @@ export function projectMysteryView(
       answer
     );
   };
+  const foePortrait = record.pendingGuard
+    ? caseFile.guards?.find((guard) => guard.id === record.pendingGuard)?.portrait
+    : record.verdict
+      ? mysteryFinalePortrait(caseFile, record.verdict.culpritId)
+      : undefined;
 
   return {
     title: caseFile.title,
     replay: record.replay ?? false,
     confrontation: Boolean(template.finale?.points),
     ...(record.pendingGuard
-      ? {
-          pendingBattle: 'guard' as const,
-          ...(() => {
-            const portrait = caseFile.guards?.find(
-              (g) => g.id === record.pendingGuard,
-            )?.portrait;
-            return portrait ? { pendingFoePortrait: portrait } : {};
-          })(),
-        }
+      ? { pendingBattle: 'guard' as const }
       : record.verdict
-        ? {
-            pendingBattle: 'finale' as const,
-            ...(() => {
-              const portrait =
-                record.verdict.culpritId === 'manifest'
-                  ? caseFile.manifest?.kind &&
-                    `manifest-${caseFile.manifest.kind}`
-                  : caseFile.npcs.find(
-                      (n) => n.id === record.verdict!.culpritId,
-                    )?.portrait;
-              return portrait ? { pendingFoePortrait: portrait } : {};
-            })(),
-          }
+        ? { pendingBattle: 'finale' as const }
         : {}),
+    ...(foePortrait ? { pendingFoePortrait: foePortrait } : {}),
     templateName: template.name,
     brief: {
       ...caseFile.brief,

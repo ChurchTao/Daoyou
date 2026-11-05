@@ -80,6 +80,7 @@ export function TowerWeeklyEnemies({ view }: { view: TowerView }) {
         <div className="flex items-center gap-4 sm:gap-6">
           <GameIcon
             value={enemy.icon}
+            purpose="artwork"
             className="shrink-0 text-5xl sm:text-6xl"
           />
           <div className="min-w-0">
@@ -116,7 +117,11 @@ export function TowerWeeklyEnemies({ view }: { view: TowerView }) {
           <ul aria-label="随从阵容" className="flex flex-wrap gap-x-6 gap-y-3">
             {companions.map((member) => (
               <li key={member.id} className="flex items-center gap-2.5">
-                <GameIcon value={member.icon} className="text-2xl" />
+                <GameIcon
+                  value={member.icon}
+                  purpose="artwork"
+                  className="text-2xl"
+                />
                 <div>
                   <p className="text-sm">{member.name}</p>
                   <p className="text-ink-secondary text-xs">

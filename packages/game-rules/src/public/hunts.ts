@@ -5,7 +5,7 @@ export {
   huntIsOpen,
   huntMapHref,
 } from '../hunts/config.js';
-export { huntEnemies, huntNpcCommand } from '../hunts/content.js';
+export { huntEnemies, huntEnemyIcon, huntNpcCommand } from '../hunts/content.js';
 export {
   huntKickError,
   huntRealmAllowed,

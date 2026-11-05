@@ -31,7 +31,10 @@ export {
   mechanismCandidates,
   renderHintRule,
 } from '../dungeon/mystery/mechanism.js';
-export { projectMysteryView } from '../dungeon/mystery/projection.js';
+export {
+  mysteryFinalePortrait,
+  projectMysteryView,
+} from '../dungeon/mystery/projection.js';
 export {
   checkMysteryAnswers,
   mysteryConfrontationTarget,

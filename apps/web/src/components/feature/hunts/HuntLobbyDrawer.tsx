@@ -10,6 +10,7 @@ import type { HuntTeam } from '@daoyou/game-domain/hunts';
 import { huntRealmAllowed } from '@daoyou/game-rules/hunts';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { HuntMemberPortrait } from './HuntMemberPortrait';
 import { HuntRewardPreview } from './HuntRewardPreview';
 import { huntTargetLabel, notifyHuntTeamChanged } from './huntTeamView';
 import { useHuntBattleNavigation } from './useHuntBattleNavigation';
@@ -300,52 +301,53 @@ export function HuntLobbyDrawer({
               ) : null}
               <div className="divide-ink/10 divide-y">
                 {data.teams.length ? (
-                  data.teams.map((t) => (
-                    <div key={t.id} className="flex items-center gap-3 py-3">
-                      <GameIcon
-                        value="icon:cultivator-male-avatar"
-                        className="text-4xl"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p>
-                          {
-                            t.members.find((m) => m.cultivatorId === t.leaderId)
-                              ?.name
-                          }
-                          的队伍{' '}
-                          <span className="font-mono">
-                            {t.members.length}/4
-                          </span>
-                        </p>
-                        <p className="text-ink-secondary mt-1 text-xs">
-                          {t.minRealm}至{t.maxRealm} ·{' '}
-                          {t.members
-                            .map(
-                              (m) =>
-                                `${m.name}${m.assisting ? '（助战）' : ''}`,
-                            )
-                            .join('、')}
-                        </p>
+                  data.teams.map((t) => {
+                    const leader = t.members.find(
+                      (member) => member.cultivatorId === t.leaderId,
+                    );
+                    return (
+                      <div key={t.id} className="flex items-center gap-3 py-3">
+                        <HuntMemberPortrait
+                          member={leader}
+                          className="text-4xl"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p>
+                            {leader?.name}的队伍{' '}
+                            <span className="font-mono">
+                              {t.members.length}/4
+                            </span>
+                          </p>
+                          <p className="text-ink-secondary mt-1 text-xs">
+                            {t.minRealm}至{t.maxRealm} ·{' '}
+                            {t.members
+                              .map(
+                                (m) =>
+                                  `${m.name}${m.assisting ? '（助战）' : ''}`,
+                              )
+                              .join('、')}
+                          </p>
+                        </div>
+                        {team ? null : (
+                          <InkButton
+                            disabled={
+                              pending ||
+                              t.members.length >= 4 ||
+                              !identity ||
+                              !huntRealmAllowed(t, identity.realm)
+                            }
+                            onClick={() =>
+                              void act(`/api/hunts/${eventId}/join`, {
+                                teamId: t.id,
+                              })
+                            }
+                          >
+                            加入
+                          </InkButton>
+                        )}
                       </div>
-                      {team ? null : (
-                        <InkButton
-                          disabled={
-                            pending ||
-                            t.members.length >= 4 ||
-                            !identity ||
-                            !huntRealmAllowed(t, identity.realm)
-                          }
-                          onClick={() =>
-                            void act(`/api/hunts/${eventId}/join`, {
-                              teamId: t.id,
-                            })
-                          }
-                        >
-                          加入
-                        </InkButton>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="text-ink-secondary py-6 text-center">
                     还没有队伍，先召集几位道友吧。

@@ -10,6 +10,7 @@ export interface SectBattleTargetSummary {
   description: string;
   realm: RealmType;
   realmStage: RealmStage;
+  portrait?: string;
   sectId?: string;
   sectName?: string;
 }

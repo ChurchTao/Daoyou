@@ -1,14 +1,12 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import { useEffect, useRef, type ReactNode } from 'react';
-import type { RoomActorAppearance } from './RoomView';
+import type { RoomActorView } from './RoomView';
 
-export interface NpcConversationActor {
-  sigil: string;
-  name: string;
-  identity: string;
-  responsibility: string;
-  appearance?: RoomActorAppearance;
-}
+export type NpcConversationActor = Pick<
+  RoomActorView,
+  'sigil' | 'name' | 'identity' | 'responsibility' | 'appearance' | 'portrait'
+>;
 
 export interface NpcConversationMessage {
   id: string;
@@ -99,17 +97,25 @@ export function NpcConversation({
       )}
     >
       <aside className="border-ink/10 bg-ink/[0.025] flex items-center gap-4 border-b px-5 py-4 md:flex-col md:justify-start md:border-r md:border-b-0 md:px-6 md:pt-14 md:text-center">
-        <span
-          aria-hidden="true"
-          className={cn(
-            'text-ink w-16 shrink-0 text-center leading-none md:w-auto',
-            appearance === 'facility'
-              ? 'text-[3rem] md:text-[4.5rem]'
-              : 'font-heading text-[3.75rem] md:text-[5.75rem]',
-          )}
-        >
-          {actor.sigil}
-        </span>
+        {appearance === 'person' && actor.portrait ? (
+          <GameIcon
+            value={actor.portrait}
+            purpose="artwork"
+            className="size-16 md:size-36"
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'text-ink w-16 shrink-0 text-center leading-none md:w-auto',
+              appearance === 'facility'
+                ? 'text-[3rem] md:text-[4.5rem]'
+                : 'font-heading text-[3.75rem] md:text-[5.75rem]',
+            )}
+          >
+            {actor.sigil}
+          </span>
+        )}
         <div>
           <h2 className="text-ink text-lg font-normal md:mt-4 md:text-xl">
             {actor.name}

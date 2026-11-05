@@ -38,7 +38,7 @@
   "archetypes": {
     "warrior": {
       "name": "负碑蜃卫",
-      "icon": "⚔️",
+      "icon": "icon:portrait-puppet",
       "multiply": {
         "hp": 1,
         "physicalDef": 1,
@@ -49,7 +49,7 @@
     },
     "mage": {
       "name": "照影镜主",
-      "icon": "🔮",
+      "icon": "icon:portrait-elder-f",
       "multiply": {
         "hp": 1,
         "physicalDef": 1,
@@ -60,7 +60,7 @@
     },
     "binder": {
       "name": "缚梦幻师",
-      "icon": "🪬",
+      "icon": "icon:portrait-manifest-demonic",
       "multiply": {
         "hp": 1,
         "physicalDef": 1,
@@ -72,7 +72,7 @@
     },
     "attendant": {
       "name": "幻侍",
-      "icon": "🪞",
+      "icon": "icon:portrait-servant-m",
       "multiply": {
         "hp": 1,
         "physicalDef": 0.8125,
@@ -166,7 +166,7 @@
       "archetypes": ["warrior", "mage", "binder", "attendant"],
       "presentation": {
         "name": "执灯幻侍",
-        "icon": "🏮"
+        "icon": "icon:portrait-servant-f"
       }
     },
     "last_stand": {
@@ -191,7 +191,7 @@
       "archetypes": ["warrior", "mage", "binder", "attendant"],
       "presentation": {
         "name": "镜侍",
-        "icon": "🪞"
+        "icon": "icon:portrait-spirit"
       }
     }
   },

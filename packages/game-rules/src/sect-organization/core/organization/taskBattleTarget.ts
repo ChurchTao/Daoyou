@@ -31,12 +31,16 @@ export function readSectBattleTargetSnapshot(
 export function summarizeSectBattleTarget(
   snapshot: SectBattleTargetSnapshot,
 ): SectBattleTargetSummary {
+  const portrait = snapshot.sourceCultivatorId
+    ? snapshot.opponent.unitAppearances?.[snapshot.sourceCultivatorId]?.icon
+    : undefined;
   return {
     kind: snapshot.kind,
     name: snapshot.name,
     description: snapshot.description,
     realm: snapshot.realm,
     realmStage: snapshot.realmStage,
+    ...(typeof portrait === 'string' && portrait ? { portrait } : {}),
     ...(snapshot.kind === 'cultivator'
       ? {
           sectId: snapshot.sourceSectId,

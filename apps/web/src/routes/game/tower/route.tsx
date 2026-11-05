@@ -78,6 +78,7 @@ function EnemyMembers({ enemy }: { enemy: TowerEnemyPreview }) {
           triggerContent={
             <GameIcon
               value={member.icon}
+              purpose="artwork"
               className={member.role === 'leader' ? 'text-6xl' : 'text-3xl'}
             />
           }

@@ -75,6 +75,7 @@ import {
   checkMysteryAnswers,
   createMysteryRun,
   mysteryConfrontationTarget,
+  mysteryFinalePortrait,
   mysteryGuardChallenge,
   mysteryNpcPresent,
   needsMysteryRestock,
@@ -1536,6 +1537,7 @@ export class DungeonFlowService {
         if (culprit) {
           const encounter = await prepareDungeonEncounter(state, {
             enemyName: culprit.name,
+            portrait: mysteryFinalePortrait(mystery.caseFile, culprit.id),
             description:
               template.archetype === 'retrieval'
                 ? `禁制应声而开的一刻，${culprit.name}撕下伪装，出手抢夺遗珍——拦下此人，遗珍才能交到该得之人手里。`
@@ -1634,6 +1636,7 @@ export class DungeonFlowService {
         mystery.pendingGuard = check.guard.id;
         const encounter = await prepareDungeonEncounter(state, {
           enemyName: check.guard.name,
+          portrait: check.guard.portrait,
           description: check.guard.description,
         }).catch((error: unknown) => {
           console.warn('[DungeonMystery] 守卫遭遇战准备失败:', error);

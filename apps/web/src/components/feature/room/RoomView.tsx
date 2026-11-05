@@ -1,3 +1,4 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
 import { useEffect, useRef, type ReactNode } from 'react';
 
@@ -11,6 +12,7 @@ export interface RoomActorView {
   identity: string;
   responsibility: string;
   appearance?: RoomActorAppearance;
+  portrait?: string;
   status?: {
     label: string;
     tone?: RoomActorStatusTone;
@@ -106,17 +108,25 @@ export function RoomView({
                     actor.disabled && 'cursor-not-allowed opacity-50',
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'text-ink group-hover:text-crimson leading-none transition-colors',
-                      appearance === 'facility'
-                        ? 'text-[2.75rem] md:text-[3.25rem]'
-                        : 'font-heading text-[3.25rem] md:text-[3.75rem]',
-                    )}
-                  >
-                    {actor.sigil}
-                  </span>
+                  {appearance === 'person' && actor.portrait ? (
+                    <GameIcon
+                      value={actor.portrait}
+                      purpose="artwork"
+                      className="size-16 md:size-20"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'text-ink group-hover:text-crimson leading-none transition-colors',
+                        appearance === 'facility'
+                          ? 'text-[2.75rem] md:text-[3.25rem]'
+                          : 'font-heading text-[3.25rem] md:text-[3.75rem]',
+                      )}
+                    >
+                      {actor.sigil}
+                    </span>
+                  )}
                   <strong className="text-ink mt-3 min-w-0 max-w-full text-base font-normal break-words md:text-lg">
                     {actor.name}
                   </strong>

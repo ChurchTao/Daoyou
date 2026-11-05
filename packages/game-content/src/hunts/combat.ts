@@ -90,10 +90,28 @@ export const HUNT_STATUSES: StatusDef[] = [
 // Each formation reserves one boss and one elite; the remaining six are fodder.
 export const formations: Record<
   HuntBossId,
-  { elite: string; minions: [string, string] }
+  {
+    elite: string;
+    minions: [string, string];
+    icons?: { elite: string; minions: [string, string] };
+  }
 > = {
-  heretic: { elite: '噬灵护法', minions: ['邪修刀客', '邪修术士'] },
-  demon: { elite: '魔眼侍卫', minions: ['古魔爪牙', '魔焰侍从'] },
+  heretic: {
+    elite: '噬灵护法',
+    minions: ['邪修刀客', '邪修术士'],
+    icons: {
+      elite: 'icon:portrait-wanderer-m',
+      minions: ['icon:portrait-disciple-m', 'icon:portrait-disciple-f'],
+    },
+  },
+  demon: {
+    elite: '魔眼侍卫',
+    minions: ['古魔爪牙', '魔焰侍从'],
+    icons: {
+      elite: 'icon:portrait-manifest-demonic',
+      minions: ['icon:portrait-yaoguai', 'icon:portrait-manifest-demonic'],
+    },
+  },
   beast: { elite: '伴生冥虎', minions: ['冥虎幼兽', '幽火虎妖'] },
   bloodPython: { elite: '血鳞蟒卫', minions: ['血鳞幼蟒', '赤焰蛇妖'] },
   ironTurtle: { elite: '负山鼋卫', minions: ['铁甲幼鼋', '寒水鼋妖'] },

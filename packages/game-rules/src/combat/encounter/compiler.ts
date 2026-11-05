@@ -9,7 +9,10 @@ import {
   COMBAT_V6_CHARACTER_BUILD_VERSIONS,
   COMBAT_V6_SEAL_CURVE_TRAINING_VERSIONS,
 } from '@daoyou/game-domain/combat';
-import { COMBAT_V6_TRAINING_CONTENT_V1 } from '@daoyou/game-content/combat/training';
+import {
+  COMBAT_V6_TRAINING_CONTENT_V1,
+  TRAINING_PVE_ICONS,
+} from '@daoyou/game-content/combat/training';
 import type {
   CombatV6EncounterDiagnostic,
   CombatV6TrainingContentV1,
@@ -17,6 +20,7 @@ import type {
   CompileCombatV6TrainingEncounterV1Result,
   PveCombatantDefV1,
 } from '@daoyou/game-domain/combat';
+import { playerAppearances } from '../unit-appearance.js';
 
 const TIERS = new Set([60, 120, 180]);
 
@@ -266,6 +270,7 @@ export function compileCombatV6TrainingEncounterV1(
   }
 
   const npcStrategies: Record<string, PveCombatantDefV1['strategy']> = {};
+  const unitAppearances = playerAppearances(input.player);
   const units: LineupUnit[] = [
     { ...player.unit, side: Team.A, slot: encounter.playerSlot },
   ];
@@ -299,6 +304,8 @@ export function compileCombatV6TrainingEncounterV1(
       tags: [...definition.tags],
     });
     npcStrategies[id] = clone(definition.strategy);
+    const icon = TRAINING_PVE_ICONS.get(definition.id);
+    if (icon) unitAppearances[id] = { icon };
   }
   if (diagnostics.some((item) => item.severity === 'error'))
     return { ok: false, diagnostics, versions };
@@ -348,6 +355,7 @@ export function compileCombatV6TrainingEncounterV1(
       seed: input.seed,
       playerId: player.unit.id!,
       npcStrategies,
+      unitAppearances,
       sourceProjectionVersions: { ...COMBAT_V6_CHARACTER_BUILD_VERSIONS },
       sourcePlayerInput: clone(input.player),
       playerAutoStrategy: input.player.autoStrategy,

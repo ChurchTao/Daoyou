@@ -134,11 +134,20 @@ function dungeonBattleSetup(state: DungeonState) {
 }
 export async function prepareDungeonEncounter(
   state: DungeonState,
-  narration?: { enemyName: string; description: string },
+  narration?: { enemyName: string; description: string; portrait?: string },
 ): Promise<DungeonEncounterPayload> {
   const { player } = await dungeonPlayer(state.cultivatorId);
   const encounter = dungeonBattleSetup(state);
-  const host = createDungeonHost(player, encounter, randomInt(0, 0x7fffffff));
+  const host = createDungeonHost(
+    player,
+    {
+      ...encounter,
+      enemyIcon: narration?.portrait
+        ? `icon:portrait-${narration.portrait}`
+        : undefined,
+    },
+    randomInt(0, 0x7fffffff),
+  );
   // Carry resources across encounters within this run without changing the persistent beast schema.
   const snapshot = host.runtimeSnapshot();
   const narratedName =

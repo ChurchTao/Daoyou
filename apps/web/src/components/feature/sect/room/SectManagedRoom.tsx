@@ -1,11 +1,55 @@
-import {
-  NpcConversation,
-  RoomView,
-  type RoomActorView,
-} from '@app/components/feature/room';
-import type { SectRoomDefinition } from '@daoyou/game-rules/sect-organization';
+import { NpcConversation, RoomView } from '@app/components/feature/room';
+import type {
+  SectRoomActorDefinition,
+  SectRoomDefinition,
+} from '@daoyou/game-rules/sect-organization';
 import { createElement, useMemo, useState } from 'react';
 import type { SectNpcConversationRegistry } from './SectNpcConversationRegistry';
+
+const portraitsByRole: Readonly<Record<string, string>> = {
+  'affairs.daily': 'noble-m',
+  'affairs.weekly': 'merchant-f',
+  'affairs.promotion': 'elder-m',
+  'hall.registry': 'noble-m',
+  'hall.stipend': 'merchant-f',
+  'treasury.keeper': 'merchant-m',
+  'industries.construction': 'servant-m',
+  'industries.donation': 'merchant-f',
+  'archive.keeper': 'elder-f',
+  'paths.guide': 'elder-m',
+  'arena.instructor': 'disciple-m',
+  'arena.marshal': 'disciple-f',
+  'cultivation.keeper': 'elder-f',
+  'alchemy.keeper': 'elder-m',
+  'refinery.keeper': 'servant-m',
+  'spiritVein.keeper': 'wanderer-m',
+  'herbGarden.keeper': 'servant-f',
+  'gate.keeper': 'disciple-m',
+  'formation.warden': 'elder-m',
+};
+
+const portraitsByActor: Readonly<Record<string, string>> = {
+  'youdu-bai-shoubu': 'elder-m',
+  'youdu-chu-yingui': 'elder-f',
+  'youdu-fafeng': 'elder-f',
+  'jiujie-weekly': 'elder-m',
+  'wuxiang-due': 'abbot',
+  'wuxiang-kongzang': 'abbot',
+  'wuxiang-kongdu': 'abbot',
+  'wuxiang-jiefeng': 'abbot',
+  'wuxiang-zhiguan': 'abbot',
+  'wuxiang-mingmen': 'abbot',
+};
+
+function roomPortrait(roomKey: string, actor: SectRoomActorDefinition) {
+  if (actor.appearance === 'facility') return undefined;
+  const key =
+    portraitsByActor[actor.id] ??
+    (actor.id.startsWith('wuxiang-')
+      ? 'monk'
+      : portraitsByRole[`${roomKey}.${actor.roleKey}`]);
+  return key ? `icon:portrait-${key}` : undefined;
+}
 
 export interface SectManagedRoomProps {
   roomKey: string;
@@ -31,19 +75,15 @@ export function SectManagedRoom({
   const setSelectedRoleKey = selection
     ? selection.onChange
     : setInternalRoleKey;
-  const actors = useMemo<RoomActorView[]>(
+  const actors = useMemo(
     () =>
       room?.actors.map((actor) => ({
-        id: actor.id,
-        sigil: actor.sigil,
-        name: actor.name,
-        identity: actor.identity,
-        responsibility: actor.responsibility,
-        appearance: actor.appearance,
+        ...actor,
+        portrait: roomPortrait(room.key, actor),
       })) ?? [],
     [room],
   );
-  const selectedActor = room?.actors.find(
+  const selectedActor = actors.find(
     (actor) => actor.roleKey === selectedRoleKey,
   );
 
@@ -55,6 +95,7 @@ export function SectManagedRoom({
           name: '当值弟子',
           identity: '当值弟子',
           responsibility: '负责接待来客。',
+          portrait: 'icon:portrait-disciple-m',
         }}
         messages={[
           {

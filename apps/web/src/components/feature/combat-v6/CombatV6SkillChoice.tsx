@@ -6,7 +6,7 @@ import type { CombatV6SkillCommandOption } from '@daoyou/combat-core/types';
 import { findBeastSkillPresentation } from '@daoyou/game-rules/beasts/presentation';
 import { reasonText } from '@daoyou/game-rules/combat/log';
 import { useState, type ReactNode } from 'react';
-import { skillNeedsTarget } from './presentation';
+import { combatPortraitValue, skillNeedsTarget } from './presentation';
 import type { CombatV6Session } from './session';
 
 export function CombatV6SkillChoice({
@@ -78,9 +78,11 @@ export function CombatV6SkillChoice({
           {actor ? (
             <span className="cv6-choice-actor">
               <GameIcon
-                value={
-                  session.display?.unitAppearances?.[actor.id]?.icon ?? '👤'
-                }
+                purpose="artwork"
+                value={combatPortraitValue(
+                  actor,
+                  session.display?.unitAppearances?.[actor.id],
+                )}
               />
               {actor.name}
             </span>

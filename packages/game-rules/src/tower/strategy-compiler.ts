@@ -239,5 +239,8 @@ export function compileTowerStrategy(
   if (units.some((u) => (u.attrs.maxHp ?? 0) < 1))
     throw new Error('幻境气血预算不足');
   if (f.kind === 'normal') softenPreview(skills);
-  return { units, plans, skills, statusDefs };
+  const unitAppearances = Object.fromEntries(
+    preview.members.map(({ id, icon }) => [id, { icon }]),
+  );
+  return { units, unitAppearances, plans, skills, statusDefs };
 }

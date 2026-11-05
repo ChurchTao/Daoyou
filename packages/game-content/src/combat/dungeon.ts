@@ -8,7 +8,19 @@ export {
 } from './dungeon-enemies.js';
 
 export const DUNGEON_TEMPLATES = {
-  normal: { name: '秘境守卫', count: DUNGEON_ENEMY_PACK.kinds.normal.count },
-  elite: { name: '秘境精锐', count: DUNGEON_ENEMY_PACK.kinds.elite.count },
-  boss: { name: '秘境镇守', count: DUNGEON_ENEMY_PACK.kinds.boss.count },
-} as const satisfies Record<DungeonTemplate, { name: string; count: number }>;
+  normal: {
+    name: '秘境守卫',
+    count: DUNGEON_ENEMY_PACK.kinds.normal.count,
+    icon: 'icon:portrait-puppet',
+  },
+  elite: {
+    name: '秘境精锐',
+    count: DUNGEON_ENEMY_PACK.kinds.elite.count,
+    icon: 'icon:portrait-yaoguai',
+  },
+  boss: {
+    name: '秘境镇守',
+    count: DUNGEON_ENEMY_PACK.kinds.boss.count,
+    icon: 'icon:portrait-spirit',
+  },
+} as const satisfies Record<DungeonTemplate, { name: string; count: number; icon: string }>;

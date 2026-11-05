@@ -1,7 +1,8 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './mystery-scenes.css';
-import { mysteryPortraitUrl } from './mysteryArt';
+import { mysteryPortraitIcon } from './mysteryArt';
 
 /**
  * 事件发生时的整屏暗场：本回合有事件发生、且还没为这一回合播过时播一次。
@@ -90,7 +91,7 @@ export function MysteryReveal({
   portrait?: string;
   onDone: () => void;
 }) {
-  const url = mysteryPortraitUrl(portrait);
+  const icon = mysteryPortraitIcon(portrait);
   useEffect(() => {
     const timer = window.setTimeout(onDone, 4200);
     return () => window.clearTimeout(timer);
@@ -103,13 +104,12 @@ export function MysteryReveal({
       onClick={onDone}
     >
       <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
-      {url ? (
+      {icon ? (
         <span className="mystery-reveal-name bg-paper/90 rounded-full p-4">
-          <img
-            src={url}
-            alt=""
-            aria-hidden="true"
-            className="size-40 object-contain md:size-56"
+          <GameIcon
+            value={icon}
+            purpose="artwork"
+            className="size-40 md:size-56"
           />
         </span>
       ) : null}

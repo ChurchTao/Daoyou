@@ -1,5 +1,6 @@
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { cn } from '@app/lib/cn';
-import { mysteryPortraitUrl } from './mysteryArt';
+import { mysteryPortraitIcon } from './mysteryArt';
 
 /** 人物的姓氏印章，代替尚未绘制的立绘。 */
 export function MysterySeal({
@@ -42,19 +43,13 @@ export function MysteryPortrait({
   size?: keyof typeof SIZE;
   muted?: boolean;
 }) {
-  const url = mysteryPortraitUrl(portrait);
-  if (!url) return <MysterySeal name={name} muted={muted} />;
+  const icon = mysteryPortraitIcon(portrait);
+  if (!icon) return <MysterySeal name={name} muted={muted} />;
   return (
-    <img
-      src={url}
-      alt=""
-      aria-hidden="true"
-      loading="lazy"
-      className={cn(
-        'shrink-0 object-contain',
-        SIZE[size],
-        muted && 'opacity-50 grayscale',
-      )}
+    <GameIcon
+      value={icon}
+      purpose="artwork"
+      className={cn(SIZE[size], muted && 'opacity-50 grayscale')}
     />
   );
 }

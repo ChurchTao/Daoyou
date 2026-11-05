@@ -9,7 +9,6 @@ import type {
   CompiledCombatV6TrainingEncounterV1,
   TrainingEncounterOutcome,
 } from '@daoyou/game-domain/combat';
-import { playerAppearances } from '../unit-appearance.js';
 
 import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
 
@@ -361,7 +360,7 @@ export class CombatV6TrainingHostSessionV1
     private readonly compiled: CompiledCombatV6TrainingEncounterV1,
     restored?: CombatV6TrainingRuntimeSnapshotV1,
   ) {
-    super(compiled, restored, playerAppearances(compiled.sourcePlayerInput));
+    super(compiled, restored, compiled.unitAppearances);
   }
 
   runtimeSnapshot(): CombatV6TrainingRuntimeSnapshotV1 {

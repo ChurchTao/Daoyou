@@ -84,6 +84,7 @@ export function createSectResourceSchemas({
           description: z.string(),
           realm: z.enum(REALM_VALUES),
           realmStage: z.enum(REALM_STAGE_VALUES),
+          portrait: z.string().optional(),
           sectId: z.string().optional(),
           sectName: z.string().optional(),
         })

@@ -33,6 +33,7 @@ const ACTORS: readonly RoomActorView[] = [
     identity: '擂台切磋主持人',
     responsibility: '简要说明切磋规则。',
     appearance: 'person',
+    portrait: 'icon:portrait-wanderer-m',
   },
   {
     id: 'ring',

@@ -100,6 +100,8 @@ export async function loadScenarioCase(
   const [row] = await q
     .select({
       caseFile: dungeonScenarios.caseFile,
+      mapNodeId: dungeonScenarios.mapNodeId,
+      source: dungeonScenarios.source,
       templateId: dungeonScenarios.templateId,
     })
     .from(dungeonScenarios)
@@ -112,8 +114,32 @@ export async function loadScenarioCase(
     template &&
     parsed.success &&
     validateMysteryCase(parsed.data, template).length === 0
-  )
-    return parsed.data;
+  ) {
+    const caseFile = parsed.data;
+    const seed =
+      row.source === 'seed'
+        ? getMysteryFallbackCase(row.templateId, row.mapNodeId)
+        : undefined;
+    if (seed?.title === caseFile.title) {
+      // 为旧版入库的手写案卷补齐立绘，保留案卷内容及已有的美术选择。
+      const seedActors = [...seed.npcs, ...(seed.guards ?? [])];
+      for (const actor of [...caseFile.npcs, ...(caseFile.guards ?? [])]) {
+        if (actor.portrait) continue;
+        const portrait = seedActors.find(
+          (entry) => entry.id === actor.id && entry.name === actor.name,
+        )?.portrait;
+        if (portrait) actor.portrait = portrait;
+      }
+      const manifest = caseFile.manifest;
+      if (
+        manifest &&
+        seed.manifest?.kind &&
+        manifest.name === seed.manifest.name
+      )
+        manifest.kind ??= seed.manifest.kind;
+    }
+    return caseFile;
+  }
   console.warn('[ScenarioLibrary] 剧本与当前引擎不兼容，已停用:', scenarioId);
   await q
     .update(dungeonScenarios)

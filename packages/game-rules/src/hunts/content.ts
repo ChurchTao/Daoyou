@@ -72,6 +72,12 @@ export function huntEnemies(event: HuntEvent, players: number): LineupUnit[] {
   });
 }
 
+export function huntEnemyIcon(bossId: HuntEvent['bossId'], slot: number) {
+  const icons = formations[bossId].icons;
+  if (slot === 0 || !icons) return HUNT_BOSSES[bossId].icon;
+  return slot === 1 ? icons.elite : icons.minions[slot >= 6 ? 1 : 0];
+}
+
 /** Commands depend only on the frozen round state; no clocks or network in content. */
 export function huntNpcCommand(
   runtime: { state: BattleState },

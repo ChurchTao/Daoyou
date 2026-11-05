@@ -244,7 +244,10 @@ export function createTowerHost(
     npcPlans: enemies.plans,
     input: {
       autoStrategy: player.autoStrategy,
-      unitAppearances: playerAppearances(player),
+      unitAppearances: {
+        ...playerAppearances(player),
+        ...enemies.unitAppearances,
+      },
       seed,
       versions: {
         ...TOWER_V6_VERSIONS,

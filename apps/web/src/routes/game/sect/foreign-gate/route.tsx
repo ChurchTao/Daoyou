@@ -50,6 +50,7 @@ export default function SectForeignGatePage() {
             name: target.name,
             identity: `${definition.name}修士 · 悬赏目标`,
             responsibility: `${target.realm}${target.realmStage}`,
+            portrait: target.portrait,
           }}
           messages={[
             {

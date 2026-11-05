@@ -1,9 +1,11 @@
 import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import type {
   BlackMarketNpcSummary,
   BlackMarketNpcStatus,
 } from '@daoyou/game-domain/black-market';
+import { blackMarketPortraits } from './blackMarketPortraits';
 
 const OPENING_STEPS = [
   '你掀帘走近摊位……',
@@ -55,12 +57,11 @@ export function BlackMarketEntryPreview({
       </div>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center py-8 text-center">
-        <span
-          aria-hidden="true"
-          className="text-ink-secondary text-3xl leading-none"
-        >
-          {npc.sigil}
-        </span>
+        <GameIcon
+          value={blackMarketPortraits[npc.id]}
+          purpose="artwork"
+          className="mx-auto size-24 md:size-32"
+        />
         <h2 className="text-ink mt-3 text-lg font-medium">{npc.name}</h2>
         <p className="text-ink-secondary mt-1 text-sm">{npc.identity}</p>
         <p className="text-ink-secondary mx-auto mt-5 max-w-lg text-sm leading-7 sm:text-base">

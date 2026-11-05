@@ -79,7 +79,7 @@ async function member(
   event: HuntEvent | null,
 ): Promise<HuntMember> {
   const row = await db.query.cultivators.findFirst({
-    columns: { name: true, realm: true },
+    columns: { name: true, realm: true, gender: true },
     where: and(
       eq(cultivators.id, actor.cultivatorId),
       eq(cultivators.userId, actor.userId),
@@ -92,6 +92,7 @@ async function member(
     userId: actor.userId,
     cultivatorId: actor.cultivatorId,
     name: row.name,
+    gender: row.gender === '男' || row.gender === '女' ? row.gender : undefined,
     realm: row.realm as RealmType,
     ready: false,
     assisting: event ? await huntClaimed(event.id, actor.cultivatorId) : false,

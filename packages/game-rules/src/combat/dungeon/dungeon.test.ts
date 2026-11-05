@@ -103,6 +103,25 @@ describe('秘境遭遇与收益', () => {
     expect(easy.physicalAtk).toBeLessThan(normal.physicalAtk);
     expect(normal.physicalAtk).toBeLessThan(boss.physicalAtk);
   });
+  it('解谜守卫的立绘随备战阵容进入回放', () => {
+    const host = createDungeonHost(
+      player('youdu'),
+      {
+        realm: '炼气',
+        stage: '初期',
+        template: 'elite',
+        tier: 'normal',
+        enemyIcon: 'icon:portrait-manifest-earth',
+      },
+      1,
+    );
+    const prepared = host.runtimeSnapshot();
+    const battle = new DungeonHost(prepared);
+    expect(battle.runtimeSnapshot().timeline.unitAppearances).toMatchObject({
+      'dungeon.enemy.0': { icon: 'icon:portrait-manifest-earth' },
+      'dungeon.enemy.1': { icon: 'icon:portrait-manifest-earth' },
+    });
+  });
   it('连续遭遇保留灵兽损耗，死亡灵兽不能重新入场，零法力不回满', () => {
     const units = [
       { id: 'player' },

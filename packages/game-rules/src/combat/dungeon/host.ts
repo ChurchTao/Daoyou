@@ -112,6 +112,7 @@ export function createDungeonHost(
     stage: RealmStage;
     template: DungeonTemplate;
     tier: DungeonDifficultyTier;
+    enemyIcon?: string;
   },
   seed: number,
 ) {
@@ -126,12 +127,43 @@ export function createDungeonHost(
   const spec = DUNGEON_TEMPLATES[encounter.template];
   const enemyAttrs = dungeonEnemyAttrs(encounter);
   const mp = 100 + level * 10;
+  const enemies = Array.from({ length: spec.count }, (_, slot) => ({
+    id: `dungeon.enemy.${slot}`,
+    name: spec.name,
+    side: 1 as const,
+    slot,
+    kind: UnitKind.Npc,
+    level,
+    attrs: {
+      ...enemyAttrs,
+      mp,
+      maxMp: mp,
+      healPower: 0,
+      critRate: 0,
+      spellCritRate: 0,
+      physicalFuryRate: 0,
+      sealHit: 0,
+      sealResist: 0,
+      attackCultivate: 0,
+      defenseCultivate: 0,
+      spellCultivate: 0,
+      resistSpellCultivate: 0,
+    },
+    skills: [],
+    passives: [],
+    tags: [],
+  }));
   return new DungeonHost({
     version: 'dungeon-v6-v1',
     playerId: projected.unit.id!,
     input: {
       autoStrategy: player.autoStrategy,
-      unitAppearances: playerAppearances(player),
+      unitAppearances: {
+        ...playerAppearances(player),
+        ...Object.fromEntries(
+          enemies.map(({ id }) => [id, { icon: encounter.enemyIcon ?? spec.icon }]),
+        ),
+      },
       seed,
       versions: DUNGEON_VERSIONS,
       units: [
@@ -143,32 +175,7 @@ export function createDungeonHost(
           0,
           projected.unit.level,
         ),
-        ...Array.from({ length: spec.count }, (_, slot) => ({
-          id: `dungeon.enemy.${slot}`,
-          name: spec.name,
-          side: 1 as const,
-          slot,
-          kind: UnitKind.Npc,
-          level,
-          attrs: {
-            ...enemyAttrs,
-            mp,
-            maxMp: mp,
-            healPower: 0,
-            critRate: 0,
-            spellCritRate: 0,
-            physicalFuryRate: 0,
-            sealHit: 0,
-            sealResist: 0,
-            attackCultivate: 0,
-            defenseCultivate: 0,
-            spellCultivate: 0,
-            resistSpellCultivate: 0,
-          },
-          skills: [],
-          passives: [],
-          tags: [],
-        })),
+        ...enemies,
       ],
       skills: [...projected.skills, ...BEAST_SKILLS],
       statusDefs: [...projected.statusDefs, ...BEAST_STATUS_DEFS],

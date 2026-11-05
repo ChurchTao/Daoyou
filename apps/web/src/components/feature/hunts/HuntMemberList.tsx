@@ -1,8 +1,8 @@
 import { useInkUI } from '@app/components/providers/InkUIProvider';
-import { GameIcon } from '@app/components/ui/GameIcon';
 import { InkButton } from '@app/components/ui/InkButton';
 import { cn } from '@app/lib/cn';
 import type { HuntMember, HuntTeam } from '@daoyou/game-domain/hunts';
+import { HuntMemberPortrait } from './HuntMemberPortrait';
 
 export function HuntMemberList({
   team,
@@ -53,8 +53,8 @@ export function HuntMemberList({
                   : 'border-ink/30 border border-dashed',
               )}
             >
-              <GameIcon
-                value="icon:cultivator-male-avatar"
+              <HuntMemberPortrait
+                member={member}
                 className={cn('text-3xl', !member.ready && 'opacity-40')}
               />
             </span>

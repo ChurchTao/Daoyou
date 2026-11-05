@@ -1,34 +1,10 @@
-/**
- * 已交付的解谜立绘。键名与案卷中的 portrait（人物、守卫）或 manifest-类型（异变化形）一致；
- * 素材落到 public/assets/mystery/portraits 后在此登记，未登记的键显示姓氏印章。
- */
-const DELIVERED_PORTRAITS = new Set<string>([
-  'elder-m',
-  'elder-f',
-  'disciple-m',
-  'disciple-f',
-  'wanderer-m',
-  'wanderer-f',
-  'merchant-m',
-  'merchant-f',
-  'servant-m',
-  'servant-f',
-  'noble-m',
-  'noble-f',
-  'spirit',
-  'yaoguai',
-  'puppet',
-  'manifest-grass',
-  'manifest-earth',
-  'manifest-water',
-  'manifest-demonic',
-  'manifest-corpse',
-]);
+import { GameIcon } from '@app/components/ui/GameIcon';
 
-export function mysteryPortraitUrl(key: string | undefined) {
-  return key && DELIVERED_PORTRAITS.has(key)
-    ? `/assets/mystery/portraits/${key}.webp`
-    : undefined;
+/** 案卷沿用原立绘键，页面通过游戏图标库取画。 */
+export function mysteryPortraitIcon(key: string | undefined) {
+  if (!key) return undefined;
+  const icon = `icon:portrait-${key}`;
+  return GameIcon.resolveSource(icon) ? icon : undefined;
 }
 
 /**

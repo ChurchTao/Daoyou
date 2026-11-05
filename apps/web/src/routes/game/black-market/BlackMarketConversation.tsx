@@ -13,6 +13,7 @@ import type {
   BlackMarketSessionView,
 } from '@daoyou/game-domain/black-market';
 import { useState, type ReactNode } from 'react';
+import { blackMarketPortraits } from './blackMarketPortraits';
 
 const quickMessages = [
   '仔细观察货物外观',
@@ -227,7 +228,7 @@ export function BlackMarketConversation({
   return (
     <>
       <NpcConversation
-        actor={npc}
+        actor={{ ...npc, portrait: blackMarketPortraits[npc.id] }}
         messages={messages}
         busy={busy}
         error={error}

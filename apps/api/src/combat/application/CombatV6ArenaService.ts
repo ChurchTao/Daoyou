@@ -11,11 +11,7 @@ import {
   DOMAIN_EVENT_STREAM,
 } from '@daoyou/contracts/events';
 import { BEAST_SKILLS, BEAST_STATUS_DEFS } from '@daoyou/game-content/beasts';
-import {
-  HUNT_BOSSES,
-  HUNT_SKILLS,
-  HUNT_STATUSES,
-} from '@daoyou/game-content/hunts';
+import { HUNT_SKILLS, HUNT_STATUSES } from '@daoyou/game-content/hunts';
 import type { CombatV6UnitAppearance } from '@daoyou/game-domain/combat';
 import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
 import { AUTO_POLICY_VERSION } from '@daoyou/game-domain/combat/auto';
@@ -44,6 +40,7 @@ import {
 } from '@daoyou/game-rules/combat/replay';
 import {
   huntEnemies,
+  huntEnemyIcon,
   huntIsOpen,
   huntNpcCommand,
   huntRealmAllowed,
@@ -228,12 +225,13 @@ export async function createArenaV6(
           mergeDefinitions(statuses, projection.statusDefs);
         }
         if (huntEvent) {
-          units.push(...huntEnemies(huntEvent, seats.length));
+          const enemies = huntEnemies(huntEvent, seats.length);
+          units.push(...enemies);
           mergeDefinitions(skills, HUNT_SKILLS);
           mergeDefinitions(statuses, HUNT_STATUSES);
-          for (const unit of units.filter((u) => u.side === 1))
+          for (const unit of enemies)
             unitAppearances[unit.id!] = {
-              icon: HUNT_BOSSES[huntEvent.bossId].icon,
+              icon: huntEnemyIcon(huntEvent.bossId, unit.slot!),
             };
         }
         units.sort((a, b) => a.side - b.side || (a.slot ?? 0) - (b.slot ?? 0));

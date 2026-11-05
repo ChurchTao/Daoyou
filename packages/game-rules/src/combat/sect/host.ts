@@ -47,11 +47,13 @@ export function freezeSectNpcOpponent(
   const skills = BEAST_SKILLS.filter((skill) =>
     template !== 'mine_patrol' && skill.id === 'beast.spirit-flame',
   );
+  const id = `sect.enemy.${template}`;
   return {
     version: 'sect-v6-opponent-v1',
+    unitAppearances: { [id]: { icon: spec.icon } },
     units: [
       {
-        id: `sect.enemy.${template}`,
+        id,
         name: spec.name,
         kind: 'npc',
         side: 1,

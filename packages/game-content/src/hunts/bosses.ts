@@ -3,7 +3,7 @@ import type { HuntBossId } from '@daoyou/game-domain/hunts';
 export const HUNT_BOSSES = {
   heretic: {
     name: '噬灵邪修',
-    icon: 'icon:cultivator-male-avatar',
+    icon: 'icon:portrait-heretic',
     hint: '护法每回合都会替邪修疗伤。先封住护法的招式，或合力除去护法，便能断了他的援手。',
   },
   demon: {
@@ -33,7 +33,7 @@ export const HUNT_BOSSES = {
   },
   gildedCorpse: {
     name: '金身尸王',
-    icon: 'icon:cultivator-male-avatar',
+    icon: 'icon:portrait-manifest-corpse',
     hint: '尸王金身不惧刀剑术法，内里气血却已枯竭。能直伤其身的固定伤害最为奏效。',
   },
   shadowMarten: {

@@ -85,6 +85,7 @@ export type CompiledCombatV6TrainingEncounterV1 = {
   playerId: string;
   npcStrategies: Record<string, PveCommandStrategyV1>;
   battleInput: CreateBattleInput;
+  unitAppearances: NonNullable<CombatV6ReplayTimeline['unitAppearances']>;
   sourceProjectionVersions: CombatV6VersionStamp;
   sourcePlayerInput: CombatV6TrainingPlayerInput;
   playerAutoStrategy?: AutoStrategy;

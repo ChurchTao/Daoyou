@@ -19,6 +19,16 @@ export const TRAINING_PVE_ID = {
   Executioner: "combat.training.npc.executioner",
 } as const
 
+export const TRAINING_PVE_ICONS: ReadonlyMap<string, string> = new Map([
+  [TRAINING_PVE_ID.Dummy, 'icon:portrait-training-dummy'],
+  [TRAINING_PVE_ID.Sparring, 'icon:portrait-disciple-m'],
+  [TRAINING_PVE_ID.WoundedAlly, 'icon:portrait-wanderer-m'],
+  [TRAINING_PVE_ID.AfflictedAlly, 'icon:portrait-disciple-f'],
+  [TRAINING_PVE_ID.Afflicter, 'icon:portrait-elder-f'],
+  [TRAINING_PVE_ID.FragileAlly, 'icon:portrait-wanderer-f'],
+  [TRAINING_PVE_ID.Executioner, 'icon:portrait-puppet'],
+]);
+
 export const COMBAT_V6_TRAINING_CONTENT_V1 = compileTrainingContent(TRAINING_PACK);
 export const COMBAT_V6_TRAINING_COMBATANTS_V1 = COMBAT_V6_TRAINING_CONTENT_V1.combatants;
 export const COMBAT_V6_TRAINING_ENCOUNTERS_V1 = COMBAT_V6_TRAINING_CONTENT_V1.encounters;

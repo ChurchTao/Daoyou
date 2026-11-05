@@ -4,6 +4,7 @@ import type {
   BlackMarketOverview,
 } from '@daoyou/game-domain/black-market';
 import type { ReactNode } from 'react';
+import { blackMarketPortraits } from './blackMarketPortraits';
 
 export function BlackMarketRoom({
   overview,
@@ -28,6 +29,7 @@ export function BlackMarketRoom({
         name: npc.name,
         identity: npc.identity,
         responsibility: npc.responsibility,
+        portrait: blackMarketPortraits[npc.id],
         status: {
           label:
             npc.status === 'completed'
