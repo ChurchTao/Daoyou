@@ -1,7 +1,7 @@
 {
   "$schema": "./xiaoyue-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 1,
+  "contentRevision": 2,
   "passives": [
     {
       "id": "xiaoyue.passive.bond.foundation",
@@ -231,7 +231,6 @@
               "self": true
             }
           ],
-          "sourceIsSelf": true,
           "aim": "self",
           "when": {
             "pvp": false,

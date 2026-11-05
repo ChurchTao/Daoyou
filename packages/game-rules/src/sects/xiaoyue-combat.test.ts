@@ -8,9 +8,13 @@ import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileSectDefinitionV6 } from './compiler.js';
 
-function setup(methodLevel = 180, enemies = 6) {
+function setup(methodLevel = 180, enemies = 6, quick = false, enemyKind: 'npc' | 'player' = 'npc') {
   const progress = createEmptySectCombatProgressV6('xiaoyue', definition.paths[0].id,
     Object.fromEntries(definition.methods.map(method => [method.id, methodLevel])));
+  if (quick) {
+    progress.meridianDepth = 1;
+    progress.meridianLoadouts[0].nodeIds = ['xiaoyue.node.blood.1.2'];
+  }
   const compiled = compileSectDefinitionV6({ definition, progress, characterLevel: 180 });
   if (!compiled.ok) throw new Error(JSON.stringify(compiled.diagnostics));
   const content = compiled.projection;
@@ -32,7 +36,7 @@ function setup(methodLevel = 180, enemies = 6) {
       { id: 'pet', name: '本宠', side: 0, kind: 'pet', ownerId: 's',
         attrs: { hp: 10000, maxHp: 10000, speed: 500, physicalAtk: 400, physicalDef: 100 } },
       ...Array.from({ length: enemies }, (_, i) => ({ id: `t${i}`, name: '对手', side: 1 as const,
-        kind: 'npc' as const, attrs: { hp: 100000, maxHp: 100000, speed: 10, physicalAtk: 0, physicalDef: 100 } })),
+        kind: enemyKind, attrs: { hp: 100000, maxHp: 100000, speed: 10, physicalAtk: 0, physicalDef: 100 } })),
     ],
   };
   return createBattle(input);
@@ -48,6 +52,77 @@ function round(battle: Battle, source: Command = { type: 'defend' }, pet: Comman
   battle.lockAndResolve();
 }
 const damage = (battle: Battle, sourceId: string) => battle.log().filter(event => event.type === 'damage' && event.sourceId === sourceId);
+
+describe('百兽崖迅捷入场兽形', () => {
+  const penalty = 'xiaoyue.status.quick_penalty';
+
+  it('对 NPC 入场即免费获得两回合兽形，首轮可用变身攻击，到期后不再触发', () => {
+    const battle = setup(75, 1, true);
+    expect(battle.unit('s').statuses.map(status => status.id)).toEqual(expect.arrayContaining([
+      XIAOYUE_STATUS_ID.Transform, penalty,
+    ]));
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000 + 75 - 180);
+    expect(battle.unit('s').attrs.mp).toBe(10000);
+    expect(battle.unit('pet').statuses).toHaveLength(0);
+    for (const skillId of [XIAOYUE_SKILL_ID.LionStrike, XIAOYUE_SKILL_ID.EagleStrike,
+      XIAOYUE_SKILL_ID.ChainStrike, XIAOYUE_SKILL_ID.ElephantSeal]) {
+      expect(battle.queryCommands('s').skills.find(skill => skill.skillId === skillId)?.ready, skillId).toBe(true);
+    }
+
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(damage(battle, 's')).toHaveLength(1);
+    expect(battle.unit('s').attrs.mp).toBe(9970);
+    expect(battle.unit('s').statuses.map(status => status.id)).toEqual(expect.arrayContaining([
+      XIAOYUE_STATUS_ID.Transform, penalty,
+    ]));
+    round(battle, cast(XIAOYUE_SKILL_ID.LionStrike));
+    expect(damage(battle, 's')).toHaveLength(2);
+    expect(battle.unit('s').statuses).toHaveLength(0);
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000);
+    expect(battle.queryCommands('s').skills.find(skill => skill.skillId === XIAOYUE_SKILL_ID.LionStrike)?.reasons)
+      .toContain('skill-condition');
+    round(battle);
+    expect(battle.log().filter(event => event.type === 'statusApplied' && event.statusId === XIAOYUE_STATUS_ID.Transform))
+      .toHaveLength(1);
+  });
+
+  it.each([[false, 'npc'], [true, 'player']] as const)(
+    '选择迅捷=%s、敌人类型=%s 时不赠送兽形', (quick, enemyKind) => {
+      const battle = setup(75, 1, quick, enemyKind);
+      expect(battle.unit('s').statuses).toHaveLength(0);
+      expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000);
+      round(battle);
+      expect(battle.unit('s').statuses).toHaveLength(0);
+    },
+  );
+
+  it('主动兽形替换迅捷兽形，清除减攻且不叠加物攻', () => {
+    const battle = setup(75, 1, true);
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000 + 75 - 180);
+    round(battle, cast(XIAOYUE_SKILL_ID.Transform, ['s']));
+    expect(battle.unit('s').attrs.mp).toBe(9980);
+    expect(battle.unit('s').statuses.filter(status => status.id === XIAOYUE_STATUS_ID.Transform)).toHaveLength(1);
+    expect(battle.unit('s').statuses.some(status => status.id === penalty)).toBe(false);
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1075);
+    round(battle);
+    expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(true);
+    expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1075);
+  });
+
+  it.each([XIAOYUE_SKILL_ID.ChainStrike, XIAOYUE_SKILL_ID.ElephantSeal])(
+    '%s 取消迅捷兽形时一并清除减攻，下一回合不补发', skillId => {
+      const battle = setup(75, 1, true);
+      round(battle, cast(skillId));
+      expect(damage(battle, 's').length).toBeGreaterThan(0);
+      for (const id of [XIAOYUE_STATUS_ID.Transform, penalty]) {
+        expect(battle.unit('s').statuses.some(status => status.id === id), id).toBe(false);
+      }
+      expect(effectiveAttrs(battle.unit('s')).physicalAtk).toBe(1000);
+      round(battle);
+      expect(battle.unit('s').statuses.some(status => status.id === XIAOYUE_STATUS_ID.Transform)).toBe(false);
+    },
+  );
+});
 
 describe('啸岳岭基础技能回合边界', () => {
   it('四个变身攻击在兽形前不可用，主动兽形花费 20 法力并开启攻击资格', () => {
