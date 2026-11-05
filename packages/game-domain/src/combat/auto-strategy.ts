@@ -18,6 +18,7 @@ const condition = z.discriminatedUnion('type', [
     type: z.literal('allyHpBelow'),
     percent: z.number().int().min(1).max(100),
     comparison: comparison.optional(),
+    recoverySkillId: z.string().min(1).max(160).optional(),
   }),
   z.strictObject({
     type: z.literal('enemyHpBelow'),

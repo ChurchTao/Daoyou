@@ -132,7 +132,9 @@ function conditionName(view: View, condition: Condition) {
     case 'selfHpBelow':
       return `自身气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyHpBelow':
-      return `任一己方气血${comparisonLabel(condition)} ${condition.percent}%`;
+      return condition.recoverySkillId
+        ? `可用「${skillName(view, condition.recoverySkillId)}」治疗的队友气血${comparisonLabel(condition)} ${condition.percent}%`
+        : `任一己方气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'targetHpBelow':
       return `目标气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'enemyHpBelow':
@@ -526,7 +528,9 @@ export function CombatAutoStrategyTab() {
                               )
                               .map((choice) => (
                                 <option key={choice.value} value={choice.value}>
-                                  {choice.label}
+                                  {choice.value === 'allyHpBelow' && condition.type === 'allyHpBelow' && condition.recoverySkillId
+                                    ? '可治疗的队友气血'
+                                    : choice.label}
                                 </option>
                               ))}
                           </select>
@@ -589,6 +593,11 @@ export function CombatAutoStrategyTab() {
                                 %
                               </span>
                             </>
+                          ) : null}
+                          {condition.type === 'allyHpBelow' && condition.recoverySkillId ? (
+                            <span className="text-ink-secondary text-xs">
+                              须能用「{skillName(view, condition.recoverySkillId)}」治疗其他非灵兽队友。
+                            </span>
                           ) : null}
                           {'count' in condition ? (
                             <>

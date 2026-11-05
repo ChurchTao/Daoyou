@@ -1,7 +1,7 @@
 {
   "$schema": "./tianyan-skills.schema.json",
   "formatVersion": 1,
-  "contentRevision": 5,
+  "contentRevision": 7,
   "baseSkillIds": [
     "tianyan.skill.wood",
     "tianyan.skill.fire",
@@ -76,7 +76,7 @@
       "skill": {
         "id": "tianyan.skill.fire",
         "name": "焚天流火",
-        "description": "流火焚天，延烧敌阵。\n对三名敌人造成法术伤害。木印时改为攻击四人。金印时使受击目标陷入[[tianyan.status.melt]]，持续2回合。成功后留下[[tianyan.status.mark.fire]]。",
+        "description": "流火焚天，延烧敌阵。\n对三名敌人造成法术伤害。木印时改为攻击四人，每个未能利用的燎原新增名额使本次直接伤害提高15%。金印时使受击目标陷入[[tianyan.status.melt]]，持续2回合。成功后留下[[tianyan.status.mark.fire]]。",
         "school": "tianyan",
         "costMp": "75*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal))*(1+0.10*known.tianyan.passive.scarlet)",
         "tags": [
@@ -87,7 +87,7 @@
         "targeting": {
           "side": "enemy",
           "mode": "fill",
-          "count": "3+hasStatus.tianyan.status.mark.wood*(1-known.tianyan.passive.ember+known.tianyan.passive.wild)-known.tianyan.passive.blunt"
+          "count": "3+hasStatus.tianyan.status.mark.wood*(1+known.tianyan.passive.wild)"
         },
         "effects": [
           {
@@ -272,7 +272,7 @@
       "skill": {
         "id": "tianyan.skill.water",
         "name": "沧海横流",
-        "description": "沧海横流，法力更省。\n对三名敌人造成法术伤害。金印时治疗气血比例最低的一名友方。火印时本次法术伤害提高20%。成功后留下[[tianyan.status.mark.water]]。",
+        "description": "沧海横流，法力更省。\n对三名敌人造成法术伤害。金印时治疗气血比例最低的一名友方。火印时本次法术伤害提高30%。成功后留下[[tianyan.status.mark.water]]。",
         "school": "tianyan",
         "costMp": "45*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire))*(1-0.20*known.tianyan.passive.stream)*(1-0.10*known.tianyan.passive.calm)",
         "tags": [
@@ -407,8 +407,8 @@
       "name": "借势",
       "description": "借势而行，印随相生。\n对一名敌人造成法术伤害，并获得2回合护盾。将现有法印推进到相生的下一行。需要已经持有法印。",
       "school": "tianyan",
-      "costMp": 55,
-      "cooldownRounds": 5,
+      "costMp": 40,
+      "cooldownRounds": 3,
       "tags": [
         "spell"
       ],
@@ -419,7 +419,7 @@
       "effects": [
         {
           "type": "spellHit",
-          "coeff": 0.9,
+          "coeff": 1.0,
           "power": "skillLevel"
         },
         {
@@ -427,7 +427,7 @@
           "id": "tianyan.barrier.ember",
           "kind": "tianyan.barrier.ember",
           "name": "烬垒",
-          "power": "skillLevel+effective.magicAtk*0.15",
+          "power": "skillLevel*2+effective.magicAtk*0.40",
           "duration": 2,
           "targeting": {
             "side": "self"
@@ -509,8 +509,8 @@
       "name": "止戈",
       "description": "止戈息争，来势转弱。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.truce]]，持续2回合。不改变法印。",
       "school": "tianyan",
-      "costMp": 50,
-      "cooldownRounds": 5,
+      "costMp": 40,
+      "cooldownRounds": 3,
       "tags": [
         "spell"
       ],
@@ -521,7 +521,7 @@
       "effects": [
         {
           "type": "spellHit",
-          "coeff": 0.8,
+          "coeff": 1.0,
           "power": "skillLevel*0.8"
         },
         {

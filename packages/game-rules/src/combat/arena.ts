@@ -27,6 +27,7 @@ import {
   visibleUnitNames,
 } from './presentation.js';
 import { replayRound } from './replay-timeline.js';
+import { withCombatV6SkillPreviews } from './skill-previews.js';
 
 export function arenaBattle(
   runtime: Pick<ArenaState, 'seed' | 'units' | 'skills' | 'statusDefs'> &
@@ -240,6 +241,18 @@ export function arenaView(
               ? 'defeat'
               : 'victory'
             : 'defeat';
+  const battle =
+    !spectator && runtime.stage === 'collecting' && !runtime.commands[viewerId]
+      ? arenaBattle(runtime)
+      : undefined;
+  const commandOptions = battle
+    ? withCombatV6SkillPreviews(
+        state,
+        runtime.skills,
+        runtime.statusDefs,
+        battle.queryCommands(viewerId),
+      )
+    : undefined;
   return {
     hunt: runtime.hunt,
     sessionId: runtime.battleId,
@@ -256,21 +269,15 @@ export function arenaView(
     units: arenaUnits(state, runtime, viewerId),
     events,
     latestEventSeq: events.length - 1,
-    commandOptions:
-      !spectator &&
-      runtime.stage === 'collecting' &&
-      !runtime.commands[viewerId]
-        ? arenaBattle(runtime).queryCommands(viewerId)
-        : undefined,
+    commandOptions,
     pendingCommand: undefined,
-    controlledCommandOptions:
-      !spectator &&
-      runtime.stage === 'collecting' &&
-      !runtime.commands[viewerId]
-        ? controlledUnits(state, viewerId).map((unit) =>
-            arenaBattle(runtime).queryCommands(unit.id),
-          )
-        : undefined,
+    controlledCommandOptions: battle
+      ? controlledUnits(state, viewerId).map((unit) =>
+          unit.id === viewerId && commandOptions
+            ? commandOptions
+            : battle.queryCommands(unit.id),
+        )
+      : undefined,
     display: {
       unitAppearances: publicUnitAppearances(
         runtime.timeline.unitAppearances,

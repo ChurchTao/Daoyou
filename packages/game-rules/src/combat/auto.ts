@@ -121,9 +121,16 @@ export function automaticCommands(
       version: AUTO_POLICY_VERSION,
       candidates,
     });
+    const strategy = strategies?.[unit.id];
     const selected = unit.kind === 'pet'
       ? chooseBeastCandidate(candidates, skills, unit.skillOverrides, options.statusDefs ?? [], unit, commandOptions)
-      : chooseStrategyCandidate(observation, unit.id, candidates, strategies?.[unit.id]);
+      : chooseStrategyCandidate(observation, unit.id, candidates, strategy, strategy && {
+        source: unit,
+        allies: state.units.filter(ally => ally.side === unit.side),
+        skillOptions: commandOptions.skills,
+        skills,
+        statusDefs: options.statusDefs ?? [],
+      });
     if (selected) intents.push(...selected.intents);
     return {
       unitId: unit.id,

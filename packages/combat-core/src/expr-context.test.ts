@@ -15,6 +15,42 @@ function mark(sourceId: string, appliedRound: number) {
 }
 
 describe('contextual expressions', () => {
+  it('keeps the action target count and zero-based index separate from effect targets', () => {
+    const { target, env } = fixture();
+    expect(evalExpr('actionTargetCount', env)).toBe(0);
+    expect(evalExpr('actionTargetIndex', env)).toBe(-1);
+    env.actionTargetIds = ['other', target.id];
+    expect(evalExpr('actionTargetCount', env)).toBe(2);
+    expect(evalExpr('actionTargetIndex', env)).toBe(1);
+    env.target = env.source;
+    expect(evalExpr('actionTargetIndex', env)).toBe(-1);
+  });
+
+  it('counts only selectable allies with recoverable missing HP, including pets', () => {
+    const { source, env } = fixture();
+    const reject: SkillDef = { id: 'reject', name: 'reject', tags: ['passive'], targeting: { side: 'self' }, effects: [], innate: { rejectHpRecovery: true } };
+    const statuses: StatusDef[] = [
+      { id: 'hidden', name: 'hidden', kind: 'hidden', untargetable: true },
+      { id: 'no-heal', name: 'no-heal', kind: 'no-heal', healTaken: 0 },
+    ];
+    env.skills = new Map([[reject.id, reject]]);
+    env.statusDefs = new Map(statuses.map(status => [status.id, status]));
+    const ally = (id: string) => createUnit({ id, name: id, side: 0, kind: 'pet', attrs: { hp: 10, maxHp: 100 } }, 2);
+    const valid = ally('valid');
+    const blocked = ally('blocked'); blocked.passives = [reject.id];
+    const wounded = ally('wounded'); wounded.wound = 90;
+    const hidden = ally('hidden'); hidden.statuses.push({ ...mark(source.id, 1), id: 'hidden' });
+    const noHeal = ally('no-heal'); noHeal.statuses.push({ ...mark(source.id, 1), id: 'no-heal', healTaken: 0 });
+    const downed = ally('downed'); downed.flags.downed = true;
+    const dead = ally('dead'); dead.flags.dead = true;
+    const escaped = ally('escaped'); escaped.flags.escaped = true;
+    const benched = ally('benched'); benched.flags.benched = true;
+    env.state!.units.push(valid, blocked, wounded, hidden, noHeal, downed, dead, escaped, benched);
+    expect(evalExpr('injuredAllyCount', env)).toBe(1);
+    source.attrs.hp = 90;
+    expect(evalExpr('injuredAllyCount', env)).toBe(2);
+  });
+
   it('reads the known source method level rather than the triggering skill level', () => {
     const { source, env } = fixture();
     source.wound = 25;

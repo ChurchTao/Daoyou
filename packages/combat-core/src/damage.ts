@@ -161,7 +161,7 @@ export function resolveStrike(ctx: BattleContext, input: StrikeInput): void {
   const sourceBoundFactor = target.statuses.reduce((factor, status) => factor * (status.sourceId === source.id ? ctx.statusDefs.get(status.id)?.damageTakenFromSource ?? 1 : 1), 1)
   const incomingFactor = Math.max(0, 1 + modifierValue(defenseModifiers, 'damageTakenBonus', target, source, skill, ctx))
   const incomingAdd = modifierValue(defenseModifiers, 'damageTakenAdd', target, source, skill, ctx)
-  const damageResultFactor = modifiers.reduce((factor, modifier) => factor * evalExpr(modifier.damageResultFactor ?? 1, { source, target, state: ctx.state, skillLevel: input.skillLevel ?? source.level, targets: input.targetCount ?? 1 }), 1)
+  const damageResultFactor = modifiers.reduce((factor, modifier) => factor * evalExpr(modifier.damageResultFactor ?? 1, { source, target, state: ctx.state, actionTargetIds: ctx.currentAction?.targetIds, skills: ctx.skills, statusDefs: ctx.statusDefs, skillLevel: input.skillLevel ?? source.level, targets: input.targetCount ?? 1 }), 1)
   const amount = floorAtLeast(MIN_DAMAGE, ((hooked.damage ?? raw) * (1 + modifierValue(modifiers, 'damageBonus', source, target, skill, ctx)) + modifierValue(modifiers, 'damageAdd', source, target, skill, ctx)) * repeatFactor * relationFactor * dealtFactor * sourceBoundFactor * (input.resultFactor ?? 1) * resultCritFactor * burstFactor * damageResultFactor * incomingFactor + incomingAdd + (hooked.finalDamageAdd ?? 0))
 
   ctx.emit({

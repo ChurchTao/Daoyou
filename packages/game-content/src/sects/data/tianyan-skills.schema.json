@@ -215,6 +215,9 @@
         },
         "count": {
           "$ref": "#/$defs/__schema3"
+        },
+        "preferInjured": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -224,6 +227,34 @@
     },
     "__schema5": {
       "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "targeting": {
+              "$ref": "#/$defs/__schema8"
+            },
+            "type": {
+              "type": "string",
+              "const": "modifyFact"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^tianyan_[a-z0-9_]+$"
+            },
+            "value": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "type",
+            "key",
+            "value"
+          ],
+          "additionalProperties": false
+        },
         {
           "type": "object",
           "properties": {

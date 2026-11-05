@@ -117,6 +117,7 @@ const labels: Record<string, string> = {
 };
 const variables: Record<string, string> = {
   skillLevel: '所属心法等级', level: '人物战斗等级', targets: '实际目标数', round: '当前回合', damage: '本次伤害', hpDamage: '实际气血损失',
+  actionTargetCount: '本次出手目标数', actionTargetIndex: '本次出手目标序号', injuredAllyCount: '可恢复伤员数',
   impactDamage: '本次攻击伤害', resourceCost: '本次资源消耗', originalResourceCost: '折扣前资源消耗', statusDuration: '状态持续回合', statusChance: '状态命中概率',
   removedStatusRounds: '被移除状态的剩余回合数', removedStatusSkillLevel: '被移除状态的施放心法等级',
   ownStandingPet: '本人灵兽是否在场', ownPetHp: '本人灵兽气血', ownPetMaxHp: '本人灵兽气血上限', enemyCount: '存活敌人数', enemyPlayers: '敌方人物数',

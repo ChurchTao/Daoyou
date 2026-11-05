@@ -11,6 +11,7 @@ export { absorbBarriers, applyBarrier, clearBarriers, tickBarriers } from "./bar
 export { isActiveAttackSkill, isDamagingSpellSkill, skillOf } from "./skills.js"
 export { applyWound, changeWound } from "./damage.js"
 export { standingUnits, enemiesOf, alliesOf, unitById } from "./query.js"
+export { injuredAllyTargets, selectableAllyTargets } from './targeting.js'
 export { BattleError, ErrorCode } from "./errors.js"
 export { validateLineup } from "./validate.js"
 export {

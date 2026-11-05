@@ -122,6 +122,7 @@ export function applyStatus(
     ...baseEnv,
     state: ctx.state,
     normalTargetIds: ctx.currentAction?.normalTargetIds,
+    actionTargetIds: ctx.currentAction?.targetIds,
     target: baseEnv.target?.id === unit.id ? snapshotTarget : baseEnv.target,
     source: baseEnv.source.id === unit.id ? snapshotTarget : baseEnv.source,
   }

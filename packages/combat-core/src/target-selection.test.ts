@@ -58,6 +58,121 @@ describe('source-bound secondary target selection', () => {
   });
 });
 
+describe('attached recovery targeting', () => {
+  const recover: SkillDef = {
+    id: 'recover', name: 'recover', tags: ['spell'], targeting: { side: 'enemy', count: 1 },
+    effects: [{ type: 'randomBranch', branchId: 'recovery-share', chance: 'injuredAllyCount==1',
+      successEffects: [{ type: 'heal', power: 100, includeHealPower: false, targeting: { side: 'ally', mode: 'lowestHp', count: 1, preferInjured: true } }],
+      failureEffects: [{ type: 'heal', power: 70, includeHealPower: false, targeting: { side: 'ally', mode: 'lowestHp', count: 2, preferInjured: true } }],
+    }],
+  };
+  function healingBattle(allies: LineupUnit[], skill = recover) {
+    const reject: SkillDef = { id: 'reject', name: 'reject', tags: ['passive'], targeting: { side: 'self' }, effects: [], innate: { rejectHpRecovery: true } };
+    return createBattle({ seed: 1, versions, ruleset: rules, skills: [skill, reject], units: [
+      { id: 'source', name: 'source', kind: 'player', side: 0, skills: [skill.id], attrs: { hp: 100, maxHp: 100, speed: 2000 } },
+      ...allies,
+      { id: 'enemy', name: 'enemy', kind: 'npc', side: 1, attrs: { hp: 1000 } },
+    ] });
+  }
+  function cast(battle: ReturnType<typeof healingBattle>) {
+    battle.submit('source', { type: 'skill', skillId: recover.id, targets: ['enemy'] });
+    battle.lockAndResolve();
+  }
+  it('gives the single recoverable injured ally the full heal despite a lower rejected HP bar', () => {
+    const battle = healingBattle([
+      { id: 'blocked', name: 'blocked', kind: 'pet', side: 0, passives: ['reject'], attrs: { hp: 1, maxHp: 1000 } },
+      { id: 'ally', name: 'ally', kind: 'player', side: 0, attrs: { hp: 200, maxHp: 1000 } },
+    ]);
+    cast(battle);
+    expect(battle.unit('ally').attrs.hp).toBe(300);
+    expect(battle.unit('blocked').attrs.hp).toBe(1);
+  });
+  it('locks the split before the first recipient fills up', () => {
+    const battle = healingBattle([
+      { id: 'small', name: 'small', kind: 'pet', side: 0, attrs: { hp: 1, maxHp: 10 } },
+      { id: 'ally', name: 'ally', kind: 'player', side: 0, attrs: { hp: 200, maxHp: 1000 } },
+    ]);
+    cast(battle);
+    expect(battle.unit('small').attrs.hp).toBe(10);
+    expect(battle.unit('ally').attrs.hp).toBe(270);
+  });
+  it('counts injuries when the recovery begins, after preceding effects', () => {
+    const battle = healingBattle([], { ...recover, effects: [
+      { type: 'loseHp', power: 20, targeting: { side: 'self' } },
+      ...recover.effects,
+    ] });
+    cast(battle);
+    expect(battle.unit('source').attrs.hp).toBe(100);
+    expect(battle.log().find(event => event.type === 'chanceResolved' && event.branchId === 'recovery-share')).toMatchObject({ chance: 1, success: true });
+  });
+  it('retains the original full-health target pool when nobody needs recovery', () => {
+    const support: SkillDef = { ...recover, effects: [{ type: 'applyBarrier', id: 'preparation', kind: 'preparation', name: 'preparation', power: 70, duration: 2,
+      targeting: { side: 'ally', mode: 'lowestHp', count: 2, preferInjured: true } }] };
+    const battle = createBattle({ seed: 1, versions, ruleset: rules, skills: [support], units: [
+      { id: 'source', name: 'source', kind: 'player', side: 0, skills: [support.id], attrs: { hp: 100, maxHp: 100, speed: 2000 } },
+      { id: 'ally', name: 'ally', kind: 'pet', side: 0, attrs: { hp: 100, maxHp: 100 } },
+      { id: 'enemy', name: 'enemy', kind: 'npc', side: 1, attrs: { hp: 1000 } },
+    ] });
+    cast(battle);
+    expect(battle.unit('source').barriers[0].current).toBe(70);
+    expect(battle.unit('ally').barriers[0].current).toBe(70);
+  });
+  it('settles declared facts and healing after the last enemy dies without adding a new status', () => {
+    const skill: SkillDef = {
+      id: 'terminal-recovery', name: 'terminal-recovery', tags: ['spell'], targeting: { side: 'enemy' },
+      effects: [
+        { type: 'fixedHit', power: 10 },
+        { type: 'modifyFact', key: 'injured_snapshot', value: 'injuredAllyCount' },
+        { type: 'heal', power: 60, includeHealPower: false, targeting: { side: 'self' }, when: { expression: 'fact.injured_snapshot==1' } },
+        { type: 'applyStatus', statusId: 'regrowth', duration: 2, targeting: { side: 'self' } },
+      ],
+    };
+    const battle = createBattle({ seed: 1, versions, ruleset: rules, skills: [skill],
+      statusDefs: [{ id: 'regrowth', name: 'regrowth', kind: 'regrowth', ticks: 'roundEnd', healingPerRound: 50 }],
+      units: [
+        { id: 'source', name: 'source', kind: 'player', side: 0, skills: [skill.id], attrs: { hp: 30, maxHp: 100, speed: 2000 } },
+        { id: 'enemy', name: 'enemy', kind: 'npc', side: 1, attrs: { hp: 1, maxHp: 1 } },
+      ],
+    });
+    battle.submit('source', { type: 'skill', skillId: skill.id, targets: ['enemy'] });
+    battle.lockAndResolve();
+    expect(battle.finished).toBe(true);
+    expect(battle.unit('source').combatFacts.injured_snapshot).toBe(1);
+    expect(battle.unit('source').attrs.hp).toBe(90);
+    expect(battle.unit('source').statuses).toEqual([]);
+  });
+});
+
+describe('frozen action target expressions', () => {
+  it('keeps original target indexes in effects, conditions and modifiers after the primary dies', () => {
+    const skill: SkillDef = {
+      id: 'indexed', name: 'indexed', tags: ['spell'], targeting: { side: 'enemy', mode: 'fill', count: 2 },
+      modifiers: [{ damageBonus: 'actionTargetCount*0.1', when: { expression: 'actionTargetIndex==1' } }],
+      effects: [
+        { type: 'fixedHit', power: 1 },
+        { type: 'fixedHit', power: 'actionTargetCount+actionTargetIndex*10', when: { expression: 'actionTargetIndex>0' } },
+        { type: 'spellHit', coeff: 1 },
+        { type: 'applyBarrier', id: 'self', kind: 'self', name: 'self', power: 'actionTargetCount', duration: 2,
+          targeting: { side: 'self' }, when: { expression: 'actionTargetIndex==-1' } },
+      ],
+    };
+    const b = createBattle({ seed: 1, versions, skills: [skill],
+      ruleset: { ...rules, formulas: { ...rules.formulas, baseDamage: input => input.kind === 'fixed' ? input.power : 10 } },
+      units: [
+        { id: 'source', name: 'source', kind: 'player', side: 0, skills: [skill.id], attrs: { hp: 100, speed: 2000 } },
+        { id: 'enemy0', name: 'enemy0', kind: 'npc', side: 1, attrs: { hp: 1, maxHp: 1 } },
+        { id: 'enemy1', name: 'enemy1', kind: 'npc', side: 1, attrs: { hp: 1000 } },
+      ],
+    });
+    b.submit('source', { type: 'skill', skillId: skill.id, targets: ['enemy0'] });
+    b.lockAndResolve();
+    expect(b.unit('enemy0').flags.dead).toBe(true);
+    expect(b.unit('source').barriers[0].current).toBe(2);
+    const hits = b.log().filter(event => event.type === 'damage' && event.targetId === 'enemy1');
+    expect(hits.map(event => event.type === 'damage' ? event.amount : 0)).toEqual([1, 14, 12]);
+  });
+});
+
 describe('probabilistic target-count cost preflight', () => {
   const area: SkillDef = { ...strike, targeting: { ...strike.targeting, count: 3, extraChance: 0.00000001, extraCount: 2, reserveExtraCost: true } };
 

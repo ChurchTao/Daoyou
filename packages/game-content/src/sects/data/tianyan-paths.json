@@ -1,15 +1,15 @@
 {
   "$schema": "./tianyan-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 4,
+  "contentRevision": 6,
   "passives": [
     {
       "id": "tianyan.passive.yan_root",
       "name": "衍法",
-      "description": "五行法术触发相生或相克时，伤害提高5%。",
+      "description": "五行法术触发相生或相克时，直接伤害提高12%。",
       "modifiers": [
         {
-          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
+          "damageBonus": "0.12*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
           "when": {
             "skillIds": [
               "tianyan.skill.wood"
@@ -20,7 +20,7 @@
           }
         },
         {
-          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
+          "damageBonus": "0.12*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
           "when": {
             "skillIds": [
               "tianyan.skill.fire"
@@ -31,7 +31,7 @@
           }
         },
         {
-          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
+          "damageBonus": "0.12*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
           "when": {
             "skillIds": [
               "tianyan.skill.earth"
@@ -42,7 +42,7 @@
           }
         },
         {
-          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
+          "damageBonus": "0.12*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
           "when": {
             "skillIds": [
               "tianyan.skill.metal"
@@ -53,7 +53,7 @@
           }
         },
         {
-          "damageBonus": "0.05*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
+          "damageBonus": "0.12*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
           "when": {
             "skillIds": [
               "tianyan.skill.water"
@@ -68,7 +68,64 @@
     {
       "id": "tianyan.passive.heng_root",
       "name": "执衡",
-      "description": "森罗缚、山河倾覆、天锋一线的法力消耗降低10%。"
+      "description": "森罗缚、山河倾覆、天锋一线的法力消耗降低10%；五行法术触发相生或相克时，直接伤害提高6%。",
+      "modifiers": [
+        {
+          "damageBonus": "0.06*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.wood"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "0.06*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.fire"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "0.06*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.earth"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "0.06*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.metal"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        },
+        {
+          "damageBonus": "0.06*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
+          "when": {
+            "skillIds": [
+              "tianyan.skill.water"
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ]
+          }
+        }
+      ]
     },
     {
       "id": "tianyan.passive.scarlet",
@@ -91,20 +148,7 @@
     {
       "id": "tianyan.passive.stream",
       "name": "涓流",
-      "description": "沧海横流法力消耗降低20%，伤害降低5%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.05,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
+      "description": "沧海横流法力消耗降低20%。"
     },
     {
       "id": "tianyan.passive.edge",
@@ -127,39 +171,22 @@
     {
       "id": "tianyan.passive.ember",
       "name": "余火",
-      "description": "燎原不再增加基础攻击人数，改为对次要目标附加2次余火伤害。"
+      "description": "燎原保留增加的攻击人数，对本次前两名副目标附加2次余火伤害；点出燎野时最多覆盖三名副目标。"
     },
     {
       "id": "tianyan.passive.split",
       "name": "分锋",
-      "description": "淬锋额外攻击一个目标，主要目标伤害降低15%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.15,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.earth"
-            ],
-            "targetSlot": "primary"
-          }
-        }
-      ]
+      "description": "淬锋额外攻击一个目标。"
     },
     {
       "id": "tianyan.passive.rain",
       "name": "润物",
-      "description": "凝露、滋荣作用于两名气血比例最低的友方，每人恢复降低30%。"
+      "description": "凝露、滋荣优先作用于两名可恢复伤员，每人恢复降低30%；仅一名伤员时按完整单人份额恢复。无伤员时保留原预挂与分摊规则。"
     },
     {
       "id": "tianyan.passive.borrow",
       "name": "借势",
-      "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。55法力，冷却5回合。"
+      "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。40法力，冷却3回合。"
     },
     {
       "id": "tianyan.passive.plain",
@@ -169,70 +196,22 @@
     {
       "id": "tianyan.passive.clear",
       "name": "澄明",
-      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。"
+      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。"
     },
     {
       "id": "tianyan.passive.wild",
       "name": "燎野",
-      "description": "燎原额外增加一个攻击目标，该次火法伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.wood"
-            ]
-          }
-        }
-      ]
+      "description": "燎原额外增加一个攻击目标，未能利用的新增名额仍按每位15%提高本次直接伤害；余火最多再覆盖一名副目标。"
     },
     {
       "id": "tianyan.passive.dew",
       "name": "温泽",
-      "description": "凝露治疗提高35%，触发凝露的水法伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.metal"
-            ]
-          }
-        }
-      ]
+      "description": "凝露治疗提高35%。"
     },
     {
       "id": "tianyan.passive.spring",
       "name": "长春",
-      "description": "滋荣多恢复一次，每次恢复降低20%；触发滋荣的木法伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.water"
-            ]
-          }
-        }
-      ]
+      "description": "滋荣多恢复一次，每次恢复降低20%。"
     },
     {
       "id": "tianyan.passive.solitary",
@@ -256,7 +235,7 @@
     {
       "id": "tianyan.passive.reflection",
       "name": "映霞",
-      "description": "自身气血低于40%时，物理、法术承伤降低8%；五行法术伤害降低4%。",
+      "description": "自身气血低于40%时，物理、法术承伤降低8%。",
       "modifiers": [
         {
           "damageTakenBonus": -0.08,
@@ -271,21 +250,6 @@
             "sourceHpRatioBelow": 0.4,
             "requireKind": "spell"
           }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood",
-              "tianyan.skill.fire",
-              "tianyan.skill.earth",
-              "tianyan.skill.metal",
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
         }
       ]
     },
@@ -297,64 +261,7 @@
     {
       "id": "tianyan.passive.return",
       "name": "归流",
-      "description": "触发生克的五行法术法力消耗降低25%，伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth)",
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        },
-        {
-          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal)",
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        },
-        {
-          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water)",
-          "when": {
-            "skillIds": [
-              "tianyan.skill.earth"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        },
-        {
-          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood)",
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        },
-        {
-          "damageBonus": "-0.08*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire)",
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
+      "description": "触发生克的五行法术法力消耗降低25%。"
     },
     {
       "id": "tianyan.passive.breath",
@@ -364,79 +271,7 @@
     {
       "id": "tianyan.passive.adapt",
       "name": "御变",
-      "description": "五行法术触发相克时，自身法防提高10%，持续2回合；该次伤害降低4%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.earth"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.fire"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.metal"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.earth"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.water"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.wood"
-            ]
-          }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.fire"
-            ]
-          }
-        }
-      ]
+      "description": "五行法术触发相克时，自身法防提高10%，持续2回合。"
     },
     {
       "id": "tianyan.passive.harmony",
@@ -476,39 +311,12 @@
     {
       "id": "tianyan.passive.wall",
       "name": "摧垣",
-      "description": "天锋一线额外破盾由50%提高至125%；对没有护盾的目标伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetHasBarrier": false
-          }
-        }
-      ]
+      "description": "天锋一线额外破盾由50%提高至125%。"
     },
     {
       "id": "tianyan.passive.roots",
       "name": "盘根",
-      "description": "森罗缚减速提高至25%，伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
+      "description": "森罗缚减速提高至25%。"
     },
     {
       "id": "tianyan.passive.mountain",
@@ -518,54 +326,22 @@
     {
       "id": "tianyan.passive.prune",
       "name": "斩蔓",
-      "description": "断枝额外驱散一个增益，该次金法伤害降低12%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.12,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.wood"
-            ]
-          }
-        }
-      ]
+      "description": "断枝额外驱散一个增益。"
     },
     {
       "id": "tianyan.passive.corrode",
       "name": "蚀基",
-      "description": "裂土降低法防提高至25%，基础持续降至1回合；该次木法伤害降低8%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.08,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.wood"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.earth"
-            ]
-          }
-        }
-      ]
+      "description": "裂土降低法防提高至25%，持续2回合。"
     },
     {
       "id": "tianyan.passive.blunt",
       "name": "钝兵",
-      "description": "熔锋降低物攻、法攻提高至20%；焚天流火攻击人数减少一人。"
+      "description": "熔锋降低物攻、法攻提高至20%。"
     },
     {
       "id": "tianyan.passive.truce",
       "name": "止戈",
-      "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动25%，2回合内有效。50法力，冷却5回合。"
+      "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动35%，2回合内有效。40法力，冷却3回合。"
     },
     {
       "id": "tianyan.passive.gap",
@@ -591,12 +367,12 @@
     {
       "id": "tianyan.passive.mirror",
       "name": "明镜",
-      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。"
+      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。"
     },
     {
       "id": "tianyan.passive.breach",
       "name": "破障",
-      "description": "天锋一线攻击有护盾的目标时额外忽视10%法防；对无护盾目标伤害降低4%。",
+      "description": "天锋一线攻击有护盾的目标时额外忽视10%法防。",
       "modifiers": [
         {
           "defenseIgnoreAdd": 0.1,
@@ -606,41 +382,13 @@
             ],
             "targetHasBarrier": true
           }
-        },
-        {
-          "damageBonus": -0.04,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.metal"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "targetHasBarrier": false
-          }
         }
       ]
     },
     {
       "id": "tianyan.passive.coldflame",
       "name": "冷焰",
-      "description": "蒸腾额外驱散主要目标一个增益，该次水法伤害降低12%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.12,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ],
-            "requireStatusIds": [
-              "tianyan.status.mark.fire"
-            ]
-          }
-        }
-      ]
+      "description": "蒸腾额外驱散主要目标一个增益。"
     },
     {
       "id": "tianyan.passive.ban",
@@ -734,20 +482,7 @@
     {
       "id": "tianyan.passive.calm",
       "name": "定波",
-      "description": "沧海横流法力消耗降低10%，伤害降低5%。",
-      "modifiers": [
-        {
-          "damageBonus": -0.05,
-          "when": {
-            "skillIds": [
-              "tianyan.skill.water"
-            ],
-            "damageOrigins": [
-              "action-direct"
-            ]
-          }
-        }
-      ]
+      "description": "沧海横流法力消耗降低10%。"
     },
     {
       "id": "tianyan.passive.restraint",
@@ -825,7 +560,7 @@
         {
           "id": "tianyan.node.hetu.1.2",
           "name": "涓流",
-          "description": "沧海横流法力消耗降低20%，伤害降低5%。",
+          "description": "沧海横流法力消耗降低20%。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -845,7 +580,7 @@
         {
           "id": "tianyan.node.hetu.2.1",
           "name": "余火",
-          "description": "燎原不再增加基础攻击人数，改为对次要目标附加2次余火伤害。",
+          "description": "燎原保留增加的攻击人数，对本次前两名副目标附加2次余火伤害；点出燎野时最多覆盖三名副目标。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -855,7 +590,7 @@
         {
           "id": "tianyan.node.hetu.2.2",
           "name": "分锋",
-          "description": "淬锋额外攻击一个目标，主要目标伤害降低15%。",
+          "description": "淬锋额外攻击一个目标。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -865,7 +600,7 @@
         {
           "id": "tianyan.node.hetu.2.3",
           "name": "润物",
-          "description": "凝露、滋荣作用于两名气血比例最低的友方，每人恢复降低30%。",
+          "description": "凝露、滋荣优先作用于两名可恢复伤员，每人恢复降低30%；仅一名伤员时按完整单人份额恢复。无伤员时保留原预挂与分摊规则。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -875,7 +610,7 @@
         {
           "id": "tianyan.node.hetu.3.1",
           "name": "借势",
-          "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。55法力，冷却5回合。",
+          "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。40法力，冷却3回合。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -905,24 +640,17 @@
         {
           "id": "tianyan.node.hetu.3.3",
           "name": "澄明",
-          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。",
+          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。",
           "layer": 3,
           "slot": 3,
           "passives": [
             "tianyan.passive.clear"
-          ],
-          "patches": [
-            {
-              "skillId": "tianyan.skill.clarity",
-              "operation": "setCooldownRounds",
-              "value": 3
-            }
           ]
         },
         {
           "id": "tianyan.node.hetu.4.1",
           "name": "燎野",
-          "description": "燎原额外增加一个攻击目标，该次火法伤害降低8%。",
+          "description": "燎原额外增加一个攻击目标，未能利用的新增名额仍按每位15%提高本次直接伤害；余火最多再覆盖一名副目标。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -932,7 +660,7 @@
         {
           "id": "tianyan.node.hetu.4.2",
           "name": "温泽",
-          "description": "凝露治疗提高35%，触发凝露的水法伤害降低8%。",
+          "description": "凝露治疗提高35%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -942,7 +670,7 @@
         {
           "id": "tianyan.node.hetu.4.3",
           "name": "长春",
-          "description": "滋荣多恢复一次，每次恢复降低20%；触发滋荣的木法伤害降低8%。",
+          "description": "滋荣多恢复一次，每次恢复降低20%。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -962,7 +690,7 @@
         {
           "id": "tianyan.node.hetu.5.2",
           "name": "映霞",
-          "description": "自身气血低于40%时，物理、法术承伤降低8%；五行法术伤害降低4%。",
+          "description": "自身气血低于40%时，物理、法术承伤降低8%。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -982,7 +710,7 @@
         {
           "id": "tianyan.node.hetu.6.1",
           "name": "归流",
-          "description": "触发生克的五行法术法力消耗降低25%，伤害降低8%。",
+          "description": "触发生克的五行法术法力消耗降低25%。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -1002,7 +730,7 @@
         {
           "id": "tianyan.node.hetu.6.3",
           "name": "御变",
-          "description": "五行法术触发相克时，自身法防提高10%，持续2回合；该次伤害降低4%。",
+          "description": "五行法术触发相克时，自身法防提高10%，持续2回合。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -1065,7 +793,7 @@
         {
           "id": "tianyan.node.luoshu.1.1",
           "name": "摧垣",
-          "description": "天锋一线额外破盾由50%提高至125%；对没有护盾的目标伤害降低8%。",
+          "description": "天锋一线额外破盾由50%提高至125%。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -1075,7 +803,7 @@
         {
           "id": "tianyan.node.luoshu.1.2",
           "name": "盘根",
-          "description": "森罗缚减速提高至25%，伤害降低8%。",
+          "description": "森罗缚减速提高至25%。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -1095,7 +823,7 @@
         {
           "id": "tianyan.node.luoshu.2.1",
           "name": "斩蔓",
-          "description": "断枝额外驱散一个增益，该次金法伤害降低12%。",
+          "description": "断枝额外驱散一个增益。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -1105,7 +833,7 @@
         {
           "id": "tianyan.node.luoshu.2.2",
           "name": "蚀基",
-          "description": "裂土降低法防提高至25%，基础持续降至1回合；该次木法伤害降低8%。",
+          "description": "裂土降低法防提高至25%，持续2回合。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -1115,7 +843,7 @@
         {
           "id": "tianyan.node.luoshu.2.3",
           "name": "钝兵",
-          "description": "熔锋降低物攻、法攻提高至20%；焚天流火攻击人数减少一人。",
+          "description": "熔锋降低物攻、法攻提高至20%。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1125,7 +853,7 @@
         {
           "id": "tianyan.node.luoshu.3.1",
           "name": "止戈",
-          "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动25%，2回合内有效。50法力，冷却5回合。",
+          "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动35%，2回合内有效。40法力，冷却3回合。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1148,24 +876,17 @@
         {
           "id": "tianyan.node.luoshu.3.3",
           "name": "明镜",
-          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%，冷却提高至3回合。",
+          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。",
           "layer": 3,
           "slot": 3,
           "passives": [
             "tianyan.passive.mirror"
-          ],
-          "patches": [
-            {
-              "skillId": "tianyan.skill.clarity",
-              "operation": "setCooldownRounds",
-              "value": 3
-            }
           ]
         },
         {
           "id": "tianyan.node.luoshu.4.1",
           "name": "破障",
-          "description": "天锋一线攻击有护盾的目标时额外忽视10%法防；对无护盾目标伤害降低4%。",
+          "description": "天锋一线攻击有护盾的目标时额外忽视10%法防。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -1175,7 +896,7 @@
         {
           "id": "tianyan.node.luoshu.4.2",
           "name": "冷焰",
-          "description": "蒸腾额外驱散主要目标一个增益，该次水法伤害降低12%。",
+          "description": "蒸腾额外驱散主要目标一个增益。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -1235,7 +956,7 @@
         {
           "id": "tianyan.node.luoshu.6.2",
           "name": "定波",
-          "description": "沧海横流法力消耗降低10%，伤害降低5%。",
+          "description": "沧海横流法力消耗降低10%。",
           "layer": 6,
           "slot": 2,
           "passives": [

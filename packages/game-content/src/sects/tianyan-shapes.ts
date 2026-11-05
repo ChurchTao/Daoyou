@@ -21,6 +21,7 @@ export const tyTarget = z.strictObject({
   side: z.enum(TargetSide),
   mode: z.enum(TargetMode).optional(),
   count: tyExpr.optional(),
+  preferInjured: z.boolean().optional(),
 });
 export const tyWhen = z.strictObject({
   expression: tyExpr.optional(),
@@ -46,6 +47,12 @@ export const tyModifier = z.strictObject({
 });
 const common = { when: tyWhen.optional(), targeting: tyTarget.optional() };
 export const tyEffect = z.discriminatedUnion('type', [
+  z.strictObject({
+    ...common,
+    type: z.literal(EffectType.ModifyFact),
+    key: z.string().regex(/^tianyan_[a-z0-9_]+$/),
+    value: tyExpr,
+  }),
   z.strictObject({
     ...common,
     type: z.literal(EffectType.SpellHit),
@@ -109,6 +116,7 @@ export const tyStatus = z.strictObject({
   blocksSpell: z.boolean().optional(),
   consumeAfterDamagingAction: z.boolean().optional(),
   expireSameRound: z.boolean().optional(),
+  priority: tyExpr.optional(),
   attrMods: z.partialRecord(z.enum(ATTR_NAMES), tyExpr).optional(),
   speedMod: tyExpr.optional(),
   damageTakenPhysical: z.number().optional(),

@@ -3,34 +3,12 @@ import { DEFAULT_TARGET_COUNT } from './constants.js';
 import type { BattleContext } from './context.js';
 import { TargetMode, TargetSide } from './enums.js';
 import { evalExpr, skillLevelOf } from './expr.js';
-import { alliesOf, enemiesOf } from './unit-query.js';
-import { passiveSkills, skillOf } from './skills.js';
+import { alliesOf, enemiesOf, injuredAllyTargets, isUntargetableBy } from './unit-query.js';
+import { passiveSkills } from './skills.js';
 import type { SkillDef, Unit } from './types.js';
 import { effectiveSpeed, isStanding, resourceOf } from './units.js';
 
-/**
- * 隐身目标不可被单体或群体选取；攻击方的灵觉或看破状态可解除此限制。
- */
-export function isUntargetableBy(
-  ctx: BattleContext,
-  source: Unit,
-  target: Unit,
-): boolean {
-  if (sourceRevealsStealth(ctx, source)) return false;
-  return target.statuses.some((s) => ctx.statusDefs.get(s.id)?.untargetable);
-}
-
-export function sourceRevealsStealth(
-  ctx: BattleContext,
-  source: Unit,
-): boolean {
-  if (source.statuses.some((s) => ctx.statusDefs.get(s.id)?.revealStealth))
-    return true;
-  for (const id of source.passives) {
-    if (skillOf(ctx.skills, source, id)?.innate?.revealStealth) return true;
-  }
-  return false;
-}
+export { injuredAllyTargets, selectableAllyTargets, isUntargetableBy, sourceRevealsStealth } from './unit-query.js';
 
 export function canSelect(
   ctx: BattleContext,
@@ -114,9 +92,14 @@ export function poolFor(
     pool = [...pool, ...extra.filter((u) => !pool.includes(u))];
   }
 
-  return pool
+  const legal = pool
     .filter((u) => canSelect(ctx, source, u, skill))
     .sort((a, b) => a.slot - b.slot);
+  if (skill.targeting.preferInjured) {
+    const injured = injuredAllyTargets(source, legal, ctx.skills, ctx.statusDefs);
+    if (injured.length) return injured;
+  }
+  return legal;
 }
 
 export function targetCount(
@@ -246,7 +229,7 @@ export function resolveSkillTargets(
     if (picked.length >= count) break;
     const unit = ctx.state.units.find((u) => u.id === id);
     if (!unit || seen.has(unit.id)) continue;
-    if (!canSelect(ctx, source, unit, skill)) continue;
+    if (!canSelect(ctx, source, unit, skill) || (skill.targeting.preferInjured && !pool.includes(unit))) continue;
     picked.push(unit);
     seen.add(unit.id);
     if (picked.length >= count) break;

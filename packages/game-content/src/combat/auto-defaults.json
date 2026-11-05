@@ -116,12 +116,49 @@
       "version": 1,
       "rules": [
         {
-          "conditions": [{ "type": "selfHpBelow", "percent": 40 }],
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40 },
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.metal",
+              "present": true
+            }
+          ],
           "action": { "type": "skill", "skillId": "tianyan.skill.water" },
           "target": "best"
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
+            { "type": "allyHpBelow", "percent": 40, "recoverySkillId": "tianyan.skill.water" },
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.metal",
+              "present": true
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.water" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
+            { "type": "allyHpBelow", "percent": 40, "recoverySkillId": "tianyan.skill.water" },
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.metal",
+              "present": false
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -134,6 +171,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -146,6 +184,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -159,6 +198,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -170,7 +210,10 @@
           "target": "best"
         },
         {
-          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
+            { "type": "enemyHpBelow", "percent": 45 }
+          ],
           "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
           "target": "lowestHpEnemy"
         }
@@ -180,12 +223,35 @@
       "version": 1,
       "rules": [
         {
-          "conditions": [{ "type": "selfHpBelow", "percent": 40 }],
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40 },
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.water",
+              "present": true
+            }
+          ],
           "action": { "type": "skill", "skillId": "tianyan.skill.wood" },
           "target": "best"
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
+            { "type": "allyHpBelow", "percent": 40, "recoverySkillId": "tianyan.skill.water" },
+            {
+              "type": "selfStatus",
+              "kind": "tianyan.status.mark",
+              "statusId": "tianyan.status.mark.metal",
+              "present": false
+            }
+          ],
+          "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
+          "target": "best"
+        },
+        {
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -198,6 +264,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -210,6 +277,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -222,6 +290,7 @@
         },
         {
           "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
             {
               "type": "selfStatus",
               "kind": "tianyan.status.mark",
@@ -232,7 +301,10 @@
           "target": "best"
         },
         {
-          "conditions": [{ "type": "enemyHpBelow", "percent": 45 }],
+          "conditions": [
+            { "type": "selfHpBelow", "percent": 40, "comparison": "gte" },
+            { "type": "enemyHpBelow", "percent": 45 }
+          ],
           "action": { "type": "skill", "skillId": "tianyan.skill.metal" },
           "target": "lowestHpEnemy"
         }

@@ -1,6 +1,6 @@
-import type { CombatV6CommandOptions, Command, SkillDef, SkillEffect, StatusDef, Unit } from '@daoyou/combat-core/types';
+import type { CombatV6CommandOptions, Command, ExprEnv, SkillDef, SkillEffect, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { evalExpr, skillLevelOf } from '@daoyou/combat-core/expr';
-import { isActiveAttackSkill } from '@daoyou/combat-core';
+import { injuredAllyTargets, isActiveAttackSkill, selectableAllyTargets } from '@daoyou/combat-core';
 import { FailReason, HookName } from '@daoyou/combat-core/enums';
 import { matchesWhen, targetStatusStacks } from '@daoyou/combat-core/when';
 import { daoyouRulesetV6 } from './daoyou/index.js';
@@ -57,6 +57,7 @@ export function rankAutoActions(
 ): AutoCandidate[] {
   const source = observation.units.find((unit) => unit.id === sourceId)!;
   const definitions = new Map(statusDefs.map((status) => [status.id, status]));
+  const skillDefinitions = new Map(skills.map((skill) => [skill.id, skill]));
   const weights = { offense: 1, survival: 1.2, control: 1, economy: 0.5 };
   const candidates: AutoCandidate[] = [];
   const formulas = daoyouRulesetV6.formulas;
@@ -111,11 +112,25 @@ export function rankAutoActions(
     // Evaluate preparatory facts on a private actor copy, never on the observation.
     const actor = observation.units.find(unit => unit.id === sourceId)!;
     const source = { ...actor, combatFacts: { ...actor.combatFacts } };
+    // Model candidate target order only; other pre-hit/action history is not estimated.
+    const action = {
+      sourceId: source.id, skillId: skill.id, primaryTargetId: selected[0]?.id,
+      targetIds: selected.map(target => target.id),
+      resourceGains: {}, hpRestoreGains: {}, impactDamageByTarget: {},
+      initialStatusIdsByTarget: {}, initialStatusKindsByTarget: {},
+      failed: false,
+    };
+    const candidateContext = { ...context, skills: skillDefinitions, currentAction: action,
+      state: { ...context.state, units: observation.units.map(unit => unit.id === source.id ? source : unit) } };
+    function expressionEnv(target?: Unit, targets = selected.length): ExprEnv {
+      return { state: candidateContext.state, skills: skillDefinitions, statusDefs: definitions,
+        source, target, skillLevel: skillLevelOf(source, skill.id), targets, actionTargetIds: action.targetIds };
+    }
     // Value the current spell's declared modifiers; passive hook chains remain outside this estimate.
     function modifiers(target: Unit, kind: 'physical' | 'spell' | 'fixed') {
       return (skill.modifiers ?? []).filter(m => {
         if (target.side !== source.side && typeof m.when?.expression === 'string' && expressionReadsHiddenTarget(m.when.expression)) return false;
-        return matchesWhen(context, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === selected[0]?.id });
+        return matchesWhen(candidateContext, m.when, { source, target, skill, skillId: skill.id, kind, origin: 'action-direct', isPrimary: target.id === action.primaryTargetId });
       });
     }
     function sealChance(target: Unit, def: StatusDef | undefined, chanceFactor: number) {
@@ -130,10 +145,10 @@ export function rankAutoActions(
         if (target.side !== source.side &&
           ((typeof when?.expression === 'string' && expressionReadsHiddenTarget(when.expression)) ||
             when?.targetSkillIds || when?.targetAbsentSkillIds || when?.targetHasNegativeSpellResistance !== undefined)) return false;
-        return matchesWhen(context, when, scope);
+        return matchesWhen(candidateContext, when, scope);
       });
       if (applicable.some(modifier => modifier.sealAlwaysHit)) return 1;
-      const env = { state: context.state, source, target, skillLevel: skillLevelOf(source, skill.id), targets: selected.length };
+      const env = expressionEnv(target);
       const sum = (key: 'sealChanceCeilAdd' | 'sealChanceAdd' | 'sealHitAdd') => applicable.reduce((total, modifier) => total + evalExpr(modifier[key] ?? 0, env), 0);
       const ceiling = Math.max(0, Math.min(1, (skill.sealChanceCeil ?? formulas.sealChanceCeil ?? 1) + sum('sealChanceCeilAdd')));
       const actor = { ...source, attrs: { ...source.attrs, sealHit: source.attrs.sealHit + sum('sealHitAdd') } };
@@ -155,6 +170,7 @@ export function rankAutoActions(
       values: readonly SkillEffect[],
       initial: Unit[],
       probability = 1,
+      inheritedTargets = selected.length,
     ) {
       for (const effect of values) {
         let targets = initial;
@@ -174,6 +190,19 @@ export function rankAutoActions(
                     ? target.side !== source.side
                     : true),
           );
+          if (spec.preferInjured) {
+            const legalAllies = new Set(selectableAllyTargets(source, candidateContext.state.units, skillDefinitions, definitions).map(target => target.id));
+            targets = targets.filter(target =>
+              (target.side !== source.side || legalAllies.has(target.id)) &&
+              (!spec.excludeSelf || target.id !== source.id) &&
+              (!spec.requireKind || target.kind === spec.requireKind) &&
+              (!spec.requireKinds || spec.requireKinds.includes(target.kind)) &&
+              (!spec.requireOwnedPet || (target.kind === 'pet' && target.ownerId === source.id)) &&
+              (!spec.requireStatusIds?.length || target.statuses.some(status => spec.requireStatusIds!.includes(status.id))) &&
+              (!spec.requireStatusKinds?.length || target.statuses.some(status => spec.requireStatusKinds!.includes(status.kind))));
+            const injured = injuredAllyTargets(source, targets, skillDefinitions, definitions);
+            if (injured.length) targets = injured;
+          }
           if (spec.mode !== 'all' && spec.side !== 'self') {
             targets = targets
               .sort(
@@ -185,17 +214,13 @@ export function rankAutoActions(
                 0,
                 Math.max(
                   1,
-                  evalExpr(spec.count ?? 1, {
-                    source,
-                    skillLevel: skillLevelOf(source, skill.id),
-                    targets: initial.length,
-                  }),
+                  evalExpr(spec.count ?? 1, expressionEnv(undefined, initial.length)),
                 ),
               );
           }
         }
         targets = targets.filter((target) =>
-          matchesWhen(context, effect.when, {
+          matchesWhen(candidateContext, effect.when, {
             source,
             target,
             skill,
@@ -203,8 +228,9 @@ export function rankAutoActions(
             isPrimary: target.id === selected[0]?.id,
           }),
         );
+        const effectTargetCount = effect.targeting ? targets.length : inheritedTargets;
         if (effect.type === 'modifyFact') {
-          if (targets.length) source.combatFacts[effect.key] = evalExpr(effect.value, { state: context.state, source, target: targets[0], skillLevel: skillLevelOf(source, skill.id), targets: selected.length });
+          if (targets.length) source.combatFacts[effect.key] = evalExpr(effect.value, expressionEnv(targets[0], effectTargetCount));
           continue;
         }
         if (effect.type === 'invokeAttackSkills') {
@@ -238,7 +264,7 @@ export function rankAutoActions(
         }
         if (effect.type === 'repeat') {
           // Deterministic midpoint estimate; no RNG or actual damage is performed.
-          for (let i = 0; i < Math.round((effect.min + effect.max) / 2); i++) effects(effect.effects, targets, probability);
+          for (let i = 0; i < Math.round((effect.min + effect.max) / 2); i++) effects(effect.effects, targets, probability, effectTargetCount);
           continue;
         }
         if (effect.type === 'randomBranch') {
@@ -246,32 +272,22 @@ export function rankAutoActions(
             0,
             Math.min(
               1,
-              evalExpr(effect.chance, {
-                state: context.state,
-                source,
-                target: targets[0],
-                skillLevel: skillLevelOf(source, skill.id),
-                targets: selected.length,
-              }),
+              evalExpr(effect.chance, expressionEnv(targets[0], effectTargetCount)),
             ),
           );
           const before = { ...source.combatFacts };
-          effects(effect.successEffects, targets, probability * chance);
+          effects(effect.successEffects, targets, probability * chance, effectTargetCount);
           const success = source.combatFacts;
           source.combatFacts = { ...before };
-          effects(effect.failureEffects, targets, probability * (1 - chance));
+          effects(effect.failureEffects, targets, probability * (1 - chance), effectTargetCount);
           if (chance >= 0.5) source.combatFacts = success;
           continue;
         }
         for (const target of targets) {
           const env = {
-            state: context.state,
-            source,
-            target,
-            skillLevel: skillLevelOf(source, skill.id),
-            targets: selected.length,
+            ...expressionEnv(target, effectTargetCount),
             targetStatusStacks: targetStatusStacks(
-              context,
+              candidateContext,
               effect.when,
               target,
             ),
@@ -460,7 +476,7 @@ export function rankAutoActions(
               );
               const power =
                 value(effect.power) +
-                (effect.type === 'heal' ? source.attrs.healPower : 0);
+                (effect.type === 'heal' && effect.includeHealPower !== false ? source.attrs.healPower : 0);
               const adjustedPower =
                 effect.type === 'heal'
                   ? power *
@@ -641,8 +657,10 @@ export function rankAutoActions(
     }
     if (skill.preparation) {
       effects(skill.preparation.effects, selected);
-      const count = Math.max(1, Math.floor(evalExpr(skill.preparation.targetCount, { state: context.state, source, target: selected[0], skillLevel: skillLevelOf(source, skill.id), targets: selected.length })));
+      const count = Math.max(1, Math.floor(evalExpr(skill.preparation.targetCount, expressionEnv(selected[0]))));
       selected = selected.slice(0, count);
+      action.targetIds = selected.map(target => target.id);
+      action.primaryTargetId = selected[0]?.id;
     }
     effects(skill.effects, selected);
     effects(skill.successEffects ?? [], selected);
@@ -656,8 +674,8 @@ export function rankAutoActions(
         for (const target of selected) {
           const kind = hit.type === 'physicalHit' ? 'physical' : 'spell';
           if (hook.requireKind && hook.requireKind !== kind) continue;
-          if (!matchesWhen(context, hook.when, { source, target, skill, skillId: skill.id, kind, isPrimary: target.id === selected[0]?.id })) continue;
-          const chance = Math.min(1, Math.max(0, evalExpr(hook.chance ?? 1, { state: context.state, source, target, skillLevel: skillLevelOf(source, skill.id), targets: selected.length })));
+          if (!matchesWhen(candidateContext, hook.when, { source, target, skill, skillId: skill.id, kind, isPrimary: target.id === action.primaryTargetId })) continue;
+          const chance = Math.min(1, Math.max(0, evalExpr(hook.chance ?? 1, expressionEnv(target))));
           const hitChance = kind === 'physical'
             ? target.side === source.side
               ? formulas.physicalHitChance(source, target)

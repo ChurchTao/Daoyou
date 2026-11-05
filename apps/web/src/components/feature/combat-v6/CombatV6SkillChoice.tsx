@@ -30,6 +30,9 @@ export function CombatV6SkillChoice({
     skills.find((skill) => skill.skillId === selectedId) ??
     skills.find((skill) => skill.ready) ??
     skills[0];
+  const preview = selected
+    ? session.commandOptions?.skillPreviews?.[selected.skillId]
+    : undefined;
   const actor = session.units.find(
     (unit) => unit.id === session.commandOptions?.unitId,
   );
@@ -156,6 +159,27 @@ export function CombatV6SkillChoice({
           >
             <h3>{selected.name}</h3>
             <p className="cv6-choice-scope">{scope(selected)}</p>
+            {preview ? (
+              <section
+                className="cv6-choice-current-effect"
+                aria-label="当前法印效果"
+              >
+                <p className="cv6-choice-current-mark">
+                  <strong>当前{preview.currentMark ?? '无印'}</strong>
+                  {preview.reactionName ? ` · ${preview.reactionName}` : null}
+                </p>
+                {preview.effects.length ? (
+                  <p className="cv6-choice-description">
+                    <SkillDescription text={preview.effects.join('\n')} />
+                  </p>
+                ) : null}
+                {preview.nextMark ? (
+                  <p className="cv6-choice-next-mark">
+                    施放成功后留下{preview.nextMark}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
             <p className="cv6-choice-description">
               <SkillDescription
                 text={

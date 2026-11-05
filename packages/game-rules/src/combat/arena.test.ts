@@ -1,19 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
 import type {
-  ArenaState,
   ArenaSnapshot,
+  ArenaState,
 } from '@daoyou/game-domain/combat/arena';
+import { ARENA_PUBLIC_VIEW } from '@daoyou/game-domain/combat/arena';
+import { describe, expect, it } from 'vitest';
 const ARENA_V6_PROTOCOL = 'combat_v6_arena_v1' as const;
 type ArenaRuntime = ArenaState<ArenaSnapshot> & {
   protocol: typeof ARENA_V6_PROTOCOL;
 };
 
+import { EffectType, SkillTag, TargetSide } from '@daoyou/combat-core/enums';
+import { TIANYAN_V6_DEFINITION } from '@daoyou/game-content/sects/tianyan';
 import {
   parseCombatV6Replay,
   type CombatV6ReplayV1,
 } from '@daoyou/game-domain/combat/replay';
-import { EffectType, SkillTag, TargetSide } from '@daoyou/combat-core/enums';
 import { DAO_RAGE_RESOURCE_ID } from '@daoyou/game-domain/equipment';
 import { huntEventsAt } from '../hunts/config.js';
 import {
@@ -28,8 +29,8 @@ import {
 } from './arena.js';
 import { automaticCommands } from './auto.js';
 import { applyUnitDelta, contiguousEvents } from './playback.js';
-import { combatV6ReplayView, createCombatV6Replay } from './replay.js';
 import { startReplayTimeline } from './replay-timeline.js';
+import { combatV6ReplayView, createCombatV6Replay } from './replay.js';
 
 function fixture(count = 8): ArenaRuntime {
   const units = Array.from({ length: count }, (_, i) => ({
@@ -91,6 +92,40 @@ function fixture(count = 8): ArenaRuntime {
 }
 
 describe('arena public host', () => {
+  it('只向控令者投影当前法印神通预览', () => {
+    const runtime = fixture(2);
+    const fire = TIANYAN_V6_DEFINITION.skills.find(
+      (entry) => entry.definition.id === 'tianyan.skill.fire',
+    )!.definition;
+    runtime.skills.push(fire);
+    runtime.statusDefs.push(...TIANYAN_V6_DEFINITION.statuses);
+    runtime.units[0].skills = [fire.id];
+    const battle = arenaBattle({
+      seed: runtime.seed,
+      units: runtime.units,
+      skills: runtime.skills,
+      statusDefs: runtime.statusDefs,
+    });
+    battle.applyStatus('u0', 'tianyan.status.mark.wood', 1);
+    runtime.state = battle.snapshot();
+
+    const own = arenaView(runtime, 'u0', 0);
+    expect(own.commandOptions?.skillPreviews?.[fire.id]).toMatchObject({
+      currentMark: '木行法印',
+      reactionName: '燎原',
+      nextMark: '火行法印',
+    });
+    expect(own.controlledCommandOptions?.[0]?.skillPreviews).toEqual(
+      own.commandOptions?.skillPreviews,
+    );
+    expect(
+      arenaView(runtime, 'u1', 0).commandOptions?.skillPreviews,
+    ).toBeUndefined();
+    expect(
+      arenaView(runtime, ARENA_PUBLIC_VIEW, 0).commandOptions,
+    ).toBeUndefined();
+    expect(own.display).not.toHaveProperty('skillPreviews');
+  });
   it('讨伐胜方倒地者显示个人失败，存活队友仍为胜利；擂台保留队伍胜负', () => {
     const runtime = fixture(4);
     runtime.hunt = huntEventsAt(100000)[0];

@@ -110,6 +110,7 @@ export function bindDataHooks(ctx: BattleContext): void {
             ...makeEnv(unit, skill, hctx.target ? [hctx.target] : []),
             state: ctx.state,
             normalTargetIds: ctx.currentAction?.normalTargetIds,
+            actionTargetIds: ctx.currentAction?.targetIds,
             damage: hctx.damage,
             hpDamage: hctx.hpDamage,
             heal: hctx.heal,

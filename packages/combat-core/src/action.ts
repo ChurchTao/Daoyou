@@ -973,11 +973,12 @@ function applyDeclaredEffects(
   env: ReturnType<typeof makeEnv>,
 ): void {
   for (const effect of effects) {
-    // 战斗已结束后不再产生伤害/状态，但仍结清本次技能声明的资源变化。
+    // 战斗已结束后不再产生伤害/状态，但仍结清本次技能声明的事实与资源变化。
     if (
       ctx.state.result &&
       !new Set<string>([
         EffectType.ModifyResource,
+        EffectType.ModifyFact,
         EffectType.Heal,
         EffectType.RestoreHp,
         EffectType.RestoreMp,

@@ -187,6 +187,41 @@ function conditionedDefend(
     ],
   };
 }
+function lowHpTianyan(pathIndex: 0 | 1, mark?: string, woundedAlly = false) {
+  const player = towerReferenceBuild('tianyan', '金丹', '中期', pathIndex);
+  const opponent = towerReferenceBuild('jiujie', '金丹');
+  opponent.cultivator.id = '00000000-0000-4000-8000-000000000003';
+  player.beasts = undefined;
+  opponent.beasts = undefined;
+  const input = compileRankingBattle([player, opponent], 42);
+  if (woundedAlly) {
+    input.units.push({
+      ...structuredClone(input.units[0]),
+      id: 'wounded-ally',
+      slot: 1,
+      skills: [],
+      passives: [],
+      attrs: { ...input.units[0].attrs, hp: 1000, maxHp: 10000 },
+    });
+  }
+  const battle = createBattle({ ...input, ruleset: daoyouRulesetV6 });
+  const ownerId = player.cultivator.id;
+  Object.assign(battle.unit(ownerId).attrs, { hp: 3000, maxHp: 10000, mp: 10000, maxMp: 10000 });
+  Object.assign(battle.unit(opponent.cultivator.id).attrs, { hp: 100000, maxHp: 100000 });
+  if (mark) battle.applyStatus(ownerId, `tianyan.status.mark.${mark}`, 1);
+  const strategy = DEFAULT_AUTO_STRATEGIES[player.sect!.activePathId!];
+  const select = (withStrategy = true) => automaticCommands(
+    battle.snapshot(), ownerId, input.skills ?? [], id => battle.queryCommands(id),
+    { statusDefs: input.statusDefs, ...(withStrategy ? { strategies: { [ownerId]: strategy } } : {}) },
+  ).find(entry => entry.unitId === ownerId)!.command;
+  const resolve = () => {
+    const command = select();
+    for (const unit of battle.state.units) battle.submit(unit.id, unit.id === ownerId ? command : { type: 'defend' });
+    battle.lockAndResolve();
+    return command;
+  };
+  return { battle, ownerId, select, resolve };
+}
 describe('当前场次托管', () => {
   it('人物隔离一名敌人后，灵兽攻击另一名敌人而不打醒睡眠', () => {
     const sleep: StatusDef = { id: 'sleep', kind: 'sleep', name: '入梦', category: 'control', blocksAction: true, breakOnDamage: true };
@@ -711,6 +746,105 @@ describe('当前场次托管', () => {
     const battle = fixture();
     expect(chooseWithStrategy(battle, oneEnemy).type).toBe('defend');
     expect(chooseWithStrategy(battle, twoEnemies).type).toBe('attack');
+  });
+  it.each([
+    { path: '衍法', pathIndex: 0 as const, mark: 'metal', skill: 'water' },
+    { path: '执衡', pathIndex: 1 as const, mark: 'water', skill: 'wood' },
+  ])('$path 低血且持有对应法印时，施放真正带恢复的招式', ({ pathIndex, mark, skill }) => {
+    const { battle, ownerId, select, resolve } = lowHpTianyan(pathIndex, mark);
+    expect(select()).toMatchObject({ type: 'skill', skillId: `tianyan.skill.${skill}` });
+    const before = battle.unit(ownerId).attrs.hp;
+    resolve();
+    expect(battle.unit(ownerId).attrs.hp).toBeGreaterThan(before);
+  });
+  it.each([
+    { path: '衍法', pathIndex: 0 as const, mark: undefined },
+    { path: '衍法', pathIndex: 0 as const, mark: 'wood' },
+    { path: '衍法', pathIndex: 0 as const, mark: 'fire' },
+    { path: '执衡', pathIndex: 1 as const, mark: undefined },
+    { path: '执衡', pathIndex: 1 as const, mark: 'metal' },
+    { path: '执衡', pathIndex: 1 as const, mark: 'earth' },
+  ])('$path 低血、法印为 $mark 时交回当次收益估分，不强制无恢复轮转', ({ pathIndex, mark }) => {
+    const { select } = lowHpTianyan(pathIndex, mark);
+    expect(select()).toEqual(select(false));
+  });
+  it.each([
+    { path: '衍法', pathIndex: 0 as const, mark: 'fire' },
+    { path: '执衡', pathIndex: 1 as const, mark: 'metal' },
+  ])('$path 恰好40%气血恢复正常轮转，低一血仍按当次收益选择', ({ pathIndex, mark }) => {
+    const { battle, ownerId, select } = lowHpTianyan(pathIndex, mark);
+    const actor = battle.unit(ownerId);
+    // Make the ordinary estimate distinct from the authored water rotation.
+    actor.attrs.physicalAtk = 100000;
+    actor.attrs.hp = actor.attrs.maxHp * 0.4 - 1;
+    expect(select()).toEqual(select(false));
+    expect(select()).toMatchObject({ type: 'attack' });
+    actor.attrs.hp += 1;
+    expect(select()).toMatchObject({ type: 'skill', skillId: 'tianyan.skill.water' });
+  });
+  it.each([
+    { path: '衍法', pathIndex: 0 as const, repeated: 'water' },
+    { path: '执衡', pathIndex: 1 as const, repeated: 'wood' },
+  ])('$path 持续低血时不会陷入同一无恢复技能循环', ({ pathIndex, repeated }) => {
+    const { battle, ownerId, resolve } = lowHpTianyan(pathIndex);
+    const commands = Array.from({ length: 4 }, resolve);
+    expect(battle.unit(ownerId).attrs.hp / battle.unit(ownerId).attrs.maxHp).toBeLessThan(0.4);
+    expect(commands.every(command => command.type === 'skill' && command.skillId === `tianyan.skill.${repeated}`)).toBe(false);
+  });
+  it.each([
+    { path: '衍法', pathIndex: 0 as const, mark: 'metal' },
+    { path: '执衡', pathIndex: 1 as const, mark: 'water' },
+  ])('$path 恢复交给血线更低的队友后，本人仍低血也不重复空转', ({ pathIndex, mark }) => {
+    const { battle, ownerId, select, resolve } = lowHpTianyan(pathIndex, mark, true);
+    const before = battle.unit('wounded-ally').attrs.hp;
+    resolve();
+    expect(battle.unit('wounded-ally').attrs.hp).toBeGreaterThan(before);
+    expect(battle.unit(ownerId).attrs.hp).toBe(3000);
+    expect(select()).toEqual(select(false));
+  });
+  it.each([
+    { pathIndex: 0 as const, kind: 'player' as const },
+    { pathIndex: 1 as const, kind: 'npc' as const },
+  ])('天衍默认流派 $pathIndex 为受伤的 $kind 队友铺金，再用水法凝露', ({ pathIndex, kind }) => {
+    const { battle, ownerId, select, resolve } = lowHpTianyan(pathIndex, 'water', true);
+    const actor = battle.unit(ownerId);
+    actor.attrs.hp = actor.attrs.maxHp;
+    const ally = battle.unit('wounded-ally');
+    ally.kind = kind;
+    const before = ally.attrs.hp;
+
+    expect(resolve()).toMatchObject({ type: 'skill', skillId: 'tianyan.skill.metal' });
+    expect(actor.statuses.some(status => status.id === 'tianyan.status.mark.metal')).toBe(true);
+    expect(select()).toMatchObject({ type: 'skill', skillId: 'tianyan.skill.water' });
+    resolve();
+    expect(battle.unit('wounded-ally').attrs.hp).toBeGreaterThan(before);
+  });
+  it.each([0, 1] as const)('天衍默认流派 %i 在缺少水法、无法救治队友或法力不足时继续正常轮转', (pathIndex) => {
+    for (const limit of ['unlearned', 'wound', 'antiheal', 'captured', 'pet', 'pet-first', 'mana'] as const) {
+      const { battle, ownerId, select } = lowHpTianyan(pathIndex, 'water', true);
+      const actor = battle.unit(ownerId);
+      actor.attrs.hp = actor.attrs.maxHp;
+      const ally = battle.unit('wounded-ally');
+      if (limit === 'unlearned') actor.skills = actor.skills.filter(id => id !== 'tianyan.skill.water');
+      if (limit === 'wound') ally.wound = ally.attrs.maxHp - ally.attrs.hp;
+      if (limit === 'antiheal') {
+        battle.applyStatus(ally.id, 'tianyan.status.mark.water', 1);
+        ally.statuses[0].healTaken = 0;
+      }
+      if (limit === 'captured') ally.flags.capturedBy = 'enemy';
+      if (limit === 'pet') ally.kind = 'pet';
+      if (limit === 'pet-first') battle.state.units.push({
+        ...structuredClone(ally), id: 'lower-hp-pet', kind: 'pet', slot: 2,
+        attrs: { ...ally.attrs, hp: 1 },
+      });
+      if (limit === 'mana') {
+        const options = battle.queryCommands(ownerId).skills;
+        actor.attrs.mp = options.find(option => option.skillId === 'tianyan.skill.metal')!.costs.mp
+          + options.find(option => option.skillId === 'tianyan.skill.water')!.costs.mp - 1;
+      }
+
+      expect(select(), limit).toMatchObject({ type: 'skill', skillId: `tianyan.skill.${pathIndex === 0 ? 'wood' : 'earth'}` });
+    }
   });
   it('天衍默认规则按自身火印接水术', () => {
     const player = towerReferenceBuild('tianyan', '金丹', '中期', 0);

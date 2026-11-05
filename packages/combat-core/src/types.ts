@@ -367,6 +367,8 @@ export type SkillTargeting = {
   requireOwnedPet?: boolean;
   /** explicit=只用指令目标；fill=指令目标优先再补满；all/random/lowestHp/lowestDef 由引擎选 */
   mode?: TargetMode;
+  /** Prefer selectable allies with recoverable missing HP; retain the ordinary pool when none exist. */
+  preferInjured?: boolean;
   /** Keep selected targets, then choose the remaining fill targets randomly. */
   randomFill?: boolean;
   count?: Expr;
@@ -1225,6 +1227,8 @@ export type ExprEnv = {
   skills?: ReadonlyMap<string, SkillDef>;
   allyPetSkillUnused?: boolean;
   normalTargetIds?: string[];
+  /** Frozen targets of the current action, independent of an attached effect's targets. */
+  actionTargetIds?: readonly UnitId[];
   killedTargetIds?: string[];
   state?: Pick<BattleState, 'round' | 'units'> &
     Partial<Pick<BattleState, 'result'>>;

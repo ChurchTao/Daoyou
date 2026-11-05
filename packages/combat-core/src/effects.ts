@@ -233,7 +233,7 @@ export function applyEffect(
   env: ExprEnv,
 ): void {
   // 休息、给自己上状态、驱散可以没有敌方目标。
-  env = { ...env, state: ctx.state, allyPetSkillUnused: ctx.currentAction?.sourceId === source.id ? ctx.currentAction.allyPetSkillUnused : false, normalTargetIds: ctx.currentAction?.normalTargetIds, killedTargetIds: ctx.currentAction?.killedTargetIds }
+  env = { ...env, state: ctx.state, skills: ctx.skills, statusDefs: ctx.statusDefs, actionTargetIds: ctx.currentAction?.targetIds, allyPetSkillUnused: ctx.currentAction?.sourceId === source.id ? ctx.currentAction.allyPetSkillUnused : false, normalTargetIds: ctx.currentAction?.normalTargetIds, killedTargetIds: ctx.currentAction?.killedTargetIds }
   const hostile = effect.type === EffectType.DamageMp || effect.type === EffectType.Wound ||
     effect.type === EffectType.Dispel || (effect.type === EffectType.RemoveStatus && !effect.ownedOnly);
   if (hostile && targets.length) {

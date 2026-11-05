@@ -107,6 +107,9 @@
             "dot"
           ]
         },
+        "isSeal": {
+          "type": "boolean"
+        },
         "school": {
           "type": "string",
           "const": "tianyan"
@@ -126,14 +129,14 @@
         "blocksSpell": {
           "type": "boolean"
         },
-        "isSeal": {
-          "type": "boolean"
-        },
         "consumeAfterDamagingAction": {
           "type": "boolean"
         },
         "expireSameRound": {
           "type": "boolean"
+        },
+        "priority": {
+          "$ref": "#/$defs/__schema4"
         },
         "attrMods": {
           "type": "object",
@@ -259,6 +262,34 @@
           "type": "array",
           "items": {
             "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "when": {
+                    "$ref": "#/$defs/__schema6"
+                  },
+                  "targeting": {
+                    "$ref": "#/$defs/__schema8"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "modifyFact"
+                  },
+                  "key": {
+                    "type": "string",
+                    "pattern": "^tianyan_[a-z0-9_]+$"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/__schema4"
+                  }
+                },
+                "required": [
+                  "type",
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
               {
                 "type": "object",
                 "properties": {
@@ -631,6 +662,9 @@
         },
         "count": {
           "$ref": "#/$defs/__schema4"
+        },
+        "preferInjured": {
+          "type": "boolean"
         }
       },
       "required": [

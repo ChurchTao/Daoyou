@@ -3,6 +3,7 @@ import { createUnit } from '@daoyou/combat-core';
 import type { CombatV6CommandOptions, SkillDef, StatusDef, Unit } from '@daoyou/combat-core/types';
 import { rankAutoActions } from './auto-utility.js';
 import type { AutoIntent } from './auto-utility.js';
+import { TIANYAN_V6_DEFINITION } from '@daoyou/game-content/sects/tianyan';
 
 const barrierPassive: SkillDef = {
   id: 'defense-ward',
@@ -395,5 +396,143 @@ describe('automatic hostile-action protection and seal estimates', () => {
     expect(rank()).toEqual(before);
     source.statuses = [];
     expect(rank().benefits.control).toBe(ordinary);
+  });
+});
+
+describe('automatic action target context and attached recovery', () => {
+  function setup(enemyCount: number, selectableCount = enemyCount) {
+    const source = createUnit({ id: 'caster', name: '天衍', kind: 'player', side: 0, slot: 0, level: 100,
+      attrs: { hp: 1000, maxHp: 1000, magicAtk: 1000, healPower: 0, mp: 1000, maxMp: 1000 } }, 0);
+    const enemies = Array.from({ length: enemyCount }, (_, index) => createUnit({
+      id: `enemy-${index}`, name: '敌人', kind: 'npc', side: 1, slot: index, level: 100,
+      attrs: { hp: 100000, maxHp: 100000 },
+    }, index + 1));
+    const units = [source, ...enemies];
+    const options: CombatV6CommandOptions = { unitId: source.id, canSubmit: true, reasons: [],
+      attackTargetIds: [], protectTargetIds: [], canDefend: false, canFlee: false, skills: [] };
+    function rank(skill: SkillDef, definitions: StatusDef[] = [], targetCount = 4) {
+      options.skills = [{ skillId: skill.id, name: skill.name, ready: true, reasons: [],
+        costs: { hp: 0, mp: 0, resources: [] }, selectableTargetIds: enemies.slice(0, selectableCount).map(unit => unit.id),
+        targetMode: 'fill', targetCount }];
+      return rankAutoActions({ round: 1, units }, source.id, [skill], definitions, options)
+        .find(candidate => candidate.command.type === 'skill')!;
+    }
+    const fire: SkillDef = { id: 'fire', name: '燎原', tags: ['spell'], targeting: { side: 'enemy', mode: 'fill', count: 4 },
+      effects: [{ type: 'spellHit', coeff: 1, power: 100 }], modifiers: [{
+        damageBonus: '0.15*if(actionTargetCount < 4,1,0)', when: { requireStatusIds: ['wood'] },
+      }] };
+    return { source, enemies, units, options, fire, rank };
+  }
+
+  it('values missing wildfire targets using the candidate action, with and without a wood mark across one to five enemies', () => {
+    for (const count of [1, 2, 3, 4, 5]) {
+      const { source, fire, rank } = setup(count);
+      const bare = rank({ ...fire, modifiers: [] }, [], 3).benefits.offense;
+      expect(rank(fire, [], 3).benefits.offense).toBe(bare);
+      status(source, 'wood');
+      const markedBare = rank({ ...fire, modifiers: [] }).benefits.offense;
+      expect(rank(fire).benefits.offense).toBeCloseTo(markedBare * (count < 4 ? 1.15 : 1));
+    }
+  });
+
+  it('does not count unselectable enemies or leak action facts into another candidate or the observation', () => {
+    const { source, units, fire, rank } = setup(5, 2);
+    status(source, 'wood');
+    fire.effects.unshift({ type: 'modifyFact', key: 'action_count', value: 'actionTargetCount' });
+    fire.modifiers![0].damageBonus = '0.15*if(fact.action_count == 2,1,0)';
+    source.skills = [fire.id];
+    const before = structuredClone(units);
+    const ordinary = rank({ ...fire, modifiers: [], effects: fire.effects.slice(1) });
+    const improved = rank(fire);
+    expect(improved.benefits.offense).toBeCloseTo(ordinary.benefits.offense * 1.15);
+    expect(rank({ ...fire, modifiers: [], effects: fire.effects.slice(1) })).toEqual(ordinary);
+    expect(units).toEqual(before);
+  });
+
+  it('updates the private action target list after preparation trims the cast', () => {
+    const { source, fire, rank } = setup(5);
+    status(source, 'wood');
+    fire.preparation = { effects: [], targetCount: 2 };
+    const ordinary = rank({ ...fire, modifiers: [] });
+    expect(rank(fire).benefits.offense).toBeCloseTo(ordinary.benefits.offense * 1.15);
+  });
+
+  it('attaches embers only to the first two secondary action targets', () => {
+    const { fire, rank } = setup(5);
+    const ember: StatusDef = { id: 'ember', kind: 'ember', name: '余火', category: 'dot', onTick: { type: 'dot', ratioOfMaxHp: 0.02 } };
+    fire.effects.push({ type: 'applyStatus', statusId: ember.id, duration: 2,
+      when: { targetSlot: 'secondary', expression: '(actionTargetIndex > 0)*(actionTargetIndex <= 2)' } });
+    const candidate = rank(fire, [ember]);
+    expect(candidate.intents.filter(intent => intent.statuses.includes(ember.id)).map(intent => intent.targetId))
+      .toEqual(['enemy-1', 'enemy-2']);
+  });
+
+  function recoveryFixture(injured: number) {
+    const base = setup(1);
+    const allies = Array.from({ length: 2 }, (_, index) => createUnit({ id: `ally-${index}`, name: '友方', side: 0, kind: 'player', slot: index + 1,
+      attrs: { hp: index < injured ? 1000 : 2000, maxHp: 2000 } }, index + 2));
+    base.units.push(...allies);
+    const full: StatusDef = { id: 'regrowth-single', kind: 'regrowth', name: '滋荣', category: 'buff', ticks: 'roundEnd', healingPerRound: 100 };
+    const spread: StatusDef = { ...full, id: 'regrowth-spread', healingPerRound: 70 };
+    const recovery: SkillDef = { id: 'recovery', name: '凝露滋荣', tags: ['spell'], targeting: { side: 'enemy' }, effects: [{
+      type: 'randomBranch', branchId: 'rain', chance: 'injuredAllyCount==1',
+      targeting: { side: 'ally', mode: 'lowestHp', count: 2, preferInjured: true },
+      successEffects: [{ type: 'heal', power: 100, includeHealPower: false }, { type: 'applyStatus', statusId: full.id, duration: 2 }],
+      failureEffects: [{ type: 'heal', power: 70, includeHealPower: false }, { type: 'applyStatus', statusId: spread.id, duration: 2 }],
+    }] };
+    return { ...base, allies, recovery, definitions: [full, spread] };
+  }
+
+  it('uses full recovery for the only legal injured ally and retains the seventy-percent branch for two injured allies', () => {
+    for (const count of [1, 2]) {
+      const { source, units, recovery, definitions, rank } = recoveryFixture(count);
+      source.attrs.healPower = 500;
+      const before = structuredClone(units);
+      const candidate = rank(recovery, definitions, 1);
+      expect(candidate.intents.filter(intent => intent.healing > 0).reduce((sum, intent) => sum + intent.healing, 0))
+        .toBe(count === 1 ? 300 : 420);
+      const applied = candidate.intents.flatMap(intent => intent.statuses);
+      expect(applied).toEqual(Array(count).fill(count === 1 ? 'regrowth-single' : 'regrowth-spread'));
+      expect(units).toEqual(before);
+    }
+  });
+
+  it('keeps full-health regrowth preapplication without crediting healing that cannot be used now', () => {
+    const { recovery, definitions, rank } = recoveryFixture(0);
+    const candidate = rank(recovery, definitions, 1);
+    expect(candidate.intents.reduce((sum, intent) => sum + intent.healing, 0)).toBe(0);
+    expect(candidate.intents.flatMap(intent => intent.statuses)).toEqual(['regrowth-spread', 'regrowth-spread']);
+  });
+
+  it('does not turn benched, hidden, or unrecoverable allies into extra recovery recipients', () => {
+    const { units, allies, recovery, definitions, rank } = recoveryFixture(1);
+    const bench = structuredClone(allies[0]);
+    bench.id = 'bench'; bench.flags.benched = true; bench.attrs.hp = 1;
+    const hidden = structuredClone(allies[0]);
+    hidden.id = 'hidden'; hidden.attrs.hp = 1; status(hidden, 'untargetable');
+    const wounded = structuredClone(allies[0]);
+    wounded.id = 'wounded'; wounded.attrs.hp = 1; wounded.wound = wounded.attrs.maxHp - 1;
+    units.push(bench, hidden, wounded);
+    definitions.push({ id: 'untargetable', kind: 'untargetable', name: '不可选', untargetable: true });
+    const candidate = rank(recovery, definitions, 1);
+    expect(candidate.intents.filter(intent => intent.healing > 0).reduce((sum, intent) => sum + intent.healing, 0)).toBe(300);
+    expect(candidate.intents.flatMap(intent => intent.statuses)).toEqual(['regrowth-single']);
+  });
+
+  it('values the authored Tianyan dew and regrowth single, split, and full-health recovery boundaries', () => {
+    for (const injured of [0, 1, 2]) for (const element of ['water', 'wood']) {
+      const { source, units, rank } = recoveryFixture(injured);
+      source.passives = ['tianyan.passive.rain'];
+      source.attrs.healPower = 500;
+      status(source, `tianyan.status.mark.${element === 'water' ? 'metal' : 'water'}`);
+      const skill = TIANYAN_V6_DEFINITION.skills.find(entry => entry.definition.id === `tianyan.skill.${element}`)!.definition;
+      const before = structuredClone(units);
+      const candidate = rank(skill, TIANYAN_V6_DEFINITION.statuses, 1);
+      expect(candidate.intents.reduce((sum, intent) => sum + intent.healing, 0))
+        .toBe(injured === 0 ? 0 : element === 'water' ? injured === 1 ? 480 : 672 : injured === 1 ? 560 : 784);
+      if (element === 'wood') expect(candidate.intents.flatMap(intent => intent.statuses).filter(id => id.startsWith('tianyan.status.regrowth')))
+        .toEqual(Array(injured === 1 ? 1 : 2).fill(injured === 1 ? 'tianyan.status.regrowth_single' : 'tianyan.status.regrowth'));
+      expect(units).toEqual(before);
+    }
   });
 });

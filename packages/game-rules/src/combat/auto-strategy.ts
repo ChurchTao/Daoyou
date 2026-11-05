@@ -1,4 +1,6 @@
 import { type AutoStrategy, type AutoComparison } from '@daoyou/game-domain/combat/auto';
+import { injuredAllyTargets, selectableAllyTargets } from '@daoyou/combat-core';
+import type { CombatV6SkillCommandOption, SkillDef, StatusDef, Unit } from '@daoyou/combat-core/types';
 
 
 
@@ -55,6 +57,13 @@ export function chooseStrategyCandidate(
   sourceId: string,
   candidates: AutoCandidate[],
   strategy?: AutoStrategy,
+  recoveryContext?: {
+    source: Unit;
+    allies: readonly Unit[];
+    skillOptions: readonly CombatV6SkillCommandOption[];
+    skills: readonly SkillDef[];
+    statusDefs: readonly StatusDef[];
+  },
 ): AutoCandidate | undefined {
   const source = observation.units.find((unit) => unit.id === sourceId);
   if (!source || !strategy) return candidates[0];
@@ -62,6 +71,25 @@ export function chooseStrategyCandidate(
   const enemies = observation.units.filter((unit) => unit.side !== source.side);
   const hpPercent = (unit: typeof source) =>
     (100 * unit.attrs.hp) / Math.max(1, unit.attrs.maxHp);
+  const hasRecoveryRule = strategy.rules.some(rule => rule.conditions.some(
+    condition => condition.type === 'allyHpBelow' && condition.recoverySkillId,
+  ));
+  const recoverySkills = recoveryContext && hasRecoveryRule
+    ? new Map(recoveryContext.skills.map(skill => [skill.id, skill]))
+    : undefined;
+  const recoveryStatuses = recoveryContext && hasRecoveryRule
+    ? new Map(recoveryContext.statusDefs.map(status => [status.id, status]))
+    : undefined;
+  // Recovery legality uses actual allied statuses, including healing prevention.
+  const woundedTeammates = recoveryContext && recoverySkills && recoveryStatuses
+    ? injuredAllyTargets(recoveryContext.source, recoveryContext.allies, recoverySkills, recoveryStatuses)
+        .filter(unit => unit.kind !== 'pet' && unit.id !== sourceId)
+    : [];
+  // Preparing a recovery spell needs a clear recipient under lowest-HP targeting.
+  const firstRecoveryTarget = recoveryContext && woundedTeammates.length
+    ? selectableAllyTargets(recoveryContext.source, recoveryContext.allies, recoverySkills, recoveryStatuses)
+        .sort((a, b) => hpPercent(a) - hpPercent(b) || a.slot - b.slot)[0]
+    : undefined;
   const matchesStatus = (
     unit: typeof source,
     condition: Extract<
@@ -89,7 +117,7 @@ export function chooseStrategyCandidate(
             autoComparison(condition),
           );
         case 'allyHpBelow':
-          return allies.some(
+          return (condition.recoverySkillId ? woundedTeammates : allies).some(
             (unit) =>
               standing(unit) &&
               compareNumber(
@@ -153,6 +181,25 @@ export function chooseStrategyCandidate(
             command.skillId === rule.action.skillId))
       ))
         return [];
+      for (const condition of rule.conditions) {
+        if (condition.type !== 'allyHpBelow' || !condition.recoverySkillId) continue;
+        if (command.type !== 'skill' || !recoveryContext) return [];
+        if (command.skillId === condition.recoverySkillId) {
+          const reachesWoundedTeammate = candidate.intents.some(intent =>
+            intent.healing > 0 && woundedTeammates.some(unit => unit.id === intent.targetId &&
+              compareNumber(hpPercent(unit), condition.percent, autoComparison(condition))),
+          );
+          if (!reachesWoundedTeammate) return [];
+        } else {
+          const setup = recoveryContext.skillOptions.find(option => option.skillId === command.skillId);
+          const recovery = recoveryContext.skillOptions.find(option => option.skillId === condition.recoverySkillId);
+          // Reserve both currently quoted MP costs before committing a turn to setup.
+          if (!firstRecoveryTarget || !woundedTeammates.includes(firstRecoveryTarget) ||
+            !compareNumber(hpPercent(firstRecoveryTarget), condition.percent, autoComparison(condition)) ||
+            !setup || !recovery?.ready || recovery.reasons.length ||
+            source.attrs.mp < setup.costs.mp + recovery.costs.mp) return [];
+        }
+      }
       const targetIds =
         command.type === 'attack'
           ? [command.target]

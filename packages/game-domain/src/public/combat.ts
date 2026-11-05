@@ -72,7 +72,11 @@ export type {
   PveRestoredState,
 } from '../combat/runtime.js';
 export type { PublicCombatV6Build } from '../combat/public-build.js';
-export type { CombatV6SessionSnapshot } from '../combat/session-view.js';
+export type {
+  CombatV6CommandOptionsView,
+  CombatV6SessionSnapshot,
+  CombatV6SkillPreview,
+} from '../combat/session-view.js';
 export {
   CombatV6TerminalReasonSchema,
   VersionStampSchema,

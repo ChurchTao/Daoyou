@@ -6,6 +6,7 @@ import { ATTR_NAMES } from "./constants.js"
 import { ExprFn, ExprVar } from "./enums.js"
 import type { Expr, ExprEnv, Unit } from "./types.js"
 import { effectiveAttrs, isStanding } from './units.js'
+import { injuredAllyTargets } from './unit-query.js'
 
 export function evalExpr(expr: Expr | undefined, env: ExprEnv): number {
   if (expr === undefined) return 0
@@ -175,6 +176,9 @@ class Parser {
   }
 
   private lookup(name: string): number {
+    if (name === 'actionTargetCount') return this.env.actionTargetIds?.length ?? 0
+    if (name === 'actionTargetIndex') return this.env.target ? this.env.actionTargetIds?.indexOf(this.env.target.id) ?? -1 : -1
+    if (name === 'injuredAllyCount') return injuredAllyTargets(this.env.source, this.env.state?.units ?? [], this.env.skills, this.env.statusDefs).length
     if (name === 'combatEnded') return this.env.state?.result ? 1 : 0
     if (name === 'guardUsedThisRound') return this.env.state && this.env.source.flags.hostileActionGuardRound === this.env.state.round ? 1 : 0
     if (name === 'targetGuardUsedThisRound') return this.env.state && this.env.target?.flags.hostileActionGuardRound === this.env.state.round ? 1 : 0
