@@ -118,7 +118,7 @@
     "@daoyou/constants": "workspace:*",
     "@daoyou/game-content": "workspace:*",
     "@daoyou/game-domain": "workspace:*",
-    "d3-format": "^3.1.2",
-    "zod": "^4.6.4"
+    "d3-format": "^3.1.3",
+    "zod": "^4.6.7"
   }
 }

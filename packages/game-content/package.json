@@ -107,6 +107,6 @@
     "@daoyou/combat-core": "workspace:*",
     "@daoyou/constants": "workspace:*",
     "@daoyou/game-domain": "workspace:*",
-    "zod": "^4.6.4"
+    "zod": "^4.6.7"
   }
 }

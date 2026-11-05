@@ -74,7 +74,7 @@
   },
   "dependencies": {
     "@daoyou/constants": "workspace:*",
-    "zod": "^4.6.4",
+    "zod": "^4.6.7",
     "@daoyou/combat-core": "workspace:*"
   }
 }
