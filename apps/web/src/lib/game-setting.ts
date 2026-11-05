@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 export interface GameSettings {
   mapMode: 'atlas' | 'text';
   imageOpacity: number;
+  paperTexture: boolean;
   /** Remember the in-battle auto toggle for later battles in this browser. */
   keepCombatAuto: boolean;
   /** Last in-battle auto choice. Honored only while `keepCombatAuto` is on. */
@@ -14,6 +15,7 @@ export const GAME_SETTING_STORAGE_KEY = 'game-setting';
 const defaults: Readonly<GameSettings> = {
   mapMode: 'atlas',
   imageOpacity: 1,
+  paperTexture: true,
   keepCombatAuto: false,
   combatAutoHeld: false,
 };
@@ -40,6 +42,7 @@ function readSettings(): GameSettings {
           ? stored.mapMode
           : defaults.mapMode,
         imageOpacity: normalizeImageOpacity(stored.imageOpacity),
+        paperTexture: stored.paperTexture !== false,
         keepCombatAuto,
         combatAutoHeld: keepCombatAuto && stored.combatAutoHeld === true,
       };
@@ -54,6 +57,7 @@ function sameSettings(left: GameSettings, right: GameSettings) {
   return (
     left.mapMode === right.mapMode &&
     left.imageOpacity === right.imageOpacity &&
+    left.paperTexture === right.paperTexture &&
     left.keepCombatAuto === right.keepCombatAuto &&
     left.combatAutoHeld === right.combatAutoHeld
   );
@@ -95,6 +99,7 @@ function subscribe(listener: () => void) {
 export function updateGameSettings(patch: Partial<GameSettings>) {
   const next = { ...getSnapshot(), ...patch };
   next.imageOpacity = normalizeImageOpacity(next.imageOpacity);
+  next.paperTexture = next.paperTexture !== false;
   next.keepCombatAuto = next.keepCombatAuto === true;
   // The held choice is meaningless until the player asks to keep it.
   next.combatAutoHeld = next.keepCombatAuto && next.combatAutoHeld === true;

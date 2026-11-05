@@ -13,7 +13,8 @@ import {
 import { formatDateTime } from './utils';
 
 export function GameSettingsTab() {
-  const { mapMode, imageOpacity, keepCombatAuto } = useGameSettings();
+  const { mapMode, imageOpacity, paperTexture, keepCombatAuto } =
+    useGameSettings();
   const cultivator = useCultivatorIdentity().data?.cultivator;
   const pwa = usePwaInstall();
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -71,6 +72,23 @@ export function GameSettingsTab() {
               updateGameSettings({ keepCombatAuto: checked })
             }
             aria-label="保持自动"
+          />
+        </label>
+      </SettingsSection>
+      <SettingsSection>
+        <label className="flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <span className="text-ink block text-sm leading-6">纸底纹理</span>
+            <span className="text-ink-secondary block text-xs leading-5">
+              关闭后使用纯宣纸色背景。
+            </span>
+          </span>
+          <InkSwitch
+            checked={paperTexture}
+            onCheckedChange={(checked) =>
+              updateGameSettings({ paperTexture: checked })
+            }
+            aria-label="纸底纹理"
           />
         </label>
       </SettingsSection>
