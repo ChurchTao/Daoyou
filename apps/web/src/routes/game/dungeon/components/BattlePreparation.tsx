@@ -71,7 +71,7 @@ function Meter({
 
 /**
  * 迎战准备：纸面上敌我对峙，四周淡墨晕染收紧气氛。对手立绘、身份与情状在一侧，
- * 你的气血、法力与出战灵兽在另一侧，中间一笔浓墨斜劈；
+ * 你的气血、法力与出战灵兽在另一侧，中间以马善政字体的 VS 分隔；
  * 选择写成两张后果卡，说明打与不打各会怎样。结尾对决先播一段“现形”转场。
  */
 export function BattlePreparation({
@@ -142,11 +142,13 @@ export function BattlePreparation({
           </p>
         </div>
 
-        {/* 敌我之间一笔浓墨斜劈，两头飞白散开，只在宽屏出现。 */}
+        {/* 敌我之间以书法 VS 分隔，窄屏上下排列时仍居中显示。 */}
         <div
           aria-hidden
-          className="mystery-duel-slash from-ink/0 via-ink/75 to-ink/0 hidden h-44 w-1.5 rotate-[14deg] rounded-full bg-gradient-to-b md:block"
-        />
+          className="mystery-duel-vs font-heading text-ink/75 justify-self-center text-5xl leading-none select-none md:text-6xl"
+        >
+          VS
+        </div>
 
         <div className="mystery-duel-self space-y-3">
           <div className="flex items-center gap-3">
