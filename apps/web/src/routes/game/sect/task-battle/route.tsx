@@ -11,7 +11,12 @@ import { InkButton } from '@app/components/ui';
 import { startSectTaskBattleOnce } from '@app/lib/sect/sectClient';
 import type { SectTaskSessionView } from '@daoyou/contracts/combat/sect-tasks';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router';
 import { SectPermissionBoundary } from '../components/SectScene';
 
 const base = '/api/combat-v6/sect-tasks';
@@ -26,6 +31,7 @@ function SectTaskBattleBody() {
   const combat = useCombatV6Session<SectTaskSessionView>(base);
   const tasks = useSectTasksQuery();
   const navigate = useNavigate();
+  const { state } = useLocation();
   const { taskId } = useParams();
   const [params] = useSearchParams();
   const attemptId = params.get('attemptId');
@@ -36,6 +42,7 @@ function SectTaskBattleBody() {
   const back = origin
     ? getSectTaskActivityLocation(origin, task, 'return').route
     : '/game/sect/affairs';
+  const returnState = origin === 'sect.foreign-gate' ? state : undefined;
   const [startError, setStartError] = useState('');
   const started = useRef(false);
   const { loading, session, acceptSession } = combat;
@@ -99,7 +106,7 @@ function SectTaskBattleBody() {
           onAuto={combat.submitAuto}
           onClose={() => {
             if (session.settlement === 'settled' && !combat.playing)
-              navigate(back, { replace: true });
+              navigate(back, { replace: true, state: returnState });
           }}
           back={back}
           backLabel="返回任务地点"
@@ -107,7 +114,9 @@ function SectTaskBattleBody() {
       ) : (
         <p>
           {error ? '尚未进入战斗。' : '正在准备战局…'}{' '}
-          <InkButton href={back}>返回任务地点</InkButton>
+          <InkButton onClick={() => navigate(back, { state: returnState })}>
+            返回任务地点
+          </InkButton>
         </p>
       )}
     </CombatV6Page>

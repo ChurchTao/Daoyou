@@ -10,11 +10,18 @@ import {
   type SectNpcConversationRendererProps,
 } from '@app/components/feature/sect/room';
 import {
+  SectRoomConversation,
+  type SectRoomConversationSelection,
+} from '@app/components/feature/sect/room/SectRoomConversation';
+import {
   useSectPromotionEvaluationQuery,
   useSectTasksQuery,
 } from '@app/components/feature/sect/sectResources';
 import { SectTaskActionRenderer } from '@app/components/feature/sect/SectTaskActionRenderer';
-import { useSectTaskInteraction } from '@app/components/feature/sect/SectTaskInteractionProvider';
+import {
+  SectTaskInteractionProvider,
+  useSectTaskInteraction,
+} from '@app/components/feature/sect/SectTaskInteractionProvider';
 import {
   decodeSectTaskOutcome,
   readRewardReceiptOutcome,
@@ -152,6 +159,16 @@ export function SectAffairsRoom() {
       eyebrow="宗门公牍 · 当值录事"
       prompt="点击人物，与其交谈"
     />
+  );
+}
+
+export function SectAffairsMapConversation(
+  props: SectRoomConversationSelection,
+) {
+  return (
+    <SectTaskInteractionProvider>
+      <SectRoomConversation {...props} registry={affairsConversationRegistry} />
+    </SectTaskInteractionProvider>
   );
 }
 

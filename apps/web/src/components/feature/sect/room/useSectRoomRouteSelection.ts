@@ -1,11 +1,12 @@
 import { SECT_ROOM_NPC_QUERY_KEY } from '@app/components/feature/sect/sectRoomNavigation';
 import type { SectRoomDefinition } from '@daoyou/game-rules/sect-organization';
 import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 
 export function useSectRoomRouteSelection(
   room: SectRoomDefinition | undefined,
 ) {
+  const { state } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedRoleKey = searchParams.get(SECT_ROOM_NPC_QUERY_KEY);
   const roleKey = room?.actors.some(
@@ -22,9 +23,9 @@ export function useSectRoomRouteSelection(
       )
         next.set(SECT_ROOM_NPC_QUERY_KEY, nextRoleKey);
       else next.delete(SECT_ROOM_NPC_QUERY_KEY);
-      setSearchParams(next, { replace: true });
+      setSearchParams(next, { replace: true, state });
     },
-    [room, searchParams, setSearchParams],
+    [room, searchParams, setSearchParams, state],
   );
 
   return useMemo(() => ({ roleKey, onChange }), [onChange, roleKey]);

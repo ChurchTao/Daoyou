@@ -1,8 +1,6 @@
-import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
-import { InkInput } from '@app/components/ui/InkInput';
 import { cn } from '@app/lib/cn';
 import type {
   MysteryAction,
@@ -22,13 +20,12 @@ import { MysteryIntro } from './MysteryIntro';
 import { MysteryMechanismScene } from './MysteryMechanismScene';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { MysteryNotebook } from './MysteryNotebook';
-import { MysteryPortrait } from './MysteryPortrait';
 import {
   MysteryProse,
   type ProseMenuItem,
   type ProseTarget,
 } from './MysteryProse';
-import { mysteryDialogueWith } from './mysteryQuestions';
+import { MysteryTalkDrawer } from './MysteryTalkDrawer';
 import { useMinWidth } from './useMinWidth';
 import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
@@ -118,10 +115,6 @@ export function DungeonMystery({
     npcId: string;
     npcName: string;
   } | null>(null);
-  const askingPortrait = view.knownNpcs.find(
-    (n) => n.id === asking?.npcId,
-  )?.portrait;
-  const [question, setQuestion] = useState('');
   const [boardOpen, setBoardOpen] = useState(false);
   const [boardTab, setBoardTab] = useState<MysteryBoardTab>('clues');
   const [deducing, setDeducing] = useState(false);
@@ -641,84 +634,17 @@ export function DungeonMystery({
         onSubmit={onDeduce}
       />
 
-      <InkDetailDrawer
-        isOpen={asking !== null}
-        onClose={() => setAsking(null)}
-        size="md"
-        title={
-          asking ? (
-            <span className="flex items-center gap-3">
-              <MysteryPortrait
-                portrait={askingPortrait}
-                name={asking.npcName}
-                size="md"
-              />
-              与{asking.npcName}交谈
-            </span>
-          ) : (
-            ''
-          )
-        }
-        description={
-          view.npcsHere.find((n) => n.id === asking?.npcId)?.firstTalkFree
-            ? '直接问你想知道的事。第一问不耗行动力，之后每问一句耗 1 点。'
-            : '直接问你想知道的事，每问一句耗 1 点行动力。'
-        }
-        footer={
-          asking ? (
-            <div className="flex w-full flex-wrap items-end gap-2">
-              <InkInput
-                containerClassName="min-w-0 flex-1"
-                value={question}
-                maxLength={80}
-                placeholder="例如：你昨夜在做什么？"
-                onChange={setQuestion}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && question.trim() && !processing) {
-                    event.preventDefault();
-                    void onTalk(asking.npcId, question.trim()).then(
-                      (sent) => sent && setQuestion(''),
-                    );
-                  }
-                }}
-              />
-              <InkButton
-                variant="primary"
-                disabled={!question.trim() || processing || exhausted}
-                pending={processing}
-                pendingLabel="对方思索中……"
-                onClick={() =>
-                  void onTalk(asking.npcId, question.trim()).then(
-                    (sent) => sent && setQuestion(''),
-                  )
-                }
-              >
-                提问
-              </InkButton>
-              <InkButton
-                variant="ghost"
-                disabled={processing || exhausted}
-                onClick={() => act({ type: 'talk', npcId: asking.npcId })}
-              >
-                闲聊几句
-              </InkButton>
-            </div>
-          ) : null
-        }
-      >
-        {asking ? (
-          <div className="space-y-2 text-sm">
-            {mysteryDialogueWith(view.log, asking.npcName)
-              .slice(-10)
-              .map((entry, index) => (
-                <MysteryLogLine key={index} entry={entry} />
-              ))}
-            {exhausted ? (
-              <p className="text-crimson">行动力已尽，不能再问了。</p>
-            ) : null}
-          </div>
-        ) : null}
-      </InkDetailDrawer>
+      {asking ? (
+        <MysteryTalkDrawer
+          key={asking.npcId}
+          npc={{ id: asking.npcId, name: asking.npcName }}
+          view={view}
+          processing={processing}
+          onClose={() => setAsking(null)}
+          onTalk={onTalk}
+          onSmallTalk={() => act({ type: 'talk', npcId: asking.npcId })}
+        />
+      ) : null}
 
       <MysteryNotebook
         text={notes.notebook}

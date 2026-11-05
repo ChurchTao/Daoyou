@@ -1,8 +1,10 @@
 export {
   NpcConversation,
+  NpcConversationPresentationProvider,
   type NpcConversationActor,
   type NpcConversationMessage,
   type NpcConversationOption,
+  type NpcConversationPresentation,
   type NpcConversationProps,
 } from './NpcConversation';
 export {

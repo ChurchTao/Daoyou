@@ -25,6 +25,7 @@ export interface InkDetailDrawerProps {
   closeOnEscape?: boolean;
   closeOnOverlayClick?: boolean;
   className?: string;
+  overlayClassName?: string;
 }
 
 const drawerSizeClass: Record<InkDetailDrawerSize, string> = {
@@ -56,6 +57,7 @@ export function InkDetailDrawer({
   closeOnEscape = true,
   closeOnOverlayClick = true,
   className,
+  overlayClassName = 'ink-overlay',
 }: InkDetailDrawerProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -118,7 +120,10 @@ export function InkDetailDrawer({
     <div ref={viewportRef} className="fixed inset-0 z-50">
       <button
         type="button"
-        className="ink-overlay absolute inset-0 h-full w-full cursor-default"
+        className={cn(
+          'absolute inset-0 h-full w-full cursor-default',
+          overlayClassName,
+        )}
         aria-label="关闭详情"
         onClick={closeOnOverlayClick ? onClose : undefined}
       />

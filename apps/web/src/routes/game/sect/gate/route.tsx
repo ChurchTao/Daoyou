@@ -10,6 +10,10 @@ import {
   type SectNpcConversationRendererProps,
 } from '@app/components/feature/sect/room';
 import {
+  SectRoomConversation,
+  type SectRoomConversationSelection,
+} from '@app/components/feature/sect/room/SectRoomConversation';
+import {
   useSectInfrastructureQuery,
   useSectTasksQuery,
 } from '@app/components/feature/sect/sectResources';
@@ -30,6 +34,10 @@ const registry = new SectNpcConversationRegistry([
   { key: 'sect.gate.news', renderer: GateConversation },
   { key: 'sect.gate.sweep', renderer: GateSweepConversation },
 ]).assertRoom(STANDARD_SECT_PRESENTATION.rooms.gate);
+
+export function SectGateMapConversation(props: SectRoomConversationSelection) {
+  return <SectRoomConversation {...props} registry={registry} />;
+}
 
 export default function SectGatePage() {
   return (

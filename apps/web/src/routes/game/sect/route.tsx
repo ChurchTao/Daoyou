@@ -5,16 +5,20 @@ import {
   useSectContextQuery,
   useSectInfrastructureQuery,
 } from '@app/components/feature/sect/sectResources';
-import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
+import { GameLoadingState } from '@app/components/game-shell';
 import { InkButton } from '@app/components/ui';
 import { formatDocumentTitle } from '@app/lib/router/routeTitle';
 import { getSectPresentation } from '@app/lib/sect/sectPresentation';
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
+import { SectImmersiveFrame } from './components/SectImmersiveFrame';
+import { SectMemberMapLocation } from './components/SectMemberMapLocation';
 import { SectQueryError } from './components/SectScene';
 
 export default function SectPage() {
   const navigate = useNavigate();
+  const { state } = useLocation();
+  const closeMap = () => navigate('/game', { replace: true });
 
   const context = useSectContextQuery();
   const infrastructure = useSectInfrastructureQuery();
@@ -29,15 +33,15 @@ export default function SectPage() {
 
   if (error === '尚未拜入宗门') {
     return (
-      <GameSceneFrame
+      <SectImmersiveFrame
         title="诸宗山门"
         description="你还没有拜入山门，仍以散修身份行走。"
-        identityOverride={{
-          label: '诸宗山门',
-          summary: '你还没有拜入山门，仍以散修身份行走。',
-        }}
+        backAction={{ label: '返回洞府', onBack: closeMap }}
       >
-        <p data-guide="sect.self" className="text-ink-secondary text-sm leading-7">
+        <p
+          data-guide="sect.self"
+          className="text-ink-secondary text-sm leading-7"
+        >
           可以先看看各宗门，再决定是否拜入。
         </p>
         <span data-guide="sect.door" className="mt-4 inline-flex">
@@ -45,7 +49,7 @@ export default function SectPage() {
             去看看山门
           </InkButton>
         </span>
-      </GameSceneFrame>
+      </SectImmersiveFrame>
     );
   }
 
@@ -53,6 +57,7 @@ export default function SectPage() {
     return (
       <SectQueryError
         error={error}
+        backHref="/game"
         retry={() =>
           void Promise.all([context.retry(), infrastructure.retry()])
         }
@@ -60,7 +65,10 @@ export default function SectPage() {
     );
   if (!context.data || !infrastructure.data)
     return (
-      <GameSceneLoading message={currentPresentation.scenes.map.loadingText} />
+      <GameLoadingState
+        variant="immersive"
+        message={currentPresentation.scenes.map.loadingText}
+      />
     );
 
   const definition = getSectDefinition(context.data);
@@ -68,53 +76,45 @@ export default function SectPage() {
   const presentation = getSectPresentation(definition.id);
   const mapScene = presentation.scenes.map;
   return (
-    <GameSceneFrame
-      title={`【${mapScene.title}】`}
-      description={mapScene.description}
-      identityOverride={{
-        label: mapScene.title,
-        summary: mapScene.description,
-      }}
-      contentClassName="lg:max-w-none"
-    >
+    <>
       <title>{formatDocumentTitle(mapScene.title)}</title>
-      {presentation.map.image ? (
-        <SectMap
-          image={presentation.map.image}
-          alt={presentation.map.alt}
-          aspectRatio={presentation.map.aspectRatio}
-          hotspots={presentation.map.hotspots}
-          facilities={facilities}
-          permissions={permissions}
-          rooms={presentation.rooms}
-          scenes={presentation.scenes}
-          onNavigate={(route) => navigate(route)}
-        />
-      ) : (
-        <div className="border-ink/15 bg-ink/10 grid gap-px border sm:grid-cols-2 lg:grid-cols-3">
-          {presentation.map.hotspots.map((spot) => {
-            const access = spot.permission
-              ? permissions?.[spot.permission]
-              : undefined;
-            const disabled =
-              spot.locked || !spot.route || access?.granted === false;
-            return (
-              <button
-                key={spot.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => spot.route && navigate(spot.route)}
-                className="bg-paper min-h-24 p-4 text-left transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <strong>{spot.label}</strong>
-                <p className="text-ink-secondary mt-2 text-sm">
-                  {access?.granted === false ? access.reason : spot.note}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </GameSceneFrame>
+      <SectMap
+        title={mapScene.title}
+        backAction={{ label: '关闭地图', onBack: closeMap }}
+        initialSelectedId={
+          typeof state?.sectMapSpotId === 'string'
+            ? state.sectMapSpotId
+            : undefined
+        }
+        image={presentation.map.image}
+        alt={presentation.map.alt}
+        aspectRatio={presentation.map.aspectRatio}
+        hotspots={presentation.map.hotspots}
+        facilities={facilities}
+        permissions={permissions}
+        rooms={presentation.rooms}
+        scenes={presentation.scenes}
+        renderLocation={(location) => {
+          const { spot } = location;
+          if (
+            (spot.id !== 'gate' && spot.id !== 'affairs') ||
+            !spot.permission ||
+            !permissions[spot.permission]?.granted
+          )
+            return null;
+          const room = presentation.rooms[spot.id];
+          return room ? (
+            <SectMemberMapLocation
+              key={spot.id}
+              room={room}
+              location={location}
+            />
+          ) : null;
+        }}
+        onNavigate={(route, sectMapSpotId) =>
+          navigate(route, { state: { sectMapSpotId } })
+        }
+      />
+    </>
   );
 }

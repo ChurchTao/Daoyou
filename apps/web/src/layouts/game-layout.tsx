@@ -13,7 +13,6 @@ import { TRANSFER_PENDING_NOTE, TRANSFERRED_NOTE } from '@daoyou/contracts/trans
 import { AuthProvider } from '@app/lib/auth/authContext';
 import { PlayerProvider } from '@app/lib/player/PlayerProvider';
 import { usePlayerSession } from '@app/lib/resources/player';
-import { resolveMapReturnHref } from '@app/lib/router/mapNavigation';
 import type { UserLoaderData } from '@app/lib/router/routeData';
 import {
   resolveGameScene,
@@ -39,20 +38,6 @@ import {
   useMatches,
   useNavigate,
 } from 'react-router';
-import { SpecialSceneProvider } from './special-scene';
-import { useSpecialSceneBackOverride } from './useSpecialSceneBack.js';
-
-type SpecialBackAction = {
-  type: 'path';
-  href: string;
-  replace?: boolean;
-  label: string;
-};
-
-interface SpecialSceneDescriptor {
-  sceneLabel: string;
-  backAction: SpecialBackAction;
-}
 
 function LoadingScreen({ message }: { message: string }) {
   return <GameLoadingState message={message} variant="fullscreen" />;
@@ -104,148 +89,18 @@ function PlayerShell() {
   return <Outlet />;
 }
 
-function resolveSpecialSceneDescriptor(
-  pathname: string,
-  scene: GameSceneHandle | null,
-): SpecialSceneDescriptor | null {
-  if (!scene || scene.chrome !== 'immersive') {
-    return null;
-  }
-
-  if (/^\/game\/sect\/[^/]+\/visit$/.test(pathname)) {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '返回大世界',
-        href: '/game/map-v2?intent=sect',
-        replace: true,
-      },
-    };
-  }
-
-  if (pathname === '/game/battle/challenge') {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '返回天骄榜',
-        href: '/game/rankings',
-      },
-    };
-  }
-
-  if (/^\/game\/battle\/[^/]+$/.test(pathname)) {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '返回战绩',
-        href: '/game/battle/history',
-      },
-    };
-  }
-
-  if (pathname === '/game/training-room') {
-    return {
-      sceneLabel: scene.label,
-      backAction: {
-        type: 'path',
-        label: '离开练功房',
-        href: '/game',
-      },
-    };
-  }
-
-  if (pathname === '/game/wild')
-    return {
-      sceneLabel: scene.label,
-      backAction: { type: 'path', label: '返回地图', href: '/game/map-v2' },
-    };
-
-  return null;
-}
-
-function useResolvedSpecialScene() {
-  const location = useLocation();
-  const matches = useMatches();
-  const scene = resolveGameScene(matches);
-  const routeTitle = resolveRouteTitle(matches, location);
-  const descriptor = useMemo(
-    () => resolveSpecialSceneDescriptor(location.pathname, scene),
-    [location.pathname, scene],
-  );
-
-  return {
-    descriptor,
-    location,
-    routeTitle,
-    scene,
-  };
-}
-
-function useSpecialSceneBackActionState(
-  descriptor: SpecialSceneDescriptor | null,
-) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const backOverride = useSpecialSceneBackOverride();
-
-  const label = backOverride?.label ?? descriptor?.backAction.label ?? '返回';
-  const onBack = () => {
-    if (backOverride) {
-      backOverride.onBack();
-      return;
-    }
-
-    if (!descriptor) return;
-
-    navigate(resolveMapReturnHref(descriptor.backAction.href, location.state), {
-      replace: descriptor.backAction.replace,
-    });
-  };
-
-  return {
-    label,
-    onBack,
-  };
-}
-
-function SectVisitSceneChrome() {
-  const { descriptor, location, routeTitle } = useResolvedSpecialScene();
-  const { label, onBack } = useSpecialSceneBackActionState(descriptor);
-
-  // World atlas navigation is owned by AtlasToolbar; this chrome is only for sect visits.
-  if (!descriptor || !/^\/game\/sect\/[^/]+\/visit$/.test(location.pathname)) {
-    return null;
-  }
-
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between pt-[calc(var(--app-safe-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)] md:pr-[max(env(safe-area-inset-right),1.25rem)] md:pl-[max(env(safe-area-inset-left),1.25rem)]">
-      <div className="pointer-events-auto">
-        <button
-          type="button"
-          onClick={onBack}
-          className="border-battle-rule-strong text-battle-muted hover:text-crimson border border-dashed bg-paper px-3 py-2 text-sm shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm transition"
-        >
-          [{label}]
-        </button>
-      </div>
-      <div className="border-battle-rule-strong pointer-events-auto border border-dashed bg-paper px-4 py-2 text-right shadow-[0_10px_30px_rgba(44,24,16,0.08)] backdrop-blur-sm">
-        <div className="text-ink font-semibold">{routeTitle}</div>
-        <div className="text-battle-muted text-xs tracking-[0.12em]">
-          人界 · 访宗舆图
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function GameViewportLayout() {
+  const scene = resolveGameScene(useMatches());
+  return scene?.chrome === 'immersive' ? (
+    <GameMapLayout scrollContent />
+  ) : (
+    <GameViewportBody scene={scene} />
+  );
+}
+
+function GameViewportBody({ scene }: { scene: GameSceneHandle | null }) {
   const location = useLocation();
-  const matches = useMatches();
   const hud = useGameHudModel();
-  const scene = resolveGameScene(matches);
   const routeKey = `${location.pathname}${location.search}`;
   const [dockExpandedAt, setDockExpandedAt] = useState<string | null>(null);
   const bottomChromeRef = useRef<HTMLDivElement | null>(null);
@@ -333,21 +188,13 @@ export function GameViewportLayout() {
   );
 }
 
-function GameCombatLayoutBody() {
+export function GameCombatLayout() {
   return (
     <PaperSurface className="h-dvh overflow-hidden">
       <main className="h-full overflow-hidden">
         <Outlet />
       </main>
     </PaperSurface>
-  );
-}
-
-export function GameCombatLayout() {
-  return (
-    <SpecialSceneProvider>
-      <GameCombatLayoutBody />
-    </SpecialSceneProvider>
   );
 }
 
@@ -369,25 +216,24 @@ export function GameNarrativeLayout() {
   );
 }
 
-function GameMapLayoutBody() {
+export function GameMapLayout({
+  scrollContent = false,
+}: {
+  scrollContent?: boolean;
+}) {
   return (
-    <div className="bg-scene h-dvh overflow-hidden">
-      <div className="relative h-full overflow-hidden">
-        <SectVisitSceneChrome />
-        <main className="h-full overflow-hidden">
-          <Outlet />
-        </main>
-        <GuideOverlay />
-      </div>
+    <div className="bg-scene relative h-dvh overflow-hidden">
+      <main
+        className={
+          scrollContent
+            ? 'h-full overflow-x-hidden overflow-y-auto'
+            : 'h-full overflow-hidden'
+        }
+      >
+        <Outlet />
+      </main>
+      <GuideOverlay />
     </div>
-  );
-}
-
-export function GameMapLayout() {
-  return (
-    <SpecialSceneProvider>
-      <GameMapLayoutBody />
-    </SpecialSceneProvider>
   );
 }
 
