@@ -17,7 +17,7 @@ export const dungeonRoutes = (
           chrome: 'immersive',
           dock: 'hidden',
         },
-        '云游探秘',
+        '云游',
       )}
     />
   </Route>

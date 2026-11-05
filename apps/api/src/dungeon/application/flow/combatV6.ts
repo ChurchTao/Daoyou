@@ -1,11 +1,13 @@
 import type { RealmType } from '@daoyou/constants/realms';
 import type { DungeonSessionView } from '@daoyou/contracts/combat/dungeon';
+import { EXORCISM_ENCOUNTER_PACK } from '@daoyou/game-content/dungeon/exorcism';
 import { getMapNode } from '@daoyou/game-content/world/map';
 import type { CombatV6CommandGroup } from '@daoyou/game-domain/combat';
 import type { DungeonTemplate } from '@daoyou/game-domain/combat/challenges';
 import { type DungeonBattleSnapshot } from '@daoyou/game-domain/combat/challenges';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
+import type { ExorcismBattleSnapshot } from '@daoyou/game-domain/dungeon/exorcism';
 import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/progression';
 import {
   beastDeathIds,
@@ -30,6 +32,13 @@ import {
 } from '@daoyou/game-rules/combat/presentation';
 import { projectCharacterToCombatV6 } from '@daoyou/game-rules/combat/projection';
 import { createCombatV6Replay } from '@daoyou/game-rules/combat/replay';
+import {
+  applyExorcismBattle,
+  createExorcismHost,
+  exorcismCurrentStage,
+  ExorcismHost,
+  planExorcismWinReward,
+} from '@daoyou/game-rules/dungeon/exorcism';
 import { appendDungeonReward } from '@daoyou/game-rules/rewards/dungeon';
 import {
   clampDungeonEnemyRealmStage,
@@ -39,7 +48,10 @@ import { assembleCombatV6WildPlayer } from '@server/combat/application/CombatV6B
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import { hasActiveDungeon } from '@server/dungeon/application/flow/occupancy.js';
-import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
+import {
+  resolveDungeonReward,
+  resolvePlanItems,
+} from '@server/dungeon/application/flow/rewards.js';
 import type {
   BattleSession,
   DungeonState,
@@ -62,15 +74,37 @@ import { ResourceEventCommitter } from '@server/player/application/state/Resourc
 import { and, eq, ne } from 'drizzle-orm';
 import { randomInt, randomUUID } from 'node:crypto';
 
+type AnyDungeonSnapshot = DungeonBattleSnapshot | ExorcismBattleSnapshot;
+
+/** 探秘与除祟共用战斗接口，按快照版本取宿主。 */
+function hostOf(
+  source:
+    | Pick<DungeonBattleSnapshot, 'version' | 'playerId' | 'input'>
+    | Pick<
+        ExorcismBattleSnapshot,
+        'version' | 'playerId' | 'input' | 'npcPlans'
+      >,
+  restored?: AnyDungeonSnapshot,
+): DungeonHost | ExorcismHost {
+  return source.version === 'exorcism-v6-v1'
+    ? new ExorcismHost(source, restored)
+    : new DungeonHost(source, restored);
+}
+
 export interface DungeonBattlePayload {
   session: BattleSession;
-  snapshot: DungeonBattleSnapshot;
+  snapshot: AnyDungeonSnapshot;
   revision: number;
   startedAt: string;
   settled: boolean;
 }
 export interface DungeonEncounterPayload {
-  encounter: Pick<DungeonBattleSnapshot, 'version' | 'playerId' | 'input'>;
+  encounter:
+    | Pick<DungeonBattleSnapshot, 'version' | 'playerId' | 'input'>
+    | Pick<
+        ExorcismBattleSnapshot,
+        'version' | 'playerId' | 'input' | 'npcPlans'
+      >;
   preview: DungeonEncounterView;
 }
 export async function dungeonPlayer(owner: string, tx: DbExecutor = db) {
@@ -108,6 +142,15 @@ function dungeonBattleSetup(state: DungeonState) {
   const map = getMapNode(state.mapNodeId);
   if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
   const mapConfig = resolveDungeonMapConfig(map);
+  if (state.exorcism)
+    return {
+      realm: map.realm_requirement as RealmType,
+      stage: EXORCISM_ENCOUNTER_PACK.tiers[mapConfig.difficultyTier].enemyStage,
+      template: (['normal', 'normal', 'elite', 'boss'] as const)[
+        exorcismCurrentStage(state.exorcism) - 1
+      ],
+      tier: mapConfig.difficultyTier,
+    };
   const battle = state.pendingAction?.costs.find(
     (cost) => cost.type === 'battle',
   );
@@ -199,11 +242,95 @@ export async function prepareDungeonEncounter(
     },
   };
 }
+
+const EXORCISM_STAGE_LINES = [
+  '祟气扑面，先遣的祟物已挡住去路。',
+  '两侧有动静，你被埋伏了。',
+  '祟主的护法现身了，它的手段和祟主如出一辙。',
+  '祟主就在前方。',
+];
+
+/** 除祟的下一场：种子由本局种子和场次决定，刷新或重开不会换敌人。 */
+export async function prepareExorcismEncounter(
+  state: DungeonState,
+): Promise<DungeonEncounterPayload> {
+  const run = state.exorcism;
+  if (!run || state.rewardSeed === undefined) throw new Error('除祟状态缺失');
+  const { player } = await dungeonPlayer(state.cultivatorId);
+  const setup = dungeonBattleSetup(state);
+  const stage = exorcismCurrentStage(run);
+  const host = createExorcismHost(
+    player,
+    { realm: setup.realm, tier: setup.tier },
+    run,
+    (state.rewardSeed + stage * 7919) >>> 0,
+  );
+  const snapshot = host.runtimeSnapshot();
+  const unit = snapshot.input.units.find((u) => u.id === snapshot.playerId)!;
+  return {
+    encounter: {
+      version: snapshot.version,
+      playerId: snapshot.playerId,
+      input: snapshot.input,
+      npcPlans: snapshot.npcPlans,
+    },
+    preview: {
+      id: randomUUID(),
+      description: EXORCISM_STAGE_LINES[stage - 1],
+      enemies: snapshot.input.units
+        .filter((u) => u.side === 1)
+        .map((u) => u.name ?? '祟物'),
+      hp: { current: unit.attrs?.hp ?? 0, max: unit.attrs?.maxHp ?? 0 },
+      mp: { current: unit.attrs?.mp ?? 0, max: unit.attrs?.maxMp ?? 0 },
+      beast:
+        snapshot.input.units.find(
+          (u) => u.ownerId === snapshot.playerId && !u.benched,
+        )?.name ?? null,
+    },
+  };
+}
+
+/** 除祟场次结束：只记局内资源，不写现实气血，也不扣灵兽寿元。 */
+async function settleExorcismBattle(
+  state: DungeonState,
+  host: ExorcismHost,
+  tx: DbExecutor,
+) {
+  const run = state.exorcism!;
+  const victory = host.trace().outcome === 'victory';
+  if (victory) {
+    const map = getMapNode(state.mapNodeId);
+    if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
+    const mapRealm = map.realm_requirement as RealmType;
+    const planned = planExorcismWinReward(
+      state.rewardSeed!,
+      exorcismCurrentStage(run),
+      combatCharacterLevel(mapRealm, '初期'),
+      {
+        mapRealm,
+        playerRealm: state.playerInfo.realm.split(' ')[0] as RealmType,
+        difficultyTier: resolveDungeonMapConfig(map).difficultyTier,
+      },
+    );
+    state.v6Rewards = appendDungeonReward(state.v6Rewards ?? [], {
+      key: planned.key,
+      experience: planned.experience,
+      spiritStones: planned.spiritStones,
+      items: await resolvePlanItems(planned.plan, tx),
+      beastExperience: beastVictoryExperience(host.state, host.playerId),
+    });
+  }
+  state.exorcism = applyExorcismBattle(run, {
+    victory,
+    resources: host.finalResources(),
+  });
+}
+
 export function beginDungeonBattle(
   state: DungeonState,
   prepared: DungeonEncounterPayload,
 ): DungeonBattlePayload {
-  const restored = new DungeonHost(prepared.encounter);
+  const restored = hostOf(prepared.encounter);
   const encounter = dungeonBattleSetup(state);
   return {
     session: {
@@ -238,12 +365,15 @@ async function readRun(owner: string, battleId?: string, tx: DbExecutor = db) {
   if (!run?.activeBattleId || (battleId && run.activeBattleId !== battleId))
     return null;
   const payload = run.battlePayload as DungeonBattlePayload;
-  if (payload?.snapshot?.version !== 'dungeon-v6-v1')
+  if (
+    payload?.snapshot?.version !== 'dungeon-v6-v1' &&
+    payload?.snapshot?.version !== 'exorcism-v6-v1'
+  )
     throw new Error('旧秘境会话不可续跑，请由维护流程处理');
   return { run, payload, state: run.runState as DungeonState };
 }
 function view(payload: DungeonBattlePayload, after = -1): DungeonSessionView {
-  const host = new DungeonHost(payload.snapshot, payload.snapshot);
+  const host = hostOf(payload.snapshot, payload.snapshot);
   const snapshot = payload.snapshot;
   return {
     apiVersion: 1,
@@ -306,7 +436,7 @@ export async function changeDungeonBattle(
         const { run, payload, state } = found;
         if (payload.revision !== revision)
           throw new Error('战斗状态已变化，请刷新');
-        const host = new DungeonHost(payload.snapshot, payload.snapshot);
+        const host = hostOf(payload.snapshot, payload.snapshot);
         if (host.finished) return view(payload);
         if (autoRound !== undefined) {
           if (host.state.round !== autoRound)
@@ -340,53 +470,59 @@ export async function changeDungeonBattle(
         if (!command)
           playback.capture(host.state, payload.snapshot.events.length - 1);
         if (host.finished && !payload.settled) {
-          const final = host.state.units.find((u) => u.id === host.playerId)!;
-          const [row] = await tx
-            .select({ condition: cultivators.condition })
-            .from(cultivators)
-            .where(eq(cultivators.id, actor.cultivatorId));
-          if (!row?.condition) throw new Error('角色资源缺失');
-          const condition = ConditionService.applyCombatV6Resources(
-            row.condition as CultivatorCondition,
-            {
-              hp: Math.max(1, final.attrs.hp),
-              mp: final.attrs.mp,
-              maxHp: final.attrs.maxHp,
-              maxMp: final.attrs.maxMp,
-            },
-          );
-          await tx
-            .update(cultivators)
-            .set({ condition })
-            .where(eq(cultivators.id, actor.cultivatorId));
-          await settleBeastDeaths(
-            actor.cultivatorId,
-            beastDeathIds(payload.snapshot.events),
-            tx,
-          );
-          state.beastResources = {
-            ...state.beastResources,
-            ...Object.fromEntries(
-              host.state.units
-                .filter((u) => u.ownerId === host.playerId)
-                .map((u) => [u.id, { hp: u.attrs.hp, mp: u.attrs.mp }]),
-            ),
-          };
-          if (host.trace().outcome === 'victory') {
-            const reward = await resolveDungeonReward(
-              state,
-              `battle:${id}`,
-              'battle',
+          if (state.exorcism) {
+            if (!(host instanceof ExorcismHost))
+              throw new Error('除祟战斗宿主不匹配');
+            await settleExorcismBattle(state, host, tx);
+          } else {
+            const final = host.state.units.find((u) => u.id === host.playerId)!;
+            const [row] = await tx
+              .select({ condition: cultivators.condition })
+              .from(cultivators)
+              .where(eq(cultivators.id, actor.cultivatorId));
+            if (!row?.condition) throw new Error('角色资源缺失');
+            const condition = ConditionService.applyCombatV6Resources(
+              row.condition as CultivatorCondition,
+              {
+                hp: Math.max(1, final.attrs.hp),
+                mp: final.attrs.mp,
+                maxHp: final.attrs.maxHp,
+                maxMp: final.attrs.maxMp,
+              },
+            );
+            await tx
+              .update(cultivators)
+              .set({ condition })
+              .where(eq(cultivators.id, actor.cultivatorId));
+            await settleBeastDeaths(
+              actor.cultivatorId,
+              beastDeathIds(payload.snapshot.events),
               tx,
             );
-            reward.beastExperience = beastVictoryExperience(
-              host.state,
-              host.playerId,
-            );
-            state.v6Rewards = appendDungeonReward(
-              state.v6Rewards ?? [],
-              reward,
-            );
+            state.beastResources = {
+              ...state.beastResources,
+              ...Object.fromEntries(
+                host.state.units
+                  .filter((u) => u.ownerId === host.playerId)
+                  .map((u) => [u.id, { hp: u.attrs.hp, mp: u.attrs.mp }]),
+              ),
+            };
+            if (host.trace().outcome === 'victory') {
+              const reward = await resolveDungeonReward(
+                state,
+                `battle:${id}`,
+                'battle',
+                tx,
+              );
+              reward.beastExperience = beastVictoryExperience(
+                host.state,
+                host.playerId,
+              );
+              state.v6Rewards = appendDungeonReward(
+                state.v6Rewards ?? [],
+                reward,
+              );
+            }
           }
           await archiveCombatV6Replay(
             createCombatV6Replay({

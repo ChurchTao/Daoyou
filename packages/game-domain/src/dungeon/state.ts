@@ -321,6 +321,8 @@ export interface DungeonState {
   mystery?: import('./mystery.js').MysteryRecord;
   /** 解谜模式玩家投影，仅出现在下发给客户端的状态中。 */
   mysteryView?: import('./mystery.js').MysteryPlayerView;
+  /** 云游·除祟运行态。没有隐藏信息，直接下发。 */
+  exorcism?: import('./exorcism.js').ExorcismRunState;
   encounter?: import('./actions.js').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('./rewards.js').DungeonRewardEntry[];

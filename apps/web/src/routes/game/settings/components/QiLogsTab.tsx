@@ -13,7 +13,8 @@ import { formatDateTime } from './utils';
 const PAGE_SIZE = 20;
 
 const ACTION_LABELS: Record<string, string> = {
-  dungeon_start: '秘境探索',
+  dungeon_start: '云游·探秘',
+  exorcism_start: '云游·除祟',
   wild_search: '野外寻觅',
   retreat_10_years: '闭关修行',
   breakthrough_attempt: '突破',

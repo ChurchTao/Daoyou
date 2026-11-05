@@ -25,6 +25,11 @@ function flowError(error: unknown): Response | undefined {
 export const DungeonStartErrors = apiErrorFilter((error) => {
   const flow = flowError(error);
   if (flow) return flow;
+  if (error instanceof ZodError)
+    return Response.json(
+      { error: '开局请求无效，请刷新后重试' },
+      { status: 400 },
+    );
   if (error instanceof DungeonStartError)
     return Response.json(
       {

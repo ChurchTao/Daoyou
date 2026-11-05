@@ -9,4 +9,4 @@ export {
   consumeDungeonMaterials,
   dungeonMaterialMatches,
 } from '../dungeon/materialCosts.js';
-export { canUseDungeonRecoveryPill } from '../dungeon/rest.js';
+export { canUseDungeonRecoveryPill, isDungeonRecoveryPill } from '../dungeon/rest.js';

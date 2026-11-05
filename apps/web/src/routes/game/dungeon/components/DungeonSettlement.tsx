@@ -10,11 +10,14 @@ import { getResourceTypeInfo } from '@daoyou/game-content/presentation/concepts'
 import { dungeonRewardItemName } from '@daoyou/game-rules/rewards/dungeon';
 import type { MysteryPlayerView } from '@daoyou/game-domain/dungeon/mystery';
 import { DungeonMysteryResult } from '@app/components/feature/dungeon/DungeonMysteryResult';
+import type { ExorcismRunState } from '@daoyou/game-domain/dungeon/exorcism';
+import { ExorcismResult } from './ExorcismResult';
 
 interface DungeonSettlementProps {
   settlement: DungeonSettlementType | undefined;
   realGains?: ResourceOperation[];
   mysteryResult?: MysteryPlayerView['result'];
+  exorcism?: ExorcismRunState;
   onConfirm?: () => void;
 }
 
@@ -22,6 +25,7 @@ export function DungeonSettlement({
   settlement,
   realGains = [],
   mysteryResult,
+  exorcism,
   onConfirm,
 }: DungeonSettlementProps) {
   const handleConfirm = () => {
@@ -76,6 +80,12 @@ export function DungeonSettlement({
 
   return (
     <InkCard className="space-y-5 overflow-hidden p-4">
+      {exorcism ? (
+        <ExorcismResult
+          run={exorcism}
+          tags={settlement?.settlement?.performance_tags ?? []}
+        />
+      ) : (
       <div className="border-ink/15 border border-dashed p-4">
         <div className="text-ink-secondary text-xs tracking-[0.2em]">
           天机判词
@@ -98,6 +108,7 @@ export function DungeonSettlement({
           </div>
         </div>
       </div>
+      )}
 
       <p className="text-ink/80 leading-relaxed">
         {settlement?.ending_narrative || '探索已结束。'}

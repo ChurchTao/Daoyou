@@ -2,11 +2,32 @@ import { useCultivatorDisplayProjection } from '@app/components/feature/cultivat
 import { GameSceneLoading } from '@app/components/game-shell';
 import { InkButton, InkNotice } from '@app/components/ui';
 import { useDungeonViewModel } from '@app/lib/hooks/dungeon/useDungeonViewModel';
-import { Suspense, useCallback } from 'react';
+import type { DungeonMode } from '@app/lib/hooks/dungeon/useDungeonActions';
+import { Suspense, useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { DungeonViewRenderer } from './components/DungeonViewRenderer';
 import { DungeonSceneScreen } from './dungeonScene';
 import { resolveDungeonSceneDescriptor } from './dungeonSceneRegistry';
+
+const MODE_STORAGE_KEY = 'daoyou.dungeon.mode';
+
+function readStoredMode(): DungeonMode {
+  try {
+    return window.localStorage.getItem(MODE_STORAGE_KEY) === 'exorcism'
+      ? 'exorcism'
+      : 'mystery';
+  } catch {
+    return 'mystery';
+  }
+}
+
+function writeStoredMode(mode: DungeonMode) {
+  try {
+    window.localStorage.setItem(MODE_STORAGE_KEY, mode);
+  } catch {
+    // 读不到就回到默认，不影响玩法。
+  }
+}
 
 /**
  * 副本主页面内容组件
@@ -21,8 +42,27 @@ function DungeonContent() {
   const cultivator = projection.data?.cultivator ?? null;
   const battleEntryResources = projection.data?.display.resources;
   const isCultivatorLoading = projection.loading;
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const preSelectedNodeId = searchParams.get('nodeId');
+  // 链接里的模式优先，其次是上次的选择，都没有时默认探秘。
+  const [storedMode, setStoredMode] = useState(readStoredMode);
+  const queryMode = searchParams.get('mode');
+  const mode =
+    queryMode === 'exorcism' || queryMode === 'mystery' ? queryMode : storedMode;
+  const changeMode = useCallback(
+    (next: DungeonMode) => {
+      setStoredMode(next);
+      writeStoredMode(next);
+      setSearchParams(
+        (current) => {
+          current.set('mode', next);
+          return current;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
   const navigate = useNavigate();
 
   // 使用 ViewModel Hook 管理所有业务逻辑和状态
@@ -75,6 +115,8 @@ function DungeonContent() {
           <p className="p-4 text-center">探索状态暂不可用</p>
         ) : (
           <DungeonViewRenderer
+        mode={mode}
+            onModeChange={changeMode}
             viewState={viewState}
             cultivator={cultivator}
             displayResources={battleEntryResources}

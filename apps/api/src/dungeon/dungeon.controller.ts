@@ -30,7 +30,13 @@ import {
 } from './dungeon-errors.js';
 import { DungeonService } from './dungeon.service.js';
 
-const StartSchema = z.object({ mapNodeId: z.string().min(1) });
+const StartSchema = z.object({
+  mapNodeId: z.string().min(1),
+  mode: z.enum(['mystery', 'exorcism']).optional(),
+});
+const ExorcismSupplySchema = DungeonFlowRequestSchema.extend({
+  choice: z.enum(['rest', 'search']),
+});
 const StateSchema = z.object({ runId: z.uuid().optional() }).strict();
 const RecoverSchema = DungeonFlowRequestSchema.extend({
   action: z.enum([
@@ -109,6 +115,28 @@ export class DungeonController {
     input: z.infer<typeof DungeonMysteryDeduceRequestSchema>,
   ) {
     return this.dungeon.execute(actor, { kind: 'mystery-deduce', ...input });
+  }
+
+  @Post('exorcism/supply')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  exorcismSupply(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(ExorcismSupplySchema))
+    input: z.infer<typeof ExorcismSupplySchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'exorcism-supply', ...input });
+  }
+
+  @Post('exorcism/retreat')
+  @HttpCode(200)
+  @UseFilters(DungeonActionErrors)
+  exorcismRetreat(
+    @CurrentCultivator() actor: ActiveCultivatorRef,
+    @JsonBody(new ZodPipe(DungeonFlowRequestSchema))
+    input: z.infer<typeof DungeonFlowRequestSchema>,
+  ) {
+    return this.dungeon.execute(actor, { kind: 'exorcism-retreat', ...input });
   }
 
   @Post('recover')

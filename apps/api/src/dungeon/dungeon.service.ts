@@ -8,6 +8,7 @@ import type {
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
+import { EXORCISM_BOSSES } from '@daoyou/game-content/dungeon/exorcism';
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import {
@@ -80,8 +81,13 @@ export class DungeonService {
         return {
           id: record.id,
           theme: record.theme,
-          title: result.mystery?.title ?? record.theme,
-          rewardTier: result.settlement?.reward_tier ?? null,
+          title: result.exorcism
+            ? `除祟 · ${EXORCISM_BOSSES[result.exorcism.bossId]?.name ?? '祟主'}`
+            : (result.mystery?.title ?? record.theme),
+          mode: result.exorcism ? 'exorcism' : 'mystery',
+          rewardTier: result.exorcism
+            ? result.exorcism.grade
+            : (result.settlement?.reward_tier ?? null),
           score: result.mystery?.result?.total ?? null,
           createdAt: record.createdAt.toISOString(),
         };

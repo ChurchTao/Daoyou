@@ -21,7 +21,10 @@ import {
   isSpiritFruitConsumable,
   isTalismanConsumable,
 } from '@daoyou/game-domain/consumables';
-import { canUseDungeonRecoveryPill } from '@daoyou/game-rules/dungeon';
+import {
+  canUseDungeonRecoveryPill,
+  isDungeonRecoveryPill,
+} from '@daoyou/game-rules/dungeon';
 import { getAttributeLabel } from '@daoyou/game-content/presentation/concepts';
 import { getTrackConfig } from '@daoyou/game-rules/condition';
 import type { Consumable } from '@daoyou/game-domain/character';
@@ -106,6 +109,7 @@ export const ConsumableUseEngine = {
         .select({
           activeBattleId: schema.dungeonRuns.activeBattleId,
           status: schema.dungeonRuns.status,
+          runState: schema.dungeonRuns.runState,
         })
         .from(schema.dungeonRuns)
         .where(
@@ -115,7 +119,16 @@ export const ConsumableUseEngine = {
           ),
         )
         .limit(1);
-      if (!run || !canUseDungeonRecoveryPill(run, consumable)) {
+      // 除祟的局内状态独立于现实，回复丹只作用于现实气血法力，不必限制。
+      const exorcismRun = Boolean(
+        (run?.runState as { exorcism?: unknown } | undefined)?.exorcism,
+      );
+      if (
+        !run ||
+        !(exorcismRun
+          ? isDungeonRecoveryPill(consumable)
+          : canUseDungeonRecoveryPill(run, consumable))
+      ) {
         throw new Error(
           '秘境休整期间仅可使用恢复气血或法力的丹药，战斗与结算期间不可使用',
         );

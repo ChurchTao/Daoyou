@@ -5,6 +5,8 @@ export interface DungeonHistorySummary {
   id: string;
   theme: string;
   title: string;
+  mode: 'mystery' | 'exorcism';
+  /** 除祟一场未胜时为 null，列表显示“未成”。 */
   rewardTier: string | null;
   score: number | null;
   createdAt: string;

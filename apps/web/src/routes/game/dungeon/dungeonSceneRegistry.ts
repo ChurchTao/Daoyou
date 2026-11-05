@@ -13,6 +13,8 @@ export interface DungeonSceneDescriptor {
   loadingMessage: string;
   /** 不显示顶部返回条：剧本进行中由页面自己的状态栏提供返回与结束。 */
   hideChrome?: boolean;
+  /** 不显示场景标题：页面自己的切换器就是身份。 */
+  hideTitle?: boolean;
   /** 标题左侧的题图（emoji），与标题同高，作为本页的印记。 */
   icon?: string;
 }
@@ -51,10 +53,8 @@ const dungeonSceneDescriptors: Record<
     loadingMessage: '请先凝聚真身。',
   },
   map_selection: {
-    sceneLabel: '云游探秘',
-    subtitle:
-      '修仙界广袤无垠，机缘与危机并存。每处秘境都藏着一桩悬案，道友可愿前往一探？',
-    icon: '🏔️',
+    sceneLabel: '云游',
+    hideTitle: true,
     backAction: {
       label: '返回洞府',
       href: '/game',

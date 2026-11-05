@@ -471,6 +471,7 @@ export interface DungeonState {
   mystery?: import('@daoyou/game-domain/dungeon/mystery').MysteryRecord;
   /** 解谜模式玩家投影，仅出现在下发给客户端的状态中。 */
   mysteryView?: import('@daoyou/game-domain/dungeon/mystery').MysteryPlayerView;
+  exorcism?: import('@daoyou/game-domain/dungeon/exorcism').ExorcismRunState;
   encounter?: import('@daoyou/game-domain/dungeon').DungeonEncounterView;
   rewardSeed?: number;
   v6Rewards?: import('@daoyou/game-domain/dungeon').DungeonRewardEntry[];

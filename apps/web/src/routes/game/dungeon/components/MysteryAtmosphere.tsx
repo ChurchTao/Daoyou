@@ -83,12 +83,15 @@ export function MysteryReveal({
   name,
   description,
   portrait,
+  eyebrow = '真相既明',
   onDone,
 }: {
   name: string;
   description: string;
   /** 对手立绘键；没有素材时只显示名字。 */
   portrait?: string;
+  /** 名字上方的一行小字。 */
+  eyebrow?: string;
   onDone: () => void;
 }) {
   const icon = mysteryPortraitIcon(portrait);
@@ -103,7 +106,7 @@ export function MysteryReveal({
       className="mystery-scene bg-ink text-paper fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center"
       onClick={onDone}
     >
-      <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
+      <span className="text-paper/60 text-sm tracking-[0.6em]">{eyebrow}</span>
       {icon ? (
         <span className="mystery-reveal-name bg-paper/90 rounded-full p-4">
           <GameIcon

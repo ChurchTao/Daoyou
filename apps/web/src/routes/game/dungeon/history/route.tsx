@@ -92,6 +92,8 @@ function HistoryList({
                       评价{' '}
                       <span className="font-mono">{record.rewardTier}</span>
                     </p>
+                  ) : record.mode === 'exorcism' ? (
+                    <p className="text-ink-secondary">未成</p>
                   ) : null}
                   <span className="text-crimson">翻阅札记 →</span>
                 </div>

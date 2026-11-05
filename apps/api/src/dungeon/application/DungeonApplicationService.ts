@@ -7,6 +7,7 @@ import type {
 } from '@daoyou/contracts/dungeon/mystery';
 import { type ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
+import type { ExorcismSupplyChoice } from '@daoyou/game-domain/dungeon/exorcism';
 import { dungeonReadiness } from '@daoyou/game-rules/dungeon';
 import { canChallengeDungeonRealm } from '@daoyou/game-rules/world/dungeon';
 import { dungeonPlayer } from '@server/dungeon/application/flow/combatV6.js';
@@ -32,7 +33,13 @@ import type { PlayerCommandExecutor } from '@server/player/application/state/Com
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 
 type DungeonCommand =
-  | { kind: 'start'; mapNodeId: string }
+  | { kind: 'start'; mapNodeId: string; mode?: 'mystery' | 'exorcism' }
+  | {
+      kind: 'exorcism-supply';
+      expected: DungeonExpectedState;
+      choice: ExorcismSupplyChoice;
+    }
+  | { kind: 'exorcism-retreat'; expected: DungeonExpectedState }
   | ({ kind: 'mystery-act' } & DungeonMysteryActRequest)
   | ({ kind: 'mystery-deduce' } & DungeonMysteryDeduceRequest)
   | ({ kind: 'mystery-talk' } & DungeonMysteryTalkRequest)
@@ -294,7 +301,13 @@ export async function executeDungeonPersistenceCommand<T>(args: {
 function dungeonCommandSource(command: DungeonCommand): string {
   switch (command.kind) {
     case 'start':
-      return 'dungeon_start';
+      return command.mode === 'exorcism'
+        ? 'dungeon_exorcism_start'
+        : 'dungeon_start';
+    case 'exorcism-supply':
+      return 'dungeon_exorcism_supply';
+    case 'exorcism-retreat':
+      return 'dungeon_exorcism_retreat';
     case 'mystery-act':
       return 'dungeon_mystery_act';
     case 'mystery-deduce':
@@ -338,7 +351,13 @@ async function prepareDungeonCommand(
   }
   switch (command.kind) {
     case 'start':
-      return flow.startDungeon(cultivatorId, command.mapNodeId, options);
+      return command.mode === 'exorcism'
+        ? flow.startExorcism(cultivatorId, command.mapNodeId)
+        : flow.startDungeon(cultivatorId, command.mapNodeId, options);
+    case 'exorcism-supply':
+      return flow.supplyExorcism(cultivatorId, command.choice);
+    case 'exorcism-retreat':
+      return flow.retreatExorcismRun(cultivatorId, options);
     case 'mystery-act':
       return flow.actMystery(cultivatorId, command, options);
     case 'mystery-deduce':

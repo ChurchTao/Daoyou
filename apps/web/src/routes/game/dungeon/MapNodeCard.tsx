@@ -11,6 +11,11 @@ import {
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
 import { mysterySceneUrl } from './components/mysteryArt';
+import { EXORCISM_STAGES } from './components/exorcismView';
+import {
+  EXORCISM_LINEAGES,
+  exorcismLineageForScene,
+} from '@daoyou/game-content/dungeon/exorcism';
 
 /**
  * 选定秘境的介绍：场景底图、此地总述、推荐境界与难度，以及此地可能遇到的案型。
@@ -19,13 +24,16 @@ import { mysterySceneUrl } from './components/mysteryArt';
 export function MapNodeCard({
   node,
   playerRealm,
+  mode = 'mystery',
 }: {
   node: MapNodeInfo;
   playerRealm?: RealmType;
+  mode?: 'mystery' | 'exorcism';
 }) {
   const dungeonConfig = resolveDungeonMapConfig(node);
   const scenario = node.dungeon_config?.scenario;
   const sceneUrl = mysterySceneUrl(scenario?.scene);
+  const lineage = EXORCISM_LINEAGES[exorcismLineageForScene(scenario?.scene)];
   const caseKinds = (scenario?.templates ?? []).flatMap(
     (id) => MYSTERY_CASE_KINDS[id] ?? [],
   );
@@ -77,7 +85,28 @@ export function MapNodeCard({
 
       <p className="leading-8">{scenario?.setting ?? node.description}</p>
 
-      {caseKinds.length > 0 ? (
+      {mode === 'exorcism' ? (
+        <section className="space-y-3">
+          <h3 className="text-ink-secondary text-sm">此地盘踞的祟物</h3>
+          <div className="border-crimson/40 border-l-2 pl-3 text-sm leading-7">
+            <span className="text-crimson font-semibold">{lineage.name}</span>
+            <span className="text-ink-secondary"> · {lineage.trait}</span>
+          </div>
+          <ol className="grid grid-cols-4 gap-1 text-center text-sm">
+            {EXORCISM_STAGES.map((stage, index) => (
+              <li
+                key={stage}
+                className="border-ink/20 rounded-sm border py-1.5"
+              >
+                <span className="text-ink-secondary font-mono text-xs">
+                  {index + 1}
+                </span>{' '}
+                {stage}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : caseKinds.length > 0 ? (
         <section className="space-y-2">
           <h3 className="text-ink-secondary text-sm">此地可能遇到的案子</h3>
           <ul className="space-y-2">
