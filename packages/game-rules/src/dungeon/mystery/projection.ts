@@ -11,7 +11,10 @@ import type {
 import { mysteryAnomalyStatus } from './anomaly.js';
 import {
   evaluateMysteryCondition,
+  mysteryCanTravel,
+  mysteryClock,
   mysteryGuardAt,
+  mysteryHintsLeft,
   mysteryMechanismState,
   mysteryNeighbors,
 } from './engine.js';
@@ -129,6 +132,7 @@ function projectMap(caseFile: MysteryCaseFile, run: MysteryRunState) {
           ? objects.filter((o) => run.searched.includes(o.id)).length
           : 0,
         objects: visited ? objects.length : 0,
+        canTravel: mysteryCanTravel(caseFile, run, r.id),
       };
     });
   const edges: Array<[string, string]> = [];
@@ -210,6 +214,7 @@ export function projectMysteryView(
     turn: run.turn,
     actionBudget: run.actionBudget,
     actionsLeft: run.actionsLeft,
+    hintsLeft: mysteryHintsLeft(run),
     location: { id: room.id, name: room.name, description: room.description },
     exits: mysteryNeighbors(caseFile, room.id).map((r) => {
       const sealed = Boolean(run.sealedRooms?.includes(r.id));
@@ -278,6 +283,7 @@ export function projectMysteryView(
         name: n.name,
         title: n.title,
         ...(n.portrait ? { portrait: n.portrait } : {}),
+        firstTalkFree: !run.freeTalks?.includes(n.id),
       })),
     knownNpcs: caseFile.npcs
       .filter((n) => knownNpcIds.has(n.id))
@@ -343,7 +349,7 @@ export function projectMysteryView(
       .map((e) => ({
         id: e.id,
         text: e.warning,
-        turnsLeft: Math.max(1, e.at - run.turn),
+        turnsLeft: Math.max(1, e.at - mysteryClock(run)),
       })),
     lost: caseFile.objects
       .filter(
@@ -362,7 +368,16 @@ export function projectMysteryView(
         ...(tq.answer_kind === 'choice' && q?.options
           ? { options: q.options }
           : {}),
-        ...(tq.judgement ? { judgement: true } : {}),
+        ...(tq.judgement
+          ? { judgement: true }
+          : {
+              supported: caseFile.clues.some(
+                (c) =>
+                  c.key &&
+                  c.supports.includes(tq.id) &&
+                  run.clues.includes(c.id),
+              ),
+            }),
       };
     }),
     ...(result

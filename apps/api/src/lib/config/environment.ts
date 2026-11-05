@@ -40,6 +40,8 @@ const environmentSchema = z
     NATS_USER: z.string().trim().min(1),
     NATS_PASSWORD: z.string().min(1),
     CRON_SECRET: z.string().optional(),
+    /** 后台模型任务（剧本库、材料库生成）：缺省时只在 production 运行，其他环境须显式设为 on。 */
+    BACKGROUND_LLM_JOBS: z.enum(['on', 'off']).optional(),
     TRANSFER_SERVER_ID: z.string().trim().regex(/^[A-Za-z0-9._-]{1,160}$/).optional(),
     TRANSFER_SIGNING_PRIVATE_KEY_B64: z.string().optional(),
     TRANSFER_ENCRYPTION_PRIVATE_KEY_B64: z.string().optional(),
@@ -77,6 +79,17 @@ const environmentSchema = z
   });
 
 export type RuntimeEnvironment = z.infer<typeof environmentSchema>;
+
+/**
+ * 没有玩家在等、也没有人逐次确认的模型调用是否允许运行。这类任务一旦启动就会清空队列并持续花钱，
+ * 所以开发和预发布调试默认关闭；单本生成脚本是逐次确认的，不受此开关限制。
+ */
+export function isBackgroundLlmEnabled(): boolean {
+  const env = getRuntimeEnvironment();
+  return env.BACKGROUND_LLM_JOBS
+    ? env.BACKGROUND_LLM_JOBS === 'on'
+    : env.NODE_ENV === 'production';
+}
 let environment: RuntimeEnvironment | undefined;
 
 // Also used by framework-independent repositories and maintenance commands.

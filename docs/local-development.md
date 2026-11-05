@@ -72,7 +72,9 @@ Nest收到SIGTERM／SIGINT后拒绝新请求，停止定时发布并排空HTTP�
 
 `prd` 指预发布调试，两组都使用 `NODE_ENV=development`，API 启用 watch，Web 使用 Node.js 运行 Vite。API 和 Web 分别读取同一份环境文件；Vite 根据 `HOST`、`WEB_PORT` 监听，并把 API／WebSocket 代理到 `PORT`。本地端口为 3001／5174；预发布调试默认 3000／5173。
 
-本地 `dev`／`prd` 会消费 NATS 后台 command，启动后可处理积压的补货、预热和重试任务。cron 仍只在 production 模式启动；本地可通过后台“云游剧本”的补一本、预热或重试操作投递任务。单本调试期间临时关闭本地后台消费的限制已撤销。
+本地 `dev`／`prd` 会消费 NATS 后台 command，但**后台模型任务默认关闭**：`BACKGROUND_LLM_JOBS` 缺省时只在 `NODE_ENV=production` 运行。关闭时剧本库不清扫、不生成，玩家开局也不投递补货，材料库生成跳过；后台“云游剧本”的补一本、预热和重试只会排队，页面有提示。
+
+确实要批量生成或预热时，在所用环境文件里设 `BACKGROUND_LLM_JOBS=on` 再启动 API。启动后它会清扫并按节点并发处理全部排队任务（每实例最多 16 路），持续产生模型费用，用完改回或删除这一行。cron 仍只在 production 模式启动。
 
 单本验证指定一个排队任务 ID，只执行该任务一次，完整走生成、审校与入库，不清扫、补货或继续处理其他任务。将下面的占位符替换为任务 UUID，调用后检查返回的 `status`／`error`。失败时任务按原有策略回到排队或失败状态，不会在本次调用里继续执行：
 

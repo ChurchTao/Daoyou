@@ -72,7 +72,10 @@ describe('anomaly escalation', () => {
     const { caseFile } = buildMysterySkeleton(template, 9);
     const stage = caseFile.events!.find((e) => e.id === 'evt_stage_1')!;
     const sealed = (stage.effects[0] as { roomId: string }).roomId;
-    const run = look(caseFile, { ...inHub(caseFile), turn: stage.at - 1 });
+    const run = look(caseFile, {
+      ...inHub(caseFile),
+      actionsLeft: template.scale.action_budget - stage.at,
+    });
     expect(run.sealedRooms).toEqual([sealed]);
     const parent = caseFile.rooms.find((r) => r.exits.includes(sealed))!;
     const there = {
@@ -102,18 +105,27 @@ describe('anomaly escalation', () => {
         { templateId: template.id, caseSource: 'fallback', caseFile, run },
         template,
       );
-    let run = look(caseFile, { ...inHub(caseFile), turn: s1!.at - 1 });
+    let run = look(caseFile, {
+      ...inHub(caseFile),
+      actionsLeft: template.scale.action_budget - s1!.at,
+    });
     expect(view(run).anomaly).toEqual({
       stage: 1,
       stages: 3,
       contained: false,
     });
-    run = look(caseFile, { ...run, turn: s2!.warnAt - 1 });
+    run = look(caseFile, {
+      ...run,
+      actionsLeft: template.scale.action_budget - s2!.warnAt,
+    });
     expect(run.log.at(-1)).toMatchObject({ kind: 'omen' });
     expect(view(run).alerts).toEqual([
-      { id: s2!.id, text: s2!.warning, turnsLeft: s2!.at - run.turn },
+      { id: s2!.id, text: s2!.warning, turnsLeft: s2!.at - s2!.warnAt },
     ]);
-    run = look(caseFile, { ...run, turn: s2!.at - 1 });
+    run = look(caseFile, {
+      ...run,
+      actionsLeft: template.scale.action_budget - s2!.at,
+    });
     expect(view(run).anomaly?.stage).toBe(2);
     const evidence = caseFile.objects.find((o) => o.id === 'obj_evidence')!;
     expect(view(run).lost).toEqual([]);
@@ -127,7 +139,7 @@ describe('anomaly escalation', () => {
     const stage = caseFile.events!.find((e) => e.id === 'evt_stage_1')!;
     const run = look(caseFile, {
       ...inHub(caseFile),
-      turn: stage.at - 1,
+      actionsLeft: template.scale.action_budget - stage.at,
       flags: ['anomaly_contained'],
     });
     expect(run.sealedRooms).toBeUndefined();

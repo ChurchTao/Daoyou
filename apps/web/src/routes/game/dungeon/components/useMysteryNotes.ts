@@ -1,15 +1,44 @@
+import type { MysteryAnswers } from '@daoyou/game-domain/dungeon/mystery';
 import { useCallback, useState } from 'react';
 
-/** 玩家自己的推理笔记：线索作为哪道推理题的证据、哪些线索已读。存在本机，提交推理时一并发出。 */
+/** 每道题最多可选的证据数，与结案接口的限制一致。 */
+export const MYSTERY_EVIDENCE_LIMIT = 5;
+
+/**
+ * 玩家自己的推理笔记，存在本机：每题的证据与答案草稿、笔记本，哪些线索已读，
+ * 开局一幕是否看过。答案与证据在提交推理时才发给服务器。
+ */
 export interface MysteryNotes {
-  pins: Record<string, string>;
+  /** questionId → clueId[]：同一条线索可以作为多道题的证据。 */
+  evidence: Record<string, string[]>;
   seen: string[];
+  answers: MysteryAnswers;
+  notebook: string;
+  introDone: boolean;
 }
 
-const EMPTY: MysteryNotes = { pins: {}, seen: [] };
+const EMPTY: MysteryNotes = {
+  evidence: {},
+  seen: [],
+  answers: {},
+  notebook: '',
+  introDone: false,
+};
 
 function storageKey(runId: string) {
   return `daoyou:mystery-notes:${runId}`;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+/** 旧版笔记按“线索 → 题”存，一条线索只能归一道题。 */
+function evidenceFromPins(pins: Record<string, unknown>) {
+  const evidence: Record<string, string[]> = {};
+  for (const [clueId, questionId] of Object.entries(pins))
+    if (typeof questionId === 'string')
+      (evidence[questionId] ??= []).push(clueId);
+  return evidence;
 }
 
 function readNotes(runId: string | undefined): MysteryNotes {
@@ -17,10 +46,20 @@ function readNotes(runId: string | undefined): MysteryNotes {
   try {
     const raw = window.localStorage.getItem(storageKey(runId));
     if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw) as Partial<MysteryNotes>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
-      pins: parsed.pins && typeof parsed.pins === 'object' ? parsed.pins : {},
-      seen: Array.isArray(parsed.seen) ? parsed.seen : [],
+      evidence: isRecord(parsed.evidence)
+        ? (parsed.evidence as Record<string, string[]>)
+        : isRecord(parsed.pins)
+          ? evidenceFromPins(parsed.pins)
+          : {},
+      seen: Array.isArray(parsed.seen) ? (parsed.seen as string[]) : [],
+      answers: isRecord(parsed.answers)
+        ? (parsed.answers as MysteryAnswers)
+        : {},
+      notebook: typeof parsed.notebook === 'string' ? parsed.notebook : '',
+      // 旧版笔记没有此字段，记录过笔记就不是新开的一局。
+      introDone: parsed.introDone === true || isRecord(parsed.pins),
     };
   } catch {
     return EMPTY;
@@ -56,14 +95,41 @@ export function useMysteryNotes(runId: string | undefined) {
     [runId],
   );
 
-  const pin = useCallback(
-    (clueId: string, questionId: string | null) =>
+  const toggleEvidence = useCallback(
+    (clueId: string, questionId: string) =>
       update((prev) => {
-        const pins = { ...prev.pins };
-        if (questionId) pins[clueId] = questionId;
-        else delete pins[clueId];
-        return { ...prev, pins };
+        const list = prev.evidence[questionId] ?? [];
+        if (!list.includes(clueId) && list.length >= MYSTERY_EVIDENCE_LIMIT)
+          return prev;
+        return {
+          ...prev,
+          evidence: {
+            ...prev.evidence,
+            [questionId]: list.includes(clueId)
+              ? list.filter((id) => id !== clueId)
+              : [...list, clueId],
+          },
+        };
       }),
+    [update],
+  );
+
+  const setAnswer = useCallback(
+    (questionId: string, choiceId: string) =>
+      update((prev) => ({
+        ...prev,
+        answers: { ...prev.answers, [questionId]: choiceId },
+      })),
+    [update],
+  );
+
+  const setNotebook = useCallback(
+    (notebook: string) => update((prev) => ({ ...prev, notebook })),
+    [update],
+  );
+
+  const finishIntro = useCallback(
+    () => update((prev) => ({ ...prev, introDone: true })),
     [update],
   );
 
@@ -77,5 +143,12 @@ export function useMysteryNotes(runId: string | undefined) {
     [update],
   );
 
-  return { notes, pin, markSeen };
+  return {
+    notes,
+    toggleEvidence,
+    setAnswer,
+    setNotebook,
+    finishIntro,
+    markSeen,
+  };
 }

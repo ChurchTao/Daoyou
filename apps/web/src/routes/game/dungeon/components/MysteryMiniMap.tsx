@@ -8,7 +8,7 @@ const ROW_H = 44;
 
 /**
  * 已知地点的连线示意：按距入口的步数分层，只画到访过的房间与其相邻房间。
- * 只有相邻的房间可以点，避免一次点击扣掉多点行动力。
+ * 相邻与走得到的去过的房间可以点；隔着房间的只有去过的，回访不耗行动力，不会一次多扣。
  */
 export function MysteryMiniMap({
   map,
@@ -18,7 +18,7 @@ export function MysteryMiniMap({
   large = false,
 }: {
   map: MysteryPlayerView['map'];
-  /** 当前可直接前往的房间（相邻房间）。 */
+  /** 当前可直接前往的房间：相邻房间，以及走得到的去过的房间。 */
   reachable: ReadonlySet<string>;
   disabled: boolean;
   onSelect: (roomId: string) => void;

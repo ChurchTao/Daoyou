@@ -22,6 +22,7 @@ import {
   enqueueAdminScenarioJobs,
   retryFailedScenarioJob,
 } from '@server/dungeon/application/mystery/ScenarioLibrary.js';
+import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import { db } from '@server/lib/drizzle/db.js';
 import {
   dungeonScenarioJobs,
@@ -99,6 +100,7 @@ export class AdminDungeonScenariosService {
       pendingTotal,
       maxPendingPerNode: MYSTERY_LIBRARY_POLICY.maxPendingPerNode,
       warmupPerSlot: MYSTERY_LIBRARY_POLICY.warmupPerSlot,
+      backgroundGeneration: isBackgroundLlmEnabled(),
       generatorVersion: MYSTERY_GENERATOR_VERSION,
     };
   }

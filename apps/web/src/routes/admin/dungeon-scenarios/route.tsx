@@ -204,6 +204,11 @@ function SlotsTab({
   if (!data) return <p className="text-ink-secondary text-sm">加载中……</p>;
   return (
     <section className="space-y-4">
+      {data.backgroundGeneration ? null : (
+        <p role="status" className="text-crimson text-sm">
+          本环境未开启后台生成：补一本、预热和重试只会排队，不会执行。
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span className="text-ink-secondary">
           生成版本 <span className="font-mono">{data.generatorVersion}</span> ·

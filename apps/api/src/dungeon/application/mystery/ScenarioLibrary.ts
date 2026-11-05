@@ -31,6 +31,7 @@ import {
   dungeonScenarioPlays,
   dungeonScenarios,
 } from '@server/lib/drizzle/schema.js';
+import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import { publishScheduledBackgroundCommand } from '@server/lib/mq/backgroundCommandPublisher.js';
 import { and, count, eq, inArray, lt, max, sql } from 'drizzle-orm';
 import {
@@ -625,6 +626,10 @@ function topUpWorkers() {
  * 直到没有可认领的任务。处理中的重复唤醒补足工作者并复用当前处理。
  */
 export function runScenarioGeneration(): Promise<{ processed: number }> {
+  if (!isBackgroundLlmEnabled()) {
+    console.info('[ScenarioLibrary] 后台模型任务未开启，跳过清扫与生成');
+    return Promise.resolve({ processed: 0 });
+  }
   if (draining) {
     topUpWorkers();
     return draining;

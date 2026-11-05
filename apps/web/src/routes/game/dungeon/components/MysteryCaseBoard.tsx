@@ -1,18 +1,21 @@
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkTabs } from '@app/components/ui/InkTabs';
 import { InkTag } from '@app/components/ui/InkTag';
 import { cn } from '@app/lib/cn';
 import type {
+  MysteryLogKind,
   MysteryNpcStatus,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useState } from 'react';
-import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
+import { MysteryBrief } from './MysteryBrief';
 import { MysteryMiniMap } from './MysteryMiniMap';
 import { MysteryPortrait } from './MysteryPortrait';
-import type { MysteryNotes } from './useMysteryNotes';
+import { mysteryDialogueWith, type MysteryQuestion } from './mysteryQuestions';
+import { MYSTERY_EVIDENCE_LIMIT, type MysteryNotes } from './useMysteryNotes';
 
-export type MysteryBoardTab = 'clues' | 'people' | 'places' | 'log';
+export type MysteryBoardTab = 'brief' | 'clues' | 'people' | 'places' | 'log';
 
 type Npc = MysteryPlayerView['knownNpcs'][number];
 type Item = MysteryPlayerView['items'][number];
@@ -28,6 +31,8 @@ const STATUS: Record<
   departed: { label: '已离场', tone: 'neutral' },
 };
 
+const NO_ROOMS: ReadonlySet<string> = new Set();
+
 function Empty({ children }: { children: string }) {
   return (
     <p className="text-ink-secondary border-ink/15 border border-dashed px-3 py-4 text-sm">
@@ -39,17 +44,24 @@ function Empty({ children }: { children: string }) {
 function ClueCard({
   clue,
   isNew,
-  pinnedTo,
   questions,
-  onPin,
+  evidence,
+  activeQuestion,
+  onToggle,
 }: {
   clue: MysteryPlayerView['clues'][number];
   isNew: boolean;
-  pinnedTo?: MysteryPlayerView['questions'][number];
   questions: MysteryPlayerView['questions'];
-  onPin: (questionId: string | null) => void;
+  evidence: MysteryNotes['evidence'];
+  /** 正在作答的题：此时只问是否作为这道题的证据。 */
+  activeQuestion?: MysteryQuestion;
+  onToggle: (questionId: string) => void;
 }) {
   const [choosing, setChoosing] = useState(false);
+  const pinned = questions.filter((q) => evidence[q.id]?.includes(clue.id));
+  const full = (id: string) =>
+    (evidence[id]?.length ?? 0) >= MYSTERY_EVIDENCE_LIMIT;
+  const here = activeQuestion && pinned.includes(activeQuestion);
   return (
     <div className="border-ink/15 space-y-1 border px-3 py-2">
       <div className="flex items-center justify-between gap-2">
@@ -57,47 +69,58 @@ function ClueCard({
         {isNew ? <InkTag tone="bad">新</InkTag> : null}
       </div>
       <p className="text-ink-secondary text-sm leading-7">{clue.text}</p>
-      {choosing ? (
+      {pinned.length > 0 ? (
+        <p className="text-crimson text-sm">
+          已作为证据：{pinned.map((q) => q.prompt).join('；')}
+        </p>
+      ) : null}
+      {activeQuestion ? (
+        <InkButton
+          variant={here ? 'secondary' : 'primary'}
+          disabled={!here && full(activeQuestion.id)}
+          onClick={() => onToggle(activeQuestion.id)}
+        >
+          {here ? '取消本题证据' : '作为本题证据'}
+        </InkButton>
+      ) : choosing ? (
         <div className="flex flex-wrap gap-1 text-sm">
           {questions.map((q) => (
             <button
               key={q.id}
               type="button"
+              disabled={!pinned.includes(q) && full(q.id)}
               className={cn(
-                'border-ink/20 border px-2 py-0.5',
-                pinnedTo?.id === q.id && 'border-crimson text-crimson',
+                'border-ink/20 border px-2 py-0.5 disabled:opacity-50',
+                pinned.includes(q) && 'border-crimson text-crimson',
               )}
-              onClick={() => {
-                onPin(pinnedTo?.id === q.id ? null : q.id);
-                setChoosing(false);
-              }}
+              onClick={() => onToggle(q.id)}
             >
               {q.prompt}
             </button>
           ))}
           <InkButton variant="secondary" onClick={() => setChoosing(false)}>
-            取消
-          </InkButton>
-        </div>
-      ) : pinnedTo ? (
-        <div className="flex flex-wrap items-center gap-x-1 text-sm">
-          <span className="text-crimson">已作为证据：{pinnedTo.prompt}</span>
-          <InkButton variant="secondary" onClick={() => setChoosing(true)}>
-            更换
+            收起
           </InkButton>
         </div>
       ) : (
         <InkButton onClick={() => setChoosing(true)}>
-          作为某道题的证据
+          {pinned.length > 0 ? '调整证据' : '作为某道题的证据'}
         </InkButton>
       )}
     </div>
   );
 }
 
+const LOG_FILTERS: Record<string, MysteryLogKind[] | null> = {
+  全部: null,
+  线索: ['clue', 'item'],
+  对话: ['speech'],
+  异动: ['event', 'omen'],
+};
+
 /**
- * 案情板：线索按来源归组并可作为推理题的证据，人物、地点与经过各一页。
- * 窄屏放在抽屉里，宽屏常驻在调查页右侧。
+ * 案情板：此行、线索、人物、地点与经过各一页；线索可作为推理题的证据。
+ * 窄屏放在抽屉里，宽屏常驻在调查页右侧；推理时以只读方式放在答题旁边，只能选证据。
  */
 export function MysteryCaseBoard({
   view,
@@ -105,28 +128,37 @@ export function MysteryCaseBoard({
   tab,
   onTabChange,
   processing,
-  onPin,
+  onToggleEvidence,
+  onAnswer,
   onTalk,
   onPresent,
   onUseItem,
   onSelectRoom,
   reachable,
   sceneUrl,
+  readOnly = false,
+  activeQuestion,
 }: {
   view: MysteryPlayerView;
   notes: MysteryNotes;
   tab: MysteryBoardTab;
   onTabChange: (tab: MysteryBoardTab) => void;
   processing: boolean;
-  onPin: (clueId: string, questionId: string | null) => void;
-  onTalk: (npc: Npc) => void;
-  onPresent: (npc: Npc) => void;
-  onUseItem: (item: Item) => void;
-  onSelectRoom: (roomId: string) => void;
-  reachable: ReadonlySet<string>;
+  onToggleEvidence: (clueId: string, questionId: string) => void;
+  /** 去作答某道题；空字符串表示从第一道没答的开始。 */
+  onAnswer?: (questionId: string) => void;
+  onTalk?: (npc: Npc) => void;
+  onPresent?: (npc: Npc) => void;
+  onUseItem?: (item: Item) => void;
+  onSelectRoom?: (roomId: string) => void;
+  reachable?: ReadonlySet<string>;
   /** 此地的场景插画，地点页顶部的淡墨底图；没有素材时不显示。 */
   sceneUrl?: string;
+  readOnly?: boolean;
+  activeQuestion?: MysteryQuestion;
 }) {
+  const [logFilter, setLogFilter] = useState('全部');
+  const [openNpc, setOpenNpc] = useState<string | null>(null);
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id)).length;
   const here = new Set(view.npcsHere.map((n) => n.id));
   const groups = new Map<string, MysteryPlayerView['clues']>();
@@ -141,6 +173,7 @@ export function MysteryCaseBoard({
         activeValue={tab}
         onChange={(value) => onTabChange(value as MysteryBoardTab)}
         items={[
+          ...(readOnly ? [] : [{ value: 'brief', label: '此行' }]),
           {
             value: 'clues',
             label:
@@ -153,6 +186,10 @@ export function MysteryCaseBoard({
           { value: 'log', label: '经过' },
         ]}
       />
+
+      {tab === 'brief' && onAnswer ? (
+        <MysteryBrief view={view} notes={notes} onAnswer={onAnswer} />
+      ) : null}
 
       {tab === 'clues' ? (
         <div className="space-y-3">
@@ -167,11 +204,12 @@ export function MysteryCaseBoard({
                   key={clue.id}
                   clue={clue}
                   isNew={!notes.seen.includes(clue.id)}
-                  pinnedTo={view.questions.find(
-                    (q) => q.id === notes.pins[clue.id],
-                  )}
                   questions={view.questions}
-                  onPin={(questionId) => onPin(clue.id, questionId)}
+                  evidence={notes.evidence}
+                  activeQuestion={activeQuestion}
+                  onToggle={(questionId) =>
+                    onToggleEvidence(clue.id, questionId)
+                  }
                 />
               ))}
             </div>
@@ -190,13 +228,15 @@ export function MysteryCaseBoard({
                       {item.text}
                     </p>
                   </div>
-                  <InkButton
-                    variant="outline"
-                    disabled={processing}
-                    onClick={() => onUseItem(item)}
-                  >
-                    使用
-                  </InkButton>
+                  {readOnly ? null : (
+                    <InkButton
+                      variant="outline"
+                      disabled={processing}
+                      onClick={() => onUseItem?.(item)}
+                    >
+                      使用
+                    </InkButton>
+                  )}
                 </div>
               ))}
             </div>
@@ -241,11 +281,30 @@ export function MysteryCaseBoard({
                 {npc.lastLine ? (
                   <p className="text-sm leading-7">“{npc.lastLine}”</p>
                 ) : null}
-                {present ? (
+                {npc.lastLine ? (
+                  <InkButton
+                    variant="secondary"
+                    onClick={() =>
+                      setOpenNpc(openNpc === npc.id ? null : npc.id)
+                    }
+                  >
+                    {openNpc === npc.id ? '收起对话' : '查看说过的话'}
+                  </InkButton>
+                ) : null}
+                {openNpc === npc.id ? (
+                  <div className="bg-ink/5 space-y-2 p-3 text-sm">
+                    {mysteryDialogueWith(view.log, npc.name).map(
+                      (entry, index) => (
+                        <MysteryLogLine key={index} entry={entry} />
+                      ),
+                    )}
+                  </div>
+                ) : null}
+                {present && !readOnly ? (
                   <div className="flex gap-2">
                     <InkButton
                       disabled={processing}
-                      onClick={() => onTalk(npc)}
+                      onClick={() => onTalk?.(npc)}
                     >
                       交谈
                     </InkButton>
@@ -255,7 +314,7 @@ export function MysteryCaseBoard({
                         processing ||
                         view.clues.length + view.items.length === 0
                       }
-                      onClick={() => onPresent(npc)}
+                      onClick={() => onPresent?.(npc)}
                     >
                       出示线索
                     </InkButton>
@@ -279,9 +338,9 @@ export function MysteryCaseBoard({
           ) : null}
           <MysteryMiniMap
             map={view.map}
-            reachable={reachable}
-            disabled={processing}
-            onSelect={onSelectRoom}
+            reachable={reachable ?? NO_ROOMS}
+            disabled={processing || readOnly}
+            onSelect={(roomId) => onSelectRoom?.(roomId)}
             large
           />
           {view.map.rooms
@@ -311,20 +370,34 @@ export function MysteryCaseBoard({
 
       {tab === 'log' ? (
         <div className="space-y-3">
-          <div className="border-ink/15 space-y-1 border px-3 py-2 text-sm leading-7">
-            <p>
-              <span className="text-ink-secondary">身份：</span>
-              {view.brief.identity}
-            </p>
-            <p>
-              <span className="text-ink-secondary">目的：</span>
-              {view.brief.goal}
-            </p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {Object.keys(LOG_FILTERS).map((label) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={logFilter === label}
+                className={cn(
+                  'border px-2 py-0.5',
+                  logFilter === label
+                    ? 'border-crimson text-crimson'
+                    : 'border-ink/20',
+                )}
+                onClick={() => setLogFilter(label)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <div className="space-y-2 text-sm">
-            {view.log.map((entry, index) => (
-              <MysteryLogLine key={index} entry={entry} />
-            ))}
+            {view.log
+              .filter(
+                (entry) =>
+                  !LOG_FILTERS[logFilter] ||
+                  LOG_FILTERS[logFilter]!.includes(entry.kind),
+              )
+              .map((entry, index) => (
+                <MysteryLogLine key={index} entry={entry} />
+              ))}
           </div>
         </div>
       ) : null}
