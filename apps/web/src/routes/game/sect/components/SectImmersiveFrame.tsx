@@ -29,20 +29,20 @@ export function SectImmersiveFrame({
       )}
     >
       <title>{formatDocumentTitle(title)}</title>
-      {image ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[min(56dvh,31rem)] overflow-hidden"
-        >
-          <GameImage
-            src={image}
-            alt=""
-            className="size-full object-cover object-[center_65%]"
-          />
-          <div className="from-paper/15 via-paper/80 to-paper absolute inset-0 bg-linear-to-b" />
-        </div>
-      ) : null}
       <div className="relative h-full overflow-x-hidden overflow-y-auto overscroll-contain">
+        {image ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[min(34dvh,10rem)] overflow-hidden"
+          >
+            <GameImage
+              src={image}
+              alt=""
+              className="size-full object-cover object-[center_65%]"
+            />
+            <div className="from-paper/60 via-paper/90 via-65% to-paper absolute inset-0 bg-linear-to-b" />
+          </div>
+        ) : null}
         <header className="pointer-events-none sticky top-0 z-20 flex justify-between gap-2 pt-[calc(var(--app-safe-top)+0.65rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pl-[max(env(safe-area-inset-left),0.75rem)]">
           <InkButton
             variant="secondary"
@@ -58,7 +58,7 @@ export function SectImmersiveFrame({
             </span>
           ) : null}
         </header>
-        <div className="mx-auto w-full max-w-5xl pt-7 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1.25rem)] pl-[max(env(safe-area-inset-left),1rem)] sm:pt-10 sm:pr-6 sm:pl-6">
+        <div className="relative mx-auto w-full max-w-5xl pt-7 pr-[max(env(safe-area-inset-right),1rem)] pb-[max(env(safe-area-inset-bottom),1.25rem)] pl-[max(env(safe-area-inset-left),1rem)] sm:pt-10 sm:pr-6 sm:pl-6">
           <h1 className="font-heading text-ink text-3xl leading-tight sm:text-5xl">
             {title}
           </h1>
