@@ -99,6 +99,29 @@ export class RewardFactory {
     return rewards;
   }
 
+  /** 按评级掷一次感悟，供不走评级总奖励的玩法（除祟）单独使用。 */
+  static rollInsight(
+    mapRealm: RealmType,
+    tier: 'S' | 'A',
+    dangerScore: number,
+    difficultyTier?: DungeonDifficultyTier,
+  ): number {
+    const config = REALM_REWARD_CONFIG[mapRealm] || REALM_REWARD_CONFIG['筑基'];
+    const multiplier = TIER_MULTIPLIER[tier] || TIER_MULTIPLIER['C'];
+    return Math.max(
+      1,
+      Math.floor(
+        this.randomInRange(
+          config.comprehension_insight,
+          tier === 'A'
+            ? { min: multiplier.min * 0.5, max: multiplier.max * 0.65 }
+            : multiplier,
+          this.getDangerBonus(dangerScore),
+        ) * getDungeonRewardBonus(difficultyTier),
+      ),
+    );
+  }
+
   /**
    * 评级映射的“等效挂机时长”
    *

@@ -1,0 +1,22 @@
+{
+  "formatVersion": 1,
+  "contentRevision": 1,
+  "poolVersion": 1,
+  "bonusScale": 0.58,
+  "defeatSettlementFactor": 0.8,
+  "insightFactor": 0.7,
+  "wins": [
+    { "dailyExpFraction": 0.06, "stoneHours": 0.5, "chance": 0.3 },
+    { "dailyExpFraction": 0.08, "stoneHours": 0.6, "chance": 0.35 },
+    { "dailyExpFraction": 0.1, "stoneHours": 0.8, "chance": 0.45 },
+    { "dailyExpFraction": 0.14, "stoneHours": 1.2, "chance": 0.7 }
+  ],
+  "search": { "dailyExpFraction": 0.04, "stoneHours": 0.5, "chance": 0.25 },
+  "grades": {
+    "S": { "dailyExpFraction": 0.73, "stoneHours": 9.5, "chance": 1, "insight": "full" },
+    "A": { "dailyExpFraction": 0.52, "stoneHours": 7.5, "chance": 1, "insight": "partial" },
+    "B": { "dailyExpFraction": 0.31, "stoneHours": 5, "chance": 0.55, "insight": "none" },
+    "C": { "dailyExpFraction": 0.16, "stoneHours": 3, "chance": 0.3, "insight": "none" },
+    "D": { "dailyExpFraction": 0.07, "stoneHours": 2, "chance": 0.1, "insight": "none" }
+  }
+}

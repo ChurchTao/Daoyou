@@ -1,3 +1,4 @@
+import { EXORCISM_BOSSES } from '@daoyou/game-content/dungeon/exorcism';
 import { DungeonMysteryResult } from '@app/components/feature/dungeon/DungeonMysteryResult';
 import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
@@ -35,13 +36,16 @@ function HistoryDetail({
     owner,
   );
   const mystery = data?.result.mystery;
+  const exorcism = data?.result.exorcism;
   return (
     <GameSceneFrame
       variant="lite"
       identityOverride={
         data
           ? {
-              label: mystery?.title ?? data.theme,
+              label: exorcism
+                ? `除祟 · ${EXORCISM_BOSSES[exorcism.bossId]?.name ?? '祟主'}`
+                : (mystery?.title ?? data.theme),
               summary: `${data.theme} · ${historyDate(data.createdAt)}`,
             }
           : undefined
@@ -54,7 +58,9 @@ function HistoryDetail({
           >
             返回札记
           </InkButton>
-          {data?.result.settlement?.reward_tier ? (
+          {exorcism && !exorcism.grade ? (
+            <span className="text-ink-secondary">未成</span>
+          ) : data?.result.settlement?.reward_tier ? (
             <span className="text-ink-secondary">
               探险评价{' '}
               <span className="font-mono">

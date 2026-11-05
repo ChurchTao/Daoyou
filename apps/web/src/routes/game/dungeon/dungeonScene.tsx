@@ -59,7 +59,9 @@ export function DungeonSceneScreen({
           paddingBottom: DUNGEON_SCENE_CONTENT_BOTTOM_GAP,
         };
   const showSceneTitle =
-    descriptor.density !== 'full' && descriptor.density !== 'centered';
+    descriptor.density !== 'full' &&
+    descriptor.density !== 'centered' &&
+    !descriptor.hideTitle;
 
   return (
     <div className={cn(containerClassName, className)} style={containerStyle}>

@@ -83,15 +83,22 @@ export function MysteryReveal({
   name,
   description,
   portrait,
+  eyebrow = '真相既明',
+  surface = 'ink',
   onDone,
 }: {
   name: string;
   description: string;
   /** 对手立绘键；没有素材时只显示名字。 */
   portrait?: string;
+  /** 名字上方的一行小字。 */
+  eyebrow?: string;
+  /** 底色。除祟用纸底，立绘直接落在纸上。 */
+  surface?: 'ink' | 'paper';
   onDone: () => void;
 }) {
   const icon = mysteryPortraitIcon(portrait);
+  const paper = surface === 'paper';
   useEffect(() => {
     const timer = window.setTimeout(onDone, 4200);
     return () => window.clearTimeout(timer);
@@ -100,12 +107,18 @@ export function MysteryReveal({
     <button
       type="button"
       aria-label="跳过"
-      className="mystery-scene bg-ink text-paper fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center"
+      className={`mystery-scene fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 px-8 text-center ${paper ? 'bg-paper text-ink' : 'bg-ink text-paper'}`}
       onClick={onDone}
     >
-      <span className="text-paper/60 text-sm tracking-[0.6em]">真相既明</span>
+      <span
+        className={`text-sm tracking-[0.6em] ${paper ? 'text-ink-secondary' : 'text-paper/60'}`}
+      >
+        {eyebrow}
+      </span>
       {icon ? (
-        <span className="mystery-reveal-name bg-paper/90 rounded-full p-4">
+        <span
+          className={`mystery-reveal-name ${paper ? '' : 'bg-paper/90 rounded-full p-4'}`}
+        >
           <GameIcon
             value={icon}
             purpose="artwork"
@@ -116,10 +129,14 @@ export function MysteryReveal({
       <span className="mystery-reveal-name text-crimson text-4xl font-semibold tracking-[0.3em] md:text-5xl">
         {name}
       </span>
-      <span className="mystery-reveal-text text-paper/80 max-w-xl leading-8">
+      <span
+        className={`mystery-reveal-text max-w-xl leading-8 ${paper ? 'text-ink/80' : 'text-paper/80'}`}
+      >
         {description}
       </span>
-      <span className="text-paper/40 text-xs">点一下继续</span>
+      <span className={`text-xs ${paper ? 'text-ink/45' : 'text-paper/40'}`}>
+        点一下继续
+      </span>
     </button>,
     document.body,
   );

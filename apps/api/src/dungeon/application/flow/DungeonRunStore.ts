@@ -1,7 +1,11 @@
+import {
+  EXORCISM_BOSS_IDS,
+  type ExorcismBossId,
+} from '@daoyou/game-domain/dungeon/exorcism';
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import type { DbClient, DbTransaction } from '@server/lib/drizzle/db.js';
 import { dungeonHistories, dungeonRuns } from '@server/lib/drizzle/schema.js';
-import { and, desc, eq, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
 import { mysteryHistorySnapshot } from '../mystery/mysteryHistory.js';
 import type {
@@ -43,6 +47,31 @@ export class DungeonRunStore {
     const row = rows[0];
     if (!row || !isActiveRunStatus(row.status)) return null;
     return row;
+  }
+
+  /** 最近几局除祟遇到的首领，用来给首领抽取降权。 */
+  async recentExorcismBosses(cultivatorId: string, limit = 3) {
+    const rows = await this.database
+      .select({
+        bossId: sql<
+          string | null
+        >`${dungeonRuns.runState}->'exorcism'->>'bossId'`,
+      })
+      .from(dungeonRuns)
+      .where(
+        and(
+          eq(dungeonRuns.cultivatorId, cultivatorId),
+          sql`${dungeonRuns.runState} ? 'exorcism'`,
+        ),
+      )
+      .orderBy(desc(dungeonRuns.updatedAt))
+      .limit(limit);
+    return rows.flatMap((row) =>
+      row.bossId &&
+      (EXORCISM_BOSS_IDS as readonly string[]).includes(row.bossId)
+        ? [row.bossId as ExorcismBossId]
+        : [],
+    );
   }
 
   async persistStateRecord(
@@ -209,6 +238,18 @@ export class DungeonRunStore {
             ...settlement,
             runId: state.runId,
             ...(mystery ? { mystery } : {}),
+            ...(state.exorcism
+              ? {
+                  exorcism: {
+                    bossId: state.exorcism.bossId,
+                    wins: state.exorcism.wins,
+                    countered: state.exorcism.countered,
+                    endReason: state.exorcism.endReason,
+                    finalHpRatio: state.exorcism.finalHpRatio,
+                    grade: state.exorcism.grade ?? null,
+                  },
+                }
+              : {}),
           },
           log: mystery
             ? mystery.log

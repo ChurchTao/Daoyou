@@ -36,6 +36,7 @@
     "./divination": "./dist/public/divination.js",
     "./dungeon/case-kinds": "./dist/dungeon/caseKinds.js",
     "./dungeon/cost": "./dist/dungeon/cost.js",
+    "./dungeon/exorcism": "./dist/dungeon/exorcism/index.js",
     "./dungeon/scenarios": "./dist/dungeon/scenarios/index.js",
     "./economy": "./dist/economy.js",
     "./economy/legacy-market": "./dist/economy/legacy-market.js",

@@ -128,6 +128,7 @@ export type CombatV6VersionStamp = {
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'
     | 'combat-v6-dungeon-v1'
+    | 'combat-v6-exorcism-v1'
     | 'combat-v6-tower-v1'
     | 'combat-v6-tower-v2'
     | 'combat-v6-tower-v3'

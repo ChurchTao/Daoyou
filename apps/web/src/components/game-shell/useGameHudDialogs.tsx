@@ -352,9 +352,15 @@ export function useGameHudDialogs(
               </thead>
               <tbody className="divide-ink/10 divide-y">
                 <tr>
-                  <td className="px-3 py-1.5">秘境探索</td>
+                  <td className="px-3 py-1.5">云游·探秘</td>
                   <td className="text-ink px-3 py-1.5 text-right font-mono">
                     {QI_ACTION_COSTS.dungeon_start}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-1.5">云游·除祟</td>
+                  <td className="text-ink px-3 py-1.5 text-right font-mono">
+                    {QI_ACTION_COSTS.exorcism_start}
                   </td>
                 </tr>
                 <tr>

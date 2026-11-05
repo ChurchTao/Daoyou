@@ -43,6 +43,7 @@
     "./cultivation": "./dist/public/cultivation.js",
     "./divination": "./dist/public/divination.js",
     "./dungeon": "./dist/public/dungeon.js",
+    "./dungeon/exorcism": "./dist/public/dungeon-exorcism.js",
     "./dungeon/mystery": "./dist/public/dungeon-mystery.js",
     "./equipment/codex": "./dist/public/equipment/codex.js",
     "./equipment/forging": "./dist/public/equipment/forging.js",

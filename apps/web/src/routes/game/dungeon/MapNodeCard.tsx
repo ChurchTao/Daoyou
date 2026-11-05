@@ -11,6 +11,11 @@ import {
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
 import { mysterySceneUrl } from './components/mysteryArt';
+import { ExorcismTrack } from './components/ExorcismRunStrip';
+import {
+  EXORCISM_LINEAGES,
+  exorcismLineageForScene,
+} from '@daoyou/game-content/dungeon/exorcism';
 
 /**
  * 选定秘境的介绍：场景底图、此地总述、推荐境界与难度，以及此地可能遇到的案型。
@@ -19,13 +24,16 @@ import { mysterySceneUrl } from './components/mysteryArt';
 export function MapNodeCard({
   node,
   playerRealm,
+  mode = 'mystery',
 }: {
   node: MapNodeInfo;
   playerRealm?: RealmType;
+  mode?: 'mystery' | 'exorcism';
 }) {
   const dungeonConfig = resolveDungeonMapConfig(node);
   const scenario = node.dungeon_config?.scenario;
   const sceneUrl = mysterySceneUrl(scenario?.scene);
+  const lineage = EXORCISM_LINEAGES[exorcismLineageForScene(scenario?.scene)];
   const caseKinds = (scenario?.templates ?? []).flatMap(
     (id) => MYSTERY_CASE_KINDS[id] ?? [],
   );
@@ -42,7 +50,10 @@ export function MapNodeCard({
         // 与解谜正文同一取景：贴底、上缘渐隐；宽屏取 3:1，让开始按钮留在首屏。
         <div
           aria-hidden
-          className="aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom lg:aspect-[3/1]"
+          className={cn(
+            'aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom',
+            mode === 'exorcism' ? 'lg:aspect-[4/1]' : 'lg:aspect-[3/1]',
+          )}
           style={{ backgroundImage: `url(${sceneUrl})` }}
         />
       ) : null}
@@ -77,7 +88,16 @@ export function MapNodeCard({
 
       <p className="leading-8">{scenario?.setting ?? node.description}</p>
 
-      {caseKinds.length > 0 ? (
+      {mode === 'exorcism' ? (
+        <section className="space-y-3">
+          <h3 className="text-ink-secondary text-sm">此地盘踞的祟物</h3>
+          <div className="border-crimson/40 border-l-2 pl-3 text-sm leading-7">
+            <span className="text-crimson font-semibold">{lineage.name}</span>
+            <span className="text-ink-secondary"> · {lineage.trait}</span>
+          </div>
+          <ExorcismTrack run={{ wins: 0 }} finished label="一局四场" />
+        </section>
+      ) : caseKinds.length > 0 ? (
         <section className="space-y-2">
           <h3 className="text-ink-secondary text-sm">此地可能遇到的案子</h3>
           <ul className="space-y-2">

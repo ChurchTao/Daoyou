@@ -5,15 +5,35 @@ import {
   type RealmStage,
 } from '@daoyou/constants/realms';
 import { DUNGEON_LIFESPAN_COST_MAX } from '@daoyou/game-content/dungeon/cost';
+import {
+  EXORCISM_REWARD_PACK,
+  exorcismLineageForScene,
+} from '@daoyou/game-content/dungeon/exorcism';
 import { getMysteryFallbackCase } from '@daoyou/game-content/dungeon/scenarios';
 import { getMapNode, isSatelliteNode } from '@daoyou/game-content/world/map';
 import type { Cultivator } from '@daoyou/game-domain/character';
 import type { DungeonEndDisposition } from '@daoyou/game-domain/dungeon';
+import {
+  EXORCISM_STAGE_COUNT,
+  type ExorcismSupplyChoice,
+} from '@daoyou/game-domain/dungeon/exorcism';
+import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import type {
   ResourceOperation,
   ResourceOperationResult,
   ResourceOperationSettlement,
 } from '@daoyou/game-domain/resources';
+import {
+  applyExorcismSupply,
+  createExorcismRun,
+  exorcismBuildTags,
+  exorcismEnding,
+  exorcismIsCountered,
+  planExorcismNemesisBonus,
+  planExorcismSearchReward,
+  planExorcismSettlement,
+  retreatExorcism,
+} from '@daoyou/game-rules/dungeon/exorcism';
 import { getRealmStageNaturalAttributeValue } from '@daoyou/game-rules/progression/attributes';
 import {
   appendDungeonReward,
@@ -35,12 +55,16 @@ import {
   getDungeonBattle,
   grantDungeonBeastExperience,
   prepareDungeonEncounter,
+  prepareExorcismEncounter,
   type DungeonBattlePayload,
   type DungeonEncounterPayload,
 } from '@server/dungeon/application/flow/combatV6.js';
 import { applyDungeonCosts } from '@server/dungeon/application/flow/costs.js';
 import { RewardFactory } from '@server/dungeon/application/flow/reward/index.js';
-import { resolveDungeonReward } from '@server/dungeon/application/flow/rewards.js';
+import {
+  resolveDungeonReward,
+  resolvePlanItems,
+} from '@server/dungeon/application/flow/rewards.js';
 import { grantInventory } from '@server/inventory/operations.js';
 import type {
   DbClient,
@@ -741,6 +765,249 @@ export class DungeonFlowService {
     }
   }
 
+  /** 云游·除祟开局：不调用模型，也不依赖剧本库。局内状态入场回满，不看现实气血。 */
+  async startExorcism(cultivatorId: string, mapNodeId: string) {
+    const existing = await this.runs.loadActiveRun(cultivatorId);
+    if (existing)
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前已有正在进行的副本，请先完成或放弃',
+        409,
+      );
+    const scene = this.getMapNode(mapNodeId).dungeon_config?.scenario?.scene;
+    if (!scene)
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_ACTION,
+        '此地没有可除之祟',
+        400,
+      );
+    const context = await this.prepareDungeonContext(cultivatorId, mapNodeId);
+    await QiService.assertAffordable({
+      cultivatorId,
+      action: 'exorcism_start',
+    });
+    const rewardSeed = Math.floor(Math.random() * 0x100000000);
+    const { projection } = await dungeonPlayer(cultivatorId);
+    const tags = exorcismBuildTags(projection.unit, projection.skills);
+    const state: DungeonState = {
+      ...context,
+      exorcism: createExorcismRun({
+        seed: rewardSeed,
+        lineageId: exorcismLineageForScene(scene),
+        recentBossIds: await this.runs.recentExorcismBosses(cultivatorId),
+        isCountered: (bossId) => exorcismIsCountered(bossId, tags),
+      }),
+      rewardSeed,
+      v6Rewards: [],
+      mapNodeId,
+      currentRound: 1,
+      maxRounds: EXORCISM_STAGE_COUNT,
+      history: [],
+      dangerScore: 10,
+      isFinished: false,
+      cultivatorId: context.playerInfo.id!,
+      theme: context.location.location,
+      summary_of_sacrifice: [],
+      costLedger: [],
+      gainLedger: [],
+      accumulatedRewards: [],
+      status: 'WAITING_BATTLE',
+      accumulatedHpLoss: 0,
+      accumulatedMpLoss: 0,
+    };
+    const prepared = await prepareExorcismEncounter(state);
+    state.encounter = prepared.preview;
+    const actionInstanceId = randomUUID();
+    return {
+      state,
+      persist: async (tx: DbTransaction) => {
+        const { player } = await dungeonPlayer(cultivatorId, tx);
+        await updateCultivator(
+          cultivatorId,
+          { condition: player.cultivator.condition },
+          tx,
+        );
+        const reservation = await QiService.reserveQi({
+          cultivatorId,
+          action: 'exorcism_start',
+          actionInstanceId,
+          metadata: { mapNodeId },
+          tx,
+        });
+        await this.persistStateRecord(cultivatorId, state, prepared, tx);
+        await QiService.commitReservation({
+          actionInstanceId,
+          metadata: {
+            runId: state.runId,
+            committedAt: new Date().toISOString(),
+          },
+          tx,
+        });
+        return {
+          condition: player.cultivator.condition,
+          currency: {
+            qi: reservation.qiAfter,
+            qiLastRefreshedAt: reservation.qiLastRefreshedAt,
+          },
+        } satisfies DungeonPersistenceSettlement;
+      },
+      afterCommit: () => this.runs.saveRedisState(cultivatorId, state),
+    };
+  }
+
+  /** 补给点：调息或搜寻，然后备好下一场。 */
+  async supplyExorcism(cultivatorId: string, choice: ExorcismSupplyChoice) {
+    const state = await this.getState(cultivatorId);
+    if (!state?.exorcism || state.exorcism.phase !== 'supply')
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前不在补给阶段，请刷新',
+        409,
+      );
+    if (choice === 'search') {
+      const { context, level } = this.exorcismRewardContext(state);
+      const planned = planExorcismSearchReward(
+        state.rewardSeed!,
+        state.exorcism.supplies.length,
+        level,
+        context,
+      );
+      state.v6Rewards = appendDungeonReward(state.v6Rewards ?? [], {
+        key: planned.key,
+        experience: planned.experience,
+        spiritStones: planned.spiritStones,
+        items: await resolvePlanItems(planned.plan),
+      });
+    }
+    state.exorcism = applyExorcismSupply(state.exorcism, choice);
+    const prepared = await prepareExorcismEncounter(state);
+    state.encounter = prepared.preview;
+    state.status = 'WAITING_BATTLE';
+    state.currentRound = state.exorcism.wins + 1;
+    return {
+      state,
+      isFinished: false,
+      ...this.buildStateHooks(cultivatorId, state, prepared),
+    };
+  }
+
+  /** 主动收手：按当前进度结算，不受败退折损。 */
+  async retreatExorcismRun(
+    cultivatorId: string,
+    options: DungeonFlowOptions = {},
+  ) {
+    const state = await this.getState(cultivatorId);
+    if (!state?.exorcism || state.exorcism.phase === 'finished')
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '当前无法收手，请刷新',
+        409,
+      );
+    if (state.activeBattleId)
+      throw new DungeonFlowError(
+        DungeonFlowErrorCode.INVALID_STATE,
+        '战斗中不能收手，请用逃跑指令',
+        409,
+      );
+    state.encounter = undefined;
+    const settled = await this.settleDungeon(state, {
+      endDisposition: 'retreated_after_battle',
+      deferPersistence: options.deferPersistence,
+    });
+    return { ...settled, state: settled.state ?? state };
+  }
+
+  private exorcismRewardContext(state: DungeonState) {
+    const map = getMapNode(state.mapNodeId);
+    if (!map || !('realm_requirement' in map)) throw new Error('秘境地图无效');
+    const mapRealm = map.realm_requirement as RealmType;
+    return {
+      mapRealm,
+      level: getRealmStageLevel(mapRealm, '初期'),
+      context: {
+        mapRealm,
+        playerRealm: state.playerInfo.realm.split(' ')[0] as RealmType,
+        difficultyTier: resolveDungeonMapConfig(map).difficultyTier,
+      },
+    };
+  }
+
+  /**
+   * 写定除祟的结算：评级奖励、克星加掷、结局文案和实际收益。
+   * 只执行一次（state.settlement 已存在时跳过），所以退出、恢复和重试都走同一份结果。
+   */
+  private async finalizeExorcism(state: DungeonState) {
+    if (!state.exorcism || state.settlement) return;
+    if (state.exorcism.phase !== 'finished')
+      state.exorcism = retreatExorcism(state.exorcism);
+    const run = state.exorcism;
+    const { mapRealm, level, context } = this.exorcismRewardContext(state);
+    let insight: 'full' | 'partial' | 'none' = 'none';
+    if (run.grade) {
+      const planned = planExorcismSettlement(
+        state.rewardSeed!,
+        run.grade,
+        run.endReason!,
+        level,
+        context,
+      );
+      insight = planned.insight;
+      state.v6Rewards = appendDungeonReward(state.v6Rewards ?? [], {
+        key: planned.key,
+        experience: planned.experience,
+        spiritStones: planned.spiritStones,
+        items: await resolvePlanItems(planned.plan),
+      });
+    }
+    const beatNemesis = run.endReason === 'cleared' && run.countered;
+    if (beatNemesis)
+      state.v6Rewards = appendDungeonReward(state.v6Rewards ?? [], {
+        key: 'exorcism:nemesis',
+        experience: 0,
+        spiritStones: 0,
+        items: await resolvePlanItems(
+          planExorcismNemesisBonus(state.rewardSeed!, level),
+        ),
+      });
+    const sum = (key: 'experience' | 'spiritStones') =>
+      (state.v6Rewards ?? []).reduce((total, r) => total + r[key], 0);
+    const gains: ResourceOperation[] = [
+      { type: 'cultivation_exp', value: sum('experience') },
+      { type: 'spirit_stones', value: sum('spiritStones') },
+    ];
+    if (insight !== 'none') {
+      const value = RewardFactory.rollInsight(
+        mapRealm,
+        insight === 'full' ? 'S' : 'A',
+        state.dangerScore,
+        context.difficultyTier,
+      );
+      gains.push({
+        type: 'comprehension_insight',
+        value: Math.max(
+          1,
+          Math.floor(value * EXORCISM_REWARD_PACK.insightFactor),
+        ),
+      });
+    }
+    state.realGains = gains;
+    state.settlement = {
+      ending_narrative: exorcismEnding(run),
+      settlement: {
+        reward_tier: run.grade ?? 'D',
+        reward_blueprints: [],
+        performance_tags: [
+          run.endReason === 'cleared'
+            ? '祟主伏诛'
+            : run.endReason === 'retreated'
+              ? '及时收手'
+              : '败退而回',
+          ...(beatNemesis ? ['逆命破局'] : []),
+        ],
+      },
+    };
+  }
+
   async beginBattle(
     cultivatorId: string,
     encounterId: string,
@@ -791,6 +1058,26 @@ export class DungeonFlowService {
     const battle = await getDungeonBattle(cultivatorId, battleId);
     if (!battle?.outcome) throw new Error('请先完成战斗');
     delete state.activeBattleId;
+    if (state.exorcism) {
+      state.encounter = undefined;
+      if (state.exorcism.phase === 'finished') {
+        const settled = await this.settleDungeon(state, {
+          endDisposition:
+            state.exorcism.endReason === 'cleared'
+              ? 'completed'
+              : 'retreated_after_battle',
+          deferPersistence: options.deferPersistence,
+        });
+        return { ...settled, state: settled.state ?? state };
+      }
+      state.status = 'EXPLORING';
+      state.currentRound = state.exorcism.wins + 1;
+      return {
+        state,
+        isFinished: false,
+        ...this.buildStateHooks(cultivatorId, state),
+      };
+    }
     if (state.mystery?.pendingGuard)
       return this.finishMysteryGuard(
         state,
@@ -869,7 +1156,8 @@ export class DungeonFlowService {
         ? options.pendingAction
         : undefined;
     if (state.rewardSeed === undefined) throw new Error('旧秘境会话需维护处理');
-    if (endDisposition === 'completed')
+    await this.finalizeExorcism(state);
+    if (endDisposition === 'completed' && !state.exorcism)
       state.v6Rewards = appendDungeonReward(
         state.v6Rewards ?? [],
         await resolveDungeonReward(state, 'completion', 'completion'),

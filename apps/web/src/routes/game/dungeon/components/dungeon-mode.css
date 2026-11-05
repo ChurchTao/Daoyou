@@ -1,0 +1,88 @@
+/* 云游首页切换：长卷、转轮与切换仪式。 */
+.dungeon-mode-wheel {
+  touch-action: none;
+  cursor: grab;
+  transition: left 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dungeon-mode-wheel[data-dragging='true'] {
+  cursor: grabbing;
+  transition: none;
+}
+.dungeon-mode-wheel-disc {
+  background:
+    radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.1), transparent 45%),
+    conic-gradient(
+      from 20deg,
+      rgb(44 24 16 / 0.96),
+      rgb(44 24 16 / 0.78) 25%,
+      rgb(44 24 16 / 0.98) 52%,
+      rgb(44 24 16 / 0.72) 78%,
+      rgb(44 24 16 / 0.96)
+    );
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dungeon-mode-wheel[data-dragging='true'] .dungeon-mode-wheel-disc {
+  transition: none;
+}
+
+.dungeon-mode-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  clip-path: circle(0 at var(--wash-x) var(--wash-y));
+  animation:
+    dungeon-wash-cover 400ms cubic-bezier(0.55, 0, 0.7, 0.3) 120ms forwards,
+    dungeon-wash-out 420ms ease-out 600ms forwards;
+}
+.dungeon-mode-wash {
+  background: var(--color-paper-2);
+}
+.dungeon-mode-stamp {
+  opacity: 0;
+  font-family: var(--font-heading);
+  animation: dungeon-stamp-in 280ms cubic-bezier(0.2, 1.4, 0.4, 1) 400ms
+    forwards;
+}
+.dungeon-mode-wash[data-to='exorcism'] .dungeon-mode-stamp {
+  transform: rotate(-6deg);
+  border: 0.25rem solid var(--color-crimson);
+  padding: 0.25rem 1rem;
+  color: var(--color-crimson);
+  font-size: clamp(3rem, 12vw, 6rem);
+}
+.dungeon-mode-wash[data-to='mystery'] .dungeon-mode-stamp {
+  color: var(--color-ink);
+  font-size: clamp(3rem, 12vw, 6rem);
+}
+
+@keyframes dungeon-wash-cover {
+  to {
+    clip-path: circle(150vmax at var(--wash-x) var(--wash-y));
+  }
+}
+@keyframes dungeon-wash-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dungeon-stamp-in {
+  from {
+    opacity: 0;
+    scale: 1.8;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dungeon-mode-wheel,
+  .dungeon-mode-wheel-disc {
+    transition: none;
+  }
+}

@@ -5,12 +5,15 @@ import type {
   DungeonRecoverAction,
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
+import type { ExorcismSupplyChoice } from '@daoyou/game-domain/dungeon/exorcism';
 import type {
   MysteryAction,
   MysteryAnswers,
   MysteryEvidence,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useRef, useState } from 'react';
+
+export type DungeonMode = 'mystery' | 'exorcism';
 
 export function useDungeonActions(
   reconcile: () => Promise<void>,
@@ -63,9 +66,24 @@ export function useDungeonActions(
 
   return {
     processing,
-    startDungeon: async (mapNodeId: string) =>
+    startDungeon: async (mapNodeId: string, mode: DungeonMode = 'mystery') =>
       // 解谜秘境开局需要生成案卷，耗时长于普通操作。
-      (await mutate('start', { mapNodeId }, 200000))?.state ?? null,
+      (await mutate('start', { mapNodeId, mode }, 200000))?.state ?? null,
+    exorcismSupply: (choice: ExorcismSupplyChoice) =>
+      mutate('exorcism/supply', { expected, choice }),
+    exorcismRetreat: (title: string, content: string) =>
+      new Promise<Awaited<ReturnType<typeof mutate>>>((resolve) => {
+        openDialog({
+          title,
+          content,
+          confirmLabel: '确认收手',
+          cancelLabel: '再想想',
+          onConfirm: async () => {
+            resolve(await mutate('exorcism/retreat', { expected }));
+          },
+          onCancel: () => resolve(null),
+        });
+      }),
     mysteryAct: (runId: string, turn: number, action: MysteryAction) => {
       // 同一回合重试同一动作时沿用 actionId，服务端据此去重。
       const key = JSON.stringify([runId, turn, action]);

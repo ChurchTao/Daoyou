@@ -10,10 +10,15 @@ import type { Cultivator } from '@daoyou/game-domain/character';
 
 export function DungeonBattle({
   battleId,
+  title = '秘境遭遇',
+  bossGrading,
   onBattleComplete,
 }: {
   battleId: string;
   player: Pick<Cultivator, 'id'>;
+  title?: string;
+  /** 除祟首领战：结束时气血不低于该比例评 S，标题实时显示当前可得评级。 */
+  bossGrading?: number;
   onBattleComplete: (data: BattleCallbackData | null) => void;
 }) {
   const combat = useCombatV6Session<DungeonSessionView>('/api/dungeon/battle');
@@ -33,8 +38,17 @@ export function DungeonBattle({
       onBattleComplete(result.callbackData);
     });
   };
+  const self = combat.shown?.units.find(
+    (unit) => unit.id === combat.session?.controlledUnitId,
+  );
+  const shownTitle =
+    bossGrading !== undefined && self && self.maxHp
+      ? `${title} · 气血 ${Math.floor(((self.hp ?? 0) * 100) / self.maxHp)}% · 当前可得 ${
+          (self.hp ?? 0) / self.maxHp >= bossGrading ? 'S' : 'A'
+        }`
+      : title;
   return (
-    <CombatV6Page title="秘境遭遇" active>
+    <CombatV6Page title={shownTitle} active>
       {combat.error ? (
         <p role="alert">
           {combat.error}{' '}
@@ -45,7 +59,7 @@ export function DungeonBattle({
         <CombatV6Battle
           allowAbandon={false}
           key={battleId}
-          title="秘境遭遇"
+          title={shownTitle}
           session={combat.session}
           shown={combat.shown}
           log={combat.log}

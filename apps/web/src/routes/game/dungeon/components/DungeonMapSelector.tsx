@@ -1,5 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { cn } from '@app/lib/cn';
 import type { RealmType } from '@daoyou/constants/realms';
 import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
 import { MapNodeInfo } from '@daoyou/game-domain/world/map';
@@ -11,6 +12,7 @@ type NoviceDungeonReadiness = ReturnType<typeof dungeonReadiness>;
 interface DungeonMapSelectorProps {
   selectedNode: MapNodeInfo | null;
   onStart: (nodeId: string) => Promise<void>;
+  mode?: 'mystery' | 'exorcism';
   isStarting: boolean;
   readiness: NoviceDungeonReadiness | null;
   realmBlockReason?: string | null;
@@ -23,6 +25,7 @@ interface DungeonMapSelectorProps {
 export function DungeonMapSelector({
   selectedNode,
   onStart,
+  mode = 'mystery',
   isStarting,
   readiness,
   realmBlockReason,
@@ -34,7 +37,8 @@ export function DungeonMapSelector({
         <p className="leading-8">
           还没有选定秘境。
           <br />
-          在地图上点一处有秘境的地点，就能从这里出发。
+          在地图上点一处有秘境的地点，就能从这里
+          {mode === 'exorcism' ? '开始除祟' : '出发'}。
         </p>
         <InkButton href="/game/map-v2" variant="primary">
           前往地图
@@ -47,7 +51,7 @@ export function DungeonMapSelector({
 
   return (
     <div className="space-y-5">
-      <MapNodeCard node={selectedNode} playerRealm={playerRealm} />
+      <MapNodeCard node={selectedNode} playerRealm={playerRealm} mode={mode} />
       {realmBlockReason ? (
         <InkNotice tone="warning">{realmBlockReason}</InkNotice>
       ) : readiness?.shouldBlock ? (
@@ -55,11 +59,20 @@ export function DungeonMapSelector({
           {readiness.reasons[0] ?? '出行前还需准备。'}
         </InkNotice>
       ) : null}
-      <div className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
+      <div
+        className={cn(
+          'border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4',
+          // 窄屏页面较长，开始按钮常驻可见，不用先翻到页尾。
+          mode === 'exorcism' &&
+            'max-lg:bg-sheet max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:pb-3',
+        )}
+      >
         <span className="text-ink-secondary text-sm">
-          开局消耗灵气{' '}
+          {mode === 'exorcism' ? '开局固定消耗灵气' : '开局消耗灵气'}{' '}
           <span className="text-ink font-mono font-semibold tracking-tight">
-            {QI_ACTION_COSTS.dungeon_start}
+            {mode === 'exorcism'
+              ? QI_ACTION_COSTS.exorcism_start
+              : QI_ACTION_COSTS.dungeon_start}
           </span>
         </span>
         <div className="flex gap-2">
@@ -81,11 +94,15 @@ export function DungeonMapSelector({
               ? '境界不足'
               : readiness?.shouldBlock
                 ? '准备未足'
-                : '开始探索'}
+                : mode === 'exorcism'
+                  ? '开始除祟'
+                  : '开始探索'}
           </InkButton>
         </div>
       </div>
-      <MysteryWaiting active={isStarting} kind="start" />
+      {mode === 'exorcism' ? null : (
+        <MysteryWaiting active={isStarting} kind="start" />
+      )}
     </div>
   );
 }

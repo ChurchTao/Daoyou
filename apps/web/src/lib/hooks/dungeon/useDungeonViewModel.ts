@@ -6,6 +6,10 @@ import type {
   DungeonState,
 } from '@daoyou/game-domain/dungeon';
 import type {
+  ExorcismRunState,
+  ExorcismSupplyChoice,
+} from '@daoyou/game-domain/dungeon/exorcism';
+import type {
   MysteryAction,
   MysteryAnswers,
   MysteryEvidence,
@@ -14,7 +18,7 @@ import type {
 import type { ResourceOperation } from '@daoyou/game-domain/resources';
 import { useMemo } from 'react';
 import type { BattleCallbackData } from './types';
-import { useDungeonActions } from './useDungeonActions';
+import { useDungeonActions, type DungeonMode } from './useDungeonActions';
 import { useDungeonState } from './useDungeonState';
 
 /**
@@ -30,6 +34,8 @@ export type DungeonViewState =
   /** 旧版回合制留下的未完成副本：只能结束探索。 */
   | { type: 'legacy'; state: DungeonState }
   | { type: 'mystery'; state: DungeonState; view: MysteryPlayerView }
+  /** 除祟补给点。 */
+  | { type: 'exorcism_supply'; state: DungeonState; run: ExorcismRunState }
   | { type: 'battle_preparation'; state: DungeonState }
   | {
       type: 'in_battle';
@@ -42,6 +48,7 @@ export type DungeonViewState =
       settlement?: DungeonSettlement;
       realGains?: ResourceOperation[];
       mystery?: MysteryPlayerView;
+      exorcism?: ExorcismRunState;
     };
 
 export type DungeonMutationResolution =
@@ -110,6 +117,8 @@ export function useDungeonViewModel(
     mysteryDeduce,
     mysteryTalk,
     mysteryGuard,
+    exorcismSupply,
+    exorcismRetreat,
     processing,
   } = useDungeonActions(refresh, state);
 
@@ -151,11 +160,16 @@ export function useDungeonViewModel(
         settlement: state.settlement,
         realGains: state.realGains,
         mystery: state.mysteryView,
+        exorcism: state.exorcism,
       };
     }
 
     if (state?.status === 'RECOVERABLE_ERROR') {
       return { type: 'recoverable_error', state };
+    }
+
+    if (state?.exorcism && state.status === 'EXPLORING') {
+      return { type: 'exorcism_supply', state, run: state.exorcism };
     }
 
     if (state?.mysteryView && state.status === 'EXPLORING') {
@@ -176,13 +190,22 @@ export function useDungeonViewModel(
   /**
    * 操作：启动副本
    */
-  const handleStartDungeon = async (nodeId: string) => {
+  const handleStartDungeon = async (
+    nodeId: string,
+    mode: DungeonMode = 'mystery',
+  ) => {
+    const exorcism = mode === 'exorcism';
     openQiActionConfirm({
-      actionName: '秘境探索',
-      qiCost: QI_ACTION_COSTS.dungeon_start,
-      confirmLabel: '开始探索',
+      actionName: exorcism ? '云游·除祟' : '云游·探秘',
+      qiCost: exorcism
+        ? QI_ACTION_COSTS.exorcism_start
+        : QI_ACTION_COSTS.dungeon_start,
+      confirmLabel: exorcism ? '开始除祟' : '开始探索',
+      details: exorcism
+        ? '入场时气血法力回满，不影响现实状态。局内只能靠调息和回复丹药恢复，战斗中不能服药。灵气开局即扣，首领不能重抽。'
+        : undefined,
       onConfirm: async () => {
-        const newState = await startDungeon(nodeId);
+        const newState = await startDungeon(nodeId, mode);
         if (newState) {
           setState(newState);
         }
@@ -295,6 +318,7 @@ export function useDungeonViewModel(
               realGains: data.realGains,
               // 解谜对决结束后评分随最终状态下发。
               mysteryView: data.dungeonState?.mysteryView ?? prev.mysteryView,
+              exorcism: data.dungeonState?.exorcism ?? prev.exorcism,
             }
           : null,
       );
@@ -329,6 +353,21 @@ export function useDungeonViewModel(
       mysteryDeduce: handleMysteryDeduce,
       mysteryTalk: handleMysteryTalk,
       mysteryGuard: handleMysteryGuard,
+      exorcismSupply: async (choice: ExorcismSupplyChoice) => {
+        await applyMutationResult(
+          (await exorcismSupply(choice)) as Parameters<
+            typeof resolveDungeonMutationResult
+          >[0],
+        );
+      },
+      refreshState: refresh,
+      exorcismRetreat: async (title: string, content: string) => {
+        await applyMutationResult(
+          (await exorcismRetreat(title, content)) as Parameters<
+            typeof resolveDungeonMutationResult
+          >[0],
+        );
+      },
     },
   };
 }
