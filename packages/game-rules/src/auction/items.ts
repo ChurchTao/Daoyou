@@ -12,6 +12,7 @@ import {
   ConsumableFactsSchema,
   MaterialFactsSchema,
   SeedFactsSchema,
+  SeedPreviewFactsSchema,
   materialFactsOf,
   type ItemDefinition,
 } from '@daoyou/game-domain/inventory';
@@ -116,6 +117,8 @@ export function auctionItemQuality(item: AuctionItemFacts): Quality | null {
   if (kind === 'consumable')
     return ConsumableFactsSchema.parse(item.instanceData).quality;
   if (kind === 'seed') {
+    const preview = SeedPreviewFactsSchema.safeParse(item.instanceData);
+    if (preview.success) return preview.data.seedPreview.quality;
     if (
       item.instanceData &&
       typeof item.instanceData === 'object' &&

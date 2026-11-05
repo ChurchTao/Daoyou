@@ -18,6 +18,40 @@ import {
 } from './items.js';
 
 describe('新版寄售规则', () => {
+  it('货架灵种公开预览可读取品质与求购单价上限，但不能作为完整收购事实', () => {
+    const seed = {
+      definitionId: 'seed.v1',
+      instanceData: {
+        seedPreview: {
+          quality: '玄品',
+          element: '木',
+          minRealm: '炼气',
+          seedDescription: '一枚青色种籽。',
+          clueTexts: ['喜爱山间清气'],
+        },
+      },
+    };
+    expect(auctionItemQuality(seed)).toBe('玄品');
+    expect(auctionItemPriceCap(seed)).toBe(100_000);
+    expect(
+      auctionItemPriceCap({
+        ...seed,
+        instanceData: {
+          seedPreview: { ...seed.instanceData.seedPreview, quality: '天品' },
+        },
+      }),
+    ).toBe(800_000);
+    expect(auctionBuyOrderTargetBlockReason(seed)).toBe('灵种属性无效');
+    expect(() =>
+      auctionItemPriceCap({
+        ...seed,
+        instanceData: {
+          seedPreview: { ...seed.instanceData.seedPreview, quality: '未知' },
+        },
+      }),
+    ).toThrow();
+  });
+
   it('无品质品类开放寄售，图纸与阵纹和难估价货品共用更高单价上限', () => {
     for (const definition of ITEM_DEFINITIONS.filter((d) =>
       [
