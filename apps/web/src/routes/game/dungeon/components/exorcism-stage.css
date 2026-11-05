@@ -1,0 +1,20 @@
+/* 云游·除祟：纸底水墨的局内舞台。不用面板和圆角，靠场景、立绘和印章分层。 */
+
+.exorcism-stage {
+  position: relative;
+  z-index: 0;
+}
+/* 场景贴在视口底部，只作远景，正文始终压在纸色上。 */
+.exorcism-scene {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: -1;
+  height: min(62vh, 34rem);
+  pointer-events: none;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: cover;
+  opacity: 0.42;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 45%);
+  mask-image: linear-gradient(to bottom, transparent, black 45%);
+}

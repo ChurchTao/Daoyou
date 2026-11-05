@@ -1,5 +1,6 @@
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkNotice } from '@app/components/ui/InkNotice';
+import { cn } from '@app/lib/cn';
 import type { RealmType } from '@daoyou/constants/realms';
 import { QI_ACTION_COSTS } from '@daoyou/game-content/qi/config';
 import { MapNodeInfo } from '@daoyou/game-domain/world/map';
@@ -58,7 +59,14 @@ export function DungeonMapSelector({
           {readiness.reasons[0] ?? '出行前还需准备。'}
         </InkNotice>
       ) : null}
-      <div className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
+      <div
+        className={cn(
+          'border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4',
+          // 窄屏页面较长，开始按钮常驻可见，不用先翻到页尾。
+          mode === 'exorcism' &&
+            'max-lg:bg-sheet max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:pb-3',
+        )}
+      >
         <span className="text-ink-secondary text-sm">
           {mode === 'exorcism' ? '开局固定消耗灵气' : '开局消耗灵气'}{' '}
           <span className="text-ink font-mono font-semibold tracking-tight">

@@ -29,6 +29,7 @@ const SIZE = {
   sm: 'size-10',
   md: 'size-16',
   lg: 'size-28 md:size-36',
+  xl: 'size-40 md:size-64',
 } as const;
 
 /** 人物或守卫的立绘；没有素材时退回姓氏印章。 */

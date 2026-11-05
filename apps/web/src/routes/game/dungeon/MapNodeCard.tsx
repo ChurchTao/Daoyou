@@ -11,7 +11,7 @@ import {
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
 import { mysterySceneUrl } from './components/mysteryArt';
-import { EXORCISM_STAGES } from './components/exorcismView';
+import { ExorcismTrack } from './components/ExorcismRunStrip';
 import {
   EXORCISM_LINEAGES,
   exorcismLineageForScene,
@@ -50,7 +50,10 @@ export function MapNodeCard({
         // 与解谜正文同一取景：贴底、上缘渐隐；宽屏取 3:1，让开始按钮留在首屏。
         <div
           aria-hidden
-          className="aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom lg:aspect-[3/1]"
+          className={cn(
+            'aspect-[2/1] [mask-image:linear-gradient(to_bottom,transparent,black_18%)] bg-cover bg-bottom',
+            mode === 'exorcism' ? 'lg:aspect-[4/1]' : 'lg:aspect-[3/1]',
+          )}
           style={{ backgroundImage: `url(${sceneUrl})` }}
         />
       ) : null}
@@ -92,19 +95,7 @@ export function MapNodeCard({
             <span className="text-crimson font-semibold">{lineage.name}</span>
             <span className="text-ink-secondary"> · {lineage.trait}</span>
           </div>
-          <ol className="grid grid-cols-4 gap-1 text-center text-sm">
-            {EXORCISM_STAGES.map((stage, index) => (
-              <li
-                key={stage}
-                className="border-ink/20 rounded-sm border py-1.5"
-              >
-                <span className="text-ink-secondary font-mono text-xs">
-                  {index + 1}
-                </span>{' '}
-                {stage}
-              </li>
-            ))}
-          </ol>
+          <ExorcismTrack run={{ wins: 0 }} finished label="一局四场" />
         </section>
       ) : caseKinds.length > 0 ? (
         <section className="space-y-2">

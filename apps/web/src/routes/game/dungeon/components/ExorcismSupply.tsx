@@ -1,3 +1,4 @@
+import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { EXORCISM_ENCOUNTER_PACK } from '@daoyou/game-content/dungeon/exorcism';
 import type {
   ExorcismRunState,
@@ -5,27 +6,29 @@ import type {
 } from '@daoyou/game-domain/dungeon/exorcism';
 import { useState } from 'react';
 import { ExorcismPillBar } from './ExorcismPillBar';
-import {
-  ExorcismMeter,
-  ExorcismRuleLine,
-  ExorcismTrack,
-} from './ExorcismRunStrip';
+import { ExorcismMeter } from './ExorcismRunStrip';
+import { ExorcismStage } from './ExorcismStage';
 import {
   EXORCISM_STAGES,
   exorcismProgressGrade,
-  exorcismStageEnemies,
+  exorcismStageFoes,
   ratioPercent,
 } from './exorcismView';
+import { MysteryPortrait } from './MysteryPortrait';
 
-/** 补给点：要血还是要东西。两张卡直接写结果，不写规则。 */
+/** 补给点：要血还是要东西。两条路直接写结果，不写规则。 */
 export function ExorcismSupply({
   run,
+  location,
+  scene,
   processing,
   onSupply,
   onRetreat,
   onRefresh,
 }: {
   run: ExorcismRunState;
+  location: string;
+  scene?: string;
   processing: boolean;
   onSupply: (choice: ExorcismSupplyChoice) => Promise<void>;
   onRetreat: (title: string, content: string) => Promise<void>;
@@ -49,92 +52,115 @@ export function ExorcismSupply({
   const grade = exorcismProgressGrade(run.wins);
 
   return (
-    <div className="bg-paper text-ink space-y-5 rounded-lg px-5 py-6 shadow-[inset_0_0_90px_18px_rgba(44,24,16,0.16)] md:px-8 md:py-8">
-      <ExorcismTrack run={run} />
-
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          第 {run.wins} 战胜了。接下来怎么办？
-        </h2>
-        <ExorcismMeter
-          label="局内气血"
-          current={player.hp}
-          max={player.maxHp}
-          tone="hp"
-          preview={hovered ? restedHp : undefined}
-        />
-        <ExorcismMeter
-          label="局内法力"
-          current={player.mp}
-          max={player.maxMp}
-          tone="mp"
-          preview={hovered ? restedMp : undefined}
-        />
-        <ExorcismRuleLine />
-        <ExorcismPillBar run={run} processing={processing} onUsed={onRefresh} />
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <button
-          type="button"
-          disabled={processing}
-          className="border-ink/40 hover:bg-ink/5 rounded-md border bg-white/30 px-4 py-4 text-left transition-colors disabled:opacity-50"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          onFocus={() => setHovered(true)}
-          onBlur={() => setHovered(false)}
-          onClick={() => void onSupply('rest')}
-        >
-          <div className="text-lg font-semibold">调息</div>
-          <div className="text-ink/80 mt-1 text-sm leading-7">
-            气血 <span className="font-mono">{hp}%</span> →{' '}
-            <span className="font-mono">
-              {ratioPercent(restedHp, player.maxHp)}%
-            </span>
-            ，法力 <span className="font-mono">{mp}%</span> →{' '}
-            <span className="font-mono">
-              {ratioPercent(restedMp, player.maxMp)}%
-            </span>
-            。存活的灵兽同样恢复。
+    <ExorcismStage location={location} scene={scene} run={run}>
+      <div className="grid gap-8 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className="min-w-0 space-y-5">
+          <div className="space-y-3">
+            <ExorcismMeter
+              label="局内气血"
+              current={player.hp}
+              max={player.maxHp}
+              tone="hp"
+              preview={hovered ? restedHp : undefined}
+            />
+            <ExorcismMeter
+              label="局内法力"
+              current={player.mp}
+              max={player.maxMp}
+              tone="mp"
+              preview={hovered ? restedMp : undefined}
+            />
           </div>
-        </button>
-        <button
-          type="button"
-          disabled={processing}
-          className="border-crimson/60 bg-crimson/5 hover:bg-crimson/10 flex flex-col justify-start rounded-md border px-4 py-4 text-left transition-colors disabled:opacity-50"
-          onClick={() => void onSupply('search')}
-        >
-          <div className="text-crimson text-lg font-semibold">搜寻</div>
-          <div className="text-ink/80 mt-1 text-sm leading-7">
-            多拿一次奖励。状态不变，气血仍为{' '}
-            <span className="font-mono">{hp}%</span>。
-          </div>
-        </button>
-      </div>
+          <ExorcismPillBar
+            run={run}
+            processing={processing}
+            onUsed={onRefresh}
+          />
+        </aside>
 
-      <div className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
-        <div className="text-sm">
-          <span className="text-ink-secondary">
-            下一场：第 {next} 战 · {EXORCISM_STAGES[next - 1]}
-          </span>
-          <span className="ml-2 font-semibold">
-            {exorcismStageEnemies(run, next).join('、')}
-          </span>
-        </div>
-        <button
-          type="button"
-          disabled={processing}
-          className="text-ink-secondary hover:text-ink text-sm underline underline-offset-4 disabled:opacity-50"
-          onClick={() =>
-            void onRetreat(
-              '就此收手',
-              `现在结算，评级 ${grade}，不打折。已得的奖励全部带走。`,
-            )
-          }
-        >
-          就此收手，现在结算（评级 {grade}）
-        </button>
+        <section className="min-w-0 space-y-5">
+          <h2 className="font-heading text-2xl md:text-3xl">
+            第 {run.wins} 战告捷，接下来怎么办？
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {/* 悬停或聚焦调息时，左侧状态条预览恢复后的数值。 */}
+            <div
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
+              onFocus={() => setHovered(true)}
+              onBlur={() => setHovered(false)}
+            >
+              <InkChoiceButton
+                layout="card"
+                className="h-full"
+                disabled={processing}
+                onClick={() => void onSupply('rest')}
+              >
+                <div className="font-semibold">调息</div>
+                <div className="text-ink/80 mt-1 text-sm leading-7">
+                  气血 <span className="font-mono">{hp}%</span> →{' '}
+                  <span className="font-mono">
+                    {ratioPercent(restedHp, player.maxHp)}%
+                  </span>
+                  ，法力 <span className="font-mono">{mp}%</span> →{' '}
+                  <span className="font-mono">
+                    {ratioPercent(restedMp, player.maxMp)}%
+                  </span>
+                  。存活的灵兽同样恢复。
+                </div>
+              </InkChoiceButton>
+            </div>
+            <InkChoiceButton
+              layout="card"
+              className="h-full"
+              disabled={processing}
+              onClick={() => void onSupply('search')}
+            >
+              <div className="text-crimson font-semibold">搜寻</div>
+              <div className="text-ink/80 mt-1 text-sm leading-7">
+                多拿一次奖励。状态不变，气血仍为{' '}
+                <span className="font-mono">{hp}%</span>。
+              </div>
+            </InkChoiceButton>
+          </div>
+
+          <div className="border-ink/15 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
+            <div className="flex min-w-0 items-center gap-3 text-sm">
+              <span className="text-ink-secondary shrink-0">
+                下一场：第 {next} 战 · {EXORCISM_STAGES[next - 1]}
+              </span>
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                {exorcismStageFoes(run, next).map((foe) => (
+                  <span
+                    key={foe.name}
+                    className="flex items-center gap-1 font-semibold"
+                  >
+                    <MysteryPortrait
+                      portrait={foe.portrait}
+                      name={foe.name}
+                      size="sm"
+                    />
+                    {foe.name}
+                  </span>
+                ))}
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={processing}
+              className="text-ink-secondary hover:text-ink text-sm underline underline-offset-4 disabled:opacity-50"
+              onClick={() =>
+                void onRetreat(
+                  '就此收手',
+                  `现在结算，评级 ${grade}，不打折。已得的奖励全部带走。`,
+                )
+              }
+            >
+              就此收手（评级 {grade}）
+            </button>
+          </div>
+        </section>
       </div>
-    </div>
+    </ExorcismStage>
   );
 }

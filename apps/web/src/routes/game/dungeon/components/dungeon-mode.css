@@ -38,10 +38,7 @@
     dungeon-wash-cover 400ms cubic-bezier(0.55, 0, 0.7, 0.3) 120ms forwards,
     dungeon-wash-out 420ms ease-out 600ms forwards;
 }
-.dungeon-mode-wash[data-to='exorcism'] {
-  background: var(--color-ink);
-}
-.dungeon-mode-wash[data-to='mystery'] {
+.dungeon-mode-wash {
   background: var(--color-paper-2);
 }
 .dungeon-mode-stamp {

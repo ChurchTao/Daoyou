@@ -15,8 +15,8 @@ export function exorcismProgressGrade(wins: number): ExorcismGrade | null {
   return wins >= 3 ? 'B' : wins === 2 ? 'C' : wins === 1 ? 'D' : null;
 }
 
-/** 下一场（或正在打的一场）的敌人名字，用于补给页预告。 */
-export function exorcismStageEnemies(
+/** 下一场（或正在打的一场）的敌人，用于迎战页立绘和补给页预告。 */
+export function exorcismStageFoes(
   run: Pick<ExorcismRunState, 'bossId' | 'lineageId'>,
   stage: number,
 ) {
@@ -30,7 +30,7 @@ export function exorcismStageEnemies(
         : stage === 3
           ? boss.guardian
           : boss.boss;
-  return encounter.enemies.map((enemy) => enemy.name);
+  return encounter.enemies;
 }
 
 export function exorcismBattleTitle(run: ExorcismRunState) {

@@ -79,7 +79,10 @@ export function DungeonSettlement({
   }
 
   return (
-    <InkCard className="space-y-5 overflow-hidden p-4">
+    <InkCard
+      variant={exorcism ? 'plain' : undefined}
+      className="space-y-5 overflow-hidden p-4"
+    >
       {exorcism ? (
         <ExorcismResult
           run={exorcism}

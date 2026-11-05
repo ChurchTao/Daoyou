@@ -1,3 +1,4 @@
+import { InkButton } from '@app/components/ui/InkButton';
 import {
   EXORCISM_BOSSES,
   EXORCISM_ENCOUNTER_PACK,
@@ -6,23 +7,38 @@ import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import type { ExorcismRunState } from '@daoyou/game-domain/dungeon/exorcism';
 import { useCallback, useState } from 'react';
 import { ExorcismPillBar } from './ExorcismPillBar';
+import { ExorcismMeter } from './ExorcismRunStrip';
+import { ExorcismStage } from './ExorcismStage';
 import {
-  ExorcismMeter,
-  ExorcismRuleLine,
-  ExorcismTrack,
-} from './ExorcismRunStrip';
-import { EXORCISM_STAGES, exorcismProgressGrade } from './exorcismView';
+  EXORCISM_STAGES,
+  exorcismProgressGrade,
+  exorcismStageFoes,
+} from './exorcismView';
 import './mystery-scenes.css';
 import { MysteryReveal } from './MysteryAtmosphere';
 import { MysteryPortrait } from './MysteryPortrait';
 
+function CounterMark() {
+  return (
+    <span
+      className="border-crimson text-crimson font-heading shrink-0 -rotate-6 border-2 px-2 py-0.5 text-sm"
+      aria-label="这位祟主克制你的构筑"
+    >
+      克星
+    </span>
+  );
+}
+
 /**
- * 每一场的迎战页。开局这一页就是祟主现形：灵气已扣，首领不能重抽，
- * 玩家在这里看到它的机制和是否克制自己。开局和首领战各播一次转场。
+ * 每一场的迎战页：右边是这一场的对手，左边是自己的状态和丹药。
+ * 开局这一页就是祟主现形：灵气已扣，首领不能重抽，玩家要看到它的机制和
+ * 是否克制自己。开局和首领战各播一次转场。
  */
 export function ExorcismEncounter({
   run,
   encounter,
+  location,
+  scene,
   processing,
   onBegin,
   onRetreat,
@@ -30,6 +46,8 @@ export function ExorcismEncounter({
 }: {
   run: ExorcismRunState;
   encounter: DungeonEncounterView;
+  location: string;
+  scene?: string;
   processing: boolean;
   onBegin: () => Promise<void>;
   onRetreat: (title: string, content: string) => Promise<void>;
@@ -42,11 +60,20 @@ export function ExorcismEncounter({
   const reveal = useCallback(() => setRevealed(true), []);
   const grade = exorcismProgressGrade(run.wins);
   const stage = EXORCISM_STAGES[run.wins];
+  const defs = exorcismStageFoes(run, run.wins + 1);
+  const foes = encounter.enemies.map((name) => ({
+    name,
+    portrait: defs.find((def) => def.name === name)?.portrait,
+  }));
+  const counterLine = run.countered
+    ? `${boss.counterLine}打赢它能多掷一次额外奖励。`
+    : null;
 
   return (
-    <div className="bg-paper text-ink relative space-y-5 overflow-hidden rounded-lg px-5 py-6 shadow-[inset_0_0_90px_18px_rgba(44,24,16,0.22)] md:px-8 md:py-8">
+    <ExorcismStage location={location} scene={scene} run={run}>
       {revealed ? null : (
         <MysteryReveal
+          surface="paper"
           eyebrow={opening ? '祟主现形' : '祟主现身'}
           name={boss.name}
           description={boss.mechanic}
@@ -55,82 +82,112 @@ export function ExorcismEncounter({
         />
       )}
 
-      <ExorcismTrack run={run} />
-
-      <div className="flex items-center gap-4">
-        <MysteryPortrait portrait={boss.portrait} name={boss.name} size="lg" />
-        <div className="min-w-0 space-y-2">
-          <div className="text-ink-secondary text-xs tracking-[0.3em]">
-            本局祟主
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-crimson text-2xl font-semibold tracking-[0.15em] md:text-3xl">
-              {boss.name}
-            </h2>
-            {run.countered ? (
-              <span
-                className="border-crimson text-crimson -rotate-6 border-2 px-2 py-0.5 text-sm font-semibold"
-                aria-label="这位祟主克制你的构筑"
-              >
-                克星
-              </span>
-            ) : null}
-          </div>
-          <p className="text-ink/80 text-sm leading-7">{boss.mechanic}</p>
-          {run.countered ? (
-            <p className="text-crimson text-sm leading-7">
-              {boss.counterLine}打赢它能多掷一次额外奖励。
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="border-ink/15 space-y-3 border-t border-dashed pt-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="font-semibold">
+      <div className="grid gap-8 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <section
+          aria-label={`第 ${run.wins + 1} 战的对手`}
+          className="min-w-0 lg:order-2"
+        >
+          <div className="text-ink-secondary text-sm">
             第 {run.wins + 1} 战 · {stage}
           </div>
-          <div className="text-ink-secondary text-sm">
-            {encounter.enemies.join('、')}
+          <div className="mt-3 flex flex-wrap items-end justify-center gap-x-8 gap-y-3 lg:justify-start">
+            {foes.map((foe) => (
+              <div key={foe.name} className="flex flex-col items-center gap-2">
+                <MysteryPortrait
+                  portrait={foe.portrait}
+                  name={foe.name}
+                  size={foes.length === 1 ? 'xl' : 'lg'}
+                />
+                <h2
+                  className={
+                    bossStage
+                      ? 'font-heading text-crimson text-3xl md:text-4xl'
+                      : 'font-heading text-2xl md:text-3xl'
+                  }
+                >
+                  {foe.name}
+                </h2>
+              </div>
+            ))}
+            {bossStage && run.countered ? <CounterMark /> : null}
           </div>
-        </div>
-        <p className="text-ink/80 text-sm leading-7">{encounter.description}</p>
-        <ExorcismMeter
-          label="局内气血"
-          current={encounter.hp.current}
-          max={encounter.hp.max}
-          tone="hp"
-        />
-        <ExorcismMeter
-          label="局内法力"
-          current={encounter.mp.current}
-          max={encounter.mp.max}
-          tone="mp"
-        />
-        <ExorcismRuleLine />
-        <ExorcismPillBar run={run} processing={processing} onUsed={onRefresh} />
+          <p className="text-ink/85 mt-3 max-w-2xl text-sm leading-7">
+            {bossStage ? boss.mechanic : encounter.description}
+          </p>
+          {bossStage && counterLine ? (
+            <p className="text-crimson max-w-2xl text-sm leading-7">
+              {counterLine}
+            </p>
+          ) : null}
+        </section>
+
+        <aside className="min-w-0 space-y-5 lg:order-1">
+          {bossStage ? null : (
+            <section aria-label="本局祟主" className="flex items-start gap-3">
+              <MysteryPortrait
+                portrait={boss.portrait}
+                name={boss.name}
+                size="md"
+              />
+              <div className="min-w-0">
+                <div className="text-ink-secondary text-xs">本局祟主</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-heading text-crimson text-xl">
+                    {boss.name}
+                  </span>
+                  {run.countered ? <CounterMark /> : null}
+                </div>
+                <p className="text-ink-secondary mt-1 text-xs leading-5">
+                  {boss.mechanic}
+                </p>
+                {counterLine ? (
+                  <p className="text-crimson mt-1 text-xs leading-5">
+                    {counterLine}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          )}
+          <div className="space-y-3">
+            <ExorcismMeter
+              label="局内气血"
+              current={encounter.hp.current}
+              max={encounter.hp.max}
+              tone="hp"
+            />
+            <ExorcismMeter
+              label="局内法力"
+              current={encounter.mp.current}
+              max={encounter.mp.max}
+              tone="mp"
+            />
+          </div>
+          <ExorcismPillBar
+            run={run}
+            processing={processing}
+            onUsed={onRefresh}
+          />
+        </aside>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <button
-          type="button"
-          disabled={processing}
-          className="border-crimson bg-crimson/5 hover:bg-crimson/10 rounded-md border px-4 py-3 text-left transition-colors disabled:opacity-50"
+      {/* 窄屏吸底：对手和状态较长，开打不用先翻到页尾。 */}
+      <footer className="max-lg:bg-sheet max-lg:border-battle-rule-strong flex flex-wrap items-center justify-between gap-x-6 gap-y-2 pt-2 max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:-mx-3 max-lg:border-t max-lg:border-dashed max-lg:px-3 max-lg:pb-3">
+        <InkButton
+          variant="primary"
+          pending={processing}
           onClick={() => void onBegin()}
         >
-          <div className="text-crimson font-semibold">
-            {processing ? '处理中…' : '迎战'}
-          </div>
-          <div className="text-ink/75 mt-1 text-sm leading-6">
-            {bossStage
-              ? `祟气弥漫，治疗效果降低。胜后气血不低于 ${Math.round(EXORCISM_ENCOUNTER_PACK.grading.sHpRatio * 100)}% 评 S，否则评 A。败了按 B 结算并打折。`
-              : '胜则继续，败则按当前进度结算并打折。'}
-          </div>
-        </button>
+          迎战
+        </InkButton>
+        <p className="text-ink/75 min-w-0 text-sm leading-6 max-lg:order-last max-lg:basis-full max-lg:text-xs max-lg:leading-5 lg:flex-1">
+          {bossStage
+            ? `祟气弥漫，治疗效果降低。胜后气血不低于 ${Math.round(EXORCISM_ENCOUNTER_PACK.grading.sHpRatio * 100)}% 评 S，否则评 A。败了按 B 结算并打折。`
+            : '胜则继续，败则按当前进度结算并打折。'}
+        </p>
         <button
           type="button"
           disabled={processing}
-          className="border-ink/30 hover:bg-ink/5 flex flex-col justify-start rounded-md border bg-white/30 px-4 py-3 text-left transition-colors disabled:opacity-50"
+          className="text-ink-secondary hover:text-ink text-sm underline underline-offset-4 disabled:opacity-50"
           onClick={() =>
             void onRetreat(
               '就此收手',
@@ -140,14 +197,9 @@ export function ExorcismEncounter({
             )
           }
         >
-          <div className="font-semibold">就此收手</div>
-          <div className="text-ink-secondary mt-1 text-sm leading-6">
-            {grade
-              ? `现在结算，评级 ${grade}，不打折。`
-              : '没有奖励，灵气不退。'}
-          </div>
+          {grade ? `就此收手（评级 ${grade}）` : '就此收手（没有奖励）'}
         </button>
-      </div>
-    </div>
+      </footer>
+    </ExorcismStage>
   );
 }

@@ -118,7 +118,6 @@ export function DungeonModeSwitch({
 
   // 切换时转轮提前滑到目标端，内容等墨盖住再换。
   const shown = progress ?? (wash ? position(wash.to) : position(mode));
-  const dark = shown;
 
   const titleButton = (target: Mode, share: number) => (
     <button
@@ -139,8 +138,10 @@ export function DungeonModeSwitch({
         }
       }}
       className={cn(
-        'min-w-0 flex-1 px-3 py-4 transition-opacity md:px-6 md:py-6',
-        target === 'exorcism' ? 'text-right' : 'text-left',
+        'min-w-0 flex-1 px-1 py-2 transition-opacity md:flex-none md:px-0',
+        target === 'exorcism'
+          ? 'text-right md:order-2'
+          : 'text-left md:order-0',
       )}
       style={{ opacity: 0.32 + 0.68 * share }}
     >
@@ -159,24 +160,24 @@ export function DungeonModeSwitch({
   );
 
   return (
-    <div className="bg-paper-2/70 border-ink/15 relative overflow-hidden rounded-lg border shadow-[inset_0_0_40px_rgba(44,24,16,0.08)]">
-      {/* 除祟一侧的墨色随转轮位置变浓。 */}
+    <div className="md:border-battle-rule-strong relative flex flex-col md:flex-row md:items-center md:gap-6 md:border-b md:border-dashed md:pb-3">
+      {/* 除祟一侧随转轮位置泛一层朱砂，不压暗纸面。 */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_right,rgba(44,24,16,0.32),transparent_72%)] transition-opacity duration-300"
-        style={{ opacity: dark }}
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_right,rgba(193,18,31,0.09),transparent_70%)] transition-opacity duration-300"
+        style={{ opacity: shown }}
       />
       <div
         role="radiogroup"
         aria-label="云游玩法"
-        className="relative flex items-start"
+        className="relative flex items-start md:contents"
       >
         {titleButton('mystery', 1 - shown)}
         {titleButton('exorcism', shown)}
       </div>
       <div
         ref={railRef}
-        className="relative mx-3 mb-3 h-16 [--wheel-size:4rem] md:mx-6 md:mb-5 md:h-20 md:[--wheel-size:5rem]"
+        className="relative mt-1 h-14 [--wheel-size:3.5rem] md:order-1 md:mt-0 md:h-16 md:min-w-0 md:flex-1 md:[--wheel-size:4rem]"
       >
         <div
           aria-hidden
@@ -189,7 +190,7 @@ export function DungeonModeSwitch({
           tabIndex={-1}
           aria-hidden
           data-dragging={progress !== null}
-          className="dungeon-mode-wheel absolute top-0 size-16 md:size-20"
+          className="dungeon-mode-wheel absolute top-0 size-14 md:size-16"
           style={{ left: `calc((100% - var(--wheel-size)) * ${shown})` }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -200,7 +201,7 @@ export function DungeonModeSwitch({
             className="dungeon-mode-wheel-disc absolute inset-0 rounded-full shadow-[0_4px_14px_rgba(44,24,16,0.4)]"
             style={{ transform: `rotate(${shown * 180}deg)` }}
           />
-          <span className="font-heading text-paper relative text-3xl md:text-4xl">
+          <span className="font-heading text-paper relative text-2xl md:text-3xl">
             {shown >= 0.5 ? MODES.exorcism.seal : MODES.mystery.seal}
           </span>
         </button>
