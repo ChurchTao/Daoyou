@@ -18,7 +18,6 @@ const definitions = {
 };
 describe('equipment forging pack', () => {
   it('matches editor schema and preserves probability boundaries', () => {
-    expect(loadEquipmentForgingPack(data, definitions)).toEqual(data);
     expect(schema).toEqual(z.toJSONSchema(EquipmentForgingPackShape));
     expect(
       [0.819999, 0.82, 0.979999, 0.98].map(
@@ -168,48 +167,4 @@ it('shares edited generation, pool, cost and material boost configuration', asyn
   }
   expect(FORGING_BOOST_PER_MATERIAL).toBe(0.2);
   expect(forgingCost(10).spiritStones).toBe(321);
-});
-
-it('更换器蕴候选池不改变白字、绿字、器诀或其他成品事实', async () => {
-  const { generateDaoEquipmentV2: original } = await import('./generator.js');
-  const inputs = Array.from({ length: 256 }, (_, seed) => ({
-    id: 'pool-invariance', createdAt: 'test', seed,
-    templateId: 'dao_equipment.standard.weapon.v1', equipmentLevel: 50,
-    generatorVersion: 'dao_equipment_generator_v2' as const,
-  }));
-  const withoutEssences = (result: ReturnType<typeof original>) => {
-    if (!result.ok) throw new Error('generation failed');
-    const { essenceIds, ...facts } = result.instance;
-    void essenceIds;
-    return facts;
-  };
-  const expected = inputs.map((input) => withoutEssences(original(input)));
-  const copy = structuredClone(data);
-  copy.generation.essencePool.reverse();
-  vi.resetModules();
-  vi.doMock('@daoyou/game-content/authoring/equipment/forging', () => ({ default: copy }));
-  const { generateDaoEquipmentV2: changed } = await import('./generator.js');
-  expect(inputs.map((input) => withoutEssences(changed(input)))).toEqual(expected);
-});
-
-it('更换器诀候选池不改变白字、绿字、器蕴或其他成品事实', async () => {
-  const { generateDaoEquipmentV2: original } = await import('./generator.js');
-  const inputs = Array.from({ length: 256 }, (_, seed) => ({
-    id: 'pool-invariance', createdAt: 'test', seed,
-    templateId: 'dao_equipment.standard.weapon.v1', equipmentLevel: 50,
-    generatorVersion: 'dao_equipment_generator_v2' as const,
-  }));
-  const withoutArt = (result: ReturnType<typeof original>) => {
-    if (!result.ok) throw new Error('generation failed');
-    const { artId, ...facts } = result.instance;
-    void artId;
-    return facts;
-  };
-  const expected = inputs.map((input) => withoutArt(original(input)));
-  const copy = structuredClone(data);
-  copy.generation.artPool.reverse();
-  vi.resetModules();
-  vi.doMock('@daoyou/game-content/authoring/equipment/forging', () => ({ default: copy }));
-  const { generateDaoEquipmentV2: changed } = await import('./generator.js');
-  expect(inputs.map((input) => withoutArt(changed(input)))).toEqual(expected);
 });

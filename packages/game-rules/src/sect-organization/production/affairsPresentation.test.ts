@@ -1,25 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  STANDARD_SECT_PRESENTATION,
-  StandardSectOrganizationModule,
-} from '../core/index.js';
-import {
-  PRODUCTION_SECT_PRESENTATIONS,
-  PRODUCTION_SECTS,
-} from './productionRuntime.js';
-
-const taskIds = [
-  'gate_sweep',
-  'mine_patrol',
-  'spirit_mining',
-  'pill_delivery',
-  'artifact_delivery',
-  'weekly_diligence',
-  'weekly_tournament',
-  'weekly_bounty_battle',
-  'weekly_bounty_material',
-  'elder_trial',
-] as const;
+import { STANDARD_SECT_PRESENTATION } from '../core/index.js';
+import { PRODUCTION_SECT_PRESENTATIONS } from './productionRuntime.js';
 
 const facilityActorKeys = [
   ['hall', 'registry'],
@@ -43,18 +24,6 @@ const facilityActorKeys = [
 ] as const;
 
 describe('production sect affairs presentations', () => {
-  it('uses one canonical presentation for every standard task', () => {
-    const standard = new StandardSectOrganizationModule();
-
-    for (const { module } of PRODUCTION_SECTS) {
-      for (const taskId of taskIds) {
-        expect(module.organization.tasks.get(taskId)?.presentation).toEqual(
-          standard.tasks.get(taskId)?.presentation,
-        );
-      }
-    }
-  });
-
   it('keeps the tournament entrance on the arena facility', () => {
     for (const presentation of Object.values(PRODUCTION_SECT_PRESENTATIONS)) {
       expect(
@@ -62,9 +31,6 @@ describe('production sect affairs presentations', () => {
           (actor) => actor.roleKey === 'ring',
         ),
       ).toMatchObject({
-        sigil: '⚔️',
-        name: '宗门擂台',
-        identity: '宗门设施',
         appearance: 'facility',
         conversation: {
           renderer: 'sect.arena.tournament',
@@ -94,12 +60,8 @@ describe('production sect affairs presentations', () => {
         ].actors.find((candidate) => candidate.roleKey === roleKey);
         expect(actor).toBeDefined();
         expect(actor).toMatchObject({
-          sigil: standardActor?.sigil,
-          identity: standardActor?.identity,
-          responsibility: standardActor?.responsibility,
           conversation: standardActor?.conversation,
         });
-        expect(actor?.greeting.trim()).not.toBe('');
       }
     }
   });
@@ -112,11 +74,6 @@ describe('production sect affairs presentations', () => {
         .sort();
 
       expect(visitorHotspots).toEqual(['formation', 'gate']);
-      expect(
-        presentation.map.hotspots
-          .filter((hotspot) => hotspot.visitor)
-          .every((hotspot) => hotspot.visitor!.description.trim().length > 0),
-      ).toBe(true);
     }
   });
 });

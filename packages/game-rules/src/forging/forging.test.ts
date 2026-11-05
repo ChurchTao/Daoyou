@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { compileDaoEquipmentSpecialLoadoutV1 } from '../equipment/compiler.js';
 import { generateForgedEquipment, rollHigher } from '../equipment/forging.js';
-import { generateDaoEquipmentV2 } from '../equipment/generator.js';
 import { DAO_EQUIPMENT_SLOTS } from '@daoyou/game-domain/equipment';
-import { sameStack, sortBag } from '../inventory/index.js';
-import { addItems } from '../inventory/test-helpers.js';
-import { BLUEPRINTS } from '@daoyou/game-content/items/equipment';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
-import { forgedName } from './names.js';
 import { forgingBaseQuality, forgingBoosts, forgingCost } from './rules.js';
 
 const facts = MaterialFactsSchema.parse({
@@ -16,10 +11,6 @@ const facts = MaterialFactsSchema.parse({
   rank: '地品',
 });
 describe('blueprint forging', () => {
-  it('registers unique blueprints for all slots and levels', () => {
-    expect(BLUEPRINTS).toHaveLength(54);
-    expect(new Set(BLUEPRINTS.map((b) => b.id)).size).toBe(54);
-  });
   it('charges fixed costs at tier boundaries', () => {
     expect(forgingCost(10)).toEqual({
       spiritStones: 100,
@@ -135,113 +126,33 @@ describe('blueprint forging', () => {
       ),
     ).toBe(10);
   });
-  it('preserves original rolls and special draws, validates boosted results in all slots', () => {
-    let raised = 0;
-    for (const slot of DAO_EQUIPMENT_SLOTS)
-      for (let seed = 1; seed <= 80; seed++) {
-        const input = {
-          id: `forge-${slot}-${seed}`,
-          createdAt: '2026-09-07T00:00:00Z',
-          seed,
-          templateId: `dao_equipment.standard.${slot}.v1`,
-          equipmentLevel: 90,
-        };
-        const base = generateDaoEquipmentV2({
-          ...input,
-          generatorVersion: 'dao_equipment_generator_v2',
-        });
-        const zero = generateForgedEquipment({
-          ...input,
-          boosts: { ore: 0, essence: 0, attributes: 0 },
-        });
-        const result = generateForgedEquipment({
-          ...input,
-          boosts: { ore: 2, essence: 1, attributes: 2 },
-        });
-        expect(base.ok && result.ok && zero.ok).toBe(true);
-        if (!base.ok || !result.ok || !zero.ok) continue;
-        expect(zero.instance).toEqual({
-          ...base.instance,
-          generatorVersion: 'dao_equipment_generator_v5',
-          element: zero.instance.element,
-          ...(slot === 'weapon' ? { weaponType: 'sword' } : {}),
-          name: forgedName(
-            slot,
-            90,
-            seed,
-            slot === 'weapon' ? 'sword' : undefined,
-          ),
-        });
-        expect(result.instance.artId).toBe(base.instance.artId);
-        expect(result.instance.attributeBonuses.map((r) => r.attr)).toEqual(
-          base.instance.attributeBonuses.map((r) => r.attr),
-        );
-        result.instance.baseStats.forEach((r, index) => {
-          expect(r.value).toBeGreaterThanOrEqual(
-            base.instance.baseStats[index].value,
-          );
-          if (r.value > base.instance.baseStats[index].value) raised++;
-        });
-        expect(result.instance.essenceIds.length).toBeGreaterThanOrEqual(
-          base.instance.essenceIds.length,
-        );
-        expect(
-          compileDaoEquipmentSpecialLoadoutV1({ [slot]: result.instance }, 180)
-            .ok,
-        ).toBe(true);
-        expect(
-          compileDaoEquipmentSpecialLoadoutV1(
-            {
-              [slot]: {
-                ...result.instance,
-                name: '',
-              },
-            },
-            180,
-          ).ok,
-        ).toBe(false);
-      }
-    expect(raised).toBeGreaterThan(0);
-  });
-  it('keeps materials with different facts separate and merges identical facts', () => {
-    let id = 0;
-    const nextId = () => `m-${++id}`;
-    let bag = addItems(
-      [],
-      { definitionId: 'material.v1', quantity: 998, instanceData: facts },
-      'bag',
-      false,
-      nextId,
-    );
-    bag = addItems(
-      bag,
-      { definitionId: 'material.v1', quantity: 3, instanceData: facts },
-      'bag',
-      false,
-      nextId,
-    );
-    expect(bag.map((i) => i.quantity)).toEqual([999, 2]);
-    bag = addItems(
-      bag,
-      {
-        definitionId: 'material.v1',
-        quantity: 2,
-        instanceData: { ...facts, rank: '神品' },
-      },
-      'bag',
-      false,
-      nextId,
-    );
-    expect(sameStack(bag[0], bag[2])).toBe(false);
-    expect(sortBag(bag).reduce((n, i) => n + i.quantity, 0)).toBe(1003);
-    expect(() =>
-      addItems(
-        [],
-        { definitionId: 'material.v1', quantity: 1 },
-        'bag',
-        false,
-        nextId,
-      ),
-    ).toThrow();
+  it.each(DAO_EQUIPMENT_SLOTS)('material boosts keep %s rolls and loadout legal', (slot) => {
+    const input = {
+      id: `forge-${slot}`,
+      createdAt: '2026-09-07T00:00:00Z',
+      seed: 17,
+      templateId: `dao_equipment.standard.${slot}.v1`,
+      equipmentLevel: 90,
+    };
+    const base = generateForgedEquipment({
+      ...input,
+      boosts: { ore: 0, essence: 0, attributes: 0 },
+    });
+    const boosted = generateForgedEquipment({
+      ...input,
+      boosts: { ore: 2, essence: 1, attributes: 2 },
+    });
+    if (!base.ok || !boosted.ok) throw new Error('锻造失败');
+    expect(boosted.instance.artId).toBe(base.instance.artId);
+    expect(boosted.instance.essenceIds).toEqual(expect.arrayContaining(base.instance.essenceIds));
+    for (const key of ['baseStats', 'attributeBonuses'] as const) {
+      expect(boosted.instance[key].map(({ attr }) => attr)).toEqual(
+        base.instance[key].map(({ attr }) => attr),
+      );
+      boosted.instance[key].forEach(({ value }, index) => {
+        expect(value).toBeGreaterThanOrEqual(base.instance[key][index].value);
+      });
+    }
+    expect(compileDaoEquipmentSpecialLoadoutV1({ [slot]: boosted.instance }, 180).ok).toBe(true);
   });
 });

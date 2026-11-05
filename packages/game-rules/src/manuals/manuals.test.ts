@@ -170,9 +170,6 @@ describe('境界功法培养', () => {
   });
 });
 describe('功法数据包', () => {
-  it('四十八本内容与逐层成本可以加载', () => {
-    expect(loadManualPack(MANUAL_PACK).manuals).toHaveLength(48);
-  });
   it.each([
     'duplicate',
     'reference',

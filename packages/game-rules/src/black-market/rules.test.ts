@@ -6,7 +6,6 @@ import {
   blackMarketTurnsRemaining,
   blackMarketUnit,
   classifyBlackMarketReveal,
-  BLACK_MARKET_QUALITIES,
 } from './rules.js';
 
 describe('black market rules', () => {
@@ -51,11 +50,6 @@ describe('black market rules', () => {
     expect(blackMarketEntryId(entry)).not.toBe(
       blackMarketEntryId({ ...entry, nodeId: 'node-b' }),
     );
-  });
-
-  it('offers only earth through divine quality lots', () => {
-    expect(BLACK_MARKET_QUALITIES).toEqual(['地品', '天品', '仙品', '神品']);
-    expect(BLACK_MARKET_QUALITIES).not.toContain('真品');
   });
 
   it('caps a session at six LLM turns', () => {

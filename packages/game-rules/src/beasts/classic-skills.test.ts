@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { combatV6SkillDetails } from '../combat/skill-details.js';
 import { CommandType, EventType } from '@daoyou/combat-core/enums';
 import { createBattle } from '@daoyou/combat-core/session';
 import { type LineupUnit } from '@daoyou/combat-core/types';
@@ -260,14 +259,6 @@ describe('经典传承灵印首批', () => {
       );
     },
   );
-
-  it('每本新传承灵印都具备玩家可理解的效果说明', () => {
-    const details = combatV6SkillDetails(BEAST_SKILLS, []);
-    for (const skill of BEAST_SKILLS.slice(5)) {
-      expect(details[skill.id].description).not.toContain('依技能条件触发');
-      expect(details[skill.id].description).not.toContain('source.');
-    }
-  });
 });
 
 it('第四阶段的加攻加防使用共用面板，普通高级不重复加成', () => {

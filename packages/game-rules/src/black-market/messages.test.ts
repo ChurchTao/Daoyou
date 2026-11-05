@@ -4,21 +4,13 @@ import {
 } from './messages.js';
 
 describe('black market player messages', () => {
-  it.each([
-    ['appearance', '仔细观察货物外观'],
-    ['aura', '凝神感知货物灵气'],
-    ['damage', '检查货物破损痕迹'],
-    ['origin', '询问货物来历'],
-    ['sale_reason', '询问为何出售'],
-  ] as const)('renders %s as player-facing copy', (kind, expected) => {
-    expect(blackMarketInspectionPlayerBody(kind)).toBe(expected);
-  });
-
   it('normalizes inspection enums from existing Redis sessions', () => {
-    expect(normalizeBlackMarketPlayerBody('查验：aura')).toBe(
-      '凝神感知货物灵气',
+    const normalized = normalizeBlackMarketPlayerBody('查验：aura');
+    expect(normalized).toBe(blackMarketInspectionPlayerBody('aura'));
+    expect(normalized).not.toBe('查验：aura');
+    expect(normalizeBlackMarketPlayerBody('查验：origin')).toBe(
+      blackMarketInspectionPlayerBody('origin'),
     );
-    expect(normalizeBlackMarketPlayerBody('查验：origin')).toBe('询问货物来历');
   });
 
   it('preserves questions, offers, and unknown legacy values', () => {

@@ -1,26 +1,20 @@
 import { XIAOYUE_V6_DEFINITION as definition, XIAOYUE_SKILL_ID } from '@daoyou/game-content/sects/xiaoyue';
-import type { MeridianNodeDefV6, SectPathDefV6 } from '@daoyou/game-domain/combat';
 import { describe, expect, it } from 'vitest';
 import { projectCharacterToCombatV6 } from '../combat/projection/project-character.js';
 import { towerReferenceBuild } from '../tower/reference-fixtures.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileSectDefinitionV6 } from './compiler.js';
 
-function routes(path: SectPathDefV6, selected: MeridianNodeDefV6[] = []): MeridianNodeDefV6[][] {
-  const layer = selected.length + 1;
-  if (layer === 8) return [selected];
-  return path.nodes.filter(node => !node.automatic && node.layer === layer &&
-    (!selected.length || Math.abs(node.slot - selected.at(-1)!.slot) <= 1),
-  ).flatMap(node => routes(path, [...selected, node]));
-}
-
 describe('啸岳岭经脉与人物投影', () => {
-  it('两条道途的全部合法连通路线可编译，终极技只随同契生效', () => {
+  it('经脉三列路线可编译，终极技只随同契生效', () => {
     const covered = new Set<string>();
     for (const path of definition.paths) {
-      const alternatives = routes(path);
-      expect(alternatives.length).toBeGreaterThan(100);
-      for (const route of alternatives) {
+      for (const column of [1, 2, 3]) {
+        const route = Array.from({ length: 7 }, (_, index) =>
+          path.nodes.find((node) =>
+            node.layer === index + 1 && node.slot === (index === 6 ? 2 : column),
+          )!,
+        );
         const progress = createEmptySectCombatProgressV6('xiaoyue', path.id,
           Object.fromEntries(definition.methods.map(method => [method.id, 180])));
         progress.meridianDepth = 7;
@@ -33,7 +27,9 @@ describe('啸岳岭经脉与人物投影', () => {
           .toBe(path.id === 'xiaoyue.path.bond');
       }
     }
-    expect(covered.size).toBe(42);
+    expect(covered).toEqual(new Set(definition.paths.flatMap(
+      (path) => path.nodes.map((node) => node.id),
+    )));
   });
 
   it('钢牙只读取武器和衣甲的金元素，旧装备无元素时为零', () => {

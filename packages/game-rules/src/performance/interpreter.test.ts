@@ -1,6 +1,3 @@
-import { BREAKTHROUGH_PERFORMANCES } from '@daoyou/game-content/performance/breakthrough';
-import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
-import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import {
   fillPerformanceScript,
   parsePerformanceScript,
@@ -58,82 +55,7 @@ function playToChoice(filled: PerformanceScript) {
   return state;
 }
 
-function playArrival(scriptId: string, choice: 0 | 1) {
-  const context = {
-    name: '顾清舟',
-    background: '山里长大，没有师门。',
-    receptionist: '接引师兄',
-    alchemy_teacher: '程晚照',
-    forge_teacher: '谭折柳',
-    instructor: '赵照川',
-  };
-  const script = fillPerformanceScript(getPerformanceScript(scriptId), context);
-  let state = createPerformanceState(script, context);
-  for (let step = 0; step < 80 && !state.finished; step += 1) {
-    const cue = currentPerformanceCue(script, state);
-    state = reducePerformance(
-      script,
-      context,
-      state,
-      cue?.type === 'choice'
-        ? { type: 'choose', index: choice }
-        : cue?.type === 'end'
-          ? { type: 'finish' }
-          : { type: 'advance' },
-    );
-  }
-  return { script, state };
-}
-
 describe('performance interpreter', () => {
-  it('keeps each breakthrough at its decision until the player explicitly finishes, and can replay it', () => {
-    for (const script of Object.values(BREAKTHROUGH_PERFORMANCES)) {
-      let state = createPerformanceState(script);
-      const initial = structuredClone(state);
-      for (let step = 0; step < 80 && !state.ending; step += 1) {
-        state = reducePerformance(script, {}, state, { type: 'advance' });
-      }
-      expect(state.ending, script.id).toBe(true);
-      expect(state.finished).toBe(false);
-      expect(state.outcome).toBeUndefined();
-      expect(reducePerformance(script, {}, state, { type: 'advance' })).toEqual(
-        state,
-      );
-      const confirmed = reducePerformance(script, {}, state, {
-        type: 'finish',
-      });
-      expect(confirmed.finished).toBe(true);
-      expect(confirmed.outcome).toBe('challenge');
-      expect(
-        reducePerformance(script, {}, confirmed, { type: 'restart' }),
-      ).toEqual(initial);
-    }
-  });
-
-  it('plays every arrival chapter performance and inquiry to its configured outcome', () => {
-    const performances = getStoryChapter('arrival').beats.filter(
-      (beat) => beat.kind === 'performance',
-    );
-    for (const beat of performances) {
-      for (const choice of [0, 1] as const) {
-        const played = playArrival(beat.script, choice);
-        expect(played.state.finished, `${beat.script}, choice ${choice}`).toBe(
-          true,
-        );
-        expect(played.state.outcome).toBe(beat.outcome);
-        expect(JSON.stringify(played.script)).not.toMatch(
-          /\{(?:name|alchemy_teacher|forge_teacher|instructor)\}/,
-        );
-      }
-    }
-    expect(playArrival('arrival-ember', 0).state.log).toContainEqual(
-      expect.objectContaining({ kind: 'line', speaker: '程晚照' }),
-    );
-    expect(playArrival('arrival-handy', 0).state.log).toContainEqual(
-      expect.objectContaining({ kind: 'line', speaker: '谭折柳' }),
-    );
-  });
-
   it('fills declared actor names and rejects undeclared actor tokens', () => {
     const input = {
       id: 'teacher',
@@ -205,6 +127,13 @@ describe('performance interpreter', () => {
       index: 0,
     });
     expect(state.ending).toBe(true);
+    expect(state.finished).toBe(false);
+    expect(state.outcome).toBeUndefined();
+    expect(reducePerformance(filled, context, state, { type: 'advance' })).toEqual(state);
+    expect(reducePerformance(filled, context, state, { type: 'finish' })).toMatchObject({
+      finished: true,
+      outcome: 'entered',
+    });
     expect(state.log).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: 'narration', text: '阿青停下脚步。' }),

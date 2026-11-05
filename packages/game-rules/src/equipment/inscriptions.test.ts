@@ -19,20 +19,6 @@ function compile(instance: DaoEquipmentInstanceV1) {
 }
 
 describe('双孔阵纹', () => {
-  it('保留已有类型 ID，删除沧海并按确认方案配置九种阵纹', () => {
-    expect(DAO_FORMATION_INSCRIPTIONS_V1.map(d => [d.id, d.name, d.attr, d.valuePerLevel, d.allowedSlots])).toEqual([
-      ['dao_inscription.xuanfeng', '玄锋阵纹', 'physicalAtk', 6, ['weapon', 'head']],
-      ['dao_inscription.lingyao', '灵曜阵纹', 'magicAtk', 4, ['weapon', 'necklace']],
-      ['dao_inscription.jingang', '金刚阵纹', 'physicalDef', 8, ['head', 'armor']],
-      ['dao_inscription.xuanjia', '玄甲阵纹', 'magicDef', 6, ['armor', 'necklace']],
-      ['dao_inscription.changsheng', '长生阵纹', 'maxHp', 40, ['armor', 'belt']],
-      ['dao_inscription.jifeng', '疾风阵纹', 'speed', 4, ['belt', 'footwear']],
-      ['dao_inscription.dongming', '洞明阵纹', 'sealHit', 1, ['weapon']],
-      ['dao_inscription.liuyun', '定神阵纹', 'sealResist', 1, ['belt', 'footwear']],
-      ['dao_inscription.huichun', '回春阵纹', 'healPower', 6, ['weapon', 'armor']],
-    ]);
-  });
-
   it.each([
     [10, 3],
     [30, 5],

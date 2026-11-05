@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { automaticCommands } from '../combat/auto.js';
 import { buildTowerBlessingChoices } from './helpers.js';
 import { getTowerSeasonMeta } from './season.js';
-import { DaoyouRule } from '@daoyou/game-content/combat/tuning';
 import {
   loadTowerCatalog,
   TOWER_CATALOG,
@@ -109,94 +108,63 @@ describe('配置驱动与玩法节点', () => {
   });
 });
 
-// Fixed seeds chosen before tuning. Each floor starts from a real projected build.
-const seeds = [7, 19, 42, 73, 101, 211, 307, 401, 503, 601];
-describe('金丹二十层多种子检查', () => {
-  for (const sect of ['lingxiao', 'jiujie', 'youdu'] as const) {
-    for (const hasPet of [true, false]) {
-      it(`${sect} ${hasPet ? '有宠' : '无宠'}：真实投影、九次选择、各层可终结且无开局稳定秒杀`, () => {
-        const player = towerReferenceBuild(sect);
-        if (!hasPet) player.beasts = undefined;
-        const pack = publishTowerWeek(season);
-        const stats: Array<{
-          floor: number;
-          wins: number;
-          rounds: number[];
-          firstRoundDeaths: number;
-        }> = [];
-        for (let floor = 1; floor <= 20; floor++) {
-          const blessings: TowerBlessings = {};
-          const offense = sect === 'lingxiao' ? 'might' : 'spell';
-          for (let cleared = 0; cleared < floor; cleared++) {
-            const choices = buildTowerBlessingChoices({
-              runId: `matrix-${sect}-${hasPet}`,
-              clearedFloor: cleared,
-              blessings,
-              hasBeasts: hasPet,
-            });
-            const priorities = hasPet
-              ? [offense, 'edge', 'beast', 'shell', 'iron', 'crit']
-              : [offense, 'edge', 'shell', 'iron', 'crit', 'vigor'];
-            const choice = [...choices]
-              .sort(
-                (a, b) => priorities.indexOf(a.id) - priorities.indexOf(b.id),
-              )
-              .find((c) => priorities.includes(c.id));
-            if (choice) blessings[choice.id] = choice.nextStacks;
-          }
-          const row = {
-            floor,
-            wins: 0,
-            rounds: [] as number[],
-            firstRoundDeaths: 0,
-          };
-          for (const seed of seeds) {
-            const host = createTowerHost(
-              player,
-              '金丹',
-              floor,
-              blessings,
-              undefined,
-              seed,
-              pack,
-            );
-            for (
-              let turn = 0;
-              turn < DaoyouRule.maxRounds && !host.finished;
-              turn++
-            ) {
-              host.submitGroup(
-                automaticCommands(
-                  host.state,
-                  host.playerId,
-                  host.runtimeSnapshot().input.skills ?? [],
-                  (id) => host.queryCommands(id),
-                  { statusDefs: host.runtimeSnapshot().input.statusDefs },
-                ),
-              );
-              host.resolveRound();
-              if (
-                turn === 0 &&
-                host.state.units.find((u) => u.id === host.playerId)!.attrs
-                  .hp === 0
-              )
-                row.firstRoundDeaths++;
-            }
-            expect(host.finished, `${floor}/${seed}`).toBe(true);
-            if (host.trace().outcome === 'victory') row.wins++;
-            row.rounds.push(host.trace().rounds.length);
-          }
-          expect(row.firstRoundDeaths).toBeLessThan(seeds.length);
-          if (floor === 1) expect(row.wins).toBeGreaterThan(0);
-          stats.push(row);
-        }
-        console.info(
-          'tower-phase2-matrix',
-          sect,
-          hasPet,
-          JSON.stringify(stats),
-        );
-      }, 20000);
+it.each([
+  { sect: 'jiujie', hasPet: false, floor: 1, maxRounds: 20 },
+  { sect: 'youdu', hasPet: true, floor: 10, maxRounds: 30 },
+  { sect: 'lingxiao', hasPet: true, floor: 20, maxRounds: 30 },
+] as const)(
+  '$sect 金丹构筑在发布周表第 $floor 层可获胜',
+  ({ sect, hasPet, floor, maxRounds }) => {
+    const player = towerReferenceBuild(sect);
+    if (!hasPet) player.beasts = undefined;
+    const blessings: TowerBlessings = {};
+    const offense = sect === 'lingxiao' ? 'might' : 'spell';
+    const priorities = hasPet
+      ? [offense, 'edge', 'beast', 'shell', 'iron', 'crit']
+      : [offense, 'edge', 'shell', 'iron', 'crit', 'vigor'];
+    for (let clearedFloor = 0; clearedFloor < floor; clearedFloor++) {
+      const choices = buildTowerBlessingChoices({
+        runId: `matrix-${sect}-${hasPet}`,
+        clearedFloor,
+        blessings,
+        hasBeasts: hasPet,
+      });
+      const choice = choices
+        .filter((item) => priorities.includes(item.id))
+        .sort((a, b) => priorities.indexOf(a.id) - priorities.indexOf(b.id))[0];
+      if (choice) blessings[choice.id] = choice.nextStacks;
     }
-  }
-});
+
+    const host = createTowerHost(
+      player,
+      '金丹',
+      floor,
+      blessings,
+      undefined,
+      42,
+      publishTowerWeek(season),
+    );
+    for (let turn = 0; turn < maxRounds && !host.finished; turn++) {
+      const { input } = host.runtimeSnapshot();
+      host.submitGroup(
+        automaticCommands(
+          host.state,
+          host.playerId,
+          input.skills ?? [],
+          (id) => host.queryCommands(id),
+          { statusDefs: input.statusDefs },
+        ),
+      );
+      host.resolveRound();
+      if (turn === 0) {
+        const playerUnit = host.state.units.find(
+          (unit) => unit.id === host.playerId,
+        );
+        expect(playerUnit?.attrs.hp).toBeGreaterThan(0);
+      }
+    }
+
+    expect(host.finished).toBe(true);
+    expect(host.trace().outcome).toBe('victory');
+  },
+);

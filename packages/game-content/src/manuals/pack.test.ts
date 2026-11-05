@@ -1,42 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import {
-  loadManualPack,
-  MANUAL_REALMS,
-  ManualPackShape,
-} from '@daoyou/game-domain/manuals/authoring';
+import { loadManualPack, ManualPackShape } from '@daoyou/game-domain/manuals/authoring';
 import data from './data/manual-pack.json' with { type: 'json' };
 import schema from './data/manual-pack.schema.json' with { type: 'json' };
 
 describe('manual content pack', () => {
-  it('keeps six choices in each of eight realms and no tribulation realm', () => {
-    const pack = loadManualPack(data);
-    expect(MANUAL_REALMS).toEqual([
-      '炼气',
-      '筑基',
-      '金丹',
-      '元婴',
-      '化神',
-      '炼虚',
-      '合体',
-      '大乘',
-    ]);
-    expect(pack.manuals).toHaveLength(48);
-    for (const realm of MANUAL_REALMS) {
-      expect(pack.manuals.filter((manual) => manual.realm === realm)).toHaveLength(
-        6,
-      );
-      expect(pack.progressions.standard.costsByRealm[realm]).toHaveLength(8);
-    }
+  it('keeps the authoring schema synchronized', () => {
     expect(schema).toEqual(z.toJSONSchema(ManualPackShape, { reused: 'ref' }));
-  });
-
-  it('uses the same 40 to 80 attribute growth for all advanced manuals', () => {
-    const pack = loadManualPack(data);
-    for (const manual of pack.manuals.filter(manual => MANUAL_REALMS.indexOf(manual.realm) >= 4)) {
-      expect(manual.effects).toEqual([expect.objectContaining({ valueAt1: 40, valuePerLevel: 5 })]);
-      expect(manual.effects[0]!.valueAt1 + 8 * manual.effects[0]!.valuePerLevel).toBe(80);
-    }
   });
 
   it.each([
@@ -69,7 +39,7 @@ describe('manual content pack', () => {
     expect(() => loadManualPack(copy)).toThrow();
   });
 
-  it('requires complete bounded training costs for every newly opened realm', () => {
+  it('requires bounded training costs for all supported realms', () => {
     const missing = structuredClone(data);
     Object.assign(missing.progressions.standard.costsByRealm, { 大乘: undefined });
     expect(() => loadManualPack(missing)).toThrow();

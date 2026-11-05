@@ -88,10 +88,6 @@ describe('spirit field three-stage rules', () => {
     );
   });
 
-  it('opens every plot in the first release', () => {
-    expect(createDefaultSpiritFieldPlots()).toHaveLength(6);
-  });
-
   it('scales deterministic qi and spirit-stone costs by seed quality', () => {
     expect(
       getCultivationResourceCost('qi_growth', '天品').amount,

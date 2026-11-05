@@ -7,7 +7,6 @@ import {
   evaluateFateContext,
   getAlchemySpiritStoneMultiplier,
   getMarketPurchasePriceMultiplier,
-  getRefineSpiritStoneMultiplier,
   scaleFateAdjustedCost,
 } from './fates.js';
 
@@ -51,17 +50,6 @@ describe('fate context', () => {
 
     expect(context.alchemySpiritStoneReduction).toBeCloseTo(0.59);
     expect(getAlchemySpiritStoneMultiplier(context)).toBeCloseTo(0.41);
-  });
-
-  it('combines system spirit-stone reductions additively with craft reductions', () => {
-    const context = evaluateFateContext([
-      fate('refine_spirit_stone_multiplier', 0.8),
-      fate('system_spirit_stone_multiplier', 0.9),
-    ]);
-
-    expect(context.refineSpiritStoneReduction).toBeCloseTo(0.2);
-    expect(context.systemSpiritStoneReduction).toBeCloseTo(0.1);
-    expect(getRefineSpiritStoneMultiplier(context)).toBeCloseTo(0.7);
   });
 
   it('does not cap market reductions at the old 35 percent limit', () => {

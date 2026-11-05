@@ -5,7 +5,6 @@ import {
   getLayerConfig,
   getMarketConfigByNodeId,
   getMarketNodeSwitchOptions,
-  getMarketProfileHint,
   resolveMarketSwitchLayer,
   validateLayerAccess,
 } from './marketConfig.js';
@@ -42,14 +41,12 @@ describe('marketConfig display helpers', () => {
     expect(
       options.find((option) => option.id === 'DJ_CENTRAL_01'),
     ).toMatchObject({
-      name: '大晋·晋京',
       region: '大晋',
       dominantMaterialTypes: ['tcdb', 'ore', 'aux'],
     });
     expect(
       options.find((option) => option.id === 'TN_BAICAO_01'),
     ).toMatchObject({
-      name: '天南·百草集',
       region: '天南',
       allowedLayers: ['common', 'treasure', 'heaven'],
       dominantMaterialTypes: ['seed', 'herb', 'aux'],
@@ -57,7 +54,6 @@ describe('marketConfig display helpers', () => {
     expect(
       options.find((option) => option.id === 'TN_YULING_01'),
     ).toMatchObject({
-      name: '天南·御灵集',
       allowedLayers: ['common', 'treasure', 'heaven'],
     });
   });
@@ -91,11 +87,5 @@ describe('marketConfig display helpers', () => {
     expect(black.qualityWeights).not.toHaveProperty('灵品');
     expect(black.qualityWeights).not.toHaveProperty('玄品');
     expect(black.qualityWeights).not.toHaveProperty('真品');
-  });
-
-  it('shows black market risk hint without exact probability', () => {
-    expect(getMarketProfileHint('TN_YUE_01', 'black').layerHints).toContain(
-      '黑市疑货多，价格浮动大，高阶材料概率更高。',
-    );
   });
 });

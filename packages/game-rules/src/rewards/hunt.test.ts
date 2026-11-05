@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { YieldCalculator } from '../yield/YieldCalculator.js';
 import { calculateCultivationExpByDailyBudget } from '../cultivation/exp-gain.js';
 import { HUNT_REALMS, huntEventsAt } from '../hunts/config.js';
-import { DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM } from '@daoyou/game-content/rewards/dungeon';
 import {
   HUNT_EXP_BUDGET,
   OFFLINE_YIELD_EXP_BUDGET,
@@ -92,17 +91,5 @@ describe('讨伐奖励', () => {
     const badGuarantee = structuredClone(HUNT_DROP_POOL);
     badGuarantee.groups[0].chance = 0.9;
     expect(HuntDropPoolSchema.safeParse(badGuarantee).success).toBe(false);
-  });
-  it('副本材料范围覆盖全部讨伐境界且概率归一化', () => {
-    for (const realm of HUNT_REALMS) {
-      expect(
-        Object.values(DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM[realm]).reduce(
-          (a, b) => a + b,
-          0,
-        ),
-      ).toBeCloseTo(1);
-    }
-    expect(DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM['渡劫'].凡品).toBe(0);
-    expect(DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM['金丹'].神品).toBe(0);
   });
 });

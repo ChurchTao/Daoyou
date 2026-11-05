@@ -8,6 +8,7 @@ import {
   sectSkillLearning,
 } from '@daoyou/game-content/authoring/sects';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
+import { getSectOrganizationDefinition } from '@daoyou/game-content/sect-organization/definitions';
 import { compileSectDefinitionV6 } from './compiler.js';
 import { createEmptySectCombatProgressV6, createFreshCombatV6MethodLevels } from './build-state.js';
 
@@ -38,6 +39,19 @@ describe('宗门技能学习配置', () => {
     for (const skill of skills) expect(sectSkillLearning(skill.definition.id)).toEqual({
       sourceMethodId: skill.sourceMethodId, unlockMethodLevel: skill.unlockMethodLevel,
     });
+  });
+  it('百兽崖与万窍山的组织心法可对应战斗心法，内部占位条目不进入学习目录', () => {
+    for (const sectId of ['xiaoyue', 'wanqiao'] as const) {
+      const organization = getSectOrganizationDefinition(sectId);
+      const combat = COMBAT_V6_SECT_DEFINITIONS[sectId];
+      const methodSlots = (methods: readonly { id: string; slot: number }[]) =>
+        methods.map(({ id, slot }) => ({ id, slot }));
+      expect(methodSlots(organization.methods)).toEqual(methodSlots(combat.methods));
+      const placeholder = organization.abilities.find((ability) => ability.kind === 'default');
+      if (!placeholder) throw new Error(`${sectId} 缺少组织默认条目`);
+      expect(placeholder.visibility).toBe('internal');
+      expect(Object.hasOwn(raw.skills, placeholder.id)).toBe(false);
+    }
   });
   it('拒绝不存在的心法、跨宗门引用及缺失学习关系', () => {
     for (const sourceMethodId of ['missing', 'youdu.method.canon']) {

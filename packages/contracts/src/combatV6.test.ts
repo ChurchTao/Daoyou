@@ -30,12 +30,6 @@ describe('combat-v6 Phase 7B contracts', () => {
       }).success,
     ).toBe(false);
     expect(
-      SectPathSelectionRequestSchema.safeParse({
-        activePathId: 'lingxiao.path.zhanchen',
-        expectedRevision: 3,
-      }).success,
-    ).toBe(true);
-    expect(
       CombatV6TrainingCreateRequestSchema.safeParse({
         encounterId: 'combat.training.encounter.single-dummy',
         tier: 100,

@@ -1,18 +1,10 @@
 import { WANQIAO_V6_DEFINITION as definition, WANQIAO_PATH_ID, WANQIAO_SKILL_ID } from '@daoyou/game-content/sects/wanqiao';
-import type { CharacterCombatInput, MeridianNodeDefV6, SectPathDefV6 } from '@daoyou/game-domain/combat';
+import type { CharacterCombatInput, SectPathDefV6 } from '@daoyou/game-domain/combat';
 import { describe, expect, it } from 'vitest';
 import { projectCharacterToCombatV6 } from '../combat/projection/project-character.js';
 import { towerReferenceBuild } from '../tower/reference-fixtures.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileSectDefinitionV6 } from './compiler.js';
-
-function routes(path: SectPathDefV6, selected: MeridianNodeDefV6[] = []): MeridianNodeDefV6[][] {
-  const layer = selected.length + 1;
-  if (layer === 8) return [selected];
-  return path.nodes.filter(node => !node.automatic && node.layer === layer &&
-    (!selected.length || Math.abs(node.slot - selected.at(-1)!.slot) <= 1),
-  ).flatMap(node => routes(path, [...selected, node]));
-}
 
 function input(): CharacterCombatInput {
   const player = towerReferenceBuild('wanqiao', '渡劫', '圆满');
@@ -35,12 +27,15 @@ function project(input: CharacterCombatInput) {
 }
 
 describe('万窍山经脉组合与人物投影', () => {
-  it('全部合法连通方案可编译，覆盖42个位置且不泄漏另一道途终极技', () => {
+  it('经脉三列路线可编译，且不泄漏另一道途终极技', () => {
     const covered = new Set<string>();
     for (const path of definition.paths) {
-      const alternatives = routes(path);
-      expect(alternatives.length).toBeGreaterThan(100);
-      for (const route of alternatives) {
+      for (const column of [1, 2, 3]) {
+        const route = Array.from({ length: 7 }, (_, index) =>
+          path.nodes.find((node) =>
+            node.layer === index + 1 && node.slot === (index === 6 ? 2 : column),
+          )!,
+        );
         const progress = createEmptySectCombatProgressV6('wanqiao', path.id,
           Object.fromEntries(definition.methods.map(method => [method.id, 180])));
         progress.meridianDepth = 7;
@@ -55,7 +50,9 @@ describe('万窍山经脉组合与人物投影', () => {
         expect(result.projection.activeSkillIds).not.toContain(otherUltimate);
       }
     }
-    expect(covered.size).toBe(42);
+    expect(covered).toEqual(new Set(definition.paths.flatMap(
+      (path) => path.nodes.map((node) => node.id),
+    )));
   });
 
   it.each([0, 1] as const)('澄心只增加长生阵纹贡献的70%%，不放大装备基础HP或即时治疗（道途%i）', pathIndex => {

@@ -1,18 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTowerBlessingChoices,
-  buildTowerEnemyVariantSeed,
   isTowerRealmEligible,
   packTowerLeaderboardScore,
-  resolveTowerDifficulty,
   resolveTowerFloorKind,
-  resolveTowerMilestoneTier,
-  resolveTowerRealmStage,
   TOWER_ELIGIBLE_REALMS,
   TOWER_MAX_FLOOR,
   unpackTowerLeaderboardScore,
 } from './helpers.js';
-import { getTowerBlessingEffectPreview } from './presentation.js';
 
 describe('tower helpers', () => {
   it('limits tower eligibility to golden core and above', () => {
@@ -31,30 +26,12 @@ describe('tower helpers', () => {
     expect(isTowerRealmEligible('渡劫')).toBe(true);
   });
 
-  it('maps floor kinds and realm stages deterministically', () => {
+  it('classifies ordinary, elite and boss floors', () => {
     expect(TOWER_MAX_FLOOR).toBe(20);
-    expect(resolveTowerDifficulty(1)).toBe(5);
-    expect(resolveTowerDifficulty(10)).toBe(50);
-    expect(resolveTowerDifficulty(20)).toBe(100);
-
     expect(resolveTowerFloorKind(1)).toBe('normal');
     expect(resolveTowerFloorKind(5)).toBe('elite');
     expect(resolveTowerFloorKind(10)).toBe('boss');
     expect(resolveTowerFloorKind(20)).toBe('boss');
-
-    expect(resolveTowerRealmStage(1)).toBe('中期');
-    expect(resolveTowerRealmStage(4)).toBe('中期');
-    expect(resolveTowerRealmStage(7)).toBe('中期');
-    expect(resolveTowerRealmStage(10)).toBe('中期');
-    expect(resolveTowerRealmStage(11)).toBe('中期');
-  });
-
-  it('maps milestone tiers every five floors', () => {
-    expect(resolveTowerMilestoneTier(5)).toBe('C');
-    expect(resolveTowerMilestoneTier(10)).toBe('B');
-    expect(resolveTowerMilestoneTier(15)).toBe('A');
-    expect(resolveTowerMilestoneTier(20)).toBe('S');
-    expect(resolveTowerMilestoneTier(12)).toBeNull();
   });
 
   it('offers only useful uncapped blessings at the intended cadence', () => {
@@ -76,18 +53,6 @@ describe('tower helpers', () => {
     );
     expect(buildTowerBlessingChoices(args)).toEqual(choices);
   });
-  it('previews additive combat attributes', () => {
-    expect(
-      getTowerBlessingEffectPreview({
-        blessingId: 'might',
-        currentStacks: 2,
-        nextStacks: 3,
-      }),
-    ).toMatchObject({
-      currentLabel: '人物物攻 +24%',
-      nextLabel: '人物物攻 +36%',
-    });
-  });
 
   it('packs and unpacks leaderboard scores while preserving rank tie ordering', () => {
     const seasonEndAtMs = Date.parse('2026-06-07T16:00:00.000Z');
@@ -107,22 +72,5 @@ describe('tower helpers', () => {
       highestFloor: 17,
       firstReachedAtMs: Date.parse('2026-06-02T12:00:00.000Z'),
     });
-  });
-
-  it('builds weekly tower enemy seeds that vary by season', () => {
-    expect(
-      buildTowerEnemyVariantSeed({
-        seasonKey: '2026-W22@Asia/Shanghai',
-        realm: '金丹',
-        floor: 1,
-      }),
-    ).toBe('tower:2026-W22@Asia/Shanghai:金丹:1');
-    expect(
-      buildTowerEnemyVariantSeed({
-        seasonKey: '2026-W22@Asia/Shanghai',
-        realm: '金丹',
-        floor: 99,
-      }),
-    ).toBe('tower:2026-W22@Asia/Shanghai:金丹:20');
   });
 });

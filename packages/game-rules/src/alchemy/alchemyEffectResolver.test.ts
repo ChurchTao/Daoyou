@@ -1,18 +1,15 @@
-import { ALCHEMY_EFFECT_BASE_BY_QUALITY } from '@daoyou/game-content/alchemy';
 import { describe, expect, it } from 'vitest';
 import {
   normalizeAlchemyEffectRoute,
   resolveAlchemyEffects,
   validateAlchemyEffectRoute,
 } from './alchemyEffectResolver.js';
+import { buildPillToxicity } from './pillEffectScaling.js';
 
 describe('alchemy effect resolver v4', () => {
-  it('keeps the complete design table in one source', () => {
-    expect(ALCHEMY_EFFECT_BASE_BY_QUALITY.神品.cultivationBoost).toBe(8);
-    expect(ALCHEMY_EFFECT_BASE_BY_QUALITY.玄品.bodyTrack).toBe(120);
-    expect(ALCHEMY_EFFECT_BASE_BY_QUALITY.玄品.lifespan).toBe(60);
-    expect(ALCHEMY_EFFECT_BASE_BY_QUALITY.真品.lifespan).toBe(140);
-    expect(ALCHEMY_EFFECT_BASE_BY_QUALITY.地品.lifespan).toBe(300);
+  it('forces perfect pill toxicity to one and applies the appearance multiplier otherwise', () => {
+    expect(buildPillToxicity('神品', 'perfect')).toBe(1);
+    expect(buildPillToxicity('凡品', 'low')).toBe(54);
   });
 
   it('normalizes duplicate route keys, weights and ordering at creation boundaries', () => {

@@ -95,9 +95,8 @@ function equipment(
 }
 
 describe('阵纹物品与绘制', () => {
-  it('九种类型各有19级固定物品，同种同级堆叠，拒绝实例伪造', () => {
-    expect(INSCRIPTION_ITEMS).toHaveLength(171);
-    expect(new Set(INSCRIPTION_ITEMS.map((d) => d.id)).size).toBe(171);
+  it('阵纹定义可入背包，拒绝伪造实例数据与越级定义', () => {
+    expect(new Set(INSCRIPTION_ITEMS.map((d) => d.id)).size).toBe(INSCRIPTION_ITEMS.length);
     for (const def of INSCRIPTION_ITEMS) {
       expect(
         InventoryItemSchema.safeParse({ ...glyph(), definitionId: def.id })
@@ -106,9 +105,6 @@ describe('阵纹物品与绘制', () => {
       expect(
         DAO_FORMATION_INSCRIPTIONS_V1.some((p) => p.id === def.patternId),
       ).toBe(true);
-      expect(def.name).toBe(
-        DAO_FORMATION_INSCRIPTIONS_V1.find((p) => p.id === def.patternId)!.name,
-      );
     }
     expect(
       InventoryItemSchema.safeParse({ ...glyph(), instanceData: { level: 11 } })

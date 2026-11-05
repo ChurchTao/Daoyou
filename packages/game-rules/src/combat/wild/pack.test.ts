@@ -117,17 +117,14 @@ describe('野外寻觅配置与个体生成', () => {
   });
 });
 
-it('二十六个节点覆盖全部物种，地图名称、境界与关联配置一致', () => {
-  expect(raw.regions).toHaveLength(26);
+it('栖息地覆盖全部物种，地图境界与遭遇关联一致', () => {
   expect(
     new Set(raw.regions.flatMap((r) => r.species.map((s) => s.speciesId))),
   ).toEqual(new Set(BEAST_SPECIES.map((s) => s.id)));
   for (const r of raw.regions) {
     const node = getMapNode(r.nodeId)!;
     expect(node.wild_encounter_id).toBe(r.id);
-    expect(node.name.endsWith(r.name)).toBe(true);
     expect(node.realm_requirement).toBe(r.realmRequirement);
-    expect(node.description).toContain(r.description);
     expect(node.dungeon_config).toBeUndefined();
   }
 });

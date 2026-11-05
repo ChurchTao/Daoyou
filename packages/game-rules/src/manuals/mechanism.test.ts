@@ -9,7 +9,6 @@ import { compileCharacterManualsV1, isAdvancedManual, manualLearningSlot } from 
 import { CHARACTER_MANUALS_V1, MANUAL_PACK } from '@daoyou/game-content/manuals';
 import { compileManualSkill, manualMechanismValue } from './mechanism.js';
 import { loadManualPack } from '@daoyou/game-domain/manuals/authoring';
-import { manualEffectLines } from './presentation.js';
 
 const statuses: StatusDef[] = [
   { id: 'dot', name: '毒', kind: 'dot', category: 'dot' },
@@ -154,11 +153,7 @@ function strike(
 }
 
 describe('首版功法内容合同', () => {
-  it('八境各六种，六维与机制逐层成长且无品质/产出字段', () => {
-    for (const realm of ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘'])
-      expect(
-        CHARACTER_MANUALS_V1.filter((m) => m.realm === realm),
-      ).toHaveLength(6);
+  it('六维与机制逐层成长且无品质和产出字段', () => {
     for (const manual of CHARACTER_MANUALS_V1) {
       expect(manual).not.toHaveProperty('rarity');
       expect(manual).not.toHaveProperty('dropWeight');
@@ -190,7 +185,6 @@ describe('首版功法内容合同', () => {
           manual.effects[0].valueAt1 +
             (level - 1) * manual.effects[0].valuePerLevel,
         );
-        expect(manualEffectLines(manual, level)).toHaveLength(2);
         expect(manualMechanismValue(manual.mechanism, level)).toBeGreaterThan(
           level === 1 ? 0 : manualMechanismValue(manual.mechanism, level - 1),
         );

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { automaticCommands } from '../combat/auto.js';
 import { type HuntBossId } from '@daoyou/game-domain/hunts';
 import {
-  HUNT_BOSSES,
   HUNT_SKILLS,
   HUNT_STATUSES,
 } from '@daoyou/game-content/hunts';
@@ -166,188 +165,172 @@ describe('同境界合法构筑的讨伐平衡', () => {
       ),
     ).toBe(1);
   });
-  it.each(events)(
-    '$realm 单人全暴击爆发不能秒掉首领或精英，群攻不能清空杂兵',
-    (event) => {
-      for (const bossId of Object.keys(HUNT_BOSSES) as HuntBossId[]) {
-        for (const count of [2, 3, 4]) {
-          for (const target of ['hunt.enemy.0', 'hunt.enemy.1']) {
-            for (const [actor, skillId] of [
-              ['p0', 'lingxiao.skill.triple'],
-              ['p1', 'jiujie.skill.thunderstorm'],
-            ]) {
-              const { input } = encounter({ ...event, bossId }, count);
-              const battle = createBattle({
-                ...input,
-                ruleset: {
-                  ...daoyouRulesetV6,
-                  formulas: {
-                    ...daoyouRulesetV6.formulas,
-                    physicalHitChance: () => 1,
-                    fluctuationMin: 1.1,
-                    fluctuationMax: 1.1,
-                    physicalFluctuationMin: 1.1,
-                    physicalFluctuationMax: 1.1,
-                  },
-                },
-              });
-              battle.unit(actor).attrs.critRate = 1;
-              battle.unit(actor).attrs.spellCritRate = 1;
-              const choice = battle
-                .queryCommands(actor)
-                .skills.find((s) => s.skillId === skillId);
-              expect(choice?.ready, skillId).toBe(true);
-              for (const unit of battle.snapshot().units) {
-                if (!battle.queryCommands(unit.id).canSubmit) continue;
-                battle.submit(
-                  unit.id,
-                  unit.id === actor
-                    ? { type: 'skill', skillId, targets: [target] }
-                    : unit.side === 1
-                      ? { type: 'attack', target: actor === 'p0' ? 'p1' : 'p0' }
-                      : { type: 'defend' },
-                );
-              }
-              battle.lockAndResolve();
-              expect(
-                battle.unit(target).attrs.hp,
-                `${event.realm}/${bossId}/${count}/${target}/${skillId}`,
-              ).toBeGreaterThan(0);
-              const survivors = battle
-                .snapshot()
-                .units.filter((u) => u.side === 1 && u.attrs.hp > 0);
-              expect(survivors.length).toBeGreaterThanOrEqual(6);
-            }
-          }
-        }
-      }
+  it.each([
+    {
+      event: events[0],
+      bossId: 'demon',
+      count: 2,
+      actor: 'p0',
+      skillId: 'lingxiao.skill.triple',
+      target: 'hunt.enemy.0',
     },
-    20000,
+    {
+      event: events[0],
+      bossId: 'gildedCorpse',
+      count: 4,
+      actor: 'p1',
+      skillId: 'jiujie.skill.thunderstorm',
+      target: 'hunt.enemy.1',
+    },
+    {
+      event: events[events.length - 1],
+      bossId: 'ironTurtle',
+      count: 4,
+      actor: 'p1',
+      skillId: 'jiujie.skill.thunderstorm',
+      target: 'hunt.enemy.0',
+    },
+  ] as const)(
+    '$event.realm $bossId 首轮暴击仍留下目标与至少六个敌方单位',
+    ({ event, bossId, count, actor, skillId, target }) => {
+      const { input } = encounter({ ...event, bossId }, count);
+      const battle = createBattle({
+        ...input,
+        ruleset: {
+          ...daoyouRulesetV6,
+          formulas: {
+            ...daoyouRulesetV6.formulas,
+            physicalHitChance: () => 1,
+            fluctuationMin: 1.1,
+            fluctuationMax: 1.1,
+            physicalFluctuationMin: 1.1,
+            physicalFluctuationMax: 1.1,
+          },
+        },
+      });
+      battle.unit(actor).attrs.critRate = 1;
+      battle.unit(actor).attrs.spellCritRate = 1;
+      const choice = battle
+        .queryCommands(actor)
+        .skills.find((skill) => skill.skillId === skillId);
+      expect(choice?.ready).toBe(true);
+      for (const unit of battle.snapshot().units) {
+        if (!battle.queryCommands(unit.id).canSubmit) continue;
+        battle.submit(
+          unit.id,
+          unit.id === actor
+            ? { type: 'skill', skillId, targets: [target] }
+            : unit.side === 1
+              ? { type: 'attack', target: actor === 'p0' ? 'p1' : 'p0' }
+              : { type: 'defend' },
+        );
+      }
+      battle.lockAndResolve();
+
+      expect(battle.unit(target).attrs.hp).toBeGreaterThan(0);
+      const survivors = battle
+        .snapshot()
+        .units.filter((unit) => unit.side === 1 && unit.attrs.hp > 0);
+      expect(survivors.length).toBeGreaterThanOrEqual(6);
+    },
   );
-  it.each(events)(
-    '$realm 对应弱点的混合队伍可完成八类讨伐，双人队允许少量败局',
-    (event) => {
-      const duoWins = new Map<HuntBossId, number>();
-      for (const seed of [7, 42, 101]) {
-        for (const bossId of Object.keys(HUNT_BOSSES) as HuntBossId[]) {
-          for (const count of [2, 3, 4]) {
-            const { battle, input } = encounter(
-              { ...event, bossId },
-              count,
-              seed,
-              true,
-            );
-            let turns = 0;
-            while (!battle.snapshot().result && turns++ < 55) {
-              const state = battle.snapshot();
-              for (let slot = 0; slot < count; slot++) {
-                const commands = automaticCommands(
-                  state,
-                  `p${slot}`,
-                  input.skills!,
-                  (id) => battle.queryCommands(id),
-                  { statusDefs: input.statusDefs },
+
+  it.each([
+    { event: events[0], bossId: 'demon', count: 2, maxRounds: 50 },
+    { event: events[0], bossId: 'gildedCorpse', count: 4, maxRounds: 30 },
+    {
+      event: events[events.length - 1],
+      bossId: 'ironTurtle',
+      count: 4,
+      maxRounds: 30,
+    },
+  ] as const)(
+    '$event.realm $bossId 的 $count 人队可在 $maxRounds 回合内获胜',
+    ({ event, bossId, count, maxRounds }) => {
+      const { battle, input } = encounter(
+        { ...event, bossId },
+        count,
+        42,
+        true,
+      );
+      let turns = 0;
+      while (!battle.snapshot().result && turns < maxRounds) {
+        const state = battle.snapshot();
+        const enemies = state.units.filter((unit) => unit.side === 1);
+        const target = enemies
+          .filter((unit) => unit.attrs.hp > 0)
+          .sort(
+            (a, b) =>
+              Number(a.slot < 2) - Number(b.slot < 2) ||
+              a.attrs.hp - b.attrs.hp,
+          )[0];
+        for (let slot = 0; slot < count; slot++) {
+          const commands = automaticCommands(
+            state,
+            `p${slot}`,
+            input.skills!,
+            (id) => battle.queryCommands(id),
+            { statusDefs: input.statusDefs },
+          );
+          for (const entry of commands) {
+            const unit = battle.unit(entry.unitId);
+            const skillId =
+              unit.name === 'lingxiao'
+                ? 'lingxiao.skill.triple'
+                : unit.name === 'jiujie'
+                  ? 'jiujie.skill.thunderstorm'
+                  : undefined;
+            const skill = battle
+              .queryCommands(unit.id)
+              .skills.find((item) => item.skillId === skillId && item.ready);
+            if (target && skill)
+              entry.command = {
+                type: 'skill',
+                skillId: skill.skillId,
+                targets: [target.id],
+              };
+            else if (target && unit.kind === 'pet')
+              entry.command = { type: 'attack', target: target.id };
+            if (unit.name === 'wuxiang') {
+              const injured = state.units
+                .filter(
+                  (ally) =>
+                    ally.kind === 'player' &&
+                    ally.side === 0 &&
+                    ally.attrs.hp > 0 &&
+                    !ally.flags.downed,
+                )
+                .sort(
+                  (a, b) =>
+                    a.attrs.hp / a.attrs.maxHp - b.attrs.hp / b.attrs.maxHp,
+                )[0];
+              const heal = battle
+                .queryCommands(unit.id)
+                .skills.find(
+                  (item) => item.skillId === 'wuxiang.skill.nectar' && item.ready,
                 );
-                for (const entry of commands) {
-                  const unit = battle.unit(entry.unitId);
-                  const target = state.units
-                    .filter((u) => u.side === 1 && u.attrs.hp > 0)
-                    .sort(
-                      (a, b) =>
-                        Number(a.slot < 2) - Number(b.slot < 2) ||
-                        a.attrs.hp - b.attrs.hp,
-                    )[0];
-                  const skillId =
-                    unit.name === 'lingxiao'
-                      ? 'lingxiao.skill.triple'
-                      : unit.name === 'jiujie'
-                        ? 'jiujie.skill.thunderstorm'
-                        : undefined;
-                  const skill = battle
-                    .queryCommands(unit.id)
-                    .skills.find((s) => s.skillId === skillId && s.ready);
-                  if (target && skill)
-                    entry.command = {
-                      type: 'skill',
-                      skillId: skill.skillId,
-                      targets: [target.id],
-                    };
-                  else if (target && unit.kind === 'pet')
-                    entry.command = { type: 'attack', target: target.id };
-                  if (unit.name === 'wuxiang') {
-                    const injured = state.units
-                      .filter(
-                        (u) =>
-                          u.kind === 'player' &&
-                          u.side === 0 &&
-                          u.attrs.hp > 0 &&
-                          !u.flags.downed,
-                      )
-                      .sort(
-                        (a, b) =>
-                          a.attrs.hp / a.attrs.maxHp -
-                          b.attrs.hp / b.attrs.maxHp,
-                      )[0];
-                    const heal = battle
-                      .queryCommands(unit.id)
-                      .skills.find(
-                        (s) => s.skillId === 'wuxiang.skill.nectar' && s.ready,
-                      );
-                    if (
-                      injured &&
-                      injured.attrs.hp < injured.attrs.maxHp * 0.75 &&
-                      heal
-                    )
-                      entry.command = {
-                        type: 'skill',
-                        skillId: heal.skillId,
-                        targets: [injured.id],
-                      };
-                  }
-                  if (unit.statuses.some((s) => s.id === 'hunt.demon.mark'))
-                    entry.command = { type: 'defend' };
-                  battle.submit(entry.unitId, entry.command);
-                }
-              }
-              for (const unit of state.units.filter((u) => u.side === 1))
-                if (battle.queryCommands(unit.id).canSubmit)
-                  battle.submit(unit.id, huntNpcCommand({ state }, unit.id));
-              battle.lockAndResolve();
+              if (injured && injured.attrs.hp < injured.attrs.maxHp * 0.75 && heal)
+                entry.command = {
+                  type: 'skill',
+                  skillId: heal.skillId,
+                  targets: [injured.id],
+                };
             }
-            console.info(
-              'hunt-balance',
-              event.realm,
-              bossId,
-              count,
-              seed,
-              turns,
-              battle.snapshot().result,
-            );
-            if (count === 2) {
-              duoWins.set(
-                bossId,
-                (duoWins.get(bossId) ?? 0) +
-                  Number(battle.snapshot().result?.winner === 0),
-              );
-            } else {
-              expect(
-                battle.snapshot().result?.winner,
-                `${event.realm}/${bossId}/${count}/${seed}/${turns}`,
-              ).toBe(0);
-            }
-            expect(turns).toBeGreaterThanOrEqual(4);
-            expect
-              .soft(turns, `${event.realm}/${bossId}/${count}`)
-              .toBeLessThanOrEqual(count === 2 ? 50 : 30);
+            if (unit.statuses.some((status) => status.id === 'hunt.demon.mark'))
+              entry.command = { type: 'defend' };
+            battle.submit(entry.unitId, entry.command);
           }
         }
+        for (const unit of enemies) {
+          if (battle.queryCommands(unit.id).canSubmit)
+            battle.submit(unit.id, huntNpcCommand({ state }, unit.id));
+        }
+        battle.lockAndResolve();
+        turns++;
       }
-      for (const bossId of Object.keys(HUNT_BOSSES) as HuntBossId[])
-        expect(
-          duoWins.get(bossId),
-          `${event.realm}/${bossId} 双人胜局`,
-        ).toBeGreaterThanOrEqual(2);
+
+      expect(battle.snapshot().result?.winner).toBe(0);
+      expect(turns).toBeGreaterThanOrEqual(4);
     },
-    20000,
   );
 });

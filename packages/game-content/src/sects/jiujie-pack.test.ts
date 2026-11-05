@@ -5,11 +5,11 @@ import schema from './data/jiujie-combat.schema.json' with { type: 'json' };
 import { JiujieCombatShape, loadJiujieCombat, JIUJIE_COMBAT } from './jiujie-pack.js';
 
 describe('九劫重做内容契约', () => {
-  it('严格 schema 同步，基础技能不含探查、旧引爆和旧终极技能', () => {
+  it('作者 Schema 同步，普通雷印不能叠加', () => {
     expect(z.toJSONSchema(JiujieCombatShape, { reused: 'ref' })).toEqual(schema);
-    expect(JIUJIE_COMBAT.baseSkills).toHaveLength(9);
-    expect(JIUJIE_COMBAT.skills.some(s => /startling_thunder|nine_heavens_thunder|heavenly_prison/.test(s.definition.id))).toBe(false);
-    expect(JIUJIE_COMBAT.statuses.find(s => s.id.endsWith('.electric'))?.maxStacks ?? 1).toBe(1);
+    const mark = JIUJIE_COMBAT.statuses.find(status => status.id === 'jiujie.status.electric');
+    expect(mark).toBeDefined();
+    expect(mark?.maxStacks ?? 1).toBe(1);
   });
   it('拒绝重复技能、缺失引用与未知表达式', () => {
     const duplicate = structuredClone(raw);

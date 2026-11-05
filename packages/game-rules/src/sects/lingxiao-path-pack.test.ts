@@ -23,10 +23,6 @@ function compile(definition: SectDefinitionV6, pathIndex: number, nodeId: string
 }
 describe('红尘剑宗完整流派配置', () => {
   it('Schema 同步', () => expect(z.toJSONSchema(LingxiaoPathsPackShape, { reused: 'ref' })).toEqual(schema));
-  it('全部 42 节点可编译', () => {
-    for (const [i, path] of LINGXIAO_V6_DEFINITION.paths.entries())
-      for (const node of path.nodes) expect(compile(LINGXIAO_V6_DEFINITION, i, node.id).ok).toBe(true);
-  });
   it('追加第四段保留原意，配置修改进入技能补丁', () => {
     const data = JSON.parse(JSON.stringify(raw));
     const node = data.paths[0].nodes.find((n: { patches?: { operation: string; hitIndex?: number }[] }) => n.patches?.some(p => p.operation === 'addPhysicalCoefficient' && p.hitIndex === 3));

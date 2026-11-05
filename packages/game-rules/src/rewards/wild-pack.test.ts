@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { WILD_REGIONS } from '@daoyou/game-content/combat/wild';
 import { BOOKS } from '@daoyou/game-content/items/beasts';
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
 import {
   REWARDS_WILD_DATA as raw,
   REWARDS_WILD_SCHEMA as schema,
 } from '@daoyou/game-content/authoring/rewards';
-import { WILD_INHERITANCE_POOL, wildItemRewards } from './wild.js';
+import {
+  WILD_DROP_POOLS,
+  WILD_INHERITANCE_POOL,
+  wildItemRewards,
+} from './wild.js';
 import {
   WildRewardPackShape,
   compileWildRewardPool,
@@ -74,5 +79,37 @@ describe('野外传承灵印奖励包', () => {
         () => () => 0.5,
       ),
     ).toEqual([]);
+  });
+
+  it('每个野外栖息地使用同一份灵印掉落池', () => {
+    expect(Object.keys(WILD_DROP_POOLS).sort()).toEqual(
+      WILD_REGIONS.map((region) => region.nodeId).sort(),
+    );
+    for (const pool of Object.values(WILD_DROP_POOLS)) {
+      expect(pool).toEqual(WILD_INHERITANCE_POOL);
+      expect(wildItemRewards(pool, () => () => 0.99)).toEqual([]);
+    }
+  });
+
+  it('过滤旧活动战局冻结的非灵印奖励', () => {
+    const pool = {
+      ...WILD_INHERITANCE_POOL,
+      groups: [
+        ...WILD_INHERITANCE_POOL.groups,
+        ...[
+          'material.v1',
+          'equipment.head.10',
+          'blueprint.head.10',
+          'jade.character_manual.changchun',
+        ].map((rewardId, index) => ({
+          id: `old-${index}`,
+          chance: 1,
+          entries: [{ rewardId, weight: 1, quantity: { min: 1, max: 1 } }],
+        })),
+      ],
+    };
+    expect(wildItemRewards(pool, () => () => 0)).toEqual(
+      wildItemRewards(WILD_INHERITANCE_POOL, () => () => 0),
+    );
   });
 });

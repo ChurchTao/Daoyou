@@ -127,20 +127,13 @@ function resolve(battle: ReturnType<typeof battleWith>, skill?: SkillDef) {
 }
 
 describe('器蕴精修', () => {
-  it('仅开放30种并由参数渲染说明', () => {
-    expect(pack.essences).toHaveLength(30);
-    expect(
-      DAO_EQUIPMENT_ESSENCES_V1.every(
-        (entry) => entry.description && !entry.description.includes('{'),
-      ),
-    ).toBe(true);
+  it('从护命参数生成说明', () => {
     const entry = structuredClone(
       pack.essences.find((entry) => entry.id === id('huming'))!,
     );
     if (entry.effect.type !== 'revival') throw new Error('type');
     entry.effect.chance = 0.4;
     expect(compileEquipmentEssence(entry).description).toContain('40%');
-    expect(entry.effect.hpRatio).toBe(0.3);
   });
   it('轻灵仅让自身提前一个小境界，最低炼气初期', () => {
     const weapon = item('weapon', ['qingling']);
@@ -178,6 +171,24 @@ describe('器蕴精修', () => {
         100,
       ).ok,
     ).toBe(false);
+  });
+  it('同类面板叠加，战意折扣作用于器诀，并拒绝互斥器蕴', () => {
+    const loadout = {
+      weapon: { ...item('weapon', ['cangfeng'], 90), artId: 'dao_equipment.art.huiyuan' },
+      head: item('head', ['cangfeng'], 90),
+      belt: item('belt', ['jiangang', 'guiyuan'], 90),
+    };
+    const result = compileDaoEquipmentSpecialLoadoutV1(loadout, 180);
+    if (!result.ok) throw new Error('道装编译失败');
+    expect(result.projection.panel).toContainEqual({ attr: 'critRate', value: 0.06 });
+    expect(result.projection.rageGainFactor).toBe(1.25);
+    expect(result.projection.skillOverrides[0].resourceCosts?.[0].amount).toBe(24);
+
+    const essenceDefs = DAO_EQUIPMENT_ESSENCES_V1.map((entry) => ({
+      ...entry,
+      conflictGroup: 'exclusive',
+    }));
+    expect(compileDaoEquipmentSpecialLoadoutV1(loadout, 180, { essenceDefs }).ok).toBe(false);
   });
   it('同名回春只生效一次，按人物等级恢复且不受治疗强度放大', () => {
     const result = compileDaoEquipmentSpecialLoadoutV1(
@@ -379,23 +390,6 @@ describe('新增器蕴', () => {
     DAO_EQUIPMENT_ESSENCES_V1.find((entry) => entry.id === id(key))!;
   const hitsOf = (battle: ReturnType<typeof battleWith>) =>
     battle.log().filter((event) => event.type === EventType.Hit && event.sourceId === 'self');
-
-  it('把指定数值写进说明，机制词条不写额外否定句', () => {
-    expect(essence('cangfeng').description).toContain('3%');
-    expect(essence('ningshen').description).toContain('3%');
-    expect(essence('zhenyue').description).toContain('2%');
-    expect(essence('shouxin').description).toContain('2%');
-    expect(essence('pojin').description).toContain('3%');
-    expect(essence('dinghun').description).toContain('3%');
-    expect(essence('kuanggu').panel).toEqual([
-      { attr: 'physicalFuryRate', mode: 'add', value: 0.03 },
-    ]);
-    expect(essence('kuanggu').description).toContain('物理狂暴率提高3%');
-    for (const key of [
-      'kuanggu', 'shiling', 'lianzhu', 'dingshen', 'jingxin', 'buqu', 'jinshen',
-      'naling', 'yuwen', 'tongze', 'zhige', 'yunu', 'xushi', 'taxu', 'bifeng', 'juechen',
-    ]) expect(essence(key).description).not.toMatch(/不/);
-  });
 
   it('噬灵按普攻实际扣血恢复法力', () => {
     const skill = essence('shiling').passive!;
@@ -687,4 +681,68 @@ describe('新增器蕴', () => {
     expect(applied()).toHaveLength(1);
     expect(result.projection.statusDefs.some((status) => status.id === 'dao_equipment.status.juechen')).toBe(true);
   });
+});
+
+it('grants rage to the damaged target across multiple hits without an action cap', () => {
+  function resolve(passive: SkillDef) {
+    const attack: SkillDef = {
+      id: 'test.multi',
+      name: 'multi',
+      tags: [SkillTag.Physical],
+      targeting: { side: TargetSide.Enemy, count: 1 },
+      effects: Array.from({ length: 3 }, () => ({
+        type: EffectType.PhysicalHit,
+        coeff: 1,
+      })),
+    };
+    const battle = createBattle({
+      seed: 1,
+      versions: COMBAT_V6_CHARACTER_BUILD_VERSIONS,
+      ruleset: createDaoyouRuleset({
+        formulas: {
+          fluctuationMin: 1,
+          fluctuationMax: 1,
+          physicalHitChance: () => 1,
+          spellHitChance: () => 1,
+        },
+      }),
+      skills: [attack, passive],
+      units: [
+        {
+          id: 'attacker',
+          name: 'attacker',
+          side: 0,
+          kind: 'player',
+          skills: [attack.id],
+          passives: [passive.id],
+          resources: [
+            { id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 0, max: 150 },
+          ],
+          attrs: { hp: 1000, speed: 100, physicalAtk: 300, physicalDef: 0 },
+        },
+        {
+          id: 'defender',
+          name: 'defender',
+          side: 1,
+          kind: 'player',
+          passives: [passive.id],
+          resources: [
+            { id: DAO_RAGE_RESOURCE_ID, name: '战意', current: 0, max: 150 },
+          ],
+          attrs: { hp: 1000, speed: 1, physicalAtk: 1, physicalDef: 0 },
+        },
+      ],
+    });
+    battle.submit('attacker', {
+      type: CommandType.Skill,
+      skillId: attack.id,
+      targets: ['defender'],
+    });
+    battle.submit('defender', { type: CommandType.Defend });
+    battle.lockAndResolve();
+    return battle.snapshot();
+  }
+  const state = resolve(createDaoRageGainPassive(1.2));
+  expect(state.units[0].resources[0].current).toBe(0);
+  expect(state.units[1].resources[0].current).toBeGreaterThan(30);
 });

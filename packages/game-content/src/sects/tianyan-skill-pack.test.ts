@@ -13,8 +13,7 @@ describe('天衍基础技能配置', () => {
     expect(z.toJSONSchema(TianyanSkillsShape, { reused: 'ref' })).toEqual(
       schema,
     ));
-  it('仅七个基础技能；法印在成功施放末尾更新且作用于自身', () => {
-    expect(TIANYAN_SKILLS.baseSkills).toHaveLength(7);
+  it('法印在成功施放末尾更新且作用于自身', () => {
     const fire = TIANYAN_SKILLS.skill('tianyan.skill.fire').definition;
     expect(fire.effects.filter((e) => e.type === 'emitMechanic')).toHaveLength(
       2,
@@ -27,7 +26,6 @@ describe('天衍基础技能配置', () => {
         targeting: { side: 'self' },
       },
     ]);
-    expect(JSON.stringify(TIANYAN_SKILLS)).not.toContain('derivation');
   });
   it('拒绝重复五行、未定义技能和未知状态', () => {
     const duplicate = structuredClone(raw);

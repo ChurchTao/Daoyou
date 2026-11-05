@@ -5,22 +5,6 @@ import {
 } from './backgroundCommands.js';
 
 describe('background command contracts', () => {
-  it('parses a versioned scheduled command', () => {
-    const type = 'market.refresh';
-    const definition = BACKGROUND_COMMAND_DEFINITIONS[type];
-    const command = parseBackgroundCommandEnvelope({
-      id: '11111111-1111-4111-8111-111111111111',
-      type,
-      version: definition.version,
-      subject: definition.subject,
-      requestedAt: '2026-08-03T08:01:00.000Z',
-      scheduleBucketStartedAt: '2026-08-03T08:00:00.000Z',
-      deduplicationKey: 'market.refresh:2026-08-03T08:00:00.000Z',
-    });
-
-    expect(command.type).toBe(type);
-  });
-
   it.each(BACKGROUND_COMMAND_TYPES)(
     'keeps %s definition and envelope aligned',
     (type) => {
@@ -35,7 +19,7 @@ describe('background command contracts', () => {
         deduplicationKey: `${type}:2026-08-03T08:00:00.000Z`,
       });
 
-      expect(command.subject).toBe(definition.subject);
+      expect(command).toMatchObject({ type, subject: definition.subject });
     },
   );
 

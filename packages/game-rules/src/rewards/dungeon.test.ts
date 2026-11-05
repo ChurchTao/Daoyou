@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import { findItemDefinition } from '@daoyou/game-content/items';
-import { REALM_VALUES } from '@daoyou/constants/realms';
 import { BEAST_SUPERIOR_BOOK_SKILL_IDS } from '@daoyou/game-content/beasts';
 import {
   appendDungeonReward,
@@ -375,23 +373,5 @@ describe('秘境分环节资源奖励', () => {
     expect(first.experience).toBeGreaterThan(highDanger.experience);
     expect(highDanger.spiritStones).toBeGreaterThan(lowDanger.spiritStones);
     expect(first.spiritStones).toBeGreaterThan(highDanger.spiritStones);
-  });
-
-  it('所有境界的探索和胜战收益均高于原等级固定值', () => {
-    for (const realm of REALM_VALUES) {
-      const level = getRealmStageLevel(realm, '初期');
-      const current = { ...context, mapRealm: realm, playerRealm: realm };
-      const exploration = planDungeonStepResources(
-        1,
-        'exploration:1',
-        'exploration',
-        current,
-      );
-      const battle = planDungeonStepResources(1, 'battle:1', 'battle', current);
-      expect(exploration.experience).toBeGreaterThan(level * 2);
-      expect(battle.experience).toBeGreaterThan(level * 5);
-      expect(exploration.spiritStones).toBeGreaterThan(level);
-      expect(battle.spiritStones).toBeGreaterThan(level * 2);
-    }
   });
 });

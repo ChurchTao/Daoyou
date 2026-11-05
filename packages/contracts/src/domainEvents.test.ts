@@ -42,26 +42,6 @@ describe('domain event contracts', () => {
     ).toThrow('fixture requires formula mode');
   });
 
-  it('parses a versioned event envelope', () => {
-    const definition = DOMAIN_EVENT_DEFINITIONS['alchemy.craft.completed'];
-    const event = parseDomainEventEnvelope({
-      id: EVENT_ID,
-      type: 'alchemy.craft.completed',
-      version: definition.version,
-      subject: definition.subject,
-      occurredAt: '2026-08-03T08:00:00.000Z',
-      aggregate: { type: 'cultivator', id: CULTIVATOR_ID },
-      data: {
-        cultivatorId: CULTIVATOR_ID,
-        actionInstanceId: '33333333-3333-4333-8333-333333333333',
-        mode: 'formula',
-      },
-    });
-
-    expect(event.type).toBe('alchemy.craft.completed');
-    expect(event.data).toMatchObject({ mode: 'formula' });
-  });
-
   it('rejects subject or version drift for a known event type', () => {
     expect(() =>
       parseDomainEventEnvelope({

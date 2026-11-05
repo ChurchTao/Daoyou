@@ -1102,6 +1102,12 @@ describe('当前场次托管', () => {
         for (const condition of strategy.rules.flatMap(
           (rule) => rule.conditions,
         )) {
+          if (condition.type === 'selfResourceAtLeast')
+            expect(
+              path.resources?.some(
+                (resource) => resource.id === condition.resourceId,
+              ),
+            ).toBe(true);
           if (condition.type === 'selfStatus')
             expect(
               statusChoices.self.some(

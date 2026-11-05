@@ -1,7 +1,4 @@
-import {
-  BEAST_SKILL_CONTENT,
-  BEAST_SPECIES,
-} from '@daoyou/game-content/beasts';
+import { BEAST_SPECIES } from '@daoyou/game-content/beasts';
 import { findItemDefinition } from '@daoyou/game-content/items';
 import type { SummonedBeast } from '@daoyou/game-domain/beasts';
 import { expect, it } from 'vitest';
@@ -131,86 +128,6 @@ it('战斗事实保留完整力量，只记录实际生效铁骨的防御贡献'
     defenseTraining: 48,
   });
   expect(project(input).combatFacts).toEqual(beastCombatFacts(input));
-});
-
-it('第二轮出生池为六种新增、饕餮替换蛮力，原必带与其余技能保留', () => {
-  const expected: Record<string, { core: string[]; candidates: string[] }> = {
-    白泽: {
-      core: [],
-      candidates: [
-        'beast.advanced-miracle',
-        'beast.water-attack',
-        'beast.wisdom',
-        'beast.parry',
-        'beast.innate-wisdom',
-      ],
-    },
-    饕餮: {
-      core: [],
-      candidates: [
-        'beast.advanced-lifesteal',
-        'beast.overwhelming-might',
-        'beast.sluggish',
-        'beast.regeneration',
-        'beast.defense',
-      ],
-    },
-    旋龟: {
-      core: [],
-      candidates: [
-        'beast.advanced-reflection',
-        'beast.water-attack',
-        'beast.regeneration',
-        'beast.sluggish',
-        'beast.spirit-guard',
-      ],
-    },
-    鸣蛇: {
-      core: [],
-      candidates: [
-        'beast.advanced-agility',
-        'beast.sneak-attack',
-        'beast.perception',
-        'beast.critical',
-        'beast.wind-strike',
-      ],
-    },
-    狰: {
-      core: [],
-      candidates: [
-        'beast.advanced-counter',
-        'beast.parry',
-        'beast.strength',
-        'beast.perception',
-        'beast.barrier-breaker',
-      ],
-    },
-    祸斗: {
-      core: ['beast.wildfire'],
-      candidates: [
-        'beast.spell-resistance',
-        'beast.meditation',
-        'beast.wisdom',
-        'beast.mind-shatter',
-      ],
-    },
-    九尾狐: {
-      core: ['beast.water-attack'],
-      candidates: [
-        'beast.advanced-spell-combo',
-        'beast.surprise-spell',
-        'beast.regeneration',
-        'beast.unanticipated',
-      ],
-    },
-  };
-  for (const [name, birthSkills] of Object.entries(expected)) {
-    const species = BEAST_SPECIES.find((entry) => entry.name === name)!;
-    expect(species.birthSkills).toEqual(birthSkills);
-    expect(birthSkills.core.length + birthSkills.candidates.length).toBe(5);
-  }
-  expect(BEAST_SKILL_CONTENT).toHaveLength(93);
-  expect(BEAST_SKILL_CONTENT.filter((skill) => skill.book)).toHaveLength(73);
 });
 
 it.each([

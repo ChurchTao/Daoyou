@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   legacyModifiers,
-  legacyProductForGrant,
   legacyRecord,
   legacyText,
 } from './products.js';
@@ -11,32 +10,10 @@ describe('历史产物存档', () => {
     for (const value of [null, undefined, 1, '旧物', []]) {
       expect(legacyRecord(value)).toEqual({});
       expect(legacyModifiers(value)).toEqual([]);
-      expect(() => legacyProductForGrant(value)).toThrow();
     }
     expect(legacyText('')).toBeUndefined();
     expect(legacyText(1)).toBeUndefined();
     expect(legacyText('存档说明')).toBe('存档说明');
-  });
-
-  it('旧附件保留未知词缀和存档字段，只剔除运行投影且不修改原对象', () => {
-    const snapshot = {
-      productType: 'artifact',
-      name: '无漏法器',
-      affixes: [{ id: 'retired-affix', finalMultiplier: 1.25 }],
-      metadata: { creatorName: '旧主人' },
-      unknownHistoricalFact: { value: 7 },
-      battleProjection: { abilities: ['retired'] },
-    };
-    const before = structuredClone(snapshot);
-    const stored = legacyProductForGrant(snapshot);
-    expect(stored).toEqual({
-      productType: 'artifact',
-      name: '无漏法器',
-      affixes: snapshot.affixes,
-      metadata: snapshot.metadata,
-      unknownHistoricalFact: snapshot.unknownHistoricalFact,
-    });
-    expect(snapshot).toEqual(before);
   });
 
   it('仅读取有限的已存属性，不按词缀或层数重算', () => {

@@ -36,8 +36,9 @@ describe('sect facility dialogue projection', () => {
     });
     const text = segments.map((segment) => segment.text).join('');
 
-    expect(text).toContain('灵脉如今是3级');
-    expect(text).toContain('俸禄灵石加成15%');
+    expect(text).toContain('灵脉');
+    expect(segments).toContainEqual({ text: '3级', emphasis: 'level' });
+    expect(text).toContain('15%');
     expect(text).not.toMatch(/spirit_vein|stipend_bonus|renderer|_/u);
   });
 
@@ -68,7 +69,8 @@ describe('sect facility dialogue projection', () => {
       .join('');
 
     expect(zeroText).toContain('闭关修为加成0%');
-    expect(fallbackText).toBe('药田如今是2级。');
+    expect(fallbackText).toContain('药田');
+    expect(fallbackText).toContain('2级');
   });
 
   it('drops internal identifiers and invalid metric values', () => {
@@ -97,7 +99,7 @@ describe('sect facility dialogue projection', () => {
       .map((segment) => segment.text)
       .join('');
 
-    expect(text).toBe('此处设施如今是3级。');
+    expect(text).toContain('3级');
     expect(text).not.toMatch(
       /spirit_vein|internal_metric|unknown_renderer|renderer|NaN/u,
     );

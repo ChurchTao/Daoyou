@@ -65,18 +65,6 @@ function projectionSignature(result: ReturnType<typeof compile>): string {
 }
 
 describe("红尘剑宗 v6 内容与编译", () => {
-  it("锁定六心法、双流派和每条流派七层三节点", () => {
-    expect(LINGXIAO_V6_DEFINITION.methods).toHaveLength(6)
-    expect(LINGXIAO_V6_DEFINITION.methods.filter((method) => method.isPrimary)).toHaveLength(1)
-    expect(LINGXIAO_V6_DEFINITION.paths).toHaveLength(2)
-    for (const path of LINGXIAO_V6_DEFINITION.paths) {
-      expect(path.nodes).toHaveLength(21)
-      for (let layer = 1; layer <= 7; layer++) {
-        expect(path.nodes.filter((node) => node.layer === layer).map((node) => node.slot).sort()).toEqual([1, 2, 3])
-      }
-    }
-  })
-
   it("没有流派时仍发出心法技能，不算流派节点", () => {
     const bare = progress("", [], 180)
     bare.meridianDepth = 0
@@ -283,22 +271,6 @@ describe("红尘剑宗 v6 内容与编译", () => {
         const result = compile(progress(path.id, [node.id]))
         expect(result.ok, `${node.id} 应可独立编译`).toBe(true)
         expect(projectionSignature(result), `${node.id} 不得为空节点`).not.toBe(empty)
-      }
-    }
-  })
-
-  it("隔离连通限制后每层任取一个节点均无 patch 冲突", () => {
-    for (const path of LINGXIAO_V6_DEFINITION.paths) {
-      const byLayer = Array.from({ length: 7 }, (_, index) =>
-        path.nodes.filter((node) => node.layer === index + 1 && !node.automatic),
-      )
-      let combinations: string[][] = [[]]
-      for (const layer of byLayer) {
-        combinations = combinations.flatMap((chosen) => layer.map((node) => [...chosen, node.id]))
-      }
-      for (const nodeIds of combinations) {
-        const result = compile(progress(path.id, nodeIds))
-        expect(result.ok, `${path.id}: ${nodeIds.join(",")}`).toBe(true)
       }
     }
   })

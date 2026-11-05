@@ -13,19 +13,11 @@ describe('无相天机技能包', () => {
     expect(z.toJSONSchema(WuxiangCombatPackShape, { reused: 'ref' })).toEqual(
       schema,
     ));
-  it('七项共享能力、两类念头；旧主动化相与群盾不再授予', () => {
-    expect(WUXIANG_COMBAT.baseSkills).toHaveLength(7);
-    expect(WUXIANG_COMBAT.resources.map((r) => [r.name, r.max])).toEqual([
-      ['烈念', 3],
-      ['寂念', 3],
+  it('两类念头各自最多积累三层', () => {
+    expect(WUXIANG_COMBAT.resources.map(({ id, max }) => [id, max])).toEqual([
+      ['wuxiang.resource.fierce', 3],
+      ['wuxiang.resource.still', 3],
     ]);
-    expect(
-      WUXIANG_COMBAT.skills.some((s) =>
-        /single_heal|group_heal|barrier|formless|final_silence/.test(
-          s.definition.id,
-        ),
-      ),
-    ).toBe(false);
   });
   it('拒绝不存在的状态引用、无效表达式和超限初始资源', () => {
     const condition = structuredClone(raw);

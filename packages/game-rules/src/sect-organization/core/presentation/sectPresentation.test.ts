@@ -5,28 +5,9 @@ import type { SectPresentationTheme } from '@daoyou/game-domain/sects';
 describe('sect presentation affairs room', () => {
   it('provides one default NPC for every task kind', () => {
     const presentation = resolveSectPresentation('sample-sect');
-    const actors = presentation.rooms.affairs.actors;
-    const actorByRole = Object.fromEntries(
-      actors.map((actor) => [actor.roleKey, actor]),
-    );
-
-    expect(actors.map((actor) => actor.roleKey)).toEqual([
-      'daily',
-      'weekly',
-      'promotion',
-    ]);
-    expect(actorByRole.daily.name).toBe('值日执事');
-    expect(actorByRole.daily.sigil).toBe('执');
-    expect(actorByRole.daily.appearance).toBe('person');
-    expect(actorByRole.daily.responsibility).toBe('负责日常委托。');
-    expect(actorByRole.weekly.name).toBe('功簿执事');
-    expect(actorByRole.weekly.sigil).toBe('簿');
-    expect(actorByRole.weekly.responsibility).toBe('负责周常委托。');
-    expect(actorByRole.promotion.name).toBe('传功长老');
-    expect(actorByRole.promotion.sigil).toBe('传');
-    expect(actorByRole.promotion.responsibility).toBe('负责晋升试炼。');
-    expect(presentation.terms.sweepActivity).toBe('清扫山门');
-    expect(presentation.terms.sweepCanvasLabel).toBe('清扫山门游戏画布');
+    expect(
+      presentation.rooms.affairs.actors.map((actor) => actor.roleKey),
+    ).toEqual(['daily', 'weekly', 'promotion']);
   });
 
   it('resolves managed rooms without allowing role or renderer overrides', () => {
@@ -59,26 +40,27 @@ describe('sect presentation affairs room', () => {
     } as unknown as SectPresentationTheme;
     const presentation = resolveSectPresentation('sample-sect', unsafeTheme);
     const actor = presentation.rooms.spiritVein.actors[0];
+    const defaults = resolveSectPresentation('sample-sect').rooms.spiritVein.actors;
 
     expect(presentation.rooms.spiritVein.description).toBe('地脉静室。');
     expect(actor).toMatchObject({
       id: 'sample-vein-keeper',
       name: '听脉人',
       greeting: '今日脉息安稳。',
-      sigil: '脉',
+      sigil: defaults[0].sigil,
       appearance: 'person',
-      identity: '守脉执事',
-      responsibility: '负责矿场巡视交接。',
+      identity: defaults[0].identity,
+      responsibility: defaults[0].responsibility,
       conversation: { renderer: 'sect.spirit-vein.patrol' },
     });
     expect(presentation.rooms.spiritVein.actors[1]).toMatchObject({
       id: 'sample-spirit-vein',
       name: '坤元地脉',
       greeting: '地脉沉静。',
-      sigil: '⛏️',
+      sigil: defaults[1].sigil,
       appearance: 'facility',
-      identity: '宗门设施',
-      responsibility: '查看设施等级、灵石收益并进行灵矿采掘。',
+      identity: defaults[1].identity,
+      responsibility: defaults[1].responsibility,
       conversation: { renderer: 'sect.spirit-vein.mining' },
     });
   });
@@ -121,7 +103,6 @@ describe('sect presentation affairs room', () => {
       ),
     ).toMatchObject({
       name: '坤元地脉',
-      sigil: '⛏️',
       appearance: 'facility',
       conversation: { renderer: 'sect.spirit-vein.mining' },
     });
@@ -131,7 +112,6 @@ describe('sect presentation affairs room', () => {
       ),
     ).toMatchObject({
       name: '长生圃',
-      sigil: '🌿',
       appearance: 'facility',
       conversation: { renderer: 'sect.herb-garden.status' },
     });
@@ -205,12 +185,12 @@ describe('sect presentation affairs room', () => {
     );
     expect(actorByRole.daily).toMatchObject({
       id: 'daily-steward',
-      sigil: '执',
       name: '司辰使',
-      identity: '值日执事',
       greeting: '今日星轨已经排定。',
     });
-    expect(actorByRole.weekly.name).toBe('功簿执事');
+    const defaultWeekly = resolveSectPresentation('sample-sect')
+      .rooms.affairs.actors.find((actor) => actor.roleKey === 'weekly');
+    expect(actorByRole.weekly).toEqual(defaultWeekly);
   });
 
   it('ignores runtime attempts to override canonical NPC role fields', () => {
@@ -238,15 +218,18 @@ describe('sect presentation affairs room', () => {
       (actor) => actor.roleKey === 'daily',
     );
 
+    const defaults = resolveSectPresentation('sample-sect');
+    const defaultDaily = defaults.rooms.affairs.actors.find(
+      (actor) => actor.roleKey === 'daily',
+    )!;
     expect(dailyActor).toMatchObject({
       name: '司辰使',
-      sigil: '执',
-      identity: '值日执事',
-      responsibility: '负责日常委托。',
-      appearance: 'person',
+      sigil: defaultDaily.sigil,
+      identity: defaultDaily.identity,
+      responsibility: defaultDaily.responsibility,
+      appearance: defaultDaily.appearance,
     });
-    expect(presentation.terms.sweepActivity).toBe('清扫山门');
-    expect(presentation.terms.sweepCanvasLabel).toBe('清扫山门游戏画布');
+    expect(presentation.terms).toEqual(defaults.terms);
   });
 
   it('rejects blank fields and duplicate NPC identifiers', () => {

@@ -27,15 +27,6 @@ describe('parseLlmRouteSpec', () => {
     ]);
   });
 
-  it('allows the same provider with different models', () => {
-    expect(
-      parseLlmRouteSpec('alibaba/qwen3.7-flash:70,alibaba/qwen-plus:30'),
-    ).toEqual([
-      { provider: 'alibaba', model: 'qwen3.7-flash', weight: 70 },
-      { provider: 'alibaba', model: 'qwen-plus', weight: 30 },
-    ]);
-  });
-
   it.each([
     ['', 'Expected provider[/model][:weight]'],
     ['openai', 'Expected one of'],
@@ -51,23 +42,6 @@ describe('parseLlmRouteSpec', () => {
 });
 
 describe('resolveLlmRouteModels', () => {
-  it('fills omitted models from defaults', () => {
-    expect(
-      resolveLlmRouteModels(parseLlmRouteSpec('alibaba,deepseek')),
-    ).toEqual([
-      {
-        provider: 'alibaba',
-        model: LLM_PROVIDER_DEFAULT_MODELS.alibaba,
-        weight: 1,
-      },
-      {
-        provider: 'deepseek',
-        model: LLM_PROVIDER_DEFAULT_MODELS.deepseek,
-        weight: 1,
-      },
-    ]);
-  });
-
   it('keeps explicit models and fills the rest from provider defaults', () => {
     expect(
       resolveLlmRouteModels(parseLlmRouteSpec('alibaba/qwen-plus,deepseek')),
@@ -89,35 +63,18 @@ describe('resolveLlmRouteModels', () => {
 });
 
 describe('resolveServerLlmRoutes', () => {
-  it('covers single and multi provider / model combinations', () => {
-    expect(
-      resolveServerLlmRoutes({
-        providerSpec: 'alibaba/qwen3.7-flash',
-        availableProviders: BOTH_KEYS,
-      }),
-    ).toEqual([{ provider: 'alibaba', model: 'qwen3.7-flash', weight: 1 }]);
-
-    expect(
-      resolveServerLlmRoutes({
-        providerSpec: 'alibaba/qwen3.7-flash:70,alibaba/qwen-plus:30',
-        availableProviders: BOTH_KEYS,
-      }),
-    ).toHaveLength(2);
-
-    expect(
-      resolveServerLlmRoutes({
-        providerSpec: 'alibaba/qwen3.7-flash:70,deepseek/deepseek-v4-flash:30',
-        availableProviders: BOTH_KEYS,
-      }).map(llmRouteKey),
-    ).toEqual(['alibaba/qwen3.7-flash', 'deepseek/deepseek-v4-flash']);
-
+  it('resolves weighted routes for multiple providers and distinct models of one provider', () => {
     expect(
       resolveServerLlmRoutes({
         providerSpec:
           'alibaba/qwen3.7-flash:50,alibaba/qwen-plus:20,deepseek/deepseek-v4-flash:30',
         availableProviders: BOTH_KEYS,
       }),
-    ).toHaveLength(3);
+    ).toEqual([
+      { provider: 'alibaba', model: 'qwen3.7-flash', weight: 50 },
+      { provider: 'alibaba', model: 'qwen-plus', weight: 20 },
+      { provider: 'deepseek', model: 'deepseek-v4-flash', weight: 30 },
+    ]);
   });
 
   it('auto-detects one provider and uses its default model', () => {

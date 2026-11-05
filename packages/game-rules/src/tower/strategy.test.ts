@@ -5,7 +5,7 @@ import { createTowerWeek, TOWER_ENCOUNTERS } from './weekly.js';
 import { TOWER_STRATEGY_VERSION, type TowerFloorStrategy } from '@daoyou/game-domain/tower';
 import { hasTowerTrait, towerStrategySignature, validateTowerFloorStrategy } from './strategy.js';
 import { compileTowerStrategy } from './strategy-compiler.js';
-import { expandTowerWeek } from './strategy-templates.js';
+import { expandTowerFloor, expandTowerWeek } from './strategy-templates.js';
 const week = createTowerWeek(getTowerSeasonMeta(new Date('2026-09-19')));
 const compile = (f: TowerFloorStrategy) =>
   compileTowerStrategy('金丹', f, TOWER_STRATEGY_VERSION);
@@ -62,6 +62,21 @@ describe('独立策略编译', () => {
         }
       }
     }
+  });
+  it('封印原型使用高于普通首领的封印命中预算', () => {
+    const sealHit = (
+      combinationId: 'binder-vital-swift' | 'warrior-armor-charge',
+    ) => {
+      const selection = {
+        ...week,
+        floors: [{ floor: 5, combinationId, formationId: 'solo' as const }],
+      };
+      return compile(expandTowerFloor(selection, 5)).units[0].attrs.sealHit;
+    };
+
+    expect(sealHit('binder-vital-swift')).toBeGreaterThan(
+      sealHit('warrior-armor-charge')!,
+    );
   });
   it('模板外组合可以出现在任意关键层；辅助属性词条只修改自身', () => {
     for (const floor of [5, 10, 15, 20]) {

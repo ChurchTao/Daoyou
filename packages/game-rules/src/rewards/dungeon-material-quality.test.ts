@@ -19,6 +19,7 @@ describe('副本材料品质概率', () => {
         expect(chances[quality]).toBe(0);
       }
     }
+    expect(DUNGEON_MATERIAL_QUALITY_CHANCE_BY_REALM.金丹.神品).toBe(0);
   });
 
   it('高境界的仙品及神品合计概率逐级上升', () => {

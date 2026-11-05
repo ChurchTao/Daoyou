@@ -58,6 +58,5 @@ describe('buildGeneratedCharacter', () => {
     expect(cultivator.unallocated_attribute_points).toBe(25);
     expect(cultivator.age).toBe(17);
     expect(cultivator.lifespan).toBe(110);
-    expect('max' + '_skills' in cultivator).toBe(false);
   });
 });

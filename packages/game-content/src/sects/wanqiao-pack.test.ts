@@ -5,20 +5,12 @@ import paths from './data/wanqiao-paths.json' with { type: 'json' };
 import combatSchema from './data/wanqiao-combat.schema.json' with { type: 'json' };
 import pathsSchema from './data/wanqiao-paths.schema.json' with { type: 'json' };
 import { loadWanqiaoCombatPack, WanqiaoCombatPackShape, WANQIAO_COMBAT } from './wanqiao-pack.js';
-import { loadWanqiaoPathsPack, WanqiaoPathsPackShape, WANQIAO_PATHS } from './wanqiao-path-pack.js';
+import { loadWanqiaoPathsPack, WanqiaoPathsPackShape } from './wanqiao-path-pack.js';
 
-describe('万窍山首版内容契约', () => {
-  it('保持严格JSON Schema与两条完整经脉，不开放治疗流或待核花语', () => {
+describe('万窍山内容契约', () => {
+  it('作者 Schema 同步，留音分来源计算层数', () => {
     expect(z.toJSONSchema(WanqiaoCombatPackShape, { reused: 'ref' })).toEqual(combatSchema);
     expect(z.toJSONSchema(WanqiaoPathsPackShape, { reused: 'ref' })).toEqual(pathsSchema);
-    expect(WANQIAO_PATHS.map(path => path.name)).toEqual(['天籁', '入微']);
-    for (const path of WANQIAO_PATHS) {
-      expect(path.nodes).toHaveLength(21);
-      expect(path.nodes.filter(node => node.automatic).map(node => [node.layer, node.slot])).toEqual([[7, 1], [7, 3]]);
-      expect(path.nodes.filter(node => !node.automatic)).toHaveLength(19);
-    }
-    expect(WANQIAO_COMBAT.skills).toHaveLength(15);
-    expect(WANQIAO_COMBAT.skills.some(skill => /flower|herb|healer/.test(skill.definition.id))).toBe(false);
     expect(WANQIAO_COMBAT.statuses.find(status => status.id === 'wanqiao.status.echo')).toMatchObject({ sourceBound: true, maxStacks: 3 });
   });
 

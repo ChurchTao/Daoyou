@@ -6,10 +6,13 @@ import {
   BeastRefinementPackShape,
   loadBeastRefinementPack,
 } from '@daoyou/game-content/beasts';
+import { BOOKS } from '@daoyou/game-content/items/beasts';
 import { expect, it } from 'vitest';
 import { z } from 'zod';
+import { learnBeastSkill } from '../inventory/index.js';
 import { generateCapturedBeast } from './generator.js';
 import { gainBeastExp } from './progression.js';
+import { projectBeastRoster } from './projection.js';
 import { beastRefinementReason, refineBeast } from './refinement.js';
 import { BeastSchema, GeneratedBeastSchema } from './schema.js';
 import { rollBeastTraits } from './trait-generator.js';
@@ -117,11 +120,39 @@ it('归零、重抽、恢复寿命，保留身份与寿命上限，旧技能不�
     '不是归元灵露',
   );
 });
-it('洗炼技能格可以增加或减少，始终等于新出生技能数', () => {
+it('洗炼可得零格或全技能池，零格灵兽仍能出战与学习', () => {
   const species = BEAST_SPECIES.find((s) => s.name === '银翅螳螂')!;
   const base = generateCapturedBeast(id, id, species.id, 60, 3);
-  const counts = new Set<number>();
-  for (let seed = 0; seed < 1000; seed++)
-    counts.add(refineBeast(base, advanced.id, 180, seed).skillSlotCapacity);
-  expect([...counts].sort()).toEqual([0, 1, 2, 3, 4]);
+  const pool = [...species.birthSkills.core, ...species.birthSkills.candidates];
+  const seeds = Array.from({ length: 1000 }, (_, seed) => seed);
+  const zeroSeed = seeds.find(
+    (seed) => rollBeastTraits(species, seed).skills.length === 0,
+  );
+  const fullSeed = seeds.find(
+    (seed) => rollBeastTraits(species, seed).skills.length === pool.length,
+  );
+  if (zeroSeed === undefined || fullSeed === undefined)
+    throw new Error('缺少洗炼边界种子');
+
+  const full = refineBeast(base, advanced.id, 180, fullSeed);
+  expect(full.skills).toEqual(pool);
+  expect(full.skillSlotCapacity).toBe(pool.length);
+  const zero = refineBeast(full, advanced.id, 180, zeroSeed);
+  expect(zero.skills).toEqual([]);
+  expect(zero.skillSlotCapacity).toBe(0);
+
+  const [unit] = projectBeastRoster(
+    {
+      beasts: [zero],
+      lineup: { carriedBeastIds: [id], leadBeastId: id, revision: 0 },
+    },
+    id,
+    0,
+    0,
+    180,
+  );
+  expect(unit).toMatchObject({ skills: [], passives: [] });
+  const learned = learnBeastSkill(zero, BOOKS[0].id, 180, 0);
+  expect(learned.skills).toEqual([BOOKS[0].skillId]);
+  expect(learned.skillSlotCapacity).toBe(1);
 });

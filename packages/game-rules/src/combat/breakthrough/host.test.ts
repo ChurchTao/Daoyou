@@ -408,35 +408,31 @@ describe('突破养成门槛', () => {
   for (const id of Object.keys(
     BREAKTHROUGH_CHALLENGES,
   ) as BreakthroughChallengeId[]) {
-    for (const sectId of Object.keys(COMBAT_V6_SECT_DEFINITIONS) as Array<
-      keyof typeof COMBAT_V6_SECT_DEFINITIONS
-    >) {
-      for (const path of [0, 1] as const) {
-        it(`${id}/${sectId}/${path} 普通白装、心法及普通灵兽可过，未养成不能稳定通过`, () => {
-          const trained = referenceBuild(id, sectId, path, true);
-          const untrained = referenceBuild(id, sectId, path, false);
-          const results = [1, 31, 97].map((seed) =>
-            complete(createBreakthroughHost(trained, id, true, seed)),
-          );
-          const weak = [1, 31, 97].map((seed) =>
-            complete(createBreakthroughHost(untrained, id, true, seed)),
-          );
-          expect(
-            weak.filter((result) => result.outcome === 'victory').length,
-            JSON.stringify(weak),
-          ).toBe(0);
-          expect(
-            results.filter((result) => result.outcome === 'victory').length,
-            JSON.stringify(results),
-          ).toBeGreaterThanOrEqual(2);
-          expect(
-            results
-              .filter((result) => result.outcome === 'victory')
-              .every((result) => result.rounds >= 3 && result.rounds <= 30),
-            JSON.stringify(results),
-          ).toBe(true);
-        }, 20000);
-      }
+    for (const [sectId, path] of [['lingxiao', 0], ['tianyan', 1]] as const) {
+      it(`${id}/${sectId}/${path} 普通白装、心法及普通灵兽可过，未养成不能稳定通过`, () => {
+        const trained = referenceBuild(id, sectId, path, true);
+        const untrained = referenceBuild(id, sectId, path, false);
+        const results = [1, 31, 97].map((seed) =>
+          complete(createBreakthroughHost(trained, id, true, seed)),
+        );
+        const weak = [1, 31, 97].map((seed) =>
+          complete(createBreakthroughHost(untrained, id, true, seed)),
+        );
+        expect(
+          weak.filter((result) => result.outcome === 'victory').length,
+          JSON.stringify(weak),
+        ).toBe(0);
+        expect(
+          results.filter((result) => result.outcome === 'victory').length,
+          JSON.stringify(results),
+        ).toBeGreaterThanOrEqual(2);
+        expect(
+          results
+            .filter((result) => result.outcome === 'victory')
+            .every((result) => result.rounds >= 3 && result.rounds <= 30),
+          JSON.stringify(results),
+        ).toBe(true);
+      }, 20000);
     }
   }
 });

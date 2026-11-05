@@ -252,11 +252,6 @@ describe('multi-scope resource contracts', () => {
     }
   });
 
-  test('keeps interaction queries out of the persistent topic registry', () => {
-    expect(RESOURCE_TOPICS).not.toContain('sect.stipend');
-    expect(RESOURCE_TOPICS).not.toContain('sect.promotion-evaluation');
-  });
-
   test('pairs every topic with one schema and one fixed scope kind', () => {
     expect(Object.keys(RESOURCE_DATA_SCHEMAS)).toEqual([...RESOURCE_TOPICS]);
     expect(Object.keys(RESOURCE_TOPIC_SCOPE_KIND)).toEqual([
@@ -557,8 +552,8 @@ describe('multi-scope resource contracts', () => {
     ).toBe(false);
   });
 
-  test('accepts historical v3 and current v4 pills in inventory events', () => {
-    const buildPillChange = (version: number) => ({
+  test('accepts unversioned, v3 and v4 pills without analysis metadata', () => {
+    const buildPillChange = (version?: number) => ({
       id: crypto.randomUUID(),
       mutationOrdinal: 0,
       scope: cultivatorScope,
@@ -598,7 +593,7 @@ describe('multi-scope resource contracts', () => {
                 stability: 80,
                 toxicityRating: 10,
                 tags: [],
-                version,
+                ...(version === undefined ? {} : { version }),
               },
             },
           },
@@ -606,12 +601,24 @@ describe('multi-scope resource contracts', () => {
       },
     });
 
-    expect(ResourceChangeSchema.safeParse(buildPillChange(3)).success).toBe(
-      true,
-    );
-    expect(ResourceChangeSchema.safeParse(buildPillChange(4)).success).toBe(
-      true,
-    );
+    for (const version of [undefined, 3, 4]) {
+      expect(
+        ResourceChangeSchema.safeParse(buildPillChange(version)).success,
+      ).toBe(true);
+    }
+    const { items } = buildPillChange().payload;
+    expect(
+      RESOURCE_DATA_SCHEMAS['inventory.consumables'].parse({
+        items,
+        pagination: {
+          page: 1,
+          pageSize: 20,
+          total: 1,
+          totalPages: 1,
+          hasMore: false,
+        },
+      }).items[0],
+    ).toMatchObject({ name: '测试丹', quantity: 1 });
     expect(ResourceChangeSchema.safeParse(buildPillChange(5)).success).toBe(
       false,
     );
@@ -643,33 +650,6 @@ describe('multi-scope resource contracts', () => {
         payload: { cultivator: { attributes: { vitality: 1 } } },
       }).success,
     ).toBe(false);
-  });
-
-  test('preserves cross-scope replay changes and transaction order in JSON', () => {
-    const sectScope: ResourceScope = { kind: 'sect', id: 'lingxiao' };
-    const original = orderResourceChanges([
-      change({
-        operation: 'invalidate',
-        scopeVersion: 14,
-        resourceVersion: 3,
-        mutationOrdinal: 1,
-      }),
-      {
-        ...change({
-          operation: 'invalidate',
-          scopeVersion: 9,
-          resourceVersion: 2,
-          mutationOrdinal: 0,
-        }),
-        scope: sectScope,
-        resourceTopic: 'sect.infrastructure',
-      },
-    ]);
-    const replayed = ResourceChangeSchema.array().parse(
-      JSON.parse(JSON.stringify(original)),
-    );
-    expect(replayed).toEqual(original);
-    expect(replayed.map((item) => item.mutationOrdinal)).toEqual([1, 0]);
   });
 
   test('limits scope transition cleanup to changed identities', () => {

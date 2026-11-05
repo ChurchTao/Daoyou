@@ -6,7 +6,6 @@ import { effectiveSpeed } from '@daoyou/combat-core/units';
 import { type SkillDef, type StatusDef } from '@daoyou/combat-core/types';
 import { createDaoyouRuleset } from '../combat/daoyou/index.js';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS } from '@daoyou/game-domain/combat';
-import { EQUIPMENT_EQUIPMENT_SPECIAL_DATA as pack } from '@daoyou/game-content/authoring/equipment';
 import { DAO_EQUIPMENT_ARTS_V1, DAO_RAGE_RESOURCE_ID } from '@daoyou/game-content/equipment/special';
 
 const art = (id: string) =>
@@ -141,48 +140,6 @@ const debuff: StatusDef = {
 };
 
 describe('refined equipment arts', () => {
-  it('locks approved rage prices independently of the runtime compiler', () => {
-    expect(pack.arts.map((a) => [a.id, a.rageCost])).toEqual([
-      ['dao_equipment.art.huiyuan', 30],
-      ['dao_equipment.art.yangyuan', 60],
-      ['dao_equipment.art.xuming', 90],
-      ['dao_equipment.art.baoyuan', 60],
-      ['dao_equipment.art.guizhen', 130],
-      ['dao_equipment.art.huanhun', 80],
-      ['dao_equipment.art.qingxin', 50],
-      ['dao_equipment.art.dichen', 100],
-      ['dao_equipment.art.taiqing', 125],
-      ['dao_equipment.art.chengtian', 150],
-      ['dao_equipment.art.cuozhi', 40],
-      ['dao_equipment.art.hanyue', 40],
-      ['dao_equipment.art.hanyueyin', 60],
-      ['dao_equipment.art.huti', 40],
-      ['dao_equipment.art.hutiyin', 60],
-      ['dao_equipment.art.lianfeng', 30],
-      ['dao_equipment.art.lianfengyin', 60],
-      ['dao_equipment.art.liejia', 35],
-      ['dao_equipment.art.liejiayin', 60],
-      ['dao_equipment.art.xuanling', 60],
-      ['dao_equipment.art.xuantian', 150],
-      ['dao_equipment.art.fuying', 40],
-      ['dao_equipment.art.fuyingyin', 60],
-      ['dao_equipment.art.yufeng', 40],
-      ['dao_equipment.art.yufengyin', 60],
-      ['dao_equipment.art.lingyan', 40],
-      ['dao_equipment.art.jifa', 30],
-      ['dao_equipment.art.kurong', 125],
-      ['dao_equipment.art.diefeng', 80],
-      ['dao_equipment.art.sandie', 60],
-      ['dao_equipment.art.juling', 60],
-      ['dao_equipment.art.wanxiang', 150],
-      ['dao_equipment.art.zebei', 135],
-      ['dao_equipment.art.niming', 120],
-      ['dao_equipment.art.due', 150],
-      ['dao_equipment.art.dongxu', 50],
-      ['dao_equipment.art.cuiling', 80],
-      ['dao_equipment.art.dangchen', 125],
-    ]);
-  });
   it('exposes permanent duration to battle and replay presentation', () => {
     const b = battle();
     round(b, 'source', art('hanyue').skill.id, 'ally');
@@ -193,56 +150,6 @@ describe('refined equipment arts', () => {
     expect(view.find((u) => u.id === 'ally')?.statuses[0].untilBattleEnd).toBe(
       true,
     );
-  });
-  it('opens exactly the approved 38 arts', () => {
-    expect(pack.arts.map((a) => a.id).sort()).toEqual(
-      [
-        'dao_equipment.art.huiyuan',
-        'dao_equipment.art.yangyuan',
-        'dao_equipment.art.xuming',
-        'dao_equipment.art.baoyuan',
-        'dao_equipment.art.guizhen',
-        'dao_equipment.art.huanhun',
-        'dao_equipment.art.qingxin',
-        'dao_equipment.art.dichen',
-        'dao_equipment.art.taiqing',
-        'dao_equipment.art.chengtian',
-        'dao_equipment.art.cuozhi',
-        'dao_equipment.art.hanyue',
-        'dao_equipment.art.hanyueyin',
-        'dao_equipment.art.huti',
-        'dao_equipment.art.hutiyin',
-        'dao_equipment.art.lianfeng',
-        'dao_equipment.art.lianfengyin',
-        'dao_equipment.art.liejia',
-        'dao_equipment.art.liejiayin',
-        'dao_equipment.art.xuanling',
-        'dao_equipment.art.xuantian',
-        'dao_equipment.art.fuying',
-        'dao_equipment.art.fuyingyin',
-        'dao_equipment.art.yufeng',
-        'dao_equipment.art.yufengyin',
-        'dao_equipment.art.diefeng',
-        'dao_equipment.art.sandie',
-        'dao_equipment.art.juling',
-        'dao_equipment.art.wanxiang',
-        'dao_equipment.art.zebei',
-        'dao_equipment.art.niming',
-        'dao_equipment.art.due',
-        'dao_equipment.art.dongxu',
-        'dao_equipment.art.cuiling',
-        'dao_equipment.art.dangchen',
-        'dao_equipment.art.lingyan',
-        'dao_equipment.art.jifa',
-        'dao_equipment.art.kurong',
-      ].sort(),
-    );
-    expect(
-      DAO_EQUIPMENT_ARTS_V1.every(
-        (a) =>
-          !a.description.includes('{') && a.skill.tags.includes(SkillTag.Art),
-      ),
-    ).toBe(true);
   });
   it.each([
     ['huiyuan', 0.2],

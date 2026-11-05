@@ -8,6 +8,7 @@ import {
   type ArenaRoomSeatV1,
   type ArenaRoomV1,
 } from './arena.js';
+import { ArenaV6SubmitSchema } from './combatV6Arena.js';
 
 function seat(userId: string, ready = true): ArenaRoomSeatV1 {
   return {
@@ -75,13 +76,6 @@ describe('arena room contract', () => {
     const asymmetric = room([seat('alpha')], [seat('beta-1'), seat('beta-2')]);
     expect(hasBothArenaTeams(asymmetric)).toBe(true);
     expect(allArenaSeatsReady(asymmetric)).toBe(true);
-    expect(asymmetric.rules).toMatchObject({
-      persistentCostPolicy: 'none',
-      consumablesAllowed: false,
-      persistentConditionEffect: 'none',
-      rewardPolicy: 'none',
-      rankingPolicy: 'none',
-    });
   });
 
   it('does not become startable while any participant is unready', () => {
@@ -131,4 +125,15 @@ describe('arena room contract', () => {
       ['beta', 3, 'beta-2'],
     ]);
   });
+});
+
+it('擂台 AUTO 指令使用带回合和重试标识的批次协议', () => {
+  const round = 1;
+  const requestId = '10000000-0000-4000-8000-000000000001';
+  const input = { round, requestId, commands: 'AUTO' };
+  expect(ArenaV6SubmitSchema.parse(input)).toEqual(input);
+  expect(
+    ArenaV6SubmitSchema.safeParse({ round, requestId, command: { type: 'auto' } })
+      .success,
+  ).toBe(false);
 });

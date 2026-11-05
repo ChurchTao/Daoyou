@@ -7,19 +7,17 @@ import {
   compileEquipmentEssence,
   compileRageGainPassive,
 } from './special-compiler.js';
-import { DAO_EQUIPMENT_ARTS_V1, DAO_RAGE_RESOURCE } from './special-content.js';
+import { DAO_RAGE_RESOURCE } from './special-content.js';
 import {
   EquipmentSpecialPackShape,
   loadEquipmentSpecialPack,
 } from '@daoyou/game-domain/equipment/authoring/special';
 
 describe('equipment special configuration', () => {
-  it('loads the 38 refined arts and validates the schema', () => {
-    expect(DAO_EQUIPMENT_ARTS_V1).toHaveLength(38);
+  it('keeps the schema and combat rage limits', () => {
     expect(schema).toEqual(z.toJSONSchema(EquipmentSpecialPackShape));
-    expect(DAO_RAGE_RESOURCE).toEqual({
+    expect(DAO_RAGE_RESOURCE).toMatchObject({
       id: 'combat.resource.rage',
-      name: '战意',
       current: 30,
       max: 150,
     });

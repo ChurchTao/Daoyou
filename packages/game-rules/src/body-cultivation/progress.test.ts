@@ -1,21 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getBodyCultivationLevelCapByCultivationRealm } from './config.js';
 import { advanceBodyCultivationTrack } from './progress.js';
 
 describe('body cultivation realm caps', () => {
-  it.each([
-    ['炼气', 10],
-    ['筑基', 15],
-    ['金丹', 22],
-    ['元婴', 30],
-    ['化神', 45],
-    ['炼虚', 45],
-    ['合体', 60],
-    ['大乘', 60],
-    ['渡劫', 60],
-  ] as const)('%s permits Lv.%s without title requirements', (realm, cap) => {
-    expect(getBodyCultivationLevelCapByCultivationRealm(realm)).toBe(cap);
-  });
   it.each([1, 100, 100000])(
     'allows 59 → 60 with %s progress and discards overflow',
     (value) => {

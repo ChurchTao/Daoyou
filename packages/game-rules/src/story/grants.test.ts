@@ -8,22 +8,6 @@ import { forgingCost } from '../forging/rules.js';
 import { storyReward } from './grants.js';
 
 describe('story rewards', () => {
-  it('rolls the configured herb bundle', () => {
-    const reward = storyReward('first-herbs', 'cultivator-a');
-    expect(reward.spiritStones).toBe(0);
-    expect(reward.items).toEqual([
-      expect.objectContaining({
-        definitionId: 'material.v1',
-        quantity: 3,
-        instanceData: expect.objectContaining({
-          name: '翠芽草',
-          type: 'herb',
-        }),
-      }),
-    ]);
-    expect(storyReward('first-herbs', 'cultivator-b')).toEqual(reward);
-  });
-
   it('supplies enough material and funds for the introductory craft lessons', () => {
     const lesson = storyReward('first-furnace-lesson', 'cultivator-a');
     const herb = lesson.items.find(

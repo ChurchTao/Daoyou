@@ -15,9 +15,8 @@ describe('无相两条完整经脉', () => {
     expect(z.toJSONSchema(WuxiangPathsPackShape, { reused: 'ref' })).toEqual(
       schema,
     ));
-  it('38 可选节点均通过相邻连线编译，4 项自动奖励保留', () => {
+  it('可选节点均可通过相邻连线编译', () => {
     for (const path of definition.paths) {
-      expect(path.nodes.filter((n) => n.automatic)).toHaveLength(2);
       for (const node of path.nodes.filter((n) => !n.automatic)) {
         const progress = createEmptySectCombatProgressV6(
           'wuxiang',

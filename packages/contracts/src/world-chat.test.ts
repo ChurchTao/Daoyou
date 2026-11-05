@@ -2,15 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WorldChatCreateMessageSchema } from './world-chat.js';
 
 describe('chat message creation', () => {
-  it('rejects unsupported message types', () => {
-    const result = WorldChatCreateMessageSchema.safeParse({
-      messageType: 'battle_showcase',
-      battleRecordId: '00000000-0000-4000-8000-000000000001',
-      textContent: '旧战报',
-    });
-    expect(result.success).toBe(false);
-  });
-  it('accepts text, item and beast showcases', () => {
+  it('accepts text and rejects the retired battle record message', () => {
     expect(
       WorldChatCreateMessageSchema.safeParse({
         messageType: 'text',
@@ -19,18 +11,11 @@ describe('chat message creation', () => {
     ).toBe(true);
     expect(
       WorldChatCreateMessageSchema.safeParse({
-        messageType: 'item_showcase',
-        revision: 0,
-        itemId: 'material-id',
+        messageType: 'battle_showcase',
+        battleRecordId: '00000000-0000-4000-8000-000000000001',
+        textContent: '旧战报',
       }).success,
-    ).toBe(true);
-    expect(
-      WorldChatCreateMessageSchema.safeParse({
-        messageType: 'beast_showcase',
-        revision: 0,
-        beastId: '00000000-0000-4000-8000-000000000001',
-      }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
   it('accepts a V6 battle reference but rejects client supplied replay facts', () => {
     const input = {
@@ -45,8 +30,9 @@ describe('chat message creation', () => {
     const input = {
       messageType: 'beast_showcase',
       beastId: '00000000-0000-4000-8000-000000000001',
-      revision: 2,
+      revision: 0,
     };
+    expect(WorldChatCreateMessageSchema.safeParse(input).success).toBe(true);
     for (const change of [
       { revision: -1 },
       { beastId: 'invalid' },
@@ -56,8 +42,9 @@ describe('chat message creation', () => {
         WorldChatCreateMessageSchema.safeParse({ ...input, ...change }).success,
       ).toBe(false);
   });
-  it('requires a fresh inventory reference and rejects client snapshots and legacy types', () => {
-    const input = { messageType: 'item_showcase', itemId: 'item', revision: 2 };
+  it('requires a versioned inventory reference and rejects client snapshots and legacy types', () => {
+    const input = { messageType: 'item_showcase', itemId: 'item', revision: 0 };
+    expect(WorldChatCreateMessageSchema.safeParse(input).success).toBe(true);
     for (const change of [
       { revision: undefined },
       { revision: -1 },

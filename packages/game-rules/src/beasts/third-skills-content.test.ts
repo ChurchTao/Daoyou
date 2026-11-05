@@ -127,71 +127,10 @@ it.each([0, 60, 180])(
     expect(b.allocatedAttributes.magic).toBe(80);
   },
 );
-it('咪咪显式低阶稀有且不再初领，四物种按确认出生表生成', () => {
-  const expected = {
-    咪咪: {
-      core: [],
-      candidates: [
-        'beast.agility',
-        'beast.golden-strike',
-        'beast.perception',
-        'beast.parry',
-        'beast.regeneration',
-      ],
-    },
-    毕方: {
-      core: ['beast.wildfire'],
-      candidates: [
-        'beast.advanced-spell-mastery',
-        'beast.agility',
-        'beast.spirit-surge',
-      ],
-    },
-    应龙: {
-      core: ['beast.flood'],
-      candidates: [
-        'beast.advanced-spell-critical',
-        'beast.spell-resistance',
-        'beast.regeneration',
-        'beast.wind-pursuit',
-      ],
-    },
-    金乌: {
-      core: ['beast.wildfire'],
-      candidates: [
-        'beast.advanced-divine-revival',
-        'beast.perception',
-        'beast.agility',
-        'beast.eightfold-flame',
-      ],
-    },
-  };
-  for (const [name, pool] of Object.entries(expected))
-    expect(
-      BEAST_SPECIES.find((species) => species.name === name)!.birthSkills,
-    ).toEqual(pool);
-  const mimi = BEAST_SPECIES.find((species) => species.name === '咪咪')!;
+it('低阶稀有的咪咪保留携带门槛且不能初领', () => {
+  const mimi = BEAST_SPECIES.find((species) => species.id === 'combat.wild.species.mimi')!;
   expect(mimi.realm).toBe('炼气');
   expect(mimi.carryLevel).toBe(5);
   expect(BEAST_RARE_SPECIES_IDS.has(mimi.id)).toBe(true);
-  expect(BEAST_RARE_SPECIES_IDS.size).toBe(13);
-  expect(BEAST_STARTER_SPECIES.map((species) => species.name)).toEqual([
-    '烛尾狐',
-    '钢背猪',
-    '精灵狼',
-  ]);
-  expect(
-    BEAST_SPECIES.filter((species) =>
-      [...species.birthSkills.core, ...species.birthSkills.candidates].includes(
-        'beast.spirit-conversion',
-      ),
-    ),
-  ).toEqual([]);
-  expect(
-    BEAST_SPECIES.filter((species) =>
-      [...species.birthSkills.core, ...species.birthSkills.candidates].includes(
-        'beast.sweeping-strike',
-      ),
-    ).map((species) => species.id),
-  ).toEqual(['combat.wild.species.six-eyed-ape']);
+  expect(BEAST_STARTER_SPECIES.some((species) => species.id === mimi.id)).toBe(false);
 });

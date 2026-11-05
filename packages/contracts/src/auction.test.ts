@@ -1,6 +1,7 @@
 import { AUCTION_MAX_UNIT_PRICE } from '@daoyou/game-domain/auction';
 import { expect, it } from 'vitest';
 import {
+  AuctionBeastListSchema,
   AuctionBuyOrderCreateSchema,
   AuctionBuyOrderSupplySchema,
   AuctionBuySchema,
@@ -41,6 +42,36 @@ it('上架仅接收版本引用，公开和专属对象不得混用', () => {
     }).success,
   ).toBe(true);
 });
+it('灵兽上架只接受版本引用，公开和专属对象不得混用', () => {
+  const request = {
+    requestId: '00000000-0000-4000-8000-000000000001',
+    beastId: '00000000-0000-4000-8000-000000000003',
+    expectedRevision: 0,
+    price: AUCTION_MAX_UNIT_PRICE,
+    visibility: 'public',
+  };
+  const targetCultivatorId = '00000000-0000-4000-8000-000000000002';
+  expect(AuctionBeastListSchema.safeParse(request).success).toBe(true);
+  for (const patch of [
+    { beast: { id: request.beastId, ownerCultivatorId: request.requestId } },
+    { quantity: 1 },
+    { price: 0 },
+    { price: AUCTION_MAX_UNIT_PRICE + 1 },
+    { visibility: 'private' },
+    { targetCultivatorId },
+  ])
+    expect(
+      AuctionBeastListSchema.safeParse({ ...request, ...patch }).success,
+    ).toBe(false);
+  expect(
+    AuctionBeastListSchema.safeParse({
+      ...request,
+      visibility: 'private',
+      targetCultivatorId,
+    }).success,
+  ).toBe(true);
+});
+
 it('收购目标只能引用背包物品或在售货单', () => {
   const base = {
     requestId: '00000000-0000-4000-8000-000000000001',

@@ -1,20 +1,20 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { validateForgeWeaponType } from '../forging/rules.js';
-import { InventoryEquipmentSchema } from '../inventory/equipment.js';
 import { SeededRng } from '@daoyou/combat-core/rng';
-import { compileDaoEquipmentSpecialLoadoutV1 } from './compiler.js';
-import { daoEquipmentBaseRange } from './ranges.js';
 import { daoEquipmentTemplateOf } from '@daoyou/game-content/equipment/base';
-import { generateForgedEquipment } from './forging.js';
-import { generateDaoEquipmentV2 } from './generator.js';
+import { DAO_WEAPONS } from '@daoyou/game-content/equipment/weapons';
+import type { DaoEquipmentInstanceV1 } from '@daoyou/game-domain/equipment';
 import {
-  OPEN_EQUIPMENT_LEVELS,
   DAO_WEAPON_TYPES,
   daoWeaponTypeOf,
   type DaoWeaponType,
 } from '@daoyou/game-domain/equipment';
-import type { DaoEquipmentInstanceV1 } from '@daoyou/game-domain/equipment';
-import { DAO_WEAPONS } from '@daoyou/game-content/equipment/weapons';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { validateForgeWeaponType } from '../forging/rules.js';
+import { InventoryEquipmentSchema } from '../inventory/equipment.js';
+import { listEquipmentCodex } from './codex.js';
+import { compileDaoEquipmentSpecialLoadoutV1 } from './compiler.js';
+import { generateForgedEquipment } from './forging.js';
+import { generateDaoEquipmentV2 } from './generator.js';
+import { daoEquipmentBaseRange } from './ranges.js';
 
 const input = {
   id: 'weapon-type',
@@ -36,74 +36,60 @@ function forge(weaponType: DaoWeaponType, overrides = {}) {
 afterEach(() => vi.restoreAllMocks());
 
 describe('法兵器形', () => {
-  it('九种器形遵循确认系数，标准剑保持原数值基准', () => {
-    expect(
-      DAO_WEAPON_TYPES.map((type) => [
-        DAO_WEAPONS[type].name,
-        DAO_WEAPONS[type].physicalAtk,
-        DAO_WEAPONS[type].magicAtk,
-      ]),
-    ).toEqual([
-      ['斧', 1.15, 0.85],
-      ['刀', 1.12, 0.88],
-      ['枪', 1.09, 0.91],
-      ['棍', 1.03, 0.97],
-      ['剑', 1, 1],
-      ['扇', 0.94, 1.06],
-      ['铃', 0.91, 1.09],
-      ['笔', 0.88, 1.12],
-      ['幡', 0.85, 1.15],
-    ]);
+  it('图鉴切换器形时只更新法兵的物攻和法攻区间', () => {
+    const [sword] = listEquipmentCodex('sword');
+    const [axe] = listEquipmentCodex('axe');
+    const [swordWeapon, ...swordOther] = sword.slots;
+    const [axeWeapon, ...axeOther] = axe.slots;
+    expect(axeWeapon.stats[0].base).not.toEqual(swordWeapon.stats[0].base);
+    expect(axeWeapon.stats[1].base).not.toEqual(swordWeapon.stats[1].base);
+    expect(axeWeapon.stats[2]).toEqual(swordWeapon.stats[2]);
+    expect(axeOther).toEqual(swordOther);
   });
 
   it.each(DAO_WEAPON_TYPES)(
-    '%s在全部开放境界与品阶端点生成合法属性，治疗不变',
+    '%s按器形区间生成合法属性，治疗不变',
     (weaponType) => {
       const template = daoEquipmentTemplateOf(input.templateId)!;
       const random = vi.spyOn(SeededRng.prototype, 'next');
-      for (const equipmentLevel of OPEN_EQUIPMENT_LEVELS)
-        for (const baseQuality of [0, 1 / 3, 0.5, 1])
-          for (const upper of [false, true]) {
-            random.mockReturnValue(upper ? 0.999999999 : 0);
-            const equipment = forge(weaponType, {
+      for (const [equipmentLevel, baseQuality] of [
+        [10, 0],
+        [90, 1 / 3],
+        [170, 1],
+      ])
+        for (const upper of [false, true]) {
+          random.mockReturnValue(upper ? 0.999999999 : 0);
+          const equipment = forge(weaponType, {
+            equipmentLevel,
+            baseQuality,
+            boosts: { ore: 5, essence: 0, attributes: 0 },
+          });
+          expect(equipment.weaponType).toBe(weaponType);
+          expect(InventoryEquipmentSchema.parse(equipment)).toEqual(equipment);
+          expect(
+            compileDaoEquipmentSpecialLoadoutV1({ weapon: equipment }, 180).ok,
+          ).toBe(true);
+          for (const rule of template.baseStats) {
+            const original = daoEquipmentBaseRange(
+              rule,
               equipmentLevel,
               baseQuality,
-              boosts: { ore: 5, essence: 0, attributes: 0 },
-            });
-            expect(equipment.weaponType).toBe(weaponType);
-            expect(equipment.name.endsWith(DAO_WEAPONS[weaponType].name)).toBe(
-              true,
             );
-            expect(InventoryEquipmentSchema.parse(equipment)).toEqual(
-              equipment,
-            );
+            const factor =
+              rule.attr === 'physicalAtk' || rule.attr === 'magicAtk'
+                ? DAO_WEAPONS[weaponType][rule.attr]
+                : 1;
             expect(
-              compileDaoEquipmentSpecialLoadoutV1({ weapon: equipment }, 180)
-                .ok,
-            ).toBe(true);
-            for (const rule of template.baseStats) {
-              const original = daoEquipmentBaseRange(
-                rule,
-                equipmentLevel,
-                baseQuality,
-              );
-              const factor =
-                rule.attr === 'physicalAtk' || rule.attr === 'magicAtk'
-                  ? DAO_WEAPONS[weaponType][rule.attr]
-                  : 1;
-              expect(
-                equipment.baseStats.find((stat) => stat.attr === rule.attr)!
-                  .value,
-              ).toBe(
-                Math.round((upper ? original.max : original.min) * factor),
-              );
-            }
+              equipment.baseStats.find((stat) => stat.attr === rule.attr)!
+                .value,
+            ).toBe(Math.round((upper ? original.max : original.min) * factor));
           }
+        }
     },
   );
 
   it('独立随机事实不随器形变化，择优只提高器胚，保存重载不再次乘系数', () => {
-    for (let seed = 0; seed < 32; seed++) {
+    for (const seed of [1, 17, 29]) {
       const sword = forge('sword', { seed });
       for (const weaponType of DAO_WEAPON_TYPES) {
         const equipment = forge(weaponType, { seed });

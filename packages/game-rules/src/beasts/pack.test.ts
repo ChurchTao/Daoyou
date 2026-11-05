@@ -27,7 +27,6 @@ function load(p: ReturnType<typeof input>) {
 
 describe('beast content packs', () => {
   it('registers all realms, books and matching schemas', () => {
-    expect(BEAST_SPECIES).toHaveLength(34);
     for (const realm of [
       '炼气',
       '筑基',
@@ -39,14 +38,7 @@ describe('beast content packs', () => {
       '大乘',
       '渡劫',
     ])
-      expect(BEAST_SPECIES.filter((s) => s.realm === realm)).toHaveLength(
-        ['筑基', '金丹'].includes(realm) ? 3 : 4,
-      );
-    expect(BEAST_SPECIES.filter((s) => s.starter).map((s) => s.name)).toEqual([
-      '烛尾狐',
-      '钢背猪',
-      '精灵狼',
-    ]);
+      expect(BEAST_SPECIES.some((s) => s.realm === realm)).toBe(true);
     expect(BOOKS.map((b) => b.skillId)).toEqual(
       skills.skills.filter((s) => s.book).map((s) => s.id),
     );

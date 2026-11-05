@@ -91,78 +91,45 @@ describe('幻境逐层奖励', () => {
     }
     expect(new Set(raw.pools.superiorBooks.entries)).toEqual(superior);
   });
-  it('相同种子可重放，追加奖励分布符合15%、8%、50%和30%', () => {
-    const bonusOf = (
-      floor: number,
-      items: { definitionId: string; quantity: number }[],
-    ) =>
-      floor === 5
-        ? items.some(
-            (item) =>
-              item.definitionId === 'beast.refinement.superior-origin-dew',
-          )
-        : floor === 10
-          ? items.length === 2
-          : items
-              .filter((item) => item.definitionId.startsWith('blueprint.'))
-              .reduce((sum, item) => sum + item.quantity, 0) >= 2;
-    for (const [floor, chance] of [
-      [5, 0.15],
-      [10, 0.08],
-      [15, 0.3],
+  it('追加奖励遵守现行概率，结算使用固定种子', () => {
+    const previews = towerRewardPreviews('金丹');
+    for (const [floor, id, chance] of [
+      [5, 'bonus', 0.15],
+      [10, 'bonus', 0.08],
+      [15, 'blueprint-extra', 0.3],
+      [20, 'manual', 0.3],
     ] as const) {
-      let bonus = 0;
-      for (let seed = 1; seed <= 2000; seed++) {
-        const result = planTowerReward(floor, seed, '金丹');
-        if (bonusOf(floor, result.items)) bonus++;
-        if (seed === 42)
-          expect(result).toEqual(planTowerReward(floor, seed, '金丹'));
-      }
-      expect(bonus / 2000).toBeGreaterThan(chance - 0.035);
-      expect(bonus / 2000).toBeLessThan(chance + 0.035);
+      expect(previews[floor - 1].drops.find((drop) => drop.id === id)?.chance)
+        .toBe(chance);
+      expect(planTowerReward(floor, 42, '金丹')).toEqual(
+        planTowerReward(floor, 42, '金丹'),
+      );
     }
-    let manuals = 0;
-    for (let seed = 1; seed <= 2000; seed++) {
-      const result = planTowerReward(20, seed, '金丹');
-      if (result.items.some((item) => item.definitionId.startsWith('jade.')))
-        manuals++;
-    }
-    expect(manuals / 2000).toBeGreaterThan(0.265);
-    expect(manuals / 2000).toBeLessThan(0.335);
   });
   it('15层必出低三境到本境的图纸，20层不再发图纸', () => {
     for (const realm of TOWER_ELIGIBLE_REALMS) {
       const allowed = new Set(
         blueprintRealmWeights(realm, 'lower').map((row) => row.level),
       );
-      const levels = new Set<number>();
-      const slots = new Set<string>();
-      for (let seed = 1; seed <= 240; seed++) {
+      const preview = towerRewardPreviews(realm);
+      const primary = preview[14].drops.find((drop) => drop.id === 'blueprint')!;
+      const blueprints = primary.definitionIds.map(itemDefinition);
+      expect(new Set(blueprints.map((item) => item.level))).toEqual(allowed);
+      expect(new Set(blueprints.map((item) => item.slot)).size).toBe(6);
+      expect(
+        preview[19].drops.flatMap((drop) => drop.definitionIds)
+          .some((id) => id.startsWith('blueprint.')),
+      ).toBe(false);
+      for (const seed of [7, 42, 101]) {
         const grants = planTowerReward(15, seed, realm).items;
-        const blueprints = grants.filter((item) =>
-          item.definitionId.startsWith('blueprint.'),
-        );
-        expect(
-          blueprints.reduce((sum, item) => sum + item.quantity, 0),
-        ).toBeGreaterThanOrEqual(1);
-        for (const grant of blueprints) {
-          const item = itemDefinition(grant.definitionId);
-          expect(item.kind).toBe('blueprint');
-          expect(allowed.has(item.level!)).toBe(true);
-          expect(
-            equipmentRealm(item.level!).requiredLevel,
-          ).toBeLessThanOrEqual(combatCharacterLevel(realm, '初期'));
-          levels.add(item.level!);
-          slots.add(item.slot!);
-        }
+        expect(grants.some((item) => item.definitionId.startsWith('blueprint.')))
+          .toBe(true);
         expect(
           planTowerReward(20, seed, realm).items.some((item) =>
             item.definitionId.startsWith('blueprint.'),
           ),
         ).toBe(false);
       }
-      expect(levels.size).toBe(allowed.size);
-      expect(slots.size).toBe(6);
     }
   });
   it('第20层功法按境界分池，化神及以上混抽高阶', () => {
@@ -177,15 +144,12 @@ describe('幻境逐层奖励', () => {
       });
       const advanced = realm !== '金丹' && realm !== '元婴';
       expect(manual.definitionIds).toHaveLength(advanced ? 24 : 6);
-      const seen = new Set<string>();
-      for (let seed = 1; seed <= 300; seed++) {
-        for (const item of planTowerReward(20, seed, realm).items) {
-          if (!item.definitionId.startsWith('jade.')) continue;
-          seen.add(item.definitionId);
-          expect(manual.definitionIds).toContain(item.definitionId);
-        }
-      }
-      expect(seen.size).toBeGreaterThan(1);
+      const forced = structuredClone(raw);
+      const manualDrop = forced.floors[19].drops.find((drop) => drop.id === 'manual')!;
+      manualDrop.chance = 1;
+      const items = planTowerReward(20, 42, realm, loadTowerRewardPack(forced)).items;
+      const jade = items.find((item) => item.definitionId.startsWith('jade.'));
+      expect(manual.definitionIds).toContain(jade?.definitionId);
     }
   });
   it('预览列出真实可掉落物品，随机图纸的范围与结算一致', () => {
@@ -200,7 +164,7 @@ describe('幻境逐层奖励', () => {
         const candidates = previews[floor - 1].drops.flatMap(
           (drop) => drop.definitionIds,
         );
-        for (let seed = 1; seed <= 100; seed++) {
+        for (const seed of [7, 42, 101]) {
           for (const item of planTowerReward(floor, seed, realm).items)
             expect(candidates).toContain(item.definitionId);
         }

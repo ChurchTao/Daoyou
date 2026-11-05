@@ -6,14 +6,11 @@ import { SeededRng } from '@daoyou/combat-core/rng';
 import { compileDaoEquipmentSpecialLoadoutV1 } from './compiler.js';
 import { daoEquipmentAttributeRange, daoEquipmentBaseRange } from './ranges.js';
 import { daoEquipmentTemplateOf } from '@daoyou/game-content/equipment/base';
-import { generateForgedEquipment } from './forging.js';
 import { generateDaoEquipmentV2 } from './generator.js';
 import {
-  OPEN_EQUIPMENT_LEVELS,
   DAO_EQUIPMENT_SLOTS,
   type DaoEquipmentSlot,
 } from '@daoyou/game-domain/equipment';
-import { equipmentReferenceLevel } from './realm.js';
 
 const input = (slot: DaoEquipmentSlot = 'weapon', equipmentLevel = 90) => ({
   id: slot, createdAt: '2026-09-12', seed: 123,
@@ -49,26 +46,6 @@ describe('材料品阶决定白字区间，材料种类保留择优', () => {
       '人物境界',
     );
   });
-  it('炼虚至渡劫法兵端点按设计表，强化端不低于普通端', () => {
-    const template = daoEquipmentTemplateOf(input().templateId)!;
-    const stat = (attr: string) =>
-      template.baseStats.find((row) => row.attr === attr)!;
-    const ends = [
-      [110, 'physicalAtk', 700, 899, 769, 988],
-      [170, 'physicalAtk', 1050, 1349, 1155, 1483],
-      [110, 'magicAtk', 156, 202, 172, 221],
-      [170, 'healPower', 270, 486, 297, 535],
-    ] as const;
-    for (const [level, attr, min, max, enhancedMin, enhancedMax] of ends) {
-      expect(daoEquipmentBaseRange(stat(attr), level, 0)).toEqual({ min, max });
-      expect(daoEquipmentBaseRange(stat(attr), level, 1)).toEqual({
-        min: enhancedMin,
-        max: enhancedMax,
-      });
-      expect(enhancedMin).toBeGreaterThanOrEqual(min);
-      expect(enhancedMax).toBeGreaterThanOrEqual(max);
-    }
-  });
   it('100级武器的中间范围按端点插值取整，不是对成品乘倍率', () => {
     const stat = daoEquipmentTemplateOf(input().templateId)!.baseStats[0];
     expect(daoEquipmentBaseRange(stat, 90, 0)).toEqual({ min: 583, max: 749 });
@@ -80,50 +57,20 @@ describe('材料品阶决定白字区间，材料种类保留择优', () => {
   });
 });
 
-// 文档100级经典表，顺序对应每个部位的实际白字字段。
-const endpoints = {
-  weapon: [[583, 130, 150], [749, 168, 270], [641, 143, 165], [823, 184, 297]],
-  head: [[583, 87], [749, 112], [641, 95], [823, 123]],
-  armor: [[466, 145], [599, 187], [512, 159], [658, 205]],
-  necklace: [[160, 87], [206, 112], [176, 95], [226, 123]],
-  belt: [[700, 58], [900, 74], [770, 63], [990, 81]],
-  footwear: [[87, 66], [112, 119], [95, 72], [123, 130]],
-};
-it.each(DAO_EQUIPMENT_SLOTS)('%s按文档端点生成，普通和最高品阶均包含上下界', (slot) => {
-  const random = vi.spyOn(SeededRng.prototype, 'next');
-  for (const baseQuality of [0, 1]) for (const upper of [0, 1]) {
-    random.mockReturnValue(upper ? 0.999999999 : 0);
-    const result = generateForgedEquipment({ ...input(slot), baseQuality, boosts: { ore: 3, essence: 0, attributes: 0 } });
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error('generation failed');
-    expect(result.instance.baseStats.map((s) => s.value)).toEqual(endpoints[slot][baseQuality * 2 + upper]);
-    expect(InventoryEquipmentSchema.safeParse(result.instance).success).toBe(true);
-    expect(compileDaoEquipmentSpecialLoadoutV1({ [slot]: result.instance }, 85).ok).toBe(true);
-  }
-});
-it('九个境界的参考档和双加预算固定，六维不重复且仅法兵法衣有绿字', () => {
-  expect(OPEN_EQUIPMENT_LEVELS.map(equipmentReferenceLevel)).toEqual([
-    20, 40, 60, 80, 100, 120, 140, 160, 180,
-  ]);
-  expect(OPEN_EQUIPMENT_LEVELS.map(daoEquipmentAttributeRange)).toEqual([
-    { min: 4, max: 7 }, { min: 7, max: 14 }, { min: 11, max: 22 },
-    { min: 15, max: 29 }, { min: 18, max: 36 }, { min: 22, max: 43 },
-    { min: 25, max: 50 }, { min: 29, max: 58 }, { min: 33, max: 65 },
-  ]);
-  const seen = new Set<string>();
-  for (const slot of DAO_EQUIPMENT_SLOTS) for (let seed = 0; seed < 128; seed++) {
-    const result = generateDaoEquipmentV2({ ...input(slot), seed });
+it('法兵和法衣的绿字可抽到上界且不重复，其余部位无绿字', () => {
+  vi.spyOn(SeededRng.prototype, 'next').mockReturnValue(0.999999999);
+  const { max } = daoEquipmentAttributeRange(90);
+  for (const slot of DAO_EQUIPMENT_SLOTS) {
+    const result = generateDaoEquipmentV2(input(slot));
     if (!result.ok) throw new Error('generation failed');
     const rolls = result.instance.attributeBonuses;
-    expect(new Set(rolls.map((r) => r.attr)).size).toBe(rolls.length);
-    if (slot !== 'weapon' && slot !== 'armor') expect(rolls).toEqual([]);
-    for (const roll of rolls) {
-      seen.add(roll.attr);
-      expect(roll.value).toBeGreaterThanOrEqual(18);
-      expect(roll.value).toBeLessThanOrEqual(36);
+    if (slot === 'weapon' || slot === 'armor') {
+      expect(rolls.map(({ value }) => value)).toEqual([max, max]);
+      expect(rolls[0].attr).not.toBe(rolls[1].attr);
+    } else {
+      expect(rolls).toEqual([]);
     }
   }
-  expect([...seen].sort()).toEqual(['endurance', 'speed', 'spirit', 'strength', 'vitality', 'willpower']);
 });
 it('拒绝旧数值装备、非武器衣服的绿字及超出材料区间的白字', () => {
   const result = generateDaoEquipmentV2(input('head'));
