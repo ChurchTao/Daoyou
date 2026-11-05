@@ -34,7 +34,11 @@ export function exorcismStageEnemies(
 }
 
 export function exorcismBattleTitle(run: ExorcismRunState) {
-  const stage = Math.min(4, run.wins + 1);
+  // 这一场已分出胜负、还没点结束时，wins 已经加过一次。
+  const stage = Math.max(
+    1,
+    Math.min(4, run.phase === 'battle' ? run.wins + 1 : run.wins),
+  );
   const title = `第 ${stage} 战 · ${EXORCISM_STAGES[stage - 1]}`;
   return stage === 4
     ? { title, bossGrading: EXORCISM_ENCOUNTER_PACK.grading.sHpRatio }

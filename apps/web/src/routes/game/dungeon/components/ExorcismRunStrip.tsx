@@ -87,11 +87,11 @@ export function ExorcismTrack({
   );
 }
 
-/** 局内唯一的恢复规则，每个决定点都看得到。 */
+/** 局内的恢复规则，每个决定点都看得到。 */
 export function ExorcismRuleLine() {
   return (
     <p className="text-ink-secondary text-xs leading-6">
-      局内状态独立于现实：丹药和时间都不能恢复，只有调息能回。
+      局内状态独立于现实：时间不会恢复，只有调息和回复丹药能回。
     </p>
   );
 }

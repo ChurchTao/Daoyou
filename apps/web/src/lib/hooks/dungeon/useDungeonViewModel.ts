@@ -202,7 +202,7 @@ export function useDungeonViewModel(
         : QI_ACTION_COSTS.dungeon_start,
       confirmLabel: exorcism ? '开始除祟' : '开始探索',
       details: exorcism
-        ? '入场时气血法力回满，不影响现实状态。丹药和时间都不能恢复局内状态，只有调息能回。灵气开局即扣，首领不能重抽。'
+        ? '入场时气血法力回满，不影响现实状态。局内只能靠调息和回复丹药恢复，战斗中不能服药。灵气开局即扣，首领不能重抽。'
         : undefined,
       onConfirm: async () => {
         const newState = await startDungeon(nodeId, mode);
@@ -360,6 +360,7 @@ export function useDungeonViewModel(
           >[0],
         );
       },
+      refreshState: refresh,
       exorcismRetreat: async (title: string, content: string) => {
         await applyMutationResult(
           (await exorcismRetreat(title, content)) as Parameters<

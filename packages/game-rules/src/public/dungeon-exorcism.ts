@@ -24,6 +24,7 @@ export {
 export type { ExorcismRewardContext } from '../dungeon/exorcism/rewards.js';
 export {
   applyExorcismBattle,
+  applyExorcismRestore,
   applyExorcismSupply,
   createExorcismRun,
   exorcismCurrentStage,

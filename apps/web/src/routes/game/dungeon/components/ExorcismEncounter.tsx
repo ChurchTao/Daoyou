@@ -5,6 +5,7 @@ import {
 import type { DungeonEncounterView } from '@daoyou/game-domain/dungeon';
 import type { ExorcismRunState } from '@daoyou/game-domain/dungeon/exorcism';
 import { useCallback, useState } from 'react';
+import { ExorcismPillBar } from './ExorcismPillBar';
 import {
   ExorcismMeter,
   ExorcismRuleLine,
@@ -25,12 +26,14 @@ export function ExorcismEncounter({
   processing,
   onBegin,
   onRetreat,
+  onRefresh,
 }: {
   run: ExorcismRunState;
   encounter: DungeonEncounterView;
   processing: boolean;
   onBegin: () => Promise<void>;
   onRetreat: (title: string, content: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }) {
   const boss = EXORCISM_BOSSES[run.bossId];
   const opening = run.wins === 0;
@@ -44,7 +47,7 @@ export function ExorcismEncounter({
     <div className="bg-paper text-ink relative space-y-5 overflow-hidden rounded-lg px-5 py-6 shadow-[inset_0_0_90px_18px_rgba(44,24,16,0.22)] md:px-8 md:py-8">
       {revealed ? null : (
         <MysteryReveal
-          eyebrow={opening ? '祟主现形' : '祟主当前'}
+          eyebrow={opening ? '祟主现形' : '祟主现身'}
           name={boss.name}
           description={boss.mechanic}
           portrait={boss.portrait}
@@ -105,6 +108,7 @@ export function ExorcismEncounter({
           tone="mp"
         />
         <ExorcismRuleLine />
+        <ExorcismPillBar run={run} processing={processing} onUsed={onRefresh} />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

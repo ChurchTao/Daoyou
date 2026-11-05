@@ -31,6 +31,7 @@ import {
 } from './rewards.js';
 import {
   applyExorcismBattle,
+  applyExorcismRestore,
   applyExorcismSupply,
   createExorcismRun,
   exorcismCurrentStage,
@@ -121,6 +122,22 @@ describe('除祟流程', () => {
     expect(applyExorcismSupply(start, 'rest').resources?.player.hp).toBe(100);
   });
 
+  it('回复丹药恢复局内状态，不超过上限，结束后不能用', () => {
+    const start = applyExorcismBattle(baseRun(), {
+      victory: true,
+      resources: resources(40),
+    });
+    expect(
+      applyExorcismRestore(start, { hp: 60, mp: 70 }).resources?.player,
+    ).toMatchObject({ hp: 60, mp: 70 });
+    expect(
+      applyExorcismRestore(start, { hp: 999, mp: 999 }).resources?.player,
+    ).toMatchObject({ hp: 100, mp: 100 });
+    expect(() =>
+      applyExorcismRestore(retreatExorcism(start), { hp: 50, mp: 50 }),
+    ).toThrow();
+  });
+
   it('败退按已胜场次评级', () => {
     const lost = applyExorcismBattle(baseRun(3), {
       victory: false,
@@ -191,7 +208,7 @@ describe('首领抽取', () => {
       );
   });
 
-  it('本祟脉首领约占一半，最近遇到的首领降权', () => {
+  it('本祟脉首领权重更高但不独占，最近遇到的首领降权', () => {
     const count = (recent: ExorcismBossId[] = []) => {
       const hits = new Map<string, number>();
       for (let seed = 1; seed <= 4000; seed += 1) {
@@ -200,8 +217,8 @@ describe('首领抽取', () => {
       }
       return hits;
     };
-    expect(count().get('broken_vein')! / 4000).toBeGreaterThan(0.4);
-    expect(count().get('broken_vein')! / 4000).toBeLessThan(0.6);
+    expect(count().get('broken_vein')! / 4000).toBeGreaterThan(0.15);
+    expect(count().get('broken_vein')! / 4000).toBeLessThan(0.35);
     expect(count(['broken_vein']).get('broken_vein')!).toBeLessThan(
       count().get('broken_vein')! * 0.6,
     );
@@ -752,16 +769,33 @@ describe('克星判定', () => {
     expect(exorcismIsCountered('broken_vein', ['physical'])).toBe(true);
     expect(exorcismIsCountered('broken_vein', ['spell'])).toBe(false);
     expect(exorcismIsCountered('mirror_lord', ['single_target'])).toBe(true);
-    expect(exorcismIsCountered('tide_serpent', ['mono_damage'])).toBe(true);
-    expect(exorcismIsCountered('gilded_corpse', ['spell'])).toBe(false);
-    expect(exorcismIsCountered('gilded_corpse', ['no_fixed'])).toBe(true);
+    expect(
+      exorcismIsCountered('tide_serpent', ['physical', 'single_target']),
+    ).toBe(false);
   });
 
-  it('每位首领都有克制对象和说明', () => {
+  it('克星是少数局：任何构筑被克制的首领不超过三分之一', () => {
+    const tagSets = [
+      ['physical', 'single_target'],
+      ['spell', 'sustain'],
+      ['physical', 'spell'],
+      ['spell', 'sustain', 'single_target'],
+    ] as const;
+    for (const tags of tagSets) {
+      const countered = EXORCISM_BOSS_IDS.filter((id) =>
+        exorcismIsCountered(id, tags),
+      );
+      expect(countered.length / EXORCISM_BOSS_IDS.length).toBeLessThanOrEqual(
+        0.37,
+      );
+    }
+  });
+
+  it('写了克制对象的首领都有克星提示，所有首领都有机制说明', () => {
     for (const id of EXORCISM_BOSS_IDS) {
-      expect(EXORCISM_BOSSES[id].counters.length).toBeGreaterThan(0);
-      expect(EXORCISM_BOSSES[id].counterLine).toBeTruthy();
       expect(EXORCISM_BOSSES[id].mechanic).toBeTruthy();
+      if (EXORCISM_BOSSES[id].counters.length)
+        expect(EXORCISM_BOSSES[id].counterLine).toBeTruthy();
     }
   });
 });

@@ -4,6 +4,7 @@ import type {
   ExorcismSupplyChoice,
 } from '@daoyou/game-domain/dungeon/exorcism';
 import { useState } from 'react';
+import { ExorcismPillBar } from './ExorcismPillBar';
 import {
   ExorcismMeter,
   ExorcismRuleLine,
@@ -22,11 +23,13 @@ export function ExorcismSupply({
   processing,
   onSupply,
   onRetreat,
+  onRefresh,
 }: {
   run: ExorcismRunState;
   processing: boolean;
   onSupply: (choice: ExorcismSupplyChoice) => Promise<void>;
   onRetreat: (title: string, content: string) => Promise<void>;
+  onRefresh: () => Promise<void>;
 }) {
   const [hovered, setHovered] = useState(false);
   const player = run.resources?.player;
@@ -68,6 +71,7 @@ export function ExorcismSupply({
           preview={hovered ? restedMp : undefined}
         />
         <ExorcismRuleLine />
+        <ExorcismPillBar run={run} processing={processing} onUsed={onRefresh} />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

@@ -15,18 +15,15 @@ import {
   type ExorcismUnitResources,
 } from '@daoyou/game-domain/dungeon/exorcism';
 
-/** 本祟脉的首领合计约占一半；最近遇到过的首领降权，避免连续碰到。 */
+/** 本祟脉的首领权重更高但不独占，一处节点也能遇到各种首领；最近遇到过的降权。 */
 export function pickExorcismBoss(
   seed: number,
   lineageId: ExorcismLineageId,
   recentBossIds: readonly ExorcismBossId[] = [],
 ): ExorcismBossId {
-  const others = EXORCISM_BOSS_IDS.filter(
-    (id) => EXORCISM_BOSSES[id].lineageId !== lineageId,
-  );
   const weights = EXORCISM_BOSS_IDS.map((id) => {
     const home = EXORCISM_BOSSES[id].lineageId === lineageId;
-    const base = home ? Math.max(1, others.length) : 1;
+    const base = home ? 4 : 1;
     return base * (recentBossIds.includes(id) ? 0.25 : 1);
   });
   const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -165,6 +162,33 @@ export function applyExorcismSupply(
             ),
           }
         : run.resources,
+  };
+}
+
+/** 回复丹药作用到局内人物，不超过上限。战斗中由调用方拦截。 */
+export function applyExorcismRestore(
+  run: ExorcismRunState,
+  restored: { hp: number; mp: number },
+): ExorcismRunState {
+  if (run.phase === 'finished' || !run.resources)
+    throw new Error('现在不需要恢复局内状态');
+  const player = run.resources.player;
+  return {
+    ...run,
+    resources: {
+      ...run.resources,
+      player: {
+        ...player,
+        hp: Math.min(
+          player.maxHp,
+          Math.max(player.hp, Math.floor(restored.hp)),
+        ),
+        mp: Math.min(
+          player.maxMp,
+          Math.max(player.mp, Math.floor(restored.mp)),
+        ),
+      },
+    },
   };
 }
 

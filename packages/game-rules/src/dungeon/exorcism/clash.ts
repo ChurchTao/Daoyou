@@ -39,8 +39,6 @@ export function exorcismBuildTags(
   const spell = count('spellHit') + count('fixedHit');
   if (physical >= spell) tags.push('physical');
   if (spell >= physical) tags.push('spell');
-  if (physical !== spell) tags.push('mono_damage');
-  if (count('fixedHit') === 0) tags.push('no_fixed');
   const effects = own.flatMap((skill) => [
     ...skill.effects,
     ...(skill.hooks ?? []).flatMap((hook) => hook.effects),

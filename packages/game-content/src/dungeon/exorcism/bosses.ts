@@ -33,11 +33,12 @@ export interface ExorcismBossDef {
   portrait: string;
   /** 本祟脉的节点更容易遇到它；缺省表示所有祟脉权重相同。 */
   lineageId?: ExorcismLineageId;
+  /** 只有明显克制某种构筑的首领才写，空表示对谁都一样难。克星应当是少数局。 */
   counters: ExorcismBuildTag[];
   /** 现形页的一句机制说明。 */
   mechanic: string;
   /** 克星印下面的一句提示。 */
-  counterLine: string;
+  counterLine?: string;
   /** 第三战：护法预演首领机制。 */
   guardian: ExorcismEncounterDef;
   boss: ExorcismEncounterDef;
@@ -238,10 +239,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     name: '潮汐蛟影',
     portrait: 'manifest-water',
     lineageId: 'water',
-    counters: ['mono_damage'],
+    counters: [],
     mechanic:
       '单数回合物理减伤，双数回合法术减伤。看回合换招，物法兼修最顺手。',
-    counterLine: '此祟专克只有一种伤害的构筑。',
     guardian: {
       enemies: [
         {
@@ -278,10 +278,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     name: '金身尸王',
     portrait: 'manifest-corpse',
     lineageId: 'corpse',
-    counters: ['no_fixed'],
+    counters: [],
     mechanic:
       '金身不惧刀剑术法，气血却不多，倒下后还会再起一次。固定伤害最奏效。',
-    counterLine: '此祟专克没有固定伤害的构筑。',
     guardian: {
       enemies: [
         {
@@ -315,9 +314,8 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'heretic',
     name: '噬灵邪修',
     portrait: 'wanderer-m',
-    counters: ['single_target'],
+    counters: [],
     mechanic: '护法每回合都替邪修疗伤。先除护法或封住护法，才打得动邪修。',
-    counterLine: '此祟专克只会单打的构筑。',
     guardian: {
       hpScale: 0.9,
       enemies: [
@@ -442,10 +440,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'lingering_soul',
     name: '残魂守试者',
     portrait: 'spirit',
-    counters: ['physical'],
+    counters: [],
     mechanic:
       '身法飘忽，刀剑常常落空，还会周期隐去身形。术法更稳，隐身时先防御。',
-    counterLine: '此祟专克刀剑。',
     guardian: {
       enemies: [
         {
@@ -486,10 +483,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'mountain_king',
     name: '山魈王',
     portrait: 'yaoguai',
-    counters: ['single_target'],
+    counters: [],
     mechanic:
       '带着小妖一起上，小妖死后它会暴怒增伤。一次清场，或者先打山魈王。',
-    counterLine: '此祟专克只会单打的构筑。',
     guardian: {
       hpScale: 0.9,
       enemies: [
@@ -546,10 +542,10 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'blood_python',
     name: '血河妖蟒',
     portrait: 'manifest-water',
-    counters: ['sustain', 'no_fixed'],
+    counters: ['sustain'],
     mechanic:
       '气血极厚，血牙留下的血毒让治疗大打折扣。久战会被祟蚀拖死，要算好输出。',
-    counterLine: '此祟专克靠治疗久战、输出不足的打法。',
+    counterLine: '此祟专克靠治疗久战的打法。',
     guardian: {
       enemies: [
         {
@@ -581,10 +577,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'rot_crone',
     name: '腐骨药婆',
     portrait: 'servant-f',
-    counters: ['sustain'],
+    counters: [],
     mechanic:
       '身边的药人皮糙肉厚，药婆的腐骨瘴让治疗越来越差。先打药婆，别陪它耗。',
-    counterLine: '此祟专克靠治疗久战的打法。',
     guardian: {
       enemies: [
         {
@@ -625,10 +620,9 @@ export const EXORCISM_BOSSES: Record<ExorcismBossId, ExorcismBossDef> = {
     id: 'blood_broker',
     name: '血契掮客',
     portrait: 'merchant-f',
-    counters: ['sustain'],
+    counters: [],
     mechanic:
       '开场强塞给你三回合增伤，之后按回合收债掉血，治疗也打折。三回合内打完最划算。',
-    counterLine: '此祟专克靠治疗久战的打法。',
     guardian: {
       enemies: [
         {

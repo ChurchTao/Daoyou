@@ -48,6 +48,7 @@ interface DungeonViewRendererProps {
     startDungeon: (nodeId: string, mode?: 'mystery' | 'exorcism') => Promise<void>;
     exorcismSupply: (choice: ExorcismSupplyChoice) => Promise<void>;
     exorcismRetreat: (title: string, content: string) => Promise<void>;
+    refreshState: () => Promise<void>;
     quitDungeon: () => Promise<boolean>;
     recoverDungeon: (action: DungeonRecoverAction) => Promise<void>;
     completeBattle: (data: BattleCallbackData | null) => void;
@@ -130,7 +131,7 @@ const EXORCISM_HOW_TO = [
   },
   {
     title: '取舍',
-    text: '每场之后选调息或搜寻：要血，还是要东西。丹药无效，只有调息能回。',
+    text: '每场之后选调息或搜寻：要血，还是要东西。回复丹药也能用，但要花你自己的库存。',
   },
   {
     title: '评级',
@@ -207,6 +208,7 @@ export function DungeonViewRenderer({
           processing={processing}
           onSupply={actions.exorcismSupply}
           onRetreat={actions.exorcismRetreat}
+          onRefresh={actions.refreshState}
         />
       </DungeonSceneScreen>
     );
@@ -235,6 +237,7 @@ export function DungeonViewRenderer({
           processing={processing}
           onBegin={actions.beginBattle}
           onRetreat={actions.exorcismRetreat}
+          onRefresh={actions.refreshState}
         />
       </DungeonSceneScreen>
     );
@@ -468,7 +471,7 @@ export function DungeonViewRenderer({
             <ModeHowTo mode={mode} />
             {mode === 'exorcism' ? (
               <p className="text-crimson text-sm leading-7">
-                全程只有这一条命：入场回满，丹药无效，只有调息能回。
+                入场回满，现实气血不受影响。局内只能靠调息和回复丹药恢复。
               </p>
             ) : (
               <TravelStatus displayResources={displayResources} />

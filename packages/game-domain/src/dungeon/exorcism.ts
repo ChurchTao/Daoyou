@@ -37,10 +37,6 @@ export const EXORCISM_BUILD_TAGS = [
   'spell',
   'sustain',
   'single_target',
-  /** 只有一种伤害类型。 */
-  'mono_damage',
-  /** 没有固定伤害。 */
-  'no_fixed',
 ] as const;
 export type ExorcismBuildTag = (typeof EXORCISM_BUILD_TAGS)[number];
 
