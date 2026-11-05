@@ -1,3 +1,4 @@
+import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
 import { InkButton } from '@app/components/ui/InkButton';
 import { InkChoiceButton } from '@app/components/ui/InkChoiceButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
@@ -7,25 +8,28 @@ import type {
   MysteryAction,
   MysteryAnswers,
   MysteryEvidence,
-  MysteryLogEntry,
   MysteryPlayerView,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { useCallback, useEffect, useState } from 'react';
 import { DungeonMysteryDeduction } from './DungeonMysteryDeduction';
 import { mysterySceneUrl } from './mysteryArt';
 import { MysteryAnomalyVeil, MysteryEventFlash } from './MysteryAtmosphere';
+import { MysteryBriefCompact } from './MysteryBrief';
 import { MysteryCaseBoard, type MysteryBoardTab } from './MysteryCaseBoard';
 import { MysteryClueRail } from './MysteryClueRail';
 import { MysteryGuardCard } from './MysteryGuardCard';
-import { MysteryLogLine } from '@app/components/feature/dungeon/MysteryLogLine';
+import { MysteryIntro } from './MysteryIntro';
 import { MysteryMechanismScene } from './MysteryMechanismScene';
 import { MysteryMiniMap } from './MysteryMiniMap';
+import { MysteryNotebook } from './MysteryNotebook';
 import { MysteryPortrait } from './MysteryPortrait';
 import {
   MysteryProse,
   type ProseMenuItem,
   type ProseTarget,
 } from './MysteryProse';
+import { mysteryDialogueWith } from './mysteryQuestions';
+import { useMinWidth } from './useMinWidth';
 import { useMysteryGuide } from './useMysteryGuide';
 import { useMysteryNotes } from './useMysteryNotes';
 
@@ -89,33 +93,6 @@ function MysteryIncense({ left, budget }: { left: number; budget: number }) {
   );
 }
 
-/** 与某人的对话：此人的发言，以及紧接在其回答之前的玩家提问。 */
-function dialogueWith(log: MysteryLogEntry[], npcName: string) {
-  return log
-    .filter(
-      (entry, i) =>
-        entry.kind === 'speech' &&
-        (entry.speaker === npcName ||
-          (entry.speaker === '你' && log[i + 1]?.speaker === npcName)),
-    )
-    .slice(-10);
-}
-
-/** ≥1024px 时地图与线索并到右侧一栏常驻，正文独占左侧宽栏。 */
-function useMinWidth(px: number) {
-  const query = `(min-width: ${px}px)`;
-  const [matches, setMatches] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(query).matches,
-  );
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const update = () => setMatches(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, [query]);
-  return matches;
-}
-
 export function DungeonMystery({
   view,
   runId,
@@ -129,7 +106,14 @@ export function DungeonMystery({
 }: DungeonMysteryProps) {
   const sceneUrl = mysterySceneUrl(scene);
   const wide = useMinWidth(1024);
-  const { notes, pin, markSeen } = useMysteryNotes(runId);
+  const {
+    notes,
+    toggleEvidence,
+    setAnswer,
+    setNotebook,
+    finishIntro,
+    markSeen,
+  } = useMysteryNotes(runId);
   const [asking, setAsking] = useState<{
     npcId: string;
     npcName: string;
@@ -141,10 +125,12 @@ export function DungeonMystery({
   const [boardOpen, setBoardOpen] = useState(false);
   const [boardTab, setBoardTab] = useState<MysteryBoardTab>('clues');
   const [deducing, setDeducing] = useState(false);
+  const [deduceFrom, setDeduceFrom] = useState<string | null>(null);
   const [picker, setPicker] = useState<Picker | null>(null);
   const [guarded, setGuarded] = useState<GuardedExit | null>(null);
   const [operating, setOperating] = useState<string | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [notebookOpen, setNotebookOpen] = useState(false);
 
   const exhausted = view.actionsLeft <= 0;
   const operatingMechanism =
@@ -161,9 +147,15 @@ export function DungeonMystery({
     view.log.findIndex((entry) => entry.turn === sceneTurn),
   );
   const segment = view.log.slice(segmentStart);
-  const reachable = new Set(
-    view.exits.filter((exit) => !exit.locked).map((exit) => exit.id),
-  );
+  // 行动力耗尽后只能回到去过的地方。
+  const reachable = new Set([
+    ...(exhausted
+      ? []
+      : view.exits.filter((exit) => !exit.locked).map((exit) => exit.id)),
+    ...view.map.rooms.filter((room) => room.canTravel).map((room) => room.id),
+  ]);
+  const visitedRoom = (roomId: string) =>
+    view.map.rooms.some((room) => room.id === roomId && room.visited);
   const unread = view.clues.filter((x) => !notes.seen.includes(x.id));
   // 打开案情板的线索页，或宽屏右栏常驻时，新线索数秒后视为已读。
   const cluesVisible = (boardOpen && boardTab === 'clues') || wide;
@@ -189,9 +181,15 @@ export function DungeonMystery({
 
   const goTo = (roomId: string) => {
     const exit = view.exits.find((e) => e.id === roomId);
-    if (!exit || exit.locked) return;
-    if (exit.guard) setGuarded({ ...exit, guard: exit.guard });
-    else void act({ type: 'move', roomId });
+    if (exit?.locked) return;
+    if (exit?.guard) setGuarded({ ...exit, guard: exit.guard });
+    else if (reachable.has(roomId)) void act({ type: 'move', roomId });
+  };
+
+  const openDeduction = (questionId: string | null = null) => {
+    setBoardOpen(false);
+    setDeduceFrom(questionId);
+    setDeducing(true);
   };
 
   const openBoard = (tab: MysteryBoardTab) => {
@@ -275,7 +273,7 @@ export function DungeonMystery({
           ? {
               label: '再看一遍',
               note: '不耗行动力',
-              disabled: busy,
+              disabled: processing,
               onSelect: () => act({ type: 'search', objectId: id }),
             }
           : {
@@ -307,7 +305,7 @@ export function DungeonMystery({
       return [
         {
           label: '交谈',
-          note: '每问一句耗 1 点',
+          note: npc.firstTalkFree ? '第一问不耗行动力' : '每问一句耗 1 点',
           disabled: busy,
           onSelect: () => startTalk(npc),
         },
@@ -327,8 +325,12 @@ export function DungeonMystery({
     return [
       {
         label: `前往${exit.name}`,
-        note: exit.guard ? `${exit.guard.name}拦路` : COST,
-        disabled: busy,
+        note: exit.guard
+          ? `${exit.guard.name}拦路`
+          : visitedRoom(id)
+            ? '不耗行动力'
+            : COST,
+        disabled: processing || (exhausted && !visitedRoom(id)),
         onSelect: () => goTo(id),
       },
     ];
@@ -341,7 +343,8 @@ export function DungeonMystery({
       tab={boardTab}
       onTabChange={setBoardTab}
       processing={processing}
-      onPin={pin}
+      onToggleEvidence={toggleEvidence}
+      onAnswer={(questionId) => openDeduction(questionId || null)}
       onTalk={startTalk}
       onPresent={startPresent}
       onUseItem={(item) => {
@@ -357,6 +360,11 @@ export function DungeonMystery({
     />
   );
 
+  if (view.turn === 0 && !notes.introDone)
+    return (
+      <MysteryIntro view={view} sceneUrl={sceneUrl} onStart={finishIntro} />
+    );
+
   return (
     <div
       className={cn(
@@ -369,16 +377,35 @@ export function DungeonMystery({
           {wide ? (
             <span className="text-ink-secondary">{view.location.name}</span>
           ) : (
-            <button
-              type="button"
-              className="text-ink-secondary hover:text-ink"
-              onClick={() => openBoard('places')}
-            >
-              {view.location.name}
-              <span className="ml-1 underline decoration-dotted underline-offset-4">
-                地图
-              </span>
-            </button>
+            <span className="text-ink-secondary flex items-center gap-3">
+              <button
+                type="button"
+                className="hover:text-ink"
+                onClick={() => openBoard('places')}
+              >
+                {view.location.name}
+                <span className="ml-1 underline decoration-dotted underline-offset-4">
+                  地图
+                </span>
+              </button>
+              <button
+                type="button"
+                className="hover:text-ink underline decoration-dotted underline-offset-4"
+                onClick={() => openBoard('brief')}
+              >
+                此行
+              </button>
+              <button
+                type="button"
+                aria-label={
+                  notes.notebook ? '打开笔记（已有内容）' : '打开笔记'
+                }
+                className="hover:text-ink underline decoration-dotted underline-offset-4"
+                onClick={() => setNotebookOpen(true)}
+              >
+                笔记
+              </button>
+            </span>
           )}
           <div className="relative flex items-center gap-3">
             {soonest !== null ? (
@@ -389,7 +416,7 @@ export function DungeonMystery({
                 onClick={() => setAlertsOpen((open) => !open)}
               >
                 <span className="bg-crimson inline-block size-1.5 animate-pulse rounded-full" />
-                {soonest <= 1 ? '异动将至' : `异动 · ${soonest} 步后`}
+                {soonest <= 1 ? '异动将至' : `异动 · 再耗 ${soonest} 点`}
               </button>
             ) : null}
             {alertsOpen && view.alerts.length > 0 ? (
@@ -402,8 +429,8 @@ export function DungeonMystery({
                     {alert.text}
                     <span className="text-ink-secondary ml-1">
                       {alert.turnsLeft <= 1
-                        ? '（下一步就会发生）'
-                        : `（再行动 ${alert.turnsLeft} 次后发生）`}
+                        ? '（再耗 1 点行动力就会发生）'
+                        : `（再耗 ${alert.turnsLeft} 点行动力后发生）`}
                     </span>
                   </p>
                 ))}
@@ -447,7 +474,7 @@ export function DungeonMystery({
           >
             <span>
               {guide.step.id === 'board' && wide
-                ? '拿到的线索会自动记进右侧的案情板，随时可以翻看和整理。'
+                ? '拿到的线索会自动记进右侧的案情板。想到什么，可以记在屏幕右缘的笔记里。'
                 : guide.step.text}
             </span>
             <InkButton
@@ -507,12 +534,9 @@ export function DungeonMystery({
               ) : exhausted ? (
                 <div className="space-y-3 pt-2 text-center">
                   <p>
-                    行动力已用完，调查到此为止。对照案情板想一想，然后提交推理。
+                    行动力已用完，不会再有新收获。还可以回到去过的地方查证，想好了就提交推理。
                   </p>
-                  <InkButton
-                    variant="primary"
-                    onClick={() => setDeducing(true)}
-                  >
+                  <InkButton variant="primary" onClick={() => openDeduction()}>
                     提交推理
                   </InkButton>
                 </div>
@@ -535,15 +559,22 @@ export function DungeonMystery({
           )}
           <InkButton
             variant="secondary"
-            disabled={busy}
+            disabled={busy || view.hintsLeft <= 0}
             onClick={() => act({ type: 'reflect' })}
           >
-            提示
+            {view.hintsLeft > 0 ? (
+              <>
+                提示（剩 <span className="font-mono">{view.hintsLeft}</span>{' '}
+                次）
+              </>
+            ) : (
+              '提示已用完'
+            )}
           </InkButton>
           <InkButton
             variant="primary"
             disabled={processing}
-            onClick={() => setDeducing(true)}
+            onClick={() => openDeduction()}
           >
             提交推理
           </InkButton>
@@ -551,18 +582,37 @@ export function DungeonMystery({
       </div>
 
       {wide ? (
-        <aside className="sticky top-4 max-h-[calc(100dvh-2rem)] space-y-8 overflow-y-auto">
+        <aside className="sticky top-4 max-h-[calc(100dvh-2rem)] space-y-4 overflow-y-auto">
           <section className="space-y-2 opacity-60 transition-opacity duration-500 focus-within:opacity-100 hover:opacity-100">
             <div className="text-ink-secondary text-sm">地图</div>
             <MysteryMiniMap
               map={view.map}
               reachable={reachable}
-              disabled={busy}
+              disabled={processing}
               onSelect={goTo}
             />
-            <p className="text-ink-secondary text-xs">点相邻的房间可以前往</p>
+            <p className="text-ink-secondary text-xs">
+              去过的地方可直接前往，不耗行动力
+            </p>
           </section>
-          <div className="border-ink/15 border-t border-dashed pt-6">
+          <section className="border-ink/15 space-y-2 border-t border-dashed pt-4">
+            <div className="text-ink-secondary flex items-center justify-between text-sm">
+              此行
+              <button
+                type="button"
+                className="hover:text-ink underline decoration-dotted underline-offset-4"
+                onClick={() => openBoard('brief')}
+              >
+                详情
+              </button>
+            </div>
+            <MysteryBriefCompact
+              view={view}
+              notes={notes}
+              onAnswer={(questionId) => openDeduction(questionId)}
+            />
+          </section>
+          <div className="border-ink/15 border-t border-dashed pt-4">
             <MysteryClueRail view={view} seen={notes.seen} onOpen={openBoard} />
           </div>
         </aside>
@@ -573,15 +623,18 @@ export function DungeonMystery({
         onClose={() => setBoardOpen(false)}
         size="md"
         title="案情板"
-        description="线索、人物、地点与调查经过都记在这里。"
+        description="此行目标、线索、人物、地点与调查经过都记在这里。"
       >
         {board}
       </InkDetailDrawer>
 
       <DungeonMysteryDeduction
         view={view}
-        pins={notes.pins}
-        onPin={pin}
+        notes={notes}
+        initialQuestion={deduceFrom}
+        onAnswer={setAnswer}
+        onToggleEvidence={toggleEvidence}
+        onOpenNotebook={() => setNotebookOpen(true)}
         isOpen={deducing}
         processing={processing}
         onClose={() => setDeducing(false)}
@@ -606,7 +659,11 @@ export function DungeonMystery({
             ''
           )
         }
-        description="直接问你想知道的事，每问一句耗 1 点行动力。"
+        description={
+          view.npcsHere.find((n) => n.id === asking?.npcId)?.firstTalkFree
+            ? '直接问你想知道的事。第一问不耗行动力，之后每问一句耗 1 点。'
+            : '直接问你想知道的事，每问一句耗 1 点行动力。'
+        }
         footer={
           asking ? (
             <div className="flex w-full flex-wrap items-end gap-2">
@@ -651,15 +708,24 @@ export function DungeonMystery({
       >
         {asking ? (
           <div className="space-y-2 text-sm">
-            {dialogueWith(view.log, asking.npcName).map((entry, index) => (
-              <MysteryLogLine key={index} entry={entry} />
-            ))}
+            {mysteryDialogueWith(view.log, asking.npcName)
+              .slice(-10)
+              .map((entry, index) => (
+                <MysteryLogLine key={index} entry={entry} />
+              ))}
             {exhausted ? (
               <p className="text-crimson">行动力已尽，不能再问了。</p>
             ) : null}
           </div>
         ) : null}
       </InkDetailDrawer>
+
+      <MysteryNotebook
+        text={notes.notebook}
+        open={notebookOpen}
+        onOpenChange={setNotebookOpen}
+        onChange={setNotebook}
+      />
 
       <MysteryEventFlash
         turn={view.turn}

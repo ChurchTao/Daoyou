@@ -181,17 +181,21 @@ describe('guards', () => {
 });
 
 describe('repeated hints', () => {
-  it('does not charge for asking again when nothing has changed', () => {
+  it('does not use up a hint for asking again when nothing has changed', () => {
     const caseFile = caseWithGuards(1);
     const run = createMysteryRun(caseFile, template.scale.action_budget);
     const first = applyMysteryAction(caseFile, run, { type: 'reflect' });
     if (!first.ok) throw new Error(first.error);
-    expect(first.run.actionsLeft).toBe(run.actionsLeft - 1);
+    expect(first.run).toMatchObject({
+      actionsLeft: run.actionsLeft,
+      hintsUsed: 1,
+    });
     const again = applyMysteryAction(caseFile, first.run, { type: 'reflect' });
     if (!again.ok) throw new Error(again.error);
     expect(again.run).toMatchObject({
       actionsLeft: first.run.actionsLeft,
       turn: first.run.turn,
+      hintsUsed: 1,
     });
     expect(again.run.log.at(-1)?.text).toBe(
       `还是那个念头：${first.run.log.at(-1)!.text}`,
@@ -287,10 +291,13 @@ describe('timed events', () => {
     const erase = caseFile.events!.find((e) => e.id === 'evt_erase')!;
     const leave = caseFile.events!.find((e) => e.id === 'evt_leave')!;
     let run = createMysteryRun(caseFile, template.scale.action_budget);
-    run = look(caseFile, { ...run, turn: erase.warnAt - 1 });
+    run = look(caseFile, {
+      ...run,
+      actionsLeft: run.actionBudget - erase.warnAt,
+    });
     expect(run.events).toEqual(['warn:evt_erase']);
     expect(run.log.at(-1)).toMatchObject({ kind: 'omen' });
-    run = look(caseFile, { ...run, turn: leave.at - 1 });
+    run = look(caseFile, { ...run, actionsLeft: run.actionBudget - leave.at });
     expect(run.events).toEqual(
       expect.arrayContaining(['evt_erase', 'evt_leave']),
     );

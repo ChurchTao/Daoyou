@@ -37,7 +37,7 @@
 
 由 Codex 在当次开发任务中操作真实本地页面，不将操作固化为一次性仓库脚本。
 
-1. 从 `env/local.example.env` 准备 `env/local.env`（已有文件保留），执行 `pnpm run services up -d --wait` 和 `pnpm run db:migrate`。普通验证使用 `pnpm run dev`；长流程需关闭watch时，先执行`pnpm run build:server`，再在两个终端执行`APP_ENV=local NODE_ENV=development node --env-file=env/local.env apps/api/dist/main.js`和`pnpm run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。
+1. 从 `env/local.example.env` 准备 `env/local.env`（已有文件保留），执行 `pnpm run services up -d --wait` 和 `pnpm run db:migrate`。普通验证使用 `pnpm run dev`；长流程需关闭watch时，先执行`pnpm run build:server`，再在两个终端执行`APP_ENV=local NODE_ENV=development node --env-file=env/local.env apps/api/dist/main.js`和`pnpm run dev:web`。确认页面为 `127.0.0.1:5174`、服务指向专用本地数据；不得使用 `prd` 进行测试写入。测试时不得设置 `BACKGROUND_LLM_JOBS=on`（默认关闭）；启动后在日志里确认没有 `sceneId=dungeon-case` 这类后台模型调用，页面操作中实际调用模型的步骤要向用户说明。
 2. 列出本次改动需要验证的用户行为、预期结果和准备条件。通过页面注册／登录，邮件验证使用 Mailpit；优先复用已有测试角色。缺少 LLM 或角色构筑等条件时如实说明，不通过假成功继续。
 3. 使用可用的 Codex 浏览器能力或 Playwright，按可访问名称和实际页面定位控件。操作后等待具体界面／网络状态，不依赖固定长时间 sleep。多人测试使用独立浏览器上下文或配置文件，每个角色有独立会话。
 4. 同时观察界面、控制台和网络：检查请求次数、错误、权限边界、提交结果及恢复过程。涉及布局时检查桌面和 360px；涉及性能时使用网络面板／Profiler，不维护一次性基准脚本。

@@ -10,6 +10,10 @@ import {
   mysteryNpcPresent,
 } from './engine.js';
 
+/** 没有可做的事时给的提示：不占提示次数。 */
+export const MYSTERY_HINT_NOTHING_LEFT =
+  '眼下的线索已经够用了，对照案情板想一想，然后提交推理。';
+
 /** 不经锁住的门、也不经未通过的守卫，此刻能走到的房间。 */
 function reachableRooms(caseFile: MysteryCaseFile, run: MysteryRunState) {
   const rooms = new Set([run.location]);
@@ -31,7 +35,7 @@ function reachableRooms(caseFile: MysteryCaseFile, run: MysteryRunState) {
 }
 
 /**
- * 静思：从此刻马上能做、且能推进案情的事里挑一件，给一句方向性提示。
+ * 提示：从此刻马上能做、且能推进案情的事里挑一件，给一句方向性提示。
  * 只指地点、人物或物品，不说出线索内容。优先补证据最少的结案问题，
  * 同一房间里的事排在前面；都没有时提示提交推理。
  */
@@ -188,8 +192,5 @@ export function mysteryHint(
       add(60, room, `你还没去过${roomName(room)}。`);
 
   candidates.sort((a, b) => a.rank - b.rank);
-  return (
-    candidates[0]?.text ??
-    '眼下的线索已经够用了，对照案情板想一想，然后提交推理。'
-  );
+  return candidates[0]?.text ?? MYSTERY_HINT_NOTHING_LEFT;
 }

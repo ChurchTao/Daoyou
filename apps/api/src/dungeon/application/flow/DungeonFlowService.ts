@@ -47,6 +47,7 @@ import type {
   DbExecutor,
   DbTransaction,
 } from '@server/lib/drizzle/db.js';
+import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
 import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
 import {
@@ -1289,6 +1290,8 @@ export class DungeonFlowService {
       NonNullable<DungeonState['mystery']>['restock']
     >['reason'],
   ) {
+    // 后台生成未开启时不排队，免得任务越积越多，日后一开启就成批烧模型费用。
+    if (!isBackgroundLlmEnabled()) return;
     void requestScenarioRestock({
       mapNodeId: state.mapNodeId,
       templateId,

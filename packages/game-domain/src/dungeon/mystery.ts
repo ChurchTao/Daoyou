@@ -496,6 +496,10 @@ export interface MysteryRunState {
   lastActionId?: string;
   /** 与各人物的自由对话记录，每人只保留最近几轮。 */
   dialogue?: Record<string, Array<{ q: string; a: string }>>;
+  /** 已用掉的提示次数。 */
+  hintsUsed?: number;
+  /** 已用掉首问免费的人物：每人第一次交谈或提问不耗行动力。 */
+  freeTalks?: string[];
   /** 已通过（化解或击败）的守卫。 */
   passedGuards?: string[];
   /** 已给出预兆（`warn:` 前缀）或已发生的事件。 */
@@ -646,6 +650,8 @@ export interface MysteryMapRoom {
   /** 物件看过几件、共几件，仅到访过的房间。 */
   searched: number;
   objects: number;
+  /** 去过且此刻走得到：回访不耗行动力，可从地图直接前往。 */
+  canTravel: boolean;
 }
 
 export interface MysteryPlayerView {
@@ -665,6 +671,8 @@ export interface MysteryPlayerView {
   turn: number;
   actionBudget: number;
   actionsLeft: number;
+  /** 本局还能用几次提示。 */
+  hintsLeft: number;
   location: { id: string; name: string; description: string };
   exits: Array<{
     id: string;
@@ -701,6 +709,8 @@ export interface MysteryPlayerView {
     name: string;
     title: string;
     portrait?: MysteryPortrait;
+    /** 第一次交谈不耗行动力，尚未用掉。 */
+    firstTalkFree: boolean;
   }>;
   knownNpcs: Array<{
     id: string;
@@ -726,7 +736,7 @@ export interface MysteryPlayerView {
     source?: MysterySourceRef;
   }>;
   /** 已出现预兆、尚未发生也未被阻止的事件。 */
-  /** 已有预兆、尚未发生的事件；`turnsLeft` 为再行动几次后发生。 */
+  /** 已有预兆、尚未发生的事件；`turnsLeft` 为再耗几点行动力后发生。 */
   alerts: Array<{ id: string; text: string; turnsLeft: number }>;
   /** 到访过的地方里被毁去的物件名。 */
   lost: string[];
@@ -741,6 +751,8 @@ export interface MysteryPlayerView {
     options?: Array<{ id: string; label: string }>;
     /** 抉择题，没有对错。 */
     judgement?: boolean;
+    /** 已掌握支撑此题的关键线索；不透露是哪一条。抉择题没有此字段。 */
+    supported?: boolean;
   }>;
   result?: MysteryResult & {
     truth: string;

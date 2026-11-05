@@ -30,6 +30,8 @@ export interface AdminDungeonSlotsView {
   /** 每个地图节点的待生成上限；同一节点逐个生成，不同节点并发。 */
   maxPendingPerNode: number;
   warmupPerSlot: number;
+  /** 本环境是否运行后台生成；关闭时任务只排队，不会被执行。 */
+  backgroundGeneration: boolean;
   generatorVersion: number;
 }
 

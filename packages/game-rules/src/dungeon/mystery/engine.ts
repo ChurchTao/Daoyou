@@ -7,10 +7,25 @@ import type {
   MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
 
-import { mysteryHint } from './hint.js';
+import { MYSTERY_HINT_NOTHING_LEFT, mysteryHint } from './hint.js';
 import { MECHANISM_MAX_FAILURES } from './mechanism.js';
 
-const LOG_LIMIT = 80;
+const LOG_LIMIT = 120;
+
+/** 每局可用的提示次数。 */
+export const MYSTERY_HINT_LIMIT = 3;
+
+/** 异动的时钟：已耗的行动力。不耗行动力的回访、提示和免费交谈不催发事件。 */
+export function mysteryClock(
+  run: Pick<MysteryRunState, 'actionBudget' | 'actionsLeft'>,
+) {
+  return Math.max(0, run.actionBudget - run.actionsLeft);
+}
+
+/** 本局还能用几次提示。 */
+export function mysteryHintsLeft(run: Pick<MysteryRunState, 'hintsUsed'>) {
+  return Math.max(0, MYSTERY_HINT_LIMIT - (run.hintsUsed ?? 0));
+}
 
 /** 条件求值只读取会单调增长的事实，保证可解性推演与运行时一致。 */
 export interface MysteryFacts {
@@ -47,6 +62,36 @@ export function mysteryNeighbors(caseFile: MysteryCaseFile, roomId: string) {
   }
   ids.delete(roomId);
   return caseFile.rooms.filter((r) => ids.has(r.id));
+}
+
+/**
+ * 去过的房间此刻是否走得到：只经去过、未被封住、无人拦路的房间。
+ * 回访不耗行动力，因此允许从地图上隔着几个房间直接前往。
+ */
+export function mysteryCanTravel(
+  caseFile: MysteryCaseFile,
+  run: MysteryRunState,
+  roomId: string,
+) {
+  if (!run.visited.includes(roomId) || roomId === run.location) return false;
+  const seen = new Set([run.location]);
+  const queue = [run.location];
+  while (queue.length) {
+    for (const next of mysteryNeighbors(caseFile, queue.shift()!)) {
+      if (
+        seen.has(next.id) ||
+        !run.visited.includes(next.id) ||
+        run.sealedRooms?.includes(next.id) ||
+        !evaluateMysteryCondition(next.requires, run) ||
+        mysteryGuardAt(caseFile, run, next.id)
+      )
+        continue;
+      if (next.id === roomId) return true;
+      seen.add(next.id);
+      queue.push(next.id);
+    }
+  }
+  return false;
 }
 
 export function createMysteryRun(
@@ -89,6 +134,7 @@ function cloneRun(run: MysteryRunState): MysteryRunState {
     items: [...run.items],
     flags: [...run.flags],
     talkedTo: [...run.talkedTo],
+    ...(run.freeTalks ? { freeTalks: [...run.freeTalks] } : {}),
     firedReactions: [...run.firedReactions],
     firedInteractions: [...run.firedInteractions],
     log: [...run.log],
@@ -126,16 +172,17 @@ export function mysteryNpcPresent(
 }
 
 /**
- * 推进随回合发生的事件：到预兆回合记一条预兆，到发生回合执行后果。
+ * 推进随行动力消耗发生的事件：耗到预兆点记一条预兆，耗到发生点执行后果。
  * 阻止条件在预兆或发生前已满足的事件不再推进；每个事件的预兆与发生各只一次。
  */
 function advanceMysteryEvents(w: RunWriter) {
   const run = w.run;
+  const clock = mysteryClock(run);
   for (const event of w.caseFile.events ?? []) {
     const seen = run.events ?? [];
     if (seen.includes(event.id)) continue;
     if (evaluateMysteryCondition(event.unless, run)) continue;
-    if (run.turn >= event.at) {
+    if (clock >= event.at) {
       run.events = [...seen, event.id];
       w.log({ kind: 'event', text: event.text });
       for (const effect of event.effects) {
@@ -156,17 +203,17 @@ function advanceMysteryEvents(w: RunWriter) {
         } else if (!run.flags.includes(effect.flag))
           run.flags.push(effect.flag);
       }
-    } else if (run.turn >= event.warnAt && !seen.includes(`warn:${event.id}`)) {
+    } else if (clock >= event.warnAt && !seen.includes(`warn:${event.id}`)) {
       run.events = [...seen, `warn:${event.id}`];
       w.log({ kind: 'omen', text: event.warning });
     }
   }
 }
 
-/** 动作收尾：推进事件、提示行动力耗尽、截断日志。 */
-function finishTurn(w: RunWriter): MysteryActionResult {
+/** 动作收尾：推进事件、在这一步耗尽行动力时提示、截断日志。 */
+function finishTurn(w: RunWriter, leftBefore: number): MysteryActionResult {
   advanceMysteryEvents(w);
-  if (w.run.actionsLeft === 0)
+  if (w.run.actionsLeft === 0 && leftBefore > 0)
     w.log({ kind: 'system', text: '行动力已尽，该给出你的推断了。' });
   w.run.log = w.run.log.slice(-LOG_LIMIT);
   return { ok: true, run: w.run, newClues: w.newClues };
@@ -194,6 +241,11 @@ function enterRoom(w: RunWriter, target: MysteryCaseFile['rooms'][number]) {
   run.location = target.id;
   const first = !run.visited.includes(target.id);
   if (first) run.visited.push(target.id);
+  // 回访描写与局面补写只服务当下这一屏，留着会挤掉经过里的线索和对话。
+  run.log = run.log.filter(
+    (entry) =>
+      entry.kind !== 'state' && !(entry.kind === 'scene' && entry.revisit),
+  );
   w.log({
     kind: 'scene',
     text: target.description,
@@ -326,7 +378,7 @@ export function applyMysteryGuardBattle(
       text: `你没能闯过${ahead.guard.name}，只得退了回来。`,
     });
   }
-  return finishTurn(w);
+  return finishTurn(w, current.actionsLeft);
 }
 
 class RunWriter {
@@ -382,17 +434,30 @@ function spend(run: MysteryRunState, amount: number) {
   run.actionsLeft = Math.max(0, run.actionsLeft - amount);
 }
 
+/** 交谈的花费：每个人物第一次不耗行动力，之后每次 1 点。 */
+function spendTalk(run: MysteryRunState, npcId: string) {
+  if (run.freeTalks?.includes(npcId)) spend(run, 1);
+  else run.freeTalks = [...(run.freeTalks ?? []), npcId];
+}
+
+/** 行动力耗尽后仍可做的事：回到去过的地方、再看一遍看过的物件。 */
+function isFreeAction(run: MysteryRunState, action: MysteryAction) {
+  if (action.type === 'move') return run.visited.includes(action.roomId);
+  if (action.type === 'search') return run.searched.includes(action.objectId);
+  return false;
+}
+
 /** 执行一个调查动作。只改变运行态，不涉及任何真实资源。 */
 export function applyMysteryAction(
   caseFile: MysteryCaseFile,
   current: MysteryRunState,
   action: MysteryAction,
 ): MysteryActionResult {
-  if (current.actionsLeft <= 0) {
+  if (current.actionsLeft <= 0 && !isFreeAction(current, action)) {
     return { ok: false, error: '行动力已用完，只能提交推理了' };
   }
   if (action.type === 'reflect') {
-    // 连点提示而局面未变：给出的是同一句，不扣行动力、不推进回合。
+    // 连点提示而局面未变：给出的是同一句，不占次数、不推进回合。
     const hint = mysteryHint(caseFile, current);
     if (lastHint(current) === hint) {
       const run = cloneRun(current);
@@ -404,6 +469,8 @@ export function applyMysteryAction(
       run.log = run.log.slice(-LOG_LIMIT);
       return { ok: true, run, newClues: [] };
     }
+    if (hint !== MYSTERY_HINT_NOTHING_LEFT && mysteryHintsLeft(current) === 0)
+      return { ok: false, error: '本局的提示已经用完了' };
   }
   const run = cloneRun(current);
   run.turn += 1;
@@ -411,9 +478,13 @@ export function applyMysteryAction(
 
   switch (action.type) {
     case 'move': {
-      const target = mysteryNeighbors(caseFile, run.location).find(
-        (r) => r.id === action.roomId,
-      );
+      const target =
+        mysteryNeighbors(caseFile, run.location).find(
+          (r) => r.id === action.roomId,
+        ) ??
+        (mysteryCanTravel(caseFile, run, action.roomId)
+          ? caseFile.rooms.find((r) => r.id === action.roomId)
+          : undefined);
       if (!target) return { ok: false, error: '此处无法直接前往该地点' };
       if (!evaluateMysteryCondition(target.requires, run)) {
         return {
@@ -429,14 +500,17 @@ export function applyMysteryAction(
           ok: false,
           error: `${guard.name}拦住了去路：可以应战，或找到化解的办法`,
         };
-      spend(run, 1);
+      // 只有第一次进入才耗行动力，回访免费。
+      if (!run.visited.includes(target.id)) spend(run, 1);
       enterRoom(w, target);
       break;
     }
     case 'reflect': {
-      // 静思：花 1 点行动力换一句方向性提示，提示只看此刻的局面。
-      spend(run, 1);
-      w.log({ kind: 'hint', text: mysteryHint(caseFile, current) });
+      // 提示不耗行动力，每局限次；“线索已够”不占次数。提示只看此刻的局面。
+      const hint = mysteryHint(caseFile, current);
+      if (hint !== MYSTERY_HINT_NOTHING_LEFT)
+        run.hintsUsed = (run.hintsUsed ?? 0) + 1;
+      w.log({ kind: 'hint', text: hint });
       break;
     }
     case 'operate': {
@@ -522,14 +596,15 @@ export function applyMysteryAction(
         run.searched.push(object.id);
       }
       w.log({ kind: 'detail', text: object.detail });
-      for (const clue of caseFile.clues) {
+      // 行动力耗尽后只能查证，不再有新收获。
+      for (const clue of current.actionsLeft > 0 ? caseFile.clues : []) {
         if (
           clue.foundAt?.objectId === object.id &&
           evaluateMysteryCondition(clue.foundAt.requires, run)
         )
           w.revealClue(clue.id);
       }
-      for (const item of caseFile.items) {
+      for (const item of current.actionsLeft > 0 ? caseFile.items : []) {
         if (
           item.foundAt?.objectId === object.id &&
           !run.firedInteractions.includes(`found:${item.id}`) &&
@@ -578,7 +653,7 @@ export function applyMysteryAction(
     case 'talk': {
       const npc = mysteryNpcPresent(caseFile, run, action.npcId);
       if (!npc) return { ok: false, error: '此人不在这里' };
-      spend(run, 1);
+      spendTalk(run, npc.id);
       const first = !run.talkedTo.includes(npc.id);
       if (first) run.talkedTo.push(npc.id);
       const secrets = npc.secrets.filter(
@@ -625,7 +700,7 @@ export function applyMysteryAction(
     }
   }
 
-  return finishTurn(w);
+  return finishTurn(w, current.actionsLeft);
 }
 
 const DIALOGUE_MEMORY = 4;
@@ -645,7 +720,7 @@ export function mysteryRevealableSecrets(
 }
 
 /**
- * 自由对话：问题与回复由服务端生成，这里只做在场校验、扣行动力与越权过滤。
+ * 自由对话：问题与回复由服务端生成，这里只做在场校验、扣行动力（每人第一问免费）与越权过滤。
  * 模型声称透露的线索只保留当前确实可以透露的那些，话术无法套出未解锁的线索。
  */
 export function applyMysteryDialogue(
@@ -668,7 +743,7 @@ export function applyMysteryDialogue(
   );
   const run = cloneRun(current);
   run.turn += 1;
-  spend(run, 1);
+  spendTalk(run, npc.id);
   if (!run.talkedTo.includes(npc.id)) run.talkedTo.push(npc.id);
   const w = new RunWriter(caseFile, run);
   w.log({ kind: 'speech', speaker: '你', text: turn.question });
@@ -682,5 +757,5 @@ export function applyMysteryDialogue(
       { q: turn.question, a: turn.reply },
     ].slice(-DIALOGUE_MEMORY),
   };
-  return finishTurn(w);
+  return finishTurn(w, current.actionsLeft);
 }

@@ -18,8 +18,14 @@ import {
   applyMysteryAction,
   applyMysteryDialogue,
   createMysteryRun,
+  MYSTERY_HINT_LIMIT,
+  mysteryCanTravel,
+  mysteryClock,
+  mysteryHintsLeft,
+  mysteryNeighbors,
   mysteryRevealableSecrets,
 } from './engine.js';
+import { MYSTERY_HINT_NOTHING_LEFT } from './hint.js';
 import { projectMysteryView } from './projection.js';
 import {
   checkMysteryAnswers,
@@ -51,8 +57,12 @@ function fallback(): MysteryCaseFile {
   return getMysteryFallbackCase('inheritance_murder')!;
 }
 
-function play(caseFile: MysteryCaseFile, actions: MysteryAction[]) {
-  let run = createMysteryRun(caseFile, template.scale.action_budget);
+function play(
+  caseFile: MysteryCaseFile,
+  actions: MysteryAction[],
+  from?: MysteryRunState,
+) {
+  let run = from ?? createMysteryRun(caseFile, template.scale.action_budget);
   for (const action of actions) {
     const result = applyMysteryAction(caseFile, run, action);
     if (!result.ok) throw new Error(`${action.type}: ${result.error}`);
@@ -686,7 +696,43 @@ describe('mystery dialogue', () => {
       reveal: ['han_claim', 'poison_ash'],
     });
     expect(result.ok && result.newClues).toEqual([]);
-    expect(result.ok && result.run.actionsLeft).toBe(run.actionsLeft - 1);
+  });
+
+  it('lets the first talk with each person go free, then charges', () => {
+    const caseFile = fallback();
+    const run = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }]);
+    const ask = (from: MysteryRunState) => {
+      const result = applyMysteryDialogue(caseFile, from, {
+        npcId: 'han',
+        question: '在吗',
+        reply: '在',
+        reveal: [],
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.run;
+    };
+    const first = ask(run);
+    expect(first.actionsLeft).toBe(run.actionsLeft);
+    expect(ask(first).actionsLeft).toBe(run.actionsLeft - 1);
+    // 闲聊和提问共用同一次免费。
+    const chat = applyMysteryAction(caseFile, run, {
+      type: 'talk',
+      npcId: 'han',
+    });
+    if (!chat.ok) throw new Error(chat.error);
+    expect(chat.run.actionsLeft).toBe(run.actionsLeft);
+    expect(ask(chat.run).actionsLeft).toBe(run.actionsLeft - 1);
+    expect(
+      projectMysteryView(
+        {
+          templateId: template.id,
+          caseSource: 'fallback',
+          caseFile,
+          run: chat.run,
+        },
+        template,
+      ).npcsHere.find((n) => n.id === 'han')?.firstTalkFree,
+    ).toBe(false);
   });
 
   it('reveals unlocked secrets, logs both sides and keeps a short memory', () => {
@@ -738,7 +784,7 @@ describe('mystery dialogue', () => {
 });
 
 describe('mystery hints', () => {
-  it('spends an action and points at the most useful thing at hand', () => {
+  it('costs no action and points at the most useful thing at hand', () => {
     const caseFile = fallback();
     const run = {
       ...createMysteryRun(caseFile, template.scale.action_budget),
@@ -746,12 +792,39 @@ describe('mystery hints', () => {
       visited: ['waterfall', 'stone_hall'],
     };
     const result = applyMysteryAction(caseFile, run, { type: 'reflect' });
-    expect(result.ok && result.run.actionsLeft).toBe(run.actionsLeft - 1);
+    expect(result.ok && result.run.actionsLeft).toBe(run.actionsLeft);
+    expect(result.ok && result.run.hintsUsed).toBe(1);
     expect(result.ok && result.run.log.at(-1)).toEqual({
       turn: 1,
       kind: 'hint',
       text: '此处的坐化遗骸，值得细看。',
     });
+  });
+
+  it('allows three hints per run, and repeats stay free after that', () => {
+    const caseFile = fallback();
+    const run = {
+      ...createMysteryRun(caseFile, template.scale.action_budget),
+      location: 'stone_hall',
+      visited: ['waterfall', 'stone_hall'],
+    };
+    const used = applyMysteryAction(
+      caseFile,
+      { ...run, hintsUsed: MYSTERY_HINT_LIMIT },
+      { type: 'reflect' },
+    );
+    expect(used).toEqual({ ok: false, error: '本局的提示已经用完了' });
+    const second = applyMysteryAction(
+      caseFile,
+      { ...run, hintsUsed: MYSTERY_HINT_LIMIT - 1 },
+      { type: 'reflect' },
+    );
+    if (!second.ok) throw new Error(second.error);
+    expect(mysteryHintsLeft(second.run)).toBe(0);
+    const repeat = applyMysteryAction(caseFile, second.run, {
+      type: 'reflect',
+    });
+    expect(repeat.ok).toBe(true);
   });
 
   it('suggests closing the case once nothing useful is left', () => {
@@ -770,8 +843,141 @@ describe('mystery hints', () => {
     };
     const result = applyMysteryAction(caseFile, done, { type: 'reflect' });
     expect(result.ok && result.run.log.at(-1)?.text).toBe(
-      '眼下的线索已经够用了，对照案情板想一想，然后提交推理。',
+      MYSTERY_HINT_NOTHING_LEFT,
     );
+    expect(result.ok && result.run.hintsUsed).toBe(done.hintsUsed);
+  });
+});
+
+describe('free revisits', () => {
+  const budget = template.scale.action_budget;
+  const start = () => {
+    const caseFile = fallback();
+    return { caseFile, run: createMysteryRun(caseFile, budget) };
+  };
+
+  it('charges only the first entry and does not advance the event clock', () => {
+    const { caseFile, run } = start();
+    const there = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }], run);
+    expect(there.actionsLeft).toBe(budget - 1);
+    const back = play(
+      caseFile,
+      [
+        { type: 'move', roomId: caseFile.startRoomId },
+        { type: 'move', roomId: 'stone_hall' },
+      ],
+      there,
+    );
+    expect(back.actionsLeft).toBe(budget - 1);
+    expect(back.turn).toBe(there.turn + 2);
+    expect(mysteryClock(back)).toBe(1);
+  });
+
+  it('never advances events through free actions', () => {
+    const { caseFile, run } = start();
+    const event = caseFile.events![0]!;
+    const near = {
+      ...play(caseFile, [{ type: 'move', roomId: 'stone_hall' }], run),
+      actionsLeft: budget - (event.warnAt - 1),
+    };
+    let walked = near;
+    for (let i = 0; i < event.at + 2; i++)
+      walked = play(
+        caseFile,
+        [
+          {
+            type: 'move',
+            roomId:
+              walked.location === 'stone_hall'
+                ? caseFile.startRoomId
+                : 'stone_hall',
+          },
+        ],
+        walked,
+      );
+    expect(walked.turn).toBeGreaterThan(event.at);
+    expect(walked.events ?? []).toEqual([]);
+  });
+
+  it('travels straight to a visited room but not to an unvisited one', () => {
+    const { caseFile, run } = start();
+    const deep = play(
+      caseFile,
+      [
+        { type: 'move', roomId: 'stone_hall' },
+        { type: 'move', roomId: 'alchemy' },
+      ],
+      run,
+    );
+    expect(mysteryCanTravel(caseFile, deep, caseFile.startRoomId)).toBe(true);
+    const moved = applyMysteryAction(caseFile, deep, {
+      type: 'move',
+      roomId: caseFile.startRoomId,
+    });
+    expect(moved.ok && moved.run).toMatchObject({
+      location: caseFile.startRoomId,
+      actionsLeft: deep.actionsLeft,
+    });
+    const quiet = mysteryNeighbors(caseFile, 'stone_hall').find(
+      (r) => !deep.visited.includes(r.id),
+    );
+    if (quiet) {
+      const far = applyMysteryAction(
+        caseFile,
+        { ...deep, location: caseFile.startRoomId },
+        { type: 'move', roomId: quiet.id },
+      );
+      expect(far.ok).toBe(false);
+    }
+  });
+
+  it('keeps only the latest revisit description in the log', () => {
+    const { caseFile, run } = start();
+    const walked = play(
+      caseFile,
+      [
+        { type: 'move', roomId: 'stone_hall' },
+        { type: 'move', roomId: caseFile.startRoomId },
+        { type: 'move', roomId: 'stone_hall' },
+        { type: 'move', roomId: caseFile.startRoomId },
+      ],
+      run,
+    );
+    expect(
+      walked.log.filter((e) => e.kind === 'scene' && e.revisit),
+    ).toHaveLength(1);
+  });
+
+  it('allows review but no new gains once actions run out', () => {
+    const { caseFile, run } = start();
+    const there = play(caseFile, [{ type: 'move', roomId: 'stone_hall' }], run);
+    const spent = { ...there, actionsLeft: 0 };
+    expect(
+      applyMysteryAction(caseFile, spent, {
+        type: 'move',
+        roomId: caseFile.startRoomId,
+      }).ok,
+    ).toBe(true);
+    expect(applyMysteryAction(caseFile, spent, { type: 'reflect' }).ok).toBe(
+      false,
+    );
+    const lateClue = caseFile.clues.find((c) => c.foundAt);
+    const object = lateClue!.foundAt!.objectId;
+    const room = caseFile.objects.find((o) => o.id === object)!.roomId;
+    const reread = applyMysteryAction(
+      caseFile,
+      {
+        ...spent,
+        location: room,
+        visited: [...spent.visited, room],
+        searched: [object],
+      },
+      { type: 'search', objectId: object },
+    );
+    expect(reread.ok && reread.newClues).toEqual([]);
+    expect(
+      reread.ok && reread.run.log.filter((e) => e.text.includes('行动力已尽')),
+    ).toEqual([]);
   });
 });
 
@@ -819,7 +1025,7 @@ describe('mystery view for the case board', () => {
       events: [`warn:${event.id}`],
     };
     expect(view(caseFile, warned).alerts).toEqual([
-      { id: event.id, text: event.warning, turnsLeft: event.at - warned.turn },
+      { id: event.id, text: event.warning, turnsLeft: event.at },
     ]);
     expect(
       view(caseFile, { ...warned, flags: ['han_exposed'] }).alerts,
