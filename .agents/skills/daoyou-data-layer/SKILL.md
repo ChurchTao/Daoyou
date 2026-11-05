@@ -7,16 +7,13 @@ description: Daoyou Drizzle/PostgreSQL、事务、V6 角色与宗门归属、统
 
 ## Locate the Current Write Path
 
-Read `drizzle.config.ts`, `drizzle.auth.config.ts`, `apps/api/src/lib/drizzle/db.ts` and the relevant definitions in `apps/api/src/lib/drizzle/schema.ts`. Follow the route → service → repository/SQL path before treating a table or DTO as authoritative. Historical migration/design files describe intent; they do not prove a deployed database has applied it.
+Follow the affected route through its service and repository to `apps/api/src/lib/drizzle/schema.ts` or the auth schema. Check the target database's migration history when its deployed shape matters. Follow the shared persistence and verification rules in [AGENTS.md](../../../AGENTS.md).
 
 ## Database and Transactions
 
-- Business tables use the main `wanjiedaoyou_*` migration stream in `drizzle/`. Better Auth uses `apps/api/src/lib/auth/schema.ts`, `drizzle.auth.config.ts` and `drizzle-auth/`, with fixed `better_auth` schema and independent history.
-- Nest `apps/api/src/database/database.module.ts` exports the same client via `DRIZZLE_DATABASE` and `DatabaseService`. Runtime drains requests/messages before closing it. Connection settings come from validated `getRuntimeEnvironment()`; do not create feature-local pools.
-- Runtime uses a module-level `pg.Pool` and `drizzle-orm/node-postgres`, not Bun SQL. `DATABASE_URL` supplies the connection; `DB_MAX_CONNECTIONS` controls pool size. Session settings live in `db.ts`.
-- Reuse `db`, `getExecutor(tx?)`, `DbExecutor` and `DbTransaction`; do not create parallel DB layers or feature-local pools.
-- Pass the executor through every nested write. `runDbTasks(executor, tasks)` serializes work on a transaction's single connection and permits parallel pool reads; do not replace it with unconditional `Promise.all`.
-- Reuse the owning mutation flow (`CommandExecutors.ts`, `InventoryService.ts`, or the relevant V6 service). Preserve locks, ownership predicates, expected revisions, idempotency and resource event commits; raw SQL success alone does not complete a player mutation.
+- Business schema changes use `drizzle.config.ts` and `drizzle/`. Better Auth changes use `apps/api/src/lib/auth/schema.ts`, `drizzle.auth.config.ts` and the independent `drizzle-auth/` history for the fixed `better_auth` schema.
+- Reuse the shared client and executor types from `apps/api/src/lib/drizzle/db.ts`. Pass the same executor through nested writes. Use `runDbTasks(executor, tasks)` to serialize queries on a transaction's single connection while allowing parallel pool reads.
+- Reuse the owning mutation flow (`CommandExecutors.ts`, `InventoryService.ts`, or the relevant V6 service). Preserve locks, ownership predicates, expected revisions, idempotency and resource event commits.
 - `ResourceEventCommitter.ts` and `playerStateRepository.ts` maintain resource scopes/versions/events and request records. Publish updates only through the existing post-commit path.
 
 ## Authoritative Models
@@ -39,7 +36,7 @@ Repository names resolve under `apps/api/src/lib/repositories`; V6 service names
 
 - Personal assets belong directly to `cultivators.id`. Sect state, methods and loadouts belong to `sect_memberships.id`; nodes belong to a loadout. Do not recreate a shared build-profile parent or transfer personal assets with sect progression.
 - Equipment slots reference inventory owner and item ID together. Preserve that composite FK and clear equipment references through the existing mutation flow when moving/removing items.
-- Inventory stores definition, quantity, location, slot, revision and instance facts. Parse via `InventoryItemSchema`, definition-specific schemas and `inventoryItemOf`; use existing stack-key helpers. A domain `spec` field does not imply storage in the old `consumables` table.
+- Parse inventory rows via `InventoryItemSchema`, definition-specific schemas and `inventoryItemOf`. Use existing stack-key helpers.
 - Current bag consumables use `inventory_items` with definition `consumable.v1`; `BagConsumables.ts` parses `instanceData` into consumable facts including `spec`.
 - Beast row ID/owner are authoritative; use `beastIndividualData` / `beastFromRow` rather than duplicating identity in JSON. Starter claim time is independent of beast lifetime.
 - Runtime combat assembly uses independent personal assets plus optional sect progress for display. Do not persist projected units/panels as the character build authority. See `docs/combat-domain-ownership.md`.
@@ -47,22 +44,16 @@ Repository names resolve under `apps/api/src/lib/repositories`; V6 service names
 
 ### Redis, Messages and Replays
 
-- Redis is authoritative for active V6 battle state, commands and RNG. Inspect `CombatV6RuntimeStore.ts` and the mode-specific stores for CAS revisions, occupancy, expiry and outboxes; do not substitute process-local sessions.
-- Access Redis through `apps/api/src/lib/redis`; NATS through `apps/api/src/lib/nats`. `apps/api/src/runtime/messaging/combatV6Messaging.ts` coordinates terminal/replay publication and archival.
-- PostgreSQL V6 archives enforce source/idempotency uniqueness. Replay participants intentionally do not cascade from character deletion; the battle archive owns their lifecycle.
+- Redis is authoritative for active V6 battle state, commands and RNG. Inspect `CombatV6RuntimeStore.ts` and the mode-specific stores for CAS revisions, occupancy, expiry and outboxes.
+- PostgreSQL V6 archives enforce uniqueness on source and idempotency key. The battle archive owns participant rows, which survive character deletion.
 - Keep settlement, resource events and replay delivery idempotent across retries. Read `docs/nats-domain-events.md` together with the relevant consumer before changing message boundaries.
 
 ## Legacy Boundary
 
-- `creation_products`, `materials` and `consumables` still have residual code paths. Inspect their actual callers before modifying or deleting them; they are not fallback sources for V6 equipment/manuals or the unified bag.
-- Legacy product views use `packages/game-domain/src/legacy/products.ts`. Do not restore creation-v2 rehydration / `battleProjection` or treat `creation_products.is_equipped` as current V6 equipment state.
-- `/api/battle-records/*` has been removed. V6 history uses the combat replay repository, not `battle_records_v2`.
-- `battle_records_v3`, `battle_replay_archives` and `bet_battles` are deprecated historical schema, with physical deletion deferred to a separate future migration. Read `docs/combat-v6-legacy-table-retirement.md` for that policy, but verify exact table names against schema. Do not generate DROP migrations simply while cleaning up skills or legacy references.
-- Do not infer that every older table is still present, or already physically deleted, from a DTO, directory or migration file alone.
+Use the authorities above for V6 equipment, manuals and bag reads and writes. The legacy treasury and exchanges still consume older product, material and consumable records. Verify current callers before changing these tables. Check the [retirement policy](../../../docs/combat-v6-legacy-table-retirement.md) and the target database's migration history before removing any historical table.
 
 ## Verify
 
-- Business schema changes: inspect generated SQL, snapshot and `drizzle/meta/_journal.json`; preserve published migrations. Apply only to the intended environment.
-- Auth schema changes: use `auth:generate` / `auth:migrate` with explicit environment selection, and inspect `drizzle-auth/` independently.
-- Persistence changes: inspect transaction propagation, JSON parsers, ownership and resource commits, then lint/build and focused local runtime checks per `docs/testing.md`.
-- Do not add repository, service, Redis or database unit tests. Pure reusable shared parsers/rules may have focused shared tests.
+- For business schema changes, inspect generated SQL, snapshot and `drizzle/meta/_journal.json`. Preserve published migrations and apply changes only to the intended environment.
+- For auth schema changes, select the environment explicitly when using `auth:generate` and `auth:migrate`. Inspect `drizzle-auth/` independently.
+- For persistence changes, inspect transaction propagation, JSON parsers, ownership and resource commits. Follow [the local verification procedure](../../../docs/testing.md).

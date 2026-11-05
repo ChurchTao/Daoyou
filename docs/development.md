@@ -133,7 +133,7 @@ ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖
 
 ### AI 能力
 
-AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiClient.ts` 调用。服务端只认一张路由表：
+AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiClient.ts` 调用。服务端通过 `LLM_PROVIDER` 配置基础模型组：
 
 `LLM_PROVIDER=<provider>[/<model>][:<weight>][,...]`
 
@@ -148,17 +148,16 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiCl
 
 - 省略 `/model` 时用该供应商默认模型（`qwen3.7-flash` / `deepseek-v4-flash`）
 - 省略 `:weight` 时该条权重为 `1`（等权）
-- 多于一条路由时，按用户 id 做稳定 hash 分流；同一用户始终命中同一条 `provider + model`
+- 多于一条路由时按用户 ID 做稳定哈希分流。同一组配置下，同一用户命中同一条 `provider + model`
 - 无用户上下文（如 cron）时落到当前权重最高的路由
 - 列出的每个供应商都必须配置对应 API Key
 - 未设置 `LLM_PROVIDER` 时自动回退：有 `ALIBABA_API_KEY` 用 `alibaba`，否则有 `DEEPSEEK_API_KEY` 用 `deepseek`
 - 玩家 BYOK 仍优先生效，不走服务端分流
 
-高级模型组 `LLM_ADVANCED_PROVIDER` 与 `LLM_PROVIDER` 格式相同，同样支持多条路由、权重与按用户粘滞，只服务于需要更强推理与一致性的场景（清单见 `apps/api/src/lib/llm/tiers.ts`，当前为解谜案卷大纲 `dungeon-case` 与一致性审校 `dungeon-case-review`）：
+高级模型组 `LLM_ADVANCED_PROVIDER` 使用相同的路由格式和分流规则。高级场景由 [`llmTierForScene`](../apps/api/src/lib/llm/tiers.ts) 决定。
 
-- 未设置时，这些场景沿用 `LLM_PROVIDER`
-- 只在请求高级场景时解析高级组；高级组配置有误只影响这些场景，不波及其余调用
-- 列出的供应商必须配置对应 API Key；玩家 BYOK 同样优先于两组路由
+- 未设置或为空时，高级场景使用基础组
+- 服务端只在高级场景选用高级组时解析该组。高级组配置有误只影响使用该组的调用
 
 其它变量：
 

@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 人物与生灵（15） | `apps/web/public/assets/icons/portrait-*.webp` | 透明底，按主体裁切后补成方形，多数为 320×320 | 注册为 `icon:portrait-{key}`，供案卷、场景 NPC 和战斗共用 |
 | 异变化形（5） | 同上，键名 `manifest-{kind}` | 透明底，512×512 | 现形转场与战斗 |
-| 场景插画（10） | `apps/web/public/assets/mystery/scenes/{scene}.webp` | 透明底，1280×853 | 开局题签底图、案情板地点页 |
+| 场景插画（10） | `apps/web/public/assets/mystery/scenes/{scene}.webp` | 透明底，1280×853 | 秘境介绍、开局与调查页题签、案情板地点页 |
 
 键名与 `MYSTERY_PORTRAIT_VALUES`、`MYSTERY_MANIFEST_KIND_VALUES`、`DUNGEON_SCENE_KIND_VALUES` 一致。案卷的人物、守卫立绘与化形类型由生成大纲从固定列表中选取（生成版本 6），内置案卷按角色配置。没有立绘信息的案卷人物显示姓氏印章。
 

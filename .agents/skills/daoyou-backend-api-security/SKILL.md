@@ -1,102 +1,34 @@
 ---
 name: daoyou-backend-api-security
-description: Daoyou NestJS API、认证、授权、Better Auth、ALTCHA、admin、internal cron、LLM header 安全和服务端输入校验指南。Use when adding or modifying apps/api/src controllers, guards, middleware, auth, admin endpoints, cron/internal endpoints, shared contracts, LLM provider handling, API validation, or security-relevant frontend auth/admin loaders in this repo. Does not cover ordinary page styling or navigation.
+description: Daoyou NestJS 请求边界、认证授权和 LLM 安全。修改控制器、中间件、请求解析、认证入口、管理权限、内部任务、实时握手或 LLM 提供方时使用。普通页面样式与导航不触发。
 ---
 
 # Daoyou Backend API Security
 
-## Read First
+Follow the affected controller or transport entrypoint through its guard, parser and owning application service. Paths below are relative to `apps/api/src` unless specified. Read the relevant section below and the shared API and verification rules in [AGENTS.md](../../../AGENTS.md).
 
-- `apps/api/src/main.ts` and `app.module.ts`
-- `apps/api/src/config/configuration.module.ts`, `runtime.config.ts`, and `lib/config/environment.ts`
-- `apps/api/src/http/configure-http.ts`
-- `apps/api/src/runtime/internal-cron.controller.ts` and `internal-cron.guard.ts`
-- `apps/api/src/auth/access.guard.ts` and `session.service.ts`
-- `apps/api/src/lib/auth/auth.ts`
-- `apps/api/src/lib/auth/handler.ts`
-- `apps/api/src/utils/aiClient.ts`
-- `packages/contracts/src/llm/config.ts`
-- `packages/contracts/src/llm/routing.ts`
-- `packages/contracts/src`, including LLM configuration and external provider protocols
+## HTTP, identity and authorization
 
-## Configuration and Workspace Boundary
+- `auth/access.guard.ts` defaults to `user`. Choose `@Access('public' | 'user' | 'active' | 'admin' | 'account-admin')` based on the endpoint. `active` supplies only an `activeCultivatorRef` in addition to the user. Check ownership where a service reads or mutates a resource. `admin` accepts `ADMIN_USER_IDS` or legacy `ADMIN_EMAILS`, while `account-admin` requires `ADMIN_USER_IDS`.
+- Keep login, signup, password reset, OTP and ALTCHA flows in `lib/auth/handler.ts`. Run Better Auth's raw Node handler before business body parsing. Preserve individual `Set-Cookie` headers in HTTP guards and both accepted and rejected native WebSocket handshakes. `realtime/realtime.adapter.ts` owns upgrade admission and pending handshakes. Feature services own identity and connection quotas.
+- Use `http/json-body.ts` for business JSON. Keep its parameter factory synchronous because Nest passes a factory's return value to the first pipe without awaiting it. Read raw bytes in that pipe after guards. The reader leaves content encoding untouched. Business bodies have a 128 MiB limit and the webhook has a separate 256 KiB limit.
+- Use `http/first-query.ts` for business queries. It reads the original URL with Express query parsing disabled, avoiding Express's 1,000-key cap. Query objects keep the first decoded key, named reads prefer a literal key over encoded aliases, and malformed UTF-8 escapes are preserved. Preserve each route's existing parse and validation error contract.
+- Keep `NotFoundModule` last in `AppModule.imports` so concrete routes win. Keep authorization fallbacks limited to their existing namespaces.
+- Internal HTTP jobs use `@Access('public')` with `InternalCronGuard`, which checks the Bearer secret when configured. Missing `CRON_SECRET` fails production startup validation. Non-production without a configured secret allows the request.
 
-- API builds with `nest build` (Nest CLI 12 default tsc, NodeNext ESM); the six libraries build with tsc in dependency order and export dist JavaScript/declarations; Web builds with Vite. API lint uses Oxlint correctness rules with type-aware Promise checks; Web/packages/tools retain ESLint. API consumes explicit `@daoyou/*` library exports, never Web; libraries cannot import either host. The old shared workspace is removed. The migration-only package-boundary script and import restrictions are retired; package direction and declared dependencies remain architecture conventions. LLM generators and prompt rendering belong in `apps/api/src/lib/generation`.
-- Nest services inject `AppConfigService`; independent libraries read `getRuntimeEnvironment()`. The snapshot is validated once with Zod; dotenv discovery is disabled. Never log credential values on validation failure.
-- `DatabaseModule` exports the existing Drizzle client, preserving one pool and transaction propagation. Runtime closes it after request/message drain.
+## LLM requests and jobs
 
-## API Boundary Facts
+- The Web `apps/web/src/lib/api/fetch.ts` attaches stored BYOK headers only to the configured API. `http/configure-http.ts` validates all three values with the provider allowlist in `@daoyou/contracts/llm/config`. Reject partial or invalid BYOK with 400 before provider selection. Keep credentials request-scoped and endpoints owned by `lib/llm/providers.ts`. Reject arbitrary client Base URLs.
+- Use `utils/aiClient.ts` for generation, streaming and structured output. Keep metrics in `lib/llm/metricsStore.ts`. Valid BYOK takes precedence over server routing. Server selection uses `lib/llm/tiers.ts` for scene grouping and `@daoyou/contracts/llm/routing` for both route tables. An unset advanced table falls back to the basic table. See [development configuration](../../../docs/development.md#ai-能力) for settings.
+- Define prompt templates in `apps/api/src/prompts/*.md`, render through `lib/prompts`, and keep scene orchestration in the owning feature. When adding a prompt scene, check its `id` header, `LlmSceneId`, caller and output schema together.
+- Treat model output as untrusted. Bound state-changing numbers in the schema and guard them at the service or resource boundary. Route unattended generation through `isBackgroundLlmEnabled()` and follow the explicit-run requirement in [AGENTS.md](../../../AGENTS.md).
 
-- API server is NestJS 12 on Node.js 24 with Express and native ws. Legacy Hono entrypoints, routes and dependencies have been removed; do not reintroduce a compatibility router.
-- `/api/auth/*` is handled by Better Auth through `apps/api/src/lib/auth/handler.ts`.
-- `ApiExceptionFilter` handles uncaught API errors; route-specific filters and Zod pipes preserve existing response contracts. Better Auth uses its raw Node handler before business body parsing.
-- Frontend route loaders are UX guards only. Backend handlers are the security boundary.
-- Resource protocol types/reducers live in `@daoyou/contracts/resources`. Runtime parsing imports `apps/api/src/lib/resources/schemas.ts`, which binds the existing complete item-grant and sect-delivery validators; preserve that composition when moving repository or resource readers. The Web binding lives in its own `src/lib/resources/schemas.ts`.
-- Domain-event subjects/versions/envelopes live in `@daoyou/contracts/events`. Runtime envelope parsing imports `apps/api/src/lib/mq/domainEventSchema.ts`, which binds the actual game-rules payload validators. Event data models belong to game-domain; keep NATS metadata in contracts.
-- Dev-tool request parsing uses `apps/api/src/dev-tools/dev-tools-input.ts`, binding contracts constructors to the current numeric limits and full reward/mail validators. The pure `contracts/dev-tools-access` policy accepts local non-production only; server module/service checks remain authoritative.
-- Arena HTTP/WS views use `apps/api/src/combat/arena-view.ts`, which wraps game-rules projections with the existing API/protocol fields and supplies the round-result decorator. Replay archive models/parsing live in `game-domain/combat/replay-archive`; transport subjects and delivery messages remain in contracts.
-- Existing auth boundary:
-  - Global `AccessGuard` requires login unless `@Access('public')` is declared.
-  - `@Access('active')` resolves `user` / `activeCultivatorRef` through `SessionService`; it does not hydrate a full cultivator or inject a DB executor.
-  - `@Access('admin')` uses `adminAccess.ts` (`ADMIN_USER_IDS` or legacy `ADMIN_EMAILS`); `account-admin` requires configured user ID authorization.
-  - `JsonBody` reads raw bytes in its first Pipe after guards, then passes parsed JSON to validation pipes. Keep its parameter factory synchronous: Nest 12 does not await a factory's Promise before the first Pipe. The reader does not inflate content-encoding; the business ceiling is 128 MiB and the webhook's independent limit is 256 KiB. `FirstQuery` reads the original URL without a 1,000-key truncation: query objects keep the first decoded key, named reads prefer a literal key over encoded aliases, and malformed UTF-8 escapes remain intact. Express query parsing is disabled; use `FirstQuery` for business queries. Zod pipes retain the intended 400 versus legacy-unhandled 500 behavior.
-- Inspect each admin controller's access metadata; do not assume a filename or frontend loader supplies authorization. Use explicit constructor `@Inject` because the API TypeScript configuration disables implicit design-type metadata. API/shared relative imports name emitted `.js` files; JSON imports use `with { type: 'json' }`. Nest CLI assets copy Markdown prompts; the registry reads them once at module initialization.
-- Keep `NotFoundModule` last in `AppModule.imports`: its fallback controllers preserve authorization for unknown paths in previously protected namespaces, after every concrete feature route. Do not broaden these fallbacks to all API or admin paths.
-- `/internal/cron/*` uses `Authorization: Bearer ${CRON_SECRET}`, not user sessions. In production, missing `CRON_SECRET` returns 500.
+## Combat and runtime boundaries
 
-## LLM Security Facts
+- Build combat units server-side from the authenticated actor through `combat/application/CombatV6BuildService.ts`. Preserve participant checks, visibility rules, legal commands, `expectedRevision` and Redis CAS. Use the owning mutation flow and check mode-specific exceptions such as dungeon recovery before reusing an occupancy lock.
+- Keep terminal settlement and replay archival in `runtime/messaging/combatV6Messaging.ts` and the projectors. Preserve retry and idempotency semantics across delivery.
+- Use `lib/redis`, `lib/nats` and `lib/admin/smtp.ts` for shared infrastructure. Runtime drains request and messaging work before closing database and Redis connections. Production requires `REDIS_URL`. Readiness requires an active Redis connection, including in non-production.
 
-- Browser API calls use `apiFetch` from `apps/web/src/lib/api/fetch.ts` to add `x-llm-provider`, `x-llm-api-key` and `x-llm-model` headers for `/api/` requests.
-- Server LLM calls should use `apps/api/src/utils/aiClient.ts` (`generateAiText`, `streamAiText`, `generateAiObject`, `generateAiArray`) so provider resolution, metrics, structured output, and retry behavior stay in one path.
-- Server-side `LLM_PROVIDER` is a route table: `provider[/model][:weight],...`. It covers one or many providers and one or many models. Multiple routes are sticky by user id hash on the full `provider + model`. BYOK request config still wins and does not enter the split. Read/parse in `packages/contracts/src/llm/routing.ts`; `aiClient.ts` only maps env and picks.
-- Server accepts request-level BYOK only when provider, API key, and model pass `packages/contracts/src/llm/config.ts`; partial or invalid configuration returns 400 without falling back to the server key.
-- Request provider IDs are allowlisted in `packages/contracts/src/llm/config.ts`; adapters/endpoints are owned by `apps/api/src/lib/llm/providers.ts`. Do not accept arbitrary request Base URLs.
-- LLM metrics use in-memory fallback plus Redis key `admin:llm-metrics:events:v1`; do not add a parallel metrics store.
-- Prompt files under `apps/api/src/prompts/*.md` have `id:` headers. New prompt scenes usually also need `LlmSceneId`, caller `sceneId`, and schema/constraint updates.
-- Treat LLM output as untrusted input. Numeric state changes need Zod bounds and service/resource-layer guards.
+## Verify the changed boundary
 
-## V6 Authority and Mutation Boundaries
-
-- Start with `apps/api/src/combat` and mode-specific feature modules, `packages/contracts/src/combatV6*.ts`, and `apps/api/src/combat/application`.
-- Resolve the actor from `activeCultivatorRef`; derive combat attributes, equipment, manuals and beasts server-side through `CombatV6BuildService.ts`. Client commands do not authorize client-supplied combat units, results or rewards.
-- Preserve session ownership/participant checks, `expectedRevision` validation, legal-command queries and Redis CAS. Spectator and replay views must retain their existing visibility checks.
-- State changes use the owning service's mutation/occupancy guards, transaction and resource response path (`CommandExecutors.ts`, `ResourceMutationResponse.ts`, `InventoryService.ts`). Check mode-specific exceptions such as dungeon recovery before reusing a blanket combat lock.
-- Terminal settlement and replay archival run through `apps/api/src/runtime/messaging/combatV6Messaging.ts` and V6 projectors. Retain retry/idempotency semantics; do not introduce direct route settlement alongside consumers.
-- `/api/battle-records/*` has been removed; do not restore V5 battle handlers for new V6 history features.
-
-## External Service Facts
-
-- Redis access must go through `apps/api/src/lib/redis`; do not instantiate `new Redis()` in feature code.
-- Production requires `REDIS_URL`; readiness fails unless Redis is up. Non-production may omit Redis for limited tooling, but must not report game readiness.
-- NATS access uses `apps/api/src/lib/nats`; Nest `RuntimeService` owns shared messaging startup and shutdown. Drain handlers and pending publications before closing database/Redis. Health checks include Redis, NATS and message infrastructure.
-- Native WS upgrades bypass Express: `RealtimeAdapter` owns API admission, response headers and pending-handshake tracking; feature services own identity and connection quotas. Preserve individual Set-Cookie headers on both successful and rejected handshakes.
-- SMTP mail uses `apps/api/src/lib/admin/smtp.ts`; required env includes `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, and `MAIL_FROM`.
-
-## Workflow
-
-1. Classify the endpoint: public, logged-in, active-cultivator, admin, or internal cron.
-2. Reuse the existing guards and `SessionService`. Do not hand-roll session parsing.
-3. Add or reuse Zod schemas for request bodies and query strings.
-4. Register controllers in feature modules imported by `apps/api/src/app.module.ts`; internal jobs belong to the runtime module and shared job services. Keep repositories and pure domain logic independent of Nest.
-5. If the route changes a request/response shape, update its owner in `packages/contracts/src`; domain models belong to `packages/game-domain/src`.
-6. If the route calls LLM or consumes LLM output, check prompt/schema bounds and service-layer guards.
-7. If adding a prompt scene, update prompt id, `LlmSceneId`, caller `sceneId`, and schema/constraint together.
-8. Verify server behavior with lint/build, code inspection, and focused manual/runtime checks; do not add route/service/provider tests.
-
-## Do Not
-
-- Do not rely on React loaders for authorization.
-- Do not bypass `apps/api/src/lib/auth/handler.ts` for login, signup, reset, OTP, or ALTCHA-protected flows.
-- Do not add admin files under `/api/admin` without explicit admin authorization.
-- Use the validated `llmConfig` from request context / framework-independent AsyncLocalStorage and configured provider adapters; do not bypass the provider allowlist or introduce a client Base URL. Singleton services must not store request identity or BYOK credentials in fields.
-- Do not make public list/ranking/community endpoints private without checking frontend/product usage.
-- Do not assume `packages/shared/src/api` exists; protocols live under `packages/contracts/src`.
-- Do not bypass `aiClient.ts` for LLM calls.
-- Do not create feature-local Redis clients or SMTP transports.
-
-## Verify
-
-- Route/middleware changes: run lint/build and inspect middleware registration and responses manually.
-- Auth changes: run lint/build and manually check cookie/header behavior when relevant.
-- LLM provider changes: run lint/build and inspect allowlist/validation behavior without provider tests.
-- Cron changes: verify secret behavior for production and non-production assumptions with focused runtime checks.
+Run lint and build, then follow [the local verification procedure](../../../docs/testing.md) for affected behavior. Check auth cookies or WS admission when changing session handling, valid and invalid BYOK when changing provider validation, and configured and unconfigured secret behavior when changing cron access. For request adapters and mutations, submit the complete client payload through the local route and check committed values and subsequent resource reads.

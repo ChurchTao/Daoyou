@@ -10,28 +10,7 @@
 - 本地“本地道友1”实测两种秘籍取出：旧记录数量各减1，新记录均为 `material.v1` 且保留分类与描述；桌面右栏立即更新，360px 抽屉内预览正常，页面 scrollWidth 为360。临时旧／新库存各2条已清理，视口已恢复，未做生产数据清理或批量迁移。
 - `bun run lint`、`bun run build`、`git diff --check` 通过；针对物品、背包、炼器、灵种与退役边界的39项测试通过。全量 `bun run test` 为1361通过、1失败：未修改的 `skill-learning.test.ts` 宗门配置哈希断言不匹配。未实测满包拒绝、异常历史材料接口请求和真机触屏。
 
-## 组件职责
-
-- `components/feature/items/ItemSlot.tsx`：统一方格、底部单行省略名称、emoji、堆叠数量、已装备／已投入标记，以及浮层预览。`InventoryGrid` 只负责布局，容量和格位来自业务数据。
-- `components/feature/items/presentation/types.ts`：独立展示契约。头部由字段、数量、状态条目组成；正文由普通行与单层展开项组成。展开项不能继续嵌套，折叠分组只能容纳普通行。
-- `components/feature/items/presentation/registry.ts`：八类道具的静态适配器表，使用 `satisfies Record<ItemDefinition['kind'], ItemAdapter>` 检查类型覆盖。
-- `components/feature/items/presentation/{basic,equipment,consumable}.ts`：各类型一次读取自身事实，提供轻量 `summary` 和延迟调用的 `preview(options)`。每类明确提供完整有序的头部、分组、描述，装备适配器负责数量省略、已穿戴状态及比较。不得先建立全类型默认字段再逐类删除。
-- `components/feature/items/itemPresentation.ts`：兼容物品格、聊天摘要和拍卖货架的轻量入口，不构建药效、比较或正文。
-- `components/feature/items/itemPreviewModel.ts`：仅负责解析适配器并组装标题、图标、颜色与内容，不包含类型分支。
-- `components/feature/items/ItemPreview.tsx`：兼容现有调用参数的接入层，传递查看上下文、数量标签和比较对象；操作按钮仍由业务调用方提供。
-- `components/feature/items/ItemPreviewView.tsx`：仅消费展示模型，负责统一排版、颜色与展开交互，不读取物品定义或判断道具类型。浮层定位和模态壳仍由调用方负责。
-
-### 接入新类型
-
-1. 在适配器中读取该类型的现行事实，返回图标、颜色、类型、分级等轻量摘要；详细药效和比较必须留在 `preview` 中。
-2. 明确列出头部字段顺序，需要数量时使用 `quantity`，没有意义的字段不要生成；不存在“默认显示类型／资料分组”的通用规则。
-3. 返回效果分组及独立描述。普通说明与数值使用 `line`；按需展开的能力使用 `disclosure`。仅允许既定层级，不传入任意 JSX 正文。
-4. 注册到类型表；新增同一类型的物品通常只需要共享物品定义，无需增加适配器。公共渲染组件无需修改。
-5. 检查现有库存、货架、聊天与详情入口，以及桌面／360px、折叠、空分组和比较行为。
-
-消耗品分组通过 `role`（effect／preview／restriction／source）和 `collapsible` 声明展示语义，不根据 key 的子串或文案内容推断。已移除的默认限制不再由上游生成。符箓使用结构化 `talismanDetailRows`，预览直接消费行，使用确认文本再由相同行格式化，不反向切割说明字符串。
-
-## 分级与交互
+## 分级与交互（早期实现）
 
 道装按原始 `equipmentLevel` 换算境界颜色；轻灵等器蕴不改变颜色。材料按品质，图纸按等级对应境界，传承灵印按普通／上品。名称底部单行省略，数量为 1 不显示角标，浮层展示完整名称；需要数量的类型显示精确数量，装备仅保留已穿戴状态。
 
