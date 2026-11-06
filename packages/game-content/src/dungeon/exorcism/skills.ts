@@ -8,7 +8,7 @@ export const EXORCISM_STATUS_DEFS: StatusDef[] = [
   {
     id: 'exorcism.taint',
     name: '祟气',
-    description: '祟主身边祟气弥漫，受到的治疗降低。',
+    description: `受到的治疗降低 ${Math.round((1 - taint.healTaken) * 100)}%。首领仍在场时，每回合开始重新施加，持续 1 回合，不可驱散。`,
     kind: 'exorcism.taint',
     category: 'debuff',
     healTaken: taint.healTaken,

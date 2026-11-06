@@ -1,8 +1,13 @@
 import { InkTooltip } from '@app/components/ui/InkTooltip';
+import { EXORCISM_STATUS_DEFS } from '@daoyou/game-content/dungeon/exorcism';
 import { sectStatusDetails } from '@daoyou/game-content/sects';
 import type { ReactNode } from 'react';
 
 const statuses = sectStatusDetails();
+for (const { id, name, description } of EXORCISM_STATUS_DEFS) {
+  if (description) statuses[id] = { name, description };
+}
+
 const statusTriggerClass =
   'inline cursor-help border-0 bg-transparent p-0 align-baseline font-[inherit] text-inherit underline decoration-dashed decoration-current/70 underline-offset-4 focus-visible:outline-ink focus-visible:outline-2 focus-visible:outline-offset-2';
 
