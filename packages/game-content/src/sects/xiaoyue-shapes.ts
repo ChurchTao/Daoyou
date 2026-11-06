@@ -17,6 +17,7 @@ export const xyWhen = z.strictObject({
   damageOrigins: z.array(z.enum(DamageOrigin)).optional(), foeKind: z.enum(UnitKind).optional(),
   sourceKind: z.enum(UnitKind).optional(), sourceStanding: z.boolean().optional(),
   retaliationDamage: z.boolean().optional(),
+  rootActionOnly: z.boolean().optional(), excludeSpellRepeat: z.boolean().optional(),
   sourceHasStandingPet: z.boolean().optional(), sourceOwnedPetStatusKinds: z.array(ref).optional(),
   targetOwnerStatusKinds: z.array(ref).optional(), targetStatusFromSourceOwnerKinds: z.array(ref).optional(),
   targetHasSeal: z.boolean().optional(), targetEnemy: z.boolean().optional(),

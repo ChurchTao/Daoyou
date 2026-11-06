@@ -1,5 +1,6 @@
 import { createBattle } from '@daoyou/combat-core/session';
 import { SeededRng } from '@daoyou/combat-core/rng';
+import { BEAST_SKILLS } from '@daoyou/game-content/beasts';
 import type { Command, CreateBattleInput, LineupUnit, StatusDef } from '@daoyou/combat-core/types';
 import { XIAOYUE_V6_DEFINITION, XIAOYUE_SKILL_ID } from '@daoyou/game-content/sects/xiaoyue';
 import { COMBAT_V6_CHARACTER_BUILD_VERSIONS as versions } from '@daoyou/game-domain/combat';
@@ -11,8 +12,13 @@ import { compileSectDefinitionV6 } from './compiler.js';
 const definition = structuredClone(XIAOYUE_V6_DEFINITION);
 for (const path of definition.paths) path.requiresConnectedNodes = false;
 const lionSoul = 'xiaoyue.status.lion_soul';
+const partnerMark = 'xiaoyue.status.best_partner_mark';
+const partnerPet = 'xiaoyue.status.best_partner_pet';
+const groupSpell = 'beast.thunderstorm';
+const spellRepeat = 'beast.spell-combo';
+const fixedAttack = 'beast.wind-strike';
 
-function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = []) {
+function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = true, extraStatuses: StatusDef[] = [], petSpellHitChance?: () => number) {
   const progress = createEmptySectCombatProgressV6('xiaoyue', pathId,
     Object.fromEntries(definition.methods.map(method => [method.id, 180])));
   progress.meridianDepth = 7;
@@ -27,7 +33,9 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
       skillLevels: content.skillLevels, skillOverrides: content.skillOverrides },
     { id: 'ally', name: '队友', side: 0, kind: 'player', attrs: { hp: 10000, maxHp: 10000, speed: 100 } },
     { id: 'ownPet', name: '本宠', side: 0, kind: 'pet', ownerId: 's', benched: !withPet,
-      attrs: { hp: 10000, maxHp: 10000, speed: 500, physicalAtk: 500, physicalDef: 100, magicDef: 100 } },
+      ...(petSpellHitChance ? { level: 180, skills: [groupSpell, fixedAttack], passives: [spellRepeat] } : {}),
+      attrs: { hp: 10000, maxHp: 10000, speed: 500, physicalAtk: 500, physicalDef: 100, magicDef: 100,
+        ...(petSpellHitChance ? { mp: 1000, maxMp: 1000, magicAtk: 500 } : {}) } },
     { id: 'reserve', name: '替补', side: 0, kind: 'pet', ownerId: 's', benched: true,
       attrs: { hp: 10000, maxHp: 10000, speed: 450, physicalAtk: 500, physicalDef: 100, magicDef: 100 } },
     { id: 'allyPet', name: '队友宠', side: 0, kind: 'pet', ownerId: 'ally',
@@ -46,9 +54,12 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
     versions,
     ruleset: { ...createDaoyouRuleset({ formulas: {
       physicalHitChance: () => 1, sealHitChance: () => 1,
+      ...(petSpellHitChance ? { spellHitChance: petSpellHitChance } : {}),
       fluctuationMin: 1, fluctuationMax: 1, physicalFluctuationMin: 1, physicalFluctuationMax: 1,
     } }), deferredPlayerCommands: true },
-    skills: content.skills,
+    skills: petSpellHitChance ? [...content.skills, ...BEAST_SKILLS.filter(skill =>
+      [groupSpell, fixedAttack, spellRepeat].includes(skill.id)).map(skill =>
+      skill.id === spellRepeat ? { ...skill, innate: { spellRepeat: { chance: 1, factor: 0.5 } } } : skill)] : content.skills,
     statusDefs: [...content.statusDefs, ...extraStatuses],
     units,
   };
@@ -56,6 +67,7 @@ function setup(pathId = 'xiaoyue.path.bond', nodes: string[] = [], withPet = tru
 }
 
 type Battle = ReturnType<typeof setup>;
+const setupSpellPet = (nodes: string[] = [], spellHitChance = () => 1) => setup('xiaoyue.path.bond', nodes, true, [], spellHitChance);
 const cast = (skillId: string, targets = ['t0']): Command => ({ type: 'skill', skillId, targets });
 function round(battle: Battle, commands: Record<string, Command> = {}) {
   for (const unit of battle.state.units) {
@@ -64,7 +76,9 @@ function round(battle: Battle, commands: Record<string, Command> = {}) {
   }
   battle.lockAndResolve();
 }
-const hits = (battle: Battle, sourceId: string) => battle.log().filter(event => event.type === 'damage' && event.sourceId === sourceId);
+const hits = (battle: Battle, sourceId: string) => battle.log()
+  .filter(event => event.type === 'damage')
+  .filter(event => event.sourceId === sourceId);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -95,6 +109,36 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(battle.unit('ownPet').flags.benched).toBe(true);
     expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
     expect(battle.unit('reserve').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
+  it('狮魂只增强群法的首个命中，不强化其他目标或法连', () => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
+    const baseline = setupSpellPet();
+    const enhanced = setupSpellPet();
+    enhanced.applyStatus('ownPet', lionSoul, 99, 's');
+    for (const battle of [baseline, enhanced]) round(battle, { ownPet: cast(groupSpell) });
+
+    const baselineHits = hits(baseline, 'ownPet');
+    expect(baselineHits.map(hit => hit.targetId)).toEqual(['t0', 'guard', 'enemyPet', 't0', 'guard', 'enemyPet']);
+    expect(hits(enhanced, 'ownPet').map(hit => [hit.targetId, hit.amount])).toEqual(
+      baselineHits.map((hit, index) => [hit.targetId, index === 0 ? Math.floor(hit.amount * 1.08) : hit.amount]),
+    );
+    expect(enhanced.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
+  it('直接固定伤害和原施法全部落空后的法连不消耗狮魂', () => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
+    let spellRolls = 0;
+    const battle = setupSpellPet([], () => ++spellRolls > 3 ? 1 : 0);
+    battle.applyStatus('ownPet', lionSoul, 99, 's');
+    round(battle, { ownPet: cast(fixedAttack) });
+    expect(hits(battle, 'ownPet').map(hit => hit.kind)).toEqual(['fixed']);
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+
+    round(battle, { ownPet: cast(groupSpell) });
+    expect(spellRolls).toBe(6);
+    expect(hits(battle, 'ownPet').map(hit => hit.kind)).toEqual(['fixed', 'spell', 'spell', 'spell']);
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
   });
 
   it('图腾只在狮魂实际赋予原本宠时建立主人与灵兽的同契标记', () => {
@@ -150,6 +194,47 @@ describe('啸岳岭同契与真实灵兽', () => {
     expect(battle.log().filter(event => event.type === 'protectTrigger')).toHaveLength(0);
   });
 
+  it('最佳搭档只强化群法中命中的标记目标，不强化主目标或法连', () => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
+    const baseline = setupSpellPet(['7.2']);
+    const enhanced = setupSpellPet(['7.2']);
+    for (const [battle, markTarget] of [[baseline, 'guardPet'], [enhanced, 'guard']] as const) {
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
+      battle.unit('s').cooldowns![XIAOYUE_SKILL_ID.BestPartners] = 0;
+      round(battle, { s: cast(XIAOYUE_SKILL_ID.BestPartners, [markTarget]), ownPet: cast(groupSpell) });
+    }
+    const baselineHits = hits(baseline, 'ownPet');
+    expect(baselineHits.map(hit => hit.targetId)).toEqual(['t0', 'guard', 'enemyPet', 't0', 'guard', 'enemyPet']);
+    expect(hits(enhanced, 'ownPet').map(hit => [hit.targetId, hit.amount])).toEqual(
+      baselineHits.map((hit, index) => [hit.targetId, index === 1 ? Math.floor(hit.amount * 1.2) : hit.amount]),
+    );
+  });
+
+  it.each([
+    ['物理', { type: 'attack', target: 't0' }, 1],
+    ['法术', cast(groupSpell), 5],
+  ] as const)('本宠以%s击倒最佳搭档标记目标后，旧狮魂已消耗且新狮魂留到下一次行动', (_kind, command, expectedHits) => {
+    vi.spyOn(SeededRng.prototype, 'chance').mockImplementation(probability => probability >= 1);
+    const battle = setupSpellPet(['7.2']);
+    battle.applyStatus('t0', partnerMark, 2, 's');
+    battle.applyStatus('ownPet', partnerPet, 2, 's');
+    battle.applyStatus('ownPet', lionSoul, 99, 's');
+    battle.unit('t0').attrs.hp = 1;
+    const logStart = battle.log().length;
+    round(battle, { ownPet: command });
+
+    expect(battle.unit('t0').flags.downed).toBe(true);
+    expect(hits(battle, 'ownPet')).toHaveLength(expectedHits);
+    const events = battle.log().slice(logStart);
+    const soulEvents = events.filter(event => 'statusId' in event && event.statusId === lionSoul);
+    expect(soulEvents.map(event => event.type)).toEqual(['statusRemoved', 'statusApplied']);
+    expect(events.indexOf(soulEvents[1])).toBeGreaterThan(events.findLastIndex(event => event.type === 'damage' && event.sourceId === 'ownPet'));
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(true);
+
+    round(battle, { ownPet: { type: 'attack', target: 'guard' } });
+    expect(battle.unit('ownPet').statuses.some(status => status.id === lionSoul)).toBe(false);
+  });
+
   it('最佳搭档在无本宠时不可施放；出手前本宠倒地不扣 500 法力', () => {
     const noPet = setup('xiaoyue.path.bond', ['7.2'], false);
     round(noPet, { s: cast(XIAOYUE_SKILL_ID.Transform, ['s']) });
@@ -174,8 +259,8 @@ describe('啸岳岭同契与真实灵兽', () => {
 
   it('最佳搭档的旧目标标记不能让换入灵兽领取狮魂', () => {
     const battle = setup('xiaoyue.path.bond', ['7.2']);
-    battle.applyStatus('t0', 'xiaoyue.status.best_partner_mark', 2, 's');
-    battle.applyStatus('ownPet', 'xiaoyue.status.best_partner_pet', 2, 's');
+    battle.applyStatus('t0', partnerMark, 2, 's');
+    battle.applyStatus('ownPet', partnerPet, 2, 's');
     battle.unit('ownPet').flags.benched = true;
     battle.unit('ownPet').statuses = [];
     battle.unit('reserve').flags.benched = false;

@@ -720,6 +720,12 @@
         "retaliationDamage": {
           "type": "boolean"
         },
+        "rootActionOnly": {
+          "type": "boolean"
+        },
+        "excludeSpellRepeat": {
+          "type": "boolean"
+        },
         "sourceHasStandingPet": {
           "type": "boolean"
         },

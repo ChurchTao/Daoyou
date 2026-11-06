@@ -1,12 +1,12 @@
 {
   "$schema": "./xiaoyue-paths.schema.json",
   "formatVersion": 1,
-  "contentRevision": 2,
+  "contentRevision": 3,
   "passives": [
     {
       "id": "xiaoyue.passive.bond.foundation",
       "name": "狮魂同契",
-      "description": "你用狮搏击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得[[xiaoyue.status.lion_soul]]。",
+      "description": "你用狮搏或最佳搭档击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得[[xiaoyue.status.lion_soul]]。灵兽用最佳搭档接力击倒标记目标时，也会在本次行动结束后获得狮魂。",
       "hooks": [
         {
           "on": "onDeath",
@@ -36,7 +36,19 @@
           "effects": [
             {
               "type": "modifyStrike",
-              "factor": "1+0.08+0.02*known.xiaoyue.passive.bond.1.1"
+              "factor": "1+0.08+0.02*known.xiaoyue.passive.bond.1.1",
+              "when": {
+                "requireKind": "physical"
+              }
+            },
+            {
+              "type": "modifyStrike",
+              "factor": "1+0.08+0.02*known.xiaoyue.passive.bond.1.1",
+              "when": {
+                "requireKind": "spell",
+                "rootActionOnly": true,
+                "excludeSpellRepeat": true
+              }
             }
           ],
           "sourceIsOwnedPet": true,
@@ -47,7 +59,6 @@
             "damageOrigins": [
               "action-direct"
             ],
-            "requireKind": "physical",
             "targetSlot": "normal",
             "sourceStanding": true
           }
@@ -59,7 +70,21 @@
               "type": "removeStatus",
               "statusIds": [
                 "xiaoyue.status.lion_soul"
-              ]
+              ],
+              "when": {
+                "requireKind": "physical"
+              }
+            },
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.lion_soul"
+              ],
+              "when": {
+                "requireKind": "spell",
+                "rootActionOnly": true,
+                "excludeSpellRepeat": true
+              }
             }
           ],
           "sourceIsOwnedPet": true,
@@ -72,7 +97,6 @@
             "damageOrigins": [
               "action-direct"
             ],
-            "requireKind": "physical",
             "targetSlot": "normal",
             "sourceStanding": true
           }
@@ -81,13 +105,26 @@
           "on": "onDeath",
           "effects": [
             {
-              "type": "applyStatus",
-              "statusId": "xiaoyue.status.lion_soul",
-              "duration": 99
+              "type": "modifyFact",
+              "key": "xiaoyue_lion_soul_pending",
+              "value": 1,
+              "when": {
+                "requireKind": "physical"
+              }
+            },
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_lion_soul_pending",
+              "value": 1,
+              "when": {
+                "requireKind": "spell",
+                "rootActionOnly": true,
+                "excludeSpellRepeat": true
+              }
             }
           ],
           "sourceIsOwnedPet": true,
-          "aim": "ownedPet",
+          "aim": "self",
           "when": {
             "targetOwnedStatus": {
               "kind": "xiaoyue.status.best_partner_mark"
@@ -95,7 +132,36 @@
             "sourceStanding": true,
             "sourceOwnedPetStatusKinds": [
               "xiaoyue.status.best_partner_pet"
-            ]
+            ],
+            "damageOrigins": [
+              "action-direct"
+            ],
+            "targetSlot": "normal"
+          }
+        },
+        {
+          "on": "afterActionWindow",
+          "effects": [
+            {
+              "type": "modifyFact",
+              "key": "xiaoyue_lion_soul_pending",
+              "value": 0
+            },
+            {
+              "type": "applyStatus",
+              "statusId": "xiaoyue.status.lion_soul",
+              "duration": 99,
+              "when": {
+                "expression": "1-combatEnded",
+                "sourceStanding": true,
+                "sourceHasStandingPet": true
+              }
+            }
+          ],
+          "sourceIsOwnedPet": true,
+          "aim": "hookSource",
+          "when": {
+            "expression": "fact.xiaoyue_lion_soul_pending>0"
           }
         },
         {
@@ -802,7 +868,7 @@
     {
       "id": "xiaoyue.passive.bond.1.1",
       "name": "狮王",
-      "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次直接物理攻击的首击增伤由8%提高到10%。"
+      "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次主动直接物理或法术攻击命中的第一击增伤由8%提高到10%。"
     },
     {
       "id": "xiaoyue.passive.bond.1.2",
@@ -1513,7 +1579,7 @@
     {
       "id": "xiaoyue.passive.bond.7.2",
       "name": "最佳搭档",
-      "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若对同一目标使用直接物理攻击，首击伤害提高20%。",
+      "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若用直接物理或法术攻击命中同一目标，对该目标的第一击伤害提高20%。",
       "modifiers": [
         {
           "ownedPetAura": true,
@@ -1558,7 +1624,19 @@
           "effects": [
             {
               "type": "modifyStrike",
-              "factor": 1.2
+              "factor": 1.2,
+              "when": {
+                "requireKind": "physical"
+              }
+            },
+            {
+              "type": "modifyStrike",
+              "factor": 1.2,
+              "when": {
+                "requireKind": "spell",
+                "rootActionOnly": true,
+                "excludeSpellRepeat": true
+              }
             }
           ],
           "sourceIsOwnedPet": true,
@@ -1566,7 +1644,6 @@
             "damageOrigins": [
               "action-direct"
             ],
-            "requireKind": "physical",
             "targetSlot": "normal",
             "targetOwnedStatus": {
               "kind": "xiaoyue.status.best_partner_mark"
@@ -1585,7 +1662,22 @@
               "statusIds": [
                 "xiaoyue.status.best_partner_mark"
               ],
-              "ownedOnly": true
+              "ownedOnly": true,
+              "when": {
+                "requireKind": "physical"
+              }
+            },
+            {
+              "type": "removeStatus",
+              "statusIds": [
+                "xiaoyue.status.best_partner_mark"
+              ],
+              "ownedOnly": true,
+              "when": {
+                "requireKind": "spell",
+                "rootActionOnly": true,
+                "excludeSpellRepeat": true
+              }
             }
           ],
           "sourceIsOwnedPet": true,
@@ -1594,7 +1686,6 @@
             "damageOrigins": [
               "action-direct"
             ],
-            "requireKind": "physical",
             "targetSlot": "normal",
             "targetOwnedStatus": {
               "kind": "xiaoyue.status.best_partner_mark"
@@ -1877,7 +1968,7 @@
     {
       "id": "xiaoyue.path.bond",
       "name": "灵兽同契",
-      "description": "与自己的出战灵兽并肩作战。你用狮搏击倒非灵兽敌人时，仍在场且存活的灵兽会获得狮魂，下一次直接物理攻击的首击伤害提高8%。",
+      "description": "与自己的出战灵兽并肩作战。你用狮搏击倒非灵兽敌人时，仍在场且存活的灵兽会获得狮魂，使下一次主动直接物理或法术攻击命中的第一击伤害提高8%。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "xiaoyue.passive.bond.foundation"
@@ -1889,7 +1980,7 @@
         {
           "id": "xiaoyue.node.bond.1.1",
           "name": "狮王",
-          "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次直接物理攻击的首击增伤由8%提高到10%。",
+          "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次主动直接物理或法术攻击命中的第一击增伤由8%提高到10%。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -2080,7 +2171,7 @@
         {
           "id": "xiaoyue.node.bond.7.2",
           "name": "最佳搭档",
-          "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若对同一目标使用直接物理攻击，首击伤害提高20%。",
+          "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若用直接物理或法术攻击命中同一目标，对该目标的第一击伤害提高20%。",
           "layer": 7,
           "slot": 2,
           "grantSkills": [
