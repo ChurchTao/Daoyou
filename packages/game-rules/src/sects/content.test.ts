@@ -101,6 +101,15 @@ describe("红尘剑宗 v6 内容与编译", () => {
     expect(result.projection.skillLevels[LINGXIAO_SKILL_ID.Confuse]).toBe(180)
   })
 
+  it("心法按等级计算概率加成时保留小数，点数仍向下取整", () => {
+    const definition = cloneDefinition()
+    definition.methods[0].panel = { attr: "critRate", mode: "add", value: 0.002 }
+    const result = compile(progress(LINGXIAO_PATH_ID.Zhanchen, [], 17), definition)
+    if (!result.ok) throw new Error("心法编译失败")
+    expect(result.projection.panel).toContainEqual({ attr: "critRate", mode: "add", value: 0.034 })
+    expect(result.projection.panel).toContainEqual({ attr: "hit", mode: "add", value: 8 })
+  })
+
   it("锁定六个基础主动技能的门槛、成本、段数、目标数和状态机制", () => {
     const result = compile(progress())
     expect(result.ok).toBe(true)

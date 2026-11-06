@@ -2,6 +2,7 @@ import { withManualAttributes, compileCharacterManualsV1 } from '../../manuals/c
 import { CHARACTER_MANUALS_V1 } from '@daoyou/game-content/manuals';
 import { resolveCombatCapabilitiesV1 } from '../../manuals/capabilities.js';
 import { classifyManualStatuses } from '../../manuals/later-mechanisms.js';
+import { floorPanelValue } from '../panel-contribution.js';
 import type { CombatV6VersionStamp } from '@daoyou/combat-core/types';
 import type { CombatV6ProjectionDiagnostic, CombatV6ProjectionResult, CharacterCombatInput } from "@daoyou/game-domain/combat"
 
@@ -32,12 +33,10 @@ export function composeCharacterManuals(
   ]
   if (diagnostics.some((item) => item.severity === "error")) return { ok: false, diagnostics, versions }
   const attrs = { ...base.unit.attrs }
-  for (const contribution of manuals.projection.panel) {
-    attrs[contribution.attr] = contribution.mode === "add"
-      ? (contribution.attr === 'sealResist'
-        ? (attrs[contribution.attr] ?? 0) + contribution.value
-        : Math.floor((attrs[contribution.attr] ?? 0) + contribution.value))
-      : Math.floor((attrs[contribution.attr] ?? 0) * contribution.value)
+  for (const { attr, mode, value } of manuals.projection.panel) {
+    const current = attrs[attr] ?? 0
+    const next = mode === "add" ? current + value : current * value
+    attrs[attr] = attr === "sealResist" && mode === "add" ? next : floorPanelValue(attr, next)
   }
   const passiveIds = new Set(capabilities.passiveIds)
   return {

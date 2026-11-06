@@ -177,6 +177,7 @@ export type CombatV6VersionStamp = {
     | 'character_build_v3'
     | 'character_build_v4'
     | 'character_build_v5'
+    | 'character_build_v6'
     | 'training_encounter_v1'
     | 'wild_encounter_v1';
 };

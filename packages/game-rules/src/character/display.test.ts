@@ -4,6 +4,7 @@ import {
 } from '@daoyou/game-content/manuals';
 import { DAO_EQUIPMENT_GENERATOR_VERSION } from '@daoyou/game-domain/equipment';
 import { DAO_EQUIPMENT_TEMPLATE_ID } from '@daoyou/game-content/equipment/base';
+import { generateForgedEquipment } from '../equipment/forging.js';
 import { generateDaoEquipmentV1 } from '../equipment/generator.js';
 import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
@@ -70,6 +71,45 @@ describe('V6 character panel authority', () => {
       spellCritRate: 0.05,
       physicalFuryRate: 0,
     });
+  });
+  it.each([
+    { essences: [], critRate: 0.05, spellCritRate: 0.05, physicalFuryRate: 0 },
+    { essences: ['cangfeng'], critRate: 0.08, spellCritRate: 0.05, physicalFuryRate: 0 },
+    { essences: ['kuanggu'], critRate: 0.05, spellCritRate: 0.05, physicalFuryRate: 0.03 },
+    { essences: ['cangfeng', 'kuanggu'], critRate: 0.08, spellCritRate: 0.05, physicalFuryRate: 0.03 },
+    { essences: ['ningshen'], critRate: 0.05, spellCritRate: 0.08, physicalFuryRate: 0 },
+  ])('keeps fractional combat rates with weapon essences $essences', ({ essences, ...expected }) => {
+    const generated = generateForgedEquipment({
+      id: 'rate-weapon',
+      createdAt: '2026-09-22',
+      seed: 17,
+      weaponType: 'axe',
+      templateId: DAO_EQUIPMENT_TEMPLATE_ID.Weapon,
+      equipmentLevel: 90,
+      boosts: { ore: 0, essence: 0, attributes: 0 },
+    });
+    if (!generated.ok) throw new Error('装备生成失败');
+    const cultivator = { ...player, id: player.id!, realm: '化神' as const };
+    const personal: CharacterDisplayBuild = {
+      equipment: {
+        weapon: {
+          ...generated.instance,
+          essenceIds: essences.map((key) => `dao_equipment.essence.${key}`),
+          artId: undefined,
+        },
+      },
+      manuals: build.manuals,
+    };
+    expect(projectCharacterDisplay(cultivator, personal)).toMatchObject(expected);
+    const battle = projectCharacterToCombatV6({
+      ...personal,
+      cultivator,
+      side: 0,
+      slot: 0,
+      resourcePolicy: 'full',
+    });
+    if (!battle.ok) throw new Error('战斗投影失败');
+    expect(battle.unit.attrs).toMatchObject(expected);
   });
   it('matches the battle entry panel with a sect build', () => {
     const battle = projectCharacterToCombatV6({

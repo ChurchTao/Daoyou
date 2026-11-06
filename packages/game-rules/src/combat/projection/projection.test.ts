@@ -325,7 +325,7 @@ describe("current body cultivation projection", () => {
       spellCultivate: 14,
       resistSpellCultivate: 16,
     })
-    expect(result.versions.projectionVersion).toBe("character_build_v5")
+    expect(result.versions.projectionVersion).toBe("character_build_v6")
     expect(condition).toEqual(before)
   })
 

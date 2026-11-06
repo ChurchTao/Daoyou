@@ -1,4 +1,5 @@
 import { connectedMeridianSelection, normalizeMeridianSelection } from './meridian-selection.js';
+import { floorPanelValue } from '../combat/panel-contribution.js';
 import { EffectType } from '@daoyou/combat-core/enums';
 import { type SkillDef, type SkillEffect } from '@daoyou/combat-core/types';
 import type {
@@ -559,7 +560,7 @@ export function compileSectDefinitionV6(input: CompileSectCombatV6Input): Compil
         ...input.definition.methods.flatMap((method) => {
           if (!method.panel) return []
           const level = methodLevels[method.id] ?? 0
-          return [{ ...method.panel, value: Math.floor(method.panel.value * level) }]
+          return [{ ...method.panel, value: floorPanelValue(method.panel.attr, method.panel.value * level) }]
         }),
         ...(activePath?.panel ?? []).map((entry) => ({ ...entry })),
         ...selectedNodes.flatMap((node) => node.panel ?? []).map((entry) => ({ ...entry })),

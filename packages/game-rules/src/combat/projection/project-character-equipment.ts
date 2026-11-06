@@ -10,6 +10,7 @@ import { daoFormationInscriptionOf, DAO_FORMATION_INSCRIPTION_ID } from '@daoyou
 import { daoFormationPanel } from '../../equipment/inscriptions.js';
 import { type DaoEquipmentInstanceV1 } from '@daoyou/game-domain/equipment';
 import { compileDaoEquipmentSpecialLoadoutV1 } from '../../equipment/compiler.js';
+import { floorPanelValue } from '../panel-contribution.js';
 import { compileBodyCultivationV6 } from "./body-cultivation-v6.js"
 import { compileCharacterPanelV1 } from "./character-panel-v1.js"
 import { projectCultivatorBaseToCombatV6 } from "./project-cultivator-base.js"
@@ -36,12 +37,10 @@ function hasErrors(diagnostics: CombatV6ProjectionDiagnostic[]): boolean {
 }
 
 function applyContribution(attrs: LineupUnit["attrs"], contribution: CombatV6PanelContribution, facts: Record<string, number> = {}): void {
-  const values = attrs as Record<string, number | undefined>
-  const current = values[contribution.attr] ?? 0
-  const amount = contribution.value * (contribution.sourceFact ? facts[contribution.sourceFact] ?? 0 : 1)
-  values[contribution.attr] = contribution.mode === "add"
-    ? Math.floor(current + amount)
-    : Math.floor(current * amount)
+  const { attr, mode, sourceFact, value } = contribution
+  const current = attrs[attr] ?? 0
+  const amount = value * (sourceFact ? facts[sourceFact] ?? 0 : 1)
+  attrs[attr] = floorPanelValue(attr, mode === "add" ? current + amount : current * amount)
 }
 
 function panelAttrs(attributes: Attributes): LineupUnit["attrs"] {
