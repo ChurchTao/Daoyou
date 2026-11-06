@@ -47,7 +47,7 @@
         }
       ],
       "requireHpAboveRatio": 0.5,
-      "description": "凝剑断尘，剑势连斩。\n对一名敌人造成三段物理伤害，后段更强。随后进入[[lingxiao.status.recovery]]。",
+      "description": "凝剑断尘，剑势连斩。\n当前气血须高于一半，消耗最大气血的10%。对一名敌人造成三段物理伤害，后段更强。出手后进入[[lingxiao.status.recovery]]，下回合休息。",
       "recoveryStatusId": "lingxiao.status.recovery"
     },
     {
@@ -104,7 +104,7 @@
       ],
       "requireHpAboveRatio": 0.1,
       "forbidRevivedRound": true,
-      "description": "以气血换剑势，一剑临渊。\n消耗气血，对多名敌人造成物理伤害，然后进入[[lingxiao.status.recovery]]。复起的当回合不能施展。"
+      "description": "以气血换剑势，一剑临渊。\n当前气血须高于最大气血的10%，消耗最大气血的10%，对至多三名敌人造成物理伤害。出手后进入[[lingxiao.status.recovery]]，下回合休息。复活当回合无法施放。"
     },
     {
       "id": "lingxiao.skill.sword_aura",
@@ -221,7 +221,7 @@
           "self": true
         }
       ],
-      "description": "追击之势，剑及灵兽。\n获得[[lingxiao.status.pursuit]]。下一次断尘攻击人物时，对其在场召唤灵造成同等物理伤害。主目标被击倒时，追击状态保留。冷却6回合。",
+      "description": "追击之势，剑及灵兽。\n获得[[lingxiao.status.pursuit]]，使断尘击中敌方人物时也伤及其出战灵兽。断尘成功施放后消耗此状态，若击倒目标则保留。冷却6回合。",
       "modifiers": [
         {
           "when": {
@@ -373,7 +373,7 @@
     {
       "id": "lingxiao.status.waiting",
       "name": "惊雷",
-      "description": "物理攻击和命中提高心法等级，速度提高心法等级×2，并自动攻击蓄势时选定的敌人。攻击后恢复自由行动。",
+      "description": "由惊雷施放后的藏锋转化而来。物理攻击和命中各增加惊雷的心法等级，速度增加该等级的两倍。自动攻击蓄势时选定的敌人。",
       "kind": "lingxiao.waiting",
       "category": "buff",
       "commandPolicy": "storedAttack",
@@ -398,7 +398,7 @@
     {
       "id": "lingxiao.status.clarity",
       "name": "剑心通明",
-      "description": "法术防御提高心法等级，封印抵抗提高心法等级的一半。",
+      "description": "法术防御增加剑心通明的心法等级，封印抵抗增加该等级的一半，向下取整。",
       "kind": "lingxiao.clarity",
       "category": "buff",
       "attrMods": {
@@ -430,7 +430,7 @@
     {
       "id": "lingxiao.status.preparing",
       "name": "藏锋",
-      "description": "本回合不攻击。回合结束时转为惊雷。",
+      "description": "施放惊雷后进入藏锋，本回合不攻击。回合结束时转为惊雷，下回合自动攻击蓄势时选定的敌人。",
       "kind": "lingxiao.preparing",
       "category": "buff",
       "expireSameRound": true,
@@ -443,7 +443,7 @@
     },
     {
       "id": "lingxiao.status.shadow_preparing",
-      "description": "惊鸿施放后的起势记录。本回合结束时转为惊鸿，为下一回合提供15%的速度加成。",
+      "description": "施放惊鸿掠影后进入此状态，回合结束时转为惊鸿，下回合速度提高15%。",
       "name": "惊鸿起势",
       "kind": "lingxiao.shadow_preparing",
       "category": "buff",
@@ -458,7 +458,7 @@
     {
       "id": "lingxiao.status.shadow",
       "name": "惊鸿",
-      "description": "速度提高15%。",
+      "description": "施放惊鸿掠影后于下回合获得，速度提高15%。",
       "kind": "lingxiao.shadow",
       "category": "buff",
       "speedMod": "target.speed * 0.15",
@@ -466,7 +466,7 @@
     },
     {
       "id": "lingxiao.status.sword_aura_ganjiang",
-      "description": "破极剑意的强化形态，物理攻击忽视目标15%的物理防御。",
+      "description": "习得「干将」后，破极剑意改为忽视目标15%的物理防御。",
       "name": "破极剑意",
       "kind": "lingxiao.sword_aura",
       "category": "buff",
@@ -476,7 +476,7 @@
     },
     {
       "id": "lingxiao.status.clarity_anshen",
-      "description": "剑心通明的强化形态：法防增加施放心法等级，封印抵抗增加心法等级的一半并向下取整，受到的法术伤害降低50%。",
+      "description": "习得「安神」后施放剑心通明获得。法术防御增加剑心通明的心法等级，封印抵抗增加该等级的一半并向下取整，受到的法术伤害降低50%。",
       "name": "剑心通明",
       "kind": "lingxiao.clarity",
       "category": "buff",
@@ -520,7 +520,7 @@
     {
       "id": "lingxiao.status.pursuit",
       "name": "乘胜追击",
-      "description": "下一次断尘若攻击人物，会对其在场召唤灵造成同等伤害。主目标被击倒时，这个状态保留。",
+      "description": "由同名技能施加。断尘对敌方人物造成物理伤害时，也会对其出战灵兽造成同等伤害。断尘成功施放后消耗此状态，若击倒目标则保留。",
       "kind": "lingxiao.pursuit",
       "category": "buff",
       "untilBattleEnd": true,

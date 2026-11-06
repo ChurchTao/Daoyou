@@ -6,7 +6,7 @@
     {
       "id": "bailu.passive.rectification",
       "name": "正名立论",
-      "description": "主心法100级后，将武器伤害贡献的12%折为封印命中等级，并允许本宗常规言令封印鬼魂。",
+      "description": "《白鹿正学》达到100级后，额外获得相当于武器伤害值12%的封印命中值。白鹿言令也可以封印拥有灵魂体或高级灵魂体的灵兽。",
       "modifiers": [
         {
           "when": {
@@ -33,7 +33,7 @@
     {
       "id": "bailu.passive.composition",
       "name": "文章有势",
-      "description": "基础破邪额外一目标，封印命中乘0.85；第二目标伤害与主目标相同。对灵兽的破邪及三叠仙音伤害+30%，余慑替换破邪加成为45%。",
+      "description": "破邪！额外攻击一人，第二名目标受到的伤害和主目标使用相同的基础伤害。封印命中率变为原来的85%。破邪！和器诀三叠仙音对灵兽的伤害提高30%。选择余慑后，破邪！对你曾用此招攻击过的灵兽增伤45%。",
       "modifiers": [
         {
           "when": {
@@ -92,7 +92,7 @@
     {
       "id": "bailu.passive.zhenbi",
       "name": "振笔",
-      "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+      "description": "诛邪！攻击主目标的法术暴击率提高15个百分点。《春秋笔法》达到150级后，每次施放有30%概率多攻击两人。",
       "modifiers": [
         {
           "when": {
@@ -108,7 +108,7 @@
     {
       "id": "bailu.passive.qiongjie",
       "name": "穷诘",
-      "description": "本人禁言或折辩成功后，分别使其额外承受法术或物理伤害3%，随同该封印一同消失。",
+      "description": "禁法！等施加的[[bailu.status.law]]还会使目标受到的法术伤害提高3%。失魂！等施加的[[bailu.status.soul]]还会使目标受到的物理伤害提高3%。增伤随对应封印解除。",
       "modifiers": [
         {
           "when": {
@@ -124,7 +124,7 @@
     {
       "id": "bailu.passive.yanci",
       "name": "严辞",
-      "description": "定身成功时，使目标当回合物理、法术承伤提高15%。",
+      "description": "定身！封印成功时，附加[[bailu.status.stern]]，使目标本回合受到的物理伤害和法术伤害提高15%。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -151,7 +151,7 @@
     {
       "id": "bailu.passive.yuyin",
       "name": "余音",
-      "description": "入梦改为单次气血伤害超过30点才醒来。",
+      "description": "入梦！施加的[[bailu.status.sleep_deep]]在目标单次受到超过30点气血伤害时才会解除。",
       "modifiers": [
         {
           "when": {
@@ -166,7 +166,7 @@
     {
       "id": "bailu.passive.chiheng",
       "name": "持衡",
-      "description": "入梦的封印命中变为原来的95%，其他常规言令的封印命中变为原来的105%。",
+      "description": "入梦！的封印命中率变为原来的95%，其他白鹿言令的封印命中率变为原来的105%。",
       "modifiers": [
         {
           "when": {
@@ -195,7 +195,7 @@
     {
       "id": "bailu.passive.xiansheng",
       "name": "先声",
-      "description": "本场首次常规封印，目标等级不高于自身且没有抗封技能时必中。",
+      "description": "本场第一次用白鹿言令封印时，若目标等级不高于你且没有抵抗封印的技能，这次封印必中。",
       "modifiers": [
         {
           "when": {
@@ -247,7 +247,7 @@
     {
       "id": "bailu.passive.shouzhi",
       "name": "守志",
-      "description": "回合开始时，若站立、气血不足30%、至少有50法力且未被封法，有35%概率自动施放凝神，消耗50法力。",
+      "description": "回合开始时，若你仍存活、气血不足30%、有至少50法力且能施放法术，有35%概率消耗50法力，自动施放凝神！并获得[[bailu.status.focus]]。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -270,7 +270,7 @@
     {
       "id": "bailu.passive.lore_revive",
       "name": "文脉不绝",
-      "description": "倒地当回合末仅判一次护命：基础20%，成功最多3次；先修20%上限伤势，再恢复20%上限气血。禁复活、已站立或战斗结束时失去本次机会。",
+      "description": "倒地的当回合结束时，有20%基础概率复起。成功后先修复相当于最大气血20%的伤势，再恢复最大气血20%的气血。基础上限为每场成功3次。若回合结束时已复起、被禁止复起，或战斗已结束，则不会触发。",
       "hooks": [
         {
           "on": "onDeath",
@@ -319,7 +319,7 @@
     {
       "id": "bailu.passive.bujuan",
       "name": "不倦",
-      "description": "授予文脉不绝，其基础概率乘1.15。",
+      "description": "获得文脉不绝，倒地的当回合结束时有23%概率复起，每场最多成功3次。成功后先修复相当于最大气血20%的伤势，再恢复最大气血20%的气血。",
       "modifiers": [
         {
           "sealChanceAdd": 0
@@ -329,7 +329,7 @@
     {
       "id": "bailu.passive.shenbian",
       "name": "审辨",
-      "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。",
+      "description": "开战时若你是队内唯一的白鹿弟子，本场第一次对敌方灵兽使用白鹿言令封印时，若因命中概率落空，会以原本命中率的一半再试一次。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -799,7 +799,7 @@
     {
       "id": "bailu.passive.xianying",
       "name": "贤影",
-      "description": "护身持续增加1回合。",
+      "description": "护身！获得的[[bailu.status.guard]]多持续1回合。",
       "modifiers": [
         {
           "statusDurationAdd": {
@@ -812,7 +812,7 @@
     {
       "id": "bailu.passive.jiejci",
       "name": "戒辞",
-      "description": "携带本人常规言令的敌玩家倒地，留下5回合戒辞；后续轮初未被封印时随机再受1回合禁言或折辩。",
+      "description": "被你用白鹿言令封印的敌方修士倒地时，会留下持续5回合的[[bailu.status.cage]]。后续回合开始时，若你仍存活且目标未被白鹿言令封印，会随机尝试施加1回合禁言或折辩。",
       "hooks": [
         {
           "on": "onDeath",
@@ -884,7 +884,7 @@
     {
       "id": "bailu.passive.wenping",
       "name": "文屏",
-      "description": "护身期间所受所有伤害降低20%，护身冷却改为8回合。",
+      "description": "护身！获得的[[bailu.status.guard]]持续期间，你受到的所有伤害降低20%。护身！的冷却改为8回合。",
       "modifiers": [
         {
           "when": {
@@ -899,7 +899,7 @@
     {
       "id": "bailu.passive.tuna",
       "name": "吐纳",
-      "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+      "description": "聚气！会额外消耗高于半血的那部分气血，每消耗4点额外恢复1点法力。复元！会额外恢复至多一半最大气血，每额外恢复4点消耗1点法力。",
       "hooks": [
         {
           "on": "afterAction",
@@ -958,7 +958,7 @@
     {
       "id": "bailu.passive.bianfeng",
       "name": "辩锋",
-      "description": "本轮护身免疫尚未消费时，乱神在同一次封印判定中兼带禁言、折辩的降防效果。",
+      "description": "若护身！获得的[[bailu.status.guard]]本回合还未触发，乱神！成功施加的[[bailu.status.confusion_full]]还会使目标的物理防御和法术防御各降低10%。",
       "modifiers": [
         {
           "when": {
@@ -973,7 +973,7 @@
     {
       "id": "bailu.passive.shouye",
       "name": "授业",
-      "description": "本人及在场灵兽站立时，每轮首次灵兽主动直接法术命中主目标，有20%概率以灵兽自身封印参数追加2回合敛锋。",
+      "description": "你和自己的出战灵兽都存活时，灵兽每回合首次主动施放法术并直接命中主目标，有20%概率尝试对该目标施加2回合[[bailu.status.restrain]]。封印能否成功取决于灵兽的封印命中。",
       "hooks": [
         {
           "on": "afterStrike",
@@ -1006,7 +1006,7 @@
     {
       "id": "bailu.passive.pozhi",
       "name": "破执",
-      "description": "每成功封印两次后，下次成功封印附加4回合笔削。只统计本人常规主动言令的实际成功。",
+      "description": "每用白鹿言令成功封印两次，第三次成功时给目标额外施加4回合[[bailu.status.armor]]，随后重新计数。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -1048,7 +1048,7 @@
     {
       "id": "bailu.passive.zhengsheng",
       "name": "正声",
-      "description": "贤影每轮实际拦截首次敌方攻击性行为后增加8战意。",
+      "description": "护身！获得的[[bailu.status.guard]]每回合挡下敌人的首次直接伤害或负面状态时，获得8点战意。",
       "hooks": [
         {
           "on": "onHostileActionIntercepted",
@@ -1070,7 +1070,7 @@
     {
       "id": "bailu.passive.bixue",
       "name": "笔削",
-      "description": "破甲首轮效果提高100%，之后每轮减少基础效果20%，不低于基础效果；破甲冷却5回合。",
+      "description": "破甲！使目标的物理防御和法术防御各降低10%，随后每回合依次改为9%、8%、7%，之后解除。破甲！的冷却改为5回合。",
       "modifiers": [
         {
           "sealChanceAdd": 0
@@ -1080,7 +1080,7 @@
     {
       "id": "bailu.passive.liyan",
       "name": "立言",
-      "description": "基础破邪法术暴击率提高3个百分点。",
+      "description": "破邪！的法术暴击率提高3个百分点。",
       "modifiers": [
         {
           "when": {
@@ -1095,7 +1095,7 @@
     {
       "id": "bailu.passive.cifeng",
       "name": "辞锋",
-      "description": "基础破邪主目标伤害提高10%。",
+      "description": "破邪！对主目标的伤害提高10%。",
       "modifiers": [
         {
           "when": {
@@ -1111,7 +1111,7 @@
     {
       "id": "bailu.passive.toubian",
       "name": "透辩",
-      "description": "破邪第二目标仅保留10%的法防贡献，相当于该次伤害忽略90%法防。",
+      "description": "破邪！攻击第二名目标时，忽略该目标90%的法术防御。",
       "modifiers": [
         {
           "when": {
@@ -1127,7 +1127,7 @@
     {
       "id": "bailu.passive.dinglun",
       "name": "定论",
-      "description": "入场唯一同门，本轮被本人法术攻击过的敌玩家倒地即留永久定论；每个已标玩家使本人对未标玩家法伤+7%；全部标记后破邪额外三人。",
+      "description": "开战时若你是队内唯一的白鹿弟子，本回合受过你法术攻击的敌方修士倒地时会留下[[bailu.status.verdict]]，持续整场战斗。每标记一名修士，你对未标记的敌方修士造成的法术伤害提高7%。标记所有敌方修士后，破邪！额外攻击三人。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1176,7 +1176,7 @@
     {
       "id": "bailu.passive.yushe",
       "name": "余慑",
-      "description": "被本人基础破邪攻击过的灵兽，之后破邪的悲恸加成由30%替换为45%。",
+      "description": "浩气文章原本使破邪！对灵兽增伤30%。选择余慑后，破邪！再次攻击你曾用此招攻击过的灵兽时，增伤提高到45%。",
       "modifiers": [
         {
           "when": {
@@ -1191,7 +1191,7 @@
     {
       "id": "bailu.passive.cangfeng",
       "name": "藏锋",
-      "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%。",
+      "description": "获得文脉不绝。倒地的当回合结束时有机会复起，每场最多成功3次。第1回合复起概率为36%，此后每回合降低2个百分点，最低20%。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1204,7 +1204,7 @@
     {
       "id": "bailu.passive.shoujie",
       "name": "守节",
-      "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%。",
+      "description": "获得文脉不绝。倒地的当回合结束时有23%概率复起，每场最多成功3次。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1217,7 +1217,7 @@
     {
       "id": "bailu.passive.buqu",
       "name": "不屈",
-      "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%。",
+      "description": "获得文脉不绝。倒地的当回合结束时有20%概率复起，每场最多成功6次，每次以此方式复起都会在本场增加40点法术攻击。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
       "modifiers": [
         {
           "when": {
@@ -1230,7 +1230,7 @@
     {
       "id": "bailu.passive.lianzhang",
       "name": "连章",
-      "description": "破邪施放五次后，下一次额外作用三名目标，随后重新累计。",
+      "description": "每施放五次破邪！，第六次额外攻击三人，随后重新计数。",
       "modifiers": [
         {
           "when": {
@@ -1265,7 +1265,7 @@
     {
       "id": "bailu.passive.wenshi",
       "name": "文势",
-      "description": "贤影期间法术伤害提高20%，所受所有伤害降低15%。",
+      "description": "护身！获得的[[bailu.status.guard]]持续期间，你造成的法术伤害提高20%，受到的所有伤害降低15%。",
       "modifiers": [
         {
           "when": {
@@ -1280,7 +1280,7 @@
     {
       "id": "bailu.passive.chengxi",
       "name": "乘隙",
-      "description": "对没有在场灵兽的玩家造成法术伤害提高12%。",
+      "description": "对没有灵兽在场的敌方修士造成的法术伤害提高12%。",
       "modifiers": [
         {
           "when": {
@@ -1295,7 +1295,7 @@
     {
       "id": "bailu.passive.yulun",
       "name": "余论",
-      "description": "本人击倒带本人朱批的敌玩家后留下3回合余论，每轮首次可被攻击时受本人一次追击。",
+      "description": "击倒带有你用点名！留下的[[bailu.status.mark]]的敌方修士时，将朱批换为3回合的[[bailu.status.echo]]。只要你仍存活，目标每回合首次可被攻击时受到你的一次法术追击。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1406,7 +1406,7 @@
     {
       "id": "bailu.passive.xuci",
       "name": "蓄辞",
-      "description": "成功施放凝神后，下一次破邪伤害提高25%。",
+      "description": "成功施放凝神！后获得[[bailu.status.charged]]，使下一次破邪！的伤害提高25%。",
       "hooks": [
         {
           "on": "afterAction",
@@ -1450,7 +1450,7 @@
     {
       "id": "bailu.passive.zhuxin",
       "name": "诛心",
-      "description": "三叠仙音攻击带封印的目标时伤害提高40%。",
+      "description": "器诀三叠仙音攻击处于封印等控制状态的目标时，伤害提高40%。",
       "modifiers": [
         {
           "when": {
@@ -1468,7 +1468,7 @@
     {
       "id": "bailu.passive.cuozhi",
       "name": "挫志",
-      "description": "本轮被本人法术实际命中过的敌单位倒地后，保留3回合物攻、法攻、物防、法防各降低12%的气势受挫。",
+      "description": "本回合被你的法术命中的敌人倒地时，会获得3回合[[bailu.status.weaken]]。物理攻击、法术攻击、物理防御和法术防御各降低12%。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1498,7 +1498,7 @@
     {
       "id": "bailu.path.edict",
       "name": "正言执律",
-      "description": "以言令制约敌人，与灵兽协作，护持队友行动空间。",
+      "description": "以白鹿言令封住敌人的法术或物理攻击，并用护身！每回合挡下敌方对你的首次直接伤害或负面状态。选择授业后，出战灵兽也有机会封住敌人的物理攻击。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "bailu.passive.rectification"
@@ -1512,7 +1512,7 @@
           "name": "振笔",
           "layer": 1,
           "slot": 1,
-          "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+          "description": "诛邪！攻击主目标的法术暴击率提高15个百分点。《春秋笔法》达到150级后，每次施放有30%概率多攻击两人。",
           "passives": [
             "bailu.passive.zhenbi"
           ]
@@ -1522,7 +1522,7 @@
           "name": "穷诘",
           "layer": 1,
           "slot": 2,
-          "description": "本人禁言或折辩成功后，分别使其额外承受法术或物理伤害3%，随同该封印一同消失。",
+          "description": "禁法！等施加的[[bailu.status.law]]还会使目标受到的法术伤害提高3%。失魂！等施加的[[bailu.status.soul]]还会使目标受到的物理伤害提高3%。增伤随对应封印解除。",
           "passives": [
             "bailu.passive.qiongjie"
           ]
@@ -1532,7 +1532,7 @@
           "name": "严辞",
           "layer": 1,
           "slot": 3,
-          "description": "定身成功时，使目标当回合物理、法术承伤提高15%。",
+          "description": "定身！封印成功时，附加[[bailu.status.stern]]，使目标本回合受到的物理伤害和法术伤害提高15%。",
           "passives": [
             "bailu.passive.yanci"
           ]
@@ -1542,7 +1542,7 @@
           "name": "余音",
           "layer": 2,
           "slot": 1,
-          "description": "入梦改为单次气血伤害超过30点才醒来。",
+          "description": "入梦！施加的[[bailu.status.sleep_deep]]在目标单次受到超过30点气血伤害时才会解除。",
           "passives": [
             "bailu.passive.yuyin"
           ]
@@ -1552,7 +1552,7 @@
           "name": "持衡",
           "layer": 2,
           "slot": 2,
-          "description": "入梦的封印命中变为原来的95%，其他常规言令的封印命中变为原来的105%。",
+          "description": "入梦！的封印命中率变为原来的95%，其他白鹿言令的封印命中率变为原来的105%。",
           "passives": [
             "bailu.passive.chiheng"
           ]
@@ -1562,7 +1562,7 @@
           "name": "先声",
           "layer": 2,
           "slot": 3,
-          "description": "本场首次常规封印，目标等级不高于自身且没有抗封技能时必中。",
+          "description": "本场第一次用白鹿言令封印时，若目标等级不高于你且没有抵抗封印的技能，这次封印必中。",
           "passives": [
             "bailu.passive.xiansheng"
           ]
@@ -1572,7 +1572,7 @@
           "name": "守志",
           "layer": 3,
           "slot": 1,
-          "description": "回合开始时，若站立、气血不足30%、至少有50法力且未被封法，有35%概率自动施放凝神，消耗50法力。",
+          "description": "回合开始时，若你仍存活、气血不足30%、有至少50法力且能施放法术，有35%概率消耗50法力，自动施放凝神！并获得[[bailu.status.focus]]。",
           "passives": [
             "bailu.passive.shouzhi"
           ]
@@ -1582,7 +1582,7 @@
           "name": "不倦",
           "layer": 3,
           "slot": 2,
-          "description": "授予文脉不绝，其基础概率乘1.15。",
+          "description": "获得文脉不绝，倒地的当回合结束时有23%概率复起，每场最多成功3次。成功后先修复相当于最大气血20%的伤势，再恢复最大气血20%的气血。",
           "passives": [
             "bailu.passive.bujuan",
             "bailu.passive.lore_revive"
@@ -1593,7 +1593,7 @@
           "name": "审辨",
           "layer": 3,
           "slot": 3,
-          "description": "入场唯一同门时，本场首次对敌灵兽主动常规封印若随机未中，以正常概率的一半补判一次。",
+          "description": "开战时若你是队内唯一的白鹿弟子，本场第一次对敌方灵兽使用白鹿言令封印时，若因命中概率落空，会以原本命中率的一半再试一次。",
           "passives": [
             "bailu.passive.shenbian"
           ]
@@ -1603,7 +1603,7 @@
           "name": "贤影",
           "layer": 4,
           "slot": 1,
-          "description": "护身持续增加1回合。",
+          "description": "护身！获得的[[bailu.status.guard]]多持续1回合。",
           "passives": [
             "bailu.passive.xianying"
           ]
@@ -1613,7 +1613,7 @@
           "name": "戒辞",
           "layer": 4,
           "slot": 2,
-          "description": "携带本人常规言令的敌玩家倒地，留下5回合戒辞；后续轮初未被封印时随机再受1回合禁言或折辩。",
+          "description": "被你用白鹿言令封印的敌方修士倒地时，会留下持续5回合的[[bailu.status.cage]]。后续回合开始时，若你仍存活且目标未被白鹿言令封印，会随机尝试施加1回合禁言或折辩。",
           "passives": [
             "bailu.passive.jiejci"
           ]
@@ -1623,7 +1623,7 @@
           "name": "文屏",
           "layer": 4,
           "slot": 3,
-          "description": "护身期间所受所有伤害降低20%，护身冷却改为8回合。",
+          "description": "护身！获得的[[bailu.status.guard]]持续期间，你受到的所有伤害降低20%。护身！的冷却改为8回合。",
           "passives": [
             "bailu.passive.wenping"
           ],
@@ -1640,7 +1640,7 @@
           "name": "吐纳",
           "layer": 5,
           "slot": 1,
-          "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+          "description": "聚气！会额外消耗高于半血的那部分气血，每消耗4点额外恢复1点法力。复元！会额外恢复至多一半最大气血，每额外恢复4点消耗1点法力。",
           "passives": [
             "bailu.passive.tuna"
           ]
@@ -1650,7 +1650,7 @@
           "name": "辩锋",
           "layer": 5,
           "slot": 2,
-          "description": "本轮护身免疫尚未消费时，乱神在同一次封印判定中兼带禁言、折辩的降防效果。",
+          "description": "若护身！获得的[[bailu.status.guard]]本回合还未触发，乱神！成功施加的[[bailu.status.confusion_full]]还会使目标的物理防御和法术防御各降低10%。",
           "passives": [
             "bailu.passive.bianfeng"
           ]
@@ -1660,7 +1660,7 @@
           "name": "授业",
           "layer": 5,
           "slot": 3,
-          "description": "本人及在场灵兽站立时，每轮首次灵兽主动直接法术命中主目标，有20%概率以灵兽自身封印参数追加2回合敛锋。",
+          "description": "你和自己的出战灵兽都存活时，灵兽每回合首次主动施放法术并直接命中主目标，有20%概率尝试对该目标施加2回合[[bailu.status.restrain]]。封印能否成功取决于灵兽的封印命中。",
           "passives": [
             "bailu.passive.shouye"
           ]
@@ -1670,7 +1670,7 @@
           "name": "破执",
           "layer": 6,
           "slot": 1,
-          "description": "每成功封印两次后，下次成功封印附加4回合笔削。只统计本人常规主动言令的实际成功。",
+          "description": "每用白鹿言令成功封印两次，第三次成功时给目标额外施加4回合[[bailu.status.armor]]，随后重新计数。",
           "passives": [
             "bailu.passive.pozhi"
           ]
@@ -1680,7 +1680,7 @@
           "name": "正声",
           "layer": 6,
           "slot": 2,
-          "description": "贤影每轮实际拦截首次敌方攻击性行为后增加8战意。",
+          "description": "护身！获得的[[bailu.status.guard]]每回合挡下敌人的首次直接伤害或负面状态时，获得8点战意。",
           "passives": [
             "bailu.passive.zhengsheng"
           ]
@@ -1690,7 +1690,7 @@
           "name": "笔削",
           "layer": 6,
           "slot": 3,
-          "description": "破甲首轮效果提高100%，之后每轮减少基础效果20%，不低于基础效果；破甲冷却5回合。",
+          "description": "破甲！使目标的物理防御和法术防御各降低10%，随后每回合依次改为9%、8%、7%，之后解除。破甲！的冷却改为5回合。",
           "passives": [
             "bailu.passive.bixue"
           ],
@@ -1722,7 +1722,7 @@
           "name": "一言定局",
           "layer": 7,
           "slot": 2,
-          "description": "授予噤声：消耗70战意，必中封法并附禁言2回合。自身被封法时不可用。冷却6回合。",
+          "description": "获得噤声！。消耗70战意，必定使目标陷入2回合[[bailu.status.law]]，冷却6回合。自身无法施放法术时不能使用。",
           "grantSkills": [
             "bailu.skill.jinsheng"
           ]
@@ -1747,7 +1747,7 @@
     {
       "id": "bailu.path.song",
       "name": "浩气文章",
-      "description": "以文章攻伐，朱批引势，连续破邪并维持击倒优势。",
+      "description": "破邪！会多攻击一名敌人，优先攻击点名！留下朱批的目标。经脉还能强化对灵兽的伤害，或在敌人倒地后留下印记，延续攻势。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "bailu.passive.composition"
@@ -1761,7 +1761,7 @@
           "name": "立言",
           "layer": 1,
           "slot": 1,
-          "description": "基础破邪法术暴击率提高3个百分点。",
+          "description": "破邪！的法术暴击率提高3个百分点。",
           "passives": [
             "bailu.passive.liyan"
           ]
@@ -1771,7 +1771,7 @@
           "name": "辞锋",
           "layer": 1,
           "slot": 2,
-          "description": "基础破邪主目标伤害提高10%。",
+          "description": "破邪！对主目标的伤害提高10%。",
           "passives": [
             "bailu.passive.cifeng"
           ]
@@ -1781,7 +1781,7 @@
           "name": "振笔",
           "layer": 1,
           "slot": 3,
-          "description": "诛邪主目标法暴+15个百分点；春秋笔法150级时，每次行动独立30%概率增加两名目标。",
+          "description": "诛邪！攻击主目标的法术暴击率提高15个百分点。《春秋笔法》达到150级后，每次施放有30%概率多攻击两人。",
           "passives": [
             "bailu.passive.zhenbi"
           ]
@@ -1791,7 +1791,7 @@
           "name": "透辩",
           "layer": 2,
           "slot": 1,
-          "description": "破邪第二目标仅保留10%的法防贡献，相当于该次伤害忽略90%法防。",
+          "description": "破邪！攻击第二名目标时，忽略该目标90%的法术防御。",
           "passives": [
             "bailu.passive.toubian"
           ]
@@ -1801,7 +1801,7 @@
           "name": "定论",
           "layer": 2,
           "slot": 2,
-          "description": "入场唯一同门，本轮被本人法术攻击过的敌玩家倒地即留永久定论；每个已标玩家使本人对未标玩家法伤+7%；全部标记后破邪额外三人。",
+          "description": "开战时若你是队内唯一的白鹿弟子，本回合受过你法术攻击的敌方修士倒地时会留下[[bailu.status.verdict]]，持续整场战斗。每标记一名修士，你对未标记的敌方修士造成的法术伤害提高7%。标记所有敌方修士后，破邪！额外攻击三人。",
           "passives": [
             "bailu.passive.dinglun"
           ]
@@ -1811,7 +1811,7 @@
           "name": "余慑",
           "layer": 2,
           "slot": 3,
-          "description": "被本人基础破邪攻击过的灵兽，之后破邪的悲恸加成由30%替换为45%。",
+          "description": "浩气文章原本使破邪！对灵兽增伤30%。选择余慑后，破邪！再次攻击你曾用此招攻击过的灵兽时，增伤提高到45%。",
           "passives": [
             "bailu.passive.yushe"
           ]
@@ -1821,7 +1821,7 @@
           "name": "藏锋",
           "layer": 3,
           "slot": 1,
-          "description": "授予文脉不绝：开局护命概率乘1.8，每轮倍率减0.1至1。法术伤害结果增加主心法等级/24%，最多7.5%。",
+          "description": "获得文脉不绝。倒地的当回合结束时有机会复起，每场最多成功3次。第1回合复起概率为36%，此后每回合降低2个百分点，最低20%。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
           "passives": [
             "bailu.passive.cangfeng",
             "bailu.passive.lore_revive"
@@ -1832,7 +1832,7 @@
           "name": "守节",
           "layer": 3,
           "slot": 2,
-          "description": "授予文脉不绝：基础护命概率乘1.15。法术伤害结果增加主心法等级/24%，最多7.5%。",
+          "description": "获得文脉不绝。倒地的当回合结束时有23%概率复起，每场最多成功3次。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
           "passives": [
             "bailu.passive.shoujie",
             "bailu.passive.lore_revive"
@@ -1843,7 +1843,7 @@
           "name": "不屈",
           "layer": 3,
           "slot": 3,
-          "description": "授予文脉不绝：成功次数上限增加3次，每次被此被动复起后永久增加40法攻。法术伤害结果增加主心法等级/24%，最多7.5%。",
+          "description": "获得文脉不绝。倒地的当回合结束时有20%概率复起，每场最多成功6次，每次以此方式复起都会在本场增加40点法术攻击。法术伤害也随《白鹿正学》提高，每24级增加1%，最多提高7.5%。",
           "passives": [
             "bailu.passive.buqu",
             "bailu.passive.lore_revive"
@@ -1854,7 +1854,7 @@
           "name": "贤影",
           "layer": 4,
           "slot": 1,
-          "description": "护身持续增加1回合。",
+          "description": "护身！获得的[[bailu.status.guard]]多持续1回合。",
           "passives": [
             "bailu.passive.xianying"
           ]
@@ -1864,7 +1864,7 @@
           "name": "连章",
           "layer": 4,
           "slot": 2,
-          "description": "破邪施放五次后，下一次额外作用三名目标，随后重新累计。",
+          "description": "每施放五次破邪！，第六次额外攻击三人，随后重新计数。",
           "passives": [
             "bailu.passive.lianzhang"
           ]
@@ -1874,7 +1874,7 @@
           "name": "文势",
           "layer": 4,
           "slot": 3,
-          "description": "贤影期间法术伤害提高20%，所受所有伤害降低15%。",
+          "description": "护身！获得的[[bailu.status.guard]]持续期间，你造成的法术伤害提高20%，受到的所有伤害降低15%。",
           "passives": [
             "bailu.passive.wenshi"
           ]
@@ -1884,7 +1884,7 @@
           "name": "乘隙",
           "layer": 5,
           "slot": 1,
-          "description": "对没有在场灵兽的玩家造成法术伤害提高12%。",
+          "description": "对没有灵兽在场的敌方修士造成的法术伤害提高12%。",
           "passives": [
             "bailu.passive.chengxi"
           ]
@@ -1894,7 +1894,7 @@
           "name": "余论",
           "layer": 5,
           "slot": 2,
-          "description": "本人击倒带本人朱批的敌玩家后留下3回合余论，每轮首次可被攻击时受本人一次追击。",
+          "description": "击倒带有你用点名！留下的[[bailu.status.mark]]的敌方修士时，将朱批换为3回合的[[bailu.status.echo]]。只要你仍存活，目标每回合首次可被攻击时受到你的一次法术追击。",
           "passives": [
             "bailu.passive.yulun"
           ]
@@ -1904,7 +1904,7 @@
           "name": "吐纳",
           "layer": 5,
           "slot": 3,
-          "description": "聚气额外消耗超过半血的气血，25%转为法力；复元额外恢复至多半上限气血并支付实际额外恢复的25%法力。",
+          "description": "聚气！会额外消耗高于半血的那部分气血，每消耗4点额外恢复1点法力。复元！会额外恢复至多一半最大气血，每额外恢复4点消耗1点法力。",
           "passives": [
             "bailu.passive.tuna"
           ]
@@ -1914,7 +1914,7 @@
           "name": "蓄辞",
           "layer": 6,
           "slot": 1,
-          "description": "成功施放凝神后，下一次破邪伤害提高25%。",
+          "description": "成功施放凝神！后获得[[bailu.status.charged]]，使下一次破邪！的伤害提高25%。",
           "passives": [
             "bailu.passive.xuci"
           ]
@@ -1924,7 +1924,7 @@
           "name": "诛心",
           "layer": 6,
           "slot": 2,
-          "description": "三叠仙音攻击带封印的目标时伤害提高40%。",
+          "description": "器诀三叠仙音攻击处于封印等控制状态的目标时，伤害提高40%。",
           "passives": [
             "bailu.passive.zhuxin"
           ]
@@ -1934,7 +1934,7 @@
           "name": "挫志",
           "layer": 6,
           "slot": 3,
-          "description": "本轮被本人法术实际命中过的敌单位倒地后，保留3回合物攻、法攻、物防、法防各降低12%的气势受挫。",
+          "description": "本回合被你的法术命中的敌人倒地时，会获得3回合[[bailu.status.weaken]]。物理攻击、法术攻击、物理防御和法术防御各降低12%。",
           "passives": [
             "bailu.passive.cuozhi"
           ]
@@ -1959,7 +1959,7 @@
           "name": "舍生立言",
           "layer": 7,
           "slot": 2,
-          "description": "授予舍生：气血至少一半可施放，消耗80法力，气血留1点，获得5回合不可驱散的舍生立言，破邪伤害提高70%，回合末使自身拘灵缩短1回合。冷却8回合，开战冷却4回合。",
+          "description": "获得舍生！。当前气血至少为最大气血的一半时可用，消耗80法力并将自身气血降到1点，获得5回合[[bailu.status.sacrifice]]。冷却8回合，开战冷却4回合。",
           "grantSkills": [
             "bailu.skill.shesheng"
           ]

@@ -714,7 +714,7 @@
           "chance": 0.6
         }
       ],
-      "description": "血影蚀心、百鬼噬魂命中时有30%概率附加3回合魂毒；森罗迷障期间为60%。"
+      "description": "血影蚀心和百鬼噬魂命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。"
     },
     {
       "id": "youdu.passive.crit_reward_1",
@@ -815,7 +815,7 @@
     {
       "id": "youdu.path.soul_judge",
       "name": "拘魂锁命",
-      "description": "侧重控制与支援，以魂术造成固定伤害。通过减速、阻止敌人复活和救起同伴影响战局，适合喜欢牵制敌人、照应队友的修士。",
+      "description": "用裂魂咒造成固定伤害，以滞魂咒减缓敌人行动。拘灵术可限制敌方人物复活，还魂决可救起倒地的队友。",
       "requiresConnectedNodes": true,
       "foundationPassives": [],
       "nodes": [
@@ -824,7 +824,7 @@
           "name": "断魂",
           "layer": 1,
           "slot": 1,
-          "description": "与怪物队伍战斗时，裂魂咒增加武器伤害贡献×15%的伤害。敌方非召唤物阵亡后，下次灭魂杀伤害提高50%。",
+          "description": "与生灵交战时，裂魂咒额外造成相当于武器所提供物理攻击15%的伤害。你在场存活时，敌方人物或生灵倒下便获得[[youdu.status.judgment_ready]]，使灭魂杀伤害提高50%。若本次灭魂杀未击倒人物或生灵，则消耗断魂。",
           "passives": [
             "youdu.passive.yanluo"
           ]
@@ -866,7 +866,7 @@
           "name": "蚀骨",
           "layer": 2,
           "slot": 1,
-          "description": "自己的魂毒被驱散时，目标损失5%当前气血，最多为自身等级×5。",
+          "description": "你施加的[[youdu.status.poison]]被驱散时，中毒者额外损失其当前气血的5%，最多为你的人物等级×5。",
           "passives": [
             "youdu.passive.bone"
           ]
@@ -876,7 +876,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 2,
-          "description": "摄魂的基础减伤与承伤增幅各增加5%。",
+          "description": "摄魂改为施加强化的[[youdu.status.siphon_strong]]。目标造成的伤害降低15%，受到的伤害提高15%。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -891,7 +891,7 @@
           "name": "拘魄",
           "layer": 2,
           "slot": 3,
-          "description": "摄魂可选择倒地敌人，令其本场受到的伤害提高3%；重复施加不叠层。",
+          "description": "摄魂也可选择倒地敌人，并对其施加[[youdu.status.bound_soul]]。目标本场受到的伤害提高3%，反复施加不会叠加。",
           "passives": [
             "youdu.passive.bound_soul"
           ],
@@ -908,7 +908,7 @@
           "name": "索魂",
           "layer": 3,
           "slot": 1,
-          "description": "拘灵术命中率增加当前回合数×0.5%，最多增加12%。",
+          "description": "战斗每进行一回合，拘灵术的命中概率就提高0.5个百分点，最多提高12个百分点。",
           "passives": [
             "youdu.passive.soul_seek"
           ]
@@ -918,7 +918,7 @@
           "name": "乘虚",
           "layer": 3,
           "slot": 2,
-          "description": "对带毒类异常的目标，拘灵术命中率增加20%；魂毒额外增加4%。",
+          "description": "对带有[[youdu.status.poison]]或灵兽所施毒的目标，拘灵术的命中概率提高20个百分点。若目标带有魂毒，再提高4个百分点。",
           "passives": [
             "youdu.passive.soul_wound"
           ]
@@ -938,7 +938,7 @@
           "name": "迟魂",
           "layer": 4,
           "slot": 1,
-          "description": "滞魂咒的减速量提高50%。",
+          "description": "滞魂咒改为施加强化的[[youdu.status.slow_strong]]，减速量比原来提高50%。",
           "patches": [
             {
               "skillId": "youdu.skill.pursuit",
@@ -968,7 +968,7 @@
           "name": "明心",
           "layer": 4,
           "slot": 3,
-          "description": "洞幽法眼额外提高5%抗封，受封概率系数由90%降为85%。",
+          "description": "洞幽法眼改为施加强化的[[youdu.status.insight_strong]]。敌人对受益者施加封印的命中概率变为原来的85%，基础洞幽法眼为90%。",
           "patches": [
             {
               "skillId": "youdu.skill.insight",
@@ -983,7 +983,7 @@
           "name": "破妄",
           "layer": 5,
           "slot": 1,
-          "description": "拘灵术忽略洞幽法眼提供的额外抗封，仍保留目标本身封抗与神魂自守。",
+          "description": "施放拘灵术时，无视目标的[[youdu.status.insight]]提供的封印抵抗效果。目标自身的封印抵抗与「神魂自守」仍然生效。",
           "passives": [
             "youdu.passive.ghost_light"
           ]
@@ -993,7 +993,7 @@
           "name": "惊魂",
           "layer": 5,
           "slot": 2,
-          "description": "己方仅一名幽都修士时，本场第一次滞魂咒造成400%伤害。",
+          "description": "若你是队中唯一的幽都弟子，本场第一次施放滞魂咒造成原本四倍的伤害。",
           "passives": [
             "youdu.passive.spring_burst"
           ]
@@ -1003,7 +1003,7 @@
           "name": "余势",
           "layer": 5,
           "slot": 3,
-          "description": "使用原始战意消耗不超过90的装备特技后，恢复16点战意。",
+          "description": "成功施放器诀后，若该器诀原本消耗的战意不超过90点，则回复16点战意。",
           "passives": [
             "youdu.passive.ghost_fire"
           ]
@@ -1013,7 +1013,7 @@
           "name": "封魂",
           "layer": 6,
           "slot": 1,
-          "description": "涤魂诀首目标为人物且当回合倒地时，附加2回合拘灵。",
+          "description": "涤魂诀会给选中的敌方人物施加[[youdu.status.soul_flight]]。若其本回合倒地，便获得2回合[[youdu.status.soul_seal]]。",
           "passives": [
             "youdu.passive.soul_flight"
           ]
@@ -1023,7 +1023,7 @@
           "name": "汲魂",
           "layer": 6,
           "slot": 2,
-          "description": "每次敌方人物倒地，恢复自身等级×6的气血；无法复活自身。",
+          "description": "你在场存活时，每有一名敌方人物倒地，你便回复自身人物等级×6的气血。",
           "passives": [
             "youdu.passive.soul_drain"
           ]
@@ -1033,7 +1033,7 @@
           "name": "魂响",
           "layer": 6,
           "slot": 3,
-          "description": "敌方带有自己拘灵的人物倒地时，获得3回合魂响，使下次拘灵术持续增加1回合。",
+          "description": "你在场存活时，带有你所施[[youdu.status.soul_seal]]的敌方人物倒地，便获得3回合[[youdu.status.death_echo]]。下一次拘灵术若命中，拘灵多持续1回合。",
           "passives": [
             "youdu.passive.echo"
           ]
@@ -1058,7 +1058,7 @@
           "name": "魂契共鸣",
           "layer": 7,
           "slot": 2,
-          "description": "为己方倒地单位附加不可驱散的魂契印记，持续至战斗结束。造成的物理、法术伤害提高（4+2×己方印记单位数）%，此术不复活目标。",
+          "description": "给一名倒地的友方施加[[youdu.status.soul_chase]]，持续整场，无法驱散。持有者直接造成的物理伤害、法术伤害和法术固定伤害提高4%，己方每有一名带印记的成员再提高2%。目标仍然倒地。",
           "grantSkills": [
             "youdu.skill.soul_chase"
           ]
@@ -1083,7 +1083,7 @@
     {
       "id": "youdu.path.poison_master",
       "name": "蚀魂摧形",
-      "description": "侧重魂毒与物理输出。先让敌人中毒，再追击带毒目标扩大伤害收益，适合喜欢持续压制的修士。",
+      "description": "血影蚀心和百鬼噬魂命中时，有30%概率施加持续3回合的魂毒。森罗迷障期间提高到60%。经脉可进一步强化对带魂毒目标的攻击。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "youdu.passive.poison_cycle"
@@ -1094,7 +1094,7 @@
           "name": "窥隙",
           "layer": 1,
           "slot": 1,
-          "description": "攻击带魂毒的目标时，临时增加12%暴击率。",
+          "description": "攻击带有[[youdu.status.poison]]的目标时，本次攻击的暴击率提高12个百分点。",
           "passives": [
             "youdu.passive.poison_blaze"
           ]
@@ -1114,7 +1114,7 @@
           "name": "蚀心",
           "layer": 1,
           "slot": 3,
-          "description": "血影蚀心对带魂毒的目标伤害提高30%。",
+          "description": "血影蚀心攻击带有[[youdu.status.poison]]的目标时，伤害提高30%。",
           "passives": [
             "youdu.passive.shade"
           ]
@@ -1124,7 +1124,7 @@
           "name": "摄魂入微",
           "layer": 2,
           "slot": 1,
-          "description": "摄魂的基础减伤与承伤增幅各增加5%。",
+          "description": "摄魂改为施加强化的[[youdu.status.siphon_strong]]。目标造成的伤害降低15%，受到的伤害提高15%。",
           "patches": [
             {
               "skillId": "youdu.skill.siphon",
@@ -1139,7 +1139,7 @@
           "name": "引毒入魂",
           "layer": 2,
           "slot": 2,
-          "description": "双剑合璧命中后附加魂毒；出手前目标已带魂毒时，本次伤害提高12%。不授予装备特技。",
+          "description": "装备带有器诀「双剑合璧」时，命中可给未中魂毒的目标施加3回合[[youdu.status.poison]]。若目标在出手前已带有魂毒，这次双剑合璧的伤害提高12%，原有魂毒继续生效。",
           "passives": [
             "youdu.passive.break_poison"
           ]
@@ -1149,7 +1149,7 @@
           "name": "入魂",
           "layer": 2,
           "slot": 3,
-          "description": "使用摄魂后，仅下回合造成的物理伤害提高15%。",
+          "description": "成功施放摄魂后，下回合获得[[youdu.status.enter_soul]]，该回合的物理伤害提高15%。",
           "passives": [
             "youdu.passive.enter_soul"
           ]
@@ -1159,7 +1159,7 @@
           "name": "魂慑",
           "layer": 3,
           "slot": 1,
-          "description": "敌方场上存在魂毒单位时，自己造成的攻击伤害提高6%。",
+          "description": "只要场上有存活的敌人带着[[youdu.status.poison]]，你造成的攻击伤害就提高6%。",
           "passives": [
             "youdu.passive.poison_dread"
           ]
@@ -1179,7 +1179,7 @@
           "name": "惑魂",
           "layer": 3,
           "slot": 3,
-          "description": "受到魂毒单位攻击时，伤害降低4%。",
+          "description": "带有[[youdu.status.poison]]的敌人攻击你时，你受到的伤害降低4%。",
           "passives": [
             "youdu.passive.miasma"
           ]
@@ -1189,7 +1189,7 @@
           "name": "摧形散法",
           "layer": 4,
           "slot": 1,
-          "description": "替代涤魂诀：50法力，110%普通物理伤害，随机驱散1个增益；目标带毒时驱散2个。",
+          "description": "以摧形散法替换涤魂诀。消耗50法力，对一名敌人造成普通攻击110%的物理伤害，随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽所施的毒时，最多驱散两个。",
           "grantSkills": [
             "youdu.skill.pardonless"
           ],
@@ -1217,7 +1217,7 @@
           "name": "透魂",
           "layer": 4,
           "slot": 3,
-          "description": "自己施加的魂毒可以越过高级毒性的免疫。",
+          "description": "你施加的[[youdu.status.poison]]可作用于带有灵兽技能「高级毒性」的目标。",
           "passives": [
             "youdu.passive.nether_poison"
           ]
@@ -1227,7 +1227,7 @@
           "name": "战意汲取",
           "layer": 5,
           "slot": 1,
-          "description": "攻击带魂毒目标后恢复2战意；每次出手对每个目标结算一次。",
+          "description": "若目标在你出手前已有[[youdu.status.poison]]，直接攻击命中时回复2点战意。同一次出手对同一目标只触发一次。",
           "passives": [
             "youdu.passive.feast"
           ]
@@ -1237,7 +1237,7 @@
           "name": "余势",
           "layer": 5,
           "slot": 2,
-          "description": "使用原始战意消耗不超过90的装备特技后，恢复16点战意。",
+          "description": "成功施放器诀后，若该器诀原本消耗的战意不超过90点，则回复16点战意。",
           "passives": [
             "youdu.passive.ghost_fire_poison"
           ]
@@ -1247,7 +1247,7 @@
           "name": "六魂归元",
           "layer": 5,
           "slot": 3,
-          "description": "己方仅一名幽都修士，回合结束敌方至少6个魂毒单位时，获得6回合六魂归元：物理攻击、暴击等级、穿刺等级、狂暴等级、抗封等级、格挡值各增加60。",
+          "description": "若你在场存活且是队中唯一的幽都弟子，回合结束时敌方至少有六个在场存活的目标带有[[youdu.status.poison]]，你便获得6回合[[youdu.status.reincarnation]]。",
           "passives": [
             "youdu.passive.reincarnation"
           ]
@@ -1257,7 +1257,7 @@
           "name": "锁魄",
           "layer": 6,
           "slot": 1,
-          "description": "己方仅一名幽都修士时，自己击倒敌方人物后附加3回合拘灵。",
+          "description": "若你在场存活且是队中唯一的幽都弟子，亲自击倒敌方人物后为其施加3回合[[youdu.status.soul_seal]]。",
           "passives": [
             "youdu.passive.chase_life"
           ]
@@ -1267,7 +1267,7 @@
           "name": "汲魂",
           "layer": 6,
           "slot": 2,
-          "description": "每次敌方人物倒地，恢复自身等级×6的气血；无法复活自身。",
+          "description": "你在场存活时，每有一名敌方人物倒地，你便回复自身人物等级×6的气血。",
           "passives": [
             "youdu.passive.soul_drain_poison"
           ]
@@ -1277,7 +1277,7 @@
           "name": "噬魂增威",
           "layer": 6,
           "slot": 3,
-          "description": "自己击飞带魂毒的单位时，获得6回合物理伤害提高12%；人物倒地不触发。",
+          "description": "你在场存活时，带有[[youdu.status.poison]]的敌方生灵或灵兽阵亡，便获得6回合[[youdu.status.evil_flame]]，物理伤害提高12%。",
           "passives": [
             "youdu.passive.evil_flame"
           ]
@@ -1298,7 +1298,7 @@
           "name": "噬魂夺生",
           "layer": 7,
           "slot": 2,
-          "description": "对一名敌人造成物理伤害，威力为普通攻击的230%。自身恢复本次让目标损失的气血，并随机驱散目标1个增益。目标带有魂毒时，暴击伤害倍率提高60%。开战冷却18回合，使用后冷却36回合。",
+          "description": "对一名敌人造成普通攻击230%的物理伤害，并随机驱散其一个可驱散的增益。目标本次实际损失多少气血，你就回复多少。目标带有[[youdu.status.poison]]或灵兽施加的毒时，物理暴击倍率增加0.60。开战冷却18回合，施放后冷却36回合。若你是队中唯一的幽都弟子，每回合结束时，敌方每有一名倒地人物或一个在场存活且带魂毒的目标，额外缩短2回合冷却。",
           "grantSkills": [
             "youdu.skill.life_and_death"
           ]

@@ -17,7 +17,7 @@
     {
       "id": "jiujie.skill.thunder_slash",
       "name": "引雷斩",
-      "description": "引雷入兵，雷随刃走。\n造成物理伤害。对战修士时攻击一人，对战妖物时最多攻击三人。命中后使目标陷入[[jiujie.status.magic_break]]，自身陷入[[jiujie.status.physical_break]]，持续3回合。",
+      "description": "引雷入兵，雷随刃走。\n造成物理伤害。敌方有修士时攻击一人，否则最多攻击三人。命中后使目标陷入[[jiujie.status.magic_break]]，持续3回合。施放后自身陷入[[jiujie.status.physical_break]]，也持续3回合。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -65,7 +65,7 @@
     {
       "id": "jiujie.skill.five_thunder",
       "name": "五雷天罚",
-      "description": "五雷裁落，直断气血。\n造成固定伤害，按目标当前气血计算，不会直接致死。一半概率削去25%当前气血和25%当前法力，气血损失至多人物等级×50；另一半只削去5%当前气血。",
+      "description": "五雷裁落，直断气血。\n有50%概率削去目标25%当前气血和25%当前法力，此时气血损失最多为你的人物等级的50倍。否则只削去目标5%当前气血。两种结果均造成固定伤害，无法直接击倒目标。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -107,7 +107,7 @@
     {
       "id": "jiujie.skill.divine_guardian",
       "name": "天罡护体",
-      "description": "罡雷护身，气机随路而变。\n自身获得[[jiujie.status.guardian]]。持续回合随心法等级从3提高到7。",
+      "description": "罡雷护身，气机随路而变。\n自身获得[[jiujie.status.guardian]]，基础持续3回合。《九劫天书》每提高40级，多持续1回合，最多持续7回合。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -152,7 +152,7 @@
     {
       "id": "jiujie.skill.calm",
       "name": "定神雷音",
-      "description": "雷音定神，封禁散去。\n解除一名队友的一个封印，并使其在此后第2回合结束前不再陷入同一种封印。",
+      "description": "雷音定神，封禁散去。\n解除自己或一名队友的一个可解除封印，并使其在此后第2回合结束前免疫同一种封印。",
       "school": "jiujie",
       "tags": [
         "spell",
@@ -256,7 +256,7 @@
     {
       "id": "jiujie.skill.charge",
       "name": "引劫入体",
-      "description": "引劫入体，雷意留存。\n消耗当前气血的25%，获得1层劫雷灌注，保留到战斗结束。霹雳的核心攻击消耗1层提升一重；踏雷的下一次群雷消耗1层，额外攻击3人。",
+      "description": "引劫入体，雷意留存。\n消耗100法力和25%当前气血，获得1层劫雷灌注，保留到战斗结束。霹雳真君的震岳、掠霆和九劫归一消耗1层提高一重。踏雷天尊的万钧雷狱和敕雷有灌注时多攻击3人，未选六霄雷劫节点时消耗1层。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -277,7 +277,7 @@
     {
       "id": "jiujie.skill.thunderstorm",
       "name": "万钧雷狱",
-      "description": "万钧雷狱，印随雷落。\n对3名敌人造成法术伤害，并留下[[jiujie.status.electric]]。有灌注时额外攻击3人；若尚未修习六霄雷劫，会消耗1层灌注。",
+      "description": "万钧雷狱，印随雷落。\n最多攻击3名敌人，造成法术伤害，并为命中的敌人留下[[jiujie.status.electric]]。有劫雷灌注时最多攻击6人。未选择六霄雷劫节点时，施放会消耗1层灌注。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -308,7 +308,7 @@
     {
       "id": "jiujie.skill.edict",
       "name": "敕雷",
-      "description": "敕令指处，雷自随行。\n自行指定目标，造成法术伤害，并留下[[jiujie.status.electric]]。基础最多3人，有灌注时再增加3人。若尚未修习六霄雷劫，会消耗1层灌注。冷却5回合。",
+      "description": "敕令指处，雷自随行。\n可自行选择最多3名敌人，造成法术伤害，并为命中的敌人留下[[jiujie.status.electric]]。有劫雷灌注时可选择最多6人。未选择六霄雷劫节点时，施放会消耗1层灌注。冷却5回合。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -339,7 +339,7 @@
     {
       "id": "jiujie.skill.six_thunder",
       "name": "六霄雷劫",
-      "description": "六霄齐落，劫雷更盛。\n消耗1层劫雷灌注，对最多6名敌人造成法术伤害，并留下[[jiujie.status.electric]]。",
+      "description": "六霄齐落，劫雷更盛。\n消耗1层劫雷灌注，对最多6名敌人造成法术伤害，并为命中的敌人留下[[jiujie.status.electric]]。劫雷灌注可通过引劫入体获得。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -371,7 +371,7 @@
     {
       "id": "jiujie.skill.strike_1",
       "name": "震岳·一重",
-      "description": "劫雷重击，势贯一人。\n对一名敌人造成物理伤害。以一重施放时不会因此休息。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "劫雷重击，势贯一人。\n以一重起手，对一名敌人造成物理伤害。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。若仍为一重，下回合无需休息。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -579,7 +579,7 @@
     {
       "id": "jiujie.skill.strike_2",
       "name": "震岳·二重",
-      "description": "劫雷重击，势贯一人。\n对一名敌人造成物理伤害。以二重施放。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "劫雷重击，势贯一人。\n以二重起手，对一名敌人造成物理伤害。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -787,7 +787,7 @@
     {
       "id": "jiujie.skill.strike_3",
       "name": "震岳·三重",
-      "description": "劫雷重击，势贯一人。\n对一名敌人造成物理伤害。以三重施放。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "劫雷重击，势贯一人。\n以三重起手，对一名敌人造成物理伤害。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -995,7 +995,7 @@
     {
       "id": "jiujie.skill.sweep_1",
       "name": "掠霆·一重",
-      "description": "雷光掠阵，横扫敌群。\n对多名敌人造成物理伤害，75级起多攻击1人。以一重施放时不会因此休息。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "雷光掠阵，横扫敌群。\n以一重起手，造成物理伤害。攻击人数为强化后的重数加1，《混天雷法》达到75级后再多攻击1人。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。若仍为一重，下回合无需休息。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -1204,7 +1204,7 @@
     {
       "id": "jiujie.skill.sweep_2",
       "name": "掠霆·二重",
-      "description": "雷光掠阵，横扫敌群。\n对多名敌人造成物理伤害，75级起多攻击1人。以二重施放。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "雷光掠阵，横扫敌群。\n以二重起手，造成物理伤害。攻击人数为强化后的重数加1，《混天雷法》达到75级后再多攻击1人。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -1413,7 +1413,7 @@
     {
       "id": "jiujie.skill.sweep_3",
       "name": "掠霆·三重",
-      "description": "雷光掠阵，横扫敌群。\n对多名敌人造成物理伤害，75级起多攻击1人。以三重施放。劫雷灌注和余韵各能再提高一重。达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。",
+      "description": "雷光掠阵，横扫敌群。\n以三重起手，造成物理伤害。攻击人数为强化后的重数加1，《混天雷法》达到75级后再多攻击1人。有劫雷灌注时消耗1层并提高一重。选择余韵后，先施放器诀双剑合璧或摧灵斩，也能使下一次攻击提高一重。两种效果可同时生效。强化后达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -1622,7 +1622,7 @@
     {
       "id": "jiujie.skill.tribulation",
       "name": "九劫归一",
-      "description": "以身引劫，再将雷意倾泻出去。\n先承受2至9次劫雷，每击损失8%最大气血，并随机提高震岳或掠霆一重，最高五重，同时缩短一个可解除异常1回合。若仍然存活，首目标受到震岳的物理伤害，其余目标受到掠霆的物理伤害，人数随掠霆重数增加。按较高重数结算一次休息：达到二重时，有一半概率下回合陷入[[jiujie.status.rest_minor]]；达到三重及以上时，有一半概率下回合陷入[[jiujie.status.rest_major]]。施放前要备足法力，消耗为20×实际目标数＋10。",
+      "description": "以身引劫，再将雷意倾泻出去。\n先承受2至9次劫雷，每次损失最大气血的8%，随机提高震岳或掠霆一重，最高五重，并随机缩短自身一个可解除的负面状态1回合。若仍存活，以震岳攻击主目标，以掠霆攻击其余目标。攻击总人数为掠霆重数加1，《混天雷法》达到75级后再加1，最多7人。按两种攻击中较高的重数判断是否休息。达到二重及以上时，有50%基础概率在下回合休息。二重触发[[jiujie.status.rest_minor]]，三重及以上触发[[jiujie.status.rest_major]]。实际消耗为每名目标20法力再加10点，施放前须备足场上可能攻击的最多人数所需的法力。",
       "school": "jiujie",
       "tags": [
         "physical",
@@ -1986,7 +1986,7 @@
     {
       "id": "jiujie.skill.absorb",
       "name": "摄雷归一",
-      "description": "摄回雷印，化作一击。\n对一名敌人造成法术伤害，并吸收自己施加的[[jiujie.status.electric]]或[[jiujie.status.red]]。吸收雷印时，同时驱散目标1个增益。吸收普通雷印时法术伤害提高75%，吸收赤雷印时提高到三倍。",
+      "description": "摄回雷印，化作一击。\n攻击一名敌人，造成法术伤害。若目标带有你施加的[[jiujie.status.electric]]或[[jiujie.status.red]]，吸收印记并驱散目标1个增益。吸收雷印时，本次伤害提高75%；吸收赤雷印时提高到三倍。吸收的增伤替代印记原本的增伤。",
       "school": "jiujie",
       "tags": [
         "spell"
@@ -2050,7 +2050,7 @@
       "id": "jiujie.status.rest_minor",
       "kind": "jiujie.status.rest_minor",
       "name": "雷息·二重",
-      "description": "下回合无法使用非器诀技能，仍可普通攻击、使用器诀或防御。",
+      "description": "震岳、掠霆或九劫归一达到二重时，有机会进入此状态。下回合仍可普通攻击、使用器诀或防御，无法使用其他技能。",
       "category": "debuff",
       "school": "jiujie",
       "dispellable": false,
@@ -2061,7 +2061,7 @@
       "id": "jiujie.status.rest_major",
       "kind": "jiujie.status.rest_major",
       "name": "雷息·三重",
-      "description": "下回合只能防御。",
+      "description": "震岳、掠霆或九劫归一达到三重及以上时，有机会进入此状态。下回合只能防御。",
       "category": "debuff",
       "school": "jiujie",
       "dispellable": false,
@@ -2137,7 +2137,7 @@
       "id": "jiujie.status.guardian",
       "kind": "jiujie.status.guardian",
       "name": "天罡护体",
-      "description": "霹雳真君提高物理攻击。踏雷天尊提高法术攻击和法术防御。",
+      "description": "施放天罡护体后获得。霹雳真君提高物理攻击，数值为《九劫天书》等级的0.8倍。踏雷天尊提高法术攻击和法术防御，分别为《九劫天书》等级的0.8倍和0.5倍。罡威可以进一步提高法术攻击的增量。",
       "category": "buff",
       "school": "jiujie",
       "attrMods": {
@@ -2150,7 +2150,7 @@
       "id": "jiujie.status.protection",
       "kind": "jiujie.status.protection",
       "name": "天罡护法",
-      "description": "代替被保护的队友承受一部分物理攻击。此后每个回合结束消耗10点法力，法力不足或自身倒地后保护结束。",
+      "description": "由施术者代替被保护的队友承担部分物理伤害。从下回合开始，每回合结束时消耗施术者10点法力。施术者倒地或法力不足时，保护结束。",
       "category": "buff",
       "school": "jiujie",
       "protectsTarget": true,
@@ -2163,7 +2163,7 @@
       "id": "jiujie.status.electric",
       "kind": "jiujie.status.electric",
       "name": "雷印",
-      "description": "群雷留下的印记。被摄雷归一吸收时，该次法术伤害提高75%。",
+      "description": "踏雷天尊的万钧雷狱、敕雷和六霄雷劫命中后可留下此印，持续3回合，再次施加会刷新持续时间。施印者后续对目标造成的法术伤害提高12%。若被施印者的摄雷归一吸收，该次伤害改为提高75%。",
       "category": "debuff",
       "school": "jiujie",
       "sourceBound": true
@@ -2172,14 +2172,14 @@
       "id": "jiujie.status.red",
       "kind": "jiujie.status.red",
       "name": "赤雷印",
-      "description": "强于普通雷印的印记。被摄雷归一吸收时，该次法术伤害提高到三倍。",
+      "description": "选择赤殛后，若自己是队内唯一的九劫天宫修士，每次施加雷印有10%概率改为赤雷印。施印者对目标造成的法术伤害提高70%。被施印者命中一次后转为普通雷印，若被摄雷归一直接吸收，该次伤害改为三倍。",
       "category": "debuff",
       "school": "jiujie",
       "sourceBound": true
     },
     {
       "id": "jiujie.status.cunxiong",
-      "description": "成功使用器诀后获得，震岳、掠霆及九劫归一造成的物理伤害提高10%。",
+      "description": "选择存雄节点后，成功使用器诀会获得此状态，持续3回合。震岳、掠霆和九劫归一造成的物理伤害提高10%。",
       "kind": "jiujie.status.cunxiong",
       "name": "存雄",
       "category": "buff",
@@ -2220,7 +2220,7 @@
     },
     {
       "id": "jiujie.status.attunement",
-      "description": "记录踏雷天尊经脉的属性收益：轰鸣满足心法等级条件时增加60法攻；驭意按灵力属性点增加5%速度和10%法攻、减少24%法防；灵光额外增加灵曜阵纹所提供法攻的25%。未选对应节点的部分不生效。",
+      "description": "踏雷天尊所选经脉在战斗中提供的属性变化。轰鸣在《混天雷法》等级不低于人物等级时增加60点法术攻击。驭意每10点灵力增加0.5点速度和1点法术攻击，降低2.4点法术防御。灵光将装备上灵曜阵纹提供的法术攻击额外提高25%。",
       "kind": "jiujie.status.attunement",
       "name": "驭雷根基",
       "category": "buff",

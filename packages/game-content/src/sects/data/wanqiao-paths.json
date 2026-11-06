@@ -6,7 +6,7 @@
     {
       "id": "wanqiao.passive.resonance.fashen",
       "name": "凝听",
-      "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+      "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
       "modifiers": [
         {
           "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
@@ -19,7 +19,7 @@
     {
       "id": "wanqiao.passive.resonance.fenghun",
       "name": "回护",
-      "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+      "description": "施放万窍山神通消耗窍息后获得护盾。每消耗一层，护盾值增加相当于人物战斗等级两倍的数值。",
       "hooks": [
         {
           "on": "afterAction",
@@ -77,7 +77,7 @@
     {
       "id": "wanqiao.passive.resonance.zhuiji",
       "name": "再应",
-      "description": "众窍鸣触发复响且仍有窍息时耗一层，使该次复响伤害提高40%。",
+      "description": "众窍鸣追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击的伤害提高40%。",
       "modifiers": [
         {
           "damageResultFactor": 1.4,
@@ -93,7 +93,7 @@
     {
       "id": "wanqiao.passive.resonance.zhoufa",
       "name": "通微",
-      "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+      "description": "《弦外音》等级达到或超过人物战斗等级时，本场战斗法攻提高60点。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -117,7 +117,7 @@
     {
       "id": "wanqiao.passive.resonance.kuangye",
       "name": "空鸣",
-      "description": "零窍息施展众窍鸣时，本次技能及复响临时增加100法攻。",
+      "description": "没有窍息时施放众窍鸣，这次施法及其追加的复响攻击以额外100点法攻计算伤害。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -142,7 +142,7 @@
     {
       "id": "wanqiao.passive.resonance.bingzhui",
       "name": "截流",
-      "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+      "description": "持有窍息时对敌方灵兽施放截声，会消耗一层窍息。截声伤害提高35%，驱散目标一个增益，使其下回合无法行动的基础概率从20%提高到60%。",
       "modifiers": [
         {
           "damageBonus": "0.35*(fact.wanqiao_spent>0)",
@@ -158,7 +158,7 @@
     {
       "id": "wanqiao.passive.resonance.cangai",
       "name": "透隙",
-      "description": "叩隙对人物有窍息时耗一层：伤害增加10%，复响率翻倍，额外造成实际气血伤害50%的伤势。",
+      "description": "持有窍息时对敌方角色施放叩隙，会消耗一层窍息。这次施法伤害提高10%，追加复响攻击的概率翻倍，并额外造成相当于目标实际损失气血50%的伤势。",
       "modifiers": [
         {
           "damageBonus": "0.1*(fact.wanqiao_spent>0)",
@@ -194,7 +194,7 @@
     {
       "id": "wanqiao.passive.resonance.shenmu",
       "name": "中虚",
-      "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+      "description": "武器和衣甲每有一件带木元素，法术伤害提高4%，最多提高8%。",
       "modifiers": [
         {
           "damageBonus": "0.04*fact.woodEquipmentCount",
@@ -207,7 +207,7 @@
     {
       "id": "wanqiao.passive.resonance.yueying",
       "name": "复音",
-      "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+      "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -217,7 +217,7 @@
     {
       "id": "wanqiao.passive.resonance.xinhuo",
       "name": "续声",
-      "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+      "description": "每回合结束时，武器和衣甲每有一件带火元素，法攻就提高3点。加成可累积到本场战斗结束。",
       "hooks": [
         {
           "on": "onRoundEnd",
@@ -245,7 +245,7 @@
     {
       "id": "wanqiao.passive.resonance.manyan",
       "name": "流韵",
-      "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+      "description": "裂帛、叩隙和截声的伤害提高10%。成功施放其中任一神通后，获得持续两回合的[[wanqiao.status.flow]]，使你造成的所有伤害提高20%。再次触发时刷新持续时间。",
       "modifiers": [
         {
           "damageBonus": 0.1,
@@ -286,7 +286,7 @@
     {
       "id": "wanqiao.passive.resonance.posha",
       "name": "破音",
-      "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+      "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
       "modifiers": [
         {
           "critChanceAdd": 0.12,
@@ -304,7 +304,7 @@
     {
       "id": "wanqiao.passive.resonance.xiaofeng",
       "name": "虚而应",
-      "description": "正常行动将正数窍息消耗至零后，本场众窍鸣复响伤害累计提高20%。",
+      "description": "每次施放神通用完手头的窍息，众窍鸣追加的复响攻击伤害就提高20%。加成可累积到本场战斗结束。",
       "modifiers": [
         {
           "damageResultFactor": "1+0.2*fact.wanqiao_empty_count",
@@ -354,7 +354,7 @@
     {
       "id": "wanqiao.passive.resonance.ziyang",
       "name": "内和",
-      "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+      "description": "和鸣改为只对自己施放，并额外提高15%法术伤害。和鸣被驱散时，回复的气血等于剩余回合数乘以施放时的《一息绵长》等级。",
       "hooks": [
         {
           "on": "onStatusRemoved",
@@ -378,7 +378,7 @@
     {
       "id": "wanqiao.passive.resonance.linggui",
       "name": "虚生息",
-      "description": "轮末零窍息时额外获得一层，不受凝听取消基础恢复的影响。",
+      "description": "回合结束时若没有窍息，获得一层。即使选择了凝听，这项恢复也会生效。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -388,7 +388,7 @@
     {
       "id": "wanqiao.passive.subtlety.fenghun",
       "name": "回护",
-      "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+      "description": "施放万窍山神通消耗窍息后获得护盾。每消耗一层，护盾值增加相当于人物战斗等级两倍的数值。",
       "hooks": [
         {
           "on": "afterAction",
@@ -430,7 +430,7 @@
     {
       "id": "wanqiao.passive.subtlety.mifu",
       "name": "缠音",
-      "description": "带有本人留音的单位对本人造成的伤害降低3%。",
+      "description": "带有你施加的[[wanqiao.status.echo]]的敌人，对你造成的伤害降低3%。",
       "modifiers": [
         {
           "allDamageTakenBonus": -0.03,
@@ -445,7 +445,7 @@
     {
       "id": "wanqiao.passive.subtlety.fashen",
       "name": "凝听",
-      "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+      "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
       "modifiers": [
         {
           "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
@@ -458,7 +458,7 @@
     {
       "id": "wanqiao.passive.subtlety.fudu",
       "name": "伏声",
-      "description": "潜籁复响且仍有窍息时耗一层，该次附留音的概率增加5个百分点。",
+      "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击附加[[wanqiao.status.echo]]的概率提高5个百分点。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -468,7 +468,7 @@
     {
       "id": "wanqiao.passive.subtlety.zhoufa",
       "name": "通微",
-      "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+      "description": "《弦外音》等级达到或超过人物战斗等级时，本场战斗法攻提高60点。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -492,7 +492,7 @@
     {
       "id": "wanqiao.passive.subtlety.lingmu",
       "name": "入窍",
-      "description": "直接使用留音时，按当前窍息每层2%的概率直接施加三层。",
+      "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，这个概率就提高2个百分点。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -502,7 +502,7 @@
     {
       "id": "wanqiao.passive.subtlety.jiaoteng",
       "name": "交响",
-      "description": "裂帛触发耗息时，按耗息层数每层10%的概率对同一目标附一层本人留音。",
+      "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加的概率提高10个百分点。",
       "hooks": [
         {
           "on": "afterStrike",
@@ -535,7 +535,7 @@
     {
       "id": "wanqiao.passive.subtlety.bingzhui",
       "name": "截流",
-      "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+      "description": "持有窍息时对敌方灵兽施放截声，会消耗一层窍息。截声伤害提高35%，驱散目标一个增益，使其下回合无法行动的基础概率从20%提高到60%。",
       "modifiers": [
         {
           "damageBonus": "0.35*(fact.wanqiao_spent>0)",
@@ -551,7 +551,7 @@
     {
       "id": "wanqiao.passive.subtlety.jisheng",
       "name": "随隙",
-      "description": "替换裂帛的耗息强化：叩隙对带留音、毒、封印或调息的目标耗最多两层，每层伤害增加35%。",
+      "description": "裂帛改为不消耗窍息。叩隙攻击处于[[wanqiao.status.echo]]、中毒、调息或封印等控制状态的敌人时，会消耗至多两层窍息，每消耗一层，本次伤害提高35%。",
       "modifiers": [
         {
           "damageBonus": "0.35*fact.wanqiao_spent",
@@ -566,7 +566,7 @@
     {
       "id": "wanqiao.passive.subtlety.shenmu",
       "name": "中虚",
-      "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+      "description": "武器和衣甲每有一件带木元素，法术伤害提高4%，最多提高8%。",
       "modifiers": [
         {
           "damageBonus": "0.04*fact.woodEquipmentCount",
@@ -579,7 +579,7 @@
     {
       "id": "wanqiao.passive.subtlety.yueying",
       "name": "复音",
-      "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+      "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -589,7 +589,7 @@
     {
       "id": "wanqiao.passive.subtlety.xinhuo",
       "name": "续声",
-      "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+      "description": "每回合结束时，武器和衣甲每有一件带火元素，法攻就提高3点。加成可累积到本场战斗结束。",
       "hooks": [
         {
           "on": "onRoundEnd",
@@ -617,7 +617,7 @@
     {
       "id": "wanqiao.passive.subtlety.manyan",
       "name": "流韵",
-      "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+      "description": "裂帛、叩隙和截声的伤害提高10%。成功施放其中任一神通后，获得持续两回合的[[wanqiao.status.flow]]，使你造成的所有伤害提高20%。再次触发时刷新持续时间。",
       "modifiers": [
         {
           "damageBonus": 0.1,
@@ -658,7 +658,7 @@
     {
       "id": "wanqiao.passive.subtlety.posha",
       "name": "破音",
-      "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+      "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
       "modifiers": [
         {
           "critChanceAdd": 0.12,
@@ -676,7 +676,7 @@
     {
       "id": "wanqiao.passive.subtlety.jihuo",
       "name": "自应",
-      "description": "第8、16等八的倍数轮末，个人引响基础强化档加一，至多十档。",
+      "description": "第8、16、24等回合结束时，你施加的留音基础伤害额外提高6%。这项加成与引响提供的基础伤害加成共用60%的上限。",
       "hooks": [
         {
           "on": "onRoundEnd",
@@ -698,7 +698,7 @@
     {
       "id": "wanqiao.passive.subtlety.ziyang",
       "name": "内和",
-      "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+      "description": "和鸣改为只对自己施放，并额外提高15%法术伤害。和鸣被驱散时，回复的气血等于剩余回合数乘以施放时的《一息绵长》等级。",
       "hooks": [
         {
           "on": "onStatusRemoved",
@@ -724,7 +724,7 @@
     {
       "id": "wanqiao.path.resonance",
       "name": "天籁",
-      "description": "心中留空，众窍自鸣，以群声与清音应敌。",
+      "description": "擅长用众窍鸣攻击多名敌人。窍息通常每两回合自动恢复一层，可提高法攻，也可用于强化神通。部分攻击法术可触发复响，追加一次攻击。",
       "requiresConnectedNodes": true,
       "foundationPassives": [],
       "grantSkills": [],
@@ -736,7 +736,7 @@
         {
           "id": "wanqiao.node.resonance.fashen",
           "name": "凝听",
-          "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+          "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -746,7 +746,7 @@
         {
           "id": "wanqiao.node.resonance.fenghun",
           "name": "回护",
-          "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+          "description": "施放万窍山神通消耗窍息后获得护盾。每消耗一层，护盾值增加相当于人物战斗等级两倍的数值。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -766,7 +766,7 @@
         {
           "id": "wanqiao.node.resonance.zhuiji",
           "name": "再应",
-          "description": "众窍鸣触发复响且仍有窍息时耗一层，使该次复响伤害提高40%。",
+          "description": "众窍鸣追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击的伤害提高40%。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -776,7 +776,7 @@
         {
           "id": "wanqiao.node.resonance.zhoufa",
           "name": "通微",
-          "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+          "description": "《弦外音》等级达到或超过人物战斗等级时，本场战斗法攻提高60点。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -786,7 +786,7 @@
         {
           "id": "wanqiao.node.resonance.kuangye",
           "name": "空鸣",
-          "description": "零窍息施展众窍鸣时，本次技能及复响临时增加100法攻。",
+          "description": "没有窍息时施放众窍鸣，这次施法及其追加的复响攻击以额外100点法攻计算伤害。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -806,7 +806,7 @@
         {
           "id": "wanqiao.node.resonance.bingzhui",
           "name": "截流",
-          "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+          "description": "持有窍息时对敌方灵兽施放截声，会消耗一层窍息。截声伤害提高35%，驱散目标一个增益，使其下回合无法行动的基础概率从20%提高到60%。",
           "layer": 3,
           "slot": 2,
           "passives": [
@@ -816,7 +816,7 @@
         {
           "id": "wanqiao.node.resonance.cangai",
           "name": "透隙",
-          "description": "叩隙对人物有窍息时耗一层：伤害增加10%，复响率翻倍，额外造成实际气血伤害50%的伤势。",
+          "description": "持有窍息时对敌方角色施放叩隙，会消耗一层窍息。这次施法伤害提高10%，追加复响攻击的概率翻倍，并额外造成相当于目标实际损失气血50%的伤势。",
           "layer": 3,
           "slot": 3,
           "passives": [
@@ -826,7 +826,7 @@
         {
           "id": "wanqiao.node.resonance.shenmu",
           "name": "中虚",
-          "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+          "description": "武器和衣甲每有一件带木元素，法术伤害提高4%，最多提高8%。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -836,7 +836,7 @@
         {
           "id": "wanqiao.node.resonance.yueying",
           "name": "复音",
-          "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+          "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -846,7 +846,7 @@
         {
           "id": "wanqiao.node.resonance.xinhuo",
           "name": "续声",
-          "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+          "description": "每回合结束时，武器和衣甲每有一件带火元素，法攻就提高3点。加成可累积到本场战斗结束。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -856,7 +856,7 @@
         {
           "id": "wanqiao.node.resonance.chunjing",
           "name": "澄心",
-          "description": "长生阵纹独立提供的最大气血贡献额外提高70%，不立即回复气血。",
+          "description": "长生阵纹提供的气血上限加成提高70%。当前气血不变。",
           "layer": 5,
           "slot": 1,
           "panel": [
@@ -871,7 +871,7 @@
         {
           "id": "wanqiao.node.resonance.manyan",
           "name": "流韵",
-          "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+          "description": "裂帛、叩隙和截声的伤害提高10%。成功施放其中任一神通后，获得持续两回合的[[wanqiao.status.flow]]，使你造成的所有伤害提高20%。再次触发时刷新持续时间。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -881,7 +881,7 @@
         {
           "id": "wanqiao.node.resonance.posha",
           "name": "破音",
-          "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+          "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -891,7 +891,7 @@
         {
           "id": "wanqiao.node.resonance.xiaofeng",
           "name": "虚而应",
-          "description": "正常行动将正数窍息消耗至零后，本场众窍鸣复响伤害累计提高20%。",
+          "description": "每次施放神通用完手头的窍息，众窍鸣追加的复响攻击伤害就提高20%。加成可累积到本场战斗结束。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -901,7 +901,7 @@
         {
           "id": "wanqiao.node.resonance.ziyang",
           "name": "内和",
-          "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+          "description": "和鸣改为只对自己施放，并额外提高15%法术伤害。和鸣被驱散时，回复的气血等于剩余回合数乘以施放时的《一息绵长》等级。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -918,7 +918,7 @@
         {
           "id": "wanqiao.node.resonance.linggui",
           "name": "虚生息",
-          "description": "轮末零窍息时额外获得一层，不受凝听取消基础恢复的影响。",
+          "description": "回合结束时若没有窍息，获得一层。即使选择了凝听，这项恢复也会生效。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -943,7 +943,7 @@
         {
           "id": "wanqiao.node.resonance.ultimate",
           "name": "万窍齐鸣",
-          "description": "领悟本道途终极神通。",
+          "description": "解锁万窍齐鸣。消耗全部窍息发动强化的众窍鸣。",
           "layer": 7,
           "slot": 2,
           "grantSkills": [
@@ -970,7 +970,7 @@
     {
       "id": "wanqiao.path.subtlety",
       "name": "入微",
-      "description": "将余音留入气机细隙，循隙渐入，以回声侵敌。",
+      "description": "用留音让敌人在每回合结束时损失气血，再用引响加强后续伤害。窍息通常每两回合自动恢复一层，可提高法攻，也可用于强化神通。",
       "requiresConnectedNodes": true,
       "foundationPassives": [],
       "grantSkills": [
@@ -987,7 +987,7 @@
         {
           "id": "wanqiao.node.subtlety.fenghun",
           "name": "回护",
-          "description": "每消耗一层窍息，获得人物战斗等级两倍的护盾。",
+          "description": "施放万窍山神通消耗窍息后获得护盾。每消耗一层，护盾值增加相当于人物战斗等级两倍的数值。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -997,7 +997,7 @@
         {
           "id": "wanqiao.node.subtlety.mifu",
           "name": "缠音",
-          "description": "带有本人留音的单位对本人造成的伤害降低3%。",
+          "description": "带有你施加的[[wanqiao.status.echo]]的敌人，对你造成的伤害降低3%。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -1007,7 +1007,7 @@
         {
           "id": "wanqiao.node.subtlety.fashen",
           "name": "凝听",
-          "description": "取消基础偶数轮末窍息恢复，每层窍息法术暴击率增加2个百分点。",
+          "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -1017,7 +1017,7 @@
         {
           "id": "wanqiao.node.subtlety.fudu",
           "name": "伏声",
-          "description": "潜籁复响且仍有窍息时耗一层，该次附留音的概率增加5个百分点。",
+          "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击附加[[wanqiao.status.echo]]的概率提高5个百分点。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -1027,7 +1027,7 @@
         {
           "id": "wanqiao.node.subtlety.zhoufa",
           "name": "通微",
-          "description": "弦外音等级不低于人物战斗等级时，法攻增加60。",
+          "description": "《弦外音》等级达到或超过人物战斗等级时，本场战斗法攻提高60点。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -1037,7 +1037,7 @@
         {
           "id": "wanqiao.node.subtlety.lingmu",
           "name": "入窍",
-          "description": "直接使用留音时，按当前窍息每层2%的概率直接施加三层。",
+          "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，这个概率就提高2个百分点。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1047,7 +1047,7 @@
         {
           "id": "wanqiao.node.subtlety.jiaoteng",
           "name": "交响",
-          "description": "裂帛触发耗息时，按耗息层数每层10%的概率对同一目标附一层本人留音。",
+          "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加的概率提高10个百分点。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1057,7 +1057,7 @@
         {
           "id": "wanqiao.node.subtlety.bingzhui",
           "name": "截流",
-          "description": "截声对灵兽有窍息时消耗一层：冻结率增加40个百分点、伤害增加35%、驱散一个增益。",
+          "description": "持有窍息时对敌方灵兽施放截声，会消耗一层窍息。截声伤害提高35%，驱散目标一个增益，使其下回合无法行动的基础概率从20%提高到60%。",
           "layer": 3,
           "slot": 2,
           "passives": [
@@ -1067,7 +1067,7 @@
         {
           "id": "wanqiao.node.subtlety.jisheng",
           "name": "随隙",
-          "description": "替换裂帛的耗息强化：叩隙对带留音、毒、封印或调息的目标耗最多两层，每层伤害增加35%。",
+          "description": "裂帛改为不消耗窍息。叩隙攻击处于[[wanqiao.status.echo]]、中毒、调息或封印等控制状态的敌人时，会消耗至多两层窍息，每消耗一层，本次伤害提高35%。",
           "layer": 3,
           "slot": 3,
           "passives": [
@@ -1077,7 +1077,7 @@
         {
           "id": "wanqiao.node.subtlety.shenmu",
           "name": "中虚",
-          "description": "武器及衣甲的木元素每件使法术伤害提高4%，最多8%。",
+          "description": "武器和衣甲每有一件带木元素，法术伤害提高4%，最多提高8%。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -1087,7 +1087,7 @@
         {
           "id": "wanqiao.node.subtlety.yueying",
           "name": "复音",
-          "description": "本宗复响率增加6个百分点。天籁的万窍齐鸣另获得12%伤害。",
+          "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -1097,7 +1097,7 @@
         {
           "id": "wanqiao.node.subtlety.xinhuo",
           "name": "续声",
-          "description": "武器及衣甲的火元素每件在轮末增加3点法攻，可累积至本场结束。",
+          "description": "每回合结束时，武器和衣甲每有一件带火元素，法攻就提高3点。加成可累积到本场战斗结束。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -1107,7 +1107,7 @@
         {
           "id": "wanqiao.node.subtlety.chunjing",
           "name": "澄心",
-          "description": "长生阵纹独立提供的最大气血贡献额外提高70%，不立即回复气血。",
+          "description": "长生阵纹提供的气血上限加成提高70%。当前气血不变。",
           "layer": 5,
           "slot": 1,
           "panel": [
@@ -1122,7 +1122,7 @@
         {
           "id": "wanqiao.node.subtlety.manyan",
           "name": "流韵",
-          "description": "三个单法伤害提高10%；成功施放后，获得两轮全部伤害提高20%的流韵，刷新不叠加。",
+          "description": "裂帛、叩隙和截声的伤害提高10%。成功施放其中任一神通后，获得持续两回合的[[wanqiao.status.flow]]，使你造成的所有伤害提高20%。再次触发时刷新持续时间。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -1132,7 +1132,7 @@
         {
           "id": "wanqiao.node.subtlety.posha",
           "name": "破音",
-          "description": "三个单法法术暴击率增加12个百分点、暴击伤害倍率增加0.20。",
+          "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -1142,7 +1142,7 @@
         {
           "id": "wanqiao.node.subtlety.jihuo",
           "name": "自应",
-          "description": "第8、16等八的倍数轮末，个人引响基础强化档加一，至多十档。",
+          "description": "第8、16、24等回合结束时，你施加的留音基础伤害额外提高6%。这项加成与引响提供的基础伤害加成共用60%的上限。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -1152,7 +1152,7 @@
         {
           "id": "wanqiao.node.subtlety.ziyang",
           "name": "内和",
-          "description": "和鸣只作用本人，另提高15%法术伤害；被驱散时按移除前剩余回合乘施放等级回复气血。",
+          "description": "和鸣改为只对自己施放，并额外提高15%法术伤害。和鸣被驱散时，回复的气血等于剩余回合数乘以施放时的《一息绵长》等级。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -1169,7 +1169,7 @@
         {
           "id": "wanqiao.node.subtlety.ducui",
           "name": "叠韵",
-          "description": "领悟叠韵：300法力和一窍息，五轮内潜籁附留音的概率翻倍。",
+          "description": "解锁叠韵。消耗300法力和一层窍息，使潜籁附加[[wanqiao.status.echo]]的概率翻倍，持续五回合，包含施放的回合。",
           "layer": 6,
           "slot": 3,
           "grantSkills": [
@@ -1194,7 +1194,7 @@
         {
           "id": "wanqiao.node.subtlety.ultimate",
           "name": "无声之章",
-          "description": "领悟本道途终极神通。",
+          "description": "解锁无声之章。消耗全部窍息，使一名敌人受到更多法术伤害，并向敌阵分配[[wanqiao.status.echo]]。",
           "layer": 7,
           "slot": 2,
           "grantSkills": [

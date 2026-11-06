@@ -16,7 +16,7 @@
       "id": "wuxiang.skill.mind",
       "name": "一念生相",
       "school": "wuxiang",
-      "description": "一念起处，佛魔自分。\n指定的宗门技能会积烈念或寂念。集齐三念后，在回合结束时显相：烈念多为[[wuxiang.status.demon]]，寂念多为[[wuxiang.status.buddha]]。三烈、二烈一寂、一烈二寂、三寂分别持续3、4、5、8回合。显相期间不再按普通方式积念。三寂法相可以在致命时破开，回复人物等级×12的气血。受到的伤害降低1%。",
+      "description": "一念起处，佛魔自分。\n尚未显相时，每次成功施放破妄指、破障愿、摧岳、劫火散华或照隙，积1枚烈念。甘露愿、护生愿、归元愿、本愿印、莲华还生、慧眼观照、解缚还生和返照归真各积1枚寂念。\n集齐三枚后，回合结束时显相。三枚烈念显为[[wuxiang.status.demon]]，持续3回合。两烈念加一寂念也显为魔相，持续4回合。一烈念加两寂念显为[[wuxiang.status.buddha]]，持续5回合。三枚寂念也显为佛相，持续8回合。法相持续时暂停积念。\n以三枚寂念显相时，受到致命伤害会触发「金身护命」，消耗法相并回复人物等级×12的气血。受到的伤害降低1%。",
       "tags": [
         "passive"
       ],
@@ -458,7 +458,7 @@
       "id": "wuxiang.skill.pierce",
       "name": "破妄指",
       "school": "wuxiang",
-      "description": "一指破妄，直指本相。\n造成固定伤害。对战人物时攻击一人。对战生灵时，心法达到39级攻击两人，达到60级攻击三人。本相施放成功后获得1枚烈念。",
+      "description": "一指破妄，直指本相。\n造成固定伤害。对战人物时攻击一名敌人。对战生灵时，破妄指达到39级可攻击两名，达到60级可攻击三名。尚未显相时，成功施放获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -481,7 +481,7 @@
       "id": "wuxiang.skill.nectar",
       "name": "甘露愿",
       "school": "wuxiang",
-      "description": "甘露回润，同门得济。\n为友方恢复气血。显相时最多治疗三人，并额外治疗持有[[wuxiang.status.vow]]的友方。本相施放成功后获得1枚寂念。",
+      "description": "甘露回润，同门得济。\n为一名友方恢复气血。显相后，甘露愿每满40级多治疗一名友方，至多额外治疗三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -504,7 +504,7 @@
       "id": "wuxiang.skill.ward",
       "name": "护生愿",
       "school": "wuxiang",
-      "description": "护生一愿，伤势暂歇。\n使友方获得[[wuxiang.status.ward]]，本回合受到的伤害降低20%。显相时扩大作用范围。本相施放成功后获得1枚寂念。",
+      "description": "护生一愿，伤势暂歇。\n为一名友方施加[[wuxiang.status.ward]]，使其本回合受到的伤害降低，基础降幅为20%。显相后，护生愿每满40级多保护一名友方，至多额外保护三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -528,7 +528,7 @@
       "id": "wuxiang.skill.empower",
       "name": "破障愿",
       "school": "wuxiang",
-      "description": "破障一愿，攻势骤起。\n使友方获得[[wuxiang.status.empower]]，本回合造成的伤害提高20%。显相时扩大作用范围。本相施放成功后获得1枚烈念。",
+      "description": "破障一愿，攻势骤起。\n为一名友方施加[[wuxiang.status.empower]]，使其本回合造成的伤害提高，基础增幅为20%。显相后，破障愿每满40级多强化一名友方，至多额外强化三名。另可照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -552,7 +552,7 @@
       "id": "wuxiang.skill.turn",
       "name": "一念回转",
       "school": "wuxiang",
-      "description": "一念回转，烈寂互换。\n尚未显相时，交换烈念与寂念的数量。",
+      "description": "一念回转，烈寂互换。\n尚未显相且已有念头时可用。将已积攒的烈念全部转为寂念，寂念全部转为烈念。",
       "tags": [
         "spell",
         "support"
@@ -615,7 +615,7 @@
       "id": "wuxiang.skill.restore",
       "name": "返照归真",
       "school": "wuxiang",
-      "description": "返照归真，伤损复原。\n回复自身气血。尚未显相时额外修复伤势；显相时获得[[wuxiang.status.repair_guard]]，并延长法相1回合。每次显相会重置冷却。本相施放成功后获得1枚寂念。",
+      "description": "返照归真，伤损复原。\n回复自身气血，积攒的念头越多，回复越多。尚未显相时，先修复自身伤势再回复气血，成功施放后积1枚寂念。显相时获得[[wuxiang.status.repair_guard]]，并使法相延长1回合。每次显相时，本技能立即结束冷却。",
       "tags": [
         "spell",
         "support"
@@ -661,7 +661,7 @@
       "id": "wuxiang.skill.strike",
       "name": "摧岳",
       "school": "wuxiang",
-      "description": "摧岳一击，势压一人。\n对一名敌人造成物理伤害。显相时基础威力提高40%，烈念的增幅另外计算。本相施放成功后获得1枚烈念。",
+      "description": "摧岳一击，势压一人。\n对一名敌人造成物理伤害。显相时基础威力提高40%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -690,7 +690,7 @@
       "id": "wuxiang.skill.stars",
       "name": "劫火散华",
       "school": "wuxiang",
-      "description": "劫火散华，星火连落。\n对三名敌人造成物理伤害，威力为普通攻击的55%。显相时提高到80%，烈念的增幅另外计算。本相施放成功后获得1枚烈念。",
+      "description": "劫火散华，星火连落。\n对至多三名敌人造成物理伤害，威力为普通攻击的55%。显相时提高到80%，烈念的增幅另外计算。尚未显相时，成功施放获得1枚烈念。",
       "tags": [
         "physical"
       ],
@@ -723,7 +723,7 @@
       "id": "wuxiang.skill.expose",
       "name": "照隙",
       "school": "wuxiang",
-      "description": "照见空隙，破绽自现。\n使一名敌人获得[[wuxiang.status.breach]]，持续5回合。本相施放成功后获得1枚烈念。",
+      "description": "照见空隙，破绽自现。\n给一名敌人施加[[wuxiang.status.breach]]，持续5回合。你的物理攻击命中带有自己所施破绽的目标时，伤害提高并消耗破绽。尚未显相时，成功施放获得1枚烈念。",
       "tags": [
         "spell",
         "support"
@@ -744,7 +744,7 @@
       "id": "wuxiang.skill.burn",
       "name": "三念俱焚",
       "school": "wuxiang",
-      "description": "三念俱焚，余火成伤。\n燃尽尚未显化的念头，造成固定伤害。每枚念头使本次伤害提高15%。",
+      "description": "三念俱焚，余火成伤。\n尚未显相时可用。对一名敌人造成固定伤害，消耗已积攒的全部烈念与寂念，每消耗一枚使本次伤害提高15%。",
       "tags": [
         "spell",
         "support"
@@ -784,7 +784,7 @@
       "id": "wuxiang.skill.vow",
       "name": "本愿印",
       "school": "wuxiang",
-      "description": "本愿落印，护持相随。\n为一名友方结下[[wuxiang.status.vow]]。本相施放成功后获得1枚寂念。",
+      "description": "本愿落印，护持相随。\n为一名友方结下[[wuxiang.status.vow]]。施放甘露愿、护生愿、破障愿或归元愿时，也会照拂这名友方。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -817,7 +817,7 @@
       "id": "wuxiang.skill.renew",
       "name": "归元愿",
       "school": "wuxiang",
-      "description": "归元一愿，气血复全。\n为友方恢复气血，并修复伤势，使受损的气血上限复原。本相施放成功后获得1枚寂念。",
+      "description": "归元一愿，气血复全。\n为一名友方修复伤势，恢复受损的气血上限，再回复气血。也会照拂持有你的[[wuxiang.status.vow]]的友方。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -844,7 +844,7 @@
       "id": "wuxiang.skill.revive",
       "name": "莲华还生",
       "school": "wuxiang",
-      "description": "莲华还生，神魂归位。\n复活一名倒地的友方人物，恢复20%气血。本相施放成功后获得1枚寂念。",
+      "description": "莲华还生，神魂归位。\n复活一名倒地的友方人物，使其恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -867,7 +867,7 @@
       "id": "wuxiang.skill.insight",
       "name": "慧眼观照",
       "school": "wuxiang",
-      "description": "慧眼观照，气机可医。\n修复一名友方的伤势，并使其获得[[wuxiang.status.insight]]，持续3回合。本相施放成功后获得1枚寂念。",
+      "description": "慧眼观照，气机可医。\n修复一名友方的伤势，并使其获得[[wuxiang.status.insight]]，持续3回合。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -892,7 +892,7 @@
       "id": "wuxiang.skill.unbind",
       "name": "解缚还生",
       "school": "wuxiang",
-      "description": "解缚还生，拘灵松动。\n消耗30战意，使倒地友方人物的拘灵缩短1回合。拘灵结束后复活该人物，并恢复20%气血。本相施放成功后获得1枚寂念。",
+      "description": "解缚还生，拘灵松动。\n消耗30点战意和120法力，使一名倒地友方人物的[[youdu.status.soul_seal]]缩短1回合。如果目标此时已无拘灵，立即将其复活并恢复20%最大气血。尚未显相时，成功施放获得1枚寂念。",
       "tags": [
         "spell",
         "support"
@@ -933,7 +933,7 @@
       "id": "wuxiang.skill.overload",
       "name": "魔临无间",
       "school": "wuxiang",
-      "description": "魔相临世，一式尽出。\n显相时随机施展一式。摧岳式使烈念带来的物理伤害增益翻倍；若击倒目标，法相延长1回合，并且这次不会退相。散华式对六个目标造成物理伤害。若没有免除退相，法相在本回合结束时消退。冷却4回合，开战冷却2回合。",
+      "description": "魔相临世，一式尽出。\n显相时可用，两式各有一半概率。摧岳式对一名敌人造成物理伤害，烈念带来的物理增伤翻倍。若击倒目标，保留法相并延长1回合。散华式对至多六名敌人造成物理伤害。除摧岳式击倒目标外，施放后法相于本回合结束时消退。冷却4回合，开战冷却2回合。",
       "tags": [
         "physical"
       ],
@@ -1011,7 +1011,7 @@
       "id": "wuxiang.skill.cleanse",
       "name": "净业愿",
       "school": "wuxiang",
-      "description": "净业一愿，异常暂消。\n显相时随机解除目标一种可以净化的异常，并让其在本回合内不再获得相同异常。施放后法相在本回合结束时消退。",
+      "description": "净业一愿，异常暂消。\n显相时可用。随机解除一名友方的一种可净化异常，并在本回合内防止同类异常再次施加。拘灵等禁复活效果无法解除。施放后法相于本回合结束时消退。",
       "tags": [
         "spell",
         "support"
@@ -1089,7 +1089,7 @@
     {
       "id": "wuxiang.status.vow",
       "name": "本愿印",
-      "description": "持续整场。愿法会额外照顾结印者；如果结印者本来就是目标，效果提高50%。施放愿法后，再为结印者恢复人物等级加上治疗能力20%的气血。再次结印会转移旧印。",
+      "description": "由佛心济世的同名技能施加，持续整场。你施放甘露愿、护生愿、破障愿或归元愿时，也会照拂带有你所施印记的友方。如果对方已经在本次技能的目标中，受到的愿法效果提高50%。此外，每次成功施放这些愿法都会给印记持有者回复气血，回复量为你的人物等级加治疗强度的20%。再次结印会转移旧印。",
       "kind": "wuxiang.vow",
       "category": "buff",
       "sourceBound": true,
@@ -1099,7 +1099,7 @@
     {
       "id": "wuxiang.status.breach",
       "name": "破绽",
-      "description": "被指出的空隙。魔心修罗对带有自己所施破绽的目标造成物理伤害时伤害提高，打出后破绽消散。",
+      "description": "魔心修罗可用照隙施加，也可在物理攻击命中时概率施加。受到施加者的物理攻击时，伤害提高30%，并消耗破绽。施加者以三枚烈念显相时，基础增幅提高到60%。",
       "kind": "wuxiang.breach",
       "category": "debuff",
       "sourceBound": true
@@ -1116,7 +1116,7 @@
     },
     {
       "id": "wuxiang.status.insight_self",
-      "description": "自身治疗强度增加人物等级。",
+      "description": "习得「观照生慧」后，成功施放慧眼观照时获得，治疗强度增加自身人物等级，持续3回合。",
       "name": "观照生慧",
       "kind": "wuxiang.insight_self",
       "category": "buff",
@@ -1126,7 +1126,7 @@
     },
     {
       "id": "wuxiang.status.initiative",
-      "description": "本回合速度提高自身速度的15%，增加值向下取整。",
+      "description": "习得「先机」后，于每次显相的下回合获得，本回合速度提高15%。",
       "name": "先机",
       "kind": "wuxiang.initiative",
       "category": "buff",
@@ -1136,7 +1136,7 @@
     {
       "id": "wuxiang.status.repair_guard",
       "name": "返照护持",
-      "description": "本回合受到的伤害降低20%。",
+      "description": "显相时施放返照归真获得，本回合受到的伤害降低20%。",
       "kind": "wuxiang.repair_guard",
       "category": "buff",
       "expireSameRound": true,
@@ -1149,7 +1149,7 @@
     {
       "id": "wuxiang.status.demon",
       "name": "魔相",
-      "description": "烈念较多时显化的法相。按集齐时的念头比例持续，并加强物理伤害。",
+      "description": "回合结束时集齐三枚烈念，或两枚烈念与一枚寂念后显化，分别持续3或4回合。所修流派决定烈念强化的效果，魔心修罗强化物理伤害，佛心济世强化愿法。",
       "kind": "wuxiang.form",
       "category": "buff",
       "dispellable": false,
@@ -1180,7 +1180,7 @@
     {
       "id": "wuxiang.status.buddha",
       "name": "佛相",
-      "description": "寂念较多时显化的法相。按集齐时的念头比例持续，并加强治疗与守护。",
+      "description": "回合结束时集齐一枚烈念与两枚寂念，或三枚寂念后显化，分别持续5或8回合。以三枚寂念显相时，受到致命伤害会消耗法相并回复气血。",
       "kind": "wuxiang.form",
       "category": "buff",
       "dispellable": false,
@@ -1210,7 +1210,7 @@
     },
     {
       "id": "wuxiang.status.cultivation",
-      "description": "记录愿力与众生安住的修持收益：修成愿力后，治疗强度增加武器伤害贡献的24%并向下取整；封印抵抗增加众生安住在本场累计的数值。",
+      "description": "汇集「愿力」与「众生安住」两项经脉的效果。「愿力」使治疗强度增加武器所提供物理攻击的24%，向下取整。「众生安住」在己方无人倒地的回合结束时增加封印抵抗，持续本场，可累积。",
       "name": "愿力修持",
       "kind": "wuxiang.cultivation",
       "category": "buff",

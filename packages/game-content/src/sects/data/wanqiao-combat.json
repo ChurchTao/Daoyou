@@ -27,7 +27,7 @@
       "id": "wanqiao.skill.chorus",
       "name": "众窍鸣",
       "school": "wanqiao",
-      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标数随《听万窍》等级增加；每个实际目标消耗30法力。可触发复响。",
+      "description": "空山百窍，同应一声。\n对至多五名敌人造成法术伤害，目标上限随《听万窍》等级提高。每攻击一名敌人消耗30法力。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -282,7 +282,7 @@
       "id": "wanqiao.skill.pierce",
       "name": "裂帛",
       "school": "wanqiao",
-      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害，消耗至多三层窍息，每层使本次伤害提高15%；劲节改为20%，随隙则将耗息强化移至叩隙。可触发复响。",
+      "description": "清声裂帛，劲透石间。\n对一名敌人造成法术伤害。消耗至多三层窍息，每消耗一层，本次伤害提高15%。选择经脉「劲节」后每层提高20%。选择「随隙」后，裂帛不再消耗窍息，改由叩隙消耗。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -440,7 +440,7 @@
       "id": "wanqiao.skill.fissure",
       "name": "叩隙",
       "school": "wanqiao",
-      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并造成相当于实际气血伤害10%的伤势。可触发复响。",
+      "description": "循声叩隙，直入气机。\n对一名敌人造成法术伤害，并附加相当于目标实际损失气血10%的伤势。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -619,7 +619,7 @@
       "id": "wanqiao.skill.silence",
       "name": "截声",
       "school": "wanqiao",
-      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害；对灵兽有20%概率施加[[wanqiao.status.freeze_pending]]，使其下一完整回合无法行动。截流可耗息强化并驱散一个增益。可触发复响。",
+      "description": "一声截流，后音难续。\n对一名敌人造成法术伤害。目标是灵兽时，有20%概率施加[[wanqiao.status.freeze_pending]]，使其下回合无法行动。选择经脉「截流」后，可消耗一层窍息提高伤害与限制行动的概率，并驱散目标一个增益。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -797,7 +797,7 @@
       "id": "wanqiao.skill.echo",
       "name": "留音",
       "school": "wanqiao",
-      "description": "弦声已止，余音仍在。\n对一名敌人施加一层本人[[wanqiao.status.echo]]，最多三层，持续四次轮末；修成入窍后有机会直接施加三层。",
+      "description": "弦声已止，余音仍在。\n给一名敌人附加一层[[wanqiao.status.echo]]，使其在接下来的四次回合结束时损失气血，包含施放回合。每名施法者最多可在同一目标上叠三层。选择经脉「入窍」后，有机会一次叠满三层。",
       "tags": [
         "spell"
       ],
@@ -945,7 +945,7 @@
       "id": "wanqiao.skill.blood",
       "name": "泣血吟",
       "school": "wanqiao",
-      "description": "以血为弦，发出长吟。\n当前气血须不少于最大气血的50%；消耗最大气血的20%对一名敌人造成法术伤害，并进入[[wanqiao.status.spell_rest_pending]]，下一完整回合不能使用宗门神通。可触发复响。",
+      "description": "以血为弦，发出长吟。\n当前气血至少为最大气血的一半时可施放。消耗最大气血的20%，对一名敌人造成法术伤害。施放后获得[[wanqiao.status.spell_rest_pending]]，下回合无法使用宗门神通。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -1105,7 +1105,7 @@
       "id": "wanqiao.skill.rest",
       "name": "息心",
       "school": "wanqiao",
-      "description": "收声敛息，让气血徐徐回转。\n回复自身相当于《月满空山》等级四倍的气血，不能越过伤势造成的恢复上限。",
+      "description": "收声敛息，让气血徐徐回转。\n回复自己相当于《月满空山》等级四倍的气血。身上有伤势时，最多回复到伤势允许的气血上限。",
       "tags": [
         "spell"
       ],
@@ -1219,7 +1219,7 @@
       "id": "wanqiao.skill.hollow",
       "name": "含虚",
       "school": "wanqiao",
-      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]：普通护盾结算后，至多50%的名义伤害改由法力抵消，每抵消一点消耗一点法力。",
+      "description": "虚舟留白，以灵息承受来势。\n获得持续四回合的[[wanqiao.status.hollow]]。护盾吸收后剩余的伤害，最多一半可用法力抵消。每抵消一点伤害，消耗一点法力。",
       "tags": [
         "spell"
       ],
@@ -1333,7 +1333,7 @@
       "id": "wanqiao.skill.harmony",
       "name": "和鸣",
       "school": "wanqiao",
-      "description": "清声相和，众人气机同振。\n使至多三名友方获得[[wanqiao.status.harmony]]，法攻增加《一息绵长》等级的一半并向下取整，持续四回合；每个实际目标消耗25法力。内和改为仅作用本人。",
+      "description": "清声相和，众人气机同振。\n使至多三名友方获得持续四回合的[[wanqiao.status.harmony]]。法攻增加值为《一息绵长》等级的一半，舍去小数。每影响一名友方消耗25法力。选择经脉「内和」后，只对自己施放。",
       "tags": [
         "spell"
       ],
@@ -1449,7 +1449,7 @@
       "id": "wanqiao.skill.undertone",
       "name": "潜籁",
       "school": "wanqiao",
-      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，每个实际目标消耗30法力；每次命中有20%概率施加本人[[wanqiao.status.echo]]。本次行动命中已有本人留音的目标时，至多返还一层窍息。可触发复响。",
+      "description": "声潜细隙，余韵暗生。\n对至多五名敌人造成法术伤害，每攻击一名敌人消耗30法力。命中还没有你的留音的敌人时，有20%概率附加一层[[wanqiao.status.echo]]。本次施法命中已有你的留音的敌人时，最多恢复一层窍息。可触发复响，追加一次攻击。",
       "tags": [
         "spell"
       ],
@@ -1703,7 +1703,7 @@
       "id": "wanqiao.skill.catalyze",
       "name": "引响",
       "school": "wanqiao",
-      "description": "轻叩余音，使暗伏之声骤然响起。\n对目标身上的本人[[wanqiao.status.echo]]追加一次当前结算伤害，并以[[wanqiao.status.amplified]]强化后续留音；持有窍息时消耗一层，强化所有敌方身上的本人留音。本场留音基础伤害每次再提高6%，至多提高60%。",
+      "description": "轻叩余音，使暗伏之声骤然响起。\n让目标身上由你施加的[[wanqiao.status.echo]]立刻造成一次伤害，并施加[[wanqiao.status.amplified]]，提高之后每回合的留音伤害。持有窍息时消耗一层，把强化效果施加给所有带有你的留音的敌人。每次施放还会使本场留音的基础伤害提高6%，最多提高60%。",
       "tags": [
         "spell"
       ],
@@ -1966,7 +1966,7 @@
       "id": "wanqiao.skill.resonate",
       "name": "万窍齐鸣",
       "school": "wanqiao",
-      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息，消耗全部窍息施展一次众窍鸣，每消耗一层使本次伤害提高16%；选中经脉「复音」后再提高12%。开场冷却三回合，施放后冷却六回合；不触发复响。",
+      "description": "山中万窍齐应，声浪一时尽起。\n至少持有一层窍息才能施放。消耗全部窍息发动一次众窍鸣，每消耗一层，本次伤害提高16%。选择经脉「复音」后，伤害再提高12%。开场冷却三回合，施放后冷却六回合。这次攻击不会触发复响。",
       "tags": [
         "spell"
       ],
@@ -2109,7 +2109,7 @@
       "id": "wanqiao.skill.coda",
       "name": "无声之章",
       "school": "wanqiao",
-      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息，消耗全部窍息，使一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]：法术承伤提高16%，每消耗一层窍息再提高2%；随机敌方累计获得三层、每消耗一层再增加半层本人留音，半层按概率结算。施放后冷却八回合，不触发复响。",
+      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息才能施放。消耗全部窍息，让一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]，受到的法术伤害提高16%，每消耗一层窍息再提高2个百分点。同时向随机敌人分配三层[[wanqiao.status.echo]]。每消耗两层窍息就多分配一层，若消耗的是奇数层，则有50%概率再分配一层。施放后冷却八回合，不触发复响。",
       "tags": [
         "spell"
       ],
@@ -2742,7 +2742,7 @@
       "id": "wanqiao.passive.foundation",
       "name": "空谷应声",
       "school": "wanqiao",
-      "description": "空谷有应，气息往复而不绝。\n窍息最多六层，每层使法攻提高10；开场窍息取《一息绵长》等级除以60向下取整，偶数轮末恢复一层。部分直接法术有2%概率复响，追加40%伤害。",
+      "description": "空谷有应，气息往复而不绝。\n窍息是万窍山用来强化神通的战斗资源，最多六层，每层提高10点法攻。《一息绵长》每满60级，开场多获得一层窍息。第2、4、6等偶数回合结束时恢复一层。众窍鸣、裂帛、叩隙、截声、泣血吟和潜籁有2%的基础概率触发复响，追加一次威力为原攻击40%的攻击。",
       "tags": [
         "passive"
       ],
@@ -3400,7 +3400,7 @@
     {
       "id": "wanqiao.status.empty_power",
       "name": "空鸣",
-      "description": "零窍息施展众窍鸣时，本次技能及复响临时获得100法攻；行动结束后消失。",
+      "description": "选择经脉「空鸣」后，没有窍息时施放众窍鸣会触发。只在这次施法及其追加的复响攻击中，临时提高100点法攻。",
       "kind": "wanqiao.empty_power",
       "school": "wanqiao",
       "category": "buff",
@@ -3438,7 +3438,7 @@
     {
       "id": "wanqiao.status.echo",
       "name": "留音",
-      "description": "由施法者分别维持的余音，最多三层。每次轮末按施放心法等级、层数及持续时间造成固定气血伤害；引响可强化后续结算。",
+      "description": "留音、潜籁等神通可在敌人身上留下留音。每名施法者在同一敌人身上最多叠三层。回合结束时造成固定气血伤害，层数越多伤害越高，前三次结算的伤害会逐次提高。基础伤害受施法者《弦外音》等级影响，也可用引响加强。",
       "kind": "wanqiao.mist",
       "school": "wanqiao",
       "category": "dot",
@@ -3454,7 +3454,7 @@
     {
       "id": "wanqiao.status.amplified",
       "name": "引响",
-      "description": "强化施法者本人留在此目标上的留音：后续轮末伤害对人物提高至两倍，对其他目标提高至四倍。",
+      "description": "施放引响后，施法者留在该目标身上的留音会增强。之后每回合结束时，留音对玩家角色造成两倍伤害，对其他目标造成四倍伤害。",
       "kind": "wanqiao.amplified",
       "school": "wanqiao",
       "category": "debuff",
@@ -3463,7 +3463,7 @@
     {
       "id": "wanqiao.status.hollow",
       "name": "含虚",
-      "description": "普通护盾结算后，至多50%的名义伤害改由法力抵消；每抵消一点消耗一点法力，法力不足时仍会损失气血。",
+      "description": "施放含虚后，护盾吸收完剩下的伤害，最多一半可用法力抵消。每抵消一点伤害消耗一点法力。未抵消的伤害仍会扣除气血。",
       "kind": "wanqiao.hollow",
       "school": "wanqiao",
       "category": "buff",
@@ -3472,7 +3472,7 @@
     {
       "id": "wanqiao.status.harmony",
       "name": "和鸣",
-      "description": "法攻按施放时《一息绵长》等级的一半提高，向下取整；修成内和时，另提高15%法术伤害。",
+      "description": "由和鸣神通施加。法攻提高，增加值为施放时《一息绵长》等级的一半，舍去小数。选择经脉「内和」后，另提高15%法术伤害。",
       "kind": "wanqiao.harmony",
       "school": "wanqiao",
       "category": "buff",
@@ -3492,7 +3492,7 @@
     {
       "id": "wanqiao.status.distill",
       "name": "叠韵",
-      "description": "潜籁附加留音的概率翻倍，最多为100%；持续五回合，包含施放的当前回合。",
+      "description": "施放叠韵后获得。潜籁附加留音的概率翻倍，最高100%。持续五回合，包含施放的回合。",
       "kind": "wanqiao.distill",
       "school": "wanqiao",
       "category": "buff",
@@ -3501,7 +3501,7 @@
     {
       "id": "wanqiao.status.flow",
       "name": "流韵",
-      "description": "全部伤害提高20%，持续两回合；再次触发时刷新持续时间，不会叠加。",
+      "description": "选择经脉「流韵」后，成功施放裂帛、叩隙或截声即可获得流韵。造成的所有伤害提高20%，持续两回合。再次触发时刷新持续时间。",
       "kind": "wanqiao.flow",
       "school": "wanqiao",
       "category": "buff",
@@ -3514,7 +3514,7 @@
     {
       "id": "wanqiao.status.vulnerable",
       "name": "无声之章",
-      "description": "受到的法术伤害提高16%；施放者每消耗一层窍息再提高2%。持续两回合。",
+      "description": "被无声之章选中的敌人受到的法术伤害提高16%，施法者每消耗一层窍息再提高2个百分点。持续两回合。",
       "kind": "wanqiao.vulnerable",
       "school": "wanqiao",
       "category": "debuff",
@@ -3531,7 +3531,7 @@
     {
       "id": "wanqiao.status.freeze_pending",
       "name": "截声将至",
-      "description": "本回合尚可行动；下一个完整回合会转为截声，使目标无法行动。",
+      "description": "万窍山的截声神通可让敌方灵兽获得此状态。灵兽本回合仍能行动，下回合无法行动。",
       "kind": "wanqiao.freeze_pending",
       "school": "wanqiao",
       "category": "control",
@@ -3545,7 +3545,7 @@
     {
       "id": "wanqiao.status.freeze",
       "name": "截声",
-      "description": "本回合无法行动，回合结束后解除。",
+      "description": "由截声将至转成。灵兽本回合无法行动，回合结束时解除。",
       "kind": "wanqiao.freeze",
       "school": "wanqiao",
       "category": "control",
@@ -3557,7 +3557,7 @@
     {
       "id": "wanqiao.status.spell_rest_pending",
       "name": "泣血余息",
-      "description": "泣血吟施放后，本回合不禁法；下一个完整回合会进入禁法调息。",
+      "description": "施放泣血吟后获得。下回合进入禁法调息，无法使用宗门神通。",
       "kind": "wanqiao.spell_rest_pending",
       "school": "wanqiao",
       "category": "buff",
@@ -3571,7 +3571,7 @@
     {
       "id": "wanqiao.status.spell_rest",
       "name": "禁法调息",
-      "description": "本回合不能使用宗门神通，仍可普通攻击或防御；回合结束后解除。",
+      "description": "施放泣血吟后的下回合生效。本回合无法使用宗门神通，仍可普通攻击或防御。",
       "kind": "wanqiao.spell_rest",
       "school": "wanqiao",
       "category": "buff",

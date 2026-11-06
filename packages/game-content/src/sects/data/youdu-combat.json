@@ -51,7 +51,7 @@
           "damageBonus": 1
         }
       ],
-      "description": "裂魂一咒，神魂震裂。\n对多名敌人造成固定伤害，并留下魂伤，降低气血恢复上限。对怪物造成的伤害加倍。"
+      "description": "裂魂一咒，神魂震裂。\n对多名敌人造成固定伤害并留下伤势，使其可回复到的气血上限降低。裂魂咒每满25级多攻击一名敌人，至多七名。对生灵造成的伤害加倍。"
     },
     {
       "id": "youdu.skill.wither",
@@ -87,7 +87,7 @@
         }
       ],
       "costMp": 40,
-      "description": "魂毒蚀骨，形神同损。\n对敌人造成固定伤害，并施加[[youdu.status.poison]]，持续3回合。同时为己方存活人物恢复气血。"
+      "description": "魂毒蚀骨，形神同损。\n对一名敌人造成相当于其当前气血10%的固定伤害，最多为技能等级的8倍。施加[[youdu.status.poison]]，持续3回合，并为己方在场存活的人物恢复气血。"
     },
     {
       "id": "youdu.skill.pursuit",
@@ -139,7 +139,7 @@
         }
       ],
       "costMp": 50,
-      "description": "拘住命魂，归路已断。\n使敌方人物陷入[[youdu.status.soul_seal]]，无法被复活，持续5回合。倒地后仍然保留。"
+      "description": "拘住命魂，归路已断。\n可对站立或倒地的敌方人物施放。命中时施加[[youdu.status.soul_seal]]，使其5回合内无法被复活，倒地后仍保留。"
     },
     {
       "id": "youdu.skill.insight",
@@ -162,14 +162,14 @@
         }
       ],
       "costMp": 20,
-      "description": "法眼洞幽，隐者无所遁。\n为友方施加[[youdu.status.insight]]，持续5回合。"
+      "description": "法眼洞幽，隐者无所遁。\n为友方施加[[youdu.status.insight]]，持续5回合，使其能够看破隐身，并降低被封印的概率。洞幽法眼每满30级多作用一名友方，至多六名。"
     },
     {
       "id": "youdu.skill.judge",
       "name": "灭魂杀",
       "school": "youdu",
       "costMp": 20,
-      "description": "灭魂一杀，直取神魂。\n对一名敌人造成固定伤害，并削减其法力。",
+      "description": "灭魂一杀，直取神魂。\n对一名敌人造成固定伤害，并使其失去相当于灭魂杀技能等级的法力。",
       "tags": [
         "spell"
       ],
@@ -193,7 +193,7 @@
       "name": "还魂决",
       "school": "youdu",
       "costMp": 150,
-      "description": "还魂归身，气血再续。\n复活一名倒地队友并恢复部分气血，使其获得[[youdu.status.revival]]，持续5回合。",
+      "description": "还魂归身，气血再续。\n复活一名可复活的倒地友方人物，使其恢复30%最大气血，并获得[[youdu.status.revival]]，持续5回合。",
       "tags": [
         "spell"
       ],
@@ -222,7 +222,7 @@
       "name": "涤魂诀",
       "school": "youdu",
       "costMp": 40,
-      "description": "涤去护持，术法散落。\n移除敌人一个由宗门法术赋予的、可以驱散的增益。",
+      "description": "涤去护持，术法散落。\n驱散一名敌人身上所有由宗门技能施加的可驱散增益。",
       "tags": [
         "spell"
       ],
@@ -323,7 +323,7 @@
         }
       ],
       "cooldownRounds": 4,
-      "description": "魂契共鸣，亡者仍助一臂。\n为己方倒地单位施加[[youdu.status.soul_chase]]。此术不复活目标。"
+      "description": "魂契共鸣，亡者仍助一臂。\n给一名倒地的友方施加[[youdu.status.soul_chase]]。目标仍然倒地，复活后可获得印记提供的增伤。冷却4回合。"
     },
     {
       "id": "youdu.skill.blood_shadow",
@@ -346,7 +346,7 @@
           ]
         }
       ],
-      "description": "血影蚀心，直取形体。\n对一名敌人造成物理伤害，威力与普通攻击相同。"
+      "description": "血影蚀心，直取形体。\n对一名敌人造成物理伤害，威力与普通攻击相同。命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。"
     },
     {
       "id": "youdu.skill.ghost_swarm",
@@ -370,7 +370,7 @@
           ]
         }
       ],
-      "description": "百鬼噬魂，群起扑食。\n对4名敌人造成物理伤害，威力为普通攻击的80%。每个目标消耗35法力。"
+      "description": "百鬼噬魂，群起扑食。\n对至多四名敌人造成物理伤害，威力为普通攻击的80%，每个目标消耗35法力。命中时有30%概率施加[[youdu.status.poison]]，持续3回合。自身有[[youdu.status.poison_shroud]]时，概率提高到60%。"
     },
     {
       "id": "youdu.skill.poison_shroud",
@@ -442,7 +442,7 @@
           }
         }
       ],
-      "description": "摧形散法，护持难存。\n对一名敌人造成物理伤害，威力为普通攻击的110%，并随机驱散1个增益。目标带有魂毒时改为驱散2个。"
+      "description": "摧形散法，护持难存。\n对一名敌人造成物理伤害，威力为普通攻击的110%，并随机驱散一个可驱散的增益。目标带有[[youdu.status.poison]]或灵兽施加的毒时，最多驱散两个。"
     },
     {
       "id": "youdu.skill.life_and_death",
@@ -475,7 +475,7 @@
       ],
       "cooldownRounds": 36,
       "initialCooldownRounds": 18,
-      "description": "夺其生息，反哺己身。\n对一名敌人造成物理伤害，威力为普通攻击的230%。自身恢复本次让目标损失的气血，并随机驱散目标1个增益。目标带有魂毒时，暴击伤害倍率提高60%。开战冷却18回合，使用后冷却36回合。",
+      "description": "夺其生息，反哺己身。\n对一名敌人造成普通攻击230%的物理伤害，并随机驱散其一个可驱散的增益。目标本次实际损失多少气血，你就回复多少。目标带有[[youdu.status.poison]]或灵兽施加的毒时，物理暴击倍率增加0.60。开战冷却18回合，施放后冷却36回合。若你是队中唯一的幽都弟子，每回合结束时，敌方每有一名倒地人物或一个在场存活且带魂毒的目标，额外缩短2回合冷却。",
       "modifiers": [
         {
           "when": {
@@ -532,7 +532,7 @@
     {
       "id": "youdu.status.poison",
       "name": "魂毒",
-      "description": "每回合结束时损失气血和法力。气血为最大气血的4%，至多心法等级×8；法力为最大法力的2%，至多心法等级。",
+      "description": "销魂蚀骨可以施加魂毒，蚀魂摧形流派的血影蚀心和百鬼噬魂也有机会施加。每回合结束时损失最大气血的4%和最大法力的2%。每次最多损失施毒心法等级×8的气血，以及相当于该心法等级的法力。",
       "kind": "youdu.poison",
       "category": "dot",
       "ticks": "roundEnd",
@@ -562,7 +562,7 @@
     {
       "id": "youdu.status.slow",
       "name": "滞魂",
-      "description": "速度降低，降幅为心法等级的20%。",
+      "description": "由滞魂咒施加，速度降低施术心法等级的20%，降幅向下取整。",
       "kind": "youdu.slow",
       "category": "debuff",
       "speedMod": "-floor(skillLevel * 0.2)"
@@ -570,7 +570,7 @@
     {
       "id": "youdu.status.soul_seal",
       "name": "拘灵",
-      "description": "无法被复活。倒地后仍然保留。",
+      "description": "拘灵术命中后施加，幽都经脉「封魂」和「锁魄」也能在敌方人物倒地时施加。持有拘灵时无法被复活，倒地后仍保留。",
       "kind": "youdu.soul_seal",
       "category": "control",
       "blocksRevive": true,
@@ -599,7 +599,7 @@
     {
       "id": "youdu.status.stealth",
       "name": "幽影",
-      "description": "没有看破能力的敌人无法选定目标。无法使用法术。维持时每回合消耗法力，自己15点，队友10点。",
+      "description": "由幽影遁施加。没有看破能力的敌人无法选中你，你也无法施放法术。由施术者支付维持费用，每回合为自己消耗15法力，为每名隐身友方消耗10法力。施术者离场、倒地或法力不足时，隐身消失。",
       "kind": "youdu.stealth",
       "category": "buff",
       "untargetable": true,
@@ -624,7 +624,7 @@
     },
     {
       "id": "youdu.status.siphon_strong",
-      "description": "摄魂的强化形态，造成的伤害降低15%，受到的伤害提高15%。",
+      "description": "习得「摄魂入微」后，由摄魂施加。造成的伤害降低15%，受到的伤害提高15%。",
       "name": "摄魂",
       "kind": "youdu.siphon",
       "category": "debuff",
@@ -637,7 +637,7 @@
     },
     {
       "id": "youdu.status.bound_soul",
-      "description": "对倒地目标留下的拘魄，受到的伤害提高3%。倒地后保留，持续本场战斗。",
+      "description": "习得「拘魄」经脉后，可用摄魂对倒地敌人施加此状态。目标受到的伤害提高3%，倒地后仍保留，持续本场战斗。",
       "name": "拘魄",
       "kind": "youdu.bound_soul",
       "category": "debuff",
@@ -652,7 +652,7 @@
     },
     {
       "id": "youdu.status.judgment_ready",
-      "description": "敌方非灵兽单位倒下后获得，灭魂杀伤害提高50%。本次灭魂杀没有击倒非灵兽目标时消耗。",
+      "description": "习得「断魂」经脉后，你在场存活时，敌方人物或生灵倒下便获得。灭魂杀伤害提高50%，若本次灭魂杀没有击倒人物或生灵则消耗。",
       "name": "断魂",
       "kind": "youdu.judgment_ready",
       "category": "buff",
@@ -670,7 +670,7 @@
     },
     {
       "id": "youdu.status.slow_strong",
-      "description": "滞魂的强化形态，速度减少施放心法等级×20%向下取整后数值的1.5倍。",
+      "description": "习得「迟魂」后，由滞魂咒施加。基础减速量是施术心法等级的20%，向下取整，再提高50%。",
       "name": "滞魂",
       "kind": "youdu.slow",
       "category": "debuff",
@@ -678,7 +678,7 @@
     },
     {
       "id": "youdu.status.insight_strong",
-      "description": "可以看破隐身，受到的封印命中概率变为原来的85%。",
+      "description": "习得「明心」后，由洞幽法眼施加。可以看破隐身，敌人对你施加封印的命中概率变为原来的85%。",
       "name": "洞幽法眼",
       "kind": "youdu.insight",
       "category": "buff",
@@ -687,7 +687,7 @@
     },
     {
       "id": "youdu.status.soul_flight",
-      "description": "涤魂诀留下的当回合记录。携带此记录的敌方人物本回合倒下时，封魂经脉会为其附加2回合拘灵，限制复活；本记录自身不直接禁复活。",
+      "description": "习得「封魂」经脉后，用涤魂诀标记敌方人物。若此人在本回合倒地，便获得2回合拘灵，期间无法被复活。",
       "name": "封魂",
       "kind": "youdu.soul_flight",
       "category": "debuff",
@@ -698,7 +698,7 @@
     },
     {
       "id": "youdu.status.death_echo",
-      "description": "使下一次成功施放的拘灵术多持续1回合，成功施放后消耗此效果。",
+      "description": "习得「魂响」经脉后，带有你所施拘灵的敌方人物倒地时获得，持续3回合。下次拘灵术若命中，拘灵多持续1回合。拘灵术一经施放就会消耗魂响。",
       "name": "魂响",
       "kind": "youdu.death_echo",
       "category": "buff",
@@ -720,7 +720,7 @@
     {
       "id": "youdu.status.soul_chase",
       "name": "魂契共鸣",
-      "description": "持续到战斗结束，无法被驱散。造成的物理伤害、法术伤害和固定伤害提高，基础4%，己方每有一个此状态再提高2%。",
+      "description": "由同名技能施加给倒地的友方，持续整场，无法驱散。持有者直接造成的物理伤害、法术伤害和法术固定伤害提高4%，己方每有一名带印记的成员，再提高2%。倒地的持有者也计入人数。",
       "kind": "youdu.soul_chase",
       "category": "buff",
       "untilBattleEnd": true,
@@ -762,7 +762,7 @@
     },
     {
       "id": "youdu.status.enter_soul_pending",
-      "description": "成功施放摄魂后的蓄势记录，本回合结束时转为入魂，强化下一回合的物理伤害。",
+      "description": "习得「入魂」经脉后，成功施放摄魂时获得。回合结束时转为入魂，下回合物理伤害提高15%。",
       "name": "入魂蓄势",
       "kind": "youdu.enter_soul_pending",
       "category": "buff",
@@ -775,7 +775,7 @@
     },
     {
       "id": "youdu.status.enter_soul",
-      "description": "造成的物理伤害提高15%。",
+      "description": "习得「入魂」经脉后，成功施放摄魂的下回合获得。本回合物理伤害提高15%。",
       "name": "入魂",
       "kind": "youdu.enter_soul",
       "category": "buff",
@@ -784,7 +784,7 @@
     },
     {
       "id": "youdu.status.evil_flame",
-      "description": "噬魂增威触发后，造成的物理伤害提高12%。",
+      "description": "习得「噬魂增威」后，带有魂毒的敌方生灵或灵兽阵亡时获得。造成的物理伤害提高12%，持续6回合。",
       "name": "噬魂增威",
       "kind": "youdu.evil_flame",
       "category": "buff",
@@ -793,7 +793,7 @@
     },
     {
       "id": "youdu.status.reincarnation",
-      "description": "物理攻击提高60，受到的物理伤害额外减少60。物理暴击率、忽视物防比例、物理狂暴概率和封印抵抗概率各增加60÷max(1，人物等级×10)，此式按概率小数计算。",
+      "description": "物理攻击增加60点，受到的物理伤害额外减少60点。物理暴击率、物理防御忽视率、物理狂暴概率和封印抵抗概率各提高「600÷人物等级」个百分点。",
       "name": "六魂归元",
       "kind": "youdu.reincarnation",
       "category": "buff",
@@ -819,7 +819,7 @@
     {
       "id": "youdu.status.poison_shroud",
       "name": "森罗迷障",
-      "description": "血影蚀心和百鬼噬魂更容易附加魂毒。",
+      "description": "由同名技能施加给自身，持续10回合。血影蚀心和百鬼噬魂命中时，施加魂毒的概率由30%提高到60%。",
       "kind": "youdu.poison_shroud",
       "category": "buff",
       "extendable": false

@@ -6,7 +6,7 @@
     {
       "id": "xiaoyue.passive.bond.foundation",
       "name": "狮魂同契",
-      "description": "本人狮搏击倒非灵兽敌人后，本宠获得一层狮魂；下次正常直接物理第一击增伤8%，有狮王时为10%。",
+      "description": "你用狮搏击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得[[xiaoyue.status.lion_soul]]。",
       "hooks": [
         {
           "on": "onDeath",
@@ -149,7 +149,7 @@
     {
       "id": "xiaoyue.passive.blood.1.1",
       "name": "爪印",
-      "description": "攻击或受击给敌人爪印，至多六层；每目标每轮首击每层追加人物等级的最终伤害。",
+      "description": "你的直接物理攻击命中敌人，或敌人的直接物理攻击使你损失气血时，为对方叠加一层[[xiaoyue.status.claw]]，最多六层。每回合首次用直接物理攻击命中同一敌人时，它已有的每层爪印都额外造成相当于你人物等级的伤害。",
       "hooks": [
         {
           "on": "afterStrike",
@@ -213,7 +213,7 @@
     {
       "id": "xiaoyue.passive.blood.1.2",
       "name": "迅捷",
-      "description": "对 NPC 进场获得短兽形，期间物攻降低人物等级。",
+      "description": "对战非玩家敌人时，开场自动获得一回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
       "hooks": [
         {
           "on": "onRoundStart",
@@ -244,7 +244,7 @@
     {
       "id": "xiaoyue.passive.blood.1.3",
       "name": "驭兽",
-      "description": "同队在场灵兽造成伤害+3%、承伤-3%，同类效果不叠加。",
+      "description": "我方在场灵兽造成的伤害提高3%，受到的伤害降低3%。同队的驭兽效果不会叠加。",
       "modifiers": [
         {
           "teamAura": "xiaoyue.blood.beast_aura",
@@ -265,7 +265,7 @@
     {
       "id": "xiaoyue.passive.blood.2.1",
       "name": "化血",
-      "description": "本人直接物理攻击每段有30%概率回复实际气血伤害的16%。",
+      "description": "你的每次直接物理攻击使目标损失气血时，有30%概率为自己回复所造成气血损失的16%。多段攻击逐段判定。",
       "hooks": [
         {
           "on": "afterDamage",
@@ -291,7 +291,7 @@
     {
       "id": "xiaoyue.passive.blood.2.2",
       "name": "宁息",
-      "description": "兽形多持续一回合；击倒目标时15%概率再延一回合。",
+      "description": "主动施放的[[xiaoyue.status.transform]]多持续一回合。兽形期间击倒敌人时，有15%概率再延长一回合，每回合最多判定一次。",
       "modifiers": [
         {
           "statusDurationAdd": {
@@ -333,7 +333,7 @@
     {
       "id": "xiaoyue.passive.blood.2.3",
       "name": "兽王",
-      "description": "受封时降低封印命中率上限，每名同队在场灵兽降低2个百分点。",
+      "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限就降低2个百分点。",
       "modifiers": [
         {
           "sealChanceCeilTakenAdd": "-0.02*allyStandingPets"
@@ -343,7 +343,7 @@
     {
       "id": "xiaoyue.passive.blood.3.1",
       "name": "威压",
-      "description": "狮搏对敌方灵兽增伤20%，35%概率附加下轮禁动。",
+      "description": "狮搏对敌方灵兽的伤害提高20%。命中时有35%概率施加[[xiaoyue.status.pressure_pending]]，使它从下回合起无法行动。",
       "modifiers": [
         {
           "damageResultFactor": 1.2,
@@ -384,7 +384,7 @@
     {
       "id": "xiaoyue.passive.blood.3.2",
       "name": "鹰啸",
-      "description": "主动兽形后的首次鹏击有30%概率全段增伤40%；鹏击后消耗该机会。",
+      "description": "主动变为兽形后，首次施放鹏击时有30%概率使本次鹏击对所有目标的伤害提高40%。施放后消耗这次机会。",
       "hooks": [
         {
           "on": "afterAction",
@@ -409,12 +409,12 @@
     {
       "id": "xiaoyue.passive.blood.3.3",
       "name": "怒象",
-      "description": "气血低于30%时，镇形有70%概率保留兽形并延长两回合。"
+      "description": "当前气血低于上限的30%时，施放镇形有70%概率保留[[xiaoyue.status.transform]]，并延长两回合。"
     },
     {
       "id": "xiaoyue.passive.blood.4.1",
       "name": "九天",
-      "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
       "modifiers": [
         {
           "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.blood.4.1*knownSkillLevel.xiaoyue.passive.blood.4.1/60)",
@@ -437,7 +437,7 @@
     {
       "id": "xiaoyue.passive.blood.4.2",
       "name": "展翅",
-      "description": "主动兽形后的首个完整回合闪避增加人物等级20%的点数。",
+      "description": "主动变为兽形后，下回合获得[[xiaoyue.status.wing_guard]]，躲避提高，增加值为人物等级的20%，舍去小数。",
       "hooks": [
         {
           "on": "afterAction",
@@ -476,7 +476,7 @@
     {
       "id": "xiaoyue.passive.blood.5.1",
       "name": "怒火",
-      "description": "双剑合璧或摧灵斩后，本宠本轮下一次正常直接物理第一击伤害+32%。",
+      "description": "成功施放道装器诀「双剑合璧」或「摧灵斩」后，自己的出战灵兽获得[[xiaoyue.status.anger_pet]]。它本回合下一次直接物理攻击的首击伤害提高32%。",
       "hooks": [
         {
           "on": "afterAction",
@@ -546,7 +546,7 @@
     {
       "id": "xiaoyue.passive.blood.5.2",
       "name": "狂袭",
-      "description": "反震实际损血的5%转物攻一回合；致命反震留1气血，根行动结束后倒地。",
+      "description": "你因敌方反震损失气血时，获得[[xiaoyue.status.recoil]]，物攻提高所损失气血的5%，持续一回合。若反震本会使你倒地，你先保留1点气血，等引发反震的那次行动结束后再倒地。",
       "hooks": [
         {
           "on": "afterDamage",
@@ -628,7 +628,7 @@
     {
       "id": "xiaoyue.passive.blood.6.1",
       "name": "死地",
-      "description": "本人本场阵亡后，下次鹏击临时物攻+200。",
+      "description": "本场战斗中倒地再起后，下一次施放鹏击时临时提高200点物攻。",
       "modifiers": [
         {
           "physicalAttackAdd": 200,
@@ -676,7 +676,7 @@
     {
       "id": "xiaoyue.passive.blood.6.2",
       "name": "乱击",
-      "description": "连环击不取消兽形，改扣剩余两回合；本次物攻+狂兽诀等级、结果+10%。",
+      "description": "连环击改为缩短兽形两回合。施放时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
       "modifiers": [
         {
           "physicalAttackAdd": "skillLevel",
@@ -693,7 +693,7 @@
     {
       "id": "xiaoyue.passive.blood.6.3",
       "name": "肝胆",
-      "description": "每只不同本人灵兽首次入场提高鹏击和连环击免休息率2%，最多六只。",
+      "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率提高2个百分点。最多计六只，同一只灵兽再次出战不重复计算。",
       "hooks": [
         {
           "on": "onPetSummoned",
@@ -745,7 +745,7 @@
     {
       "id": "xiaoyue.passive.blood.7.2",
       "name": "背水",
-      "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人。",
+      "description": "友方用净化解除你身上的封印后，你获得[[xiaoyue.status.backwater]]。两回合内下一次鹏击额外攻击一名敌人。",
       "hooks": [
         {
           "on": "onStatusRemoved",
@@ -802,7 +802,7 @@
     {
       "id": "xiaoyue.passive.bond.1.1",
       "name": "狮王",
-      "description": "狮魂首击增幅由8%提高25%至10%。"
+      "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次直接物理攻击的首击增伤由8%提高到10%。"
     },
     {
       "id": "xiaoyue.passive.bond.1.2",
@@ -819,7 +819,7 @@
     {
       "id": "xiaoyue.passive.bond.1.3",
       "name": "图腾",
-      "description": "灵兽获得狮魂时，主人记录下一次狮搏结果提高4%；需原本宠仍在场，最迟下回合末失效。",
+      "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]时，你的下一次狮搏伤害提高4%。触发时的灵兽须仍在场且存活，最迟下回合末失效。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -888,7 +888,7 @@
     {
       "id": "xiaoyue.passive.bond.2.1",
       "name": "回光",
-      "description": "前宠阵亡后首次换入替补时，50%概率使替补下次正常物理首击+10%。",
+      "description": "自己的出战灵兽阵亡后，第一次换上替补时，有50%概率让替补获得[[xiaoyue.status.rebirth_bonus]]，使它下一次直接物理攻击的首击伤害提高10%。",
       "hooks": [
         {
           "on": "onDeath",
@@ -930,7 +930,7 @@
     {
       "id": "xiaoyue.passive.bond.2.2",
       "name": "育养",
-      "description": "本人每轮首次造成实际物理伤害时，30%概率为本宠回复伤害的18%，每轮至多本宠最大气血8%。",
+      "description": "每回合你的直接物理攻击首次使敌人损失气血时，有30%概率为自己的出战灵兽回复相当于这次气血损失18%的气血，最多回复它最大气血的8%。",
       "hooks": [
         {
           "on": "afterDamage",
@@ -960,7 +960,7 @@
     {
       "id": "xiaoyue.passive.bond.2.3",
       "name": "守势",
-      "description": "本宠每轮首次被敌方直接攻击命中时，护盾前伤害降低10%。",
+      "description": "自己的出战灵兽每回合第一次被敌人直接攻击命中时，该次伤害降低10%，再由护盾吸收。",
       "hooks": [
         {
           "on": "onHitCalc",
@@ -985,7 +985,7 @@
     {
       "id": "xiaoyue.passive.bond.3.1",
       "name": "护盾",
-      "description": "本宠获得狮魂时，刷新不叠加护盾：12×狂兽诀等级，上限本宠最大气血10%。",
+      "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]时，同时获得护盾。护盾值为《狂兽诀》等级的12倍，最多为灵兽最大气血的10%。再次触发时刷新护盾。",
       "hooks": [
         {
           "on": "onStatusResolved",
@@ -1017,7 +1017,7 @@
     {
       "id": "xiaoyue.passive.bond.3.2",
       "name": "狂化",
-      "description": "兽形期间，本宠每轮首次命中的正常物理首击有12%概率伤害翻倍。",
+      "description": "你处于兽形时，自己的出战灵兽每回合首次直接物理攻击命中时，有12%概率使这一击的伤害翻倍。",
       "hooks": [
         {
           "on": "onHitCalc",
@@ -1068,7 +1068,7 @@
     {
       "id": "xiaoyue.passive.bond.4.1",
       "name": "协同",
-      "description": "本队仅一名本宗时，本人与本宠每轮首次攻击已封印目标，各增伤12%。",
+      "description": "你是队中唯一的百兽崖弟子时，你和自己的出战灵兽每回合首次用直接物理攻击命中已被封印的敌人，各自的这一击伤害提高12%。",
       "hooks": [
         {
           "on": "onHitCalc",
@@ -1114,7 +1114,7 @@
     {
       "id": "xiaoyue.passive.bond.4.2",
       "name": "九天",
-      "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+      "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
       "modifiers": [
         {
           "hitAdd": "floor(knownSkillLevel.xiaoyue.passive.bond.4.2*knownSkillLevel.xiaoyue.passive.bond.4.2/60)",
@@ -1137,7 +1137,7 @@
     {
       "id": "xiaoyue.passive.bond.4.3",
       "name": "嗜血",
-      "description": "本宠在 PvP 正常攻击击倒玩家后，正常直接物理伤害提高10%两回合。",
+      "description": "玩家对战中，自己的出战灵兽用直接攻击击倒敌方玩家角色后，获得持续两回合的[[xiaoyue.status.bloodlust]]，直接物理伤害提高10%。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1180,7 +1180,7 @@
     {
       "id": "xiaoyue.passive.bond.5.1",
       "name": "羁绊",
-      "description": "本人或本宠实际受疗后，另一方回复该值18%；每轮上限受益者最大气血8%，不递归。",
+      "description": "你或自己的出战灵兽受到治疗后，另一方也回复相当于实际治疗量18%的气血。每回合最多为另一方回复其最大气血的8%。这份额外治疗不会再次触发羁绊。",
       "hooks": [
         {
           "on": "afterHeal",
@@ -1219,7 +1219,7 @@
     {
       "id": "xiaoyue.passive.bond.5.2",
       "name": "报恩",
-      "description": "本宠每轮首次正常直接物理伤害后30%概率为主人回复其实际伤害18%，每轮最多主人最大气血8%。",
+      "description": "自己的出战灵兽每回合首次用直接物理攻击使敌人损失气血时，有30%概率为你回复相当于这次气血损失18%的气血，最多回复你最大气血的8%。",
       "hooks": [
         {
           "on": "afterDamage",
@@ -1250,7 +1250,7 @@
     {
       "id": "xiaoyue.passive.bond.5.3",
       "name": "钢牙",
-      "description": "武器、衣甲每有一件金元素，本人狮搏与本宠正常物理首击各增伤5%，至多10%。",
+      "description": "武器和衣甲每有一件带金元素，你的狮搏和自己出战灵兽每回合首次直接物理命中的伤害就提高5%，最多提高10%。",
       "modifiers": [
         {
           "damageResultFactor": "1+0.05*min(2,fact.metalEquipmentCount)",
@@ -1287,7 +1287,7 @@
     {
       "id": "xiaoyue.passive.bond.6.1",
       "name": "复仇",
-      "description": "主人倒地时标记击倒者；本宠下次正常攻击该目标首击增伤20%，本场一次。",
+      "description": "你倒地时，若自己的出战灵兽仍在场且存活，就给击倒你的敌人施加[[xiaoyue.status.revenge]]。这只灵兽下一次行动若用直接物理攻击命中该敌人，首击伤害提高20%。每场战斗只能触发一次。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1398,7 +1398,7 @@
     {
       "id": "xiaoyue.passive.bond.6.2",
       "name": "逞凶",
-      "description": "本人或本宠击倒敌方玩家后，对该玩家所属灵兽的正常直接物理伤害提高8%。",
+      "description": "玩家对战中，你或自己的出战灵兽击倒敌方玩家角色时，为该角色施加[[xiaoyue.status.chengxiong]]。之后你和自己的出战灵兽对该角色所属灵兽造成的直接物理伤害提高8%。",
       "hooks": [
         {
           "on": "onDeath",
@@ -1475,7 +1475,7 @@
     {
       "id": "xiaoyue.passive.bond.6.3",
       "name": "救主",
-      "description": "主人倒地且本宠足额站立时，每场仅一次50%机会以本宠最大气血30%为代价复活主人10%气血。",
+      "description": "回合结束时，若你已倒地、可以复活，且自己的出战灵兽仍在场并能在扣除30%最大气血后存活，有50%概率扣除这部分气血，使你以10%最大气血复活。每场战斗只判定一次。",
       "hooks": [
         {
           "on": "onRoundEnd",
@@ -1513,7 +1513,7 @@
     {
       "id": "xiaoyue.passive.bond.7.2",
       "name": "最佳搭档",
-      "description": "兽形且本宠站立时可用最佳搭档；本人狮搏并标记目标，本宠下一次同目标正常物理首击增强20%。",
+      "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若对同一目标使用直接物理攻击，首击伤害提高20%。",
       "modifiers": [
         {
           "ownedPetAura": true,
@@ -1655,7 +1655,7 @@
         {
           "id": "xiaoyue.node.blood.1.1",
           "name": "爪印",
-          "description": "攻击或受击给敌人爪印，至多六层；每目标每轮首击每层追加人物等级的最终伤害。",
+          "description": "你的直接物理攻击命中敌人，或敌人的直接物理攻击使你损失气血时，为对方叠加一层[[xiaoyue.status.claw]]，最多六层。每回合首次用直接物理攻击命中同一敌人时，它已有的每层爪印都额外造成相当于你人物等级的伤害。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -1665,7 +1665,7 @@
         {
           "id": "xiaoyue.node.blood.1.2",
           "name": "迅捷",
-          "description": "对 NPC 进场获得短兽形，期间物攻降低人物等级。",
+          "description": "对战非玩家敌人时，开场自动获得一回合[[xiaoyue.status.transform]]。期间物攻降低，降低值等于你的人物等级。",
           "layer": 1,
           "slot": 2,
           "passives": [
@@ -1675,7 +1675,7 @@
         {
           "id": "xiaoyue.node.blood.1.3",
           "name": "驭兽",
-          "description": "同队在场灵兽造成伤害+3%、承伤-3%，同类效果不叠加。",
+          "description": "我方在场灵兽造成的伤害提高3%，受到的伤害降低3%。同队的驭兽效果不会叠加。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -1685,7 +1685,7 @@
         {
           "id": "xiaoyue.node.blood.2.1",
           "name": "化血",
-          "description": "本人直接物理攻击每段有30%概率回复实际气血伤害的16%。",
+          "description": "你的每次直接物理攻击使目标损失气血时，有30%概率为自己回复所造成气血损失的16%。多段攻击逐段判定。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -1695,7 +1695,7 @@
         {
           "id": "xiaoyue.node.blood.2.2",
           "name": "宁息",
-          "description": "兽形多持续一回合；击倒目标时15%概率再延一回合。",
+          "description": "主动施放的[[xiaoyue.status.transform]]多持续一回合。兽形期间击倒敌人时，有15%概率再延长一回合，每回合最多判定一次。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -1705,7 +1705,7 @@
         {
           "id": "xiaoyue.node.blood.2.3",
           "name": "兽王",
-          "description": "受封时降低封印命中率上限，每名同队在场灵兽降低2个百分点。",
+          "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限就降低2个百分点。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1715,7 +1715,7 @@
         {
           "id": "xiaoyue.node.blood.3.1",
           "name": "威压",
-          "description": "狮搏对敌方灵兽增伤20%，35%概率附加下轮禁动。",
+          "description": "狮搏对敌方灵兽的伤害提高20%。命中时有35%概率施加[[xiaoyue.status.pressure_pending]]，使它从下回合起无法行动。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1725,7 +1725,7 @@
         {
           "id": "xiaoyue.node.blood.3.2",
           "name": "鹰啸",
-          "description": "主动兽形后的首次鹏击有30%概率全段增伤40%；鹏击后消耗该机会。",
+          "description": "主动变为兽形后，首次施放鹏击时有30%概率使本次鹏击对所有目标的伤害提高40%。施放后消耗这次机会。",
           "layer": 3,
           "slot": 2,
           "passives": [
@@ -1735,7 +1735,7 @@
         {
           "id": "xiaoyue.node.blood.3.3",
           "name": "怒象",
-          "description": "气血低于30%时，镇形有70%概率保留兽形并延长两回合。",
+          "description": "当前气血低于上限的30%时，施放镇形有70%概率保留[[xiaoyue.status.transform]]，并延长两回合。",
           "layer": 3,
           "slot": 3,
           "passives": [
@@ -1745,7 +1745,7 @@
         {
           "id": "xiaoyue.node.blood.4.1",
           "name": "九天",
-          "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -1755,7 +1755,7 @@
         {
           "id": "xiaoyue.node.blood.4.2",
           "name": "展翅",
-          "description": "主动兽形后的首个完整回合闪避增加人物等级20%的点数。",
+          "description": "主动变为兽形后，下回合获得[[xiaoyue.status.wing_guard]]，躲避提高，增加值为人物等级的20%，舍去小数。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -1775,7 +1775,7 @@
         {
           "id": "xiaoyue.node.blood.5.1",
           "name": "怒火",
-          "description": "双剑合璧或摧灵斩后，本宠本轮下一次正常直接物理第一击伤害+32%。",
+          "description": "成功施放道装器诀「双剑合璧」或「摧灵斩」后，自己的出战灵兽获得[[xiaoyue.status.anger_pet]]。它本回合下一次直接物理攻击的首击伤害提高32%。",
           "layer": 5,
           "slot": 1,
           "passives": [
@@ -1785,7 +1785,7 @@
         {
           "id": "xiaoyue.node.blood.5.2",
           "name": "狂袭",
-          "description": "反震实际损血的5%转物攻一回合；致命反震留1气血，根行动结束后倒地。",
+          "description": "你因敌方反震损失气血时，获得[[xiaoyue.status.recoil]]，物攻提高所损失气血的5%，持续一回合。若反震本会使你倒地，你先保留1点气血，等引发反震的那次行动结束后再倒地。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -1805,7 +1805,7 @@
         {
           "id": "xiaoyue.node.blood.6.1",
           "name": "死地",
-          "description": "本人本场阵亡后，下次鹏击临时物攻+200。",
+          "description": "本场战斗中倒地再起后，下一次施放鹏击时临时提高200点物攻。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -1815,7 +1815,7 @@
         {
           "id": "xiaoyue.node.blood.6.2",
           "name": "乱击",
-          "description": "连环击不取消兽形，改扣剩余两回合；本次物攻+狂兽诀等级、结果+10%。",
+          "description": "连环击改为缩短兽形两回合。施放时临时提高相当于《狂兽诀》等级的物攻，本次伤害额外提高10%。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -1825,7 +1825,7 @@
         {
           "id": "xiaoyue.node.blood.6.3",
           "name": "肝胆",
-          "description": "每只不同本人灵兽首次入场提高鹏击和连环击免休息率2%，最多六只。",
+          "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率提高2个百分点。最多计六只，同一只灵兽再次出战不重复计算。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -1850,7 +1850,7 @@
         {
           "id": "xiaoyue.node.blood.7.2",
           "name": "背水",
-          "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人。",
+          "description": "友方用净化解除你身上的封印后，你获得[[xiaoyue.status.backwater]]。两回合内下一次鹏击额外攻击一名敌人。",
           "layer": 7,
           "slot": 2,
           "passives": [
@@ -1877,7 +1877,7 @@
     {
       "id": "xiaoyue.path.bond",
       "name": "灵兽同契",
-      "description": "与本人出战灵兽平等相应，各凭所长并肩作战；无灵兽时协同收益暂失效。",
+      "description": "与自己的出战灵兽并肩作战。你用狮搏击倒非灵兽敌人时，仍在场且存活的灵兽会获得狮魂，下一次直接物理攻击的首击伤害提高8%。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "xiaoyue.passive.bond.foundation"
@@ -1889,7 +1889,7 @@
         {
           "id": "xiaoyue.node.bond.1.1",
           "name": "狮王",
-          "description": "狮魂首击增幅由8%提高25%至10%。",
+          "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]后，下一次直接物理攻击的首击增伤由8%提高到10%。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -1909,7 +1909,7 @@
         {
           "id": "xiaoyue.node.bond.1.3",
           "name": "图腾",
-          "description": "灵兽获得狮魂时，主人记录下一次狮搏结果提高4%；需原本宠仍在场，最迟下回合末失效。",
+          "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]时，你的下一次狮搏伤害提高4%。触发时的灵兽须仍在场且存活，最迟下回合末失效。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -1919,7 +1919,7 @@
         {
           "id": "xiaoyue.node.bond.2.1",
           "name": "回光",
-          "description": "前宠阵亡后首次换入替补时，50%概率使替补下次正常物理首击+10%。",
+          "description": "自己的出战灵兽阵亡后，第一次换上替补时，有50%概率让替补获得[[xiaoyue.status.rebirth_bonus]]，使它下一次直接物理攻击的首击伤害提高10%。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -1929,7 +1929,7 @@
         {
           "id": "xiaoyue.node.bond.2.2",
           "name": "育养",
-          "description": "本人每轮首次造成实际物理伤害时，30%概率为本宠回复伤害的18%，每轮至多本宠最大气血8%。",
+          "description": "每回合你的直接物理攻击首次使敌人损失气血时，有30%概率为自己的出战灵兽回复相当于这次气血损失18%的气血，最多回复它最大气血的8%。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -1939,7 +1939,7 @@
         {
           "id": "xiaoyue.node.bond.2.3",
           "name": "守势",
-          "description": "本宠每轮首次被敌方直接攻击命中时，护盾前伤害降低10%。",
+          "description": "自己的出战灵兽每回合第一次被敌人直接攻击命中时，该次伤害降低10%，再由护盾吸收。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1949,7 +1949,7 @@
         {
           "id": "xiaoyue.node.bond.3.1",
           "name": "护盾",
-          "description": "本宠获得狮魂时，刷新不叠加护盾：12×狂兽诀等级，上限本宠最大气血10%。",
+          "description": "出战灵兽获得[[xiaoyue.status.lion_soul]]时，同时获得护盾。护盾值为《狂兽诀》等级的12倍，最多为灵兽最大气血的10%。再次触发时刷新护盾。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1959,7 +1959,7 @@
         {
           "id": "xiaoyue.node.bond.3.2",
           "name": "狂化",
-          "description": "兽形期间，本宠每轮首次命中的正常物理首击有12%概率伤害翻倍。",
+          "description": "你处于兽形时，自己的出战灵兽每回合首次直接物理攻击命中时，有12%概率使这一击的伤害翻倍。",
           "layer": 3,
           "slot": 2,
           "passives": [
@@ -1979,7 +1979,7 @@
         {
           "id": "xiaoyue.node.bond.4.1",
           "name": "协同",
-          "description": "本队仅一名本宗时，本人与本宠每轮首次攻击已封印目标，各增伤12%。",
+          "description": "你是队中唯一的百兽崖弟子时，你和自己的出战灵兽每回合首次用直接物理攻击命中已被封印的敌人，各自的这一击伤害提高12%。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -1989,7 +1989,7 @@
         {
           "id": "xiaoyue.node.bond.4.2",
           "name": "九天",
-          "description": "本队仅一名本宗时命中增加观羽步等级平方除60的向下取整值，鹏击增伤5%。",
+          "description": "你是队中唯一的百兽崖弟子时，鹏击伤害提高5%，命中也会提高。命中增加值为《观羽步》等级的平方除以60，舍去小数。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -1999,7 +1999,7 @@
         {
           "id": "xiaoyue.node.bond.4.3",
           "name": "嗜血",
-          "description": "本宠在 PvP 正常攻击击倒玩家后，正常直接物理伤害提高10%两回合。",
+          "description": "玩家对战中，自己的出战灵兽用直接攻击击倒敌方玩家角色后，获得持续两回合的[[xiaoyue.status.bloodlust]]，直接物理伤害提高10%。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -2009,7 +2009,7 @@
         {
           "id": "xiaoyue.node.bond.5.1",
           "name": "羁绊",
-          "description": "本人或本宠实际受疗后，另一方回复该值18%；每轮上限受益者最大气血8%，不递归。",
+          "description": "你或自己的出战灵兽受到治疗后，另一方也回复相当于实际治疗量18%的气血。每回合最多为另一方回复其最大气血的8%。这份额外治疗不会再次触发羁绊。",
           "layer": 5,
           "slot": 1,
           "passives": [
@@ -2019,7 +2019,7 @@
         {
           "id": "xiaoyue.node.bond.5.2",
           "name": "报恩",
-          "description": "本宠每轮首次正常直接物理伤害后30%概率为主人回复其实际伤害18%，每轮最多主人最大气血8%。",
+          "description": "自己的出战灵兽每回合首次用直接物理攻击使敌人损失气血时，有30%概率为你回复相当于这次气血损失18%的气血，最多回复你最大气血的8%。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -2029,7 +2029,7 @@
         {
           "id": "xiaoyue.node.bond.5.3",
           "name": "钢牙",
-          "description": "武器、衣甲每有一件金元素，本人狮搏与本宠正常物理首击各增伤5%，至多10%。",
+          "description": "武器和衣甲每有一件带金元素，你的狮搏和自己出战灵兽每回合首次直接物理命中的伤害就提高5%，最多提高10%。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -2039,7 +2039,7 @@
         {
           "id": "xiaoyue.node.bond.6.1",
           "name": "复仇",
-          "description": "主人倒地时标记击倒者；本宠下次正常攻击该目标首击增伤20%，本场一次。",
+          "description": "你倒地时，若自己的出战灵兽仍在场且存活，就给击倒你的敌人施加[[xiaoyue.status.revenge]]。这只灵兽下一次行动若用直接物理攻击命中该敌人，首击伤害提高20%。每场战斗只能触发一次。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -2049,7 +2049,7 @@
         {
           "id": "xiaoyue.node.bond.6.2",
           "name": "逞凶",
-          "description": "本人或本宠击倒敌方玩家后，对该玩家所属灵兽的正常直接物理伤害提高8%。",
+          "description": "玩家对战中，你或自己的出战灵兽击倒敌方玩家角色时，为该角色施加[[xiaoyue.status.chengxiong]]。之后你和自己的出战灵兽对该角色所属灵兽造成的直接物理伤害提高8%。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -2059,7 +2059,7 @@
         {
           "id": "xiaoyue.node.bond.6.3",
           "name": "救主",
-          "description": "主人倒地且本宠足额站立时，每场仅一次50%机会以本宠最大气血30%为代价复活主人10%气血。",
+          "description": "回合结束时，若你已倒地、可以复活，且自己的出战灵兽仍在场并能在扣除30%最大气血后存活，有50%概率扣除这部分气血，使你以10%最大气血复活。每场战斗只判定一次。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -2080,7 +2080,7 @@
         {
           "id": "xiaoyue.node.bond.7.2",
           "name": "最佳搭档",
-          "description": "兽形且本宠站立时可用最佳搭档；本人狮搏并标记目标，本宠下一次同目标正常物理首击增强20%。",
+          "description": "解锁最佳搭档。处于兽形且自己的出战灵兽存活时，可攻击并标记一名敌人。该灵兽下一次行动若对同一目标使用直接物理攻击，首击伤害提高20%。",
           "layer": 7,
           "slot": 2,
           "grantSkills": [

@@ -17,7 +17,7 @@
       "skill": {
         "id": "tianyan.skill.wood",
         "name": "森罗缚",
-        "description": "藤蔓束敌，森罗成缚。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.bind]]，速度降低10%，持续2回合。水印时，为气血比例最低的一名友方施加[[tianyan.status.regrowth]]。土印时，使目标陷入[[tianyan.status.foundation_break]]，持续2回合。成功后留下[[tianyan.status.mark.wood]]。",
+        "description": "藤蔓束敌，森罗成缚。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.bind]]，速度降低10%，持续2回合。持有水行法印时触发[[tianyan.status.regrowth]]，使气血比例最低的一名友方持续恢复气血。持有土行法印时，使敌人陷入[[tianyan.status.foundation_break]]，法术防御降低15%，持续2回合。施放成功后留下[[tianyan.status.mark.wood]]。",
         "school": "tianyan",
         "costMp": "35*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.water+hasStatus.tianyan.status.mark.earth))*(1-0.10*known.tianyan.passive.heng_root)",
         "tags": [
@@ -76,7 +76,7 @@
       "skill": {
         "id": "tianyan.skill.fire",
         "name": "焚天流火",
-        "description": "流火焚天，延烧敌阵。\n对三名敌人造成法术伤害。木印时改为攻击四人，每个未能利用的燎原新增名额使本次直接伤害提高15%。金印时使受击目标陷入[[tianyan.status.melt]]，持续2回合。成功后留下[[tianyan.status.mark.fire]]。",
+        "description": "流火焚天，延烧敌阵。\n对最多三名敌人造成法术伤害。持有木行法印时触发「燎原」，最多可攻击四名敌人。若无法选中第四名敌人，本次法术的直接伤害提高15%。持有金行法印时，使受击目标陷入[[tianyan.status.melt]]，物理攻击和法术攻击各降低10%，持续2回合。施放成功后留下[[tianyan.status.mark.fire]]。",
         "school": "tianyan",
         "costMp": "75*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.wood+hasStatus.tianyan.status.mark.metal))*(1+0.10*known.tianyan.passive.scarlet)",
         "tags": [
@@ -130,7 +130,7 @@
       "skill": {
         "id": "tianyan.skill.earth",
         "name": "山河倾覆",
-        "description": "山河倾覆，压住来势。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.weaken]]，持续2回合。火印时为自身附加2回合护盾。水印时使目标陷入[[tianyan.status.seal]]，持续1回合。成功后留下[[tianyan.status.mark.earth]]。",
+        "description": "山河倾覆，压住来势。\n对一名敌人造成法术伤害，并施加[[tianyan.status.weaken]]，使其下一次行动造成的物理或法术伤害降低15%，效果在2回合内有效。持有火行法印时触发「烬垒」，为自身附加持续2回合的护盾。持有水行法印时，有概率使敌人陷入[[tianyan.status.seal]]，1回合内无法使用法术。施放成功后留下[[tianyan.status.mark.earth]]。",
         "school": "tianyan",
         "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.fire+hasStatus.tianyan.status.mark.water))*(1-0.10*known.tianyan.passive.heng_root)*(1+known.tianyan.passive.mountain*(0.20-0.30*known.tianyan.passive.severance))",
         "tags": [
@@ -208,7 +208,7 @@
       "skill": {
         "id": "tianyan.skill.metal",
         "name": "天锋一线",
-        "description": "一线天锋，专破护持。\n对一名敌人造成法术伤害。打在护盾上的这部分伤害提高50%。土印时额外忽视20%法术防御。木印时驱散目标一个可驱散增益。成功后留下[[tianyan.status.mark.metal]]。",
+        "description": "一线天锋，专破护持。\n对一名敌人造成法术伤害，打在护盾上的伤害额外提高50%。持有土行法印时触发「淬锋」，额外忽视目标20%的法术防御。持有木行法印时触发「断枝」，移除目标一个可驱散的增益。施放成功后留下[[tianyan.status.mark.metal]]。",
         "school": "tianyan",
         "costMp": "40*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.earth+hasStatus.tianyan.status.mark.wood))*(1-0.10*known.tianyan.passive.heng_root)",
         "tags": [
@@ -272,7 +272,7 @@
       "skill": {
         "id": "tianyan.skill.water",
         "name": "沧海横流",
-        "description": "沧海横流，法力更省。\n对三名敌人造成法术伤害。金印时治疗气血比例最低的一名友方。火印时本次法术伤害提高30%。成功后留下[[tianyan.status.mark.water]]。",
+        "description": "沧海横流，法力更省。\n对最多三名敌人造成法术伤害。持有金行法印时触发「凝露」，治疗气血比例最低的一名友方。持有火行法印时触发「蒸腾」，本次法术伤害提高30%。施放成功后留下[[tianyan.status.mark.water]]。",
         "school": "tianyan",
         "costMp": "45*(1-0.25*known.tianyan.passive.return*(hasStatus.tianyan.status.mark.metal+hasStatus.tianyan.status.mark.fire))*(1-0.20*known.tianyan.passive.stream)*(1-0.10*known.tianyan.passive.calm)",
         "tags": [
@@ -366,7 +366,7 @@
     {
       "id": "tianyan.skill.clarity",
       "name": "澄灵诀",
-      "description": "澄灵一拂，浊气散去。\n为一名友方移除一个可驱散的持续伤害或属性减益。不改变法印。",
+      "description": "澄灵一拂，浊气散去。\n为一名友方移除一个可驱散的持续伤害或普通减益。封印行动、物理攻击、施法或复活的状态仍会保留。法印保持原样。",
       "school": "tianyan",
       "costMp": "30*(1+0.5*max(known.tianyan.passive.clear,known.tianyan.passive.mirror))*(1+0.2*known.tianyan.passive.springwater)",
       "cooldownRounds": 2,
@@ -405,7 +405,7 @@
     {
       "id": "tianyan.skill.borrow",
       "name": "借势",
-      "description": "借势而行，印随相生。\n对一名敌人造成法术伤害，并获得2回合护盾。将现有法印推进到相生的下一行。需要已经持有法印。",
+      "description": "借势而行，印随相生。\n持有法印时可用。对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」将当前法印换成下一种。换印本身没有额外的相生或相克效果。",
       "school": "tianyan",
       "costMp": 40,
       "cooldownRounds": 3,
@@ -507,7 +507,7 @@
     {
       "id": "tianyan.skill.truce",
       "name": "止戈",
-      "description": "止戈息争，来势转弱。\n对一名敌人造成法术伤害，并使其陷入[[tianyan.status.truce]]，持续2回合。不改变法印。",
+      "description": "止戈息争，来势转弱。\n对一名敌人造成法术伤害，并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。法印保持原样。",
       "school": "tianyan",
       "costMp": 40,
       "cooldownRounds": 3,

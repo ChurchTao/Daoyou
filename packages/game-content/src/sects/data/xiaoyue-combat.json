@@ -57,7 +57,7 @@
       "id": "xiaoyue.skill.lion_strike",
       "name": "狮搏",
       "school": "xiaoyue",
-      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。",
+      "description": "借兽形之势，近身一搏。\n兽形期间消耗30法力，攻击一名敌人，物理伤害系数1.15。启用灵兽同契时，击倒非灵兽敌人可让自己在场且存活的灵兽获得[[xiaoyue.status.lion_soul]]。",
       "tags": [
         "physical"
       ],
@@ -78,7 +78,7 @@
       "id": "xiaoyue.skill.eagle_strike",
       "name": "鹏击",
       "school": "xiaoyue",
-      "description": "振羽凌空，俯冲敌阵。\n兽形期间攻击多名敌人；《生死搏》达到30／50／75／125级时，至多攻击3／4／5／6人。基础消耗30法力，每增加一个实际目标另耗10法力；出手后进入[[xiaoyue.status.rest]]，冷却两回合。",
+      "description": "振羽凌空，俯冲敌阵。\n兽形期间可攻击多名敌人。《生死搏》达到30／50／75／125级时，最多攻击3／4／5／6名敌人。攻击第一名敌人消耗30法力，每多攻击一名额外消耗10法力。出手后进入[[xiaoyue.status.rest]]，冷却两回合。",
       "tags": [
         "physical"
       ],
@@ -139,7 +139,7 @@
       "id": "xiaoyue.skill.chain_strike",
       "name": "连环击",
       "school": "xiaoyue",
-      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人；《狂兽诀》达到30／50／75／125／175级时，出手2／3／5／6／7段。每段预付30法力，目标倒地即停止余段；出手后进入[[xiaoyue.status.rest]]并取消兽形，习得乱击后改为缩短兽形两回合。",
+      "description": "连势不绝，逼敌失守。\n兽形期间连续攻击一名敌人。《狂兽诀》达到30／50／75／125／175级时，分别攻击2／3／5／6／7次。出手前按攻击次数一次付清，每次30法力。目标倒地时，剩余攻击停止。出手后进入[[xiaoyue.status.rest]]并结束兽形。选择经脉「乱击」后，改为缩短兽形两回合。",
       "tags": [
         "physical"
       ],
@@ -204,7 +204,7 @@
       "id": "xiaoyue.skill.elephant_seal",
       "name": "镇形",
       "school": "xiaoyue",
-      "description": "踏地镇形，以攻势封住去路。\n兽形期间消耗50法力攻击一名敌人；物理命中后另作封印判定，命中者下一完整行动窗口受[[xiaoyue.status.stun]]限制。施放后取消兽形，自身下一回合受[[xiaoyue.status.spell_rest]]限制。",
+      "description": "踏地镇形，以攻势封住去路。\n兽形期间消耗50法力攻击一名敌人。物理攻击命中后，有机会封印目标，使其下回合进入[[xiaoyue.status.stun]]。施放后自己下回合进入[[xiaoyue.status.spell_rest]]。通常会结束兽形，经脉「怒象」有机会保留兽形。",
       "tags": [
         "physical",
         "seal"
@@ -284,7 +284,7 @@
       "id": "xiaoyue.skill.intimidate",
       "name": "兽威",
       "school": "xiaoyue",
-      "description": "观兽之威，令敌暂缓进逼。\n消耗20法力封印一名敌方灵兽或普通生灵，使其下一完整行动窗口受[[xiaoyue.status.stun]]限制；不能选择玩家角色，免控目标仍可抵御。",
+      "description": "观兽之威，令敌暂缓进逼。\n消耗20法力尝试封印一名敌方灵兽或普通生灵。封印成功时，目标下回合进入[[xiaoyue.status.stun]]。玩家角色不能被选为目标，免疫控制的目标不会被封印。",
       "tags": [
         "seal"
       ],
@@ -311,7 +311,7 @@
       "id": "xiaoyue.skill.meditate",
       "name": "定心",
       "school": "xiaoyue",
-      "description": "收束心神，稳住吐息。\n消耗40法力获得[[xiaoyue.status.calm]]，法攻和法防各增加《百兽化形》等级的30%向下取整值，持续四个后续回合。",
+      "description": "收束心神，稳住吐息。\n消耗40法力获得[[xiaoyue.status.calm]]，持续四个后续回合。法攻和法防各提高《百兽化形》等级的30%，舍去小数。",
       "tags": [
         "support"
       ],
@@ -332,7 +332,7 @@
       "id": "xiaoyue.skill.frenzy",
       "name": "狂反",
       "school": "xiaoyue",
-      "description": "守中蓄势，受击即反扑。\n消耗30法力获得[[xiaoyue.status.frenzy]]，持续三个后续回合；受敌方直接物理攻击命中时自动反击，反击物理系数0.5，同一次行动至多反击一次。",
+      "description": "守中蓄势，受击即反扑。\n消耗30法力获得[[xiaoyue.status.frenzy]]，持续三个后续回合；受到敌人的直接物理攻击并损失气血时自动反击，反击物理系数0.5，同一次行动至多反击一次。",
       "tags": [
         "support"
       ],
@@ -374,7 +374,7 @@
       "id": "xiaoyue.skill.demon_unbound",
       "name": "裂甲狂身",
       "school": "xiaoyue",
-      "description": "舍护身之势，换迅猛攻势。\n消耗30法力获得[[xiaoyue.status.demon_unbound]]：以施放前物防为基准，物防降低50%，原物防的10%转为物攻，持续三个后续回合；死亡即清除，复活当回合不可施放。",
+      "description": "舍护身之势，换迅猛攻势。\n消耗30法力获得[[xiaoyue.status.demon_unbound]]。物防降为施放前的一半，物攻提高施放前物防的10%，持续三个后续回合。倒地后解除，复活的回合无法施放。",
       "tags": [
         "support"
       ],
@@ -396,7 +396,7 @@
       "id": "xiaoyue.skill.best_partners",
       "name": "最佳搭档",
       "school": "xiaoyue",
-      "description": "一人一兽各守其步，于同一破绽相应。\n须处于兽形且本人灵兽站立；消耗500法力，冷却八回合、入场冷却四回合。本人狮搏并给目标施加[[xiaoyue.status.best_partner_mark]]；原本出战灵兽下一次正常物理攻击同目标时首击增强20%。双方协同攻击不可被保护，不额外产生灵兽行动。",
+      "description": "一人一兽各守其步，于同一破绽相应。\n处于兽形且自己的出战灵兽仍在场、存活时才可施放。消耗500法力，用狮搏攻击并施加[[xiaoyue.status.best_partner_mark]]。施放时在场的灵兽在下次行动中用直接物理攻击命中该目标时，首击伤害提高20%。灵兽仍按自己的指令行动。这两次攻击都无法被护卫代挡。开场冷却四回合，施放后冷却八回合。",
       "tags": [
         "physical"
       ],
@@ -434,7 +434,7 @@
       "id": "xiaoyue.skill.foundation",
       "name": "兽王本能",
       "school": "xiaoyue",
-      "description": "兽形起落之间，留住反扑的本能。\n管理兽形余势与回气；狂反期间受敌方直接物理命中时，对攻击者自动反击，同一次行动至多一次。",
+      "description": "兽形起落之间，留住反扑的本能。\n处于[[xiaoyue.status.mana_breath]]时，每回合结束回复法力。处于[[xiaoyue.status.frenzy]]时，受到敌人的直接物理攻击并损失气血时，会自动反击，同一次行动最多反击一次。兽形结束时，由迅捷或主动化形带来的额外效果一并消失。",
       "tags": [
         "passive"
       ],
@@ -522,7 +522,7 @@
       "name": "主动兽形余势",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "主动兽形后保留的首次鹏击机会：习得鹰啸时，该次鹏击有30%概率使全部打击伤害结果提高40%；鹏击后消耗。",
+      "description": "主动变为兽形时获得。若选择了经脉「鹰啸」，接下来首次施放鹏击时，有30%概率使这次鹏击对所有目标的伤害提高40%。施放鹏击或兽形结束时解除。",
       "dispellable": false
     },
     {
@@ -531,7 +531,7 @@
       "name": "迅捷减攻",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "迅捷在对 NPC 开场时给予的短兽形代价：物攻暂时降低人物等级；兽形结束时一并清除。",
+      "description": "对战非玩家敌人时，经脉「迅捷」会在开场自动变为兽形。期间物攻暂时降低，降低值等于人物等级。兽形结束时解除。",
       "dispellable": false,
       "attrMods": {
         "physicalAtk": "-level"
@@ -543,7 +543,7 @@
       "name": "力竭休息",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "下一次人物行动休息，灵兽仍可正常行动；休息后解除。",
+      "description": "施放鹏击或连环击后，你要跳过下一次行动，灵兽照常行动。休息后解除。经脉「肝胆」有机会免去休息。",
       "dispellable": false
     },
     {
@@ -552,7 +552,7 @@
       "name": "镇形待生效",
       "school": "xiaoyue",
       "category": "control",
-      "description": "封印已命中，将在目标下一完整行动窗口转为镇形禁动；免控与封印抵抗按施加时规则判定。",
+      "description": "被镇形或兽威成功封印时获得。下回合进入镇形禁动，无法行动。",
       "dispellable": true,
       "expireSameRound": true,
       "onExpire": {
@@ -566,7 +566,7 @@
       "name": "镇形禁动",
       "school": "xiaoyue",
       "category": "control",
-      "description": "下一完整行动窗口无法行动，持续一个回合。",
+      "description": "被镇形或兽威封印后，于下一回合生效。本回合无法行动，回合结束时解除。",
       "dispellable": true,
       "isSeal": true,
       "blocksAction": true,
@@ -592,7 +592,7 @@
       "name": "镇形禁法",
       "school": "xiaoyue",
       "category": "control",
-      "description": "下一回合不能使用百兽崖神通；普通攻击、道装器诀及其他来源技能不受此状态限制。",
+      "description": "施放镇形后的下回合生效。本回合无法使用百兽崖神通，仍可普通攻击、使用道装器诀或其他来源的技能。",
       "dispellable": false,
       "blockedSkillSchools": [
         "xiaoyue"
@@ -618,7 +618,7 @@
       "name": "狂反",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "持续三个后续回合；受敌方直接物理攻击命中时，对攻击者反击一次，物理系数0.5，同一次行动至多反击一次。",
+      "description": "持续三个后续回合；受到敌人的直接物理攻击并损失气血时，对攻击者反击一次，物理系数0.5，同一次行动至多反击一次。",
       "dispellable": true
     },
     {
@@ -649,7 +649,7 @@
       "name": "爪印",
       "school": "xiaoyue",
       "category": "debuff",
-      "description": "目标至多叠加六层爪印；拥有爪印经脉的施加者每轮首次直接物理攻击该目标时，每层追加人物等级的最终伤害。",
+      "description": "选择经脉「爪印」后，你的直接物理攻击命中敌人，或敌人的直接物理攻击使你损失气血时，给对方叠加爪印，最多六层。每回合首次用直接物理攻击命中该敌人时，每层额外造成相当于你人物等级的伤害。",
       "dispellable": false,
       "maxStacks": 6,
       "sourceBound": true
@@ -660,7 +660,7 @@
       "name": "鹰啸余威",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "本次鹏击的物理伤害结果提高40%；只在鹰啸触发时获得，鹏击结算后消耗。",
+      "description": "选择经脉「鹰啸」后，主动变为兽形后的第一次鹏击有30%概率触发此效果，使本次鹏击对所有目标的伤害提高40%。本次鹏击结束时消耗。",
       "dispellable": false,
       "modifiers": [
         {
@@ -680,7 +680,7 @@
       "name": "展翅",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "主动兽形后的首个完整回合，躲避增加人物等级的20%，向下取整；该回合结束后消失。",
+      "description": "选择经脉「展翅」后，主动变为兽形的下回合生效。躲避提高，增加值为人物等级的20%，舍去小数。回合结束时解除。",
       "dispellable": false,
       "attrMods": {
         "dodge": "floor(level*0.2)"
@@ -693,7 +693,7 @@
       "name": "展翅待生效",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "主动兽形后记录展翅机会；下一完整回合转为展翅，增加躲避。",
+      "description": "选择经脉「展翅」并主动变为兽形时获得。下回合开始时转为展翅，提高躲避。",
       "dispellable": false,
       "expireSameRound": true,
       "onExpire": {
@@ -707,7 +707,7 @@
       "name": "狂袭",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "狂袭将本次反震实际损失气血的5%转为物攻，持续一个回合；数值以触发时的损血为准。",
+      "description": "选择经脉「狂袭」后，你因敌方反震损失气血时获得。物攻提高实际气血损失的5%，持续一回合。",
       "dispellable": false,
       "attrMods": {
         "physicalAtk": "fact.xiaoyue_recoil_bonus"
@@ -719,7 +719,7 @@
       "name": "背水",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "封印被友方合法净化解除后，两回合内下一次鹏击额外攻击一名敌人；施放后消耗。",
+      "description": "选择经脉「背水」后，友方用净化解除你身上的封印时获得。两回合内下一次鹏击可多攻击一名敌人，施放后消耗。",
       "dispellable": false
     },
     {
@@ -728,7 +728,7 @@
       "name": "狮魂",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "本人狮搏击倒非灵兽敌人后，本宠获得狮魂；本宠下一次正常直接物理第一击增伤8%，习得狮王时为10%，命中后消耗。",
+      "description": "灵兽同契赋予出战灵兽的一次性增益。你用狮搏或最佳搭档击倒非灵兽敌人时，自己仍在场且存活的灵兽会获得狮魂。灵兽下一次直接物理攻击的首击伤害提高8%，选择狮王后为10%。命中后消耗，收回灵兽时清除。狮搏在《生死搏》达到20级后解锁，须在兽形下施放。",
       "dispellable": false,
       "sourceBound": true
     },
@@ -738,7 +738,7 @@
       "name": "图腾狮搏",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "本人下一次狮搏伤害结果提高4%；需最初同契的灵兽仍在场，最迟下回合末失效。",
+      "description": "选择经脉「图腾」后，自己的出战灵兽获得狮魂时触发。下一次狮搏伤害提高4%，要求触发时的灵兽仍在场且存活。最迟在下回合结束时失效。",
       "dispellable": false,
       "modifiers": [
         {
@@ -762,7 +762,7 @@
       "name": "回光",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "前宠阵亡后首次换入替补时，回光有50%概率给予替补下次正常直接物理第一击10%增伤。",
+      "description": "选择经脉「回光」后，出战灵兽阵亡后首次换上的替补有50%概率获得此效果。下一次直接物理攻击的首击伤害提高10%。",
       "dispellable": false
     },
     {
@@ -771,7 +771,7 @@
       "name": "嗜血",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "本宠在玩家对战中以正常攻击击倒玩家后，正常直接物理伤害提高10%，持续两个回合。",
+      "description": "选择经脉「嗜血」后，自己的出战灵兽在玩家对战中用直接攻击击倒敌方玩家角色时获得此效果。它的直接物理伤害提高10%，持续两回合。",
       "dispellable": false
     },
     {
@@ -780,7 +780,7 @@
       "name": "复仇",
       "school": "xiaoyue",
       "category": "debuff",
-      "description": "主人倒地时留在击倒者身上的复仇标记；本宠下一次正常直接物理首击命中该目标时增伤20%。",
+      "description": "选择经脉「复仇」后，你倒地时会标记击倒你的敌人。自己的出战灵兽下一次行动若用直接物理攻击命中该敌人，首击伤害提高20%。",
       "dispellable": false,
       "sourceBound": true
     },
@@ -790,7 +790,7 @@
       "name": "逞凶",
       "school": "xiaoyue",
       "category": "debuff",
-      "description": "被本人或本宠击倒的敌方玩家身上的标记；对其所属灵兽的正常直接物理伤害提高8%。",
+      "description": "选择经脉「逞凶」后，你或自己的出战灵兽击倒敌方玩家角色时，会标记该角色。你和自己的出战灵兽对其所属灵兽造成的直接物理伤害提高8%。",
       "dispellable": false,
       "sourceBound": true,
       "persistWhenDowned": true
@@ -801,7 +801,7 @@
       "name": "最佳搭档",
       "school": "xiaoyue",
       "category": "debuff",
-      "description": "最佳搭档标记的敌人；原本协同的出战灵兽下一次正常物理攻击同目标时，第一击伤害提高20%。",
+      "description": "由神通「最佳搭档」施加。施放时出战的灵兽，下一次行动若用直接物理攻击命中被标记的敌人，首击伤害提高20%。",
       "dispellable": false,
       "sourceBound": true
     },
@@ -811,7 +811,7 @@
       "name": "曾经出战",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "记录这只本人灵兽已在本场首次入场；肝胆的免休息率增益每只不同灵兽只计算一次，至多六只。",
+      "description": "这只灵兽本场已经出战过。经脉「肝胆」只在每只灵兽首次出战时提高鹏击和连环击免休息的概率，最多计六只。",
       "dispellable": false,
       "persistWhenBenched": true,
       "untilBattleEnd": true
@@ -822,7 +822,7 @@
       "name": "怒火",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "怒火使本宠在本轮下一次正常直接物理第一击伤害提高32%；该次打击后消耗。",
+      "description": "选择经脉「怒火」后，主人成功施放道装器诀「双剑合璧」或「摧灵斩」时，出战灵兽获得此效果。灵兽本回合下一次直接物理攻击的首击伤害提高32%，命中后消耗。",
       "dispellable": false,
       "expireSameRound": true
     },
@@ -832,7 +832,7 @@
       "name": "复仇待击",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "主人倒地后，本宠对击倒者的下一次正常直接物理首击增伤20%。",
+      "description": "主人选择了经脉「复仇」并倒地时，出战灵兽获得此效果。它下一次行动若用直接物理攻击命中击倒主人的敌人，首击伤害提高20%。",
       "dispellable": false,
       "modifiers": [
         {
@@ -856,7 +856,7 @@
       "name": "威压待生效",
       "school": "xiaoyue",
       "category": "control",
-      "description": "威压命中敌方灵兽后，下一回合转为禁动；该次命中仍受目标的控制抵抗规则约束。",
+      "description": "选择经脉「威压」后，用狮搏命中敌方灵兽时有机会施加。下回合转为威压，使目标无法行动。",
       "dispellable": true,
       "expireSameRound": true,
       "onExpire": {
@@ -870,7 +870,7 @@
       "name": "威压",
       "school": "xiaoyue",
       "category": "control",
-      "description": "威压使目标无法行动，持续两个回合。",
+      "description": "由威压待生效转成。目标无法行动，持续两个回合。",
       "isSeal": true,
       "blocksAction": true,
       "expireSameRound": true,
@@ -882,7 +882,7 @@
       "name": "图腾同契",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "记录为主人触发图腾的原本灵兽；只有这只灵兽仍在场，主人下一次狮搏才获得图腾增伤。",
+      "description": "主人选择了经脉「图腾」，这只出战灵兽获得狮魂时会留下此状态。它仍在场且存活时，主人才能获得图腾带来的狮搏增伤。",
       "dispellable": false,
       "sourceBound": true
     },
@@ -892,7 +892,7 @@
       "name": "最佳搭档同契",
       "school": "xiaoyue",
       "category": "buff",
-      "description": "记录最佳搭档施放时的原本出战灵兽；只有这只灵兽能兑现目标身上的最佳搭档标记。",
+      "description": "主人施放最佳搭档时，这只灵兽正在出战。只有它下一次行动直接攻击被标记的敌人时，才能获得首击增伤。",
       "dispellable": false,
       "sourceBound": true
     }

@@ -6,7 +6,7 @@
     {
       "id": "jiujie.passive.physical",
       "name": "以身承雷",
-      "description": "以身承雷，以兵行劫。可直接选择震岳、掠霆的一至三重；灌注能强化本次重数，高重数需承担休息风险。物理伤害提高10%，法术伤害降低15%，封印命中概率乘以85%。",
+      "description": "可直接选择震岳或掠霆的一至三重。使用引劫入体获得劫雷灌注后，可消耗1层使攻击提高一重。达到二重及以上时，有概率需要在下回合休息。物理伤害提高10%，法术伤害降低15%，封印命中率变为原来的85%。",
       "modifiers": [
         {
           "when": {
@@ -139,7 +139,7 @@
           "damageBonus": 0.7
         }
       ],
-      "description": "群雷命中后留下持续3回合的雷印，自身后续对其造成的法术伤害提高12%；自身封印命中率降低15%。"
+      "description": "万钧雷狱、敕雷和六霄雷劫命中后留下3回合[[jiujie.status.electric]]，你后续对带有自己雷印的敌人造成的法术伤害提高12%。封印命中率变为原来的85%。"
     },
     {
       "id": "jiujie.passive.tingzhen",
@@ -185,7 +185,7 @@
           "defenseIgnoreAdd": 0.1
         }
       ],
-      "description": "连续两次使用二重及以上核心招式而未休息后，震岳忽略10%物防，掠霆基础休息率降低10%，直至休息。"
+      "description": "在触发休息前累计两次以二重及以上使用震岳、掠霆或九劫归一后，二重及以上的震岳忽略10%物理防御，掠霆的基础休息概率从50%降到40%。效果持续到下次休息。"
     },
     {
       "id": "jiujie.passive.jiyue",
@@ -233,7 +233,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "成功使用器诀后，震岳、掠霆及九劫归一的物理伤害提高10%，持续3回合。"
+      "description": "成功使用器诀后获得3回合[[jiujie.status.cunxiong]]，使震岳、掠霆和九劫归一造成的物理伤害提高10%。"
     },
     {
       "id": "jiujie.passive.yuyun",
@@ -258,7 +258,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "使用双剑合璧或摧灵斩后，下次核心招式提高一重；九劫归一的两类攻击均受益。"
+      "description": "成功施放器诀双剑合璧或摧灵斩后，下一次震岳或掠霆提高一重。若用九劫归一，震岳和掠霆两种攻击各提高一重。"
     },
     {
       "id": "jiujie.passive.cuiling",
@@ -273,7 +273,7 @@
           "damageBonus": 0.42
         }
       ],
-      "description": "摧灵斩伤害提高42%。"
+      "description": "器诀摧灵斩造成的伤害提高42%。"
     },
     {
       "id": "jiujie.passive.jingting",
@@ -297,7 +297,7 @@
           "damageBonus": 0.3
         }
       ],
-      "description": "实际一、二重掠霆对首目标伤害提高30%。"
+      "description": "掠霆强化后仍为一重或二重时，对主目标的伤害提高30%。"
     },
     {
       "id": "jiujie.passive.physical_pet",
@@ -332,12 +332,12 @@
     {
       "id": "jiujie.passive.dianguang",
       "name": "电光",
-      "description": "实际一、二重震岳有18%概率再提高一重；九劫归一首目标段同样生效。"
+      "description": "震岳经过其他强化后若为一重或二重，有18%概率再提高一重。九劫归一对主目标的震岳也能触发。"
     },
     {
       "id": "jiujie.passive.leitun",
       "name": "雷吞",
-      "description": "武器、衣服每有一件属于金、风、雷，主动引劫入体额外获得1层灌注，允许混搭。"
+      "description": "武器和衣甲中，每装备一件金、风或雷属性道装，施放引劫入体时额外获得1层劫雷灌注。两件道装的属性可不同。"
     },
     {
       "id": "jiujie.passive.shencai",
@@ -371,7 +371,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "实际三重掠霆击倒至少一名人物或灵兽时，25%概率免除本次休息，每次施法只判一次。"
+      "description": "强化后恰为三重的掠霆若击倒至少一名敌方修士或灵兽，有25%概率免除这次攻击带来的休息。每次攻击最多判定一次。"
     },
     {
       "id": "jiujie.passive.zhenhun",
@@ -413,7 +413,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "实际三重震岳击倒人物或灵兽时，有50%概率施加1回合乱神雷咒；期限内复起仍受影响。"
+      "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复起，仍会受其影响。"
     },
     {
       "id": "jiujie.passive.rebirth",
@@ -438,12 +438,12 @@
           "aim": "self"
         }
       ],
-      "description": "自身天罡护体期间受到致命伤害，恢复至10%最大气血，每场一次。"
+      "description": "在[[jiujie.status.guardian]]持续期间受到致命伤害时，气血恢复至最大气血的10%，每场战斗最多触发一次。"
     },
     {
       "id": "jiujie.passive.qishi",
       "name": "气势",
-      "description": "本场首次使用每一实际重数的震岳、掠霆时，15%概率免除本次休息，两类分别记录。"
+      "description": "每场战斗中，震岳、掠霆第一次以某一重数出手时，各有15%概率免除本次休息。按强化后的重数计算，两个招式分别记录。"
     },
     {
       "id": "jiujie.passive.poyue",
@@ -466,7 +466,7 @@
           "defenseIgnoreAdd": 0.05
         }
       ],
-      "description": "震岳忽略5%物防，九劫归一首目标段同样生效。"
+      "description": "震岳忽略目标5%的物理防御。九劫归一对主目标的震岳也享受此效果。"
     },
     {
       "id": "jiujie.passive.gandian",
@@ -520,7 +520,7 @@
           }
         }
       ],
-      "description": "回合开始时，若敌方带雷印单位不足3个，随机一名可选敌人获得雷印。"
+      "description": "回合开始时，若你仍存活，且敌方的雷印和赤雷印合计不足3个，随机给一名可被攻击的敌人施加[[jiujie.status.electric]]。"
     },
     {
       "id": "jiujie.passive.luanliu",
@@ -584,7 +584,7 @@
           }
         }
       ],
-      "description": "群雷命中施放前已带雷印的目标时，10%概率使随机一名可选敌人获得雷印。"
+      "description": "万钧雷狱、敕雷或六霄雷劫命中出手前已带有雷印或赤雷印的敌人时，有10%概率随机给一名可被攻击的敌人施加[[jiujie.status.electric]]。"
     },
     {
       "id": "jiujie.passive.shuang",
@@ -602,27 +602,27 @@
     {
       "id": "jiujie.passive.hongming",
       "name": "轰鸣",
-      "description": "混天雷法等级不低于人物映射等级时，法攻提高60。"
+      "description": "《混天雷法》等级达到或超过人物等级时，法术攻击提高60点。"
     },
     {
       "id": "jiujie.passive.yuyi",
       "name": "驭意",
-      "description": "按灵力属性点获得5%速度、10%法攻，同时失去24%法防；不以最终法攻为基数。"
+      "description": "每10点灵力增加0.5点速度和1点法术攻击，同时降低2.4点法术防御。"
     },
     {
       "id": "jiujie.passive.gangwei",
       "name": "罡威",
-      "description": "天罡护体的法攻增量提高50%，不放大法防增量。"
+      "description": "[[jiujie.status.guardian]]提供的法术攻击额外提高50%。"
     },
     {
       "id": "jiujie.passive.six",
       "name": "六霄雷劫",
-      "description": "群雷不再消耗灌注；获得主动六霄雷劫，消耗1层灌注对至多6人施放强化群雷。"
+      "description": "万钧雷狱和敕雷有劫雷灌注时仍可多攻击3人，并保留灌注。获得神通六霄雷劫，消耗1层灌注，对最多6名敌人造成法术伤害，并留下[[jiujie.status.electric]]。"
     },
     {
       "id": "jiujie.passive.chiji",
       "name": "赤殛",
-      "description": "队伍仅有一名九劫修士时，施加雷印有10%概率成为赤雷印；自身下一次法术命中的雷印增伤改为70%，随后退为普通雷印。"
+      "description": "若你是队内唯一的九劫天宫修士，施加雷印时有10%概率改为[[jiujie.status.red]]。你对带有自己赤雷印的敌人造成的法术伤害提高70%，命中一次后赤雷印转为普通雷印。"
     },
     {
       "id": "jiujie.passive.lingguang",
@@ -651,7 +651,7 @@
           "sourceIsSelf": true
         }
       ],
-      "description": "主动使用引劫入体后回复10战意；被动获得灌注不触发。"
+      "description": "成功施放引劫入体后，恢复10点战意。"
     },
     {
       "id": "jiujie.passive.gongming",
@@ -675,7 +675,7 @@
           "sourceIsOwnedPet": true
         }
       ],
-      "description": "自己的灵兽施放雷击、九霄神雷时，伤害提高12%。"
+      "description": "自己的灵兽施放兽诀雷击或九霄神雷时，伤害提高12%。"
     },
     {
       "id": "jiujie.passive.xianyin",
@@ -694,7 +694,7 @@
           "damageBonus": 0.2
         }
       ],
-      "description": "三叠仙音攻击带雷印单位时，伤害提高20%。"
+      "description": "器诀三叠仙音攻击带有雷印或赤雷印的敌人时，伤害提高20%。"
     },
     {
       "id": "jiujie.passive.leibo",
@@ -766,7 +766,7 @@
           "damageBonus": 0.08
         }
       ],
-      "description": "群雷首目标伤害提高8%；自身击倒带雷印的敌人时，使所有存活敌人获得雷印。"
+      "description": "万钧雷狱、敕雷和六霄雷劫对主目标的伤害提高8%。你击倒带有雷印或赤雷印的敌人时，会给所有仍存活的敌人施加[[jiujie.status.electric]]。"
     },
     {
       "id": "jiujie.passive.law.trait",
@@ -811,7 +811,7 @@
           "aim": "self"
         }
       ],
-      "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。"
+      "description": "若本回合累计受到的气血伤害达到最大气血的30%，且回合结束时仍存活，解除自身的封印和幽都拘灵术。雷息的休息效果仍然持续。"
     },
     {
       "id": "jiujie.passive.thunder.leixing",
@@ -840,7 +840,7 @@
           "aim": "self"
         }
       ],
-      "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。"
+      "description": "若本回合累计受到的气血伤害达到最大气血的30%，且回合结束时仍存活，解除自身的封印和幽都拘灵术。雷息的休息效果仍然持续。"
     },
     {
       "id": "jiujie.passive.law.tianjie",
@@ -866,7 +866,7 @@
           "aim": "self"
         }
       ],
-      "description": "每场首次主动使用天罡护体后，获得1层灌注。"
+      "description": "每场战斗首次成功施放天罡护体时，额外获得1层劫雷灌注。"
     },
     {
       "id": "jiujie.passive.thunder.tianjie",
@@ -892,14 +892,14 @@
           "aim": "self"
         }
       ],
-      "description": "每场首次主动使用天罡护体后，获得1层灌注。"
+      "description": "每场战斗首次成功施放天罡护体时，额外获得1层劫雷灌注。"
     }
   ],
   "paths": [
     {
       "id": "jiujie.path.law",
       "name": "霹雳真君",
-      "description": "侧重物理重击与群攻。可选择震岳、掠霆的攻击重数，重数越高越需留意下回合休息，适合喜欢权衡爆发与行动节奏的修士。",
+      "description": "震岳重击一人，掠霆横扫多名敌人。可以选择一至三重，用引劫入体获得的劫雷灌注还能提高重数。出手时达到二重及以上，下回合有概率需要休息。",
       "requiresConnectedNodes": true,
       "unitTags": [
         "sect.jiujie"
@@ -935,7 +935,7 @@
           "name": "疾雷",
           "layer": 1,
           "slot": 2,
-          "description": "连续两次使用二重及以上核心招式而未休息后，震岳忽略10%物防，掠霆基础休息率降低10%，直至休息。",
+          "description": "在触发休息前累计两次以二重及以上使用震岳、掠霆或九劫归一后，二重及以上的震岳忽略10%物理防御，掠霆的基础休息概率从50%降到40%。效果持续到下次休息。",
           "passives": [
             "jiujie.passive.jilei"
           ]
@@ -955,7 +955,7 @@
           "name": "存雄",
           "layer": 2,
           "slot": 1,
-          "description": "成功使用器诀后，震岳、掠霆及九劫归一的物理伤害提高10%，持续3回合。",
+          "description": "成功使用器诀后获得3回合[[jiujie.status.cunxiong]]，使震岳、掠霆和九劫归一造成的物理伤害提高10%。",
           "passives": [
             "jiujie.passive.cunxiong"
           ]
@@ -965,7 +965,7 @@
           "name": "余韵",
           "layer": 2,
           "slot": 2,
-          "description": "使用双剑合璧或摧灵斩后，下次核心招式提高一重；九劫归一的两类攻击均受益。",
+          "description": "成功施放器诀双剑合璧或摧灵斩后，下一次震岳或掠霆提高一重。若用九劫归一，震岳和掠霆两种攻击各提高一重。",
           "passives": [
             "jiujie.passive.yuyun"
           ]
@@ -975,7 +975,7 @@
           "name": "摧灵",
           "layer": 2,
           "slot": 3,
-          "description": "摧灵斩伤害提高42%。",
+          "description": "器诀摧灵斩造成的伤害提高42%。",
           "passives": [
             "jiujie.passive.cuiling"
           ]
@@ -985,7 +985,7 @@
           "name": "惊霆",
           "layer": 3,
           "slot": 1,
-          "description": "实际一、二重掠霆对首目标伤害提高30%。",
+          "description": "掠霆强化后仍为一重或二重时，对主目标的伤害提高30%。",
           "passives": [
             "jiujie.passive.jingting"
           ]
@@ -1005,7 +1005,7 @@
           "name": "电光",
           "layer": 3,
           "slot": 3,
-          "description": "实际一、二重震岳有18%概率再提高一重；九劫归一首目标段同样生效。",
+          "description": "震岳经过其他强化后若为一重或二重，有18%概率再提高一重。九劫归一对主目标的震岳也能触发。",
           "passives": [
             "jiujie.passive.dianguang"
           ]
@@ -1015,7 +1015,7 @@
           "name": "雷吞",
           "layer": 4,
           "slot": 1,
-          "description": "武器、衣服每有一件属于金、风、雷，主动引劫入体额外获得1层灌注，允许混搭。",
+          "description": "武器和衣甲中，每装备一件金、风或雷属性道装，施放引劫入体时额外获得1层劫雷灌注。两件道装的属性可不同。",
           "passives": [
             "jiujie.passive.leitun"
           ]
@@ -1025,7 +1025,7 @@
           "name": "雷醒",
           "layer": 4,
           "slot": 2,
-          "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。",
+          "description": "若本回合累计受到的气血伤害达到最大气血的30%，且回合结束时仍存活，解除自身的封印和幽都拘灵术。雷息的休息效果仍然持续。",
           "passives": [
             "jiujie.passive.law.leixing"
           ]
@@ -1035,7 +1035,7 @@
           "name": "天劫",
           "layer": 4,
           "slot": 3,
-          "description": "每场首次主动使用天罡护体后，获得1层灌注。",
+          "description": "每场战斗首次成功施放天罡护体时，额外获得1层劫雷灌注。",
           "passives": [
             "jiujie.passive.law.tianjie"
           ]
@@ -1045,7 +1045,7 @@
           "name": "神采",
           "layer": 5,
           "slot": 1,
-          "description": "实际三重掠霆击倒至少一名人物或灵兽时，25%概率免除本次休息，每次施法只判一次。",
+          "description": "强化后恰为三重的掠霆若击倒至少一名敌方修士或灵兽，有25%概率免除这次攻击带来的休息。每次攻击最多判定一次。",
           "passives": [
             "jiujie.passive.shencai"
           ]
@@ -1069,7 +1069,7 @@
           "name": "震魂",
           "layer": 5,
           "slot": 3,
-          "description": "实际三重震岳击倒人物或灵兽时，有50%概率施加1回合乱神雷咒；期限内复起仍受影响。",
+          "description": "强化后恰为三重的震岳击倒敌方修士或灵兽时，有50%概率施加1回合[[jiujie.status.confuse]]。若目标在期限内复起，仍会受其影响。",
           "passives": [
             "jiujie.passive.zhenhun"
           ]
@@ -1079,7 +1079,7 @@
           "name": "劫后逢生",
           "layer": 6,
           "slot": 1,
-          "description": "自身天罡护体期间受到致命伤害，恢复至10%最大气血，每场一次。",
+          "description": "在[[jiujie.status.guardian]]持续期间受到致命伤害时，气血恢复至最大气血的10%，每场战斗最多触发一次。",
           "passives": [
             "jiujie.passive.rebirth"
           ]
@@ -1089,7 +1089,7 @@
           "name": "气势",
           "layer": 6,
           "slot": 2,
-          "description": "本场首次使用每一实际重数的震岳、掠霆时，15%概率免除本次休息，两类分别记录。",
+          "description": "每场战斗中，震岳、掠霆第一次以某一重数出手时，各有15%概率免除本次休息。按强化后的重数计算，两个招式分别记录。",
           "passives": [
             "jiujie.passive.qishi"
           ]
@@ -1099,7 +1099,7 @@
           "name": "破岳",
           "layer": 6,
           "slot": 3,
-          "description": "震岳忽略5%物防，九劫归一首目标段同样生效。",
+          "description": "震岳忽略目标5%的物理防御。九劫归一对主目标的震岳也享受此效果。",
           "passives": [
             "jiujie.passive.poyue"
           ]
@@ -1124,7 +1124,7 @@
           "name": "九劫归一",
           "layer": 7,
           "slot": 2,
-          "description": "先承受2至9次劫雷，每击损失8%最大气血，随机提高震岳或掠霆一重（最高五重），并缩短一个可解异常1回合。若存活，首目标以震岳、后续目标以掠霆攻击，人数随实际掠霆重数增加（75级起为重数＋2，至多7人）。可能自损倒地；按较高重数结算一次休息。消耗20×实际目标数＋10法力；施放前需备足场上至多7人的法力。",
+          "description": "获得九劫归一。先承受2至9次劫雷，每次损失最大气血的8%，随机提高震岳或掠霆一重，最高五重，并缩短自身一个可解除的负面状态1回合。若仍存活，以震岳攻击主目标，以掠霆攻击其余目标。总人数为掠霆重数加1，《混天雷法》达到75级后再加1，最多7人。按两种攻击中较高的重数判断是否休息。每名实际目标消耗20法力，另加10点，施放前须备足场上可能攻击的最多人数所需的法力。",
           "grantSkills": [
             "jiujie.skill.tribulation"
           ]
@@ -1149,7 +1149,7 @@
     {
       "id": "jiujie.path.thunder",
       "name": "踏雷天尊",
-      "description": "侧重群体法术输出。群雷留下雷印、加强后续法术，引劫入体还能扩大打击范围，适合喜欢同时压制多个敌人的修士。",
+      "description": "万钧雷狱命中多名敌人后会留下雷印，使你后续对这些敌人的法术伤害提高12%。用引劫入体获得劫雷灌注后，万钧雷狱和敕雷最多可攻击6人。",
       "requiresConnectedNodes": true,
       "unitTags": [
         "sect.jiujie"
@@ -1170,7 +1170,7 @@
           "name": "敕雷",
           "layer": 1,
           "slot": 1,
-          "description": "获得敕雷：可自行指定全部群雷目标，冷却5回合。",
+          "description": "获得敕雷。可自行选定每个攻击目标，并为命中的敌人留下[[jiujie.status.electric]]。平时最多选择3人，有劫雷灌注时最多选择6人。冷却5回合。",
           "grantSkills": [
             "jiujie.skill.edict"
           ]
@@ -1180,7 +1180,7 @@
           "name": "感电",
           "layer": 1,
           "slot": 2,
-          "description": "回合开始时，若敌方带雷印单位不足3个，随机一名可选敌人获得雷印。",
+          "description": "回合开始时，若你仍存活，且敌方的雷印和赤雷印合计不足3个，随机给一名可被攻击的敌人施加[[jiujie.status.electric]]。",
           "passives": [
             "jiujie.passive.gandian"
           ]
@@ -1190,7 +1190,7 @@
           "name": "乱流",
           "layer": 1,
           "slot": 3,
-          "description": "群雷命中施放前已带雷印的目标时，10%概率使随机一名可选敌人获得雷印。",
+          "description": "万钧雷狱、敕雷或六霄雷劫命中出手前已带有雷印或赤雷印的敌人时，有10%概率随机给一名可被攻击的敌人施加[[jiujie.status.electric]]。",
           "passives": [
             "jiujie.passive.luanliu"
           ]
@@ -1210,7 +1210,7 @@
           "name": "轰鸣",
           "layer": 2,
           "slot": 2,
-          "description": "混天雷法等级不低于人物映射等级时，法攻提高60。",
+          "description": "《混天雷法》等级达到或超过人物等级时，法术攻击提高60点。",
           "passives": [
             "jiujie.passive.hongming"
           ]
@@ -1220,7 +1220,7 @@
           "name": "驭意",
           "layer": 2,
           "slot": 3,
-          "description": "按灵力属性点获得5%速度、10%法攻，同时失去24%法防；不以最终法攻为基数。",
+          "description": "每10点灵力增加0.5点速度和1点法术攻击，同时降低2.4点法术防御。",
           "passives": [
             "jiujie.passive.yuyi"
           ]
@@ -1240,7 +1240,7 @@
           "name": "驭雷",
           "layer": 3,
           "slot": 2,
-          "description": "主动使用引劫入体后回复10战意；被动获得灌注不触发。",
+          "description": "成功施放引劫入体后，恢复10点战意。",
           "passives": [
             "jiujie.passive.yulei"
           ]
@@ -1250,7 +1250,7 @@
           "name": "罡威",
           "layer": 3,
           "slot": 3,
-          "description": "天罡护体的法攻增量提高50%，不放大法防增量。",
+          "description": "[[jiujie.status.guardian]]提供的法术攻击额外提高50%。",
           "passives": [
             "jiujie.passive.gangwei"
           ]
@@ -1260,7 +1260,7 @@
           "name": "六霄雷劫",
           "layer": 4,
           "slot": 1,
-          "description": "群雷不再消耗灌注；获得主动六霄雷劫，消耗1层灌注对至多6人施放强化群雷。",
+          "description": "万钧雷狱和敕雷有劫雷灌注时仍可多攻击3人，并保留灌注。获得神通六霄雷劫，消耗1层灌注，对最多6名敌人造成法术伤害，并留下[[jiujie.status.electric]]。",
           "passives": [
             "jiujie.passive.six"
           ],
@@ -1273,7 +1273,7 @@
           "name": "雷醒",
           "layer": 4,
           "slot": 2,
-          "description": "单回合累计受到气血伤害达到最大气血30%，回合末仍存活时，解除自身封印与拘灵术，不解除休息。",
+          "description": "若本回合累计受到的气血伤害达到最大气血的30%，且回合结束时仍存活，解除自身的封印和幽都拘灵术。雷息的休息效果仍然持续。",
           "passives": [
             "jiujie.passive.thunder.leixing"
           ]
@@ -1283,7 +1283,7 @@
           "name": "天劫",
           "layer": 4,
           "slot": 3,
-          "description": "每场首次主动使用天罡护体后，获得1层灌注。",
+          "description": "每场战斗首次成功施放天罡护体时，额外获得1层劫雷灌注。",
           "passives": [
             "jiujie.passive.thunder.tianjie"
           ]
@@ -1293,7 +1293,7 @@
           "name": "共鸣",
           "layer": 5,
           "slot": 1,
-          "description": "自己的灵兽施放雷击、九霄神雷时，伤害提高12%。",
+          "description": "自己的灵兽施放兽诀雷击或九霄神雷时，伤害提高12%。",
           "passives": [
             "jiujie.passive.gongming"
           ]
@@ -1303,7 +1303,7 @@
           "name": "赤殛",
           "layer": 5,
           "slot": 2,
-          "description": "队伍仅有一名九劫修士时，施加雷印有10%概率成为赤雷印；自身下一次法术命中的雷印增伤改为70%，随后退为普通雷印。",
+          "description": "若你是队内唯一的九劫天宫修士，施加雷印时有10%概率改为[[jiujie.status.red]]。你对带有自己赤雷印的敌人造成的法术伤害提高70%，命中一次后赤雷印转为普通雷印。",
           "passives": [
             "jiujie.passive.chiji"
           ]
@@ -1323,7 +1323,7 @@
           "name": "天目洞真",
           "layer": 6,
           "slot": 1,
-          "description": "获得主动天目洞真：消耗80法力，以天目照彻自身，使物攻、物防、法攻、法防各增加人物等级×2，封命中、封抗各增加人物等级×0.1，持续3回合，可刷新、不叠加。",
+          "description": "获得天目洞真。消耗80法力，使自己获得3回合[[jiujie.status.insight]]，提高物理攻击、物理防御、法术攻击、法术防御、封印命中和封印抵抗。再次施放会刷新持续时间。",
           "grantSkills": [
             "jiujie.skill.insight"
           ]
@@ -1333,7 +1333,7 @@
           "name": "仙音",
           "layer": 6,
           "slot": 2,
-          "description": "三叠仙音攻击带雷印单位时，伤害提高20%。",
+          "description": "器诀三叠仙音攻击带有雷印或赤雷印的敌人时，伤害提高20%。",
           "passives": [
             "jiujie.passive.xianyin"
           ]
@@ -1343,7 +1343,7 @@
           "name": "雷波",
           "layer": 6,
           "slot": 3,
-          "description": "群雷首目标伤害提高8%；自身击倒带雷印的敌人时，使所有存活敌人获得雷印。",
+          "description": "万钧雷狱、敕雷和六霄雷劫对主目标的伤害提高8%。你击倒带有雷印或赤雷印的敌人时，会给所有仍存活的敌人施加[[jiujie.status.electric]]。",
           "passives": [
             "jiujie.passive.leibo"
           ]
@@ -1368,7 +1368,7 @@
           "name": "摄雷归一",
           "layer": 7,
           "slot": 2,
-          "description": "法术攻击敌方单体，吸收自身施加的雷印并驱散1个增益；吸收普通印时伤害提高75%，赤印提高200%。吸收收益替代该印原有增伤。",
+          "description": "获得摄雷归一，法术攻击一名敌人。若目标有你施加的雷印，则吸收印记并驱散目标1个增益。吸收[[jiujie.status.electric]]时伤害提高75%，吸收[[jiujie.status.red]]时伤害提高到三倍。吸收的增伤替代印记原本的增伤。",
           "grantSkills": [
             "jiujie.skill.absorb"
           ]

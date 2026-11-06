@@ -6,7 +6,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n1_1",
       "name": "目空",
-      "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+      "description": "使用器诀造成物理伤害、施放惊鸿掠影，或以惊雷蓄势后自动出击时，忽视目标10%的物理防御。",
       "modifiers": [
         {
           "when": {
@@ -42,7 +42,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n1_2",
       "name": "风刃",
-      "description": "与NPC战斗时，普攻向另外2个随机敌人溅射20%伤害；破极剑意状态下改为40%。",
+      "description": "与生灵交战时，普通攻击对另外两名随机敌人溅射20%的伤害。自身有[[lingxiao.status.sword_aura]]时，溅射提高到40%。",
       "modifiers": [
         {
           "when": {
@@ -94,7 +94,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n2_1",
       "name": "翩鸿",
-      "description": "惊鸿掠影伤害提高35%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+      "description": "惊鸿掠影伤害提高35%，命中时随机驱散目标一个可驱散的增益。击倒目标时改为驱散其全部可驱散的增益，本次技能不进入冷却。",
       "modifiers": [
         {
           "when": {
@@ -150,7 +150,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n2_2",
       "name": "勇武",
-      "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+      "description": "施放惊雷不再消耗气血，改为回复最大气血的15%（最多人物等级×8），并获得10点战意。下回合自动攻击时，额外造成相当于目标物理防御40%的伤害，命中还会留下[[lingxiao.status.bravery]]。",
       "modifiers": [
         {
           "when": {
@@ -226,7 +226,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n3_2",
       "name": "念心",
-      "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+      "description": "攻击敌方人物时，若其没有在场存活的出战灵兽，你的物理暴击率提高15%。",
       "modifiers": [
         {
           "when": {
@@ -242,7 +242,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n3_3",
       "name": "静岳",
-      "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+      "description": "有护盾时，物理暴击率提高4%。回合结束时若你仍在场存活且没有护盾，获得相当于人物等级的护盾。",
       "modifiers": [
         {
           "when": {
@@ -277,7 +277,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n4_2",
       "name": "破血",
-      "description": "已有器诀双剑合璧由两次攻击改为三次，不额外授予器诀。",
+      "description": "装备带有器诀「双剑合璧」时，该器诀由两次攻击增加到三次。",
       "modifiers": [
         {
           "when": {
@@ -293,7 +293,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n4_3",
       "name": "乘势",
-      "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+      "description": "有[[lingxiao.status.pursuit]]时，断尘可以在低气血时施放，且不消耗气血。",
       "modifiers": [
         {
           "when": {
@@ -330,7 +330,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n5_2",
       "name": "不惊",
-      "description": "物理忽防提高max(0，武器双孔玄锋最高等级×0.5−3)%，仅计算武器。",
+      "description": "若武器上等级最高的玄锋阵纹超过6级，每超过一级，物理攻击额外忽视目标0.5%的物理防御。",
       "modifiers": [
         {
           "when": {
@@ -344,7 +344,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n5_3",
       "name": "傲视",
-      "description": "亲自击倒敌方人物后，物理伤害提高40%，持续3回合。",
+      "description": "你在场存活时，亲自击倒敌方人物后获得[[lingxiao.status.pride]]，物理伤害提高40%，持续3回合。",
       "modifiers": [],
       "hooks": [
         {
@@ -370,7 +370,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n6_1",
       "name": "破空",
-      "description": "攻击被保护时，被保护者所受伤害提高15%。",
+      "description": "若其他敌人为你的攻击目标分担伤害，原目标分到的伤害提高15%。",
       "modifiers": [
         {
           "protectedDamageBonus": 0.15
@@ -381,7 +381,7 @@
     {
       "id": "lingxiao.passive.zhanchen.n6_2",
       "name": "历战",
-      "description": "施展时当前气血低于50%时，临渊伤害提高10%；仍消耗气血且复起当回合不可用。",
+      "description": "施放临渊前，若当前气血低于最大气血的50%，本次临渊伤害提高10%。仍须满足气血要求，复活当回合无法施放。",
       "modifiers": [
         {
           "when": {
@@ -398,7 +398,7 @@
     {
       "id": "lingxiao.passive.guiyi.foundation",
       "name": "剑意与连破",
-      "description": "成功施放断尘获得1层剑意，并有1%概率不休息。剑意倒地保留且无层数上限；2层起被保护者承伤提高5%，5层起总伤害提高5%。",
+      "description": "成功施放断尘获得1层剑意，并有1%概率触发「连破」，免去断尘后的[[lingxiao.status.recovery]]。剑意没有层数上限，倒地后仍保留。达到2层时，若敌人替目标分担伤害，原目标分到的伤害提高5%。达到5层时，你造成的伤害提高5%。",
       "modifiers": [
         {
           "when": {
@@ -456,7 +456,7 @@
     {
       "id": "lingxiao.passive.guiyi.n1_1",
       "name": "目空",
-      "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+      "description": "使用器诀造成物理伤害、施放惊鸿掠影，或以惊雷蓄势后自动出击时，忽视目标10%的物理防御。",
       "modifiers": [
         {
           "when": {
@@ -492,7 +492,7 @@
     {
       "id": "lingxiao.passive.guiyi.n1_2",
       "name": "勇进",
-      "description": "与玩家战斗时，本场首次成功施放断尘必定触发连破。",
+      "description": "与其他修士交战时，本场第一次成功施放断尘必定触发「连破」，免去断尘后的[[lingxiao.status.recovery]]。",
       "modifiers": [
         {
           "when": {
@@ -509,7 +509,7 @@
     {
       "id": "lingxiao.passive.guiyi.n1_3",
       "name": "突刺",
-      "description": "施放前气血不低于90%时，断尘伤害提高5%。",
+      "description": "若施放前的气血不低于最大气血的90%，本次断尘伤害提高5%。",
       "modifiers": [
         {
           "when": {
@@ -526,7 +526,7 @@
     {
       "id": "lingxiao.passive.guiyi.n2_1",
       "name": "翩鸿",
-      "description": "惊鸿掠影伤害提高35%，每层剑意再提高5%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+      "description": "惊鸿掠影伤害提高35%，每有一层剑意再提高5%。命中时随机驱散目标一个可驱散的增益。击倒目标时改为驱散其全部可驱散的增益，本次技能不进入冷却。",
       "modifiers": [
         {
           "when": {
@@ -582,7 +582,7 @@
     {
       "id": "lingxiao.passive.guiyi.n2_2",
       "name": "勇武",
-      "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+      "description": "施放惊雷不再消耗气血，改为回复最大气血的15%（最多人物等级×8），并获得10点战意。下回合自动攻击时，额外造成相当于目标物理防御40%的伤害，命中还会留下[[lingxiao.status.bravery]]。",
       "modifiers": [
         {
           "when": {
@@ -644,7 +644,7 @@
     {
       "id": "lingxiao.passive.guiyi.n3_1",
       "name": "亢强",
-      "description": "使用器诀后，其原价每点战意使下次断尘的连破概率提高0.3%；以最近一次器诀为准。",
+      "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点使下次断尘免去[[lingxiao.status.recovery]]的概率提高0.3个百分点。以最近一次施放的器诀为准。",
       "modifiers": [
         {
           "when": {
@@ -679,7 +679,7 @@
     {
       "id": "lingxiao.passive.guiyi.n3_2",
       "name": "念心",
-      "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+      "description": "攻击敌方人物时，若其没有在场存活的出战灵兽，你的物理暴击率提高15%。",
       "modifiers": [
         {
           "when": {
@@ -695,7 +695,7 @@
     {
       "id": "lingxiao.passive.guiyi.n3_3",
       "name": "静岳",
-      "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+      "description": "有护盾时，物理暴击率提高4%。回合结束时若你仍在场存活且没有护盾，获得相当于人物等级的护盾。",
       "modifiers": [
         {
           "when": {
@@ -730,7 +730,7 @@
     {
       "id": "lingxiao.passive.guiyi.n4_2",
       "name": "杀伐",
-      "description": "武器、衣服分别属于金、火、风任一行时（可混搭），敌方人物倒地且自身存活，有30%概率获得1层剑意，每回合最多成功一次。",
+      "description": "武器与衣服都属于金、火或风行时，只要你在场存活，敌方人物倒地就有30%概率使你获得1层剑意。两件装备可以是不同的行，每回合最多触发一次。",
       "modifiers": [],
       "hooks": [
         {
@@ -759,7 +759,7 @@
     {
       "id": "lingxiao.passive.guiyi.n4_3",
       "name": "乘势",
-      "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+      "description": "有[[lingxiao.status.pursuit]]时，断尘可以在低气血时施放，且不消耗气血。",
       "modifiers": [
         {
           "when": {
@@ -796,7 +796,7 @@
     {
       "id": "lingxiao.passive.guiyi.n5_2",
       "name": "不惊",
-      "description": "物理忽防提高max(0，武器双孔玄锋最高等级×0.5−3)%，仅计算武器。",
+      "description": "若武器上等级最高的玄锋阵纹超过6级，每超过一级，物理攻击额外忽视目标0.5%的物理防御。",
       "modifiers": [
         {
           "when": {
@@ -810,7 +810,7 @@
     {
       "id": "lingxiao.passive.guiyi.n5_3",
       "name": "突进",
-      "description": "每次直接物理攻击实际造成气血伤害后，物攻增加2，持续本场；多段逐段累计，派生溅射不重复累计。",
+      "description": "你的物理攻击每有一击扣除目标气血，本场后续物理攻击就额外获得2点物理攻击。多段攻击按每击累积，附带的溅射伤害不会叠加此效果。",
       "modifiers": [
         {
           "when": {
@@ -839,7 +839,7 @@
     {
       "id": "lingxiao.passive.guiyi.n6_1",
       "name": "剑破",
-      "description": "剑意达到13层时，武器双孔玄锋阵纹提供的物攻之和提高200%。",
+      "description": "剑意达到13层时，武器上所有玄锋阵纹提供的物理攻击变为原来的三倍。",
       "modifiers": [
         {
           "when": {
@@ -857,7 +857,7 @@
     {
       "id": "lingxiao.passive.guiyi.n6_2",
       "name": "连斩",
-      "description": "每层剑意使总伤害提高1.5%，与剑意5层的5%基础增伤相加。",
+      "description": "每层剑意使你造成的伤害提高1.5%。这项加成与剑意达到5层时获得的5%增伤相加。",
       "modifiers": [
         {
           "damageBonus": "resource.lingxiao.resource.sword_intent * 0.015"
@@ -868,7 +868,7 @@
     {
       "id": "lingxiao.passive.guiyi.n6_3",
       "name": "熟练",
-      "description": "队伍只有一名红尘剑宗弟子时，连破概率提高17%。",
+      "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率提高17个百分点，触发时免去断尘后的[[lingxiao.status.recovery]]。",
       "modifiers": [
         {
           "when": {
@@ -885,7 +885,7 @@
     {
       "id": "lingxiao.passive.guiyi.n7_2",
       "name": "破军",
-      "description": "剑意11层起断尘不能被保护，并对额外3个单位溅射45%；17层起溅射4个；23层起无视禁复活效果，不会自动复活。",
+      "description": "剑意达到11层时，敌人无法替断尘目标分担伤害，断尘还会对另外三名敌人溅射45%的伤害。达到17层时，溅射目标增至四名。达到23层时，即使带有禁复活状态，你也能被复活。",
       "modifiers": [
         {
           "when": {
@@ -927,7 +927,7 @@
           "name": "目空",
           "layer": 1,
           "slot": 1,
-          "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+          "description": "使用器诀造成物理伤害、施放惊鸿掠影，或以惊雷蓄势后自动出击时，忽视目标10%的物理防御。",
           "passives": [
             "lingxiao.passive.zhanchen.n1_1"
           ]
@@ -937,7 +937,7 @@
           "name": "风刃",
           "layer": 1,
           "slot": 2,
-          "description": "与NPC战斗时，普攻向另外2个随机敌人溅射20%伤害；破极剑意状态下改为40%。",
+          "description": "与生灵交战时，普通攻击对另外两名随机敌人溅射20%的伤害。自身有[[lingxiao.status.sword_aura]]时，溅射提高到40%。",
           "passives": [
             "lingxiao.passive.zhanchen.n1_2"
           ]
@@ -957,7 +957,7 @@
           "name": "翩鸿",
           "layer": 2,
           "slot": 1,
-          "description": "惊鸿掠影伤害提高35%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+          "description": "惊鸿掠影伤害提高35%，命中时随机驱散目标一个可驱散的增益。击倒目标时改为驱散其全部可驱散的增益，本次技能不进入冷却。",
           "passives": [
             "lingxiao.passive.zhanchen.n2_1"
           ]
@@ -967,7 +967,7 @@
           "name": "勇武",
           "layer": 2,
           "slot": 2,
-          "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+          "description": "施放惊雷不再消耗气血，改为回复最大气血的15%（最多人物等级×8），并获得10点战意。下回合自动攻击时，额外造成相当于目标物理防御40%的伤害，命中还会留下[[lingxiao.status.bravery]]。",
           "passives": [
             "lingxiao.passive.zhanchen.n2_2"
           ],
@@ -984,7 +984,7 @@
           "name": "长驱直入",
           "layer": 2,
           "slot": 3,
-          "description": "以长驱直入替换惊鸿掠影：110%普攻伤害结果，无法被保护，60%概率重创2回合；耗50法力，冷却6回合。",
+          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。消耗50法力，冷却6回合。",
           "grantSkills": [
             "lingxiao.skill.zhanchen_long_drive"
           ],
@@ -1007,7 +1007,7 @@
           "name": "念心",
           "layer": 3,
           "slot": 2,
-          "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+          "description": "攻击敌方人物时，若其没有在场存活的出战灵兽，你的物理暴击率提高15%。",
           "passives": [
             "lingxiao.passive.zhanchen.n3_2"
           ]
@@ -1017,7 +1017,7 @@
           "name": "静岳",
           "layer": 3,
           "slot": 3,
-          "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+          "description": "有护盾时，物理暴击率提高4%。回合结束时若你仍在场存活且没有护盾，获得相当于人物等级的护盾。",
           "passives": [
             "lingxiao.passive.zhanchen.n3_3"
           ]
@@ -1027,7 +1027,7 @@
           "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "破极剑意效果提高50%，物理忽防由10%提高至15%，持续5回合。",
+          "description": "破极剑意改为施加强化的[[lingxiao.status.sword_aura_ganjiang]]，使受益者的物理攻击忽视目标15%的物理防御，持续5回合。",
           "patches": [
             {
               "skillId": "lingxiao.skill.sword_aura",
@@ -1042,7 +1042,7 @@
           "name": "破血",
           "layer": 4,
           "slot": 2,
-          "description": "已有器诀双剑合璧由两次攻击改为三次，不额外授予器诀。",
+          "description": "装备带有器诀「双剑合璧」时，该器诀由两次攻击增加到三次。",
           "passives": [
             "lingxiao.passive.zhanchen.n4_2"
           ]
@@ -1052,7 +1052,7 @@
           "name": "乘势",
           "layer": 4,
           "slot": 3,
-          "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+          "description": "有[[lingxiao.status.pursuit]]时，断尘可以在低气血时施放，且不消耗气血。",
           "passives": [
             "lingxiao.passive.zhanchen.n4_3"
           ]
@@ -1072,7 +1072,7 @@
           "name": "不惊",
           "layer": 5,
           "slot": 2,
-          "description": "物理忽防提高max(0，武器双孔玄锋最高等级×0.5−3)%，仅计算武器。",
+          "description": "若武器上等级最高的玄锋阵纹超过6级，每超过一级，物理攻击额外忽视目标0.5%的物理防御。",
           "passives": [
             "lingxiao.passive.zhanchen.n5_2"
           ]
@@ -1082,7 +1082,7 @@
           "name": "傲视",
           "layer": 5,
           "slot": 3,
-          "description": "亲自击倒敌方人物后，物理伤害提高40%，持续3回合。",
+          "description": "你在场存活时，亲自击倒敌方人物后获得[[lingxiao.status.pride]]，物理伤害提高40%，持续3回合。",
           "passives": [
             "lingxiao.passive.zhanchen.n5_3"
           ]
@@ -1092,7 +1092,7 @@
           "name": "破空",
           "layer": 6,
           "slot": 1,
-          "description": "攻击被保护时，被保护者所受伤害提高15%。",
+          "description": "若其他敌人为你的攻击目标分担伤害，原目标分到的伤害提高15%。",
           "passives": [
             "lingxiao.passive.zhanchen.n6_1"
           ]
@@ -1102,7 +1102,7 @@
           "name": "历战",
           "layer": 6,
           "slot": 2,
-          "description": "施展时当前气血低于50%时，临渊伤害提高10%；仍消耗气血且复起当回合不可用。",
+          "description": "施放临渊前，若当前气血低于最大气血的50%，本次临渊伤害提高10%。仍须满足气血要求，复活当回合无法施放。",
           "passives": [
             "lingxiao.passive.zhanchen.n6_2"
           ]
@@ -1112,7 +1112,7 @@
           "name": "安神",
           "layer": 6,
           "slot": 3,
-          "description": "剑心通明额外使所受法术伤害降低50%，仍持续5回合。",
+          "description": "剑心通明改为施加强化的[[lingxiao.status.clarity_anshen]]，额外使你受到的法术伤害降低50%，仍持续5回合。",
           "patches": [
             {
               "skillId": "lingxiao.skill.clarity",
@@ -1127,7 +1127,7 @@
           "name": "额外能力",
           "layer": 7,
           "slot": 1,
-          "description": "贯通第七层后自动获得40点物攻。",
+          "description": "贯通第七层后自动获得40点物理攻击。",
           "automatic": true,
           "legacyReplacementId": "lingxiao.node.zhanchen.7.2",
           "panel": [
@@ -1143,7 +1143,7 @@
           "name": "无敌",
           "layer": 7,
           "slot": 2,
-          "description": "断尘固定四次攻击，前三段系数0.75／0.85／0.95，末段系数1.10。",
+          "description": "断尘由三击增加到四击，四击的伤害系数分别为75%、85%、95%和110%。",
           "patches": [
             {
               "skillId": "lingxiao.skill.triple",
@@ -1158,7 +1158,7 @@
           "name": "斩尘证道",
           "layer": 7,
           "slot": 3,
-          "description": "贯通第七层后自动获得40点物攻及本流派称谓。",
+          "description": "贯通第七层后自动获得40点物理攻击及本流派称谓。",
           "automatic": true,
           "legacyReplacementId": "lingxiao.node.zhanchen.7.2",
           "panel": [
@@ -1175,14 +1175,14 @@
     {
       "id": "lingxiao.path.guiyi",
       "name": "万剑归一",
-      "description": "侧重持续物理输出。通过断尘积累剑意、逐步提高伤害，适合喜欢在持久战中累积优势的修士。",
+      "description": "成功施放断尘获得1层剑意，并有1%概率触发连破，免去出手后的休息。剑意倒地后仍保留，累积到5层时，你造成的伤害提高5%。",
       "nodes": [
         {
           "id": "lingxiao.node.guiyi.1.1",
           "name": "目空",
           "layer": 1,
           "slot": 1,
-          "description": "器诀、惊鸿掠影与惊雷攻击忽略10%物防。",
+          "description": "使用器诀造成物理伤害、施放惊鸿掠影，或以惊雷蓄势后自动出击时，忽视目标10%的物理防御。",
           "passives": [
             "lingxiao.passive.guiyi.n1_1"
           ]
@@ -1192,7 +1192,7 @@
           "name": "勇进",
           "layer": 1,
           "slot": 2,
-          "description": "与玩家战斗时，本场首次成功施放断尘必定触发连破。",
+          "description": "与其他修士交战时，本场第一次成功施放断尘必定触发「连破」，免去断尘后的[[lingxiao.status.recovery]]。",
           "passives": [
             "lingxiao.passive.guiyi.n1_2"
           ]
@@ -1202,7 +1202,7 @@
           "name": "突刺",
           "layer": 1,
           "slot": 3,
-          "description": "施放前气血不低于90%时，断尘伤害提高5%。",
+          "description": "若施放前的气血不低于最大气血的90%，本次断尘伤害提高5%。",
           "passives": [
             "lingxiao.passive.guiyi.n1_3"
           ]
@@ -1212,7 +1212,7 @@
           "name": "翩鸿",
           "layer": 2,
           "slot": 1,
-          "description": "惊鸿掠影伤害提高35%，每层剑意再提高5%；随机驱散1个增益，击倒后驱散全部增益且不进入冷却。",
+          "description": "惊鸿掠影伤害提高35%，每有一层剑意再提高5%。命中时随机驱散目标一个可驱散的增益。击倒目标时改为驱散其全部可驱散的增益，本次技能不进入冷却。",
           "passives": [
             "lingxiao.passive.guiyi.n2_1"
           ]
@@ -1222,7 +1222,7 @@
           "name": "勇武",
           "layer": 2,
           "slot": 2,
-          "description": "惊雷不耗血，改为回复15%最大气血（上限人物等级×8）并回复10战意；攻击伤害结果增加目标物防×40%，此后目标受到自己的伤害提高10%，至目标倒地。",
+          "description": "施放惊雷不再消耗气血，改为回复最大气血的15%（最多人物等级×8），并获得10点战意。下回合自动攻击时，额外造成相当于目标物理防御40%的伤害，命中还会留下[[lingxiao.status.bravery]]。",
           "passives": [
             "lingxiao.passive.guiyi.n2_2"
           ],
@@ -1239,7 +1239,7 @@
           "name": "长驱直入",
           "layer": 2,
           "slot": 3,
-          "description": "以长驱直入替换惊鸿掠影：110%普攻伤害结果，无法被保护，60%概率重创2回合；耗50法力，冷却6回合。",
+          "description": "以长驱直入替换惊鸿掠影。造成普通攻击110%的物理伤害，敌人无法替目标分担伤害，命中后有60%概率使目标陷入[[lingxiao.status.wound]]，持续2回合。消耗50法力，冷却6回合。",
           "grantSkills": [
             "lingxiao.skill.guiyi_long_drive"
           ],
@@ -1252,7 +1252,7 @@
           "name": "亢强",
           "layer": 3,
           "slot": 1,
-          "description": "使用器诀后，其原价每点战意使下次断尘的连破概率提高0.3%；以最近一次器诀为准。",
+          "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点使下次断尘免去[[lingxiao.status.recovery]]的概率提高0.3个百分点。以最近一次施放的器诀为准。",
           "passives": [
             "lingxiao.passive.guiyi.n3_1"
           ]
@@ -1262,7 +1262,7 @@
           "name": "念心",
           "layer": 3,
           "slot": 2,
-          "description": "攻击没有在场存活召唤灵的人物时，物理暴击率提高15%。",
+          "description": "攻击敌方人物时，若其没有在场存活的出战灵兽，你的物理暴击率提高15%。",
           "passives": [
             "lingxiao.passive.guiyi.n3_2"
           ]
@@ -1272,7 +1272,7 @@
           "name": "静岳",
           "layer": 3,
           "slot": 3,
-          "description": "有护盾时物理暴击率提高4%；回合末没有护盾则获得人物等级×1的护盾。",
+          "description": "有护盾时，物理暴击率提高4%。回合结束时若你仍在场存活且没有护盾，获得相当于人物等级的护盾。",
           "passives": [
             "lingxiao.passive.guiyi.n3_3"
           ]
@@ -1282,7 +1282,7 @@
           "name": "干将",
           "layer": 4,
           "slot": 1,
-          "description": "破极剑意效果提高50%，物理忽防由10%提高至15%，持续5回合。",
+          "description": "破极剑意改为施加强化的[[lingxiao.status.sword_aura_ganjiang]]，使受益者的物理攻击忽视目标15%的物理防御，持续5回合。",
           "patches": [
             {
               "skillId": "lingxiao.skill.sword_aura",
@@ -1297,7 +1297,7 @@
           "name": "杀伐",
           "layer": 4,
           "slot": 2,
-          "description": "武器、衣服分别属于金、火、风任一行时（可混搭），敌方人物倒地且自身存活，有30%概率获得1层剑意，每回合最多成功一次。",
+          "description": "武器与衣服都属于金、火或风行时，只要你在场存活，敌方人物倒地就有30%概率使你获得1层剑意。两件装备可以是不同的行，每回合最多触发一次。",
           "passives": [
             "lingxiao.passive.guiyi.n4_2"
           ]
@@ -1307,7 +1307,7 @@
           "name": "乘势",
           "layer": 4,
           "slot": 3,
-          "description": "乘胜追击状态下，断尘不消耗气血且没有气血门槛。",
+          "description": "有[[lingxiao.status.pursuit]]时，断尘可以在低气血时施放，且不消耗气血。",
           "passives": [
             "lingxiao.passive.guiyi.n4_3"
           ]
@@ -1327,7 +1327,7 @@
           "name": "不惊",
           "layer": 5,
           "slot": 2,
-          "description": "物理忽防提高max(0，武器双孔玄锋最高等级×0.5−3)%，仅计算武器。",
+          "description": "若武器上等级最高的玄锋阵纹超过6级，每超过一级，物理攻击额外忽视目标0.5%的物理防御。",
           "passives": [
             "lingxiao.passive.guiyi.n5_2"
           ]
@@ -1337,7 +1337,7 @@
           "name": "突进",
           "layer": 5,
           "slot": 3,
-          "description": "每次直接物理攻击实际造成气血伤害后，物攻增加2，持续本场；多段逐段累计，派生溅射不重复累计。",
+          "description": "你的物理攻击每有一击扣除目标气血，本场后续物理攻击就额外获得2点物理攻击。多段攻击按每击累积，附带的溅射伤害不会叠加此效果。",
           "passives": [
             "lingxiao.passive.guiyi.n5_3"
           ]
@@ -1347,7 +1347,7 @@
           "name": "剑破",
           "layer": 6,
           "slot": 1,
-          "description": "剑意达到13层时，武器双孔玄锋阵纹提供的物攻之和提高200%。",
+          "description": "剑意达到13层时，武器上所有玄锋阵纹提供的物理攻击变为原来的三倍。",
           "passives": [
             "lingxiao.passive.guiyi.n6_1"
           ]
@@ -1357,7 +1357,7 @@
           "name": "连斩",
           "layer": 6,
           "slot": 2,
-          "description": "每层剑意使总伤害提高1.5%，与剑意5层的5%基础增伤相加。",
+          "description": "每层剑意使你造成的伤害提高1.5%。这项加成与剑意达到5层时获得的5%增伤相加。",
           "passives": [
             "lingxiao.passive.guiyi.n6_2"
           ]
@@ -1367,7 +1367,7 @@
           "name": "熟练",
           "layer": 6,
           "slot": 3,
-          "description": "队伍只有一名红尘剑宗弟子时，连破概率提高17%。",
+          "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率提高17个百分点，触发时免去断尘后的[[lingxiao.status.recovery]]。",
           "passives": [
             "lingxiao.passive.guiyi.n6_3"
           ]
@@ -1393,7 +1393,7 @@
           "name": "破军",
           "layer": 7,
           "slot": 2,
-          "description": "剑意11层起断尘不能被保护，并对额外3个单位溅射45%；17层起溅射4个；23层起无视禁复活效果，不会自动复活。",
+          "description": "剑意达到11层时，敌人无法替断尘目标分担伤害，断尘还会对另外三名敌人溅射45%的伤害。达到17层时，溅射目标增至四名。达到23层时，即使带有禁复活状态，你也能被复活。",
           "passives": [
             "lingxiao.passive.guiyi.n7_2"
           ]

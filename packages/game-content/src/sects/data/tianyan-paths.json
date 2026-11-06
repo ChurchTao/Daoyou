@@ -153,7 +153,7 @@
     {
       "id": "tianyan.passive.edge",
       "name": "锋芒",
-      "description": "天锋一线伤害提高10%，额外破盾由50%降至25%。",
+      "description": "天锋一线的直接伤害提高10%，对护盾的额外伤害由50%降至25%。",
       "modifiers": [
         {
           "damageBonus": 0.1,
@@ -171,22 +171,22 @@
     {
       "id": "tianyan.passive.ember",
       "name": "余火",
-      "description": "燎原保留增加的攻击人数，对本次前两名副目标附加2次余火伤害；点出燎野时最多覆盖三名副目标。"
+      "description": "持有木行法印时施放焚天流火，触发「燎原」，并给本次攻击中主目标以外的前两名敌人附加[[tianyan.status.ember]]。每回合末结算一次，共2次。选择「燎野」后最多可附加给三名额外目标。"
     },
     {
       "id": "tianyan.passive.split",
       "name": "分锋",
-      "description": "淬锋额外攻击一个目标。"
+      "description": "持有土行法印时施放天锋一线，触发「淬锋」，可额外攻击一名敌人。"
     },
     {
       "id": "tianyan.passive.rain",
       "name": "润物",
-      "description": "凝露、滋荣优先作用于两名可恢复伤员，每人恢复降低30%；仅一名伤员时按完整单人份额恢复。无伤员时保留原预挂与分摊规则。"
+      "description": "持有金行法印施放沧海横流可触发「凝露」，持有水行法印施放森罗缚可触发[[tianyan.status.regrowth]]。\n优先选气血比例最低、仍能恢复气血的两名友方，每人恢复量降低30%。仅有一名伤员时，按原本的单人恢复量治疗。无人受伤时，滋荣仍可先施加给最多两名友方，之后每次按降低30%的恢复量治疗。"
     },
     {
       "id": "tianyan.passive.borrow",
       "name": "借势",
-      "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。40法力，冷却3回合。"
+      "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。消耗40法力，冷却3回合。"
     },
     {
       "id": "tianyan.passive.plain",
@@ -196,22 +196,22 @@
     {
       "id": "tianyan.passive.clear",
       "name": "澄明",
-      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。"
+      "description": "澄灵诀可额外移除一个可驱散的持续伤害或普通减益，法力消耗提高50%。"
     },
     {
       "id": "tianyan.passive.wild",
       "name": "燎野",
-      "description": "燎原额外增加一个攻击目标，未能利用的新增名额仍按每位15%提高本次直接伤害；余火最多再覆盖一名副目标。"
+      "description": "持有木行法印时施放焚天流火，触发「燎原」，最多可攻击五名敌人。第四、第五个攻击目标每少一个，本次法术的直接伤害提高15%，最多提高30%。若已选择「余火」，最多可为三名主目标以外的敌人附加余火。"
     },
     {
       "id": "tianyan.passive.dew",
       "name": "温泽",
-      "description": "凝露治疗提高35%。"
+      "description": "持有金行法印时施放沧海横流，触发「凝露」，治疗量提高35%。"
     },
     {
       "id": "tianyan.passive.spring",
       "name": "长春",
-      "description": "滋荣多恢复一次，每次恢复降低20%。"
+      "description": "持有水行法印时施放森罗缚，触发[[tianyan.status.regrowth]]。恢复次数由2次增至3次，每次恢复量降低20%。"
     },
     {
       "id": "tianyan.passive.solitary",
@@ -235,7 +235,7 @@
     {
       "id": "tianyan.passive.reflection",
       "name": "映霞",
-      "description": "自身气血低于40%时，物理、法术承伤降低8%。",
+      "description": "自身气血低于40%时，受到的物理伤害和法术伤害降低8%。",
       "modifiers": [
         {
           "damageTakenBonus": -0.08,
@@ -256,27 +256,27 @@
     {
       "id": "tianyan.passive.springwater",
       "name": "清泉",
-      "description": "澄灵诀附加少量治疗，法力消耗提高20%。"
+      "description": "澄灵诀为所选友方恢复少量气血，法力消耗提高20%。"
     },
     {
       "id": "tianyan.passive.return",
       "name": "归流",
-      "description": "触发生克的五行法术法力消耗降低25%。"
+      "description": "当前法印与施放的五行法术触发相生或相克时，该次法术的法力消耗降低25%。"
     },
     {
       "id": "tianyan.passive.breath",
       "name": "生息",
-      "description": "五行法术触发相生时，自身恢复10法力，每次施法一次。"
+      "description": "当前法印与施放的五行法术触发相生时，自身恢复10点法力，每次施法恢复一次。"
     },
     {
       "id": "tianyan.passive.adapt",
       "name": "御变",
-      "description": "五行法术触发相克时，自身法防提高10%，持续2回合。"
+      "description": "当前法印与施放的五行法术触发相克时，自身获得[[tianyan.status.adapt]]，法术防御提高10%，持续2回合。"
     },
     {
       "id": "tianyan.passive.harmony",
       "name": "天人",
-      "description": "凝露、滋荣的恢复与火生土的烬垒护盾提高25%；触发燎原、淬锋时，该次五行法术伤害提高5%。",
+      "description": "持有金行法印施放沧海横流，或持有水行法印施放森罗缚，附带的治疗量提高25%。火行法印下施放山河倾覆，获得的烬垒护盾提高25%。木行法印下的焚天流火、土行法印下的天锋一线，直接伤害提高5%。",
       "modifiers": [
         {
           "damageBonus": 0.05,
@@ -311,7 +311,7 @@
     {
       "id": "tianyan.passive.wall",
       "name": "摧垣",
-      "description": "天锋一线额外破盾由50%提高至125%。"
+      "description": "天锋一线对护盾的额外伤害由50%提高至125%。"
     },
     {
       "id": "tianyan.passive.roots",
@@ -321,32 +321,32 @@
     {
       "id": "tianyan.passive.mountain",
       "name": "镇岳",
-      "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至25%，法力消耗提高20%；点出镇世后削弱仍为40%，本节点改为法力消耗降低10%，不再增加消耗。"
+      "description": "山河倾覆施加[[tianyan.status.weaken_deep]]，使目标下一次行动造成的物理或法术伤害降低25%，该技能法力消耗提高20%。同时选择「镇世」时，削弱为40%，山河倾覆的法力消耗改为降低10%。"
     },
     {
       "id": "tianyan.passive.prune",
       "name": "斩蔓",
-      "description": "断枝额外驱散一个增益。"
+      "description": "持有木行法印时施放天锋一线，触发「断枝」，可再移除目标一个可驱散的增益。"
     },
     {
       "id": "tianyan.passive.corrode",
       "name": "蚀基",
-      "description": "裂土降低法防提高至25%，持续2回合。"
+      "description": "持有土行法印时施放森罗缚，附加的[[tianyan.status.foundation_break]]使目标的法术防御降低25%，持续2回合。"
     },
     {
       "id": "tianyan.passive.blunt",
       "name": "钝兵",
-      "description": "熔锋降低物攻、法攻提高至20%。"
+      "description": "持有金行法印时施放焚天流火，附加的[[tianyan.status.melt]]使目标的物理攻击和法术攻击各降低20%。"
     },
     {
       "id": "tianyan.passive.truce",
       "name": "止戈",
-      "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动35%，2回合内有效。40法力，冷却3回合。"
+      "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。消耗40法力，冷却3回合。"
     },
     {
       "id": "tianyan.passive.gap",
       "name": "留隙",
-      "description": "截流改为必定附加法术伤害降低25%，持续2回合，不再封法；该次土法伤害降低8%。",
+      "description": "持有水行法印时施放山河倾覆，原本的封法改为[[tianyan.status.spell_dull]]，使目标造成的法术伤害降低25%，持续2回合。本次山河倾覆的直接伤害降低8%。",
       "modifiers": [
         {
           "damageBonus": -0.08,
@@ -367,7 +367,7 @@
     {
       "id": "tianyan.passive.mirror",
       "name": "明镜",
-      "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。"
+      "description": "澄灵诀可额外移除一个可驱散的持续伤害或普通减益，法力消耗提高50%。"
     },
     {
       "id": "tianyan.passive.breach",
@@ -388,12 +388,12 @@
     {
       "id": "tianyan.passive.coldflame",
       "name": "冷焰",
-      "description": "蒸腾额外驱散主要目标一个增益。"
+      "description": "持有火行法印时施放沧海横流，触发「蒸腾」，并移除主目标一个可驱散的增益。"
     },
     {
       "id": "tianyan.passive.ban",
       "name": "禁流",
-      "description": "截流封印命中率提高10%，该次土法伤害降低10%；选择留隙后，命中提升改为将法术伤害削弱从25%提高至35%。",
+      "description": "持有水行法印时施放山河倾覆，封法命中率提高10个百分点，本次山河倾覆的直接伤害降低10%。若已选择「留隙」，则将目标造成的法术伤害降幅从25%提高至35%，替代封法命中率提升。",
       "modifiers": [
         {
           "sealChanceAdd": "0.1*(1-known.tianyan.passive.gap)",
@@ -425,7 +425,7 @@
     {
       "id": "tianyan.passive.exploit",
       "name": "乘虚",
-      "description": "五行法术攻击处于裂土状态的目标，伤害提高8%。",
+      "description": "五行法术命中处于[[tianyan.status.foundation_break]]状态的敌人时，直接伤害提高8%。",
       "modifiers": [
         {
           "damageBonus": 0.08,
@@ -472,12 +472,12 @@
     {
       "id": "tianyan.passive.firm",
       "name": "固本",
-      "description": "玄元守一附加少量自身治疗。"
+      "description": "施放玄元守一时额外为自己恢复少量气血。"
     },
     {
       "id": "tianyan.passive.sheathe",
       "name": "缄锋",
-      "description": "触发断枝时自身获得少量2回合护盾，每次施法一次。"
+      "description": "持有木行法印时施放天锋一线，触发「断枝」，为自己附加持续2回合的护盾。每次施法只获得一次护盾。"
     },
     {
       "id": "tianyan.passive.calm",
@@ -487,7 +487,7 @@
     {
       "id": "tianyan.passive.restraint",
       "name": "敛芒",
-      "description": "自身物理、法术承伤降低6%，五行法术伤害降低8%。",
+      "description": "自己受到的物理伤害和法术伤害降低6%，五行法术的直接伤害降低8%。",
       "modifiers": [
         {
           "damageTakenBonus": -0.06,
@@ -521,7 +521,7 @@
     {
       "id": "tianyan.passive.severance",
       "name": "镇世",
-      "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
+      "description": "山河倾覆施加[[tianyan.status.truce_deep]]，使目标下一次行动造成的物理或法术伤害降低40%。施放山河倾覆造成的直接伤害降低15%。",
       "modifiers": [
         {
           "damageBonus": -0.15,
@@ -541,7 +541,7 @@
     {
       "id": "tianyan.path.hetu",
       "name": "衍法天师",
-      "description": "侧重五行法术输出，也能兼顾恢复与护盾。按相生相克顺序施法可获得更多收益，适合喜欢安排出招顺序、兼顾攻守的修士。",
+      "description": "侧重五行法术伤害，也能恢复气血和获得护盾。每次成功施放五行法术，都会在自己身上留下该法术对应的法印。用当前法印搭配下一招可触发相生或相克，例如持有木行法印时施放焚天流火，可增加攻击目标。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "tianyan.passive.yan_root"
@@ -570,7 +570,7 @@
         {
           "id": "tianyan.node.hetu.1.3",
           "name": "锋芒",
-          "description": "天锋一线伤害提高10%，额外破盾由50%降至25%。",
+          "description": "天锋一线的直接伤害提高10%，对护盾的额外伤害由50%降至25%。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -580,7 +580,7 @@
         {
           "id": "tianyan.node.hetu.2.1",
           "name": "余火",
-          "description": "燎原保留增加的攻击人数，对本次前两名副目标附加2次余火伤害；点出燎野时最多覆盖三名副目标。",
+          "description": "持有木行法印时施放焚天流火，触发「燎原」，并给本次攻击中主目标以外的前两名敌人附加[[tianyan.status.ember]]。每回合末结算一次，共2次。选择「燎野」后最多可附加给三名额外目标。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -590,7 +590,7 @@
         {
           "id": "tianyan.node.hetu.2.2",
           "name": "分锋",
-          "description": "淬锋额外攻击一个目标。",
+          "description": "持有土行法印时施放天锋一线，触发「淬锋」，可额外攻击一名敌人。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -600,7 +600,7 @@
         {
           "id": "tianyan.node.hetu.2.3",
           "name": "润物",
-          "description": "凝露、滋荣优先作用于两名可恢复伤员，每人恢复降低30%；仅一名伤员时按完整单人份额恢复。无伤员时保留原预挂与分摊规则。",
+          "description": "持有金行法印施放沧海横流可触发「凝露」，持有水行法印施放森罗缚可触发[[tianyan.status.regrowth]]。\n优先选气血比例最低、仍能恢复气血的两名友方，每人恢复量降低30%。仅有一名伤员时，按原本的单人恢复量治疗。无人受伤时，滋荣仍可先施加给最多两名友方，之后每次按降低30%的恢复量治疗。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -610,7 +610,7 @@
         {
           "id": "tianyan.node.hetu.3.1",
           "name": "借势",
-          "description": "领悟借势：单体法术攻击并获得护盾，将法印推进至相生的下一行。40法力，冷却3回合。",
+          "description": "领悟「借势」。持有法印时可用，对一名敌人造成法术伤害，自己获得持续2回合的护盾，并按「木 → 火 → 土 → 金 → 水 → 木」换成下一种法印。消耗40法力，冷却3回合。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -640,7 +640,7 @@
         {
           "id": "tianyan.node.hetu.3.3",
           "name": "澄明",
-          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。",
+          "description": "澄灵诀可额外移除一个可驱散的持续伤害或普通减益，法力消耗提高50%。",
           "layer": 3,
           "slot": 3,
           "passives": [
@@ -650,7 +650,7 @@
         {
           "id": "tianyan.node.hetu.4.1",
           "name": "燎野",
-          "description": "燎原额外增加一个攻击目标，未能利用的新增名额仍按每位15%提高本次直接伤害；余火最多再覆盖一名副目标。",
+          "description": "持有木行法印时施放焚天流火，触发「燎原」，最多可攻击五名敌人。第四、第五个攻击目标每少一个，本次法术的直接伤害提高15%，最多提高30%。若已选择「余火」，最多可为三名主目标以外的敌人附加余火。",
           "layer": 4,
           "slot": 1,
           "passives": [
@@ -660,7 +660,7 @@
         {
           "id": "tianyan.node.hetu.4.2",
           "name": "温泽",
-          "description": "凝露治疗提高35%。",
+          "description": "持有金行法印时施放沧海横流，触发「凝露」，治疗量提高35%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -670,7 +670,7 @@
         {
           "id": "tianyan.node.hetu.4.3",
           "name": "长春",
-          "description": "滋荣多恢复一次，每次恢复降低20%。",
+          "description": "持有水行法印时施放森罗缚，触发[[tianyan.status.regrowth]]。恢复次数由2次增至3次，每次恢复量降低20%。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -690,7 +690,7 @@
         {
           "id": "tianyan.node.hetu.5.2",
           "name": "映霞",
-          "description": "自身气血低于40%时，物理、法术承伤降低8%。",
+          "description": "自身气血低于40%时，受到的物理伤害和法术伤害降低8%。",
           "layer": 5,
           "slot": 2,
           "passives": [
@@ -700,7 +700,7 @@
         {
           "id": "tianyan.node.hetu.5.3",
           "name": "清泉",
-          "description": "澄灵诀附加少量治疗，法力消耗提高20%。",
+          "description": "澄灵诀为所选友方恢复少量气血，法力消耗提高20%。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -710,7 +710,7 @@
         {
           "id": "tianyan.node.hetu.6.1",
           "name": "归流",
-          "description": "触发生克的五行法术法力消耗降低25%。",
+          "description": "当前法印与施放的五行法术触发相生或相克时，该次法术的法力消耗降低25%。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -720,7 +720,7 @@
         {
           "id": "tianyan.node.hetu.6.2",
           "name": "生息",
-          "description": "五行法术触发相生时，自身恢复10法力，每次施法一次。",
+          "description": "当前法印与施放的五行法术触发相生时，自身恢复10点法力，每次施法恢复一次。",
           "layer": 6,
           "slot": 2,
           "passives": [
@@ -730,7 +730,7 @@
         {
           "id": "tianyan.node.hetu.6.3",
           "name": "御变",
-          "description": "五行法术触发相克时，自身法防提高10%，持续2回合。",
+          "description": "当前法印与施放的五行法术触发相克时，自身获得[[tianyan.status.adapt]]，法术防御提高10%，持续2回合。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -756,7 +756,7 @@
         {
           "id": "tianyan.node.hetu.7.2",
           "name": "天人",
-          "description": "凝露、滋荣的恢复与火生土的烬垒护盾提高25%；触发燎原、淬锋时，该次五行法术伤害提高5%。",
+          "description": "持有金行法印施放沧海横流，或持有水行法印施放森罗缚，附带的治疗量提高25%。火行法印下施放山河倾覆，获得的烬垒护盾提高25%。木行法印下的焚天流火、土行法印下的天锋一线，直接伤害提高5%。",
           "layer": 7,
           "slot": 2,
           "passives": [
@@ -784,7 +784,7 @@
     {
       "id": "tianyan.path.luoshu",
       "name": "执衡真君",
-      "description": "侧重法术削弱与控制。运用减速、破盾、驱散和压低敌人伤害来化解攻势，适合喜欢针对敌情选择法术的修士。",
+      "description": "侧重削弱与控制。每次成功施放五行法术，都会在自己身上留下该法术对应的法印。用当前法印搭配下一招可触发相生或相克，例如持有木行法印时施放天锋一线，可移除敌人的增益。",
       "requiresConnectedNodes": true,
       "foundationPassives": [
         "tianyan.passive.heng_root"
@@ -793,7 +793,7 @@
         {
           "id": "tianyan.node.luoshu.1.1",
           "name": "摧垣",
-          "description": "天锋一线额外破盾由50%提高至125%。",
+          "description": "天锋一线对护盾的额外伤害由50%提高至125%。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -813,7 +813,7 @@
         {
           "id": "tianyan.node.luoshu.1.3",
           "name": "镇岳",
-          "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至25%，法力消耗提高20%；点出镇世后削弱仍为40%，本节点改为法力消耗降低10%，不再增加消耗。",
+          "description": "山河倾覆施加[[tianyan.status.weaken_deep]]，使目标下一次行动造成的物理或法术伤害降低25%，该技能法力消耗提高20%。同时选择「镇世」时，削弱为40%，山河倾覆的法力消耗改为降低10%。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -823,7 +823,7 @@
         {
           "id": "tianyan.node.luoshu.2.1",
           "name": "斩蔓",
-          "description": "断枝额外驱散一个增益。",
+          "description": "持有木行法印时施放天锋一线，触发「断枝」，可再移除目标一个可驱散的增益。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -833,7 +833,7 @@
         {
           "id": "tianyan.node.luoshu.2.2",
           "name": "蚀基",
-          "description": "裂土降低法防提高至25%，持续2回合。",
+          "description": "持有土行法印时施放森罗缚，附加的[[tianyan.status.foundation_break]]使目标的法术防御降低25%，持续2回合。",
           "layer": 2,
           "slot": 2,
           "passives": [
@@ -843,7 +843,7 @@
         {
           "id": "tianyan.node.luoshu.2.3",
           "name": "钝兵",
-          "description": "熔锋降低物攻、法攻提高至20%。",
+          "description": "持有金行法印时施放焚天流火，附加的[[tianyan.status.melt]]使目标的物理攻击和法术攻击各降低20%。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -853,7 +853,7 @@
         {
           "id": "tianyan.node.luoshu.3.1",
           "name": "止戈",
-          "description": "领悟止戈：单体攻击并削弱目标下一次物理或法术伤害行动35%，2回合内有效。40法力，冷却3回合。",
+          "description": "领悟「止戈」。对一名敌人造成法术伤害并施加[[tianyan.status.truce]]，使其下一次行动造成的物理或法术伤害降低35%，效果在2回合内有效。消耗40法力，冷却3回合。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -866,7 +866,7 @@
         {
           "id": "tianyan.node.luoshu.3.2",
           "name": "留隙",
-          "description": "截流改为必定附加法术伤害降低25%，持续2回合，不再封法；该次土法伤害降低8%。",
+          "description": "持有水行法印时施放山河倾覆，原本的封法改为[[tianyan.status.spell_dull]]，使目标造成的法术伤害降低25%，持续2回合。本次山河倾覆的直接伤害降低8%。",
           "layer": 3,
           "slot": 2,
           "passives": [
@@ -876,7 +876,7 @@
         {
           "id": "tianyan.node.luoshu.3.3",
           "name": "明镜",
-          "description": "澄灵诀额外移除一个符合条件的减益，法力消耗提高50%。",
+          "description": "澄灵诀可额外移除一个可驱散的持续伤害或普通减益，法力消耗提高50%。",
           "layer": 3,
           "slot": 3,
           "passives": [
@@ -896,7 +896,7 @@
         {
           "id": "tianyan.node.luoshu.4.2",
           "name": "冷焰",
-          "description": "蒸腾额外驱散主要目标一个增益。",
+          "description": "持有火行法印时施放沧海横流，触发「蒸腾」，并移除主目标一个可驱散的增益。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -906,7 +906,7 @@
         {
           "id": "tianyan.node.luoshu.4.3",
           "name": "禁流",
-          "description": "截流封印命中率提高10%，该次土法伤害降低10%；选择留隙后，命中提升改为将法术伤害削弱从25%提高至35%。",
+          "description": "持有水行法印时施放山河倾覆，封法命中率提高10个百分点，本次山河倾覆的直接伤害降低10%。若已选择「留隙」，则将目标造成的法术伤害降幅从25%提高至35%，替代封法命中率提升。",
           "layer": 4,
           "slot": 3,
           "passives": [
@@ -916,7 +916,7 @@
         {
           "id": "tianyan.node.luoshu.5.1",
           "name": "乘虚",
-          "description": "五行法术攻击处于裂土状态的目标，伤害提高8%。",
+          "description": "五行法术命中处于[[tianyan.status.foundation_break]]状态的敌人时，直接伤害提高8%。",
           "layer": 5,
           "slot": 1,
           "passives": [
@@ -936,7 +936,7 @@
         {
           "id": "tianyan.node.luoshu.5.3",
           "name": "固本",
-          "description": "玄元守一附加少量自身治疗。",
+          "description": "施放玄元守一时额外为自己恢复少量气血。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -946,7 +946,7 @@
         {
           "id": "tianyan.node.luoshu.6.1",
           "name": "缄锋",
-          "description": "触发断枝时自身获得少量2回合护盾，每次施法一次。",
+          "description": "持有木行法印时施放天锋一线，触发「断枝」，为自己附加持续2回合的护盾。每次施法只获得一次护盾。",
           "layer": 6,
           "slot": 1,
           "passives": [
@@ -966,7 +966,7 @@
         {
           "id": "tianyan.node.luoshu.6.3",
           "name": "敛芒",
-          "description": "自身物理、法术承伤降低6%，五行法术伤害降低8%。",
+          "description": "自己受到的物理伤害和法术伤害降低6%，五行法术的直接伤害降低8%。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -992,7 +992,7 @@
         {
           "id": "tianyan.node.luoshu.7.2",
           "name": "镇世",
-          "description": "山河倾覆对下一次物理或法术伤害行动的削弱提高至40%，自身该法术伤害降低15%。",
+          "description": "山河倾覆施加[[tianyan.status.truce_deep]]，使目标下一次行动造成的物理或法术伤害降低40%。施放山河倾覆造成的直接伤害降低15%。",
           "layer": 7,
           "slot": 2,
           "passives": [
