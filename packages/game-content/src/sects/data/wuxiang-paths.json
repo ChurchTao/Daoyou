@@ -190,7 +190,7 @@
     {
       "id": "wuxiang.passive.compassion.4.3",
       "name": "烈念护心",
-      "description": "以三枚烈念显化[[wuxiang.status.demon]]时，抵抗封印的概率额外提高10个百分点。"
+      "description": "以三枚烈念显化[[wuxiang.status.demon]]时，抵抗封印的概率额外+10%。"
     },
     {
       "id": "wuxiang.passive.compassion.5.1",
@@ -397,7 +397,7 @@
           }
         }
       ],
-      "description": "显相时，每枚烈念使甘露愿、护生愿、破障愿和归元愿的效果提高8%。有三枚烈念时，总增幅再增加10个百分点。你可用[[wuxiang.status.vow]]指定这四种愿法额外照拂的友方，印记还会在每次成功施放愿法后为持有者额外回复气血。"
+      "description": "显相时，每枚烈念使甘露愿、护生愿、破障愿和归元愿的效果提高8%。有三枚烈念时，总增幅额外+10%。你可用[[wuxiang.status.vow]]指定这四种愿法额外照拂的友方，印记还会在每次成功施放愿法后为持有者额外回复气血。"
     },
     {
       "id": "wuxiang.passive.wrath.1.1",
@@ -521,7 +521,7 @@
     {
       "id": "wuxiang.passive.wrath.4.2",
       "name": "孤阵见隙",
-      "description": "你在场存活时，每回合结束都会尝试给没有灵兽在场的敌方人物施加5回合的[[wuxiang.status.breach]]。目标本场每有一只灵兽曾出战，施加概率就提高20个百分点，最高100%。",
+      "description": "你在场存活时，每回合结束都会尝试给没有灵兽在场的敌方人物施加5回合的[[wuxiang.status.breach]]。目标本场每有一只灵兽曾出战，施加概率+20%，最高100%。",
       "hooks": [
         {
           "on": "onRoundEnd",
@@ -588,7 +588,7 @@
     {
       "id": "wuxiang.passive.wrath.6.1",
       "name": "乘隙",
-      "description": "显相期间，物理攻击消耗自己施加的[[wuxiang.status.breach]]时，破绽提供的增伤再提高5个百分点。"
+      "description": "显相期间，物理攻击消耗自己施加的[[wuxiang.status.breach]]时，破绽提供的增伤幅度额外+5%。"
     },
     {
       "id": "wuxiang.passive.wrath.6.2",
@@ -861,7 +861,7 @@
           "name": "烈念护心",
           "layer": 4,
           "slot": 3,
-          "description": "以三枚烈念显化[[wuxiang.status.demon]]时，抵抗封印的概率额外提高10个百分点。",
+          "description": "以三枚烈念显化[[wuxiang.status.demon]]时，抵抗封印的概率额外+10%。",
           "passives": [
             "wuxiang.passive.compassion.4.3"
           ]
@@ -1099,7 +1099,7 @@
           "name": "孤阵见隙",
           "layer": 4,
           "slot": 2,
-          "description": "你在场存活时，每回合结束都会尝试给没有灵兽在场的敌方人物施加5回合的[[wuxiang.status.breach]]。目标本场每有一只灵兽曾出战，施加概率就提高20个百分点，最高100%。",
+          "description": "你在场存活时，每回合结束都会尝试给没有灵兽在场的敌方人物施加5回合的[[wuxiang.status.breach]]。目标本场每有一只灵兽曾出战，施加概率+20%，最高100%。",
           "passives": [
             "wuxiang.passive.wrath.4.2"
           ]
@@ -1149,7 +1149,7 @@
           "name": "乘隙",
           "layer": 6,
           "slot": 1,
-          "description": "显相期间，物理攻击消耗自己施加的[[wuxiang.status.breach]]时，破绽提供的增伤再提高5个百分点。",
+          "description": "显相期间，物理攻击消耗自己施加的[[wuxiang.status.breach]]时，破绽提供的增伤幅度额外+5%。",
           "passives": [
             "wuxiang.passive.wrath.6.1"
           ]

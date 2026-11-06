@@ -1,3 +1,4 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import {
   getBreakthroughPenaltyPercent,
   getPillToxicityRecoveryMultiplier,
@@ -47,7 +48,7 @@ export function getStatusEffectDetails(
 
   if (status.key === BREAKTHROUGH_FOCUS_STATUS_KEY) {
     return [
-      `下次突破成功率 +${formatPercent(getBreakthroughFocusBonus(status))}。`,
+      `下次突破成功率 +${formatRatioPercent(getBreakthroughFocusBonus(status), 1)}。`,
       `剩余 ${status.usesRemaining ?? 1} 次突破尝试。`,
       ...details,
     ];
@@ -55,8 +56,9 @@ export function getStatusEffectDetails(
 
   if (status.key === PROTECT_MERIDIANS_STATUS_KEY) {
     return [
-      `突破失败时修为损失降低 ${formatPercent(
+      `突破失败时修为损失降低 ${formatRatioPercent(
         getProtectMeridiansReductionPercent(status),
+        1,
       )}。`,
       `剩余 ${status.usesRemaining ?? 1} 次突破尝试。`,
       ...details,
@@ -72,11 +74,6 @@ export function getStatusEffectDetails(
   }
 
   return details;
-}
-
-function formatPercent(value: number): string {
-  const percent = Number((value * 100).toFixed(1));
-  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
 }
 
 export function getPillToxicityEffectDetails(

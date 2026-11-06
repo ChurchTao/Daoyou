@@ -1,5 +1,5 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import type { BreakthroughModifiers } from '@daoyou/game-domain/cultivation';
-import { format } from 'd3-format';
 
 export type BreakthroughFactorTone = 'positive' | 'warning' | 'neutral';
 
@@ -16,13 +16,8 @@ export interface BreakthroughChancePresentation {
   factors: BreakthroughChanceFactor[];
 }
 
-function formatPercent(value: number): string {
-  return format('.1%')(value);
-}
-
 function formatSignedPercent(value: number): string {
-  if (value === 0) return '+0.0%';
-  return `${value > 0 ? '+' : '-'}${formatPercent(Math.abs(value))}`;
+  return `${value > 0 ? '+' : '-'}${formatRatioPercent(Math.abs(value), 1)}`;
 }
 
 function getDeltaTone(value: number): BreakthroughFactorTone {
@@ -48,7 +43,7 @@ export function buildBreakthroughChancePresentation(input: {
     factors.push({
       key: 'realm',
       label: '境界难度',
-      value: `×${formatPercent(modifiers.realmDifficulty)}`,
+      value: `×${formatRatioPercent(modifiers.realmDifficulty, 1)}`,
       tone: getMultiplierTone(modifiers.realmDifficulty),
     });
   }
@@ -56,7 +51,7 @@ export function buildBreakthroughChancePresentation(input: {
     factors.push({
       key: 'progress',
       label: '修为进度',
-      value: `×${formatPercent(modifiers.progressMultiplier)}`,
+      value: `×${formatRatioPercent(modifiers.progressMultiplier, 1)}`,
       tone: getMultiplierTone(modifiers.progressMultiplier),
     });
   }
@@ -64,7 +59,7 @@ export function buildBreakthroughChancePresentation(input: {
     factors.push({
       key: 'insight',
       label: '道行感悟',
-      value: `×${formatPercent(modifiers.insightMultiplier)}`,
+      value: `×${formatRatioPercent(modifiers.insightMultiplier, 1)}`,
       tone: getMultiplierTone(modifiers.insightMultiplier),
     });
   }
@@ -72,7 +67,7 @@ export function buildBreakthroughChancePresentation(input: {
     factors.push({
       key: 'inner-demon',
       label: '心魔影响',
-      value: `×${formatPercent(modifiers.demonPenalty)}`,
+      value: `×${formatRatioPercent(modifiers.demonPenalty, 1)}`,
       tone: getMultiplierTone(modifiers.demonPenalty),
     });
   }
@@ -96,7 +91,7 @@ export function buildBreakthroughChancePresentation(input: {
     factors.push({
       key: 'toxicity',
       label: '丹毒惩罚',
-      value: `-${formatPercent(modifiers.toxicityPenalty)}`,
+      value: `-${formatRatioPercent(modifiers.toxicityPenalty, 1)}`,
       tone: 'warning',
     });
   }

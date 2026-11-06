@@ -271,7 +271,7 @@ export const BREAKTHROUGH_SKILLS: SkillDef[] = [
   {
     id: 'breakthrough.last-chime',
     name: '末劫余响',
-    description: '气血不足三成时，残钟激发末劫余响。',
+    description: '气血低于30%时，残钟激发末劫余响。',
     tags: ['passive'],
     targeting: { side: 'self' },
     effects: [],

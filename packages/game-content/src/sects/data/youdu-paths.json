@@ -908,7 +908,7 @@
           "name": "索魂",
           "layer": 3,
           "slot": 1,
-          "description": "战斗每进行一回合，拘灵术的命中概率就提高0.5个百分点，最多提高12个百分点。",
+          "description": "战斗每进行一回合，拘灵术的命中率+0.5%，累计最多+12%。",
           "passives": [
             "youdu.passive.soul_seek"
           ]
@@ -918,7 +918,7 @@
           "name": "乘虚",
           "layer": 3,
           "slot": 2,
-          "description": "对带有[[youdu.status.poison]]或灵兽所施毒的目标，拘灵术的命中概率提高20个百分点。若目标带有魂毒，再提高4个百分点。",
+          "description": "对带有[[youdu.status.poison]]或灵兽所施毒的目标，拘灵术的命中率+20%。若目标带有魂毒，命中率再+4%。",
           "passives": [
             "youdu.passive.soul_wound"
           ]
@@ -1094,7 +1094,7 @@
           "name": "窥隙",
           "layer": 1,
           "slot": 1,
-          "description": "攻击带有[[youdu.status.poison]]的目标时，本次攻击的暴击率提高12个百分点。",
+          "description": "攻击带有[[youdu.status.poison]]的目标时，本次攻击的暴击率+12%。",
           "passives": [
             "youdu.passive.poison_blaze"
           ]

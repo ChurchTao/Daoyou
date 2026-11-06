@@ -381,7 +381,7 @@
       "id": "bailu.skill.ningshen",
       "name": "凝神！",
       "school": "bailu",
-      "description": "凝神明志，言出必中。\n自身获得[[bailu.status.focus]]，持续10回合。封印命中和封印命中上限各提高10个百分点。",
+      "description": "凝神明志，言出必中。\n自身获得[[bailu.status.focus]]，持续10回合。封印命中率与封印命中率上限各+10%。",
       "tags": [
         "spell",
         "support"
@@ -423,7 +423,7 @@
       "id": "bailu.skill.pojia",
       "name": "破甲！",
       "school": "bailu",
-      "description": "笔削落下，防备见骨。\n使最多三名敌人陷入[[bailu.status.armor]]，物理防御和法术防御各降低5%，持续4回合。每影响一名敌人消耗50法力。选择笔削节点后，两项防御的降幅从首回合的10%开始，每回合减弱1个百分点。",
+      "description": "笔削落下，防备见骨。\n使最多三名敌人陷入[[bailu.status.armor]]，物理防御和法术防御各降低5%，持续4回合。每影响一名敌人消耗50法力。选择笔削节点后，两项防御的降幅逐回合依次为10%、9%、8%、7%。",
       "tags": [
         "spell",
         "support"
@@ -820,7 +820,7 @@
     {
       "id": "bailu.status.focus",
       "name": "明志",
-      "description": "封印命中提高10个百分点，封印命中上限也提高10个百分点。",
+      "description": "封印命中率与封印命中率上限各+10%。",
       "kind": "bailu.focus",
       "school": "bailu",
       "category": "buff",

@@ -1046,6 +1046,12 @@ describe('天衍当前法印的指令预览', () => {
   });
 
   it('展示已点经脉的减防、封法替代和借势换印', () => {
+    const { b: sealing, input: sealInput } = setup('luoshu', ['3.3', '4.3']);
+    seal(sealing, 'water');
+    expect(preview(sealing, sealInput, 'earth').effects).toContain(
+      '本次封印命中率 +10%。',
+    );
+
     const { b: controlled, input: controlInput } = setup('luoshu', [
       '2.2',
       '3.2',

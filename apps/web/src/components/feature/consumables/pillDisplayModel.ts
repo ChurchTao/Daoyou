@@ -1,3 +1,4 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import { type RealmType } from '@daoyou/constants/realms';
 import { CULTIVATION_PILL_MAX_QUALITY_BY_REALM } from '@daoyou/game-content/consumables';
@@ -83,11 +84,6 @@ export interface PillDisplayModel {
   flavorText?: string;
 }
 
-function formatPercent(value: number): string {
-  const percent = Number((value * 100).toFixed(1));
-  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
-}
-
 function getStatusName(status: ConditionStatusKey): string {
   return getConditionStatusTemplate(status)?.name ?? status;
 }
@@ -96,7 +92,7 @@ function getRestoreEffectText(
   operation: Extract<ConditionOperation, { type: 'restore_resource' }>,
 ): string {
   if (operation.mode === 'percent') {
-    return `恢复最大${getResourceLabel(operation.resource)} ${formatPercent(operation.value)}`;
+    return `恢复最大${getResourceLabel(operation.resource)} ${formatRatioPercent(operation.value, 1)}`;
   }
 
   return `恢复${getResourceLabel(operation.resource)} ${operation.value}`;
@@ -106,7 +102,7 @@ function getRestoreTargetText(
   operation: Extract<ConditionOperation, { type: 'restore_resource' }>,
 ): string {
   if (operation.mode === 'percent') {
-    return `最大${getResourceLabel(operation.resource)} ${formatPercent(operation.value)}`;
+    return `最大${getResourceLabel(operation.resource)} ${formatRatioPercent(operation.value, 1)}`;
   }
 
   return `${getResourceLabel(operation.resource)} ${operation.value}`;
@@ -264,13 +260,15 @@ export function describePillOperation(operation: ConditionOperation): string {
         } 次）`;
       }
       if (operation.status === BREAKTHROUGH_FOCUS_STATUS_KEY) {
-        return `${getStatusName(operation.status)}：破境成功率 +${formatPercent(
+        return `${getStatusName(operation.status)}：破境成功率 +${formatRatioPercent(
           getBreakthroughFocusBonus(operation),
+          1,
         )}（可用 ${operation.usesRemaining ?? 1} 次）`;
       }
       if (operation.status === PROTECT_MERIDIANS_STATUS_KEY) {
-        return `${getStatusName(operation.status)}：突破失败修为损失降低 ${formatPercent(
+        return `${getStatusName(operation.status)}：突破失败修为损失降低 ${formatRatioPercent(
           getProtectMeridiansReductionPercent(operation),
+          1,
         )}（可用 ${operation.usesRemaining ?? 1} 次）`;
       }
       if (operation.status === CLEAR_MIND_STATUS_KEY) {

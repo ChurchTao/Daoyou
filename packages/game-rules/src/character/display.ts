@@ -13,6 +13,7 @@ export { CHARACTER_ATTRIBUTE_LABELS } from '@daoyou/game-domain/character';
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 
 import { projectNaturalRecoveryResources } from '../condition/index.js';
+import { formatRatioPercent } from '../presentation/numbers.js';
 
 import { projectCharacterToCombatV6 } from '../combat/projection/project-character.js';
 
@@ -63,7 +64,7 @@ export function formatCharacterAttributeValue(
   value: number,
 ): string {
   return ['critRate', 'spellCritRate', 'physicalFuryRate'].includes(type)
-    ? `${(value * 100).toFixed(1)}%`
+    ? formatRatioPercent(value, 1)
     : `${value}`;
 }
 

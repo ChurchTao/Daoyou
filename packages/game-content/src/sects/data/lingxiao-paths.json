@@ -644,7 +644,7 @@
     {
       "id": "lingxiao.passive.guiyi.n3_1",
       "name": "亢强",
-      "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点使下次断尘免去[[lingxiao.status.recovery]]的概率提高0.3个百分点。以最近一次施放的器诀为准。",
+      "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点战意使下次断尘免去[[lingxiao.status.recovery]]的概率+0.3%。以最近一次施放的器诀为准。",
       "modifiers": [
         {
           "when": {
@@ -868,7 +868,7 @@
     {
       "id": "lingxiao.passive.guiyi.n6_3",
       "name": "熟练",
-      "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率提高17个百分点，触发时免去断尘后的[[lingxiao.status.recovery]]。",
+      "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率+17%，触发时免去断尘后的[[lingxiao.status.recovery]]。",
       "modifiers": [
         {
           "when": {
@@ -1252,7 +1252,7 @@
           "name": "亢强",
           "layer": 3,
           "slot": 1,
-          "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点使下次断尘免去[[lingxiao.status.recovery]]的概率提高0.3个百分点。以最近一次施放的器诀为准。",
+          "description": "成功施放器诀后，按该器诀原本消耗的战意计算，每点战意使下次断尘免去[[lingxiao.status.recovery]]的概率+0.3%。以最近一次施放的器诀为准。",
           "passives": [
             "lingxiao.passive.guiyi.n3_1"
           ]
@@ -1367,7 +1367,7 @@
           "name": "熟练",
           "layer": 6,
           "slot": 3,
-          "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率提高17个百分点，触发时免去断尘后的[[lingxiao.status.recovery]]。",
+          "description": "若你是队中唯一的红尘剑宗弟子，断尘触发「连破」的概率+17%，触发时免去断尘后的[[lingxiao.status.recovery]]。",
           "passives": [
             "lingxiao.passive.guiyi.n6_3"
           ]

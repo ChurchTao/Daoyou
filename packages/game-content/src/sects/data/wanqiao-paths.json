@@ -6,7 +6,7 @@
     {
       "id": "wanqiao.passive.resonance.fashen",
       "name": "凝听",
-      "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
+      "description": "每持有一层窍息，法术暴击率+2%。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
       "modifiers": [
         {
           "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
@@ -207,7 +207,7 @@
     {
       "id": "wanqiao.passive.resonance.yueying",
       "name": "复音",
-      "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
+      "description": "万窍山神通触发复响的概率+6%。天籁道途的万窍齐鸣伤害另提高12%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -286,7 +286,7 @@
     {
       "id": "wanqiao.passive.resonance.posha",
       "name": "破音",
-      "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
+      "description": "裂帛、叩隙和截声的暴击率+12%，暴击时的伤害倍率额外增加0.20。",
       "modifiers": [
         {
           "critChanceAdd": 0.12,
@@ -445,7 +445,7 @@
     {
       "id": "wanqiao.passive.subtlety.fashen",
       "name": "凝听",
-      "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
+      "description": "每持有一层窍息，法术暴击率+2%。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
       "modifiers": [
         {
           "critChanceAdd": "0.02*resource.wanqiao.resource.breath",
@@ -458,7 +458,7 @@
     {
       "id": "wanqiao.passive.subtlety.fudu",
       "name": "伏声",
-      "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击附加[[wanqiao.status.echo]]的概率提高5个百分点。",
+      "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，这次追加攻击附加[[wanqiao.status.echo]]的概率+5%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -492,7 +492,7 @@
     {
       "id": "wanqiao.passive.subtlety.lingmu",
       "name": "入窍",
-      "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，这个概率就提高2个百分点。",
+      "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，叠加概率+2%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -502,7 +502,7 @@
     {
       "id": "wanqiao.passive.subtlety.jiaoteng",
       "name": "交响",
-      "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加的概率提高10个百分点。",
+      "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加概率+10%。",
       "hooks": [
         {
           "on": "afterStrike",
@@ -579,7 +579,7 @@
     {
       "id": "wanqiao.passive.subtlety.yueying",
       "name": "复音",
-      "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
+      "description": "万窍山神通触发复响的概率+6%。天籁道途的万窍齐鸣伤害另提高12%。",
       "modifiers": [
         {
           "damageBonus": 0
@@ -658,7 +658,7 @@
     {
       "id": "wanqiao.passive.subtlety.posha",
       "name": "破音",
-      "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
+      "description": "裂帛、叩隙和截声的暴击率+12%，暴击时的伤害倍率额外增加0.20。",
       "modifiers": [
         {
           "critChanceAdd": 0.12,
@@ -736,7 +736,7 @@
         {
           "id": "wanqiao.node.resonance.fashen",
           "name": "凝听",
-          "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
+          "description": "每持有一层窍息，法术暴击率+2%。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
           "layer": 1,
           "slot": 1,
           "passives": [
@@ -836,7 +836,7 @@
         {
           "id": "wanqiao.node.resonance.yueying",
           "name": "复音",
-          "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
+          "description": "万窍山神通触发复响的概率+6%。天籁道途的万窍齐鸣伤害另提高12%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -881,7 +881,7 @@
         {
           "id": "wanqiao.node.resonance.posha",
           "name": "破音",
-          "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
+          "description": "裂帛、叩隙和截声的暴击率+12%，暴击时的伤害倍率额外增加0.20。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -1007,7 +1007,7 @@
         {
           "id": "wanqiao.node.subtlety.fashen",
           "name": "凝听",
-          "description": "持有的窍息每多一层，法术暴击率就提高2个百分点。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
+          "description": "每持有一层窍息，法术暴击率+2%。选择凝听后，第2、4、6等偶数回合结束时不再自动恢复窍息。",
           "layer": 1,
           "slot": 3,
           "passives": [
@@ -1017,7 +1017,7 @@
         {
           "id": "wanqiao.node.subtlety.fudu",
           "name": "伏声",
-          "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，使这次追加攻击附加[[wanqiao.status.echo]]的概率提高5个百分点。",
+          "description": "潜籁追加复响攻击时，若还持有窍息，消耗一层窍息，这次追加攻击附加[[wanqiao.status.echo]]的概率+5%。",
           "layer": 2,
           "slot": 1,
           "passives": [
@@ -1037,7 +1037,7 @@
         {
           "id": "wanqiao.node.subtlety.lingmu",
           "name": "入窍",
-          "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，这个概率就提高2个百分点。",
+          "description": "主动施放留音时，有机会直接给目标叠三层[[wanqiao.status.echo]]。每持有一层窍息，叠加概率+2%。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1047,7 +1047,7 @@
         {
           "id": "wanqiao.node.subtlety.jiaoteng",
           "name": "交响",
-          "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加的概率提高10个百分点。",
+          "description": "裂帛消耗窍息时，有机会给被命中的目标附加一层[[wanqiao.status.echo]]。每消耗一层窍息，附加概率+10%。",
           "layer": 3,
           "slot": 1,
           "passives": [
@@ -1087,7 +1087,7 @@
         {
           "id": "wanqiao.node.subtlety.yueying",
           "name": "复音",
-          "description": "万窍山神通触发复响的概率提高6个百分点。天籁道途的万窍齐鸣伤害另提高12%。",
+          "description": "万窍山神通触发复响的概率+6%。天籁道途的万窍齐鸣伤害另提高12%。",
           "layer": 4,
           "slot": 2,
           "passives": [
@@ -1132,7 +1132,7 @@
         {
           "id": "wanqiao.node.subtlety.posha",
           "name": "破音",
-          "description": "裂帛、叩隙和截声的暴击率提高12个百分点，暴击时的伤害倍率额外增加0.20。",
+          "description": "裂帛、叩隙和截声的暴击率+12%，暴击时的伤害倍率额外增加0.20。",
           "layer": 5,
           "slot": 3,
           "passives": [

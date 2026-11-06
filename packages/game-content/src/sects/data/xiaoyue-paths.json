@@ -399,7 +399,7 @@
     {
       "id": "xiaoyue.passive.blood.2.3",
       "name": "兽王",
-      "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限就降低2个百分点。",
+      "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限-2%。",
       "modifiers": [
         {
           "sealChanceCeilTakenAdd": "-0.02*allyStandingPets"
@@ -678,7 +678,7 @@
     {
       "id": "xiaoyue.passive.blood.5.3",
       "name": "癫狂",
-      "description": "裂甲狂身期间物理暴击率额外提高12个百分点。",
+      "description": "裂甲狂身期间物理暴击率额外+12%。",
       "modifiers": [
         {
           "critChanceAdd": 0.12,
@@ -759,7 +759,7 @@
     {
       "id": "xiaoyue.passive.blood.6.3",
       "name": "肝胆",
-      "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率提高2个百分点。最多计六只，同一只灵兽再次出战不重复计算。",
+      "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率+2%。最多计六只，同一只灵兽再次出战不重复计算。",
       "hooks": [
         {
           "on": "onPetSummoned",
@@ -1566,7 +1566,7 @@
     {
       "id": "xiaoyue.passive.bond.7.1",
       "name": "兽势",
-      "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+      "description": "第七层自动奖励使本人物理暴击率+2%。",
       "modifiers": [
         {
           "critChanceAdd": 0.02,
@@ -1721,7 +1721,7 @@
     {
       "id": "xiaoyue.passive.bond.7.3",
       "name": "兽威",
-      "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+      "description": "第七层自动奖励使本人物理暴击率+2%。",
       "modifiers": [
         {
           "critChanceAdd": 0.02,
@@ -1796,7 +1796,7 @@
         {
           "id": "xiaoyue.node.blood.2.3",
           "name": "兽王",
-          "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限就降低2个百分点。",
+          "description": "敌人尝试封印你时，我方每有一只灵兽在场，这次封印的命中率上限-2%。",
           "layer": 2,
           "slot": 3,
           "passives": [
@@ -1886,7 +1886,7 @@
         {
           "id": "xiaoyue.node.blood.5.3",
           "name": "癫狂",
-          "description": "裂甲狂身期间物理暴击率额外提高12个百分点。",
+          "description": "裂甲狂身期间物理暴击率额外+12%。",
           "layer": 5,
           "slot": 3,
           "passives": [
@@ -1916,7 +1916,7 @@
         {
           "id": "xiaoyue.node.blood.6.3",
           "name": "肝胆",
-          "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率提高2个百分点。最多计六只，同一只灵兽再次出战不重复计算。",
+          "description": "本场每有一只自己的灵兽首次出战，施放鹏击或连环击后跳过[[xiaoyue.status.rest]]的概率+2%。最多计六只，同一只灵兽再次出战不重复计算。",
           "layer": 6,
           "slot": 3,
           "passives": [
@@ -2160,7 +2160,7 @@
         {
           "id": "xiaoyue.node.bond.7.1",
           "name": "兽势",
-          "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+          "description": "第七层自动奖励使本人物理暴击率+2%。",
           "layer": 7,
           "slot": 1,
           "automatic": true,
@@ -2184,7 +2184,7 @@
         {
           "id": "xiaoyue.node.bond.7.3",
           "name": "兽威",
-          "description": "第七层自动奖励：本人物理暴击率+2个百分点。",
+          "description": "第七层自动奖励使本人物理暴击率+2%。",
           "layer": 7,
           "slot": 3,
           "automatic": true,

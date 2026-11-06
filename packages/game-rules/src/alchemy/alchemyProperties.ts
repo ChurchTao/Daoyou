@@ -9,6 +9,7 @@ import type {
 } from '@daoyou/game-domain/consumables';
 import { ALCHEMY_PROPERTY_KEY_VALUES } from '@daoyou/game-domain/consumables';
 import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
+import { formatRatioPercent } from '../presentation/numbers.js';
 
 export const ALCHEMY_PROPERTY_LABELS: Record<AlchemyPropertyKey, string> = {
   restore_hp: `补充${getGameConceptLabel('hp')}`,
@@ -229,8 +230,7 @@ export function normalizeWeightedAlchemyProperties(
 }
 
 export function formatAlchemyPropertyPercent(weight: number): string {
-  const percent = Number((weight * 100).toFixed(1));
-  return `${Number.isInteger(percent) ? percent.toFixed(0) : percent}%`;
+  return formatRatioPercent(weight, 1);
 }
 
 export function formatAlchemyPropertyVector(

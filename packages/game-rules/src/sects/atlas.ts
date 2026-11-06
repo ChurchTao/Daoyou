@@ -7,6 +7,7 @@ import { getRealmStageLevel } from '@daoyou/game-domain/progression';
 import type { CombatV6SectId, SectCombatProgressV6, SectDefinitionV6, SectSkillDefV6 } from '@daoyou/game-domain/combat';
 import { combatV6SkillDetails } from '../combat/skill-details.js';
 import { schoolTermValue } from '../combat/daoyou/formulas.js';
+import { formatRatioPercent } from '../presentation/numbers.js';
 import { createEmptySectCombatProgressV6 } from './build-state.js';
 import { compileCurrentSectCombatV6 } from './index.js';
 import { canSelectMeridianNode, connectedMeridianSelection, toggleMeridianNode } from './meridian-selection.js';
@@ -107,8 +108,8 @@ const labels: Record<string, string> = {
   maxHp: '气血上限', hp: '气血', maxMp: '法力上限', mp: '法力', physicalAtk: '物理攻击', physicalDef: '物理防御', magicAtk: '法术攻击', magicDef: '法术防御',
   speed: '速度', hit: '命中', dodge: '躲避', healPower: '治疗强度', sealHit: '封印命中', sealResist: '封印抵抗',
   damageBonus: '伤害加成', damageAdd: '伤害加值', damageResultFactor: '伤害结果倍率', damageTakenBonus: '承伤加成', damageTakenAdd: '承伤加值', allDamageTakenBonus: '全部承伤加成',
-  critChanceAdd: '暴击率加值', critMultiplierAdd: '暴击倍率加值', defenseIgnore: '忽视防御', defenseIgnoreAdd: '忽视防御加值', defenseSubtract: '防御扣除值',
-  sealBase: '封印基础概率', sealChanceCeil: '封印概率上限', sealChanceAdd: '封印概率加值', sealChanceCeilAdd: '封印概率上限加值', sealChanceFactor: '封印概率倍率', sealHitAdd: '封印命中加值', sealResistanceAdd: '封印抵抗加值',
+  critChanceAdd: '暴击率加值', physicalFuryChanceAdd: '物理狂暴率加值', critMultiplierAdd: '暴击倍率加值', defenseIgnore: '忽视防御', defenseIgnoreAdd: '忽视防御加值', defenseSubtract: '防御扣除值',
+  sealBase: '封印基础概率', sealChanceCeil: '封印概率上限', sealChanceAdd: '封印概率加值', sealChanceCeilAdd: '封印概率上限加值', sealChanceCeilTakenAdd: '所受封印的概率上限加值', sealChanceFactor: '封印概率倍率', sealHitAdd: '封印命中加值', sealResistanceAdd: '封印抵抗加值',
   perTarget: '每目标分灵衰减', floor: '分灵倍率下限', quad: '心法二次项系数', linear: '心法一次项系数', intercept: '心法常数项',
   healingPerRound: '每回合治疗', hpPower: '每回合气血变化', mpPower: '每回合法力变化', ratioOfMaxHp: '气血上限比例', ratioOfMaxMp: '法力上限比例',
   maxStacks: '最大层数', damageTakenPhysical: '物理承伤倍率', damageTakenSpell: '法术承伤倍率', damageDealtPhysical: '物理伤害倍率', damageDealtSpell: '法术伤害倍率',
@@ -169,14 +170,17 @@ function variableLabel(name: string): string {
   return '战斗现场条件';
 }
 const functionLabels: Record<string, string> = { floor: '向下取整', min: '较小值', max: '较大值', if: '条件选择' };
-const ratioFields = new Set(('chance extraChance recoverySkipChance sealChanceCeil damageBonus damageTakenBonus allDamageTakenBonus defenseIgnore defenseIgnoreAdd protectedDamageBonus barrierDamageBonus barrierDrainBonus ratioOfMaxHp ratioOfMaxMp hpRatio ownedPetHpCostRatio mpShieldRatio requireHpRatio requireHpAboveRatio requireHpBelowRatio perTarget physicalFuryChanceAdd sourceHpRatioBelow sourceHpRatioAbove targetHpRatioBelow targetHpRatioAbove sourceInitialHpRatioMin sourceInitialHpRatioBelow sourceMpRatioBelow sourceMpRatioAbove').split(' '));
-const percentagePointFields = new Set(('critChanceAdd sealChanceAdd sealChanceCeilAdd sealChanceCeilTakenAdd').split(' '));
+const ratioFields = new Set(('chance extraChance recoverySkipChance sealChanceCeil damageBonus damageTakenBonus allDamageTakenBonus defenseIgnore defenseIgnoreAdd protectedDamageBonus barrierDamageBonus barrierDrainBonus ratioOfMaxHp ratioOfMaxMp hpRatio ownedPetHpCostRatio mpShieldRatio requireHpRatio requireHpAboveRatio requireHpBelowRatio perTarget sourceHpRatioBelow sourceHpRatioAbove targetHpRatioBelow targetHpRatioAbove sourceInitialHpRatioMin sourceInitialHpRatioBelow sourceMpRatioBelow sourceMpRatioAbove').split(' '));
+const probabilityDeltaFields = new Set(['critChanceAdd', 'physicalFuryChanceAdd', 'sealChanceAdd', 'sealChanceCeilAdd', 'sealChanceCeilTakenAdd']);
 const multiplierFields = new Set(('factor chanceFactor coeff resultFactors damageResultFactor critMultiplierAdd damageTakenPhysical damageTakenSpell damageDealtPhysical damageDealtSpell healTaken healDealt sealChanceFactor sealHitTakenFactor floor').split(' '));
 function displayValue(value: number | string, key: string): string {
   const number = (value: number) => String(Number(value.toFixed(6)));
   const expression = typeof value === 'number' ? number(value) : value.replace(/[A-Za-z_][A-Za-z0-9_.]*/g, token => functionLabels[token] ?? variableLabel(token));
-  if (ratioFields.has(key)) return typeof value === 'number' ? `${number(value * 100)}%` : `(${expression}) × 100%`;
-  if (percentagePointFields.has(key)) return typeof value === 'number' ? `${number(value * 100)}个百分点` : `(${expression}) × 100个百分点`;
+  const probabilityDelta = probabilityDeltaFields.has(key);
+  if (ratioFields.has(key) || probabilityDelta)
+    return typeof value === 'number'
+      ? `${probabilityDelta && value > 0 ? '+' : ''}${formatRatioPercent(value, 6)}`
+      : `(${expression}) × 100%`;
   if (key === 'sealBase') return `${expression}%`;
   if (multiplierFields.has(key)) return `${expression}倍`;
   if (['duration', 'durationAdd', 'cooldownRounds', 'initialCooldownRounds', 'immunityRounds', 'minDuration', 'maxDuration'].includes(key)) return `${expression}回合`;

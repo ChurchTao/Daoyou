@@ -2109,7 +2109,7 @@
       "id": "wanqiao.skill.coda",
       "name": "无声之章",
       "school": "wanqiao",
-      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息才能施放。消耗全部窍息，让一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]，受到的法术伤害提高16%，每消耗一层窍息再提高2个百分点。同时向随机敌人分配三层[[wanqiao.status.echo]]。每消耗两层窍息就多分配一层，若消耗的是奇数层，则有50%概率再分配一层。施放后冷却八回合，不触发复响。",
+      "description": "众声尽息，余音却在敌阵间游走。\n至少持有一层窍息才能施放。消耗全部窍息，让一名敌人获得持续两回合的[[wanqiao.status.vulnerable]]，受到的法术伤害提高16%，每消耗一层窍息，增伤幅度再+2%。同时向随机敌人分配三层[[wanqiao.status.echo]]。每消耗两层窍息就多分配一层，若消耗的是奇数层，则有50%概率再分配一层。施放后冷却八回合，不触发复响。",
       "tags": [
         "spell"
       ],
@@ -3514,7 +3514,7 @@
     {
       "id": "wanqiao.status.vulnerable",
       "name": "无声之章",
-      "description": "被无声之章选中的敌人受到的法术伤害提高16%，施法者每消耗一层窍息再提高2个百分点。持续两回合。",
+      "description": "被无声之章选中的敌人受到的法术伤害提高16%，施法者每消耗一层窍息，增伤幅度再+2%。持续两回合。",
       "kind": "wanqiao.vulnerable",
       "school": "wanqiao",
       "category": "debuff",

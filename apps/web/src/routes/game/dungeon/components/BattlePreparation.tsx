@@ -178,7 +178,7 @@ export function BattlePreparation({
             )}
           >
             {lowHp
-              ? '气血不足三成，慎战。'
+              ? '气血低于30%，慎战。'
               : '以当前气血、法力入场，战斗消耗会保留。'}
           </p>
         </div>

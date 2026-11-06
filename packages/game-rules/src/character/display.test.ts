@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { COMBAT_V6_SECT_DEFINITIONS } from '@daoyou/game-content/sects';
 import { projectCharacterToCombatV6 } from '../combat/projection/project-character.js';
 import { type CharacterDisplayBuild, type CultivatorDisplayInput } from '@daoyou/game-domain/character';
-import { characterResourceMaxima, normalizeCharacterResource, projectCharacterDisplay, projectCharacterDisplaySnapshot } from './display.js';
+import { characterResourceMaxima, formatCharacterAttributeValue, normalizeCharacterResource, projectCharacterDisplay, projectCharacterDisplaySnapshot } from './display.js';
 
 const player: CultivatorDisplayInput = {
   id: 'panel-player',
@@ -71,6 +71,12 @@ describe('V6 character panel authority', () => {
       spellCritRate: 0.05,
       physicalFuryRate: 0,
     });
+  });
+  it('formats combat rates as percentages while retaining significant decimals', () => {
+    expect(formatCharacterAttributeValue('critRate', 0.2)).toBe('20%');
+    expect(formatCharacterAttributeValue('spellCritRate', 0.075)).toBe('7.5%');
+    expect(formatCharacterAttributeValue('physicalFuryRate', 0)).toBe('0%');
+    expect(formatCharacterAttributeValue('sealHit', 20)).toBe('20');
   });
   it.each([
     { essences: [], critRate: 0.05, spellCritRate: 0.05, physicalFuryRate: 0 },

@@ -9,6 +9,7 @@ import {
   BEAST_SKILL_CONTENT,
 } from '@daoyou/game-content/beasts';
 import { DAO_EQUIPMENT_ARTS_V1 } from '@daoyou/game-content/equipment/special';
+import { formatRatioPercent } from '../presentation/numbers.js';
 
 const arts = new Map(DAO_EQUIPMENT_ARTS_V1.map((art) => [art.skill.id, art]));
 function beastPassiveDescription(skill: SkillDef): string | undefined {
@@ -192,10 +193,9 @@ export function combatV6SkillDetails(
           : `单次气血伤害超过${status.breakOnDamageAbove}点后解除`,
       );
     for (const modifier of status.modifiers ?? []) {
-      if (typeof modifier.sealChanceCeilAdd === 'number')
-        traits.push(
-          `封印命中上限提高${Math.round(modifier.sealChanceCeilAdd * 100)}个百分点`,
-        );
+      const bonus = modifier.sealChanceCeilAdd;
+      if (typeof bonus === 'number')
+        traits.push(`封印命中率上限 ${bonus > 0 ? '+' : ''}${formatRatioPercent(bonus)}`);
     }
     return traits;
   };

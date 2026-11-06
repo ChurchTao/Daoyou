@@ -1,3 +1,4 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import { apiFetch } from '@app/lib/api/fetch';
 import { InkButton, InkSelect } from '@app/components/ui';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -60,7 +61,7 @@ type MetricsResponse = {
 
 function formatPercent(value: number | null): string {
   if (value === null) return 'N/A';
-  return `${(value * 100).toFixed(1)}%`;
+  return formatRatioPercent(value, 1);
 }
 
 function formatDateTime(value: string | null): string {

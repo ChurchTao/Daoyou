@@ -82,6 +82,19 @@ describe('宗门离线图鉴与构筑预览', () => {
     expect(() => previewSectAtlasBuild({ sectId: 'unknown' as never, pathId: '', characterLevel: 180 })).toThrow('未知宗门');
   });
 
+  it('将概率加值显示为带符号的百分比，保留现场计算表达式', () => {
+    const atlas = getSectAtlasData();
+    const lingxiao = atlas.sects.find(sect => sect.id === 'lingxiao')!;
+    const crit = lingxiao.skills.find(skill => skill.id === 'lingxiao.passive.zhanchen.n3_2')!
+      .numericFields.find(field => field.path.endsWith('.critChanceAdd'));
+    expect(crit).toMatchObject({ value: 0.15, display: '+15%', resolvedDisplay: '+15%' });
+
+    const youdu = atlas.sects.find(sect => sect.id === 'youdu')!;
+    const seal = youdu.skills.find(skill => skill.id === 'youdu.passive.soul_seek')!
+      .numericFields.find(field => field.path.endsWith('.sealChanceAdd'));
+    expect(seal).toMatchObject({ display: '(较小值(当前回合 * 0.005, 0.12)) × 100%', resolvedDisplay: null });
+  });
+
   it('使用正式已知技能集合计算选点概率，并保留百分比、回合和原始数值', () => {
     const sect = COMBAT_V6_SECT_DEFINITIONS.wanqiao;
     const path = sect.paths[0];

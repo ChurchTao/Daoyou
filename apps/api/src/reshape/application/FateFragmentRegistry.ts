@@ -5,6 +5,7 @@ import type {
 } from '@daoyou/game-domain/character';
 import type { Quality } from '@daoyou/constants/qualities';
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import {
   FATE_QUALITY_SCALE,
   FATE_ROLL_VERSION,
@@ -62,16 +63,15 @@ function roundToStep(value: number, step: number): number {
 }
 
 function formatPercentDelta(delta: number, fractionDigits = 0): string {
-  const value = delta * 100;
-  return `${value >= 0 ? '+' : ''}${value.toFixed(fractionDigits)}%`;
+  return `${delta >= 0 ? '+' : ''}${formatRatioPercent(delta, fractionDigits)}`;
 }
 
 function formatReduction(multiplier: number): string {
-  return `-${((1 - multiplier) * 100).toFixed(0)}%`;
+  return `-${formatRatioPercent(1 - multiplier, 0)}`;
 }
 
 function formatIncrease(multiplier: number): string {
-  return `+${((multiplier - 1) * 100).toFixed(0)}%`;
+  return `+${formatRatioPercent(multiplier - 1, 0)}`;
 }
 
 function applyScaledValue(

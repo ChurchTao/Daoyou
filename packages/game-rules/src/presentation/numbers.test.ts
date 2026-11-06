@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCompactGameNumber, formatFullGameNumber } from './numbers.js';
+import { formatCompactGameNumber, formatFullGameNumber, formatPercentValue, formatRatioPercent } from './numbers.js';
 
 describe('game number formatting', () => {
   it('keeps small numbers exact with grouping', () => {
@@ -27,5 +27,14 @@ describe('game number formatting', () => {
 
   it('keeps full numbers grouped for exact values', () => {
     expect(formatFullGameNumber(123_456_789)).toBe('123,456,789');
+  });
+
+  it('formats ratios and percentage values in their respective units', () => {
+    expect(formatRatioPercent(0.2)).toBe('20%');
+    expect(formatPercentValue(20)).toBe('20%');
+    expect(formatRatioPercent(0.002)).toBe('0.2%');
+    expect(formatRatioPercent(-0.018)).toBe('-1.8%');
+    expect(formatRatioPercent(0.02625, 1)).toBe('2.6%');
+    expect(formatRatioPercent(-0.00001)).toBe('0%');
   });
 });

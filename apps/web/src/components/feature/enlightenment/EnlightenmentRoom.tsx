@@ -1,3 +1,4 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import {
   inventoryFilterActive,
   matchesInventoryFilters,
@@ -31,7 +32,6 @@ const positions = [
   'left-[12%] top-[76%]',
   'left-[88%] top-[76%]',
 ];
-const percent = (value: number) => `${Number((value * 100).toFixed(2))}%`;
 
 function Probabilities({ session }: { session: EnlightenmentSession }) {
   if (!session.preview) return null;
@@ -49,7 +49,7 @@ function Probabilities({ session }: { session: EnlightenmentSession }) {
               ) : null}
             </span>
             <span className="font-mono">
-              {percent(session.preview!.probabilities[i])}
+              {formatRatioPercent(session.preview!.probabilities[i])}
             </span>
           </p>
         ) : null,
@@ -58,7 +58,7 @@ function Probabilities({ session }: { session: EnlightenmentSession }) {
         <p className="text-ink-secondary flex justify-between gap-3">
           <span>未能悟得功法</span>
           <span className="font-mono">
-            {percent(1 - session.preview.successChance)}
+            {formatRatioPercent(1 - session.preview.successChance)}
           </span>
         </p>
       ) : null}
@@ -318,7 +318,7 @@ export function EnlightenmentRoom({ ownerId }: { ownerId: string }) {
                       <>
                         成功率{' '}
                         <span className="font-mono">
-                          {percent(session.preview.successChance)}
+                          {formatRatioPercent(session.preview.successChance)}
                         </span>
                         {session.preview.successChance === 1
                           ? ' · 必定有所领悟'

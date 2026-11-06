@@ -27,6 +27,7 @@ import type {
   CombatV6CommandOptionsView,
   CombatV6SkillPreview,
 } from '@daoyou/game-domain/combat';
+import { formatRatioPercent } from '../presentation/numbers.js';
 import { observeAutoBattle } from './auto-observation.js';
 
 const percent = (ratio: number) => Math.round(ratio * 1000) / 10;
@@ -301,7 +302,8 @@ function previewSkill(
     );
   if (ignore) effects.push(`本次额外忽视 ${percent(ignore)}% 法术防御。`);
   if (barrier) effects.push(`对护盾额外造成 ${percent(barrier)}% 伤害。`);
-  if (seal) effects.push(`本次封印命中提高 ${percent(seal)} 个百分点。`);
+  if (seal)
+    effects.push(`本次封印命中率 ${seal > 0 ? '+' : ''}${formatRatioPercent(seal, 1)}。`);
   return preview;
 }
 

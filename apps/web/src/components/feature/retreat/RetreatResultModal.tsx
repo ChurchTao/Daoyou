@@ -1,3 +1,4 @@
+import { formatPercentValue } from '@daoyou/game-rules/presentation/numbers';
 import { InkModal } from '@app/components/layout';
 import { InkButton, InkIdentifyCelebration } from '@app/components/ui';
 import type { RetreatResultData } from '@daoyou/contracts/retreat';
@@ -8,7 +9,6 @@ import {
 } from '@daoyou/game-content/presentation/concepts';
 import type { Attributes } from '@daoyou/game-domain/character';
 import { getNextMajorRealm } from '@daoyou/game-rules/consumables/breakthrough';
-import { format } from 'd3-format';
 import { useMemo } from 'react';
 import { BreakthroughChanceDetails } from './BreakthroughChanceDetails';
 import { buildBreakthroughChancePresentation } from './breakthroughChancePresentation';
@@ -119,7 +119,7 @@ function CultivationResultContent({
     <div className="border-ink/10 space-y-3 border border-dashed bg-[rgba(255,252,245,0.78)] p-4 text-sm leading-7">
       <p className="text-ink text-base font-medium">🌱 修炼有成</p>
       <p>修为增长：+{Number(summary.exp_gained)}</p>
-      <p>当前进度：{format('.2f')(summary.progress)}%</p>
+      <p>当前进度：{formatPercentValue(summary.progress)}</p>
 
       {summary.insight_gained > 0 ? (
         <p>

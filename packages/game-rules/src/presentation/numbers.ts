@@ -11,6 +11,16 @@ function formatScaledNumber(value: number): string {
   return trimTrailingZeros(value.toFixed(2));
 }
 
+/** Formats a value already in percent units, such as 20 for 20%. */
+export function formatPercentValue(value: number, maximumFractionDigits = 2): string {
+  return `${Number(value.toFixed(maximumFractionDigits))}%`;
+}
+
+/** Formats a ratio, such as 0.2 for 20%. */
+export function formatRatioPercent(ratio: number, maximumFractionDigits = 2): string {
+  return formatPercentValue(ratio * 100, maximumFractionDigits);
+}
+
 export function formatCompactGameNumber(value: number): string {
   if (!Number.isFinite(value)) return '0';
 

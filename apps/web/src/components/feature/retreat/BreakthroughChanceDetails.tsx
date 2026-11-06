@@ -1,10 +1,6 @@
+import { formatRatioPercent } from '@daoyou/game-rules/presentation/numbers';
 import { cn } from '@app/lib/cn';
-import { format } from 'd3-format';
 import type { BreakthroughChancePresentation } from './breakthroughChancePresentation';
-
-function formatPercent(value: number): string {
-  return format('.1%')(value);
-}
 
 export function BreakthroughChanceDetails({
   presentation,
@@ -19,13 +15,13 @@ export function BreakthroughChanceDetails({
         <div>
           <p className="text-ink-secondary text-xs leading-5">综合基础率</p>
           <p className="text-ink font-mono font-semibold">
-            {formatPercent(presentation.adjustedBaseChance)}
+            {formatRatioPercent(presentation.adjustedBaseChance, 1)}
           </p>
         </div>
         <div>
           <p className="text-ink-secondary text-xs leading-5">最终成功率</p>
           <p className="font-mono font-semibold text-emerald-800">
-            {formatPercent(presentation.finalChance)}
+            {formatRatioPercent(presentation.finalChance, 1)}
           </p>
         </div>
       </div>

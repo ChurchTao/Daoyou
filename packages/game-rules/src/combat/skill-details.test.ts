@@ -80,6 +80,7 @@ describe('combat skill previews', () => {
           targeting: { side: 'enemy' },
           effects: [
             { type: 'applyStatus', statusId: 'spell-only', duration: 3 },
+            { type: 'applyStatus', statusId: 'focus', duration: 3 },
           ],
         },
       ],
@@ -89,6 +90,7 @@ describe('combat skill previews', () => {
       '无法使用造成伤害的法术',
     );
     expect(generated['bare-seal'].description).not.toContain('不受此项限制');
+    expect(generated['bare-seal'].description).toContain('封印命中率上限 +10%');
   });
   it('shows combo chances from the authoritative hooks', () => {
     const details = combatV6SkillDetails(BEAST_SKILLS, []);

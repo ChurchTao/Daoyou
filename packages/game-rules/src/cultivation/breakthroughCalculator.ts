@@ -417,7 +417,7 @@ export function getBreakthroughChanceExplanation(
 
   return `
 【突破类型】${typeLabels[breakthroughType]}
-【最终成功率】${format('.1%')(modifiers.finalChance)}
+【最终成功率】${format('.1~%')(modifiers.finalChance)}
 
 【各项系数】
 • 基础成功率：${format('.0%')(modifiers.baseChance)}
@@ -425,10 +425,10 @@ export function getBreakthroughChanceExplanation(
 • 修为进度：×${format('.2f')(modifiers.progressMultiplier)}
 • 感悟加成：×${format('.2f')(modifiers.insightMultiplier)}
 ${modifiers.demonPenalty < 1.0 ? `• 心魔惩罚：×${format('.2f')(modifiers.demonPenalty)}\n` : ''}
-• 综合基础成功率：${format('.1%')(modifiers.adjustedBaseChance)}
-• 命格机缘：${format('+.1%')(modifiers.fateBonus)}
-• 破境药力：${format('+.1%')(modifiers.pillBonus)}
-• 丹毒惩罚：-${format('.1%')(modifiers.toxicityPenalty)}
+• 综合基础成功率：${format('.1~%')(modifiers.adjustedBaseChance)}
+• 命格机缘：${format('+.1~%')(modifiers.fateBonus)}
+• 破境药力：${format('+.1~%')(modifiers.pillBonus)}
+• 丹毒惩罚：-${format('.1~%')(modifiers.toxicityPenalty)}
 【建议】${result.recommendation}
   `.trim();
 }

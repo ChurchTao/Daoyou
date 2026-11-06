@@ -6,6 +6,7 @@ import type {
 import type { Quality } from '@daoyou/constants/qualities';
 import type { AddStatusOperation } from '@daoyou/game-domain/consumables';
 import { isConditionStatusActive } from '../condition/index.js';
+import { formatRatioPercent } from '../presentation/numbers.js';
 
 export const CULTIVATION_BOOST_STATUS_KEY = 'cultivation_boost' as const;
 
@@ -74,10 +75,7 @@ export function getCultivationBoostPercent(
 export function getCultivationBoostDisplayText(
   value: Pick<AddStatusOperation, 'payload'> | ConditionStatusInstance,
 ): string {
-  const percent = Number((getCultivationBoostPercent(value) * 100).toFixed(1));
-  return `下次闭关修为 +${
-    Number.isInteger(percent) ? percent.toFixed(0) : percent
-  }%`;
+  return `下次闭关修为 +${formatRatioPercent(getCultivationBoostPercent(value), 1)}`;
 }
 
 export function getActiveCultivationBoostStatus(

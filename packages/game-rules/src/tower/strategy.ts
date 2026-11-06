@@ -4,6 +4,7 @@ import { TowerFloorStrategySchema, type TowerFloorStrategy, type TowerEnemyStrat
 import type { TowerEnemyPreview } from '@daoyou/game-domain/tower';
 
 import { TOWER_CATALOG, TOWER_SKILLS, towerContentNote } from '@daoyou/game-content/tower';
+import { formatRatioPercent } from '../presentation/numbers.js';
 
 export const hasTowerTrait = (enemy: TowerEnemyStrategy, id: TowerTraitId) =>
   enemy.traits.some((t) => t.id === id);
@@ -130,8 +131,8 @@ const attributeLabels: Record<string, string> = {
   sealResist: '抗封',
   sealHit: '封印命中',
   output: '输出预算',
-  critRate: '物理暴击',
-  spellCritRate: '法术暴击',
+  critRate: '物理暴击率',
+  spellCritRate: '法术暴击率',
 };
 
 export function towerStrategyPreview(f: TowerFloorStrategy): TowerEnemyPreview {
@@ -150,10 +151,10 @@ export function towerStrategyPreview(f: TowerFloorStrategy): TowerEnemyPreview {
       const definition = TOWER_CATALOG.traits[trait.id];
       for (const [key, value] of Object.entries(definition.multiply))
         details.push(`${attributeLabels[key]} ×${Number(value.toFixed(3))}。`);
-      for (const [key, value] of Object.entries(definition.add))
-        details.push(
-          `${attributeLabels[key]} ${value >= 0 ? '+' : ''}${value}。`,
-        );
+      for (const [key, value] of Object.entries(definition.add)) {
+        const display = key === 'critRate' || key === 'spellCritRate' ? formatRatioPercent(value) : value;
+        details.push(`${attributeLabels[key]} ${value >= 0 ? '+' : ''}${display}。`);
+      }
       if (trait.targetEnemyId)
         details.push(
           `保护第 ${f.enemies.findIndex((other) => other.id === trait.targetEnemyId) + 1} 位同伴；击杀护卫后下一回合解除其保护。`,

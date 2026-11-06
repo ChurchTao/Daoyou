@@ -1,6 +1,8 @@
 import type { RealmType } from '@daoyou/constants/realms';
 import { canChallengeDungeonRealm } from '../world/dungeon.js';
 
+const FIRST_VISIT_MINIMUM_PERCENT = 80;
+
 export function dungeonReadiness(input: {
   realm: RealmType;
   selectedNodeRealm?: RealmType | null;
@@ -20,8 +22,11 @@ export function dungeonReadiness(input: {
     !canChallengeDungeonRealm(input.realm, input.selectedNodeRealm)
   )
     reasons.push('当前人物境界不足以挑战此秘境');
-  if (input.firstVisit && (hpPercent < 80 || mpPercent < 80))
-    reasons.push('首次探秘前，请将气血和法力恢复至八成');
+  if (
+    input.firstVisit &&
+    (hpPercent < FIRST_VISIT_MINIMUM_PERCENT || mpPercent < FIRST_VISIT_MINIMUM_PERCENT)
+  )
+    reasons.push(`首次探秘前，请将气血和法力恢复至${FIRST_VISIT_MINIMUM_PERCENT}%`);
   return {
     shouldBlock: reasons.length > 0,
     reasons,
