@@ -149,6 +149,15 @@ function assertStrategyAllowed(
               rule.action.type !== 'defend' &&
               (rule.action.type !== 'attack' || choice.side === 'enemy'),
           );
+        if (condition.type === 'allyStatus')
+          return !statusChoices.target.some(
+            (choice) => choice.side === 'ally' &&
+              choice.kind === condition.kind &&
+              choice.statusId === condition.statusId &&
+              choice.ownedBySelf === condition.ownedBySelf,
+          );
+        if (condition.type === 'allyHpBelow' && condition.recoverySkillId)
+          return !allowed.has(condition.recoverySkillId);
         return false;
       }),
     )

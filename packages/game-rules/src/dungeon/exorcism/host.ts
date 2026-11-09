@@ -28,7 +28,7 @@ import { exorcismCurrentStage } from './state.js';
 export const EXORCISM_VERSIONS = {
   ...COMBAT_V6_CHARACTER_BUILD_VERSIONS,
   autoPolicyVersion: AUTO_POLICY_VERSION,
-  rulesetVersion: 'daoyou_rules_v12' as const,
+  rulesetVersion: 'daoyou_rules_v13' as const,
   contentVersion: 'combat-v6-exorcism-v1' as const,
 };
 

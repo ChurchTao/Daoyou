@@ -6,10 +6,8 @@ export type AutoObservation = { round: number; units: Unit[] };
 
 const PUBLIC_BAR = 10000;
 
-function publicRatio(current: number, max: number): number {
-  return (
-    Math.floor((current / Math.max(1, max)) * PUBLIC_BAR) / PUBLIC_BAR
-  );
+function publicBarValue(current: number, max: number): number {
+  return Math.floor(current * PUBLIC_BAR / Math.max(1, max) + 1e-9);
 }
 
 /**
@@ -34,14 +32,12 @@ export function observeAutoBattle(
       .filter((unit) => !unit.flags.benched)
       .map((unit) => {
         const owned = owner ? unit.side === owner.side : unit.id === ownerId;
-        const hpRatio = publicRatio(unit.attrs.hp, unit.attrs.maxHp);
-        const mpRatio = publicRatio(unit.attrs.mp, unit.attrs.maxMp);
         const attrs = owned
           ? effectiveAttrs(unit)
           : {
-              hp: hpRatio * PUBLIC_BAR,
+              hp: publicBarValue(unit.attrs.hp, unit.attrs.maxHp),
               maxHp: PUBLIC_BAR,
-              mp: mpRatio * PUBLIC_BAR,
+              mp: publicBarValue(unit.attrs.mp, unit.attrs.maxMp),
               maxMp: PUBLIC_BAR,
               physicalAtk: 0,
               physicalDef: 0,

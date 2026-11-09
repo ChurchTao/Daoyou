@@ -58,9 +58,22 @@ export function applyRoundFlags(unit: Unit, command: Command): void {
     command.type === CommandType.Protect ? command.target : undefined;
 }
 
-export function clearRoundFlags(unit: Unit): void {
+function clearDefensiveFlags(unit: Unit): void {
   unit.flags.defending = false;
   unit.flags.protecting = undefined;
+}
+
+function isDefensiveCommand(command: Command | undefined): boolean {
+  return command?.type === CommandType.Defend || command?.type === CommandType.Protect;
+}
+
+function forcesAttack(ctx: BattleContext, unit: Unit): boolean {
+  const { policy } = commandPolicyOf(ctx, unit);
+  return policy === CommandPolicy.StoredAttack || policy === CommandPolicy.Random;
+}
+
+export function clearRoundFlags(unit: Unit): void {
+  clearDefensiveFlags(unit);
   unit.command = undefined;
 }
 
@@ -92,16 +105,61 @@ export function lockCommands(ctx: BattleContext): void {
       rememberCommand(unit, command);
       ctx.emit({ type: EventType.CommandDefaulted, unitId: unit.id, command });
     }
-    if (!commandBlockReason(ctx, unit, command)) applyRoundFlags(unit, command);
+    if (isActionable(unit) && !unit.flags.skipNextAction &&
+      !hasBlock(ctx, unit, StatusFlag.BlocksAction) && !forcesAttack(ctx, unit) &&
+      !commandBlockReason(ctx, unit, command)) applyRoundFlags(unit, command);
+    else clearDefensiveFlags(unit);
   }
 }
 
-export function resolveAction(ctx: BattleContext, unit: Unit): void {
+export type DefensivePreparation = 'completed' | 'ready';
+
+/** Commit defensive effects before attacks; ordinary action-window tails keep their speed slots. */
+export function prepareDefensiveCommands(ctx: BattleContext, order: Unit[], afterAction?: () => void): Map<string, DefensivePreparation> {
+  const prepared = new Map<string, DefensivePreparation>();
+  const defenders = order.filter(unit => isActionable(unit) && isDefensiveCommand(unit.command) && !forcesAttack(ctx, unit));
+  const ready: Unit[] = [];
+  // Every command is already locked and every preliminary flag is set before
+  // any defensive passive runs. Complete eligibility checks as a separate batch.
+  for (const unit of defenders) {
+    if (ctx.state.result) break;
+    prepared.set(unit.id, 'completed');
+    ctx.hooks.emit(HookName.BeforeActionWindow, { source: unit });
+    if (!ctx.state.result && beginAction(ctx, unit)) {
+      prepared.set(unit.id, 'ready');
+      ready.push(unit);
+    }
+  }
+  for (const unit of ready) {
+    if (ctx.state.result) break;
+    if (!isActionable(unit)) {
+      clearDefensiveFlags(unit);
+      prepared.set(unit.id, 'completed');
+    } else if (isDefensiveCommand(unit.command)) {
+      resolveStartedAction(ctx, unit);
+      prepared.set(unit.id, 'completed');
+    } else {
+      // A hook may rewrite a command. Never promote that attack to this phase.
+      clearDefensiveFlags(unit);
+      prepared.set(unit.id, 'ready');
+    }
+    afterAction?.();
+  }
+  return prepared;
+}
+
+/** A terminal battle closes early-opened windows without running their data effects. */
+export function cancelDefensiveWindow(ctx: BattleContext, unit: Unit): void {
+  ctx.hooks.emit(HookName.AfterActionWindow, { source: unit, cancelled: true });
+}
+
+export function resolveAction(ctx: BattleContext, unit: Unit, prepared?: DefensivePreparation): void {
   const previousHostileAction = ctx.hostileAction;
   ctx.hostileAction = { sourceId: unit.id, interceptedTargetIds: [] };
-  ctx.hooks.emit(HookName.BeforeActionWindow, { source: unit });
+  if (!prepared) ctx.hooks.emit(HookName.BeforeActionWindow, { source: unit });
   try {
-    if (isActionable(unit)) resolveActionWindow(ctx, unit);
+    if (isActionable(unit) && prepared !== 'completed' &&
+      beginAction(ctx, unit, prepared === 'ready')) resolveStartedAction(ctx, unit);
   } finally {
     ctx.hooks.emit(HookName.AfterActionWindow, { source: unit });
     settleDeferredRetaliationFatal(ctx, unit);
@@ -110,57 +168,67 @@ export function resolveAction(ctx: BattleContext, unit: Unit): void {
   }
 }
 
-function resolveActionWindow(ctx: BattleContext, unit: Unit): void {
+function beginAction(ctx: BattleContext, unit: Unit, beforeActionCompleted = false): boolean {
 
   // 横扫等「休息一回合」：跳过的是下一回合，不是当回合剩余出手。
   if (unit.flags.skipNextAction) {
     unit.flags.skipNextAction = false;
+    clearDefensiveFlags(unit);
     ctx.emit({
       type: EventType.ActionSkip,
       unitId: unit.id,
       reason: SkipReason.Rest,
     });
-    return;
+    return false;
   }
 
   if (hasBlock(ctx, unit, StatusFlag.BlocksAction)) {
+    clearDefensiveFlags(unit);
     ctx.emit({
       type: EventType.ActionSkip,
       unitId: unit.id,
       reason: SkipReason.Status,
     });
-    return;
+    return false;
   }
 
   applyCommandPolicy(ctx, unit);
 
-  const skip = ctx.hooks.emit(HookName.BeforeAction, { source: unit });
-  if (skip.cancelled) {
+  const skip = beforeActionCompleted ? undefined : ctx.hooks.emit(HookName.BeforeAction, { source: unit });
+  if (skip?.cancelled) {
+    clearDefensiveFlags(unit);
     ctx.emit({
       type: EventType.ActionSkip,
       unitId: unit.id,
       reason: SkipReason.Hook,
     });
-    return;
+    return false;
   }
 
   const command = unit.command;
   if (!command) {
+    clearDefensiveFlags(unit);
     ctx.emit({
       type: EventType.ActionSkip,
       unitId: unit.id,
       reason: SkipReason.NoCommand,
     });
-    return;
+    return false;
   }
 
   const restriction = commandBlockReason(ctx, unit, command);
   if (restriction) {
-    unit.flags.defending = false;
-    unit.flags.protecting = undefined;
+    clearDefensiveFlags(unit);
     ctx.emit({ type: EventType.ActionFailed, unitId: unit.id, reason: restriction });
-    return;
+    return false;
   }
+  applyRoundFlags(unit, command);
+  return true;
+}
+
+function resolveStartedAction(ctx: BattleContext, unit: Unit): void {
+  const command = unit.command;
+  if (!command) return;
 
   if (
     command.type === CommandType.Defend ||

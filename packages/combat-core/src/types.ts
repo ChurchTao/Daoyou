@@ -123,7 +123,8 @@ export type CombatV6VersionStamp = {
     | 'daoyou_rules_v9'
     | 'daoyou_rules_v10'
     | 'daoyou_rules_v11'
-    | 'daoyou_rules_v12';
+    | 'daoyou_rules_v12'
+    | 'daoyou_rules_v13';
   contentVersion:
     | 'daoyou_wild_inventory_content_v1'
     | 'daoyou_wild_seeking_content_v2'

@@ -3,10 +3,19 @@ import { z } from 'zod';
 
 export const MAX_AUTO_STRATEGY_RULES = 10;
 
-const comparison = z.enum(['lt', 'lte', 'gt', 'gte']);
+const comparison = z.enum(['lt', 'lte', 'gt', 'gte', 'eq']);
 
 export type AutoComparison = z.infer<typeof comparison>;
 
+const statusNumber = z.strictObject({
+  comparison,
+  amount: z.number().int().min(0).max(10000),
+});
+
+const statusThresholds = {
+  stacks: statusNumber.optional(),
+  remainingRounds: statusNumber.optional(),
+};
 
 const condition = z.discriminatedUnion('type', [
   z.strictObject({
@@ -26,6 +35,22 @@ const condition = z.discriminatedUnion('type', [
     comparison: comparison.optional(),
   }),
   z.strictObject({ type: z.literal('allyDowned') }),
+  z.strictObject({ type: z.literal('ownPetPresent'), present: z.boolean() }),
+  z.strictObject({
+    type: z.literal('ownPetHp'),
+    percent: z.number().int().min(1).max(100),
+    comparison: comparison.optional(),
+  }),
+  z.strictObject({
+    type: z.literal('ownPetMp'),
+    percent: z.number().int().min(0).max(100),
+    comparison: comparison.optional(),
+  }),
+  z.strictObject({
+    type: z.literal('roundNumber'),
+    round: z.number().int().min(1).max(10000),
+    comparison: comparison.optional(),
+  }),
   z.strictObject({
     type: z.literal('targetHpBelow'),
     percent: z.number().int().min(1).max(100),
@@ -47,6 +72,7 @@ const condition = z.discriminatedUnion('type', [
     kind: z.string().min(1).max(120),
     statusId: z.string().min(1).max(160).optional(),
     present: z.boolean(),
+    ...statusThresholds,
   }),
   z.strictObject({
     type: z.literal('targetStatus'),
@@ -54,6 +80,7 @@ const condition = z.discriminatedUnion('type', [
     statusId: z.string().min(1).max(160).optional(),
     present: z.boolean(),
     ownedBySelf: z.boolean(),
+    ...statusThresholds,
   }),
   z.strictObject({
     type: z.literal('allyStatus'),
@@ -61,8 +88,13 @@ const condition = z.discriminatedUnion('type', [
     statusId: z.string().min(1).max(160).optional(),
     present: z.boolean(),
     ownedBySelf: z.boolean(),
+    ...statusThresholds,
   }),
-]);
+]).refine(
+  (value) => (value.type !== 'selfStatus' && value.type !== 'targetStatus' && value.type !== 'allyStatus') ||
+    value.present || (!value.stacks && !value.remainingRounds),
+  { message: '不存在状态时不能设置层数或剩余回合' },
+);
 
 
 const rule = z.strictObject({
@@ -74,20 +106,34 @@ const rule = z.strictObject({
     }),
     z.strictObject({ type: z.literal('attack') }),
     z.strictObject({ type: z.literal('defend') }),
+    z.strictObject({ type: z.literal('summonNext') }),
   ]),
+  onlyWhenMatched: z.boolean().optional(),
   target: z.enum(['best', 'lowestHpEnemy', 'lowestHpAlly']).default('best'),
   targetScope: z.enum(['any', 'allyPet', 'ownPet', 'teammatePlayer']).optional(),
-});
+}).refine(
+  (value) => !value.onlyWhenMatched || value.action.type === 'skill',
+  { message: '仅技能可限制为规则命中时使用' },
+).refine(
+  (value) => value.action.type !== 'summonNext' || (
+    value.target === 'best' &&
+    (!value.targetScope || value.targetScope === 'any') &&
+    !value.conditions.some(item => item.type === 'targetHpBelow' || item.type === 'targetStatus')
+  ),
+  { message: '召唤不使用出招目标条件或目标范围' },
+);
 
 // Existing saved and in-progress battles may still contain 11–12 rules.
 export const AutoStrategySchema = z.strictObject({
   version: z.literal(1),
   rules: z.array(rule).max(12),
+  fallback: z.enum(['utility', 'attack', 'defend']).optional(),
 });
 
 export const SaveAutoStrategySchema = z.strictObject({
   version: z.literal(1),
   rules: z.array(rule).max(MAX_AUTO_STRATEGY_RULES),
+  fallback: z.enum(['utility', 'attack', 'defend']).optional(),
 });
 
 export const MAX_AUTO_STRATEGY_SLOTS = 3;

@@ -30,6 +30,9 @@ export function bindDataHooks(ctx: BattleContext): void {
       }
       skill.hooks.forEach((hook, hookIndex) => {
         ctx.hooks.on(hook.on, (hctx) => {
+          // A terminal battle may cancel an early-opened defensive window.
+          // Its closure is bookkeeping, not an opportunity for further effects.
+          if (hook.on === HookName.AfterActionWindow && hctx.cancelled) return
           if (hook.targetIsSelf && hctx.target?.id !== unit.id) return
           if (hook.sourceIsEnemy && (!hctx.source || hctx.source.side === unit.side)) return
           if (hook.sourceIsSelf && hctx.source?.id !== unit.id) return

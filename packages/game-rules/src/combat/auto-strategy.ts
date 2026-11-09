@@ -23,23 +23,28 @@ export function autoComparison(
   return condition.type === 'selfHpBelow' ||
     condition.type === 'allyHpBelow' ||
     condition.type === 'targetHpBelow' ||
-    condition.type === 'enemyHpBelow'
+    condition.type === 'enemyHpBelow' ||
+    condition.type === 'ownPetHp' ||
+    condition.type === 'ownPetMp'
     ? 'lt'
-    : 'gte';
+    : condition.type === 'roundNumber' ? 'eq' : 'gte';
 }
 
 
 
 function compareNumber(value: number, threshold: number, by: AutoComparison) {
+  const equal = Math.abs(value - threshold) < 1e-9;
   switch (by) {
+    case 'eq':
+      return equal;
     case 'lt':
-      return value < threshold;
+      return value < threshold && !equal;
     case 'lte':
-      return value <= threshold;
+      return value < threshold || equal;
     case 'gt':
-      return value > threshold;
+      return value > threshold && !equal;
     case 'gte':
-      return value >= threshold;
+      return value > threshold || equal;
   }
 }
 
@@ -69,6 +74,8 @@ export function chooseStrategyCandidate(
   if (!source || !strategy) return candidates[0];
   const allies = observation.units.filter((unit) => unit.side === source.side);
   const enemies = observation.units.filter((unit) => unit.side !== source.side);
+  const ownPet = allies.find((unit) =>
+    unit.kind === 'pet' && unit.ownerId === sourceId && standing(unit));
   const hpPercent = (unit: typeof source) =>
     (100 * unit.attrs.hp) / Math.max(1, unit.attrs.maxHp);
   const hasRecoveryRule = strategy.rules.some(rule => rule.conditions.some(
@@ -94,14 +101,21 @@ export function chooseStrategyCandidate(
     unit: typeof source,
     condition: Extract<
       AutoStrategy['rules'][number]['conditions'][number],
-      { type: 'targetStatus' | 'allyStatus' }
+      { type: 'selfStatus' | 'targetStatus' | 'allyStatus' }
     >,
   ) =>
     unit.statuses.some(
       (status) =>
         status.kind === condition.kind &&
         (!condition.statusId || status.id === condition.statusId) &&
-        (!condition.ownedBySelf || status.sourceId === sourceId),
+        (!('ownedBySelf' in condition) || !condition.ownedBySelf || status.sourceId === sourceId) &&
+        (!condition.stacks || compareNumber(status.stacks, condition.stacks.amount, condition.stacks.comparison)) &&
+        (!condition.remainingRounds || compareNumber(
+          recoveryContext?.statusDefs.find(definition => definition.id === status.id)?.untilBattleEnd
+            ? Infinity : status.remainingRounds,
+          condition.remainingRounds.amount,
+          condition.remainingRounds.comparison,
+        )),
     );
   for (const rule of strategy.rules) {
     const targetConditions = rule.conditions.filter(
@@ -110,6 +124,18 @@ export function chooseStrategyCandidate(
     );
     const matches = rule.conditions.every((condition) => {
       switch (condition.type) {
+        case 'roundNumber':
+          return compareNumber(observation.round, condition.round, autoComparison(condition));
+        case 'ownPetPresent':
+          return Boolean(ownPet) === condition.present;
+        case 'ownPetHp':
+          return Boolean(ownPet && compareNumber(hpPercent(ownPet), condition.percent, autoComparison(condition)));
+        case 'ownPetMp':
+          return Boolean(ownPet && compareNumber(
+            100 * ownPet.attrs.mp / Math.max(1, ownPet.attrs.maxMp),
+            condition.percent,
+            autoComparison(condition),
+          ));
         case 'selfHpBelow':
           return compareNumber(
             hpPercent(source),
@@ -159,13 +185,7 @@ export function chooseStrategyCandidate(
             autoComparison(condition),
           );
         case 'selfStatus':
-          return (
-            source.statuses.some(
-              (status) =>
-                status.kind === condition.kind &&
-                (!condition.statusId || status.id === condition.statusId),
-            ) === condition.present
-          );
+          return matchesStatus(source, condition) === condition.present;
         case 'targetStatus':
         case 'targetHpBelow':
           return true;
@@ -175,7 +195,9 @@ export function chooseStrategyCandidate(
     const eligible = candidates.flatMap((candidate) => {
       const command = candidate.command;
       if (!(
-        command.type === rule.action.type &&
+        (rule.action.type === 'summonNext'
+          ? command.type === 'summon'
+          : command.type === rule.action.type) &&
         (command.type !== 'skill' ||
           (rule.action.type === 'skill' &&
             command.skillId === rule.action.skillId))
@@ -242,6 +264,8 @@ export function chooseStrategyCandidate(
         : [];
     });
     if (!eligible.length) continue;
+    if (rule.action.type === 'summonNext' || rule.action.type === 'defend')
+      return eligible[0].candidate;
     if (rule.target === 'best') return eligible[0].candidate;
     const desiredSide =
       rule.target === 'lowestHpAlly' ? source.side : 1 - source.side;
@@ -249,11 +273,7 @@ export function chooseStrategyCandidate(
       .filter(
         (unit) =>
           unit.side === desiredSide &&
-          standing(unit) &&
-          (!targetConditions.length ||
-            eligible.some(({ matchingTargets }) =>
-              matchingTargets.includes(unit.id),
-            )),
+          eligible.some(({ matchingTargets }) => matchingTargets.includes(unit.id)),
       )
       .sort((a, b) => hpPercent(a) - hpPercent(b) || a.slot - b.slot)[0];
     const targeted = eligible.find(({ matchingTargets }) =>
@@ -263,14 +283,21 @@ export function chooseStrategyCandidate(
   }
   const scopedSkillIds = new Set(
     strategy.rules.flatMap((rule) =>
-      rule.action.type === 'skill' && rule.targetScope && rule.targetScope !== 'any'
+      rule.action.type === 'skill' && (rule.onlyWhenMatched || (rule.targetScope && rule.targetScope !== 'any'))
         ? [rule.action.skillId]
         : [],
     ),
   );
-  return candidates.find(
+  const fallbackCandidates = candidates.filter(
     (candidate) =>
-      candidate.command.type !== 'skill' ||
-      !scopedSkillIds.has(candidate.command.skillId),
+      candidate.command.type !== 'summon' &&
+      (candidate.command.type !== 'skill' || !scopedSkillIds.has(candidate.command.skillId)),
   );
+  if (strategy.fallback === 'attack')
+    return fallbackCandidates.find(candidate => candidate.command.type === 'attack') ??
+      fallbackCandidates.find(candidate => candidate.command.type === 'defend');
+  if (strategy.fallback === 'defend')
+    return fallbackCandidates.find(candidate => candidate.command.type === 'defend') ??
+      fallbackCandidates.find(candidate => candidate.command.type === 'attack');
+  return fallbackCandidates[0];
 }

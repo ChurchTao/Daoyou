@@ -83,7 +83,7 @@ export function compileRankingBattle(
     versions: {
       ...COMBAT_V6_CHARACTER_BUILD_VERSIONS,
       autoPolicyVersion: AUTO_POLICY_VERSION,
-      rulesetVersion: 'daoyou_rules_v12',
+      rulesetVersion: 'daoyou_rules_v13',
       contentVersion: 'combat-v6-ranking-v1',
     },
   });

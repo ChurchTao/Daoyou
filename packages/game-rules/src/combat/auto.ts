@@ -116,12 +116,29 @@ export function automaticCommands(
         ),
       );
     });
+    const strategy = strategies?.[unit.id];
+    // Reserve eligibility is private to this owner and only used by explicit
+    // summon rules. It must never alter ordinary utility or NPC decisions.
+    if (unit.kind === 'player' && strategy?.rules.some(rule => rule.action.type === 'summonNext')) {
+      const pets = state.units.filter(pet => pet.kind === 'pet' && pet.ownerId === unit.id);
+      const occupied = pets.some(pet => !pet.flags.benched && !pet.flags.escaped &&
+        ((!pet.flags.dead && !pet.flags.downed) || pet.flags.reviveAtRound !== undefined));
+      const next = !occupied && pets.find(pet =>
+        !pet.marks.includes('battle:deployed') &&
+        commandOptions.summonablePets?.some(option => option.id === pet.id));
+      if (next) candidates.push({
+        command: { type: 'summon', petId: next.id },
+        score: 0,
+        benefits: { offense: 0, survival: 0, control: 0, economy: 0 },
+        notes: [],
+        intents: [],
+      });
+    }
     options.explain?.({
       unitId: unit.id,
       version: AUTO_POLICY_VERSION,
       candidates,
     });
-    const strategy = strategies?.[unit.id];
     const selected = unit.kind === 'pet'
       ? chooseBeastCandidate(candidates, skills, unit.skillOverrides, options.statusDefs ?? [], unit, commandOptions)
       : chooseStrategyCandidate(observation, unit.id, candidates, strategy, strategy && {

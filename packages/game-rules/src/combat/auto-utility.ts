@@ -745,6 +745,11 @@ export function rankAutoActions(
       continue;
     const pool = option.selectableTargetIds
       .flatMap((id) => observation.units.filter((u) => u.id === id))
+      // The query also offers prospective targets for manual coordination
+      // after a revival. AUTO only plans targets this skill can affect now.
+      .filter(unit => alive(unit) ||
+        (unit.flags.downed && skill.targeting.includeDowned) ||
+        (unit.flags.dead && skill.targeting.includeDead))
       .sort(stable);
     if (!pool.length) continue;
     const count = Math.min(pool.length, option.targetCount);

@@ -32,6 +32,7 @@ export type HookContext = {
   target?: Unit
   petEntryKind?: 'initial' | 'switch'
   event?: BattleEvent
+  /** BeforeAction cancellation, or a terminal AfterActionWindow closure with no data effects. */
   cancelled?: boolean
   /** 钩子可改最终伤害 */
   damage?: number

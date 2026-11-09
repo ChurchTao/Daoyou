@@ -1,13 +1,25 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { InkButton } from '@app/components/ui/InkButton';
+import { apiFetch } from '@app/lib/api/fetch';
 import { autoStatusChoices } from '@daoyou/game-content/combat/auto-status-options';
-import { AUTO_STRATEGY_SLOT_LABELS, MAX_AUTO_STRATEGY_RULES, SaveAutoStrategySchema, type AutoComparison, type AutoStrategy, type AutoStrategyBook, type AutoStrategySlotIndex } from '@daoyou/game-domain/combat/auto';
+import {
+  AUTO_STRATEGY_SLOT_LABELS,
+  MAX_AUTO_STRATEGY_RULES,
+  SaveAutoStrategySchema,
+  type AutoComparison,
+  type AutoStrategy,
+  type AutoStrategyBook,
+  type AutoStrategySlotIndex,
+} from '@daoyou/game-domain/combat/auto';
 import { autoComparison } from '@daoyou/game-rules/combat/auto';
 import { useEffect, useState } from 'react';
 import { SettingsMessage } from './SettingsFields';
 
 type Rule = AutoStrategy['rules'][number];
 type Condition = Rule['conditions'][number];
+type StatusCondition = Extract<
+  Condition,
+  { type: 'selfStatus' | 'targetStatus' | 'allyStatus' }
+>;
 type View = {
   pathId: string;
   pathName: string;
@@ -21,11 +33,7 @@ type View = {
 };
 
 function normalizeView(loaded: View): View {
-  const slots = loaded.slots ?? [
-    loaded.customStrategy,
-    null,
-    null,
-  ];
+  const slots = loaded.slots ?? [loaded.customStrategy, null, null];
   return {
     ...loaded,
     slots,
@@ -49,12 +57,25 @@ const conditionChoices: { value: Condition['type']; label: string }[] = [
   { value: 'selfStatus', label: '自身状态' },
   { value: 'targetStatus', label: '出招目标状态' },
   { value: 'allyStatus', label: '己方状态' },
+  { value: 'ownPetPresent', label: '自己的灵兽在场' },
+  { value: 'ownPetHp', label: '自己的灵兽气血' },
+  { value: 'ownPetMp', label: '自己的灵兽法力' },
+  { value: 'roundNumber', label: '当前回合' },
 ];
 const comparisonChoices: { value: AutoComparison; label: string }[] = [
   { value: 'lt', label: '低于' },
   { value: 'lte', label: '至多' },
   { value: 'gt', label: '大于' },
   { value: 'gte', label: '至少' },
+  { value: 'eq', label: '等于' },
+];
+const fallbackChoices: {
+  value: NonNullable<AutoStrategy['fallback']>;
+  label: string;
+}[] = [
+  { value: 'utility', label: '临场应变' },
+  { value: 'attack', label: '普通攻击' },
+  { value: 'defend', label: '防御' },
 ];
 const comparisonLabel = (condition: Condition) =>
   comparisonChoices.find(
@@ -83,6 +104,8 @@ function newCondition(
   statuses: ReturnType<typeof autoStatusChoices> = { self: [], target: [] },
 ): Condition {
   if (type === 'allyDowned') return { type };
+  if (type === 'ownPetPresent') return { type, present: false };
+  if (type === 'roundNumber') return { type, round: 1 };
   if (type === 'enemyCountAtLeast') return { type, count: 2 };
   if (type === 'selfResourceAtLeast') return { type, resourceId, amount: 1 };
   if (type === 'selfStatus') {
@@ -124,7 +147,120 @@ function skillName(view: View, id: string) {
 function actionName(view: View, action: Rule['action']) {
   if (action.type === 'attack') return '普通攻击';
   if (action.type === 'defend') return '防御';
+  if (action.type === 'summonNext') return '召唤下一只灵兽';
   return skillName(view, action.skillId);
+}
+
+function statusThresholdName(condition: StatusCondition) {
+  if (!condition.present) return '';
+  return [
+    condition.stacks
+      ? `层数${comparisonChoices.find((choice) => choice.value === condition.stacks?.comparison)?.label} ${condition.stacks.amount}`
+      : '',
+    condition.remainingRounds
+      ? `剩余${comparisonChoices.find((choice) => choice.value === condition.remainingRounds?.comparison)?.label} ${condition.remainingRounds.amount} 回合`
+      : '',
+  ]
+    .filter(Boolean)
+    .map((part) => ` · ${part}`)
+    .join('');
+}
+
+function withStatusPresence(
+  condition: StatusCondition,
+  present: boolean,
+): StatusCondition {
+  return {
+    ...condition,
+    present,
+    stacks: present ? condition.stacks : undefined,
+    remainingRounds: present ? condition.remainingRounds : undefined,
+  };
+}
+
+function StatusThresholdFields({
+  condition,
+  onChange,
+}: {
+  condition: StatusCondition;
+  onChange: (condition: StatusCondition) => void;
+}) {
+  if (!condition.present) return null;
+  return (
+    <div className="basis-full space-y-2 pl-7">
+      {(['stacks', 'remainingRounds'] as const).map((key) => {
+        const threshold = condition[key];
+        const label = key === 'stacks' ? '层数' : '剩余回合';
+        return (
+          <div key={key} className="flex flex-wrap items-center gap-2">
+            <label className="text-ink-secondary flex min-w-24 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(threshold)}
+                onChange={(event) =>
+                  onChange({
+                    ...condition,
+                    [key]: event.target.checked
+                      ? {
+                          comparison: key === 'stacks' ? 'gte' : 'lte',
+                          amount: 1,
+                        }
+                      : undefined,
+                  })
+                }
+              />
+              {label}
+            </label>
+            {threshold ? (
+              <>
+                <select
+                  aria-label={`${label}比较关系`}
+                  className={fieldClass}
+                  value={threshold.comparison}
+                  onChange={(event) =>
+                    onChange({
+                      ...condition,
+                      [key]: {
+                        ...threshold,
+                        comparison: event.target.value as AutoComparison,
+                      },
+                    })
+                  }
+                >
+                  {comparisonChoices.map((choice) => (
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label={label}
+                  className={`${fieldClass} w-20 text-center font-mono`}
+                  type="number"
+                  min={0}
+                  max={10000}
+                  step={1}
+                  value={threshold.amount}
+                  onChange={(event) =>
+                    onChange({
+                      ...condition,
+                      [key]: {
+                        ...threshold,
+                        amount: Number(event.target.value),
+                      },
+                    })
+                  }
+                />
+                <span className="text-ink-secondary text-sm">
+                  {key === 'stacks' ? '层' : '回合'}
+                </span>
+              </>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function conditionName(view: View, condition: Condition) {
@@ -141,6 +277,14 @@ function conditionName(view: View, condition: Condition) {
       return `敌方气血${comparisonLabel(condition)} ${condition.percent}%`;
     case 'allyDowned':
       return '有队友倒地';
+    case 'ownPetPresent':
+      return `自己的灵兽${condition.present ? '在场' : '未在场'}`;
+    case 'ownPetHp':
+      return `自己的灵兽气血${comparisonLabel(condition)} ${condition.percent}%`;
+    case 'ownPetMp':
+      return `自己的灵兽法力${comparisonLabel(condition)} ${condition.percent}%`;
+    case 'roundNumber':
+      return `当前回合${comparisonLabel(condition)} ${condition.round}`;
     case 'enemyCountAtLeast':
       return `存活敌人${comparisonLabel(condition)} ${condition.count} 名`;
     case 'selfResourceAtLeast':
@@ -150,7 +294,7 @@ function conditionName(view: View, condition: Condition) {
         (item) =>
           item.kind === condition.kind && item.statusId === condition.statusId,
       );
-      return `自身${condition.present ? '有' : '无'}${choice?.label ?? '指定状态'}`;
+      return `自身${condition.present ? '有' : '无'}${choice?.label ?? '指定状态'}${statusThresholdName(condition)}`;
     }
     case 'targetStatus': {
       const choice = autoStatusChoices(view.pathId).target.find(
@@ -159,7 +303,7 @@ function conditionName(view: View, condition: Condition) {
           item.statusId === condition.statusId &&
           item.ownedBySelf === condition.ownedBySelf,
       );
-      return `目标${condition.present ? '有' : '无'}${choice?.label ?? '指定状态'}`;
+      return `目标${condition.present ? '有' : '无'}${choice?.label ?? '指定状态'}${statusThresholdName(condition)}`;
     }
     case 'allyStatus': {
       const choice = autoStatusChoices(view.pathId).target.find(
@@ -169,7 +313,7 @@ function conditionName(view: View, condition: Condition) {
           item.statusId === condition.statusId &&
           item.ownedBySelf === condition.ownedBySelf,
       );
-      return `己方${condition.present ? '已有' : '无人持有'}${choice?.label ?? '指定状态'}`;
+      return `己方${condition.present ? '已有' : '无人持有'}${choice?.label ?? '指定状态'}${statusThresholdName(condition)}`;
     }
   }
 }
@@ -200,7 +344,11 @@ async function request(
   return normalizeView(payload.data);
 }
 
-function openSlot(loaded: View, index: AutoStrategySlotIndex, from?: AutoStrategySlotIndex) {
+function openSlot(
+  loaded: View,
+  index: AutoStrategySlotIndex,
+  from?: AutoStrategySlotIndex,
+) {
   return structuredClone(
     loaded.slots[index] ??
       (from === undefined ? null : loaded.slots[from]) ??
@@ -382,7 +530,7 @@ export function CombatAutoStrategyTab() {
             {view.pathName} · 自动战术
           </p>
           <p className="mt-1 text-sm leading-6">
-            按顺序出招。条件不符或招式不可用时，尝试下一条。本流派可存三套，保存只覆盖选中的一套。
+            每回合从第一条开始判断，执行首条符合条件且可用的行动。本流派可存三套，保存只覆盖选中的一套。
           </p>
         </div>
         <span className="border-crimson/30 bg-crimson/6 text-crimson border px-2 py-1 text-xs">
@@ -392,7 +540,11 @@ export function CombatAutoStrategyTab() {
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="已存战术">
+      <div
+        className="grid grid-cols-3 gap-2"
+        role="tablist"
+        aria-label="已存战术"
+      >
         {AUTO_STRATEGY_SLOT_LABELS.map((label, index) => {
           const slot = index as AutoStrategySlotIndex;
           const selected = selectedSlot === slot;
@@ -419,7 +571,7 @@ export function CombatAutoStrategyTab() {
         {draft.rules.map((rule, index) => {
           const editing = editingIndex === index;
           const targetStatusChoices =
-            rule.action.type === 'defend'
+            rule.action.type === 'defend' || rule.action.type === 'summonNext'
               ? []
               : rule.action.type === 'attack'
                 ? statusChoices.target.filter(
@@ -457,14 +609,22 @@ export function CombatAutoStrategyTab() {
                     {unavailable ? (
                       <span className="text-ink-secondary text-xs">未习得</span>
                     ) : null}
-                    <span className="text-ink-secondary text-xs">
-                      {targetChoices.find(
-                        (target) => target.value === rule.target,
-                      )?.label ?? '收益最高'}
-                      {rule.targetScope && rule.targetScope !== 'any'
-                        ? ` · ${targetScopeChoices.find((scope) => scope.value === rule.targetScope)?.label}`
-                        : ''}
-                    </span>
+                    {rule.action.type === 'skill' ||
+                    rule.action.type === 'attack' ? (
+                      <span className="text-ink-secondary text-xs">
+                        {targetChoices.find(
+                          (target) => target.value === rule.target,
+                        )?.label ?? '收益最高'}
+                        {rule.targetScope && rule.targetScope !== 'any'
+                          ? ` · ${targetScopeChoices.find((scope) => scope.value === rule.targetScope)?.label}`
+                          : ''}
+                      </span>
+                    ) : null}
+                    {rule.action.type === 'skill' && rule.onlyWhenMatched ? (
+                      <span className="text-ink-secondary text-xs">
+                        仅命中规则时使用
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <span className="text-ink-secondary shrink-0 text-xs">
@@ -489,7 +649,7 @@ export function CombatAutoStrategyTab() {
                           </span>
                           <select
                             aria-label={`第 ${index + 1} 条战术的第 ${at + 1} 个条件`}
-                            className={`${fieldClass} max-w-48 flex-1`}
+                            className={`${fieldClass} max-w-48 flex-[1_0_9rem]`}
                             value={condition.type}
                             onChange={(event) =>
                               replaceRule(index, {
@@ -524,11 +684,14 @@ export function CombatAutoStrategyTab() {
                                   (choice.value !== 'allyStatus' ||
                                     allyStatusChoices.length > 0) &&
                                   (choice.value !== 'targetHpBelow' ||
-                                    rule.action.type !== 'defend'),
+                                    (rule.action.type !== 'defend' &&
+                                      rule.action.type !== 'summonNext')),
                               )
                               .map((choice) => (
                                 <option key={choice.value} value={choice.value}>
-                                  {choice.value === 'allyHpBelow' && condition.type === 'allyHpBelow' && condition.recoverySkillId
+                                  {choice.value === 'allyHpBelow' &&
+                                  condition.type === 'allyHpBelow' &&
+                                  condition.recoverySkillId
                                     ? '可治疗的队友气血'
                                     : choice.label}
                                 </option>
@@ -536,7 +699,8 @@ export function CombatAutoStrategyTab() {
                           </select>
                           {'percent' in condition ||
                           'count' in condition ||
-                          'amount' in condition ? (
+                          'amount' in condition ||
+                          'round' in condition ? (
                             <select
                               aria-label="比较关系"
                               className={fieldClass}
@@ -566,10 +730,14 @@ export function CombatAutoStrategyTab() {
                           {'percent' in condition ? (
                             <>
                               <input
-                                aria-label="气血百分比"
+                                aria-label={
+                                  condition.type === 'ownPetMp'
+                                    ? '灵兽法力百分比'
+                                    : '气血百分比'
+                                }
                                 className={`${fieldClass} w-16 text-center font-mono`}
                                 type="number"
-                                min={1}
+                                min={condition.type === 'ownPetMp' ? 0 : 1}
                                 max={100}
                                 value={condition.percent}
                                 onChange={(event) =>
@@ -594,9 +762,77 @@ export function CombatAutoStrategyTab() {
                               </span>
                             </>
                           ) : null}
-                          {condition.type === 'allyHpBelow' && condition.recoverySkillId ? (
+                          {condition.type === 'ownPetPresent' ? (
+                            <select
+                              aria-label="自己的灵兽是否在场"
+                              className={fieldClass}
+                              value={condition.present ? 'present' : 'absent'}
+                              onChange={(event) =>
+                                replaceRule(index, {
+                                  ...rule,
+                                  conditions: rule.conditions.map((item, i) =>
+                                    i === at
+                                      ? {
+                                          ...condition,
+                                          present:
+                                            event.target.value === 'present',
+                                        }
+                                      : item,
+                                  ),
+                                })
+                              }
+                            >
+                              <option value="present">在场</option>
+                              <option value="absent">未在场</option>
+                            </select>
+                          ) : null}
+                          {condition.type === 'roundNumber' ? (
+                            <input
+                              aria-label="回合数"
+                              className={`${fieldClass} w-20 text-center font-mono`}
+                              type="number"
+                              min={1}
+                              max={10000}
+                              step={1}
+                              value={condition.round}
+                              onChange={(event) =>
+                                replaceRule(index, {
+                                  ...rule,
+                                  conditions: rule.conditions.map((item, i) =>
+                                    i === at
+                                      ? {
+                                          ...condition,
+                                          round: Number(event.target.value),
+                                        }
+                                      : item,
+                                  ),
+                                })
+                              }
+                            />
+                          ) : null}
+                          {condition.type === 'ownPetHp' ||
+                          condition.type === 'ownPetMp' ? (
                             <span className="text-ink-secondary text-xs">
-                              须能用「{skillName(view, condition.recoverySkillId)}」治疗其他非灵兽队友。
+                              仅判断当前在场且存活的自己的灵兽。
+                            </span>
+                          ) : null}
+                          {condition.type === 'allyHpBelow' &&
+                          condition.recoverySkillId ? (
+                            <span className="text-ink-secondary text-xs">
+                              须能用「
+                              {skillName(view, condition.recoverySkillId)}
+                              」治疗其他非灵兽队友。
+                            </span>
+                          ) : null}
+                          {condition.type === 'allyHpBelow' &&
+                          !condition.recoverySkillId ? (
+                            <span className="text-ink-secondary text-xs">
+                              己方含自身与灵兽；如需限定本次出招对象，选择“出招目标气血”。
+                            </span>
+                          ) : null}
+                          {condition.type === 'enemyHpBelow' ? (
+                            <span className="text-ink-secondary text-xs">
+                              任一存活敌人符合即可；如需限定本次出招对象，选择“出招目标气血”。
                             </span>
                           ) : null}
                           {'count' in condition ? (
@@ -736,11 +972,10 @@ export function CombatAutoStrategyTab() {
                                     conditions: rule.conditions.map(
                                       (item, i) =>
                                         i === at
-                                          ? {
-                                              ...condition,
-                                              present:
-                                                event.target.value === 'has',
-                                            }
+                                          ? withStatusPresence(
+                                              condition,
+                                              event.target.value === 'has',
+                                            )
                                           : item,
                                     ),
                                   })
@@ -825,11 +1060,10 @@ export function CombatAutoStrategyTab() {
                                     conditions: rule.conditions.map(
                                       (item, i) =>
                                         i === at
-                                          ? {
-                                              ...condition,
-                                              present:
-                                                event.target.value === 'has',
-                                            }
+                                          ? withStatusPresence(
+                                              condition,
+                                              event.target.value === 'has',
+                                            )
                                           : item,
                                     ),
                                   })
@@ -839,6 +1073,21 @@ export function CombatAutoStrategyTab() {
                                 <option value="lacks">没有</option>
                               </select>
                             </>
+                          ) : null}
+                          {condition.type === 'selfStatus' ||
+                          condition.type === 'targetStatus' ||
+                          condition.type === 'allyStatus' ? (
+                            <StatusThresholdFields
+                              condition={condition}
+                              onChange={(next) =>
+                                replaceRule(index, {
+                                  ...rule,
+                                  conditions: rule.conditions.map((item, i) =>
+                                    i === at ? next : item,
+                                  ),
+                                })
+                              }
+                            />
                           ) : null}
                           <button
                             type="button"
@@ -894,7 +1143,9 @@ export function CombatAutoStrategyTab() {
                         onChange={(event) => {
                           const value = event.target.value;
                           const action: Rule['action'] =
-                            value === 'attack' || value === 'defend'
+                            value === 'attack' ||
+                            value === 'defend' ||
+                            value === 'summonNext'
                               ? { type: value }
                               : { type: 'skill', skillId: value };
                           replaceRule(index, {
@@ -902,19 +1153,27 @@ export function CombatAutoStrategyTab() {
                             action,
                             conditions: rule.conditions.filter((condition) => {
                               if (condition.type === 'targetHpBelow')
-                                return action.type !== 'defend';
-                              if (condition.type !== 'targetStatus') return true;
-                              return action.type !== 'defend' &&
+                                return (
+                                  action.type !== 'defend' &&
+                                  action.type !== 'summonNext'
+                                );
+                              if (condition.type !== 'targetStatus')
+                                return true;
+                              return (
+                                action.type !== 'defend' &&
+                                action.type !== 'summonNext' &&
                                 (action.type !== 'attack' ||
                                   statusChoices.target.some(
                                     (choice) =>
                                       choice.kind === condition.kind &&
                                       choice.statusId === condition.statusId &&
                                       choice.side === 'enemy',
-                                  ));
+                                  ))
+                              );
                             }),
                             target:
                               value === 'defend' ||
+                              value === 'summonNext' ||
                               (value === 'attack' &&
                                 rule.target === 'lowestHpAlly')
                                 ? 'best'
@@ -923,11 +1182,16 @@ export function CombatAutoStrategyTab() {
                               action.type === 'skill'
                                 ? rule.targetScope
                                 : undefined,
+                            onlyWhenMatched:
+                              action.type === 'skill'
+                                ? rule.onlyWhenMatched
+                                : undefined,
                           });
                         }}
                       >
                         <option value="attack">普通攻击</option>
                         <option value="defend">防御</option>
+                        <option value="summonNext">召唤下一只灵兽</option>
                         {view.availableSkills.map((skill) => (
                           <option key={skill.id} value={skill.id}>
                             {skill.name}
@@ -940,55 +1204,84 @@ export function CombatAutoStrategyTab() {
                         ) : null}
                       </select>
                     </label>
-                    <label className="text-ink-secondary flex flex-col gap-1 text-xs">
-                      目标范围
-                      <select
-                        className={fieldClass}
-                        value={rule.targetScope ?? 'any'}
-                        disabled={rule.action.type !== 'skill'}
-                        onChange={(event) =>
-                          replaceRule(index, {
-                            ...rule,
-                            targetScope: event.target.value as NonNullable<
-                              Rule['targetScope']
-                            >,
-                          })
-                        }
-                      >
-                        {targetScopeChoices.map((scope) => (
-                          <option key={scope.value} value={scope.value}>
-                            {scope.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="text-ink-secondary flex flex-col gap-1 text-xs">
-                      目标
-                      <select
-                        className={fieldClass}
-                        value={rule.target}
-                        disabled={rule.action.type === 'defend'}
-                        onChange={(event) =>
-                          replaceRule(index, {
-                            ...rule,
-                            target: event.target.value as Rule['target'],
-                          })
-                        }
-                      >
-                        {targetChoices
-                          .filter(
-                            (target) =>
-                              rule.action.type !== 'attack' ||
-                              target.value !== 'lowestHpAlly',
-                          )
-                          .map((target) => (
-                            <option key={target.value} value={target.value}>
-                              {target.label}
+                    {rule.action.type === 'skill' ? (
+                      <label className="text-ink-secondary flex flex-col gap-1 text-xs">
+                        目标范围
+                        <select
+                          className={fieldClass}
+                          value={rule.targetScope ?? 'any'}
+                          onChange={(event) =>
+                            replaceRule(index, {
+                              ...rule,
+                              targetScope: event.target.value as NonNullable<
+                                Rule['targetScope']
+                              >,
+                            })
+                          }
+                        >
+                          {targetScopeChoices.map((scope) => (
+                            <option key={scope.value} value={scope.value}>
+                              {scope.label}
                             </option>
                           ))}
-                      </select>
-                    </label>
+                        </select>
+                      </label>
+                    ) : null}
+                    {rule.action.type === 'skill' ||
+                    rule.action.type === 'attack' ? (
+                      <label className="text-ink-secondary flex flex-col gap-1 text-xs">
+                        目标
+                        <select
+                          className={fieldClass}
+                          value={rule.target}
+                          onChange={(event) =>
+                            replaceRule(index, {
+                              ...rule,
+                              target: event.target.value as Rule['target'],
+                            })
+                          }
+                        >
+                          {targetChoices
+                            .filter(
+                              (target) =>
+                                rule.action.type !== 'attack' ||
+                                target.value !== 'lowestHpAlly',
+                            )
+                            .map((target) => (
+                              <option key={target.value} value={target.value}>
+                                {target.label}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                    ) : null}
                   </div>
+                  {rule.action.type === 'skill' ? (
+                    <label className="text-ink-secondary flex items-start gap-2 text-sm leading-6">
+                      <input
+                        type="checkbox"
+                        className="mt-1.5"
+                        checked={Boolean(rule.onlyWhenMatched)}
+                        onChange={(event) =>
+                          replaceRule(index, {
+                            ...rule,
+                            onlyWhenMatched: event.target.checked,
+                          })
+                        }
+                      />
+                      <span>仅在规则命中时使用此招</span>
+                    </label>
+                  ) : null}
+                  {rule.action.type === 'skill' && rule.onlyWhenMatched ? (
+                    <p className="text-ink-secondary text-xs leading-5">
+                      此招仍可由其他命中的规则选出，临场应变时不会使用。
+                    </p>
+                  ) : null}
+                  {rule.action.type === 'summonNext' ? (
+                    <p className="text-ink-secondary text-xs leading-5">
+                      仅在自己的灵兽缺位时，按出战顺序召唤尚未登场的一只。在场灵兽存活或等待复生时不换宠；没有可召唤的灵兽时尝试下一条。
+                    </p>
+                  ) : null}
                   <div className="border-ink/10 flex flex-wrap gap-x-3 border-t pt-2 text-sm">
                     <InkButton
                       variant="secondary"
@@ -1025,7 +1318,29 @@ export function CombatAutoStrategyTab() {
         })}
         <li className="text-ink-secondary flex items-center gap-3 px-2 py-3 text-sm sm:px-3">
           <span className="min-w-7 font-mono">—</span>
-          <span>其余情况 · 临场应变</span>
+          <label className="flex flex-wrap items-center gap-2">
+            其余情况
+            <select
+              aria-label="没有规则命中时的行动"
+              className={fieldClass}
+              value={draft.fallback ?? 'utility'}
+              disabled={busy}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  fallback: event.target.value as NonNullable<
+                    AutoStrategy['fallback']
+                  >,
+                })
+              }
+            >
+              {fallbackChoices.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </li>
       </ol>
 
@@ -1065,7 +1380,9 @@ export function CombatAutoStrategyTab() {
           pending={busy}
           disabled={selectedSaved && !changed && selectedActive}
           onClick={() =>
-            void (selectedSaved && !changed && !selectedActive ? activate() : save())
+            void (selectedSaved && !changed && !selectedActive
+              ? activate()
+              : save())
           }
         >
           {!selectedSaved
@@ -1101,7 +1418,7 @@ export function CombatAutoStrategyTab() {
         </p>
       ) : null}
       <p className="text-ink-secondary text-xs leading-5">
-        未习得的招式会自动略过；出战的一套从下一场战斗生效。灵兽自行选择法术或普攻。
+        未习得的招式会自动略过；出战的一套从下一场战斗生效。最低血按气血比例选择，灵兽自行选择法术或普攻。
       </p>
       {message ? <SettingsMessage>{message}</SettingsMessage> : null}
     </div>
