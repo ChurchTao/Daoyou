@@ -55,6 +55,7 @@ describe('identity reshape question bank', () => {
     expect(
       IdentityReshapeCandidateSchema.safeParse({
         name: '陆观澜',
+        gender: '男',
         origin: '北境散修',
         personality: '外静内坚',
         background: '幼时随商旅入山，于风雪古观中得见修行门径。',
@@ -63,11 +64,32 @@ describe('identity reshape question bank', () => {
     expect(
       IdentityReshapeCandidateSchema.safeParse({
         name: '一',
+        gender: '女',
         origin: '北境',
         personality: '沉静',
         background: '背景过短',
       }).success,
     ).toBe(false);
+  });
+
+  it('accepts either gender and rejects missing or invalid gender', () => {
+    const candidate = {
+      name: '陆观澜',
+      origin: '北境散修',
+      personality: '外静内坚',
+      background: '幼时随商旅入山，于风雪古观中得见修行门径。',
+    };
+    for (const gender of ['男', '女']) {
+      expect(
+        IdentityReshapeCandidateSchema.parse({ ...candidate, gender }).gender,
+      ).toBe(gender);
+    }
+    for (const gender of [undefined, null, '', '无']) {
+      expect(
+        IdentityReshapeCandidateSchema.safeParse({ ...candidate, gender })
+          .success,
+      ).toBe(false);
+    }
   });
 
   it('emits a provider-compatible JSON Schema name pattern', () => {

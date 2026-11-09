@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GENDER_VALUES } from './character.js';
 
 // Keep this JSON Schema-compatible for providers whose regex engines do not
 // support Unicode property escapes such as `\p{Script=Han}`.
@@ -12,6 +13,7 @@ export const IdentityReshapeCandidateSchema = z.object({
     .min(2)
     .max(4)
     .regex(IDENTITY_RESHAPE_NAME_PATTERN, '姓名必须为 2-4 个中文字符'),
+  gender: z.enum(GENDER_VALUES).describe('新身份的性别'),
   origin: z.string().trim().min(2).max(40),
   personality: z.string().trim().min(2).max(100),
   background: z.string().trim().min(10).max(300),

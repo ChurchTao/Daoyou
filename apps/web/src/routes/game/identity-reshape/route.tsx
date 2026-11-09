@@ -290,7 +290,7 @@ export default function IdentityReshapePage() {
     return (
       <StageShell eyebrow="太乙司命 · 玉牒未明" title="改天换地">
         <GameLoadingState
-          message="正在照见旧日姓名……"
+          message="正在展开新身份玉牒……"
           variant="immersive"
           className="min-h-40"
         />
@@ -303,7 +303,7 @@ export default function IdentityReshapePage() {
       <StageShell eyebrow="太乙司命 · 一符一世" title="改天换地">
         <div className="mx-auto max-w-xl space-y-6 text-center">
           <p className="text-lg leading-9 text-[#e6dcc8]">
-            朱砂符胆映出三问。答毕之后，司命将依你的心念重写姓名与人间来处。
+            朱砂符胆映出三问。答毕之后，司命将依你的心念写就全新的姓名、性别、出身、性格与背景，不再承接旧身份的经历与关系。
           </p>
           <p className="text-sm leading-7 text-[#c7bca6]">
             持有 {IDENTITY_RESHAPE_TALISMAN_NAME}：{talismanCount} 张
@@ -339,6 +339,7 @@ export default function IdentityReshapePage() {
           <dl className="divide-y divide-white/12 border-y border-white/15">
             {[
               ['姓名', candidate.name],
+              ['性别', candidate.gender],
               ['出身', candidate.origin],
               ['性格', candidate.personality],
               ['背景', candidate.background],
@@ -365,7 +366,7 @@ export default function IdentityReshapePage() {
             </p>
           )}
           <p className="mt-5 text-sm leading-7 text-[#c7bca6]">
-            一旦落印，旧姓名与旧身世将被覆盖，其他修行数据保持不变。
+            一旦落印，姓名、性别与身世将采用新身份，其他修行数据保持不变。
           </p>
           <div className="mt-7 flex flex-wrap gap-5">
             {!confirmingAdoption ? (
@@ -469,7 +470,7 @@ export default function IdentityReshapePage() {
     <StageShell eyebrow="太乙司命 · 三问已毕" title="再写一段来处">
       <div className="mx-auto max-w-2xl">
         <p className="leading-8 text-[#d9cfba]">
-          写下你希望新身份拥有的意象、经历或气质。司命会连同方才三答一并推演。
+          写下你希望新身份拥有的性别、意象、经历或气质。司命会连同方才三答一并推演。
         </p>
         <textarea
           value={description}
