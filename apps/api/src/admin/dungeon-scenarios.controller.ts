@@ -1,4 +1,5 @@
 import {
+  AdminDungeonGenerationSettingsSchema,
   AdminDungeonJobsQuerySchema,
   AdminDungeonRestockSchema,
   AdminDungeonScenarioListQuerySchema,
@@ -14,12 +15,14 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Res,
   UseFilters,
 } from '@nestjs/common';
+import type { AuthUser } from '@server/lib/auth/types.js';
 import type { Response } from 'express';
 import type { z } from 'zod';
-import { Access } from '../auth/access.js';
+import { Access, CurrentUser } from '../auth/access.js';
 import { FirstQuery } from '../http/first-query.js';
 import { JsonBody } from '../http/json-body.js';
 import { ZodPipe } from '../http/zod.pipe.js';
@@ -35,6 +38,30 @@ export class AdminDungeonScenariosController {
     @Inject(AdminDungeonScenariosService)
     private readonly scenarios: AdminDungeonScenariosService,
   ) {}
+
+  @Get('generation-settings')
+  async generationSettings(@Res({ passthrough: true }) response: Response) {
+    response.setHeader('Cache-Control', 'no-store');
+    return { success: true, data: await this.scenarios.generationSettings() };
+  }
+
+  @Put('generation-settings')
+  async updateGenerationSettings(
+    @CurrentUser() user: AuthUser,
+    @JsonBody(
+      { fallback: undefined },
+      new ZodPipe(AdminDungeonGenerationSettingsSchema),
+    )
+    input: z.infer<typeof AdminDungeonGenerationSettingsSchema>,
+  ) {
+    return {
+      success: true,
+      data: await this.scenarios.updateGenerationSettings(
+        user.id,
+        input.enabled,
+      ),
+    };
+  }
 
   @Get('slots')
   async slots(

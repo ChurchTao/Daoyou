@@ -2,11 +2,13 @@ import { InkButton } from '@app/components/ui/InkButton';
 import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { InkNotice } from '@app/components/ui/InkNotice';
 import { InkSelect } from '@app/components/ui/InkSelect';
+import { InkSwitch } from '@app/components/ui/InkSwitch';
 import { InkTabs } from '@app/components/ui/InkTabs';
 import { InkTag } from '@app/components/ui/InkTag';
 import { apiFetch } from '@app/lib/api/fetch';
 import type {
   AdminDungeonEnqueueResult,
+  AdminDungeonGenerationView,
   AdminDungeonJob,
   AdminDungeonJobList,
   AdminDungeonScenarioDetail,
@@ -88,6 +90,7 @@ export default function DungeonScenariosRoute() {
           <InkButton onClick={() => setRefresh((n) => n + 1)}>刷新</InkButton>
         }
       />
+      <GenerationControl refresh={refresh} run={run} onError={setError} />
       <InkTabs
         items={[
           { value: 'slots', label: '库存总览' },
@@ -149,6 +152,73 @@ function useLoad<T>(
   return { data: state.data, loading: key !== null && state.key !== key };
 }
 
+function GenerationControl({
+  refresh,
+  run,
+  onError,
+}: {
+  refresh: number;
+  run: Run;
+  onError: (message: string) => void;
+}) {
+  const { data, loading } = useLoad<AdminDungeonGenerationView>(
+    '/api/admin/dungeon-scenarios/generation-settings',
+    refresh,
+    onError,
+  );
+  const [saving, setSaving] = useState(false);
+
+  const update = async (enabled: boolean) => {
+    setSaving(true);
+    try {
+      await run(async () => {
+        const result = await request<AdminDungeonGenerationView>(
+          '/api/admin/dungeon-scenarios/generation-settings',
+          { method: 'PUT', body: JSON.stringify({ enabled }) },
+        );
+        return result.enabled
+          ? result.backgroundGeneration
+            ? '已开启剧本生成，继续处理排队任务。'
+            : '已保存开启状态；本环境未开启后台生成，任务仍只排队。'
+          : '已暂停剧本生成，排队任务保留，正在生成的剧本会继续完成。';
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="border-ink/15 space-y-2 border-b pb-4">
+      <div className="flex items-center gap-3">
+        <h2 className="font-semibold">剧本生成</h2>
+        <InkSwitch
+          aria-label="开启剧本生成"
+          checked={data?.enabled ?? false}
+          disabled={!data || loading || saving}
+          onCheckedChange={(enabled) => void update(enabled)}
+        />
+        <span role="status" className="text-ink-secondary text-sm">
+          {saving
+            ? '保存中……'
+            : !data
+              ? '加载中……'
+              : data.enabled
+                ? '已开启'
+                : '已暂停'}
+        </span>
+      </div>
+      <p className="text-ink-secondary text-sm">
+        暂停后保留排队任务，正在生成的剧本会继续完成；开启后继续处理队列。
+      </p>
+      {data && !data.backgroundGeneration ? (
+        <p role="status" className="text-crimson text-sm">
+          本环境未开启后台生成：开启此开关后，补一本、预热和重试仍只会排队，不会执行。
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 /** 列表分页：只有一页时不显示。 */
 function Pager({
   page,
@@ -204,11 +274,6 @@ function SlotsTab({
   if (!data) return <p className="text-ink-secondary text-sm">加载中……</p>;
   return (
     <section className="space-y-4">
-      {data.backgroundGeneration ? null : (
-        <p role="status" className="text-crimson text-sm">
-          本环境未开启后台生成：补一本、预热和重试只会排队，不会执行。
-        </p>
-      )}
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span className="text-ink-secondary">
           生成版本 <span className="font-mono">{data.generatorVersion}</span> ·

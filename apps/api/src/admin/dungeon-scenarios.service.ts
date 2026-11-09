@@ -1,4 +1,5 @@
 import type {
+  AdminDungeonGenerationView,
   AdminDungeonJob,
   AdminDungeonJobList,
   AdminDungeonJobsQuerySchema,
@@ -21,6 +22,7 @@ import {
   configuredSlots,
   enqueueAdminScenarioJobs,
   retryFailedScenarioJob,
+  setScenarioGenerationEnabled,
 } from '@server/dungeon/application/mystery/ScenarioLibrary.js';
 import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import { db } from '@server/lib/drizzle/db.js';
@@ -28,6 +30,7 @@ import {
   dungeonScenarioJobs,
   dungeonScenarios,
 } from '@server/lib/drizzle/schema.js';
+import { isDungeonScenarioGenerationEnabled } from '@server/lib/repositories/appSettingsRepository.js';
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 
@@ -80,9 +83,21 @@ function toJob(r: typeof dungeonScenarioJobs.$inferSelect): AdminDungeonJob {
   };
 }
 
-/** 云游剧本管理：库存总览、剧本库、生成任务；写操作只做停用恢复与投递任务。 */
+/** 云游剧本管理：库存总览、剧本库、生成任务；管理生成开关、停用恢复与任务投递。 */
 @Injectable()
 export class AdminDungeonScenariosService {
+  async generationSettings(): Promise<AdminDungeonGenerationView> {
+    return {
+      enabled: await isDungeonScenarioGenerationEnabled(),
+      backgroundGeneration: isBackgroundLlmEnabled(),
+    };
+  }
+
+  async updateGenerationSettings(userId: string, enabled: boolean) {
+    await setScenarioGenerationEnabled(enabled, userId);
+    return this.generationSettings();
+  }
+
   async slots(
     query: z.infer<typeof AdminDungeonSlotsQuerySchema>,
   ): Promise<AdminDungeonSlotsView> {

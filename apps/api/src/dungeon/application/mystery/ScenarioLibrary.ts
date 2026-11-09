@@ -21,6 +21,7 @@ import {
   type RestockDecision,
 } from '@daoyou/game-rules/dungeon/mystery';
 import { AiService } from '@nestjs/ai';
+import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import {
   db,
   getExecutor,
@@ -32,8 +33,12 @@ import {
   dungeonScenarioPlays,
   dungeonScenarios,
 } from '@server/lib/drizzle/schema.js';
-import { isBackgroundLlmEnabled } from '@server/lib/config/environment.js';
 import { publishScheduledBackgroundCommand } from '@server/lib/mq/backgroundCommandPublisher.js';
+import { APP_SETTING_KEYS } from '@server/lib/repositories/app-settings-config.js';
+import {
+  isDungeonScenarioGenerationEnabled,
+  upsertAppSetting,
+} from '@server/lib/repositories/appSettingsRepository.js';
 import { and, count, eq, inArray, lt, max, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import {
@@ -491,15 +496,39 @@ async function sweepScenarioLibrary() {
   }
 }
 
+function lockScenarioClaim(tx: DbTransaction) {
+  return tx.execute(
+    sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-claim'))`,
+  );
+}
+
+/** 与认领共用锁：暂停保存完成后，不会再有任务进入生成中；已认领的继续完成。 */
+export async function setScenarioGenerationEnabled(
+  enabled: boolean,
+  updatedBy: string,
+) {
+  await db.transaction(async (tx) => {
+    await lockScenarioClaim(tx);
+    await upsertAppSetting(
+      {
+        key: APP_SETTING_KEYS.dungeonScenarioGenerationEnabled,
+        value: String(enabled),
+        updatedBy,
+      },
+      tx,
+    );
+  });
+  if (enabled && isBackgroundLlmEnabled()) await wakeScenarioWorker();
+}
+
 /**
  * 认领最早排队、且所在节点没有任务在跑的一个任务：同一节点逐个生成，不同节点并发。
  * 认领用一把全局事务锁串行化，多实例同时认领也不会让同一节点跑两个。
  */
 async function claimJob(jobId?: string) {
   return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext('dungeon-scenario-claim'))`,
-    );
+    await lockScenarioClaim(tx);
+    if (!(await isDungeonScenarioGenerationEnabled(tx))) return undefined;
     const result = await tx.execute<{
       id: string;
       map_node_id: string;
@@ -606,13 +635,17 @@ async function runJob(
 }
 
 /** 手动执行指定的一个排队任务；不清扫、不补货，也不继续领取任务或重试整项任务。 */
-export async function runSingleScenarioGeneration(ai: AiService, jobId: string) {
+export async function runSingleScenarioGeneration(
+  ai: AiService,
+  jobId: string,
+) {
   if (!(ai instanceof AiService) || typeof ai.generateObject !== 'function') {
     throw new TypeError('请传入 AiService 实例和指定任务 UUID');
   }
   const targetJobId = z.uuid().parse(jobId);
   const job = await claimJob(targetJobId);
-  if (!job) throw new Error('任务不在排队中，或该节点已有任务正在生成');
+  if (!job)
+    throw new Error('剧本生成已暂停、任务不在排队中，或该节点已有任务正在生成');
   await runJob(ai, job);
   const [result] = await db
     .select({
@@ -674,6 +707,8 @@ export function runScenarioGeneration(
   }
   draining = (async () => {
     try {
+      if (!(await isDungeonScenarioGenerationEnabled()))
+        return { processed: 0 };
       await sweepScenarioLibrary();
       processed = 0;
       topUpWorkers(ai);

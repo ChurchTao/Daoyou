@@ -1,6 +1,19 @@
 import type { MysteryCaseFile } from '@daoyou/game-domain/dungeon/mystery';
 import { z } from 'zod';
 
+export const AdminDungeonGenerationSettingsSchema = z.strictObject({
+  enabled: z.boolean(),
+});
+
+export type AdminDungeonGenerationSettings = z.infer<
+  typeof AdminDungeonGenerationSettingsSchema
+>;
+
+export interface AdminDungeonGenerationView extends AdminDungeonGenerationSettings {
+  /** 环境级后台模型任务开关；剧本开关不能覆盖它。 */
+  backgroundGeneration: boolean;
+}
+
 /** 云游剧本管理：库存总览的一行（一个节点 × 案型的库存位）。 */
 export interface AdminDungeonSlot {
   mapNodeId: string;

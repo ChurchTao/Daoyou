@@ -74,6 +74,8 @@ Nest收到SIGTERM／SIGINT后拒绝新请求，停止定时发布并排空HTTP�
 
 本地 `dev`／`prd` 会消费 NATS 后台 command，但**后台模型任务默认关闭**：`BACKGROUND_LLM_JOBS` 缺省时只在 `NODE_ENV=production` 运行。关闭时剧本库不清扫、不生成，玩家开局也不投递补货，材料库生成跳过；后台“云游剧本”的补一本、预热和重试只会排队，页面有提示。
 
+“云游剧本管理”另有剧本生成开关，存储在 `app_settings.dungeon_scenario_generation_enabled`（未配置时默认开启）。暂停后不再认领生成任务，排队任务保留，已在生成的剧本继续完成；开启后唤醒队列。开关即时从数据库读取，多实例无需重启；它不能覆盖上述环境级后台模型任务限制。
+
 确实要批量生成或预热时，在所用环境文件里设 `BACKGROUND_LLM_JOBS=on` 再启动 API。启动后它会清扫并按节点并发处理全部排队任务（每实例最多 16 路），持续产生模型费用，用完改回或删除这一行。cron 仍只在 production 模式启动。
 
 单本验证指定一个排队任务 ID，只执行该任务一次，完整走生成、审校与入库，不清扫、补货或继续处理其他任务。入口要求真实 `AiService` 实例和合法任务 UUID，旧单参数调用会在认领任务前拒绝。下面只创建导入 `LlmModule` 的 Nest application context，不启动 `AppModule`／`RuntimeModule` 或 NATS 消费者。将占位符替换为任务 UUID，调用后检查返回的 `status`／`error`；失败时任务按原有策略回到排队或失败状态，不会在本次调用里继续执行：

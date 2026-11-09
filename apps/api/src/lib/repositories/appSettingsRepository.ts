@@ -11,8 +11,11 @@ import { Logger } from '@nestjs/common';
 
 const logger = new Logger('AppSettingsRepository');
 
-export async function getAppSetting(key: string): Promise<string | null> {
-  const q = getExecutor();
+export async function getAppSetting(
+  key: string,
+  tx?: DbTransaction,
+): Promise<string | null> {
+  const q = getExecutor(tx);
   const [row] = await q
     .select({ value: appSettings.value })
     .from(appSettings)
@@ -20,6 +23,17 @@ export async function getAppSetting(key: string): Promise<string | null> {
     .limit(1);
   const v = row?.value?.trim();
   return v ? v : null;
+}
+
+/** 未配置时沿用开启状态；每次读取数据库，使多实例无需重启即可暂停。 */
+export async function isDungeonScenarioGenerationEnabled(
+  tx?: DbTransaction,
+): Promise<boolean> {
+  const raw = await getAppSetting(
+    APP_SETTING_KEYS.dungeonScenarioGenerationEnabled,
+    tx,
+  );
+  return raw === null || raw === 'true';
 }
 
 export async function upsertAppSetting(
