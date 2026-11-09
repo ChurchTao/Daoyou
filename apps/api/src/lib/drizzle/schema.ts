@@ -1,4 +1,5 @@
 import type { PlayerJournalEvent } from '@daoyou/contracts/player/journal';
+import type { AiUsageCredentialSource, AiUsagePricingSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import type { CultivatorManualStateV1 } from '@daoyou/game-domain/manuals';
 import type { StoryStatus, StoryTrack } from '@daoyou/game-domain/story';
 import type {
@@ -48,6 +49,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -59,6 +61,44 @@ import {
 
 // ===== 新一代修仙游戏数据库 Schema =====
 // 基于 basic.md 中的新 Cultivator 模型设计
+
+export const aiUsageEvents = pgTable(
+  'wanjiedaoyou_ai_usage_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+    sceneId: varchar('scene_id', { length: 120 }).notNull(),
+    credentialSource: varchar('credential_source', { length: 12 })
+      .$type<AiUsageCredentialSource>()
+      .notNull(),
+    provider: varchar('provider', { length: 120 }).notNull(),
+    modelId: varchar('model_id', { length: 240 }).notNull(),
+    modelAlias: varchar('model_alias', { length: 120 }),
+    step: integer('step').notNull(),
+    attempt: integer('attempt').notNull(),
+    fallback: boolean('fallback').notNull(),
+    stream: boolean('stream').notNull(),
+    inputTokens: bigint('input_tokens', { mode: 'number' }).notNull(),
+    outputTokens: bigint('output_tokens', { mode: 'number' }).notNull(),
+    totalTokens: bigint('total_tokens', { mode: 'number' }).notNull(),
+    cachedInputTokens: bigint('cached_input_tokens', { mode: 'number' }).notNull(),
+    reasoningTokens: bigint('reasoning_tokens', { mode: 'number' }).notNull(),
+    durationMs: bigint('duration_ms', { mode: 'number' }).notNull(),
+    finishReason: varchar('finish_reason', { length: 100 }).notNull(),
+    estimatedCost: numeric('estimated_cost'),
+    currency: varchar('currency', { length: 12 }),
+    pricingSnapshot: jsonb('pricing_snapshot').$type<AiUsagePricingSnapshot>(),
+  },
+  (table) => [
+    index('ai_usage_events_source_recorded_idx').on(table.credentialSource, table.recordedAt),
+    index('ai_usage_events_scene_recorded_idx').on(table.sceneId, table.recordedAt),
+    index('ai_usage_events_provider_model_recorded_idx').on(table.provider, table.modelId, table.recordedAt),
+    index('ai_usage_events_recorded_idx').on(table.recordedAt),
+    check('ai_usage_events_source_check', sql`${table.credentialSource} in ('server', 'byok')`),
+    check('ai_usage_events_counts_check', sql`${table.step} >= 0 and ${table.attempt} >= 1 and ${table.inputTokens} >= 0 and ${table.outputTokens} >= 0 and ${table.totalTokens} >= 0 and ${table.cachedInputTokens} >= 0 and ${table.reasoningTokens} >= 0 and ${table.durationMs} >= 0`),
+    check('ai_usage_events_cost_check', sql`(${table.estimatedCost} is null and ${table.currency} is null and ${table.pricingSnapshot} is null) or (${table.estimatedCost} is not null and ${table.estimatedCost} >= 0 and ${table.currency} is not null and ${table.pricingSnapshot} is not null)`),
+  ],
+);
 
 // 角色主表
 export const cultivators = pgTable(

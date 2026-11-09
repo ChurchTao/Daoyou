@@ -66,6 +66,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/llm-metrics',
   },
   {
+    title: 'AI 用量',
+    description: '按场景、模型查看用量与估算费用',
+    href: '/admin/ai-usage',
+  },
+  {
     title: '在线人数',
     description: '查看实时在线与峰值',
     href: '/admin/online-users',

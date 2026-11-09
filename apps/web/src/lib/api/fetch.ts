@@ -1,4 +1,3 @@
-import { readStoredLlmConfig } from '../llmConfig';
 import { resolveApiUrl } from './url';
 
 /** Route API requests explicitly without changing browser or third-party fetch. */
@@ -26,12 +25,6 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit) {
     input instanceof Request ? input.headers : undefined,
   );
   new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
-  const config = readStoredLlmConfig();
-  if (config) {
-    headers.set('x-llm-provider', config.provider);
-    headers.set('x-llm-api-key', config.apiKey);
-    headers.set('x-llm-model', config.model);
-  }
   const credentials =
     init?.credentials ??
     (input instanceof Request && input.credentials !== 'same-origin'

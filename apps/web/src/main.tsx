@@ -8,6 +8,12 @@ import { initializePwaInstallCapture } from './lib/pwaInstall';
 import { registerProductionServiceWorker } from './lib/serviceWorker';
 import { router } from './router';
 
+try {
+  window.localStorage.removeItem('daoyou_llm_config');
+} catch {
+  // Storage may be unavailable; retiring the saved key must not block startup.
+}
+
 if (import.meta.env.PROD) {
   registerPreloadErrorRecovery();
   registerProductionServiceWorker();

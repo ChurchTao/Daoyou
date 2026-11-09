@@ -3,6 +3,8 @@
 
 > 2026-10-03 架构整理补记：已补齐 AppConfigService、Nest SQL/资源读取的 Drizzle 注入、领域实现归位、shared 包边界、显式 apiFetch 和 PR 质量检查。此前材料堆叠与九劫内容哈希的两项测试失败已按既有规则提交核对并修正断言，完整 237 文件/2403 测试通过。下文历史阶段结果保持原样；特殊数据、自然续期和生产灰度/回滚验收不因本次构建验证而视为完成。现行结构见 [架构审查与规范](monorepo-architecture.md)。
 
+> 现行模型配置：BYOK 已退役，全部模型调用使用服务端配置；下文 BYOK 校验、隔离和并发检查保留为当时的历史记录，不代表现行功能。
+
 ## 目标与边界
 
 最终由 NestJS 承载全部 HTTP、SSE、原生 WebSocket、调度与消息生命周期，移除 Hono 运行依赖和构建插件。保留 React、共享战斗规则、Zod 契约、Better Auth 会话、Drizzle、Redis CAS、NATS JetStream 及资源／奖励提交语义。

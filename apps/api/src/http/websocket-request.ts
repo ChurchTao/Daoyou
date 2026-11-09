@@ -1,7 +1,6 @@
 import { apiCorsOptions } from '@server/lib/http/cors.js';
 import { getRequestIp } from '@server/lib/http/requestIp.js';
 import { checkApiIpRateLimit } from '@server/lib/redis/apiIpRateLimiter.js';
-import { LlmByokConfigSchema } from '@daoyou/contracts/llm/config';
 
 export type HandshakeError = {
   status: number;
@@ -20,18 +19,6 @@ export async function verifyWebSocketRequest(
   });
   const origin = apiCorsOptions.origin(headers.get('origin') ?? '');
   if (origin) responseHeaders.set('Access-Control-Allow-Origin', origin);
-  const provider = headers.get('x-llm-provider') ?? undefined;
-  const apiKey = headers.get('x-llm-api-key') ?? undefined;
-  const model = headers.get('x-llm-model') ?? undefined;
-  if (
-    (provider !== undefined || apiKey !== undefined || model !== undefined) &&
-    !LlmByokConfigSchema.safeParse({ provider, apiKey, model }).success
-  )
-    return {
-      status: 400,
-      message: 'LLM 配置不完整或格式无效',
-      headers: responseHeaders,
-    };
   const ip = getRequestIp(headers);
   if (ip) {
     try {

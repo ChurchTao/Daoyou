@@ -1,7 +1,6 @@
 export const ACCOUNT_DELETION_CONFIRMATION = '注销账号';
 
 export const ACCOUNT_DELETION_LOCAL_STORAGE_KEYS = [
-  'daoyou_llm_config',
   'training-room-config-v1',
   'daoyou:battle-status-dock-collapsed',
 ] as const;

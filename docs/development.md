@@ -133,7 +133,14 @@ ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖
 
 ### AI 能力
 
-AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiClient.ts` 调用。服务端通过 `LLM_PROVIDER` 配置基础模型组：
+AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），全部使用服务端配置的模型与凭据，保留两条调用路径：
+
+- 现有场景使用 `aiClient.ts`，沿用场景分层、加权路由、并发、超时与 `metricsStore` 指标。
+- `yield-story`（历练见闻）直接注入 `@nestjs/ai` 的 `AiService`，使用原生模型配置、超时、重试与错误处理。新场景也可以直接使用 `AiService`，不经过 `aiClient.ts`；全局 `onUsage` 将完成的模型步骤写入独立 PostgreSQL 事件表，在 `/admin/ai-usage` 查看，不写入旧 `metricsStore` 或旧后台 LLM 指标页。
+
+#### aiClient.ts 路由
+
+服务端通过 `LLM_PROVIDER` 配置基础模型组：
 
 `LLM_PROVIDER=<provider>[/<model>][:<weight>][,...]`
 
@@ -146,13 +153,12 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiCl
 
 规则：
 
-- 省略 `/model` 时用该供应商默认模型（`qwen3.7-flash` / `deepseek-v4-flash`）
+- 省略 `/model` 时用 `packages/contracts/src/llm/config.ts` 中 `LLM_PROVIDER_DEFAULT_MODELS` 对应的默认模型
 - 省略 `:weight` 时该条权重为 `1`（等权）
 - 多于一条路由时按用户 ID 做稳定哈希分流。同一组配置下，同一用户命中同一条 `provider + model`
 - 无用户上下文（如 cron）时落到当前权重最高的路由
 - 列出的每个供应商都必须配置对应 API Key
 - 未设置 `LLM_PROVIDER` 时自动回退：有 `ALIBABA_API_KEY` 用 `alibaba`，否则有 `DEEPSEEK_API_KEY` 用 `deepseek`
-- 玩家 BYOK 仍优先生效，不走服务端分流
 
 高级模型组 `LLM_ADVANCED_PROVIDER` 使用相同的路由格式和分流规则。高级场景由 [`llmTierForScene`](../apps/api/src/lib/llm/tiers.ts) 决定。
 
@@ -165,7 +171,38 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），统一通过 `aiCl
 - `ALIBABA_BASE_URL`：可选，默认国内北京 `https://dashscope.aliyuncs.com/compatible-mode/v1`
 - `DEEPSEEK_API_KEY`：DeepSeek API Key
 
-玩家也可以在游戏设置中保存自己的供应商、API Key 与模型。BYOK 配置只保存在当前浏览器；请求携带的 provider 必须是服务端白名单枚举，baseURL 不能由客户端指定。配置不完整或格式无效时服务端返回 400，不会静默消耗服务器额度。
+#### @nestjs/ai 命名模型
+
+`apps/api/src/llm/llm.module.ts` 通过原生 `AiModule.forRootAsync()` 注册并导出模型。业务必须显式指定模型别名，没有 `default` 别名。每家供应商可以注册多个别名，模型配置可以继续在该模块中扩展：
+
+| 模型别名 | 模型 ID 配置 | 未配置时 |
+| --- | --- | --- |
+| `alibaba.fast` | `ALIBABA_FAST_MODEL` | 使用 `LLM_PROVIDER_DEFAULT_MODELS.alibaba` |
+| `alibaba.advanced` | `ALIBABA_ADVANCED_MODEL` | 不注册该别名 |
+| `deepseek.fast` | `DEEPSEEK_FAST_MODEL` | 使用 `LLM_PROVIDER_DEFAULT_MODELS.deepseek` |
+| `deepseek.advanced` | `DEEPSEEK_ADVANCED_MODEL` | 不注册该别名 |
+
+这条路径共用 `ALIBABA_API_KEY`、`ALIBABA_BASE_URL` 和 `DEEPSEEK_API_KEY`；`LLM_PROVIDER_FACTORIES` 只负责供应商客户端、端点和凭据，不保存模型配置。`LlmModule` 显式读取上表四个环境变量确定实际模型 ID，缺省值只来自 `packages/contracts/src/llm/config.ts` 的 `LLM_PROVIDER_DEFAULT_MODELS`，再交给原生 `AiModule` 注册别名。上述模型设置与 `LLM_PROVIDER`、`LLM_ADVANCED_PROVIDER` 相互独立；别名由业务代码显式选择，不参与现有场景分层或加权分流。
+
+历练见闻默认使用 `model: 'alibaba.fast'`，并在该调用中通过原生 `providerOptions` 关闭思考模式。只配置 DeepSeek 的服务端 Key 不会自动切换这条调用；切换供应商时需调整业务使用的别名。
+
+用户自备模型凭据（BYOK）已退役：游戏设置不再提供供应商、模型或 Key 配置，客户端不再添加 `x-llm-*` 请求头，HTTP/WS 入口不再解析或应用这些旧头，CORS 也不再放行它们。浏览器启动时删除旧 `daoyou_llm_config` 存储项。服务端供应商、API Key、baseURL 与前端部署使用的 `VITE_API_BASE_URL` 配置继续保留；客户端输入不能改变上游模型端点或凭据。
+
+#### 原生 AI 用量与费用
+
+`LlmModule` 的全局 `onUsage` 将原生 `AiService` 事件交给 `AiUsageService`，存入 `wanjiedaoyou_ai_usage_events`。新场景通过该模块注入 `AiService`，并设置稳定的 `label` 即可按场景采集，不需要业务调用包裹；缺失或空白标签归入 `unlabeled`。独立后台页 `/admin/ai-usage` 按场景查看服务端模型用量。已有 `credential_source` 历史列及 `byok` 枚举约束和数据保留，新采集与后台查询仅使用 `server`；不修改原迁移，也不清理历史记录。
+
+统计单位是**已采集的模型完成步骤**，不是业务请求数：一次 Agent 调用可以包含多个步骤。原生 `onUsage` 不提供完整的失败事件；失败、取消、流中断和结构化输出校验失败可能已有消耗却没有用量记录，因此本页不能用于计算业务失败率，也不能作为供应商真实账单。供应商未提供的 token 分项会被原生库归为 `0`，无法与真实的零用量区分。事件不保存提示词、生成正文或 API Key。
+
+价格定义在 `apps/api/src/llm/model-pricing.ts`，由 `LlmModule` 配置到原生 `AiModelDefinition.pricing`。费用直接保存原生事件已计算的 `cost`，采集和查询层不另造计价公式。每条已计价记录保存币种和当时的价格快照；历史费用不随后续价格配置改变而回算。未知价格保留 `null`，不能当作免费；费用按币种分别汇总。
+
+目前只核实并启用以下公开价估算范围（2026-11-09 核对）：
+
+| 精确供应商 / 模型 | 适用条件 | 输入 / 输出 / 缓存输入单价（CNY / 百万 tokens） |
+| --- | --- | --- |
+| `alibaba.chat` / `qwen3.7-flash` | 默认北京实时 API、输入不超过 32,000 tokens、隐式缓存 | `0.2 / 0.8 / 0.04` |
+
+范围依据[阿里云模型价格](https://help.aliyun.com/zh/model-studio/model-pricing)与[隐式缓存计费规则](https://help.aliyun.com/zh/model-studio/context-cache)。估算不包含账户优惠或免费额度；超出输入范围、显式缓存、自定义网关及其他精确模型均不按此价格计费。当前 DeepSeek 默认模型 `deepseek-v4.1-flash` 未定价，不套用其他型号或供应渠道的报价；未计价费用保留 `null`。
 
 ## 数据库初始化
 

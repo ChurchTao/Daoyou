@@ -67,13 +67,13 @@ describe('resolveServerLlmRoutes', () => {
     expect(
       resolveServerLlmRoutes({
         providerSpec:
-          'alibaba/qwen3.7-flash:50,alibaba/qwen-plus:20,deepseek/deepseek-v4-flash:30',
+          'alibaba/qwen3.7-flash:50,alibaba/qwen-plus:20,deepseek/deepseek-v4.1-flash:30',
         availableProviders: BOTH_KEYS,
       }),
     ).toEqual([
       { provider: 'alibaba', model: 'qwen3.7-flash', weight: 50 },
       { provider: 'alibaba', model: 'qwen-plus', weight: 20 },
-      { provider: 'deepseek', model: 'deepseek-v4-flash', weight: 30 },
+      { provider: 'deepseek', model: 'deepseek-v4.1-flash', weight: 30 },
     ]);
   });
 

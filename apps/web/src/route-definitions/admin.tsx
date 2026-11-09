@@ -76,6 +76,11 @@ export const adminRoutes = (
       handle={title('LLM 观测')}
     />
     <Route
+      path="ai-usage"
+      lazy={lazyRoute(() => import('@app/routes/admin/ai-usage/route'))}
+      handle={title('AI 用量')}
+    />
+    <Route
       path="online-users"
       lazy={lazyRoute(() => import('@app/routes/admin/online-users/route'))}
       handle={title('在线人数')}

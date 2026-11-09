@@ -5,13 +5,12 @@ import { apiCorsOptions } from '@server/lib/http/cors.js';
 import { isAllowedWriteOrigin } from '@server/lib/http/originPolicy.js';
 import { getRequestIp } from '@server/lib/http/requestIp.js';
 import { checkApiIpRateLimit } from '@server/lib/redis/apiIpRateLimiter.js';
-import { LlmByokConfigSchema } from '@daoyou/contracts/llm/config';
 import { fromNodeHeaders, toNodeHandler } from 'better-auth/node';
 import cors from 'cors';
 import type { NextFunction, Response } from 'express';
 import { readRequestBody } from './json-body.js';
-import type { GameRequest } from './request.js';
 import { RequestWorkService } from './request-work.service.js';
+import type { GameRequest } from './request.js';
 
 export function configureHttp(app: NestExpressApplication): void {
   const work = app.get(RequestWorkService);
@@ -74,19 +73,6 @@ export function configureHttp(app: NestExpressApplication): void {
           .json({ success: false, error: 'Forbidden origin' });
         return;
       }
-    }
-    const provider = request.get('x-llm-provider');
-    const apiKey = request.get('x-llm-api-key');
-    const model = request.get('x-llm-model');
-    if (provider !== undefined || apiKey !== undefined || model !== undefined) {
-      const result = LlmByokConfigSchema.safeParse({ provider, apiKey, model });
-      if (!result.success) {
-        response
-          .status(400)
-          .json({ success: false, error: 'LLM 配置不完整或格式无效' });
-        return;
-      }
-      request.gameContext.llmConfig = result.data;
     }
     next();
   });

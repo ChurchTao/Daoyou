@@ -512,6 +512,13 @@
       "when": 1793763146879,
       "tag": "0072_dungeon_jobs_per_node_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794198200020,
+      "tag": "0074_ai_usage_events",
+      "breakpoints": true
     }
   ]
 }

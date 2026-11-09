@@ -239,7 +239,7 @@ export const servicesRoutes = [
       {
         id: 'settings',
         presentation: 'service',
-        summary: '管理角色、账号与模型配置。',
+        summary: '管理游戏偏好、账号与连接状态。',
       },
       '系统设置',
     )}

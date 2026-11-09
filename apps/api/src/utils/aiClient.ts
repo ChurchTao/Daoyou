@@ -1,7 +1,4 @@
-import type {
-  LlmByokConfig,
-  LlmProviderId,
-} from '@daoyou/contracts/llm/config';
+import type { LlmProviderId } from '@daoyou/contracts/llm/config';
 import {
   pickHighestWeightLlmRoute,
   pickLlmRouteByUserHash,
@@ -12,7 +9,7 @@ import {
 import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
 import { getCurrentContext } from '@server/lib/http/context.js';
 import { recordLlmCallMetric } from '@server/lib/llm/metricsStore.js';
-import { LLM_PROVIDERS } from '@server/lib/llm/providers.js';
+import { LLM_PROVIDER_FACTORIES } from '@server/lib/llm/providers.js';
 import { llmTierForScene } from '@server/lib/llm/tiers.js';
 import type {
   LlmCallAttemptMetrics,
@@ -285,10 +282,6 @@ type StructuredGenerationAttempt = {
   maxOutputTokens?: number;
 };
 
-function getRequestConfig(): LlmByokConfig | undefined {
-  return getCurrentContext()?.llmConfig;
-}
-
 function getRequestUserId(): string | undefined {
   return getCurrentContext()?.user?.id;
 }
@@ -324,22 +317,15 @@ function resolveModel(
   sceneId: LlmSceneId,
   options: Pick<AiTextOptions, 'timeoutMs'>,
 ): ResolvedModel {
-  const requestConfig = getRequestConfig();
-  const route = requestConfig
-    ? {
-        provider: requestConfig.provider,
-        model: requestConfig.model,
-      }
-    : resolveServerRoute(llmTierForScene(sceneId));
+  const route = resolveServerRoute(llmTierForScene(sceneId));
   const providerId = route.provider;
-  const def = LLM_PROVIDERS[providerId];
+  const def = LLM_PROVIDER_FACTORIES[providerId];
   const modelName = route.model;
   const baseFetch = baseFetchFor(options);
   const fetch = LLM_DEBUG_ENABLED
     ? createLlmDebugFetch(sceneId, modelName, baseFetch ?? globalThis.fetch)
     : baseFetch;
-  const apiKey =
-    requestConfig?.apiKey ?? getRuntimeEnvironment()[def.apiKeyEnv]?.trim();
+  const apiKey = getRuntimeEnvironment()[def.apiKeyEnv]?.trim();
 
   return {
     model: def.create({ apiKey, fetch })(modelName),

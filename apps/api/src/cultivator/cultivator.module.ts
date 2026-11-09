@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
+import { LlmModule } from '@server/llm/llm.module.js';
+import { CharacterCardController } from './character-card.controller.js';
+import { CharacterCardService } from './character-card.service.js';
 import { ConditionController } from './condition.controller.js';
 import { ConditionService } from './condition.service.js';
 import { CultivationController } from './cultivation.controller.js';
@@ -10,11 +13,9 @@ import { ProfileController } from './profile.controller.js';
 import { ProfileService } from './profile.service.js';
 import { RetreatService } from './retreat.service.js';
 import { YieldService } from './yield.service.js';
-import { CharacterCardController } from './character-card.controller.js';
-import { CharacterCardService } from './character-card.service.js';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, LlmModule],
   controllers: [
     CharacterCardController,
     ProfileController,

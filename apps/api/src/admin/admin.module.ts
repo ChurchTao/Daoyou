@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
+import { AiUsageModule } from '@server/llm/ai-usage.module.js';
 import { AccountsController } from './accounts.controller.js';
 import { AccountsService } from './accounts.service.js';
 import { AdminController } from './admin.controller.js';
@@ -26,7 +27,7 @@ import { AdminTowerController } from './tower.controller.js';
 import { AdminTowerService } from './tower.service.js';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, AiUsageModule],
   controllers: [
     AdminSystemMailsController,
     AdminItemLibraryController,

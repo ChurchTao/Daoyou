@@ -231,7 +231,7 @@ curl -X DELETE http://127.0.0.1:3001/api/dev/cultivators/角色UUID/divination
 | 移动端 | 在 360px 宽度检查背包和详情，横向查看 HUD 状态 | 正文无水平溢出；底部导航和传闻条不遮挡主要操作；验收后恢复视口 |
 | 请求入口 | 浏览器开发调试中使用 apiFetch 的字符串、URL、Request 形式读取相同 API | 认证一致，均取得合法响应；不输出 Cookie 或真实密钥 |
 | Request 请求体 | 用 JSON Request 向本地背包正式入口提交不存在的 action；再验证取消信号 | 返回输入校验 400且无资产变动；取消返回 AbortError |
-| API 地址/BYOK | 临时使用本地 API 显式地址和非真实 BYOK 测试值；查看网络请求 | API 地址正确、请求头合并、Cookie 正常；非 API 请求不带 BYOK；finally 恢复原设置 |
+| API 地址/退役模型配置 | 临时使用本地 API 显式地址；查看网络请求及旧 `daoyou_llm_config` 的启动清理；仅向本地同源读取入口发送非真实 `x-llm-*` 旧头 | API 地址、请求头合并和 Cookie 正常；客户端不添加模型头，服务端忽略旧头且不触发旧配置校验；旧存储项已删除，finally 恢复 API 地址设置 |
 | 实时恢复 | 打开资源/聊天页面，重连或刷新后检查当前内容 | 无重复消息/资源，版本和快照恢复；发送测试聊天仅限明确授权的本地测试场景 |
 | 运行依赖 | 读取 /api/health-check；以缺少 Redis 的生产配置尝试启动本地构建 | 正常设施全 up；缺少生产 Redis 明确拒绝启动，不接触生产服务 |
 | 交付 | frozen install、lint、typecheck、纯逻辑包测试、API/Web build；必要时构建本地 Docker 镜像 | 包边界有效，两个应用独立产物可构建；不发布镜像、不执行额外迁移 |

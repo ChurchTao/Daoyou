@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
+import { executeYieldCommand } from '@server/cultivator/application/YieldApplicationService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { executeYieldCommand } from '@server/cultivator/application/YieldApplicationService.js';
-import { streamAiText } from '@server/utils/aiClient.js';
-import { getGameConceptLabel } from '@daoyou/game-content/presentation/concepts';
 
 type YieldExecution = Awaited<ReturnType<typeof executeYieldCommand>>;
 type YieldStreamEvent =
@@ -14,6 +14,8 @@ type YieldStreamEvent =
 
 @Injectable()
 export class YieldService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   execute(actor: ActiveCultivatorRef, requestId: string) {
     return executeYieldCommand({
       userId: actor.userId,
@@ -48,14 +50,23 @@ export class YieldService {
       extraYieldText: extra ? `；${extra}` : '',
     });
     try {
-      const aiStreamResult = streamAiText({
-        system,
+      const aiStreamResult = this.ai.streamText({
+        model: 'alibaba.fast',
+        instructions: system,
         prompt,
         abortSignal: signal,
-        sceneId: 'yield-story',
+        label: 'yield-story',
+        providerOptions: {
+          alibaba: { enableThinking: false },
+          deepseek: { thinking: { type: 'disabled' } },
+        },
       });
-      for await (const chunk of aiStreamResult.textStream) {
-        await emit({ type: 'chunk', text: chunk });
+      try {
+        for await (const chunk of aiStreamResult.textStream) {
+          await emit({ type: 'chunk', text: chunk });
+        }
+      } finally {
+        aiStreamResult.abort();
       }
     } catch (error) {
       console.error('Stream processing error:', error);
