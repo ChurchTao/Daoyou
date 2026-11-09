@@ -1,6 +1,4 @@
 /** Public divination capabilities. Keep implementation files private. */
-export { DivineFortuneSchema } from '../divination/fortune.js';
-export type { DivineFortune } from '../divination/fortune.js';
 export {
   DivinationDiceSchema,
   DivinationDirectionSchema,

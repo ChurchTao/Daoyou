@@ -28,7 +28,6 @@ const promptSources = [
   'black-market-turn.md',
   'breakthrough-story.md',
   'character-generation.md',
-  'divine-fortune.md',
   'dungeon-case.md',
   'dungeon-case-text.md',
   'dungeon-case-review.md',
