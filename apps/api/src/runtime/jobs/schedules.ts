@@ -3,7 +3,7 @@ import type { BackgroundCommandType } from '@daoyou/contracts/background-command
 const AUCTION_EXPIRE_SCHEDULE = '*/2 * * * *';
 // Schedules use UTC. 16:00 UTC equals 00:00 Asia/Shanghai.
 const RANK_REWARDS_SCHEDULE = '0 16 * * *';
-// Market refresh: every 5 minutes to pre-generate listings before 15-min cycle ends
+// Check market listings every 5 minutes; each layer has its own refresh cycle.
 const MARKET_REFRESH_SCHEDULE = '*/5 * * * *';
 const RESOURCE_REPLAY_CLEANUP_SCHEDULE = '30 18 * * *';
 const EXPIRED_DATA_CLEANUP_SCHEDULE = '45 18 * * *';

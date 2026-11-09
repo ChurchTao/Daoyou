@@ -16,9 +16,9 @@ export const MARKET_LIBRARY_REQUIRED_LAYERS: MarketLayer[] = [
 
 /** 刷新周期（毫秒） */
 export const MARKET_REFRESH_MS: Record<MarketLayer, number> = {
-  common: 15 * 60 * 1000, // 15 分钟
-  treasure: 15 * 60 * 1000, // 15 分钟
-  heaven: 2 * 60 * 60 * 1000, // 2 小时
+  common: 60 * 60 * 1000, // 1 小时
+  treasure: 2 * 60 * 60 * 1000, // 2 小时
+  heaven: 6 * 60 * 60 * 1000, // 6 小时
   black: 2 * 60 * 60 * 1000, // 2 小时
 };
 
