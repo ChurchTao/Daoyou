@@ -1,3 +1,4 @@
+import type { AiService } from '@nestjs/ai';
 import { preGenerateMarket } from '@server/market/application/MarketService.js';
 import {
   getEnabledMarketNodeIds,
@@ -15,7 +16,7 @@ const MARKET_LAYERS: MarketLayer[] = ['common', 'treasure', 'heaven'];
  *
  * 由 Nest CronService 每 5 分钟发布调度命令。
  */
-export async function runMarketRefreshJob(): Promise<{
+export async function runMarketRefreshJob(ai: AiService): Promise<{
   success: true;
   processed: number;
   skipped: boolean;
@@ -34,7 +35,7 @@ export async function runMarketRefreshJob(): Promise<{
       if (!allowedLayers.includes(layer)) continue;
 
       try {
-        await preGenerateMarket(nodeId, layer);
+        await preGenerateMarket(ai, nodeId, layer);
         generated.push(`${nodeId}:${layer}`);
       } catch (error) {
         console.error(

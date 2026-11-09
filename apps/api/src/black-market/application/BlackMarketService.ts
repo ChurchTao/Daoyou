@@ -53,7 +53,7 @@ import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import { and, eq, sql } from 'drizzle-orm';
 import { createHmac, randomUUID } from 'node:crypto';
 import {
-  blackMarketConversationService,
+  type BlackMarketConversationService,
   fallbackTurnReply,
 } from '@server/black-market/application/BlackMarketConversationService.js';
 import {
@@ -62,8 +62,8 @@ import {
 } from '@server/black-market/application/BlackMarketEntryService.js';
 import { buildBlackMarketMask } from '@server/black-market/application/BlackMarketMaskService.js';
 import { BLACK_MARKET_NPCS, getBlackMarketNpc } from '@server/black-market/application/BlackMarketNpcConfig.js';
-import { blackMarketObservationService } from '@server/black-market/application/BlackMarketObservationService.js';
-import { blackMarketPerceptionService } from '@server/black-market/application/BlackMarketPerceptionService.js';
+import type { BlackMarketObservationService } from '@server/black-market/application/BlackMarketObservationService.js';
+import type { BlackMarketPerceptionService } from '@server/black-market/application/BlackMarketPerceptionService.js';
 import { blackMarketSessionRepository } from '@server/black-market/application/BlackMarketSessionRepository.js';
 import type {
   BlackMarketInternalSession,
@@ -76,6 +76,10 @@ const PURCHASE_SOURCE = 'black_market_purchase';
 const SESSION_MESSAGE_LIMIT = 24;
 const PENDING_TURN_STALE_MS = 30_000;
 type Actor = { userId: string; cultivatorId: string };
+type SessionGenerationServices = {
+  observation: Pick<BlackMarketObservationService, 'build'>;
+  perception: Pick<BlackMarketPerceptionService, 'build'>;
+};
 
 export class BlackMarketServiceError extends Error {
   constructor(
@@ -338,12 +342,15 @@ async function assertAccess(actor: Actor, nodeId: string) {
   return access;
 }
 
-async function generateSession(input: {
-  actor: Actor;
-  nodeId: string;
-  npcId: BlackMarketNpcId;
-  dayKey: string;
-}): Promise<BlackMarketInternalSession> {
+async function generateSession(
+  input: {
+    actor: Actor;
+    nodeId: string;
+    npcId: BlackMarketNpcId;
+    dayKey: string;
+  },
+  services: SessionGenerationServices,
+): Promise<BlackMarketInternalSession> {
   const identity = sessionIdentity({
     cultivatorId: input.actor.cultivatorId,
     nodeId: input.nodeId,
@@ -372,7 +379,7 @@ async function generateSession(input: {
   const npc = getBlackMarketNpc(input.npcId);
   let observations: BlackMarketInternalSession['observations'];
   try {
-    observations = await blackMarketObservationService.build({
+    observations = await services.observation.build({
       item: hiddenItem,
       itemLibraryItemId: entry.itemId,
       disguisedName: mask.disguisedName,
@@ -386,7 +393,7 @@ async function generateSession(input: {
       '摊主正在重新遮掩货物，请稍后再来。',
     );
   }
-  const perceived = await blackMarketPerceptionService.build({
+  const perceived = await services.perception.build({
     npc,
     pricing,
     observations,
@@ -451,11 +458,14 @@ async function generateSession(input: {
   return session;
 }
 
-async function getOrGenerateInternal(input: {
-  actor: Actor;
-  nodeId: string;
-  npcId: BlackMarketNpcId;
-}): Promise<BlackMarketInternalSession> {
+async function getOrGenerateInternal(
+  input: {
+    actor: Actor;
+    nodeId: string;
+    npcId: BlackMarketNpcId;
+  },
+  services: SessionGenerationServices,
+): Promise<BlackMarketInternalSession> {
   const dayKey = blackMarketDayKey();
   const identity = sessionIdentity({
     cultivatorId: input.actor.cultivatorId,
@@ -499,7 +509,7 @@ async function getOrGenerateInternal(input: {
         }
         return existing;
       }
-      const created = await generateSession({ ...input, dayKey });
+      const created = await generateSession({ ...input, dayKey }, services);
       await blackMarketSessionRepository.save(created);
       return created;
     },
@@ -752,11 +762,14 @@ export async function getBlackMarketOverview(input: {
   };
 }
 
-export async function openBlackMarketSession(input: {
-  actor: Actor;
-  nodeId: string;
-  npcId: BlackMarketNpcId;
-}) {
+export async function openBlackMarketSession(
+  input: {
+    actor: Actor;
+    nodeId: string;
+    npcId: BlackMarketNpcId;
+  },
+  services: SessionGenerationServices,
+) {
   await assertAccess(input.actor, input.nodeId);
   const dayKey = blackMarketDayKey();
   const committed = await grantBlackMarketEntry({
@@ -775,7 +788,7 @@ export async function openBlackMarketSession(input: {
   try {
     result = {
       status: 'ready',
-      session: publicSession(await getOrGenerateInternal(input)),
+      session: publicSession(await getOrGenerateInternal(input, services)),
       entry,
     };
   } catch (error) {
@@ -798,13 +811,16 @@ export async function openBlackMarketSession(input: {
   return { result, state: committed.state };
 }
 
-export async function prepareBlackMarketInteraction(input: {
-  actor: Actor;
-  nodeId: string;
-  sessionId: string;
-  command: BlackMarketInteractCommand;
-  abortSignal?: AbortSignal;
-}): Promise<BlackMarketPreparedTurn> {
+export async function prepareBlackMarketInteraction(
+  input: {
+    actor: Actor;
+    nodeId: string;
+    sessionId: string;
+    command: BlackMarketInteractCommand;
+    abortSignal?: AbortSignal;
+  },
+  conversation: Pick<BlackMarketConversationService, 'proposeTurn'>,
+): Promise<BlackMarketPreparedTurn> {
   await assertAccess(input.actor, input.nodeId);
   const pendingToken = randomUUID();
   const snapshot = await withRedisLock(
@@ -858,10 +874,10 @@ export async function prepareBlackMarketInteraction(input: {
     input.command,
   );
   let judged: Awaited<
-    ReturnType<typeof blackMarketConversationService.proposeTurn>
+    ReturnType<BlackMarketConversationService['proposeTurn']>
   >;
   try {
-    judged = await blackMarketConversationService.proposeTurn({
+    judged = await conversation.proposeTurn({
       context: snapshotContext,
     });
   } catch (error) {

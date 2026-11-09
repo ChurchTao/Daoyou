@@ -1,3 +1,4 @@
+import type { AiService } from '@nestjs/ai';
 import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
 import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
 import {
@@ -737,6 +738,7 @@ async function generateFromMaterialLibrary(
 
 /** 按节点配置注入动态灵种；普通坊市不再固定占位，黑市始终不注入。 */
 async function injectSpiritFieldSeedListings(
+  ai: AiService,
   listings: InternalMarketMaterialListing[],
   nodeId: string,
   layer: MarketLayer,
@@ -750,7 +752,7 @@ async function injectSpiritFieldSeedListings(
   );
   if (slots <= 0) return listings;
 
-  const seeds = await SpiritSeedGenerator.generateRandom(slots, {
+  const seeds = await SpiritSeedGenerator.generateRandom(ai, slots, {
     rankRange: layerConfig.rankRange,
     regionTags: getNodeRegionTags(nodeId),
   });
@@ -787,6 +789,7 @@ async function injectSpiritFieldSeedListings(
  * common / treasure 材料不足时使用预设兜底。
  */
 async function generateListings(
+  ai: AiService,
   nodeId: string,
   layer: MarketLayer,
 ): Promise<InternalMarketListing[]> {
@@ -853,6 +856,7 @@ async function generateListings(
   }
 
   listings = await injectSpiritFieldSeedListings(
+    ai,
     listings,
     nodeId,
     layer,
@@ -873,6 +877,7 @@ async function generateListings(
  * 生成并写入缓存
  */
 async function generateAndCache(
+  ai: AiService,
   nodeId: string,
   layer: MarketLayer,
   cycle: number,
@@ -889,7 +894,7 @@ async function generateAndCache(
         const cacheKey = getCacheKey(nodeId, layer, cycle);
         const existing = parseCachedData(await redis.get(cacheKey));
         if (existing) return existing;
-        const listings = await generateListings(nodeId, layer);
+        const listings = await generateListings(ai, nodeId, layer);
         lease.assertHeld();
         const data: CachedMarketData = { listings, generatedAt: Date.now() };
         const ttlSec = Math.ceil(getRefreshInterval(layer) / 1000) + 3600;
@@ -1001,7 +1006,7 @@ export function getMarketAccess(
   return validateLayerAccess(cultivatorRealm, layer, config);
 }
 
-export async function getMarketListings(input: {
+export async function getMarketListings(ai: AiService, input: {
   nodeId: string;
   layer: MarketLayer;
   userId: string;
@@ -1023,7 +1028,7 @@ export async function getMarketListings(input: {
 
   // 2. 兜底：缓存未命中则实时生成
   if (!cachedData) {
-    cachedData = await generateAndCache(nodeId, layer, cycle);
+    cachedData = await generateAndCache(ai, nodeId, layer, cycle);
   }
 
   // 3. 若其他实例正在生成，则短暂等待缓存落盘，避免返回长时间空货架
@@ -1182,22 +1187,22 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
 
 // ─── 定时刷新入口（由 MarketScheduler 调用）───
 
-export async function preGenerateMarket(nodeId: string, layer: MarketLayer) {
+export async function preGenerateMarket(ai: AiService, nodeId: string, layer: MarketLayer) {
   const cycle = getCurrentCycle(layer);
   const cacheKey = getCacheKey(nodeId, layer, cycle);
   const exists = await redis.exists(cacheKey);
   if (exists) return; // 已生成，跳过
-  await generateAndCache(nodeId, layer, cycle);
+  await generateAndCache(ai, nodeId, layer, cycle);
 }
 
 /**
  * 供调度器调用：预生成下一周期的缓存
  */
-export async function preGenerateNextCycle(nodeId: string, layer: MarketLayer) {
+export async function preGenerateNextCycle(ai: AiService, nodeId: string, layer: MarketLayer) {
   const intervalMs = getRefreshInterval(layer);
   const nextCycle = Math.floor(Date.now() / intervalMs) + 1;
   const cacheKey = getCacheKey(nodeId, layer, nextCycle);
   const exists = await redis.exists(cacheKey);
   if (exists) return;
-  await generateAndCache(nodeId, layer, nextCycle);
+  await generateAndCache(ai, nodeId, layer, nextCycle);
 }

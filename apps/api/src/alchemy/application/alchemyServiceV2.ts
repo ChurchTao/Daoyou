@@ -1,5 +1,40 @@
-import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
-import { cultivators } from '@server/lib/drizzle/schema.js';
+import type { ElementType } from '@daoyou/constants/elements';
+import type { Quality } from '@daoyou/constants/qualities';
+import type { RealmType } from '@daoyou/constants/realms';
+import {
+  ALCHEMY_MAX_DOSE,
+  ELEMENT_PREFIX_MAP,
+} from '@daoyou/game-content/alchemy';
+import type { Consumable, PreHeavenFate } from '@daoyou/game-domain/character';
+import type {
+  AlchemyRecipePlan,
+  PillSpec,
+} from '@daoyou/game-domain/consumables';
+import type { MaterialType } from '@daoyou/game-domain/inventory';
+import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
+import {
+  calculateAlchemyCost,
+  calculateAlchemyQiCost,
+  calculateHighestMaterialRank,
+  isAlchemyMaterialType,
+  normalizeAlchemyEffectRoute,
+  rollAlchemyYieldProfile,
+  toAlchemyYieldDisplayProfile,
+} from '@daoyou/game-rules/alchemy';
+import {
+  evaluateFateContext,
+  getAlchemySpiritStoneMultiplier,
+  scaleFateAdjustedCost,
+} from '@daoyou/game-rules/character/fates';
+import {
+  getBreakthroughPillLabel,
+  getNextMajorRealm,
+} from '@daoyou/game-rules/consumables/breakthrough';
+import type { AlchemyBagMaterial } from '@daoyou/game-rules/inventory/alchemy';
+import type { AiService } from '@nestjs/ai';
+import { buildDiscoveryCandidate } from '@server/alchemy/application/AlchemyFormulaService.js';
+import { AlchemyNarrativeEnricher } from '@server/alchemy/application/AlchemyNarrativeEnricher.js';
+import { AlchemyRecipePlanner } from '@server/alchemy/application/AlchemyRecipePlanner.js';
 import {
   buildAlchemyPropertyTags,
   describeAlchemyPropertyVector,
@@ -7,38 +42,7 @@ import {
   synthesizeAlchemyFromPlan,
   type PreparedAlchemyMaterial,
 } from '@server/alchemy/application/AlchemyRecipeRules.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
-import {
-  ELEMENT_PREFIX_MAP,
-  ALCHEMY_MAX_DOSE,
-} from '@daoyou/game-content/alchemy';
-import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
-import type { AlchemyBagMaterial } from '@daoyou/game-rules/inventory/alchemy';
-import {
-  calculateAlchemyCost,
-  calculateHighestMaterialRank,
-  normalizeAlchemyEffectRoute,
-  isAlchemyMaterialType,
-  calculateAlchemyQiCost,
-  rollAlchemyYieldProfile,
-  toAlchemyYieldDisplayProfile,
-} from '@daoyou/game-rules/alchemy';
-import {
-  getBreakthroughPillLabel,
-  getNextMajorRealm,
-} from '@daoyou/game-rules/consumables/breakthrough';
-import {
-  evaluateFateContext,
-  getAlchemySpiritStoneMultiplier,
-  scaleFateAdjustedCost,
-} from '@daoyou/game-rules/character/fates';
-import type { ElementType } from '@daoyou/constants/elements';
-import type { MaterialType } from '@daoyou/game-domain/inventory';
-import type { Quality } from '@daoyou/constants/qualities';
-import type { RealmType } from '@daoyou/constants/realms';
-import type { AlchemyRecipePlan, PillSpec } from '@daoyou/game-domain/consumables';
-import type { Consumable, PreHeavenFate } from '@daoyou/game-domain/character';
-import { and, eq, sql } from 'drizzle-orm';
+import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
 import {
   consumeAlchemyMaterials,
   grantAlchemyOutput,
@@ -48,15 +52,12 @@ import {
   assembleAlchemyOutputConsumables,
   type AlchemyOutputDraft,
 } from '@server/alchemy/application/inventory/AlchemyOutputAssembler.js';
-import { buildDiscoveryCandidate } from '@server/alchemy/application/AlchemyFormulaService.js';
-import { AlchemyNarrativeEnricher } from '@server/alchemy/application/AlchemyNarrativeEnricher.js';
-import {
-  alchemyRecipePlanner,
-  type AlchemyRecipePlanner,
-} from '@server/alchemy/application/AlchemyRecipePlanner.js';
-import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
+import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { getExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
+import { cultivators } from '@server/lib/drizzle/schema.js';
 import { sectOrganizationFacade } from '@server/sects/organization/index.js';
+import { and, eq, sql } from 'drizzle-orm';
 
 export { synthesizeAlchemyFromPlan as synthesizeAlchemy } from '@server/alchemy/application/AlchemyRecipeRules.js';
 export { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
@@ -96,8 +97,6 @@ export interface PreparedImprovisedAlchemyCraft {
   }>;
 }
 
-const alchemyNarrativeEnricher = new AlchemyNarrativeEnricher();
-
 function createValidation(
   valid: boolean,
   blockingReason?: string,
@@ -127,7 +126,10 @@ function normalizeDose(
 ): number {
   const requested = materialQuantities?.[material.id] ?? 1;
   if (requested > ALCHEMY_MAX_DOSE)
-    throw new AlchemyServiceError(`每个材料格最多投入 ${ALCHEMY_MAX_DOSE} 份。`, 400);
+    throw new AlchemyServiceError(
+      `每个材料格最多投入 ${ALCHEMY_MAX_DOSE} 份。`,
+      400,
+    );
   if (
     !Number.isInteger(requested) ||
     requested < 1 ||
@@ -319,8 +321,10 @@ export async function previewAlchemySelection(
 }
 
 export function createAlchemyService(
-  planner: Pick<AlchemyRecipePlanner, 'plan'> = alchemyRecipePlanner,
+  ai: AiService,
+  planner: Pick<AlchemyRecipePlanner, 'plan'> = new AlchemyRecipePlanner(ai),
 ) {
+  const alchemyNarrativeEnricher = new AlchemyNarrativeEnricher(ai);
   const prepareAlchemyCraft = async (
     cultivatorId: string,
     materialIds: string[],
@@ -573,7 +577,3 @@ export function createAlchemyService(
 
   return { prepareAlchemyCraft };
 }
-
-const alchemyService = createAlchemyService();
-
-export const prepareAlchemyCraft = alchemyService.prepareAlchemyCraft;

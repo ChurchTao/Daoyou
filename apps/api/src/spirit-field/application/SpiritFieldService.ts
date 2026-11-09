@@ -1,42 +1,11 @@
-import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db.js';
-import { cultivators } from '@server/lib/drizzle/schema.js';
-import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
-import {
-  getOrCreateSpiritField,
-  updateSpiritField,
-} from '@server/lib/repositories/SpiritFieldRepository.js';
-import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
-import { ConditionService } from '@server/cultivator/application/ConditionService.js';
-import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
-import { QiService } from '@server/cultivator/application/QiService.js';
-import { loadPlayerConsumableOperationFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
-import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
+import type { RealmType } from '@daoyou/constants/realms';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type {
   SpiritFieldCultivateRequest,
   SpiritFieldHarvestRequest,
   SpiritFieldSowRequest,
 } from '@daoyou/contracts/spirit-field';
-import {
-  SPIRIT_FIELD_METHODS,
-  SPIRIT_FIELD_STARTER_BATCHES,
-  advanceSpiritFieldPlotToDecision,
-  buildSpiritFruitSpec,
-  canPlantSpiritFieldSeed,
-  getCultivationResourceCost,
-  getSpiritFieldMethod,
-  getSpiritFieldPlotRuntime,
-  getStageDurationMs,
-  resetSpiritFieldPlot,
-  settleSpiritFieldHarvest,
-  type SpiritFieldCultivationMethod,
-  type SpiritFieldPlotState,
-} from '@daoyou/game-rules/spirit-field';
+import type { Consumable, Material } from '@daoyou/game-domain/character';
 import type {
   InventoryItem,
   MaterialType,
@@ -46,13 +15,44 @@ import {
   MaterialFactsSchema,
   seedFactsOf,
 } from '@daoyou/game-domain/inventory';
-import { SpiritFieldServiceError } from '@server/spirit-field/application/SpiritFieldError.js';
-import type { RealmType } from '@daoyou/constants/realms';
-import type { Consumable, Material } from '@daoyou/game-domain/character';
-import { and, eq } from 'drizzle-orm';
-import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
+import {
+  advanceSpiritFieldPlotToDecision,
+  buildSpiritFruitSpec,
+  canPlantSpiritFieldSeed,
+  getCultivationResourceCost,
+  getSpiritFieldMethod,
+  getSpiritFieldPlotRuntime,
+  getStageDurationMs,
+  resetSpiritFieldPlot,
+  settleSpiritFieldHarvest,
+  SPIRIT_FIELD_METHODS,
+  SPIRIT_FIELD_STARTER_BATCHES,
+  type SpiritFieldCultivationMethod,
+  type SpiritFieldPlotState,
+} from '@daoyou/game-rules/spirit-field';
+import type { AiService } from '@nestjs/ai';
+import { ConditionService } from '@server/cultivator/application/ConditionService.js';
+import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
+import { QiService } from '@server/cultivator/application/QiService.js';
+import { loadPlayerConsumableOperationFacts } from '@server/cultivator/application/readers/CultivatorConditionFactsReader.js';
+import { updateSpiritStones } from '@server/cultivator/application/readers/CultivatorStateRepository.js';
 import { grantInventory } from '@server/inventory/operations.js';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
+import { cultivators } from '@server/lib/drizzle/schema.js';
+import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
+import {
+  getOrCreateSpiritField,
+  updateSpiritField,
+} from '@server/lib/repositories/SpiritFieldRepository.js';
+import { playerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { queueAchievementRumor } from '@server/social/application/achievementRumor.js';
+import { SpiritFieldServiceError } from '@server/spirit-field/application/SpiritFieldError.js';
 import {
   consumeFieldItem,
   fieldResource,
@@ -63,6 +63,7 @@ import {
   judgeSpiritFieldStage,
   stageJudgmentScore,
 } from '@server/spirit-field/application/SpiritFieldLlmService.js';
+import { and, eq } from 'drizzle-orm';
 
 export type SpiritFieldActor = { userId: string; cultivatorId: string };
 
@@ -258,8 +259,12 @@ export async function getSpiritFieldSnapshot(actor: SpiritFieldActor) {
   };
 }
 
-export async function claimSpiritFieldStarterSeeds(actor: SpiritFieldActor) {
+export async function claimSpiritFieldStarterSeeds(
+  ai: AiService,
+  actor: SpiritFieldActor,
+) {
   const starterMaterials = await SpiritSeedGenerator.generateBatches(
+    ai,
     SPIRIT_FIELD_STARTER_BATCHES,
   );
   return playerCommandExecutor.executeWithLock({
@@ -525,6 +530,7 @@ async function assertCultivationAffordable(
 }
 
 export async function cultivateSpiritField(
+  ai: AiService,
   actor: SpiritFieldActor,
   input: SpiritFieldCultivateRequest,
   abortSignal?: AbortSignal,
@@ -567,7 +573,7 @@ export async function cultivateSpiritField(
             input.resourceId,
             input.resourceRevision,
           );
-          const judgment = await judgeSpiritFieldStage({
+          const judgment = await judgeSpiritFieldStage(ai, {
             plant: initialPlot.plant!,
             method: input.method,
             history: initialPlot.history,
@@ -700,6 +706,7 @@ export async function cultivateSpiritField(
 }
 
 export async function harvestSpiritField(
+  ai: AiService,
   actor: SpiritFieldActor,
   input: SpiritFieldHarvestRequest,
   abortSignal?: AbortSignal,
@@ -722,7 +729,7 @@ export async function harvestSpiritField(
             initialPlot,
             settlementSeed,
           );
-          const identity = await finalizeSpiritFieldIdentity({
+          const identity = await finalizeSpiritFieldIdentity(ai, {
             plant: initialPlot.plant!,
             history: initialPlot.history,
             settlement,

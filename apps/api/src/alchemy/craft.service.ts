@@ -1,17 +1,19 @@
-import { HttpException, Injectable } from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
-import { assertAlchemyMaterialVersions } from '@server/alchemy/application/inventory/AlchemyInventory.js';
+import { AiService } from '@nestjs/ai';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { previewFormulaCraft } from '@server/alchemy/application/AlchemyFormulaService.js';
 import { previewAlchemySelection } from '@server/alchemy/application/alchemyServiceV2.js';
-import { executeCraftCommand } from '@server/forging/application/CraftApplicationService.js';
-import { readCraftReadinessFacts } from '@server/cultivator/facts.js';
+import { assertAlchemyMaterialVersions } from '@server/alchemy/application/inventory/AlchemyInventory.js';
 import { getPlayerPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { readCraftReadinessFacts } from '@server/cultivator/facts.js';
+import { executeCraftCommand } from '@server/forging/application/CraftApplicationService.js';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import type { z } from 'zod';
 import type { CraftCommandSchema, CraftSchema } from './alchemy-input.js';
 
 @Injectable()
 export class CraftService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async preview(
     actor: ActiveCultivatorRef,
     input: z.infer<typeof CraftSchema>,
@@ -53,7 +55,7 @@ export class CraftService {
     input: z.infer<typeof CraftCommandSchema>,
   ) {
     return toPlayerStateMutationResponse(
-      await executeCraftCommand({
+      await executeCraftCommand(this.ai, {
         userId: actor.userId,
         cultivatorId: actor.cultivatorId,
         input,

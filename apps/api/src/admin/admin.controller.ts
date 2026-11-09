@@ -65,11 +65,6 @@ export class AdminController {
     return this.settings.updateCommunity(user.id, input);
   }
 
-  @Get('llm-metrics')
-  llmMetrics(@FirstQuery() query: Record<string, string | undefined>) {
-    return this.monitoring.llmMetrics(query);
-  }
-
   @Get('ai-usage')
   async readAiUsage(
     @FirstQuery(new ZodPipe(AdminAiUsageQuerySchema)) query: AdminAiUsageQuery,

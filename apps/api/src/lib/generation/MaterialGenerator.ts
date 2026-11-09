@@ -12,7 +12,9 @@ import {
 } from '@daoyou/game-domain/materials/generation';
 import { type MaterialType } from '@daoyou/game-domain/inventory';
 import { type Quality } from '@daoyou/constants/qualities';
-import { generateAiArray } from '@server/utils/aiClient.js';
+import type { AiService } from '@nestjs/ai';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
+import { z } from 'zod';
 import {
   getMaterialGenerationPrompt,
   getMaterialGenerationUserPrompt,
@@ -25,13 +27,14 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
    * @param options 随机参数配置
    */
   public static async generateRandom(
+    ai: AiService,
     count: number = 10,
     options: MaterialRandomOptions = {},
   ): Promise<GeneratedMaterial[]> {
     // 1. 生成随机骨架
     const skeletons = this.generateRandomSkeletons(count, options);
     // 2. 填充详细信息 (AI)
-    return this.fillMaterialDetails(skeletons);
+    return this.fillMaterialDetails(ai, skeletons);
   }
 
   /**
@@ -40,12 +43,13 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
    * @param skeletons 指定的骨架列表
    */
   public static async generateFromSkeletons(
+    ai: AiService,
     skeletons: MaterialSkeleton[],
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.some((skeleton) => skeleton.type === 'seed')) {
       throw new Error('灵植种子必须使用 SpiritSeedGenerator 生成');
     }
-    return this.fillMaterialDetails(skeletons);
+    return this.fillMaterialDetails(ai, skeletons);
   }
 
   // ===== Private Core Logic =====
@@ -54,6 +58,7 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
    * 核心方法：调用 AI 为骨架填充 Name, Description, Element
    */
   private static async fillMaterialDetails(
+    ai: AiService,
     skeletons: MaterialSkeleton[],
   ): Promise<GeneratedMaterial[]> {
     if (skeletons.length === 0) return [];
@@ -61,17 +66,19 @@ export class MaterialGenerator extends MaterialSkeletonGenerator {
     const prompt = getMaterialGenerationPrompt();
     const userPrompt = getMaterialGenerationUserPrompt(skeletons);
     try {
-      const aiResponse = await generateAiArray({
-        system: prompt,
+      const aiResponse = await ai.generateObject({
+        model: 'alibaba.fast',
+        instructions: prompt,
         prompt: userPrompt,
-        elementSchema: MaterialAISchema,
-        name: 'MaterialTextList',
-        sceneId: 'material-generation',
+        schema: z.object({ elements: z.array(MaterialAISchema) }),
+        schemaName: 'MaterialTextList',
+        label: 'material-generation',
+        abortSignal: aiDeadlineSignal(),
       });
 
       // 组合结果
       return skeletons.map((skeleton, index) => {
-        const aiData = aiResponse.output[index] || {
+        const aiData = aiResponse.object.elements[index] || {
           name: '未知材料',
           description: '天道感应模糊...',
           element: skeleton.forcedElement || '金',

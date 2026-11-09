@@ -1,11 +1,3 @@
-import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
-import { stableCompactStringify, truncateText } from '@server/utils/llmPayload.js';
-import {
-  GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES,
-  getAlchemyPropertyLabel,
-  normalizeWeightedAlchemyProperties,
-} from '@daoyou/game-rules/alchemy';
 import type {
   AlchemyFormula,
   AlchemyRecipePlan,
@@ -17,8 +9,20 @@ import {
   FORMULA_FIT_BAND_VALUES,
   FORMULA_MATERIAL_VERDICT_VALUES,
 } from '@daoyou/game-domain/consumables';
-import { z } from 'zod';
+import {
+  GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES,
+  getAlchemyPropertyLabel,
+  normalizeWeightedAlchemyProperties,
+} from '@daoyou/game-rules/alchemy';
+import type { AiService } from '@nestjs/ai';
 import type { PreparedAlchemyMaterial } from '@server/alchemy/application/AlchemyRecipeRules.js';
+import { renderPrompt } from '@server/lib/prompts/index.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
+import {
+  stableCompactStringify,
+  truncateText,
+} from '@server/utils/llmPayload.js';
+import { z } from 'zod';
 
 const weightedAlchemyPropertySchema = z.object({
   key: z.enum(GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES),
@@ -96,6 +100,7 @@ function normalizePlan(plan: z.infer<typeof formulaAnalysisSchema>) {
 
 export class AlchemyFormulaAnalyzer {
   constructor(
+    private readonly ai: AiService,
     private readonly options: {
       timeoutMs?: number;
     } = {},
@@ -139,16 +144,17 @@ export class AlchemyFormulaAnalyzer {
       payloadJson,
     });
 
-    const response = await generateAiObject({
-      timeoutMs: this.options.timeoutMs ?? 20_000,
-      system,
+    const response = await this.ai.generateObject({
+      model: 'alibaba.fast',
+      abortSignal: aiDeadlineSignal(this.options.timeoutMs ?? 20_000),
+      instructions: system,
       prompt: user,
       schema: formulaAnalysisSchema,
-      name: 'AlchemyFormulaAnalysis',
-      sceneId: 'alchemy-formula-analysis',
+      schemaName: 'AlchemyFormulaAnalysis',
+      label: 'alchemy-formula-analysis',
     });
 
-    const normalized = normalizePlan(response.output);
+    const normalized = normalizePlan(response.object);
     const materialMap = new Map(
       input.materials.map((material) => [material.materialRef, material]),
     );
@@ -222,5 +228,3 @@ export class AlchemyFormulaAnalyzer {
     };
   }
 }
-
-export const alchemyFormulaAnalyzer = new AlchemyFormulaAnalyzer();

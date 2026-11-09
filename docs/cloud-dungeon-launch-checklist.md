@@ -6,9 +6,7 @@
 
 ## 1. 模型与环境配置
 
-- [ ] 确定高级模型组的 DeepSeek 模型：DeepSeek 接口拒绝 `deepseek-v4.1-flash-1017`，可用的有 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-pro`。确定后更新预发布与生产环境的 `LLM_ADVANCED_PROVIDER`，并同步 `env/example.env`（当前仍写着被拒绝的型号）。
-- [ ] 后台生成没有玩家身份，高级组只取权重最高的一条路由（同权时按名称排序取第一个）。生产环境的 `LLM_ADVANCED_PROVIDER` 要让适合剧本生成的模型权重最高：2026-11-04 本地 prd 预热中，同权时取到 `glm-5.3`，大纲全部超时；随后使用 `alibaba/qwen3.8-flash`、思考预算 4,096 的手动完整生成已成功。注意权重也会改变玩家侧高级场景按用户分流的比例。
-- [ ] 预发布、生产环境都配置 `LLM_ADVANCED_PROVIDER`；未配置时高级场景会退回基础模型组，案卷一致性明显下降。
+- [ ] 云游大纲、正文和审校现在显式使用 `alibaba.advanced`；部署前配置 `ALIBABA_ADVANCED_MODEL` 及 Alibaba Key，确认实际模型支持结构化输出与思考预算。旧高级路由变量已退役。
 - [ ] 结构化输出的稳定性：本地开发中基础模型组（qwen）曾间歇返回 “This response_format type is unavailable now”，导致后台生成批量失败。上线前确认所选模型对结构化输出的支持与配额，必要时为基础组配置多条路由。
 - [ ] 高级模型的大纲耗时：2026-11-04 起剧本生成开启思考，大纲一次约 5 分钟。单步时限已放宽到 15 分钟，传输层等待也已对长时限请求取消（Node 内置 fetch 默认只等响应头 300 秒）。上线前用目标环境的高级模型测一次完整生成的耗时与成功率；若经过反向代理或网关，确认其读超时不短于 15 分钟。
 - [ ] 后台模型任务开关：`BACKGROUND_LLM_JOBS` 缺省只在 `NODE_ENV=production` 运行。确认生产镜像的 `NODE_ENV` 为 production；如从本地用 `env/staging.env` 预热，要在该文件里显式设为 `on`，预热完删除。

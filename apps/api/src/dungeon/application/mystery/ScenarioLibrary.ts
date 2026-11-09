@@ -20,6 +20,7 @@ import {
   type LibraryScenario,
   type RestockDecision,
 } from '@daoyou/game-rules/dungeon/mystery';
+import type { AiService } from '@nestjs/ai';
 import {
   db,
   getExecutor,
@@ -522,11 +523,14 @@ async function claimJob(jobId?: string) {
   });
 }
 
-async function runJob(job: {
-  id: string;
-  map_node_id: string;
-  template_id: string;
-}) {
+async function runJob(
+  ai: AiService,
+  job: {
+    id: string;
+    map_node_id: string;
+    template_id: string;
+  },
+) {
   const startedAt = Date.now();
   try {
     const node = getMapNode(job.map_node_id);
@@ -534,7 +538,7 @@ async function runJob(job: {
     const template = getMysteryTemplate(job.template_id);
     if (!node || !setting || !template || !('realm_requirement' in node))
       throw new Error('剧本槽配置已不存在');
-    const generated = await generateMysteryCase({
+    const generated = await generateMysteryCase(ai, {
       template,
       seed: Math.floor(Math.random() * 0x100000000),
       node,
@@ -545,6 +549,7 @@ async function runJob(job: {
       throw new Error('生成未通过校验，未入库保底案卷');
     // 入库把关：后台生成不影响开局，用高级模型组再做一次独立审校，只计数不改写。
     const audit = await reviewMysteryCase(
+      ai,
       generated.caseFile,
       generated.reviewContext?.canon,
       { apply: false, locked: generated.reviewContext?.locked },
@@ -600,10 +605,10 @@ async function runJob(job: {
 }
 
 /** 手动执行指定的一个排队任务；不清扫、不补货，也不继续领取任务或重试整项任务。 */
-export async function runSingleScenarioGeneration(jobId: string) {
+export async function runSingleScenarioGeneration(ai: AiService, jobId: string) {
   const job = await claimJob(jobId);
   if (!job) throw new Error('任务不在排队中，或该节点已有任务正在生成');
-  await runJob(job);
+  await runJob(ai, job);
   const [result] = await db
     .select({
       id: dungeonScenarioJobs.id,
@@ -626,19 +631,19 @@ const workers = new Set<Promise<void>>();
 let processed = 0;
 let draining: Promise<{ processed: number }> | null = null;
 
-async function work() {
+async function work(ai: AiService) {
   for (;;) {
     const job = await claimJob();
     if (!job) return;
-    await runJob(job);
+    await runJob(ai, job);
     processed++;
   }
 }
 
 /** 补足工作者：空闲的工作者认领不到任务就退出，唤醒时再补上。 */
-function topUpWorkers() {
+function topUpWorkers(ai: AiService) {
   while (workers.size < WORKER_LIMIT) {
-    const worker: Promise<void> = work()
+    const worker: Promise<void> = work(ai)
       .catch((error: unknown) =>
         console.warn('[ScenarioLibrary] 生成处理器异常:', error),
       )
@@ -651,20 +656,22 @@ function topUpWorkers() {
  * 后台命令 `dungeon-scenario.generate` 的处理器：先清扫，再按节点并发认领生成，
  * 直到没有可认领的任务。处理中的重复唤醒补足工作者并复用当前处理。
  */
-export function runScenarioGeneration(): Promise<{ processed: number }> {
+export function runScenarioGeneration(
+  ai: AiService,
+): Promise<{ processed: number }> {
   if (!isBackgroundLlmEnabled()) {
     console.info('[ScenarioLibrary] 后台模型任务未开启，跳过清扫与生成');
     return Promise.resolve({ processed: 0 });
   }
   if (draining) {
-    topUpWorkers();
+    topUpWorkers(ai);
     return draining;
   }
   draining = (async () => {
     try {
       await sweepScenarioLibrary();
       processed = 0;
-      topUpWorkers();
+      topUpWorkers(ai);
       while (workers.size > 0) await Promise.allSettled([...workers]);
       return { processed };
     } finally {

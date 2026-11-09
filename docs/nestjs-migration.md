@@ -1,5 +1,7 @@
 # NestJS 后端迁移
 
+> 现行 AI 调用已统一为原生 `AiService`，旧 `aiClient`、加权路由与 LLM 观测已退役；下文旧入口、配置及测量结果保留为历史记录，当前接入见 [开发说明](development.md#ai-能力)。
+
 
 > 2026-10-03 架构整理补记：已补齐 AppConfigService、Nest SQL/资源读取的 Drizzle 注入、领域实现归位、shared 包边界、显式 apiFetch 和 PR 质量检查。此前材料堆叠与九劫内容哈希的两项测试失败已按既有规则提交核对并修正断言，完整 237 文件/2403 测试通过。下文历史阶段结果保持原样；特殊数据、自然续期和生产灰度/回滚验收不因本次构建验证而视为完成。现行结构见 [架构审查与规范](monorepo-architecture.md)。
 

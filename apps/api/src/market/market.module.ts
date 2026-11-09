@@ -1,3 +1,4 @@
+import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { CultivatorQueriesService } from '@server/cultivator/cultivator-queries.service.js';
 import { CultivatorModule } from '@server/cultivator/cultivator.module.js';
@@ -12,7 +13,7 @@ import { MarketController } from './market.controller.js';
 import { MarketService } from './market.service.js';
 
 @Module({
-  imports: [
+  imports: [LlmModule,
     DatabaseModule,
     CultivatorModule,
     InventoryModule,

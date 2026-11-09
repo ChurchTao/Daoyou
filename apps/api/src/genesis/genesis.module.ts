@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LlmModule } from '@server/llm/llm.module.js';
 import {
   GenerateCharacterController,
   GenerateFatesController,
@@ -6,6 +7,7 @@ import {
 } from './genesis.controller.js';
 import { GenesisService } from './genesis.service.js';
 @Module({
+  imports: [LlmModule],
   controllers: [
     GenerateCharacterController,
     GenerateFatesController,

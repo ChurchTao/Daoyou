@@ -1,19 +1,23 @@
-import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
-import { stableCompactStringify, truncateText } from '@server/utils/llmPayload.js';
-import {
-  GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES,
-  getAlchemyPropertyLabel,
-  normalizeWeightedAlchemyProperties,
-  mergeAlchemyMaterialPropertyHints,
-} from '@daoyou/game-rules/alchemy';
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import {
   ALCHEMY_FOCUS_MODE_VALUES,
   type AlchemyRecipePlan,
 } from '@daoyou/game-domain/consumables';
-import { z } from 'zod';
+import {
+  GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES,
+  getAlchemyPropertyLabel,
+  mergeAlchemyMaterialPropertyHints,
+  normalizeWeightedAlchemyProperties,
+} from '@daoyou/game-rules/alchemy';
+import type { AiService } from '@nestjs/ai';
 import type { PreparedAlchemyMaterial } from '@server/alchemy/application/AlchemyRecipeRules.js';
+import { renderPrompt } from '@server/lib/prompts/index.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
+import {
+  stableCompactStringify,
+  truncateText,
+} from '@server/utils/llmPayload.js';
+import { z } from 'zod';
 
 const weightedAlchemyPropertySchema = z.object({
   key: z.enum(GENERATABLE_ALCHEMY_PROPERTY_KEY_VALUES),
@@ -57,6 +61,7 @@ function normalizePlan(plan: z.infer<typeof alchemyRecipePlanSchema>) {
 
 export class AlchemyRecipePlanner {
   constructor(
+    private readonly ai: AiService,
     private readonly options: {
       timeoutMs?: number;
     } = {},
@@ -85,16 +90,17 @@ export class AlchemyRecipePlanner {
       hasUserPrompt: input.userPrompt?.trim() ? 'true' : 'false',
     });
 
-    const response = await generateAiObject({
-      timeoutMs: this.options.timeoutMs ?? 20_000,
-      system,
+    const response = await this.ai.generateObject({
+      model: 'alibaba.fast',
+      abortSignal: aiDeadlineSignal(this.options.timeoutMs ?? 20_000),
+      instructions: system,
       prompt: user,
       schema: alchemyRecipePlanSchema,
-      name: 'AlchemyRecipePlan',
-      sceneId: 'alchemy-recipe-plan',
+      schemaName: 'AlchemyRecipePlan',
+      label: 'alchemy-recipe-plan',
     });
 
-    const normalized = normalizePlan(response.output);
+    const normalized = normalizePlan(response.object);
     const materialMap = new Map(
       input.materials.map((material) => [material.materialRef, material]),
     );
@@ -149,5 +155,3 @@ export class AlchemyRecipePlanner {
     };
   }
 }
-
-export const alchemyRecipePlanner = new AlchemyRecipePlanner();

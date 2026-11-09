@@ -61,11 +61,6 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/sponsorship',
   },
   {
-    title: 'LLM 观测',
-    description: '查看场景体积、usage 与缓存迹象',
-    href: '/admin/llm-metrics',
-  },
-  {
     title: 'AI 用量',
     description: '按场景、模型查看用量与估算费用',
     href: '/admin/ai-usage',

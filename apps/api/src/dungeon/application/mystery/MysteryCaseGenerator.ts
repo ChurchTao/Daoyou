@@ -16,9 +16,9 @@ import {
   validateMysteryCase,
   type MysteryCaseSkeleton,
 } from '@daoyou/game-rules/dungeon/mystery';
-import type { LlmSceneId } from '@server/lib/llm/types.js';
+import type { AiService } from '@nestjs/ai';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 import {
@@ -677,37 +677,48 @@ function structureContext(
 const str = (record: Record<string, unknown>, key: string) =>
   String(record[key] ?? '');
 
-async function callStage<S extends z.ZodType>(args: {
-  promptId: 'dungeon-case' | 'dungeon-case-text';
-  sceneId: LlmSceneId;
-  name: string;
-  schema: S;
-  context: unknown;
-}): Promise<z.infer<S>> {
+async function callStage<S extends z.ZodType>(
+  ai: AiService,
+  args: {
+    promptId: 'dungeon-case' | 'dungeon-case-text';
+    sceneId: 'dungeon-case' | 'dungeon-case-text';
+    name: string;
+    schema: S;
+    context: unknown;
+  },
+): Promise<z.infer<S>> {
   const prompt = renderPrompt(args.promptId, {
     userContextJson: stableCompactStringify(args.context),
   });
+  const thinking =
+    MYSTERY_GENERATION_THINKING[
+      args.promptId === 'dungeon-case' ? 'outline' : 'text'
+    ];
   const run = () =>
-    generateAiObject({
-      system: prompt.system,
+    ai.generateObject({
+      model: 'alibaba.advanced',
+      instructions: prompt.system,
       prompt: prompt.user,
       schema: args.schema,
-      name: args.name,
-      sceneId: args.sceneId,
-      timeoutMs: STAGE_TIMEOUT_MS,
-      thinking:
-        MYSTERY_GENERATION_THINKING[
-          args.promptId === 'dungeon-case' ? 'outline' : 'text'
-        ],
+      schemaName: args.name,
+      label: args.sceneId,
+      abortSignal: aiDeadlineSignal(STAGE_TIMEOUT_MS),
+      providerOptions: {
+        alibaba: {
+          enableThinking: thinking,
+          ...(thinking ? { thinkingBudget: 4096 } : {}),
+        },
+        deepseek: { thinking: { type: thinking ? 'enabled' : 'disabled' } },
+      },
     });
   // 结构已经固定，失败只可能是网络、输出截断或个别字段留空，单段重试一次即可。
   const first = await run().catch(() => null);
-  if (first && !hasEmptyText(first.output)) return first.output as z.infer<S>;
+  if (first && !hasEmptyText(first.object)) return first.object as z.infer<S>;
   const second = await run().catch((error: unknown) => {
     if (first) return first;
     throw error;
   });
-  return second.output as z.infer<S>;
+  return second.object as z.infer<S>;
 }
 
 function hasEmptyText(value: unknown): boolean {
@@ -971,6 +982,7 @@ export interface GeneratedMysteryCase {
  * 所有引用由骨架固定，LLM 只写文字；任一段失败时，只在节点绑定了保底案卷时退回保底，否则抛错。
  */
 export async function generateMysteryCase(
+  ai: AiService,
   request: MysteryCaseRequest,
 ): Promise<GeneratedMysteryCase> {
   // 剧本全服共享，不带任何玩家个人信息，角色本只用第二人称“你”。
@@ -984,7 +996,7 @@ export async function generateMysteryCase(
     );
     const programFacts = mysteryCaseFacts(skeleton.caseFile);
     const draftOutline = () =>
-      callStage({
+      callStage(ai, {
         promptId: 'dungeon-case',
         sceneId: 'dungeon-case',
         name: 'DungeonMysteryOutline',
@@ -1052,7 +1064,7 @@ export async function generateMysteryCase(
     if (truthMissesCast(outline)) throw new Error('真相与人物名字不一致');
     const structure = structureContext(skeleton, outline, spec);
     const part = <S extends z.ZodType>(key: TextPart, schema: S) =>
-      callStage({
+      callStage(ai, {
         promptId: 'dungeon-case-text',
         sceneId: 'dungeon-case-text',
         name: `DungeonMysteryText_${key}`,
@@ -1110,7 +1122,7 @@ export async function generateMysteryCase(
     // 改写可能引入新的不一致，有修正时再审一轮，最多两轮。
     let reviewed = drafted;
     for (let round = 1; round <= 2; round++) {
-      const result = await reviewMysteryCase(reviewed, reviewContext.canon, {
+      const result = await reviewMysteryCase(ai, reviewed, reviewContext.canon, {
         locked: reviewContext.locked,
       }).catch((error: unknown) => {
         console.warn('[DungeonMystery] 一致性审校失败，沿用当前稿:', error);

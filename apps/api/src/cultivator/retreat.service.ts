@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { executeRetreatCommand } from '@server/cultivator/application/RetreatApplicationService.js';
-import { streamAiText } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import {
   getBreakthroughStoryPrompt,
   getLifespanExhaustedStoryPrompt,
@@ -13,6 +14,8 @@ import type {
 
 @Injectable()
 export class RetreatService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   execute(actor: ActiveCultivatorRef, input: RetreatRequest) {
     return executeRetreatCommand({
       userId: actor.userId,
@@ -41,18 +44,23 @@ export class RetreatService {
         storySource.type === 'breakthrough'
           ? getBreakthroughStoryPrompt(storySource.payload)
           : getLifespanExhaustedStoryPrompt(storySource.payload);
-      const result = streamAiText({
-        system: prompt[0],
+      const result = this.ai.streamText({
+        model: 'alibaba.fast',
+        instructions: prompt[0],
         prompt: prompt[1],
-        abortSignal: signal,
-        sceneId:
+        abortSignal: aiDeadlineSignal(120_000, signal),
+        label:
           storySource.type === 'breakthrough'
             ? 'breakthrough-story'
             : 'lifespan-exhausted',
       });
-      for await (const chunk of result.textStream) {
-        accumulatedStory += chunk;
-        await emit({ type: 'chunk', text: chunk });
+      try {
+        for await (const chunk of result.textStream) {
+          accumulatedStory += chunk;
+          await emit({ type: 'chunk', text: chunk });
+        }
+      } finally {
+        result.abort();
       }
     } catch (error) {
       console.error('Retreat story stream error:', error);

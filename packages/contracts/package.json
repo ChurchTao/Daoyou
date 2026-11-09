@@ -49,7 +49,6 @@
     "./legacy/artifacts": "./dist/artifactMigration.js",
     "./legacy/manuals": "./dist/manualMigration.js",
     "./llm/config": "./dist/llm/config.js",
-    "./llm/routing": "./dist/llm/routing.js",
     "./mail": "./dist/mail.js",
     "./manuals": "./dist/combatV6Manuals.js",
     "./market": "./dist/market.js",

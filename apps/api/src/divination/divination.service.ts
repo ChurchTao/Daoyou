@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { redisLockErrorResponse } from '@server/lib/http/errors.js';
 import {
@@ -12,6 +13,8 @@ import type { DivinationStreamEvent } from '@daoyou/contracts/divination';
 
 @Injectable()
 export class DivinationService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   read(actor: ActiveCultivatorRef) {
     return readDivination(actor);
   }
@@ -30,7 +33,7 @@ export class DivinationService {
     emit: (event: DivinationStreamEvent) => Promise<void>,
   ) {
     try {
-      await interpretDivination(actor, drawId, signal, emit);
+      await interpretDivination(actor, drawId, signal, emit, this.ai);
     } catch (error) {
       console.warn('[divination] interpretation incomplete', { drawId, error });
       await emit({

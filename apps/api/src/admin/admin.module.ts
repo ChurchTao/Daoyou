@@ -1,3 +1,4 @@
+import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
 import { AiUsageModule } from '@server/llm/ai-usage.module.js';
@@ -27,7 +28,7 @@ import { AdminTowerController } from './tower.controller.js';
 import { AdminTowerService } from './tower.service.js';
 
 @Module({
-  imports: [DatabaseModule, AiUsageModule],
+  imports: [LlmModule,DatabaseModule, AiUsageModule],
   controllers: [
     AdminSystemMailsController,
     AdminItemLibraryController,

@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import type {
+  SpiritFieldCultivateRequest,
+  SpiritFieldHarvestRequest,
+  SpiritFieldSowRequest,
+} from '@daoyou/contracts/spirit-field';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import {
@@ -8,21 +14,17 @@ import {
   harvestSpiritField,
   sowSpiritField,
 } from '@server/spirit-field/application/SpiritFieldService.js';
-import type {
-  SpiritFieldCultivateRequest,
-  SpiritFieldHarvestRequest,
-  SpiritFieldSowRequest,
-} from '@daoyou/contracts/spirit-field';
 
 @Injectable()
 export class SpiritFieldService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async read(actor: ActiveCultivatorRef) {
     return { success: true, data: await getSpiritFieldSnapshot(actor) };
   }
 
   async starter(actor: ActiveCultivatorRef) {
     return toPlayerStateMutationResponse(
-      await claimSpiritFieldStarterSeeds(actor),
+      await claimSpiritFieldStarterSeeds(this.ai, actor),
     );
   }
 
@@ -36,7 +38,7 @@ export class SpiritFieldService {
     signal: AbortSignal,
   ) {
     return toPlayerStateMutationResponse(
-      await cultivateSpiritField(actor, input, signal),
+      await cultivateSpiritField(this.ai, actor, input, signal),
     );
   }
 
@@ -46,7 +48,7 @@ export class SpiritFieldService {
     signal: AbortSignal,
   ) {
     return toPlayerStateMutationResponse(
-      await harvestSpiritField(actor, input, signal),
+      await harvestSpiritField(this.ai, actor, input, signal),
     );
   }
 }

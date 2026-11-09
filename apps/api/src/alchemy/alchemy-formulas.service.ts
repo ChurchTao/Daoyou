@@ -1,14 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import {
-  assertAlchemyMaterialVersions,
-  readAlchemyMaterials,
-} from '@server/alchemy/application/inventory/AlchemyInventory.js';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   analyzeFormulaMaterials,
   confirmDiscoveryCandidate,
   deleteCultivatorFormula,
   listCultivatorFormulasPage,
 } from '@server/alchemy/application/AlchemyFormulaService.js';
+import {
+  assertAlchemyMaterialVersions,
+  readAlchemyMaterials,
+} from '@server/alchemy/application/inventory/AlchemyInventory.js';
 import type { z } from 'zod';
 import type {
   DiscoveryConfirmSchema,
@@ -18,6 +19,7 @@ import type {
 
 @Injectable()
 export class AlchemyFormulasService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async materials(owner: string) {
     return { success: true, data: await readAlchemyMaterials(owner) };
   }
@@ -48,6 +50,7 @@ export class AlchemyFormulasService {
     return {
       success: true,
       data: await analyzeFormulaMaterials(
+        this.ai,
         owner,
         formulaId,
         input.materialIds,

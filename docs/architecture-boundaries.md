@@ -1,5 +1,7 @@
 # 应用边界与迁移决策
 
+> 现行 AI 调用已统一为原生 `AiService`，旧 `aiClient`、加权路由与 LLM 观测已退役；下文旧入口、配置及测量结果保留为历史记录，当前接入见 [开发说明](development.md#ai-能力)。
+
 日期：2026-10-04。目标：NestJS 模块化单体、React SPA，以及按职责拆分的内部编译包（tsc 输出 JavaScript 和声明文件）。
 
 > 2026-10-04 配置简化：迁移已完成，包边界检查脚本及 ESLint/Oxlint 的迁移导入限制已退役，lint 改为推荐规则／原生 correctness 基线加必要的代码正确性约束。依赖图与公共 API 约定继续适用；下文脚本和 Quality CI 的执行记录属于历史验收，当前 GitHub Actions 仅在 tag 推送时构建并推送镜像。

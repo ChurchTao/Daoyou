@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import {
-  BlackMarketConversationService,
-  blackMarketConversationService,
-} from '@server/black-market/application/BlackMarketConversationService.js';
+import { BlackMarketConversationService } from '@server/black-market/application/BlackMarketConversationService.js';
+import { BlackMarketObservationService } from '@server/black-market/application/BlackMarketObservationService.js';
+import { BlackMarketPerceptionService } from '@server/black-market/application/BlackMarketPerceptionService.js';
+import { LlmModule } from '@server/llm/llm.module.js';
 import {
   BlackMarketController,
   BlackMarketStreamController,
@@ -10,12 +10,12 @@ import {
 import { BlackMarketService } from './black-market.service.js';
 
 @Module({
+  imports: [LlmModule],
   controllers: [BlackMarketController, BlackMarketStreamController],
   providers: [
-    {
-      provide: BlackMarketConversationService,
-      useValue: blackMarketConversationService,
-    },
+    BlackMarketConversationService,
+    BlackMarketObservationService,
+    BlackMarketPerceptionService,
     BlackMarketService,
   ],
 })

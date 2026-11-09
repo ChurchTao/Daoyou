@@ -1,5 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import type {
+  ForgeRequest,
+  VaultQuerySchema,
+  WithdrawMaterialSchema,
+  WithdrawVaultPageSchema,
+} from '@daoyou/contracts/forging';
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   forgeEquipment,
   readForge,
@@ -7,16 +13,12 @@ import {
   withdrawMaterial,
   withdrawVaultPage,
 } from '@server/forging/application/ForgingService.js';
-import type {
-  ForgeRequest,
-  VaultQuerySchema,
-  WithdrawMaterialSchema,
-  WithdrawVaultPageSchema,
-} from '@daoyou/contracts/forging';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import type { z } from 'zod';
 
 @Injectable()
 export class ForgingService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async read(owner: string) {
     return { success: true, data: await readForge(owner) };
   }
@@ -24,7 +26,12 @@ export class ForgingService {
   async forge(actor: ActiveCultivatorRef, input: ForgeRequest) {
     return {
       success: true,
-      ...(await forgeEquipment(actor.cultivatorId, input, actor.userId)),
+      ...(await forgeEquipment(
+        this.ai,
+        actor.cultivatorId,
+        input,
+        actor.userId,
+      )),
     };
   }
 

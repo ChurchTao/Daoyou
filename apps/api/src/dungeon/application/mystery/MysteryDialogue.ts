@@ -3,8 +3,9 @@ import type {
   MysteryRunState,
 } from '@daoyou/game-domain/dungeon/mystery';
 import { mysteryRevealableSecrets } from '@daoyou/game-rules/dungeon/mystery';
+import type { AiService } from '@nestjs/ai';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 import { cleanMysteryText } from './MysteryCaseReview.js';
@@ -13,12 +14,15 @@ import { cleanMysteryText } from './MysteryCaseReview.js';
  * NPC 自由对话：模型只拿到此人此刻可以说的内情，拿不到真相与未解锁的秘密，
  * 因此即便被话术诱导也无从泄露；它声称透露的线索还会再经规则层过滤。
  */
-export async function generateNpcReply(args: {
-  caseFile: MysteryCaseFile;
-  run: MysteryRunState;
-  npcId: string;
-  question: string;
-}): Promise<{ reply: string; reveal: string[] }> {
+export async function generateNpcReply(
+  ai: AiService,
+  args: {
+    caseFile: MysteryCaseFile;
+    run: MysteryRunState;
+    npcId: string;
+    question: string;
+  },
+): Promise<{ reply: string; reveal: string[] }> {
   const { caseFile, run, npcId, question } = args;
   const npc = caseFile.npcs.find((n) => n.id === npcId);
   if (!npc) throw new Error('人物不存在');
@@ -68,13 +72,14 @@ export async function generateNpcReply(args: {
             .describe('本次回答中说出的内情 clueId；没有则为空数组')
         : z.array(z.string()).max(0).describe('始终为空数组'),
   });
-  const { output } = await generateAiObject({
-    system: prompt.system,
+  const { object: output } = await ai.generateObject({
+    model: 'alibaba.fast',
+    instructions: prompt.system,
     prompt: prompt.user,
     schema,
-    name: 'DungeonMysteryNpcReply',
-    sceneId: 'dungeon-npc',
-    timeoutMs: 30_000,
+    schemaName: 'DungeonMysteryNpcReply',
+    label: 'dungeon-npc',
+    abortSignal: aiDeadlineSignal(30_000),
   });
   const reply = cleanMysteryText(output.reply, 200);
   if (!reply) throw new Error('人物没有作答');

@@ -1,5 +1,11 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import {
+  IDENTITY_RESHAPE_DESCRIPTION_MAX_LENGTH,
+  IDENTITY_RESHAPE_DESCRIPTION_MIN_LENGTH,
+} from '@daoyou/game-content/identity-reshape';
+import { AiService } from '@nestjs/ai';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import {
   abandonIdentityReshape,
   confirmIdentityReshape,
@@ -9,8 +15,6 @@ import {
   saveIdentityReshapeDraft,
   startIdentityReshape,
 } from '@server/reshape/application/IdentityReshapeService.js';
-import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
-import { IDENTITY_RESHAPE_DESCRIPTION_MAX_LENGTH, IDENTITY_RESHAPE_DESCRIPTION_MIN_LENGTH } from '@daoyou/game-content/identity-reshape';
 import { z } from 'zod';
 const AnswerSchema = z.object({
   questionId: z.string().min(1).max(80),
@@ -30,6 +34,7 @@ const GenerateSchema = DraftSchema.extend({
 });
 @Injectable()
 export class IdentityReshapeService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async read(actor: ActiveCultivatorRef) {
     const [session, talismanCount] = await Promise.all([
       getIdentityReshapeSession(actor.cultivatorId),
@@ -75,7 +80,7 @@ export class IdentityReshapeService {
         { success: false, error: '请完成问答并填写身世描述' },
         400,
       );
-    const session = await generateIdentityReshape({
+    const session = await generateIdentityReshape(this.ai, {
       cultivatorId: actor.cultivatorId,
       ...parsed.data,
     });

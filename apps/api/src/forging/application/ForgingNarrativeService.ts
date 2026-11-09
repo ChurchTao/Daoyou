@@ -1,16 +1,17 @@
-import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
-import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
-import { truncateText } from '@server/utils/llmPayload.js';
-import { equipmentRealm } from '@daoyou/game-rules/equipment/forging';
-import type { DaoEquipmentSlot } from '@daoyou/game-domain/equipment';
 import { DAO_WEAPONS } from '@daoyou/game-content/equipment/weapons';
+import type { DaoEquipmentSlot } from '@daoyou/game-domain/equipment';
 import {
   type DaoWeaponType,
-  ForgedEquipmentCopySchema,
   EQUIPMENT_SLOT_NAMES,
+  ForgedEquipmentCopySchema,
 } from '@daoyou/game-domain/equipment';
 import type { MaterialFacts } from '@daoyou/game-domain/inventory';
+import { equipmentRealm } from '@daoyou/game-rules/equipment/forging';
+import type { AiService } from '@nestjs/ai';
+import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
+import { renderPrompt } from '@server/lib/prompts/index.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
+import { truncateText } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 
 // 提供商只接收基础 JSON Schema；Unicode 字数及纯文本规则在本地校验。
@@ -21,13 +22,16 @@ const generatedCopySchema = z
   })
   .strict();
 
-export async function generateForgingNarrative(input: {
-  level: number;
-  slot: DaoEquipmentSlot;
-  weaponType?: DaoWeaponType;
-  materials: { facts: MaterialFacts; quantity: number }[];
-  intent?: string;
-}) {
+export async function generateForgingNarrative(
+  ai: AiService,
+  input: {
+    level: number;
+    slot: DaoEquipmentSlot;
+    weaponType?: DaoWeaponType;
+    materials: { facts: MaterialFacts; quantity: number }[];
+    intent?: string;
+  },
+) {
   if (
     getRuntimeEnvironment().DISABLE_LLM_NAMING === 'true' ||
     getRuntimeEnvironment().ENABLE_LLM_NAMING === 'false'
@@ -47,17 +51,17 @@ export async function generateForgingNarrative(input: {
         intent: input.intent ?? '',
       }),
     });
-    const result = await generateAiObject({
-      system,
+    const result = await ai.generateObject({
+      model: 'alibaba.fast',
+      instructions: system,
       prompt: user,
       schema: generatedCopySchema,
-      resultSchema: ForgedEquipmentCopySchema,
-      sceneId: 'equipment-forge-naming',
-      name: 'ForgedEquipmentCopy',
-      timeoutMs: 8000,
+      label: 'equipment-forge-naming',
+      schemaName: 'ForgedEquipmentCopy',
+      abortSignal: aiDeadlineSignal(8000),
       maxOutputTokens: 256,
     });
-    const copy = ForgedEquipmentCopySchema.parse(result.output);
+    const copy = ForgedEquipmentCopySchema.parse(result.object);
     // 器形由规则决定；命名不符合指定器形时使用确定性的默认器名。
     if (input.weaponType && !copy.name.endsWith(DAO_WEAPONS[input.weaponType].name))
       return null;

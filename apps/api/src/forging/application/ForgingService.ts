@@ -34,6 +34,7 @@ import { addItems, itemDefinition } from '@daoyou/game-rules/inventory';
 import { legacyMaterialUnavailableReason } from '@daoyou/game-rules/items/legacy-material';
 import { parseMailAttachments } from '@daoyou/game-rules/mail';
 import { storyMarkForSignal } from '@daoyou/game-rules/story';
+import type { AiService } from '@nestjs/ai';
 import { QiService } from '@server/cultivator/application/QiService.js';
 import { readCultivatorName } from '@server/cultivator/facts.js';
 import { generateForgingNarrative } from '@server/forging/application/ForgingNarrativeService.js';
@@ -219,6 +220,7 @@ async function readForgeInputs(
 }
 
 export async function forgeEquipment(
+  ai: AiService,
   owner: string,
   input: ForgeRequest,
   userId: string,
@@ -245,7 +247,7 @@ export async function forgeEquipment(
         const qi = await QiService.getQiState(owner);
         if (qi.current < prepared.cost.qi)
           throw new InventoryError('天地灵气不足');
-        narrative = await generateForgingNarrative({
+        narrative = await generateForgingNarrative(ai, {
           level: prepared.level,
           slot: prepared.slot,
           weaponType: input.weaponType,
@@ -556,13 +558,17 @@ export async function grantDevResources(input: DevGrant) {
         );
         ids.push(mail.id);
       } else if (grant.type === 'vault-consumable') {
-        const granted = await grantInventory(input.cultivatorId, [
-          {
-            definitionId: 'consumable.v1',
-            quantity: grant.quantity,
-            instanceData: grant.facts,
-          },
-        ], tx);
+        const granted = await grantInventory(
+          input.cultivatorId,
+          [
+            {
+              definitionId: 'consumable.v1',
+              quantity: grant.quantity,
+              instanceData: grant.facts,
+            },
+          ],
+          tx,
+        );
         ids.push(...granted.map((item) => item.id));
       } else if (grant.type === 'beast') {
         if (!BEAST_SPECIES.some((species) => species.id === grant.speciesId))
@@ -611,22 +617,30 @@ export async function grantDevResources(input: DevGrant) {
         );
         ids.push(id);
       } else if (grant.type === 'vault-seed') {
-        const granted = await grantInventory(input.cultivatorId, [
-          {
-            definitionId: 'seed.v1',
-            quantity: grant.quantity,
-            instanceData: grant.facts,
-          },
-        ], tx);
+        const granted = await grantInventory(
+          input.cultivatorId,
+          [
+            {
+              definitionId: 'seed.v1',
+              quantity: grant.quantity,
+              instanceData: grant.facts,
+            },
+          ],
+          tx,
+        );
         ids.push(...granted.map((item) => item.id));
       } else if (grant.type === 'vault-material') {
-        const granted = await grantInventory(input.cultivatorId, [
-          {
-            definitionId: 'material.v1',
-            quantity: grant.quantity,
-            instanceData: grant.facts,
-          },
-        ], tx);
+        const granted = await grantInventory(
+          input.cultivatorId,
+          [
+            {
+              definitionId: 'material.v1',
+              quantity: grant.quantity,
+              instanceData: grant.facts,
+            },
+          ],
+          tx,
+        );
         ids.push(...granted.map((item) => item.id));
       } else if (grant.type === 'spirit-stones') {
         const updated = await tx

@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { executeYieldCommand } from '@server/cultivator/application/YieldApplicationService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { renderPrompt } from '@server/lib/prompts/index.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 
 type YieldExecution = Awaited<ReturnType<typeof executeYieldCommand>>;
 type YieldStreamEvent =
@@ -54,12 +55,8 @@ export class YieldService {
         model: 'alibaba.fast',
         instructions: system,
         prompt,
-        abortSignal: signal,
+        abortSignal: aiDeadlineSignal(120_000, signal),
         label: 'yield-story',
-        providerOptions: {
-          alibaba: { enableThinking: false },
-          deepseek: { thinking: { type: 'disabled' } },
-        },
       });
       try {
         for await (const chunk of aiStreamResult.textStream) {

@@ -1,52 +1,11 @@
-import {
-  getExecutor,
-  type DbExecutor,
-  type DbTransaction,
-} from '@server/lib/drizzle/db.js';
-import { alchemyFormulas, cultivators } from '@server/lib/drizzle/schema.js';
-import { redis } from '@server/lib/redis/index.js';
-import { parseRedisJson } from '@server/lib/redis/json.js';
-import {
-  aggregateAlchemyProperties,
-  buildAlchemyBatchProfile,
-  buildAlchemyPropertyTags,
-  getQuotaCategoryForFamily,
-  type PreparedAlchemyMaterial,
-} from '@server/alchemy/application/AlchemyRecipeRules.js';
-import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import { type ElementType } from '@daoyou/constants/elements';
+import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
+import { type RealmType } from '@daoyou/constants/realms';
 import {
   ALCHEMY_MAX_DOSE,
   getFormulaFitPolicy,
 } from '@daoyou/game-content/alchemy';
-import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
-import type { AlchemyBagMaterial } from '@daoyou/game-rules/inventory/alchemy';
-import {
-  calculateAlchemyCost,
-  calculateHighestMaterialRank,
-  normalizeAlchemyEffectRoute,
-  validateAlchemyEffectRoute,
-  isAlchemyMaterialType,
-  formatAlchemyPropertyVector,
-  normalizeWeightedAlchemyProperties,
-  buildAlchemyYieldPreview,
-  calculateAlchemyQiCost,
-  rollAlchemyYieldProfile,
-  toAlchemyYieldDisplayProfile,
-  type AlchemyYieldFactors,
-} from '@daoyou/game-rules/alchemy';
-import {
-  getBreakthroughPillLabel,
-  getNextMajorRealm,
-} from '@daoyou/game-rules/consumables/breakthrough';
-import {
-  evaluateFateContext,
-  getAlchemySpiritStoneMultiplier,
-  scaleFateAdjustedCost,
-} from '@daoyou/game-rules/character/fates';
-import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
-import { type ElementType } from '@daoyou/constants/elements';
-import { type MaterialType } from '@daoyou/game-domain/inventory';
-import { type RealmType } from '@daoyou/constants/realms';
+import type { Consumable, PreHeavenFate } from '@daoyou/game-domain/character';
 import type {
   AlchemyBatchDisplayProfile,
   AlchemyBatchProfile,
@@ -64,8 +23,42 @@ import type {
   WeightedAlchemyProperty,
 } from '@daoyou/game-domain/consumables';
 import { PILL_QUOTA_CATEGORY_VALUES } from '@daoyou/game-domain/consumables';
-import type { Consumable, PreHeavenFate } from '@daoyou/game-domain/character';
-import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { type MaterialType } from '@daoyou/game-domain/inventory';
+import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
+import {
+  buildAlchemyYieldPreview,
+  calculateAlchemyCost,
+  calculateAlchemyQiCost,
+  calculateHighestMaterialRank,
+  formatAlchemyPropertyVector,
+  isAlchemyMaterialType,
+  normalizeAlchemyEffectRoute,
+  normalizeWeightedAlchemyProperties,
+  rollAlchemyYieldProfile,
+  toAlchemyYieldDisplayProfile,
+  validateAlchemyEffectRoute,
+  type AlchemyYieldFactors,
+} from '@daoyou/game-rules/alchemy';
+import {
+  evaluateFateContext,
+  getAlchemySpiritStoneMultiplier,
+  scaleFateAdjustedCost,
+} from '@daoyou/game-rules/character/fates';
+import {
+  getBreakthroughPillLabel,
+  getNextMajorRealm,
+} from '@daoyou/game-rules/consumables/breakthrough';
+import type { AlchemyBagMaterial } from '@daoyou/game-rules/inventory/alchemy';
+import type { AiService } from '@nestjs/ai';
+import { AlchemyFormulaAnalyzer } from '@server/alchemy/application/AlchemyFormulaAnalyzer.js';
+import {
+  aggregateAlchemyProperties,
+  buildAlchemyBatchProfile,
+  buildAlchemyPropertyTags,
+  getQuotaCategoryForFamily,
+  type PreparedAlchemyMaterial,
+} from '@server/alchemy/application/AlchemyRecipeRules.js';
+import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
 import {
   consumeAlchemyMaterials,
   grantAlchemyOutput,
@@ -75,9 +68,17 @@ import {
   assembleAlchemyOutputConsumables,
   type AlchemyOutputDraft,
 } from '@server/alchemy/application/inventory/AlchemyOutputAssembler.js';
-import { alchemyFormulaAnalyzer } from '@server/alchemy/application/AlchemyFormulaAnalyzer.js';
-import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
+import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
+import { alchemyFormulas, cultivators } from '@server/lib/drizzle/schema.js';
+import { redis } from '@server/lib/redis/index.js';
+import { parseRedisJson } from '@server/lib/redis/json.js';
 import { sectOrganizationFacade } from '@server/sects/organization/index.js';
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
@@ -207,7 +208,10 @@ function normalizeDose(
 ): number {
   const requested = materialQuantities?.[material.id] ?? 1;
   if (requested > ALCHEMY_MAX_DOSE)
-    throw new AlchemyServiceError(`每个材料格最多投入 ${ALCHEMY_MAX_DOSE} 份。`, 400);
+    throw new AlchemyServiceError(
+      `每个材料格最多投入 ${ALCHEMY_MAX_DOSE} 份。`,
+      400,
+    );
   if (
     !Number.isInteger(requested) ||
     requested < 1 ||
@@ -1007,6 +1011,7 @@ export async function confirmDiscoveryCandidate(
 }
 
 export async function analyzeFormulaMaterials(
+  ai: AiService,
   cultivatorId: string,
   formulaId: string,
   materialIds: string[],
@@ -1072,7 +1077,7 @@ export async function analyzeFormulaMaterials(
 
   let analysis;
   try {
-    analysis = await alchemyFormulaAnalyzer.analyze({
+    analysis = await new AlchemyFormulaAnalyzer(ai).analyze({
       formula,
       materials: materialsList,
     });

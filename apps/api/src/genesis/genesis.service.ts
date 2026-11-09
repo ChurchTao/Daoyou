@@ -1,5 +1,14 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import {
+  CHARACTER_GENERATION_LIMIT_REACHED_CODE,
+  type CharacterGenerationQuota,
+  type CharacterGenerationQuotaResponse,
+  type GenerateCharacterResponse,
+} from '@daoyou/contracts/character-generation';
+import { AiService } from '@nestjs/ai';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { createCultivatorFromTemp } from '@server/genesis/application/CultivatorCreationApplicationService.js';
 import type { AuthUser } from '@server/lib/auth/types.js';
+import { CharacterGenerator } from '@server/lib/generation/CharacterGenerator.js';
 import {
   consumeCharacterGenerationQuota,
   getCharacterGenerationQuota,
@@ -11,18 +20,10 @@ import {
   saveTempCharacter,
   saveTempFates,
 } from '@server/lib/repositories/redisCultivatorRepository.js';
-import { createCultivatorFromTemp } from '@server/genesis/application/CultivatorCreationApplicationService.js';
+import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import { FATE_REROLL_LIMIT } from '@server/reshape/application/FateConfig.js';
 import { FateEngine } from '@server/reshape/application/FateEngine.js';
-import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
-import { CharacterGenerator } from '@server/lib/generation/CharacterGenerator.js';
 import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
-import {
-  CHARACTER_GENERATION_LIMIT_REACHED_CODE,
-  type CharacterGenerationQuota,
-  type CharacterGenerationQuotaResponse,
-  type GenerateCharacterResponse,
-} from '@daoyou/contracts/character-generation';
 import { z } from 'zod';
 
 const GenerateCharacterSchema = z.object({ userInput: z.string() });
@@ -48,6 +49,7 @@ function quotaExceededMessage(quota: CharacterGenerationQuota): string {
 
 @Injectable()
 export class GenesisService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async quota(
     user: AuthUser,
     ip: string | undefined,
@@ -104,7 +106,10 @@ export class GenesisService {
         },
         429,
       );
-    const { cultivator } = await CharacterGenerator.generate(userInput);
+    const { cultivator } = await CharacterGenerator.generate(
+      this.ai,
+      userInput,
+    );
     const tempCultivatorId = await saveTempCharacter(cultivator);
     return {
       success: true,

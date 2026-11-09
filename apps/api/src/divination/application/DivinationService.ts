@@ -1,3 +1,4 @@
+import type { AiService } from '@nestjs/ai';
 import { db, type DbTransaction } from '@server/lib/drizzle/db.js';
 import { cultivators, dailyDivinations } from '@server/lib/drizzle/schema.js';
 import { renderPrompt } from '@server/lib/prompts/index.js';
@@ -6,7 +7,7 @@ import {
   withRedisLock,
   type RedisLeaseContext,
 } from '@server/lib/redis/lock.js';
-import { streamAiText } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { QI_RESTORE_TALISMAN_SCENARIOS } from '@daoyou/game-content/qi/config';
 import type {
   DivinationRecord,
@@ -208,6 +209,7 @@ export async function interpretDivination(
   drawId: string,
   signal: AbortSignal,
   emit: (event: DivinationStreamEvent) => Promise<void>,
+  ai: Pick<AiService, 'streamText'>,
 ) {
   return withRedisLock(
     {
@@ -255,24 +257,28 @@ export async function interpretDivination(
               omen: resolveDivination(row.dice).omen,
             }),
           });
-          const response = streamAiText({
-            system,
+          const response = ai.streamText({
+            model: 'alibaba.fast',
+            instructions: system,
             prompt: user,
-            sceneId: 'daily-divination',
-            abortSignal: signal,
-            timeoutMs: 30_000,
+            label: 'daily-divination',
+            abortSignal: aiDeadlineSignal(30_000, signal),
             maxOutputTokens: 700,
           });
-          for await (const chunk of response.textStream) {
-            lease.assertHeld();
-            body += chunk;
-            if (body.length > 1200) throw new Error('签文超出长度限制');
-            await emit({ type: 'text', text: chunk });
+          try {
+            for await (const chunk of response.textStream) {
+              lease.assertHeld();
+              body += chunk;
+              if (body.length > 1200) throw new Error('签文超出长度限制');
+              await emit({ type: 'text', text: chunk });
+            }
+            const { finishReason } = await response.result;
+            if (finishReason !== 'stop' || !body.trim() || signal.aborted)
+              throw new Error('签文未完整生成');
+            body = body.trim();
+          } finally {
+            response.abort();
           }
-          const finishReason = await response.finishReason;
-          if (finishReason !== 'stop' || !body.trim() || signal.aborted)
-            throw new Error('签文未完整生成');
-          body = body.trim();
         } catch (error) {
           lease.assertHeld();
           console.warn('[divination] using preset interpretation', {

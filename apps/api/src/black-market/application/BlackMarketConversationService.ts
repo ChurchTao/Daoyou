@@ -1,5 +1,7 @@
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject, streamAiText } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { truncateText } from '@server/utils/llmPayload.js';
 import type { BlackMarketNegotiationOutcome } from '@daoyou/game-rules/black-market';
 import { z } from 'zod';
@@ -209,7 +211,10 @@ function replyPayload(input: {
   });
 }
 
+@Injectable()
 export class BlackMarketConversationService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   async proposeTurn(input: {
     context: BlackMarketTurnContext;
     abortSignal?: AbortSignal;
@@ -217,21 +222,18 @@ export class BlackMarketConversationService {
     const { system, user } = renderPrompt('black-market-turn', {
       payloadJson: turnPayload(input.context),
     });
-    const timeoutSignal = AbortSignal.timeout(10_000);
-    const abortSignal = input.abortSignal
-      ? AbortSignal.any([input.abortSignal, timeoutSignal])
-      : timeoutSignal;
     try {
-      const response = await generateAiObject({
-        system,
+      const response = await this.ai.generateObject({
+        model: 'alibaba.fast',
+        instructions: system,
         prompt: user,
         schema: turnProposalSchema,
-        name: 'BlackMarketTurnProposal',
-        sceneId: 'black-market-turn',
-        abortSignal,
+        schemaName: 'BlackMarketTurnProposal',
+        label: 'black-market-turn',
+        abortSignal: aiDeadlineSignal(10_000, input.abortSignal),
         maxOutputTokens: 800,
       });
-      return { proposal: response.output, degraded: false };
+      return { proposal: response.object, degraded: false };
     } catch (error) {
       if (input.abortSignal?.aborted) throw error;
       console.warn('[black-market] turn proposal LLM fallback', { error });
@@ -248,19 +250,13 @@ export class BlackMarketConversationService {
     const { system, user } = renderPrompt('black-market-reply', {
       payloadJson: replyPayload(input),
     });
-    const timeoutSignal = AbortSignal.timeout(15_000);
-    const abortSignal = input.abortSignal
-      ? AbortSignal.any([input.abortSignal, timeoutSignal])
-      : timeoutSignal;
-    return streamAiText({
-      system,
+    return this.ai.streamText({
+      model: 'alibaba.fast',
+      instructions: system,
       prompt: user,
-      sceneId: 'black-market-reply',
-      abortSignal,
+      label: 'black-market-reply',
+      abortSignal: aiDeadlineSignal(15_000, input.abortSignal),
       maxOutputTokens: 220,
     });
   }
 }
-
-export const blackMarketConversationService =
-  new BlackMarketConversationService();

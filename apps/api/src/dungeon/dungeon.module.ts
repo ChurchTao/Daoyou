@@ -1,8 +1,10 @@
+import { AiService } from '@nestjs/ai';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@server/database/database.module.js';
 import { DRIZZLE_DATABASE } from '@server/database/database.service.js';
 import type { DbClient } from '@server/lib/drizzle/db.js';
 import type { withRedisLock } from '@server/lib/redis/lock.js';
+import { LlmModule } from '@server/llm/llm.module.js';
 import { PlayerCommandExecutor } from '@server/player/application/state/CommandExecutors.js';
 import { ResourceEngine } from '@server/player/application/state/ResourceEngine.js';
 import { PlayerStateModule } from '@server/player/player-state.module.js';
@@ -21,7 +23,7 @@ import { DungeonController } from './dungeon.controller.js';
 import { DungeonService } from './dungeon.service.js';
 
 @Module({
-  imports: [DatabaseModule, PlayerStateModule, RedisModule],
+  imports: [DatabaseModule, PlayerStateModule, RedisModule, LlmModule],
   controllers: [DungeonController, DungeonBattleController],
   providers: [
     {
@@ -37,15 +39,24 @@ import { DungeonService } from './dungeon.service.js';
         runs: DungeonRunStore,
         resources: ResourceEngine,
         lock: typeof withRedisLock,
+        ai: AiService,
       ) =>
         new DungeonFlowService(
-          generateDungeonEnding,
+          (state, endDisposition) =>
+            generateDungeonEnding(ai, state, endDisposition),
           database,
           runs,
           resources,
           lock,
+          ai,
         ),
-      inject: [DRIZZLE_DATABASE, DungeonRunStore, ResourceEngine, REDIS_LOCK],
+      inject: [
+        DRIZZLE_DATABASE,
+        DungeonRunStore,
+        ResourceEngine,
+        REDIS_LOCK,
+        AiService,
+      ],
     },
     {
       provide: DungeonApplicationService,

@@ -1,3 +1,4 @@
+import { LlmModule } from '@server/llm/llm.module.js';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuctionModule } from '../auction/auction.module.js';
@@ -10,7 +11,7 @@ import { InternalCronService } from './internal-cron.service.js';
 import { RuntimeService } from './runtime.service.js';
 
 @Module({
-  imports: [
+  imports: [LlmModule,
     DatabaseModule,
     CombatModule,
     AuctionModule,

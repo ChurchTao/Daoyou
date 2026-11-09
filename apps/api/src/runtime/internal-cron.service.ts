@@ -1,3 +1,4 @@
+import { AiService } from '@nestjs/ai';
 import { Inject, Injectable } from '@nestjs/common';
 import { AuctionBuyOrderOperations } from '@server/auction/application/AuctionBuyOrderService.js';
 import { AuctionOperations } from '@server/auction/application/AuctionService.js';
@@ -18,6 +19,7 @@ import { runScenarioGeneration } from '@server/dungeon/application/mystery/Scena
 @Injectable()
 export class InternalCronService {
   constructor(
+    @Inject(AiService) private readonly ai: AiService,
     @Inject(AuctionOperations) private readonly auction: AuctionOperations,
     @Inject(AuctionBuyOrderOperations)
     private readonly buyOrders: AuctionBuyOrderOperations,
@@ -35,7 +37,7 @@ export class InternalCronService {
     return runRankRewardsJob(scheduledAt);
   }
   marketRefresh() {
-    return runMarketRefreshCronJob();
+    return runMarketRefreshCronJob(this.ai);
   }
   resourceReplayCleanup() {
     return runResourceReplayCleanupJob();
@@ -44,10 +46,10 @@ export class InternalCronService {
     return runExpiredDataCleanupJob();
   }
   materialLibraryGeneration(scheduledAt?: Date) {
-    return runMaterialLibraryDailyGenerationJob(scheduledAt);
+    return runMaterialLibraryDailyGenerationJob(this.ai, scheduledAt);
   }
   dungeonScenarioGeneration() {
-    return runScenarioGeneration();
+    return runScenarioGeneration(this.ai);
   }
   sponsorshipReconcile() {
     return runSponsorshipReconcileJob(false);

@@ -1,6 +1,7 @@
 import type { MysteryCaseFile } from '@daoyou/game-domain/dungeon/mystery';
+import type { AiService } from '@nestjs/ai';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { stableCompactStringify } from '@server/utils/llmPayload.js';
 import { z } from 'zod';
 import {
@@ -218,6 +219,7 @@ export interface MysteryReviewIssue {
  * `locked` 中的字段由程序统一渲染（如凶手原话），不交给模型改写。
  */
 export async function reviewMysteryCase(
+  ai: AiService,
   caseFile: MysteryCaseFile,
   canon: MysteryCanon | undefined,
   options: { locked?: readonly string[]; apply?: boolean } = {},
@@ -270,14 +272,25 @@ export async function reviewMysteryCase(
       fields: Object.fromEntries(fields.map((f) => [f.path, f.get()])),
     }),
   });
-  const { output } = await generateAiObject({
-    system: prompt.system,
+  const { object: output } = await ai.generateObject({
+    model: 'alibaba.advanced',
+    instructions: prompt.system,
     prompt: prompt.user,
     schema,
-    name: 'DungeonMysteryReview',
-    sceneId: 'dungeon-case-review',
-    timeoutMs: MYSTERY_STAGE_TIMEOUT_MS,
-    thinking: MYSTERY_GENERATION_THINKING.review,
+    schemaName: 'DungeonMysteryReview',
+    label: 'dungeon-case-review',
+    abortSignal: aiDeadlineSignal(MYSTERY_STAGE_TIMEOUT_MS),
+    providerOptions: {
+      alibaba: {
+        enableThinking: MYSTERY_GENERATION_THINKING.review,
+        thinkingBudget: 4096,
+      },
+      deepseek: {
+        thinking: {
+          type: MYSTERY_GENERATION_THINKING.review ? 'enabled' : 'disabled',
+        },
+      },
+    },
   });
   const byPath = new Map(fields.map((f) => [f.path, f]));
   const references = names(result, false);

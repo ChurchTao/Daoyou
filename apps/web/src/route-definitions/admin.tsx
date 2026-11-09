@@ -71,11 +71,6 @@ export const adminRoutes = (
       handle={title('功德簿管理')}
     />
     <Route
-      path="llm-metrics"
-      lazy={lazyRoute(() => import('@app/routes/admin/llm-metrics/route'))}
-      handle={title('LLM 观测')}
-    />
-    <Route
       path="ai-usage"
       lazy={lazyRoute(() => import('@app/routes/admin/ai-usage/route'))}
       handle={title('AI 用量')}

@@ -43,6 +43,7 @@ import {
   canChallengeDungeonRealm,
   resolveDungeonMapConfig,
 } from '@daoyou/game-rules/world/dungeon';
+import type { AiService } from '@nestjs/ai';
 import { assertCombatV6MutationAllowed } from '@server/combat/mutation-policy.js';
 import { ConditionService } from '@server/cultivator/application/ConditionService.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
@@ -363,11 +364,15 @@ function cloneCosts(
 
 export class DungeonFlowService {
   constructor(
-    private readonly generateEnding: typeof generateDungeonEnding,
+    private readonly generateEnding: (
+      state: DungeonState,
+      endDisposition: DungeonEndDisposition,
+    ) => ReturnType<typeof generateDungeonEnding>,
     private readonly database: DbClient,
     private readonly runs: DungeonRunStore,
     private readonly resources: ResourceEngine,
     private readonly withLock: typeof withRedisLock,
+    private readonly ai: AiService,
   ) {}
 
   private normalizeOptionCosts(option: { costs?: DungeonOptionCost[] }) {
@@ -1742,7 +1747,7 @@ export class DungeonFlowService {
             400,
           );
         }
-        const answer = await generateNpcReply({
+        const answer = await generateNpcReply(this.ai, {
           caseFile: mystery.caseFile,
           run: mystery.run,
           npcId: input.npcId,

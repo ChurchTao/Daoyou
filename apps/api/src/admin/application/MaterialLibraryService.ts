@@ -1,3 +1,4 @@
+import type { AiService } from '@nestjs/ai';
 import { SpiritSeedGenerator } from '@server/lib/generation/SpiritSeedGenerator.js';
 import {
   getExecutor,
@@ -224,7 +225,7 @@ export function materialLibraryEntryToMaterial(
   return materialEntryToWrite(entry);
 }
 
-export async function generateMaterialLibraryEntries(input: {
+export async function generateMaterialLibraryEntries(ai: AiService, input: {
   request: ItemLibraryMaterialGenerateInput;
   userId: string;
   ignoreItemIdConflicts?: boolean;
@@ -232,7 +233,7 @@ export async function generateMaterialLibraryEntries(input: {
   // 兼容尚未刷新、仍从普通材料入口提交 seed 的管理后台页面；
   // 服务端统一改走灵种生成器，避免构造缺失 seedSpec 的普通材料。
   if (input.request.materialType === 'seed') {
-    return generateSpiritSeedLibraryEntries({
+    return generateSpiritSeedLibraryEntries(ai, {
       request: {
         count: input.request.count,
         quality: input.request.quality,
@@ -250,7 +251,7 @@ export async function generateMaterialLibraryEntries(input: {
       quantity: 1,
     }),
   );
-  const generated = await MaterialGenerator.generateFromSkeletons(skeletons);
+  const generated = await MaterialGenerator.generateFromSkeletons(ai, skeletons);
   if (generated.length === 0) return [];
   const seed =
     input.request.seed ??
@@ -305,7 +306,7 @@ export async function generateMaterialLibraryEntries(input: {
   return rows.map(parseRow);
 }
 
-export async function generateSpiritSeedLibraryEntries(input: {
+export async function generateSpiritSeedLibraryEntries(ai: AiService, input: {
   request: ItemLibrarySpiritSeedGenerateInput;
   userId: string;
 }): Promise<ItemLibraryEntry[]> {
@@ -317,6 +318,7 @@ export async function generateSpiritSeedLibraryEntries(input: {
   for (let remaining = input.request.count; remaining > 0; remaining -= 8) {
     generated.push(
       ...(await SpiritSeedGenerator.generateRandom(
+        ai,
         Math.min(8, remaining),
         generationOptions,
       )),
@@ -368,7 +370,7 @@ export async function generateSpiritSeedLibraryEntries(input: {
   return rows.map(parseRow);
 }
 
-export async function generateRandomMaterialLibraryEntries(input: {
+export async function generateRandomMaterialLibraryEntries(ai: AiService, input: {
   count: number;
   userId: string;
   source: string;
@@ -377,7 +379,7 @@ export async function generateRandomMaterialLibraryEntries(input: {
   const count = normalizePositiveCount(input.count);
   if (count <= 0) return [];
 
-  const generated = await MaterialGenerator.generateRandom(count);
+  const generated = await MaterialGenerator.generateRandom(ai, count);
   if (generated.length === 0) return [];
 
   const seed =
@@ -425,7 +427,7 @@ export async function generateRandomMaterialLibraryEntries(input: {
   return rows.map(parseRow);
 }
 
-export async function generateDailyMarketMaterialLibraryEntries(input: {
+export async function generateDailyMarketMaterialLibraryEntries(ai: AiService, input: {
   count: number;
   userId: string;
   source: string;
@@ -441,7 +443,7 @@ export async function generateDailyMarketMaterialLibraryEntries(input: {
   const generated: ItemLibraryEntry[] = [];
 
   for (const request of plan) {
-    const entries = await generateMaterialLibraryEntries({
+    const entries = await generateMaterialLibraryEntries(ai, {
       request,
       userId: input.userId,
       ignoreItemIdConflicts: true,

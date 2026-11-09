@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { BlackMarketConversationService } from '@server/black-market/application/BlackMarketConversationService.js';
+import { BlackMarketObservationService } from '@server/black-market/application/BlackMarketObservationService.js';
+import { BlackMarketPerceptionService } from '@server/black-market/application/BlackMarketPerceptionService.js';
 import {
   commitBlackMarketPurchase,
   completeBlackMarketReply,
@@ -24,6 +26,10 @@ export class BlackMarketService {
   constructor(
     @Inject(BlackMarketConversationService)
     private readonly conversation: BlackMarketConversationService,
+    @Inject(BlackMarketObservationService)
+    private readonly observation: BlackMarketObservationService,
+    @Inject(BlackMarketPerceptionService)
+    private readonly perception: BlackMarketPerceptionService,
   ) {}
   read(actor: ActiveCultivatorRef, nodeId: string) {
     return getBlackMarketOverview({ actor, nodeId });
@@ -35,7 +41,10 @@ export class BlackMarketService {
     input: z.infer<typeof OpenSessionSchema>,
   ) {
     return toPlayerStateMutationResponse(
-      await openBlackMarketSession({ actor, nodeId, ...input }),
+      await openBlackMarketSession(
+        { actor, nodeId, ...input },
+        { observation: this.observation, perception: this.perception },
+      ),
     );
   }
 
@@ -46,13 +55,10 @@ export class BlackMarketService {
     command: z.infer<typeof InteractSchema>,
     abortSignal: AbortSignal,
   ) {
-    return prepareBlackMarketInteraction({
-      actor,
-      nodeId,
-      sessionId,
-      command,
-      abortSignal,
-    });
+    return prepareBlackMarketInteraction(
+      { actor, nodeId, sessionId, command, abortSignal },
+      this.conversation,
+    );
   }
 
   async reply(
@@ -76,14 +82,18 @@ export class BlackMarketService {
         negotiationOutcome: prepared.negotiationOutcome,
         abortSignal: signal,
       });
-      for await (const chunk of reply.textStream) {
-        signal.throwIfAborted();
-        body += chunk;
-        await emit({
-          type: 'reply-chunk',
-          messageId: prepared.messageId,
-          text: chunk,
-        });
+      try {
+        for await (const chunk of reply.textStream) {
+          signal.throwIfAborted();
+          body += chunk;
+          await emit({
+            type: 'reply-chunk',
+            messageId: prepared.messageId,
+            text: chunk,
+          });
+        }
+      } finally {
+        reply.abort();
       }
       body = body.trim();
       if (!body) throw new Error('empty black market reply');

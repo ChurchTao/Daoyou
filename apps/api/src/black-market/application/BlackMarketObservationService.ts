@@ -1,7 +1,9 @@
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import { renderPrompt } from '@server/lib/prompts/index.js';
 import { redis } from '@server/lib/redis/index.js';
 import { parseRedisJson } from '@server/lib/redis/json.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { stableCompactStringify, truncateText } from '@server/utils/llmPayload.js';
 import { sanitizeBlackMarketObservationText } from '@daoyou/game-rules/black-market';
 import type { Material } from '@daoyou/game-domain/character';
@@ -105,7 +107,10 @@ function materialize(
   ];
 }
 
+@Injectable()
 export class BlackMarketObservationService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   async build(input: {
     item: Material;
     itemLibraryItemId: string;
@@ -147,16 +152,17 @@ export class BlackMarketObservationService {
         regionTags: input.regionTags.filter(Boolean).slice(0, 3),
       }),
     });
-    const response = await generateAiObject({
-      system,
+    const response = await this.ai.generateObject({
+      model: 'alibaba.fast',
+      instructions: system,
       prompt: user,
       schema: observationSetSchema,
-      name: 'BlackMarketObservationSet',
-      sceneId: 'black-market-observations',
-      abortSignal: input.abortSignal,
+      schemaName: 'BlackMarketObservationSet',
+      label: 'black-market-observations',
+      abortSignal: aiDeadlineSignal(120_000, input.abortSignal),
       maxOutputTokens: 1_500,
     });
-    const observations = materialize(response.output, input.item);
+    const observations = materialize(response.object, input.item);
     try {
       await redis.set(
         key,
@@ -170,6 +176,3 @@ export class BlackMarketObservationService {
     return observations;
   }
 }
-
-export const blackMarketObservationService =
-  new BlackMarketObservationService();

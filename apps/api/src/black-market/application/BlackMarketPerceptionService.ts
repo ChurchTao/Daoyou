@@ -1,5 +1,7 @@
+import { AiService } from '@nestjs/ai';
+import { Inject, Injectable } from '@nestjs/common';
 import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { truncateText } from '@server/utils/llmPayload.js';
 import type { BlackMarketPricingState } from '@daoyou/game-rules/black-market';
 import { z } from 'zod';
@@ -71,7 +73,10 @@ function fallbackBelief(input: {
   };
 }
 
+@Injectable()
 export class BlackMarketPerceptionService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   async build(input: {
     npc: BlackMarketNpcConfig;
     pricing: BlackMarketPricingState;
@@ -98,33 +103,30 @@ export class BlackMarketPerceptionService {
         observations: visibleObservations,
       }),
     });
-    const timeoutSignal = AbortSignal.timeout(10_000);
-    const abortSignal = input.abortSignal
-      ? AbortSignal.any([input.abortSignal, timeoutSignal])
-      : timeoutSignal;
     try {
-      const response = await generateAiObject({
-        system,
+      const response = await this.ai.generateObject({
+        model: 'alibaba.fast',
+        instructions: system,
         prompt: user,
         schema: beliefSchema,
-        name: 'BlackMarketNpcBelief',
-        sceneId: 'black-market-perception',
-        abortSignal,
+        schemaName: 'BlackMarketNpcBelief',
+        label: 'black-market-perception',
+        abortSignal: aiDeadlineSignal(10_000, input.abortSignal),
         maxOutputTokens: 900,
       });
       const allowedIds = new Set(input.observations.map((item) => item.id));
       const deception = DECEPTION[input.npc.id];
       return {
         belief: {
-          ...response.output,
-          clueInterpretations: response.output.clueInterpretations.filter(
+          ...response.object,
+          clueInterpretations: response.object.clueInterpretations.filter(
             (item) => allowedIds.has(item.observationId),
           ),
           perceivedValueBand: perceivedValueBand(input.pricing),
           ...deception,
           bluffsUsed: 0,
         },
-        opening: response.output.opening,
+        opening: response.object.opening,
         degraded: false,
       };
     } catch (error) {
@@ -134,5 +136,3 @@ export class BlackMarketPerceptionService {
     }
   }
 }
-
-export const blackMarketPerceptionService = new BlackMarketPerceptionService();

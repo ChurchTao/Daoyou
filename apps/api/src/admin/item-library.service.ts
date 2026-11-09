@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { AiService } from '@nestjs/ai';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import {
   getItemLibraryDailyMaterialGenerationSettings,
   upsertItemLibraryDailyMaterialGenerationSettings,
@@ -27,6 +28,8 @@ function isUniqueViolation(error: unknown): boolean {
 }
 @Injectable()
 export class AdminItemLibraryService {
+  constructor(@Inject(AiService) private readonly ai: AiService) {}
+
   async list(query: Record<string, string | undefined>) {
     const parsed = ItemLibraryListQuerySchema.safeParse({
       status: query['status'] || undefined,
@@ -59,7 +62,7 @@ export class AdminItemLibraryService {
       );
     }
     try {
-      const items = await generateMaterialLibraryEntries({
+      const items = await generateMaterialLibraryEntries(this.ai, {
         request: parsed.data,
         userId: userId,
       });
@@ -81,7 +84,7 @@ export class AdminItemLibraryService {
       );
     }
     try {
-      const items = await generateSpiritSeedLibraryEntries({
+      const items = await generateSpiritSeedLibraryEntries(this.ai, {
         request: parsed.data,
         userId: userId,
       });

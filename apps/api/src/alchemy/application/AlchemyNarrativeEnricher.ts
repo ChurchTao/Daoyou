@@ -1,7 +1,3 @@
-import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
-import { renderPrompt } from '@server/lib/prompts/index.js';
-import { generateAiObject } from '@server/utils/aiClient.js';
-import { formatAlchemyPropertyVector } from '@daoyou/game-rules/alchemy';
 import type { ElementType } from '@daoyou/constants/elements';
 import type { Quality } from '@daoyou/constants/qualities';
 import type {
@@ -9,6 +5,11 @@ import type {
   PillFamily,
   WeightedAlchemyProperty,
 } from '@daoyou/game-domain/consumables';
+import { formatAlchemyPropertyVector } from '@daoyou/game-rules/alchemy';
+import type { AiService } from '@nestjs/ai';
+import { getRuntimeEnvironment } from '@server/lib/config/environment.js';
+import { renderPrompt } from '@server/lib/prompts/index.js';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { z } from 'zod';
 
 function getPillFamilyLabel(family: PillFamily): string {
@@ -73,7 +74,10 @@ export class AlchemyNarrativeEnricher {
   private readonly enabled: boolean;
   private readonly timeoutMs: number;
 
-  constructor(options: { enabled?: boolean; timeoutMs?: number } = {}) {
+  constructor(
+    private readonly ai: AiService,
+    options: { enabled?: boolean; timeoutMs?: number } = {},
+  ) {
     this.enabled =
       options.enabled ?? AlchemyNarrativeEnricher.resolveDefaultEnabled();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_NARRATIVE_TIMEOUT_MS;
@@ -96,16 +100,16 @@ export class AlchemyNarrativeEnricher {
         'alchemy-improvised-copy',
         variables,
       );
-      const response = await this.withTimeout(
-        generateAiObject({
-          system,
-          prompt: user,
-          schema: improvisedPillCopySchema,
-          name: 'ImprovisedPillCopy',
-          sceneId: 'alchemy-improvised-copy',
-        }),
-      );
-      return response.output;
+      const response = await this.ai.generateObject({
+        model: 'alibaba.fast',
+        abortSignal: aiDeadlineSignal(this.timeoutMs),
+        instructions: system,
+        prompt: user,
+        schema: improvisedPillCopySchema,
+        schemaName: 'ImprovisedPillCopy',
+        label: 'alchemy-improvised-copy',
+      });
+      return response.object;
     } catch (error) {
       console.error(
         '[AlchemyNarrativeEnricher] improvised copy failed:',
@@ -113,18 +117,6 @@ export class AlchemyNarrativeEnricher {
       );
       return null;
     }
-  }
-
-  private async withTimeout<T>(promise: Promise<T>): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        setTimeout(
-          () => reject(new Error('LLM alchemy narrative timeout')),
-          this.timeoutMs,
-        );
-      }),
-    ]);
   }
 
   private buildImprovisedPillVariables(facts: ImprovisedPillCopyFacts) {

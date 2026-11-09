@@ -1,3 +1,4 @@
+import type { AiService } from '@nestjs/ai';
 import { REALM_VALUES } from '@daoyou/constants/realms';
 import { RANKING_REWARDS } from '@daoyou/game-content/economy';
 import {
@@ -332,9 +333,9 @@ export async function runRankRewardsJob(
   });
 }
 
-export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
+export async function runMarketRefreshCronJob(ai: AiService): Promise<CronJobResult> {
   return withJobLock('market-refresh', async () => {
-    const result = await runMarketRefreshJob();
+    const result = await runMarketRefreshJob(ai);
     return {
       success: true,
       processed: result.processed,
@@ -344,6 +345,7 @@ export async function runMarketRefreshCronJob(): Promise<CronJobResult> {
 }
 
 export async function runMaterialLibraryDailyGenerationJob(
+  ai: AiService,
   scheduledAt = new Date(),
 ): Promise<CronJobResult> {
   if (!isBackgroundLlmEnabled())
@@ -366,7 +368,7 @@ export async function runMaterialLibraryDailyGenerationJob(
         };
       }
 
-      const items = await generateDailyMarketMaterialLibraryEntries({
+      const items = await generateDailyMarketMaterialLibraryEntries(ai, {
         count: settings.count,
         userId: ITEM_LIBRARY_SYSTEM_USER_ID,
         source: 'daily_cron',

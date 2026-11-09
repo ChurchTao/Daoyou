@@ -19,7 +19,8 @@ import { ELEMENT_VALUES, type ElementType } from '@daoyou/constants/elements';
 import { type Quality } from '@daoyou/constants/qualities';
 import type { Material } from '@daoyou/game-domain/character';
 import { renderPromptSystem, renderPromptUser } from '@server/lib/prompts/index.js';
-import { generateAiArray } from '@server/utils/aiClient.js';
+import type { AiService } from '@nestjs/ai';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { z } from 'zod';
 
 const SpiritSeedAISchema = z
@@ -138,17 +139,21 @@ function normalizeIdentityClues(
 
 export class SpiritSeedGenerator extends SpiritSeedSkeletonGenerator {
   static async generateRandom(
+    ai: AiService,
     count: number,
     options: SpiritSeedRandomOptions = {},
   ): Promise<Array<Omit<Material, 'id'>>> {
     return this.generateFromSkeletons(
+      ai,
       this.generateRandomSkeletons(count, options),
     );
   }
   static async generateBatches(
+    ai: AiService,
     batches: readonly SpiritSeedBatchSpec[],
   ): Promise<Array<Omit<Material, 'id'>>> {
     return this.generateFromSkeletons(
+      ai,
       batches.map((batch) => ({
         rank: batch.rank,
         quantity: Math.max(1, Math.floor(batch.quantity)),
@@ -158,20 +163,23 @@ export class SpiritSeedGenerator extends SpiritSeedSkeletonGenerator {
     );
   }
   static async generateFromSkeletons(
+    ai: AiService,
     skeletons: SpiritSeedSkeleton[],
   ): Promise<Array<Omit<Material, 'id'>>> {
     if (skeletons.length === 0) return [];
     let identities: SpiritSeedIdentity[];
     try {
-      const response = await generateAiArray({
-        system: renderPromptSystem('spirit-seed-generation'),
+      const response = await ai.generateObject({
+        model: 'alibaba.fast',
+        instructions: renderPromptSystem('spirit-seed-generation'),
         prompt: renderPromptUser('spirit-seed-generation', {
           requestList: requestList(skeletons),
         }),
-        elementSchema: SpiritSeedAISchema,
-        name: 'SpiritSeedIdentityList',
-        description: '灵种身份、隐性习性与玩家线索',
-        sceneId: 'spirit-seed-generation',
+        schema: z.object({ elements: z.array(SpiritSeedAISchema) }),
+        schemaName: 'SpiritSeedIdentityList',
+        schemaDescription: '灵种身份、隐性习性与玩家线索',
+        label: 'spirit-seed-generation',
+        abortSignal: aiDeadlineSignal(),
         maxOutputTokens: Math.min(
           8_000,
           Math.max(1_600, skeletons.length * 1_000),
@@ -180,10 +188,10 @@ export class SpiritSeedGenerator extends SpiritSeedSkeletonGenerator {
       identities = skeletons.map((skeleton, index) => {
         const fallback = fallbackIdentity(skeleton, index);
         const identity = {
-          ...(response.output[index] ?? fallback),
+          ...(response.object.elements[index] ?? fallback),
           element:
             skeleton.forcedElement ??
-            response.output[index]?.element ??
+            response.object.elements[index]?.element ??
             fallback.element,
         };
         return normalizeIdentityClues(identity, fallback);

@@ -1,3 +1,4 @@
+import { AiService } from '@nestjs/ai';
 import type { MarketBuyInput } from '@daoyou/contracts/market';
 import type { RecycleRequestSchema } from '@daoyou/contracts/recycle';
 import { Inject, Injectable } from '@nestjs/common';
@@ -17,6 +18,7 @@ import { MarketPurchaseService } from './application/MarketApplicationService.js
 @Injectable()
 export class MarketService {
   constructor(
+    @Inject(AiService) private readonly ai: AiService,
     @Inject(CultivatorQueriesService)
     private readonly facts: CultivatorQueriesService,
     @Inject(InventoryRecycleService)
@@ -34,7 +36,7 @@ export class MarketService {
       this.facts.realm(actor.cultivatorId),
       this.facts.preHeavenFates(actor.userId, actor.cultivatorId),
     ]);
-    return getMarketListings({
+    return getMarketListings(this.ai, {
       nodeId,
       layer,
       userId: actor.userId,

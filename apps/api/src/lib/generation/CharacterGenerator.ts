@@ -1,20 +1,23 @@
-import { buildGeneratedCharacter } from '@daoyou/game-rules/character/creation';
 import { CultivatorAIRawSchema } from '@daoyou/game-domain/character/generation';
-import { generateAiObject } from '@server/utils/aiClient.js';
+import { buildGeneratedCharacter } from '@daoyou/game-rules/character/creation';
+import type { AiService } from '@nestjs/ai';
+import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import {
   getCharacterGenerationPrompt,
   getCharacterGenerationUserPrompt,
 } from './character-prompts.js';
 
 export class CharacterGenerator {
-  static async generate(userInput: string) {
-    const response = await generateAiObject({
-      system: getCharacterGenerationPrompt(),
+  static async generate(ai: AiService, userInput: string) {
+    const response = await ai.generateObject({
+      model: 'alibaba.fast',
+      abortSignal: aiDeadlineSignal(),
+      instructions: getCharacterGenerationPrompt(),
       prompt: getCharacterGenerationUserPrompt(userInput),
       schema: CultivatorAIRawSchema,
-      name: '修仙真形骨架',
-      sceneId: 'character-generation',
+      schemaName: '修仙真形骨架',
+      label: 'character-generation',
     });
-    return buildGeneratedCharacter(response.output, userInput, Math.random);
+    return buildGeneratedCharacter(response.object, userInput, Math.random);
   }
 }

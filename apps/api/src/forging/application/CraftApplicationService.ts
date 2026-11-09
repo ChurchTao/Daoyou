@@ -1,27 +1,28 @@
-import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
-import type { DbTransaction } from '@server/lib/drizzle/db.js';
-import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
-import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
-import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
-import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
-import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
 import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
-import type { AlchemyMode } from '@daoyou/game-domain/consumables';
+import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import type { Consumable } from '@daoyou/game-domain/character';
-import { assertAlchemyMaterialVersions } from '@server/alchemy/application/inventory/AlchemyInventory.js';
+import type { AlchemyMode } from '@daoyou/game-domain/consumables';
+import type { ResourceOperationSettlement } from '@daoyou/game-domain/resources';
+import type { AiService } from '@nestjs/ai';
 import { prepareFormulaCraft } from '@server/alchemy/application/AlchemyFormulaService.js';
-import { prepareAlchemyCraft } from '@server/alchemy/application/alchemyServiceV2.js';
-import {
-  playerCommandExecutor,
-  type CommittedCommand,
-} from '@server/player/application/state/CommandExecutors.js';
-import { readCultivatorName } from '@server/cultivator/facts.js';
-import { assertInventoryIdle } from '@server/inventory/operations.js';
+import { createAlchemyService } from '@server/alchemy/application/alchemyServiceV2.js';
+import { assertAlchemyMaterialVersions } from '@server/alchemy/application/inventory/AlchemyInventory.js';
 import {
   qiCurrencyChange,
   type QiSettlementBaseline,
 } from '@server/cultivator/application/QiResourceChanges.js';
 import { QiService } from '@server/cultivator/application/QiService.js';
+import { readCultivatorName } from '@server/cultivator/facts.js';
+import { assertInventoryIdle } from '@server/inventory/operations.js';
+import type { DbTransaction } from '@server/lib/drizzle/db.js';
+import { createDomainEvent } from '@server/lib/mq/domainEventWriter.js';
+import { publishTransactionalMessageBestEffort } from '@server/lib/mq/transactionalMessagePublisher.js';
+import { findPlayerMutationRequest } from '@server/lib/repositories/playerStateRepository.js';
+import {
+  playerCommandExecutor,
+  type CommittedCommand,
+} from '@server/player/application/state/CommandExecutors.js';
+import { normalizeFreeformLlmInput } from '@server/utils/llmPayload.js';
 
 export type CraftCommandInput = {
   requestId: string;
@@ -35,15 +36,23 @@ export type CraftCommandInput = {
   userPrompt?: string;
 };
 
-export async function executeCraftCommand(args: {
-  userId: string;
-  cultivatorId: string;
-  input: CraftCommandInput;
-}): Promise<CommittedCommand<unknown>> {
+export async function executeCraftCommand(
+  ai: AiService,
+  args: {
+    userId: string;
+    cultivatorId: string;
+    input: CraftCommandInput;
+  },
+): Promise<CommittedCommand<unknown>> {
   const { input } = args;
   const source = `alchemy_${input.alchemyMode ?? 'improvised'}`;
-  const idempotency = { key: input.requestId, fingerprint: JSON.stringify(input) };
-  if (await findPlayerMutationRequest(args.cultivatorId, source, input.requestId)) {
+  const idempotency = {
+    key: input.requestId,
+    fingerprint: JSON.stringify(input),
+  };
+  if (
+    await findPlayerMutationRequest(args.cultivatorId, source, input.requestId)
+  ) {
     return playerCommandExecutor.executeWithLock({
       userId: args.userId, cultivatorId: args.cultivatorId, source, idempotency,
       command: async () => { throw new Error('炼丹执行凭据已失效'); },
@@ -70,10 +79,14 @@ export async function executeCraftCommand(args: {
     }
     const prepared =
       mode === 'improvised'
-        ? await prepareAlchemyCraft(args.cultivatorId, input.materialIds, {
-            materialQuantities: input.materialQuantities,
-            userPrompt: normalizedUserPrompt,
-          })
+        ? await createAlchemyService(ai).prepareAlchemyCraft(
+            args.cultivatorId,
+            input.materialIds,
+            {
+              materialQuantities: input.materialQuantities,
+              userPrompt: normalizedUserPrompt,
+            },
+          )
         : await prepareFormulaCraft(
             args.cultivatorId,
             input.formulaId!,

@@ -133,43 +133,9 @@ ALTCHA 不需要前端 site key。认证 CAPTCHA 启用时 Redis 也是强依赖
 
 ### AI 能力
 
-AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），全部使用服务端配置的模型与凭据，保留两条调用路径：
+AI 相关功能统一通过原生 `@nestjs/ai` 的 `AiService` 调用，全部使用服务端配置的模型与凭据。业务服务直接注入，普通应用函数显式接收依赖；不使用全局 service locator 或生成兼容门面。旧 `aiClient.ts`、加权路由、`LLM_PROVIDER`、`LLM_ADVANCED_PROVIDER`、`LLM_DEBUG` 和 LLM 观测页/API 已退役。
 
-- 现有场景使用 `aiClient.ts`，沿用场景分层、加权路由、并发、超时与 `metricsStore` 指标。
-- `yield-story`（历练见闻）直接注入 `@nestjs/ai` 的 `AiService`，使用原生模型配置、超时、重试与错误处理。新场景也可以直接使用 `AiService`，不经过 `aiClient.ts`；全局 `onUsage` 将完成的模型步骤写入独立 PostgreSQL 事件表，在 `/admin/ai-usage` 查看，不写入旧 `metricsStore` 或旧后台 LLM 指标页。
-
-#### aiClient.ts 路由
-
-服务端通过 `LLM_PROVIDER` 配置基础模型组：
-
-`LLM_PROVIDER=<provider>[/<model>][:<weight>][,...]`
-
-| 需求 | 配置 |
-| --- | --- |
-| 单供应商单模型 | `alibaba` 或 `alibaba/qwen3.7-flash` |
-| 单供应商多模型 | `alibaba/qwen3.7-flash:70,alibaba/qwen-plus:30` |
-| 多供应商单模型 | `alibaba/qwen3.7-flash:70,deepseek/deepseek-v4-flash:30` |
-| 多供应商多模型 | `alibaba/qwen3.7-flash:50,alibaba/qwen-plus:20,deepseek/deepseek-v4-flash:30` |
-
-规则：
-
-- 省略 `/model` 时用 `packages/contracts/src/llm/config.ts` 中 `LLM_PROVIDER_DEFAULT_MODELS` 对应的默认模型
-- 省略 `:weight` 时该条权重为 `1`（等权）
-- 多于一条路由时按用户 ID 做稳定哈希分流。同一组配置下，同一用户命中同一条 `provider + model`
-- 无用户上下文（如 cron）时落到当前权重最高的路由
-- 列出的每个供应商都必须配置对应 API Key
-- 未设置 `LLM_PROVIDER` 时自动回退：有 `ALIBABA_API_KEY` 用 `alibaba`，否则有 `DEEPSEEK_API_KEY` 用 `deepseek`
-
-高级模型组 `LLM_ADVANCED_PROVIDER` 使用相同的路由格式和分流规则。高级场景由 [`llmTierForScene`](../apps/api/src/lib/llm/tiers.ts) 决定。
-
-- 未设置或为空时，高级场景使用基础组
-- 服务端只在高级场景选用高级组时解析该组。高级组配置有误只影响使用该组的调用
-
-其它变量：
-
-- `ALIBABA_API_KEY`：阿里云百炼 API Key
-- `ALIBABA_BASE_URL`：可选，默认国内北京 `https://dashscope.aliyuncs.com/compatible-mode/v1`
-- `DEEPSEEK_API_KEY`：DeepSeek API Key
+供应商凭据：`ALIBABA_API_KEY`、可选 `ALIBABA_BASE_URL`（默认北京 `https://dashscope.aliyuncs.com/compatible-mode/v1`）、`DEEPSEEK_API_KEY`。环境中遗留的旧路由变量不再生效，应从部署配置移除。
 
 #### @nestjs/ai 命名模型
 
@@ -182,17 +148,21 @@ AI 相关功能支持 DeepSeek 与阿里云百炼（Qwen），全部使用服务
 | `deepseek.fast` | `DEEPSEEK_FAST_MODEL` | 使用 `LLM_PROVIDER_DEFAULT_MODELS.deepseek` |
 | `deepseek.advanced` | `DEEPSEEK_ADVANCED_MODEL` | 不注册该别名 |
 
-这条路径共用 `ALIBABA_API_KEY`、`ALIBABA_BASE_URL` 和 `DEEPSEEK_API_KEY`；`LLM_PROVIDER_FACTORIES` 只负责供应商客户端、端点和凭据，不保存模型配置。`LlmModule` 显式读取上表四个环境变量确定实际模型 ID，缺省值只来自 `packages/contracts/src/llm/config.ts` 的 `LLM_PROVIDER_DEFAULT_MODELS`，再交给原生 `AiModule` 注册别名。上述模型设置与 `LLM_PROVIDER`、`LLM_ADVANCED_PROVIDER` 相互独立；别名由业务代码显式选择，不参与现有场景分层或加权分流。
+`LLM_PROVIDER_FACTORIES` 只负责供应商客户端、端点和凭据，模型设置集中在 `LlmModule`。别名由业务代码显式选择，不存在权重分流、用户哈希选路或高级模型自动降级。普通场景使用 `alibaba.fast`；云游剧本的大纲、正文和审校使用 `alibaba.advanced`，执行这些任务前必须配置 `ALIBABA_ADVANCED_MODEL`。切换供应商或档位时修改该业务调用的 `model` 别名。
 
-历练见闻默认使用 `model: 'alibaba.fast'`，并在该调用中通过原生 `providerOptions` 关闭思考模式。只配置 DeepSeek 的服务端 Key 不会自动切换这条调用；切换供应商时需调整业务使用的别名。
+共享原生 `BulkheadPolicy` 限制最多 64 个并发模型步骤，不排队；各模型组合原生 `RetryPolicy` 和 `TimeoutPolicy`。只有供应商标记可重试的请求错误及尝试超时会重试，最多 3 次；使用指数退避并遵守供应商 Retry-After（超过 30 秒不再重试），不对格式错误重试。快速别名每次尝试上限 120 秒，高级别名 15 分钟。命名模型已配置组合 `resilience`，调用级普通 `timeout/retry` 不再参与策略组装；需要更短的业务总限时，使用 `abortSignal`。`llm/call-options.ts` 的 `aiDeadlineSignal` 只合并原生取消信号与整次调用期限，不包装生成；各业务沿用更短期限，同一业务重试复用总期限。流式消费在 `finally` 调用原生 `abort()`。
+
+默认通过 `providerOptions` 关闭思考；剧本大纲和审校显式开启，Alibaba 思考预算为 4096。长耗时请求使用 provider 层的 `undici` fetch，避免 Node 默认 300 秒响应头等待提前结束，实际期限由取消信号与原生策略负责。
+
+结构化输出直接使用 `generateObject`；材料和灵种使用 `{ elements: [...] }` schema 后读取数组。严格业务校验、确定性保底及剧本自身审校/有限重试保留；旧通用的格式纠错提示与截断后扩增输出上限已删除。模型成功但业务校验不通过的步骤仍可能被采集为已完成用量。
 
 用户自备模型凭据（BYOK）已退役：游戏设置不再提供供应商、模型或 Key 配置，客户端不再添加 `x-llm-*` 请求头，HTTP/WS 入口不再解析或应用这些旧头，CORS 也不再放行它们。浏览器启动时删除旧 `daoyou_llm_config` 存储项。服务端供应商、API Key、baseURL 与前端部署使用的 `VITE_API_BASE_URL` 配置继续保留；客户端输入不能改变上游模型端点或凭据。
 
-#### 原生 AI 用量与费用
+#### AI 用量与费用
 
-`LlmModule` 的全局 `onUsage` 将原生 `AiService` 事件交给 `AiUsageService`，存入 `wanjiedaoyou_ai_usage_events`。新场景通过该模块注入 `AiService`，并设置稳定的 `label` 即可按场景采集，不需要业务调用包裹；缺失或空白标签归入 `unlabeled`。独立后台页 `/admin/ai-usage` 按场景查看服务端模型用量。已有 `credential_source` 历史列及 `byok` 枚举约束和数据保留，新采集与后台查询仅使用 `server`；不修改原迁移，也不清理历史记录。
+`LlmModule` 的全局 `onUsage` 将原生 `AiService` 事件交给 `AiUsageService`，存入 `wanjiedaoyou_ai_usage_events`。新场景通过该模块注入 `AiService`，并设置稳定的 `label` 即可按场景采集，不需要业务调用包裹；缺失或空白标签归入 `unlabeled`。后台页 `/admin/ai-usage` 按场景查看所有原生服务端模型用量。已有 `credential_source` 历史列及 `byok` 枚举约束和数据保留，新采集与后台查询仅使用 `server`；不修改原迁移，也不清理历史记录。
 
-统计单位是**已采集的模型完成步骤**，不是业务请求数：一次 Agent 调用可以包含多个步骤。原生 `onUsage` 不提供完整的失败事件；失败、取消、流中断和结构化输出校验失败可能已有消耗却没有用量记录，因此本页不能用于计算业务失败率，也不能作为供应商真实账单。供应商未提供的 token 分项会被原生库归为 `0`，无法与真实的零用量区分。事件不保存提示词、生成正文或 API Key。
+统计单位是**已采集的模型完成步骤**，不是业务请求数：一次 Agent 调用可以包含多个步骤。原生 `onUsage` 不提供完整的失败事件；失败、取消、流中断和结构化输出校验失败可能已有消耗却没有用量记录，因此本页不能用于计算业务失败率，也不能作为供应商真实账单。供应商未提供的 token 分项会被原生库归为 `0`，无法与真实的零用量区分。事件不保存提示词、生成正文或 API Key。旧观测的提示词/Schema 字符数、失败率和错误分类不再采集；旧 Redis `admin:llm-metrics:events:v1` 没有 TTL，部署后可单独清理该 key，不迁入费用表，也不删除共享 Redis 配置。
 
 价格定义在 `apps/api/src/llm/model-pricing.ts`，由 `LlmModule` 配置到原生 `AiModelDefinition.pricing`。费用直接保存原生事件已计算的 `cost`，采集和查询层不另造计价公式。每条已计价记录保存币种和当时的价格快照；历史费用不随后续价格配置改变而回算。未知价格保留 `null`，不能当作免费；费用按币种分别汇总。
 
