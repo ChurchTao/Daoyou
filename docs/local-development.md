@@ -76,19 +76,42 @@ Nest收到SIGTERM／SIGINT后拒绝新请求，停止定时发布并排空HTTP�
 
 确实要批量生成或预热时，在所用环境文件里设 `BACKGROUND_LLM_JOBS=on` 再启动 API。启动后它会清扫并按节点并发处理全部排队任务（每实例最多 16 路），持续产生模型费用，用完改回或删除这一行。cron 仍只在 production 模式启动。
 
-单本验证指定一个排队任务 ID，只执行该任务一次，完整走生成、审校与入库，不清扫、补货或继续处理其他任务。将下面的占位符替换为任务 UUID，调用后检查返回的 `status`／`error`。失败时任务按原有策略回到排队或失败状态，不会在本次调用里继续执行：
+单本验证指定一个排队任务 ID，只执行该任务一次，完整走生成、审校与入库，不清扫、补货或继续处理其他任务。入口要求真实 `AiService` 实例和合法任务 UUID，旧单参数调用会在认领任务前拒绝。下面只创建导入 `LlmModule` 的 Nest application context，不启动 `AppModule`／`RuntimeModule` 或 NATS 消费者。将占位符替换为任务 UUID，调用后检查返回的 `status`／`error`；失败时任务按原有策略回到排队或失败状态，不会在本次调用里继续执行：
 
 ```bash
 cd apps/api
 node --env-file=../../env/staging.env --import tsx --input-type=module <<'NODE'
+import 'reflect-metadata';
+import { AiService } from '@nestjs/ai';
+import { NestFactory } from '@nestjs/core';
 import { runSingleScenarioGeneration } from './src/dungeon/application/mystery/ScenarioLibrary.ts';
+import { RequestWorkService } from './src/http/request-work.service.ts';
 import { closeDatabase } from './src/lib/drizzle/db.ts';
 import { closeRedisConnection } from './src/lib/redis/index.ts';
+import { LlmModule } from './src/llm/llm.module.ts';
+
+const app = await NestFactory.createApplicationContext(LlmModule);
 try {
-  console.log(await runSingleScenarioGeneration('替换为排队任务UUID'));
+  console.log(await runSingleScenarioGeneration(
+    app.get(AiService),
+    '替换为排队任务UUID',
+  ));
 } finally {
-  await closeDatabase();
-  await closeRedisConnection();
+  try {
+    await app.get(RequestWorkService).drain();
+  } finally {
+    try {
+      await app.close();
+    } finally {
+      const closed = await Promise.allSettled([
+        closeDatabase(),
+        closeRedisConnection(),
+      ]);
+      for (const result of closed) {
+        if (result.status === 'rejected') console.error(result.reason);
+      }
+    }
+  }
 }
 NODE
 ```
