@@ -10,17 +10,70 @@ import { PILL_UNIT_ESSENCE_BY_QUALITY } from '@daoyou/game-content/alchemy';
 import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 
 describe('alchemy yield engine', () => {
-  it('charges one qi per 200 raw essence within the 1 to 20 limit', () => {
+  it('keeps empty and small batches at a minimum of one qi', () => {
     expect(calculateAlchemyQiCost([])).toBe(1);
     expect(
-      calculateAlchemyQiCost([{ rank: '凡品', type: 'herb', dose: 25 }]),
+      calculateAlchemyQiCost([{ rank: '凡品', type: 'herb', dose: 1 }]),
     ).toBe(1);
+  });
+
+  it.each([
+    [1, 2],
+    [5, 7],
+    [10, 12],
+    [20, 23],
+    [30, 33],
+  ])('charges %i doses in each of six mystic herb slots at %i qi', (dose, cost) => {
     expect(
-      calculateAlchemyQiCost([{ rank: '凡品', type: 'herb', dose: 26 }]),
-    ).toBe(2);
+      calculateAlchemyQiCost(
+        Array.from({ length: 6 }, () => ({ rank: '玄品', type: 'herb', dose })),
+      ),
+    ).toBe(cost);
+  });
+
+  it('counts all material doses regardless of how they are split across slots', () => {
     expect(
-      calculateAlchemyQiCost([{ rank: '神品', type: 'tcdb', dose: 999 }]),
-    ).toBe(20);
+      calculateAlchemyQiCost([{ rank: '玄品', type: 'herb', dose: 30 }]),
+    ).toBe(7);
+    expect(
+      calculateAlchemyQiCost(
+        Array.from({ length: 6 }, () => ({ rank: '玄品', type: 'herb', dose: 5 })),
+      ),
+    ).toBe(7);
+  });
+
+  it('includes type-weighted essence and rounds only after adding both costs', () => {
+    expect(
+      calculateAlchemyQiCost([
+        ...Array.from({ length: 3 }, () => ({
+          rank: '玄品' as const,
+          type: 'herb',
+          dose: 10,
+        })),
+        ...Array.from({ length: 2 }, () => ({
+          rank: '真品' as const,
+          type: 'aux',
+          dose: 5,
+        })),
+        { rank: '地品', type: 'monster', dose: 5 },
+      ]),
+    ).toBe(10);
+  });
+
+  it('charges above an exact integer boundary without capping at twenty qi', () => {
+    const materials = Array.from({ length: 6 }, () => ({
+      rank: '玄品' as const,
+      type: 'herb',
+      dose: 30,
+    }));
+    expect(calculateAlchemyQiCost(materials)).toBe(33);
+    materials[0].type = 'monster';
+    expect(calculateAlchemyQiCost(materials)).toBe(34);
+    expect(
+      calculateAlchemyQiCost(
+        Array.from({ length: 6 }, () => ({ rank: '神品', type: 'tcdb', dose: 30 })),
+      ),
+    ).toBe(85);
   });
 
   it('scales raw essence by material dose and type', () => {

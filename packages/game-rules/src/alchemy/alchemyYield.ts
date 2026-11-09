@@ -89,12 +89,16 @@ export function calculateRawEssence(
   );
 }
 
-/** 每 200 点原始药蕴消耗 1 点天地灵气，单炉限制在 1～20 点。 */
+/** 投料数量 / 6 + sqrt(原始药蕴 / 800)，相加后向上取整，最低 1 点，无硬上限。 */
 export function calculateAlchemyQiCost(
   materials: AlchemyEssenceMaterial[],
 ): number {
   const rawEssence = calculateRawEssence(materials);
-  return Math.min(20, Math.max(1, Math.ceil(rawEssence / 200)));
+  const totalDose = materials.reduce(
+    (sum, material) => sum + Math.max(0, Math.floor(material.dose)),
+    0,
+  );
+  return Math.max(1, Math.ceil(totalDose / 6 + Math.sqrt(rawEssence / 800)));
 }
 
 export function calculateEffectiveEssence(

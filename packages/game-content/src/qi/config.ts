@@ -21,7 +21,7 @@ export const QI_ACTION_COSTS = {
   wild_search: 2,
   retreat_10_years: 4,
   breakthrough_attempt: 20,
-  // 炼丹会按本炉原始药蕴动态计费；这里仅保留最低消耗作为通用兜底。
+  // 炼丹会按本炉投料份数与原始药蕴动态计费；这里仅保留最低消耗作为通用兜底。
   alchemy_improvised: 1,
   alchemy_formula: 1,
   equipment_forge: 7,
