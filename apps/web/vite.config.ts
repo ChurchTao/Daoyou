@@ -2,7 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { globSync, readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,17 @@ const alias = {
   '@app': fileURLToPath(new URL('./src', import.meta.url)),
 };
 const devApiTarget = () => `http://127.0.0.1:${process.env.PORT ?? 3000}`;
+
+function collectInterfaceCharacters() {
+  const root = fileURLToPath(new URL('.', import.meta.url));
+  const characters = new Set<string>();
+  for (const file of globSync('src/**/*.{ts,tsx}', { cwd: root })) {
+    for (const character of readFileSync(join(root, file), 'utf8')) {
+      characters.add(character);
+    }
+  }
+  return [...characters].join('');
+}
 
 // pnpm disables dependency install scripts. Install the splitter's native
 // library on demand for both development and clean deployment builds.
@@ -68,7 +79,7 @@ const cloudflareNotFoundPlugin = (): Plugin => ({
   },
 });
 
-export default defineConfig(async (): Promise<UserConfig> => {
+export default defineConfig(async ({ command }): Promise<UserConfig> => {
   ensureFontSplit();
   // Loading the plugin initializes FFI, so the native library must exist first.
   const { default: font } = await import('vite-plugin-font');
@@ -83,11 +94,15 @@ export default defineConfig(async (): Promise<UserConfig> => {
       // Full-font mode retains dynamic chat, names and generated text. The
       // splitter groups common characters and keeps the rest behind unicode-range.
       font.vite({
-        scanFiles: ['src/**/*.{ts,tsx}'],
+        // The plugin opens every scanned source concurrently. Collect build
+        // characters sequentially to leave file handles available to Rolldown.
+        // An empty scan list still enables the plugin's whitelist subset mode.
+        scanFiles: command === 'build' ? [] : ['src/**/*.{ts,tsx}'],
         // Full-font language grouping omits these symbol aliases from the
         // original cmaps; retain them explicitly in the interface subsets.
         whiteList:
-          '\u00a0¢£¤¥¦¨©¬¯°±÷ˆˇ˚˜―’‚„‥‰€™\u3000〈〉『』〔〕〖〗﹉﹊﹋﹌﹍﹎﹏－．＿｛｝฿࿕࿖',
+          '\u00a0¢£¤¥¦¨©¬¯°±÷ˆˇ˚˜―’‚„‥‰€™\u3000〈〉『』〔〕〖〗﹉﹊﹋﹌﹍﹎﹏－．＿｛｝฿࿕࿖' +
+          (command === 'build' ? collectInterfaceCharacters() : ''),
         subsetChunkSize: 100000,
         chunkSize: 2 * 1024 * 1024,
         // The published type is a protobuf class; the runtime accepts this object.
