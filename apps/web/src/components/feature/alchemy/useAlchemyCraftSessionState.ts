@@ -1,25 +1,33 @@
-import { apiFetch } from '@app/lib/api/fetch';
-import { SpiritStones } from '@app/components/ui/SpiritStones';
-import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
-import { useQiActionConfirm } from '@app/components/feature/cultivator/useQiActionConfirm';
+import {
+  getQiErrorMessage,
+  useQiActionConfirm,
+} from '@app/components/feature/cultivator/useQiActionConfirm';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
+import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { apiFetch } from '@app/lib/api/fetch';
+import { pendingCommandRequest } from '@app/lib/pendingCommandRequest';
 import { useResourceMutation } from '@app/lib/resources/mutations';
 import {
   useCultivatorCurrency,
   useCultivatorIdentity,
   usePlayerSession,
 } from '@app/lib/resources/player';
+import type { PlayerResourceMutationMeta } from '@daoyou/contracts/player';
 import {
   ALCHEMY_INPUT_CONSTRAINTS,
   ALCHEMY_MAX_DOSE,
 } from '@daoyou/game-content/alchemy';
-import type { AlchemyFormula, AlchemyMode } from '@daoyou/game-domain/consumables';
 import type { Material } from '@daoyou/game-domain/character';
+import type {
+  AlchemyFormula,
+  AlchemyMode,
+} from '@daoyou/game-domain/consumables';
 import {
   createElement,
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -77,7 +85,10 @@ type AnalyzeResponse = {
   success: boolean;
   data?: FormulaAnalysisState['value'];
   error?: string;
+  message?: string;
   remainingSeconds?: number;
+  state?: PlayerResourceMutationMeta;
+  analysisFinal?: boolean;
 };
 type DiscoveryResponse = {
   success: boolean;
@@ -126,7 +137,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         : null,
     [currency.data, identity?.id, identity?.realm],
   );
-  const { mutate } = useResourceMutation();
+  const { mutate, consumeChanges } = useResourceMutation();
   const { pushToast } = useInkUI();
   const { openQiActionConfirm } = useQiActionConfirm();
   const [phase, setPhase] = useState<AlchemyWorkspacePhase>('preparing');
@@ -142,6 +153,8 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   const [status, setStatus] = useState('');
   const analysisKeyRef = useRef<string | null>(null);
   const analysisExpiryTimerRef = useRef<number | null>(null);
+  const analysisExpiresAtRef = useRef(0);
+  const analysisRequestRef = useRef<AbortController | null>(null);
 
   const materialQuantities = useMemo(
     () =>
@@ -169,15 +182,38 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   const selectionKey = useMemo(
     () =>
       JSON.stringify({
+        owner: cultivator?.id ?? null,
         mode,
-        formulaId: formula?.id ?? null,
+        formula,
         ids: materials.ids,
         materialQuantities,
         materialVersions,
       }),
-    [formula?.id, materialQuantities, materialVersions, materials.ids, mode],
+    [
+      cultivator?.id,
+      formula,
+      materialQuantities,
+      materialVersions,
+      materials.ids,
+      mode,
+    ],
   );
+  const selectionKeyRef = useRef(selectionKey);
+  useLayoutEffect(() => {
+    selectionKeyRef.current = selectionKey;
+  }, [selectionKey]);
   const qiCost = readiness.estimatedQi ?? 1;
+  const formulaQiCostPaid =
+    typeof analysis.value?.qiCostPaid === 'number'
+      ? analysis.value.qiCostPaid
+      : null;
+  const canReuseFormulaAnalysis = Boolean(
+    mode === 'formula' &&
+    analysis.value?.valid &&
+    analysis.value.analysisId &&
+    analysisKeyRef.current === selectionKey &&
+    analysisExpiresAtRef.current > 0,
+  );
   const readyForReadinessCheck =
     materials.ids.length > 0 && (mode === 'improvised' || Boolean(formula));
   const readinessIsFresh =
@@ -203,8 +239,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     mode === 'formula' &&
     phase === 'observing' &&
     readyForCostConfirmation &&
-    analysis.value?.analysisId &&
-    analysisKeyRef.current === selectionKey,
+    canReuseFormulaAnalysis,
   );
 
   const clearAnalysis = useCallback(() => {
@@ -213,11 +248,20 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       analysisExpiryTimerRef.current = null;
     }
     analysisKeyRef.current = null;
+    analysisExpiresAtRef.current = 0;
     setAnalysis((current) => ({
       ...EMPTY_ANALYSIS,
+      loading: Boolean(analysisRequestRef.current),
       cooldownRemaining: current.cooldownRemaining,
     }));
   }, []);
+
+  useEffect(() => {
+    if (analysisKeyRef.current && analysisKeyRef.current !== selectionKey) {
+      clearAnalysis();
+      setPhase((current) => (current === 'observing' ? 'preparing' : current));
+    }
+  }, [clearAnalysis, selectionKey]);
 
   const invalidateObservation = useCallback(() => {
     setPhase('preparing');
@@ -249,6 +293,12 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
 
   const selectFormula = useCallback(
     (nextFormula: AlchemyFormula) => {
+      if (
+        phase !== 'result' &&
+        mode === 'formula' &&
+        JSON.stringify(nextFormula) === JSON.stringify(formula)
+      )
+        return;
       if (phase === 'result') {
         setMaterials(EMPTY_MATERIALS);
         setIntentState('');
@@ -257,7 +307,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       setModeState('formula');
       invalidateObservation();
     },
-    [invalidateObservation, phase],
+    [formula, invalidateObservation, mode, phase],
   );
 
   const addMaterialToFurnace = useCallback(
@@ -275,8 +325,15 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         ),
       );
       if (materials.ids.includes(material.id)) {
+        if (
+          materials.doses[material.id] === amount &&
+          JSON.stringify(materials.map[material.id]) ===
+            JSON.stringify(material)
+        )
+          return 'already-added';
         setMaterials((current) => ({
           ...current,
+          map: { ...current.map, [material.id!]: material },
           doses: { ...current.doses, [material.id!]: amount },
         }));
         invalidateObservation();
@@ -300,7 +357,13 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       invalidateObservation();
       return 'added';
     },
-    [invalidateObservation, materials.ids, phase],
+    [
+      invalidateObservation,
+      materials.doses,
+      materials.ids,
+      materials.map,
+      phase,
+    ],
   );
 
   const removeMaterial = useCallback(
@@ -349,13 +412,14 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         ALCHEMY_MIN_DOSE,
         Math.min(ALCHEMY_MAX_DOSE, available, Math.floor(dose)),
       );
+      if (next === (materials.doses[id] ?? ALCHEMY_MIN_DOSE)) return;
       setMaterials((current) => ({
         ...current,
         doses: { ...current.doses, [id]: next },
       }));
       invalidateObservation();
     },
-    [invalidateObservation, materials.map],
+    [invalidateObservation, materials.doses, materials.map],
   );
 
   useEffect(() => {
@@ -386,6 +450,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         body: (await response.json()) as ReadinessResponse,
       }))
       .then(({ response, body }) => {
+        if (controller.signal.aborted) return;
         if (!response.ok || !body.success || !body.data)
           throw new Error(body.error || '材料检查失败');
         setReadiness({
@@ -399,6 +464,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         });
       })
       .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
         if (error instanceof DOMException && error.name === 'AbortError')
           return;
         setReadiness({
@@ -433,6 +499,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
 
   useEffect(
     () => () => {
+      analysisRequestRef.current?.abort();
       if (analysisExpiryTimerRef.current !== null)
         window.clearTimeout(analysisExpiryTimerRef.current);
     },
@@ -442,38 +509,74 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
   const analyzeFormula = useCallback(async (): Promise<boolean> => {
     if (
       !formula?.id ||
+      !cultivator ||
       !readyForFormulaAnalysis ||
-      analysis.cooldownRemaining > 0
+      analysis.cooldownRemaining > 0 ||
+      analysisRequestRef.current ||
+      selectionKeyRef.current !== selectionKey
     )
       return false;
+    clearAnalysis();
     setAnalysis((current) => ({ ...current, loading: true, error: null }));
+    const controller = new AbortController();
+    analysisRequestRef.current = controller;
     try {
+      const payload = {
+        materialIds: materials.ids,
+        materialQuantities,
+        materialVersions,
+      };
+      const pending = pendingCommandRequest(
+        cultivator.id,
+        'alchemy-formula-analysis',
+        { formulaId: formula.id, ...payload },
+      );
       const response = await apiFetch(
         `/api/alchemy/formulas/${formula.id}/analyze`,
         {
           method: 'POST',
+          signal: controller.signal,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            materialIds: materials.ids,
-            materialQuantities,
-            materialVersions,
-          }),
+          body: JSON.stringify({ ...payload, requestId: pending.requestId }),
         },
       );
       const body = (await response.json()) as AnalyzeResponse;
       if (!response.ok || !body.success || !body.data) {
-        if (typeof body.remainingSeconds === 'number')
+        if (body.state) {
+          consumeChanges(body.state);
+          currency.invalidate();
+        }
+        if (body.analysisFinal === true) pending.complete();
+        if (
+          selectionKeyRef.current === selectionKey &&
+          typeof body.remainingSeconds === 'number'
+        )
           setAnalysis((current) => ({
             ...current,
             cooldownRemaining: body.remainingSeconds!,
           }));
-        throw new Error(body.error || '丹方分析失败');
+        throw new Error(getQiErrorMessage(body, '丹方分析失败'));
       }
+      const data = body.state
+        ? await mutate(
+            Promise.resolve({
+              success: true as const,
+              data: body.data,
+              state: body.state,
+            }),
+          )
+        : body.data;
+      pending.complete();
+      if (body.state?.replayed) currency.invalidate();
+      if (controller.signal.aborted || selectionKeyRef.current !== selectionKey)
+        return false;
       analysisKeyRef.current = selectionKey;
+      analysisExpiresAtRef.current = Date.now() + data.expiresInSeconds * 1000;
       if (analysisExpiryTimerRef.current !== null)
         window.clearTimeout(analysisExpiryTimerRef.current);
       analysisExpiryTimerRef.current = window.setTimeout(() => {
         analysisKeyRef.current = null;
+        analysisExpiresAtRef.current = 0;
         analysisExpiryTimerRef.current = null;
         setAnalysis((current) => ({
           ...EMPTY_ANALYSIS,
@@ -481,15 +584,17 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
           error: '本次丹方分析已过期，请重新查看炼制预览。',
         }));
         setPhase('preparing');
-      }, body.data.expiresInSeconds * 1000);
+      }, data.expiresInSeconds * 1000);
       setAnalysis({
-        value: body.data,
+        value: data,
         loading: false,
         error: null,
-        cooldownRemaining: body.data.cooldownRemainingSeconds,
+        cooldownRemaining: data.cooldownRemainingSeconds,
       });
       return true;
     } catch (error) {
+      if (controller.signal.aborted || selectionKeyRef.current !== selectionKey)
+        return false;
       setAnalysis((current) => ({
         ...current,
         value: null,
@@ -497,21 +602,56 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         error: error instanceof Error ? error.message : '丹方分析失败',
       }));
       return false;
+    } finally {
+      if (analysisRequestRef.current === controller) {
+        analysisRequestRef.current = null;
+        if (!controller.signal.aborted)
+          setAnalysis((current) => ({ ...current, loading: false }));
+      }
     }
   }, [
     analysis.cooldownRemaining,
+    clearAnalysis,
+    consumeChanges,
+    cultivator,
+    currency,
     formula?.id,
     materialQuantities,
     materialVersions,
     materials.ids,
+    mutate,
     readyForFormulaAnalysis,
     selectionKey,
   ]);
 
-  const analyzeCurrentFormula = useCallback(async () => {
-    if (!readyForFormulaAnalysis) return;
-    if (await analyzeFormula()) setPhase('observing');
-  }, [analyzeFormula, readyForFormulaAnalysis]);
+  const analyzeCurrentFormula = useCallback(() => {
+    if (analysisRequestRef.current) return;
+    if (canReuseFormulaAnalysis && analysisExpiresAtRef.current > Date.now()) {
+      setPhase('observing');
+      return;
+    }
+    if (!readyForFormulaAnalysis || analysis.cooldownRemaining > 0) return;
+    openQiActionConfirm({
+      actionName: '推演药路',
+      qiCost,
+      confirmLabel: '确认推演',
+      details: buildCraftConfirmationDetails([
+        ['丹方', formula?.name ?? '未选择'],
+        ['推演说明', '推演时消耗灵气，失败退还；开炉只扣灵石和材料。'],
+      ]),
+      onConfirm: async () => {
+        if (await analyzeFormula()) setPhase('observing');
+      },
+    });
+  }, [
+    analysis.cooldownRemaining,
+    analyzeFormula,
+    canReuseFormulaAnalysis,
+    formula?.name,
+    openQiActionConfirm,
+    qiCost,
+    readyForFormulaAnalysis,
+  ]);
 
   const returnToPreparation = useCallback(() => setPhase('preparing'), []);
 
@@ -578,6 +718,8 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
           ? readyForImprovisedFire
           : readyForFormulaFire;
       if (!cultivator || mode !== expectedMode || !ready || submitting) return;
+      const craftQiCost =
+        expectedMode === 'formula' && formulaQiCostPaid !== null ? 0 : qiCost;
       const totalDose = materials.ids.reduce(
         (sum, id) => sum + (materials.doses[id] ?? ALCHEMY_MIN_DOSE),
         0,
@@ -601,7 +743,12 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
             ' 枚',
           ),
         ],
-        ['天地灵气', `${qiCost} 点`],
+        [
+          '天地灵气',
+          expectedMode === 'formula' && formulaQiCostPaid !== null
+            ? `推演已消耗 ${formulaQiCostPaid} 点，开炉不再扣除。`
+            : `${craftQiCost} 点`,
+        ],
         ...(expectedMode === 'improvised'
           ? ([
               [
@@ -613,7 +760,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       ]);
       openQiActionConfirm({
         actionName: expectedMode === 'formula' ? '依方炼制' : '随心炼制',
-        qiCost,
+        qiCost: craftQiCost,
         confirmLabel: expectedMode === 'improvised' ? '确认尝试' : '确认炼制',
         details,
         onConfirm: async () => {
@@ -645,15 +792,23 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
             1500,
           );
           try {
-            const pending = pendingCommandRequest(cultivator.id, 'alchemy', submitPayload);
+            const pending = pendingCommandRequest(
+              cultivator.id,
+              'alchemy',
+              submitPayload,
+            );
             const body = await mutate<CraftResult>(
               apiFetch('/api/craft', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...submitPayload, requestId: pending.requestId }),
+                body: JSON.stringify({
+                  ...submitPayload,
+                  requestId: pending.requestId,
+                }),
               }),
             );
             pending.complete();
+            if (expectedMode === 'formula') clearAnalysis();
             if (!body.consumable) throw new Error('炉中未能凝丹');
             if (
               !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -701,6 +856,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       clearAnalysis,
       cultivator,
       formula?.name,
+      formulaQiCostPaid,
       intent,
       materials.doses,
       materials.ids,
@@ -758,6 +914,8 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     submitting,
     status,
     qiCost,
+    formulaQiCostPaid,
+    canReuseFormulaAnalysis,
     totalDose: materials.ids.reduce(
       (sum, id) => sum + (materials.doses[id] ?? ALCHEMY_MIN_DOSE),
       0,

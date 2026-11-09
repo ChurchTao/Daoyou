@@ -261,21 +261,63 @@ export function FurnacePreparationStage() {
             {session.totalDose} 份
           </p>
           <p>
-            {session.readiness.estimatedSpiritStones !== null
-              ? <><SpiritStones amount={session.readiness.estimatedSpiritStones} /> · {session.qiCost} 天地灵气</>
-              : '投入灵材后确定本次消耗'}
+            {session.readiness.estimatedSpiritStones !== null ? (
+              <>
+                {session.mode === 'formula' ? '开炉：' : null}
+                <SpiritStones
+                  amount={session.readiness.estimatedSpiritStones}
+                />
+                {session.mode === 'improvised' ? (
+                  <>
+                    {' '}
+                    · <span className="font-mono">{session.qiCost}</span>{' '}
+                    天地灵气
+                  </>
+                ) : (
+                  ' · 已投入材料'
+                )}
+              </>
+            ) : (
+              '投入灵材后确定本次消耗'
+            )}
           </p>
+          {session.mode === 'formula' ? (
+            <p>
+              {session.canReuseFormulaAnalysis ? (
+                session.formulaQiCostPaid !== null ? (
+                  <>
+                    推演已消耗{' '}
+                    <span className="font-mono">
+                      {session.formulaQiCostPaid}
+                    </span>{' '}
+                    天地灵气，再次查看不消耗。
+                  </>
+                ) : (
+                  '已有预览，再次查看不消耗灵气。'
+                )
+              ) : (
+                <>
+                  推演消耗 <span className="font-mono">{session.qiCost}</span>{' '}
+                  天地灵气，失败退还。
+                </>
+              )}
+            </p>
+          ) : null}
         </div>
         <span data-guide="alchemy.fire" className="inline-flex">
           <InkButton
             variant="primary"
-            pending={session.readiness.loading || session.analysis.loading}
+            pending={
+              session.analysis.loading ||
+              (session.readiness.loading && !session.canReuseFormulaAnalysis)
+            }
             pendingLabel="正在核对……"
             disabled={
               session.mode === 'improvised'
                 ? !session.readyForImprovisedFire
-                : !session.readyForFormulaAnalysis ||
-                  session.analysis.cooldownRemaining > 0
+                : !session.canReuseFormulaAnalysis &&
+                  (!session.readyForFormulaAnalysis ||
+                    session.analysis.cooldownRemaining > 0)
             }
             onClick={() =>
               session.mode === 'improvised'
@@ -285,9 +327,11 @@ export function FurnacePreparationStage() {
           >
             {session.mode === 'improvised'
               ? '开炉炼丹'
-              : session.analysis.cooldownRemaining > 0
-                ? `${session.analysis.cooldownRemaining} 秒后可预览`
-                : '预览丹方'}
+              : session.canReuseFormulaAnalysis
+                ? '再次查看预览'
+                : session.analysis.cooldownRemaining > 0
+                  ? `${session.analysis.cooldownRemaining} 秒后可预览`
+                  : '预览丹方'}
           </InkButton>
         </span>
       </footer>

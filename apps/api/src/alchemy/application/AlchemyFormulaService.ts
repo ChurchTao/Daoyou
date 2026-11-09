@@ -1,6 +1,7 @@
 import { type ElementType } from '@daoyou/constants/elements';
 import { QUALITY_ORDER, type Quality } from '@daoyou/constants/qualities';
 import { type RealmType } from '@daoyou/constants/realms';
+import type { PlayerResourceMutationMeta } from '@daoyou/contracts/player';
 import {
   ALCHEMY_MAX_DOSE,
   getFormulaFitPolicy,
@@ -68,21 +69,44 @@ import {
   assembleAlchemyOutputConsumables,
   type AlchemyOutputDraft,
 } from '@server/alchemy/application/inventory/AlchemyOutputAssembler.js';
+import { qiCurrencyChange } from '@server/cultivator/application/QiResourceChanges.js';
+import { QiService } from '@server/cultivator/application/QiService.js';
 import { getCultivatorPreHeavenFates } from '@server/cultivator/application/readers/CultivatorProfileRepository.js';
 import {
   getExecutor,
   type DbExecutor,
   type DbTransaction,
 } from '@server/lib/drizzle/db.js';
-import { alchemyFormulas, cultivators } from '@server/lib/drizzle/schema.js';
+import {
+  alchemyFormulas,
+  cultivators,
+  playerMutationRequests,
+} from '@server/lib/drizzle/schema.js';
 import { redis } from '@server/lib/redis/index.js';
 import { parseRedisJson } from '@server/lib/redis/json.js';
+import { redisLockKeys, withRedisLock } from '@server/lib/redis/lock.js';
+import {
+  findPlayerMutationRequest,
+  insertPlayerMutationRequest,
+  readScopeVersion,
+} from '@server/lib/repositories/playerStateRepository.js';
+import {
+  playerCommandExecutor,
+  type CommittedCommand,
+} from '@server/player/application/state/CommandExecutors.js';
 import { sectOrganizationFacade } from '@server/sects/organization/index.js';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { assertAlchemyMaterialVersions } from './inventory/AlchemyInventory.js';
 
 const DISCOVERY_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_TTL_SECONDS = 600;
 const FORMULA_ANALYSIS_COOLDOWN_SECONDS = 30;
+// Bump when analysis prompt, schema or interpretation changes.
+const FORMULA_ANALYSIS_CACHE_VERSION = 3;
+const ANALYSIS_RESERVE_SOURCE = 'alchemy_formula_analysis_reserve';
+const ANALYSIS_SOURCE = 'alchemy_formula_analysis';
+const ANALYSIS_CONSUMED_SOURCE = 'alchemy_formula_analysis_consumed';
 const DISCOVERY_STABILITY_THRESHOLD = 70;
 
 type MaterialRow = AlchemyBagMaterial;
@@ -148,7 +172,22 @@ interface FormulaAnalysisPayload {
   materialJudgments: FormulaMaterialJudgment[];
   batchProfile: AlchemyBatchProfile;
   dominantElement: ElementType;
+  qiCostPaid?: number;
+  expiresAt?: number;
+  contextSignature?: string;
+  modelKey?: string;
 }
+
+type FormulaAnalysisOutcome =
+  | { status: 'ready'; analysisId: string; payload: FormulaAnalysisPayload }
+  | { status: 'failed'; message: string };
+
+type FormulaAnalysisInput = {
+  requestId: string;
+  materialIds: string[];
+  materialVersions: Record<string, string>;
+  materialQuantities?: Record<string, number>;
+};
 
 interface DiscoveryContext {
   consumable: Consumable & { spec: PillSpec };
@@ -1010,124 +1049,441 @@ export async function confirmDiscoveryCandidate(
   };
 }
 
-export async function analyzeFormulaMaterials(
-  ai: AiService,
+function analysisHash(value: unknown): string {
+  return createHash('sha256').update(stableStringify(value)).digest('hex');
+}
+
+async function analysisState(
+  cultivatorId: string,
+): Promise<PlayerResourceMutationMeta> {
+  const scope = { kind: 'cultivator' as const, id: cultivatorId };
+  return {
+    changes: [],
+    baselines: [{ scope, scopeVersion: await readScopeVersion(scope) }],
+  };
+}
+
+async function loadAnalysisContext(
   cultivatorId: string,
   formulaId: string,
-  materialIds: string[],
-  materialQuantities?: Record<string, number>,
-): Promise<FormulaAnalysisResult> {
-  const [formula, selectedMaterials] = await Promise.all([
-    loadCultivatorFormula(cultivatorId, formulaId),
-    loadOwnedMaterials(cultivatorId, materialIds),
-  ]);
+  input: FormulaAnalysisInput,
+  modelKey: string,
+  q: DbExecutor = getExecutor(),
+) {
+  await assertAlchemyMaterialVersions(
+    cultivatorId,
+    input.materialIds,
+    input.materialVersions,
+    q,
+  );
+  const formula = await loadCultivatorFormula(cultivatorId, formulaId, q);
+  const rows = await loadOwnedMaterials(cultivatorId, input.materialIds, q);
+  const materials = buildPreparedMaterials(rows, input.materialQuantities);
+  const validation = validateFormulaIngredients(formula, materials);
+  if (!validation.valid)
+    throw new AlchemyServiceError(validation.blockingReason || '丹方不合。');
+  if (formula.blueprint.needsRebirth)
+    throw new AlchemyServiceError('此丹方需要升级后才能炼制。', 409);
+  return {
+    formula,
+    materials,
+    signature: analysisHash({
+      version: FORMULA_ANALYSIS_CACHE_VERSION,
+      modelKey,
+      formula,
+      materials,
+      materialVersions: input.materialVersions,
+    }),
+  };
+}
 
-  let materialsList: PreparedAlchemyMaterial[];
+async function readAnalysisOutcome(cultivatorId: string, requestId: string) {
+  const record = await findPlayerMutationRequest(
+    cultivatorId,
+    ANALYSIS_SOURCE,
+    requestId,
+  );
+  return record
+    ? { record, outcome: record.result as FormulaAnalysisOutcome }
+    : null;
+}
+
+async function findReusableAnalysis(cultivatorId: string, signature: string) {
+  const records = await getExecutor()
+    .select({ result: playerMutationRequests.result })
+    .from(playerMutationRequests)
+    .where(
+      and(
+        eq(playerMutationRequests.cultivatorId, cultivatorId),
+        eq(playerMutationRequests.source, ANALYSIS_SOURCE),
+        sql`${playerMutationRequests.result}->>'status' = 'ready'`,
+        sql`${playerMutationRequests.result}->'payload'->>'contextSignature' = ${signature}`,
+        sql`(${playerMutationRequests.result}->'payload'->>'expiresAt')::bigint > ${Date.now()}`,
+      ),
+    )
+    .orderBy(desc(playerMutationRequests.createdAt))
+    .limit(20);
+  for (const record of records) {
+    const outcome = record.result as FormulaAnalysisOutcome;
+    if (
+      outcome.status === 'ready' &&
+      !(await analysisConsumed(cultivatorId, outcome.analysisId))
+    )
+      return outcome;
+  }
+  return null;
+}
+
+async function analysisConsumed(
+  cultivatorId: string,
+  analysisId: string,
+  tx?: DbTransaction,
+) {
+  return Boolean(
+    await findPlayerMutationRequest(
+      cultivatorId,
+      ANALYSIS_CONSUMED_SOURCE,
+      analysisId,
+      tx,
+    ),
+  );
+}
+
+function analysisCacheKey(cultivatorId: string, signature: string) {
+  return `alchemy:formula_analysis:reuse:v${FORMULA_ANALYSIS_CACHE_VERSION}:${cultivatorId}:${signature}`;
+}
+
+async function cacheAnalysis(
+  cultivatorId: string,
+  outcome: Extract<FormulaAnalysisOutcome, { status: 'ready' }>,
+) {
+  const ttl = Math.floor(
+    ((outcome.payload.expiresAt ?? 0) - Date.now()) / 1000,
+  );
+  if (ttl <= 0) return;
   try {
-    materialsList = buildPreparedMaterials(
-      selectedMaterials,
-      materialQuantities,
+    await redis.set(
+      getFormulaAnalysisKey(cultivatorId, outcome.analysisId),
+      JSON.stringify(outcome.payload),
+      'EX',
+      ttl,
+    );
+    await redis.set(
+      analysisCacheKey(cultivatorId, outcome.payload.contextSignature!),
+      outcome.analysisId,
+      'EX',
+      ttl,
     );
   } catch (error) {
-    if (error instanceof AlchemyServiceError) {
-      return {
-        analysisId: '',
-        valid: false,
-        staticBlockingReason: error.message,
-        fitScore: 0,
-        fitBand: 'poor',
-        warnings: [],
-        materialJudgments: [],
-        dominantElement: formula.pattern.dominantElement,
-        stability: 0,
-        toxicityRating: 0,
-        cooldownRemainingSeconds: 0,
-        expiresInSeconds: FORMULA_ANALYSIS_TTL_SECONDS,
+    // The durable receipt can restore only the original remaining lifetime.
+    console.warn('[alchemy] analysis cache write failed', { error });
+  }
+}
+
+export async function analyzeFormulaMaterials(
+  ai: AiService,
+  actor: { userId: string; cultivatorId: string },
+  formulaId: string,
+  input: FormulaAnalysisInput,
+  modelKey: string,
+): Promise<CommittedCommand<FormulaAnalysisResult>> {
+  const cultivatorId = actor.cultivatorId;
+  const fingerprint = analysisHash({ formulaId, ...input });
+  const idempotency = { key: input.requestId, fingerprint };
+  const actionInstanceId = `formula-analysis:${cultivatorId}:${input.requestId}`;
+
+  return withRedisLock(
+    {
+      key: redisLockKeys.alchemyAnalysis(cultivatorId),
+      context: 'alchemy-formula-analysis',
+      timeoutMs: 30_000,
+    },
+    async (lease) => {
+      const fail = async (
+        message: string,
+      ): Promise<CommittedCommand<FormulaAnalysisResult>> => {
+        const failed =
+          await playerCommandExecutor.executeWithLock<FormulaAnalysisOutcome>({
+            ...actor,
+            source: ANALYSIS_SOURCE,
+            idempotency,
+            command: async (tx) => {
+              await QiService.refundReservation({
+                actionInstanceId,
+                reason: 'formula_analysis_failed',
+                tx,
+              });
+              const [current] = await tx
+                .select({
+                  qi: cultivators.qi,
+                  refreshedAt: cultivators.qiLastRefreshedAt,
+                })
+                .from(cultivators)
+                .where(eq(cultivators.id, cultivatorId))
+                .limit(1);
+              return {
+                result: {
+                  status: 'failed',
+                  message,
+                } satisfies FormulaAnalysisOutcome,
+                resourceChanges: [
+                  qiCurrencyChange('currency.alchemy-analysis.refunded', {
+                    qiAfter: current!.qi,
+                    qiLastRefreshedAt:
+                      current!.refreshedAt?.toISOString() ?? null,
+                  }),
+                ],
+              };
+            },
+          });
+        if (failed.result.status === 'ready') return present(failed.result);
+        throw new AlchemyServiceError(failed.result.message, 503, {
+          analysisFinal: true,
+          qiRefunded: true,
+          state: failed.state,
+        });
       };
-    }
-    throw error;
-  }
 
-  const validation = validateFormulaIngredients(formula, materialsList);
-  if (!validation.valid) {
-    return {
-      analysisId: '',
-      valid: false,
-      staticBlockingReason: validation.blockingReason,
-      fitScore: 0,
-      fitBand: 'poor',
-      warnings: validation.warnings,
-      materialJudgments: [],
-      dominantElement: formula.pattern.dominantElement,
-      stability: 0,
-      toxicityRating: 0,
-      cooldownRemainingSeconds: 0,
-      expiresInSeconds: FORMULA_ANALYSIS_TTL_SECONDS,
-    };
-  }
+      const present = async (
+        outcome: FormulaAnalysisOutcome,
+      ): Promise<CommittedCommand<FormulaAnalysisResult>> => {
+        const state = await analysisState(cultivatorId);
+        if (outcome.status === 'failed')
+          throw new AlchemyServiceError(outcome.message, 503, {
+            analysisFinal: true,
+            qiRefunded: true,
+            state,
+          });
+        if (
+          (outcome.payload.expiresAt ?? 0) <= Date.now() ||
+          (await analysisConsumed(cultivatorId, outcome.analysisId))
+        )
+          throw new AlchemyServiceError(
+            '本次推演已过期或已用于炼制，请重新推演。',
+            409,
+            { analysisFinal: true, state },
+          );
+        const current = await loadAnalysisContext(
+          cultivatorId,
+          formulaId,
+          input,
+          modelKey,
+        );
+        if (current.signature !== outcome.payload.contextSignature)
+          throw new AlchemyServiceError(
+            '丹方或材料已发生变化，请重新推演。',
+            409,
+            { analysisFinal: true, state },
+          );
+        await cacheAnalysis(cultivatorId, outcome);
+        const projection = resolveFormulaCraftProjection(
+          current.formula,
+          current.materials,
+          outcome.payload,
+        );
+        const cooldown = await redis.ttl(
+          getFormulaAnalysisCooldownKey(cultivatorId),
+        );
+        return {
+          state,
+          result: {
+            analysisId: outcome.analysisId,
+            valid: true,
+            qiCostPaid: outcome.payload.qiCostPaid,
+            fitScore: outcome.payload.fitScore,
+            fitBand: outcome.payload.fitBand,
+            conclusion: outcome.payload.conclusion,
+            warnings: outcome.payload.warnings,
+            materialJudgments: outcome.payload.materialJudgments,
+            batchProfile: toAlchemyBatchDisplayProfile(
+              outcome.payload.batchProfile,
+              current.materials,
+              projection.yieldFactors,
+            ),
+            dominantElement: outcome.payload.dominantElement,
+            stability: projection.stability,
+            toxicityRating: projection.toxicityRating,
+            cooldownRemainingSeconds: Math.max(0, cooldown),
+            expiresInSeconds: Math.max(
+              0,
+              Math.floor((outcome.payload.expiresAt! - Date.now()) / 1000),
+            ),
+          },
+        };
+      };
 
-  const cooldown = await checkAndAcquireFormulaAnalysisCooldown(cultivatorId);
-  if (!cooldown.allowed) {
-    throw new AlchemyServiceError(
-      `请 ${cooldown.remainingSeconds} 秒后再推演药路。`,
-      429,
-      { remainingSeconds: cooldown.remainingSeconds },
-    );
-  }
+      const previous = await readAnalysisOutcome(cultivatorId, input.requestId);
+      if (previous) {
+        if (previous.record.requestFingerprint !== fingerprint)
+          throw new AlchemyServiceError(
+            '同一推演请求不能更换丹方或材料。',
+            409,
+          );
+        return present(previous.outcome);
+      }
+      const pending = await findPlayerMutationRequest(
+        cultivatorId,
+        ANALYSIS_RESERVE_SOURCE,
+        input.requestId,
+      );
+      if (pending) {
+        if (pending.requestFingerprint !== fingerprint)
+          throw new AlchemyServiceError(
+            '同一推演请求不能更换丹方或材料。',
+            409,
+          );
+        return fail('上次推演未完成，灵气已退还，请重新推演。');
+      }
 
-  let analysis;
-  try {
-    analysis = await new AlchemyFormulaAnalyzer(ai).analyze({
-      formula,
-      materials: materialsList,
-    });
-  } catch {
-    throw new AlchemyServiceError('药路推演未明，请稍后再试。', 503);
-  }
+      const context = await loadAnalysisContext(
+        cultivatorId,
+        formulaId,
+        input,
+        modelKey,
+      );
+      const cachedId = await redis.get(
+        analysisCacheKey(cultivatorId, context.signature),
+      );
+      const cached = cachedId
+        ? await readAnalysisOutcome(cultivatorId, cachedId)
+        : null;
+      const reusable =
+        cached?.outcome.status === 'ready' &&
+        cached.outcome.payload.contextSignature === context.signature &&
+        (cached.outcome.payload.expiresAt ?? 0) > Date.now() &&
+        !(await analysisConsumed(cultivatorId, cached.outcome.analysisId))
+          ? cached.outcome
+          : await findReusableAnalysis(cultivatorId, context.signature);
+      if (reusable) {
+        const reused = await playerCommandExecutor.executeWithLock({
+          ...actor,
+          source: ANALYSIS_SOURCE,
+          idempotency,
+          allowEmpty: true,
+          command: async () => ({
+            result: reusable,
+            resourceChanges: [],
+          }),
+        });
+        return present(reused.result);
+      }
 
-  const payload = buildFormulaAnalysisPayload(
-    cultivatorId,
-    formula,
-    materialsList,
-    analysis.plan,
-    analysis.fitBand,
-    analysis.conclusion,
-    analysis.materialJudgments,
+      const cooldown =
+        await checkAndAcquireFormulaAnalysisCooldown(cultivatorId);
+      if (!cooldown.allowed)
+        throw new AlchemyServiceError(
+          `请 ${cooldown.remainingSeconds} 秒后再推演药路。`,
+          429,
+          { remainingSeconds: cooldown.remainingSeconds },
+        );
+      const reservation = await playerCommandExecutor.executeWithLock({
+        ...actor,
+        source: ANALYSIS_RESERVE_SOURCE,
+        idempotency,
+        command: async (tx) => {
+          const current = await loadAnalysisContext(
+            cultivatorId,
+            formulaId,
+            input,
+            modelKey,
+            tx,
+          );
+          if (current.signature !== context.signature)
+            throw new AlchemyServiceError(
+              '丹方或材料已发生变化，请重新推演。',
+              409,
+            );
+          const reserved = await QiService.reserveQi({
+            cultivatorId,
+            action: 'alchemy_formula',
+            actionInstanceId,
+            cost: calculateAlchemyQiCost(current.materials),
+            metadata: {
+              formulaId,
+              analysisId: input.requestId,
+              phase: 'formula_analysis',
+            },
+            tx,
+          });
+          return {
+            result: { qiCostPaid: reserved.consumed },
+            resourceChanges: [
+              qiCurrencyChange('currency.alchemy-analysis.reserved', reserved),
+            ],
+          };
+        },
+      });
+      if (reservation.state.replayed)
+        return fail('上次推演未完成，灵气已退还，请重新推演。');
+
+      let ready: Extract<FormulaAnalysisOutcome, { status: 'ready' }>;
+      try {
+        const analysis = await new AlchemyFormulaAnalyzer(ai).analyze({
+          formula: context.formula,
+          materials: context.materials,
+        });
+        lease.assertHeld();
+        const completed = await playerCommandExecutor.executeWithLock({
+          ...actor,
+          source: ANALYSIS_SOURCE,
+          idempotency,
+          allowEmpty: true,
+          command: async (tx) => {
+            const current = await loadAnalysisContext(
+              cultivatorId,
+              formulaId,
+              input,
+              modelKey,
+              tx,
+            );
+            if (current.signature !== context.signature)
+              throw new AlchemyServiceError(
+                '推演期间丹方或材料发生变化。',
+                409,
+              );
+            const payload: FormulaAnalysisPayload = {
+              ...buildFormulaAnalysisPayload(
+                cultivatorId,
+                current.formula,
+                current.materials,
+                analysis.plan,
+                analysis.fitBand,
+                analysis.conclusion,
+                analysis.materialJudgments,
+              ),
+              qiCostPaid: reservation.result.qiCostPaid,
+              contextSignature: context.signature,
+              modelKey,
+              expiresAt: Date.now() + FORMULA_ANALYSIS_TTL_SECONDS * 1000,
+            };
+            await QiService.commitReservation({
+              actionInstanceId,
+              metadata: { analysisId: input.requestId },
+              tx,
+            });
+            return {
+              result: {
+                status: 'ready',
+                analysisId: input.requestId,
+                payload,
+              } satisfies FormulaAnalysisOutcome,
+              resourceChanges: [],
+            };
+          },
+        });
+        if (completed.result.status !== 'ready')
+          throw new Error('推演终态不一致');
+        ready = completed.result;
+      } catch (error) {
+        // Do not log model text or prompts; diagnose failures without a correction call.
+        console.warn('[alchemy] formula analysis failed', {
+          errorName: error instanceof Error ? error.name : 'unknown',
+        });
+        return fail('药路推演未明，灵气已退还，请重新推演。');
+      }
+      return present(ready);
+    },
   );
-  const analysisId = crypto.randomUUID();
-
-  await redis.set(
-    getFormulaAnalysisKey(cultivatorId, analysisId),
-    JSON.stringify(payload),
-    'EX',
-    FORMULA_ANALYSIS_TTL_SECONDS,
-  );
-
-  const projection = resolveFormulaCraftProjection(
-    formula,
-    materialsList,
-    payload,
-  );
-
-  return {
-    analysisId,
-    valid: true,
-    fitScore: payload.fitScore,
-    fitBand: payload.fitBand,
-    conclusion: payload.conclusion,
-    warnings: payload.warnings,
-    materialJudgments: payload.materialJudgments,
-    batchProfile: toAlchemyBatchDisplayProfile(
-      payload.batchProfile,
-      materialsList,
-      projection.yieldFactors,
-    ),
-    dominantElement: payload.dominantElement,
-    stability: projection.stability,
-    toxicityRating: projection.toxicityRating,
-    cooldownRemainingSeconds: cooldown.remainingSeconds,
-    expiresInSeconds: FORMULA_ANALYSIS_TTL_SECONDS,
-  };
 }
 
 export async function previewFormulaCraft(
@@ -1199,6 +1555,8 @@ export async function prepareFormulaCraft(
   materialIds: string[],
   materialQuantities?: Record<string, number>,
   analysisId?: string,
+  materialVersions?: Record<string, string>,
+  craftRequestId?: string,
 ): Promise<PreparedFormulaCraft> {
   // 分布式锁由 API/Application 层统一获取。
   const q = getExecutor();
@@ -1239,12 +1597,45 @@ export async function prepareFormulaCraft(
   }
 
   const analysisKey = getFormulaAnalysisKey(cultivatorId, analysisId);
-  const analysisPayload = parseRedisJson<FormulaAnalysisPayload>(
-    rawAnalysis,
-    analysisKey,
-  );
+  const receipt = await readAnalysisOutcome(cultivatorId, analysisId);
+  const prepaid =
+    receipt?.outcome.status === 'ready' &&
+    receipt.outcome.analysisId === analysisId
+      ? receipt.outcome
+      : null;
+  const analysisPayload =
+    prepaid?.payload ??
+    parseRedisJson<FormulaAnalysisPayload>(rawAnalysis, analysisKey);
   if (!analysisPayload) {
     throw new AlchemyServiceError('请先推演药路。');
+  }
+  if (analysisPayload.qiCostPaid !== undefined && !prepaid)
+    throw new AlchemyServiceError('推演凭据已失效，请先推演药路。', 409);
+  if (prepaid) {
+    if (
+      (prepaid.payload.expiresAt ?? 0) <= Date.now() ||
+      (await analysisConsumed(cultivatorId, analysisId))
+    )
+      throw new AlchemyServiceError(
+        '推演已过期或已用于炼制，请先推演药路。',
+        409,
+      );
+    const current = await loadAnalysisContext(
+      cultivatorId,
+      formulaId,
+      {
+        requestId: analysisId,
+        materialIds,
+        materialVersions: materialVersions ?? {},
+        materialQuantities,
+      },
+      prepaid.payload.modelKey!,
+    );
+    if (current.signature !== prepaid.payload.contextSignature)
+      throw new AlchemyServiceError(
+        '丹方或材料已发生变化，请先推演药路。',
+        409,
+      );
   }
 
   const signature = buildFormulaAnalysisSignature(
@@ -1296,7 +1687,7 @@ export async function prepareFormulaCraft(
     batchProfile,
     dominantElement,
   });
-  const qiCost = calculateAlchemyQiCost(materialsList);
+  const qiCost = prepaid ? 0 : calculateAlchemyQiCost(materialsList);
   if (formula.blueprint.needsRebirth) {
     throw new AlchemyServiceError('此丹方需要升级后才能炼制。', 409);
   }
@@ -1382,6 +1773,27 @@ export async function prepareFormulaCraft(
   return {
     qiCost,
     async commit(tx: DbTransaction) {
+      if (prepaid) {
+        if (
+          (prepaid.payload.expiresAt ?? 0) <= Date.now() ||
+          (await analysisConsumed(cultivatorId, analysisId!, tx))
+        )
+          throw new AlchemyServiceError(
+            '推演已过期或已用于炼制，请先推演药路。',
+            409,
+          );
+        // Same transaction as inventory/payment/mastery: Redis deletion is only cleanup.
+        await insertPlayerMutationRequest(
+          {
+            cultivatorId,
+            source: ANALYSIS_CONSUMED_SOURCE,
+            requestId: analysisId!,
+            requestFingerprint: analysisHash(prepaid.payload),
+            result: { craftRequestId },
+          },
+          tx,
+        );
+      }
       const inventoryChanges: ResourceOperationSettlement['inventoryChanges'] =
         [];
       const stableMaterialIds = [...materialIds].sort();

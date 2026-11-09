@@ -60,10 +60,28 @@ export function FurnaceObservationStage() {
         ))}
       </details>
       <footer className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-        <span className="text-xs">
-          {session.readiness.estimatedSpiritStones !== null && <SpiritStones amount={session.readiness.estimatedSpiritStones} />} ·{' '}
-          {session.qiCost} 天地灵气
-        </span>
+        <div className="text-ink-secondary space-y-1 text-xs">
+          <p>
+            开炉：
+            {session.readiness.estimatedSpiritStones !== null && (
+              <SpiritStones amount={session.readiness.estimatedSpiritStones} />
+            )}{' '}
+            · 已投入材料
+            {session.formulaQiCostPaid === null ? (
+              <>
+                {' '}
+                · <span className="font-mono">{session.qiCost}</span> 天地灵气
+              </>
+            ) : null}
+          </p>
+          {session.formulaQiCostPaid !== null ? (
+            <p>
+              推演已消耗{' '}
+              <span className="font-mono">{session.formulaQiCostPaid}</span>{' '}
+              天地灵气，开炉不再扣除。
+            </p>
+          ) : null}
+        </div>
         <div className="flex gap-3">
           <InkButton onClick={session.returnToPreparation}>重新备料</InkButton>
           <InkButton

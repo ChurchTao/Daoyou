@@ -93,6 +93,8 @@ export async function executeCraftCommand(
             input.materialIds,
             input.materialQuantities,
             input.analysisId,
+            input.materialVersions,
+            input.requestId,
           );
     let afterCommit: (() => Promise<void>) | undefined;
     const domainEventIds: string[] = [];

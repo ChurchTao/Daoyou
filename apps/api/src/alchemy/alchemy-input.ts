@@ -1,8 +1,8 @@
+import { JournalRequestSchema } from '@daoyou/contracts/player/journal';
 import {
   ALCHEMY_INPUT_CONSTRAINTS,
   ALCHEMY_MAX_DOSE,
 } from '@daoyou/game-content/alchemy';
-import { JournalRequestSchema } from '@daoyou/contracts/player/journal';
 import { PILL_FAMILY_VALUES } from '@daoyou/game-domain/consumables';
 import { z } from 'zod';
 
@@ -12,7 +12,12 @@ export const DiscoveryConfirmSchema = z.object({
 });
 export const FormulaIdParamSchema = z.object({ formulaId: z.string().uuid() });
 export const FormulaAnalyzeSchema = z.object({
-  materialIds: z.array(z.string()).min(1).max(6),
+  requestId: z.uuid(),
+  materialIds: z
+    .array(z.string().min(1).max(160))
+    .min(1)
+    .max(6)
+    .refine((ids) => new Set(ids).size === ids.length, '材料不能重复'),
   materialVersions: z.record(z.string(), z.string().max(10000)),
   materialQuantities: z
     .record(

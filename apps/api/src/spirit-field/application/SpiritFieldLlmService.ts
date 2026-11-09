@@ -8,6 +8,7 @@ import {
   type SpiritFieldStageJudgment,
 } from '@daoyou/game-rules/spirit-field';
 import type { AiService } from '@nestjs/ai';
+import { createHash } from 'node:crypto';
 import { renderPrompt } from '@server/lib/prompts/index.js';
 import { aiDeadlineSignal } from '@server/llm/call-options.js';
 import { z } from 'zod';
@@ -20,6 +21,58 @@ const finalIdentitySchema = z.object({
   name: z.string().trim().min(2).max(12),
   description: z.string().trim().min(24).max(180),
 }).strict();
+
+const STAGE_JUDGMENT_MODEL = 'alibaba.fast';
+const STAGE_JUDGMENT_VERSION = 'v2';
+const stageJudgmentSchemaJson = JSON.stringify(judgmentSchema.toJSONSchema());
+
+interface PendingStageJudgment {
+  controller: AbortController;
+  result: Promise<SpiritFieldStageJudgment>;
+  subscribers: number;
+  settled: boolean;
+}
+
+// Each AiService has its own immutable model registry; never share across registries.
+const pendingStageJudgments = new WeakMap<
+  AiService,
+  Map<string, PendingStageJudgment>
+>();
+
+function awaitStageJudgment(
+  pending: PendingStageJudgment,
+  signal: AbortSignal | undefined,
+  removePending: () => void,
+): Promise<SpiritFieldStageJudgment> {
+  pending.subscribers += 1;
+  return new Promise((resolve, reject) => {
+    let finished = false;
+    const release = () => {
+      if (finished) return false;
+      finished = true;
+      signal?.removeEventListener('abort', abort);
+      pending.subscribers -= 1;
+      if (!pending.settled && pending.subscribers === 0) {
+        removePending();
+        pending.controller.abort();
+      }
+      return true;
+    };
+    const abort = () => {
+      if (release()) reject(signal?.reason);
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) abort();
+    void pending.result.then(
+      (result) => {
+        if (release()) resolve(result);
+      },
+      (error: unknown) => {
+        if (release()) reject(error);
+      },
+    );
+  });
+}
 
 function fallbackJudgment(
   plant: SpiritFieldPlantSnapshot,
@@ -80,36 +133,109 @@ export async function judgeSpiritFieldStage(
     history: SpiritFieldStageHistory[];
     resourceName?: string;
     abortSignal?: AbortSignal;
+    /** Server-owned actor/plot state scope; only the model judgment is shared. */
+    deduplicationKey?: string;
   },
 ): Promise<SpiritFieldStageJudgment> {
+  input.abortSignal?.throwIfAborted();
   const fallback = fallbackJudgment(input.plant, input.method);
+  const plant = input.plant;
+  const method = SPIRIT_FIELD_METHOD_MAP[input.method];
   const { system, user } = renderPrompt('spirit-field-stage-judgment', {
     payloadJson: JSON.stringify({
-      seed: input.plant,
-      method: SPIRIT_FIELD_METHOD_MAP[input.method],
-      history: input.history,
+      seed: {
+        seedName: plant.seedName,
+        seedDescription: plant.seedDescription,
+        clueTexts: plant.clueTexts,
+        quality: plant.quality,
+        element: plant.element,
+        growthForm: plant.growthForm,
+        harvestPart: plant.harvestPart,
+        preferredMethods: plant.preferredMethods,
+        avoidedMethods: plant.avoidedMethods,
+        preferredHabitats: plant.preferredHabitats,
+        avoidedHabitats: plant.avoidedHabitats,
+        growthTraits: plant.growthTraits,
+        useTags: plant.useTags,
+        outcomeBiases: plant.outcomeBiases,
+        creationTags: plant.creationTags,
+      },
+      method: {
+        id: method.id,
+        stage: method.stage,
+        name: method.name,
+        description: method.description,
+        resourceKind: method.resourceKind,
+      },
+      history: input.history.map((entry) => ({
+        stage: entry.stage,
+        method: entry.method,
+        affinity: entry.affinity,
+        feedback: entry.feedback,
+        resourceName: entry.resourceName ?? null,
+      })),
       resourceName: input.resourceName ?? null,
     }),
   });
-  try {
-    const response = await ai.generateObject({
-      model: 'alibaba.fast',
-      instructions: system,
-      prompt: user,
-      schema: judgmentSchema,
-      schemaName: 'SpiritFieldStageJudgment',
-      label: 'spirit-field-stage-judgment',
-      abortSignal: aiDeadlineSignal(12_000, input.abortSignal),
-      maxOutputTokens: 480,
-    });
-    return leaksInternalRules(response.object.feedback, input.plant)
-      ? fallback
-      : response.object;
-  } catch (error) {
-    if (input.abortSignal?.aborted) throw error;
-    console.warn('[spirit-field] stage judgment fallback', { error });
-    return fallback;
+  const generate = async (signal: AbortSignal) => {
+    try {
+      const response = await ai.generateObject({
+        model: STAGE_JUDGMENT_MODEL,
+        instructions: system,
+        prompt: user,
+        schema: judgmentSchema,
+        schemaName: 'SpiritFieldStageJudgment',
+        label: 'spirit-field-stage-judgment',
+        abortSignal: aiDeadlineSignal(12_000, signal),
+        maxOutputTokens: 480,
+      });
+      return leaksInternalRules(response.object.feedback, input.plant)
+        ? fallback
+        : response.object;
+    } catch (error) {
+      if (signal.aborted) throw error;
+      console.warn('[spirit-field] stage judgment fallback', { error });
+      return fallback;
+    }
+  };
+  const key = input.deduplicationKey
+    ? createHash('sha256')
+        .update(
+          JSON.stringify([
+            input.deduplicationKey,
+            STAGE_JUDGMENT_MODEL,
+            STAGE_JUDGMENT_VERSION,
+            stageJudgmentSchemaJson,
+            system,
+            user,
+          ]),
+        )
+        .digest('hex')
+    : undefined;
+  let tasks = pendingStageJudgments.get(ai);
+  if (!tasks) {
+    tasks = new Map();
+    pendingStageJudgments.set(ai, tasks);
   }
+  let pending = key ? tasks.get(key) : undefined;
+  const removePending = () => {
+    if (key && tasks.get(key) === pending) tasks.delete(key);
+  };
+  if (!pending) {
+    const controller = new AbortController();
+    const created: PendingStageJudgment = {
+      controller,
+      subscribers: 0,
+      settled: false,
+      result: generate(controller.signal).finally(() => {
+        created.settled = true;
+        removePending();
+      }),
+    };
+    pending = created;
+    if (key) tasks.set(key, pending);
+  }
+  return awaitStageJudgment(pending, input.abortSignal, removePending);
 }
 
 export async function finalizeSpiritFieldIdentity(

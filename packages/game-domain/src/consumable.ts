@@ -380,6 +380,8 @@ export interface AlchemyEffectRoute {
 export interface FormulaAnalysisResult {
   analysisId: string;
   valid: boolean;
+  /** Qi paid for this preview; absent only on legacy previews charged when crafting. */
+  qiCostPaid?: number;
   staticBlockingReason?: string;
   /** LLM 裁决档位对应的服务端代表值；仅兼容既有丹药元数据。 */
   fitScore: number;

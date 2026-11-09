@@ -574,6 +574,11 @@ export async function cultivateSpiritField(
             input.resourceRevision,
           );
           const judgment = await judgeSpiritFieldStage(ai, {
+            deduplicationKey: JSON.stringify([
+              actor.cultivatorId,
+              input.plotIndex,
+              initialPlot,
+            ]),
             plant: initialPlot.plant!,
             method: input.method,
             history: initialPlot.history,

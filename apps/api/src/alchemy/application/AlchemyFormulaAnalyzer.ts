@@ -29,34 +29,27 @@ const weightedAlchemyPropertySchema = z.object({
   weight: z.number().min(0).max(1),
 });
 
-const materialVectorSchema = z.object({
+const materialAnalysisSchema = z.object({
   materialRef: z.string().min(1),
   properties: z.array(weightedAlchemyPropertySchema).min(1).max(3),
-});
-
-const materialJudgmentSchema = z.object({
-  materialRef: z.string().min(1),
   verdict: z.enum(FORMULA_MATERIAL_VERDICT_VALUES),
   reason: z.string().trim().min(1).max(40),
 });
 
 const formulaAnalysisSchema = z
   .object({
-    materialVectors: z.array(materialVectorSchema).min(1),
-    materialJudgments: z.array(materialJudgmentSchema).min(1),
+    materials: z.array(materialAnalysisSchema).min(1),
     focusMode: z.enum(ALCHEMY_FOCUS_MODE_VALUES),
     fitBand: z.enum(FORMULA_FIT_BAND_VALUES),
     conclusion: z.string().trim().min(1).max(80),
   })
   .superRefine((analysis, context) => {
-    const verdicts = analysis.materialJudgments.map(
-      (judgment) => judgment.verdict,
-    );
+    const verdicts = analysis.materials.map((material) => material.verdict);
     const hasCore = verdicts.includes('core');
     const hasConflict = verdicts.includes('conflict');
     const claimsCompleteAlignment = [
       analysis.conclusion,
-      ...analysis.materialJudgments.map((judgment) => judgment.reason),
+      ...analysis.materials.map((material) => material.reason),
     ].some((text) => /完美契合|完全契合|高度契合/.test(text));
 
     if (analysis.fitBand === 'aligned' && (!hasCore || hasConflict)) {
@@ -85,12 +78,12 @@ function buildPropertyGuide(): string {
   ).join('\n');
 }
 
-function normalizePlan(plan: z.infer<typeof formulaAnalysisSchema>) {
+function normalizeAnalysis(analysis: z.infer<typeof formulaAnalysisSchema>) {
   return {
-    ...plan,
-    materialVectors: plan.materialVectors.map((vector) => ({
-      ...vector,
-      properties: normalizeWeightedAlchemyProperties(vector.properties).slice(
+    ...analysis,
+    materials: analysis.materials.map((material) => ({
+      ...material,
+      properties: normalizeWeightedAlchemyProperties(material.properties).slice(
         0,
         3,
       ),
@@ -154,66 +147,46 @@ export class AlchemyFormulaAnalyzer {
       label: 'alchemy-formula-analysis',
     });
 
-    const normalized = normalizePlan(response.object);
+    const normalized = normalizeAnalysis(response.object);
     const materialMap = new Map(
       input.materials.map((material) => [material.materialRef, material]),
     );
 
-    if (normalized.materialVectors.length !== input.materials.length) {
+    if (normalized.materials.length !== input.materials.length) {
       throw new Error(
-        'formula analyzer returned mismatched material vector count',
-      );
-    }
-    if (normalized.materialJudgments.length !== input.materials.length) {
-      throw new Error(
-        'formula analyzer returned mismatched material judgment count',
+        'formula analyzer returned mismatched material analysis count',
       );
     }
 
-    const seenVectorRefs = new Set<string>();
-    const materialVectors = normalized.materialVectors.map((vector) => {
-      if (seenVectorRefs.has(vector.materialRef)) {
+    const seenRefs = new Set<string>();
+    const materialVectors: AlchemyRecipePlan['materialVectors'] = [];
+    const materialJudgments: FormulaMaterialJudgment[] = [];
+    for (const analyzed of normalized.materials) {
+      if (seenRefs.has(analyzed.materialRef)) {
         throw new Error(
-          `formula analyzer returned duplicate materialRef: ${vector.materialRef}`,
+          `formula analyzer returned duplicate materialRef: ${analyzed.materialRef}`,
         );
       }
-      seenVectorRefs.add(vector.materialRef);
+      seenRefs.add(analyzed.materialRef);
 
-      const material = materialMap.get(vector.materialRef);
+      const material = materialMap.get(analyzed.materialRef);
       if (!material) {
         throw new Error(
-          `formula analyzer returned unknown material ref: ${vector.materialRef}`,
+          `formula analyzer returned unknown material ref: ${analyzed.materialRef}`,
         );
       }
-      return {
-        ...vector,
+      materialVectors.push({
+        materialRef: analyzed.materialRef,
         materialName: material.name,
-      };
-    });
-
-    const seenJudgmentRefs = new Set<string>();
-    const materialJudgments = normalized.materialJudgments.map((judgment) => {
-      if (seenJudgmentRefs.has(judgment.materialRef)) {
-        throw new Error(
-          `formula analyzer returned duplicate judgment ref: ${judgment.materialRef}`,
-        );
-      }
-      seenJudgmentRefs.add(judgment.materialRef);
-
-      const material = materialMap.get(judgment.materialRef);
-      if (!material) {
-        throw new Error(
-          `formula analyzer returned unknown judgment ref: ${judgment.materialRef}`,
-        );
-      }
-
-      return {
+        properties: analyzed.properties,
+      });
+      materialJudgments.push({
         materialId: material.id,
         materialName: material.name,
-        verdict: judgment.verdict,
-        reason: judgment.reason.trim(),
-      } satisfies FormulaMaterialJudgment;
-    });
+        verdict: analyzed.verdict,
+        reason: analyzed.reason.trim(),
+      });
+    }
 
     return {
       plan: {

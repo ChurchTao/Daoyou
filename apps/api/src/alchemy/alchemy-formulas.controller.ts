@@ -8,8 +8,14 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { AlchemyServiceError } from '@server/alchemy/application/AlchemyServiceError.js';
+import {
+  QiInsufficientError,
+  QiServiceError,
+} from '@server/cultivator/application/QiService.js';
+import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
+import { redisLockErrorResponse } from '@server/lib/http/errors.js';
+import { PlayerCommandIdempotencyError } from '@server/player/application/state/CommandExecutors.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
@@ -26,6 +32,28 @@ import {
 
 function formulaErrors(message: string, includeDetails = true) {
   return apiErrorFilter((error) => {
+    const lock = redisLockErrorResponse(error);
+    if (lock) return lock;
+    if (error instanceof QiInsufficientError)
+      return Response.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.code,
+          required: error.required,
+          current: error.current,
+          action: error.action,
+        },
+        { status: 409 },
+      );
+    if (
+      error instanceof QiServiceError ||
+      error instanceof PlayerCommandIdempotencyError
+    )
+      return Response.json(
+        { success: false, error: error.message },
+        { status: error.status },
+      );
     if (error instanceof z.ZodError)
       return Response.json(
         { error: error.issues[0]?.message || '请求参数格式错误' },
@@ -91,7 +119,7 @@ export class AlchemyFormulasController {
     @JsonBody(new ZodPipe(FormulaAnalyzeSchema))
     input: z.infer<typeof FormulaAnalyzeSchema>,
   ) {
-    return this.formulas.analyze(actor.cultivatorId, params.formulaId, input);
+    return this.formulas.analyze(actor, params.formulaId, input);
   }
 
   @Post('formulas/discovery/confirm')
