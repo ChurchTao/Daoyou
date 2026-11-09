@@ -14,14 +14,12 @@ import {
 } from '@nestjs/resilience';
 import { AppConfigService } from '@server/config/app-config.service.js';
 import { ConfigurationModule } from '@server/config/configuration.module.js';
-import {
-  ALIBABA_DEFAULT_BASE_URL,
-  LLM_PROVIDER_FACTORIES,
-} from '@server/lib/llm/providers.js';
+import { LLM_PROVIDER_FACTORIES } from '@server/lib/llm/providers.js';
+import { getAiPricingSettings } from '@server/lib/repositories/appSettingsRepository.js';
 import { APICallError, type LanguageModel } from 'ai';
 import { AiUsageModule } from './ai-usage.module.js';
 import { AiUsageService } from './ai-usage.service.js';
-import { getModelPricing } from './model-pricing.js';
+import { getModelPricing, type ModelPricing } from './model-pricing.js';
 
 const MAX_RETRY_DELAY_MS = 30_000;
 
@@ -50,12 +48,11 @@ function retryAfterMs(error: unknown): number | undefined {
     AiModule.forRootAsync({
       imports: [ConfigurationModule, AiUsageModule],
       inject: [AppConfigService, AiUsageService],
-      useFactory: (
+      useFactory: async (
         config: AppConfigService,
         usage: AiUsageService,
-      ): AiModuleOptions => {
-        const alibabaBaseUrl =
-          config.get('ALIBABA_BASE_URL')?.trim() || ALIBABA_DEFAULT_BASE_URL;
+      ): Promise<AiModuleOptions> => {
+        const pricingSettings = await getAiPricingSettings();
         const alibaba = LLM_PROVIDER_FACTORIES.alibaba.create({
           apiKey: config.get('ALIBABA_API_KEY')?.trim(),
         });
@@ -63,12 +60,14 @@ function retryAfterMs(error: unknown): number | undefined {
           apiKey: config.get('DEEPSEEK_API_KEY')?.trim(),
         });
         const models: Record<string, AiModelDefinition> = {};
+        const modelPrices = new Map<string, ModelPricing>();
         const bulkhead = new BulkheadPolicy({ maxConcurrent: 64, maxQueue: 0 });
         const registerModel = (name: string, model: LanguageModel) => {
           const price =
             typeof model === 'string'
               ? undefined
-              : getModelPricing(model, alibabaBaseUrl);
+              : getModelPricing(model, pricingSettings);
+          if (price) modelPrices.set(name, price);
           models[name] = {
             model,
             // A shared bulkhead holds its slot throughout retries and stream consumption.
@@ -87,7 +86,7 @@ function retryAfterMs(error: unknown): number | undefined {
               }),
               new TimeoutPolicy(name.endsWith('.advanced') ? '15m' : '120s'),
             ),
-            ...(price ? { pricing: { ...price.pricing } } : {}),
+            ...(price ? { pricing: price.pricing } : {}),
           };
         };
         registerModel(
@@ -121,13 +120,9 @@ function retryAfterMs(error: unknown): number | undefined {
             },
           },
           onUsage: (event) => {
-            const definition = event.model.name
-              ? models[event.model.name]
+            const price = event.model.name
+              ? modelPrices.get(event.model.name)
               : undefined;
-            const price = definition
-              ? getModelPricing(event.model, alibabaBaseUrl)
-              : undefined;
-            const pricing = definition?.pricing;
             return usage.record({
               sceneId: event.label,
               provider: event.model.provider,
@@ -140,18 +135,14 @@ function retryAfterMs(error: unknown): number | undefined {
               usage: event.usage,
               durationMs: event.durationMs,
               finishReason: event.finishReason,
-              ...(price &&
-              pricing &&
-              event.cost !== undefined &&
-              event.usage.inputTokens <= price.maxInputTokens
+              ...(price && event.cost !== undefined
                 ? {
                     estimatedCost: event.cost,
                     currency: price.currency,
                     pricingSnapshot: {
-                      ...pricing,
+                      ...price.pricing,
                       condition: price.condition,
                       source: price.source,
-                      verifiedAt: price.verifiedAt,
                     },
                   }
                 : {}),

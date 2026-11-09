@@ -164,15 +164,28 @@ AI 相关功能统一通过原生 `@nestjs/ai` 的 `AiService` 调用，全部�
 
 统计单位是**已采集的模型完成步骤**，不是业务请求数：一次 Agent 调用可以包含多个步骤。原生 `onUsage` 不提供完整的失败事件；失败、取消、流中断和结构化输出校验失败可能已有消耗却没有用量记录，因此本页不能用于计算业务失败率，也不能作为供应商真实账单。供应商未提供的 token 分项会被原生库归为 `0`，无法与真实的零用量区分。事件不保存提示词、生成正文或 API Key。旧观测的提示词/Schema 字符数、失败率和错误分类不再采集；旧 Redis `admin:llm-metrics:events:v1` 没有 TTL，部署后可单独清理该 key，不迁入费用表，也不删除共享 Redis 配置。
 
-价格定义在 `apps/api/src/llm/model-pricing.ts`，由 `LlmModule` 配置到原生 `AiModelDefinition.pricing`。费用直接保存原生事件已计算的 `cost`，采集和查询层不另造计价公式。每条已计价记录保存币种和当时的价格快照；历史费用不随后续价格配置改变而回算。未知价格保留 `null`，不能当作免费；费用按币种分别汇总。
+价格规则保存在 `wanjiedaoyou_app_settings` 的 `ai_model_pricing_v1` JSON 配置中，可在 `/admin/ai-usage` 的“模型价格”中添加、修改和删除，无需数据库迁移。规则按原生事件的精确 `provider + modelId` 匹配，例如 `alibaba.chat` 与 `qwen3.7-flash`，不是 `alibaba.fast` 这样的调用别名。同一个组合只允许一条规则；同一个实际模型用于多个别名时共用该价格。
 
-目前只核实并启用以下公开价估算范围（2026-11-09 核对）：
+所有单价单位均为**每百万 tokens**。未配置或未命中规则时使用人民币默认估算：输入 `CNY 1 / M`、输出 `CNY 2 / M`；缓存输入未单独填写时按普通输入价计算，显式填写 `0` 则保留零价。默认价只用于运营估算，不代表供应商报价。原生定价使用每模型固定单价，不按输入长度自动切换阶梯价；配置价格时应自行确认适用范围。
 
-| 精确供应商 / 模型 | 适用条件 | 输入 / 输出 / 缓存输入单价（CNY / 百万 tokens） |
-| --- | --- | --- |
-| `alibaba.chat` / `qwen3.7-flash` | 默认北京实时 API、输入不超过 32,000 tokens、隐式缓存 | `0.2 / 0.8 / 0.04` |
+配置格式示例（单价仅演示格式）：
 
-范围依据[阿里云模型价格](https://help.aliyun.com/zh/model-studio/model-pricing)与[隐式缓存计费规则](https://help.aliyun.com/zh/model-studio/context-cache)。估算不包含账户优惠或免费额度；超出输入范围、显式缓存、自定义网关及其他精确模型均不按此价格计费。当前 DeepSeek 默认模型 `deepseek-v4.1-flash` 未定价，不套用其他型号或供应渠道的报价；未计价费用保留 `null`。
+```json
+{
+  "models": [
+    {
+      "provider": "alibaba.chat",
+      "modelId": "qwen3.7-flash",
+      "currency": "CNY",
+      "input": 1,
+      "output": 2,
+      "cachedInput": 0.2
+    }
+  ]
+}
+```
+
+保存配置后需**重启 API 实例**生效；多实例部署需全部重启。`LlmModule` 启动时读取并校验配置，通过 `llm/model-pricing.ts` 配置原生 `AiModelDefinition.pricing`，`onUsage` 继续保存原生事件已计算的 `cost`，不另造计价公式。费用与价格快照来自同一次启动读取的配置，记录使用配置价还是默认估算价；运行中的实例不会因后台保存而换价。历史费用和快照不重算，历史未计价记录继续保留 `null`；费用按币种分别汇总。旧代码中限定模型和网关的报价规则已移除，不会自动沿用，需在后台显式配置。
 
 ## 数据库初始化
 

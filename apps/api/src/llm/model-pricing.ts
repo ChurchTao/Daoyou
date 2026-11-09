@@ -1,38 +1,39 @@
+import {
+  DEFAULT_AI_MODEL_PRICING,
+  type AiPricingSettings,
+} from '@daoyou/contracts/admin/ai-pricing';
 import type { AiModelInfo, AiModelPricing } from '@nestjs/ai';
-import { ALIBABA_DEFAULT_BASE_URL } from '@server/lib/llm/providers.js';
+import { APP_SETTING_KEYS } from '@server/lib/repositories/app-settings-config.js';
 
-interface ModelPricing {
-  pricing: AiModelPricing;
-  currency: string;
-  maxInputTokens: number;
-  condition: string;
-  source: string;
-  verifiedAt: string;
+export interface ModelPricing {
+  readonly pricing: AiModelPricing;
+  readonly currency: string;
+  readonly condition: string;
+  readonly source: string;
 }
-
-// Native pricing is fixed per model. Only quote the verified input range;
-// larger contexts, custom gateways and unknown models remain unpriced.
-// Official prices are CNY per million tokens, excluding account discounts.
-const QWEN_FLASH_PRICING: ModelPricing = {
-  pricing: { input: 0.2, output: 0.8, cachedInput: 0.04 },
-  currency: 'CNY',
-  maxInputTokens: 32_000,
-  condition:
-    '北京实时 API、输入不超过 32000 Tokens、隐式缓存；不含优惠和免费额度',
-  source: 'https://help.aliyun.com/zh/model-studio/model-pricing',
-  verifiedAt: '2026-11-09',
-};
 
 export function getModelPricing(
   model: Pick<AiModelInfo, 'provider' | 'modelId'>,
-  alibabaBaseUrl: string,
-): ModelPricing | undefined {
-  if (
-    model.provider === 'alibaba.chat' &&
-    model.modelId === 'qwen3.7-flash' &&
-    alibabaBaseUrl.replace(/\/+$/, '') === ALIBABA_DEFAULT_BASE_URL
-  ) {
-    return QWEN_FLASH_PRICING;
-  }
-  return undefined;
+  settings: AiPricingSettings,
+): ModelPricing {
+  const rule = settings.models.find(
+    (candidate) =>
+      candidate.provider === model.provider &&
+      candidate.modelId === model.modelId,
+  );
+  const rates = rule ?? DEFAULT_AI_MODEL_PRICING;
+  return Object.freeze({
+    pricing: Object.freeze({
+      input: rates.input,
+      output: rates.output,
+      ...(rule?.cachedInput !== undefined
+        ? { cachedInput: rule.cachedInput }
+        : {}),
+    }),
+    currency: rates.currency,
+    condition: rule
+      ? '管理员配置的每百万 tokens 估算价；本次 API 进程启动快照'
+      : '默认每百万 tokens 估算价；本次 API 进程启动快照',
+    source: rule ? `app_settings:${APP_SETTING_KEYS.aiModelPricing}` : 'default',
+  });
 }

@@ -511,6 +511,29 @@ function EventDetails({ event }: { event: UsageEvent }) {
     ],
     ['记录 ID', event.id],
   ];
+  const pricing = event.pricingSnapshot;
+  if (pricing) {
+    const source =
+      pricing.source === 'default'
+        ? '默认估算价'
+        : pricing.source === 'app_settings:ai_model_pricing_v1'
+          ? '配置价（API 启动快照）'
+          : `历史计价快照${pricing.source ? ` · ${pricing.source}` : ''}`;
+    rows.push(
+      ['计价来源', source],
+      [
+        '输入 / 输出单价（每百万 tokens）',
+        `${event.currency ?? '未知币种'} ${decimal(String(pricing.input))} / ${decimal(String(pricing.output))}`,
+      ],
+      [
+        '缓存输入单价（每百万 tokens）',
+        pricing.cachedInput === undefined
+          ? '按普通输入价'
+          : `${event.currency ?? '未知币种'} ${decimal(String(pricing.cachedInput))}`,
+      ],
+    );
+    if (pricing.condition) rows.push(['计价说明', pricing.condition]);
+  }
   return (
     <dl className="grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
       {rows.map(([label, value]) => (

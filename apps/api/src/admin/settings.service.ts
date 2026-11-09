@@ -1,9 +1,16 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import {
+  AiPricingSettingsSchema,
+  DEFAULT_AI_MODEL_PRICING,
+  type AdminAiPricingResponse,
+} from '@daoyou/contracts/admin/ai-pricing';
+import {
+  getAiPricingSettings,
   getAppSetting,
   getAuthPageAnnouncement,
   getResolvedCommunityQqGroupNumber,
   upsertAppSetting,
+  upsertAiPricingSettings,
 } from '@server/lib/repositories/appSettingsRepository.js';
 import { APP_SETTING_KEYS } from '@server/lib/repositories/app-settings-config.js';
 import { z } from 'zod';
@@ -18,6 +25,27 @@ const CommunitySchema = z.object({
 
 @Injectable()
 export class SettingsService {
+  async aiPricing(): Promise<AdminAiPricingResponse> {
+    return {
+      settings: await getAiPricingSettings(),
+      defaults: DEFAULT_AI_MODEL_PRICING,
+    };
+  }
+
+  async updateAiPricing(
+    userId: string,
+    body: unknown,
+  ): Promise<AdminAiPricingResponse> {
+    const parsed = AiPricingSettingsSchema.safeParse(body);
+    if (!parsed.success)
+      throw new HttpException(
+        { error: '参数错误', details: parsed.error.flatten() },
+        400,
+      );
+    await upsertAiPricingSettings({ settings: parsed.data, updatedBy: userId });
+    return { settings: parsed.data, defaults: DEFAULT_AI_MODEL_PRICING };
+  }
+
   async announcement() {
     return { announcement: (await getAuthPageAnnouncement()) ?? '' };
   }

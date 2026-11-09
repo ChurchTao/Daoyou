@@ -5,6 +5,7 @@ import { apiFetch } from '@app/lib/api/fetch';
 import type { AdminAiUsageSnapshot } from '@daoyou/contracts/admin/ai-usage';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AdminPageHeader } from '../_components/AdminPage';
+import { AiPricingSettingsPanel } from './AiPricingSettingsPanel';
 import {
   DailyUsageTrend,
   SceneUsageTable,
@@ -166,6 +167,8 @@ export default function AdminAiUsagePage() {
           </InkButton>
         }
       />
+
+      <AiPricingSettingsPanel />
 
       <form
         onSubmit={applyFilters}

@@ -72,6 +72,20 @@ export class AdminController {
     return { success: true, data: await this.aiUsage.snapshot(query) };
   }
 
+  // Pricing edits are persisted settings; the running AiModule keeps its startup snapshot.
+  @Get('ai-pricing')
+  aiPricing() {
+    return this.settings.aiPricing();
+  }
+
+  @Patch('ai-pricing')
+  updateAiPricing(
+    @CurrentUser() user: AuthUser,
+    @JsonBody({ fallback: null }) input: unknown,
+  ) {
+    return this.settings.updateAiPricing(user.id, input);
+  }
+
   @Get('online-users')
   onlineUsers() {
     return this.monitoring.onlineUsers();
