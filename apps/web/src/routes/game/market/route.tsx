@@ -178,20 +178,12 @@ function MarketWorkspace({
           body: JSON.stringify(attempt.current.input),
         }),
       );
-      const labels = {
-        bag: '储物袋',
-        storage: '洞府储藏室',
-        vault: '洞府宝库（种子）',
-      };
+      const deliveredQuantity = result.deliveries.reduce(
+        (sum, item) => sum + (item.quantity ?? 1),
+        0,
+      );
       setNotice(
-        (['bag', 'storage', 'vault'] as const)
-          .flatMap((location) => {
-            const count = result.deliveries.filter(
-              (item) => item.location === location,
-            ).length;
-            return count ? [`${count} 件已收入${labels[location]}`] : [];
-          })
-          .join('；'),
+        `已购 ${deliveredQuantity} 件物品，请在储物袋或储藏室查看。`,
       );
       setSelected([]);
       attempt.current = null;
@@ -224,7 +216,7 @@ function MarketWorkspace({
         title: '确认购买',
         content: (
           <p>
-            确认购买所选 {picked.length} 件商品？ 本次交易将消耗{' '}
+            确认购买所选 {picked.length} 项商品？ 本次交易将消耗{' '}
             <SpiritStones amount={total} mode="compact" />。
           </p>
         ),
@@ -425,7 +417,10 @@ function MarketWorkspace({
                       ) : null}
                       <p>
                         售价 <SpiritStones amount={item.price} mode="compact" />{' '}
-                        · 本批限购一件
+                        ·{' '}
+                        {item.quantity > 1
+                          ? '整叠价格，本批限购一叠'
+                          : '本批限购一件'}
                       </p>
                       <InkButton
                         disabled={locked || item.quantity <= 0}
@@ -475,7 +470,7 @@ function MarketWorkspace({
       {picked.length ? (
         <div className="bg-paper border-ink/20 sticky bottom-(--game-bottom-offset) z-20 mt-5 flex flex-wrap items-center justify-between gap-3 border-t py-3 text-sm">
           <span>
-            已选 <span className="font-mono">{picked.length}</span> 件 · 合计{' '}
+            已选 <span className="font-mono">{picked.length}</span> 项 · 合计{' '}
             <strong>
               <SpiritStones amount={total} mode="compact" />
             </strong>

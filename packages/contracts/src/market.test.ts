@@ -26,7 +26,7 @@ describe('坊市购买指令边界', () => {
       }).success,
     ).toBe(false);
   });
-  it('每批限购一件，不接受客户端商品事实、单价或黑市指令', () => {
+  it('每批每个货品整叠限购一次，不接受客户端数量、商品事实、单价或黑市指令', () => {
     for (const quantity of [-1, 0, 0.5, 2])
       expect(
         MarketBuySchema.safeParse({
