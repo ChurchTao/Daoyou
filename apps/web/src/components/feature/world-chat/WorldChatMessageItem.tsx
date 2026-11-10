@@ -43,6 +43,8 @@ interface WorldChatMessageItemProps {
   grouped?: boolean;
   highlighted?: boolean;
   claimed?: boolean;
+  readOnly?: boolean;
+  onModerateSender?: (message: WorldChatMessageDTO) => void;
 }
 
 export const WorldChatMessageItem = memo(function WorldChatMessageItem({
@@ -54,8 +56,10 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
   grouped = false,
   highlighted = false,
   claimed = false,
+  readOnly = false,
+  onModerateSender,
 }: WorldChatMessageItemProps) {
-  const cultivator = useCultivatorIdentity().data?.cultivator;
+  const cultivator = useCultivatorIdentity(!readOnly).data?.cultivator;
   const [detailOpen, setDetailOpen] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
@@ -154,7 +158,17 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                     </>
                   ) : (
                     <>
-                      {message.senderCultivatorId ? (
+                      {onModerateSender ? (
+                        <button
+                          type="button"
+                          className="min-w-0 truncate text-left font-semibold underline-offset-2 hover:underline"
+                          onClick={() => onModerateSender(message)}
+                          aria-label={`管理${message.senderName}的发言权限`}
+                        >
+                          {message.senderName}
+                          {senderTitle ? ` 「${senderTitle}」` : ''}
+                        </button>
+                      ) : message.senderCultivatorId ? (
                         <CharacterCardTrigger
                           id={message.senderCultivatorId}
                           name={message.senderName}
@@ -186,6 +200,15 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  {!isSystemRumor && onModerateSender ? (
+                    <InkButton
+                      className="min-h-9 px-1 text-sm"
+                      variant="secondary"
+                      onClick={() => onModerateSender(message)}
+                    >
+                      管理
+                    </InkButton>
+                  ) : null}
                   {!isSystemRumor && onReply ? (
                     <InkButton
                       className="-my-2 min-h-11 px-1 text-sm md:my-0 md:min-h-7 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100"
@@ -268,23 +291,25 @@ export const WorldChatMessageItem = memo(function WorldChatMessageItem({
                   <div className="bg-ink/8 flex justify-between gap-2 px-4 py-2 text-sm">
                     <span>灵石红包</span>
                     <span>
-                      {isOwn
-                        ? '查看领取详情'
-                        : claimed
-                          ? '已领取 · 查看详情'
-                          : packet.status === 'exhausted'
-                            ? '已领完'
-                            : packet.status === 'expired'
-                              ? '已过期'
-                              : '点击领取'}
+                      {readOnly
+                        ? '查看红包'
+                        : isOwn
+                          ? '查看领取详情'
+                          : claimed
+                            ? '已领取 · 查看详情'
+                            : packet.status === 'exhausted'
+                              ? '已领完'
+                              : packet.status === 'expired'
+                                ? '已过期'
+                                : '点击领取'}
                     </span>
                   </div>
                 </button>
               ) : recruit ? (
                 <span>
                   {recruit.text}{' '}
-                  {message.senderCultivatorId &&
-                  message.senderCultivatorId === cultivator?.id ? (
+                  {readOnly ? null : message.senderCultivatorId &&
+                    message.senderCultivatorId === cultivator?.id ? (
                     <Link
                       className="text-teal font-semibold underline"
                       to="/game/hunt-team"

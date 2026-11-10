@@ -24,6 +24,11 @@ export const adminRoutes = (
       handle={title('账号管理')}
     />
     <Route
+      path="world-chat"
+      lazy={lazyRoute(() => import('@app/routes/admin/world-chat/route'))}
+      handle={title('世界聊天')}
+    />
+    <Route
       path="transfers"
       lazy={lazyRoute(() => import('@app/routes/admin/transfers/route'))}
       handle={title('跨服转入审核')}

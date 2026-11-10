@@ -19,6 +19,7 @@ import {
 import { ArenaV6Error } from '@server/combat/application/CombatV6ArenaService.js';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { isRedisLockContention } from '@server/lib/redis/lock.js';
+import { ChatError } from '@server/social/application/chatError.js';
 import { z } from 'zod';
 import { Access, CurrentCultivator } from '../auth/access.js';
 import { apiErrorFilter } from '../http/error-filter.js';
@@ -29,7 +30,7 @@ import { HuntsService } from './hunts.service.js';
 const HuntsErrors = apiErrorFilter((error) => {
   let status = 500;
   let message = '暂时联系不上讨伐队伍，请稍后再试';
-  if (error instanceof ArenaV6Error) {
+  if (error instanceof ArenaV6Error || error instanceof ChatError) {
     status = error.status;
     message = error.message;
   } else if (error instanceof z.ZodError) {
