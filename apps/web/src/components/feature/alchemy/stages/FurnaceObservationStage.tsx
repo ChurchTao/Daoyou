@@ -66,19 +66,15 @@ export function FurnaceObservationStage() {
             {session.readiness.estimatedSpiritStones !== null && (
               <SpiritStones amount={session.readiness.estimatedSpiritStones} />
             )}{' '}
-            · 已投入材料
-            {session.formulaQiCostPaid === null ? (
-              <>
-                {' '}
-                · <span className="font-mono">{session.qiCost}</span> 天地灵气
-              </>
-            ) : null}
+            · 已投入材料 · 尾款{' '}
+            <span className="font-mono">{session.formulaCraftQiCost}</span>{' '}
+            天地灵气
           </p>
           {session.formulaQiCostPaid !== null ? (
             <p>
-              推演已消耗{' '}
+              推演已付{' '}
               <span className="font-mono">{session.formulaQiCostPaid}</span>{' '}
-              天地灵气，开炉不再扣除。
+              天地灵气，成丹时补齐尾款。
             </p>
           ) : null}
         </div>

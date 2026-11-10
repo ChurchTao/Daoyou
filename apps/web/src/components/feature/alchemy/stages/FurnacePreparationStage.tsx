@@ -274,7 +274,16 @@ export function FurnacePreparationStage() {
                     天地灵气
                   </>
                 ) : (
-                  ' · 已投入材料'
+                  <>
+                    {' '}
+                    · 已投入材料 · 尾款{' '}
+                    <span className="font-mono">
+                      {session.canReuseFormulaAnalysis
+                        ? session.formulaCraftQiCost
+                        : session.qiCost - session.formulaAnalysisQiCost}
+                    </span>{' '}
+                    天地灵气
+                  </>
                 )}
               </>
             ) : (
@@ -286,7 +295,7 @@ export function FurnacePreparationStage() {
               {session.canReuseFormulaAnalysis ? (
                 session.formulaQiCostPaid !== null ? (
                   <>
-                    推演已消耗{' '}
+                    推演已付{' '}
                     <span className="font-mono">
                       {session.formulaQiCostPaid}
                     </span>{' '}
@@ -297,8 +306,11 @@ export function FurnacePreparationStage() {
                 )
               ) : (
                 <>
-                  推演消耗 <span className="font-mono">{session.qiCost}</span>{' '}
-                  天地灵气，失败退还。
+                  推演首付{' '}
+                  <span className="font-mono">
+                    {session.formulaAnalysisQiCost}
+                  </span>{' '}
+                  天地灵气（30%向上取整），失败退还。
                 </>
               )}
             </p>

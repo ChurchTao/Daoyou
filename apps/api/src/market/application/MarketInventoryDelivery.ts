@@ -14,6 +14,7 @@ export async function deliverMarketMaterial(
     'name' | 'type' | 'rank' | 'element' | 'description' | 'details'
   >,
   tx: DbTransaction,
+  quantity = 1,
 ) {
   const facts =
     material.type === 'seed'
@@ -30,7 +31,7 @@ export async function deliverMarketMaterial(
     [
       {
         definitionId: material.type === 'seed' ? 'seed.v1' : 'material.v1',
-        quantity: 1,
+        quantity,
         instanceData: facts,
       },
     ],

@@ -59,8 +59,10 @@ export interface MarketListingBase {
   id: string;
   nodeId: string;
   layer: MarketLayer;
+  /** 购买本货品整叠所需的总价。 */
   price: number;
   basePrice?: number;
+  /** 本货品整叠数量；当前账号本批已购时为 0。 */
   quantity: number;
 }
 

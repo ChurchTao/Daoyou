@@ -33,6 +33,10 @@ import {
 } from '@daoyou/game-rules/character/fates';
 import { sampleBeastMarketStock } from '@daoyou/game-rules/market/beast-stock';
 import {
+  marketMaterialStackRange,
+  rollMarketMaterialStock,
+} from '@daoyou/game-rules/market/material-stock';
+import {
   equipmentMarketPurchasePrice,
   sampleEquipmentMarketStock,
 } from '@daoyou/game-rules/market/equipment-stock';
@@ -868,6 +872,11 @@ async function generateListings(
   if (layer === 'black') {
     const mysteryChance = layerConfig.mysteryChance ?? 0.7;
     listings = applyMysteryLayer(listings, mysteryChance, layerConfig);
+  } else {
+    listings = listings.map((item) => ({
+      ...item,
+      ...rollMarketMaterialStock(item),
+    }));
   }
 
   return listings;
@@ -959,6 +968,21 @@ function parseCachedData(raw: string | null): CachedMarketData | null {
   return {
     ...asData,
     listings: asData.listings.filter((item) => {
+      if (
+        !Number.isSafeInteger(item.price) ||
+        item.price < 1 ||
+        !Number.isSafeInteger(item.quantity) ||
+        item.quantity < 1
+      )
+        return false;
+      if (!('definitionId' in item) && !QUALITY_VALUES.includes(item.rank))
+        return false;
+      const maxQuantity =
+        'definitionId' in item || item.layer === 'black'
+          ? 1
+          : marketMaterialStackRange(item).max;
+      // Existing single-item shelves keep their IDs, prices and purchase quotas.
+      if (item.quantity > maxQuantity) return false;
       const profile = getMarketConfigByNodeId(item.nodeId)?.region_profile;
       if (profile === 'equipment') {
         if (!('definitionId' in item) || item.definitionId !== 'equipment.v6')
@@ -1059,7 +1083,7 @@ export async function getMarketListings(ai: AiService, input: {
       boughtIds.has(l.id) ||
       durableBought.has(purchaseKey(nodeId, layer, cycle, l.id))
         ? 0
-        : 1,
+        : l.quantity,
   }));
 
   return {
@@ -1163,11 +1187,12 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
                   tx,
                 )
               )[0]
-            : await deliverMarketMaterial(cultivatorId, item, tx);
+            : await deliverMarketMaterial(cultivatorId, item, tx, item.quantity);
         if (!delivered) throw new Error('坊市物品入库失败');
         deliveries.push({
           listingId: item.id,
           name: item.name,
+          quantity: item.quantity,
           location: delivered.location,
         });
       }

@@ -380,7 +380,7 @@ export interface AlchemyEffectRoute {
 export interface FormulaAnalysisResult {
   analysisId: string;
   valid: boolean;
-  /** Qi paid for this preview; absent only on legacy previews charged when crafting. */
+  /** 推演已付灵气，成丹时抵扣；旧凭据可能已付全款，缺省则成丹收全款。 */
   qiCostPaid?: number;
   staticBlockingReason?: string;
   /** LLM 裁决档位对应的服务端代表值；仅兼容既有丹药元数据。 */
