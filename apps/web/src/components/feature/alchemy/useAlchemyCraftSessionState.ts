@@ -23,6 +23,10 @@ import type {
   AlchemyMode,
 } from '@daoyou/game-domain/consumables';
 import {
+  calculateAlchemyAnalysisQiCost,
+  calculateAlchemyCraftQiCost,
+} from '@daoyou/game-rules/alchemy';
+import {
   createElement,
   type ReactNode,
   useCallback,
@@ -207,6 +211,11 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     typeof analysis.value?.qiCostPaid === 'number'
       ? analysis.value.qiCostPaid
       : null;
+  const formulaAnalysisQiCost = calculateAlchemyAnalysisQiCost(qiCost);
+  const formulaCraftQiCost = calculateAlchemyCraftQiCost(
+    qiCost,
+    formulaQiCostPaid ?? 0,
+  );
   const canReuseFormulaAnalysis = Boolean(
     mode === 'formula' &&
     analysis.value?.valid &&
@@ -633,11 +642,14 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     if (!readyForFormulaAnalysis || analysis.cooldownRemaining > 0) return;
     openQiActionConfirm({
       actionName: '推演药路',
-      qiCost,
+      qiCost: formulaAnalysisQiCost,
       confirmLabel: '确认推演',
       details: buildCraftConfirmationDetails([
         ['丹方', formula?.name ?? '未选择'],
-        ['推演说明', '推演时消耗灵气，失败退还；开炉只扣灵石和材料。'],
+        [
+          '推演说明',
+          '推演付总灵气的30%（向上取整），失败退还；成丹时补齐尾款，并扣灵石和材料。',
+        ],
       ]),
       onConfirm: async () => {
         if (await analyzeFormula()) setPhase('observing');
@@ -648,8 +660,8 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     analyzeFormula,
     canReuseFormulaAnalysis,
     formula?.name,
+    formulaAnalysisQiCost,
     openQiActionConfirm,
-    qiCost,
     readyForFormulaAnalysis,
   ]);
 
@@ -719,7 +731,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
           : readyForFormulaFire;
       if (!cultivator || mode !== expectedMode || !ready || submitting) return;
       const craftQiCost =
-        expectedMode === 'formula' && formulaQiCostPaid !== null ? 0 : qiCost;
+        expectedMode === 'formula' ? formulaCraftQiCost : qiCost;
       const totalDose = materials.ids.reduce(
         (sum, id) => sum + (materials.doses[id] ?? ALCHEMY_MIN_DOSE),
         0,
@@ -746,7 +758,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
         [
           '天地灵气',
           expectedMode === 'formula' && formulaQiCostPaid !== null
-            ? `推演已消耗 ${formulaQiCostPaid} 点，开炉不再扣除。`
+            ? `推演已付 ${formulaQiCostPaid} 点，成丹补付尾款 ${craftQiCost} 点。`
             : `${craftQiCost} 点`,
         ],
         ...(expectedMode === 'improvised'
@@ -856,6 +868,7 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
       clearAnalysis,
       cultivator,
       formula?.name,
+      formulaCraftQiCost,
       formulaQiCostPaid,
       intent,
       materials.doses,
@@ -914,6 +927,8 @@ export function useAlchemyCraftSessionState(sectContext?: AlchemySectContext) {
     submitting,
     status,
     qiCost,
+    formulaAnalysisQiCost,
+    formulaCraftQiCost,
     formulaQiCostPaid,
     canReuseFormulaAnalysis,
     totalDose: materials.ids.reduce(
