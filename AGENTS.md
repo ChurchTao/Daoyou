@@ -56,6 +56,7 @@ pnpm run db:migrate
 - `daoyou-scene-art`: 云游探秘按地貌共用的淡墨插画，覆盖题签、案情板和秘境介绍，规范透明底与实际容器中的裁切验收。见 [.agents/skills/daoyou-scene-art/SKILL.md](.agents/skills/daoyou-scene-art/SKILL.md)。
 - `daoyou-game-core-domain`: combat-v6 core/rules/projection, sects, equipment, manuals, beasts, and shared inventory/reward rules.
 - `daoyou-beast-design`: 灵兽物种、生灵层次、命名、资质成长及出生技能池设计与审查；扩充或调整物种前读取 `.agents/skills/daoyou-beast-design/SKILL.md`，实施同时遵守领域技能。
+- 新增、调整或评审灵田灵植与阶段立绘时，使用 [daoyou-spirit-garden-design](.agents/skills/daoyou-spirit-garden-design/SKILL.md)，对照物种和品阶基准、写意彩墨参考及透明图谱验收要求。
 - Only the skills present in `.agents/skills/` are project skill entrypoints. For runtime work, inspect `package.json`, `apps/api/src/main.ts`, Vite/Docker configs and `docs/local-development.md`; for condition/alchemy/market work, combine the domain, data and backend skills as applicable.
 
 ## Architecture Rules
