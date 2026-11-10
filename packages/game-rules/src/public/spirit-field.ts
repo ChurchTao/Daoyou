@@ -1,5 +1,41 @@
 /** Public spirit-field capabilities. Keep implementation files private. */
-export { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';
+export type {
+  SpiritGardenBranch,
+  SpiritGardenCodexEntry,
+  SpiritGardenOutput,
+  SpiritGardenPlant,
+  SpiritGardenPlantView,
+  SpiritGardenPlot,
+  SpiritGardenProduct,
+  SpiritGardenSpecies,
+  SpiritGardenSpeciesId,
+  SpiritGardenState,
+} from '@daoyou/game-domain/spirit-field';
+export {
+  SPIRIT_GARDEN_COLLECTION_LIMIT,
+  SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_SPECIES,
+  SpiritGardenStateSchema,
+  archiveSpiritGardenPlant,
+  buildSpiritGardenSeed,
+  canExchangeSpiritGardenSeed,
+  chooseSpiritGardenBranch,
+  createSpiritGarden,
+  evolveSpiritGardenPlant,
+  getSpiritGardenExchangeCost,
+  getSpiritGardenMaturedCount,
+  getSpiritGardenOutput,
+  getSpiritGardenPlantView,
+  getSpiritGardenSpecies,
+  harvestSpiritGarden,
+  migrateLegacySpiritGarden,
+  parseSpiritGardenState,
+  plantSpiritGardenSeed,
+  resolveSpiritGardenSpecies,
+  restoreSpiritGardenPlant,
+  retireSpiritGardenPlant,
+  settleSpiritGarden,
+} from '../spirit-field/garden.js';
 export {
   SPIRIT_FIELD_METHODS,
   SPIRIT_FIELD_METHOD_MAP,
@@ -42,3 +78,4 @@ export type {
   SpiritSeedSkeleton,
   SpiritSeedUseTag,
 } from '../spirit-field/index.js';
+export { buildSpiritFruitSpec } from '../spirit-field/spiritFruit.js';

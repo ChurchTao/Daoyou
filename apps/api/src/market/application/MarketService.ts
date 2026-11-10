@@ -742,7 +742,6 @@ async function generateFromMaterialLibrary(
 
 /** 按节点配置注入动态灵种；普通坊市不再固定占位，黑市始终不注入。 */
 async function injectSpiritFieldSeedListings(
-  ai: AiService,
   listings: InternalMarketMaterialListing[],
   nodeId: string,
   layer: MarketLayer,
@@ -756,7 +755,7 @@ async function injectSpiritFieldSeedListings(
   );
   if (slots <= 0) return listings;
 
-  const seeds = await SpiritSeedGenerator.generateRandom(ai, slots, {
+  const seeds = SpiritSeedGenerator.generateRandom(slots, {
     rankRange: layerConfig.rankRange,
     regionTags: getNodeRegionTags(nodeId),
   });
@@ -860,7 +859,6 @@ async function generateListings(
   }
 
   listings = await injectSpiritFieldSeedListings(
-    ai,
     listings,
     nodeId,
     layer,

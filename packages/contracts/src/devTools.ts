@@ -19,7 +19,10 @@ export function createDevCultivatorPatchSchema({
   const DevCultivatorPatchSchema = z
     .object({
       spiritField: z
-        .object({ finishGrowth: z.number().int().min(0).max(5) })
+        .object({
+          finishGrowth: z.number().int().min(0).max(5),
+          milestone: z.enum(['mature', 'branch', 'evolve', 'yield']).optional(),
+        })
         .strict()
         .optional(),
       spiritualRoots: z

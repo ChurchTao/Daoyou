@@ -1,8 +1,8 @@
-import { JournalChangeSchema } from '@daoyou/game-domain/journal/changes';
 import type {
   BreakthroughResult,
   CultivationResult,
 } from '@daoyou/game-domain/cultivation';
+import { JournalChangeSchema } from '@daoyou/game-domain/journal/changes';
 
 import { REALM_STAGE_VALUES, REALM_VALUES } from '@daoyou/constants/realms';
 
@@ -81,6 +81,12 @@ export const JOURNAL_ACTIVITIES = {
   spirit_field_sow: '灵田播种',
   spirit_field_cultivate: '灵田培育',
   spirit_field_harvest: '灵田收获',
+  spirit_field_branch: '灵植定向',
+  spirit_field_evolve: '灵植蜕变',
+  spirit_field_archive: '灵植保种',
+  spirit_field_restore: '灵植迁栽',
+  spirit_field_redeem: '兑换灵种',
+  spirit_field_retire: '灵植退藏',
   sect_task_action: '宗门任务',
   sect_battle_settlement: '宗门任务战斗',
   sect_shop_purchase: '宗门兑换',

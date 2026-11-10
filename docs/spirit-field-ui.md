@@ -1,0 +1,56 @@
+# 灵田场景与交互重设计
+
+## 设计方向
+
+新版以“巡视一座长期灵圃”为主体验。原版六个文字按钮、常驻背包与长表单无法表达灵植持续存在、培养路线和永久成果，因此此次重新组织场景与操作路径；沿用游戏纸墨字体、宣纸底色、顶部身份层和底部导航。
+
+主景为桌面三列两行、手机两列三行的六畦植物。八物种插画承担物种辨识，幼苗、成株、蕴灵、蜕变以尺度、阶段文字和真实培养机会共同表达。空畦直接进入栽种；采收集中在顶部一键完成，并展示真实产物与交付位置的收成回执。
+
+## 操作组织
+
+- 单株小记：身份、当前产出、待领收成与生长历程，突出当前可做的培养动作；未来条件逐级展开。
+- 栽种／蜕变：先查看目标，再进入完整背包或储藏室选物，返回原目标确认。所有视图复用一个抽屉，切换时不叠加弹层。
+- 培养分支：原生单选控件对比两条路线，显示真实周期、产物与一次选择限制，再明确确认。
+- 保种阁：植物藏签保留成长成果；迁回时回到主景，点空畦放置。结束培育收在次级管理入口，要求先领取产物并再次确认。
+- 百草志：八物种册签与单一物种详情，展示永久养成、培养路线和下一里程碑；兑换作为物种详情中的辅助动作。
+- 键盘与恢复：Escape 关闭后返回原田块，抽屉内保留焦点约束；请求目标绑定田块、株身份及选物目的，切换视图不会改写待重试请求。
+
+`useSpiritGarden.ts` 独立维护读取、请求版本与原样重试。页面只组织视图和操作目标；业务计算继续使用共享规则和后端权威快照。
+
+## 通用视觉规范
+
+灵圃的特色由植物插画、六畦布局、生长历程和保种交互承担。普通控件遵循全游戏现有组件与主题，不另建场景色板。
+
+- 收获、栽种、定向、蜕变和兑换使用 `InkButton` 的 `primary`；返回、取消、保种与管理使用 `secondary`，选物等普通动作使用默认变体。保留共享的方括号、字号、悬停与禁用态，删除灵圃专用实心按钮及对共享按钮的外观覆盖。
+- 正文与植物名为 `ink`，说明和时间为 `ink-secondary`；选中、培养机会与风险为 `crimson`；待领收成、正向收益和已完成记载为 `teal`。分隔线使用全局墨色边线，植物和土影保留自然美术色。
+- 原生田块、图录选择与分支单选保留语义，选中态与键盘焦点使用朱红，并辅以边线、状态文字。辅助文案以 12px 为基线，普通按钮保持共享字号；手机通过换行适配，触屏按钮命中区至少 44px。
+
+同一约定已写入 `.agents/skills/daoyou-game-ui/SKILL.md` 与主流程验收清单，供后续场景实现和评审复用。
+
+## 插画素材
+
+使用内置 `image_gen` 生成视觉参考及一张八物种图谱，未使用 CLI 或额外模型调用脚本。消费素材为 `apps/web/public/assets/spirit-garden/botanical-atlas.webp`，1536 × 1024，四列两行，保留 alpha，仅作 WebP 编码压缩。物种依次对应共享 `SPIRIT_GARDEN_SPECIES_IDS`。这是植物场景插画，不是另一套业务图标协议；物品仍使用统一 `ItemSlot` 与 `GameIcon`。
+
+图谱生成提示如下：
+
+```text
+Use case: illustration-story. Asset type: ONE game sprite atlas of 8 botanical specimens, used as actual large plants in a Chinese ink cultivation garden UI. Transparent background with true alpha. Landscape 1536x1024, precise equal 4 columns x 2 rows, cell size 384x512, no visible grid. Each plant centered within its own cell with generous transparent gutters and NO overlap into neighboring cells. ALL specimens' root/soil base aligned at 88 percent of each cell height. Transparent everywhere outside the ink strokes, no paper rectangle. Style: authentic Chinese xieyi ink botanical painting, expressive dry-brush dark stems, rich but restrained ink washes, pale mineral green, cinnabar, indigo and muted gold highlights; loose yet clear silhouettes at 120px. Refined scholarly herbarium, no cute/cartoon/3D/photorealism. Each specimen includes only a tiny softly feathered soil ink shadow at its root. Exact atlas order left to right: TOP row 1 青木藤 green winding leafy vine wrapped around an unobtrusive slender twig, two pale green fruits; 2 风露草 graceful tuft of wind-bent long thin grass blades with dew; 3 赤炎株 a compact branching shrub with cinnabar leaves and small orange-red berries; 4 月泉莲 a water lotus with broad leaves and one pale blue-white blossom above a faint water stroke. BOTTOM row 5 岩心芝 a cluster of substantial layered gray-ochre lingzhi fungi; 6 鸣雷莓 a dark blue-green berry bush with tiny muted blue-purple berries, no lightning bolt graphics; 7 金玉竹 three slender green bamboo culms with subtle mineral-gold nodes and narrow elegant leaves; 8 寒玉寿木 a delicate small gnarled pale tree with silver-green leaves and a few cool jade fruit. Keep all art compact with leaves within the inner 80 percent of each cell. No pots, no people, no architecture, no landscape background, no text, no labels, no calligraphy, no seal, no frame, no UI or icons. One consistent visual language; all 8 plants independently readable and fully visible.
+```
+
+## 2026-11-10 验收
+
+- `pnpm run lint`、`pnpm --filter @daoyou/web run typecheck`、`pnpm run build:client`、`git diff --check` 通过。客户端构建保留既有的大 chunk 警告。此次只改前端与插画，未新增前后端单元测试，未重复全量领域测试。
+- 使用独立本地道友5会话，在 360px 触屏环境完成领取初始灵种、选物、确认栽种、选择结实、收成回执、蜕变、保种、指定另一空畦迁回、图录兑换与安全结束培育。成长节点和境界通过现有纯本地开发入口准备，正式操作均由真实页面发起。
+- 选物→确认→详情始终只有一个抽屉，完整请求保留 `requestId`、`expectedVersion`、株身份与物品版本。兑换原请求重放返回 `replayed=true`。有待领产物时退藏禁用，领取后需明确不可恢复的确认，图录记录保留。
+- Escape 关闭详情后焦点返回原株；1280px 桌面和 360px 手机无横向溢出。插画、主景、详情和图录均已实际截图检查，并等待过渡动画完成后检查最终画面。
+- 中途本地开发服务停止，页面显示未确认重试提示；Vite 重启触发整页重载，恢复后重新完成兑换及服务端原请求重放检查。此次不把跨整页重载保存未确认请求记为已验证。
+- 临时测试账号正常登出，新增物品、成长准备、境界、状态、修为和货币恢复到事先基准。未改动正在使用的本地道友1／2资产，未部署或执行新迁移。
+
+截图保留在本次 Codex 任务产物中，不作为源码测试夹具提交。
+
+## 2026-11-10 通用视觉收敛验收
+
+- `pnpm run lint`、`pnpm --filter @daoyou/web run typecheck`、`pnpm run build:client`、`git diff --check` 通过。构建仍有既有的大 chunk 提示。此次仅调整前端视觉与规范，未新增单元测试，未重复领域测试或服务端构建。
+- 在真实本地页面检查 1280px 桌面与 360px 手机，另建真实触屏上下文检查 44px 命中区域。普通操作均保持共享的 15.2px 字号，无横向溢出；主操作、次级操作、禁用确认与未解锁兑换的计算颜色符合全局主题。
+- 单株详情、空畦栽种、图录切换均正常。图录选中边线与文字为朱红，完成记载和收成为 teal；Escape 关闭后焦点回到原田块，保持一个可见抽屉。最终截图在颜色过渡完成后检查。
+- 检查期间灵田请求均为正常 GET，未执行采收、兑换、栽种、发放或成长准备。浏览器控制台无错误或警告；独立触屏上下文已关闭。

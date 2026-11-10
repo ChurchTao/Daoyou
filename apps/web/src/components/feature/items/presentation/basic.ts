@@ -22,6 +22,10 @@ import {
   materialFactsOf,
 } from '@daoyou/game-domain/inventory';
 import { REALM_VALUES } from '@daoyou/constants/realms';
+import {
+  getSpiritGardenSpecies,
+  resolveSpiritGardenSpecies,
+} from '@daoyou/game-rules/spirit-field';
 import { field, lines, quantity } from './helpers';
 import type { ItemAdapter } from './types';
 
@@ -84,6 +88,11 @@ export const seedAdapter: ItemAdapter = (item) => {
   const plant = fullFacts.success
     ? fullFacts.data.seedSpec.plant
     : SeedPreviewFactsSchema.parse(item.instanceData).seedPreview;
+  const species = fullFacts.success
+    ? getSpiritGardenSpecies(
+        resolveSpiritGardenSpecies(fullFacts.data.seedSpec.plant),
+      )
+    : null;
   return {
     summary: {
       icon: '🌱',
@@ -101,11 +110,30 @@ export const seedAdapter: ItemAdapter = (item) => {
       sections: [
         {
           title: '道具资料',
-          entries: [{ kind: 'line', label: '五行', value: plant.element }],
+          entries: [
+            { kind: 'line', label: '五行', value: plant.element },
+            ...(species
+              ? [{ kind: 'line' as const, label: '物种', value: species.name }]
+              : []),
+          ],
         },
-        ...(plant.clueTexts.length
-          ? [{ title: '培育线索', entries: lines(plant.clueTexts.join('\n')) }]
-          : []),
+        ...(species
+          ? [
+              {
+                title: '长期培养',
+                entries: lines(
+                  `成株后持续产出${species.baseOutput.name}，采收保留植株。\n${species.branches.abundance.name}：${species.branches.abundance.output.name}\n${species.branches.essence.name}：${species.branches.essence.output.name}`,
+                ),
+              },
+            ]
+          : plant.clueTexts.length
+            ? [
+                {
+                  title: '培育线索',
+                  entries: lines(plant.clueTexts.join('\n')),
+                },
+              ]
+            : []),
       ],
       description: plant.seedDescription,
     }),

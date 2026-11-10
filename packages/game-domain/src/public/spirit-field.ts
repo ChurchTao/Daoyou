@@ -1,5 +1,21 @@
 /** Public spirit-field capabilities. Keep implementation files private. */
 export {
+  SPIRIT_GARDEN_BRANCHES,
+  SPIRIT_GARDEN_SPECIES_IDS,
+} from '../spirit-field/garden.js';
+export type {
+  SpiritGardenBranch,
+  SpiritGardenCodexEntry,
+  SpiritGardenOutput,
+  SpiritGardenPlant,
+  SpiritGardenPlantView,
+  SpiritGardenPlot,
+  SpiritGardenProduct,
+  SpiritGardenSpecies,
+  SpiritGardenSpeciesId,
+  SpiritGardenState,
+} from '../spirit-field/garden.js';
+export {
   buildSpiritFieldSeedDetails,
   buildSpiritFieldSeedFingerprint,
   buildSpiritFieldSeedMaterialFromPlant,

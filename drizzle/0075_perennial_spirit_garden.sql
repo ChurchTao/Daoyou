@@ -1,0 +1,1 @@
+ALTER TABLE "wanjiedaoyou_spirit_fields" ADD COLUMN "garden" jsonb;

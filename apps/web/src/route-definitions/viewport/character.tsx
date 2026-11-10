@@ -60,7 +60,7 @@ export const characterRoutes = [
       {
         id: 'spirit-field',
         presentation: 'workflow',
-        summary: '播下灵种，培育成熟后收获灵草。',
+        summary: '种下灵植，长养一圃草木，静候百般收成。',
       },
       '洞府灵田',
     )}

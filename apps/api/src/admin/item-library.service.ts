@@ -84,7 +84,7 @@ export class AdminItemLibraryService {
       );
     }
     try {
-      const items = await generateSpiritSeedLibraryEntries(this.ai, {
+      const items = await generateSpiritSeedLibraryEntries({
         request: parsed.data,
         userId: userId,
       });

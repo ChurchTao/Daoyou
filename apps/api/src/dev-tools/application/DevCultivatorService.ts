@@ -13,6 +13,11 @@ import { getRealmStageLevel as combatCharacterLevel } from '@daoyou/game-domain/
 import type { CultivatorCondition } from '@daoyou/game-domain/condition';
 import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import type { CultivationProgress } from '@daoyou/game-domain/character';
+import {
+  getSpiritGardenPlantView,
+  migrateLegacySpiritGarden,
+  settleSpiritGarden,
+} from '@daoyou/game-rules/spirit-field';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@server/lib/drizzle/db.js';
 import {
@@ -108,17 +113,47 @@ export async function patchDevCultivator(
         if (input.spiritField) {
           const field = await getOrCreateSpiritField(owner, tx);
           const index = input.spiritField.finishGrowth;
-          const plot = field.plots[index];
-          if (
-            !plot?.plant ||
-            !plot.stageEndsAt ||
-            new Date(plot.stageEndsAt).getTime() <= Date.now()
-          )
-            throw new InventoryError('该田块没有正在进行的生长阶段');
-          const end = new Date(Date.now() - 1000).toISOString();
-          const plots = [...field.plots];
-          plots[index] = { ...plot, stageStartedAt: end, stageEndsAt: end };
-          await updateSpiritField(tx, field.id, { plots });
+          const now = Date.now();
+          const garden = settleSpiritGarden(
+            field.garden ??
+              migrateLegacySpiritGarden(field.plots, now, field.id),
+            now,
+          );
+          const plant = garden.plots[index]?.plant;
+          if (!plant) throw new InventoryError('该田块没有灵植');
+          const view = getSpiritGardenPlantView(
+            plant,
+            (input.realm ?? before.realm) as RealmType,
+          );
+          const milestone =
+            input.spiritField.milestone ??
+            (plant.activeGrowthMs < view.matureMs
+              ? 'mature'
+              : !plant.branch
+                ? 'branch'
+                : !plant.evolved
+                  ? 'evolve'
+                  : 'yield');
+          const target =
+            milestone === 'mature'
+              ? view.matureMs
+              : milestone === 'branch'
+                ? view.branchMs
+                : view.evolveMs;
+          const advanceMs =
+            milestone === 'yield'
+              ? view.output.cycleMs - plant.productionMs
+              : target - plant.activeGrowthMs;
+          if (advanceMs <= 0)
+            throw new InventoryError('灵植已经达到指定成长节点');
+          const plots = garden.plots.map((plot) =>
+            plot.index === index
+              ? { ...plot, plant: { ...plant, settledAt: now - advanceMs } }
+              : plot,
+          );
+          await updateSpiritField(tx, field.id, {
+            garden: settleSpiritGarden({ ...garden, plots }, now),
+          });
         }
         let sect;
         if (input.sect) {

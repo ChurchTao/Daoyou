@@ -273,3 +273,8 @@ export function getSpiritFieldMethod(id: SpiritFieldMethodDefinition['id']) {
 export function getSpiritFieldMethodsForStage(stage: SpiritFieldStage) {
   return SPIRIT_FIELD_METHODS.filter((method) => method.stage === stage);
 }
+export {
+  SPIRIT_GARDEN_COLLECTION_LIMIT,
+  SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_SPECIES,
+} from './garden.js';

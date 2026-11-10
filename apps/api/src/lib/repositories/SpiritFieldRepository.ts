@@ -1,10 +1,16 @@
-import { getExecutor, type DbExecutor, type DbTransaction } from '@server/lib/drizzle/db.js';
-import { spiritFields } from '@server/lib/drizzle/schema.js';
 import {
   createDefaultSpiritFieldPlots,
-  normalizeSpiritFieldPlots,
+  createSpiritGarden,
+  parseSpiritGardenState,
   type SpiritFieldPlotState,
+  type SpiritGardenState,
 } from '@daoyou/game-rules/spirit-field';
+import {
+  getExecutor,
+  type DbExecutor,
+  type DbTransaction,
+} from '@server/lib/drizzle/db.js';
+import { spiritFields } from '@server/lib/drizzle/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
 export interface SpiritFieldRecord {
@@ -14,6 +20,7 @@ export interface SpiritFieldRecord {
   totalCareCount: number;
   starterClaimed: boolean;
   plots: SpiritFieldPlotState[];
+  garden: SpiritGardenState | null;
   version: number;
 }
 
@@ -24,7 +31,8 @@ function mapRow(row: typeof spiritFields.$inferSelect): SpiritFieldRecord {
     selfHarvestCount: row.selfHarvestCount,
     totalCareCount: row.totalCareCount,
     starterClaimed: row.starterClaimed,
-    plots: normalizeSpiritFieldPlots(row.plots),
+    plots: row.plots,
+    garden: row.garden === null ? null : parseSpiritGardenState(row.garden),
     version: row.version,
   };
 }
@@ -38,6 +46,7 @@ export async function getOrCreateSpiritField(
     .values({
       cultivatorId,
       plots: createDefaultSpiritFieldPlots(),
+      garden: createSpiritGarden(),
     })
     .onConflictDoNothing({ target: spiritFields.cultivatorId });
 
@@ -60,13 +69,18 @@ export async function updateSpiritField(
       | 'totalCareCount'
       | 'starterClaimed'
       | 'plots'
+      | 'garden'
     >
   >,
 ): Promise<void> {
+  const validatedPatch = {
+    ...patch,
+    ...(patch.garden ? { garden: parseSpiritGardenState(patch.garden) } : {}),
+  };
   await tx
     .update(spiritFields)
     .set({
-      ...patch,
+      ...validatedPatch,
       version: sql`${spiritFields.version} + 1`,
       updatedAt: new Date(),
     })

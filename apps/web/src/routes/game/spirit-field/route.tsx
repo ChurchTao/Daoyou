@@ -1,13 +1,10 @@
-import { apiFetch } from '@app/lib/api/fetch';
 import { VaultWithdrawal } from '@app/components/feature/forging/VaultWithdrawal';
 import { CraftInventoryPanel } from '@app/components/feature/items/CraftInventoryPanel';
 import { InventoryItems } from '@app/components/feature/items/InventoryItems';
 import { ItemSlot } from '@app/components/feature/items/ItemSlot';
 import {
-  inventoryFilterActive,
   matchesInventoryFilters,
   type InventoryFilter,
-  type MaterialType,
 } from '@app/components/feature/items/inventoryFilterModel';
 import { GameSceneFrame, GameSceneLoading } from '@app/components/game-shell';
 import { useInkUI } from '@app/components/providers/InkUIProvider';
@@ -16,639 +13,799 @@ import { InkDetailDrawer } from '@app/components/ui/InkDetailDrawer';
 import { SpiritStones } from '@app/components/ui/SpiritStones';
 import { useInventoryBag } from '@app/lib/resources/bag';
 import { useCraftStorage } from '@app/lib/resources/craftStorage';
-import { useResourceMutation } from '@app/lib/resources/mutations';
+import { QUALITY_ORDER } from '@daoyou/constants/qualities';
 import type { InventoryView } from '@daoyou/contracts/inventory';
-import { canPlantSpiritFieldSeed } from '@daoyou/game-rules/spirit-field';
-import {
-  ConsumableFactsSchema,
-  SeedFactsSchema,
-  materialFactsOf,
-} from '@daoyou/game-domain/inventory';
 import { findItemDefinition } from '@daoyou/game-content/items';
-import type { RealmType } from '@daoyou/constants/realms';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  MaterialFactsSchema,
+  SeedFactsSchema,
+} from '@daoyou/game-domain/inventory';
+import type {
+  SpiritGardenBranch,
+  SpiritGardenPlantView,
+  SpiritGardenSpeciesId,
+} from '@daoyou/game-domain/spirit-field';
+import {
+  canPlantSpiritFieldSeed,
+  getSpiritGardenSpecies,
+  resolveSpiritGardenSpecies,
+} from '@daoyou/game-rules/spirit-field';
+import { useEffect, useRef, useState } from 'react';
+import { BotanicalArt } from './components/BotanicalArt';
+import { GardenBranchChoice } from './components/GardenBranchChoice';
+import { GardenCanvas } from './components/GardenCanvas';
+import { GardenCodex } from './components/GardenCodex';
+import { GardenCollection } from './components/GardenCollection';
+import { GardenPlantDetail } from './components/GardenPlantDetail';
+import {
+  useSpiritGarden,
+  type GardenAction,
+  type GardenOutcome,
+} from './useSpiritGarden';
 
-type Resource = {
-  id: string;
-  revision: number;
-  name: string;
-  kind: string;
-  quality: string;
-  quantity: number;
+type Item = InventoryView['items'][number];
+type PlantTarget = { plotIndex: number; plantId: string };
+type ItemTarget =
+  { purpose: 'sow'; plotIndex: number } | ({ purpose: 'evolve' } & PlantTarget);
+type Panel =
+  | ({ view: 'plant' | 'branch' | 'evolve' } & PlantTarget)
+  | { view: 'sow'; plotIndex: number }
+  | { view: 'inventory'; target: ItemTarget }
+  | { view: 'collection' | 'codex' }
+  | { view: 'retire'; plantId: string }
+  | { view: 'receipt'; result: GardenOutcome['result'] };
+const targetKey = (target: ItemTarget) =>
+  `${target.purpose}:${target.plotIndex}:${'plantId' in target ? target.plantId : ''}`;
+const titles = {
+  plant: '灵植小记',
+  branch: '择定长养之路',
+  evolve: '灵植蜕变',
+  sow: '栽种新灵植',
+  inventory: '选择物品',
+  collection: '保种阁',
+  codex: '百草志',
+  retire: '结束培育',
+  receipt: '收成已收妥',
 };
-type Method = {
-  id: string;
-  name: string;
-  description: string;
-  resourceKind: string;
-  baseCost: number;
-  cost: { amount: number; spiritStones: number };
-};
-function filterForResource(kind: string): InventoryFilter {
-  if (kind === 'pill') return { kind: 'consumable' };
-  if (['herb', 'ore', 'monster', 'tcdb', 'aux'].includes(kind))
-    return { kind: 'material', materialType: kind as MaterialType };
-  return { kind: 'all' };
-}
-type Plot = {
-  index: number;
-  plant: null | {
-    seedName: string;
-    seedDescription: string;
-    clues: string[];
-    quality: string;
-    element: string;
-  };
-  status: 'empty' | 'awaiting_cultivation' | 'growing' | 'ready_to_harvest';
-  stage: 'germination' | 'nourishing' | 'forming' | null;
-  progress: number;
-  remainingMs: number;
-  stageStartedAt: string | null;
-  stageEndsAt: string | null;
-  methods: Method[];
-  history: Array<{
-    stage: string;
-    method: string;
-    affinity: string;
-    feedback: string;
-    resourceName?: string;
-  }>;
-};
-type Snapshot = {
-  profile: { successfulHarvestCount: number; starterClaimed: boolean };
-  player: {
-    realm: string;
-    spiritStones: number;
-    qi: number;
-    qiMax: number;
-    mp: number;
-    mpMax: number;
-  };
-  plots: Plot[];
-  seeds: Array<{
-    materialId: string;
-    revision: number;
-    name: string;
-    description: string | null;
-    quantity: number;
-    quality: string;
-    element: string | null;
-    minRealm: string;
-    canPlant: boolean;
-    clues: string[];
-  }>;
-  resources: Resource[];
-};
-
-const stageNames = {
-  germination: '萌芽期',
-  nourishing: '蕴灵期',
-  forming: '成型期',
-} as const;
-const statusText = {
-  empty: '空田',
-  awaiting_cultivation: '静候施为',
-  growing: '生长中',
-  ready_to_harvest: '待摘取',
-} as const;
-const affinityNames: Record<string, string> = {
-  excellent: '天性相合',
-  good: '灵机相契',
-  neutral: '平稳承纳',
-  strained: '灵机滞涩',
-};
-function requestId(prefix: string) {
-  return `${prefix}:${crypto.randomUUID()}`;
-}
-function duration(ms: number) {
-  const minutes = Math.max(1, Math.ceil(ms / 60_000));
-  return minutes < 60
-    ? `约 ${minutes} 分钟`
-    : `约 ${Math.floor(minutes / 60)} 小时${minutes % 60 ? ` ${minutes % 60} 分钟` : ''}`;
-}
 
 export default function SpiritFieldPage() {
-  const { mutate } = useResourceMutation();
-  const { pushToast, openDialog } = useInkUI();
-  const [snapshot, setSnapshot] = useState<Snapshot>();
-  const bagQuery = useInventoryBag();
-  const bag = bagQuery.data;
-  const bagUnavailable = !bag || bagQuery.isRefreshing || !!bagQuery.error;
+  const garden = useSpiritGarden();
+  const { snapshot, locked } = garden;
+  const { pushToast } = useInkUI();
+  const bag = useInventoryBag();
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [restorePlant, setRestorePlant] =
+    useState<SpiritGardenPlantView | null>(null);
+  const [selectedSpeciesId, setSelectedSpeciesId] =
+    useState<SpiritGardenSpeciesId | null>(null);
+  const [branch, setBranch] = useState<SpiritGardenBranch | null>(null);
   const [source, setSource] = useState<'bag' | 'storage'>('bag');
   const [filter, setFilter] = useState<InventoryFilter>({ kind: 'seed' });
-  const storage = useCraftStorage(filter, source === 'storage');
-  const inventoryView = source === 'bag' ? bag : storage.view;
-  const inventoryError = source === 'bag' ? bagQuery.error : storage.error;
+  const storage = useCraftStorage(
+    filter,
+    panel?.view === 'inventory' && source === 'storage',
+  );
+  const [selection, setSelection] = useState<{
+    target: ItemTarget;
+    item: Item;
+  } | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const panelKind = panel?.view;
+  const previousPanel = useRef<Panel['view'] | undefined>(undefined);
+  useEffect(() => {
+    const wasOpen = previousPanel.current !== undefined;
+    previousPanel.current = panelKind;
+    if (!panelKind && !wasOpen) return;
+    const timer = window.setTimeout(() => {
+      if (panelKind) contentRef.current?.focus();
+      else if (selectedIndex !== null)
+        document
+          .querySelector<HTMLButtonElement>(
+            `.garden-plot[data-plot-index="${selectedIndex}"]`,
+          )
+          ?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [panelKind, selectedIndex]);
+
+  const inventoryView = source === 'bag' ? bag.data : storage.view;
   const inventoryLoading =
-    source === 'bag' ? bagQuery.isRefreshing : storage.loading;
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [methodId, setMethodId] = useState('');
-  const [chosen, setChosen] = useState<InventoryView['items'][number]>();
-  const [bagOpen, setBagOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [now, setNow] = useState(Date.now);
-  const pending = useRef(false);
-  const attempt = useRef<{ key: string; id: string } | undefined>(undefined);
-  const refresh = useCallback(async () => {
-    try {
-      const response = await apiFetch('/api/spirit-field');
-      const field = await response.json();
-      if (!response.ok) throw new Error(field.error ?? '灵田读取失败');
-      setSnapshot(field.data);
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '灵田读取失败');
+    source === 'bag' ? bag.isRefreshing : storage.loading;
+  const inventoryError = source === 'bag' ? bag.error : storage.error;
+  const panelPlant =
+    panel && 'plotIndex' in panel && 'plantId' in panel
+      ? snapshot?.plots[panel.plotIndex]?.plant
+      : null;
+  const validPanelPlant =
+    panel && 'plantId' in panel && panelPlant?.id === panel.plantId
+      ? panelPlant
+      : null;
+  const itemTarget: ItemTarget | null =
+    panel?.view === 'inventory'
+      ? panel.target
+      : panel?.view === 'sow'
+        ? { purpose: 'sow', plotIndex: panel.plotIndex }
+        : panel?.view === 'evolve'
+          ? {
+              purpose: 'evolve',
+              plotIndex: panel.plotIndex,
+              plantId: panel.plantId,
+            }
+          : null;
+  const chosen =
+    itemTarget &&
+    selection &&
+    targetKey(selection.target) === targetKey(itemTarget)
+      ? selection.item
+      : undefined;
+
+  function canChoose(target: ItemTarget, item: Item) {
+    if (!snapshot || item.quantity < 1) return false;
+    const plot = snapshot.plots[target.plotIndex];
+    const kind = findItemDefinition(item.definitionId)?.kind;
+    if (target.purpose === 'sow') {
+      if (plot?.plant || kind !== 'seed') return false;
+      const facts = SeedFactsSchema.safeParse(item.instanceData);
+      return (
+        facts.success &&
+        canPlantSpiritFieldSeed(
+          snapshot.player.realm,
+          facts.data.seedSpec.plant,
+        )
+      );
     }
-  }, []);
-  useEffect(() => {
-    const initial = setTimeout(() => void refresh(), 0);
-    const timer = setInterval(() => {
-      if (!pending.current) void refresh();
-    }, 15000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(timer);
-    };
-  }, [refresh]);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  const selected = snapshot?.plots[selectedIndex];
-  const method = selected?.methods.find((m) => m.id === methodId);
-  const needsItem =
-    !!method &&
-    ['herb', 'ore', 'monster', 'tcdb', 'aux', 'pill'].includes(
-      method.resourceKind,
-    );
-  async function act(url: string, body: Record<string, unknown>) {
+    const plant = plot?.plant;
     if (
-      pending.current ||
-      (chosen &&
-        (chosen.location === 'bag'
-          ? bagUnavailable
-          : storage.loading || !!storage.error))
+      !plant ||
+      plant.id !== target.plantId ||
+      !plant.canEvolve ||
+      kind !== 'material'
+    )
+      return false;
+    const facts = MaterialFactsSchema.safeParse(item.instanceData);
+    return (
+      facts.success &&
+      facts.data.type === plant.evolveCost.materialKind &&
+      QUALITY_ORDER[facts.data.rank] >=
+        QUALITY_ORDER[plant.evolveCost.materialQuality] &&
+      item.quantity >= plant.evolveCost.quantity
+    );
+  }
+
+  function openInventory(target: ItemTarget) {
+    setFilter(
+      target.purpose === 'sow'
+        ? { kind: 'seed' }
+        : { kind: 'material', materialType: 'herb' },
+    );
+    storage.setPage(0);
+    setPanel({ view: 'inventory', target });
+  }
+  function returnFromInventory(target: ItemTarget) {
+    setPanel(
+      target.purpose === 'sow'
+        ? { view: 'sow', plotIndex: target.plotIndex }
+        : {
+            view: 'evolve',
+            plotIndex: target.plotIndex,
+            plantId: target.plantId,
+          },
+    );
+  }
+  function choose(item: Item) {
+    if (
+      locked ||
+      inventoryLoading ||
+      inventoryError ||
+      panel?.view !== 'inventory' ||
+      !canChoose(panel.target, item)
     )
       return;
-    pending.current = true;
-    setBusy(true);
-    const key = JSON.stringify([url, body]);
-    if (attempt.current?.key !== key)
-      attempt.current = { key, id: requestId('field') };
-    try {
-      const result = await mutate<{
-        message?: string;
-        name?: string;
-        description?: string;
-        quantity?: number;
-        quality?: string;
-        locations?: string[];
-        methodName?: string;
-        feedback?: string;
-        affinity?: string;
-        durationMs?: number;
-      }>(
-        apiFetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, requestId: attempt.current.id }),
-        }),
-      );
-      attempt.current = undefined;
-      setChosen(undefined);
-      if (
-        url === '/api/spirit-field/sow' ||
-        url === '/api/spirit-field/harvest'
-      ) {
-        setFilter({ kind: url.endsWith('/harvest') ? 'seed' : 'all' });
-        storage.setPage(0);
-      }
+    setSelection({ target: panel.target, item });
+    returnFromInventory(panel.target);
+  }
+
+  function afterAction(outcome: GardenOutcome | null) {
+    if (!outcome) {
+      setSelection(null);
+      bag.invalidate();
       storage.reload();
-      await refresh();
-      const destination = result.locations
-        ?.map((v) => (v === 'bag' ? '储物袋' : '洞府储藏室'))
-        .join('、');
-      if (result.feedback)
-        openDialog({
-          title: result.methodName ?? '培育完成',
-          content: (
-            <div className="space-y-2 text-sm leading-6">
-              <p>{result.feedback}</p>
-              <p>
-                {affinityNames[result.affinity ?? '']} ·{' '}
-                {duration(result.durationMs ?? 0)}
-              </p>
-            </div>
-          ),
-          confirmLabel: '记下变化',
-          onConfirm: async () => undefined,
-        });
-      else if (result.name)
-        openDialog({
-          title: result.name,
-          content: (
-            <div className="space-y-2 text-sm">
-              <p>{result.description}</p>
-              <p>
-                {result.quality} · 收获{' '}
-                <span className="font-mono">{result.quantity}</span> 份 ·{' '}
-                {destination}
-              </p>
-            </div>
-          ),
-          confirmLabel: '收好',
-          onConfirm: async () => undefined,
-        });
-      else
-        pushToast({
-          message:
-            (result.message ?? (url.endsWith('/starter')
-              ? '已领取初始灵种'
-              : url.endsWith('/sow')
-                ? '已播种'
-                : url.endsWith('/harvest')
-                  ? '已收获'
-                  : '已完成培育')) +
-            (destination ? ' · ' + destination : ''),
-          tone: 'success',
-        });
-    } catch (e) {
-      bagQuery.invalidate();
-      pushToast({
-        message: e instanceof Error ? e.message : '灵田操作失败',
-        tone: 'danger',
-      });
-    } finally {
-      pending.current = false;
-      setBusy(false);
-    }
-  }
-  function itemKind(item: InventoryView['items'][number]) {
-    const kind = findItemDefinition(item.definitionId)?.kind;
-    if (kind === 'seed') return 'seed';
-    if (kind === 'material') return materialFactsOf(item.instanceData).type;
-    if (kind === 'consumable') {
-      const facts = ConsumableFactsSchema.safeParse(item.instanceData);
-      return facts.success && facts.data.spec.kind === 'pill' ? 'pill' : '';
-    }
-    return '';
-  }
-  function canChoose(item: InventoryView['items'][number]) {
-    if (!selected) return false;
-    return !selected.plant
-      ? (() => {
-          const facts = SeedFactsSchema.safeParse(item.instanceData);
-          return (
-            itemKind(item) === 'seed' &&
-            facts.success &&
-            canPlantSpiritFieldSeed(
-              snapshot!.player.realm as RealmType,
-              facts.data.seedSpec.plant,
-            )
-          );
-        })()
-      : selected.status === 'awaiting_cultivation' &&
-          needsItem &&
-          itemKind(item) === method?.resourceKind &&
-          item.quantity >= method.cost.amount;
-  }
-  function choose(item: InventoryView['items'][number]) {
-    if (pending.current || inventoryLoading || !!inventoryError || !selected)
-      return;
-    const allowed = canChoose(item);
-    if (!allowed) {
-      pushToast({
-        message: !selected.plant
-          ? '请选择境界允许的灵种'
-          : '先选择培育方式，再选择足量的对应道具',
-        tone: 'warning',
-      });
       return;
     }
-    setChosen(item);
-    setBagOpen(false);
+    const { action, result } = outcome;
+    setSelection(null);
+    storage.reload();
+    if (action.endpoint === 'harvest') {
+      setPanel({ view: 'receipt', result });
+      return;
+    }
+    pushToast({ message: result.message ?? '灵圃已更新', tone: 'success' });
+    switch (action.endpoint) {
+      case 'sow':
+        setSelectedIndex(action.input.plotIndex);
+        setPanel(
+          result.plantId
+            ? {
+                view: 'plant',
+                plotIndex: action.input.plotIndex,
+                plantId: result.plantId,
+              }
+            : null,
+        );
+        break;
+      case 'branch':
+      case 'evolve':
+        setPanel({
+          view: 'plant',
+          plotIndex: action.input.plotIndex,
+          plantId: action.input.plantId,
+        });
+        break;
+      case 'archive':
+      case 'retire':
+        setPanel({ view: 'collection' });
+        break;
+      case 'restore':
+        setRestorePlant(null);
+        setSelectedIndex(action.input.plotIndex);
+        setPanel(null);
+        break;
+      case 'starter': {
+        const empty = snapshot?.plots.find((plot) => !plot.plant);
+        if (empty) setSelectedIndex(empty.index);
+        setPanel(empty ? { view: 'sow', plotIndex: empty.index } : null);
+        break;
+      }
+    }
   }
-  if (!snapshot && !error)
-    return <GameSceneLoading message="正在查看洞府灵田……" />;
+  async function act(action: GardenAction) {
+    afterAction(await garden.act(action));
+  }
+  function selectPlot(index: number) {
+    if (!snapshot || locked) return;
+    const plot = snapshot.plots[index];
+    if (!plot) return;
+    setSelectedIndex(index);
+    if (restorePlant) {
+      if (!plot.plant)
+        void act({
+          endpoint: 'restore',
+          input: { plotIndex: index, plantId: restorePlant.id },
+        });
+      return;
+    }
+    setSelection(null);
+    setBranch(null);
+    setPanel(
+      plot.plant
+        ? { view: 'plant', plotIndex: index, plantId: plot.plant.id }
+        : { view: 'sow', plotIndex: index },
+    );
+  }
+
+  if (!snapshot && !garden.readError)
+    return <GameSceneLoading message="正在推开灵圃的门……" />;
   if (!snapshot)
     return (
-      <GameSceneFrame variant="workflow">
-        <InkNotice tone="warning">{error}</InkNotice>
-        <InkButton
-          onClick={() => {
-            void bagQuery.reload();
-            void refresh();
-          }}
-        >
-          重试
-        </InkButton>
+      <GameSceneFrame>
+        <InkNotice tone="warning">{garden.readError}</InkNotice>
+        <InkButton onClick={() => void garden.refresh()}>重新查看</InkButton>
       </GameSceneFrame>
     );
-  const inventory = (
-    <CraftInventoryPanel
-      source={source}
-      onSource={setSource}
-      view={inventoryView}
-      loading={inventoryLoading}
-      error={inventoryError}
-      filter={filter}
-      onFilter={(value) => {
-        setFilter(value);
-        storage.setPage(0);
-      }}
-      onPage={storage.setPage}
-      onReload={() => {
-        if (source === 'bag') void bagQuery.reload();
-        else storage.reload();
-        void refresh();
-      }}
+
+  const notice = garden.needsRetry ? (
+    <div
+      role="alert"
+      className="border-crimson bg-crimson/5 space-y-2 border-l-2 p-3 text-sm leading-6"
     >
-      <InventoryItems
-        location={source}
-        compact={source === 'bag' && inventoryFilterActive(filter)}
-        items={
-          source === 'bag' && inventoryFilterActive(filter)
-            ? (inventoryView?.items ?? []).filter((item) =>
-                matchesInventoryFilters(item, filter),
-              )
-            : (inventoryView?.items ?? [])
-        }
-        quickTouchHint
-        slotProps={(item) => ({
-          disabled: !item || busy || inventoryLoading || !!inventoryError,
-          quickOnTouch: true,
-          selected: !!item && item.id === chosen?.id,
-          badge: item && canChoose(item) ? '可选' : undefined,
-          onQuickAction:
-            item && canChoose(item) ? () => choose(item) : undefined,
-          children: item
-            ? (close) => (
-                <>
-                  {!canChoose(item) ? (
-                    <p className="text-ink-secondary">
-                      此物不符合当前播种或培育要求，请选择对应道具。
-                    </p>
-                  ) : null}
-                  <InkButton
-                    disabled={
-                      busy ||
-                      inventoryLoading ||
-                      !!inventoryError ||
-                      !canChoose(item)
-                    }
-                    onClick={() => {
-                      choose(item);
-                      close();
-                    }}
-                  >
-                    投入
-                  </InkButton>
-                </>
-              )
-            : undefined,
-        })}
-      />
-      <VaultWithdrawal onChanged={() => void refresh()} />
-    </CraftInventoryPanel>
-  );
-  return (
-    <GameSceneFrame variant="workflow">
-      {error ? <InkNotice tone="warning">{error}</InkNotice> : null}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-ink-secondary text-sm">
-          成功收获{' '}
-          <span className="font-mono">
-            {snapshot.profile.successfulHarvestCount}
-          </span>{' '}
-          次
-        </span>
-        <div className="flex gap-2">
-          {!snapshot.profile.starterClaimed ? (
-            <InkButton
-              disabled={busy}
-              onClick={() => void act('/api/spirit-field/starter', {})}
-            >
-              领取初始灵种
-            </InkButton>
-          ) : null}
-          <InkButton className="lg:hidden" onClick={() => setBagOpen(true)}>
-            选择物品
+      <p>上次操作的结果尚未确认，请先重试确认。重试不会重复消耗或发放产物。</p>
+      <InkButton
+        pending={garden.busy}
+        onClick={() => void garden.retry().then(afterAction)}
+      >
+        确认上次操作
+      </InkButton>
+    </div>
+  ) : garden.mutationError ? (
+    <InkNotice tone="warning">{garden.mutationError}</InkNotice>
+  ) : null;
+  const backToPlant = () => {
+    if (validPanelPlant && panel && 'plotIndex' in panel)
+      setPanel({
+        view: 'plant',
+        plotIndex: panel.plotIndex,
+        plantId: validPanelPlant.id,
+      });
+  };
+  const species = validPanelPlant
+    ? snapshot.species.find((entry) => entry.id === validPanelPlant.speciesId)
+    : null;
+  const elapsedMs = Math.max(0, garden.now - garden.snapshotAt);
+  const plantTarget =
+    validPanelPlant && panel && 'plotIndex' in panel
+      ? { plotIndex: panel.plotIndex, plantId: validPanelPlant.id }
+      : null;
+  const seed =
+    panel?.view === 'sow' && chosen
+      ? SeedFactsSchema.safeParse(chosen.instanceData)
+      : null;
+  const seedSpecies = seed?.success
+    ? getSpiritGardenSpecies(
+        resolveSpiritGardenSpecies(seed.data.seedSpec.plant),
+      )
+    : null;
+  const retired =
+    panel?.view === 'retire'
+      ? snapshot.collection.find((entry) => entry.id === panel.plantId)
+      : null;
+  const inventory =
+    panel?.view === 'inventory' ? (
+      <>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <p className="text-ink-secondary">
+            {panel.target.purpose === 'sow'
+              ? `为第 ${panel.target.plotIndex + 1} 畦选择灵种`
+              : '选择本次蜕变要投入的药材'}
+          </p>
+          <InkButton
+            variant="secondary"
+            disabled={locked}
+            onClick={() => returnFromInventory(panel.target)}
+          >
+            返回{panel.target.purpose === 'sow' ? '栽种' : '蜕变'}
           </InkButton>
         </div>
-      </div>
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <section className="min-w-0 space-y-5" aria-label="灵田">
-          <div className="grid grid-cols-3 gap-2">
-            {snapshot.plots.map((plot) => (
-              <button
-                key={plot.index}
-                type="button"
-                disabled={busy}
-                aria-pressed={selectedIndex === plot.index}
-                className={`min-h-24 p-3 text-left text-sm transition-colors ${selectedIndex === plot.index ? 'bg-crimson/8' : 'bg-ink/4 hover:bg-ink/8'}`}
-                onClick={() => {
-                  if (pending.current) return;
-                  setSelectedIndex(plot.index);
-                  setMethodId('');
-                  setChosen(undefined);
-                  setFilter({ kind: plot.plant ? 'all' : 'seed' });
-                  storage.setPage(0);
-                }}
-              >
-                <span className="block">第 {plot.index + 1} 畦</span>
-                <span className="mt-2 block text-xs">
-                  {plot.plant?.seedName ?? '待播种'}
-                </span>
-                <span className="text-ink-secondary mt-1 block text-xs">
-                  {statusText[plot.status]}
-                </span>
-              </button>
-            ))}
-          </div>
-          {selected ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <span>{selected.plant?.seedName ?? '播种灵种'}</span>
-                <span className="text-ink-secondary text-xs">
-                  {selected.stage ? stageNames[selected.stage] : '空田'}
-                </span>
-              </div>
-              {selected.plant ? (
-                <p className="text-ink-secondary text-sm leading-6">
-                  {selected.plant.seedDescription}
-                </p>
-              ) : null}
-              {selected.plant?.clues.length ? (
-                <p className="text-ink-secondary text-xs leading-5">
-                  {selected.plant.clues.join('；')}
-                </p>
-              ) : null}
-              {selected.status === 'awaiting_cultivation' ? (
-                <div
-                  className="flex flex-wrap gap-2"
-                  role="group"
-                  aria-label="培育方式"
-                >
-                  {selected.methods.map((entry) => (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      disabled={busy}
-                      aria-pressed={methodId === entry.id}
-                      className={`px-3 py-2 text-sm ${methodId === entry.id ? 'bg-crimson/8 text-crimson' : 'bg-ink/4'}`}
-                      onClick={() => {
-                        setMethodId(entry.id);
-                        setChosen(undefined);
-                        setFilter(filterForResource(entry.resourceKind));
-                        storage.setPage(0);
-                      }}
-                    >
-                      {entry.name}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {method && selected.status === 'awaiting_cultivation' ? (
-                <p className="text-ink-secondary text-xs leading-5">
-                  {method.description}
-                </p>
-              ) : null}
-              {!selected.plant ||
-              (selected.status === 'awaiting_cultivation' && needsItem) ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-20">
-                    <ItemSlot
-                      item={chosen}
-                      emptyLabel={!selected.plant ? '选择灵种' : '选择投入物'}
-                      disabled={busy}
-                      onQuickAction={() => setBagOpen(true)}
-                      quickOnTouch
-                    >
-                      {(close) => (
+        <CraftInventoryPanel
+          source={source}
+          onSource={setSource}
+          view={inventoryView}
+          loading={inventoryLoading}
+          error={inventoryError}
+          filter={filter}
+          onFilter={(value) => {
+            setFilter(value);
+            storage.setPage(0);
+          }}
+          onPage={storage.setPage}
+          onReload={() => {
+            if (source === 'bag') void bag.reload();
+            else storage.reload();
+            void garden.refresh();
+          }}
+        >
+          <InventoryItems
+            location={source}
+            items={inventoryView?.items ?? []}
+            quickTouchHint
+            slotProps={(item) => {
+              const available =
+                !!item &&
+                matchesInventoryFilters(item, filter) &&
+                canChoose(panel.target, item);
+              return {
+                disabled:
+                  !item || locked || inventoryLoading || !!inventoryError,
+                quickOnTouch: true,
+                badge: available ? '可选' : undefined,
+                onQuickAction:
+                  available && item ? () => choose(item) : undefined,
+                children: item
+                  ? (close) => (
+                      <>
+                        {!available ? (
+                          <p className="text-ink-secondary text-sm">
+                            此物不符合本次
+                            {panel.target.purpose === 'sow' ? '栽种' : '蜕变'}
+                            要求。
+                          </p>
+                        ) : null}
                         <InkButton
+                          variant="primary"
+                          disabled={
+                            locked ||
+                            inventoryLoading ||
+                            !!inventoryError ||
+                            !available
+                          }
                           onClick={() => {
-                            setChosen(undefined);
+                            choose(item);
                             close();
                           }}
                         >
-                          移出
+                          选用
                         </InkButton>
-                      )}
-                    </ItemSlot>
-                  </div>
-                  <span className="text-ink-secondary text-sm">
-                    {chosen
-                      ? `投入 ${!selected.plant ? 1 : method?.cost.amount} 份`
-                      : '从储物袋或储藏室选择'}
-                  </span>
+                      </>
+                    )
+                  : undefined,
+              };
+            }}
+          />
+          <VaultWithdrawal
+            onChanged={() => {
+              storage.reload();
+              void garden.refresh();
+            }}
+          />
+        </CraftInventoryPanel>
+      </>
+    ) : null;
+
+  return (
+    <GameSceneFrame
+      variant="default"
+      description="长养一圃草木，静候百般收成。"
+    >
+      {garden.readError ? (
+        <InkNotice tone="warning">{garden.readError}</InkNotice>
+      ) : null}
+      {!panel ? notice : null}
+      <GardenCanvas
+        snapshot={snapshot}
+        selectedIndex={selectedIndex}
+        locked={locked}
+        restorePlant={restorePlant}
+        onSelectPlot={selectPlot}
+        onHarvest={() => void act({ endpoint: 'harvest', input: {} })}
+        onOpenCollection={() => setPanel({ view: 'collection' })}
+        onOpenCodex={() => setPanel({ view: 'codex' })}
+        onStarter={() => void act({ endpoint: 'starter', input: {} })}
+        onCancelRestore={() => setRestorePlant(null)}
+      />
+      <InkDetailDrawer
+        isOpen={panel !== null}
+        onClose={() => {
+          if (!garden.busy) setPanel(null);
+        }}
+        title={panel ? titles[panel.view] : ''}
+        size={
+          panel?.view === 'inventory' || panel?.view === 'codex' ? 'lg' : 'md'
+        }
+        closeOnEscape={!garden.busy}
+        closeOnOverlayClick={!garden.busy}
+        className="spirit-garden garden-panel bg-paper"
+      >
+        <div ref={contentRef} tabIndex={-1} className="outline-none">
+          {notice}
+          {panel?.view === 'inventory' ? inventory : null}
+          {panel?.view === 'plant' &&
+          validPanelPlant &&
+          species &&
+          plantTarget ? (
+            <GardenPlantDetail
+              plant={validPanelPlant}
+              species={species}
+              elapsedMs={elapsedMs}
+              locked={locked}
+              onBranch={() => {
+                setBranch(null);
+                setPanel({ view: 'branch', ...plantTarget });
+              }}
+              onEvolve={() => setPanel({ view: 'evolve', ...plantTarget })}
+              onArchive={() => {
+                if (
+                  snapshot.collection.length >= snapshot.profile.collectionLimit
+                ) {
+                  pushToast({
+                    message: '保种阁已满，请先领取收成并整理收藏。',
+                    tone: 'danger',
+                  });
+                  setPanel({ view: 'collection' });
+                  return;
+                }
+                void act({ endpoint: 'archive', input: plantTarget });
+              }}
+            />
+          ) : null}
+          {panel?.view === 'branch' &&
+          validPanelPlant &&
+          species &&
+          plantTarget ? (
+            <GardenBranchChoice
+              plant={validPanelPlant}
+              species={species}
+              selectedBranch={branch}
+              locked={locked}
+              onSelect={setBranch}
+              onConfirm={() => {
+                if (branch)
+                  void act({
+                    endpoint: 'branch',
+                    input: { ...plantTarget, branch },
+                  });
+              }}
+              onBack={backToPlant}
+            />
+          ) : null}
+          {panel?.view === 'evolve' &&
+          validPanelPlant &&
+          plantTarget &&
+          itemTarget ? (
+            <div className="space-y-6 text-sm leading-7">
+              <InkButton
+                variant="secondary"
+                onClick={backToPlant}
+                disabled={locked}
+              >
+                返回灵植小记
+              </InkButton>
+              <div className="flex items-center gap-5">
+                <BotanicalArt
+                  speciesId={validPanelPlant.speciesId}
+                  stage={validPanelPlant.stage}
+                  className="w-24 shrink-0"
+                />
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {validPanelPlant.speciesName}
+                  </h3>
+                  <p className="text-teal mt-1">
+                    一次蜕变，今后的收成提高一品。
+                  </p>
                 </div>
-              ) : null}
-              {!selected.plant ? (
-                <InkButton
-                  variant="primary"
-                  disabled={busy || !chosen || !canChoose(chosen)}
-                  onClick={() =>
-                    void act('/api/spirit-field/sow', {
-                      plotIndex: selected.index,
-                      seedMaterialId: chosen?.id,
-                      revision: chosen?.revision,
-                    })
-                  }
-                >
-                  播种
-                </InkButton>
-              ) : null}
-              {selected.status === 'awaiting_cultivation' && method ? (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-ink-secondary text-sm">
-                    {needsItem
-                      ? ''
-                      : method.resourceKind === 'none'
-                        ? '无需消耗'
-                        : method.resourceKind === 'spirit_stones'
-                          ? <SpiritStones amount={method.cost.amount} />
-                          : `${({ qi: '天地灵气', mp: '法力' } as Record<string, string>)[method.resourceKind]} ${method.cost.amount}`}
-                    {method.cost.spiritStones ? <> <SpiritStones amount={method.cost.spiritStones} /></> : null}
-                  </span>
-                  <InkButton
-                    variant="primary"
-                    disabled={
-                      busy || (needsItem && (!chosen || !canChoose(chosen)))
-                    }
-                    onClick={() =>
-                      void act('/api/spirit-field/cultivate', {
-                        plotIndex: selected.index,
-                        method: method.id,
-                        resourceId: needsItem ? chosen?.id : undefined,
-                        resourceRevision: needsItem
-                          ? chosen?.revision
-                          : undefined,
-                      })
-                    }
-                  >
-                    确认施为
-                  </InkButton>
-                </div>
-              ) : null}
-              {selected.status === 'growing' ? (
-                <p className="text-ink-secondary text-sm">
-                  生长中 ·{' '}
-                  {duration(
-                    Math.max(
-                      0,
-                      new Date(selected.stageEndsAt!).getTime() - now,
-                    ),
-                  )}
+              </div>
+              <p className="text-ink-secondary">
+                已有收成保留原品质，当前生产进度继续。条件满足后必定成功，每株可蜕变一次。
+              </p>
+              <div className="border-ink/10 border-y py-4">
+                <p>本次投入</p>
+                <p className="mt-2">
+                  <SpiritStones
+                    amount={validPanelPlant.evolveCost.spiritStones}
+                  />{' '}
+                  与 <span className="font-mono">1</span> 份
+                  {validPanelPlant.evolveCost.materialQuality}及以上药材
                 </p>
-              ) : null}
-              {selected.status === 'ready_to_harvest' ? (
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-20">
+                  <ItemSlot
+                    item={chosen}
+                    emptyLabel="选择药材"
+                    onQuickAction={() => openInventory(itemTarget)}
+                    quickOnTouch
+                  />
+                </div>
                 <InkButton
-                  variant="primary"
-                  disabled={busy || bagUnavailable}
-                  onClick={() =>
-                    void act('/api/spirit-field/harvest', {
-                      plotIndex: selected.index,
-                    })
-                  }
+                  disabled={locked}
+                  onClick={() => openInventory(itemTarget)}
                 >
-                  收获
+                  {chosen ? '更换药材' : '选择药材'}
                 </InkButton>
+              </div>
+              {!validPanelPlant.canEvolve ? (
+                <InkNotice>{validPanelPlant.evolveReason}</InkNotice>
               ) : null}
-              {selected.history.length ? (
-                <details className="text-sm">
-                  <summary className="text-ink-secondary cursor-pointer">
-                    培育记录
-                  </summary>
-                  <div className="mt-3 space-y-3">
-                    {selected.history.map((entry) => (
-                      <div key={entry.stage}>
-                        <p>
-                          {stageNames[entry.stage as keyof typeof stageNames]} ·{' '}
-                          {affinityNames[entry.affinity]}
-                        </p>
-                        <p className="text-ink-secondary mt-1 leading-6">
-                          {entry.feedback}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </details>
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={
+                  locked ||
+                  !chosen ||
+                  !canChoose(itemTarget, chosen) ||
+                  snapshot.player.spiritStones <
+                    validPanelPlant.evolveCost.spiritStones
+                }
+                onClick={() => {
+                  if (chosen)
+                    void act({
+                      endpoint: 'evolve',
+                      input: {
+                        ...plantTarget,
+                        resourceId: chosen.id,
+                        resourceRevision: chosen.revision,
+                      },
+                    });
+                }}
+              >
+                投入并完成蜕变
+              </InkButton>
+              {snapshot.player.spiritStones <
+              validPanelPlant.evolveCost.spiritStones ? (
+                <p className="text-crimson">当前灵石不足。</p>
               ) : null}
             </div>
           ) : null}
-        </section>
-        <section className="hidden min-w-0 lg:block" aria-label="角色物品">
-          {inventory}
-        </section>
-      </div>
-      <InkDetailDrawer
-        isOpen={bagOpen}
-        onClose={() => setBagOpen(false)}
-        title="选择物品"
-        size="sm"
-      >
-        {inventory}
+          {panel?.view === 'sow' && itemTarget ? (
+            <div className="space-y-6 text-sm leading-7">
+              <p className="text-ink-secondary">
+                第 <span className="font-mono">{panel.plotIndex + 1}</span> 畦 ·
+                种下后自动成长，采收保留植株。
+              </p>
+              {seedSpecies ? (
+                <div className="flex items-center gap-5">
+                  <BotanicalArt
+                    speciesId={seedSpecies.id}
+                    className="w-28 shrink-0"
+                  />
+                  <div>
+                    <h3 className="text-xl font-semibold">
+                      {seedSpecies.name}
+                    </h3>
+                    {seed?.success ? (
+                      <p className="text-ink-secondary mt-1 text-xs">
+                        {seed.data.seedSpec.plant.quality}灵种 · 本次消耗{' '}
+                        <span className="font-mono">1</span> 份
+                      </p>
+                    ) : null}
+                    <p className="text-ink-secondary mt-2">
+                      {seedSpecies.description}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="garden-planting-note">
+                  <p className="text-lg">为这一畦，选一株长养的草木。</p>
+                  <p className="text-ink-secondary mt-2">
+                    灵种决定物种与品阶，成熟后便会持续留下收成。
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center gap-4">
+                <div className="w-20">
+                  <ItemSlot
+                    item={chosen}
+                    emptyLabel="选择灵种"
+                    onQuickAction={() => openInventory(itemTarget)}
+                    quickOnTouch
+                  />
+                </div>
+                <InkButton
+                  disabled={locked}
+                  onClick={() => openInventory(itemTarget)}
+                >
+                  {chosen ? '更换灵种' : '从物品栏选择灵种'}
+                </InkButton>
+              </div>
+              {seedSpecies ? (
+                <div className="border-ink/10 space-y-2 border-y py-4">
+                  <p>成株后 · {seedSpecies.baseOutput.name}</p>
+                  <p className="text-ink-secondary">
+                    将来可选择{seedSpecies.branches.abundance.name}，或
+                    {seedSpecies.branches.essence.name}，养成自己的长养路线。
+                  </p>
+                </div>
+              ) : null}
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={locked || !chosen || !canChoose(itemTarget, chosen)}
+                onClick={() => {
+                  if (chosen)
+                    void act({
+                      endpoint: 'sow',
+                      input: {
+                        plotIndex: panel.plotIndex,
+                        seedMaterialId: chosen.id,
+                        revision: chosen.revision,
+                      },
+                    });
+                }}
+              >
+                栽入第 {panel.plotIndex + 1} 畦
+              </InkButton>
+            </div>
+          ) : null}
+          {panel?.view === 'collection' ? (
+            <GardenCollection
+              snapshot={snapshot}
+              locked={locked}
+              onRestore={(plant) => {
+                setRestorePlant(plant);
+                setPanel(null);
+              }}
+              onRetire={(plant) =>
+                setPanel({ view: 'retire', plantId: plant.id })
+              }
+              onHarvest={() => void act({ endpoint: 'harvest', input: {} })}
+            />
+          ) : null}
+          {panel?.view === 'codex' ? (
+            <GardenCodex
+              snapshot={snapshot}
+              locked={locked}
+              selectedSpeciesId={selectedSpeciesId}
+              onSelectSpecies={setSelectedSpeciesId}
+              onExchange={(id) =>
+                void act({ endpoint: 'exchange', input: { speciesId: id } })
+              }
+            />
+          ) : null}
+          {panel?.view === 'retire' && retired ? (
+            <div className="space-y-6 text-sm leading-7">
+              <InkButton
+                variant="secondary"
+                onClick={() => setPanel({ view: 'collection' })}
+              >
+                返回保种阁
+              </InkButton>
+              <div className="flex items-center gap-5">
+                <BotanicalArt speciesId={retired.speciesId} className="w-24" />
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {retired.speciesName}
+                  </h3>
+                  <p className="text-ink-secondary">
+                    {retired.outputQuality} · 已留下的图录成果会保留。
+                  </p>
+                </div>
+              </div>
+              <InkNotice tone="warning">
+                这株灵植将永久移出保种阁，无法恢复。投入的灵种、药材和灵石不会返还。
+              </InkNotice>
+              <InkButton
+                variant="primary"
+                className="w-full justify-center"
+                disabled={locked || retired.pending.length > 0}
+                onClick={() =>
+                  void act({
+                    endpoint: 'retire',
+                    input: { plantId: retired.id },
+                  })
+                }
+              >
+                确认永久结束培育
+              </InkButton>
+            </div>
+          ) : null}
+          {panel?.view === 'receipt' ? (
+            <div className="space-y-6 text-sm leading-7">
+              <div className="border-ink/10 border-b pb-5">
+                <p className="text-ink-secondary">这一次的收成</p>
+                <p className="text-teal mt-2 text-3xl">
+                  <span className="font-mono">
+                    {panel.result.quantity ?? 0}
+                  </span>
+                  <span className="ml-2 text-base">份</span>
+                </p>
+                <p className="text-ink-secondary mt-3">
+                  采收保留灵植，长养的成果还会继续。
+                </p>
+              </div>
+              <ul className="space-y-4">
+                {panel.result.products?.map((product, index) => (
+                  <li
+                    key={`${product.name}:${product.quality}:${index}`}
+                    className="flex items-center gap-4"
+                  >
+                    <BotanicalArt
+                      speciesId={product.speciesId}
+                      className="w-12 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p>{product.name}</p>
+                      <p className="text-ink-secondary text-xs">
+                        {product.quality}
+                      </p>
+                    </div>
+                    <span className="font-mono">×{product.quantity}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-ink-secondary">
+                已送至
+                {panel.result.locations
+                  ?.map((location) =>
+                    location === 'storage' ? '储藏室' : '储物袋',
+                  )
+                  .join('、') || '物品栏'}
+                。
+              </p>
+              <InkButton
+                variant="secondary"
+                className="w-full justify-center"
+                onClick={() => setPanel(null)}
+              >
+                回到灵圃
+              </InkButton>
+            </div>
+          ) : null}
+          {panel &&
+          ['plant', 'branch', 'evolve'].includes(panel.view) &&
+          !validPanelPlant ? (
+            <InkNotice>这株灵植已经移动，请返回灵圃重新查看。</InkNotice>
+          ) : null}
+        </div>
       </InkDetailDrawer>
     </GameSceneFrame>
   );

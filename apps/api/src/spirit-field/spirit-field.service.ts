@@ -1,30 +1,39 @@
 import type {
-  SpiritFieldCultivateRequest,
+  SpiritFieldArchiveRequest,
+  SpiritFieldBranchRequest,
+  SpiritFieldEvolveRequest,
+  SpiritFieldExchangeRequest,
   SpiritFieldHarvestRequest,
+  SpiritFieldRestoreRequest,
+  SpiritFieldRetireRequest,
   SpiritFieldSowRequest,
+  SpiritFieldStarterRequest,
 } from '@daoyou/contracts/spirit-field';
-import { AiService } from '@nestjs/ai';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { ActiveCultivatorRef } from '@server/lib/auth/types.js';
 import { toPlayerStateMutationResponse } from '@server/player/application/state/ResourceMutationResponse.js';
 import {
+  archiveSpiritField,
+  branchSpiritField,
   claimSpiritFieldStarterSeeds,
-  cultivateSpiritField,
+  evolveSpiritField,
+  exchangeSpiritFieldSeed,
   getSpiritFieldSnapshot,
   harvestSpiritField,
+  restoreSpiritField,
+  retireSpiritField,
   sowSpiritField,
-} from '@server/spirit-field/application/SpiritFieldService.js';
+} from './application/SpiritFieldService.js';
 
 @Injectable()
 export class SpiritFieldService {
-  constructor(@Inject(AiService) private readonly ai: AiService) {}
   async read(actor: ActiveCultivatorRef) {
     return { success: true, data: await getSpiritFieldSnapshot(actor) };
   }
 
-  async starter(actor: ActiveCultivatorRef) {
+  async starter(actor: ActiveCultivatorRef, input: SpiritFieldStarterRequest) {
     return toPlayerStateMutationResponse(
-      await claimSpiritFieldStarterSeeds(this.ai, actor),
+      await claimSpiritFieldStarterSeeds(actor, input),
     );
   }
 
@@ -32,23 +41,42 @@ export class SpiritFieldService {
     return toPlayerStateMutationResponse(await sowSpiritField(actor, input));
   }
 
-  async cultivate(
-    actor: ActiveCultivatorRef,
-    input: SpiritFieldCultivateRequest,
-    signal: AbortSignal,
-  ) {
+  async harvest(actor: ActiveCultivatorRef, input: SpiritFieldHarvestRequest) {
     return toPlayerStateMutationResponse(
-      await cultivateSpiritField(this.ai, actor, input, signal),
+      await harvestSpiritField(actor, input),
     );
   }
 
-  async harvest(
+  async branch(actor: ActiveCultivatorRef, input: SpiritFieldBranchRequest) {
+    return toPlayerStateMutationResponse(await branchSpiritField(actor, input));
+  }
+
+  async evolve(actor: ActiveCultivatorRef, input: SpiritFieldEvolveRequest) {
+    return toPlayerStateMutationResponse(await evolveSpiritField(actor, input));
+  }
+
+  async archive(actor: ActiveCultivatorRef, input: SpiritFieldArchiveRequest) {
+    return toPlayerStateMutationResponse(
+      await archiveSpiritField(actor, input),
+    );
+  }
+
+  async restore(actor: ActiveCultivatorRef, input: SpiritFieldRestoreRequest) {
+    return toPlayerStateMutationResponse(
+      await restoreSpiritField(actor, input),
+    );
+  }
+
+  async retire(actor: ActiveCultivatorRef, input: SpiritFieldRetireRequest) {
+    return toPlayerStateMutationResponse(await retireSpiritField(actor, input));
+  }
+
+  async exchange(
     actor: ActiveCultivatorRef,
-    input: SpiritFieldHarvestRequest,
-    signal: AbortSignal,
+    input: SpiritFieldExchangeRequest,
   ) {
     return toPlayerStateMutationResponse(
-      await harvestSpiritField(this.ai, actor, input, signal),
+      await exchangeSpiritFieldSeed(actor, input),
     );
   }
 }

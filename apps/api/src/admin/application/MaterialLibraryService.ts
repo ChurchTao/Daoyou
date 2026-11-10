@@ -233,7 +233,7 @@ export async function generateMaterialLibraryEntries(ai: AiService, input: {
   // 兼容尚未刷新、仍从普通材料入口提交 seed 的管理后台页面；
   // 服务端统一改走灵种生成器，避免构造缺失 seedSpec 的普通材料。
   if (input.request.materialType === 'seed') {
-    return generateSpiritSeedLibraryEntries(ai, {
+    return generateSpiritSeedLibraryEntries({
       request: {
         count: input.request.count,
         quality: input.request.quality,
@@ -306,7 +306,7 @@ export async function generateMaterialLibraryEntries(ai: AiService, input: {
   return rows.map(parseRow);
 }
 
-export async function generateSpiritSeedLibraryEntries(ai: AiService, input: {
+export async function generateSpiritSeedLibraryEntries(input: {
   request: ItemLibrarySpiritSeedGenerateInput;
   userId: string;
 }): Promise<ItemLibraryEntry[]> {
@@ -314,14 +314,14 @@ export async function generateSpiritSeedLibraryEntries(ai: AiService, input: {
   const generationOptions = {
       guaranteedRank: input.request.quality,
       specifiedElement: input.request.element,
+      includeLockedSpecies: true,
   };
   for (let remaining = input.request.count; remaining > 0; remaining -= 8) {
     generated.push(
-      ...(await SpiritSeedGenerator.generateRandom(
-        ai,
+      ...SpiritSeedGenerator.generateRandom(
         Math.min(8, remaining),
         generationOptions,
-      )),
+      ),
     );
   }
   if (generated.length === 0) return [];
@@ -355,7 +355,7 @@ export async function generateSpiritSeedLibraryEntries(ai: AiService, input: {
         details: material.details,
       },
       editorConfig: {
-        source: 'llm_spirit_seed',
+        source: 'spirit_garden_catalog',
         generatedAt,
       },
       createdBy: input.userId,
