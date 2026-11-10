@@ -1,10 +1,13 @@
-import { InkButton, InkChoiceButton } from '@app/components/ui';
+import { InkButton } from '@app/components/ui';
+import { GameIcon } from '@app/components/ui/GameIcon';
 import { GameImage } from '@app/components/ui/GameImage';
 import { cn } from '@app/lib/cn';
 import { useTypewriter } from '@app/lib/hooks/useTypewriter';
-import type {
-  PerformanceContext,
-  PerformanceScript,
+import {
+  isPerformanceTextCue,
+  performanceCueText,
+  type PerformanceContext,
+  type PerformanceScript,
 } from '@daoyou/game-domain/performance';
 import {
   createPerformanceState,
@@ -15,7 +18,7 @@ import {
 } from '@daoyou/game-rules/performance/interpreter';
 import { useEffect, useRef, useState } from 'react';
 
-const choiceMarks = ['一', '二', '三', '四'] as const;
+const PLAYER_ACTOR = 'player';
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -77,99 +80,150 @@ function ScenePicture({
   );
 }
 
-function SceneWords({ alt }: { alt: string }) {
-  return (
-    <div className="mb-6">
-      <p className="text-ink-secondary text-xs tracking-[0.28em]">眼前</p>
-      <p className="text-ink mt-2 text-base leading-7">{alt}</p>
-    </div>
+function Face({ value }: { value?: string }) {
+  if (!value) return <span className="block size-[4.5rem] shrink-0" />;
+  return value.startsWith('icon:') ? (
+    <GameIcon
+      purpose="artwork"
+      value={value}
+      className="size-[4.5rem] motion-safe:animate-[fade-in_0.8s_ease-out]"
+    />
+  ) : (
+    <GameImage
+      src={value}
+      alt=""
+      className="size-[4.5rem] shrink-0 object-cover motion-safe:animate-[fade-in_0.8s_ease-out]"
+    />
   );
 }
 
+type PageEntry = Pick<
+  PerformanceLogEntry,
+  'kind' | 'speaker' | 'actor' | 'heading' | 'text'
+>;
+
+/** 纸页上的一段。读过的变淡，正在读的是墨色。 */
 function Passage({
   entry,
-  portrait,
-  text,
+  face,
+  showFace,
+  past = false,
   quoteClosed = true,
 }: {
-  entry: Pick<PerformanceLogEntry, 'kind' | 'speaker'>;
-  portrait?: string;
-  text: string;
+  entry: PageEntry;
+  /** 这段话的人有没有小像。没有就不留页边。 */
+  face?: string;
+  /** 同一个人接着说，不再出一次小像。 */
+  showFace: boolean;
+  past?: boolean;
   quoteClosed?: boolean;
 }) {
+  const ink = past ? 'text-ink-secondary' : 'text-ink';
+
   if (entry.kind === 'title') {
     return (
-      <p className="font-heading text-ink text-center text-4xl leading-tight sm:text-5xl">
-        {text}
-      </p>
-    );
-  }
-
-  if (entry.kind === 'line') {
-    return (
-      <div>
-        <div className="flex items-center gap-3">
-          {portrait ? (
-            <GameImage
-              src={portrait}
-              alt=""
-              purpose="artwork"
-              className="h-14 w-11 object-cover"
-            />
-          ) : null}
-          <p className="font-heading text-ink text-2xl leading-none">
-            {entry.speaker}
+      <div className="py-4 text-center">
+        {entry.heading ? (
+          <p className="text-ink-secondary mb-2 text-sm tracking-[0.22em]">
+            {entry.heading}
           </p>
-        </div>
-        <p className="text-ink mt-3 text-xl leading-9 whitespace-pre-wrap">
-          「{text}
-          {quoteClosed ? '」' : ''}
+        ) : null}
+        <p className={cn('font-heading text-4xl leading-tight', ink)}>
+          {entry.text}
         </p>
       </div>
     );
   }
 
-  return (
-    <div>
-      <p className="text-teal text-xs tracking-[0.28em]">旁白</p>
-      <p className="text-ink mt-2 text-xl leading-9 whitespace-pre-wrap">
-        {text}
-      </p>
-    </div>
-  );
-}
+  if (entry.kind === 'letter') {
+    return (
+      <div className="border-ink/20 bg-ink/[0.03] border px-5 py-4">
+        {entry.heading ? (
+          <p className="text-ink-secondary mb-2 text-center text-sm tracking-[0.22em]">
+            {entry.heading}
+          </p>
+        ) : null}
+        <p className={cn('text-lg leading-9 whitespace-pre-wrap', ink)}>
+          {entry.text}
+        </p>
+      </div>
+    );
+  }
 
-function ReadLog({
-  entries,
-  onClose,
-}: {
-  entries: PerformanceLogEntry[];
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex flex-col">
-      <h2 className="text-ink-secondary text-sm">前面的字</h2>
-      <ol className="mt-4 max-h-[40svh] space-y-5 overflow-y-auto lg:max-h-[52svh]">
-        {entries.length === 0 ? (
-          <li className="text-ink-secondary text-base leading-8">
-            还没有读过的句子。
-          </li>
-        ) : (
-          entries.map((entry, index) => (
-            <li key={`${entry.kind}:${entry.text}:${index}`}>
-              <Passage entry={entry} text={entry.text} />
-            </li>
-          ))
+  if (entry.kind === 'recall') {
+    return (
+      <p
+        className={cn(
+          'border-ink/20 border-y py-4 text-center text-lg leading-10 whitespace-pre-wrap',
+          past ? 'text-ink-secondary' : 'text-ink/80',
         )}
-      </ol>
-      <InkButton
-        onClick={onClose}
-        className="mt-5 self-start"
-        variant="secondary"
       >
-        合上
-      </InkButton>
-    </div>
+        {entry.text}
+      </p>
+    );
+  }
+
+  if (entry.kind === 'aside') {
+    return (
+      <p
+        className={cn(
+          'border-ink/25 border-l pl-4 text-lg leading-9 whitespace-pre-wrap',
+          ink,
+        )}
+      >
+        {entry.text}
+      </p>
+    );
+  }
+
+  if (entry.kind === 'said') {
+    const action = entry.text.startsWith('（');
+    return (
+      <div className="flex flex-row-reverse items-start gap-4">
+        {face ? showFace ? <Face value={face} /> : <Face /> : null}
+        <p
+          className={cn(
+            'min-w-0 flex-1 text-right leading-9 whitespace-pre-wrap',
+            action ? 'text-ink-secondary text-lg' : cn('text-xl', ink),
+          )}
+        >
+          {action ? entry.text : `「${entry.text}」`}
+        </p>
+      </div>
+    );
+  }
+
+  if (entry.kind === 'line') {
+    const mine = entry.actor === PLAYER_ACTOR;
+    return (
+      <div
+        className={cn('flex items-start gap-4', mine && 'flex-row-reverse')}
+      >
+        {face ? showFace ? <Face value={face} /> : <Face /> : null}
+        <div className={cn('min-w-0 flex-1', mine && 'text-right')}>
+          {showFace && entry.speaker ? (
+            <p className="text-ink-secondary text-sm tracking-[0.18em]">
+              {entry.speaker}
+            </p>
+          ) : null}
+          <p className={cn('text-xl leading-9 whitespace-pre-wrap', ink)}>
+            「{entry.text}
+            {quoteClosed ? '」' : ''}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <p
+      className={cn(
+        'indent-[2em] text-lg leading-9 whitespace-pre-wrap',
+        past ? 'text-ink-secondary' : 'text-ink/85',
+      )}
+    >
+      {entry.text}
+    </p>
   );
 }
 
@@ -185,6 +239,8 @@ export function PerformancePlayer({
   pictureFit = 'cover',
   finishHint,
   finishPendingLabel = '落字中……',
+  flags = [],
+  playerPortrait,
 }: {
   script: PerformanceScript;
   context: PerformanceContext;
@@ -192,27 +248,31 @@ export function PerformancePlayer({
   exitLabel?: string;
   busy?: boolean;
   error?: string;
-  onFinish: (outcome: string) => void;
+  /** chosen 是这一场里新记下的标记。 */
+  onFinish: (outcome: string, chosen: string[]) => void;
   onExit: () => void;
   pictureFit?: 'cover' | 'contain';
   finishHint?: string;
   finishPendingLabel?: string;
+  /** 开演前已经记下的标记。 */
+  flags?: readonly string[];
+  /** 看的人自己的小像。 */
+  playerPortrait?: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  const [showLog, setShowLog] = useState(false);
+  const [opening] = useState(() => [...flags]);
   const [state, setState] = useState<PerformanceState>(() =>
-    createPerformanceState(script, context),
+    createPerformanceState(script, context, opening),
   );
+  const pageRef = useRef<HTMLDivElement>(null);
   const slipRef = useRef<HTMLButtonElement>(null);
   const cue = currentPerformanceCue(script, state);
-  const text =
-    cue &&
-    (cue.type === 'narration' || cue.type === 'line' || cue.type === 'title')
-      ? cue.text
-      : '';
+  const textCue = cue && isPerformanceTextCue(cue) ? cue : null;
+  const text = textCue ? performanceCueText(textCue) : '';
   const typewriter = useTypewriter({
     text,
-    speed: cue?.type === 'title' ? 70 : cue?.type === 'narration' ? 46 : 34,
+    speed:
+      textCue?.type === 'title' ? 70 : textCue?.type === 'line' ? 34 : 46,
     startDelay: reducedMotion ? 0 : 40,
     enabled:
       !reducedMotion && !state.revealed && !state.ending && text.length > 0,
@@ -224,52 +284,52 @@ export function PerformancePlayer({
   const textComplete = reducedMotion || state.revealed || typewriter.isComplete;
   const closing = state.ending || state.finished;
   const choosing = !closing && cue?.type === 'choice';
-  const reading = !closing && !choosing && text.length > 0;
-  const closingEntry = state.log.at(-1);
-  const speaker = cue?.type === 'line' ? script.cast[cue.speaker] : undefined;
-  const readingKind =
-    cue?.type === 'title' || cue?.type === 'narration' || cue?.type === 'line'
-      ? cue.type
-      : null;
+  const reading = !closing && !choosing && Boolean(textCue);
 
   const dispatch = (next: PerformanceState) => {
     setState(next);
-    if (next.finished && next.outcome) onFinish(next.outcome);
+    if (next.finished && next.outcome) {
+      onFinish(
+        next.outcome,
+        next.flags.filter((flag) => !opening.includes(flag)),
+      );
+    }
   };
 
+  const step = (
+    from: PerformanceState,
+    action: Parameters<typeof reducePerformance>[3],
+  ) => reducePerformance(script, context, from, action, opening);
+
   const turn = () => {
-    if (busy || showLog || closing || choosing) return;
+    if (busy || closing || choosing) return;
     if (!textComplete) {
       typewriter.skip();
-      dispatch(reducePerformance(script, context, state, { type: 'advance' }));
+      dispatch(step(state, { type: 'advance' }));
       return;
     }
     if (!state.revealed) {
-      const revealed = reducePerformance(script, context, state, {
-        type: 'advance',
-      });
-      dispatch(
-        reducePerformance(script, context, revealed, { type: 'advance' }),
-      );
+      dispatch(step(step(state, { type: 'advance' }), { type: 'advance' }));
       return;
     }
-    dispatch(reducePerformance(script, context, state, { type: 'advance' }));
+    dispatch(step(state, { type: 'advance' }));
   };
 
   const choose = (index: number) => {
-    if (busy || showLog || !choosing) return;
-    dispatch(
-      reducePerformance(script, context, state, { type: 'choose', index }),
-    );
+    if (busy || !choosing) return;
+    dispatch(step(state, { type: 'choose', index }));
   };
 
   const finish = () => {
     if (busy) return;
     if (state.finished && state.outcome) {
-      onFinish(state.outcome);
+      onFinish(
+        state.outcome,
+        state.flags.filter((flag) => !opening.includes(flag)),
+      );
       return;
     }
-    dispatch(reducePerformance(script, context, state, { type: 'finish' }));
+    dispatch(step(state, { type: 'finish' }));
   };
 
   const actions = useRef({
@@ -279,7 +339,6 @@ export function PerformancePlayer({
     onExit,
     exitLabel,
     busy,
-    showLog,
     closing,
     choosing,
     optionCount: cue?.type === 'choice' ? cue.options.length : 0,
@@ -293,7 +352,6 @@ export function PerformancePlayer({
       onExit,
       exitLabel,
       busy,
-      showLog,
       closing,
       choosing,
       optionCount: cue?.type === 'choice' ? cue.options.length : 0,
@@ -309,15 +367,11 @@ export function PerformancePlayer({
         Boolean(target.closest('button, a, input, textarea'));
 
       if (event.key === 'Escape') {
-        if (current.showLog) {
-          setShowLog(false);
-          return;
-        }
         if (current.exitLabel && !current.busy) current.onExit();
         return;
       }
 
-      if (current.showLog || current.busy || onControl) return;
+      if (current.busy || onControl) return;
 
       if (current.choosing && /^[1-4]$/.test(event.key)) {
         const index = Number(event.key) - 1;
@@ -341,36 +395,76 @@ export function PerformancePlayer({
     if (reading) slipRef.current?.focus({ preventScroll: true });
   }, [reading, state.cursor]);
 
-  const continueHint = textComplete ? '点一下，继续' : '再点一下，看完这句';
+  // 新落下的字总在眼前；往上滚就是回看。
+  useEffect(() => {
+    const page = pageRef.current;
+    if (page) page.scrollTop = page.scrollHeight;
+  }, [state.cursor, state.log.length, shown.length, choosing, closing]);
+
   const picture = state.backdrop.src;
   const place = picture ? '' : state.backdrop.alt;
+  const faceOf = (actor?: string) =>
+    actor === PLAYER_ACTOR
+      ? (script.cast[actor]?.portrait ?? playerPortrait)
+      : actor
+        ? script.cast[actor]?.portrait
+        : undefined;
+  const entryFace = (entry: PageEntry) =>
+    entry.kind === 'said' ? playerPortrait : faceOf(entry.actor);
+  const voiceOf = (entry?: PageEntry) =>
+    entry?.kind === 'said'
+      ? PLAYER_ACTOR
+      : entry?.kind === 'line'
+        ? entry.actor
+        : undefined;
+
+  const current: (PageEntry & { page: number }) | null =
+    reading && textCue
+      ? {
+          kind: textCue.type,
+          text: shown,
+          page: state.page,
+          ...(textCue.type === 'line'
+            ? {
+                actor: textCue.speaker,
+                speaker: script.cast[textCue.speaker]?.name,
+              }
+            : {}),
+          ...(textCue.type === 'title' && textCue.kicker
+            ? { heading: textCue.kicker }
+            : {}),
+          ...(textCue.type === 'letter' && textCue.title
+            ? { heading: textCue.title }
+            : {}),
+        }
+      : null;
+  const entries = current ? [...state.log, current] : state.log;
+  const pages = entries.reduce<Array<typeof entries>>((all, entry) => {
+    const last = all.at(-1);
+    if (last && last[0]?.page === entry.page) last.push(entry);
+    else all.push([entry]);
+    return all;
+  }, []);
+  if (pages.at(-1)?.[0]?.page !== state.page) pages.push([]);
 
   return (
     <section
       className="bg-paper text-ink relative flex h-dvh flex-col overflow-hidden"
       aria-label={script.title}
     >
+      <h1 className="sr-only">{script.title}</h1>
       <div className="sr-only" aria-live="polite">
-        {cue?.type === 'title' ? cue.text : null}
-        {cue?.type === 'narration' ? `旁白。${cue.text}` : null}
-        {cue?.type === 'line'
-          ? `${script.cast[cue.speaker]?.name ?? ''}说。${cue.text}`
-          : null}
+        {textCue?.type === 'line'
+          ? `${script.cast[textCue.speaker]?.name ?? ''}说。${text}`
+          : text}
         {choosing && cue?.type === 'choice'
           ? `要怎么做。${cue.options.map((option) => option.label).join('，')}`
           : null}
         {closing ? '可以离开这一幕了。' : null}
       </div>
 
-      <div className="absolute top-[calc(var(--app-safe-top)+0.15rem)] right-[calc(env(safe-area-inset-right)+0.35rem)] z-20 flex items-center">
-        <button
-          type="button"
-          onClick={() => setShowLog((open) => !open)}
-          className="text-ink/35 hover:text-ink/70 focus-visible:text-ink/80 min-h-11 cursor-pointer px-2 text-sm transition-colors focus-visible:outline-none"
-        >
-          {showLog ? '接着看' : '回看'}
-        </button>
-        {exitLabel ? (
+      {exitLabel ? (
+        <div className="absolute top-[calc(var(--app-safe-top)+0.15rem)] right-[calc(env(safe-area-inset-right)+0.35rem)] z-20">
           <button
             type="button"
             onClick={onExit}
@@ -379,8 +473,8 @@ export function PerformancePlayer({
           >
             {exitLabel}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {picture ? (
@@ -393,132 +487,129 @@ export function PerformancePlayer({
         ) : null}
 
         <div
+          ref={pageRef}
+          onClick={turn}
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] lg:px-12 lg:py-10',
-            picture ? 'pt-6' : 'pt-[max(var(--app-safe-top),1.5rem)]',
+            'min-h-0 flex-1 overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] lg:px-12',
+            reading && !busy && 'cursor-pointer',
           )}
         >
-          <div
-            className={cn(
-              'flex flex-1 flex-col',
-              !picture && 'mx-auto w-full max-w-2xl',
-            )}
-          >
-            {showLog ? (
-              <ReadLog entries={state.log} onClose={() => setShowLog(false)} />
-            ) : null}
-
-            {!showLog && reading && readingKind ? (
-              <button
-                ref={slipRef}
-                type="button"
-                onClick={turn}
-                disabled={busy}
-                aria-label={textComplete ? '继续' : '先看完这句'}
-                className="text-ink focus-visible:outline-crimson flex w-full cursor-pointer flex-col bg-transparent text-left font-[inherit] outline-none focus-visible:outline-2 focus-visible:outline-offset-8 disabled:cursor-wait lg:my-auto"
-              >
-                {place ? <SceneWords alt={place} /> : null}
-                {readingKind !== 'title' ? (
-                  <h1 className="sr-only">{script.title}</h1>
-                ) : null}
-                {readingKind === 'title' &&
-                cue?.type === 'title' &&
-                cue.kicker ? (
-                  <p className="text-ink-secondary mb-3 text-center text-sm tracking-[0.22em]">
-                    {cue.kicker}
-                  </p>
-                ) : null}
-                <Passage
-                  entry={{
-                    kind: readingKind,
-                    speaker: speaker?.name,
-                  }}
-                  portrait={speaker?.portrait}
-                  text={shown}
-                  quoteClosed={textComplete}
-                />
-                <p
+          <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col">
+            {pages.map((page, at) => {
+              const open = at === pages.length - 1;
+              return (
+                <div
+                  key={page[0]?.page ?? `open:${state.page}`}
                   className={cn(
-                    'text-ink-secondary mt-4 text-sm',
-                    readingKind === 'title' && 'text-center',
+                    'flex flex-col gap-5',
+                    open
+                      ? cn(
+                          'min-h-full flex-1 pb-6',
+                          picture
+                            ? 'pt-6'
+                            : 'pt-[max(var(--app-safe-top),3rem)]',
+                        )
+                      : 'border-ink/10 border-b py-8',
                   )}
                 >
-                  {continueHint}
-                </p>
-              </button>
-            ) : null}
+                  {open && place ? (
+                    <div>
+                      <p className="text-ink-secondary text-xs tracking-[0.28em]">
+                        眼前
+                      </p>
+                      <p className="text-ink-secondary mt-1 text-base leading-7">
+                        {place}
+                      </p>
+                    </div>
+                  ) : null}
 
-            {!showLog && choosing && cue?.type === 'choice' ? (
-              <div className="lg:my-auto">
-                {place ? <SceneWords alt={place} /> : null}
-                <h1 className="sr-only">{script.title}</h1>
-                {closingEntry ? (
-                  <Passage entry={closingEntry} text={closingEntry.text} />
-                ) : null}
-                <div
-                  className="mt-5 flex flex-col gap-3"
-                  role="group"
-                  aria-label="要怎么做"
-                >
-                  {cue.options.map((option, index) => (
-                    <InkChoiceButton
-                      key={option.label}
-                      layout="card"
+                  {page.map((entry, index) => {
+                    const isCurrent = entry === current;
+                    return (
+                      <Passage
+                        key={`${entry.page}:${index}`}
+                        entry={entry}
+                        face={entryFace(entry)}
+                        showFace={
+                          voiceOf(page[index - 1]) !== voiceOf(entry)
+                        }
+                        past={!isCurrent}
+                        quoteClosed={!isCurrent || textComplete}
+                      />
+                    );
+                  })}
+
+                  {open && reading ? (
+                    <button
+                      ref={slipRef}
+                      type="button"
                       disabled={busy}
-                      onClick={() => choose(index)}
+                      aria-label={textComplete ? '继续' : '先看完这句'}
+                      className="text-ink-secondary focus-visible:outline-crimson min-h-11 cursor-pointer self-center bg-transparent px-6 text-sm outline-none focus-visible:outline-2 disabled:cursor-wait"
                     >
-                      <span className="text-ink-secondary mr-3">
-                        {choiceMarks[index]}
-                      </span>
-                      {option.label}
-                    </InkChoiceButton>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                      {!textComplete
+                        ? ''
+                        : state.log.length < 2
+                          ? '点一下，继续'
+                          : '▾'}
+                    </button>
+                  ) : null}
 
-            {!showLog && closing ? (
-              <div className="lg:my-auto">
-                {place ? <SceneWords alt={place} /> : null}
-                <h1 className="sr-only">{script.title}</h1>
-                {closingEntry ? (
-                  <Passage entry={closingEntry} text={closingEntry.text} />
-                ) : (
-                  <p className="font-heading text-ink text-4xl">
-                    {script.title}
-                  </p>
-                )}
-                {error ? (
-                  <p
-                    role="alert"
-                    className="text-crimson mt-4 text-sm leading-7"
-                  >
-                    {error}
-                  </p>
-                ) : null}
-                {finishHint ? (
-                  <p className="text-ink-secondary mt-4 text-sm leading-7">
-                    {finishHint}
-                  </p>
-                ) : null}
-                <div className="mt-5">
-                  <InkButton
-                    onClick={finish}
-                    pending={busy}
-                    pendingLabel={finishPendingLabel}
-                    variant="primary"
-                  >
-                    {finalLabel}
-                  </InkButton>
-                </div>
-              </div>
-            ) : null}
+                  {open && choosing && cue?.type === 'choice' ? (
+                    <div
+                      className="border-ink/10 flex flex-col border-t pt-3"
+                      role="group"
+                      aria-label="要怎么做"
+                    >
+                      {cue.options.map((option, index) => (
+                        <button
+                          key={option.label}
+                          type="button"
+                          disabled={busy}
+                          onClick={() => choose(index)}
+                          className="group text-ink focus-visible:outline-crimson relative min-h-11 cursor-pointer bg-transparent py-1.5 pl-7 text-left text-xl leading-9 outline-none focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-wait"
+                        >
+                          <span
+                            aria-hidden
+                            className="bg-crimson absolute top-[1.15rem] left-1.5 size-1.5 rounded-full"
+                          />
+                          <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0_1.5px] bg-[position:0_100%] bg-no-repeat transition-[background-size] duration-300 group-hover:bg-[length:100%_1.5px] group-focus-visible:bg-[length:100%_1.5px] group-active:bg-[length:100%_1.5px]">
+                            {option.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
 
-            {!showLog && !closing && error ? (
-              <p role="alert" className="text-crimson mt-4 text-sm leading-7">
-                {error}
-              </p>
-            ) : null}
+                  {open && closing ? (
+                    <div className="pt-2">
+                      {finishHint ? (
+                        <p className="text-ink-secondary mb-4 text-sm leading-7">
+                          {finishHint}
+                        </p>
+                      ) : null}
+                      <InkButton
+                        onClick={finish}
+                        pending={busy}
+                        pendingLabel={finishPendingLabel}
+                        variant="primary"
+                      >
+                        {finalLabel}
+                      </InkButton>
+                    </div>
+                  ) : null}
+
+                  {open && error ? (
+                    <p
+                      role="alert"
+                      className="text-crimson text-sm leading-7"
+                    >
+                      {error}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

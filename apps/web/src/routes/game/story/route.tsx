@@ -54,18 +54,24 @@ export default function StoryRoute() {
       key={script.id}
       script={script}
       context={context}
+      playerPortrait={
+        cultivator.gender === '女'
+          ? 'icon:cultivator-female-avatar'
+          : 'icon:cultivator-male-avatar'
+      }
       finalLabel="继续"
       exitLabel="稍后再看"
       busy={busy}
       error={error}
       onExit={() => navigate('/game')}
-      onFinish={(outcome) => {
+      flags={story.story?.flags}
+      onFinish={(outcome, chosen) => {
         setBusy(true);
         setError(undefined);
         void apiFetch(`/api/story/performances/${encodeURIComponent(scriptId)}/complete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ outcome }),
+          body: JSON.stringify({ outcome, chosen }),
         })
           .then((response) => consumeResourceMutation<StoryView>(response))
           .then((next) => {

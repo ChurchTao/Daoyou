@@ -1,8 +1,10 @@
-import type {
-  PerformanceContext,
-  PerformanceCue,
-  PerformanceScript,
-  PerformanceTone,
+import {
+  isPerformanceTextCue,
+  performanceCueText,
+  type PerformanceContext,
+  type PerformanceCue,
+  type PerformanceScript,
+  type PerformanceTone,
 } from '@daoyou/game-domain/performance';
 
 export interface PerformanceBackdrop {
@@ -13,9 +15,17 @@ export interface PerformanceBackdrop {
 }
 
 export interface PerformanceLogEntry {
-  kind: 'title' | 'narration' | 'line';
+  /** said 是看的人自己选下的那一句。 */
+  kind: 'title' | 'narration' | 'line' | 'aside' | 'letter' | 'recall' | 'said';
+  /** 说话人在演员表里的名字。 */
   speaker?: string;
+  /** 说话人在演员表里的键，用来找小像。 */
+  actor?: string;
+  /** 题签上方的小字，或纸中纸的抬头。 */
+  heading?: string;
   text: string;
+  /** 这一句落在第几页。换场景就翻一页。 */
+  page: number;
 }
 
 export interface PerformanceState {
@@ -26,6 +36,9 @@ export interface PerformanceState {
   outcome?: string;
   backdrop: PerformanceBackdrop;
   log: PerformanceLogEntry[];
+  page: number;
+  /** 开演前已有的标记，加上这一场里选下的。 */
+  flags: string[];
 }
 
 export type PerformanceAction =
@@ -41,17 +54,16 @@ const emptyBackdrop = (): PerformanceBackdrop => ({
   tone: 'mist',
 });
 
-function whenAllows(cue: PerformanceCue, context: PerformanceContext): boolean {
-  if (!('when' in cue) || !cue.when) return true;
-  return (context[cue.when.path] ?? '') === cue.when.equals;
-}
-
-function isText(
+function whenAllows(
   cue: PerformanceCue,
-): cue is Extract<PerformanceCue, { type: 'title' | 'narration' | 'line' }> {
-  return (
-    cue.type === 'title' || cue.type === 'narration' || cue.type === 'line'
-  );
+  context: PerformanceContext,
+  flags: readonly string[],
+): boolean {
+  if (!('when' in cue) || !cue.when) return true;
+  if ('flag' in cue.when) {
+    return flags.includes(cue.when.flag) !== Boolean(cue.when.absent);
+  }
+  return (context[cue.when.path] ?? '') === cue.when.equals;
 }
 
 interface LocatedCue {
@@ -59,36 +71,61 @@ interface LocatedCue {
   backdrop: PerformanceBackdrop;
   revealed: boolean;
   ending: boolean;
+  page: number;
+}
+
+function markIndex(script: PerformanceScript, id: string | undefined): number {
+  return script.cues.findIndex(
+    (entry) => entry.type === 'mark' && entry.id === id,
+  );
 }
 
 function locate(
   script: PerformanceScript,
   context: PerformanceContext,
   from: number,
-  backdrop: PerformanceBackdrop,
+  state: Pick<PerformanceState, 'backdrop' | 'page' | 'flags'> & {
+    started: boolean;
+  },
 ): LocatedCue {
-  let nextBackdrop = backdrop;
-  for (let cursor = from; cursor < script.cues.length; cursor += 1) {
+  let backdrop = state.backdrop;
+  let page = state.page;
+  let cursor = from;
+  // 跳转最多绕这么多次，写坏的剧本不会把页面卡死。
+  let hops = script.cues.length;
+  while (cursor < script.cues.length) {
     const cue = script.cues[cursor];
-    if (!cue || !whenAllows(cue, context)) continue;
-    if (cue.type === 'mark') continue;
+    if (!cue || !whenAllows(cue, context, state.flags) || cue.type === 'mark') {
+      cursor += 1;
+      continue;
+    }
+    if (cue.type === 'goto') {
+      const target = markIndex(script, cue.mark);
+      hops -= 1;
+      if (target < 0 || hops < 0) throw new Error('演出跳转绕不出来');
+      cursor = target + 1;
+      continue;
+    }
     if (cue.type === 'scene') {
-      nextBackdrop = {
-        src: cue.src ?? nextBackdrop.src,
-        alt: cue.alt ?? nextBackdrop.alt,
-        focus: cue.focus ?? nextBackdrop.focus,
-        tone: cue.tone ?? nextBackdrop.tone,
+      backdrop = {
+        src: cue.src ?? backdrop.src,
+        alt: cue.alt ?? backdrop.alt,
+        focus: cue.focus ?? backdrop.focus,
+        tone: cue.tone ?? backdrop.tone,
       };
+      if (state.started && page === state.page) page += 1;
+      cursor += 1;
       continue;
     }
     if (cue.type === 'end') {
-      return { cursor, backdrop: nextBackdrop, revealed: true, ending: true };
+      return { cursor, backdrop, revealed: true, ending: true, page };
     }
     return {
       cursor,
-      backdrop: nextBackdrop,
+      backdrop,
       revealed: cue.type === 'choice',
       ending: false,
+      page,
     };
   }
   throw new Error('演出没有可停留的指令');
@@ -97,8 +134,14 @@ function locate(
 export function createPerformanceState(
   script: PerformanceScript,
   context: PerformanceContext = {},
+  flags: readonly string[] = [],
 ): PerformanceState {
-  const located = locate(script, context, 0, emptyBackdrop());
+  const located = locate(script, context, 0, {
+    backdrop: emptyBackdrop(),
+    page: 0,
+    flags: [...flags],
+    started: false,
+  });
   return {
     cursor: located.cursor,
     revealed: located.revealed,
@@ -106,6 +149,8 @@ export function createPerformanceState(
     finished: false,
     backdrop: located.backdrop,
     log: [],
+    page: located.page,
+    flags: [...flags],
   };
 }
 
@@ -114,10 +159,37 @@ function remember(
   state: PerformanceState,
 ): PerformanceLogEntry[] {
   const cue = script.cues[state.cursor];
-  if (!cue || !isText(cue)) return state.log;
-  const speaker =
-    cue.type === 'line' ? script.cast[cue.speaker]?.name : undefined;
-  return [...state.log, { kind: cue.type, speaker, text: cue.text }];
+  if (!cue || !isPerformanceTextCue(cue)) return state.log;
+  return [
+    ...state.log,
+    {
+      kind: cue.type,
+      text: performanceCueText(cue),
+      page: state.page,
+      ...(cue.type === 'line'
+        ? { speaker: script.cast[cue.speaker]?.name, actor: cue.speaker }
+        : {}),
+      ...(cue.type === 'title' && cue.kicker ? { heading: cue.kicker } : {}),
+      ...(cue.type === 'letter' && cue.title ? { heading: cue.title } : {}),
+    },
+  ];
+}
+
+function moveTo(
+  script: PerformanceScript,
+  context: PerformanceContext,
+  state: PerformanceState,
+  from: number,
+): PerformanceState {
+  const located = locate(script, context, from, { ...state, started: true });
+  return {
+    ...state,
+    cursor: located.cursor,
+    backdrop: located.backdrop,
+    revealed: located.revealed,
+    ending: located.ending,
+    page: located.page,
+  };
 }
 
 export function reducePerformance(
@@ -125,8 +197,11 @@ export function reducePerformance(
   context: PerformanceContext,
   state: PerformanceState,
   action: PerformanceAction,
+  initialFlags: readonly string[] = [],
 ): PerformanceState {
-  if (action.type === 'restart') return createPerformanceState(script, context);
+  if (action.type === 'restart') {
+    return createPerformanceState(script, context, initialFlags);
+  }
   if (state.finished) return state;
 
   const cue = script.cues[state.cursor];
@@ -141,41 +216,40 @@ export function reducePerformance(
     if (cue.type !== 'choice' || !state.revealed) return state;
     const option = cue.options[action.index];
     if (!option) return state;
+    const chosen: PerformanceState = {
+      ...state,
+      flags:
+        option.set && !state.flags.includes(option.set)
+          ? [...state.flags, option.set]
+          : state.flags,
+      log: [
+        ...state.log,
+        { kind: 'said', text: option.label, page: state.page },
+      ],
+    };
     if (option.outcome) {
       return {
-        ...state,
+        ...chosen,
         finished: true,
         outcome: option.outcome,
         revealed: true,
       };
     }
-    const markAt = script.cues.findIndex(
-      (entry) => entry.type === 'mark' && entry.id === option.jump,
-    );
+    if (!option.jump) return moveTo(script, context, chosen, state.cursor + 1);
+    const markAt = markIndex(script, option.jump);
     if (markAt < 0) return state;
-    const located = locate(script, context, markAt + 1, state.backdrop);
-    return {
-      ...state,
-      cursor: located.cursor,
-      backdrop: located.backdrop,
-      revealed: located.revealed,
-      ending: located.ending,
-      log: remember(script, state),
-    };
+    return moveTo(script, context, chosen, markAt + 1);
   }
 
   if (cue.type === 'choice' || cue.type === 'end') return state;
   if (!state.revealed) return { ...state, revealed: true };
 
-  const located = locate(script, context, state.cursor + 1, state.backdrop);
-  return {
-    ...state,
-    cursor: located.cursor,
-    backdrop: located.backdrop,
-    revealed: located.revealed,
-    ending: located.ending,
-    log: remember(script, state),
-  };
+  return moveTo(
+    script,
+    context,
+    { ...state, log: remember(script, state) },
+    state.cursor + 1,
+  );
 }
 
 export function currentPerformanceCue(

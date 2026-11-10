@@ -1,7 +1,11 @@
 import {
+  flagMark,
+  standingReaches,
+  storyFlags,
   STORY_MARK_FACT_IDS,
   type StoryBeat,
   type StoryChapter,
+  type StoryCondition,
   type StoryFactId,
   type StoryFacts,
   type StoryProgress,
@@ -30,6 +34,8 @@ export function guideMark(lesson: string): string {
 export interface StoryResolution {
   progress: StoryProgress;
   grants: string[];
+  /** 这一章演完了，该接下一章。 */
+  finished?: boolean;
 }
 
 function beatAt(chapter: StoryChapter, beatId: string): StoryBeat {
@@ -73,7 +79,22 @@ function satisfied(
       ? ready.every(Boolean)
       : ready.some(Boolean);
   }
+  if (beat.kind === 'wait') return conditionMet(beat.until, progress, facts);
   return false;
+}
+
+function conditionMet(
+  condition: StoryCondition,
+  progress: StoryProgress,
+  facts: StoryFacts,
+): boolean {
+  if (condition.type === 'fact') {
+    return factReady(condition.fact, progress, facts);
+  }
+  if (condition.type === 'flag') {
+    return progress.marks.includes(flagMark(condition.flag));
+  }
+  return standingReaches(facts.standing, condition.realm, condition.stage);
 }
 
 function normalizeArrivalProgress(
@@ -131,6 +152,7 @@ export function resolveStory(
   progress = normalizeArrivalProgress(chapter, progress, facts);
 
   let beatId = progress.beatId;
+  let finished = false;
   const grants = [...progress.grants];
   const issued: string[] = [];
   const seen = new Set<string>();
@@ -145,14 +167,23 @@ export function resolveStory(
     if (beat.kind === 'practice') issuePayout(grants, issued, beat.reward);
     const index = chapter.beats.findIndex((entry) => entry.id === beatId);
     const next = chapter.beats[index + 1];
-    if (!next) break;
+    if (!next) {
+      finished = true;
+      break;
+    }
     if (next.kind === 'practice') issuePayout(grants, issued, next.grant);
     beatId = next.id;
   }
 
   return {
-    progress: { ...progress, beatId, grants },
+    progress: {
+      ...progress,
+      beatId,
+      grants,
+      status: finished ? 'completed' : progress.status,
+    },
     grants: issued,
+    finished,
   };
 }
 
@@ -162,6 +193,10 @@ export function acknowledgePerformance(
   facts: StoryFacts,
   scriptId: string,
   outcome: string,
+  chosen: { flags: readonly string[]; allowed: readonly string[] } = {
+    flags: [],
+    allowed: [],
+  },
 ): StoryResolution {
   progress = normalizeArrivalProgress(chapter, progress, facts);
   const key = `${scriptId}:${outcome}`;
@@ -173,9 +208,19 @@ export function acknowledgePerformance(
     throw new Error('当前没有这场演出');
   }
   if (beat.outcome !== outcome) throw new Error('演出结果不属于这一幕');
+  if (chosen.flags.some((flag) => !chosen.allowed.includes(flag))) {
+    throw new Error('演出里没有这个选择');
+  }
+  const marks = chosen.flags
+    .map(flagMark)
+    .filter((mark) => !progress.marks.includes(mark));
   return resolveStory(
     chapter,
-    { ...progress, acks: [...progress.acks, key] },
+    {
+      ...progress,
+      acks: [...progress.acks, key],
+      marks: [...progress.marks, ...new Set(marks)],
+    },
     facts,
   );
 }
@@ -261,6 +306,8 @@ export function presentStory(
   chapter: StoryChapter,
   progress: StoryProgress,
   facts: StoryFacts,
+  /** 别的章节里记下的标记。 */
+  carried: readonly string[] = [],
 ): StoryView {
   progress = normalizeArrivalProgress(chapter, progress, facts);
   const beat = beatAt(chapter, progress.beatId);
@@ -281,6 +328,7 @@ export function presentStory(
     href: shifted.href,
     scriptId: beat.kind === 'performance' ? beat.script : null,
     guideLesson: pendingGuide(beat, progress),
+    flags: [...new Set([...carried, ...storyFlags(progress.marks)])],
   };
 }
 

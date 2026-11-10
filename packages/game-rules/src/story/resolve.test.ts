@@ -633,3 +633,97 @@ describe('story resolver', () => {
     ).toThrow('演出结果不属于这一幕');
   });
 });
+
+describe('chapters that hand over', () => {
+  const linked: StoryChapter = {
+    id: 'linked',
+    track: 'main',
+    title: '接章',
+    next: 'arrival',
+    beats: [
+      {
+        id: 'talk',
+        kind: 'performance',
+        script: 'linked-play',
+        outcome: 'go',
+        scene: 'story',
+        prompt: '先看完。',
+        href: '/game/story',
+      },
+      {
+        id: 'grow',
+        kind: 'wait',
+        until: { type: 'realm', realm: '炼气', stage: '后期' },
+        scene: 'retreat',
+        prompt: '修至炼气后期。',
+        href: '/game/retreat',
+      },
+    ],
+  };
+  const at = (beatId: string, extra: Partial<StoryProgress> = {}) =>
+    progress(beatId, { storyId: 'linked', ...extra });
+  const standing = (realm: '炼气' | '筑基', stage: '初期' | '后期') => ({
+    ...emptyStoryFacts(),
+    standing: { realm, stage },
+  });
+
+  it('holds on a wait beat until the realm is reached', () => {
+    const held = acknowledgePerformance(
+      linked,
+      at('talk'),
+      standing('炼气', '初期'),
+      'linked-play',
+      'go',
+    );
+    expect(held.progress.beatId).toBe('grow');
+    expect(held.finished).toBe(false);
+    expect(
+      presentStory(linked, held.progress, standing('炼气', '初期')),
+    ).toMatchObject({ kind: 'wait', prompt: '修至炼气后期。' });
+    expect(resolveStory(linked, held.progress, emptyStoryFacts()).finished).toBe(
+      false,
+    );
+  });
+
+  it('finishes the chapter once the last beat is satisfied', () => {
+    for (const facts of [standing('炼气', '后期'), standing('筑基', '初期')]) {
+      const done = resolveStory(linked, at('grow'), facts);
+      expect(done.finished).toBe(true);
+      expect(done.progress.status).toBe('completed');
+    }
+  });
+
+  it('keeps the flags a performance was allowed to set', () => {
+    const kept = acknowledgePerformance(
+      linked,
+      at('talk'),
+      emptyStoryFacts(),
+      'linked-play',
+      'go',
+      { flags: ['note.street', 'note.street'], allowed: ['note.street'] },
+    );
+    expect(kept.progress.marks).toEqual(['flag:note.street']);
+    expect(StoryProgressSchema.safeParse(kept.progress).success).toBe(true);
+    expect(
+      presentStory(linked, kept.progress, emptyStoryFacts(), ['old.flag']).flags,
+    ).toEqual(['old.flag', 'note.street']);
+  });
+
+  it('refuses a flag the performance never offers', () => {
+    expect(() =>
+      acknowledgePerformance(
+        linked,
+        at('talk'),
+        emptyStoryFacts(),
+        'linked-play',
+        'go',
+        { flags: ['made.up'], allowed: ['note.street'] },
+      ),
+    ).toThrow('演出里没有这个选择');
+  });
+
+  it('wants a chapter without a successor to rest on a life beat', () => {
+    const { next: _next, ...loose } = linked;
+    expect(StoryChapterSchema.safeParse(loose).success).toBe(false);
+  });
+});

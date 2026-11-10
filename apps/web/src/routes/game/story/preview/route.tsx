@@ -139,6 +139,11 @@ export default function StoryPreviewRoute() {
       key={`${filled.id}:${replay}`}
       script={filled}
       context={context}
+      playerPortrait={
+        cultivator.gender === '女'
+          ? 'icon:cultivator-female-avatar'
+          : 'icon:cultivator-male-avatar'
+      }
       finalLabel="再看一遍"
       exitLabel="返回"
       onExit={() => navigate('/game/story/preview')}

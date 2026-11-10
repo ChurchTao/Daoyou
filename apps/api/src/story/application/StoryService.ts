@@ -7,12 +7,14 @@ import {
   sectMemberships,
 } from '@server/lib/drizzle/schema.js';
 import {
-  findCultivatorStory,
   insertCultivatorStory,
+  listCultivatorStories,
   updateCultivatorStory,
 } from '@server/lib/repositories/storyRepository.js';
 import { lockCultivatorForStateMutation } from '@server/lib/repositories/playerStateRepository.js';
 import { getGuideLesson } from '@daoyou/game-content/guide/catalog';
+import { getPerformanceScript } from '@daoyou/game-content/performance/catalog';
+import { performanceFlags } from '@daoyou/game-domain/performance';
 import type { ResourceChangeDescriptor } from '@daoyou/contracts/resources';
 import {
   storyReward,
@@ -20,6 +22,7 @@ import {
   acknowledgeGuide,
   acknowledgePerformance,
   noteStoryFact,
+  openingStoryProgress,
   presentStory,
   resolveStory,
   rewindToUnwatchedPerformance,
@@ -28,6 +31,7 @@ import {
 import { getStoryChapter } from '@daoyou/game-content/story/catalog';
 import {
   emptyStoryFacts,
+  storyFlags,
   STORY_MARK_FACT_IDS,
   type StoryChapter,
   type StoryFactId,
@@ -36,9 +40,8 @@ import {
   type StoryView,
 } from '@daoyou/game-domain/story';
 import { and, eq, sql } from 'drizzle-orm';
+import type { RealmStage, RealmType } from '@daoyou/constants/realms';
 import { grantInventory } from '@server/inventory/operations.js';
-
-const MAIN_STORY_ID = 'arrival';
 
 type StoryMarkFact = (typeof STORY_MARK_FACT_IDS)[number];
 
@@ -127,7 +130,7 @@ async function readStoryFacts(
         .limit(1),
     () =>
       tx
-        .select({ stage: cultivators.realm_stage })
+        .select({ realm: cultivators.realm, stage: cultivators.realm_stage })
         .from(cultivators)
         .where(eq(cultivators.id, cultivatorId))
         .limit(1),
@@ -148,6 +151,12 @@ async function readStoryFacts(
   facts.sect_ready = Boolean(memberships[0]?.pathId);
   facts.weapon_equipped = weapons.length > 0;
   facts.breakthrough_available = rows[0]?.stage === '圆满';
+  if (rows[0]) {
+    facts.standing = {
+      realm: rows[0].realm as RealmType,
+      stage: rows[0].stage as RealmStage,
+    };
+  }
   return facts;
 }
 
@@ -177,6 +186,19 @@ async function applyRewards(
   return { items: items.length > 0, spiritStones: stones > 0 };
 }
 
+// 主线眼下演到的那一章：还没演完的优先，否则取最近的一章。
+async function currentStory(cultivatorId: string, tx: DbTransaction) {
+  const rows = await listCultivatorStories(cultivatorId, 'main', tx);
+  const stored = rows.find((row) => row.status === 'active') ?? rows[0] ?? null;
+  return {
+    rows,
+    stored,
+    carried: rows
+      .filter((row) => row !== stored)
+      .flatMap((row) => storyFlags(row.marks)),
+  };
+}
+
 async function settle(
   cultivatorId: string,
   tx: DbTransaction,
@@ -191,54 +213,76 @@ async function settle(
   rewardIds: string[];
   effect: { items: boolean; spiritStones: boolean };
 }> {
-  const stored = await findCultivatorStory(
-    cultivatorId,
-    'main',
-    MAIN_STORY_ID,
-    tx,
-  );
+  const { rows, stored, carried } = await currentStory(cultivatorId, tx);
   const base = stored ?? restingStoryProgress();
-  const chapter = getStoryChapter(base.storyId);
+  let chapter = getStoryChapter(base.storyId);
   const facts = await readStoryFacts(cultivatorId, tx);
   const progress = rewindToUnwatchedPerformance(chapter, base, facts);
-  const resolved = mutate(chapter, progress, facts);
-  const effect =
-    resolved.grants.length > 0
-      ? await applyRewards(cultivatorId, resolved.grants, tx)
-      : { items: false, spiritStones: false };
-  const dirty = !stored || !sameProgress(stored, resolved.progress);
+  let resolved = mutate(chapter, progress, facts);
+  const rewardIds = [...resolved.grants];
+  let dirty = !stored || !sameProgress(stored, resolved.progress);
   if (dirty) {
     if (stored) await updateCultivatorStory(cultivatorId, resolved.progress, tx);
     else await insertCultivatorStory(cultivatorId, resolved.progress, tx);
   }
+
+  // 一章演完就接下一章；下一章开头若已满足，也一并走过去。
+  const flags = [...carried];
+  const visited = new Set([chapter.id]);
+  while (resolved.finished && chapter.next && !visited.has(chapter.next)) {
+    flags.push(...storyFlags(resolved.progress.marks));
+    chapter = getStoryChapter(chapter.next);
+    visited.add(chapter.id);
+    const resumed = rows.find((row) => row.storyId === chapter.id);
+    resolved = resolveStory(
+      chapter,
+      resumed
+        ? { ...resumed, status: 'active' }
+        : openingStoryProgress(chapter.id),
+      facts,
+    );
+    rewardIds.push(...resolved.grants);
+    if (resumed) await updateCultivatorStory(cultivatorId, resolved.progress, tx);
+    else await insertCultivatorStory(cultivatorId, resolved.progress, tx);
+    dirty = true;
+  }
+
+  const effect =
+    rewardIds.length > 0
+      ? await applyRewards(cultivatorId, rewardIds, tx)
+      : { items: false, spiritStones: false };
   return {
-    view: presentStory(chapter, resolved.progress, facts),
+    view: presentStory(chapter, resolved.progress, facts, flags),
     dirty,
-    rewardIds: resolved.grants,
+    rewardIds,
     effect,
   };
 }
 
 export const StoryService = {
   async read(cultivatorId: string, tx: DbTransaction): Promise<StoryView> {
-    const stored =
-      (await findCultivatorStory(cultivatorId, 'main', MAIN_STORY_ID, tx)) ??
-      restingStoryProgress();
-    const chapter = getStoryChapter(stored.storyId);
+    const { stored, carried } = await currentStory(cultivatorId, tx);
+    const base = stored ?? restingStoryProgress();
+    const chapter = getStoryChapter(base.storyId);
     const facts = await readStoryFacts(cultivatorId, tx);
-    const progress = rewindToUnwatchedPerformance(chapter, stored, facts);
-    return presentStory(chapter, progress, facts);
+    const progress = rewindToUnwatchedPerformance(chapter, base, facts);
+    return presentStory(chapter, progress, facts, carried);
   },
 
   async completePerformance(
     cultivatorId: string,
     scriptId: string,
     outcome: string,
+    chosen: readonly string[],
     tx: DbTransaction,
   ): Promise<{ view: StoryView; changes: ResourceChangeDescriptor[] }> {
     await lockCultivatorForStateMutation(tx, cultivatorId);
+    const allowed = performanceFlags(getPerformanceScript(scriptId));
     const settled = await settle(cultivatorId, tx, (chapter, progress, facts) =>
-      acknowledgePerformance(chapter, progress, facts, scriptId, outcome),
+      acknowledgePerformance(chapter, progress, facts, scriptId, outcome, {
+        flags: chosen,
+        allowed,
+      }),
     );
     return {
       view: settled.view,

@@ -1,3 +1,10 @@
+import {
+  REALM_ORDER,
+  REALM_STAGE_VALUES,
+  REALM_VALUES,
+  type RealmStage,
+  type RealmType,
+} from '@daoyou/constants/realms';
 import { z } from 'zod';
 
 export const STORY_FACT_IDS = [
@@ -54,6 +61,28 @@ const lessonIdSchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+const flagSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(60)
+  .regex(/^[a-z0-9]+(?:[-.:][a-z0-9]+)*$/);
+
+// 等待幕的门槛：做到了，故事才往下走。
+export const StoryConditionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('fact'), fact: factSchema }).strict(),
+  z.object({ type: z.literal('flag'), flag: flagSchema }).strict(),
+  z
+    .object({
+      type: z.literal('realm'),
+      realm: z.enum(REALM_VALUES),
+      stage: z.enum(REALM_STAGE_VALUES).optional(),
+    })
+    .strict(),
+]);
+
+export type StoryCondition = z.infer<typeof StoryConditionSchema>;
+
 const acceptanceSchema = z.discriminatedUnion('type', [
   z
     .object({
@@ -102,9 +131,22 @@ const lifeBeatSchema = z
   })
   .strict();
 
+// 等待：门槛没到之前停在这里，界面上写明还差什么。
+const waitBeatSchema = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    kind: z.literal('wait'),
+    until: StoryConditionSchema,
+    scene: z.string().trim().min(1).max(40),
+    prompt: z.string().trim().min(1).max(80),
+    href: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
 export const StoryBeatSchema = z.discriminatedUnion('kind', [
   performanceBeatSchema,
   practiceBeatSchema,
+  waitBeatSchema,
   lifeBeatSchema,
 ]);
 
@@ -120,12 +162,20 @@ export function createStoryChapterSchema({
       id: z.string().trim().min(1).max(80),
       track: z.enum(STORY_TRACKS),
       title: z.string().trim().min(1).max(40),
+      // 这一章演完之后接哪一章。不写就停在最后一幕。
+      next: z.string().trim().min(1).max(80).optional(),
       beats: z.array(StoryBeatSchema).min(1).max(40),
     })
     .strict()
     .superRefine((chapter, context) => {
       const ids = new Set<string>();
       const payouts = new Set<string>();
+      if (!chapter.next && chapter.beats.at(-1)?.kind !== 'life') {
+        context.addIssue({
+          code: 'custom',
+          message: '没有下一章的章节要停在常驻幕上',
+        });
+      }
       for (const beat of chapter.beats) {
         if (ids.has(beat.id)) {
           context.addIssue({
@@ -205,6 +255,7 @@ export const StoryProgressSchema = z
           (value) =>
             (STORY_MARK_FACT_IDS as readonly string[]).includes(value) ||
             (progressMarkIds as readonly string[]).includes(value) ||
+            /^flag:[a-z0-9]+(?:[-.:][a-z0-9]+)*$/.test(value) ||
             /^guide:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
           '剧情标记无法识别',
         ),
@@ -218,12 +269,14 @@ export const StoryViewSchema = z
     chapterId: z.string(),
     chapterTitle: z.string(),
     beatId: z.string(),
-    kind: z.enum(['performance', 'practice', 'life']),
+    kind: z.enum(['performance', 'practice', 'wait', 'life']),
     scene: z.string(),
     prompt: z.string(),
     href: z.string(),
     scriptId: z.string().nullable(),
     guideLesson: z.string().nullable(),
+    // 演出里选下并记住的标记，跨章节都认。
+    flags: z.array(z.string()),
   })
   .strict();
 
@@ -237,7 +290,42 @@ export type StoryProgress = z.infer<typeof StoryProgressSchema>;
 
 export type StoryView = z.infer<typeof StoryViewSchema>;
 
-export type StoryFacts = Record<StoryFactId, boolean>;
+export interface StoryStanding {
+  realm: RealmType;
+  stage: RealmStage;
+}
+
+export type StoryFacts = Record<StoryFactId, boolean> & {
+  /** 眼下的境界。没给就当门槛没到。 */
+  standing?: StoryStanding;
+};
+
+const FLAG_MARK = 'flag:';
+
+export function flagMark(flag: string): string {
+  return `${FLAG_MARK}${flag}`;
+}
+
+/** 从进度标记里取出演出记下的标记。 */
+export function storyFlags(marks: readonly string[]): string[] {
+  return marks
+    .filter((mark) => mark.startsWith(FLAG_MARK))
+    .map((mark) => mark.slice(FLAG_MARK.length));
+}
+
+export function standingReaches(
+  standing: StoryStanding | undefined,
+  realm: RealmType,
+  stage: RealmStage = REALM_STAGE_VALUES[0],
+): boolean {
+  if (!standing) return false;
+  const gap = REALM_ORDER[standing.realm] - REALM_ORDER[realm];
+  if (gap !== 0) return gap > 0;
+  return (
+    REALM_STAGE_VALUES.indexOf(standing.stage) >=
+    REALM_STAGE_VALUES.indexOf(stage)
+  );
+}
 
 export function emptyStoryFacts(): StoryFacts {
   return {

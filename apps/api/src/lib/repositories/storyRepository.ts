@@ -6,7 +6,7 @@ import {
 import { cultivatorStories } from '@server/lib/drizzle/schema.js';
 import { parseStoryProgress } from '@daoyou/game-rules/story';
 import type { StoryProgress } from '@daoyou/game-domain/story';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 export type CultivatorStoryRecord = typeof cultivatorStories.$inferSelect;
 
@@ -26,12 +26,12 @@ function toProgress(row: CultivatorStoryRecord): StoryProgress {
   });
 }
 
-export async function findCultivatorStory(
+/** 一条线上的全部章节进度，新的在前。 */
+export async function listCultivatorStories(
   cultivatorId: string,
   track: StoryProgress['track'],
-  storyId: string,
   q?: DbExecutor | DbTransaction,
-): Promise<StoryProgress | null> {
+): Promise<StoryProgress[]> {
   const rows = await executor(q)
     .select()
     .from(cultivatorStories)
@@ -39,11 +39,10 @@ export async function findCultivatorStory(
       and(
         eq(cultivatorStories.cultivatorId, cultivatorId),
         eq(cultivatorStories.track, track),
-        eq(cultivatorStories.storyId, storyId),
       ),
     )
-    .limit(1);
-  return rows[0] ? toProgress(rows[0]) : null;
+    .orderBy(desc(cultivatorStories.createdAt), desc(cultivatorStories.id));
+  return rows.map(toProgress);
 }
 
 export async function insertCultivatorStory(

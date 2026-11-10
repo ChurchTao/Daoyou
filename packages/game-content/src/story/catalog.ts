@@ -33,6 +33,12 @@ const chapters = new Map<string, StoryChapter>([
   ['arrival', parseChapter(arrivalChapter)],
 ]);
 
+for (const chapter of chapters.values()) {
+  if (chapter.next && !chapters.has(chapter.next)) {
+    throw new Error(`剧情章节接不上：${chapter.id} → ${chapter.next}`);
+  }
+}
+
 export function getStoryChapter(id = 'arrival'): StoryChapter {
   const chapter = chapters.get(id);
   if (!chapter) throw new Error(`剧情章节不存在：${id}`);
