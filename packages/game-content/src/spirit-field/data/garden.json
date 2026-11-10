@@ -5,22 +5,23 @@
   "collectionLimit": 24,
   "species": [
     {
-      "id": "green_vine",
-      "name": "青木藤",
-      "description": "细藤攀枝而生，叶脉流转温和木气，久养可凝结助益修炼的青藤果。",
+      "id": "licorice",
+      "name": "甘草",
+      "description": "矮丛开细花，最有用的是土下那截甘甜的根。",
       "quality": "凡品",
       "element": "木",
-      "legacySpeciesId": "green_vine",
+      "growthForm": "herb",
+      "harvestPart": "root",
       "portrait": {
-        "atlas": "botanical-atlas",
+        "atlas": "botanical-garden-fan",
         "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "青木藤叶",
-        "description": "青木藤自然生长的灵材，可供炼丹使用。",
+        "name": "甘草根",
+        "description": "细花落后取须根，洗去浮土即可入药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -28,10 +29,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "青木藤叶",
-            "description": "青木藤自然生长的灵材，可供炼丹使用。",
+            "name": "甘草根",
+            "description": "细花落后取须根，洗去浮土即可入药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -39,16 +40,16 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出青藤灵果。",
+          "description": "甘草根养足后析出的清露，可减轻丹毒。",
           "output": {
-            "name": "青藤灵果",
-            "description": "青藤灵果药性温和，可助益下次闭关修炼。",
+            "name": "甘草露",
+            "description": "甘草根养足后析出的清露，可减轻丹毒。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
-                "family": "cultivation",
+                "family": "detox",
                 "share": 1
               }
             ]
@@ -57,22 +58,23 @@
       }
     },
     {
-      "id": "dew_grass",
-      "name": "风露草",
-      "description": "细叶随风集露，草心生机绵长，适合培养疗愈灵果。",
+      "id": "wild_chrysanthemum",
+      "name": "野菊",
+      "description": "一丛细茎顶起小黄花，开足时从远处就能看见。",
       "quality": "凡品",
       "element": "风",
-      "legacySpeciesId": "dew_grass",
+      "growthForm": "flower",
+      "harvestPart": "flower",
       "portrait": {
-        "atlas": "botanical-atlas",
+        "atlas": "botanical-garden-fan",
         "index": 1
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "风露草叶",
-        "description": "风露草自然生长的灵材，可供炼丹使用。",
+        "name": "野菊花",
+        "description": "挑初开的黄花整朵采下，花心适合配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -80,10 +82,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "风露草叶",
-            "description": "风露草自然生长的灵材，可供炼丹使用。",
+            "name": "野菊花",
+            "description": "挑初开的黄花整朵采下，花心适合配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -91,114 +93,10 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出回春露果。",
+          "description": "多养一段时日，盛开的花心便会蓄下回气的清露。",
           "output": {
-            "name": "回春露果",
-            "description": "回春露果药性温和，可恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "healing",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "red_fruit",
-      "name": "赤炎株",
-      "description": "赤叶温热，根须蓄养火意，果实凝聚温养气血的灵蕴。",
-      "quality": "凡品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 2
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "赤炎灵叶",
-        "description": "赤炎株自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "赤炎灵叶",
-            "description": "赤炎株自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出赤炎血果。",
-          "output": {
-            "name": "赤炎血果",
-            "description": "赤炎血果药性温和，可推进气血炼体。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "tempering",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "moon_lotus",
-      "name": "月泉莲",
-      "description": "莲瓣承接水月清辉，莲房蕴含平和而清澈的灵气。",
-      "quality": "凡品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "月泉莲瓣",
-        "description": "月泉莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "月泉莲瓣",
-            "description": "月泉莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出月泉莲实。",
-          "output": {
-            "name": "月泉莲实",
-            "description": "月泉莲实药性温和，可恢复法力。",
+            "name": "野菊花露",
+            "description": "多养一段时日，盛开的花心便会蓄下回气的清露。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -213,22 +111,23 @@
       }
     },
     {
-      "id": "stone_fungus",
-      "name": "岩心芝",
-      "description": "菌盖如石，根丝深入土层，久养可凝出土脉灵髓。",
+      "id": "poria",
+      "name": "茯苓",
+      "description": "松根旁先鼓起一包土，拨开才看见圆团。",
       "quality": "凡品",
       "element": "土",
-      "legacySpeciesId": "stone_fungus",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
       "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 4
+        "atlas": "botanical-garden-fan",
+        "index": 2
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "岩心芝片",
-        "description": "岩心芝自然生长的灵材，可供炼丹使用。",
+        "name": "茯苓块",
+        "description": "顺松根挖出，再把圆团切成晒干的药块。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -236,56 +135,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "岩心芝片",
-            "description": "岩心芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出岩心灵髓。",
-          "output": {
-            "name": "岩心灵髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "beast_berry",
-      "name": "鸣雷莓",
-      "description": "枝间时有细雷轻鸣，灵兽亲近其气息，适宜养成果实饲育。",
-      "quality": "凡品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "鸣雷莓叶",
-        "description": "鸣雷莓自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "鸣雷莓叶",
-            "description": "鸣雷莓自然生长的灵材，可供炼丹使用。",
+            "name": "茯苓块",
+            "description": "顺松根挖出，再把圆团切成晒干的药块。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -293,171 +146,17 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出鸣雷兽灵果。",
+          "description": "团心养至细白时可凝出一小块助益闭关的膏。",
           "output": {
-            "name": "鸣雷兽灵果",
-            "description": "鸣雷兽灵果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "jade_bamboo",
-      "name": "金玉竹",
-      "description": "竹节蕴有金石之音，凝成的竹髓是珍贵天材。",
-      "quality": "凡品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
-      "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "金玉竹叶",
-        "description": "金玉竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "金玉竹叶",
-            "description": "金玉竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出金玉竹髓。",
-          "output": {
-            "name": "金玉竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "longevity_tree",
-      "name": "寒玉寿木",
-      "description": "细枝覆着薄薄玉霜，生机内敛，结实后可得延寿灵果。",
-      "quality": "凡品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-atlas",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "寒玉寿叶",
-        "description": "寒玉寿木自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "寒玉寿叶",
-            "description": "寒玉寿木自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出寒玉寿果。",
-          "output": {
-            "name": "寒玉寿果",
-            "description": "寒玉寿果药性温和，可增加寿元。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "ling_jade_marrow_vine",
-      "name": "碧髓藤",
-      "description": "玉绿藤身攀附细枝，叶脉凝着白色髓光。碧果兼养灵机与心神。",
-      "quality": "灵品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-ling",
-        "index": 0
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "碧髓藤叶",
-        "description": "碧髓藤自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "碧髓藤叶",
-            "description": "碧髓藤自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出碧髓灵果。",
-          "output": {
-            "name": "碧髓灵果",
-            "description": "碧髓灵果药性温和，可助益下次闭关修炼、增进参悟感悟。",
+            "name": "茯苓膏",
+            "description": "团心养至细白时可凝出一小块助益闭关的膏。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "cultivation",
-                "share": 0.6
-              },
-              {
-                "family": "insight",
-                "share": 0.4
+                "share": 1
               }
             ]
           }
@@ -465,22 +164,23 @@
       }
     },
     {
-      "id": "ling_dew_orchid",
-      "name": "凝露兰",
-      "description": "细叶承风，白蓝兰瓣常含清露。结出的露果专为温养气血。",
-      "quality": "灵品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
+      "id": "mountain_jujube",
+      "name": "山枣",
+      "description": "枝上长刺，熟枣红得早，秋叶落尽后枝上还有果。",
+      "quality": "凡品",
+      "element": "火",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
       "portrait": {
-        "atlas": "botanical-ling",
-        "index": 1
+        "atlas": "botanical-garden-fan",
+        "index": 3
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "凝露兰叶",
-        "description": "凝露兰自然生长的灵材，可供炼丹使用。",
+        "name": "山枣青果",
+        "description": "挑去带刺的果梗，青果可供配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -488,10 +188,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "凝露兰叶",
-            "description": "凝露兰自然生长的灵材，可供炼丹使用。",
+            "name": "山枣青果",
+            "description": "挑去带刺的果梗，青果可供配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -499,10 +199,10 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出凝露兰果。",
+          "description": "枣皮转红后肉厚汁足，可作日常补给。",
           "output": {
-            "name": "凝露兰果",
-            "description": "凝露兰果药性温和，可恢复气血。",
+            "name": "山枣",
+            "description": "枣皮转红后肉厚汁足，可作日常补给。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -517,22 +217,23 @@
       }
     },
     {
-      "id": "ling_red_glow_ginseng",
-      "name": "赤霞参",
-      "description": "赤根分岔如霞，扇叶护着朱色小果。果蕴温厚，可用于气血炼体。",
+      "id": "vermilion_fruit",
+      "name": "朱果",
+      "description": "低矮的果丛只托起一颗红果，果熟后叶片向外翻开。",
       "quality": "灵品",
       "element": "火",
-      "legacySpeciesId": "red_fruit",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
       "portrait": {
-        "atlas": "botanical-ling",
-        "index": 2
+        "atlas": "botanical-garden-ling",
+        "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "赤霞参须",
-        "description": "赤霞参自然生长的灵材，可供炼丹使用。",
+        "name": "朱果嫩叶",
+        "description": "摘外围嫩叶配药，留下托果的内叶。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -540,10 +241,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "赤霞参须",
-            "description": "赤霞参自然生长的灵材，可供炼丹使用。",
+            "name": "朱果嫩叶",
+            "description": "摘外围嫩叶配药，留下托果的内叶。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -551,10 +252,393 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出赤霞参果。",
+          "description": "叶片翻开后取红果，服下可恢复气血。",
           "output": {
-            "name": "赤霞参果",
-            "description": "赤霞参果药性温和，可推进气血炼体。",
+            "name": "朱果",
+            "description": "叶片翻开后取红果，服下可恢复气血。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "evening_primrose",
+      "name": "月见草",
+      "description": "白天只有闭合的花苞，入夜舒展，花心结露。",
+      "quality": "灵品",
+      "element": "水",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 1
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "月见草花",
+        "description": "将初开的花采下阴干，留作药引。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "月见草花",
+            "description": "将初开的花采下阴干，留作药引。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "盛放时聚在花心的清露，可恢复法力。",
+          "output": {
+            "name": "月见花露",
+            "description": "盛放时聚在花心的清露，可恢复法力。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "mana",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "spirit_rice",
+      "name": "灵稻",
+      "description": "细秧成熟后垂下一串沉甸甸的金穗。",
+      "quality": "灵品",
+      "element": "木",
+      "growthForm": "herb",
+      "harvestPart": "seedpod",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 2
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "灵稻穗",
+        "description": "将稻穗连壳晒干，再取谷粒配药。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "灵稻穗",
+            "description": "将稻穗连壳晒干，再取谷粒配药。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "沉穗脱壳后只留最饱满的米粒，闭关前可服用。",
+          "output": {
+            "name": "灵米",
+            "description": "沉穗脱壳后只留最饱满的米粒，闭关前可服用。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "rainbow_skirt_grass",
+      "name": "霓裳草",
+      "description": "卷叶一片片展开，最后像一把打开的扇子，散出灵兽爱闻的香气。",
+      "quality": "灵品",
+      "element": "风",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-ling",
+        "index": 3
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "霓裳草叶",
+        "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "霓裳草叶",
+            "description": "外层卷叶适合采作药材，内层仍可继续舒展。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "香气聚在全展的内叶上，灵兽食用可增长修为。",
+          "output": {
+            "name": "霓裳香叶",
+            "description": "香气聚在全展的内叶上，灵兽食用可增长修为。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "beast_cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "jade_marrow_lingzhi",
+      "name": "玉髓芝",
+      "description": "芝盖像一把小勺，成熟时在中心凝出一滴白髓。",
+      "quality": "玄品",
+      "element": "土",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 0
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "玉髓",
+        "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "玉髓",
+            "description": "从芝盖中央取下的白髓，相传是筑基三药之一。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "厚实的白髓凝成软膏，可辅助突破与洗髓。",
+          "output": {
+            "name": "玉髓灵膏",
+            "description": "厚实的白髓凝成软膏，可辅助突破与洗髓。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.65
+              },
+              {
+                "family": "marrow_wash",
+                "share": 0.35
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "purple_monkey_flower",
+      "name": "紫猴花",
+      "description": "两片长瓣像猴耳，开足后花心才显出一张小脸。",
+      "quality": "玄品",
+      "element": "风",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 1
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "紫猴花心",
+        "description": "花心露出猴面时可采，相传是筑基三药之一。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "紫猴花心",
+            "description": "花心露出猴面时可采，相传是筑基三药之一。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "取猴面花心凝出的露，可辅助突破并恢复气血。",
+          "output": {
+            "name": "紫猴花露",
+            "description": "取猴面花心凝出的露，可辅助突破并恢复气血。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.6
+              },
+              {
+                "family": "healing",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "heaven_spirit_fruit",
+      "name": "天灵果",
+      "description": "枝头空出一圈，托着一颗青果。熟后外壳自行裂开。",
+      "quality": "玄品",
+      "element": "木",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 2
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "天灵果仁",
+        "description": "裂壳后可取果仁，相传是筑基三药之一。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "天灵果仁",
+            "description": "裂壳后可取果仁，相传是筑基三药之一。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "果皮完全张开后收取的清浆，可辅助突破并恢复法力。",
+          "output": {
+            "name": "天灵果浆",
+            "description": "果皮完全张开后收取的清浆，可辅助突破并恢复法力。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "breakthrough",
+                "share": 0.6
+              },
+              {
+                "family": "mana",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "dragon_blood_grass",
+      "name": "龙血草",
+      "description": "叶脉起初浅淡，成株后一条红线从叶根贯到叶尖。",
+      "quality": "玄品",
+      "element": "火",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-xuan",
+        "index": 3
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "龙血草叶",
+        "description": "采下通脉的红叶，留作炼体类药材。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "龙血草叶",
+            "description": "采下通脉的红叶，留作炼体类药材。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "从通红叶脉收取的浓汁，可辅助炼体。",
+          "output": {
+            "name": "龙血草汁",
+            "description": "从通红叶脉收取的浓汁，可辅助炼体。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -569,78 +653,23 @@
       }
     },
     {
-      "id": "ling_twin_moon_lotus",
-      "name": "双月莲",
-      "description": "一根双花，白瓣如两轮新月。莲实汇聚水月清气，调和气血与法力。",
-      "quality": "灵品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-ling",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "双月莲瓣",
-        "description": "双月莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "双月莲瓣",
-            "description": "双月莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出双月莲实。",
-          "output": {
-            "name": "双月莲实",
-            "description": "双月莲实药性温和，可恢复法力、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "mana",
-                "share": 0.6
-              },
-              {
-                "family": "healing",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "ling_violet_lingzhi",
-      "name": "紫纹灵芝",
-      "description": "紫色环纹逐层晕开，菌柄厚实。凝珍时菌盖内结出温润紫髓。",
-      "quality": "灵品",
+      "id": "nine_bend_spirit_ginseng",
+      "name": "九曲灵参",
+      "description": "根须盘曲，蕴灵后能探出一道小兔般的虚影。",
+      "quality": "真品",
       "element": "土",
-      "legacySpeciesId": "stone_fungus",
+      "growthForm": "root",
+      "harvestPart": "root",
       "portrait": {
-        "atlas": "botanical-ling",
-        "index": 4
+        "atlas": "botanical-garden-zhen",
+        "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "紫纹芝片",
-        "description": "紫纹灵芝自然生长的灵材，可供炼丹使用。",
+        "name": "灵参根须",
+        "description": "参根自行褪下的须丝，干燥后可配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -648,56 +677,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "紫纹芝片",
-            "description": "紫纹灵芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出紫纹芝髓。",
-          "output": {
-            "name": "紫纹芝髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "ling_silver_bell_berry",
-      "name": "银铃莓",
-      "description": "细枝垂着银白铃果，风过有轻响。果香亲近灵兽，只宜饲育之用。",
-      "quality": "灵品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-ling",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "银铃莓叶",
-        "description": "银铃莓自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "银铃莓叶",
-            "description": "银铃莓自然生长的灵材，可供炼丹使用。",
+            "name": "灵参根须",
+            "description": "参根自行褪下的须丝，干燥后可配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -705,16 +688,16 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出银铃兽灵果。",
+          "description": "在盘曲根须间积下的清露，可辅助突破。",
           "output": {
-            "name": "银铃兽灵果",
-            "description": "银铃兽灵果药性温和，可供灵兽增长修为。",
+            "name": "灵参露",
+            "description": "在盘曲根须间积下的清露，可辅助突破。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
-                "family": "beast_cultivation",
+                "family": "breakthrough",
                 "share": 1
               }
             ]
@@ -723,22 +706,23 @@
       }
     },
     {
-      "id": "ling_wind_chime_bamboo",
-      "name": "风鸣竹",
-      "description": "竹身青白，金边细叶随风清鸣。竹节所凝的风纹玉髓可作天材。",
-      "quality": "灵品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
+      "id": "soul_nurturing_wood",
+      "name": "养魂木",
+      "description": "枝上落叶无声，树下能聚住将散的神魂。",
+      "quality": "真品",
+      "element": "木",
+      "growthForm": "tree",
+      "harvestPart": "whole",
       "portrait": {
-        "atlas": "botanical-ling",
-        "index": 6
+        "atlas": "botanical-garden-zhen",
+        "index": 1
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "风鸣竹叶",
-        "description": "风鸣竹自然生长的灵材，可供炼丹使用。",
+        "name": "养魂木皮",
+        "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -746,10 +730,120 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "风鸣竹叶",
-            "description": "风鸣竹自然生长的灵材，可供炼丹使用。",
+            "name": "养魂木皮",
+            "description": "只采自然脱落的薄皮，以免惊散聚来的神魂。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "轻轻拢在枝根下的细屑，可辅助感悟。",
+          "output": {
+            "name": "养魂木屑",
+            "description": "轻轻拢在枝根下的细屑，可辅助感悟。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "insight",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "shy_vine",
+      "name": "含羞藤",
+      "description": "有人近前便把嫩梢卷成一团，安静后再慢慢松开。",
+      "quality": "真品",
+      "element": "水",
+      "growthForm": "vine",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 2
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "含羞藤须",
+        "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "含羞藤须",
+            "description": "嫩梢舒展后可采外须，余下藤梢会继续生长。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "藤梢尽展后才能采的花，可恢复气血与法力。",
+          "output": {
+            "name": "含羞藤花",
+            "description": "藤梢尽展后才能采的花，可恢复气血与法力。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 0.5
+              },
+              {
+                "family": "mana",
+                "share": 0.5
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "iron_eating_flower",
+      "name": "食铁花",
+      "description": "花苞咬住碎铁，开花时只剩花托里一粒圆铁珠。",
+      "quality": "真品",
+      "element": "金",
+      "growthForm": "flower",
+      "harvestPart": "flower",
+      "portrait": {
+        "atlas": "botanical-garden-zhen",
+        "index": 3
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "食铁花瓣",
+        "description": "花开后可采外围硬瓣，晒干配药。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "食铁花瓣",
+            "description": "花开后可采外围硬瓣，晒干配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -757,10 +851,10 @@
         },
         "essence": {
           "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出风鸣竹髓。",
+          "description": "将碎铁咬合打磨而成的珠，可供炼器。",
           "output": {
-            "name": "风鸣竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
+            "name": "铁心珠",
+            "description": "将碎铁咬合打磨而成的珠，可供炼器。",
             "kind": "tcdb",
             "quantity": 1,
             "cycleMs": 86400000
@@ -769,78 +863,23 @@
       }
     },
     {
-      "id": "ling_snow_heart_pear",
-      "name": "雪心梨",
-      "description": "弯干生白花，玉梨中心清寒。其果温存生机，兼养寿元与气血。",
-      "quality": "灵品",
+      "id": "thousand_year_snow_lotus",
+      "name": "千年雪莲",
+      "description": "从雪线之上的冻岩缝里开花，宽大的白瓣紧贴岩面。",
+      "quality": "地品",
       "element": "冰",
-      "legacySpeciesId": "longevity_tree",
+      "growthForm": "flower",
+      "harvestPart": "flower",
       "portrait": {
-        "atlas": "botanical-ling",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "雪心梨叶",
-        "description": "雪心梨自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "雪心梨叶",
-            "description": "雪心梨自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出雪心寿梨。",
-          "output": {
-            "name": "雪心寿梨",
-            "description": "雪心寿梨药性温和，可增加寿元、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.7
-              },
-              {
-                "family": "healing",
-                "share": 0.3
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xuan_seven_leaf_vine",
-      "name": "七叶玄藤",
-      "description": "每叶七裂，紫果藏于星形叶间。果内灵机沉静，可助修炼与参悟。",
-      "quality": "玄品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-xuan",
+        "atlas": "botanical-garden-di",
         "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "七叶玄藤叶",
-        "description": "七叶玄藤自然生长的灵材，可供炼丹使用。",
+        "name": "雪莲花瓣",
+        "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -848,10 +887,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "七叶玄藤叶",
-            "description": "七叶玄藤自然生长的灵材，可供炼丹使用。",
+            "name": "雪莲花瓣",
+            "description": "雪莲伏在冻岩上的外瓣，采下可作药引。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -859,66 +898,10 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出七叶玄灵果。",
+          "description": "整株开足后才露出的嫩心，可恢复气血并减轻丹毒。",
           "output": {
-            "name": "七叶玄灵果",
-            "description": "七叶玄灵果药性温和，可助益下次闭关修炼、增进参悟感悟。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 0.6
-              },
-              {
-                "family": "insight",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xuan_jade_bone_orchid",
-      "name": "玉骨雪兰",
-      "description": "白叶似玉骨，冰兰不沾尘垢。雪果既能温养气血，也能涤去丹毒。",
-      "quality": "玄品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
-      "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 1
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "玉骨兰叶",
-        "description": "玉骨雪兰自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "玉骨兰叶",
-            "description": "玉骨雪兰自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出玉骨雪兰果。",
-          "output": {
-            "name": "玉骨雪兰果",
-            "description": "玉骨雪兰果药性温和，可恢复气血、消减丹毒。",
+            "name": "雪莲心",
+            "description": "整株开足后才露出的嫩心，可恢复气血并减轻丹毒。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -937,22 +920,23 @@
       }
     },
     {
-      "id": "xuan_dragon_blood_ginseng",
-      "name": "龙血朱参",
-      "description": "朱根盘出角形，叶冠墨绿。参果凝聚血色药蕴，兼顾气血炼体与洗髓。",
-      "quality": "玄品",
+      "id": "earth_fire_lingzhi",
+      "name": "地火芝",
+      "description": "生在地火口的背面，菌盖翻起时，底下是一圈像炭火的红纹。",
+      "quality": "地品",
       "element": "火",
-      "legacySpeciesId": "red_fruit",
+      "growthForm": "fungus",
+      "harvestPart": "whole",
       "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 2
+        "atlas": "botanical-garden-di",
+        "index": 1
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "龙血参须",
-        "description": "龙血朱参自然生长的灵材，可供炼丹使用。",
+        "name": "地火芝片",
+        "description": "剥取翻起的芝边，待热气散尽便可配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -960,10 +944,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "龙血参须",
-            "description": "龙血朱参自然生长的灵材，可供炼丹使用。",
+            "name": "地火芝片",
+            "description": "剥取翻起的芝边，待热气散尽便可配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -971,21 +955,17 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出龙血朱参果。",
+          "description": "从芝盖翻口露出的红髓，可辅助炼体。",
           "output": {
-            "name": "龙血朱参果",
-            "description": "龙血朱参果药性温和，可推进气血炼体、推进洗髓进度。",
+            "name": "火芝心",
+            "description": "从芝盖翻口露出的红髓，可辅助炼体。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "tempering",
-                "share": 0.7
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.3
+                "share": 1
               }
             ]
           }
@@ -993,22 +973,23 @@
       }
     },
     {
-      "id": "xuan_star_pool_lotus",
-      "name": "星潭青莲",
-      "description": "靛青莲瓣露点如星，叶下常有薄薄水光。莲实所含清气专养法力。",
-      "quality": "玄品",
+      "id": "sea_heart_grass",
+      "name": "海心草",
+      "description": "根扎在海底泉眼边，长叶像一条透水的带子，梢头藏着清露。",
+      "quality": "地品",
       "element": "水",
-      "legacySpeciesId": "moon_lotus",
+      "growthForm": "aquatic",
+      "harvestPart": "leaf",
       "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 3
+        "atlas": "botanical-garden-di",
+        "index": 2
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "星潭莲瓣",
-        "description": "星潭青莲自然生长的灵材，可供炼丹使用。",
+        "name": "海心草叶",
+        "description": "从水中捞起的透叶，可沥干后入药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -1016,10 +997,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "星潭莲瓣",
-            "description": "星潭青莲自然生长的灵材，可供炼丹使用。",
+            "name": "海心草叶",
+            "description": "从水中捞起的透叶，可沥干后入药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -1027,10 +1008,10 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出星潭青莲实。",
+          "description": "长叶蓄足泉息后，从梢头滴出的露珠，可恢复法力。",
           "output": {
-            "name": "星潭青莲实",
-            "description": "星潭青莲实药性温和，可恢复法力。",
+            "name": "海心露",
+            "description": "长叶蓄足泉息后，从梢头滴出的露珠，可恢复法力。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -1045,22 +1026,23 @@
       }
     },
     {
-      "id": "xuan_amber_stone_lingzhi",
-      "name": "琥珀石芝",
-      "description": "菌盖厚如层岩，琥珀边缘透出暖光。其本源凝为石中灵髓。",
-      "quality": "玄品",
+      "id": "stone_flower",
+      "name": "石中花",
+      "description": "幼时像一块圆石，长成后石壳裂开，花从缝里探出来。",
+      "quality": "地品",
       "element": "土",
-      "legacySpeciesId": "stone_fungus",
+      "growthForm": "flower",
+      "harvestPart": "flower",
       "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 4
+        "atlas": "botanical-garden-di",
+        "index": 3
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "琥珀芝片",
-        "description": "琥珀石芝自然生长的灵材，可供炼丹使用。",
+        "name": "石中花瓣",
+        "description": "最早探出石壳的花瓣，可采来配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -1068,56 +1050,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "琥珀芝片",
-            "description": "琥珀石芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出琥珀石芝髓。",
-          "output": {
-            "name": "琥珀石芝髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "xuan_violet_nightshade",
-      "name": "紫电龙葵",
-      "description": "锯齿叶脉有蓝紫细纹，紫黑浆果成串。果中雷蕴可供灵兽炼化。",
-      "quality": "玄品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "紫电葵叶",
-        "description": "紫电龙葵自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "紫电葵叶",
-            "description": "紫电龙葵自然生长的灵材，可供炼丹使用。",
+            "name": "石中花瓣",
+            "description": "最早探出石壳的花瓣，可采来配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -1125,16 +1061,16 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出紫电兽灵果。",
+          "description": "石壳尽裂后露出的花芯，可辅助洗髓。",
           "output": {
-            "name": "紫电兽灵果",
-            "description": "紫电兽灵果药性温和，可供灵兽增长修为。",
+            "name": "石中花芯",
+            "description": "石壳尽裂后露出的花芯，可辅助洗髓。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
-                "family": "beast_cultivation",
+                "family": "marrow_wash",
                 "share": 1
               }
             ]
@@ -1143,124 +1079,23 @@
       }
     },
     {
-      "id": "xuan_gold_thunder_bamboo",
+      "id": "gold_thunder_bamboo",
       "name": "金雷竹",
-      "description": "墨青竹身结出金节，叶尖隐有蓝金色泽。凝出的金雷竹髓质坚而灵蕴充足。",
-      "quality": "玄品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
+      "description": "竹节藏雷，养到老熟，节心才从青白转为淡金。",
+      "quality": "天品",
+      "element": "雷",
+      "growthForm": "herb",
+      "harvestPart": "whole",
       "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "金雷竹叶",
-        "description": "金雷竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "金雷竹叶",
-            "description": "金雷竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出金雷竹髓。",
-          "output": {
-            "name": "金雷竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "xuan_frost_longevity_peach",
-      "name": "玄霜寿桃",
-      "description": "霜白枝头挂着淡紫寿桃，生机藏于寒意之内。果肉可延寿，并温润气血。",
-      "quality": "玄品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-xuan",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "玄霜桃叶",
-        "description": "玄霜寿桃自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "玄霜桃叶",
-            "description": "玄霜寿桃自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出玄霜寿桃。",
-          "output": {
-            "name": "玄霜寿桃",
-            "description": "玄霜寿桃药性温和，可增加寿元、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.6
-              },
-              {
-                "family": "healing",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_azure_gourd_vine",
-      "name": "碧落葫芦藤",
-      "description": "心形叶下垂着青葫芦，藤蔓盘旋如青云。葫果可蓄灵机，助一次闭关修炼。",
-      "quality": "真品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-zhen",
+        "atlas": "botanical-garden-tian",
         "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "碧落藤叶",
-        "description": "碧落葫芦藤自然生长的灵材，可供炼丹使用。",
+        "name": "雷竹细枝",
+        "description": "从竹节侧面抽出的小枝，收干后可配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -1268,51 +1103,46 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "碧落藤叶",
-            "description": "碧落葫芦藤自然生长的灵材，可供炼丹使用。",
+            "name": "雷竹细枝",
+            "description": "从竹节侧面抽出的小枝，收干后可配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
           }
         },
         "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出碧落葫果。",
+          "name": "凝珍",
+          "description": "竹节蕴着淡金色的雷气，可供炼器。",
           "output": {
-            "name": "碧落葫果",
-            "description": "碧落葫果药性温和，可助益下次闭关修炼。",
-            "kind": "spirit_fruit",
+            "name": "金雷竹节",
+            "description": "竹节蕴着淡金色的雷气，可供炼器。",
+            "kind": "tcdb",
             "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 1
-              }
-            ]
+            "cycleMs": 86400000
           }
         }
       }
     },
     {
-      "id": "zhen_phoenix_feather_orchid",
-      "name": "凤羽丹兰",
-      "description": "橙红长叶似凤羽，白金兰心藏着暖意。丹果兼顾气血恢复与炼体。",
-      "quality": "真品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
+      "id": "fusang",
+      "name": "扶桑",
+      "description": "两干相倚，向阳一侧先抽出赤叶，再从叶间结实。",
+      "quality": "天品",
+      "element": "火",
+      "growthForm": "tree",
+      "harvestPart": "leaf",
       "portrait": {
-        "atlas": "botanical-zhen",
+        "atlas": "botanical-garden-tian",
         "index": 1
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "凤羽兰叶",
-        "description": "凤羽丹兰自然生长的灵材，可供炼丹使用。",
+        "name": "扶桑赤叶",
+        "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -1320,10 +1150,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "凤羽兰叶",
-            "description": "凤羽丹兰自然生长的灵材，可供炼丹使用。",
+            "name": "扶桑赤叶",
+            "description": "从向阳一侧取下的赤叶，配药时常作火性引子。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -1331,230 +1161,16 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出凤羽丹兰果。",
+          "description": "生于赤叶簇间的熟果，可辅助炼体。",
           "output": {
-            "name": "凤羽丹兰果",
-            "description": "凤羽丹兰果药性温和，可恢复气血、推进气血炼体。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "healing",
-                "share": 0.6
-              },
-              {
-                "family": "tempering",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_nine_joint_ginseng",
-      "name": "九节血玉参",
-      "description": "参根九节相连，赤玉药蕴循节而生。参果可同时推进气血炼体与洗髓。",
-      "quality": "真品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 2
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "九节参须",
-        "description": "九节血玉参自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "九节参须",
-            "description": "九节血玉参自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出九节血玉果。",
-          "output": {
-            "name": "九节血玉果",
-            "description": "九节血玉果药性温和，可推进气血炼体、推进洗髓进度。",
+            "name": "扶桑果",
+            "description": "生于赤叶簇间的熟果，可辅助炼体。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
                 "family": "tempering",
-                "share": 0.6
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_mirror_twin_lotus",
-      "name": "镜月并蒂莲",
-      "description": "并蒂银莲映出一池月色，双花同根而清气相通。莲实调和法力与气血。",
-      "quality": "真品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "镜月莲瓣",
-        "description": "镜月并蒂莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "镜月莲瓣",
-            "description": "镜月并蒂莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出镜月莲实。",
-          "output": {
-            "name": "镜月莲实",
-            "description": "镜月莲实药性温和，可恢复法力、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "mana",
-                "share": 0.5
-              },
-              {
-                "family": "healing",
-                "share": 0.5
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_five_cloud_lingzhi",
-      "name": "五色云芝",
-      "description": "五重菌盖各有淡淡矿彩，层叠如云。云纹精华渐凝为五色琼髓。",
-      "quality": "真品",
-      "element": "土",
-      "legacySpeciesId": "stone_fungus",
-      "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 4
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "五色芝片",
-        "description": "五色云芝自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "五色芝片",
-            "description": "五色云芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出五色云芝髓。",
-          "output": {
-            "name": "五色云芝髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_moon_silver_mulberry",
-      "name": "啸月银桑",
-      "description": "银绿阔叶托着白色桑葚，月下果香更浓。灵兽可炼化其中温厚生机。",
-      "quality": "真品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "啸月桑叶",
-        "description": "啸月银桑自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "啸月桑叶",
-            "description": "啸月银桑自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出啸月银桑果。",
-          "output": {
-            "name": "啸月银桑果",
-            "description": "啸月银桑果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
                 "share": 1
               }
             ]
@@ -1563,236 +1179,23 @@
       }
     },
     {
-      "id": "zhen_red_gold_sword_bamboo",
-      "name": "赤金剑竹",
-      "description": "赤金竹节坚凝，长叶形如薄剑。竹髓温润坚实，可作高阶天材。",
-      "quality": "真品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
-      "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "赤金竹叶",
-        "description": "赤金剑竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "赤金竹叶",
-            "description": "赤金剑竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出赤金剑竹髓。",
-          "output": {
-            "name": "赤金剑竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "zhen_jade_flat_peach",
-      "name": "青玉蟠桃",
-      "description": "老干横生，青玉蟠桃藏在阔叶间。桃内生机绵长，兼养寿元与心神。",
-      "quality": "真品",
+      "id": "lunar_laurel",
+      "name": "月桂",
+      "description": "细枝垂成弧形，花苞从枝头依次打开，满树如一弯月。",
+      "quality": "天品",
       "element": "冰",
-      "legacySpeciesId": "longevity_tree",
+      "growthForm": "tree",
+      "harvestPart": "flower",
       "portrait": {
-        "atlas": "botanical-zhen",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "青玉桃叶",
-        "description": "青玉蟠桃自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "青玉桃叶",
-            "description": "青玉蟠桃自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出青玉蟠桃。",
-          "output": {
-            "name": "青玉蟠桃",
-            "description": "青玉蟠桃药性温和，可增加寿元、增进参悟感悟。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.7
-              },
-              {
-                "family": "insight",
-                "share": 0.3
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_earth_dragon_vine",
-      "name": "地脉龙藤",
-      "description": "粗藤盘曲如龙脉，叶上金纹与根系相通。龙藤果蓄养修炼灵机，也温补气血。",
-      "quality": "地品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 0
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "地脉藤叶",
-        "description": "地脉龙藤自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "地脉藤叶",
-            "description": "地脉龙藤自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出地脉龙藤果。",
-          "output": {
-            "name": "地脉龙藤果",
-            "description": "地脉龙藤果药性温和，可助益下次闭关修炼、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 0.6
-              },
-              {
-                "family": "healing",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_nine_turn_soul_grass",
-      "name": "九转还魂草",
-      "description": "九片银绿圆叶围着白色籽穗，露珠凝而不散。还魂草果可养伤复血，兼涤丹毒。",
-      "quality": "地品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 1
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "还魂草叶",
-        "description": "九转还魂草自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "还魂草叶",
-            "description": "九转还魂草自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出九转还魂果。",
-          "output": {
-            "name": "九转还魂果",
-            "description": "九转还魂果药性温和，可恢复气血、消减丹毒。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "healing",
-                "share": 0.6
-              },
-              {
-                "family": "detox",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_scarlet_sun_ginseng",
-      "name": "赤阳龙参",
-      "description": "参根昂起如赤金龙角，叶冠染着朝阳之色。参果兼养气血根基与寿元。",
-      "quality": "地品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-di",
+        "atlas": "botanical-garden-tian",
         "index": 2
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "赤阳参须",
-        "description": "赤阳龙参自然生长的灵材，可供炼丹使用。",
+        "name": "月桂花",
+        "description": "自最早开放的枝头采花，阴干后配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -1800,10 +1203,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "赤阳参须",
-            "description": "赤阳龙参自然生长的灵材，可供炼丹使用。",
+            "name": "月桂花",
+            "description": "自最早开放的枝头采花，阴干后配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -1811,498 +1214,10 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出赤阳龙参果。",
+          "description": "整弯枝条开足时可取的花露，可回补法力并助闭关。",
           "output": {
-            "name": "赤阳龙参果",
-            "description": "赤阳龙参果药性温和，可推进气血炼体、增加寿元。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "tempering",
-                "share": 0.6
-              },
-              {
-                "family": "longevity",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_yin_yang_lotus",
-      "name": "阴阳双生莲",
-      "description": "一朵墨紫、一朵素白的莲花同生一根。双生莲实使气血与法力相互调和。",
-      "quality": "地品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "阴阳莲瓣",
-        "description": "阴阳双生莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "阴阳莲瓣",
-            "description": "阴阳双生莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出阴阳双生莲实。",
-          "output": {
-            "name": "阴阳双生莲实",
-            "description": "阴阳双生莲实药性温和，可恢复气血、恢复法力。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "healing",
-                "share": 0.5
-              },
-              {
-                "family": "mana",
-                "share": 0.5
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_violet_palace_lingzhi",
-      "name": "紫府琼芝",
-      "description": "紫晶菌盖层层托起，白边如琼玉。紫府芝髓由菌心缓缓凝成。",
-      "quality": "地品",
-      "element": "土",
-      "legacySpeciesId": "stone_fungus",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 4
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "紫府芝片",
-        "description": "紫府琼芝自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "紫府芝片",
-            "description": "紫府琼芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出紫府琼芝髓。",
-          "output": {
-            "name": "紫府琼芝髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "di_star_mark_berry",
-      "name": "星纹天莓",
-      "description": "蓝黑浆果表面生着银色星点，叶脉沉厚。其果可供灵兽积累修为。",
-      "quality": "地品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "星纹莓叶",
-        "description": "星纹天莓自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "星纹莓叶",
-            "description": "星纹天莓自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出星纹天莓果。",
-          "output": {
-            "name": "星纹天莓果",
-            "description": "星纹天莓果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "di_taiyi_gold_bamboo",
-      "name": "太乙金竹",
-      "description": "金色竹身挺立，玉节清润，枝叶疏而有势。竹节内蕴的太乙金髓可入炼造。",
-      "quality": "地品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "太乙竹叶",
-        "description": "太乙金竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "太乙竹叶",
-            "description": "太乙金竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出太乙金竹髓。",
-          "output": {
-            "name": "太乙金竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "di_black_ice_red_tree",
-      "name": "玄冰朱果树",
-      "description": "冰白枝干上悬着朱果，寒叶护住内里暖生机。果肉兼养寿元、气血与法力。",
-      "quality": "地品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-di",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "玄冰朱果叶",
-        "description": "玄冰朱果树自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "玄冰朱果叶",
-            "description": "玄冰朱果树自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出玄冰朱果。",
-          "output": {
-            "name": "玄冰朱果",
-            "description": "玄冰朱果药性温和，可增加寿元、恢复气血、恢复法力。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.5
-              },
-              {
-                "family": "healing",
-                "share": 0.3
-              },
-              {
-                "family": "mana",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_ancient_spirit_vine",
-      "name": "万年青灵藤",
-      "description": "万年木质藤身盘结成苍白绳索，青果上透出金脉。灵果有助闭关修炼与参悟。",
-      "quality": "天品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 0
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "青灵藤叶",
-        "description": "万年青灵藤自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "青灵藤叶",
-            "description": "万年青灵藤自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出万年青灵果。",
-          "output": {
-            "name": "万年青灵果",
-            "description": "万年青灵果药性温和，可助益下次闭关修炼、增进参悟感悟。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 0.7
-              },
-              {
-                "family": "insight",
-                "share": 0.3
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_glazed_pureheart_flower",
-      "name": "琉璃净心花",
-      "description": "琉璃般的薄瓣围着一粒清透花珠，花色随光微变。净心果可清除丹毒并启发参悟。",
-      "quality": "天品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 1
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "琉璃花瓣",
-        "description": "琉璃净心花自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "琉璃花瓣",
-            "description": "琉璃净心花自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出琉璃净心果。",
-          "output": {
-            "name": "琉璃净心果",
-            "description": "琉璃净心果药性温和，可增进参悟感悟、消减丹毒。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "insight",
-                "share": 0.6
-              },
-              {
-                "family": "detox",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_flame_phoenix_ginseng",
-      "name": "炎凰血参",
-      "description": "朱根分枝，赤叶如羽，金色籽果凝在叶心。参果兼顾气血炼体、洗髓与恢复。",
-      "quality": "天品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 2
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "炎凰参须",
-        "description": "炎凰血参自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "炎凰参须",
-            "description": "炎凰血参自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出炎凰血参果。",
-          "output": {
-            "name": "炎凰血参果",
-            "description": "炎凰血参果药性温和，可推进气血炼体、推进洗髓进度、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "tempering",
-                "share": 0.5
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.3
-              },
-              {
-                "family": "healing",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_three_light_lotus",
-      "name": "三光神莲",
-      "description": "金、银、靛三朵莲花共用一丛青叶，三色清气在莲实中交汇。其果兼养法力与修炼灵机。",
-      "quality": "天品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "三光莲瓣",
-        "description": "三光神莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "三光莲瓣",
-            "description": "三光神莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出三光神莲实。",
-          "output": {
-            "name": "三光神莲实",
-            "description": "三光神莲实药性温和，可恢复法力、助益下次闭关修炼。",
+            "name": "月桂花露",
+            "description": "整弯枝条开足时可取的花露，可回补法力并助闭关。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -2321,120 +1236,23 @@
       }
     },
     {
-      "id": "tian_earth_origin_lingzhi",
-      "name": "坤元龙髓芝",
-      "description": "菌盖盘纹如古老化石，石灰外缘内藏琥珀髓心。龙髓芝以厚重地气凝珍。",
-      "quality": "天品",
-      "element": "土",
-      "legacySpeciesId": "stone_fungus",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 4
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "坤元芝片",
-        "description": "坤元龙髓芝自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "坤元芝片",
-            "description": "坤元龙髓芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出坤元龙髓。",
-          "output": {
-            "name": "坤元龙髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_thunder_qilin_berry",
-      "name": "雷泽麒麟莓",
-      "description": "枝干分叉如麟角，蓝紫浆果成簇垂落。雷泽果香温驯，可供灵兽修炼。",
-      "quality": "天品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "麒麟莓叶",
-        "description": "雷泽麒麟莓自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "麒麟莓叶",
-            "description": "雷泽麒麟莓自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出雷泽麒麟果。",
-          "output": {
-            "name": "雷泽麒麟果",
-            "description": "雷泽麒麟果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_nine_sky_chime_bamboo",
-      "name": "九霄天音竹",
-      "description": "青金竹身生着环形银节，叶过有清音。其竹髓澄澈，适合炼造。",
+      "id": "star_fruit",
+      "name": "星辰果",
+      "description": "小树枝梢向上散开，每根枝尖只结一颗带星点的果。",
       "quality": "天品",
       "element": "金",
-      "legacySpeciesId": "jade_bamboo",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
       "portrait": {
-        "atlas": "botanical-tian",
-        "index": 6
+        "atlas": "botanical-garden-tian",
+        "index": 3
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "天音竹叶",
-        "description": "九霄天音竹自然生长的灵材，可供炼丹使用。",
+        "name": "星辰果皮",
+        "description": "果熟时自然剥落的带星果皮，可收起配药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -2442,56 +1260,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "天音竹叶",
-            "description": "九霄天音竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出九霄天音竹髓。",
-          "output": {
-            "name": "九霄天音竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "tian_evergreen_longevity_tree",
-      "name": "长春碧寿树",
-      "description": "苍老树皮托起常青叶冠，碧珠般的果实藏着绵长生机。碧寿果专用于温养寿元。",
-      "quality": "天品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-tian",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "长春寿叶",
-        "description": "长春碧寿树自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "长春寿叶",
-            "description": "长春碧寿树自然生长的灵材，可供炼丹使用。",
+            "name": "星辰果皮",
+            "description": "果熟时自然剥落的带星果皮，可收起配药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -2499,16 +1271,16 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出长春碧寿果。",
+          "description": "枝尖透出星点的果子，服用可辅助感悟。",
           "output": {
-            "name": "长春碧寿果",
-            "description": "长春碧寿果药性温和，可增加寿元。",
+            "name": "星辰果",
+            "description": "枝尖透出星点的果子，服用可辅助感悟。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
             "fruitEffects": [
               {
-                "family": "longevity",
+                "family": "insight",
                 "share": 1
               }
             ]
@@ -2517,22 +1289,23 @@
       }
     },
     {
-      "id": "xian_primordial_purple_gold_vine",
-      "name": "太初紫金藤",
-      "description": "紫叶与金葫交映，粗藤沉稳如古篆。紫金葫果可养修炼灵机，并凝聚冲关心意。",
+      "id": "enlightenment_tea_tree",
+      "name": "悟道古茶树",
+      "description": "老干弯曲，叶子有的像小钟，有的像山峰，每片都能单独辨认。",
       "quality": "仙品",
       "element": "木",
-      "legacySpeciesId": "green_vine",
+      "growthForm": "tree",
+      "harvestPart": "leaf",
       "portrait": {
-        "atlas": "botanical-xian",
+        "atlas": "botanical-garden-xian",
         "index": 0
       },
       "matureMs": 240000,
       "branchMs": 86400000,
       "evolveMs": 259200000,
       "baseOutput": {
-        "name": "紫金藤叶",
-        "description": "太初紫金藤自然生长的灵材，可供炼丹使用。",
+        "name": "古茶芽",
+        "description": "春梢新发时采下的茶芽，可入药。",
         "kind": "herb",
         "quantity": 1,
         "cycleMs": 14400000
@@ -2540,10 +1313,10 @@
       "branches": {
         "abundance": {
           "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
           "output": {
-            "name": "紫金藤叶",
-            "description": "太初紫金藤自然生长的灵材，可供炼丹使用。",
+            "name": "古茶芽",
+            "description": "春梢新发时采下的茶芽，可入药。",
             "kind": "herb",
             "quantity": 2,
             "cycleMs": 14400000
@@ -2551,10 +1324,373 @@
         },
         "essence": {
           "name": "结实",
-          "description": "收束灵蕴，转为低频产出太初紫金葫果。",
+          "description": "叶片完全展平后可辨叶形与道纹，服用可辅助感悟。",
           "output": {
-            "name": "太初紫金葫果",
-            "description": "太初紫金葫果药性温和，可助益下次闭关修炼、凝聚冲关心意。",
+            "name": "悟道茶叶",
+            "description": "叶片完全展平后可辨叶形与道纹，服用可辅助感悟。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "insight",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "ginseng_fruit",
+      "name": "人参果",
+      "description": "果实初成时像合抱的花苞，熟后才长出小人模样。",
+      "quality": "仙品",
+      "element": "土",
+      "growthForm": "tree",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 1
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "参果花",
+        "description": "从幼果外脱落的花可留作药引。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "参果花",
+            "description": "从幼果外脱落的花可留作药引。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "果肉长足后呈小人模样，服用可延寿。",
+          "output": {
+            "name": "人参果",
+            "description": "果肉长足后呈小人模样，服用可延寿。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "longevity",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nine_leaf_sword_grass",
+      "name": "九叶剑草",
+      "description": "九片长叶从根部直立，成熟时像一束打开的剑。",
+      "quality": "仙品",
+      "element": "金",
+      "growthForm": "herb",
+      "harvestPart": "leaf",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 2
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "剑草尖",
+        "description": "从长叶上分离的薄尖，磨成细末可配药。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "剑草尖",
+            "description": "从长叶上分离的薄尖，磨成细末可配药。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "凝珍",
+          "description": "九叶展齐后采下的厚叶，可供炼器。",
+          "output": {
+            "name": "剑草叶",
+            "description": "九叶展齐后采下的厚叶，可供炼器。",
+            "kind": "tcdb",
+            "quantity": 1,
+            "cycleMs": 86400000
+          }
+        }
+      }
+    },
+    {
+      "id": "resurrection_grass",
+      "name": "还魂草",
+      "description": "成株先枯成一团，随后从枯叶中心钻出一茎新绿。",
+      "quality": "仙品",
+      "element": "水",
+      "growthForm": "herb",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-xian",
+        "index": 3
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "还魂草嫩茎",
+        "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "还魂草嫩茎",
+            "description": "从干叶簇间钻出的嫩茎，可配作疗伤药材。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "新茎抽出后蓄在叶根的草露，可恢复气血。",
+          "output": {
+            "name": "还魂草露",
+            "description": "新茎抽出后蓄在叶根的草露，可恢复气血。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "healing",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "qilin_elixir",
+      "name": "麒麟神药",
+      "description": "幼时团成伏卧的小麒麟，长成后从背上舒出角状枝叶。",
+      "quality": "神品",
+      "element": "雷",
+      "growthForm": "herb",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 0
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "麒麟芽",
+        "description": "从角状枝叶之间探出的软芽，可收作药材。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "麒麟芽",
+            "description": "从角状枝叶之间探出的软芽，可收作药材。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "角枝尽展时托出的果，灵兽食用可增长修为。",
+          "output": {
+            "name": "麒麟神果",
+            "description": "角枝尽展时托出的果，灵兽食用可增长修为。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "beast_cultivation",
+                "share": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nine_wonder_elixir",
+      "name": "九妙不死药",
+      "description": "同根生出形态各异的枝，最后向中央合拢，共托一枚果。",
+      "quality": "神品",
+      "element": "土",
+      "growthForm": "shrub",
+      "harvestPart": "fruit",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 1
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "九妙灵叶",
+        "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "九妙灵叶",
+            "description": "同根异枝吐出的薄叶，各有纹样，可配药。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "枝梢合拢后共托的熟果，可延寿并辅助洗髓。",
+          "output": {
+            "name": "九妙圣果",
+            "description": "枝梢合拢后共托的熟果，可延寿并辅助洗髓。",
+            "kind": "spirit_fruit",
+            "quantity": 1,
+            "cycleMs": 43200000,
+            "fruitEffects": [
+              {
+                "family": "longevity",
+                "share": 0.6
+              },
+              {
+                "family": "marrow_wash",
+                "share": 0.4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "world_tree",
+      "name": "建木",
+      "description": "主干笔直，横枝层层伸出，像一架从地面伸向天穹的长梯。",
+      "quality": "神品",
+      "element": "木",
+      "growthForm": "tree",
+      "harvestPart": "whole",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 2
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "建木薄皮",
+        "description": "从横枝基部蜕下的薄皮，可留作药材。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "建木薄皮",
+            "description": "从横枝基部蜕下的薄皮，可留作药材。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "凝珍",
+          "description": "枝层长齐后可自老枝采得硬木，可供炼器。",
+          "output": {
+            "name": "建木心",
+            "description": "枝层长齐后可自老枝采得硬木，可供炼器。",
+            "kind": "tcdb",
+            "quantity": 1,
+            "cycleMs": 86400000
+          }
+        }
+      }
+    },
+    {
+      "id": "chaos_blue_lotus",
+      "name": "混沌青莲",
+      "description": "一茎撑起宽阔莲叶，蕴灵时层层青瓣打开，中央才露出莲子。",
+      "quality": "神品",
+      "element": "水",
+      "growthForm": "aquatic",
+      "harvestPart": "seedpod",
+      "portrait": {
+        "atlas": "botanical-garden-shen",
+        "index": 3
+      },
+      "matureMs": 240000,
+      "branchMs": 86400000,
+      "evolveMs": 259200000,
+      "baseOutput": {
+        "name": "青莲花瓣",
+        "description": "青莲外圈自行脱落的老瓣，可以配药。",
+        "kind": "herb",
+        "quantity": 1,
+        "cycleMs": 14400000
+      },
+      "branches": {
+        "abundance": {
+          "name": "繁茂",
+          "description": "沿用成株的采收方式，增加每轮药材收成。",
+          "output": {
+            "name": "青莲花瓣",
+            "description": "青莲外圈自行脱落的老瓣，可以配药。",
+            "kind": "herb",
+            "quantity": 2,
+            "cycleMs": 14400000
+          }
+        },
+        "essence": {
+          "name": "结实",
+          "description": "青瓣全开后从莲房中央采下，可辅助闭关与突破。",
+          "output": {
+            "name": "青莲子",
+            "description": "青瓣全开后从莲房中央采下，可辅助闭关与突破。",
             "kind": "spirit_fruit",
             "quantity": 1,
             "cycleMs": 43200000,
@@ -2566,826 +1702,6 @@
               {
                 "family": "breakthrough",
                 "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_jade_pool_wisdom_tea",
-      "name": "瑶池悟心茶",
-      "description": "银绿茶叶微卷，金色叶缘托着白花与玉籽。悟心茶果使心神澄明，兼养修炼灵机。",
-      "quality": "仙品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 1
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "瑶池悟心茶叶",
-        "description": "瑶池悟心茶自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "瑶池悟心茶叶",
-            "description": "瑶池悟心茶自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出瑶池悟心果。",
-          "output": {
-            "name": "瑶池悟心果",
-            "description": "瑶池悟心果药性温和，可增进参悟感悟、助益下次闭关修炼。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "insight",
-                "share": 0.6
-              },
-              {
-                "family": "cultivation",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_scarlet_emperor_fusang",
-      "name": "赤帝扶桑苗",
-      "description": "双生赤干相扶，金红阔叶下结着暖阳小果。扶桑果兼顾气血炼体、恢复与冲关心意。",
-      "quality": "仙品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 2
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "赤帝扶桑叶",
-        "description": "赤帝扶桑苗自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "赤帝扶桑叶",
-            "description": "赤帝扶桑苗自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出扶桑丹阳果。",
-          "output": {
-            "name": "扶桑丹阳果",
-            "description": "扶桑丹阳果药性温和，可推进气血炼体、恢复气血、凝聚冲关心意。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "tempering",
-                "share": 0.5
-              },
-              {
-                "family": "healing",
-                "share": 0.3
-              },
-              {
-                "family": "breakthrough",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_nine_aperture_lotus",
-      "name": "九窍仙莲",
-      "description": "白莲通透，玉色莲蓬有九窍，窍中清气沿银茎流转。莲实兼养法力、气血与心神。",
-      "quality": "仙品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "九窍莲瓣",
-        "description": "九窍仙莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "九窍莲瓣",
-            "description": "九窍仙莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出九窍仙莲实。",
-          "output": {
-            "name": "九窍仙莲实",
-            "description": "九窍仙莲实药性温和，可恢复法力、恢复气血、增进参悟感悟。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "mana",
-                "share": 0.5
-              },
-              {
-                "family": "healing",
-                "share": 0.3
-              },
-              {
-                "family": "insight",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_lunar_jade_lingzhi",
-      "name": "太阴玉髓芝",
-      "description": "银白菌盖如层叠新月，冰蓝边缘有玉髓流光。太阴精华凝而为珍。",
-      "quality": "仙品",
-      "element": "土",
-      "legacySpeciesId": "stone_fungus",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 4
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "太阴芝片",
-        "description": "太阴玉髓芝自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "太阴芝片",
-            "description": "太阴玉髓芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出太阴玉髓。",
-          "output": {
-            "name": "太阴玉髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_thunder_lin_mulberry",
-      "name": "雷麟仙桑",
-      "description": "银枝墨叶间垂着蓝白桑葚，果皮有细密雷纹。仙桑果只供灵兽炼化修为。",
-      "quality": "仙品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "雷麟桑叶",
-        "description": "雷麟仙桑自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "雷麟桑叶",
-            "description": "雷麟仙桑自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出雷麟仙桑果。",
-          "output": {
-            "name": "雷麟仙桑果",
-            "description": "雷麟仙桑果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_chaos_gold_jade_bamboo",
-      "name": "混元金玉竹",
-      "description": "白玉竹身以金纹分节，叶尖墨色深沉。竹髓兼具金石坚性与温润灵蕴。",
-      "quality": "仙品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "混元竹叶",
-        "description": "混元金玉竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "混元竹叶",
-            "description": "混元金玉竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出混元金玉竹髓。",
-          "output": {
-            "name": "混元金玉竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "xian_nine_bend_ginseng_tree",
-      "name": "九曲仙参树",
-      "description": "参根九曲，托起一株细叶小树，玉红果实内有柔和生机。仙参果兼养寿元与髓脉。",
-      "quality": "仙品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-xian",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "九曲参树叶",
-        "description": "九曲仙参树自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "九曲参树叶",
-            "description": "九曲仙参树自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出九曲仙参果。",
-          "output": {
-            "name": "九曲仙参果",
-            "description": "九曲仙参果药性温和，可增加寿元、推进洗髓进度。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.6
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.4
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_chaotic_azure_gourd",
-      "name": "混沌青葫藤",
-      "description": "古藤墨绿，青葫表面散着细碎金点，根叶之间灵机凝而不露。葫果兼养修炼、参悟与冲关心意。",
-      "quality": "神品",
-      "element": "木",
-      "legacySpeciesId": "green_vine",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 0
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "混沌青葫叶",
-        "description": "混沌青葫藤自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "混沌青葫叶",
-            "description": "混沌青葫藤自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出混沌青葫果。",
-          "output": {
-            "name": "混沌青葫果",
-            "description": "混沌青葫果药性温和，可助益下次闭关修炼、增进参悟感悟、凝聚冲关心意。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 0.5
-              },
-              {
-                "family": "insight",
-                "share": 0.3
-              },
-              {
-                "family": "breakthrough",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_samsara_spider_lily",
-      "name": "轮回彼岸花",
-      "description": "赤白彼岸花相对而生，细长花丝卷起如流水。彼岸果兼顾洗髓、参悟与涤毒。",
-      "quality": "神品",
-      "element": "风",
-      "legacySpeciesId": "dew_grass",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 1
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "轮回花瓣",
-        "description": "轮回彼岸花自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "轮回花瓣",
-            "description": "轮回彼岸花自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出彼岸轮回果。",
-          "output": {
-            "name": "彼岸轮回果",
-            "description": "彼岸轮回果药性温和，可推进洗髓进度、增进参悟感悟、消减丹毒。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "marrow_wash",
-                "share": 0.4
-              },
-              {
-                "family": "insight",
-                "share": 0.4
-              },
-              {
-                "family": "detox",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_undying_fusang",
-      "name": "不灭扶桑",
-      "description": "双干赤黑相缠，金红枝叶护住丹阳果实。不灭之名源于木性长青，其果兼养气血根基与寿元。",
-      "quality": "神品",
-      "element": "火",
-      "legacySpeciesId": "red_fruit",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 2
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "不灭扶桑叶",
-        "description": "不灭扶桑自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "不灭扶桑叶",
-            "description": "不灭扶桑自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出不灭金乌果。",
-          "output": {
-            "name": "不灭金乌果",
-            "description": "不灭金乌果药性温和，可推进气血炼体、推进洗髓进度、增加寿元。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "tempering",
-                "share": 0.4
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.4
-              },
-              {
-                "family": "longevity",
-                "share": 0.2
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_three_life_creation_lotus",
-      "name": "三生造化莲",
-      "description": "青、白、金三重莲瓣共护一枚玉蓬，气机在花叶间循环。造化莲实兼养修炼灵机、法力与气血。",
-      "quality": "神品",
-      "element": "水",
-      "legacySpeciesId": "moon_lotus",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 3
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "三生莲瓣",
-        "description": "三生造化莲自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "三生莲瓣",
-            "description": "三生造化莲自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出三生造化莲实。",
-          "output": {
-            "name": "三生造化莲实",
-            "description": "三生造化莲实药性温和，可助益下次闭关修炼、恢复法力、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "cultivation",
-                "share": 0.4
-              },
-              {
-                "family": "mana",
-                "share": 0.3
-              },
-              {
-                "family": "healing",
-                "share": 0.3
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_black_yellow_immortal_lingzhi",
-      "name": "玄黄不朽芝",
-      "description": "玄黑菌盖层叠不倾，金色年轮与赭黄根柄相映。长养后凝出厚重玄黄芝髓。",
-      "quality": "神品",
-      "element": "土",
-      "legacySpeciesId": "stone_fungus",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 4
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "玄黄芝片",
-        "description": "玄黄不朽芝自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "玄黄芝片",
-            "description": "玄黄不朽芝自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出玄黄不朽芝髓。",
-          "output": {
-            "name": "玄黄不朽芝髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_myriad_spirit_heart_tree",
-      "name": "万灵天心果树",
-      "description": "银黑枝干分出心形叶冠，紫金小果各含一点珠光。万灵果气息柔和，只供灵兽炼化。",
-      "quality": "神品",
-      "element": "雷",
-      "legacySpeciesId": "beast_berry",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 5
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "天心果树叶",
-        "description": "万灵天心果树自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "天心果树叶",
-            "description": "万灵天心果树自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出万灵天心果。",
-          "output": {
-            "name": "万灵天心果",
-            "description": "万灵天心果药性温和，可供灵兽增长修为。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "beast_cultivation",
-                "share": 1
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_primordial_wisdom_bamboo",
-      "name": "太初悟道竹",
-      "description": "黑白玉竹节生古金纹，靛青长叶间偶见素白籽穗。悟道之名来自清心竹音，竹髓仍为炼造天材。",
-      "quality": "神品",
-      "element": "金",
-      "legacySpeciesId": "jade_bamboo",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 6
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "悟道竹叶",
-        "description": "太初悟道竹自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "悟道竹叶",
-            "description": "太初悟道竹自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "凝珍",
-          "description": "收束灵蕴，转为低频产出太初悟道竹髓。",
-          "output": {
-            "name": "太初悟道竹髓",
-            "description": "灵植长养凝成的本源精华，可作天材地宝使用。",
-            "kind": "tcdb",
-            "quantity": 1,
-            "cycleMs": 86400000
-          }
-        }
-      }
-    },
-    {
-      "id": "shen_myriad_longevity_peach",
-      "name": "万寿蟠桃",
-      "description": "白金老干承着粉金蟠桃，稀疏叶冠仍存盎然生意。万寿桃兼养寿元、洗髓与气血，并非无尽延寿。",
-      "quality": "神品",
-      "element": "冰",
-      "legacySpeciesId": "longevity_tree",
-      "portrait": {
-        "atlas": "botanical-shen",
-        "index": 7
-      },
-      "matureMs": 240000,
-      "branchMs": 86400000,
-      "evolveMs": 259200000,
-      "baseOutput": {
-        "name": "万寿桃叶",
-        "description": "万寿蟠桃自然生长的灵材，可供炼丹使用。",
-        "kind": "herb",
-        "quantity": 1,
-        "cycleMs": 14400000
-      },
-      "branches": {
-        "abundance": {
-          "name": "繁茂",
-          "description": "专养枝叶，稳定增加灵材产量。",
-          "output": {
-            "name": "万寿桃叶",
-            "description": "万寿蟠桃自然生长的灵材，可供炼丹使用。",
-            "kind": "herb",
-            "quantity": 2,
-            "cycleMs": 14400000
-          }
-        },
-        "essence": {
-          "name": "结实",
-          "description": "收束灵蕴，转为低频产出万寿蟠桃。",
-          "output": {
-            "name": "万寿蟠桃",
-            "description": "万寿蟠桃药性温和，可增加寿元、推进洗髓进度、恢复气血。",
-            "kind": "spirit_fruit",
-            "quantity": 1,
-            "cycleMs": 43200000,
-            "fruitEffects": [
-              {
-                "family": "longevity",
-                "share": 0.5
-              },
-              {
-                "family": "marrow_wash",
-                "share": 0.3
-              },
-              {
-                "family": "healing",
-                "share": 0.2
               }
             ]
           }

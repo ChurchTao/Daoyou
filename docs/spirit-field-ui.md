@@ -4,7 +4,7 @@
 
 新版以“巡视一座长期灵圃”为主体验。原版六个文字按钮、常驻背包与长表单无法表达灵植持续存在、培养路线和永久成果，因此此次重新组织场景与操作路径；沿用游戏纸墨字体、宣纸底色、顶部身份层和底部导航。
 
-主景为桌面三列两行、手机两列三行的六畦植物。八个品阶共 64 种植物插画承担物种辨识，幼苗、成株、蕴灵、蜕变以尺度、阶段文字和真实培养机会共同表达。空畦直接进入栽种；采收集中在顶部一键完成，并展示真实产物与交付位置的收成回执。
+主景为桌面三列两行、手机两列三行的六畦植物。新谱八阶各四种。幼苗、成株、蕴灵和蜕变分别使用阶段剪影，配合阶段文字和真实培养机会。空畦直接进入栽种；采收集中在顶部一键完成，并展示真实产物与交付位置的收成回执。
 
 ## 操作组织
 
@@ -12,7 +12,7 @@
 - 栽种／蜕变：先查看目标，再进入完整背包或储藏室选物，返回原目标确认。所有视图复用一个抽屉，切换时不叠加弹层。
 - 培养分支：原生单选控件对比两条路线，显示真实周期、产物与一次选择限制，再明确确认。
 - 保种阁：植物藏签保留成长成果；迁回时回到主景，点空畦放置。结束培育收在次级管理入口，要求先领取产物并再次确认。
-- 百草志：按品质浏览，每阶八物种册签与单一物种详情，展示永久养成、培养路线和真实产物说明；没有兑换入口。
+- 百草志：按品质浏览，每阶四个物种册签与单一物种详情，展示永久养成、培养路线和真实产物说明；没有兑换入口。
 - 键盘与恢复：Escape 关闭后返回原田块，抽屉内保留焦点约束；请求目标绑定田块、株身份及选物目的，切换视图不会改写待重试请求。
 
 `useSpiritGarden.ts` 独立维护读取、请求版本与原样重试。页面只组织视图和操作目标；业务计算继续使用共享规则和后端权威快照。
@@ -29,13 +29,7 @@
 
 ## 插画素材
 
-使用内置 `image_gen` 生成视觉参考及植物图谱，未使用 CLI 或额外模型调用脚本。凡品素材为 `apps/web/public/assets/spirit-garden/botanical-atlas.webp`，后续七阶为同目录的 `botanical-ling/xuan/zhen/di/tian/xian/shen.webp`。每张 1536 × 1024、四列两行，保留 alpha，仅作 WebP 编码压缩。物种从 JSON 的 `portrait.atlas/index` 取图；渲染使用 `GameImage`，遵循玩家图片透明度设置。这是植物场景插画，不是另一套业务图标协议；物品仍使用统一 `ItemSlot` 与 `GameIcon`。后续七阶的最终提示词见 [立绘生成记录](art/spirit-garden-atlas-prompts.json)。
-
-图谱生成提示如下：
-
-```text
-Use case: illustration-story. Asset type: ONE game sprite atlas of 8 botanical specimens, used as actual large plants in a Chinese ink cultivation garden UI. Transparent background with true alpha. Landscape 1536x1024, precise equal 4 columns x 2 rows, cell size 384x512, no visible grid. Each plant centered within its own cell with generous transparent gutters and NO overlap into neighboring cells. ALL specimens' root/soil base aligned at 88 percent of each cell height. Transparent everywhere outside the ink strokes, no paper rectangle. Style: authentic Chinese xieyi ink botanical painting, expressive dry-brush dark stems, rich but restrained ink washes, pale mineral green, cinnabar, indigo and muted gold highlights; loose yet clear silhouettes at 120px. Refined scholarly herbarium, no cute/cartoon/3D/photorealism. Each specimen includes only a tiny softly feathered soil ink shadow at its root. Exact atlas order left to right: TOP row 1 青木藤 green winding leafy vine wrapped around an unobtrusive slender twig, two pale green fruits; 2 风露草 graceful tuft of wind-bent long thin grass blades with dew; 3 赤炎株 a compact branching shrub with cinnabar leaves and small orange-red berries; 4 月泉莲 a water lotus with broad leaves and one pale blue-white blossom above a faint water stroke. BOTTOM row 5 岩心芝 a cluster of substantial layered gray-ochre lingzhi fungi; 6 鸣雷莓 a dark blue-green berry bush with tiny muted blue-purple berries, no lightning bolt graphics; 7 金玉竹 three slender green bamboo culms with subtle mineral-gold nodes and narrow elegant leaves; 8 寒玉寿木 a delicate small gnarled pale tree with silver-green leaves and a few cool jade fruit. Keep all art compact with leaves within the inner 80 percent of each cell. No pots, no people, no architecture, no landscape background, no text, no labels, no calligraphy, no seal, no frame, no UI or icons. One consistent visual language; all 8 plants independently readable and fully visible.
-```
+使用内置 `image_gen` 生成透明水墨图谱，参考毕方、麒麟和白泽的宽笔墨面、飞白与局部彩墨。四列是物种，四行依次为幼苗、成株、蕴灵和蜕变。田块、详情和保种阁按当前阶段取图，百草志取成株。神品仅用前三行。素材从 JSON 的 `portrait.atlas/index` 取图，由 `GameImage` 渲染并遵循玩家图片透明度设置。提示词见 [立绘生成记录](art/spirit-garden-atlas-prompts.json)。
 
 ## 2026-11-10 验收
 
@@ -54,11 +48,3 @@ Use case: illustration-story. Asset type: ONE game sprite atlas of 8 botanical s
 - 在真实本地页面检查 1280px 桌面与 360px 手机，另建真实触屏上下文检查 44px 命中区域。普通操作均保持共享的 15.2px 字号，无横向溢出；主操作、次级操作、禁用确认与未解锁兑换的计算颜色符合全局主题。
 - 单株详情、空畦栽种、图录切换均正常。图录选中边线与文字为朱红，完成记载和收成为 teal；Escape 关闭后焦点回到原田块，保持一个可见抽屉。最终截图在颜色过渡完成后检查。
 - 检查期间灵田请求均为正常 GET，未执行采收、兑换、栽种、发放或成长准备。浏览器控制台无错误或警告；独立触屏上下文已关闭。
-
-## 八阶图录与立绘
-
-八个品阶各八个独立物种，由 JSON 配置中的 `portrait` 选择对应图谱。凡品保留原图，新增七套 56 株立绘；较高品阶以参、莲、茶、桑、竹、蟠桃等不同形态和笔墨彩墨区分，初稿偏重的金属光与背景光效未接入，最终稿参照原图统一为水墨植物。
-
-百草志通过共享 `InkTabs` 按品质浏览，展示真实品质周期、产物用途与永久养成记录。长名称保持 `text-sm` 并平衡换行、对齐状态，不新增兑换或来源按钮。详情、栽种确认与物品预览沿用共享按钮和全局色标。
-
-桌面与 360px 触屏已逐阶检查八个条目和对应资源；截图、实际复合果闭环及兼容检查见 [玩法验收](spirit-field.md#2026-11-10-八阶目录与复合灵果验收)。本次不更改既有种子获取机制的整体设计。

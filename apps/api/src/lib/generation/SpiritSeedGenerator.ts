@@ -2,7 +2,7 @@ import type { Material } from '@daoyou/game-domain/character';
 import type { SpiritSeedRandomOptions } from '@daoyou/game-domain/spirit-field';
 import {
   buildSpiritGardenSeed,
-  SPIRIT_GARDEN_SPECIES,
+  getSpiritGardenSeedCandidates,
 } from '@daoyou/game-rules/spirit-field';
 import { SpiritSeedGenerator as SpiritSeedSkeletonGenerator } from '@daoyou/game-rules/spirit-field/generation';
 import { randomInt } from 'node:crypto';
@@ -17,11 +17,9 @@ export class SpiritSeedGenerator {
       count,
       options,
     ).map((skeleton) => {
-      const candidates = SPIRIT_GARDEN_SPECIES.filter(
-        (entry) =>
-          entry.quality === skeleton.rank &&
-          (!options.specifiedElement ||
-            entry.element === options.specifiedElement),
+      const candidates = getSpiritGardenSeedCandidates(
+        skeleton.rank,
+        options.specifiedElement,
       );
       if (candidates.length === 0)
         throw new Error('当前灵种目录没有符合品阶与五行条件的物种');

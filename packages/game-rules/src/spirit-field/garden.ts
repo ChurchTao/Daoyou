@@ -1,4 +1,4 @@
-import { ELEMENT_VALUES } from '@daoyou/constants/elements';
+import { ELEMENT_VALUES, type ElementType } from '@daoyou/constants/elements';
 import {
   QUALITY_ORDER,
   QUALITY_VALUES,
@@ -131,10 +131,7 @@ export const SpiritGardenStateSchema = z
       ctx.addIssue({ code: 'custom', message: '灵植图录重复' });
     for (const plant of plants) {
       const species = getSpiritGardenSpecies(plant.speciesId);
-      if (
-        species.quality !== plant.quality &&
-        species.id !== species.legacySpeciesId
-      ) {
+      if (species.quality !== plant.quality) {
         ctx.addIssue({ code: 'custom', message: '灵植物种与品质不符' });
         continue;
       }
@@ -150,7 +147,7 @@ export const SpiritGardenStateSchema = z
         ctx.addIssue({ code: 'custom', message: '灵植待领产物归属无效' });
     }
   })
-  .transform((state) => recordCodex(normalizeLegacyGardenSpecies(state)));
+  .transform(recordCodex);
 export function parseSpiritGardenState(input: unknown): SpiritGardenState {
   return SpiritGardenStateSchema.parse(input);
 }
@@ -167,78 +164,42 @@ export function getSpiritGardenSpecies(id: SpiritGardenSpeciesId) {
   if (!species) throw new Error('灵植物种不存在');
   return species;
 }
-/** The first release allowed the eight base IDs at every quality. */
-export function getSpiritGardenSpeciesForQuality(
+function getSpiritGardenSpeciesForQuality(
   id: SpiritGardenSpeciesId,
   quality: Quality,
 ) {
   const species = getSpiritGardenSpecies(id);
-  if (species.quality === quality) return species;
-  if (species.id === species.legacySpeciesId) {
-    const mapped = SPIRIT_GARDEN_SPECIES.find(
-      (entry) =>
-        entry.legacySpeciesId === species.id && entry.quality === quality,
-    );
-    if (mapped) return mapped;
-  }
-  throw new Error('灵植物种与品质不符');
-}
-function normalizeLegacyGardenSpecies(
-  state: SpiritGardenState,
-): SpiritGardenState {
-  const normalize = (plant: SpiritGardenPlant): SpiritGardenPlant => {
-    const species = getSpiritGardenSpeciesForQuality(
-      plant.speciesId,
-      plant.quality,
-    );
-    if (species.id === plant.speciesId) return plant;
-    return {
-      ...plant,
-      speciesId: species.id,
-      pending: plant.pending.map((product) => ({
-        ...product,
-        speciesId: species.id,
-      })),
-    };
-  };
-  return {
-    ...state,
-    plots: state.plots.map((plot) => ({
-      ...plot,
-      plant: plot.plant ? normalize(plot.plant) : null,
-    })),
-    collection: state.collection.map(normalize),
-  };
+  if (species.quality !== quality) throw new Error('灵植物种与品质不符');
+  return species;
 }
 export function resolveSpiritGardenSpecies(
   seed: SpiritFieldPlantSnapshot,
 ): SpiritGardenSpeciesId {
-  const named = SPIRIT_GARDEN_SPECIES.find(
-    (entry) =>
-      seed.seedName === `${entry.name}的种子` ||
-      seed.seedName === `${entry.name}籽` ||
-      seed.seedName === entry.name,
-  );
-  if (named) return getSpiritGardenSpeciesForQuality(named.id, seed.quality).id;
-  const candidates = SPIRIT_GARDEN_SPECIES.filter(
-    (entry) => entry.quality === seed.quality,
-  );
-  const legacyId = seed.useTags.includes('beast-nurturing')
-    ? 'beast_berry'
-    : seed.useTags.includes('longevity')
-      ? 'longevity_tree'
-      : seed.useTags.includes('healing')
-        ? 'dew_grass'
-        : seed.useTags.includes('qi-restoration')
-          ? 'moon_lotus'
-          : null;
+  const candidates = getSpiritGardenSeedCandidates(seed.quality);
+  // Seeds from the released plot system carry name and element but no catalog ID.
   const species =
-    (legacyId &&
-      candidates.find((entry) => entry.legacySpeciesId === legacyId)) ||
-    candidates.find((entry) => entry.element === seed.element) ||
+    candidates.find(
+      (entry) => seed.id === `garden-seed:${entry.id}:${seed.quality}`,
+    ) ??
+    candidates.find(
+      (entry) =>
+        seed.seedName === `${entry.name}的种子` ||
+        seed.seedName === `${entry.name}籽` ||
+        seed.seedName === entry.name,
+    ) ??
+    candidates.find((entry) => entry.element === seed.element) ??
     candidates[0];
   if (!species) throw new Error('当前品质没有可匹配的灵植物种');
   return species.id;
+}
+export function getSpiritGardenSeedCandidates(
+  quality: Quality,
+  element?: ElementType,
+) {
+  return SPIRIT_GARDEN_SPECIES.filter(
+    (species) =>
+      species.quality === quality && (!element || species.element === element),
+  );
 }
 export function buildSpiritGardenSeed(
   speciesId: SpiritGardenSpeciesId,
@@ -247,16 +208,6 @@ export function buildSpiritGardenSeed(
 ): Omit<Material, 'id'> {
   const species = getSpiritGardenSpeciesForQuality(speciesId, quality);
   const balance = getSpiritFieldQualityBalance(quality);
-  const useTag =
-    species.legacySpeciesId === 'beast_berry'
-      ? 'beast-nurturing'
-      : species.legacySpeciesId === 'longevity_tree'
-        ? 'longevity'
-        : species.legacySpeciesId === 'dew_grass'
-          ? 'healing'
-          : species.legacySpeciesId === 'moon_lotus'
-            ? 'qi-restoration'
-            : 'alchemy';
   return buildSpiritFieldSeedMaterialFromPlant(
     {
       id: `garden-seed:${species.id}:${quality}`,
@@ -267,21 +218,14 @@ export function buildSpiritGardenSeed(
         `蕴灵后可选繁茂或${species.branches.essence.name}，长期保留植株`,
       ],
       element: species.element,
-      growthForm:
-        species.legacySpeciesId === 'stone_fungus'
-          ? 'fungus'
-          : species.legacySpeciesId === 'longevity_tree'
-            ? 'tree'
-            : species.legacySpeciesId === 'green_vine'
-              ? 'vine'
-              : 'herb',
-      harvestPart: 'leaf',
+      growthForm: species.growthForm,
+      harvestPart: species.harvestPart,
       preferredMethods: [],
       avoidedMethods: [],
       preferredHabitats: ['mountain'],
       avoidedHabitats: [],
       growthTraits: ['slow-rooting'],
-      useTags: [useTag],
+      useTags: ['alchemy'],
       outcomeBiases: ['herb'],
       creationTags: [CreationTags.MATERIAL.SEMANTIC_ALCHEMY],
       quality,
@@ -433,10 +377,9 @@ export function settleSpiritGarden(
 ): SpiritGardenState {
   if (!Number.isSafeInteger(nowMs) || nowMs < 0)
     throw new Error('灵田时间无效');
-  const normalized = normalizeLegacyGardenSpecies(state);
   return recordCodex({
-    ...normalized,
-    plots: normalized.plots.map((plot) => ({
+    ...state,
+    plots: state.plots.map((plot) => ({
       ...plot,
       plant: plot.plant ? settlePlant(plot.plant, nowMs) : null,
     })),

@@ -9,6 +9,7 @@ import {
   rewardDisplayItem,
   libraryMaterialGrant,
 } from '@daoyou/game-rules/rewards/materials';
+import { getSpiritGardenSeedCandidates } from '@daoyou/game-rules/spirit-field';
 import {
   INVENTORY_MATERIAL_TYPES,
   MATERIAL_TYPE_NAMES,
@@ -18,7 +19,7 @@ import { DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS, type ItemLibra
 import type { CreateItemLibraryEntry } from '@daoyou/contracts/items/library';
 import type { ItemLibraryEntry } from '@daoyou/game-domain/items/catalog';
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
-import { QUALITY_VALUES } from '@daoyou/constants/qualities';
+import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminDialog } from '../_components/AdminDialog';
 import { AdminPageHeader } from '../_components/AdminPage';
@@ -63,10 +64,12 @@ export default function ItemLibraryAdminPage() {
   const [generateQuality, setGenerateQuality] = useState(QUALITY_VALUES[0]);
   const [generateSeed, setGenerateSeed] = useState('');
   const [seedGenerateCount, setSeedGenerateCount] = useState('10');
-  const [seedGenerateQuality, setSeedGenerateQuality] = useState(
+  const [seedGenerateQuality, setSeedGenerateQuality] = useState<Quality>(
     QUALITY_VALUES[0],
   );
   const [seedGenerateElement, setSeedGenerateElement] = useState('');
+  const seedGenerateCandidates =
+    getSpiritGardenSeedCandidates(seedGenerateQuality);
   const [dailySettings, setDailySettings] =
     useState<ItemLibraryDailyMaterialGenerationSettings>(
       DEFAULT_ITEM_LIBRARY_DAILY_MATERIAL_GENERATION_SETTINGS,
@@ -670,9 +673,16 @@ export default function ItemLibraryAdminPage() {
               <InkSelect
                 label="灵种品阶"
                 value={seedGenerateQuality}
-                onChange={(v) =>
-                  setSeedGenerateQuality(v as typeof seedGenerateQuality)
-                }
+                onChange={(v) => {
+                  const quality = v as Quality;
+                  setSeedGenerateQuality(quality);
+                  if (
+                    !getSpiritGardenSeedCandidates(quality).some(
+                      (species) => species.element === seedGenerateElement,
+                    )
+                  )
+                    setSeedGenerateElement('');
+                }}
               >
                 {QUALITY_VALUES.map((v) => (
                   <option key={v}>{v}</option>
@@ -684,8 +694,12 @@ export default function ItemLibraryAdminPage() {
                 onChange={setSeedGenerateElement}
               >
                 <option value="">随机</option>
-                {ELEMENT_VALUES.map((v) => (
-                  <option key={v}>{v}</option>
+                {ELEMENT_VALUES.filter((element) =>
+                  seedGenerateCandidates.some(
+                    (species) => species.element === element,
+                  ),
+                ).map((element) => (
+                  <option key={element}>{element}</option>
                 ))}
               </InkSelect>
             </div>

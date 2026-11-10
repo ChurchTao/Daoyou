@@ -21,8 +21,8 @@
       "maximum": 128
     },
     "species": {
-      "minItems": 1,
-      "maxItems": 512,
+      "minItems": 32,
+      "maxItems": 32,
       "type": "array",
       "items": {
         "type": "object",
@@ -60,13 +60,42 @@
           },
           "element": {
             "type": "string",
-            "enum": ["金", "木", "水", "火", "土", "风", "雷", "冰"]
+            "enum": [
+              "金",
+              "木",
+              "水",
+              "火",
+              "土",
+              "风",
+              "雷",
+              "冰"
+            ]
           },
-          "legacySpeciesId": {
+          "growthForm": {
             "type": "string",
-            "maxLength": 80,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "description": "旧八物种的兼容归属，同品阶内不可重复。"
+            "enum": [
+              "herb",
+              "flower",
+              "vine",
+              "shrub",
+              "tree",
+              "fungus",
+              "aquatic",
+              "root"
+            ]
+          },
+          "harvestPart": {
+            "type": "string",
+            "enum": [
+              "leaf",
+              "flower",
+              "fruit",
+              "root",
+              "rhizome",
+              "whole",
+              "spore",
+              "seedpod"
+            ]
           },
           "portrait": {
             "type": "object",
@@ -74,16 +103,20 @@
               "atlas": {
                 "type": "string",
                 "maxLength": 80,
-                "pattern": "^botanical-[a-z0-9-]+$"
+                "pattern": "^botanical-[a-z0-9-]+$",
+                "description": "四列四行图谱，行序为幼苗、成株、蕴灵、蜕变。"
               },
               "index": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 7,
-                "description": "四列两行图谱的格位，从左到右、从上到下编号 0—7。"
+                "maximum": 3,
+                "description": "图谱列号，从左到右编号 0—3。"
               }
             },
-            "required": ["atlas", "index"],
+            "required": [
+              "atlas",
+              "index"
+            ],
             "additionalProperties": false
           },
           "matureMs": {
@@ -119,7 +152,11 @@
               },
               "kind": {
                 "type": "string",
-                "enum": ["herb", "tcdb", "spirit_fruit"]
+                "enum": [
+                  "herb",
+                  "tcdb",
+                  "spirit_fruit"
+                ]
               },
               "quantity": {
                 "type": "integer",
@@ -161,12 +198,21 @@
                       "maximum": 1
                     }
                   },
-                  "required": ["family", "share"],
+                  "required": [
+                    "family",
+                    "share"
+                  ],
                   "additionalProperties": false
                 }
               }
             },
-            "required": ["name", "description", "kind", "quantity", "cycleMs"],
+            "required": [
+              "name",
+              "description",
+              "kind",
+              "quantity",
+              "cycleMs"
+            ],
             "additionalProperties": false
           },
           "branches": {
@@ -200,7 +246,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["herb", "tcdb", "spirit_fruit"]
+                        "enum": [
+                          "herb",
+                          "tcdb",
+                          "spirit_fruit"
+                        ]
                       },
                       "quantity": {
                         "type": "integer",
@@ -242,7 +292,10 @@
                               "maximum": 1
                             }
                           },
-                          "required": ["family", "share"],
+                          "required": [
+                            "family",
+                            "share"
+                          ],
                           "additionalProperties": false
                         }
                       }
@@ -257,7 +310,11 @@
                     "additionalProperties": false
                   }
                 },
-                "required": ["name", "description", "output"],
+                "required": [
+                  "name",
+                  "description",
+                  "output"
+                ],
                 "additionalProperties": false
               },
               "essence": {
@@ -288,7 +345,11 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": ["herb", "tcdb", "spirit_fruit"]
+                        "enum": [
+                          "herb",
+                          "tcdb",
+                          "spirit_fruit"
+                        ]
                       },
                       "quantity": {
                         "type": "integer",
@@ -330,7 +391,10 @@
                               "maximum": 1
                             }
                           },
-                          "required": ["family", "share"],
+                          "required": [
+                            "family",
+                            "share"
+                          ],
                           "additionalProperties": false
                         }
                       }
@@ -345,11 +409,18 @@
                     "additionalProperties": false
                   }
                 },
-                "required": ["name", "description", "output"],
+                "required": [
+                  "name",
+                  "description",
+                  "output"
+                ],
                 "additionalProperties": false
               }
             },
-            "required": ["abundance", "essence"],
+            "required": [
+              "abundance",
+              "essence"
+            ],
             "additionalProperties": false
           }
         },
@@ -359,7 +430,8 @@
           "description",
           "quality",
           "element",
-          "legacySpeciesId",
+          "growthForm",
+          "harvestPart",
           "portrait",
           "matureMs",
           "branchMs",
@@ -371,6 +443,11 @@
       }
     }
   },
-  "required": ["schemaVersion", "offlineCapMs", "collectionLimit", "species"],
+  "required": [
+    "schemaVersion",
+    "offlineCapMs",
+    "collectionLimit",
+    "species"
+  ],
   "additionalProperties": false
 }

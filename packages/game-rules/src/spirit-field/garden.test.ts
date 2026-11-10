@@ -18,8 +18,8 @@ import {
   getSpiritGardenMaturedCount,
   getSpiritGardenOutput,
   getSpiritGardenPlantView,
+  getSpiritGardenSeedCandidates,
   getSpiritGardenSpecies,
-  getSpiritGardenSpeciesForQuality,
   harvestSpiritGarden,
   migrateLegacySpiritGarden,
   parseSpiritGardenState,
@@ -38,7 +38,7 @@ const start = 1_000_000;
 const hour = 3_600_000;
 const day = 24 * hour;
 function seed(
-  speciesId: Parameters<typeof buildSpiritGardenSeed>[0] = 'green_vine',
+  speciesId: Parameters<typeof buildSpiritGardenSeed>[0] = 'licorice',
   quality: Parameters<typeof buildSpiritGardenSeed>[1] = '凡品',
 ) {
   return readSpiritFieldSeedSpec(
@@ -56,7 +56,7 @@ function planted() {
   );
 }
 const at = (offset: number) => start + offset;
-const matureMs = getSpiritGardenSpecies('green_vine').matureMs;
+const matureMs = getSpiritGardenSpecies('licorice').matureMs;
 
 describe('permanent spirit garden', () => {
   it('grows automatically and grants the first yield exactly once at maturity', () => {
@@ -138,7 +138,7 @@ describe('permanent spirit garden', () => {
     );
     expect(
       producedFruit?.fruitEffects?.[0]?.family ?? producedFruit?.fruitFamily,
-    ).toBe('cultivation');
+    ).toBe('detox');
     expect(() =>
       chooseSpiritGardenBranch(changed, 0, 'plant-1', 'abundance', at(day + 1)),
     ).toThrow('已经选定');
@@ -339,7 +339,7 @@ describe('permanent spirit garden', () => {
       plantSpiritGardenSeed(
         createSpiritGarden(),
         0,
-        seed('green_vine', '灵品'),
+        seed('spirit_rice', '灵品'),
         'other',
         '炼气',
         start,
@@ -365,7 +365,7 @@ describe('permanent spirit garden', () => {
   it('records each mature species once without changing the permanent plants', () => {
     let state = createSpiritGarden();
     for (const [index, speciesId] of (
-      ['green_vine', 'dew_grass', 'red_fruit'] as const
+      ['licorice', 'wild_chrysanthemum', 'mountain_jujube'] as const
     ).entries())
       state = plantSpiritGardenSeed(
         state,
@@ -380,12 +380,11 @@ describe('permanent spirit garden', () => {
     state = settleSpiritGarden(state, at(2 * day));
     expect(getSpiritGardenMaturedCount(state)).toBe(3);
   });
-  it('keeps fixed same-species seeds stackable and maps legacy seeds deterministically', () => {
-    const first = buildSpiritGardenSeed('green_vine', '凡品');
-    const again = buildSpiritGardenSeed('green_vine', '凡品', 4);
-    expect(first.details).toEqual(again.details);
+  it('keeps fixed same-species seeds stackable', () => {
+    const first = buildSpiritGardenSeed('licorice', '凡品');
+    const again = buildSpiritGardenSeed('licorice', '凡品', 4);
     expect(readSpiritFieldSeedSpec(first.details)!.plant.seedName).toBe(
-      '青木藤的种子',
+      '甘草的种子',
     );
     expect(inventoryStackIdentity('seed.v1', seedFactsOf(first))).toBe(
       inventoryStackIdentity('seed.v1', seedFactsOf(again)),
@@ -393,103 +392,38 @@ describe('permanent spirit garden', () => {
     expect(inventoryStackIdentity('seed.v1', seedFactsOf(first))).not.toBe(
       inventoryStackIdentity(
         'seed.v1',
-        seedFactsOf(buildSpiritGardenSeed('green_vine', '灵品')),
+        seedFactsOf(buildSpiritGardenSeed('wild_chrysanthemum', '凡品')),
       ),
     );
-    const old = {
-      ...seed(),
-      seedName: '旧日灵种',
-      useTags: ['beast-nurturing'] as const,
-    };
-    expect(
-      resolveSpiritGardenSpecies({ ...old, useTags: [...old.useTags] }),
-    ).toBe('beast_berry');
-    expect(resolveSpiritGardenSpecies(seed('longevity_tree'))).toBe(
-      'longevity_tree',
-    );
   });
-  it('resolves old eight-species seeds to their quality-specific species without accepting mismatched new identities', () => {
-    const counterpart = getSpiritGardenSpeciesForQuality('green_vine', '玄品');
-    expect(counterpart.quality).toBe('玄品');
-    expect(counterpart.id).not.toBe('green_vine');
+  it('honors stored garden seed identities before name and element hints', () => {
     expect(
       resolveSpiritGardenSpecies({
-        ...seed(),
-        seedName: '青木藤籽',
-        quality: '玄品',
+        ...seed('licorice'),
+        seedName: '野菊的种子',
+        element: '风',
       }),
-    ).toBe(counterpart.id);
-    expect(
-      resolveSpiritGardenSpecies({
-        ...seed(),
-        seedName: '无名旧种',
-        quality: '玄品',
-        useTags: ['beast-nurturing'],
-      }),
-    ).toBe(getSpiritGardenSpeciesForQuality('beast_berry', '玄品').id);
-    expect(resolveSpiritGardenSpecies(seed(counterpart.id, '玄品'))).toBe(
-      counterpart.id,
-    );
-    expect(() => buildSpiritGardenSeed(counterpart.id, '凡品')).toThrow(
+    ).toBe('licorice');
+    expect(() => buildSpiritGardenSeed('gold_thunder_bamboo', '玄品')).toThrow(
       '品质不符',
     );
   });
-  it('normalizes stored high-quality legacy plants without changing growth, pending values or existing discoveries', () => {
-    const state = planted();
-    const original = {
-      ...state.plots[0]!.plant!,
-      quality: '灵品' as const,
-      activeGrowthMs: 2 * day,
-      branch: 'essence' as const,
-      firstYieldGranted: true,
-      productionMs: hour,
-      storedProductionMs: 2 * hour,
-      pending: [
-        {
-          speciesId: 'green_vine',
-          name: '旧青藤灵果',
-          description: '旧株留存收成',
-          element: '木' as const,
-          kind: 'spirit_fruit' as const,
-          fruitFamily: 'cultivation' as const,
-          quality: '灵品' as const,
-          quantity: 7,
-        },
-      ],
-    };
-    state.plots[0]!.plant = original;
-    state.codex = [
-      {
-        speciesId: 'green_vine',
-        matured: true,
-        branches: ['essence'],
-        evolved: false,
-      },
-    ];
-    const before = structuredClone(state);
-    const parsed = parseSpiritGardenState(state);
-    const mappedId = getSpiritGardenSpeciesForQuality('green_vine', '灵品').id;
-    expect(parsed.plots[0]!.plant).toEqual({
-      ...original,
-      speciesId: mappedId,
-      pending: original.pending.map((product) => ({
-        ...product,
-        speciesId: mappedId,
-      })),
-    });
-    expect(parsed.codex).toEqual(
-      expect.arrayContaining([
-        state.codex[0],
-        {
-          speciesId: mappedId,
-          matured: true,
-          branches: ['essence'],
-          evolved: false,
-        },
-      ]),
-    );
-    expect(state).toEqual(before);
-    expect(parseSpiritGardenState(parsed)).toEqual(parsed);
+  it('selects only catalog species of the requested grade and element', () => {
+    expect(getSpiritGardenSeedCandidates('凡品')).toHaveLength(4);
+    expect(
+      getSpiritGardenSeedCandidates('天品', '雷').map((species) => species.id),
+    ).toEqual(['gold_thunder_bamboo']);
+    expect(getSpiritGardenSeedCandidates('凡品', '雷')).toEqual([]);
+  });
+  it('finds a current species for seeds issued before the catalog', () => {
+    expect(
+      resolveSpiritGardenSpecies({
+        ...seed('licorice'),
+        id: 'pre-garden-seed',
+        seedName: '旧日风灵种',
+        element: '风',
+      }),
+    ).toBe('wild_chrysanthemum');
   });
   it('rejects unknown species, mismatched quality and forged compound-effect budgets in durable state', () => {
     const original = planted().plots[0]!.plant!;
@@ -504,7 +438,7 @@ describe('permanent spirit garden', () => {
     expect(SpiritGardenStateSchema.safeParse(invalidSpecies).success).toBe(
       false,
     );
-    const high = getSpiritGardenSpeciesForQuality('green_vine', '灵品');
+    const high = getSpiritGardenSpecies('spirit_rice');
     expect(
       SpiritGardenStateSchema.safeParse({
         ...valid,
@@ -574,10 +508,11 @@ describe('permanent spirit garden', () => {
 
 describe('legacy garden migration', () => {
   function readyPlot(): SpiritFieldPlotState {
+    const plant = { ...seed(), id: 'pre-garden-growing', seedName: '旧日灵种' };
     return {
       index: 0,
-      plant: seed(),
-      plantId: seed().id,
+      plant,
+      plantId: plant.id,
       plantedAt: new Date(start).toISOString(),
       stageIndex: 2,
       stageStartedAt: new Date(start).toISOString(),

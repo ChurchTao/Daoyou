@@ -1,8 +1,13 @@
 import { ELEMENT_VALUES } from '@daoyou/constants/elements';
 import { QUALITY_ORDER, QUALITY_VALUES } from '@daoyou/constants/qualities';
-import { SpiritGardenFruitEffectsSchema } from '@daoyou/game-domain/spirit-field';
+import {
+  SPIRIT_SEED_GROWTH_FORMS,
+  SPIRIT_SEED_HARVEST_PARTS,
+  SpiritGardenFruitEffectsSchema,
+} from '@daoyou/game-domain/spirit-field';
 import { z } from 'zod';
 
+const speciesPerQuality = 4;
 const identifier = z
   .string()
   .regex(/^[a-z][a-z0-9_]*$/)
@@ -48,21 +53,21 @@ const species = z
     description: text,
     quality: z.enum(QUALITY_VALUES).describe('物种固有品阶，每阶有独立物种。'),
     element: z.enum(ELEMENT_VALUES),
-    legacySpeciesId: identifier.describe(
-      '旧八物种的兼容归属，同品阶内不可重复。',
-    ),
+    growthForm: z.enum(SPIRIT_SEED_GROWTH_FORMS),
+    harvestPart: z.enum(SPIRIT_SEED_HARVEST_PARTS),
     portrait: z
       .object({
         atlas: z
           .string()
           .regex(/^botanical-[a-z0-9-]+$/)
-          .max(80),
+          .max(80)
+          .describe('四列四行图谱，行序为幼苗、成株、蕴灵、蜕变。'),
         index: z
           .number()
           .int()
           .min(0)
-          .max(7)
-          .describe('四列两行图谱的格位，从左到右、从上到下编号 0—7。'),
+          .max(speciesPerQuality - 1)
+          .describe('图谱列号，从左到右编号 0—3。'),
       })
       .strict(),
     matureMs: duration.describe('凡品基准成株时间，单位毫秒。'),
@@ -124,31 +129,24 @@ export const SpiritGardenCatalogShape = z
     schemaVersion: z.literal(1),
     offlineCapMs: duration.describe('每株最多积蓄的生产时间，单位毫秒。'),
     collectionLimit: z.number().int().min(1).max(128),
-    species: z.array(species).min(1).max(512),
+    species: z.array(species).length(QUALITY_VALUES.length * speciesPerQuality),
   })
   .strict();
 
 export const SpiritGardenCatalogSchema = SpiritGardenCatalogShape.superRefine(
   (catalog, ctx) => {
-    const fanSpecies = catalog.species.filter(
-      (entry) => entry.quality === '凡品',
-    );
-    const legacyIds = new Set(fanSpecies.map((entry) => entry.id));
     const ids = new Set<string>();
     const names = new Set<string>();
     const portraits = new Set<string>();
-    const qualityLegacyPairs = new Set<string>();
     const productNames = new Set<string>();
     const add = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: 'custom', path, message });
     for (const quality of QUALITY_VALUES) {
-      const entries = catalog.species.filter(
-        (entry) => entry.quality === quality,
-      );
-      if (entries.length !== fanSpecies.length || !entries.length)
-        add(['species'], `${quality}必须覆盖与凡品相同数量的旧物种归属`);
+      const entries = catalog.species.filter((entry) => entry.quality === quality);
+      if (entries.length !== speciesPerQuality)
+        add(['species'], `${quality}必须有四种灵植`);
       if (new Set(entries.map((entry) => entry.portrait.atlas)).size !== 1)
-        add(['species'], `${quality}物种应归于同一张独立图谱`);
+        add(['species'], `${quality}的灵植应归于同一张独立图谱`);
     }
     catalog.species.forEach((entry, index) => {
       const path = ['species', index];
@@ -156,14 +154,6 @@ export const SpiritGardenCatalogSchema = SpiritGardenCatalogShape.superRefine(
       if (names.has(entry.name)) add([...path, 'name'], '成株名称不可重复');
       ids.add(entry.id);
       names.add(entry.name);
-      if (!legacyIds.has(entry.legacySpeciesId))
-        add([...path, 'legacySpeciesId'], '兼容归属必须指向凡品物种');
-      if (entry.quality === '凡品' && entry.legacySpeciesId !== entry.id)
-        add([...path, 'legacySpeciesId'], '凡品应保留自身的旧物种身份');
-      const pair = `${entry.quality}:${entry.legacySpeciesId}`;
-      if (qualityLegacyPairs.has(pair))
-        add([...path, 'legacySpeciesId'], '同品阶的兼容归属不可重复');
-      qualityLegacyPairs.add(pair);
       const portrait = `${entry.portrait.atlas}:${entry.portrait.index}`;
       if (portraits.has(portrait))
         add([...path, 'portrait'], '每个独立物种必须使用独立图谱格位');

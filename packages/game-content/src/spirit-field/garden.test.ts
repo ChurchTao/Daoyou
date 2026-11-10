@@ -11,6 +11,16 @@ import {
 type CatalogData = typeof data;
 
 describe('spirit garden authoring catalog', () => {
+  it('uses one catalog with four species at each quality', () => {
+    const catalog = loadSpiritGardenCatalog(data);
+    expect(catalog.species).toHaveLength(32);
+    expect(
+      catalog.species.filter((entry) => entry.name === '金雷竹'),
+    ).toMatchObject([
+      { id: 'gold_thunder_bamboo', quality: '天品' },
+    ]);
+  });
+
   it('keeps the editor schema aligned with the runtime authoring shape', () => {
     expect(editorSchema).toEqual(z.toJSONSchema(SpiritGardenCatalogShape));
     expect(() => loadSpiritGardenCatalog(data)).not.toThrow();
@@ -58,18 +68,18 @@ describe('spirit garden authoring catalog', () => {
       path: 'species',
     },
     {
-      name: 'ambiguous old-seed compatibility',
+      name: 'illustration column outside the atlas',
       change: (value) => {
-        value.species[9].legacySpeciesId = value.species[8].legacySpeciesId;
+        value.species[0].portrait.index = 4;
       },
-      path: 'species.9.legacySpeciesId',
+      path: 'species.0.portrait.index',
     },
     {
-      name: 'nonexistent compatibility ancestor',
+      name: 'a second illustration atlas for the same quality',
       change: (value) => {
-        value.species[8].legacySpeciesId = 'missing_species';
+        value.species[1].portrait.atlas = 'botanical-variant';
       },
-      path: 'species.8.legacySpeciesId',
+      path: 'species',
     },
     {
       name: 'duplicated illustration placement',
@@ -95,9 +105,9 @@ describe('spirit garden authoring catalog', () => {
     {
       name: 'period exceeding the storage allowance',
       change: (value) => {
-        value.species[63].branches.essence.output.cycleMs = 604_800_000;
+        value.species[31].branches.essence.output.cycleMs = 604_800_000;
       },
-      path: 'species.63.branches',
+      path: 'species.31.branches',
     },
     {
       name: 'production acceleration when changing route',
@@ -131,7 +141,7 @@ describe('spirit garden authoring catalog', () => {
       name: 'repeated composite effect',
       change: (value) => {
         value.species[8].branches.essence.output.fruitEffects![1].family =
-          'cultivation';
+          'breakthrough';
       },
       path: 'species.8.branches.essence.output.fruitEffects',
     },
@@ -154,11 +164,11 @@ describe('spirit garden authoring catalog', () => {
     {
       name: 'effect facts attached to a material',
       change: (value) => {
-        Object.assign(value.species[4].branches.essence.output, {
+        Object.assign(value.species[15].branches.essence.output, {
           fruitEffects: [{ family: 'cultivation', share: 1 }],
         });
       },
-      path: 'species.4.branches.essence.output.fruitEffects',
+      path: 'species.15.branches.essence.output.fruitEffects',
     },
     {
       name: 'unknown authoring field',

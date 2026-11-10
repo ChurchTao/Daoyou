@@ -3,6 +3,7 @@ import type { Quality } from '@daoyou/constants/qualities';
 import type { RealmType } from '@daoyou/constants/realms';
 import { z } from 'zod';
 import { PILL_FAMILY_VALUES, type PillFamily } from '../consumable.js';
+import type { SpiritSeedGrowthForm, SpiritSeedHarvestPart } from './types.js';
 
 /** IDs are authored in the content catalog; runtime validators bind to that registry. */
 export type SpiritGardenSpeciesId = string;
@@ -55,8 +56,9 @@ export interface SpiritGardenSpecies {
   description: string;
   element: ElementType;
   quality: Quality;
-  legacySpeciesId: string;
   portrait: { atlas: string; index: number };
+  growthForm: SpiritSeedGrowthForm;
+  harvestPart: SpiritSeedHarvestPart;
   matureMs: number;
   branchMs: number;
   evolveMs: number;

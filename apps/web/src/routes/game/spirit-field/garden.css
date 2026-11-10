@@ -358,38 +358,12 @@
   display: block;
   position: relative;
   aspect-ratio: 3 / 4;
-  isolation: isolate;
 }
 .botanical-art__print {
   position: absolute;
   inset: 0;
   display: block;
   overflow: hidden;
-  mix-blend-mode: multiply;
-  mask-image: radial-gradient(
-    ellipse 73% 66% at 50% 52%,
-    #000 48%,
-    rgba(0, 0, 0, 0.96) 60%,
-    transparent 93%
-  );
-  transform-origin: 50% 91%;
-  transition:
-    transform 0.3s ease,
-    opacity 0.3s ease;
-}
-.botanical-art--seedling .botanical-art__print {
-  transform: scale(0.58);
-  opacity: 0.82;
-}
-.botanical-art--mature .botanical-art__print {
-  transform: scale(0.86);
-}
-.botanical-art--nurtured .botanical-art__print {
-  transform: scale(0.98);
-}
-.botanical-art--evolved .botanical-art__print {
-  transform: scale(1.04);
-  filter: saturate(1.1);
 }
 .botanical-art--muted {
   filter: grayscale(1);

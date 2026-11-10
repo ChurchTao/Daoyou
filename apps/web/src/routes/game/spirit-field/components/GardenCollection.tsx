@@ -43,6 +43,7 @@ export function GardenCollection({
   onHarvest,
 }: GardenCollectionProps) {
   const emptyPlots = snapshot.plots.filter((plot) => !plot.plant).length;
+  const coverSpecies = snapshot.species[0];
   const pending = snapshot.collection.reduce(
     (sum, plant) =>
       sum +
@@ -82,11 +83,13 @@ export function GardenCollection({
       ) : null}
       {!snapshot.collection.length ? (
         <div className="flex min-h-72 flex-col items-center justify-center px-4 text-center">
-          <BotanicalArt
-            speciesId="jade_bamboo"
-            muted
-            className="mb-3 w-24 opacity-35"
-          />
+          {coverSpecies ? (
+            <BotanicalArt
+              speciesId={coverSpecies.id}
+              muted
+              className="mb-3 w-24 opacity-35"
+            />
+          ) : null}
           <p className="text-base">保种阁尚空</p>
           <p className="text-ink-secondary mt-2 max-w-64 text-sm leading-6">
             将田中灵植移来歇养，便能腾出一畦，尝试新的草木。

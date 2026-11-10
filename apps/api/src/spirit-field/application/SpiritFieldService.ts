@@ -320,9 +320,9 @@ export function claimSpiritFieldStarterSeeds(
       if (field.starterClaimed)
         throw new SpiritFieldServiceError('初始灵种已经领取过了', 409);
       const seeds = [
-        buildSpiritGardenSeed('green_vine', '凡品', 2),
-        buildSpiritGardenSeed('dew_grass', '凡品', 2),
-        buildSpiritGardenSeed('red_fruit', '凡品', 1),
+        buildSpiritGardenSeed('licorice', '凡品', 2),
+        buildSpiritGardenSeed('wild_chrysanthemum', '凡品', 2),
+        buildSpiritGardenSeed('mountain_jujube', '凡品', 1),
       ];
       const delivered = await grantInventory(
         actor.cultivatorId,
@@ -332,7 +332,7 @@ export function claimSpiritFieldStarterSeeds(
       return {
         garden,
         starterClaimed: true,
-        detail: '领取青木藤、风露草与赤炎株灵种',
+        detail: '领取甘草、野菊与山枣灵种',
         result: {
           message: '已领取初始灵种',
           locations: locationsOf(delivered),

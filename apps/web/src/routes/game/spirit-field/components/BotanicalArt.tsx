@@ -13,7 +13,8 @@ export interface BotanicalArtProps {
   muted?: boolean;
 }
 
-/** Botanical specimen art uses the species' configured atlas and the shared artwork setting. */
+const stageRows = { seedling: 0, mature: 1, nurtured: 2, evolved: 3 } as const;
+
 export function BotanicalArt({
   speciesId,
   stage = 'mature',
@@ -26,7 +27,6 @@ export function BotanicalArt({
       aria-hidden="true"
       className={cn(
         'botanical-art',
-        `botanical-art--${stage}`,
         muted && 'botanical-art--muted',
         className,
       )}
@@ -40,9 +40,9 @@ export function BotanicalArt({
           className="absolute max-w-none"
           style={{
             width: '400%',
-            height: '200%',
-            left: `${-(portrait.index % 4) * 100}%`,
-            top: `${-Math.floor(portrait.index / 4) * 100}%`,
+            height: '400%',
+            left: `${-portrait.index * 100}%`,
+            top: `${-stageRows[stage] * 100}%`,
           }}
         />
       </span>
