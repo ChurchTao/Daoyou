@@ -90,22 +90,61 @@ function finaleOpponent(mystery: MysteryRecord) {
 
 /** 结局叙事的输入：只给已发生的事实与评分结论。 */
 export function mysteryEndingContext(mystery: MysteryRecord) {
+  const { caseFile, run, result } = mystery;
+  const template = requireMysteryTemplate(mystery.templateId);
   return {
     mode: 'mystery',
-    title: mystery.caseFile.title,
-    truth: mystery.caseFile.truth,
-    deduction: mystery.result
+    title: caseFile.title,
+    caseType: template.name,
+    // 未结案时，撤离文案只依据玩家已知的进展，不向模型提供隐藏真相。
+    ...(result
+      ? { truth: caseFile.truth }
+      : {
+          location: caseFile.rooms.find((room) => room.id === run.location)
+            ?.name,
+          knownClues: caseFile.clues
+            .filter((clue) => run.clues.includes(clue.id))
+            .map((clue) => clue.name),
+        }),
+    deduction: result
       ? {
-          correct: mystery.result.correct,
-          tier: mystery.result.tier,
-          branches: mystery.result.branches,
-          confrontation: mystery.result.confrontation ?? null,
+          correct: result.correct,
+          answers: Object.fromEntries(
+            template.questions
+              .filter((question) => !question.judgement)
+              .map((question) => {
+                const answer = result.answers[question.id];
+                const label =
+                  caseFile.questions
+                    .find((entry) => entry.id === question.id)
+                    ?.options?.find((option) => option.id === answer)?.label ??
+                  caseFile.npcs.find((npc) => npc.id === answer)?.name ??
+                  caseFile.clues.find((clue) => clue.id === answer)?.name ??
+                  answer;
+                return [question.id, label];
+              }),
+          ),
+          tier: result.tier,
+          branches: result.branches.map(
+            (id) =>
+              template.branches.find((branch) => branch.id === id)?.label ?? id,
+          ),
+          confrontation: result.confrontation ?? null,
           opponent: finaleOpponent(mystery),
           ...judgementContext(mystery),
         }
       : null,
-    recentEvents: mystery.run.log
+    recentEvents: run.log
       .slice(-12)
+      // 已结案的线索与对话由真相和作答覆盖；未结案时仍保留调查所得的具体含义。
+      // 保留事件、机关/物品操作、局面变化及战斗反馈的完整文本，避免改变已发生的后果。
+      .filter(
+        (entry) =>
+          entry.kind !== 'scene' &&
+          entry.kind !== 'hint' &&
+          entry.kind !== 'omen' &&
+          (!result || (entry.kind !== 'speech' && entry.kind !== 'clue')),
+      )
       .map((entry) =>
         entry.speaker ? `${entry.speaker}：${entry.text}` : entry.text,
       ),

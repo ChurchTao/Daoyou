@@ -264,9 +264,30 @@ export async function finalizeSpiritFieldIdentity(
   };
   const { system, user } = renderPrompt('spirit-field-finalization', {
     payloadJson: JSON.stringify({
-      seed: input.plant,
-      cultivationHistory: input.history,
-      fixedSettlement: { ...input.settlement, outcomeLabel },
+      seed: {
+        seedName: input.plant.seedName,
+        seedDescription: input.plant.seedDescription,
+        clueTexts: input.plant.clueTexts,
+        quality: input.plant.quality,
+        element: input.plant.element,
+        growthForm: input.plant.growthForm,
+        harvestPart: input.plant.harvestPart,
+        preferredHabitats: input.plant.preferredHabitats,
+        growthTraits: input.plant.growthTraits,
+      },
+      cultivationHistory: input.history.map((entry) => ({
+        stage: entry.stage,
+        method: SPIRIT_FIELD_METHOD_MAP[entry.method]?.name ?? entry.method,
+        affinity: entry.affinity,
+        feedback: entry.feedback,
+        resourceName: entry.resourceName,
+      })),
+      fixedSettlement: {
+        outcomeKind: input.settlement.outcomeKind,
+        quality: input.settlement.quality,
+        mutated: input.settlement.mutated,
+        degraded: input.settlement.degraded,
+      },
     }),
   });
   try {
