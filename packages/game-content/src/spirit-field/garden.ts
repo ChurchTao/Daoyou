@@ -4,6 +4,7 @@ import { loadSpiritGardenCatalog } from './garden-schema.js';
 
 const catalog = loadSpiritGardenCatalog(data);
 export const SPIRIT_GARDEN_OFFLINE_CAP_MS = catalog.offlineCapMs;
+export const SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS = 28 * 86_400_000;
 export const SPIRIT_GARDEN_COLLECTION_LIMIT = catalog.collectionLimit;
 export const SPIRIT_GARDEN_SPECIES: readonly SpiritGardenSpecies[] =
   catalog.species;

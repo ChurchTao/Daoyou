@@ -15,6 +15,8 @@ interface GardenPlantDetailProps {
   onBranch(): void;
   onEvolve(): void;
   onArchive(): void;
+  onHarvest(): void;
+  onClear(): void;
 }
 
 function growthAge(ms: number) {
@@ -34,31 +36,35 @@ export function GardenPlantDetail({
   onBranch,
   onEvolve,
   onArchive,
+  onHarvest,
+  onClear,
 }: GardenPlantDetailProps) {
   const elapsed = Math.max(0, elapsedMs);
-  const growth = plant.activeGrowthMs + elapsed;
+  const growth = plant.activeGrowthMs + (plant.exhausted ? 0 : elapsed);
   const mature = plant.stage !== 'seedling';
   const pendingQuantity = plant.pending.reduce(
     (sum, product) => sum + product.quantity,
     0,
   );
   const branch = plant.branch ? species.branches[plant.branch] : null;
-  const currentState = plant.evolved
-    ? '蜕变已成'
-    : plant.canEvolve
-      ? '可完成蜕变'
-      : plant.canBranch
-        ? '可确定方向'
-        : mature
-          ? '静养生长'
-          : '幼苗初生';
+  const currentState = plant.exhausted
+    ? '采尽'
+    : plant.evolved
+      ? '蜕变已成'
+      : plant.canEvolve
+        ? '可完成蜕变'
+        : plant.canBranch
+          ? '可确定方向'
+          : mature
+            ? '静养生长'
+            : '幼苗初生';
   const milestones = [
     {
       title: '成株',
       done: mature,
       available: false,
       detail: mature
-        ? '已经长成，采收后继续生产。'
+        ? '已经长成，首次成熟时得到一份收成。'
         : `再生长约 ${formatGardenDuration(Math.max(0, plant.matureMs - growth))}，自动迎来首次收成。`,
     },
     {
@@ -69,14 +75,16 @@ export function GardenPlantDetail({
         ? branch.description
         : plant.canBranch
           ? '灵机已足，可以选择这株灵植的长期培养方向。'
-          : `在田生长满 ${formatGardenDuration(plant.branchMs)} 后，决定它今后的产物。`,
+          : plant.exhausted
+            ? '这株灵植采尽时尚未定向。'
+            : `在田生长满 ${formatGardenDuration(plant.branchMs)} 后，决定它今后的产物。`,
     },
     {
       title: '蜕变',
       done: plant.evolved,
       available: plant.canEvolve,
       detail: plant.evolved
-        ? `蜕变已经完成，今后持续产出${plant.outputQuality}产物。`
+        ? `蜕变使之后的产物提升至${plant.outputQuality}。`
         : plant.canEvolve
           ? '成长与境界条件已满足，可以投入药材完成一次蜕变。'
           : (plant.evolveReason ?? '继续积累生机，等待蜕变机缘。'),
@@ -93,7 +101,7 @@ export function GardenPlantDetail({
         />
         <div className="min-w-0 space-y-2">
           <p
-            className={`text-xs ${plant.evolved ? 'text-teal' : plant.canEvolve || plant.canBranch ? 'text-crimson' : 'text-ink-secondary'}`}
+            className={`text-xs ${plant.evolved && !plant.exhausted ? 'text-teal' : plant.canEvolve || plant.canBranch ? 'text-crimson' : 'text-ink-secondary'}`}
           >
             {currentState}
           </p>
@@ -116,20 +124,45 @@ export function GardenPlantDetail({
       <section aria-label="这株灵植的产出" className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-semibold">{plant.output.name}</h3>
-          <p className="text-ink-secondary text-xs">
-            每{' '}
-            <span className="font-mono">
-              {formatGardenDuration(plant.output.cycleMs)}
-            </span>{' '}
-            <span className="font-mono">{plant.output.quantity}</span> 份
-          </p>
+          {!plant.exhausted ? (
+            <p className="text-ink-secondary text-xs">
+              每{' '}
+              <span className="font-mono">
+                {formatGardenDuration(plant.output.cycleMs)}
+              </span>{' '}
+              <span className="font-mono">{plant.output.quantity}</span> 份
+            </p>
+          ) : null}
         </div>
+        <dl className="grid grid-cols-2 gap-x-4 text-xs leading-6">
+          <div>
+            <dt className="text-ink-secondary">剩余生产时间</dt>
+            <dd className="font-mono">
+              {plant.exhausted
+                ? '0 分钟'
+                : formatGardenDuration(plant.remainingProductionMs)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-secondary">预计还能收</dt>
+            <dd>
+              <span className="font-mono">{plant.remainingHarvestCycles}</span>{' '}
+              轮
+            </dd>
+          </div>
+        </dl>
         <p className="text-ink-secondary text-xs leading-6">
-          {plant.storageFull
-            ? '收成已经积满，领取后继续生产；植株仍在成长。'
-            : !mature
-              ? '成株后开始稳定生产，首次成熟还会先得到一份收成。'
-              : `距下次产出约 ${formatGardenDuration(Math.max(0, plant.nextYieldMs - elapsed))}。`}
+          {plant.exhausted
+            ? pendingQuantity > 0
+              ? '领取最后一批收成后可清畦重种。'
+              : '收成已领完，可以清畦重种。'
+            : plant.storageFull
+              ? '待领收成已经积满，剩余生产时间暂停消耗。领取后恢复生产。'
+              : !mature
+                ? '成株后开始稳定生产，首次成熟还会先得到一份收成。'
+                : plant.remainingHarvestCycles === 0
+                  ? '按当前路线，剩余生产时间不足一轮。'
+                  : `距下次产出约 ${formatGardenDuration(Math.max(0, plant.nextYieldMs - elapsed))}。`}
         </p>
         {pendingQuantity > 0 ? (
           <details className="border-ink/15 border-l-2 pl-3 text-sm">
@@ -152,9 +185,11 @@ export function GardenPlantDetail({
                 </li>
               ))}
             </ul>
-            <p className="text-ink-secondary mt-2 text-xs leading-6">
-              返回灵圃后可一键收好所有收成。
-            </p>
+            {!plant.exhausted ? (
+              <p className="text-ink-secondary mt-2 text-xs leading-6">
+                返回灵圃后可一键收好所有收成。
+              </p>
+            ) : null}
           </details>
         ) : null}
       </section>
@@ -187,7 +222,9 @@ export function GardenPlantDetail({
                       ? '已完成'
                       : milestone.available
                         ? '可施为'
-                        : '待长成'}
+                        : plant.exhausted
+                          ? '已结束'
+                          : '待长成'}
                   </span>
                 </div>
                 <p className="text-ink-secondary text-xs leading-6">
@@ -199,7 +236,7 @@ export function GardenPlantDetail({
         </ol>
       </section>
 
-      {!plant.evolved && !plant.canEvolve ? (
+      {!plant.exhausted && !plant.evolved && !plant.canEvolve ? (
         <details className="text-sm">
           <summary className="text-ink-secondary cursor-pointer">
             查看蜕变条件
@@ -222,7 +259,17 @@ export function GardenPlantDetail({
       ) : null}
 
       <div className="border-ink/10 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-        {plant.canBranch ? (
+        {plant.exhausted ? (
+          pendingQuantity > 0 ? (
+            <InkButton variant="primary" disabled={locked} onClick={onHarvest}>
+              一键收获
+            </InkButton>
+          ) : (
+            <InkButton variant="primary" disabled={locked} onClick={onClear}>
+              清畦重种
+            </InkButton>
+          )
+        ) : plant.canBranch ? (
           <InkButton variant="primary" disabled={locked} onClick={onBranch}>
             确定培养方向
           </InkButton>
@@ -232,14 +279,18 @@ export function GardenPlantDetail({
           </InkButton>
         ) : (
           <p className="text-ink-secondary text-xs">
-            {plant.evolved
-              ? '灵蕴已定，静候下一次收成。'
-              : '照常生长，培养机会可以稍后处理。'}
+            {plant.remainingHarvestCycles === 0
+              ? '这株灵植即将采尽。'
+              : plant.evolved
+                ? '灵蕴已定，静候下一次收成。'
+                : '照常生长，培养机会可以稍后处理。'}
           </p>
         )}
-        <InkButton variant="secondary" disabled={locked} onClick={onArchive}>
-          移入保种阁
-        </InkButton>
+        {!plant.exhausted ? (
+          <InkButton variant="secondary" disabled={locked} onClick={onArchive}>
+            移入保种阁
+          </InkButton>
+        ) : null}
       </div>
     </div>
   );

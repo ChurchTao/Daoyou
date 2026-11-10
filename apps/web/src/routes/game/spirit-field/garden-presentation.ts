@@ -15,13 +15,14 @@ export function formatGardenDuration(ms: number): string {
   return restHours ? `${days} 天 ${restHours} 小时` : `${days} 天`;
 }
 
-export function stageLabel(stage: SpiritGardenPlantView['stage']): string {
+export function stageLabel(plant: SpiritGardenPlantView): string {
+  if (plant.exhausted) return '采尽';
   return {
     seedling: '幼苗',
     mature: '成株',
     nurtured: '蕴灵',
     evolved: '蜕变',
-  }[stage];
+  }[plant.stage];
 }
 
 export function pendingPlantQuantity(plant: SpiritGardenPlantView): number {
@@ -29,7 +30,7 @@ export function pendingPlantQuantity(plant: SpiritGardenPlantView): number {
 }
 
 export interface PlantOpportunity {
-  kind: 'branch' | 'evolve' | 'full' | 'growing' | 'producing';
+  kind: 'branch' | 'evolve' | 'full' | 'growing' | 'producing' | 'exhausted';
   label: string;
   description: string;
   actionLabel: string;
@@ -39,6 +40,15 @@ export interface PlantOpportunity {
 export function getPlantOpportunity(
   plant: SpiritGardenPlantView,
 ): PlantOpportunity {
+  if (plant.exhausted)
+    return {
+      kind: 'exhausted',
+      label: '采尽',
+      description: plant.pending.length
+        ? '领取最后一批收成后，就能清畦重种。'
+        : '这株灵植的收成已领完，可以清畦重种。',
+      actionLabel: '查看这株灵植',
+    };
   if (plant.canBranch)
     return {
       kind: 'branch',
@@ -57,15 +67,22 @@ export function getPlantOpportunity(
     return {
       kind: 'full',
       label: '积蓄已满',
-      description: '田中收成已经积满，收获后会继续生产，灵植长势不受影响。',
+      description: '待领收成已经积满，剩余生产时间暂停消耗。收获后会继续生产。',
       actionLabel: '查看这株灵植',
     };
   if (plant.stage === 'seedling')
     return {
       kind: 'growing',
       label: '幼苗正在扎根',
-      description: `距首次成株约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，此后会持续产出。`,
+      description: `距首次成株约 ${formatGardenDuration(plant.matureMs - plant.activeGrowthMs)}，成株后按周期产出。`,
       actionLabel: '查看长势',
+    };
+  if (plant.remainingHarvestCycles === 0)
+    return {
+      kind: 'producing',
+      label: '临近采尽',
+      description: '按当前路线，剩余生产时间不足一轮。',
+      actionLabel: '查看这株灵植',
     };
   if (!plant.branch)
     return {
@@ -83,11 +100,11 @@ export function getPlantOpportunity(
     };
   return {
     kind: 'producing',
-    label: plant.evolved ? '长养不辍' : '静养待时',
+    label: plant.evolved ? '蜕变已成' : '静养待时',
     description:
       !plant.evolved && plant.evolveReason
         ? plant.evolveReason
-        : `每 ${formatGardenDuration(plant.output.cycleMs)} 产出 ${plant.output.quantity} 份${plant.output.name}，采收后继续生长。`,
+        : `每 ${formatGardenDuration(plant.output.cycleMs)} 产出 ${plant.output.quantity} 份${plant.output.name}。`,
     actionLabel: '查看这株灵植',
   };
 }

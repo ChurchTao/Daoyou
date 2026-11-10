@@ -43,6 +43,7 @@ export function GardenCollection({
   onHarvest,
 }: GardenCollectionProps) {
   const emptyPlots = snapshot.plots.filter((plot) => !plot.plant).length;
+  const hasExhaustedPlot = snapshot.plots.some((plot) => plot.plant?.exhausted);
   const coverSpecies = snapshot.species[0];
   const pending = snapshot.collection.reduce(
     (sum, plant) =>
@@ -56,7 +57,7 @@ export function GardenCollection({
         <p className="text-ink-secondary text-sm leading-6">
           暂歇一隅，留待来日。
           <br />
-          收藏期间暂停成长与生产，培养成果始终保留。
+          收藏期间暂停成长与生产，剩余生产时间和培养成果都会保留。
         </p>
         <p className="text-ink-secondary shrink-0 text-sm">
           <span className="text-ink font-mono text-2xl">
@@ -99,9 +100,11 @@ export function GardenCollection({
         <>
           {emptyPlots === 0 ? (
             <p className="border-crimson/40 text-ink-secondary border-l-2 pl-3 text-sm leading-6">
-              {snapshot.collection.length >= snapshot.profile.collectionLimit
-                ? '田地与保种阁都已满。领取收成后，可以结束一株收藏灵植的培育，为新草木腾位。'
-                : '六畦均有灵植。先将田中一株移入保种阁，再选择要迁回的灵植。'}
+              {hasExhaustedPlot
+                ? '六畦均有灵植。领完采尽植株的收成后，可清畦腾位。'
+                : snapshot.collection.length >= snapshot.profile.collectionLimit
+                  ? '田地与保种阁都已满。领取收成后，可以结束一株收藏灵植的培育，为新草木腾位。'
+                  : '六畦均有灵植。先将田中一株移入保种阁，再选择要迁回的灵植。'}
             </p>
           ) : null}
           <ul className="divide-ink/10 divide-y">

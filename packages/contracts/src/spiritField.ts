@@ -76,7 +76,11 @@ export type SpiritFieldStarterRequest = z.infer<
 >;
 
 export const SpiritFieldRetireRequestSchema = z
-  .object({ ...command, plantId: z.string().min(1).max(160) })
+  .object({
+    ...command,
+    plantId: z.string().min(1).max(160),
+    plotIndex: SpiritFieldPlotIndexSchema.optional(),
+  })
   .strict();
 export type SpiritFieldRetireRequest = z.infer<
   typeof SpiritFieldRetireRequestSchema

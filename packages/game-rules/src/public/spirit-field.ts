@@ -15,6 +15,7 @@ export type {
 export {
   SPIRIT_GARDEN_COLLECTION_LIMIT,
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
   SPIRIT_GARDEN_SPECIES,
   SpiritGardenStateSchema,
   archiveSpiritGardenPlant,

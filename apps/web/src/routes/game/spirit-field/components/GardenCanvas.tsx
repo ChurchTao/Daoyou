@@ -39,11 +39,14 @@ export function GardenCanvas({
   const occupied = snapshot.plots.filter((plot) => plot.plant);
   const selected =
     selectedIndex === null ? null : snapshot.plots[selectedIndex];
+  const exhaustedPlot = occupied.find((plot) => plot.plant?.exhausted);
   const notedPlot = selected?.plant
     ? selected
     : (occupied.find(
         (plot) => plot.plant?.canBranch || plot.plant?.canEvolve,
-      ) ?? occupied[0]);
+      ) ??
+      exhaustedPlot ??
+      occupied[0]);
   const notedPlant = notedPlot?.plant;
   const opportunity = notedPlant ? getPlantOpportunity(notedPlant) : null;
   const allEmpty = occupied.length === 0;
@@ -71,7 +74,9 @@ export function GardenCanvas({
                   ? newGarden
                     ? '一座灵圃，从一枚灵种开始'
                     : '空畦静候新的长养'
-                  : '灵植正在静静生长'}
+                  : exhaustedPlot
+                    ? '采尽的灵植可清畦重种'
+                    : '灵植正在静静生长'}
               </span>
             )}
           </p>
@@ -185,7 +190,7 @@ export function GardenCanvas({
                   onClick={() => onSelectPlot(plot.index)}
                   aria-haspopup={restorePlant ? undefined : 'dialog'}
                   aria-pressed={selectedIndex === plot.index}
-                  aria-label={`第 ${plot.index + 1} 畦，${plant ? `${plant.speciesName}，${stageLabel(plant.stage)}${quantity ? `，${quantity} 份待收` : ''}${action ? `，${action}` : ''}` : availableRestore ? '迁回此畦' : '空田，栽种灵植'}`}
+                  aria-label={`第 ${plot.index + 1} 畦，${plant ? `${plant.speciesName}，${stageLabel(plant)}${quantity ? `，${quantity} 份待收` : ''}${action ? `，${action}` : ''}` : availableRestore ? '迁回此畦' : '空田，栽种灵植'}`}
                 >
                   <span className="garden-plot-number">
                     第 <span className="font-mono">{plot.index + 1}</span> 畦
@@ -213,19 +218,19 @@ export function GardenCanvas({
                             quantity > 0 && 'garden-plant-status--yield',
                           )}
                         >
-                          {plant.storageFull ? (
+                          {plant.storageFull && !plant.exhausted ? (
                             <>
                               <span className="font-mono">{quantity}</span> 份 ·
                               积蓄已满
                             </>
                           ) : quantity ? (
                             <>
-                              {stageLabel(plant.stage)} ·{' '}
+                              {stageLabel(plant)} ·{' '}
                               <span className="font-mono">{quantity}</span>{' '}
                               份待收
                             </>
                           ) : (
-                            stageLabel(plant.stage)
+                            stageLabel(plant)
                           )}
                         </span>
                       </span>
@@ -243,7 +248,7 @@ export function GardenCanvas({
             })}
           </div>
           <p className="garden-ground-footer">
-            采收不伤根本，灵植与洞府一同长养。
+            采尽后可清畦重种。
             <span>
               产物可积蓄{' '}
               <span className="font-mono">
@@ -264,7 +269,7 @@ export function GardenCanvas({
                 </span>
                 <h2>{notedPlant.speciesName}</h2>
                 <p>
-                  {notedPlant.outputQuality} · {stageLabel(notedPlant.stage)}
+                  {notedPlant.outputQuality} · {stageLabel(notedPlant)}
                 </p>
               </div>
               <div className="garden-notebook-opportunity">
@@ -292,21 +297,23 @@ export function GardenCanvas({
               >
                 {opportunity.actionLabel}
               </InkButton>
-              <div className="garden-notebook-output">
-                <span>日常产出</span>
-                <p>{notedPlant.output.name}</p>
-                <small>
-                  每{' '}
-                  <span className="font-mono">
-                    {formatGardenDuration(notedPlant.output.cycleMs)}
-                  </span>{' '}
-                  ·{' '}
-                  <span className="font-mono">
-                    {notedPlant.output.quantity}
-                  </span>{' '}
-                  份
-                </small>
-              </div>
+              {opportunity.kind !== 'exhausted' ? (
+                <div className="garden-notebook-output">
+                  <span>日常产出</span>
+                  <p>{notedPlant.output.name}</p>
+                  <small>
+                    每{' '}
+                    <span className="font-mono">
+                      {formatGardenDuration(notedPlant.output.cycleMs)}
+                    </span>{' '}
+                    ·{' '}
+                    <span className="font-mono">
+                      {notedPlant.output.quantity}
+                    </span>{' '}
+                    份
+                  </small>
+                </div>
+              ) : null}
             </>
           ) : (
             <div className="garden-notebook-empty">

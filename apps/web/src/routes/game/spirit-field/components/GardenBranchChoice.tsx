@@ -29,6 +29,7 @@ export function GardenBranchChoice({
   onBack,
 }: GardenBranchChoiceProps) {
   const choiceId = useId();
+  const choiceDisabled = locked || !plant.canBranch;
   return (
     <div className="space-y-6 pb-2">
       <div className="flex items-center gap-5">
@@ -38,12 +39,16 @@ export function GardenBranchChoice({
           className="w-28 shrink-0"
         />
         <div className="space-y-2">
-          <p className="text-crimson text-xs">蕴灵已足</p>
+          <p className="text-crimson text-xs">
+            {plant.exhausted ? '采尽' : '蕴灵已足'}
+          </p>
           <h3 className="text-xl font-semibold">
             让{plant.speciesName}长成什么
           </h3>
           <p className="text-ink-secondary text-sm leading-7">
-            选择今后的收成方向。它会沿这条路继续生长。
+            {plant.exhausted
+              ? '这株灵植的生产时间已用尽。'
+              : '选择这株灵植今后的收成方向。'}
           </p>
         </div>
       </div>
@@ -57,7 +62,7 @@ export function GardenBranchChoice({
           return (
             <label
               key={branch}
-              className={`relative block cursor-pointer border-l-2 px-4 py-4 transition-colors ${selected ? 'border-crimson bg-crimson/5' : 'border-ink/15 hover:bg-ink/4'} ${locked ? 'pointer-events-none opacity-60' : ''}`}
+              className={`relative block cursor-pointer border-l-2 px-4 py-4 transition-colors ${selected ? 'border-crimson bg-crimson/5' : 'border-ink/15 hover:bg-ink/4'} ${choiceDisabled ? 'pointer-events-none opacity-60' : ''}`}
             >
               <input
                 className="peer sr-only"
@@ -65,7 +70,7 @@ export function GardenBranchChoice({
                 name={choiceId}
                 value={branch}
                 checked={selected}
-                disabled={locked}
+                disabled={choiceDisabled}
                 onChange={() => onSelect(branch)}
               />
               <span className="peer-focus-visible:outline-crimson pointer-events-none absolute inset-0 outline-offset-2 peer-focus-visible:outline-2" />
@@ -99,7 +104,7 @@ export function GardenBranchChoice({
       <div className="space-y-2 text-xs leading-6">
         <p className="text-crimson">每株只选一次，确定后无法更改。</p>
         <p className="text-ink-secondary">
-          确定方向无需额外消耗。已积蓄的收成与当前生产进度都会保留。
+          确定方向无需额外消耗。已积蓄的收成、当前进度与剩余生产时间都会保留。
         </p>
       </div>
 
@@ -109,7 +114,7 @@ export function GardenBranchChoice({
         </InkButton>
         <InkButton
           variant="primary"
-          disabled={locked || !selectedBranch || !plant.canBranch}
+          disabled={choiceDisabled || !selectedBranch}
           onClick={onConfirm}
         >
           {selectedBranch

@@ -88,6 +88,7 @@ export interface SpiritGardenPlant {
   settledAt: number;
   productionMs: number;
   storedProductionMs: number;
+  productionUsedMs: number;
   firstYieldGranted: boolean;
   branch: SpiritGardenBranch | null;
   evolved: boolean;
@@ -119,6 +120,9 @@ export interface SpiritGardenPlantView extends SpiritGardenPlant {
   branchMs: number;
   evolveMs: number;
   nextYieldMs: number;
+  remainingProductionMs: number;
+  remainingHarvestCycles: number;
+  exhausted: boolean;
   canBranch: boolean;
   canEvolve: boolean;
   evolveReason: string | null;

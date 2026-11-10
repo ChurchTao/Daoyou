@@ -243,8 +243,15 @@ export default function SpiritFieldPage() {
         });
         break;
       case 'archive':
-      case 'retire':
         setPanel({ view: 'collection' });
+        break;
+      case 'retire':
+        if (action.input.plotIndex !== undefined) {
+          setSelectedIndex(action.input.plotIndex);
+          setPanel({ view: 'sow', plotIndex: action.input.plotIndex });
+        } else {
+          setPanel({ view: 'collection' });
+        }
         break;
       case 'restore':
         setRestorePlant(null);
@@ -482,6 +489,10 @@ export default function SpiritFieldPage() {
                 setPanel({ view: 'branch', ...plantTarget });
               }}
               onEvolve={() => setPanel({ view: 'evolve', ...plantTarget })}
+              onHarvest={() => void act({ endpoint: 'harvest', input: {} })}
+              onClear={() =>
+                void act({ endpoint: 'retire', input: plantTarget })
+              }
               onArchive={() => {
                 if (
                   snapshot.collection.length >= snapshot.profile.collectionLimit
@@ -545,7 +556,7 @@ export default function SpiritFieldPage() {
                 </div>
               </div>
               <p className="text-ink-secondary">
-                已有收成保留原品质，当前生产进度继续。条件满足后必定成功，每株可蜕变一次。
+                已积蓄的收成保留原品质，当前进度与剩余生产时间都会保留。条件满足后必定成功，每株可蜕变一次。
               </p>
               <div className="border-ink/10 border-y py-4">
                 <p>本次投入</p>
@@ -637,7 +648,7 @@ export default function SpiritFieldPage() {
                 <div className="garden-planting-note">
                   <p className="text-lg">为这一畦，选一株长养的草木。</p>
                   <p className="text-ink-secondary mt-2">
-                    灵种决定物种与品阶，成熟后便会持续留下收成。
+                    灵种决定物种与品阶，成熟后会按周期产出，直到采尽。
                   </p>
                 </div>
               )}
@@ -755,9 +766,11 @@ export default function SpiritFieldPage() {
                   </span>
                   <span className="ml-2 text-base">份</span>
                 </p>
-                <p className="text-ink-secondary mt-3">
-                  采收保留灵植，长养的成果还会继续。
-                </p>
+                {snapshot.plots.some((plot) => plot.plant?.exhausted) ? (
+                  <p className="text-ink-secondary mt-3">
+                    采尽的灵植可以清畦重种。
+                  </p>
+                ) : null}
               </div>
               <ul className="space-y-4">
                 {panel.result.products?.map((product, index) => (

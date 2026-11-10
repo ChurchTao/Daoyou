@@ -8,6 +8,7 @@ import { REALM_ORDER, type RealmType } from '@daoyou/constants/realms';
 import {
   SPIRIT_GARDEN_COLLECTION_LIMIT,
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
   SPIRIT_GARDEN_SPECIES,
   getSpiritFieldQualityBalance,
 } from '@daoyou/game-content/spirit-field/config';
@@ -41,6 +42,7 @@ import {
 export {
   SPIRIT_GARDEN_COLLECTION_LIMIT,
   SPIRIT_GARDEN_OFFLINE_CAP_MS,
+  SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS,
   SPIRIT_GARDEN_SPECIES,
 };
 
@@ -79,6 +81,9 @@ const plantSchema = z
     settledAt: nonnegative,
     productionMs: nonnegative,
     storedProductionMs: nonnegative.max(SPIRIT_GARDEN_OFFLINE_CAP_MS),
+    productionUsedMs: nonnegative
+      .max(SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS)
+      .default(0),
     firstYieldGranted: z.boolean(),
     branch: z.enum(SPIRIT_GARDEN_BRANCHES).nullable(),
     evolved: z.boolean(),
@@ -312,22 +317,27 @@ function productOf(
     quantity,
   };
 }
+function remainingProductionTime(plant: SpiritGardenPlant): number {
+  return SPIRIT_GARDEN_PRODUCTION_LIFETIME_MS - plant.productionUsedMs;
+}
 function settlePlant(
   plant: SpiritGardenPlant,
   nowMs: number,
 ): SpiritGardenPlant {
   const elapsed = Math.max(0, nowMs - plant.settledAt);
-  if (elapsed === 0) return plant;
+  const remainingMs = remainingProductionTime(plant);
+  if (elapsed === 0 || remainingMs === 0) return plant;
   const matureMs = times(plant).matureMs;
-  const oldGrowth = plant.activeGrowthMs;
-  const activeGrowthMs = oldGrowth + elapsed;
+  const untilMatureMs = Math.max(0, matureMs - plant.activeGrowthMs);
   const output = getSpiritGardenOutput(plant);
-  const productiveMs =
-    Math.max(0, activeGrowthMs - matureMs) - Math.max(0, oldGrowth - matureMs);
   const acceptedMs = Math.min(
-    productiveMs,
+    Math.max(0, elapsed - untilMatureMs),
     SPIRIT_GARDEN_OFFLINE_CAP_MS - plant.storedProductionMs,
+    remainingMs,
   );
+  const exhausted = acceptedMs === remainingMs;
+  const activeGrowthMs =
+    plant.activeGrowthMs + (exhausted ? untilMatureMs + acceptedMs : elapsed);
   const productionMs = plant.productionMs + acceptedMs;
   const cycles = Math.floor(productionMs / output.cycleMs);
   const firstYield = !plant.firstYieldGranted && activeGrowthMs >= matureMs;
@@ -336,8 +346,9 @@ function settlePlant(
     ...plant,
     activeGrowthMs,
     settledAt: Math.max(plant.settledAt, nowMs),
-    productionMs: productionMs % output.cycleMs,
+    productionMs: exhausted ? 0 : productionMs % output.cycleMs,
     storedProductionMs: plant.storedProductionMs + acceptedMs,
+    productionUsedMs: plant.productionUsedMs + acceptedMs,
     firstYieldGranted: plant.firstYieldGranted || firstYield,
     pending:
       quantity > 0
@@ -439,6 +450,7 @@ export function plantSpiritGardenSeed(
     settledAt: nowMs,
     productionMs: 0,
     storedProductionMs: 0,
+    productionUsedMs: 0,
     firstYieldGranted: false,
     branch: null,
     evolved: false,
@@ -454,6 +466,7 @@ export function chooseSpiritGardenBranch(
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
   const plant = selectedPlant(settled, plotIndex, plantId);
+  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
   if (!SPIRIT_GARDEN_BRANCHES.includes(branch))
     throw new Error('培养方向不存在');
   if (plant.branch) throw new Error('这株灵植已经选定培养方向');
@@ -476,17 +489,21 @@ export function getSpiritGardenPlantView(
       Math.min(QUALITY_VALUES.length - 1, QUALITY_ORDER[plant.quality] + 1)
     ]!;
   const minRealm = getSpiritFieldQualityBalance(nextQuality).minRealm;
-  const evolveReason = plant.evolved
-    ? '这株灵植已经完成蜕变'
-    : plant.quality === '神品'
-      ? '神品灵植已至品阶上限'
-      : !plant.branch
-        ? '先选定培养方向'
-        : plant.activeGrowthMs < growth.evolveMs
-          ? '灵植生长积累尚不足'
-          : REALM_ORDER[realm] < REALM_ORDER[minRealm]
-            ? `需要${minRealm}及以上境界`
-            : null;
+  const remainingProductionMs = remainingProductionTime(plant);
+  const exhausted = remainingProductionMs === 0;
+  const evolveReason = exhausted
+    ? '这株灵植已经采尽'
+    : plant.evolved
+      ? '这株灵植已经完成蜕变'
+      : plant.quality === '神品'
+        ? '神品灵植已至品阶上限'
+        : !plant.branch
+          ? '先选定培养方向'
+          : plant.activeGrowthMs < growth.evolveMs
+            ? '灵植生长积累尚不足'
+            : REALM_ORDER[realm] < REALM_ORDER[minRealm]
+              ? `需要${minRealm}及以上境界`
+              : null;
   const output = getSpiritGardenOutput(plant);
   return {
     ...plant,
@@ -503,10 +520,19 @@ export function getSpiritGardenPlantView(
     outputQuality: quality,
     output,
     ...growth,
-    nextYieldMs:
-      Math.max(0, growth.matureMs - plant.activeGrowthMs) ||
-      Math.max(0, output.cycleMs - plant.productionMs),
-    canBranch: !plant.branch && plant.activeGrowthMs >= growth.branchMs,
+    nextYieldMs: exhausted
+      ? 0
+      : Math.max(0, growth.matureMs - plant.activeGrowthMs) ||
+        output.cycleMs - plant.productionMs,
+    remainingProductionMs,
+    remainingHarvestCycles: exhausted
+      ? 0
+      : Math.floor(
+          (plant.productionMs + remainingProductionMs) / output.cycleMs,
+        ),
+    exhausted,
+    canBranch:
+      !exhausted && !plant.branch && plant.activeGrowthMs >= growth.branchMs,
     canEvolve: evolveReason === null,
     evolveReason,
     evolveCost: {
@@ -547,21 +573,29 @@ export function archiveSpiritGardenPlant(
   if (settled.collection.length >= SPIRIT_GARDEN_COLLECTION_LIMIT)
     throw new Error('保种收藏已满');
   const plant = selectedPlant(settled, plotIndex, plantId);
+  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
   return {
     ...replacePlant(settled, plotIndex, null),
     collection: [...settled.collection, plant],
   };
 }
-/** Retiring a dormant plant never removes its discoveries or unclaimed assets. */
+/** Retiring a dormant or exhausted plant preserves its discoveries. */
 export function retireSpiritGardenPlant(
   state: SpiritGardenState,
   plantId: string,
   nowMs: number,
+  plotIndex?: number,
 ): SpiritGardenState {
   const settled = settleSpiritGarden(state, nowMs);
-  const plant = settled.collection.find((entry) => entry.id === plantId);
+  const plant =
+    plotIndex === undefined
+      ? settled.collection.find((entry) => entry.id === plantId)
+      : selectedPlant(settled, plotIndex, plantId);
   if (!plant) throw new Error('收藏中没有找到这株灵植');
+  if (plotIndex !== undefined && remainingProductionTime(plant) > 0)
+    throw new Error('这株灵植尚未采尽');
   if (plant.pending.length > 0) throw new Error('请先领取这株灵植的待领产物');
+  if (plotIndex !== undefined) return replacePlant(settled, plotIndex, null);
   return {
     ...settled,
     collection: settled.collection.filter((entry) => entry.id !== plantId),
@@ -579,6 +613,7 @@ export function restoreSpiritGardenPlant(
     throw new Error('请先选择一块空田');
   const plant = settled.collection.find((entry) => entry.id === plantId);
   if (!plant) throw new Error('收藏中没有找到这株灵植');
+  if (remainingProductionTime(plant) === 0) throw new Error('这株灵植已经采尽');
   if (
     REALM_ORDER[realm] <
     REALM_ORDER[getSpiritFieldQualityBalance(outputQuality(plant)).minRealm]

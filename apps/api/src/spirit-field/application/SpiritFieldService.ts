@@ -537,16 +537,23 @@ export function retireSpiritField(
   actor: SpiritFieldActor,
   input: SpiritFieldRetireRequest,
 ) {
+  const clearingPlot = input.plotIndex !== undefined;
   return runGardenCommand(
     actor,
     input,
     'spirit_field_retire',
     async ({ garden, now }) => ({
       garden: gardenRule(() =>
-        retireSpiritGardenPlant(garden, input.plantId, now),
+        retireSpiritGardenPlant(garden, input.plantId, now, input.plotIndex),
       ),
-      detail: '结束一株收藏灵植的培育，保留图录成果',
-      result: { message: '已结束培育，图录成果已保留' },
+      detail: clearingPlot
+        ? '清理采尽的灵植，保留图录成果'
+        : '结束一株收藏灵植的培育，保留图录成果',
+      result: {
+        message: clearingPlot
+          ? '已清畦，可以重新播种'
+          : '已结束培育，图录成果已保留',
+      },
     }),
   );
 }
@@ -598,10 +605,10 @@ export function harvestSpiritField(
       }
       return {
         garden: harvested.state,
-        detail: '一键领取灵圃产物，灵植继续生长',
+        detail: '一键领取灵圃待领产物',
         harvestCount: field.selfHarvestCount + 1,
         result: {
-          message: '已领取全部产物，灵植继续生长',
+          message: '已领取全部产物',
           products: harvested.products,
           quantity: harvested.products.reduce(
             (sum, product) => sum + product.quantity,

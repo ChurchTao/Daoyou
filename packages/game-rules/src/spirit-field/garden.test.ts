@@ -37,6 +37,7 @@ import {
 const start = 1_000_000;
 const hour = 3_600_000;
 const day = 24 * hour;
+const lifetime = 28 * day;
 function seed(
   speciesId: Parameters<typeof buildSpiritGardenSeed>[0] = 'licorice',
   quality: Parameters<typeof buildSpiritGardenSeed>[1] = '凡品',
@@ -58,7 +59,7 @@ function planted() {
 const at = (offset: number) => start + offset;
 const matureMs = getSpiritGardenSpecies('licorice').matureMs;
 
-describe('permanent spirit garden', () => {
+describe('long-term spirit garden', () => {
   it('grows automatically and grants the first yield exactly once at maturity', () => {
     const initial = planted();
     expect(
@@ -66,6 +67,7 @@ describe('permanent spirit garden', () => {
     ).toEqual([]);
     const mature = settleSpiritGarden(initial, at(matureMs));
     expect(mature.plots[0]!.plant!.pending[0]!.quantity).toBe(1);
+    expect(mature.plots[0]!.plant!.productionUsedMs).toBe(0);
     expect(
       settleSpiritGarden(mature, at(matureMs)).plots[0]!.plant!.pending[0]!
         .quantity,
@@ -98,8 +100,8 @@ describe('permanent spirit garden', () => {
       state = settleSpiritGarden(state, at(matureMs + days * day));
     expect(state.plots[0]!.plant!.storedProductionMs).toBe(
       SPIRIT_GARDEN_OFFLINE_CAP_MS,
-      SPIRIT_GARDEN_SPECIES,
     );
+    expect(state.plots[0]!.plant!.productionUsedMs).toBe(7 * day);
     expect(state.plots[0]!.plant!.pending[0]!.quantity).toBe(43);
     const oneVisit = settleSpiritGarden(planted(), at(matureMs + 21 * day));
     expect(state.plots[0]!.plant!.pending).toEqual(
@@ -109,10 +111,12 @@ describe('permanent spirit garden', () => {
       getSpiritGardenPlantView(state.plots[0]!.plant!, '炼气').storageFull,
     ).toBe(true);
     const claim = harvestSpiritGarden(state, at(matureMs + 21 * day));
-    expect(
-      settleSpiritGarden(claim.state, at(matureMs + 21 * day + 4 * hour))
-        .plots[0]!.plant!.pending[0]!.quantity,
-    ).toBe(1);
+    const resumed = settleSpiritGarden(
+      claim.state,
+      at(matureMs + 21 * day + 4 * hour),
+    ).plots[0]!.plant!;
+    expect(resumed.pending[0]!.quantity).toBe(1);
+    expect(resumed.productionUsedMs).toBe(7 * day + 4 * hour);
   });
   it('keeps old material yields and carries partial growing time into a new branch', () => {
     const changed = chooseSpiritGardenBranch(
@@ -185,6 +189,9 @@ describe('permanent spirit garden', () => {
       decisionAt,
     );
     expect(evolved.plots[0]!.plant!.productionMs).toBe(12 * hour - 60_000);
+    expect(evolved.plots[0]!.plant!.productionUsedMs).toBe(
+      decisionAt - start - matureMs,
+    );
     expect(evolved.plots[0]!.plant!.pending).toEqual(
       before.plots[0]!.plant!.pending,
     );
@@ -275,6 +282,7 @@ describe('permanent spirit garden', () => {
       at(matureMs + hour),
     );
     const original = archived.collection[0]!;
+    expect(original.productionUsedMs).toBe(hour);
     const waiting = settleSpiritGarden(archived, at(30 * day));
     expect(waiting.collection[0]).toEqual(original);
     const restored = restoreSpiritGardenPlant(
@@ -289,6 +297,7 @@ describe('permanent spirit garden', () => {
     );
     const later = settleSpiritGarden(restored, at(30 * day + 3 * hour));
     expect(later.plots[1]!.plant!.pending[0]!.quantity).toBe(2);
+    expect(later.plots[1]!.plant!.productionUsedMs).toBe(4 * hour);
     expect(restored.collection).toHaveLength(0);
   });
   it('claims frozen collection yields without resuming collection growth', () => {
@@ -330,6 +339,114 @@ describe('permanent spirit garden', () => {
       '收藏中没有找到',
     );
     expect(state.plots[0]!.plant!.id).toBe('plant-1');
+  });
+  it('delivers the final completed round exactly once and only clears it after harvest', () => {
+    let state = planted();
+    for (const days of [7, 14, 21]) {
+      state = harvestSpiritGarden(state, at(matureMs + days * day)).state;
+    }
+    const terminalAt = at(matureMs + lifetime);
+    const nearlySpent = settleSpiritGarden(state, terminalAt - hour);
+    const growing = nearlySpent.plots[0]!.plant!;
+    expect(getSpiritGardenPlantView(growing, '炼气')).toMatchObject({
+      remainingProductionMs: hour,
+      remainingHarvestCycles: 1,
+      exhausted: false,
+    });
+    expect(() =>
+      retireSpiritGardenPlant(nearlySpent, 'plant-1', terminalAt - hour, 0),
+    ).toThrow('尚未采尽');
+
+    const spent = settleSpiritGarden(nearlySpent, terminalAt + day);
+    expect(
+      getSpiritGardenPlantView(spent.plots[0]!.plant!, '筑基'),
+    ).toMatchObject({
+      remainingProductionMs: 0,
+      remainingHarvestCycles: 0,
+      exhausted: true,
+      canBranch: false,
+      canEvolve: false,
+    });
+    expect(() =>
+      chooseSpiritGardenBranch(
+        spent,
+        0,
+        'plant-1',
+        'essence',
+        terminalAt + day,
+      ),
+    ).toThrow('已经采尽');
+    expect(() =>
+      archiveSpiritGardenPlant(spent, 0, 'plant-1', terminalAt + day),
+    ).toThrow('已经采尽');
+    expect(() =>
+      retireSpiritGardenPlant(spent, 'plant-1', terminalAt + day, 0),
+    ).toThrow('先领取');
+    const harvested = harvestSpiritGarden(spent, terminalAt + day);
+    expect(harvested.products[0]!.quantity).toBe(42);
+    expect(() =>
+      harvestSpiritGarden(harvested.state, terminalAt + 2 * day),
+    ).toThrow('没有可领取');
+    expect(() =>
+      retireSpiritGardenPlant(harvested.state, 'other', terminalAt + day, 0),
+    ).toThrow('已经变化');
+    const cleared = retireSpiritGardenPlant(
+      harvested.state,
+      'plant-1',
+      terminalAt + day,
+      0,
+    );
+    expect(cleared.plots[0]!.plant).toBeNull();
+    expect(getSpiritGardenMaturedCount(cleared)).toBe(1);
+    const resown = plantSpiritGardenSeed(
+      cleared,
+      0,
+      seed(),
+      'plant-2',
+      '炼气',
+      terminalAt + day,
+    );
+    expect(resown.plots[0]!.plant!.productionUsedMs).toBe(0);
+  });
+  it('discards only the unfinished final cycle when the budget runs out', () => {
+    const branched = chooseSpiritGardenBranch(
+      planted(),
+      0,
+      'plant-1',
+      'essence',
+      at(day),
+    );
+    let state = branched;
+    for (const days of [6, 12, 18, 24]) {
+      state = harvestSpiritGarden(state, at(matureMs + days * day)).state;
+    }
+    const terminalAt = at(matureMs + lifetime);
+    const spent = settleSpiritGarden(state, terminalAt + day);
+    expect(spent.plots[0]!.plant).toMatchObject({
+      productionUsedMs: lifetime,
+      productionMs: 0,
+      pending: [{ kind: 'spirit_fruit', quantity: 8 }],
+    });
+    expect(() =>
+      evolveSpiritGardenPlant(spent, 0, 'plant-1', '筑基', terminalAt + day),
+    ).toThrow('已经采尽');
+  });
+  it('accepts saves without lifetime history and starts counting from saved settlement', () => {
+    const before = settleSpiritGarden(planted(), at(matureMs + 5 * hour));
+    const plot = before.plots[0]!;
+    const { productionUsedMs, ...legacy } = plot.plant!;
+    expect(productionUsedMs).toBe(5 * hour);
+    const upgraded = parseSpiritGardenState({
+      ...before,
+      plots: [{ ...plot, plant: legacy }, ...before.plots.slice(1)],
+    });
+    expect(upgraded.plots[0]!.plant).toEqual({
+      ...legacy,
+      productionUsedMs: 0,
+    });
+    const later = settleSpiritGarden(upgraded, at(matureMs + 8 * hour));
+    expect(later.plots[0]!.plant!.productionUsedMs).toBe(3 * hour);
+    expect(later.plots[0]!.plant!.pending[0]!.quantity).toBe(3);
   });
   it('checks empty slots, plant identity, realm and collection capacity', () => {
     expect(() =>
