@@ -3,12 +3,8 @@ import type {
   SpiritGardenCodexEntry,
   SpiritGardenPlantView,
   SpiritGardenSpecies,
-  SpiritGardenSpeciesId,
 } from '@daoyou/game-domain/spirit-field';
-import {
-  SPIRIT_GARDEN_BRANCHES,
-  SPIRIT_GARDEN_SPECIES_IDS,
-} from '@daoyou/game-domain/spirit-field';
+import { SPIRIT_GARDEN_BRANCHES } from '@daoyou/game-domain/spirit-field';
 import { z } from 'zod';
 
 export const SpiritFieldPlotIndexSchema = z.number().int().min(0).max(5);
@@ -42,9 +38,6 @@ export const SpiritFieldEvolveRequestSchema = z
   .strict();
 export const SpiritFieldArchiveRequestSchema = z.object(plantCommand).strict();
 export const SpiritFieldRestoreRequestSchema = z.object(plantCommand).strict();
-export const SpiritFieldExchangeRequestSchema = z
-  .object({ ...command, speciesId: z.enum(SPIRIT_GARDEN_SPECIES_IDS) })
-  .strict();
 export type SpiritFieldSowRequest = z.infer<typeof SpiritFieldSowRequestSchema>;
 export type SpiritFieldHarvestRequest = z.infer<
   typeof SpiritFieldHarvestRequestSchema
@@ -61,9 +54,6 @@ export type SpiritFieldArchiveRequest = z.infer<
 export type SpiritFieldRestoreRequest = z.infer<
   typeof SpiritFieldRestoreRequestSchema
 >;
-export type SpiritFieldExchangeRequest = z.infer<
-  typeof SpiritFieldExchangeRequestSchema
->;
 export interface SpiritFieldSnapshot {
   profile: {
     version: number;
@@ -79,13 +69,6 @@ export interface SpiritFieldSnapshot {
   codex: SpiritGardenCodexEntry[];
   species: SpiritGardenSpecies[];
   pendingQuantity: number;
-  exchanges: {
-    speciesId: SpiritGardenSpeciesId;
-    unlocked: boolean;
-    requiredMatured: number;
-    spiritStones: number;
-    quality: '凡品';
-  }[];
 }
 export const SpiritFieldStarterRequestSchema = z.object(command).strict();
 export type SpiritFieldStarterRequest = z.infer<

@@ -1,11 +1,12 @@
 /** Public spirit-field capabilities. Keep implementation files private. */
 export {
   SPIRIT_GARDEN_BRANCHES,
-  SPIRIT_GARDEN_SPECIES_IDS,
+  SpiritGardenFruitEffectsSchema,
 } from '../spirit-field/garden.js';
 export type {
   SpiritGardenBranch,
   SpiritGardenCodexEntry,
+  SpiritGardenFruitEffect,
   SpiritGardenOutput,
   SpiritGardenPlant,
   SpiritGardenPlantView,

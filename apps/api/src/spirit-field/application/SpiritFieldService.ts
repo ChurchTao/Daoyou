@@ -5,7 +5,6 @@ import type {
   SpiritFieldArchiveRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
-  SpiritFieldExchangeRequest,
   SpiritFieldHarvestRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
@@ -28,15 +27,15 @@ import {
   archiveSpiritGardenPlant,
   buildSpiritFruitSpec,
   buildSpiritGardenSeed,
-  canExchangeSpiritGardenSeed,
   chooseSpiritGardenBranch,
   evolveSpiritGardenPlant,
-  getSpiritGardenExchangeCost,
   getSpiritGardenMaturedCount,
   getSpiritGardenPlantView,
+  getSpiritGardenSpecies,
   harvestSpiritGarden,
   migrateLegacySpiritGarden,
   plantSpiritGardenSeed,
+  resolveSpiritGardenSpecies,
   restoreSpiritGardenPlant,
   retireSpiritGardenPlant,
   settleSpiritGarden,
@@ -206,7 +205,7 @@ function seedGrant(material: Omit<Material, 'id'>): ItemGrant {
 }
 function productGrant(product: SpiritGardenProduct): ItemGrant {
   if (product.kind === 'spirit_fruit') {
-    if (!product.fruitFamily)
+    if (!product.fruitFamily && !product.fruitEffects)
       throw new SpiritFieldServiceError('灵果用途无效', 409);
     return {
       definitionId: 'consumable.v1',
@@ -220,6 +219,7 @@ function productGrant(product: SpiritGardenProduct): ItemGrant {
         score: 0,
         spec: buildSpiritFruitSpec({
           family: product.fruitFamily,
+          effects: product.fruitEffects,
           quality: product.quality,
         }),
       }),
@@ -305,13 +305,6 @@ export async function getSpiritFieldSnapshot(
         plant.pending.reduce((amount, product) => amount + product.quantity, 0),
       0,
     ),
-    exchanges: SPIRIT_GARDEN_SPECIES.map((species) => ({
-      speciesId: species.id,
-      unlocked: canExchangeSpiritGardenSeed(garden, species.id),
-      requiredMatured: species.unlockCount,
-      spiritStones: getSpiritGardenExchangeCost(species.id),
-      quality: '凡品',
-    })),
   };
 }
 
@@ -370,6 +363,7 @@ export function sowSpiritField(
         !resource.spec
       )
         throw new SpiritFieldServiceError('没有找到可播种的灵种', 404);
+      const seedName = `${getSpiritGardenSpecies(resolveSpiritGardenSpecies(resource.spec.plant)).name}的种子`;
       const plantId = globalThis.crypto.randomUUID();
       const next = gardenRule(() =>
         plantSpiritGardenSeed(
@@ -397,7 +391,7 @@ export function sowSpiritField(
             spiritFieldId: field.id,
             plotIndex: input.plotIndex,
             seedMaterialId: input.seedMaterialId,
-            plantName: resource.spec.plant.seedName,
+            plantName: seedName,
             seedQuality: resource.spec.plant.quality,
           },
           deduplicationKey: `spirit-garden-sow:${actor.cultivatorId}:${input.requestId}`,
@@ -406,7 +400,7 @@ export function sowSpiritField(
       );
       return {
         garden: next,
-        detail: `种下${resource.spec.plant.seedName}，开始长期培育`,
+        detail: `种下${seedName}，开始长期培育`,
         result: { message: '已种下灵植，将自动成长', plantId },
         resourceChanges: [bagChange('sown')],
       };
@@ -554,45 +548,6 @@ export function retireSpiritField(
       detail: '结束一株收藏灵植的培育，保留图录成果',
       result: { message: '已结束培育，图录成果已保留' },
     }),
-  );
-}
-
-export function exchangeSpiritFieldSeed(
-  actor: SpiritFieldActor,
-  input: SpiritFieldExchangeRequest,
-) {
-  return runGardenCommand(
-    actor,
-    input,
-    'spirit_field_redeem',
-    async ({ tx, garden, player }) => {
-      if (!canExchangeSpiritGardenSeed(garden, input.speciesId))
-        throw new SpiritFieldServiceError(
-          '图录研习尚未达到这枚灵种的兑换要求',
-          409,
-        );
-      const spiritStones = await spendStones(
-        actor,
-        player,
-        getSpiritGardenExchangeCost(input.speciesId),
-        tx,
-      );
-      const seed = buildSpiritGardenSeed(input.speciesId, '凡品');
-      const delivered = await grantInventory(
-        actor.cultivatorId,
-        [seedGrant(seed)],
-        tx,
-      );
-      return {
-        garden,
-        detail: `兑换${seed.name}`,
-        result: {
-          message: `已兑换${seed.name}`,
-          locations: locationsOf(delivered),
-        },
-        resourceChanges: [bagChange('exchanged'), currencyChange(spiritStones)],
-      };
-    },
   );
 }
 

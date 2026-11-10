@@ -1,15 +1,22 @@
-import { InkButton } from '@app/components/ui';
-import { SpiritStones } from '@app/components/ui/SpiritStones';
+import { InkTabs } from '@app/components/ui';
+import { QUALITY_VALUES, type Quality } from '@daoyou/constants/qualities';
 import type { SpiritFieldSnapshot } from '@daoyou/contracts/spirit-field';
 import type { SpiritGardenSpeciesId } from '@daoyou/game-domain/spirit-field';
+import { getSpiritGardenOutput } from '@daoyou/game-rules/spirit-field';
+import { useState } from 'react';
+import { formatGardenDuration } from '../garden-presentation';
 import { BotanicalArt } from './BotanicalArt';
+
+const qualityTabs = QUALITY_VALUES.map((quality) => ({
+  value: quality,
+  label: quality,
+}));
 
 interface GardenCodexProps {
   snapshot: SpiritFieldSnapshot;
   locked: boolean;
   selectedSpeciesId: SpiritGardenSpeciesId | null;
   onSelectSpecies: (id: SpiritGardenSpeciesId) => void;
-  onExchange: (id: SpiritGardenSpeciesId) => void;
 }
 
 export function GardenCodex({
@@ -17,59 +24,71 @@ export function GardenCodex({
   locked,
   selectedSpeciesId,
   onSelectSpecies,
-  onExchange,
 }: GardenCodexProps) {
+  const [quality, setQuality] = useState<Quality>(
+    () =>
+      snapshot.species.find((species) => species.id === selectedSpeciesId)
+        ?.quality ?? '凡品',
+  );
+  const speciesInQuality = snapshot.species.filter(
+    (species) => species.quality === quality,
+  );
   const selected =
-    snapshot.species.find((species) => species.id === selectedSpeciesId) ??
-    snapshot.species.find((species) =>
+    speciesInQuality.find((species) => species.id === selectedSpeciesId) ??
+    speciesInQuality.find((species) =>
       snapshot.codex.some(
         (entry) => entry.speciesId === species.id && entry.matured,
       ),
     ) ??
-    snapshot.species[0];
+    speciesInQuality[0];
   const record = snapshot.codex.find(
     (entry) => entry.speciesId === selected?.id,
   );
-  const exchange = snapshot.exchanges.find(
-    (entry) => entry.speciesId === selected?.id,
-  );
-  const nextUnlock = snapshot.exchanges
-    .filter((entry) => !entry.unlocked)
-    .sort((left, right) => left.requiredMatured - right.requiredMatured)[0];
-  const nextSpecies = snapshot.species.find(
-    (entry) => entry.id === nextUnlock?.speciesId,
-  );
-  const matured = snapshot.profile.maturedSpeciesCount;
+  const maturedInQuality = speciesInQuality.filter((species) =>
+    snapshot.codex.some(
+      (entry) => entry.speciesId === species.id && entry.matured,
+    ),
+  ).length;
+
   return (
     <section className="space-y-6" aria-label="灵植图录">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <p className="text-ink-secondary text-sm leading-6">
+          养过的草木，走过的生长之路，
+          <br />
+          皆记入这本百草志。
+        </p>
+        <p className="shrink-0 text-sm">
+          <span className="text-teal font-mono text-3xl">
+            {snapshot.profile.maturedSpeciesCount}
+          </span>
+          <span className="text-ink-secondary mx-1">/</span>
+          <span className="text-ink-secondary font-mono">
+            {snapshot.species.length}
+          </span>
+          <span className="text-ink-secondary ml-2">种已养成</span>
+        </p>
+      </div>
       <div className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <p className="text-ink-secondary text-sm leading-6">
-            养过的草木，走过的生长之路，
-            <br />
-            皆记入这本百草志。
-          </p>
-          <p className="shrink-0 text-sm">
-            <span className="text-teal font-mono text-3xl">{matured}</span>
-            <span className="text-ink-secondary mx-1">/</span>
-            <span className="text-ink-secondary font-mono">
-              {snapshot.species.length}
-            </span>
-            <span className="text-ink-secondary ml-2">种已养成</span>
-          </p>
-        </div>
-        <p className="border-ink/15 border-l-2 pl-3 text-sm leading-6">
-          {nextUnlock && nextSpecies ? (
-            <>
-              再养成{' '}
-              <span className="font-mono font-semibold">
-                {Math.max(0, nextUnlock.requiredMatured - matured)}
-              </span>{' '}
-              种不同灵植，即可兑换{nextSpecies.name}灵种。
-            </>
-          ) : (
-            '所有物种的灵种兑换均已开放，继续记下新的培养路线。'
-          )}
+        <InkTabs
+          items={qualityTabs}
+          activeValue={quality}
+          onChange={(value) => {
+            if (locked || !QUALITY_VALUES.includes(value as Quality)) return;
+            const nextQuality = value as Quality;
+            setQuality(nextQuality);
+            const first = snapshot.species.find(
+              (species) => species.quality === nextQuality,
+            );
+            if (first) onSelectSpecies(first.id);
+          }}
+        />
+        <p className="text-ink-secondary text-xs">
+          {quality}草木 · 已养成{' '}
+          <span className="font-mono">
+            {maturedInQuality}/{speciesInQuality.length}
+          </span>{' '}
+          种
         </p>
       </div>
       <div
@@ -77,7 +96,7 @@ export function GardenCodex({
         role="group"
         aria-label="选择图录物种"
       >
-        {snapshot.species.map((species) => {
+        {speciesInQuality.map((species) => {
           const entry = snapshot.codex.find(
             (item) => item.speciesId === species.id,
           );
@@ -96,7 +115,9 @@ export function GardenCodex({
                 muted={!entry?.matured && !active}
                 className="mx-auto w-full max-w-20"
               />
-              <span className="block text-sm">{species.name}</span>
+              <span className="block min-h-10 text-sm leading-5 text-balance">
+                {species.name}
+              </span>
               <span
                 className={`mt-1 block text-xs ${entry?.matured ? 'text-teal' : 'text-ink-secondary'}`}
               >
@@ -121,7 +142,7 @@ export function GardenCodex({
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3 className="text-xl font-semibold">{selected.name}</h3>
                 <span className="text-ink-secondary text-xs">
-                  {selected.element}行灵植
+                  {selected.quality} · {selected.element}行灵植
                 </span>
               </div>
               <p className="text-ink-secondary text-sm leading-6">
@@ -134,6 +155,11 @@ export function GardenCodex({
             {(['abundance', 'essence'] as const).map((branch) => {
               const route = selected.branches[branch];
               const known = record?.branches.includes(branch);
+              const output = getSpiritGardenOutput({
+                speciesId: selected.id,
+                quality: selected.quality,
+                branch,
+              });
               return (
                 <div
                   key={branch}
@@ -145,15 +171,16 @@ export function GardenCodex({
                       <span className="text-teal text-xs">已记载</span>
                     ) : null}
                   </div>
-                  <p className="mt-2 text-sm leading-6">{route.output.name}</p>
+                  <p className="mt-2 text-sm leading-6">{output.name}</p>
                   <p className="text-ink-secondary mt-1 text-xs leading-5">
-                    凡品每{' '}
+                    每{' '}
                     <span className="font-mono">
-                      {route.output.cycleMs / 3_600_000}
+                      {formatGardenDuration(output.cycleMs)}
                     </span>{' '}
-                    小时{' '}
-                    <span className="font-mono">{route.output.quantity}</span>{' '}
-                    份
+                    <span className="font-mono">{output.quantity}</span> 份
+                  </p>
+                  <p className="text-ink-secondary mt-2 text-xs leading-6">
+                    {output.description}
                   </p>
                 </div>
               );
@@ -173,36 +200,6 @@ export function GardenCodex({
               </dd>
             </div>
           </dl>
-          {exchange ? (
-            <div className="border-ink/15 space-y-3 border-t pt-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <p>
-                  {exchange.quality}灵种 <span className="font-mono">1</span> 份
-                </p>
-                <SpiritStones amount={exchange.spiritStones} />
-              </div>
-              {!exchange.unlocked ? (
-                <p className="text-ink-secondary text-sm leading-6">
-                  养成{' '}
-                  <span className="font-mono">{exchange.requiredMatured}</span>{' '}
-                  种不同灵植后，开放这枚灵种的兑换。
-                </p>
-              ) : snapshot.player.spiritStones < exchange.spiritStones ? (
-                <p className="text-crimson text-sm">当前灵石不足。</p>
-              ) : null}
-              <InkButton
-                variant="primary"
-                disabled={
-                  locked ||
-                  !exchange.unlocked ||
-                  snapshot.player.spiritStones < exchange.spiritStones
-                }
-                onClick={() => onExchange(selected.id)}
-              >
-                兑换{selected.name}灵种
-              </InkButton>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </section>

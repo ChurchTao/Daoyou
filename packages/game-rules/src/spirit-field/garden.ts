@@ -17,7 +17,7 @@ import { CreationTags } from '@daoyou/game-domain/legacy/tags';
 import {
   SPIRIT_FIELD_CULTIVATION_METHODS,
   SPIRIT_GARDEN_BRANCHES,
-  SPIRIT_GARDEN_SPECIES_IDS,
+  SpiritGardenFruitEffectsSchema,
   buildSpiritFieldSeedDetails,
   buildSpiritFieldSeedMaterialFromPlant,
   readSpiritFieldSeedSpec,
@@ -44,15 +44,19 @@ export {
   SPIRIT_GARDEN_SPECIES,
 };
 
+const speciesIdSchema = z.enum(
+  SPIRIT_GARDEN_SPECIES.map((species) => species.id),
+);
 const nonnegative = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const productSchema = z
   .object({
-    speciesId: z.enum(SPIRIT_GARDEN_SPECIES_IDS),
+    speciesId: speciesIdSchema,
     name: z.string().min(1).max(100),
     description: z.string().max(500),
     element: z.enum(ELEMENT_VALUES),
     kind: z.enum(['herb', 'tcdb', 'spirit_fruit']),
     fruitFamily: z.enum(PILL_FAMILY_VALUES).optional(),
+    fruitEffects: SpiritGardenFruitEffectsSchema.optional(),
     quality: z.enum(QUALITY_VALUES),
     quantity: z.number().int().min(1).max(10000),
   })
@@ -60,14 +64,15 @@ const productSchema = z
   .refine(
     (product) =>
       product.kind === 'spirit_fruit'
-        ? Boolean(product.fruitFamily)
-        : product.fruitFamily === undefined,
+        ? Boolean(product.fruitFamily) !== Boolean(product.fruitEffects)
+        : product.fruitFamily === undefined &&
+          product.fruitEffects === undefined,
     '灵果用途与产物类型不符',
   );
 const plantSchema = z
   .object({
     id: z.string().min(1).max(160),
-    speciesId: z.enum(SPIRIT_GARDEN_SPECIES_IDS),
+    speciesId: speciesIdSchema,
     seedName: z.string().min(1).max(100),
     quality: z.enum(QUALITY_VALUES),
     activeGrowthMs: nonnegative,
@@ -87,7 +92,7 @@ const plantSchema = z
   );
 const codexSchema = z
   .object({
-    speciesId: z.enum(SPIRIT_GARDEN_SPECIES_IDS),
+    speciesId: speciesIdSchema,
     matured: z.boolean(),
     branches: z.array(z.enum(SPIRIT_GARDEN_BRANCHES)).max(2),
     evolved: z.boolean(),
@@ -107,7 +112,7 @@ export const SpiritGardenStateSchema = z
       )
       .length(6),
     collection: z.array(plantSchema).max(SPIRIT_GARDEN_COLLECTION_LIMIT),
-    codex: z.array(codexSchema).max(SPIRIT_GARDEN_SPECIES_IDS.length),
+    codex: z.array(codexSchema).max(SPIRIT_GARDEN_SPECIES.length),
   })
   .strict()
   .superRefine((state, ctx) => {
@@ -125,6 +130,14 @@ export const SpiritGardenStateSchema = z
     )
       ctx.addIssue({ code: 'custom', message: '灵植图录重复' });
     for (const plant of plants) {
+      const species = getSpiritGardenSpecies(plant.speciesId);
+      if (
+        species.quality !== plant.quality &&
+        species.id !== species.legacySpeciesId
+      ) {
+        ctx.addIssue({ code: 'custom', message: '灵植物种与品质不符' });
+        continue;
+      }
       const output = getSpiritGardenOutput(plant);
       if (
         plant.productionMs >= output.cycleMs ||
@@ -136,7 +149,8 @@ export const SpiritGardenStateSchema = z
       )
         ctx.addIssue({ code: 'custom', message: '灵植待领产物归属无效' });
     }
-  });
+  })
+  .transform((state) => recordCodex(normalizeLegacyGardenSpecies(state)));
 export function parseSpiritGardenState(input: unknown): SpiritGardenState {
   return SpiritGardenStateSchema.parse(input);
 }
@@ -153,44 +167,100 @@ export function getSpiritGardenSpecies(id: SpiritGardenSpeciesId) {
   if (!species) throw new Error('灵植物种不存在');
   return species;
 }
+/** The first release allowed the eight base IDs at every quality. */
+export function getSpiritGardenSpeciesForQuality(
+  id: SpiritGardenSpeciesId,
+  quality: Quality,
+) {
+  const species = getSpiritGardenSpecies(id);
+  if (species.quality === quality) return species;
+  if (species.id === species.legacySpeciesId) {
+    const mapped = SPIRIT_GARDEN_SPECIES.find(
+      (entry) =>
+        entry.legacySpeciesId === species.id && entry.quality === quality,
+    );
+    if (mapped) return mapped;
+  }
+  throw new Error('灵植物种与品质不符');
+}
+function normalizeLegacyGardenSpecies(
+  state: SpiritGardenState,
+): SpiritGardenState {
+  const normalize = (plant: SpiritGardenPlant): SpiritGardenPlant => {
+    const species = getSpiritGardenSpeciesForQuality(
+      plant.speciesId,
+      plant.quality,
+    );
+    if (species.id === plant.speciesId) return plant;
+    return {
+      ...plant,
+      speciesId: species.id,
+      pending: plant.pending.map((product) => ({
+        ...product,
+        speciesId: species.id,
+      })),
+    };
+  };
+  return {
+    ...state,
+    plots: state.plots.map((plot) => ({
+      ...plot,
+      plant: plot.plant ? normalize(plot.plant) : null,
+    })),
+    collection: state.collection.map(normalize),
+  };
+}
 export function resolveSpiritGardenSpecies(
   seed: SpiritFieldPlantSnapshot,
 ): SpiritGardenSpeciesId {
   const named = SPIRIT_GARDEN_SPECIES.find(
     (entry) =>
-      seed.seedName === `${entry.name}籽` || seed.seedName === entry.name,
+      seed.seedName === `${entry.name}的种子` ||
+      seed.seedName === `${entry.name}籽` ||
+      seed.seedName === entry.name,
   );
-  if (named) return named.id;
-  if (seed.useTags.includes('beast-nurturing')) return 'beast_berry';
-  if (seed.useTags.includes('longevity')) return 'longevity_tree';
-  if (seed.useTags.includes('healing')) return 'dew_grass';
-  if (seed.useTags.includes('qi-restoration')) return 'moon_lotus';
-  return (
-    SPIRIT_GARDEN_SPECIES.find((entry) => entry.element === seed.element)?.id ??
-    'green_vine'
+  if (named) return getSpiritGardenSpeciesForQuality(named.id, seed.quality).id;
+  const candidates = SPIRIT_GARDEN_SPECIES.filter(
+    (entry) => entry.quality === seed.quality,
   );
+  const legacyId = seed.useTags.includes('beast-nurturing')
+    ? 'beast_berry'
+    : seed.useTags.includes('longevity')
+      ? 'longevity_tree'
+      : seed.useTags.includes('healing')
+        ? 'dew_grass'
+        : seed.useTags.includes('qi-restoration')
+          ? 'moon_lotus'
+          : null;
+  const species =
+    (legacyId &&
+      candidates.find((entry) => entry.legacySpeciesId === legacyId)) ||
+    candidates.find((entry) => entry.element === seed.element) ||
+    candidates[0];
+  if (!species) throw new Error('当前品质没有可匹配的灵植物种');
+  return species.id;
 }
 export function buildSpiritGardenSeed(
   speciesId: SpiritGardenSpeciesId,
   quality: Quality,
   quantity = 1,
 ): Omit<Material, 'id'> {
-  const species = getSpiritGardenSpecies(speciesId);
+  const species = getSpiritGardenSpeciesForQuality(speciesId, quality);
   const balance = getSpiritFieldQualityBalance(quality);
   const useTag =
-    speciesId === 'beast_berry'
+    species.legacySpeciesId === 'beast_berry'
       ? 'beast-nurturing'
-      : speciesId === 'longevity_tree'
+      : species.legacySpeciesId === 'longevity_tree'
         ? 'longevity'
-        : speciesId === 'dew_grass'
+        : species.legacySpeciesId === 'dew_grass'
           ? 'healing'
-          : speciesId === 'moon_lotus'
+          : species.legacySpeciesId === 'moon_lotus'
             ? 'qi-restoration'
             : 'alchemy';
   return buildSpiritFieldSeedMaterialFromPlant(
     {
-      id: `garden-seed:${speciesId}:${quality}`,
-      seedName: `${species.name}籽`,
+      id: `garden-seed:${species.id}:${quality}`,
+      seedName: `${species.name}的种子`,
       seedDescription: species.description,
       clueTexts: [
         `成株后稳定产出${species.baseOutput.name}`,
@@ -198,11 +268,11 @@ export function buildSpiritGardenSeed(
       ],
       element: species.element,
       growthForm:
-        speciesId === 'stone_fungus'
+        species.legacySpeciesId === 'stone_fungus'
           ? 'fungus'
-          : speciesId === 'longevity_tree'
+          : species.legacySpeciesId === 'longevity_tree'
             ? 'tree'
-            : speciesId === 'green_vine'
+            : species.legacySpeciesId === 'green_vine'
               ? 'vine'
               : 'herb',
       harvestPart: 'leaf',
@@ -224,7 +294,10 @@ export function buildSpiritGardenSeed(
   );
 }
 function times(plant: SpiritGardenPlant) {
-  const species = getSpiritGardenSpecies(plant.speciesId);
+  const species = getSpiritGardenSpeciesForQuality(
+    plant.speciesId,
+    plant.quality,
+  );
   const multiplier = 1 + QUALITY_ORDER[plant.quality] * 0.25;
   return {
     matureMs: Math.round(species.matureMs * multiplier),
@@ -233,9 +306,12 @@ function times(plant: SpiritGardenPlant) {
   };
 }
 export function getSpiritGardenOutput(
-  plant: SpiritGardenPlant,
+  plant: Pick<SpiritGardenPlant, 'speciesId' | 'quality' | 'branch'>,
 ): SpiritGardenOutput {
-  const species = getSpiritGardenSpecies(plant.speciesId);
+  const species = getSpiritGardenSpeciesForQuality(
+    plant.speciesId,
+    plant.quality,
+  );
   const output = plant.branch
     ? species.branches[plant.branch].output
     : species.baseOutput;
@@ -262,7 +338,8 @@ function addProduct(
     entry.name === product.name &&
     entry.kind === product.kind &&
     entry.quality === product.quality &&
-    entry.fruitFamily === product.fruitFamily;
+    entry.fruitFamily === product.fruitFamily &&
+    JSON.stringify(entry.fruitEffects) === JSON.stringify(product.fruitEffects);
   return pending.some(same)
     ? pending.map((entry) =>
         same(entry)
@@ -280,9 +357,13 @@ function productOf(
     speciesId: plant.speciesId,
     name: output.name,
     description: output.description,
-    element: getSpiritGardenSpecies(plant.speciesId).element,
+    element: getSpiritGardenSpeciesForQuality(plant.speciesId, plant.quality)
+      .element,
     kind: output.kind,
     ...(output.fruitFamily ? { fruitFamily: output.fruitFamily } : {}),
+    ...(output.fruitEffects
+      ? { fruitEffects: output.fruitEffects.map((effect) => ({ ...effect })) }
+      : {}),
     quality: outputQuality(plant),
     quantity,
   };
@@ -352,9 +433,10 @@ export function settleSpiritGarden(
 ): SpiritGardenState {
   if (!Number.isSafeInteger(nowMs) || nowMs < 0)
     throw new Error('灵田时间无效');
+  const normalized = normalizeLegacyGardenSpecies(state);
   return recordCodex({
-    ...state,
-    plots: state.plots.map((plot) => ({
+    ...normalized,
+    plots: normalized.plots.map((plot) => ({
       ...plot,
       plant: plot.plant ? settlePlant(plot.plant, nowMs) : null,
     })),
@@ -440,7 +522,10 @@ export function getSpiritGardenPlantView(
   plant: SpiritGardenPlant,
   realm: RealmType,
 ): SpiritGardenPlantView {
-  const species = getSpiritGardenSpecies(plant.speciesId);
+  const species = getSpiritGardenSpeciesForQuality(
+    plant.speciesId,
+    plant.quality,
+  );
   const growth = times(plant);
   const quality = outputQuality(plant);
   const nextQuality =
@@ -462,6 +547,7 @@ export function getSpiritGardenPlantView(
   const output = getSpiritGardenOutput(plant);
   return {
     ...plant,
+    speciesId: species.id,
     speciesName: species.name,
     description: species.description,
     stage: plant.evolved
@@ -589,21 +675,6 @@ export function harvestSpiritGarden(
 export function getSpiritGardenMaturedCount(state: SpiritGardenState): number {
   return state.codex.filter((entry) => entry.matured).length;
 }
-export function canExchangeSpiritGardenSeed(
-  state: SpiritGardenState,
-  speciesId: SpiritGardenSpeciesId,
-): boolean {
-  return (
-    getSpiritGardenMaturedCount(state) >=
-    getSpiritGardenSpecies(speciesId).unlockCount
-  );
-}
-export function getSpiritGardenExchangeCost(
-  speciesId: SpiritGardenSpeciesId,
-): number {
-  return 120 + getSpiritGardenSpecies(speciesId).unlockCount * 120;
-}
-
 /** Migrate once at the host's transaction time; never backfill years of passive production. */
 export function migrateLegacySpiritGarden(
   input: unknown,

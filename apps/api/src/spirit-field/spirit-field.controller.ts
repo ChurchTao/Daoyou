@@ -2,7 +2,6 @@ import {
   SpiritFieldArchiveRequestSchema,
   SpiritFieldBranchRequestSchema,
   SpiritFieldEvolveRequestSchema,
-  SpiritFieldExchangeRequestSchema,
   SpiritFieldHarvestRequestSchema,
   SpiritFieldRestoreRequestSchema,
   SpiritFieldRetireRequestSchema,
@@ -152,15 +151,5 @@ export class SpiritFieldController {
     input: z.infer<typeof SpiritFieldRetireRequestSchema>,
   ) {
     return this.field.retire(actor, input);
-  }
-
-  @Post('exchange')
-  @HttpCode(200)
-  exchange(
-    @CurrentCultivator() actor: ActiveCultivatorRef,
-    @JsonBody(new ZodPipe(SpiritFieldExchangeRequestSchema))
-    input: z.infer<typeof SpiritFieldExchangeRequestSchema>,
-  ) {
-    return this.field.exchange(actor, input);
   }
 }

@@ -2,7 +2,6 @@ import type {
   SpiritFieldArchiveRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
-  SpiritFieldExchangeRequest,
   SpiritFieldHarvestRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
@@ -17,7 +16,6 @@ import {
   branchSpiritField,
   claimSpiritFieldStarterSeeds,
   evolveSpiritField,
-  exchangeSpiritFieldSeed,
   getSpiritFieldSnapshot,
   harvestSpiritField,
   restoreSpiritField,
@@ -69,14 +67,5 @@ export class SpiritFieldService {
 
   async retire(actor: ActiveCultivatorRef, input: SpiritFieldRetireRequest) {
     return toPlayerStateMutationResponse(await retireSpiritField(actor, input));
-  }
-
-  async exchange(
-    actor: ActiveCultivatorRef,
-    input: SpiritFieldExchangeRequest,
-  ) {
-    return toPlayerStateMutationResponse(
-      await exchangeSpiritFieldSeed(actor, input),
-    );
   }
 }

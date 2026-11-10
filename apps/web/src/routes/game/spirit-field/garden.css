@@ -364,9 +364,7 @@
   position: absolute;
   inset: 0;
   display: block;
-  background-image: url('/assets/spirit-garden/botanical-atlas.webp');
-  background-repeat: no-repeat;
-  background-size: 400% 200%;
+  overflow: hidden;
   mix-blend-mode: multiply;
   mask-image: radial-gradient(
     ellipse 73% 66% at 50% 52%,

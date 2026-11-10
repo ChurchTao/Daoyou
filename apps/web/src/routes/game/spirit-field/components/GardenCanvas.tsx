@@ -46,12 +46,6 @@ export function GardenCanvas({
       ) ?? occupied[0]);
   const notedPlant = notedPlot?.plant;
   const opportunity = notedPlant ? getPlantOpportunity(notedPlant) : null;
-  const nextExchange = snapshot.exchanges
-    .filter((entry) => !entry.unlocked)
-    .sort((a, b) => a.requiredMatured - b.requiredMatured)[0];
-  const nextSpecies = snapshot.species.find(
-    (entry) => entry.id === nextExchange?.speciesId,
-  );
   const allEmpty = occupied.length === 0;
   const newGarden =
     allEmpty &&
@@ -323,21 +317,8 @@ export function GardenCanvas({
           <div className="garden-codex-goal">
             <span>百草研习</span>
             <p>
-              {nextExchange && nextSpecies ? (
-                <>
-                  再养成{' '}
-                  <span className="font-mono">
-                    {Math.max(
-                      0,
-                      nextExchange.requiredMatured -
-                        snapshot.profile.maturedSpeciesCount,
-                    )}
-                  </span>{' '}
-                  种，开放{nextSpecies.name}灵种
-                </>
-              ) : (
-                '已开放全部灵种，继续记录不同培养方向。'
-              )}
+              记录 <span className="font-mono">{snapshot.species.length}</span>{' '}
+              种草木与各自的培养路线。
             </p>
             <InkButton
               variant="secondary"

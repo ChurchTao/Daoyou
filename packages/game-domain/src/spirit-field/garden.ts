@@ -1,19 +1,43 @@
 import type { ElementType } from '@daoyou/constants/elements';
 import type { Quality } from '@daoyou/constants/qualities';
 import type { RealmType } from '@daoyou/constants/realms';
-import type { PillFamily } from '../consumable.js';
+import { z } from 'zod';
+import { PILL_FAMILY_VALUES, type PillFamily } from '../consumable.js';
 
-export const SPIRIT_GARDEN_SPECIES_IDS = [
-  'green_vine',
-  'dew_grass',
-  'red_fruit',
-  'moon_lotus',
-  'stone_fungus',
-  'beast_berry',
-  'jade_bamboo',
-  'longevity_tree',
-] as const;
-export type SpiritGardenSpeciesId = (typeof SPIRIT_GARDEN_SPECIES_IDS)[number];
+/** IDs are authored in the content catalog; runtime validators bind to that registry. */
+export type SpiritGardenSpeciesId = string;
+export interface SpiritGardenFruitEffect {
+  family: Exclude<PillFamily, 'hybrid'>;
+  share: number;
+}
+export const SpiritGardenFruitEffectsSchema = z
+  .array(
+    z
+      .object({
+        family: z.enum(PILL_FAMILY_VALUES).exclude(['hybrid']),
+        share: z.number().finite().positive().max(1),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(3)
+  .superRefine((effects, ctx) => {
+    if (
+      Math.abs(effects.reduce((sum, effect) => sum + effect.share, 0) - 1) >
+      1e-8
+    )
+      ctx.addIssue({ code: 'custom', message: '灵果药效份额必须合计为一' });
+    if (new Set(effects.map((effect) => effect.family)).size !== effects.length)
+      ctx.addIssue({ code: 'custom', message: '灵果药效不可重复' });
+    if (
+      effects.some((effect) => effect.family === 'beast_cultivation') &&
+      effects.length !== 1
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message: '灵兽修为效果不可与人物效果混合',
+      });
+  });
 export const SPIRIT_GARDEN_BRANCHES = ['abundance', 'essence'] as const;
 export type SpiritGardenBranch = (typeof SPIRIT_GARDEN_BRANCHES)[number];
 export interface SpiritGardenOutput {
@@ -21,6 +45,7 @@ export interface SpiritGardenOutput {
   description: string;
   kind: 'herb' | 'tcdb' | 'spirit_fruit';
   fruitFamily?: PillFamily;
+  fruitEffects?: SpiritGardenFruitEffect[];
   quantity: number;
   cycleMs: number;
 }
@@ -29,10 +54,12 @@ export interface SpiritGardenSpecies {
   name: string;
   description: string;
   element: ElementType;
+  quality: Quality;
+  legacySpeciesId: string;
+  portrait: { atlas: string; index: number };
   matureMs: number;
   branchMs: number;
   evolveMs: number;
-  unlockCount: number;
   baseOutput: SpiritGardenOutput;
   branches: Record<
     SpiritGardenBranch,
@@ -46,6 +73,7 @@ export interface SpiritGardenProduct {
   element: ElementType;
   kind: 'herb' | 'tcdb' | 'spirit_fruit';
   fruitFamily?: PillFamily;
+  fruitEffects?: SpiritGardenFruitEffect[];
   quality: Quality;
   quantity: number;
 }

@@ -1,9 +1,10 @@
+import { GameImage } from '@app/components/ui/GameImage';
 import { cn } from '@app/lib/cn';
-import {
-  SPIRIT_GARDEN_SPECIES_IDS,
-  type SpiritGardenPlantView,
-  type SpiritGardenSpeciesId,
+import type {
+  SpiritGardenPlantView,
+  SpiritGardenSpeciesId,
 } from '@daoyou/game-domain/spirit-field';
+import { getSpiritGardenSpecies } from '@daoyou/game-rules/spirit-field';
 
 export interface BotanicalArtProps {
   speciesId: SpiritGardenSpeciesId;
@@ -12,14 +13,14 @@ export interface BotanicalArtProps {
   muted?: boolean;
 }
 
-/** Botanical illustration atlas, separate from the shared item-icon protocol. */
+/** Botanical specimen art uses the species' configured atlas and the shared artwork setting. */
 export function BotanicalArt({
   speciesId,
   stage = 'mature',
   className,
   muted = false,
 }: BotanicalArtProps) {
-  const index = SPIRIT_GARDEN_SPECIES_IDS.indexOf(speciesId);
+  const { portrait } = getSpiritGardenSpecies(speciesId);
   return (
     <span
       aria-hidden="true"
@@ -30,12 +31,21 @@ export function BotanicalArt({
         className,
       )}
     >
-      <span
-        className="botanical-art__print"
-        style={{
-          backgroundPosition: `${(index % 4) * (100 / 3)}% ${Math.floor(index / 4) * 100}%`,
-        }}
-      />
+      <span className="botanical-art__print">
+        <GameImage
+          src={`/assets/spirit-garden/${portrait.atlas}.webp`}
+          alt=""
+          loading="lazy"
+          draggable={false}
+          className="absolute max-w-none"
+          style={{
+            width: '400%',
+            height: '200%',
+            left: `${-(portrait.index % 4) * 100}%`,
+            top: `${-Math.floor(portrait.index / 4) * 100}%`,
+          }}
+        />
+      </span>
     </span>
   );
 }

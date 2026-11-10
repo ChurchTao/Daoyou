@@ -4,7 +4,6 @@ import type {
   SpiritFieldArchiveRequest,
   SpiritFieldBranchRequest,
   SpiritFieldEvolveRequest,
-  SpiritFieldExchangeRequest,
   SpiritFieldRestoreRequest,
   SpiritFieldRetireRequest,
   SpiritFieldSnapshot,
@@ -21,8 +20,7 @@ export type GardenAction =
   | { endpoint: 'evolve'; input: Input<SpiritFieldEvolveRequest> }
   | { endpoint: 'archive'; input: Input<SpiritFieldArchiveRequest> }
   | { endpoint: 'restore'; input: Input<SpiritFieldRestoreRequest> }
-  | { endpoint: 'retire'; input: Input<SpiritFieldRetireRequest> }
-  | { endpoint: 'exchange'; input: Input<SpiritFieldExchangeRequest> };
+  | { endpoint: 'retire'; input: Input<SpiritFieldRetireRequest> };
 export interface GardenOutcome {
   action: GardenAction;
   result: {

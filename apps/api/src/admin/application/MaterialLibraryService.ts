@@ -314,7 +314,6 @@ export async function generateSpiritSeedLibraryEntries(input: {
   const generationOptions = {
       guaranteedRank: input.request.quality,
       specifiedElement: input.request.element,
-      includeLockedSpecies: true,
   };
   for (let remaining = input.request.count; remaining > 0; remaining -= 8) {
     generated.push(

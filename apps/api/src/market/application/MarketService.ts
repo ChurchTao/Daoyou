@@ -22,6 +22,8 @@ import {
 } from '@daoyou/game-content/materials';
 import {
   getSpiritFieldMarketSeedSlotCount,
+  getSpiritGardenSpecies,
+  resolveSpiritGardenSpecies,
 } from '@daoyou/game-rules/spirit-field';
 import { readSpiritFieldSeedSpec } from '@daoyou/game-domain/spirit-field';
 import { MaterialFactsSchema } from '@daoyou/game-domain/inventory';
@@ -472,7 +474,9 @@ function sanitizeListing(listing: InternalMarketListing): MarketListing {
     id: listing.id,
     nodeId: listing.nodeId,
     layer: listing.layer,
-    name: listing.name,
+    name: seedSpec
+      ? `${getSpiritGardenSpecies(resolveSpiritGardenSpecies(seedSpec.plant)).name}的种子`
+      : listing.name,
     type: listing.type,
     rank: listing.rank,
     element: listing.element,
@@ -1189,7 +1193,7 @@ export async function prepareBatchMarketPurchase(input: BatchBuyInput) {
         if (!delivered) throw new Error('坊市物品入库失败');
         deliveries.push({
           listingId: item.id,
-          name: item.name,
+          name: sanitizeListing(item).name,
           quantity: item.quantity,
           location: delivered.location,
         });

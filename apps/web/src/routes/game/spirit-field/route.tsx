@@ -706,9 +706,6 @@ export default function SpiritFieldPage() {
               locked={locked}
               selectedSpeciesId={selectedSpeciesId}
               onSelectSpecies={setSelectedSpeciesId}
-              onExchange={(id) =>
-                void act({ endpoint: 'exchange', input: { speciesId: id } })
-              }
             />
           ) : null}
           {panel?.view === 'retire' && retired ? (
