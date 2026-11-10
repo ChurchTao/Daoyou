@@ -21,6 +21,11 @@ export const adminNavItems: AdminNavItem[] = [
     href: '/admin/accounts',
   },
   {
+    title: '世界聊天',
+    description: '查看频道记录与管理玩家禁言',
+    href: '/admin/world-chat',
+  },
+  {
     title: '跨服转入审核',
     description: '审核申请与维护来源服公钥白名单',
     href: '/admin/transfers',

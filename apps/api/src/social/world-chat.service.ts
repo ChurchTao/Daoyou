@@ -11,6 +11,7 @@ import {
   getChatCooldownRemaining,
 } from '@server/lib/redis/worldChatLimiter.js';
 import { listMessages } from '@server/lib/repositories/worldChatRepository.js';
+import { assertWorldChatCanSend } from '@server/lib/redis/worldChatModeration.js';
 import { createAndPublishWorldChatMessage } from '@server/social/application/chatDelivery.js';
 import { createCultivatorChatMessage } from '@server/social/application/chatMessageApplication.js';
 import { RedPacketService } from './application/RedPacketService.js';
@@ -40,6 +41,7 @@ export class WorldChatService {
     actor: ActiveCultivatorRef,
     request: WorldChatCreateMessageRequest,
   ) {
+    await assertWorldChatCanSend(actor.userId);
     if (request.messageType === 'red_packet')
       return this.packets.create(actor, request, {
         channel: 'world',

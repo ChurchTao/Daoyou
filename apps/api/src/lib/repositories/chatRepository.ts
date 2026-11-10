@@ -21,6 +21,7 @@ import { readCultivatorTitles } from '@server/cultivator/facts.js';
 import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createTransactionalMessage } from './transactionalMessageRepository.js';
+import { assertWorldChatCanSend } from '@server/lib/redis/worldChatModeration.js';
 
 export const CHAT_RETENTION_DAYS = 30;
 export type ChatScope = {
@@ -211,6 +212,7 @@ export async function insertChatMessage(
     { channel: input.channel, sectId: input.sectId },
     tx,
   );
+  if (input.channel === 'world') await assertWorldChatCanSend(input.senderUserId);
   const [row] = await tx
     .insert(chatMessages)
     .values({
