@@ -73,6 +73,10 @@
 }
 
 :root {
+  /* 两档纸纹的独立底色；无纹理时沿用 --color-sheet。 */
+  --color-sheet-fine: #f7f5ef;
+  --color-sheet-classic: #f0e7d8;
+
   /* 正文先用中文字体，太极等已有符号保持文楷。系统表情排在雅黑之前，
      避免中文回退字体把表情画成黑白。图标另用 --font-emoji。 */
   --font-lxgwwenkai: 'LXGWWenKai', 'Segoe UI Emoji', 'Apple Color Emoji',
